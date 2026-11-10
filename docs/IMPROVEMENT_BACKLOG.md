@@ -21,8 +21,8 @@ Status as of 2026-11-10. Waves A and B were approved for dispatch on that date.
 | # | Decision | Status |
 |---|---|---|
 | D1 | **Recorded events vs. fixes.** WP-B1, WP-B2 and WP-B3 change how games play out, so the 20 recorded events no longer replay identically. | **Decided: fix forward, no compatibility flag.** The recorded data will be wiped and restarted from Season 1 on the fixed sim at a later date; see [ROADMAP.md](ROADMAP.md) §1. WP-B4 below is replaced by that roadmap item. |
-| D2 | **Licence** for the code, plus a third-party notice (OPS-18). | Open. |
-| D3 | **Dev-dependency major upgrades** (LIB-20): vite 5→6/7, vitest 2→4, tsx. Production is clean; the advisories affect the dev server and test runner. | Open. |
+| D2 | **Licence** for the code, plus a third-party notice (OPS-18). | **Decided: MIT.** `LICENSE` and `NOTICE.md` added. |
+| D3 | **Dev-dependency major upgrades** (LIB-20): vite 5→6/7, vitest 2→4, tsx. Production is clean; the advisories affect the dev server and test runner. | **Decided: do it now**, as part of the current change. |
 | D4 | **Stale one-off scripts** (OPS-12 and appendix). | Applied: moved to `scripts/archive/`. |
 | D5 | **Tracked data nobody reads** (OPS-11, OPS-17): the duplicate `data/tournaments/`, `data/reviews/*.json`, superseded report write-ups. | **Decided: delete.** Done when Wave A is merged, after scripts point at the single events copy and doc references are checked. |
 | D6 | **Deploy method** (OPS-9): keep publishing to the `gh-pages` branch, or switch to GitHub's official Pages actions. | **Decided: switch, as part of the refactoring wave** (WP-C5; ROADMAP.md §2). Wave A keeps the current method. |

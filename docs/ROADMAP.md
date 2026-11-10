@@ -48,5 +48,4 @@ Today every push to `main` builds and force-pushes `dist/` to the `gh-pages` bra
 
 ## Open decisions
 
-- **Licence.** The repository has no LICENSE file. Needs the owner's choice for the code, plus a third-party notice for card data and collected deck lists.
-- **Dev-dependency major upgrades** (vite, vitest, tsx): six advisories affecting the dev server and test runner only; production dependencies are clean.
+None. Settled on 2026-11-10: the code is MIT-licensed (`LICENSE`, with third-party content listed in `NOTICE.md`), and the dev-dependency major upgrades (vite, vitest, tsx) are done as part of the current change rather than deferred.

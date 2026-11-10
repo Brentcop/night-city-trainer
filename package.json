@@ -2,6 +2,7 @@
   "name": "cyberpunk-tcg-trainer",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "description": "Local Cyberpunk TCG simulator: deck builder, meta/guides, play vs bots, and bot-vs-bot deck testing.",
   "engines": {

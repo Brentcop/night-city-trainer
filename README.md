@@ -116,6 +116,8 @@ The app is fully static: hash routing, relative `base`, and no server. `.github/
 ## Sources and credits
 Every deck file carries a provenance header (`// Origin:`, `// Author:`, `// Source:`, `// Via:`, `// Credits:`, `// Parents:`, `// Added:`). These headers are shown on the Decks, Strategy, Seasons and **Credits** pages. Collected lists credit their authors and link back to choom.gg. Saved copies of third-party pages used during research stay local in `data/raw/` and are not published.
 
+The code is MIT-licensed ([LICENSE](LICENSE)). Card data, rules, artwork and collected deck lists belong to their owners and are not covered by that licence; see [NOTICE.md](NOTICE.md).
+
 ## Tests
 
 ```bash
