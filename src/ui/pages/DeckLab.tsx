@@ -24,6 +24,7 @@ const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   { key: 'top8', label: 'Top 8 rated', hint: 'The 8 strongest decks by tournament power rating' },
 ];
 /** Bred decks' quick test: every deck plays the same games, so the numbers compare. */
+const NOT_SAVED = 'Not saved: this browser’s storage is full or blocked.';
 const QUICK_TEST_SEED = 77_000;
 const QUICK_TEST_GAMES = 56;
 const EFFORT = {
@@ -151,7 +152,10 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     if (!finalDeck) return;
     const want = finalDeck.name.endsWith('(tuned)') ? finalDeck.name : `${finalDeck.name} (tuned)`;
     const name = customSaveName(want, lib) ?? want;
-    upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [] });
+    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [] })) {
+      window.alert(NOT_SAVED);
+      return;
+    }
     setSaved(name);
   };
   const finished = outcome?.kind === 'done';
@@ -377,7 +381,10 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   };
   const save = (b: Bred) => {
     const name = customSaveName(b.deck.name, lib) ?? b.deck.name;
-    upsertCustom({ ...b.deck, name, sideboard: [] });
+    if (!upsertCustom({ ...b.deck, name, sideboard: [] })) {
+      window.alert(NOT_SAVED);
+      return;
+    }
     setSavedAs((s) => ({ ...s, [b.deck.name]: name }));
   };
   const asLib = (b: Bred): LibraryDeck => ({ file: `lab:${b.deck.name}`, deck: b.deck, kind: 'custom', prov: { origin: 'Night City Trainer bred deck (Deck Lab)' } });

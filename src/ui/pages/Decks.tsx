@@ -151,7 +151,10 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
       return;
     }
     const deck = { ...draft, name };
-    upsertCustom(deck);
+    if (!upsertCustom(deck)) {
+      setImportMsg('Not saved: this browser’s storage is full or blocked. Export the list to keep it.');
+      return;
+    }
     setDraft(deck);
     setBaseline(deckSig(deck));
     setVersion((v) => v + 1);
@@ -161,7 +164,10 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
   const remove = () => {
     if (!selected || selected.kind !== 'custom' || isBuiltin(selected)) return;
     if (!window.confirm(`Delete “${selected.deck.name}” from My decks? This can't be undone.`)) return;
-    deleteCustom(selected.deck.name);
+    if (!deleteCustom(selected.deck.name)) {
+      setImportMsg('Not deleted: this browser’s storage is blocked.');
+      return;
+    }
     setVersion((v) => v + 1);
     // the draft stays open as unsaved work, so an accidental delete can be undone with Save
     setSel('');
