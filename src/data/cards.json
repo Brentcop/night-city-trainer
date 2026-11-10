@@ -19,7 +19,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "106",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/cb23a651-dd1d-48f8-aca3-8d33fef79fdd/render-mpvmnn4t.webp",
+  "eid": "cb-alt-cunningham-soulkiller-architect",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/alt-cunningham-soulkiller-architect"
  },
  {
@@ -41,7 +42,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "107",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/ba766c1d-d929-4a22-bc91-7400784536c8/render-mpvmo7cq.webp",
+  "eid": "cb-evelyn-parker-beautiful-enigma",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/evelyn-parker-beautiful-enigma"
  },
  {
@@ -63,7 +65,8 @@
   "sellable": true,
   "set": "theheistretailstarterdeck",
   "number": "011",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/a33d3324-fe48-4a9f-80a8-8545a0a4727f/render-mpwcl76z.webp",
+  "eid": "cb-jackie-welles-pour-one-out-for-me",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/jackie-welles-pour-one-out-for-me"
  },
  {
@@ -87,7 +90,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "108",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/8d0ad645-ac9a-4ecb-93d0-4c2061a4c477/render-mpvmp40n.webp",
+  "eid": "cb-judy-a-lvarez-braindance-maestro",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/judy-a-lvarez-braindance-maestro"
  },
  {
@@ -110,7 +114,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "110",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/8f7a7d0b-5935-4732-a9ba-76b19467d5a0/render-mpvmnkvw.webp",
+  "eid": "cb-wakako-okada-peace-and-harmony",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/wakako-okada-peace-and-harmony"
  },
  {
@@ -136,7 +141,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "109",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2647f881-5a7e-4ffb-b231-6574dc531f43/render-mpvmpbjg.webp",
+  "eid": "cb-sasha-yakovleva-won-t-let-you-down",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/sasha-yakovleva-won-t-let-you-down"
  },
  {
@@ -161,7 +167,8 @@
   "sellable": true,
   "set": "theheistretailstarterdeck",
   "number": "012",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/4a5591f9-743e-4186-8deb-560971bb3f82/render-mpwcmh92.webp",
+  "eid": "cb-v-corporate-exile",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/v-corporate-exile"
  },
  {
@@ -186,7 +193,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "071",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/0f6e52f0-511f-4ae9-a380-5e718b26e58a/render-mpvmmf2e.webp",
+  "eid": "cb-goro-takemura-vengeful-bodyguard",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/goro-takemura-vengeful-bodyguard"
  },
  {
@@ -210,7 +218,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "072",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2c4a77e8-0fda-4ec1-9519-1d15e0f172b3/render-mpvmk5xh.webp",
+  "eid": "cb-hanako-arasaka-daughter-of-the-emperor",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/hanako-arasaka-daughter-of-the-emperor"
  },
  {
@@ -234,7 +243,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "074",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/c7f0583f-2493-4e1f-9967-977bc0c6fa15/render-mpvmm9qu.webp",
+  "eid": "cb-padre-man-of-the-cross",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/padre-man-of-the-cross"
  },
  {
@@ -258,7 +268,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "075",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/6e4ee31b-82d1-421c-b658-ba3f79520365/render-mpvmowoc.webp",
+  "eid": "cb-panam-palmer-nomad-cavalry",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/panam-palmer-nomad-cavalry"
  },
  {
@@ -281,7 +292,8 @@
   "sellable": true,
   "set": "embracingpowerretailstarterdeck",
   "number": "013",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/6ac7adce-01af-4b5b-956b-698eda0bed14/render-mpwbxd5h.webp",
+  "eid": "cb-saburo-arasaka-stubborn-patriarch",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/saburo-arasaka-stubborn-patriarch"
  },
  {
@@ -307,7 +319,8 @@
   "sellable": true,
   "set": "embracingpowerretailstarterdeck",
   "number": "012",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2ba68619-7050-44c5-b0ce-b32d48b8f40f/render-mpwbuq0n.webp",
+  "eid": "cb-goro-takemura-hands-unclean",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/goro-takemura-hands-unclean"
  },
  {
@@ -331,7 +344,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "073",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/9f61ebda-53fd-4b23-8383-d0e0bd32b847/render-mpvmloq3.webp",
+  "eid": "cb-jackie-welles-mama-s-favorite",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/jackie-welles-mama-s-favorite"
  },
  {
@@ -353,7 +367,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "002",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/9a298f42-3a9f-4510-b2fd-9cf1b34ade27/render-mpvml9cl.webp",
+  "eid": "cb-dexter-deshawn-off-the-grid",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/dexter-deshawn-off-the-grid"
  },
  {
@@ -377,7 +392,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "003",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/a8a7d286-0c66-4f01-aca7-45570474d9e4/render-mpvmpqtq.webp",
+  "eid": "cb-johnny-silverhand-rocking-renegade",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/johnny-silverhand-rocking-renegade"
  },
  {
@@ -400,7 +416,8 @@
   "sellable": true,
   "set": "embracingpowerretailstarterdeck",
   "number": "001",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/f70b75b5-aa2f-4c2d-b8c3-01fcb2a670ec/render-mpwbzegh.webp",
+  "eid": "cb-yorinobu-arasaka-embracing-destruction",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/yorinobu-arasaka-embracing-destruction"
  },
  {
@@ -424,7 +441,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "005a",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3fc63c58-5954-4744-a5af-047bfc5cb159/render-mq9zzfnq.webp",
+  "eid": "cb-v-streetkid",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/v-streetkid"
  },
  {
@@ -449,7 +467,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "004",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3e2e228b-dbfb-484b-b82d-6972ff184aab/render-mpvml5uz.webp",
+  "eid": "cb-royce-psycho-on-the-edge",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/royce-psycho-on-the-edge"
  },
  {
@@ -474,7 +493,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "001",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/a9c1137e-2e33-4293-9dcc-9351c9a0bbee/render-mpvmot9g.webp",
+  "eid": "cb-adam-smasher-ender-of-legends",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/adam-smasher-ender-of-legends"
  },
  {
@@ -499,7 +519,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "036",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/aaac486c-dbfd-4137-b373-24a2df29522c/render-mpvmkj5v.webp",
+  "eid": "cb-dum-dum-maelstrom-triggerman",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/dum-dum-maelstrom-triggerman"
  },
  {
@@ -522,7 +543,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "037",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e54e06c0-3f9c-412a-8dea-942eebecd687/render-mpvmls9g.webp",
+  "eid": "cb-kerry-eurodyne-axe-attitude-audience",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/kerry-eurodyne-axe-attitude-audience"
  },
  {
@@ -544,7 +566,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "038",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/dbbf4a6c-340d-4356-81ad-776940a7ee32/render-mpvmoclb.webp",
+  "eid": "cb-muamar-reyes-el-capita-n",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/muamar-reyes-el-capita-n"
  },
  {
@@ -568,7 +591,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "039",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/b3895f75-e147-49b0-a6d8-6fb35b356b2e/render-mpvmn1j1.webp",
+  "eid": "cb-river-ward-detective-on-the-hunt",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/river-ward-detective-on-the-hunt"
  },
  {
@@ -590,7 +614,8 @@
   "sellable": true,
   "set": "theheistretailstarterdeck",
   "number": "001",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7d539173-4022-402e-a9f4-100338935fd2/render-mpwcnsje.webp",
+  "eid": "cb-viktor-vektor-sit-down-and-relax",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/viktor-vektor-sit-down-and-relax"
  },
  {
@@ -614,7 +639,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "040",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2dd7547d-5098-4082-a98b-f39a583a222f/render-mpvmmwyz.webp",
+  "eid": "cb-rogue-amendiares-preem-solo",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/rogue-amendiares-preem-solo"
  },
  {
@@ -639,7 +665,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "132",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/91f9d30c-f74d-4be4-8505-52f05d309c92/render-mpvmda4y.webp",
+  "eid": "cb-floor-it",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/floor-it"
  },
  {
@@ -661,7 +688,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "130",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/576f82ff-3c4d-4637-aa91-2773de43bbc8/render-mpvmxg2k.webp",
+  "eid": "cb-tetratronic-rippler",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/tetratronic-rippler"
  },
  {
@@ -683,7 +711,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "139",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/70a2a18e-05c2-4a49-9236-e33b2c9819a5/render-mpvmdh2r.webp",
+  "eid": "cb-trust-no-one",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/trust-no-one"
  },
  {
@@ -706,7 +735,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "128",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2b1b6268-193f-4b9e-a63c-0cbc200d6db7/render-mpvn0qos.webp",
+  "eid": "cb-dying-night-v-s-pistol",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/dying-night-v-s-pistol"
  },
  {
@@ -728,7 +758,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "113",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7d174619-2183-4058-a89a-082c6b7b5a5c/render-mpvm5enr.webp",
+  "eid": "cb-evelyn-parker-scheming-siren",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/evelyn-parker-scheming-siren"
  },
  {
@@ -751,7 +782,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "115",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/8e2f2d0c-0e92-4744-a510-a9c7ac371d81/render-mpvluy4x.webp",
+  "eid": "cb-jacked-in-voodoo-boy",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/jacked-in-voodoo-boy"
  },
  {
@@ -775,7 +807,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "136",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/fb096d3f-48eb-47c0-a065-81b39691e12f/render-mpvme4x3.webp",
+  "eid": "cb-reboot-optics",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/reboot-optics"
  },
  {
@@ -798,7 +831,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "137",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/573a88e9-ac01-4402-8e3d-2420dc4ca949/render-mpvmdwco.webp",
+  "eid": "cb-three-mouths-one-desire",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/three-mouths-one-desire"
  },
  {
@@ -820,7 +854,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "131",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3f0319b8-e315-4e71-85b7-147a5b8ceba5/render-mpvmbh1k.webp",
+  "eid": "cb-chrome-reverie",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/chrome-reverie"
  },
  {
@@ -842,7 +877,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "111",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/c7eba3a0-63cb-4311-988e-d487a7c0841a/render-mpvm49le.webp",
+  "eid": "cb-delamain-rideshare-ai",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/delamain-rideshare-ai"
  },
  {
@@ -864,7 +900,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "119",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/17252514-02ba-4d0d-a9cc-3590cee528af/render-mpvm7tns.webp",
+  "eid": "cb-misty-olszewski-mender-of-broken-spirits",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/misty-olszewski-mender-of-broken-spirits"
  },
  {
@@ -889,7 +926,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "122",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/354fd7d3-070d-4767-989c-5b3efbd9f30d/render-mpvlrgqe.webp",
+  "eid": "cb-mox-inciters",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/mox-inciters"
  },
  {
@@ -913,7 +951,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "129",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/07f119d6-8fb2-4b23-9862-818a7e941010/render-mpvn02yn.webp",
+  "eid": "cb-netwatch-netdriver",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/netwatch-netdriver"
  },
  {
@@ -936,7 +975,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "134",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/70c7f11e-e41d-44f2-b5cd-e8568915d6ac/render-mqfcqety.webp",
+  "eid": "cb-nocturne-op55-n1",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/nocturne-op55-n1"
  },
  {
@@ -958,7 +998,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "135",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3b1d0570-bb8e-4ea5-9ec7-c698d9c9f94d/render-mpvmi5k3.webp",
+  "eid": "cb-pyramid-song",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/pyramid-song"
  },
  {
@@ -980,7 +1021,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "112",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5b9cdefa-29f4-4a3a-a426-eea46302ef60/render-mpvlvlr9.webp",
+  "eid": "cb-delamain-cab",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/delamain-cab"
  },
  {
@@ -1003,7 +1045,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "114",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7dc71978-0995-4b93-9ba3-83d1118c3c4b/render-mpvlwinn.webp",
+  "eid": "cb-hacked-corpo",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/hacked-corpo"
  },
  {
@@ -1025,7 +1068,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "124",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/d7e0e2e5-6e22-4b45-9e91-50936773e2e1/render-mpvlz3xb.webp",
+  "eid": "cb-psycho-squad",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/psycho-squad"
  },
  {
@@ -1050,7 +1094,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "125",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5d795b32-9ad8-4c94-abd4-d01e389db389/render-mpvm1o1g.webp",
+  "eid": "cb-rita-wheeler-no-stupid-questions",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/rita-wheeler-no-stupid-questions"
  },
  {
@@ -1073,7 +1118,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "140",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/b21f86a3-cb77-44a3-bf94-4c5e068ac2c8/render-mpvmcn88.webp",
+  "eid": "cb-unlikely-bond",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/unlikely-bond"
  },
  {
@@ -1095,7 +1141,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "127",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5801d086-7e87-4645-95e2-68239230098d/render-mpvm1lhk.webp",
+  "eid": "cb-westbrook-netrunner",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/westbrook-netrunner"
  },
  {
@@ -1117,7 +1164,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "133",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/14a0b813-d5e3-46e6-a001-aebbd3a95f11/render-mpvmf9j4.webp",
+  "eid": "cb-les-e-le-mens",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/les-e-le-mens"
  },
  {
@@ -1141,7 +1189,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "117",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7072a2d2-ec4f-4575-909e-15a107dfef79/render-mpvm9lt7.webp",
+  "eid": "cb-lizzy-wizzy-delicate-weapon",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/lizzy-wizzy-delicate-weapon"
  },
  {
@@ -1164,7 +1213,8 @@
   "sellable": true,
   "set": "theheistretailstarterdeck",
   "number": "015",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5f0d9dac-2547-4ecb-896e-0c603968422a/render-mpwck7b1.webp",
+  "eid": "cb-mt0d12-flathead",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/mt0d12-flathead"
  },
  {
@@ -1188,7 +1238,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "118",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/8a7131eb-e1dd-46d6-84f6-2de315aee975/render-mpvm66w6.webp",
+  "eid": "cb-maman-brigitte-spirit-of-death",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maman-brigitte-spirit-of-death"
  },
  {
@@ -1210,7 +1261,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "121",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3bd6767b-ef0c-47dd-9f47-d00112a74111/render-mpvlvws6.webp",
+  "eid": "cb-modded-muramasa",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/modded-muramasa"
  },
  {
@@ -1235,7 +1287,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "126",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3193a6bd-3e99-4501-9c5c-8d5ea32c779c/render-mpvlna4t.webp",
+  "eid": "cb-rogue-amendiares-queen-of-the-afterlife",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/rogue-amendiares-queen-of-the-afterlife"
  },
  {
@@ -1259,7 +1312,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "116",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/dcfe8370-9abf-4395-b50b-efea505609ba/render-mpvlolwq.webp",
+  "eid": "cb-judy-a-lvarez-nothing-to-doubt",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/judy-a-lvarez-nothing-to-doubt"
  },
  {
@@ -1284,7 +1338,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "120",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/50e8101a-3d0e-45ea-9444-22007f7f9cb0/render-mpvlvlr5.webp",
+  "eid": "cb-modded-kusanagi",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/modded-kusanagi"
  },
  {
@@ -1306,7 +1361,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "138",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/15920617-a06f-4302-9dfb-c85d3470c7eb/render-mpvmjkr0.webp",
+  "eid": "cb-towerfall",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/towerfall"
  },
  {
@@ -1330,7 +1386,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "123",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/81c55c1f-362e-4ffd-8f9b-4162b298dbd5/render-mpvm972b.webp",
+  "eid": "cb-placide-voodoo-sentinel",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/placide-voodoo-sentinel"
  },
  {
@@ -1352,7 +1409,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "101",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/8570122a-52aa-4a6b-8d72-4c8848df0f9b/render-mpvmc6bc.webp",
+  "eid": "cb-peace-offering",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/peace-offering"
  },
  {
@@ -1376,7 +1434,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "102",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/4277845b-1209-46df-8353-8fd36f56148a/render-mpvmg7fh.webp",
+  "eid": "cb-synapse-burnout",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/synapse-burnout"
  },
  {
@@ -1400,7 +1459,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "076",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/80dcc139-d31d-4b89-86ff-cdbdd2664953/render-mpvlxrn4.webp",
+  "eid": "cb-corpo-security",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/corpo-security"
  },
  {
@@ -1422,7 +1482,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "097",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/d3dc7194-a545-4588-9702-b094c27ce359/render-mpvmh0cv.webp",
+  "eid": "cb-corporate-surveillance",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/corporate-surveillance"
  },
  {
@@ -1444,7 +1505,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "099",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7751b719-978b-44b1-a82f-b2881d3a416e/render-mpvmiefg.webp",
+  "eid": "cb-fool-on-the-hill",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/fool-on-the-hill"
  },
  {
@@ -1468,7 +1530,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "094",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/ce570725-0de7-438a-a9c8-33074a7180ba/render-mpvn01qb.webp",
+  "eid": "cb-riot-shield",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/riot-shield"
  },
  {
@@ -1492,7 +1555,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "103",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/bc1401d4-5b9b-495a-853e-0a22a11f6f4c/render-mpvmhrfm.webp",
+  "eid": "cb-take-control",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/take-control"
  },
  {
@@ -1515,7 +1579,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "090",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/28267ce7-17dc-42c4-b8c4-4235a7f3c3df/render-mpvlyfk9.webp",
+  "eid": "cb-tyger-s-whisper",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/tyger-s-whisper"
  },
  {
@@ -1539,7 +1604,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "077",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/9c18b6ae-765d-4244-8de4-e382c4767de1/render-mpvm10a4.webp",
+  "eid": "cb-emergency-atlus",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/emergency-atlus"
  },
  {
@@ -1563,7 +1629,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "078",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/876dfa5c-6df4-4930-b284-f2c466e6b90c/render-mpvlzp1w.webp",
+  "eid": "cb-field-operator",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/field-operator"
  },
  {
@@ -1585,7 +1652,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "082",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/22b276f4-7cf6-4b14-a220-8368a0839287/render-mpvm0dqx.webp",
+  "eid": "cb-maxtac-squadron",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maxtac-squadron"
  },
  {
@@ -1607,7 +1675,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "095",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/97de62e2-3fea-4324-8367-87d1f1d674ed/render-mpvmzerv.webp",
+  "eid": "cb-sandevistan",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/sandevistan"
  },
  {
@@ -1630,7 +1699,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "091",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/dc15db71-3443-4de0-b988-c62601bae5e1/render-mpvlvw95.webp",
+  "eid": "cb-valentino-street-racer",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/valentino-street-racer"
  },
  {
@@ -1653,7 +1723,8 @@
   "sellable": false,
   "set": "embracingpowerretailstarterdeck",
   "number": "017",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/42e03e7a-923d-4f2b-8d79-191e69873947/render-mpwby2mz.webp",
+  "eid": "cb-goro-takemura-losing-his-way",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/goro-takemura-losing-his-way"
  },
  {
@@ -1676,7 +1747,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "079",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/43e5568f-a609-4eff-8502-e81ba9134d2c/render-mpvm0z4g.webp",
+  "eid": "cb-maelstrom-zealots",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maelstrom-zealots"
  },
  {
@@ -1698,7 +1770,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "100",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/ef9f2959-de87-4a54-be45-5c9dcc507aba/render-mpvmgucg.webp",
+  "eid": "cb-memory-relapse",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/memory-relapse"
  },
  {
@@ -1722,7 +1795,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "093",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/336131d1-3bc8-4b39-b893-5fce9be8ce7f/render-mpvn1gb1.webp",
+  "eid": "cb-overwatch-panam-s-gift",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/overwatch-panam-s-gift"
  },
  {
@@ -1744,7 +1818,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "084",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/b43f5006-7388-4189-81ff-343b5428305b/render-mpvlxt79.webp",
+  "eid": "cb-pacifica-netrunner",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/pacifica-netrunner"
  },
  {
@@ -1766,7 +1841,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "086",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/0de81196-f1d3-4fd0-ae6a-062dae3f3f2c/render-mpvm610y.webp",
+  "eid": "cb-pepe-najarro-working-doubles",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/pepe-najarro-working-doubles"
  },
  {
@@ -1789,7 +1865,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "080",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/f1fa787d-e936-42a8-b42f-14999e722793/render-mpvlwk00.webp",
+  "eid": "cb-maxtac-av",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maxtac-av"
  },
  {
@@ -1813,7 +1890,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "087",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/1ee3ba07-86b0-4309-be55-4b4698f700b8/render-mpvlx7qq.webp",
+  "eid": "cb-riding-nomad",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/riding-nomad"
  },
  {
@@ -1836,7 +1914,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "104",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/63821536-cdf5-4347-812a-0bf72d727596/render-mpvmfm9u.webp",
+  "eid": "cb-we-gotta-live-together",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/we-gotta-live-together"
  },
  {
@@ -1858,7 +1937,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "105",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/54f0308f-8fb2-4861-a414-c15ca24426c3/render-mpvmbjzl.webp",
+  "eid": "cb-wild-in-the-streets",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/wild-in-the-streets"
  },
  {
@@ -1882,7 +1962,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "092",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/0944037e-5b14-4332-b345-7935924c2125/render-mpvm4vc3.webp",
+  "eid": "cb-wraith-marauders",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/wraith-marauders"
  },
  {
@@ -1905,7 +1986,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "083",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/4bab255b-763a-4762-b5e2-430316526b8a/render-mpvm4t8i.webp",
+  "eid": "cb-nadia-fighting-through-grief",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/nadia-fighting-through-grief"
  },
  {
@@ -1929,7 +2011,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "085",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/9231f9ff-1ba5-4c4f-bd78-70e0780b58e5/render-mpvlolip.webp",
+  "eid": "cb-panam-palmer-strength-through-family",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/panam-palmer-strength-through-family"
  },
  {
@@ -1952,7 +2035,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "096",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/8b8bcfcd-37c8-4bca-8c25-17a3b3363349/render-mpvmyqtk.webp",
+  "eid": "cb-zetatech-berserk",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/zetatech-berserk"
  },
  {
@@ -1974,7 +2058,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "098",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e96d3167-5115-4c82-9b35-546cba0aaead/render-mpvmj3qx.webp",
+  "eid": "cb-don-t-fear-the-reaper",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/don-t-fear-the-reaper"
  },
  {
@@ -1996,7 +2081,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "081",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/060f0c56-cbb7-45fd-a0cd-9c7b9d0f8103/render-mpvm3liw.webp",
+  "eid": "cb-maxtac-heavy",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maxtac-heavy"
  },
  {
@@ -2019,7 +2105,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "088",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/f452a0ca-3204-48d5-8565-ec746f27959b/render-mpvm8d1y.webp",
+  "eid": "cb-sandayu-oda-hanako-s-guardian",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/sandayu-oda-hanako-s-guardian"
  },
  {
@@ -2042,7 +2129,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "089",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/60e476b4-51ab-4b10-8861-a8362b4232d7/render-mpvm8zcp.webp",
+  "eid": "cb-saul-bright-stormrider",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/saul-bright-stormrider"
  },
  {
@@ -2064,7 +2152,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "027",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/d1a3c0e0-e0e7-418d-afb4-e6e43400c42e/render-mpvmavkg.webp",
+  "eid": "cb-all-is-lost",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/all-is-lost"
  },
  {
@@ -2088,7 +2177,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "031",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/bec995b7-b76b-4605-9c36-3d7697cdd4f5/render-mpvmadw4.webp",
+  "eid": "cb-detonate",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/detonate"
  },
  {
@@ -2111,7 +2201,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "033",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/9103b5db-bf95-4385-8941-308cb0353c9a/render-mpvmeiyj.webp",
+  "eid": "cb-industrial-assembly",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/industrial-assembly"
  },
  {
@@ -2133,7 +2224,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "025",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7ffa8ba4-f187-4ba0-a719-fa8ebf45a03b/render-mpvmwraw.webp",
+  "eid": "cb-mantis-blades",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/mantis-blades"
  },
  {
@@ -2156,7 +2248,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "023",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/d2da65d5-fdaf-44f4-a692-a5672d2c1cca/render-mpvmwsoe.webp",
+  "eid": "cb-arasaka-emergency-radioport",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/arasaka-emergency-radioport"
  },
  {
@@ -2178,7 +2271,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "010",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/30619097-d9d7-42fe-bf4c-cd4ae822792d/render-mpvlsow6.webp",
+  "eid": "cb-japantown-jonin",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/japantown-jonin"
  },
  {
@@ -2201,7 +2295,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "017",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e1b674d0-4ac7-4523-be19-809308871d49/render-mpvls72n.webp",
+  "eid": "cb-ruthless-lowlife",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/ruthless-lowlife"
  },
  {
@@ -2224,7 +2319,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "026",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/11a8fed4-5401-4cfc-901b-ab9b5b94d0ab/render-mpvmzfgs.webp",
+  "eid": "cb-satori-sword-of-saburo",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/satori-sword-of-saburo"
  },
  {
@@ -2246,7 +2342,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "028",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/f274789d-69f2-4acf-a511-f728c67d1a13/render-mpvmf46g.webp",
+  "eid": "cb-appetite-for-destruction",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/appetite-for-destruction"
  },
  {
@@ -2268,7 +2365,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "029",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/26d60270-1b43-4af3-a8b7-1c3db9675cfa/render-mpvmfxjg.webp",
+  "eid": "cb-bonnie-and-clyde",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/bonnie-and-clyde"
  },
  {
@@ -2291,7 +2389,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "024",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/32957075-42ff-47e3-8252-e78877ef61f7/render-mpvmyrdi.webp",
+  "eid": "cb-deadman-transmitter",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/deadman-transmitter"
  },
  {
@@ -2316,7 +2415,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "013",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e3d1d8a0-1d53-4c85-84ca-66439fd3639a/render-mpvm2yt3.webp",
+  "eid": "cb-la-llorona-ghost-of-the-past",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/la-llorona-ghost-of-the-past"
  },
  {
@@ -2338,7 +2438,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "034",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/f1cf4133-45ef-4de5-abfc-757de1613731/render-mpvmc1b2.webp",
+  "eid": "cb-over-the-edge",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/over-the-edge"
  },
  {
@@ -2360,7 +2461,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "019",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/1c053198-187e-49ab-a9e0-0661b4c3b337/render-mpvlt1ju.webp",
+  "eid": "cb-swordwise-huscle",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/swordwise-huscle"
  },
  {
@@ -2383,7 +2485,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "021",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/67b82386-5cb0-4ae7-b940-ac0d982b773c/render-mpvlrev5.webp",
+  "eid": "cb-valentino-guerrera",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/valentino-guerrera"
  },
  {
@@ -2406,7 +2509,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "006",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/756f3e53-9ff3-4c01-9f33-bb27a1cd5957/render-mpvlsra8.webp",
+  "eid": "cb-6th-street-recruits",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/6th-street-recruits"
  },
  {
@@ -2429,7 +2533,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "032",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/efc5dfdd-f393-4bbe-a7bc-ac959ba1e6bc/render-mpvmergg.webp",
+  "eid": "cb-gunpoint-diplomacy",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/gunpoint-diplomacy"
  },
  {
@@ -2452,7 +2557,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "012",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/c26c7db6-f540-4073-ab33-b09335631764/render-mpvm47z6.webp",
+  "eid": "cb-kerry-eurodyne-the-last-rockerboy",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/kerry-eurodyne-the-last-rockerboy"
  },
  {
@@ -2477,7 +2583,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "014",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5939771d-bdcc-4b42-aea4-376311189e93/render-mpvm79jg.webp",
+  "eid": "cb-meredith-stout-stone-cold-corpo",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/meredith-stout-stone-cold-corpo"
  },
  {
@@ -2499,7 +2606,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "035",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/3401c7cf-45c5-4fe4-a883-284a9334262d/render-mpvmj7ok.webp",
+  "eid": "cb-shattered-memories",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/shattered-memories"
  },
  {
@@ -2523,7 +2631,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "008",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/40db55a6-0220-4cb9-8854-0e23f7cb91f8/render-mpvlsztq.webp",
+  "eid": "cb-chrome-fang",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/chrome-fang"
  },
  {
@@ -2546,7 +2655,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "009",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/94180516-28a6-4f5c-b79e-de38a95ed47b/render-mpvm6o5y.webp",
+  "eid": "cb-el-sombrero-n-la-venganza-lenta",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/el-sombrero-n-la-venganza-lenta"
  },
  {
@@ -2569,7 +2679,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "016",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/b749ce16-1b44-47d8-bce4-4fd373007a5c/render-mpvm2yf1.webp",
+  "eid": "cb-royce-don-t-call-me-simon",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/royce-don-t-call-me-simon"
  },
  {
@@ -2592,7 +2703,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "018",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/a7117b0f-74ab-44b5-87fb-de267d0f2164/render-mpvltmxd.webp",
+  "eid": "cb-screw-lovelorn-fool",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/screw-lovelorn-fool"
  },
  {
@@ -2615,7 +2727,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "020",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/c1747b7d-de5c-43eb-a4ed-b632f1861712/render-mpvlnxfx.webp",
+  "eid": "cb-v-roamer-of-the-badlands",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/v-roamer-of-the-badlands"
  },
  {
@@ -2638,7 +2751,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "007",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7514dd38-6e2d-43dd-9715-6b3a32615382/render-mpvluas2.webp",
+  "eid": "cb-animals-wrecker",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/animals-wrecker"
  },
  {
@@ -2661,7 +2775,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "030",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/36128749-4cb1-440d-b4de-4fd463cc2f5c/render-mpvmaxtd.webp",
+  "eid": "cb-carnage-at-the-colosseum",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/carnage-at-the-colosseum"
  },
  {
@@ -2685,7 +2800,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "011",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/14ab188f-2ce3-4790-8823-5a352371ff1f/render-mpvlmm24.webp",
+  "eid": "cb-johnny-silverhand-never-stop-fighting",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/johnny-silverhand-never-stop-fighting"
  },
  {
@@ -2709,7 +2825,8 @@
   "sellable": false,
   "set": "embracingpowerretailstarterdeck",
   "number": "003",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/19587d4f-6d47-44fe-b4da-99743e2742f7/render-mpwc0q84.webp",
+  "eid": "cb-minotaur",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/minotaur"
  },
  {
@@ -2733,7 +2850,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "015",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/089df0e6-0000-4e6c-b6d3-d9119466b624/render-mpvlto0j.webp",
+  "eid": "cb-octant",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/octant"
  },
  {
@@ -2756,7 +2874,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "022",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/c057ccc4-bb15-4efd-8115-8d223568134b/render-mpvm6tkv.webp",
+  "eid": "cb-yorinobu-arasaka-steel-dragon",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/yorinobu-arasaka-steel-dragon"
  },
  {
@@ -2779,7 +2898,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "065",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/d53925ee-df55-4b71-8ca0-13ec3ede2076/render-mpvma8vc.webp",
+  "eid": "cb-afterparty-at-lizzie-s",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/afterparty-at-lizzie-s"
  },
  {
@@ -2801,7 +2921,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "061",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/ec3368a9-79f1-4dfc-9cf7-1cb464ec1c88/render-mpvmw7q4.webp",
+  "eid": "cb-kiroshi-optics",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/kiroshi-optics"
  },
  {
@@ -2825,7 +2946,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "062",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/219b7a29-0f8b-4750-bc46-0f39eec6721b/render-mpvmxewc.webp",
+  "eid": "cb-mandibular-upgrade",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/mandibular-upgrade"
  },
  {
@@ -2848,7 +2970,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "059",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/535df2a9-d2af-463c-85dd-dafe67cab8fb/render-mpvmy2t7.webp",
+  "eid": "cb-adrenaline-converter",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/adrenaline-converter"
  },
  {
@@ -2872,7 +2995,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "069",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5d987aa8-baed-45b2-986c-a21e04a53331/render-mpvm9rqp.webp",
+  "eid": "cb-safety-override",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/safety-override"
  },
  {
@@ -2897,7 +3021,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "053",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/fcbb6d58-6666-4bd3-8ff0-64930fb0f422/render-mpvlyg97.webp",
+  "eid": "cb-secondhand-bombus",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/secondhand-bombus"
  },
  {
@@ -2921,7 +3046,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "054",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/12f0398c-bcc3-4944-af72-ac2ae9f36761/render-mpvm0clc.webp",
+  "eid": "cb-sketchy-ripper",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/sketchy-ripper"
  },
  {
@@ -2943,7 +3069,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "070",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/a1e2c25e-fb27-458f-984d-df422f879664/render-mpvmgkup.webp",
+  "eid": "cb-the-heist",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/the-heist"
  },
  {
@@ -2966,7 +3093,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "064",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/79cdc9a5-d94d-4df4-9f88-aa02fb0357b3/render-mpvn0qb5.webp",
+  "eid": "cb-zetatech-faceplate",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/zetatech-faceplate"
  },
  {
@@ -2991,7 +3119,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "043",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/a195323a-e29e-4c05-8e6c-7f1638c8264c/render-mpvm290s.webp",
+  "eid": "cb-augmented-negotiators",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/augmented-negotiators"
  },
  {
@@ -3015,7 +3144,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "067",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/5aafe80b-7c7d-4060-8677-a2881a21dd72/render-mpvmhimy.webp",
+  "eid": "cb-cyberpsychosis",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/cyberpsychosis"
  },
  {
@@ -3037,7 +3167,8 @@
   "sellable": false,
   "set": "theheistretailstarterdeck",
   "number": "002",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e2f38541-ecc9-41dc-ae15-164171391bff/render-mpwclspf.webp",
+  "eid": "cb-dexter-deshawn-one-last-chance",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/dexter-deshawn-one-last-chance"
  },
  {
@@ -3059,7 +3190,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "068",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/f931c82e-a382-4f60-808c-5910ac9850be/render-mpvmctmr.webp",
+  "eid": "cb-live-with-the-aftermath",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/live-with-the-aftermath"
  },
  {
@@ -3082,7 +3214,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "049",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e14bdd12-1214-4104-bfdd-ae023c21527c/render-mpvls0aa.webp",
+  "eid": "cb-maelstrom-goons",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maelstrom-goons"
  },
  {
@@ -3104,7 +3237,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "058",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/4eca7fcd-85c1-43d0-8a07-4227312ab0db/render-mpvm2a9i.webp",
+  "eid": "cb-viktor-vektor-you-might-feel-a-little-pinch",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/viktor-vektor-you-might-feel-a-little-pinch"
  },
  {
@@ -3127,7 +3261,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "045",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/846b55b4-5e12-44b6-a204-53bd8c862888/render-mpvluwwg.webp",
+  "eid": "cb-gilded-mato-n",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/gilded-mato-n"
  },
  {
@@ -3149,7 +3284,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "060",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e1959b9e-d32d-43be-94c3-a595809e0c28/render-mpvmy1s4.webp",
+  "eid": "cb-gorilla-arms",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/gorilla-arms"
  },
  {
@@ -3173,7 +3309,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "046",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/7386d22f-1065-4043-a6c4-9cee6256fe8a/render-mpvm7wvo.webp",
+  "eid": "cb-hanako-arasaka-in-a-gilded-cage",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/hanako-arasaka-in-a-gilded-cage"
  },
  {
@@ -3196,7 +3333,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "051",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/fbefb447-34a3-4d53-9b23-d1bf141f8eec/render-mpvlua50.webp",
+  "eid": "cb-offduty-malfini",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/offduty-malfini"
  },
  {
@@ -3219,7 +3357,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "055",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e2e3d98d-0159-4a79-b543-e37264f23118/render-mpvm3mjo.webp",
+  "eid": "cb-t-bug-amateur-philosopher",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/t-bug-amateur-philosopher"
  },
  {
@@ -3241,7 +3380,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "066",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/decc76ed-f5ed-4f02-90d7-e01e2a3975e0/render-mpvmh4na.webp",
+  "eid": "cb-bootleg-black-sapphire-show",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/bootleg-black-sapphire-show"
  },
  {
@@ -3264,7 +3404,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "044",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/4b5dc479-0db1-46dd-859f-e7dc34d50f03/render-mpvm8ira.webp",
+  "eid": "cb-caliber-totentanz-s-top-dog",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/caliber-totentanz-s-top-dog"
  },
  {
@@ -3286,7 +3427,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "050",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/47f55164-e5da-494e-9d55-02bd0b7f97c1/render-mpvlzqaa.webp",
+  "eid": "cb-maxtac-suppression-team",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/maxtac-suppression-team"
  },
  {
@@ -3308,7 +3450,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "052",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/07aaea5c-5aef-466e-956a-2e68930669c0/render-mpvlx5hw.webp",
+  "eid": "cb-rockn-rockerboy",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/rockn-rockerboy"
  },
  {
@@ -3331,7 +3474,8 @@
   "sellable": true,
   "set": "welcometonightcityretail",
   "number": "063",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/38d14168-c182-4a34-a3b2-1b8380ab6635/render-mpvn1f8f.webp",
+  "eid": "cb-the-relic-experimental-biochip",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/the-relic-experimental-biochip"
  },
  {
@@ -3353,7 +3497,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "057",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2285cd3a-7010-4ba4-b23a-ba40aba296f9/render-mpvlny5c.webp",
+  "eid": "cb-viktor-vektor-drop-your-illusions",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/viktor-vektor-drop-your-illusions"
  },
  {
@@ -3375,7 +3520,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "047",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/2fc5ac93-dae5-4af5-a813-77abc0cc8dfd/render-mpvm5kl0.webp",
+  "eid": "cb-heywood-ripperdoc",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/heywood-ripperdoc"
  },
  {
@@ -3398,7 +3544,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "048",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/12d44604-ad7b-4e82-b517-9edb0be44427/render-mpvlnb2e.webp",
+  "eid": "cb-jackie-welles-ride-or-die-choom",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/jackie-welles-ride-or-die-choom"
  },
  {
@@ -3421,7 +3568,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "056",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/0d6c1f36-628b-4631-a96d-2000f6fb054e/render-mpvlz2to.webp",
+  "eid": "cb-trauma-team-operatives",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/trauma-team-operatives"
  },
  {
@@ -3444,7 +3592,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "042",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/e782dd02-a136-4bf8-b04b-328c65b84f19/render-mpvm7csv.webp",
+  "eid": "cb-alt-cunningham-mother-of-daemons",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/alt-cunningham-mother-of-daemons"
  },
  {
@@ -3467,7 +3616,8 @@
   "sellable": false,
   "set": "welcometonightcityretail",
   "number": "041",
-  "image": "https://dstcynss47vun.cloudfront.net/prod/cyberpunk/portal/d23e322f-ad60-431d-b33e-1e8a813248ff/render-mpvlmm1k.webp",
+  "eid": "cb-adam-smasher-metal-over-meat",
+  "image": null,
   "url": "https://cyberpunktcg.com/cards/adam-smasher-metal-over-meat"
  }
 ]

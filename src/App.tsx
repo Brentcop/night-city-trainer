@@ -28,8 +28,9 @@ import { CardsPage } from './ui/pages/Cards';
 import { InsightsPage } from './ui/pages/Insights';
 import { SeasonsPage } from './ui/pages/Seasons';
 import { CreditsPage } from './ui/pages/Credits';
+import { DeckProfilePage } from './ui/pages/DeckProfile';
 
-const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.ReactNode }[] = [
+const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.ReactNode; hidden?: boolean }[] = [
   { path: 'home', label: 'Home', el: () => <Home /> },
   { path: 'meta', label: 'Meta', el: () => <MetaPage /> },
   { path: 'guides', label: 'Strategy', el: (q) => <GuidesPage initial={q.get('g') ?? undefined} /> },
@@ -41,6 +42,7 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.R
   { path: 'cards', label: 'Cards', el: () => <CardsPage /> },
   { path: 'glossary', label: 'Glossary', el: () => <GlossaryPage /> },
   { path: 'credits', label: 'Credits', el: () => <CreditsPage /> },
+  { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} />, hidden: true },
 ];
 
 function parseHash(): [string, URLSearchParams] {
@@ -64,7 +66,7 @@ export function App() {
           <span className="chip">NC</span> NIGHT CITY TRAINER
         </div>
         <nav className="nav">
-          {ROUTES.map((r) => (
+          {ROUTES.filter((r) => !r.hidden).map((r) => (
             <a key={r.path} href={`#/${r.path}`} className={r.path === route.path ? 'active' : ''}>
               {r.label}
             </a>

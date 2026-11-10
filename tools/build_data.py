@@ -43,7 +43,9 @@ for c in raw['cards']:
         'sellable': bool(c['is_eddiable']),
         'set': c['set_code'],
         'number': c['print_number'],
-        'image': c['assets'].get('image_remote'),
+        # netdeck.gg external id: the site fetches fresh (short-lived, signed) art URLs for it at runtime
+        'eid': (c.get('source') or {}).get('external_id'),
+        'image': None,
         'url': (c.get('source') or {}).get('card_page_url'),
     })
 

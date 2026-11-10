@@ -25,6 +25,7 @@ export interface CardDef {
   set: string;
   number: string;
   image: string | null;
+  eid?: string | null; // netdeck.gg external id (art lookup)
   url?: string | null; // official card page
   simStatus?: string;
   simNotes?: string | null;
