@@ -1,4 +1,6 @@
 // Gig die rendered as an SVG polyhedron outline (shape by die type) with its current value.
+import { pressable } from './TcgCard';
+
 const SHAPES: Record<number, string> = {
   4: '50,6 94,88 6,88', // triangle
   6: '10,10 90,10 90,90 10,90', // square
@@ -35,8 +37,9 @@ export function Die({
       width={size}
       height={size}
       viewBox="0 0 100 100"
+      style={onClick ? ({ '--die-size': `${size}px` } as React.CSSProperties) : undefined}
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
+      {...pressable(onClick, title ?? `d${sides}${value !== undefined ? `: ${value}` : ''}`)}
     >
       <title>{title ?? `d${sides}${value !== undefined ? `: ${value}` : ''}`}</title>
       <polygon points={SHAPES[sides] ?? SHAPES[6]} />

@@ -151,7 +151,8 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
               className={`replay-line ${l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'} ${i === cur ? 'on' : ''} ${i > cur ? 'future' : ''}`}
               onClick={() => (setPlaying(false), setCur(i))}
             >
-              <span className="muted">T{l.turn}</span> {l.text}
+              <span className="muted">T{l.turn}</span> {l.player !== null && !l.text.startsWith('---') && <b>{names[l.player]}: </b>}
+              {l.text}
             </button>
           ))}
           {end && <div className="sys replay-result">{data.final.winner === 'tie' ? 'Draw' : `${names[data.final.winner as 0 | 1]} wins`} ({data.final.winReason})</div>}

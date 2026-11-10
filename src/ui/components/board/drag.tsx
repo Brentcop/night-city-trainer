@@ -30,6 +30,9 @@ export function resolveDrop(g: Game, ix: Interaction, uid: number, t: DropTarget
   return [];
 }
 
+const sameTarget = (a: DropTarget | null, b: DropTarget | null) =>
+  a === b || (!!a && !!b && a.kind === b.kind && ('uid' in a ? a.uid : -1) === ('uid' in b ? b.uid : -1));
+
 const verb = (t: DropTarget | null) => (!t ? '' : t.kind === 'play' ? 'Play' : t.kind === 'sell' ? 'Sell' : t.kind === 'hand' ? 'Move here' : 'Attack');
 
 function hitTest(x: number, y: number, dragged: number, g: Game): DropTarget | null {
@@ -63,8 +66,25 @@ export interface DragApi {
  * scroll the hand.
  */
 export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: PendingConfirm) => void; onReorder: (uid: number, before: number) => void; onRefuse: (msg: string) => void }): DragApi {
-  const [state, setState] = useState<{ uid: number; x: number; y: number; over: DropTarget | null } | null>(null);
+  // React state changes only when a drag starts or ends, or the hovered drop target changes; the ghost follows the
+  // pointer through a ref (one transform per animation frame), so moving the pointer doesn't re-render the board.
+  const [state, setState] = useState<{ uid: number; over: DropTarget | null } | null>(null);
   const ref = useRef<{ uid: number; sx: number; sy: number; started: boolean; touch: boolean; fromHand: boolean } | null>(null);
+  const pos = useRef({ x: 0, y: 0 });
+  const ghostEl = useRef<HTMLDivElement | null>(null);
+  const frame = useRef(0);
+  const place = useCallback((el: HTMLDivElement | null) => {
+    ghostEl.current = el;
+    if (el) el.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px) translate(-50%, -60%) rotate(-4deg)`;
+  }, []);
+  const tick = useCallback(() => {
+    frame.current = 0;
+    const d = ref.current;
+    if (!d?.started) return;
+    place(ghostEl.current);
+    const over = hitTest(pos.current.x, pos.current.y, d.uid, live.current.g);
+    setState((s) => (s && s.uid === d.uid && sameTarget(s.over, over) ? s : { uid: d.uid, over }));
+  }, [place]);
   const lastEnd = useRef(0);
   const live = useRef({ g, ix, opts });
   live.current = { g, ix, opts };
@@ -84,9 +104,9 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       document.body.classList.add('pb-dragging');
     }
     e.preventDefault();
-    const over = hitTest(e.clientX, e.clientY, d.uid, live.current.g);
-    setState({ uid: d.uid, x: e.clientX, y: e.clientY, over });
-  }, []);
+    pos.current = { x: e.clientX, y: e.clientY };
+    if (!frame.current) frame.current = requestAnimationFrame(tick);
+  }, [tick]);
 
   /**
    * Real touch screens: unless the page's own scrolling is stopped, the browser starts scrolling and cancels the
@@ -112,6 +132,8 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       window.removeEventListener('pointercancel', end);
       window.removeEventListener('touchmove', onTouchMove);
       document.body.classList.remove('pb-dragging');
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = 0;
       setState(null);
       if (!d?.started || e.type === 'pointercancel') return;
       lastEnd.current = Date.now();
@@ -134,6 +156,7 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       window.removeEventListener('pointercancel', end);
       window.removeEventListener('touchmove', onTouchMove);
       document.body.classList.remove('pb-dragging');
+      if (frame.current) cancelAnimationFrame(frame.current);
     },
     [onMove, end, onTouchMove],
   );
@@ -157,7 +180,7 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
   if (state) {
     const choices = state.over?.kind === 'hand' ? [{ i: -1, label: 'Move here' }] : resolveDrop(g, ix, state.uid, state.over);
     ghost = (
-      <div className="pb-ghost" style={{ left: state.x, top: state.y }}>
+      <div className="pb-ghost" ref={place} style={{ left: 0, top: 0 }}>
         <TcgCard def={g.def(state.uid)} size="sm" noZoom />
         <span className={`pb-ghost-tag ${choices.length ? 'ok' : state.over ? 'no' : ''}`}>{choices.length ? (state.over?.kind === 'hand' ? 'Move here' : choices[0].label) : state.over ? '✕ not here' : 'drag to a zone'}</span>
       </div>

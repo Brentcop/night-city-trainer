@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Game } from '../../engine/engine';
 import type { Decision, DeckList, PlayerId } from '../../engine/types';
@@ -9,7 +9,8 @@ import { canUndo, type PracticeSession, type Running } from '../../lib/practiceS
 import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
-import { advise, boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
+import { useCoach } from '../useCoach';
+import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
 import { Markdown } from '../components/Markdown';
 import { Verdict, Wr } from '../components/Num';
 import analysis from '../../data/analysis.json';
@@ -135,7 +136,8 @@ function Board({
   onRematch: () => void;
   onUndo: () => void;
 }) {
-  useGameTick(session);
+  // bumps on every engine update: memoised sidebar pieces re-render on it, not on drag/menu/hover changes
+  const version = useGameTick(session);
   const { g, human, bot, grades } = game;
   const s = g.s;
   const pend = human.pending?.d ?? null;
@@ -155,6 +157,7 @@ function Board({
   const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
   const [hideOver, setHideOver] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const advise = useCoach();
 
   // Undo swaps in a restored game (same match, so the board stays mounted): close what belonged to the old one
   useEffect(() => {
@@ -167,6 +170,7 @@ function Board({
   useEffect(() => {
     if (!pend || !coach || !coachAdvises(pend)) return;
     let alive = true;
+    // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend)
       .then((a) => {
         if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives });
@@ -175,7 +179,7 @@ function Board({
     return () => {
       alive = false;
     };
-  }, [pend, coach, g]);
+  }, [pend, coach, g, advise]);
 
   // a new decision closes any open menu / target mode
   useEffect(() => {
@@ -357,15 +361,11 @@ function Board({
           <div className={dock ? 'pb-dock' : undefined}>
             <PromptPanel ctx={ctx} why={activeHint?.why} />
           </div>
-          {coach && <CoachPanel g={g} alts={activeHint?.alts ?? []} tips={tips} />}
-          <AllOptions ctx={ctx} />
+          {coach && <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} />}
+          <AllOptions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} />
           <div className="pb-label">Game log</div>
           <div className="log pb-log" ref={logRef}>
-            {s.log.slice(-250).map((l, i) => (
-              <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
-                {l.text}
-              </div>
-            ))}
+            <GameLog log={s.log} n={s.log.length} />
           </div>
           {bot.lastThought && <div className="small muted">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div>}
         </aside>
@@ -583,8 +583,28 @@ function MatchupRead({ A, B }: { A?: LibraryDeck; B?: LibraryDeck }) {
   );
 }
 
-/** Coach sidebar: other options it weighed, live board warnings, and the matchup plan for your deck. */
-function CoachPanel({ g, alts, tips }: { g: Game; alts: Advice['alternatives']; tips: string[] }) {
+const NO_ALTS: Advice['alternatives'] = [];
+
+/** The last 250 log lines. The engine appends to `log` in place, so `n` (its length) is what changes. */
+const GameLog = memo(function GameLog({ log }: { log: Game['s']['log']; n: number }) {
+  return (
+    <>
+      {log.slice(-250).map((l, i) => (
+        <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
+          {/* who acted, in words as well as colour (turn headers already name the deck) */}
+          {l.player !== null && !l.text.startsWith('---') && <b>{l.player === 0 ? 'You: ' : 'Rival: '}</b>}
+          {l.text}
+        </div>
+      ))}
+    </>
+  );
+});
+
+/**
+ * Coach sidebar: other options it weighed, live board warnings, and the matchup plan for your deck. The game state
+ * changes in place, so `v` (the game's update counter) tells the memo when to re-render.
+ */
+const CoachPanel = memo(function CoachPanel({ g, alts, tips }: { g: Game; v: number; alts: Advice['alternatives']; tips: string[] }) {
   const warnings = boardWarnings(g, 0);
   return (
     <div className="coach-panel">
@@ -614,4 +634,4 @@ function CoachPanel({ g, alts, tips }: { g: Game; alts: Advice['alternatives']; 
       )}
     </div>
   );
-}
+});
