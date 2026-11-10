@@ -22,7 +22,9 @@ const flag = (n: string, d: string) => {
 const FROM = flag('from', 'events');
 const GAMES = +flag('games', '60');
 const ROLLOUTS = +flag('rollouts', '8');
-const COACH = args.includes('--coach');
+const COACH = args.includes('--coach') || args.includes('--coach-v1');
+const COACH_V1 = args.includes('--coach-v1');
+const REACTIONS = new Set(['block', 'no reaction', 'react: call', 'react: program', 'react: ability']);
 const NAME = flag('name', FROM);
 const THREADS = Math.max(1, Math.min(+flag('threads', String(os.cpus().length - 1)), 16));
 const SEED = +flag('seed', '1');
@@ -47,7 +49,7 @@ function fromEvents(): ReviewJob[] {
             first: g.first,
             bots: [e.bot, e.bot],
             rollouts: ROLLOUTS,
-            withCoach: COACH,
+            withCoach: COACH, coachV1: COACH_V1,
             meta: { event: e.id, stage: pi < e.rounds.length ? 'swiss' : 'top', recordedWinner: g.winner },
           });
       }
@@ -78,7 +80,7 @@ function fromTiers(): ReviewJob[] {
           first: (k % 3 === 0 ? 1 : 0) as 0 | 1,
           bots: swap ? [tiers[y], tiers[x]] : [tiers[x], tiers[y]],
           rollouts: ROLLOUTS,
-          withCoach: COACH,
+          withCoach: COACH, coachV1: COACH_V1,
           meta: { tiers: true },
         });
       }
@@ -171,7 +173,7 @@ export function aggregate(done: Done[]) {
     }
     for (const s of r!.seats) {
       const ds = r!.decisions.filter((d) => d.player === s.player);
-      const agent = s.agent === 'deep' ? 'Deep (series bot)' : tierLabel(s.agent);
+      const agent = s.agent === 'deep' ? 'Deep (series bot)' : s.agent === 'hard-v1' ? 'Hard v1 (before refinement)' : tierLabel(s.agent);
       for (const d of ds) {
         add(byAgent.get(agent) ?? (byAgent.set(agent, empty()), byAgent.get(agent)!), d);
         add(byCat.get(d.category) ?? (byCat.set(d.category, empty()), byCat.get(d.category)!), d);
@@ -328,7 +330,8 @@ export function aggregate(done: Done[]) {
     const flags = (meta as { chaos?: boolean[][] } | undefined)?.chaos;
     if (!Array.isArray(flags)) continue;
     for (const p of [0, 1] as const) {
-      const ds = r!.decisions.filter((d) => d.player === p);
+      // planted moves are main-phase actions only; reactions are reviewed too, so skip them when lining up
+      const ds = r!.decisions.filter((d) => d.player === p && !REACTIONS.has(d.category));
       ds.forEach((d, k) => (flags[p][k] ? planted.rnd : planted.bot).push(d.regret));
     }
   }

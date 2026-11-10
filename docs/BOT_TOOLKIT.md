@@ -91,7 +91,7 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 |---|---|---|
 | **Easy** | Fast | Plays by simple rules, no lookahead |
 | **Medium** | Lookahead | Scores every action one step ahead, with the tuned matchup profiles |
-| **Hard** | Deep + card impact | Also rolls out the rest of its turn and your whole reply for its best 3 options, and values cards by how much they swing games for its deck |
+| **Hard** | Deep + card impact + reaction rollouts | Also rolls out the rest of its turn and your whole reply for its best 3 options, plays out each block / reaction, and values cards by how much they swing games for its deck |
 
 Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 games each, about ±6 points of noise):
 
@@ -99,7 +99,8 @@ Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 gam
 |---|---|
 | Easy vs Medium | 37.5% |
 | Medium vs Deep (pre-tier Hard) | 49.4% |
-| Hard vs Deep | 52.4% |
+| Hard (pre-refinement) vs Deep | 52.4% |
+| Hard (reaction rollouts) vs Hard (pre-refinement) | 56.0% |
 | Deep 12 + card impact vs Deep | 51.2% |
 
 Easy is clearly weaker. Medium and Hard are close in bot-vs-bot play: both use the same evaluation, so their mistakes are similar. Hard's edge shows when it judges single decisions against the rollout oracle: it blunders about 16% of the time vs 25% for Medium. That matters more against a human, who makes different mistakes.

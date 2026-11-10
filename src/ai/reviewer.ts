@@ -10,7 +10,7 @@
 // Caveat: the oracle values positions with the bots' own evaluation, so it finds tactical slips, not new strategy.
 import { Game, GameOverSignal } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
-import type { Action, Agent, Decision, DeckList, PlayerId } from '../engine/types';
+import type { Action, Agent, Decision, DeckList, PlayerId, Reaction } from '../engine/types';
 import { HeuristicAgent, hideInfo } from './heuristic';
 import { BEST_PROFILES } from './archetype';
 import { evaluate } from './eval';
@@ -25,7 +25,22 @@ const GIG = 40;
 /** Play-outs per candidate (validated: 8 with common random numbers, see reports/review-validation.md). */
 export const DEFAULT_ROLLOUTS = 8;
 
-export type Category = 'sell' | 'unit' | 'program' | 'gear' | 'call' | 'attack gigs' | 'attack unit' | 'activate' | 'go solo' | 'end turn';
+export type Category =
+  | 'sell'
+  | 'unit'
+  | 'program'
+  | 'gear'
+  | 'call'
+  | 'attack gigs'
+  | 'attack unit'
+  | 'activate'
+  | 'go solo'
+  | 'end turn'
+  | 'block'
+  | 'no reaction'
+  | 'react: call'
+  | 'react: program'
+  | 'react: ability';
 
 export interface DecisionReview {
   i: number; // decision number in the game
@@ -133,6 +148,43 @@ export async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: Worl
   return { v: sum / worlds.length, lossRate: losses / worlds.length };
 }
 
+/** Oracle value of a reaction for the defending player p: resume the attack, finish the attacker's turn, play p's turn. */
+export async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[]): Promise<{ v: number; lossRate: number }> {
+  let sum = 0;
+  let losses = 0;
+  const attacker = g.s.attack!.attacker;
+  for (const w of worlds) {
+    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+    const cg = g.clone([mk(w.a), mk(w.b)]);
+    cg.s.rng = w.rng;
+    hideInfo(cg, p);
+    try {
+      if (rx.type === 'endReact') await cg.attackRest(attacker, true);
+      else {
+        await cg.doReaction(p, rx);
+        await cg.resolvePending();
+        await cg.attackRest(attacker);
+      }
+      cg.checkState();
+      await cg.mainLoop(); // the attacker finishes their turn
+      await cg.endPhase();
+      await cg.startPhase(); // then our whole turn
+      await cg.mainLoop();
+      await cg.endPhase();
+    } catch (e) {
+      if (!(e instanceof GameOverSignal)) throw e;
+    }
+    const e = evaluate(cg, p);
+    if (e < -5000) losses++;
+    sum += Math.max(-TERMINAL, Math.min(TERMINAL, e));
+  }
+  return { v: sum / worlds.length, lossRate: losses / worlds.length };
+}
+
+export function reactionCategory(rx: Reaction): Category {
+  return rx.type === 'endReact' ? 'no reaction' : rx.type === 'block' ? 'block' : rx.type === 'call' ? 'react: call' : rx.type === 'play' ? 'react: program' : 'react: ability';
+}
+
 export function categoryOf(g: Game, a: Action): Category {
   switch (a.type) {
     case 'pass':
@@ -191,6 +243,7 @@ export class ReviewAgent implements Agent {
       this.timeline.push({ turn: g.s.turn, v: evaluate(g, 0) });
     }
     if (this.opts.shouldStop?.()) return this.inner.decide(g, d);
+    if (this.review && d.kind === 'reaction' && d.options.length >= 2 && g.s.attack) return this.reviewReaction(g, d);
     if (!this.review || d.kind !== 'action' || d.options.length < 2) return this.inner.decide(g, d);
     // the move actually made (decide first: oracle play-outs are clones and never touch the real game)
     const pick = await this.inner.decide(g, d);
@@ -252,6 +305,53 @@ export class ReviewAgent implements Agent {
     this.shared.n++;
     this.opts.onProgress?.(this.shared.n);
     return pick;
+  }
+
+  /** Reactions (blocks, reaction-time calls and programs, or letting the attack through), graded like main-phase moves. */
+  private async reviewReaction(g: Game, d: Decision): Promise<number[]> {
+    const pick = await this.inner.decide(g, d);
+    const chosen = pick[0];
+    const rxs = d.options.map((o) => o.action as Reaction);
+    const cand = new Set<number>([chosen]);
+    for (let i = 0; i < rxs.length && cand.size < 6; i++) cand.add(i);
+    let coachI: number | undefined;
+    if (this.opts.withCoach && this.opts.coach) {
+      [coachI] = await this.opts.coach().decide(g, d);
+      cand.add(coachI);
+    }
+    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+    const vals = new Map<number, number>();
+    const loss = new Map<number, number>();
+    for (const i of cand) {
+      const o = await oracleReaction(g, this.seat, rxs[i], worlds);
+      vals.set(i, o.v);
+      loss.set(i, o.lossRate);
+    }
+    this.record(g, d, chosen, vals, loss, coachI, reactionCategory(rxs[chosen]));
+    return pick;
+  }
+
+  private record(g: Game, d: Decision, chosen: number, vals: Map<number, number>, loss: Map<number, number>, coachI: number | undefined, category: Category) {
+    const bestV = Math.max(...vals.values());
+    const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
+    const bestI = [...vals.entries()].find(([, v]) => v === bestV)![0];
+    const raw = decided ? 0 : bestV - vals.get(chosen)!;
+    const cr = coachI !== undefined ? (decided ? 0 : Math.min(CAP, bestV - vals.get(coachI)!)) : undefined;
+    this.out.push({
+      i: this.count++,
+      turn: g.s.turn,
+      player: this.seat,
+      category,
+      options: d.options.length,
+      chosen: d.options[chosen].label,
+      best: d.options[bestI].label,
+      coach: coachI !== undefined ? d.options[coachI].label : undefined,
+      regret: Math.min(CAP, Math.max(0, raw)),
+      gameLosing: !decided && loss.get(chosen)! - loss.get(bestI)! >= 0.25,
+      coachRegret: cr !== undefined ? Math.max(0, cr) : undefined,
+    });
+    this.shared.n++;
+    this.opts.onProgress?.(this.shared.n);
   }
 }
 

@@ -25,6 +25,12 @@ export interface HeuristicOptions {
   profiles?: Profiles | null;
   /** weight of statistical card impact (telemetry IWD) in sell/discard/search/mulligan decisions; 0 = off */
   impact?: number;
+  /** deep mode: also roll out the best N attack options, even if the 1-ply screen ranks them below the top `deep` */
+  deepAttacks?: number;
+  /** compare the N most sellable cards by rollout (or 1-ply) instead of always selling the lowest-scored one; 0 = off */
+  sellLookahead?: number;
+  /** deep mode: choose reactions (blocks, reaction calls/programs) by rolling the attack and both turns out, N rollouts each */
+  deepReactions?: number;
   seed?: number;
 }
 
@@ -47,6 +53,9 @@ export class HeuristicAgent implements Agent {
       deep: opts.deep ?? 0,
       profiles: opts.profiles === undefined ? null : opts.profiles,
       impact: opts.impact ?? 0,
+      deepAttacks: opts.deepAttacks ?? 0,
+      sellLookahead: opts.sellLookahead ?? 0,
+      deepReactions: opts.deepReactions ?? 0,
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -104,17 +113,21 @@ export class HeuristicAgent implements Agent {
 
   /** Which card to sell this turn (or null). Selling is the game's "land drop": do it every turn early. */
   private sellChoice(g: Game, p: PlayerId, actions: Action[]): number | null {
+    return this.sellRanking(g, p, actions)[0] ?? null;
+  }
+
+  /** Sellable cards, least valuable to keep first (one per distinct card). Empty when the bot shouldn't sell now. */
+  private sellRanking(g: Game, p: PlayerId, actions: Action[]): number[] {
     const sells = actions.filter((a) => a.type === 'sell') as { type: 'sell'; uid: number }[];
-    if (!sells.length) return null;
+    if (!sells.length) return [];
     const P = g.P(p);
     const eddies = P.eddies.length;
-    if (eddies >= 9) return null;
-    if (P.hand.length <= 1 && eddies >= 5) return null;
+    if (eddies >= 9) return [];
+    if (P.hand.length <= 1 && eddies >= 5) return [];
     const avail = g.available(p);
     const counts = new Map<string, number>();
     for (const u of P.hand) counts.set(g.c(u).defId, (counts.get(g.c(u).defId) ?? 0) + 1);
-    let best: number | null = null;
-    let bestKeep = Infinity;
+    const scored: { uid: number; keep: number; def: string }[] = [];
     for (const s of sells) {
       const c = g.c(s.uid);
       const d = g.def(c);
@@ -124,12 +137,11 @@ export class HeuristicAgent implements Agent {
       if (cost > avail + 3) keep -= 3; // far off
       if ((counts.get(c.defId) ?? 0) > 1) keep -= 2;
       if (d.type === 'Gear' && g.gearHosts(p).length === 0) keep -= 2;
-      if (keep < bestKeep) {
-        bestKeep = keep;
-        best = s.uid;
-      }
+      scored.push({ uid: s.uid, keep, def: c.defId });
     }
-    return best;
+    scored.sort((a, b) => a.keep - b.keep);
+    const seen = new Set<string>();
+    return scored.filter((x) => !seen.has(x.def) && seen.add(x.def)).map((x) => x.uid);
   }
 
   private async chooseMain(g: Game, d: Decision): Promise<number> {
@@ -137,7 +149,22 @@ export class HeuristicAgent implements Agent {
     const actions = d.options.map((o) => o.action as Action);
     const passIdx = actions.findIndex((a) => a.type === 'pass');
     // 1) sell first
-    const sell = this.sellChoice(g, p, actions);
+    let sell = this.sellChoice(g, p, actions);
+    // which card to sell: compare the few most sellable by playing them out (the "whether" stays rule-based)
+    if (sell !== null && this.opts.sellLookahead > 1 && this.opts.lookahead) {
+      const options = this.sellRanking(g, p, actions).slice(0, this.opts.sellLookahead);
+      if (options.length > 1) {
+        let bestV = -Infinity;
+        for (const uid of options) {
+          const a: Action = { type: 'sell', uid };
+          const v = this.opts.deep > 0 ? await this.rollout(g, p, a) : await this.simulate(g, p, a);
+          if (v > bestV + 0.01) {
+            bestV = v;
+            sell = uid;
+          }
+        }
+      }
+    }
     if (sell !== null) {
       this.lastThought = `Sell ${g.name(sell)} for an Eddie (economy first).`;
       this.lastAlternatives = [];
@@ -180,6 +207,9 @@ export class HeuristicAgent implements Agent {
       scored.sort((x, y) => y.v - x.v);
       const top = scored.slice(0, this.opts.deep);
       if (passIdx >= 0 && !top.some((t) => t.i === passIdx)) top.push({ i: passIdx, v: base });
+      // attacks are where the most value is lost: give the best few a full rollout even if the 1-ply screen ranks them lower
+      if (this.opts.deepAttacks > 0)
+        for (const t of scored.filter((x) => actions[x.i].type === 'attack').slice(0, this.opts.deepAttacks)) if (!top.some((y) => y.i === t.i)) top.push(t);
       let bestDeep = -Infinity;
       deepScored = [];
       for (const t of top) {
@@ -272,6 +302,7 @@ export class HeuristicAgent implements Agent {
     const rx = d.options.map((o) => o.action as Reaction);
     const endIdx = rx.findIndex((r) => r.type === 'endReact');
     if (!this.opts.lookahead) return this.fastReaction(g, p, rx);
+    if (this.opts.deepReactions > 0 && g.s.attack) return this.deepReaction(g, d, rx, endIdx);
     const baseV = this.projectAttack(g, p);
     let bestI = endIdx;
     let bestV = baseV;
@@ -290,6 +321,51 @@ export class HeuristicAgent implements Agent {
         v = evaluate(cg, p, this.w(g, p));
       }
       if (rx[i].type === 'call') v += 0.5; // using a reaction-time call is efficient
+      if (v > bestV + 0.5) {
+        bestV = v;
+        bestI = i;
+      }
+    }
+    this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
+    return bestI;
+  }
+
+  /** Reactions by rollout: resume the attack with each reaction, let the attacker finish, play our turn, evaluate. */
+  private async deepReaction(g: Game, d: Decision, rx: Reaction[], endIdx: number): Promise<number> {
+    const p = d.player;
+    const attacker = g.s.attack!.attacker;
+    const value = async (r: Reaction) => {
+      let sum = 0;
+      for (let k = 0; k < this.opts.deepReactions; k++) {
+        const mk = () => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights: this.opts.weights, profiles: this.opts.profiles, seed: Math.floor(this.rand() * 1e9) });
+        const cg = g.clone([mk(), mk()]);
+        hideInfo(cg, p);
+        try {
+          if (r.type === 'endReact') await cg.attackRest(attacker, true);
+          else {
+            await cg.doReaction(p, r);
+            await cg.resolvePending();
+            await cg.attackRest(attacker);
+          }
+          cg.checkState();
+          await cg.mainLoop();
+          await cg.endPhase();
+          await cg.startPhase();
+          await cg.mainLoop();
+          await cg.endPhase();
+        } catch (e) {
+          if (!(e instanceof GameOverSignal)) throw e;
+        }
+        sum += Math.max(-600, Math.min(600, evaluate(cg, p, this.w(g, p))));
+      }
+      return sum / this.opts.deepReactions;
+    };
+    const baseV = endIdx >= 0 ? await value(rx[endIdx]) : -Infinity;
+    let bestI = endIdx >= 0 ? endIdx : 0;
+    let bestV = baseV;
+    for (let i = 0; i < rx.length; i++) {
+      if (i === endIdx) continue;
+      const v = (await value(rx[i])) + (rx[i].type === 'call' ? 0.5 : 0);
       if (v > bestV + 0.5) {
         bestV = v;
         bestI = i;

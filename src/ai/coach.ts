@@ -10,7 +10,9 @@ import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
 /** Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md). */
-export const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 12 };
+export const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 12, sellLookahead: 3, deepReactions: 3 };
+/** The coach before the review-driven refinement (kept for comparisons). */
+export const COACH_CONFIG_V1 = { profiles: BEST_PROFILES, impact: 40, deep: 12 };
 
 export function makeCoach() {
   return new HeuristicAgent({ name: 'Coach', ...COACH_CONFIG });

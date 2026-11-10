@@ -57,6 +57,14 @@ Ordered by expected value. Each item names how to measure it.
 | 5 | Bots (all) | Mid-game attack planning: eval weights for Gig-area pressure vs unit trades (turns 7–12) | Value lost doubles from turn 7 | `tune.ts` then the backfill |
 | 6 | Decks | Forge the decks the bots misplay most, with Hard bots, before trusting their ratings | Their sim numbers are a floor | `forge.ts --bot hard` |
 
+## 3b. Refinement round 1: what happened
+
+See `reports/refine-results.md`:
+- Attack rollouts for Hard: no gain, reverted.
+- Coach sell rollouts: kept (sell accuracy 94% → 97%).
+- Reaction grading: added. It revealed that blocks were the weakest decision type.
+- Reaction rollouts: kept. Coach blocks went from 57% to 93% accurate, and Hard with them beats the previous Hard 56%.
+
 ## 4. How to re-run everything
 
 ```bash

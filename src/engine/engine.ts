@@ -1407,11 +1407,23 @@ export class Game {
     }
     this.emit('attack', { attacker: uid, targetUnit: target.unit, targetGigs: target.gigs });
     await this.resolvePending();
+    await this.attackRest(uid);
+  }
+
+  /**
+   * The rest of an attack after its {Attack} triggers: the rival's reaction window, then the fight or the steal,
+   * then cleanup. Split out so a lookahead clone taken during a reaction can resume the attack.
+   */
+  async attackRest(uid: number, reactionsClosed = false) {
+    const s = this.s;
+    if (!s.attack) return;
+    const att = s.cards[uid];
+    const r = other(s.attack.attackerPlayer);
     try {
       if (!this.attackValid()) return;
       // ---- React step
       s.attack.step = 'react';
-      let guard = 0;
+      let guard = reactionsClosed ? 30 : 0;
       while (guard++ < 30) {
         if (!this.attackValid()) return;
         const reacts = this.legalReactions(r);

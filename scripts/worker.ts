@@ -27,6 +27,9 @@ export interface AgentSpec {
   noise?: number;
   deep?: number;
   impact?: number;
+  deepAttacks?: number;
+  sellLookahead?: number;
+  deepReactions?: number;
   /** 'default' = DEFAULT_PROFILES, 'best' = BEST_PROFILES (tuned), or an explicit profile table */
   profiles?: 'default' | 'best' | Record<string, Record<string, number>>;
 }
@@ -45,12 +48,12 @@ export interface MatchResult {
 }
 
 function fromSpec(spec: AgentSpec, seed: number): Agent {
-  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
+  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 
 function mkAgent(kind: string, seed: number): Agent {
   if (kind === 'random') return new RandomAgent(seed);
-  if (['easy', 'medium', 'hard', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
+  if (['easy', 'medium', 'hard', 'hard-v1', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
   if (kind === 'plain') return new HeuristicAgent({ seed, noise: 0.15 });
   return new HeuristicAgent({ seed, noise: 0.15, profiles: BEST_PROFILES });
 }
