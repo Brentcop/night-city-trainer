@@ -5,12 +5,14 @@
   - Scripts use the `CardScript` hooks in `src/engine/types.ts`.
   - State must stay plain data, because bots `structuredClone` it. Never put functions in mods; player `costMod` filters are plain objects (see `costModMatches`).
   - "Next time … this turn" effects from Programs use `g.addDelayed(self, event, data)` together with a `delayed` handler on the script.
-- **Card data:** `npm run build:data` regenerates `src/data/cards.json` from `data/raw/sim_catalog.json`.
+- **Card data:** `npm run build:data` (`tools/build-data.ts`) regenerates `src/data/cards.json` from `data/raw/sim_catalog.json`.
+- **`data/raw/`** (rules text, card catalog, choom.gg pages) is gitignored and local-only: it is not in the repository or the site, so a fresh clone can't run `build:data` or the choom.gg imports.
 - **Decks:** `data/decks/*.txt` (meta-*, guide lists) and `data/decks/custom/`. Parse and export them with `src/engine/deck.ts`. Choom.gg imports are refreshed with `scripts/import-meta.ts` and `scripts/import-guides.ts`.
 - **Bots:** `src/ai/heuristic.ts` (1-ply lookahead; set `deep: N` for turn rollouts), `src/ai/eval.ts` (tuned weights), `src/ai/knowledge.ts` (roles, ratings, Gig plans). Docs are in `docs/BOT_TOOLKIT.md`.
-- **Sims:** `npm run sim -- <catalog|show|vs|test|review|add>` runs games in worker threads (`scripts/worker.ts`, booted via `worker-boot.mjs`). Other scripts: `scripts/tune.ts` (weight tuning), `scripts/optimize.ts` (card-swap search), `scripts/botcheck.ts` (compare bot configs).
+- **Sims:** `npm run sim -- <catalog|show|vs|test|review|analyze|add>` runs games in worker threads (`scripts/worker.ts`, booted via `worker-boot.mjs`). Other scripts: `scripts/tune.ts` (weight tuning), `scripts/optimize.ts` (card-swap search), `scripts/botcheck.ts` (compare bot configs).
 - **Tournaments:** the rules (Swiss, top cut, Bo1/Bo3, seeds) live in `src/lib/tournament.ts`, shared by `npm run tournament -- --field meta --bo 3 --top 8 --bot deep` and the in-browser runner (`#/run`, games run in `src/sim/game.worker.ts` via `src/sim/pool.ts`). Use `makeBot()` for any game that must replay identically.
 - **Play UI:** drag-to-act and confirm prompts are in `src/ui/components/board/drag.tsx`. Undo restores a snapshot (game state plus a cloned bot) taken before each human main-phase decision and continues with `Game.resume()`.
 - **Deck Lab** (`#/lab`, `src/lib/deckLab.ts`) tunes a submitted deck (browser forge) and breeds decks in the browser.
 - **Head-to-heads** (`public/data/h2h.json`, `scripts/build-h2h.ts`) are rebuilt by every tournament run and by `npm run refresh`. The Deck Lab loads them lazily to breed counter decks, and says when they're missing or older than the recorded events.
-- **Before committing:** `npx tsc --noEmit && npx vitest run`.
+- **Data-writing CLIs** fail on unknown flags and refuse to overwrite without `--force`: `npm run tournament` numbers new events after the highest id, `scripts/season.ts` won't re-run an existing season, and `sim add` / `import-meta.ts` / `import-guides.ts` won't overwrite a deck (they keep provenance headers). Unmaintained one-offs live in `scripts/archive/`; don't run them.
+- **Before committing:** `npx tsc --noEmit && npx vitest run`. `npm run lint` (react-hooks rules only) and `npm run test:cov` are optional. Node 22+ (`.nvmrc`).

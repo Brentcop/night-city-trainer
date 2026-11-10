@@ -57,6 +57,15 @@ Ordered by expected value. Each item names how to measure it.
 | 5 | Bots (all) | Mid-game attack planning: eval weights for Gig-area pressure vs unit trades (turns 7–12) | Value lost doubles from turn 7 | `tune.ts` then the backfill |
 | 6 | Decks | Forge the decks the bots misplay most, with Hard bots, before trusting their ratings | Their sim numbers are a floor | `forge.ts --bot hard` |
 
+**Status** (checked against the code after round 1, see §3b):
+
+1. Implemented, then switched off. `HeuristicAgent` has a `deepAttacks` option, but Hard runs with `HARD_DEEP_ATTACKS = 0` (`src/ai/tiers.ts`) because attack rollouts measured no gain.
+2. Done. The coach decides sells with `sellLookahead: 3` (`COACH_CONFIG` in `src/ai/coach.ts`).
+3. Partly done. Reactions (blocks, reaction-time calls and programs, and letting the attack through) are now graded. Mulligans and Gig dice are not.
+4. Open. `review.ts` has a calibration section, but it still uses the short horizon.
+5. Open.
+6. Open. `forge.ts --bot hard` works, but the forge logs in `reports/` were all made with the `lookahead` or `medium` bot.
+
 ## 3b. Refinement round 1: what happened
 
 See `reports/refine-results.md`:
