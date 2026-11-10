@@ -975,6 +975,8 @@ body.pb-dragging [data-drop].pb-drop-over {
   color: var(--red);
   font-size: 0.85rem;
   animation: toast-in 0.25s ease both;
+  /* it sits over the hand bar: taps go through to the cards and buttons below */
+  pointer-events: none;
 }
 .pb-sort {
   font-size: 0.78rem;
@@ -1217,6 +1219,20 @@ body.pb-dragging [data-drop].pb-drop-over {
   }
   body:has(.pb) .footer {
     display: none;
+  }
+  /* finger-sized tap targets (at least 40px) */
+  .pb-sort {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  /* a clickable die keeps its drawn size; padding grows the tap area and an equal negative margin keeps the layout */
+  .pb-die .die.is-click {
+    --pad: max(0px, calc((40px - var(--die-size, 40px)) / 2));
+    box-sizing: content-box;
+    padding: var(--pad);
+    margin: calc(-1 * var(--pad));
+    position: relative;
+    z-index: 1;
   }
 }
 

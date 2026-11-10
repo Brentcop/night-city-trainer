@@ -35,6 +35,7 @@ export function Die({
       width={size}
       height={size}
       viewBox="0 0 100 100"
+      style={onClick ? ({ '--die-size': `${size}px` } as React.CSSProperties) : undefined}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
     >
