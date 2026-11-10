@@ -1,0 +1,34 @@
+// RRY Smasher Aggro
+// Origin: choom.gg meta archetype
+// Author: Armbarred (choom.gg public deck "RRY Aggro")
+// Source: https://choom.gg/meta/rry-smasher-aggro (reference list https://choom.gg/decks/6d466d16-3ec9-4f96-907d-1eb049f7898e)
+// Via: choom.gg/meta (collected 2026-11-09)
+// Credits: Archetype tier rating: choom.gg editors (with tcgcontender.com community data)
+// Added: 2026-11-09
+// Tier: S (91/100), complexity Straightforward
+// Format: Constructed
+
+// Legends
+1 Dum Dum: Maelstrom Triggerman
+1 V: Streetkid
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 6th Street Recruits
+3 Meredith Stout: Stone Cold Corpo
+1 Offduty Malfini
+3 Screw: Lovelorn Fool
+3 Rockn' Rockerboy
+3 Animals Wrecker
+2 All is Lost
+3 Detonate
+2 Industrial Assembly
+3 Bonnie and Clyde
+2 Over the Edge
+2 Gunpoint Diplomacy
+3 Carnage at the Colosseum
+3 Mantis Blades
+2 Satori: Sword of Saburo
+3 Zetatech Faceplate
+3 La Llorona: Ghost of the Past
+3 Royce: Don't Call Me Simon

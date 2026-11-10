@@ -1,0 +1,32 @@
+// S2-03 Mutant (RBG)
+// Origin: Night City Trainer bred deck (season 2, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-01 Mutant (RRB)
+// Added: 2026-11-10
+// Idea: Mutant of S1-01 Mutant (RRB): Dexter DeShawn: Off the Grid → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Mama's Favorite
+1 V: Corporate Exile
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 Valentino Street Racer
+1 6th Street Recruits
+3 Psycho Squad
+3 Royce: Don't Call Me Simon
+1 Sandayu Oda: Hanako's Guardian
+1 Placide: Voodoo Sentinel
+3 Satori: Sword of Saburo
+2 Detonate
+2 Floor It
+1 Peace Offering
+2 Trust No One
+2 Take Control
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+2 Memory Relapse
+3 Shattered Memories
+2 Unlikely Bond

@@ -1,0 +1,32 @@
+# S2-05 Cross (BGG)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Hanako Arasaka: Daughter of the Emperor
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Units (12)
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+1 Psycho Squad
+3 MaxTac AV
+2 Placide: Voodoo Sentinel
+
+// Gears (3)
+1 Overwatch: Panam's Gift
+2 Zetatech Berserk
+
+// Programs (25)
+2 Floor It
+3 Peace Offering
+2 Trust No One
+2 Take Control
+3 Chrome Reverie
+2 Nocturne OP55 N1
+3 Memory Relapse
+2 Unlikely Bond
+3 Wild in the Streets
+3 (Don't Fear) The Reaper
+
+// Idea: Crossover of S1-04 Cross (RBG) × S1-06 Cross (RGG) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Author: Night City Trainer breeder (season 2, crossover)

@@ -1,0 +1,32 @@
+# S3-01 Mutant (RBG)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Hanako Arasaka: Daughter of the Emperor
+1 Adam Smasher: Ender of Legends
+
+// Units (12)
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+1 Psycho Squad
+3 Royce: Don't Call Me Simon
+2 Placide: Voodoo Sentinel
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (24)
+2 Detonate
+2 Peace Offering
+2 Trust No One
+2 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 Unlikely Bond
+2 We Gotta Live Together
+
+// Idea: Mutant of S1-04 Cross (RBG): Saburo Arasaka: Stubborn Patriarch → Hanako Arasaka: Daughter of the Emperor; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Author: Night City Trainer breeder (season 3, mutant)

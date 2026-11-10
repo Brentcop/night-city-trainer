@@ -1,0 +1,33 @@
+# S3-08 Explorer (RRB)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Royce: Psycho on the Edge
+1 Dexter DeShawn: Off the Grid
+
+// Units (12)
+1 Japantown Jonin
+2 Swordwise Huscle
+3 6th Street Recruits
+1 Kerry Eurodyne: The Last Rockerboy
+3 Animals Wrecker
+2 Placide: Voodoo Sentinel
+
+// Gears (2)
+2 Satori: Sword of Saburo
+
+// Programs (26)
+1 Floor It
+2 Industrial Assembly
+2 Trust No One
+3 Bonnie and Clyde
+2 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+2 Gunpoint Diplomacy
+3 Shattered Memories
+2 Unlikely Bond
+3 Carnage at the Colosseum
+
+// Idea: Explorer (control): untested Legends V / Royce / Dexter DeShawn, filled by role and curve templates from format-wide card impact.
+// Author: Night City Trainer breeder (season 3, explorer)

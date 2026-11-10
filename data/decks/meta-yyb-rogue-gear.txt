@@ -1,0 +1,33 @@
+// YYB Rogue Gear
+// Origin: choom.gg meta archetype
+// Author: MMantanza (choom.gg public deck "Gear Up")
+// Source: https://choom.gg/meta/yyb-rogue-gear (reference list https://choom.gg/decks/95f176bb-4b42-4447-b098-22baf619749b)
+// Via: choom.gg/meta (collected 2026-11-09)
+// Credits: Archetype tier rating: choom.gg editors (with tcgcontender.com community data)
+// Added: 2026-11-09
+// Tier: A (81/100), complexity Moderate
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 River Ward: Detective on the Hunt
+1 Viktor Vektor: Sit Down and Relax
+
+// Main Deck
+2 Secondhand Bombus
+2 Augmented Negotiators
+2 Dexter DeShawn: One Last Chance
+1 Viktor Vektor: You Might Feel a Little Pinch
+3 Psycho Squad
+2 Jackie Welles: Ride or Die Choom
+2 Modded Kusanagi
+3 Trauma Team Operatives
+2 Reboot Optics
+2 Safety Override
+3 The Heist
+3 Live with the Aftermath
+1 Mandibular Upgrade
+3 Adrenaline Converter
+3 Dying Night: V's Pistol
+3 Zetatech Faceplate
+3 Gorilla Arms

@@ -1,0 +1,31 @@
+# NC-05 Emperor's Guard (GGB)
+
+// Legends (3)
+1 Hanako Arasaka: Daughter of the Emperor
+1 Goro Takemura: Vengeful Bodyguard
+1 Jackie Welles: Pour One Out For Me
+
+// Units (20)
+3 Corpo Security
+2 Field Operator
+3 Pepe Najarro: Working Doubles
+3 Psycho Squad
+3 MaxTac AV
+2 MaxTac Heavy
+2 Sandayu Oda: Hanako's Guardian
+2 Saul Bright: Stormrider
+
+// Gears (3)
+3 Riot Shield
+
+// Programs (17)
+3 Floor It
+3 Peace Offering
+2 Trust No One
+3 Corporate Surveillance
+2 Memory Relapse
+2 Wild in the Streets
+2 (Don't Fear) The Reaper
+
+// Idea: Green pairs control: Hanako draws per value-pair, Goro hands out Blocker, Corpo Security/Riot Shield wall, then The Reaper / Wild in the Streets clear the way for Saul Bright.
+// Author: Night City Trainer (v1, 2026-11-10)

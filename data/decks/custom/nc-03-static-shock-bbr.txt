@@ -1,0 +1,31 @@
+// NC-03 Static Shock (BBR)
+// Origin: Night City Trainer original (hand-designed, then forged)
+// Author: Night City Trainer — designed by Claude (Anthropic) for this project
+// Added: 2026-11-10
+// Idea: Blue removal/draw shell (Three Mouths, Towerfall, Les Élémens) with Red 4/6 blockers instead of Green: Meredith and 6th Street give it the board presence BBG lacks early.
+// Format: Constructed
+
+// Legends
+1 Wakako Okada: Peace and Harmony
+1 Alt Cunningham: Soulkiller Architect
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+3 Jacked-In Voodoo Boy
+3 6th Street Recruits
+2 Meredith Stout: Stone Cold Corpo
+3 Psycho Squad
+1 Rita Wheeler: No Stupid Questions
+2 Westbrook Netrunner
+2 Lizzy Wizzy: Delicate Weapon
+2 Maman Brigitte: Spirit of Death
+1 Placide: Voodoo Sentinel
+2 Satori: Sword of Saburo
+2 Detonate
+3 Floor It
+3 Trust No One
+3 Three Mouths, One Desire
+2 Chrome Reverie
+2 Pyramid Song
+2 Les Élémens
+2 Towerfall

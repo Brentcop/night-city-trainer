@@ -1,0 +1,32 @@
+# NC-03 Static Shock (BBR)
+
+// Legends (3)
+1 Wakako Okada: Peace and Harmony
+1 Alt Cunningham: Soulkiller Architect
+1 Dexter DeShawn: Off the Grid
+
+// Units (19)
+3 Jacked-In Voodoo Boy
+3 6th Street Recruits
+3 Meredith Stout: Stone Cold Corpo
+3 Psycho Squad
+2 Rita Wheeler: No Stupid Questions
+2 Westbrook Netrunner
+2 Lizzy Wizzy: Delicate Weapon
+1 Placide: Voodoo Sentinel
+
+// Gears (2)
+2 Satori: Sword of Saburo
+
+// Programs (19)
+2 Detonate
+3 Floor It
+3 Trust No One
+3 Three Mouths, One Desire
+2 Chrome Reverie
+2 Pyramid Song
+2 Les Élémens
+2 Towerfall
+
+// Idea: Blue removal/draw shell (Three Mouths, Towerfall, Les Élémens) with Red 4/6 blockers instead of Green: Meredith and 6th Street give it the board presence BBG lacks early.
+// Author: Night City Trainer (v1, 2026-11-10)

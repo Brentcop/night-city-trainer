@@ -1,0 +1,296 @@
+{
+ "season": 1,
+ "date": "2026-11-10T07:23:27.809Z",
+ "games": 16,
+ "bot": "deep",
+ "bred": [
+  {
+   "name": "S1-01 Mutant (RRB)",
+   "method": "mutant",
+   "parents": [
+    "RRG Dexter Midrange"
+   ],
+   "idea": "Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → V: Corporate Exile; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S1-02 Mutant (BGY)",
+   "method": "mutant",
+   "parents": [
+    "YYB Rogue Gear"
+   ],
+   "idea": "Mutant of YYB Rogue Gear: River Ward: Detective on the Hunt → Saburo Arasaka: Stubborn Patriarch; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S1-03 Mutant (RRR)",
+   "method": "mutant",
+   "parents": [
+    "NC-07 Braindance Burn (RRB)"
+   ],
+   "idea": "Mutant of NC-07 Braindance Burn (RRB): Judy Álvarez: Braindance Maestro → Yorinobu Arasaka: Embracing Destruction; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "method": "crossover",
+   "parents": [
+    "YYB Rogue Gear",
+    "RRG Dexter Midrange"
+   ],
+   "idea": "Crossover of YYB Rogue Gear × RRG Dexter Midrange (aggro): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S1-05 Cross (RGY)",
+   "method": "crossover",
+   "parents": [
+    "NC-02 Stormrider Stampede (GGR)",
+    "YYY Adam v1 - Ready for Brawl"
+   ],
+   "idea": "Crossover of NC-02 Stormrider Stampede (GGR) × YYY Adam v1 - Ready for Brawl (aggro): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S1-06 Cross (RGG)",
+   "method": "crossover",
+   "parents": [
+    "RRG Midrange: V + Dexter (optimized)",
+    "NC-05 Emperor's Guard (GGB)"
+   ],
+   "idea": "Crossover of RRG Midrange: V + Dexter (optimized) × NC-05 Emperor's Guard (GGB) (aggro): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S1-07 Explorer (BBG)",
+   "method": "explorer",
+   "parents": [],
+   "idea": "Explorer (midrange): untested Legends V / Sasha Yakovleva / Saburo Arasaka, filled by role and curve templates from format-wide card impact."
+  },
+  {
+   "name": "S1-08 Explorer (RRG)",
+   "method": "explorer",
+   "parents": [],
+   "idea": "Explorer (aggro): untested Legends Royce / Yorinobu Arasaka / Hanako Arasaka, filled by role and curve templates from format-wide card impact."
+  }
+ ],
+ "standings": [
+  {
+   "name": "S1-07 Explorer (BBG)",
+   "file": "s1-07-explorer-bbg.txt",
+   "kind": "original",
+   "wr": 0.6704545454545454,
+   "isNew": true
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "file": "s1-04-cross-rbg.txt",
+   "kind": "original",
+   "wr": 0.6477272727272727,
+   "isNew": true
+  },
+  {
+   "name": "S1-01 Mutant (RRB)",
+   "file": "s1-01-mutant-rrb.txt",
+   "kind": "original",
+   "wr": 0.6221590909090909,
+   "isNew": true
+  },
+  {
+   "name": "S1-05 Cross (RGY)",
+   "file": "s1-05-cross-rgy.txt",
+   "kind": "original",
+   "wr": 0.6079545454545454,
+   "isNew": true
+  },
+  {
+   "name": "S1-08 Explorer (RRG)",
+   "file": "s1-08-explorer-rrg.txt",
+   "kind": "original",
+   "wr": 0.6079545454545454,
+   "isNew": true
+  },
+  {
+   "name": "S1-06 Cross (RGG)",
+   "file": "s1-06-cross-rgg.txt",
+   "kind": "original",
+   "wr": 0.5994318181818182,
+   "isNew": true
+  },
+  {
+   "name": "NC-05 Emperor's Guard (GGB)",
+   "file": "nc-05-emperor-s-guard-ggb.txt",
+   "kind": "original",
+   "wr": 0.5596590909090909,
+   "isNew": false
+  },
+  {
+   "name": "RRG Dexter Midrange",
+   "file": "meta-rrg-dexter-midrange.txt",
+   "kind": "meta",
+   "wr": 0.5426136363636364,
+   "isNew": false
+  },
+  {
+   "name": "YYY Adam v1 - Ready for Brawl",
+   "file": "YYY-yyy-adam-ready-for-brawl.txt",
+   "kind": "guide",
+   "wr": 0.5284090909090909,
+   "isNew": false
+  },
+  {
+   "name": "YYB Rogue Gear",
+   "file": "meta-yyb-rogue-gear.txt",
+   "kind": "meta",
+   "wr": 0.5227272727272727,
+   "isNew": false
+  },
+  {
+   "name": "S1-02 Mutant (BGY)",
+   "file": "s1-02-mutant-bgy.txt",
+   "kind": "original",
+   "wr": 0.5170454545454546,
+   "isNew": true
+  },
+  {
+   "name": "NC-02 Stormrider Stampede (GGR)",
+   "file": "nc-02-stormrider-stampede-ggr.txt",
+   "kind": "original",
+   "wr": 0.4971590909090909,
+   "isNew": false
+  },
+  {
+   "name": "S1-03 Mutant (RRR)",
+   "file": "s1-03-mutant-rrr.txt",
+   "kind": "original",
+   "wr": 0.4914772727272727,
+   "isNew": true
+  },
+  {
+   "name": "RRG Midrange: V + Dexter (optimized)",
+   "file": "rrg-v-dexter-optimized.txt",
+   "kind": "custom",
+   "wr": 0.48863636363636365,
+   "isNew": false
+  },
+  {
+   "name": "Smash the Curve",
+   "file": "RRG-smash-the-curve.txt",
+   "kind": "guide",
+   "wr": 0.48863636363636365,
+   "isNew": false
+  },
+  {
+   "name": "BBG Cunningham Econ",
+   "file": "meta-bbg-cunningham-econ.txt",
+   "kind": "meta",
+   "wr": 0.45738636363636365,
+   "isNew": false
+  },
+  {
+   "name": "NC-07 Braindance Burn (RRB)",
+   "file": "nc-07-braindance-burn-rrb.txt",
+   "kind": "original",
+   "wr": 0.45738636363636365,
+   "isNew": false
+  },
+  {
+   "name": "NC-01 Rockerboy Express (RRY)",
+   "file": "nc-01-rockerboy-express-rry.txt",
+   "kind": "original",
+   "wr": 0.45170454545454547,
+   "isNew": false
+  },
+  {
+   "name": "NC-08 Merc Contract (RRG)",
+   "file": "nc-08-merc-contract-rrg.txt",
+   "kind": "original",
+   "wr": 0.4375,
+   "isNew": false
+  },
+  {
+   "name": "RRY Smasher Aggro",
+   "file": "meta-rry-smasher-aggro.txt",
+   "kind": "meta",
+   "wr": 0.41761363636363635,
+   "isNew": false
+  },
+  {
+   "name": "Rainbow Fixer Stuff",
+   "file": "meta-rainbow-fixer-stuff.txt",
+   "kind": "meta",
+   "wr": 0.32670454545454547,
+   "isNew": false
+  },
+  {
+   "name": "RRB Wakako Midrange",
+   "file": "meta-rrb-wakako-midrange.txt",
+   "kind": "meta",
+   "wr": 0.29545454545454547,
+   "isNew": false
+  },
+  {
+   "name": "GRY Trauma Team",
+   "file": "meta-gry-trauma-team.txt",
+   "kind": "meta",
+   "wr": 0.26420454545454547,
+   "isNew": false
+  }
+ ],
+ "leaderTop": [
+  {
+   "name": "S1-07 Explorer (BBG)",
+   "vsMeta": 0.7413793103448276,
+   "percentile": 100
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "vsMeta": 0.7142857142857143,
+   "percentile": 97
+  },
+  {
+   "name": "S1-01 Mutant (RRB)",
+   "vsMeta": 0.7093596059113301,
+   "percentile": 94
+  },
+  {
+   "name": "S1-08 Explorer (RRG)",
+   "vsMeta": 0.687192118226601,
+   "percentile": 91
+  },
+  {
+   "name": "S1-06 Cross (RGG)",
+   "vsMeta": 0.6798029556650246,
+   "percentile": 89
+  },
+  {
+   "name": "S1-05 Cross (RGY)",
+   "vsMeta": 0.6748768472906403,
+   "percentile": 86
+  },
+  {
+   "name": "RRG Dexter Midrange",
+   "vsMeta": 0.6333333333333333,
+   "percentile": 83
+  },
+  {
+   "name": "YYB Rogue Gear",
+   "vsMeta": 0.605,
+   "percentile": 80
+  },
+  {
+   "name": "NC-05 Emperor's Guard (GGB)",
+   "vsMeta": 0.5871080139372822,
+   "percentile": 77
+  },
+  {
+   "name": "NC-01 Rockerboy Express (RRY)",
+   "vsMeta": 0.5853658536585366,
+   "percentile": 74
+  },
+  {
+   "name": "NC-08 Merc Contract (RRG)",
+   "vsMeta": 0.5818815331010453,
+   "percentile": 71
+  },
+  {
+   "name": "NC-02 Stormrider Stampede (GGR)",
+   "vsMeta": 0.5785714285714286,
+   "percentile": 69
+  }
+ ]
+}

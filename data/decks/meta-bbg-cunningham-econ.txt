@@ -1,0 +1,32 @@
+// BBG Cunningham Econ
+// Origin: choom.gg meta archetype
+// Author: Troy Yamaguchi (Plus Two) — "The Cyberpunk Primer" video, 6 Sep 2026
+// Source: https://choom.gg/meta/bbg-cunningham-econ
+// Via: choom.gg/meta (collected 2026-11-09)
+// Credits: Tier rating and summary: choom.gg editors
+// Added: 2026-11-09
+// Tier: S (94/100), complexity Expert
+// Format: Constructed
+
+// Legends
+1 Alt Cunningham: Soulkiller Architect
+1 Hanako Arasaka: Daughter of the Emperor
+1 Jackie Welles: Pour One Out For Me
+
+// Main Deck
+3 Jacked-In Voodoo Boy
+2 Mox Inciters
+2 Pepe Najarro: Working Doubles
+2 Psycho Squad
+2 Lizzy Wizzy: Delicate Weapon
+2 Maman Brigitte: Spirit of Death
+1 Placide: Voodoo Sentinel
+3 Floor It
+3 Peace Offering
+3 Trust No One
+3 Three Mouths, One Desire
+3 Chrome Reverie
+2 Nocturne OP55 N1
+3 Pyramid Song
+3 Les Élémens
+3 Towerfall

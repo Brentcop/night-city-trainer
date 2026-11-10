@@ -1,0 +1,35 @@
+// RRG Dexter Midrange — EOR build
+// Origin: Night City Trainer tournament build (list + data-chosen sideboard)
+// Author: Night City Trainer
+// Credits: Sideboard ideas: Cacheira ("Smash the Curve" guide, choom.gg) + optimizer runs
+// Parents: RRG Dexter Midrange (list: Troy Yamaguchi / The Cyberpunk Primer, via choom.gg)
+// Added: 2026-11-10
+// Idea: Recommended EOR Chicago list: the stock choom.gg RRG Dexter Midrange (finals: 65% vs the meta field over 360 deep-bot games) with a data-chosen sideboard. vs BBG: -3 Bonnie and Clyde, +3 Royce: Don't Call Me Simon. vs aggro: +2 Memory Relapse, +2 Deadman Transmitter for -2 Peace Offering, -2 Detonate.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+1 Field Operator
+3 6th Street Recruits
+3 Meredith Stout: Stone Cold Corpo
+3 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+3 Mantis Blades
+3 Satori: Sword of Saburo
+3 Detonate
+1 Industrial Assembly
+3 Peace Offering
+3 Synapse Burnout
+3 Bonnie and Clyde
+2 Gunpoint Diplomacy
+3 Carnage at the Colosseum
+
+// Sideboard
+3 Royce: Don't Call Me Simon
+2 Deadman Transmitter
+2 Memory Relapse

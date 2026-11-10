@@ -1,0 +1,32 @@
+// S3-03 Mutant (RRB)
+// Origin: Night City Trainer bred deck (season 3, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-01 Mutant (RRB)
+// Added: 2026-11-10
+// Idea: Mutant of S1-01 Mutant (RRB): V: Corporate Exile → Sasha Yakovleva: Won't Let You Down; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Sasha Yakovleva: Won't Let You Down
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 Swordwise Huscle
+3 6th Street Recruits
+1 Psycho Squad
+3 Animals Wrecker
+2 Yorinobu Arasaka: Steel Dragon
+1 Placide: Voodoo Sentinel
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Detonate
+2 Trust No One
+3 Bonnie and Clyde
+3 Chrome Reverie
+2 Nocturne OP55 N1
+2 Over the Edge
+2 Gunpoint Diplomacy
+3 Shattered Memories
+1 Unlikely Bond
+3 Carnage at the Colosseum

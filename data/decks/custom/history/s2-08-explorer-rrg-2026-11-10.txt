@@ -1,0 +1,33 @@
+# S2-08 Explorer (RRG)
+
+// Legends (3)
+1 Yorinobu Arasaka: Embracing Destruction
+1 Jackie Welles: Mama's Favorite
+1 Dexter DeShawn: Off the Grid
+
+// Units (16)
+1 Swordwise Huscle
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+1 Johnny Silverhand: Never Stop Fighting
+2 Yorinobu Arasaka: Steel Dragon
+
+// Gears (6)
+2 Satori: Sword of Saburo
+2 Deadman Transmitter
+2 Zetatech Berserk
+
+// Programs (18)
+1 Industrial Assembly
+2 Take Control
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Memory Relapse
+2 Shattered Memories
+3 Carnage at the Colosseum
+
+// Idea: Explorer (midrange): untested Legends Yorinobu Arasaka / Jackie Welles / Dexter DeShawn, filled by role and curve templates from format-wide card impact.
+// Author: Night City Trainer breeder (season 2, explorer)

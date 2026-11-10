@@ -1,0 +1,31 @@
+// S1-07 Explorer (BBG)
+// Origin: Night City Trainer bred deck (season 1, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-10
+// Idea: Explorer (midrange): untested Legends V / Sasha Yakovleva / Saburo Arasaka, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Sasha Yakovleva: Won't Let You Down
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Main Deck
+1 Field Operator
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+3 Psycho Squad
+3 Maman Brigitte: Spirit of Death
+1 MaxTac AV
+2 Placide: Voodoo Sentinel
+2 Zetatech Berserk
+1 Floor It
+2 Trust No One
+2 Take Control
+3 Three Mouths, One Desire
+2 Chrome Reverie
+2 Nocturne OP55 N1
+2 Pyramid Song
+2 Memory Relapse
+3 Les Élémens
+3 Towerfall

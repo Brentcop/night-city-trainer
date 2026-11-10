@@ -1,0 +1,33 @@
+# S1-02 Mutant (BGY)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Saburo Arasaka: Stubborn Patriarch
+1 Viktor Vektor: Sit Down and Relax
+
+// Units (19)
+3 Dexter DeShawn: One Last Chance
+1 Maelstrom Goons
+3 Pepe Najarro: Working Doubles
+3 Psycho Squad
+1 Rita Wheeler: No Stupid Questions
+3 Jackie Welles: Ride or Die Choom
+2 Trauma Team Operatives
+3 Placide: Voodoo Sentinel
+
+// Gears (6)
+2 Dying Night: V's Pistol
+2 Zetatech Faceplate
+2 Zetatech Berserk
+
+// Programs (15)
+2 Afterparty at Lizzie's
+1 Reboot Optics
+2 Take Control
+2 The Heist
+3 Chrome Reverie
+3 Nocturne OP55 N1
+2 Memory Relapse
+
+// Idea: Mutant of YYB Rogue Gear: River Ward: Detective on the Hunt → Saburo Arasaka: Stubborn Patriarch; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Author: Night City Trainer breeder (season 1, mutant)

@@ -1,0 +1,33 @@
+# S1-04 Cross (RBG)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+
+// Units (19)
+1 Field Operator
+3 Valentino Street Racer
+1 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Psycho Squad
+3 Royce: Don't Call Me Simon
+2 Johnny Silverhand: Never Stop Fighting
+3 Placide: Voodoo Sentinel
+
+// Gears (6)
+2 Mantis Blades
+3 Satori: Sword of Saburo
+1 Zetatech Berserk
+
+// Programs (15)
+2 Detonate
+2 Peace Offering
+2 Chrome Reverie
+2 Nocturne OP55 N1
+3 Over the Edge
+2 Memory Relapse
+2 Shattered Memories
+
+// Idea: Crossover of YYB Rogue Gear × RRG Dexter Midrange (aggro): strongest Legends of both, cards ranked by format-wide impact.
+// Author: Night City Trainer breeder (season 1, crossover)

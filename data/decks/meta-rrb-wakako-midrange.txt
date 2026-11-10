@@ -1,0 +1,32 @@
+// RRB Wakako Midrange
+// Origin: choom.gg meta archetype
+// Author: Troy Yamaguchi (Plus Two) — "The Cyberpunk Primer" video, 6 Sep 2026
+// Source: https://choom.gg/meta/rrb-wakako-midrange
+// Via: choom.gg/meta (collected 2026-11-09)
+// Credits: Tier rating and summary: choom.gg editors
+// Added: 2026-11-09
+// Tier: A (77/100), complexity Moderate
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Wakako Okada: Peace and Harmony
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 Jacked-In Voodoo Boy
+3 6th Street Recruits
+2 Meredith Stout: Stone Cold Corpo
+2 Psycho Squad
+2 Lizzy Wizzy: Delicate Weapon
+3 Yorinobu Arasaka: Steel Dragon
+1 Placide: Voodoo Sentinel
+3 Mantis Blades
+3 Satori: Sword of Saburo
+3 Detonate
+3 Floor It
+2 Industrial Assembly
+3 Bonnie and Clyde
+2 Chrome Reverie
+3 Nocturne OP55 N1
+2 Carnage at the Colosseum

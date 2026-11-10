@@ -1,0 +1,31 @@
+// GRY Trauma Team
+// Origin: choom.gg meta archetype
+// Author: UltPotatoe (choom.gg public deck "RGY Rainbow Trauma Team")
+// Source: https://choom.gg/meta/gry-trauma-team (reference list https://choom.gg/decks/ee76c1f9-4d7f-440b-ae54-8f134421a1a9)
+// Via: choom.gg/meta (collected 2026-11-09)
+// Credits: Archetype tier rating: choom.gg editors (with tcgcontender.com community data)
+// Added: 2026-11-09
+// Tier: B (68/100), complexity Moderate
+// Format: Constructed
+
+// Legends
+1 V: Streetkid
+1 Muamar Reyes: El Capitán
+1 Padre: Man of the Cross
+
+// Main Deck
+3 Augmented Negotiators
+3 Meredith Stout: Stone Cold Corpo
+3 Pepe Najarro: Working Doubles
+3 6th Street Recruits
+2 Johnny Silverhand: Never Stop Fighting
+3 Trauma Team Operatives
+3 Detonate
+3 Peace Offering
+2 Afterparty at Lizzie's
+3 All is Lost
+3 The Heist
+3 Memory Relapse
+1 Shattered Memories
+3 Mantis Blades
+3 Zetatech Faceplate

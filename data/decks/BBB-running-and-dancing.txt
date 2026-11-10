@@ -1,0 +1,31 @@
+// Running and Dancing
+// Origin: choom.gg community guide
+// Author: CunninghamsAlt
+// Source: https://choom.gg/guides/running-and-dancing-fff0cb
+// Via: choom.gg/guides (free portion, collected 2026-11-09)
+// Added: 2026-07-28
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Pour One Out For Me
+1 Alt Cunningham: Soulkiller Architect
+1 Judy Álvarez: Braindance Maestro
+
+// Main Deck
+3 Chrome Reverie
+3 Lizzy Wizzy: Delicate Weapon
+3 Misty Olszewski: Mender of Broken Spirits
+3 Trust No One
+3 Floor It
+3 Rita Wheeler: No Stupid Questions
+3 Mox Inciters
+3 MT0D12 Flathead
+3 Evelyn Parker: Scheming Siren
+3 Modded Kusanagi
+3 Maman Brigitte: Spirit of Death
+1 Placide: Voodoo Sentinel
+3 Dying Night: V's Pistol
+3 Psycho Squad
+
+// Sideboard
+3 Jacked-In Voodoo Boy

@@ -1,0 +1,32 @@
+# S3-04 Cross (RBG)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Yorinobu Arasaka: Embracing Destruction
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Units (12)
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+1 Psycho Squad
+3 MaxTac AV
+2 Placide: Voodoo Sentinel
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (24)
+2 Detonate
+2 Peace Offering
+2 Trust No One
+2 Corporate Surveillance
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories
+2 We Gotta Live Together
+
+// Idea: Crossover of S2-07 Explorer (RRB) × S1-05 Cross (RGY) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Author: Night City Trainer breeder (season 3, crossover)

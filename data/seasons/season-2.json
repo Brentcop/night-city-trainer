@@ -1,0 +1,296 @@
+{
+ "season": 2,
+ "date": "2026-11-10T07:46:11.445Z",
+ "games": 16,
+ "bot": "deep",
+ "bred": [
+  {
+   "name": "S2-01 Mutant (RBB)",
+   "method": "mutant",
+   "parents": [
+    "S1-07 Explorer (BBG)"
+   ],
+   "idea": "Mutant of S1-07 Explorer (BBG): Saburo Arasaka: Stubborn Patriarch → Yorinobu Arasaka: Embracing Destruction; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "method": "mutant",
+   "parents": [
+    "S1-04 Cross (RBG)"
+   ],
+   "idea": "Mutant of S1-04 Cross (RBG): V: Corporate Exile → Hanako Arasaka: Daughter of the Emperor; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S2-03 Mutant (RBG)",
+   "method": "mutant",
+   "parents": [
+    "S1-01 Mutant (RRB)"
+   ],
+   "idea": "Mutant of S1-01 Mutant (RRB): Dexter DeShawn: Off the Grid → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "method": "crossover",
+   "parents": [
+    "S1-05 Cross (RGY)",
+    "S1-08 Explorer (RRG)"
+   ],
+   "idea": "Crossover of S1-05 Cross (RGY) × S1-08 Explorer (RRG) (midrange): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S2-05 Cross (BGG)",
+   "method": "crossover",
+   "parents": [
+    "S1-04 Cross (RBG)",
+    "S1-06 Cross (RGG)"
+   ],
+   "idea": "Crossover of S1-04 Cross (RBG) × S1-06 Cross (RGG) (control): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S2-06 Cross (RGG)",
+   "method": "crossover",
+   "parents": [
+    "S1-05 Cross (RGY)",
+    "S1-08 Explorer (RRG)"
+   ],
+   "idea": "Crossover of S1-05 Cross (RGY) × S1-08 Explorer (RRG) (control): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "method": "explorer",
+   "parents": [],
+   "idea": "Explorer (midrange): untested Legends V / Yorinobu Arasaka / Dexter DeShawn, filled by role and curve templates from format-wide card impact."
+  },
+  {
+   "name": "S2-08 Explorer (RRG)",
+   "method": "explorer",
+   "parents": [],
+   "idea": "Explorer (midrange): untested Legends Yorinobu Arasaka / Jackie Welles / Dexter DeShawn, filled by role and curve templates from format-wide card impact."
+  }
+ ],
+ "standings": [
+  {
+   "name": "S1-07 Explorer (BBG)",
+   "file": "s1-07-explorer-bbg.txt",
+   "kind": "original",
+   "wr": 0.7017045454545454,
+   "isNew": false
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "file": "s1-04-cross-rbg.txt",
+   "kind": "original",
+   "wr": 0.6392045454545454,
+   "isNew": false
+  },
+  {
+   "name": "S2-08 Explorer (RRG)",
+   "file": "s2-08-explorer-rrg.txt",
+   "kind": "original",
+   "wr": 0.6392045454545454,
+   "isNew": true
+  },
+  {
+   "name": "S1-01 Mutant (RRB)",
+   "file": "s1-01-mutant-rrb.txt",
+   "kind": "original",
+   "wr": 0.6193181818181818,
+   "isNew": false
+  },
+  {
+   "name": "S1-05 Cross (RGY)",
+   "file": "s1-05-cross-rgy.txt",
+   "kind": "original",
+   "wr": 0.5994318181818182,
+   "isNew": false
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "file": "s2-04-cross-rrg.txt",
+   "kind": "original",
+   "wr": 0.5738636363636364,
+   "isNew": true
+  },
+  {
+   "name": "RRG Dexter Midrange",
+   "file": "meta-rrg-dexter-midrange.txt",
+   "kind": "meta",
+   "wr": 0.5511363636363636,
+   "isNew": false
+  },
+  {
+   "name": "S2-05 Cross (BGG)",
+   "file": "s2-05-cross-bgg.txt",
+   "kind": "original",
+   "wr": 0.5511363636363636,
+   "isNew": true
+  },
+  {
+   "name": "S1-08 Explorer (RRG)",
+   "file": "s1-08-explorer-rrg.txt",
+   "kind": "original",
+   "wr": 0.5482954545454546,
+   "isNew": false
+  },
+  {
+   "name": "S2-01 Mutant (RBB)",
+   "file": "s2-01-mutant-rbb.txt",
+   "kind": "original",
+   "wr": 0.5340909090909091,
+   "isNew": true
+  },
+  {
+   "name": "S1-06 Cross (RGG)",
+   "file": "s1-06-cross-rgg.txt",
+   "kind": "original",
+   "wr": 0.5255681818181818,
+   "isNew": false
+  },
+  {
+   "name": "S2-03 Mutant (RBG)",
+   "file": "s2-03-mutant-rbg.txt",
+   "kind": "original",
+   "wr": 0.5170454545454546,
+   "isNew": true
+  },
+  {
+   "name": "NC-05 Emperor's Guard (GGB)",
+   "file": "nc-05-emperor-s-guard-ggb.txt",
+   "kind": "original",
+   "wr": 0.5142045454545454,
+   "isNew": false
+  },
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "file": "s2-07-explorer-rrb.txt",
+   "kind": "original",
+   "wr": 0.5142045454545454,
+   "isNew": true
+  },
+  {
+   "name": "YYB Rogue Gear",
+   "file": "meta-yyb-rogue-gear.txt",
+   "kind": "meta",
+   "wr": 0.5,
+   "isNew": false
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "file": "s2-02-mutant-rgg.txt",
+   "kind": "original",
+   "wr": 0.48295454545454547,
+   "isNew": true
+  },
+  {
+   "name": "BBG Cunningham Econ",
+   "file": "meta-bbg-cunningham-econ.txt",
+   "kind": "meta",
+   "wr": 0.48011363636363635,
+   "isNew": false
+  },
+  {
+   "name": "NC-01 Rockerboy Express (RRY)",
+   "file": "nc-01-rockerboy-express-rry.txt",
+   "kind": "original",
+   "wr": 0.42045454545454547,
+   "isNew": false
+  },
+  {
+   "name": "RRY Smasher Aggro",
+   "file": "meta-rry-smasher-aggro.txt",
+   "kind": "meta",
+   "wr": 0.39488636363636365,
+   "isNew": false
+  },
+  {
+   "name": "S2-06 Cross (RGG)",
+   "file": "s2-06-cross-rgg.txt",
+   "kind": "original",
+   "wr": 0.3721590909090909,
+   "isNew": true
+  },
+  {
+   "name": "Rainbow Fixer Stuff",
+   "file": "meta-rainbow-fixer-stuff.txt",
+   "kind": "meta",
+   "wr": 0.3352272727272727,
+   "isNew": false
+  },
+  {
+   "name": "RRB Wakako Midrange",
+   "file": "meta-rrb-wakako-midrange.txt",
+   "kind": "meta",
+   "wr": 0.26420454545454547,
+   "isNew": false
+  },
+  {
+   "name": "GRY Trauma Team",
+   "file": "meta-gry-trauma-team.txt",
+   "kind": "meta",
+   "wr": 0.2215909090909091,
+   "isNew": false
+  }
+ ],
+ "leaderTop": [
+  {
+   "name": "S1-07 Explorer (BBG)",
+   "vsMeta": 0.749034749034749,
+   "percentile": 100
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "vsMeta": 0.7181467181467182,
+   "percentile": 98
+  },
+  {
+   "name": "S2-08 Explorer (RRG)",
+   "vsMeta": 0.7241379310344828,
+   "percentile": 95
+  },
+  {
+   "name": "S1-01 Mutant (RRB)",
+   "vsMeta": 0.7142857142857143,
+   "percentile": 93
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "vsMeta": 0.7093596059113301,
+   "percentile": 91
+  },
+  {
+   "name": "S1-05 Cross (RGY)",
+   "vsMeta": 0.6833976833976834,
+   "percentile": 88
+  },
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "vsMeta": 0.6847290640394089,
+   "percentile": 86
+  },
+  {
+   "name": "S1-08 Explorer (RRG)",
+   "vsMeta": 0.6795366795366795,
+   "percentile": 84
+  },
+  {
+   "name": "S1-06 Cross (RGG)",
+   "vsMeta": 0.6621621621621622,
+   "percentile": 81
+  },
+  {
+   "name": "S2-01 Mutant (RBB)",
+   "vsMeta": 0.6403940886699507,
+   "percentile": 79
+  },
+  {
+   "name": "RRG Dexter Midrange",
+   "vsMeta": 0.632183908045977,
+   "percentile": 77
+  },
+  {
+   "name": "S2-05 Cross (BGG)",
+   "vsMeta": 0.625615763546798,
+   "percentile": 74
+  }
+ ]
+}

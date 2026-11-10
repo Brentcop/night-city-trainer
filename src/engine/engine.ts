@@ -1,0 +1,1656 @@
+// Cyberpunk TCG rules engine. Implements the Comprehensive Rules (Oct 29 2026) turn structure,
+// economy (Eddies / Legends as payment), Call a Legend, Go Solo, attacks (react / fight / steal),
+// pending-effect resolution, overtime and win/lose checks. Card text lives in ./scripts.
+import { CARD_BY_ID } from './cards';
+import { nextRandom, randInt, shuffleInPlace } from './rng';
+import { SCRIPTS } from './scripts';
+import type {
+  Ability,
+  Action,
+  Agent,
+  AttackTargetRef,
+  CardDef,
+  CardInst,
+  CardScript,
+  Decision,
+  DeckList,
+  DefeatInfo,
+  EventMap,
+  EventName,
+  GameState,
+  Gig,
+  Intent,
+  Keyword,
+  Mod,
+  ModUntil,
+  Opt,
+  PlayerId,
+  PlayerState,
+  Reaction,
+  Zone,
+} from './types';
+
+export const DICE = [4, 6, 8, 10, 12, 20];
+const EMPTY_SCRIPT: CardScript = {};
+
+export function other(p: PlayerId): PlayerId {
+  return (1 - p) as PlayerId;
+}
+
+interface Pending {
+  player: PlayerId;
+  label: string;
+  run: () => Promise<void>;
+}
+
+export interface GameOptions {
+  seed?: number;
+  first?: PlayerId; // who goes first; random if omitted
+  maxTurns?: number;
+  log?: boolean;
+  trace?: boolean;
+}
+
+export class GameOverSignal extends Error {}
+
+export class Game {
+  s: GameState;
+  agents: [Agent, Agent];
+  pending: Pending[] = [];
+  onUpdate: (() => void) | null = null;
+  logEnabled = true;
+
+  constructor(state: GameState, agents: [Agent, Agent]) {
+    this.s = state;
+    this.agents = agents;
+  }
+
+  // ------------------------------------------------------------------ setup
+
+  static create(decks: [DeckList, DeckList], agents: [Agent, Agent], opts: GameOptions = {}): Game {
+    const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
+    const s: GameState = {
+      rng: seed,
+      turn: 0,
+      active: 0,
+      first: 0,
+      phase: 'setup',
+      players: [null as any, null as any],
+      cards: {},
+      gigs: {},
+      mods: [],
+      attack: null,
+      winner: null,
+      winReason: '',
+      overtime: false,
+      emptyFixerStreak: 0,
+      nextUid: 1,
+      nextModId: 1,
+      once: {},
+      counters: {},
+      log: [],
+      stats: { attacks: [0, 0], gigsStolen: [0, 0], unitsDefeated: [0, 0], cardsPlayed: [0, 0], sold: [0, 0], calls: [0, 0] },
+      maxTurns: opts.maxTurns ?? 60,
+      trace: opts.trace ? [] : undefined,
+    };
+    let gigId = 1;
+    for (const p of [0, 1] as PlayerId[]) {
+      const d = decks[p];
+      const ps: PlayerState = {
+        id: p,
+        name: d.name,
+        deck: [],
+        hand: [],
+        field: [],
+        legends: [],
+        eddies: [],
+        trash: [],
+        removed: [],
+        fixer: [],
+        gigs: [],
+        sideboard: [...d.sideboard],
+      };
+      s.players[p] = ps;
+      for (const id of d.main) {
+        if (!CARD_BY_ID[id]) throw new Error(`Unknown card id ${id}`);
+        const uid = s.nextUid++;
+        s.cards[uid] = mkInst(uid, id, p, 'deck');
+        ps.deck.push(uid);
+      }
+      for (const id of d.legends) {
+        if (!CARD_BY_ID[id]) throw new Error(`Unknown legend id ${id}`);
+        const uid = s.nextUid++;
+        s.cards[uid] = mkInst(uid, id, p, 'legends');
+        ps.legends.push(uid);
+      }
+      for (const sides of DICE) {
+        const g: Gig = { id: gigId++, sides, value: sides, owner: p, controller: null };
+        s.gigs[g.id] = g;
+        ps.fixer.push(g.id);
+      }
+    }
+    const game = new Game(s, agents);
+    if (opts.log === false) game.logEnabled = false;
+    s.first = opts.first ?? ((randInt(s, 2) as PlayerId));
+    s.active = s.first;
+    for (const p of [0, 1] as PlayerId[]) {
+      shuffleInPlace(s, s.players[p].deck);
+      shuffleInPlace(s, s.players[p].legends);
+    }
+    // First player spends their 2 left-most legends (7.7.4)
+    const fl = s.players[s.first].legends;
+    s.cards[fl[0]].spent = true;
+    s.cards[fl[1]].spent = true;
+    for (const p of [0, 1] as PlayerId[]) for (let i = 0; i < 6; i++) game.drawRaw(p);
+    if (s.trace) for (const p of [0, 1] as PlayerId[]) for (const u of s.players[p].hand) game.tr('open', p, s.cards[u].defId);
+    return game;
+  }
+
+  /** Clone for lookahead. Agents must be supplied (scripts are stateless). */
+  clone(agents: [Agent, Agent]): Game {
+    let st: GameState;
+    try {
+      st = structuredClone(this.s);
+    } catch {
+      st = cloneDropFunctions(this.s);
+    }
+    st.trace = undefined; // lookahead clones never record telemetry
+    const g = new Game(st, agents);
+    g.logEnabled = false;
+    return g;
+  }
+
+  // ------------------------------------------------------------------ main loop
+
+  async run(): Promise<GameState> {
+    try {
+      await this.mulligans();
+      while (this.s.winner === null) {
+        await this.playTurn();
+      }
+    } catch (e) {
+      if (!(e instanceof GameOverSignal)) throw e;
+    }
+    this.s.phase = 'over';
+    this.update();
+    return this.s;
+  }
+
+  async mulligans() {
+    for (const p of [this.s.first, other(this.s.first)]) {
+      const ok = await this.yesNo(p, 'Mulligan your opening hand (shuffle it back and draw 6)?', 'mulligan');
+      if (ok) {
+        const ps = this.P(p);
+        for (const uid of ps.hand) this.s.cards[uid].zone = 'deck';
+        ps.deck.push(...ps.hand);
+        ps.hand = [];
+        shuffleInPlace(this.s, ps.deck);
+        for (let i = 0; i < 6; i++) this.drawRaw(p);
+        this.log(p, 'mulligans');
+        this.tr('mulligan', p);
+        for (const u of ps.hand) this.tr('open', p, this.s.cards[u].defId);
+      }
+    }
+  }
+
+  async playTurn() {
+    await this.startPhase();
+    await this.mainLoop();
+    await this.endPhase();
+  }
+
+  async startPhase() {
+    const s = this.s;
+    s.turn += 1;
+    const p = s.active;
+    const ps = this.P(p);
+    s.phase = 'start';
+    if (s.turn > s.maxTurns) return this.endGame('tie', 'turn limit reached');
+    if (ps.gigs.length >= 7) return this.endGame(p, 'controls 7+ Gigs at start of turn');
+    s.counters.fixerEmptyAtStart = ps.fixer.length === 0 ? 1 : 0;
+    this.log(p, `--- Turn ${s.turn} (${ps.name}) ---`);
+    // remove "until start of your next turn" effects
+    s.mods = s.mods.filter((m) => !(m.until === 'startOfTurn' && m.untilPlayer === p));
+    this.emit('turnStart', { player: p });
+    await this.resolvePending();
+    // ready step
+    const firstTurnHold = s.turn === 1 ? new Set(ps.legends.filter((u) => s.cards[u].spent)) : new Set<number>();
+    for (const uid of [...ps.legends, ...ps.field, ...ps.eddies]) {
+      if (firstTurnHold.has(uid)) continue;
+      const c = s.cards[uid];
+      if (c.spent && !this.hasMod('cantReady', uid)) c.spent = false;
+    }
+    // draw
+    await this.draw(p, 1);
+    // roll in a gig
+    if (ps.fixer.length > 0) await this.rollIn(p);
+    await this.resolvePending();
+  }
+
+  /** Main phase action loop (also used by lookahead rollouts to finish a turn). */
+  async mainLoop() {
+    const s = this.s;
+    const p = s.active;
+    s.phase = 'main';
+    this.update();
+    while (s.winner === null) {
+      const actions = this.legalActions(p);
+      const action = await this.chooseAction(p, actions);
+      if (action.type === 'pass') break;
+      await this.doAction(p, action);
+      await this.resolvePending();
+      this.checkState();
+      this.update();
+    }
+  }
+
+  async endPhase() {
+    const s = this.s;
+    const p = s.active;
+    const fixerEmptyAtStart = s.counters.fixerEmptyAtStart === 1;
+    s.phase = 'end';
+    this.tr('turnEnd', p, undefined, `${this.P(0).gigs.length}-${this.P(1).gigs.length}`);
+    this.emit('turnEnd', { player: p });
+    await this.resolvePending();
+    s.mods = s.mods.filter((m) => m.until !== 'endOfTurn');
+    for (const c of Object.values(s.cards)) c.lag = false;
+    // overtime: two consecutive turns where the turn player began with an empty fixer
+    s.emptyFixerStreak = fixerEmptyAtStart ? s.emptyFixerStreak + 1 : 0;
+    if (!s.overtime && s.emptyFixerStreak >= 2) {
+      s.overtime = true;
+      this.log(null, 'OVERTIME begins: 7+ Gigs wins immediately.');
+      this.checkState();
+    }
+    s.active = other(p);
+    this.update();
+  }
+
+  endGame(w: PlayerId | 'tie', reason: string): never {
+    this.s.winner = w;
+    this.s.winReason = reason;
+    this.s.phase = 'over';
+    this.log(null, w === 'tie' ? `Game drawn: ${reason}` : `${this.P(w).name} wins: ${reason}`);
+    throw new GameOverSignal(reason);
+  }
+
+  checkState() {
+    if (this.s.overtime) {
+      const a = this.P(0).gigs.length >= 7;
+      const b = this.P(1).gigs.length >= 7;
+      if (a && b) this.endGame('tie', 'both reached 7 Gigs in overtime');
+      if (a) this.endGame(0, 'reached 7 Gigs in overtime');
+      if (b) this.endGame(1, 'reached 7 Gigs in overtime');
+    }
+  }
+
+  update() {
+    this.onUpdate?.();
+  }
+
+  log(p: PlayerId | null, text: string) {
+    if (!this.logEnabled) return;
+    this.s.log.push({ turn: this.s.turn, player: p, text });
+    if (this.s.log.length > 2000) this.s.log.splice(0, 500);
+  }
+
+  // ------------------------------------------------------------------ accessors
+
+  P(p: PlayerId): PlayerState {
+    return this.s.players[p];
+  }
+  c(uid: number): CardInst {
+    return this.s.cards[uid];
+  }
+  def(x: number | CardInst): CardDef {
+    const ci = typeof x === 'number' ? this.s.cards[x] : x;
+    return CARD_BY_ID[ci.defId];
+  }
+  script(x: number | CardInst): CardScript {
+    const ci = typeof x === 'number' ? this.s.cards[x] : x;
+    return SCRIPTS[ci.defId] ?? EMPTY_SCRIPT;
+  }
+  name(x: number | CardInst): string {
+    return this.def(x).displayName;
+  }
+  gig(id: number): Gig {
+    return this.s.gigs[id];
+  }
+  isTag(x: number | CardInst, tag: string): boolean {
+    return this.def(x).tags.some((t) => t.toLowerCase() === tag.toLowerCase());
+  }
+  hasName(x: number | CardInst, name: string): boolean {
+    const n = this.def(x).name.toLowerCase();
+    return n === name.toLowerCase() || n.split(' & ').includes(name.toLowerCase());
+  }
+
+  /** Units in play for player (includes Go Solo Legends on the field). */
+  units(p: PlayerId): CardInst[] {
+    return this.P(p).field.map((u) => this.s.cards[u]).filter((c) => c.zone === 'field');
+  }
+  allUnits(): CardInst[] {
+    return [...this.units(0), ...this.units(1)];
+  }
+  isUnit(c: CardInst): boolean {
+    return c.zone === 'field';
+  }
+  isLegend(c: CardInst): boolean {
+    return this.def(c).type === 'Legend';
+  }
+  /** Face-up legends: legends area face-up + Go Solo legends on field. */
+  faceUpLegends(p: PlayerId): CardInst[] {
+    const ps = this.P(p);
+    const a = ps.legends.map((u) => this.s.cards[u]).filter((c) => c.faceUp);
+    const b = ps.field.map((u) => this.s.cards[u]).filter((c) => this.isLegend(c));
+    return [...a, ...b];
+  }
+  faceDownLegends(p: PlayerId): CardInst[] {
+    return this.P(p)
+      .legends.map((u) => this.s.cards[u])
+      .filter((c) => !c.faceUp);
+  }
+  gigsOf(p: PlayerId): Gig[] {
+    return this.P(p).gigs.map((id) => this.s.gigs[id]);
+  }
+  allGigs(): Gig[] {
+    return [...this.gigsOf(0), ...this.gigsOf(1)];
+  }
+  streetCred(p: PlayerId): number | null {
+    const g = this.gigsOf(p);
+    if (!g.length) return null;
+    return g.reduce((a, x) => a + x.value, 0);
+  }
+  /** Compare street cred: returns true if p has less ☆ than rival (null is smallest). */
+  lessCred(p: PlayerId): boolean {
+    const a = this.streetCred(p);
+    const b = this.streetCred(other(p));
+    if (a === null) return b !== null;
+    if (b === null) return false;
+    return a < b;
+  }
+  moreCred(p: PlayerId): boolean {
+    const a = this.streetCred(p);
+    const b = this.streetCred(other(p));
+    if (a === null) return false;
+    if (b === null) return true;
+    return a > b;
+  }
+  credEven(p: PlayerId): boolean {
+    const v = this.streetCred(p);
+    return v !== null && v % 2 === 0;
+  }
+  isMinGig(g: Gig) {
+    return g.value === 1;
+  }
+  isMaxGig(g: Gig) {
+    return g.value === g.sides;
+  }
+  valuePairs(p: PlayerId): number {
+    const counts: Record<number, number> = {};
+    for (const g of this.gigsOf(p)) counts[g.value] = (counts[g.value] ?? 0) + 1;
+    return Object.values(counts).reduce((a, n) => a + Math.floor(n / 2), 0);
+  }
+  distinctValues(p: PlayerId): number {
+    return new Set(this.gigsOf(p).map((g) => g.value)).size;
+  }
+
+  // ------------------------------------------------------------------ active script sources
+
+  /** All (self, host) pairs whose text is currently active, for a player or both. */
+  sources(p?: PlayerId): { self: CardInst; host: CardInst; controller: PlayerId }[] {
+    const out: { self: CardInst; host: CardInst; controller: PlayerId }[] = [];
+    const ps = p === undefined ? ([0, 1] as PlayerId[]) : [p];
+    for (const pl of ps) {
+      const P = this.P(pl);
+      for (const uid of [...P.field, ...P.legends]) {
+        const c = this.s.cards[uid];
+        if (c.zone === 'legends' && !c.faceUp) continue;
+        out.push({ self: c, host: c, controller: pl });
+        for (const gu of c.gear) out.push({ self: this.s.cards[gu], host: c, controller: pl });
+      }
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ modifiers
+
+  addMod(m: Omit<Mod, 'id' | 'turn'>): Mod {
+    const mod: Mod = { ...m, id: this.s.nextModId++, turn: this.s.turn };
+    this.s.mods.push(mod);
+    return mod;
+  }
+  modsFor(kind: string, uid?: number): Mod[] {
+    return this.s.mods.filter((m) => m.kind === kind && (uid === undefined || m.target === uid));
+  }
+  hasMod(kind: string, uid: number): boolean {
+    return this.s.mods.some((m) => m.kind === kind && m.target === uid);
+  }
+  playerMods(kind: string, p: PlayerId): Mod[] {
+    return this.s.mods.filter((m) => m.kind === kind && m.player === p);
+  }
+  removeMod(id: number) {
+    this.s.mods = this.s.mods.filter((m) => m.id !== id);
+  }
+  /** Give a unit +N power until end of turn (or other duration). */
+  givePower(uid: number, amount: number, until: ModUntil = 'endOfTurn', untilPlayer?: PlayerId, source?: number) {
+    this.addMod({ kind: 'power', target: uid, amount, until, untilPlayer, source });
+  }
+  giveKeyword(uid: number, kw: Keyword, until: ModUntil = 'endOfTurn') {
+    this.addMod({ kind: 'keyword', target: uid, value: kw, until });
+  }
+
+  // ------------------------------------------------------------------ derived stats
+
+  /** Raw power (may be negative). */
+  rawPower(x: number | CardInst): number {
+    const c = typeof x === 'number' ? this.s.cards[x] : x;
+    const d = this.def(c);
+    let p = d.power ?? 0;
+    for (const gu of c.gear) p += this.def(gu).power ?? 0;
+    for (const m of this.s.mods) if (m.kind === 'power' && m.target === c.uid) p += m.amount ?? 0;
+    if (c.zone === 'field' || c.zone === 'legends') {
+      for (const src of this.sources()) {
+        const fn = this.script(src.self).power;
+        if (fn) p += fn(this, src.self, src.host, c);
+      }
+    }
+    return p;
+  }
+  power(x: number | CardInst): number {
+    return Math.max(0, this.rawPower(x));
+  }
+  hasKw(x: number | CardInst, kw: Keyword): boolean {
+    const c = typeof x === 'number' ? this.s.cards[x] : x;
+    if (this.def(c).keywords.includes(kw)) return true;
+    for (const gu of c.gear) if (this.def(gu).keywords.includes(kw)) return true;
+    if (this.s.mods.some((m) => m.kind === 'keyword' && m.target === c.uid && m.value === kw)) return true;
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).keywords;
+      if (fn && fn(this, src.self, src.host, c).includes(kw)) return true;
+    }
+    return false;
+  }
+
+  /** Play cost for a card in hand/trash (after modifiers, min 1 if reduced). */
+  playCost(uid: number, p: PlayerId, kind: 'play' | 'goSolo' = 'play'): number {
+    const c = this.s.cards[uid];
+    const d = this.def(c);
+    const sc = this.script(c);
+    let base = d.cost ?? 0;
+    const alt = sc.altCost?.(this, c, p);
+    if (alt !== null && alt !== undefined) base = alt;
+    let delta = sc.selfCost ? sc.selfCost(this, c, p) : 0;
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).costMod;
+      if (fn) delta += fn(this, src.self, src.host, c, p, kind);
+    }
+    for (const m of this.playerMods('costMod', p)) {
+      if (costModMatches(this, m.value, c, kind)) delta += m.amount ?? 0;
+    }
+    const cost = base + delta;
+    if (delta < 0) return Math.max(1, cost);
+    return Math.max(0, cost);
+  }
+
+  /** Ready payment sources for player. */
+  payables(p: PlayerId): CardInst[] {
+    const ps = this.P(p);
+    const ed = ps.eddies.map((u) => this.s.cards[u]).filter((c) => !c.spent);
+    const lg = ps.legends
+      .map((u) => this.s.cards[u])
+      .filter((c) => !c.spent && (!c.faceUp || this.def(c).sellable));
+    return [...ed, ...lg];
+  }
+  available(p: PlayerId): number {
+    return this.payables(p).length;
+  }
+
+  /** Pay amount using Eddies first, then legends that benefit from being spent, then face-down legends, etc. */
+  async pay(p: PlayerId, amount: number, exclude: number[] = []): Promise<boolean> {
+    if (amount <= 0) return true;
+    const srcs = this.payables(p).filter((c) => !exclude.includes(c.uid));
+    if (srcs.length < amount) return false;
+    const score = (c: CardInst) => {
+      if (c.zone === 'eddies') return 0;
+      if (c.gear.length) return 1; // "when spent" gear triggers
+      if (!c.faceUp) return 2;
+      const sc = this.script(c);
+      return sc.abilities?.some((a) => a.spend) ? 4 : 3;
+    };
+    srcs.sort((a, b) => score(a) - score(b));
+    for (const c of srcs.slice(0, amount)) {
+      c.spent = true;
+      if (c.zone === 'legends') this.emit('spent', { uid: c.uid, cause: 'pay' });
+    }
+    return true;
+  }
+
+  /** Ready up to n spent friendly Eddies. */
+  readyEddies(p: PlayerId, n: number) {
+    let k = 0;
+    for (const u of this.P(p).eddies) {
+      const c = this.s.cards[u];
+      if (c.spent && k < n) {
+        c.spent = false;
+        k++;
+      }
+    }
+    if (k) this.log(p, `readies ${k} Eddie${k > 1 ? 's' : ''}`);
+  }
+
+  // ------------------------------------------------------------------ zones & movement
+
+  zoneList(p: PlayerId, z: Zone): number[] | null {
+    const ps = this.P(p);
+    switch (z) {
+      case 'deck':
+        return ps.deck;
+      case 'hand':
+        return ps.hand;
+      case 'field':
+        return ps.field;
+      case 'legends':
+        return ps.legends;
+      case 'eddies':
+        return ps.eddies;
+      case 'trash':
+        return ps.trash;
+      case 'removed':
+        return ps.removed;
+      default:
+        return null;
+    }
+  }
+
+  private detach(uid: number) {
+    const c = this.s.cards[uid];
+    const list = this.zoneList(c.zone === 'field' || c.zone === 'legends' || c.zone === 'eddies' ? c.controller : c.owner, c.zone);
+    if (list) {
+      const i = list.indexOf(uid);
+      if (i >= 0) list.splice(i, 1);
+      else {
+        // fall back: search both players
+        for (const p of [0, 1] as PlayerId[]) {
+          const l = this.zoneList(p, c.zone);
+          const j = l ? l.indexOf(uid) : -1;
+          if (l && j >= 0) l.splice(j, 1);
+        }
+      }
+    }
+    if (c.host !== null) {
+      const h = this.s.cards[c.host];
+      if (h) h.gear = h.gear.filter((g) => g !== uid);
+      c.host = null;
+    }
+  }
+
+  /**
+   * Move a card to a zone of its owner (or controller for field). Handles Legend invalid zones and gear.
+   * position: 'top' | 'bottom' for deck.
+   */
+  move(uid: number, to: Zone, opts: { position?: 'top' | 'bottom'; controller?: PlayerId; faceUp?: boolean } = {}) {
+    const c = this.s.cards[uid];
+    const from = c.zone;
+    const leavingPlay = (from === 'field' || from === 'legends') && to !== from;
+    const gear = leavingPlay ? [...c.gear] : [];
+    this.detach(uid);
+    if (leavingPlay) {
+      c.gear = [];
+      this.s.mods = this.s.mods.filter((m) => m.target !== uid);
+    }
+    let dest = to;
+    if (this.isLegend(c) && to !== 'legends' && to !== 'field') dest = 'removed';
+    c.zone = dest;
+    c.spent = false;
+    c.lag = false;
+    c.enteredTurn = this.s.turn;
+    if (dest !== 'field') c.goSolo = false;
+    const owner = c.owner;
+    if (dest === 'field' || dest === 'eddies') c.controller = opts.controller ?? c.controller;
+    else c.controller = owner;
+    c.faceUp = opts.faceUp ?? (dest !== 'deck' && dest !== 'hand' && dest !== 'eddies');
+    const list = this.zoneList(dest === 'field' || dest === 'eddies' ? c.controller : owner, dest)!;
+    if (dest === 'deck') {
+      if (opts.position === 'top') list.unshift(uid);
+      else list.push(uid);
+    } else list.push(uid);
+    // gear follows to the same destination zone (unequipped). If legend was removed, gear goes where legend was sent.
+    for (const gu of gear) {
+      const gz = to === 'field' || to === 'legends' ? 'trash' : to === 'removed' ? 'trash' : to;
+      this.move(gu, gz as Zone, { position: opts.position });
+    }
+  }
+
+  // ------------------------------------------------------------------ basic game actions
+
+  /** Record a telemetry event (no-op unless the game was created with trace: true). */
+  tr(k: import('./types').TraceKind, p: PlayerId, id?: string, x?: string | number) {
+    if (this.s.trace) this.s.trace.push({ t: this.s.turn, p, k, id, x });
+  }
+
+  drawRaw(p: PlayerId): number | null {
+    const ps = this.P(p);
+    const uid = ps.deck.shift();
+    if (uid === undefined) return null;
+    const c = this.s.cards[uid];
+    c.zone = 'hand';
+    c.faceUp = false;
+    ps.hand.push(uid);
+    return uid;
+  }
+
+  async draw(p: PlayerId, n: number): Promise<number[]> {
+    const got: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const u = this.drawRaw(p);
+      if (u === null) {
+        this.endGame(other(p), `${this.P(p).name} had to draw from an empty deck`);
+      }
+      got.push(u!);
+    }
+    if (n > 0) this.log(p, `draws ${n}`);
+    if (this.s.trace) for (const u of got) this.tr('draw', p, this.s.cards[u].defId);
+    return got;
+  }
+
+  /** "Trash X": reveal top card of deck and put it in the trash. Returns uids trashed. */
+  mill(p: PlayerId, n: number): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const u = this.P(p).deck[0];
+      if (u === undefined) break;
+      this.move(u, 'trash');
+      out.push(u);
+    }
+    if (out.length) this.log(p, `trashes ${out.map((u) => this.name(u)).join(', ')}`);
+    return out;
+  }
+
+  /** Player discards n cards of their choice from hand. Returns discarded uids. */
+  async discard(p: PlayerId, n: number, filter?: (c: CardInst) => boolean, optional = false, prompt?: string): Promise<number[]> {
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const cands = this.P(p).hand.filter((u) => !filter || filter(this.s.cards[u]));
+      if (!cands.length) break;
+      const pick = await this.chooseCard(p, cands, prompt ?? `Discard a card (${i + 1}/${n})`, optional, 'discard');
+      if (pick === null) break;
+      this.move(pick, 'trash');
+      out.push(pick);
+      this.log(p, `discards ${this.name(pick)}`);
+    }
+    return out;
+  }
+
+  sell(p: PlayerId, uid: number) {
+    this.tr('sell', p, this.s.cards[uid].defId);
+    this.move(uid, 'eddies', { controller: p, faceUp: false });
+    this.s.stats.sold[p]++;
+    this.log(p, `sells ${this.name(uid)} for an Eddie`);
+  }
+
+  spend(uid: number, cause: EventMap['spent']['cause'] = 'effect') {
+    const c = this.s.cards[uid];
+    if (c.spent) return false;
+    c.spent = true;
+    this.emit('spent', { uid, cause });
+    return true;
+  }
+  ready(uid: number) {
+    const c = this.s.cards[uid];
+    if (!c.spent) return false;
+    if (this.hasMod('cantReady', uid)) return false;
+    c.spent = false;
+    return true;
+  }
+
+  bottomDeck(uid: number) {
+    const c = this.s.cards[uid];
+    this.log(c.owner, `bottom-decks ${this.name(uid)}`);
+    this.move(uid, 'deck', { position: 'bottom' });
+  }
+  returnToHand(uid: number) {
+    this.log(this.s.cards[uid].owner, `returns ${this.name(uid)} to hand`);
+    this.move(uid, 'hand');
+  }
+
+  /** Put a card into play as a Unit for player p (already paid). */
+  private enterField(p: PlayerId, uid: number, opts: { spent?: boolean } = {}) {
+    this.move(uid, 'field', { controller: p });
+    const c = this.s.cards[uid];
+    c.lag = true;
+    c.spent = !!opts.spent;
+    c.enteredTurn = this.s.turn;
+  }
+
+  equip(gearUid: number, hostUid: number) {
+    const g = this.s.cards[gearUid];
+    const h = this.s.cards[hostUid];
+    this.detach(gearUid);
+    g.zone = h.zone;
+    g.controller = h.controller;
+    g.host = hostUid;
+    g.faceUp = true;
+    g.spent = false;
+    h.gear.push(gearUid);
+  }
+
+  /** Defeat a Unit (or Legend on field / face-up legend). Returns true if it was defeated. */
+  async defeat(uid: number, opts: { inFight?: boolean; by?: number | null } = {}): Promise<boolean> {
+    const c = this.s.cards[uid];
+    if (!c || (c.zone !== 'field' && c.zone !== 'legends')) return false;
+    const inFight = !!opts.inFight;
+    if (inFight && this.hasMod('noFightDefeat', uid)) {
+      this.log(c.controller, `${this.name(uid)} can't be defeated in a fight`);
+      return false;
+    }
+    // replacement effects (mandatory first: gear on host e.g. Deadman; then optional)
+    const zoneBefore = c.zone;
+    for (const src of this.sources(c.controller)) {
+      const fn = this.script(src.self).replaceDefeat;
+      if (!fn) continue;
+      if (await fn(this, src.self, src.host, c, inFight)) return false;
+      if (c.zone !== zoneBefore) return false; // moved by something else
+    }
+    const info: DefeatInfo = {
+      uid,
+      defId: c.defId,
+      controller: c.controller,
+      owner: c.owner,
+      gear: [...c.gear],
+      wasEquipped: c.gear.length > 0,
+      inFight,
+      by: opts.by ?? null,
+      power: this.power(c),
+      tags: this.def(c).tags,
+      goSolo: c.goSolo,
+    };
+    const gearScripts = c.gear.map((g) => this.s.cards[g]);
+    this.log(c.controller, `${this.name(uid)} is defeated`);
+    this.move(uid, 'trash');
+    this.s.stats.unitsDefeated[other(c.controller)]++;
+    this.tr('defeated', c.controller, c.defId, inFight ? 'fight' : 'effect');
+    const own = this.script(c).defeated;
+    if (own) this.enqueue(info.controller, `${this.name(uid)} {Defeated}`, () => own(this, c, info));
+    for (const gc of gearScripts) {
+      const fn = this.script(gc).defeated;
+      if (fn) this.enqueue(info.controller, `${this.name(gc)} {Defeated}`, () => fn(this, gc, info));
+    }
+    this.emit('unitDefeated', info);
+    return true;
+  }
+
+  /** Defeat a Gear (e.g. Detonate). */
+  defeatGear(uid: number) {
+    const g = this.s.cards[uid];
+    this.log(g.controller, `${this.name(uid)} (Gear) is defeated`);
+    this.move(uid, 'trash');
+  }
+
+  // ------------------------------------------------------------------ gigs
+
+  async rollIn(p: PlayerId) {
+    const ps = this.P(p);
+    let opts = ps.fixer.map((id) => this.s.gigs[id]);
+    if (opts.length > 1) opts = opts.filter((g) => g.sides !== 20);
+    let gig: Gig;
+    if (opts.length === 1) gig = opts[0];
+    else {
+      const i = await this.ask({
+        player: p,
+        kind: 'gig',
+        prompt: 'Roll in a Gig from your fixer area',
+        options: opts.map((g) => ({ label: `d${g.sides}`, gig: g.id })),
+        min: 1,
+        max: 1,
+        tag: 'rollIn',
+      });
+      gig = opts[i[0]];
+    }
+    gig.value = 1 + randInt(this.s, gig.sides);
+    ps.fixer = ps.fixer.filter((id) => id !== gig.id);
+    gig.controller = p;
+    ps.gigs.push(gig.id);
+    this.log(p, `rolls in d${gig.sides}: ${gig.value}`);
+    this.emit('gigRolled', { gig: gig.id, player: p, fromFixer: true });
+  }
+
+  /** Re-roll an existing gig in place (used by Kerry). */
+  reroll(gid: number) {
+    const g = this.s.gigs[gid];
+    g.value = 1 + randInt(this.s, g.sides);
+  }
+
+  setGigValue(gid: number, value: number, by: PlayerId, kind: 'adjust' | 'set' = 'adjust'): boolean {
+    const g = this.s.gigs[gid];
+    if (value < 1 || value > g.sides || value === g.value) return false;
+    const old = g.value;
+    g.value = value;
+    this.log(by, `${kind === 'set' ? 'sets' : value > old ? 'increases' : 'decreases'} ${g.controller === by ? 'friendly' : 'rival'} d${g.sides} ${old}→${value}`);
+    this.emit('gigChanged', { gig: gid, by, kind });
+    return true;
+  }
+
+  moveGig(gid: number, to: PlayerId) {
+    const g = this.s.gigs[gid];
+    if (g.controller === null) return;
+    const from = this.P(g.controller);
+    from.gigs = from.gigs.filter((x) => x !== gid);
+    g.controller = to;
+    this.P(to).gigs.push(gid);
+  }
+
+  swapGigs(friendly: number, rival: number, by: PlayerId) {
+    const a = this.s.gigs[friendly];
+    const b = this.s.gigs[rival];
+    const pa = a.controller!;
+    const pb = b.controller!;
+    this.moveGig(friendly, pb);
+    this.moveGig(rival, pa);
+    this.log(by, `swaps d${a.sides}(${a.value}) with d${b.sides}(${b.value})`);
+    this.emit('gigChanged', { gig: friendly, by, kind: 'swap' });
+    this.emit('gigChanged', { gig: rival, by, kind: 'swap' });
+    this.checkState();
+  }
+
+  /** Steal a specific gig as `actor` (unit uid) for player p. Fires steal triggers. */
+  stealGig(actor: number, gid: number, p: PlayerId) {
+    const g = this.s.gigs[gid];
+    if (g.controller === p || g.controller === null) return;
+    this.moveGig(gid, p);
+    this.s.stats.gigsStolen[p]++;
+    this.tr('steal', p, this.s.cards[actor]?.defId, g.value);
+    this.log(p, `${this.name(actor)} steals d${g.sides} (${g.value})`);
+    this.emit('steal', { actor, gig: gid, player: p, value: g.value });
+    this.checkState();
+  }
+
+  // ------------------------------------------------------------------ high-level gig helpers for scripts
+
+  /**
+   * "Increase/Decrease/Adjust a Gig by up to N" — presents every (gig, newValue) option.
+   * whose: which gigs are eligible. Returns chosen gig id or null.
+   */
+  async adjustGig(
+    p: PlayerId,
+    amount: number,
+    dir: 'up' | 'down' | 'either',
+    whose: 'any' | 'friendly' | 'rival' = 'any',
+    opts: { exact?: boolean; source?: number; optional?: boolean } = {},
+  ): Promise<number | null> {
+    const gigs = this.allGigs().filter(
+      (g) => whose === 'any' || (whose === 'friendly' ? g.controller === p : g.controller !== p),
+    );
+    const options: Opt[] = [];
+    for (const g of gigs) {
+      for (let d = 1; d <= amount; d++) {
+        if (opts.exact && d !== amount) continue;
+        for (const sgn of dir === 'either' ? [1, -1] : dir === 'up' ? [1] : [-1]) {
+          const v = g.value + sgn * d;
+          if (v < 1 || v > g.sides) continue;
+          options.push({ label: `${g.controller === p ? 'Friendly' : 'Rival'} d${g.sides}: ${g.value} → ${v}`, gig: g.id, n: v });
+        }
+      }
+    }
+    if (!options.length) return null;
+    // "up to" lets you choose 0
+    options.push({ label: 'No change', key: 'none' });
+    const [i] = await this.ask({
+      player: p,
+      kind: 'gigValue',
+      prompt: `${dir === 'up' ? 'Increase' : dir === 'down' ? 'Decrease' : 'Adjust'} a Gig by up to ${amount}`,
+      options,
+      min: 1,
+      max: 1,
+      source: opts.source,
+      tag: 'adjust',
+    });
+    const o = options[i];
+    if (o.key === 'none') return null;
+    this.setGigValue(o.gig!, o.n!, p, 'adjust');
+    return o.gig!;
+  }
+
+  /** Choose a gig (no modification). */
+  async chooseGig(p: PlayerId, gigs: Gig[], prompt: string, optional = false, tag?: string, intent?: Intent): Promise<number | null> {
+    if (!gigs.length) return null;
+    const options: Opt[] = gigs.map((g) => ({ label: `${g.controller === p ? 'Friendly' : 'Rival'} d${g.sides} (${g.value})`, gig: g.id }));
+    if (optional) options.push({ label: 'None', key: 'none' });
+    const [i] = await this.ask({ player: p, kind: 'gig', prompt, options, min: 1, max: 1, tag, intent });
+    return options[i].key === 'none' ? null : options[i].gig!;
+  }
+
+  // ------------------------------------------------------------------ choices
+
+  async ask(d: Decision): Promise<number[]> {
+    if (d.options.length === 0) return [];
+    this.update();
+    const r = await this.agents[d.player].decide(this, d);
+    if (!Array.isArray(r) || r.some((i) => i < 0 || i >= d.options.length)) {
+      throw new Error(`Agent ${this.agents[d.player].name} returned invalid choice ${JSON.stringify(r)} for ${d.prompt}`);
+    }
+    return r;
+  }
+
+  async yesNo(p: PlayerId, prompt: string, tag?: string, source?: number): Promise<boolean> {
+    const [i] = await this.ask({
+      player: p,
+      kind: 'yesno',
+      prompt,
+      options: [
+        { label: 'Yes', key: 'yes' },
+        { label: 'No', key: 'no' },
+      ],
+      min: 1,
+      max: 1,
+      tag,
+      source,
+    });
+    return i === 0;
+  }
+
+  async chooseUnit(
+    p: PlayerId,
+    cands: CardInst[],
+    prompt: string,
+    opts: { optional?: boolean; intent?: Intent; tag?: string; source?: number } = {},
+  ): Promise<CardInst | null> {
+    if (!cands.length) return null;
+    const options: Opt[] = cands.map((c) => ({
+      label:
+        c.zone === 'legends' && !c.faceUp && !c.known
+          ? `Face-down Legend (slot ${this.P(c.controller).legends.indexOf(c.uid) + 1})`
+          : `${c.controller === p ? '' : 'Rival '}${this.name(c)} (${this.power(c)})${c.spent ? ' [spent]' : ''}`,
+      uid: c.uid,
+    }));
+    if (opts.optional) options.push({ label: 'None', key: 'none' });
+    const [i] = await this.ask({ player: p, kind: 'unit', prompt, options, min: 1, max: 1, intent: opts.intent, tag: opts.tag, source: opts.source });
+    return options[i].key === 'none' ? null : this.s.cards[options[i].uid!];
+  }
+
+  async chooseCard(p: PlayerId, uids: number[], prompt: string, optional = false, tag?: string, intent?: Intent): Promise<number | null> {
+    if (!uids.length) return null;
+    const options: Opt[] = uids.map((u) => ({ label: this.name(u), uid: u }));
+    if (optional) options.push({ label: 'None', key: 'none' });
+    const [i] = await this.ask({ player: p, kind: 'card', prompt, options, min: 1, max: 1, tag, intent });
+    return options[i].key === 'none' ? null : options[i].uid!;
+  }
+
+  async chooseMode(p: PlayerId, prompt: string, modes: string[], source?: number, tag?: string): Promise<number> {
+    const [i] = await this.ask({
+      player: p,
+      kind: 'mode',
+      prompt,
+      options: modes.map((m, k) => ({ label: m, key: String(k) })),
+      min: 1,
+      max: 1,
+      source,
+      tag,
+    });
+    return i;
+  }
+
+  // ------------------------------------------------------------------ pending effects / events
+
+  enqueue(player: PlayerId, label: string, run: () => Promise<void>) {
+    this.pending.push({ player, label, run });
+  }
+
+  /**
+   * Register a delayed trigger owned by `self` (e.g. a Program that says "the next time ... this turn").
+   * The card's script must define delayed[event]. data is stored on mod.value.data.
+   */
+  addDelayed(self: CardInst, event: EventName, data: any = {}, until: ModUntil = 'endOfTurn', untilPlayer?: PlayerId) {
+    return this.addMod({ kind: 'delayed', player: self.controller, source: self.uid, value: { defId: self.defId, event, data }, until, untilPlayer });
+  }
+
+  emit<K extends EventName>(name: K, ev: EventMap[K]) {
+    for (const m of this.s.mods) {
+      if (m.kind !== 'delayed' || m.value?.event !== name) continue;
+      const fn = (SCRIPTS[m.value.defId]?.delayed as any)?.[name];
+      if (!fn) continue;
+      const modId = m.id;
+      this.enqueue(m.player ?? this.s.active, `delayed ${m.value.defId}:${name}`, async () => {
+        const live = this.s.mods.find((x) => x.id === modId);
+        if (!live) return;
+        const consumed = await fn(this, live, ev);
+        if (consumed) this.removeMod(modId);
+      });
+    }
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).on?.[name] as any;
+      if (fn) {
+        const { self, host, controller } = src;
+        this.enqueue(controller, `${this.name(self)}:${name}`, async () => {
+          await fn(this, self, host, ev);
+        });
+      }
+    }
+  }
+
+  async resolvePending() {
+    let guard = 0;
+    while (this.pending.length) {
+      if (++guard > 500) {
+        this.pending = [];
+        break;
+      }
+      let idx = this.pending.findIndex((x) => x.player === this.s.active);
+      if (idx < 0) idx = 0;
+      const [pe] = this.pending.splice(idx, 1);
+      await pe.run();
+      this.checkState();
+    }
+  }
+
+  oncePerTurn(key: string): boolean {
+    if (this.s.once[key] === this.s.turn) return false;
+    this.s.once[key] = this.s.turn;
+    return true;
+  }
+  usedThisTurn(key: string): boolean {
+    return this.s.once[key] === this.s.turn;
+  }
+
+  // ------------------------------------------------------------------ legal actions
+
+  canSell(p: PlayerId): boolean {
+    return !this.usedThisTurn(`sell:${p}`);
+  }
+  canCall(p: PlayerId): boolean {
+    return !this.usedThisTurn(`call:${p}`) && this.faceDownLegends(p).length > 0;
+  }
+
+  /** Host candidates for a gear. */
+  gearHosts(p: PlayerId): CardInst[] {
+    const ps = this.P(p);
+    const units = ps.field.map((u) => this.s.cards[u]);
+    const legs = ps.legends.map((u) => this.s.cards[u]).filter((c) => c.faceUp);
+    return [...units, ...legs];
+  }
+
+  canPlayCard(p: PlayerId, uid: number, free = false): boolean {
+    const c = this.s.cards[uid];
+    const d = this.def(c);
+    const sc = this.script(c);
+    if (d.type === 'Legend') return false;
+    if (d.type === 'Gear' && this.gearHosts(p).length === 0) return false;
+    if (sc.canPlay && !sc.canPlay(this, c, p)) return false;
+    if (!free && this.playCost(uid, p) > this.available(p)) return false;
+    return true;
+  }
+
+  abilityUsable(p: PlayerId, self: CardInst, host: CardInst, a: Ability, asReaction: boolean): boolean {
+    if (asReaction && !a.quick) return false;
+    if (host.controller !== p) return false;
+    if (host.zone === 'legends' && !host.faceUp) return false;
+    if (a.spend) {
+      if (host.spent) return false;
+      if (host.zone === 'field' && host.lag) return false;
+    }
+    let cost = a.eddies ?? 0;
+    // if host is a ready legend in legends area and the ability spends it, it can't also pay
+    const avail = this.payables(p).filter((c) => !(a.spend && c.uid === host.uid)).length;
+    if (cost > avail) return false;
+    if (a.discard && this.P(p).hand.length < a.discard) return false;
+    if (a.can && !a.can(this, self, host)) return false;
+    return true;
+  }
+
+  listAbilities(p: PlayerId, asReaction: boolean): { self: CardInst; host: CardInst; index: number; a: Ability }[] {
+    const out: { self: CardInst; host: CardInst; index: number; a: Ability }[] = [];
+    for (const src of this.sources(p)) {
+      const abs = this.script(src.self).abilities ?? [];
+      abs.forEach((a, index) => {
+        if (this.abilityUsable(p, src.self, src.host, a, asReaction)) out.push({ self: src.self, host: src.host, index, a });
+      });
+    }
+    return out;
+  }
+
+  canAttackAtAll(c: CardInst): boolean {
+    if (c.zone !== 'field' || c.spent) return false;
+    if (c.controller !== this.s.active) return false;
+    if (this.hasMod('cantAttack', c.uid)) return false;
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).attackBan;
+      if (fn && fn(this, src.self, src.host, c, null)) return false;
+    }
+    return true;
+  }
+
+  /** Lag permission: what a lagging unit may attack ('any' | 'units' | 'gigs' | null). */
+  lagPermission(c: CardInst): 'any' | 'units' | 'gigs' | null {
+    if (!c.lag) return 'any';
+    if (this.hasKw(c, 'adrenaline')) return 'any';
+    if (c.goSolo) return 'any';
+    const mods = this.modsFor('lagAttack', c.uid);
+    if (mods.some((m) => m.value === 'any')) return 'any';
+    const u = mods.some((m) => m.value === 'units');
+    const gg = mods.some((m) => m.value === 'gigs');
+    if (u && gg) return 'any';
+    if (u) return 'units';
+    if (gg) return 'gigs';
+    return null;
+  }
+
+  attackTargets(c: CardInst): AttackTargetRef[] {
+    if (!this.canAttackAtAll(c)) return [];
+    const perm = this.lagPermission(c);
+    if (perm === null) return [];
+    const p = c.controller;
+    const r = other(p);
+    const out: AttackTargetRef[] = [];
+    const allowAll = (t: AttackTargetRef) => {
+      for (const src of this.sources()) {
+        const fn = this.script(src.self).attackBan;
+        if (fn && fn(this, src.self, src.host, c, t)) return false;
+      }
+      return true;
+    };
+    const specialAllow = (t: AttackTargetRef) => {
+      for (const src of this.sources()) {
+        const fn = this.script(src.self).attackAllow;
+        if (fn && fn(this, src.self, src.host, c, t)) return true;
+      }
+      return false;
+    };
+    if (perm === 'any' || perm === 'units') {
+      for (const u of this.units(r)) {
+        const t = { unit: u.uid, gigs: null };
+        const ok = u.spent || this.hasMod('attackReady', c.uid) || specialAllow(t);
+        if (ok && allowAll(t)) out.push(t);
+      }
+    }
+    if ((perm === 'any' || perm === 'gigs') && this.P(r).gigs.length > 0) {
+      const t = { unit: null, gigs: r };
+      if (allowAll(t)) out.push(t);
+    }
+    return out;
+  }
+
+  legalActions(p: PlayerId): Action[] {
+    const out: Action[] = [{ type: 'pass' }];
+    const ps = this.P(p);
+    if (this.canSell(p)) {
+      for (const u of ps.hand) if (this.def(u).sellable) out.push({ type: 'sell', uid: u });
+    }
+    if (this.canCall(p) && this.available(p) >= 1) {
+      for (const c of this.faceDownLegends(p)) out.push({ type: 'call', uid: c.uid });
+    }
+    for (const u of ps.hand) if (this.canPlayCard(p, u)) out.push({ type: 'play', uid: u });
+    for (const u of ps.legends) {
+      const c = this.s.cards[u];
+      if (c.faceUp && this.hasKw(c, 'goSolo') && this.def(c).cost !== null) {
+        const cost = this.playCost(u, p, 'goSolo');
+        const avail = this.payables(p).filter((x) => x.uid !== u).length;
+        if (cost <= avail) out.push({ type: 'goSolo', uid: u });
+      }
+    }
+    for (const ab of this.listAbilities(p, false)) out.push({ type: 'activate', uid: ab.self.uid, host: ab.host.uid, index: ab.index });
+    let forced = false;
+    for (const c of this.units(p)) {
+      const ts = this.attackTargets(c);
+      if (ts.length && this.hasMod('mustAttack', c.uid)) forced = true;
+      for (const t of ts) out.push({ type: 'attack', uid: c.uid, targetUnit: t.unit, targetGigs: t.gigs });
+    }
+    // "must attack next turn if it can": you can't pass while such a Unit can still attack
+    if (forced) return out.filter((x) => x.type !== 'pass');
+    return out;
+  }
+
+  describeAction(a: Action | Reaction): string {
+    switch (a.type) {
+      case 'pass':
+        return 'Pass turn';
+      case 'endReact':
+        return 'No (more) reactions';
+      case 'sell':
+        return `Sell ${this.name(a.uid)}`;
+      case 'call':
+        return `Call a Legend (${this.c(a.uid).known ? this.name(a.uid) : `face-down slot ${this.P(this.c(a.uid).controller).legends.indexOf(a.uid) + 1}`})`;
+      case 'play':
+        return `Play ${this.name(a.uid)} (${this.playCost(a.uid, this.c(a.uid).owner)} €$)`;
+      case 'goSolo':
+        return `Go Solo: ${this.name(a.uid)} (${this.playCost(a.uid, this.c(a.uid).controller, 'goSolo')} €$)`;
+      case 'activate': {
+        const ab = this.script(a.uid).abilities![a.index];
+        return `${this.name(a.host)}${a.host !== a.uid ? ` [${this.name(a.uid)}]` : ''}: ${ab.label}`;
+      }
+      case 'block':
+        return `Block with ${this.name(a.uid)}`;
+      case 'attack':
+        return `Attack with ${this.name(a.uid)} (${this.power(a.uid)}) → ${a.targetUnit ? this.name(a.targetUnit) + ` (${this.power(a.targetUnit)})` : 'Gig area'}`;
+    }
+  }
+
+  programsPlayedThisTurn(p: PlayerId): number {
+    return this.s.counters[`programs:${p}:${this.s.turn}`] ?? 0;
+  }
+
+  async chooseAction(p: PlayerId, actions: Action[]): Promise<Action> {
+    if (actions.length === 1) return actions[0];
+    const [i] = await this.ask({
+      player: p,
+      kind: 'action',
+      prompt: 'Choose an action',
+      options: actions.map((a) => ({ label: this.describeAction(a), action: a })),
+      min: 1,
+      max: 1,
+    });
+    return actions[i];
+  }
+
+  // ------------------------------------------------------------------ performing actions
+
+  async doAction(p: PlayerId, a: Action) {
+    switch (a.type) {
+      case 'pass':
+        return;
+      case 'sell':
+        this.s.once[`sell:${p}`] = this.s.turn;
+        this.sell(p, a.uid);
+        return;
+      case 'call':
+        if (!(await this.pay(p, 1))) return;
+        await this.callLegend(p, a.uid);
+        return;
+      case 'play':
+        await this.playFromHand(p, a.uid);
+        return;
+      case 'goSolo':
+        await this.goSolo(p, a.uid);
+        return;
+      case 'activate':
+        await this.activate(p, a.uid, a.host, a.index);
+        return;
+      case 'attack':
+        await this.attack(p, a.uid, { unit: a.targetUnit, gigs: a.targetGigs });
+        return;
+    }
+  }
+
+  /** Call a Legend (flip face-up). Respects once-per-turn. free = effect-granted. */
+  async callLegend(p: PlayerId, uid?: number, opts: { free?: boolean; filter?: (c: CardInst) => boolean } = {}): Promise<boolean> {
+    if (!this.canCall(p)) return false;
+    let target: number | null | undefined = uid;
+    if (target === undefined) {
+      const cands = this.faceDownLegends(p).filter((c) => !opts.filter || opts.filter(c));
+      const pick = await this.chooseUnit(p, cands, 'Call which Legend?', { optional: true, tag: 'call' });
+      if (!pick) return false;
+      target = pick.uid;
+    }
+    const c = this.s.cards[target];
+    if (c.faceUp) return false;
+    this.s.once[`call:${p}`] = this.s.turn;
+    c.faceUp = true;
+    this.s.stats.calls[p]++;
+    this.tr('call', p, c.defId, opts.free ? 'free' : this.s.phase === 'main' && this.s.active === p ? 'main' : 'react');
+    this.log(p, `calls ${this.name(c)}${opts.free ? ' (free)' : ''}`);
+    const fn = this.script(c).call;
+    if (fn) this.enqueue(p, `${this.name(c)} {Call}`, () => fn(this, c));
+    this.emit('legendCalled', { uid: c.uid, player: p });
+    return true;
+  }
+
+  async playFromHand(p: PlayerId, uid: number) {
+    const cost = this.playCost(uid, p);
+    if (!(await this.pay(p, cost))) return;
+    await this.resolvePlay(p, uid, 'hand');
+  }
+
+  /** Play a card for free (or already paid) from any zone. */
+  async playFree(p: PlayerId, uid: number, from: Zone, opts: { bottomDeckAfter?: boolean; hostFilter?: (c: CardInst) => boolean } = {}) {
+    if (!this.canPlayCard(p, uid, true)) return false;
+    this.log(p, `plays ${this.name(uid)} for free from ${from}`);
+    await this.resolvePlay(p, uid, from, opts);
+    return true;
+  }
+
+  private async resolvePlay(p: PlayerId, uid: number, from: Zone, opts: { bottomDeckAfter?: boolean; hostFilter?: (c: CardInst) => boolean } = {}) {
+    const c = this.s.cards[uid];
+    const d = this.def(c);
+    const sc = this.script(c);
+    this.s.stats.cardsPlayed[p]++;
+    this.tr('play', p, c.defId, from);
+    if (from === 'hand') this.log(p, `plays ${d.displayName}`);
+    if (d.type === 'Unit') {
+      this.enterField(p, uid);
+      this.emit('cardPlayed', { uid, player: p, type: 'Unit' });
+      if (sc.play) this.enqueue(p, `${d.displayName} {Play}`, () => sc.play!(this, c));
+    } else if (d.type === 'Gear') {
+      const hosts = this.gearHosts(p).filter((h) => !opts.hostFilter || opts.hostFilter(h));
+      const host = await this.chooseUnit(p, hosts, `Equip ${d.displayName} to?`, { intent: 'help', tag: 'equip', source: uid });
+      if (!host) {
+        this.move(uid, 'trash');
+        return;
+      }
+      this.equip(uid, host.uid);
+      this.log(p, `equips ${d.displayName} to ${this.name(host)}`);
+      this.emit('cardPlayed', { uid, player: p, type: 'Gear' });
+      if (sc.play) this.enqueue(p, `${d.displayName}`, () => sc.play!(this, c));
+    } else if (d.type === 'Program') {
+      this.detach(uid);
+      c.zone = 'limbo';
+      c.controller = p;
+      const key = `programs:${p}:${this.s.turn}`;
+      this.s.counters[key] = (this.s.counters[key] ?? 0) + 1;
+      this.emit('cardPlayed', { uid, player: p, type: 'Program' });
+      if (sc.play) await sc.play(this, c);
+      if (c.zone === 'limbo') {
+        if (opts.bottomDeckAfter) this.move(uid, 'deck', { position: 'bottom' });
+        else this.move(uid, 'trash');
+      }
+    }
+  }
+
+  async goSolo(p: PlayerId, uid: number) {
+    const cost = this.playCost(uid, p, 'goSolo');
+    if (!(await this.pay(p, cost, [uid]))) return;
+    const c = this.s.cards[uid];
+    const gear = [...c.gear];
+    // move legend to field keeping its gear
+    this.detach(uid);
+    c.zone = 'field';
+    c.controller = p;
+    c.spent = false;
+    c.lag = true;
+    c.goSolo = true;
+    c.enteredTurn = this.s.turn;
+    this.P(p).field.push(uid);
+    for (const g of gear) this.s.cards[g].zone = 'field';
+    c.gear = gear;
+    this.s.stats.cardsPlayed[p]++;
+    this.tr('solo', p, c.defId);
+    this.log(p, `${this.name(c)} goes solo!`);
+    this.emit('cardPlayed', { uid, player: p, type: 'Unit' });
+    const fn = this.script(c).play;
+    if (fn) this.enqueue(p, `${this.name(c)} {Play}`, () => fn(this, c));
+  }
+
+  async activate(p: PlayerId, selfUid: number, hostUid: number, index: number, asReaction = false) {
+    const self = this.s.cards[selfUid];
+    const host = this.s.cards[hostUid];
+    const a = this.script(self).abilities![index];
+    if (!this.abilityUsable(p, self, host, a, asReaction)) return;
+    // pay costs in order: eddies, spend, discard
+    if (a.eddies && !(await this.pay(p, a.eddies, a.spend ? [host.uid] : []))) return;
+    if (a.spend) {
+      host.spent = true;
+      this.emit('spent', { uid: host.uid, cause: 'ability' });
+    }
+    const discarded = a.discard ? await this.discard(p, a.discard) : [];
+    this.log(p, `activates ${this.name(host)}: ${a.label}`);
+    this.tr('activate', p, self.defId, index);
+    await a.run(this, self, host, { discarded });
+  }
+
+  // ------------------------------------------------------------------ attack
+
+  async attack(p: PlayerId, uid: number, target: AttackTargetRef) {
+    const s = this.s;
+    const att = s.cards[uid];
+    const r = other(p);
+    s.attack = { attacker: uid, attackerPlayer: p, targetUnit: target.unit, targetGigs: target.gigs, step: 'declare', ended: false };
+    s.stats.attacks[p]++;
+    this.tr('attack', p, att.defId, target.unit ? 'unit' : 'gigs');
+    att.spent = true;
+    // mustAttack mods are satisfied; one-shot attack permissions are used up
+    s.mods = s.mods.filter((m) => !((m.kind === 'mustAttack' || (m.kind === 'attackReady' && m.value === 'once')) && m.target === uid));
+    this.log(p, `${this.name(att)} (${this.power(att)}) attacks ${target.unit ? this.name(target.unit) : 'the rival Gig area'}`);
+    this.emit('spent', { uid, cause: 'attack' });
+    // {Attack} triggers (unit and its gear)
+    const atkFn = this.script(att).attack;
+    if (atkFn) this.enqueue(p, `${this.name(att)} {Attack}`, () => atkFn(this, att, att));
+    for (const gu of att.gear) {
+      const g = s.cards[gu];
+      const fn = this.script(g).attack;
+      if (fn) this.enqueue(p, `${this.name(g)} {Attack}`, () => fn(this, g, att));
+    }
+    this.emit('attack', { attacker: uid, targetUnit: target.unit, targetGigs: target.gigs });
+    await this.resolvePending();
+    try {
+      if (!this.attackValid()) return;
+      // ---- React step
+      s.attack.step = 'react';
+      let guard = 0;
+      while (guard++ < 30) {
+        if (!this.attackValid()) return;
+        const reacts = this.legalReactions(r);
+        if (reacts.length <= 1) break;
+        const [i] = await this.ask({
+          player: r,
+          kind: 'reaction',
+          prompt: `${this.name(att)} (${this.power(att)}) is attacking ${s.attack.targetUnit ? this.name(s.attack.targetUnit) : 'your Gig area'} — react?`,
+          options: reacts.map((x) => ({ label: this.describeAction(x), action: x })),
+          min: 1,
+          max: 1,
+        });
+        const rx = reacts[i];
+        if (rx.type === 'endReact') break;
+        await this.doReaction(r, rx);
+        await this.resolvePending();
+        this.update();
+      }
+      if (!this.attackValid()) return;
+      if (s.attack.targetUnit !== null) {
+        s.attack.step = 'fight';
+        await this.fight(uid, s.attack.targetUnit);
+      } else {
+        s.attack.step = 'steal';
+        await this.steal(uid, s.attack.targetGigs!);
+      }
+      await this.resolvePending();
+    } finally {
+      if (s.attack) s.attack.step = 'done';
+      s.attack = null;
+      s.mods = s.mods.filter((m) => m.until !== 'attackEnd');
+    }
+  }
+
+  attackValid(): boolean {
+    const a = this.s.attack;
+    if (!a || a.ended) return false;
+    const att = this.s.cards[a.attacker];
+    if (att.zone !== 'field' || att.controller !== a.attackerPlayer) return false;
+    if (a.targetUnit !== null) {
+      const t = this.s.cards[a.targetUnit];
+      if (t.zone !== 'field' || t.controller === a.attackerPlayer) return false;
+    }
+    return true;
+  }
+
+  legalReactions(p: PlayerId): Reaction[] {
+    const out: Reaction[] = [{ type: 'endReact' }];
+    const a = this.s.attack!;
+    if (this.canCall(p) && this.available(p) >= 1) for (const c of this.faceDownLegends(p)) out.push({ type: 'call', uid: c.uid });
+    const att = this.s.cards[a.attacker];
+    const unblockable = this.sources().some((src) => this.script(src.self).unblockable?.(this, src.self, src.host, att));
+    if (!unblockable) {
+      for (const c of this.units(p)) {
+        if (!c.spent && c.uid !== a.targetUnit && this.hasKw(c, 'blocker')) out.push({ type: 'block', uid: c.uid });
+      }
+    }
+    for (const u of this.P(p).hand) {
+      const d = this.def(u);
+      if (d.type === 'Program' && d.keywords.includes('quick') && this.canPlayCard(p, u)) out.push({ type: 'play', uid: u });
+    }
+    for (const ab of this.listAbilities(p, true)) out.push({ type: 'activate', uid: ab.self.uid, host: ab.host.uid, index: ab.index });
+    return out;
+  }
+
+  async doReaction(p: PlayerId, rx: Reaction) {
+    const a = this.s.attack!;
+    switch (rx.type) {
+      case 'call':
+        if (await this.pay(p, 1)) await this.callLegend(p, rx.uid);
+        return;
+      case 'block': {
+        const c = this.s.cards[rx.uid];
+        c.spent = true;
+        a.targetUnit = rx.uid;
+        a.targetGigs = null;
+        this.log(p, `${this.name(c)} blocks!`);
+        this.emit('spent', { uid: rx.uid, cause: 'block' });
+        this.emit('blockerUsed', { uid: rx.uid });
+        return;
+      }
+      case 'play':
+        await this.playFromHand(p, rx.uid);
+        return;
+      case 'activate':
+        await this.activate(p, rx.uid, rx.host, rx.index, true);
+        return;
+    }
+  }
+
+  fightOutcome(aUid: number, bUid: number): { a: 'win' | 'lose'; b: 'win' | 'lose' } {
+    const A = this.s.cards[aUid];
+    const B = this.s.cards[bUid];
+    const pa = this.power(A);
+    const pb = this.power(B);
+    let a: 'win' | 'lose' = pa > pb ? 'win' : 'lose';
+    let b: 'win' | 'lose' = pb > pa ? 'win' : 'lose';
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).fightOverride;
+      if (!fn) continue;
+      if (src.host.uid === aUid) {
+        const o = fn(this, src.self, src.host, B);
+        if (o) {
+          a = o;
+          b = o === 'win' ? 'lose' : b;
+        }
+      }
+      if (src.host.uid === bUid) {
+        const o = fn(this, src.self, src.host, A);
+        if (o) {
+          b = o;
+          a = o === 'win' ? 'lose' : a;
+        }
+      }
+    }
+    return { a, b };
+  }
+
+  async fight(aUid: number, bUid: number) {
+    const A = this.s.cards[aUid];
+    const B = this.s.cards[bUid];
+    const pa = this.power(A);
+    const pb = this.power(B);
+    const res = this.fightOutcome(aUid, bUid);
+    this.log(A.controller, `fight: ${this.name(A)} (${pa}) vs ${this.name(B)} (${pb})`);
+    this.emit('fight', { uid: aUid, opp: bUid, result: res.a, power: pa, oppPower: pb });
+    this.emit('fight', { uid: bUid, opp: aUid, result: res.b, power: pb, oppPower: pa });
+    // defeat losers (power 0 can't defeat). "noDefeatOpp" (Reboot Optics) on the winner prevents its defeat of opponent.
+    const toDefeat: [number, number][] = [];
+    if (res.a === 'lose' && pb > 0 && !this.consumeNoDefeat(bUid)) toDefeat.push([aUid, bUid]);
+    if (res.b === 'lose' && pa > 0 && !this.consumeNoDefeat(aUid)) toDefeat.push([bUid, aUid]);
+    for (const [loser, by] of toDefeat) await this.defeat(loser, { inFight: true, by });
+  }
+
+  private consumeNoDefeat(uid: number): boolean {
+    const m = this.s.mods.find((x) => x.kind === 'noDefeatOpp' && x.target === uid);
+    if (!m) return false;
+    this.removeMod(m.id);
+    this.log(this.s.cards[uid].controller, `${this.name(uid)} doesn't defeat its opponent`);
+    return true;
+  }
+
+  stealCount(att: CardInst): number {
+    const pw = this.power(att);
+    if (pw <= 0) return 0;
+    let n = Math.floor(pw / 10) + 1;
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).stealMod;
+      if (fn) n += fn(this, src.self, src.host, att);
+    }
+    for (const m of this.modsFor('stealMod', att.uid)) n += m.amount ?? 0;
+    return Math.max(0, n);
+  }
+
+  async steal(attUid: number, from: PlayerId) {
+    const att = this.s.cards[attUid];
+    const p = att.controller;
+    let n = this.stealCount(att);
+    const pool = () =>
+      this.gigsOf(from).filter((g) => {
+        // player-level steal bans (Chrome Fang / Westbrook Netrunner style): value {cmp:'gt'|'lt', legendsOnly?}
+        for (const m of this.playerMods('stealBan', from)) {
+          const v = m.value ?? {};
+          if (v.legendsOnly && !this.isLegend(att)) continue;
+          const pw = this.power(att);
+          if (v.cmp === 'gt' && g.value > pw) return false;
+          if (v.cmp === 'lt' && g.value < pw) return false;
+        }
+        for (const src of this.sources()) {
+          const fn = this.script(src.self).stealBan;
+          if (fn && fn(this, src.self, src.host, att, g)) return false;
+        }
+        return true;
+      });
+    const chosen: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const cands = pool().filter((g) => !chosen.includes(g.id));
+      if (!cands.length) break;
+      const gid = await this.chooseGig(p, cands, `Steal a Gig (${i + 1}/${n})`, false, 'steal');
+      if (gid === null) break;
+      chosen.push(gid);
+    }
+    // prevention (rival's effects)
+    const final: number[] = [];
+    for (const gid of chosen) {
+      let prevented = false;
+      for (const src of this.sources(from)) {
+        const fn = this.script(src.self).preventSteal;
+        if (fn && (await fn(this, src.self, src.host, att, this.s.gigs[gid]))) {
+          prevented = true;
+          break;
+        }
+      }
+      if (!prevented) final.push(gid);
+    }
+    for (const gid of final) this.stealGig(attUid, gid, p);
+    if (!final.length) this.log(p, `${this.name(att)} steals nothing`);
+  }
+
+  /** Effect-driven steal: actor steals one rival gig chosen by p (e.g. Gorilla Arms, Appetite). */
+  async stealOne(p: PlayerId, actor: number, filter?: (g: Gig) => boolean) {
+    const cands = this.gigsOf(other(p)).filter((g) => !filter || filter(g));
+    const gid = await this.chooseGig(p, cands, 'Steal a rival Gig', false, 'steal');
+    if (gid === null) return;
+    const att = this.s.cards[actor];
+    for (const src of this.sources(other(p))) {
+      const fn = this.script(src.self).preventSteal;
+      if (fn && (await fn(this, src.self, src.host, att, this.s.gigs[gid]))) return;
+    }
+    this.stealGig(actor, gid, p);
+  }
+}
+
+/**
+ * Player-level 'costMod' mods store a plain-data filter (so game state stays cloneable):
+ * { kind?: 'play'|'goSolo', uid?: number, type?: CardType, tag?: string, color?: Color }
+ */
+export function costModMatches(g: Game, v: any, c: CardInst, kind: 'play' | 'goSolo'): boolean {
+  if (!v) return kind === 'play';
+  if (typeof v === 'function') return !!v(g, c, kind); // legacy (not cloneable)
+  if (v.kind && v.kind !== kind) return false;
+  if (!v.kind && kind !== 'play') return false;
+  if (v.uid !== undefined && v.uid !== c.uid) return false;
+  if (v.type && g.def(c).type !== v.type) return false;
+  if (v.tag && !g.isTag(c, v.tag)) return false;
+  if (v.color && g.def(c).color !== v.color) return false;
+  return true;
+}
+
+function mkInst(uid: number, defId: string, owner: PlayerId, zone: Zone): CardInst {
+  return { uid, defId, owner, controller: owner, zone, spent: false, faceUp: zone === 'legends' ? false : false, lag: false, gear: [], host: null, enteredTurn: 0, goSolo: false };
+}
+
+export { nextRandom };
+
+function cloneDropFunctions<T>(x: T): T {
+  if (x === null || typeof x !== 'object') return x;
+  if (Array.isArray(x)) return x.map((v) => (typeof v === 'function' ? undefined : cloneDropFunctions(v))) as any;
+  const o: any = {};
+  for (const [k, v] of Object.entries(x as any)) if (typeof v !== 'function') o[k] = cloneDropFunctions(v);
+  return o;
+}

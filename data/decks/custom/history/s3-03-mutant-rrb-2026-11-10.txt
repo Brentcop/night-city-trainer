@@ -1,0 +1,32 @@
+# S3-03 Mutant (RRB)
+
+// Legends (3)
+1 Dexter DeShawn: Off the Grid
+1 Sasha Yakovleva: Won't Let You Down
+1 Adam Smasher: Ender of Legends
+
+// Units (12)
+3 Swordwise Huscle
+3 6th Street Recruits
+1 Psycho Squad
+3 Animals Wrecker
+2 Yorinobu Arasaka: Steel Dragon
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (24)
+2 Detonate
+2 Trust No One
+3 Bonnie and Clyde
+3 Chrome Reverie
+2 Nocturne OP55 N1
+3 Over the Edge
+2 Gunpoint Diplomacy
+3 Shattered Memories
+1 Unlikely Bond
+3 Carnage at the Colosseum
+
+// Idea: Mutant of S1-01 Mutant (RRB): V: Corporate Exile → Sasha Yakovleva: Won't Let You Down; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Author: Night City Trainer breeder (season 3, mutant)

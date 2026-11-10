@@ -1,0 +1,28 @@
+// Gear'n'Go
+// Origin: choom.gg community guide
+// Author: _helvetica
+// Source: https://choom.gg/guides/gear-n-go-2fda06
+// Via: choom.gg/guides (free portion, collected 2026-11-09)
+// Added: 2026-09-07
+// Format: Constructed
+
+// Legends
+1 Goro Takemura: Hands Unclean
+1 Dum Dum: Maelstrom Triggerman
+1 Panam Palmer: Nomad Cavalry
+
+// Main Deck
+3 Goro Takemura: Losing His Way
+3 Corpo Security
+3 Maelstrom Zealots
+2 MaxTac Squadron
+3 Dexter DeShawn: One Last Chance
+3 Caliber: Totentanz's Top Dog
+3 Mandibular Upgrade
+3 Fool on the Hill
+3 Corporate Surveillance
+3 Riot Shield
+3 Zetatech Faceplate
+3 Sandevistan
+2 Overwatch: Panam's Gift
+3 (Don't Fear) The Reaper

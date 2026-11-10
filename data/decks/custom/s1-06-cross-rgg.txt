@@ -1,0 +1,31 @@
+// S1-06 Cross (RGG)
+// Origin: Night City Trainer bred deck (season 1, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: RRG Midrange: V + Dexter (optimized) × NC-05 Emperor's Guard (GGB)
+// Added: 2026-11-10
+// Idea: Crossover of RRG Midrange: V + Dexter (optimized) × NC-05 Emperor's Guard (GGB) (aggro): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Hanako Arasaka: Daughter of the Emperor
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+1 Corpo Security
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Goro Takemura: Losing His Way
+3 Pepe Najarro: Working Doubles
+3 MaxTac AV
+2 Royce: Don't Call Me Simon
+3 Saul Bright: Stormrider
+2 Mantis Blades
+3 Satori: Sword of Saburo
+2 Zetatech Berserk
+2 Peace Offering
+2 Over the Edge
+2 Memory Relapse
+2 Shattered Memories
+3 Wild in the Streets
+3 (Don't Fear) The Reaper

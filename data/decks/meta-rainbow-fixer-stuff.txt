@@ -1,0 +1,31 @@
+// Rainbow Fixer Stuff
+// Origin: choom.gg meta archetype
+// Author: Troy Yamaguchi (Plus Two) — "The Cyberpunk Primer" video, 6 Sep 2026
+// Source: https://choom.gg/meta/rainbow-fixer-stuff
+// Via: choom.gg/meta (collected 2026-11-09)
+// Credits: Tier rating and summary: choom.gg editors
+// Added: 2026-11-09
+// Tier: B (64/100), complexity Straightforward
+// Format: Constructed
+
+// Legends
+1 Padre: Man of the Cross
+1 Wakako Okada: Peace and Harmony
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+2 Psycho Squad
+2 Lizzy Wizzy: Delicate Weapon
+3 Mantis Blades
+3 Satori: Sword of Saburo
+3 Detonate
+3 Floor It
+3 Synapse Burnout
+2 Chrome Reverie
+3 Nocturne OP55 N1
+2 Memory Relapse
+2 We Gotta Live Together

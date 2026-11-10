@@ -1,0 +1,32 @@
+// S3-01 Mutant (RBG)
+// Origin: Night City Trainer bred deck (season 3, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-04 Cross (RBG)
+// Added: 2026-11-10
+// Idea: Mutant of S1-04 Cross (RBG): Saburo Arasaka: Stubborn Patriarch → Hanako Arasaka: Daughter of the Emperor; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Hanako Arasaka: Daughter of the Emperor
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+1 Psycho Squad
+3 Royce: Don't Call Me Simon
+1 Sandayu Oda: Hanako's Guardian
+2 Placide: Voodoo Sentinel
+2 Mantis Blades
+2 Satori: Sword of Saburo
+1 Detonate
+2 Peace Offering
+2 Trust No One
+2 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 Unlikely Bond
+2 We Gotta Live Together

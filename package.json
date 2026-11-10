@@ -1,0 +1,31 @@
+{
+  "name": "cyberpunk-tcg-trainer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local Cyberpunk TCG simulator: deck builder, meta/guides, play vs bots, and bot-vs-bot deck testing.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build:data": "python -I tools/build_data.py",
+    "sim": "tsx scripts/simulate.ts",
+    "gauntlet": "tsx scripts/gauntlet.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

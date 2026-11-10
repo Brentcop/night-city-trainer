@@ -1,0 +1,31 @@
+// S1-08 Explorer (RRG)
+// Origin: Night City Trainer bred deck (season 1, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-10
+// Idea: Explorer (aggro): untested Legends Royce / Yorinobu Arasaka / Hanako Arasaka, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 Royce: Psycho on the Edge
+1 Yorinobu Arasaka: Embracing Destruction
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+1 Swordwise Huscle
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Kerry Eurodyne: The Last Rockerboy
+3 Pepe Najarro: Working Doubles
+2 Royce: Don't Call Me Simon
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+1 Arasaka Emergency Radioport
+2 Satori: Sword of Saburo
+2 Zetatech Berserk
+2 Take Control
+2 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Memory Relapse
+2 Shattered Memories
+3 Carnage at the Colosseum

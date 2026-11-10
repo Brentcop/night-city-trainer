@@ -1,0 +1,32 @@
+// S2-01 Mutant (RBB)
+// Origin: Night City Trainer bred deck (season 2, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-07 Explorer (BBG)
+// Added: 2026-11-10
+// Idea: Mutant of S1-07 Explorer (BBG): Saburo Arasaka: Stubborn Patriarch → Yorinobu Arasaka: Embracing Destruction; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Sasha Yakovleva: Won't Let You Down
+1 Yorinobu Arasaka: Embracing Destruction
+
+// Main Deck
+1 Delamain: Rideshare AI
+2 Swordwise Huscle
+3 Psycho Squad
+1 Rita Wheeler: No Stupid Questions
+3 Maman Brigitte: Spirit of Death
+2 Placide: Voodoo Sentinel
+2 Satori: Sword of Saburo
+2 Floor It
+2 Trust No One
+3 Three Mouths, One Desire
+2 Chrome Reverie
+2 Nocturne OP55 N1
+2 Over the Edge
+3 Pyramid Song
+2 Shattered Memories
+2 Unlikely Bond
+3 Les Élémens
+3 Towerfall

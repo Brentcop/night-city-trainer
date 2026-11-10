@@ -1,0 +1,72 @@
+[
+ {
+  "slug": "bbg-cunningham-econ",
+  "title": "BBG Cunningham Econ",
+  "tier": "S",
+  "power": 94,
+  "complexity": "Expert",
+  "tagline": "The removal pile defining the format. The best Towerfall shell, the only viable event-based removal, and a draw engine that does not stop.\r",
+  "source": "https://choom.gg/meta/bbg-cunningham-econ",
+  "deckFile": "meta-bbg-cunningham-econ.txt"
+ },
+ {
+  "slug": "gry-trauma-team",
+  "title": "GRY Trauma Team",
+  "tier": "B",
+  "power": 68,
+  "complexity": "Moderate",
+  "tagline": "Three colours, one of each Legend: a midrange pile built around Trauma Team Operatives and the best cards of each colour.\r",
+  "source": "https://choom.gg/meta/gry-trauma-team (reference list https://choom.gg/decks/ee76c1f9-4d7f-440b-ae54-8f134421a1a9)",
+  "deckFile": "meta-gry-trauma-team.txt"
+ },
+ {
+  "slug": "rainbow-fixer-stuff",
+  "title": "Rainbow Fixer Stuff",
+  "tier": "B",
+  "power": 64,
+  "complexity": "Straightforward",
+  "tagline": "Three colours of good commons and nothing else. Almost no rares, no real top end, and still a functional deck -- which is the point.\r",
+  "source": "https://choom.gg/meta/rainbow-fixer-stuff",
+  "deckFile": "meta-rainbow-fixer-stuff.txt"
+ },
+ {
+  "slug": "rrb-wakako-midrange",
+  "title": "RRB Wakako Midrange",
+  "tier": "A",
+  "power": 77,
+  "complexity": "Moderate",
+  "tagline": "The same red beatdown shell traded down a stat line for a stun package. Lizzy Wizzy replaying Programs from the trash is the tempo engine.\r",
+  "source": "https://choom.gg/meta/rrb-wakako-midrange",
+  "deckFile": "meta-rrb-wakako-midrange.txt"
+ },
+ {
+  "slug": "rrg-dexter-midrange",
+  "title": "RRG Dexter Midrange",
+  "tier": "A",
+  "power": 85,
+  "complexity": "Straightforward",
+  "tagline": "A curve of oversized bodies backed by double-red interaction. The green splash exists almost entirely to push Yorinobu and Adam Smasher to 10 power.\r",
+  "source": "https://choom.gg/meta/rrg-dexter-midrange",
+  "deckFile": "meta-rrg-dexter-midrange.txt"
+ },
+ {
+  "slug": "rry-smasher-aggro",
+  "title": "RRY Smasher Aggro",
+  "tier": "S",
+  "power": 91,
+  "complexity": "Straightforward",
+  "tagline": "Red aggro with a yellow splash: cheap Units on curve, Gear to push them through, and Adam Smasher to close.\r",
+  "source": "https://choom.gg/meta/rry-smasher-aggro (reference list https://choom.gg/decks/6d466d16-3ec9-4f96-907d-1eb049f7898e)",
+  "deckFile": "meta-rry-smasher-aggro.txt"
+ },
+ {
+  "slug": "yyb-rogue-gear",
+  "title": "YYB Rogue Gear",
+  "tier": "A",
+  "power": 81,
+  "complexity": "Moderate",
+  "tagline": "A Gear-heavy yellow deck: Units that get better with every piece of chrome, and Rogue turning each fight into Gigs.\r",
+  "source": "https://choom.gg/meta/yyb-rogue-gear (reference list https://choom.gg/decks/95f176bb-4b42-4447-b098-22baf619749b)",
+  "deckFile": "meta-yyb-rogue-gear.txt"
+ }
+]

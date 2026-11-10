@@ -1,0 +1,31 @@
+// S2-07 Explorer (RRB)
+// Origin: Night City Trainer bred deck (season 2, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-10
+// Idea: Explorer (midrange): untested Legends V / Yorinobu Arasaka / Dexter DeShawn, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Yorinobu Arasaka: Embracing Destruction
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+2 La Llorona: Ghost of the Past
+2 Swordwise Huscle
+3 6th Street Recruits
+3 Psycho Squad
+3 Animals Wrecker
+1 Johnny Silverhand: Never Stop Fighting
+1 Yorinobu Arasaka: Steel Dragon
+2 Placide: Voodoo Sentinel
+2 Satori: Sword of Saburo
+2 Deadman Transmitter
+2 Trust No One
+2 Bonnie and Clyde
+2 Chrome Reverie
+2 Nocturne OP55 N1
+3 Over the Edge
+2 Gunpoint Diplomacy
+3 Shattered Memories
+3 Carnage at the Colosseum

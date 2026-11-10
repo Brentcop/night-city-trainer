@@ -1,0 +1,28 @@
+// NC-07 Braindance Burn (RRB)
+// Origin: Night City Trainer original (hand-designed, then forged)
+// Author: Night City Trainer — designed by Claude (Anthropic) for this project
+// Added: 2026-11-10
+// Idea: The RRG Dexter core with Judy instead of Saburo: Braindance Programs (Carnage, Bonnie, Industrial Assembly) pump attackers via Judy, Blue splash adds Psycho Squad + Voodoo Boy + Floor It.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Adam Smasher: Ender of Legends
+1 Judy Álvarez: Braindance Maestro
+
+// Main Deck
+2 Jacked-In Voodoo Boy
+3 6th Street Recruits
+3 Meredith Stout: Stone Cold Corpo
+3 Psycho Squad
+3 Animals Wrecker
+2 Johnny Silverhand: Never Stop Fighting
+2 Yorinobu Arasaka: Steel Dragon
+3 Mantis Blades
+3 Satori: Sword of Saburo
+3 Detonate
+2 Floor It
+3 Industrial Assembly
+3 Bonnie and Clyde
+2 Gunpoint Diplomacy
+3 Carnage at the Colosseum

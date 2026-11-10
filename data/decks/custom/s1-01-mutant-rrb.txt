@@ -1,0 +1,32 @@
+// S1-01 Mutant (RRB)
+// Origin: Night City Trainer bred deck (season 1, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: RRG Dexter Midrange
+// Added: 2026-11-10
+// Idea: Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → V: Corporate Exile; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 V: Corporate Exile
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+2 Ruthless Lowlife
+2 Swordwise Huscle
+3 6th Street Recruits
+1 Kerry Eurodyne: The Last Rockerboy
+3 Psycho Squad
+2 Royce: Don't Call Me Simon
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Detonate
+3 Bonnie and Clyde
+2 Chrome Reverie
+1 Nocturne OP55 N1
+2 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum

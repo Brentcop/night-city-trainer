@@ -1,0 +1,24 @@
+{
+  "aggro>control": {
+    "gig": 1.3,
+    "hand": 0.8,
+    "spentRisk": 0.6
+  },
+  "control>aggro": {
+    "unitPower": 1.3,
+    "spentRisk": 1.8,
+    "gig": 1.1
+  },
+  "midrange>control": {
+    "gig": 1.2,
+    "hand": 0.9
+  },
+  "midrange>aggro": {
+    "unitPower": 1.2,
+    "spentRisk": 1.4
+  },
+  "control>control": {
+    "hand": 0.875,
+    "eddie": 1.15
+  }
+}

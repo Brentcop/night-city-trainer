@@ -1,0 +1,32 @@
+// S1-05 Cross (RGY)
+// Origin: Night City Trainer bred deck (season 1, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: NC-02 Stormrider Stampede (GGR) × YYY Adam v1 - Ready for Brawl
+// Added: 2026-11-10
+// Idea: Crossover of NC-02 Stormrider Stampede (GGR) × YYY Adam v1 - Ready for Brawl (aggro): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+1 Kerry Eurodyne: Axe, Attitude, Audience
+
+// Main Deck
+3 Maelstrom Goons
+1 Valentino Street Racer
+3 6th Street Recruits
+1 Kerry Eurodyne: The Last Rockerboy
+3 Pepe Najarro: Working Doubles
+2 MaxTac AV
+3 Jackie Welles: Ride or Die Choom
+3 Saul Bright: Stormrider
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Zetatech Faceplate
+2 Detonate
+2 Peace Offering
+1 Corporate Surveillance
+2 The Heist
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories

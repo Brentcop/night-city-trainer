@@ -1,0 +1,38 @@
+// S2-08 Explorer (RRG) — EOR build
+// Origin: Night City Trainer tournament build (list + data-chosen sideboard)
+// Author: Night City Trainer
+// Parents: S2-08 Explorer (RRG) (Night City Trainer bred deck)
+// Added: 2026-11-10
+// Idea: Ready-to-register list for EOR Chicago. Sideboard from per-matchup optimizer runs: vs BBG Cunningham Econ: -1 Memory Relapse / +1 Royce: Don't Call Me Simon (+3.3).
+// Format: Constructed
+
+// Legends
+1 Yorinobu Arasaka: Embracing Destruction
+1 Jackie Welles: Mama's Favorite
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+1 Swordwise Huscle
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+1 Johnny Silverhand: Never Stop Fighting
+1 Sandayu Oda: Hanako's Guardian
+2 Yorinobu Arasaka: Steel Dragon
+2 Satori: Sword of Saburo
+2 Deadman Transmitter
+2 Zetatech Berserk
+2 Take Control
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Memory Relapse
+2 Shattered Memories
+3 Carnage at the Colosseum
+
+// Sideboard
+3 Royce: Don't Call Me Simon
+2 Minotaur
+1 Take Control
+1 Deadman Transmitter

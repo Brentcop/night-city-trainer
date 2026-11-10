@@ -1,0 +1,147 @@
+import { useState } from 'react';
+import data from '../../data/seasons.json';
+import { allDecks } from '../../lib/browserLibrary';
+import { shortCredit } from '../../lib/library';
+
+interface Row {
+  name: string;
+  file: string;
+  origin: string;
+  colors: string;
+  arch: string;
+  vsMeta: number;
+  rating: number;
+  metaG: number;
+  percentile: number;
+  finals?: number;
+  seasons: Record<string, number>;
+  idea?: string;
+}
+interface Season {
+  season: number;
+  date: string;
+  games: number;
+  bot: string;
+  bred: { name: string; method: string; parents: string[]; idea: string }[];
+  standings: { name: string; wr: number; isNew: boolean; kind: string }[];
+}
+
+const pct = (x: number | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
+
+export function SeasonsPage() {
+  const D = data as unknown as { updated: string; leaderboard: Row[]; seasons: Season[] };
+  const [filter, setFilter] = useState('');
+  const seasonCols = D.seasons.map((s) => String(s.season));
+  const libByFile = new Map(allDecks().map((d) => [d.file, d]));
+  const rows = D.leaderboard.filter((r) => !filter || (r.name + r.origin + r.colors + r.arch).toLowerCase().includes(filter.toLowerCase()));
+  if (!D.leaderboard.length)
+    return (
+      <div className="panel">
+        <h1>Seasons</h1>
+        <p>
+          No seasons yet. Run <code>npx tsx scripts/season.ts --season 1</code> (or <code>bash scripts/seasons.sh</code> for three seasons and a grand
+          final).
+        </p>
+      </div>
+    );
+  return (
+    <div className="grid">
+      <div className="spread">
+        <h1 style={{ margin: 0 }}>Seasons &amp; all-time leaderboard</h1>
+        <input placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+      </div>
+      <p className="muted">
+        Each season the breeder creates 8 new decks from the data: mutants of top decks, crossovers of two strong decks, and explorers trying
+        untested Legend combinations. They play a telemetry round robin against the meta and the best incumbents. Then they're forged (data-driven
+        card swaps) and play finals against the meta archetypes. The leaderboard pools every game against the meta archetypes. <b>Rating</b> shrinks
+        that win rate toward 50% until a deck has played enough games, so a lucky small sample can't top the board.
+      </p>
+      <div className="panel scroll-x">
+        <h2 style={{ marginTop: 0 }}>All-time leaderboard</h2>
+        <table className="small">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Deck</th>
+              <th>Origin</th>
+              <th>Style</th>
+              <th>Rating</th>
+              <th>vs meta (raw)</th>
+              <th>Games</th>
+              <th>Pctl</th>
+              {seasonCols.map((s) => (
+                <th key={s}>S{s}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.name}>
+                <td>{D.leaderboard.indexOf(r) + 1}</td>
+                <td>
+                  <a href={`#/decks?d=${encodeURIComponent(r.file)}`}>{r.name}</a>
+                  {r.idea && <div className="muted" style={{ maxWidth: 420 }}>{r.idea}</div>}
+                </td>
+                <td>
+                  {libByFile.get(r.file) ? shortCredit(libByFile.get(r.file)!) : r.origin}
+                  {libByFile.get(r.file)?.prov.parents && <div className="muted">from {libByFile.get(r.file)!.prov.parents}</div>}
+                </td>
+                <td>
+                  <span className="tag">{r.colors}</span> {r.arch}
+                </td>
+                <td style={{ minWidth: 110 }}>
+                  <b>{pct(r.rating)}</b>
+                  <div className="bar">
+                    <div style={{ width: `${(r.rating ?? 0) * 100}%` }} />
+                  </div>
+                </td>
+                <td>{pct(r.vsMeta)}</td>
+                <td>{r.metaG}</td>
+                <td>{r.percentile}</td>
+                {seasonCols.map((s) => (
+                  <td key={s}>{pct(r.seasons?.[s])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {[...D.seasons].reverse().map((s) => (
+        <div className="panel" key={s.season}>
+          <h2 style={{ marginTop: 0 }}>
+            Season {s.season} <span className="muted small">({s.date.slice(0, 10)} · {s.games} games per pairing · {s.bot} bot)</span>
+          </h2>
+          <div className="grid cols-2">
+            <div>
+              <h3>New decks</h3>
+              <ul className="small">
+                {s.bred.map((b) => (
+                  <li key={b.name}>
+                    <b>{b.name}</b> <span className="tag">{b.method}</span>
+                    <div className="muted">{b.idea}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3>Standings</h3>
+              <table className="small">
+                <tbody>
+                  {s.standings.map((r, i) => (
+                    <tr key={r.name}>
+                      <td>{i + 1}</td>
+                      <td>
+                        {r.name} {r.isNew && <span className="tier tier-S">NEW</span>}
+                      </td>
+                      <td>{pct(r.wr)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

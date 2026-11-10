@@ -1,0 +1,30 @@
+// S3-07 Explorer (RRG)
+// Origin: Night City Trainer bred deck (season 3, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-10
+// Idea: Explorer (midrange): untested Legends Royce / Dexter DeShawn / Saburo Arasaka, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 Royce: Psycho on the Edge
+1 Dexter DeShawn: Off the Grid
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Main Deck
+1 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+1 MaxTac AV
+3 Animals Wrecker
+2 Saul Bright: Stormrider
+2 Mantis Blades
+2 Arasaka Emergency Radioport
+2 Satori: Sword of Saburo
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together
+3 Carnage at the Colosseum

@@ -1,0 +1,30 @@
+# NC-02 Stormrider Stampede (GGR)
+
+// Legends (3)
+1 Saburo Arasaka: Stubborn Patriarch
+1 Padre: Man of the Cross
+1 Adam Smasher: Ender of Legends
+
+// Units (21)
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Meredith Stout: Stone Cold Corpo
+3 Pepe Najarro: Working Doubles
+3 MaxTac AV
+2 MaxTac Heavy
+2 Sandayu Oda: Hanako's Guardian
+2 Saul Bright: Stormrider
+
+// Gears (5)
+3 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (14)
+3 Detonate
+3 Peace Offering
+3 Synapse Burnout
+3 Corporate Surveillance
+2 Memory Relapse
+
+// Idea: Green go-wide: Street Racer surprise attacks, MaxTac AV Gig swaps, Saul Bright (+2 to every attacker), Saburo/Padre Legends; Red splash only for the best 4-drops and Detonate.
+// Author: Night City Trainer (v1, 2026-11-10)

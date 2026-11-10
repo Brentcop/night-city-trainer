@@ -1,0 +1,31 @@
+// S3-06 Cross (RBG)
+// Origin: Night City Trainer bred deck (season 3, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S2-08 Explorer (RRG) × S1-04 Cross (RBG)
+// Added: 2026-11-10
+// Idea: Crossover of S2-08 Explorer (RRG) × S1-04 Cross (RBG) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Mama's Favorite
+1 Yorinobu Arasaka: Embracing Destruction
+1 V: Corporate Exile
+
+// Main Deck
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+2 Psycho Squad
+3 Royce: Don't Call Me Simon
+2 Placide: Voodoo Sentinel
+2 Satori: Sword of Saburo
+2 Zetatech Berserk
+2 Detonate
+2 Peace Offering
+1 Trust No One
+2 Take Control
+2 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together

@@ -1,0 +1,28 @@
+// NC-04 Chrome Rockers (YYR)
+// Origin: Night City Trainer original (hand-designed, then forged)
+// Author: Night City Trainer — designed by Claude (Anthropic) for this project
+// Added: 2026-11-10
+// Idea: Yellow Gear aggro: Gorilla Arms double-steals on 7-8 power bodies, River Ward cheats 2-cost Gear at instant speed, Royce Go Solo as a Gear-powered finisher.
+// Format: Constructed
+
+// Legends
+1 River Ward: Detective on the Hunt
+1 Viktor Vektor: Sit Down and Relax
+1 Royce: Psycho on the Edge
+
+// Main Deck
+3 Dexter DeShawn: One Last Chance
+3 6th Street Recruits
+3 Meredith Stout: Stone Cold Corpo
+3 MaxTac Suppression Team
+3 Rockn' Rockerboy
+2 Jackie Welles: Ride or Die Choom
+3 Trauma Team Operatives
+3 Mantis Blades
+2 Adrenaline Converter
+3 Zetatech Faceplate
+3 Gorilla Arms
+3 Detonate
+2 Safety Override
+3 The Heist
+1 Live with the Aftermath

@@ -1,0 +1,31 @@
+// S1-03 Mutant (RRR)
+// Origin: Night City Trainer bred deck (season 1, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: NC-07 Braindance Burn (RRB)
+// Added: 2026-11-10
+// Idea: Mutant of NC-07 Braindance Burn (RRB): Judy Álvarez: Braindance Maestro → Yorinobu Arasaka: Embracing Destruction; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Adam Smasher: Ender of Legends
+1 Yorinobu Arasaka: Embracing Destruction
+
+// Main Deck
+2 Ruthless Lowlife
+2 Swordwise Huscle
+3 6th Street Recruits
+3 Kerry Eurodyne: The Last Rockerboy
+1 Meredith Stout: Stone Cold Corpo
+3 Animals Wrecker
+2 Johnny Silverhand: Never Stop Fighting
+3 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Detonate
+2 Industrial Assembly
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum

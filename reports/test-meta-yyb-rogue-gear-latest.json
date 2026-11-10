@@ -1,0 +1,90 @@
+{
+ "deck": "YYB Rogue Gear",
+ "overall": 0.5833333333333334,
+ "rows": [
+  {
+   "a": "YYB Rogue Gear",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 46,
+   "bWins": 14,
+   "ties": 0,
+   "aFirstWins": 21,
+   "aFirstGames": 30,
+   "aSecondWins": 25,
+   "aSecondGames": 30,
+   "turns": 765,
+   "overtime": 13
+  },
+  {
+   "a": "YYB Rogue Gear",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 46,
+   "bWins": 14,
+   "ties": 0,
+   "aFirstWins": 21,
+   "aFirstGames": 30,
+   "aSecondWins": 25,
+   "aSecondGames": 30,
+   "turns": 740,
+   "overtime": 16
+  },
+  {
+   "a": "YYB Rogue Gear",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 37,
+   "bWins": 23,
+   "ties": 0,
+   "aFirstWins": 17,
+   "aFirstGames": 30,
+   "aSecondWins": 20,
+   "aSecondGames": 30,
+   "turns": 777,
+   "overtime": 18
+  },
+  {
+   "a": "YYB Rogue Gear",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 34,
+   "bWins": 26,
+   "ties": 0,
+   "aFirstWins": 14,
+   "aFirstGames": 30,
+   "aSecondWins": 20,
+   "aSecondGames": 30,
+   "turns": 784,
+   "overtime": 21
+  },
+  {
+   "a": "YYB Rogue Gear",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 24,
+   "bWins": 36,
+   "ties": 0,
+   "aFirstWins": 8,
+   "aFirstGames": 30,
+   "aSecondWins": 16,
+   "aSecondGames": 30,
+   "turns": 789,
+   "overtime": 23
+  },
+  {
+   "a": "YYB Rogue Gear",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 23,
+   "bWins": 37,
+   "ties": 0,
+   "aFirstWins": 8,
+   "aFirstGames": 30,
+   "aSecondWins": 15,
+   "aSecondGames": 30,
+   "turns": 782,
+   "overtime": 23
+  }
+ ]
+}
