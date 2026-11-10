@@ -1,4 +1,6 @@
 // Sidebar prompt: what the game is asking, the coach's pick, and button fallbacks for every option.
+import { memo } from 'react';
+import type { Decision } from '../../../engine/types';
 import { CardBack, TcgCard } from '../TcgCard';
 import { hiddenFromMe, type BoardCtx } from './BoardCard';
 
@@ -158,19 +160,19 @@ export function PromptPanel({ ctx, why }: { ctx: BoardCtx; why?: string }) {
   );
 }
 
-export function AllOptions({ ctx }: { ctx: BoardCtx }) {
-  const { pend, coach } = ctx;
+/** Every option as a button (memoised: it only changes with the decision, the coach's pick, or the answer handler). */
+export const AllOptions = memo(function AllOptions({ pend, coachI, answer }: { pend: Decision | null; coachI: number | null; answer: (i: number) => void }) {
   if (!pend) return null;
   return (
     <details className="pb-all">
       <summary>All options ({pend.options.length})</summary>
       <div className="pb-opts">
         {pend.options.map((o, i) => (
-          <button key={i} className={coach?.i === i ? 'pb-coach-btn' : ''} onClick={() => ctx.answer(i)}>
+          <button key={i} className={coachI === i ? 'pb-coach-btn' : ''} onClick={() => answer(i)}>
             {o.label}
           </button>
         ))}
       </div>
     </details>
   );
-}
+});
