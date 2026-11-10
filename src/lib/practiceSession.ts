@@ -83,7 +83,7 @@ export interface Snapshot {
  */
 export function takeSnapshot(g: Game, bot: HeuristicAgent, choices: number, grades: number): Snapshot {
   const seat: Agent = { name: 'snapshot', decide: async () => [0] };
-  return { state: g.clone([seat, seat]).s, bot: cloneBot(bot), choices, grades };
+  return { state: g.clone([seat, seat], { keepLog: true }).s, bot: cloneBot(bot), choices, grades };
 }
 
 /**
