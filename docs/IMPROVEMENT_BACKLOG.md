@@ -14,14 +14,18 @@ Eight parallel reviewers audited the project at commit `befda3e`. Baseline at th
 
 ---
 
-## Decisions needed from the owner
+## Owner decisions
 
-| # | Decision | Why it matters | Recommendation |
-|---|---|---|---|
-| D1 | **Recorded events vs. fixes.** The 20 recorded events, seasons, ratings and h2h were produced by the current bots and engine. WP-B1, WP-B2 and WP-B3 change how games play out, so those events will no longer replay identically. | Blocks all of Wave B. | Fix forward, then regenerate the recorded data once at the end of Wave B and add a golden-replay test (AI-5/OPS-6) so it cannot drift silently again. The alternative, version-gating every bot fix behind a `policy` flag pinned for `deep`/`hard-v1`, keeps bot-side replays but cannot cover the engine rule fixes, and leaves the published numbers based on bots that pick their worst card. |
-| D2 | **Licence** for the code, plus a third-party notice (OPS-18). | Needs the owner's choice of licence. | Owner to choose; the NOTICE file can be written either way. |
-| D3 | **Dev-dependency major upgrades** (LIB-20): vite 5→6/7, vitest 2→4, tsx. | Production is clean; the advisories affect the dev server and test runner. | Do it as its own package after Wave A, since it can change build and test behaviour. |
-| D4 | **Delete or archive** the stale one-off scripts (OPS-12 and appendix). | Deleting is simplest; archiving keeps the history visible. | Move to `scripts/archive/`. |
+Status as of 2026-11-10. Waves A and B were approved for dispatch on that date.
+
+| # | Decision | Status |
+|---|---|---|
+| D1 | **Recorded events vs. fixes.** WP-B1, WP-B2 and WP-B3 change how games play out, so the 20 recorded events no longer replay identically. | **Decided: fix forward, no compatibility flag.** The recorded data will be wiped and restarted from Season 1 on the fixed sim at a later date; see [ROADMAP.md](ROADMAP.md) §1. WP-B4 below is replaced by that roadmap item. |
+| D2 | **Licence** for the code, plus a third-party notice (OPS-18). | Open. |
+| D3 | **Dev-dependency major upgrades** (LIB-20): vite 5→6/7, vitest 2→4, tsx. Production is clean; the advisories affect the dev server and test runner. | Open. |
+| D4 | **Stale one-off scripts** (OPS-12 and appendix). | Applied: moved to `scripts/archive/`. |
+| D5 | **Tracked data nobody reads** (OPS-11, OPS-17): the duplicate `data/tournaments/`, `data/reviews/*.json`, superseded report write-ups. | **Decided: delete.** Done when Wave A is merged, after scripts point at the single events copy and doc references are checked. |
+| D6 | **Deploy method** (OPS-9): keep publishing to the `gh-pages` branch, or switch to GitHub's official Pages actions. | **Decided: switch, as part of the refactoring wave** (WP-C5; ROADMAP.md §2). Wave A keeps the current method. |
 
 ---
 
@@ -177,9 +181,9 @@ Owns: `src/lib/tournament.ts`, `src/analysis/summarize.ts`, `tests/tournament.te
 | LIB-13 | M | `summarize.ts:64-71` keeps a mulliganed-away hand in "seen", biasing the "Δ when drawn" numbers that drive the coach, Deck Lab swaps and insights. | Rebuild `seen` on mulligan. |
 | LIB-21 | M | No tests for Bo1, even fields, no top cut, a full-event determinism check, or `summarize` with a mulligan. | Add them. |
 
-### WP-B4 · Regenerate recorded data
+### WP-B4 · Fresh baseline (moved to the roadmap)
 
-After B1–B3 are merged and measured. Long-running; needs explicit go-ahead because it rewrites tracked data under `data/`, `public/`, `src/data/` and `reports/`. Re-run analysis, tournaments, ratings and h2h; then add recorded-game cases to `tests/replay.test.ts`.
+Replaced by [ROADMAP.md](ROADMAP.md) §1: wipe the recorded data and restart from Season 1 on the fixed sim, at a later date. Not part of the current waves.
 
 ---
 
@@ -245,6 +249,16 @@ Owns: `tsconfig*.json`, then `src/engine/**` and `src/ai/**` for the refactors. 
 | AI-15 | L | The play-out loop exists five times; `delta/40` hard-coded; magic numbers out of `tune.ts`'s reach. | One `playOut` helper; move constants to weights. |
 | LIB-15, LIB-16 | L | Dead exports; three pool implementations and two library loaders. | Delete; generic `WorkPool`; one deck-path rule. |
 | D3 / LIB-20 | M | 6 dev-dependency advisories (vitest, tinypool, vite, esbuild, tsx). | Upgrade, rebuild, re-test. |
+
+### WP-C5 · Production deploy pipeline
+
+Owns: `.github/workflows/**`. Needs one owner step in the repository settings. Detail in [ROADMAP.md](ROADMAP.md) §2.
+
+| ID | Sev | Problem | Fix |
+|---|---|---|---|
+| OPS-9b | M | Deploys force-push `dist/` to `gh-pages` through a third-party action on every push to main. | Official Pages actions with `pages: write` and `id-token: write` on the deploy job only. Owner changes the Pages source to "GitHub Actions" at the same time. |
+| OPS-9c | M | Nothing checks that generated data is consistent at deploy time. | `check:data` step: event index matches event files; head-to-heads cover the recorded events. |
+| OPS-9d | L | Every push to main is a production release. | Decide between that and a manual or tagged release once the fresh baseline exists. |
 
 ---
 
