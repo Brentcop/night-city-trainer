@@ -544,8 +544,13 @@ export class Game {
     return this.payables(p).length;
   }
 
-  /** Pay amount using Eddies first, then legends that benefit from being spent, then face-down legends, etc. */
-  async pay(p: PlayerId, amount: number, exclude: number[] = []): Promise<boolean> {
+  /**
+   * Pay amount using Eddies first, then legends that benefit from being spent, then face-down legends, etc.
+   * If the paying agent opts in (`choosesPayment`) and the choice is real, it picks each source instead
+   * (one 'pay' decision per €$; the first option is always what the automatic rule would pick).
+   * `what` names the cost in the prompt.
+   */
+  async pay(p: PlayerId, amount: number, exclude: number[] = [], what = 'a cost'): Promise<boolean> {
     if (amount <= 0) return true;
     const srcs = this.payables(p).filter((c) => !exclude.includes(c.uid));
     if (srcs.length < amount) return false;
@@ -557,11 +562,45 @@ export class Game {
       return sc.abilities?.some((a) => a.spend) ? 4 : 3;
     };
     srcs.sort((a, b) => score(a) - score(b));
-    for (const c of srcs.slice(0, amount)) {
+    const chosen = this.agents[p]?.choosesPayment ? await this.choosePayment(p, srcs, amount, what) : srcs.slice(0, amount);
+    for (const c of chosen) {
       c.spent = true;
       if (c.zone === 'legends') this.emit('spent', { uid: c.uid, cause: 'pay' });
     }
     return true;
+  }
+
+  /** Let the paying player pick `amount` of the (already sorted) sources, asking only while the choice is real. */
+  private async choosePayment(p: PlayerId, srcs: CardInst[], amount: number, what: string): Promise<CardInst[]> {
+    const pool = [...srcs];
+    const out: CardInst[] = [];
+    const legends = this.P(p).legends;
+    for (let k = 0; k < amount; k++) {
+      const left = amount - k;
+      // no real choice: everything left must be spent, or only (interchangeable) Eddies are left
+      if (pool.length <= left || pool.every((c) => c.zone === 'eddies')) {
+        out.push(...pool.slice(0, left));
+        break;
+      }
+      const eddies = pool.filter((c) => c.zone === 'eddies');
+      const picks: CardInst[] = [];
+      const options: Opt[] = [];
+      for (const c of pool) {
+        if (c.zone === 'eddies') {
+          if (c !== eddies[0]) continue;
+          options.push({ label: `an Eddie (${eddies.length} ready)`, uid: c.uid, key: 'eddie' });
+        } else {
+          const label = c.faceUp ? this.name(c) : `face-down Legend (slot ${legends.indexOf(c.uid) + 1})`;
+          options.push({ label, uid: c.uid, key: 'legend' });
+        }
+        picks.push(c);
+      }
+      const [i] = await this.ask({ player: p, kind: 'pay', prompt: `${what}: pay €$ ${k + 1} of ${amount} — spend:`, options, min: 1, max: 1, tag: 'pay' });
+      const c = picks[i];
+      out.push(c);
+      pool.splice(pool.indexOf(c), 1);
+    }
+    return out;
   }
 
   /** Ready up to n spent friendly Eddies. */
@@ -1360,7 +1399,7 @@ export class Game {
         this.sell(p, a.uid);
         return;
       case 'call':
-        if (!(await this.pay(p, this.callCost(p)))) return;
+        if (!(await this.pay(p, this.callCost(p), [], `Call ${this.name(a.uid)}`))) return;
         await this.callLegend(p, a.uid);
         return;
       case 'play':
@@ -1403,7 +1442,7 @@ export class Game {
 
   async playFromHand(p: PlayerId, uid: number) {
     const cost = this.playCost(uid, p);
-    if (!(await this.pay(p, cost))) return;
+    if (!(await this.pay(p, cost, [], `Play ${this.name(uid)}`))) return;
     await this.resolvePlay(p, uid, 'hand');
   }
 
@@ -1453,7 +1492,7 @@ export class Game {
 
   async goSolo(p: PlayerId, uid: number) {
     const cost = this.playCost(uid, p, 'goSolo');
-    if (!(await this.pay(p, cost, [uid]))) return;
+    if (!(await this.pay(p, cost, [uid], `${this.name(uid)} goes solo`))) return;
     const c = this.s.cards[uid];
     const gear = [...c.gear];
     // move legend to field keeping its gear
@@ -1482,7 +1521,7 @@ export class Game {
     const a = this.script(self).abilities![index];
     if (!this.abilityUsable(p, self, host, a, asReaction)) return;
     // pay costs in order: eddies, spend, discard
-    if (a.eddies && !(await this.pay(p, a.eddies, a.spend ? [host.uid] : []))) return;
+    if (a.eddies && !(await this.pay(p, a.eddies, a.spend ? [host.uid] : [], `${this.name(host)}: ${a.label}`))) return;
     if (a.spend) {
       host.spent = true;
       this.emit('spent', { uid: host.uid, cause: 'ability' });
@@ -1612,7 +1651,7 @@ export class Game {
     const a = this.s.attack!;
     switch (rx.type) {
       case 'call':
-        if (await this.pay(p, this.callCost(p))) await this.callLegend(p, rx.uid);
+        if (await this.pay(p, this.callCost(p), [], `Call ${this.name(rx.uid)}`)) await this.callLegend(p, rx.uid);
         return;
       case 'block': {
         const c = this.s.cards[rx.uid];
