@@ -1,6 +1,20 @@
 // Tiny markdown renderer (headings, lists, tables, bold/italic/code, links, blockquotes, paragraphs).
 import { Fragment } from 'react';
 
+/**
+ * Link targets we render as clickable: in-app hash routes and http(s)/mailto URLs. Anything else (javascript:, data:,
+ * vbscript:, relative paths…) is shown as plain text. Text can come from user-supplied deck names, so this matters.
+ */
+export function safeHref(raw: string | undefined | null): string | null {
+  if (typeof raw !== 'string') return null;
+  // browsers ignore leading/trailing whitespace and control characters, and strip tabs/newlines inside a scheme
+  const href = raw.replace(/^[\u0000- ]+|[\u0000- ]+$/g, '');
+  if (!href) return null;
+  if (href.startsWith('#')) return href;
+  const scheme = href.replace(/[\t\n\r]/g, '').match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+  return scheme === 'http' || scheme === 'https' || scheme === 'mailto' ? href : null;
+}
+
 function inline(s: string): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   const re = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
@@ -14,10 +28,15 @@ function inline(s: string): React.ReactNode[] {
     else if (t.startsWith('`')) out.push(<code key={k++}>{t.slice(1, -1)}</code>);
     else if (t.startsWith('[')) {
       const mm = t.match(/\[([^\]]+)\]\(([^)]+)\)/)!;
+      const href = safeHref(mm[2]);
       out.push(
-        <a key={k++} href={mm[2]} target={mm[2].startsWith('#') ? undefined : '_blank'} rel="noreferrer">
-          {mm[1]}
-        </a>,
+        href ? (
+          <a key={k++} href={href} target={href.startsWith('#') ? undefined : '_blank'} rel="noreferrer">
+            {mm[1]}
+          </a>
+        ) : (
+          <span key={k++}>{mm[1]}</span>
+        ),
       );
     } else out.push(<i key={k++}>{t.slice(1, -1)}</i>);
     last = m.index + t.length;

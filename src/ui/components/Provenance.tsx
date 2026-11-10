@@ -1,4 +1,5 @@
 import type { Provenance } from '../../lib/library';
+import { safeHref } from './Markdown';
 
 /** Full provenance block: origin, author, source link, credits, parents, date. */
 export function ProvenanceBlock({ prov }: { prov: Provenance }) {
@@ -25,9 +26,13 @@ export function ProvenanceBlock({ prov }: { prov: Provenance }) {
         <>
           <span className="muted">Source</span>
           <span>
-            <a href={prov.source} target="_blank" rel="noreferrer">
-              {prov.source.replace(/^https?:\/\//, '')}
-            </a>
+            {safeHref(prov.source) ? (
+              <a href={safeHref(prov.source)!} target="_blank" rel="noreferrer">
+                {prov.source.replace(/^https?:\/\//, '')}
+              </a>
+            ) : (
+              prov.source
+            )}
           </span>
         </>
       )}

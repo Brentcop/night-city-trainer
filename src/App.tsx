@@ -1,4 +1,4 @@
-import { Component, useEffect, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
 
 class Boundary extends Component<{ children: React.ReactNode }, { err: Error | null }> {
   state = { err: null as Error | null };
@@ -69,17 +69,50 @@ function parseHash(): [string, URLSearchParams] {
   return [path || 'home', new URLSearchParams(qs ?? '')];
 }
 
+function NotFound({ path }: { path: string }) {
+  return (
+    <div className="panel">
+      <h2>Page not found</h2>
+      <p className="muted">There is no page at <code>#/{path}</code>. The link may be old or mistyped.</p>
+      <a href="#/home">Go to the home page →</a>
+    </div>
+  );
+}
+
 export function App() {
   const [[path, q], setRoute] = useState(parseHash());
+  // Scroll: a link click opens the new page at the top; Back/Forward restore where you were on that page.
+  const viaLink = useRef(false);
   useEffect(() => {
     const on = () => setRoute(parseHash());
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"]') as HTMLAnchorElement | null;
+      if (!a || a.target === '_blank') return;
+      try {
+        const st = history.state && typeof history.state === 'object' ? history.state : {};
+        history.replaceState({ ...st, scrollY: window.scrollY }, '');
+      } catch {
+        /* history unavailable */
+      }
+      viaLink.current = true;
+    };
     window.addEventListener('hashchange', on);
-    return () => window.removeEventListener('hashchange', on);
+    document.addEventListener('click', onClick);
+    return () => {
+      window.removeEventListener('hashchange', on);
+      document.removeEventListener('click', onClick);
+    };
   }, []);
-  const route = ROUTES.find((r) => r.path === path) ?? ROUTES[0];
-  const section = SECTIONS.find((sec) => sec.pages.includes(route.path));
+  const route = ROUTES.find((r) => r.path === path);
+  const section = route && SECTIONS.find((sec) => sec.pages.includes(route.path));
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if (viaLink.current) window.scrollTo(0, 0);
+    else {
+      const y = (history.state as { scrollY?: unknown } | null)?.scrollY;
+      if (typeof y === 'number') requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+    viaLink.current = false;
   }, [path, q.toString()]);
   return (
     <div className="app">
@@ -104,14 +137,14 @@ export function App() {
       {section?.sub && (
         <nav className="subnav">
           {section.sub.map((p) => (
-            <a key={p} href={`#/${p}`} className={p === route.path ? 'active' : ''}>
+            <a key={p} href={`#/${p}`} className={p === route?.path ? 'active' : ''}>
               {ROUTES.find((r) => r.path === p)?.label}
             </a>
           ))}
         </nav>
       )}
-      <main className="main" key={route.path + q.toString()}>
-        <Boundary>{route.el(q)}</Boundary>
+      <main className="main" key={path + q.toString()}>
+        <Boundary>{route ? route.el(q) : <NotFound path={path} />}</Boundary>
       </main>
       <footer className="footer">
         Unofficial fan-made practice tool — not affiliated with CD PROJEKT RED, WeirdCo, choom.gg or cyberpunk-tcg-sim.online. Every deck is
