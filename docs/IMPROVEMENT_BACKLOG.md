@@ -6,6 +6,8 @@ Eight parallel reviewers audited the project at commit `befda3e`. Baseline at th
 
 **Waves A and B are done and merged on the branch `improvements/review-2026-11`**, together with the MIT licence, the dev-dependency upgrade (vite 8, vitest 5; `npm audit` clean) and the approved data deletions. At the end: `tsc` clean, 514 tests passing (95 before), build and lint passing. Wave C has not been started.
 
+**Wave C so far** (branch `improvements/wave-c`): WP-C1's bundle work is done except for loading Home's data at runtime (entry script 1,341 → 820 kB, each worker ~485 → ~205 kB; LIB-1, LIB-2 lazy routes, LIB-12 partly). ENG-8 is done: the human player chooses which Eddies or Legends pay a cost, including for reactions; bots still pay automatically. WP-C2, WP-C3, the rest of WP-C4 and WP-C5 are not started.
+
 What is left over from Waves A and B:
 
 | Item | State |
