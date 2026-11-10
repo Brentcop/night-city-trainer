@@ -101,6 +101,6 @@ Two original designs placed in the top 5, ahead of choom.gg's S-tier BBG list in
 - **Overtime rule:** the engine follows the CR wording (overtime starts after both players' 7th turns), which gives the player going second the last turn before overtime. Rounds that reach time also use the tournament Round-End procedure, which the sim doesn't model.
 
 ## Keeping it current
-1. Refresh choom.gg data with `scripts/import-meta.ts` and `scripts/import-guides.ts`, then add any new lists with `npm run sim -- add`.
+1. Refresh choom.gg data with `npx tsx scripts/import-meta.ts --force` and `npx tsx scripts/import-guides.ts --force` (without `--force` they refuse to replace existing decks; with it, provenance headers are kept), then add any new lists with `npm run sim -- add`.
 2. Run `npm run sim -- analyze --field all --bot deep`, then `bash scripts/finals.sh`. That command also regenerates the plan (`npx tsx scripts/plan.ts`).
 3. Optionally, run `npx tsx scripts/forge.ts <deck>` to iterate a list.
