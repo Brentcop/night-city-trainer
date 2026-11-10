@@ -187,8 +187,38 @@ export interface BreedOptions {
   seed: number;
   /** restrict parents to these decks (names); empty = the strongest decks overall */
   parents: string[];
+  /** tournament head-to-heads (loadH2H); when present, counter decks are bred too */
+  h2h?: H2H;
 }
-/** Breed n new decks in the browser (mutants, crossovers, explorers; counters need tournament head-to-heads, which run in the CLI). */
+
+export type H2H = (a: string, b: string) => { w: number; g: number };
+export interface H2HInfo {
+  lookup: H2H;
+  events: number;
+  games: number;
+  updated: string;
+}
+/**
+ * Lazily load the head-to-head file (public/data/h2h.json, built by scripts/build-h2h.ts after every tournament run).
+ * Returns null when it hasn't been built yet.
+ */
+export async function loadH2H(): Promise<H2HInfo | null> {
+  try {
+    const r = await fetch(`${import.meta.env.BASE_URL}data/h2h.json`);
+    if (!r.ok) return null;
+    const d = (await r.json()) as { updated: string; events: number; games: number; decks: string[]; pairs: [number, number, number, number][] };
+    const m = new Map<string, { w: number; g: number }>();
+    for (const [i, j, w, g] of d.pairs) {
+      m.set(`${d.decks[i]}|${d.decks[j]}`, { w, g });
+      m.set(`${d.decks[j]}|${d.decks[i]}`, { w: g - w, g });
+    }
+    return { lookup: (a, b) => m.get(`${a}|${b}`) ?? { w: 0, g: 0 }, events: d.events, games: d.games, updated: d.updated };
+  } catch {
+    return null;
+  }
+}
+
+/** Breed n new decks in the browser (mutants, crossovers, explorers, and counters when head-to-heads are loaded). */
 export function breedInBrowser(lib: LibraryDeck[], o: BreedOptions): Bred[] {
   let ranked = rankedParents(lib);
   if (o.parents.length) {
@@ -197,7 +227,8 @@ export function breedInBrowser(lib: LibraryDeck[], o: BreedOptions): Bred[] {
     ranked = [...chosen, ...extra];
   }
   const seenTriples = new Set(lib.map((d) => [...d.deck.legends].sort().join('|')));
-  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact: DECK_IMPACT }, o.n);
+  const usable = !!o.h2h && ranked.slice(0, 4).some((x) => ranked.some((y) => o.h2h!(y.deck.name, x.deck.name).g > 0));
+  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact: DECK_IMPACT, h2h: usable ? o.h2h : undefined }, o.n);
   return out.map((b, i) => {
     const name = b.deck.name.replace(/^S0-\d+/, `Lab-${String(o.seed % 1000).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`);
     return { ...b, deck: { ...b.deck, name } };

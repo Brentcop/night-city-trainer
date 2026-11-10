@@ -43,8 +43,8 @@ export function TcgCard({ def, size = 'md', power, spent, selected, targetable, 
       className={['tcg', `tcg-${size}`, def.color, spent ? 'is-spent' : '', selected ? 'is-selected' : '', targetable ? 'is-target' : '', dim ? 'is-dim' : '', onClick ? 'is-click' : ''].join(' ')}
       style={{ width: w }}
       onClick={onClick}
-      onMouseEnter={() => !noZoom && size !== 'xl' && setZoom(true)}
-      onMouseLeave={() => setZoom(false)}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && !noZoom && size !== 'xl' && setZoom(true)}
+      onPointerLeave={() => setZoom(false)}
       title={title ?? (showArt ? undefined : def.text)}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}

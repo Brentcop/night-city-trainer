@@ -18,6 +18,7 @@ import { loadLibrary, resolveDeck } from './lib-node';
 import { autoRounds, cutSize, runTournament, type BotLevel, type GameRec, type PlayGame, type TourneyEvent } from '../src/lib/tournament';
 import type { MatchJob, MatchResult } from './worker';
 import type { LibraryDeck } from '../src/lib/library';
+import { buildH2H } from './build-h2h';
 
 const args = process.argv.slice(2);
 const flag = (n: string, d: string) => {
@@ -125,6 +126,7 @@ function writeIndex() {
       standings: e.standings.map((s: any) => ({ deck: s.deck, mp: s.mp, record: `${s.mw}-${s.ml}`, games: `${s.gw}-${s.gl}`, omw: +s.omw.toFixed(3) })),
     }));
   fs.writeFileSync('src/data/tournaments.json', JSON.stringify({ updated: new Date().toISOString(), events }));
+  buildH2H(); // keep the Deck Lab's head-to-head data (counter breeding) in step with the events
 }
 
 async function main() {

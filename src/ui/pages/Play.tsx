@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Game } from '../../engine/engine';
 import type { Agent, Decision, DeckList, GameState, PlayerId } from '../../engine/types';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
@@ -443,19 +444,29 @@ function Board({
           {bot.lastThought && <div className="small muted">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div>}
         </aside>
       </div>
-      {menu && <ActionMenu ctx={ctx} menu={menu} onClose={() => setMenu(null)} />}
-      {drag.ghost}
-      {confirm && (
-        <ConfirmPrompt
-          p={confirm}
-          onPick={(i) => {
-            setConfirm(null);
-            answer(i);
-          }}
-          onCancel={() => setConfirm(null)}
-        />
+      {/* overlays live at the top of the page so no animated or transformed container can move them off screen */}
+      {createPortal(
+        <>
+          {menu && <ActionMenu ctx={ctx} menu={menu} onClose={() => setMenu(null)} />}
+          {drag.ghost}
+          {confirm && (
+            <ConfirmPrompt
+              p={confirm}
+              onPick={(i) => {
+                setConfirm(null);
+                answer(i);
+              }}
+              onCancel={() => setConfirm(null)}
+            />
+          )}
+          {refusal && (
+            <div className="pb-refusal" role="status">
+              {refusal}
+            </div>
+          )}
+        </>,
+        document.body,
       )}
-      {refusal && <div className="pb-refusal" role="status">{refusal}</div>}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
       {mulligan && !over && <MulliganScreen ctx={ctx} why={activeHint?.why} />}
       {over && !hideOver && (

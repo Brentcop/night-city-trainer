@@ -88,6 +88,21 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
     setState({ uid: d.uid, x: e.clientX, y: e.clientY, over });
   }, []);
 
+  /**
+   * Real touch screens: unless the page's own scrolling is stopped, the browser starts scrolling and cancels the
+   * pointer stream (pointercancel), so the drag never happens. Block scrolling for gestures that will drag a card:
+   * any move on a unit, and mostly-vertical moves on a hand card (sideways swipes still scroll the hand).
+   */
+  const onTouchMove = useCallback((e: TouchEvent) => {
+    const d = ref.current;
+    if (!d || !e.cancelable) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - d.sx;
+    const dy = t.clientY - d.sy;
+    if (d.started || !d.fromHand || Math.abs(dy) >= Math.abs(dx)) e.preventDefault();
+  }, []);
+
   const end = useCallback(
     (e: PointerEvent) => {
       const d = ref.current;
@@ -95,6 +110,7 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', end);
       window.removeEventListener('pointercancel', end);
+      window.removeEventListener('touchmove', onTouchMove);
       document.body.classList.remove('pb-dragging');
       setState(null);
       if (!d?.started || e.type === 'pointercancel') return;
@@ -108,7 +124,7 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       const target = t.kind === 'unit' ? ` → ${g.name(t.uid)}` : t.kind === 'gigs' ? ' → the rival Gig area' : '';
       opts.onConfirm({ uid: d.uid, title: `${verb(t)} ${g.name(d.uid)}${target}?`, choices });
     },
-    [onMove],
+    [onMove, onTouchMove],
   );
 
   useEffect(
@@ -116,9 +132,10 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', end);
       window.removeEventListener('pointercancel', end);
+      window.removeEventListener('touchmove', onTouchMove);
       document.body.classList.remove('pb-dragging');
     },
-    [onMove, end],
+    [onMove, end, onTouchMove],
   );
 
   const start = useCallback(
@@ -129,8 +146,9 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       window.addEventListener('pointermove', onMove, { passive: false });
       window.addEventListener('pointerup', end);
       window.addEventListener('pointercancel', end);
+      if (e.pointerType !== 'mouse') window.addEventListener('touchmove', onTouchMove, { passive: false });
     },
-    [onMove, end],
+    [onMove, end, onTouchMove],
   );
 
   const consumeClick = useCallback(() => Date.now() - lastEnd.current < 350, []);

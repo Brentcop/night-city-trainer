@@ -12,4 +12,5 @@
 - **Tournaments:** the rules (Swiss, top cut, Bo1/Bo3, seeds) live in `src/lib/tournament.ts`, shared by `npm run tournament -- --field meta --bo 3 --top 8 --bot deep` and the in-browser runner (`#/run`, games run in `src/sim/game.worker.ts` via `src/sim/pool.ts`). Use `makeBot()` for any game that must replay identically.
 - **Play UI:** drag-to-act and confirm prompts are in `src/ui/components/board/drag.tsx`. Undo restores a snapshot (game state plus a cloned bot) taken before each human main-phase decision and continues with `Game.resume()`.
 - **Deck Lab** (`#/lab`, `src/lib/deckLab.ts`) tunes a submitted deck (browser forge) and breeds decks in the browser.
+- **Head-to-heads** (`public/data/h2h.json`, `scripts/build-h2h.ts`) are rebuilt by every tournament run and by `npm run refresh`. The Deck Lab loads them lazily to breed counter decks, and says when they're missing or older than the recorded events.
 - **Before committing:** `npx tsc --noEmit && npx vitest run`.

@@ -15,7 +15,8 @@
     "tournament": "tsx scripts/tournament.ts",
     "gauntlet": "tsx scripts/gauntlet.ts",
     "bundle-reports": "tsx scripts/bundle-reports.ts",
-    "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts"
+    "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts && tsx scripts/build-h2h.ts",
+    "build-h2h": "tsx scripts/build-h2h.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

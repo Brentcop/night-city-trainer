@@ -809,7 +809,7 @@ button.pb-big {
     overflow: visible;
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
   .pb-mat {
     padding: 6px;
     border-radius: 12px;
@@ -1013,7 +1013,7 @@ body.pb-dragging [data-drop].pb-drop-over {
 }
 
 /* ---- phones: compact rival side, hand pinned to the bottom ---- */
-@media (max-width: 720px) {
+@media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
   .pb-rival-hand .pb-rival-hand-card {
     display: none;
   }
@@ -1097,7 +1097,7 @@ body.pb-dragging [data-drop].pb-drop-over {
     font-size: 0.8rem;
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
   .pb-pile .pb-empty-slot {
     width: 40px;
     height: 56px;
@@ -1188,4 +1188,87 @@ body.pb-dragging [data-drop].pb-drop-over {
   z-index: 5;
   background: var(--panel);
   padding: 6px 0;
+}
+
+/* ---- hand bar: buttons always above the cards ---- */
+.pb-handbar-actions {
+  position: relative;
+  z-index: 3;
+}
+.pb-hand {
+  position: relative;
+  z-index: 1;
+}
+@media (hover: none) {
+  /* no hover lift on touch screens (a tapped card stayed raised over the buttons) */
+  .pb-hand-scroll .pb-fan:hover {
+    transform: none;
+  }
+  .pb-hand .tcg-zoom {
+    display: none;
+  }
+}
+
+/* ---- compact play (phones, both orientations) ---- */
+@media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
+  /* the game has its own pinned turn bar, so the site header scrolls away instead of covering the board */
+  body:has(.pb) .topbar {
+    position: static;
+  }
+  body:has(.pb) .footer {
+    display: none;
+  }
+}
+
+/* ---- landscape phones: short screen, so a slim header and a low hand bar ---- */
+@media (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
+  .topbar {
+    padding: 4px 12px;
+    gap: 8px;
+  }
+  .brand {
+    font-size: 1rem;
+  }
+  .nav a {
+    padding: 4px 8px;
+  }
+  .pb-topbar {
+    padding: 2px 0;
+  }
+  .pb-turn-who {
+    font-size: 0.95rem;
+  }
+  .pb-handbar {
+    flex-direction: row;
+    align-items: center;
+    padding-top: 4px;
+  }
+  .pb-handbar-actions {
+    flex-direction: column;
+    justify-content: center;
+    flex: none;
+  }
+  .pb-hand-scroll {
+    flex: 1;
+    padding-top: 4px;
+  }
+  .pb-hand .tcg {
+    width: 64px !important;
+  }
+  .pb-dock {
+    max-height: 60vh;
+  }
+  .pb.pb-has-dock {
+    padding-bottom: 62vh;
+  }
+  .pb-menu.pb-menu-sheet {
+    max-height: 75vh;
+  }
+}
+/* cards you can drag: no text selection, no long-press image menu */
+.pb-draggable,
+.pb-draggable * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }

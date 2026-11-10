@@ -1231,7 +1231,7 @@ tr.top-cut td:first-child {
   display: grid;
   gap: 12px;
   margin-top: 10px;
-  animation: rise 0.4s var(--ease-out, ease) both;
+  animation: rise 0.4s var(--ease-out, ease) backwards;
 }
 .review-seats {
   display: grid;

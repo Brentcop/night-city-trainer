@@ -17,15 +17,13 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
   // follow the card while things scroll (closing on scroll made the menu vanish on phones before a choice)
   const [, reflow] = useState(0);
   useEffect(() => {
-    let raf = 0;
-    const on = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => reflow((x) => x + 1));
-    };
+    const on = () => reflow((x) => x + 1);
+    // the card lifts when its menu opens (a short transition): measure again once it has settled
+    const settle = setTimeout(on, 260);
     window.addEventListener('scroll', on, true);
     window.addEventListener('resize', on);
     return () => {
-      cancelAnimationFrame(raf);
+      clearTimeout(settle);
       window.removeEventListener('scroll', on, true);
       window.removeEventListener('resize', on);
     };

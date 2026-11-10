@@ -6,7 +6,8 @@ import type { LibraryDeck } from '../../lib/library';
 import { counts, exportOfficial, parseDeck, validateDeck } from '../../engine/deck';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
 import type { DeckList } from '../../engine/types';
-import { breedInBrowser, playSet, tuneDeck, type TuneProgress } from '../../lib/deckLab';
+import { breedInBrowser, loadH2H, playSet, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
+import tournaments from '../../data/tournaments.json';
 import type { Bred } from '../../ai/breeder';
 import { GamePool, defaultThreads } from '../../sim/pool';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
@@ -310,8 +311,16 @@ function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
   const [bred, setBred] = useState<(Bred & { test?: number | 'running'; saved?: boolean })[]>([]);
   const poolRef = useRef<GamePool | null>(null);
   useEffect(() => () => poolRef.current?.terminate(), []);
+  // head-to-heads for counter decks: loaded only when this tab opens
+  const [h2h, setH2H] = useState<H2HInfo | null | 'loading'>('loading');
+  useEffect(() => {
+    loadH2H().then(setH2H);
+  }, []);
+  const recorded = (tournaments as unknown as { events: unknown[] }).events.length;
+  const h2hReady = h2h && h2h !== 'loading' ? h2h : null;
+  const stale = !!h2hReady && h2hReady.events < recorded;
 
-  const breed = () => setBred(breedInBrowser(lib, { n, seed, parents }));
+  const breed = () => setBred(breedInBrowser(lib, { n, seed, parents, h2h: h2hReady?.lookup }));
   const test = async (k: number) => {
     const b = bred[k];
     setBred((xs) => xs.map((x, i) => (i === k ? { ...x, test: 'running' } : x)));
@@ -384,7 +393,25 @@ function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
           <button className="primary" onClick={breed}>
             🧬 Breed {n} decks
           </button>
-          <span className="small muted">Counter decks (built against the current top decks) need the tournament head-to-heads and are bred by the CLI seasons.</span>
+          <span className="small muted">
+            {h2h === 'loading' ? (
+              'Loading tournament head-to-heads…'
+            ) : h2hReady ? (
+              <>
+                <b>Counter decks on</b>: built against the current top decks from {h2hReady.games.toLocaleString()} head-to-head games ({h2hReady.events} events).
+                {stale && (
+                  <span style={{ color: 'var(--accent)' }}>
+                    {' '}
+                    ⚠ {recorded - h2hReady.events} newer event(s) aren't included yet — rebuild with <code>npm run build-h2h</code> (runs automatically after every tournament series).
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <b>Counter decks off</b>: the head-to-head data hasn't been built. Run <code>npm run build-h2h</code> (or any tournament series) and republish.
+              </>
+            )}
+          </span>
         </div>
       </div>
       {bred.length > 0 && (
