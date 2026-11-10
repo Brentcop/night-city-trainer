@@ -7,7 +7,13 @@ import { CardText, CardView, costLabel } from '../components/CardView';
 import { findDeck } from '../components/DeckPicker';
 import { ROLES } from '../../ai/knowledge';
 import { ProvenanceBlock } from '../components/Provenance';
-import { shortCredit } from '../../lib/library';
+import { shortCredit, type LibraryDeck } from '../../lib/library';
+import { DeckTile, originKind } from '../components/DeckIdentity';
+import { TcgCard } from '../components/TcgCard';
+import { deckStats } from '../../lib/deckStats';
+import { classify } from '../../ai/archetype';
+import { CurveAndTypes, profileHref } from './DeckProfile';
+import '../deckprofile.css';
 
 const COLORS: Color[] = ['Red', 'Blue', 'Green', 'Yellow'];
 
@@ -21,12 +27,47 @@ function download(name: string, text: string) {
   a.click();
 }
 
+function loadPref(key: string, fallback: string) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+function savePref(key: string, v: string) {
+  try {
+    localStorage.setItem(key, v);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export function DecksPage({ initial }: { initial?: string }) {
+  // Gallery is the default; a deck in the URL (#/decks?d=file) opens the editor.
+  const [mode, setMode] = useState<'gallery' | 'editor'>(initial ? 'editor' : 'gallery');
+  if (mode === 'gallery') return <DeckGallery onNew={() => setMode('editor')} />;
+  return (
+    <DeckWorkbench
+      initial={initial}
+      onGallery={() => {
+        setMode('gallery');
+        if (window.location.hash !== '#/decks') window.location.hash = '#/decks';
+      }}
+    />
+  );
+}
+
+function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: () => void }) {
   const [version, setVersion] = useState(0);
   const decks = useMemo(() => allDecks(), [version]);
   const start = findDeck(initial) ?? decks[0];
-  const [sel, setSel] = useState<string>(start?.file);
-  const [draft, setDraft] = useState<DeckList>(() => structuredClone(start.deck));
+  const [view, setView] = useState<'list' | 'visual'>(() => (loadPref('nct.deckEditorView', 'list') === 'visual' ? 'visual' : 'list'));
+  const changeView = (v: 'list' | 'visual') => {
+    setView(v);
+    savePref('nct.deckEditorView', v);
+  };
+  const [sel, setSel] = useState<string>(initial && start ? start.file : '');
+  const [draft, setDraft] = useState<DeckList>(() => (initial && start ? structuredClone(start.deck) : { name: 'New deck', legends: [], main: [], sideboard: [] }));
   const [importText, setImportText] = useState('');
   const [importMsg, setImportMsg] = useState('');
   const [showImport, setShowImport] = useState(false);
@@ -64,6 +105,9 @@ export function DecksPage({ initial }: { initial?: string }) {
           <h3 style={{ margin: 0 }}>Deck library</h3>
           <button onClick={() => setShowImport((x) => !x)}>Import</button>
         </div>
+        <button style={{ marginTop: 8, width: '100%' }} onClick={onGallery}>
+          ▦ Back to gallery
+        </button>
         <button
           style={{ marginTop: 8, width: '100%' }}
           onClick={() => {
@@ -136,11 +180,25 @@ export function DecksPage({ initial }: { initial?: string }) {
               <a href="#/arena">
                 <button>Test in Lab</button>
               </a>
+              {sel && selected && (
+                <a href={profileHref(sel)}>
+                  <button>View profile</button>
+                </a>
+              )}
             </div>
           </div>
           {selected && <ProvenanceBlock prov={selected.prov} />}
           {selected?.idea && <div className="small" style={{ margin: '4px 0' }}>💡 {selected.idea}</div>}
-          <DeckEditor deck={draft} setDeck={setDraft} />
+          <div className="row" style={{ marginTop: 8 }}>
+            <span className="small muted">View:</span>
+            <button className={`chip-btn ${view === 'list' ? 'on' : ''}`} onClick={() => changeView('list')}>
+              ☰ List
+            </button>
+            <button className={`chip-btn ${view === 'visual' ? 'on' : ''}`} onClick={() => changeView('visual')}>
+              ▦ Cards
+            </button>
+          </div>
+          {view === 'list' ? <DeckEditor deck={draft} setDeck={setDraft} /> : <VisualEditor deck={draft} setDeck={setDraft} />}
           {errs.length > 0 ? (
             <div className="small" style={{ color: 'var(--red)', marginTop: 8 }}>
               {errs.map((e) => (
@@ -376,6 +434,257 @@ function CardBrowser({ deck, setDeck }: { deck: DeckList; setDeck: (d: DeckList)
       <p className="small muted">
         <CardText text="Keywords like {Blocker}, {Quick} and {Go Solo} are explained in the Glossary." />
       </p>
+    </div>
+  );
+}
+
+// ---------- visual editor: card stacks with +/- controls ----------
+
+function VisualEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: DeckList) => void }) {
+  const mainCounts = counts(deck.main);
+  const sideCounts = counts(deck.sideboard);
+  const add = (id: string, d: number, where: 'main' | 'sideboard' = 'main') => {
+    const list = d > 0 ? [...deck[where], id] : removeOne(deck[where], id);
+    setDeck({ ...deck, [where]: list });
+  };
+  const byCost = (m: Map<string, number>, t?: CardDef['type']) =>
+    [...m.entries()].filter(([id]) => CARD_BY_ID[id] && (!t || CARD_BY_ID[id].type === t)).sort((a, b) => (CARD_BY_ID[a[0]].cost ?? 0) - (CARD_BY_ID[b[0]].cost ?? 0));
+  return (
+    <div className="vis-editor" style={{ marginTop: 10 }}>
+      <div className="zone-label">Legends ({deck.legends.length}/3)</div>
+      <div className="dp-cards">
+        {deck.legends
+          .filter((id) => CARD_BY_ID[id])
+          .map((id) => (
+            <div className="vis-card" key={id}>
+              <TcgCard def={CARD_BY_ID[id]} size="sm" />
+              <button className="ghost" onClick={() => setDeck({ ...deck, legends: deck.legends.filter((x) => x !== id) })}>
+                ✕ remove
+              </button>
+            </div>
+          ))}
+      </div>
+      {(['Unit', 'Gear', 'Program'] as const).map((t) => {
+        const list = byCost(mainCounts, t);
+        if (!list.length) return null;
+        return (
+          <div key={t} style={{ marginTop: 10 }}>
+            <div className="zone-label">
+              {t}s ({list.reduce((a, [, n]) => a + n, 0)})
+            </div>
+            <div className="dp-cards">
+              {list.map(([id, n]) => (
+                <div className="vis-card" key={id}>
+                  <TcgCard def={CARD_BY_ID[id]} size="sm" count={n} />
+                  <div className="row">
+                    <button onClick={() => add(id, -1)} title="Remove one copy">
+                      −
+                    </button>
+                    <button onClick={() => add(id, 1)} disabled={n >= 3} title="Add one copy">
+                      +
+                    </button>
+                    <button title="Move one copy to sideboard" onClick={() => setDeck({ ...deck, main: removeOne(deck.main, id), sideboard: [...deck.sideboard, id] })}>
+                      SB
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {sideCounts.size > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div className="zone-label">Sideboard ({deck.sideboard.length}/7)</div>
+          <div className="dp-cards">
+            {byCost(sideCounts).map(([id, n]) => (
+              <div className="vis-card" key={id}>
+                <TcgCard def={CARD_BY_ID[id]} size="sm" count={n} />
+                <div className="row">
+                  <button onClick={() => add(id, -1, 'sideboard')} title="Remove from sideboard">
+                    −
+                  </button>
+                  <button title="Move one copy to the main deck" onClick={() => setDeck({ ...deck, sideboard: removeOne(deck.sideboard, id), main: [...deck.main, id] })}>
+                    Main
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{ marginTop: 14 }}>
+        <CurveAndTypes deck={deck} />
+      </div>
+    </div>
+  );
+}
+
+// ---------- gallery ----------
+
+interface Group {
+  key: string;
+  label: string;
+  order: number;
+}
+function groupOf(d: LibraryDeck): Group {
+  const k = originKind(d.prov, d.kind);
+  switch (k) {
+    case 'choom-meta':
+      return { key: 'meta', label: '◆ choom.gg meta archetypes', order: 0 };
+    case 'choom-guide':
+      return { key: 'guide', label: '✎ choom.gg community guides', order: 1 };
+    case 'nc-original':
+      return { key: 'nc', label: '⚙ Night City Trainer originals', order: 2 };
+    case 'nc-bred': {
+      const s = d.prov.origin?.match(/season (\d+)/)?.[1] ?? '0';
+      return { key: `bred-${s}`, label: `🧬 Bred · Season ${s}`, order: 3 + Number(s) / 100 };
+    }
+    case 'nc-build':
+    case 'nc-variant':
+      return { key: 'builds', label: '🏆 Tournament builds & variants', order: 4 };
+    case 'mine':
+      return { key: 'mine', label: '★ My decks', order: 5 };
+    default:
+      return d.kind === 'custom' ? { key: 'mine', label: '★ My decks', order: 5 } : { key: 'other', label: '• Other', order: 6 };
+  }
+}
+const GROUP_HELP: Record<string, string> = {
+  meta: 'The archetypes choom.gg tracks as the current meta, with their tier.',
+  guide: 'Lists from community strategy guides, credited to their authors.',
+  nc: 'Hand-built by this trainer around a single plan.',
+  builds: 'Ready-to-register lists with a data-chosen sideboard, and optimizer-tuned variants.',
+  mine: 'Saved in this browser only.',
+};
+
+function DeckGallery({ onNew }: { onNew: () => void }) {
+  const decks = useMemo(() => allDecks(), []);
+  const info = useMemo(
+    () =>
+      new Map(
+        decks.map((d) => {
+          const st = deckStats(d.file);
+          const score = st.leader?.rating ?? st.review?.winRate ?? null;
+          return [d.file, { group: groupOf(d), arch: st.leader?.arch ?? classify(d.deck.main).arch, score: typeof score === 'number' && Number.isFinite(score) ? score : null }];
+        }),
+      ),
+    [decks],
+  );
+  const [origin, setOrigin] = useState(() => loadPref('nct.gallery.origin', ''));
+  const [color, setColor] = useState('');
+  const [arch, setArch] = useState('');
+  const [q, setQ] = useState('');
+  const [sort, setSort] = useState<'rating' | 'name' | 'newest'>('rating');
+  const groups = [...new Map([...info.values()].map((i) => [i.group.key, i.group])).values()].sort((a, b) => a.order - b.order);
+  const archs = [...new Set([...info.values()].map((i) => i.arch))].sort();
+  const activeOrigin = groups.some((g) => g.key === origin) ? origin : '';
+  const pick = (k: string) => {
+    setOrigin(k);
+    savePref('nct.gallery.origin', k);
+  };
+  const shown = decks.filter((d) => {
+    const i = info.get(d.file)!;
+    return (
+      (!activeOrigin || i.group.key === activeOrigin) &&
+      (!color || d.deck.legends.some((id) => CARD_BY_ID[id]?.color === color)) &&
+      (!arch || i.arch === arch) &&
+      (!q || (d.deck.name + ' ' + (d.prov.author ?? '') + ' ' + d.deck.legends.map((id) => CARD_BY_ID[id]?.displayName ?? '').join(' ')).toLowerCase().includes(q.toLowerCase()))
+    );
+  });
+  const cmp = (a: LibraryDeck, b: LibraryDeck) => {
+    if (sort === 'name') return a.deck.name.localeCompare(b.deck.name);
+    if (sort === 'newest') return (b.prov.added ?? '').localeCompare(a.prov.added ?? '') || a.deck.name.localeCompare(b.deck.name);
+    return (info.get(b.file)!.score ?? -1) - (info.get(a.file)!.score ?? -1) || a.deck.name.localeCompare(b.deck.name);
+  };
+  return (
+    <div className="grid">
+      <div className="panel">
+        <div className="spread" style={{ padding: 0, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+            <h2 style={{ margin: 0 }}>Deck library</h2>
+            <div className="small muted">
+              {decks.length} decks. Each tile shows its Legends, where it comes from and its measured rating vs the meta. Click a tile to edit or export it; “Profile” opens every stat and its lineage.
+            </div>
+          </div>
+          <button className="primary" onClick={onNew}>
+            + New / import deck
+          </button>
+        </div>
+        <div className="gal-filters" style={{ marginTop: 10 }}>
+          <span className="small muted">Origin</span>
+          <button className={`chip-btn ${!activeOrigin ? 'on' : ''}`} onClick={() => pick('')}>
+            All
+          </button>
+          {groups.map((g) => (
+            <button key={g.key} className={`chip-btn ${activeOrigin === g.key ? 'on' : ''}`} onClick={() => pick(g.key)}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <div className="gal-filters" style={{ marginTop: 6 }}>
+          <span className="small muted">Colour</span>
+          <button className={`chip-btn ${!color ? 'on' : ''}`} onClick={() => setColor('')}>
+            Any
+          </button>
+          {COLORS.map((c) => (
+            <button key={c} className={`chip-btn ${color === c ? 'on' : ''}`} onClick={() => setColor(color === c ? '' : c)}>
+              <span className={`dot ${c}`} /> {c}
+            </button>
+          ))}
+        </div>
+        <div className="gal-filters" style={{ marginTop: 6 }}>
+          <span className="small muted">Archetype</span>
+          <button className={`chip-btn ${!arch ? 'on' : ''}`} onClick={() => setArch('')}>
+            Any
+          </button>
+          {archs.map((a) => (
+            <button key={a} className={`chip-btn ${arch === a ? 'on' : ''}`} onClick={() => setArch(arch === a ? '' : a)}>
+              {a}
+            </button>
+          ))}
+        </div>
+        <div className="gal-filters" style={{ marginTop: 6 }}>
+          <input placeholder="Search name, author, Legend…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: '1 1 180px', minWidth: 0 }} />
+          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+            <option value="rating">Sort: rating vs meta</option>
+            <option value="name">Sort: name</option>
+            <option value="newest">Sort: newest</option>
+          </select>
+        </div>
+      </div>
+      {shown.length === 0 && <div className="panel muted">No decks match these filters.</div>}
+      {groups
+        .filter((g) => shown.some((d) => info.get(d.file)!.group.key === g.key))
+        .map((g) => {
+          const list = shown.filter((d) => info.get(d.file)!.group.key === g.key).sort(cmp);
+          return (
+            <div key={g.key}>
+              <div className="gal-group-title">
+                {g.label} <span className="small muted">({list.length})</span>
+                {GROUP_HELP[g.key] && (
+                  <span className="small muted" style={{ fontFamily: 'var(--font)', fontWeight: 400 }}>
+                    {GROUP_HELP[g.key]}
+                  </span>
+                )}
+                {g.key.startsWith('bred-') && (
+                  <a className="small" href="#/seasons" style={{ fontFamily: 'var(--font)', fontWeight: 400 }}>
+                    how breeding works →
+                  </a>
+                )}
+              </div>
+              <div className="deck-grid">
+                {list.map((d) => (
+                  <div className="gal-tile-wrap" key={d.file}>
+                    <DeckTile d={d} href={`#/decks?d=${encodeURIComponent(d.file)}`} />
+                    <a className="gal-profile" href={profileHref(d.file)} title="Every stat, lineage and the visual decklist">
+                      📊 Profile
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
     </div>
   );
 }

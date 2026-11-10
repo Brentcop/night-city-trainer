@@ -6,6 +6,7 @@ import analysis from '../../data/analysis.json';
 import type { DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
 import { ProvenanceBlock } from '../components/Provenance';
+import { LegendStrip } from '../components/DeckIdentity';
 import { allDecks } from '../../lib/browserLibrary';
 
 function simTable(name: string): string | null {
@@ -50,8 +51,8 @@ export function GuidesPage({ initial }: { initial?: string }) {
           <div className="row">
             {g.deckFile && (
               <>
-                <a href={`#/decks?d=${g.deckFile}`}>
-                  <button>Decklist</button>
+                <a href={`#/deck?d=${g.deckFile}`}>
+                  <button>Deck profile & stats</button>
                 </a>
                 <a href={`#/play?d=${g.deckFile}`}>
                   <button className="primary">Practice with it</button>
@@ -63,6 +64,11 @@ export function GuidesPage({ initial }: { initial?: string }) {
             )}
           </div>
         </div>
+        {g.deckFile && allDecks().find((d) => d.file === g.deckFile) && (
+          <div style={{ margin: '10px 0' }}>
+            <LegendStrip legends={allDecks().find((d) => d.file === g.deckFile)!.deck.legends} height={110} />
+          </div>
+        )}
         {g.summary && <p className="muted">{g.summary}</p>}
         {g.deckFile && allDecks().find((d) => d.file === g.deckFile) && <ProvenanceBlock prov={allDecks().find((d) => d.file === g.deckFile)!.prov} />}
         <Markdown text={g.md} />

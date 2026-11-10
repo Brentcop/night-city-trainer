@@ -8,6 +8,7 @@ import { BEST_PROFILES } from '../../ai/archetype';
 import { summarize, type PlayerSummary } from '../../analysis/summarize';
 import { analyzeDeck, type DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
+import { DeckTile } from '../components/DeckIdentity';
 
 interface Row {
   opp: string;
@@ -97,8 +98,17 @@ export function ArenaPage() {
         games on the play and half on the draw. For bigger runs use the CLI: <code>npm run sim -- review</code>.
       </p>
       <div className="panel grid">
-        <DeckPicker label="Deck A" value={a} onChange={setA} />
-        <DeckPicker label="Deck B" value={b} onChange={setB} />
+        <div className="vs-preview">
+          <div>
+            <DeckPicker label="Deck A" value={a} onChange={setA} />
+            {findDeck(a) && <DeckTile d={findDeck(a)!} href={`#/deck?d=${encodeURIComponent(a)}`} />}
+          </div>
+          <div className="vs-badge">VS</div>
+          <div>
+            <DeckPicker label="Deck B" value={b} onChange={setB} />
+            {findDeck(b) && <DeckTile d={findDeck(b)!} href={`#/deck?d=${encodeURIComponent(b)}`} />}
+          </div>
+        </div>
         <div className="row">
           <label className="row small muted">
             Games per matchup

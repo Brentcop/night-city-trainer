@@ -18,6 +18,12 @@ const arch = (name: string) => {
   return d ? classify(d.deck.main).arch : 'midrange';
 };
 const pct = (x: number) => `${Math.round(x * 100)}%`;
+// In-app deck profile links (the app's Markdown renderer supports [text](#/deck?d=file)); keep links outside **bold**.
+const fileOfName = (name: string) => lib.find((x) => x.deck.name === name)?.file;
+const link = (name: string) => {
+  const f = fileOfName(name);
+  return f ? `[${name}](#/deck?d=${encodeURIComponent(f)})` : name;
+};
 const metaNames = M.map((m) => m.title);
 
 // Score each deck against the expected tournament field: choom.gg meta decks weighted by tier power.
@@ -72,7 +78,7 @@ const matchupLines = metaNames
     const mr = rep?.matchups.find((m) => m.opp === o);
     const seat = mr && Number.isFinite(mr.wrFirst) && Number.isFinite(mr.wrSecond) ? (mr.wrFirst - mr.wrSecond >= 0.06 ? 'go first' : mr.wrSecond - mr.wrFirst >= 0.06 ? 'go second' : 'either') : '—';
     const keys = mr?.topCards.slice(0, 2).map((c) => c.name).join(', ') ?? '';
-    return `| ${o} (${arch(o)}) | **${pct(v)}** | ${seat} | ${keys} | ${plan} |`;
+    return `| ${link(o)} (${arch(o)}) | **${pct(v)}** | ${seat} | ${keys} | ${plan} |`;
   });
 
 // Problem matchups: large head-to-head runs (reports/vs-<pick>-<opp>-latest.json) and per-matchup optimizer reports.
@@ -85,7 +91,7 @@ for (const f of fs.readdirSync('reports').filter((x) => x.startsWith(`vs-${pickS
   const t = JSON.parse(fs.readFileSync(`reports/${f}`, 'utf8'));
   const opp = libFiles.get(oppSlug) ?? oppSlug;
   problemLines.push(
-    `### vs ${opp}`,
+    `### vs ${link(opp)}`,
     `Head-to-head: **${pct((t.aWins + t.ties / 2) / t.games)}** over ${t.games} games (${pct(t.aFirstWins / Math.max(1, t.aFirstGames))} on the play, ${pct(t.aSecondWins / Math.max(1, t.aSecondGames))} on the draw). Plan: ${PLAN_TEXT[`${arch(pick.name)}>${arch(opp)}` as ProfileKey]}`,
   );
   const of = `reports/optimize-${pickSlug}-vs-${oppSlug}-latest.md`;
@@ -112,6 +118,10 @@ for (const f of fs.readdirSync('reports').filter((x) => x.startsWith(`vs-${pickS
   problemLines.push('');
 }
 
+// Ready-to-register build: <slug>-eor.txt (or the hand-made RRG build for the stock meta list).
+const eorFile = pick.file === 'meta-rrg-dexter-midrange.txt' ? 'rrg-eor-build.txt' : pick.file.replace(/\.txt$/, '-eor.txt');
+const eorDeck = lib.find((x) => x.file === eorFile);
+
 const today = new Date();
 const event = new Date('2026-12-11T09:00:00-06:00');
 const days = Math.max(0, Math.round((event.getTime() - today.getTime()) / 86_400_000));
@@ -119,23 +129,21 @@ const days = Math.max(0, Math.round((event.getTime() - today.getTime()) / 86_400
 const plan = `
 > Generated ${today.toISOString().slice(0, 10)} from ${R.decks.length} decks × ${R.games} games per pairing (${R.bot} bot) plus telemetry. Re-run \`npm run sim -- analyze --field all --bot deep\` and then \`npx tsx scripts/plan.ts\` to refresh.
 
-## Register: ${pick.name}
+## Register: ${link(pick.name)}
+- **Full stats:** [${pick.name} deck profile](#/deck?d=${encodeURIComponent(pick.file)}) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
 - ${finals[pick.name] ? `**Finals: ${pct(finals[pick.name].overall)} over ${finals[pick.name].games} deep-bot games vs the meta archetypes.** ` : ''}**Expected-field score: ${pct(pick.field)}**. This is the win rate against choom.gg's meta archetypes, weighted by their tier power. Overall round-robin win rate: ${pct(pick.winRate)}; worst meta matchup: ${pct(pick.worst)}.
 ${pickReason ? `- **Why this one:** ${pickReason}` : ''}
 - **Why (from ${rep ? rep.games : 0} telemetry games):**
 ${rep ? rep.insights.map((x) => `  - ${x}`).join(String.fromCharCode(10)) : ''}
-- **Ready-to-register list:** ${(() => {
-  const eor = pick.file === 'meta-rrg-dexter-midrange.txt' ? 'rrg-eor-build.txt' : pick.file.replace(/\.txt$/, '-eor.txt');
-  return fs.existsSync(`data/decks/custom/${eor}`) ? `\`${eor}\` (Decks page → Custom & tournament builds): the list plus a data-chosen 7-card sideboard.` : 'the list on the Decks page.';
-})()}
-- **Backup / sideboard partner:** ${backup.name} (${arch(backup.name)}, field score ${pct(backup.field)}). Practise it second, in case the room skews hard against ${arch(pick.name)} decks.
+- **Ready-to-register list:** ${eorDeck ? `${link(eorDeck.deck.name)} (\`${eorFile}\`, Decks page → Tournament builds): the list plus a data-chosen 7-card sideboard.` : 'the list on the Decks page.'}
+- **Backup / sideboard partner:** ${link(backup.name)} (${arch(backup.name)}, field score ${pct(backup.field)}). Practise it second, in case the room skews hard against ${arch(pick.name)} decks.
 
 ## Expected-field ranking
 | # | Deck | Archetype | Finals vs meta (games) | Round-robin vs meta field | Overall | Worst meta matchup |
 |---|---|---|---|---|---|---|
 ${ranked
   .slice(0, 8)
-  .map((d, i) => `| ${i + 1} | ${d.name} | ${arch(d.name)} | ${finals[d.name] ? `**${pct(finals[d.name].overall)}** (${finals[d.name].games})` : '—'} | ${pct(d.field)} | ${pct(d.winRate)} | ${pct(d.worst)} |`)
+  .map((d, i) => `| ${i + 1} | ${link(d.name)} | ${arch(d.name)} | ${finals[d.name] ? `**${pct(finals[d.name].overall)}** (${finals[d.name].games})` : '—'} | ${pct(d.field)} | ${pct(d.winRate)} | ${pct(d.worst)} |`)
   .join('\n')}
 
 ${hasFinals ? 'Ranking uses the **finals**: each contender played 360 deep-bot games against the six meta archetypes on the same seeds. That is more reliable than the round-robin estimate (24 games per pairing).' : ''}
@@ -165,7 +173,7 @@ ${problemLines.length ? `## Problem matchups\n${problemLines.join('\n')}` : ''}
 `;
 
 const recommendation = `## Recommended deck
-**${pick.name}** — ${finals[pick.name] ? `${pct(finals[pick.name].overall)} in the finals (${finals[pick.name].games} deep-bot games vs the meta archetypes)` : `${pct(pick.field)} against the weighted meta field`}, ${pct(pick.winRate)} overall across ${R.decks.length} decks. Backup: **${backup.name}**. Ready-to-register list with sideboard: *RRG Dexter Midrange — EOR build*.
+**${pick.name}** — ${finals[pick.name] ? `${pct(finals[pick.name].overall)} in the finals (${finals[pick.name].games} deep-bot games vs the meta archetypes)` : `${pct(pick.field)} against the weighted meta field`}, ${pct(pick.winRate)} overall across ${R.decks.length} decks. Backup: **${backup.name}**. ${eorDeck ? `Ready-to-register list with sideboard: ${link(eorDeck.deck.name)}. ` : ''}Full stats: [${pick.name}](#/deck?d=${encodeURIComponent(pick.file)}).
 
 ${rep ? rep.insights.slice(0, 2).map((s) => `- ${s}`).join('\n') : ''}
 `;

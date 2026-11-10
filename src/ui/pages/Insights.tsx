@@ -2,6 +2,8 @@ import { useState } from 'react';
 import analysis from '../../data/analysis.json';
 import type { DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
+import { allDecks } from '../../lib/browserLibrary';
+import { LegendStrip, OriginBadge } from '../components/DeckIdentity';
 
 export function InsightsPage({ initial }: { initial?: string }) {
   const A = analysis as unknown as { date: string; games: number; bot: string; decks: DeckReport[] };
@@ -37,7 +39,28 @@ export function InsightsPage({ initial }: { initial?: string }) {
         ))}
       </div>
       <div className="panel">
-        <h1 style={{ marginTop: 0 }}>{r?.deck}</h1>
+        {(() => {
+          const d = allDecks().find((x) => x.deck.name === r?.deck);
+          return d ? (
+            <div style={{ margin: '-14px -16px 10px' }}>
+              <LegendStrip legends={d.deck.legends} height={120} />
+            </div>
+          ) : null;
+        })()}
+        <div className="spread">
+          <h1 style={{ margin: 0 }}>{r?.deck}</h1>
+          {(() => {
+            const d = allDecks().find((x) => x.deck.name === r?.deck);
+            return d ? (
+              <div className="row">
+                <OriginBadge deck={d} full />
+                <a href={`#/deck?d=${encodeURIComponent(d.file)}`}>
+                  <button className="primary">Full deck profile →</button>
+                </a>
+              </div>
+            ) : null;
+          })()}
+        </div>
         <p className="muted small">
           Statistics from bot-vs-bot telemetry. "Δ when drawn" compares the win rate in games where the card was drawn with games where it was
           not (like 17lands' IWD). It shows how much a card matters, not just how good it looks. Small samples are noisy, so trust numbers with

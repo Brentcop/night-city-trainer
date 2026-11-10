@@ -26,6 +26,7 @@ export interface TcgCardProps {
 export function TcgCard({ def, size = 'md', power, spent, selected, targetable, dim, badges, count, onClick, noZoom, title }: TcgCardProps) {
   const { url, onError } = useArt(def.id);
   const [broken, setBroken] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [zoom, setZoom] = useState(false);
   const showArt = artEnabled() && url && !broken;
   const w = WIDTH[size];
@@ -44,20 +45,22 @@ export function TcgCard({ def, size = 'md', power, spent, selected, targetable, 
       onKeyDown={(e) => onClick && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick())}
     >
       <div className="tcg-inner">
-        {showArt ? (
+        {(!showArt || !loaded) && <TextFrame def={def} size={size} />}
+        {showArt && (
           <img
             src={url}
             alt={def.displayName}
             loading="lazy"
             draggable={false}
+            className={loaded ? 'is-loaded' : ''}
+            onLoad={() => setLoaded(true)}
             onError={() => {
               setBroken(true);
+              setLoaded(false);
               onError();
               setTimeout(() => setBroken(false), 4000);
             }}
           />
-        ) : (
-          <TextFrame def={def} size={size} />
         )}
         {(boosted || (showArt && size === 'xs')) && pw !== null && def.type !== 'Program' && (
           <span className={`tcg-pw ${boosted ? (power! > (def.power ?? 0) ? 'up' : 'down') : ''}`}>{pw}</span>

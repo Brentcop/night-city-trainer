@@ -3,6 +3,7 @@ import review from '../../data/review.json';
 import { Markdown } from '../components/Markdown';
 import { CHOOM_TABLE } from '../../content/choomTable';
 import { allDecks } from '../../lib/browserLibrary';
+import { DeckTile, LegendStrip } from '../components/DeckIdentity';
 
 interface MetaEntry {
   slug: string;
@@ -44,30 +45,37 @@ export function MetaPage() {
       </p>
 
       <div className="panel">
-        <h2>Archetype tiers (choom.gg editorial)</h2>
-        <div className="grid cols-2">
-          {sorted.map((m) => (
-            <div key={m.slug} className="panel" style={{ boxShadow: 'none' }}>
-              <div className="spread">
-                <h3 style={{ margin: 0 }}>
-                  <span className={`tier tier-${m.tier}`}>{m.tier}</span> {m.title}
-                </h3>
-                <span className="stat" style={{ fontSize: '1.3rem' }}>
-                  {m.power}
-                </span>
+        <h2 style={{ marginTop: 0 }}>Archetype tiers (choom.gg editorial)</h2>
+        {(['S', 'A', 'B', 'C'] as const).map((tier) => {
+          const rows = sorted.filter((m) => m.tier === tier);
+          if (!rows.length) return null;
+          return (
+            <div key={tier} className="tier-row">
+              <div className={`tier-label tier tier-${tier}`}>{tier}</div>
+              <div className="deck-grid" style={{ flex: 1 }}>
+                {rows.map((m) => {
+                  const d = allDecks().find((x) => x.file === m.deckFile);
+                  return (
+                    <div key={m.slug} className="tier-card">
+                      {d && <DeckTile d={d} href={`#/deck?d=${encodeURIComponent(d.file)}`} />}
+                      <div className="small" style={{ padding: '6px 2px' }}>
+                        <span className="stat" style={{ fontSize: '1.1rem' }}>{m.power}</span>
+                        <span className="muted"> /100 · {m.complexity}</span>
+                        <div>{m.tagline}</div>
+                        <div className="row" style={{ marginTop: 4 }}>
+                          <a href={`#/guides?g=${m.slug}`}>Strategy</a>
+                          <a href={m.source.split(' ')[0]} target="_blank" rel="noreferrer">
+                            choom.gg analysis ↗
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="small muted">
-                Complexity: {m.complexity} · <a href={m.source.split(' ')[0]} target="_blank" rel="noreferrer">source</a> ·{' '}
-                <a href={`#/decks?d=${m.deckFile}`}>decklist</a> · <a href={`#/guides?g=${m.slug}`}>strategy</a>
-              </div>
-              <p style={{ marginBottom: 4 }}>{m.tagline}</p>
-              <div className="small muted">List by {allDecks().find((d) => d.file === m.deckFile)?.prov.author ?? 'unknown'} · rating by choom.gg editors</div>
-              <a className="small" href={m.source.split(' ')[0]} target="_blank" rel="noreferrer">
-                Read choom.gg's full analysis →
-              </a>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       <div className="panel scroll-x">
@@ -89,7 +97,12 @@ export function MetaPage() {
               <tr key={d.name}>
                 <td>{i + 1}</td>
                 <td>
-                  <a href={`#/decks?d=${d.file}`}>{d.name}</a>
+                  <div className="row" style={{ flexWrap: 'nowrap' }}>
+                    <div style={{ width: 96, flex: 'none' }}>
+                      <LegendStrip legends={allDecks().find((x) => x.file === d.file)?.deck.legends ?? []} height={30} />
+                    </div>
+                    <a href={`#/deck?d=${encodeURIComponent(d.file)}`}>{d.name}</a>
+                  </div>
                 </td>
                 <td style={{ minWidth: 160 }}>
                   <b>{(d.winRate * 100).toFixed(1)}%</b>

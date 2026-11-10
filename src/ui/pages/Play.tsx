@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Game, other } from '../../engine/engine';
-import { CARD_BY_ID } from '../../engine/cards';
-import type { Agent, CardInst, Decision, Gig, PlayerId } from '../../engine/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Game } from '../../engine/engine';
+import type { Agent, Decision, PlayerId } from '../../engine/types';
 import { HeuristicAgent } from '../../ai/heuristic';
 import { HumanAgent } from '../HumanAgent';
-import { CardView } from '../components/CardView';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
+import { DeckTile } from '../components/DeckIdentity';
 import { allDecks } from '../../lib/browserLibrary';
 import { clearPractice, loadPractice, recordPractice } from '../../lib/practiceLog';
 import { classify, BEST_PROFILES, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
+import { buildInteraction, coachMark } from '../components/board/interaction';
+import type { BoardCtx, Targeting } from '../components/board/BoardCard';
+import { MyHand, PlayerSide } from '../components/board/Zones';
+import { ActionMenu, GameOverOverlay, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
+import { AllOptions, PromptPanel, headline } from '../components/board/PromptPanel';
+import { useNarrow } from '../components/board/useNarrow';
+import '../board.css';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -25,6 +31,13 @@ class PacedAgent implements Agent {
   }
 }
 
+interface Running {
+  id: number;
+  g: Game;
+  human: HumanAgent;
+  bot: HeuristicAgent;
+}
+
 export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; initialOpp?: string }) {
   const decks = allDecks();
   const [mine, setMine] = useState(findDeck(initialDeck)?.file ?? decks[0]?.file);
@@ -35,12 +48,13 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   const [speed, setSpeed] = useState(500);
   const speedRef = useRef(speed);
   speedRef.current = speed;
-  const [game, setGame] = useState<{ g: Game; human: HumanAgent; bot: HeuristicAgent } | null>(null);
+  const [game, setGame] = useState<Running | null>(null);
   const [, setTick] = useState(0);
 
   const start = () => {
-    const A = findDeck(mine)!.deck;
-    const B = findDeck(opp)!.deck;
+    const A = findDeck(mine)?.deck;
+    const B = findDeck(opp)?.deck;
+    if (!A || !B) return;
     const human = new HumanAgent();
     const bot = new HeuristicAgent({ name: 'Bot', noise: 0.1, seed: Date.now() % 1000, lookahead: level !== 'fast', deep: level === 'deep' ? 3 : 0, profiles: BEST_PROFILES });
     const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
@@ -48,7 +62,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
     const bump = () => setTick((t) => t + 1);
     g.onUpdate = bump;
     human.onChange = bump;
-    setGame({ g, human, bot });
+    setGame({ id: Date.now(), g, human, bot });
     g.run().then((st) => {
       recordPractice({
         date: new Date().toISOString(),
@@ -65,9 +79,24 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   };
 
   if (!game) {
+    const dA = findDeck(mine);
+    const dB = findDeck(opp);
     return (
-      <div className="grid" style={{ maxWidth: 760 }}>
+      <div className="grid" style={{ maxWidth: 860 }}>
         <h1>Play vs Bot</h1>
+        {dA && dB && (
+          <div className="pb-versus">
+            <div className="pb-versus-deck">
+              <div className="pb-label">You</div>
+              <DeckTile d={dA} />
+            </div>
+            <div className="pb-versus-vs">VS</div>
+            <div className="pb-versus-deck">
+              <div className="pb-label">Bot</div>
+              <DeckTile d={dB} />
+            </div>
+          </div>
+        )}
         <div className="panel grid">
           <DeckPicker label="Your deck" value={mine} onChange={setMine} />
           <DeckPicker label="Bot deck" value={opp} onChange={setOpp} />
@@ -108,7 +137,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
       </div>
     );
   }
-  return <Board game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={() => setGame(null)} />;
+  return <Board key={game.id} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={() => setGame(null)} onRematch={start} />;
 }
 
 function Board({
@@ -117,146 +146,148 @@ function Board({
   speed,
   setSpeed,
   onQuit,
+  onRematch,
 }: {
-  game: { g: Game; human: HumanAgent; bot: HeuristicAgent };
+  game: Running;
   coach: boolean;
   speed: number;
   setSpeed: (n: number) => void;
   onQuit: () => void;
+  onRematch: () => void;
 }) {
   const { g, human, bot } = game;
   const s = g.s;
   const pend = human.pending?.d ?? null;
-  const [hint, setHint] = useState<{ i: number; why: string } | null>(null);
+  const narrow = useNarrow();
+  const [hint, setHint] = useState<{ d: Decision; i: number; why: string } | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [targeting, setTargeting] = useState<Targeting | null>(null);
+  const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
+  const [hideOver, setHideOver] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
 
+  // coach: ask the advisor bot what it would do in this spot
   useEffect(() => {
-    setHint(null);
     if (!pend || !coach) return;
     let alive = true;
     const advisor = new HeuristicAgent({ name: 'Coach', profiles: BEST_PROFILES });
-    advisor.decide(g, pend).then(([i]) => {
-      if (alive) setHint({ i, why: advisor.lastThought });
-    });
+    advisor
+      .decide(g, pend)
+      .then(([i]) => {
+        if (alive) setHint({ d: pend, i, why: advisor.lastThought });
+      })
+      .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, [pend, coach, g]);
 
+  // a new decision closes any open menu / target mode
+  useEffect(() => {
+    setMenu(null);
+    setTargeting(null);
+  }, [pend]);
+
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  });
+  }, [s.log.length]);
 
-  const optByUid = useMemo(() => {
-    const m = new Map<number, number>();
-    pend?.options.forEach((o, i) => {
-      if (o.uid !== undefined && pend.kind !== 'action' && pend.kind !== 'reaction') m.set(o.uid, i);
-    });
-    return m;
-  }, [pend]);
-  const optByGig = useMemo(() => {
-    const m = new Map<number, number>();
-    if (pend?.kind === 'gig') pend.options.forEach((o, i) => o.gig !== undefined && m.set(o.gig, i));
-    return m;
-  }, [pend]);
-
-  const cardEl = (c: CardInst, hidden = false) => {
-    const def = CARD_BY_ID[c.defId];
-    const pick = optByUid.get(c.uid);
-    if (hidden) {
-      return (
-        <div key={c.uid} className={`card ${pick !== undefined ? 'clickable' : ''} ${c.spent ? 'spent' : ''}`} onClick={() => pick !== undefined && human.answer(pick)}>
-          <div className="name">{c.zone === 'legends' ? 'Face-down Legend' : 'Card'}</div>
-          <div className="meta">{c.spent ? 'spent' : 'ready'}</div>
-        </div>
-      );
+  // close the popover on scroll / resize; Escape cancels menus and target mode
+  useEffect(() => {
+    if (!menu && !targeting) return;
+    const close = () => setMenu(null);
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenu(null);
+      setTargeting(null);
+    };
+    if (menu) {
+      window.addEventListener('scroll', close, true);
+      window.addEventListener('resize', close);
     }
-    const isUnit = c.zone === 'field';
-    return (
-      <CardView
-        key={c.uid}
-        def={def}
-        power={isUnit || (c.zone === 'legends' && def.power !== null) ? g.power(c) : undefined}
-        spent={c.spent}
-        clickable={pick !== undefined}
-        onClick={() => pick !== undefined && human.answer(pick)}
-        extra={
-          <div className="row small" style={{ marginTop: 4 }}>
-            {c.lag && isUnit && <span className="tag">lag</span>}
-            {c.goSolo && <span className="tag">go solo</span>}
-            {g.hasKw(c, 'blocker') && isUnit && <span className="tag">blocker</span>}
-            {c.gear.map((gu) => (
-              <span key={gu} className="tag" title={CARD_BY_ID[g.c(gu).defId].text}>
-                ⚙ {g.name(gu)}
-              </span>
-            ))}
-            {s.mods
-              .filter((m) => m.target === c.uid && m.kind !== 'power')
-              .map((m) => (
-                <span key={m.id} className="tag">
-                  {m.kind}
-                </span>
-              ))}
-          </div>
-        }
-      />
-    );
-  };
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', key);
+    };
+  }, [menu, targeting]);
 
-  const gigEl = (x: Gig, fixer = false) => {
-    const pick = optByGig.get(x.id);
-    return (
-      <div key={x.id} className={`gig ${fixer ? 'fixer' : ''} ${pick !== undefined ? 'clickable' : ''}`} onClick={() => pick !== undefined && human.answer(pick)}>
-        {fixer ? '—' : x.value} <small>d{x.sides}</small>
-      </div>
-    );
-  };
+  const ix = useMemo(() => buildInteraction(g, pend), [g, pend]);
+  const activeHint = hint && hint.d === pend ? hint : null;
+  const mark = useMemo(() => coachMark(pend, activeHint?.i), [pend, activeHint]);
 
-  const side = (p: PlayerId) => {
-    const P = g.P(p);
-    const me = p === 0;
-    const cred = g.streetCred(p);
-    return (
-      <div className={`side ${s.active === p ? 'active' : ''}`}>
-        <div className="spread">
-          <b>
-            {me ? 'You' : 'Bot'} — {P.name}
-          </b>
-          <span className="small muted">
-            Gigs <b style={{ color: 'var(--text)' }}>{P.gigs.length}</b>/7 · ☆ {cred ?? '–'} · Eddies {P.eddies.filter((u) => !g.c(u).spent).length}/{P.eddies.length} ·
-            Hand {P.hand.length} · Deck {P.deck.length} · Trash {P.trash.length}
-          </span>
-        </div>
-        <div className="row" style={{ marginTop: 6 }}>
-          <span className="zone-label">Gigs</span>
-          <div className="gigs">
-            {g.gigsOf(p).map((x) => gigEl(x))}
-            {P.fixer.map((id) => gigEl(g.gig(id), true))}
-          </div>
-        </div>
-        <div className="zone-label" style={{ marginTop: 6 }}>
-          Legends
-        </div>
-        <div className="zone">{P.legends.map((u) => cardEl(g.c(u), !g.c(u).faceUp))}</div>
-        <div className="zone-label">Field</div>
-        <div className="zone">{P.field.length ? P.field.map((u) => cardEl(g.c(u))) : <span className="muted small">empty</span>}</div>
-        {me && (
-          <>
-            <div className="zone-label">Your hand</div>
-            <div className="zone">{P.hand.map((u) => cardEl(g.c(u)))}</div>
-          </>
-        )}
-      </div>
-    );
+  const answer = useCallback(
+    (i: number) => {
+      setMenu(null);
+      setTargeting(null);
+      human.answer(i);
+    },
+    [human],
+  );
+
+  const ctx: BoardCtx = {
+    g,
+    pend,
+    ix,
+    coach: coach ? mark : null,
+    targeting,
+    narrow,
+    menuUid: menu?.uid ?? null,
+    answer,
+    openMenu: (uid, el) => {
+      const r = el.getBoundingClientRect();
+      setMenu({ uid, rect: { top: r.top, bottom: r.bottom, left: r.left, width: r.width } });
+    },
+    startTargeting: (attacker) => {
+      setMenu(null);
+      const targets = ix.attacks.get(attacker) ?? [];
+      if (targets.length === 1) answer(targets[0].i);
+      else if (targets.length) setTargeting({ attacker, targets });
+    },
+    cancelTargeting: () => setTargeting(null),
+    openTrash: (p) => setTrashOf(p),
   };
 
   const over = s.winner !== null;
+  const mulligan = !!pend && pend.kind === 'yesno' && pend.tag === 'mulligan';
+  const head = headline(ctx);
+  const dock = narrow && !over && !mulligan && !!pend && (pend.kind !== 'action' || !!targeting);
+
+  let handAction: React.ReactNode = null;
+  if (targeting) {
+    handAction = (
+      <button className="pb-endturn ghost" onClick={() => setTargeting(null)}>
+        Cancel attack
+      </button>
+    );
+  } else if (pend?.kind === 'action') {
+    handAction =
+      ix.passIndex !== null ? (
+        <button className={`pb-endturn primary ${ctx.coach?.i === ix.passIndex ? 'pb-coach-btn' : ''}`} onClick={() => answer(ix.passIndex!)}>
+          End turn
+        </button>
+      ) : (
+        <span className="small" style={{ color: 'var(--red)' }}>
+          Must attack
+        </span>
+      );
+  } else if (pend?.kind === 'reaction' && ix.passIndex !== null) {
+    handAction = (
+      <button className={`pb-endturn primary ${ctx.coach?.i === ix.passIndex ? 'pb-coach-btn' : ''}`} onClick={() => answer(ix.passIndex!)}>
+        No reaction
+      </button>
+    );
+  }
+
   return (
-    <div>
-      <div className="spread" style={{ marginBottom: 8 }}>
-        <h2 style={{ margin: 0 }}>
-          Turn {s.turn} · {s.active === 0 ? 'Your turn' : "Bot's turn"} {s.overtime && <span className="tier tier-S">OVERTIME</span>}
-        </h2>
+    <div className={`pb ${menu ? 'pb-menu-open' : ''} ${targeting ? 'pb-targeting' : ''} ${dock ? 'pb-has-dock' : ''}`}>
+      <div className="pb-topbar">
+        <div className="pb-turn">
+          <span className="pb-turn-no">TURN {s.turn}</span>
+          <span className={`pb-turn-who ${s.active === 0 ? 'me' : 'rival'}`}>{over ? 'GAME OVER' : s.active === 0 ? 'YOUR TURN' : "RIVAL'S TURN"}</span>
+          {s.overtime && <span className="pb-overtime">OVERTIME</span>}
+        </div>
         <div className="row">
           <label className="row small muted">
             Bot speed
@@ -267,56 +298,42 @@ function Board({
               <option value={1200}>slow</option>
             </select>
           </label>
+          {over && hideOver && <button onClick={() => setHideOver(false)}>Result</button>}
           <button onClick={onQuit}>{over ? 'New game' : 'Quit'}</button>
         </div>
       </div>
-      <div className="board">
-        <div>
-          {side(1)}
-          {side(0)}
+      <div className="pb-layout">
+        <div className="pb-mat">
+          <PlayerSide p={1} ctx={ctx} />
+          <div className={`pb-midline pb-tone-${head.tone}`}>
+            <span>{head.text}</span>
+          </div>
+          <PlayerSide p={0} ctx={ctx} />
+          <div className="pb-handbar">
+            <MyHand ctx={ctx} />
+            <div className="pb-handbar-actions">{handAction}</div>
+          </div>
         </div>
-        <div>
-          {over && (
-            <div className="prompt">
-              <h3 style={{ marginTop: 0 }}>{s.winner === 0 ? 'You win!' : s.winner === 1 ? 'Bot wins' : 'Draw'}</h3>
-              <div className="muted">{s.winReason}</div>
-            </div>
-          )}
-          {pend && !over && (
-            <div className="prompt">
-              <b>{pend.prompt}</b>
-              {pend.source !== undefined && <div className="small muted">from {g.name(pend.source)}</div>}
-              {hint && (
-                <div className="small" style={{ marginTop: 6, color: 'var(--cyan)' }}>
-                  Coach: {pend.options[hint.i]?.label}
-                  {hint.why && <div className="muted">{hint.why}</div>}
-                </div>
-              )}
-              <div className="opts">
-                {pend.options.map((o, i) => (
-                  <button key={i} onClick={() => human.answer(i)} className={hint?.i === i ? 'primary' : ''}>
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {!pend && !over && <div className="prompt muted">Bot is thinking…</div>}
-          <div className="zone-label">Game log</div>
-          <div className="log" ref={logRef}>
+        <aside className="pb-sidebar">
+          <div className={dock ? 'pb-dock' : undefined}>
+            <PromptPanel ctx={ctx} why={activeHint?.why} />
+          </div>
+          <AllOptions ctx={ctx} />
+          <div className="pb-label">Game log</div>
+          <div className="log pb-log" ref={logRef}>
             {s.log.slice(-250).map((l, i) => (
               <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
                 {l.text}
               </div>
             ))}
           </div>
-          <div className="small muted" style={{ marginTop: 6 }}>
-            Rival trash: {g.P(1).trash.slice(-8).map((u) => g.name(u)).join(', ') || '—'}
-          </div>
           {bot.lastThought && <div className="small muted">Bot's last thought: {bot.lastThought}</div>}
-          <div className="small muted">Rival {other(0) === 1 ? '' : ''}hand: {g.P(1).hand.length} cards</div>
-        </div>
+        </aside>
       </div>
+      {menu && <ActionMenu ctx={ctx} menu={menu} onClose={() => setMenu(null)} />}
+      {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
+      {mulligan && !over && <MulliganScreen ctx={ctx} why={activeHint?.why} />}
+      {over && !hideOver && <GameOverOverlay g={g} onRematch={onRematch} onNew={onQuit} onHide={() => setHideOver(true)} />}
     </div>
   );
 }

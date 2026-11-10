@@ -2,6 +2,7 @@ import { useState } from 'react';
 import data from '../../data/seasons.json';
 import { allDecks } from '../../lib/browserLibrary';
 import { shortCredit } from '../../lib/library';
+import { DeckTile, LegendStrip, OriginBadge } from '../components/DeckIdentity';
 
 interface Row {
   name: string;
@@ -78,11 +79,24 @@ export function SeasonsPage() {
             {rows.map((r) => (
               <tr key={r.name}>
                 <td>{D.leaderboard.indexOf(r) + 1}</td>
-                <td>
-                  <a href={`#/decks?d=${encodeURIComponent(r.file)}`}>{r.name}</a>
-                  {r.idea && <div className="muted" style={{ maxWidth: 420 }}>{r.idea}</div>}
+                <td style={{ minWidth: 260 }}>
+                  <div className="row" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+                    <div style={{ width: 96, flex: 'none' }}>
+                      <LegendStrip legends={libByFile.get(r.file)?.deck.legends ?? []} height={34} />
+                    </div>
+                    <div>
+                      <a href={`#/deck?d=${encodeURIComponent(r.file)}`}>
+                        <b>{r.name}</b>
+                      </a>
+                      {libByFile.get(r.file) && (
+                        <div>
+                          <OriginBadge deck={libByFile.get(r.file)!} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </td>
-                <td>
+                <td className="muted">
                   {libByFile.get(r.file) ? shortCredit(libByFile.get(r.file)!) : r.origin}
                   {libByFile.get(r.file)?.prov.parents && <div className="muted">from {libByFile.get(r.file)!.prov.parents}</div>}
                 </td>
@@ -114,14 +128,18 @@ export function SeasonsPage() {
           <div className="grid cols-2">
             <div>
               <h3>New decks</h3>
-              <ul className="small">
-                {s.bred.map((b) => (
-                  <li key={b.name}>
-                    <b>{b.name}</b> <span className="tag">{b.method}</span>
-                    <div className="muted">{b.idea}</div>
-                  </li>
-                ))}
-              </ul>
+              <div className="deck-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+                {s.bred.map((b) => {
+                  const d = [...libByFile.values()].find((x) => x.deck.name === b.name);
+                  return d ? (
+                    <DeckTile key={b.name} d={d} href={`#/deck?d=${encodeURIComponent(d.file)}`} />
+                  ) : (
+                    <div key={b.name} className="small">
+                      <b>{b.name}</b> <span className="tag">{b.method}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <h3>Standings</h3>

@@ -12,7 +12,9 @@
     "test": "vitest run",
     "build:data": "python -I tools/build_data.py",
     "sim": "tsx scripts/simulate.ts",
-    "gauntlet": "tsx scripts/gauntlet.ts"
+    "gauntlet": "tsx scripts/gauntlet.ts",
+    "bundle-reports": "tsx scripts/bundle-reports.ts",
+    "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
