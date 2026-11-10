@@ -211,7 +211,8 @@ export const YELLOW: Record<string, CardScript> = {
     on: {
       steal: async (g, self, host, ev) => {
         if (ev.actor !== host.uid || self.host !== host.uid) return;
-        if (!g.oncePerTurn(`gorillaArms:${self.uid}`)) return;
+        // the first steal by this Unit this turn (one trigger for a multi-Gig steal; its own extra steal doesn't retrigger)
+        if (!g.firstThisTurn(ev.seq, 'steal', (e) => e.uid === host.uid)) return;
         const p = self.controller;
         const vals = new Set(g.gigsOf(p).map((x) => x.value));
         await g.stealOne(p, host.uid, (x) => !vals.has(x.value));
@@ -231,9 +232,8 @@ export const YELLOW: Record<string, CardScript> = {
         await g.playFree(p, u, 'trash');
         await g.resolvePending();
       }
-      // "Then, bottom-deck this Unit" (sim ruling: the Relic itself is bottom-decked too).
+      // "Then, bottom-deck this Unit". The Relic itself is no longer equipped in the trash, so it stays there (CR 11.23.3 example).
       if (g.c(info.uid).zone === 'trash') g.bottomDeck(info.uid);
-      if (self.zone === 'trash') g.bottomDeck(self.uid);
     },
   },
 
@@ -450,17 +450,10 @@ export const YELLOW: Record<string, CardScript> = {
     costMod: (g, _self, host, card, p, kind) => {
       if (kind !== 'play' || host.zone !== 'field' || p !== host.controller) return 0;
       if (!isCyberware(g)(card)) return 0;
-      if (g.usedThisTurn(`vvDropIllusions:${p}`)) return 0;
+      // only the first CYBERWARE Gear played this turn, counting ones played before Viktor arrived
+      if (g.turnCount('play', (e) => e.p === p && e.type === 'Gear' && isCyberware(g)(g.c(e.uid))) > 0) return 0;
       return -3;
     },
-    on: {
-      cardPlayed: (g, self, _h, ev) => {
-        if (ev.player !== self.controller || ev.type !== 'Gear') return;
-        if (!g.isTag(ev.uid, 'Cyberware')) return;
-        g.s.once[`vvDropIllusions:${ev.player}`] = g.s.turn;
-      },
-    },
-    partial: 'first-Cyberware tracking only starts once Viktor is in play; marker set when the cardPlayed trigger resolves',
   },
 
   heywood_ripperdoc: {

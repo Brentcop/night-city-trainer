@@ -191,8 +191,9 @@ describe('Yellow cards', () => {
     await g.resolvePending();
     expect(g.c(big).zone).toBe('field');
     expect(g.c(host).zone).toBe('deck');
-    expect(g.P(0).deck[g.P(0).deck.length - 1] === host || g.P(0).deck.includes(host)).toBe(true);
-    expect(g.c(relic).zone).toBe('deck');
+    expect(g.P(0).deck[g.P(0).deck.length - 1]).toBe(host);
+    // CR 11.23.3 example: the Gear is no longer equipped in the trash, so it stays there
+    expect(g.c(relic).zone).toBe('trash');
   });
 
   it('Alt Cunningham: discard a card with cost equal to the Gig value to prevent a steal', async () => {

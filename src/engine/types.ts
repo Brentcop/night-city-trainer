@@ -132,11 +132,22 @@ export interface GameState {
   nextModId: number;
   once: Record<string, number>; // key -> turn used (once-per-turn bookkeeping)
   counters: Record<string, number>; // misc per-game counters
+  /** This turn's plays, attacks, defeats and steals, in order (cleared at the start of every turn). */
+  turnEvents?: TurnEvent[];
   log: LogEntry[];
   stats: Stats;
   maxTurns: number;
   /** Opt-in telemetry for analysis (GameOptions.trace). */
   trace?: TraceEvent[];
+}
+
+/** One entry of the per-turn history used by "the first time ... each turn" effects. */
+export interface TurnEvent {
+  k: 'play' | 'attack' | 'defeat' | 'steal';
+  p: PlayerId; // player who played / attacked / stole; for 'defeat', the defeated card's controller
+  uid: number; // card played / attacker / card defeated / steal actor
+  defId: string;
+  type?: CardType; // 'play': the type it was played as (a Legend going solo is played as a Unit)
 }
 
 export type TraceKind = 'open' | 'mulligan' | 'draw' | 'play' | 'sell' | 'call' | 'solo' | 'attack' | 'steal' | 'defeated' | 'turnEnd' | 'activate';
@@ -213,16 +224,17 @@ export interface Agent {
 
 export interface EventMap {
   spent: { uid: number; cause: 'attack' | 'pay' | 'ability' | 'effect' | 'block' };
-  attack: { attacker: number; targetUnit: number | null; targetGigs: PlayerId | null };
-  steal: { actor: number; gig: number; player: PlayerId; value: number };
+  attack: { attacker: number; targetUnit: number | null; targetGigs: PlayerId | null; seq?: number };
+  steal: { actor: number; gig: number; player: PlayerId; value: number; seq?: number };
   fight: { uid: number; opp: number; result: 'win' | 'lose'; power?: number; oppPower?: number };
   unitDefeated: DefeatInfo;
-  cardPlayed: { uid: number; player: PlayerId; type: CardType };
+  cardPlayed: { uid: number; player: PlayerId; type: CardType; seq?: number };
   blockerUsed: { uid: number };
   gigRolled: { gig: number; player: PlayerId; fromFixer: boolean };
   gigChanged: { gig: number; by: PlayerId; kind: 'adjust' | 'swap' | 'set' };
   legendCalled: { uid: number; player: PlayerId };
-  turnEnd: { player: PlayerId };
+  /** spent: uids of cards in play that were spent when the end of turn began (for "if this Unit is spent" triggers). */
+  turnEnd: { player: PlayerId; spent?: number[] };
   turnStart: { player: PlayerId };
 }
 export type EventName = keyof EventMap;
@@ -239,6 +251,7 @@ export interface DefeatInfo {
   power: number;
   tags: string[];
   goSolo: boolean;
+  seq?: number; // index in GameState.turnEvents
 }
 
 export interface Ability {
@@ -287,8 +300,14 @@ export interface CardScript {
   stealBan?: (g: G, self: CardInst, host: CardInst, attacker: CardInst, gig: Gig) => boolean;
   /** Called when a friendly gig would be stolen (after selection). Return true to prevent. */
   preventSteal?: (g: G, self: CardInst, host: CardInst, attacker: CardInst, gig: Gig) => Promise<boolean>;
-  /** Replacement: a card would be defeated. Return true if replaced (defeat doesn't happen). */
+  /**
+   * Replacement: a card would be defeated. Return true if replaced (defeat doesn't happen).
+   * Mandatory replacements apply before optional ones (10.28); set optionalReplacement on "you may" replacements.
+   */
   replaceDefeat?: (g: G, self: CardInst, host: CardInst, victim: CardInst, inFight: boolean) => Promise<boolean>;
+  optionalReplacement?: boolean;
+  /** Persistent: the €$ cost of player p's normal Call action (lowest of all hooks; default 1). */
+  callCost?: (g: G, self: CardInst, host: CardInst, p: PlayerId) => number | null;
   /** Fight outcome override for host: 'win' | 'lose' | null. */
   fightOverride?: (g: G, self: CardInst, host: CardInst, opp: CardInst) => 'win' | 'lose' | null;
   /** Can this Unit be blocked? return true to make unblockable */

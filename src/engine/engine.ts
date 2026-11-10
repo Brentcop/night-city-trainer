@@ -27,6 +27,7 @@ import type {
   PlayerId,
   PlayerState,
   Reaction,
+  TurnEvent,
   Zone,
 } from './types';
 
@@ -88,6 +89,7 @@ export class Game {
       nextModId: 1,
       once: {},
       counters: {},
+      turnEvents: [],
       log: [],
       stats: { attacks: [0, 0], gigsStolen: [0, 0], unitsDefeated: [0, 0], cardsPlayed: [0, 0], sold: [0, 0], calls: [0, 0] },
       maxTurns: opts.maxTurns ?? 60,
@@ -146,15 +148,25 @@ export class Game {
     return game;
   }
 
-  /** Clone for lookahead. Agents must be supplied (scripts are stateless). */
-  clone(agents: [Agent, Agent]): Game {
+  /**
+   * Clone for lookahead. Agents must be supplied (scripts are stateless).
+   * The log and trace are left out (lookahead never reads them, and copying them made clones slower as a game went
+   * on); pass keepLog to copy the log too (the Play undo snapshot shows it). Clones never record telemetry.
+   * Throws if effects are still pending: they live outside the state and a clone would silently drop them.
+   */
+  clone(agents: [Agent, Agent], opts: { keepLog?: boolean } = {}): Game {
+    if (this.pending.length) throw new Error(`clone() with ${this.pending.length} pending effect(s): ${this.pending.map((x) => x.label).join(', ')}`);
+    const { log, trace } = this.s;
     let st: GameState;
+    this.s.log = [];
+    this.s.trace = undefined;
     try {
       st = structuredClone(this.s);
-    } catch {
-      st = cloneDropFunctions(this.s);
+    } finally {
+      this.s.log = log;
+      this.s.trace = trace;
     }
-    st.trace = undefined; // lookahead clones never record telemetry
+    if (opts.keepLog) st.log = log.map((e) => ({ ...e }));
     const g = new Game(st, agents);
     g.logEnabled = false;
     return g;
@@ -181,6 +193,7 @@ export class Game {
    * finish that main phase, then play on to the end exactly like run().
    */
   async resume(): Promise<GameState> {
+    if (this.pending.length) throw new Error(`resume() with ${this.pending.length} pending effect(s)`);
     try {
       await this.mainLoop();
       await this.endPhase();
@@ -222,6 +235,9 @@ export class Game {
     const p = s.active;
     const ps = this.P(p);
     s.phase = 'start';
+    // per-turn bookkeeping only ever compares against the current turn: drop last turn's entries
+    s.turnEvents = [];
+    for (const k of Object.keys(s.once)) if (s.once[k] !== s.turn) delete s.once[k];
     if (s.turn > s.maxTurns) return this.endGame('tie', 'turn limit reached');
     if (ps.gigs.length >= 7) return this.endGame(p, 'controls 7+ Gigs at start of turn');
     s.counters.fixerEmptyAtStart = ps.fixer.length === 0 ? 1 : 0;
@@ -267,7 +283,10 @@ export class Game {
     const fixerEmptyAtStart = s.counters.fixerEmptyAtStart === 1;
     s.phase = 'end';
     this.tr('turnEnd', p, undefined, `${this.P(0).gigs.length}-${this.P(1).gigs.length}`);
-    this.emit('turnEnd', { player: p });
+    const spent = Object.values(s.cards)
+      .filter((c) => c.spent && (c.zone === 'field' || c.zone === 'legends'))
+      .map((c) => c.uid);
+    this.emit('turnEnd', { player: p, spent });
     await this.resolvePending();
     s.mods = s.mods.filter((m) => m.until !== 'endOfTurn');
     for (const c of Object.values(s.cards)) c.lag = false;
@@ -634,10 +653,23 @@ export class Game {
       if (opts.position === 'top') list.unshift(uid);
       else list.push(uid);
     } else list.push(uid);
-    // gear follows to the same destination zone (unequipped). If legend was removed, gear goes where legend was sent.
+    // Gear follows its Unit or Legend to the area it was sent to, unequipped (4.12, 4.12.1). A Legend sent to the trash
+    // is removed from the game but its Gear stays in the trash (4.12.2); a Unit removed from the game takes its Gear along.
     for (const gu of gear) {
-      const gz = to === 'field' || to === 'legends' ? 'trash' : to === 'removed' ? 'trash' : to;
-      this.move(gu, gz as Zone, { position: opts.position });
+      const gz: Zone = to === 'field' || to === 'legends' ? 'trash' : to;
+      this.move(gu, gz, { position: opts.position });
+    }
+    // An equipped Unit bottom-decked: the cards go to the bottom in a random order (4.12.3).
+    if (gear.length && dest === 'deck' && opts.position !== 'top') {
+      const group = new Set([uid, ...gear]);
+      for (const p of [0, 1] as PlayerId[]) {
+        const deck = this.P(p).deck;
+        const mine = deck.filter((u) => group.has(u));
+        if (mine.length < 2) continue;
+        const rest = deck.filter((u) => !group.has(u));
+        shuffleInPlace(this.s, mine);
+        deck.splice(0, deck.length, ...rest, ...mine);
+      }
     }
   }
 
@@ -763,11 +795,12 @@ export class Game {
       this.log(c.controller, `${this.name(uid)} can't be defeated in a fight`);
       return false;
     }
-    // replacement effects (mandatory first: gear on host e.g. Deadman; then optional)
+    // replacement effects: mandatory ones (e.g. Deadman Transmitter) before optional ones (e.g. Jackie Welles) (10.28)
     const zoneBefore = c.zone;
-    for (const src of this.sources(c.controller)) {
-      const fn = this.script(src.self).replaceDefeat;
-      if (!fn) continue;
+    const repl = this.sources(c.controller).filter((src) => this.script(src.self).replaceDefeat);
+    const ordered = [...repl.filter((x) => !this.script(x.self).optionalReplacement), ...repl.filter((x) => this.script(x.self).optionalReplacement)];
+    for (const src of ordered) {
+      const fn = this.script(src.self).replaceDefeat!;
       if (await fn(this, src.self, src.host, c, inFight)) return false;
       if (c.zone !== zoneBefore) return false; // moved by something else
     }
@@ -784,6 +817,7 @@ export class Game {
       tags: this.def(c).tags,
       goSolo: c.goSolo,
     };
+    info.seq = this.noteTurnEvent({ k: 'defeat', p: c.controller, uid, defId: c.defId });
     const gearScripts = c.gear.map((g) => this.s.cards[g]);
     this.log(c.controller, `${this.name(uid)} is defeated`);
     this.move(uid, 'trash');
@@ -880,7 +914,8 @@ export class Game {
     this.s.stats.gigsStolen[p]++;
     this.tr('steal', p, this.s.cards[actor]?.defId, g.value);
     this.log(p, `${this.name(actor)} steals d${g.sides} (${g.value})`);
-    this.emit('steal', { actor, gig: gid, player: p, value: g.value });
+    const seq = this.noteTurnEvent({ k: 'steal', p, uid: actor, defId: this.s.cards[actor]?.defId ?? '' });
+    this.emit('steal', { actor, gig: gid, player: p, value: g.value, seq });
     this.checkState();
   }
 
@@ -912,12 +947,12 @@ export class Game {
       }
     }
     if (!options.length) return null;
-    // "up to" lets you choose 0
-    options.push({ label: 'No change', key: 'none' });
+    // "up to" lets you choose 0; an exact adjustment ("Adjust a Gig by 1") must change a Gig
+    if (!opts.exact) options.push({ label: 'No change', key: 'none' });
     const [i] = await this.ask({
       player: p,
       kind: 'gigValue',
-      prompt: `${dir === 'up' ? 'Increase' : dir === 'down' ? 'Decrease' : 'Adjust'} a Gig by up to ${amount}`,
+      prompt: `${dir === 'up' ? 'Increase' : dir === 'down' ? 'Decrease' : 'Adjust'} a Gig by ${opts.exact ? '' : 'up to '}${amount}`,
       options,
       min: 1,
       max: 1,
@@ -1047,19 +1082,63 @@ export class Game {
     }
   }
 
+  /** Player currently resolving their pending effects (10.14.1); kept across nested resolvePending calls. */
+  private resolving: PlayerId | null = null;
+
+  /**
+   * Resolve pending effects. The turn player resolves theirs first (10.13); once a player has started, they keep
+   * resolving their own effects, including ones that become pending meanwhile, until none remain, and only then does
+   * the other player resolve theirs (10.14.1). Within a player, effects resolve first-in-first-out (10.12 lets a
+   * player pick the order; that choice is not offered yet).
+   */
   async resolvePending() {
+    const outer = this.resolving === null;
     let guard = 0;
-    while (this.pending.length) {
-      if (++guard > 500) {
-        this.pending = [];
-        break;
+    try {
+      while (this.pending.length) {
+        if (++guard > 500) {
+          const labels = this.pending.slice(0, 5).map((x) => x.label).join(', ');
+          this.pending = [];
+          throw new Error(`resolvePending: more than 500 effects resolved in one pass (loop?): ${labels}`);
+        }
+        let cur = this.resolving;
+        if (cur === null || !this.pending.some((x) => x.player === cur)) {
+          cur = this.pending.some((x) => x.player === this.s.active) ? this.s.active : other(this.s.active);
+          this.resolving = cur;
+        }
+        const idx = this.pending.findIndex((x) => x.player === cur);
+        const [pe] = this.pending.splice(idx, 1);
+        await pe.run();
+        this.checkState();
       }
-      let idx = this.pending.findIndex((x) => x.player === this.s.active);
-      if (idx < 0) idx = 0;
-      const [pe] = this.pending.splice(idx, 1);
-      await pe.run();
-      this.checkState();
+    } finally {
+      if (outer) this.resolving = null;
     }
+  }
+
+  // ------------------------------------------------------------------ per-turn history
+
+  /** Record an event in this turn's history (cleared at the start of every turn). Returns its index. */
+  private noteTurnEvent(e: TurnEvent): number {
+    const list = (this.s.turnEvents ??= []);
+    list.push(e);
+    return list.length - 1;
+  }
+
+  /** Number of events of a kind this turn (optionally filtered). */
+  turnCount(k: TurnEvent['k'], pred?: (e: TurnEvent) => boolean): number {
+    return (this.s.turnEvents ?? []).filter((e) => e.k === k && (!pred || pred(e))).length;
+  }
+
+  /**
+   * "The first time ... each turn": true if no event of this kind matching pred happened this turn before the event
+   * with index `seq` (the `seq` carried by the event payload). Counts events whether or not the asking card was in play.
+   */
+  firstThisTurn(seq: number | undefined, k: TurnEvent['k'], pred: (e: TurnEvent) => boolean): boolean {
+    const list = this.s.turnEvents ?? [];
+    const end = seq ?? list.length;
+    for (let i = 0; i < end && i < list.length; i++) if (list[i].k === k && pred(list[i])) return false;
+    return true;
   }
 
   oncePerTurn(key: string): boolean {
@@ -1078,6 +1157,16 @@ export class Game {
   }
   canCall(p: PlayerId): boolean {
     return !this.usedThisTurn(`call:${p}`) && this.faceDownLegends(p).length > 0;
+  }
+  /** €$ cost of p's normal Call action: 1, unless a card makes it cheaper (Panam Palmer: Strength Through Family). */
+  callCost(p: PlayerId): number {
+    let cost = 1;
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).callCost;
+      const v = fn?.(this, src.self, src.host, p);
+      if (v !== null && v !== undefined) cost = Math.min(cost, v);
+    }
+    return Math.max(0, cost);
   }
 
   /** Host candidates for a gear. */
@@ -1194,7 +1283,7 @@ export class Game {
     if (this.canSell(p)) {
       for (const u of ps.hand) if (this.def(u).sellable) out.push({ type: 'sell', uid: u });
     }
-    if (this.canCall(p) && this.available(p) >= 1) {
+    if (this.canCall(p) && this.available(p) >= this.callCost(p)) {
       for (const c of this.faceDownLegends(p)) out.push({ type: 'call', uid: c.uid });
     }
     for (const u of ps.hand) if (this.canPlayCard(p, u)) out.push({ type: 'play', uid: u });
@@ -1244,7 +1333,7 @@ export class Game {
   }
 
   programsPlayedThisTurn(p: PlayerId): number {
-    return this.s.counters[`programs:${p}:${this.s.turn}`] ?? 0;
+    return this.turnCount('play', (e) => e.p === p && e.type === 'Program');
   }
 
   async chooseAction(p: PlayerId, actions: Action[]): Promise<Action> {
@@ -1271,7 +1360,7 @@ export class Game {
         this.sell(p, a.uid);
         return;
       case 'call':
-        if (!(await this.pay(p, 1))) return;
+        if (!(await this.pay(p, this.callCost(p)))) return;
         await this.callLegend(p, a.uid);
         return;
       case 'play':
@@ -1333,9 +1422,10 @@ export class Game {
     this.s.stats.cardsPlayed[p]++;
     this.tr('play', p, c.defId, from);
     if (from === 'hand') this.log(p, `plays ${d.displayName}`);
+    const seq = this.noteTurnEvent({ k: 'play', p, uid, defId: c.defId, type: d.type });
     if (d.type === 'Unit') {
       this.enterField(p, uid);
-      this.emit('cardPlayed', { uid, player: p, type: 'Unit' });
+      this.emit('cardPlayed', { uid, player: p, type: 'Unit', seq });
       if (sc.play) this.enqueue(p, `${d.displayName} {Play}`, () => sc.play!(this, c));
     } else if (d.type === 'Gear') {
       const hosts = this.gearHosts(p).filter((h) => !opts.hostFilter || opts.hostFilter(h));
@@ -1346,15 +1436,13 @@ export class Game {
       }
       this.equip(uid, host.uid);
       this.log(p, `equips ${d.displayName} to ${this.name(host)}`);
-      this.emit('cardPlayed', { uid, player: p, type: 'Gear' });
+      this.emit('cardPlayed', { uid, player: p, type: 'Gear', seq });
       if (sc.play) this.enqueue(p, `${d.displayName}`, () => sc.play!(this, c));
     } else if (d.type === 'Program') {
       this.detach(uid);
       c.zone = 'limbo';
       c.controller = p;
-      const key = `programs:${p}:${this.s.turn}`;
-      this.s.counters[key] = (this.s.counters[key] ?? 0) + 1;
-      this.emit('cardPlayed', { uid, player: p, type: 'Program' });
+      this.emit('cardPlayed', { uid, player: p, type: 'Program', seq });
       if (sc.play) await sc.play(this, c);
       if (c.zone === 'limbo') {
         if (opts.bottomDeckAfter) this.move(uid, 'deck', { position: 'bottom' });
@@ -1382,7 +1470,8 @@ export class Game {
     this.s.stats.cardsPlayed[p]++;
     this.tr('solo', p, c.defId);
     this.log(p, `${this.name(c)} goes solo!`);
-    this.emit('cardPlayed', { uid, player: p, type: 'Unit' });
+    const seq = this.noteTurnEvent({ k: 'play', p, uid, defId: c.defId, type: 'Unit' });
+    this.emit('cardPlayed', { uid, player: p, type: 'Unit', seq });
     const fn = this.script(c).play;
     if (fn) this.enqueue(p, `${this.name(c)} {Play}`, () => fn(this, c));
   }
@@ -1426,7 +1515,8 @@ export class Game {
       const fn = this.script(g).attack;
       if (fn) this.enqueue(p, `${this.name(g)} {Attack}`, () => fn(this, g, att));
     }
-    this.emit('attack', { attacker: uid, targetUnit: target.unit, targetGigs: target.gigs });
+    const seq = this.noteTurnEvent({ k: 'attack', p, uid, defId: att.defId });
+    this.emit('attack', { attacker: uid, targetUnit: target.unit, targetGigs: target.gigs, seq });
     await this.resolvePending();
     await this.attackRest(uid);
   }
@@ -1488,13 +1578,21 @@ export class Game {
       const t = this.s.cards[a.targetUnit];
       if (t.zone !== 'field' || t.controller === a.attackerPlayer) return false;
     }
+    // The attack ends if its target stops being a valid target for the attacker (9.21.3): an attack restriction that
+    // now forbids this target. (Readiness is not re-checked: a Blocker is ready-then-spent by design, and one-shot
+    // "may attack ready Units" permissions are used up when the attack is declared.)
+    const t: AttackTargetRef = { unit: a.targetUnit, gigs: a.targetUnit === null ? a.targetGigs : null };
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).attackBan;
+      if (fn && fn(this, src.self, src.host, att, t)) return false;
+    }
     return true;
   }
 
   legalReactions(p: PlayerId): Reaction[] {
     const out: Reaction[] = [{ type: 'endReact' }];
     const a = this.s.attack!;
-    if (this.canCall(p) && this.available(p) >= 1) for (const c of this.faceDownLegends(p)) out.push({ type: 'call', uid: c.uid });
+    if (this.canCall(p) && this.available(p) >= this.callCost(p)) for (const c of this.faceDownLegends(p)) out.push({ type: 'call', uid: c.uid });
     const att = this.s.cards[a.attacker];
     const unblockable = this.sources().some((src) => this.script(src.self).unblockable?.(this, src.self, src.host, att));
     if (!unblockable) {
@@ -1514,7 +1612,7 @@ export class Game {
     const a = this.s.attack!;
     switch (rx.type) {
       case 'call':
-        if (await this.pay(p, 1)) await this.callLegend(p, rx.uid);
+        if (await this.pay(p, this.callCost(p))) await this.callLegend(p, rx.uid);
         return;
       case 'block': {
         const c = this.s.cards[rx.uid];
@@ -1572,56 +1670,92 @@ export class Game {
     this.log(A.controller, `fight: ${this.name(A)} (${pa}) vs ${this.name(B)} (${pb})`);
     this.emit('fight', { uid: aUid, opp: bUid, result: res.a, power: pa, oppPower: pb });
     this.emit('fight', { uid: bUid, opp: aUid, result: res.b, power: pb, oppPower: pa });
-    // defeat losers (power 0 can't defeat). "noDefeatOpp" (Reboot Optics) on the winner prevents its defeat of opponent.
+    // defeat losers (power 0 can't defeat). "noDefeatOpp" (Reboot Optics) is used up by the next fight of a Unit it
+    // covers, and that Unit doesn't defeat its opponent.
+    const noDefA = this.consumeNoDefeat(aUid);
+    const noDefB = this.consumeNoDefeat(bUid);
     const toDefeat: [number, number][] = [];
-    if (res.a === 'lose' && pb > 0 && !this.consumeNoDefeat(bUid)) toDefeat.push([aUid, bUid]);
-    if (res.b === 'lose' && pa > 0 && !this.consumeNoDefeat(aUid)) toDefeat.push([bUid, aUid]);
+    for (const [loser, lost, by, byPower, spared] of [
+      [aUid, res.a, bUid, pb, noDefB],
+      [bUid, res.b, aUid, pa, noDefA],
+    ] as const) {
+      if (lost !== 'lose' || byPower <= 0) continue;
+      if (spared) this.log(this.s.cards[by].controller, `${this.name(by)} doesn't defeat its opponent`);
+      else toDefeat.push([loser, by]);
+    }
     for (const [loser, by] of toDefeat) await this.defeat(loser, { inFight: true, by });
   }
 
+  /** Does a 'noDefeatOpp' effect cover this Unit (a mod on the Unit, or a player-wide mod for its controller)? */
+  noDefeatOppMod(uid: number): Mod | undefined {
+    const c = this.s.cards[uid];
+    return this.s.mods.find((x) => x.kind === 'noDefeatOpp' && (x.target === uid || (x.target === undefined && x.player === c.controller)));
+  }
+
+  /** Use up a 'noDefeatOpp' effect covering this fighting Unit. */
   private consumeNoDefeat(uid: number): boolean {
-    const m = this.s.mods.find((x) => x.kind === 'noDefeatOpp' && x.target === uid);
+    const m = this.noDefeatOppMod(uid);
     if (!m) return false;
     this.removeMod(m.id);
-    this.log(this.s.cards[uid].controller, `${this.name(uid)} doesn't defeat its opponent`);
     return true;
   }
 
   stealCount(att: CardInst): number {
     const pw = this.power(att);
     if (pw <= 0) return 0;
-    let n = Math.floor(pw / 10) + 1;
+    return Math.max(0, Math.floor(pw / 10) + 1 + this.stealModifier(att));
+  }
+
+  /** Effects that change how many Gigs the actor steals ("steals 1 fewer Gig"). Applied to every steal (11.5.1.3). */
+  stealModifier(att: CardInst): number {
+    let n = 0;
     for (const src of this.sources()) {
       const fn = this.script(src.self).stealMod;
       if (fn) n += fn(this, src.self, src.host, att);
     }
     for (const m of this.modsFor('stealMod', att.uid)) n += m.amount ?? 0;
-    return Math.max(0, n);
+    return n;
+  }
+
+  /**
+   * Gigs of player `from` that the actor may select to steal, after every effect that restricts its ability to steal
+   * (11.5.1.3): player-level 'stealBan' mods (Chrome Fang, Westbrook Netrunner) and scripts' stealBan hooks. Used by
+   * attack steals and effect steals alike.
+   */
+  stealableGigs(att: CardInst, from: PlayerId): Gig[] {
+    const pw = this.power(att);
+    return this.gigsOf(from).filter((g) => {
+      // value {cmp:'gt'|'lt', legendsOnly?}: the actor can't steal Gigs with value higher / lower than its power
+      for (const m of this.playerMods('stealBan', from)) {
+        const v = m.value ?? {};
+        if (v.legendsOnly && !this.isLegend(att)) continue;
+        if (v.cmp === 'gt' && g.value > pw) return false;
+        if (v.cmp === 'lt' && g.value < pw) return false;
+      }
+      for (const src of this.sources()) {
+        const fn = this.script(src.self).stealBan;
+        if (fn && fn(this, src.self, src.host, att, g)) return false;
+      }
+      return true;
+    });
+  }
+
+  /** Rival effects that stop a selected Gig from being stolen ("would be stolen", 11.5.1.5). */
+  private async stealPrevented(att: CardInst, from: PlayerId, gid: number): Promise<boolean> {
+    for (const src of this.sources(from)) {
+      const fn = this.script(src.self).preventSteal;
+      if (fn && (await fn(this, src.self, src.host, att, this.s.gigs[gid]))) return true;
+    }
+    return false;
   }
 
   async steal(attUid: number, from: PlayerId) {
     const att = this.s.cards[attUid];
     const p = att.controller;
-    let n = this.stealCount(att);
-    const pool = () =>
-      this.gigsOf(from).filter((g) => {
-        // player-level steal bans (Chrome Fang / Westbrook Netrunner style): value {cmp:'gt'|'lt', legendsOnly?}
-        for (const m of this.playerMods('stealBan', from)) {
-          const v = m.value ?? {};
-          if (v.legendsOnly && !this.isLegend(att)) continue;
-          const pw = this.power(att);
-          if (v.cmp === 'gt' && g.value > pw) return false;
-          if (v.cmp === 'lt' && g.value < pw) return false;
-        }
-        for (const src of this.sources()) {
-          const fn = this.script(src.self).stealBan;
-          if (fn && fn(this, src.self, src.host, att, g)) return false;
-        }
-        return true;
-      });
+    const n = this.stealCount(att);
     const chosen: number[] = [];
     for (let i = 0; i < n; i++) {
-      const cands = pool().filter((g) => !chosen.includes(g.id));
+      const cands = this.stealableGigs(att, from).filter((g) => !chosen.includes(g.id));
       if (!cands.length) break;
       const gid = await this.chooseGig(p, cands, `Steal a Gig (${i + 1}/${n})`, false, 'steal');
       if (gid === null) break;
@@ -1629,32 +1763,34 @@ export class Game {
     }
     // prevention (rival's effects)
     const final: number[] = [];
-    for (const gid of chosen) {
-      let prevented = false;
-      for (const src of this.sources(from)) {
-        const fn = this.script(src.self).preventSteal;
-        if (fn && (await fn(this, src.self, src.host, att, this.s.gigs[gid]))) {
-          prevented = true;
-          break;
-        }
-      }
-      if (!prevented) final.push(gid);
-    }
+    for (const gid of chosen) if (!(await this.stealPrevented(att, from, gid))) final.push(gid);
     for (const gid of final) this.stealGig(attUid, gid, p);
     if (!final.length) this.log(p, `${this.name(att)} steals nothing`);
   }
 
-  /** Effect-driven steal: actor steals one rival gig chosen by p (e.g. Gorilla Arms, Appetite). */
+  /**
+   * Effect-driven steal: actor steals one rival Gig chosen by p (e.g. Gorilla Arms, Appetite). The same restrictions
+   * and steal-count modifiers as an attack steal apply (11.5.1.3), so "steals 1 fewer Gig" cancels it.
+   */
   async stealOne(p: PlayerId, actor: number, filter?: (g: Gig) => boolean) {
-    const cands = this.gigsOf(other(p)).filter((g) => !filter || filter(g));
-    const gid = await this.chooseGig(p, cands, 'Steal a rival Gig', false, 'steal');
-    if (gid === null) return;
     const att = this.s.cards[actor];
-    for (const src of this.sources(other(p))) {
-      const fn = this.script(src.self).preventSteal;
-      if (fn && (await fn(this, src.self, src.host, att, this.s.gigs[gid]))) return;
+    const from = other(p);
+    const n = 1 + this.stealModifier(att);
+    if (n <= 0) {
+      this.log(p, `${this.name(att)} steals nothing`);
+      return;
     }
-    this.stealGig(actor, gid, p);
+    const chosen: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const cands = this.stealableGigs(att, from).filter((g) => !chosen.includes(g.id) && (!filter || filter(g)));
+      if (!cands.length) break;
+      const gid = await this.chooseGig(p, cands, n > 1 ? `Steal a rival Gig (${i + 1}/${n})` : 'Steal a rival Gig', false, 'steal');
+      if (gid === null) break;
+      chosen.push(gid);
+    }
+    const final: number[] = [];
+    for (const gid of chosen) if (!(await this.stealPrevented(att, from, gid))) final.push(gid);
+    for (const gid of final) this.stealGig(actor, gid, p);
   }
 }
 
@@ -1664,7 +1800,6 @@ export class Game {
  */
 export function costModMatches(g: Game, v: any, c: CardInst, kind: 'play' | 'goSolo'): boolean {
   if (!v) return kind === 'play';
-  if (typeof v === 'function') return !!v(g, c, kind); // legacy (not cloneable)
   if (v.kind && v.kind !== kind) return false;
   if (!v.kind && kind !== 'play') return false;
   if (v.uid !== undefined && v.uid !== c.uid) return false;
@@ -1680,10 +1815,3 @@ function mkInst(uid: number, defId: string, owner: PlayerId, zone: Zone): CardIn
 
 export { nextRandom };
 
-function cloneDropFunctions<T>(x: T): T {
-  if (x === null || typeof x !== 'object') return x;
-  if (Array.isArray(x)) return x.map((v) => (typeof v === 'function' ? undefined : cloneDropFunctions(v))) as any;
-  const o: any = {};
-  for (const [k, v] of Object.entries(x as any)) if (typeof v !== 'function') o[k] = cloneDropFunctions(v);
-  return o;
-}
