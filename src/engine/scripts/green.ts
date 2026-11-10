@@ -181,6 +181,7 @@ export const GREEN: Record<string, CardScript> = {
   // goro_takemura_hands_unclean: Go Solo + Blocker are printed keywords handled by the engine.
 
   jackie_welles_mama_s_favorite: {
+    optionalReplacement: true, // "you may pay 1 €$": applies after mandatory replacements such as Deadman Transmitter (10.28)
     replaceDefeat: async (g, self, host, victim) => {
       if (victim.uid === host.uid || victim.zone !== 'field' || victim.controller !== self.controller) return false;
       if (!(host.zone === 'field' || (host.zone === 'legends' && host.faceUp))) return false;
@@ -354,7 +355,9 @@ export const GREEN: Record<string, CardScript> = {
   maxtac_squadron: {
     on: {
       turnEnd: async (g, self, host, ev) => {
-        if (ev.player !== self.controller || !host.spent || host.zone !== 'field') return;
+        // "if this Unit is spent" is checked when the end of turn begins, so readying it first (Saul Bright) doesn't stop it
+        const wasSpent = ev.spent ? ev.spent.includes(host.uid) : host.spent;
+        if (ev.player !== self.controller || !wasSpent || host.zone !== 'field') return;
         const cands = g.faceUpLegends(self.controller).filter((c) => c.spent && !g.hasMod('cantReady', c.uid));
         const t = await pick(g, self, cands, `${g.name(self)}: ready a face-up Legend`, 'help', false, 'ready');
         if (t) g.ready(t.uid);
@@ -437,15 +440,8 @@ export const GREEN: Record<string, CardScript> = {
   },
 
   panam_palmer_strength_through_family: {
-    abilities: [
-      {
-        label: 'Call a Legend for free',
-        can: (g, self, host) => host.zone === 'field' && g.s.active === self.controller && g.s.phase === 'main' && g.canCall(self.controller),
-        run: async (g, self) => {
-          await g.callLegend(self.controller, undefined, { free: true });
-        },
-      },
-    ],
+    // "During your turn, you may Call a Legend for free": the normal Call action costs 0 (it is still your one Call).
+    callCost: (g, self, host, p) => (host.zone === 'field' && p === self.controller && g.s.active === p ? 0 : null),
     attack: async (g, self) => {
       const d = await g.discard(self.controller, 1, undefined, false, `${g.name(self)}: discard 1`);
       if (d.length) await g.draw(self.controller, g.faceUpLegends(self.controller).length);

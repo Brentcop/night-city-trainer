@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
 import type { Agent, Decision, DeckList, PlayerId, Zone } from '../src/engine/types';
+import { eddies as giveEddies, gig as giveGig, setup as scene, spawn as put } from './engine-helpers';
 
 class FirstAgent implements Agent {
   name = 'First';
@@ -116,5 +117,118 @@ describe('core rules', () => {
     const st = await g.run();
     expect(st.overtime).toBe(true);
     expect(st.winner).toBe('tie');
+  });
+});
+
+// ENG-13: more of the Comprehensive Rules. Pending order, replacement order and Gear following its Unit are in
+// engine-fixes.test.ts; same-seed determinism is in smoke.test.ts.
+describe('core rules (ENG-13)', () => {
+  it('mulligan: the hand is shuffled back and 6 new cards drawn; declining keeps the hand', async () => {
+    const yesFor0: Agent = { name: 'm', decide: async (_g, d) => [d.tag === 'mulligan' && d.player === 0 ? 0 : 1] };
+    const g = Game.create([deck('A'), deck('B')], [yesFor0, yesFor0], { seed: 11, first: 0, log: false });
+    const before0 = [...g.P(0).hand];
+    const before1 = [...g.P(1).hand];
+    await g.mulligans();
+    expect(g.P(0).hand).toHaveLength(6);
+    expect(g.P(0).deck).toHaveLength(34);
+    expect(g.P(0).hand).not.toEqual(before0);
+    expect(g.P(1).hand).toEqual(before1);
+  });
+
+  it('drawing from an empty deck loses the game (deck-out)', async () => {
+    const { g } = scene();
+    for (const u of [...g.P(0).deck]) g.move(u, 'trash');
+    await expect(g.startPhase()).rejects.toThrow();
+    expect(g.s.winner).toBe(1);
+  });
+
+  it('Go Solo: pay the cost (not with the Legend itself), it enters ready and may attack at once; leaving the field removes it', async () => {
+    const { g } = scene();
+    const v = put(g, 0, 'v_corporate_exile', 'legends'); // cost 5, power 8
+    giveEddies(g, 0, 4);
+    expect(g.legalActions(0).some((a) => a.type === 'goSolo')).toBe(false); // 4 Eddies (+ the Legend itself) isn't enough
+    giveEddies(g, 0, 1);
+    await g.doAction(0, { type: 'goSolo', uid: v.uid });
+    expect(v.zone).toBe('field');
+    expect(v.spent).toBe(false);
+    expect(g.available(0)).toBe(0);
+    expect(g.lagPermission(v)).toBe('any');
+    giveGig(g, 1, 4, 2);
+    expect(g.attackTargets(v)).toEqual([{ unit: null, gigs: 1 }]);
+    await g.defeat(v.uid);
+    expect(v.zone).toBe('removed');
+  });
+
+  it('Call a Legend as a reaction costs 1 €$ and needs a payment source', async () => {
+    const { g } = scene();
+    g.s.active = 1;
+    const att = put(g, 1, vanilla, 'field');
+    g.s.attack = { attacker: att.uid, attackerPlayer: 1, targetUnit: null, targetGigs: 0, step: 'react', ended: false };
+    expect(g.legalReactions(0).some((r) => r.type === 'call')).toBe(false);
+    giveEddies(g, 0, 1);
+    const call = g.legalReactions(0).find((r) => r.type === 'call');
+    expect(call).toBeDefined();
+    await g.doReaction(0, call!);
+    expect(g.faceUpLegends(0)).toHaveLength(1);
+    expect(g.available(0)).toBe(0);
+    expect(g.legalReactions(0).some((r) => r.type === 'call')).toBe(false);
+  });
+
+  it('a Blocker redirects an attack on the Gig area into a fight; nothing is stolen', async () => {
+    const block = (d: Decision) => (d.kind === 'reaction' ? d.options.findIndex((o) => (o.action as any)?.type === 'block') : undefined);
+    const { g } = scene([null, block]);
+    const att = put(g, 0, vanilla, 'field'); // power 6
+    const blocker = put(g, 1, 'mox_inciters', 'field'); // Blocker, power 2
+    const x = giveGig(g, 1, 4, 2);
+    await g.attack(0, att.uid, { unit: null, gigs: 1 });
+    expect(blocker.zone).toBe('trash');
+    expect(att.zone).toBe('field');
+    expect(g.gig(x).controller).toBe(1);
+  });
+
+  it('only {Quick} Programs can be played as reactions', async () => {
+    const quick = (d: Decision) => {
+      const i = d.kind === 'reaction' ? d.options.findIndex((o) => (o.action as any)?.type === 'play') : -1;
+      return i >= 0 ? i : undefined;
+    };
+    const { g } = scene([null, quick]);
+    giveEddies(g, 1, 2);
+    const fi = put(g, 1, 'floor_it', 'hand'); // {Quick}: a rival Unit gets -1 power, draw 1
+    const tno = put(g, 1, 'trust_no_one', 'hand');
+    const att = put(g, 0, vanilla, 'field');
+    giveGig(g, 1, 4, 2);
+    g.s.attack = { attacker: att.uid, attackerPlayer: 0, targetUnit: null, targetGigs: 1, step: 'react', ended: false };
+    const plays = g.legalReactions(1).filter((r) => r.type === 'play').map((r) => (r as { uid: number }).uid);
+    expect(plays).toEqual([fi.uid]);
+    g.s.attack = null;
+    await g.attack(0, att.uid, { unit: null, gigs: 1 });
+    expect(fi.zone).toBe('trash');
+    expect(tno.zone).toBe('hand');
+  });
+
+  it('lag clears at the end of the turn; a lagging Unit cannot attack until then', async () => {
+    const { g } = scene();
+    giveEddies(g, 0, 4);
+    const u = put(g, 0, vanilla, 'hand');
+    await g.playFromHand(0, u.uid);
+    giveGig(g, 1, 4, 2);
+    expect(u.lag).toBe(true);
+    expect(g.attackTargets(u)).toEqual([]);
+    await g.endPhase();
+    expect(u.lag).toBe(false);
+    g.s.active = 0;
+    expect(g.attackTargets(u)).toEqual([{ unit: null, gigs: 1 }]);
+  });
+
+  it('cost reductions stop at 1 €$; increases are not capped', () => {
+    const { g } = scene();
+    for (let i = 0; i < 9; i++) put(g, 0, vanilla, 'trash');
+    const tto = put(g, 0, 'trauma_team_operatives', 'hand'); // cost 6, -1 per Unit in trash
+    expect(g.playCost(tto.uid, 0)).toBe(1);
+    const host = put(g, 0, vanilla, 'field');
+    const shield = put(g, 0, 'riot_shield', 'hand');
+    g.equip(shield.uid, host.uid); // rivals pay +2 to Go Solo
+    const v = put(g, 1, 'v_corporate_exile', 'legends');
+    expect(g.playCost(v.uid, 1, 'goSolo')).toBe(7);
   });
 });

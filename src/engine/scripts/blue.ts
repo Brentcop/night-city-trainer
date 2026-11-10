@@ -138,7 +138,9 @@ export const BLUE: Record<string, CardScript> = {
       cardPlayed: async (g, self, _h, ev) => {
         if (ev.player !== self.controller || (ev.type !== 'Unit' && ev.type !== 'Gear')) return;
         if (g.def(ev.uid).color !== 'Blue') return;
-        if (!g.oncePerTurn(`jackie:${self.uid}`)) return;
+        const p = self.controller;
+        // the first Blue Unit/Gear this turn, even if Jackie was face-down when it was played
+        if (!g.firstThisTurn(ev.seq, 'play', (e) => e.p === p && (e.type === 'Unit' || e.type === 'Gear') && g.def(e.uid).color === 'Blue')) return;
         const gid = await g.adjustGig(self.controller, 2, 'down', 'friendly', { source: self.uid });
         if (gid !== null && g.gig(gid).value === 1) await g.draw(self.controller, 1);
       },
@@ -218,23 +220,11 @@ export const BLUE: Record<string, CardScript> = {
   },
 
   reboot_optics: {
-    // Every current rival Unit gets 'noDefeatOpp' (consumed by the engine if it would defeat its opponent);
-    // the delayed trigger removes the leftovers after the first fight involving a rival Unit.
+    // A player-wide 'noDefeatOpp' mod on the rival: the engine uses it up at the next fight of any rival Unit
+    // (including Units that enter play later this turn), and that Unit doesn't defeat its opponent.
     play: async (g, self) => {
-      const us = rivalUnits(g, self);
-      for (const u of us) g.addMod({ kind: 'noDefeatOpp', target: u.uid, source: self.uid, until: 'endOfTurn' });
-      if (us.length) g.addDelayed(self, 'fight', { rival: rival(self) }, 'endOfTurn');
+      g.addMod({ kind: 'noDefeatOpp', player: rival(self), source: self.uid, until: 'endOfTurn' });
     },
-    delayed: {
-      fight: (g, mod, ev) => {
-        const r = mod.value.data.rival as PlayerId;
-        const a = g.c(ev.uid);
-        if (!a || (a.owner !== r && a.controller !== r)) return false;
-        g.s.mods = g.s.mods.filter((m) => !(m.kind === 'noDefeatOpp' && m.source === mod.source));
-        return true;
-      },
-    },
-    partial: 'Units that enter play after resolution are not covered.',
   },
 
   trust_no_one: {

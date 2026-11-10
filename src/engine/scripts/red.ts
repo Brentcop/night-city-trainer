@@ -76,7 +76,7 @@ export const RED: Record<string, CardScript> = {
           if (!(await g.pay(p, cost))) return;
           const units = friendlyUnits(g, self);
           const lagging = units.filter((u) => u.lag);
-          const t = await pick(g, self, lagging.length ? [...lagging, ...units.filter((u) => !u.lag)] : units, 'Johnny Silverhand: choose a friendly Unit', 'help', false, 'pump');
+          const t = await pick(g, self, lagging.length ? [...lagging, ...units.filter((u) => !u.lag)] : units, 'Johnny Silverhand: choose a friendly Unit', 'help', false, 'lagAttack');
           if (!t) return;
           g.addMod({ kind: 'lagAttack', target: t.uid, value: 'units', until: 'endOfTurn', source: self.uid });
           if (g.isTag(t, 'Rocker')) g.givePower(t.uid, 2, 'endOfTurn', undefined, self.uid);
@@ -88,9 +88,11 @@ export const RED: Record<string, CardScript> = {
   yorinobu_arasaka_embracing_destruction: {
     on: {
       attack: async (g, self, _host, ev) => {
-        const att = g.c(ev.attacker);
-        if (att.controller !== self.controller || !g.isTag(att, 'Arasaka')) return;
-        if (!g.oncePerTurn(`yorinobuED:${self.uid}`)) return;
+        const p = self.controller;
+        const arasaka = (e: { p: PlayerId; uid: number }) => e.p === p && g.isTag(e.uid, 'Arasaka');
+        if (!arasaka({ p: g.c(ev.attacker).controller, uid: ev.attacker })) return;
+        // the first such attack this turn, even if this Legend was face-down for an earlier one
+        if (!g.firstThisTurn(ev.seq, 'attack', arasaka)) return;
         await g.draw(self.controller, 1);
         if ((g.streetCred(self.controller) ?? 0) < 20) await g.discard(self.controller, 1);
       },
@@ -277,7 +279,8 @@ export const RED: Record<string, CardScript> = {
 
   deadman_transmitter: {
     replaceDefeat: async (g, self, host, victim) => {
-      if (victim.uid !== host.uid || self.host !== host.uid) return false;
+      // "If this Unit would be defeated": only while equipped to a Unit on the field, not a Legend in the Legends area
+      if (victim.uid !== host.uid || self.host !== host.uid || host.zone !== 'field') return false;
       g.log(self.controller, `${g.name(self)} is defeated instead of ${g.name(host)}`);
       g.defeatGear(self.uid);
       return true;
@@ -452,7 +455,8 @@ export const RED: Record<string, CardScript> = {
     on: {
       unitDefeated: async (g, self, _host, ev) => {
         if (!ev.tags.some((t) => t.toLowerCase() === 'arasaka')) return;
-        if (!g.oncePerTurn(`steelDragon:${self.uid}`)) return;
+        // the first ARASAKA defeat this turn, including ones before this Unit was played
+        if (!g.firstThisTurn(ev.seq, 'defeat', (e) => g.isTag(e.uid, 'Arasaka'))) return;
         await g.draw(self.controller, 1);
       },
     },
