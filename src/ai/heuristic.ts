@@ -420,8 +420,8 @@ export class HeuristicAgent implements Agent {
       const pt = g.power(t);
       let v = base;
       const sign = (c: CardInst) => (c.controller === p ? -1 : 1);
-      if (o.a === 'lose' && pt > 0 && !g.hasMod('noFightDefeat', att.uid) && !g.hasMod('noDefeatOpp', t.uid)) v += sign(att) * unitValue(g, att);
-      if (o.b === 'lose' && pa > 0 && !g.hasMod('noFightDefeat', t.uid) && !g.hasMod('noDefeatOpp', att.uid)) v += sign(t) * unitValue(g, t);
+      if (o.a === 'lose' && pt > 0 && !g.hasMod('noFightDefeat', att.uid) && !g.noDefeatOppMod(t.uid)) v += sign(att) * unitValue(g, att);
+      if (o.b === 'lose' && pa > 0 && !g.hasMod('noFightDefeat', t.uid) && !g.noDefeatOppMod(att.uid)) v += sign(t) * unitValue(g, t);
       return v;
     }
     const n = Math.min(g.stealCount(att), g.P(a.targetGigs!).gigs.length);
