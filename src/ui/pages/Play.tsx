@@ -9,7 +9,8 @@ import { canUndo, type PracticeSession, type Running } from '../../lib/practiceS
 import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
-import { advise, boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
+import { useCoach } from '../useCoach';
+import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
 import { Markdown } from '../components/Markdown';
 import { Verdict, Wr } from '../components/Num';
 import analysis from '../../data/analysis.json';
@@ -155,6 +156,7 @@ function Board({
   const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
   const [hideOver, setHideOver] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const advise = useCoach();
 
   // Undo swaps in a restored game (same match, so the board stays mounted): close what belonged to the old one
   useEffect(() => {
@@ -167,6 +169,7 @@ function Board({
   useEffect(() => {
     if (!pend || !coach || !coachAdvises(pend)) return;
     let alive = true;
+    // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend)
       .then((a) => {
         if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives });
@@ -175,7 +178,7 @@ function Board({
     return () => {
       alive = false;
     };
-  }, [pend, coach, g]);
+  }, [pend, coach, g, advise]);
 
   // a new decision closes any open menu / target mode
   useEffect(() => {

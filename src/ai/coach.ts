@@ -1,7 +1,7 @@
 // Coach: turns the advisor bot's decision into human advice (why, alternatives, matchup plan, deck tips, warnings).
-import { other, type Game } from '../engine/engine';
+import { Game, other } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
-import type { Decision, PlayerId } from '../engine/types';
+import type { Agent, Decision, GameState, PlayerId } from '../engine/types';
 import { HeuristicAgent } from './heuristic';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
 import { GIG_SWING, knownCards } from './eval';
@@ -60,6 +60,45 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
     why = `${m[1]} — ${Math.abs(diff) < 0.05 ? 'about even with doing nothing' : diff > 0 ? `saves about ${diff.toFixed(1)} Gigs compared with not acting` : 'the least bad option here'}.`;
   }
   return { index, why, alternatives };
+}
+
+/**
+ * Everything advise() reads, as plain data, so it can run in a worker (src/sim/coach.worker.ts). The coach depends only
+ * on the game state (deck names, cards, Gigs, rng), the decision, and whether engine effects are still pending (with
+ * effects pending, lookahead clones refuse, exactly as on the live game). The log and trace are left out: the coach
+ * never reads them.
+ */
+export interface CoachRequest {
+  state: GameState;
+  decision: Decision;
+  pending: { player: PlayerId; label: string }[];
+}
+
+export function coachRequest(g: Game, d: Decision): CoachRequest {
+  const { log, trace } = g.s;
+  g.s.log = [];
+  g.s.trace = undefined;
+  try {
+    // a snapshot: the live game moves on after the human answers
+    const state = structuredClone(g.s);
+    if (trace) state.trace = [];
+    return { state, decision: structuredClone(d), pending: g.pending.map((x) => ({ player: x.player, label: x.label })) };
+  } finally {
+    g.s.log = log;
+    g.s.trace = trace;
+  }
+}
+
+const noAgent: Agent = {
+  name: 'none',
+  decide: () => Promise.reject(new Error('the coach position has no agents')),
+};
+
+/** advise() for a serialised position: rebuilds the game and asks the same coach. */
+export function adviseRequest(q: CoachRequest): Promise<Advice> {
+  const g = new Game(q.state, [noAgent, noAgent]);
+  g.pending = q.pending.map((x) => ({ ...x, run: async () => undefined }));
+  return advise(g, q.decision);
 }
 
 export interface MoveGrade {
