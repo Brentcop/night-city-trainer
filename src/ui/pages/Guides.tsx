@@ -51,10 +51,10 @@ export function GuidesPage({ initial }: { initial?: string }) {
           <div className="row">
             {g.deckFile && (
               <>
-                <a href={`#/deck?d=${g.deckFile}`}>
+                <a href={`#/deck?d=${encodeURIComponent(g.deckFile)}`}>
                   <button>Deck profile & stats</button>
                 </a>
-                <a href={`#/play?d=${g.deckFile}`}>
+                <a href={`#/play?d=${encodeURIComponent(g.deckFile)}`}>
                   <button className="primary">Practice with it</button>
                 </a>
                 <a href={`#/play?o=${g.deckFile}`}>

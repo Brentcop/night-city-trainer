@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CARDS, CARD_BY_ID, cardLabel } from '../../engine/cards';
 import { counts, deckColors, exportChoom, exportOfficial, exportSimJson, parseDeck, ramLimits, validateDeck } from '../../engine/deck';
 import type { CardDef, Color, DeckList } from '../../engine/types';
 import { allDecks, deleteCustom, upsertCustom } from '../../lib/browserLibrary';
 import { CardText, CardView, costLabel } from '../components/CardView';
 import { findDeck } from '../components/DeckPicker';
+import { customSaveName, isBuiltin } from '../deckLookup';
 import { ROLES } from '../../ai/knowledge';
 import { ProvenanceBlock } from '../components/Provenance';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
@@ -58,43 +59,114 @@ export function DecksPage({ initial }: { initial?: string }) {
   );
 }
 
+const EMPTY_DECK = (): DeckList => ({ name: 'New deck', legends: [], main: [], sideboard: [] });
+const deckSig = (d: DeckList) => JSON.stringify([d.name, d.legends, d.main, d.sideboard]);
+
+/** Put the open deck in the URL (#/decks?d=file) without a hashchange, so reload and Back reopen it. */
+function syncUrl(file: string) {
+  try {
+    const hash = file ? `#/decks?d=${encodeURIComponent(file)}` : '#/decks';
+    if (window.location.hash !== hash) history.replaceState(history.state, '', hash);
+  } catch {
+    /* history unavailable (sandboxed frame): the URL just doesn't follow */
+  }
+}
+
 function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: () => void }) {
   const [version, setVersion] = useState(0);
   const decks = useMemo(() => allDecks(), [version]);
-  const start = findDeck(initial) ?? decks[0];
+  // exact file match only: a link to a deleted or renamed deck must not open a different deck
+  const start = findDeck(initial);
   const [view, setView] = useState<'list' | 'visual'>(() => (loadPref('nct.deckEditorView', 'list') === 'visual' ? 'visual' : 'list'));
   const changeView = (v: 'list' | 'visual') => {
     setView(v);
     savePref('nct.deckEditorView', v);
   };
-  const [sel, setSel] = useState<string>(initial && start ? start.file : '');
-  const [draft, setDraft] = useState<DeckList>(() => (initial && start ? structuredClone(start.deck) : { name: 'New deck', legends: [], main: [], sideboard: [] }));
+  const [sel, setSel] = useState<string>(start ? start.file : '');
+  const [draft, setDraft] = useState<DeckList>(() => (start ? structuredClone(start.deck) : EMPTY_DECK()));
+  // what the draft is compared with to decide "unsaved changes": the deck as opened or last saved
+  const [baseline, setBaseline] = useState<string>(() => deckSig(start ? start.deck : EMPTY_DECK()));
   const [importText, setImportText] = useState('');
-  const [importMsg, setImportMsg] = useState('');
+  const [importMsg, setImportMsg] = useState(initial && !start ? `No deck matches the link “${initial}” — it may have been deleted or renamed. Started a new empty deck instead.` : '');
   const [showImport, setShowImport] = useState(false);
   const [listQ, setListQ] = useState('');
   const [exportFmt, setExportFmt] = useState<'official' | 'choom' | 'sim'>('official');
+  const dirty = deckSig(draft) !== baseline;
+
+  // Unsaved edits: warn before the tab closes, and before any in-app link (top nav, Play it, View profile…) leaves the editor.
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"]') as HTMLAnchorElement | null;
+      if (!a || a.target === '_blank') return;
+      if (!window.confirm('You have unsaved changes to this deck. Leave and discard them?')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    document.addEventListener('click', onClick, true);
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload);
+      document.removeEventListener('click', onClick, true);
+    };
+  }, [dirty]);
+  useEffect(() => syncUrl(sel), [sel]);
+
+  const discardOk = () => !dirty || window.confirm('You have unsaved changes to this deck. Discard them?');
+  const load = (file: string, deck: DeckList) => {
+    setSel(file);
+    setDraft(structuredClone(deck));
+    setBaseline(deckSig(deck));
+  };
 
   const selected = decks.find((d) => d.file === sel);
   const open = (file: string) => {
     const d = decks.find((x) => x.file === file);
-    if (!d) return;
-    setSel(file);
-    setDraft(structuredClone(d.deck));
+    if (!d || file === sel || !discardOk()) return;
+    load(file, d.deck);
+    setImportMsg('');
   };
 
   const doImport = () => {
+    if (!discardOk()) return;
     const { deck, errors } = parseDeck(importText, 'Imported deck');
     setDraft(deck);
     setSel('');
+    setBaseline(deckSig(EMPTY_DECK())); // an import is unsaved work until it is saved
     setImportMsg(errors.length ? `Imported with ${errors.length} unrecognized line(s): ${errors.slice(0, 5).join(' | ')}` : `Imported "${deck.name}".`);
     setShowImport(false);
   };
 
   const save = () => {
-    upsertCustom(draft);
+    // A built-in deck's name is reserved: saving under it would shadow the built-in in standings, ratings and links.
+    const name = customSaveName(draft.name, decks);
+    if (!name) {
+      setImportMsg('Give the deck a name before saving.');
+      return;
+    }
+    const deck = { ...draft, name };
+    upsertCustom(deck);
+    setDraft(deck);
+    setBaseline(deckSig(deck));
     setVersion((v) => v + 1);
-    setSel(`custom:${draft.name}`);
+    setSel(`custom:${name}`);
+    setImportMsg(name !== draft.name.trim() ? `“${draft.name.trim()}” is the name of a built-in deck, so this was saved as “${name}”.` : `Saved “${name}” to My decks.`);
+  };
+  const remove = () => {
+    if (!selected || selected.kind !== 'custom' || isBuiltin(selected)) return;
+    if (!window.confirm(`Delete “${selected.deck.name}” from My decks? This can't be undone.`)) return;
+    deleteCustom(selected.deck.name);
+    setVersion((v) => v + 1);
+    // the draft stays open as unsaved work, so an accidental delete can be undone with Save
+    setSel('');
+    setBaseline(deckSig(EMPTY_DECK()));
+    setImportMsg(`Deleted “${selected.deck.name}”. The list is still open here — Save brings it back.`);
   };
 
   const errs = validateDeck(draft);
@@ -107,14 +179,15 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
           <h3 style={{ margin: 0 }}>Deck library</h3>
           <button onClick={() => setShowImport((x) => !x)}>Import</button>
         </div>
-        <button style={{ marginTop: 8, width: '100%' }} onClick={onGallery}>
+        <button style={{ marginTop: 8, width: '100%' }} onClick={() => discardOk() && onGallery()}>
           ▦ Back to gallery
         </button>
         <button
           style={{ marginTop: 8, width: '100%' }}
           onClick={() => {
-            setSel('');
-            setDraft({ name: 'New deck', legends: [], main: [], sideboard: [] });
+            if (!discardOk()) return;
+            load('', EMPTY_DECK());
+            setImportMsg('');
           }}
         >
           + New empty deck
@@ -167,28 +240,26 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
           <div className="spread">
             <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={{ fontSize: '1.2rem', fontWeight: 600, flex: 1, minWidth: 200 }} />
             <div className="row">
-              <button className="primary" onClick={save}>
-                Save to My decks
+              <button className="primary" onClick={save} title={dirty ? 'You have unsaved changes' : undefined}>
+                {dirty ? 'Save to My decks •' : 'Save to My decks'}
               </button>
-              {selected?.kind === 'custom' && (
-                <button
-                  onClick={() => {
-                    deleteCustom(selected.deck.name);
-                    setVersion((v) => v + 1);
-                  }}
-                >
-                  Delete
+              {selected && !isBuiltin(selected) && <button onClick={remove}>Delete</button>}
+              {/* Play/Profile/Lab use the saved deck: while the draft has unsaved edits they say so. */}
+              {sel && selected ? (
+                <a href={`#/play?d=${encodeURIComponent(sel)}`} title={dirty ? 'Plays the saved version — your unsaved edits are not included' : undefined}>
+                  <button>{dirty ? 'Play saved version' : 'Play it'}</button>
+                </a>
+              ) : (
+                <button disabled title="Save the deck first">
+                  Play it
                 </button>
               )}
-              <a href={`#/play?d=${encodeURIComponent(sel || '')}`}>
-                <button disabled={!sel}>Play it</button>
-              </a>
               <a href="#/arena">
                 <button>Test in Lab</button>
               </a>
               {sel && selected && (
-                <a href={profileHref(sel)}>
-                  <button>View profile</button>
+                <a href={profileHref(sel)} title={dirty ? 'Shows the saved version — your unsaved edits are not included' : undefined}>
+                  <button>{dirty ? 'Profile (saved version)' : 'View profile'}</button>
                 </a>
               )}
             </div>
