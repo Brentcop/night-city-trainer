@@ -1,5 +1,5 @@
 // Tournament series from the CLI. Same rules, bots and seeds as the in-browser runner (src/lib/tournament.ts),
-// so events recorded here replay exactly on the site.
+// so events recorded here replay exactly on the site while the code is at the same SIM_VERSION.
 //
 //   npx tsx scripts/tournament.ts [--events 12] [--start N] [--field all] [--rounds auto] [--top 8] [--bo 3] [--bot deep] [--threads N] [--force]
 //

@@ -1,7 +1,7 @@
 // Tournament engine shared by the CLI (scripts/tournament.ts) and the in-browser runner (Tournaments → Run).
 // Swiss rounds (3 match points per win, no avoidable rematches, bye to the lowest-ranked deck without one), then an optional
 // single-elimination top cut seeded 1vN, 2v(N-1)… Matches are best-of-1 or best-of-3; after each game the loser goes first.
-// Every game keeps its seed and seat, so any game can be replayed exactly with makeBot().
+// Every game keeps its seed and seat, so any game can be replayed exactly with makeBot() on the same code (see SIM_VERSION).
 import { makeTierBot, type BotChoice } from '../ai/tiers';
 import type { DeckList } from '../engine/types';
 
@@ -18,7 +18,9 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
 
 /**
  * Version of the engine, bots and event rules that recorded an event. Bump when results for a seed change.
- * 2: backtracking Swiss pairing and hash-based tie-break. Events without `simVersion` predate it.
+ * 2: the 2026-11 review fixes, which landed together: engine rules and card scripts, bot choices and fair hidden
+ *    information, backtracking Swiss pairing and the hash-based tie-break.
+ * Events without `simVersion` predate all of these and no longer replay identically.
  */
 export const SIM_VERSION = 2;
 
