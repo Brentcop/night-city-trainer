@@ -4,12 +4,35 @@
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
-import { DEFAULT_WEIGHTS, evaluate, planFor, planScore, unitValue, type EvalWeights } from './eval';
+import { DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, type EvalWeights } from './eval';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { shuffleInPlace } from '../engine/rng';
-import { applyProfile, classify, DEFAULT_PROFILES, type Archetype, type Profiles } from './archetype';
-import { knownCards } from './eval';
+import { applyProfile, classify, type Archetype, type Profiles } from './archetype';
 import { cardImpact } from './impact';
+
+/**
+ * How the bot treats each `chooseCard` tag used by the engine and the card scripts (read from the scripts, not from
+ * prompt text):
+ *   take     — the chosen card is gained or played (search, recursion, free plays, moving Gear): pick the best card.
+ *   giveUp   — the chosen card is lost (discards, trashing or bottom-decking own cards): pick the least valuable card.
+ *   blind    — the choice carries no information for the chooser (looking at an unknown face-down Legend): first option.
+ *   target   — removal: on rival cards take the most valuable one, on own cards (paying a cost) the least valuable.
+ * Unknown tags fall back to the intent: harm → target, otherwise take.
+ */
+export const CARD_TAG_POLICY: Record<string, 'take' | 'giveUp' | 'blind' | 'target'> = {
+  search: 'take', // searchTop / millAndTake / Three Mouths / The Heist / Hacked Corpo / V Streetkid / Screw / Meredith Stout
+  playFromTrash: 'take', // Alt Cunningham (Legend)
+  freePlay: 'take', // Lizzy Wizzy
+  playFree: 'take', // We Gotta Live Together, Yorinobu, River Ward, The Relic, Viktor Vektor
+  moveGear: 'take', // Gear to move onto a friendly Unit
+  discard: 'giveUp', // Game.discard (own or rival-forced) and Alt Cunningham's discard-to-prevent-a-steal
+  trash: 'giveUp', // River Ward: trash 1 of the top 2 of your deck
+  bottom: 'giveUp',
+  bottomdeck: 'giveUp',
+  look: 'blind', // Kiroshi Optics: look at a face-down Legend
+  defeat: 'target', // Detonate
+  defeatGear: 'target', // Heywood Ripperdoc (harm), Dum Dum / Gilded Maton (friendly Gear as a cost)
+};
 
 export interface HeuristicOptions {
   name?: string;
@@ -86,6 +109,11 @@ export class HeuristicAgent implements Agent {
   }
 
   async decide(g: Game, d: Decision): Promise<number[]> {
+    // explanations describe the latest main-phase action or reaction (sub-choices keep the move that caused them)
+    if (d.kind === 'action' || d.kind === 'reaction') {
+      this.lastThought = '';
+      this.lastAlternatives = [];
+    }
     switch (d.kind) {
       case 'action':
         return [await this.chooseMain(g, d)];
@@ -170,19 +198,17 @@ export class HeuristicAgent implements Agent {
       this.lastAlternatives = [];
       return actions.findIndex((a) => a.type === 'sell' && a.uid === sell);
     }
-    if (!this.opts.lookahead) return this.fastMain(g, p, actions);
+    if (!this.opts.lookahead) return this.fastMain(g, actions);
     // 2) lookahead over the rest
     const base = evaluate(g, p, this.w(g, p));
     let bestI = passIdx;
     let bestV = passIdx >= 0 ? base : -Infinity;
-    const cands = actions
-      .map((a, i) => ({ a, i }))
-      .filter(({ a }) => a.type !== 'pass' && a.type !== 'sell')
-      .slice(0, this.opts.maxCandidates);
-    // Face-down Legends are unknown to their owner: value an unknown Call as the average over unknown legends.
-    const unknownCalls = cands.filter(({ a }) => a.type === 'call' && !g.c(a.uid).known);
+    const all = actions.map((a, i) => ({ a, i })).filter(({ a }) => a.type !== 'pass' && a.type !== 'sell');
+    // Face-down Legends are unknown to their owner: all unknown Calls are one candidate, valued as their average.
+    const unknownCalls = all.filter(({ a }) => isUnknownCall(g, a));
+    const cands = this.capCandidates(g, unknownCalls.length ? [...all.filter((x) => !isUnknownCall(g, x.a)), unknownCalls[0]] : all);
     let unknownCallV: number | null = null;
-    if (unknownCalls.length) {
+    if (unknownCalls.length && cands.includes(unknownCalls[0])) {
       let sum = 0;
       for (const { a } of unknownCalls) sum += await this.simulate(g, p, a);
       unknownCallV = sum / unknownCalls.length;
@@ -190,8 +216,7 @@ export class HeuristicAgent implements Agent {
     const scored: { i: number; v: number }[] = [];
     if (passIdx >= 0) scored.push({ i: passIdx, v: base });
     for (const { a, i } of cands) {
-      if (a.type === 'call' && !g.c(a.uid).known && a !== unknownCalls[0].a) continue;
-      let v = a.type === 'call' && !g.c(a.uid).known ? unknownCallV! : await this.simulate(g, p, a);
+      let v = isUnknownCall(g, a) ? unknownCallV! : await this.simulate(g, p, a);
       // calling with spare mana at end of turn is fine, but prefer doing it on rival's turn as a reaction
       if (a.type === 'call') v -= 1.5;
       if (this.opts.noise) v += (this.rand() - 0.5) * this.opts.noise * 10;
@@ -213,7 +238,11 @@ export class HeuristicAgent implements Agent {
       let bestDeep = -Infinity;
       deepScored = [];
       for (const t of top) {
-        const dv = (await this.rollout(g, p, actions[t.i])) + t.v * 0.05;
+        // an unknown Call stands for every unknown slot: average the rollouts over them
+        const group = isUnknownCall(g, actions[t.i]) ? unknownCalls.map((x) => x.a) : [actions[t.i]];
+        let sum = 0;
+        for (const a of group) sum += await this.rollout(g, p, a);
+        const dv = sum / group.length + t.v * 0.05;
         deepScored.push({ i: t.i, v: dv });
         if (dv > bestDeep) {
           bestDeep = dv;
@@ -271,22 +300,35 @@ export class HeuristicAgent implements Agent {
     return evaluate(cg, p, this.w(g, p));
   }
 
+  /**
+   * Keep at most maxCandidates actions for lookahead without silently dropping attacks: the best attack of every
+   * attacker is kept first, then the rest by the fast policy's score. Order of the survivors is unchanged.
+   */
+  capCandidates<T extends { a: Action; i: number }>(g: Game, pool: T[]): T[] {
+    const max = this.opts.maxCandidates;
+    if (pool.length <= max) return pool;
+    const pr = pool.map((x) => ({ x, s: fastPrior(g, x.a) }));
+    const keep = new Set<T>();
+    const bestAtt = new Map<number, { x: T; s: number }>();
+    for (const y of pr) {
+      if (y.x.a.type !== 'attack') continue;
+      const cur = bestAtt.get(y.x.a.uid);
+      if (!cur || y.s > cur.s) bestAtt.set(y.x.a.uid, y);
+    }
+    for (const y of [...bestAtt.values()].sort((a, b) => b.s - a.s)) if (keep.size < max) keep.add(y.x);
+    for (const y of [...pr].sort((a, b) => b.s - a.s || a.x.i - b.x.i)) {
+      if (keep.size >= max) break;
+      keep.add(y.x);
+    }
+    return pool.filter((x) => keep.has(x));
+  }
+
   /** Cheap greedy policy used inside lookahead clones. */
-  private fastMain(g: Game, p: PlayerId, actions: Action[]): number {
+  private fastMain(g: Game, actions: Action[]): number {
     let best = actions.findIndex((a) => a.type === 'pass');
     let bestScore = 0;
     actions.forEach((a, i) => {
-      let s = 0;
-      if (a.type === 'play') s = cardValue(g.c(a.uid).defId);
-      else if (a.type === 'attack') {
-        const att = g.c(a.uid);
-        if (a.targetGigs !== null) s = 30;
-        else if (a.targetUnit !== null) {
-          const o = g.fightOutcome(a.uid, a.targetUnit);
-          s = o.a === 'win' ? 12 + unitValue(g, g.c(a.targetUnit)) - 0 : -5;
-        }
-        if (g.power(att) === 0) s = -1;
-      } else if (a.type === 'goSolo') s = 8;
+      const s = a.type === 'play' || a.type === 'attack' || a.type === 'goSolo' ? fastPrior(g, a) : 0;
       if (s > bestScore) {
         bestScore = s;
         best = i;
@@ -301,31 +343,23 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const rx = d.options.map((o) => o.action as Reaction);
     const endIdx = rx.findIndex((r) => r.type === 'endReact');
-    if (!this.opts.lookahead) return this.fastReaction(g, p, rx);
+    if (!this.opts.lookahead) return this.fastReaction(g, rx);
     if (this.opts.deepReactions > 0 && g.s.attack) return this.deepReaction(g, d, rx, endIdx);
     const baseV = this.projectAttack(g, p);
-    let bestI = endIdx;
-    let bestV = baseV;
-    for (let i = 0; i < rx.length; i++) {
-      if (i === endIdx) continue;
+    const value = async (r: Reaction) => {
       const fast: [Agent, Agent] = [new HeuristicAgent({ lookahead: false }), new HeuristicAgent({ lookahead: false })];
       const cg = g.clone(fast);
       hideInfo(cg, p);
-      let v: number;
       try {
-        await cg.doReaction(p, rx[i]);
+        await cg.doReaction(p, r);
         await cg.resolvePending();
-        v = this.projectAttack(cg, p);
+        return this.projectAttack(cg, p);
       } catch (e) {
         if (!(e instanceof GameOverSignal)) throw e;
-        v = evaluate(cg, p, this.w(g, p));
+        return evaluate(cg, p, this.w(g, p));
       }
-      if (rx[i].type === 'call') v += 0.5; // using a reaction-time call is efficient
-      if (v > bestV + 0.5) {
-        bestV = v;
-        bestI = i;
-      }
-    }
+    };
+    const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
     return bestI;
   }
@@ -334,11 +368,18 @@ export class HeuristicAgent implements Agent {
   private async deepReaction(g: Game, d: Decision, rx: Reaction[], endIdx: number): Promise<number> {
     const p = d.player;
     const attacker = g.s.attack!.attacker;
+    // one random world per rollout (hidden-information deal, dice), shared by every candidate: common random numbers
+    const worlds = Array.from({ length: this.opts.deepReactions }, () => ({
+      rng: Math.floor(this.rand() * 2 ** 31),
+      a: Math.floor(this.rand() * 1e9),
+      b: Math.floor(this.rand() * 1e9),
+    }));
     const value = async (r: Reaction) => {
       let sum = 0;
-      for (let k = 0; k < this.opts.deepReactions; k++) {
-        const mk = () => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights: this.opts.weights, profiles: this.opts.profiles, seed: Math.floor(this.rand() * 1e9) });
-        const cg = g.clone([mk(), mk()]);
+      for (const w of worlds) {
+        const mk = (seed: number) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights: this.opts.weights, profiles: this.opts.profiles, seed });
+        const cg = g.clone([mk(w.a), mk(w.b)]);
+        cg.s.rng = w.rng;
         hideInfo(cg, p);
         try {
           if (r.type === 'endReact') await cg.attackRest(attacker, true);
@@ -358,19 +399,10 @@ export class HeuristicAgent implements Agent {
         }
         sum += Math.max(-600, Math.min(600, evaluate(cg, p, this.w(g, p))));
       }
-      return sum / this.opts.deepReactions;
+      return sum / worlds.length;
     };
     const baseV = endIdx >= 0 ? await value(rx[endIdx]) : -Infinity;
-    let bestI = endIdx >= 0 ? endIdx : 0;
-    let bestV = baseV;
-    for (let i = 0; i < rx.length; i++) {
-      if (i === endIdx) continue;
-      const v = (await value(rx[i])) + (rx[i].type === 'call' ? 0.5 : 0);
-      if (v > bestV + 0.5) {
-        bestV = v;
-        bestI = i;
-      }
-    }
+    const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
     return bestI;
   }
@@ -402,7 +434,7 @@ export class HeuristicAgent implements Agent {
     return base - (att.controller === p ? -penalty : penalty);
   }
 
-  private fastReaction(g: Game, p: PlayerId, rx: Reaction[]): number {
+  private fastReaction(g: Game, rx: Reaction[]): number {
     const a = g.s.attack!;
     const att = g.c(a.attacker);
     const pa = g.power(att);
@@ -427,14 +459,97 @@ export class HeuristicAgent implements Agent {
 
   // ------------------------------------------------------------------ sub-choices
 
-  private yesNo(g: Game, d: Decision): boolean {
+  /**
+   * Yes/no prompts, by tag (every yes/no tag in the card scripts):
+   *   mulligan · kerryReroll · replaceDefeat (Jackie) · trashTop (Tetratronic Rippler) · draw (Shattered Memories) ·
+   *   discardFor (Maman Brigitte) · pay (El Sombrerón) · addToHand / freePlay / playFree / call (pure gains: yes).
+   */
+  yesNo(g: Game, d: Decision): boolean {
     const p = d.player;
-    if (d.tag === 'mulligan') return this.wantsMulligan(g, p);
-    if (d.tag === 'kerryReroll') {
-      // reroll unless the gig already helps our plan
-      return true;
+    const w = this.w(g, p);
+    switch (d.tag) {
+      case 'mulligan':
+        return this.wantsMulligan(g, p);
+      case 'kerryReroll':
+        return this.wantsReroll(g, p, d, w);
+      case 'replaceDefeat':
+        return this.wantsJackieSwap(g, p, d, w);
+      case 'trashTop': {
+        // trash the revealed top card when it is worse than an average card left in the deck (and the deck isn't short)
+        const deck = g.P(p).deck;
+        if (deck.length <= 8) return false;
+        const avg = deck.slice(1).reduce((a, u) => a + cardValue(g.c(u).defId), 0) / (deck.length - 1);
+        return cardValue(g.c(deck[0]).defId) < avg - 0.5;
+      }
+      case 'draw': {
+        // Shattered Memories: drawing 5 from a deck of fewer than 5 loses the game; keep a few cards in reserve too
+        const left = g.P(p).deck.length;
+        if (left < 5) return false;
+        if (left >= 8) return true;
+        return g.P(p).hand.length === 0 || Math.max(g.P(p).gigs.length, g.P(other(p)).gigs.length) >= 5;
+      }
+      case 'discardFor': {
+        // Maman Brigitte: two Programs from hand for bottom-decking the rival's best unequipped Unit
+        const targets = g.units(other(p)).filter((c) => c.gear.length === 0);
+        const best = Math.max(0, ...targets.map((c) => unitValue(g, c, w)));
+        return best > 2 * w.hand;
+      }
+      case 'pay':
+        return this.wantsSombreron(g, p, d);
+      default:
+        // addToHand, freePlay, playFree, call: free card advantage or a free play
+        return true;
     }
-    return true;
+  }
+
+  /** Kerry Eurodyne: reroll a Fixer-rolled Gig when the expected roll (plan fit + min/max draws) beats the current one. */
+  private wantsReroll(g: Game, p: PlayerId, d: Decision, w: EvalWeights): boolean {
+    const plan = planFor(g, p, p);
+    const gigs = g.gigsOf(p);
+    // the Gig just rolled in from the Fixer is the newest friendly Gig (the engine appends it before the trigger)
+    const gig = gigs[gigs.length - 1];
+    if (!gig || d.source === undefined) return false;
+    const score = (v: number) => {
+      const view = gigs.map((x) => (x.id === gig.id ? ({ ...x, value: v } as Gig) : x));
+      const draws = v === 1 || v === gig.sides ? (gig.sides === 20 ? 3 : 1) : 0;
+      return planScore(view, plan) * w.plan + draws * w.hand;
+    };
+    let mean = 0;
+    for (let v = 1; v <= gig.sides; v++) mean += score(v);
+    mean /= gig.sides;
+    return mean > score(gig.value) + 0.25;
+  }
+
+  /** Jackie Welles: pay 1 €$ and lose Jackie instead of the Unit about to be defeated, when that Unit is worth more. */
+  private wantsJackieSwap(g: Game, p: PlayerId, d: Decision, w: EvalWeights): boolean {
+    if (d.source === undefined) return false;
+    const jackie = g.c(d.source);
+    const others = g.units(p).filter((c) => c.uid !== jackie.uid);
+    // the victim: our Unit in the current fight, else the friendly Unit the prompt names
+    const att = g.s.attack;
+    const victim =
+      others.find((c) => att && (att.attacker === c.uid || att.targetUnit === c.uid)) ?? others.find((c) => d.prompt.includes(`instead of ${g.name(c)}?`));
+    if (!victim) return false;
+    // a face-up Legend is worth more than its body: it stays useful (Go Solo, gear host) every turn
+    const jackieV = unitValue(g, jackie, w) + (jackie.zone === 'legends' ? w.faceUpLegend + 6 : 0);
+    return unitValue(g, victim, w) > jackieV + w.eddie;
+  }
+
+  /** El Sombrerón: pay 2 €$ for +max-Gig power only when the extra power changes the attack's outcome. */
+  private wantsSombreron(g: Game, p: PlayerId, d: Decision): boolean {
+    const att = g.s.attack;
+    if (!att || d.source === undefined) return false;
+    const host = g.c(att.attacker);
+    const gain = Math.max(0, ...g.gigsOf(p).filter((x) => g.isMaxGig(x)).map((x) => x.value));
+    const pa = g.power(host);
+    const after = pa + gain;
+    if (att.targetUnit !== null) {
+      const pt = g.power(g.c(att.targetUnit));
+      return pt >= pa && pt < after;
+    }
+    // Gig attack: reaching 10 steals a second Gig, or beating a ready rival blocker that could redirect the attack
+    if (pa < 10 && after >= 10) return true;
+    return g.units(other(p)).some((c) => !c.spent && g.hasKw(c, 'blocker') && g.power(c) >= pa && g.power(c) < after);
   }
 
   wantsMulligan(g: Game, p: PlayerId): boolean {
@@ -487,6 +602,18 @@ export class HeuristicAgent implements Agent {
     // own vs rival units
     const mine = units.filter(({ c }) => c.controller === p);
     const theirs = units.filter(({ c }) => c.controller !== p);
+    if (d.tag === 'adrenaline' || d.tag === 'lagAttack') {
+      // "may attack this turn" only helps a ready Unit that is lagging and couldn't otherwise attack (what it may attack)
+      const wants: ('units' | 'gigs' | null)[] = d.tag === 'adrenaline' ? ['units', 'gigs', null] : ['gigs', null];
+      const lagging = mine.filter(({ c }) => {
+        const perm = g.lagPermission(c);
+        return c.lag && !c.spent && perm !== 'any' && wants.includes(perm);
+      });
+      if (lagging.length) {
+        lagging.sort((a, b) => g.power(b.c) - g.power(a.c));
+        return lagging[0].i;
+      }
+    }
     let intent = d.intent;
     if (!intent) intent = theirs.length && !mine.length ? 'harm' : 'help';
     if (intent === 'harm') {
@@ -508,29 +635,36 @@ export class HeuristicAgent implements Agent {
     return pool[0].i;
   }
 
-  private chooseCardOpt(g: Game, d: Decision): number {
+  /** Card choices, by tag (see CARD_TAG_POLICY), never by prompt text. */
+  chooseCardOpt(g: Game, d: Decision): number {
     const real = d.options.map((o, i) => ({ o, i })).filter(({ o }) => o.uid !== undefined);
     const none = d.options.findIndex((o) => o.key === 'none');
     if (!real.length) return Math.max(0, none);
     const p = d.player;
+    const policy = CARD_TAG_POLICY[d.tag ?? ''] ?? (d.intent === 'harm' ? 'target' : 'take');
+    if (policy === 'blind') return real[0].i;
     const scored = real.map(({ o, i }) => {
       const c = g.c(o.uid!);
-      let v = cardValue(c.defId) + this.opts.impact * cardImpact(g.P(p).name, c.defId);
-      // prefer cards we can cast soon
+      const mine = c.controller === p;
+      // impact telemetry is per deck: a rival card is valued for the rival's deck
+      let v = cardValue(c.defId) + this.opts.impact * cardImpact(g.P(c.controller).name, c.defId);
+      // prefer keeping / getting cards we can cast soon
       const cost = g.def(c).cost ?? 0;
-      if (cost <= g.P(p).eddies.length + 3) v += 1.5;
-      return { i, v, mine: c.owner === p };
+      if (mine && cost <= g.P(p).eddies.length + 3) v += 1.5;
+      return { i, v, mine };
     });
-    const discardLike = d.tag === 'discard' || d.intent === 'harm' || /discard|trash|bottom/i.test(d.prompt);
-    if (discardLike) {
-      scored.sort((a, b) => a.v - b.v);
-      return scored[0].i;
-    }
-    scored.sort((a, b) => b.v - a.v);
-    return scored[0].i;
+    const best = (xs: typeof scored) => [...xs].sort((a, b) => b.v - a.v || a.i - b.i)[0].i;
+    const worst = (xs: typeof scored) => [...xs].sort((a, b) => a.v - b.v || a.i - b.i)[0].i;
+    if (policy === 'take') return best(scored);
+    if (policy === 'giveUp') return worst(scored);
+    // target: hit the rival's most valuable card; only pay with our own when there is nothing else (and it's forced)
+    const theirs = scored.filter((x) => !x.mine);
+    if (theirs.length) return best(theirs);
+    if (d.intent === 'harm' && none >= 0) return none;
+    return worst(scored);
   }
 
-  private chooseGigOpt(g: Game, d: Decision): number {
+  chooseGigOpt(g: Game, d: Decision): number {
     const p = d.player;
     const real = d.options.map((o, i) => ({ o, i })).filter(({ o }) => o.gig !== undefined);
     const none = d.options.findIndex((o) => o.key === 'none');
@@ -543,28 +677,64 @@ export class HeuristicAgent implements Agent {
       gigs.sort((a, b) => (wantSmall ? a.x.sides - b.x.sides : b.x.sides - a.x.sides));
       return gigs[0].i;
     }
-    if (d.tag === 'steal' || gigs.every(({ x }) => x.controller !== p)) {
-      // pick the gig that most improves our plan minus the rival's
-      const rPlan = planFor(g, other(p), p);
-      let best = gigs[0].i;
+    const rPlan = planFor(g, other(p), p);
+    /** our plan score minus the rival's, with `give` moved to the rival and `take` moved to us */
+    const swing = (give: Gig | null, take: Gig | null) => {
+      const mineAfter = g.gigsOf(p).filter((y) => y.id !== give?.id);
+      const theirsAfter = g.gigsOf(other(p)).filter((y) => y.id !== take?.id);
+      if (take) mineAfter.push(take);
+      if (give) theirsAfter.push(give);
+      return planScore(mineAfter, myPlan) - planScore(theirsAfter, rPlan);
+    };
+    const argmax = <T>(xs: T[], f: (x: T) => number) => {
+      let best = xs[0];
       let bestV = -Infinity;
+      for (const x of xs) {
+        const v = f(x);
+        if (v > bestV) (bestV = v), (best = x);
+      }
+      return { best, v: bestV };
+    };
+    if (d.tag === 'steal') {
+      // pick the gig that most improves our plan minus the rival's
+      return argmax(gigs, ({ x }) => swing(null, x) + x.value * 0.05).best.i;
+    }
+    if (d.tag === 'swapGive') {
+      // Hanako / MaxTac AV: choose the (give, take) pair with the best swing; decline an optional swap that doesn't gain
+      const theirs = g.gigsOf(other(p));
+      let best: { i: number; take: number; v: number } | null = null;
       for (const { x, i } of gigs) {
-        const mineAfter = [...g.gigsOf(p), x];
-        const theirsAfter = g.gigsOf(other(p)).filter((y) => y.id !== x.id);
-        const v = planScore(mineAfter, myPlan) - planScore(theirsAfter, rPlan) + x.value * 0.05;
-        if (v > bestV) {
-          bestV = v;
-          best = i;
+        if (x.controller !== p) continue;
+        for (const y of theirs) {
+          const v = swing(x, y);
+          if (!best || v > best.v + 1e-9) best = { i, take: y.id, v };
         }
       }
-      return best;
+      if (!best) return Math.max(0, none);
+      if (none >= 0 && best.v <= swing(null, null) + 0.05) return none;
+      this.pendingSwapTake = best.take;
+      return best.i;
     }
-    // generic: intent harm -> rival's best gig; help -> our best
+    if (d.tag === 'swapTake') {
+      const planned = gigs.find(({ x }) => x.id === this.pendingSwapTake);
+      this.pendingSwapTake = null;
+      if (planned) return planned.i;
+      return argmax(gigs, ({ x }) => swing(null, x)).best.i;
+    }
+    // generic: intent harm -> the rival's Gig that matters most to them; help -> our best
     const mine = gigs.filter(({ x }) => x.controller === p);
-    const pool = d.intent === 'harm' ? gigs.filter(({ x }) => x.controller !== p) : mine.length ? mine : gigs;
-    (pool.length ? pool : gigs).sort((a, b) => b.x.value - a.x.value);
-    return (pool.length ? pool : gigs)[0].i;
+    const rivals = gigs.filter(({ x }) => x.controller !== p);
+    if (d.intent === 'harm' && rivals.length) {
+      const theirs = g.gigsOf(other(p));
+      const full = planScore(theirs, rPlan);
+      return argmax(rivals, ({ x }) => full - planScore(theirs.filter((y) => y.id !== x.id), rPlan)).best.i;
+    }
+    const pool = mine.length ? mine : gigs;
+    return argmax(pool, ({ x }) => x.value).best.i;
   }
+
+  /** Rival Gig picked together with the friendly Gig given in a swap (the engine asks for the two separately). */
+  private pendingSwapTake: number | null = null;
 
   /** Pick (gig, newValue) maximizing our plan score minus rival's. */
   private chooseGigValue(g: Game, d: Decision): number {
@@ -619,7 +789,66 @@ export class HeuristicAgent implements Agent {
   }
 }
 
-/** In lookahead clones, the deciding player must not peek at hidden info: shuffle both decks. */
+/** A Call of a face-down Legend whose identity its controller doesn't know (every such Call looks the same). */
+export function isUnknownCall(g: Game, a: Action | Reaction): boolean {
+  return a.type === 'call' && !g.c(a.uid).known;
+}
+
+/** The fast policy's score of a main-phase action (also ranks candidates before the lookahead cap). */
+function fastPrior(g: Game, a: Action): number {
+  switch (a.type) {
+    case 'play':
+      return cardValue(g.c(a.uid).defId);
+    case 'attack': {
+      if (g.power(g.c(a.uid)) === 0) return -1;
+      if (a.targetGigs !== null) return 30;
+      if (a.targetUnit !== null) return g.fightOutcome(a.uid, a.targetUnit).a === 'win' ? 12 + unitValue(g, g.c(a.targetUnit)) : -5;
+      return 0;
+    }
+    case 'goSolo':
+      return 8;
+    case 'activate':
+      return 6;
+    case 'call':
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Best reaction by `value`, keeping "no reaction" unless an option beats it by 0.5. Unknown Calls (face-down Legends
+ * the defender can't tell apart) are one option valued as their average, so the choice never depends on which
+ * face-down Legend is which; the first unknown slot is played.
+ */
+async function pickReaction(g: Game, rx: Reaction[], endIdx: number, baseV: number, value: (r: Reaction) => Promise<number>) {
+  let bestI = endIdx >= 0 ? endIdx : 0;
+  let bestV = baseV;
+  const unknown = rx.map((r, i) => i).filter((i) => isUnknownCall(g, rx[i]));
+  for (let i = 0; i < rx.length; i++) {
+    if (i === endIdx) continue;
+    let v: number;
+    if (unknown.includes(i)) {
+      if (i !== unknown[0]) continue;
+      let sum = 0;
+      for (const k of unknown) sum += await value(rx[k]);
+      v = sum / unknown.length;
+    } else v = await value(rx[i]);
+    if (rx[i].type === 'call') v += 0.5; // using a reaction-time call is efficient
+    if (v > bestV + 0.5) {
+      bestV = v;
+      bestI = i;
+    }
+  }
+  return { bestI, bestV };
+}
+
+/**
+ * In lookahead clones the deciding player must not peek at hidden information. Re-deals everything `viewer` can't see:
+ * both decks are shuffled, the rival's hand is re-dealt from the rival's unseen cards (hand + deck), and the identities
+ * of face-down Legends are permuted among the slots the viewer can't tell apart (own face-down Legends not looked at,
+ * every rival face-down Legend). The viewer's own hand and every public zone are untouched.
+ */
 export function hideInfo(g: Game, viewer: PlayerId) {
   // deck order is unknown to everyone
   for (const pl of [0, 1] as PlayerId[]) shuffleInPlace(g.s, g.P(pl).deck);
@@ -632,4 +861,16 @@ export function hideInfo(g: Game, viewer: PlayerId) {
   R.hand = [];
   shuffleInPlace(g.s, R.deck);
   for (let i = 0; i < n; i++) g.drawRaw(r);
+  // face-down Legends: the viewer knows which Legends are in each pool, not which slot holds which
+  const permute = (uids: number[]) => {
+    if (uids.length < 2) return;
+    // sorted first, so the deal never depends on the true order
+    const ids = shuffleInPlace(
+      g.s,
+      uids.map((u) => g.c(u).defId).sort(),
+    );
+    uids.forEach((u, k) => (g.c(u).defId = ids[k]));
+  };
+  permute(g.P(viewer).legends.filter((u) => !g.c(u).faceUp && !g.c(u).known));
+  permute(R.legends.filter((u) => !g.c(u).faceUp));
 }
