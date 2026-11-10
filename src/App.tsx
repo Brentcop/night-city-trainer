@@ -33,10 +33,12 @@ import { artEnabled, setArtEnabled } from './ui/art';
 import { TournamentsPage } from './ui/pages/Tournaments';
 import { RatingsPage } from './ui/pages/Ratings';
 import { TournamentRunnerPage } from './ui/pages/TournamentRunner';
+import { DeckLabPage } from './ui/pages/DeckLab';
 
 const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.ReactNode }[] = [
   { path: 'home', label: 'Home', el: () => <Home /> },
   { path: 'decks', label: 'All decks', el: (q) => <DecksPage initial={q.get('d') ?? undefined} /> },
+  { path: 'lab', label: 'Deck Lab', el: (q) => <DeckLabPage q={q} /> },
   { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} /> },
   { path: 'play', label: 'Play vs Bot', el: (q) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} /> },
   { path: 'tournaments', label: 'Events', el: (q) => <TournamentsPage initial={q.get('e') ?? undefined} /> },
@@ -55,7 +57,7 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.R
 /** Top-level sections; each lists its pages (first = landing page). Pages not listed in `sub` don't show in the sub-menu. */
 const SECTIONS: { label: string; icon: string; pages: string[]; sub?: string[] }[] = [
   { label: 'Home', icon: '⌂', pages: ['home'] },
-  { label: 'Decks', icon: '▤', pages: ['decks', 'deck'] },
+  { label: 'Decks', icon: '▤', pages: ['decks', 'deck', 'lab'], sub: ['decks', 'lab'] },
   { label: 'Play', icon: '▶', pages: ['play'] },
   { label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], sub: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'] },
   { label: 'Learn', icon: '♟', pages: ['guides', 'cards', 'glossary', 'insights', 'credits'], sub: ['guides', 'cards', 'glossary', 'insights', 'credits'] },

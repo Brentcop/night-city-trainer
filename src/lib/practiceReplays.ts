@@ -12,6 +12,8 @@ export interface PracticeReplay {
   botSeed: number;
   choices: number[][];
   result: 'win' | 'loss' | 'draw';
+  /** how many times Undo was used (the recorded choices are the final line of play) */
+  undos?: number;
 }
 const KEY = 'nct.practiceReplays.v1';
 const MAX = 25;

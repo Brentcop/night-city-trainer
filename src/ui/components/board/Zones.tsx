@@ -15,9 +15,11 @@ export function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const attacked = !!att && att.targetUnit === null && att.targetGigs === p;
   const coachArea = coach?.gigArea === p && (!targeting || coach.attacker === targeting.attacker);
   const size = ctx.narrow ? 32 : 42;
-  const cls = ['pb-gigs', target ? 'pb-drop' : '', attacked ? 'pb-attacked' : '', coachArea ? 'pb-coach' : ''].join(' ');
+  const over = ctx.drag?.over?.kind === 'gigs' && p === 1;
+  const cls = ['pb-gigs', target ? 'pb-drop' : '', attacked ? 'pb-attacked' : '', coachArea ? 'pb-coach' : '', over ? 'pb-drop-over' : ''].join(' ');
   return (
     <div
+      data-drop={p === 1 ? 'gigs' : undefined}
       className={cls}
       onClick={target ? () => ctx.answer(target.i) : undefined}
       role={target ? 'button' : undefined}
@@ -79,7 +81,11 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const total = P.eddies.length;
   return (
     <div className="pb-piles">
-      <div className="pb-pile" title={`Eddies: ${ready} ready of ${total}`}>
+      <div
+        className={`pb-pile ${p === 0 ? 'pb-sell-zone' : ''} ${p === 0 && ctx.drag?.over?.kind === 'sell' ? 'pb-drop-over' : ''}`}
+        data-drop={p === 0 ? 'sell' : undefined}
+        title={p === 0 ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.` : `Eddies: ${ready} ready of ${total}`}
+      >
         <div className={`pb-stack ${total ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(total, 5) }}>
           {total ? <CardBack size="xs" label="€$" /> : <div className="pb-empty-slot">€$</div>}
         </div>
@@ -131,7 +137,7 @@ export function RivalHand({ ctx }: { ctx: BoardCtx }) {
 }
 
 export function MyHand({ ctx }: { ctx: BoardCtx }) {
-  const hand = ctx.g.P(0).hand;
+  const hand = ctx.handOrder ?? ctx.g.P(0).hand;
   const n = hand.length;
   const size = ctx.narrow ? 'sm' : 'md';
   return (
@@ -173,7 +179,7 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
     </div>
   );
   const field = (
-    <div className="pb-zone pb-field">
+    <div className={`pb-zone pb-field ${me && ctx.drag?.over?.kind === 'play' ? 'pb-drop-over' : ''}`} data-drop={me ? 'play' : undefined}>
       <div className="pb-label">{me ? 'Your field' : 'Rival field'}</div>
       <div className="pb-cards">
         {P.field.map((u) => (

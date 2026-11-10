@@ -1,5 +1,5 @@
 // Floating UI on the playmat: card action popover, trash viewer, mulligan screen, game-over overlay.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Game } from '../../../engine/engine';
 import type { PlayerId } from '../../../engine/types';
 import { TcgCard } from '../TcgCard';
@@ -7,25 +7,46 @@ import type { BoardCtx } from './BoardCard';
 
 export interface MenuState {
   uid: number;
-  rect: { top: number; bottom: number; left: number; width: number };
+  /** the card element the menu belongs to (re-measured while the page or hand scrolls) */
+  el: HTMLElement;
 }
 
 export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuState; onClose: () => void }) {
   const items = ctx.ix.menus.get(menu.uid) ?? [];
   const c = ctx.g.s.cards[menu.uid];
+  // follow the card while things scroll (closing on scroll made the menu vanish on phones before a choice)
+  const [, reflow] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const on = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => reflow((x) => x + 1));
+    };
+    window.addEventListener('scroll', on, true);
+    window.addEventListener('resize', on);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', on, true);
+      window.removeEventListener('resize', on);
+    };
+  }, []);
   if (!items.length || !c) return null;
+  const rect = menu.el.getBoundingClientRect();
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  const cx = Math.min(Math.max(menu.rect.left + menu.rect.width / 2, 130), vw - 130);
-  const above = menu.rect.top > 240;
-  const style: React.CSSProperties = above
-    ? { left: cx, top: menu.rect.top - 8, transform: 'translate(-50%, -100%)' }
-    : { left: cx, top: menu.rect.bottom + 8, transform: 'translate(-50%, 0)' };
+  const sheet = ctx.narrow; // phones: a bottom sheet that can't be scrolled out from under your finger
+  const cx = Math.min(Math.max(rect.left + rect.width / 2, 130), vw - 130);
+  const above = rect.top > 240;
+  const style: React.CSSProperties | undefined = sheet
+    ? undefined
+    : above
+      ? { left: cx, top: rect.top - 8, transform: 'translate(-50%, -100%)' }
+      : { left: cx, top: rect.bottom + 8, transform: 'translate(-50%, 0)' };
   const hidden = c.zone === 'legends' && !c.faceUp && !c.known;
   const title = hidden ? `Face-down Legend (slot ${ctx.g.P(c.controller).legends.indexOf(c.uid) + 1})` : ctx.g.name(c);
   return (
     <>
       <div className="pb-backdrop" onClick={onClose} />
-      <div className="pb-menu" style={style} role="menu">
+      <div className={`pb-menu ${sheet ? 'pb-menu-sheet' : ''}`} style={style} role="menu">
         <div className="pb-menu-title">{title}</div>
         {items.map((it, k) => {
           const isCoach = !!ctx.coach && (ctx.coach.i === it.i || (it.kind === 'attack' && ctx.coach.attacker === menu.uid));

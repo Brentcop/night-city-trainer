@@ -22,6 +22,8 @@ export interface GameRec {
   winner: 0 | 1 | 'tie';
   turns: number;
   reason: string;
+  /** telemetry for deck A (only when the job asked for it) */
+  summary?: import('../analysis/summarize').PlayerSummary;
 }
 export interface MatchRec {
   a: string;
@@ -79,6 +81,8 @@ export interface GameJob {
   seed: number;
   first: 0 | 1;
   bot: string;
+  /** record telemetry and return deck A's summary */
+  trace?: boolean;
 }
 /** Play one game (in a worker pool, a thread, or inline) and report the result. */
 export type PlayGame = (job: GameJob) => Promise<GameRec>;

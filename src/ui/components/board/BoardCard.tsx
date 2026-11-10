@@ -4,6 +4,7 @@ import type { Game } from '../../../engine/engine';
 import type { Decision, PlayerId } from '../../../engine/types';
 import { CardBack, TcgCard, type CardSize } from '../TcgCard';
 import type { AttackOpt, CoachMark, Interaction } from './interaction';
+import type { DragApi, DropTarget } from './drag';
 
 export interface Targeting {
   attacker: number;
@@ -23,7 +24,13 @@ export interface BoardCtx {
   startTargeting: (attacker: number) => void;
   cancelTargeting: () => void;
   openTrash: (p: PlayerId) => void;
+  /** drag-to-act (Play page only) */
+  drag?: DragApi;
+  /** hand display order (uids), after sorting */
+  handOrder?: number[];
 }
+
+const dropMatches = (over: DropTarget | null, uid: number) => !!over && (over.kind === 'unit' || over.kind === 'hand') && over.uid === uid;
 
 /** Is this card's face hidden from the human? */
 export function hiddenFromMe(g: Game, uid: number): boolean {
@@ -96,6 +103,14 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
     }
   }
 
+  // drag: my hand cards (to play, sell or reorder) and my units that can attack
+  const draggable = !!ctx.drag && !hidden && ((c.zone === 'hand' && c.owner === 0) || (c.zone === 'field' && c.controller === 0 && (ix.attacks.get(uid)?.length ?? 0) > 0));
+  if (onClick && ctx.drag) {
+    const inner = onClick;
+    onClick = () => {
+      if (!ctx.drag!.consumeClick()) inner();
+    };
+  }
   const isCoach = !!coach && coach.uids.has(uid) && (!targeting || coach.attacker === targeting.attacker);
   const att = g.s.attack;
   const attacking = !!att && att.attacker === uid;
@@ -111,6 +126,9 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
     isAttacker ? 'pb-aiming' : '',
     ctx.menuUid === uid ? 'pb-menu-host' : '',
     c.zone === 'field' || c.zone === 'legends' ? 'pb-inplay' : '',
+    draggable ? 'pb-draggable' : '',
+    ctx.drag?.dragging === uid ? 'pb-drag-src' : '',
+    ctx.drag && dropMatches(ctx.drag.over, uid) ? 'pb-drop-over' : '',
   ].join(' ');
 
   let power: number | undefined;
@@ -124,7 +142,7 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
   }
 
   return (
-    <div ref={ref} className={cls} data-uid={uid}>
+    <div ref={ref} className={cls} data-uid={uid} onPointerDown={draggable ? (e) => ctx.drag!.start(uid, e) : undefined}>
       {hidden ? (
         <CardBack size={size} label={c.zone === 'legends' ? 'Legend' : undefined} spent={c.spent} onClick={onClick} targetable={targetable} />
       ) : (

@@ -885,3 +885,222 @@ button.pb-big {
     display: none;
   }
 }
+
+/* ---- drag to act ---- */
+.pb-draggable {
+  cursor: grab;
+}
+.pb-hand .pb-draggable {
+  touch-action: pan-x; /* sideways swipes scroll the hand; upward drags pick the card up */
+}
+.pb-field .pb-draggable {
+  touch-action: none;
+}
+.pb-drag-src {
+  opacity: 0.35;
+}
+body.pb-dragging,
+body.pb-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+body.pb-dragging [data-drop] {
+  outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.pb-drop-over,
+body.pb-dragging [data-drop].pb-drop-over {
+  outline: 2px solid var(--accent) !important;
+  box-shadow: 0 0 18px -4px var(--accent);
+}
+.pb-slot.pb-drop-over > .tcg {
+  transform: scale(1.06);
+}
+.pb-ghost {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  transform: translate(-50%, -60%) rotate(-4deg);
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6));
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.pb-ghost-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.pb-ghost-tag.ok {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pb-ghost-tag.no {
+  border-color: var(--red);
+  color: var(--red);
+}
+.pb-sell-zone {
+  border-radius: 10px;
+}
+.pb-confirm {
+  max-width: 420px;
+  text-align: center;
+  animation: pop-in 0.22s var(--ease-out, ease) both;
+}
+.pb-confirm-title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+}
+.pb-confirm-actions {
+  display: grid;
+  gap: 8px;
+}
+.pb-refusal {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2100;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-size: 0.85rem;
+  animation: toast-in 0.25s ease both;
+}
+.pb-sort {
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.pb-handbar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+/* ---- action menu as a bottom sheet on phones ---- */
+.pb-menu.pb-menu-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  transform: none;
+  border-radius: 16px 16px 0 0;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  max-height: 60vh;
+  overflow-y: auto;
+  animation: sheet-up 0.22s var(--ease-out, ease) both;
+}
+.pb-menu.pb-menu-sheet .pb-menu-item {
+  padding: 12px;
+  font-size: 1rem;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* ---- phones: compact rival side, hand pinned to the bottom ---- */
+@media (max-width: 720px) {
+  .pb-rival-hand .pb-rival-hand-card {
+    display: none;
+  }
+  .pb-rival-hand {
+    min-height: 0;
+    padding: 0;
+  }
+  .pb-legends .tcg {
+    width: 46px !important;
+  }
+  .pb-legends .tcg-zoom {
+    display: none;
+  }
+  .pb-label {
+    font-size: 0.62rem;
+  }
+  .pb-pile {
+    width: 46px;
+  }
+  .pb-pile .tcg {
+    width: 40px !important;
+  }
+  .pb-pips {
+    display: none;
+  }
+  .pb-pile-cap {
+    font-size: 0.68rem;
+  }
+  .pb-gigs {
+    padding: 4px 8px;
+  }
+  .pb-gigs-head {
+    font-size: 0.8rem;
+  }
+  .pb-side-name {
+    font-size: 0.85rem;
+  }
+  .pb-field .pb-cards {
+    min-height: 84px;
+  }
+  .pb-field-empty {
+    padding: 10px;
+  }
+  .pb-handbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 60;
+    margin: 6px -6px -6px;
+    padding: 4px 6px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.35);
+    flex-direction: column-reverse;
+  }
+  .pb-handbar-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pb-hand-scroll {
+    padding-top: 8px;
+  }
+  .pb-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 70;
+    background: var(--bg);
+    padding: 4px 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pb-topbar .row {
+    gap: 6px;
+  }
+  .pb-topbar label {
+    font-size: 0; /* keep the speed picker, drop its caption */
+  }
+  .pb-topbar label select {
+    font-size: 0.8rem;
+  }
+}
+@media (max-width: 720px) {
+  .pb-pile .pb-empty-slot {
+    width: 40px;
+    height: 56px;
+    font-size: 0.6rem;
+  }
+}

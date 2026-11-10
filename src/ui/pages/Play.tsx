@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Game } from '../../engine/engine';
-import type { Agent, Decision, DeckList, PlayerId } from '../../engine/types';
+import type { Agent, Decision, DeckList, GameState, PlayerId } from '../../engine/types';
+import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
 import { loadReplays, saveReplay, type PracticeReplay } from '../../lib/practiceReplays';
 import { ReviewPanel } from '../components/ReviewPanel';
@@ -41,24 +42,38 @@ class PacedAgent implements Agent {
   }
 }
 
+interface Snapshot {
+  state: GameState;
+  bot: HeuristicAgent;
+  choices: number;
+}
 interface Running {
   id: number;
   g: Game;
   human: HumanAgent;
   bot: HeuristicAgent;
   replay: PracticeReplay;
+  /** one snapshot before each of your main-phase decisions (for Undo) */
+  snaps: Snapshot[];
 }
 
-/** Records every answer the human gives, so the game can be replayed exactly for a review. */
+/** A copy of a bot including its private random state, so a restored game plays on exactly as before. */
+function cloneBot(b: HeuristicAgent): HeuristicAgent {
+  return Object.assign(Object.create(Object.getPrototypeOf(b)), structuredClone({ ...b })) as HeuristicAgent;
+}
+
+/** Records every answer the human gives (for reviews) and snapshots the game before each main-phase choice (for Undo). */
 class RecordingAgent implements Agent {
   name: string;
   constructor(
     public inner: Agent,
     public choices: number[][],
+    private onAction?: (g: Game) => void,
   ) {
     this.name = inner.name;
   }
   async decide(g: Game, d: Decision) {
+    if (d.kind === 'action') this.onAction?.(g);
     const r = await this.inner.decide(g, d);
     this.choices.push([...r]);
     return r;
@@ -78,37 +93,57 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   const [game, setGame] = useState<Running | null>(null);
   const [, setTick] = useState(0);
 
-  const start = () => {
-    const A = findDeck(mine)?.deck;
-    const B = findDeck(opp)?.deck;
-    if (!A || !B) return;
-    const human = new HumanAgent();
-    const botSeed = Date.now() % 100000;
-    const bot = makeTierBot(level, botSeed, 'Bot');
-    const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
-    const seed = Math.floor(Math.random() * 2 ** 31);
-    const decks: [DeckList, DeckList] = [gameDeck(A), gameDeck(B)];
-    const replay: PracticeReplay = { id: `p${Date.now().toString(36)}`, date: new Date().toISOString(), decks, seed, first, botLevel: level, botSeed, choices: [], result: 'draw' };
-    const g = Game.create(decks, [new RecordingAgent(human, replay.choices), new PacedAgent(bot, () => speedRef.current)], { first, seed });
-    const bump = () => setTick((t) => t + 1);
+  const bump = () => setTick((t) => t + 1);
+  /** Wire up and run a game: a fresh one (run) or one restored from a snapshot (resume). */
+  const launch = (make: (agents: [Agent, Agent]) => Game, human: HumanAgent, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], resumed: boolean) => {
+    const recorder = new RecordingAgent(human, replay.choices, (g) => snaps.push({ state: g.clone([human, human]).s, bot: cloneBot(bot), choices: replay.choices.length }));
+    const g = make([recorder, new PacedAgent(bot, () => speedRef.current)]);
     g.onUpdate = bump;
     human.onChange = bump;
-    setGame({ id: Date.now(), g, human, bot, replay });
-    g.run().then((st) => {
+    const id = Date.now();
+    setGame({ id, g, human, bot, replay, snaps });
+    (resumed ? g.resume() : g.run()).then((st) => {
       replay.result = st.winner === 0 ? 'win' : st.winner === 1 ? 'loss' : 'draw';
       saveReplay(replay);
       recordPractice({
         date: new Date().toISOString(),
-        deck: A.name,
-        opp: B.name,
-        level,
-        result: st.winner === 0 ? 'win' : st.winner === 1 ? 'loss' : 'draw',
+        deck: replay.decks[0].name,
+        opp: replay.decks[1].name,
+        level: replay.botLevel,
+        result: replay.result,
         first: st.first === 0,
         turns: st.turn,
         reason: st.winReason,
       });
       bump();
     });
+  };
+
+  const start = () => {
+    const A = findDeck(mine)?.deck;
+    const B = findDeck(opp)?.deck;
+    if (!A || !B) return;
+    const botSeed = Date.now() % 100000;
+    const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
+    const seed = Math.floor(Math.random() * 2 ** 31);
+    const decks: [DeckList, DeckList] = [gameDeck(A), gameDeck(B)];
+    const replay: PracticeReplay = { id: `p${Date.now().toString(36)}`, date: new Date().toISOString(), decks, seed, first, botLevel: level, botSeed, choices: [], result: 'draw' };
+    launch((agents) => Game.create(decks, agents, { first, seed }), new HumanAgent(), makeTierBot(level, botSeed, 'Bot'), replay, [], false);
+  };
+
+  /** Undo: go back to just before your previous main-phase decision (or the one you're in the middle of). */
+  const undo = () => {
+    if (!game) return;
+    const snaps = game.snaps;
+    const pendKind = game.human.pending?.d.kind;
+    const k = pendKind === 'action' ? snaps.length - 2 : snaps.length - 1;
+    if (k < 0) return;
+    const target = snaps[k];
+    snaps.length = k; // the restored decision takes a fresh snapshot when it is asked again
+    game.replay.choices.length = target.choices;
+    game.replay.undos = (game.replay.undos ?? 0) + 1;
+    const state = structuredClone(target.state);
+    launch((agents) => new Game(state, agents), new HumanAgent(), cloneBot(target.bot), game.replay, snaps, true);
   };
 
   if (!game) {
@@ -174,7 +209,8 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
       </div>
     );
   }
-  return <Board key={game.id} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={() => setGame(null)} onRematch={start} />;
+  const canUndo = (game.human.pending?.d.kind === 'action' ? game.snaps.length >= 2 : game.snaps.length >= 1) && (!!game.human.pending || game.g.s.winner !== null);
+  return <Board key={game.id} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={() => setGame(null)} onRematch={start} onUndo={canUndo ? undo : undefined} />;
 }
 
 function Board({
@@ -184,6 +220,7 @@ function Board({
   setSpeed,
   onQuit,
   onRematch,
+  onUndo,
 }: {
   game: Running;
   coach: boolean;
@@ -191,6 +228,7 @@ function Board({
   setSpeed: (n: number) => void;
   onQuit: () => void;
   onRematch: () => void;
+  onUndo?: () => void;
 }) {
   const { g, human, bot } = game;
   const s = g.s;
@@ -236,28 +274,44 @@ function Board({
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [s.log.length]);
 
-  // close the popover on scroll / resize; Escape cancels menus and target mode
+  // Escape cancels menus and target mode (the menu itself follows its card when the page scrolls)
   useEffect(() => {
     if (!menu && !targeting) return;
-    const close = () => setMenu(null);
     const key = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setMenu(null);
       setTargeting(null);
     };
-    if (menu) {
-      window.addEventListener('scroll', close, true);
-      window.addEventListener('resize', close);
-    }
     window.addEventListener('keydown', key);
-    return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-      window.removeEventListener('keydown', key);
-    };
+    return () => window.removeEventListener('keydown', key);
   }, [menu, targeting]);
 
   const ix = useMemo(() => buildInteraction(g, pend), [g, pend]);
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  const [refusal, setRefusal] = useState<string | null>(null);
+  useEffect(() => {
+    if (!refusal) return;
+    const t = setTimeout(() => setRefusal(null), 2600);
+    return () => clearTimeout(t);
+  }, [refusal]);
+  useEffect(() => setConfirm(null), [pend]);
+  const [sortMode, setSortModeRaw] = useState<HandSort>(loadHandSort);
+  const setSortMode = (m: HandSort) => {
+    setSortModeRaw(m);
+    saveHandSort(m);
+  };
+  const [manual, setManual] = useState<number[]>([]);
+  const handOrder = sortHand(g, g.P(0).hand, sortMode, manual);
+  const drag = useCardDrag(g, ix, {
+    onConfirm: setConfirm,
+    onRefuse: setRefusal,
+    onReorder: (uid, before) => {
+      const order = handOrder.filter((u) => u !== uid);
+      order.splice(Math.max(0, order.indexOf(before)), 0, uid);
+      setManual(order);
+      setSortMode('manual');
+    },
+  });
   const activeHint = hint && hint.d === pend ? hint : null;
   const mark = useMemo(() => coachMark(pend, activeHint?.i), [pend, activeHint]);
 
@@ -285,10 +339,7 @@ function Board({
     narrow,
     menuUid: menu?.uid ?? null,
     answer,
-    openMenu: (uid, el) => {
-      const r = el.getBoundingClientRect();
-      setMenu({ uid, rect: { top: r.top, bottom: r.bottom, left: r.left, width: r.width } });
-    },
+    openMenu: (uid, el) => setMenu({ uid, el }),
     startTargeting: (attacker) => {
       setMenu(null);
       const targets = ix.attacks.get(attacker) ?? [];
@@ -297,6 +348,8 @@ function Board({
     },
     cancelTargeting: () => setTargeting(null),
     openTrash: (p) => setTrashOf(p),
+    drag,
+    handOrder,
   };
 
   const over = s.winner !== null;
@@ -348,6 +401,9 @@ function Board({
               <option value={1200}>slow</option>
             </select>
           </label>
+          <button onClick={onUndo} disabled={!onUndo} title="Go back to before your last action (also undoes the bot's moves since)">
+            ↶ Undo
+          </button>
           {over && hideOver && <button onClick={() => setHideOver(false)}>Result</button>}
           <button onClick={onQuit}>{over ? 'New game' : 'Quit'}</button>
         </div>
@@ -362,7 +418,12 @@ function Board({
           <PlayerSide p={0} ctx={ctx} />
           <div className="pb-handbar">
             <MyHand ctx={ctx} />
-            <div className="pb-handbar-actions">{handAction}</div>
+            <div className="pb-handbar-actions">
+              <button className="ghost pb-sort" onClick={() => setSortMode(nextSort(sortMode))} title="Sort your hand (or drag a card onto another to reorder)">
+                ⇅ {SORT_LABEL[sortMode]}
+              </button>
+              {handAction}
+            </div>
           </div>
         </div>
         <aside className="pb-sidebar">
@@ -383,6 +444,18 @@ function Board({
         </aside>
       </div>
       {menu && <ActionMenu ctx={ctx} menu={menu} onClose={() => setMenu(null)} />}
+      {drag.ghost}
+      {confirm && (
+        <ConfirmPrompt
+          p={confirm}
+          onPick={(i) => {
+            setConfirm(null);
+            answer(i);
+          }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+      {refusal && <div className="pb-refusal" role="status">{refusal}</div>}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
       {mulligan && !over && <MulliganScreen ctx={ctx} why={activeHint?.why} />}
       {over && !hideOver && (
@@ -413,6 +486,42 @@ function Board({
       )}
     </div>
   );
+}
+
+type HandSort = 'drawn' | 'cost' | 'color' | 'manual';
+const SORT_LABEL: Record<HandSort, string> = { drawn: 'As drawn', cost: 'By cost', color: 'By color', manual: 'Custom' };
+const nextSort = (m: HandSort): HandSort => (m === 'drawn' ? 'cost' : m === 'cost' ? 'color' : 'drawn');
+const COLOR_ORDER = ['Red', 'Blue', 'Green', 'Yellow'];
+function loadHandSort(): HandSort {
+  try {
+    const v = localStorage.getItem('nct.handSort');
+    return v === 'cost' || v === 'color' ? v : 'drawn';
+  } catch {
+    return 'drawn';
+  }
+}
+function saveHandSort(m: HandSort) {
+  try {
+    if (m !== 'manual') localStorage.setItem('nct.handSort', m);
+  } catch {
+    /* storage blocked */
+  }
+}
+/** Display order of the hand: as drawn, by cost (then colour), by colour (then cost), or your own drag order. */
+function sortHand(g: Game, hand: number[], mode: HandSort, manual: number[]): number[] {
+  if (mode === 'manual') return [...manual.filter((u) => hand.includes(u)), ...hand.filter((u) => !manual.includes(u))];
+  if (mode === 'drawn') return hand;
+  const key = (u: number) => {
+    const d = g.def(u);
+    return { cost: d.cost ?? 0, color: COLOR_ORDER.indexOf(d.color), name: d.displayName };
+  };
+  return [...hand].sort((a, b) => {
+    const x = key(a);
+    const y = key(b);
+    const byCost = x.cost - y.cost || x.color - y.color;
+    const byColor = x.color - y.color || x.cost - y.cost;
+    return (mode === 'cost' ? byCost : byColor) || x.name.localeCompare(y.name);
+  });
 }
 
 /** Review request for a recorded practice game (your decisions only, with the coach's view of each). */

@@ -10,4 +10,6 @@
 - **Bots:** `src/ai/heuristic.ts` (1-ply lookahead; set `deep: N` for turn rollouts), `src/ai/eval.ts` (tuned weights), `src/ai/knowledge.ts` (roles, ratings, Gig plans). Docs are in `docs/BOT_TOOLKIT.md`.
 - **Sims:** `npm run sim -- <catalog|show|vs|test|review|add>` runs games in worker threads (`scripts/worker.ts`, booted via `worker-boot.mjs`). Other scripts: `scripts/tune.ts` (weight tuning), `scripts/optimize.ts` (card-swap search), `scripts/botcheck.ts` (compare bot configs).
 - **Tournaments:** the rules (Swiss, top cut, Bo1/Bo3, seeds) live in `src/lib/tournament.ts`, shared by `npm run tournament -- --field meta --bo 3 --top 8 --bot deep` and the in-browser runner (`#/run`, games run in `src/sim/game.worker.ts` via `src/sim/pool.ts`). Use `makeBot()` for any game that must replay identically.
+- **Play UI:** drag-to-act and confirm prompts are in `src/ui/components/board/drag.tsx`. Undo restores a snapshot (game state plus a cloned bot) taken before each human main-phase decision and continues with `Game.resume()`.
+- **Deck Lab** (`#/lab`, `src/lib/deckLab.ts`) tunes a submitted deck (browser forge) and breeds decks in the browser.
 - **Before committing:** `npx tsc --noEmit && npx vitest run`.

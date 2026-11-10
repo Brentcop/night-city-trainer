@@ -176,6 +176,23 @@ export class Game {
     return this.s;
   }
 
+  /**
+   * Continue a game restored from a snapshot taken during the active player's main phase (used by Undo):
+   * finish that main phase, then play on to the end exactly like run().
+   */
+  async resume(): Promise<GameState> {
+    try {
+      await this.mainLoop();
+      await this.endPhase();
+      while (this.s.winner === null) await this.playTurn();
+    } catch (e) {
+      if (!(e instanceof GameOverSignal)) throw e;
+    }
+    this.s.phase = 'over';
+    this.update();
+    return this.s;
+  }
+
   async mulligans() {
     for (const p of [this.s.first, other(this.s.first)]) {
       const ok = await this.yesNo(p, 'Mulligan your opening hand (shuffle it back and draw 6)?', 'mulligan');
