@@ -415,10 +415,20 @@
   border-color: var(--accent);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
-.deck-tile .typesplit.mini {
-  margin-top: 4px;
+.deck-tile {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
-.deck-tile.is-selected {
+.deck-tile-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.deck-tile .typesplit.mini {
+  margin-top: auto;
+  flex: none;
+}.deck-tile.is-selected {
   border-color: var(--cyan);
   box-shadow: 0 0 0 2px var(--cyan);
 }

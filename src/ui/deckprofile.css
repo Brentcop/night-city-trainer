@@ -270,6 +270,7 @@
 }
 .gal-tile-wrap {
   position: relative;
+  height: 100%;
 }
 .gal-tile-wrap .gal-profile {
   position: absolute;
