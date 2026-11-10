@@ -132,6 +132,7 @@ export function PromptPanel({ ctx, why }: { ctx: BoardCtx; why?: string }) {
         </div>
       )}
       {onBoardCount > 0 && <div className="small muted">Click a glowing card on the table.</div>}
+      {pend.kind === 'pay' && <div className="small muted">Or click a glowing Legend, or your €$ pile for an Eddie.</div>}
       {ix.gigDirect.size > 0 && <div className="small muted">Click a glowing die.</div>}
       {coachBox}
       {tray.length > 0 && (

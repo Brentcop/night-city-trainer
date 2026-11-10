@@ -11,6 +11,11 @@ export interface PracticeReplay {
   botLevel: string;
   botSeed: number;
   choices: number[][];
+  /**
+   * The human chose payment sources (the choices include 'pay' answers). Replays saved before payment choices existed
+   * lack it, and must be replayed with automatic payment to line up.
+   */
+  payChoice?: boolean;
   result: 'win' | 'loss' | 'draw';
   /** how many times Undo was used (the recorded choices are the final line of play) */
   undos?: number;
@@ -41,6 +46,7 @@ export function isReplay(x: unknown): x is PracticeReplay {
     typeof r.botSeed === 'number' &&
     Array.isArray(r.choices) &&
     r.choices.every((c) => Array.isArray(c) && c.every((i) => typeof i === 'number')) &&
+    (r.payChoice === undefined || typeof r.payChoice === 'boolean') &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
 }

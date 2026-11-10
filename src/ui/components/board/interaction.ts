@@ -124,6 +124,14 @@ export function buildInteraction(g: Game, d: Decision | null): Interaction {
     }
     return ix;
   }
+  if (d.kind === 'pay') {
+    // every source is a button (Legends sit on the table, the Eddie pile isn't a card); Legends are also clickable
+    d.options.forEach((o, i) => {
+      ix.buttonOpts.push(i);
+      if (o.uid !== undefined && o.key === 'legend') ix.direct.set(o.uid, i);
+    });
+    return ix;
+  }
   const gigCount = new Map<number, number>();
   d.options.forEach((o) => o.gig !== undefined && gigCount.set(o.gig, (gigCount.get(o.gig) ?? 0) + 1));
   d.options.forEach((o, i) => {

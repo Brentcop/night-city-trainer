@@ -44,6 +44,7 @@ export class PacedAgent implements Agent {
 /** Records every answer the human gives (for reviews) and lets the caller snapshot the game before each main-phase choice (for Undo). */
 export class RecordingAgent implements Agent {
   name: string;
+  choosesPayment?: boolean;
   constructor(
     public inner: Agent,
     public choices: number[][],
@@ -51,6 +52,7 @@ export class RecordingAgent implements Agent {
     private run: Cancellable = { cancelled: false },
   ) {
     this.name = inner.name;
+    this.choosesPayment = inner.choosesPayment;
   }
   async decide(g: Game, d: Decision) {
     if (this.run.cancelled) throw new GameCancelled();
@@ -139,6 +141,7 @@ export function newPracticeReplay(m: MatchSetup): PracticeReplay {
     botLevel: m.level,
     botSeed: m.botSeed,
     choices: [],
+    payChoice: true,
     result: 'draw',
   };
 }

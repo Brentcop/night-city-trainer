@@ -201,7 +201,9 @@ export type DecisionKind =
   | 'yesno'
   | 'steal'
   | 'legend'
-  | 'cardType';
+  | 'cardType'
+  /** which source pays one €$ of a cost (only asked of agents with `choosesPayment`) */
+  | 'pay';
 
 export interface Decision {
   player: PlayerId;
@@ -217,6 +219,11 @@ export interface Decision {
 
 export interface Agent {
   name: string;
+  /**
+   * Opt in to choosing payment sources: when set, Game.pay asks a 'pay' decision for each €$ whenever the choice is
+   * real. When unset (all bots), the engine picks the sources itself (Eddies first, then Legends) and asks nothing.
+   */
+  choosesPayment?: boolean;
   decide(g: import('./engine').Game, d: Decision): Promise<number[]>;
 }
 
