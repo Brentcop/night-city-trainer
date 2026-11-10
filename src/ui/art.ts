@@ -14,18 +14,17 @@ let failed = false;
 const listeners = new Set<() => void>();
 
 async function fetchAll(): Promise<void> {
-  const next = new Map<string, string>();
-  let offset = 0;
-  let total = Infinity;
-  while (offset < total) {
+  // Fetch the catalog pages in parallel (≈152 cards = 3 pages); fetch more if the set grows.
+  const page = async (offset: number) => {
     const r = await fetch(`${API}?offset=${offset}&limit=60`);
     if (!r.ok) throw new Error(`art catalog ${r.status}`);
-    const d = await r.json();
-    total = d.total ?? 0;
-    for (const c of d.items ?? []) if (c.external_id && c.image_url) next.set(c.external_id, c.image_url);
-    offset += 60;
-    if (!d.items?.length) break;
-  }
+    return r.json() as Promise<{ total?: number; items?: { external_id?: string; image_url?: string }[] }>;
+  };
+  const pages = await Promise.all([0, 60, 120].map(page));
+  const total = pages[0].total ?? 0;
+  for (let offset = 180; offset < total; offset += 60) pages.push(await page(offset));
+  const next = new Map<string, string>();
+  for (const d of pages) for (const c of d.items ?? []) if (c.external_id && c.image_url) next.set(c.external_id, c.image_url);
   urls = next;
   fetchedAt = Date.now();
 }

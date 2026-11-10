@@ -1,6 +1,6 @@
 // Visual TCG card: real card art when available, otherwise a styled frame with the card's data.
 // Sizes: xs (≈64px wide), sm (≈96), md (≈140), lg (≈220), xl (≈300).
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { CardDef } from '../../engine/types';
 import { artEnabled, useArt } from '../art';
 import { CardText } from './CardView';
@@ -26,7 +26,13 @@ export interface TcgCardProps {
 export function TcgCard({ def, size = 'md', power, spent, selected, targetable, dim, badges, count, onClick, noZoom, title }: TcgCardProps) {
   const { url, onError } = useArt(def.id);
   const [broken, setBroken] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  // Track which URL finished loading (a cached image can finish before React's onLoad is attached,
+  // so we also check `complete` when the element mounts).
+  const [loadedUrl, setLoadedUrl] = useState<string | undefined>();
+  const loaded = !!url && loadedUrl === url;
+  const imgRef = useCallback((el: HTMLImageElement | null) => {
+    if (el && el.complete && el.naturalWidth > 0) setLoadedUrl(el.getAttribute('src') ?? undefined);
+  }, []);
   const [zoom, setZoom] = useState(false);
   const showArt = artEnabled() && url && !broken;
   const w = WIDTH[size];
@@ -48,15 +54,16 @@ export function TcgCard({ def, size = 'md', power, spent, selected, targetable, 
         {(!showArt || !loaded) && <TextFrame def={def} size={size} />}
         {showArt && (
           <img
+            ref={imgRef}
             src={url}
             alt={def.displayName}
             loading="lazy"
             draggable={false}
             className={loaded ? 'is-loaded' : ''}
-            onLoad={() => setLoaded(true)}
+            onLoad={() => setLoadedUrl(url)}
             onError={() => {
               setBroken(true);
-              setLoaded(false);
+              setLoadedUrl(undefined);
               onError();
               setTimeout(() => setBroken(false), 4000);
             }}
