@@ -1,38 +1,58 @@
 // Tournament series from the CLI. Same rules, bots and seeds as the in-browser runner (src/lib/tournament.ts),
 // so events recorded here replay exactly on the site.
 //
-//   npx tsx scripts/tournament.ts [--events 12] [--start 1] [--field all] [--rounds auto] [--top 8] [--bo 3] [--bot deep] [--threads N]
+//   npx tsx scripts/tournament.ts [--events 12] [--start N] [--field all] [--rounds auto] [--top 8] [--bo 3] [--bot deep] [--threads N] [--force]
 //
+//   --start   id of the first event (default: one past the highest recorded event). The event id is also its seed.
+//   --force   allow overwriting events that are already recorded (otherwise the run refuses before playing anything)
 //   --field   all | meta | ladder | original | guide | top16 | a comma list of deck files/names (e.g. meta-rry-smasher-aggro,s2-08-explorer-rrg)
 //   --rounds  number of Swiss rounds, or auto (log2 of the field, plus a few)
 //   --top     top-cut size (0 = none; rounded down to a power of two that fits the field)
 //   --bo      1 or 3 games per match
-//   --bot     hard | mixed | medium | easy   (older names fast | lookahead | deep still work)
+//   --bot     hard | mixed | medium | easy   (older names fast | lookahead | deep | hard-v1 still work)
 //   --record  false to skip writing the site's event history (quick experiments)
 //
+// A game that throws aborts the event (nothing is recorded for it) and the run exits 1; it is never scored as a tie.
 // Outputs: data/tournaments/event-<n>.json (also public/tournaments/ for the site) and the index src/data/tournaments.json.
 import fs from 'node:fs';
-import os from 'node:os';
-import { Worker } from 'node:worker_threads';
-import { loadLibrary, resolveDeck } from './lib-node';
-import { autoRounds, cutSize, runTournament, type BotLevel, type GameRec, type PlayGame, type TourneyEvent } from '../src/lib/tournament';
+import { bool, cli, EVENTS_DIR, existing, int, loadLibrary, maxEventId, oneOf, readEvents, resolveDeck, str, threadsOpt, TIER_BOTS, workerPool, writeJsonStamped } from './lib-node';
+import { autoRounds, cutSize, runTournament, type BotLevel, type PlayGame, type TourneyEvent } from '../src/lib/tournament';
 import type { MatchJob, MatchResult } from './worker';
 import type { LibraryDeck } from '../src/lib/library';
 import { buildH2H } from './build-h2h';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const EVENTS = +flag('events', '12');
-const START = +flag('start', '1');
-const TOP = +flag('top', '8');
-const BO = flag('bo', '3') === '1' ? 1 : 3;
-const BOT = flag('bot', 'hard') as BotLevel;
-const FIELD = flag('field', 'all');
-const RECORD = flag('record', 'true') !== 'false';
-const THREADS = Math.max(1, Math.min(+flag('threads', String(os.cpus().length - 1)), 16));
+const PUBLIC_DIR = 'public/tournaments';
+const { values: V } = cli(import.meta.url, {
+  events: int(12, { min: 1 }),
+  start: int(undefined, { min: 1 }),
+  top: int(8, { min: 0 }),
+  bo: oneOf(['1', '3'], '3'),
+  bot: oneOf(TIER_BOTS, 'hard'),
+  field: str('all'),
+  rounds: str('auto', (v) => (v === 'auto' || /^[1-9]\d*$/.test(v) ? undefined : `must be auto or a whole number ≥ 1, got "${v}"`)),
+  record: oneOf(['true', 'false'], 'true'),
+  threads: threadsOpt(),
+  force: bool(),
+});
+const EVENTS = V.events;
+const START = V.start ?? maxEventId(EVENTS_DIR, PUBLIC_DIR) + 1;
+const TOP = V.top;
+const BO = V.bo === '1' ? 1 : 3;
+const BOT = V.bot as BotLevel;
+const FIELD = V.field;
+const RECORD = V.record !== 'false';
+const THREADS = Math.min(V.threads, 16);
+
+// ---------------------------------------------------------------- refuse to overwrite recorded events
+const planned = Array.from({ length: EVENTS }, (_, k) => START + k);
+if (RECORD) {
+  const clash = existing(planned.flatMap((n) => [`${EVENTS_DIR}/event-${n}.json`, `${PUBLIC_DIR}/event-${n}.json`]));
+  if (clash.length && !V.force) {
+    console.error(`error: these events are already recorded: ${clash.join(', ')}.\nLeave out --start to continue after event ${maxEventId(EVENTS_DIR, PUBLIC_DIR)}, or pass --force to overwrite them.`);
+    process.exit(1);
+  }
+  if (clash.length) console.log(`--force: overwriting ${clash.length} recorded event file(s)`);
+}
 
 // ---------------------------------------------------------------- field
 function distinct(lib: LibraryDeck[]) {
@@ -57,63 +77,49 @@ function pickField(): LibraryDeck[] {
       .filter((d): d is LibraryDeck => !!d)
       .slice(0, 16);
   }
-  return FIELD.split(',').map((x) => {
-    const d = all.find((y) => y.file === x || y.file === `${x}.txt` || y.deck.name === x) ?? resolveDeck(x);
-    if (!d) throw new Error(`unknown deck: ${x}`);
-    return d as LibraryDeck;
-  });
+  return FIELD.split(',').map((x) => all.find((y) => y.file === x || y.file === `${x}.txt` || y.deck.name === x) ?? resolveDeck(x));
 }
-const field = pickField();
-const ROUNDS = flag('rounds', 'auto') === 'auto' ? autoRounds(field.length) : +flag('rounds', '0');
+let field: LibraryDeck[];
+try {
+  field = pickField();
+} catch (e) {
+  console.error(`error: --field: ${(e as Error).message}`);
+  process.exit(2);
+}
+if (field.length < 2) {
+  console.error(`error: --field ${FIELD} gives ${field.length} deck(s); a tournament needs at least 2`);
+  process.exit(2);
+}
+const ROUNDS = V.rounds === 'auto' ? autoRounds(field.length) : +V.rounds;
 
-// ---------------------------------------------------------------- persistent worker pool, one game per message
+// ---------------------------------------------------------------- games: the shared worker pool, one game per message
+class GameError extends Error {}
 function nodePool(size: number) {
-  const idle: Worker[] = [];
-  const all: Worker[] = [];
-  const queue: { job: MatchJob; res: (r: GameRec) => void }[] = [];
-  const pending = new Map<Worker, (r: GameRec) => void>();
+  const pool = workerPool<MatchJob, MatchResult>(new URL('./worker-boot.mjs', import.meta.url), size);
   let done = 0;
-  const pump = () => {
-    while (idle.length && queue.length) {
-      const w = idle.pop()!;
-      const { job, res } = queue.shift()!;
-      pending.set(w, res);
-      w.postMessage(job);
-    }
-  };
-  for (let i = 0; i < size; i++) {
-    const w = new Worker(new URL('./worker-boot.mjs', import.meta.url));
-    w.on('message', (r: MatchResult) => {
-      const res = pending.get(w)!;
-      pending.delete(w);
-      idle.push(w);
-      if (r.error) process.stderr.write(`\n  game error (seed ${r.seed}): ${r.error.slice(0, 200)}\n`);
+  const play: PlayGame = (job) =>
+    pool.run({ ...job, bot: job.bot }).then((r) => {
+      // an exception is an error, never a tie: abort the event so nothing biased is recorded
+      if (r.error) throw new GameError(`game ${job.a.name} vs ${job.b.name} (seed ${r.seed}, first ${r.first}) threw:\n${r.error}`);
       if (++done % 25 === 0) process.stderr.write(`\r  ${done} games`);
-      res({ seed: r.seed, first: r.first, winner: r.winner === null ? 'tie' : r.winner, turns: r.turns, reason: r.reason });
-      pump();
+      return { seed: r.seed, first: r.first, winner: r.winner === null ? 'tie' : r.winner, turns: r.turns, reason: r.reason };
     });
-    all.push(w);
-    idle.push(w);
-  }
-  const play: PlayGame = (job) => new Promise((res) => (queue.push({ job: { ...job, bot: job.bot }, res }), pump()));
-  return { play, close: () => all.forEach((w) => w.terminate()) };
+  return { play, close: () => pool.close() };
 }
 
 // ---------------------------------------------------------------- outputs
 function writeEvent(ev: TourneyEvent) {
-  fs.mkdirSync('data/tournaments', { recursive: true });
-  fs.mkdirSync('public/tournaments', { recursive: true });
+  fs.mkdirSync(EVENTS_DIR, { recursive: true });
+  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
   const json = JSON.stringify(ev);
-  fs.writeFileSync(`data/tournaments/event-${ev.id}.json`, json);
-  fs.writeFileSync(`public/tournaments/event-${ev.id}.json`, json);
+  fs.writeFileSync(`${EVENTS_DIR}/event-${ev.id}.json`, json);
+  fs.writeFileSync(`${PUBLIC_DIR}/event-${ev.id}.json`, json);
 }
 function writeIndex() {
-  const files = fs.readdirSync('data/tournaments').filter((f) => /^event-\d+\.json$/.test(f));
   const count = (parts: { matches: { games: unknown[] }[] }[]) => parts.reduce((a, r) => a + r.matches.reduce((b, m) => b + m.games.length, 0), 0);
-  const events = files
-    .map((f) => JSON.parse(fs.readFileSync(`data/tournaments/${f}`, 'utf8')))
+  const events = readEvents(EVENTS_DIR)
     .sort((a, b) => a.id - b.id)
-    .map((e) => ({
+    .map((e: any) => ({
       id: e.id,
       date: e.date,
       bot: e.bot,
@@ -125,16 +131,23 @@ function writeIndex() {
       bracket: e.bracket.map((r: any) => ({ name: r.name, matches: r.matches.map((m: any) => ({ a: m.a, b: m.b, score: m.score, winner: m.winner })) })),
       standings: e.standings.map((s: any) => ({ deck: s.deck, mp: s.mp, record: `${s.mw}-${s.ml}`, games: `${s.gw}-${s.gl}`, omw: +s.omw.toFixed(3) })),
     }));
-  fs.writeFileSync('src/data/tournaments.json', JSON.stringify({ updated: new Date().toISOString(), events }));
+  writeJsonStamped('src/data/tournaments.json', { updated: '', events });
   buildH2H(); // keep the Deck Lab's head-to-head data (counter breeding) in step with the events
 }
 
 async function main() {
   console.log(`Tournament series: ${EVENTS} events × ${field.length} decks (${FIELD}), Swiss ${ROUNDS} rounds Bo${BO}${cutSize(TOP, field.length) ? ` + top ${cutSize(TOP, field.length)}` : ''} (${BOT} bot, ${THREADS} threads)`);
+  console.log(`Event ids (= seeds): ${planned[0]}${planned.length > 1 ? `–${planned[planned.length - 1]}` : ''}${RECORD ? '' : ' (not recorded)'}`);
   const pool = nodePool(THREADS);
   const decks = field.map((d) => ({ ...d.deck, file: d.file }));
-  for (let n = START; n < START + EVENTS; n++) {
-    const ev = await runTournament(decks, { name: `Event #${n}`, rounds: ROUNDS, top: TOP, bestOf: BO, bot: BOT, seed: n }, pool.play, { id: n });
+  for (const n of planned) {
+    let ev: TourneyEvent;
+    try {
+      ev = await runTournament(decks, { name: `Event #${n}`, rounds: ROUNDS, top: TOP, bestOf: BO, bot: BOT, seed: n }, pool.play, { id: n });
+    } catch (e) {
+      console.error(`\nerror: event ${n} aborted, nothing recorded for it. ${e instanceof GameError ? e.message : String((e as Error)?.stack ?? e)}`);
+      process.exit(1);
+    }
     process.stderr.write('\n');
     console.log(`Event ${n}: champion ${ev.champion}; top cut: ${(ev.seeds ?? []).join(' | ')}`);
     if (RECORD) {
@@ -142,6 +155,6 @@ async function main() {
       writeIndex();
     }
   }
-  pool.close();
+  await pool.close();
 }
 main();

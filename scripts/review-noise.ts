@@ -9,15 +9,14 @@ import { HeuristicAgent } from '../src/ai/heuristic';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import { BLUNDER, CAP, NOISE, makeWorlds, oracleValue } from '../src/ai/reviewer';
 import type { Action, Agent, Decision } from '../src/engine/types';
-import { loadLibrary } from './lib-node';
+import { cli, int, loadLibrary, runMain, str } from './lib-node';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const SAMPLES = +flag('samples', '80');
-const RS = flag('rollouts', '4,8').split(',').map(Number);
+const { values: V } = cli(import.meta.url, {
+  samples: int(80, { min: 1 }),
+  rollouts: str('4,8', (v) => (/^[1-9]\d*(,[1-9]\d*)*$/.test(v) ? undefined : `must be a comma list of whole numbers ≥ 1, got "${v}"`)),
+});
+const SAMPLES = V.samples;
+const RS = V.rollouts.split(',').map(Number);
 let st = 99;
 const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0) / 4294967296);
 const mkRng = (seed: number) => {
@@ -101,7 +100,8 @@ async function main() {
     '',
     `Current thresholds: accurate ≤ ${(NOISE / 40).toFixed(2)} Gigs, blunder > ${(BLUNDER / 40).toFixed(2)} Gigs.`,
   ].join('\n');
+  fs.mkdirSync('reports', { recursive: true });
   fs.writeFileSync('reports/review-noise.md', md);
   console.log(md);
 }
-main();
+runMain(main);

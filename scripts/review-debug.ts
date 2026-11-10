@@ -8,13 +8,18 @@ import { BEST_PROFILES } from '../src/ai/archetype';
 import { evaluate } from '../src/ai/eval';
 import { makeWorlds } from '../src/ai/reviewer';
 import { gameDeck } from '../src/lib/tournament';
+import { cli, str } from './lib-node';
 import type { Action, Agent, Decision, PlayerId } from '../src/engine/types';
 
-const [file, id, seatS, idxS] = process.argv.slice(2);
+const { values: V, positionals } = cli(import.meta.url, { alt: str('Pass turn') }, { minPositionals: 4, maxPositionals: 4 });
+const [file, id, seatS, idxS] = positionals;
+if (!/^[01]$/.test(seatS) || !/^\d+$/.test(idxS) || !/^e\d+-/.test(id)) {
+  console.error('error: usage: review-debug.ts <review-file> <game-id like e3-12345> <seat 0|1> <decision-index>');
+  process.exit(2);
+}
 const seat = +seatS as PlayerId;
 const target = +idxS;
-const altI = process.argv.indexOf('--alt');
-const altLabel = altI > 0 ? process.argv[altI + 1] : 'Pass turn';
+const altLabel = V.alt;
 const rec = (JSON.parse(fs.readFileSync(file, 'utf8')) as { id: string; review: { seed: number; first: PlayerId; names: [string, string] } }[]).find((x) => x.id === id)!;
 const ev = JSON.parse(fs.readFileSync(`data/tournaments/event-${id.match(/^e(\d+)-/)![1]}.json`, 'utf8'));
 const decks: [ReturnType<typeof gameDeck>, ReturnType<typeof gameDeck>] = [gameDeck({ name: rec.review.names[0], ...ev.decks[rec.review.names[0]] }), gameDeck({ name: rec.review.names[1], ...ev.decks[rec.review.names[1]] })];

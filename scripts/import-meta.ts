@@ -1,11 +1,26 @@
 // Build data/decks/meta-*.txt from choom.gg archetype pages (data/raw/choom_meta).
-// Usage: npx tsx scripts/import-meta.ts
+// Usage: npx tsx scripts/import-meta.ts [--force]
+// Refuses to replace existing deck files unless --force. When it does replace one, the provenance header written by
+// scripts/tag-provenance.ts (Origin, Author, Credits, Added…) is kept; only the list and the Tier line are refreshed.
 import fs from 'node:fs';
 import { parseDeck, exportChoom, validateDeck } from '../src/engine/deck';
+import { bool, cli, existing, mergeProvenance } from './lib-node';
 
+const { values: V } = cli(import.meta.url, { force: bool() });
 const dir = 'data/raw/choom_meta';
+if (!fs.existsSync(dir)) {
+  console.error(`error: ${dir} not found (the saved choom.gg pages are local only)`);
+  process.exit(1);
+}
+const sources = fs.readdirSync(dir).filter((x) => x.endsWith('.txt') && !x.includes('.deck.')).sort();
+const targets = sources.map((f) => `data/decks/meta-${f.replace('.txt', '')}.txt`);
+const clash = existing(targets);
+if (clash.length && !V.force) {
+  console.error(`error: ${clash.length} deck file(s) already exist (${clash.slice(0, 3).join(', ')}${clash.length > 3 ? ', …' : ''}). Pass --force to refresh them; their provenance headers are kept.`);
+  process.exit(1);
+}
 const meta: any[] = [];
-for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.txt') && !x.includes('.deck.'))) {
+for (const f of sources) {
   const slug = f.replace('.txt', '');
   const txt = fs.readFileSync(`${dir}/${f}`, 'utf8');
   const title = txt.match(/^# (.+)$/m)![1].trim();
@@ -28,7 +43,9 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.txt') && !x.inclu
   const { deck, errors } = parseDeck(listText, title);
   deck.name = title;
   const out = exportChoom(deck).replace(/^\/\/ (.+)\n/, (m) => `${m}// Source: ${source}\n// Tier: ${tier} (${power}/100), complexity ${complexity}\n`);
-  fs.writeFileSync(`data/decks/meta-${slug}.txt`, out + '\n');
+  const file = `data/decks/meta-${slug}.txt`;
+  const prev = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+  fs.writeFileSync(file, mergeProvenance(out, prev, ['Tier']) + '\n');
   // long-form analysis text stays on choom.gg (we keep only the short tagline/summary and link to it)
   void read;
   void flex;

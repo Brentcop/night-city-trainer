@@ -1,6 +1,6 @@
 // Deck forge: telemetry-guided, multi-generation deck iteration against the meta field.
 //
-//   npx tsx scripts/forge.ts <deck...> [--gens 2] [--games 140] [--cands 6] [--bot lookahead] [--field meta|all]
+//   npx tsx scripts/forge.ts <deck...> [--gens 2] [--games 140] [--cands 6] [--bot lookahead] [--field meta|all] [--seed 1] [--threads N]
 //   npx tsx scripts/forge.ts --nc          # all data/decks/custom/nc-*.txt
 //
 // Each generation:
@@ -9,7 +9,9 @@
 //      (from src/data/analysis.json, averaged across decks).
 //   3. Test each cut→add swap on the SAME seeds as the baseline (paired comparison).
 //   4. Confirm the best swap on fresh seeds; adopt only if it still beats the baseline.
-//   5. Save the new version (data/decks/custom/<slug>.txt), archive the old one (history/), log reports/forge/<slug>.md.
+//   5. Save the new version (data/decks/custom/<slug>.txt), archive the old one (history/), log reports/forge/<slug>.md
+//      (plus reports/forge/<slug>.json, which scripts/bundle-reports.ts reads).
+// Seeds come from --seed, so a run can be repeated exactly.
 import fs from 'node:fs';
 import path from 'node:path';
 import { CARD_BY_ID, CARDS, cardLabel } from '../src/engine/cards';
@@ -17,26 +19,31 @@ import { counts, exportOfficial, ramLimits, validateDeck } from '../src/engine/d
 import type { DeckList } from '../src/engine/types';
 import { analyzeDeck, type DeckReport } from '../src/analysis/analyze';
 import analysis from '../src/data/analysis.json';
-import { loadLibrary, resolveDeck } from './lib-node';
-import { runJobs } from './simulate';
+import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, threadsOpt } from './lib-node';
 import type { MatchJob } from './worker';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const GENS = +flag('gens', '2');
-const GAMES = +flag('games', '140');
-const CANDS = +flag('cands', '6');
-const BOT = flag('bot', 'lookahead');
-const FIELD = flag('field', 'meta');
+const { values: V, positionals } = cli(
+  import.meta.url,
+  { gens: int(2, { min: 1 }), games: int(140, { min: 1 }), cands: int(6, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), field: oneOf(['meta', 'all'], 'meta'), nc: bool(), seed: int(1, { min: 0 }), threads: threadsOpt() },
+  { maxPositionals: Infinity },
+);
+const GENS = V.gens;
+const GAMES = V.games;
+const CANDS = V.cands;
+const BOT = V.bot;
+const FIELD = V.field;
+const THREADS = Math.min(V.threads, 16);
 const lib = loadLibrary();
 const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
 
-const targets = args.includes('--nc')
-  ? lib.filter((d) => d.kind === 'original')
-  : args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--'))).map((q) => resolveDeck(q, lib));
+const targets = V.nc ? lib.filter((d) => d.kind === 'original') : positionals.map((q) => resolveDeck(q, lib));
+if (!targets.length) {
+  console.error('error: name at least one deck, or pass --nc');
+  process.exit(2);
+}
+/** Deterministic per-run seed stream (was Math.random, so runs could not be repeated). */
+let seedState = (V.seed * 2654435761) >>> 0 || 1;
+const nextSeedOffset = () => (seedState = (seedState * 1664525 + 1013904223) >>> 0) % 90_000;
 
 /** Format-wide card impact: IWD averaged across all analysed decks, weighted by sample size. */
 const GLOBAL_IMPACT: Record<string, number> = (() => {
@@ -59,7 +66,7 @@ async function play(deck: DeckList, seed0: number, games: number, trace: boolean
     const opp = field[k % field.length];
     jobs.push({ a: deck, b: opp.deck, seed: seed++, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT, trace });
   }
-  const res = await runJobs(jobs);
+  const res = await runJobs(jobs, { threads: THREADS });
   const wr = res.reduce((a, r) => a + (r.winner === 0 ? 1 : r.winner === 'tie' ? 0.5 : 0), 0) / res.length;
   const sums = trace ? res.map((r) => r.summaries![0]) : [];
   return { wr, sums };
@@ -107,8 +114,19 @@ async function forge(target: (typeof lib)[number]) {
   const slug = target.file.replace(/\.txt$/, '');
   const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, ''];
   const history: { gen: number; wr: number; change: string }[] = [];
+  // machine-readable twin of the log, for scripts/bundle-reports.ts (percentages and points, 1 decimal, as in the log)
+  const p1 = (x: number) => +(x * 100).toFixed(1);
+  const json: { deck: string; file: string; date: string; seed: number; field: string; gens: { gen: number; baseline: number; swaps: { swap: string; wr: number; delta: number }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[]; summary: { gen: number; wr: number; change: string }[] } = {
+    deck: deck.name,
+    file: target.file,
+    date: new Date().toISOString().slice(0, 10),
+    seed: V.seed,
+    field: `${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`,
+    gens: [],
+    summary: [],
+  };
   for (let gen = 1; gen <= GENS; gen++) {
-    const seed0 = 100_000 * gen + Math.floor(Math.random() * 90_000);
+    const seed0 = 100_000 * gen + nextSeedOffset();
     const base = await play(deck, seed0, GAMES, true);
     const rep = analyzeDeck(deck.name, base.sums);
     console.log(`\n[${deck.name}] gen ${gen}: baseline ${pct(base.wr)}`);
@@ -122,6 +140,8 @@ async function forge(target: (typeof lib)[number]) {
     }
     results.sort((a, b) => b.wr - a.wr);
     log.push('| Swap | Win % | Δ vs baseline |', '|---|---|---|', ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} |`), '');
+    const genRec: (typeof json.gens)[number] = { gen, baseline: p1(base.wr), swaps: results.slice(0, 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr) })), verdict: 'kept' };
+    json.gens.push(genRec);
     const best = results[0];
     if (!best || best.wr - base.wr < 0.02) {
       log.push(`No swap beat the baseline by 2+ points — **list kept**.`, '');
@@ -133,6 +153,8 @@ async function forge(target: (typeof lib)[number]) {
     const [cb, cm] = [await play(deck, seed1, GAMES * 2, false), await play(best.m.deck, seed1, GAMES * 2, false)];
     const ok = cm.wr > cb.wr;
     log.push(`Confirmation (${GAMES * 2} fresh games): baseline ${pct(cb.wr)} vs swap ${pct(cm.wr)} → **${ok ? 'adopted' : 'rejected'}**`, '');
+    genRec.confirm = `(${GAMES * 2} fresh games): baseline ${pct(cb.wr)} vs swap ${pct(cm.wr)}`;
+    genRec.verdict = ok ? 'adopted' : 'rejected';
     console.log(`  confirm: ${pct(cb.wr)} → ${pct(cm.wr)} ${ok ? 'ADOPT' : 'reject'}`);
     if (ok) {
       deck = best.m.deck;
@@ -162,8 +184,10 @@ async function forge(target: (typeof lib)[number]) {
     log.push(`Saved ${outFile} (previous version archived in data/decks/custom/history/).`);
   }
   log.push('', '## Summary', '', '| Gen | Win % | Change |', '|---|---|---|', ...history.map((h) => `| ${h.gen} | ${pct(h.wr)} | ${h.change} |`));
+  json.summary = history.map((h) => ({ gen: h.gen, wr: p1(h.wr), change: h.change }));
   fs.mkdirSync('reports/forge', { recursive: true });
   fs.writeFileSync(`reports/forge/${slug}.md`, log.join('\n'));
+  fs.writeFileSync(`reports/forge/${slug}.json`, JSON.stringify(json, null, 1));
   return { name: deck.name, history };
 }
 
@@ -181,4 +205,4 @@ async function main() {
   fs.writeFileSync('reports/forge/summary.md', md);
   console.log('\n' + md);
 }
-main();
+runMain(main);

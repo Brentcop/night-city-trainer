@@ -5,6 +5,7 @@
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
 import type { DeckReport } from '../src/analysis/analyze';
+import { forEachRecordedGame } from './lib-node';
 
 const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
 type Acc = Record<string, Record<string, { s: number; n: number }>>;
@@ -43,28 +44,19 @@ export type H2H = (a: string, b: string) => { w: number; g: number };
 /** Head-to-head records from every recorded tournament event (ties count half). */
 export function loadH2H(): H2H {
   const m = new Map<string, { w: number; g: number }>();
-  const dir = 'data/tournaments';
-  if (fs.existsSync(dir))
-    for (const f of fs.readdirSync(dir).filter((x) => /^event-\d+\.json$/.test(x))) {
-      const e = JSON.parse(fs.readFileSync(`${dir}/${f}`, 'utf8'));
-      for (const part of [...e.rounds, ...e.bracket])
-        for (const mt of part.matches) {
-          if (!mt.b) continue;
-          for (const g of mt.games) {
-            const v = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0;
-            for (const [x, y, s] of [
-              [mt.a, mt.b, v],
-              [mt.b, mt.a, 1 - v],
-            ] as [string, string, number][]) {
-              const k = `${x}|${y}`;
-              const r = m.get(k) ?? { w: 0, g: 0 };
-              r.w += s;
-              r.g++;
-              m.set(k, r);
-            }
-          }
-        }
+  forEachRecordedGame(({ match: mt, game: g }) => {
+    const v = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0;
+    for (const [x, y, s] of [
+      [mt.a, mt.b, v],
+      [mt.b, mt.a, 1 - v],
+    ] as [string, string, number][]) {
+      const k = `${x}|${y}`;
+      const r = m.get(k) ?? { w: 0, g: 0 };
+      r.w += s;
+      r.g++;
+      m.set(k, r);
     }
+  });
   return (a, b) => m.get(`${a}|${b}`) ?? { w: 0, g: 0 };
 }
 

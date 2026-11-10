@@ -1,7 +1,13 @@
 // Season runner: breed 8 new decks → tournament (telemetry round robin) → forge the new decks → finals vs meta →
 // update the all-time leaderboard (pooled win rate vs the meta archetypes, with percentiles).
 //
-//   npx tsx scripts/season.ts --season 1 [--games 16] [--bot deep] [--finals 42] [--forge-gens 1]
+//   npx tsx scripts/season.ts [--season N] [--games 16] [--bot deep] [--finals 42] [--forge-gens 1] [--forge-games 112] [--threads N] [--force]
+//
+//   --season  defaults to the next season not yet recorded
+//   --force   re-run a season that is already recorded. Its leaderboard totals (kept per season in leaderboard.json)
+//             are taken out first, so nothing is counted twice; its s<N>-*.txt decks are bred again and overwritten.
+//             Seasons recorded before per-season totals existed cannot be taken out: restore leaderboard.json first.
+//             The pooled card-impact files are not added to again on a re-run (the same seeds play the same games).
 //
 // Outputs: data/decks/custom/s<N>-*.txt, reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
@@ -12,23 +18,31 @@ import { loadDeckImpact, loadH2H, recordDeckImpact, strengthOf } from './breed-d
 import { exportOfficial, deckColors } from '../src/engine/deck';
 import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
 import { classify } from '../src/ai/archetype';
-import { loadLibrary } from './lib-node';
-import { runJobs } from './simulate';
+import { bool, cli, existing, Refusal, int, loadLibrary, oneOf, runJobs, runMain, SIM_BOTS, slugify, threadsOpt, writeJsonStamped } from './lib-node';
 import type { MatchJob, MatchResult } from './worker';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const SEASON = +flag('season', '1');
-const GAMES = +flag('games', '16');
-const BOT = flag('bot', 'deep');
-const FINALS = +flag('finals', '42');
-const FORGE_GENS = +flag('forge-gens', '1');
-const FORGE_GAMES = +flag('forge-games', '112');
+const { values: V } = cli(import.meta.url, {
+  season: int(undefined, { min: 1 }),
+  games: int(16, { min: 1 }),
+  bot: oneOf(SIM_BOTS, 'deep'),
+  finals: int(42, { min: 1 }),
+  'forge-gens': int(1, { min: 1 }),
+  'forge-games': int(112, { min: 1 }),
+  threads: threadsOpt(),
+  force: bool(),
+});
 const NL = String.fromCharCode(10);
-fs.mkdirSync('data/seasons', { recursive: true });
+const SEASON_RE = /^season-(\d+)\.json$/;
+const recordedSeasons = () => (fs.existsSync('data/seasons') ? fs.readdirSync('data/seasons').filter((f) => SEASON_RE.test(f)).map((f) => +f.match(SEASON_RE)![1]) : []);
+const SEASON = V.season ?? Math.max(0, ...recordedSeasons()) + 1;
+const GAMES = V.games;
+const BOT = V.bot;
+const FINALS = V.finals;
+const FORGE_GENS = V['forge-gens'];
+const FORGE_GAMES = V['forge-games'];
+const FORCE = V.force;
+const THREADS = Math.min(V.threads, 16);
+const SEASON_FILE = `data/seasons/season-${SEASON}.json`;
 
 // ---------------------------------------------------------------- leaderboard
 interface Entry {
@@ -44,6 +58,8 @@ interface Entry {
   seasons: Record<string, number>; // season -> round-robin win rate in that season
   finals?: number; // latest finals win rate vs meta
   idea?: string;
+  /** what each season added to metaW/metaG (so a forced re-run can take it out again); finals: that season set `finals` */
+  contrib?: Record<string, { w: number; g: number; finals?: boolean }>;
 }
 const LB_FILE = 'data/seasons/leaderboard.json';
 const lib = loadLibrary();
@@ -92,7 +108,16 @@ function mkEntry(L: (typeof lib)[number], season: number, origin: string): Entry
     idea: L.idea,
   };
 }
-function addFinals(e: Entry, t: { overall: number; rows: { b: string; aWins: number; ties: number; games: number }[] }) {
+/** Add to an entry's pooled vs-meta record, remembering which season it came from (season 0 = the seed data). */
+function credit(e: Entry, season: number, w: number, g: number) {
+  e.metaW += w;
+  e.metaG += g;
+  if (!season) return;
+  const c = ((e.contrib ??= {})[String(season)] ??= { w: 0, g: 0 });
+  c.w += w;
+  c.g += g;
+}
+function addFinals(e: Entry, t: { overall: number; rows: { b: string; aWins: number; ties: number; games: number }[] }, season = 0) {
   let w = 0;
   let g = 0;
   for (const r of t.rows) {
@@ -100,9 +125,33 @@ function addFinals(e: Entry, t: { overall: number; rows: { b: string; aWins: num
     w += r.aWins + r.ties / 2;
     g += r.games;
   }
-  e.metaW += w;
-  e.metaG += g;
-  e.finals = g ? w / g : e.finals;
+  credit(e, season, w, g);
+  if (g) {
+    e.finals = w / g;
+    if (season) e.contrib![String(season)].finals = true;
+  }
+}
+/**
+ * Before a forced re-run: take season N's games back out of the leaderboard. Returns false (changing nothing) when the
+ * season was counted before per-season totals were kept.
+ */
+function uncountSeason(lb: Record<string, Entry>, season: number): boolean {
+  const k = String(season);
+  const legacy = Object.values(lb).filter((e) => e.seasons[k] !== undefined && !e.contrib?.[k]);
+  if (legacy.length) return false;
+  for (const e of Object.values(lb)) {
+    const c = e.contrib?.[k];
+    if (c) {
+      e.metaW -= c.w;
+      e.metaG -= c.g;
+      if (Math.abs(e.metaW) < 1e-9) e.metaW = 0;
+      if (c.finals) delete e.finals;
+      delete e.contrib![k];
+    }
+    delete e.seasons[k];
+    if (e.firstSeason === season) delete lb[e.name];
+  }
+  return true;
 }
 const vsMeta = (e: Entry) => (e.metaG ? e.metaW / e.metaG : 0);
 /** Ranking score: win rate vs meta shrunk toward 50% by a 60-game prior (small samples can't top the board). */
@@ -112,7 +161,7 @@ const rating = (e: Entry) => (e.metaW + 0.5 * PRIOR) / (e.metaG + PRIOR);
 function saveLB(lb: Record<string, Entry>) {
   const list = Object.values(lb).filter((e) => e.metaG > 0).sort((a, b) => rating(b) - rating(a));
   const n = list.length;
-  const rows = list.map((e, i) => ({
+  const rows = list.map(({ contrib: _contrib, ...e }, i) => ({
     ...e,
     vsMeta: vsMeta(e),
     rating: rating(e),
@@ -124,7 +173,7 @@ function saveLB(lb: Record<string, Entry>) {
     .filter((f) => /^season-\d+\.json$/.test(f))
     .map((f) => JSON.parse(fs.readFileSync(`data/seasons/${f}`, 'utf8')))
     .sort((a, b) => a.season - b.season);
-  fs.writeFileSync('src/data/seasons.json', JSON.stringify({ updated: new Date().toISOString(), leaderboard: rows, seasons }, null, 1));
+  writeJsonStamped('src/data/seasons.json', { updated: '', leaderboard: rows, seasons }, { indent: 1 });
   return rows;
 }
 
@@ -149,6 +198,17 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
 // ---------------------------------------------------------------- season
 async function main() {
   const lb = loadLB();
+  // ---- refuse to count a season twice
+  const counted = Object.values(lb).some((e) => e.seasons[String(SEASON)] !== undefined || e.contrib?.[String(SEASON)]);
+  const rerun = counted || fs.existsSync(SEASON_FILE);
+  if (rerun && !FORCE) {
+    throw new Refusal(`season ${SEASON} is already recorded (${fs.existsSync(SEASON_FILE) ? SEASON_FILE : 'in data/seasons/leaderboard.json'}). Leave out --season to run season ${Math.max(SEASON, ...recordedSeasons()) + 1}, or pass --force to re-run it.`);
+  }
+  if (counted && !uncountSeason(lb, SEASON)) {
+    throw new Refusal(`season ${SEASON} was counted into data/seasons/leaderboard.json before per-season totals were kept, so re-running it would count its games twice. Restore leaderboard.json to its state before season ${SEASON} (git history) or run a new season.`);
+  }
+  if (rerun) console.log(`--force: re-running season ${SEASON}; its previous leaderboard totals were taken out.`);
+  if (rerun && Math.max(0, ...recordedSeasons()) > SEASON) console.log(`warning: later seasons (up to ${Math.max(...recordedSeasons())}) were bred from season ${SEASON}'s decks.`);
   const impact = impactMap();
   // parents for breeding: every measured deck incl. meta archetypes, by strength
   // (power rating from the tournament series where available, blended with the shrunk vs-meta leaderboard rating)
@@ -160,14 +220,15 @@ async function main() {
   const h2hAll = loadH2H();
   const hasH2H = ranked.slice(0, 4).some((x) => ranked.some((y) => h2hAll(y.deck.name, x.deck.name).g > 0));
   // 1. breed
-  const seen = new Set(lib.map((d) => [...d.deck.legends].sort().join('|')));
+  // (on a re-run, this season's own earlier decks don't count as seen, so the breeder makes the same choices)
+  const seen = new Set(lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))).map((d) => [...d.deck.legends].sort().join('|')));
   const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined }, 8);
-  const newFiles: string[] = [];
-  for (const b of bred) {
-    const slug = b.deck.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, '');
-    const file = `${slug}.txt`;
+  const newFiles = bred.map((b) => `${slugify(b.deck.name)}.txt`);
+  const clash = existing(newFiles.map((f) => `data/decks/custom/${f}`));
+  if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
+  for (const [i, b] of bred.entries()) {
+    const file = newFiles[i];
     fs.writeFileSync(`data/decks/custom/${file}`, `${exportOfficial(b.deck)}${NL}${NL}// Idea: ${b.idea}${NL}// Author: Night City Trainer breeder (season ${SEASON}, ${b.method})${NL}`);
-    newFiles.push(file);
   }
   console.log(`Season ${SEASON}: bred ${bred.map((b) => b.deck.name).join(', ')}`);
   const lib2 = loadLibrary();
@@ -182,10 +243,12 @@ async function main() {
   for (let i = 0; i < field.length; i++)
     for (let j = i + 1; j < field.length; j++)
       for (let k = 0; k < GAMES; k++) jobs.push({ a: field[i].deck, b: field[j].deck, seed: seed++, first: (k % 2) as 0 | 1, bot: BOT, trace: true });
-  const res: MatchResult[] = await runJobs(jobs);
+  const res: MatchResult[] = await runJobs(jobs, { threads: THREADS });
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
-  impactMap(reps);
-  recordDeckImpact(reps);
+  if (!rerun) {
+    impactMap(reps);
+    recordDeckImpact(reps);
+  }
   // per-deck season win rate + pooled vs-meta record
   const tot: Record<string, { w: number; g: number }> = {};
   for (const r of res) {
@@ -195,25 +258,22 @@ async function main() {
       [r.b, r.a, 1 - s],
     ] as [string, string, number][]) {
       (tot[me] ??= { w: 0, g: 0 }), (tot[me].w += v), tot[me].g++;
-      if (metaNames.has(opp) && lb[me]) {
-        lb[me].metaW += v;
-        lb[me].metaG++;
-      }
+      if (metaNames.has(opp) && lb[me]) credit(lb[me], SEASON, v, 1);
     }
   }
   for (const [name, t] of Object.entries(tot)) if (lb[name]) lb[name].seasons[String(SEASON)] = t.w / t.g;
   saveLB(lb);
   // 3. forge the newcomers
   console.log('Forging newcomers…');
-  execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead`, { stdio: 'inherit' });
+  execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}`, { stdio: 'inherit' });
   // 4. finals vs meta for newcomers (post-forge) and any incumbent without finals
   const lib3 = loadLibrary();
   const finalists = [...newFiles.map((f) => lib3.find((d) => d.file === f)!), ...incumbents.filter((d) => lb[d.deck.name] && lb[d.deck.name].finals === undefined)];
   for (const d of finalists) {
     console.log(`Finals: ${d.deck.name}`);
-    execSync(`npx tsx scripts/simulate.ts test "${d.file.replace(/\.txt$/, '')}" --field meta --games ${Math.ceil(FINALS)} --bot ${BOT} --seed ${SEASON * 9000}`, { stdio: 'ignore' });
+    execSync(`npx tsx scripts/simulate.ts test "${d.file.replace(/\.txt$/, '')}" --field meta --games ${Math.ceil(FINALS)} --bot ${BOT} --seed ${SEASON * 9000} --threads ${THREADS}`, { stdio: ['ignore', 'ignore', 'inherit'] });
     const f = `reports/test-${d.file.replace(/\.txt$/, '')}-latest.json`;
-    if (fs.existsSync(f) && lb[d.deck.name]) addFinals(lb[d.deck.name], JSON.parse(fs.readFileSync(f, 'utf8')));
+    if (fs.existsSync(f) && lb[d.deck.name]) addFinals(lb[d.deck.name], JSON.parse(fs.readFileSync(f, 'utf8')), SEASON);
   }
   const board = saveLB(lb);
   // 5. season report
@@ -252,7 +312,9 @@ async function main() {
     '',
     'Rating = win rate vs the meta archetypes, shrunk toward 50% by a 60-game prior, so decks need volume to rank high. Percentile is the rank among all measured decks.',
   ].join(NL);
+  fs.mkdirSync('reports', { recursive: true });
   fs.writeFileSync(`reports/season-${SEASON}.md`, md);
   console.log(NL + md);
 }
-main();
+fs.mkdirSync('data/seasons', { recursive: true });
+runMain(main);

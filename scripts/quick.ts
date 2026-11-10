@@ -1,7 +1,13 @@
 import { Game } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
-import { resolveDeck } from './lib-node';
-const [a, b, n = '4'] = process.argv.slice(2);
+import { cli, resolveDeck } from './lib-node';
+// Quick in-process smoke run of a few games.  npx tsx scripts/quick.ts <deckA> <deckB> [games=4]
+const { positionals } = cli(import.meta.url, {}, { minPositionals: 2, maxPositionals: 3 });
+const [a, b, n = '4'] = positionals;
+if (!/^[1-9]\d*$/.test(n)) {
+  console.error(`error: games must be a whole number ≥ 1, got "${n}"`);
+  process.exit(2);
+}
 const A = resolveDeck(a).deck, B = resolveDeck(b).deck;
 let w = [0, 0, 0]; const t0 = Date.now();
 for (let i = 0; i < +n; i++) {

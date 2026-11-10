@@ -3,13 +3,14 @@
 // performed in that deck), pick the play style those decks share, and fill a legal 40 with the breeder's builder.
 // Then tune with the forge:  npx tsx scripts/forge.ts ladder-<name> --gens 2 --field meta
 //
-//   npx tsx scripts/theorize-ladder.ts
+//   npx tsx scripts/theorize-ladder.ts [--force]
+// Refuses to replace existing ladder-*.txt files (which the forge has since tuned in place) unless --force.
 import fs from 'node:fs';
 import { CARD_BY_ID } from '../src/engine/cards';
 import { exportOfficial, validateDeck } from '../src/engine/deck';
 import { fill, seedsOf } from '../src/ai/breeder';
 import { classify, type Archetype } from '../src/ai/archetype';
-import { loadLibrary } from './lib-node';
+import { bool, cli, existing, loadLibrary } from './lib-node';
 import { loadDeckImpact } from './breed-data';
 
 interface Trio {
@@ -52,6 +53,12 @@ const TRIOS: Trio[] = [
   },
 ];
 
+const { values: V } = cli(import.meta.url, { force: bool() });
+const clash = existing(TRIOS.map((t) => `data/decks/${t.slug}.txt`));
+if (clash.length && !V.force) {
+  console.error(`error: ${clash.join(', ')} already exist (and may have been forged since). Pass --force to replace them.`);
+  process.exit(1);
+}
 const lib = loadLibrary().filter((d) => !d.file.startsWith('ladder-'));
 const deckImpact = loadDeckImpact();
 const pooled: Record<string, { s: number; n: number }> = fs.existsSync('data/seasons/impact.json') ? JSON.parse(fs.readFileSync('data/seasons/impact.json', 'utf8')) : {};
