@@ -611,8 +611,9 @@ const CoachPanel = memo(function CoachPanel({ g, alts, tips }: { g: Game; v: num
       {alts.length > 0 && (
         <div>
           <div className="pb-label">Coach also considered</div>
-          {alts.map((a) => (
-            <div key={a.label} className="coach-alt">
+          {alts.map((a, i) => (
+            // two copies of a card give two alternatives with the same label, so the label alone is not a unique key
+            <div key={`${i}:${a.label}`} className="coach-alt">
               <span>{a.label}</span>
               <b>{a.gap}</b>
             </div>
