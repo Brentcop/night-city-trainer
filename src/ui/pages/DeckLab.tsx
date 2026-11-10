@@ -22,9 +22,9 @@ const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   { key: 'top8', label: 'Top 8 rated', hint: 'The 8 strongest decks by tournament power rating' },
 ];
 const EFFORT = {
-  quick: { label: 'Quick (~2 min)', games: 28, gens: 1, cands: 4 },
-  standard: { label: 'Standard (~6 min)', games: 56, gens: 2, cands: 5 },
-  thorough: { label: 'Thorough (~15 min)', games: 84, gens: 3, cands: 6 },
+  quick: { label: 'Quick (~15 s)', games: 56, gens: 1, cands: 4 },
+  standard: { label: 'Standard (~1 min)', games: 112, gens: 2, cands: 5 },
+  thorough: { label: 'Thorough (~3 min)', games: 168, gens: 3, cands: 6 },
 };
 
 function fieldDecks(key: FieldKey, lib: LibraryDeck[], exclude: string): DeckList[] {
@@ -317,7 +317,7 @@ function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
     setBred((xs) => xs.map((x, i) => (i === k ? { ...x, test: 'running' } : x)));
     poolRef.current ??= new GamePool(defaultThreads());
     const field = lib.filter((d) => d.kind === 'meta').map((d) => d.deck);
-    const r = await playSet(b.deck, field, 77_000 + k * 1000, 28, 'medium', poolRef.current.play, false);
+    const r = await playSet(b.deck, field, 77_000 + k * 1000, 56, 'medium', poolRef.current.play, false);
     setBred((xs) => xs.map((x, i) => (i === k ? { ...x, test: r.wr } : x)));
   };
   const save = (k: number) => {
@@ -401,7 +401,7 @@ function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
                 </button>
                 {typeof b.test === 'number' && (
                   <span>
-                    <Wr v={b.test} n={28} strong /> vs meta
+                    <Wr v={b.test} n={56} strong /> vs meta
                   </span>
                 )}
               </div>
