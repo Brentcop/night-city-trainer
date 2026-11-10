@@ -5,8 +5,9 @@
 //   Hard   — the Deep bot plus card impact: rolls out the rest of its turn and the rival's whole reply for its best
 //            3 options, values cards by how much they swing games for its deck (bot-match telemetry), and since the
 //            review-driven refinement also plays out each block / reaction (wins 56% vs the previous Hard, 168 games).
-// Measured (168 games each, every meta pairing): Easy wins 37.5% vs Medium; Medium vs the Deep bot is a tie (49.4%);
-// Hard wins 52.4% vs the Deep bot and makes far fewer blunders by the coach oracle (reports/coach-eval-latest.md).
+// Measured before the 2026-11 review fixes (168 games each, every meta pairing; not re-measured since): Easy wins 37.5%
+// vs Medium; Medium vs the Deep bot is a tie (49.4%); Hard wins 52.4% vs the Deep bot and makes far fewer blunders by
+// the coach oracle (reports/coach-eval-latest.md). The 56% above is from the same period.
 // Tournaments can also mix Hard and Medium: each seat of each game is Hard or Medium, decided by the game seed,
 // so a replay rebuilds exactly the same bots.
 // Bot fixes change play for every tier and the legacy names alike (the owner chose to fix forward, 2026-11-10): events
@@ -50,7 +51,7 @@ function tierAgent(t: Tier, seed: number, name?: string) {
 export function makeTierBot(level: string, seed: number, name?: string) {
   // the pre-tier Deep bot (no card impact), kept for older recorded events and comparisons
   if (level === 'deep') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, profiles: BEST_PROFILES });
-  // Hard as first released (before attack rollouts), kept for replays and comparisons
+  // Hard as first released (before attack rollouts), kept for comparisons and for the label on older recorded events
   if (level === 'hard-v1') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, impact: 40, profiles: BEST_PROFILES });
   const t = tierOf(level);
   if (t === 'mixed') return tierAgent((Math.imul(seed, 2654435761) >>> 15) & 1 ? 'hard' : 'medium', seed, name);
