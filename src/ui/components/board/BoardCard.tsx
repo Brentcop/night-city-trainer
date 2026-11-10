@@ -28,6 +28,8 @@ export interface BoardCtx {
   drag?: DragApi;
   /** hand display order (uids), after sorting */
   handOrder?: number[];
+  /** seat labels for spectating (default: You / Rival bot) */
+  seatLabels?: [string, string];
 }
 
 const dropMatches = (over: DropTarget | null, uid: number) => !!over && (over.kind === 'unit' || over.kind === 'hand') && over.uid === uid;

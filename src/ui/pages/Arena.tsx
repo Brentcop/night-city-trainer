@@ -8,6 +8,7 @@ import { summarize, type PlayerSummary } from '../../analysis/summarize';
 import { analyzeDeck, type DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
 import { DeckTile } from '../components/DeckIdentity';
+import { recordReplay, ReplayBoard, type ReplayData } from '../components/ReplayBoard';
 import { Wr, Verdict, ToneLegend } from '../components/Num';
 
 interface Row {
@@ -36,7 +37,7 @@ export function ArenaPage() {
   const [progress, setProgress] = useState('');
   const [running, setRunning] = useState(false);
   const stop = useRef(false);
-  const [watch, setWatch] = useState<GameState | null>(null);
+  const [watch, setWatch] = useState<{ data: ReplayData; names: [string, string] } | null>(null);
   const [telemetry, setTelemetry] = useState(true);
   const [report, setReport] = useState<DeckReport | null>(null);
 
@@ -81,8 +82,11 @@ export function ArenaPage() {
   };
 
   const watchGame = async () => {
-    const st = await playOne(findDeck(a)!.deck, findDeck(b)!.deck, Date.now() % 100000, (Math.random() < 0.5 ? 0 : 1) as PlayerId, 'medium', true);
-    setWatch(st);
+    const A = findDeck(a)!.deck;
+    const B = findDeck(b)!.deck;
+    const seed = Date.now() % 100000;
+    const data = await recordReplay([A, B], [makeTierBot(fast, seed), makeTierBot(fast, seed + 999)], seed, (Math.random() < 0.5 ? 0 : 1) as PlayerId);
+    setWatch({ data, names: [A.name, B.name] });
   };
 
   const pct = (x: number, y: number) => (y ? `${Math.round((100 * x) / y)}%` : '—');
@@ -204,16 +208,11 @@ export function ArenaPage() {
       )}
       {watch && (
         <div className="panel">
-          <h3>
-            Replay: {watch.players[0].name} vs {watch.players[1].name} — {watch.winner === 'tie' ? 'draw' : `${watch.players[watch.winner as 0 | 1].name} wins`} ({watch.winReason})
+          <h3 style={{ marginTop: 0 }}>
+            {watch.names[0]} vs {watch.names[1]} —{' '}
+            {watch.data.final.winner === 'tie' ? 'draw' : `${watch.names[watch.data.final.winner as 0 | 1]} wins`} ({watch.data.final.winReason})
           </h3>
-          <div className="log" style={{ maxHeight: 600 }}>
-            {watch.log.map((l, i) => (
-              <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
-                T{l.turn} {l.text}
-              </div>
-            ))}
-          </div>
+          <ReplayBoard data={watch.data} names={watch.names} />
         </div>
       )}
     </div>

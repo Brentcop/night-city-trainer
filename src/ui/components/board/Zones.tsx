@@ -180,7 +180,7 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   );
   const field = (
     <div className={`pb-zone pb-field ${me && ctx.drag?.over?.kind === 'play' ? 'pb-drop-over' : ''}`} data-drop={me ? 'play' : undefined}>
-      <div className="pb-label">{me ? 'Your field' : 'Rival field'}</div>
+      <div className="pb-label">{ctx.seatLabels ? `${ctx.seatLabels[p]} — field` : me ? 'Your field' : 'Rival field'}</div>
       <div className="pb-cards">
         {P.field.map((u) => (
           <BoardCard key={u} uid={u} size={size} ctx={ctx} />
@@ -192,8 +192,8 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   return (
     <section className={`pb-side ${me ? 'pb-me' : 'pb-rival'} ${active ? 'pb-active' : ''}`}>
       <div className="pb-side-name">
-        <span className="pb-who">{me ? 'You' : 'Rival bot'}</span>
-        <span className="muted small">{P.name}</span>
+        <span className="pb-who">{ctx.seatLabels ? ctx.seatLabels[p] : me ? 'You' : 'Rival bot'}</span>
+        {!ctx.seatLabels && <span className="muted small">{P.name}</span>}
         {active && <span className="pb-active-tag">{me ? 'your turn' : 'their turn'}</span>}
       </div>
       {me ? (

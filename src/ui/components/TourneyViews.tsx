@@ -1,13 +1,12 @@
 // Shared tournament views: bracket (with TBD slots while an event runs), standings, round lists and the match modal with replay playback.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { LegendStrip, OriginBadge } from './DeckIdentity';
-import { Game } from '../../engine/engine';
 import { gameDeck, makeBot, type GameRec, type MatchRec, type StandingRow } from '../../lib/tournament';
-import type { GameState } from '../../engine/types';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewPanel } from './ReviewPanel';
+import { recordReplay, ReplayBoard, type ReplayData } from './ReplayBoard';
 import { Wr } from './Num';
 
 export type Lib = Map<string, LibraryDeck>;
@@ -214,7 +213,7 @@ type EvDecks = Record<string, { legends: string[]; main: string[] }>;
 
 /** Match details: every game, with an exact re-simulation and turn-by-turn playback. */
 export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { games: GameRec[] }; decks: EvDecks; bot: string; lib: Lib; onClose: () => void }) {
-  const [replay, setReplay] = useState<{ i: number; state?: GameState; busy?: boolean } | null>(null);
+  const [replay, setReplay] = useState<{ i: number; data?: ReplayData; busy?: boolean } | null>(null);
   const [review, setReview] = useState<{ i: number; req: ReviewRequest } | null>(null);
   const reviewGameAt = (i: number) => {
     const gm = m.games[i];
@@ -225,11 +224,8 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
     const gm = m.games[i];
     setReplay({ i, busy: true });
     await new Promise((r) => setTimeout(r, 30));
-    const g = Game.create([gameDeck({ name: m.a, ...decks[m.a] }), gameDeck({ name: m.b!, ...decks[m.b!] })], [makeBot(bot, gm.seed), makeBot(bot, gm.seed + 7777)], {
-      seed: gm.seed,
-      first: gm.first,
-    });
-    setReplay({ i, state: await g.run() });
+    const data = await recordReplay([gameDeck({ name: m.a, ...decks[m.a] }), gameDeck({ name: m.b!, ...decks[m.b!] })], [makeBot(bot, gm.seed), makeBot(bot, gm.seed + 7777)], gm.seed, gm.first);
+    setReplay({ i, data });
   };
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -237,10 +233,11 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
     return () => window.removeEventListener('keydown', k);
   }, [onClose]);
   const rec = replay ? m.games[replay.i] : null;
-  const same = replay?.state && rec && (replay.state.winner === rec.winner || (replay.state.winner === null && rec.winner === 'tie'));
+  const fin = replay?.data?.final;
+  const same = fin && rec && (fin.winner === rec.winner || (fin.winner === null && rec.winner === 'tie'));
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal ${replay?.data ? 'modal-wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <button className="ghost modal-close" onClick={onClose}>
           ✕
         </button>
@@ -288,94 +285,15 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
         </table>
         {review && <ReviewPanel key={review.i} req={review.req} title={`Game ${review.i + 1} review`} expect={m.games[review.i].winner} />}
         {replay?.busy && <p className="muted">Re-simulating game {replay.i + 1} with the same seed and bots…</p>}
-        {replay?.state && (
+        {replay?.data && (
           <>
             <h3 style={{ marginBottom: 4 }}>
               Game {replay.i + 1}{' '}
-              <span className="muted small">({same ? 'replay matches the recorded result' : 'replay differs from the record: bot settings changed since'})</span>
+              <span className="muted small">({same ? 'replay matches the recorded result' : 'replay differs from the record: bot settings changed since'}) · click any line of the log to see the board at that moment</span>
             </h3>
-            <Playback state={replay.state} names={[m.a, m.b!]} />
+            <ReplayBoard data={replay.data} names={[m.a, m.b!]} />
           </>
         )}
-      </div>
-    </div>
-  );
-}
-
-/** Turn-by-turn playback of a game log, with play/pause, speed and a turn scrubber. */
-function Playback({ state, names }: { state: GameState; names: [string, string] }) {
-  const log = state.log;
-  const lastTurn = log.length ? log[log.length - 1].turn : 0;
-  const [shown, setShown] = useState(log.length);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(250);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    setShown(log.length);
-    setPlaying(false);
-  }, [state, log.length]);
-  useEffect(() => {
-    if (!playing) return;
-    if (shown >= log.length) return setPlaying(false);
-    const t = setTimeout(() => setShown((s) => s + 1), speed);
-    return () => clearTimeout(t);
-  }, [playing, shown, speed, log.length]);
-  useEffect(() => {
-    if (playing && box.current) box.current.scrollTop = box.current.scrollHeight;
-  }, [shown, playing]);
-  const turnNow = shown ? log[Math.min(shown, log.length) - 1].turn : 0;
-  /** number of log lines up to the end of turn t */
-  const endOf = (t: number) => {
-    const i = log.findIndex((l) => l.turn > t);
-    return i === -1 ? log.length : i;
-  };
-  const toTurn = (t: number) => setShown(Math.max(1, endOf(t)));
-  const end = shown >= log.length;
-  return (
-    <div className="playback">
-      <div className="row small">
-        <button
-          className="primary"
-          onClick={() => {
-            if (end) setShown(1);
-            setPlaying((p) => !p || end);
-          }}
-        >
-          {playing ? '❚❚ Pause' : end ? '▶ Play from start' : '▶ Play'}
-        </button>
-        <button onClick={() => (setPlaying(false), toTurn(turnNow - 1))} disabled={turnNow <= 1}>
-          ◀ Turn
-        </button>
-        <button onClick={() => (setPlaying(false), toTurn(shown < endOf(turnNow) ? turnNow : turnNow + 1))} disabled={end}>
-          Turn ▶
-        </button>
-        <button onClick={() => (setPlaying(false), setShown(log.length))} disabled={end}>
-          Skip to end
-        </button>
-        <label className="row muted">
-          Speed
-          <select value={speed} onChange={(e) => setSpeed(+e.target.value)}>
-            <option value={600}>slow</option>
-            <option value={250}>normal</option>
-            <option value={80}>fast</option>
-          </select>
-        </label>
-        <span className="muted">
-          Turn {turnNow} / {lastTurn}
-        </span>
-      </div>
-      <input type="range" min={1} max={Math.max(1, lastTurn)} value={turnNow || 1} onChange={(e) => (setPlaying(false), toTurn(+e.target.value))} style={{ width: '100%' }} />
-      <div className="row small">
-        <span className="p0-dot">● {names[0]}</span>
-        <span className="p1-dot">● {names[1]}</span>
-      </div>
-      <div className="log" ref={box} style={{ maxHeight: 420 }}>
-        {log.slice(0, shown).map((l, k) => (
-          <div key={k} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
-            T{l.turn} {l.text}
-          </div>
-        ))}
-        {end && <div className="sys">{state.winner === 'tie' ? 'Draw' : `${names[state.winner as 0 | 1]} wins`} ({state.winReason})</div>}
       </div>
     </div>
   );

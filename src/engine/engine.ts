@@ -304,10 +304,14 @@ export class Game {
     this.onUpdate?.();
   }
 
+  /** Called after every log line (replay viewers capture the board state here). */
+  onLog: (() => void) | null = null;
+
   log(p: PlayerId | null, text: string) {
     if (!this.logEnabled) return;
     this.s.log.push({ turn: this.s.turn, player: p, text });
     if (this.s.log.length > 2000) this.s.log.splice(0, 500);
+    this.onLog?.();
   }
 
   // ------------------------------------------------------------------ accessors

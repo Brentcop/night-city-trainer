@@ -1,0 +1,170 @@
+// Visual replay: the real playmat for any moment of a finished game. The game is re-simulated once with its seeds,
+// the board state is captured after every log line, and the log becomes a timeline you can click, step or play.
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Game } from '../../engine/engine';
+import type { Agent, DeckList, GameState, PlayerId } from '../../engine/types';
+import { EMPTY_IX } from './board/interaction';
+import type { BoardCtx } from './board/BoardCard';
+import { PlayerSide } from './board/Zones';
+import { BoardCard } from './board/BoardCard';
+import { useNarrow } from './board/useNarrow';
+import '../board.css';
+
+export interface ReplayData {
+  final: GameState;
+  /** board state right after log line i (log omitted to keep memory small) */
+  frames: GameState[];
+}
+
+/** Re-simulate a game and capture a board frame after every log line. */
+export async function recordReplay(decks: [DeckList, DeckList], agents: [Agent, Agent], seed: number, first?: PlayerId): Promise<ReplayData> {
+  const g = Game.create(decks, agents, { seed, first });
+  const frames: GameState[] = [];
+  g.onLog = () => {
+    const { log: _log, trace: _trace, ...rest } = g.s;
+    frames.push(structuredClone({ ...rest, log: [] }) as GameState);
+  };
+  const final = await g.run();
+  return { final, frames };
+}
+
+const noop = () => undefined;
+const SPEEDS = [
+  { ms: 900, label: 'slow' },
+  { ms: 350, label: 'normal' },
+  { ms: 120, label: 'fast' },
+];
+
+export function ReplayBoard({ data, names }: { data: ReplayData; names: [string, string] }) {
+  const log = data.final.log;
+  const n = Math.min(log.length, data.frames.length);
+  const [cur, setCur] = useState(n - 1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(350);
+  const narrow = useNarrow();
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCur(n - 1);
+    setPlaying(false);
+  }, [data, n]);
+  useEffect(() => {
+    if (!playing) return;
+    if (cur >= n - 1) return setPlaying(false);
+    const t = setTimeout(() => setCur((c) => c + 1), speed);
+    return () => clearTimeout(t);
+  }, [playing, cur, n, speed]);
+  // keep the current line in view
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-i="${cur}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [cur]);
+  // arrow keys step through the game
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.key === 'ArrowRight') (setPlaying(false), setCur((c) => Math.min(n - 1, c + 1)));
+      if (e.key === 'ArrowLeft') (setPlaying(false), setCur((c) => Math.max(0, c - 1)));
+      if (e.key === ' ') (e.preventDefault(), setPlaying((p) => !p));
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [n]);
+
+  const g = useMemo(() => (n ? new Game(structuredClone(data.frames[Math.max(0, cur)]), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [data, cur, n]);
+  if (!g || !n) return <p className="muted">No moves were recorded for this game.</p>;
+  const turnOf = (i: number) => log[i]?.turn ?? 0;
+  const lastTurn = turnOf(n - 1);
+  const turnNow = turnOf(cur);
+  const firstLineOfTurn = (t: number) => Math.max(0, log.findIndex((l) => l.turn >= t));
+  const end = cur >= n - 1;
+  const line = log[cur];
+  const ctx: BoardCtx = {
+    g,
+    pend: null,
+    ix: EMPTY_IX,
+    coach: null,
+    targeting: null,
+    narrow,
+    menuUid: null,
+    answer: noop,
+    openMenu: noop,
+    startTargeting: noop,
+    cancelTargeting: noop,
+    openTrash: noop,
+    seatLabels: names,
+  };
+  const s = g.s;
+  const handSize = narrow ? 'xs' : 'sm';
+  return (
+    <div className="replay">
+      <div className="replay-controls row small">
+        <button className="primary" onClick={() => (end ? (setCur(0), setPlaying(true)) : setPlaying((p) => !p))}>
+          {playing ? '❚❚ Pause' : end ? '▶ Play from start' : '▶ Play'}
+        </button>
+        <button onClick={() => (setPlaying(false), setCur(firstLineOfTurn(turnNow - 1)))} disabled={turnNow <= 1} title="Previous turn">
+          ⏮
+        </button>
+        <button onClick={() => (setPlaying(false), setCur((c) => Math.max(0, c - 1)))} disabled={cur <= 0} title="Previous move (←)">
+          ◀
+        </button>
+        <button onClick={() => (setPlaying(false), setCur((c) => Math.min(n - 1, c + 1)))} disabled={end} title="Next move (→)">
+          ▶
+        </button>
+        <button onClick={() => (setPlaying(false), setCur(Math.min(n - 1, Math.max(cur + 1, firstLineOfTurn(turnNow + 1)))))} disabled={end} title="Next turn">
+          ⏭
+        </button>
+        <select value={speed} onChange={(e) => setSpeed(+e.target.value)}>
+          {SPEEDS.map((x) => (
+            <option key={x.ms} value={x.ms}>
+              {x.label}
+            </option>
+          ))}
+        </select>
+        <span className="muted">
+          Turn {turnNow} / {lastTurn} · move {cur + 1} / {n}
+        </span>
+      </div>
+      <input className="replay-scrub" type="range" min={0} max={n - 1} value={cur} onChange={(e) => (setPlaying(false), setCur(+e.target.value))} aria-label="Scrub through the game" />
+      <div className="replay-layout">
+        <div className="pb pb-replay">
+          <div className="pb-topbar">
+            <div className="pb-turn">
+              <span className="pb-turn-no">TURN {s.turn}</span>
+              <span className={`pb-turn-who ${s.active === 0 ? 'me' : 'rival'}`}>{names[s.active]}</span>
+              {s.overtime && <span className="pb-overtime">OVERTIME</span>}
+            </div>
+          </div>
+          <div className="pb-mat">
+            <PlayerSide p={1} ctx={ctx} />
+            <div className={`pb-midline ${line?.player === 0 ? 'pb-tone-me' : line?.player === 1 ? 'pb-tone-rival' : ''}`} key={cur}>
+              <span>{line ? `${line.player === null ? '' : `${names[line.player]}: `}${line.text}` : ''}</span>
+            </div>
+            <PlayerSide p={0} ctx={ctx} />
+            <div className="replay-hand">
+              <span className="pb-label">{names[0]}'s hand</span>
+              <div className="pb-cards">
+                {s.players[0].hand.map((u) => (
+                  <BoardCard key={u} uid={u} size={handSize} ctx={ctx} />
+                ))}
+                {!s.players[0].hand.length && <span className="muted small">empty</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="replay-log log" ref={listRef}>
+          {log.slice(0, n).map((l, i) => (
+            <button
+              key={i}
+              data-i={i}
+              className={`replay-line ${l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'} ${i === cur ? 'on' : ''} ${i > cur ? 'future' : ''}`}
+              onClick={() => (setPlaying(false), setCur(i))}
+            >
+              <span className="muted">T{l.turn}</span> {l.text}
+            </button>
+          ))}
+          {end && <div className="sys replay-result">{data.final.winner === 'tie' ? 'Draw' : `${names[data.final.winner as 0 | 1]} wins`} ({data.final.winReason})</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
