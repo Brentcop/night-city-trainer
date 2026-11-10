@@ -115,6 +115,21 @@ function TextFrame({ def, size }: { def: CardDef; size: CardSize }) {
   );
 }
 
+/** Keyboard access for a clickable non-button element: focusable, and Enter or Space clicks it. */
+export function pressable(onClick: (() => void) | undefined, label?: string) {
+  if (!onClick) return {};
+  return {
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': label,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      onClick();
+    },
+  };
+}
+
 /** Face-down card back (Legends, hidden cards, deck piles). */
 export function CardBack({ size = 'md', label, spent, onClick, targetable, count }: { size?: CardSize; label?: string; spent?: boolean; onClick?: () => void; targetable?: boolean; count?: number }) {
   return (
@@ -122,6 +137,7 @@ export function CardBack({ size = 'md', label, spent, onClick, targetable, count
       className={['tcg', `tcg-${size}`, 'tcg-back', spent ? 'is-spent' : '', targetable ? 'is-target' : '', onClick ? 'is-click' : ''].join(' ')}
       style={{ width: WIDTH[size] }}
       onClick={onClick}
+      {...pressable(onClick, label ?? 'Face-down card')}
     >
       <div className="tcg-inner">
         <div className="tcg-back-face">

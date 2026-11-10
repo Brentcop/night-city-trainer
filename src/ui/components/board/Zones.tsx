@@ -1,7 +1,7 @@
 // Playmat zones: Gig area (dice), piles (deck / trash / Eddies), hands, and a full player side.
 import type { PlayerId } from '../../../engine/types';
 import { Die } from '../Dice';
-import { CardBack, TcgCard } from '../TcgCard';
+import { CardBack, pressable, TcgCard } from '../TcgCard';
 import { BoardCard, type BoardCtx } from './BoardCard';
 
 export function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
@@ -22,7 +22,7 @@ export function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       data-drop={p === 1 ? 'gigs' : undefined}
       className={cls}
       onClick={target ? () => ctx.answer(target.i) : undefined}
-      role={target ? 'button' : undefined}
+      {...pressable(target ? () => ctx.answer(target.i) : undefined, 'Attack the Gig area')}
       title={target ? 'Attack the Gig area' : undefined}
     >
       <div className="pb-gigs-head">
@@ -88,7 +88,7 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
         data-drop={p === 0 ? 'sell' : undefined}
         title={payEddie >= 0 ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.` : p === 0 ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.` : `Eddies: ${ready} ready of ${total}`}
         onClick={payEddie >= 0 ? () => ctx.answer(payEddie) : undefined}
-        role={payEddie >= 0 ? 'button' : undefined}
+        {...pressable(payEddie >= 0 ? () => ctx.answer(payEddie) : undefined, 'Spend an Eddie')}
       >
         <div className={`pb-stack ${total ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(total, 5) }}>
           {total ? <CardBack size="xs" label="€$" /> : <div className="pb-empty-slot">€$</div>}
@@ -111,9 +111,9 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
         </div>
       </div>
       <div className="pb-pile pb-trash" title="Open the trash">
-        <div className="pb-stack" onClick={() => ctx.openTrash(p)} role="button">
+        <div className="pb-stack" onClick={() => ctx.openTrash(p)} {...pressable(() => ctx.openTrash(p), `${p === 0 ? 'Open your trash' : "Open the rival's trash"} (${P.trash.length} cards)`)}>
           {top !== undefined && g.s.cards[top] ? (
-            <TcgCard def={g.def(top)} size="xs" noZoom onClick={() => ctx.openTrash(p)} />
+            <TcgCard def={g.def(top)} size="xs" noZoom />
           ) : (
             <div className="pb-empty-slot">trash</div>
           )}

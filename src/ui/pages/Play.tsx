@@ -591,6 +591,8 @@ const GameLog = memo(function GameLog({ log }: { log: Game['s']['log']; n: numbe
     <>
       {log.slice(-250).map((l, i) => (
         <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
+          {/* who acted, in words as well as colour (turn headers already name the deck) */}
+          {l.player !== null && !l.text.startsWith('---') && <b>{l.player === 0 ? 'You: ' : 'Rival: '}</b>}
           {l.text}
         </div>
       ))}
