@@ -8,7 +8,7 @@ import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct } from '../../lib/deckStats';
 import { DeckTile, LegendStrip, OriginBadge, ColorPips } from '../components/DeckIdentity';
 import { Markdown } from '../components/Markdown';
-import { deckReports, ok, profileHref, StatTile, WrBar } from './DeckProfile';
+import { deckReports, ok, profileHref, StatTile, WrBar } from '../components/DeckStats';
 
 const EVENT = { name: 'Edgerunner Open Regional — Chicago', start: new Date('2026-12-11T09:00:00-06:00'), url: 'https://cyberpunktcg.com/eor' };
 

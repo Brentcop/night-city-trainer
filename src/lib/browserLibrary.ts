@@ -2,11 +2,11 @@
 import { deckFromText, type LibraryDeck } from './library';
 import type { DeckList } from '../engine/types';
 
-const files = import.meta.glob('../../data/decks/**/*.txt', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+// data/decks/**/history/ holds superseded lists; they are not bundled.
+const files = import.meta.glob(['../../data/decks/**/*.txt', '!**/history/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 const KIND_ORDER = ['meta', 'ladder', 'original', 'guide', 'custom'];
 export const BUILTIN: LibraryDeck[] = Object.entries(files)
-  .filter(([path]) => !path.includes('/history/'))
   .map(([path, text]) => {
     const file = path.split('/').pop()!;
     return deckFromText(file, text, path.includes('/custom/') ? 'custom' : undefined);

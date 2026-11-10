@@ -10,7 +10,7 @@ import { parseRunParams, parseRuns, toEvent } from '../runParams';
 import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
 import { ColorPips } from '../components/DeckIdentity';
 import '../deckprofile.css';
-import { StatTile } from './DeckProfile';
+import { StatTile } from '../components/DeckStats';
 import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, type MatchView } from '../components/TourneyViews';
 
 type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'all' | 'custom';

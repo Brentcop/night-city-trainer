@@ -1,4 +1,11 @@
-import { Component, useEffect, useRef, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react';
+
+/** A lazily loaded page's code could not be fetched (offline, or an old tab after a deploy replaced the chunk files). */
+function isChunkLoadError(err: Error): boolean {
+  // Chrome: "Failed to fetch dynamically imported module"; Firefox: "error loading dynamically imported module";
+  // Safari: "Importing a module script failed"; Vite's CSS preload: "Unable to preload CSS".
+  return /dynamically imported module|Importing a module script failed|Unable to preload CSS/i.test(String(err?.message ?? err));
+}
 
 class Boundary extends Component<{ children: React.ReactNode }, { err: Error | null }> {
   state = { err: null as Error | null };
@@ -6,6 +13,16 @@ class Boundary extends Component<{ children: React.ReactNode }, { err: Error | n
     return { err };
   }
   render() {
+    if (this.state.err && isChunkLoadError(this.state.err))
+      return (
+        <div className="panel">
+          <h2>This page could not be loaded</h2>
+          <p className="muted">
+            Its code did not download. You may be offline, or the site was updated since this tab was opened. Reloading usually fixes it.
+          </p>
+          <button onClick={() => window.location.reload()}>Reload</button>
+        </div>
+      );
     if (this.state.err)
       return (
         <div className="panel">
@@ -18,22 +35,24 @@ class Boundary extends Component<{ children: React.ReactNode }, { err: Error | n
   }
 }
 import { Home } from './ui/pages/Home';
-import { MetaPage } from './ui/pages/Meta';
-import { DecksPage } from './ui/pages/Decks';
-import { PlayPage } from './ui/pages/Play';
-import { ArenaPage } from './ui/pages/Arena';
-import { GuidesPage } from './ui/pages/Guides';
-import { GlossaryPage } from './ui/pages/Glossary';
-import { CardsPage } from './ui/pages/Cards';
-import { InsightsPage } from './ui/pages/Insights';
-import { SeasonsPage } from './ui/pages/Seasons';
-import { CreditsPage } from './ui/pages/Credits';
-import { DeckProfilePage } from './ui/pages/DeckProfile';
 import { artEnabled, setArtEnabled } from './ui/art';
-import { TournamentsPage } from './ui/pages/Tournaments';
-import { RatingsPage } from './ui/pages/Ratings';
-import { TournamentRunnerPage } from './ui/pages/TournamentRunner';
-import { DeckLabPage } from './ui/pages/DeckLab';
+
+// Every page but Home loads on first visit (its own chunk); a failed load shows the Boundary's Reload message.
+const MetaPage = lazy(() => import('./ui/pages/Meta').then((m) => ({ default: m.MetaPage })));
+const DecksPage = lazy(() => import('./ui/pages/Decks').then((m) => ({ default: m.DecksPage })));
+const PlayPage = lazy(() => import('./ui/pages/Play').then((m) => ({ default: m.PlayPage })));
+const ArenaPage = lazy(() => import('./ui/pages/Arena').then((m) => ({ default: m.ArenaPage })));
+const GuidesPage = lazy(() => import('./ui/pages/Guides').then((m) => ({ default: m.GuidesPage })));
+const GlossaryPage = lazy(() => import('./ui/pages/Glossary').then((m) => ({ default: m.GlossaryPage })));
+const CardsPage = lazy(() => import('./ui/pages/Cards').then((m) => ({ default: m.CardsPage })));
+const InsightsPage = lazy(() => import('./ui/pages/Insights').then((m) => ({ default: m.InsightsPage })));
+const SeasonsPage = lazy(() => import('./ui/pages/Seasons').then((m) => ({ default: m.SeasonsPage })));
+const CreditsPage = lazy(() => import('./ui/pages/Credits').then((m) => ({ default: m.CreditsPage })));
+const DeckProfilePage = lazy(() => import('./ui/pages/DeckProfile').then((m) => ({ default: m.DeckProfilePage })));
+const TournamentsPage = lazy(() => import('./ui/pages/Tournaments').then((m) => ({ default: m.TournamentsPage })));
+const RatingsPage = lazy(() => import('./ui/pages/Ratings').then((m) => ({ default: m.RatingsPage })));
+const TournamentRunnerPage = lazy(() => import('./ui/pages/TournamentRunner').then((m) => ({ default: m.TournamentRunnerPage })));
+const DeckLabPage = lazy(() => import('./ui/pages/DeckLab').then((m) => ({ default: m.DeckLabPage })));
 
 const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.ReactNode }[] = [
   { path: 'home', label: 'Home', el: () => <Home /> },
@@ -144,7 +163,9 @@ export function App() {
         </nav>
       )}
       <main className="main" key={path + q.toString()}>
-        <Boundary>{route ? route.el(q) : <NotFound path={path} />}</Boundary>
+        <Boundary>
+          <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>{route ? route.el(q) : <NotFound path={path} />}</Suspense>
+        </Boundary>
       </main>
       <footer className="footer">
         Unofficial fan-made practice tool — not affiliated with CD PROJEKT RED, WeirdCo, choom.gg or cyberpunk-tcg-sim.online. Every deck is
