@@ -1,5 +1,7 @@
 # Match reviewer: validation and findings (2026-11-10)
 
+> **Note (2026-11-10):** the figures in this document were measured before the bot and engine fixes listed in `docs/IMPROVEMENT_BACKLOG.md` (Wave B) and have not been re-measured. The "exact replay" results held for the code the games were recorded with; events recorded before those fixes no longer replay identically on the current code.
+
 The match reviewer (`src/ai/reviewer.ts`) replays a finished game exactly and scores every main-phase decision against an **oracle**. The oracle plays each candidate move out 8 times: the rest of the turn plus the rival's whole reply, with hidden cards re-dealt. Every candidate shares the same 8 random worlds, so only the move differs between them. Reports:
 
 - `reports/review-backfill.md`: 200 recorded series games, with the coach checked on every decision.
@@ -81,7 +83,7 @@ npx tsx scripts/review-noise.ts --samples 80 --rollouts 8                 # orac
 npx tsx scripts/review.ts --from chaos --chaos-bot hard --games 24        # planted mistakes
 npx tsx scripts/review.ts --from tiers --games 30                        # Easy / Medium / Hard
 npx tsx scripts/review.ts --from events --games 200 --coach --name backfill
-npx tsx scripts/review-debug.ts data/reviews/backfill.json <game-id> <seat> <decision#>   # one decision, world by world
+npx tsx scripts/review-debug.ts data/reviews/backfill.json <game-id> <seat> <decision#>   # one decision, world by world (data/reviews/ is gitignored review.ts output)
 ```
 
 In the app: **Play** → finish a game → **Full match review** (or **Review a recent game**). **Tournaments** → any match → **🔍 Review**.

@@ -8,7 +8,7 @@ This is the reference for what the bots know, which tools they have, and how the
 |---|---|---|
 | Hand | ✔ | count only. Lookahead clones re-deal the rival's hand at random from their unseen cards |
 | Deck order | ✘ (clones shuffle it) | ✘ |
-| Face-down Legends | ✘ unless revealed by an effect (`known`), e.g. Kiroshi Optics | ✘ |
+| Face-down Legends | ✘ unless revealed by an effect (`known`), e.g. Kiroshi Optics. Clones shuffle the identities of the ones not looked at | ✘. Clones shuffle their identities |
 | Field, Gigs, fixer dice, Eddies, trash, face-up Legends | ✔ | ✔ |
 | Own deck list (for the Gig plan) | ✔ | Only the public cards: field, trash and face-up Legends |
 
@@ -71,19 +71,27 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 3. **Main actions, 1-ply lookahead.**
    - For every legal action, clone the game, play the action out, and evaluate.
    - Inside the clone, sub-choices and the rival's reactions use the fast policy.
-   - Calls on unknown face-down Legends are averaged over the possibilities.
+   - Each clone first hides what the bot can't see (`hideInfo`): the rival's hand is re-dealt from their unseen cards, both decks are shuffled, and the identities of face-down Legends the bot hasn't seen (its own not looked at, and all of the rival's) are shuffled among their slots.
+   - Calls on unknown face-down Legends count as one option, valued as the average over the possible Legends. This holds in the main phase, in reactions and in deep rollouts.
    - Take the best action if it beats passing.
 4. **Deep mode (turn rollout).** Re-score the top N actions by finishing our turn with a 1-ply bot, then letting a 1-ply rival play its whole next turn.
 5. **Reactions.** For each reaction (Call, Blocker, Quick program or ability):
    - clone the game and apply the reaction;
    - project the attack's result (the fight loser is defeated, or N Gigs change hands);
    - keep the reaction only if it improves the projected evaluation.
+
+   With `deepReactions: N` (Hard and the coach), each reaction is instead played out N times: the attack finishes, the attacker ends its turn, and the defender plays its next turn. The N random worlds (hidden-information deal, dice) are different from each other but shared by every candidate reaction, so only the reaction differs between them. Unknown Calls are collapsed into one averaged option, as in the main phase.
 6. **Targets** (driven by `intent` hints that every card script supplies):
    - "harm" picks the rival Unit with the highest threat;
    - "help" picks the friendly Unit in the current fight, or else the biggest ready Unit;
    - Gear with "when this Unit or Legend is spent" goes on a face-up Legend, which is spent to pay each turn.
+   - "May attack this turn" permissions (Adrenaline, Lag attacks) go to a ready, lagging Unit that couldn't otherwise attack, the strongest first.
 7. **Modes.** Each mode is scored from its text: removal when targets exist, Draw N worth 3.5N, stun when the rival has ready Units, and so on. When the rival chooses for us (Gunpoint Diplomacy), the bot assumes they pick the weakest mode.
-8. **Discard / search.** Uses `cardValue`: base stats, roles (removal, sweeper, draw, finisher), choom.gg card ratings, and whether the card is castable soon.
+8. **Card choices and yes/no prompts.** Decided by the decision's tag, never by the prompt text.
+   - Card choices follow `CARD_TAG_POLICY`: take the best card (search, play from trash, free plays, moving Gear), give up the worst (discard, trash, bottom-deck), pick blind (looking at an unknown face-down Legend), or target the rival's best card (Detonate, Gear removal). Cards are valued with `cardValue`: base stats, roles (removal, sweeper, draw, finisher), choom.gg card ratings, card impact, and whether the card is castable soon.
+   - Yes/no prompts have a rule per tag (`yesNo`): mulligan, Kerry's reroll, Jackie's replacement, trashing the top card, drawing (not when the deck is too short), discarding for Maman Brigitte, paying for El Sombrerón. Pure gains are always yes.
+   - Gig swaps (Hanako, MaxTac AV) score every (give, take) pair by the Gig plan, and decline an optional swap that gains nothing.
+9. **Candidate cap.** When there are more actions than `maxCandidates`, the best attack of every attacker is kept first, then the rest by the fast policy's score (`capCandidates`), so no attacker is dropped unseen.
 
 ## 6. Difficulty tiers and strength check (`src/ai/tiers.ts`)
 
@@ -93,7 +101,7 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 | **Medium** | Lookahead | Scores every action one step ahead, with the tuned matchup profiles |
 | **Hard** | Deep + card impact + reaction rollouts | Also rolls out the rest of its turn and your whole reply for its best 3 options, plays out each block / reaction, and values cards by how much they swing games for its deck |
 
-Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 games each, about ±6 points of noise):
+Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 games each, about ±6 points of noise). These were measured before the November 2026 bot and engine fixes (`docs/IMPROVEMENT_BACKLOG.md`, Wave B) and have not been re-measured:
 
 | Matchup | First bot wins |
 |---|---|
@@ -105,7 +113,7 @@ Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 gam
 
 Easy is clearly weaker. Medium and Hard are close in bot-vs-bot play: both use the same evaluation, so their mistakes are similar. Hard's edge shows when it judges single decisions against the rollout oracle: it blunders about 16% of the time vs 25% for Medium. That matters more against a human, who makes different mistakes.
 
-**Tournaments** can run All Hard, a Hard + Medium mix (each seat of each game is Hard or Medium, decided by its seed, so replays rebuild the same bots), All Medium, or All Easy. Events recorded before the tiers used the Deep bot (`deep`), and keep exactly those settings for replays.
+**Tournaments** can run All Hard, a Hard + Medium mix (each seat of each game is Hard or Medium, decided by its seed, so a replay rebuilds the same bots), All Medium, or All Easy. Events recorded before the tiers used the Deep bot (`deep`); that setting and `hard-v1` are kept with their original search depth, impact and reactions, but they share every later fix to the bot's choices. So events recorded before the fixes no longer replay identically. New events carry `simVersion` (`SIM_VERSION` in `src/lib/tournament.ts`); events without it predate the fixes. A new game still replays identically from its seed with the same code (`makeBot()`).
 
 ## 7. Coach (`src/ai/coach.ts`)
 
@@ -120,9 +128,9 @@ In Play, coach mode asks an advisor bot for its move and explains it.
 - Live warnings: steal threat against your ready blockers, rival blockers, 6-Gig alerts and overtime.
 - A matchup plan. It comes from the archetype read, your deck's top cards by "Δ when drawn", its tempo stat, and this pairing's bot-test win rate.
 
-**Advisor config:** `deep: 12` with the tuned profiles and `impact: 40`. Card impact adds `40 × Δ when drawn` to sell and keep choices, and the advisor keeps hands that hold at least 2 high-impact cards.
+**Advisor config** (`COACH_CONFIG`): `deep: 12` with the tuned profiles, `impact: 40`, `sellLookahead: 3` (compares the three most sellable cards by rollout) and `deepReactions: 3`. Card impact adds `40 × Δ when drawn` to sell and keep choices, and the advisor keeps hands that hold at least 2 high-impact cards.
 
-**How it was chosen:** `scripts/coach-eval.ts` scores sampled real decisions against a rollout oracle. The write-up with the full numbers is `reports/coach-eval-latest.md` (the raw table from the deep set is `reports/coach-eval-depth-run.md`).
+**How it was chosen:** `scripts/coach-eval.ts` scores sampled real decisions against a rollout oracle. The numbers below were measured before the November 2026 fixes, with the earlier config (`COACH_CONFIG_V1`: no sell lookahead or reaction rollouts). The write-up with the full numbers is `reports/coach-eval-latest.md` (the raw table from the deep set is `reports/coach-eval-depth-run.md`).
 - Blunders fell from 25% (the old 1-ply coach) to 7.5%.
 - Agreement with the oracle rose from 58% to 73%.
 - As a player it wins 51% against the in-app Deep bot (168 games), which is not a significant edge.
@@ -132,9 +140,12 @@ Re-run after retuning: `npx tsx scripts/coach-eval.ts --samples 200 --rollouts 6
 
 ## 8. Match reviewer (`src/ai/reviewer.ts`)
 
-The reviewer replays a game exactly (same seeds and bots, or a practice game's recorded choices). It scores each main-phase decision against an oracle: 8 play-outs per candidate, all sharing the same random worlds, each covering the rest of the turn plus the rival's reply. Scores are clamped to ±600, and positions that are already decided are not graded.
+The reviewer replays a game exactly with the code it was played on (same seeds and bots, or a practice game's recorded choices). It scores each main-phase decision against an oracle: 8 play-outs per candidate, all sharing the same random worlds, each covering the rest of the turn plus the rival's reply. Scores are clamped to ±600, and positions that are already decided are not graded.
 
-- **Validated:** exact replays, 94% verdict stability, planted mistakes detected (70% vs Hard's own moves), and game-losing flags that predict losses.
+- **Candidates:** the move made, the screen bot's top alternatives, and passing. After a sell it also grades the best non-sell move ("don't sell now") and other cards that could have been sold.
+- **Reactions:** every option is graded (blocks, reaction Calls and programs, or letting the attack through); unknown Calls collapse into one.
+
+- **Validated** (before the November 2026 fixes; see `docs/REVIEW_FINDINGS.md`): exact replays, 94% verdict stability, planted mistakes detected (70% vs Hard's own moves), and game-losing flags that predict losses.
 - **Not yet validated:** using per-move "Gigs lost" to predict who wins.
 
 Full write-up and backlog: `docs/REVIEW_FINDINGS.md`.

@@ -26,7 +26,7 @@ On top of that it adds a **matchup lab** that runs thousands of bot-vs-bot games
 
 ## Quick start
 
-Needs Node 22 or later (see `.nvmrc`).
+Needs Node 22.12 or newer (`engines` in `package.json`; `.nvmrc` is `22`). The toolchain is Vite 8 and Vitest 5.
 
 ```bash
 npm install
@@ -83,21 +83,22 @@ npm run sim -- vs meta-rrg meta-bbg --games 400     # head-to-head
 npm run sim -- test "Smash the Curve" --games 200   # one deck vs every meta deck  (--field all for every deck)
 npm run sim -- review --field all --games 60        # full round robin, rankings + matrix
 npm run sim -- add my-list.txt --name "My RRG"      # add a deck (choom.gg / official / sim JSON / plain list)
-npx tsx scripts/tune.ts --per 8                     # self-play tuning of the bot's evaluation weights
+npx tsx scripts/tune.ts --per 8 --seed 1            # self-play tuning of the bot's evaluation weights (same seed, same run)
 npm run sim -- analyze --field all --bot deep       # telemetry round robin -> Insights page, rankings, reports/analysis-latest.md
 npx tsx scripts/plan.ts                             # regenerate the Tournament plan + Home recommendation from the data
-npx tsx scripts/forge.ts --nc --gens 2              # data-driven iteration of the Trainer-original decks (or pass any deck)
+npx tsx scripts/forge.ts --nc --gens 2 --seed 1     # data-driven iteration of the Trainer-original decks (or pass any deck)
 npx tsx scripts/optimize.ts <deck> --vs <opp> --sideboard   # Bo3 sideboard swaps for one matchup
-npx tsx scripts/tune-profiles.ts                    # tune matchup-aware bot profiles
-npx tsx scripts/season.ts --season <next>           # the next season number: breed 8 new decks, tournament, forge, finals, leaderboard
+npx tsx scripts/tune-profiles.ts --seed 1           # tune matchup-aware bot profiles
+npx tsx scripts/season.ts                           # the next unrecorded season: breed 8 new decks, tournament, forge, finals, leaderboard
 npm run tournament -- --field meta --bo 3 --top 8 --bot hard   # record a new event (shown on the Events page)
 ```
 
-These commands fail on unknown flags and invalid values instead of ignoring them. They also refuse to overwrite recorded data unless you pass `--force`:
+Every script prints its usage with `--help`. Unknown flags and invalid values exit with code 2 before anything is read or written. The multi-threaded scripts (`sim`, `tournament`, `season.ts`, `forge.ts`, `optimize.ts`, `tune.ts`, `tune-profiles.ts`, `botcheck.ts`, `review.ts`) take `--threads N` (default: all cores but one, at most 16); `tune.ts`, `tune-profiles.ts` and `forge.ts` take `--seed`, so a run can be repeated. The scripts also refuse to overwrite recorded data unless you pass `--force`:
 
-- `npm run tournament` numbers new events after the highest existing event id, and will not overwrite an existing event.
-- `scripts/season.ts` will not re-run a season that already exists, because that would count its games twice. Pass the next season number.
-- `sim add`, `scripts/import-meta.ts` and `scripts/import-guides.ts` will not overwrite an existing deck file, and they keep its provenance header.
+- `npm run tournament`: `--start` defaults to the highest recorded event + 1, and an existing event is only overwritten with `--force`. Events are read from and written to `public/tournaments/` (plus the index `src/data/tournaments.json`). A game that throws aborts the event: nothing is recorded for it and the run exits 1.
+- `scripts/season.ts`: `--season` defaults to the next unrecorded season. An existing season is refused without `--force`, because it would count its games twice; with `--force` its leaderboard totals are taken out first. Seasons 1–5 cannot be forced, because they were recorded before per-season totals were kept.
+- `sim add`, `scripts/import-meta.ts`, `scripts/import-guides.ts`, `scripts/eor-build.ts` and `scripts/theorize-ladder.ts` will not overwrite an existing deck file without `--force`. When they do replace one, they keep its provenance header.
+- `scripts/review.ts` writes per-decision dumps to `data/reviews/` (gitignored) and summaries to `reports/review-<name>.md` (kept).
 
 ### Data-driven deck building
 Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`, and the reasoning is in `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
@@ -108,7 +109,7 @@ Reports go to `reports/` (`*-latest.md` plus timestamped copies, which are gitig
 
 - **In the browser:** go to Decks → Import, paste a list, then Save to My decks. Decks are stored in your browser's localStorage.
 - **For the CLI and the bundled site:** run `npm run sim -- add file.txt`, or drop a `.txt` file into `data/decks/custom/`. Any supported format works.
-- **Refreshing the choom.gg data:** re-download the pages into your local `data/raw/`, then run `npx tsx scripts/import-meta.ts` and `npx tsx scripts/import-guides.ts` (add `--force` to replace decks that already exist).
+- **Refreshing the choom.gg data:** re-download the pages into your local `data/raw/`, then run `npx tsx scripts/import-meta.ts --force` and `npx tsx scripts/import-guides.ts --force`. Without `--force` they refuse to replace decks that already exist; with it, each deck's provenance header is kept and only the list (and the meta Tier line) is refreshed.
 
 ## Deploying to GitHub Pages
 The app is fully static: hash routing, relative `base`, and no server. `.github/workflows/pages.yml` has two jobs. `check` typechecks, tests and builds on every push to `main` and on every pull request. `deploy` runs after it, only for pushes to `main` (or a manual run on `main`), and publishes `dist/` to the `gh-pages` branch. GitHub Pages serves that branch at `https://<user>.github.io/<repo>/`.
@@ -121,7 +122,7 @@ The code is MIT-licensed ([LICENSE](LICENSE)). Card data, rules, artwork and col
 ## Tests
 
 ```bash
-npm test             # the 11 test files in tests/, run by Vitest
+npm test             # the 25 test files in tests/, run by Vitest
 npm run test:cov     # the same with coverage
 npm run typecheck
 ```
@@ -136,6 +137,10 @@ npm run typecheck
 | `tiers.test.ts` | Bot tier names and the mixed-tier seat choice. |
 | `reviewer.test.ts` | The match reviewer replays games exactly, does not change them, and summarises accuracy. |
 | `play-tools.test.ts` | Undo snapshots replay exactly, drag-to-act targets, and Deck Lab swaps. |
+| `engine-fixes.test.ts`, `meta-cards.test.ts`, `library-cards.test.ts`, `library.test.ts` | Engine and card-script regressions, and cards in the meta and library decks. |
+| `bots.test.ts`, `bot-choices.test.ts`, `hide-info.test.ts` | Same seed gives the same game for every tier; sub-choices by tag; what lookahead clones hide. |
+| `play-session.test.ts`, `pool.test.ts`, `scripts-pool.test.ts`, `scripts-args.test.ts` | The Play session (undo, errors, recording), game errors in the browser and CLI pools, and CLI flag parsing. |
+| `pages.test.ts`, `markdown.test.ts`, `summarize.test.ts` | Page helpers, link safety in the Markdown renderer, and game summaries. |
 
 ## Scripts
 
@@ -159,5 +164,6 @@ Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `
 ## Known limits
 
 - The bots are strong heuristic players, not perfect ones. They favour proactive decks over high-skill control decks such as BBG Econ, so treat sim win rates as a floor for those decks. See `docs/STRATEGY.md`.
-- Hidden information is respected: bots don't see your hand or deck order, and nobody knows which face-down Legend is which. However, the lookahead clones the rival's real hand for reaction modelling.
+- Hidden information is respected: bots don't see your hand or deck order, and nobody knows which face-down Legend is which. Lookahead copies re-deal the rival's hand from their unseen cards, shuffle deck order, and shuffle the identities of face-down Legends the bot hasn't seen (its own and the rival's). An unknown Legend Call is valued as one averaged option, in the main phase, in reactions and in deep rollouts.
+- Bot and engine fixes change play, so events recorded before them (no `simVersion` in the event file) no longer replay identically; the legacy `deep` and `hard-v1` bot settings are kept but share the fixes. New games replay identically from their seed with the same code (`makeBot()`). A fresh baseline is planned in `docs/ROADMAP.md` §1.
 - Approximated cards are listed on the Cards page; search "approximated".
