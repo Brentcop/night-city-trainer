@@ -79,12 +79,16 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const top = P.trash[P.trash.length - 1];
   const ready = P.eddies.filter((u) => g.s.cards[u] && !g.s.cards[u].spent).length;
   const total = P.eddies.length;
+  // paying a cost: clicking your Eddie pile spends an Eddie
+  const payEddie = p === 0 && ctx.pend?.kind === 'pay' ? ctx.pend.options.findIndex((o) => o.key === 'eddie') : -1;
   return (
     <div className="pb-piles">
       <div
         className={`pb-pile ${p === 0 ? 'pb-sell-zone' : ''} ${p === 0 && ctx.drag?.over?.kind === 'sell' ? 'pb-drop-over' : ''}`}
         data-drop={p === 0 ? 'sell' : undefined}
-        title={p === 0 ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.` : `Eddies: ${ready} ready of ${total}`}
+        title={payEddie >= 0 ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.` : p === 0 ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.` : `Eddies: ${ready} ready of ${total}`}
+        onClick={payEddie >= 0 ? () => ctx.answer(payEddie) : undefined}
+        role={payEddie >= 0 ? 'button' : undefined}
       >
         <div className={`pb-stack ${total ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(total, 5) }}>
           {total ? <CardBack size="xs" label="€$" /> : <div className="pb-empty-slot">€$</div>}

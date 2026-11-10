@@ -21,6 +21,11 @@ export function makeCoach() {
 /** Evaluation points → "Gig swing". */
 const gigs = (delta: number) => delta / GIG_SWING;
 
+/** Decisions the coach advises on. Not 'pay' (which Eddie or Legend pays a cost): bots never get it, so the coach has no view. */
+export function coachAdvises(d: Decision): boolean {
+  return d.kind !== 'pay';
+}
+
 export interface Advice {
   index: number;
   why: string;

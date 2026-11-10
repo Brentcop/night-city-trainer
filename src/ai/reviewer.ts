@@ -251,6 +251,7 @@ export interface ReviewOptions {
 /** Wraps a seat's agent: plays exactly as it would, and reviews its main-phase decisions on the side. */
 export class ReviewAgent implements Agent {
   name: string;
+  choosesPayment?: boolean;
   out: DecisionReview[] = [];
   timeline: { turn: number; v: number }[] = [];
   private rnd: () => number;
@@ -264,6 +265,7 @@ export class ReviewAgent implements Agent {
     private shared: { n: number; lastTurn: number },
   ) {
     this.name = inner.name;
+    this.choosesPayment = inner.choosesPayment;
     this.rnd = rng(seed * 31 + seat * 7 + 1);
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
@@ -445,13 +447,17 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
   };
 }
 
-/** An agent that replays recorded choices (a human's game). Falls back to `fallback` if the record runs out. */
+/**
+ * An agent that replays recorded choices (a human's game). Falls back to `fallback` if the record runs out.
+ * `choosesPayment` must match the recording (a practice replay's `payChoice`), or the choices won't line up.
+ */
 export class ScriptedAgent implements Agent {
   private k = 0;
   constructor(
     public name: string,
     private choices: number[][],
     private fallback: Agent,
+    public choosesPayment = false,
   ) {}
   async decide(g: Game, d: Decision): Promise<number[]> {
     if (this.k < this.choices.length) return this.choices[this.k++];

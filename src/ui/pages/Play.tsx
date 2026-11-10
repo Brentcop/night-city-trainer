@@ -9,7 +9,7 @@ import { canUndo, type PracticeSession, type Running } from '../../lib/practiceS
 import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
-import { advise, boardWarnings, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
+import { advise, boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
 import { Markdown } from '../components/Markdown';
 import { Verdict, Wr } from '../components/Num';
 import analysis from '../../data/analysis.json';
@@ -165,7 +165,7 @@ function Board({
 
   // coach: ask the advisor bot what it would do in this spot
   useEffect(() => {
-    if (!pend || !coach) return;
+    if (!pend || !coach || !coachAdvises(pend)) return;
     let alive = true;
     advise(g, pend)
       .then((a) => {
@@ -427,7 +427,7 @@ function Board({
 
 /** Review request for a recorded practice game (your decisions only, with the coach's view of each). */
 export function practiceRequest(r: PracticeReplay): ReviewRequest {
-  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, rollouts: 8, withCoach: true };
+  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, rollouts: 8, withCoach: true };
 }
 
 /** A quick verdict on the move just made, compared with the coach. */

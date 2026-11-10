@@ -69,7 +69,7 @@ async function replayOf(run: Running): Promise<{ st: GameState; fallbacks: numbe
   const easy = makeTierBot('easy', 1);
   const fallback: Agent = { name: 'fb', decide: (g, d) => (fallbacks++, easy.decide(g, d)) };
   const r = run.replay;
-  const st = await Game.create(r.decks, [new ScriptedAgent('you', r.choices, fallback), makeTierBot(r.botLevel, r.botSeed, 'Bot')], { seed: r.seed, first: r.first }).run();
+  const st = await Game.create(r.decks, [new ScriptedAgent('you', r.choices, fallback, !!r.payChoice), makeTierBot(r.botLevel, r.botSeed, 'Bot')], { seed: r.seed, first: r.first }).run();
   return { st, fallbacks };
 }
 

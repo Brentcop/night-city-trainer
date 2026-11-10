@@ -595,7 +595,7 @@ export class Game {
         }
         picks.push(c);
       }
-      const [i] = await this.ask({ player: p, kind: 'pay', prompt: `${what}: pay €$ ${k + 1} of ${amount} — spend:`, options, min: 1, max: 1, tag: 'pay' });
+      const [i] = await this.ask({ player: p, kind: 'pay', prompt: `${what}: pay €$ ${k + 1} of ${amount} — spend:`, options, min: 1, max: 1 });
       const c = picks[i];
       out.push(c);
       pool.splice(pool.indexOf(c), 1);

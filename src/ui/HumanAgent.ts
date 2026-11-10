@@ -7,6 +7,8 @@ export class HumanAgent implements Agent {
   pending: { d: Decision; resolve: (r: number[]) => void; reject?: (e: Error) => void } | null = null;
   onChange: (() => void) | null = null;
   autoMulligan = false;
+  /** you choose which Eddies / Legends pay each cost (a 'pay' decision when the choice is real) */
+  readonly choosesPayment = true;
 
   decide(_g: Game, d: Decision): Promise<number[]> {
     return new Promise((resolve, reject) => {
