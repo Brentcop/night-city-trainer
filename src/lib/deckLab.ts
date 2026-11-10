@@ -6,30 +6,31 @@ import type { DeckList } from '../engine/types';
 import { analyzeDeck, type DeckReport } from '../analysis/analyze';
 import type { PlayerSummary } from '../analysis/summarize';
 import { breedSeason, type Bred } from '../ai/breeder';
-import analysis from '../data/analysis.json';
+import impact from '../data/impact.json';
+import type { ImpactData } from '../analysis/impactData';
 import ratings from '../data/ratings.json';
 import seasons from '../data/seasons.json';
 import { gameDeck, type PlayGame } from './tournament';
 import type { LibraryDeck } from './library';
 
-const A = analysis as unknown as { decks: DeckReport[] };
+const A = impact as unknown as ImpactData;
 
 /** Format-wide card impact ("Δ when drawn"), pooled across every analysed deck. */
 export const GLOBAL_IMPACT: Record<string, number> = (() => {
   const acc: Record<string, { s: number; n: number }> = {};
   for (const r of A.decks)
-    for (const c of r.cards) {
-      if (typeof c.iwd !== 'number' || !Number.isFinite(c.iwd)) continue;
-      acc[c.id] ??= { s: 0, n: 0 };
-      acc[c.id].s += c.iwd * c.seenGames;
-      acc[c.id].n += c.seenGames;
+    for (const [id, iwd, seenGames] of r.cards) {
+      if (typeof iwd !== 'number' || !Number.isFinite(iwd)) continue;
+      acc[id] ??= { s: 0, n: 0 };
+      acc[id].s += iwd * seenGames;
+      acc[id].n += seenGames;
     }
   return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
 })();
 
 /** Per-deck card impact from bot telemetry (cards drawn in 25+ games). */
 export const DECK_IMPACT: Record<string, Record<string, number>> = Object.fromEntries(
-  A.decks.map((r) => [r.deck, Object.fromEntries(r.cards.filter((c) => c.seenGames >= 25 && Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]))]),
+  A.decks.map((r) => [r.deck, Object.fromEntries(r.cards.filter(([, iwd, seenGames]) => seenGames >= 25 && Number.isFinite(iwd)).map(([id, iwd]) => [id, iwd as number]))]),
 );
 
 // ---------------------------------------------------------------- playing sets of games

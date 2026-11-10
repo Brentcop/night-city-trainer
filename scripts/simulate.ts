@@ -21,6 +21,7 @@ import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
 import { bool, cli, int, loadLibrary, mergeProvenance, oneOf, resolveDeck, runJobs as runPool, runMain, SIM_BOTS, slugify, str, threadsOpt, type Spec } from './lib-node';
 import { shortCredit } from '../src/lib/library';
+import { toImpactData } from '../src/analysis/impactData';
 import type { MatchJob, MatchResult } from './worker';
 
 const NL = String.fromCharCode(10);
@@ -333,6 +334,8 @@ async function main() {
         // trimmed copy for the web app
         const trimmed = reps.map((r) => ({ ...r, cards: r.cards.slice(0, 40) }));
         fs.writeFileSync('src/data/analysis.json', JSON.stringify({ date: new Date().toISOString(), games: n, bot, decks: trimmed }));
+        // slim id/IWD/seenGames copy for the bots and the Deck Lab (src/ai/impact.ts); always written with analysis.json
+        fs.writeFileSync('src/data/impact.json', JSON.stringify(toImpactData(trimmed)));
       }
       console.log(md.split(NL).slice(0, 60).join(NL));
       console.log(`${NL}Saved reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.md`);
