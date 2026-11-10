@@ -64,6 +64,9 @@ for (const file of files) {
     p.Credits = META_AUTHORS[base]?.credits ?? 'choom.gg editors';
     p.Added = '2026-11-09';
     if (old.Tier) p.Tier = old.Tier;
+  } else if (base.startsWith('ladder-')) {
+    // Legend trios from the sim site's Master ladder; main decks theorized here. Keep the hand-written header.
+    for (const k of ['Origin', 'Author', 'Source', 'Via', 'Credits', 'Parents', 'Added'] as const) if (old[k]) p[k] = old[k]!;
   } else if (!file.includes('custom')) {
     const m = (old.Author ?? '').match(/^(.+?) \((\w+) (\d+), (\d{4})\)$/);
     p.Origin = 'choom.gg community guide';

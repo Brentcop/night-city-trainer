@@ -128,7 +128,7 @@ export function MulliganScreen({ ctx, why }: { ctx: BoardCtx; why?: string }) {
   );
 }
 
-export function GameOverOverlay({ g, onRematch, onNew, onHide }: { g: Game; onRematch: () => void; onNew: () => void; onHide: () => void }) {
+export function GameOverOverlay({ g, onRematch, onNew, onHide, review }: { g: Game; onRematch: () => void; onNew: () => void; onHide: () => void; review?: React.ReactNode }) {
   const s = g.s;
   const win = s.winner === 0;
   const loss = s.winner === 1;
@@ -140,6 +140,7 @@ export function GameOverOverlay({ g, onRematch, onNew, onHide }: { g: Game; onRe
         <div className="small muted">
           {s.turn} turns · you went {s.first === 0 ? 'first' : 'second'} · Gigs {g.gigsOf(0).length}–{g.gigsOf(1).length}
         </div>
+        {review}
         <div className="row" style={{ marginTop: 16, justifyContent: 'center' }}>
           <button className="primary pb-big" onClick={onRematch}>
             Rematch

@@ -3,7 +3,6 @@
 // Author: WillGlitch
 // Source: https://choom.gg/guides/bbg-draw-and-wipe-f4d128
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-09-11
 // Format: Constructed
 
 // Legends

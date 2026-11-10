@@ -5,7 +5,7 @@ import type { DeckList } from '../engine/types';
 
 const files = import.meta.glob('../../data/decks/**/*.txt', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
-const KIND_ORDER = ['meta', 'original', 'guide', 'custom'];
+const KIND_ORDER = ['meta', 'ladder', 'original', 'guide', 'custom'];
 export const BUILTIN: LibraryDeck[] = Object.entries(files)
   .filter(([path]) => !path.includes('/history/'))
   .map(([path, text]) => {

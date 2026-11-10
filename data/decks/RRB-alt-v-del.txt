@@ -3,7 +3,6 @@
 // Author: Soumac
 // Source: https://choom.gg/guides/alt-v-del-deca66
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-10-15
 // Format: Constructed
 
 // Legends

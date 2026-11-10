@@ -2,11 +2,8 @@
 
 | Deck | Start | End | Changes |
 |---|---|---|---|
-| S3-01 Mutant (RBG) | 54.9% | 54.9% | -1 Detonate → +1 Sandayu Oda: Hanako's Guardian |
-| S3-02 Mutant (RRG) | 59.4% | 59.4% | -1 Satori: Sword of Saburo → +1 6th Street Recruits |
-| S3-03 Mutant (RRB) | 66.1% | 66.1% | -1 Over the Edge → +1 Placide: Voodoo Sentinel |
-| S3-04 Cross (RBG) | 51.8% | 51.8% | -1 Memory Relapse → +1 Sandayu Oda: Hanako's Guardian |
-| S3-05 Cross (RRB) | 62.1% | 62.1% | -1 Gunpoint Diplomacy → +1 Psycho Squad |
-| S3-06 Cross (RBG) | 53.6% | 53.6% | -1 Trust No One → +1 Psycho Squad |
-| S3-07 Explorer (RRG) | 65.6% | 65.6% | — |
-| S3-08 Explorer (RRB) | 59.8% | 59.8% | -1 Industrial Assembly → +1 Swordwise Huscle |
+| Ladder: Jackie / Alt / Hanako (BBG) | 68.3% | 66.7% | -1 Peace Offering → +1 MaxTac AV |
+| Ladder: Smasher / River / Viktor (RYY) | 60.3% | 62.3% | -1 Alt Cunningham: Mother of Daemons → +1 Gorilla Arms |
+| Ladder: V / Smasher / Saburo (RRG) | 78.6% | 73.8% | — |
+| Ladder: V / Smasher / Padre (RRG) | 77.4% | 79.4% | -1 Field Operator → +1 MaxTac AV |
+| Ladder: Dexter / V / Wakako (RRB) | 73.8% | 73.4% | -1 Shattered Memories → +1 Yorinobu Arasaka: Steel Dragon |

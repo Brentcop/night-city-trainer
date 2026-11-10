@@ -1,0 +1,37 @@
+# Ladder: V / Smasher / Saburo (RRG)
+
+// Legends (3)
+1 V: Streetkid
+1 Adam Smasher: Ender of Legends
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Units (19)
+1 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Kerry Eurodyne: The Last Rockerboy
+3 Pepe Najarro: Working Doubles
+2 MaxTac AV
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (17)
+2 Detonate
+3 Bonnie and Clyde
+2 Over the Edge
+2 Gunpoint Diplomacy
+3 Memory Relapse
+2 Shattered Memories
+3 Carnage at the Colosseum
+
+// Origin: cyberpunk-tcg-sim.online Master ladder (Legend trio) — main deck theorized by Night City Trainer
+// Author: Night City Trainer (theorized from bot-match data; the ladder players' own 40-card lists are not public)
+// Source: https://cyberpunk-tcg-sim.online/
+// Credits: Legend trio seen on the Master ladder — Master 604 LP (54 games) (screenshot shared by the user, 2026-11-10)
+// Parents: Smash the Curve (3/3 Legends), RRG Midrange: V + Smasher (optimized) (3/3 Legends), S1-04 Cross (RBG) (2/3 Legends), S1-05 Cross (RGY) (2/3 Legends), RRG Dexter Midrange (2/3 Legends), NC-08 Merc Contract (RRG) (2/3 Legends)
+// Added: 2026-11-10
+// Idea: aggro build for the V / Adam Smasher / Saburo Arasaka trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.

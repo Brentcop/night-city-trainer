@@ -20,7 +20,7 @@ export interface LibraryDeck {
   source?: string;
   author?: string;
   tier?: string;
-  kind: 'meta' | 'guide' | 'original' | 'custom';
+  kind: 'meta' | 'ladder' | 'guide' | 'original' | 'custom';
   idea?: string;
   prov: Provenance;
 }
@@ -50,7 +50,7 @@ export function deckFromText(file: string, text: string, kind?: LibraryDeck['kin
     tier,
     idea,
     prov,
-    kind: /^(nc|s\d+)-/.test(file) && !/-eor\.txt$/.test(file) ? 'original' : kind ?? (file.startsWith('meta-') ? 'meta' : 'guide'),
+    kind: /^(nc|s\d+)-/.test(file) && !/-eor\.txt$/.test(file) ? 'original' : kind ?? (file.startsWith('meta-') ? 'meta' : file.startsWith('ladder-') ? 'ladder' : 'guide'),
   };
 }
 

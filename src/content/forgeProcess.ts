@@ -21,10 +21,15 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
 
 ## Seasons: automated breeding
 \`npx tsx scripts/season.ts --season N\` runs a full design cycle with no manual input:
-1. **Breed 8 decks** from the current leaderboard and the pooled card-impact data:
-   - **3 mutants:** a top deck with one Legend swapped, cards re-fitted to the new RAM limits;
-   - **3 crossovers:** two strong decks merged;
+1. **Breed 8 decks** from everything earlier runs measured:
+   - **Parent strength:** power ratings from the tournament series (discounted by their uncertainty), blended with the vs-meta leaderboard.
+   - **Card choice:** format-wide "Δ when drawn" plus each parent's own card impact. Cards that won games in the parent are kept; cards that lost games there are not carried over.
+   - **Legend strength:** the average strength of decks using the Legend, pulled toward 50% when few decks have tried it.
+   - **2 mutants:** a top deck with one Legend swapped, cards re-fitted to the new RAM limits;
+   - **2 crossovers:** two strong decks merged;
+   - **2 counters:** the decks with the best tournament head-to-heads against the current top 4, merged to target them;
    - **2 explorers:** untested two-colour Legend combinations built from role and curve templates.
+   (Before any tournament data exists, the counter slots go to mutants and crossovers.)
 2. **Tournament:** a telemetry round robin of the meta archetypes, the 8 best incumbents and the newcomers.
 3. **Forge** the newcomers against the meta.
 4. **Finals:** every newcomer plays the meta archetypes.

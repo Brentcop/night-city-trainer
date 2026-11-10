@@ -3,7 +3,6 @@
 // Author: Matchlock
 // Source: https://choom.gg/guides/ripbecca-48b28a
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-09-15
 // Format: Constructed
 
 // Legends

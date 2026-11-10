@@ -3,7 +3,6 @@
 // Author: Trinx
 // Source: https://choom.gg/guides/yyy-adam-ready-for-brawl-58762b
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-11-07
 // Format: Constructed
 
 // Legends

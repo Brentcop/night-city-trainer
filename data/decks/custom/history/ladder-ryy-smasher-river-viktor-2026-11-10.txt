@@ -1,0 +1,38 @@
+# Ladder: Smasher / River / Viktor (RYY)
+
+// Legends (3)
+1 Adam Smasher: Ender of Legends
+1 River Ward: Detective on the Hunt
+1 Viktor Vektor: Sit Down and Relax
+
+// Units (19)
+3 Dexter DeShawn: One Last Chance
+1 Viktor Vektor: You Might Feel a Little Pinch
+3 6th Street Recruits
+3 Kerry Eurodyne: The Last Rockerboy
+1 T-Bug: Amateur Philosopher
+2 MaxTac Suppression Team
+3 Jackie Welles: Ride or Die Choom
+3 Alt Cunningham: Mother of Daemons
+
+// Gears (6)
+2 Adrenaline Converter
+2 Zetatech Faceplate
+2 Gorilla Arms
+
+// Programs (15)
+2 Afterparty at Lizzie's
+2 Safety Override
+2 The Heist
+3 Live with the Aftermath
+3 Over the Edge
+1 Shattered Memories
+2 Bootleg Black Sapphire Show
+
+// Origin: cyberpunk-tcg-sim.online Master ladder (Legend trio) — main deck theorized by Night City Trainer
+// Author: Night City Trainer (theorized from bot-match data; the ladder players' own 40-card lists are not public)
+// Source: https://cyberpunk-tcg-sim.online/
+// Credits: Legend trio seen on the Master ladder — Master 1058 LP (39 games), the highest LP in the sample (screenshot shared by the user, 2026-11-10)
+// Parents: YYB Rogue Gear (2/3 Legends), NC-01 Rockerboy Express (RRY) (2/3 Legends), NC-04 Chrome Rockers (YYR) (2/3 Legends)
+// Added: 2026-11-10
+// Idea: aggro build for the Adam Smasher / River Ward / Viktor Vektor trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.

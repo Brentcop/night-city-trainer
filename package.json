@@ -12,6 +12,7 @@
     "test": "vitest run",
     "build:data": "python -I tools/build_data.py",
     "sim": "tsx scripts/simulate.ts",
+    "tournament": "tsx scripts/tournament.ts",
     "gauntlet": "tsx scripts/gauntlet.ts",
     "bundle-reports": "tsx scripts/bundle-reports.ts",
     "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts"

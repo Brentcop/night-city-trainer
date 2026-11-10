@@ -1,0 +1,31 @@
+// S5-01 Mutant (RBG)
+// Origin: Night City Trainer bred deck (season 5, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S4-04 Cross (BBG)
+// Added: 2026-11-10
+// Idea: Mutant of S4-04 Cross (BBG): Sasha Yakovleva: Won't Let You Down → Dexter DeShawn: Off the Grid; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Jackie Welles: Mama's Favorite
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+2 Psycho Squad
+3 MaxTac AV
+2 Placide: Voodoo Sentinel
+2 Satori: Sword of Saburo
+2 Zetatech Berserk
+2 All is Lost
+2 Floor It
+2 Trust No One
+2 Take Control
+2 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories
+2 Unlikely Bond

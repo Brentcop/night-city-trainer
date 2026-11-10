@@ -56,12 +56,51 @@ if (hasFinals) ranked.sort((a, b) => (finals[b.name]?.overall ?? -1) - (finals[a
 // the highest worst-meta-matchup, then the best overall result against the whole (strong) field.
 const bestFinal = hasFinals ? finals[ranked[0].name]?.overall ?? 0 : 0;
 const tied = hasFinals ? ranked.filter((d) => finals[d.name] && bestFinal - finals[d.name].overall <= 0.02) : [ranked[0]];
-const pick = [...tied].sort((a, b) => b.worst + b.winRate - (a.worst + a.winRate))[0];
-const pickReason =
+let pick = [...tied].sort((a, b) => b.worst + b.winRate - (a.worst + a.winRate))[0];
+let pickReason =
   hasFinals && tied.length > 1
     ? `Chosen among ${tied.length} decks tied within 2 points in the finals (${tied.map((d) => d.name).join(', ')}) for robustness: worst meta matchup ${pct(pick.worst)}, ${pct(pick.winRate)} against the whole field.`
     : '';
-const backup = ranked.find((d) => d.name !== pick.name && arch(d.name) !== arch(pick.name)) ?? ranked[1];
+// Power ratings (Bradley–Terry over every tournament game) are the most complete measure: when present they decide the pick.
+interface RatingRow {
+  name: string;
+  file: string;
+  rating: number;
+  wrField: number;
+  wrFieldLo: number;
+  wrFieldHi: number;
+  wrMeta: number | null;
+  games: number;
+  titles: number;
+  top8: number;
+  events: number;
+}
+const RT: { events: number; games: number; decks: RatingRow[] } | null = fs.existsSync('src/data/ratings.json') ? JSON.parse(fs.readFileSync('src/data/ratings.json', 'utf8')) : null;
+const useRatings = !!RT && RT.decks.length > 10;
+const ratingOf = new Map((RT?.decks ?? []).map((d) => [d.name, d]));
+const σ = (x: number) => 1 / (1 + Math.exp(-x));
+/** Expected win rate of a vs b from the ratings (falls back to the round-robin matrix). */
+const expWr = (a: string, b: string) => {
+  const ra = ratingOf.get(a);
+  const rb = ratingOf.get(b);
+  return useRatings && ra && rb ? σ(ra.rating - rb.rating) : R.matrix[a]?.[b];
+};
+if (useRatings) {
+  const top = RT!.decks.filter((d) => lib.find((x) => x.deck.name === d.name));
+  const best = top[0];
+  // statistically tied with the leader (point estimate within 1.5 pts) → prefer the better record against the meta decks
+  const close = top.filter((d) => best.wrField - d.wrField <= 0.015);
+  const r = [...close].sort((a, b) => (b.wrMeta ?? 0) - (a.wrMeta ?? 0))[0];
+  const L = lib.find((x) => x.deck.name === r.name)!;
+  const worst = Math.min(...metaNames.filter((o) => o !== r.name).map((o) => expWr(r.name, o) ?? 1));
+  pick = { name: r.name, file: L.file, winRate: r.wrField, games: r.games, field: r.wrMeta ?? r.wrField, worst } as any;
+  pickReason = `Highest power rating from ${RT!.events} tournament events (${RT!.games.toLocaleString()} games, every deck in the library): expected ${pct(r.wrField)} against the whole field (90% range ${pct(r.wrFieldLo)}–${pct(r.wrFieldHi)}) and ${pct(r.wrMeta ?? NaN)} against the choom.gg meta decks; ${r.titles} event title${r.titles === 1 ? '' : 's'}, top 8 in ${r.top8} of ${r.events}.${close.length > 1 ? ` Chosen over ${close.length - 1} statistically tied deck${close.length > 2 ? 's' : ''} (${close.filter((d) => d !== r).map((d) => d.name).join(', ')}) for its record against the meta decks.` : ''}`;
+}
+let backup = ranked.find((d) => d.name !== pick.name && arch(d.name) !== arch(pick.name)) ?? ranked[1];
+if (useRatings) {
+  const b = RT!.decks.find((d) => d.name !== pick.name && arch(d.name) !== arch(pick.name) && lib.find((x) => x.deck.name === d.name));
+  if (b) backup = { name: b.name, file: lib.find((x) => x.deck.name === b.name)!.file, winRate: b.wrField, games: b.games, field: b.wrMeta ?? b.wrField, worst: 0 } as any;
+}
 const rep = A.decks.find((d) => d.deck === pick.name);
 const opt = fs.existsSync(`reports/optimize-${pick.file.replace(/\.txt$/, '')}-latest.md`) ? fs.readFileSync(`reports/optimize-${pick.file.replace(/\.txt$/, '')}-latest.md`, 'utf8') : '';
 const optRows = opt
@@ -71,9 +110,9 @@ const optRows = opt
   .filter((c) => parseFloat(c[4]) >= 3);
 
 const matchupLines = metaNames
-  .filter((o) => o !== pick.name && R.matrix[pick.name]?.[o] !== undefined)
+  .filter((o) => o !== pick.name && expWr(pick.name, o) !== undefined)
   .map((o) => {
-    const v = R.matrix[pick.name][o];
+    const v = expWr(pick.name, o)!;
     const plan = PLAN_TEXT[`${arch(pick.name)}>${arch(o)}` as ProfileKey];
     const mr = rep?.matchups.find((m) => m.opp === o);
     const seat = mr && Number.isFinite(mr.wrFirst) && Number.isFinite(mr.wrSecond) ? (mr.wrFirst - mr.wrSecond >= 0.06 ? 'go first' : mr.wrSecond - mr.wrFirst >= 0.06 ? 'go second' : 'either') : '—';
@@ -138,6 +177,23 @@ ${rep ? rep.insights.map((x) => `  - ${x}`).join(String.fromCharCode(10)) : ''}
 - **Ready-to-register list:** ${eorDeck ? `${link(eorDeck.deck.name)} (\`${eorFile}\`, Decks page → Tournament builds): the list plus a data-chosen 7-card sideboard.` : 'the list on the Decks page.'}
 - **Backup / sideboard partner:** ${link(backup.name)} (${arch(backup.name)}, field score ${pct(backup.field)}). Practise it second, in case the room skews hard against ${arch(pick.name)} decks.
 
+${
+  useRatings
+    ? `## Power ratings (all decks, ${RT!.events} tournament events)
+Expected win rate against the whole field, from a Bradley–Terry fit over every tournament game. Overlapping ranges are not meaningfully different. The full table is on Tournaments → Power ratings.
+
+| # | Deck | vs field (90% range) | vs meta | Titles | Top 8 |
+|---|---|---|---|---|---|
+${RT!.decks
+  .slice(0, 10)
+  .map((d, i) => {
+    const L = lib.find((x) => x.deck.name === d.name);
+    return `| ${i + 1} | ${L ? `[${d.name}](#/deck?d=${encodeURIComponent(L.file)})` : d.name} | **${pct(d.wrField)}** (${pct(d.wrFieldLo)}–${pct(d.wrFieldHi)}) | ${pct(d.wrMeta ?? NaN)} | ${d.titles} | ${d.top8}/${d.events} |`;
+  })
+  .join(String.fromCharCode(10))}
+`
+    : ''
+}
 ## Expected-field ranking
 | # | Deck | Archetype | Finals vs meta (games) | Round-robin vs meta field | Overall | Worst meta matchup |
 |---|---|---|---|---|---|---|

@@ -1,0 +1,32 @@
+// S4-03 Mutant (RRB)
+// Origin: Night City Trainer bred deck (season 4, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-04 Cross (RBG)
+// Added: 2026-11-10
+// Idea: Mutant of S1-04 Cross (RBG): Saburo Arasaka: Stubborn Patriarch → Royce: Psycho on the Edge; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Royce: Psycho on the Edge
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+1 Mox Inciters
+2 Swordwise Huscle
+1 6th Street Recruits
+3 Psycho Squad
+3 Animals Wrecker
+2 Placide: Voodoo Sentinel
+3 Satori: Sword of Saburo
+2 Detonate
+2 Floor It
+1 Industrial Assembly
+2 Trust No One
+2 Bonnie and Clyde
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum

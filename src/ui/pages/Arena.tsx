@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react';
 import { Game } from '../../engine/engine';
-import { HeuristicAgent } from '../../ai/heuristic';
+import { makeTierBot, TIERS, type Tier } from '../../ai/tiers';
 import type { DeckList, GameState, PlayerId } from '../../engine/types';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { allDecks } from '../../lib/browserLibrary';
-import { BEST_PROFILES } from '../../ai/archetype';
 import { summarize, type PlayerSummary } from '../../analysis/summarize';
 import { analyzeDeck, type DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
 import { DeckTile } from '../components/DeckIdentity';
+import { Wr, Verdict, ToneLegend } from '../components/Num';
 
 interface Row {
   opp: string;
@@ -20,10 +20,9 @@ interface Row {
   turns: number;
 }
 
-type Level = 'fast' | 'lookahead' | 'deep';
+type Level = Tier;
 async function playOne(a: DeckList, b: DeckList, seed: number, first: PlayerId, level: Level, log = false, trace = false): Promise<GameState> {
-  const mk = (s: number) => new HeuristicAgent({ lookahead: level !== 'fast', deep: level === 'deep' ? 3 : 0, seed: s, noise: 0.15, profiles: BEST_PROFILES });
-  const g = Game.create([a, b], [mk(seed), mk(seed + 999)], { seed, first, log, trace });
+  const g = Game.create([a, b], [makeTierBot(level, seed), makeTierBot(level, seed + 999)], { seed, first, log, trace });
   return g.run();
 }
 
@@ -32,7 +31,7 @@ export function ArenaPage() {
   const [a, setA] = useState(decks.find((d) => d.kind === 'meta')?.file ?? decks[0].file);
   const [b, setB] = useState(decks.filter((d) => d.kind === 'meta')[1]?.file ?? decks[1].file);
   const [n, setN] = useState(40);
-  const [fast, setFast] = useState<Level>('lookahead');
+  const [fast, setFast] = useState<Level>('medium');
   const [rows, setRows] = useState<Row[]>([]);
   const [progress, setProgress] = useState('');
   const [running, setRunning] = useState(false);
@@ -82,7 +81,7 @@ export function ArenaPage() {
   };
 
   const watchGame = async () => {
-    const st = await playOne(findDeck(a)!.deck, findDeck(b)!.deck, Date.now() % 100000, (Math.random() < 0.5 ? 0 : 1) as PlayerId, 'lookahead', true);
+    const st = await playOne(findDeck(a)!.deck, findDeck(b)!.deck, Date.now() % 100000, (Math.random() < 0.5 ? 0 : 1) as PlayerId, 'medium', true);
     setWatch(st);
   };
 
@@ -121,9 +120,11 @@ export function ArenaPage() {
           <label className="row small muted">
             Bots
             <select value={fast} onChange={(e) => setFast(e.target.value as Level)}>
-              <option value="fast">Fast (rules only, ~10× quicker)</option>
-              <option value="lookahead">Lookahead (default)</option>
-              <option value="deep">Deep (strongest, ~4× slower)</option>
+              {(Object.keys(TIERS) as Tier[]).map((t) => (
+                <option key={t} value={t}>
+                  {TIERS[t].label} — {TIERS[t].speed}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -153,7 +154,10 @@ export function ArenaPage() {
         <div className="panel scroll-x">
           <div className="spread">
             <h3>{findDeck(a)!.deck.name}</h3>
-            <span className="stat">{pct(tot.w, tot.g)}</span>
+            <ToneLegend />
+            <span className="stat">
+              <Wr v={tot.g ? tot.w / tot.g : null} n={tot.g} />
+            </span>
           </div>
           <table>
             <thead>
@@ -171,7 +175,7 @@ export function ArenaPage() {
                 <tr key={r.opp}>
                   <td>{r.opp}</td>
                   <td>
-                    <b>{pct(r.wins + r.ties / 2, r.games)}</b>
+                    <Wr v={r.games ? (r.wins + r.ties / 2) / r.games : null} n={r.games} strong /> <Verdict v={r.games >= 10 ? (r.wins + r.ties / 2) / r.games : null} n={r.games} />
                     <div className="bar">
                       <div style={{ width: pct(r.wins + r.ties / 2, r.games) }} />
                     </div>
@@ -179,8 +183,12 @@ export function ArenaPage() {
                   <td>
                     {r.wins}-{r.games - r.wins - r.ties}-{r.ties}
                   </td>
-                  <td>{pct(r.firstWins, r.firstGames)}</td>
-                  <td>{pct(r.wins - r.firstWins, r.games - r.firstGames)}</td>
+                  <td>
+                    <Wr v={r.firstGames ? r.firstWins / r.firstGames : null} n={r.firstGames} />
+                  </td>
+                  <td>
+                    <Wr v={r.games - r.firstGames ? (r.wins - r.firstWins) / (r.games - r.firstGames) : null} n={r.games - r.firstGames} />
+                  </td>
                   <td>{r.games ? (r.turns / r.games).toFixed(1) : '—'}</td>
                 </tr>
               ))}

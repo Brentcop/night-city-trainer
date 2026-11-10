@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Wr } from '../components/Num';
 import data from '../../data/seasons.json';
 import { allDecks } from '../../lib/browserLibrary';
 import { shortCredit } from '../../lib/library';
@@ -51,11 +52,9 @@ export function SeasonsPage() {
         <h1 style={{ margin: 0 }}>Seasons &amp; all-time leaderboard</h1>
         <input placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />
       </div>
-      <p className="muted">
-        Each season the breeder creates 8 new decks from the data: mutants of top decks, crossovers of two strong decks, and explorers trying
-        untested Legend combinations. They play a telemetry round robin against the meta and the best incumbents. Then they're forged (data-driven
-        card swaps) and play finals against the meta archetypes. The leaderboard pools every game against the meta archetypes. <b>Rating</b> shrinks
-        that win rate toward 50% until a deck has played enough games, so a lucky small sample can't top the board.
+      <p className="muted" style={{ margin: 0 }}>
+        Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Rating</b> = win rate vs the meta decks,
+        adjusted for sample size.
       </p>
       <div className="panel scroll-x">
         <h2 style={{ marginTop: 0 }}>All-time leaderboard</h2>
@@ -104,16 +103,16 @@ export function SeasonsPage() {
                   <span className="tag">{r.colors}</span> {r.arch}
                 </td>
                 <td style={{ minWidth: 110 }}>
-                  <b>{pct(r.rating)}</b>
+                  <Wr v={r.rating} digits={1} strong />
                   <div className="bar">
                     <div style={{ width: `${(r.rating ?? 0) * 100}%` }} />
                   </div>
                 </td>
-                <td>{pct(r.vsMeta)}</td>
+                <td><Wr v={r.vsMeta} digits={1} /></td>
                 <td>{r.metaG}</td>
                 <td>{r.percentile}</td>
                 {seasonCols.map((s) => (
-                  <td key={s}>{pct(r.seasons?.[s])}</td>
+                  <td key={s}><Wr v={r.seasons?.[s]} /></td>
                 ))}
               </tr>
             ))}
@@ -151,7 +150,7 @@ export function SeasonsPage() {
                       <td>
                         {r.name} {r.isNew && <span className="tier tier-S">NEW</span>}
                       </td>
-                      <td>{pct(r.wr)}</td>
+                      <td><Wr v={r.wr} digits={1} /></td>
                     </tr>
                   ))}
                 </tbody>

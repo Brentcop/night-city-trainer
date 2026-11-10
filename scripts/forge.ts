@@ -145,14 +145,19 @@ async function forge(target: (typeof lib)[number]) {
     const hist = path.join('data/decks/custom/history');
     fs.mkdirSync(hist, { recursive: true });
     const inCustom = target.kind === 'custom' || target.kind === 'original';
+    // ladder decks are our own theorized lists: forge them in place and keep their full provenance header
+    const inPlace = inCustom || target.kind === 'ladder';
     const orig = path.join(inCustom ? 'data/decks/custom' : 'data/decks', target.file);
     if (fs.existsSync(orig)) fs.copyFileSync(orig, path.join(hist, `${slug}-${new Date().toISOString().slice(0, 10)}.txt`));
-    const outFile = inCustom ? orig : path.join('data/decks/custom', `${slug}-forged.txt`);
+    const outFile = inPlace ? orig : path.join('data/decks/custom', `${slug}-forged.txt`);
     const prev = fs.existsSync(orig) ? fs.readFileSync(orig, 'utf8') : '';
-    const idea = prev.match(/^\/\/ Idea: .+$/m)?.[0] ?? '';
+    const idea =
+      target.kind === 'ladder'
+        ? (prev.match(/^\/\/ (Origin|Author|Source|Via|Credits|Parents|Added|Idea): .+$/gm) ?? []).join('\n')
+        : (prev.match(/^\/\/ Idea: .+$/m)?.[0] ?? '');
     fs.writeFileSync(
       outFile,
-      `${exportOfficial(inCustom ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ')}\n`,
+      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ')}\n`,
     );
     log.push(`Saved ${outFile} (previous version archived in data/decks/custom/history/).`);
   }

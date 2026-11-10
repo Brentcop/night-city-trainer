@@ -1,0 +1,31 @@
+// S5-05 Cross (RBG)
+// Origin: Night City Trainer bred deck (season 5, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S4-05 Cross (RBG) × S1-08 Explorer (RRG)
+// Added: 2026-11-10
+// Idea: Crossover of S4-05 Cross (RBG) × S1-08 Explorer (RRG) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Yorinobu Arasaka: Embracing Destruction
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+3 Valentino Street Racer
+1 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 MaxTac AV
+2 Saul Bright: Stormrider
+2 Satori: Sword of Saburo
+2 Zetatech Berserk
+2 Floor It
+2 Peace Offering
+2 Trust No One
+2 Corporate Surveillance
+2 Take Control
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories

@@ -281,6 +281,44 @@ export const GLOSSARY: Term[] = [
     def: 'Having more useful cards than the rival. Blue (Three Mouths, Hanako) and Yellow (Bootleg, Faceplate) generate it, while Red trades it away for tempo.',
   },
   {
+    term: 'Swiss rounds',
+    group: 'Strategy',
+    def: 'Tournament format where every deck plays every round. Each round pairs decks with the same record, with no rematches. After the Swiss rounds, the best records advance to the top cut. The simulated events use about log2(decks)+3 rounds.',
+  },
+  {
+    term: 'Best-of-3 (Bo3) & seat choice',
+    group: 'Strategy',
+    rule: 'Tournament Rules',
+    def: 'A match is won by the first deck to win 2 games. The loser of each game chooses who goes first in the next. The simulated events assume the loser takes the play.',
+  },
+  {
+    term: 'Top cut (top 8)',
+    group: 'Strategy',
+    def: 'The 8 best Swiss records play a single-elimination bracket: 1 vs 8, 4 vs 5, 2 vs 7, 3 vs 6. Ties on match points are broken by opponents’ match-win % (OMW), then game-win %.',
+  },
+  {
+    term: 'Power rating',
+    group: 'Strategy',
+    def: 'One strength number per deck, fitted to every tournament game every deck has played (a Bradley–Terry model with a going-first term). It is shown as the expected win rate against the whole field, with a 90% confidence range. Two decks whose ranges overlap are not meaningfully different.',
+  },
+  {
+    term: 'Bot difficulty (Easy / Medium / Hard)',
+    group: 'Strategy',
+    def: 'Easy plays by simple rules. Medium looks one action ahead and follows its matchup plan. Hard also plays out the rest of its turn and your whole reply for its best options, and values cards by how much they swing games for its deck. In bot-vs-bot testing Easy wins about 37% against Medium; Medium and Hard are close, but Hard makes far fewer single-move blunders.',
+    engine: 'src/ai/tiers.ts — one definition shared by Play, the Matchup Lab, tournaments and replays.',
+  },
+  {
+    term: 'Win-rate colours',
+    group: 'Strategy',
+    def: 'Across the site, a win rate of 55% or more is green (good), 45% or less is red (bad), and anything between is a coin flip. Faded numbers rest on fewer than 20 games. Differences of ±5 points are usually noise at these sample sizes.',
+  },
+  {
+    term: 'Counter deck (breeding)',
+    group: 'Strategy',
+    def: 'A bred deck built to beat the current top decks: the breeder finds the decks with the best tournament head-to-head records against the top 4 and merges them, keeping the cards that win games for each.',
+    engine: 'src/ai/breeder.ts (counter method), data from scripts/breed-data.ts.',
+  },
+  {
     term: 'Archetype (aggro / midrange / control)',
     group: 'Strategy',
     def: 'How a deck wins. Aggro races Gigs with cheap Units. Control answers threats and wins late on card advantage. Midrange sits between and switches role depending on the opponent.',

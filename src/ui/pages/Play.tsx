@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Game } from '../../engine/engine';
-import type { Agent, Decision, PlayerId } from '../../engine/types';
+import type { Agent, Decision, DeckList, PlayerId } from '../../engine/types';
+import { gameDeck } from '../../lib/tournament';
+import { loadReplays, saveReplay, type PracticeReplay } from '../../lib/practiceReplays';
+import { ReviewPanel } from '../components/ReviewPanel';
+import type { ReviewRequest } from '../../sim/review.worker';
 import { HeuristicAgent } from '../../ai/heuristic';
+import { makeTierBot, TIERS, tierLabel, type Tier } from '../../ai/tiers';
 import { HumanAgent } from '../HumanAgent';
+import { advise, boardWarnings, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
+import { Markdown } from '../components/Markdown';
+import { Verdict, Wr } from '../components/Num';
+import analysis from '../../data/analysis.json';
+import type { DeckReport } from '../../analysis/analyze';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { DeckTile } from '../components/DeckIdentity';
 import { allDecks } from '../../lib/browserLibrary';
@@ -36,6 +46,23 @@ interface Running {
   g: Game;
   human: HumanAgent;
   bot: HeuristicAgent;
+  replay: PracticeReplay;
+}
+
+/** Records every answer the human gives, so the game can be replayed exactly for a review. */
+class RecordingAgent implements Agent {
+  name: string;
+  constructor(
+    public inner: Agent,
+    public choices: number[][],
+  ) {
+    this.name = inner.name;
+  }
+  async decide(g: Game, d: Decision) {
+    const r = await this.inner.decide(g, d);
+    this.choices.push([...r]);
+    return r;
+  }
 }
 
 export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; initialOpp?: string }) {
@@ -44,7 +71,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   const [opp, setOpp] = useState(findDeck(initialOpp)?.file ?? decks[1]?.file);
   const [seat, setSeat] = useState<'random' | 'first' | 'second'>('random');
   const [coach, setCoach] = useState(true);
-  const [level, setLevel] = useState<'fast' | 'lookahead' | 'deep'>('deep');
+  const [level, setLevel] = useState<Tier>('hard');
   const [speed, setSpeed] = useState(500);
   const speedRef = useRef(speed);
   speedRef.current = speed;
@@ -56,14 +83,20 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
     const B = findDeck(opp)?.deck;
     if (!A || !B) return;
     const human = new HumanAgent();
-    const bot = new HeuristicAgent({ name: 'Bot', noise: 0.1, seed: Date.now() % 1000, lookahead: level !== 'fast', deep: level === 'deep' ? 3 : 0, profiles: BEST_PROFILES });
+    const botSeed = Date.now() % 100000;
+    const bot = makeTierBot(level, botSeed, 'Bot');
     const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
-    const g = Game.create([A, B], [human, new PacedAgent(bot, () => speedRef.current)], { first });
+    const seed = Math.floor(Math.random() * 2 ** 31);
+    const decks: [DeckList, DeckList] = [gameDeck(A), gameDeck(B)];
+    const replay: PracticeReplay = { id: `p${Date.now().toString(36)}`, date: new Date().toISOString(), decks, seed, first, botLevel: level, botSeed, choices: [], result: 'draw' };
+    const g = Game.create(decks, [new RecordingAgent(human, replay.choices), new PacedAgent(bot, () => speedRef.current)], { first, seed });
     const bump = () => setTick((t) => t + 1);
     g.onUpdate = bump;
     human.onChange = bump;
-    setGame({ id: Date.now(), g, human, bot });
+    setGame({ id: Date.now(), g, human, bot, replay });
     g.run().then((st) => {
+      replay.result = st.winner === 0 ? 'win' : st.winner === 1 ? 'loss' : 'draw';
+      saveReplay(replay);
       recordPractice({
         date: new Date().toISOString(),
         deck: A.name,
@@ -108,17 +141,20 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
               <option value="second">I go second</option>
             </select>
           </label>
-          <label className="row">
-            <span className="muted small">Bot strength</span>
-            <select value={level} onChange={(e) => setLevel(e.target.value as any)}>
-              <option value="deep">Deep — rolls out the rival's reply (strongest)</option>
-              <option value="lookahead">Lookahead — one action ahead</option>
-              <option value="fast">Fast — simple rules (beginner)</option>
-            </select>
-          </label>
+          <div>
+            <span className="muted small">Bot difficulty</span>
+            <div className="tier-pick">
+              {(Object.keys(TIERS) as Tier[]).map((t) => (
+                <button key={t} className={`tier-btn tier-${t} ${level === t ? 'on' : ''}`} onClick={() => setLevel(t)} aria-pressed={level === t}>
+                  <b>{TIERS[t].label}</b>
+                  <span>{TIERS[t].blurb}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <label className="row">
             <input type="checkbox" checked={coach} onChange={(e) => setCoach(e.target.checked)} />
-            <span>Coach mode — show what the lookahead bot would do in your spot</span>
+            <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
           </label>
           <div className="row">
             <button className="primary" onClick={start} disabled={!mine || !opp}>
@@ -128,6 +164,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
           </div>
         </div>
         <MatchupRead mine={mine} opp={opp} />
+        <RecentReviews />
         <PracticeStats />
         <p className="muted small">
           Rules follow the official Comprehensive Rules (Oct 29, 2026): 3 Legends, 40–50 card decks, sell one card per turn for an Eddie,
@@ -159,7 +196,16 @@ function Board({
   const s = g.s;
   const pend = human.pending?.d ?? null;
   const narrow = useNarrow();
-  const [hint, setHint] = useState<{ d: Decision; i: number; why: string } | null>(null);
+  const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives'] } | null>(null);
+  const grades = useRef<MoveGrade[]>([]);
+  const [reviewReq, setReviewReq] = useState<ReviewRequest | null>(null);
+  const [toast, setToast] = useState<MoveGrade | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [targeting, setTargeting] = useState<Targeting | null>(null);
   const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
@@ -170,11 +216,9 @@ function Board({
   useEffect(() => {
     if (!pend || !coach) return;
     let alive = true;
-    const advisor = new HeuristicAgent({ name: 'Coach', profiles: BEST_PROFILES });
-    advisor
-      .decide(g, pend)
-      .then(([i]) => {
-        if (alive) setHint({ d: pend, i, why: advisor.lastThought });
+    advise(g, pend)
+      .then((a) => {
+        if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives });
       })
       .catch(() => undefined);
     return () => {
@@ -221,9 +265,15 @@ function Board({
     (i: number) => {
       setMenu(null);
       setTargeting(null);
+      // grade the move against the coach (only when the advice for this exact spot is ready)
+      if (coach && activeHint && pend && pend.options.length > 1) {
+        const gr = gradeMove(pend, i, { index: activeHint.i, why: activeHint.why, alternatives: activeHint.alts }, g.s.turn);
+        grades.current.push(gr);
+        setToast(gr);
+      }
       human.answer(i);
     },
-    [human],
+    [human, coach, activeHint, pend, g],
   );
 
   const ctx: BoardCtx = {
@@ -307,6 +357,7 @@ function Board({
           <PlayerSide p={1} ctx={ctx} />
           <div className={`pb-midline pb-tone-${head.tone}`}>
             <span>{head.text}</span>
+            {toast && <MoveToast key={grades.current.length} gr={toast} />}
           </div>
           <PlayerSide p={0} ctx={ctx} />
           <div className="pb-handbar">
@@ -318,6 +369,7 @@ function Board({
           <div className={dock ? 'pb-dock' : undefined}>
             <PromptPanel ctx={ctx} why={activeHint?.why} />
           </div>
+          {coach && <CoachPanel g={g} alts={activeHint?.alts ?? []} tips={tips} />}
           <AllOptions ctx={ctx} />
           <div className="pb-label">Game log</div>
           <div className="log pb-log" ref={logRef}>
@@ -327,13 +379,129 @@ function Board({
               </div>
             ))}
           </div>
-          {bot.lastThought && <div className="small muted">Bot's last thought: {bot.lastThought}</div>}
+          {bot.lastThought && <div className="small muted">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div>}
         </aside>
       </div>
       {menu && <ActionMenu ctx={ctx} menu={menu} onClose={() => setMenu(null)} />}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
       {mulligan && !over && <MulliganScreen ctx={ctx} why={activeHint?.why} />}
-      {over && !hideOver && <GameOverOverlay g={g} onRematch={onRematch} onNew={onQuit} onHide={() => setHideOver(true)} />}
+      {over && !hideOver && (
+        <GameOverOverlay
+          g={g}
+          onRematch={onRematch}
+          onNew={onQuit}
+          onHide={() => setHideOver(true)}
+          review={
+            <>
+              {coach && <Scorecard grades={grades.current} />}
+              <button className="ghost" style={{ marginTop: 10 }} onClick={() => (setHideOver(true), setReviewReq(practiceRequest(game.replay)))}>
+                🔍 Full match review
+              </button>
+            </>
+          }
+        />
+      )}
+      {reviewReq && (
+        <div className="modal-backdrop" onClick={() => setReviewReq(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="ghost modal-close" onClick={() => setReviewReq(null)}>
+              ✕
+            </button>
+            <ReviewPanel req={reviewReq} title="Match review" mySeat={0} expect={game.replay.result === 'win' ? 0 : game.replay.result === 'loss' ? 1 : 'tie'} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Review request for a recorded practice game (your decisions only, with the coach's view of each). */
+export function practiceRequest(r: PracticeReplay): ReviewRequest {
+  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, rollouts: 8, withCoach: true };
+}
+
+/** A quick verdict on the move just made, compared with the coach. */
+function MoveToast({ gr }: { gr: MoveGrade }) {
+  const text =
+    gr.verdict === 'agree'
+      ? 'Coach agrees'
+      : gr.verdict === 'close'
+        ? `Fine: the coach slightly preferred ${gr.coach}`
+        : gr.gap !== null
+          ? `Coach preferred ${gr.coach} (−${gr.gap.toFixed(1)} Gigs)`
+          : `Coach preferred ${gr.coach}`;
+  return (
+    <span className={`move-toast ${gr.verdict}`} role="status">
+      <i>{gr.verdict === 'agree' ? '✓' : gr.verdict === 'close' ? '≈' : '!'}</i>
+      {text}
+    </span>
+  );
+}
+
+/** End-of-game review: how often you matched the coach, and the costliest differences. */
+function Scorecard({ grades }: { grades: MoveGrade[] }) {
+  if (!grades.length) return null;
+  const agree = grades.filter((x) => x.verdict !== 'miss').length;
+  const pctAgree = Math.round((100 * agree) / grades.length);
+  const misses = grades
+    .filter((x) => x.verdict === 'miss')
+    .sort((a, b) => (b.gap ?? 0.5) - (a.gap ?? 0.5))
+    .slice(0, 3);
+  const grade = pctAgree >= 85 ? 'A' : pctAgree >= 70 ? 'B' : pctAgree >= 55 ? 'C' : 'D';
+  return (
+    <div className="scorecard">
+      <div className={`scorecard-grade g-${grade}`}>{grade}</div>
+      <div>
+        <b>
+          {agree} of {grades.length} decisions matched the coach ({pctAgree}%)
+        </b>
+        {misses.length > 0 ? (
+          <ul>
+            {misses.map((m, k) => (
+              <li key={k}>
+                <span className="muted">T{m.turn}</span> {m.chose} <span className="muted">→ coach: </span>
+                <b>{m.coach}</b>
+                {m.gap !== null && <span className="neg"> −{m.gap.toFixed(1)} Gigs</span>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="small muted">No costly differences. Clean game.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Recorded practice games, each reviewable by the match reviewer. */
+function RecentReviews() {
+  const [list] = useState(() => loadReplays().slice(-6).reverse());
+  const [req, setReq] = useState<{ r: PracticeReplay; q: ReviewRequest } | null>(null);
+  if (!list.length) return null;
+  return (
+    <div className="panel">
+      <h3 style={{ marginTop: 0 }}>Review a recent game</h3>
+      <div className="round-list">
+        {list.map((r) => (
+          <button key={r.id} className="match-row" onClick={() => setReq({ r, q: practiceRequest(r) })}>
+            <span className={r.result === 'win' ? 'win' : ''}>{r.decks[0].name}</span>
+            <b>{r.result === 'win' ? 'W' : r.result === 'loss' ? 'L' : 'D'}</b>
+            <span>
+              {r.decks[1].name} <span className="muted small">({tierLabel(r.botLevel)})</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {req && (
+        <div className="modal-backdrop" onClick={() => setReq(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="ghost modal-close" onClick={() => setReq(null)}>
+              ✕
+            </button>
+            <ReviewPanel req={req.q} title={`${req.r.decks[0].name} vs ${req.r.decks[1].name} — ${new Date(req.r.date).toLocaleString()}`} mySeat={0} expect={req.r.result === 'win' ? 0 : req.r.result === 'loss' ? 1 : 'tie'} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -390,10 +558,52 @@ function MatchupRead({ mine, opp }: { mine?: string; opp?: string }) {
   if (!A || !B) return null;
   const a = classify(A.deck.main).arch;
   const b = classify(B.deck.main).arch;
+  const mu = (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === A.deck.name)?.matchups.find((m) => m.opp === B.deck.name);
   return (
     <div className="panel small">
+      {mu && mu.games >= 10 && (
+        <div className="mu-verdict">
+          <Verdict v={mu.wr} n={mu.games} /> <Wr v={mu.wr} n={mu.games} strong /> in {mu.games} bot games{' '}
+          <span className="muted">
+            (on the play <Wr v={mu.wrFirst} />, on the draw <Wr v={mu.wrSecond} />)
+          </span>
+        </div>
+      )}
       <b>Matchup read:</b> you are <b>{a}</b>, the bot is <b>{b}</b>. {PLAN_TEXT[`${a}>${b}` as ProfileKey]}{' '}
       <a href={`#/insights?d=${encodeURIComponent(A.deck.name)}`}>Your deck's stats →</a>
+    </div>
+  );
+}
+
+/** Coach sidebar: other options it weighed, live board warnings, and the matchup plan for your deck. */
+function CoachPanel({ g, alts, tips }: { g: Game; alts: Advice['alternatives']; tips: string[] }) {
+  const warnings = boardWarnings(g, 0);
+  return (
+    <div className="coach-panel">
+      {alts.length > 0 && (
+        <div>
+          <div className="pb-label">Coach also considered</div>
+          {alts.map((a) => (
+            <div key={a.label} className="coach-alt">
+              <span>{a.label}</span>
+              <b>{a.gap}</b>
+            </div>
+          ))}
+        </div>
+      )}
+      {warnings.length > 0 && (
+        <div className="coach-warn">
+          {warnings.map((w) => (
+            <div key={w}>⚠ {w}</div>
+          ))}
+        </div>
+      )}
+      {tips.length > 0 && (
+        <details>
+          <summary className="small">Matchup plan &amp; deck tips</summary>
+          <Markdown text={tips.map((t) => `- ${t}`).join(String.fromCharCode(10))} />
+        </details>
+      )}
     </div>
   );
 }

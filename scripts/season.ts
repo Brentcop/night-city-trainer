@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { breedSeason } from '../src/ai/breeder';
+import { loadDeckImpact, loadH2H, recordDeckImpact, strengthOf } from './breed-data';
 import { exportOfficial, deckColors } from '../src/engine/deck';
 import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
 import { classify } from '../src/ai/archetype';
@@ -149,14 +150,18 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
 async function main() {
   const lb = loadLB();
   const impact = impactMap();
-  // parents for breeding: every measured deck incl. meta archetypes, by shrunk rating
-  const ranked = Object.values(lb)
-    .filter((e) => e.metaG > 0 && lib.find((d) => d.deck.name === e.name))
-    .sort((a, b) => rating(b) - rating(a))
-    .map((e) => ({ deck: lib.find((d) => d.deck.name === e.name)!.deck, wr: rating(e) }));
+  // parents for breeding: every measured deck incl. meta archetypes, by strength
+  // (power rating from the tournament series where available, blended with the shrunk vs-meta leaderboard rating)
+  const strength = strengthOf(Object.fromEntries(Object.values(lb).filter((e) => e.metaG > 0).map((e) => [e.name, rating(e)])));
+  const ranked = Object.entries(strength)
+    .filter(([name]) => lib.find((d) => d.deck.name === name))
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, wr]) => ({ deck: lib.find((d) => d.deck.name === name)!.deck, wr }));
+  const h2hAll = loadH2H();
+  const hasH2H = ranked.slice(0, 4).some((x) => ranked.some((y) => h2hAll(y.deck.name, x.deck.name).g > 0));
   // 1. breed
   const seen = new Set(lib.map((d) => [...d.deck.legends].sort().join('|')));
-  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77 }, 8);
+  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined }, 8);
   const newFiles: string[] = [];
   for (const b of bred) {
     const slug = b.deck.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, '');
@@ -180,6 +185,7 @@ async function main() {
   const res: MatchResult[] = await runJobs(jobs);
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   impactMap(reps);
+  recordDeckImpact(reps);
   // per-deck season win rate + pooled vs-meta record
   const tot: Record<string, { w: number; g: number }> = {};
   for (const r of res) {

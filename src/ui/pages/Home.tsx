@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import '../deckprofile.css';
 import seasons from '../../data/seasons.json';
+import ratings from '../../data/ratings.json';
 import { RECOMMENDATION } from '../../content/recommendation';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
@@ -47,11 +48,12 @@ function RecommendedHero({ d, backup, lib }: { d: LibraryDeck; backup?: LibraryD
   const finals = rep.finals?.overall ?? st.leader?.finals;
   const tips = RECOMMENDATION.split('\n')
     .filter((l) => l.startsWith('- '))
+    .slice(0, 1) // keep Home short: seat advice only; the rest is on the deck profile
     .join('\n');
   const h2h = (rep.h2h ?? []).slice().sort((a, b) => a.opp.localeCompare(b.opp));
   return (
     <div className="rec-hero">
-      <LegendStrip legends={d.deck.legends} height={260} />
+      <LegendStrip legends={d.deck.legends} height={190} />
       <div className="rec-hero-body">
         <div className="rec-kicker">RECOMMENDED DECK FOR THE EVENT</div>
         <div className="row">
@@ -64,7 +66,7 @@ function RecommendedHero({ d, backup, lib }: { d: LibraryDeck; backup?: LibraryD
         </h2>
         {bred && (
           <div className="small muted">
-            Bred in Season {bred.season} by the trainer’s automated breeder ({bred.method}). Picked by the tournament plan from the finals against the choom.gg meta decks (see the Strategy page for why).
+            Bred in Season {bred.season} by the trainer’s deck breeder.
           </div>
         )}
         <div className="dp-tiles">
@@ -120,62 +122,51 @@ function RecommendedHero({ d, backup, lib }: { d: LibraryDeck; backup?: LibraryD
 export function Home() {
   const lib = useMemo(() => allDecks(), []);
   const { pick, backup } = recommended(lib);
-  const top = (seasons as unknown as { leaderboard: { file: string }[] }).leaderboard
-    .map((r) => lib.find((d) => d.file === r.file))
-    .filter((d): d is LibraryDeck => !!d)
-    .slice(0, 5);
+  // Top 5: power ratings from the tournament series when available, else the season leaderboard
+  const R = ratings as unknown as { decks: { name: string; wrField: number }[]; events: number };
+  const fromRatings = R.decks.map((r) => lib.find((d) => d.deck.name === r.name)).filter((d): d is LibraryDeck => !!d);
+  const fromSeasons = (seasons as unknown as { leaderboard: { file: string }[] }).leaderboard.map((r) => lib.find((d) => d.file === r.file)).filter((d): d is LibraryDeck => !!d);
+  const top = (fromRatings.length ? fromRatings : fromSeasons).slice(0, 5);
   return (
     <div className="grid">
-      <div className="hero">
-        <div className="spread">
-          <div>
-            <div className="muted small">NEXT MAJOR EVENT</div>
-            <h1 style={{ margin: '4px 0' }}>{EVENT.name}</h1>
-            <div className="muted">
-              Dec 11–13, 2026 · Bo3 Swiss with a 7-card sideboard ·{' '}
-              <a href={EVENT.url} target="_blank" rel="noreferrer">
-                event info
-              </a>
-            </div>
-          </div>
-          <Countdown />
+      <div className="event-bar">
+        <div>
+          <span className="muted small">NEXT EVENT</span> <b>{EVENT.name}</b> <span className="muted small">· Dec 11–13 · Bo3 Swiss</span>
         </div>
+        <Countdown />
       </div>
 
       {pick && <RecommendedHero d={pick} backup={backup} lib={lib} />}
 
+      <div className="quick-actions">
+        {[
+          ['▶', 'Practice', 'Play the recommended deck against the bot, with a coach.', `#/play?d=${encodeURIComponent(pick?.file ?? '')}`],
+          ['▤', 'Browse decks', 'Every deck with its origin, art and full stats.', '#/decks'],
+          ['🏆', 'Tournaments', 'Brackets, standings and replays of every simulated event.', '#/tournaments'],
+        ].map(([icon, t, d, href]) => (
+          <a key={t} href={href} className="quick-action">
+            <span className="qa-icon">{icon}</span>
+            <b>{t}</b>
+            <span className="muted small">{d}</span>
+          </a>
+        ))}
+      </div>
+
       {top.length > 0 && (
         <div className="panel">
           <div className="spread" style={{ padding: 0, flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0 }}>All-time leaderboard</h2>
-            <span className="small">
-              <a href="#/seasons">Seasons</a> · <a href="#/decks">All decks</a>
-            </span>
+            <h2 style={{ margin: 0 }}>{fromRatings.length ? 'Top 5 by power rating' : 'All-time leaderboard'}</h2>
+            <a className="small" href={fromRatings.length ? '#/ratings' : '#/seasons'}>
+              See all →
+            </a>
           </div>
-          <p className="dp-caption">Top 5 by rating: win rate vs the meta decks across every season, shrunk toward 50% for small samples. Click a deck for its full profile.</p>
-          <div className="deck-grid">
+          <div className="deck-grid" style={{ marginTop: 8 }}>
             {top.map((d) => (
               <DeckTile key={d.file} d={d} href={profileHref(d.file)} />
             ))}
           </div>
         </div>
       )}
-
-      <div className="grid cols-3">
-        {[
-          ['Decks', '#/decks', 'Browse meta and guide lists, build your own, import from choom.gg or the Sim, export back.'],
-          ['Play vs Bot', '#/play', 'Full rules engine with a coach that shows what the lookahead bot would do.'],
-          ['Matchup Lab', '#/arena', 'Run hundreds of bot-vs-bot games for any pairing in your browser.'],
-          ['Meta', '#/meta', 'choom.gg tier list + this trainer’s measured matchup matrix.'],
-          ['Glossary', '#/glossary', 'Every game term with rule references and how the bots reason about it.'],
-          ['Cards', '#/cards', 'All 150 Welcome to Night City cards with roles and ratings.'],
-        ].map(([t, href, d]) => (
-          <a key={t} href={href} className="panel" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <h3 style={{ marginTop: 0 }}>{t} →</h3>
-            <div className="muted small">{d}</div>
-          </a>
-        ))}
-      </div>
     </div>
   );
 }

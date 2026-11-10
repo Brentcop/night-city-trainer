@@ -117,10 +117,10 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
         >
           + New empty deck
         </button>
-        {(['meta', 'original', 'guide', 'custom'] as const).map((k) => (
+        {(['meta', 'ladder', 'original', 'guide', 'custom'] as const).map((k) => (
           <div key={k}>
             <div className="zone-label" style={{ marginTop: 12 }}>
-              {k === 'meta' ? 'Meta archetypes' : k === 'original' ? 'Trainer originals (NC)' : k === 'guide' ? 'Guide lists' : 'Custom & tournament builds'}
+              {k === 'meta' ? 'Meta archetypes' : k === 'ladder' ? 'Sim ladder (Master)' : k === 'original' ? 'Trainer originals (NC)' : k === 'guide' ? 'Guide lists' : 'Custom & tournament builds'}
             </div>
             {decks
               .filter((d) => d.kind === k)
@@ -532,6 +532,8 @@ function groupOf(d: LibraryDeck): Group {
   switch (k) {
     case 'choom-meta':
       return { key: 'meta', label: '◆ choom.gg meta archetypes', order: 0 };
+    case 'sim-ladder':
+      return { key: 'ladder', label: '▲ Sim ladder (Master-rank Legend trios)', order: 0.5 };
     case 'choom-guide':
       return { key: 'guide', label: '✎ choom.gg community guides', order: 1 };
     case 'nc-original':
@@ -551,6 +553,7 @@ function groupOf(d: LibraryDeck): Group {
 }
 const GROUP_HELP: Record<string, string> = {
   meta: 'The archetypes choom.gg tracks as the current meta, with their tier.',
+  ladder: 'Legend trios seen at Master rank on cyberpunk-tcg-sim.online. Only the Legends are public, so the main decks are theorized by this trainer from our data, then forged.',
   guide: 'Lists from community strategy guides, credited to their authors.',
   nc: 'Hand-built by this trainer around a single plan.',
   builds: 'Ready-to-register lists with a data-chosen sideboard, and optimizer-tuned variants.',

@@ -9,6 +9,7 @@ import { cardValue, isSpendTriggerGear } from './knowledge';
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, classify, DEFAULT_PROFILES, type Archetype, type Profiles } from './archetype';
 import { knownCards } from './eval';
+import { cardImpact } from './impact';
 
 export interface HeuristicOptions {
   name?: string;
@@ -22,6 +23,8 @@ export interface HeuristicOptions {
   deep?: number;
   /** matchup play-style profiles (weight multipliers by my/rival archetype); null disables */
   profiles?: Profiles | null;
+  /** weight of statistical card impact (telemetry IWD) in sell/discard/search/mulligan decisions; 0 = off */
+  impact?: number;
   seed?: number;
 }
 
@@ -31,6 +34,8 @@ export class HeuristicAgent implements Agent {
   private rng: number;
   /** last decision explanation (for UI "why did the bot do that") */
   lastThought = '';
+  /** top alternatives of the last main-phase decision: value relative to passing (coach UI) */
+  lastAlternatives: { index: number; label: string; delta: number }[] = [];
 
   constructor(opts: HeuristicOptions = {}) {
     this.opts = {
@@ -41,6 +46,7 @@ export class HeuristicAgent implements Agent {
       maxCandidates: opts.maxCandidates ?? 40,
       deep: opts.deep ?? 0,
       profiles: opts.profiles === undefined ? null : opts.profiles,
+      impact: opts.impact ?? 0,
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -112,7 +118,7 @@ export class HeuristicAgent implements Agent {
     for (const s of sells) {
       const c = g.c(s.uid);
       const d = g.def(c);
-      let keep = cardValue(c.defId);
+      let keep = cardValue(c.defId) + this.opts.impact * cardImpact(P.name, c.defId);
       const cost = g.playCost(c.uid, p);
       if (cost <= avail + 1) keep += 3; // castable now / next turn
       if (cost > avail + 3) keep -= 3; // far off
@@ -134,6 +140,7 @@ export class HeuristicAgent implements Agent {
     const sell = this.sellChoice(g, p, actions);
     if (sell !== null) {
       this.lastThought = `Sell ${g.name(sell)} for an Eddie (economy first).`;
+      this.lastAlternatives = [];
       return actions.findIndex((a) => a.type === 'sell' && a.uid === sell);
     }
     if (!this.opts.lookahead) return this.fastMain(g, p, actions);
@@ -167,14 +174,17 @@ export class HeuristicAgent implements Agent {
         bestI = i;
       }
     }
+    let deepScored: { i: number; v: number }[] | null = null;
     if (this.opts.deep > 0 && scored.length > 1) {
       // re-score the best few by rolling out the rest of this turn and the rival's whole reply
       scored.sort((x, y) => y.v - x.v);
       const top = scored.slice(0, this.opts.deep);
       if (passIdx >= 0 && !top.some((t) => t.i === passIdx)) top.push({ i: passIdx, v: base });
       let bestDeep = -Infinity;
+      deepScored = [];
       for (const t of top) {
         const dv = (await this.rollout(g, p, actions[t.i])) + t.v * 0.05;
+        deepScored.push({ i: t.i, v: dv });
         if (dv > bestDeep) {
           bestDeep = dv;
           bestI = t.i;
@@ -184,6 +194,13 @@ export class HeuristicAgent implements Agent {
     }
     if (bestI < 0) bestI = 0;
     this.lastThought = `${g.describeAction(actions[bestI])} (eval ${bestV.toFixed(1)} vs pass ${base.toFixed(1)})`;
+    // Alternatives on the scale the decision was actually made on (deep rollouts when used), relative to passing.
+    const pool = deepScored ?? scored;
+    const passV = pool.find((x) => x.i === passIdx)?.v ?? base;
+    this.lastAlternatives = [...pool]
+      .sort((x, y) => y.v - x.v)
+      .slice(0, 4)
+      .map((x) => ({ index: x.i, label: g.describeAction(actions[x.i]), delta: x.v - passV }));
     return bestI;
   }
 
@@ -346,6 +363,12 @@ export class HeuristicAgent implements Agent {
 
   wantsMulligan(g: Game, p: PlayerId): boolean {
     const hand = g.P(p).hand.map((u) => g.def(u));
+    if (this.opts.impact) {
+      // keep hands holding the deck's proven game-winners even if the curve is a bit off
+      const winners = hand.filter((c) => cardImpact(g.P(p).name, c.id) >= 0.05).length;
+      const cheapAny = hand.filter((c) => (c.cost ?? 9) <= 4).length;
+      if (winners >= 2 && cheapAny >= 2) return false;
+    }
     const cheapUnits = hand.filter((c) => c.type === 'Unit' && (c.cost ?? 9) <= 4).length;
     const cheap = hand.filter((c) => (c.cost ?? 9) <= 4).length;
     const sellable = hand.filter((c) => c.sellable).length;
@@ -416,7 +439,7 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const scored = real.map(({ o, i }) => {
       const c = g.c(o.uid!);
-      let v = cardValue(c.defId);
+      let v = cardValue(c.defId) + this.opts.impact * cardImpact(g.P(p).name, c.defId);
       // prefer cards we can cast soon
       const cost = g.def(c).cost ?? 0;
       if (cost <= g.P(p).eddies.length + 3) v += 1.5;
@@ -521,7 +544,7 @@ export class HeuristicAgent implements Agent {
 }
 
 /** In lookahead clones, the deciding player must not peek at hidden info: shuffle both decks. */
-function hideInfo(g: Game, viewer: PlayerId) {
+export function hideInfo(g: Game, viewer: PlayerId) {
   // deck order is unknown to everyone
   for (const pl of [0, 1] as PlayerId[]) shuffleInPlace(g.s, g.P(pl).deck);
   // the rival's hand is unknown: re-deal it from the rival's unseen cards (hand + deck)

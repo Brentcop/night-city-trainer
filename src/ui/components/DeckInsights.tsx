@@ -1,4 +1,5 @@
 import type { DeckReport } from '../../analysis/analyze';
+import { Signed, Wr } from './Num';
 import { Markdown } from './Markdown';
 import { classify, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
 import { allDecks } from '../../lib/browserLibrary';
@@ -21,9 +22,9 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
   return (
     <div className="grid">
       <div className="row">
-        <span className="stat">{pct(r.wr)}</span>
+        <span className="stat"><Wr v={r.wr} n={r.games} /></span>
         <span className="muted small">
-          {r.games} games · {pct(r.wrFirst)} on the play / {pct(r.wrSecond)} on the draw · {fix1(r.avgTurns)} turns avg · overtime {pct(r.overtimeRate)}
+          {r.games} games · <Wr v={r.wrFirst} /> on the play / <Wr v={r.wrSecond} /> on the draw · {fix1(r.avgTurns)} turns avg · overtime {pct(r.overtimeRate)}
           {myArch && <> · plays as <b>{myArch}</b></>}
         </span>
       </div>
@@ -47,7 +48,7 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
               {best.map((c) => (
                 <tr key={c.id}>
                   <td>{c.name}</td>
-                  <td style={{ color: 'var(--green)' }}>{signed(c.iwd)}</td>
+                  <td><Signed v={c.iwd} /></td>
                   <td>{fix1(c.avgPlayTurn)}</td>
                   <td>{pct(c.soldRate)}</td>
                 </tr>
@@ -70,7 +71,7 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
               {worst.map((c) => (
                 <tr key={c.id}>
                   <td>{c.name}</td>
-                  <td style={{ color: 'var(--red)' }}>{signed(c.iwd)}</td>
+                  <td><Signed v={c.iwd} /></td>
                   <td>{fix1(c.avgPlayTurn)}</td>
                   <td>{pct(c.soldRate)}</td>
                 </tr>
@@ -98,13 +99,13 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
                 <tr key={t.turn}>
                   <td>{t.turn}</td>
                   <td>
-                    {pct(t.leadWr)} <span className="muted">({t.leadN})</span>
+                    <Wr v={t.leadWr} n={t.leadN} /> <span className="muted">({t.leadN})</span>
                   </td>
                   <td>
-                    {pct(t.evenWr)} <span className="muted">({t.evenN})</span>
+                    <Wr v={t.evenWr} n={t.evenN} /> <span className="muted">({t.evenN})</span>
                   </td>
                   <td>
-                    {pct(t.behindWr)} <span className="muted">({t.behindN})</span>
+                    <Wr v={t.behindWr} n={t.behindN} /> <span className="muted">({t.behindN})</span>
                   </td>
                   <td>{fix1(r.diffCurve[i].wins)}</td>
                   <td>{fix1(r.diffCurve[i].losses)}</td>
@@ -138,10 +139,10 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
                     {oa && <div className="muted">{oa}</div>}
                   </td>
                   <td>
-                    <b>{pct(m.wr)}</b>
+                    <Wr v={m.wr} n={m.games} strong />
                   </td>
                   <td>
-                    {pct(m.wrFirst)} / {pct(m.wrSecond)}
+                    <Wr v={m.wrFirst} /> / <Wr v={m.wrSecond} />
                   </td>
                   <td>{fix1(m.avgTurns)}</td>
                   <td style={{ minWidth: 220 }}>{plan}</td>

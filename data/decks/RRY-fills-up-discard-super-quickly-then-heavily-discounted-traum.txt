@@ -3,7 +3,6 @@
 // Author: Haris Karabegovic
 // Source: https://choom.gg/guides/fills-up-discard-super-quickly-then-heavily-discounted-trauma-team-operatives-and-high-power-rockerboys-fill-the-board-d42deb
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-11-06
 // Format: Constructed
 
 // Legends

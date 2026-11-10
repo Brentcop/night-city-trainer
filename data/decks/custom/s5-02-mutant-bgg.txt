@@ -1,0 +1,31 @@
+// S5-02 Mutant (BGG)
+// Origin: Night City Trainer bred deck (season 5, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-07 Explorer (BBG)
+// Added: 2026-11-10
+// Idea: Mutant of S1-07 Explorer (BBG): V: Corporate Exile → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Mama's Favorite
+1 Sasha Yakovleva: Won't Let You Down
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Main Deck
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+2 Psycho Squad
+3 MaxTac AV
+2 Placide: Voodoo Sentinel
+2 Overwatch: Panam's Gift
+2 Zetatech Berserk
+2 Floor It
+2 Peace Offering
+2 Trust No One
+2 Take Control
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Memory Relapse
+1 We Gotta Live Together
+2 Wild in the Streets
+3 (Don't Fear) The Reaper

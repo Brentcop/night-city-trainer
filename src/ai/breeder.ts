@@ -1,8 +1,11 @@
 // Data-driven deck breeder: builds new legal decks from what the statistics say works.
 //   mutant    — a top deck with one Legend swapped (cards re-fitted to the new RAM limits)
 //   crossover — two strong decks merged: Legends and cards drawn from both
+//   counter   — built to beat the current top decks ("bosses"): merges the decks with the best head-to-head records vs them
 //   explorer  — an untested Legend combination, filled by role/curve templates
 // Card choice score = format-wide impact (IWD) + static card value + seed-deck weight + archetype fit.
+// Seed-deck weight uses the parent's own card impact: proven performers in that deck are kept, cards that lose games
+// in that deck are not carried over.
 import { CARD_BY_ID, CARDS, cardLabel } from '../engine/cards';
 import { counts, ramLimits, validateDeck } from '../engine/deck';
 import type { CardDef, DeckList } from '../engine/types';
@@ -17,11 +20,15 @@ export interface BreedInput {
   /** legend triples already tested (sorted ids joined by '|') */
   seenTriples: Set<string>;
   seed: number;
+  /** per-deck card impact (deck name → card id → IWD) from the parents' own telemetry */
+  deckImpact?: Record<string, Record<string, number>>;
+  /** head-to-head record of deck a vs deck b (tournament games) */
+  h2h?: (a: string, b: string) => { w: number; g: number };
 }
 
 export interface Bred {
   deck: DeckList;
-  method: 'mutant' | 'crossover' | 'explorer';
+  method: 'mutant' | 'crossover' | 'counter' | 'explorer';
   parents: string[];
   idea: string;
 }
@@ -123,9 +130,16 @@ export function fill(legends: string[], seeds: Map<string, number>, impact: Reco
   return { name, legends, main: main.slice(0, 40), sideboard: [] };
 }
 
-function seedsOf(decks: DeckList[]): Map<string, number> {
+/** Card preferences carried over from parent decks, adjusted by how each card performed in that parent. */
+export function seedsOf(decks: DeckList[], deckImpact: BreedInput['deckImpact'] = {}): Map<string, number> {
   const m = new Map<string, number>();
-  for (const d of decks) for (const [id, n] of counts(d.main)) m.set(id, Math.max(m.get(id) ?? 0, n / 3 + 0.5));
+  for (const d of decks)
+    for (const [id, n] of counts(d.main)) {
+      const imp = deckImpact[d.name]?.[id];
+      // +8 pts when drawn ≈ +1 copy's worth of preference; a card that loses games in this deck is not carried over
+      const w = imp === undefined ? n / 3 + 0.5 : imp < -0.04 ? 0 : n / 3 + 0.5 + Math.max(-0.5, Math.min(1.5, imp * 12));
+      m.set(id, Math.max(m.get(id) ?? 0, w));
+    }
   return m;
 }
 
@@ -135,11 +149,12 @@ const colorCode = (legends: string[]) =>
     .sort((a, b) => 'RBGY'.indexOf(a) - 'RBGY'.indexOf(b))
     .join('');
 
-/** Legend strength estimate: average win rate of ranked decks using it. */
+/** Legend strength: average strength of decks using it, shrunk toward 50% when few decks have tried it. */
 function legendScores(ranked: BreedInput['ranked']) {
   const acc: Record<string, { s: number; n: number }> = {};
   for (const { deck, wr } of ranked) for (const l of deck.legends) (acc[l] ??= { s: 0, n: 0 }), (acc[l].s += wr), acc[l].n++;
-  return (id: string) => (acc[id] ? acc[id].s / acc[id].n : 0.5);
+  const K = 2;
+  return (id: string) => (acc[id] ? (acc[id].s + 0.5 * K) / (acc[id].n + K) : 0.5);
 }
 
 export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
@@ -158,8 +173,14 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   };
   const name = (i: number, kind: string, legends: string[]) => `S${season}-${String(i).padStart(2, '0')} ${kind} (${colorCode(legends)})`;
 
-  // 3 mutants: best decks with one Legend swapped for a strong Legend whose colour fits
-  for (let k = 0, tries = 0; out.filter((o) => o.method === 'mutant').length < 3 && tries < 200; tries++) {
+  const di = input.deckImpact ?? {};
+  const h2h = input.h2h;
+  // counters need head-to-head data; without it their slots go to mutants and crossovers
+  const nCounter = h2h ? 2 : 0;
+  const nMutant = h2h ? 2 : 3;
+  const nCross = h2h ? 2 : 3;
+  // mutants: best decks with one Legend swapped for a strong Legend whose colour fits
+  for (let k = 0, tries = 0; out.filter((o) => o.method === 'mutant').length < nMutant && tries < 200; tries++) {
     const parent = top[k++ % Math.min(top.length, 4)].deck;
     const slot = Math.floor(r() * 3);
     const cands = LEGENDS.filter((l) => !parent.legends.includes(l.id)).sort((a, b) => lscore(b.id) - lscore(a.id) + (r() - 0.5) * 0.08);
@@ -167,11 +188,11 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
     const legends = parent.legends.map((id, i) => (i === slot ? pick.id : id));
     if (!legalTriple(legends)) continue;
     const style = classify(parent.main).arch;
-    const d = fill(legends, seedsOf([parent]), input.impact, style, name(out.length + 1, 'Mutant', legends));
+    const d = fill(legends, seedsOf([parent], di), input.impact, style, name(out.length + 1, 'Mutant', legends));
     push({ deck: d, method: 'mutant', parents: [parent.name], idea: `Mutant of ${parent.name}: ${cardLabel(CARD_BY_ID[parent.legends[slot]])} → ${cardLabel(pick)}; cards re-fitted to the new RAM limits, keeping the parent's best performers.` });
   }
-  // 3 crossovers: two strong decks that share a colour
-  for (let tries = 0; out.filter((o) => o.method === 'crossover').length < 3 && tries < 200; tries++) {
+  // crossovers: two strong decks
+  for (let tries = 0; out.filter((o) => o.method === 'crossover').length < nCross && tries < 200; tries++) {
     const a = top[Math.floor(r() * top.length)].deck;
     const b = top[Math.floor(r() * top.length)].deck;
     if (a === b) continue;
@@ -180,8 +201,46 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
     for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name)) legends.push(l);
     if (!legalTriple(legends)) continue;
     const style = r() < 0.5 ? classify(a.main).arch : classify(b.main).arch;
-    const d = fill(legends, seedsOf([a, b]), input.impact, style, name(out.length + 1, 'Cross', legends));
+    const d = fill(legends, seedsOf([a, b], di), input.impact, style, name(out.length + 1, 'Cross', legends));
     push({ deck: d, method: 'crossover', parents: [a.name, b.name], idea: `Crossover of ${a.name} × ${b.name} (${style}): strongest Legends of both, cards ranked by format-wide impact.` });
+  }
+  // counters: the decks that beat the bosses most often (tournament head-to-heads), merged
+  if (h2h && nCounter) {
+    const bosses = input.ranked.slice(0, 4).map((x) => x.deck.name);
+    const vsBosses = input.ranked
+      .filter((x) => x.wr >= 0.45)
+      .map((x) => {
+        let w = 0;
+        let g = 0;
+        for (const b of bosses) {
+          if (b === x.deck.name) continue;
+          const rec = h2h(x.deck.name, b);
+          w += rec.w;
+          g += rec.g;
+        }
+        // shrink toward 50% (prior of 6 games) so a 2-0 doesn't look like a hard counter
+        return { deck: x.deck, score: (w + 3) / (g + 6), g };
+      })
+      .filter((x) => x.g >= 4)
+      .sort((x, y) => y.score - x.score)
+      .slice(0, 6);
+    for (let tries = 0; out.filter((o) => o.method === 'counter').length < nCounter && tries < 200 && vsBosses.length >= 2; tries++) {
+      const a = vsBosses[Math.floor(r() * Math.min(3, vsBosses.length))];
+      const b = vsBosses[Math.floor(r() * vsBosses.length)];
+      if (a === b) continue;
+      const pool = [...new Set([...a.deck.legends, ...b.deck.legends])].sort((x, y) => lscore(y) - lscore(x) + (r() - 0.5) * 0.12);
+      const legends: string[] = [];
+      for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name)) legends.push(l);
+      if (!legalTriple(legends)) continue;
+      const style = classify(a.deck.main).arch;
+      const d = fill(legends, seedsOf([a.deck, b.deck], di), input.impact, style, name(out.length + 1, 'Counter', legends));
+      push({
+        deck: d,
+        method: 'counter',
+        parents: [a.deck.name, b.deck.name],
+        idea: `Counter to the top decks (${bosses.slice(0, 3).join(', ')}): merges ${a.deck.name} (${Math.round(a.score * 100)}% vs them) and ${b.deck.name} (${Math.round(b.score * 100)}%), keeping the cards that win games for each.`,
+      });
+    }
   }
   // explorers: untested Legend combinations, weighted toward strong Legends
   const styles: Archetype[] = ['aggro', 'midrange', 'control'];

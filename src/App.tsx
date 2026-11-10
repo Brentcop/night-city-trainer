@@ -30,20 +30,35 @@ import { SeasonsPage } from './ui/pages/Seasons';
 import { CreditsPage } from './ui/pages/Credits';
 import { DeckProfilePage } from './ui/pages/DeckProfile';
 import { artEnabled, setArtEnabled } from './ui/art';
+import { TournamentsPage } from './ui/pages/Tournaments';
+import { RatingsPage } from './ui/pages/Ratings';
+import { TournamentRunnerPage } from './ui/pages/TournamentRunner';
 
-const ROUTES: { path: string; label: string; icon?: string; el: (q: URLSearchParams) => React.ReactNode; hidden?: boolean }[] = [
-  { path: 'home', icon: '⌂', label: 'Home', el: () => <Home /> },
-  { path: 'meta', icon: '◆', label: 'Meta', el: () => <MetaPage /> },
-  { path: 'guides', icon: '♟', label: 'Strategy', el: (q) => <GuidesPage initial={q.get('g') ?? undefined} /> },
-  { path: 'decks', icon: '▤', label: 'Decks', el: (q) => <DecksPage initial={q.get('d') ?? undefined} /> },
-  { path: 'play', icon: '▶', label: 'Play vs Bot', el: (q) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} /> },
-  { path: 'arena', icon: '⚔', label: 'Matchup Lab', el: () => <ArenaPage /> },
-  { path: 'insights', icon: '◔', label: 'Insights', el: (q) => <InsightsPage initial={q.get('d') ?? undefined} /> },
-  { path: 'seasons', icon: '🧬', label: 'Seasons', el: () => <SeasonsPage /> },
-  { path: 'cards', icon: '🂠', label: 'Cards', el: () => <CardsPage /> },
-  { path: 'glossary', icon: '?', label: 'Glossary', el: () => <GlossaryPage /> },
-  { path: 'credits', icon: '©', label: 'Credits', el: () => <CreditsPage /> },
-  { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} />, hidden: true },
+const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.ReactNode }[] = [
+  { path: 'home', label: 'Home', el: () => <Home /> },
+  { path: 'decks', label: 'All decks', el: (q) => <DecksPage initial={q.get('d') ?? undefined} /> },
+  { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} /> },
+  { path: 'play', label: 'Play vs Bot', el: (q) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} /> },
+  { path: 'tournaments', label: 'Events', el: (q) => <TournamentsPage initial={q.get('e') ?? undefined} /> },
+  { path: 'run', label: 'Run a tournament', el: (q) => <TournamentRunnerPage q={q} /> },
+  { path: 'ratings', label: 'Power ratings', el: () => <RatingsPage /> },
+  { path: 'seasons', label: 'Breeding seasons', el: () => <SeasonsPage /> },
+  { path: 'meta', label: 'choom.gg meta', el: () => <MetaPage /> },
+  { path: 'arena', label: 'Matchup Lab', el: () => <ArenaPage /> },
+  { path: 'guides', label: 'Strategy', el: (q) => <GuidesPage initial={q.get('g') ?? undefined} /> },
+  { path: 'cards', label: 'Cards', el: () => <CardsPage /> },
+  { path: 'glossary', label: 'Glossary', el: () => <GlossaryPage /> },
+  { path: 'insights', label: 'Card stats', el: (q) => <InsightsPage initial={q.get('d') ?? undefined} /> },
+  { path: 'credits', label: 'Credits', el: () => <CreditsPage /> },
+];
+
+/** Top-level sections; each lists its pages (first = landing page). Pages not listed in `sub` don't show in the sub-menu. */
+const SECTIONS: { label: string; icon: string; pages: string[]; sub?: string[] }[] = [
+  { label: 'Home', icon: '⌂', pages: ['home'] },
+  { label: 'Decks', icon: '▤', pages: ['decks', 'deck'] },
+  { label: 'Play', icon: '▶', pages: ['play'] },
+  { label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], sub: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'] },
+  { label: 'Learn', icon: '♟', pages: ['guides', 'cards', 'glossary', 'insights', 'credits'], sub: ['guides', 'cards', 'glossary', 'insights', 'credits'] },
 ];
 
 function parseHash(): [string, URLSearchParams] {
@@ -60,6 +75,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', on);
   }, []);
   const route = ROUTES.find((r) => r.path === path) ?? ROUTES[0];
+  const section = SECTIONS.find((sec) => sec.pages.includes(route.path));
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [path, q.toString()]);
@@ -67,20 +83,31 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="chip">NC</span> NIGHT CITY TRAINER
+          <a href="#/home" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <span className="chip">NC</span> NIGHT CITY TRAINER
+          </a>
         </div>
         <nav className="nav">
-          {ROUTES.filter((r) => !r.hidden).map((r) => (
-            <a key={r.path} href={`#/${r.path}`} className={r.path === route.path || (route.path === 'deck' && r.path === 'decks') ? 'active' : ''}>
+          {SECTIONS.map((sec) => (
+            <a key={sec.label} href={`#/${sec.pages[0]}`} className={section === sec ? 'active' : ''}>
               <span className="nav-icon" aria-hidden>
-                {r.icon}
+                {sec.icon}
               </span>
-              {r.label}
+              {sec.label}
             </a>
           ))}
         </nav>
         <HeaderToggles />
       </header>
+      {section?.sub && (
+        <nav className="subnav">
+          {section.sub.map((p) => (
+            <a key={p} href={`#/${p}`} className={p === route.path ? 'active' : ''}>
+              {ROUTES.find((r) => r.path === p)?.label}
+            </a>
+          ))}
+        </nav>
+      )}
       <main className="main" key={route.path + q.toString()}>
         <Boundary>{route.el(q)}</Boundary>
       </main>

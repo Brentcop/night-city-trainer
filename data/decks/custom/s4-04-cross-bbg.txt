@@ -1,0 +1,31 @@
+// S4-04 Cross (BBG)
+// Origin: Night City Trainer bred deck (season 4, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S2-08 Explorer (RRG) × S1-07 Explorer (BBG)
+// Added: 2026-11-10
+// Idea: Crossover of S2-08 Explorer (RRG) × S1-07 Explorer (BBG) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Jackie Welles: Mama's Favorite
+1 Sasha Yakovleva: Won't Let You Down
+
+// Main Deck
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+1 Psycho Squad
+3 Maman Brigitte: Spirit of Death
+2 Placide: Voodoo Sentinel
+2 Zetatech Berserk
+2 Floor It
+3 Trust No One
+2 Take Control
+3 Three Mouths, One Desire
+2 Chrome Reverie
+2 Nocturne OP55 N1
+3 Pyramid Song
+2 Memory Relapse
+1 Unlikely Bond
+3 Les Élémens
+3 Towerfall

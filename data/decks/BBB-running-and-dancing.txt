@@ -3,7 +3,6 @@
 // Author: CunninghamsAlt
 // Source: https://choom.gg/guides/running-and-dancing-fff0cb
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-07-28
 // Format: Constructed
 
 // Legends

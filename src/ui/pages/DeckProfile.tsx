@@ -1,5 +1,5 @@
 // Deck profile: where a deck comes from (origin, lineage, idea) and every measured stat for it, plus the list shown visually.
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import '../deckprofile.css';
 import seasonsData from '../../data/seasons.json';
 import deckReportsData from '../../data/deckReports.json';
@@ -76,7 +76,8 @@ function decksNamedIn(text: string | undefined, lib: LibraryDeck[], self?: strin
 
 const METHOD_TEXT: Record<string, string> = {
   mutant: 'a mutant — one Legend of its parent swapped out, the rest re-fitted to the new RAM limits',
-  cross: 'a cross — two parent decks combined, keeping the best performers of each',
+  crossover: 'a crossover — two parent decks combined, keeping the best performers of each',
+  counter: 'a counter — built from the decks with the best head-to-head records against the current top decks',
   explorer: 'an explorer — an untested Legend trio, filled with cards chosen from format-wide card impact (no parent deck)',
 };
 
@@ -101,10 +102,41 @@ export function WrBar({ v, title }: { v: number | null | undefined; title?: stri
   );
 }
 
+/** Counts a numeric stat up from zero when it first appears ("72%", "13.5", "527"); other values render as-is. */
+function CountUp({ value }: { value: React.ReactNode }) {
+  const m = typeof value === 'string' || typeof value === 'number' ? String(value).match(/^(\d+(?:\.\d+)?)(%?)$/) : null;
+  const target = m ? +m[1] : 0;
+  const digits = m?.[1].includes('.') ? m[1].split('.')[1].length : 0;
+  const [v, setV] = useState(m ? 0 : target);
+  useEffect(() => {
+    if (!m) return;
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return setV(target);
+    let raf = 0;
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / 700);
+      setV(target * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, !!m]);
+  if (!m) return <>{value}</>;
+  return (
+    <>
+      {v.toFixed(digits)}
+      {m[2]}
+    </>
+  );
+}
+
 export function StatTile({ value, label, caption }: { value: React.ReactNode; label: string; caption?: React.ReactNode }) {
   return (
     <div className="dp-tile">
-      <div className="dp-tile-val">{value}</div>
+      <div className="dp-tile-val">
+        <CountUp value={value} />
+      </div>
       <div className="dp-tile-label">{label}</div>
       {caption && <div className="dp-tile-cap">{caption}</div>}
     </div>

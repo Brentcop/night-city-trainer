@@ -1,0 +1,33 @@
+# S4-01 Mutant (RBB)
+
+// Legends (3)
+1 V: Corporate Exile
+1 Sasha Yakovleva: Won't Let You Down
+1 Adam Smasher: Ender of Legends
+
+// Units (12)
+1 Evelyn Parker: Scheming Siren
+2 Swordwise Huscle
+3 Psycho Squad
+1 Rita Wheeler: No Stupid Questions
+3 Maman Brigitte: Spirit of Death
+2 Placide: Voodoo Sentinel
+
+// Gears (2)
+2 Satori: Sword of Saburo
+
+// Programs (26)
+2 Floor It
+2 Trust No One
+3 Three Mouths, One Desire
+2 Chrome Reverie
+2 Nocturne OP55 N1
+2 Over the Edge
+3 Pyramid Song
+2 Shattered Memories
+2 Unlikely Bond
+3 Les Élémens
+3 Towerfall
+
+// Idea: Mutant of S1-07 Explorer (BBG): Saburo Arasaka: Stubborn Patriarch → Adam Smasher: Ender of Legends; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Author: Night City Trainer breeder (season 4, mutant)

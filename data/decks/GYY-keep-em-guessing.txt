@@ -3,7 +3,6 @@
 // Author: CunninghamsAlt
 // Source: https://choom.gg/guides/keep-em-guessing-61f5a5
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-07-28
 // Format: Constructed
 
 // Legends

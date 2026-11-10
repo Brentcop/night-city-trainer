@@ -1,0 +1,31 @@
+// S4-05 Cross (RBG)
+// Origin: Night City Trainer bred deck (season 4, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-05 Cross (RGY) × S1-01 Mutant (RRB)
+// Added: 2026-11-10
+// Idea: Crossover of S1-05 Cross (RGY) × S1-01 Mutant (RRB) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 V: Corporate Exile
+1 Dexter DeShawn: Off the Grid
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Main Deck
+3 Valentino Street Racer
+2 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 MaxTac AV
+2 Saul Bright: Stormrider
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Detonate
+2 Floor It
+2 Peace Offering
+2 Trust No One
+2 Corporate Surveillance
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+1 Shattered Memories

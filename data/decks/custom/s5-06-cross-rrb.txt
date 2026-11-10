@@ -1,0 +1,31 @@
+// S5-06 Cross (RRB)
+// Origin: Night City Trainer bred deck (season 5, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-08 Explorer (RRG) × S1-01 Mutant (RRB)
+// Added: 2026-11-10
+// Idea: Crossover of S1-08 Explorer (RRG) × S1-01 Mutant (RRB) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 Royce: Psycho on the Edge
+1 Yorinobu Arasaka: Embracing Destruction
+1 V: Corporate Exile
+
+// Main Deck
+3 Swordwise Huscle
+3 6th Street Recruits
+2 Psycho Squad
+3 Animals Wrecker
+2 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 All is Lost
+2 Detonate
+2 Trust No One
+3 Bonnie and Clyde
+2 Chrome Reverie
+2 Nocturne OP55 N1
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum

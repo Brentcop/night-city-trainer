@@ -1,0 +1,31 @@
+// S4-08 Explorer (RRY)
+// Origin: Night City Trainer bred deck (season 4, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-10
+// Idea: Explorer (aggro): untested Legends Dexter DeShawn / Yorinobu Arasaka / Viktor Vektor, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Yorinobu Arasaka: Embracing Destruction
+1 Viktor Vektor: Sit Down and Relax
+
+// Main Deck
+3 Dexter DeShawn: One Last Chance
+1 Maelstrom Goons
+3 6th Street Recruits
+1 Gilded Matón
+3 Kerry Eurodyne: The Last Rockerboy
+3 Animals Wrecker
+2 Jackie Welles: Ride or Die Choom
+3 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Zetatech Faceplate
+2 Afterparty at Lizzie's
+1 Industrial Assembly
+2 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum

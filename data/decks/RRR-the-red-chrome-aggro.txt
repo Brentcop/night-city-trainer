@@ -3,7 +3,6 @@
 // Author: Cyrill Lampart
 // Source: https://choom.gg/guides/the-red-chrome-aggro-cc277e
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-09-08
 // Format: Constructed
 
 // Legends

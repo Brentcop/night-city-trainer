@@ -1,0 +1,32 @@
+# S5-02 Mutant (BGG)
+
+// Legends (3)
+1 Jackie Welles: Mama's Favorite
+1 Sasha Yakovleva: Won't Let You Down
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Units (12)
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+1 Psycho Squad
+3 MaxTac AV
+2 Placide: Voodoo Sentinel
+
+// Gears (4)
+2 Overwatch: Panam's Gift
+2 Zetatech Berserk
+
+// Programs (24)
+2 Floor It
+2 Peace Offering
+2 Trust No One
+2 Take Control
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Memory Relapse
+2 We Gotta Live Together
+2 Wild in the Streets
+3 (Don't Fear) The Reaper
+
+// Idea: Mutant of S1-07 Explorer (BBG): V: Corporate Exile → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Author: Night City Trainer breeder (season 5, mutant)

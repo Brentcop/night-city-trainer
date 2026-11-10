@@ -3,7 +3,6 @@
 // Author: Cacheira
 // Source: https://choom.gg/guides/smash-the-curve-623327
 // Via: choom.gg/guides (free portion, collected 2026-11-09)
-// Added: 2026-09-13
 // Format: Constructed
 
 // Legends

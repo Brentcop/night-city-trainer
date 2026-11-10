@@ -85,15 +85,60 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 7. **Modes.** Each mode is scored from its text: removal when targets exist, Draw N worth 3.5N, stun when the rival has ready Units, and so on. When the rival chooses for us (Gunpoint Diplomacy), the bot assumes they pick the weakest mode.
 8. **Discard / search.** Uses `cardValue`: base stats, roles (removal, sweeper, draw, finisher), choom.gg card ratings, and whether the card is castable soon.
 
-## 6. Strength check
+## 6. Difficulty tiers and strength check (`src/ai/tiers.ts`)
 
-| Matchup (all meta pairings, seats swapped) | Result |
+| Tier | Bot | What it does |
+|---|---|---|
+| **Easy** | Fast | Plays by simple rules, no lookahead |
+| **Medium** | Lookahead | Scores every action one step ahead, with the tuned matchup profiles |
+| **Hard** | Deep + card impact | Also rolls out the rest of its turn and your whole reply for its best 3 options, and values cards by how much they swing games for its deck |
+
+Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 games each, about ±6 points of noise):
+
+| Matchup | First bot wins |
 |---|---|
-| Fast policy vs 1-ply lookahead | fast wins 38% |
-| Tuned weights vs initial weights | see `reports/tune-run*.log` |
-| Deep (rollout 3) vs 1-ply | see `docs/STRATEGY.md` |
+| Easy vs Medium | 37.5% |
+| Medium vs Deep (pre-tier Hard) | 49.4% |
+| Hard vs Deep | 52.4% |
+| Deep 12 + card impact vs Deep | 51.2% |
 
-## 7. Known blind spots
+Easy is clearly weaker. Medium and Hard are close in bot-vs-bot play: both use the same evaluation, so their mistakes are similar. Hard's edge shows when it judges single decisions against the rollout oracle: it blunders about 16% of the time vs 25% for Medium. That matters more against a human, who makes different mistakes.
+
+**Tournaments** can run All Hard, a Hard + Medium mix (each seat of each game is Hard or Medium, decided by its seed, so replays rebuild the same bots), All Medium, or All Easy. Events recorded before the tiers used the Deep bot (`deep`), and keep exactly those settings for replays.
+
+## 7. Coach (`src/ai/coach.ts`)
+
+In Play, coach mode asks an advisor bot for its move and explains it.
+
+**What it shows**
+- After each of your moves, a verdict in the middle of the board: ✓ coach agrees, ≈ close, or ! with what the coach preferred and the Gigs it measured you gave up.
+- At game over, a scorecard: a grade (A–D), how many decisions matched the coach, and your three costliest differences.
+- The move, highlighted on the board.
+- Its value against passing, in Gigs.
+- Up to three alternatives with their gap, scored on the same deep-rollout scale the decision used.
+- Live warnings: steal threat against your ready blockers, rival blockers, 6-Gig alerts and overtime.
+- A matchup plan. It comes from the archetype read, your deck's top cards by "Δ when drawn", its tempo stat, and this pairing's bot-test win rate.
+
+**Advisor config:** `deep: 12` with the tuned profiles and `impact: 40`. Card impact adds `40 × Δ when drawn` to sell and keep choices, and the advisor keeps hands that hold at least 2 high-impact cards.
+
+**How it was chosen:** `scripts/coach-eval.ts` scores sampled real decisions against a rollout oracle. The full numbers are in `reports/coach-eval-latest.md`.
+- Blunders fell from 25% (the old 1-ply coach) to 7.5%.
+- Agreement with the oracle rose from 58% to 73%.
+- As a player it wins 51% against the in-app Deep bot (168 games), which is not a significant edge.
+- So read it as better advice, not a stronger opponent.
+
+Re-run after retuning: `npx tsx scripts/coach-eval.ts --samples 200 --rollouts 6 [--set deep]`, then `bash scripts/coach-h2h.sh`.
+
+## 8. Match reviewer (`src/ai/reviewer.ts`)
+
+The reviewer replays a game exactly (same seeds and bots, or a practice game's recorded choices). It scores each main-phase decision against an oracle: 8 play-outs per candidate, all sharing the same random worlds, each covering the rest of the turn plus the rival's reply. Scores are clamped to ±600, and positions that are already decided are not graded.
+
+- **Validated:** exact replays, 94% verdict stability, planted mistakes detected (70% vs Hard's own moves), and game-losing flags that predict losses.
+- **Not yet validated:** using per-move "Gigs lost" to predict who wins.
+
+Full write-up and backlog: `docs/REVIEW_FINDINGS.md`.
+
+## 9. Known blind spots
 
 - No long-term planning beyond the rival's next turn, even in deep mode. The bot doesn't sandbag removal for a bigger threat on purpose.
 - It doesn't bluff or play around specific Quick tricks, apart from its averaged view of the rival's hidden hand.

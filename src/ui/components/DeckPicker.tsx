@@ -6,6 +6,7 @@ export function DeckPicker({ value, onChange, label }: { value: string; onChange
   const decks = allDecks();
   const groups: [string, LibraryDeck[]][] = [
     ['Meta archetypes (choom.gg)', decks.filter((d) => d.kind === 'meta')],
+    ['Sim ladder (cyberpunk-tcg-sim.online)', decks.filter((d) => d.kind === 'ladder')],
     ['Trainer originals (NC, forged)', decks.filter((d) => d.kind === 'original')],
     ['Guide lists (choom.gg)', decks.filter((d) => d.kind === 'guide')],
     ['Custom & tournament builds', decks.filter((d) => d.kind === 'custom')],

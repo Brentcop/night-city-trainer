@@ -1,0 +1,38 @@
+# Ladder: Dexter / V / Wakako (RRB)
+
+// Legends (3)
+1 Dexter DeShawn: Off the Grid
+1 V: Streetkid
+1 Wakako Okada: Peace and Harmony
+
+// Units (16)
+2 Jacked-In Voodoo Boy
+2 Swordwise Huscle
+3 6th Street Recruits
+3 Psycho Squad
+3 Animals Wrecker
+1 Johnny Silverhand: Never Stop Fighting
+2 Yorinobu Arasaka: Steel Dragon
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (20)
+2 Floor It
+1 Trust No One
+3 Bonnie and Clyde
+2 Chrome Reverie
+3 Nocturne OP55 N1
+2 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum
+
+// Origin: cyberpunk-tcg-sim.online Master ladder (Legend trio) — main deck theorized by Night City Trainer
+// Author: Night City Trainer (theorized from bot-match data; the ladder players' own 40-card lists are not public)
+// Source: https://cyberpunk-tcg-sim.online/
+// Credits: Legend trio seen on the Master ladder — Master 656 LP (56 games) (screenshot shared by the user, 2026-11-10)
+// Parents: RRG Midrange: V + Dexter (optimized) (2/3 Legends), RRB Wakako Midrange (2/3 Legends), NC-03 Static Shock (BBR) (2/3 Legends)
+// Added: 2026-11-10
+// Idea: midrange build for the Dexter DeShawn / V / Wakako Okada trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.

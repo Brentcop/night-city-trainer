@@ -3,6 +3,7 @@ import { parentPort } from 'node:worker_threads';
 import { Game } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { RandomAgent } from '../src/ai/random';
+import { makeTierBot } from '../src/ai/tiers';
 import { DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { BEST_PROFILES, DEFAULT_PROFILES } from '../src/ai/archetype';
 import { summarize, type PlayerSummary } from '../src/analysis/summarize';
@@ -25,8 +26,9 @@ export interface AgentSpec {
   weights?: Record<string, number>;
   noise?: number;
   deep?: number;
-  /** 'default' = DEFAULT_PROFILES, or an explicit profile table */
-  profiles?: 'default' | Record<string, Record<string, number>>;
+  impact?: number;
+  /** 'default' = DEFAULT_PROFILES, 'best' = BEST_PROFILES (tuned), or an explicit profile table */
+  profiles?: 'default' | 'best' | Record<string, Record<string, number>>;
 }
 export interface MatchResult {
   a: string;
@@ -43,13 +45,12 @@ export interface MatchResult {
 }
 
 function fromSpec(spec: AgentSpec, seed: number): Agent {
-  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : (spec.profiles as any) ?? null });
+  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 
 function mkAgent(kind: string, seed: number): Agent {
   if (kind === 'random') return new RandomAgent(seed);
-  if (kind === 'fast') return new HeuristicAgent({ lookahead: false, seed });
-  if (kind === 'deep') return new HeuristicAgent({ seed, noise: 0.15, deep: 3, profiles: BEST_PROFILES });
+  if (['easy', 'medium', 'hard', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
   if (kind === 'plain') return new HeuristicAgent({ seed, noise: 0.15 });
   return new HeuristicAgent({ seed, noise: 0.15, profiles: BEST_PROFILES });
 }
