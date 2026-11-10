@@ -5,6 +5,8 @@ import type { LibraryDeck, Provenance } from '../../lib/library';
 import { shortCredit } from '../../lib/library';
 import { deckStats, pct } from '../../lib/deckStats';
 import { artEnabled, useArt } from '../art';
+import { typeSplit } from '../../lib/deckTypes';
+import { TypeSplitBar } from './TypeSplit';
 
 export type OriginKind = 'choom-meta' | 'sim-ladder' | 'choom-guide' | 'nc-original' | 'nc-bred' | 'nc-variant' | 'nc-build' | 'mine' | 'other';
 
@@ -108,6 +110,7 @@ export function DeckTile({ d, onClick, selected, href }: { d: LibraryDeck; onCli
             )}
           </div>
         )}
+        <TypeSplitBar split={typeSplit(d.deck.main)} mini />
       </div>
     </>
   );

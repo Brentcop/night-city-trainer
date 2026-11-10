@@ -14,6 +14,8 @@ import { ColorPips, LegendStrip, OriginBadge, originKind } from '../components/D
 import { ProvenanceBlock } from '../components/Provenance';
 import { DeckInsights } from '../components/DeckInsights';
 import { TcgCard } from '../components/TcgCard';
+import { TypeLegend, TypeSplitBar } from '../components/TypeSplit';
+import { MAIN_TYPES, typeSplit } from '../../lib/deckTypes';
 
 // ---------- data helpers (moved to ../components/DeckStats; re-exported for older importers) ----------
 
@@ -110,7 +112,7 @@ function Section({ title, caption, children }: { title: string; caption?: React.
 
 // ---------- visual decklist ----------
 
-const TYPES: CardDef['type'][] = ['Unit', 'Gear', 'Program'];
+const TYPES: CardDef['type'][] = MAIN_TYPES;
 
 export function VisualDecklist({ deck, size = 'sm' }: { deck: DeckList; size?: 'sm' | 'md' }) {
   const main = counts(deck.main);
@@ -164,7 +166,7 @@ export function CurveAndTypes({ deck }: { deck: DeckList }) {
   const curve: number[] = Array(9).fill(0);
   for (const id of ids) curve[Math.min(8, CARD_BY_ID[id].cost ?? 0)]++;
   const maxC = Math.max(1, ...curve);
-  const types = TYPES.map((t) => [t, ids.filter((id) => CARD_BY_ID[id].type === t).length] as const);
+  const split = typeSplit(ids);
   const n = Math.max(1, ids.length);
   const avg = ids.reduce((a, id) => a + (CARD_BY_ID[id].cost ?? 0), 0) / n;
   const sellable = ids.filter((id) => CARD_BY_ID[id].sellable).length;
@@ -191,17 +193,8 @@ export function CurveAndTypes({ deck }: { deck: DeckList }) {
         <p className="dp-caption">
           {ids.length} main-deck cards · {sellable} sellable for Eddies ({Math.round((100 * sellable) / n)}%)
         </p>
-        <div className="dp-typesplit">
-          {types.map(([t, c]) => (c ? <div key={t} className={`dp-type-${t}`} style={{ width: `${(100 * c) / n}%` }} title={`${t}: ${c}`} /> : null))}
-        </div>
-        <div className="row small" style={{ marginTop: 6 }}>
-          {types.map(([t, c]) => (
-            <span key={t}>
-              <span className={`dp-legend-key dp-type-${t}`} />
-              {t} {c} ({Math.round((100 * c) / n)}%)
-            </span>
-          ))}
-        </div>
+        <TypeSplitBar split={split} />
+        <TypeLegend split={split} className="dp-type-legend" />
       </div>
     </div>
   );

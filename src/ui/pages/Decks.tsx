@@ -10,6 +10,7 @@ import { ROLES } from '../../ai/knowledge';
 import { ProvenanceBlock } from '../components/Provenance';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
 import { DeckTile, originKind } from '../components/DeckIdentity';
+import { TypeLegend } from '../components/TypeSplit';
 import { TcgCard } from '../components/TcgCard';
 import { deckStats } from '../../lib/deckStats';
 import { classify } from '../../ai/archetype';
@@ -863,6 +864,12 @@ function DeckGallery({ onNew }: { onNew: () => void }) {
           <button className="ghost" onClick={reset}>
             Reset filters
           </button>
+        </div>
+      )}
+      {shown.length > 0 && (
+        <div className="row small muted gal-type-legend">
+          <span>Bar under each deck: main-deck card types</span>
+          <TypeLegend />
         </div>
       )}
       {visibleGroups.length > 1 && (
