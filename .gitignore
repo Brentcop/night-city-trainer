@@ -5,6 +5,8 @@ dist/
 reports/*-20*.json
 reports/*-20*.md
 reports-run*.log
+reports/*.out
+coverage/
 .claude/settings.local.json
 
 # Third-party source copies (choom.gg pages, rules text, card catalogs) stay local; the app ships derived data only.
