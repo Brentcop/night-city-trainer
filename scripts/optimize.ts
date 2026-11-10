@@ -1,29 +1,30 @@
 // Deck optimizer: hill-climb single-card swaps (and legend swaps) against the meta field.
-//   npx tsx scripts/optimize.ts <deck> [--screen 70] [--confirm 280] [--candidates 40] [--bot lookahead]
+//   npx tsx scripts/optimize.ts <deck> [--screen 70] [--confirm 280] [--candidates 40] [--bot lookahead] [--threads N]
 //   npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard     (Bo3 plan: only swaps using the deck's 7-card sideboard)
 // Stage 1 screens many candidate swaps with a small sample; stage 2 re-tests the best few (and the
-// unmodified deck) with a large sample on identical seeds. Writes reports/optimize-<deck>-latest.md.
+// unmodified deck) with a large sample on identical seeds. Writes reports/optimize-<deck>[-vs-<opp>]-latest.md
+// and a .json twin (read by scripts/bundle-reports.ts).
 import fs from 'node:fs';
 import { CARDS, CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import { counts, exportOfficial, ramLimits, validateDeck } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
 import { cardValue } from '../src/ai/knowledge';
-import { loadLibrary, resolveDeck } from './lib-node';
-import { runJobs } from './simulate';
+import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
 import type { MatchJob } from './worker';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const base = resolveDeck(args[0]);
-const SCREEN = +flag('screen', '70');
-const CONFIRM = +flag('confirm', '280');
-const NCAND = +flag('candidates', '40');
-const BOT = flag('bot', 'lookahead');
-const VS = flag('vs', '');
-const SIDEBOARD = args.includes('--sideboard');
+const { values: V, positionals } = cli(
+  import.meta.url,
+  { screen: int(70, { min: 1 }), confirm: int(280, { min: 1 }), candidates: int(40, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), vs: str(''), sideboard: bool(), threads: threadsOpt() },
+  { minPositionals: 1, maxPositionals: 1 },
+);
+const base = resolveDeck(positionals[0]);
+const SCREEN = V.screen;
+const CONFIRM = V.confirm;
+const NCAND = V.candidates;
+const BOT = V.bot;
+const VS = V.vs;
+const SIDEBOARD = V.sideboard;
+const THREADS = Math.min(V.threads, 16);
 const field = VS ? [resolveDeck(VS)] : loadLibrary().filter((d) => d.kind === 'meta' && d.deck.name !== base.deck.name);
 
 interface Cand {
@@ -74,7 +75,7 @@ async function measure(cands: Cand[], gamesPerCand: number, seed0: number): Prom
       jobs.push({ a: { ...c.deck, name: `cand${ci}` }, b: opp.deck, seed: seed++, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT, ci });
     }
   });
-  const res = await runJobs(jobs);
+  const res = await runJobs(jobs, { threads: THREADS });
   const tot = cands.map(() => ({ w: 0, g: 0 }));
   for (const r of res) {
     const ci = +r.a.slice(4);
@@ -121,6 +122,21 @@ async function main() {
   fs.mkdirSync('reports', { recursive: true });
   const slug = base.file.replace(/\.txt$/, '') + (VS ? `-vs-${field[0].file.replace(/\.txt$/, '')}` : '');
   fs.writeFileSync(`reports/optimize-${slug}-latest.md`, md);
+  // machine-readable twin of the stage-2 table (percent / points, 1 decimal, as printed)
+  const p1 = (x: number) => +(x * 100).toFixed(1);
+  const json = {
+    deck: base.deck.name,
+    file: base.file,
+    vs: VS ? field[0].deck.name : 'meta field',
+    vsFile: VS ? field[0].file : undefined,
+    date: new Date().toISOString().slice(0, 10),
+    bot: BOT,
+    screen: SCREEN,
+    confirm: CONFIRM,
+    baseline: p1(baseWr),
+    rows: final.filter((f) => f.c !== cands[0]).map((f) => ({ change: f.c.label, s1: p1(f.wr), s2: p1(f.wr2), delta: p1(f.wr2 - baseWr) })),
+  };
+  fs.writeFileSync(`reports/optimize-${slug}-latest.json`, JSON.stringify(json, null, 1));
   console.log('\n' + md.split('## Stage 1')[0]);
 }
-main();
+runMain(main);

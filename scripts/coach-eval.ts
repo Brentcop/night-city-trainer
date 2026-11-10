@@ -1,7 +1,9 @@
 // Coach evaluation: how good is the advice? Samples main-phase decisions from real bot games and compares each
 // coach configuration against an oracle that scores every candidate action with several full-turn rollouts.
 //
-//   npx tsx scripts/coach-eval.ts [--samples 120] [--rollouts 4] [--seed 1]
+//   npx tsx scripts/coach-eval.ts [--samples 120] [--rollouts 8] [--seed 1] [--set base|deep]
+//
+// Writes reports/coach-eval-<set>-latest.md.
 //
 // Metrics per coach config:
 //   agreement — picks the oracle's best action
@@ -14,19 +16,15 @@ import { HeuristicAgent } from '../src/ai/heuristic';
 import { makeWorlds, oracleValue } from '../src/ai/reviewer';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import type { Action, Agent, Decision, PlayerId } from '../src/engine/types';
-import { loadLibrary } from './lib-node';
+import { cli, int, loadLibrary, oneOf, runMain } from './lib-node';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const SAMPLES = +flag('samples', '120');
-const ROLLOUTS = +flag('rollouts', '8');
-let rngState = +flag('seed', '1') * 2654435761;
+const { values: V } = cli(import.meta.url, { samples: int(120, { min: 1 }), rollouts: int(8, { min: 1 }), seed: int(1, { min: 0 }), set: oneOf(['base', 'deep'], 'base') });
+const SAMPLES = V.samples;
+const ROLLOUTS = V.rollouts;
+let rngState = V.seed * 2654435761;
 const rnd = () => ((rngState = (rngState * 1664525 + 1013904223) >>> 0) / 4294967296);
 
-const SET = flag('set', 'base');
+const SET = V.set;
 const CONFIGS: Record<string, () => HeuristicAgent> = SET === 'deep' ? {
   'deep 5 + profiles + card impact': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 5, impact: 40 }),
   'deep 8 + profiles + card impact': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 8, impact: 40 }),
@@ -130,4 +128,4 @@ async function main() {
   fs.writeFileSync(`reports/coach-eval-${SET}-latest.md`, md);
   console.log(md);
 }
-main();
+runMain(main);

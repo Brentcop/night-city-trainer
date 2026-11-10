@@ -13,6 +13,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { exportChoom, parseDeck } from '../src/engine/deck';
+import { cli } from './lib-node';
+
+cli(import.meta.url, {});
 
 const NL = String.fromCharCode(10);
 const PRIMER = 'Troy Yamaguchi (Plus Two) — "The Cyberpunk Primer" video, 6 Sep 2026';
@@ -39,14 +42,14 @@ function header(text: string): Record<string, string> {
 // season breeding records → parents per deck name
 const parents: Record<string, { season: number; method: string; parents: string[]; date: string }> = {};
 if (fs.existsSync('data/seasons'))
-  for (const f of fs.readdirSync('data/seasons').filter((x) => /^season-\d+\.json$/.test(x))) {
+  for (const f of fs.readdirSync('data/seasons').filter((x) => /^season-\d+\.json$/.test(x)).sort((a, b) => parseInt(a.slice(7)) - parseInt(b.slice(7)))) {
     const s = JSON.parse(fs.readFileSync(`data/seasons/${f}`, 'utf8'));
     for (const b of s.bred) parents[b.name] = { season: s.season, method: b.method, parents: b.parents, date: s.date.slice(0, 10) };
   }
 
 const files = [
-  ...fs.readdirSync('data/decks').filter((f) => f.endsWith('.txt')).map((f) => path.join('data/decks', f)),
-  ...fs.readdirSync('data/decks/custom').filter((f) => f.endsWith('.txt')).map((f) => path.join('data/decks/custom', f)),
+  ...fs.readdirSync('data/decks').filter((f) => f.endsWith('.txt')).sort().map((f) => path.join('data/decks', f)),
+  ...fs.readdirSync('data/decks/custom').filter((f) => f.endsWith('.txt')).sort().map((f) => path.join('data/decks/custom', f)),
 ];
 
 const PRIMER_DECK_CREDIT = 'RRG Dexter Midrange (list: Troy Yamaguchi / The Cyberpunk Primer, via choom.gg)';

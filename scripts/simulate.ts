@@ -4,68 +4,64 @@
 //   npm run sim -- vs <deckA> <deckB> [--games 200]   head-to-head
 //   npm run sim -- test <deck> [--games 100]          one deck vs every meta deck (or --field all)
 //   npm run sim -- review [--games 60] [--field meta|all]   full round-robin matrix + rankings
-//   npm run sim -- add <file.txt|-> [--name X]        import a deck list (choom.gg / official / sim JSON) into data/decks/custom
+//   npm run sim -- add <file.txt|-> [--name X] [--force]   import a deck list (choom.gg / official / sim JSON) into data/decks/custom
 //   npm run sim -- show <deck>                        print a deck with validation
 //   npm run sim -- analyze [--field meta|all] [--games 40] [--deck X]   telemetry analysis -> reports/analysis-latest.md + src/data/analysis.json
+//
+// Game flags: --bot (default lookahead), --threads N, --seed N (default 1). --field: meta | all | custom | leaderboard:N.
+// `add` refuses to replace an existing deck file unless --force (the file's provenance header is kept).
+// A game that throws is an error, not a tie: the run prints the first stack, writes nothing and exits 1.
 //
 // Decks are matched by file name or deck name fragment (e.g. "rry", "meta-bbg", "Smash the Curve"),
 // or by a path to a deck text file. Results are written to reports/.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { Worker } from 'node:worker_threads';
 import { exportOfficial, parseDeck, validateDeck, deckColors } from '../src/engine/deck';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
-import { loadLibrary, resolveDeck } from './lib-node';
+import { bool, cli, int, loadLibrary, mergeProvenance, oneOf, resolveDeck, runJobs as runPool, runMain, SIM_BOTS, slugify, str, threadsOpt, type Spec } from './lib-node';
 import { shortCredit } from '../src/lib/library';
 import type { MatchJob, MatchResult } from './worker';
 
-const args = process.argv.slice(2);
-const cmd = args[0] ?? 'help';
-const flag = (name: string, def?: string) => {
-  const i = args.indexOf(`--${name}`);
-  return i >= 0 ? args[i + 1] : def;
-};
-const positional = args.slice(1).filter((a, i, arr) => !a.startsWith('--') && !(i > 0 && arr[i - 1].startsWith('--')));
-
 const NL = String.fromCharCode(10);
-const THREADS = Math.max(1, Math.min(+(flag('threads') ?? os.cpus().length - 1), 16));
-
-export async function runJobs(jobs: MatchJob[]): Promise<MatchResult[]> {
-  const results: MatchResult[] = [];
-  let next = 0;
-  let done = 0;
-  const total = jobs.length;
-  const t0 = Date.now();
-  await new Promise<void>((resolve, reject) => {
-    const workers: Worker[] = [];
-    const n = Math.min(THREADS, jobs.length);
-    if (!n) return resolve();
-    for (let k = 0; k < n; k++) {
-      const w = new Worker(new URL('./worker-boot.mjs', import.meta.url));
-      workers.push(w);
-      const feed = () => {
-        if (next < jobs.length) w.postMessage(jobs[next++]);
-        else {
-          w.terminate();
-          if (workers.every((x) => (x as any).__done || x === w)) resolve();
-          (w as any).__done = true;
-        }
-      };
-      w.on('message', (r: MatchResult) => {
-        results.push(r);
-        done++;
-        if (done % 10 === 0 || done === total) process.stderr.write(`\r  ${done}/${total} games  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
-        feed();
-      });
-      w.on('error', reject);
-      feed();
-    }
-  });
-  process.stderr.write('\n');
-  return results;
+const FIELD_RE = /^(meta|all|custom|leaderboard:\d+)$/;
+const ALL_FLAGS = {
+  games: int(undefined, { min: 1 }),
+  bot: oneOf(SIM_BOTS, 'lookahead'),
+  threads: threadsOpt(),
+  seed: int(1, { min: 0 }),
+  field: str('meta', (v) => (FIELD_RE.test(v) ? undefined : `must be meta | all | custom | leaderboard:N, got "${v}"`)),
+  deck: str(),
+  name: str(),
+  force: bool(),
+};
+type Flag = keyof typeof ALL_FLAGS;
+const GAME: Flag[] = ['games', 'bot', 'threads', 'seed'];
+/** command -> [flags it takes, min positionals, max positionals] */
+const COMMANDS: Record<string, [Flag[], number, number]> = {
+  catalog: [[], 0, 0],
+  help: [[], 0, 0],
+  show: [[], 1, 1],
+  add: [['name', 'force'], 0, 1],
+  vs: [GAME, 2, 2],
+  test: [[...GAME, 'field'], 1, 1],
+  review: [[...GAME, 'field'], 0, 0],
+  analyze: [[...GAME, 'field', 'deck'], 0, 0],
+};
+const argv = process.argv.slice(2);
+const cmd = argv[0] && !argv[0].startsWith('-') ? argv[0] : 'help';
+if (!COMMANDS[cmd]) {
+  console.error(`error: unknown command "${cmd}". Commands: ${Object.keys(COMMANDS).join(', ')}`);
+  process.exit(2);
 }
+const [allowed, minPos, maxPos] = COMMANDS[cmd];
+const { values: V, positionals: positional } = cli(import.meta.url, Object.fromEntries(allowed.map((k) => [k, ALL_FLAGS[k]])) as Spec as typeof ALL_FLAGS, {
+  argv: argv.slice(cmd === argv[0] ? 1 : 0),
+  minPositionals: minPos,
+  maxPositionals: maxPos,
+});
+const THREADS = Math.min(V.threads ?? 1, 16);
+const runJobs = (jobs: MatchJob[]): Promise<MatchResult[]> => runPool(jobs, { threads: THREADS });
 
 interface Pair {
   a: DeckList;
@@ -73,7 +69,7 @@ interface Pair {
 }
 function jobsFor(pairs: Pair[], games: number, bot: string, trace = false): MatchJob[] {
   const jobs: MatchJob[] = [];
-  let seed = +(flag('seed') ?? 1);
+  let seed = V.seed ?? 1;
   for (const { a, b } of pairs) for (let i = 0; i < games; i++) jobs.push({ a, b, seed: seed++, first: (i % 2) as 0 | 1, bot, trace });
   return jobs;
 }
@@ -89,6 +85,9 @@ interface Tally {
   aFirstGames: number;
   aSecondWins: number;
   aSecondGames: number;
+  /** wins by B when B went first / second (ties are credited to neither seat) */
+  bFirstWins: number;
+  bSecondWins: number;
   turns: number;
   overtime: number;
 }
@@ -97,7 +96,7 @@ function tally(results: MatchResult[]): Map<string, Tally> {
   for (const r of results) {
     const key = `${r.a}|||${r.b}`;
     let t = m.get(key);
-    if (!t) m.set(key, (t = { a: r.a, b: r.b, games: 0, aWins: 0, bWins: 0, ties: 0, aFirstWins: 0, aFirstGames: 0, aSecondWins: 0, aSecondGames: 0, turns: 0, overtime: 0 }));
+    if (!t) m.set(key, (t = { a: r.a, b: r.b, games: 0, aWins: 0, bWins: 0, ties: 0, aFirstWins: 0, aFirstGames: 0, aSecondWins: 0, aSecondGames: 0, bFirstWins: 0, bSecondWins: 0, turns: 0, overtime: 0 }));
     t.games++;
     t.turns += r.turns;
     if (r.overtime) t.overtime++;
@@ -107,15 +106,19 @@ function tally(results: MatchResult[]): Map<string, Tally> {
     if (r.first === 0) {
       t.aFirstGames++;
       if (r.winner === 0) t.aFirstWins++;
+      if (r.winner === 1) t.bSecondWins++;
     } else {
       t.aSecondGames++;
       if (r.winner === 0) t.aSecondWins++;
+      if (r.winner === 1) t.bFirstWins++;
     }
   }
   return m;
 }
 const pct = (x: number, n: number) => (n ? `${((100 * x) / n).toFixed(0)}%` : '—');
 const wr = (t: Tally) => (t.aWins + 0.5 * t.ties) / Math.max(1, t.games);
+/** Games won by whoever went first; ties count half for each seat. */
+const firstSeatScore = (t: Tally) => t.aFirstWins + t.bFirstWins + 0.5 * t.ties;
 
 function writeReport(name: string, data: any, md: string) {
   fs.mkdirSync('reports', { recursive: true });
@@ -146,8 +149,8 @@ function fieldDecks(kind: string | undefined) {
 }
 
 async function main() {
-  const games = +(flag('games') ?? 0);
-  const bot = flag('bot', 'lookahead')!;
+  const games = V.games ?? 0;
+  const bot = V.bot ?? 'lookahead';
   switch (cmd) {
     case 'catalog': {
       const lib = loadLibrary();
@@ -170,13 +173,20 @@ async function main() {
     case 'add': {
       const src = positional[0];
       const text = src === '-' || !src ? fs.readFileSync(0, 'utf8') : fs.readFileSync(src, 'utf8');
-      const { deck, errors } = parseDeck(text, flag('name') ?? (src ? path.basename(src, '.txt') : 'Custom deck'));
-      if (flag('name')) deck.name = flag('name')!;
-      const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
-      fs.mkdirSync('data/decks/custom', { recursive: true });
+      const { deck, errors } = parseDeck(text, V.name ?? (src && src !== '-' ? path.basename(src, '.txt') : 'Custom deck'));
+      if (V.name) deck.name = V.name;
+      const slug = slugify(deck.name, 50);
+      if (!slug) throw new Error(`deck name "${deck.name}" gives an empty file name; pass --name`);
       const file = `data/decks/custom/${slug}.txt`;
-      fs.writeFileSync(file, exportOfficial(deck) + (deck.sideboard.length ? '\n\n// Sideboard\n' + [...new Set(deck.sideboard)].map((id) => `${deck.sideboard.filter((x) => x === id).length} ${cardLabel(CARD_BY_ID[id])}`).join('\n') : '') + '\n');
-      console.log(`Saved ${file}`);
+      const prev = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+      if (prev !== null && !V.force) {
+        console.error(`error: ${file} already exists. Pass --force to replace its list (its provenance header is kept), or --name to save it under another name.`);
+        process.exit(1);
+      }
+      fs.mkdirSync('data/decks/custom', { recursive: true });
+      const out = exportOfficial(deck) + (deck.sideboard.length ? '\n\n// Sideboard\n' + [...new Set(deck.sideboard)].map((id) => `${deck.sideboard.filter((x) => x === id).length} ${cardLabel(CARD_BY_ID[id])}`).join('\n') : '') + '\n';
+      fs.writeFileSync(file, mergeProvenance(out, prev));
+      console.log(`${prev !== null ? 'Replaced' : 'Saved'} ${file}`);
       if (errors.length) console.log('Unrecognized lines:\n- ' + errors.join('\n- '));
       const v = validateDeck(deck);
       console.log(v.length ? 'Problems:\n- ' + v.join('\n- ') : 'Deck is legal.');
@@ -206,7 +216,7 @@ async function main() {
     }
     case 'test': {
       const A = resolveDeck(positional[0]);
-      const field = fieldDecks(flag('field')).filter((d) => d.file !== A.file);
+      const field = fieldDecks(V.field).filter((d) => d.file !== A.file);
       const n = games || 100;
       console.log(`Testing ${A.deck.name} against ${field.length} decks × ${n} games`);
       const res = await runJobs(jobsFor(field.map((f) => ({ a: A.deck, b: f.deck })), n, bot));
@@ -222,11 +232,11 @@ async function main() {
         ...rows.map((t) => `| ${t.b} | ${(wr(t) * 100).toFixed(0)}% | ${pct(t.aFirstWins, t.aFirstGames)} | ${pct(t.aSecondWins, t.aSecondGames)} | ${(t.turns / t.games).toFixed(1)} |`),
       ].join('\n');
       console.log('\n' + md);
-      writeReport(`test-${A.file.replace('.txt', '')}`, { deck: A.deck.name, overall: all, rows }, md);
+      writeReport(`test-${A.file.replace('.txt', '')}`, { deck: A.deck.name, date: new Date().toISOString(), games: n, bot, seed: V.seed, overall: all, rows }, md);
       return;
     }
     case 'review': {
-      const field = fieldDecks(flag('field'));
+      const field = fieldDecks(V.field);
       const n = games || 60;
       const pairs: Pair[] = [];
       for (let i = 0; i < field.length; i++) for (let j = i + 1; j < field.length; j++) pairs.push({ a: field[i].deck, b: field[j].deck });
@@ -250,7 +260,7 @@ async function main() {
         totals[x.a].g += x.games;
         totals[x.b].w += x.bWins + 0.5 * x.ties;
         totals[x.b].g += x.games;
-        firstWins += x.aFirstWins + (x.aSecondGames - x.aSecondWins - 0);
+        firstWins += firstSeatScore(x);
         allGames += x.games;
       }
       const ranked = [...names].sort((a, b) => totals[b].w / totals[b].g - totals[a].w / totals[a].g);
@@ -275,16 +285,16 @@ async function main() {
         `Going first won about ${pct(firstWins, allGames)} of games.`,
       ].join('\n');
       console.log('\n' + md);
-      const reviewData = { date: new Date().toISOString(), games: n, bot, field: flag('field') ?? 'meta', decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })), matrix: M, firstPlayerWinRate: firstWins / allGames };
+      const reviewData = { date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })), matrix: M, firstPlayerWinRate: firstWins / allGames };
       fs.writeFileSync('src/data/review.json', JSON.stringify(reviewData, null, 1));
       writeReport('review', { date: new Date().toISOString(), games: n, bot, decks: ranked.map((nm) => ({ name: nm, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })), matrix: M, firstPlayerWinRate: firstWins / allGames }, md);
       return;
     }
     case 'analyze': {
-      const field = fieldDecks(flag('field'));
+      const field = fieldDecks(V.field);
       const n = games || 40;
       const pairs: Pair[] = [];
-      const focus = flag('deck') ? resolveDeck(flag('deck')!) : null;
+      const focus = V.deck ? resolveDeck(V.deck) : null;
       if (focus) for (const f of field) { if (f.deck.name !== focus.deck.name) pairs.push({ a: focus.deck, b: f.deck }); }
       else for (let i = 0; i < field.length; i++) for (let j = i + 1; j < field.length; j++) pairs.push({ a: field[i].deck, b: field[j].deck });
       console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})`);
@@ -312,13 +322,13 @@ async function main() {
           tot[x.a].g += x.games;
           tot[x.b].w += x.bWins + 0.5 * x.ties;
           tot[x.b].g += x.games;
-          fw += x.aFirstWins + (x.aSecondGames - x.aSecondWins);
+          fw += firstSeatScore(x);
           ag += x.games;
         }
         const ranked = [...names].sort((a, b) => tot[b].w / tot[b].g - tot[a].w / tot[a].g);
         fs.writeFileSync(
           'src/data/review.json',
-          JSON.stringify({ date: new Date().toISOString(), games: n, bot, field: flag('field') ?? 'meta', decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: tot[nm].w / tot[nm].g, games: tot[nm].g })), matrix: M, firstPlayerWinRate: fw / ag }, null, 1),
+          JSON.stringify({ date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: tot[nm].w / tot[nm].g, games: tot[nm].g })), matrix: M, firstPlayerWinRate: fw / ag }, null, 1),
         );
         // trimmed copy for the web app
         const trimmed = reps.map((r) => ({ ...r, cards: r.cards.slice(0, 40) }));
@@ -333,9 +343,4 @@ async function main() {
   }
 }
 
-if (/simulate.ts$/.test(process.argv[1] ?? '')) {
-  main().catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
-}
+runMain(main);

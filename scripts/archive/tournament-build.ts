@@ -1,6 +1,6 @@
 // The recommended tournament build: stock RRG Dexter Midrange + a 7-card sideboard chosen from data.
 import fs from 'node:fs';
-import { exportChoom, parseDeck, validateDeck } from '../src/engine/deck';
+import { exportChoom, parseDeck, validateDeck } from '../../src/engine/deck';
 const { deck } = parseDeck(fs.readFileSync('data/decks/meta-rrg-dexter-midrange.txt', 'utf8'));
 deck.name = 'RRG Dexter Midrange — EOR build';
 deck.sideboard = [

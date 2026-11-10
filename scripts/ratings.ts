@@ -9,7 +9,9 @@
 //   • tournament results: events played, titles, top-8s, average Swiss finish percentile, match record.
 // Output: src/data/ratings.json (site) and reports/ratings-latest.md.
 import fs from 'node:fs';
-import { loadLibrary } from './lib-node';
+import { cli, loadLibrary, readEvents, writeJsonStamped } from './lib-node';
+
+cli(import.meta.url, {});
 
 const σ = (x: number) => 1 / (1 + Math.exp(-x));
 const lib = loadLibrary();
@@ -23,9 +25,8 @@ interface G {
 }
 const games: G[] = [];
 const results: Record<string, { events: number; titles: number; top8: number; finishes: number[]; mw: number; ml: number; gw: number; gl: number }> = {};
-const files = fs.existsSync('data/tournaments') ? fs.readdirSync('data/tournaments').filter((f) => /^event-\d+\.json$/.test(f)) : [];
-for (const f of files) {
-  const e = JSON.parse(fs.readFileSync(`data/tournaments/${f}`, 'utf8'));
+const events = readEvents();
+for (const e of events) {
   const n = e.standings.length;
   e.standings.forEach((s: any, i: number) => {
     const r = (results[s.deck] ??= { events: 0, titles: 0, top8: 0, finishes: [], mw: 0, ml: 0, gw: 0, gl: 0 });
@@ -125,11 +126,11 @@ const rows = names
     };
   })
   .sort((a, b) => b.rating - a.rating);
-const out = { updated: new Date().toISOString(), events: files.length, games: games.length, firstPlayerEdge: σ(h) - 0.5, decks: rows };
-fs.writeFileSync('src/data/ratings.json', JSON.stringify(out, null, 1));
+const out = { updated: '', events: events.length, games: games.length, firstPlayerEdge: σ(h) - 0.5, decks: rows };
+writeJsonStamped('src/data/ratings.json', out, { indent: 1 });
 const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`);
 const md = [
-  `# Power ratings (${files.length} events, ${games.length} games)`,
+  `# Power ratings (${events.length} events, ${games.length} games)`,
   '',
   `Bradley–Terry fit over every tournament game. Going first adds ${(100 * (σ(h) - 0.5)).toFixed(1)} points of win probability.`,
   '',

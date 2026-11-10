@@ -4,11 +4,11 @@
 //   npx tsx scripts/breed-preview.ts [--season 6]
 import fs from 'node:fs';
 import { breedSeason } from '../src/ai/breeder';
-import { loadLibrary } from './lib-node';
+import { cli, int, loadLibrary } from './lib-node';
 import { loadDeckImpact, loadH2H, strengthOf } from './breed-data';
 
-const i = process.argv.indexOf('--season');
-const SEASON = i > 0 ? +process.argv[i + 1] : 0;
+const { values: V } = cli(import.meta.url, { season: int(0, { min: 0 }) });
+const SEASON = V.season;
 const PRIOR = 60;
 const lib = loadLibrary();
 const lb: Record<string, { name: string; metaW: number; metaG: number }> = fs.existsSync('data/seasons/leaderboard.json') ? JSON.parse(fs.readFileSync('data/seasons/leaderboard.json', 'utf8')) : {};

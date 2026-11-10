@@ -1,25 +1,24 @@
 // Self-play tuning of the bot's evaluation weights.
-//   npx tsx scripts/tune.ts [--per 8] [--rounds 1]
+//   npx tsx scripts/tune.ts [--per 8] [--rounds 1] [--seed 1] [--threads N]
 // For each weight, a variant (x0.5 and x1.6) plays the baseline across every pairing of meta decks,
 // swapping seats and play/draw. A variant that beats the baseline by a clear margin becomes the new baseline.
 // Prints the final weights; paste them into DEFAULT_WEIGHTS (src/ai/eval.ts).
 import { DEFAULT_WEIGHTS } from '../src/ai/eval';
-import { loadLibrary } from './lib-node';
-import { runJobs } from './simulate';
+import { cli, int, loadLibrary, runJobs, runMain, threadsOpt } from './lib-node';
 import type { MatchJob } from './worker';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
-};
-const PER = +flag('per', '8');
-const ROUNDS = +flag('rounds', '1');
+const { values: V } = cli(import.meta.url, { per: int(8, { min: 2 }), rounds: int(1, { min: 1 }), seed: int(1, { min: 0 }), threads: threadsOpt() });
+const PER = V.per;
+const ROUNDS = V.rounds;
+const THREADS = Math.min(V.threads, 16);
 const field = loadLibrary().filter((d) => d.kind === 'meta');
+/** Deterministic seed stream from --seed (was Math.random, so a tuning run could not be repeated). */
+let seedState = (V.seed * 2654435761) >>> 0 || 1;
+const nextSeed = () => 90_000 + ((seedState = (seedState * 1664525 + 1013904223) >>> 0) % 100_000);
 
 async function score(variant: Record<string, number>, base: Record<string, number>, special?: { lookaheadA?: boolean }) {
   const jobs: MatchJob[] = [];
-  let seed = 90_000 + Math.floor(Math.random() * 100_000);
+  let seed = nextSeed();
   for (let i = 0; i < field.length; i++)
     for (let j = 0; j < field.length; j++) {
       if (i === j) continue;
@@ -35,7 +34,7 @@ async function score(variant: Record<string, number>, base: Record<string, numbe
         });
       }
     }
-  const res = await runJobs(jobs);
+  const res = await runJobs(jobs, { threads: THREADS });
   const w = res.reduce((a, r) => a + (r.winner === 0 ? 1 : r.winner === 'tie' ? 0.5 : 0), 0);
   return w / res.length;
 }
@@ -60,4 +59,4 @@ async function main() {
   }
   console.log('\nFinal weights:\n' + JSON.stringify(base, null, 2));
 }
-main();
+runMain(main);

@@ -7,7 +7,9 @@ import analysis from '../src/data/analysis.json';
 import meta from '../src/data/meta.json';
 import { classify, PLAN_TEXT, type ProfileKey } from '../src/ai/archetype';
 import type { DeckReport } from '../src/analysis/analyze';
-import { loadLibrary } from './lib-node';
+import { cli, loadLibrary } from './lib-node';
+
+cli(import.meta.url, {});
 
 const R = review as { date: string; games: number; bot: string; decks: { name: string; file: string; winRate: number; games: number }[]; matrix: Record<string, Record<string, number>>; firstPlayerWinRate: number };
 const A = analysis as unknown as { decks: DeckReport[] };
@@ -124,7 +126,7 @@ const matchupLines = metaNames
 const pickSlug = pick.file.replace(/\.txt$/, '');
 const libFiles = new Map(lib.map((d) => [d.file.replace(/\.txt$/, ''), d.deck.name]));
 const problemLines: string[] = [];
-for (const f of fs.readdirSync('reports').filter((x) => x.startsWith(`vs-${pickSlug}-`) && x.endsWith('-latest.json'))) {
+for (const f of fs.readdirSync('reports').filter((x) => x.startsWith(`vs-${pickSlug}-`) && x.endsWith('-latest.json')).sort()) {
   const oppSlug = f.slice(`vs-${pickSlug}-`.length, -'-latest.json'.length);
   if (oppSlug === pickSlug) continue;
   const t = JSON.parse(fs.readFileSync(`reports/${f}`, 'utf8'));

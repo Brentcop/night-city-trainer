@@ -1,18 +1,27 @@
 // Build a ready-to-register list with a 7-card sideboard from per-matchup optimizer reports.
-//   npx tsx scripts/eor-build.ts <deck> --vs meta-bbg,meta-rrg
+//   npx tsx scripts/eor-build.ts <deck> --vs meta-bbg,meta-rrg [--force]
+// Refuses to replace an existing <deck>-eor.txt unless --force.
 // Reads reports/optimize-<deck>-vs-<opp>-latest.md; sideboard = best non-Legend "+1" cards (Δ ≥ 2) across matchups,
 // topped up with the format's highest-impact legal removal. Writes data/decks/custom/<deck>-eor.txt.
 import fs from 'node:fs';
 import { CARDS, findCard } from '../src/engine/cards';
 import { counts, exportChoom, ramLimits, validateDeck } from '../src/engine/deck';
 import { ROLES, cardValue } from '../src/ai/knowledge';
-import { resolveDeck } from './lib-node';
+import { bool, cli, resolveDeck, str } from './lib-node';
 
-const args = process.argv.slice(2);
-const base = resolveDeck(args[0]);
-const i = args.indexOf('--vs');
-const opps = i >= 0 ? args[i + 1].split(',') : [];
+const { values: V, positionals } = cli(import.meta.url, { vs: str(''), force: bool() }, { minPositionals: 1, maxPositionals: 1 });
+const base = resolveDeck(positionals[0]);
+const opps = V.vs ? V.vs.split(',') : [];
+if (!opps.length) {
+  console.error('error: --vs <opponent,opponent…> is required');
+  process.exit(2);
+}
 const slug = base.file.replace(/\.txt$/, '');
+const OUT = `data/decks/custom/${slug}-eor.txt`;
+if (fs.existsSync(OUT) && !V.force) {
+  console.error(`error: ${OUT} already exists. Pass --force to rebuild it.`);
+  process.exit(1);
+}
 const score = new Map<string, number>();
 const notes: string[] = [];
 for (const o of opps) {
@@ -48,7 +57,7 @@ deck.sideboard = side;
 deck.name = `${base.deck.name} — EOR build`;
 const v = validateDeck(deck);
 fs.writeFileSync(
-  `data/decks/custom/${slug}-eor.txt`,
+  OUT,
   `${exportChoom(deck)}\n\n// Idea: Ready-to-register list for EOR Chicago. Sideboard from per-matchup optimizer runs: ${notes.join('; ') || 'none above +2, topped up with the best legal interaction'}.\n`,
 );
 console.log(deck.name, v.length ? v : 'legal', deck.sideboard);

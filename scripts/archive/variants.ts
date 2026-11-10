@@ -1,6 +1,6 @@
 // Optimizer-derived variants of the top deck.
 import fs from 'node:fs';
-import { exportOfficial, parseDeck, validateDeck } from '../src/engine/deck';
+import { exportOfficial, parseDeck, validateDeck } from '../../src/engine/deck';
 const base = fs.readFileSync('data/decks/meta-rrg-dexter-midrange.txt', 'utf8');
 const variants: [string, string, string, string][] = [
   ['rrg-v-smasher-optimized', 'RRG Midrange: V + Smasher (optimized)', 'Dexter DeShawn: Off the Grid', 'Optimizer: Dexter -> V: Streetkid was +4.2 pts over 336 paired games (choom.gg flex note agrees).'],

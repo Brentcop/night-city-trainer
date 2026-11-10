@@ -1,59 +1,71 @@
 // Batch match reviews: replay games exactly and score every main-phase decision against the rollout oracle.
 //
-//   npx tsx scripts/review.ts --from events [--games 60] [--rollouts 4] [--coach] [--name backfill]
+//   npx tsx scripts/review.ts --from events [--games 60] [--rollouts 8] [--coach] [--name backfill]
 //   npx tsx scripts/review.ts --from tiers  [--games 42] [--tiers easy,medium,hard]      fresh games, every tier pairing
 //   npx tsx scripts/review.ts --from file --file data/reviews/practice.json              recorded practice games
+//   npx tsx scripts/review.ts --from chaos [--chaos 0.15] [--chaos-bot medium]           validation: planted random moves
+//   common: [--threads N] [--seed 1] [--coach-v1]
 //
 // Outputs: data/reviews/<name>.json (every review) and reports/review-<name>.md (aggregates).
+// Games whose review threw are kept in the JSON with their error, left out of the aggregates, and make the exit code 1.
 import fs from 'node:fs';
-import os from 'node:os';
-import { Worker } from 'node:worker_threads';
-import { loadLibrary } from './lib-node';
+import { bool, cli, forEachRecordedGame, int, loadLibrary, num, oneOf, runMain, str, threadsOpt, TIER_BOTS, workerPool } from './lib-node';
 import { gameDeck } from '../src/lib/tournament';
 import { BLUNDER, NOISE, type Category, type DecisionReview, type GameReview } from '../src/ai/reviewer';
 import { tierLabel } from '../src/ai/tiers';
 import type { ReviewJob } from './review-worker';
 
-const args = process.argv.slice(2);
-const flag = (n: string, d: string) => {
-  const i = args.indexOf(`--${n}`);
-  return i >= 0 ? args[i + 1] : d;
+const tierList = (v: string) => {
+  const bad = v.split(',').filter((t) => !(TIER_BOTS as readonly string[]).includes(t));
+  return bad.length ? `unknown tier ${bad.join(', ')} (known: ${TIER_BOTS.join(', ')})` : v.split(',').length < 2 ? 'name at least two tiers, comma separated' : undefined;
 };
-const FROM = flag('from', 'events');
-const GAMES = +flag('games', '60');
-const ROLLOUTS = +flag('rollouts', '8');
-const COACH = args.includes('--coach') || args.includes('--coach-v1');
-const COACH_V1 = args.includes('--coach-v1');
+const { values: V } = cli(import.meta.url, {
+  from: oneOf(['events', 'tiers', 'chaos', 'file'], 'events'),
+  games: int(60, { min: 1 }),
+  rollouts: int(8, { min: 1 }),
+  coach: bool(),
+  'coach-v1': bool(),
+  name: str(undefined, (v) => (/^[\w.-]+$/.test(v) ? undefined : 'use letters, digits, dot, dash or underscore')),
+  threads: threadsOpt(),
+  seed: int(1, { min: 0 }),
+  tiers: str('easy,medium,hard', tierList),
+  'chaos-bot': oneOf(TIER_BOTS, 'medium'),
+  chaos: num(0.15, { min: 0, max: 1 }),
+  file: str(),
+});
+const FROM = V.from;
+if (FROM === 'file' && !V.file) {
+  console.error('error: --from file needs --file <reviews.json>');
+  process.exit(2);
+}
+const GAMES = V.games;
+const ROLLOUTS = V.rollouts;
+const COACH = V.coach || V['coach-v1'];
+const COACH_V1 = V['coach-v1'];
 const REACTIONS = new Set(['block', 'no reaction', 'react: call', 'react: program', 'react: ability']);
-const NAME = flag('name', FROM);
-const THREADS = Math.max(1, Math.min(+flag('threads', String(os.cpus().length - 1)), 16));
-const SEED = +flag('seed', '1');
+const NAME = V.name ?? FROM;
+const THREADS = Math.min(V.threads, 16);
+const SEED = V.seed;
 
 let st = SEED * 2654435761;
 const rnd = () => ((st = (st * 1664525 + 1013904223) >>> 0) / 4294967296);
 
 // ---------------------------------------------------------------- jobs
 function fromEvents(): ReviewJob[] {
-  const dir = 'data/tournaments';
   const all: ReviewJob[] = [];
-  for (const f of fs.readdirSync(dir).filter((x) => /^event-\d+\.json$/.test(x))) {
-    const e = JSON.parse(fs.readFileSync(`${dir}/${f}`, 'utf8'));
-    for (const [pi, part] of [...e.rounds, ...e.bracket].entries())
-      for (const m of part.matches) {
-        if (!m.b) continue;
-        for (const g of m.games)
-          all.push({
-            id: `e${e.id}-${g.seed}`,
-            decks: [gameDeck({ name: m.a, ...e.decks[m.a] }), gameDeck({ name: m.b, ...e.decks[m.b] })],
-            seed: g.seed,
-            first: g.first,
-            bots: [e.bot, e.bot],
-            rollouts: ROLLOUTS,
-            withCoach: COACH, coachV1: COACH_V1,
-            meta: { event: e.id, stage: pi < e.rounds.length ? 'swiss' : 'top', recordedWinner: g.winner },
-          });
-      }
-  }
+  // events in id order, so a given --seed always samples the same games
+  forEachRecordedGame(({ event: e, match: m, game: g, stage }) =>
+    all.push({
+      id: `e${e.id}-${g.seed}`,
+      decks: [gameDeck({ name: m.a, ...e.decks[m.a] }), gameDeck({ name: m.b, ...e.decks[m.b] })],
+      seed: g.seed,
+      first: g.first,
+      bots: [e.bot, e.bot],
+      rollouts: ROLLOUTS,
+      withCoach: COACH, coachV1: COACH_V1,
+      meta: { event: e.id, stage, recordedWinner: g.winner },
+    }),
+  );
   // stratified-ish sample: shuffle, take GAMES
   for (let i = all.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
@@ -62,7 +74,7 @@ function fromEvents(): ReviewJob[] {
   return all.slice(0, GAMES);
 }
 function fromTiers(): ReviewJob[] {
-  const tiers = flag('tiers', 'easy,medium,hard').split(',');
+  const tiers = V.tiers.split(',');
   const meta = loadLibrary().filter((d) => d.kind === 'meta');
   const jobs: ReviewJob[] = [];
   let k = 0;
@@ -88,10 +100,10 @@ function fromTiers(): ReviewJob[] {
   return jobs;
 }
 function fromChaos(): ReviewJob[] {
-  const b = flag('chaos-bot', 'medium');
-  return fromTiers().map((j) => ({ ...j, id: `c${j.seed}`, bots: [b, b] as [string, string], chaos: +flag('chaos', '0.15'), meta: { chaos: true } }));
+  const b = V['chaos-bot'];
+  return fromTiers().map((j) => ({ ...j, id: `c${j.seed}`, bots: [b, b] as [string, string], chaos: V.chaos, meta: { chaos: true } }));
 }
-const jobs = FROM === 'chaos' ? fromChaos() : FROM === 'tiers' ? fromTiers() : FROM === 'file' ? (JSON.parse(fs.readFileSync(flag('file', ''), 'utf8')) as ReviewJob[]) : fromEvents();
+const jobs = FROM === 'chaos' ? fromChaos() : FROM === 'tiers' ? fromTiers() : FROM === 'file' ? (JSON.parse(fs.readFileSync(V.file!, 'utf8')) as ReviewJob[]) : fromEvents();
 
 // ---------------------------------------------------------------- run
 interface Done {
@@ -101,36 +113,26 @@ interface Done {
   meta?: Record<string, unknown>;
 }
 async function run(): Promise<Done[]> {
-  const out: Done[] = [];
-  let next = 0;
+  // shared pool: a crashed worker is replaced and its game retried once; a game that keeps crashing aborts the run
+  const pool = workerPool<ReviewJob, Done>(new URL('./review-boot.mjs', import.meta.url), Math.min(THREADS, jobs.length));
   const t0 = Date.now();
-  await new Promise<void>((resolve) => {
-    let live = Math.min(THREADS, jobs.length);
-    if (!live) return resolve();
-    for (let k = 0; k < Math.min(THREADS, jobs.length); k++) {
-      const w = new Worker(new URL('./review-boot.mjs', import.meta.url));
-      const feed = () => {
-        if (next < jobs.length) w.postMessage(jobs[next++]);
-        else {
-          w.terminate();
-          if (--live === 0) resolve();
-        }
-      };
-      w.on('message', (r: Done) => {
-        out.push(r);
-        if (r.error) process.stderr.write(`\n  ${r.id}: ${r.error.slice(0, 200)}\n`);
-        process.stderr.write(`\r  ${out.length}/${jobs.length} games reviewed  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
-        feed();
-      });
-      w.on('error', (e) => {
-        process.stderr.write(`\nworker error: ${e}\n`);
-        feed();
-      });
-      feed();
-    }
-  });
-  process.stderr.write('\n');
-  return out;
+  let done = 0;
+  try {
+    const out = await Promise.all(
+      jobs.map((j) =>
+        pool.run(j).then((r) => {
+          done++;
+          if (r.error) process.stderr.write(`\n  ${r.id}: ${r.error.slice(0, 200)}\n`);
+          process.stderr.write(`\r  ${done}/${jobs.length} games reviewed  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+          return r;
+        }),
+      ),
+    );
+    process.stderr.write('\n');
+    return out;
+  } finally {
+    await pool.close();
+  }
 }
 
 // ---------------------------------------------------------------- aggregate
@@ -359,11 +361,18 @@ export function aggregate(done: Done[]) {
 
 async function main() {
   console.log(`Reviewing ${jobs.length} games (${FROM}), ${ROLLOUTS} play-outs per candidate, ${THREADS} threads${COACH ? ', with coach' : ''}`);
+  if (!jobs.length) throw new Error('no games to review; nothing written');
   const done = await run();
+  const errors = done.filter((d) => d.error);
+  if (errors.length) {
+    process.exitCode = 1;
+    console.error(`${errors.length} of ${done.length} reviews threw (kept in the JSON, left out of the report). First (${errors[0].id}):\n${errors[0].error}`);
+  }
   fs.mkdirSync('data/reviews', { recursive: true });
   fs.writeFileSync(`data/reviews/${NAME}.json`, JSON.stringify(done.map((d) => ({ id: d.id, meta: d.meta, review: d.review, error: d.error }))));
   const md = aggregate(done);
+  fs.mkdirSync('reports', { recursive: true });
   fs.writeFileSync(`reports/review-${NAME}.md`, md);
   console.log(md);
 }
-main();
+runMain(main);
