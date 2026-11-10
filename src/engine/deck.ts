@@ -40,8 +40,8 @@ export function parseDeck(text: string, fallbackName = 'Imported deck'): ParseRe
       if (/^(side ?board|sideboard)/.test(hl)) section = 'side';
       else if (/^pool/.test(hl) || /^maybe/.test(hl)) section = 'ignore';
       else if (/^(legends?|main|main deck|units?|gears?|programs?|other|cards)\s*(\(?[\d/–-]+\)?)?\s*$/.test(hl)) section = 'main';
-      else if (/^format\s*:/.test(hl)) {
-        /* ignore */
+      else if (/^format\s*:/.test(hl) || PROVENANCE_KEY.test(hl)) {
+        /* metadata, not the deck name */
       } else if (!named && h) {
         deck.name = h;
         named = true;
@@ -74,23 +74,38 @@ export function parseDeck(text: string, fallbackName = 'Imported deck'): ParseRe
       qty = +m[1];
       nameStr = m[2];
     } else if ((m = line.match(/^[-*•]?\s*(\d+)\s*[x×]?\s+(.+)$/i))) {
+      // "3 Card", "3x Card", "3X Card", "3 x Card", "3<tab>Card"
       qty = +m[1];
       nameStr = m[2];
-    } else if ((m = line.match(/^(.+?)\s+[x×]\s*(\d+)$/i))) {
+    } else if ((m = line.match(/^[-*•]?\s*[x×]\s*(\d+)\s+(.+)$/i))) {
+      // "x3 Card"
+      qty = +m[1];
+      nameStr = m[2];
+    } else if ((m = line.match(/^(.+?)\s*\(\s*[x×]?\s*(\d+)\s*\)$/i)) || (m = line.match(/^(.+?)\s+[x×]\s*(\d+)$/i))) {
+      // "Card (x3)", "Card (×3)", "Card (3)", "Card x3"
       qty = +m[2];
       nameStr = m[1];
     } else {
       qty = 1;
       nameStr = line;
     }
-    nameStr = nameStr.replace(/^[-*•]\s*/, '').replace(/\s*\([A-Za-z0-9 _-]{1,24}\)\s*$/, '').trim(); // bullets, trailing (SET) code
+    // bullets, trailing (SET) code; a parenthesised quantity such as "(x3)" or "(3)" is never taken for a set code
+    nameStr = nameStr
+      .replace(/^[-*•]\s*/, '')
+      .replace(/\s*\((?!\s*[x×]?\s*\d+\s*\))[A-Za-z0-9 _-]{1,24}\)\s*$/, '')
+      .trim();
     const card = findCard(nameStr) ?? findCard(nameStr, inLegends ? 'Legend' : 'nonLegend');
     if (!card) {
       errors.push(rawLine);
       continue;
     }
+    if (qty > MAX_LINE_QTY) {
+      errors.push(`${line} (too many copies)`);
+      continue;
+    }
     if (card.type === 'Legend') {
-      if (!deck.legends.includes(card.id)) deck.legends.push(card.id);
+      if (section === 'side') errors.push(`${line} (a Legend can't go in the sideboard)`);
+      else if (!deck.legends.includes(card.id)) deck.legends.push(card.id);
       continue;
     }
     for (let i = 0; i < qty; i++) (section === 'side' ? deck.sideboard : deck.main).push(card.id);
@@ -98,18 +113,38 @@ export function parseDeck(text: string, fallbackName = 'Imported deck'): ParseRe
   return { deck, errors };
 }
 
+/** Provenance comment keys (scripts/tag-provenance.ts, the importers); never the deck name. "Ladder: …" is a real name. */
+const PROVENANCE_KEY = /^(origin|author|source|via|credits|parents|added|forged|tier|idea)\s*:/i;
+/** One text line can't add more copies than a main deck holds; guards against "1000000000 Card". */
+const MAX_LINE_QTY = 50;
+/** Longest deck name accepted from Sim JSON. */
+export const MAX_DECK_NAME = 80;
+
+/** Copies of one card in Sim JSON: an integer 0–3 (out-of-range values are clamped, non-numbers count as 0). */
+function simQty(n: unknown): number {
+  const v = Math.trunc(Number(n));
+  return Number.isFinite(v) ? Math.max(0, Math.min(3, v)) : 0;
+}
+
 function parseSimJson(j: any, fallbackName: string): ParseResult {
-  const deck: DeckList = { name: j.name ?? fallbackName, legends: [], main: [], sideboard: [] };
+  const name = typeof j?.name === 'string' && j.name.trim() ? j.name.trim().slice(0, MAX_DECK_NAME) : fallbackName;
+  const deck: DeckList = { name, legends: [], main: [], sideboard: [] };
   const errors: string[] = [];
-  for (const id of j.legendIds ?? []) (CARD_BY_ID[id] ? deck.legends.push(id) : errors.push(id));
-  for (const [id, n] of Object.entries(j.cardQuantities ?? {})) {
-    if (!CARD_BY_ID[id]) errors.push(id);
-    else for (let i = 0; i < (n as number); i++) deck.main.push(id);
+  for (const id of Array.isArray(j?.legendIds) ? j.legendIds : []) {
+    const c = typeof id === 'string' ? CARD_BY_ID[id] : undefined;
+    if (!c) errors.push(String(id));
+    else if (c.type !== 'Legend') errors.push(`${id} (not a Legend)`);
+    else deck.legends.push(id);
   }
-  for (const [id, n] of Object.entries(j.sideboardQuantities ?? {})) {
-    if (!CARD_BY_ID[id]) errors.push(id);
-    else for (let i = 0; i < (n as number); i++) deck.sideboard.push(id);
-  }
+  const addQuantities = (o: unknown, into: string[]) => {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
+    for (const [id, n] of Object.entries(o)) {
+      if (!CARD_BY_ID[id]) errors.push(id);
+      else for (let i = 0; i < simQty(n); i++) into.push(id);
+    }
+  };
+  addQuantities(j?.cardQuantities, deck.main);
+  addQuantities(j?.sideboardQuantities, deck.sideboard);
   return { deck, errors };
 }
 
@@ -131,20 +166,27 @@ export function ramLimits(deck: DeckList): Record<Color, number> {
 /** Validate against constructed rules (CR 7.3, 3.20; tournament sideboard = 7). */
 export function validateDeck(deck: DeckList): string[] {
   const errs: string[] = [];
+  for (const id of new Set([...deck.legends, ...deck.main, ...deck.sideboard])) if (!CARD_BY_ID[id]) errs.push(`Unknown card id: ${id}.`);
   if (deck.legends.length !== 3) errs.push(`Needs exactly 3 Legends (has ${deck.legends.length}).`);
+  for (const id of deck.legends) {
+    const c = CARD_BY_ID[id];
+    if (c && c.type !== 'Legend') errs.push(`${cardLabel(c)} is not a Legend.`);
+  }
   const names = deck.legends.map((id) => CARD_BY_ID[id]?.name);
   if (new Set(names).size !== names.length) errs.push('Legends must have different names.');
   if (deck.main.length < 40 || deck.main.length > 50) errs.push(`Main deck must be 40–50 cards (has ${deck.main.length}).`);
   if (deck.sideboard.length && deck.sideboard.length !== 7) errs.push(`Tournament sideboard must be exactly 7 (has ${deck.sideboard.length}).`);
   const lim = ramLimits(deck);
   const byName = new Map<string, number>();
-  for (const id of [...deck.main]) {
+  for (const id of deck.main) {
     const c = CARD_BY_ID[id];
+    if (!c) continue;
     byName.set(cardLabel(c), (byName.get(cardLabel(c)) ?? 0) + 1);
   }
   for (const [n, k] of byName) if (k > 3) errs.push(`Max 3 copies: ${n} ×${k}.`);
   for (const id of new Set([...deck.main, ...deck.sideboard])) {
     const c = CARD_BY_ID[id];
+    if (!c) continue;
     if (c.type === 'Legend') errs.push(`${cardLabel(c)} is a Legend and can't be in the main deck.`);
     else if (c.ram > lim[c.color]) errs.push(`${cardLabel(c)} needs ${c.ram} ${c.color} RAM (deck has ${lim[c.color]}).`);
   }
@@ -152,6 +194,8 @@ export function validateDeck(deck: DeckList): string[] {
 }
 
 const TYPE_ORDER: CardDef['type'][] = ['Unit', 'Gear', 'Program'];
+const byCostThenName = (a: string, b: string) =>
+  (CARD_BY_ID[a].cost ?? 0) - (CARD_BY_ID[b].cost ?? 0) || CARD_BY_ID[a].name.localeCompare(CARD_BY_ID[b].name);
 
 /** Official format (cyberpunktcg.com / ChoomBattler / Cyberpunk TCG Sim import). */
 export function exportOfficial(deck: DeckList): string {
@@ -163,8 +207,12 @@ export function exportOfficial(deck: DeckList): string {
     if (!ids.length) continue;
     const n = ids.reduce((a, id) => a + cs.get(id)!, 0);
     lines.push('', `// ${type}s (${n})`);
-    ids.sort((a, b) => (CARD_BY_ID[a].cost ?? 0) - (CARD_BY_ID[b].cost ?? 0) || CARD_BY_ID[a].name.localeCompare(CARD_BY_ID[b].name));
-    for (const id of ids) lines.push(`${cs.get(id)} ${cardLabel(CARD_BY_ID[id])}`);
+    for (const id of ids.sort(byCostThenName)) lines.push(`${cs.get(id)} ${cardLabel(CARD_BY_ID[id])}`);
+  }
+  if (deck.sideboard.length) {
+    const ss = counts(deck.sideboard);
+    lines.push('', `// Sideboard (${deck.sideboard.length})`);
+    for (const id of [...ss.keys()].sort(byCostThenName)) lines.push(`${ss.get(id)} ${cardLabel(CARD_BY_ID[id])}`);
   }
   return lines.join('\n');
 }
@@ -197,19 +245,4 @@ export function deckColors(deck: DeckList): string {
   const letters = deck.legends.map((id) => CARD_BY_ID[id]?.color[0] ?? '?');
   const order = 'RBGY';
   return letters.sort((a, b) => order.indexOf(a) - order.indexOf(b)).join('');
-}
-
-/** Swap sideboard cards in/out (same count). */
-export function applySideboard(deck: DeckList, outIds: string[], inIds: string[]): DeckList {
-  const main = [...deck.main];
-  const side = [...deck.sideboard];
-  for (const id of outIds) {
-    const i = main.indexOf(id);
-    if (i >= 0) side.push(...main.splice(i, 1));
-  }
-  for (const id of inIds) {
-    const i = side.indexOf(id);
-    if (i >= 0) main.push(...side.splice(i, 1));
-  }
-  return { ...deck, main, sideboard: side };
 }
