@@ -81,6 +81,7 @@ describe('practice session: undo', () => {
     session.start(setup(11));
     const run = await finish(session);
     expect(run.replay.undos).toBe(1);
+    expect(run.replay.payChoice).toBe(true); // recorded with payment choices, replayed with them
     expect(run.g.s.winner).not.toBeNull();
     const { st, fallbacks } = await replayOf(run);
     expect(fallbacks).toBe(0);
