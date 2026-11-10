@@ -1,17 +1,21 @@
-import { useRef, useState } from 'react';
-import { Game } from '../../engine/engine';
-import { makeTierBot, TIERS, type Tier } from '../../ai/tiers';
-import type { DeckList, GameState, PlayerId } from '../../engine/types';
+import { useEffect, useRef, useState } from 'react';
+import { TIERS, type Tier } from '../../ai/tiers';
+import type { PlayerId } from '../../engine/types';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { allDecks } from '../../lib/browserLibrary';
-import { summarize, type PlayerSummary } from '../../analysis/summarize';
+import type { PlayerSummary } from '../../analysis/summarize';
 import { analyzeDeck, type DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
 import { DeckTile } from '../components/DeckIdentity';
-import { recordReplay, ReplayBoard, type ReplayData } from '../components/ReplayBoard';
+import { ReplayBoard, type ReplayData } from '../components/ReplayBoard';
 import { Wr, Verdict, ToneLegend } from '../components/Num';
+import { gameDeck } from '../../lib/tournament';
+import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { useReplayWorker } from '../useReplayWorker';
 
 interface Row {
+  /** opponent's library file (unique; names can repeat across built-in and custom decks) */
+  key: string;
   opp: string;
   games: number;
   wins: number;
@@ -22,10 +26,6 @@ interface Row {
 }
 
 type Level = Tier;
-async function playOne(a: DeckList, b: DeckList, seed: number, first: PlayerId, level: Level, log = false, trace = false): Promise<GameState> {
-  const g = Game.create([a, b], [makeTierBot(level, seed), makeTierBot(level, seed + 999)], { seed, first, log, trace });
-  return g.run();
-}
 
 export function ArenaPage() {
   const decks = allDecks();
@@ -36,57 +36,103 @@ export function ArenaPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [progress, setProgress] = useState('');
   const [running, setRunning] = useState(false);
-  const stop = useRef(false);
+  const [error, setError] = useState('');
+  const poolRef = useRef<GamePool | null>(null);
+  // leaving the page stops the run (games live in workers, not in this component)
+  useEffect(() => () => poolRef.current?.terminate(), []);
+  const replayer = useReplayWorker();
+  const [watching, setWatching] = useState(false);
   const [watch, setWatch] = useState<{ data: ReplayData; names: [string, string] } | null>(null);
   const [telemetry, setTelemetry] = useState(true);
   const [report, setReport] = useState<DeckReport | null>(null);
 
+  // Games run on the worker pool (same seeds as the old in-page loop: game i vs the k-th opponent uses
+  // seed 10_000 + 7i + k, seat B's bot seed + 999, A on the play in even games), so results stay comparable.
   const run = async (opps: string[]) => {
-    setRunning(true);
-    stop.current = false;
-    const A = findDeck(a)!.deck;
-    const out: Row[] = [];
-    setRows([]);
-    const total = opps.length * n;
+    const dA = findDeck(a);
+    if (!dA) return;
+    const A = gameDeck(dA.deck);
+    const field = opps.map((o) => findDeck(o)).filter((d): d is NonNullable<typeof d> => !!d);
+    poolRef.current?.terminate();
+    const pool = new GamePool(defaultThreads());
+    poolRef.current = pool;
+    const out: Row[] = field.map((d) => ({ key: d.file, opp: d.deck.name, games: 0, wins: 0, ties: 0, firstGames: 0, firstWins: 0, turns: 0 }));
+    const total = field.length * n;
+    const sums: (PlayerSummary | undefined)[] = [];
     let done = 0;
-    const sums: PlayerSummary[] = [];
+    let shownAt = 0;
+    const show = (force = false) => {
+      if (!force && Date.now() - shownAt < 150) return;
+      shownAt = Date.now();
+      setRows(out.map((r) => ({ ...r })));
+      setProgress(`${done}/${total} games`);
+    };
+    setRunning(true);
+    setError('');
+    setRows([]);
     setReport(null);
-    for (const o of opps) {
-      const B = findDeck(o)!.deck;
-      const r: Row = { opp: B.name, games: 0, wins: 0, ties: 0, firstGames: 0, firstWins: 0, turns: 0 };
-      out.push(r);
-      for (let i = 0; i < n && !stop.current; i++) {
-        const first = (i % 2) as PlayerId;
-        const st = await playOne(A, B, 10_000 + i * 7 + out.length, first, fast, false, telemetry);
-        if (telemetry) sums.push(summarize(st)[0]);
-        r.games++;
-        r.turns += st.turn;
-        if (st.winner === 0) r.wins++;
-        else if (st.winner === 'tie') r.ties++;
-        if (first === 0) {
-          r.firstGames++;
-          if (st.winner === 0) r.firstWins++;
-        }
-        done++;
-        if (done % 2 === 0) {
-          setProgress(`${done}/${total} games`);
-          setRows([...out]);
-          await new Promise((res) => setTimeout(res, 0));
-        }
+    setProgress(`0/${total} games`);
+    try {
+      await Promise.all(
+        field.flatMap((d, k) => {
+          const B = gameDeck(d.deck);
+          return Array.from({ length: n }, (_, i) => {
+            const first = (i % 2) as PlayerId;
+            const seed = 10_000 + i * 7 + (k + 1);
+            return pool.run({ a: A, b: B, seed, seedB: seed + 999, first, bot: fast, trace: telemetry }).then(({ rec: g }) => {
+              const r = out[k];
+              if (telemetry) sums[k * n + i] = g.summary;
+              r.games++;
+              r.turns += g.turns;
+              if (g.winner === 0) r.wins++;
+              else if (g.winner === 'tie') r.ties++;
+              if (first === 0) {
+                r.firstGames++;
+                if (g.winner === 0) r.firstWins++;
+              }
+              done++;
+              show();
+            });
+          });
+        }),
+      );
+      if (telemetry) {
+        const got = sums.filter((s): s is PlayerSummary => !!s);
+        if (got.length) setReport(analyzeDeck(A.name, got));
       }
+      setProgress(`done — ${done} games`);
+    } catch (e) {
+      // Stop (or leaving the page) terminates the pool; anything else is a game that failed.
+      if (isStopped(e)) setProgress(`stopped — ${done} of ${total} games played`);
+      else {
+        setProgress(`failed after ${done} games`);
+        setError(errorText(e));
+      }
+    } finally {
+      pool.terminate();
+      if (poolRef.current === pool) poolRef.current = null;
+      show(true);
+      setRunning(false);
     }
-    setRows([...out]);
-    if (telemetry && sums.length) setReport(analyzeDeck(A.name, sums));
-    setProgress(stop.current ? 'stopped' : `done — ${done} games`);
-    setRunning(false);
   };
+  const stopRun = () => poolRef.current?.terminate();
 
   const watchGame = async () => {
-    const A = findDeck(a)!.deck;
-    const B = findDeck(b)!.deck;
+    const dA = findDeck(a);
+    const dB = findDeck(b);
+    if (!dA || !dB) return;
     const seed = Date.now() % 100000;
-    const data = await recordReplay([A, B], [makeTierBot(fast, seed), makeTierBot(fast, seed + 999)], seed, (Math.random() < 0.5 ? 0 : 1) as PlayerId);
-    setWatch({ data, names: [A.name, B.name] });
+    const first = (Math.random() < 0.5 ? 0 : 1) as PlayerId;
+    setWatching(true);
+    setError('');
+    try {
+      const data = await replayer.start({ a: gameDeck(dA.deck), b: gameDeck(dB.deck), seed, seedB: seed + 999, first, bot: fast });
+      if (data) setWatch({ data, names: [dA.deck.name, dB.deck.name] });
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setWatching(false);
+    }
   };
 
   const pct = (x: number, y: number) => (y ? `${Math.round((100 * x) / y)}%` : '—');
@@ -142,22 +188,27 @@ export function ArenaPage() {
           <button disabled={running} onClick={() => run(decks.filter((d) => d.file !== a).map((d) => d.file))}>
             A vs all decks
           </button>
-          <button disabled={!running} onClick={() => (stop.current = true)}>
+          <button disabled={!running} onClick={stopRun}>
             Stop
           </button>
-          <button disabled={running} onClick={watchGame}>
-            Watch one A vs B game
+          <button disabled={running || watching} onClick={watchGame}>
+            {watching ? 'Simulating…' : 'Watch one A vs B game'}
           </button>
           <label className="row small">
-            <input type="checkbox" checked={telemetry} onChange={(e) => setTelemetry(e.target.checked)} /> collect telemetry &amp; analyze deck A
+            <input type="checkbox" checked={telemetry} onChange={(e) => setTelemetry(e.target.checked)} disabled={running} /> collect telemetry &amp; analyze deck A
           </label>
           <span className="muted small">{progress}</span>
         </div>
+        {error && (
+          <div className="small" style={{ color: 'var(--red)' }}>
+            ⚠ A game failed: {error}
+          </div>
+        )}
       </div>
       {rows.length > 0 && (
         <div className="panel scroll-x">
           <div className="spread">
-            <h3>{findDeck(a)!.deck.name}</h3>
+            <h3>{findDeck(a)?.deck.name}</h3>
             <ToneLegend />
             <span className="stat">
               <Wr v={tot.g ? tot.w / tot.g : null} n={tot.g} />
@@ -176,7 +227,7 @@ export function ArenaPage() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.opp}>
+                <tr key={r.key}>
                   <td>{r.opp}</td>
                   <td>
                     <Wr v={r.games ? (r.wins + r.ties / 2) / r.games : null} n={r.games} strong /> <Verdict v={r.games >= 10 ? (r.wins + r.ties / 2) / r.games : null} n={r.games} />

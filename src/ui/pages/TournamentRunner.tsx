@@ -5,7 +5,8 @@ import ratings from '../../data/ratings.json';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { autoRounds, cutSize, runTournament, type BotLevel, type GameRec, type TourneyConfig, type TourneyEvent } from '../../lib/tournament';
-import { GamePool, defaultThreads } from '../../sim/pool';
+import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { parseRunParams, parseRuns, toEvent } from '../runParams';
 import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
 import { ColorPips } from '../components/DeckIdentity';
 import '../deckprofile.css';
@@ -51,7 +52,7 @@ function presetFiles(key: FieldKey, pool: LibraryDeck[]): string[] {
 
 function loadRuns(): TourneyEvent[] {
   try {
-    return JSON.parse(localStorage.getItem(SAVE_KEY) ?? '[]');
+    return parseRuns(localStorage.getItem(SAVE_KEY));
   } catch {
     return [];
   }
@@ -68,13 +69,15 @@ function saveRun(ev: TourneyEvent) {
 export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const lib = useLib();
   const pool = useMemo(() => distinct(allDecks()), []);
-  const [field, setField] = useState<FieldKey>((q.get('f') as FieldKey) ?? 'meta');
-  const [picked, setPicked] = useState<string[]>(() => (q.get('d') ? q.get('d')!.split(',') : presetFiles((q.get('f') as FieldKey) ?? 'meta', pool)));
-  const [roundsSel, setRoundsSel] = useState<number | 'auto'>(q.get('r') ? +q.get('r')! : 'auto');
-  const [top, setTop] = useState(q.get('t') ? +q.get('t')! : 8);
-  const [bestOf, setBestOf] = useState<1 | 3>(q.get('bo') === '1' ? 1 : 3);
-  const [bot, setBot] = useState<BotLevel>((q.get('bot') as BotLevel) ?? 'medium');
-  const [seed, setSeed] = useState(q.get('s') ? +q.get('s')! : Math.floor(Math.random() * 9000) + 1000);
+  // setup-link params are validated; anything malformed falls back to the defaults
+  const params = useMemo(() => parseRunParams(q, BOTS.map((b) => b.key)), [q]);
+  const [field, setField] = useState<FieldKey>(params.field);
+  const [picked, setPicked] = useState<string[]>(() => params.decks ?? presetFiles(params.field, pool));
+  const [roundsSel, setRoundsSel] = useState<number | 'auto'>(params.rounds);
+  const [top, setTop] = useState(params.top);
+  const [bestOf, setBestOf] = useState<1 | 3>(params.bestOf);
+  const [bot, setBot] = useState<BotLevel>((params.bot as BotLevel | null) ?? 'medium');
+  const [seed, setSeed] = useState(params.seed ?? Math.floor(Math.random() * 9000) + 1000);
   const [threads, setThreads] = useState(defaultThreads());
   const [filter, setFilter] = useState('');
 
@@ -84,6 +87,9 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const [, tick] = useState(0);
   const [match, setMatch] = useState<(MatchView & { games: GameRec[] }) | null>(null);
   const [runs, setRuns] = useState<TourneyEvent[]>(loadRuns);
+  /** why the last run ended early: stopped by you, or a game failed (with its error) */
+  const [ended, setEnded] = useState<{ kind: 'stopped' | 'failed'; error?: string } | null>(null);
+  const [fileMsg, setFileMsg] = useState('');
   const poolRef = useRef<GamePool | null>(null);
   const stopRef = useRef(false);
   const frame = useRef(0);
@@ -116,6 +122,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     setRunning(true);
     setT0(Date.now());
     setMatch(null);
+    setEnded(null);
     let last: TourneyEvent | null = null;
     const show = (e: TourneyEvent) => {
       last = e;
@@ -133,8 +140,11 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
       setEv(out);
       saveRun(out);
       setRuns(loadRuns());
-    } catch {
+    } catch (err) {
       cancelAnimationFrame(frame.current);
+      // Stop terminates the pool (games reject as stopped); anything else means a game threw — never count it as a tie.
+      const stopped = stopRef.current || isStopped(err);
+      setEnded(stopped ? { kind: 'stopped' } : { kind: 'failed', error: errorText(err) });
       if (last) setEv({ ...(last as TourneyEvent), phase: 'stopped', rounds: (last as TourneyEvent).rounds.map((r) => ({ ...r, matches: r.matches.map((m) => ({ ...m, live: false })) })), bracket: (last as TourneyEvent).bracket.map((r) => ({ ...r, matches: r.matches.map((m) => ({ ...m, live: false })) })) });
     } finally {
       gp.terminate();
@@ -165,12 +175,17 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   };
   const load = (file: File) =>
     file.text().then((t) => {
+      let e: TourneyEvent | null = null;
       try {
-        const e = JSON.parse(t) as TourneyEvent;
-        if (e.rounds && e.standings) setEv({ ...e, phase: e.phase ?? 'done' });
+        e = toEvent(JSON.parse(t));
       } catch {
-        /* not an event file */
+        /* not JSON */
       }
+      if (!e) return setFileMsg(`“${file.name}” isn't a tournament event file this page can read.`);
+      setFileMsg('');
+      setEnded(null);
+      setMatch(null);
+      setEv({ ...e, phase: e.phase ?? 'done' });
     });
 
   const shown = pool.filter((d) => !filter || d.deck.name.toLowerCase().includes(filter.toLowerCase()));
@@ -306,7 +321,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
         <div className="row small">
           {runs.length > 0 && <span className="muted">Your recent runs:</span>}
           {runs.map((r) => (
-            <button key={String(r.id)} className={`event-chip ${ev?.id === r.id ? 'on' : ''}`} onClick={() => !running && setEv(r)} disabled={running}>
+            <button key={String(r.id)} className={`event-chip ${ev?.id === r.id ? 'on' : ''}`} onClick={() => !running && (setEnded(null), setMatch(null), setEv(r))} disabled={running}>
               <b>{r.champion ? `🏆 ${r.champion}` : 'stopped'}</b>
               <span>{r.name ?? r.format}</span>
             </button>
@@ -315,6 +330,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
             <input type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
             📂 Open event file
           </label>
+          {fileMsg && <span style={{ color: 'var(--red)' }}>{fileMsg}</span>}
         </div>
       )}
 
@@ -338,7 +354,14 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
                 </span>
               </div>
             )}
-            {ev.phase === 'stopped' && <p className="muted small">Stopped early. Finished matches can still be watched.</p>}
+            {ev.phase === 'stopped' &&
+              (ended?.kind === 'failed' ? (
+                <p className="small" style={{ color: 'var(--red)' }}>
+                  ⚠ The tournament was abandoned because a game failed: {ended.error}. Finished matches can still be watched.
+                </p>
+              ) : (
+                <p className="muted small">{ended?.kind === 'stopped' ? 'Stopped by you.' : 'Stopped early.'} Finished matches can still be watched.</p>
+              ))}
             {ev.champion && ev.phase === 'done' && <Champion name={ev.champion} lib={lib} note={evCut ? `won the top ${evCut}` : 'top of the Swiss standings'} />}
             {liveMatches.length > 0 && (
               <div>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import index from '../../data/tournaments.json';
 import type { GameRec } from '../../lib/tournament';
 import { tierLabel } from '../../ai/tiers';
+import { parseEventId } from '../runParams';
 import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, short, type MatchView } from '../components/TourneyViews';
 
 interface EventLite {
@@ -29,17 +30,34 @@ const I = index as unknown as { updated: string; events: EventLite[] };
 
 export function TournamentsPage({ initial }: { initial?: string }) {
   const lib = useLib();
-  const [sel, setSel] = useState<number | undefined>(initial ? +initial : I.events[I.events.length - 1]?.id);
+  // ?e= must name a recorded event; anything else (missing, `abc`, unknown id) opens the latest one
+  const [sel, setSel] = useState<number | undefined>(() => parseEventId(initial, I.events.map((e) => e.id)) ?? I.events[I.events.length - 1]?.id);
   const ev = I.events.find((e) => e.id === sel);
-  const [full, setFull] = useState<EventFull | null>(null);
+  // round details for the selected event; tagged with its id so a slow load for event A never shows under B
+  const [loaded, setLoaded] = useState<{ id: number; full: EventFull | null; error?: string } | null>(null);
+  const full = loaded && loaded.id === sel ? loaded.full : null;
+  const loadError = loaded && loaded.id === sel ? loaded.error : undefined;
   const [match, setMatch] = useState<(MatchView & { games: GameRec[] }) | null>(null);
   useEffect(() => {
-    setFull(null);
+    setMatch(null);
     if (sel === undefined) return;
+    let stale = false;
     fetch(`${import.meta.env.BASE_URL}tournaments/event-${sel}.json`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setFull)
-      .catch(() => setFull(null));
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<EventFull>;
+      })
+      .then((f) => {
+        if (stale) return;
+        const ok = !!f && Array.isArray(f.rounds) && !!f.decks && typeof f.decks === 'object';
+        setLoaded(ok ? { id: sel, full: { ...f, bracket: Array.isArray(f.bracket) ? f.bracket : [] } } : { id: sel, full: null, error: 'the event file is malformed' });
+      })
+      .catch((e) => {
+        if (!stale) setLoaded({ id: sel, full: null, error: String((e as Error)?.message ?? e) });
+      });
+    return () => {
+      stale = true;
+    };
   }, [sel]);
 
   const runLink = (
@@ -104,7 +122,8 @@ export function TournamentsPage({ initial }: { initial?: string }) {
             </div>
             <div className="panel">
               <h3 style={{ marginTop: 0 }}>Rounds</h3>
-              {!full && <p className="muted small">Loading round details…</p>}
+              {!full && !loadError && <p className="muted small">Loading round details…</p>}
+              {loadError && <p className="small" style={{ color: 'var(--red)' }}>Couldn't load this event's round details ({loadError}). Standings and bracket above are still correct.</p>}
               {full && <RoundList rounds={full.rounds} onOpen={(m) => m.games && setMatch(m as MatchView & { games: GameRec[] })} />}
             </div>
           </div>
