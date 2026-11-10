@@ -38,6 +38,7 @@ export interface MatchResult {
   b: string;
   seed: number;
   first: 0 | 1;
+  /** null only together with `error` */
   winner: 0 | 1 | 'tie' | null;
   reason: string;
   turns: number;
@@ -83,7 +84,8 @@ parentPort?.on('message', async (job: MatchJob) => {
       summaries: job.trace ? summarize(s) : undefined,
     };
   } catch (e: any) {
-    r = { a: job.a.name, b: job.b.name, seed: job.seed, first: job.first, winner: 'tie', reason: 'error', turns: 0, overtime: false, gigs: [0, 0], error: String(e?.stack ?? e) };
+    // an exception is an error, never a result: callers report it and leave the game out of every tally
+    r = { a: job.a.name, b: job.b.name, seed: job.seed, first: job.first, winner: null, reason: 'error', turns: 0, overtime: false, gigs: [0, 0], error: String(e?.stack ?? e) };
   }
   parentPort!.postMessage(r);
 });
