@@ -2,7 +2,7 @@
 // the board state is captured after every log line, and the log becomes a timeline you can click, step or play.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Game } from '../../engine/engine';
-import type { Agent, DeckList, GameState, PlayerId } from '../../engine/types';
+import type { Agent, DeckList, GameState, LogEntry, PlayerId } from '../../engine/types';
 import { EMPTY_IX } from './board/interaction';
 import type { BoardCtx } from './board/BoardCard';
 import { PlayerSide } from './board/Zones';
@@ -10,22 +10,53 @@ import { BoardCard } from './board/BoardCard';
 import { useNarrow } from './board/useNarrow';
 import '../board.css';
 
+/** The board right after one log line. */
+export interface ReplayFrame {
+  /** board state (log omitted to keep memory small) */
+  state: GameState;
+  /** the log line this frame follows */
+  line: LogEntry;
+  /** that line's position among every line the game logged, counting lines the engine has since trimmed from its log */
+  at: number;
+}
 export interface ReplayData {
   final: GameState;
-  /** board state right after log line i (log omitted to keep memory small) */
-  frames: GameState[];
+  frames: ReplayFrame[];
+}
+
+/**
+ * Capture a frame after every log line `g` writes from now on. The engine drops its oldest lines once the log grows
+ * long, so each frame keeps its own line and absolute position instead of relying on frame i = log line i.
+ */
+export function captureFrames(g: Game): ReplayFrame[] {
+  const frames: ReplayFrame[] = [];
+  let total = g.s.log.length;
+  g.onLog = () => {
+    const { log, trace: _trace, ...rest } = g.s;
+    frames.push({ state: structuredClone({ ...rest, log: [] }) as GameState, line: { ...log[log.length - 1] }, at: total++ });
+  };
+  return frames;
+}
+
+/** Where a frame's line sits in the final (possibly trimmed) log, or -1 if it was trimmed away. */
+export function lineInFinalLog(data: ReplayData, frame: ReplayFrame): number {
+  const totalLines = data.frames.length ? data.frames[data.frames.length - 1].at + 1 : data.final.log.length;
+  const i = frame.at - (totalLines - data.final.log.length);
+  return i >= 0 && i < data.final.log.length ? i : -1;
 }
 
 /** Re-simulate a game and capture a board frame after every log line. */
 export async function recordReplay(decks: [DeckList, DeckList], agents: [Agent, Agent], seed: number, first?: PlayerId): Promise<ReplayData> {
   const g = Game.create(decks, agents, { seed, first });
-  const frames: GameState[] = [];
-  g.onLog = () => {
-    const { log: _log, trace: _trace, ...rest } = g.s;
-    frames.push(structuredClone({ ...rest, log: [] }) as GameState);
-  };
+  const frames = captureFrames(g);
   const final = await g.run();
   return { final, frames };
+}
+
+/** Space toggles play unless focus is on something that uses Space itself. */
+function ownsSpace(t: EventTarget | null): boolean {
+  if (!(t instanceof HTMLElement)) return false;
+  return t.isContentEditable || !!t.closest('button, a[href], input, textarea, select, summary, [contenteditable]:not([contenteditable="false"]), [role="button"]');
 }
 
 const noop = () => undefined;
@@ -36,8 +67,8 @@ const SPEEDS = [
 ];
 
 export function ReplayBoard({ data, names }: { data: ReplayData; names: [string, string] }) {
-  const log = data.final.log;
-  const n = Math.min(log.length, data.frames.length);
+  const frames = data.frames;
+  const n = frames.length;
   const [cur, setCur] = useState(n - 1);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(350);
@@ -61,23 +92,24 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   // arrow keys step through the game
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.target as HTMLElement | null)?.isContentEditable) return;
       if (e.key === 'ArrowRight') (setPlaying(false), setCur((c) => Math.min(n - 1, c + 1)));
       if (e.key === 'ArrowLeft') (setPlaying(false), setCur((c) => Math.max(0, c - 1)));
-      if (e.key === ' ') (e.preventDefault(), setPlaying((p) => !p));
+      if (e.key === ' ' && !ownsSpace(e.target)) (e.preventDefault(), setPlaying((p) => !p));
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [n]);
 
-  const g = useMemo(() => (n ? new Game(structuredClone(data.frames[Math.max(0, cur)]), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [data, cur, n]);
+  const g = useMemo(() => (n ? new Game(structuredClone(frames[Math.max(0, cur)].state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [data, cur, n]);
   if (!g || !n) return <p className="muted">No moves were recorded for this game.</p>;
-  const turnOf = (i: number) => log[i]?.turn ?? 0;
+  const turnOf = (i: number) => frames[i]?.line.turn ?? 0;
   const lastTurn = turnOf(n - 1);
   const turnNow = turnOf(cur);
-  const firstLineOfTurn = (t: number) => Math.max(0, log.findIndex((l) => l.turn >= t));
+  const firstLineOfTurn = (t: number) => Math.max(0, frames.findIndex((f) => f.line.turn >= t));
   const end = cur >= n - 1;
-  const line = log[cur];
+  const line = frames[cur]?.line;
   const ctx: BoardCtx = {
     g,
     pend: null,
@@ -152,7 +184,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
           </div>
         </div>
         <div className="replay-log log" ref={listRef}>
-          {log.slice(0, n).map((l, i) => (
+          {frames.map(({ line: l }, i) => (
             <button
               key={i}
               data-i={i}

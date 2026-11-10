@@ -23,6 +23,16 @@ export function useReview(req: ReviewRequest | null) {
       else if ('review' in m) setState({ progress: m.review.decisions.length, review: m.review, busy: false }), worker.terminate();
       else setState({ progress: 0, error: m.error, busy: false }), worker.terminate();
     };
+    // a worker that fails to load or crashes reports here (not via onmessage), so stop the spinner
+    worker.onerror = (e: ErrorEvent) => {
+      e.preventDefault();
+      setState({ progress: 0, error: e.message || 'the review worker failed to start', busy: false });
+      worker.terminate();
+    };
+    worker.onmessageerror = () => {
+      setState({ progress: 0, error: 'the review worker sent an unreadable reply', busy: false });
+      worker.terminate();
+    };
     worker.postMessage(req);
     return () => worker.terminate();
   }, [req]);
