@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:cov": "vitest run --coverage --coverage.include=src",
-    "build:data": "python -I tools/build_data.py",
+    "build:data": "tsx tools/build-data.ts",
     "sim": "tsx scripts/simulate.ts",
     "tournament": "tsx scripts/tournament.ts",
     "bundle-reports": "tsx scripts/bundle-reports.ts",
