@@ -107,7 +107,7 @@ describe('deck import/export', () => {
         const { deck: back, errors } = parseDeck(text, 'fallback');
         const at = `${f} via ${fmt}`;
         expect(errors, at).toEqual([]);
-        // Sim JSON caps imported names at MAX_DECK_NAME; one guide deck's name is longer.
+        // Sim JSON caps imported names at MAX_DECK_NAME (no library deck is that long).
         expect(back.name, at).toBe(fmt === 'json' ? deck.name.slice(0, MAX_DECK_NAME) : deck.name);
         expect(back.legends, at).toEqual(deck.legends);
         expect(sorted(back.main), at).toEqual(sorted(deck.main));

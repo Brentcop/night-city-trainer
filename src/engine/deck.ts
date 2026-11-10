@@ -118,7 +118,7 @@ const PROVENANCE_KEY = /^(origin|author|source|via|credits|parents|added|forged|
 /** One text line can't add more copies than a main deck holds; guards against "1000000000 Card". */
 const MAX_LINE_QTY = 50;
 /** Longest deck name accepted from Sim JSON. */
-export const MAX_DECK_NAME = 80;
+export const MAX_DECK_NAME = 200;
 
 /** Copies of one card in Sim JSON: an integer 0–3 (out-of-range values are clamped, non-numbers count as 0). */
 function simQty(n: unknown): number {
