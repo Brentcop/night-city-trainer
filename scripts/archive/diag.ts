@@ -1,6 +1,6 @@
-import { Game } from '../src/engine/engine';
-import { HeuristicAgent } from '../src/ai/heuristic';
-import { resolveDeck } from './lib-node';
+import { Game } from '../../src/engine/engine';
+import { HeuristicAgent } from '../../src/ai/heuristic';
+import { resolveDeck } from '../lib-node';
 const [a, b, n = '100'] = process.argv.slice(2);
 const A = resolveDeck(a).deck, B = resolveDeck(b).deck;
 const reasons: Record<string, number> = {};

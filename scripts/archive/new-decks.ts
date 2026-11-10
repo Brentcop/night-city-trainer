@@ -1,6 +1,6 @@
 // The 8 original "NC" decks (Night City Trainer designs). Writes data/decks/custom/nc-*.txt and validates.
 import fs from 'node:fs';
-import { parseDeck, exportOfficial, validateDeck } from '../src/engine/deck';
+import { parseDeck, exportOfficial, validateDeck } from '../../src/engine/deck';
 
 const DECKS: Record<string, { idea: string; list: string }> = {
   'NC-01 Rockerboy Express (RRY)': {
