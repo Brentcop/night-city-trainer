@@ -1,4 +1,4 @@
-﻿// The Play page's coach runs in a worker from a serialised position: it must give exactly the advice advise() gives on
+// The Play page's coach runs in a worker from a serialised position: it must give exactly the advice advise() gives on
 // the live game, and fall back to the main thread when the worker fails.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';

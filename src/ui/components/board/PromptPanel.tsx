@@ -2,10 +2,11 @@
 import { CardBack, TcgCard } from '../TcgCard';
 import { hiddenFromMe, type BoardCtx } from './BoardCard';
 
+/** Choices the player can click on the table. On a phone the prompt dock covers the hand, so hand cards go in the tray. */
 function onBoard(ctx: BoardCtx, uid: number): boolean {
   const c = ctx.g.s.cards[uid];
   if (!c) return false;
-  return c.zone === 'field' || c.zone === 'legends' || (c.zone === 'hand' && c.controller === 0);
+  return c.zone === 'field' || c.zone === 'legends' || (c.zone === 'hand' && c.controller === 0 && !ctx.narrow);
 }
 
 /** One-line headline for the middle of the table. */
