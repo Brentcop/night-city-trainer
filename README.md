@@ -20,16 +20,59 @@ On top of that it adds a **matchup lab** that runs thousands of bot-vs-bot games
 | Bots | `src/ai/` | The lookahead bot clones the game, plays each candidate action out, and scores the result. Reactions are scored by projecting the attack's outcome. Sub-choices (targets, dice, discards, modes) use a card-knowledge base and each deck's "Gig plan". |
 | Deck formats | `src/engine/deck.ts` | Imports choom.gg text, the "Official" format (cyberpunktcg.com / ChoomBattler / the Sim), Sim deck JSON, and loose lists. Exports all three. Validates RAM limits, copies, size and sideboard. |
 | Deck library | `data/decks/` | Choom.gg meta archetypes (`meta-*.txt`), choom.gg guide lists, and your own decks in `data/decks/custom/`. |
-| Web app | `src/ui/`, `src/App.tsx` | Home, Meta, Strategy guides, Decks (builder + import/export), Play vs Bot (with coach), Matchup Lab, Cards, Glossary. |
+| Web app | `src/ui/`, `src/App.tsx` | The pages are listed under [Pages](#pages). |
 | Matchup scripts | `scripts/simulate.ts` | Multi-threaded deck testing from the CLI (see below). |
-| Research | `data/raw/`, `docs/` | Saved copies of the rules, errata, tournament rules, choom.gg meta pages and guides, and the research notes. |
+| Research | `data/raw/`, `docs/` | `data/raw/` holds saved copies of the rules, errata, tournament rules, card catalog, and choom.gg meta pages and guides. It is gitignored: it stays on your machine and is not shipped with the site or the repository. `docs/` holds the research notes. |
 
 ## Quick start
+
+Needs Node 22 or later (see `.nvmrc`).
 
 ```bash
 npm install
 npm run dev          # http://localhost:5173
 ```
+
+## Pages
+
+Routes are hash-based (`#/<page>`); see `src/App.tsx`.
+
+| Menu | Page | Route | What it does |
+|---|---|---|---|
+| Home | Home | `#/home` | Recommendation and shortcuts. |
+| Decks | All decks | `#/decks` | Deck list with filters, builder, import and export. |
+| Decks | Deck profile | `#/deck?d=<file>` | One deck's results: tests, head-to-heads, forge history, seasons, card stats. |
+| Decks | Deck Lab | `#/lab` | Tunes a submitted deck in the browser, or breeds new decks (including counter decks from the head-to-heads). |
+| Play | Play vs Bot | `#/play` | Practice against Easy, Medium or Hard bots, with coach mode, undo, and a full match review. |
+| Tournaments | Events | `#/tournaments` | The recorded tournament events: standings, brackets, and every match. Matches can be reviewed or watched as a visual replay. |
+| Tournaments | Run a tournament | `#/run` | Runs a tournament in the browser with the same rules and seeds as the CLI. |
+| Tournaments | Power ratings | `#/ratings` | Deck ratings fitted to every game of every recorded event. |
+| Tournaments | Breeding seasons | `#/seasons` | Bred decks per season and the all-time leaderboard. |
+| Tournaments | choom.gg meta | `#/meta` | Meta tiers and sim results for the archetypes. |
+| Tournaments | Matchup Lab | `#/arena` | Bot-vs-bot games between any decks in the browser; any game can be watched as a visual replay. |
+| Learn | Strategy | `#/guides` | Strategy guides and the tournament plan. |
+| Learn | Cards | `#/cards` | Card list; approximated cards are marked. |
+| Learn | Glossary | `#/glossary` | Rules terms. |
+| Learn | Card stats | `#/insights` | Per-deck card telemetry from `sim -- analyze` ("Δ when drawn" and more). |
+| Learn | Credits | `#/credits` | Where every deck came from and who made it. |
+
+Visual replays show a game on the real board; click a log line to rewind to it.
+
+## npm scripts
+
+| Script | What it does |
+|---|---|
+| `npm run dev` / `build` / `preview` | Vite dev server, production build (typecheck first), and a preview of the build. |
+| `npm run typecheck` | `tsc --noEmit`. |
+| `npm test` | Runs the test suite once (see [Tests](#tests)). |
+| `npm run test:cov` | The test suite with V8 coverage of `src/` (report in `coverage/`, no thresholds). |
+| `npm run lint` | ESLint, limited to the React hooks rules. Not part of CI yet. |
+| `npm run build:data` | Regenerates `src/data/cards.json` from `data/raw/sim_catalog.json` (`tools/build-data.ts`). Needs the local catalog copy. |
+| `npm run sim -- <command>` | The matchup CLI (below). |
+| `npm run tournament -- [flags]` | Runs tournament events from the CLI (below). |
+| `npm run build-h2h` | Rebuilds `public/data/h2h.json` (head-to-heads for the Deck Lab) from the recorded events. |
+| `npm run bundle-reports` | Bundles per-deck report data from `reports/` into `src/data/deckReports.json` for the deck profile page. |
+| `npm run refresh` | `bundle-reports`, then `scripts/plan.ts`, then `build-h2h`. |
 
 ## Matchup scripts
 
@@ -46,23 +89,29 @@ npx tsx scripts/plan.ts                             # regenerate the Tournament 
 npx tsx scripts/forge.ts --nc --gens 2              # data-driven iteration of the Trainer-original decks (or pass any deck)
 npx tsx scripts/optimize.ts <deck> --vs <opp> --sideboard   # Bo3 sideboard swaps for one matchup
 npx tsx scripts/tune-profiles.ts                    # tune matchup-aware bot profiles
-npx tsx scripts/season.ts --season 4                # breed 8 new decks, tournament, forge, finals, leaderboard
-bash scripts/seasons.sh                             # 3 seasons + grand final + finals + plan
+npx tsx scripts/season.ts --season <next>           # the next season number: breed 8 new decks, tournament, forge, finals, leaderboard
+npm run tournament -- --field meta --bo 3 --top 8 --bot hard   # record a new event (shown on the Events page)
 ```
+
+These commands fail on unknown flags and invalid values instead of ignoring them. They also refuse to overwrite recorded data unless you pass `--force`:
+
+- `npm run tournament` numbers new events after the highest existing event id, and will not overwrite an existing event.
+- `scripts/season.ts` will not re-run a season that already exists, because that would count its games twice. Pass the next season number.
+- `sim add`, `scripts/import-meta.ts` and `scripts/import-guides.ts` will not overwrite an existing deck file, and they keep its provenance header.
 
 ### Data-driven deck building
 Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`, and the reasoning is in `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
 
-Reports go to `reports/` (`*-latest.md` plus timestamped copies). `review` also refreshes `src/data/review.json`, which feeds the Meta and Home pages.
+Reports go to `reports/` (`*-latest.md` plus timestamped copies, which are gitignored). `review` also refreshes `src/data/review.json`, which feeds the Meta and Home pages; `analyze` refreshes `src/data/analysis.json`, which feeds Card stats, the coach and the Deck Lab.
 
 ## Adding decks
 
 - **In the browser:** go to Decks → Import, paste a list, then Save to My decks. Decks are stored in your browser's localStorage.
 - **For the CLI and the bundled site:** run `npm run sim -- add file.txt`, or drop a `.txt` file into `data/decks/custom/`. Any supported format works.
-- **Refreshing the choom.gg data:** re-download the pages into `data/raw/`, then run `npx tsx scripts/import-meta.ts` and `npx tsx scripts/import-guides.ts`.
+- **Refreshing the choom.gg data:** re-download the pages into your local `data/raw/`, then run `npx tsx scripts/import-meta.ts` and `npx tsx scripts/import-guides.ts` (add `--force` to replace decks that already exist).
 
 ## Deploying to GitHub Pages
-The app is fully static: hash routing, relative `base`, and no server. On every push to `main`, `.github/workflows/pages.yml` typechecks, tests, builds, and publishes `dist/` to the `gh-pages` branch. GitHub Pages serves that branch at `https://<user>.github.io/<repo>/`.
+The app is fully static: hash routing, relative `base`, and no server. `.github/workflows/pages.yml` has two jobs. `check` typechecks, tests and builds on every push to `main` and on every pull request. `deploy` runs after it, only for pushes to `main` (or a manual run on `main`), and publishes `dist/` to the `gh-pages` branch. GitHub Pages serves that branch at `https://<user>.github.io/<repo>/`.
 
 ## Sources and credits
 Every deck file carries a provenance header (`// Origin:`, `// Author:`, `// Source:`, `// Via:`, `// Credits:`, `// Parents:`, `// Added:`). These headers are shown on the Decks, Strategy, Seasons and **Credits** pages. Collected lists credit their authors and link back to choom.gg. Saved copies of third-party pages used during research stay local in `data/raw/` and are not published.
@@ -70,9 +119,40 @@ Every deck file carries a provenance header (`// Origin:`, `// Author:`, `// Sou
 ## Tests
 
 ```bash
-npm test             # engine smoke test, per-colour card tests, deck format round-trips
+npm test             # the 11 test files in tests/, run by Vitest
+npm run test:cov     # the same with coverage
 npm run typecheck
 ```
+
+| File | Covers |
+|---|---|
+| `smoke.test.ts` | 50 random games play to completion. |
+| `rules.test.ts` | Core rules, with their rule numbers: setup, steals, fights, attack targets, once-per-turn sell and Call. |
+| `red.test.ts`, `blue.test.ts`, `green.test.ts`, `yellow.test.ts` | Card scripts, colour by colour. |
+| `deck.test.ts` | Deck import in every format, export round-trips, legality checks, and that the meta decks are legal. |
+| `tournament.test.ts` | Bracket seeding, top-cut size, Swiss with a bye and no rematches, and results that don't depend on the order games finish. |
+| `tiers.test.ts` | Bot tier names and the mixed-tier seat choice. |
+| `reviewer.test.ts` | The match reviewer replays games exactly, does not change them, and summarises accuracy. |
+| `play-tools.test.ts` | Undo snapshots replay exactly, drag-to-act targets, and Deck Lab swaps. |
+
+## Scripts
+
+Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `.sh` files). Most files start with a usage comment.
+
+| Scripts | Status |
+|---|---|
+| `simulate.ts` (`npm run sim`), `worker.ts`, `worker-boot.mjs`, `lib-node.ts`, `tournament.ts`, `build-h2h.ts`, `bundle-reports.ts`, `plan.ts`, `forge.ts`, `optimize.ts`, `tune.ts`, `tune-profiles.ts`, `botcheck.ts`, `season.ts`, `import-meta.ts`, `import-guides.ts`, `review.ts`, `review-worker.ts`, `review-boot.mjs`, `review-noise.ts`, `review-debug.ts`, `coach-eval.ts` | Maintained. Covered above, in `docs/BOT_TOOLKIT.md` and in `docs/REVIEW_FINDINGS.md`. |
+| `coach-h2h.sh`, `bot-tiers.sh`, `finals.sh` | Maintained bash wrappers: coach configs vs the Deep bot, bot tiers head-to-head, and a final large-sample test followed by the plan. |
+| `ratings.ts` | Fits the power ratings (`src/data/ratings.json`, `reports/ratings-latest.md`). |
+| `breed-data.ts`, `breed-preview.ts` | What the deck breeder learns from past runs; a preview of the next season's breeding without playing games. |
+| `tag-provenance.ts` | Rewrites every deck file with a standard provenance header. |
+| `classify.ts` | Prints the archetype read of every library deck. |
+| `quick.ts`, `showlog.ts` | Quick checks: a few games between two decks, or one game's log. |
+| `theorize-ladder.ts`, `eor-build.ts` | One-time deck writers: decks for ladder Legend trios, and a sideboarded list from optimizer reports. |
+| `replay-check.ts` | Stale; to be replaced by a replay test. |
+| `scripts/archive/` | Unmaintained one-offs kept for history: `new-decks.ts`, `variants.ts`, `tournament-build.ts`, `diag.ts`, `bbg-plan.sh`, `pick-followup.sh`, `refine-measure.sh`, `final.sh`, `followup.sh`, `nc-chain.sh`, `series.sh`, `seasons-45.sh`, `seasons.sh`. Don't run them: several overwrite forged decks or re-run past seasons. |
+
+`tools/build-data.ts` (`npm run build:data`) normalises the card catalog into `src/data/cards.json`.
 
 ## Known limits
 

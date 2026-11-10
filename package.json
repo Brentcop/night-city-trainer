@@ -4,16 +4,20 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Local Cyberpunk TCG simulator: deck builder, meta/guides, play vs bots, and bot-vs-bot deck testing.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run",
-    "build:data": "python -I tools/build_data.py",
+    "test:cov": "vitest run --coverage --coverage.include=src",
+    "build:data": "tsx tools/build-data.ts",
     "sim": "tsx scripts/simulate.ts",
     "tournament": "tsx scripts/tournament.ts",
-    "gauntlet": "tsx scripts/gauntlet.ts",
     "bundle-reports": "tsx scripts/bundle-reports.ts",
     "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts && tsx scripts/build-h2h.ts",
     "build-h2h": "tsx scripts/build-h2h.ts"
@@ -23,8 +27,12 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.72.2",
     "vite": "^5.4.11",
     "vitest": "^2.1.8"
   },

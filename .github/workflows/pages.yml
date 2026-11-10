@@ -1,33 +1,56 @@
 name: Build and deploy to GitHub Pages
 
-# Typecheck, test and build on every push to main, then publish dist/ to the gh-pages branch
-# (GitHub Pages serves that branch at https://<user>.github.io/<repo>/).
+# `check` typechecks, tests and builds on every push to main and on every pull request.
+# `deploy` runs only for pushes to main (and manual runs), after `check` passes, and publishes
+# dist/ to the gh-pages branch (GitHub Pages serves that branch at https://<user>.github.io/<repo>/).
+# Actions are pinned to the commit of the tag named in the trailing comment.
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: read
 
 jobs:
-  deploy:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx vitest run
       - run: npx vite build
-      - uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: github.event_name != 'pull_request'
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Never cancel a deploy that is already publishing; queue the next one instead.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      # peaceiris/actions-gh-pages pushes with the repository's git remote, so check it out first.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist
+      - uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist

@@ -42,15 +42,15 @@ The evaluation scores a position from one player's view: ours minus the rival's.
 | Gig difference | 20 per Gig | Gigs are the win condition: 7 at the start of your turn wins |
 | Near-win bonus | 45 per Gig above 5 | 6 Gigs means one steal from winning |
 | Overtime | Gig difference counted twice | 7 Gigs wins instantly in overtime |
-| Units on board | power×1.2 + cost×1.2 + 2, plus Blocker +2, Gear +1.5 each, 10+ power +6 | Board presence; at 10+ power a Unit steals 2 Gigs |
-| Spent Units the rival can beat | ×(1 − 0.175) | Attacking leaves a Unit exposed to a counter-attack |
+| Units on board | power×1.2 + cost×1.2 + 2, plus Blocker +2, Go Solo +2, Gear +1.5 each, 10+ power +6 | Board presence; at 10+ power a Unit steals 2 Gigs |
+| Spent Units the rival can beat | ×(1 − 0.087), for the player whose turn it is | Attacking leaves a Unit exposed to a counter-attack |
 | Cards in hand | 3.6 each (counts up to 10) | Card advantage |
 | Eddies | 2.6 each (counts up to 10) | Permanent mana |
-| Face-up Legends | 3 each, plus 2 per Gear on a Legend | Unlocks abilities and passives |
+| Face-up Legends | 4.8 each, plus 2 per Gear on any Legend | Unlocks abilities and passives |
 | Gig plan | 1.5 × plan score | Rewards dice that match the deck's payoffs |
 | Low deck | −8 per card under 4 | Deck-out avoidance |
 
-The weights were tuned by self-play (`scripts/tune.ts`): each weight is tried at ×0.5 and ×1.6 against the baseline across every meta pairing, and a variant is adopted if it wins at least 54%.
+The weights were tuned by self-play (`scripts/tune.ts`): each weight is tried at ×0.5 and ×1.6 against the baseline across every meta pairing, and a variant is adopted if it wins at least 54%. Two rounds so far: round 1 halved the Gig, unit-power and spent-risk weights; round 2 raised face-up Legends and halved spent risk again. The values above are `DEFAULT_WEIGHTS` in `src/ai/eval.ts`; the per-Gig, Gear, Blocker and low-deck numbers are fixed in the code, not tuned.
 
 ## 4. Gig plan (`src/ai/knowledge.ts → gigPlanOf`)
 
@@ -122,13 +122,13 @@ In Play, coach mode asks an advisor bot for its move and explains it.
 
 **Advisor config:** `deep: 12` with the tuned profiles and `impact: 40`. Card impact adds `40 × Δ when drawn` to sell and keep choices, and the advisor keeps hands that hold at least 2 high-impact cards.
 
-**How it was chosen:** `scripts/coach-eval.ts` scores sampled real decisions against a rollout oracle. The full numbers are in `reports/coach-eval-latest.md`.
+**How it was chosen:** `scripts/coach-eval.ts` scores sampled real decisions against a rollout oracle. The write-up with the full numbers is `reports/coach-eval-latest.md` (the raw table from the deep set is `reports/coach-eval-depth-run.md`).
 - Blunders fell from 25% (the old 1-ply coach) to 7.5%.
 - Agreement with the oracle rose from 58% to 73%.
 - As a player it wins 51% against the in-app Deep bot (168 games), which is not a significant edge.
 - So read it as better advice, not a stronger opponent.
 
-Re-run after retuning: `npx tsx scripts/coach-eval.ts --samples 200 --rollouts 6 [--set deep]`, then `bash scripts/coach-h2h.sh`.
+Re-run after retuning: `npx tsx scripts/coach-eval.ts --samples 200 --rollouts 6 [--set deep]`, then `bash scripts/coach-h2h.sh`. The script defaults to 120 samples and 8 rollouts, and writes its table to `reports/coach-eval-<set>-latest.md` (`base` or `deep`); the write-up above was made with 6 rollouts.
 
 ## 8. Match reviewer (`src/ai/reviewer.ts`)
 
