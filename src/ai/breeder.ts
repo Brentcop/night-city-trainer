@@ -41,6 +41,15 @@ function rng(seed: number) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 
+/** Best first by score plus a random jitter of up to ±spread/2, drawn once per item before sorting (a comparator that
+ *  draws random numbers is inconsistent, and how many numbers it draws depends on the sort implementation). */
+function jitterSort<T>(xs: readonly T[], score: (x: T) => number, spread: number, r: () => number): T[] {
+  return xs
+    .map((x) => ({ x, k: score(x) + (r() - 0.5) * spread }))
+    .sort((a, b) => b.k - a.k)
+    .map((y) => y.x);
+}
+
 function legalTriple(ids: string[]): boolean {
   if (ids.length !== 3) return false;
   return new Set(ids.map((id) => CARD_BY_ID[id].name)).size === 3;
@@ -183,7 +192,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   for (let k = 0, tries = 0; out.filter((o) => o.method === 'mutant').length < nMutant && tries < 200; tries++) {
     const parent = top[k++ % Math.min(top.length, 4)].deck;
     const slot = Math.floor(r() * 3);
-    const cands = LEGENDS.filter((l) => !parent.legends.includes(l.id)).sort((a, b) => lscore(b.id) - lscore(a.id) + (r() - 0.5) * 0.08);
+    const cands = jitterSort(LEGENDS.filter((l) => !parent.legends.includes(l.id)), (l) => lscore(l.id), 0.08, r);
     const pick = cands[Math.floor(r() * Math.min(6, cands.length))];
     const legends = parent.legends.map((id, i) => (i === slot ? pick.id : id));
     if (!legalTriple(legends)) continue;
@@ -196,7 +205,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
     const a = top[Math.floor(r() * top.length)].deck;
     const b = top[Math.floor(r() * top.length)].deck;
     if (a === b) continue;
-    const pool = [...new Set([...a.legends, ...b.legends])].sort((x, y) => lscore(y) - lscore(x) + (r() - 0.5) * 0.1);
+    const pool = jitterSort([...new Set([...a.legends, ...b.legends])], lscore, 0.1, r);
     const legends: string[] = [];
     for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name)) legends.push(l);
     if (!legalTriple(legends)) continue;
@@ -228,7 +237,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
       const a = vsBosses[Math.floor(r() * Math.min(3, vsBosses.length))];
       const b = vsBosses[Math.floor(r() * vsBosses.length)];
       if (a === b) continue;
-      const pool = [...new Set([...a.deck.legends, ...b.deck.legends])].sort((x, y) => lscore(y) - lscore(x) + (r() - 0.5) * 0.12);
+      const pool = jitterSort([...new Set([...a.deck.legends, ...b.deck.legends])], lscore, 0.12, r);
       const legends: string[] = [];
       for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name)) legends.push(l);
       if (!legalTriple(legends)) continue;
@@ -246,7 +255,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   const styles: Archetype[] = ['aggro', 'midrange', 'control'];
   for (let tries = 0; out.length < n && tries < 500; tries++) {
     const legends: string[] = [];
-    const weighted = [...LEGENDS].sort((x, y) => lscore(y.id) - lscore(x.id) + (r() - 0.5) * 0.25);
+    const weighted = jitterSort(LEGENDS, (l) => lscore(l.id), 0.25, r);
     for (const l of weighted) {
       if (legends.length >= 3) break;
       if (r() < 0.45) continue;

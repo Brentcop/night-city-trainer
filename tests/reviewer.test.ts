@@ -44,6 +44,15 @@ describe('match reviewer', () => {
     expect(r.seats).toHaveLength(2);
   }, 60_000);
 
+  it('reviewing a Medium game does not change how it plays out (lookahead bots share the clone machinery)', async () => {
+    const plain = await Game.create(decks, [makeTierBot('medium', 21), makeTierBot('medium', 22)], { seed: 9, log: false }).run();
+    const r = await reviewGame({ decks, seed: 9, agents: [makeTierBot('medium', 21), makeTierBot('medium', 22)] }, { rollouts: 1, screen: 1, seats: [1] });
+    expect(r.winner).toBe(plain.winner);
+    expect(r.turns).toBe(plain.turn);
+    expect(r.decisions.length).toBeGreaterThan(0);
+    expect(r.decisions.some((d) => d.category === 'no reaction' || d.category === 'block' || d.category.startsWith('react'))).toBe(true);
+  }, 120_000);
+
   it('summarizes accuracy and blunders', () => {
     const s = summarizeSeat(0, 'A', 'easy', [
       { i: 0, turn: 1, player: 0, category: 'sell', options: 3, chosen: 'x', best: 'x', regret: 0, gameLosing: false },

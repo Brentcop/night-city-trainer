@@ -4,7 +4,7 @@ import { CARD_BY_ID } from '../engine/cards';
 import type { Decision, PlayerId } from '../engine/types';
 import { HeuristicAgent } from './heuristic';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
-import { knownCards } from './eval';
+import { GIG_SWING, knownCards } from './eval';
 import { topImpactCards } from './impact';
 import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
@@ -18,8 +18,8 @@ export function makeCoach() {
   return new HeuristicAgent({ name: 'Coach', ...COACH_CONFIG });
 }
 
-/** Evaluation points → "Gig swing" (a stolen Gig moves the evaluation by ~2 × gig weight). */
-const gigs = (delta: number) => delta / 40;
+/** Evaluation points → "Gig swing". */
+const gigs = (delta: number) => delta / GIG_SWING;
 
 export interface Advice {
   index: number;
@@ -72,7 +72,7 @@ export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number):
   const coach = d.options[a.index]?.label ?? '?';
   if (chosen === a.index) return { turn, chose, coach, gap: 0, verdict: 'agree' };
   const alt = a.alternatives.find((x) => x.index === chosen);
-  const gap = alt ? alt.gapGigs : d.kind === 'action' ? null : null;
+  const gap = alt ? alt.gapGigs : null;
   return { turn, chose, coach, gap, verdict: gap !== null && gap < 0.15 ? 'close' : 'miss' };
 }
 

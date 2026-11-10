@@ -40,7 +40,3 @@ export function topImpactCards(deckName: string, n = 3): { id: string; iwd: numb
     .slice(0, n)
     .map(([id, iwd]) => ({ id, iwd }));
 }
-
-export function hasDeckTelemetry(deckName: string) {
-  return (perDeck.get(deckName)?.size ?? 0) > 0;
-}

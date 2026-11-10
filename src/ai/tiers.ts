@@ -9,12 +9,14 @@
 // Hard wins 52.4% vs the Deep bot and makes far fewer blunders by the coach oracle (reports/coach-eval-latest.md).
 // Tournaments can also mix Hard and Medium: each seat of each game is Hard or Medium, decided by the game seed,
 // so a replay rebuilds exactly the same bots.
+// Bot fixes change play for every tier and the legacy names alike (the owner chose to fix forward, 2026-11-10): events
+// recorded before a fix replay identically only with the code they were recorded with. Same code + same seed = same game.
 import { HeuristicAgent } from './heuristic';
 import { BEST_PROFILES } from './archetype';
 
 export type Tier = 'easy' | 'medium' | 'hard';
 /** Hard also rolls out its best N attack options (set by reports/refine-*.md). */
-export const HARD_DEEP_ATTACKS = 0; // attack rollouts measured no gain (reports/refine-results.md)
+const HARD_DEEP_ATTACKS = 0; // attack rollouts measured no gain (reports/refine-results.md)
 export type BotChoice = Tier | 'mixed';
 
 export const TIERS: Record<Tier, { label: string; blurb: string; speed: string }> = {
@@ -29,7 +31,8 @@ export const TOURNEY_BOTS: { key: BotChoice; label: string; blurb: string }[] = 
   { key: 'easy', label: 'All Easy', blurb: 'Quick sanity checks only' },
 ];
 
-/** Older names, still used by recorded events and CLI flags. Labels map to tiers; bots keep their exact original settings. */
+/** Older names, still used by recorded events and CLI flags. Labels map to tiers; `deep` and `hard-v1` keep their original
+ *  settings (search depth, impact, reactions), but share every later fix to the bot's choices. */
 const LEGACY: Record<string, Tier> = { fast: 'easy', lookahead: 'medium', deep: 'hard', 'hard-v1': 'hard' };
 export const tierOf = (level: string): Tier | 'mixed' => (level in LEGACY ? LEGACY[level] : (level as Tier | 'mixed'));
 export const tierLabel = (level: string) => {
@@ -45,7 +48,7 @@ function tierAgent(t: Tier, seed: number, name?: string) {
 
 /** The bot for a game seat. `seed` is the seat's seed (game seed for seat A, +7777 for seat B). */
 export function makeTierBot(level: string, seed: number, name?: string) {
-  // the pre-tier Deep bot (no card impact) — recorded events made with it must replay identically
+  // the pre-tier Deep bot (no card impact), kept for older recorded events and comparisons
   if (level === 'deep') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, profiles: BEST_PROFILES });
   // Hard as first released (before attack rollouts), kept for replays and comparisons
   if (level === 'hard-v1') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, impact: 40, profiles: BEST_PROFILES });

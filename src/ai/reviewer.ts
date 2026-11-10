@@ -11,7 +11,7 @@
 import { Game, GameOverSignal } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
 import type { Action, Agent, Decision, DeckList, PlayerId, Reaction } from '../engine/types';
-import { HeuristicAgent, hideInfo } from './heuristic';
+import { HeuristicAgent, hideInfo, isUnknownCall } from './heuristic';
 import { BEST_PROFILES } from './archetype';
 import { evaluate } from './eval';
 
@@ -21,7 +21,6 @@ export const NOISE = 4;
 export const BLUNDER = 15;
 /** Regret is capped here (3 Gigs) so a single game-ending line doesn't swamp the averages. */
 export const CAP = 120;
-const GIG = 40;
 /** Play-outs per candidate (validated: 8 with common random numbers, see reports/review-validation.md). */
 export const DEFAULT_ROLLOUTS = 8;
 
@@ -109,7 +108,7 @@ export const makeWorlds = (n: number, rnd: () => number): World[] =>
 
 /** Every play-out score is clamped to ±TERMINAL, and a won or lost game counts as exactly ±TERMINAL (instead of the
  *  engine's ±10000). Losing in 1 world of 8 then costs 1/8 of a game, and no position can score below an actual loss. */
-export const TERMINAL = 600;
+const TERMINAL = 600;
 /** If every candidate is within this of a won or lost game, the game is already decided and moves are not graded. */
 const DECIDED = 0.75 * TERMINAL;
 
@@ -119,7 +118,7 @@ export async function oracleValue(g: Game, p: PlayerId, a: Action, worlds: World
 }
 
 /** Oracle value plus the share of worlds in which the action led to a lost game. */
-export async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[]): Promise<{ v: number; lossRate: number }> {
+async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[]): Promise<{ v: number; lossRate: number }> {
   let sum = 0;
   let losses = 0;
   for (const w of worlds) {
@@ -149,7 +148,7 @@ export async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: Worl
 }
 
 /** Oracle value of a reaction for the defending player p: resume the attack, finish the attacker's turn, play p's turn. */
-export async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[]): Promise<{ v: number; lossRate: number }> {
+async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[]): Promise<{ v: number; lossRate: number }> {
   let sum = 0;
   let losses = 0;
   const attacker = g.s.attack!.attacker;
@@ -181,11 +180,41 @@ export async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds:
   return { v: sum / worlds.length, lossRate: losses / worlds.length };
 }
 
-export function reactionCategory(rx: Reaction): Category {
+/**
+ * Oracle values of the candidate options. Calls of face-down Legends the player can't tell apart are one move: each is
+ * valued as the average over every unknown slot (in the same worlds), so no slot is graded on its hidden identity.
+ */
+async function gradeAll<T extends Action | Reaction>(g: Game, cand: number[], opts: T[], oracle: (a: T) => Promise<{ v: number; lossRate: number }>) {
+  const vals = new Map<number, number>();
+  const loss = new Map<number, number>();
+  const unknown = opts.map((_, i) => i).filter((i) => isUnknownCall(g, opts[i]));
+  let group: { v: number; lossRate: number } | null = null;
+  for (const i of cand) {
+    let o: { v: number; lossRate: number };
+    if (unknown.includes(i)) {
+      if (!group) {
+        let v = 0;
+        let l = 0;
+        for (const k of unknown) {
+          const x = await oracle(opts[k]);
+          v += x.v;
+          l += x.lossRate;
+        }
+        group = { v: v / unknown.length, lossRate: l / unknown.length };
+      }
+      o = group;
+    } else o = await oracle(opts[i]);
+    vals.set(i, o.v);
+    loss.set(i, o.lossRate);
+  }
+  return { vals, loss };
+}
+
+function reactionCategory(rx: Reaction): Category {
   return rx.type === 'endReact' ? 'no reaction' : rx.type === 'block' ? 'block' : rx.type === 'call' ? 'react: call' : rx.type === 'play' ? 'react: program' : 'react: ability';
 }
 
-export function categoryOf(g: Game, a: Action): Category {
+function categoryOf(g: Game, a: Action): Category {
   switch (a.type) {
     case 'pass':
       return 'end turn';
@@ -253,6 +282,15 @@ export class ReviewAgent implements Agent {
     const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
     await screen.decide(g, d);
     for (const x of screen.lastAlternatives.slice(0, this.opts.screen ?? 4)) cand.add(x.index);
+    // a sell: also grade "don't sell now" — the best move among the non-sell options (screened the same way)
+    if (actions[chosen].type === 'sell') {
+      const keep = actions.map((a, i) => i).filter((i) => actions[i].type !== 'sell');
+      if (keep.length > 1) {
+        const ns = new HeuristicAgent({ profiles: BEST_PROFILES });
+        const [k] = await ns.decide(g, { ...d, options: keep.map((i) => d.options[i]) });
+        cand.add(keep[k]);
+      }
+    }
     // sells: the real question is which card (if any) to sell, so compare other sellable cards (one per distinct card)
     if (actions[chosen].type === 'sell' || screen.lastAlternatives.length === 0) {
       const seen = new Set<string>();
@@ -274,13 +312,7 @@ export class ReviewAgent implements Agent {
       cand.add(coachI);
     }
     const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const vals = new Map<number, number>();
-    const loss = new Map<number, number>();
-    for (const i of cand) {
-      const o = await oracleDetail(g, this.seat, actions[i], worlds);
-      vals.set(i, o.v);
-      loss.set(i, o.lossRate);
-    }
+    const { vals, loss } = await gradeAll(g, [...cand], actions, (a) => oracleDetail(g, this.seat, a, worlds));
     const bestV = Math.max(...vals.values());
     // already decided (every option loses, or every option wins): differences between moves mean nothing
     const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
@@ -312,21 +344,12 @@ export class ReviewAgent implements Agent {
     const pick = await this.inner.decide(g, d);
     const chosen = pick[0];
     const rxs = d.options.map((o) => o.action as Reaction);
-    const cand = new Set<number>([chosen]);
-    for (let i = 0; i < rxs.length && cand.size < 6; i++) cand.add(i);
+    // every option is graded (unknown Calls collapse into one, so this stays small)
+    const cand = rxs.map((_, i) => i);
     let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) {
-      [coachI] = await this.opts.coach().decide(g, d);
-      cand.add(coachI);
-    }
+    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
     const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const vals = new Map<number, number>();
-    const loss = new Map<number, number>();
-    for (const i of cand) {
-      const o = await oracleReaction(g, this.seat, rxs[i], worlds);
-      vals.set(i, o.v);
-      loss.set(i, o.lossRate);
-    }
+    const { vals, loss } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds));
     this.record(g, d, chosen, vals, loss, coachI, reactionCategory(rxs[chosen]));
     return pick;
   }
