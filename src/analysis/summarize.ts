@@ -8,7 +8,7 @@ export interface PlayerSummary {
   result: 1 | 0 | 0.5; // win / loss / tie
   mulligan: boolean;
   opening: string[]; // final opening hand (after mulligan)
-  seen: string[]; // unique card ids drawn or in opening hand
+  seen: string[]; // unique card ids in the kept opening hand or drawn later (a mulliganed-away hand doesn't count)
   played: Record<string, number>; // id -> first turn played (own-turn index: 1,2,3...)
   playCount: Record<string, number>;
   sold: Record<string, number>;
@@ -62,8 +62,11 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
     const m = out[e.p];
     switch (e.k) {
       case 'mulligan':
+        // the engine logs the first hand as 'open', then 'mulligan' and the new hand as 'open' (before any draw or play):
+        // the shuffled-back cards were never kept, so they don't count as seen
         m.mulligan = true;
         m.opening = [];
+        seen[e.p].clear();
         break;
       case 'open':
         m.opening.push(e.id!);
