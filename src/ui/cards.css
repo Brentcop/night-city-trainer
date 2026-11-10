@@ -338,7 +338,7 @@
 }
 .origin-nc-original {
   border-color: #b388ff;
-  color: #b388ff;
+  color: color-mix(in srgb, #b388ff 62%, var(--text)); /* readable on both themes */
 }
 .origin-nc-bred {
   border-color: #3ddc84;
@@ -347,7 +347,7 @@
 .origin-nc-variant,
 .origin-nc-build {
   border-color: #ff9f43;
-  color: #ff9f43;
+  color: color-mix(in srgb, #ff9f43 58%, var(--text));
 }
 .origin-by {
   font-weight: 400;
@@ -414,6 +414,9 @@
   transform: translateY(-3px);
   border-color: var(--accent);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.deck-tile .typesplit.mini {
+  margin-top: 4px;
 }
 .deck-tile.is-selected {
   border-color: var(--cyan);
