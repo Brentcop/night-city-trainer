@@ -28,6 +28,9 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   spentRisk: 0.087,
 };
 
+/** Evaluation points per "Gig" in advice and reviews: a stolen Gig moves the evaluation by about 2 × the gig weight. */
+export const GIG_SWING = 2 * DEFAULT_WEIGHTS.gig;
+
 /** Cards known to `viewer` that belong to player p (own: everything; rival: public zones only). */
 export function knownCards(g: Game, p: PlayerId, viewer: PlayerId): string[] {
   const P = g.P(p);

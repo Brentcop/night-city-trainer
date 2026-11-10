@@ -47,7 +47,7 @@ const ROLE_PATTERNS: [Role, RegExp][] = [
   ['combatTrick', /\{Quick\}/],
 ];
 
-export function rolesOf(c: CardDef): Role[] {
+function rolesOf(c: CardDef): Role[] {
   const roles = new Set<Role>();
   for (const [r, re] of ROLE_PATTERNS) if (re.test(c.text)) roles.add(r);
   if (c.keywords.includes('blocker') || /\{Blocker\}/.test(c.text)) roles.add('blocker');
@@ -57,8 +57,15 @@ export function rolesOf(c: CardDef): Role[] {
 
 export const ROLES: Record<string, Role[]> = Object.fromEntries(CARDS.map((c) => [c.id, rolesOf(c)]));
 
-/** Static card value used for sell/discard/search ordering. */
+const VALUE_CACHE = new Map<string, number>();
+/** Static card value used for sell/discard/search ordering (memoized: it depends on the card only). */
 export function cardValue(id: string): number {
+  let v = VALUE_CACHE.get(id);
+  if (v === undefined) VALUE_CACHE.set(id, (v = computeCardValue(id)));
+  return v;
+}
+
+function computeCardValue(id: string): number {
   const c = CARD_BY_ID[id];
   if (!c) return 0;
   let v = 0;
@@ -89,20 +96,23 @@ const PLAN_PATTERNS: [keyof GigPlan, RegExp][] = [
   ['d20', /d20/i],
 ];
 
+const PLAN_KEYS = PLAN_PATTERNS.map(([k]) => k);
+/** Per card: which Gig patterns its text mentions (computed once, so lookahead clones never re-run the regexes). */
+const PLAN_VEC: Record<string, (keyof GigPlan)[]> = Object.fromEntries(
+  CARDS.map((c) => [c.id, PLAN_PATTERNS.filter(([, re]) => re.test(c.text)).map(([k]) => k)]),
+);
+
 /** How much a list of cards cares about each Gig pattern (normalized to ~0-1). */
 export function gigPlanOf(ids: string[]): GigPlan {
   const plan: GigPlan = { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, d20: 0 };
-  for (const id of ids) {
-    const c = CARD_BY_ID[id];
-    if (!c) continue;
-    for (const [k, re] of PLAN_PATTERNS) if (re.test(c.text)) plan[k] += 1;
-  }
+  for (const id of ids) for (const k of PLAN_VEC[id] ?? []) plan[k] += 1;
   const n = Math.max(1, ids.length) / 10;
-  for (const k of Object.keys(plan) as (keyof GigPlan)[]) plan[k] = Math.min(1.5, plan[k] / n);
+  for (const k of PLAN_KEYS) plan[k] = Math.min(1.5, plan[k] / n);
   return plan;
 }
 
 /** Gear whose bottom text triggers "when this Unit or Legend is spent" — best on a face-up Legend (spent to pay every turn). */
 export function isSpendTriggerGear(id: string): boolean {
-  return /When this Unit or Legend is spent/i.test(CARD_BY_ID[id]?.text ?? '');
+  return SPEND_TRIGGER.has(id);
 }
+const SPEND_TRIGGER = new Set(CARDS.filter((c) => /When this Unit or Legend is spent/i.test(c.text)).map((c) => c.id));
