@@ -27,6 +27,11 @@
 .main > .grid > * {
   animation: rise 0.45s var(--ease-out) backwards;
 }
+.main > .pb {
+  /* the game board fades in without moving: any transform, even mid-animation, makes it the containing block for its
+     position: fixed children (the mulligan dialog and prompt dock open in exactly that window) */
+  animation-name: fade;
+}
 .main > .grid > *:nth-child(2) {
   animation-delay: 0.05s;
 }
