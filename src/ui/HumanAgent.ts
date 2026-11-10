@@ -4,22 +4,35 @@ import type { Game } from '../engine/engine';
 /** Agent driven by the UI: decide() parks a pending decision until the UI answers it. */
 export class HumanAgent implements Agent {
   name = 'You';
-  pending: { d: Decision; resolve: (r: number[]) => void } | null = null;
+  pending: { d: Decision; resolve: (r: number[]) => void; reject?: (e: Error) => void } | null = null;
   onChange: (() => void) | null = null;
   autoMulligan = false;
 
   decide(_g: Game, d: Decision): Promise<number[]> {
-    return new Promise((resolve) => {
-      this.pending = { d, resolve };
+    return new Promise((resolve, reject) => {
+      this.pending = { d, resolve, reject };
       this.onChange?.();
     });
   }
 
-  answer(i: number) {
+  /** Abandon the game: the pending decision (if any) rejects so the game loop unwinds instead of waiting forever. */
+  cancel() {
     const p = this.pending;
-    if (!p) return;
+    this.pending = null;
+    p?.reject?.(new Error('game cancelled'));
+  }
+
+  /**
+   * Answer decision `d` with option `i`. Ignored (returns false) unless `d` is the decision currently pending and `i`
+   * is one of its options, so a stale click from an earlier prompt can never answer the next one.
+   */
+  answer(d: Decision | null, i: number): boolean {
+    const p = this.pending;
+    if (!p || !d || p.d !== d) return false;
+    if (!Number.isInteger(i) || i < 0 || i >= d.options.length) return false;
     this.pending = null;
     p.resolve([i]);
     this.onChange?.();
+    return true;
   }
 }

@@ -3,6 +3,7 @@ import { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import { makeTierBot } from '../src/ai/tiers';
 import { HeuristicAgent } from '../src/ai/heuristic';
+import { cloneBot } from '../src/lib/practiceSession';
 import { candidateSwaps, breedInBrowser } from '../src/lib/deckLab';
 import { resolveDrop } from '../src/ui/components/board/drag';
 import { buildInteraction } from '../src/ui/components/board/interaction';
@@ -19,7 +20,6 @@ function anyDeck(name: string, colors: string[]): DeckList {
   return { name, legends, main, sideboard: [] };
 }
 const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
-const cloneBot = (b: HeuristicAgent) => Object.assign(Object.create(Object.getPrototypeOf(b)), structuredClone({ ...b })) as HeuristicAgent;
 
 describe('undo snapshots', () => {
   it('a game restored from a main-phase snapshot plays on exactly as the original', async () => {

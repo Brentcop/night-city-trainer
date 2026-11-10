@@ -18,9 +18,48 @@ export interface PracticeReplay {
 const KEY = 'nct.practiceReplays.v1';
 const MAX = 25;
 
+const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string');
+const isDeck = (x: unknown): x is DeckList => {
+  const d = x as DeckList | null;
+  return !!d && typeof d === 'object' && typeof d.name === 'string' && isStrArr(d.legends) && isStrArr(d.main) && (d.sideboard === undefined || isStrArr(d.sideboard));
+};
+
+/** True if a stored value has everything a review needs to re-simulate the game. */
+export function isReplay(x: unknown): x is PracticeReplay {
+  const r = x as PracticeReplay | null;
+  return (
+    !!r &&
+    typeof r === 'object' &&
+    typeof r.id === 'string' &&
+    typeof r.date === 'string' &&
+    Array.isArray(r.decks) &&
+    r.decks.length === 2 &&
+    r.decks.every(isDeck) &&
+    typeof r.seed === 'number' &&
+    (r.first === undefined || r.first === 0 || r.first === 1) &&
+    typeof r.botLevel === 'string' &&
+    typeof r.botSeed === 'number' &&
+    Array.isArray(r.choices) &&
+    r.choices.every((c) => Array.isArray(c) && c.every((i) => typeof i === 'number')) &&
+    (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
+  );
+}
+
+/** Parse stored replays, keeping only complete ones (never throws). */
+export function parseReplays(raw: string | null): PracticeReplay[] {
+  if (!raw) return [];
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (!Array.isArray(v)) return [];
+    return v.filter(isReplay).map((r) => ({ ...r, decks: [{ ...r.decks[0], sideboard: r.decks[0].sideboard ?? [] }, { ...r.decks[1], sideboard: r.decks[1].sideboard ?? [] }] }));
+  } catch {
+    return [];
+  }
+}
+
 export function loadReplays(): PracticeReplay[] {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    return parseReplays(localStorage.getItem(KEY));
   } catch {
     return [];
   }
