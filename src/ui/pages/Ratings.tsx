@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Wr } from '../components/Num';
 import ratings from '../../data/ratings.json';
 import { allDecks } from '../../lib/browserLibrary';
+import { byName } from '../deckLookup';
 import { LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 
 interface Row {
@@ -34,7 +35,7 @@ const GROUPS: [string, string][] = [
 ];
 
 export function RatingsPage() {
-  const lib = useMemo(() => new Map(allDecks().map((d) => [d.deck.name, d])), []);
+  const lib = useMemo(() => byName(allDecks()), []);
   const [group, setGroup] = useState('');
   if (!R.decks.length)
     return (

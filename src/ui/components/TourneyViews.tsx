@@ -3,14 +3,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { LegendStrip, OriginBadge } from './DeckIdentity';
-import { gameDeck, makeBot, type GameRec, type MatchRec, type StandingRow } from '../../lib/tournament';
+import { gameDeck, type GameRec, type MatchRec, type StandingRow } from '../../lib/tournament';
+import { errorText } from '../../sim/pool';
+import { useReplayWorker } from '../useReplayWorker';
+import { byName } from '../deckLookup';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewPanel } from './ReviewPanel';
-import { recordReplay, ReplayBoard, type ReplayData } from './ReplayBoard';
+import { ReplayBoard, type ReplayData } from './ReplayBoard';
 import { Wr } from './Num';
 
 export type Lib = Map<string, LibraryDeck>;
-export const useLib = () => useMemo(() => new Map(allDecks().map((d) => [d.deck.name, d])), []);
+/** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
+export const useLib = () => useMemo(() => byName(allDecks()), []);
 export const short = (s: string, n = 26) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
 /** Minimal match shape: history index entries have no games, live/full ones do. */
@@ -213,19 +217,26 @@ type EvDecks = Record<string, { legends: string[]; main: string[] }>;
 
 /** Match details: every game, with an exact re-simulation and turn-by-turn playback. */
 export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { games: GameRec[] }; decks: EvDecks; bot: string; lib: Lib; onClose: () => void }) {
-  const [replay, setReplay] = useState<{ i: number; data?: ReplayData; busy?: boolean } | null>(null);
+  const [replay, setReplay] = useState<{ i: number; data?: ReplayData; busy?: boolean; error?: string } | null>(null);
   const [review, setReview] = useState<{ i: number; req: ReviewRequest } | null>(null);
   const reviewGameAt = (i: number) => {
     const gm = m.games[i];
+    replayer.cancel();
     setReplay(null);
     setReview({ i, req: { kind: 'bots', decks: [gameDeck({ name: m.a, ...decks[m.a] }), gameDeck({ name: m.b!, ...decks[m.b!] })], seed: gm.seed, first: gm.first, bot, rollouts: 8, withCoach: false } });
   };
+  // The re-simulation runs in a worker: Close/Escape stay responsive, and closing the modal terminates it
+  // (a cancelled run resolves to null and is ignored).
+  const replayer = useReplayWorker();
   const play = async (i: number) => {
     const gm = m.games[i];
     setReplay({ i, busy: true });
-    await new Promise((r) => setTimeout(r, 30));
-    const data = await recordReplay([gameDeck({ name: m.a, ...decks[m.a] }), gameDeck({ name: m.b!, ...decks[m.b!] })], [makeBot(bot, gm.seed), makeBot(bot, gm.seed + 7777)], gm.seed, gm.first);
-    setReplay({ i, data });
+    try {
+      const data = await replayer.start({ a: gameDeck({ name: m.a, ...decks[m.a] }), b: gameDeck({ name: m.b!, ...decks[m.b!] }), seed: gm.seed, seedB: gm.seed + 7777, first: gm.first, bot });
+      if (data) setReplay({ i, data });
+    } catch (e) {
+      setReplay({ i, error: errorText(e) });
+    }
   };
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -285,6 +296,11 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
         </table>
         {review && <ReviewPanel key={review.i} req={review.req} title={`Game ${review.i + 1} review`} expect={m.games[review.i].winner} />}
         {replay?.busy && <p className="muted">Re-simulating game {replay.i + 1} with the same seed and bots…</p>}
+        {replay?.error && (
+          <p className="small" style={{ color: 'var(--red)' }}>
+            ⚠ Game {replay.i + 1} could not be re-simulated: {replay.error}
+          </p>
+        )}
         {replay?.data && (
           <>
             <h3 style={{ marginBottom: 4 }}>

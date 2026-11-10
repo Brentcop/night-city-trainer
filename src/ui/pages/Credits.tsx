@@ -1,5 +1,6 @@
 import { allDecks } from '../../lib/browserLibrary';
 import { deckColors } from '../../engine/deck';
+import { safeHref } from '../components/Markdown';
 
 const SOURCES: [string, string, string][] = [
   ['Card data (all 150 cards)', 'cyberpunk-tcg-sim.online public card catalog (sourced from netdeck.gg / the official card database)', 'https://cyberpunk-tcg-sim.online/'],
@@ -73,8 +74,8 @@ export function CreditsPage() {
                   <td>{[d.prov.parents, d.prov.credits].filter(Boolean).join(' · ') || '—'}</td>
                   <td>{d.prov.added ?? '—'}</td>
                   <td>
-                    {d.prov.source ? (
-                      <a href={d.prov.source} target="_blank" rel="noreferrer">
+                    {safeHref(d.prov.source) ? (
+                      <a href={safeHref(d.prov.source)!} target="_blank" rel="noreferrer">
                         link
                       </a>
                     ) : (

@@ -9,7 +9,8 @@ import type { DeckList } from '../../engine/types';
 import { breedInBrowser, loadH2H, playSet, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
 import tournaments from '../../data/tournaments.json';
 import type { Bred } from '../../ai/breeder';
-import { GamePool, defaultThreads } from '../../sim/pool';
+import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { customSaveName } from '../deckLookup';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { DeckTile } from '../components/DeckIdentity';
 import { Signed, Wr } from '../components/Num';
@@ -22,6 +23,9 @@ const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   { key: 'meta+ladder', label: 'Meta + sim ladder', hint: 'Adds the Master-ladder Legend trios' },
   { key: 'top8', label: 'Top 8 rated', hint: 'The 8 strongest decks by tournament power rating' },
 ];
+/** Bred decks' quick test: every deck plays the same games, so the numbers compare. */
+const QUICK_TEST_SEED = 77_000;
+const QUICK_TEST_GAMES = 56;
 const EFFORT = {
   quick: { label: 'Quick (~15 s)', games: 56, gens: 1, cands: 4 },
   standard: { label: 'Standard (~1 min)', games: 112, gens: 2, cands: 5 },
@@ -43,23 +47,27 @@ function fieldDecks(key: FieldKey, lib: LibraryDeck[], exclude: string): DeckLis
 export function DeckLabPage({ q }: { q: URLSearchParams }) {
   const [tab, setTab] = useState<'tune' | 'breed'>(q.get('tab') === 'breed' ? 'breed' : 'tune');
   const [handoff, setHandoff] = useState<DeckList | null>(null);
+  // switching tabs unmounts the panel and would kill its run, so tabs are locked while games are running
+  const [busy, setBusy] = useState(false);
+  const lock = busy ? 'Stop the current run first' : undefined;
   return (
     <div className="grid">
       <div className="spread">
         <h1 style={{ margin: 0 }}>Deck Lab</h1>
         <div className="seg">
-          <button className={tab === 'tune' ? 'on' : ''} onClick={() => setTab('tune')}>
+          <button className={tab === 'tune' ? 'on' : ''} onClick={() => setTab('tune')} disabled={busy && tab !== 'tune'} title={lock}>
             🔧 Tune a deck
           </button>
-          <button className={tab === 'breed' ? 'on' : ''} onClick={() => setTab('breed')}>
+          <button className={tab === 'breed' ? 'on' : ''} onClick={() => setTab('breed')} disabled={busy && tab !== 'breed'} title={lock}>
             🧬 Breed new decks
           </button>
         </div>
       </div>
       {tab === 'tune' ? (
-        <TunePanel initialFile={q.get('d') ?? undefined} handoff={handoff} />
+        <TunePanel initialFile={q.get('d') ?? undefined} handoff={handoff} onBusy={setBusy} />
       ) : (
         <BreedPanel
+          onBusy={setBusy}
           onTune={(d) => {
             setHandoff(d);
             setTab('tune');
@@ -71,7 +79,7 @@ export function DeckLabPage({ q }: { q: URLSearchParams }) {
 }
 
 // ---------------------------------------------------------------- tune
-function TunePanel({ initialFile, handoff }: { initialFile?: string; handoff: DeckList | null }) {
+function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; handoff: DeckList | null; onBusy: (b: boolean) => void }) {
   const lib = useMemo(() => allDecks(), []);
   const [source, setSource] = useState<'library' | 'paste'>(handoff ? 'paste' : 'library');
   const [file, setFile] = useState(findDeck(initialFile)?.file ?? lib.find((d) => d.kind === 'meta')?.file ?? lib[0].file);
@@ -82,9 +90,12 @@ function TunePanel({ initialFile, handoff }: { initialFile?: string; handoff: De
   const [prog, setProg] = useState<TuneProgress | null>(null);
   const [running, setRunning] = useState(false);
   const [saved, setSaved] = useState('');
+  /** how the last run ended: finished, stopped by you, or failed (with the game's error) */
+  const [outcome, setOutcome] = useState<{ kind: 'done' | 'stopped' | 'failed'; error?: string } | null>(null);
   const stopRef = useRef(false);
   const poolRef = useRef<GamePool | null>(null);
   useEffect(() => () => poolRef.current?.terminate(), []);
+  useEffect(() => onBusy(running), [running, onBusy]);
   useEffect(() => {
     if (handoff) {
       setSource('paste');
@@ -114,10 +125,16 @@ function TunePanel({ initialFile, handoff }: { initialFile?: string; handoff: De
     stopRef.current = false;
     setRunning(true);
     setSaved('');
+    setOutcome(null);
+    setProg(null);
     try {
-      await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02 }, pool.play, setProg, () => stopRef.current);
-    } catch {
-      /* stopped */
+      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02 }, pool.play, setProg, () => stopRef.current);
+      setOutcome({ kind: stopRef.current || p.phase === 'Stopped' ? 'stopped' : 'done' });
+    } catch (err) {
+      // Stop terminates the pool, which rejects the games in flight; anything else is a game that failed.
+      const stopped = stopRef.current || isStopped(err);
+      setOutcome(stopped ? { kind: 'stopped' } : { kind: 'failed', error: errorText(err) });
+      setProg((p) => p && { ...p, phase: stopped ? 'Stopped' : 'Failed' });
     } finally {
       pool.terminate();
       poolRef.current = null;
@@ -132,10 +149,12 @@ function TunePanel({ initialFile, handoff }: { initialFile?: string; handoff: De
   const changes = finalDeck && parsed.deck ? diff(parsed.deck, finalDeck) : [];
   const save = () => {
     if (!finalDeck) return;
-    const name = finalDeck.name.endsWith('(tuned)') ? finalDeck.name : `${finalDeck.name} (tuned)`;
+    const want = finalDeck.name.endsWith('(tuned)') ? finalDeck.name : `${finalDeck.name} (tuned)`;
+    const name = customSaveName(want, lib) ?? want;
     upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [] });
     setSaved(name);
   };
+  const finished = outcome?.kind === 'done';
 
   return (
     <>
@@ -211,9 +230,15 @@ function TunePanel({ initialFile, handoff }: { initialFile?: string; handoff: De
       {prog && (
         <div className="panel grid">
           <div className="spread">
-            <h3 style={{ margin: 0 }}>{running ? 'Tuning…' : prog.phase === 'Stopped' ? 'Stopped' : 'Tuning finished'}</h3>
+            <h3 style={{ margin: 0 }}>{running ? 'Tuning…' : outcome?.kind === 'failed' ? 'Tuning failed' : outcome?.kind === 'stopped' ? 'Stopped by you' : 'Tuning finished'}</h3>
             <span className="small muted">{prog.phase}</span>
           </div>
+          {!running && outcome?.kind === 'failed' && (
+            <div className="small" style={{ color: 'var(--red)' }}>
+              ⚠ A game failed, so the run was abandoned: {outcome.error}
+            </div>
+          )}
+          {!running && outcome?.kind === 'stopped' && <div className="small muted">The run was stopped before it finished, so the list below was not fully measured and can't be saved. Run it again to finish.</div>}
           {running && (
             <div className="run-progress">
               <div className="bar">
@@ -262,7 +287,7 @@ function TunePanel({ initialFile, handoff }: { initialFile?: string; handoff: De
               )}
             </details>
           ))}
-          {!running && finalDeck && (
+          {!running && finished && finalDeck && (
             <div className="grid">
               {changes.length ? (
                 <div className="small">
@@ -302,15 +327,21 @@ function diff(a: DeckList, b: DeckList): string[] {
 }
 
 // ---------------------------------------------------------------- breed
-function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
+function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy: (b: boolean) => void }) {
   const lib = useMemo(() => allDecks(), []);
   const [n, setN] = useState(6);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 900) + 100);
   const [parents, setParents] = useState<string[]>([]);
   const [pickFile, setPickFile] = useState(lib[0].file);
-  const [bred, setBred] = useState<(Bred & { test?: number | 'running'; saved?: boolean })[]>([]);
+  const [bred, setBred] = useState<Bred[]>([]);
+  // quick-test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
+  const [tests, setTests] = useState<Record<string, number | 'running' | { error: string }>>({});
+  const [savedAs, setSavedAs] = useState<Record<string, string>>({});
   const poolRef = useRef<GamePool | null>(null);
+  const live = useRef(0); // quick tests in flight; the pool is closed when the last one ends
   useEffect(() => () => poolRef.current?.terminate(), []);
+  const anyRunning = Object.values(tests).includes('running');
+  useEffect(() => onBusy(anyRunning), [anyRunning, onBusy]);
   // head-to-heads for counter decks: loaded only when this tab opens
   const [h2h, setH2H] = useState<H2HInfo | null | 'loading'>('loading');
   useEffect(() => {
@@ -321,17 +352,33 @@ function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
   const stale = !!h2hReady && h2hReady.events < recorded;
 
   const breed = () => setBred(breedInBrowser(lib, { n, seed, parents, h2h: h2hReady?.lookup }));
-  const test = async (k: number) => {
-    const b = bred[k];
-    setBred((xs) => xs.map((x, i) => (i === k ? { ...x, test: 'running' } : x)));
-    poolRef.current ??= new GamePool(defaultThreads());
+  const test = async (b: Bred) => {
+    const key = b.deck.name;
+    setTests((t) => ({ ...t, [key]: 'running' }));
+    if (!poolRef.current || poolRef.current.terminated) poolRef.current = new GamePool(defaultThreads());
+    const pool = poolRef.current;
+    live.current++;
     const field = lib.filter((d) => d.kind === 'meta').map((d) => d.deck);
-    const r = await playSet(b.deck, field, 77_000 + k * 1000, 56, 'medium', poolRef.current.play, false);
-    setBred((xs) => xs.map((x, i) => (i === k ? { ...x, test: r.wr } : x)));
+    try {
+      // every bred deck plays the same seeds, so their quick-test numbers are comparable
+      const r = await playSet(b.deck, field, QUICK_TEST_SEED, QUICK_TEST_GAMES, 'medium', pool.play, false);
+      setTests((t) => ({ ...t, [key]: r.wr }));
+    } catch (e) {
+      setTests((t) => {
+        const { [key]: _, ...rest } = t;
+        return isStopped(e) ? rest : { ...rest, [key]: { error: errorText(e) } };
+      });
+    } finally {
+      if (--live.current === 0) {
+        pool.terminate();
+        if (poolRef.current === pool) poolRef.current = null;
+      }
+    }
   };
-  const save = (k: number) => {
-    upsertCustom({ ...bred[k].deck, sideboard: [] });
-    setBred((xs) => xs.map((x, i) => (i === k ? { ...x, saved: true } : x)));
+  const save = (b: Bred) => {
+    const name = customSaveName(b.deck.name, lib) ?? b.deck.name;
+    upsertCustom({ ...b.deck, name, sideboard: [] });
+    setSavedAs((s) => ({ ...s, [b.deck.name]: name }));
   };
   const asLib = (b: Bred): LibraryDeck => ({ file: `lab:${b.deck.name}`, deck: b.deck, kind: 'custom', prov: { origin: 'Night City Trainer bred deck (Deck Lab)' } });
 
@@ -416,30 +463,37 @@ function BreedPanel({ onTune }: { onTune: (d: DeckList) => void }) {
       </div>
       {bred.length > 0 && (
         <div className="deck-grid">
-          {bred.map((b, k) => (
+          {bred.map((b) => {
+            const t = tests[b.deck.name];
+            const saved = savedAs[b.deck.name];
+            return (
             <div key={b.deck.name} className="panel grid" style={{ padding: 10 }}>
               <DeckTile d={asLib(b)} />
               <div className="small">
                 <span className="tag">{b.method}</span> <span className="muted">{b.idea}</span>
               </div>
               <div className="row small">
-                <button onClick={() => test(k)} disabled={b.test === 'running'}>
-                  {b.test === 'running' ? 'Testing…' : '▶ Quick test vs meta'}
+                <button onClick={() => test(b)} disabled={t === 'running'}>
+                  {t === 'running' ? 'Testing…' : '▶ Quick test vs meta'}
                 </button>
-                {typeof b.test === 'number' && (
+                {typeof t === 'number' && (
                   <span>
-                    <Wr v={b.test} n={56} strong /> vs meta
+                    <Wr v={t} n={QUICK_TEST_GAMES} strong /> vs meta
                   </span>
                 )}
+                {t && typeof t === 'object' && <span style={{ color: 'var(--red)' }}>⚠ Test failed: {t.error}</span>}
               </div>
               <div className="row small">
-                <button onClick={() => save(k)} disabled={b.saved}>
-                  {b.saved ? '✓ Saved' : '💾 Save'}
+                <button onClick={() => save(b)} disabled={!!saved} title={saved && saved !== b.deck.name ? `Saved as “${saved}” (the name belongs to a built-in deck)` : undefined}>
+                  {saved ? (saved === b.deck.name ? '✓ Saved' : `✓ Saved as “${saved}”`) : '💾 Save'}
                 </button>
-                <button onClick={() => onTune(b.deck)}>🔧 Tune it</button>
+                <button onClick={() => onTune(b.deck)} disabled={anyRunning} title={anyRunning ? 'Wait for the quick tests to finish' : undefined}>
+                  🔧 Tune it
+                </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </>
