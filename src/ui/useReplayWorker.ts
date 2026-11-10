@@ -2,7 +2,7 @@
 // Each start() cancels the previous one; cancel() and unmounting terminate the worker, and a cancelled run resolves to null.
 import { useCallback, useEffect, useRef } from 'react';
 import { GamePool, isStopped, type WorkerJob } from '../sim/pool';
-import type { ReplayData } from './components/ReplayBoard';
+import type { ReplayData } from '../lib/replayFrames';
 
 export function useReplayWorker() {
   const pool = useRef<GamePool | null>(null);

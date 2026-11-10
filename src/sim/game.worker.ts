@@ -5,6 +5,7 @@ import { Game } from '../engine/engine';
 import type { Agent, GameState } from '../engine/types';
 import { makeBot, type GameRec } from '../lib/tournament';
 import { summarize } from '../analysis/summarize';
+import { recordReplay } from '../lib/replayFrames';
 import type { WorkerRequest, WorkerResponse } from './pool';
 
 const post = (m: WorkerResponse) => (self as unknown as Worker).postMessage(m);
@@ -14,15 +15,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const agents = (): [Agent, Agent] => [makeBot(job.bot, job.seed), makeBot(job.bot, job.seedB ?? job.seed + 7777)];
     if (job.replay) {
-      // same capture as recordReplay() in ReplayBoard.tsx, off the main thread
-      const g = Game.create([job.a, job.b], agents(), { seed: job.seed, first: job.first });
-      const frames: GameState[] = [];
-      g.onLog = () => {
-        const { log: _log, trace: _trace, ...rest } = g.s;
-        frames.push(structuredClone({ ...rest, log: [] }) as GameState);
-      };
-      const s = await g.run();
-      post({ id, rec: record(job.seed, job.first, s), replay: { final: s, frames } });
+      // the same recording the page does, off the main thread
+      const replay = await recordReplay([job.a, job.b], agents(), job.seed, job.first);
+      post({ id, rec: record(job.seed, job.first, replay.final), replay });
       return;
     }
     const g = Game.create([job.a, job.b], agents(), { seed: job.seed, first: job.first, log: false, trace: !!job.trace });

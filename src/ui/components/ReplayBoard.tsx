@@ -2,56 +2,16 @@
 // the board state is captured after every log line, and the log becomes a timeline you can click, step or play.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Game } from '../../engine/engine';
-import type { Agent, DeckList, GameState, LogEntry, PlayerId } from '../../engine/types';
 import { EMPTY_IX } from './board/interaction';
 import type { BoardCtx } from './board/BoardCard';
 import { PlayerSide } from './board/Zones';
 import { BoardCard } from './board/BoardCard';
 import { useNarrow } from './board/useNarrow';
+import { lineInFinalLog, type ReplayData } from '../../lib/replayFrames';
 import '../board.css';
 
-/** The board right after one log line. */
-export interface ReplayFrame {
-  /** board state (log omitted to keep memory small) */
-  state: GameState;
-  /** the log line this frame follows */
-  line: LogEntry;
-  /** that line's position among every line the game logged, counting lines the engine has since trimmed from its log */
-  at: number;
-}
-export interface ReplayData {
-  final: GameState;
-  frames: ReplayFrame[];
-}
-
-/**
- * Capture a frame after every log line `g` writes from now on. The engine drops its oldest lines once the log grows
- * long, so each frame keeps its own line and absolute position instead of relying on frame i = log line i.
- */
-export function captureFrames(g: Game): ReplayFrame[] {
-  const frames: ReplayFrame[] = [];
-  let total = g.s.log.length;
-  g.onLog = () => {
-    const { log, trace: _trace, ...rest } = g.s;
-    frames.push({ state: structuredClone({ ...rest, log: [] }) as GameState, line: { ...log[log.length - 1] }, at: total++ });
-  };
-  return frames;
-}
-
-/** Where a frame's line sits in the final (possibly trimmed) log, or -1 if it was trimmed away. */
-export function lineInFinalLog(data: ReplayData, frame: ReplayFrame): number {
-  const totalLines = data.frames.length ? data.frames[data.frames.length - 1].at + 1 : data.final.log.length;
-  const i = frame.at - (totalLines - data.final.log.length);
-  return i >= 0 && i < data.final.log.length ? i : -1;
-}
-
-/** Re-simulate a game and capture a board frame after every log line. */
-export async function recordReplay(decks: [DeckList, DeckList], agents: [Agent, Agent], seed: number, first?: PlayerId): Promise<ReplayData> {
-  const g = Game.create(decks, agents, { seed, first });
-  const frames = captureFrames(g);
-  const final = await g.run();
-  return { final, frames };
-}
+// The recording half (frames, recordReplay) lives in lib/replayFrames so the game worker can use it without React.
+export { captureFrames, lineInFinalLog, recordReplay, type ReplayData, type ReplayFrame } from '../../lib/replayFrames';
 
 /** Space toggles play unless focus is on something that uses Space itself. */
 function ownsSpace(t: EventTarget | null): boolean {

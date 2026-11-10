@@ -2,7 +2,7 @@
 // A game that throws in a worker rejects with a GameError carrying the engine's message (never a silent tie);
 // terminate() rejects everything pending with a PoolStoppedError, so callers can tell "stopped by you" from "failed".
 import type { GameJob, GameRec, PlayGame } from '../lib/tournament';
-import type { ReplayData } from '../ui/components/ReplayBoard';
+import type { ReplayData } from '../lib/replayFrames';
 
 export const defaultThreads = () => Math.max(1, Math.min(8, ((typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4) - 1));
 
