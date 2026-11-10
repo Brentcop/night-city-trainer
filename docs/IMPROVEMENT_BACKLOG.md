@@ -2,6 +2,29 @@
 
 Eight parallel reviewers audited the project at commit `befda3e`. Baseline at that commit: `npx tsc --noEmit` clean, `npx vitest run` 95/95 passing. They reported 131 findings. This file groups them into work packages that can be handed to separate agents.
 
+## Status (2026-11-10)
+
+**Waves A and B are done and merged on the branch `improvements/review-2026-11`**, together with the MIT licence, the dev-dependency upgrade (vite 8, vitest 5; `npm audit` clean) and the approved data deletions. At the end: `tsc` clean, 514 tests passing (95 before), build and lint passing. Wave C has not been started.
+
+What is left over from Waves A and B:
+
+| Item | State |
+|---|---|
+| ENG-3 | Pending effects resolve in the right player order, but a player still can't choose the order of their own effects (rule 10.12). |
+| ENG-7 | An attack ends when a restriction starts forbidding its target; it does not re-check whether the target was readied. |
+| ENG-2 | Effect steals now take steal-count modifiers ("steals 1 fewer Gig"), on a reading of rule 11.5.1.3 that should be confirmed against an official ruling. |
+| OPS-2 | A forced re-run of seasons 1–5 is refused (they predate per-season totals); the subtract-then-recount path is untested end to end. Moot once the fresh baseline restarts seasons. |
+| APP-7 | After Stop, Deck Lab no longer offers to save anything, including swaps already confirmed. |
+| AI-11 | Not done: card impact is still keyed by deck name. Needs a card-list signature in the analysis data. |
+| AI-8 | Not done: the reviewer oracle still shares its rollout policy with the bots it grades. |
+| Card tests | 21 cards still have no direct test (9 of them in library decks); list in the WP-B1 hand-back. |
+| Bot strength | New Hard vs old Hard: 48.1% ±2.6 over 1,400 games; Medium 50.1% ±3.1 over 1,000. No bug found; the old bot knew which face-down Legend was which. Tier win rates in the docs are pre-fix and not re-measured. |
+| Dependencies | `overrides` pins `minimatch` 11.0.1 under typescript-eslint; remove it when typescript-eslint accepts minimatch 11. |
+| Lint | 5 `react-hooks/exhaustive-deps` warnings, not fixed. |
+| Browser checks | Checked by hand: Play start, moves, Undo, Quit mid-turn; Matchup Lab in workers; not-found routes; page loads. Not checked: deck-editor unsaved-changes prompts, a full browser tournament, Deck Lab tuning, the error banner, phone layout. |
+| CI | The split check/deploy workflow has not run on GitHub yet. |
+| Recorded data | Still from the old sim. See [ROADMAP.md](ROADMAP.md) §1. |
+
 **How to read it**
 
 - IDs keep the reviewer prefix: `ENG` engine, `RG` red/green scripts, `BY` blue/yellow scripts, `AI` bots, `PLAY` play UI, `APP` other pages, `LIB` lib/workers/build, `OPS` scripts/CI/docs.
