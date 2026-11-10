@@ -1,5 +1,5 @@
 // Tournament engine shared by the CLI (scripts/tournament.ts) and the in-browser runner (Tournaments → Run).
-// Swiss rounds (3 match points per win, no rematches, bye to the lowest-ranked deck without one), then an optional
+// Swiss rounds (3 match points per win, no avoidable rematches, bye to the lowest-ranked deck without one), then an optional
 // single-elimination top cut seeded 1vN, 2v(N-1)… Matches are best-of-1 or best-of-3; after each game the loser goes first.
 // Every game keeps its seed and seat, so any game can be replayed exactly with makeBot().
 import { makeTierBot, type BotChoice } from '../ai/tiers';
@@ -15,6 +15,15 @@ export function makeBot(level: string, seed: number) {
 
 /** Decks as they enter a game: sideboards play no part, so they are dropped (keeps replays identical everywhere). */
 export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckList => ({ name: d.name, legends: [...d.legends], main: [...d.main], sideboard: [] });
+
+/**
+ * Version of the engine, bots and event rules that recorded an event. Bump when results for a seed change.
+ * 2: backtracking Swiss pairing and hash-based tie-break. Events without `simVersion` predate it.
+ */
+export const SIM_VERSION = 2;
+
+/** Deterministic integer hash bit (also used for the game-1 coin flip). */
+const hashBit = (x: number, shift = 16) => (Math.imul(x, 2654435761) >>> shift) & 1;
 
 export interface GameRec {
   seed: number;
@@ -74,6 +83,8 @@ export interface TourneyEvent {
   champion: string | null;
   phase?: 'swiss' | 'top' | 'done' | 'stopped';
   progress?: { games: number; estimate: number };
+  /** SIM_VERSION the event was recorded with; absent on events from the earlier engine and bots. */
+  simVersion?: number;
 }
 export interface GameJob {
   a: DeckList;
@@ -102,7 +113,7 @@ export function bracketOrder(size: number) {
   while (o.length < size) o = o.flatMap((x) => [x, o.length * 2 - 1 - x]);
   return o.slice(0, size);
 }
-export const roundName = (alive: number) => (alive === 2 ? 'Final' : alive === 4 ? 'Semifinals' : alive === 8 ? 'Quarterfinals' : `Round of ${alive}`);
+const roundName = (alive: number) => (alive === 2 ? 'Final' : alive === 4 ? 'Semifinals' : alive === 8 ? 'Quarterfinals' : `Round of ${alive}`);
 
 function rng(seed: number) {
   let s = seed >>> 0 || 1;
@@ -110,7 +121,7 @@ function rng(seed: number) {
 }
 const floor3 = (x: number) => Math.max(1 / 3, x);
 
-export function computeStandings(st: Map<string, StandingRow>): StandingRow[] {
+function computeStandings(st: Map<string, StandingRow>): StandingRow[] {
   const mwp = (s: StandingRow) => floor3(s.mw / Math.max(1, s.mw + s.ml));
   return [...st.values()]
     .map((s) => {
@@ -120,29 +131,66 @@ export function computeStandings(st: Map<string, StandingRow>): StandingRow[] {
     .sort((a, b) => b.mp - a.mp || b.omw - a.omw || b.gwp - a.gwp || a.deck.localeCompare(b.deck));
 }
 
+/** Cap on search steps per pairing pass, so a pathological late round can't stall the event (deterministic). */
+const SEARCH_LIMIT = 200_000;
+
+/**
+ * Swiss pairings for one round. Decks are ordered by match points (random order within a point group). A backtracking
+ * search pairs the top unpaired deck with the first legal partner below it, recursing and backtracking on failure, so a
+ * rematch happens only when no rematch-free matching exists. With an odd field the bye goes to the lowest-ranked deck
+ * without one that still leaves a rematch-free matching; only if none does are rematches allowed (as few as possible).
+ */
 function swissPairings(st: Map<string, StandingRow>, r: () => number) {
   const order = [...st.values()].map((s) => ({ s, k: r() })).sort((x, y) => y.s.mp - x.s.mp || x.k - y.k).map((x) => x.s.deck);
-  const pairs: [string, string][] = [];
-  const used = new Set<string>();
-  let bye: string | null = null;
-  if (order.length % 2) {
-    for (let i = order.length - 1; i >= 0; i--)
-      if (!st.get(order[i])!.opps.includes('BYE')) {
-        bye = order[i];
-        break;
-      }
-    bye ??= order[order.length - 1];
-    used.add(bye);
+  const met = new Map(order.map((d) => [d, new Set(st.get(d)!.opps)]));
+  const hadBye = (d: string) => met.get(d)!.has('BYE');
+  const rematch = (a: string, b: string) => met.get(a)!.has(b);
+  // bye candidates: lowest-ranked first, decks that already had a bye only if everyone has had one
+  const byeCands: (string | null)[] = order.length % 2 ? [...order].reverse().filter((d) => !hadBye(d)) : [null];
+  if (!byeCands.length) byeCands.push(order[order.length - 1]);
+
+  let steps = 0;
+  /** Rematch-free perfect matching of `rest` (score order kept), or null. */
+  const strict = (rest: string[]): [string, string][] | null => {
+    if (!rest.length) return [];
+    if (++steps > SEARCH_LIMIT) return null;
+    // prune: every remaining deck must still have a legal partner
+    for (const d of rest) if (!rest.some((o) => o !== d && !rematch(d, o))) return null;
+    const [d, ...tail] = rest;
+    for (let i = 0; i < tail.length; i++) {
+      if (rematch(d, tail[i])) continue;
+      const sub = strict([...tail.slice(0, i), ...tail.slice(i + 1)]);
+      if (sub) return [[d, tail[i]], ...sub];
+    }
+    return null;
+  };
+  for (const bye of byeCands) {
+    steps = 0;
+    const pairs = strict(order.filter((d) => d !== bye));
+    if (pairs) return { pairs, bye };
   }
-  for (const d of order) {
-    if (used.has(d)) continue;
-    const partner = order.find((o) => !used.has(o) && o !== d && !st.get(d)!.opps.includes(o)) ?? order.find((o) => !used.has(o) && o !== d);
-    if (!partner) break;
-    used.add(d);
-    used.add(partner);
-    pairs.push([d, partner]);
-  }
-  return { pairs, bye };
+
+  // No rematch-free matching: branch and bound for the fewest rematches (fresh partners tried first).
+  let best: { pairs: [string, string][]; bye: string | null; cost: number } | null = null;
+  const min = (rest: string[], acc: [string, string][], cost: number, bye: string | null) => {
+    if (best && cost >= best.cost) return;
+    if (!rest.length) {
+      best = { pairs: [...acc], bye, cost };
+      return;
+    }
+    if (++steps > SEARCH_LIMIT && best) return;
+    const [d, ...tail] = rest;
+    const idx = tail.map((_, i) => i);
+    for (const i of [...idx.filter((i) => !rematch(d, tail[i])), ...idx.filter((i) => rematch(d, tail[i]))]) {
+      acc.push([d, tail[i]]);
+      min([...tail.slice(0, i), ...tail.slice(i + 1)], acc, cost + (rematch(d, tail[i]) ? 1 : 0), bye);
+      acc.pop();
+    }
+  };
+  steps = 0;
+  for (const bye of byeCands) min(order.filter((d) => d !== bye), [], 0, bye);
+  const b = best as unknown as { pairs: [string, string][]; bye: string | null };
+  return { pairs: b.pairs, bye: b.bye };
 }
 
 export interface RunOptions {
@@ -176,6 +224,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
     champion: null,
     phase: 'swiss',
     progress: { games: 0, estimate },
+    simVersion: SIM_VERSION,
   };
   const emit = () => opts.onUpdate?.({ ...ev, standings: ev.standings, rounds: [...ev.rounds], bracket: [...ev.bracket] });
   const stopped = () => opts.shouldStop?.() ?? false;
@@ -194,7 +243,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       if (stopped()) break;
       const prev = m.games[m.games.length - 1];
       // game 1: coin flip derived from the match seed (not the shared RNG, so parallel finishing order can't change the event)
-      const first: 0 | 1 = !prev ? ((Math.imul(seedBase, 2654435761) >>> 16) & 1 ? 1 : 0) : prev.winner === 'tie' ? ((1 - prev.first) as 0 | 1) : ((1 - prev.winner) as 0 | 1);
+      const first: 0 | 1 = !prev ? (hashBit(seedBase) ? 1 : 0) : prev.winner === 'tie' ? ((1 - prev.first) as 0 | 1) : ((1 - prev.winner) as 0 | 1);
       const g = await play({ a: byName.get(m.a)!, b: byName.get(m.b!)!, seed: seedBase + gi, first, bot: cfg.bot });
       m.games.push(g);
       if (g.winner === 0) m.score[0]++;
@@ -205,7 +254,9 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       emit();
     }
     m.live = false;
-    m.winner = m.score[0] > m.score[1] ? m.a : m.score[1] > m.score[0] ? m.b! : (m.games[0]?.seed ?? 0) % 2 ? m.a : m.b!;
+    // a tied match (every game tied, or level after a tie) goes to a side picked by a hash of the match seed: game-1 seeds
+    // are always even, so the old `seed % 2` always picked B. A different hash bit from the coin flip keeps it independent.
+    m.winner = m.score[0] > m.score[1] ? m.a : m.score[1] > m.score[0] ? m.b! : hashBit(seedBase, 17) ? m.a : m.b!;
   };
 
   for (let round = 1; round <= cfg.rounds && !stopped(); round++) {
