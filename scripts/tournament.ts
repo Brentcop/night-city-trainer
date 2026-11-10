@@ -13,7 +13,7 @@
 //   --record  false to skip writing the site's event history (quick experiments)
 //
 // A game that throws aborts the event (nothing is recorded for it) and the run exits 1; it is never scored as a tie.
-// Outputs: data/tournaments/event-<n>.json (also public/tournaments/ for the site) and the index src/data/tournaments.json.
+// Outputs: public/tournaments/event-<n>.json (the one copy: the site fetches it and the scripts read it) and the index src/data/tournaments.json.
 import fs from 'node:fs';
 import { bool, cli, EVENTS_DIR, existing, int, loadLibrary, maxEventId, oneOf, readEvents, resolveDeck, str, threadsOpt, TIER_BOTS, workerPool, writeJsonStamped } from './lib-node';
 import { autoRounds, cutSize, runTournament, type BotLevel, type PlayGame, type TourneyEvent } from '../src/lib/tournament';
@@ -21,7 +21,6 @@ import type { MatchJob, MatchResult } from './worker';
 import type { LibraryDeck } from '../src/lib/library';
 import { buildH2H } from './build-h2h';
 
-const PUBLIC_DIR = 'public/tournaments';
 const { values: V } = cli(import.meta.url, {
   events: int(12, { min: 1 }),
   start: int(undefined, { min: 1 }),
@@ -35,7 +34,7 @@ const { values: V } = cli(import.meta.url, {
   force: bool(),
 });
 const EVENTS = V.events;
-const START = V.start ?? maxEventId(EVENTS_DIR, PUBLIC_DIR) + 1;
+const START = V.start ?? maxEventId(EVENTS_DIR) + 1;
 const TOP = V.top;
 const BO = V.bo === '1' ? 1 : 3;
 const BOT = V.bot as BotLevel;
@@ -46,9 +45,9 @@ const THREADS = Math.min(V.threads, 16);
 // ---------------------------------------------------------------- refuse to overwrite recorded events
 const planned = Array.from({ length: EVENTS }, (_, k) => START + k);
 if (RECORD) {
-  const clash = existing(planned.flatMap((n) => [`${EVENTS_DIR}/event-${n}.json`, `${PUBLIC_DIR}/event-${n}.json`]));
+  const clash = existing(planned.map((n) => `${EVENTS_DIR}/event-${n}.json`));
   if (clash.length && !V.force) {
-    console.error(`error: these events are already recorded: ${clash.join(', ')}.\nLeave out --start to continue after event ${maxEventId(EVENTS_DIR, PUBLIC_DIR)}, or pass --force to overwrite them.`);
+    console.error(`error: these events are already recorded: ${clash.join(', ')}.\nLeave out --start to continue after event ${maxEventId(EVENTS_DIR)}, or pass --force to overwrite them.`);
     process.exit(1);
   }
   if (clash.length) console.log(`--force: overwriting ${clash.length} recorded event file(s)`);
@@ -110,10 +109,7 @@ function nodePool(size: number) {
 // ---------------------------------------------------------------- outputs
 function writeEvent(ev: TourneyEvent) {
   fs.mkdirSync(EVENTS_DIR, { recursive: true });
-  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
-  const json = JSON.stringify(ev);
-  fs.writeFileSync(`${EVENTS_DIR}/event-${ev.id}.json`, json);
-  fs.writeFileSync(`${PUBLIC_DIR}/event-${ev.id}.json`, json);
+  fs.writeFileSync(`${EVENTS_DIR}/event-${ev.id}.json`, JSON.stringify(ev));
 }
 function writeIndex() {
   const count = (parts: { matches: { games: unknown[] }[] }[]) => parts.reduce((a, r) => a + r.matches.reduce((b, m) => b + m.games.length, 0), 0);

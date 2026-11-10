@@ -389,7 +389,8 @@ export function runMain(main: () => Promise<unknown>) {
 
 // ================================================================ recorded tournament events
 
-export const EVENTS_DIR = 'data/tournaments';
+/** Recorded events live in one place: the site fetches them from here and the scripts read them from here. */
+export const EVENTS_DIR = 'public/tournaments';
 const EVENT_RE = /^event-(\d+)\.json$/;
 
 /** event-N.json file names in a directory, in numeric order. */
@@ -407,7 +408,7 @@ export function maxEventId(...dirs: string[]): number {
   return m;
 }
 
-/** Loosely typed recorded event (data/tournaments/event-N.json). */
+/** Loosely typed recorded event (public/tournaments/event-N.json). */
 export interface RecordedEvent {
   id: number;
   date: string;

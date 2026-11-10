@@ -3,7 +3,7 @@
 // (scripts/tournament.ts) and by `npm run refresh`; run directly with:  npx tsx scripts/build-h2h.ts
 // Events are read in id order and the file is only rewritten (and "updated" only moves) when the records change.
 import fs from 'node:fs';
-import { cli, eventFiles, forEachRecordedGame, writeJsonStamped } from './lib-node';
+import { cli, eventFiles, EVENTS_DIR, forEachRecordedGame, writeJsonStamped } from './lib-node';
 
 export interface H2HFile {
   updated: string;
@@ -14,7 +14,7 @@ export interface H2HFile {
   pairs: [number, number, number, number][];
 }
 
-export function buildH2H(dir = 'data/tournaments', out = 'public/data/h2h.json'): H2HFile | null {
+export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json'): H2HFile | null {
   if (!fs.existsSync(dir)) return null;
   const idx = new Map<string, number>();
   const id = (n: string) => (idx.has(n) ? idx.get(n)! : (idx.set(n, idx.size), idx.size - 1));
@@ -50,5 +50,5 @@ export function buildH2H(dir = 'data/tournaments', out = 'public/data/h2h.json')
 if (process.argv[1]?.endsWith('build-h2h.ts')) {
   cli(import.meta.url, {});
   const d = buildH2H();
-  console.log(d ? `h2h: ${d.decks.length} decks, ${d.pairs.length} pairings, ${d.games} games from ${d.events} events → public/data/h2h.json` : 'no tournament data (data/tournaments) yet');
+  console.log(d ? `h2h: ${d.decks.length} decks, ${d.pairs.length} pairings, ${d.games} games from ${d.events} events → public/data/h2h.json` : `no tournament data (${EVENTS_DIR}) yet`);
 }

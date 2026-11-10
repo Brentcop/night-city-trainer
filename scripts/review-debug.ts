@@ -21,7 +21,7 @@ const seat = +seatS as PlayerId;
 const target = +idxS;
 const altLabel = V.alt;
 const rec = (JSON.parse(fs.readFileSync(file, 'utf8')) as { id: string; review: { seed: number; first: PlayerId; names: [string, string] } }[]).find((x) => x.id === id)!;
-const ev = JSON.parse(fs.readFileSync(`data/tournaments/event-${id.match(/^e(\d+)-/)![1]}.json`, 'utf8'));
+const ev = JSON.parse(fs.readFileSync(`public/tournaments/event-${id.match(/^e(\d+)-/)![1]}.json`, 'utf8'));
 const decks: [ReturnType<typeof gameDeck>, ReturnType<typeof gameDeck>] = [gameDeck({ name: rec.review.names[0], ...ev.decks[rec.review.names[0]] }), gameDeck({ name: rec.review.names[1], ...ev.decks[rec.review.names[1]] })];
 
 class Stop extends Error {}

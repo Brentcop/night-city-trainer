@@ -10,5 +10,8 @@ coverage/
 .claude/settings.local.json
 .claude/worktrees/
 
+# Per-decision review dumps written by scripts/review.ts (large, regenerable; the summaries in reports/ are kept).
+data/reviews/
+
 # Third-party source copies (choom.gg pages, rules text, card catalogs) stay local; the app ships derived data only.
 data/raw/
