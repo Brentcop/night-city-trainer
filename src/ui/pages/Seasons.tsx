@@ -41,8 +41,7 @@ export function SeasonsPage() {
       <div className="panel">
         <h1>Seasons</h1>
         <p>
-          No seasons yet. Run <code>npx tsx scripts/season.ts --season 1</code> (or <code>bash scripts/seasons.sh</code> for three seasons and a grand
-          final).
+          No seasons yet. Run <code>npx tsx scripts/season.ts --season 1</code>.
         </p>
       </div>
     );

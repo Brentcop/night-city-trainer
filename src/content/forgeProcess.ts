@@ -35,7 +35,7 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
 4. **Finals:** every newcomer plays the meta archetypes.
 5. **Leaderboard:** every game against the meta archetypes is pooled per deck. Ranking uses a rating shrunk toward 50% by a 60-game prior, plus a percentile across all decks ever measured (see the **Seasons** page).
 
-\`bash scripts/seasons.sh\` runs three seasons back to back. It then plays a grand final (the meta archetypes plus the all-time top 12) and the finals for the best contenders, and regenerates the Tournament plan.
+Each season is one run of \`npx tsx scripts/season.ts --season <next number>\`. The script refuses to re-run a season that already exists, so the leaderboard is never counted twice.
 
 ## Reading the numbers
 - **±3 points is noise** at ~300 games. The forge requires +2 points on the paired test **and** a win on fresh seeds before adopting a change.
