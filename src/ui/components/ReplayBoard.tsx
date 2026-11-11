@@ -138,7 +138,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
         <button onClick={() => (setPlaying(false), setCur(Math.min(n - 1, Math.max(cur + 1, firstLineOfTurn(turnNow + 1)))))} disabled={end} title="Next turn">
           ⏭
         </button>
-        <select value={speed} onChange={(e) => setSpeed(+e.target.value)}>
+        <select aria-label="Fast-forward speed" value={speed} onChange={(e) => setSpeed(+e.target.value)}>
           {SPEEDS.map((x) => (
             <option key={x.ms} value={x.ms}>
               {x.label}

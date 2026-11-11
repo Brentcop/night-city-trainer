@@ -35,9 +35,6 @@
 .dp-lineage.build {
   border-left-color: #ff9f43;
 }
-.dp-actions a {
-  text-decoration: none;
-}
 .dp-section-title {
   font-family: var(--display);
   font-size: 1.3rem;

@@ -9,7 +9,7 @@ export function GlossaryPage() {
     <div className="grid">
       <div className="spread">
         <h1 style={{ margin: 0 }}>Glossary &amp; bot toolkit</h1>
-        <input placeholder="Search terms…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input aria-label="Search terms" placeholder="Search terms…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <p className="muted">
         Every term is defined from the official Comprehensive Rules (rule numbers cited). <b>Engine</b> notes say how this simulator models it;{' '}

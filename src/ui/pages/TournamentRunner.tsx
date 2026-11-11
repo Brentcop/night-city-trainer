@@ -5,7 +5,9 @@ import ratings from '../../data/ratings.json';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { autoRounds, cutSize, runTournament, type BotLevel, type GameRec, type TourneyConfig, type TourneyEvent } from '../../lib/tournament';
-import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { download } from '../../lib/download';
+import { usePoolRun } from '../usePoolRun';
 import { parseRunParams, parseRuns, toEvent } from '../runParams';
 import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
 import { ColorPips } from '../components/DeckIdentity';
@@ -90,10 +92,9 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   /** why the last run ended early: stopped by you, or a game failed (with its error) */
   const [ended, setEnded] = useState<{ kind: 'stopped' | 'failed'; error?: string } | null>(null);
   const [fileMsg, setFileMsg] = useState('');
-  const poolRef = useRef<GamePool | null>(null);
+  const poolRun = usePoolRun();
   const stopRef = useRef(false);
   const frame = useRef(0);
-  useEffect(() => () => poolRef.current?.terminate(), []);
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => tick((x) => x + 1), 1000);
@@ -115,9 +116,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const start = async () => {
     if (entrants.length < 2) return;
     const cfg: TourneyConfig = { name: `${FIELDS.find((f) => f.key === field)?.label} · ${entrants.length} decks`, rounds, top: cut, bestOf, bot, seed };
-    poolRef.current?.terminate();
-    const gp = new GamePool(threads);
-    poolRef.current = gp;
+    const gp = poolRun.open(threads);
     stopRef.current = false;
     setRunning(true);
     setT0(Date.now());
@@ -147,14 +146,13 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
       setEnded(stopped ? { kind: 'stopped' } : { kind: 'failed', error: errorText(err) });
       if (last) setEv({ ...(last as TourneyEvent), phase: 'stopped', rounds: (last as TourneyEvent).rounds.map((r) => ({ ...r, matches: r.matches.map((m) => ({ ...m, live: false })) })), bracket: (last as TourneyEvent).bracket.map((r) => ({ ...r, matches: r.matches.map((m) => ({ ...m, live: false })) })) });
     } finally {
-      gp.terminate();
-      poolRef.current = null;
+      poolRun.close(gp);
       setRunning(false);
     }
   };
   const stop = () => {
     stopRef.current = true;
-    poolRef.current?.terminate();
+    poolRun.stop();
   };
 
   const shareLink = () => {
@@ -165,14 +163,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     navigator.clipboard?.writeText(url).catch(() => undefined);
     return url;
   };
-  const download = () => {
-    if (!ev) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(ev)], { type: 'application/json' }));
-    a.download = `tournament-${ev.id}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+  const downloadEvent = () => ev && download(`tournament-${ev.id}.json`, JSON.stringify(ev), 'application/json');
   const load = (file: File) =>
     file.text().then((t) => {
       let e: TourneyEvent | null = null;
@@ -216,7 +207,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           <div className="row">
             <div className="seg">
               {FIELDS.map((f) => (
-                <button key={f.key} className={field === f.key ? 'on' : ''} title={f.hint} onClick={() => choose(f.key)} disabled={running}>
+                <button key={f.key} className={field === f.key ? 'on' : ''} aria-pressed={field === f.key} title={f.hint} onClick={() => choose(f.key)} disabled={running}>
                   {f.label}
                 </button>
               ))}
@@ -227,7 +218,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
         <details>
           <summary className="small">Edit the deck list ({entrants.length} selected)</summary>
           <div className="row" style={{ margin: '6px 0' }}>
-            <input placeholder="Filter decks…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <input aria-label="Filter decks" placeholder="Filter decks…" value={filter} onChange={(e) => setFilter(e.target.value)} />
             <button onClick={() => (setField('custom'), setPicked([...new Set([...picked, ...shown.map((d) => d.file)])]))} disabled={running}>
               Select shown
             </button>
@@ -321,13 +312,14 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
         <div className="row small">
           {runs.length > 0 && <span className="muted">Your recent runs:</span>}
           {runs.map((r) => (
-            <button key={String(r.id)} className={`event-chip ${ev?.id === r.id ? 'on' : ''}`} onClick={() => !running && (setEnded(null), setMatch(null), setEv(r))} disabled={running}>
+            <button key={String(r.id)} className={`event-chip ${ev?.id === r.id ? 'on' : ''}`} aria-pressed={ev?.id === r.id} onClick={() => !running && (setEnded(null), setMatch(null), setEv(r))} disabled={running}>
               <b>{r.champion ? `🏆 ${r.champion}` : 'stopped'}</b>
               <span>{r.name ?? r.format}</span>
             </button>
           ))}
-          <label className="muted" style={{ cursor: 'pointer' }}>
-            <input type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
+          {/* the input is visually hidden but still focusable, so the label works from the keyboard too */}
+          <label className="muted file-pick">
+            <input type="file" className="sr-only" accept="application/json,.json" onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
             📂 Open event file
           </label>
           {fileMsg && <span style={{ color: 'var(--red)' }}>{fileMsg}</span>}
@@ -391,7 +383,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               <div className="spread">
                 <h3 style={{ marginTop: 0 }}>{ev.phase === 'done' ? 'Final standings' : 'Standings'}</h3>
                 {!running && (
-                  <button className="ghost small" onClick={download}>
+                  <button className="ghost small" onClick={downloadEvent}>
                     ⬇ Download JSON
                   </button>
                 )}

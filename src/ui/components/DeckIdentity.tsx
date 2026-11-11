@@ -79,8 +79,8 @@ export function LegendStrip({ legends, height = 90 }: { legends: string[]; heigh
   );
 }
 
-/** Gallery tile for a deck: legends art, name, origin, key stats. */
-export function DeckTile({ d, onClick, selected, href }: { d: LibraryDeck; onClick?: () => void; selected?: boolean; href?: string }) {
+/** Gallery tile for a deck: legends art, name, origin, key stats. With `href` the whole tile is a link; without, it is static. */
+export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boolean; href?: string }) {
   const st = deckStats(d.file);
   const body = (
     <>
@@ -121,9 +121,5 @@ export function DeckTile({ d, onClick, selected, href }: { d: LibraryDeck; onCli
         {body}
       </a>
     );
-  return (
-    <div className={cls} onClick={onClick} role={onClick ? 'button' : undefined}>
-      {body}
-    </div>
-  );
+  return <div className={cls}>{body}</div>;
 }

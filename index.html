@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Night City Trainer</title>
+    <script>
+      // Theme before first paint (no flash): saved choice in localStorage 'nct.theme', else the system's.
+      // data-theme always holds the resolved theme; the header toggle in src/App.tsx changes it.
+      (function () {
+        var root = document.documentElement;
+        var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        function saved() {
+          try {
+            var t = localStorage.getItem('nct.theme');
+            return t === 'light' || t === 'dark' ? t : '';
+          } catch (e) {
+            return '';
+          }
+        }
+        function apply() {
+          root.setAttribute('data-theme', saved() || (mq && mq.matches ? 'dark' : 'light'));
+        }
+        apply();
+        if (mq && mq.addEventListener) mq.addEventListener('change', apply);
+      })();
+    </script>
     <meta name="description" content="Unofficial Cyberpunk TCG practice simulator: deck builder, meta, guides, bot battles and matchup lab." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fcee0a'/><text x='16' y='23' font-size='18' text-anchor='middle' font-family='monospace' font-weight='bold'>NC</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

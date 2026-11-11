@@ -95,11 +95,11 @@ function RecommendedHero({ d, backup, lib }: { d: LibraryDeck; backup?: LibraryD
           <a className="rec-see" href={profileHref(d.file)}>
             See full stats →
           </a>
-          <a href={`#/play?d=${encodeURIComponent((build ?? d).file)}`}>
-            <button>▶ Practice with it</button>
+          <a className="btn" href={`#/play?d=${encodeURIComponent((build ?? d).file)}`}>
+            ▶ Practice with it
           </a>
-          <a href="#/guides">
-            <button>Tournament plan</button>
+          <a className="btn" href="#/guides">
+            Tournament plan
           </a>
         </div>
         <div className="small muted">

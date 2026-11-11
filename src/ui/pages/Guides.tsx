@@ -36,13 +36,9 @@ export function GuidesPage({ initial }: { initial?: string }) {
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Strategy guides</h3>
         {GUIDES.map((x) => (
-          <div
-            key={x.slug}
-            onClick={() => setSel(x.slug)}
-            style={{ cursor: 'pointer', padding: '5px 6px', borderRadius: 6, background: x.slug === sel ? 'var(--panel-2)' : undefined }}
-          >
+          <button key={x.slug} type="button" className="side-item" aria-current={x.slug === sel ? 'true' : undefined} onClick={() => setSel(x.slug)}>
             {x.badge && <span className={`tier tier-${x.badge}`}>{x.badge}</span>} {x.title}
-          </div>
+          </button>
         ))}
       </div>
       <div className="panel">
@@ -51,14 +47,14 @@ export function GuidesPage({ initial }: { initial?: string }) {
           <div className="row">
             {g.deckFile && (
               <>
-                <a href={`#/deck?d=${encodeURIComponent(g.deckFile)}`}>
-                  <button>Deck profile & stats</button>
+                <a className="btn" href={`#/deck?d=${encodeURIComponent(g.deckFile)}`}>
+                  Deck profile & stats
                 </a>
-                <a href={`#/play?d=${encodeURIComponent(g.deckFile)}`}>
-                  <button className="primary">Practice with it</button>
+                <a className="btn primary" href={`#/play?d=${encodeURIComponent(g.deckFile)}`}>
+                  Practice with it
                 </a>
-                <a href={`#/play?o=${g.deckFile}`}>
-                  <button>Practice against it</button>
+                <a className="btn" href={`#/play?o=${g.deckFile}`}>
+                  Practice against it
                 </a>
               </>
             )}

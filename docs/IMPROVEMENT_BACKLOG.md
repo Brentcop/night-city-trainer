@@ -6,7 +6,7 @@ Eight parallel reviewers audited the project at commit `befda3e`. Baseline at th
 
 **Waves A and B are done and merged on the branch `improvements/review-2026-11`**, together with the MIT licence, the dev-dependency upgrade (vite 8, vitest 5; `npm audit` clean) and the approved data deletions. At the end: `tsc` clean, 514 tests passing (95 before), build and lint passing. Wave C has not been started.
 
-**Wave C so far** (branch `improvements/wave-c`): WP-C1's bundle work is done except for loading Home's data at runtime (entry script 1,341 → 820 kB, each worker ~485 → ~205 kB; LIB-1, LIB-2 lazy routes, LIB-12 partly). ENG-8 is done: the human player chooses which Eddies or Legends pay a cost, including for reactions; bots still pay automatically. WP-C2 is merged except PLAY-9, PLAY-19 and PLAY-20 parts 4–5 (coach worker, drag, phone prompts, keyboard access and the game log are done). WP-C3, the rest of WP-C4 and WP-C5 are not started. Current status is kept in [ROADMAP.md](ROADMAP.md) §3.
+**Wave C so far** (branch `improvements/wave-c`): WP-C1's bundle work is done except for loading Home's data at runtime (entry script 1,341 → 820 kB, each worker ~485 → ~205 kB; LIB-1, LIB-2 lazy routes, LIB-12 partly). ENG-8 is done: the human player chooses which Eddies or Legends pay a cost, including for reactions; bots still pay automatically. WP-C2 is merged except PLAY-9, PLAY-19 and PLAY-20 parts 4–5 (coach worker, drag, phone prompts, keyboard access and the game log are done). WP-C3 is done (see its section). The rest of WP-C4 and WP-C5 are not started. Current status is kept in [ROADMAP.md](ROADMAP.md) §3.
 
 What is left over from Waves A and B:
 
@@ -261,6 +261,14 @@ Owns: `src/ui/pages/*` except `Play.tsx`, `src/ui/components/*` outside `board/`
 | APP-17 | L | Unlabelled inputs; no `aria-current`; theme flash on load; button inside `<summary>`. | Labels; inline theme script in `index.html`. |
 | APP-19 | L | Dead selectors, duplicated `.panel`/`.topbar`/`.nav a` blocks, dark tokens written twice. | Clean up. |
 | APP-20 | L–M | `Decks.tsx` (842 lines) holds four components; `DeckProfile.tsx` is imported as a helper library by three pages; pool lifecycle code is written three times; `download()` twice. | Extract `DeckGallery`, `DeckEditors`, `CardBrowser`, `DeckStats`, `usePoolRun`, `lib/download.ts`. |
+
+**Status 2026-11-11: all seven rows done, not yet checked in a browser.**
+- APP-13: the visual restyle had already split the signature colour into `--accent` (text, #756800, 4.7–5.6:1) and `--accent-bg` (fill), and darkened cyan and green, so every text token now passes 4.5:1 on `--bg`, `--panel` and `--panel-2` in both themes. Still failing were form-field borders (`--border`, 1.3–1.5:1; new `--control-border` at 3.2–3.8:1), small-sample numbers dimmed with opacity (`.num.thin`, as low as 2.8:1; now a dotted underline) and faded "TBD" bracket slots (now a dashed outline, text at full `--muted`).
+- APP-14: the lists are `<button class="side-item">` with `aria-current` on the open item. APP-15: 17 nested links (one more than reported, in Deck Lab) are now `<a class="btn">`.
+- APP-16: `src/ui/components/Modal.tsx` (dialog role, `aria-modal`, `aria-labelledby`, focus in, Tab trap, Escape, focus restored) is used by the card and match modals. The Play page's modals and board overlays are not covered (WP-C2's PLAY-9).
+- APP-17: labels on every unlabelled field; `aria-current` in both navs; `index.html` resolves the theme before first paint and `data-theme` now always holds it, so the dark tokens are written once (APP-19); Reset moved out of the gallery's `<summary>`, and so did a link in the bred-group headings.
+- APP-19: removed the old board's selectors (`.board`, `.side`, `.gig*`, `.prompt*`), `.hero`, `.cols-3`, `.p0-dot`/`.p1-dot`, `.playback`, `.card.clickable/.selected/.spent`, and rules always overridden by `motion.css`; merged the `.panel`, `.topbar`, `.nav`, `.nav a`, `.brand .chip`, `.subnav`, `button`, `h1`/`h2`, `.tag` and `.stat` blocks.
+- APP-20: `DeckGallery`, `DeckEditors` and `CardBrowser` live in `src/ui/components/`; `DeckStats` had already been extracted, and `CurveAndTypes` moved to `components/DeckCurve.tsx`, so no page imports `DeckProfile.tsx` any more (the Decks route no longer loads the profile page's chunk). `src/ui/usePoolRun.ts`, `src/lib/download.ts` and `src/ui/prefs.ts` hold the shared code. Entry chunk unchanged apart from route preload lists.
 
 ### WP-C4 · Type hardening and engine structure
 

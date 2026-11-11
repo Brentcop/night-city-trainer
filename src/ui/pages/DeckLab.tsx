@@ -12,7 +12,8 @@ import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
 import { RunDetails } from '../components/RunDetails';
 import tournaments from '../../data/tournaments.json';
 import type { Bred } from '../../ai/breeder';
-import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { errorText, isStopped } from '../../sim/pool';
+import { usePoolRun } from '../usePoolRun';
 import { customSaveName } from '../deckLookup';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { DeckTile } from '../components/DeckIdentity';
@@ -59,10 +60,10 @@ export function DeckLabPage({ q }: { q: URLSearchParams }) {
       <div className="spread">
         <h1 style={{ margin: 0 }}>Deck Lab</h1>
         <div className="seg">
-          <button className={tab === 'tune' ? 'on' : ''} onClick={() => setTab('tune')} disabled={busy && tab !== 'tune'} title={lock}>
+          <button className={tab === 'tune' ? 'on' : ''} aria-pressed={tab === 'tune'} onClick={() => setTab('tune')} disabled={busy && tab !== 'tune'} title={lock}>
             🔧 Tune a deck
           </button>
-          <button className={tab === 'breed' ? 'on' : ''} onClick={() => setTab('breed')} disabled={busy && tab !== 'breed'} title={lock}>
+          <button className={tab === 'breed' ? 'on' : ''} aria-pressed={tab === 'breed'} onClick={() => setTab('breed')} disabled={busy && tab !== 'breed'} title={lock}>
             🧬 Breed new decks
           </button>
         </div>
@@ -98,8 +99,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const [outcome, setOutcome] = useState<{ kind: 'done' | 'stopped' | 'failed'; error?: string } | null>(null);
   const [manifest, setManifest] = useState<RunManifest | null>(null);
   const stopRef = useRef(false);
-  const poolRef = useRef<GamePool | null>(null);
-  useEffect(() => () => poolRef.current?.terminate(), []);
+  const poolRun = usePoolRun();
   useEffect(() => onBusy(running), [running, onBusy]);
   useEffect(() => {
     if (handoff) {
@@ -124,9 +124,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     if (!deck || parsed.errors.length) return;
     const fieldList = fieldDecks(field, lib, deck.name);
     const e = EFFORT[effort];
-    poolRef.current?.terminate();
-    const pool = new GamePool(defaultThreads());
-    poolRef.current = pool;
+    const pool = poolRun.open();
     stopRef.current = false;
     const seedBase = 500_000 + Math.floor(Math.random() * 9_000);
     // what this run measures; completedGames follows the games actually played
@@ -169,15 +167,14 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       setOutcome(stopped ? { kind: 'stopped' } : { kind: 'failed', error: errorText(err) });
       setProg((p) => p && { ...p, phase: stopped ? 'Stopped' : 'Failed' });
     } finally {
-      pool.terminate();
-      poolRef.current = null;
+      poolRun.close(pool);
       note();
       setRunning(false);
     }
   };
   const stop = () => {
     stopRef.current = true;
-    poolRef.current?.terminate();
+    poolRun.stop();
   };
   const finalDeck = prog?.deck;
   const changes = finalDeck && parsed.deck ? diff(parsed.deck, finalDeck) : [];
@@ -205,17 +202,17 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
           <li>It confirms the best swap on fresh games before adopting it.</li>
         </ol>
         <div className="seg">
-          <button className={source === 'library' ? 'on' : ''} onClick={() => setSource('library')} disabled={running}>
+          <button className={source === 'library' ? 'on' : ''} aria-pressed={source === 'library'} onClick={() => setSource('library')} disabled={running}>
             From the library
           </button>
-          <button className={source === 'paste' ? 'on' : ''} onClick={() => setSource('paste')} disabled={running}>
+          <button className={source === 'paste' ? 'on' : ''} aria-pressed={source === 'paste'} onClick={() => setSource('paste')} disabled={running}>
             Paste a list
           </button>
         </div>
         {source === 'library' ? (
           <DeckPicker label="Deck" value={file} onChange={setFile} />
         ) : (
-          <textarea rows={8} placeholder="Paste a deck list (choom.gg, official deck builder, sim JSON, or lines like '3 Psycho Squad')" value={text} onChange={(e) => setText(e.target.value)} disabled={running} />
+          <textarea aria-label="Deck list to tune" rows={8} placeholder="Paste a deck list (choom.gg, official deck builder, sim JSON, or lines like '3 Psycho Squad')" value={text} onChange={(e) => setText(e.target.value)} disabled={running} />
         )}
         {parsed.errors.length > 0 && (
           <div className="small" style={{ color: 'var(--red)' }}>
@@ -340,8 +337,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 </button>
                 <button onClick={() => navigator.clipboard?.writeText(exportOfficial(finalDeck))}>Copy list</button>
                 {saved && (
-                  <a href={`#/play?d=${encodeURIComponent(`custom:${saved}`)}`}>
-                    <button>▶ Practice with “{saved}”</button>
+                  <a className="btn" href={`#/play?d=${encodeURIComponent(`custom:${saved}`)}`}>
+                    ▶ Practice with “{saved}”
                   </a>
                 )}
               </div>
@@ -375,9 +372,8 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   // quick-test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
   const [tests, setTests] = useState<Record<string, { wr: number; manifest: RunManifest } | 'running' | { error: string }>>({});
   const [savedAs, setSavedAs] = useState<Record<string, string>>({});
-  const poolRef = useRef<GamePool | null>(null);
+  const poolRun = usePoolRun();
   const live = useRef(0); // quick tests in flight; the pool is closed when the last one ends
-  useEffect(() => () => poolRef.current?.terminate(), []);
   const anyRunning = Object.values(tests).includes('running');
   useEffect(() => onBusy(anyRunning), [anyRunning, onBusy]);
   // head-to-heads for counter decks: loaded only when this tab opens
@@ -393,8 +389,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   const test = async (b: Bred) => {
     const key = b.deck.name;
     setTests((t) => ({ ...t, [key]: 'running' }));
-    if (!poolRef.current || poolRef.current.terminated) poolRef.current = new GamePool(defaultThreads());
-    const pool = poolRef.current;
+    const pool = poolRun.shared();
     live.current++;
     const fieldLib = lib.filter((d) => d.kind === 'meta');
     const field = fieldLib.map((d) => d.deck);
@@ -421,10 +416,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
         return isStopped(e) ? rest : { ...rest, [key]: { error: errorText(e) } };
       });
     } finally {
-      if (--live.current === 0) {
-        pool.terminate();
-        if (poolRef.current === pool) poolRef.current = null;
-      }
+      if (--live.current === 0) poolRun.close(pool);
     }
   };
   const save = (b: Bred) => {

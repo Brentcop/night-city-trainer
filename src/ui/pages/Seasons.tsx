@@ -49,7 +49,7 @@ export function SeasonsPage() {
     <div className="grid">
       <div className="spread">
         <h1 style={{ margin: 0 }}>Seasons &amp; all-time leaderboard</h1>
-        <input placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <input aria-label="Filter the leaderboard" placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />
       </div>
       <p className="muted" style={{ margin: 0 }}>
         Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Rating</b> = win rate vs the meta decks,

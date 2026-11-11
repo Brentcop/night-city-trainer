@@ -1,5 +1,5 @@
 // Shared tournament views: bracket (with TBD slots while an event runs), standings, round lists and the match modal with replay playback.
-import { useEffect, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { LegendStrip, OriginBadge } from './DeckIdentity';
@@ -11,6 +11,7 @@ import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewPanel } from './ReviewPanel';
 import { ReplayBoard, type ReplayData } from './ReplayBoard';
 import { Wr } from './Num';
+import { Modal } from './Modal';
 
 export type Lib = Map<string, LibraryDeck>;
 /** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
@@ -238,79 +239,70 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
       setReplay({ i, error: errorText(e) });
     }
   };
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  const titleId = useId();
   const rec = replay ? m.games[replay.i] : null;
   const fin = replay?.data?.final;
   const same = fin && rec && (fin.winner === rec.winner || (fin.winner === null && rec.winner === 'tie'));
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className={`modal ${replay?.data ? 'modal-wide' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <button className="ghost modal-close" onClick={onClose}>
-          ✕
-        </button>
-        <h2 style={{ marginTop: 0 }}>
-          <DeckName name={m.a} lib={lib} /> <span className="muted">vs</span> <DeckName name={m.b!} lib={lib} />
-        </h2>
-        <div className="stat" style={{ fontSize: '1.4rem' }}>
-          {m.score[0]} – {m.score[1]}
-          {m.winner ? ` · ${m.winner} wins` : ' · in progress'}
-        </div>
-        <table className="small" style={{ marginTop: 8 }}>
-          <thead>
-            <tr>
-              <th>Game</th>
-              <th>On the play</th>
-              <th>Winner</th>
-              <th>Turns</th>
-              <th>How</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {m.games.map((g, i) => (
-              <tr key={g.seed}>
-                <td>{i + 1}</td>
-                <td>{g.first === 0 ? m.a : m.b}</td>
-                <td>
-                  <b>{g.winner === 'tie' ? 'Draw' : g.winner === 0 ? m.a : m.b}</b>
-                </td>
-                <td>{g.turns}</td>
-                <td className="muted">{g.reason}</td>
-                <td>
-                  <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
-                    <button onClick={() => (setReview(null), play(i))} disabled={replay?.busy}>
-                      ▶ Watch
-                    </button>
-                    <button className="ghost" onClick={() => reviewGameAt(i)} title="Score every decision both bots made">
-                      🔍 Review
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {review && <ReviewPanel key={review.i} req={review.req} title={`Game ${review.i + 1} review`} expect={m.games[review.i].winner} />}
-        {replay?.busy && <p className="muted">Re-simulating game {replay.i + 1} with the same seed and bots…</p>}
-        {replay?.error && (
-          <p className="small" style={{ color: 'var(--red)' }}>
-            ⚠ Game {replay.i + 1} could not be re-simulated: {replay.error}
-          </p>
-        )}
-        {replay?.data && (
-          <>
-            <h3 style={{ marginBottom: 4 }}>
-              Game {replay.i + 1}{' '}
-              <span className="muted small">({same ? 'replay matches the recorded result' : 'replay differs from the record: bot settings changed since'}) · click any line of the log to see the board at that moment</span>
-            </h3>
-            <ReplayBoard data={replay.data} names={[m.a, m.b!]} />
-          </>
-        )}
+    <Modal labelledBy={titleId} onClose={onClose} className={replay?.data ? 'modal-wide' : undefined}>
+      <h2 id={titleId} style={{ marginTop: 0 }}>
+        <DeckName name={m.a} lib={lib} /> <span className="muted">vs</span> <DeckName name={m.b!} lib={lib} />
+      </h2>
+      <div className="stat" style={{ fontSize: '1.4rem' }}>
+        {m.score[0]} – {m.score[1]}
+        {m.winner ? ` · ${m.winner} wins` : ' · in progress'}
       </div>
-    </div>
+      <table className="small" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th>Game</th>
+            <th>On the play</th>
+            <th>Winner</th>
+            <th>Turns</th>
+            <th>How</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {m.games.map((g, i) => (
+            <tr key={g.seed}>
+              <td>{i + 1}</td>
+              <td>{g.first === 0 ? m.a : m.b}</td>
+              <td>
+                <b>{g.winner === 'tie' ? 'Draw' : g.winner === 0 ? m.a : m.b}</b>
+              </td>
+              <td>{g.turns}</td>
+              <td className="muted">{g.reason}</td>
+              <td>
+                <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
+                  <button onClick={() => (setReview(null), play(i))} disabled={replay?.busy}>
+                    ▶ Watch
+                  </button>
+                  <button className="ghost" onClick={() => reviewGameAt(i)} title="Score every decision both bots made">
+                    🔍 Review
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {review && <ReviewPanel key={review.i} req={review.req} title={`Game ${review.i + 1} review`} expect={m.games[review.i].winner} />}
+      {replay?.busy && <p className="muted">Re-simulating game {replay.i + 1} with the same seed and bots…</p>}
+      {replay?.error && (
+        <p className="small" style={{ color: 'var(--red)' }}>
+          ⚠ Game {replay.i + 1} could not be re-simulated: {replay.error}
+        </p>
+      )}
+      {replay?.data && (
+        <>
+          <h3 style={{ marginBottom: 4 }}>
+            Game {replay.i + 1}{' '}
+            <span className="muted small">({same ? 'replay matches the recorded result' : 'replay differs from the record: bot settings changed since'}) · click any line of the log to see the board at that moment</span>
+          </h3>
+          <ReplayBoard data={replay.data} names={[m.a, m.b!]} />
+        </>
+      )}
+    </Modal>
   );
 }

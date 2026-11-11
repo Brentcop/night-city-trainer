@@ -15,7 +15,7 @@ export function DeckPicker({ value, onChange, label }: { value: string; onChange
   return (
     <label className="row">
       {label && <span className="muted small">{label}</span>}
-      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ maxWidth: 340 }}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ maxWidth: 340 }} aria-label={label ? undefined : 'Deck'}>
         {groups.map(([g, ds]) =>
           ds.length ? (
             <optgroup key={g} label={g}>

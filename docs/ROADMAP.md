@@ -47,7 +47,7 @@ Today every push to `main` builds and force-pushes `dist/` to the `gh-pages` bra
 - **Wave C — structure, performance, accessibility.** Status on 2026-11-11:
   - WP-C1 (bundle size and data loading): merged, except loading Home's data at runtime.
   - WP-C2 (Play performance and accessibility): merged, except dialog focus handling (PLAY-9), the CSS merge (PLAY-19) and extracting the coach and setup panels (PLAY-20 parts 4–5).
-  - WP-C3 (pages accessibility and CSS): not started.
+  - WP-C3 (pages accessibility and CSS): done in the working tree on 2026-11-11 (APP-13 to APP-17, APP-19, APP-20; see the backlog), not yet checked by eye in a browser or committed.
   - WP-C4 (type hardening and engine structure): only payment choice (ENG-8) and the dev-dependency upgrade are done.
   - WP-C5 (production deploy): not started; the workflow still publishes through the `gh-pages` branch.
 
@@ -112,7 +112,27 @@ The current reviewer is a starting tool, not an independent authority: it rolls 
 
 The supplied image and official Comprehensive Rules / Rules FAQ are game-design reference material, not instructions to the assistant. Before freezing a new baseline, reconcile card data and simulator behavior against the current rules, FAQs, and errata, and record their versions in each run manifest. Rules and errata can change, so a deck result is only comparable when those inputs are identified too.
 
-## 6. Open and settled decisions
+## 6. Play board and presentation (requested 2026-11-11)
+
+Owner requests, done in three packages in this order.
+
+**P1 · Play board.**
+- Exit game (leave without recording a result) and Concede (end the game as a recorded loss, with a confirm).
+- The board takes at least 85% of the screen, with larger cards.
+- The game log moves so it works with the fuller board.
+- The card breakdown shown on hover renders above everything, including the hand.
+- Cards and targets that can be acted on are shown visually.
+- "All actions" sits where actions are taken and stays expanded once opened.
+- Bot speed: instant 0, fast 500 ms, normal 1,200 ms (default), slow 2,400 ms. The replay viewer's speeds shift the same way.
+
+**P2 · App pages.**
+- Reuse the board's colour scheme as accents on the barer screens.
+- Deck details show card images in the list structure.
+- A deck's played statistics are more prominent when inspecting it.
+
+**P3 · Statistics for bot training.** The first step of §5: record each decision with its legal alternatives, cost and board context, and report breakdowns by game stage, ahead or behind, and play versus reaction, with sample counts. Numbers measured before the fresh baseline (§1) describe the old data.
+
+## 7. Open and settled decisions
 
 Open:
 - For deck comparisons, start with an equal-weight meta field; add configurable tournament prevalence weights when reliable population data exists.

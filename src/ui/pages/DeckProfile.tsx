@@ -1,5 +1,5 @@
 // Deck profile: where a deck comes from (origin, lineage, idea) and every measured stat for it, plus the list shown visually.
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import '../deckprofile.css';
 import seasonsData from '../../data/seasons.json';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
@@ -14,13 +14,9 @@ import { ColorPips, LegendStrip, OriginBadge, originKind } from '../components/D
 import { ProvenanceBlock } from '../components/Provenance';
 import { DeckInsights } from '../components/DeckInsights';
 import { TcgCard } from '../components/TcgCard';
-import { TypeLegend, TypeSplitBar } from '../components/TypeSplit';
-import { MAIN_TYPES, typeSplit } from '../../lib/deckTypes';
-
-// ---------- data helpers (moved to ../components/DeckStats; re-exported for older importers) ----------
-
+import { MAIN_TYPES } from '../../lib/deckTypes';
 import { ok, deckReports, profileHref, WrBar, StatTile, type MatchRec } from '../components/DeckStats';
-export { ok, deckReports, profileHref, WrBar, StatTile, type MatchRec, type DeckReports } from '../components/DeckStats';
+import { CurveAndTypes } from '../components/DeckCurve';
 
 type SeasonsT = {
   leaderboard: { name: string; file: string; arch: string }[];
@@ -114,7 +110,7 @@ function Section({ title, caption, children }: { title: string; caption?: React.
 
 const TYPES: CardDef['type'][] = MAIN_TYPES;
 
-export function VisualDecklist({ deck, size = 'sm' }: { deck: DeckList; size?: 'sm' | 'md' }) {
+function VisualDecklist({ deck, size = 'sm' }: { deck: DeckList; size?: 'sm' | 'md' }) {
   const main = counts(deck.main);
   const side = counts(deck.sideboard);
   const sorted = (m: Map<string, number>, t?: CardDef['type']) =>
@@ -157,45 +153,6 @@ export function VisualDecklist({ deck, size = 'sm' }: { deck: DeckList; size?: '
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-export function CurveAndTypes({ deck }: { deck: DeckList }) {
-  const ids = deck.main.filter((id) => CARD_BY_ID[id]);
-  const curve: number[] = Array(9).fill(0);
-  for (const id of ids) curve[Math.min(8, CARD_BY_ID[id].cost ?? 0)]++;
-  const maxC = Math.max(1, ...curve);
-  const split = typeSplit(ids);
-  const n = Math.max(1, ids.length);
-  const avg = ids.reduce((a, id) => a + (CARD_BY_ID[id].cost ?? 0), 0) / n;
-  const sellable = ids.filter((id) => CARD_BY_ID[id].sellable).length;
-  return (
-    <div className="grid cols-2">
-      <div>
-        <div className="zone-label">Cost curve</div>
-        <p className="dp-caption">Main-deck cards at each Eddie (€$) cost · average {avg.toFixed(2)}</p>
-        <div className="dp-curve">
-          {curve.map((c, i) => (
-            <div key={i} title={`${c} cards at cost ${i}${i === 8 ? '+' : ''}`}>
-              <span className="muted">{c || ''}</span>
-              <div className="col" style={{ height: `${(80 * c) / maxC}%` }} />
-              <span>
-                {i}
-                {i === 8 ? '+' : ''}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div>
-        <div className="zone-label">Card types</div>
-        <p className="dp-caption">
-          {ids.length} main-deck cards · {sellable} sellable for Eddies ({Math.round((100 * sellable) / n)}%)
-        </p>
-        <TypeSplitBar split={split} />
-        <TypeLegend split={split} className="dp-type-legend" />
-      </div>
     </div>
   );
 }
@@ -315,21 +272,21 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
           )}
           {d.idea && <div>💡 {d.idea}</div>}
           <ProvenanceBlock prov={d.prov} />
-          <div className="row dp-actions">
-            <a href={`#/play?d=${enc}`}>
-              <button className="primary">▶ Practice with it</button>
+          <div className="row">
+            <a className="btn primary" href={`#/play?d=${enc}`}>
+              ▶ Practice with it
             </a>
-            <a href={`#/play?o=${enc}`}>
-              <button>⚔ Practice against it</button>
+            <a className="btn" href={`#/play?o=${enc}`}>
+              ⚔ Practice against it
             </a>
-            <a href={`#/arena?d=${enc}`}>
-              <button>🧪 Test in Matchup Lab</button>
+            <a className="btn" href={`#/arena?d=${enc}`}>
+              🧪 Test in Matchup Lab
             </a>
-            <a href={`#/lab?d=${enc}`}>
-              <button>🔧 Tune in Deck Lab</button>
+            <a className="btn" href={`#/lab?d=${enc}`}>
+              🔧 Tune in Deck Lab
             </a>
-            <a href={`#/decks?d=${enc}`}>
-              <button>✎ Edit / Export</button>
+            <a className="btn" href={`#/decks?d=${enc}`}>
+              ✎ Edit / Export
             </a>
           </div>
         </div>

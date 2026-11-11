@@ -22,31 +22,10 @@ export function CardText({ text }: { text: string }) {
   );
 }
 
-export function CardView({
-  def,
-  power,
-  spent,
-  extra,
-  onClick,
-  clickable,
-  selected,
-  compact,
-  showImage,
-}: {
-  def: CardDef;
-  power?: number | null;
-  spent?: boolean;
-  extra?: React.ReactNode;
-  onClick?: () => void;
-  clickable?: boolean;
-  selected?: boolean;
-  compact?: boolean;
-  showImage?: boolean;
-}) {
-  const cls = ['card', def.color, clickable ? 'clickable' : '', selected ? 'selected' : '', spent ? 'spent' : ''].join(' ');
+/** A card as a text frame (the deck editor's card browser). Not clickable itself: put controls in `extra`. */
+export function CardView({ def, power, extra, compact }: { def: CardDef; power?: number | null; extra?: React.ReactNode; compact?: boolean }) {
   return (
-    <div className={cls} onClick={onClick} title={def.text}>
-      {showImage && def.image && <img src={def.image} alt={def.displayName} loading="lazy" />}
+    <div className={`card ${def.color}`} title={def.text}>
       {power !== undefined && power !== null && <span className="pw">{power}</span>}
       <div className="name" style={{ paddingRight: power !== undefined ? 26 : 0 }}>
         {def.displayName}

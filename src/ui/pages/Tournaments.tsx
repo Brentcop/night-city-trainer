@@ -61,8 +61,8 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   }, [sel]);
 
   const runLink = (
-    <a href="#/run">
-      <button className="primary">▶ Run your own tournament</button>
+    <a className="btn primary" href="#/run">
+      ▶ Run your own tournament
     </a>
   );
   if (!I.events.length)
@@ -95,7 +95,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
 
       <div className="event-strip">
         {I.events.map((e) => (
-          <button key={e.id} className={`event-chip ${e.id === sel ? 'on' : ''}`} onClick={() => setSel(e.id)}>
+          <button key={e.id} className={`event-chip ${e.id === sel ? 'on' : ''}`} aria-pressed={e.id === sel} onClick={() => setSel(e.id)}>
             <b>#{e.id}</b>
             <span>{short(e.champion, 22)}</span>
           </button>

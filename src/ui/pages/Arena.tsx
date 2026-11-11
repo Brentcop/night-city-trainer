@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { TIERS, type Tier } from '../../ai/tiers';
 import type { PlayerId } from '../../engine/types';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
@@ -12,8 +12,9 @@ import { Wr, Verdict, ToneLegend } from '../components/Num';
 import { gameDeck, SIM_VERSION } from '../../lib/tournament';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
 import { RunDetails } from '../components/RunDetails';
-import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { errorText, isStopped } from '../../sim/pool';
 import { useReplayWorker } from '../useReplayWorker';
+import { usePoolRun } from '../usePoolRun';
 
 interface Row {
   /** opponent's library file (unique; names can repeat across built-in and custom decks) */
@@ -42,9 +43,7 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
   const [progress, setProgress] = useState('');
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
-  const poolRef = useRef<GamePool | null>(null);
-  // leaving the page stops the run (games live in workers, not in this component)
-  useEffect(() => () => poolRef.current?.terminate(), []);
+  const poolRun = usePoolRun();
   const replayer = useReplayWorker();
   const [watching, setWatching] = useState(false);
   const [watch, setWatch] = useState<{ data: ReplayData; names: [string, string] } | null>(null);
@@ -59,9 +58,7 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
     if (!dA) return;
     const A = gameDeck(dA.deck);
     const field = opps.map((o) => findDeck(o)).filter((d): d is NonNullable<typeof d> => !!d);
-    poolRef.current?.terminate();
-    const pool = new GamePool(defaultThreads());
-    poolRef.current = pool;
+    const pool = poolRun.open();
     const out: Row[] = field.map((d) => ({ key: d.file, opp: d.deck.name, games: 0, wins: 0, ties: 0, firstGames: 0, firstWins: 0, turns: 0 }));
     const total = field.length * n;
     const sums: (PlayerSummary | undefined)[] = [];
@@ -132,13 +129,12 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
         setError(errorText(e));
       }
     } finally {
-      pool.terminate();
-      if (poolRef.current === pool) poolRef.current = null;
+      poolRun.close(pool);
       show(true);
       setRunning(false);
     }
   };
-  const stopRun = () => poolRef.current?.terminate();
+  const stopRun = () => poolRun.stop();
 
   const watchGame = async () => {
     const dA = findDeck(a);

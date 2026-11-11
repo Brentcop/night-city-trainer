@@ -26,16 +26,12 @@ export function InsightsPage({ initial }: { initial?: string }) {
           {A.decks.reduce((a, d) => a + d.games, 0) / 2} bot games · {A.bot} bot · {A.date.slice(0, 10)}
         </div>
         {A.decks.map((d) => (
-          <div
-            key={d.deck}
-            onClick={() => setSel(d.deck)}
-            style={{ cursor: 'pointer', padding: '5px 6px', borderRadius: 6, background: d.deck === sel ? 'var(--panel-2)' : undefined }}
-          >
+          <button key={d.deck} type="button" className="side-item" aria-current={d.deck === sel ? 'true' : undefined} onClick={() => setSel(d.deck)}>
             <span className="spread">
               <span>{d.deck.slice(0, 34)}</span>
               <b>{Math.round(d.wr * 100)}%</b>
             </span>
-          </div>
+          </button>
         ))}
       </div>
       <div className="panel">
@@ -54,8 +50,8 @@ export function InsightsPage({ initial }: { initial?: string }) {
             return d ? (
               <div className="row">
                 <OriginBadge deck={d} full />
-                <a href={`#/deck?d=${encodeURIComponent(d.file)}`}>
-                  <button className="primary">Full deck profile →</button>
+                <a className="btn primary" href={`#/deck?d=${encodeURIComponent(d.file)}`}>
+                  Full deck profile →
                 </a>
               </div>
             ) : null;

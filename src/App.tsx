@@ -141,9 +141,15 @@ export function App() {
             <span className="chip">NC</span> NIGHT CITY TRAINER
           </a>
         </div>
-        <nav className="nav">
+        <nav className="nav" aria-label="Main">
           {SECTIONS.map((sec) => (
-            <a key={sec.label} href={`#/${sec.pages[0]}`} className={section === sec ? 'active' : ''}>
+            <a
+              key={sec.label}
+              href={`#/${sec.pages[0]}`}
+              className={section === sec ? 'active' : ''}
+              // the section you are in; "page" when its link is exactly this page
+              aria-current={section === sec ? (route?.path === sec.pages[0] ? 'page' : 'true') : undefined}
+            >
               <span className="nav-icon" aria-hidden>
                 {sec.icon}
               </span>
@@ -154,9 +160,9 @@ export function App() {
         <HeaderToggles />
       </header>
       {section?.sub && (
-        <nav className="subnav">
+        <nav className="subnav" aria-label={section.label}>
           {section.sub.map((p) => (
-            <a key={p} href={`#/${p}`} className={p === route?.path ? 'active' : ''}>
+            <a key={p} href={`#/${p}`} className={p === route?.path ? 'active' : ''} aria-current={p === route?.path ? 'page' : undefined}>
               {ROUTES.find((r) => r.path === p)?.label}
             </a>
           ))}
@@ -184,9 +190,10 @@ function HeaderToggles() {
       return '';
     }
   });
+  // index.html sets data-theme before first paint (and follows the system while nothing is saved); this applies a new choice.
   useEffect(() => {
-    if (theme) document.documentElement.setAttribute('data-theme', theme);
-    else document.documentElement.removeAttribute('data-theme');
+    const system = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme === 'light' || theme === 'dark' ? theme : system);
     try {
       localStorage.setItem('nct.theme', theme);
     } catch {
@@ -206,7 +213,7 @@ function HeaderToggles() {
       >
         {art ? '🖼 Art' : '▭ Text'}
       </button>
-      <button className="ghost" title="Toggle light/dark" onClick={() => setTheme(dark ? 'light' : 'dark')}>
+      <button className="ghost" title="Toggle light/dark" aria-label={dark ? 'Switch to the light theme' : 'Switch to the dark theme'} onClick={() => setTheme(dark ? 'light' : 'dark')}>
         {dark ? '☾' : '☀'}
       </button>
     </div>
