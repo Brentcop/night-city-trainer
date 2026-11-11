@@ -45,7 +45,7 @@ Consistency: `check:data` now fails an event with no `simVersion` or manifest; t
 4. After the first good deploy, retire the old branch: delete `gh-pages` (Settings → Branches, or `git push origin --delete gh-pages`). Keep it until then: it is the rollback.
 5. If the workflow lands **before** the source is switched: `check` passes and the `deploy` job fails (Pages is not set up for Actions deployments, or the `github-pages` environment does not yet allow `main`); nothing is published and the site keeps serving the old `gh-pages` branch, unchanged and no longer updated. Switch the source, then re-run the failed `deploy` job from that run (or push again).
 
-**Still open:** whether deploys stay "every push to `main`" (today) or move to a manual (`workflow_dispatch`) or tagged release once the fresh baseline (§1) exists.
+**Settled 2026-11-11 (owner):** deploys stay "every push to `main`" for the time being.
 
 ## 3. Remaining backlog waves
 
@@ -157,6 +157,8 @@ Owner requests, done in three packages in this order.
 - Remaining: counterfactual decision value (§5 step 3) and the shared value contract (step 5); human-seat telemetry; opponent-strategy slices.
 
 ## 7. Open and settled decisions
+
+What comes after this roadmap (synergy packages, evidence thresholds, decision value, learning from recorded human games) is in [ROADMAP2.md](ROADMAP2.md).
 
 Open:
 - For deck comparisons, start with an equal-weight meta field; add configurable tournament prevalence weights when reliable population data exists.
