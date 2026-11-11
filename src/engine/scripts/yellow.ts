@@ -54,9 +54,10 @@ export const YELLOW: Record<string, CardScript> = {
         quick: true,
         eddies: 1,
         spend: true,
-        can: (g, self) => g.units(self.controller).some((u) => u.gear.length > 0),
+        // any friendly Unit may be chosen, even one with no Gear (FAQ: Dum Dum #1)
+        can: (g, self) => g.units(self.controller).length > 0,
         run: async (g, self) => {
-          const cands = g.units(self.controller).filter((u) => u.gear.length > 0);
+          const cands = g.units(self.controller);
           const t = await pick(g, self, cands, 'Dum Dum: give a friendly Unit +1 power per equipped Gear', 'help', false, 'pump');
           if (t) g.givePower(t.uid, t.gear.length, 'endOfTurn', undefined, self.uid);
         },
@@ -119,9 +120,7 @@ export const YELLOW: Record<string, CardScript> = {
         label: 'Play a Gear with cost 2 or less from hand for free',
         quick: true,
         spend: true,
-        can: (g, self) =>
-          g.gearHosts(self.controller).length > 0 &&
-          g.P(self.controller).hand.some((u) => g.def(u).type === 'Gear' && (g.def(u).cost ?? 0) <= 2),
+        // may be activated with no Gear to play: it then just spends River Ward (FAQ: River Ward #1)
         run: async (g, self) => {
           const p = self.controller;
           const cands = g.P(p).hand.filter((u) => g.def(u).type === 'Gear' && (g.def(u).cost ?? 0) <= 2 && g.canPlayCard(p, u, true));
@@ -198,8 +197,10 @@ export const YELLOW: Record<string, CardScript> = {
 
   zetatech_faceplate: {
     on: {
+      // A trigger that became pending still resolves if the Faceplate was moved to another Unit meanwhile (FAQ Overwatch:
+      // Panam's Gift #2): it is resolved for the Unit or Legend that was spent.
       spent: async (g, self, host, ev) => {
-        if (ev.uid !== host.uid || self.host !== host.uid) return;
+        if (ev.uid !== host.uid) return;
         const p = self.controller;
         await g.adjustGig(p, 1, 'either', 'any', { source: self.uid });
         if (g.distinctValues(p) >= 3) await g.draw(p, 1);
@@ -248,14 +249,18 @@ export const YELLOW: Record<string, CardScript> = {
   },
 
   safety_override: {
+    // On resolution you choose a friendly Unit in the field; its next lost fight this turn defeats the opposing rival
+    // Unit (FAQ: Safety Override #1). The chosen Unit is still defeated by losing (FAQ #2).
     play: async (g, self) => {
-      g.addDelayed(self, 'fight', {}, 'endOfTurn');
-      g.log(self.controller, 'Safety Override is armed');
+      const t = await pick(g, self, g.units(self.controller), 'Safety Override: choose a friendly Unit', 'help', false, 'protect');
+      if (!t) return;
+      g.addDelayed(self, 'fight', { target: t.uid }, 'endOfTurn');
+      g.log(self.controller, `Safety Override is armed on ${g.name(t)}`);
     },
     delayed: {
       fight: async (g, mod: Mod, ev) => {
         const p = mod.player!;
-        if (ev.result !== 'lose' || !wasFriendly(g, ev.uid, p)) return false;
+        if (ev.uid !== mod.value?.data?.target || ev.result !== 'lose' || !wasFriendly(g, ev.uid, p)) return false;
         const opp = g.c(ev.opp);
         if (opp.zone === 'field' && opp.controller !== p) await g.defeat(opp.uid, { by: mod.source ?? null });
         return true;
@@ -389,11 +394,10 @@ export const YELLOW: Record<string, CardScript> = {
 
   gilded_maton: {
     play: async (g, self) => {
-      if (!g.units(rival(self)).some(costLE(g, 3))) {
-        // Still optional; nothing to gain without a target.
-        return;
-      }
-      const cost = await maybeDefeatGear(g, self, gearInPlay(g, self.controller), 'Gilded Maton: defeat a friendly Gear to defeat a rival Unit (cost ≤3)?', 'neutral');
+      // The friendly Gear may be defeated even with no rival Unit to defeat (FAQ: Gilded Matón #1). Without a target it
+      // gains nothing, so the choice is then marked 'harm' (bots decline to pay with their own Gear for nothing).
+      const target = g.units(rival(self)).some(costLE(g, 3));
+      const cost = await maybeDefeatGear(g, self, gearInPlay(g, self.controller), 'Gilded Maton: defeat a friendly Gear to defeat a rival Unit (cost ≤3)?', target ? 'neutral' : 'harm');
       if (cost === null) return;
       await defeatRival(g, self, costLE(g, 3));
     },

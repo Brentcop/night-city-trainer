@@ -39,7 +39,8 @@ export const RED: Record<string, CardScript> = {
     call: async (g, self) => {
       const p = self.controller;
       const units = friendlyUnits(g, self);
-      const modes = units.length ? ['Give a friendly Unit +2 power this turn', 'Draw 1'] : ['Draw 1'];
+      // either effect may be chosen, even with no friendly Unit to give +2 (FAQ Dexter DeShawn: Off the Grid #1)
+      const modes = ['Give a friendly Unit +2 power this turn', 'Draw 1'];
       const i = await g.chooseMode(p, 'Dexter DeShawn: choose one', modes, self.uid, 'mode');
       if (modes[i] === 'Draw 1') await g.draw(p, 1);
       else {
@@ -153,15 +154,19 @@ export const RED: Record<string, CardScript> = {
 
   appetite_for_destruction: {
     play: async (g, self) => {
+      // The friendly Unit is chosen as the Program resolves, among Units on the field now (FAQ #1); only it can benefit.
+      const t = await pick(g, self, friendlyUnits(g, self), 'Appetite for Destruction: choose a friendly Unit', 'help', false, 'pump');
+      if (!t) return;
       // Two sibling delayed triggers: 'fight' handles losers that stay in play, 'unitDefeated' uses last-known power.
-      g.addDelayed(self, 'fight', {}, 'endOfTurn');
-      g.addDelayed(self, 'unitDefeated', {}, 'endOfTurn');
+      g.addDelayed(self, 'fight', { uid: t.uid }, 'endOfTurn');
+      g.addDelayed(self, 'unitDefeated', { uid: t.uid }, 'endOfTurn');
     },
     delayed: {
       fight: async (g, mod, ev) => {
         const p = mod.player!;
         const w = g.c(ev.uid);
         const o = g.c(ev.opp);
+        if (ev.uid !== mod.value?.data?.uid) return false;
         if (ev.result !== 'win' || w.zone !== 'field' || w.controller !== p) return false;
         if (o.zone !== 'field') return false; // opponent defeated: handled by unitDefeated with last-known power
         if (g.power(w) - g.power(o) < 3) return false;
@@ -171,7 +176,7 @@ export const RED: Record<string, CardScript> = {
       },
       unitDefeated: async (g, mod, ev) => {
         const p = mod.player!;
-        if (!ev.inFight || ev.by === null || ev.controller === p) return false;
+        if (!ev.inFight || ev.by === null || ev.controller === p || ev.by !== mod.value?.data?.uid) return false;
         const w = g.c(ev.by);
         if (w.zone !== 'field' || w.controller !== p) return false;
         if (g.power(w) - ev.power < 3) return false;
@@ -336,7 +341,7 @@ export const RED: Record<string, CardScript> = {
       {
         label: 'Draw 2 (if you control an 8+ Gig)',
         spend: true,
-        can: (g, self) => has8Plus(g, self.controller),
+        // activatable without an 8+ Gig; the condition is checked on resolution (FAQ Kerry Eurodyne: The Last Rockerboy #2)
         run: async (g, self) => {
           if (has8Plus(g, self.controller)) await g.draw(self.controller, 2);
         },
@@ -381,8 +386,10 @@ export const RED: Record<string, CardScript> = {
       if (!maxGigs.length || g.available(p) < 2) return;
       if (!(await g.yesNo(p, 'El Sombrerón: pay 2 €$ to gain power equal to a friendly max Gig?', 'pay', self.uid))) return;
       if (!(await g.pay(p, 2))) return;
-      const v = Math.max(...maxGigs.map((x) => x.value));
-      g.givePower(host.uid, v, 'endOfTurn', undefined, self.uid);
+      // any friendly max Gig may be chosen (FAQ #1); the power is fixed when this resolves (FAQ #2)
+      const byValue = [...maxGigs].sort((a, b) => b.value - a.value);
+      const gid = new Set(byValue.map((x) => x.value)).size > 1 ? await g.chooseGig(p, byValue, 'El Sombrerón: gain power equal to which max Gig?', false, 'maxGig', 'help') : byValue[0].id;
+      g.givePower(host.uid, g.gig(gid ?? byValue[0].id).value, 'endOfTurn', undefined, self.uid);
     },
   },
 
@@ -451,6 +458,12 @@ export const RED: Record<string, CardScript> = {
       const from = g.c(u).zone;
       if (!(await g.playFree(p, u, from))) return;
       if (g.c(u).zone === 'field') g.addMod({ kind: 'lagAttack', target: u, value: 'units', until: 'endOfTurn', source: self.uid });
+    },
+    // Its own defeat can be the first ARASAKA defeat of the turn (FAQ #2): it has left play by the time unitDefeated
+    // fires, so that case looks back from its defeat instead.
+    defeated: async (g, _self, info) => {
+      if (!g.firstThisTurn(info.seq, 'defeat', (e) => g.isTag(e.uid, 'Arasaka'))) return;
+      await g.draw(info.controller, 1);
     },
     on: {
       unitDefeated: async (g, self, _host, ev) => {

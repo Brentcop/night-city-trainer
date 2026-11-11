@@ -1,40 +1,43 @@
 // Self-play tuning of the bot's evaluation weights.
-//   npx tsx scripts/tune.ts [--per 8] [--rounds 1] [--seed 1] [--threads N]
+//   npx tsx scripts/tune.ts [--per 8] [--rounds 1] [--seed 1] [--threads N] [--min-gain 1]
 // For each weight, a variant (x0.5 and x1.6) plays the baseline across every pairing of meta decks,
-// swapping seats and play/draw. Candidate selection uses matched training seeds; the final configuration is
-// compared with the original on a separate held-out seed range. This script reports candidates, it never applies them.
+// swapping seats and play/draw. Candidate selection uses matched training seeds: a variant is adopted only when the
+// lower bound of its paired 95% interval is above zero (scripts/tuning.ts). The final configuration is compared with
+// the original on a separate held-out seed range, and the report says whether its held-out lower bound clears the
+// minimum practical gain (--min-gain, percentage points, default 1). This script reports candidates, it never applies them.
 import fs from 'node:fs';
 import { deckFingerprint, fingerprintText } from '../src/engine/deck';
 import { DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { createRunManifest } from '../src/lib/runManifest';
+import { RULES_VERSIONS } from '../src/lib/rulesVersions';
 import { cli, int, loadLibrary, runJobs, runMain, threadsOpt } from './lib-node';
 import type { MatchJob } from './worker';
-import { summarizePaired } from './tuning';
+import { adoptInTraining, assertFitsWindow, DEFAULT_MIN_GAIN_PP, passesHeldOut, seedPlan, summarizePaired, WEIGHT_SEEDS } from './tuning';
 
 const { values: V } = cli(import.meta.url, {
   per: int(8, { min: 2 }),
   rounds: int(1, { min: 1 }),
   seed: int(1, { min: 0 }),
   threads: threadsOpt(),
+  'min-gain': int(DEFAULT_MIN_GAIN_PP, { min: 0, max: 100 }),
 });
 const PER = V.per;
 const ROUNDS = V.rounds;
 const THREADS = Math.min(V.threads, 16);
+const MIN_GAIN = V['min-gain'];
 const field = loadLibrary().filter((d) => d.kind === 'meta');
 // jobsFor plays ceil(PER/2) games per ordered pairing (k < PER / 2), so an odd --per rounds up.
 const effectivePer = 2 * Math.ceil(PER / 2);
 const evaluationGames = field.length * (field.length - 1) * Math.ceil(PER / 2);
-const SEED_WINDOW = 1_000;
-const trainSeed = 90_000 + (V.seed % 400) * SEED_WINDOW;
-const validationSeed = trainSeed + 500_000;
-// Each evaluation uses evaluationGames consecutive seeds from its base; past the window it would reuse the next
-// --seed's training seeds (and the held-out range would overlap the next --seed's held-out range).
-if (evaluationGames > SEED_WINDOW) {
-  throw new Error(
-    `one evaluation needs ${evaluationGames} seeds (${field.length} meta decks, --per ${PER}) but each --seed has a ${SEED_WINDOW}-seed window; lower --per`,
-  );
-}
+// One training window and one held-out window per --seed (modulo 400), disjoint for every --seed (WEIGHT_SEEDS).
+const plan = seedPlan({ ...WEIGHT_SEEDS, seed: V.seed });
+const SEED_WINDOW = WEIGHT_SEEDS.trainWindow;
+const trainSeed = plan.train.start;
+const validationSeed = plan.heldOut.start;
+// Each evaluation (training or held-out) uses evaluationGames consecutive seeds from its base; past the window it
+// would reuse the next --seed's seeds.
+assertFitsWindow(`one evaluation (${field.length} meta decks, --per ${PER})`, evaluationGames, SEED_WINDOW, 'lower --per');
 
 function jobsFor(seedBase: number, variant: Record<string, number>, base: Record<string, number>, special?: { lookaheadA?: boolean }) {
   const jobs: MatchJob[] = [];
@@ -82,7 +85,7 @@ async function main() {
         console.log(
           `  ${key} x${mult}: Δ ${(summary.mean * 100).toFixed(1)}pp [${(summary.lower95 * 100).toFixed(1)}, ${(summary.upper95 * 100).toFixed(1)}]`,
         );
-        if (summary.mean > 0) {
+        if (adoptInTraining(summary)) {
           console.log(`  -> adopt ${key}=${v[key]}`);
           base = v;
           baseline = await score(trainSeed, base, base);
@@ -94,14 +97,13 @@ async function main() {
   const heldOutBaseline = await score(validationSeed, original, original);
   const candidate = await score(validationSeed, base, original);
   const validation = summarizePaired(candidate, heldOutBaseline);
+  const wouldApply = passesHeldOut(validation, MIN_GAIN);
   const manifest = createRunManifest({
     runId: `tune-weights:${V.seed}:${new Date().toISOString()}`,
     createdAt: new Date().toISOString(),
     purpose: 'tuning',
     simVersion: SIM_VERSION,
-    rulesVersion: null,
-    faqVersion: null,
-    errataVersion: null,
+    ...RULES_VERSIONS,
     bot: { level: 'lookahead', configHash: fingerprintText(JSON.stringify(base)) },
     decks: field.map((d) => ({ id: d.deckId ?? deckFingerprint(d.deck), name: d.deck.name, file: d.file })),
     field: { mode: 'meta-round-robin', deckIds: field.map((d) => d.deckId ?? deckFingerprint(d.deck)) },
@@ -113,11 +115,16 @@ async function main() {
   console.log(
     `\nHeld-out paired gain: ${(validation.mean * 100).toFixed(2)}pp [${(validation.lower95 * 100).toFixed(2)}, ${(validation.upper95 * 100).toFixed(2)}] (${validation.games} games)`,
   );
+  console.log(
+    wouldApply
+      ? `The held-out lower bound exceeds the ${MIN_GAIN}pp minimum practical gain.`
+      : `The held-out lower bound does not exceed the ${MIN_GAIN}pp minimum practical gain: keep the current weights.`,
+  );
   console.log('Candidate weights (not applied):\n' + JSON.stringify(base, null, 2));
   console.log('Run manifest:\n' + JSON.stringify(manifest, null, 2));
   fs.mkdirSync('reports', { recursive: true });
   const reportPath = `reports/tune-weights-${V.seed}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-  fs.writeFileSync(reportPath, JSON.stringify({ manifest, original, candidate: base, validation }, null, 2), { flag: 'wx' });
+  fs.writeFileSync(reportPath, JSON.stringify({ manifest, original, candidate: base, validation, minGainPp: MIN_GAIN, passesHeldOut: wouldApply }, null, 2), { flag: 'wx' });
   console.log(`Saved ${reportPath}`);
 }
 runMain(main);

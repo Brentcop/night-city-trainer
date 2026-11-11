@@ -1011,7 +1011,8 @@ export class Game {
     this.s.stats.gigsStolen[p]++;
     this.tr('steal', p, this.s.cards[actor]?.defId, g.value);
     this.log(p, `${this.name(actor)} steals d${g.sides} (${g.value})`);
-    const seq = this.noteTurnEvent({ k: 'steal', p, uid: actor, defId: this.s.cards[actor]?.defId ?? '' });
+    const actorCard = this.s.cards[actor];
+    const seq = this.noteTurnEvent({ k: 'steal', p, uid: actor, defId: actorCard?.defId ?? '', value: g.value, power: actorCard ? this.power(actorCard) : 0 });
     this.emit('steal', { actor, gig: gid, player: p, value: g.value, seq });
     this.checkState();
   }
@@ -1702,8 +1703,9 @@ export class Game {
     this.tr('attack', p, att.defId, target.unit ? 'unit' : 'gigs');
     this.telemetry?.attackStart(this);
     att.spent = true;
-    // mustAttack mods are satisfied; one-shot attack permissions are used up
-    s.mods = s.mods.filter((m) => !((m.kind === 'mustAttack' || (m.kind === 'attackReady' && m.value === 'once')) && m.target === uid));
+    // one-shot attack permissions are used up. "Must attack ... if it can" stays for its whole duration: a Unit readied
+    // after attacking must attack again if it can (Evelyn Parker: Beautiful Enigma FAQ).
+    s.mods = s.mods.filter((m) => !(m.kind === 'attackReady' && m.value === 'once' && m.target === uid));
     this.log(p, `${this.name(att)} (${this.power(att)}) attacks ${target.unit ? this.name(target.unit) : 'the rival Gig area'}`);
     this.emit('spent', { uid, cause: 'attack' });
     // {Attack} triggers (unit and its gear)

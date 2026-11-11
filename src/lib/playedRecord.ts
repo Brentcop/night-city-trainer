@@ -5,7 +5,7 @@
  * Mirror of SIM_VERSION in src/lib/tournament.ts (tests/deck-record.test.ts checks they match). Kept here because
  * importing tournament.ts would pull the bots and the engine into every page that only wants to label old data.
  */
-export const CURRENT_SIM_VERSION = 4;
+export const CURRENT_SIM_VERSION = 5;
 
 /** Below this many games a number is shown as a small sample (the `.num.thin` convention in Num.tsx). */
 export const SMALL_SAMPLE = 20;

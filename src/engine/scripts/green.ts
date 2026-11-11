@@ -48,9 +48,12 @@ async function swapFriendlyRival(g: Game, self: CardInst, optional: boolean) {
   return true;
 }
 
-/** Spend one ready rival Unit (matching filter). */
-async function spendRival(g: Game, self: CardInst, filter: (c: CardInst) => boolean = () => true, optional = false) {
-  const t = await pick(g, self, rivalUnits(g, self, (c) => !c.spent && filter(c)), `${g.name(self)}: spend a rival Unit`, 'harm', optional, 'spend');
+/**
+ * Spend one rival Unit (matching filter). Only ready ones are offered unless `orSpent`: "Spend a rival Unit" may choose
+ * one that is already spent (FAQ Corporate Surveillance, Memory Relapse), which matters when the effect does more to it.
+ */
+async function spendRival(g: Game, self: CardInst, filter: (c: CardInst) => boolean = () => true, optional = false, orSpent = false) {
+  const t = await pick(g, self, rivalUnits(g, self, (c) => (orSpent || !c.spent) && filter(c)), `${g.name(self)}: spend a rival Unit`, 'harm', optional, 'spend');
   if (t) g.spend(t.uid, 'effect');
   return t;
 }
@@ -127,8 +130,8 @@ export const GREEN: Record<string, CardScript> = {
 
   padre_man_of_the_cross: {
     call: async (g, self) => {
-      const ready = rivalUnits(g, self, (c) => !c.spent);
-      const modes = ready.length ? ['Spend a rival Unit', 'Draw 1'] : ['Draw 1'];
+      // either mode may be chosen even with no rival Unit to spend (FAQ Padre #1): do as much as you can
+      const modes = ['Spend a rival Unit', 'Draw 1'];
       const i = await g.chooseMode(self.controller, `${g.name(self)}: choose one`, modes, self.uid, 'mode');
       if (modes[i] === 'Draw 1') await g.draw(self.controller, 1);
       else await spendRival(g, self);
@@ -137,7 +140,7 @@ export const GREEN: Record<string, CardScript> = {
       {
         label: "Set a player's Gig to the value of another player's Gig",
         spend: true,
-        can: (g, self) => setGigOptions(g, self.controller, true).length > 0,
+        // may be activated even when no Gig can change, e.g. all Gigs share a value (FAQ Padre #2)
         run: async (g, self) => {
           await setGigToOther(g, self, true, false);
         },
@@ -230,7 +233,7 @@ export const GREEN: Record<string, CardScript> = {
 
   corporate_surveillance: {
     play: async (g, self) => {
-      await spendRival(g, self, (c) => printedCost(g, c) <= 4);
+      await spendRival(g, self, (c) => printedCost(g, c) <= 4, false, true);
     },
   },
 
@@ -263,7 +266,7 @@ export const GREEN: Record<string, CardScript> = {
 
   memory_relapse: {
     play: async (g, self) => {
-      const t = await spendRival(g, self);
+      const t = await spendRival(g, self, undefined, false, true);
       if (t) g.addMod({ kind: 'cantReady', target: t.uid, ...untilMyNextTurn(self), source: self.uid });
       if (g.credEven(self.controller)) await g.draw(self.controller, 1);
     },
@@ -320,10 +323,11 @@ export const GREEN: Record<string, CardScript> = {
         quick: true,
         eddies: 1,
         spend: true,
-        discard: 1,
-        run: async (g, self, _host, paid) => {
-          if (!paid.discarded.length) return;
-          const n = g.def(paid.discarded[0]).cost ?? 0;
+        // "Discard 1" is part of the effect, not the cost: it can be activated with an empty hand (FAQ Overwatch #1)
+        run: async (g, self) => {
+          const discarded = await g.discard(self.controller, 1, undefined, false, `${g.name(self)}: discard 1`);
+          if (!discarded.length) return;
+          const n = g.def(discarded[0]).cost ?? 0;
           const t = await pick(g, self, rivalUnits(g, self, (c) => c.spent && printedCost(g, c) <= n), `${g.name(self)}: defeat a spent rival Unit (cost ≤${n})`, 'harm', false, 'defeat');
           if (t) await g.defeat(t.uid, { by: self.uid });
         },
@@ -375,7 +379,8 @@ export const GREEN: Record<string, CardScript> = {
 
   goro_takemura_losing_his_way: {
     attack: async (g, self) => {
-      if (g.faceDownLegends(self.controller).length === 0) g.givePower(self.uid, 5, 'endOfTurn', undefined, self.uid);
+      // with no friendly Legends at all, they are not "all face-up" (FAQ Goro Takemura: Losing His Way #4)
+      if (g.faceDownLegends(self.controller).length === 0 && g.faceUpLegends(self.controller).length > 0) g.givePower(self.uid, 5, 'endOfTurn', undefined, self.uid);
     },
   },
 

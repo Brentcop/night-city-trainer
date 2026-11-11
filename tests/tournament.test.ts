@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { autoRounds, bracketOrder, cutSize, runTournament, SIM_VERSION, type GameJob, type GameRec, type TourneyEvent } from '../src/lib/tournament';
 import { deckFingerprint } from '../src/engine/deck';
+import { ERRATA_VERSION, FAQ_VERSION, RULES_VERSION } from '../src/lib/rulesVersions';
 import type { DeckList } from '../src/engine/types';
 
 const deck = (name: string): DeckList => ({ name, legends: [], main: [], sideboard: [] });
@@ -38,9 +39,9 @@ describe('tournament', () => {
     expect(ev.manifest).toMatchObject({
       purpose: 'tournament',
       simVersion: SIM_VERSION,
-      rulesVersion: null,
-      faqVersion: null,
-      errataVersion: null,
+      rulesVersion: RULES_VERSION,
+      faqVersion: FAQ_VERSION,
+      errataVersion: ERRATA_VERSION,
       seatPolicy: 'loser-starts',
       sample: {
         plannedGames: cfg.rounds * Math.floor(field.length / 2) * cfg.bestOf + 7 * cfg.bestOf,

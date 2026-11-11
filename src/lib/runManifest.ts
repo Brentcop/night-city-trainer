@@ -3,6 +3,7 @@
 import { CARDS } from '../engine/cards';
 import { deckFingerprint, fingerprintText } from '../engine/deck';
 import type { DeckList } from '../engine/types';
+import { RULES_VERSIONS } from './rulesVersions';
 
 /**
  * What an aggregate (ratings, head-to-heads) was built from. Aggregates play no games: they pool recorded events, so
@@ -97,7 +98,10 @@ export interface GameRunOptions {
   parentRunId?: string;
 }
 
-/** Manifest for a run that plays games (CLI scripts and the browser labs). Rules, FAQ and errata versions are null until recorded. */
+/**
+ * Manifest for a run that plays games (CLI scripts and the browser labs). The rules, FAQ and errata versions are the
+ * ones the engine is checked against (src/lib/rulesVersions.ts; errata stays null until the errata page carries a date).
+ */
 export function gameRunManifest(o: GameRunOptions): RunManifest {
   const createdAt = o.createdAt ?? new Date().toISOString();
   const decks = o.decks.map(manifestDeck);
@@ -106,9 +110,7 @@ export function gameRunManifest(o: GameRunOptions): RunManifest {
     createdAt,
     purpose: o.purpose,
     simVersion: o.simVersion,
-    rulesVersion: null,
-    faqVersion: null,
-    errataVersion: null,
+    ...RULES_VERSIONS,
     bot: o.botConfigHash ? { level: o.bot, configHash: o.botConfigHash } : { level: o.bot },
     decks,
     field: { mode: o.fieldMode, deckIds: o.fieldDeckIds ?? decks.map((d) => d.id) },
@@ -142,6 +144,8 @@ export const storedDeckId = (d: RecordedEventInput['decks'][string]) => d.id ?? 
  *   simVersion the lowest input sim version, 0 when any input has none; `inputs` lists every event's version
  *   decks      every distinct (name, list) pair across the inputs, so a name that covered several lists shows up
  * Seeds and seats belong to the input events: seedBase is 0 and seatPolicy is the tournaments' 'loser-starts'.
+ * Rules, FAQ and errata versions also belong to the input events (each one's own manifest), so they stay null here:
+ * an aggregate can pool events played under different rules versions.
  */
 export function aggregateManifest(builder: string, events: readonly RecordedEventInput[], o: { games: number }): RunManifest {
   const sorted = [...events].sort((a, b) => (typeof a.id === 'number' && typeof b.id === 'number' ? a.id - b.id : String(a.id).localeCompare(String(b.id))));

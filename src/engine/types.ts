@@ -155,6 +155,9 @@ export interface TurnEvent {
   type?: CardType; // 'play': the type it was played as (a Legend played to the field is played as a Unit)
   /** 'play' of a Legend from the Legends area: with Go Solo, or by paying its cost alone (4.5). Absent for other plays. */
   via?: LegendPlay;
+  /** 'steal': the stolen Gig's value and the stealing card's power when it stole (for "steals a Gig with value less than its power") */
+  value?: number;
+  power?: number;
 }
 
 /** How a Legend was played from the Legends area to the field: Go Solo (11.29), or by paying its cost (4.5). */

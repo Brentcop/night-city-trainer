@@ -86,13 +86,13 @@ export async function searchTop(
   return picked;
 }
 
-/** "Trash N. Add a <type> from among them to your hand." */
+/** "Trash N. Add a <type> from among them to your hand." Mandatory when a card matches (FAQ All is Lost #1). */
 export async function millAndTake(g: Game, p: PlayerId, n: number, filter: (c: CardInst) => boolean, max = 1) {
   const milled = g.mill(p, n);
   const got: number[] = [];
   for (let i = 0; i < max; i++) {
     const cands = milled.filter((u) => !got.includes(u) && g.c(u).zone === 'trash' && filter(g.c(u)));
-    const u = await g.chooseCard(p, cands, 'Add a card from among them to your hand', true, 'search', 'help');
+    const u = await g.chooseCard(p, cands, 'Add a card from among them to your hand', false, 'search', 'help');
     if (u === null) break;
     g.move(u, 'hand');
     g.log(p, `adds ${g.name(u)} to hand`);

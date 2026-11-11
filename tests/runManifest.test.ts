@@ -4,6 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { aggregateManifest, createRunManifest, gameRunManifest, manifestDeck, runDetailsLine, type RecordedEventInput } from '../src/lib/runManifest';
 import { deckFingerprint } from '../src/engine/deck';
+import { ERRATA_VERSION, FAQ_VERSION, RULES_VERSION } from '../src/lib/rulesVersions';
 import type { DeckList } from '../src/engine/types';
 import { buildH2H } from '../scripts/build-h2h';
 
@@ -30,9 +31,9 @@ describe('gameRunManifest (shared by the CLI scripts and the browser labs)', () 
       runId: 'browser:2026-11-11T00:00:00.000Z:10000',
       purpose: 'browser',
       simVersion: 3,
-      rulesVersion: null,
-      faqVersion: null,
-      errataVersion: null,
+      rulesVersion: RULES_VERSION,
+      faqVersion: FAQ_VERSION,
+      errataVersion: ERRATA_VERSION,
       bot: { level: 'medium' },
       decks: [
         { id: 'library-id', name: 'A', file: 'a.txt' },
@@ -90,7 +91,8 @@ describe('aggregateManifest (ratings, head-to-heads)', () => {
     // the lowest input version, 0 for "none recorded": never claims the newest version for mixed inputs
     expect(m.simVersion).toBe(0);
     expect(m.sample).toEqual({ plannedGames: 12, completedGames: 12, gamesPerPair: null });
-    expect(m.errataVersion).toBeNull();
+    // rules versions belong to the input events, which may differ: an aggregate claims none
+    expect([m.rulesVersion, m.faqVersion, m.errataVersion]).toEqual([null, null, null]);
     // a name that covered two lists shows both
     expect(m.decks.filter((d) => d.name === 'A')).toHaveLength(2);
     expect(m.decks.filter((d) => d.name === 'B')).toEqual([{ id: deckFingerprint(B), name: 'B' }]);

@@ -80,7 +80,11 @@ describe('library cards', () => {
   it('Kerry Eurodyne (The Last Rockerboy) draws 2 only with an 8+ Gig', async () => {
     const { g } = setup();
     const k = spawn(g, 0, 'kerry_eurodyne_the_last_rockerboy', 'field');
-    expect(g.listAbilities(0, false).some((a) => a.self.uid === k.uid)).toBe(false);
+    // activatable without an 8+ Gig (FAQ Kerry Eurodyne: The Last Rockerboy #2), but then it draws nothing
+    expect(g.listAbilities(0, false).some((a) => a.self.uid === k.uid)).toBe(true);
+    await g.activate(0, k.uid, k.uid, 0);
+    expect(g.P(0).hand).toHaveLength(0);
+    g.ready(k.uid);
     gig(g, 0, 8, 8);
     await g.activate(0, k.uid, k.uid, 0);
     expect(g.P(0).hand).toHaveLength(2);
@@ -141,6 +145,8 @@ describe('library cards', () => {
     g.s.turn++;
     expect(g.legalActions(1).some((a) => a.type === 'pass')).toBe(false);
     await g.attack(1, r.uid, { unit: null, gigs: 0 });
-    expect(g.hasMod('mustAttack', r.uid)).toBe(false);
+    // once it has attacked it is spent and can't attack, so passing is allowed; the requirement itself lasts the turn
+    // (readied again, it must attack again: Evelyn Parker: Beautiful Enigma FAQ, tests/faq/blue.test.ts)
+    expect(g.legalActions(1).some((a) => a.type === 'pass')).toBe(true);
   });
 });

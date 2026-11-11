@@ -151,7 +151,7 @@ describe('Yellow meta cards', () => {
 });
 
 describe('Blue meta cards', () => {
-  it('Wakako Okada: Call gives a rival Unit -2 (or draws 1 with no target); ability decreases a Gig by up to 2', async () => {
+  it('Wakako Okada: Call gives a rival Unit -2 (or draws 1); ability decreases a Gig by up to 2', async () => {
     const { g } = setup([extreme('min'), null]);
     const w = spawn(g, 0, 'wakako_okada_peace_and_harmony', 'legends', { faceUp: false });
     const r = spawn(g, 1, 'psycho_squad', 'field');
@@ -162,7 +162,8 @@ describe('Blue meta cards', () => {
     await g.activate(0, w.uid, w.uid, 0);
     expect(g.gig(x).value).toBe(3);
 
-    const { g: g2 } = setup();
+    // with no rival Unit both modes are still offered (FAQ); choose Draw 1
+    const { g: g2 } = setup([(d) => (d.kind === 'mode' ? optionIndex(d, (l) => l === 'Draw 1') : undefined), null]);
     const w2 = spawn(g2, 0, 'wakako_okada_peace_and_harmony', 'legends', { faceUp: false });
     await g2.callLegend(0, w2.uid, { free: true });
     await g2.resolvePending();

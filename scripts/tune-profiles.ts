@@ -1,29 +1,34 @@
 // Self-play tuning of matchup profiles (weight multipliers per my-archetype > rival-archetype).
-//   npx tsx scripts/tune-profiles.ts [--games 160] [--seed 1] [--threads N] [--apply --min-gain 1]
+//   npx tsx scripts/tune-profiles.ts [--games 160] [--seed 1] [--threads N] [--apply] [--min-gain 1]
 // For each archetype pairing that exists in the deck library, try nudging one weight at a time for that
-// pairing only; candidates use matched training games and are evaluated against defaults on held-out seeds.
-// Applying a candidate requires an explicit practical-gain threshold and a held-out confidence bound above it.
+// pairing only; candidates use matched training games (adopted only when the lower bound of the paired 95% interval
+// is above zero, scripts/tuning.ts) and are evaluated against defaults on held-out seeds. --apply writes the profiles
+// only when the held-out lower bound exceeds the minimum practical gain (--min-gain, percentage points, default 1).
 import fs from 'node:fs';
 import { deckFingerprint, fingerprintText } from '../src/engine/deck';
 import { BEST_PROFILES, classify, type ProfileKey, type Profiles } from '../src/ai/archetype';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { createRunManifest } from '../src/lib/runManifest';
+import { RULES_VERSIONS } from '../src/lib/rulesVersions';
 import { bool, cli, int, loadLibrary, runJobs, runMain, threadsOpt } from './lib-node';
 import type { MatchJob } from './worker';
-import { summarizePaired } from './tuning';
+import { adoptInTraining, assertFitsWindow, DEFAULT_MIN_GAIN_PP, passesHeldOut, PROFILE_SEEDS, seedPlan, summarizePaired } from './tuning';
 
 const { values: V } = cli(import.meta.url, {
   games: int(160, { min: 1 }),
   seed: int(1, { min: 0 }),
   threads: threadsOpt(),
   apply: bool(),
-  'min-gain': int(undefined, { min: 0, max: 100 }),
+  'min-gain': int(DEFAULT_MIN_GAIN_PP, { min: 0, max: 100 }),
 });
 const GAMES = V.games;
 const THREADS = Math.min(V.threads, 16);
-const SEED_WINDOW = 2_000;
-const trainSeed = 5_000 + (V.seed % 400) * SEED_WINDOW;
-const validationSeed = trainSeed + 1_000_000;
+// One training window and one held-out window per --seed (modulo 400), disjoint for every --seed (PROFILE_SEEDS).
+const plan = seedPlan({ ...PROFILE_SEEDS, seed: V.seed });
+const SEED_WINDOW = PROFILE_SEEDS.trainWindow;
+const HELD_OUT_WINDOW = PROFILE_SEEDS.heldOutWindow;
+const trainSeed = plan.train.start;
+const validationSeed = plan.heldOut.start;
 const lib = loadLibrary().filter((d) => d.kind === 'meta');
 const arch = new Map(lib.map((d) => [d.deck.name, classify(d.deck.main).arch]));
 const original: Profiles = JSON.parse(JSON.stringify(BEST_PROFILES));
@@ -72,11 +77,9 @@ async function main() {
   // tuned key must still fit its GAMES seeds inside this --seed's window, or it would reuse the next --seed's seeds.
   const tunable = [...keys].filter((k) => pairsFor(k).length >= 4).length;
   const trainingSpan = Math.max(0, tunable - 1) * WEIGHTS.length * 3 * 17 + GAMES;
-  if (trainingSpan > SEED_WINDOW) {
-    throw new Error(
-      `training may need ${trainingSpan} seeds (${tunable} archetype pairings, --games ${GAMES}) but each --seed has a ${SEED_WINDOW}-seed window; lower --games`,
-    );
-  }
+  assertFitsWindow(`training (${tunable} archetype pairings, --games ${GAMES})`, trainingSpan, SEED_WINDOW, 'lower --games');
+  // Held-out: each tunable pairing gets its own GAMES consecutive seeds (baseline and candidate share them).
+  assertFitsWindow(`the held-out evaluation (${tunable} archetype pairings, --games ${GAMES})`, tunable * GAMES, HELD_OUT_WINDOW, 'lower --games');
   const log: string[] = [];
   for (const key of keys) {
     const seed0 = trainSeed + log.length * 17;
@@ -93,7 +96,7 @@ async function main() {
         const line = `${key} ${w} x${mult} -> Δ ${(summary.mean * 100).toFixed(1)}pp [${(summary.lower95 * 100).toFixed(1)}, ${(summary.upper95 * 100).toFixed(1)}]`;
         console.log(line);
         log.push(line);
-        if (summary.mean >= 0.05) {
+        if (adoptInTraining(summary)) {
           current = variant;
           base = await measure(key, current, current, seed0);
           console.log(`  adopt ${key}.${w}=${variant[key]![w]}`);
@@ -105,8 +108,10 @@ async function main() {
   }
   const heldOut: number[] = [];
   const heldOutBaseline: number[] = [];
+  let heldOutKeys = 0;
   for (const key of keys) {
-    const seed0 = validationSeed + heldOut.length * 17;
+    if (pairsFor(key).length < 4) continue;
+    const seed0 = validationSeed + heldOutKeys++ * GAMES;
     const baseline = await measure(key, original, original, seed0);
     const candidate = await measure(key, current, original, seed0);
     if (!baseline.length) continue;
@@ -120,9 +125,7 @@ async function main() {
     createdAt: new Date().toISOString(),
     purpose: 'tuning',
     simVersion: SIM_VERSION,
-    rulesVersion: null,
-    faqVersion: null,
-    errataVersion: null,
+    ...RULES_VERSIONS,
     bot: { level: 'lookahead', configHash: fingerprintText(JSON.stringify(current)) },
     decks: lib.map((d, i) => ({ id: ids[i], name: d.deck.name, file: d.file })),
     field: { mode: 'meta-archetype-pairings', deckIds: ids },
@@ -138,11 +141,11 @@ async function main() {
   console.log('Run manifest:\n' + JSON.stringify(manifest, null, 2));
   fs.mkdirSync('reports', { recursive: true });
   const reportPath = `reports/tune-profiles-${V.seed}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-  fs.writeFileSync(reportPath, JSON.stringify({ manifest, original, candidate: current, trainingLog: log, validation }, null, 2), { flag: 'wx' });
+  const minGainPp = V['min-gain'];
+  fs.writeFileSync(reportPath, JSON.stringify({ manifest, original, candidate: current, trainingLog: log, validation, minGainPp, passesHeldOut: passesHeldOut(validation, minGainPp) }, null, 2), { flag: 'wx' });
   console.log(`Saved ${reportPath}`);
   if (V.apply) {
-    if (V['min-gain'] === undefined) throw new Error('pass --min-gain as the minimum practical win-rate gain in percentage points before applying profiles');
-    if (validation.lower95 <= V['min-gain'] / 100) {
+    if (!passesHeldOut(validation, V['min-gain'])) {
       throw new Error(`held-out lower confidence bound ${(validation.lower95 * 100).toFixed(2)}pp does not exceed the ${V['min-gain']}pp practical-gain threshold`);
     }
     fs.writeFileSync('src/ai/profiles.tuned.json', JSON.stringify(current, null, 2));

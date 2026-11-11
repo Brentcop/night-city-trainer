@@ -6,6 +6,7 @@ import { makeTierBot, type BotChoice } from '../ai/tiers';
 import { deckFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { createRunManifest, type RunManifest } from './runManifest';
+import { RULES_VERSIONS } from './rulesVersions';
 
 /** easy | medium | hard | mixed (older events use fast | lookahead | deep). */
 export type BotLevel = BotChoice | 'fast' | 'lookahead' | 'deep';
@@ -30,9 +31,20 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    ability) by playing the attack out in a clone instead of projecting its result statically, so fight and steal
  *    triggers it arms (Safety Override) count; this is what changes fixed-seed games. Also: an attack on a Unit ends if
  *    the target is readied without a permission to attack ready Units (9.21.3, ENG-7; no current card does it).
+ * 5: the official Rules FAQ conformance pass (backlog ENG-16, tests/faq/): card scripts and two engine details brought in
+ *    line with the FAQ rulings. Scripts: All is Lost must add a trashed Unit; Appetite for Destruction and Safety Override
+ *    choose their friendly Unit on resolution; Dexter DeShawn (Off the Grid), Wakako Okada and Padre always offer both
+ *    Call modes; El Sombrerón chooses which max Gig; Kerry Eurodyne (Last Rockerboy), Judy Álvarez (Nothing to Doubt),
+ *    Padre's and Wakako's {Spend}, River Ward and Overwatch (discard now part of the effect) can be activated when they
+ *    would do nothing; Dum Dum may pick a Unit with no Gear; Gilded Matón and Placide offer their optional cost with no
+ *    target; Alt Cunningham's reductions stack and are fixed on resolution; Corporate Surveillance and Memory Relapse may
+ *    pick a spent Unit; Goro Takemura (Losing His Way) needs a face-up Legend; Yorinobu (Steel Dragon) counts its own
+ *    defeat; Rogue Amendiares (Queen) reads the turn's steal history; Misty may name Legend; Zetatech Faceplate resolves
+ *    after being moved. Engine: "must attack if it can" lasts its whole duration (a readied Unit must attack again), and
+ *    the steal history records the Gig value and the stealer's power. The golden replays did not move.
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 4;
+export const SIM_VERSION = 5;
 
 /** Deterministic integer hash bit (also used for the game-1 coin flip). */
 const hashBit = (x: number, shift = 16) => (Math.imul(x, 2654435761) >>> shift) & 1;
@@ -249,9 +261,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       createdAt: date,
       purpose: 'tournament',
       simVersion: SIM_VERSION,
-      rulesVersion: null,
-      faqVersion: null,
-      errataVersion: null,
+      ...RULES_VERSIONS,
       bot: { level: cfg.bot },
       decks: manifestDecks,
       field: { mode: 'swiss', deckIds: manifestDecks.map((d) => d.id) },

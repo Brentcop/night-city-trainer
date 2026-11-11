@@ -2,7 +2,7 @@
 import type { Game } from '../engine';
 import { shuffleInPlace } from '../rng';
 import type { CardInst, CardScript, CardType, PlayerId } from '../types';
-import { chooseCardType, countMinGigs, friendlyUnits, hasMinGig, pick, rival, rivalDiscards, rivalUnits, untilMyNextTurn } from './helpers';
+import { countMinGigs, friendlyUnits, hasMinGig, pick, rival, rivalDiscards, rivalUnits, untilMyNextTurn } from './helpers';
 
 // ---------------------------------------------------------------- local helpers
 
@@ -14,9 +14,9 @@ async function weakenRival(g: Game, self: CardInst, n: number, prompt?: string) 
 }
 
 /**
- * "A rival Unit must attack next turn if it can." Records a 'mustAttack' mod (read by bots/engine; the engine
- * clears it when the Unit attacks). Lasts until the start of the controller's next turn, i.e. through the
- * rival's whole next turn.
+ * "A rival Unit must attack next turn if it can." Records a 'mustAttack' mod (read by the engine: its controller can't
+ * pass while it can attack). Lasts until the start of the controller's next turn, i.e. through the rival's whole next
+ * turn, so a Unit readied after attacking must attack again if it can (Evelyn Parker: Beautiful Enigma FAQ).
  */
 async function forceAttack(g: Game, self: CardInst) {
   const t = await pick(g, self, rivalUnits(g, self), `${g.name(self)}: a rival Unit must attack next turn`, 'harm', false, 'mustAttack');
@@ -62,13 +62,14 @@ export const BLUE: Record<string, CardScript> = {
   // ===================================================== Legends
 
   alt_cunningham_soulkiller_architect: {
-    // Ability 1 creates a player mod 'altNextProgram'; this legend's costMod reads it (dynamic min-Gig count)
-    // and on.cardPlayed consumes it when its controller plays a Program.
+    // Ability 1 creates a player mod 'altNextProgram' whose amount is the friendly min-Gig count when it resolves (FAQ:
+    // later min Gigs don't change it); this legend's costMod adds them all up (resolving it twice stacks), and
+    // on.cardPlayed consumes them when its controller plays a Program (from the trash too).
     costMod: (g, self, _host, card, p, kind) => {
       if (kind !== 'play' || p !== self.controller) return 0;
       if (g.def(card).type !== 'Program') return 0;
-      if (!g.playerMods('altNextProgram', p).length) return 0;
-      return -countMinGigs(g, p); // engine clamps reductions to a minimum of 1
+      const mods = g.playerMods('altNextProgram', p).filter((m) => m.source === self.uid);
+      return -mods.reduce((sum, m) => sum + (m.amount ?? 0), 0); // engine clamps reductions to a minimum of 1
     },
     on: {
       cardPlayed: (g, self, _h, ev) => {
@@ -80,9 +81,8 @@ export const BLUE: Record<string, CardScript> = {
       {
         label: 'Your next Program this turn costs -1 €$ per friendly min Gig',
         spend: true,
-        can: (g, self) => !g.playerMods('altNextProgram', self.controller).length,
         run: async (g, self) => {
-          g.addMod({ kind: 'altNextProgram', player: self.controller, source: self.uid, until: 'endOfTurn' });
+          g.addMod({ kind: 'altNextProgram', player: self.controller, amount: countMinGigs(g, self.controller), source: self.uid, until: 'endOfTurn' });
         },
       },
       {
@@ -175,17 +175,16 @@ export const BLUE: Record<string, CardScript> = {
 
   wakako_okada_peace_and_harmony: {
     call: async (g, self) => {
-      const hasT = rivalUnits(g, self).length > 0;
+      // either effect may be chosen, even with no rival Unit to give -2 (FAQ)
       const modes = ['Give a rival Unit -2 power this turn', 'Draw 1'];
-      const i = hasT ? await g.chooseMode(self.controller, 'Wakako Okada: choose one', modes, self.uid, 'mode') : 1;
+      const i = await g.chooseMode(self.controller, 'Wakako Okada: choose one', modes, self.uid, 'mode');
       if (i === 0) await weakenRival(g, self, 2);
       else await g.draw(self.controller, 1);
     },
     abilities: [
       {
         label: 'Decrease a Gig by up to 2',
-        spend: true,
-        can: (g) => g.allGigs().some((x) => x.value > 1),
+        spend: true, // usable even if every Gig is a min Gig ("up to": choosing one changes nothing; FAQ)
         run: async (g, self) => {
           await g.adjustGig(self.controller, 2, 'down', 'any', { source: self.uid });
         },
@@ -408,7 +407,9 @@ export const BLUE: Record<string, CardScript> = {
       turnEnd: async (g, self, host, ev) => {
         if (ev.player !== self.controller || host.zone !== 'field') return;
         const p = self.controller;
-        const t: CardType = await chooseCardType(g, p, 'Misty: choose a card type');
+        // Legend is a valid choice too (FAQ), though no Legend is ever in a deck
+        const types: CardType[] = ['Unit', 'Gear', 'Program', 'Legend'];
+        const t = types[await g.chooseMode(p, 'Misty: choose a card type', types, undefined, 'cardType')];
         const u = topCard(g, p);
         if (u === null) return;
         if (g.def(u).type === t) {
@@ -512,12 +513,15 @@ export const BLUE: Record<string, CardScript> = {
 
   rogue_amendiares_queen_of_the_afterlife: {
     on: {
+      // "The first time another friendly Unit steals a Gig with value less than its power each turn": the turn's steal
+      // history (value and power when it stole), so a steal before this Rogue entered play counts (FAQ).
       steal: (g, self, host, ev) => {
-        if (ev.player !== self.controller || ev.actor === host.uid) return;
-        const a = g.c(ev.actor);
-        if (!a || a.zone !== 'field' || a.controller !== self.controller) return;
-        if (ev.value >= g.power(a)) return;
-        if (!g.oncePerTurn(`rogue:${host.uid}`)) return;
+        if (ev.player !== self.controller || ev.actor === host.uid || ev.seq === undefined) return;
+        const lower = (e: { p: PlayerId; uid: number; value?: number; power?: number }) =>
+          e.p === self.controller && e.uid !== host.uid && e.value !== undefined && e.power !== undefined && e.value < e.power;
+        const e = g.s.turnEvents?.[ev.seq];
+        if (!e || !lower(e)) return;
+        if (!g.firstThisTurn(ev.seq, 'steal', lower)) return;
         g.readyEddies(self.controller, 2);
       },
     },
@@ -542,8 +546,7 @@ export const BLUE: Record<string, CardScript> = {
       {
         label: 'Reveal the top card; play it for free or add it to hand',
         eddies: 1,
-        spend: true,
-        can: (g, self) => g.P(self.controller).deck.length > 0,
+        spend: true, // usable with an empty deck (FAQ); it then does nothing
         run: async (g, self) => {
           const p = self.controller;
           const u = topCard(g, p);
@@ -577,7 +580,18 @@ export const BLUE: Record<string, CardScript> = {
 
 async function placide(g: Game, self: CardInst) {
   const p = self.controller;
-  if (!g.P(p).hand.some((u) => g.def(u).type === 'Program') || !rivalUnits(g, self).length) return;
+  const programs = g.P(p).hand.filter((u) => isProgram(g)(g.c(u)));
+  if (!programs.length) return;
+  if (!rivalUnits(g, self).length) {
+    // The discard is still allowed with no rival Unit (FAQ Placide #1), though it then gains nothing: asked with intent
+    // 'harm' under its own tag, so bots (CARD_TAG_POLICY falls back to the intent) decline it.
+    const u = await g.chooseCard(p, programs, 'Placide: discard a Program (there is no rival Unit to bottom-deck)?', true, 'discardForNothing', 'harm');
+    if (u !== null) {
+      g.move(u, 'trash');
+      g.log(p, `discards ${g.name(u)}`);
+    }
+    return;
+  }
   const d = await g.discard(p, 1, isProgram(g), true, 'Placide: discard a Program to bottom-deck a rival Unit?');
   if (d.length) await bottomDeckRival(g, self);
 }

@@ -32,6 +32,7 @@ export const CARD_TAG_POLICY: Record<string, 'take' | 'giveUp' | 'blind' | 'targ
   look: 'blind', // Kiroshi Optics: look at a face-down Legend
   defeat: 'target', // Detonate
   defeatGear: 'target', // Heywood Ripperdoc (harm), Dum Dum / Gilded Maton (friendly Gear as a cost)
+  discardForNothing: 'target', // Placide with no rival Unit: an optional discard that gains nothing (intent harm: declined)
 };
 
 export interface HeuristicOptions {
