@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
-import { MAX_DECK_NAME, exportChoom, exportOfficial, exportSimJson, parseDeck, validateDeck } from '../src/engine/deck';
+import { deckFingerprint, MAX_DECK_NAME, exportChoom, exportOfficial, exportSimJson, parseDeck, validateDeck } from '../src/engine/deck';
 
 function libraryFiles(dir = 'data/decks'): string[] {
   return fs
@@ -75,6 +75,20 @@ const CHOOM = `// Beatdown
 2 Shattered Memories (WNC)
 2 Deadman Transmitter (WNC)
 2 Memory Relapse (WNC)`;
+
+describe('deck fingerprint', () => {
+  const list = { legends: ['b', 'a', 'a'], main: ['x', 'y', 'x'], sideboard: ['z'] };
+
+  it('is independent of card ordering and presentation names', () => {
+    expect(deckFingerprint(list)).toBe(deckFingerprint({ ...list, legends: ['a', 'b', 'a'], main: ['x', 'x', 'y'] }));
+  });
+
+  it('includes card counts and distinguishes deck sections', () => {
+    expect(deckFingerprint(list)).not.toBe(deckFingerprint({ ...list, main: ['x', 'y'] }));
+    expect(deckFingerprint(list)).not.toBe(deckFingerprint({ ...list, sideboard: [] }));
+    expect(deckFingerprint(list)).not.toBe(deckFingerprint({ ...list, legends: [], main: ['b', 'a', 'a', 'x', 'y', 'x'] }));
+  });
+});
 
 describe('deck import/export', () => {
   it('parses the official / Sim / ChoomBattler format', () => {

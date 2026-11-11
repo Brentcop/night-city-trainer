@@ -154,6 +154,31 @@ export function counts(ids: string[]): Map<string, number> {
   return m;
 }
 
+export function fingerprintText(value: string): string {
+  let h = 0xcbf29ce484222325n;
+  for (let i = 0; i < value.length; i++) {
+    h ^= BigInt(value.charCodeAt(i));
+    h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return h.toString(16).padStart(16, '0');
+}
+
+/**
+ * Stable identity for a deck list. Names and filenames are presentation data;
+ * this value changes whenever any Legend, main-deck copy, or sideboard copy
+ * changes. The canonical payload is deliberately plain text so it is usable
+ * in both the browser and Node without a crypto dependency.
+ */
+export function deckFingerprint(deck: Pick<DeckList, 'legends' | 'main' | 'sideboard'>): string {
+  const section = (label: string, ids: string[]) =>
+    `${label}:${[...counts(ids).entries()]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([id, n]) => `${id}=${n}`)
+      .join(',')}`;
+  const canonical = [section('L', deck.legends), section('M', deck.main), section('S', deck.sideboard)].join('|');
+  return fingerprintText(canonical);
+}
+
 export function ramLimits(deck: DeckList): Record<Color, number> {
   const r: Record<Color, number> = { Red: 0, Blue: 0, Green: 0, Yellow: 0 };
   for (const id of deck.legends) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { autoRounds, bracketOrder, cutSize, runTournament, SIM_VERSION, type GameJob, type GameRec, type TourneyEvent } from '../src/lib/tournament';
+import { deckFingerprint } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
 
 const deck = (name: string): DeckList => ({ name, legends: [], main: [], sideboard: [] });
@@ -34,6 +35,21 @@ describe('tournament', () => {
     for (const s of ev.standings) expect(new Set(s.opps.filter((o) => o !== 'BYE')).size).toBe(s.opps.filter((o) => o !== 'BYE').length);
     expect(ev.bracket.map((r) => r.name)).toEqual(['Quarterfinals', 'Semifinals', 'Final']);
     expect(ev.champion).toBe(ev.bracket[2].matches[0].winner);
+    expect(ev.manifest).toMatchObject({
+      purpose: 'tournament',
+      simVersion: SIM_VERSION,
+      rulesVersion: null,
+      faqVersion: null,
+      seatPolicy: 'loser-starts',
+      sample: {
+        plannedGames: cfg.rounds * Math.floor(field.length / 2) * cfg.bestOf + 7 * cfg.bestOf,
+        completedGames: ev.progress?.games,
+        gamesPerPair: null,
+      },
+    });
+    expect(ev.manifest?.cardDataVersion).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+    expect(ev.decks.D0.id).toBe(deckFingerprint(field[0]));
+    expect(ev.manifest?.decks.find((d) => d.name === 'D0')?.id).toBe(deckFingerprint(field[0]));
     for (const m of [...ev.rounds.flatMap((r) => r.matches), ...ev.bracket.flatMap((r) => r.matches)].filter((x) => x.b)) {
       expect(Math.max(...m.score)).toBe(2);
       // the loser of a game goes first in the next one

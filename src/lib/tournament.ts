@@ -3,7 +3,9 @@
 // single-elimination top cut seeded 1vN, 2v(N-1)… Matches are best-of-1 or best-of-3; after each game the loser goes first.
 // Every game keeps its seed and seat, so any game can be replayed exactly with makeBot() on the same code (see SIM_VERSION).
 import { makeTierBot, type BotChoice } from '../ai/tiers';
+import { deckFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
+import { createRunManifest, type RunManifest } from './runManifest';
 
 /** easy | medium | hard | mixed (older events use fast | lookahead | deep). */
 export type BotLevel = BotChoice | 'fast' | 'lookahead' | 'deep';
@@ -77,7 +79,7 @@ export interface TourneyEvent {
   bot: string;
   format: string;
   config?: TourneyConfig;
-  decks: Record<string, { file?: string; legends: string[]; main: string[] }>;
+  decks: Record<string, { id?: string; file?: string; legends: string[]; main: string[] }>;
   rounds: { round: number; matches: MatchRec[] }[];
   standings: StandingRow[];
   bracket: { name: string; matches: MatchRec[] }[];
@@ -87,6 +89,7 @@ export interface TourneyEvent {
   progress?: { games: number; estimate: number };
   /** SIM_VERSION the event was recorded with; absent on events from the earlier engine and bots. */
   simVersion?: number;
+  manifest?: RunManifest;
 }
 export interface GameJob {
   a: DeckList;
@@ -212,14 +215,17 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
   const need = cfg.bestOf === 1 ? 1 : 2;
   const avgGames = cfg.bestOf === 1 ? 1 : 2.5;
   const estimate = Math.round(cfg.rounds * Math.floor(decks.length / 2) * avgGames + Math.max(0, cut - 1) * avgGames);
+  const maxGames = cfg.rounds * Math.floor(decks.length / 2) * cfg.bestOf + Math.max(0, cut - 1) * cfg.bestOf;
+  const date = new Date().toISOString();
+  const manifestDecks = decks.map((d) => ({ id: deckFingerprint(d), name: d.name, file: d.file }));
   const ev: TourneyEvent = {
     id: opts.id ?? cfg.seed,
     name: cfg.name,
-    date: new Date().toISOString(),
+    date,
     bot: cfg.bot,
     format: `Swiss ${cfg.rounds} round${cfg.rounds > 1 ? 's' : ''} (Bo${cfg.bestOf})${cut ? ` + top ${cut}` : ''}`,
     config: cfg,
-    decks: Object.fromEntries(decks.map((d) => [d.name, { file: d.file, legends: [...d.legends], main: [...d.main] }])),
+    decks: Object.fromEntries(decks.map((d, i) => [d.name, { id: manifestDecks[i].id, file: d.file, legends: [...d.legends], main: [...d.main] }])),
     rounds: [],
     standings: computeStandings(st),
     bracket: [],
@@ -227,8 +233,30 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
     phase: 'swiss',
     progress: { games: 0, estimate },
     simVersion: SIM_VERSION,
+    manifest: createRunManifest({
+      runId: `tournament:${opts.id ?? cfg.seed}:${date}`,
+      createdAt: date,
+      purpose: 'tournament',
+      simVersion: SIM_VERSION,
+      rulesVersion: null,
+      faqVersion: null,
+      bot: { level: cfg.bot },
+      decks: manifestDecks,
+      field: { mode: 'swiss', deckIds: manifestDecks.map((d) => d.id) },
+      sample: { plannedGames: maxGames, completedGames: 0, gamesPerPair: null },
+      seedBase: cfg.seed,
+      seatPolicy: 'loser-starts',
+      trace: false,
+    }),
   };
-  const emit = () => opts.onUpdate?.({ ...ev, standings: ev.standings, rounds: [...ev.rounds], bracket: [...ev.bracket] });
+  const emit = () =>
+    opts.onUpdate?.({
+      ...ev,
+      standings: ev.standings,
+      rounds: [...ev.rounds],
+      bracket: [...ev.bracket],
+      manifest: { ...ev.manifest!, sample: { ...ev.manifest!.sample } },
+    });
   const stopped = () => opts.shouldStop?.() ?? false;
 
   const tally = (name: string, onPlay: boolean, won: boolean, turns: number) => {
@@ -248,6 +276,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       const first: 0 | 1 = !prev ? (hashBit(seedBase) ? 1 : 0) : prev.winner === 'tie' ? ((1 - prev.first) as 0 | 1) : ((1 - prev.winner) as 0 | 1);
       const g = await play({ a: byName.get(m.a)!, b: byName.get(m.b!)!, seed: seedBase + gi, first, bot: cfg.bot });
       m.games.push(g);
+      ev.manifest!.sample.completedGames++;
       if (g.winner === 0) m.score[0]++;
       else if (g.winner === 1) m.score[1]++;
       tally(m.a, g.first === 0, g.winner === 0, g.turns);

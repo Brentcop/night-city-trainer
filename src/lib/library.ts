@@ -1,5 +1,5 @@
 // Built-in deck library (data/decks/*.txt), bundled for both the web app (Vite) and Node scripts.
-import { parseDeck } from '../engine/deck';
+import { deckFingerprint, parseDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 
 /** Where a list came from and who made it (see scripts/tag-provenance.ts). */
@@ -16,6 +16,8 @@ export interface Provenance {
 
 export interface LibraryDeck {
   file: string;
+  /** Immutable identity of the current card list; legacy synthetic entries may omit it. */
+  deckId?: string;
   deck: DeckList;
   source?: string;
   author?: string;
@@ -44,6 +46,7 @@ export function deckFromText(file: string, text: string, kind?: LibraryDeck['kin
   deck.source = prov.source;
   return {
     file,
+    deckId: deckFingerprint(deck),
     deck,
     source: prov.source,
     author: prov.author,

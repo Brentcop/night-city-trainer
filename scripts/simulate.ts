@@ -16,11 +16,13 @@
 // or by a path to a deck text file. Results are written to reports/.
 import fs from 'node:fs';
 import path from 'node:path';
-import { exportOfficial, parseDeck, validateDeck, deckColors } from '../src/engine/deck';
+import { deckFingerprint, exportOfficial, parseDeck, validateDeck, deckColors } from '../src/engine/deck';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
 import { bool, cli, int, loadLibrary, mergeProvenance, oneOf, resolveDeck, runJobs as runPool, runMain, SIM_BOTS, slugify, str, threadsOpt, type Spec } from './lib-node';
-import { shortCredit } from '../src/lib/library';
+import { shortCredit, type LibraryDeck } from '../src/lib/library';
+import { SIM_VERSION } from '../src/lib/tournament';
+import { createRunManifest, type RunManifest } from '../src/lib/runManifest';
 import { toImpactData } from '../src/analysis/impactData';
 import type { MatchJob, MatchResult } from './worker';
 
@@ -131,6 +133,27 @@ function writeReport(name: string, data: any, md: string) {
   console.log(`\nSaved reports/${name}-latest.md (+ timestamped copy)`);
 }
 
+function makeRunManifest(purpose: RunManifest['purpose'], decks: LibraryDeck[], mode: string, gamesPerPair: number, games: number, trace = false): RunManifest {
+  const createdAt = new Date().toISOString();
+  const records = decks.map((d) => ({ id: d.deckId ?? deckFingerprint(d.deck), name: d.deck.name, file: d.file }));
+  const seedBase = V.seed ?? 1;
+  return createRunManifest({
+    runId: `${purpose}:${createdAt}:${seedBase}`,
+    createdAt,
+    purpose,
+    simVersion: SIM_VERSION,
+    rulesVersion: null,
+    faqVersion: null,
+    bot: { level: V.bot ?? 'lookahead' },
+    decks: records,
+    field: { mode, deckIds: records.map((d) => d.id) },
+    sample: { plannedGames: games, completedGames: games, gamesPerPair },
+    seedBase,
+    seatPolicy: 'alternate',
+    trace,
+  });
+}
+
 function fieldDecks(kind: string | undefined) {
   const lib = loadLibrary();
   // "leaderboard:N" = meta archetypes + the top N non-meta decks of the all-time season leaderboard
@@ -199,6 +222,7 @@ async function main() {
       const n = games || 200;
       console.log(`${A.deck.name}  vs  ${B.deck.name}   (${n} games, ${THREADS} threads, bot=${bot})`);
       const res = await runJobs(jobsFor([{ a: A.deck, b: B.deck }], n, bot));
+      const manifest = makeRunManifest('matchup', [A, B], 'head-to-head', n, res.length);
       const t = [...tally(res).values()][0];
       const md = [
         `# ${A.deck.name} vs ${B.deck.name}`,
@@ -212,7 +236,7 @@ async function main() {
         `Average length ${(t.turns / t.games).toFixed(1)} turns; overtime in ${pct(t.overtime, t.games)} of games.`,
       ].join('\n');
       console.log('\n' + md);
-      writeReport(`vs-${A.file.replace('.txt', '')}-${B.file.replace('.txt', '')}`, t, md);
+      writeReport(`vs-${A.file.replace('.txt', '')}-${B.file.replace('.txt', '')}`, { ...t, manifest }, md);
       return;
     }
     case 'test': {
@@ -221,6 +245,7 @@ async function main() {
       const n = games || 100;
       console.log(`Testing ${A.deck.name} against ${field.length} decks × ${n} games`);
       const res = await runJobs(jobsFor(field.map((f) => ({ a: A.deck, b: f.deck })), n, bot));
+      const manifest = makeRunManifest('matchup', [A, ...field], V.field ?? 'meta', n, res.length);
       const rows = [...tally(res).values()].sort((x, y) => wr(y) - wr(x));
       const all = rows.reduce((a, t) => a + t.aWins + 0.5 * t.ties, 0) / rows.reduce((a, t) => a + t.games, 0);
       const md = [
@@ -233,7 +258,7 @@ async function main() {
         ...rows.map((t) => `| ${t.b} | ${(wr(t) * 100).toFixed(0)}% | ${pct(t.aFirstWins, t.aFirstGames)} | ${pct(t.aSecondWins, t.aSecondGames)} | ${(t.turns / t.games).toFixed(1)} |`),
       ].join('\n');
       console.log('\n' + md);
-      writeReport(`test-${A.file.replace('.txt', '')}`, { deck: A.deck.name, date: new Date().toISOString(), games: n, bot, seed: V.seed, overall: all, rows }, md);
+      writeReport(`test-${A.file.replace('.txt', '')}`, { deck: A.deck.name, date: new Date().toISOString(), games: n, bot, seed: V.seed, overall: all, rows, manifest }, md);
       return;
     }
     case 'review': {
@@ -243,6 +268,7 @@ async function main() {
       for (let i = 0; i < field.length; i++) for (let j = i + 1; j < field.length; j++) pairs.push({ a: field[i].deck, b: field[j].deck });
       console.log(`Round robin: ${field.length} decks, ${pairs.length} pairings × ${n} games = ${pairs.length * n} games (${THREADS} threads)`);
       const res = await runJobs(jobsFor(pairs, n, bot));
+      const manifest = makeRunManifest('analysis', field, V.field ?? 'meta', n, res.length);
       const t = tally(res);
       const names = field.map((f) => f.deck.name);
       const M: Record<string, Record<string, number>> = {};
@@ -286,9 +312,9 @@ async function main() {
         `Going first won about ${pct(firstWins, allGames)} of games.`,
       ].join('\n');
       console.log('\n' + md);
-      const reviewData = { date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })), matrix: M, firstPlayerWinRate: firstWins / allGames };
+      const reviewData = { date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', manifest, decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })), matrix: M, firstPlayerWinRate: firstWins / allGames };
       fs.writeFileSync('src/data/review.json', JSON.stringify(reviewData, null, 1));
-      writeReport('review', { date: new Date().toISOString(), games: n, bot, decks: ranked.map((nm) => ({ name: nm, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })), matrix: M, firstPlayerWinRate: firstWins / allGames }, md);
+      writeReport('review', { ...reviewData, decks: ranked.map((nm) => ({ name: nm, winRate: totals[nm].w / totals[nm].g, games: totals[nm].g })) }, md);
       return;
     }
     case 'analyze': {
@@ -300,6 +326,8 @@ async function main() {
       else for (let i = 0; i < field.length; i++) for (let j = i + 1; j < field.length; j++) pairs.push({ a: field[i].deck, b: field[j].deck });
       console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})`);
       const res = await runJobs(jobsFor(pairs, n, bot, true));
+      const runDecks = focus ? [focus, ...field.filter((f) => f.deck.name !== focus.deck.name)] : field;
+      const manifest = makeRunManifest('analysis', runDecks, focus?.file ?? V.field ?? 'meta', n, res.length, true);
       const sums = res.flatMap((r) => r.summaries ?? []);
       const { analyzeAll, reportMarkdown } = await import('../src/analysis/analyze');
       let reps = analyzeAll(sums);
@@ -307,7 +335,7 @@ async function main() {
       const md = reportMarkdown(reps);
       fs.mkdirSync('reports', { recursive: true });
       fs.writeFileSync(`reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.md`, md);
-      fs.writeFileSync(`reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.json`, JSON.stringify(reps, null, 1));
+      fs.writeFileSync(`reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.json`, JSON.stringify({ manifest, decks: reps }, null, 1));
       if (!focus) {
         // rankings + matrix from the same games (same format as `review`)
         const t = tally(res);
@@ -329,11 +357,11 @@ async function main() {
         const ranked = [...names].sort((a, b) => tot[b].w / tot[b].g - tot[a].w / tot[a].g);
         fs.writeFileSync(
           'src/data/review.json',
-          JSON.stringify({ date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: tot[nm].w / tot[nm].g, games: tot[nm].g })), matrix: M, firstPlayerWinRate: fw / ag }, null, 1),
+          JSON.stringify({ date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', manifest, decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: tot[nm].w / tot[nm].g, games: tot[nm].g })), matrix: M, firstPlayerWinRate: fw / ag }, null, 1),
         );
         // trimmed copy for the web app
         const trimmed = reps.map((r) => ({ ...r, cards: r.cards.slice(0, 40) }));
-        fs.writeFileSync('src/data/analysis.json', JSON.stringify({ date: new Date().toISOString(), games: n, bot, decks: trimmed }));
+        fs.writeFileSync('src/data/analysis.json', JSON.stringify({ date: new Date().toISOString(), games: n, bot, manifest, decks: trimmed }));
         // slim id/IWD/seenGames copy for the bots and the Deck Lab (src/ai/impact.ts); always written with analysis.json
         fs.writeFileSync('src/data/impact.json', JSON.stringify(toImpactData(trimmed)));
       }
