@@ -119,13 +119,11 @@
   color: var(--accent-bg);
 }
 
-/* hover zoom */
+/* hover zoom: rendered at the document body (TcgCard's CardZoom) and placed in script beside the card, inside the
+   viewport. Above everything: hands, the action dock, the log drawer, menus and dialogs. It never takes the pointer. */
 .tcg-zoom {
-  position: absolute;
-  z-index: 50;
-  left: 100%;
-  top: 0;
-  margin-left: 10px;
+  position: fixed;
+  z-index: 3000;
   display: flex;
   gap: 10px;
   pointer-events: none;
@@ -135,14 +133,15 @@
   padding: 10px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   width: max-content;
-  max-width: 560px;
-}
-.tcg.is-spent .tcg-zoom {
-  transform: rotate(-90deg);
-  transform-origin: top left;
+  max-width: calc(100vw - 16px);
+  /* the full-size card shrinks on short screens so the whole preview fits */
+  --tcg-w: clamp(150px, calc((100vh - 40px) * 0.716), 300px);
+  animation: fade 0.12s ease backwards;
 }
 .tcg-zoom-text {
   width: 220px;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
   color: var(--text);
 }
 @media (max-width: 700px), (hover: none) {

@@ -1,9 +1,37 @@
-// Floating UI on the playmat: card action popover, trash viewer, mulligan screen, game-over overlay.
-import { useEffect, useState } from 'react';
+// Floating UI on the playmat: card action popover, trash viewer, mulligan screen, game-over overlay, the Concede /
+// Exit game confirmation.
+import { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Game } from '../../../engine/engine';
 import type { PlayerId } from '../../../engine/types';
+import { Modal } from '../Modal';
 import { TcgCard } from '../TcgCard';
 import type { BoardCtx } from './BoardCard';
+
+/** "Are you sure?" before conceding (a recorded loss) or exiting (nothing recorded). Rendered at the document body. */
+export function LeaveDialog({ kind, onConfirm, onCancel }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void }) {
+  const id = useId();
+  const concede = kind === 'concede';
+  return createPortal(
+    <Modal labelledBy={id} onClose={onCancel} className="pb-leave">
+      <h3 id={id} style={{ marginTop: 0 }}>
+        {concede ? 'Concede this game?' : 'Exit this game?'}
+      </h3>
+      <p className="muted">
+        {concede
+          ? 'The game ends now as a loss, recorded in your practice log and replays as conceded. You can still undo from the result screen.'
+          : 'The game ends now and nothing is recorded: no result and no replay.'}
+      </p>
+      <div className="row pb-leave-actions">
+        <button className={concede ? 'pb-danger' : 'primary'} onClick={onConfirm}>
+          {concede ? '⚑ Concede' : 'Exit game'}
+        </button>
+        <button onClick={onCancel}>Keep playing</button>
+      </div>
+    </Modal>,
+    document.body,
+  );
+}
 
 export interface MenuState {
   uid: number;
@@ -93,7 +121,7 @@ export function TrashModal({ g, p, onClose }: { g: Game; p: PlayerId; onClose: (
           Top of the trash first.
         </p>
         <div className="pb-modal-grid">
-          {trash.map((u) => (g.s.cards[u] ? <TcgCard key={u} def={g.def(u)} size="sm" noZoom /> : null))}
+          {trash.map((u) => (g.s.cards[u] ? <TcgCard key={u} def={g.def(u)} size="sm" /> : null))}
           {!trash.length && <span className="muted">Empty.</span>}
         </div>
       </div>
@@ -147,15 +175,32 @@ export function MulliganScreen({ ctx, why }: { ctx: BoardCtx; why?: string }) {
   );
 }
 
-export function GameOverOverlay({ g, onRematch, onNew, onHide, review }: { g: Game; onRematch: () => void; onNew: () => void; onHide: () => void; review?: React.ReactNode }) {
+export function GameOverOverlay({
+  g,
+  conceded,
+  onRematch,
+  onNew,
+  onHide,
+  onUndo,
+  review,
+}: {
+  g: Game;
+  conceded?: boolean;
+  onRematch: () => void;
+  onNew: () => void;
+  onHide: () => void;
+  /** offered when there is a position to go back to (after a concede: the position you conceded from) */
+  onUndo?: () => void;
+  review?: React.ReactNode;
+}) {
   const s = g.s;
   const win = s.winner === 0;
   const loss = s.winner === 1;
   return (
     <div className="pb-modal-wrap pb-over">
-      <div className={`pb-modal pb-over-card ${win ? 'win' : loss ? 'loss' : 'draw'}`}>
-        <div className="pb-over-title">{win ? 'VICTORY' : loss ? 'DEFEAT' : 'DRAW'}</div>
-        <div className="pb-over-reason">{s.winReason || '—'}</div>
+      <div className={`pb-modal pb-over-card ${win ? 'win' : loss ? 'loss' : 'draw'} ${conceded ? 'conceded' : ''}`} role="dialog" aria-label="Game over">
+        <div className="pb-over-title">{conceded ? 'CONCEDED' : win ? 'VICTORY' : loss ? 'DEFEAT' : 'DRAW'}</div>
+        <div className="pb-over-reason">{conceded ? 'You conceded. Recorded as a loss.' : s.winReason || '—'}</div>
         <div className="small muted">
           {s.turn} turns · you went {s.first === 0 ? 'first' : 'second'} · Gigs {g.gigsOf(0).length}–{g.gigsOf(1).length}
         </div>
@@ -167,6 +212,11 @@ export function GameOverOverlay({ g, onRematch, onNew, onHide, review }: { g: Ga
           <button className="pb-big" onClick={onNew}>
             New game
           </button>
+          {onUndo && (
+            <button className="ghost" onClick={onUndo} title={conceded ? 'Take back the concession: back to before your last decision' : 'Back to before your last decision'}>
+              ↶ Undo
+            </button>
+          )}
           <button className="ghost" onClick={onHide}>
             View board
           </button>

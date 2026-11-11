@@ -3,13 +3,13 @@ import { useRef } from 'react';
 import type { Game } from '../../../engine/engine';
 import type { Decision, PlayerId } from '../../../engine/types';
 import { CardBack, TcgCard, type CardSize } from '../TcgCard';
-import type { AttackOpt, CoachMark, Interaction } from './interaction';
+import { MARK_TEXT, type CardMark, type CoachMark, type Interaction, type Marks, type Targeting } from './interaction';
 import type { DragApi, DropTarget } from './drag';
 
-export interface Targeting {
-  attacker: number;
-  targets: AttackOpt[];
-}
+export type { Targeting } from './interaction';
+
+/** Icon per mark: the non-colour cue next to each mark's outline style. */
+const MARK_ICON: Partial<Record<CardMark, string>> = { play: '▶', sell: '€$', attack: '⚔', ability: '✦', block: '⛨', target: '◎', aiming: '⚔' };
 
 export interface BoardCtx {
   g: Game;
@@ -30,6 +30,8 @@ export interface BoardCtx {
   handOrder?: number[];
   /** seat labels for spectating (default: You / Rival bot) */
   seatLabels?: [string, string];
+  /** which cards can be acted on now (Play page only; see boardMarks) */
+  marks?: Marks;
 }
 
 const dropMatches = (over: DropTarget | null, uid: number) => !!over && (over.kind === 'unit' || over.kind === 'hand') && over.uid === uid;
@@ -81,7 +83,6 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
 
   let onClick: (() => void) | undefined;
   let targetable = false;
-  let can = false;
   const menu = ix.menus.get(uid);
   if (targeting) {
     const t = targeting.targets.find((x) => x.unit === uid);
@@ -90,7 +91,6 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
       onClick = () => ctx.answer(t.i);
     } else if (uid === targeting.attacker) onClick = ctx.cancelTargeting;
   } else if (menu?.length) {
-    can = true;
     const isBlock = menu.some((m) => m.kind === 'block');
     targetable = ctx.pend?.kind === 'reaction' && isBlock;
     onClick = () => {
@@ -119,11 +119,13 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
   const attacking = !!att && att.attacker === uid;
   const attacked = !!att && att.targetUnit === uid;
   const isAttacker = targeting?.attacker === uid;
+  const mark = ctx.marks?.cards.get(uid);
+  const icon = mark ? MARK_ICON[mark] : undefined;
 
   const cls = [
     'pb-slot',
     c.spent ? 'is-spent' : '',
-    can ? 'pb-can' : '',
+    mark ? `pb-st-${mark}` : '',
     attacking ? 'pb-attacking' : '',
     attacked ? 'pb-attacked' : '',
     isAttacker ? 'pb-aiming' : '',
@@ -144,10 +146,13 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
     }
   }
 
+  // the card's name plus what it can do now, for screen readers (the outline and icon show it on screen)
+  const label = mark && mark !== 'dim' && onClick ? `${hidden ? 'Face-down Legend' : def.displayName}: ${MARK_TEXT[mark]}` : undefined;
+
   return (
     <div ref={ref} className={cls} data-uid={uid} onPointerDown={draggable ? (e) => ctx.drag!.start(uid, e) : undefined}>
       {hidden ? (
-        <CardBack size={size} label={c.zone === 'legends' ? 'Legend' : undefined} spent={c.spent} onClick={onClick} targetable={targetable} />
+        <CardBack size={size} label={c.zone === 'legends' ? 'Legend' : undefined} spent={c.spent} onClick={onClick} targetable={targetable} ariaLabel={label} />
       ) : (
         <TcgCard
           def={def}
@@ -159,7 +164,13 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
           dim={c.zone === 'legends' && !c.faceUp}
           onClick={onClick}
           badges={cardChips(g, uid, isCoach)}
+          ariaLabel={label}
         />
+      )}
+      {icon && (
+        <span className="pb-st-badge" aria-hidden="true" title={MARK_TEXT[mark!]}>
+          {icon}
+        </span>
       )}
       {hidden && isCoach && <span className="chip pb-chip-coach pb-float-chip">Coach</span>}
       {c.gear.length > 0 && (

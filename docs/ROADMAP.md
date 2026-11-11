@@ -116,14 +116,14 @@ The supplied image and official Comprehensive Rules / Rules FAQ are game-design 
 
 Owner requests, done in three packages in this order.
 
-**P1 · Play board.**
-- Exit game (leave without recording a result) and Concede (end the game as a recorded loss, with a confirm).
-- The board takes at least 85% of the screen, with larger cards.
-- The game log moves so it works with the fuller board.
-- The card breakdown shown on hover renders above everything, including the hand.
-- Cards and targets that can be acted on are shown visually.
-- "All actions" sits where actions are taken and stays expanded once opened.
-- Bot speed: instant 0, fast 500 ms, normal 1,200 ms (default), slow 2,400 ms. The replay viewer's speeds shift the same way.
+**P1 · Play board.** Done (2026-11-11), pending a visual check at 1280×800, 1440×900, 1920×1080 and phone width in both themes.
+- Exit game (leave without recording a result) and Concede (end the game as a recorded loss, with a confirm). Done: both sit in the game strip, each behind a confirm. `PracticeSession.concede()` stops the game loop the way Quit does, then writes the result (`winner` 1, reason "You conceded") and records it once, marked `conceded` in the practice log and the replay. It works on the bot's turn, at any prompt and during the mulligan. Undo from the result screen returns to before your last main-phase decision (the decision you conceded from, if you conceded at one), and finishing the game again replaces the record. The result screen says CONCEDED, and the log and practice history say "conceded". A conceded replay's choices stop at the concession, and the match review's re-simulation ends there too (`src/sim/practiceReview.ts`), so the review checks the result like any other game.
+- The board takes at least 85% of the screen, with larger cards. Done: on desktop and tablets the game fills the viewport under a 46 px strip (≈94–96% of the area at 1280×800 to 1920×1080). The site header is behind a ☰ button. Card sizes come from the viewport: one card row per side (Legends | field | Gigs and piles; two rows per side on portrait tablets). Field cards are about 133/152/199 px wide at those sizes (96 px before), and squeeze rather than wrap. Phones keep the compact layout.
+- The game log moves so it works with the fuller board. Done: a drawer on the right edge (its tab at the right of the strip shows the latest line and live coach warnings; the drawer opens over the board without resizing it, above the hand bar). It holds the coach notes and the bot's last move. On phones it is a bottom sheet. Its state lasts for the browser session.
+- The card breakdown shown on hover renders above everything, including the hand. Done: the preview renders at the document body, placed beside the card inside the viewport, above the hand, the action dock, the drawer, menus and dialogs (it now also works in the trash viewer, the mulligan and on the trash pile).
+- Cards and targets that can be acted on are shown visually. Done: `boardMarks()` derives the marks from the pending decision's options only. Each kind has its own outline style and icon: play ▶ (solid), attack ⚔ (double), ability ✦ (dashed), sell-only €$ (dotted), block ⛨ and target ◎. Your cards with no action look quieter, and during target mode or a card choice everything else dims.
+- "All actions" sits where actions are taken and stays expanded once opened. Done: it sits in the action dock beside the hand (with the turn button and the prompt), or with the prompt on phones. It stays open across decisions, turns, Undo and new games for the browser session.
+- Bot speed: instant 0, fast 500 ms, normal 1,200 ms (default), slow 2,400 ms. The replay viewer's speeds shift the same way. Done: the choice is remembered, and a stored 250 maps to fast. The replay viewer has slow, normal and fast, one setting for both Play and Fast-forward: fast is 350 ms per action and 2.4 s per turn (the old normal and the old turn delay), normal is 900 ms and 3.6 s, and slow is 1.8 s and 4.8 s.
 
 **P2 · App pages.**
 - Reuse the board's colour scheme as accents on the barer screens.

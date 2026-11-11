@@ -113,7 +113,7 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       <div className="pb-pile pb-trash" title="Open the trash">
         <div className="pb-stack" onClick={() => ctx.openTrash(p)} {...pressable(() => ctx.openTrash(p), `${p === 0 ? 'Open your trash' : "Open the rival's trash"} (${P.trash.length} cards)`)}>
           {top !== undefined && g.s.cards[top] ? (
-            <TcgCard def={g.def(top)} size="xs" noZoom />
+            <TcgCard def={g.def(top)} size="xs" />
           ) : (
             <div className="pb-empty-slot">trash</div>
           )}
@@ -144,8 +144,9 @@ export function MyHand({ ctx }: { ctx: BoardCtx }) {
   const hand = ctx.handOrder ?? ctx.g.P(0).hand;
   const n = hand.length;
   const size = ctx.narrow ? 'sm' : 'md';
+  // --hand-n: the full board overlaps the fan more as the hand grows, so it always fits its bar
   return (
-    <div className={`pb-hand ${ctx.narrow ? 'pb-hand-scroll' : ''}`}>
+    <div className={`pb-hand ${ctx.narrow ? 'pb-hand-scroll' : ''}`} style={{ ['--hand-n' as any]: Math.max(n, 1) }}>
       {hand.map((u, k) => {
         const off = k - (n - 1) / 2;
         return (
@@ -182,8 +183,11 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       <Piles p={p} ctx={ctx} />
     </div>
   );
+  // --n: how many card widths the field needs (a spent card lies sideways and takes a bit more); the full board
+  // shrinks field cards to fit rather than wrapping them onto a second row
+  const slots = P.field.reduce((n, u) => n + (g.s.cards[u]?.spent ? 1.25 : 1), 0);
   const field = (
-    <div className={`pb-zone pb-field ${me && ctx.drag?.over?.kind === 'play' ? 'pb-drop-over' : ''}`} data-drop={me ? 'play' : undefined}>
+    <div className={`pb-zone pb-field ${me && ctx.drag?.over?.kind === 'play' ? 'pb-drop-over' : ''}`} data-drop={me ? 'play' : undefined} style={{ ['--n' as any]: Math.max(slots, 1) }}>
       <div className="pb-label">{ctx.seatLabels ? `${ctx.seatLabels[p]} — field` : me ? 'Your field' : 'Rival field'}</div>
       <div className="pb-cards">
         {P.field.map((u) => (
@@ -198,6 +202,8 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       <div className="pb-side-name">
         <span className="pb-who">{ctx.seatLabels ? ctx.seatLabels[p] : me ? 'You' : 'Rival bot'}</span>
         {!ctx.seatLabels && <span className="muted small">{P.name}</span>}
+        {/* the full board shows the rival's hand size here instead of a row of card backs */}
+        {!me && <span className="pb-name-hand small muted">{P.hand.length} in hand</span>}
         {active && <span className="pb-active-tag">{me ? 'your turn' : 'their turn'}</span>}
       </div>
       {me ? (

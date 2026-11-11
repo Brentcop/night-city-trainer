@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import { makeTierBot } from '../src/ai/tiers';
-import { ScriptedAgent } from '../src/ai/reviewer';
+import { reviewGame, ScriptedAgent } from '../src/ai/reviewer';
+import { practiceAgents } from '../src/sim/practiceReview';
 import type { Agent, Decision, DeckList, GameState } from '../src/engine/types';
-import { canUndo, outcome, PracticeSession, type MatchSetup, type Running } from '../src/lib/practiceSession';
+import { canConcede, canUndo, CONCEDED_REASON, outcome, PracticeSession, type MatchSetup, type Running } from '../src/lib/practiceSession';
 import { HumanAgent } from '../src/ui/HumanAgent';
 import { loadPractice, parsePractice, recordPractice } from '../src/lib/practiceLog';
 import { loadReplays, parseReplays } from '../src/lib/practiceReplays';
@@ -241,6 +242,159 @@ describe('practice session: quitting and errors', () => {
     expect(loadPractice()).toHaveLength(1);
     err.mockRestore();
   }, 60_000);
+});
+
+describe('practice session: conceding', () => {
+  /** Concede at your Nth main-phase decision (after a few turns), from inside the prompt. */
+  function concedeAtPrompt(session: PracticeSession, nth = 6) {
+    let seen = 0;
+    const at: { turn: number; choices: number; log: number } = { turn: -1, choices: -1, log: -1 };
+    drive(session, (run, d) => {
+      if (at.turn >= 0 || d.kind !== 'action' || ++seen < nth) return false;
+      at.turn = run.g.s.turn;
+      at.choices = run.replay.choices.length;
+      at.log = run.g.s.log.length;
+      expect(canConcede(run)).toBe(true);
+      expect(session.concede()).toBe(true);
+      return true;
+    });
+    return at;
+  }
+
+  it('ends the game at a prompt as a loss, recorded once and marked conceded', async () => {
+    const session = new PracticeSession();
+    const at = concedeAtPrompt(session);
+    session.start(setup(12, 0));
+    const run = await finish(session);
+    expect(at.turn).toBeGreaterThan(0);
+    expect(run.conceded).toBe(true);
+    expect(run.error).toBeNull();
+    expect(run.human.pending).toBeNull();
+    expect(run.g.s.winner).toBe(1);
+    expect(run.g.s.winReason).toBe(CONCEDED_REASON);
+    expect(run.g.s.turn).toBe(at.turn); // nothing was played after the concession
+    expect(run.g.s.log.length).toBe(at.log + 1);
+    expect(run.g.s.log.at(-1)?.text).toMatch(/You conceded/);
+    expect(canConcede(run)).toBe(false);
+    expect(session.concede()).toBe(false); // a second concede records nothing
+    const log = loadPractice();
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ id: run.replay.id, result: 'loss', conceded: true, reason: CONCEDED_REASON, turns: at.turn });
+    const reps = loadReplays();
+    expect(reps).toHaveLength(1);
+    expect(reps[0]).toMatchObject({ id: run.replay.id, result: 'loss', conceded: true });
+    expect(reps[0].choices).toHaveLength(at.choices);
+  }, 60_000);
+
+  it('works during the bot turn: the bot stops at once and nothing more is recorded', async () => {
+    const session = new PracticeSession({ pace: () => 5 });
+    let conceded: { turn: number; log: number } | null = null;
+    let armed = false;
+    drive(session, (run, d) => {
+      if (armed || d.kind !== 'action' || run.snaps.length < 3) return false;
+      const pass = d.options.findIndex((o) => (o.action as { type?: string } | undefined)?.type === 'pass');
+      if (pass < 0) return false;
+      armed = true;
+      run.human.answer(d, pass); // end your turn, then concede once the bot is moving
+      const wait = () => {
+        if (run.g.s.active !== 1 || run.human.pending || run.g.s.winner !== null) return void setTimeout(wait, 1);
+        expect(canUndo(run)).toBe(false); // the bot's turn: nothing to undo to right now
+        expect(session.concede()).toBe(true);
+        conceded = { turn: run.g.s.turn, log: run.g.s.log.length };
+      };
+      setTimeout(wait, 1);
+      return true;
+    });
+    session.start(setup(4, 0));
+    const run = await finish(session);
+    expect(conceded).not.toBeNull();
+    await new Promise((r) => setTimeout(r, 40)); // a bot that kept playing would add log lines now
+    expect(run.g.s.winner).toBe(1);
+    expect(run.g.s.turn).toBe(conceded!.turn);
+    expect(run.g.s.log.length).toBe(conceded!.log);
+    expect(loadPractice()).toHaveLength(1);
+    expect(loadPractice()[0].conceded).toBe(true);
+    expect(loadReplays()).toHaveLength(1);
+    // Undo works as after any game over: back to before your last main-phase decision
+    expect(canUndo(run)).toBe(true);
+  }, 60_000);
+
+  it('Undo after a concession returns to the position it was made from; finishing again replaces the record', async () => {
+    const session = new PracticeSession();
+    const at = concedeAtPrompt(session);
+    session.start(setup(12, 0));
+    const conceded = await finish(session);
+    expect(conceded.conceded).toBe(true);
+    expect(canUndo(conceded)).toBe(true);
+    expect(session.undo()).toBe(true);
+    const back = session.current!;
+    expect(back).not.toBe(conceded);
+    expect(back.match).toBe(conceded.match);
+    expect(back.conceded).toBe(false);
+    expect(back.replay.conceded).toBeUndefined();
+    expect(back.g.s.winner).toBeNull();
+    expect(back.g.s.turn).toBe(at.turn);
+    expect(back.replay.choices).toHaveLength(at.choices);
+    expect(back.human.pending?.d.kind).toBe('action'); // the very decision you conceded from
+    const done = await finish(session);
+    const log = loadPractice();
+    expect(log).toHaveLength(1);
+    expect(log[0].id).toBe(conceded.replay.id);
+    expect(log[0].conceded).toBeUndefined();
+    expect(log[0].result).toBe(outcome(done.g.s));
+    expect(loadReplays()[0].conceded).toBeUndefined();
+    const { st, fallbacks } = await replayOf(done);
+    expect(fallbacks).toBe(0);
+    expect(st.log).toEqual(done.g.s.log);
+  }, 90_000);
+
+  it('a conceded game’s replay loads and re-simulates up to the concession', async () => {
+    const session = new PracticeSession();
+    concedeAtPrompt(session, 4);
+    session.start(setup(21, 0));
+    const run = await finish(session);
+    const [r] = parseReplays(store.get('nct.practiceReplays.v1') ?? null);
+    expect(r).toMatchObject({ id: run.replay.id, conceded: true, result: 'loss' });
+    // replaying the recorded choices reaches exactly the position you conceded from: the script runs out there
+    class End extends Error {}
+    const out: Agent = {
+      name: 'out',
+      decide: async () => {
+        throw new End();
+      },
+    };
+    const g = Game.create(r.decks, [new ScriptedAgent('you', r.choices, out, !!r.payChoice, !!r.orderChoice), makeTierBot(r.botLevel, r.botSeed, 'Bot')], { seed: r.seed, first: r.first });
+    await expect(g.run()).rejects.toBeInstanceOf(End);
+    expect(g.s.log).toEqual(run.g.s.log.slice(0, -1)); // everything but the concession line
+  }, 60_000);
+
+  it('the match review of a conceded game ends at the concession and reproduces the result', async () => {
+    const session = new PracticeSession();
+    concedeAtPrompt(session, 4);
+    session.start(setup(21, 0));
+    const run = await finish(session);
+    const r = loadReplays()[0];
+    const spec = { decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: r.payChoice, orderChoice: r.orderChoice };
+    // the re-simulation: the same game up to the concession, then a loss "You conceded"
+    const st = await Game.create(r.decks, practiceAgents({ ...spec, conceded: true }), { seed: r.seed, first: r.first }).run();
+    expect(st.winner).toBe(1);
+    expect(st.winReason).toBe(CONCEDED_REASON);
+    expect(st.turn).toBe(run.g.s.turn);
+    expect(st.log.slice(0, -1)).toEqual(run.g.s.log.slice(0, -1)); // the last lines word the concession differently
+    // a finished game's record is untouched: running out of choices still falls back to a stand-in bot
+    const plain = await Game.create(r.decks, practiceAgents(spec), { seed: r.seed, first: r.first }).run();
+    expect(plain.winReason).not.toBe(CONCEDED_REASON);
+    // the reviewer itself: same result as recorded, and only your decisions up to the concession are graded
+    const review = await reviewGame(
+      { decks: r.decks, seed: r.seed, first: r.first, agents: practiceAgents({ ...spec, conceded: true }), agentNames: ['you', r.botLevel] },
+      { rollouts: 1, withCoach: false, seats: [0] },
+    );
+    expect(review.winner).toBe(1);
+    expect(review.reason).toBe(CONCEDED_REASON);
+    expect(review.turns).toBe(run.g.s.turn);
+    expect(review.decisions.length).toBeGreaterThan(0);
+    for (const d of review.decisions) expect(d.turn).toBeLessThanOrEqual(run.g.s.turn);
+  }, 120_000);
 });
 
 describe('human answers', () => {

@@ -20,13 +20,18 @@ function ownsSpace(t: EventTarget | null): boolean {
 }
 
 const noop = () => undefined;
-const SPEEDS = [
-  { ms: 900, label: 'slow' },
-  { ms: 350, label: 'normal' },
-  { ms: 120, label: 'fast' },
-];
+/**
+ * Playback speeds, shifted like the Play page's bot speeds: today's normal is the old slow, fast the old normal, and
+ * slow is new and slower. `ms` paces Fast-forward (per action), `turnMs` the turn-by-turn Play (per turn).
+ */
+export const REPLAY_SPEEDS = [
+  { label: 'slow', ms: 1_800, turnMs: 4_800 },
+  { label: 'normal', ms: 900, turnMs: 3_600 },
+  { label: 'fast', ms: 350, turnMs: 2_400 },
+] as const;
+export const DEFAULT_REPLAY_SPEED = 'normal';
+type ReplaySpeed = (typeof REPLAY_SPEEDS)[number]['label'];
 type ReplayMode = 'turn' | 'fast' | 'step';
-const TURN_DELAY = 2_400;
 
 export function ReplayBoard({ data, names }: { data: ReplayData; names: [string, string] }) {
   const frames = data.frames;
@@ -36,7 +41,8 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   // Replay opens in a readable turn-by-turn mode. Fast-forward preserves the
   // old frame playback, while Next action is an explicit one-frame step mode.
   const [mode, setMode] = useState<ReplayMode>('turn');
-  const [speed, setSpeed] = useState(350);
+  const [speedLabel, setSpeedLabel] = useState<ReplaySpeed>(DEFAULT_REPLAY_SPEED);
+  const speed = REPLAY_SPEEDS.find((x) => x.label === speedLabel) ?? REPLAY_SPEEDS[1];
   const narrow = useNarrow();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +62,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
         const next = frames.findIndex((f, i) => i > c && f.line.turn > turn);
         return next < 0 ? n - 1 : next;
       });
-    }, mode === 'turn' ? TURN_DELAY : speed);
+    }, mode === 'turn' ? speed.turnMs : speed.ms);
     return () => clearTimeout(t);
   }, [playing, cur, n, speed, mode, frames]);
   // keep the current line in view
@@ -120,7 +126,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   return (
     <div className="replay">
       <div className="replay-controls row small">
-        <button className={mode === 'turn' ? 'primary' : ''} onClick={() => togglePlayback('turn')} title="Play one turn every few seconds">
+        <button className={mode === 'turn' ? 'primary' : ''} onClick={() => togglePlayback('turn')} title="Play one turn at a time, at the selected speed">
           {playing && mode === 'turn' ? '❚❚ Pause' : '▶ Play'}
         </button>
         <button className={mode === 'fast' ? 'primary' : ''} onClick={() => togglePlayback('fast')} title="Play every action at the selected speed">
@@ -138,9 +144,9 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
         <button onClick={() => (setPlaying(false), setCur(Math.min(n - 1, Math.max(cur + 1, firstLineOfTurn(turnNow + 1)))))} disabled={end} title="Next turn">
           ⏭
         </button>
-        <select aria-label="Fast-forward speed" value={speed} onChange={(e) => setSpeed(+e.target.value)}>
-          {SPEEDS.map((x) => (
-            <option key={x.ms} value={x.ms}>
+        <select aria-label="Playback speed" value={speedLabel} onChange={(e) => setSpeedLabel(e.target.value as ReplaySpeed)} title="Speed of Play (per turn) and Fast-forward (per action)">
+          {REPLAY_SPEEDS.map((x) => (
+            <option key={x.label} value={x.label}>
               {x.label}
             </option>
           ))}

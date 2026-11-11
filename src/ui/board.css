@@ -63,11 +63,8 @@
 }
 
 /* ---- layout ---- */
-.pb-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 12px;
-  align-items: start;
+.pb-stage {
+  position: relative;
 }
 .pb-mat {
   min-width: 0;
@@ -81,19 +78,16 @@
   border: 1px solid var(--border);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.18);
 }
-.pb-sidebar {
-  position: sticky;
-  top: 10px;
-  max-height: calc(100vh - 20px);
-  overflow-y: auto;
+.pb-below {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 8px;
   min-width: 0;
 }
-.pb-log {
-  max-height: 300px;
-  min-height: 120px;
+.pb-error {
+  border-color: var(--red);
+  margin: 8px 0;
 }
 
 /* ---- player sides ---- */
@@ -205,9 +199,6 @@
     scale: 0.92;
   }
 }
-.pb-can > .tcg:not(.is-target):not(.is-selected) > .tcg-inner {
-  box-shadow: 0 0 0 2px var(--green), 0 0 12px color-mix(in srgb, var(--green) 55%, transparent);
-}
 .pb-attacking > .tcg > .tcg-inner {
   box-shadow: 0 0 0 3px var(--red), 0 0 24px var(--red) !important;
 }
@@ -259,8 +250,8 @@
   position: relative;
   z-index: 1;
 }
-.pb-gear .tcg {
-  width: 40px !important;
+.pb-gear {
+  --tcg-w: 40px;
 }
 .pb-slot.is-spent .pb-gear {
   margin-top: -4px;
@@ -432,8 +423,8 @@
   margin-left: -22px;
   transform: rotate(180deg);
 }
-.pb-rival-hand-card .tcg {
-  width: 44px !important;
+.pb-rival-hand-card {
+  --tcg-w: 44px;
 }
 .pb-hand-count {
   margin-left: 10px;
@@ -486,10 +477,6 @@
   transform: translateY(-24px) rotate(0deg) scale(1.05);
   z-index: 20;
 }
-.pb-hand .tcg-zoom {
-  top: auto;
-  bottom: 0;
-}
 .pb-hand-scroll {
   justify-content: flex-start;
   overflow-x: auto;
@@ -506,7 +493,9 @@
 .pb-hand-scroll .pb-fan:has(.pb-menu-host) {
   transform: translateY(-8px);
 }
-.pb-menu-open .tcg-zoom {
+/* the hover preview renders at the document body: hide it while a card menu is open or a card is being dragged */
+body:has(.pb-menu) .tcg-zoom,
+body.pb-dragging .tcg-zoom {
   display: none;
 }
 
@@ -610,16 +599,22 @@ button.pb-coach-btn {
   gap: 8px;
   margin-top: 8px;
 }
-.pb-tray .tcg-zoom {
-  left: auto;
-  right: 100%;
-  margin-left: 0;
-  margin-right: 10px;
+/* ---- All actions: a toggle that stays open until the player closes it ---- */
+.pb-all {
+  display: grid;
+  gap: 4px;
 }
-.pb-all summary {
-  cursor: pointer;
+.pb-all-toggle {
+  justify-self: start;
+  font-size: 0.8rem;
+  padding: 4px 8px;
   color: var(--muted);
-  font-size: 13px;
+}
+.pb-all.is-open .pb-all-toggle {
+  color: var(--text);
+}
+.pb-all-list {
+  margin-top: 0;
 }
 
 /* ---- action popover ---- */
@@ -707,9 +702,6 @@ button.pb-coach-btn {
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   justify-items: center;
 }
-.pb-modal-grid .tcg-zoom {
-  display: none;
-}
 .pb-mull-hand {
   display: flex;
   flex-wrap: wrap;
@@ -724,9 +716,6 @@ button.pb-coach-btn {
     opacity: 0;
     transform: translateY(30px) rotate(-6deg);
   }
-}
-.pb-mull-card .tcg-zoom {
-  display: none;
 }
 .pb-legend-peek {
   text-align: center;
@@ -799,16 +788,6 @@ button.pb-big {
 }
 
 /* ---- responsive ---- */
-@media (max-width: 1000px) {
-  .pb-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .pb-sidebar {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-}
 @media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
   .pb-mat {
     padding: 6px;
@@ -880,9 +859,6 @@ button.pb-big {
   }
   .pb-dock .pb-prompt {
     border-radius: 12px 12px 0 0;
-  }
-  .pb-dock .tcg-zoom {
-    display: none;
   }
 }
 
@@ -1023,11 +999,8 @@ body.pb-dragging [data-drop].pb-drop-over {
     min-height: 0;
     padding: 0;
   }
-  .pb-legends .tcg {
-    width: 46px !important;
-  }
-  .pb-legends .tcg-zoom {
-    display: none;
+  .pb-legends {
+    --tcg-w: 46px;
   }
   .pb-label {
     font-size: 0.62rem;
@@ -1035,8 +1008,8 @@ body.pb-dragging [data-drop].pb-drop-over {
   .pb-pile {
     width: 46px;
   }
-  .pb-pile .tcg {
-    width: 40px !important;
+  .pb-pile {
+    --tcg-w: 40px;
   }
   .pb-pips {
     display: none;
@@ -1092,10 +1065,10 @@ body.pb-dragging [data-drop].pb-drop-over {
   .pb-topbar .row {
     gap: 6px;
   }
-  .pb-topbar label {
-    font-size: 0; /* keep the speed picker, drop its caption */
+  .pb-speed-cap {
+    display: none; /* keep the speed picker, drop its caption */
   }
-  .pb-topbar label select {
+  .pb-topbar select {
     font-size: 0.8rem;
   }
 }
@@ -1206,20 +1179,10 @@ body.pb-dragging [data-drop].pb-drop-over {
   .pb-hand-scroll .pb-fan:hover {
     transform: none;
   }
-  .pb-hand .tcg-zoom {
-    display: none;
-  }
 }
 
 /* ---- compact play (phones, both orientations) ---- */
 @media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
-  /* the game has its own pinned turn bar, so the site header scrolls away instead of covering the board */
-  body:has(.pb) .topbar {
-    position: static;
-  }
-  body:has(.pb) .footer {
-    display: none;
-  }
   /* finger-sized tap targets (at least 40px) */
   .pb-sort {
     min-height: 40px;
@@ -1268,8 +1231,8 @@ body.pb-dragging [data-drop].pb-drop-over {
     flex: 1;
     padding-top: 4px;
   }
-  .pb-hand .tcg {
-    width: 64px !important;
+  .pb-hand {
+    --tcg-w: 64px;
   }
   .pb-dock {
     max-height: 60vh;
@@ -1287,4 +1250,663 @@ body.pb-dragging [data-drop].pb-drop-over {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* ============ game strip: site menu, turn, log tab, speed, Undo, Concede, Exit ============ */
+.pb-strip-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  min-width: 0;
+}
+.pb-navbtn {
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 4px 10px;
+}
+.pb-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+button.pb-concede {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 55%, var(--border));
+}
+button.pb-concede:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 12%, var(--panel-2));
+}
+button.pb-exit {
+  font-weight: 600;
+}
+button.pb-danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  font-weight: 700;
+}
+.pb-leave {
+  max-width: 440px;
+}
+.pb-leave-actions {
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* the Concede / Exit dialog and the match review sit above the game strip (which rises over the mulligan screen) */
+.modal-backdrop:has(> .pb-leave),
+.modal-backdrop.pb-review-backdrop {
+  z-index: 1100;
+}
+.pb-game .pb-topbar {
+  z-index: 45;
+}
+/* Concede and Exit stay reachable during the mulligan: the strip rises above its overlay */
+.pb-game:has(.pb-mulligan) .pb-topbar {
+  z-index: 950;
+}
+.pb-game .pb-mulligan {
+  padding-top: calc(var(--pb-strip-h, 96px) + 12px);
+}
+.pb-game .pb-mulligan .pb-modal {
+  max-height: 100%;
+}
+
+/* ---- site navigation during a game: hidden behind the ☰ button, opened over the board ---- */
+body:has(.pb-game) .footer,
+body:has(.pb-game) .subnav {
+  display: none;
+}
+body:has(.pb-game:not(.pb-nav-open)) .topbar {
+  display: none;
+}
+body:has(.pb-game.pb-nav-open) .topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+}
+.pb-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(5, 5, 10, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px 16px;
+  animation: pb-fade 0.15s ease-out backwards;
+}
+.pb-nav-note {
+  margin: 0;
+  max-width: 520px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ---- the log tab (full board) and the log drawer ---- */
+.pb-logtab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 520px;
+  text-align: left;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+}
+.pb-logtab.is-open {
+  border-color: var(--accent);
+}
+.pb-logtab-label {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pb-logtab-line {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.75rem;
+}
+.pb-logtab-line.p0 {
+  color: var(--cyan);
+}
+.pb-logtab-line.p1 {
+  color: var(--red);
+}
+.pb-logtab-line.sys {
+  color: var(--accent);
+}
+.pb-logtab-warn {
+  color: var(--red);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pb-logbtn.on {
+  border-color: var(--accent);
+}
+.pb-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: -12px 0 30px rgba(0, 0, 0, 0.4);
+  min-height: 0;
+}
+.pb-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pb-drawer-close {
+  padding: 2px 8px;
+}
+.pb-drawer .coach-panel {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+}
+.pb-drawer .pb-log {
+  flex: 1;
+  min-height: 80px;
+  max-height: none;
+}
+.pb-lastmove {
+  flex: none;
+}
+.pb-drawer-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 850;
+  max-height: 60vh;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
+  animation: sheet-up 0.22s var(--ease-out, ease) backwards;
+}
+@keyframes pb-drawer-in {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+/* ============ what can be acted on (boardMarks): outline style + icon by kind, quieter idle cards ============ */
+.pb-slot > .tcg {
+  outline-offset: 3px;
+}
+/* keyboard focus stays visible over a mark's outline (the mark's icon still shows what the card can do) */
+.pb-slot > .tcg:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 5px;
+}
+.pb-st-play > .tcg {
+  outline: 3px solid var(--green);
+}
+.pb-st-play > .tcg > .tcg-inner {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--green) 55%, transparent);
+}
+.pb-st-attack > .tcg,
+.pb-st-aiming > .tcg {
+  outline: 5px double var(--red);
+}
+.pb-st-attack > .tcg > .tcg-inner {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--red) 55%, transparent);
+}
+.pb-st-ability > .tcg {
+  outline: 3px dashed var(--magenta);
+}
+.pb-st-block > .tcg,
+.pb-st-target > .tcg {
+  outline: 3px solid var(--accent);
+}
+.pb-st-sell > .tcg {
+  outline: 2px dotted color-mix(in srgb, var(--accent) 60%, var(--muted));
+}
+.pb-st-idle > .tcg {
+  filter: saturate(0.55) brightness(0.82);
+}
+.pb-st-idle > .tcg.is-spent {
+  filter: saturate(0.4) brightness(0.68);
+}
+.pb-st-idle > .tcg:hover {
+  filter: none;
+}
+.pb-st-dim > .tcg {
+  opacity: 0.35;
+  filter: grayscale(0.7);
+}
+.pb-st-badge {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  z-index: 4;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  background: var(--panel);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.pb-st-play > .pb-st-badge {
+  color: var(--green);
+}
+.pb-st-attack > .pb-st-badge,
+.pb-st-aiming > .pb-st-badge {
+  color: var(--red);
+}
+.pb-st-ability > .pb-st-badge {
+  color: var(--magenta);
+}
+.pb-st-block > .pb-st-badge,
+.pb-st-target > .pb-st-badge {
+  color: var(--accent);
+}
+.pb-st-sell > .pb-st-badge {
+  color: var(--muted);
+  font-size: 10px;
+}
+@media (max-width: 720px), (max-height: 520px) and (max-width: 1100px), (max-height: 520px) and (pointer: coarse) {
+  .pb-st-badge {
+    min-width: 16px;
+    height: 16px;
+    top: -6px;
+    left: -4px;
+    font-size: 9px;
+    border-width: 1.5px;
+  }
+  .pb-slot > .tcg {
+    outline-offset: 2px;
+  }
+  .pb-st-play > .tcg,
+  .pb-st-ability > .tcg,
+  .pb-st-block > .tcg,
+  .pb-st-target > .tcg {
+    outline-width: 2px;
+  }
+  .pb-st-attack > .tcg,
+  .pb-st-aiming > .tcg {
+    outline-width: 4px;
+  }
+}
+
+/* the rival's hand size in the side name row (full board only; elsewhere the row of card backs shows it) */
+.pb-name-hand {
+  display: none;
+}
+
+/* ============ full board (desktop and tablets): the game fills the viewport ============
+   --cw is the field card width, from the space available. Height: two field rows (one per side, 1.397 card widths
+   tall each) and the hand (1.05 × 1.397) are 4.26 card widths; everything else (mat padding 12, two sides' padding
+   and borders 2 × 24, the banner about 31-40, the hand bar's lift and fan room 36, gaps 18) is about 155px, and the
+   formula reserves 180px so there is spare room. At 1280×800 that gives a card width of 132.6 (width-limited) and a
+   board of about 710 of the 754px under the strip. Width: three Legends, four field cards and the Gig/pile column.
+   Every zone sizes its cards from it through --tcg-w (TcgCard reads it). */
+.pb-full {
+  --pb-strip-h: 46px;
+  --cw: clamp(56px, min(calc((100vh - var(--pb-strip-h) - 180px) / 4.3), calc((100vw - 166px) / 8.4)), 230px);
+  --pb-hand-h: calc(var(--cw) * 1.05 * 1.397 + 36px);
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: var(--bg);
+}
+body:has(.pb-full) {
+  overflow: hidden;
+}
+.pb-full .pb-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--pb-strip-h);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 10px;
+  flex-wrap: nowrap;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 90%, var(--cyan) 10%);
+}
+.pb-full .pb-turn {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.pb-full .pb-turn-no {
+  font-size: 0.95rem;
+}
+.pb-full .pb-turn-who {
+  font-size: 1.1rem;
+}
+.pb-full .pb-strip-tools {
+  flex: 1;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+.pb-full .pb-strip-tools > button,
+.pb-full .pb-strip-tools select {
+  min-height: 32px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  white-space: nowrap;
+}
+/* the collapsed drawer: a slim tab at the right edge, right above where the drawer opens */
+.pb-full .pb-logtab {
+  order: 99;
+  flex: 0 1 30vw;
+}
+.pb-full .pb-stage {
+  position: absolute;
+  top: var(--pb-strip-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.pb-full .pb-error {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, calc(100% - 24px));
+  z-index: 45;
+  margin: 0;
+}
+.pb-full .pb-mat {
+  height: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  overflow: auto;
+}
+/* one card row per side: name over Legends | field | Gigs over piles. The name sits in the Legends column, which is
+   shorter than the field, so it costs no height of its own. */
+.pb-full .pb-side {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    'name field gigs'
+    'legends field gigs'
+    'legends field piles';
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: start;
+  padding: 4px 8px;
+}
+.pb-full .pb-backrow {
+  display: contents;
+}
+.pb-full .pb-side-name {
+  grid-area: name;
+  margin: 0;
+  /* never widens the Legends column: long deck names are cut short */
+  width: 0;
+  min-width: 100%;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pb-full .pb-side-name > .muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pb-full .pb-side-name > :not(.muted) {
+  flex: none;
+}
+.pb-full .pb-name-hand {
+  display: inline;
+}
+.pb-full .pb-rival-hand {
+  display: none;
+}
+.pb-full .pb-legends {
+  grid-area: legends;
+  --tcg-w: calc(var(--cw) * 0.75);
+}
+.pb-full .pb-field {
+  grid-area: field;
+  align-self: stretch;
+  container-type: inline-size;
+  /* field cards shrink to fit the row (--n = cards, a spent one counting 1.25) instead of wrapping */
+  --fw: min(var(--cw), calc((100cqi - 20px) / var(--n, 1) - 8px));
+}
+.pb-full .pb-gigs {
+  grid-area: gigs;
+  /* six dice to a row (a seventh wraps) */
+  --die: calc(var(--cw) * 0.28);
+  width: calc(var(--die) * 6 + 44px);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 4px 8px;
+}
+.pb-full .pb-piles {
+  grid-area: piles;
+  --tcg-w: calc(var(--cw) * 0.42);
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* zone captions sit on the zone's top edge instead of taking a line */
+.pb-full .pb-zone {
+  position: relative;
+}
+.pb-full .pb-zone > .pb-label {
+  position: absolute;
+  top: -5px;
+  left: 8px;
+  z-index: 2;
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--panel);
+  pointer-events: none;
+}
+.pb-full .pb-legends .pb-cards {
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-height: 0;
+  padding: 8px 0 0;
+}
+/* on the full board a card's action badge sits at its top right, clear of the zone caption at the top left (hand
+   cards keep it at the top left, the part of a fanned card that shows) */
+.pb-full .pb-zone .pb-st-badge {
+  left: auto;
+  right: -6px;
+}
+.pb-full .pb-field .pb-cards {
+  --tcg-w: var(--fw);
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  box-sizing: border-box;
+  min-height: calc(var(--cw) * 1.397 + 14px);
+  padding: 6px 4px;
+}
+/* a spent card lies sideways: its margin makes room for the turned card at any size */
+.pb-full .pb-slot.is-spent {
+  margin: 0 calc(var(--tcg-w) * 0.12);
+}
+.pb-full .pb-gear {
+  --tcg-w: calc(var(--fw) * 0.3);
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  margin: 0;
+}
+.pb-full .pb-dice .die {
+  width: var(--die);
+  height: var(--die);
+}
+.pb-full .pb-die-fixer .die {
+  width: calc(var(--die) * 0.8);
+  height: calc(var(--die) * 0.8);
+}
+.pb-full .pb-pile {
+  width: calc(var(--tcg-w) + 12px);
+}
+.pb-full .pb-empty-slot {
+  width: var(--tcg-w);
+}
+.pb-full .pb-pips {
+  max-width: calc(var(--tcg-w) + 8px);
+}
+.pb-full .pb-midline {
+  flex: none;
+  margin: 0;
+  padding: 3px 12px;
+  font-size: 0.95rem;
+}
+/* the hand bar: the fanned hand, and the action dock where you act on it */
+.pb-full .pb-handbar {
+  flex: none;
+  height: var(--pb-hand-h);
+  margin: 0;
+  align-items: stretch;
+}
+.pb-full .pb-handbar {
+  position: relative;
+  padding-right: calc(var(--pb-dock-w) + 10px);
+}
+.pb-full .pb-hand {
+  --tcg-w: calc(var(--cw) * 1.05);
+  container-type: inline-size;
+  min-height: 0;
+  padding: 22px 8px 12px;
+  align-items: flex-end;
+}
+/* the fan overlaps a little, and more as the hand grows, so it always fits the bar */
+/* a flatter fan: turned about its bottom edge by at most 5°, so a corner drops at most ~6px (inside the bar's 12px) */
+.pb-full .pb-fan {
+  transform: rotate(clamp(-5deg, calc(var(--rot, 0deg) * 0.6), 5deg));
+  transform-origin: 50% 100%;
+  margin-left: calc(min(var(--tcg-w) * -0.18, (100cqi - 16px - var(--tcg-w)) / max(var(--hand-n, 1) - 1, 1) - var(--tcg-w)));
+}
+.pb-full .pb-fan:first-child {
+  margin-left: 0;
+}
+.pb-full .pb-fan:hover,
+.pb-full .pb-fan:focus-within,
+.pb-full .pb-fan:has(.pb-menu-host) {
+  transform: translateY(-18px) rotate(0deg) scale(1.08);
+}
+.pb-full {
+  --pb-dock-w: clamp(250px, 22vw, 360px);
+}
+.pb-actions {
+  flex: none;
+  width: var(--pb-dock-w);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  position: relative;
+  z-index: 3;
+}
+.pb-actions-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pb-actions-main .pb-endturn {
+  flex: 1;
+  font-size: 1rem;
+  padding: 6px 12px;
+}
+/* anchored to the bottom of the hand bar: at least its height, and taller (over the board) when the prompt, the coach
+   note or the open All actions list need it, before it ever scrolls */
+.pb-full .pb-actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  min-height: 100%;
+  max-height: calc(100% + var(--cw) * 1.3);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+}
+.pb-actions .pb-prompt {
+  border-width: 1px;
+  padding: 8px;
+}
+.pb-actions .pb-opts {
+  max-height: none;
+}
+/* the log drawer: down the right edge over the board (which keeps its size), stopping above the hand bar */
+.pb-full .pb-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: calc(var(--pb-hand-h) + 8px);
+  width: min(400px, 40vw);
+  box-sizing: border-box;
+  z-index: 40;
+  border-radius: 0 0 0 12px;
+  animation: pb-drawer-in 0.2s var(--ease-out, ease) backwards;
+}
+/* tall narrow screens (portrait tablets): each side takes two rows, field and then Legends | Gigs | piles */
+@media (orientation: portrait) {
+  .pb-full {
+    --cw: clamp(56px, min(calc((100vh - var(--pb-strip-h) - 260px) / 7), calc((100vw - 150px) / 5.8)), 200px);
+  }
+  .pb-full .pb-side {
+    grid-template-rows: auto;
+  }
+  .pb-full .pb-me {
+    grid-template-areas:
+      'name name name'
+      'field field field'
+      'legends gigs piles';
+  }
+  .pb-full .pb-rival {
+    grid-template-areas:
+      'name name name'
+      'legends gigs piles'
+      'field field field';
+  }
+  .pb-full .pb-gigs {
+    width: auto;
+  }
+  .pb-full .pb-piles {
+    justify-self: end;
+  }
 }

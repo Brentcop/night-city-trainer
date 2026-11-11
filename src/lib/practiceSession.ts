@@ -112,8 +112,13 @@ export interface Running {
   grades: MoveGrade[];
   /** set when the game loop threw; the game is stopped but Undo and Quit still work */
   error: string | null;
-  /** set on quit, undo, a new game or unmount: this game's agents stop and its result is never recorded */
+  /**
+   * set on quit, undo, a new game, unmount or concede: this game's agents stop and the game loop never records a
+   * result (a concede records its own, once)
+   */
   cancelled: boolean;
+  /** you conceded this game: it is over as a recorded loss, and Undo still works */
+  conceded: boolean;
   /** settles when this game's loop ends (finished, errored or cancelled) */
   done: Promise<void>;
 }
@@ -123,6 +128,14 @@ export function canUndo(run: Running): boolean {
   if (!run.error && !run.human.pending && run.g.s.winner === null) return false;
   return undoTarget(run.snaps, run.human.pending?.d.kind) >= 0;
 }
+
+/** Concede is offered while the game is on (your turn or the bot's, with or without a prompt), not after it ended or failed. */
+export function canConcede(run: Running): boolean {
+  return !run.cancelled && !run.error && run.g.s.winner === null;
+}
+
+/** What the result screen, the log and the practice history call a conceded game. */
+export const CONCEDED_REASON = 'You conceded';
 
 export interface MatchSetup {
   decks: [DeckList, DeckList];
@@ -163,10 +176,14 @@ export function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGa
     first: st.first === 0,
     turns: st.turn,
     reason: st.winReason,
+    ...(replay.conceded ? { conceded: true } : {}),
   };
 }
 
-/** Save the replay and the practice-log entry of a finished game (both upsert by the replay id). */
+/**
+ * Save the replay and the practice-log entry of a finished game (both upsert by the replay id). A conceded game is
+ * recorded the same way; `replay.conceded` marks it.
+ */
 export function recordFinished(replay: PracticeReplay, st: GameState) {
   replay.result = outcome(st);
   saveReplay(replay);
@@ -222,8 +239,34 @@ export class PracticeSession {
     run.replay.choices.length = target.choices;
     run.grades.length = target.grades;
     run.replay.undos = (run.replay.undos ?? 0) + 1;
+    // undoing a concession takes it back: the game goes on, and is recorded again (same id) when it ends
+    delete run.replay.conceded;
     const state = structuredClone(target.state);
     this.launch((agents) => new Game(state, agents), cloneBot(target.bot), run.replay, run.snaps, run.grades, run.match, true);
+    return true;
+  }
+
+  /**
+   * Concede the running game: it ends at once as a loss for you and is recorded like a finished game (practice log
+   * and replay, both marked conceded). Works on your turn, on the bot's turn and while a prompt waits for you. This is
+   * the session's verdict, not an engine action: the game loop is stopped the way Quit stops it, then the result is
+   * written onto the final state. Undo afterwards works as after any game over (back to before your last main-phase
+   * decision); finishing the game again replaces this record (same replay id).
+   */
+  concede(): boolean {
+    const run = this.current;
+    if (!run || !canConcede(run)) return false;
+    this.cancel(run);
+    run.conceded = true;
+    const g = run.g;
+    const st = g.s;
+    st.winner = 1;
+    st.winReason = CONCEDED_REASON;
+    st.phase = 'over';
+    g.log(null, `${CONCEDED_REASON}: ${g.P(1).name} wins`);
+    run.replay.conceded = true;
+    (this.opts.record ?? recordFinished)(run.replay, st);
+    this.changed();
     return true;
   }
 
@@ -252,7 +295,7 @@ export class PracticeSession {
   private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: MoveGrade[], match: number, resumed: boolean): Running {
     if (this.current) this.cancel(this.current);
     const human = new HumanAgent();
-    const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false } as Omit<Running, 'g' | 'done'> as Running;
+    const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false, conceded: false } as Omit<Running, 'g' | 'done'> as Running;
     const recorder = new RecordingAgent(human, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, grades.length)), run);
     const g = make([recorder, new PacedAgent(bot, this.opts.pace ?? (() => 0), run)]);
     run.g = g;

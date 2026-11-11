@@ -10,6 +10,8 @@ export interface PracticeGame {
   first: boolean;
   turns: number;
   reason: string;
+  /** you conceded this game (always a 'loss') */
+  conceded?: boolean;
 }
 const KEY = 'nct.practice.v1';
 const RESULTS = new Set(['win', 'loss', 'draw']);
@@ -29,6 +31,7 @@ function toEntry(x: unknown): PracticeGame | null {
     first: o.first === true,
     turns: typeof o.turns === 'number' ? o.turns : 0,
     reason: typeof o.reason === 'string' ? o.reason : '',
+    ...(o.conceded === true ? { conceded: true } : {}),
   };
 }
 

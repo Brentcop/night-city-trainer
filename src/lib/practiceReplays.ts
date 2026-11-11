@@ -24,6 +24,11 @@ export interface PracticeReplay {
   result: 'win' | 'loss' | 'draw';
   /** how many times Undo was used (the recorded choices are the final line of play) */
   undos?: number;
+  /**
+   * You conceded (result 'loss'): the recorded choices stop at the position you conceded from, so a re-simulation
+   * that runs past them is no longer your game.
+   */
+  conceded?: boolean;
 }
 const KEY = 'nct.practiceReplays.v1';
 const MAX = 25;
@@ -53,6 +58,7 @@ export function isReplay(x: unknown): x is PracticeReplay {
     r.choices.every((c) => Array.isArray(c) && c.every((i) => typeof i === 'number')) &&
     (r.payChoice === undefined || typeof r.payChoice === 'boolean') &&
     (r.orderChoice === undefined || typeof r.orderChoice === 'boolean') &&
+    (r.conceded === undefined || typeof r.conceded === 'boolean') &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
 }

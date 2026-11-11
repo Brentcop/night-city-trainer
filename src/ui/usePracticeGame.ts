@@ -1,5 +1,5 @@
 // React binding for a PracticeSession: the page re-renders only when the running game is replaced (start, undo,
-// quit); the board subscribes to engine ticks itself with useGameTick().
+// quit); the board subscribes to engine ticks (and a concede, which ends the game in place) with useGameTick().
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { PracticeSession, type MatchSetup, type Running } from '../lib/practiceSession';
 
@@ -15,7 +15,8 @@ export function usePracticeGame(pace: () => number) {
   const start = useCallback((m: MatchSetup) => session.start(m), [session]);
   const undo = useCallback(() => void session.undo(), [session]);
   const quit = useCallback(() => session.quit(), [session]);
-  return { session, game, start, undo, quit };
+  const concede = useCallback(() => session.concede(), [session]);
+  return { session, game, start, undo, quit, concede };
 }
 
 /** Re-render on every change of the running game (engine updates, new decisions, game over, errors). */

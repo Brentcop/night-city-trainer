@@ -5,7 +5,7 @@ import type { Decision, DeckList, PlayerId } from '../../engine/types';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
 import { loadReplays, type PracticeReplay } from '../../lib/practiceReplays';
-import { canUndo, type PracticeSession, type Running } from '../../lib/practiceSession';
+import { canConcede, canUndo, type PracticeSession, type Running } from '../../lib/practiceSession';
 import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
@@ -21,11 +21,13 @@ import type { LibraryDeck } from '../../lib/library';
 import { allDecks } from '../../lib/browserLibrary';
 import { clearPractice, loadPractice } from '../../lib/practiceLog';
 import { classify, BEST_PROFILES, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
-import { buildInteraction, coachMark } from '../components/board/interaction';
-import type { BoardCtx, Targeting } from '../components/board/BoardCard';
+import { boardMarks, buildInteraction, coachMark, type Targeting } from '../components/board/interaction';
+import type { BoardCtx } from '../components/board/BoardCard';
 import { MyHand, PlayerSide } from '../components/board/Zones';
-import { ActionMenu, GameOverOverlay, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
-import { AllOptions, PromptPanel, headline } from '../components/board/PromptPanel';
+import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
+import { AllActions, PromptPanel, headline } from '../components/board/PromptPanel';
+import { DRAWER_ID, LogDrawer, LogTab } from '../components/board/LogDrawer';
+import { ALL_ACTIONS_KEY, BOT_SPEEDS, LOG_OPEN_KEY, loadBotSpeed, normalizeBotSpeed, saveBotSpeed, useSessionFlag } from '../components/board/prefs';
 import { useNarrow } from '../components/board/useNarrow';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
 import { useGameTick, usePracticeGame } from '../usePracticeGame';
@@ -37,10 +39,16 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   const [seat, setSeat] = useState<'random' | 'first' | 'second'>('random');
   const [coach, setCoach] = useState(true);
   const [level, setLevel] = useState<Tier>('hard');
-  const [speed, setSpeed] = useState(500);
+  // the bot's pace is remembered in this browser (an old stored "fast" of 250 ms maps to today's fast)
+  const [speed, setSpeedRaw] = useState(loadBotSpeed);
+  const setSpeed = useCallback((ms: number) => {
+    const v = normalizeBotSpeed(ms);
+    setSpeedRaw(v);
+    saveBotSpeed(v);
+  }, []);
   const speedRef = useRef(speed);
   speedRef.current = speed;
-  const { session, game, start: startMatch, undo, quit } = usePracticeGame(() => speedRef.current);
+  const { session, game, start: startMatch, undo, quit, concede } = usePracticeGame(() => speedRef.current);
   const dA = useMemo(() => findDeck(mine), [mine]);
   const dB = useMemo(() => findDeck(opp), [opp]);
 
@@ -114,7 +122,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
       </div>
     );
   }
-  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onRematch={start} onUndo={undo} />;
+  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} />;
 }
 
 function Board({
@@ -124,6 +132,7 @@ function Board({
   speed,
   setSpeed,
   onQuit,
+  onConcede,
   onRematch,
   onUndo,
 }: {
@@ -133,15 +142,18 @@ function Board({
   speed: number;
   setSpeed: (n: number) => void;
   onQuit: () => void;
+  onConcede: () => void;
   onRematch: () => void;
   onUndo: () => void;
 }) {
-  // bumps on every engine update: memoised sidebar pieces re-render on it, not on drag/menu/hover changes
+  // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
   const { g, human, bot, grades } = game;
   const s = g.s;
   const pend = human.pending?.d ?? null;
   const undoable = canUndo(game);
+  const concedable = canConcede(game);
+  const conceded = game.conceded;
   const narrow = useNarrow();
   const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives'] } | null>(null);
   const [reviewReq, setReviewReq] = useState<ReviewRequest | null>(null);
@@ -152,11 +164,17 @@ function Board({
     return () => clearTimeout(t);
   }, [toast]);
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the game state changes in place; `version` says when
+  const warnings = useMemo(() => (coach && s.winner === null ? boardWarnings(g, 0) : NO_WARNINGS), [g, coach, version, s.winner]);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [targeting, setTargeting] = useState<Targeting | null>(null);
   const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
   const [hideOver, setHideOver] = useState(false);
-  const logRef = useRef<HTMLDivElement>(null);
+  // panels the player opens stay open for the session (across decisions, turns, Undo and new games)
+  const [allOpen, setAllOpen] = useSessionFlag(ALL_ACTIONS_KEY, false);
+  const [logOpen, setLogOpen] = useSessionFlag(LOG_OPEN_KEY, false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
   const advise = useCoach();
 
   // Undo swaps in a restored game (same match, so the board stays mounted): close what belonged to the old one
@@ -187,23 +205,22 @@ function Board({
     setTargeting(null);
   }, [pend]);
 
+  // Escape cancels menus, target mode and the site menu (the action menu itself follows its card when the page scrolls)
   useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [s.log.length]);
-
-  // Escape cancels menus and target mode (the menu itself follows its card when the page scrolls)
-  useEffect(() => {
-    if (!menu && !targeting) return;
+    if (!menu && !targeting && !navOpen) return;
     const key = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setMenu(null);
       setTargeting(null);
+      setNavOpen(false);
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [menu, targeting]);
+  }, [menu, targeting, navOpen]);
 
   const ix = useMemo(() => buildInteraction(g, pend), [g, pend]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- hands and fields change in place; `version` says when
+  const marks = useMemo(() => boardMarks(g, pend, ix, targeting), [g, pend, ix, targeting, version]);
   // a drag confirm remembers the decision it was made for, so it can't answer a later one
   const [confirm, setConfirm] = useState<{ p: PendingConfirm; d: Decision | null } | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -268,6 +285,7 @@ function Board({
     openTrash: (p) => setTrashOf(p),
     drag,
     handOrder,
+    marks,
   };
 
   const over = s.winner !== null;
@@ -275,6 +293,18 @@ function Board({
   const mulligan = !!pend && pend.kind === 'yesno' && pend.tag === 'mulligan';
   const head = failed ? { text: 'The game stopped because of an error', tone: 'rival' } : headline(ctx);
   const dock = narrow && !over && !mulligan && !!pend && (pend.kind !== 'action' || !!targeting);
+
+  // a concede that the game ended before (or an exit after it ended) has nothing left to confirm
+  useEffect(() => {
+    if (over) setLeave((l) => (l === 'concede' ? null : l));
+  }, [over]);
+  const openLeave = (kind: 'concede' | 'exit') => {
+    setMenu(null);
+    setTargeting(null);
+    setConfirm(null);
+    setNavOpen(false);
+    setLeave(kind);
+  };
 
   let handAction: React.ReactNode = null;
   if (targeting) {
@@ -301,45 +331,89 @@ function Board({
       </button>
     );
   }
+  const sortButton = (
+    <button className="ghost pb-sort" onClick={() => setSortMode(nextSort(sortMode))} title="Sort your hand (or drag a card onto another to reorder)">
+      ⇅ {SORT_LABEL[sortMode]}
+    </button>
+  );
+  const allActions = <AllActions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} open={allOpen} onToggle={setAllOpen} />;
+  const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} /> : null;
+  const lastMove = bot.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div> : null;
+  const closeLog = useCallback(() => setLogOpen(false), [setLogOpen]);
+
+  const rootCls = [
+    'pb',
+    'pb-game',
+    narrow ? 'pb-compact' : 'pb-full',
+    menu ? 'pb-menu-open' : '',
+    targeting ? 'pb-targeting' : '',
+    marks.choosing ? 'pb-choosing' : '',
+    dock ? 'pb-has-dock' : '',
+    navOpen ? 'pb-nav-open' : '',
+  ].join(' ');
 
   return (
-    <div className={`pb ${menu ? 'pb-menu-open' : ''} ${targeting ? 'pb-targeting' : ''} ${dock ? 'pb-has-dock' : ''}`}>
+    <div className={rootCls}>
       <div className="pb-topbar">
+        <button
+          type="button"
+          className="ghost pb-navbtn"
+          aria-expanded={navOpen}
+          aria-label="Site menu"
+          title="Site menu: the other pages, theme and card art"
+          onClick={() => setNavOpen(!navOpen)}
+        >
+          ☰
+        </button>
         <div className="pb-turn">
           <span className="pb-turn-no">TURN {s.turn}</span>
-          <span className={`pb-turn-who ${s.active === 0 ? 'me' : 'rival'}`}>{over ? 'GAME OVER' : s.active === 0 ? 'YOUR TURN' : "RIVAL'S TURN"}</span>
+          <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'GAME OVER' : s.active === 0 ? 'YOUR TURN' : "RIVAL'S TURN"}</span>
           {s.overtime && <span className="pb-overtime">OVERTIME</span>}
         </div>
-        <div className="row">
-          <label className="row small muted">
-            Bot speed
-            <select value={speed} onChange={(e) => setSpeed(+e.target.value)}>
-              <option value={0}>instant</option>
-              <option value={250}>fast</option>
-              <option value={500}>normal</option>
-              <option value={1200}>slow</option>
+        <div className="pb-strip-tools">
+          {narrow ? (
+            <button type="button" className={`ghost pb-logbtn ${logOpen ? 'on' : ''}`} aria-expanded={logOpen} aria-controls={DRAWER_ID} onClick={() => setLogOpen(!logOpen)}>
+              Log{warnings.length > 0 ? ` ⚠${warnings.length}` : ''}
+            </button>
+          ) : (
+            <LogTab log={s.log} open={logOpen} onToggle={setLogOpen} warnings={warnings.length} />
+          )}
+          <label className="pb-speed small muted">
+            <span className="pb-speed-cap">Bot speed</span>
+            <select value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="Bot speed">
+              {BOT_SPEEDS.map((x) => (
+                <option key={x.ms} value={x.ms}>
+                  {x.label}
+                </option>
+              ))}
             </select>
           </label>
           <button onClick={onUndo} disabled={!undoable} title="Go back to before your last action (also undoes the bot's moves since)">
             ↶ Undo
           </button>
           {over && hideOver && <button onClick={() => setHideOver(false)}>Result</button>}
-          <button onClick={onQuit}>{over ? 'New game' : 'Quit'}</button>
+          {!over && (
+            <button className="pb-concede" onClick={() => openLeave('concede')} disabled={!concedable} title="End the game now as a recorded loss">
+              ⚑ Concede
+            </button>
+          )}
+          <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} title={over ? 'Back to the game setup' : 'Leave this game without recording a result'}>
+            {over ? 'New game' : 'Exit game'}
+          </button>
         </div>
       </div>
-      {failed && (
-        <div className="panel" role="alert" style={{ borderColor: 'var(--red)', margin: '8px 0' }}>
-          <b style={{ color: 'var(--red)' }}>The game stopped because of an error.</b>{' '}
-          <span className="small muted">{failed.slice(0, 300)}</span>
-          <div className="row" style={{ marginTop: 8 }}>
-            <button className="primary" onClick={onUndo} disabled={!undoable}>
-              ↶ Undo to before your last decision
-            </button>
-            <button onClick={onQuit}>Quit</button>
+      <div className="pb-stage">
+        {failed && (
+          <div className="panel pb-error" role="alert">
+            <b style={{ color: 'var(--red)' }}>The game stopped because of an error.</b> <span className="small muted">{failed.slice(0, 300)}</span>
+            <div className="row" style={{ marginTop: 8 }}>
+              <button className="primary" onClick={onUndo} disabled={!undoable}>
+                ↶ Undo to before your last decision
+              </button>
+              <button onClick={onQuit}>Exit game</button>
+            </div>
           </div>
-        </div>
-      )}
-      <div className="pb-layout">
+        )}
         <div className="pb-mat">
           <PlayerSide p={1} ctx={ctx} />
           <div className={`pb-midline pb-tone-${head.tone}`}>
@@ -349,27 +423,40 @@ function Board({
           <PlayerSide p={0} ctx={ctx} />
           <div className="pb-handbar">
             <MyHand ctx={ctx} />
-            <div className="pb-handbar-actions">
-              <button className="ghost pb-sort" onClick={() => setSortMode(nextSort(sortMode))} title="Sort your hand (or drag a card onto another to reorder)">
-                ⇅ {SORT_LABEL[sortMode]}
-              </button>
-              {handAction}
-            </div>
+            {narrow ? (
+              <div className="pb-handbar-actions">
+                {sortButton}
+                {handAction}
+              </div>
+            ) : (
+              // the action dock: where you act on the hand — the turn button, every option, and the prompt
+              <section className="pb-actions" aria-label="Your actions">
+                <div className="pb-actions-main">
+                  {handAction}
+                  {sortButton}
+                </div>
+                {allActions}
+                <PromptPanel ctx={ctx} why={activeHint?.why} hidePass />
+              </section>
+            )}
           </div>
         </div>
-        <aside className="pb-sidebar">
-          <div className={dock ? 'pb-dock' : undefined}>
-            <PromptPanel ctx={ctx} why={activeHint?.why} />
+        {narrow && (
+          <div className="pb-below">
+            <div className={dock ? 'pb-dock' : undefined}>
+              <PromptPanel ctx={ctx} why={activeHint?.why} />
+              {allActions}
+            </div>
+            {coachPanel}
           </div>
-          {coach && <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} />}
-          <AllOptions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} />
-          <div className="pb-label">Game log</div>
-          <div className="log pb-log" ref={logRef}>
-            <GameLog log={s.log} n={s.log.length} />
-          </div>
-          {bot.lastThought && <div className="small muted">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div>}
-        </aside>
+        )}
+        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={narrow ? undefined : coachPanel} footer={lastMove} />
       </div>
+      {navOpen && (
+        <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
+          <p className="pb-nav-note">Opening another page ends this game{over ? '' : ' without recording it'}. Click here or press Escape to go back to it.</p>
+        </div>
+      )}
       {/* overlays live at the top of the page so no animated or transformed container can move them off screen */}
       {createPortal(
         <>
@@ -393,14 +480,27 @@ function Board({
         </>,
         document.body,
       )}
+      {leave && (
+        <LeaveDialog
+          kind={leave}
+          onCancel={() => setLeave(null)}
+          onConfirm={() => {
+            setLeave(null);
+            if (leave === 'concede') onConcede();
+            else onQuit();
+          }}
+        />
+      )}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
       {mulligan && !over && !failed && <MulliganScreen ctx={ctx} why={activeHint?.why} />}
       {over && !hideOver && (
         <GameOverOverlay
           g={g}
+          conceded={conceded}
           onRematch={onRematch}
           onNew={onQuit}
           onHide={() => setHideOver(true)}
+          onUndo={undoable ? onUndo : undefined}
           review={
             <>
               {coach && <Scorecard grades={grades} />}
@@ -412,12 +512,12 @@ function Board({
         />
       )}
       {reviewReq && (
-        <div className="modal-backdrop" onClick={() => setReviewReq(null)}>
+        <div className="modal-backdrop pb-review-backdrop" onClick={() => setReviewReq(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="ghost modal-close" onClick={() => setReviewReq(null)}>
               ✕
             </button>
-            <ReviewPanel req={reviewReq} title="Match review" mySeat={0} expect={game.replay.result === 'win' ? 0 : game.replay.result === 'loss' ? 1 : 'tie'} />
+            <ReviewPanel req={reviewReq} title="Match review" mySeat={0} expect={reviewExpect(game.replay)} />
           </div>
         </div>
       )}
@@ -425,9 +525,12 @@ function Board({
   );
 }
 
-/** Review request for a recorded practice game (your decisions only, with the coach's view of each). */
+/** The result a review's re-simulation should reproduce (a conceded game's re-simulation ends at the concession). */
+const reviewExpect = (r: PracticeReplay): 0 | 1 | 'tie' => (r.result === 'win' ? 0 : r.result === 'loss' ? 1 : 'tie');
+
+/** Review request for a recorded practice game (your decisions only, with the coach's view of each; a conceded game ends where you conceded). */
 export function practiceRequest(r: PracticeReplay): ReviewRequest {
-  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, rollouts: 8, withCoach: true };
+  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, conceded: !!r.conceded, rollouts: 8, withCoach: true };
 }
 
 /** A quick verdict on the move just made, compared with the coach. */
@@ -495,7 +598,7 @@ function RecentReviews() {
         {list.map((r) => (
           <button key={r.id} className="match-row" onClick={() => setReq({ r, q: practiceRequest(r) })}>
             <span className={r.result === 'win' ? 'win' : ''}>{r.decks[0].name}</span>
-            <b>{r.result === 'win' ? 'W' : r.result === 'loss' ? 'L' : 'D'}</b>
+            <b title={r.conceded ? 'You conceded' : undefined}>{r.result === 'win' ? 'W' : r.result === 'loss' ? (r.conceded ? 'L · conceded' : 'L') : 'D'}</b>
             <span>
               {r.decks[1].name} <span className="muted small">({tierLabel(r.botLevel)})</span>
             </span>
@@ -508,7 +611,7 @@ function RecentReviews() {
             <button className="ghost modal-close" onClick={() => setReq(null)}>
               ✕
             </button>
-            <ReviewPanel req={req.q} title={`${req.r.decks[0].name} vs ${req.r.decks[1].name} — ${new Date(req.r.date).toLocaleString()}`} mySeat={0} expect={req.r.result === 'win' ? 0 : req.r.result === 'loss' ? 1 : 'tie'} />
+            <ReviewPanel req={req.q} title={`${req.r.decks[0].name} vs ${req.r.decks[1].name} — ${new Date(req.r.date).toLocaleString()}`} mySeat={0} expect={reviewExpect(req.r)} />
           </div>
         </div>
       )}
@@ -519,21 +622,24 @@ function RecentReviews() {
 function PracticeStats() {
   const [games, setGames] = useState(loadPractice);
   if (!games.length) return <p className="small muted">Your practice games are recorded here (in this browser) once you finish one.</p>;
-  const rows = new Map<string, { w: number; l: number; d: number }>();
+  const rows = new Map<string, { w: number; l: number; d: number; c: number }>();
   for (const g of games) {
     const k = `${g.deck} vs ${g.opp}`;
-    const r = rows.get(k) ?? { w: 0, l: 0, d: 0 };
+    const r = rows.get(k) ?? { w: 0, l: 0, d: 0, c: 0 };
     if (g.result === 'win') r.w++;
     else if (g.result === 'loss') r.l++;
     else r.d++;
+    if (g.conceded) r.c++;
     rows.set(k, r);
   }
   const w = games.filter((g) => g.result === 'win').length;
+  const conceded = games.filter((g) => g.conceded).length;
   return (
     <div className="panel">
       <div className="spread">
         <h3 style={{ margin: 0 }}>
           Practice log — {w}-{games.length - w} ({Math.round((100 * w) / games.length)}%)
+          {conceded > 0 && <span className="muted small"> · {conceded} conceded</span>}
         </h3>
         <button
           className="ghost"
@@ -553,6 +659,7 @@ function PracticeStats() {
               <td>
                 {r.w}-{r.l}
                 {r.d ? `-${r.d}` : ''}
+                {r.c ? <span className="muted"> ({r.c} conceded)</span> : null}
               </td>
             </tr>
           ))}
@@ -584,28 +691,14 @@ function MatchupRead({ A, B }: { A?: LibraryDeck; B?: LibraryDeck }) {
 }
 
 const NO_ALTS: Advice['alternatives'] = [];
-
-/** The last 250 log lines. The engine appends to `log` in place, so `n` (its length) is what changes. */
-const GameLog = memo(function GameLog({ log }: { log: Game['s']['log']; n: number }) {
-  return (
-    <>
-      {log.slice(-250).map((l, i) => (
-        <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'}>
-          {/* who acted, in words as well as colour (turn headers already name the deck) */}
-          {l.player !== null && !l.text.startsWith('---') && <b>{l.player === 0 ? 'You: ' : 'Rival: '}</b>}
-          {l.text}
-        </div>
-      ))}
-    </>
-  );
-});
+const NO_WARNINGS: string[] = [];
 
 /**
- * Coach sidebar: other options it weighed, live board warnings, and the matchup plan for your deck. The game state
- * changes in place, so `v` (the game's update counter) tells the memo when to re-render.
+ * Coach notes (in the log drawer on the full board, under the prompt on phones): other options it weighed, live board
+ * warnings, and the matchup plan for your deck. The game state changes in place, so `v` (the game's update counter)
+ * tells the memo when to re-render.
  */
-const CoachPanel = memo(function CoachPanel({ g, alts, tips }: { g: Game; v: number; alts: Advice['alternatives']; tips: string[] }) {
-  const warnings = boardWarnings(g, 0);
+const CoachPanel = memo(function CoachPanel({ alts, tips, warnings }: { g: Game; v: number; alts: Advice['alternatives']; tips: string[]; warnings: string[] }) {
   return (
     <div className="coach-panel">
       {alts.length > 0 && (

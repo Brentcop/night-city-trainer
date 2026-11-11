@@ -162,6 +162,90 @@ export function buildInteraction(g: Game, d: Decision | null): Interaction {
   return ix;
 }
 
+/** Choosing a target for an attacker that has several (the UI's target mode; the targets come from the options). */
+export interface Targeting {
+  attacker: number;
+  targets: AttackOpt[];
+}
+
+/**
+ * How a card on the table looks right now:
+ *   play: can be played, called or put on the field (Go Solo, a Legend's ordinary play)
+ *   sell: its only action is selling it for an Eddie
+ *   attack: an attack-ready unit;  ability: an ability can be activated;  block: can block this attack
+ *   target: a legal choice for the prompt (or the attack being aimed);  aiming: the attacker being aimed
+ *   idle: one of your cards with nothing to do now (quieter);  dim: not a choice while a target is being picked
+ */
+export type CardMark = 'play' | 'sell' | 'attack' | 'ability' | 'block' | 'target' | 'aiming' | 'idle' | 'dim';
+
+export interface Marks {
+  /** card uid -> its look (cards not listed look normal) */
+  cards: Map<number, CardMark>;
+  /** a target or card choice is being made: everything that isn't a choice dims */
+  choosing: boolean;
+}
+
+export const NO_MARKS: Marks = { cards: new Map(), choosing: false };
+
+/** Words for each mark, for screen readers and tooltips (the outline style and icon carry it visually). */
+export const MARK_TEXT: Record<CardMark, string> = {
+  play: 'can be played',
+  sell: 'can be sold',
+  attack: 'can attack',
+  ability: 'has an ability to use',
+  block: 'can block',
+  target: 'a legal choice',
+  aiming: 'attacking: choose its target',
+  idle: 'no action now',
+  dim: 'not a choice',
+};
+
+/** The broad kind of a card's actions (first match wins: attack, block, play, ability, sell). */
+function markOfMenu(items: MenuItem[]): CardMark {
+  const has = (...k: string[]) => items.some((m) => k.includes(m.kind));
+  if (has('attack', 'attackDirect')) return 'attack';
+  if (has('block')) return 'block';
+  if (has('play', 'call', 'goSolo', 'playLegend')) return 'play';
+  if (has('activate')) return 'ability';
+  return 'sell';
+}
+
+/** Cards on the table the human can see: both fields and Legend areas, and your hand. */
+function tableCards(g: Game): number[] {
+  const me = g.P(0);
+  const rival = g.P(1);
+  return [...me.hand, ...me.field, ...me.legends, ...rival.field, ...rival.legends];
+}
+
+/**
+ * Which cards can be acted on, derived only from the pending decision's options (via `buildInteraction`) and the
+ * target mode, never from the rules: main-phase and reaction options mark their cards by kind and quieten your other
+ * cards; a target mode or any card choice marks the legal choices and dims everything else.
+ */
+export function boardMarks(g: Game, pend: Decision | null, ix: Interaction, targeting: Targeting | null): Marks {
+  if (!pend || g.s.winner !== null) return NO_MARKS;
+  const cards = new Map<number, CardMark>();
+  const dimRest = () => {
+    for (const u of tableCards(g)) if (!cards.has(u)) cards.set(u, 'dim');
+  };
+  if (targeting) {
+    for (const t of targeting.targets) if (t.unit !== null) cards.set(t.unit, 'target');
+    cards.set(targeting.attacker, 'aiming');
+    dimRest();
+    return { cards, choosing: true };
+  }
+  if (pend.kind === 'action' || pend.kind === 'reaction') {
+    for (const [uid, items] of ix.menus) cards.set(uid, markOfMenu(items));
+    const me = g.P(0);
+    for (const u of [...me.hand, ...me.field, ...me.legends]) if (!cards.has(u)) cards.set(u, 'idle');
+    return { cards, choosing: false };
+  }
+  for (const uid of ix.direct.keys()) cards.set(uid, 'target');
+  const choosing = ix.direct.size > 0 || ix.gigDirect.size > 0 || ix.gigHighlight.size > 0 || ix.cardOpts.length > 0;
+  if (choosing) dimRest();
+  return { cards, choosing };
+}
+
 /** What the coach's suggested option points at on the board. */
 export interface CoachMark {
   i: number;

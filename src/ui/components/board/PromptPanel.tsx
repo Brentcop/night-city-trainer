@@ -17,7 +17,7 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
   if (g.s.winner !== null) return { text: g.s.winner === 0 ? 'You win!' : g.s.winner === 1 ? 'Rival wins' : 'Draw', tone: 'idle' };
   if (targeting) return { text: `Choose a target for ${g.name(targeting.attacker)} — a glowing unit or the Gig area`, tone: 'me' };
   if (!pend) return { text: g.s.active === 1 ? "Rival's turn…" : 'Resolving…', tone: 'rival' };
-  if (pend.kind === 'action') return { text: 'Your move — click a glowing card to act, or end your turn', tone: 'me' };
+  if (pend.kind === 'action') return { text: 'Your move — click a marked card to act, or end your turn', tone: 'me' };
   if (pend.kind === 'reaction') {
     const a = g.s.attack;
     if (a) {
@@ -35,7 +35,11 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
   return { text: pend.prompt, tone: 'me' };
 }
 
-export function PromptPanel({ ctx, why }: { ctx: BoardCtx; why?: string }) {
+/**
+ * The current prompt. `hidePass`: the End turn / No reaction button is shown next to it already (the full board's
+ * action dock), so the panel leaves it out.
+ */
+export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: string; hidePass?: boolean }) {
   const { g, pend, ix, targeting, coach } = ctx;
   if (g.s.winner !== null) {
     return (
@@ -84,17 +88,16 @@ export function PromptPanel({ ctx, why }: { ctx: BoardCtx; why?: string }) {
     return (
       <div className="pb-prompt">
         <b>Your main phase</b>
-        <div className="small muted">Glowing cards have actions — click one to see them. Hover any card to read it.</div>
+        {/* the action dock is short on height: just the key to the marks (the banner says what to do) */}
+        <div className="small muted">{hidePass ? '▶ play · ⚔ attack · ✦ ability · €$ sell' : 'Marked cards have actions (▶ play, ⚔ attack, ✦ ability, €$ sell) — click one to see them. Hover any card to read it.'}</div>
         {coachBox}
-        <div className="pb-opts">
-          {ix.passIndex !== null ? (
-            btn(ix.passIndex, 'End turn', true)
-          ) : (
-            <div className="small" style={{ color: 'var(--red)' }}>
-              A unit must attack before you can end your turn.
-            </div>
-          )}
-        </div>
+        {ix.passIndex === null ? (
+          <div className="small" style={{ color: 'var(--red)', marginTop: 6 }}>
+            A unit must attack before you can end your turn.
+          </div>
+        ) : (
+          !hidePass && <div className="pb-opts">{btn(ix.passIndex, 'End turn', true)}</div>
+        )}
       </div>
     );
   }
@@ -104,11 +107,11 @@ export function PromptPanel({ ctx, why }: { ctx: BoardCtx; why?: string }) {
     return (
       <div className="pb-prompt pb-prompt-alert">
         <b>{h.text}</b>
-        <div className="small muted">Click a glowing unit to block, or choose a reaction.</div>
+        <div className="small muted">Click a ⛨ unit to block, or choose a reaction.</div>
         {coachBox}
         <div className="pb-opts">
           {pend.options.map((o, i) => (i === ix.passIndex ? null : btn(i)))}
-          {ix.passIndex !== null && btn(ix.passIndex, 'No reaction', true)}
+          {ix.passIndex !== null && !hidePass && btn(ix.passIndex, 'No reaction', true)}
         </div>
       </div>
     );
@@ -161,19 +164,43 @@ export function PromptPanel({ ctx, why }: { ctx: BoardCtx; why?: string }) {
   );
 }
 
-/** Every option as a button (memoised: it only changes with the decision, the coach's pick, or the answer handler). */
-export const AllOptions = memo(function AllOptions({ pend, coachI, answer }: { pend: Decision | null; coachI: number | null; answer: (i: number) => void }) {
-  if (!pend) return null;
+/**
+ * Every option of the current decision as a button. Its open state is the caller's (kept for the session), so it stays
+ * open across decisions, the bot's turns, Undo and re-renders until the player closes it; with nothing to decide it
+ * stays in place and says so. Memoised: it changes only with the decision, the coach's pick, the handler or `open`.
+ */
+export const AllActions = memo(function AllActions({
+  pend,
+  coachI,
+  answer,
+  open,
+  onToggle,
+}: {
+  pend: Decision | null;
+  coachI: number | null;
+  answer: (i: number) => void;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+}) {
+  const id = 'pb-all-actions';
   return (
-    <details className="pb-all">
-      <summary>All options ({pend.options.length})</summary>
-      <div className="pb-opts">
-        {pend.options.map((o, i) => (
-          <button key={i} className={coachI === i ? 'pb-coach-btn' : ''} onClick={() => answer(i)}>
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </details>
+    <div className={`pb-all ${open ? 'is-open' : ''}`}>
+      <button type="button" className="ghost pb-all-toggle" aria-expanded={open} aria-controls={id} onClick={() => onToggle(!open)}>
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span> All actions{pend ? ` (${pend.options.length})` : ''}
+      </button>
+      {open && (
+        <div className="pb-opts pb-all-list" id={id}>
+          {pend ? (
+            pend.options.map((o, i) => (
+              <button key={i} className={coachI === i ? 'pb-coach-btn' : ''} onClick={() => answer(i)}>
+                {o.label}
+              </button>
+            ))
+          ) : (
+            <span className="small muted">Nothing to decide right now.</span>
+          )}
+        </div>
+      )}
+    </div>
   );
 });
