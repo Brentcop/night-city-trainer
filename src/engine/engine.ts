@@ -1418,17 +1418,10 @@ export class Game {
       }
       return true;
     };
-    const specialAllow = (t: AttackTargetRef) => {
-      for (const src of this.sources()) {
-        const fn = this.script(src.self).attackAllow;
-        if (fn && fn(this, src.self, src.host, c, t)) return true;
-      }
-      return false;
-    };
     if (perm === 'any' || perm === 'units') {
       for (const u of this.units(r)) {
         const t = { unit: u.uid, gigs: null };
-        const ok = u.spent || this.hasMod('attackReady', c.uid) || specialAllow(t);
+        const ok = u.spent || this.mayAttackReady(c, t);
         if (ok && allowAll(t)) out.push(t);
       }
     }
@@ -1437,6 +1430,16 @@ export class Game {
       if (allowAll(t)) out.push(t);
     }
     return out;
+  }
+
+  /** May `c` attack this Unit target while it is ready (an "attack ready Units" permission or a card's attackAllow)? */
+  private mayAttackReady(c: CardInst, t: AttackTargetRef): boolean {
+    if (this.hasMod('attackReady', c.uid)) return true;
+    for (const src of this.sources()) {
+      const fn = this.script(src.self).attackAllow;
+      if (fn && fn(this, src.self, src.host, c, t)) return true;
+    }
+    return false;
   }
 
   legalActions(p: PlayerId): Action[] {
@@ -1693,6 +1696,8 @@ export class Game {
     const att = s.cards[uid];
     const r = other(p);
     s.attack = { attacker: uid, attackerPlayer: p, targetUnit: target.unit, targetGigs: target.gigs, step: 'declare', ended: false };
+    // checked before one-shot permissions are used up below, so the attack they allowed stays valid (9.21.3)
+    if (target.unit !== null && this.mayAttackReady(att, target)) s.attack.readyTargetOk = true;
     s.stats.attacks[p]++;
     this.tr('attack', p, att.defId, target.unit ? 'unit' : 'gigs');
     this.telemetry?.attackStart(this);
@@ -1775,10 +1780,11 @@ export class Game {
     if (a.targetUnit !== null) {
       const t = this.s.cards[a.targetUnit];
       if (t.zone !== 'field' || t.controller === a.attackerPlayer) return false;
+      // a ready Unit is a valid target only with a permission to attack ready Units (9.21.3): one held when the attack
+      // was declared (one-shot permissions are used up then) or one gained since. A Blocker is spent as it blocks.
+      if (!t.spent && !a.readyTargetOk && !this.mayAttackReady(att, { unit: t.uid, gigs: null })) return false;
     }
-    // The attack ends if its target stops being a valid target for the attacker (9.21.3): an attack restriction that
-    // now forbids this target. (Readiness is not re-checked: a Blocker is ready-then-spent by design, and one-shot
-    // "may attack ready Units" permissions are used up when the attack is declared.)
+    // The attack also ends if an attack restriction now forbids this target (9.21.3).
     const t: AttackTargetRef = { unit: a.targetUnit, gigs: a.targetUnit === null ? a.targetGigs : null };
     for (const src of this.sources()) {
       const fn = this.script(src.self).attackBan;

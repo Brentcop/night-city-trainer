@@ -37,10 +37,10 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
   ],
   medium: [
     { seed: 201, first: 0, winner: 1, turns: 12, log: '5d0e65c4' },
-    { seed: 202, first: 1, winner: 0, turns: 14, log: 'e57efe94' },
+    { seed: 202, first: 1, winner: 0, turns: 14, log: '1c55ca83' },
   ],
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 11, log: '2a6e891d' },
+    { seed: 301, first: 0, winner: 0, turns: 11, log: '1b4c17f1' },
     { seed: 302, first: 1, winner: 0, turns: 14, log: 'e13d64b6' },
   ],
 };

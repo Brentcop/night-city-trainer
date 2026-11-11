@@ -98,6 +98,9 @@ export interface AttackState {
   targetGigs: PlayerId | null;
   step: 'declare' | 'react' | 'fight' | 'steal' | 'done';
   ended: boolean;
+  /** The attacker was allowed to attack a ready Unit when it declared this attack (e.g. a one-shot permission, used up
+   *  at declaration), so a Unit target that is or becomes ready stays a valid target (9.21.3). */
+  readyTargetOk?: boolean;
 }
 
 export interface LogEntry {

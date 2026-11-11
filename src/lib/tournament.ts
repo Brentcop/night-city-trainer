@@ -26,9 +26,13 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    Go Solo (4.5: keeps its orientation, enters with Lag), and a Legend may help pay for its own Go Solo (spent first,
  *    still enters ready). Bots consider both. (Ordering your own pending effects, ENG-3, is opt-in for human seats and
  *    changes no bot game.)
+ * 4: findings from the first decision-telemetry run: the lookahead bot values a reaction (block, Call, Quick Program or
+ *    ability) by playing the attack out in a clone instead of projecting its result statically, so fight and steal
+ *    triggers it arms (Safety Override) count; this is what changes fixed-seed games. Also: an attack on a Unit ends if
+ *    the target is readied without a permission to attack ready Units (9.21.3, ENG-7; no current card does it).
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 3;
+export const SIM_VERSION = 4;
 
 /** Deterministic integer hash bit (also used for the game-1 coin flip). */
 const hashBit = (x: number, shift = 16) => (Math.imul(x, 2654435761) >>> shift) & 1;

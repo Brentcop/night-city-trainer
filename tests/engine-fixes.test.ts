@@ -35,6 +35,8 @@ describe('ENG-1 replacement effects: mandatory before optional (10.28)', () => {
 });
 
 describe('ENG-2 effect steals obey steal restrictions (11.5.1.3)', () => {
+  // FAQ Chrome Fang #5: a Unit with "when this Unit steals a Gig, steal an additional Gig" still can't take a Gig with a
+  // value higher than its power after Chrome Fang's {Play}.
   it("Chrome Fang's ban applies to stealOne", async () => {
     const { g } = setup();
     const att = spawn(g, 0, 'psycho_squad', 'field'); // power 6
@@ -65,6 +67,37 @@ describe('ENG-2 effect steals obey steal restrictions (11.5.1.3)', () => {
     expect(g.gig(x).controller).toBe(1);
   });
 
+  // Official rules FAQ (2026-11-09), Take Control #1: "When a rival Unit attempts to steal a Gig through an effect, it
+  // steals 1 fewer Gig this turn while under the effect of Take Control." — Yes. Confirms the reading of 11.5.1.3.
+  it('FAQ Take Control #1: an effect steal (Gorilla Arms) also steals 1 fewer', async () => {
+    const { g } = setup();
+    const att = spawn(g, 0, 'psycho_squad', 'field'); // power 6
+    equip(g, 0, 'gorilla_arms', att); // +3 → 9
+    g.addMod({ kind: 'power', target: att.uid, amount: 1, until: 'endOfTurn' }); // 10: the attack steals 2
+    g.addMod({ kind: 'stealMod', target: att.uid, amount: -1, until: 'endOfTurn' }); // Take Control
+    gig(g, 0, 6, 1); // a friendly value, so Gorilla Arms has rival Gigs it could take
+    const gigs = [gig(g, 1, 6, 2), gig(g, 1, 8, 3), gig(g, 1, 10, 4)];
+    expect(g.stealCount(att)).toBe(1);
+    await g.attack(0, att.uid, { unit: null, gigs: 1 });
+    await g.resolvePending();
+    // the attack steals 2 − 1 = 1; Gorilla Arms triggers and its effect steal of 1 becomes 0
+    expect(gigs.filter((x) => g.gig(x).controller === 0)).toHaveLength(1);
+  });
+
+  // FAQ Take Control #2: a Gorilla Arms Unit at 9 power that can steal 0 Gigs because of Take Control does not trigger
+  // Gorilla Arms.
+  it('FAQ Take Control #2: a 9-power Gorilla Arms Unit reduced to 0 steals does not trigger it', async () => {
+    const { g } = setup();
+    const att = spawn(g, 0, 'psycho_squad', 'field'); // 6 + 3 = 9: steals 1
+    equip(g, 0, 'gorilla_arms', att);
+    g.addMod({ kind: 'stealMod', target: att.uid, amount: -1, until: 'endOfTurn' });
+    const gigs = [gig(g, 1, 6, 2), gig(g, 1, 8, 3)];
+    expect(g.stealCount(att)).toBe(0);
+    await g.attack(0, att.uid, { unit: null, gigs: 1 });
+    await g.resolvePending();
+    expect(gigs.every((x) => g.gig(x).controller === 1)).toBe(true);
+  });
+
   it('Appetite for Destruction cannot take a Gig Chrome Fang protects', async () => {
     const { g } = setup();
     const big = gig(g, 1, 20, 15);
@@ -77,6 +110,48 @@ describe('ENG-2 effect steals obey steal restrictions (11.5.1.3)', () => {
     await g.resolvePending();
     expect(tgt.zone).toBe('trash');
     expect(g.gig(big).controller).toBe(1);
+  });
+});
+
+// No current card readies a Unit while it is being attacked, so these build the situation directly: the defender's
+// reaction readies the target (as a future "ready a friendly Unit" Quick effect would).
+describe('ENG-7 an attack ends when its Unit target stops being a valid target (9.21.3)', () => {
+  const readyTargetOnReact = (target: () => number) => (d: { kind: string; options: { action?: unknown }[] }, g: Game) => {
+    if (d.kind !== 'reaction') return undefined;
+    g.ready(target());
+    return d.options.findIndex((o) => (o.action as { type: string }).type === 'endReact');
+  };
+
+  it('a spent target readied during the attack: the attack ends, no fight', async () => {
+    let tgt = -1;
+    const { g } = setup([null, readyTargetOnReact(() => tgt) as never]);
+    const att = spawn(g, 0, 'psycho_squad', 'field'); // 6
+    const t = spawn(g, 1, 'royce_don_t_call_me_simon', 'field', { spent: true }); // 4: would lose the fight
+    tgt = t.uid;
+    spawn(g, 1, 'psycho_squad', 'field', { spent: true }); // a second Unit, so the defender is asked to react
+    eddies(g, 1, 1);
+    spawn(g, 1, 'detonate', 'hand'); // a legal reaction, so the window opens
+    await g.attack(0, att.uid, { unit: t.uid, gigs: null });
+    await g.resolvePending();
+    expect(t.zone).toBe('field');
+    expect(t.spent).toBe(false);
+    expect(g.s.attack).toBeNull();
+    expect(g.s.log.some((e) => /fights|is defeated/.test(e.text))).toBe(false);
+  });
+
+  it('with a permission to attack ready Units (used up at declaration) the attack goes on', async () => {
+    let tgt = -1;
+    const { g } = setup([null, readyTargetOnReact(() => tgt) as never]);
+    const att = spawn(g, 0, 'psycho_squad', 'field');
+    const t = spawn(g, 1, 'royce_don_t_call_me_simon', 'field', { spent: true });
+    tgt = t.uid;
+    eddies(g, 1, 1);
+    spawn(g, 1, 'detonate', 'hand');
+    g.addMod({ kind: 'attackReady', target: att.uid, value: 'once', until: 'endOfTurn' });
+    await g.attack(0, att.uid, { unit: t.uid, gigs: null });
+    await g.resolvePending();
+    expect(g.hasMod('attackReady', att.uid)).toBe(false); // used up
+    expect(t.zone).toBe('trash'); // the fight happened
   });
 });
 

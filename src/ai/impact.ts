@@ -4,11 +4,10 @@
 // Per-deck numbers belong to the list they were measured on: a deck is matched by its list fingerprint (PlayerState.listId),
 // never by name alone (findImpactDeck; legacy name-only entries via LEGACY_IMPACT_LISTS).
 import impact from '../data/impact.json';
-import { findImpactDeck, type ImpactData, type ImpactDeck, type ImpactDeckRef } from '../analysis/impactData';
+import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData, type ImpactDeck, type ImpactDeckRef } from '../analysis/impactData';
 import { LEGACY_IMPACT_LISTS } from '../analysis/legacyImpactLists';
 
 const A = impact as unknown as ImpactData;
-const MIN_SEEN = 30; // per-deck estimate needs this many games where the card was drawn
 
 const perDeck = new Map<ImpactDeck, Map<string, number>>();
 const pooled: Record<string, { s: number; n: number }> = {};
@@ -16,14 +15,14 @@ for (const r of A.decks) {
   const m = new Map<string, number>();
   for (const [id, iwd, seenGames] of r.cards) {
     if (typeof iwd !== 'number' || !Number.isFinite(iwd)) continue;
-    if (seenGames >= MIN_SEEN) m.set(id, iwd);
+    if (seenGames >= IMPACT_MIN_DECK_GAMES) m.set(id, iwd);
     pooled[id] ??= { s: 0, n: 0 };
     pooled[id].s += iwd * seenGames;
     pooled[id].n += seenGames;
   }
   perDeck.set(r, m);
 }
-const GLOBAL = new Map(Object.entries(pooled).filter(([, v]) => v.n >= 60).map(([k, v]) => [k, v.s / v.n]));
+const GLOBAL = new Map(Object.entries(pooled).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
 
 /** Lookups are on the bots' hot path: remember each (list, name) → entry answer. */
 const resolved = new Map<string, ImpactDeck | null>();

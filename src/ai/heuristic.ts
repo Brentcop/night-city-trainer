@@ -1,6 +1,6 @@
 // Lookahead bot. Main-phase actions: clone the game, play the action out (sub-choices by the
 // fast policy), and score the result with evaluate(). Reactions: clone, apply the reaction, then
-// project the fight/steal outcome statically and score it. Sub-choices (targets, gigs, modes,
+// play the attack out (no further reactions) and score the result. Sub-choices (targets, gigs, modes,
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
@@ -345,21 +345,27 @@ export class HeuristicAgent implements Agent {
     const endIdx = rx.findIndex((r) => r.type === 'endReact');
     if (!this.opts.lookahead) return this.fastReaction(g, rx);
     if (this.opts.deepReactions > 0 && g.s.attack) return this.deepReaction(g, d, rx, endIdx);
-    const baseV = this.projectAttack(g, p);
-    const value = async (r: Reaction) => {
+    // Play the attack out in a clone (no further reactions, sub-choices by the fast policy) and evaluate the result, so
+    // fight and steal effects armed by the reaction count (Safety Override, "when this blocks" triggers, ...). Letting
+    // the attack resolve is valued the same way.
+    const resolved = async (r: Reaction | null) => {
       const fast: [Agent, Agent] = [new HeuristicAgent({ lookahead: false }), new HeuristicAgent({ lookahead: false })];
       const cg = g.clone(fast);
       hideInfo(cg, p);
       try {
-        await cg.doReaction(p, r);
-        await cg.resolvePending();
-        return this.projectAttack(cg, p);
+        if (r) {
+          await cg.doReaction(p, r);
+          await cg.resolvePending();
+        }
+        if (cg.s.attack) await cg.attackRest(cg.s.attack.attacker, true);
+        cg.checkState();
       } catch (e) {
         if (!(e instanceof GameOverSignal)) throw e;
-        return evaluate(cg, p, this.w(g, p));
       }
+      return evaluate(cg, p, this.w(g, p));
     };
-    const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
+    const baseV = await resolved(null);
+    const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, resolved);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
     return bestI;
   }
@@ -405,33 +411,6 @@ export class HeuristicAgent implements Agent {
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
     return bestI;
-  }
-
-  /** Evaluate the position as if the current attack resolved right now (static projection). */
-  projectAttack(g: Game, p: PlayerId): number {
-    const a = g.s.attack;
-    if (!a || !g.attackValid()) return evaluate(g, p, this.w(g, p));
-    const base = evaluate(g, p, this.w(g, p));
-    const att = g.c(a.attacker);
-    if (a.targetUnit !== null) {
-      const t = g.c(a.targetUnit);
-      const o = g.fightOutcome(att.uid, t.uid);
-      const pa = g.power(att);
-      const pt = g.power(t);
-      let v = base;
-      const sign = (c: CardInst) => (c.controller === p ? -1 : 1);
-      if (o.a === 'lose' && pt > 0 && !g.hasMod('noFightDefeat', att.uid) && !g.noDefeatOppMod(t.uid)) v += sign(att) * unitValue(g, att);
-      if (o.b === 'lose' && pa > 0 && !g.hasMod('noFightDefeat', t.uid) && !g.noDefeatOppMod(att.uid)) v += sign(t) * unitValue(g, t);
-      return v;
-    }
-    const n = Math.min(g.stealCount(att), g.P(a.targetGigs!).gigs.length);
-    const w = this.w(g, p);
-    // stealing n gigs: swing of 2*gig weight each for the defender
-    const mine = g.P(p).gigs.length;
-    let penalty = n * w.gig * 2;
-    if (g.P(att.controller).gigs.length + n >= 6) penalty += w.gigNear * n;
-    if (mine - n < 2) penalty += 10;
-    return base - (att.controller === p ? -penalty : penalty);
   }
 
   private fastReaction(g: Game, rx: Reaction[]): number {

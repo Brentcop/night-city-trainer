@@ -17,6 +17,7 @@ import { breedSeason } from '../src/ai/breeder';
 import { loadDeckImpact, loadH2H, recordDeckImpact, strengthOf } from './breed-data';
 import { exportOfficial, deckColors } from '../src/engine/deck';
 import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
+import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
 import { classify } from '../src/ai/archetype';
 import { bool, cli, existing, Refusal, int, loadLibrary, oneOf, runJobs, runMain, SIM_BOTS, slugify, threadsOpt, writeJsonStamped } from './lib-node';
 import type { MatchJob, MatchResult } from './worker';
@@ -194,7 +195,7 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
       acc[c.id].n += c.seenGames;
     }
   fs.writeFileSync(IMPACT_FILE, JSON.stringify(acc));
-  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
+  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
 }
 
 // ---------------------------------------------------------------- season

@@ -5,6 +5,14 @@
 // Impact is measured on one list, so it is looked up by list fingerprint (listFingerprint in src/engine/deck.ts), not by
 // deck name (backlog AI-11): a renamed list keeps its numbers, and another list that reuses the name gets none.
 
+/**
+ * Sample-size floors for card impact, shared by every reader (bots and coach, Deck Lab, breeder, forge, seasons; backlog
+ * LIB-12). A per-deck number needs the card drawn in this many of the deck's games; a format-wide (pooled) number needs
+ * this many drawn-games across all decks. The values are the ones the bots have always used, so bot games don't change.
+ */
+export const IMPACT_MIN_DECK_GAMES = 30;
+export const IMPACT_MIN_POOLED_GAMES = 60;
+
 /** One card: [id, iwd ("Δ when drawn"; null when the report has none), seenGames]. */
 export type ImpactCard = [id: string, iwd: number | null, seenGames: number];
 export interface ImpactDeck {

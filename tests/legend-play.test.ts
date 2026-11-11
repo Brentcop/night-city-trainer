@@ -195,6 +195,12 @@ describe('Legends to the field: bots and the Play board', () => {
       const d = actionDecision(a.g);
       const pick = d.options[(await bot.decide(a.g, d))[0]].action!;
       expect(pick.type).toBe('goSolo');
+      // already spent (e.g. it paid for something): Go Solo still wins, it enters ready where the ordinary play enters spent
+      const c = scene();
+      c.v.spent = true;
+      eddies(c.g, 0, 5);
+      const dc = actionDecision(c.g);
+      expect(dc.options[(await bot.decide(c.g, dc))[0]].action!.type).toBe('goSolo');
 
       const b = scene();
       equip(b.g, 1, 'riot_shield', spawn(b.g, 1, 'psycho_squad', 'field')); // Go Solo costs 7
@@ -202,8 +208,8 @@ describe('Legends to the field: bots and the Play board', () => {
       const db = actionDecision(b.g);
       expect(db.options.map((o) => o.action!.type)).toContain('playLegend');
       expect(db.options.map((o) => o.action!.type)).not.toContain('goSolo');
-      await bot.decide(b.g, db); // no crash; lookahead clones play it out
-      if (!lookahead) expect(db.options[(await bot.decide(b.g, db))[0]].action!.type).toBe('playLegend');
+      // the lookahead bot plays it out and takes it too: a body on the field beats keeping 5 €$ unspent
+      expect(db.options[(await bot.decide(b.g, db))[0]].action!.type).toBe('playLegend');
     }
   });
 });

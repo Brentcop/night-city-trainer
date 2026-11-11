@@ -1,6 +1,6 @@
 // Compare two bot configurations head-to-head across all meta pairings.
 //   npx tsx scripts/botcheck.ts '{"deep":3}' '{}' [--per 4] [--threads N]
-// Games that throw are reported (first stack printed) and left out of the win rate; the exit code is then 1.
+// Prints A's win rate with a 95% interval. Games that throw are reported (first stack printed) and left out of the win rate; the exit code is then 1.
 import { cli, int, loadLibrary, runJobsDetailed, threadsOpt } from './lib-node';
 import type { AgentSpec, MatchJob } from './worker';
 
@@ -24,4 +24,7 @@ for (const x of field) for (const y of field) if (x !== y) for (let k = 0; k < P
   jobs.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: 'lookahead', agentA: A, agentB: B });
 const { results: res, errors: errs } = await runJobsDetailed(jobs, { threads: Math.min(V.threads, 16), allowErrors: true });
 const w = res.reduce((a, r) => a + (r.winner === 0 ? 1 : r.winner === 'tie' ? 0.5 : 0), 0);
-console.log(`A ${JSON.stringify(A)} vs B ${JSON.stringify(B)}: A wins ${(100 * w / Math.max(1, res.length)).toFixed(1)}% of ${res.length}${errs.length ? `, errors ${errs.length} (excluded): ${errs[0].error?.slice(0, 300)}` : ''}`);
+// 95% interval of A's win rate: normal approximation over games (ties count half; every game is an independent seed)
+const n = Math.max(1, res.length);
+const half = 1.96 * Math.sqrt(((w / n) * (1 - w / n)) / n);
+console.log(`A ${JSON.stringify(A)} vs B ${JSON.stringify(B)}: A wins ${(100 * w / n).toFixed(1)}% ±${(100 * half).toFixed(1)} (95%) of ${res.length}${errs.length ? `, errors ${errs.length} (excluded): ${errs[0].error?.slice(0, 300)}` : ''}`);

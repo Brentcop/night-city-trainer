@@ -103,7 +103,7 @@ describe('deck record', () => {
     const r = deckRecord({
       name: 'B',
       ratings: { decks: [row('A'), row('B', { games: 40, gamesRecord: '12-4', titles: 0, top8: 1 })] },
-      events: [ev(1, ['A', 'B'], 'A', 3)],
+      events: [ev(1, ['A', 'B'], 'A', CURRENT_SIM_VERSION)],
       finals: {
         overall: 0.6,
         games: 120,
@@ -113,7 +113,7 @@ describe('deck record', () => {
         ],
       },
       telemetry: { games: 100, wr: 0.5, wrFirst: 0.9, wrSecond: 0.1 },
-      versions: { reports: 3 },
+      versions: { reports: CURRENT_SIM_VERSION },
     });
     expect(r.hasAny).toBe(true);
     expect(r.tournament).toMatchObject({ games: 40, won: 12, lost: 4, wr: 0.75, rank: 2, of: 2, titles: 0, top8: 1 });
@@ -122,7 +122,7 @@ describe('deck record', () => {
     expect(r.vsMeta).toEqual({ wr: 0.6, n: 120, source: 'finals' });
     expect(r.matchups).toMatchObject({ source: 'finals', best: { opp: 'M1' }, worst: { opp: 'M2' } });
     expect(r.finishes).toHaveLength(1);
-    // ratings without a manifest fall back to the events (all current here) and the reports carry version 3
+    // ratings without a manifest fall back to the events (all current here) and the reports carry the current version
     expect(r.historical).toBe(false);
   });
 

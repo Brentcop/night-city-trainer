@@ -66,7 +66,7 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 
 ## 5. Decision procedures (`src/ai/heuristic.ts`)
 
-1. **Mulligan.** Keep the hand only if it has a Unit costing ≤4, three cards costing ≤4, and something to sell.
+1. **Mulligan.** Keep the hand only if it has a Unit costing ≤4, three cards costing ≤4, and something to sell. The mulligan costs nothing (a new hand of 6), so a deck's mulligan rate is just the chance its opening hand fails the rule: from about 6% (Rainbow Fixer Stuff) to 26% (RRY Smasher Aggro) for the meta decks, almost all of it from having no Unit costing ≤4. BBG Cunningham Econ is at 21%: it has 9 such Units in 40 cards, the fewest.
 2. **Sell first.** Sell once per turn until about 9 Eddies. Sell the card with the lowest keep value: a duplicate, something not castable soon, or Gear with no host.
 3. **Main actions, 1-ply lookahead.**
    - For every legal action, clone the game, play the action out, and evaluate.
@@ -77,8 +77,8 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 4. **Deep mode (turn rollout).** Re-score the top N actions by finishing our turn with a 1-ply bot, then letting a 1-ply rival play its whole next turn.
 5. **Reactions.** For each reaction (Call, Blocker, Quick program or ability):
    - clone the game and apply the reaction;
-   - project the attack's result (the fight loser is defeated, or N Gigs change hands);
-   - keep the reaction only if it improves the projected evaluation.
+   - play the attack out in the clone (no further reactions, sub-choices by the fast policy) and evaluate the result, so fight and steal effects the reaction arms count, such as Safety Override's "the next time a friendly Unit loses a fight, defeat the opposing Unit" or a Blocker's "when this blocks" trigger. Until SIM_VERSION 4 the bot projected the result statically (fight loser defeated, or N Gigs moved), which valued Safety Override as a lost card;
+   - keep the reaction only if it beats letting the attack resolve (also played out) by 0.5.
 
    With `deepReactions: N` (Hard and the coach), each reaction is instead played out N times: the attack finishes, the attacker ends its turn, and the defender plays its next turn. The N random worlds (hidden-information deal, dice) are different from each other but shared by every candidate reaction, so only the reaction differs between them. Unknown Calls are collapsed into one averaged option, as in the main phase.
 6. **Targets** (driven by `intent` hints that every card script supplies):
@@ -155,3 +155,5 @@ Full write-up and backlog: `docs/REVIEW_FINDINGS.md`.
 - No long-term planning beyond the rival's next turn, even in deep mode. The bot doesn't sandbag removal for a bigger threat on purpose.
 - It doesn't bluff or play around specific Quick tricks, apart from its averaged view of the rival's hidden hand.
 - High-skill control decks (BBG Econ) are under-played compared with expert humans, so treat their sim win rates as a lower bound.
+- Quick Programs are mostly sold. They are the cheapest cards, so they have the lowest keep value (`cardValue` gives no credit for {Quick} or for Gear removal), and the bot spends its Eddies on its own turn, so even a held one is often unaffordable when the rival attacks. In the main phase a fight trick (Safety Override, Synapse Burnout, Reboot Optics) is scored right after it resolves, before the attack it is meant for, so the 1-ply screen never sees "trick, then attack". Crediting such a play with the attack it enables was tried and measured no gain (docs/DECISION_TELEMETRY.md, findings).
+- The evaluation counts a Gear on the board at power × 1.2 + 1.5 against 3.6 for a card in hand, so a free Gear of power 2 or less is barely worth playing to it: River Ward's free-Gear ability goes mostly unused.

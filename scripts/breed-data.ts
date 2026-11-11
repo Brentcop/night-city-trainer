@@ -5,6 +5,7 @@
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
 import type { DeckReport } from '../src/analysis/analyze';
+import { IMPACT_MIN_DECK_GAMES } from '../src/analysis/impactData';
 import { forEachRecordedGame } from './lib-node';
 
 const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
@@ -25,7 +26,7 @@ export function recordDeckImpact(reps: DeckReport[]) {
 }
 
 /** Per-deck card impact, needing at least `min` games where the card was drawn. */
-export function loadDeckImpact(min = 25): Record<string, Record<string, number>> {
+export function loadDeckImpact(min = IMPACT_MIN_DECK_GAMES): Record<string, Record<string, number>> {
   const acc: Acc = fs.existsSync(DECK_IMPACT_FILE) ? JSON.parse(fs.readFileSync(DECK_IMPACT_FILE, 'utf8')) : {};
   // the original review telemetry counts too
   if (fs.existsSync('src/data/analysis.json'))

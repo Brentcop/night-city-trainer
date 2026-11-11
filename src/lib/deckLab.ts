@@ -7,7 +7,7 @@ import { analyzeDeck, type DeckReport } from '../analysis/analyze';
 import type { PlayerSummary } from '../analysis/summarize';
 import { breedSeason, type Bred } from '../ai/breeder';
 import impact from '../data/impact.json';
-import { findImpactDeck, type ImpactData } from '../analysis/impactData';
+import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { LEGACY_IMPACT_LISTS } from '../analysis/legacyImpactLists';
 import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, type PlayGame } from './tournament';
@@ -25,18 +25,18 @@ export const GLOBAL_IMPACT: Record<string, number> = (() => {
       acc[id].s += iwd * seenGames;
       acc[id].n += seenGames;
     }
-  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
+  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
 })();
 
 /**
- * Per-deck card impact from bot telemetry (cards drawn in 25+ games), for the list it was measured on: matched by list
+ * Per-deck card impact from bot telemetry (cards drawn in IMPACT_MIN_DECK_GAMES+ games), for the list it was measured on: matched by list
  * fingerprint, never by name alone (findImpactDeck), so a tuned or renamed list, or a custom deck reusing a built-in
  * name, does not inherit another list's numbers. Undefined when no telemetry describes this list.
  */
 export function deckImpactOf(deck: Pick<DeckList, 'name' | 'legends' | 'main'>): Record<string, number> | undefined {
   const r = findImpactDeck(A.decks, { name: deck.name, listId: listFingerprint(deck) }, LEGACY_IMPACT_LISTS);
   if (!r) return undefined;
-  return Object.fromEntries(r.cards.filter(([, iwd, seenGames]) => seenGames >= 25 && Number.isFinite(iwd)).map(([id, iwd]) => [id, iwd as number]));
+  return Object.fromEntries(r.cards.filter(([, iwd, seenGames]) => seenGames >= IMPACT_MIN_DECK_GAMES && Number.isFinite(iwd)).map(([id, iwd]) => [id, iwd as number]));
 }
 
 // ---------------------------------------------------------------- playing sets of games

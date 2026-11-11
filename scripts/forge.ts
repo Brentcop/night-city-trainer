@@ -19,6 +19,7 @@ import { counts, exportOfficial, ramLimits, validateDeck } from '../src/engine/d
 import type { DeckList } from '../src/engine/types';
 import { analyzeDeck, type DeckReport } from '../src/analysis/analyze';
 import analysis from '../src/data/analysis.json';
+import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, threadsOpt } from './lib-node';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -58,7 +59,7 @@ const GLOBAL_IMPACT: Record<string, number> = (() => {
       acc[c.id].n += c.seenGames;
     }
   }
-  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
+  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
 })();
 
 /** games played so far in this process (each forged deck's manifest counts its own) */
