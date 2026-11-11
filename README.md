@@ -63,7 +63,7 @@ Visual replays show a game on the real board; click a log line to rewind to it.
 | Script | What it does |
 |---|---|
 | `npm run dev` / `build` / `preview` | Vite dev server, production build (typecheck first), and a preview of the build. |
-| `npm run typecheck` | `tsc --noEmit`. |
+| `npm run typecheck` | `tsc -b` over the app, worker, node and test configs (`tsconfig.json` lists them), then `tools/check-index-access.ts` (`noUncheckedIndexedAccess` for `src/lib` and `src/analysis`). |
 | `npm test` | Runs the test suite once (see [Tests](#tests)). |
 | `npm run test:cov` | The test suite with V8 coverage of `src/` (report in `coverage/`, no thresholds). |
 | `npm run lint` | ESLint, limited to the React hooks rules. Not part of CI yet. |

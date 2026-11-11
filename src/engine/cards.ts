@@ -5,7 +5,7 @@ export const CARDS: CardDef[] = raw as CardDef[];
 export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(CARDS.map((c) => [c.id, c]));
 
 /** Normalize a card name for fuzzy matching across sites ("Name: Sub", "Name — Sub", "Name - Sub"). */
-export function normName(s: string): string {
+function normName(s: string): string {
   return s
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')

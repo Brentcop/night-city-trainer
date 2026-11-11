@@ -21,8 +21,12 @@ const GROUP_LABEL: Record<CardGroup['key'], string> = { legends: 'Legends', Unit
 /** Cheapest first, then by name (unknown ids are dropped). */
 export function byCost(entries: CardEntry[], byId: Record<string, CardDef> = CARD_BY_ID): CardEntry[] {
   return entries
-    .filter((e) => byId[e.id])
-    .sort((a, b) => (byId[a.id].cost ?? 0) - (byId[b.id].cost ?? 0) || cardLabel(byId[a.id]).localeCompare(cardLabel(byId[b.id])));
+    .flatMap((e) => {
+      const c = byId[e.id];
+      return c ? [{ e, c }] : [];
+    })
+    .sort((a, b) => (a.c.cost ?? 0) - (b.c.cost ?? 0) || cardLabel(a.c).localeCompare(cardLabel(b.c)))
+    .map(({ e }) => e);
 }
 
 /**
@@ -68,7 +72,7 @@ let byLabel: Map<string, string> | null = null;
  */
 export function parseSwap(label: string): { out?: string; in?: string } {
   byLabel ??= new Map(CARDS.map((c) => [cardLabel(c), c.id]));
-  const m = label.match(/^[−-]1 (.+) → \+1 (.+)$/);
-  if (!m) return {};
-  return { out: byLabel.get(m[1]), in: byLabel.get(m[2]) };
+  const [, cut, add] = label.match(/^[−-]1 (.+) → \+1 (.+)$/) ?? [];
+  if (cut === undefined || add === undefined) return {};
+  return { out: byLabel.get(cut), in: byLabel.get(add) };
 }

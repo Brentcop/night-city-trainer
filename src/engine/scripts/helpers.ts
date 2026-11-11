@@ -1,6 +1,6 @@
 // Shared building blocks for card scripts.
 import { other, type Game } from '../engine';
-import type { CardInst, CardType, Gig, Intent, PlayerId } from '../types';
+import type { CardInst, CardType, Intent, PlayerId } from '../types';
 import { shuffleInPlace } from '../rng';
 
 export const rival = (self: CardInst): PlayerId => other(self.controller);
@@ -33,10 +33,6 @@ export async function defeatRival(g: Game, self: CardInst, filter: (c: CardInst)
 }
 
 /** Bottom-deck a unit (its owner places it). */
-export function bottomDeckUnit(g: Game, c: CardInst) {
-  g.bottomDeck(c.uid);
-}
-
 /** A rival chooses and discards n cards. */
 export async function rivalDiscards(g: Game, self: CardInst, n: number) {
   return g.discard(rival(self), n, undefined, false, `${g.name(self)}: discard ${n}`);
@@ -103,11 +99,7 @@ export async function millAndTake(g: Game, p: PlayerId, n: number, filter: (c: C
 
 export const isType = (g: Game, t: CardType) => (c: CardInst) => g.def(c).type === t;
 export const costLE = (g: Game, n: number) => (c: CardInst) => (g.def(c).cost ?? 0) <= n;
-export const powerLE = (g: Game, n: number) => (c: CardInst) => g.power(c) <= n;
 
-export function friendlyGigs(g: Game, self: CardInst): Gig[] {
-  return g.gigsOf(self.controller);
-}
 export function has8Plus(g: Game, p: PlayerId) {
   return g.gigsOf(p).some((x) => x.value >= 8);
 }
@@ -120,16 +112,6 @@ export function hasMinGig(g: Game, p: PlayerId) {
 export function countMinGigs(g: Game, p: PlayerId) {
   return g.gigsOf(p).filter((x) => x.value === 1).length;
 }
-export function friendlyGigValues(g: Game, p: PlayerId) {
-  return new Set(g.gigsOf(p).map((x) => x.value));
-}
 export function rivalHasMoreGigs(g: Game, p: PlayerId, by = 1) {
   return g.P(other(p)).gigs.length - g.P(p).gigs.length >= by;
-}
-
-/** Choose a card type (Unit/Gear/Program). */
-export async function chooseCardType(g: Game, p: PlayerId, prompt: string): Promise<CardType> {
-  const types: CardType[] = ['Unit', 'Gear', 'Program'];
-  const i = await g.chooseMode(p, prompt, types, undefined, 'cardType');
-  return types[i];
 }

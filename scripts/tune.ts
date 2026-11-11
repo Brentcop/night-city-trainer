@@ -7,7 +7,7 @@
 // minimum practical gain (--min-gain, percentage points, default 1). This script reports candidates, it never applies them.
 import fs from 'node:fs';
 import { deckFingerprint, fingerprintText } from '../src/engine/deck';
-import { DEFAULT_WEIGHTS } from '../src/ai/eval';
+import { DEFAULT_WEIGHTS, TUNED_WEIGHTS } from '../src/ai/eval';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { createRunManifest } from '../src/lib/runManifest';
 import { RULES_VERSIONS } from '../src/lib/rulesVersions';
@@ -67,7 +67,8 @@ async function score(seedBase: number, variant: Record<string, number>, base: Re
 }
 
 async function main() {
-  const original: Record<string, number> = { ...DEFAULT_WEIGHTS };
+  // only the tuned weights; the worker fills in the rest from DEFAULT_WEIGHTS
+  const original: Record<string, number> = Object.fromEntries(TUNED_WEIGHTS.map((k) => [k, DEFAULT_WEIGHTS[k]]));
   let base: Record<string, number> = { ...original };
   console.log(`Matched training: ${evaluationGames} games per evaluation; held-out seed base ${validationSeed}.`);
   const fast = await score(trainSeed, base, base, { lookaheadA: false });

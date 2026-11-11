@@ -1,18 +1,16 @@
 // Deck library for the browser: built-in decks (bundled from data/decks) + custom decks in localStorage.
-import { deckFromText, type LibraryDeck } from './library';
+import { libraryDeck, type LibraryDeck } from './library';
 import type { DeckList } from '../engine/types';
 import type { RunManifest } from './runManifest';
 
-// data/decks/**/history/ holds superseded lists and data/decks/archive/ the retired bred and optimized lists (see its
-// README); neither is bundled. The Node loader (scripts/lib-node.ts loadLibrary) reads only data/decks and data/decks/custom.
-const files = import.meta.glob(['../../data/decks/**/*.txt', '!**/history/**', '!**/archive/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+// The library's folders (LIBRARY_DIRS in src/lib/library.ts, which libraryDeck() enforces): the glob has to be a literal,
+// so it names the same two folders and leaves out custom/history/ and archive/ (see its README).
+const DECKS_DIR = '../../data/decks/';
+const files = import.meta.glob(['../../data/decks/*.txt', '../../data/decks/custom/*.txt'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 const KIND_ORDER = ['meta', 'ladder', 'original', 'guide', 'custom'];
 export const BUILTIN: LibraryDeck[] = Object.entries(files)
-  .map(([path, text]) => {
-    const file = path.split('/').pop()!;
-    return deckFromText(file, text, path.includes('/custom/') ? 'custom' : undefined);
-  })
+  .flatMap(([path, text]) => libraryDeck(path.slice(DECKS_DIR.length), text) ?? [])
   .sort((a, b) => (a.kind === b.kind ? a.deck.name.localeCompare(b.deck.name) : KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind)));
 
 export const CUSTOM_KEY = 'nct.customDecks.v1';

@@ -1,6 +1,6 @@
 // Yellow card scripts.
 import { other, type Game } from '../engine';
-import type { CardInst, CardScript, Mod, PlayerId } from '../types';
+import type { CardInst, CardScript, DelayedMod, PlayerId } from '../types';
 import { costLE, defeatRival, isType, pick, rival, rivalDiscards, rivalHasMoreGigs, searchTop } from './helpers';
 
 // ---------------------------------------------------------------- local helpers
@@ -223,7 +223,7 @@ export const YELLOW: Record<string, CardScript> = {
 
   the_relic_experimental_biochip: {
     // Bottom text {Defeated}: engine calls this with the host's DefeatInfo (11.23.3).
-    defeated: async (g, self, info) => {
+    defeated: async (g, _self, info) => {
       const p = info.controller;
       const cands = g
         .P(p)
@@ -258,7 +258,7 @@ export const YELLOW: Record<string, CardScript> = {
       g.log(self.controller, `Safety Override is armed on ${g.name(t)}`);
     },
     delayed: {
-      fight: async (g, mod: Mod, ev) => {
+      fight: async (g, mod, ev) => {
         const p = mod.player!;
         if (ev.uid !== mod.value?.data?.target || ev.result !== 'lose' || !wasFriendly(g, ev.uid, p)) return false;
         const opp = g.c(ev.opp);
@@ -517,7 +517,7 @@ export const YELLOW: Record<string, CardScript> = {
 };
 
 /** Cyberpsychosis: the target stole or fought — arm the end-of-turn defeat. */
-function cyberpsychoMark(g: Game, mod: Mod, uid: number): boolean {
+function cyberpsychoMark(g: Game, mod: DelayedMod, uid: number): boolean {
   const target = mod.value.data.target as number;
   if (uid !== target) return false;
   const exists = g.s.mods.some((m) => m.kind === 'delayed' && m.value?.event === 'turnEnd' && m.value?.defId === 'cyberpsychosis' && m.value?.data?.target === target);

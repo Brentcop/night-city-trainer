@@ -8,11 +8,12 @@ import { makeTierBot } from '../ai/tiers';
 import { HumanAgent } from '../ui/HumanAgent';
 import { saveReplay, type PracticeReplay } from './practiceReplays';
 import { recordPractice, type PracticeGame } from './practiceLog';
+import { CONCEDED_REASON } from './practiceVerdict';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Thrown inside a game's agents once the game was quit, undone or replaced, so its loop unwinds quietly. */
-export class GameCancelled extends Error {
+class GameCancelled extends Error {
   constructor() {
     super('game cancelled');
   }
@@ -23,7 +24,7 @@ export interface Cancellable {
 }
 
 /** Wraps a bot so its moves are visible to the human. Stops the game once it is cancelled. */
-export class PacedAgent implements Agent {
+class PacedAgent implements Agent {
   name: string;
   constructor(
     public inner: Agent,
@@ -85,7 +86,7 @@ export interface Snapshot {
  * Snapshot a game for Undo. This is the only place the session clones a game: the snapshot must keep the game log
  * (the restored game shows it and replays continue from it).
  */
-export function takeSnapshot(g: Game, bot: HeuristicAgent, choices: number, grades: number): Snapshot {
+function takeSnapshot(g: Game, bot: HeuristicAgent, choices: number, grades: number): Snapshot {
   const seat: Agent = { name: 'snapshot', decide: async () => [0] };
   return { state: g.clone([seat, seat], { keepLog: true }).s, bot: cloneBot(bot), choices, grades };
 }
@@ -94,7 +95,7 @@ export function takeSnapshot(g: Game, bot: HeuristicAgent, choices: number, grad
  * Which snapshot Undo goes back to: the decision before the one you are in now (if you are in a main-phase
  * decision, its own snapshot is the newest), otherwise the newest (a sub-decision, game over or an error). -1 = none.
  */
-export function undoTarget(snaps: readonly Snapshot[], pending: DecisionKind | undefined): number {
+function undoTarget(snaps: readonly Snapshot[], pending: DecisionKind | undefined): number {
   return pending === 'action' ? snaps.length - 2 : snaps.length - 1;
 }
 
@@ -134,8 +135,7 @@ export function canConcede(run: Running): boolean {
   return !run.cancelled && !run.error && run.g.s.winner === null;
 }
 
-/** What the result screen, the log and the practice history call a conceded game. */
-export const CONCEDED_REASON = 'You conceded';
+export { CONCEDED_REASON };
 
 export interface MatchSetup {
   decks: [DeckList, DeckList];
@@ -146,7 +146,7 @@ export interface MatchSetup {
 }
 
 let replaySeq = 0;
-export function newPracticeReplay(m: MatchSetup): PracticeReplay {
+function newPracticeReplay(m: MatchSetup): PracticeReplay {
   return {
     id: `p${Date.now().toString(36)}${(replaySeq++ % 1296).toString(36)}`,
     date: new Date().toISOString(),
@@ -165,7 +165,7 @@ export function newPracticeReplay(m: MatchSetup): PracticeReplay {
 export const outcome = (st: GameState): PracticeReplay['result'] => (st.winner === 0 ? 'win' : st.winner === 1 ? 'loss' : 'draw');
 
 /** The practice-log entry for a finished game, keyed by its replay id so a game finished again after Undo replaces it. */
-export function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
+function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
   return {
     id: replay.id,
     date: new Date().toISOString(),
@@ -184,7 +184,7 @@ export function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGa
  * Save the replay and the practice-log entry of a finished game (both upsert by the replay id). A conceded game is
  * recorded the same way; `replay.conceded` marks it.
  */
-export function recordFinished(replay: PracticeReplay, st: GameState) {
+function recordFinished(replay: PracticeReplay, st: GameState) {
   replay.result = outcome(st);
   saveReplay(replay);
   recordPractice(practiceEntry(replay, st));
@@ -235,6 +235,7 @@ export class PracticeSession {
     if (!run || !canUndo(run)) return false;
     const k = undoTarget(run.snaps, run.human.pending?.d.kind);
     const target = run.snaps[k];
+    if (!target) return false;
     run.snaps.length = k; // the restored decision takes a fresh snapshot when it is asked again
     run.replay.choices.length = target.choices;
     run.grades.length = target.grades;

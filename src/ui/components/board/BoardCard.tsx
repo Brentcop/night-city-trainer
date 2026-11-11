@@ -40,7 +40,7 @@ export interface BoardCtx {
 }
 
 /** How long a touch must stay put to read a card instead of tapping it (ms). */
-export const LONG_PRESS_MS = 450;
+const LONG_PRESS_MS = 450;
 
 const dropMatches = (over: DropTarget | null, uid: number) => !!over && (over.kind === 'unit' || over.kind === 'hand') && over.uid === uid;
 
@@ -52,7 +52,7 @@ export function hiddenFromMe(g: Game, uid: number): boolean {
   return false;
 }
 
-export function cardChips(g: Game, uid: number, coach: boolean, extra?: React.ReactNode) {
+function cardChips(g: Game, uid: number, coach: boolean, extra?: React.ReactNode) {
   const c = g.s.cards[uid];
   if (!c) return null;
   const inPlay = c.zone === 'field' || c.zone === 'legends';

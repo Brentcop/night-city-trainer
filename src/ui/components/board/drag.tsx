@@ -21,7 +21,7 @@ export interface PendingConfirm {
 }
 
 /** What dropping `uid` on `t` would do (empty = nothing legal). */
-export function resolveDrop(g: Game, ix: Interaction, uid: number, t: DropTarget | null): DropChoice[] {
+export function resolveDrop(_g: Game, ix: Interaction, uid: number, t: DropTarget | null): DropChoice[] {
   if (!t) return [];
   const menu = ix.menus.get(uid) ?? [];
   const attacks = ix.attacks.get(uid) ?? [];

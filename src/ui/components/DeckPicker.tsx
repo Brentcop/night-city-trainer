@@ -1,7 +1,7 @@
 import { allDecks } from '../../lib/browserLibrary';
 import { deckColors } from '../../engine/deck';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
-import { deckByFile, searchDeck } from '../deckLookup';
+import { deckByFile } from '../deckLookup';
 import { SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
 import { RATINGS } from '../../data/index';
 
@@ -46,8 +46,4 @@ export function DeckPicker({ value, onChange, label }: { value: string; onChange
 /** Exact lookup by library file — use this for ?d= URL params, so a link to a deleted deck finds nothing instead of a look-alike. */
 export function findDeck(key: string | undefined | null): LibraryDeck | undefined {
   return deckByFile(allDecks(), key);
-}
-/** Loose search (file or name containing the text) for explicit, typed searches only. */
-export function searchDecks(q: string | undefined): LibraryDeck | undefined {
-  return searchDeck(allDecks(), q);
 }

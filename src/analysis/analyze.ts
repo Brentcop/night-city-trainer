@@ -61,7 +61,15 @@ export interface DeckReport {
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 const wrOf = (xs: PlayerSummary[]) => (xs.length ? xs.reduce((a, g) => a + g.result, 0) / xs.length : NaN);
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const nameOf = (id: string) => (CARD_BY_ID[id] ? cardLabel(CARD_BY_ID[id]) : id);
+const nameOf = (id: string) => {
+  const c = CARD_BY_ID[id];
+  return c ? cardLabel(c) : id;
+};
+const present = <T>(x: T | undefined): x is T => x !== undefined;
+/** The Gig lead after the deck's own turn `t` (1-based); undefined once the game had ended. */
+const diffAt = (g: PlayerSummary, t: number): number | undefined => g.diffAfterOwnTurn[t - 1];
+const isDiff = (d: number | undefined, test: (d: number) => boolean) => d !== undefined && test(d);
+const diffsAt = (gs: PlayerSummary[], t: number) => gs.map((g) => diffAt(g, t)).filter(present);
 
 function cardStats(games: PlayerSummary[], minN = 8): CardStat[] {
   const ids = new Set<string>();
@@ -84,7 +92,7 @@ function cardStats(games: PlayerSummary[], minN = 8): CardStat[] {
       iwd: not.length >= minN ? wrOf(seen) - wrOf(not) : NaN,
       playedGames: played.length,
       wrPlayed: wrOf(played),
-      avgPlayTurn: played.length ? avg(played.map((g) => g.played[id])) : null,
+      avgPlayTurn: played.length ? avg(played.map((g) => g.played[id]).filter(present)) : null,
       soldRate: seen.filter((g) => (g.sold[id] ?? 0) > 0).length / seen.length,
       openingGames: opening.length,
       wrOpening: wrOf(opening),
@@ -105,15 +113,14 @@ export function analyzeDeck(deck: string, all: PlayerSummary[]): DeckReport {
   const tempo: DeckReport['tempo'] = [];
   const diffCurve: DeckReport['diffCurve'] = [];
   for (let t = 1; t <= 8; t++) {
-    const at = games.filter((g) => g.diffAfterOwnTurn.length >= t);
-    const lead = at.filter((g) => g.diffAfterOwnTurn[t - 1] > 0);
-    const even = at.filter((g) => g.diffAfterOwnTurn[t - 1] === 0);
-    const behind = at.filter((g) => g.diffAfterOwnTurn[t - 1] < 0);
+    const lead = games.filter((g) => isDiff(diffAt(g, t), (d) => d > 0));
+    const even = games.filter((g) => isDiff(diffAt(g, t), (d) => d === 0));
+    const behind = games.filter((g) => isDiff(diffAt(g, t), (d) => d < 0));
     tempo.push({ turn: t, leadWr: wrOf(lead), leadN: lead.length, evenWr: wrOf(even), evenN: even.length, behindWr: wrOf(behind), behindN: behind.length });
     diffCurve.push({
       turn: t,
-      wins: avg(wins.filter((g) => g.diffAfterOwnTurn.length >= t).map((g) => g.diffAfterOwnTurn[t - 1])),
-      losses: avg(losses.filter((g) => g.diffAfterOwnTurn.length >= t).map((g) => g.diffAfterOwnTurn[t - 1])),
+      wins: avg(diffsAt(wins, t)),
+      losses: avg(diffsAt(losses, t)),
     });
   }
   const callGroups = new Map<string, PlayerSummary[]>();

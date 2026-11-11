@@ -176,20 +176,21 @@ function swissPairings(st: Map<string, StandingRow>, r: () => number) {
   const rematch = (a: string, b: string) => met.get(a)!.has(b);
   // bye candidates: lowest-ranked first, decks that already had a bye only if everyone has had one
   const byeCands: (string | null)[] = order.length % 2 ? [...order].reverse().filter((d) => !hadBye(d)) : [null];
-  if (!byeCands.length) byeCands.push(order[order.length - 1]);
+  const last = order[order.length - 1];
+  if (!byeCands.length && last !== undefined) byeCands.push(last);
 
   let steps = 0;
   /** Rematch-free perfect matching of `rest` (score order kept), or null. */
   const strict = (rest: string[]): [string, string][] | null => {
-    if (!rest.length) return [];
+    const [d, ...tail] = rest;
+    if (d === undefined) return [];
     if (++steps > SEARCH_LIMIT) return null;
     // prune: every remaining deck must still have a legal partner
-    for (const d of rest) if (!rest.some((o) => o !== d && !rematch(d, o))) return null;
-    const [d, ...tail] = rest;
-    for (let i = 0; i < tail.length; i++) {
-      if (rematch(d, tail[i])) continue;
+    for (const x of rest) if (!rest.some((o) => o !== x && !rematch(x, o))) return null;
+    for (const [i, o] of tail.entries()) {
+      if (rematch(d, o)) continue;
       const sub = strict([...tail.slice(0, i), ...tail.slice(i + 1)]);
-      if (sub) return [[d, tail[i]], ...sub];
+      if (sub) return [[d, o], ...sub];
     }
     return null;
   };
@@ -203,16 +204,16 @@ function swissPairings(st: Map<string, StandingRow>, r: () => number) {
   let best: { pairs: [string, string][]; bye: string | null; cost: number } | null = null;
   const min = (rest: string[], acc: [string, string][], cost: number, bye: string | null) => {
     if (best && cost >= best.cost) return;
-    if (!rest.length) {
+    const [d, ...tail] = rest;
+    if (d === undefined) {
       best = { pairs: [...acc], bye, cost };
       return;
     }
     if (++steps > SEARCH_LIMIT && best) return;
-    const [d, ...tail] = rest;
-    const idx = tail.map((_, i) => i);
-    for (const i of [...idx.filter((i) => !rematch(d, tail[i])), ...idx.filter((i) => rematch(d, tail[i]))]) {
-      acc.push([d, tail[i]]);
-      min([...tail.slice(0, i), ...tail.slice(i + 1)], acc, cost + (rematch(d, tail[i]) ? 1 : 0), bye);
+    const partners = [...tail.entries()];
+    for (const [i, o] of [...partners.filter(([, o]) => !rematch(d, o)), ...partners.filter(([, o]) => rematch(d, o))]) {
+      acc.push([d, o]);
+      min([...tail.slice(0, i), ...tail.slice(i + 1)], acc, cost + (rematch(d, o) ? 1 : 0), bye);
       acc.pop();
     }
   };
@@ -251,7 +252,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
     config: cfg,
     // the sideboard is kept (when there is one) so the stored list reproduces the deck id; games never use it
     decks: Object.fromEntries(
-      decks.map((d, i) => [d.name, { id: manifestDecks[i].id, file: d.file, legends: [...d.legends], main: [...d.main], ...(d.sideboard?.length ? { sideboard: [...d.sideboard] } : {}) }]),
+      decks.map((d) => [d.name, { id: deckFingerprint(d), file: d.file, legends: [...d.legends], main: [...d.main], ...(d.sideboard?.length ? { sideboard: [...d.sideboard] } : {}) }]),
     ),
     rounds: [],
     standings: computeStandings(st),
@@ -351,11 +352,17 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
     ev.phase = 'top';
     const seeds = ev.standings.slice(0, cut).map((s) => s.deck);
     ev.seeds = seeds;
-    let alive = bracketOrder(cut).map((i) => seeds[i]);
+    // cut is a power of two no larger than the field (cutSize), so every bracket slot has a seed
+    let alive = bracketOrder(cut).flatMap((i) => seeds[i] ?? []);
     let ri = 0;
     while (alive.length > 1 && !stopped()) {
       const matches: MatchRec[] = [];
-      for (let i = 0; i < alive.length; i += 2) matches.push({ a: alive[i], b: alive[i + 1], games: [], winner: '', score: [0, 0] });
+      for (let i = 0; i < alive.length; i += 2) {
+        const a = alive[i];
+        const b = alive[i + 1];
+        if (a === undefined || b === undefined) throw new Error(`top cut round with an odd number of decks (${alive.length})`);
+        matches.push({ a, b, games: [], winner: '', score: [0, 0] });
+      }
       ev.bracket.push({ name: roundName(alive.length), matches });
       emit();
       const base = cfg.seed * 1_000_000 + 900_000 + ri * 10_000;
@@ -363,7 +370,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       alive = matches.map((m) => m.winner);
       ri++;
     }
-    if (!stopped()) ev.champion = alive[0];
+    if (!stopped()) ev.champion = alive[0] ?? null;
   } else if (!stopped()) ev.champion = ev.standings[0]?.deck ?? null;
   ev.standings = computeStandings(st);
   ev.phase = stopped() ? 'stopped' : 'done';

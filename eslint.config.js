@@ -1,5 +1,5 @@
 // ESLint flat config. Deliberately narrow: only the React hooks rules, nothing stylistic.
-// The TypeScript compiler (`npx tsc --noEmit`) remains the main correctness check.
+// The TypeScript compiler (`npm run typecheck`) remains the main correctness check.
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 

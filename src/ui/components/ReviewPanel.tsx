@@ -2,14 +2,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameReview, SeatReview } from '../../ai/reviewer';
 import { BLUNDER, NOISE } from '../../ai/reviewer';
+import { DECIDED_EVAL, GIG_SWING } from '../../ai/eval';
 import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
 import { Wr } from './Num';
 
-const gigs = (pts: number) => (pts / 40).toFixed(2);
-export const gradeOf = (acc: number) => (acc >= 0.85 ? 'A' : acc >= 0.75 ? 'B' : acc >= 0.6 ? 'C' : 'D');
+const gigs = (pts: number) => (pts / GIG_SWING).toFixed(2);
+const gradeOf = (acc: number) => (acc >= 0.85 ? 'A' : acc >= 0.75 ? 'B' : acc >= 0.6 ? 'C' : 'D');
 
 /** Run a review in a background worker. */
-export function useReview(req: ReviewRequest | null) {
+function useReview(req: ReviewRequest | null) {
   const [state, setState] = useState<{ progress: number; review?: GameReview; error?: string; busy: boolean }>({ progress: 0, busy: false });
   const w = useRef<Worker | null>(null);
   useEffect(() => {
@@ -101,7 +102,7 @@ function SeatCard({ s, you }: { s: SeatReview; you?: boolean }) {
 
 /** Evaluation from the first deck's side, turn by turn; the biggest swings are marked. */
 function Momentum({ r }: { r: GameReview }) {
-  const pts = r.timeline.filter((t) => Math.abs(t.v) < 5000);
+  const pts = r.timeline.filter((t) => Math.abs(t.v) < DECIDED_EVAL);
   if (pts.length < 3) return null;
   const W = 600;
   const H = 90;

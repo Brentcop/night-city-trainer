@@ -111,13 +111,13 @@ describe('card choices follow the tag, not the prompt', () => {
   });
 
   it('every chooseCard tag in the engine and card scripts has a policy', () => {
-    const files = ['src/engine/engine.ts', ...readdirSync('src/engine/scripts').map((f) => `src/engine/scripts/${f}`)];
+    const files = ['src/engine/engine.ts', ...['game', 'scripts'].flatMap((d) => readdirSync(`src/engine/${d}`).map((f) => `src/engine/${d}/${f}`))];
     const tags = new Set<string>();
     for (const f of files) {
       const src = readFileSync(f, 'utf8');
       for (let at = src.indexOf('chooseCard('); at >= 0; at = src.indexOf('chooseCard(', at + 1)) {
         const call = src.slice(at, src.indexOf(');', at));
-        if (call.startsWith('chooseCard(p: PlayerId')) continue; // the definition
+        if (call.startsWith('chooseCard(p: PlayerId') || call.startsWith('chooseCard(game: Game') || call.startsWith('chooseCard(this,')) continue; // the definition and the Game facade's hand-over
         const m = /'(\w+)'\s*(?:,\s*(?:'\w+'|\w+))?\s*,?\s*$/.exec(call);
         expect(m, `${f}: ${call.slice(0, 80)}`).not.toBeNull();
         tags.add(m![1]);
@@ -148,7 +148,7 @@ describe('Gig swaps', () => {
   it('declines an optional swap that gains nothing, and pairs give/take in a forced one', () => {
     const g = setup();
     const mine = gig(g, 0, 6, 3);
-    const theirs = gig(g, 1, 6, 3);
+    gig(g, 1, 6, 3);
     const b = bot();
     const give: Decision = {
       player: 0,

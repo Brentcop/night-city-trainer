@@ -44,7 +44,8 @@ describe('engine smoke', () => {
       expect(second).toBe(first);
     }
     expect(stats.decisions).toBeGreaterThan(1000);
-  });
+    // about 2 s alone, but close to the 5 s default when the whole suite runs in parallel
+  }, 20_000);
 
   it('plays 30 random all-Yellow games to completion', async () => {
     const stats = { decisions: 0 };

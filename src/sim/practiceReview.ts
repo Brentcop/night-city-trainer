@@ -5,7 +5,7 @@
 import { ScriptedAgent } from '../ai/reviewer';
 import { makeTierBot } from '../ai/tiers';
 import type { Agent, DeckList, PlayerId } from '../engine/types';
-import { CONCEDED_REASON } from '../lib/practiceSession';
+import { CONCEDED_REASON } from '../lib/practiceVerdict';
 
 export interface PracticeReviewSpec {
   decks: [DeckList, DeckList];

@@ -13,6 +13,19 @@ export interface EvalWeights {
   faceUpLegend: number;
   plan: number;
   spentRisk: number; // fraction of a spent unit's value at risk
+  // Fixed so far (not in the tuner's search, see TUNED_WEIGHTS), kept here so a tuner can reach them:
+  unitBase: number; // every Unit on the field
+  blocker: number; // a Unit with Blocker
+  unitGear: number; // per Gear on a Unit
+  stealsTwo: number; // a Unit at 10+ power (steals 2 Gigs)
+  goSolo: number; // a Legend that went solo
+  legendGear: number; // per Gear on a Legend
+  lowDeck: number; // per card short of lowDeckAt in the deck
+  lowDeckAt: number;
+  handCap: number; // cards in hand counted at most
+  eddieCap: number; // Eddies counted at most
+  win: number; // a won game (a lost one is −win)
+  playOutClamp: number; // a play-out's score is clamped to ±this, so one lost world can't outweigh the rest
 }
 
 // Tuned by self-play (scripts/tune.ts): round 1 halved gig, unitPower, spentRisk; round 2 raised faceUpLegend, halved spentRisk again (Nov 10 2026).
@@ -26,10 +39,30 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   faceUpLegend: 4.8,
   plan: 1.5,
   spentRisk: 0.087,
+  unitBase: 2,
+  blocker: 2,
+  unitGear: 1.5,
+  stealsTwo: 6,
+  goSolo: 2,
+  legendGear: 2,
+  lowDeck: 8,
+  lowDeckAt: 4,
+  handCap: 10,
+  eddieCap: 10,
+  win: 10000,
+  playOutClamp: 600,
 };
+
+/** The weights scripts/tune.ts searches, in its order; the rest of EvalWeights keeps its defaults. */
+export const TUNED_WEIGHTS = ['gig', 'gigNear', 'unitPower', 'unitCost', 'hand', 'eddie', 'faceUpLegend', 'plan', 'spentRisk'] as const satisfies readonly (keyof EvalWeights)[];
+
+/** A play-out's evaluation clamped to ±playOutClamp. */
+export const clampPlayOut = (v: number, w: EvalWeights = DEFAULT_WEIGHTS) => Math.max(-w.playOutClamp, Math.min(w.playOutClamp, v));
 
 /** Evaluation points per "Gig" in advice and reviews: a stolen Gig moves the evaluation by about 2 × the gig weight. */
 export const GIG_SWING = 2 * DEFAULT_WEIGHTS.gig;
+/** An evaluation this far from 0 is a decided game (evaluate() gives ±win for one; no position comes close). */
+export const DECIDED_EVAL = DEFAULT_WEIGHTS.win / 2;
 
 /** Cards known to `viewer` that belong to player p (own: everything; rival: public zones only). */
 export function knownCards(g: Game, p: PlayerId, viewer: PlayerId): string[] {
@@ -78,11 +111,11 @@ export function planScore(gigs: Gig[], plan: GigPlan): number {
 export function unitValue(g: Game, c: CardInst, w: EvalWeights = DEFAULT_WEIGHTS): number {
   const d = g.def(c);
   const pw = g.power(c);
-  let v = pw * w.unitPower + (d.cost ?? 4) * w.unitCost + 2;
-  if (g.hasKw(c, 'blocker')) v += 2;
-  v += c.gear.length * 1.5;
-  if (pw >= 10) v += 6; // steals 2
-  if (c.goSolo) v += 2;
+  let v = pw * w.unitPower + (d.cost ?? 4) * w.unitCost + w.unitBase;
+  if (g.hasKw(c, 'blocker')) v += w.blocker;
+  v += c.gear.length * w.unitGear;
+  if (pw >= 10) v += w.stealsTwo; // steals 2
+  if (c.goSolo) v += w.goSolo;
   return v;
 }
 
@@ -94,7 +127,7 @@ function atRisk(g: Game, c: CardInst): boolean {
 
 export function evaluate(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS): number {
   const s = g.s;
-  if (s.winner !== null) return s.winner === 'tie' ? 0 : s.winner === p ? 10000 : -10000;
+  if (s.winner !== null) return s.winner === 'tie' ? 0 : s.winner === p ? w.win : -w.win;
   const r = other(p);
   let v = 0;
   const myG = g.P(p).gigs.length;
@@ -112,12 +145,12 @@ export function evaluate(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS)
       side += uv;
     }
     const P = g.P(pl);
-    side += Math.min(P.hand.length, 10) * w.hand;
-    side += Math.min(P.eddies.length, 10) * w.eddie;
+    side += Math.min(P.hand.length, w.handCap) * w.hand;
+    side += Math.min(P.eddies.length, w.eddieCap) * w.eddie;
     side += P.legends.filter((u) => g.c(u).faceUp).length * w.faceUpLegend;
     // legends also gear hosts
-    for (const u of P.legends) side += g.c(u).gear.length * 2;
-    if (P.deck.length < 4) side -= (4 - P.deck.length) * 8;
+    for (const u of P.legends) side += g.c(u).gear.length * w.legendGear;
+    if (P.deck.length < w.lowDeckAt) side -= (w.lowDeckAt - P.deck.length) * w.lowDeck;
     side += planScore(g.gigsOf(pl), planFor(g, pl, p)) * w.plan;
     v += sign * side;
   }

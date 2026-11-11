@@ -49,7 +49,7 @@ export function CardNameButton({ def, onOpen, children }: { def: CardDef; onOpen
 }
 
 /** Compact list: one row per card with its thumbnail, copies and cost. Without `onOpen` the names are plain text (inside another dialog). */
-export function DeckRows({ groups, onOpen }: { groups: CardGroup[]; onOpen?: (d: CardDef) => void }) {
+function DeckRows({ groups, onOpen }: { groups: CardGroup[]; onOpen?: (d: CardDef) => void }) {
   return (
     <div className="deck-rows">
       {groups.map((g) => (
@@ -82,7 +82,7 @@ export function DeckRows({ groups, onOpen }: { groups: CardGroup[]; onOpen?: (d:
 }
 
 /** Visual layout: real card images by group, readable size, the copy count as a badge. */
-export function DeckVisual({ groups, onOpen }: { groups: CardGroup[]; onOpen: (d: CardDef) => void }) {
+function DeckVisual({ groups, onOpen }: { groups: CardGroup[]; onOpen: (d: CardDef) => void }) {
   return (
     <div className="deck-visual">
       {groups.map((g) => (
@@ -113,10 +113,10 @@ export function DeckVisual({ groups, onOpen }: { groups: CardGroup[]; onOpen: (d
 
 export type DeckView = 'cards' | 'list';
 const VIEW_PREF = 'nct.deckView';
-export const loadDeckView = (): DeckView => (loadPref(VIEW_PREF, 'cards') === 'list' ? 'list' : 'cards');
+const loadDeckView = (): DeckView => (loadPref(VIEW_PREF, 'cards') === 'list' ? 'list' : 'cards');
 
 /** Cards / List switch, remembered per browser (shared by every deck view that offers it). */
-export function DeckViewToggle({ view, onChange }: { view: DeckView; onChange: (v: DeckView) => void }) {
+function DeckViewToggle({ view, onChange }: { view: DeckView; onChange: (v: DeckView) => void }) {
   const pick = (v: DeckView) => {
     onChange(v);
     savePref(VIEW_PREF, v);

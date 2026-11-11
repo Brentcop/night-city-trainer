@@ -48,6 +48,7 @@ export interface SetResult {
 export async function playSet(deck: DeckList, field: DeckList[], seed0: number, n: number, bot: string, play: PlayGame, trace: boolean, onGame?: () => void): Promise<SetResult> {
   const jobs = Array.from({ length: n }, (_, k) => {
     const opp = field[k % field.length];
+    if (!opp) throw new Error('playSet needs at least one field deck');
     return play({ a: gameDeck(deck), b: gameDeck(opp), seed: seed0 + k, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot, trace }).then((r) => {
       onGame?.();
       return r;
@@ -64,6 +65,10 @@ export interface Swap {
   deck: DeckList;
   prior: number;
 }
+const labelOf = (id: string) => {
+  const c = CARD_BY_ID[id];
+  return c ? cardLabel(c) : id;
+};
 /** Candidate one-card swaps: cut the deck's lowest-impact cards, add its own best card or the best legal cards format-wide. */
 export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6): Swap[] {
   const cs = counts(deck.main);
@@ -78,8 +83,11 @@ export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6): Swap[] {
     .map(([id]) => ({ id, v: iwd.get(id) ?? 0 }))
     .sort((a, b) => b.v - a.v)
     .slice(0, 2);
-  const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && GLOBAL_IMPACT[c.id] !== undefined)
-    .map((c) => ({ id: c.id, v: GLOBAL_IMPACT[c.id] }))
+  const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3)
+    .flatMap((c) => {
+      const v = GLOBAL_IMPACT[c.id];
+      return v === undefined ? [] : [{ id: c.id, v }];
+    })
     .sort((a, b) => b.v - a.v)
     .slice(0, 4);
   const adds = [...own, ...outside.filter((o) => !own.some((x) => x.id === o.id))];
@@ -91,7 +99,7 @@ export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6): Swap[] {
       main.splice(main.indexOf(c.id), 1, a.id);
       const d = { ...deck, main };
       if (validateDeck({ ...d, sideboard: [] }).length) continue;
-      out.push({ label: `−1 ${cardLabel(CARD_BY_ID[c.id])} → +1 ${cardLabel(CARD_BY_ID[a.id])}`, deck: d, prior: a.v - c.v });
+      out.push({ label: `−1 ${labelOf(c.id)} → +1 ${labelOf(a.id)}`, deck: d, prior: a.v - c.v });
     }
   return out.sort((a, b) => b.prior - a.prior).slice(0, n);
 }
@@ -200,7 +208,7 @@ export function tunedName(name: string, partial = false): string {
 
 // ---------------------------------------------------------------- breeding
 /** Parent strength: tournament power rating where available, else the season leaderboard rating vs the meta. */
-export function rankedParents(lib: readonly LibraryDeck[]): { deck: DeckList; wr: number }[] {
+function rankedParents(lib: readonly LibraryDeck[]): { deck: DeckList; wr: number }[] {
   const R = RATINGS;
   const S = SEASONS;
   const strength = new Map<string, number>();

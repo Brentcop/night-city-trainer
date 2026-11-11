@@ -4,7 +4,7 @@ import { Die } from '../Dice';
 import { CardBack, pressable, TcgCard } from '../TcgCard';
 import { BoardCard, type BoardCtx } from './BoardCard';
 
-export function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
+function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const { g, ix, targeting, coach } = ctx;
   const P = g.P(p);
   const gigs = g.gigsOf(p);
@@ -73,7 +73,7 @@ export function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   );
 }
 
-export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
+function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const { g } = ctx;
   const P = g.P(p);
   const top = P.trash[P.trash.length - 1];
@@ -147,7 +147,7 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   );
 }
 
-export function RivalHand({ ctx }: { ctx: BoardCtx }) {
+function RivalHand({ ctx }: { ctx: BoardCtx }) {
   const n = ctx.g.P(1).hand.length;
   return (
     <div className="pb-rival-hand" title={`Rival hand: ${n} cards`}>

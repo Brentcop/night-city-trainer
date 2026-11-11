@@ -3,7 +3,7 @@ import { useId, useMemo, useState } from 'react';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { LegendStrip, OriginBadge } from './DeckIdentity';
-import { gameDeck, type GameRec, type MatchRec, type StandingRow } from '../../lib/tournament';
+import { gameDeck, type GameRec, type StandingRow } from '../../lib/tournament';
 import { errorText } from '../../sim/pool';
 import { useReplayWorker } from '../useReplayWorker';
 import { byName } from '../deckLookup';
@@ -29,7 +29,7 @@ export interface MatchView {
   games?: GameRec[];
 }
 
-export function DeckName({ name, lib }: { name: string; lib: Lib }) {
+function DeckName({ name, lib }: { name: string; lib: Lib }) {
   const d = lib.get(name);
   return d ? (
     <a href={`#/deck?d=${encodeURIComponent(d.file)}`} title={name}>

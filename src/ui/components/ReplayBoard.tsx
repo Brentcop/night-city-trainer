@@ -7,7 +7,7 @@ import type { BoardCtx } from './board/BoardCard';
 import { PlayerSide } from './board/Zones';
 import { BoardCard } from './board/BoardCard';
 import { useNarrow } from './board/useNarrow';
-import { lineInFinalLog, type ReplayData } from '../../lib/replayFrames';
+import type { ReplayData } from '../../lib/replayFrames';
 import '../board.css';
 
 // The recording half (frames, recordReplay) lives in lib/replayFrames so the game worker can use it without React.

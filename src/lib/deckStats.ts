@@ -20,10 +20,12 @@ export function statsName(nameOrFile: string): string {
 export function deckStats(nameOrFile: string): DeckStats {
   const out: DeckStats = {};
   const li = S.leaderboard.findIndex((r) => r.file === nameOrFile || r.name === nameOrFile);
-  if (li >= 0) out.leader = { ...S.leaderboard[li], rank: li + 1, of: S.leaderboard.length };
+  const leader = S.leaderboard[li];
+  if (leader) out.leader = { ...leader, rank: li + 1, of: S.leaderboard.length };
   const name = out.leader?.name ?? R.decks.find((d) => d.file === nameOrFile)?.name ?? nameOrFile;
   const ri = R.decks.findIndex((d) => d.name === name);
-  if (ri >= 0) out.review = { winRate: R.decks[ri].winRate, rank: ri + 1, of: R.decks.length, matrix: R.matrix[name] ?? {}, games: R.games, date: R.date };
+  const rev = R.decks[ri];
+  if (rev) out.review = { winRate: rev.winRate, rank: ri + 1, of: R.decks.length, matrix: R.matrix[name] ?? {}, games: R.games, date: R.date };
   return out;
 }
 

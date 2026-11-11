@@ -19,19 +19,19 @@ import type { RunManifest } from '../lib/runManifest';
  * averages 12.5–13.2 per deck), so the three stages cover roughly equal stretches of a typical game. The mulligan
  * (turn 0) counts as early.
  */
-export const STAGE_ROUNDS = { earlyMax: 2, middleMax: 4 } as const;
+const STAGE_ROUNDS = { earlyMax: 2, middleMax: 4 } as const;
 export type Stage = 'early' | 'middle' | 'late';
 export const STAGES: readonly Stage[] = ['early', 'middle', 'late'];
 export function stageOf(turn: number): Stage {
   const round = Math.ceil(Math.max(turn, 1) / 2);
   return round <= STAGE_ROUNDS.earlyMax ? 'early' : round <= STAGE_ROUNDS.middleMax ? 'middle' : 'late';
 }
-export const STAGE_TEXT: Record<Stage, string> = { early: 'turns 1–4', middle: 'turns 5–8', late: 'turn 9+' };
+const STAGE_TEXT: Record<Stage, string> = { early: 'turns 1–4', middle: 'turns 5–8', late: 'turn 9+' };
 
 /** Gig standing of the acting player when the decision was made. */
 export type Standing = 'ahead' | 'even' | 'behind';
 export const STANDINGS: readonly Standing[] = ['ahead', 'even', 'behind'];
-export const standingOf = (lead: number): Standing => (lead > 0 ? 'ahead' : lead < 0 ? 'behind' : 'even');
+const standingOf = (lead: number): Standing => (lead > 0 ? 'ahead' : lead < 0 ? 'behind' : 'even');
 
 /**
  * A slice backed by fewer games than this gets no win rate in the report: it is flagged `thin` and shows only its counts.
@@ -48,18 +48,18 @@ export const MIN_SLICE_GAMES = 20;
  *   react    used in the defender's reaction window: a Call, a Block, a Quick Program or a quick ability
  */
 export type UseMode = 'play' | 'sell' | 'call' | 'solo' | 'legend' | 'ability' | 'attack' | 'react';
-export const USE_MODES: readonly UseMode[] = ['play', 'sell', 'call', 'solo', 'legend', 'ability', 'attack', 'react'];
+const USE_MODES: readonly UseMode[] = ['play', 'sell', 'call', 'solo', 'legend', 'ability', 'attack', 'react'];
 const MAIN_MODE: Record<string, UseMode> = { play: 'play', sell: 'sell', call: 'call', solo: 'solo', legend: 'legend', ability: 'ability', attack: 'attack' };
 
 /** Option-count buckets for the per-decision-type distribution. */
-export const OPTION_BUCKETS = ['1', '2', '3-5', '6-10', '11-20', '21+'] as const;
+const OPTION_BUCKETS = ['1', '2', '3-5', '6-10', '11-20', '21+'] as const;
 export type OptionBucket = (typeof OPTION_BUCKETS)[number];
 export const optionBucket = (n: number): OptionBucket => (n <= 1 ? '1' : n === 2 ? '2' : n <= 5 ? '3-5' : n <= 10 ? '6-10' : n <= 20 ? '11-20' : '21+');
 
 /** How an attack that met a reaction window ended (from the attacker's side). */
-export const OUTCOMES = ['fizzled', 'stole', 'stoleNothing', 'attackerGone', 'targetGone', 'bothGone', 'noneGone'] as const;
+const OUTCOMES = ['fizzled', 'stole', 'stoleNothing', 'attackerGone', 'targetGone', 'bothGone', 'noneGone'] as const;
 export type OutcomeKey = (typeof OUTCOMES)[number];
-export function outcomeKey(o: AttackOutcome): OutcomeKey {
+function outcomeKey(o: AttackOutcome): OutcomeKey {
   if (o.end === 'fizzled') return 'fizzled';
   if (o.end === 'steal') return o.stolen > 0 ? 'stole' : 'stoleNothing';
   return o.attackerGone && o.targetGone ? 'bothGone' : o.attackerGone ? 'attackerGone' : o.targetGone ? 'targetGone' : 'noneGone';
@@ -139,11 +139,11 @@ export interface GameDecisions {
 const cell = (): Cell => ({ uses: 0, games: 0, wins: 0 });
 const modeAgg = (): ModeAgg => ({ all: cell(), stage: {}, standing: {}, offered: 0, chosen: 0, windows: 0, windowsUsed: 0 });
 const reactionAgg = (): ReactionAgg => ({ windows: 0, reacted: cell(), letResolve: cell(), outcomes: { reacted: {}, letResolve: {} }, choices: {} });
-export const deckKey = (p: GamePlayer) => p.listId ?? `name:${p.name}`;
+const deckKey = (p: GamePlayer) => p.listId ?? `name:${p.name}`;
 export const emptyAggregate = (): DecisionAggregate => ({ telemetrySchema: DECISION_TELEMETRY_SCHEMA, games: 0, records: 0, decks: {} });
 
 /** Decision-type key: the window, or for choices inside effects the kind and tag ('yesno/kerry', 'unit/equip'). */
-export function decisionType(r: Pick<DecisionRecord, 'w' | 'kind' | 'tag'>): string {
+function decisionType(r: Pick<DecisionRecord, 'w' | 'kind' | 'tag'>): string {
   return r.w === 'effect' ? (r.tag ? `${r.kind}/${r.tag}` : r.kind) : r.w;
 }
 
@@ -446,7 +446,7 @@ export interface DecisionReport {
   pooled: CardReport[];
 }
 
-export const REPORT_NOTE =
+const REPORT_NOTE =
   'Descriptive association only: win rates in games where a card was used a given way, with 95% Wilson intervals. They are not the value of the card or of the choice (no counterfactual comparison yet; ROADMAP §5 steps 3 and 5).';
 
 const nameOf = (id: string) => (CARD_BY_ID[id] ? cardLabel(CARD_BY_ID[id]) : id);
@@ -528,7 +528,7 @@ const MODE_TEXT: Record<UseMode, string> = { play: 'played', sell: 'sold', call:
 export const modeText = (m: UseMode) => MODE_TEXT[m];
 const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
 /** "54% (41–66) n=63", or "n=12 (thin)" */
-export function sliceText(s: Slice): string {
+function sliceText(s: Slice): string {
   if (s.games === 0) return '—';
   if (s.thin) return `n=${s.games} (thin)`;
   return `${pct(s.winRate)} (${Math.round(s.low95! * 100)}–${Math.round(s.high95! * 100)}) n=${s.games}`;

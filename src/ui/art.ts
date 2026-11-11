@@ -55,7 +55,7 @@ export function refreshArt(force = false): Promise<void> {
   return inflight;
 }
 
-export function artUrl(cardId: string): string | undefined {
+function artUrl(cardId: string): string | undefined {
   const eid = CARD_BY_ID[cardId]?.eid;
   return eid ? urls.get(eid) : undefined;
 }

@@ -1,20 +1,15 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "noImplicitAny": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "types": ["node", "vite/client"]
-  },
-  "include": ["src", "scripts", "tests", "tools"]
+  // Solution config: `npx tsc -b` type-checks every project below (nothing is emitted; Vite and tsx compile).
+  //   tsconfig.app.json     the site (src/, DOM)
+  //   tsconfig.worker.json  the browser workers (src/sim/*.worker.ts, WebWorker) and everything they import
+  //   tsconfig.node.json    scripts/, tools/ and vite.config.ts (Node, no DOM)
+  //   tsconfig.test.json    tests/ (Node and DOM: component tests run in jsdom)
+  // Shared compiler options are in tsconfig.base.json.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.worker.json" },
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
 }

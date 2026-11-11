@@ -25,7 +25,7 @@ export function layoutMode(w: number, h: number, coarse: boolean): BoardMode {
 }
 
 /** Size ratios to the player's own field card width (f). The rival's side is compressed more than yours. */
-export const PHONE_RATIO = {
+const PHONE_RATIO = {
   rivalField: 0.72,
   legend: 0.5,
   rivalLegend: 0.4,

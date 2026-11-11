@@ -7,8 +7,6 @@ import { DeckTile, LegendStrip, OriginBadge } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 
-const pct = (x: number | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
-
 export function SeasonsPage() {
   const D = SEASONS;
   const [filter, setFilter] = useState('');

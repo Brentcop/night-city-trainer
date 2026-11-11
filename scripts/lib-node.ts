@@ -5,21 +5,23 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseArgs as nodeParseArgs } from 'node:util';
 import { Worker } from 'node:worker_threads';
-import { deckFromText, type LibraryDeck } from '../src/lib/library';
+import { LIBRARY_DIRS, libraryDeck, type LibraryDeck } from '../src/lib/library';
 import { parseDeck } from '../src/engine/deck';
 import type { MatchJob, MatchResult } from './worker';
+import { WorkPool, type PooledWorker, type WorkerLink } from '../src/lib/workPool';
 
 // ================================================================ deck library
 
+/** The deck library (LIBRARY_DIRS, src/lib/library.ts): data/decks/*.txt, then data/decks/custom/*.txt, each by file name. */
 export function loadLibrary(dir = 'data/decks'): LibraryDeck[] {
-  // only these two folders: data/decks/custom/history/ (superseded lists) and data/decks/archive/ (retired lists) are not
-  // part of the library, here or in the browser bundle (src/lib/browserLibrary.ts)
   const out: LibraryDeck[] = [];
-  for (const sub of ['', 'custom']) {
+  for (const sub of LIBRARY_DIRS) {
     const d = path.join(dir, sub);
     if (!fs.existsSync(d)) continue;
-    for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.txt')).sort())
-      out.push(deckFromText(f, fs.readFileSync(path.join(d, f), 'utf8'), sub ? 'custom' : undefined));
+    for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.txt')).sort()) {
+      const deck = libraryDeck(sub ? `${sub}/${f}` : f, fs.readFileSync(path.join(d, f), 'utf8'));
+      if (deck) out.push(deck);
+    }
   }
   return out;
 }
@@ -224,104 +226,43 @@ export interface Pool<J, R> {
 }
 
 /**
- * A fixed-size pool of worker threads, one job per message, one reply per job.
+ * A fixed-size pool of worker threads, one job per message, one reply per job (a WorkPool, src/lib/workPool.ts, with a
+ * worker_threads adapter).
  * A worker that crashes (uncaught error or unexpected exit) is replaced and its in-flight job is queued again; a job
  * that keeps crashing workers, or too many crashes overall, is fatal: every worker is terminated and every pending
  * job rejects. Pass a URL to a worker script, or a factory (tests use eval workers).
  */
 export function workerPool<J, R>(source: URL | (() => Worker), size: number, o: PoolOptions = {}): Pool<J, R> {
-  interface Task {
-    job: J;
-    resolve: (r: R) => void;
-    reject: (e: Error) => void;
-    attempts: number;
-  }
-  interface Slot {
-    w: Worker;
-    task: Task | null;
-    retired: boolean;
-    lastError?: Error;
-  }
-  const spawn = typeof source === 'function' ? source : () => new Worker(source);
-  const maxAttempts = o.maxAttempts ?? 2;
+  const make = typeof source === 'function' ? source : () => new Worker(source);
   const maxCrashes = o.maxCrashes ?? 2 * size + 2;
-  const queue: Task[] = [];
-  const slots: Slot[] = [];
-  let crashes = 0;
-  let failed: Error | null = null;
-  let closed = false;
-
-  const fatal = (err: Error) => {
-    if (failed) return;
-    failed = err;
-    for (const s of slots.splice(0)) {
-      s.retired = true;
-      s.task?.reject(err);
-      s.task = null;
-      void s.w.terminate();
-    }
-    for (const t of queue.splice(0)) t.reject(err);
+  const spawn = (link: WorkerLink<R>): PooledWorker<J> => {
+    const w = make();
+    let lastError: Error | undefined;
+    w.on('message', (r: R) => link.done(r));
+    w.on('error', (e) => (lastError = e));
+    w.on('messageerror', (e) => (lastError = e));
+    w.on('exit', (code) => link.died(lastError ? String(lastError.stack ?? lastError) : `worker exited with code ${code}`));
+    return { post: (job) => w.postMessage(job), terminate: () => w.terminate() };
   };
-  const pump = () => {
-    for (const s of slots) {
-      if (!queue.length) return;
-      if (s.task || s.retired) continue;
-      s.task = queue.shift()!;
-      s.task.attempts++;
-      s.w.postMessage(s.task.job);
-    }
-  };
-  const add = () => {
-    const s: Slot = { w: spawn(), task: null, retired: false };
-    s.w.on('message', (r: R) => {
-      const t = s.task;
-      s.task = null;
-      t?.resolve(r);
-      pump();
-    });
-    s.w.on('error', (e) => (s.lastError = e));
-    s.w.on('messageerror', (e) => (s.lastError = e));
-    s.w.on('exit', (code) => {
-      if (s.retired) return;
-      s.retired = true;
-      slots.splice(slots.indexOf(s), 1);
-      crashes++;
-      const why = s.lastError ? String(s.lastError.stack ?? s.lastError) : `worker exited with code ${code}`;
-      const t = s.task;
-      s.task = null;
-      if (t && t.attempts >= maxAttempts) {
-        const err = new Error(`a job crashed its worker ${t.attempts} times; giving up.\n${why}`);
-        t.reject(err);
-        return fatal(err);
-      }
-      if (t) queue.unshift(t);
-      if (crashes > maxCrashes) return fatal(new Error(`${crashes} worker crashes; giving up.\n${why}`));
-      process.stderr.write(`\n  worker crashed (${why.split('\n')[0]}); restarting it${t ? ' and retrying its job' : ''}\n`);
-      if (!closed) add();
-      pump();
-    });
-    slots.push(s);
-  };
-  for (let i = 0; i < Math.max(1, size); i++) add();
-
-  return {
-    run(job: J) {
-      if (failed) return Promise.reject(failed);
-      if (closed) return Promise.reject(new Error('worker pool is closed'));
-      return new Promise<R>((resolve, reject) => {
-        queue.push({ job, resolve, reject, attempts: 0 });
-        pump();
-      });
+  const pool = new WorkPool<J, R>(spawn, size, {
+    maxAttempts: o.maxAttempts ?? 2,
+    crashLimit: () => maxCrashes,
+    resetCrashesOnDone: false,
+    jobFailureIsFatal: true,
+    jobFailed: (why, attempts) => new Error(`a job crashed its worker ${attempts} times; giving up.\n${why}`),
+    gaveUp: (why, crashes) => new Error(`${crashes} worker crashes; giving up.\n${why}`),
+    refused: (failed) => failed ?? new Error('worker pool is closed'),
+    onRestart: (why, retrying) => {
+      process.stderr.write(`\n  worker crashed (${why.split('\n')[0]}); restarting it${retrying ? ' and retrying its job' : ''}\n`);
     },
+  });
+  return {
+    run: (job: J) => pool.run(job),
     async close() {
-      closed = true;
-      const all = slots.splice(0);
-      for (const s of all) s.retired = true;
-      for (const t of queue.splice(0)) t.reject(new Error('worker pool closed'));
-      await Promise.all(all.map((s) => s.w.terminate()));
+      await pool.stop(new Error('worker pool closed'), 'abandon');
     },
     get failed() {
-      return failed;
+      return pool.failed;
     },
   };
 }

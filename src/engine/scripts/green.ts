@@ -1,5 +1,5 @@
 // Green card scripts.
-import type { CardInst, CardScript, Mod, Opt, PlayerId } from '../types';
+import type { CardInst, CardScript, DelayedMod, Opt, PlayerId } from '../types';
 import type { Game } from '../engine';
 import { friendlyUnits, pick, rival, rivalHasMoreGigs, rivalUnits, untilMyNextTurn } from './helpers';
 
@@ -71,7 +71,7 @@ async function chooseUpTo(g: Game, self: CardInst, n: number, cands: () => CardI
 }
 
 // ---- Synapse Burnout helpers (power only while fighting rival Units)
-function synapseApply(g: Game, mod: Mod, uid: number) {
+function synapseApply(g: Game, mod: DelayedMod, uid: number) {
   const key = mod.value.data.key as string;
   const c = g.c(uid);
   if (!c || c.zone !== 'field') return;
@@ -468,7 +468,7 @@ export const GREEN: Record<string, CardScript> = {
   },
 
   saul_bright_stormrider: {
-    power: (g, self, host, target) =>
+    power: (g, _self, host, target) =>
       target.uid !== host.uid && target.zone === 'field' && target.controller === host.controller && g.s.attack?.attacker === target.uid ? 2 : 0,
     on: {
       turnEnd: async (g, self, host, ev) => {

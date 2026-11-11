@@ -133,7 +133,7 @@ export interface DecisionRecord {
 }
 
 /** A card the acting player can see: public zones, their own hand / deck / Eddies, and their face-up or known Legends. */
-export function visibleId(g: Game, uid: number | undefined, viewer: PlayerId): string | null {
+function visibleId(g: Game, uid: number | undefined, viewer: PlayerId): string | null {
   if (uid === undefined) return null;
   const c: CardInst | undefined = g.s.cards[uid];
   if (!c) return null;
@@ -160,7 +160,7 @@ export function visibleId(g: Game, uid: number | undefined, viewer: PlayerId): s
  * A card the player cannot see is written `?`. A Gig's WHERE is own / rival (in a Gig area) or fixer / rivalFixer (still in
  * a fixer area, e.g. when rolling one in); its value is the option's new value for a Gig-value choice.
  */
-export function encodeOption(g: Game, d: Decision, o: Opt, k: number): string {
+function encodeOption(g: Game, d: Decision, o: Opt, k: number): string {
   const p = d.player;
   const id = (uid: number | undefined) => visibleId(g, uid, p) ?? '?';
   const a = o.action;
@@ -221,7 +221,7 @@ export function parseOption(code: string): { kind: string; id?: string; target?:
   return { kind, id: rest, target };
 }
 
-export function windowOf(d: Decision): DecisionWindow {
+function windowOf(d: Decision): DecisionWindow {
   if (d.kind === 'action') return 'main';
   if (d.kind === 'reaction') return 'react';
   if (d.kind === 'pay') return 'pay';
@@ -257,7 +257,7 @@ function side(g: Game, p: PlayerId): SideFeatures {
 }
 
 /** Public features for the acting player `p` (nothing here depends on hidden cards). */
-export function decisionFeatures(g: Game, p: PlayerId): DecisionFeatures {
+function decisionFeatures(g: Game, p: PlayerId): DecisionFeatures {
   const me = side(g, p);
   const op = side(g, (1 - p) as PlayerId);
   return { me, op, lead: me.gigs - op.gigs, active: g.s.active === p };

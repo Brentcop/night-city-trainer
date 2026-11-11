@@ -1,15 +1,26 @@
 // Debug one reviewed decision: replay the game to it and show every play-out of each candidate, world by world.
 //   npx tsx scripts/review-debug.ts <review-file> <game-id> <seat> <decision-index> [--alt "<label substring>"]
 import fs from 'node:fs';
-import { Game, GameOverSignal } from '../src/engine/engine';
+import { Game } from '../src/engine/engine';
 import { makeTierBot } from '../src/ai/tiers';
 import { HeuristicAgent, hideInfo } from '../src/ai/heuristic';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import { evaluate } from '../src/ai/eval';
-import { makeWorlds } from '../src/ai/reviewer';
+import { makeWorlds, playOut, type PlayOutStep } from '../src/ai/playOut';
 import { gameDeck } from '../src/lib/tournament';
 import { cli, str } from './lib-node';
 import type { Action, Agent, Decision, PlayerId } from '../src/engine/types';
+
+/** Where a play-out stopped, in this report's words. */
+const STEP_TEXT: Record<PlayOutStep, string> = {
+  move: 'action',
+  restOfTurn: 'rest of my turn',
+  endPhase: 'my end phase',
+  nextStart: 'rival start',
+  nextMain: 'rival main',
+  nextEnd: 'rival end',
+  done: 'done',
+};
 
 const { values: V, positionals } = cli(import.meta.url, { alt: str('Pass turn') }, { minPositionals: 4, maxPositionals: 4 });
 const [file, id, seatS, idxS] = positionals;
@@ -63,28 +74,7 @@ async function inspect(g: Game, d: Decision) {
       cg.s.rng = w.rng;
       hideInfo(cg, seat);
       let phase = 'start';
-      try {
-        const a = actions[i];
-        if (a.type !== 'pass') {
-          phase = 'action';
-          await cg.doAction(seat, a);
-          await cg.resolvePending();
-          cg.checkState();
-          phase = 'rest of my turn';
-          await cg.mainLoop();
-        }
-        phase = 'my end phase';
-        await cg.endPhase();
-        phase = 'rival start';
-        await cg.startPhase();
-        phase = 'rival main';
-        await cg.mainLoop();
-        phase = 'rival end';
-        await cg.endPhase();
-        phase = 'done';
-      } catch (e) {
-        if (!(e instanceof GameOverSignal)) throw e;
-      }
+      await playOut(cg, seat, { action: actions[i] }, (s) => (phase = STEP_TEXT[s]));
       console.log(`  eval ${evaluate(cg, seat).toFixed(1).padStart(8)} | stopped at: ${phase.padEnd(16)} | winner ${cg.s.winner} ${cg.s.winReason} | gigs ${cg.P(0).gigs.length}-${cg.P(1).gigs.length} turn ${cg.s.turn}`);
     }
   }

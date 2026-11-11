@@ -8,6 +8,7 @@ import { Game } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import { BLUNDER, CAP, NOISE, makeWorlds, oracleValue } from '../src/ai/reviewer';
+import { GIG_SWING } from '../src/ai/eval';
 import type { Action, Agent, Decision } from '../src/engine/types';
 import { cli, int, loadLibrary, runMain, str } from './lib-node';
 
@@ -95,10 +96,10 @@ async function main() {
     '|---|---|---|---|---|---|',
     ...rows.map(
       (r) =>
-        `| ${r.R} | ${Math.round((100 * r.bestSame) / r.n)}% | ${Math.round((100 * r.verdictSame) / r.n)}% | ${Math.round((100 * r.flips) / r.n)}% | ${(q(r.absDiff, 0.5) / 40).toFixed(2)} / ${(q(r.absDiff, 0.9) / 40).toFixed(2)} | ${(q(r.regretDiff, 0.5) / 40).toFixed(2)} / ${(q(r.regretDiff, 0.9) / 40).toFixed(2)} |`,
+        `| ${r.R} | ${Math.round((100 * r.bestSame) / r.n)}% | ${Math.round((100 * r.verdictSame) / r.n)}% | ${Math.round((100 * r.flips) / r.n)}% | ${(q(r.absDiff, 0.5) / GIG_SWING).toFixed(2)} / ${(q(r.absDiff, 0.9) / GIG_SWING).toFixed(2)} | ${(q(r.regretDiff, 0.5) / GIG_SWING).toFixed(2)} / ${(q(r.regretDiff, 0.9) / GIG_SWING).toFixed(2)} |`,
     ),
     '',
-    `Current thresholds: accurate ≤ ${(NOISE / 40).toFixed(2)} Gigs, blunder > ${(BLUNDER / 40).toFixed(2)} Gigs.`,
+    `Current thresholds: accurate ≤ ${(NOISE / GIG_SWING).toFixed(2)} Gigs, blunder > ${(BLUNDER / GIG_SWING).toFixed(2)} Gigs.`,
   ].join('\n');
   fs.mkdirSync('reports', { recursive: true });
   fs.writeFileSync('reports/review-noise.md', md);

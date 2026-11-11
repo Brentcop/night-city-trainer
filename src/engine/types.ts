@@ -61,18 +61,71 @@ export type ModUntil =
   | 'attackEnd'
   | 'permanent';
 
-export interface Mod {
+/** How long a mod lasts. 'startOfTurn' names whose next turn ends it; without one it would never be removed. */
+export type ModDuration = { until: Exclude<ModUntil, 'startOfTurn'>; untilPlayer?: undefined } | { until: 'startOfTurn'; untilPlayer: PlayerId };
+
+/**
+ * Plain-data filter of a player-level 'costMod' mod (state stays cloneable, so never a function); see costModMatches.
+ * No kind = the 'play' cost only.
+ */
+export interface CostModFilter {
+  kind?: 'play' | 'goSolo';
+  uid?: number;
+  type?: CardType;
+  tag?: string;
+  color?: Color;
+}
+
+/** Script-defined payload of a delayed trigger (Game.addDelayed), read back by the card's own `delayed` handler. */
+export type DelayedData = Record<string, any>;
+
+/** What each kind of mod carries. `target` is a card uid, `player` a player-wide mod's player. */
+export interface ModKinds {
+  /** +amount power (value: an optional script key, so a script can tell its own mods apart) */
+  power: { target: number; amount: number; value?: string };
+  keyword: { target: number; value: Keyword };
+  /** a delayed trigger: SCRIPTS[defId].delayed[event] runs the next time `event` happens */
+  delayed: { player: PlayerId; value: { defId: string; event: EventName; data: DelayedData } };
+  cantAttack: { target: number };
+  cantReady: { target: number };
+  mustAttack: { target: number };
+  /** may attack a ready Unit; 'once' is used up when it declares the attack */
+  attackReady: { target: number; value?: 'once' };
+  /** a Unit with Lag may attack anyway: Units, Gigs or either */
+  lagAttack: { target: number; value: 'units' | 'gigs' | 'any' };
+  noFightDefeat: { target: number };
+  /** on one Unit, or (no target) every Unit of `player` */
+  noDefeatOpp: { target: number; player?: PlayerId } | { target?: undefined; player: PlayerId };
+  /** +amount Gigs stolen by the target */
+  stealMod: { target: number; amount: number };
+  /** `player`'s Gigs can't be stolen when their value is greater ('gt') or lower ('lt') than the actor's power */
+  stealBan: { player: PlayerId; value: { cmp: 'gt' | 'lt'; legendsOnly?: boolean } };
+  /** +amount play cost for `player`'s cards matching the filter */
+  costMod: { player: PlayerId; amount: number; value?: CostModFilter };
+  /** Afterparty-style "your next Program this turn costs −amount" (read by the creating card's script) */
+  altNextProgram: { player: PlayerId; amount: number };
+}
+export type ModKind = keyof ModKinds;
+
+interface ModCommon {
   id: number;
-  kind: string; // 'power' | 'keyword' | 'cantAttack' | 'cantReady' | 'mustAttack' | 'attackReady' | 'lagAttack' | ...
-  target?: number; // uid
-  player?: PlayerId; // for player-wide mods
-  amount?: number;
-  value?: any;
-  until: ModUntil;
-  untilPlayer?: PlayerId;
   source?: number; // uid that created it
   turn: number; // turn created
+  // Every kind may be asked for these, so each is optional on the kinds that don't use it.
+  target?: number;
+  player?: PlayerId;
+  amount?: number;
 }
+
+type ModOfKind<K extends ModKind> = K extends ModKind ? { kind: K } & ModKinds[K] & ModCommon & ModDuration : never;
+
+/** A modifier on a card or a player: a discriminated union on `kind`. Plain data only (bots structuredClone state). */
+export type Mod = ModOfKind<ModKind>;
+/** The mods of one kind. */
+export type ModOf<K extends ModKind> = Extract<Mod, { kind: K }>;
+export type DelayedMod = ModOf<'delayed'>;
+/** A mod as created (Game.addMod assigns id and turn). */
+export type NewMod = Mod extends infer M ? (M extends Mod ? Omit<M, 'id' | 'turn'> : never) : never;
 
 export interface PlayerState {
   id: PlayerId;
@@ -347,7 +400,7 @@ export interface CardScript {
    * Delayed triggers created by this card (usually a Program) via g.addDelayed(self, event, data, until).
    * The handler runs when the event fires; return true to consume (remove) the delayed trigger.
    */
-  delayed?: { [K in EventName]?: (g: G, mod: Mod, ev: EventMap[K]) => Promise<boolean | void> | boolean | void };
+  delayed?: { [K in EventName]?: (g: G, mod: DelayedMod, ev: EventMap[K]) => Promise<boolean | void> | boolean | void };
   /** Mark scripts that are not fully implemented. */
   partial?: string;
 }

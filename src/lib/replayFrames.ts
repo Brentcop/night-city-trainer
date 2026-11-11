@@ -26,14 +26,17 @@ export function captureFrames(g: Game): ReplayFrame[] {
   let total = g.s.log.length;
   g.onLog = () => {
     const { log, trace: _trace, ...rest } = g.s;
-    frames.push({ state: structuredClone({ ...rest, log: [] }) as GameState, line: { ...log[log.length - 1] }, at: total++ });
+    const line = log[log.length - 1]; // the line just written (Game.log calls this after pushing it)
+    if (!line) return;
+    frames.push({ state: structuredClone({ ...rest, log: [] }) as GameState, line: { ...line }, at: total++ });
   };
   return frames;
 }
 
 /** Where a frame's line sits in the final (possibly trimmed) log, or -1 if it was trimmed away. */
 export function lineInFinalLog(data: ReplayData, frame: ReplayFrame): number {
-  const totalLines = data.frames.length ? data.frames[data.frames.length - 1].at + 1 : data.final.log.length;
+  const last = data.frames[data.frames.length - 1];
+  const totalLines = last ? last.at + 1 : data.final.log.length;
   const i = frame.at - (totalLines - data.final.log.length);
   return i >= 0 && i < data.final.log.length ? i : -1;
 }

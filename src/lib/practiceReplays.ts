@@ -41,7 +41,7 @@ const isDeck = (x: unknown): x is DeckList => {
 };
 
 /** True if a stored value has everything a review needs to re-simulate the game. */
-export function isReplay(x: unknown): x is PracticeReplay {
+function isReplay(x: unknown): x is PracticeReplay {
   const r = x as PracticeReplay | null;
   return (
     !!r &&

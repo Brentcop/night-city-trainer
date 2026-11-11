@@ -15,7 +15,7 @@ import { Game, type Game as G } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { makeWorlds, oracleValue } from '../src/ai/reviewer';
 import { BEST_PROFILES } from '../src/ai/archetype';
-import type { Action, Agent, Decision, PlayerId } from '../src/engine/types';
+import type { Action, Agent, Decision } from '../src/engine/types';
 import { cli, int, loadLibrary, oneOf, runMain } from './lib-node';
 
 const { values: V } = cli(import.meta.url, { samples: int(120, { min: 1 }), rollouts: int(8, { min: 1 }), seed: int(1, { min: 0 }), set: oneOf(['base', 'deep'], 'base') });

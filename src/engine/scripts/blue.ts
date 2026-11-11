@@ -44,8 +44,6 @@ async function bottomDeckRival(g: Game, self: CardInst, filter?: (c: CardInst) =
 /** Top card of a deck (revealed); null if empty. */
 const topCard = (g: Game, p: PlayerId): number | null => g.P(p).deck[0] ?? null;
 
-const programsPlayedKey = (p: PlayerId) => `bluePrograms:${p}`;
-
 const isProgram = (g: Game) => (c: CardInst) => g.def(c).type === 'Program';
 
 /** Pick and bottom-deck one of rival's lowest-power units. */
@@ -432,7 +430,7 @@ export const BLUE: Record<string, CardScript> = {
 
   delamain_cab: {
     on: {
-      steal: (g, self, host, ev) => {
+      steal: (g, _self, host, ev) => {
         if (ev.actor === host.uid) g.s.counters[`cabStole:${host.uid}`] = g.s.turn;
       },
       turnEnd: (g, self, host, ev) => {

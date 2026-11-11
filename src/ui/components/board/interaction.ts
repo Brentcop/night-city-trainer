@@ -54,7 +54,7 @@ function safeName(g: Game, uid: number): string {
   }
 }
 
-export function shortLabel(g: Game, a: Action | Reaction): string {
+function shortLabel(g: Game, a: Action | Reaction): string {
   try {
     switch (a.type) {
       case 'sell':
@@ -247,7 +247,7 @@ export function boardMarks(g: Game, pend: Decision | null, ix: Interaction, targ
 }
 
 /** A card the player can see and tap on the table: either side's field or Legends, or your hand. */
-export function onTable(g: Game, uid: number): boolean {
+function onTable(g: Game, uid: number): boolean {
   const c = g.s.cards[uid];
   if (!c) return false;
   return c.zone === 'field' || c.zone === 'legends' || (c.zone === 'hand' && c.controller === 0);

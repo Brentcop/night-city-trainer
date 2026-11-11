@@ -30,6 +30,22 @@ export interface LibraryDeck {
   manifest?: RunManifest;
 }
 
+/**
+ * The deck library is the .txt lists in these folders of data/decks: the top level and custom/. Nothing deeper is part
+ * of it (custom/history/ keeps superseded lists, archive/ the retired bred and optimized ones). The Node loader
+ * (scripts/lib-node.ts loadLibrary) and the browser bundle (src/lib/browserLibrary.ts) both go by libraryDeck().
+ */
+export const LIBRARY_DIRS = ['', 'custom'] as const;
+
+/** The library entry for the deck text at `rel` ('/'-separated, relative to data/decks), or null when it isn't one. */
+export function libraryDeck(rel: string, text: string): LibraryDeck | null {
+  const parts = rel.split('/');
+  const file = parts.pop() ?? '';
+  const dir = parts.join('/');
+  if (!file.endsWith('.txt') || !(LIBRARY_DIRS as readonly string[]).includes(dir)) return null;
+  return deckFromText(file, text, dir === 'custom' ? 'custom' : undefined);
+}
+
 const field = (text: string, key: string) => text.match(new RegExp(`^// ${key}: (.+)$`, 'm'))?.[1]?.trim();
 
 export function deckFromText(file: string, text: string, kind?: LibraryDeck['kind']): LibraryDeck {

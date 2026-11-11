@@ -29,7 +29,7 @@ function loadEventH2H(): Promise<H2HFile | null> {
 }
 
 /** The record for a library deck from every bundled source (tournament head-to-heads passed in once loaded). */
-export function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]): DeckRecord {
+function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]): DeckRecord {
   const st = deckStats(d.file);
   const rep = deckReports(d.file);
   return deckRecord({

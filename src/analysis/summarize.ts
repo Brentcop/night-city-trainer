@@ -33,7 +33,7 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
   const out = ([0, 1] as PlayerId[]).map((p) => {
     const me: PlayerSummary = {
       deck: s.players[p].name,
-      opp: s.players[1 - p].name,
+      opp: s.players[p === 0 ? 1 : 0].name,
       first: s.first === p,
       result: s.winner === 'tie' || s.winner === null ? 0.5 : s.winner === p ? 1 : 0,
       mulligan: false,
@@ -109,7 +109,8 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
         m.lost[e.id!] = (m.lost[e.id!] ?? 0) + 1;
         break;
       case 'turnEnd': {
-        const [a, b] = String(e.x).split('-').map(Number);
+        // "mine-theirs" Gig totals; a malformed entry reads as NaN, as it always has
+        const [a = NaN, b = NaN] = String(e.x).split('-').map(Number);
         const mine = e.p === 0 ? a : b;
         const theirs = e.p === 0 ? b : a;
         m.gigsAfterOwnTurn.push(mine);

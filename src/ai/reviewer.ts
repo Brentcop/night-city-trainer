@@ -8,12 +8,13 @@
 //
 // Shared by scripts/review.ts (batches, backfill) and the browser (Play, Tournaments → match → Review).
 // Caveat: the oracle values positions with the bots' own evaluation, so it finds tactical slips, not new strategy.
-import { Game, GameOverSignal } from '../engine/engine';
+import { Game } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
 import type { Action, Agent, Decision, DeckList, PlayerId, Reaction } from '../engine/types';
 import { HeuristicAgent, hideInfo, isUnknownCall } from './heuristic';
 import { BEST_PROFILES } from './archetype';
-import { evaluate } from './eval';
+import { clampPlayOut, DECIDED_EVAL, DEFAULT_WEIGHTS, evaluate } from './eval';
+import { makeWorlds, playOut, type World } from './playOut';
 
 /** Decisions closer than this to the best move count as accurate (oracle noise floor, see validation in reports). */
 export const NOISE = 4;
@@ -22,7 +23,7 @@ export const BLUNDER = 15;
 /** Regret is capped here (3 Gigs) so a single game-ending line doesn't swamp the averages. */
 export const CAP = 120;
 /** Play-outs per candidate (validated: 8 with common random numbers, see reports/review-validation.md). */
-export const DEFAULT_ROLLOUTS = 8;
+const DEFAULT_ROLLOUTS = 8;
 
 export type Category =
   | 'sell'
@@ -95,20 +96,13 @@ function rng(seed: number) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 
-/** One random "world" for a play-out: the hidden-information deal and the play-out bots' seeds. */
-export interface World {
-  rng: number;
-  a: number;
-  b: number;
-}
-/** n worlds. Score every candidate of a decision in the SAME worlds (common random numbers): only the move differs,
- *  so the comparison is far less noisy than scoring each candidate in its own random worlds. */
-export const makeWorlds = (n: number, rnd: () => number): World[] =>
-  Array.from({ length: n }, () => ({ rng: Math.floor(rnd() * 2 ** 31), a: Math.floor(rnd() * 1e9), b: Math.floor(rnd() * 1e9) }));
+// Worlds (the hidden-information deal and the play-out bots' seeds) live with the play-out (playOut.ts).
+export { makeWorlds, type World };
 
 /** Every play-out score is clamped to ±TERMINAL, and a won or lost game counts as exactly ±TERMINAL (instead of the
- *  engine's ±10000). Losing in 1 world of 8 then costs 1/8 of a game, and no position can score below an actual loss. */
-const TERMINAL = 600;
+ *  evaluation's ±win). Losing in 1 world of 8 then costs 1/8 of a game, and no position can score below an actual loss. */
+const TERMINAL = DEFAULT_WEIGHTS.playOutClamp;
+const LOST = -DECIDED_EVAL;
 /** If every candidate is within this of a won or lost game, the game is already decided and moves are not graded. */
 const DECIDED = 0.75 * TERMINAL;
 
@@ -126,23 +120,10 @@ async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[]): P
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
-    try {
-      if (a.type !== 'pass') {
-        await cg.doAction(p, a);
-        await cg.resolvePending();
-        cg.checkState();
-        await cg.mainLoop();
-      }
-      await cg.endPhase();
-      await cg.startPhase();
-      await cg.mainLoop();
-      await cg.endPhase();
-    } catch (e) {
-      if (!(e instanceof GameOverSignal)) throw e;
-    }
+    await playOut(cg, p, { action: a });
     const e = evaluate(cg, p);
-    if (e < -5000) losses++;
-    sum += Math.max(-TERMINAL, Math.min(TERMINAL, e));
+    if (e < LOST) losses++;
+    sum += clampPlayOut(e);
   }
   return { v: sum / worlds.length, lossRate: losses / worlds.length };
 }
@@ -157,25 +138,10 @@ async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
-    try {
-      if (rx.type === 'endReact') await cg.attackRest(attacker, true);
-      else {
-        await cg.doReaction(p, rx);
-        await cg.resolvePending();
-        await cg.attackRest(attacker);
-      }
-      cg.checkState();
-      await cg.mainLoop(); // the attacker finishes their turn
-      await cg.endPhase();
-      await cg.startPhase(); // then our whole turn
-      await cg.mainLoop();
-      await cg.endPhase();
-    } catch (e) {
-      if (!(e instanceof GameOverSignal)) throw e;
-    }
+    await playOut(cg, p, { reaction: rx, attacker }); // the attacker finishes their turn, then our whole turn
     const e = evaluate(cg, p);
-    if (e < -5000) losses++;
-    sum += Math.max(-TERMINAL, Math.min(TERMINAL, e));
+    if (e < LOST) losses++;
+    sum += clampPlayOut(e);
   }
   return { v: sum / worlds.length, lossRate: losses / worlds.length };
 }
@@ -251,7 +217,7 @@ export interface ReviewOptions {
 }
 
 /** Wraps a seat's agent: plays exactly as it would, and reviews its main-phase decisions on the side. */
-export class ReviewAgent implements Agent {
+class ReviewAgent implements Agent {
   name: string;
   choosesPayment?: boolean;
   choosesOrder?: boolean;
@@ -290,7 +256,7 @@ export class ReviewAgent implements Agent {
     for (const x of screen.lastAlternatives.slice(0, this.opts.screen ?? 4)) cand.add(x.index);
     // a sell: also grade "don't sell now" — the best move among the non-sell options (screened the same way)
     if (actions[chosen].type === 'sell') {
-      const keep = actions.map((a, i) => i).filter((i) => actions[i].type !== 'sell');
+      const keep = actions.map((_a, i) => i).filter((i) => actions[i].type !== 'sell');
       if (keep.length > 1) {
         const ns = new HeuristicAgent({ profiles: BEST_PROFILES });
         const [k] = await ns.decide(g, { ...d, options: keep.map((i) => d.options[i]) });
@@ -430,7 +396,7 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
   const swings = timeline
     .slice(1)
     .map((t, k) => ({ turn: timeline[k].turn, delta: t.v - timeline[k].v, active: (timeline[k].turn % 2 === 1 ? s.first : 1 - s.first) as PlayerId }))
-    .filter((x) => Math.abs(x.delta) < 5000)
+    .filter((x) => Math.abs(x.delta) < DECIDED_EVAL)
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
     .slice(0, 3);
   const decisions = [...ra[0].out, ...ra[1].out].sort((a, b) => a.turn - b.turn || a.i - b.i);

@@ -100,8 +100,8 @@ export function eventFinishes(name: string, events: EventLite[]): Finish[] {
   const out: Finish[] = [];
   for (const e of events) {
     const i = e.standings.findIndex((s) => s.deck === name);
-    if (i < 0) continue;
     const s = e.standings[i];
+    if (!s) continue;
     out.push({ id: e.id, date: e.date, place: i + 1, of: e.standings.length, record: s.record, games: s.games, top8: i < e.top8.length, champion: e.champion === name });
   }
   return out.sort((a, b) => b.id - a.id);
@@ -115,7 +115,9 @@ export function h2hFor(name: string, file: H2HFile | null | undefined): MatchLin
   const out: MatchLine[] = [];
   for (const [i, j, w, g] of file.pairs) {
     if (!g || (i !== me && j !== me)) continue;
-    out.push(i === me ? { opp: file.decks[j], g, w: w / g } : { opp: file.decks[i], g, w: (g - w) / g });
+    const opp = file.decks[i === me ? j : i];
+    if (opp === undefined) continue;
+    out.push(i === me ? { opp, g, w: w / g } : { opp, g, w: (g - w) / g });
   }
   return out.sort((a, b) => b.g - a.g || a.opp.localeCompare(b.opp));
 }
@@ -123,9 +125,10 @@ export function h2hFor(name: string, file: H2HFile | null | undefined): MatchLin
 /** Best and worst of the matchups with at least `minGames` games (worst is null when only one qualifies). */
 export function extremes(rows: MatchLine[], minGames = 1): { best: MatchLine; worst: MatchLine | null; count: number } | null {
   const ok2 = rows.filter((r) => r.g >= minGames && ok(r.w));
-  if (!ok2.length) return null;
   const sorted = [...ok2].sort((a, b) => b.w - a.w || b.g - a.g || a.opp.localeCompare(b.opp));
-  return { best: sorted[0], worst: sorted.length > 1 ? sorted[sorted.length - 1] : null, count: ok2.length };
+  const best = sorted[0];
+  if (!best) return null;
+  return { best, worst: sorted.length > 1 ? (sorted[sorted.length - 1] ?? null) : null, count: ok2.length };
 }
 
 /** Wins and games on the play and on the draw, summed over matchup rows that record seats. */
@@ -141,7 +144,7 @@ export function seatTotals(rows: MatchLine[]) {
 }
 
 /** Minimum games for a tournament head-to-head to count as a best or worst matchup. */
-export const EVENT_H2H_MIN = 6;
+const EVENT_H2H_MIN = 6;
 
 export function deckRecord(src: RecordSources): DeckRecord {
   const current = src.simVersion ?? CURRENT_SIM_VERSION;

@@ -1,6 +1,6 @@
 // Red card scripts.
 import type { Game } from '../engine';
-import type { CardInst, CardScript, Mod, PlayerId } from '../types';
+import type { CardInst, CardScript, DelayedMod, PlayerId } from '../types';
 import { count8Plus, defeatRival, friendlyUnits, has8Plus, millAndTake, pick, rival, rivalUnits, untilMyNextTurn } from './helpers';
 
 /** Increase a specific gig by 0..max (capped by its sides). */
@@ -29,7 +29,7 @@ function fightOpp(g: Game, host: CardInst): CardInst | null {
 }
 
 /** Remove all delayed mods created by the same source card (sibling triggers of one effect). */
-function consumeSiblings(g: Game, mod: Mod) {
+function consumeSiblings(g: Game, mod: DelayedMod) {
   g.s.mods = g.s.mods.filter((m) => !(m.kind === 'delayed' && m.source === mod.source && m.value?.defId === mod.value?.defId && m.turn === mod.turn));
 }
 
@@ -114,7 +114,7 @@ export const RED: Record<string, CardScript> = {
   },
 
   royce_psycho_on_the_edge: {
-    power: (g, self, host, target) => {
+    power: (g, self, _host, target) => {
       if (target.uid !== self.uid || g.s.active !== self.controller) return 0;
       return 2 * target.gear.length;
     },
@@ -350,7 +350,7 @@ export const RED: Record<string, CardScript> = {
   },
 
   meredith_stout_stone_cold_corpo: {
-    power: (g, self, host, target) => {
+    power: (g, _self, host, target) => {
       if (target.uid !== host.uid) return 0;
       const o = fightOpp(g, host);
       return o && isLegendCard(g, o) ? 2 : 0;

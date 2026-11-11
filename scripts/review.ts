@@ -11,8 +11,9 @@
 import fs from 'node:fs';
 import { bool, cli, forEachRecordedGame, int, loadLibrary, num, oneOf, runMain, str, threadsOpt, TIER_BOTS, workerPool } from './lib-node';
 import { gameDeck } from '../src/lib/tournament';
-import { BLUNDER, NOISE, type Category, type DecisionReview, type GameReview } from '../src/ai/reviewer';
+import { BLUNDER, NOISE, type DecisionReview, type GameReview } from '../src/ai/reviewer';
 import { tierLabel } from '../src/ai/tiers';
+import { GIG_SWING } from '../src/ai/eval';
 import type { ReviewJob } from './review-worker';
 
 const tierList = (v: string) => {
@@ -136,7 +137,7 @@ async function run(): Promise<Done[]> {
 }
 
 // ---------------------------------------------------------------- aggregate
-const g40 = (x: number) => (x / 40).toFixed(2);
+const g40 = (x: number) => (x / GIG_SWING).toFixed(2);
 const pc = (x: number) => `${Math.round(x * 100)}%`;
 interface Agg {
   n: number;
@@ -273,7 +274,7 @@ export function aggregate(done: Done[]) {
   const pts: { x: number[]; y: number }[] = [];
   for (const { review: r } of reviews) {
     if (r!.seats.length < 2 || r!.winner === null || r!.winner === 'tie') continue;
-    const lost = (p: number) => r!.decisions.filter((d) => d.player === p).reduce((a, d) => a + d.regret, 0) / 40;
+    const lost = (p: number) => r!.decisions.filter((d) => d.player === p).reduce((a, d) => a + d.regret, 0) / GIG_SWING;
     pts.push({ x: [1, lost(1) - lost(0), (rating.get(r!.names[0]) ?? 0) - (rating.get(r!.names[1]) ?? 0)], y: r!.winner === 0 ? 1 : 0 });
   }
   /** Logistic regression by Newton steps (small, dense). */
@@ -314,7 +315,7 @@ export function aggregate(done: Done[]) {
     const only = fit([0, 1]);
     const both = fit([0, 1, 2]);
     const allD = reviews.flatMap(({ review: r }) => r!.decisions);
-    const avg = allD.reduce((x, d) => x + d.regret, 0) / Math.max(1, allD.length) / 40;
+    const avg = allD.reduce((x, d) => x + d.regret, 0) / Math.max(1, allD.length) / GIG_SWING;
     const perGig = both[1] / 4; // win-probability slope per Gig of mistakes, at even odds, with deck strength held fixed
     md.push(
       '',

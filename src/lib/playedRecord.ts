@@ -37,8 +37,8 @@ const ok = (x: unknown): x is number => typeof x === 'number' && Number.isFinite
 
 /** "329-156" → [329, 156]; anything else → null. */
 export function parseWL(s: string | undefined): [number, number] | null {
-  const m = s?.match(/^(\d+)-(\d+)$/);
-  return m ? [+m[1], +m[2]] : null;
+  const [, w, l] = s?.match(/^(\d+)-(\d+)$/) ?? [];
+  return w !== undefined && l !== undefined ? [+w, +l] : null;
 }
 
 /** True when a version is missing or older than the current simulator. */

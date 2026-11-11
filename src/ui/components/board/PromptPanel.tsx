@@ -105,7 +105,7 @@ export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: strin
         <div className="small muted">Click a ⛨ unit to block, or choose a reaction.</div>
         {coachBox}
         <div className="pb-opts">
-          {pend.options.map((o, i) => (i === ix.passIndex ? null : btn(i)))}
+          {pend.options.map((_o, i) => (i === ix.passIndex ? null : btn(i)))}
           {ix.passIndex !== null && !hidePass && btn(ix.passIndex, 'No reaction', true)}
         </div>
       </div>

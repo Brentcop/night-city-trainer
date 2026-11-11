@@ -416,6 +416,7 @@ describe('ENG-4, ENG-5, ENG-10 clone and pending guards', () => {
 
   it('non-clonable state fails loudly instead of being dropped', () => {
     const { g, agents } = setup();
+    // @ts-expect-error a function filter is what the Mod type forbids; this checks the runtime guard as well
     g.addMod({ kind: 'costMod', player: 0, amount: -1, until: 'endOfTurn', value: () => true });
     expect(() => g.clone(agents)).toThrow();
   });

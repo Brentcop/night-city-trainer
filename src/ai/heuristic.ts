@@ -4,7 +4,8 @@
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
-import { DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, type EvalWeights } from './eval';
+import { clampPlayOut, DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, type EvalWeights } from './eval';
+import { makeWorlds, playOut } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, classify, type Archetype, type Profiles } from './archetype';
@@ -284,20 +285,7 @@ export class HeuristicAgent implements Agent {
     const mk = () => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights: this.opts.weights, profiles: this.opts.profiles });
     const cg = g.clone([mk(), mk()]);
     hideInfo(cg, p);
-    try {
-      if (a.type !== 'pass') {
-        await cg.doAction(p, a);
-        await cg.resolvePending();
-        cg.checkState();
-        await cg.mainLoop();
-      }
-      await cg.endPhase();
-      await cg.startPhase();
-      await cg.mainLoop();
-      await cg.endPhase();
-    } catch (e) {
-      if (!(e instanceof GameOverSignal)) throw e;
-    }
+    await playOut(cg, p, { action: a });
     return evaluate(cg, p, this.w(g, p));
   }
 
@@ -376,11 +364,7 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const attacker = g.s.attack!.attacker;
     // one random world per rollout (hidden-information deal, dice), shared by every candidate: common random numbers
-    const worlds = Array.from({ length: this.opts.deepReactions }, () => ({
-      rng: Math.floor(this.rand() * 2 ** 31),
-      a: Math.floor(this.rand() * 1e9),
-      b: Math.floor(this.rand() * 1e9),
-    }));
+    const worlds = makeWorlds(this.opts.deepReactions, () => this.rand());
     const value = async (r: Reaction) => {
       let sum = 0;
       for (const w of worlds) {
@@ -388,23 +372,9 @@ export class HeuristicAgent implements Agent {
         const cg = g.clone([mk(w.a), mk(w.b)]);
         cg.s.rng = w.rng;
         hideInfo(cg, p);
-        try {
-          if (r.type === 'endReact') await cg.attackRest(attacker, true);
-          else {
-            await cg.doReaction(p, r);
-            await cg.resolvePending();
-            await cg.attackRest(attacker);
-          }
-          cg.checkState();
-          await cg.mainLoop();
-          await cg.endPhase();
-          await cg.startPhase();
-          await cg.mainLoop();
-          await cg.endPhase();
-        } catch (e) {
-          if (!(e instanceof GameOverSignal)) throw e;
-        }
-        sum += Math.max(-600, Math.min(600, evaluate(cg, p, this.w(g, p))));
+        await playOut(cg, p, { reaction: r, attacker });
+        const wt = this.w(g, p);
+        sum += clampPlayOut(evaluate(cg, p, wt), wt);
       }
       return sum / worlds.length;
     };
@@ -808,7 +778,7 @@ function fastPrior(g: Game, a: Action): number {
 async function pickReaction(g: Game, rx: Reaction[], endIdx: number, baseV: number, value: (r: Reaction) => Promise<number>) {
   let bestI = endIdx >= 0 ? endIdx : 0;
   let bestV = baseV;
-  const unknown = rx.map((r, i) => i).filter((i) => isUnknownCall(g, rx[i]));
+  const unknown = rx.map((_r, i) => i).filter((i) => isUnknownCall(g, rx[i]));
   for (let i = 0; i < rx.length; i++) {
     if (i === endIdx) continue;
     let v: number;
