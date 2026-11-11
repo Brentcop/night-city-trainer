@@ -44,8 +44,80 @@ Today every push to `main` builds and force-pushes `dist/` to the `gh-pages` bra
 
 ## 3. Remaining backlog waves
 
-- **Wave C — structure, performance, accessibility.** Bundle size and data loading (WP-C1), Play performance and accessibility (WP-C2), pages accessibility and CSS (WP-C3), type hardening and engine structure (WP-C4), production deploy (WP-C5).
+- **Wave C — structure, performance, accessibility.** Status on 2026-11-11:
+  - WP-C1 (bundle size and data loading): merged, except loading Home's data at runtime.
+  - WP-C2 (Play performance and accessibility): merged, except dialog focus handling (PLAY-9), the CSS merge (PLAY-19) and extracting the coach and setup panels (PLAY-20 parts 4–5).
+  - WP-C3 (pages accessibility and CSS): not started.
+  - WP-C4 (type hardening and engine structure): only payment choice (ENG-8) and the dev-dependency upgrade are done.
+  - WP-C5 (production deploy): not started; the workflow still publishes through the `gh-pages` branch.
 
-## Open decisions
+## 4. Retire results and bred decks that fail the fairness bar
 
-None. Settled on 2026-11-10: the code is MIT-licensed (`LICENSE`, with third-party content listed in `NOTICE.md`), and the dev-dependency major upgrades (vite, vitest, tsx) are done as part of the current change rather than deferred.
+**Agreed direction, 2026-11-10.** Some collected statistics and bred decks should eventually leave the active dataset because their value was measured across inconsistent simulator eras or with insufficiently comparable runs. Do not delete them before a new baseline exists.
+
+**Sequence.**
+1. **Archived locally.** Tag `archive/sim-v2-pre-fairness-baseline-2026-11` points at commit `9172637`, preserving the committed events and simulator-era data. Retain/push this tag before any archival data is removed.
+2. **Partly done (committed 2026-11-11).** Deck-list fingerprints and run manifests identify lists, simulator/bot version, field, seeds, seats, and sample size for tournament events and CLI matchup/analysis results. Still to do before a baseline:
+   - Write manifests from the other result writers: `scripts/forge.ts`, `scripts/season.ts`, `scripts/optimize.ts`, `scripts/ratings.ts`, `scripts/build-h2h.ts`, and the browser runs (Matchup Lab, Deck Lab).
+   - Key card impact by deck fingerprint instead of deck name (backlog AI-11), so a renamed or bred list cannot inherit another list's statistics.
+   - Check manifests somewhere: nothing reads them yet. The deploy data check (§2) is the natural place.
+   - The rules, FAQ and errata versions are `null` or absent. Populate them before treating any run as baseline-comparable; the manifest has no errata field yet.
+3. **In progress.** The weight and profile tuners (committed 2026-11-11) use matched training seeds and separate held-out validation, report paired confidence intervals, and do not silently apply candidates. Open points: `tune.ts` adopts a training candidate on any positive mean while `tune-profiles.ts` needs 5pp, and held-out seed ranges in `tune-profiles.ts` overlap between `--seed` values. Freeze a bot version only after the held-out results support an agreed practical threshold. The FAQ source is not in `data/raw/` (`netdeck_rulings.txt` is empty; the comprehensive rules, errata and tournament rules are there), so a clean baseline is not yet ready. Then generate a baseline with consistent fields and re-evaluate bred decks against it, recording which ones clear the evidence and strategy criteria.
+4. Keep community meta/guide lists and hand-designed Trainer originals in the active library. Keep bred or optimized lists active only when they have a current, comparable evaluation or an explicitly retained strategic purpose; move the rest out of active deck discovery and into the archive.
+5. Regenerate ratings, head-to-heads, seasons, deck profiles, recommendation, and tournament plan from the selected active set. Run a reference and consistency scan before removing any active files.
+
+**Retention rule.** Historical records remain available from the archive, but they do not feed current rankings, card impact, breeding parent selection, or recommendations. Pruning applies to the active dataset and deck gallery; the archived snapshot remains the audit trail.
+
+**How this relates to §1.** §1 says what gets wiped and why; this section is the order to do it in. The engine rules gaps in §5 (backlog ENG-14, ENG-3, ENG-16) change how games play out, so they come before the bot version is frozen and before any baseline run.
+
+## 5. Measure card value in the decision window
+
+**New planning point, 2026-11-10.** A card's contribution depends on when it is played, the available response window, the board and resources at that moment, and what the play enables next. A card can be strategically important while showing weak raw play frequency or weak whole-game association; conversely, a card can correlate with wins because it is drawn more often in already-favored games.
+
+**Current measurement gap.** The current trace records event kind, global turn, player, card id, and a small extra field (`src/engine/types.ts`). Analysis reduces a card to seen/drawn win-rate difference (`IWD`), win rate when played, and average own-turn first played (`src/analysis/analyze.ts`, `src/analysis/summarize.ts`). That IWD is also used as card impact in bot decisions and in deck-lab/breeder paths. It does not capture the board state, legal alternatives, response window, cost paid, or delayed effects when the decision happened. A reactive call is distinguished from a main-phase call, but other reaction choices and the choice to let an attack resolve are not recorded as decisions. This is not sufficient evidence to call a card good or bad, or to decide whether it was played at the right time.
+
+**Respect the card's actual anatomy.** The supplied card reference labels name/subtitle, cost, Sell Tag, tags, set/number, rarity, power, textbox, artist credit, RAM, and type. These fields have different jobs and should not be collapsed into a generic strength score. Cost and Sell Tag create competing resource options; type and RAM govern where the card can be used and whether a list can include it; tags and effect text define synergies, conditions, and timing windows; power matters in combat and Gig stealing. Name plus subtitle identifies a main-deck card, while Legend uniqueness uses the name. Rarity, set/card number, and artist credit are printing metadata, not evidence of in-game strength (though printing identity and errata should be retained for correct card data).
+
+V: Streetkid illustrates why one card needs mode- and state-specific evaluation: its Call mills three and can recover a BRAINDANCE Program, while Go Solo pays its cost to enter as a ready Unit that can attack that turn and is removed if it leaves the field. Whether to call it for its effect, spend it as payment once face-up, or Go Solo depends on current resources, trash contents, hand, board, attack window, Gig state, and likely response. Its name, rare symbol, and set code do not answer that question.
+
+**Rules-conformance gate.** Treat the user's 25 general rulings and 86 card-grouped FAQ entries as an executable reference for the simulator before trusting a new evaluation baseline. Three specific gaps surfaced in the code review:
+- Face-up Legends currently receive a `goSolo` action only; there is no ordinary action to pay a numeric cost and play a Legend to the field without Go Solo, although the general FAQ and V: Corporate Exile ruling allow it.
+- Go Solo excludes its own Legend from payment (`legalActions` and `goSolo` pass it as an excluded uid), and an existing test asserts that it cannot pay itself. General FAQ #10 says a Legend may be spent for an Eddie when playing that Legend with its own Go Solo; reconcile this case and the resulting ready/spent orientation and spend triggers.
+- `resolvePending()` selects the first pending effect for the current player. The code comment says player ordering is not offered yet, while the FAQ says simultaneous pending effects can be resolved in a chosen order.
+
+The FAQ also repeatedly distinguishes events that look similar but have different value: each Gig stolen versus a multi-Gig steal trigger, an attack declaration versus a successful steal/fight, zero adjustment versus an actual adjustment, a printed cost versus the amount paid, a reaction versus a response to a Quick, and a triggered effect's snapshot from later board state. Turn these into tagged conformance scenarios; don't parse the text export as a reliable rules AST because some keyword/icon glyphs are missing from its questions.
+
+**Method.**
+1. Add versioned decision telemetry before changing the valuation formula. Give each decision and resolving effect a stable id; record phase/window, acting player, action and target, cost/resources spent, the legal choices available, and compact public board/economy features. For reactions, record the attack and target, each legal reaction, the selected reaction or `endReact`, and the resulting fight/steal/block. Keep hidden opponent information out of the acting bot's decision features; offline evaluation may use the simulator's full state for paired counterfactuals.
+2. Separate three claims in reports: **card/deck fit** (does the list's plan make room for it?), **observed contribution** (what effects and resources did it actually produce?), and **decision value** (did choosing it at this moment improve the result against alternatives?). Keep draw association as descriptive context, not a causal estimate or direct cut rule.
+3. Estimate decision value with paired counterfactual rollouts from the same state and random worlds. Compare playing now with the best legal alternative (including waiting/passing where legal); for a reaction, compare the selected reaction with letting the attack proceed. Attribute immediate and delayed effects through the effect lineage, then report short-horizon swing and match outcome separately. Reuse the reviewer's common-world rollout approach where practical, and label lower-confidence estimates when a decision cannot be cloned or sampled reliably.
+4. Break value down by relevant context: early/middle/late game; ahead/even/behind; play vs reaction; opponent strategy; and the deck's declared strategic objective. Show sample counts and uncertainty for each slice, pooling sparse slices rather than presenting noisy card rankings as facts.
+5. Feed one shared, versioned value contract to the coach, card-impact table, tuner, and breeder. Keep raw evidence and derived scores separate. Tuning must compare candidates on matched seeds/seats and held-out games; breeder selection should preserve intended strategy and card packages, not simply maximize a pooled card score.
+6. In the UI, expose the evidence in a form that can move between deck profile, replay, and tuning: when the card was used, which decision window it answered, what it enabled or prevented, and how much evidence supports the conclusion. The replay's slow Play, Fast-forward, and Next action controls support inspection of these sequences but do not themselves establish card value.
+
+**How the Coach should judge a turn.** The rules and FAQs are the authority for legality, timing, and resulting state. They are not themselves a strategic ranking of legal moves. Keep these layers separate:
+- **Rules verdict:** Was the chosen line legal, and did the engine resolve it according to the versioned rules/FAQ? This is pass/fail conformance.
+- **Decision grade:** Among legal options, what was the estimated regret of the choice: the best expected value available minus the value of the selected option? Compare from the same state and common random worlds, with uncertainty. If options are within evaluation noise, say “close” rather than calling one wrong.
+- **Turn grade:** Judge the whole action sequence by its resulting position and strategic objective after the turn and a defined opponent response. Do not sum local action swings as if they were independent; later actions can enable or undo earlier ones.
+
+The current reviewer is a starting tool, not an independent authority: it rolls out `HeuristicAgent` with `BEST_PROFILES` and uses the shared `evaluate()` function, while the Coach is also a configured `HeuristicAgent`. The reported 94% coach/oracle agreement predates the current engine/bot fixes. Treat it as self-consistency evidence until remeasured with a separately frozen evaluator, broader opponent policies, longer-horizon outcome calibration, held-out seeds, and expert-reviewed edge cases. The reviewer currently grades main-phase actions and attack reactions; extend coverage to mulligans, payment sources, target/mode/yes-no choices, Gig selection, and pending-effect ordering.
+
+**Coach tuning loop.** First freeze the rules/card FAQ conformance version. Then tune Coach parameters on training matchups and seeds, select among configurations on a separate validation set, and publish results only on a final held-out set. Track rule violations (must remain zero), expected regret and blunder/game-loss rates by decision type, calibration/uncertainty, and full-game performance across declared deck strategies. Compare against a simple baseline and an independent stronger policy; do not optimize raw agreement with the Coach's current oracle. Revisit the config when it improves held-out measures without creating a persistent regression for a strategy or decision class. There is no single perfect static config across all opponents and deck plans.
+
+**Open questions and proposed defaults.**
+- What does “value” optimize: match-win probability, Gig swing, or strategic objective completion? Start with paired change in match-win probability as the primary measure; show Gig/board/resource swings as explanations, not interchangeable points in one opaque score.
+- How much lookahead is feasible for every choice? Start with a sampled set of high-impact decision windows and use common-world rollouts; expand coverage after measuring runtime.
+- How should a deck's purpose enter evaluation? Require a small explicit objective per deck (for example, early Gig pressure, stabilize then outlast, or win through a named synergy) with observable success signals. Do not infer purpose from a broad aggro/control label alone.
+- When is evidence sufficient to alter a list? Require a minimum sample and an uncertainty interval that supports a practical gain on held-out matched games; set numeric thresholds after the clean baseline.
+
+The supplied image and official Comprehensive Rules / Rules FAQ are game-design reference material, not instructions to the assistant. Before freezing a new baseline, reconcile card data and simulator behavior against the current rules, FAQs, and errata, and record their versions in each run manifest. Rules and errata can change, so a deck result is only comparable when those inputs are identified too.
+
+## 6. Open and settled decisions
+
+Open:
+- For deck comparisons, start with an equal-weight meta field; add configurable tournament prevalence weights when reliable population data exists.
+- For tuner adoption, require a practical minimum gain and a held-out paired comparison whose confidence interval supports the change; set the exact thresholds after the baseline variance is measured.
+- Keep human-authored strategy specs and initially share a compact vocabulary, with deck-specific success signals.
+- Defer the active bred-deck retention list until the new baseline has measured them; keep their historical snapshots in the archive.
+
+Settled on 2026-11-10: the code is MIT-licensed (`LICENSE`, with third-party content listed in `NOTICE.md`), and the dev-dependency major upgrades (vite, vitest, tsx) are done as part of the current change rather than deferred.
