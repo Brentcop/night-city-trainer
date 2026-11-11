@@ -116,7 +116,7 @@ Every result file carries a run manifest (`src/lib/runManifest.ts`): deck lists 
 - **Refreshing the choom.gg data:** re-download the pages into your local `data/raw/`, then run `npx tsx scripts/import-meta.ts --force` and `npx tsx scripts/import-guides.ts --force`. Without `--force` they refuse to replace decks that already exist; with it, each deck's provenance header is kept and only the list (and the meta Tier line) is refreshed.
 
 ## Deploying to GitHub Pages
-The app is fully static: hash routing, relative `base`, and no server. `.github/workflows/pages.yml` has two jobs. `check` typechecks, tests and builds on every push to `main` and on every pull request. `deploy` runs after it, only for pushes to `main` (or a manual run on `main`), and publishes `dist/` to the `gh-pages` branch. GitHub Pages serves that branch at `https://<user>.github.io/<repo>/`.
+The app is fully static: hash routing, relative `base`, and no server. `.github/workflows/pages.yml` uses GitHub's official Pages actions and has two jobs. `check` installs, typechecks, tests, lints, runs `npm run check:data` and builds on every push and every pull request (read-only permissions). `deploy` runs after it, only for pushes to `main`, and publishes the `dist/` that `check` built to `https://<user>.github.io/<repo>/`. The repository's Pages source must be set to "GitHub Actions" (Settings → Pages); see `docs/ROADMAP.md` §2.
 
 ## Sources and credits
 Every deck file carries a provenance header (`// Origin:`, `// Author:`, `// Source:`, `// Via:`, `// Credits:`, `// Parents:`, `// Added:`). These headers are shown on the Decks, Strategy, Seasons and **Credits** pages. Collected lists credit their authors and link back to choom.gg. Saved copies of third-party pages used during research stay local in `data/raw/` and are not published.
@@ -126,10 +126,12 @@ The code is MIT-licensed ([LICENSE](LICENSE)). Card data, rules, artwork and col
 ## Tests
 
 ```bash
-npm test             # the 25 test files in tests/, run by Vitest
+npm test             # every tests/*.test.ts(x) file, run by Vitest
 npm run test:cov     # the same with coverage
 npm run typecheck
 ```
+
+The table lists the main suites by area; `ls tests` has the full set.
 
 | File | Covers |
 |---|---|

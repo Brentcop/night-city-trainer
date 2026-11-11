@@ -1,26 +1,18 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Game } from '../../engine/engine';
 import type { Decision, DeckList, PlayerId } from '../../engine/types';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
-import { loadReplays, type PracticeReplay } from '../../lib/practiceReplays';
+import { practiceRequest, reviewExpect } from '../../lib/practiceReplays';
 import { canConcede, canUndo, type PracticeSession, type Running } from '../../lib/practiceSession';
 import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
-import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
+import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
 import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
-import { Markdown } from '../components/Markdown';
-import { Verdict, Wr } from '../components/Num';
-import analysis from '../../data/analysis.json';
-import type { DeckReport } from '../../analysis/analyze';
-import { DeckPicker, findDeck } from '../components/DeckPicker';
-import { DeckTile } from '../components/DeckIdentity';
-import type { LibraryDeck } from '../../lib/library';
+import { Modal, useFocusTrap } from '../components/Modal';
+import { findDeck } from '../components/DeckPicker';
 import { allDecks } from '../../lib/browserLibrary';
-import { clearPractice, loadPractice } from '../../lib/practiceLog';
-import { classify, BEST_PROFILES, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
 import { boardMarks, buildInteraction, coachMark, type Targeting } from '../components/board/interaction';
 import type { BoardCtx } from '../components/board/BoardCard';
 import { MyHand, PlayerSide } from '../components/board/Zones';
@@ -33,12 +25,14 @@ import { phoneLayout, phoneVars } from '../components/board/layout';
 import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
 import { useGameTick, usePracticeGame } from '../usePracticeGame';
+import { CoachPanel, MoveToast, NO_ALTS, Scorecard } from '../components/board/CoachPanel';
+import { PlaySetup, type Seat } from '../components/PlaySetup';
 import '../board.css';
 
 export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; initialOpp?: string }) {
   const [mine, setMine] = useState(() => findDeck(initialDeck)?.file ?? allDecks()[0]?.file);
   const [opp, setOpp] = useState(() => findDeck(initialOpp)?.file ?? allDecks()[1]?.file);
-  const [seat, setSeat] = useState<'random' | 'first' | 'second'>('random');
+  const [seat, setSeat] = useState<Seat>('random');
   const [coach, setCoach] = useState(true);
   const [level, setLevel] = useState<Tier>('hard');
   // the bot's pace is remembered in this browser (an old stored "fast" of 250 ms maps to today's fast)
@@ -65,63 +59,21 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
 
   if (!game) {
     return (
-      <div className="grid" style={{ maxWidth: 860 }}>
-        <h1>Play vs Bot</h1>
-        {dA && dB && (
-          <div className="pb-versus">
-            <div className="pb-versus-deck">
-              <div className="pb-label">You</div>
-              <DeckTile d={dA} />
-            </div>
-            <div className="pb-versus-vs">VS</div>
-            <div className="pb-versus-deck">
-              <div className="pb-label">Bot</div>
-              <DeckTile d={dB} />
-            </div>
-          </div>
-        )}
-        <div className="panel grid">
-          <DeckPicker label="Your deck" value={mine} onChange={setMine} />
-          <DeckPicker label="Bot deck" value={opp} onChange={setOpp} />
-          <label className="row">
-            <span className="muted small">Seat</span>
-            <select value={seat} onChange={(e) => setSeat(e.target.value as any)}>
-              <option value="random">Random (d20 roll-off)</option>
-              <option value="first">I go first</option>
-              <option value="second">I go second</option>
-            </select>
-          </label>
-          <div>
-            <span className="muted small">Bot difficulty</span>
-            <div className="tier-pick">
-              {(Object.keys(TIERS) as Tier[]).map((t) => (
-                <button key={t} className={`tier-btn tier-${t} ${level === t ? 'on' : ''}`} onClick={() => setLevel(t)} aria-pressed={level === t}>
-                  <b>{TIERS[t].label}</b>
-                  <span>{TIERS[t].blurb}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <label className="row">
-            <input type="checkbox" checked={coach} onChange={(e) => setCoach(e.target.checked)} />
-            <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
-          </label>
-          <div className="row">
-            <button className="primary" onClick={start} disabled={!mine || !opp}>
-              Start game
-            </button>
-            <a href="#/guides">Read the matchup guide first →</a>
-          </div>
-        </div>
-        <MatchupRead A={dA} B={dB} />
-        <RecentReviews />
-        <PracticeStats />
-        <p className="muted small">
-          Rules follow the official Comprehensive Rules (Oct 29, 2026): 3 Legends, 40–50 card decks, sell one card per turn for an Eddie,
-          one Legend Call per turn (also during your rival's attack), Units enter with Lag, attack spent Units or the Gig area, 7 Gigs at the
-          start of your turn wins, overtime after both players run out of dice.
-        </p>
-      </div>
+      <PlaySetup
+        mine={mine}
+        setMine={setMine}
+        opp={opp}
+        setOpp={setOpp}
+        seat={seat}
+        setSeat={setSeat}
+        coach={coach}
+        setCoach={setCoach}
+        level={level}
+        setLevel={setLevel}
+        dA={dA}
+        dB={dB}
+        onStart={start}
+      />
     );
   }
   return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} />;
@@ -224,18 +176,22 @@ function Board({
     setTargeting(null);
   }, [pend]);
 
-  // Escape cancels menus, target mode and the site menu (the action menu itself follows its card when the page scrolls)
+  // Escape cancels target mode (menus, dialogs and the site menu close themselves on Escape: useFocusTrap)
   useEffect(() => {
-    if (!menu && !targeting && !navOpen) return;
+    if (!targeting) return;
     const key = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      setMenu(null);
-      setTargeting(null);
-      setNavOpen(false);
+      if (e.key === 'Escape' && !e.defaultPrevented) setTargeting(null);
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [menu, targeting, navOpen]);
+  }, [targeting]);
+  // the site menu (☰ on the full board) shows the site header over the board: focus goes to its first link, Tab stays
+  // in the header, and Escape or the backdrop closes it, returning focus to ☰
+  const siteHeader = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    siteHeader.current = document.querySelector<HTMLElement>('header.topbar');
+  }, []);
+  useFocusTrap(siteHeader, () => setNavOpen(false), { active: navOpen, initial: 'first' });
 
   const ix = useMemo(() => buildInteraction(g, pend), [g, pend]);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- hands and fields change in place; `version` says when
@@ -601,220 +557,12 @@ function Board({
         />
       )}
       {reviewReq && (
-        <div className="modal-backdrop pb-review-backdrop" onClick={() => setReviewReq(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="ghost modal-close" onClick={() => setReviewReq(null)}>
-              ✕
-            </button>
-            <ReviewPanel req={reviewReq} title="Match review" mySeat={0} expect={reviewExpect(game.replay)} />
-          </div>
-        </div>
+        <Modal label="Match review" onClose={() => setReviewReq(null)} backdropClassName="pb-review-backdrop">
+          <ReviewPanel req={reviewReq} title="Match review" mySeat={0} expect={reviewExpect(game.replay)} />
+        </Modal>
       )}
     </div>
   );
 }
 
-/** The result a review's re-simulation should reproduce (a conceded game's re-simulation ends at the concession). */
-const reviewExpect = (r: PracticeReplay): 0 | 1 | 'tie' => (r.result === 'win' ? 0 : r.result === 'loss' ? 1 : 'tie');
-
-/** Review request for a recorded practice game (your decisions only, with the coach's view of each; a conceded game ends where you conceded). */
-export function practiceRequest(r: PracticeReplay): ReviewRequest {
-  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, conceded: !!r.conceded, rollouts: 8, withCoach: true };
-}
-
-/** A quick verdict on the move just made, compared with the coach. */
-function MoveToast({ gr }: { gr: MoveGrade }) {
-  const text =
-    gr.verdict === 'agree'
-      ? 'Coach agrees'
-      : gr.verdict === 'close'
-        ? `Fine: the coach slightly preferred ${gr.coach}`
-        : gr.gap !== null
-          ? `Coach preferred ${gr.coach} (−${gr.gap.toFixed(1)} Gigs)`
-          : `Coach preferred ${gr.coach}`;
-  return (
-    <span className={`move-toast ${gr.verdict}`} role="status">
-      <i>{gr.verdict === 'agree' ? '✓' : gr.verdict === 'close' ? '≈' : '!'}</i>
-      {text}
-    </span>
-  );
-}
-
-/** End-of-game review: how often you matched the coach, and the costliest differences. */
-function Scorecard({ grades }: { grades: MoveGrade[] }) {
-  if (!grades.length) return null;
-  const agree = grades.filter((x) => x.verdict !== 'miss').length;
-  const pctAgree = Math.round((100 * agree) / grades.length);
-  const misses = grades
-    .filter((x) => x.verdict === 'miss')
-    .sort((a, b) => (b.gap ?? 0.5) - (a.gap ?? 0.5))
-    .slice(0, 3);
-  const grade = pctAgree >= 85 ? 'A' : pctAgree >= 70 ? 'B' : pctAgree >= 55 ? 'C' : 'D';
-  return (
-    <div className="scorecard">
-      <div className={`scorecard-grade g-${grade}`}>{grade}</div>
-      <div>
-        <b>
-          {agree} of {grades.length} decisions matched the coach ({pctAgree}%)
-        </b>
-        {misses.length > 0 ? (
-          <ul>
-            {misses.map((m, k) => (
-              <li key={k}>
-                <span className="muted">T{m.turn}</span> {m.chose} <span className="muted">→ coach: </span>
-                <b>{m.coach}</b>
-                {m.gap !== null && <span className="neg"> −{m.gap.toFixed(1)} Gigs</span>}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="small muted">No costly differences. Clean game.</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** Recorded practice games, each reviewable by the match reviewer. */
-function RecentReviews() {
-  const [list] = useState(() => loadReplays().slice(-6).reverse());
-  const [req, setReq] = useState<{ r: PracticeReplay; q: ReviewRequest } | null>(null);
-  if (!list.length) return null;
-  return (
-    <div className="panel">
-      <h3 style={{ marginTop: 0 }}>Review a recent game</h3>
-      <div className="round-list">
-        {list.map((r) => (
-          <button key={r.id} className="match-row" onClick={() => setReq({ r, q: practiceRequest(r) })}>
-            <span className={r.result === 'win' ? 'win' : ''}>{r.decks[0].name}</span>
-            <b title={r.conceded ? 'You conceded' : undefined}>{r.result === 'win' ? 'W' : r.result === 'loss' ? (r.conceded ? 'L · conceded' : 'L') : 'D'}</b>
-            <span>
-              {r.decks[1].name} <span className="muted small">({tierLabel(r.botLevel)})</span>
-            </span>
-          </button>
-        ))}
-      </div>
-      {req && (
-        <div className="modal-backdrop" onClick={() => setReq(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="ghost modal-close" onClick={() => setReq(null)}>
-              ✕
-            </button>
-            <ReviewPanel req={req.q} title={`${req.r.decks[0].name} vs ${req.r.decks[1].name} — ${new Date(req.r.date).toLocaleString()}`} mySeat={0} expect={reviewExpect(req.r)} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PracticeStats() {
-  const [games, setGames] = useState(loadPractice);
-  if (!games.length) return <p className="small muted">Your practice games are recorded here (in this browser) once you finish one.</p>;
-  const rows = new Map<string, { w: number; l: number; d: number; c: number }>();
-  for (const g of games) {
-    const k = `${g.deck} vs ${g.opp}`;
-    const r = rows.get(k) ?? { w: 0, l: 0, d: 0, c: 0 };
-    if (g.result === 'win') r.w++;
-    else if (g.result === 'loss') r.l++;
-    else r.d++;
-    if (g.conceded) r.c++;
-    rows.set(k, r);
-  }
-  const w = games.filter((g) => g.result === 'win').length;
-  const conceded = games.filter((g) => g.conceded).length;
-  return (
-    <div className="panel">
-      <div className="spread">
-        <h3 style={{ margin: 0 }}>
-          Practice log — {w}-{games.length - w} ({Math.round((100 * w) / games.length)}%)
-          {conceded > 0 && <span className="muted small"> · {conceded} conceded</span>}
-        </h3>
-        <button
-          className="ghost"
-          onClick={() => {
-            clearPractice();
-            setGames([]);
-          }}
-        >
-          Clear
-        </button>
-      </div>
-      <table className="small">
-        <tbody>
-          {[...rows.entries()].map(([k, r]) => (
-            <tr key={k}>
-              <td>{k}</td>
-              <td>
-                {r.w}-{r.l}
-                {r.d ? `-${r.d}` : ''}
-                {r.c ? <span className="muted"> ({r.c} conceded)</span> : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function MatchupRead({ A, B }: { A?: LibraryDeck; B?: LibraryDeck }) {
-  if (!A || !B) return null;
-  const a = classify(A.deck.main).arch;
-  const b = classify(B.deck.main).arch;
-  const mu = (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === A.deck.name)?.matchups.find((m) => m.opp === B.deck.name);
-  return (
-    <div className="panel small">
-      {mu && mu.games >= 10 && (
-        <div className="mu-verdict">
-          <Verdict v={mu.wr} n={mu.games} /> <Wr v={mu.wr} n={mu.games} strong /> in {mu.games} bot games{' '}
-          <span className="muted">
-            (on the play <Wr v={mu.wrFirst} />, on the draw <Wr v={mu.wrSecond} />)
-          </span>
-        </div>
-      )}
-      <b>Matchup read:</b> you are <b>{a}</b>, the bot is <b>{b}</b>. {PLAN_TEXT[`${a}>${b}` as ProfileKey]}{' '}
-      <a href={`#/insights?d=${encodeURIComponent(A.deck.name)}`}>Your deck's stats →</a>
-    </div>
-  );
-}
-
-const NO_ALTS: Advice['alternatives'] = [];
 const NO_WARNINGS: string[] = [];
-
-/**
- * Coach notes (in the log drawer on the full board, under the prompt on phones): other options it weighed, live board
- * warnings, and the matchup plan for your deck. The game state changes in place, so `v` (the game's update counter)
- * tells the memo when to re-render.
- */
-const CoachPanel = memo(function CoachPanel({ alts, tips, warnings }: { g: Game; v: number; alts: Advice['alternatives']; tips: string[]; warnings: string[] }) {
-  return (
-    <div className="coach-panel">
-      {alts.length > 0 && (
-        <div>
-          <div className="pb-label">Coach also considered</div>
-          {alts.map((a, i) => (
-            // two copies of a card give two alternatives with the same label, so the label alone is not a unique key
-            <div key={`${i}:${a.label}`} className="coach-alt">
-              <span>{a.label}</span>
-              <b>{a.gap}</b>
-            </div>
-          ))}
-        </div>
-      )}
-      {warnings.length > 0 && (
-        <div className="coach-warn">
-          {warnings.map((w) => (
-            <div key={w}>⚠ {w}</div>
-          ))}
-        </div>
-      )}
-      {tips.length > 0 && (
-        <details>
-          <summary className="small">Matchup plan &amp; deck tips</summary>
-          <Markdown text={tips.map((t) => `- ${t}`).join(String.fromCharCode(10))} />
-        </details>
-      )}
-    </div>
-  );
-});

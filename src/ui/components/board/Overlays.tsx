@@ -1,10 +1,11 @@
 // Floating UI on the playmat: card action popover, trash viewer, mulligan screen, game-over overlay, the Concede /
-// Exit game confirmation.
-import { useEffect, useId, useState } from 'react';
+// Exit game confirmation. Each takes focus when it opens, keeps Tab inside, and gives focus back when it closes
+// (useFocusTrap, the shared Modal's wiring); the menu also moves with the arrow keys.
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Game } from '../../../engine/engine';
 import type { PlayerId } from '../../../engine/types';
-import { Modal } from '../Modal';
+import { Modal, useFocusTrap } from '../Modal';
 import { TcgCard } from '../TcgCard';
 import type { BoardCtx } from './BoardCard';
 
@@ -42,6 +43,8 @@ export interface MenuState {
 export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuState; onClose: () => void }) {
   const items = ctx.ix.menus.get(menu.uid) ?? [];
   const c = ctx.g.s.cards[menu.uid];
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, onClose, { initial: 'first', arrows: true });
   // follow the card while things scroll (closing on scroll made the menu vanish on phones before a choice)
   const [, reflow] = useState(0);
   useEffect(() => {
@@ -73,8 +76,10 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
   return (
     <>
       <div className="pb-backdrop" onClick={onClose} />
-      <div className={`pb-menu ${sheet ? 'pb-menu-side' : ''}`} style={style} role="menu">
-        <div className="pb-menu-title">{title}</div>
+      <div ref={ref} className={`pb-menu ${sheet ? 'pb-menu-side' : ''}`} style={style} role="menu" aria-label={title} tabIndex={-1}>
+        <div className="pb-menu-title" aria-hidden="true">
+          {title}
+        </div>
         {items.map((it, k) => {
           const isCoach = !!ctx.coach && (ctx.coach.i === it.i || (it.kind === 'attack' && ctx.coach.attacker === menu.uid));
           return (
@@ -92,6 +97,7 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
         })}
         {ctx.inspect && !hidden && (
           <button
+            role="menuitem"
             className="pb-menu-item ghost"
             onClick={() => {
               onClose();
@@ -101,7 +107,7 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
             🔍 Read card
           </button>
         )}
-        <button className="pb-menu-item ghost" onClick={onClose}>
+        <button role="menuitem" className="pb-menu-item ghost" onClick={onClose}>
           Cancel
         </button>
       </div>
@@ -109,22 +115,16 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
   );
 }
 
-function useEscape(onClose: () => void) {
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-}
-
 export function TrashModal({ g, p, onClose }: { g: Game; p: PlayerId; onClose: () => void }) {
-  useEscape(onClose);
+  const ref = useRef<HTMLDivElement>(null);
+  const id = useId();
+  useFocusTrap(ref, onClose);
   const trash = [...g.P(p).trash].reverse();
   return (
     <div className="pb-modal-wrap" onClick={onClose}>
-      <div className="pb-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={ref} className="pb-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
         <div className="spread">
-          <h3 style={{ margin: 0 }}>
+          <h3 id={id} style={{ margin: 0 }}>
             {p === 0 ? 'Your' : "Rival's"} trash · {trash.length}
           </h3>
           <button onClick={onClose}>Close</button>
@@ -143,14 +143,19 @@ export function TrashModal({ g, p, onClose }: { g: Game; p: PlayerId; onClose: (
 
 export function MulliganScreen({ ctx, why }: { ctx: BoardCtx; why?: string }) {
   const { g, pend } = ctx;
+  const ref = useRef<HTMLDivElement>(null);
+  // the opening-hand choice can't be dismissed: Escape does nothing, it is answered with Keep or Mulligan
+  useFocusTrap(ref, null);
   if (!pend) return null;
   const yes = pend.options.findIndex((o) => o.key === 'yes');
   const no = pend.options.findIndex((o) => o.key === 'no');
   const coachI = ctx.coach?.i;
   return (
     <div className="pb-modal-wrap pb-mulligan">
-      <div className="pb-modal">
-        <h2 style={{ margin: 0 }}>Your opening hand</h2>
+      <div ref={ref} className="pb-modal" role="dialog" aria-modal="true" aria-labelledby="pb-mull-title" tabIndex={-1}>
+        <h2 id="pb-mull-title" style={{ margin: 0 }}>
+          Your opening hand
+        </h2>
         <p className="muted small" style={{ margin: '4px 0 12px' }}>
           Keep these {g.P(0).hand.length} cards, or shuffle them back and draw 6 new ones. You go {g.s.first === 0 ? 'first' : 'second'}.
         </p>
@@ -208,10 +213,16 @@ export function GameOverOverlay({
   const s = g.s;
   const win = s.winner === 0;
   const loss = s.winner === 1;
+  const ref = useRef<HTMLDivElement>(null);
+  const id = useId();
+  // Escape does what "View board" does
+  useFocusTrap(ref, onHide);
   return (
     <div className="pb-modal-wrap pb-over">
-      <div className={`pb-modal pb-over-card ${win ? 'win' : loss ? 'loss' : 'draw'} ${conceded ? 'conceded' : ''}`} role="dialog" aria-label="Game over">
-        <div className="pb-over-title">{conceded ? 'CONCEDED' : win ? 'VICTORY' : loss ? 'DEFEAT' : 'DRAW'}</div>
+      <div ref={ref} className={`pb-modal pb-over-card ${win ? 'win' : loss ? 'loss' : 'draw'} ${conceded ? 'conceded' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
+        <div id={id} className="pb-over-title">
+          {conceded ? 'CONCEDED' : win ? 'VICTORY' : loss ? 'DEFEAT' : 'DRAW'}
+        </div>
         <div className="pb-over-reason">{conceded ? 'You conceded. Recorded as a loss.' : s.winReason || '—'}</div>
         <div className="small muted">
           {s.turn} turns · you went {s.first === 0 ? 'first' : 'second'} · Gigs {g.gigsOf(0).length}–{g.gigsOf(1).length}

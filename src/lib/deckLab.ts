@@ -9,8 +9,7 @@ import { breedSeason, type Bred } from '../ai/breeder';
 import impact from '../data/impact.json';
 import { findImpactDeck, type ImpactData } from '../analysis/impactData';
 import { LEGACY_IMPACT_LISTS } from '../analysis/legacyImpactLists';
-import ratings from '../data/ratings.json';
-import seasons from '../data/seasons.json';
+import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, type PlayGame } from './tournament';
 import type { LibraryDeck } from './library';
 
@@ -172,6 +171,8 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       log.adopted = best.label;
     }
     p.deck = deck;
+    // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
+    onProgress({ ...p, logs: [...logs] });
   }
   p.phase = stop() ? 'Stopped' : 'Done';
   p.deck = deck;
@@ -180,11 +181,29 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   return p;
 }
 
+/**
+ * What a tuning run that was stopped (or failed) can still save: the list with only the swaps that were confirmed on
+ * fresh games before it ended. `deck` is the progress snapshot's list, which tuneDeck updates as soon as a swap is
+ * adopted; a swap that was still being tested or confirmed is not in it. Null when no swap had been confirmed (the
+ * list is the original).
+ */
+export function partialTune(p: Pick<TuneProgress, 'deck' | 'logs'> | null | undefined): { deck: DeckList; adopted: string[] } | null {
+  if (!p) return null;
+  const adopted = p.logs.flatMap((l) => (l.adopted ? [l.adopted] : []));
+  return adopted.length ? { deck: p.deck, adopted } : null;
+}
+
+/** The name a tuned list is saved under before the library's reserved-name check: "X (tuned)", or "X (tuned, partial)" for a stopped run. */
+export function tunedName(name: string, partial = false): string {
+  const base = name.replace(/ ?\(tuned(, partial)?\)$/, '');
+  return `${base} (tuned${partial ? ', partial' : ''})`;
+}
+
 // ---------------------------------------------------------------- breeding
 /** Parent strength: tournament power rating where available, else the season leaderboard rating vs the meta. */
-export function rankedParents(lib: LibraryDeck[]): { deck: DeckList; wr: number }[] {
-  const R = ratings as unknown as { decks: { name: string; wrField: number; games: number }[] };
-  const S = seasons as unknown as { leaderboard: { file: string; rating: number }[] };
+export function rankedParents(lib: readonly LibraryDeck[]): { deck: DeckList; wr: number }[] {
+  const R = RATINGS;
+  const S = SEASONS;
   const strength = new Map<string, number>();
   for (const r of S.leaderboard) {
     const d = lib.find((x) => x.file === r.file);
@@ -215,6 +234,19 @@ export interface H2HInfo {
   updated: string;
 }
 /**
+ * How many events are recorded (the length of src/data/tournaments.json's index), for telling whether h2h.json is
+ * stale. Loaded on demand: the index is ~130 KB and the lab needs only its length. Null if it could not be loaded.
+ */
+export async function recordedEventCount(): Promise<number | null> {
+  try {
+    const { TOURNAMENT_INDEX } = await import('../data/tournamentIndex');
+    return TOURNAMENT_INDEX.events.length;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Lazily load the head-to-head file (public/data/h2h.json, built by scripts/build-h2h.ts after every tournament run).
  * Returns null when it hasn't been built yet.
  */
@@ -235,7 +267,7 @@ export async function loadH2H(): Promise<H2HInfo | null> {
 }
 
 /** Breed n new decks in the browser (mutants, crossovers, explorers, and counters when head-to-heads are loaded). */
-export function breedInBrowser(lib: LibraryDeck[], o: BreedOptions): Bred[] {
+export function breedInBrowser(lib: readonly LibraryDeck[], o: BreedOptions): Bred[] {
   let ranked = rankedParents(lib);
   if (o.parents.length) {
     const chosen = ranked.filter((r) => o.parents.includes(r.deck.name));

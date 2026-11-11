@@ -1,6 +1,7 @@
 // Replayable records of practice games (seeds + every human choice), so a finished game can be reviewed later.
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DeckList, PlayerId } from '../engine/types';
+import type { ReviewRequest } from '../sim/review.worker';
 
 export interface PracticeReplay {
   id: string;
@@ -90,4 +91,12 @@ export function saveReplay(r: PracticeReplay) {
   } catch {
     /* storage full or blocked */
   }
+}
+
+/** The result a review's re-simulation should reproduce (a conceded game's re-simulation ends at the concession). */
+export const reviewExpect = (r: PracticeReplay): 0 | 1 | 'tie' => (r.result === 'win' ? 0 : r.result === 'loss' ? 1 : 'tie');
+
+/** Review request for a recorded practice game (your decisions only, with the coach's view of each; a conceded game ends where you conceded). */
+export function practiceRequest(r: PracticeReplay): ReviewRequest {
+  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, conceded: !!r.conceded, rollouts: 8, withCoach: true };
 }

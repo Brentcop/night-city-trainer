@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { GUIDES } from '../../content/guides';
 import { Markdown } from '../components/Markdown';
-import review from '../../data/review.json';
-import analysis from '../../data/analysis.json';
-import type { DeckReport } from '../../analysis/analyze';
+import { REVIEW } from '../../data/index';
+import { telemetryReport } from '../../data/analysisData';
+import { withLiveCountdown } from '../../content/event';
 import { DeckInsights } from '../components/DeckInsights';
 import { ProvenanceBlock } from '../components/Provenance';
 import { LegendStrip } from '../components/DeckIdentity';
 import { allDecks } from '../../lib/browserLibrary';
 
 function simTable(name: string): string | null {
-  const R = review as { decks: { name: string; winRate: number }[]; matrix: Record<string, Record<string, number>>; games: number; date: string };
+  const R = REVIEW;
   const row = R.matrix[name];
   if (!row) return null;
   const me = R.decks.find((d) => d.name === name);
@@ -31,6 +31,8 @@ function simTable(name: string): string | null {
 export function GuidesPage({ initial }: { initial?: string }) {
   const [sel, setSel] = useState(GUIDES.find((g) => g.slug === initial)?.slug ?? GUIDES[0].slug);
   const g = GUIDES.find((x) => x.slug === sel)!;
+  const libDeck = g.deckFile ? allDecks().find((d) => d.file === g.deckFile) : undefined;
+  const insights = g.deckName ? telemetryReport(g.deckName) : undefined;
   return (
     <div className="sidebar-layout">
       <div className="panel">
@@ -60,18 +62,19 @@ export function GuidesPage({ initial }: { initial?: string }) {
             )}
           </div>
         </div>
-        {g.deckFile && allDecks().find((d) => d.file === g.deckFile) && (
+        {libDeck && (
           <div style={{ margin: '10px 0' }}>
-            <LegendStrip legends={allDecks().find((d) => d.file === g.deckFile)!.deck.legends} height={110} />
+            <LegendStrip legends={libDeck.deck.legends} height={110} />
           </div>
         )}
         {g.summary && <p className="muted">{g.summary}</p>}
-        {g.deckFile && allDecks().find((d) => d.file === g.deckFile) && <ProvenanceBlock prov={allDecks().find((d) => d.file === g.deckFile)!.prov} />}
-        <Markdown text={g.md} />
-        {g.deckName && (analysis as any).decks?.find((d: DeckReport) => d.deck === g.deckName) ? (
+        {libDeck && <ProvenanceBlock prov={libDeck.prov} />}
+        {/* the tournament plan's "(N days to Chicago)" was frozen when scripts/plan.ts ran; count from today instead */}
+        <Markdown text={withLiveCountdown(g.md)} />
+        {g.deckName && insights ? (
           <>
             <h2>Data-driven insights</h2>
-            <DeckInsights r={(analysis as any).decks.find((d: DeckReport) => d.deck === g.deckName)} compact />
+            <DeckInsights r={insights} compact />
             <p className="small">
               <a href={`#/insights?d=${encodeURIComponent(g.deckName)}`}>Full statistics →</a>
             </p>

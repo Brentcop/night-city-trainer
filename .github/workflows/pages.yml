@@ -1,12 +1,17 @@
-name: Build and deploy to GitHub Pages
+name: Check and deploy to GitHub Pages
 
-# `check` typechecks, tests and builds on every push to main and on every pull request.
-# `deploy` runs only for pushes to main (and manual runs), after `check` passes, and publishes
-# dist/ to the gh-pages branch (GitHub Pages serves that branch at https://<user>.github.io/<repo>/).
-# Actions are pinned to the commit of the tag named in the trailing comment.
+# `check` runs on every push and pull request: install, typecheck, test, lint, the recorded-data consistency check and
+# the production build. On a push to main it also uploads dist/ as the Pages artifact, so the bytes that deploy are the
+# bytes that passed the checks.
+# `deploy` runs only for pushes to main, after `check` passes, and publishes that artifact with GitHub's official
+# Pages actions. It runs no repository code, and it alone holds `pages: write` and `id-token: write`.
+#
+# Needs the repository's Pages source set to "GitHub Actions" (Settings → Pages → Build and deployment → Source);
+# see docs/ROADMAP.md §2. Every push to main is a release for now; a manual or tagged release is still an open decision.
+#
+# Actions are pinned to the full commit SHA of the tag named in the trailing comment.
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -16,42 +21,42 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx vitest run
+      - run: npm run lint
+      - run: npm run check:data
+      # `npm run build` would run tsc a second time; it already ran above.
       - run: npx vite build
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: github.event_name != 'pull_request'
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          name: dist
           path: dist
-          retention-days: 1
 
   deploy:
     needs: check
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-    # Never cancel a deploy that is already publishing; queue the next one instead.
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # One deploy at a time; never cancel one that is already publishing, queue the next instead.
     concurrency:
       group: pages
       cancel-in-progress: false
     steps:
-      # peaceiris/actions-gh-pages pushes with the repository's git remote, so check it out first.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: dist
-          path: dist
-      - uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          force_orphan: true
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -8,6 +8,7 @@ import meta from '../src/data/meta.json';
 import { classify, PLAN_TEXT, type ProfileKey } from '../src/ai/archetype';
 import type { DeckReport } from '../src/analysis/analyze';
 import { cli, loadLibrary } from './lib-node';
+import { daysUntil, EVENT } from '../src/content/event';
 
 cli(import.meta.url, {});
 
@@ -164,8 +165,9 @@ const eorFile = pick.file === 'meta-rrg-dexter-midrange.txt' ? 'rrg-eor-build.tx
 const eorDeck = lib.find((x) => x.file === eorFile);
 
 const today = new Date();
-const event = new Date('2026-12-11T09:00:00-06:00');
-const days = Math.max(0, Math.round((event.getTime() - today.getTime()) / 86_400_000));
+// The site recomputes this count when the plan is shown (withLiveCountdown, src/content/event.ts), so the number
+// written here is only right on the day this runs; keep the "(N days to Chicago)" wording that it replaces.
+const days = daysUntil(EVENT.start, today);
 
 const plan = `
 > Generated ${today.toISOString().slice(0, 10)} from ${R.decks.length} decks × ${R.games} games per pairing (${R.bot} bot) plus telemetry. Re-run \`npm run sim -- analyze --field all --bot deep\` and then \`npx tsx scripts/plan.ts\` to refresh.

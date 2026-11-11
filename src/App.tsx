@@ -125,6 +125,7 @@ export function App() {
   }, []);
   const route = ROUTES.find((r) => r.path === path);
   const section = route && SECTIONS.find((sec) => sec.pages.includes(route.path));
+  const qs = q.toString(); // the effect re-runs when the query changes, compared as a string
   useEffect(() => {
     if (viaLink.current) window.scrollTo(0, 0);
     else {
@@ -132,7 +133,7 @@ export function App() {
       if (typeof y === 'number') requestAnimationFrame(() => window.scrollTo(0, y));
     }
     viaLink.current = false;
-  }, [path, q.toString()]);
+  }, [path, qs]);
   return (
     <div className="app">
       <header className="topbar">

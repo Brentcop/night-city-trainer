@@ -6,13 +6,13 @@ import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { deckStats } from '../../lib/deckStats';
 import { classify } from '../../ai/archetype';
-import ratings from '../../data/ratings.json';
+import { RATINGS } from '../../data/index';
 import { DeckTile, originKind } from './DeckIdentity';
 import { profileHref } from './DeckStats';
 import { TypeLegend } from './TypeSplit';
 import { loadPref, savePref } from '../prefs';
 import { PageHead } from './PageHead';
-import { CURRENT_SIM_VERSION, ratingsHistorical, type RatingsFile } from '../../lib/playedRecord';
+import { CURRENT_SIM_VERSION, ratingsHistorical } from '../../lib/playedRecord';
 
 const COLORS: Color[] = ['Red', 'Blue', 'Green', 'Yellow'];
 
@@ -56,7 +56,7 @@ const GROUP_HELP: Record<string, string> = {
 
 export function DeckGallery({ onNew }: { onNew: () => void }) {
   const decks = useMemo(() => allDecks(), []);
-  const R = ratings as unknown as { decks: { name: string; wrField: number }[] };
+  const R = RATINGS;
   const power = useMemo(() => new Map(R.decks.map((r) => [r.name, r.wrField])), [R]);
   const info = useMemo(
     () =>
@@ -176,7 +176,7 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
       >
         {shown.length} of {decks.length} decks. Click a tile to edit or export it; “Profile” opens every stat and its lineage. Tiles lead with each deck’s
         recorded tournament games.
-        {ratingsHistorical(ratings as unknown as RatingsFile) && <> Those results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>}
+        {ratingsHistorical(RATINGS) && <> Those results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>}
       </PageHead>
       <div className="panel">
         <div className="gal-filters">

@@ -1,5 +1,5 @@
 import meta from '../../data/meta.json';
-import review from '../../data/review.json';
+import { REVIEW } from '../../data/index';
 import { Markdown } from '../components/Markdown';
 import { CHOOM_TABLE } from '../../content/choomTable';
 import { allDecks } from '../../lib/browserLibrary';
@@ -17,14 +17,6 @@ interface MetaEntry {
   source: string;
   deckFile: string;
 }
-interface Review {
-  date: string;
-  games: number;
-  bot: string;
-  decks: { name: string; file: string; winRate: number; games: number }[];
-  matrix: Record<string, Record<string, number>>;
-  firstPlayerWinRate: number;
-}
 
 function heat(v: number | undefined) {
   if (v === undefined) return undefined;
@@ -34,7 +26,7 @@ function heat(v: number | undefined) {
 
 export function MetaPage() {
   const M = meta as MetaEntry[];
-  const R = review as Review;
+  const R = REVIEW;
   const sorted = [...M].sort((a, b) => b.power - a.power);
   const short = (s: string) => (s.length > 16 ? s.slice(0, 15) + '…' : s);
   return (

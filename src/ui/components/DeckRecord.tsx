@@ -3,21 +3,19 @@
 // marked the `.num.thin` way and say so; a deck with nothing recorded says that plainly; numbers recorded before the
 // current simulator get a one-line note. The summary itself is src/lib/deckRecord.ts.
 import { useEffect, useState } from 'react';
-import ratingsData from '../../data/ratings.json';
-import tournamentsData from '../../data/tournaments.json';
-import analysisData from '../../data/analysis.json';
-import seasonsData from '../../data/seasons.json';
-import { deckStats, pct } from '../../lib/deckStats';
+import { RATINGS, SEASONS } from '../../data/index';
+import { TOURNAMENT_INDEX } from '../../data/tournamentIndex';
+import { ANALYSIS, telemetryReport } from '../../data/analysisData';
+import { deckReports } from '../../data/deckReportsData';
+import { deckStats, pct, statsName } from '../../lib/deckStats';
 import type { LibraryDeck } from '../../lib/library';
-import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type DeckRecord, type EventLite, type H2HFile, type MatchLine, type RatingsFile } from '../../lib/deckRecord';
-import { deckReports, profileHref } from './DeckStats';
+import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type DeckRecord, type H2HFile, type MatchLine } from '../../lib/deckRecord';
+import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
 
-const RATINGS = ratingsData as unknown as RatingsFile;
-const EVENTS = (tournamentsData as unknown as { events: EventLite[] }).events;
-type Versioned = { manifest?: { simVersion?: number } };
+const EVENTS = TOURNAMENT_INDEX.events;
 // deckReports.json has no manifest of its own: its finals and head-to-heads count as unversioned (historical)
-const VERSIONS = { telemetry: (analysisData as Versioned).manifest?.simVersion, seasons: (seasonsData as Versioned).manifest?.simVersion };
+const VERSIONS = { telemetry: ANALYSIS.manifest?.simVersion, seasons: SEASONS.manifest?.simVersion };
 
 // tournament head-to-heads (public/data/h2h.json): fetched once, only when a profile needs them
 let h2hFile: Promise<H2HFile | null> | null = null;
@@ -40,7 +38,7 @@ export function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: Matc
     finals: rep.finals,
     h2h: rep.h2h,
     eventH2H,
-    telemetry: st.report,
+    telemetry: telemetryReport(statsName(d.file)),
     leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile },
     versions: VERSIONS,
     simVersion: CURRENT_SIM_VERSION,

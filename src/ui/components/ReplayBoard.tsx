@@ -92,7 +92,8 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
     return () => window.removeEventListener('keydown', k);
   }, [n, cur, playing, mode]);
 
-  const g = useMemo(() => (n ? new Game(structuredClone(frames[Math.max(0, cur)].state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [data, cur, n]);
+  // The board for the current frame. It depends only on the frames (data.frames) and the position.
+  const g = useMemo(() => (n ? new Game(structuredClone(frames[Math.max(0, cur)].state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [frames, cur, n]);
   if (!g || !n) return <p className="muted">No moves were recorded for this game.</p>;
   const turnOf = (i: number) => frames[i]?.line.turn ?? 0;
   const lastTurn = turnOf(n - 1);

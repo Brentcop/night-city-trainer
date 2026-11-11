@@ -97,6 +97,20 @@ export function deleteCustom(name: string): boolean {
   return saveCustom(readStored().filter((d) => d.name !== name));
 }
 
-export function allDecks(): LibraryDeck[] {
-  return [...BUILTIN, ...loadCustom()];
+let cache: { raw: string | null; decks: readonly LibraryDeck[] } | null = null;
+
+/**
+ * Built-in decks, then the custom decks saved in this browser. Pages call this freely during render, so the parsed
+ * list is cached against the stored string: while localStorage holds the same text, every call returns the same
+ * (read-only) array, and any change (a save here, in another tab, or by hand) is picked up on the next call.
+ */
+export function allDecks(): readonly LibraryDeck[] {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(CUSTOM_KEY);
+  } catch {
+    raw = null;
+  }
+  if (!cache || cache.raw !== raw) cache = { raw, decks: [...BUILTIN, ...loadCustom()] };
+  return cache.decks;
 }

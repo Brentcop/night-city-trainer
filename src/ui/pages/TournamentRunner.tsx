@@ -1,7 +1,7 @@
 // Run a tournament live in the browser: pick the field and format, watch Swiss rounds and the bracket fill in,
 // then read the final stats and watch any finished match. Uses the same engine, bots and rules as scripts/tournament.ts.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ratings from '../../data/ratings.json';
+import { RATINGS } from '../../data/index';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { autoRounds, cutSize, runTournament, type BotLevel, type GameRec, type TourneyConfig, type TourneyEvent } from '../../lib/tournament';
@@ -30,7 +30,7 @@ const BOTS = TOURNEY_BOTS;
 const SAVE_KEY = 'nct.runs.v1';
 
 /** Every distinct deck (tournament "-eor" builds share their base deck's main list, so they are skipped). */
-function distinct(lib: LibraryDeck[]) {
+function distinct(lib: readonly LibraryDeck[]) {
   const seen = new Set<string>();
   return lib.filter((d) => {
     if (/-eor\.txt$/.test(d.file)) return false;
@@ -44,7 +44,7 @@ function distinct(lib: LibraryDeck[]) {
 function presetFiles(key: FieldKey, pool: LibraryDeck[]): string[] {
   if (key === 'all') return pool.map((d) => d.file);
   if (key === 'top16') {
-    const R = ratings as unknown as { decks: { name: string }[] };
+    const R = RATINGS;
     const byName = new Map(pool.map((d) => [d.deck.name, d.file]));
     const top = R.decks.map((r) => byName.get(r.name)).filter((f): f is string => !!f);
     return (top.length >= 8 ? top : pool.filter((d) => d.kind === 'meta' || d.kind === 'original').map((d) => d.file)).slice(0, 16);

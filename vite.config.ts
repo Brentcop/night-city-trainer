@@ -5,10 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: './',
   plugins: [react()],
-  // Pages load lazily, but the entry chunk (~820 kB) still holds Home's data: src/lib/deckStats.ts (used by Home and
-  // DeckIdentity) bundles analysis.json (~330 KB), plus deckReports, cards, seasons and ratings. The limit sits just
-  // above it so a new oversized chunk still warns.
-  build: { outDir: 'dist', chunkSizeWarningLimit: 850 },
+  // Pages load lazily and the large data files have their own chunks (src/data/index.ts), so every chunk is under
+  // Vite's default 500 kB warning limit; no override.
+  build: { outDir: 'dist' },
   // Agent worktrees under .claude/ hold full copies of the repo; never collect their tests.
   test: { exclude: [...configDefaults.exclude, '.claude/**'] },
 });

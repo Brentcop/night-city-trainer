@@ -1,39 +1,16 @@
 import { useState } from 'react';
 import { Wr } from '../components/Num';
-import data from '../../data/seasons.json';
+import { SEASONS } from '../../data/index';
 import { allDecks } from '../../lib/browserLibrary';
 import { shortCredit } from '../../lib/library';
 import { DeckTile, LegendStrip, OriginBadge } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 
-interface Row {
-  name: string;
-  file: string;
-  origin: string;
-  colors: string;
-  arch: string;
-  vsMeta: number;
-  rating: number;
-  metaG: number;
-  percentile: number;
-  finals?: number;
-  seasons: Record<string, number>;
-  idea?: string;
-}
-interface Season {
-  season: number;
-  date: string;
-  games: number;
-  bot: string;
-  bred: { name: string; method: string; parents: string[]; idea: string }[];
-  standings: { name: string; wr: number; isNew: boolean; kind: string }[];
-}
-
 const pct = (x: number | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
 
 export function SeasonsPage() {
-  const D = data as unknown as { updated: string; leaderboard: Row[]; seasons: Season[] };
+  const D = SEASONS;
   const [filter, setFilter] = useState('');
   const seasonCols = D.seasons.map((s) => String(s.season));
   const libByFile = new Map(allDecks().map((d) => [d.file, d]));
@@ -56,7 +33,7 @@ export function SeasonsPage() {
       >
         Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Rating</b> = win rate vs the meta decks,
         adjusted for sample size.
-        {isHistorical((data as { manifest?: { simVersion?: number } }).manifest?.simVersion) && (
+        {isHistorical(D.manifest?.simVersion) && (
           <> These results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>
         )}
       </PageHead>

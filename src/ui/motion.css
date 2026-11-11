@@ -199,7 +199,6 @@ button.primary:hover:not(:disabled) {
 }
 .wrbar > .fill,
 .bar > div,
-.ci-bar,
 .ci > * {
   transform-origin: left;
   animation: grow-x 0.8s var(--ease-out) backwards;

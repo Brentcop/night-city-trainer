@@ -8,6 +8,8 @@ Eight parallel reviewers audited the project at commit `befda3e`. Baseline at th
 
 **Wave C so far** (branch `improvements/wave-c`): WP-C1's bundle work is done except for loading Home's data at runtime (entry script 1,341 → 820 kB, each worker ~485 → ~205 kB; LIB-1, LIB-2 lazy routes, LIB-12 partly). ENG-8 is done: the human player chooses which Eddies or Legends pay a cost, including for reactions; bots still pay automatically. WP-C2 is merged except PLAY-9, PLAY-19 and PLAY-20 parts 4–5 (coach worker, drag, phone prompts, keyboard access and the game log are done). WP-C3 is done (see its section). The rest of WP-C4 and WP-C5 are not started. Current status is kept in [ROADMAP.md](ROADMAP.md) §3.
 
+**Update 2026-11-11 (working tree, not committed or checked by eye):** Wave C is done apart from WP-C4. WP-C5: the workflow uses the official Pages actions and runs `check:data`; it waits on the owner's Pages setting (ROADMAP §2 has the checklist). WP-C1: Home's data loads at runtime (entry 823 → 427 kB, 169 → 102 kB gzip), plus LIB-3, APP-21, OPS-15 and the data half of APP-20; the chunk-size override is gone. WP-C2: PLAY-9, PLAY-19 and PLAY-20 parts 4–5. Left over: APP-7 and the lint warnings are fixed. Each section below has the details and the rows that no longer applied.
+
 What is left over from Waves A and B:
 
 | Item | State |
@@ -16,15 +18,15 @@ What is left over from Waves A and B:
 | ENG-7 | An attack ends when a restriction starts forbidding its target; it does not re-check whether the target was readied. |
 | ENG-2 | Effect steals now take steal-count modifiers ("steals 1 fewer Gig"), on a reading of rule 11.5.1.3 that should be confirmed against an official ruling. |
 | OPS-2 | A forced re-run of seasons 1–5 is refused (they predate per-season totals); the subtract-then-recount path is untested end to end. Moot once the fresh baseline restarts seasons. |
-| APP-7 | After Stop, Deck Lab no longer offers to save anything, including swaps already confirmed. |
+| APP-7 | Done 2026-11-11: after Stop (or a failed game) the Deck Lab offers to save the swaps confirmed before it ended, as "X (tuned, partial)", with a note of the games played and the run manifest (its `completedGames` is below `plannedGames`). Nothing is offered when no swap was confirmed (`partialTune`, `tests/deck-lab.test.ts`). |
 | AI-11 | Done 2026-11-11 for the bots, coach and Deck Lab: card impact is matched by list fingerprint (`PlayerState.listId`); `sim analyze` writes each report's fingerprint. The current impact.json predates that, so its name-only entries are pinned to today's built-in lists (`src/analysis/legacyImpactLists.ts`; delete it after the next `sim analyze`). Left: `data/seasons/deck-impact.json` (season breeder) is still keyed by name. |
 | AI-8 | Not done: the reviewer oracle still shares its rollout policy with the bots it grades. |
 | Card tests | 21 cards still have no direct test (9 of them in library decks); list in the WP-B1 hand-back. |
 | Bot strength | New Hard vs old Hard: 48.1% ±2.6 over 1,400 games; Medium 50.1% ±3.1 over 1,000. No bug found; the old bot knew which face-down Legend was which. Tier win rates in the docs are pre-fix and not re-measured. |
-| Dependencies | `overrides` pins `minimatch` 11.0.1 under typescript-eslint; remove it when typescript-eslint accepts minimatch 11. |
-| Lint | 5 `react-hooks/exhaustive-deps` warnings, not fixed. |
+| Dependencies | `overrides` pins `minimatch` 11.0.1 under typescript-eslint. Checked 2026-11-11: the latest typescript-eslint (8.72.2) still asks for `minimatch` ^10.2.2, so the override stays; remove it when a release accepts 11. |
+| Lint | Done 2026-11-11: the 5 `react-hooks/exhaustive-deps` warnings are fixed without disable comments (`npm run lint` is clean). |
 | Browser checks | Checked by hand: Play start, moves, Undo, Quit mid-turn; Matchup Lab in workers; not-found routes; page loads. Not checked: deck-editor unsaved-changes prompts, a full browser tournament, Deck Lab tuning, the error banner, phone layout. |
-| CI | The split check/deploy workflow has not run on GitHub yet. |
+| CI | Replaced 2026-11-11 by the official Pages flow (WP-C5); it has not run on GitHub yet and needs the owner's Pages setting first (ROADMAP §2). |
 | Recorded data | Still from the old sim. See [ROADMAP.md](ROADMAP.md) §1. |
 
 **How to read it**
@@ -232,6 +234,14 @@ Owns: `src/App.tsx` (routes), `vite.config.ts`, `src/lib/deckStats.ts`, `src/lib
 | OPS-15 | L | `plan.ts` freezes "31 days to Chicago" into the built site. | Store the date; compute in the UI. |
 | APP-20 (data) | L | `ratings.json` is re-typed five ways; 16 `as any` casts. | Typed views in `src/data/index.ts`. |
 
+**Status 2026-11-11: done except LIB-12; not yet checked in a browser.** Chunk sizes (minified / gzip): entry 822.9 / 168.9 kB → 427.4 / 101.9 kB; the large data now load with the pages that use them (`analysisData` 298.8 kB, `deckReportsData` 98.1 kB, `tournaments` 127.9 kB); every chunk is under 500 kB, so `vite.config.ts` has no `chunkSizeWarningLimit` and the build prints no warning.
+- LIB-2 (Home's data): `analysis.json` was in the entry only because `deckStats()` also returned the telemetry report; that is now `telemetryReport()` in `src/data/analysisData.ts`, used by the deck profile, Strategy, Card stats and Play. `deckReports.json` is loaded by Home at runtime (`loadDeckReports`); the hero's finals tile keeps its place with a placeholder until then (the head-to-head bars appear when it arrives; only 4 decks have any, the current pick has none). `tests/home-data.test.tsx` walks the static imports from `src/main.tsx` and fails if any of the three large files is reachable.
+- LIB-3: the Deck Lab gets the event count from `recordedEventCount()`, which imports the index on demand with the head-to-heads (Breed tab only). A generated count would need a script run, which this change doesn't make.
+- LIB-12: **not unified.** 73b9f32 gave both the same data (`impact.json`) and the same list matching (`findImpactDeck`), but the thresholds still differ: bots and coach (`src/ai/impact.ts`) use 30 games per deck and 60 pooled; the Deck Lab and breeder use 25 and 40, which match `scripts/forge.ts` and `scripts/season.ts`. One implementation needs `src/ai/impact.ts`, which belongs to the next package.
+- APP-21: `allDecks()` returns one cached, read-only list while the stored decks are unchanged (compared by their stored text, so a save in another tab is seen too). The reported per-deck library sort in `DeckProfile.tsx` no longer exists.
+- OPS-15: the generated plan has no stored event date, only the text "(31 days to Chicago)". The date now lives once in `src/content/event.ts` (Home's countdown and `scripts/plan.ts` use it), and the Strategy page replaces the frozen count with today's (`withLiveCountdown`). `plan.ts` was not re-run.
+- APP-20 (data): `src/data/index.ts` holds the types and the views of the small files (`RATINGS`, `SEASONS`, `REVIEW`); the large ones have their own view modules (`analysisData.ts`, `deckReportsData.ts`, `tournamentIndex.ts`) so importing the index never pulls them into a chunk. The two `as any` data casts (Guides) and the data re-typings in pages, components and `src/lib` are gone. Left as they are: `Tournaments.tsx` (its richer event type uses the page's own view types), `src/ai/*` (out of scope), and `as any` on CSS custom properties and `<select>` values, which aren't data.
+
 ### WP-C2 · Play performance, accessibility and CSS
 
 Owns: `src/ui/components/board/**`, `src/ui/components/{TcgCard,Dice}.tsx`, `src/ui/{board,cards,motion}.css`, new `src/sim/coach.worker.ts`; `Play.tsx` for the coach hook only.
@@ -247,6 +257,11 @@ Owns: `src/ui/components/board/**`, `src/ui/components/{TcgCard,Dice}.tsx`, `src
 | PLAY-18 | L | Refusal toast swallows taps over the hand bar; several tap targets are 24–32 px *(suspected)*. | `pointer-events: none`; 40–44 px targets. |
 | PLAY-19 | L | Dead `.ci-bar`; `.pb-handbar-actions` defined 6 times; the compact media query is copy-pasted 4 times. | Merge. |
 | PLAY-20 (4–5) | L | Coach and setup panels live in `Play.tsx`. | Extract `useCoach`, `CoachPanel`, `PlaySetup`. |
+
+**Status 2026-11-11: PLAY-9, PLAY-19 and PLAY-20 parts 4–5 done; not yet checked in a browser.**
+- PLAY-9: `useFocusTrap` (in `components/Modal.tsx`, the shared Modal's wiring as a hook) moves focus in, keeps Tab inside and gives focus back on close; only the newest open trap takes keys, so a dialog over another (Concede over the opening hand) works. Used by the action menu and the phone game menu (also arrow keys, Home/End), the opening-hand choice (Escape does nothing there), the result screen (Escape = View board), the trash viewer, the drop confirmation, the card reader (starts on Close), the site menu over the board (the site header: first link, Tab kept in it) and the match-review dialogs (now the shared `<Modal>`). The log drawer takes focus when opened and Escape returns it, but only the phone sheet traps Tab: the full-board drawer stays open while you play, so a trap would lock the board. PLAY-10's items were already done.
+- PLAY-19: unused selectors removed (`.pb-below`, `.pb-dock`, `.pb-has-dock`, `.pb-menu-sheet`, all six `.pb-handbar-actions` rules, `.ci-bar` in `motion.css`), declarations always overridden by a later rule for the same selector, compact rules for Play-only elements (`.pb-handbar`, `.pb-over-title`) that `.pb-phone` rules always override, and adjacent duplicate blocks merged. Kept: the compact rules for the zones, piles, Gigs and mat, because the replay viewer (Events, Matchup Lab) draws those without `.pb-phone`; and the four compact `@media` blocks stay separate, since merging them would move rules in the cascade.
+- PLAY-20 (4–5): `useCoach` was already in `src/ui/useCoach.ts`. `CoachPanel`, `MoveToast` and `Scorecard` moved to `components/board/CoachPanel.tsx`, the setup screen (with the matchup read, recent reviews and practice log) to `components/PlaySetup.tsx`, and `practiceRequest`/`reviewExpect` to `src/lib/practiceReplays.ts`. Pure moves; `Play.tsx` is 568 lines (820 before).
 
 ### WP-C3 · Pages accessibility, CSS and structure
 
@@ -294,6 +309,8 @@ Owns: `.github/workflows/**`. Needs one owner step in the repository settings. D
 | OPS-9b | M | Deploys force-push `dist/` to `gh-pages` through a third-party action on every push to main. | Official Pages actions with `pages: write` and `id-token: write` on the deploy job only. Owner changes the Pages source to "GitHub Actions" at the same time. |
 | OPS-9c | M | Nothing checks that generated data is consistent at deploy time. | `check:data` step: event index matches event files; head-to-heads cover the recorded events. |
 | OPS-9d | L | Every push to main is a production release. | Decide between that and a manual or tagged release once the fresh baseline exists. |
+
+**Status 2026-11-11: OPS-9b and OPS-9c done in `.github/workflows/pages.yml`, not yet run on GitHub; OPS-9d still open (deploys stay on every push to `main`).** Owner steps, including the Pages source switch and retiring `gh-pages`: [ROADMAP.md](ROADMAP.md) §2.
 
 ---
 

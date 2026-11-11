@@ -1,30 +1,14 @@
 // Power ratings from all tournament games (Bradley–Terry), shown as expected win rate with 90% intervals.
 import { useMemo, useState } from 'react';
 import { Wr } from '../components/Num';
-import ratings from '../../data/ratings.json';
+import { RATINGS } from '../../data/index';
 import { allDecks } from '../../lib/browserLibrary';
 import { byName } from '../deckLookup';
 import { LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
-import { CURRENT_SIM_VERSION, ratingsHistorical, type RatingsFile } from '../../lib/playedRecord';
+import { CURRENT_SIM_VERSION, ratingsHistorical } from '../../lib/playedRecord';
 
-interface Row {
-  name: string;
-  file: string;
-  rating: number;
-  se: number;
-  games: number;
-  wrField: number;
-  wrFieldLo: number;
-  wrFieldHi: number;
-  wrMeta: number | null;
-  events: number;
-  titles: number;
-  top8: number;
-  avgFinish: number | null;
-  matches: string;
-}
-const R = ratings as unknown as { updated: string; events: number; games: number; firstPlayerEdge: number; decks: Row[] };
+const R = RATINGS;
 const pct = (x: number | null | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
 
 const GROUPS: [string, string][] = [
@@ -58,7 +42,7 @@ export function RatingsPage() {
         </b>{' '}
         One model fitted to every tournament game every deck has played: each deck's <b>expected win rate against the whole field</b>, with a bar
         for the 90% confidence range. Ranges that overlap are not meaningfully different.
-        {ratingsHistorical(R as unknown as RatingsFile) && <> These games were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so the ratings are historical.</>}
+        {ratingsHistorical(R) && <> These games were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so the ratings are historical.</>}
       </PageHead>
       <div className="seg" style={{ alignSelf: 'flex-start' }}>
         {GROUPS.map(([k, label]) => (

@@ -6,7 +6,7 @@ import type { LibraryDeck } from '../lib/library';
 export const isBuiltin = (d: Pick<LibraryDeck, 'file'>) => !d.file.startsWith('custom:');
 
 /** Name → deck, preferring the built-in deck when a saved deck has the same name. */
-export function byName(lib: LibraryDeck[]): Map<string, LibraryDeck> {
+export function byName(lib: readonly LibraryDeck[]): Map<string, LibraryDeck> {
   const m = new Map<string, LibraryDeck>();
   for (const d of lib) {
     const cur = m.get(d.deck.name);
@@ -16,12 +16,12 @@ export function byName(lib: LibraryDeck[]): Map<string, LibraryDeck> {
 }
 
 /** Exact lookup by library file (what every `?d=` link carries). No fuzzy fallback: a stale link finds nothing. */
-export function deckByFile(lib: LibraryDeck[], file: string | undefined | null): LibraryDeck | undefined {
+export function deckByFile(lib: readonly LibraryDeck[], file: string | undefined | null): LibraryDeck | undefined {
   return file ? lib.find((d) => d.file === file) : undefined;
 }
 
 /** Loose search for typed queries: exact file, then file or name containing the text. Not for URL params. */
-export function searchDeck(lib: LibraryDeck[], q: string | undefined): LibraryDeck | undefined {
+export function searchDeck(lib: readonly LibraryDeck[], q: string | undefined): LibraryDeck | undefined {
   if (!q) return undefined;
   const t = q.toLowerCase();
   return deckByFile(lib, q) ?? lib.find((d) => d.file.toLowerCase().includes(t) || d.deck.name.toLowerCase().includes(t));
@@ -32,7 +32,7 @@ export function searchDeck(lib: LibraryDeck[], q: string | undefined): LibraryDe
  * shadow the built-in in every name-keyed view), so it gets a " (my copy)" suffix, numbered if that is taken by
  * another built-in. Returns null for a blank name.
  */
-export function customSaveName(name: string, lib: LibraryDeck[]): string | null {
+export function customSaveName(name: string, lib: readonly LibraryDeck[]): string | null {
   const base = name.trim().slice(0, 80);
   if (!base) return null;
   const reserved = new Set(lib.filter(isBuiltin).map((d) => d.deck.name));

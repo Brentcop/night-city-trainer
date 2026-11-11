@@ -35,21 +35,29 @@ Planned work that is decided in principle but not scheduled. The item-level back
 
 **Decided 2026-11-10.** Fold into Wave C of the backlog (package WP-C5).
 
-Today every push to `main` builds and force-pushes `dist/` to the `gh-pages` branch through a third-party action. Wave A adds a pull-request check job and narrows permissions but keeps that publish method. The refactor:
-- Switch to GitHub's official Pages flow (`actions/upload-pages-artifact` + `actions/deploy-pages`, with `pages: write` and `id-token: write` on the deploy job only).
-- **Owner step:** in the repository's Pages settings, change the source from the `gh-pages` branch to "GitHub Actions". The workflow change and this setting have to land together.
-- Add a data-consistency check before deploy (event index matches event files; head-to-heads cover the recorded events), so stale generated data cannot ship.
-- Decide whether deploys stay "every push to main" or move to a manual or tagged release once the fresh baseline exists.
-- Retire the `gh-pages` branch after the first successful deploy from the new flow.
+**Done in the working tree 2026-11-11 (WP-C5), not yet run on GitHub.** `.github/workflows/pages.yml` now uses GitHub's official Pages flow:
+- `check` runs on every push and pull request with read-only permissions: `npm ci` (npm cache, Node from `.nvmrc`), `tsc --noEmit`, `vitest run`, `npm run lint`, `npm run check:data` (event index matches the event files; `h2h.json` covers the recorded events; manifests valid), then `vite build`. On a push to `main` it also uploads `dist/` with `actions/upload-pages-artifact`, so what deploys is exactly what passed.
+- `deploy` needs `check`, runs only for pushes to `main`, holds `pages: write` and `id-token: write` (the only job that does), uses the `github-pages` environment, runs no repository code, and publishes with `actions/deploy-pages`. Its concurrency group `pages` queues deploys and never cancels one in progress.
+- Every action is pinned to a full commit SHA with its tag in a comment. The third-party `gh-pages` publish step is gone.
+- `public/.nojekyll` is no longer needed (the Actions flow doesn't run Jekyll); `upload-pages-artifact` leaves dotfiles out, which is harmless.
+
+**Owner checklist** (repository settings; nothing here can be done from the code):
+1. Before or together with merging the new workflow to `main`: Settings → Pages → Build and deployment → Source → **GitHub Actions**.
+2. Check Settings → Environments → `github-pages`: its deployment branch rule must allow `main` (GitHub creates it with that rule when the source is switched).
+3. Merge; watch the first run: `check` then `deploy`, and the deployed URL in the run summary. Open the site and a deep link (for example `#/play`).
+4. After the first good deploy, retire the old branch: delete `gh-pages` (Settings → Branches, or `git push origin --delete gh-pages`). Keep it until then: it is the rollback.
+5. If the workflow lands **before** the source is switched: `check` passes and the `deploy` job fails (Pages is not set up for Actions deployments, or the `github-pages` environment does not yet allow `main`); nothing is published and the site keeps serving the old `gh-pages` branch, unchanged and no longer updated. Switch the source, then re-run the failed `deploy` job from that run (or push again).
+
+**Still open:** whether deploys stay "every push to `main`" (today) or move to a manual (`workflow_dispatch`) or tagged release once the fresh baseline (§1) exists.
 
 ## 3. Remaining backlog waves
 
-- **Wave C — structure, performance, accessibility.** Status on 2026-11-11:
-  - WP-C1 (bundle size and data loading): merged, except loading Home's data at runtime.
-  - WP-C2 (Play performance and accessibility): merged, except dialog focus handling (PLAY-9), the CSS merge (PLAY-19) and extracting the coach and setup panels (PLAY-20 parts 4–5).
+- **Wave C — structure, performance, accessibility.** Status on 2026-11-11 (working tree, not yet committed or checked by eye):
+  - WP-C1 (bundle size and data loading): done. Home's first paint no longer bundles the large data files: the entry chunk is 427 kB (102 kB gzip), was 823 kB (169 kB gzip); `analysis.json`, `deckReports.json` and `tournaments.json` have their own chunks, typed views live in `src/data/` (`index.ts` and one module per large file), Home loads the recommended deck's reports at runtime with a placeholder tile, the Deck Lab loads the event count on demand, `allDecks()` is cached, the tournament plan's day count is computed when shown, and the `chunkSizeWarningLimit` override is gone (every chunk is under Vite's 500 kB default). Left: LIB-12's two impact thresholds (needs `src/ai/impact.ts`).
+  - WP-C2 (Play performance and accessibility): done. Every board overlay, dialog and menu takes focus, traps Tab (the full-board log drawer excepted, by design) and restores focus (`useFocusTrap` in `components/Modal.tsx`); dead and overridden rules removed from `board.css`; the setup screen and coach panel moved out of `Play.tsx`.
   - WP-C3 (pages accessibility and CSS): done in the working tree on 2026-11-11 (APP-13 to APP-17, APP-19, APP-20; see the backlog), not yet checked by eye in a browser or committed.
   - WP-C4 (type hardening and engine structure): only payment choice (ENG-8) and the dev-dependency upgrade are done.
-  - WP-C5 (production deploy): not started; the workflow still publishes through the `gh-pages` branch.
+  - WP-C5 (production deploy): workflow rewritten to the official Pages flow (§2); waits on the owner's Pages setting, and has not run on GitHub yet.
 
 ## 4. Retire results and bred decks that fail the fairness bar
 

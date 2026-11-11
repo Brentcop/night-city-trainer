@@ -1,8 +1,11 @@
 // The game log as a drawer. Full board: a slim tab at the right end of the turn strip shows the latest line, and the
 // drawer opens down the right edge over the board (the board keeps its size). Compact (phone) board: a bottom sheet.
 // Its open state is the caller's (kept for the session).
-import { memo, useEffect, useRef } from 'react';
+// Focus: opening it moves focus in and Escape closes it, returning focus to the toggle. The phone sheet keeps Tab
+// inside; the full board's drawer does not, because it stays open while you play (a trap would lock the board).
+import { memo, useEffect, useRef, useState } from 'react';
 import type { Game } from '../../../engine/engine';
+import { useFocusTrap } from '../Modal';
 
 type LogLine = Game['s']['log'][number];
 
@@ -69,9 +72,19 @@ export function LogDrawer({
   footer?: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLElement>(null);
+  // a drawer already open when the board appears (its state lasts the session) doesn't take focus; one opened now does
+  const [openedHere, setOpenedHere] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    setOpenedHere(open);
+  }
+  useFocusTrap(box, onClose, { active: open && openedHere, initial: 'first', trap: sheet });
   useEffect(() => {
     if (open && ref.current) ref.current.scrollTop = ref.current.scrollHeight;
   }, [n, open]);
+  // Escape also closes a drawer that was already open (no focus wiring then); a dialog's own Escape comes first
   useEffect(() => {
     if (!open) return;
     const key = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && onClose();
@@ -80,7 +93,7 @@ export function LogDrawer({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <aside id={DRAWER_ID} className={`pb-drawer ${sheet ? 'pb-drawer-sheet' : ''}`} aria-label="Game log">
+    <aside ref={box} id={DRAWER_ID} className={`pb-drawer ${sheet ? 'pb-drawer-sheet' : ''}`} aria-label="Game log" tabIndex={-1}>
       <div className="pb-drawer-head">
         <span className="pb-label">Game log</span>
         <button type="button" className="ghost pb-drawer-close" onClick={onClose} aria-label="Close the game log">

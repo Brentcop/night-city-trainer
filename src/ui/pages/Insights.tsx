@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
-import analysis from '../../data/analysis.json';
-import type { DeckReport } from '../../analysis/analyze';
+import { ANALYSIS } from '../../data/analysisData';
 import { DeckInsights } from '../components/DeckInsights';
 import { allDecks } from '../../lib/browserLibrary';
 import { LegendStrip, OriginBadge } from '../components/DeckIdentity';
@@ -24,7 +23,7 @@ function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => voi
 }
 
 export function InsightsPage({ initial }: { initial?: string }) {
-  const A = analysis as unknown as { date: string; games: number; bot: string; decks: DeckReport[] };
+  const A = ANALYSIS;
   const [sel, setSel] = useState(A.decks.find((d) => d.deck === initial)?.deck ?? A.decks[0]?.deck);
   const [view, setView] = useState<View>('draws');
   const r = A.decks.find((d) => d.deck === sel);
@@ -52,7 +51,7 @@ export function InsightsPage({ initial }: { initial?: string }) {
         <div className="small muted">
           {A.decks.reduce((a, d) => a + d.games, 0) / 2} bot games · {A.bot} bot · {A.date.slice(0, 10)}
         </div>
-        {isHistorical((analysis as { manifest?: { simVersion?: number } }).manifest?.simVersion) && (
+        {isHistorical(A.manifest?.simVersion) && (
           <div className="small muted">Recorded before the current simulator (v{CURRENT_SIM_VERSION}): historical.</div>
         )}
         {A.decks.map((d) => (

@@ -1,30 +1,28 @@
 // Deck profile: where a deck comes from (origin, lineage, idea) and every measured stat for it, plus the list shown visually.
 import { useId, useMemo } from 'react';
 import '../deckprofile.css';
-import seasonsData from '../../data/seasons.json';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
 import { deckColors } from '../../engine/deck';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
-import { bredInfo, deckStats, pct } from '../../lib/deckStats';
+import { bredInfo, deckStats, pct, statsName } from '../../lib/deckStats';
+import { SEASONS } from '../../data/index';
 import { classify } from '../../ai/archetype';
 import { findDeck } from '../components/DeckPicker';
 import { ColorPips, LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 import { ProvenanceBlock } from '../components/Provenance';
 import { DeckInsights } from '../components/DeckInsights';
-import { ok, deckReports, profileHref, WrBar, type MatchRec } from '../components/DeckStats';
+import { ok, profileHref, WrBar } from '../components/DeckStats';
+import { deckReports, type MatchRec } from '../../data/deckReportsData';
+import { telemetryReport } from '../../data/analysisData';
 import { CurveAndTypes } from '../components/DeckCurve';
 import { DeckStructure } from '../components/DeckCards';
 import { DeckRecordPanel } from '../components/DeckRecord';
 
-type SeasonsT = {
-  leaderboard: { name: string; file: string; arch: string }[];
-  seasons: { season: number; games: number; date: string; standings: { name: string; file: string; wr: number }[] }[];
-};
-const S = seasonsData as unknown as SeasonsT;
+const S = SEASONS;
 
 /** Library decks whose name appears in a free-text "parents" field (longest names first). */
-function decksNamedIn(text: string | undefined, lib: LibraryDeck[], self?: string) {
+function decksNamedIn(text: string | undefined, lib: readonly LibraryDeck[], self?: string) {
   if (!text) return [];
   const out: LibraryDeck[] = [];
   let rest = text;
@@ -121,9 +119,10 @@ export function DeckProfilePage({ file }: { file?: string }) {
   return <Profile d={d} lib={lib} />;
 }
 
-function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
+function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
   const name = d.deck.name;
   const st = deckStats(d.file);
+  const telemetry = telemetryReport(statsName(d.file));
   const rep = deckReports(d.file);
   const bred = bredInfo(name);
   const kind = originKind(d.prov, d.kind);
@@ -370,9 +369,9 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
         </Section>
       )}
 
-      {st.report && (
-        <Section title="Telemetry insights" caption={`What the game logs say about how this deck wins: ${st.report.games} instrumented games against the field.`}>
-          <DeckInsights r={st.report} />
+      {telemetry && (
+        <Section title="Telemetry insights" caption={`What the game logs say about how this deck wins: ${telemetry.games} instrumented games against the field.`}>
+          <DeckInsights r={telemetry} />
         </Section>
       )}
 

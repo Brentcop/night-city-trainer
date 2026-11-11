@@ -1,32 +1,21 @@
-// One place to look up every measured statistic for a deck (by file or name).
-import seasons from '../data/seasons.json';
-import review from '../data/review.json';
-import analysis from '../data/analysis.json';
-import type { DeckReport } from '../analysis/analyze';
+// One place to look up a deck's season and round-robin statistics (by file or name). Small enough for the Home page's
+// entry chunk; the telemetry report (analysis.json, ~330 KB) is separate: telemetryReport() in src/data/analysisData.ts.
+import { REVIEW, SEASONS, type LeaderRow } from '../data/index';
 
-export interface LeaderRow {
-  name: string;
-  file: string;
-  origin: string;
-  colors: string;
-  arch: string;
-  vsMeta: number;
-  rating: number;
-  metaG: number;
-  percentile: number;
-  finals?: number;
-  seasons: Record<string, number>;
-}
+export type { LeaderRow } from '../data/index';
 
 export interface DeckStats {
   leader?: LeaderRow & { rank: number; of: number };
   review?: { winRate: number; rank: number; of: number; matrix: Record<string, number>; games: number; date: string };
-  report?: DeckReport;
 }
 
-const S = seasons as unknown as { leaderboard: LeaderRow[]; seasons: { season: number; bred: { name: string; method: string; parents: string[]; idea: string }[]; standings: { name: string; wr: number }[] }[] };
-const R = review as unknown as { date: string; games: number; decks: { name: string; file: string; winRate: number }[]; matrix: Record<string, Record<string, number>> };
-const A = analysis as unknown as { decks: DeckReport[] };
+const S = SEASONS;
+const R = REVIEW;
+
+/** The deck name the statistics are filed under: the leaderboard's or round robin's name for a file, else the argument. */
+export function statsName(nameOrFile: string): string {
+  return S.leaderboard.find((r) => r.file === nameOrFile || r.name === nameOrFile)?.name ?? R.decks.find((d) => d.file === nameOrFile)?.name ?? nameOrFile;
+}
 
 export function deckStats(nameOrFile: string): DeckStats {
   const out: DeckStats = {};
@@ -35,7 +24,6 @@ export function deckStats(nameOrFile: string): DeckStats {
   const name = out.leader?.name ?? R.decks.find((d) => d.file === nameOrFile)?.name ?? nameOrFile;
   const ri = R.decks.findIndex((d) => d.name === name);
   if (ri >= 0) out.review = { winRate: R.decks[ri].winRate, rank: ri + 1, of: R.decks.length, matrix: R.matrix[name] ?? {}, games: R.games, date: R.date };
-  out.report = A.decks.find((d) => d.deck === name);
   return out;
 }
 

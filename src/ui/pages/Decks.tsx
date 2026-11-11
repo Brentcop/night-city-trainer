@@ -1,5 +1,5 @@
 // #/decks: the deck library gallery, or (with a deck in the URL or "New") the editor workbench.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deckColors, exportChoom, exportOfficial, exportSimJson, parseDeck, validateDeck } from '../../engine/deck';
 import type { DeckList } from '../../engine/types';
 import { allDecks, deleteCustom, upsertCustom } from '../../lib/browserLibrary';
@@ -48,8 +48,10 @@ function syncUrl(file: string) {
 }
 
 function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: () => void }) {
-  const [version, setVersion] = useState(0);
-  const decks = useMemo(() => allDecks(), [version]);
+  // allDecks() is cached against the stored decks, so calling it each render is cheap; bumping `version` after a
+  // save or delete re-renders this component so it picks the change up.
+  const [, setVersion] = useState(0);
+  const decks = allDecks();
   // exact file match only: a link to a deleted or renamed deck must not open a different deck
   const start = findDeck(initial);
   const [view, setView] = useState<'list' | 'visual'>(() => (loadPref('nct.deckEditorView', 'list') === 'visual' ? 'visual' : 'list'));

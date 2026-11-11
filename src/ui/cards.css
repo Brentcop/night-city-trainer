@@ -352,6 +352,15 @@
   font-weight: 400;
   color: var(--muted);
 }
+/* the long form (deck profile and Home hero) names the authors too: on a narrow screen it wraps inside the row
+   instead of running past the edge */
+.origin-badge.is-full {
+  white-space: normal;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border-radius: 12px;
+}
 .pips {
   display: inline-flex;
   gap: 3px;

@@ -6,11 +6,10 @@ import type { LibraryDeck } from '../../lib/library';
 import { exportOfficial, parseDeck, validateDeck } from '../../engine/deck';
 import { CARD_BY_ID } from '../../engine/cards';
 import type { CardDef, DeckList } from '../../engine/types';
-import { breedInBrowser, loadH2H, playSet, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
+import { breedInBrowser, loadH2H, partialTune, playSet, recordedEventCount, tunedName, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
 import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
 import { RunDetails } from '../components/RunDetails';
-import tournaments from '../../data/tournaments.json';
 import type { Bred } from '../../ai/breeder';
 import { errorText, isStopped } from '../../sim/pool';
 import { usePoolRun } from '../usePoolRun';
@@ -18,7 +17,7 @@ import { customSaveName } from '../deckLookup';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { DeckTile } from '../components/DeckIdentity';
 import { Signed, Wr } from '../components/Num';
-import ratings from '../../data/ratings.json';
+import { RATINGS } from '../../data/index';
 import { Markdown } from '../components/Markdown';
 import { PageHead } from '../components/PageHead';
 import { CardNameButton, CardThumb, DeckListCompact, useCardDialog } from '../components/DeckCards';
@@ -40,12 +39,11 @@ const EFFORT = {
   thorough: { label: 'Thorough (~3 min)', games: 168, gens: 3, cands: 6 },
 };
 
-function fieldDecks(key: FieldKey, lib: LibraryDeck[], exclude: string): DeckList[] {
+function fieldDecks(key: FieldKey, lib: readonly LibraryDeck[], exclude: string): DeckList[] {
   const not = (d: LibraryDeck) => d.deck.name !== exclude && !/-eor\.txt$/.test(d.file);
   if (key === 'meta') return lib.filter((d) => d.kind === 'meta' && not(d)).map((d) => d.deck);
   if (key === 'meta+ladder') return lib.filter((d) => (d.kind === 'meta' || d.kind === 'ladder') && not(d)).map((d) => d.deck);
-  const R = ratings as unknown as { decks: { name: string }[] };
-  return R.decks
+  return RATINGS.decks
     .map((r) => lib.find((d) => d.deck.name === r.name))
     .filter((d): d is LibraryDeck => !!d && not(d))
     .slice(0, 8)
@@ -184,20 +182,26 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     stopRef.current = true;
     poolRun.stop();
   };
-  const finalDeck = prog?.deck;
+  const finished = outcome?.kind === 'done';
+  // A stopped or failed run can still save the swaps it confirmed before it ended, labelled as partial.
+  const partial = !running && outcome && !finished ? partialTune(prog) : null;
+  const finalDeck = finished ? prog?.deck : partial?.deck;
   const changes = finalDeck && parsed.deck ? deckDiff(parsed.deck, finalDeck).filter((c) => CARD_BY_ID[c.id]) : [];
   const { open: openCard, dialog: cardDialog } = useCardDialog();
   const save = () => {
     if (!finalDeck) return;
-    const want = finalDeck.name.endsWith('(tuned)') ? finalDeck.name : `${finalDeck.name} (tuned)`;
+    const want = tunedName(finalDeck.name, !!partial);
     const name = customSaveName(want, lib) ?? want;
-    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(manifest ? { manifest } : {}) })) {
+    const done = manifest?.sample.completedGames ?? prog?.played ?? 0;
+    const notes = partial
+      ? `Partial Deck Lab tune: stopped after ${done} of ${manifest?.sample.plannedGames ?? prog?.total ?? '?'} planned games. Confirmed swaps: ${partial.adopted.join('; ')}.`
+      : finalDeck.notes;
+    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(manifest ? { manifest } : {}) })) {
       window.alert(NOT_SAVED);
       return;
     }
     setSaved(name);
   };
-  const finished = outcome?.kind === 'done';
 
   return (
     <>
@@ -281,7 +285,14 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               ⚠ A game failed, so the run was abandoned: {outcome.error}
             </div>
           )}
-          {!running && outcome?.kind === 'stopped' && <div className="small muted">The run was stopped before it finished, so the list below was not fully measured and can't be saved. Run it again to finish.</div>}
+          {!running && outcome && !finished && (
+            <div className="small muted">
+              {outcome.kind === 'stopped' ? 'The run was stopped before it finished' : 'The run ended early'}
+              {partial
+                ? `. ${partial.adopted.length === 1 ? 'One swap was' : `${partial.adopted.length} swaps were`} confirmed on fresh games before that; you can save the list with only ${partial.adopted.length === 1 ? 'that swap' : 'those swaps'} as a partial result. Later generations were not measured.`
+                : ', before any swap was confirmed, so there is nothing to save. Run it again to finish.'}
+            </div>
+          )}
           {running && (
             <div className="run-progress">
               <div className="bar">
@@ -333,8 +344,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
             </details>
           ))}
           <RunDetails m={manifest} />
-          {!running && finished && finalDeck && (
+          {!running && finalDeck && (finished || partial) && (
             <div className="grid">
+              {partial && (
+                <div className="zone-label" role="note">
+                  Partial result: {partial.adopted.length} confirmed swap{partial.adopted.length === 1 ? '' : 's'}, {manifest?.sample.completedGames ?? prog?.played ?? 0} of {manifest?.sample.plannedGames ?? prog?.total} planned games played
+                </div>
+              )}
               {changes.length ? (
                 <div className="lab-changes">
                   <div className="zone-label">Changes to the list</div>
@@ -359,7 +375,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                       </details>
                     )}
                     <details>
-                      <summary className="small">Tuned list</summary>
+                      <summary className="small">{partial ? 'Tuned list (partial)' : 'Tuned list'}</summary>
                       <DeckListCompact deck={finalDeck} />
                     </details>
                   </div>
@@ -369,7 +385,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               )}
               <div className="row">
                 <button className="primary" onClick={save} disabled={!changes.length}>
-                  💾 Save to My decks
+                  {partial ? '💾 Save partial result to My decks' : '💾 Save to My decks'}
                 </button>
                 <button onClick={() => navigator.clipboard?.writeText(exportOfficial(finalDeck))}>Copy list</button>
                 {saved && (
@@ -424,12 +440,21 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   useEffect(() => onBusy(anyRunning), [anyRunning, onBusy]);
   // head-to-heads for counter decks: loaded only when this tab opens
   const [h2h, setH2H] = useState<H2HInfo | null | 'loading'>('loading');
+  // the recorded-event count (for the staleness note) loads with them, not with the page (LIB-3)
+  const [recorded, setRecorded] = useState<number | null>(null);
   useEffect(() => {
-    loadH2H().then(setH2H);
+    let live = true;
+    Promise.all([loadH2H(), recordedEventCount()]).then(([h, n]) => {
+      if (!live) return;
+      setRecorded(n);
+      setH2H(h);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
-  const recorded = (tournaments as unknown as { events: unknown[] }).events.length;
   const h2hReady = h2h && h2h !== 'loading' ? h2h : null;
-  const stale = !!h2hReady && h2hReady.events < recorded;
+  const stale = !!h2hReady && recorded !== null && h2hReady.events < recorded;
 
   const breed = () => setBred(breedInBrowser(lib, { n, seed, parents, h2h: h2hReady?.lookup }));
   const test = async (b: Bred) => {
@@ -545,7 +570,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
                 {stale && (
                   <span style={{ color: 'var(--accent)' }}>
                     {' '}
-                    ⚠ {recorded - h2hReady.events} newer event(s) aren't included yet — rebuild with <code>npm run build-h2h</code> (runs automatically after every tournament series).
+                    ⚠ {(recorded ?? 0) - h2hReady.events} newer event(s) aren't included yet — rebuild with <code>npm run build-h2h</code> (runs automatically after every tournament series).
                   </span>
                 )}
               </>

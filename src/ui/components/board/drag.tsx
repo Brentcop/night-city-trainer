@@ -3,7 +3,8 @@
 //   face-up Legend → your field = Go Solo / play it by paying its cost (the prompt offers whichever are legal)
 //   your unit → a rival unit = attack it, → the rival Gig area = attack the Gig area
 // Every drop that does something in the game asks for confirmation first.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useFocusTrap } from '../Modal';
 import type { Game } from '../../../engine/engine';
 import { TcgCard } from '../TcgCard';
 import type { Interaction } from './interaction';
@@ -195,18 +196,24 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
  * a small panel against the right edge instead of a centred dialog.
  */
 export function ConfirmPrompt({ p, onPick, onCancel, side }: { p: PendingConfirm; onPick: (i: number) => void; onCancel: () => void; side?: boolean }) {
+  // focus in, Tab kept inside, Escape cancels, focus back where it was (the shared Modal's wiring)
+  const ref = useRef<HTMLDivElement>(null);
+  const id = useId();
+  useFocusTrap(ref, onCancel);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-      if (e.key === 'Enter' && p.choices.length === 1) onPick(p.choices[0].i);
+      // Enter confirms a single choice, unless it is pressing a button (which answers by itself)
+      if (e.key === 'Enter' && p.choices.length === 1 && !(e.target instanceof HTMLElement && e.target.closest('button'))) onPick(p.choices[0].i);
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [p, onPick, onCancel]);
+  }, [p, onPick]);
   return (
     <div className={`pb-modal-wrap ${side ? 'pb-confirm-side' : ''}`} onClick={onCancel}>
-      <div className="pb-modal pb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Confirm action">
-        <div className="pb-confirm-title">{p.title}</div>
+      <div ref={ref} className="pb-modal pb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
+        <div id={id} className="pb-confirm-title">
+          {p.title}
+        </div>
         <div className="pb-confirm-actions">
           {p.choices.map((c) => (
             <button key={c.i} className="primary pb-big" onClick={() => onPick(c.i)}>

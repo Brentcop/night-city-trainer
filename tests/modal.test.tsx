@@ -3,7 +3,7 @@
 // small fakes with the same shape as the DOM pieces it uses.
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { attachModal, FOCUSABLE, Modal, trapTarget, type DialogNode, type DocumentLike, type KeyEventLike } from '../src/ui/components/Modal';
+import { attachModal, FOCUSABLE, Modal, stepTarget, trapTarget, type DialogNode, type DocumentLike, type KeyEventLike, type TrapOptions } from '../src/ui/components/Modal';
 
 class FakeDoc implements DocumentLike {
   activeElement: unknown = null;
@@ -33,6 +33,8 @@ class FakeEl {
 }
 class FakeDialog extends FakeEl implements DialogNode {
   selector = '';
+  /** the control marked data-autofocus, if any */
+  auto: FakeEl | null = null;
   constructor(
     doc: FakeDoc,
     public items: FakeEl[],
@@ -43,19 +45,21 @@ class FakeDialog extends FakeEl implements DialogNode {
     return other === this || this.items.includes(other as FakeEl);
   }
   querySelectorAll(selector: string) {
+    if (selector === '[data-autofocus]') return this.auto ? [this.auto] : [];
     this.selector = selector;
     return this.items;
   }
 }
 
-function setup(n = 3) {
-  const doc = new FakeDoc();
+function setup(n = 3, opts?: TrapOptions & { closable?: boolean; doc?: FakeDoc; auto?: number }) {
+  const doc = opts?.doc ?? new FakeDoc();
   const opener = new FakeEl('opener', doc);
   opener.focus();
   const items = Array.from({ length: n }, (_, i) => new FakeEl(`item${i}`, doc));
   const dialog = new FakeDialog(doc, items);
+  if (opts?.auto !== undefined) dialog.auto = items[opts.auto];
   let closed = 0;
-  const detach = attachModal(dialog, doc, () => closed++);
+  const detach = attachModal(dialog, doc, opts?.closable === false ? null : () => closed++, opts);
   return { doc, opener, items, dialog, detach, closes: () => closed };
 }
 
@@ -143,5 +147,79 @@ describe('trapTarget', () => {
     expect(trapTarget(xs, null, false)).toBe('a');
     expect(trapTarget(xs, null, true)).toBe('c');
     expect(trapTarget([], null, false)).toBeNull();
+  });
+});
+
+// PLAY-9: the Play board's overlays and menus use the same wiring through useFocusTrap (Overlays.tsx, PhoneParts.tsx,
+// drag.tsx, LogDrawer.tsx, and the site header in Play.tsx).
+describe('board overlay focus (useFocusTrap options)', () => {
+  it('a dialog opened over another takes the keys until it closes, then the first gets them back', () => {
+    const doc = new FakeDoc();
+    const under = setup(2, { doc, closable: false }); // the opening-hand choice
+    const over = setup(2, { doc }); // Concede, opened over it
+    expect(doc.activeElement).toBe(over.dialog);
+    doc.key('Tab');
+    expect(doc.activeElement).toBe(over.items[0]); // not pulled into the dialog underneath
+    doc.key('Tab', true);
+    expect(doc.activeElement).toBe(over.items[1]);
+    expect(doc.key('Escape')).toBe(true);
+    expect(over.closes()).toBe(1);
+    over.detach();
+    expect(doc.activeElement).toBe(over.opener);
+    doc.key('Tab');
+    expect(doc.activeElement).toBe(under.items[0]);
+  });
+
+  it('one that cannot be dismissed ignores Escape (and leaves it to the page)', () => {
+    const { doc } = setup(2, { closable: false });
+    expect(doc.key('Escape')).toBe(false);
+  });
+
+  it('menus: focus starts on the first item, arrows move and wrap, Home and End jump', () => {
+    const { doc, items } = setup(3, { initial: 'first', arrows: true });
+    expect(doc.activeElement).toBe(items[0]);
+    expect(doc.key('ArrowDown')).toBe(true);
+    expect(doc.activeElement).toBe(items[1]);
+    doc.key('ArrowUp');
+    doc.key('ArrowUp');
+    expect(doc.activeElement).toBe(items[2]);
+    doc.key('ArrowDown');
+    expect(doc.activeElement).toBe(items[0]);
+    doc.key('End');
+    expect(doc.activeElement).toBe(items[2]);
+    doc.key('Home');
+    expect(doc.activeElement).toBe(items[0]);
+  });
+
+  it('arrows are left to a focused form field (the bot speed select in the game menu)', () => {
+    const { doc, items } = setup(2, { initial: 'first', arrows: true });
+    (items[1] as unknown as { tagName: string }).tagName = 'SELECT';
+    items[1].focus();
+    expect(doc.key('ArrowDown')).toBe(false);
+    expect(doc.activeElement).toBe(items[1]);
+  });
+
+  it('a control marked data-autofocus takes the initial focus (the card reader starts on Close)', () => {
+    const { doc, items } = setup(2, { auto: 1 });
+    expect(doc.activeElement).toBe(items[1]);
+  });
+
+  it('a non-modal panel (the full-board log drawer) takes focus and closes on Escape but lets Tab leave', () => {
+    const { doc, items, opener, detach, closes } = setup(2, { initial: 'first', trap: false });
+    expect(doc.activeElement).toBe(items[0]);
+    items[1].focus();
+    expect(doc.key('Tab')).toBe(false);
+    doc.key('Escape');
+    expect(closes()).toBe(1);
+    detach();
+    expect(doc.activeElement).toBe(opener);
+  });
+
+  it('stepTarget wraps and enters from outside', () => {
+    expect(stepTarget(['a', 'b', 'c'], 'c', 1)).toBe('a');
+    expect(stepTarget(['a', 'b', 'c'], 'a', -1)).toBe('c');
+    expect(stepTarget(['a', 'b', 'c'], null, 1)).toBe('a');
+    expect(stepTarget(['a', 'b', 'c'], null, -1)).toBe('c');
+    expect(stepTarget([], null, 1)).toBeNull();
   });
 });

@@ -6,12 +6,12 @@ import { shortCredit } from '../../lib/library';
 import { deckStats, pct } from '../../lib/deckStats';
 import { artEnabled, useArt } from '../art';
 import { typeSplit } from '../../lib/deckTypes';
-import { SMALL_SAMPLE, tileRecord, type RatingsFile } from '../../lib/playedRecord';
-import ratings from '../../data/ratings.json';
+import { SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
+import { RATINGS } from '../../data/index';
 import { TypeSplitBar } from './TypeSplit';
 
-/** Tournament rows by deck name (ratings.json is already in the entry chunk, through the Home page). */
-const RATED = new Map((ratings as unknown as RatingsFile).decks.map((r) => [r.name, r]));
+/** Tournament rows by deck name (ratings.json is in the entry chunk anyway, through the Home page). */
+const RATED = new Map(RATINGS.decks.map((r) => [r.name, r]));
 
 export type OriginKind = 'choom-meta' | 'sim-ladder' | 'choom-guide' | 'nc-original' | 'nc-bred' | 'nc-variant' | 'nc-build' | 'mine' | 'other';
 
@@ -45,7 +45,7 @@ export function OriginBadge({ deck, full }: { deck: Pick<LibraryDeck, 'prov' | '
   const m = ORIGIN_META[k];
   const season = deck.prov.origin?.match(/season (\d+), (\w+)/);
   return (
-    <span className={`origin-badge origin-${k}`} title={[deck.prov.origin, deck.prov.author].filter(Boolean).join(' — ')}>
+    <span className={`origin-badge origin-${k}${full ? ' is-full' : ''}`} title={[deck.prov.origin, deck.prov.author].filter(Boolean).join(' — ')}>
       <span className="origin-icon">{m.icon}</span>
       {season ? `S${season[1]} ${season[2]}` : m.label}
       {full && deck.prov.author && <span className="origin-by"> · {shortCredit(deck).replace(/^[^·]*· ?/, '') || deck.prov.author}</span>}

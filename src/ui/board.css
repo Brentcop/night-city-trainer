@@ -78,13 +78,6 @@
   border: 1px solid var(--border);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.18);
 }
-.pb-below {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-  min-width: 0;
-}
 .pb-error {
   border-color: var(--red);
   margin: 8px 0;
@@ -249,8 +242,6 @@
   margin-top: -16px;
   position: relative;
   z-index: 1;
-}
-.pb-gear {
   --tcg-w: 40px;
 }
 .pb-slot.is-spent .pb-gear {
@@ -422,8 +413,6 @@
 .pb-rival-hand-card {
   margin-left: -22px;
   transform: rotate(180deg);
-}
-.pb-rival-hand-card {
   --tcg-w: 44px;
 }
 .pb-hand-count {
@@ -436,10 +425,6 @@
   align-items: flex-end;
   gap: 10px;
   margin-top: 6px;
-}
-.pb-handbar-actions {
-  flex: none;
-  padding-bottom: 14px;
 }
 .pb-endturn {
   font-family: var(--display);
@@ -803,9 +788,6 @@ button.pb-big {
     gap: 4px;
     min-height: 40px;
   }
-  .pb-field .pb-cards {
-    min-height: 100px;
-  }
   .pb-slot.is-spent {
     margin: 0 8px;
   }
@@ -815,18 +797,6 @@ button.pb-big {
   }
   .pb-piles {
     gap: 6px;
-  }
-  .pb-pile {
-    width: 64px;
-  }
-  .pb-handbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .pb-handbar-actions {
-    padding-bottom: 0;
-    display: flex;
-    justify-content: flex-end;
   }
   .pb-midline {
     font-size: 0.95rem;
@@ -840,25 +810,6 @@ button.pb-big {
   .pb-versus-vs {
     text-align: center;
     font-size: 1.4rem;
-  }
-  .pb-over-title {
-    font-size: 2.2rem;
-  }
-  .pb.pb-has-dock {
-    padding-bottom: 46vh;
-  }
-  .pb-dock {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 800;
-    max-height: 45vh;
-    overflow-y: auto;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
-  }
-  .pb-dock .pb-prompt {
-    border-radius: 12px 12px 0 0;
   }
 }
 
@@ -959,31 +910,7 @@ body.pb-dragging [data-drop].pb-drop-over {
   padding: 4px 8px;
   white-space: nowrap;
 }
-.pb-handbar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: stretch;
-}
-
-/* ---- action menu as a bottom sheet on phones ---- */
-.pb-menu.pb-menu-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: auto;
-  transform: none;
-  border-radius: 16px 16px 0 0;
-  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
-  max-height: 60vh;
-  overflow-y: auto;
-  animation: sheet-up 0.22s var(--ease-out, ease) both;
-}
-.pb-menu.pb-menu-sheet .pb-menu-item {
-  padding: 12px;
-  font-size: 1rem;
-}
+/* the log drawer's bottom sheet on phones slides up */
 @keyframes sheet-up {
   from {
     transform: translateY(100%);
@@ -1007,8 +934,6 @@ body.pb-dragging [data-drop].pb-drop-over {
   }
   .pb-pile {
     width: 46px;
-  }
-  .pb-pile {
     --tcg-w: 40px;
   }
   .pb-pips {
@@ -1032,23 +957,10 @@ body.pb-dragging [data-drop].pb-drop-over {
   .pb-field-empty {
     padding: 10px;
   }
+  /* the hand bar only exists on the Play board, which is always .pb-phone at these sizes: `.pb-phone .pb-handbar`
+     sets its position, display, spacing, border and surface; only its stacking is left to this rule */
   .pb-handbar {
-    position: sticky;
-    bottom: 0;
     z-index: 60;
-    margin: 6px -6px -6px;
-    padding: 4px 6px calc(6px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--panel) 94%, transparent);
-    backdrop-filter: blur(6px);
-    border-top: 1px solid var(--border);
-    border-radius: 12px 12px 0 0;
-    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.35);
-    flex-direction: column-reverse;
-  }
-  .pb-handbar-actions {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
   }
   .pb-hand-scroll {
     padding-top: 8px;
@@ -1165,11 +1077,7 @@ body.pb-dragging [data-drop].pb-drop-over {
   padding: 6px 0;
 }
 
-/* ---- hand bar: buttons always above the cards ---- */
-.pb-handbar-actions {
-  position: relative;
-  z-index: 3;
-}
+/* ---- hand bar: the cards under the controls ---- */
 .pb-hand {
   position: relative;
   z-index: 1;
@@ -1217,31 +1125,12 @@ body.pb-dragging [data-drop].pb-drop-over {
   .pb-turn-who {
     font-size: 0.95rem;
   }
-  .pb-handbar {
-    flex-direction: row;
-    align-items: center;
-    padding-top: 4px;
-  }
-  .pb-handbar-actions {
-    flex-direction: column;
-    justify-content: center;
-    flex: none;
-  }
   .pb-hand-scroll {
     flex: 1;
     padding-top: 4px;
   }
   .pb-hand {
     --tcg-w: 64px;
-  }
-  .pb-dock {
-    max-height: 60vh;
-  }
-  .pb.pb-has-dock {
-    padding-bottom: 62vh;
-  }
-  .pb-menu.pb-menu-sheet {
-    max-height: 75vh;
   }
 }
 /* cards you can drag: no text selection, no long-press image menu */
@@ -1797,8 +1686,6 @@ body:has(.pb-full) {
   height: var(--pb-hand-h);
   margin: 0;
   align-items: stretch;
-}
-.pb-full .pb-handbar {
   position: relative;
   padding-right: calc(var(--pb-dock-w) + 10px);
 }
@@ -2259,6 +2146,20 @@ body:has(.pb-phone) {
 .pb-phone .pb-fan:has(.pb-menu-host),
 .pb-phone .pb-hand-scroll .pb-fan:has(.pb-menu-host) {
   transform: translateY(-8px);
+}
+/* Overlapped hand cards show only a strip of themselves. While card art is loading or off, a covered card's text-frame
+   name is cut to one line that fits its strip (the formula is the visible width the margin above leaves it), so
+   neighbouring names can't run into each other; the top card, and one lifted by a tap, focus or its menu, show the
+   name whole. Landscape stacks the hand downwards, so the name moves to the top of the frame, into the strip. */
+.pb-phone .pb-fan:not(:last-child):not(:hover):not(:focus-within):not(:has(.pb-menu-host)) .tcg-frame-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(min(var(--tcg-w) * 0.9, (100cqi - var(--tcg-w)) / max(var(--hand-n, 1) - 1, 1)) - var(--tcg-w) * 0.06 - 5px);
+}
+.pb-phone-land .pb-fan:not(:last-child):not(:hover):not(:focus-within):not(:has(.pb-menu-host)) .tcg-frame-name {
+  order: -1;
+  max-width: 100%;
 }
 .pb-phone .tcg,
 .pb-phone .tcg * {

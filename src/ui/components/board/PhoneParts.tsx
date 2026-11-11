@@ -1,6 +1,7 @@
 // Phone board pieces: the small prompt panel against the right edge (collapsible to a tab), the game menu behind ☰,
 // and the card reader (a tap on a card with nothing to do, a long press on any card, or "Read card").
-import { useEffect, useId } from 'react';
+import { useId, useRef } from 'react';
+import { useFocusTrap } from '../Modal';
 import { createPortal } from 'react-dom';
 import type { Game } from '../../../engine/engine';
 import type { Decision } from '../../../engine/types';
@@ -162,11 +163,8 @@ export function GameMenu({
   onClose: () => void;
 }) {
   const id = useId();
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, onClose, { initial: 'first', arrows: true });
   const run = (f: () => void) => () => {
     onClose();
     f();
@@ -174,7 +172,7 @@ export function GameMenu({
   return (
     <>
       <div className="pb-backdrop" onClick={onClose} />
-      <div className="pb-gamemenu" role="menu" aria-label="Game menu">
+      <div ref={ref} className="pb-gamemenu" role="menu" aria-label="Game menu" tabIndex={-1}>
         {onResult && (
           <button role="menuitem" onClick={run(onResult)}>
             Show the result
@@ -206,11 +204,9 @@ export function GameMenu({
 
 /** A card shown large enough to read, over everything; tap anywhere to close. With `onChoose`, it can be picked. */
 export function CardPeek({ g, uid, onClose, onChoose }: { g: Game; uid: number; onClose: () => void; onChoose?: () => void }) {
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  const ref = useRef<HTMLDivElement>(null);
+  // focus starts on Close (data-autofocus), stays inside, and returns to the card or button that opened the reader
+  useFocusTrap(ref, onClose);
   const c = g.s.cards[uid];
   if (!c || hiddenFromMe(g, uid)) return null;
   const def = g.def(uid);
@@ -223,7 +219,7 @@ export function CardPeek({ g, uid, onClose, onChoose }: { g: Game; uid: number; 
     }
   }
   return createPortal(
-    <div className="pb-peek" onClick={onClose} role="dialog" aria-modal="true" aria-label={def.displayName}>
+    <div ref={ref} className="pb-peek" onClick={onClose} role="dialog" aria-modal="true" aria-label={def.displayName} tabIndex={-1}>
       <div className="pb-peek-body" onClick={(e) => e.stopPropagation()}>
         <TcgCard def={def} size="xl" noZoom power={power} />
         <div className="pb-peek-text">
@@ -242,7 +238,7 @@ export function CardPeek({ g, uid, onClose, onChoose }: { g: Game; uid: number; 
               Choose
             </button>
           )}
-          <button onClick={onClose} autoFocus>
+          <button onClick={onClose} data-autofocus>
             Close
           </button>
         </div>

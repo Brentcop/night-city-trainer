@@ -193,6 +193,19 @@
   line-height: 1;
   color: var(--accent);
 }
+/* a tile whose number is still loading (Home's finals tile): same box, a quiet bar where the number goes */
+.dp-tile.is-loading .dp-tile-val,
+.dp-tile.is-loading .dp-tile-cap {
+  border-radius: 4px;
+  background: var(--mat-line);
+  opacity: 0.5;
+}
+.dp-tile.is-loading .dp-tile-val {
+  width: 3.2em;
+}
+.dp-tile.is-loading .dp-tile-label {
+  color: var(--muted);
+}
 .dp-tile-label {
   font-weight: 600;
   font-size: 13px;

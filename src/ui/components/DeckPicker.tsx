@@ -2,10 +2,10 @@ import { allDecks } from '../../lib/browserLibrary';
 import { deckColors } from '../../engine/deck';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
 import { deckByFile, searchDeck } from '../deckLookup';
-import { SMALL_SAMPLE, tileRecord, type RatingsFile } from '../../lib/playedRecord';
-import ratings from '../../data/ratings.json';
+import { SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
+import { RATINGS } from '../../data/index';
 
-const RATED = new Map((ratings as unknown as RatingsFile).decks.map((r) => [r.name, r]));
+const RATED = new Map(RATINGS.decks.map((r) => [r.name, r]));
 /** " · 68% in 485 games" from the deck's tournament record (an option can't be styled, so a small sample says so). */
 function playedLabel(name: string) {
   const r = tileRecord(RATED.get(name));
