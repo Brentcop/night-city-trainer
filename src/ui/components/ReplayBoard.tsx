@@ -25,12 +25,17 @@ const SPEEDS = [
   { ms: 350, label: 'normal' },
   { ms: 120, label: 'fast' },
 ];
+type ReplayMode = 'turn' | 'fast' | 'step';
+const TURN_DELAY = 2_400;
 
 export function ReplayBoard({ data, names }: { data: ReplayData; names: [string, string] }) {
   const frames = data.frames;
   const n = frames.length;
   const [cur, setCur] = useState(n - 1);
   const [playing, setPlaying] = useState(false);
+  // Replay opens in a readable turn-by-turn mode. Fast-forward preserves the
+  // old frame playback, while Next action is an explicit one-frame step mode.
+  const [mode, setMode] = useState<ReplayMode>('turn');
   const [speed, setSpeed] = useState(350);
   const narrow = useNarrow();
   const listRef = useRef<HTMLDivElement>(null);
@@ -38,13 +43,22 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   useEffect(() => {
     setCur(n - 1);
     setPlaying(false);
+    setMode('turn');
   }, [data, n]);
   useEffect(() => {
     if (!playing) return;
     if (cur >= n - 1) return setPlaying(false);
-    const t = setTimeout(() => setCur((c) => c + 1), speed);
+    if (mode === 'step') return setPlaying(false);
+    const t = setTimeout(() => {
+      setCur((c) => {
+        if (mode === 'fast') return Math.min(n - 1, c + 1);
+        const turn = frames[c]?.line.turn ?? 0;
+        const next = frames.findIndex((f, i) => i > c && f.line.turn > turn);
+        return next < 0 ? n - 1 : next;
+      });
+    }, mode === 'turn' ? TURN_DELAY : speed);
     return () => clearTimeout(t);
-  }, [playing, cur, n, speed]);
+  }, [playing, cur, n, speed, mode, frames]);
   // keep the current line in view
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-i="${cur}"]`)?.scrollIntoView({ block: 'nearest' });
@@ -56,11 +70,21 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
       if ((e.target as HTMLElement | null)?.isContentEditable) return;
       if (e.key === 'ArrowRight') (setPlaying(false), setCur((c) => Math.min(n - 1, c + 1)));
       if (e.key === 'ArrowLeft') (setPlaying(false), setCur((c) => Math.max(0, c - 1)));
-      if (e.key === ' ' && !ownsSpace(e.target)) (e.preventDefault(), setPlaying((p) => !p));
+      if (e.key === ' ' && !ownsSpace(e.target)) {
+        e.preventDefault();
+        // Space is the keyboard equivalent of the readable turn-by-turn Play
+        // mode. It also recovers cleanly after a manual Next action.
+        if (playing && mode === 'turn') setPlaying(false);
+        else {
+          setMode('turn');
+          if (cur >= n - 1) setCur(0);
+          setPlaying(true);
+        }
+      }
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [n]);
+  }, [n, cur, playing, mode]);
 
   const g = useMemo(() => (n ? new Game(structuredClone(frames[Math.max(0, cur)].state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [data, cur, n]);
   if (!g || !n) return <p className="muted">No moves were recorded for this game.</p>;
@@ -70,6 +94,12 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   const firstLineOfTurn = (t: number) => Math.max(0, frames.findIndex((f) => f.line.turn >= t));
   const end = cur >= n - 1;
   const line = frames[cur]?.line;
+  const togglePlayback = (nextMode: Exclude<ReplayMode, 'step'>) => {
+    if (playing && mode === nextMode) return setPlaying(false);
+    setMode(nextMode);
+    if (end) setCur(0);
+    setPlaying(true);
+  };
   const ctx: BoardCtx = {
     g,
     pend: null,
@@ -90,17 +120,20 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   return (
     <div className="replay">
       <div className="replay-controls row small">
-        <button className="primary" onClick={() => (end ? (setCur(0), setPlaying(true)) : setPlaying((p) => !p))}>
-          {playing ? '❚❚ Pause' : end ? '▶ Play from start' : '▶ Play'}
+        <button className={mode === 'turn' ? 'primary' : ''} onClick={() => togglePlayback('turn')} title="Play one turn every few seconds">
+          {playing && mode === 'turn' ? '❚❚ Pause' : '▶ Play'}
+        </button>
+        <button className={mode === 'fast' ? 'primary' : ''} onClick={() => togglePlayback('fast')} title="Play every action at the selected speed">
+          {playing && mode === 'fast' ? '❚❚ Pause' : '⏩ Fast-forward'}
+        </button>
+        <button onClick={() => (setPlaying(false), setMode('step'), setCur((c) => Math.min(n - 1, c + 1)))} disabled={end} title="Advance one action">
+          ⏭ Next action
         </button>
         <button onClick={() => (setPlaying(false), setCur(firstLineOfTurn(turnNow - 1)))} disabled={turnNow <= 1} title="Previous turn">
           ⏮
         </button>
-        <button onClick={() => (setPlaying(false), setCur((c) => Math.max(0, c - 1)))} disabled={cur <= 0} title="Previous move (←)">
+        <button onClick={() => (setPlaying(false), setCur((c) => Math.max(0, c - 1)))} disabled={cur <= 0} title="Previous action (←)">
           ◀
-        </button>
-        <button onClick={() => (setPlaying(false), setCur((c) => Math.min(n - 1, c + 1)))} disabled={end} title="Next move (→)">
-          ▶
         </button>
         <button onClick={() => (setPlaying(false), setCur(Math.min(n - 1, Math.max(cur + 1, firstLineOfTurn(turnNow + 1)))))} disabled={end} title="Next turn">
           ⏭

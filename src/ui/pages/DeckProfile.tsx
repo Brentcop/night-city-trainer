@@ -322,8 +322,11 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
             <a href={`#/play?o=${enc}`}>
               <button>⚔ Practice against it</button>
             </a>
-            <a href="#/arena">
-              <button>🧪 Test in Lab</button>
+            <a href={`#/arena?d=${enc}`}>
+              <button>🧪 Test in Matchup Lab</button>
+            </a>
+            <a href={`#/lab?d=${enc}`}>
+              <button>🔧 Tune in Deck Lab</button>
             </a>
             <a href={`#/decks?d=${enc}`}>
               <button>✎ Edit / Export</button>

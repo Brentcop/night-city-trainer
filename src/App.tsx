@@ -65,7 +65,7 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.R
   { path: 'ratings', label: 'Power ratings', el: () => <RatingsPage /> },
   { path: 'seasons', label: 'Breeding seasons', el: () => <SeasonsPage /> },
   { path: 'meta', label: 'choom.gg meta', el: () => <MetaPage /> },
-  { path: 'arena', label: 'Matchup Lab', el: () => <ArenaPage /> },
+  { path: 'arena', label: 'Matchup Lab', el: (q) => <ArenaPage q={q} /> },
   { path: 'guides', label: 'Strategy', el: (q) => <GuidesPage initial={q.get('g') ?? undefined} /> },
   { path: 'cards', label: 'Cards', el: () => <CardsPage /> },
   { path: 'glossary', label: 'Glossary', el: () => <GlossaryPage /> },

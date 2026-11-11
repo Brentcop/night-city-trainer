@@ -27,10 +27,12 @@ interface Row {
 
 type Level = Tier;
 
-export function ArenaPage() {
+export function ArenaPage({ q }: { q?: URLSearchParams }) {
   const decks = allDecks();
-  const [a, setA] = useState(decks.find((d) => d.kind === 'meta')?.file ?? decks[0].file);
-  const [b, setB] = useState(decks.filter((d) => d.kind === 'meta')[1]?.file ?? decks[1].file);
+  const requested = q?.get('d') ?? '';
+  const requestedDeck = decks.find((d) => d.file === requested || d.deck.name === requested);
+  const [a, setA] = useState(requestedDeck?.file ?? decks.find((d) => d.kind === 'meta')?.file ?? decks[0].file);
+  const [b, setB] = useState(decks.filter((d) => d.file !== requestedDeck?.file && d.kind === 'meta')[0]?.file ?? decks[1].file);
   const [n, setN] = useState(40);
   const [fast, setFast] = useState<Level>('medium');
   const [rows, setRows] = useState<Row[]>([]);
