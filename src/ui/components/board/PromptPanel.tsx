@@ -1,15 +1,10 @@
-// Sidebar prompt: what the game is asking, the coach's pick, and button fallbacks for every option.
+// The prompt (the full board's action dock): what the game is asking, the coach's pick, and buttons for the options
+// that aren't cards on the table. Cards on the table (and in your hand) are picked on the board (promptChoices).
 import { memo } from 'react';
 import type { Decision } from '../../../engine/types';
 import { CardBack, TcgCard } from '../TcgCard';
 import { hiddenFromMe, type BoardCtx } from './BoardCard';
-
-/** Choices the player can click on the table. On a phone the prompt dock covers the hand, so hand cards go in the tray. */
-function onBoard(ctx: BoardCtx, uid: number): boolean {
-  const c = ctx.g.s.cards[uid];
-  if (!c) return false;
-  return c.zone === 'field' || c.zone === 'legends' || (c.zone === 'hand' && c.controller === 0 && !ctx.narrow);
-}
+import { promptChoices } from './interaction';
 
 /** One-line headline for the middle of the table. */
 export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 'alert' | 'idle' } {
@@ -126,8 +121,8 @@ export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: strin
     );
   }
 
-  const tray = ix.cardOpts.filter((o) => !onBoard(ctx, o.uid));
-  const onBoardCount = ix.cardOpts.length - tray.length;
+  const { board, tray } = promptChoices(g, ix);
+  const onBoardCount = board.length;
   return (
     <div className="pb-prompt">
       <b>{pend.prompt}</b>

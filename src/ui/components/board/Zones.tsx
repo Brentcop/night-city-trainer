@@ -81,8 +81,15 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const total = P.eddies.length;
   // paying a cost: clicking your Eddie pile spends an Eddie
   const payEddie = p === 0 && ctx.pend?.kind === 'pay' ? ctx.pend.options.findIndex((o) => o.key === 'eddie') : -1;
+  // phones: the piles are a column of counts, and the whole column is one tap target for the trash (unless paying,
+  // when your €$ count spends an Eddie)
+  const columnOpens = !!ctx.inspect && payEddie < 0;
   return (
-    <div className="pb-piles">
+    <div
+      className={`pb-piles ${columnOpens ? 'pb-piles-tap' : ''}`}
+      onClick={columnOpens ? () => ctx.openTrash(p) : undefined}
+      {...pressable(columnOpens ? () => ctx.openTrash(p) : undefined, `${p === 0 ? 'Your' : "The rival's"} piles: open the trash (${P.trash.length} cards)`)}
+    >
       <div
         className={`pb-pile ${p === 0 ? 'pb-sell-zone' : ''} ${p === 0 && ctx.drag?.over?.kind === 'sell' ? 'pb-drop-over' : ''}`}
         data-drop={p === 0 ? 'sell' : undefined}
@@ -110,8 +117,14 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
           Deck <b>{P.deck.length}</b>
         </div>
       </div>
-      <div className="pb-pile pb-trash" title="Open the trash">
-        <div className="pb-stack" onClick={() => ctx.openTrash(p)} {...pressable(() => ctx.openTrash(p), `${p === 0 ? 'Open your trash' : "Open the rival's trash"} (${P.trash.length} cards)`)}>
+      {/* the whole pile opens the trash (on phones only its caption shows) */}
+      <div
+        className="pb-pile pb-trash"
+        title="Open the trash"
+        onClick={columnOpens ? undefined : () => ctx.openTrash(p)}
+        {...pressable(columnOpens ? undefined : () => ctx.openTrash(p), `${p === 0 ? 'Open your trash' : "Open the rival's trash"} (${P.trash.length} cards)`)}
+      >
+        <div className="pb-stack">
           {top !== undefined && g.s.cards[top] ? (
             <TcgCard def={g.def(top)} size="xs" />
           ) : (
@@ -122,6 +135,14 @@ export function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
           Trash <b>{P.trash.length}</b>
         </div>
       </div>
+      {/* phones: the rival's hand size lives with their piles (their name row is hidden) */}
+      {p === 1 && (
+        <div className="pb-pile pb-pile-hand" title={`Rival hand: ${P.hand.length} cards`}>
+          <div className="pb-pile-cap">
+            Hand <b>{P.hand.length}</b>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

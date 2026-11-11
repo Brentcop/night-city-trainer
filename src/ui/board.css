@@ -1910,3 +1910,689 @@ body:has(.pb-full) {
     justify-self: end;
   }
 }
+
+/* ============ phone board (P1b): the whole game on one screen, no scrolling ============
+   The sizes come from phoneLayout() (board/layout.ts) as CSS variables on the board and on <body> (for the menus and
+   dialogs rendered there): --pf your field card width, --prf the rival's, --pl / --prl Legends, --ph hand cards,
+   --pd / --prd dice, --phcol the landscape hand column, --pp-w / --pp-h the prompt panel's width and greatest height.
+   Portrait, top to bottom: strip, rival Legends | Gigs | piles, rival field, banner (with the turn button), your field,
+   your Legends | Gigs | piles, your hand. Landscape: one row per side and the hand down the right. */
+.pb-game.pb-phone {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  background: var(--bg);
+}
+body:has(.pb-phone) {
+  overflow: hidden;
+}
+.pb-phone .pb-strip-phone {
+  position: relative;
+  top: auto;
+  flex: none;
+  height: var(--pb-strip-h, 44px);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 4px;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 90%, var(--cyan) 10%);
+}
+.pb-phone .pb-icon {
+  position: relative;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.pb-phone .pb-icon.on {
+  border-color: var(--accent);
+}
+.pb-icon-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+}
+.pb-phone .pb-turn {
+  flex-wrap: nowrap;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.pb-phone .pb-turn-no {
+  font-size: 0.95rem;
+}
+.pb-phone .pb-turn-who {
+  font-size: 0.95rem;
+  padding: 0 8px;
+}
+.pb-phone .pb-overtime {
+  padding: 0 6px;
+}
+.pb-phone .pb-strip-tools {
+  margin-left: auto;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+.pb-phone .pb-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.pb-phone .pb-mat {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 4px;
+  overflow: auto;
+}
+.pb-phone .pb-error {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  z-index: 45;
+  margin: 0;
+}
+/* ---- the sides: Legends | Gigs | piles over (rival) or under (you) the field ---- */
+.pb-phone .pb-side {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 6px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+.pb-phone .pb-rival {
+  grid-template-areas:
+    'legends gigs piles'
+    'field field field';
+}
+.pb-phone .pb-me {
+  grid-template-areas:
+    'field field field'
+    'legends gigs piles';
+}
+.pb-phone .pb-backrow {
+  display: contents;
+}
+.pb-phone .pb-side-name,
+.pb-phone .pb-rival-hand,
+.pb-phone .pb-zone > .pb-label,
+.pb-phone .pb-drop-hint {
+  display: none;
+}
+.pb-phone .pb-legends {
+  grid-area: legends;
+  --tcg-w: var(--pl);
+}
+.pb-phone .pb-rival .pb-legends {
+  --tcg-w: var(--prl);
+}
+.pb-phone .pb-legends .pb-cards {
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-height: 0;
+  padding: 3px 0;
+}
+.pb-phone .pb-field {
+  grid-area: field;
+  container-type: inline-size;
+  --fw: min(var(--pf), calc((100cqi - 8px) / var(--n, 1) - 4px));
+}
+.pb-phone .pb-rival .pb-field {
+  --fw: min(var(--prf), calc((100cqi - 8px) / var(--n, 1) - 4px));
+}
+.pb-phone .pb-field .pb-cards {
+  --tcg-w: var(--fw);
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  min-height: calc(var(--pf) * 1.397 + 8px);
+  padding: 3px 2px;
+  border-radius: 8px;
+}
+.pb-phone .pb-rival .pb-field .pb-cards {
+  min-height: calc(var(--prf) * 1.397 + 8px);
+}
+.pb-phone .pb-slot.is-spent {
+  margin: 0 calc(var(--tcg-w) * 0.12);
+}
+.pb-phone .pb-gear {
+  --tcg-w: calc(var(--fw) * 0.32);
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  margin: 0;
+}
+.pb-phone .pb-gigs {
+  grid-area: gigs;
+  justify-self: center;
+  min-width: 0;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.pb-phone .pb-gigs-head {
+  gap: 4px;
+  font-size: 0.7rem;
+  line-height: 14px;
+}
+.pb-phone .pb-gigs-head .pb-label {
+  display: none;
+}
+.pb-phone .pb-gigs-head b {
+  font-size: 0.85rem;
+}
+.pb-phone .pb-dice {
+  margin-top: 0;
+  gap: 2px;
+  max-width: calc((var(--pd) + 2px) * 3);
+}
+.pb-phone .pb-rival .pb-dice {
+  max-width: calc((var(--prd) + 2px) * 4);
+}
+.pb-phone .pb-dice .die {
+  width: var(--pd);
+  height: var(--pd);
+}
+.pb-phone .pb-rival .pb-dice .die {
+  width: var(--prd);
+  height: var(--prd);
+}
+.pb-phone .pb-die-fixer .die {
+  width: calc(var(--pd) * 0.8);
+  height: calc(var(--pd) * 0.8);
+}
+.pb-phone .pb-rival .pb-die-fixer .die {
+  width: calc(var(--prd) * 0.8);
+  height: calc(var(--prd) * 0.8);
+}
+/* the piles: a column of counts, one tap target (opens the trash) */
+.pb-phone .pb-piles {
+  grid-area: piles;
+  width: 60px;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1px;
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.pb-phone .pb-piles-tap {
+  cursor: pointer;
+}
+.pb-phone .pb-pile {
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+}
+.pb-phone .pb-stack,
+.pb-phone .pb-pips {
+  display: none;
+}
+.pb-phone .pb-pile-cap {
+  font-size: 0.7rem;
+  line-height: 15px;
+}
+.pb-phone .pb-pile-cap b {
+  font-size: 0.8rem;
+}
+.pb-pile-hand {
+  display: none;
+}
+.pb-phone .pb-pile-hand {
+  display: flex;
+}
+/* ---- the banner: the headline and the turn button ---- */
+.pb-phone .pb-midline {
+  position: relative;
+  flex: none;
+  height: 40px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  text-align: left;
+}
+.pb-phone .pb-midline-text {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.15;
+}
+.pb-phone .pb-midline-action {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+}
+.pb-phone .pb-midline-action .pb-endturn {
+  min-height: 0;
+  height: 100%;
+  padding: 0 14px;
+  font-size: 0.95rem;
+  border-radius: 0 10px 10px 0;
+}
+.pb-phone .pb-midline-action > span {
+  align-self: center;
+  padding: 0 10px;
+}
+.pb-phone .move-toast {
+  position: absolute;
+  left: 8px;
+  top: 100%;
+  z-index: 5;
+  margin-top: 2px;
+}
+/* ---- the hand: every card shows, overlapped to fit the width ---- */
+.pb-phone .pb-handbar {
+  position: static;
+  flex: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.pb-phone .pb-hand,
+.pb-phone .pb-hand-scroll {
+  --tcg-w: var(--ph);
+  container-type: inline-size;
+  overflow: visible;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 0;
+  padding: 10px 0 4px;
+  scroll-snap-type: none;
+}
+.pb-phone .pb-fan,
+.pb-phone .pb-hand-scroll .pb-fan {
+  margin: 0 0 0 calc(min(var(--tcg-w) * -0.1, (100cqi - var(--tcg-w)) / max(var(--hand-n, 1) - 1, 1) - var(--tcg-w)));
+  transform: none;
+  scroll-snap-align: none;
+}
+.pb-phone .pb-fan:first-child {
+  margin-left: 0;
+}
+.pb-phone .pb-fan:hover,
+.pb-phone .pb-fan:focus-within,
+.pb-phone .pb-fan:has(.pb-menu-host),
+.pb-phone .pb-hand-scroll .pb-fan:has(.pb-menu-host) {
+  transform: translateY(-8px);
+}
+.pb-phone .tcg,
+.pb-phone .tcg * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---- landscape: one row per side (Legends | field | Gigs, piles), the hand down the right ---- */
+.pb-phone-land .pb-mat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--phcol);
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    'rival hand'
+    'mid hand'
+    'me hand';
+  align-content: space-evenly;
+  column-gap: 4px;
+}
+.pb-phone-land .pb-rival {
+  grid-area: rival;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'legends field gigs piles';
+}
+.pb-phone-land .pb-me {
+  grid-area: me;
+  grid-template-areas:
+    'legends field gigs'
+    'legends field piles';
+}
+.pb-phone-land .pb-midline {
+  grid-area: mid;
+}
+.pb-phone-land .pb-handbar {
+  grid-area: hand;
+  align-self: stretch;
+  min-height: 0;
+}
+.pb-phone-land .pb-hand,
+.pb-phone-land .pb-hand-scroll {
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  container-type: size;
+  padding: 2px 0;
+}
+.pb-phone-land .pb-fan,
+.pb-phone-land .pb-hand-scroll .pb-fan {
+  margin: calc(min(var(--tcg-w) * -0.14, (100cqb - var(--tcg-w) * 1.397) / max(var(--hand-n, 1) - 1, 1) - var(--tcg-w) * 1.397)) 0 0;
+}
+.pb-phone-land .pb-fan:first-child {
+  margin-top: 0;
+}
+.pb-phone-land .pb-fan:hover,
+.pb-phone-land .pb-fan:focus-within,
+.pb-phone-land .pb-fan:has(.pb-menu-host) {
+  transform: translateX(-8px);
+}
+
+/* ---- the prompt panel: small, against the right edge, collapsible to a tab ---- */
+.pb-pp,
+.pb-pp-tab {
+  position: fixed;
+  right: 0;
+  top: calc(var(--pb-strip-h, 44px) + 4px);
+  z-index: 820;
+}
+.pb-phone-land .pb-pp,
+.pb-phone-land .pb-pp-tab {
+  right: var(--phcol);
+}
+.pb-pp {
+  width: var(--pp-w, min(46vw, 190px));
+  max-height: var(--pp-h, 30vh);
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -8px 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: 0.8rem;
+  animation: pb-drawer-in 0.18s var(--ease-out, ease) backwards;
+}
+.pb-pp.is-alert {
+  border-color: var(--red);
+}
+.pb-pp-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.pb-pp-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+button.pb-pp-min {
+  flex: none;
+  min-width: 40px;
+  min-height: 40px;
+  margin: -4px -4px 0 0;
+  padding: 0;
+}
+.pb-pp-coach {
+  font-size: 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pb-pp-coach b {
+  color: var(--cyan);
+}
+.pb-pp-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.pb-pp-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pb-pp-btns > button {
+  flex: 1 1 auto;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+.pb-pp-tray {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  justify-items: center;
+  --tcg-w: calc((var(--pp-w, 180px) - 24px) / 2);
+}
+.pb-pp .pb-all-toggle {
+  min-height: 40px;
+}
+.pb-pp .pb-all-list {
+  max-height: none;
+}
+.pb-pp .pb-all-list button {
+  min-height: 40px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+.pb-pp-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 46vw;
+  min-height: 40px;
+  padding: 4px 10px;
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  font-size: 0.8rem;
+  box-shadow: -4px 4px 14px rgba(0, 0, 0, 0.35);
+}
+.pb-pp-tab.is-prompt {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+.pb-pp-tab-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* the card action menu and a drop's confirm take the prompt panel's place (they render at the body: the variables
+   are set there too) */
+.pb-menu.pb-menu-side {
+  left: auto;
+  right: var(--pb-side-right, 0px);
+  top: calc(var(--pb-strip-h, 44px) + 4px);
+  bottom: auto;
+  transform: none;
+  width: var(--pp-w, min(46vw, 190px));
+  min-width: 0;
+  max-height: var(--pp-h, 30vh);
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 6px;
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
+  font-size: 0.85rem;
+}
+.pb-menu-side .pb-menu-item {
+  min-height: 40px;
+}
+.pb-modal-wrap.pb-confirm-side {
+  background: transparent;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: calc(var(--pb-strip-h, 44px) + 4px) var(--pb-side-right, 0px) 0 0;
+}
+.pb-confirm-side .pb-modal {
+  width: var(--pp-w, min(46vw, 190px));
+  max-height: var(--pp-h, 30vh);
+  box-sizing: border-box;
+  padding: 8px;
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
+}
+.pb-confirm-side .pb-confirm-title {
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+.pb-confirm-side button.pb-big {
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  min-height: 40px;
+}
+/* ---- the ☰ game menu ---- */
+.pb-gamemenu {
+  position: fixed;
+  left: 4px;
+  top: calc(var(--pb-strip-h, 44px) + 4px);
+  z-index: 1000;
+  width: min(270px, calc(100vw - 8px));
+  max-height: calc(100dvh - var(--pb-strip-h, 44px) - 12px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  animation: pb-pop 0.14s ease-out both;
+}
+.pb-gamemenu > button {
+  min-height: 40px;
+  text-align: left;
+}
+.pb-gamemenu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 6px;
+}
+.pb-gamemenu-row select {
+  min-height: 36px;
+}
+/* ---- reading a card on a phone ---- */
+.pb-peek {
+  position: fixed;
+  inset: 0;
+  z-index: 2600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(5, 5, 10, 0.75);
+  animation: pb-fade 0.15s ease-out backwards;
+}
+.pb-peek-body {
+  --tcg-w: min(70vw, calc((100dvh - 230px) * 0.716), 300px);
+  width: min(360px, 100%);
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
+.pb-peek-text {
+  align-self: stretch;
+}
+.pb-peek-rules {
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+.pb-peek-actions {
+  display: flex;
+  gap: 8px;
+  align-self: stretch;
+  justify-content: flex-end;
+}
+.pb-peek-actions button {
+  min-height: 40px;
+}
+@media (orientation: landscape) {
+  .pb-peek-body {
+    --tcg-w: min(38vw, calc((100dvh - 44px) * 0.716), 260px);
+    width: min(640px, 100%);
+    flex-flow: row wrap;
+    align-items: flex-start;
+  }
+  .pb-peek-text {
+    flex: 1 1 200px;
+    align-self: auto;
+  }
+}
+/* ---- dialogs and sheets fit the phone screen (they scroll inside, the page never does) ---- */
+.pb-phone .pb-modal,
+.pb-phone .pb-modal-wrap .pb-modal {
+  max-height: calc(100dvh - 24px);
+}
+.pb-phone .pb-modal-wrap {
+  padding: 12px;
+}
+.pb-phone .pb-mulligan {
+  padding-top: calc(var(--pb-strip-h, 44px) + 8px);
+}
+.pb-phone .pb-mulligan .pb-modal {
+  max-height: 100%;
+}
+.pb-phone .pb-drawer-sheet {
+  max-height: 60dvh;
+}
+.pb-phone .pb-over-title {
+  font-size: 2rem;
+}

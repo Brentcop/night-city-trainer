@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Game } from '../../engine/engine';
 import type { Decision, DeckList, PlayerId } from '../../engine/types';
@@ -28,7 +28,9 @@ import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, t
 import { AllActions, PromptPanel, headline } from '../components/board/PromptPanel';
 import { DRAWER_ID, LogDrawer, LogTab } from '../components/board/LogDrawer';
 import { ALL_ACTIONS_KEY, BOT_SPEEDS, LOG_OPEN_KEY, loadBotSpeed, normalizeBotSpeed, saveBotSpeed, useSessionFlag } from '../components/board/prefs';
-import { useNarrow } from '../components/board/useNarrow';
+import { useViewport } from '../components/board/useNarrow';
+import { phoneLayout, phoneVars } from '../components/board/layout';
+import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
 import { useGameTick, usePracticeGame } from '../usePracticeGame';
 import '../board.css';
@@ -154,7 +156,20 @@ function Board({
   const undoable = canUndo(game);
   const concedable = canConcede(game);
   const conceded = game.conceded;
-  const narrow = useNarrow();
+  // the single layout switch: the full board, or the phone board (portrait or landscape) sized from the viewport
+  const vp = useViewport();
+  const narrow = vp.mode !== 'full';
+  const phone = useMemo(() => (narrow ? phoneLayout(vp.w, vp.h) : null), [narrow, vp.w, vp.h]);
+  // the menus, confirms and readers render at <body>: give them the same size variables as the board
+  useLayoutEffect(() => {
+    if (!phone) return;
+    const vars = phoneVars(phone);
+    const st = document.body.style;
+    for (const [k, v] of Object.entries(vars)) st.setProperty(k, v);
+    return () => {
+      for (const k of Object.keys(vars)) st.removeProperty(k);
+    };
+  }, [phone]);
   const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives'] } | null>(null);
   const [reviewReq, setReviewReq] = useState<ReviewRequest | null>(null);
   const [toast, setToast] = useState<MoveGrade | null>(null);
@@ -174,6 +189,10 @@ function Board({
   const [allOpen, setAllOpen] = useSessionFlag(ALL_ACTIONS_KEY, false);
   const [logOpen, setLogOpen] = useSessionFlag(LOG_OPEN_KEY, false);
   const [navOpen, setNavOpen] = useState(false);
+  // phones: the ☰ game menu, the card reader, and the prompt panel collapsed (to a tab) for the decision it was shown for
+  const [gameMenu, setGameMenu] = useState(false);
+  const [peek, setPeek] = useState<{ uid: number; choose?: number; d: Decision | null } | null>(null);
+  const [collapsedFor, setCollapsedFor] = useState<Decision | null>(null);
   const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
   const advise = useCoach();
 
@@ -286,13 +305,14 @@ function Board({
     drag,
     handOrder,
     marks,
+    inspect: narrow ? (uid) => setPeek({ uid, d: null }) : undefined,
   };
 
   const over = s.winner !== null;
   const failed = game.error;
   const mulligan = !!pend && pend.kind === 'yesno' && pend.tag === 'mulligan';
   const head = failed ? { text: 'The game stopped because of an error', tone: 'rival' } : headline(ctx);
-  const dock = narrow && !over && !mulligan && !!pend && (pend.kind !== 'action' || !!targeting);
+  const panel = narrow ? phonePanelState({ pend, targeting, over, allOpen, collapsed: !!pend && collapsedFor === pend }) : 'none';
 
   // a concede that the game ended before (or an exit after it ended) has nothing left to confirm
   useEffect(() => {
@@ -303,6 +323,7 @@ function Board({
     setTargeting(null);
     setConfirm(null);
     setNavOpen(false);
+    setGameMenu(false);
     setLeave(kind);
   };
 
@@ -344,16 +365,53 @@ function Board({
   const rootCls = [
     'pb',
     'pb-game',
-    narrow ? 'pb-compact' : 'pb-full',
+    narrow ? (vp.mode === 'phone-land' ? 'pb-compact pb-phone pb-phone-land' : 'pb-compact pb-phone') : 'pb-full',
     menu ? 'pb-menu-open' : '',
     targeting ? 'pb-targeting' : '',
     marks.choosing ? 'pb-choosing' : '',
-    dock ? 'pb-has-dock' : '',
     navOpen ? 'pb-nav-open' : '',
   ].join(' ');
 
   return (
-    <div className={rootCls}>
+    <div className={rootCls} style={phone ? (phoneVars(phone) as React.CSSProperties) : undefined}>
+      {narrow ? (
+        // phones: one row — the game menu, the turn, the log, Undo and Concede (speed, hand order, pages and Exit are in ☰)
+        <div className="pb-topbar pb-strip-phone">
+          <button type="button" className="ghost pb-icon" aria-expanded={gameMenu} aria-label="Game menu" title="Game menu" onClick={() => setGameMenu(!gameMenu)}>
+            ☰
+          </button>
+          <div className="pb-turn">
+            <span className="pb-turn-no">T{s.turn}</span>
+            <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'OVER' : s.active === 0 ? 'YOU' : 'RIVAL'}</span>
+            {s.overtime && <span className="pb-overtime">OT</span>}
+          </div>
+          <div className="pb-strip-tools">
+            <button
+              type="button"
+              className={`ghost pb-icon ${logOpen ? 'on' : ''}`}
+              aria-expanded={logOpen}
+              aria-controls={DRAWER_ID}
+              aria-label={warnings.length ? `Game log, ${warnings.length} coach warnings` : 'Game log'}
+              title="Game log"
+              onClick={() => setLogOpen(!logOpen)}
+            >
+              ≡{warnings.length > 0 && <span className="pb-icon-badge">{warnings.length}</span>}
+            </button>
+            <button type="button" className="pb-icon" onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Undo: back to before your last action">
+              ↶
+            </button>
+            {over ? (
+              <button type="button" className="pb-icon" onClick={() => setHideOver(false)} disabled={!hideOver} aria-label="Show the result" title="Show the result">
+                ⚐
+              </button>
+            ) : (
+              <button type="button" className="pb-icon pb-concede" onClick={() => openLeave('concede')} disabled={!concedable} aria-label="Concede" title="Concede: end the game now as a recorded loss">
+                ⚑
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
       <div className="pb-topbar">
         <button
           type="button"
@@ -402,6 +460,7 @@ function Board({
           </button>
         </div>
       </div>
+      )}
       <div className="pb-stage">
         {failed && (
           <div className="panel pb-error" role="alert">
@@ -417,18 +476,15 @@ function Board({
         <div className="pb-mat">
           <PlayerSide p={1} ctx={ctx} />
           <div className={`pb-midline pb-tone-${head.tone}`}>
-            <span>{head.text}</span>
+            <span className="pb-midline-text">{head.text}</span>
             {toast && <MoveToast key={grades.length} gr={toast} />}
+            {/* phones: the turn button sits in the banner, in the middle of the screen */}
+            {narrow && handAction && <span className="pb-midline-action">{handAction}</span>}
           </div>
           <PlayerSide p={0} ctx={ctx} />
           <div className="pb-handbar">
             <MyHand ctx={ctx} />
-            {narrow ? (
-              <div className="pb-handbar-actions">
-                {sortButton}
-                {handAction}
-              </div>
-            ) : (
+            {narrow ? null : (
               // the action dock: where you act on the hand — the turn button, every option, and the prompt
               <section className="pb-actions" aria-label="Your actions">
                 <div className="pb-actions-main">
@@ -442,15 +498,20 @@ function Board({
           </div>
         </div>
         {narrow && (
-          <div className="pb-below">
-            <div className={dock ? 'pb-dock' : undefined}>
-              <PromptPanel ctx={ctx} why={activeHint?.why} />
-              {allActions}
-            </div>
-            {coachPanel}
-          </div>
+          <PhonePanel
+            ctx={ctx}
+            state={panel}
+            why={activeHint?.why}
+            allActions={allActions}
+            onPeek={(uid, choose) => setPeek({ uid, choose, d: pend })}
+            onCollapse={() => (pend?.kind === 'action' && !targeting ? setAllOpen(false) : setCollapsedFor(pend))}
+            onExpand={() => {
+              setCollapsedFor(null);
+              if (pend?.kind === 'action' && !targeting) setAllOpen(true);
+            }}
+          />
         )}
-        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={narrow ? undefined : coachPanel} footer={lastMove} />
+        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} />
       </div>
       {navOpen && (
         <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
@@ -470,6 +531,19 @@ function Board({
                 answerFor(confirm.d, i);
               }}
               onCancel={() => setConfirm(null)}
+              side={narrow}
+            />
+          )}
+          {gameMenu && (
+            <GameMenu
+              speed={speed}
+              setSpeed={setSpeed}
+              sortLabel={SORT_LABEL[sortMode]}
+              onSort={() => setSortMode(nextSort(sortMode))}
+              onSite={() => setNavOpen(true)}
+              onExit={over ? onQuit : () => openLeave('exit')}
+              exitLabel={over ? 'New game' : 'Exit game'}
+              onClose={() => setGameMenu(false)}
             />
           )}
           {refusal && (
@@ -489,6 +563,21 @@ function Board({
             if (leave === 'concede') onConcede();
             else onQuit();
           }}
+        />
+      )}
+      {peek && (
+        <CardPeek
+          g={g}
+          uid={peek.uid}
+          onClose={() => setPeek(null)}
+          onChoose={
+            peek.choose !== undefined && peek.d === pend
+              ? () => {
+                  setPeek(null);
+                  answerFor(peek.d, peek.choose!);
+                }
+              : undefined
+          }
         />
       )}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}

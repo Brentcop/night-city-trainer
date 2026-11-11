@@ -246,6 +246,30 @@ export function boardMarks(g: Game, pend: Decision | null, ix: Interaction, targ
   return { cards, choosing };
 }
 
+/** A card the player can see and tap on the table: either side's field or Legends, or your hand. */
+export function onTable(g: Game, uid: number): boolean {
+  const c = g.s.cards[uid];
+  if (!c) return false;
+  return c.zone === 'field' || c.zone === 'legends' || (c.zone === 'hand' && c.controller === 0);
+}
+
+/** How a non-action prompt's options are offered (the same rule on every layout). */
+export interface PromptChoices {
+  /** card options on the table: picked on the board (they are marked), never repeated in the panel */
+  board: number[];
+  /** card options that aren't on the table (revealed from the deck, in the trash…): shown small in the panel */
+  tray: { i: number; uid: number }[];
+  /** options without a card (yes/no, skip, numbers, dice, modes, payment sources): buttons in the panel */
+  buttons: number[];
+}
+
+export function promptChoices(g: Game, ix: Interaction): PromptChoices {
+  const board: number[] = [];
+  const tray: { i: number; uid: number }[] = [];
+  for (const o of ix.cardOpts) (onTable(g, o.uid) ? board.push(o.i) : tray.push(o));
+  return { board, tray, buttons: ix.buttonOpts };
+}
+
 /** What the coach's suggested option points at on the board. */
 export interface CoachMark {
   i: number;

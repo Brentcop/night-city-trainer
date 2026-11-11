@@ -190,8 +190,11 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
   return { start, consumeClick, dragging: state?.uid ?? null, over: state?.over ?? null, ghost };
 }
 
-/** "Are you sure?" for a dropped card, listing every way the drop can resolve (e.g. Play or Go Solo). */
-export function ConfirmPrompt({ p, onPick, onCancel }: { p: PendingConfirm; onPick: (i: number) => void; onCancel: () => void }) {
+/**
+ * "Are you sure?" for a dropped card, listing every way the drop can resolve (e.g. Play or Go Solo). `side`: phones,
+ * a small panel against the right edge instead of a centred dialog.
+ */
+export function ConfirmPrompt({ p, onPick, onCancel, side }: { p: PendingConfirm; onPick: (i: number) => void; onCancel: () => void; side?: boolean }) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
@@ -201,7 +204,7 @@ export function ConfirmPrompt({ p, onPick, onCancel }: { p: PendingConfirm; onPi
     return () => window.removeEventListener('keydown', k);
   }, [p, onPick, onCancel]);
   return (
-    <div className="pb-modal-wrap" onClick={onCancel}>
+    <div className={`pb-modal-wrap ${side ? 'pb-confirm-side' : ''}`} onClick={onCancel}>
       <div className="pb-modal pb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Confirm action">
         <div className="pb-confirm-title">{p.title}</div>
         <div className="pb-confirm-actions">

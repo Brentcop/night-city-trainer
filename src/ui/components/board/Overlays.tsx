@@ -59,7 +59,8 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
   if (!items.length || !c) return null;
   const rect = menu.el.getBoundingClientRect();
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  const sheet = ctx.narrow; // phones: a bottom sheet that can't be scrolled out from under your finger
+  // phones: a small panel against the right edge (the prompt panel's place), so the board's centre stays in view
+  const sheet = ctx.narrow;
   const cx = Math.min(Math.max(rect.left + rect.width / 2, 130), vw - 130);
   const above = rect.top > 240;
   const style: React.CSSProperties | undefined = sheet
@@ -72,7 +73,7 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
   return (
     <>
       <div className="pb-backdrop" onClick={onClose} />
-      <div className={`pb-menu ${sheet ? 'pb-menu-sheet' : ''}`} style={style} role="menu">
+      <div className={`pb-menu ${sheet ? 'pb-menu-side' : ''}`} style={style} role="menu">
         <div className="pb-menu-title">{title}</div>
         {items.map((it, k) => {
           const isCoach = !!ctx.coach && (ctx.coach.i === it.i || (it.kind === 'attack' && ctx.coach.attacker === menu.uid));
@@ -89,6 +90,17 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
             </button>
           );
         })}
+        {ctx.inspect && !hidden && (
+          <button
+            className="pb-menu-item ghost"
+            onClick={() => {
+              onClose();
+              ctx.inspect!(menu.uid);
+            }}
+          >
+            🔍 Read card
+          </button>
+        )}
         <button className="pb-menu-item ghost" onClick={onClose}>
           Cancel
         </button>
