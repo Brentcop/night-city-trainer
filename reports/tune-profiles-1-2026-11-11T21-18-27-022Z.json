@@ -1,0 +1,162 @@
+{
+  "manifest": {
+    "schema": 1,
+    "runId": "tune-profiles:1:2026-11-11T21:18:27.011Z",
+    "createdAt": "2026-11-11T21:18:27.012Z",
+    "purpose": "tuning",
+    "simVersion": 5,
+    "rulesVersion": "2026-10-29",
+    "faqVersion": "2026-11-09T15:28:32.570Z",
+    "errataVersion": null,
+    "bot": {
+      "level": "lookahead",
+      "configHash": "88cc3f4598b72652"
+    },
+    "decks": [
+      {
+        "id": "0b6272134a22585c",
+        "name": "BBG Cunningham Econ",
+        "file": "meta-bbg-cunningham-econ.txt"
+      },
+      {
+        "id": "3d6b0327f672d914",
+        "name": "GRY Trauma Team",
+        "file": "meta-gry-trauma-team.txt"
+      },
+      {
+        "id": "189f8a3b59f1117f",
+        "name": "Rainbow Fixer Stuff",
+        "file": "meta-rainbow-fixer-stuff.txt"
+      },
+      {
+        "id": "06552ee884386887",
+        "name": "RRB Wakako Midrange",
+        "file": "meta-rrb-wakako-midrange.txt"
+      },
+      {
+        "id": "d615ca2a4ad09bf8",
+        "name": "RRG Dexter Midrange",
+        "file": "meta-rrg-dexter-midrange.txt"
+      },
+      {
+        "id": "ee779ed4dea87217",
+        "name": "RRY Smasher Aggro",
+        "file": "meta-rry-smasher-aggro.txt"
+      },
+      {
+        "id": "078ce02dba6dd2c0",
+        "name": "YYB Rogue Gear",
+        "file": "meta-yyb-rogue-gear.txt"
+      }
+    ],
+    "field": {
+      "mode": "meta-archetype-pairings",
+      "deckIds": [
+        "0b6272134a22585c",
+        "3d6b0327f672d914",
+        "189f8a3b59f1117f",
+        "06552ee884386887",
+        "d615ca2a4ad09bf8",
+        "ee779ed4dea87217",
+        "078ce02dba6dd2c0"
+      ]
+    },
+    "sample": {
+      "plannedGames": 800,
+      "completedGames": 800,
+      "gamesPerPair": 160
+    },
+    "seedBase": 1010000,
+    "seatPolicy": "alternate",
+    "trace": false,
+    "cardDataVersion": "fnv1a64:93e933351cc80262"
+  },
+  "original": {
+    "aggro>control": {
+      "gig": 1.3,
+      "hand": 0.8,
+      "spentRisk": 0.6
+    },
+    "control>aggro": {
+      "unitPower": 1.3,
+      "spentRisk": 1.8,
+      "gig": 1.1
+    },
+    "midrange>control": {
+      "gig": 1.2,
+      "hand": 0.9
+    },
+    "midrange>aggro": {
+      "unitPower": 1.2,
+      "spentRisk": 1.4
+    },
+    "control>control": {
+      "hand": 0.875,
+      "eddie": 1.15
+    }
+  },
+  "candidate": {
+    "aggro>control": {
+      "gig": 1.3,
+      "hand": 0.8,
+      "spentRisk": 0.6
+    },
+    "control>aggro": {
+      "unitPower": 1.3,
+      "spentRisk": 1.8,
+      "gig": 1.1
+    },
+    "midrange>control": {
+      "gig": 1.2,
+      "hand": 0.9
+    },
+    "midrange>aggro": {
+      "unitPower": 1.2,
+      "spentRisk": 1.4
+    },
+    "control>control": {
+      "hand": 0.875,
+      "eddie": 1.15
+    }
+  },
+  "trainingLog": [
+    "control>aggro gig x0.7 -> Δ 0.0pp [0.0, 0.0]",
+    "control>aggro gig x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "control>aggro spentRisk x0.7 -> Δ 0.6pp [-0.6, 1.8]",
+    "control>aggro spentRisk x1.4 -> Δ -1.3pp [-3.0, 0.5]",
+    "control>aggro hand x0.7 -> Δ 1.3pp [-3.0, 5.5]",
+    "control>aggro hand x1.4 -> Δ -9.4pp [-15.1, -3.7]",
+    "aggro>control gig x0.7 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>control gig x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>control spentRisk x0.7 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>control spentRisk x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>control hand x0.7 -> Δ -0.6pp [-3.4, 2.1]",
+    "aggro>control hand x1.4 -> Δ 1.9pp [-0.9, 4.6]",
+    "aggro>aggro gig x0.7 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>aggro gig x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>aggro spentRisk x0.7 -> Δ -0.6pp [-1.8, 0.6]",
+    "aggro>aggro spentRisk x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>aggro hand x0.7 -> Δ 3.8pp [-0.5, 8.0]",
+    "aggro>aggro hand x1.4 -> Δ -1.9pp [-5.5, 1.8]",
+    "aggro>midrange gig x0.7 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>midrange gig x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>midrange spentRisk x0.7 -> Δ -0.6pp [-1.9, 0.6]",
+    "aggro>midrange spentRisk x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "aggro>midrange hand x0.7 -> Δ 0.6pp [-1.5, 2.8]",
+    "aggro>midrange hand x1.4 -> Δ 0.6pp [-2.6, 3.9]",
+    "midrange>aggro gig x0.7 -> Δ 0.6pp [-0.6, 1.8]",
+    "midrange>aggro gig x1.4 -> Δ 0.0pp [0.0, 0.0]",
+    "midrange>aggro spentRisk x0.7 -> Δ 0.6pp [-0.6, 1.8]",
+    "midrange>aggro spentRisk x1.4 -> Δ 0.6pp [-0.6, 1.8]",
+    "midrange>aggro hand x0.7 -> Δ 0.0pp [-3.5, 3.5]",
+    "midrange>aggro hand x1.4 -> Δ 0.0pp [-3.5, 3.5]"
+  ],
+  "validation": {
+    "games": 800,
+    "mean": 0,
+    "lower95": 0,
+    "upper95": 0
+  },
+  "minGainPp": 1,
+  "passesHeldOut": false
+}

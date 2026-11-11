@@ -1,6 +1,6 @@
 # Match reviewer: validation and findings (2026-11-10)
 
-> **Note (2026-11-10):** the figures in this document were measured before the bot and engine fixes listed in `docs/IMPROVEMENT_BACKLOG.md` (Wave B) and have not been re-measured. The "exact replay" results held for the code the games were recorded with; events recorded before those fixes no longer replay identically on the current code.
+> **Note (2026-11-10, updated 2026-11-11):** the figures in this document were measured before the bot and engine fixes listed in `docs/IMPROVEMENT_BACKLOG.md` (Wave B) and have not been re-measured; treat them as history. The 200 "series games" of the backfill were the events recorded then, which were wiped at the fresh baseline of 2026-11-11 (`docs/ROADMAP.md` §1; they are kept at the tag `archive/pre-season1-reset-2026-11-11`). The reports cited below are kept in `reports/` as that history. Re-measuring on the new events (`review.ts --from events`) is pending.
 
 The match reviewer (`src/ai/reviewer.ts`) replays a finished game exactly and scores every main-phase decision against an **oracle**. The oracle plays each candidate move out 8 times: the rest of the turn plus the rival's whole reply, with hidden cards re-dealt. Every candidate shares the same 8 random worlds, so only the move differs between them. Reports:
 

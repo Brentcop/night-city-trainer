@@ -1,0 +1,33 @@
+# S1-04 Cross (RBG)
+
+// Legends (3)
+1 Saburo Arasaka: Stubborn Patriarch
+1 Wakako Okada: Peace and Harmony
+1 Dexter DeShawn: Off the Grid
+
+// Units (19)
+1 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Pepe Najarro: Working Doubles
+3 Psycho Squad
+2 MaxTac AV
+3 Nadia: Fighting Through Grief
+3 Placide: Voodoo Sentinel
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (17)
+2 Peace Offering
+1 Synapse Burnout
+3 Nocturne OP55 N1
+2 Over the Edge
+2 Memory Relapse
+2 Shattered Memories
+3 Unlikely Bond
+2 We Gotta Live Together
+
+// Idea: Crossover of Rainbow Fixer Stuff × RRG Dexter Midrange (aggro): strongest Legends of both, cards ranked by format-wide impact.
+// Author: Night City Trainer breeder (season 1, crossover)

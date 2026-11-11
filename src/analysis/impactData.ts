@@ -17,7 +17,7 @@ export const IMPACT_MIN_POOLED_GAMES = 60;
 export type ImpactCard = [id: string, iwd: number | null, seenGames: number];
 export interface ImpactDeck {
   deck: string;
-  /** listFingerprint of the list measured; absent in data written before fingerprints (legacy, see findImpactDeck) */
+  /** listFingerprint of the list measured (written by every `sim analyze` since 2026-11-11; see findImpactDeck) */
   id?: string;
   cards: ImpactCard[];
 }
@@ -41,12 +41,13 @@ export interface ImpactDeckRef {
 /**
  * The impact entry measured on this deck's list, or undefined:
  *   1. the entry whose fingerprint is the deck's list fingerprint (whatever either is called);
- *   2. legacy data only: an entry without a fingerprint, with the deck's name, and only when the deck is the built-in
- *      library deck of that name — its list is the one `legacyLists` pins to that name. A custom deck that reuses a
- *      built-in name has another list, so it never inherits that deck's numbers.
+ *   2. legacy data only: an entry without a fingerprint, with the deck's name, and only when `legacyLists` pins that
+ *      name to the deck's list. A custom deck that reuses a built-in name has another list, so it never inherits that
+ *      deck's numbers. Since the 2026-11-11 baseline every entry in src/data/impact.json has a fingerprint, so the
+ *      app passes no pins (the table that pinned the old name-only entries, legacyImpactLists.ts, is gone).
  * A deck with no list id (a state built by hand) matches nothing.
  */
-export function findImpactDeck<T extends { deck: string; id?: string }>(decks: readonly T[], ref: ImpactDeckRef, legacyLists: Readonly<Record<string, string>>): T | undefined {
+export function findImpactDeck<T extends { deck: string; id?: string }>(decks: readonly T[], ref: ImpactDeckRef, legacyLists: Readonly<Record<string, string>> = {}): T | undefined {
   if (!ref.listId) return undefined;
   const hit = decks.find((d) => d.id === ref.listId);
   if (hit) return hit;

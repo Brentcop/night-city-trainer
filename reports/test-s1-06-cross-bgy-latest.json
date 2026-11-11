@@ -1,0 +1,199 @@
+{
+ "deck": "S1-06 Cross (BGY)",
+ "date": "2026-11-11T22:06:09.500Z",
+ "games": 60,
+ "bot": "deep",
+ "seed": 9000,
+ "overall": 0.2761904761904762,
+ "rows": [
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 30,
+   "bWins": 30,
+   "ties": 0,
+   "aFirstWins": 15,
+   "aFirstGames": 30,
+   "aSecondWins": 15,
+   "aSecondGames": 30,
+   "bFirstWins": 15,
+   "bSecondWins": 15,
+   "turns": 747,
+   "overtime": 15
+  },
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 20,
+   "bWins": 40,
+   "ties": 0,
+   "aFirstWins": 11,
+   "aFirstGames": 30,
+   "aSecondWins": 9,
+   "aSecondGames": 30,
+   "bFirstWins": 21,
+   "bSecondWins": 19,
+   "turns": 735,
+   "overtime": 18
+  },
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 16,
+   "bWins": 44,
+   "ties": 0,
+   "aFirstWins": 9,
+   "aFirstGames": 30,
+   "aSecondWins": 7,
+   "aSecondGames": 30,
+   "bFirstWins": 23,
+   "bSecondWins": 21,
+   "turns": 707,
+   "overtime": 7
+  },
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 16,
+   "bWins": 44,
+   "ties": 0,
+   "aFirstWins": 7,
+   "aFirstGames": 30,
+   "aSecondWins": 9,
+   "aSecondGames": 30,
+   "bFirstWins": 21,
+   "bSecondWins": 23,
+   "turns": 756,
+   "overtime": 18
+  },
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 13,
+   "bWins": 47,
+   "ties": 0,
+   "aFirstWins": 5,
+   "aFirstGames": 30,
+   "aSecondWins": 8,
+   "aSecondGames": 30,
+   "bFirstWins": 22,
+   "bSecondWins": 25,
+   "turns": 718,
+   "overtime": 14
+  },
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 11,
+   "bWins": 49,
+   "ties": 0,
+   "aFirstWins": 10,
+   "aFirstGames": 30,
+   "aSecondWins": 1,
+   "aSecondGames": 30,
+   "bFirstWins": 29,
+   "bSecondWins": 20,
+   "turns": 728,
+   "overtime": 6
+  },
+  {
+   "a": "S1-06 Cross (BGY)",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 10,
+   "bWins": 50,
+   "ties": 0,
+   "aFirstWins": 5,
+   "aFirstGames": 30,
+   "aSecondWins": 5,
+   "aSecondGames": 30,
+   "bFirstWins": 25,
+   "bSecondWins": 25,
+   "turns": 705,
+   "overtime": 8
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-11T22:06:09.483Z:9000",
+  "createdAt": "2026-11-11T22:06:09.483Z",
+  "purpose": "matchup",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "f6bd56f9c63a5b11",
+    "name": "S1-06 Cross (BGY)",
+    "file": "s1-06-cross-bgy.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "f6bd56f9c63a5b11",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 9000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

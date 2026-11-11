@@ -2,22 +2,22 @@
 
 Field: BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test
 
-## Generation 1 — baseline 58.0%
+## Generation 1 — baseline 42.9%
 
-- **Seat:** 50% on the play vs 66% on the draw. When you choose (you lost the last game), choose to go **second**.
-- **Cards that win games:** Detonate (+13 pts when drawn), Field Operator (+11 pts when drawn), Johnny Silverhand: Never Stop Fighting (+10 pts when drawn), Over the Edge (+7 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Underperformers:** Shattered Memories (-27 pts), Memory Relapse (-13 pts), Chrome Reverie (-9 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-- **Usual Eddie fodder:** Detonate (sold in 97% of games it's drawn), Chrome Reverie (sold in 92% of games it's drawn), Nocturne OP55 N1 (sold in 90% of games it's drawn), Satori: Sword of Saburo (sold in 83% of games it's drawn).
+- **Seat:** 25% on the play vs 61% on the draw. When you choose (you lost the last game), choose to go **second**.
+- **Cards that win games:** Valentino Street Racer (+24 pts when drawn), Pepe Najarro: Working Doubles (+19 pts when drawn), Psycho Squad (+16 pts when drawn), Placide: Voodoo Sentinel (+14 pts when drawn). Keep these over everything when you sell or mulligan.
+- **Underperformers:** Nadia: Fighting Through Grief (-17 pts), Shattered Memories (-16 pts), Mantis Blades (-14 pts). Sell these first, and consider cutting them or moving them to the sideboard.
+- **Usual Eddie fodder:** Synapse Burnout (sold in 100% of games it's drawn), Mantis Blades (sold in 97% of games it's drawn), Peace Offering (sold in 97% of games it's drawn), We Gotta Live Together (sold in 95% of games it's drawn).
 
 | Swap | Win % | Δ vs baseline |
 |---|---|---|
-| -1 Shattered Memories → +1 Sandayu Oda: Hanako's Guardian | 60.7% | 2.7 |
-| -1 Shattered Memories → +1 Field Operator | 58.9% | 0.9 |
-| -1 Shattered Memories → +1 Chrome Reverie | 58.0% | 0.0 |
-| -1 Shattered Memories → +1 Detonate | 57.1% | -0.9 |
-| -1 Shattered Memories → +1 Johnny Silverhand: Never Stop Fighting | 56.3% | -1.8 |
+| -1 Nadia: Fighting Through Grief → +1 Over the Edge | 45.5% | 2.7 |
+| -1 Shattered Memories → +1 Over the Edge | 45.5% | 2.7 |
+| -1 Nadia: Fighting Through Grief → +1 Pepe Najarro: Working Doubles | 44.6% | 1.8 |
+| -1 Mantis Blades → +1 Pepe Najarro: Working Doubles | 43.8% | 0.9 |
+| -1 Shattered Memories → +1 Pepe Najarro: Working Doubles | 42.0% | -0.9 |
 
-Confirmation (224 fresh games): baseline 58.9% vs swap 60.7% → **adopted**
+Confirmation (224 fresh games): baseline 49.6% vs swap 50.0% → **adopted**
 
 Saved data\decks\custom\s1-04-cross-rbg.txt (previous version archived in data/decks/custom/history/).
 
@@ -25,4 +25,4 @@ Saved data\decks\custom\s1-04-cross-rbg.txt (previous version archived in data/d
 
 | Gen | Win % | Change |
 |---|---|---|
-| 1 | 60.7% | -1 Shattered Memories → +1 Sandayu Oda: Hanako's Guardian |
+| 1 | 50.0% | -1 Nadia: Fighting Through Grief → +1 Over the Edge |

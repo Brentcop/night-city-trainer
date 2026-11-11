@@ -1,0 +1,199 @@
+{
+ "deck": "S1-05 Cross (RBB)",
+ "date": "2026-11-11T22:04:22.063Z",
+ "games": 60,
+ "bot": "deep",
+ "seed": 9000,
+ "overall": 0.5666666666666667,
+ "rows": [
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 50,
+   "bWins": 10,
+   "ties": 0,
+   "aFirstWins": 21,
+   "aFirstGames": 30,
+   "aSecondWins": 29,
+   "aSecondGames": 30,
+   "bFirstWins": 1,
+   "bSecondWins": 9,
+   "turns": 755,
+   "overtime": 16
+  },
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 36,
+   "bWins": 24,
+   "ties": 0,
+   "aFirstWins": 16,
+   "aFirstGames": 30,
+   "aSecondWins": 20,
+   "aSecondGames": 30,
+   "bFirstWins": 10,
+   "bSecondWins": 14,
+   "turns": 760,
+   "overtime": 15
+  },
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 36,
+   "bWins": 24,
+   "ties": 0,
+   "aFirstWins": 17,
+   "aFirstGames": 30,
+   "aSecondWins": 19,
+   "aSecondGames": 30,
+   "bFirstWins": 11,
+   "bSecondWins": 13,
+   "turns": 748,
+   "overtime": 16
+  },
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 33,
+   "bWins": 27,
+   "ties": 0,
+   "aFirstWins": 15,
+   "aFirstGames": 30,
+   "aSecondWins": 18,
+   "aSecondGames": 30,
+   "bFirstWins": 12,
+   "bSecondWins": 15,
+   "turns": 776,
+   "overtime": 17
+  },
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 32,
+   "bWins": 28,
+   "ties": 0,
+   "aFirstWins": 15,
+   "aFirstGames": 30,
+   "aSecondWins": 17,
+   "aSecondGames": 30,
+   "bFirstWins": 13,
+   "bSecondWins": 15,
+   "turns": 767,
+   "overtime": 23
+  },
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 29,
+   "bWins": 31,
+   "ties": 0,
+   "aFirstWins": 10,
+   "aFirstGames": 30,
+   "aSecondWins": 19,
+   "aSecondGames": 30,
+   "bFirstWins": 11,
+   "bSecondWins": 20,
+   "turns": 774,
+   "overtime": 7
+  },
+  {
+   "a": "S1-05 Cross (RBB)",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 22,
+   "bWins": 38,
+   "ties": 0,
+   "aFirstWins": 12,
+   "aFirstGames": 30,
+   "aSecondWins": 10,
+   "aSecondGames": 30,
+   "bFirstWins": 20,
+   "bSecondWins": 18,
+   "turns": 751,
+   "overtime": 15
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-11T22:04:22.050Z:9000",
+  "createdAt": "2026-11-11T22:04:22.050Z",
+  "purpose": "matchup",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "9f01127eb8f41dda",
+    "name": "S1-05 Cross (RBB)",
+    "file": "s1-05-cross-rbb.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "9f01127eb8f41dda",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 9000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

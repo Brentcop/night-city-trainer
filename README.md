@@ -17,7 +17,7 @@ On top of that it adds a **matchup lab** that runs thousands of bot-vs-bot games
 |---|---|---|
 | Rules engine | `src/engine/` | Implements the Comprehensive Rules (Oct 29 2026): setup and mulligans, economy (Eddies, selling, Legends as money), Call a Legend (also as a reaction), Go Solo, Lag, attack / react / fight / steal, Blocker, Quick, pending-effect order, replacement effects, overtime, and win/deck-out checks. |
 | Card scripts | `src/engine/scripts/{red,blue,green,yellow}.ts` | All 150 legal cards. A handful are approximated; they are flagged `partial` and shown as "sim: approximated" on the Cards page. |
-| Bots | `src/ai/` | The lookahead bot clones the game, plays each candidate action out, and scores the result. Reactions are scored by projecting the attack's outcome. Sub-choices (targets, dice, discards, modes) use a card-knowledge base and each deck's "Gig plan". |
+| Bots | `src/ai/` | The lookahead bot clones the game, plays each candidate action out, and scores the result. Reactions are scored by playing the attack out in the clone. Sub-choices (targets, dice, discards, modes) use a card-knowledge base and each deck's "Gig plan". |
 | Deck formats | `src/engine/deck.ts` | Imports choom.gg text, the "Official" format (cyberpunktcg.com / ChoomBattler / the Sim), Sim deck JSON, and loose lists. Exports all three. Validates RAM limits, copies, size and sideboard. |
 | Deck library | `data/decks/` | Choom.gg meta archetypes (`meta-*.txt`), choom.gg guide lists, and your own decks in `data/decks/custom/`. |
 | Web app | `src/ui/`, `src/App.tsx` | The pages are listed under [Pages](#pages). |
@@ -73,7 +73,7 @@ Visual replays show a game on the real board; click a log line to rewind to it.
 | `npm run build-h2h` | Rebuilds `public/data/h2h.json` (head-to-heads for the Deck Lab) from the recorded events. |
 | `npm run bundle-reports` | Bundles per-deck report data from `reports/` into `src/data/deckReports.json` for the deck profile page. |
 | `npm run refresh` | `bundle-reports`, then `scripts/plan.ts`, then `build-h2h`. |
-| `npm run check:data` | Read-only consistency check of the recorded data: the event index matches `public/tournaments/`, `h2h.json` covers every event, and every run manifest has a known schema and deck ids that match the stored lists. Exits 1 on a problem; events without a manifest are counted as legacy. |
+| `npm run check:data` | Read-only consistency check of the recorded data: the event index matches `public/tournaments/`, `h2h.json` covers every event, every event records its `simVersion` and a run manifest, and every manifest has a known schema and deck ids that match the stored lists. Exits 1 on a problem. |
 
 ## Matchup scripts
 
@@ -98,12 +98,14 @@ npm run tournament -- --field meta --bo 3 --top 8 --bot hard   # record a new ev
 Every script prints its usage with `--help`. Unknown flags and invalid values exit with code 2 before anything is read or written. The multi-threaded scripts (`sim`, `tournament`, `season.ts`, `forge.ts`, `optimize.ts`, `tune.ts`, `tune-profiles.ts`, `botcheck.ts`, `review.ts`) take `--threads N` (default: all cores but one, at most 16); `tune.ts`, `tune-profiles.ts` and `forge.ts` take `--seed`, so a run can be repeated. The scripts also refuse to overwrite recorded data unless you pass `--force`:
 
 - `npm run tournament`: `--start` defaults to the highest recorded event + 1, and an existing event is only overwritten with `--force`. Events are read from and written to `public/tournaments/` (plus the index `src/data/tournaments.json`). A game that throws aborts the event: nothing is recorded for it and the run exits 1.
-- `scripts/season.ts`: `--season` defaults to the next unrecorded season. An existing season is refused without `--force`, because it would count its games twice; with `--force` its leaderboard totals are taken out first. Seasons 1–5 cannot be forced, because they were recorded before per-season totals were kept.
+- `scripts/season.ts`: `--season` defaults to the next unrecorded season. An existing season is refused without `--force`, because it would count its games twice; with `--force` its leaderboard totals are taken out first. (The seasons were restarted from Season 1 on 2026-11-11, and every season since keeps per-season totals.)
 - `sim add`, `scripts/import-meta.ts`, `scripts/import-guides.ts`, `scripts/eor-build.ts` and `scripts/theorize-ladder.ts` will not overwrite an existing deck file without `--force`. When they do replace one, they keep its provenance header.
 - `scripts/review.ts` writes per-decision dumps to `data/reviews/` (gitignored) and summaries to `reports/review-<name>.md` (kept).
 
 ### Data-driven deck building
-Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`, and the reasoning is in `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
+Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`. Their forge logs came from the earlier simulator and were removed at the 2026-11-11 baseline (they are kept at the tag `archive/pre-season1-reset-2026-11-11`); new forge runs write `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
+
+**Fresh baseline (2026-11-11).** All recorded results were wiped and regenerated on SIM_VERSION 5, starting again from Season 1 (`docs/ROADMAP.md` §1). Decks bred or optimised from the old results moved to `data/decks/archive/` (not loaded; see its README); the old data is at the tags `archive/pre-season1-reset-2026-11-11` and `archive/sim-v2-pre-fairness-baseline-2026-11`.
 
 Reports go to `reports/` (`*-latest.md` plus timestamped copies, which are gitignored). `review` also refreshes `src/data/review.json`, which feeds the Meta and Home pages; `analyze` refreshes `src/data/analysis.json`, which feeds Card stats, the coach and the Deck Lab.
 
@@ -173,5 +175,5 @@ Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `
 
 - The bots are strong heuristic players, not perfect ones. They favour proactive decks over high-skill control decks such as BBG Econ, so treat sim win rates as a floor for those decks. See `docs/STRATEGY.md`.
 - Hidden information is respected: bots don't see your hand or deck order, and nobody knows which face-down Legend is which. Lookahead copies re-deal the rival's hand from their unseen cards, shuffle deck order, and shuffle the identities of face-down Legends the bot hasn't seen (its own and the rival's). An unknown Legend Call is valued as one averaged option, in the main phase, in reactions and in deep rollouts.
-- Bot and engine fixes change play, so events recorded before them (no `simVersion` in the event file) no longer replay identically; the legacy `deep` and `hard-v1` bot settings are kept but share the fixes. New games replay identically from their seed with the same code (`makeBot()`). A fresh baseline is planned in `docs/ROADMAP.md` §1.
+- Bot and engine fixes change play: every recorded event carries the `simVersion` it was played on, and replays identically from its seed only with that code (`makeBot()`); the site marks results as historical once `SIM_VERSION` moves past them. The data was restarted on SIM_VERSION 5 on 2026-11-11 (`docs/ROADMAP.md` §1). The Hard bot also reads the card-impact table (`src/data/impact.json`), so re-running `sim analyze` changes Hard games too.
 - Approximated cards are listed on the Cards page; search "approximated".

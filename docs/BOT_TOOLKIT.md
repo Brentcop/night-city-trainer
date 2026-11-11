@@ -50,7 +50,7 @@ The evaluation scores a position from one player's view: ours minus the rival's.
 | Gig plan | 1.5 × plan score | Rewards dice that match the deck's payoffs |
 | Low deck | −8 per card under 4 | Deck-out avoidance |
 
-The weights were tuned by self-play (`scripts/tune.ts`): each weight is tried at ×0.5 and ×1.6 against the baseline across every meta pairing, and a variant is adopted if it wins at least 54%. Two rounds so far: round 1 halved the Gig, unit-power and spent-risk weights; round 2 raised face-up Legends and halved spent risk again. The values above are `DEFAULT_WEIGHTS` in `src/ai/eval.ts`; the per-Gig, Gear, Blocker and low-deck numbers are fixed in the code, not tuned.
+The weights were tuned by self-play (`scripts/tune.ts`): each weight is tried at ×0.5 and ×1.6 against the baseline across every meta pairing. Two early rounds (before the November 2026 fixes, when a variant was adopted at a 54% win rate) halved the Gig, unit-power and spent-risk weights, then raised face-up Legends and halved spent risk again. Since 2026-11-11 a variant is adopted in training only when the lower bound of its paired 95% interval is above zero, and a candidate is applied only when its held-out lower bound clears 1 point (`scripts/tuning.ts`). The re-tune for the fresh baseline (2026-11-11, `--seed 1`, defaults: 168 games per evaluation) adopted unitPower ×1.6 in training, but the held-out check gave +0.6 points [−3.3, +4.5] over 168 games, so nothing was applied (report `reports/tune-weights-1-2026-11-11T21-15-00-176Z.json`). The values above are `DEFAULT_WEIGHTS` in `src/ai/eval.ts`; the per-Gig, Gear, Blocker and low-deck numbers are fixed in the code, not tuned.
 
 ## 4. Gig plan (`src/ai/knowledge.ts → gigPlanOf`)
 
@@ -66,7 +66,7 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 
 ## 5. Decision procedures (`src/ai/heuristic.ts`)
 
-1. **Mulligan.** Keep the hand only if it has a Unit costing ≤4, three cards costing ≤4, and something to sell. The mulligan costs nothing (a new hand of 6), so a deck's mulligan rate is just the chance its opening hand fails the rule: from about 6% (Rainbow Fixer Stuff) to 26% (RRY Smasher Aggro) for the meta decks, almost all of it from having no Unit costing ≤4. BBG Cunningham Econ is at 21%: it has 9 such Units in 40 cards, the fewest.
+1. **Mulligan.** Keep the hand only if it has a Unit costing ≤4, three cards costing ≤4, and something to sell. The mulligan costs nothing (a new hand of 6), so a deck's mulligan rate is just the chance its opening hand fails the rule: from about 6% (Rainbow Fixer Stuff) to 27% (RRY Smasher Aggro) for the meta decks (1,200 games each in the 2026-11-11 baseline), almost all of it from having no Unit costing ≤4. BBG Cunningham Econ is at 22%: it has 9 such Units in 40 cards, the fewest.
 2. **Sell first.** Sell once per turn until about 9 Eddies. Sell the card with the lowest keep value: a duplicate, something not castable soon, or Gear with no host.
 3. **Main actions, 1-ply lookahead.**
    - For every legal action, clone the game, play the action out, and evaluate.
@@ -101,19 +101,17 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 | **Medium** | Lookahead | Scores every action one step ahead, with the tuned matchup profiles |
 | **Hard** | Deep + card impact + reaction rollouts | Also rolls out the rest of its turn and your whole reply for its best 3 options, plays out each block / reaction, and values cards by how much they swing games for its deck |
 
-Head-to-head (`scripts/bot-tiers.sh`, every meta pairing, seats swapped, 168 games each, about ±6 points of noise). These were measured before the November 2026 bot and engine fixes (`docs/IMPROVEMENT_BACKLOG.md`, Wave B) and have not been re-measured:
+Head-to-head, **re-measured 2026-11-11** on SIM_VERSION 5 with the fresh baseline's `src/data/impact.json` (`scripts/botcheck.ts --per 10`: every ordered meta pairing, seats swapped, 420 games each, same seeds; the configs are the tiers' settings in `src/ai/tiers.ts`):
 
-| Matchup | First bot wins |
+| Matchup | First bot wins (95%) |
 |---|---|
-| Easy vs Medium | 37.5% |
-| Medium vs Deep (pre-tier Hard) | 49.4% |
-| Hard (pre-refinement) vs Deep | 52.4% |
-| Hard (reaction rollouts) vs Hard (pre-refinement) | 56.0% |
-| Deep 12 + card impact vs Deep | 51.2% |
+| Easy vs Medium | 36.7% ±4.6 |
+| Medium vs Hard | 43.8% ±4.7 |
+| Hard vs Deep (the pre-tier `deep` setting: no card impact or reaction rollouts) | 54.8% ±4.8 |
 
-Easy is clearly weaker. Medium and Hard are close in bot-vs-bot play: both use the same evaluation, so their mistakes are similar. Hard's edge shows when it judges single decisions against the rollout oracle: it blunders about 16% of the time vs 25% for Medium. That matters more against a human, who makes different mistakes.
+Not re-measured (the old numbers predate the November 2026 fixes and were removed): Hard vs the first Hard (`hard-v1`) and the coach's deep 12 + card impact as a player. Easy is clearly weaker; Hard is now measurably stronger than Medium and the old Deep setting in bot-vs-bot play. Its blunder rate against the rollout oracle (16% vs 25% for Medium) is from before the fixes and is pending a re-run of `scripts/coach-eval.ts`.
 
-**Tournaments** can run All Hard, a Hard + Medium mix (each seat of each game is Hard or Medium, decided by its seed, so a replay rebuilds the same bots), All Medium, or All Easy. Events recorded before the tiers used the Deep bot (`deep`); that setting and `hard-v1` are kept with their original search depth, impact and reactions, but they share every later fix to the bot's choices. So events recorded before the fixes no longer replay identically. New events carry `simVersion` (`SIM_VERSION` in `src/lib/tournament.ts`); events without it predate the fixes. A new game still replays identically from its seed with the same code (`makeBot()`).
+**Tournaments** can run All Hard, a Hard + Medium mix (each seat of each game is Hard or Medium, decided by its seed, so a replay rebuilds the same bots), All Medium, or All Easy. Events recorded before the tiers used the Deep bot (`deep`); that setting and `hard-v1` are kept with their original search depth, impact and reactions, but they share every later fix to the bot's choices. So events recorded before the fixes no longer replay identically; they were wiped at the 2026-11-11 fresh baseline, and every recorded event now carries its `simVersion` (`SIM_VERSION` in `src/lib/tournament.ts`). A game replays identically from its seed with the same code and the same `src/data/impact.json` (`makeBot()`; Hard reads the impact table), and `tests/replay-events.test.ts` pins four recorded games.
 
 ## 7. Coach (`src/ai/coach.ts`)
 

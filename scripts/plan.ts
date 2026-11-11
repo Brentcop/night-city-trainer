@@ -97,7 +97,7 @@ if (useRatings) {
   const L = lib.find((x) => x.deck.name === r.name)!;
   const worst = Math.min(...metaNames.filter((o) => o !== r.name).map((o) => expWr(r.name, o) ?? 1));
   pick = { name: r.name, file: L.file, winRate: r.wrField, games: r.games, field: r.wrMeta ?? r.wrField, worst } as any;
-  pickReason = `Highest power rating from ${RT!.events} tournament events (${RT!.games.toLocaleString()} games, every deck in the library): expected ${pct(r.wrField)} against the whole field (90% range ${pct(r.wrFieldLo)}–${pct(r.wrFieldHi)}) and ${pct(r.wrMeta ?? NaN)} against the choom.gg meta decks; ${r.titles} event title${r.titles === 1 ? '' : 's'}, top 8 in ${r.top8} of ${r.events}.${close.length > 1 ? ` Chosen over ${close.length - 1} statistically tied deck${close.length > 2 ? 's' : ''} (${close.filter((d) => d !== r).map((d) => d.name).join(', ')}) for its record against the meta decks.` : ''}`;
+  pickReason = `Highest power rating from ${RT!.events} tournament events (${RT!.games.toLocaleString()} games): expected ${pct(r.wrField)} against the whole field (90% range ${pct(r.wrFieldLo)}–${pct(r.wrFieldHi)}) and ${pct(r.wrMeta ?? NaN)} against the choom.gg meta decks; ${r.titles} event title${r.titles === 1 ? '' : 's'}, top 8 in ${r.top8} of ${r.events}.${close.length > 1 ? ` Chosen over ${close.length - 1} statistically tied deck${close.length > 2 ? 's' : ''} (${close.filter((d) => d !== r).map((d) => d.name).join(', ')}) for its record against the meta decks.` : ''}`;
 }
 let backup = ranked.find((d) => d.name !== pick.name && arch(d.name) !== arch(pick.name)) ?? ranked[1];
 if (useRatings) {
@@ -176,8 +176,8 @@ const plan = `
 - **Full stats:** [${pick.name} deck profile](#/deck?d=${encodeURIComponent(pick.file)}) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
 - ${finals[pick.name] ? `**Finals: ${pct(finals[pick.name].overall)} over ${finals[pick.name].games} deep-bot games vs the meta archetypes.** ` : ''}**Expected-field score: ${pct(pick.field)}**. This is the win rate against choom.gg's meta archetypes, weighted by their tier power. Overall round-robin win rate: ${pct(pick.winRate)}; worst meta matchup: ${pct(pick.worst)}.
 ${pickReason ? `- **Why this one:** ${pickReason}` : ''}
-- **Why (from ${rep ? rep.games : 0} telemetry games):**
-${rep ? rep.insights.map((x) => `  - ${x}`).join(String.fromCharCode(10)) : ''}
+${rep ? `- **Why (from ${rep.games} telemetry games):**
+${rep.insights.map((x) => `  - ${x}`).join(String.fromCharCode(10))}` : '- **Telemetry:** this deck is not in the analysed field (`src/data/analysis.json`), so there are no card insights for it yet.'}
 - **Ready-to-register list:** ${eorDeck ? `${link(eorDeck.deck.name)} (\`${eorFile}\`, Decks page → Tournament builds): the list plus a data-chosen 7-card sideboard.` : 'the list on the Decks page.'}
 - **Backup / sideboard partner:** ${link(backup.name)} (${arch(backup.name)}, field score ${pct(backup.field)}). Practise it second, in case the room skews hard against ${arch(pick.name)} decks.
 
@@ -206,7 +206,7 @@ ${ranked
   .map((d, i) => `| ${i + 1} | ${link(d.name)} | ${arch(d.name)} | ${finals[d.name] ? `**${pct(finals[d.name].overall)}** (${finals[d.name].games})` : '—'} | ${pct(d.field)} | ${pct(d.winRate)} | ${pct(d.worst)} |`)
   .join('\n')}
 
-${hasFinals ? 'Ranking uses the **finals**: each contender played 360 deep-bot games against the six meta archetypes on the same seeds. That is more reliable than the round-robin estimate (24 games per pairing).' : ''}
+${hasFinals ? `Ranking uses the **finals** (\`sim test\` vs the meta archetypes, ${[...new Set(Object.values(finals).map((f) => f.games))].sort((a, b) => a - b).join(' or ')} games per deck). That is more reliable than the round-robin estimate (${R.games} games per pairing).` : ''}
 
 ## Matchup plan with ${pick.name}
 | Opponent | Sim win % | Seat | Key cards | Plan |
@@ -219,7 +219,7 @@ ${problemLines.length ? `## Problem matchups\n${problemLines.join('\n')}` : ''}
 
 ## Bo3 notes (tournament rules)
 - The **loser of each game chooses who goes first**. Use the seat column above. Across all sim games, going first won ${pct(R.firstPlayerWinRate)}; choom.gg's human games show 57% for going first.
-- Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. Average sim game length for this deck is ${rep ? rep.avgTurns.toFixed(1) : '?'} turns, so play at a steady pace.
+- Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. ${rep ? `Average sim game length for this deck is ${rep.avgTurns.toFixed(1)} turns, so play at a steady pace.` : 'Play at a steady pace.'}
 - The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab, or with \`npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard\`.
 
 ## Practice schedule (${days} days to Chicago)
@@ -233,7 +233,7 @@ ${problemLines.length ? `## Problem matchups\n${problemLines.join('\n')}` : ''}
 `;
 
 const recommendation = `## Recommended deck
-**${pick.name}** — ${finals[pick.name] ? `${pct(finals[pick.name].overall)} in the finals (${finals[pick.name].games} deep-bot games vs the meta archetypes)` : `${pct(pick.field)} against the weighted meta field`}, ${pct(pick.winRate)} overall across ${R.decks.length} decks. Backup: **${backup.name}**. ${eorDeck ? `Ready-to-register list with sideboard: ${link(eorDeck.deck.name)}. ` : ''}Full stats: [${pick.name}](#/deck?d=${encodeURIComponent(pick.file)}).
+**${pick.name}** — ${finals[pick.name] ? `${pct(finals[pick.name].overall)} in the finals (${finals[pick.name].games} deep-bot games vs the meta archetypes)` : `${pct(pick.field)} against the weighted meta field`}, ${useRatings ? `${pct(pick.winRate)} expected against the whole field (power ratings, ${RT!.games.toLocaleString()} tournament games)` : `${pct(pick.winRate)} overall across ${R.decks.length} decks`}. Backup: **${backup.name}**. ${eorDeck ? `Ready-to-register list with sideboard: ${link(eorDeck.deck.name)}. ` : ''}Full stats: [${pick.name}](#/deck?d=${encodeURIComponent(pick.file)}).
 
 ${rep ? rep.insights.slice(0, 2).map((s) => `- ${s}`).join('\n') : ''}
 `;

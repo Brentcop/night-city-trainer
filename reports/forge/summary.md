@@ -2,8 +2,11 @@
 
 | Deck | Start | End | Changes |
 |---|---|---|---|
-| Ladder: Jackie / Alt / Hanako (BBG) | 68.3% | 66.7% | -1 Peace Offering → +1 MaxTac AV |
-| Ladder: Smasher / River / Viktor (RYY) | 60.3% | 62.3% | -1 Alt Cunningham: Mother of Daemons → +1 Gorilla Arms |
-| Ladder: V / Smasher / Saburo (RRG) | 78.6% | 73.8% | — |
-| Ladder: V / Smasher / Padre (RRG) | 77.4% | 79.4% | -1 Field Operator → +1 MaxTac AV |
-| Ladder: Dexter / V / Wakako (RRB) | 73.8% | 73.4% | -1 Shattered Memories → +1 Yorinobu Arasaka: Steel Dragon |
+| S1-01 Mutant (RRY) | 77.2% | 77.2% | -1 Appetite for Destruction → +1 Rockn' Rockerboy |
+| S1-02 Mutant (RYY) | 33.9% | 33.9% | — |
+| S1-03 Mutant (RBG) | 72.3% | 72.3% | — |
+| S1-04 Cross (RBG) | 50.0% | 50.0% | -1 Nadia: Fighting Through Grief → +1 Over the Edge |
+| S1-05 Cross (RBB) | 61.6% | 61.6% | — |
+| S1-06 Cross (BGY) | 33.9% | 33.9% | -1 Zetatech Berserk → +1 Placide: Voodoo Sentinel |
+| S1-07 Explorer (RYY) | 50.4% | 50.4% | — |
+| S1-08 Explorer (BGG) | 46.4% | 46.4% | — |

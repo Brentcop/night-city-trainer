@@ -4,6 +4,8 @@
 // that change alters recorded games: re-run this file, update the goldens below to the new values, and bump
 // `SIM_VERSION` in src/lib/tournament.ts in the same commit so older recorded events are flagged as made with other code.
 // If you did not mean to change play, a failure here is a regression: find what changed instead of updating the goldens.
+// The Hard games also depend on src/data/impact.json: regenerating it with `npm run sim -- analyze` moves them as well.
+// Games from the recorded events are pinned in tests/replay-events.test.ts.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
@@ -39,9 +41,11 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
     { seed: 201, first: 0, winner: 1, turns: 12, log: '5d0e65c4' },
     { seed: 202, first: 1, winner: 0, turns: 14, log: '1c55ca83' },
   ],
+  // Hard also reads the card-impact table (src/data/impact.json). Re-pinned 2026-11-11 when the fresh baseline's
+  // `sim analyze` regenerated that table (no code change; Easy and Medium did not move). Was 1b4c17f1 and 0/14/e13d64b6.
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 11, log: '1b4c17f1' },
-    { seed: 302, first: 1, winner: 0, turns: 14, log: 'e13d64b6' },
+    { seed: 301, first: 0, winner: 0, turns: 11, log: '8888fe17' },
+    { seed: 302, first: 1, winner: 1, turns: 11, log: '589d1a10' },
   ],
 };
 

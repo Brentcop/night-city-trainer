@@ -176,7 +176,11 @@ function saveLB(lb: Record<string, Entry>) {
     .filter((f) => /^season-\d+\.json$/.test(f))
     .map((f) => JSON.parse(fs.readFileSync(`data/seasons/${f}`, 'utf8')))
     .sort((a, b) => a.season - b.season);
-  writeJsonStamped('src/data/seasons.json', { updated: '', leaderboard: rows, seasons }, { indent: 1 });
+  // what the site reads to label the leaderboard current or historical (src/data/index.ts SeasonsData): the lowest sim
+  // version of the recorded seasons, 0 when any season predates manifests, and each season's run
+  const inputs = seasons.map((s) => ({ season: s.season as number, runId: (s.manifest?.runId as string | undefined) ?? null, simVersion: typeof s.manifest?.simVersion === 'number' ? (s.manifest.simVersion as number) : null }));
+  const manifest = { kind: 'seasons', simVersion: inputs.length ? Math.min(...inputs.map((x) => x.simVersion ?? 0)) : SIM_VERSION, inputs };
+  writeJsonStamped('src/data/seasons.json', { updated: '', leaderboard: rows, seasons, manifest }, { indent: 1 });
   return rows;
 }
 

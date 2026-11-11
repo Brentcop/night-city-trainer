@@ -8,7 +8,6 @@ import type { PlayerSummary } from '../analysis/summarize';
 import { breedSeason, type Bred } from '../ai/breeder';
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
-import { LEGACY_IMPACT_LISTS } from '../analysis/legacyImpactLists';
 import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, type PlayGame } from './tournament';
 import type { LibraryDeck } from './library';
@@ -34,7 +33,7 @@ export const GLOBAL_IMPACT: Record<string, number> = (() => {
  * name, does not inherit another list's numbers. Undefined when no telemetry describes this list.
  */
 export function deckImpactOf(deck: Pick<DeckList, 'name' | 'legends' | 'main'>): Record<string, number> | undefined {
-  const r = findImpactDeck(A.decks, { name: deck.name, listId: listFingerprint(deck) }, LEGACY_IMPACT_LISTS);
+  const r = findImpactDeck(A.decks, { name: deck.name, listId: listFingerprint(deck) });
   if (!r) return undefined;
   return Object.fromEntries(r.cards.filter(([, iwd, seenGames]) => seenGames >= IMPACT_MIN_DECK_GAMES && Number.isFinite(iwd)).map(([id, iwd]) => [id, iwd as number]));
 }

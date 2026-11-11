@@ -54,9 +54,12 @@ For each player in each game, the summary records:
 - **classify(deck):** returns aggro, midrange or control.
 - **Profiles:** each (mine > rival) archetype pair has evaluation-weight multipliers. They start from TCG theory ("who's the beatdown") and are tuned by self-play:
   - `scripts/tune-profiles.ts` measures variant vs current on identical seeds and deck pairings;
-  - it adopts a change at Δ ≥ +5 points;
-  - the result is saved to `src/ai/profiles.tuned.json` (`BEST_PROFILES`).
+  - in training it adopts a change only when the lower bound of the paired 95% interval is above zero, and with `--apply` it writes the result only when the held-out lower bound clears 1 point (`scripts/tuning.ts`);
+  - the result is saved to `src/ai/profiles.tuned.json` (`BEST_PROFILES`). The re-tune for the fresh baseline (2026-11-11, `--seed 1`, 160 games per measurement) adopted nothing in training; the held-out check was +0.00 points over 800 games, so the profiles are unchanged (report `reports/tune-profiles-1-2026-11-11T21-18-27-022Z.json`).
 - **Plan text:** `PLAN_TEXT` gives a short plain-language plan per pairing. It appears in the Insights matchup tables and in Play vs Bot ("Matchup read").
+
+## Current data
+The bundled `analysis.json`, `impact.json` and `review.json` come from the 2026-11-11 baseline: `npm run sim -- analyze --field meta --bot deep --decisions --games 200 --seed 1` (the 7 meta archetypes, 21 pairings × 200 games = 4,200 games, SIM_VERSION 5). Every deck report carries the fingerprint of the list it measured. The Hard bot and the coach read `impact.json`, so re-running analyze changes Hard games: record new events only after it, and bump `SIM_VERSION` if events were already recorded with the old table.
 
 ## Commands
 ```bash

@@ -6,18 +6,20 @@ import { listFingerprint } from '../../engine/deck';
 import type { DeckList } from '../../engine/types';
 import { CHOOM_GUIDE_OBJECTIVES } from './choomGuides';
 import { STRATEGY_PAGE_OBJECTIVES } from './strategyPage';
-import { BRED_EARLY_OBJECTIVES } from './bredEarly';
-import { BRED_LATE_OBJECTIVES } from './bredLate';
 import { LADDER_OBJECTIVES } from './ladder';
+import { SEASON_OBJECTIVES } from './seasons';
 import type { DeckObjective, ObjectiveTable } from './vocabulary';
 
 export * from './vocabulary';
 
+/**
+ * Notes for every deck in the active library. The decks archived at the 2026-11-11 baseline keep their notes in
+ * ./archived.ts (ARCHIVED_DECK_OBJECTIVES), which is not part of this table.
+ */
 export const DECK_OBJECTIVES: ObjectiveTable = {
   ...CHOOM_GUIDE_OBJECTIVES,
   ...STRATEGY_PAGE_OBJECTIVES,
-  ...BRED_EARLY_OBJECTIVES,
-  ...BRED_LATE_OBJECTIVES,
+  ...SEASON_OBJECTIVES,
   ...LADDER_OBJECTIVES,
 };
 

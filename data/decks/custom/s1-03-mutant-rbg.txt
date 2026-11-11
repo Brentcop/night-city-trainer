@@ -1,0 +1,32 @@
+// S1-03 Mutant (RBG)
+// Origin: Night City Trainer bred deck (season 1, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: Rainbow Fixer Stuff
+// Added: 2026-11-11
+// Idea: Mutant of Rainbow Fixer Stuff: Padre: Man of the Cross → Saburo Arasaka: Stubborn Patriarch; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Wakako Okada: Peace and Harmony
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+1 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Pepe Najarro: Working Doubles
+3 Psycho Squad
+2 MaxTac AV
+3 Nadia: Fighting Through Grief
+3 Placide: Voodoo Sentinel
+2 Mantis Blades
+1 NetWatch Netdriver
+2 Zetatech Berserk
+2 Synapse Burnout
+3 Nocturne OP55 N1
+2 Over the Edge
+2 Memory Relapse
+2 Shattered Memories
+3 Unlikely Bond
+2 We Gotta Live Together

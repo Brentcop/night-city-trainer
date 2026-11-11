@@ -9,7 +9,8 @@
 //     stale when it counts fewer events than the index), and its manifest, when it has one, names exactly those events
 //   - every run manifest in those files (and src/data/ratings.json) has a known schema, and its deck ids are the
 //     fingerprints of the deck lists stored next to it
-// Events without a manifest are legacy (recorded before manifests) and are counted, not failed.
+//   - every event records its simVersion and a run manifest: an event without either fails (the data was restarted from
+//     Season 1 on 2026-11-11, so nothing recorded predates them any more)
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -153,8 +154,11 @@ export function checkData(input: CheckInput): CheckResult {
   for (const { file, event } of input.events) {
     for (const [name, d] of Object.entries(event.decks))
       if (d.id !== undefined && d.id !== listId(d)) failures.push(`${file}: deck "${name}" has id ${d.id}, its stored list fingerprints as ${listId(d)}`);
+    // since the fresh baseline (2026-11-11, ROADMAP §1) every recorded event carries both; one without is a failure
+    if (typeof event.simVersion !== 'number') failures.push(`${file}: no simVersion (every event since the 2026-11-11 baseline records one)`);
     if (event.manifest === undefined) {
       legacyEvents++;
+      failures.push(`${file}: no run manifest (every event since the 2026-11-11 baseline records one)`);
       continue;
     }
     manifestsChecked++;
@@ -176,7 +180,6 @@ export function checkData(input: CheckInput): CheckResult {
     for (const id of m.field.deckIds) if (!ids.has(id)) failures.push(`${file}: manifest field deck ${id} is not one of its decks`);
   }
   if (failures.length === beforeEvents) passed.push(`event manifests and stored deck ids (${manifestsChecked} manifest(s) checked in all files)`);
-  if (legacyEvents) info.push(`${legacyEvents} legacy event(s) without a manifest (recorded before manifests; not checked)`);
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 

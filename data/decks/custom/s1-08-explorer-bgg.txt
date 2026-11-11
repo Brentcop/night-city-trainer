@@ -1,0 +1,31 @@
+// S1-08 Explorer (BGG)
+// Origin: Night City Trainer bred deck (season 1, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-11
+// Idea: Explorer (aggro): untested Legends Saburo Arasaka / Judy Álvarez / Hanako Arasaka, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Judy Álvarez: Braindance Maestro
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+1 Field Operator
+3 Valentino Street Racer
+3 Pepe Najarro: Working Doubles
+3 Psycho Squad
+1 Rita Wheeler: No Stupid Questions
+2 MaxTac AV
+3 Nadia: Fighting Through Grief
+3 Placide: Voodoo Sentinel
+3 Overwatch: Panam's Gift
+2 Zetatech Berserk
+2 Fool on the Hill
+1 Take Control
+2 Nocturne OP55 N1
+2 Memory Relapse
+2 Unlikely Bond
+2 We Gotta Live Together
+2 Wild in the Streets
+3 (Don't Fear) The Reaper

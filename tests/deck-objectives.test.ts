@@ -9,6 +9,8 @@ import { CARD_BY_ID } from '../src/engine/cards';
 import { listFingerprint } from '../src/engine/deck';
 import { GUIDES } from '../src/content/guides';
 import { DECK_OBJECTIVES, isOwnerImport, objectiveFor, SIGNAL_TERMS, VOCABULARY, type DeckObjective } from '../src/content/deckObjectives';
+import { ARCHIVED_DECK_OBJECTIVES, ARCHIVED_DIR } from '../src/content/deckObjectives/archived';
+import { parseDeck } from '../src/engine/deck';
 
 const entries = Object.entries(DECK_OBJECTIVES);
 const byFile = new Map(BUILTIN.map((d) => [d.file, d]));
@@ -17,10 +19,22 @@ const byFile = new Map(BUILTIN.map((d) => [d.file, d]));
 const texts = (n: DeckObjective) => [n.objective, ...n.plan.map((p) => p.text), ...n.keyCards.map((k) => k.role), ...n.signals.map((s) => s.text), ...n.risks];
 
 describe('deck objectives', () => {
-  it('covers every library deck, and only library decks', () => {
-    expect(BUILTIN.length).toBeGreaterThan(50);
+  it('covers every active library deck, and only active library decks', () => {
+    expect(BUILTIN.length).toBeGreaterThan(25);
     expect(BUILTIN.map((d) => d.file).filter((f) => !DECK_OBJECTIVES[f])).toEqual([]);
     expect(entries.map(([f]) => f).filter((f) => !byFile.has(f))).toEqual([]);
+  });
+
+  it('keeps the archived decks’ notes apart, each still matching its archived list', () => {
+    const archived = fs.readdirSync(ARCHIVED_DIR).filter((f) => f.endsWith('.txt'));
+    expect(archived.length).toBeGreaterThan(0);
+    // every archived list has its note and every archived note has its list
+    expect(archived.filter((f) => !ARCHIVED_DECK_OBJECTIVES[f])).toEqual([]);
+    expect(Object.keys(ARCHIVED_DECK_OBJECTIVES).filter((f) => !archived.includes(f))).toEqual([]);
+    for (const f of archived) expect(ARCHIVED_DECK_OBJECTIVES[f].listId, f).toBe(listFingerprint(parseDeck(fs.readFileSync(path.join(ARCHIVED_DIR, f), 'utf8'), f).deck));
+    // the site bundles only the active folders (data/decks and data/decks/custom), never the archive
+    const active = ['data/decks', 'data/decks/custom'].flatMap((dir) => fs.readdirSync(dir).filter((f) => f.endsWith('.txt')));
+    expect(BUILTIN.map((d) => d.file).sort()).toEqual(active.sort());
   });
 
   it('ties each note to the current list (listFingerprint)', () => {

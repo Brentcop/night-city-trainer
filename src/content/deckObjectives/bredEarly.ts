@@ -1,5 +1,6 @@
-// Deck objectives for the bred decks of seasons 1–3 (data/decks/custom/s1-*, s2-*, s3-*). Drafts from the list and,
-// for mutants and crossovers, from the parent decks' notes plus what changed. Edit freely; set status 'owner' after.
+// Deck objectives for the bred decks of the earlier seasons 1–3, archived at the 2026-11-11 baseline
+// (data/decks/archive/s1-*, s2-*, s3-*; see ./archived.ts). Drafts from the list and, for mutants and crossovers, from
+// the parent decks' notes plus what changed. Parent files named in `basedOn` may be archived too.
 import type { ObjectiveTable } from './vocabulary';
 
 export const BRED_EARLY_OBJECTIVES: ObjectiveTable = {

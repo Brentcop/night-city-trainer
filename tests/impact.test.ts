@@ -6,7 +6,6 @@ import analysis from '../src/data/analysis.json';
 import impact from '../src/data/impact.json';
 import type { DeckReport } from '../src/analysis/analyze';
 import { findImpactDeck, toImpactData, type ImpactDeck } from '../src/analysis/impactData';
-import { LEGACY_IMPACT_LISTS } from '../src/analysis/legacyImpactLists';
 import { cardImpact, impactDeckName, topImpactCards } from '../src/ai/impact';
 import { deckImpactOf, GLOBAL_IMPACT } from '../src/lib/deckLab';
 import { deckFingerprint, listFingerprint } from '../src/engine/deck';
@@ -18,6 +17,7 @@ import { Scripted } from './engine-helpers';
 const decks = (analysis as unknown as { decks: DeckReport[] }).decks;
 const lib = loadLibrary();
 const builtin = (name: string) => lib.find((d) => d.deck.name === name);
+const decksById = (id: string | undefined) => lib.find((d) => id !== undefined && listFingerprint(d.deck) === id);
 const ref = (d: Pick<DeckList, 'name' | 'legends' | 'main'>) => ({ name: d.name, listId: listFingerprint(d) });
 
 // Straightforward recomputation from analysis.json: the code src/ai/impact.ts and src/lib/deckLab.ts ran before the slim file.
@@ -49,17 +49,17 @@ function reference() {
   return { cardImpactRef, topRef, labGlobal, labDeck };
 }
 
-/** Analysed decks whose built-in list is still the one the legacy table pins (all of them when this was written). */
-const pinned = decks.filter((r) => builtin(r.deck) && listFingerprint(builtin(r.deck)!.deck) === LEGACY_IMPACT_LISTS[r.deck]);
+/** Analysed decks whose measured list is still a built-in deck of that name (all of them right after an analyze run). */
+const pinned = decks.filter((r) => builtin(r.deck) && decksById(r.id) === builtin(r.deck));
 
 describe('impact.json', () => {
   it('is in sync with analysis.json (regenerate both with `npm run sim -- analyze`)', () => {
     expect(impact).toEqual(JSON.parse(JSON.stringify(toImpactData(decks))));
   });
 
-  it('pins every legacy (name-only) entry to a list, and nothing else', () => {
-    const legacy = (impact as unknown as { decks: ImpactDeck[] }).decks.filter((d) => !d.id).map((d) => d.deck);
-    expect(Object.keys(LEGACY_IMPACT_LISTS).sort()).toEqual([...legacy].sort());
+  it('gives every entry the fingerprint of the list it measured (no name-only entries since the 2026-11-11 baseline)', () => {
+    const entries = (impact as unknown as { decks: ImpactDeck[] }).decks;
+    expect(entries.filter((d) => !d.id).map((d) => d.deck)).toEqual([]);
     expect(pinned.length).toBeGreaterThan(0);
   });
 
@@ -103,10 +103,9 @@ describe('impact.json', () => {
     expect(g.P(0).listId).toBe(listFingerprint(d));
     expect(g.P(0).listId).toBe(deckFingerprint({ ...d, sideboard: [] }));
     expect(g.P(1).listId).toBe(g.P(0).listId);
-    // the built-in deck under its own name gets its numbers; the same list under another name does not (legacy data
-    // has no fingerprint, so only the pinned name can claim it)
+    // impact belongs to the list: the built-in deck gets its numbers, and so does the same list under another name
     expect(topImpactCards(g.P(0))).toEqual(reference().topRef(pinned[0].deck));
-    expect(topImpactCards(g.P(1))).toEqual([]);
+    expect(topImpactCards(g.P(1))).toEqual(reference().topRef(pinned[0].deck));
   });
 });
 

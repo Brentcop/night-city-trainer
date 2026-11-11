@@ -1,0 +1,31 @@
+// S1-01 Mutant (RRY)
+// Origin: Night City Trainer bred deck (season 1, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: RRG Dexter Midrange
+// Added: 2026-11-11
+// Idea: Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → Dum Dum: Maelstrom Triggerman; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Dum Dum: Maelstrom Triggerman
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+3 Dexter DeShawn: One Last Chance
+1 Valentino Guerrera
+3 6th Street Recruits
+1 Gilded Matón
+3 Kerry Eurodyne: The Last Rockerboy
+3 Rockn' Rockerboy
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 All is Lost
+2 Detonate
+3 Bonnie and Clyde
+2 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum

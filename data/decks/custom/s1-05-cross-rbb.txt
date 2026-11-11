@@ -1,0 +1,32 @@
+// S1-05 Cross (RBB)
+// Origin: Night City Trainer bred deck (season 1, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: GRY Trauma Team × BBG Cunningham Econ
+// Added: 2026-11-11
+// Idea: Crossover of GRY Trauma Team × BBG Cunningham Econ (aggro): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 Alt Cunningham: Soulkiller Architect
+1 Jackie Welles: Pour One Out For Me
+1 V: Streetkid
+
+// Main Deck
+3 Jacked-In Voodoo Boy
+1 Valentino Guerrera
+3 6th Street Recruits
+1 Meredith Stout: Stone Cold Corpo
+3 Psycho Squad
+3 Maman Brigitte: Spirit of Death
+2 Johnny Silverhand: Never Stop Fighting
+3 Placide: Voodoo Sentinel
+2 All is Lost
+1 Floor It
+3 Trust No One
+2 Chrome Reverie
+2 Nocturne OP55 N1
+2 Pyramid Song
+2 Shattered Memories
+2 Unlikely Bond
+3 Les Élémens
+2 Towerfall

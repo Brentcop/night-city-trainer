@@ -1,0 +1,199 @@
+{
+ "deck": "S1-07 Explorer (RYY)",
+ "date": "2026-11-11T22:07:55.525Z",
+ "games": 60,
+ "bot": "deep",
+ "seed": 9000,
+ "overall": 0.5380952380952381,
+ "rows": [
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 45,
+   "bWins": 15,
+   "ties": 0,
+   "aFirstWins": 22,
+   "aFirstGames": 30,
+   "aSecondWins": 23,
+   "aSecondGames": 30,
+   "bFirstWins": 7,
+   "bSecondWins": 8,
+   "turns": 785,
+   "overtime": 19
+  },
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 36,
+   "bWins": 24,
+   "ties": 0,
+   "aFirstWins": 16,
+   "aFirstGames": 30,
+   "aSecondWins": 20,
+   "aSecondGames": 30,
+   "bFirstWins": 10,
+   "bSecondWins": 14,
+   "turns": 782,
+   "overtime": 25
+  },
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 35,
+   "bWins": 25,
+   "ties": 0,
+   "aFirstWins": 21,
+   "aFirstGames": 30,
+   "aSecondWins": 14,
+   "aSecondGames": 30,
+   "bFirstWins": 16,
+   "bSecondWins": 9,
+   "turns": 758,
+   "overtime": 11
+  },
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 35,
+   "bWins": 25,
+   "ties": 0,
+   "aFirstWins": 17,
+   "aFirstGames": 30,
+   "aSecondWins": 18,
+   "aSecondGames": 30,
+   "bFirstWins": 12,
+   "bSecondWins": 13,
+   "turns": 787,
+   "overtime": 22
+  },
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 33,
+   "bWins": 27,
+   "ties": 0,
+   "aFirstWins": 18,
+   "aFirstGames": 30,
+   "aSecondWins": 15,
+   "aSecondGames": 30,
+   "bFirstWins": 15,
+   "bSecondWins": 12,
+   "turns": 743,
+   "overtime": 13
+  },
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 22,
+   "bWins": 38,
+   "ties": 0,
+   "aFirstWins": 9,
+   "aFirstGames": 30,
+   "aSecondWins": 13,
+   "aSecondGames": 30,
+   "bFirstWins": 17,
+   "bSecondWins": 21,
+   "turns": 783,
+   "overtime": 25
+  },
+  {
+   "a": "S1-07 Explorer (RYY)",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 20,
+   "bWins": 40,
+   "ties": 0,
+   "aFirstWins": 11,
+   "aFirstGames": 30,
+   "aSecondWins": 9,
+   "aSecondGames": 30,
+   "bFirstWins": 21,
+   "bSecondWins": 19,
+   "turns": 766,
+   "overtime": 14
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-11T22:07:55.511Z:9000",
+  "createdAt": "2026-11-11T22:07:55.511Z",
+  "purpose": "matchup",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "3066980fc1c3c3a2",
+    "name": "S1-07 Explorer (RYY)",
+    "file": "s1-07-explorer-ryy.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "3066980fc1c3c3a2",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 9000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

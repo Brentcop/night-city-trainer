@@ -18,6 +18,8 @@ npm run sim -- analyze --decisions [--decision-samples N] [--out DIR] [--force] 
 
 In code: `g.telemetry = new DecisionRecorder()` on a game before `run()`, then `recorder.finish(g)` for the records; `aggregateGame` / `mergeAggregates` / `decisionReport` / `decisionMarkdown` in `src/analysis/decisions.ts` turn them into the report.
 
+**The first full report** is from the fresh baseline (2026-11-11, `docs/ROADMAP.md` §1): `npm run sim -- analyze --field meta --bot deep --decisions --games 200 --seed 1`, 4,200 deep-bot games of the 7 meta decks, SIM_VERSION 5. It recorded 374,430 decisions (89 per game; 53.5 KB raw vs 12.1 KB aggregated per game, a 141 KB merged aggregate) in 939 s on 12 threads, and is what the Card stats page shows (`public/data/decisions.json`, with `reports/decisions-latest.{json,md}`).
+
 Measured on 126 lookahead-bot games of the 7 meta decks (2026-11-11): about 107 records per game, about 70 KB of raw records per game against 12.5 KB aggregated, 112 KB for the merged aggregate of the whole run; the run took about 3% longer with telemetry on, and every game ended exactly as with it off.
 
 ## Where it hooks in, and why

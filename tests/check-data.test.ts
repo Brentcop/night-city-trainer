@@ -44,11 +44,14 @@ describe('check-data', () => {
     expect(events[0].decks.D0.sideboard).toEqual(['s1']);
   });
 
-  it('counts events without a manifest as legacy, not as failures', async () => {
+  it('fails events without a manifest or a sim version (none predate them since the 2026-11-11 baseline)', async () => {
     const r = checkData(input([legacy(await recorded(1)), await recorded(2)]));
-    expect(r.failures).toEqual([]);
     expect(r.legacyEvents).toBe(1);
-    expect(r.info.join('\n')).toMatch(/1 legacy event/);
+    expect(r.failures).toContain('event-1.json: no run manifest (every event since the 2026-11-11 baseline records one)');
+    expect(r.failures).toContain('event-1.json: no simVersion (every event since the 2026-11-11 baseline records one)');
+    expect(r.failures.some((f) => f.startsWith('event-2.json'))).toBe(false);
+    const { simVersion: _s, ...noVersion } = await recorded(3);
+    expect(checkData(input([noVersion])).failures).toEqual(['event-3.json: no simVersion (every event since the 2026-11-11 baseline records one)']);
   });
 
   it('finds index entries without a file and files missing from the index', async () => {

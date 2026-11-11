@@ -12,6 +12,8 @@ import type { MatchJob, MatchResult } from './worker';
 // ================================================================ deck library
 
 export function loadLibrary(dir = 'data/decks'): LibraryDeck[] {
+  // only these two folders: data/decks/custom/history/ (superseded lists) and data/decks/archive/ (retired lists) are not
+  // part of the library, here or in the browser bundle (src/lib/browserLibrary.ts)
   const out: LibraryDeck[] = [];
   for (const sub of ['', 'custom']) {
     const d = path.join(dir, sub);

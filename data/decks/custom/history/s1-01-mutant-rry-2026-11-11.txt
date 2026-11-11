@@ -1,0 +1,33 @@
+# S1-01 Mutant (RRY)
+
+// Legends (3)
+1 Dexter DeShawn: Off the Grid
+1 Dum Dum: Maelstrom Triggerman
+1 Adam Smasher: Ender of Legends
+
+// Units (19)
+3 Dexter DeShawn: One Last Chance
+1 Valentino Guerrera
+3 6th Street Recruits
+1 Gilded Matón
+3 Kerry Eurodyne: The Last Rockerboy
+2 Rockn' Rockerboy
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (17)
+2 All is Lost
+2 Detonate
+1 Appetite for Destruction
+3 Bonnie and Clyde
+2 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+3 Carnage at the Colosseum
+
+// Idea: Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → Dum Dum: Maelstrom Triggerman; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Author: Night City Trainer breeder (season 1, mutant)

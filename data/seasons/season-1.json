@@ -1,296 +1,359 @@
 {
  "season": 1,
- "date": "2026-11-10T07:23:27.809Z",
- "games": 16,
+ "date": "2026-11-11T22:09:40.085Z",
+ "games": 24,
  "bot": "deep",
  "bred": [
   {
-   "name": "S1-01 Mutant (RRB)",
+   "name": "S1-01 Mutant (RRY)",
    "method": "mutant",
    "parents": [
     "RRG Dexter Midrange"
    ],
-   "idea": "Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → V: Corporate Exile; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+   "idea": "Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → Dum Dum: Maelstrom Triggerman; cards re-fitted to the new RAM limits, keeping the parent's best performers."
   },
   {
-   "name": "S1-02 Mutant (BGY)",
+   "name": "S1-02 Mutant (RYY)",
    "method": "mutant",
    "parents": [
     "YYB Rogue Gear"
    ],
-   "idea": "Mutant of YYB Rogue Gear: River Ward: Detective on the Hunt → Saburo Arasaka: Stubborn Patriarch; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+   "idea": "Mutant of YYB Rogue Gear: V: Corporate Exile → Dexter DeShawn: Off the Grid; cards re-fitted to the new RAM limits, keeping the parent's best performers."
   },
   {
-   "name": "S1-03 Mutant (RRR)",
+   "name": "S1-03 Mutant (RBG)",
    "method": "mutant",
    "parents": [
-    "NC-07 Braindance Burn (RRB)"
+    "Rainbow Fixer Stuff"
    ],
-   "idea": "Mutant of NC-07 Braindance Burn (RRB): Judy Álvarez: Braindance Maestro → Yorinobu Arasaka: Embracing Destruction; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+   "idea": "Mutant of Rainbow Fixer Stuff: Padre: Man of the Cross → Saburo Arasaka: Stubborn Patriarch; cards re-fitted to the new RAM limits, keeping the parent's best performers."
   },
   {
    "name": "S1-04 Cross (RBG)",
    "method": "crossover",
    "parents": [
-    "YYB Rogue Gear",
+    "Rainbow Fixer Stuff",
     "RRG Dexter Midrange"
    ],
-   "idea": "Crossover of YYB Rogue Gear × RRG Dexter Midrange (aggro): strongest Legends of both, cards ranked by format-wide impact."
+   "idea": "Crossover of Rainbow Fixer Stuff × RRG Dexter Midrange (aggro): strongest Legends of both, cards ranked by format-wide impact."
   },
   {
-   "name": "S1-05 Cross (RGY)",
+   "name": "S1-05 Cross (RBB)",
    "method": "crossover",
    "parents": [
-    "NC-02 Stormrider Stampede (GGR)",
-    "YYY Adam v1 - Ready for Brawl"
+    "GRY Trauma Team",
+    "BBG Cunningham Econ"
    ],
-   "idea": "Crossover of NC-02 Stormrider Stampede (GGR) × YYY Adam v1 - Ready for Brawl (aggro): strongest Legends of both, cards ranked by format-wide impact."
+   "idea": "Crossover of GRY Trauma Team × BBG Cunningham Econ (aggro): strongest Legends of both, cards ranked by format-wide impact."
   },
   {
-   "name": "S1-06 Cross (RGG)",
+   "name": "S1-06 Cross (BGY)",
    "method": "crossover",
    "parents": [
-    "RRG Midrange: V + Dexter (optimized)",
-    "NC-05 Emperor's Guard (GGB)"
+    "BBG Cunningham Econ",
+    "GRY Trauma Team"
    ],
-   "idea": "Crossover of RRG Midrange: V + Dexter (optimized) × NC-05 Emperor's Guard (GGB) (aggro): strongest Legends of both, cards ranked by format-wide impact."
+   "idea": "Crossover of BBG Cunningham Econ × GRY Trauma Team (control): strongest Legends of both, cards ranked by format-wide impact."
   },
   {
-   "name": "S1-07 Explorer (BBG)",
+   "name": "S1-07 Explorer (RYY)",
    "method": "explorer",
    "parents": [],
-   "idea": "Explorer (midrange): untested Legends V / Sasha Yakovleva / Saburo Arasaka, filled by role and curve templates from format-wide card impact."
+   "idea": "Explorer (midrange): untested Legends River Ward / Johnny Silverhand / Kerry Eurodyne, filled by role and curve templates from format-wide card impact."
   },
   {
-   "name": "S1-08 Explorer (RRG)",
+   "name": "S1-08 Explorer (BGG)",
    "method": "explorer",
    "parents": [],
-   "idea": "Explorer (aggro): untested Legends Royce / Yorinobu Arasaka / Hanako Arasaka, filled by role and curve templates from format-wide card impact."
+   "idea": "Explorer (aggro): untested Legends Saburo Arasaka / Judy Álvarez / Hanako Arasaka, filled by role and curve templates from format-wide card impact."
   }
  ],
  "standings": [
   {
-   "name": "S1-07 Explorer (BBG)",
-   "file": "s1-07-explorer-bbg.txt",
+   "name": "S1-01 Mutant (RRY)",
+   "file": "s1-01-mutant-rry.txt",
    "kind": "original",
-   "wr": 0.6704545454545454,
+   "wr": 0.7619047619047619,
    "isNew": true
   },
   {
-   "name": "S1-04 Cross (RBG)",
-   "file": "s1-04-cross-rbg.txt",
+   "name": "S1-03 Mutant (RBG)",
+   "file": "s1-03-mutant-rbg.txt",
    "kind": "original",
-   "wr": 0.6477272727272727,
+   "wr": 0.7083333333333334,
    "isNew": true
-  },
-  {
-   "name": "S1-01 Mutant (RRB)",
-   "file": "s1-01-mutant-rrb.txt",
-   "kind": "original",
-   "wr": 0.6221590909090909,
-   "isNew": true
-  },
-  {
-   "name": "S1-05 Cross (RGY)",
-   "file": "s1-05-cross-rgy.txt",
-   "kind": "original",
-   "wr": 0.6079545454545454,
-   "isNew": true
-  },
-  {
-   "name": "S1-08 Explorer (RRG)",
-   "file": "s1-08-explorer-rrg.txt",
-   "kind": "original",
-   "wr": 0.6079545454545454,
-   "isNew": true
-  },
-  {
-   "name": "S1-06 Cross (RGG)",
-   "file": "s1-06-cross-rgg.txt",
-   "kind": "original",
-   "wr": 0.5994318181818182,
-   "isNew": true
-  },
-  {
-   "name": "NC-05 Emperor's Guard (GGB)",
-   "file": "nc-05-emperor-s-guard-ggb.txt",
-   "kind": "original",
-   "wr": 0.5596590909090909,
-   "isNew": false
   },
   {
    "name": "RRG Dexter Midrange",
    "file": "meta-rrg-dexter-midrange.txt",
    "kind": "meta",
-   "wr": 0.5426136363636364,
+   "wr": 0.6458333333333334,
    "isNew": false
   },
   {
-   "name": "YYY Adam v1 - Ready for Brawl",
-   "file": "YYY-yyy-adam-ready-for-brawl.txt",
-   "kind": "guide",
-   "wr": 0.5284090909090909,
-   "isNew": false
+   "name": "S1-07 Explorer (RYY)",
+   "file": "s1-07-explorer-ryy.txt",
+   "kind": "original",
+   "wr": 0.5833333333333334,
+   "isNew": true
   },
   {
    "name": "YYB Rogue Gear",
    "file": "meta-yyb-rogue-gear.txt",
    "kind": "meta",
-   "wr": 0.5227272727272727,
+   "wr": 0.5714285714285714,
    "isNew": false
   },
   {
-   "name": "S1-02 Mutant (BGY)",
-   "file": "s1-02-mutant-bgy.txt",
+   "name": "S1-04 Cross (RBG)",
+   "file": "s1-04-cross-rbg.txt",
    "kind": "original",
-   "wr": 0.5170454545454546,
+   "wr": 0.5416666666666666,
    "isNew": true
   },
   {
-   "name": "NC-02 Stormrider Stampede (GGR)",
-   "file": "nc-02-stormrider-stampede-ggr.txt",
+   "name": "S1-05 Cross (RBB)",
+   "file": "s1-05-cross-rbb.txt",
    "kind": "original",
-   "wr": 0.4971590909090909,
-   "isNew": false
-  },
-  {
-   "name": "S1-03 Mutant (RRR)",
-   "file": "s1-03-mutant-rrr.txt",
-   "kind": "original",
-   "wr": 0.4914772727272727,
+   "wr": 0.5297619047619048,
    "isNew": true
-  },
-  {
-   "name": "RRG Midrange: V + Dexter (optimized)",
-   "file": "rrg-v-dexter-optimized.txt",
-   "kind": "custom",
-   "wr": 0.48863636363636365,
-   "isNew": false
-  },
-  {
-   "name": "Smash the Curve",
-   "file": "RRG-smash-the-curve.txt",
-   "kind": "guide",
-   "wr": 0.48863636363636365,
-   "isNew": false
   },
   {
    "name": "BBG Cunningham Econ",
    "file": "meta-bbg-cunningham-econ.txt",
    "kind": "meta",
-   "wr": 0.45738636363636365,
+   "wr": 0.5119047619047619,
    "isNew": false
   },
   {
-   "name": "NC-07 Braindance Burn (RRB)",
-   "file": "nc-07-braindance-burn-rrb.txt",
+   "name": "S1-08 Explorer (BGG)",
+   "file": "s1-08-explorer-bgg.txt",
    "kind": "original",
-   "wr": 0.45738636363636365,
-   "isNew": false
+   "wr": 0.49404761904761907,
+   "isNew": true
   },
   {
-   "name": "NC-01 Rockerboy Express (RRY)",
-   "file": "nc-01-rockerboy-express-rry.txt",
-   "kind": "original",
-   "wr": 0.45170454545454547,
-   "isNew": false
-  },
-  {
-   "name": "NC-08 Merc Contract (RRG)",
-   "file": "nc-08-merc-contract-rrg.txt",
-   "kind": "original",
-   "wr": 0.4375,
+   "name": "Rainbow Fixer Stuff",
+   "file": "meta-rainbow-fixer-stuff.txt",
+   "kind": "meta",
+   "wr": 0.4732142857142857,
    "isNew": false
   },
   {
    "name": "RRY Smasher Aggro",
    "file": "meta-rry-smasher-aggro.txt",
    "kind": "meta",
-   "wr": 0.41761363636363635,
-   "isNew": false
-  },
-  {
-   "name": "Rainbow Fixer Stuff",
-   "file": "meta-rainbow-fixer-stuff.txt",
-   "kind": "meta",
-   "wr": 0.32670454545454547,
+   "wr": 0.4255952380952381,
    "isNew": false
   },
   {
    "name": "RRB Wakako Midrange",
    "file": "meta-rrb-wakako-midrange.txt",
    "kind": "meta",
-   "wr": 0.29545454545454547,
+   "wr": 0.40476190476190477,
    "isNew": false
+  },
+  {
+   "name": "S1-02 Mutant (RYY)",
+   "file": "s1-02-mutant-ryy.txt",
+   "kind": "original",
+   "wr": 0.3630952380952381,
+   "isNew": true
   },
   {
    "name": "GRY Trauma Team",
    "file": "meta-gry-trauma-team.txt",
    "kind": "meta",
-   "wr": 0.26420454545454547,
+   "wr": 0.25595238095238093,
    "isNew": false
+  },
+  {
+   "name": "S1-06 Cross (BGY)",
+   "file": "s1-06-cross-bgy.txt",
+   "kind": "original",
+   "wr": 0.22916666666666666,
+   "isNew": true
   }
  ],
  "leaderTop": [
   {
-   "name": "S1-07 Explorer (BBG)",
-   "vsMeta": 0.7413793103448276,
+   "name": "S1-01 Mutant (RRY)",
+   "vsMeta": 0.7295918367346939,
    "percentile": 100
   },
   {
-   "name": "S1-04 Cross (RBG)",
-   "vsMeta": 0.7142857142857143,
-   "percentile": 97
+   "name": "RRG Dexter Midrange",
+   "vsMeta": 0.7068452380952381,
+   "percentile": 93
   },
   {
-   "name": "S1-01 Mutant (RRB)",
-   "vsMeta": 0.7093596059113301,
-   "percentile": 94
-  },
-  {
-   "name": "S1-08 Explorer (RRG)",
-   "vsMeta": 0.687192118226601,
-   "percentile": 91
-  },
-  {
-   "name": "S1-06 Cross (RGG)",
-   "vsMeta": 0.6798029556650246,
-   "percentile": 89
-  },
-  {
-   "name": "S1-05 Cross (RGY)",
-   "vsMeta": 0.6748768472906403,
+   "name": "S1-03 Mutant (RBG)",
+   "vsMeta": 0.6972789115646258,
    "percentile": 86
   },
   {
-   "name": "RRG Dexter Midrange",
-   "vsMeta": 0.6333333333333333,
-   "percentile": 83
-  },
-  {
    "name": "YYB Rogue Gear",
-   "vsMeta": 0.605,
-   "percentile": 80
+   "vsMeta": 0.5833333333333334,
+   "percentile": 79
   },
   {
-   "name": "NC-05 Emperor's Guard (GGB)",
-   "vsMeta": 0.5871080139372822,
-   "percentile": 77
-  },
-  {
-   "name": "NC-01 Rockerboy Express (RRY)",
-   "vsMeta": 0.5853658536585366,
-   "percentile": 74
-  },
-  {
-   "name": "NC-08 Merc Contract (RRG)",
-   "vsMeta": 0.5818815331010453,
+   "name": "S1-04 Cross (RBG)",
+   "vsMeta": 0.5867346938775511,
    "percentile": 71
   },
   {
-   "name": "NC-02 Stormrider Stampede (GGR)",
-   "vsMeta": 0.5785714285714286,
-   "percentile": 69
+   "name": "S1-07 Explorer (RYY)",
+   "vsMeta": 0.5561224489795918,
+   "percentile": 64
+  },
+  {
+   "name": "S1-05 Cross (RBB)",
+   "vsMeta": 0.5544217687074829,
+   "percentile": 57
+  },
+  {
+   "name": "S1-08 Explorer (BGG)",
+   "vsMeta": 0.5544217687074829,
+   "percentile": 50
+  },
+  {
+   "name": "Rainbow Fixer Stuff",
+   "vsMeta": 0.5014880952380952,
+   "percentile": 43
+  },
+  {
+   "name": "RRY Smasher Aggro",
+   "vsMeta": 0.4955357142857143,
+   "percentile": 36
+  },
+  {
+   "name": "BBG Cunningham Econ",
+   "vsMeta": 0.49032738095238093,
+   "percentile": 29
+  },
+  {
+   "name": "S1-02 Mutant (RYY)",
+   "vsMeta": 0.4200680272108844,
+   "percentile": 21
   }
- ]
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "season:2026-11-11T21:39:58.246Z:1000000",
+  "createdAt": "2026-11-11T21:39:58.246Z",
+  "purpose": "season",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   },
+   {
+    "id": "99668ba12736a65f",
+    "name": "S1-01 Mutant (RRY)",
+    "file": "s1-01-mutant-rry.txt"
+   },
+   {
+    "id": "eb4d7d725ffe407d",
+    "name": "S1-02 Mutant (RYY)",
+    "file": "s1-02-mutant-ryy.txt"
+   },
+   {
+    "id": "1abcf0f14da08881",
+    "name": "S1-03 Mutant (RBG)",
+    "file": "s1-03-mutant-rbg.txt"
+   },
+   {
+    "id": "6a60eacb442cfd21",
+    "name": "S1-04 Cross (RBG)",
+    "file": "s1-04-cross-rbg.txt"
+   },
+   {
+    "id": "9f01127eb8f41dda",
+    "name": "S1-05 Cross (RBB)",
+    "file": "s1-05-cross-rbb.txt"
+   },
+   {
+    "id": "35a6be3e827a4307",
+    "name": "S1-06 Cross (BGY)",
+    "file": "s1-06-cross-bgy.txt"
+   },
+   {
+    "id": "3066980fc1c3c3a2",
+    "name": "S1-07 Explorer (RYY)",
+    "file": "s1-07-explorer-ryy.txt"
+   },
+   {
+    "id": "693057e28a588ff7",
+    "name": "S1-08 Explorer (BGG)",
+    "file": "s1-08-explorer-bgg.txt"
+   }
+  ],
+  "field": {
+   "mode": "season-1",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0",
+    "99668ba12736a65f",
+    "eb4d7d725ffe407d",
+    "1abcf0f14da08881",
+    "6a60eacb442cfd21",
+    "9f01127eb8f41dda",
+    "35a6be3e827a4307",
+    "3066980fc1c3c3a2",
+    "693057e28a588ff7"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2520,
+   "completedGames": 2520,
+   "gamesPerPair": 24
+  },
+  "seedBase": 1000000,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
 }

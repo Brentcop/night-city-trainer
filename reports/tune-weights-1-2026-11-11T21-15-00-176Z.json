@@ -1,0 +1,104 @@
+{
+  "manifest": {
+    "schema": 1,
+    "runId": "tune-weights:1:2026-11-11T21:15:00.161Z",
+    "createdAt": "2026-11-11T21:15:00.163Z",
+    "purpose": "tuning",
+    "simVersion": 5,
+    "rulesVersion": "2026-10-29",
+    "faqVersion": "2026-11-09T15:28:32.570Z",
+    "errataVersion": null,
+    "bot": {
+      "level": "lookahead",
+      "configHash": "b38fbffe9b124c06"
+    },
+    "decks": [
+      {
+        "id": "0b6272134a22585c",
+        "name": "BBG Cunningham Econ",
+        "file": "meta-bbg-cunningham-econ.txt"
+      },
+      {
+        "id": "3d6b0327f672d914",
+        "name": "GRY Trauma Team",
+        "file": "meta-gry-trauma-team.txt"
+      },
+      {
+        "id": "189f8a3b59f1117f",
+        "name": "Rainbow Fixer Stuff",
+        "file": "meta-rainbow-fixer-stuff.txt"
+      },
+      {
+        "id": "06552ee884386887",
+        "name": "RRB Wakako Midrange",
+        "file": "meta-rrb-wakako-midrange.txt"
+      },
+      {
+        "id": "d615ca2a4ad09bf8",
+        "name": "RRG Dexter Midrange",
+        "file": "meta-rrg-dexter-midrange.txt"
+      },
+      {
+        "id": "ee779ed4dea87217",
+        "name": "RRY Smasher Aggro",
+        "file": "meta-rry-smasher-aggro.txt"
+      },
+      {
+        "id": "078ce02dba6dd2c0",
+        "name": "YYB Rogue Gear",
+        "file": "meta-yyb-rogue-gear.txt"
+      }
+    ],
+    "field": {
+      "mode": "meta-round-robin",
+      "deckIds": [
+        "0b6272134a22585c",
+        "3d6b0327f672d914",
+        "189f8a3b59f1117f",
+        "06552ee884386887",
+        "d615ca2a4ad09bf8",
+        "ee779ed4dea87217",
+        "078ce02dba6dd2c0"
+      ]
+    },
+    "sample": {
+      "plannedGames": 168,
+      "completedGames": 168,
+      "gamesPerPair": 8
+    },
+    "seedBase": 591000,
+    "seatPolicy": "alternate",
+    "trace": false,
+    "cardDataVersion": "fnv1a64:93e933351cc80262"
+  },
+  "original": {
+    "gig": 20,
+    "gigNear": 45,
+    "unitPower": 1.2,
+    "unitCost": 1.2,
+    "hand": 3.6,
+    "eddie": 2.6,
+    "faceUpLegend": 4.8,
+    "plan": 1.5,
+    "spentRisk": 0.087
+  },
+  "candidate": {
+    "gig": 20,
+    "gigNear": 45,
+    "unitPower": 1.92,
+    "unitCost": 1.2,
+    "hand": 3.6,
+    "eddie": 2.6,
+    "faceUpLegend": 4.8,
+    "plan": 1.5,
+    "spentRisk": 0.087
+  },
+  "validation": {
+    "games": 168,
+    "mean": 0.005952380952380952,
+    "lower95": -0.032846750328577125,
+    "upper95": 0.04475151223333903
+  },
+  "minGainPp": 1,
+  "passesHeldOut": false
+}

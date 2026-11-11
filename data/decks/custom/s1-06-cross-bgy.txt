@@ -1,0 +1,31 @@
+// S1-06 Cross (BGY)
+// Origin: Night City Trainer bred deck (season 1, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: BBG Cunningham Econ × GRY Trauma Team
+// Added: 2026-11-11
+// Idea: Crossover of BBG Cunningham Econ × GRY Trauma Team (control): strongest Legends of both, cards ranked by format-wide impact.
+// Format: Constructed
+
+// Legends
+1 Muamar Reyes: El Capitán
+1 Hanako Arasaka: Daughter of the Emperor
+1 Alt Cunningham: Soulkiller Architect
+
+// Main Deck
+3 Valentino Street Racer
+1 Pepe Najarro: Working Doubles
+3 Psycho Squad
+3 Trauma Team Operatives
+3 Placide: Voodoo Sentinel
+2 NetWatch Netdriver
+1 Zetatech Berserk
+2 Afterparty at Lizzie's
+2 Floor It
+2 Peace Offering
+2 Trust No One
+2 Take Control
+2 The Heist
+3 Chrome Reverie
+3 Nocturne OP55 N1
+3 Memory Relapse
+3 Unlikely Bond

@@ -38,7 +38,11 @@ interface Rec {
 interface H2H extends Rec {
   opp: string;
   oppFile?: string;
+  /** SIM_VERSION from the report's run manifest; absent for reports written before manifests (historical on the site) */
+  simVersion?: number;
 }
+/** The run manifest's sim version of a report, when it has one. */
+const simVersionOf = (t: { manifest?: { simVersion?: unknown } }) => (typeof t.manifest?.simVersion === 'number' ? { simVersion: t.manifest.simVersion } : {});
 interface ForgeGen {
   gen: number;
   baseline: number | null;
@@ -47,7 +51,7 @@ interface ForgeGen {
   verdict: 'adopted' | 'rejected' | 'kept';
 }
 interface DeckReports {
-  finals?: { overall: number; games: number; date?: string; rows: H2H[] };
+  finals?: { overall: number; games: number; date?: string; simVersion?: number; rows: H2H[] };
   h2h?: H2H[];
   forge?: { field?: string; gens: ForgeGen[]; summary: { gen: number; wr: number | null; change: string }[] };
   optimize?: { vs: string; baseline: number | null; rows: { change: string; s1: number | null; s2: number | null; delta: number }[] }[];
@@ -88,6 +92,7 @@ for (const f of files.filter((x) => /^test-.+-latest\.json$/.test(x))) {
     overall: r3(t.overall),
     games: rows.reduce((a, r) => a + r.g, 0),
     date: (t.date as string | undefined)?.slice(0, 10) ?? previous[d.file]?.finals?.date ?? fs.statSync(path.join(R, f)).mtime.toISOString().slice(0, 10),
+    ...simVersionOf(t),
     rows,
   };
 }
@@ -103,7 +108,7 @@ for (const f of files.filter((x) => /^vs-.+-latest\.json$/.test(x))) {
     const file = fileOf(me);
     if (!file) continue;
     const list = (get(file).h2h ??= []);
-    list.push({ opp, oppFile: fileOf(opp), ...rec(t, flip) });
+    list.push({ opp, oppFile: fileOf(opp), ...rec(t, flip), ...simVersionOf(t) });
   }
 }
 

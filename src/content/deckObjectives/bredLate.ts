@@ -1,6 +1,6 @@
-// Deck objectives for the Season 4 and Season 5 bred decks (data/decks/custom/s4-*.txt, s5-*.txt).
+// Deck objectives for the earlier Season 4 and Season 5 bred decks, archived at the 2026-11-11 baseline
+// (data/decks/archive/s4-*.txt, s5-*.txt; see ./archived.ts).
 // Mutants and crossovers build on their parents' notes plus what changed; explorers have no parent and are read from the list.
-// Drafts: the owner corrects an entry by editing it and setting `status: 'owner'`.
 import type { ObjectiveTable } from './vocabulary';
 
 const RRG_RISK = 'Keeps the RRG Dexter Midrange finisher core, which that deck’s Strategy guide says bottom-deck effects answer cleanly.';

@@ -16,9 +16,11 @@ export interface MatchRec {
   sg: number;
   turns?: number;
   ot?: number;
+  /** SIM_VERSION of the run that measured it (its report's manifest); absent = recorded before manifests */
+  simVersion?: number;
 }
 export interface DeckReports {
-  finals?: { overall: number; games: number; date?: string; rows: MatchRec[] };
+  finals?: { overall: number; games: number; date?: string; simVersion?: number; rows: MatchRec[] };
   h2h?: MatchRec[];
   forge?: {
     field?: string;
@@ -34,4 +36,14 @@ export const DECK_REPORTS = deckReportsJson as unknown as DeckReportsData;
 /** The reports for a deck file ({} when there are none). */
 export function deckReports(file: string | undefined): DeckReports {
   return (file && DECK_REPORTS[file]) || {};
+}
+
+/**
+ * The sim version of a deck's finals and head-to-head reports: the lowest one, or undefined when any of them has none
+ * (reports written before manifests, shown as historical) or there are none.
+ */
+export function reportsSimVersion(r: DeckReports): number | undefined {
+  const vs = [...(r.finals ? [r.finals.simVersion] : []), ...(r.h2h ?? []).map((x) => x.simVersion)];
+  if (!vs.length || vs.some((v) => typeof v !== 'number')) return undefined;
+  return Math.min(...(vs as number[]));
 }

@@ -2,10 +2,9 @@
 // from bot-match telemetry ("Δ when drawn" = IWD). Reads src/data/impact.json, the slim id/IWD/seenGames copy of
 // src/data/analysis.json that is written alongside it (see src/analysis/impactData.ts).
 // Per-deck numbers belong to the list they were measured on: a deck is matched by its list fingerprint (PlayerState.listId),
-// never by name alone (findImpactDeck; legacy name-only entries via LEGACY_IMPACT_LISTS).
+// never by name alone (findImpactDeck).
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData, type ImpactDeck, type ImpactDeckRef } from '../analysis/impactData';
-import { LEGACY_IMPACT_LISTS } from '../analysis/legacyImpactLists';
 
 const A = impact as unknown as ImpactData;
 
@@ -30,7 +29,7 @@ function entryFor(ref: ImpactDeckRef): ImpactDeck | null {
   if (!ref.listId) return null;
   const key = `${ref.listId}\u0000${ref.name}`;
   let e = resolved.get(key);
-  if (e === undefined) resolved.set(key, (e = findImpactDeck(A.decks, ref, LEGACY_IMPACT_LISTS) ?? null));
+  if (e === undefined) resolved.set(key, (e = findImpactDeck(A.decks, ref) ?? null));
   return e;
 }
 

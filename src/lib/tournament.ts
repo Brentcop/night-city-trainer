@@ -42,6 +42,10 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    defeat; Rogue Amendiares (Queen) reads the turn's steal history; Misty may name Legend; Zetatech Faceplate resolves
  *    after being moved. Engine: "must attack if it can" lasts its whole duration (a readied Unit must attack again), and
  *    the steal history records the Gig value and the stealer's power. The golden replays did not move.
+ *    2026-11-11 fresh baseline: every recorded event was wiped and re-recorded on version 5. The Hard bot (and the
+ *    coach) also read src/data/impact.json, which that baseline's `sim analyze` regenerated, so Hard games moved with
+ *    no code change; no event recorded with the old table remains. Regenerating impact.json after events are recorded
+ *    changes their Hard games too: bump this version then.
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
 export const SIM_VERSION = 5;

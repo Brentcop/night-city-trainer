@@ -1,0 +1,199 @@
+{
+ "deck": "S1-02 Mutant (RYY)",
+ "date": "2026-11-11T21:58:54.704Z",
+ "games": 60,
+ "bot": "deep",
+ "seed": 9000,
+ "overall": 0.4357142857142857,
+ "rows": [
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 38,
+   "bWins": 22,
+   "ties": 0,
+   "aFirstWins": 18,
+   "aFirstGames": 30,
+   "aSecondWins": 20,
+   "aSecondGames": 30,
+   "bFirstWins": 10,
+   "bSecondWins": 12,
+   "turns": 782,
+   "overtime": 21
+  },
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 34,
+   "bWins": 26,
+   "ties": 0,
+   "aFirstWins": 17,
+   "aFirstGames": 30,
+   "aSecondWins": 17,
+   "aSecondGames": 30,
+   "bFirstWins": 13,
+   "bSecondWins": 13,
+   "turns": 790,
+   "overtime": 21
+  },
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 32,
+   "bWins": 28,
+   "ties": 0,
+   "aFirstWins": 18,
+   "aFirstGames": 30,
+   "aSecondWins": 14,
+   "aSecondGames": 30,
+   "bFirstWins": 16,
+   "bSecondWins": 12,
+   "turns": 754,
+   "overtime": 14
+  },
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 30,
+   "bWins": 30,
+   "ties": 0,
+   "aFirstWins": 16,
+   "aFirstGames": 30,
+   "aSecondWins": 14,
+   "aSecondGames": 30,
+   "bFirstWins": 16,
+   "bSecondWins": 14,
+   "turns": 790,
+   "overtime": 25
+  },
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 24,
+   "bWins": 36,
+   "ties": 0,
+   "aFirstWins": 14,
+   "aFirstGames": 30,
+   "aSecondWins": 10,
+   "aSecondGames": 30,
+   "bFirstWins": 20,
+   "bSecondWins": 16,
+   "turns": 763,
+   "overtime": 17
+  },
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 13,
+   "bWins": 47,
+   "ties": 0,
+   "aFirstWins": 4,
+   "aFirstGames": 30,
+   "aSecondWins": 9,
+   "aSecondGames": 30,
+   "bFirstWins": 21,
+   "bSecondWins": 26,
+   "turns": 759,
+   "overtime": 21
+  },
+  {
+   "a": "S1-02 Mutant (RYY)",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 12,
+   "bWins": 48,
+   "ties": 0,
+   "aFirstWins": 6,
+   "aFirstGames": 30,
+   "aSecondWins": 6,
+   "aSecondGames": 30,
+   "bFirstWins": 24,
+   "bSecondWins": 24,
+   "turns": 770,
+   "overtime": 12
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-11T21:58:54.690Z:9000",
+  "createdAt": "2026-11-11T21:58:54.690Z",
+  "purpose": "matchup",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "eb4d7d725ffe407d",
+    "name": "S1-02 Mutant (RYY)",
+    "file": "s1-02-mutant-ryy.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "eb4d7d725ffe407d",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 9000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

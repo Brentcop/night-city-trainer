@@ -1,13 +1,13 @@
 # S1-04 Cross (RBG) — gauntlet
 
-Overall win rate: **71.4%** over 294 games.
+Overall win rate: **58.1%** over 420 games.
 
 | Opponent | Win% | On play | On draw | Avg turns |
 |---|---|---|---|---|
-| GRY Trauma Team | 90% | 81% | 100% | 13.0 |
-| Rainbow Fixer Stuff | 81% | 86% | 76% | 12.9 |
-| RRB Wakako Midrange | 79% | 81% | 76% | 12.6 |
-| RRY Smasher Aggro | 76% | 67% | 86% | 12.9 |
-| BBG Cunningham Econ | 74% | 81% | 67% | 12.6 |
-| YYB Rogue Gear | 55% | 52% | 57% | 13.4 |
-| RRG Dexter Midrange | 45% | 38% | 52% | 13.1 |
+| GRY Trauma Team | 78% | 80% | 77% | 12.9 |
+| RRB Wakako Midrange | 70% | 70% | 70% | 12.8 |
+| Rainbow Fixer Stuff | 57% | 60% | 53% | 13.1 |
+| BBG Cunningham Econ | 55% | 57% | 53% | 12.7 |
+| RRY Smasher Aggro | 55% | 53% | 57% | 12.8 |
+| RRG Dexter Midrange | 50% | 50% | 50% | 12.9 |
+| YYB Rogue Gear | 42% | 37% | 47% | 13.1 |

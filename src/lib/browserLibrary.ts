@@ -3,8 +3,9 @@ import { deckFromText, type LibraryDeck } from './library';
 import type { DeckList } from '../engine/types';
 import type { RunManifest } from './runManifest';
 
-// data/decks/**/history/ holds superseded lists; they are not bundled.
-const files = import.meta.glob(['../../data/decks/**/*.txt', '!**/history/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+// data/decks/**/history/ holds superseded lists and data/decks/archive/ the retired bred and optimized lists (see its
+// README); neither is bundled. The Node loader (scripts/lib-node.ts loadLibrary) reads only data/decks and data/decks/custom.
+const files = import.meta.glob(['../../data/decks/**/*.txt', '!**/history/**', '!**/archive/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 const KIND_ORDER = ['meta', 'ladder', 'original', 'guide', 'custom'];
 export const BUILTIN: LibraryDeck[] = Object.entries(files)

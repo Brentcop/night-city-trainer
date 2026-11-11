@@ -5,12 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DeckProfilePage } from '../src/ui/pages/DeckProfile';
 import { DeckTile } from '../src/ui/components/DeckIdentity';
-import { BUILTIN } from '../src/lib/browserLibrary';
+import { BUILTIN, loadCustom, upsertCustom } from '../src/lib/browserLibrary';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
 
 const RATED = 'meta-rrg-dexter-midrange.txt';
-const UNRECORDED = 's2-08-explorer-rrg-eor.txt';
+// a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
+const RECORDED = 's1-01-mutant-rry.txt';
+// every library deck plays in the recorded events, so the unrecorded deck is one saved in this browser
+const UNRECORDED_NAME = 'Unrecorded test deck';
+const UNRECORDED = `custom:${UNRECORDED_NAME}`;
+const saveUnrecorded = () => upsertCustom({ ...BUILTIN.find((d) => d.file === RATED)!.deck, name: UNRECORDED_NAME });
 
 function memoryStorage() {
   const m = new Map<string, string>();
@@ -26,10 +31,10 @@ afterEach(() => {
 });
 
 describe('deck profile: recorded results first', () => {
-  it('shows the record right after the name, with samples and the historical note', () => {
+  it('shows the record right after the name, with samples, and no historical note on current data', () => {
     setArtEnabled(false);
-    const html = renderToStaticMarkup(<DeckProfilePage file={RATED} />);
-    const name = BUILTIN.find((d) => d.file === RATED)!.deck.name;
+    const html = renderToStaticMarkup(<DeckProfilePage file={RECORDED} />);
+    const name = BUILTIN.find((d) => d.file === RECORDED)!.deck.name;
     const h1 = html.indexOf('</h1>');
     const rec = html.indexOf('Recorded results');
     expect(html.slice(html.indexOf('<h1'), h1)).toContain(name.replace(/'/g, '&#x27;'));
@@ -43,13 +48,15 @@ describe('deck profile: recorded results first', () => {
     expect(html).toMatch(/\d+ games in Swiss rounds/);
     expect(html).toMatch(/on the play \d+ games, on the draw \d+ games/);
     expect(html).toMatch(/Best matchup/);
-    // every bundled event predates simVersion, so the note shows
-    expect(html).toContain('Historical: recorded before the current simulator');
+    // every bundled source carries the current SIM_VERSION, so the note stays hidden (tests/deck-record.test.ts covers
+    // the note coming back once SIM_VERSION moves past the recorded data)
+    expect(html).not.toContain('Historical:');
     expect(html).not.toContain('No recorded games');
   });
 
   it('says plainly when a deck has no recorded games', () => {
     setArtEnabled(false);
+    saveUnrecorded();
     const html = renderToStaticMarkup(<DeckProfilePage file={UNRECORDED} />);
     expect(html).toContain('Recorded results');
     expect(html).toContain('No recorded games.');
@@ -60,7 +67,8 @@ describe('deck profile: recorded results first', () => {
   it('gallery tiles lead with the tournament record, or say there is none', () => {
     const rated = renderToStaticMarkup(<DeckTile d={BUILTIN.find((d) => d.file === RATED)!} />);
     expect(rated).toMatch(/\d+%<\/b> in [\d,]+ Swiss games/);
-    const none = renderToStaticMarkup(<DeckTile d={BUILTIN.find((d) => d.file === UNRECORDED)!} />);
+    saveUnrecorded();
+    const none = renderToStaticMarkup(<DeckTile d={loadCustom().find((d) => d.file === UNRECORDED)!} />);
     expect(none).toContain('No recorded games');
   });
 });
@@ -136,8 +144,8 @@ describe('deck profile: game plan', () => {
   it('labels Strategy page drafts, list drafts and parent drafts', () => {
     setArtEnabled(false);
     expect(plan(renderToStaticMarkup(<DeckProfilePage file={RATED} />))).toMatch(/Draft from the Strategy page guide <a href="#\/guides\?g=rrg-dexter-midrange">/);
-    expect(plan(renderToStaticMarkup(<DeckProfilePage file="s1-07-explorer-bbg.txt" />))).toContain('Draft from the list');
-    expect(plan(renderToStaticMarkup(<DeckProfilePage file={UNRECORDED} />))).toContain('Draft from the parent deck’s notes');
+    expect(plan(renderToStaticMarkup(<DeckProfilePage file="s1-07-explorer-ryy.txt" />))).toContain('Draft from the list');
+    expect(plan(renderToStaticMarkup(<DeckProfilePage file={RECORDED} />))).toContain('Draft from the parent deck’s notes');
   });
 
   it('marks the owner’s decks as waiting for the owner’s notes', () => {

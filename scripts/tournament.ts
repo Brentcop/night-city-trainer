@@ -118,6 +118,8 @@ function writeIndex() {
     .map((e: any) => ({
       id: e.id,
       date: e.date,
+      // the site labels an event historical from this (src/lib/playedRecord.ts isHistorical); absent on pre-version events
+      ...(typeof e.simVersion === 'number' ? { simVersion: e.simVersion } : {}),
       bot: e.bot,
       format: e.format,
       champion: e.champion,

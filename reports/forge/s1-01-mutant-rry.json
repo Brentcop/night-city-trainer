@@ -1,0 +1,125 @@
+{
+ "deck": "S1-01 Mutant (RRY)",
+ "file": "s1-01-mutant-rry.txt",
+ "date": "2026-11-11",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 77.7,
+   "swaps": [
+    {
+     "swap": "-1 Appetite for Destruction → +1 Rockn' Rockerboy",
+     "wr": 81.3,
+     "delta": 3.6
+    },
+    {
+     "swap": "-1 Appetite for Destruction → +1 Gilded Matón",
+     "wr": 79.5,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 Appetite for Destruction → +1 Viktor Vektor: You Might Feel a Little Pinch",
+     "wr": 78.6,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 Appetite for Destruction → +1 All is Lost",
+     "wr": 78.6,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 Appetite for Destruction → +1 Mantis Blades",
+     "wr": 77.7,
+     "delta": 0
+    }
+   ],
+   "verdict": "adopted",
+   "confirm": "(224 fresh games): baseline 76.3% vs swap 77.2%"
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 77.2,
+   "change": "-1 Appetite for Destruction → +1 Rockn' Rockerboy"
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-11T21:50:21.546Z:1",
+  "createdAt": "2026-11-11T21:50:21.546Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "99668ba12736a65f",
+    "name": "S1-01 Mutant (RRY)",
+    "file": "s1-01-mutant-rry.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 1120,
+   "completedGames": 1120,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

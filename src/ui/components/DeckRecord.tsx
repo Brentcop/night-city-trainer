@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { RATINGS, SEASONS } from '../../data/index';
 import { TOURNAMENT_INDEX } from '../../data/tournamentIndex';
 import { ANALYSIS, telemetryReport } from '../../data/analysisData';
-import { deckReports } from '../../data/deckReportsData';
+import { deckReports, reportsSimVersion } from '../../data/deckReportsData';
 import { deckStats, pct, statsName } from '../../lib/deckStats';
 import type { LibraryDeck } from '../../lib/library';
 import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type DeckRecord, type H2HFile, type MatchLine } from '../../lib/deckRecord';
@@ -14,7 +14,8 @@ import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
 
 const EVENTS = TOURNAMENT_INDEX.events;
-// deckReports.json has no manifest of its own: its finals and head-to-heads count as unversioned (historical)
+// every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
+// moves past what is recorded; deckReports.json carries each finals / head-to-head report's version (reportsSimVersion)
 const VERSIONS = { telemetry: ANALYSIS.manifest?.simVersion, seasons: SEASONS.manifest?.simVersion };
 
 // tournament head-to-heads (public/data/h2h.json): fetched once, only when a profile needs them
@@ -40,7 +41,7 @@ export function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: Matc
     eventH2H,
     telemetry: telemetryReport(statsName(d.file)),
     leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile },
-    versions: VERSIONS,
+    versions: { ...VERSIONS, reports: reportsSimVersion(rep) },
     simVersion: CURRENT_SIM_VERSION,
   });
 }
