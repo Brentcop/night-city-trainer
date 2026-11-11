@@ -1,5 +1,6 @@
 // Drag-to-act for the playmat (mouse and touch, via pointer events):
-//   hand card → your field = play / go solo, → your €$ pile = sell, → another hand card = reorder your hand
+//   hand card → your field = play, → your €$ pile = sell, → another hand card = reorder your hand
+//   face-up Legend → your field = Go Solo / play it by paying its cost (the prompt offers whichever are legal)
 //   your unit → a rival unit = attack it, → the rival Gig area = attack the Gig area
 // Every drop that does something in the game asks for confirmation first.
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,7 +24,7 @@ export function resolveDrop(g: Game, ix: Interaction, uid: number, t: DropTarget
   if (!t) return [];
   const menu = ix.menus.get(uid) ?? [];
   const attacks = ix.attacks.get(uid) ?? [];
-  if (t.kind === 'play') return menu.filter((m) => m.kind === 'play' || m.kind === 'goSolo').map((m) => ({ i: m.i, label: m.label }));
+  if (t.kind === 'play') return menu.filter((m) => m.kind === 'play' || m.kind === 'goSolo' || m.kind === 'playLegend').map((m) => ({ i: m.i, label: m.label }));
   if (t.kind === 'sell') return menu.filter((m) => m.kind === 'sell').map((m) => ({ i: m.i, label: m.label }));
   if (t.kind === 'gigs') return attacks.filter((a) => a.gigs !== null).map((a) => ({ i: a.i, label: a.label }));
   if (t.kind === 'unit') return attacks.filter((a) => a.unit === t.uid).map((a) => ({ i: a.i, label: a.label }));

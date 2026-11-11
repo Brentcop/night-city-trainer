@@ -105,8 +105,9 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
     }
   }
 
-  // drag: my hand cards (to play, sell or reorder) and my units that can attack
-  const draggable = !!ctx.drag && !hidden && ((c.zone === 'hand' && c.owner === 0) || (c.zone === 'field' && c.controller === 0 && (ix.attacks.get(uid)?.length ?? 0) > 0));
+  // drag: my hand cards (to play, sell or reorder), my face-up Legends that can go to the field, and my units that can attack
+  const legendToField = c.zone === 'legends' && c.controller === 0 && !!menu?.some((m) => m.kind === 'goSolo' || m.kind === 'playLegend');
+  const draggable = !!ctx.drag && !hidden && ((c.zone === 'hand' && c.owner === 0) || legendToField || (c.zone === 'field' && c.controller === 0 && (ix.attacks.get(uid)?.length ?? 0) > 0));
   if (onClick && ctx.drag) {
     const inner = onClick;
     onClick = () => {

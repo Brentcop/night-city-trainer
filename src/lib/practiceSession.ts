@@ -45,6 +45,7 @@ export class PacedAgent implements Agent {
 export class RecordingAgent implements Agent {
   name: string;
   choosesPayment?: boolean;
+  choosesOrder?: boolean;
   constructor(
     public inner: Agent,
     public choices: number[][],
@@ -53,6 +54,7 @@ export class RecordingAgent implements Agent {
   ) {
     this.name = inner.name;
     this.choosesPayment = inner.choosesPayment;
+    this.choosesOrder = inner.choosesOrder;
   }
   async decide(g: Game, d: Decision) {
     if (this.run.cancelled) throw new GameCancelled();
@@ -142,6 +144,7 @@ export function newPracticeReplay(m: MatchSetup): PracticeReplay {
     botSeed: m.botSeed,
     choices: [],
     payChoice: true,
+    orderChoice: true,
     result: 'draw',
   };
 }

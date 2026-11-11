@@ -328,7 +328,7 @@ export class HeuristicAgent implements Agent {
     let best = actions.findIndex((a) => a.type === 'pass');
     let bestScore = 0;
     actions.forEach((a, i) => {
-      const s = a.type === 'play' || a.type === 'attack' || a.type === 'goSolo' ? fastPrior(g, a) : 0;
+      const s = a.type === 'play' || a.type === 'attack' || a.type === 'goSolo' || a.type === 'playLegend' ? fastPrior(g, a) : 0;
       if (s > bestScore) {
         bestScore = s;
         best = i;
@@ -807,6 +807,10 @@ function fastPrior(g: Game, a: Action): number {
     }
     case 'goSolo':
       return 8;
+    case 'playLegend':
+      // the same Legend as Go Solo, but it enters with Lag (can't attack this turn) and keeps its orientation: rank it
+      // below Go Solo so it only wins when Go Solo isn't offered (e.g. taxed by Riot Shield)
+      return 6;
     case 'activate':
       return 6;
     case 'call':

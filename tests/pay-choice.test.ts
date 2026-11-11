@@ -110,13 +110,33 @@ describe('payment choice: opt-in', () => {
     expect(g.c(g.P(0).eddies[0]).spent).toBe(false);
   });
 
-  it('keeps exclude (Go Solo never pays for itself)', async () => {
+  it('keeps exclude (a {Spend} ability\'s host is not offered to pay its own €$ part)', async () => {
     const { g, legends, pays } = scene();
     eddies(g, 0, 1);
     legends[0].spent = false;
     expect(await g.pay(0, 1, [legends[0].uid])).toBe(true);
     expect(pays()).toHaveLength(0);
     expect(legends[0].spent).toBe(false);
+  });
+
+  it('Go Solo offers the Legend itself first; the ordinary Legend play offers it last (general FAQ #10, 4.5.1)', async () => {
+    for (const [type, at] of [
+      ['goSolo', 'first'],
+      ['playLegend', 'last'],
+    ] as const) {
+      const { g, legends, pays } = scene();
+      for (const c of legends) g.move(c.uid, 'removed');
+      const v = spawn(g, 0, 'v_corporate_exile', 'legends'); // cost 5, face-up, ready
+      eddies(g, 0, 5);
+      await g.doAction(0, { type, uid: v.uid });
+      const asked = pays()[0];
+      expect(asked.options.map((o) => o.key)).toEqual(at === 'first' ? ['legend', 'eddie'] : ['eddie', 'legend']);
+      expect(asked.options.find((o) => o.key === 'legend')!.label).toBe(g.name(v));
+      expect(v.zone).toBe('field');
+      // the first option was taken: Go Solo spent the Legend (it still enters ready), the ordinary play kept it ready
+      expect(v.spent).toBe(false);
+      expect(g.P(0).eddies.filter((u) => !g.c(u).spent)).toHaveLength(type === 'goSolo' ? 1 : 0);
+    }
   });
 
   it('Call a Legend as a reaction asks for the payment', async () => {

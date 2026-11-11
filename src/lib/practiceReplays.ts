@@ -16,6 +16,11 @@ export interface PracticeReplay {
    * lack it, and must be replayed with automatic payment to line up.
    */
   payChoice?: boolean;
+  /**
+   * The human chose the order of their own pending effects (the choices include 'order' answers). Replays saved before
+   * that existed lack it, and must be replayed with first-in-first-out resolution to line up.
+   */
+  orderChoice?: boolean;
   result: 'win' | 'loss' | 'draw';
   /** how many times Undo was used (the recorded choices are the final line of play) */
   undos?: number;
@@ -47,6 +52,7 @@ export function isReplay(x: unknown): x is PracticeReplay {
     Array.isArray(r.choices) &&
     r.choices.every((c) => Array.isArray(c) && c.every((i) => typeof i === 'number')) &&
     (r.payChoice === undefined || typeof r.payChoice === 'boolean') &&
+    (r.orderChoice === undefined || typeof r.orderChoice === 'boolean') &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
 }

@@ -30,7 +30,7 @@ Everything goes through `Game` (`src/engine/engine.ts`):
 - **Economy:**
   - `playCost(uid)` returns the cost after discounts (min 1) and taxes such as Riot Shield.
   - `available(p)` counts ready Eddies plus ready Legends.
-  - `pay()` auto-pays in this order: Eddies, then Legends carrying spend-trigger Gear, then face-down Legends, then face-up Legends without {Spend} abilities.
+  - `pay()` auto-pays in this order: Eddies, then Legends carrying spend-trigger Gear, then face-down Legends, then face-up Legends without {Spend} abilities. A Legend paying for its own Go Solo is spent first (it enters ready anyway); one paying for its own ordinary play (`playLegend`) is spent last (it would enter spent).
 - **Gig state:** `gigsOf`, `streetCred`, `lessCred` / `moreCred`, `valuePairs`, `distinctValues`.
 
 ## 3. Evaluation function (`src/ai/eval.ts`)

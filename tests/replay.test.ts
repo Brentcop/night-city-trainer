@@ -33,15 +33,15 @@ async function play(level: string, seed: number, first: 0 | 1, mk: (level: strin
 const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'; turns: number; log: string }[]> = {
   easy: [
     { seed: 101, first: 0, winner: 0, turns: 11, log: 'c5b1a212' },
-    { seed: 102, first: 1, winner: 1, turns: 13, log: 'adb607e1' },
+    { seed: 102, first: 1, winner: 1, turns: 13, log: '826caaf2' },
   ],
   medium: [
-    { seed: 201, first: 0, winner: 1, turns: 12, log: '8b5e1a40' },
-    { seed: 202, first: 1, winner: 0, turns: 14, log: 'a7189cc2' },
+    { seed: 201, first: 0, winner: 1, turns: 12, log: '5d0e65c4' },
+    { seed: 202, first: 1, winner: 0, turns: 14, log: 'e57efe94' },
   ],
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 9, log: '0227daf0' },
-    { seed: 302, first: 1, winner: 0, turns: 14, log: 'ebf24165' },
+    { seed: 301, first: 0, winner: 0, turns: 11, log: '2a6e891d' },
+    { seed: 302, first: 1, winner: 0, turns: 14, log: 'e13d64b6' },
   ],
 };
 

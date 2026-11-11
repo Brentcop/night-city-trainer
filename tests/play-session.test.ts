@@ -69,7 +69,7 @@ async function replayOf(run: Running): Promise<{ st: GameState; fallbacks: numbe
   const easy = makeTierBot('easy', 1);
   const fallback: Agent = { name: 'fb', decide: (g, d) => (fallbacks++, easy.decide(g, d)) };
   const r = run.replay;
-  const st = await Game.create(r.decks, [new ScriptedAgent('you', r.choices, fallback, !!r.payChoice), makeTierBot(r.botLevel, r.botSeed, 'Bot')], { seed: r.seed, first: r.first }).run();
+  const st = await Game.create(r.decks, [new ScriptedAgent('you', r.choices, fallback, !!r.payChoice, !!r.orderChoice), makeTierBot(r.botLevel, r.botSeed, 'Bot')], { seed: r.seed, first: r.first }).run();
   return { st, fallbacks };
 }
 
@@ -82,6 +82,7 @@ describe('practice session: undo', () => {
     const run = await finish(session);
     expect(run.replay.undos).toBe(1);
     expect(run.replay.payChoice).toBe(true); // recorded with payment choices, replayed with them
+    expect(run.replay.orderChoice).toBe(true); // likewise the order of the human's pending effects
     expect(run.g.s.winner).not.toBeNull();
     const { st, fallbacks } = await replayOf(run);
     expect(fallbacks).toBe(0);

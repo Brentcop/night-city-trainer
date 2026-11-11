@@ -9,6 +9,8 @@ export class HumanAgent implements Agent {
   autoMulligan = false;
   /** you choose which Eddies / Legends pay each cost (a 'pay' decision when the choice is real) */
   readonly choosesPayment = true;
+  /** you choose the order of your own pending effects (an 'order' decision when 2+ would each do something) */
+  readonly choosesOrder = true;
 
   decide(_g: Game, d: Decision): Promise<number[]> {
     return new Promise((resolve, reject) => {

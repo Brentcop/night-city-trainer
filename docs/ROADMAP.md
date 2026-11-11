@@ -68,7 +68,7 @@ Today every push to `main` builds and force-pushes `dist/` to the `gh-pages` bra
 
 **Retention rule.** Historical records remain available from the archive, but they do not feed current rankings, card impact, breeding parent selection, or recommendations. Pruning applies to the active dataset and deck gallery; the archived snapshot remains the audit trail.
 
-**How this relates to §1.** §1 says what gets wiped and why; this section is the order to do it in. The engine rules gaps in §5 (backlog ENG-14, ENG-3, ENG-16) change how games play out, so they come before the bot version is frozen and before any baseline run.
+**How this relates to §1.** §1 says what gets wiped and why; this section is the order to do it in. The engine rules gaps in §5 (backlog ENG-14 and ENG-3, done in SIM_VERSION 3; ENG-16 open) change how games play out, so they come before the bot version is frozen and before any baseline run.
 
 ## 5. Measure card value in the decision window
 
@@ -80,10 +80,10 @@ Today every push to `main` builds and force-pushes `dist/` to the `gh-pages` bra
 
 V: Streetkid illustrates why one card needs mode- and state-specific evaluation: its Call mills three and can recover a BRAINDANCE Program, while Go Solo pays its cost to enter as a ready Unit that can attack that turn and is removed if it leaves the field. Whether to call it for its effect, spend it as payment once face-up, or Go Solo depends on current resources, trash contents, hand, board, attack window, Gig state, and likely response. Its name, rare symbol, and set code do not answer that question.
 
-**Rules-conformance gate.** Treat the user's 25 general rulings and 86 card-grouped FAQ entries as an executable reference for the simulator before trusting a new evaluation baseline. Three specific gaps surfaced in the code review:
-- Face-up Legends currently receive a `goSolo` action only; there is no ordinary action to pay a numeric cost and play a Legend to the field without Go Solo, although the general FAQ and V: Corporate Exile ruling allow it.
-- Go Solo excludes its own Legend from payment (`legalActions` and `goSolo` pass it as an excluded uid), and an existing test asserts that it cannot pay itself. General FAQ #10 says a Legend may be spent for an Eddie when playing that Legend with its own Go Solo; reconcile this case and the resulting ready/spent orientation and spend triggers.
-- `resolvePending()` selects the first pending effect for the current player. The code comment says player ordering is not offered yet, while the FAQ says simultaneous pending effects can be resolved in a chosen order.
+**Rules-conformance gate.** Treat the user's 25 general rulings and 86 card-grouped FAQ entries as an executable reference for the simulator before trusting a new evaluation baseline. Three specific gaps surfaced in the code review (all three closed 2026-11-11, with the open points noted):
+- **Done 2026-11-11 (ENG-14, SIM_VERSION 3).** Face-up Legends with a cost now also get a `playLegend` action: pay the ordinary cost and play the Legend to the field without Go Solo (4.5), keeping its orientation and entering with Lag; its play event is `via: 'legend'` (trace kind `legend`), distinct from Go Solo.
+- **Done 2026-11-11 (ENG-14).** Go Solo may now be paid with its own Legend (general FAQ #10; auto-payment spends it first). It still enters ready and can attack, reading 11.29.1's "as a ready Unit" over 4.5.1; its spend triggers become pending before its {Play}. Still to do: confirm that orientation against the FAQ text, which is not in `data/raw/`.
+- **Done 2026-11-11 (ENG-3).** The human seat chooses the order of their own pending effects (an opt-in `order` decision, recorded in practice replays as `orderChoice`); bots keep queue order, so no bot game changed for this. Still open: an effect that does nothing yet is never offered.
 
 The FAQ also repeatedly distinguishes events that look similar but have different value: each Gig stolen versus a multi-Gig steal trigger, an attack declaration versus a successful steal/fight, zero adjustment versus an actual adjustment, a printed cost versus the amount paid, a reaction versus a response to a Quick, and a triggered effect's snapshot from later board state. Turn these into tagged conformance scenarios; don't parse the text export as a reliable rules AST because some keyword/icon glyphs are missing from its questions.
 

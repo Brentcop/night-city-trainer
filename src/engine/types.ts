@@ -43,7 +43,7 @@ export interface CardInst {
   gear: number[]; // uids of Gear equipped to this card
   host: number | null; // for Gear: uid it's equipped to
   enteredTurn: number; // global turn number it entered its current zone
-  goSolo: boolean; // a Legend played to the field
+  goSolo: boolean; // a Legend played to the field with Go Solo (a Legend played by paying its cost alone has false)
   known?: boolean; // face-down legend whose identity is known to its controller via an effect
 }
 
@@ -147,10 +147,16 @@ export interface TurnEvent {
   p: PlayerId; // player who played / attacked / stole; for 'defeat', the defeated card's controller
   uid: number; // card played / attacker / card defeated / steal actor
   defId: string;
-  type?: CardType; // 'play': the type it was played as (a Legend going solo is played as a Unit)
+  type?: CardType; // 'play': the type it was played as (a Legend played to the field is played as a Unit)
+  /** 'play' of a Legend from the Legends area: with Go Solo, or by paying its cost alone (4.5). Absent for other plays. */
+  via?: LegendPlay;
 }
 
-export type TraceKind = 'open' | 'mulligan' | 'draw' | 'play' | 'sell' | 'call' | 'solo' | 'attack' | 'steal' | 'defeated' | 'turnEnd' | 'activate';
+/** How a Legend was played from the Legends area to the field: Go Solo (11.29), or by paying its cost (4.5). */
+export type LegendPlay = 'goSolo' | 'legend';
+
+/** 'solo': a Legend played with Go Solo; 'legend': a Legend played to the field by paying its cost (4.5). */
+export type TraceKind = 'open' | 'mulligan' | 'draw' | 'play' | 'sell' | 'call' | 'solo' | 'legend' | 'attack' | 'steal' | 'defeated' | 'turnEnd' | 'activate';
 export interface TraceEvent {
   t: number; // turn
   p: PlayerId;
@@ -167,6 +173,8 @@ export type Action =
   | { type: 'call'; uid: number }
   | { type: 'play'; uid: number }
   | { type: 'goSolo'; uid: number }
+  /** play a face-up Legend with a cost from the Legends area to the field by paying that cost, without Go Solo (4.5) */
+  | { type: 'playLegend'; uid: number }
   | { type: 'activate'; uid: number; host: number; index: number }
   | { type: 'attack'; uid: number; targetUnit: number | null; targetGigs: PlayerId | null };
 
@@ -203,7 +211,9 @@ export type DecisionKind =
   | 'legend'
   | 'cardType'
   /** which source pays one €$ of a cost (only asked of agents with `choosesPayment`) */
-  | 'pay';
+  | 'pay'
+  /** which of your own pending effects resolves next (rule 10.12; only asked of agents with `choosesOrder`) */
+  | 'order';
 
 export interface Decision {
   player: PlayerId;
@@ -224,6 +234,12 @@ export interface Agent {
    * real. When unset (all bots), the engine picks the sources itself (Eddies first, then Legends) and asks nothing.
    */
   choosesPayment?: boolean;
+  /**
+   * Opt in to ordering your own pending effects (rule 10.12): when set, Game.resolvePending asks an 'order' decision
+   * whenever 2+ of your pending effects would each do something now. When unset (all bots), your effects resolve in
+   * the order they became pending (first in, first out) and nothing is asked: that is the bots' ordering policy.
+   */
+  choosesOrder?: boolean;
   decide(g: import('./engine').Game, d: Decision): Promise<number[]>;
 }
 
@@ -235,7 +251,7 @@ export interface EventMap {
   steal: { actor: number; gig: number; player: PlayerId; value: number; seq?: number };
   fight: { uid: number; opp: number; result: 'win' | 'lose'; power?: number; oppPower?: number };
   unitDefeated: DefeatInfo;
-  cardPlayed: { uid: number; player: PlayerId; type: CardType; seq?: number };
+  cardPlayed: { uid: number; player: PlayerId; type: CardType; seq?: number; via?: LegendPlay };
   blockerUsed: { uid: number };
   gigRolled: { gig: number; player: PlayerId; fromFixer: boolean };
   gigChanged: { gig: number; by: PlayerId; kind: 'adjust' | 'swap' | 'set' };

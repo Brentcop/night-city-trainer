@@ -142,15 +142,16 @@ describe('core rules (ENG-13)', () => {
     expect(g.s.winner).toBe(1);
   });
 
-  it('Go Solo: pay the cost (not with the Legend itself), it enters ready and may attack at once; leaving the field removes it', async () => {
+  it('Go Solo: pay the cost (the Legend itself may help pay), it enters ready and may attack at once; leaving the field removes it', async () => {
     const { g } = scene();
     const v = put(g, 0, 'v_corporate_exile', 'legends'); // cost 5, power 8
-    giveEddies(g, 0, 4);
-    expect(g.legalActions(0).some((a) => a.type === 'goSolo')).toBe(false); // 4 Eddies (+ the Legend itself) isn't enough
+    giveEddies(g, 0, 3);
+    expect(g.legalActions(0).some((a) => a.type === 'goSolo')).toBe(false); // 3 Eddies + the Legend itself isn't enough
     giveEddies(g, 0, 1);
+    expect(g.legalActions(0).some((a) => a.type === 'goSolo')).toBe(true); // 4 Eddies + the Legend itself (general FAQ #10)
     await g.doAction(0, { type: 'goSolo', uid: v.uid });
     expect(v.zone).toBe('field');
-    expect(v.spent).toBe(false);
+    expect(v.spent).toBe(false); // spent to pay, but Go Solo plays it "as a ready Unit"
     expect(g.available(0)).toBe(0);
     expect(g.lagPermission(v)).toBe('any');
     giveGig(g, 1, 4, 2);

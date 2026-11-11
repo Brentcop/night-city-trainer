@@ -427,7 +427,7 @@ function Board({
 
 /** Review request for a recorded practice game (your decisions only, with the coach's view of each). */
 export function practiceRequest(r: PracticeReplay): ReviewRequest {
-  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, rollouts: 8, withCoach: true };
+  return { kind: 'practice', decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, rollouts: 8, withCoach: true };
 }
 
 /** A quick verdict on the move just made, compared with the coach. */

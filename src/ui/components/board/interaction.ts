@@ -68,6 +68,8 @@ export function shortLabel(g: Game, a: Action | Reaction): string {
       }
       case 'goSolo':
         return `Go Solo (${g.playCost(a.uid, g.c(a.uid).controller, 'goSolo')} €$)`;
+      case 'playLegend':
+        return `Play to the field (${g.playCost(a.uid, g.c(a.uid).controller)} €$, with Lag)`;
       case 'activate': {
         const ab = g.script(a.uid).abilities?.[a.index];
         const lbl = ab?.label ?? 'Activate';
@@ -129,6 +131,17 @@ export function buildInteraction(g: Game, d: Decision | null): Interaction {
     d.options.forEach((o, i) => {
       ix.buttonOpts.push(i);
       if (o.uid !== undefined && o.key === 'legend') ix.direct.set(o.uid, i);
+    });
+    return ix;
+  }
+  if (d.kind === 'order') {
+    // each pending effect is a button naming its source card (the card may have left play); a source card on the table
+    // with just one of the effects is also clickable
+    const perCard = new Map<number, number>();
+    d.options.forEach((o) => o.uid !== undefined && perCard.set(o.uid, (perCard.get(o.uid) ?? 0) + 1));
+    d.options.forEach((o, i) => {
+      ix.buttonOpts.push(i);
+      if (o.uid !== undefined && perCard.get(o.uid) === 1) ix.direct.set(o.uid, i);
     });
     return ix;
   }

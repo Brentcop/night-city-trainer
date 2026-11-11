@@ -22,9 +22,13 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  * Version of the engine, bots and event rules that recorded an event. Bump when results for a seed change.
  * 2: the 2026-11 review fixes, which landed together: engine rules and card scripts, bot choices and fair hidden
  *    information, backtracking Swiss pairing and the hash-based tie-break.
+ * 3: Legends to the field (backlog ENG-14): a face-up Legend with a cost can also be played by paying its cost without
+ *    Go Solo (4.5: keeps its orientation, enters with Lag), and a Legend may help pay for its own Go Solo (spent first,
+ *    still enters ready). Bots consider both. (Ordering your own pending effects, ENG-3, is opt-in for human seats and
+ *    changes no bot game.)
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 2;
+export const SIM_VERSION = 3;
 
 /** Deterministic integer hash bit (also used for the game-1 coin flip). */
 const hashBit = (x: number, shift = 16) => (Math.imul(x, 2654435761) >>> shift) & 1;

@@ -21,6 +21,7 @@ import type {
   Gig,
   Intent,
   Keyword,
+  LegendPlay,
   Mod,
   ModUntil,
   Opt,
@@ -40,9 +41,42 @@ export function other(p: PlayerId): PlayerId {
 
 interface Pending {
   player: PlayerId;
+  /** names the effect and its source card (shown when its controller orders their effects) */
   label: string;
   run: () => Promise<void>;
+  /** uid of the card whose text this is */
+  source?: number;
+  /**
+   * Runs the same effect against a throwaway copy of the game, to tell whether resolving it now would do anything
+   * (see effectMatters). Absent: assume it would.
+   */
+  probe?: (g: Game) => Promise<void>;
 }
+
+/** Event wording for pending-effect labels ("Netwatch Netdriver (on V): when spent"). */
+const EVENT_TEXT: Record<EventName, string> = {
+  spent: 'when spent',
+  attack: 'when a Unit attacks',
+  steal: 'when a Gig is stolen',
+  fight: 'after a fight',
+  unitDefeated: 'when a Unit is defeated',
+  cardPlayed: 'when a card is played',
+  blockerUsed: 'when a Blocker is used',
+  gigRolled: 'when a Gig is rolled in',
+  gigChanged: 'when a Gig changes',
+  legendCalled: 'when a Legend is Called',
+  turnEnd: 'at the end of the turn',
+  turnStart: 'at the start of the turn',
+};
+
+/** Thrown by the probe copy's agents: the probed effect asks a question, so it would do something. */
+class ProbeAsked extends Error {}
+const PROBE_AGENT: Agent = {
+  name: 'probe',
+  decide: async () => {
+    throw new ProbeAsked();
+  },
+};
 
 export interface GameOptions {
   seed?: number;
@@ -363,7 +397,7 @@ export class Game {
     return n === name.toLowerCase() || n.split(' & ').includes(name.toLowerCase());
   }
 
-  /** Units in play for player (includes Go Solo Legends on the field). */
+  /** Units in play for player (includes Legends on the field, whether they went solo or were played by paying their cost). */
   units(p: PlayerId): CardInst[] {
     return this.P(p).field.map((u) => this.s.cards[u]).filter((c) => c.zone === 'field');
   }
@@ -376,7 +410,7 @@ export class Game {
   isLegend(c: CardInst): boolean {
     return this.def(c).type === 'Legend';
   }
-  /** Face-up legends: legends area face-up + Go Solo legends on field. */
+  /** Face-up legends: legends area face-up + Legends on the field. */
   faceUpLegends(p: PlayerId): CardInst[] {
     const ps = this.P(p);
     const a = ps.legends.map((u) => this.s.cards[u]).filter((c) => c.faceUp);
@@ -548,13 +582,17 @@ export class Game {
    * Pay amount using Eddies first, then legends that benefit from being spent, then face-down legends, etc.
    * If the paying agent opts in (`choosesPayment`) and the choice is real, it picks each source instead
    * (one 'pay' decision per €$; the first option is always what the automatic rule would pick).
-   * `what` names the cost in the prompt.
+   * `what` names the cost in the prompt. `order.first` / `order.last` move sources to the front or back of the automatic
+   * order (a Legend paying for its own Go Solo costs nothing, so it goes first; one paying for its own ordinary play
+   * enters spent, so it goes last).
    */
-  async pay(p: PlayerId, amount: number, exclude: number[] = [], what = 'a cost'): Promise<boolean> {
+  async pay(p: PlayerId, amount: number, exclude: number[] = [], what = 'a cost', order: { first?: number[]; last?: number[] } = {}): Promise<boolean> {
     if (amount <= 0) return true;
     const srcs = this.payables(p).filter((c) => !exclude.includes(c.uid));
     if (srcs.length < amount) return false;
     const score = (c: CardInst) => {
+      if (order.first?.includes(c.uid)) return -1;
+      if (order.last?.includes(c.uid)) return 9;
       if (c.zone === 'eddies') return 0;
       if (c.gear.length) return 1; // "when spent" gear triggers
       if (!c.faceUp) return 2;
@@ -677,7 +715,10 @@ export class Game {
       this.s.mods = this.s.mods.filter((m) => m.target !== uid);
     }
     let dest = to;
-    if (this.isLegend(c) && to !== 'legends' && to !== 'field') dest = 'removed';
+    // A Legend sent anywhere but the Legends area or the field is removed from the game (4.4.1); that covers a Legend
+    // played to the field by paying its cost (4.5) wherever it goes. One that went solo is removed whenever it leaves
+    // the field (11.29.1), even to the Legends area.
+    if (this.isLegend(c) && ((to !== 'legends' && to !== 'field') || (c.goSolo && from === 'field' && to !== 'field'))) dest = 'removed';
     c.zone = dest;
     c.spent = false;
     c.lag = false;
@@ -863,10 +904,18 @@ export class Game {
     this.s.stats.unitsDefeated[other(c.controller)]++;
     this.tr('defeated', c.controller, c.defId, inFight ? 'fight' : 'effect');
     const own = this.script(c).defeated;
-    if (own) this.enqueue(info.controller, `${this.name(uid)} {Defeated}`, () => own(this, c, info));
+    if (own)
+      this.enqueue(info.controller, `${this.name(uid)} {Defeated}`, () => own(this, c, info), {
+        source: uid,
+        probe: (cg) => own(cg, cg.c(uid), structuredClone(info)),
+      });
     for (const gc of gearScripts) {
       const fn = this.script(gc).defeated;
-      if (fn) this.enqueue(info.controller, `${this.name(gc)} {Defeated}`, () => fn(this, gc, info));
+      if (fn)
+        this.enqueue(info.controller, `${this.name(gc)} {Defeated}`, () => fn(this, gc, info), {
+          source: gc.uid,
+          probe: (cg) => fn(cg, cg.c(gc.uid), structuredClone(info)),
+        });
     }
     this.emit('unitDefeated', info);
     return true;
@@ -1085,8 +1134,8 @@ export class Game {
 
   // ------------------------------------------------------------------ pending effects / events
 
-  enqueue(player: PlayerId, label: string, run: () => Promise<void>) {
-    this.pending.push({ player, label, run });
+  enqueue(player: PlayerId, label: string, run: () => Promise<void>, extra: { source?: number; probe?: (g: Game) => Promise<void> } = {}) {
+    this.pending.push({ player, label, run, ...extra });
   }
 
   /**
@@ -1103,20 +1152,31 @@ export class Game {
       const fn = (SCRIPTS[m.value.defId]?.delayed as any)?.[name];
       if (!fn) continue;
       const modId = m.id;
-      this.enqueue(m.player ?? this.s.active, `delayed ${m.value.defId}:${name}`, async () => {
-        const live = this.s.mods.find((x) => x.id === modId);
+      const resolve = async (g: Game, e: EventMap[K]) => {
+        const live = g.s.mods.find((x) => x.id === modId);
         if (!live) return;
-        const consumed = await fn(this, live, ev);
-        if (consumed) this.removeMod(modId);
+        const consumed = await fn(g, live, e);
+        if (consumed) g.removeMod(modId);
+      };
+      const from = m.source !== undefined && this.s.cards[m.source] ? this.name(m.source) : (CARD_BY_ID[m.value.defId]?.displayName ?? m.value.defId);
+      this.enqueue(m.player ?? this.s.active, `${from} (delayed): ${EVENT_TEXT[name]}`, () => resolve(this, ev), {
+        source: m.source,
+        probe: (cg) => resolve(cg, structuredClone(ev)),
       });
     }
     for (const src of this.sources()) {
       const fn = this.script(src.self).on?.[name] as any;
       if (fn) {
         const { self, host, controller } = src;
-        this.enqueue(controller, `${this.name(self)}:${name}`, async () => {
-          await fn(this, self, host, ev);
-        });
+        const label = `${this.name(self)}${self.uid !== host.uid ? ` (on ${this.name(host)})` : ''}: ${EVENT_TEXT[name]}`;
+        this.enqueue(
+          controller,
+          label,
+          async () => {
+            await fn(this, self, host, ev);
+          },
+          { source: self.uid, probe: async (cg) => void (await fn(cg, cg.c(self.uid), cg.c(host.uid), structuredClone(ev))) },
+        );
       }
     }
   }
@@ -1127,8 +1187,8 @@ export class Game {
   /**
    * Resolve pending effects. The turn player resolves theirs first (10.13); once a player has started, they keep
    * resolving their own effects, including ones that become pending meanwhile, until none remain, and only then does
-   * the other player resolve theirs (10.14.1). Within a player, effects resolve first-in-first-out (10.12 lets a
-   * player pick the order; that choice is not offered yet).
+   * the other player resolve theirs (10.14.1). The resolving player chooses the order of their own effects (10.12):
+   * an agent with `choosesOrder` is asked (see chooseNextPending); every other agent resolves them first in, first out.
    */
   async resolvePending() {
     const outer = this.resolving === null;
@@ -1145,7 +1205,8 @@ export class Game {
           cur = this.pending.some((x) => x.player === this.s.active) ? this.s.active : other(this.s.active);
           this.resolving = cur;
         }
-        const idx = this.pending.findIndex((x) => x.player === cur);
+        let idx = this.pending.findIndex((x) => x.player === cur);
+        if (this.agents[cur]?.choosesOrder) idx = await this.chooseNextPending(cur, idx);
         const [pe] = this.pending.splice(idx, 1);
         await pe.run();
         this.checkState();
@@ -1153,6 +1214,57 @@ export class Game {
     } finally {
       if (outer) this.resolving = null;
     }
+  }
+
+  /**
+   * Rule 10.12 for an agent that opts in: which of p's pending effects resolves next. `first` is the oldest one (what
+   * first-in-first-out would resolve). Asked only when the order could matter: the oldest effect would do something
+   * now, and so would at least one other (effects that would do nothing are left in queue order), and they are not
+   * all copies of the same effect. Option 0 is always the oldest, so answering 0 every time plays exactly like FIFO.
+   */
+  private async chooseNextPending(p: PlayerId, first: number): Promise<number> {
+    const mine: number[] = [];
+    this.pending.forEach((x, i) => x.player === p && mine.push(i));
+    if (mine.length < 2) return first;
+    if (!(await this.effectMatters(this.pending[first]))) return first;
+    const live = [first];
+    for (const i of mine) if (i !== first && (await this.effectMatters(this.pending[i]))) live.push(i);
+    if (live.length < 2 || new Set(live.map((i) => this.pending[i].label)).size < 2) return first;
+    const options: Opt[] = live.map((i) => {
+      const pe = this.pending[i];
+      return { label: pe.label, key: 'effect', uid: pe.source };
+    });
+    const [k] = await this.ask({ player: p, kind: 'order', prompt: 'Your effects resolve one at a time (10.12). Resolve which first?', options, min: 1, max: 1, tag: 'order' });
+    if (k !== 0) this.log(p, `resolves ${this.pending[live[k]].label} first`);
+    return live[k];
+  }
+
+  /**
+   * Would resolving this pending effect now do anything? Runs its probe on a throwaway copy of the game (no log, no
+   * trace, agents that refuse to answer): it matters if it changes the state, makes anything pending, asks a question
+   * or fails. Never touches this game (its RNG included).
+   */
+  private async effectMatters(pe: Pending): Promise<boolean> {
+    if (!pe.probe) return true;
+    const { log, trace } = this.s;
+    let st: GameState;
+    this.s.log = [];
+    this.s.trace = undefined;
+    try {
+      st = structuredClone(this.s);
+    } finally {
+      this.s.log = log;
+      this.s.trace = trace;
+    }
+    const before = JSON.stringify(st);
+    const cg = new Game(st, [PROBE_AGENT, PROBE_AGENT]);
+    cg.logEnabled = false;
+    try {
+      await pe.probe(cg);
+    } catch {
+      return true;
+    }
+    return cg.pending.length > 0 || JSON.stringify(cg.s) !== before;
   }
 
   // ------------------------------------------------------------------ per-turn history
@@ -1326,13 +1438,14 @@ export class Game {
       for (const c of this.faceDownLegends(p)) out.push({ type: 'call', uid: c.uid });
     }
     for (const u of ps.hand) if (this.canPlayCard(p, u)) out.push({ type: 'play', uid: u });
+    // Face-up Legends with a cost: Go Solo (11.29) if they have it, and the ordinary play by paying the cost (4.5; a
+    // null cost can't be played, 4.5.3). The Legend itself may help pay either (it is still in the Legends area while
+    // the cost is paid; general FAQ #10 for Go Solo).
     for (const u of ps.legends) {
       const c = this.s.cards[u];
-      if (c.faceUp && this.hasKw(c, 'goSolo') && this.def(c).cost !== null) {
-        const cost = this.playCost(u, p, 'goSolo');
-        const avail = this.payables(p).filter((x) => x.uid !== u).length;
-        if (cost <= avail) out.push({ type: 'goSolo', uid: u });
-      }
+      if (!c.faceUp || this.def(c).cost === null) continue;
+      if (this.hasKw(c, 'goSolo') && this.playCost(u, p, 'goSolo') <= this.available(p)) out.push({ type: 'goSolo', uid: u });
+      if (this.playCost(u, p) <= this.available(p)) out.push({ type: 'playLegend', uid: u });
     }
     for (const ab of this.listAbilities(p, false)) out.push({ type: 'activate', uid: ab.self.uid, host: ab.host.uid, index: ab.index });
     let forced = false;
@@ -1360,6 +1473,8 @@ export class Game {
         return `Play ${this.name(a.uid)} (${this.playCost(a.uid, this.c(a.uid).owner)} €$)`;
       case 'goSolo':
         return `Go Solo: ${this.name(a.uid)} (${this.playCost(a.uid, this.c(a.uid).controller, 'goSolo')} €$)`;
+      case 'playLegend':
+        return `Play ${this.name(a.uid)} to the field (${this.playCost(a.uid, this.c(a.uid).controller)} €$, with Lag)`;
       case 'activate': {
         const ab = this.script(a.uid).abilities![a.index];
         return `${this.name(a.host)}${a.host !== a.uid ? ` [${this.name(a.uid)}]` : ''}: ${ab.label}`;
@@ -1408,6 +1523,9 @@ export class Game {
       case 'goSolo':
         await this.goSolo(p, a.uid);
         return;
+      case 'playLegend':
+        await this.playLegend(p, a.uid);
+        return;
       case 'activate':
         await this.activate(p, a.uid, a.host, a.index);
         return;
@@ -1435,7 +1553,7 @@ export class Game {
     this.tr('call', p, c.defId, opts.free ? 'free' : this.s.phase === 'main' && this.s.active === p ? 'main' : 'react');
     this.log(p, `calls ${this.name(c)}${opts.free ? ' (free)' : ''}`);
     const fn = this.script(c).call;
-    if (fn) this.enqueue(p, `${this.name(c)} {Call}`, () => fn(this, c));
+    if (fn) this.enqueue(p, `${this.name(c)} {Call}`, () => fn(this, c), { source: c.uid, probe: (cg) => fn(cg, cg.c(c.uid)) });
     this.emit('legendCalled', { uid: c.uid, player: p });
     return true;
   }
@@ -1465,7 +1583,7 @@ export class Game {
     if (d.type === 'Unit') {
       this.enterField(p, uid);
       this.emit('cardPlayed', { uid, player: p, type: 'Unit', seq });
-      if (sc.play) this.enqueue(p, `${d.displayName} {Play}`, () => sc.play!(this, c));
+      if (sc.play) this.enqueue(p, `${d.displayName} {Play}`, () => sc.play!(this, c), { source: uid, probe: (cg) => sc.play!(cg, cg.c(uid)) });
     } else if (d.type === 'Gear') {
       const hosts = this.gearHosts(p).filter((h) => !opts.hostFilter || opts.hostFilter(h));
       const host = await this.chooseUnit(p, hosts, `Equip ${d.displayName} to?`, { intent: 'help', tag: 'equip', source: uid });
@@ -1476,7 +1594,7 @@ export class Game {
       this.equip(uid, host.uid);
       this.log(p, `equips ${d.displayName} to ${this.name(host)}`);
       this.emit('cardPlayed', { uid, player: p, type: 'Gear', seq });
-      if (sc.play) this.enqueue(p, `${d.displayName}`, () => sc.play!(this, c));
+      if (sc.play) this.enqueue(p, `${d.displayName} (equipped)`, () => sc.play!(this, c), { source: uid, probe: (cg) => sc.play!(cg, cg.c(uid)) });
     } else if (d.type === 'Program') {
       this.detach(uid);
       c.zone = 'limbo';
@@ -1490,29 +1608,54 @@ export class Game {
     }
   }
 
+  /**
+   * Go Solo (11.29.1): pay the Legend's Go Solo cost and play it as a ready Unit that can attack this turn.
+   * The Legend may be spent as one of its own payment sources (general FAQ #10). Go Solo plays it "as a ready Unit", so
+   * it enters ready even then (assumption: the card text's "ready" overrides 4.5.1's "same orientation"; the FAQ text
+   * itself is not in the repo). Spending it costs nothing, so automatic payment spends it first.
+   * Trigger order: its "when spent" triggers (e.g. Netwatch Netdriver on it) become pending while it pays, before it is
+   * played, so they come before "when a card is played" triggers and its own {Play}; its controller may reorder them
+   * (10.12) when they choose the order of their effects.
+   */
   async goSolo(p: PlayerId, uid: number) {
     const cost = this.playCost(uid, p, 'goSolo');
-    if (!(await this.pay(p, cost, [uid], `${this.name(uid)} goes solo`))) return;
+    if (!(await this.pay(p, cost, [], `${this.name(uid)} goes solo`, { first: [uid] }))) return;
+    this.legendToField(p, uid, 'goSolo');
+  }
+
+  /**
+   * Play a face-up Legend from the Legends area to the field as a Unit by paying its cost, without Go Solo (4.5). It
+   * enters in the orientation it had when it left the Legends area (4.5.1: spent if it helped pay its own cost, so
+   * automatic payment spends it last) and with Lag (4.5.2). It is not a Go Solo Unit, so it gets no permission to attack
+   * this turn; if it later goes anywhere but the Legends area or field it is removed from the game (4.4.1, see move()).
+   */
+  async playLegend(p: PlayerId, uid: number) {
+    const cost = this.playCost(uid, p);
+    if (!(await this.pay(p, cost, [], `Play ${this.name(uid)}`, { last: [uid] }))) return;
+    this.legendToField(p, uid, 'legend');
+  }
+
+  /** Move a (paid-for) Legend from the Legends area to the field, keeping its Gear and effects, and fire its play. */
+  private legendToField(p: PlayerId, uid: number, via: LegendPlay) {
     const c = this.s.cards[uid];
     const gear = [...c.gear];
-    // move legend to field keeping its gear
     this.detach(uid);
     c.zone = 'field';
     c.controller = p;
-    c.spent = false;
+    if (via === 'goSolo') c.spent = false; // "as a ready Unit"; the ordinary play keeps c.spent as it was (4.5.1)
     c.lag = true;
-    c.goSolo = true;
+    c.goSolo = via === 'goSolo';
     c.enteredTurn = this.s.turn;
     this.P(p).field.push(uid);
     for (const g of gear) this.s.cards[g].zone = 'field';
     c.gear = gear;
     this.s.stats.cardsPlayed[p]++;
-    this.tr('solo', p, c.defId);
-    this.log(p, `${this.name(c)} goes solo!`);
-    const seq = this.noteTurnEvent({ k: 'play', p, uid, defId: c.defId, type: 'Unit' });
-    this.emit('cardPlayed', { uid, player: p, type: 'Unit', seq });
+    this.tr(via === 'goSolo' ? 'solo' : 'legend', p, c.defId);
+    this.log(p, via === 'goSolo' ? `${this.name(c)} goes solo!` : `plays ${this.name(c)} to the field${c.spent ? ' (spent)' : ''}`);
+    const seq = this.noteTurnEvent({ k: 'play', p, uid, defId: c.defId, type: 'Unit', via });
+    this.emit('cardPlayed', { uid, player: p, type: 'Unit', seq, via });
     const fn = this.script(c).play;
-    if (fn) this.enqueue(p, `${this.name(c)} {Play}`, () => fn(this, c));
+    if (fn) this.enqueue(p, `${this.name(c)} {Play}`, () => fn(this, c), { source: uid, probe: (cg) => fn(cg, cg.c(uid)) });
   }
 
   async activate(p: PlayerId, selfUid: number, hostUid: number, index: number, asReaction = false) {
@@ -1548,11 +1691,11 @@ export class Game {
     this.emit('spent', { uid, cause: 'attack' });
     // {Attack} triggers (unit and its gear)
     const atkFn = this.script(att).attack;
-    if (atkFn) this.enqueue(p, `${this.name(att)} {Attack}`, () => atkFn(this, att, att));
+    if (atkFn) this.enqueue(p, `${this.name(att)} {Attack}`, () => atkFn(this, att, att), { source: uid, probe: (cg) => atkFn(cg, cg.c(uid), cg.c(uid)) });
     for (const gu of att.gear) {
       const g = s.cards[gu];
       const fn = this.script(g).attack;
-      if (fn) this.enqueue(p, `${this.name(g)} {Attack}`, () => fn(this, g, att));
+      if (fn) this.enqueue(p, `${this.name(g)} (on ${this.name(att)}) {Attack}`, () => fn(this, g, att), { source: gu, probe: (cg) => fn(cg, cg.c(gu), cg.c(uid)) });
     }
     const seq = this.noteTurnEvent({ k: 'attack', p, uid, defId: att.defId });
     this.emit('attack', { attacker: uid, targetUnit: target.unit, targetGigs: target.gigs, seq });

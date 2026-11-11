@@ -224,6 +224,8 @@ function categoryOf(g: Game, a: Action): Category {
       return 'call';
     case 'goSolo':
       return 'go solo';
+    case 'playLegend':
+      return 'unit'; // a Legend played to the field by paying its cost is played as a Unit (4.5)
     case 'activate':
       return 'activate';
     case 'attack':
@@ -252,6 +254,7 @@ export interface ReviewOptions {
 export class ReviewAgent implements Agent {
   name: string;
   choosesPayment?: boolean;
+  choosesOrder?: boolean;
   out: DecisionReview[] = [];
   timeline: { turn: number; v: number }[] = [];
   private rnd: () => number;
@@ -266,6 +269,7 @@ export class ReviewAgent implements Agent {
   ) {
     this.name = inner.name;
     this.choosesPayment = inner.choosesPayment;
+    this.choosesOrder = inner.choosesOrder;
     this.rnd = rng(seed * 31 + seat * 7 + 1);
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
@@ -449,7 +453,8 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
 
 /**
  * An agent that replays recorded choices (a human's game). Falls back to `fallback` if the record runs out.
- * `choosesPayment` must match the recording (a practice replay's `payChoice`), or the choices won't line up.
+ * `choosesPayment` and `choosesOrder` must match the recording (a practice replay's `payChoice` and `orderChoice`), or
+ * the choices won't line up.
  */
 export class ScriptedAgent implements Agent {
   private k = 0;
@@ -458,6 +463,7 @@ export class ScriptedAgent implements Agent {
     private choices: number[][],
     private fallback: Agent,
     public choosesPayment = false,
+    public choosesOrder = false,
   ) {}
   async decide(g: Game, d: Decision): Promise<number[]> {
     if (this.k < this.choices.length) return this.choices[this.k++];
