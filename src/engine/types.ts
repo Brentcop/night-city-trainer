@@ -77,6 +77,8 @@ export interface Mod {
 export interface PlayerState {
   id: PlayerId;
   name: string;
+  /** listFingerprint of the deck played (Legends + main deck), set by Game.create; bots key card impact by it */
+  listId?: string;
   deck: number[]; // index 0 = top
   hand: number[];
   field: number[];

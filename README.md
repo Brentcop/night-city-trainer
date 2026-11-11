@@ -73,6 +73,7 @@ Visual replays show a game on the real board; click a log line to rewind to it.
 | `npm run build-h2h` | Rebuilds `public/data/h2h.json` (head-to-heads for the Deck Lab) from the recorded events. |
 | `npm run bundle-reports` | Bundles per-deck report data from `reports/` into `src/data/deckReports.json` for the deck profile page. |
 | `npm run refresh` | `bundle-reports`, then `scripts/plan.ts`, then `build-h2h`. |
+| `npm run check:data` | Read-only consistency check of the recorded data: the event index matches `public/tournaments/`, `h2h.json` covers every event, and every run manifest has a known schema and deck ids that match the stored lists. Exits 1 on a problem; events without a manifest are counted as legacy. |
 
 ## Matchup scripts
 
@@ -105,6 +106,8 @@ Every script prints its usage with `--help`. Unknown flags and invalid values ex
 Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`, and the reasoning is in `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
 
 Reports go to `reports/` (`*-latest.md` plus timestamped copies, which are gitignored). `review` also refreshes `src/data/review.json`, which feeds the Meta and Home pages; `analyze` refreshes `src/data/analysis.json`, which feeds Card stats, the coach and the Deck Lab.
+
+Every result file carries a run manifest (`src/lib/runManifest.ts`): deck lists by fingerprint, sim version, bot, field, seeds, seats and sample size. The sim CLI, tournaments, `forge.ts`, `optimize.ts`, `season.ts`, the tuners and the Matchup Lab and Deck Lab write one. `ratings.ts` and `build-h2h.ts` aggregate recorded events instead of playing games: their manifest lists the input events with their sim versions and run ids, and is built from those inputs alone, so an unchanged rebuild leaves the file as it was. Card impact is matched by list fingerprint, not by deck name.
 
 ## Adding decks
 
@@ -142,6 +145,7 @@ npm run typecheck
 | `bots.test.ts`, `bot-choices.test.ts`, `hide-info.test.ts` | Same seed gives the same game for every tier; sub-choices by tag; what lookahead clones hide. |
 | `play-session.test.ts`, `pool.test.ts`, `scripts-pool.test.ts`, `scripts-args.test.ts` | The Play session (undo, errors, recording), game errors in the browser and CLI pools, and CLI flag parsing. |
 | `pages.test.ts`, `markdown.test.ts`, `summarize.test.ts` | Page helpers, link safety in the Markdown renderer, and game summaries. |
+| `runManifest.test.ts`, `check-data.test.ts`, `impact.test.ts` | Run manifests (game runs and deterministic aggregates), the recorded-data check, and card impact matched by list fingerprint. |
 
 ## Scripts
 
@@ -152,6 +156,7 @@ Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `
 | `simulate.ts` (`npm run sim`), `worker.ts`, `worker-boot.mjs`, `lib-node.ts`, `tournament.ts`, `build-h2h.ts`, `bundle-reports.ts`, `plan.ts`, `forge.ts`, `optimize.ts`, `tune.ts`, `tune-profiles.ts`, `botcheck.ts`, `season.ts`, `import-meta.ts`, `import-guides.ts`, `review.ts`, `review-worker.ts`, `review-boot.mjs`, `review-noise.ts`, `review-debug.ts`, `coach-eval.ts` | Maintained. Covered above, in `docs/BOT_TOOLKIT.md` and in `docs/REVIEW_FINDINGS.md`. |
 | `coach-h2h.sh`, `bot-tiers.sh`, `finals.sh` | Maintained bash wrappers: coach configs vs the Deep bot, bot tiers head-to-head, and a final large-sample test followed by the plan. |
 | `ratings.ts` | Fits the power ratings (`src/data/ratings.json`, `reports/ratings-latest.md`). |
+| `check-data.ts` (`npm run check:data`) | Read-only consistency check of the recorded events, `h2h.json` and run manifests. |
 | `breed-data.ts`, `breed-preview.ts` | What the deck breeder learns from past runs; a preview of the next season's breeding without playing games. |
 | `tag-provenance.ts` | Rewrites every deck file with a standard provenance header. |
 | `classify.ts` | Prints the archetype read of every library deck. |

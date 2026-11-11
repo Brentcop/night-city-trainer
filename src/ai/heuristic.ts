@@ -159,7 +159,7 @@ export class HeuristicAgent implements Agent {
     for (const s of sells) {
       const c = g.c(s.uid);
       const d = g.def(c);
-      let keep = cardValue(c.defId) + this.opts.impact * cardImpact(P.name, c.defId);
+      let keep = cardValue(c.defId) + this.opts.impact * cardImpact(P, c.defId);
       const cost = g.playCost(c.uid, p);
       if (cost <= avail + 1) keep += 3; // castable now / next turn
       if (cost > avail + 3) keep -= 3; // far off
@@ -556,7 +556,7 @@ export class HeuristicAgent implements Agent {
     const hand = g.P(p).hand.map((u) => g.def(u));
     if (this.opts.impact) {
       // keep hands holding the deck's proven game-winners even if the curve is a bit off
-      const winners = hand.filter((c) => cardImpact(g.P(p).name, c.id) >= 0.05).length;
+      const winners = hand.filter((c) => cardImpact(g.P(p), c.id) >= 0.05).length;
       const cheapAny = hand.filter((c) => (c.cost ?? 9) <= 4).length;
       if (winners >= 2 && cheapAny >= 2) return false;
     }
@@ -647,7 +647,7 @@ export class HeuristicAgent implements Agent {
       const c = g.c(o.uid!);
       const mine = c.controller === p;
       // impact telemetry is per deck: a rival card is valued for the rival's deck
-      let v = cardValue(c.defId) + this.opts.impact * cardImpact(g.P(c.controller).name, c.defId);
+      let v = cardValue(c.defId) + this.opts.impact * cardImpact(g.P(c.controller), c.defId);
       // prefer keeping / getting cards we can cast soon
       const cost = g.def(c).cost ?? 0;
       if (mine && cost <= g.P(p).eddies.length + 3) v += 1.5;

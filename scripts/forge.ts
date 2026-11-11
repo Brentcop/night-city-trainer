@@ -20,6 +20,8 @@ import type { DeckList } from '../src/engine/types';
 import { analyzeDeck, type DeckReport } from '../src/analysis/analyze';
 import analysis from '../src/data/analysis.json';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, threadsOpt } from './lib-node';
+import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
+import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
 
 const { values: V, positionals } = cli(
@@ -59,6 +61,9 @@ const GLOBAL_IMPACT: Record<string, number> = (() => {
   return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
 })();
 
+/** games played so far in this process (each forged deck's manifest counts its own) */
+let gamesPlayed = 0;
+
 async function play(deck: DeckList, seed0: number, games: number, trace: boolean) {
   const jobs: MatchJob[] = [];
   let seed = seed0;
@@ -67,6 +72,7 @@ async function play(deck: DeckList, seed0: number, games: number, trace: boolean
     jobs.push({ a: deck, b: opp.deck, seed: seed++, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT, trace });
   }
   const res = await runJobs(jobs, { threads: THREADS });
+  gamesPlayed += res.length;
   const wr = res.reduce((a, r) => a + (r.winner === 0 ? 1 : r.winner === 'tie' ? 0.5 : 0), 0) / res.length;
   const sums = trace ? res.map((r) => r.summaries![0]) : [];
   return { wr, sums };
@@ -116,7 +122,9 @@ async function forge(target: (typeof lib)[number]) {
   const history: { gen: number; wr: number; change: string }[] = [];
   // machine-readable twin of the log, for scripts/bundle-reports.ts (percentages and points, 1 decimal, as in the log)
   const p1 = (x: number) => +(x * 100).toFixed(1);
-  const json: { deck: string; file: string; date: string; seed: number; field: string; gens: { gen: number; baseline: number; swaps: { swap: string; wr: number; delta: number }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[]; summary: { gen: number; wr: number; change: string }[] } = {
+  const startedAt = new Date().toISOString();
+  const playedBefore = gamesPlayed;
+  const json: { deck: string; file: string; date: string; seed: number; field: string; gens: { gen: number; baseline: number; swaps: { swap: string; wr: number; delta: number }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[]; summary: { gen: number; wr: number; change: string }[]; manifest?: RunManifest } = {
     deck: deck.name,
     file: target.file,
     date: new Date().toISOString().slice(0, 10),
@@ -185,6 +193,22 @@ async function forge(target: (typeof lib)[number]) {
   }
   log.push('', '## Summary', '', '| Gen | Win % | Change |', '|---|---|---|', ...history.map((h) => `| ${h.gen} | ${pct(h.wr)} | ${h.change} |`));
   json.summary = history.map((h) => ({ gen: h.gen, wr: p1(h.wr), change: h.change }));
+  // planned = every generation testing every candidate and confirming; generations that keep the list skip the confirmation
+  json.manifest = gameRunManifest({
+    purpose: 'forge',
+    decks: [target, ...field],
+    fieldMode: FIELD,
+    fieldDeckIds: field.map((f) => manifestDeck(f).id),
+    bot: BOT,
+    seedBase: V.seed,
+    seatPolicy: 'alternate',
+    plannedGames: GENS * GAMES * (1 + CANDS + 4),
+    completedGames: gamesPlayed - playedBefore,
+    gamesPerPair: null,
+    trace: true,
+    simVersion: SIM_VERSION,
+    createdAt: startedAt,
+  });
   fs.mkdirSync('reports/forge', { recursive: true });
   fs.writeFileSync(`reports/forge/${slug}.md`, log.join('\n'));
   fs.writeFileSync(`reports/forge/${slug}.json`, JSON.stringify(json, null, 1));

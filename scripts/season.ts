@@ -20,6 +20,8 @@ import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
 import { classify } from '../src/ai/archetype';
 import { bool, cli, existing, Refusal, int, loadLibrary, oneOf, runJobs, runMain, SIM_BOTS, slugify, threadsOpt, writeJsonStamped } from './lib-node';
 import type { MatchJob, MatchResult } from './worker';
+import { gameRunManifest } from '../src/lib/runManifest';
+import { SIM_VERSION } from '../src/lib/tournament';
 
 const { values: V } = cli(import.meta.url, {
   season: int(undefined, { min: 1 }),
@@ -197,6 +199,7 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
 
 // ---------------------------------------------------------------- season
 async function main() {
+  const startedAt = new Date().toISOString();
   const lb = loadLB();
   // ---- refuse to count a season twice
   const counted = Object.values(lb).some((e) => e.seasons[String(SEASON)] !== undefined || e.contrib?.[String(SEASON)]);
@@ -244,6 +247,21 @@ async function main() {
     for (let j = i + 1; j < field.length; j++)
       for (let k = 0; k < GAMES; k++) jobs.push({ a: field[i].deck, b: field[j].deck, seed: seed++, first: (k % 2) as 0 | 1, bot: BOT, trace: true });
   const res: MatchResult[] = await runJobs(jobs, { threads: THREADS });
+  // the round robin's manifest; the forge and finals steps below run as their own processes and write their own reports
+  const manifest = gameRunManifest({
+    purpose: 'season',
+    decks: field,
+    fieldMode: `season-${SEASON}`,
+    bot: BOT,
+    seedBase: SEASON * 1_000_000,
+    seatPolicy: 'alternate',
+    plannedGames: jobs.length,
+    completedGames: res.length,
+    gamesPerPair: GAMES,
+    trace: true,
+    simVersion: SIM_VERSION,
+    createdAt: startedAt,
+  });
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   if (!rerun) {
     impactMap(reps);
@@ -289,6 +307,7 @@ async function main() {
     bred: bred.map((b) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea })),
     standings: seasonRows,
     leaderTop: board.slice(0, 12).map((e) => ({ name: e.name, vsMeta: e.vsMeta, percentile: e.percentile })),
+    manifest,
   };
   fs.writeFileSync(`data/seasons/season-${SEASON}.json`, JSON.stringify(data, null, 1));
   saveLB(lb);

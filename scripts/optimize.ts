@@ -10,6 +10,8 @@ import { counts, exportOfficial, ramLimits, validateDeck } from '../src/engine/d
 import type { DeckList } from '../src/engine/types';
 import { cardValue } from '../src/ai/knowledge';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
+import { gameRunManifest, manifestDeck } from '../src/lib/runManifest';
+import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
 
 const { values: V, positionals } = cli(
@@ -86,6 +88,7 @@ async function measure(cands: Cand[], gamesPerCand: number, seed0: number): Prom
 }
 
 async function main() {
+  const startedAt = new Date().toISOString();
   console.log(`Optimizing ${base.deck.name} vs ${field.length} meta decks (bot=${BOT})`);
   const cands = [{ label: '(unchanged)', deck: base.deck }, ...candidates(base.deck)];
   console.log(`Stage 1: ${cands.length} candidates × ${SCREEN} games`);
@@ -135,6 +138,20 @@ async function main() {
     confirm: CONFIRM,
     baseline: p1(baseWr),
     rows: final.filter((f) => f.c !== cands[0]).map((f) => ({ change: f.c.label, s1: p1(f.wr), s2: p1(f.wr2), delta: p1(f.wr2 - baseWr) })),
+    // stage 1 plays seeds from 424242, stage 2 from 777777 (the same seeds for every candidate)
+    manifest: gameRunManifest({
+      purpose: 'optimize',
+      decks: [base, ...field],
+      fieldMode: VS ? `vs:${field[0].file}${SIDEBOARD ? ':sideboard' : ''}` : 'meta',
+      fieldDeckIds: field.map((f) => manifestDeck(f).id),
+      bot: BOT,
+      seedBase: 424242,
+      seatPolicy: 'alternate',
+      plannedGames: cands.length * SCREEN + top.length * CONFIRM,
+      gamesPerPair: null,
+      simVersion: SIM_VERSION,
+      createdAt: startedAt,
+    }),
   };
   fs.writeFileSync(`reports/optimize-${slug}-latest.json`, JSON.stringify(json, null, 1));
   console.log('\n' + md.split('## Stage 1')[0]);

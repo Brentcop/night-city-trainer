@@ -1,6 +1,7 @@
 // Built-in deck library (data/decks/*.txt), bundled for both the web app (Vite) and Node scripts.
 import { deckFingerprint, parseDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
+import type { RunManifest } from './runManifest';
 
 /** Where a list came from and who made it (see scripts/tag-provenance.ts). */
 export interface Provenance {
@@ -25,6 +26,8 @@ export interface LibraryDeck {
   kind: 'meta' | 'ladder' | 'guide' | 'original' | 'custom';
   idea?: string;
   prov: Provenance;
+  /** browser custom decks saved from a Deck Lab run: what that run measured (src/lib/runManifest.ts) */
+  manifest?: RunManifest;
 }
 
 const field = (text: string, key: string) => text.match(new RegExp(`^// ${key}: (.+)$`, 'm'))?.[1]?.trim();

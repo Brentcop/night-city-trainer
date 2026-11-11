@@ -9,11 +9,13 @@ export interface PlayerSummary {
   mulligan: boolean;
   opening: string[]; // final opening hand (after mulligan)
   seen: string[]; // unique card ids in the kept opening hand or drawn later (a mulliganed-away hand doesn't count)
-  played: Record<string, number>; // id -> first turn played (own-turn index: 1,2,3...)
+  played: Record<string, number>; // id -> first turn played (own-turn index: 1,2,3...); includes Legends played to the field by paying their cost
   playCount: Record<string, number>;
   sold: Record<string, number>;
   calls: { id: string; turn: number; how: string }[];
   solos: string[];
+  /** Legends played to the field by paying their cost, without Go Solo (trace kind 'legend', rule 4.5); also counted in played/playCount */
+  legendPlays: string[];
   attacksGigs: number;
   attacksUnits: number;
   firstAttackTurn: number | null; // own-turn index
@@ -42,6 +44,7 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
       sold: {},
       calls: [],
       solos: [],
+      legendPlays: [],
       attacksGigs: 0,
       attacksUnits: 0,
       firstAttackTurn: null,
@@ -75,11 +78,14 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
       case 'draw':
         seen[e.p].add(e.id!);
         break;
-      case 'play': {
+      case 'play':
+      case 'legend': {
+        // an ordinary play of a Legend to the field (4.5) is a play like any other; Go Solo ('solo') stays separate
         const i = ownIdx(e.t, e.p);
         if (m.played[e.id!] === undefined) m.played[e.id!] = i;
         m.playCount[e.id!] = (m.playCount[e.id!] ?? 0) + 1;
-        if (e.x === 'hand') seen[e.p].add(e.id!);
+        if (e.k === 'legend') m.legendPlays.push(e.id!);
+        else if (e.x === 'hand') seen[e.p].add(e.id!);
         break;
       }
       case 'sell':

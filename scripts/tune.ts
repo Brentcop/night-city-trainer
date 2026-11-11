@@ -101,6 +101,7 @@ async function main() {
     simVersion: SIM_VERSION,
     rulesVersion: null,
     faqVersion: null,
+    errataVersion: null,
     bot: { level: 'lookahead', configHash: fingerprintText(JSON.stringify(base)) },
     decks: field.map((d) => ({ id: d.deckId ?? deckFingerprint(d.deck), name: d.deck.name, file: d.file })),
     field: { mode: 'meta-round-robin', deckIds: field.map((d) => d.deckId ?? deckFingerprint(d.deck)) },

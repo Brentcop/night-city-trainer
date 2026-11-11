@@ -83,7 +83,7 @@ export interface TourneyEvent {
   bot: string;
   format: string;
   config?: TourneyConfig;
-  decks: Record<string, { id?: string; file?: string; legends: string[]; main: string[] }>;
+  decks: Record<string, { id?: string; file?: string; legends: string[]; main: string[]; sideboard?: string[] }>;
   rounds: { round: number; matches: MatchRec[] }[];
   standings: StandingRow[];
   bracket: { name: string; matches: MatchRec[] }[];
@@ -229,7 +229,10 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
     bot: cfg.bot,
     format: `Swiss ${cfg.rounds} round${cfg.rounds > 1 ? 's' : ''} (Bo${cfg.bestOf})${cut ? ` + top ${cut}` : ''}`,
     config: cfg,
-    decks: Object.fromEntries(decks.map((d, i) => [d.name, { id: manifestDecks[i].id, file: d.file, legends: [...d.legends], main: [...d.main] }])),
+    // the sideboard is kept (when there is one) so the stored list reproduces the deck id; games never use it
+    decks: Object.fromEntries(
+      decks.map((d, i) => [d.name, { id: manifestDecks[i].id, file: d.file, legends: [...d.legends], main: [...d.main], ...(d.sideboard?.length ? { sideboard: [...d.sideboard] } : {}) }]),
+    ),
     rounds: [],
     standings: computeStandings(st),
     bracket: [],
@@ -244,6 +247,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       simVersion: SIM_VERSION,
       rulesVersion: null,
       faqVersion: null,
+      errataVersion: null,
       bot: { level: cfg.bot },
       decks: manifestDecks,
       field: { mode: 'swiss', deckIds: manifestDecks.map((d) => d.id) },

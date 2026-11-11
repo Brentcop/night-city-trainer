@@ -1,13 +1,14 @@
 // Deck Lab core (browser): tune a submitted deck against a meta field, and breed new decks — the same methods as
 // scripts/forge.ts and scripts/season.ts, run on the in-browser worker pool.
 import { CARDS, CARD_BY_ID, cardLabel } from '../engine/cards';
-import { counts, ramLimits, validateDeck } from '../engine/deck';
+import { counts, listFingerprint, ramLimits, validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { analyzeDeck, type DeckReport } from '../analysis/analyze';
 import type { PlayerSummary } from '../analysis/summarize';
 import { breedSeason, type Bred } from '../ai/breeder';
 import impact from '../data/impact.json';
-import type { ImpactData } from '../analysis/impactData';
+import { findImpactDeck, type ImpactData } from '../analysis/impactData';
+import { LEGACY_IMPACT_LISTS } from '../analysis/legacyImpactLists';
 import ratings from '../data/ratings.json';
 import seasons from '../data/seasons.json';
 import { gameDeck, type PlayGame } from './tournament';
@@ -28,10 +29,16 @@ export const GLOBAL_IMPACT: Record<string, number> = (() => {
   return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
 })();
 
-/** Per-deck card impact from bot telemetry (cards drawn in 25+ games). */
-export const DECK_IMPACT: Record<string, Record<string, number>> = Object.fromEntries(
-  A.decks.map((r) => [r.deck, Object.fromEntries(r.cards.filter(([, iwd, seenGames]) => seenGames >= 25 && Number.isFinite(iwd)).map(([id, iwd]) => [id, iwd as number]))]),
-);
+/**
+ * Per-deck card impact from bot telemetry (cards drawn in 25+ games), for the list it was measured on: matched by list
+ * fingerprint, never by name alone (findImpactDeck), so a tuned or renamed list, or a custom deck reusing a built-in
+ * name, does not inherit another list's numbers. Undefined when no telemetry describes this list.
+ */
+export function deckImpactOf(deck: Pick<DeckList, 'name' | 'legends' | 'main'>): Record<string, number> | undefined {
+  const r = findImpactDeck(A.decks, { name: deck.name, listId: listFingerprint(deck) }, LEGACY_IMPACT_LISTS);
+  if (!r) return undefined;
+  return Object.fromEntries(r.cards.filter(([, iwd, seenGames]) => seenGames >= 25 && Number.isFinite(iwd)).map(([id, iwd]) => [id, iwd as number]));
+}
 
 // ---------------------------------------------------------------- playing sets of games
 export interface SetResult {
@@ -98,6 +105,8 @@ export interface TuneOptions {
   bot: string;
   /** a swap must beat the baseline by this much on the shared seeds before it is confirmed */
   minGain: number;
+  /** seed base (default: random in 500,000–508,999); generation g plays seeds from seedBase + 10,000·g */
+  seedBase?: number;
 }
 export interface TuneLog {
   gen: number;
@@ -113,19 +122,25 @@ export interface TuneProgress {
   phase: string;
   logs: TuneLog[];
   deck: DeckList;
+  /** the run's seed base (see TuneOptions.seedBase) */
+  seedBase: number;
+  /** games actually played (done also jumps ahead over skipped confirmations) */
+  played: number;
 }
 
 export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOptions, play: PlayGame, onProgress: (p: TuneProgress) => void, stop: () => boolean): Promise<TuneProgress> {
   let deck = structuredClone(start);
   const logs: TuneLog[] = [];
   const total = o.gens * (o.games * (1 + o.cands) + o.games * 4);
-  const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck };
+  const seedBase = o.seedBase ?? 500_000 + Math.floor(Math.random() * 9_000);
+  const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck, seedBase, played: 0 };
   const tick = () => {
     p.done++;
+    p.played++;
     if (p.done % 4 === 0) onProgress({ ...p, logs: [...logs] });
   };
   for (let gen = 1; gen <= o.gens && !stop(); gen++) {
-    const seed0 = 500_000 + gen * 10_000 + Math.floor(Math.random() * 9_000);
+    const seed0 = seedBase + gen * 10_000;
     p.phase = `Generation ${gen}: measuring the deck (${o.games} games with telemetry)`;
     onProgress({ ...p });
     const base = await playSet(deck, field, seed0, o.games, o.bot, play, true, tick);
@@ -229,7 +244,13 @@ export function breedInBrowser(lib: LibraryDeck[], o: BreedOptions): Bred[] {
   }
   const seenTriples = new Set(lib.map((d) => [...d.deck.legends].sort().join('|')));
   const usable = !!o.h2h && ranked.slice(0, 4).some((x) => ranked.some((y) => o.h2h!(y.deck.name, x.deck.name).g > 0));
-  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact: DECK_IMPACT, h2h: usable ? o.h2h : undefined }, o.n);
+  // the breeder reads per-deck impact by parent name; parent names are unique in `ranked`, and each gets its own list's numbers
+  const deckImpact: Record<string, Record<string, number>> = {};
+  for (const r of ranked) {
+    const m = deckImpactOf(r.deck);
+    if (m) deckImpact[r.deck.name] = m;
+  }
+  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined }, o.n);
   return out.map((b, i) => {
     const name = b.deck.name.replace(/^S0-\d+/, `Lab-${String(o.seed % 1000).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`);
     return { ...b, deck: { ...b.deck, name } };

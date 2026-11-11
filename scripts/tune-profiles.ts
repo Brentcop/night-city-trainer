@@ -122,6 +122,7 @@ async function main() {
     simVersion: SIM_VERSION,
     rulesVersion: null,
     faqVersion: null,
+    errataVersion: null,
     bot: { level: 'lookahead', configHash: fingerprintText(JSON.stringify(current)) },
     decks: lib.map((d, i) => ({ id: ids[i], name: d.deck.name, file: d.file })),
     field: { mode: 'meta-archetype-pairings', deckIds: ids },

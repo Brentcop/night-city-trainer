@@ -5,7 +5,7 @@ import type { Agent, Decision, GameState, PlayerId } from '../engine/types';
 import { HeuristicAgent } from './heuristic';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
 import { GIG_SWING, knownCards } from './eval';
-import { topImpactCards } from './impact';
+import { impactDeckName, topImpactCards } from './impact';
 import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
@@ -128,14 +128,16 @@ export function matchupTips(g: Game, p: PlayerId = 0): string[] {
   const me = classify(knownCards(g, p, p)).arch;
   const opp = classify(knownCards(g, other(p), other(p))).arch;
   const tips: string[] = [`**Plan (${me} vs ${opp}):** ${PLAN_TEXT[`${me}>${opp}` as ProfileKey]}`];
-  const name = g.P(p).name;
-  const top = topImpactCards(name, 3).filter((c) => c.iwd > 0.02);
+  const top = topImpactCards(g.P(p), 3).filter((c) => c.iwd > 0.02);
   if (top.length) tips.push(`**Your game-winners:** ${top.map((c) => `${CARD_BY_ID[c.id]?.displayName} (+${Math.round(c.iwd * 100)} pts when drawn)`).join(', ')}. Keep them; sell other cards first.`);
-  const rep = (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === name);
+  // analysis reports describe one list each: only use the one measured on this list (and on the rival's list)
+  const name = impactDeckName(g.P(p));
+  const rep = name === null ? undefined : (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === name);
   const t4 = rep?.tempo?.[3];
   if (t4 && t4.leadN >= 20 && t4.behindN >= 20 && Number.isFinite(t4.leadWr) && Number.isFinite(t4.behindWr))
     tips.push(`**Tempo:** this deck wins ${Math.round(t4.leadWr * 100)}% when ahead on Gigs after its 4th turn and ${Math.round(t4.behindWr * 100)}% when behind.`);
-  const mu = rep?.matchups.find((m) => m.opp === g.P(other(p)).name);
+  const oppName = impactDeckName(g.P(other(p)));
+  const mu = oppName === null ? undefined : rep?.matchups.find((m) => m.opp === oppName);
   if (mu && mu.games >= 10) tips.push(`**This matchup in bot testing:** ${Math.round(mu.wr * 100)}% over ${mu.games} games (on the play ${Math.round(mu.wrFirst * 100)}%, on the draw ${Math.round(mu.wrSecond * 100)}%).`);
   return tips;
 }

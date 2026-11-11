@@ -40,6 +40,7 @@ describe('tournament', () => {
       simVersion: SIM_VERSION,
       rulesVersion: null,
       faqVersion: null,
+      errataVersion: null,
       seatPolicy: 'loser-starts',
       sample: {
         plannedGames: cfg.rounds * Math.floor(field.length / 2) * cfg.bestOf + 7 * cfg.bestOf,

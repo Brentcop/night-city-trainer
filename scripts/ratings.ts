@@ -7,9 +7,11 @@
 // the (diagonal) Fisher information; 90% intervals are ±1.645 SE. Each deck also gets:
 //   • expected win rate vs the whole field (average over every other deck) and vs the choom.gg meta archetypes;
 //   • tournament results: events played, titles, top-8s, average Swiss finish percentile, match record.
-// Output: src/data/ratings.json (site) and reports/ratings-latest.md.
+// Output: src/data/ratings.json (site) and reports/ratings-latest.md. ratings.json carries a manifest naming the input
+// events, their sim versions and run ids (src/lib/runManifest.ts aggregateManifest).
 import fs from 'node:fs';
 import { cli, loadLibrary, readEvents, writeJsonStamped } from './lib-node';
+import { aggregateManifest, type RecordedEventInput } from '../src/lib/runManifest';
 
 cli(import.meta.url, {});
 
@@ -126,7 +128,10 @@ const rows = names
     };
   })
   .sort((a, b) => b.rating - a.rating);
-const out = { updated: '', events: events.length, games: games.length, firstPlayerEdge: σ(h) - 0.5, decks: rows };
+// derived from the events only (no clock), so an unchanged rebuild leaves ratings.json byte-identical
+const manifest = aggregateManifest('ratings', events as unknown as RecordedEventInput[], { games: games.length });
+if (manifest.inputs?.mixedSimVersions) console.log(`note: these events span sim versions ${manifest.inputs.simVersions.map((v) => v ?? 'none').join(', ')} (see manifest.inputs)`);
+const out = { updated: '', events: events.length, games: games.length, firstPlayerEdge: σ(h) - 0.5, decks: rows, manifest };
 writeJsonStamped('src/data/ratings.json', out, { indent: 1 });
 const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`);
 const md = [

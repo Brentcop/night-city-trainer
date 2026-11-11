@@ -1,6 +1,7 @@
 // Deck library for the browser: built-in decks (bundled from data/decks) + custom decks in localStorage.
 import { deckFromText, type LibraryDeck } from './library';
 import type { DeckList } from '../engine/types';
+import type { RunManifest } from './runManifest';
 
 // data/decks/**/history/ holds superseded lists; they are not bundled.
 const files = import.meta.glob(['../../data/decks/**/*.txt', '!**/history/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -18,21 +19,26 @@ export const CUSTOM_KEY = 'nct.customDecks.v1';
 export const CUSTOM_BACKUP_KEY = 'nct.customDecks.v1.backup';
 
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
+const isManifest = (v: unknown): v is RunManifest => !!v && typeof v === 'object' && typeof (v as RunManifest).schema === 'number' && typeof (v as RunManifest).runId === 'string';
+
+/** A saved custom deck; Deck Lab results also keep the manifest of the run that produced or tested them. */
+export type StoredDeck = DeckList & { manifest?: RunManifest };
 
 /** A stored entry as a DeckList, or null if its shape is wrong. A missing sideboard (older saves) counts as empty. */
-function toDeck(v: unknown): DeckList | null {
+function toDeck(v: unknown): StoredDeck | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   const sideboard = o.sideboard === undefined ? [] : o.sideboard;
   if (typeof o.name !== 'string' ||!isStringArray(o.legends) || !isStringArray(o.main) || !isStringArray(sideboard)) return null;
-  const deck: DeckList = { name: o.name, legends: o.legends, main: o.main, sideboard };
+  const deck: StoredDeck = { name: o.name, legends: o.legends, main: o.main, sideboard };
   if (typeof o.source === 'string') deck.source = o.source;
   if (typeof o.notes === 'string') deck.notes = o.notes;
+  if (isManifest(o.manifest)) deck.manifest = o.manifest;
   return deck;
 }
 
 /** Read the stored custom decks, dropping malformed entries; backs up the raw string the first time anything is dropped. */
-function readStored(): DeckList[] {
+function readStored(): StoredDeck[] {
   let raw: string | null;
   try {
     raw = localStorage.getItem(CUSTOM_KEY);
@@ -47,7 +53,7 @@ function readStored(): DeckList[] {
     parsed = undefined;
   }
   const entries = Array.isArray(parsed) ? parsed : [];
-  const decks = entries.map(toDeck).filter((d): d is DeckList => d !== null);
+  const decks = entries.map(toDeck).filter((d): d is StoredDeck => d !== null);
   if (!Array.isArray(parsed) || decks.length !== entries.length) {
     try {
       if (localStorage.getItem(CUSTOM_BACKUP_KEY) === null) localStorage.setItem(CUSTOM_BACKUP_KEY, raw);
@@ -59,16 +65,17 @@ function readStored(): DeckList[] {
 }
 
 export function loadCustom(): LibraryDeck[] {
-  return readStored().map((deck) => ({
+  return readStored().map(({ manifest, ...deck }) => ({
     file: `custom:${deck.name}`,
     deck,
     kind: 'custom' as const,
     prov: { origin: 'My deck (saved in this browser)', source: deck.source },
+    ...(manifest ? { manifest } : {}),
   }));
 }
 
 /** Replace the stored custom decks. Returns false if the browser refused (storage unavailable or quota exceeded). */
-export function saveCustom(decks: DeckList[]): boolean {
+export function saveCustom(decks: StoredDeck[]): boolean {
   readStored(); // backs up a corrupt store before it is overwritten
   try {
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(decks));
@@ -78,8 +85,8 @@ export function saveCustom(decks: DeckList[]): boolean {
   }
 }
 
-/** Save a custom deck, replacing any with the same name. Returns false if it could not be saved. */
-export function upsertCustom(deck: DeckList): boolean {
+/** Save a custom deck, replacing any with the same name (and that deck's manifest). Returns false if it could not be saved. */
+export function upsertCustom(deck: StoredDeck): boolean {
   const all = readStored().filter((d) => d.name !== deck.name);
   all.push(deck);
   return saveCustom(all);

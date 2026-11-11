@@ -7,6 +7,9 @@ import { counts, exportOfficial, parseDeck, validateDeck } from '../../engine/de
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
 import type { DeckList } from '../../engine/types';
 import { breedInBrowser, loadH2H, playSet, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
+import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
+import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
+import { RunDetails } from '../components/RunDetails';
 import tournaments from '../../data/tournaments.json';
 import type { Bred } from '../../ai/breeder';
 import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
@@ -93,6 +96,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const [saved, setSaved] = useState('');
   /** how the last run ended: finished, stopped by you, or failed (with the game's error) */
   const [outcome, setOutcome] = useState<{ kind: 'done' | 'stopped' | 'failed'; error?: string } | null>(null);
+  const [manifest, setManifest] = useState<RunManifest | null>(null);
   const stopRef = useRef(false);
   const poolRef = useRef<GamePool | null>(null);
   useEffect(() => () => poolRef.current?.terminate(), []);
@@ -124,12 +128,40 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     const pool = new GamePool(defaultThreads());
     poolRef.current = pool;
     stopRef.current = false;
+    const seedBase = 500_000 + Math.floor(Math.random() * 9_000);
+    // what this run measures; completedGames follows the games actually played
+    const plan = gameRunManifest({
+      purpose: 'browser',
+      decks: [source === 'library' ? findDeck(file) ?? deck : deck, ...fieldList],
+      fieldMode: `deck-lab-tune:${field}`,
+      fieldDeckIds: fieldList.map((d) => manifestDeck(d).id),
+      bot,
+      seedBase,
+      seatPolicy: 'alternate',
+      plannedGames: e.gens * (e.games * (1 + e.cands) + e.games * 4),
+      completedGames: 0,
+      gamesPerPair: null,
+      trace: true,
+      simVersion: SIM_VERSION,
+    });
+    let completed = 0;
+    const play: PlayGame = (j) =>
+      pool.play(j).then((r) => {
+        completed++;
+        return r;
+      });
+    const note = () => setManifest({ ...plan, sample: { ...plan.sample, completedGames: completed } });
     setRunning(true);
     setSaved('');
     setOutcome(null);
     setProg(null);
+    setManifest(plan);
     try {
-      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02 }, pool.play, setProg, () => stopRef.current);
+      const onProgress = (p: TuneProgress) => {
+        setProg(p);
+        note();
+      };
+      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase }, play, onProgress, () => stopRef.current);
       setOutcome({ kind: stopRef.current || p.phase === 'Stopped' ? 'stopped' : 'done' });
     } catch (err) {
       // Stop terminates the pool, which rejects the games in flight; anything else is a game that failed.
@@ -139,6 +171,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     } finally {
       pool.terminate();
       poolRef.current = null;
+      note();
       setRunning(false);
     }
   };
@@ -152,7 +185,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     if (!finalDeck) return;
     const want = finalDeck.name.endsWith('(tuned)') ? finalDeck.name : `${finalDeck.name} (tuned)`;
     const name = customSaveName(want, lib) ?? want;
-    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [] })) {
+    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(manifest ? { manifest } : {}) })) {
       window.alert(NOT_SAVED);
       return;
     }
@@ -291,6 +324,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               )}
             </details>
           ))}
+          <RunDetails m={manifest} />
           {!running && finished && finalDeck && (
             <div className="grid">
               {changes.length ? (
@@ -339,7 +373,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   const [pickFile, setPickFile] = useState(lib[0].file);
   const [bred, setBred] = useState<Bred[]>([]);
   // quick-test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
-  const [tests, setTests] = useState<Record<string, number | 'running' | { error: string }>>({});
+  const [tests, setTests] = useState<Record<string, { wr: number; manifest: RunManifest } | 'running' | { error: string }>>({});
   const [savedAs, setSavedAs] = useState<Record<string, string>>({});
   const poolRef = useRef<GamePool | null>(null);
   const live = useRef(0); // quick tests in flight; the pool is closed when the last one ends
@@ -362,11 +396,25 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
     if (!poolRef.current || poolRef.current.terminated) poolRef.current = new GamePool(defaultThreads());
     const pool = poolRef.current;
     live.current++;
-    const field = lib.filter((d) => d.kind === 'meta').map((d) => d.deck);
+    const fieldLib = lib.filter((d) => d.kind === 'meta');
+    const field = fieldLib.map((d) => d.deck);
     try {
       // every bred deck plays the same seeds, so their quick-test numbers are comparable
       const r = await playSet(b.deck, field, QUICK_TEST_SEED, QUICK_TEST_GAMES, 'medium', pool.play, false);
-      setTests((t) => ({ ...t, [key]: r.wr }));
+      const manifest = gameRunManifest({
+        purpose: 'browser',
+        decks: [b.deck, ...fieldLib],
+        fieldMode: 'deck-lab-quick-test:meta',
+        fieldDeckIds: fieldLib.map((d) => manifestDeck(d).id),
+        bot: 'medium',
+        seedBase: QUICK_TEST_SEED,
+        seatPolicy: 'alternate',
+        plannedGames: QUICK_TEST_GAMES,
+        completedGames: r.games,
+        gamesPerPair: null,
+        simVersion: SIM_VERSION,
+      });
+      setTests((t) => ({ ...t, [key]: { wr: r.wr, manifest } }));
     } catch (e) {
       setTests((t) => {
         const { [key]: _, ...rest } = t;
@@ -381,7 +429,10 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   };
   const save = (b: Bred) => {
     const name = customSaveName(b.deck.name, lib) ?? b.deck.name;
-    if (!upsertCustom({ ...b.deck, name, sideboard: [] })) {
+    const t = tests[b.deck.name];
+    // a quick-tested deck keeps the manifest of its test
+    const manifest = t && typeof t === 'object' && 'wr' in t ? t.manifest : undefined;
+    if (!upsertCustom({ ...b.deck, name, sideboard: [], ...(manifest ? { manifest } : {}) })) {
       window.alert(NOT_SAVED);
       return;
     }
@@ -483,13 +534,14 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
                 <button onClick={() => test(b)} disabled={t === 'running'}>
                   {t === 'running' ? 'Testing…' : '▶ Quick test vs meta'}
                 </button>
-                {typeof t === 'number' && (
+                {t && typeof t === 'object' && 'wr' in t && (
                   <span>
-                    <Wr v={t} n={QUICK_TEST_GAMES} strong /> vs meta
+                    <Wr v={t.wr} n={QUICK_TEST_GAMES} strong /> vs meta
                   </span>
                 )}
-                {t && typeof t === 'object' && <span style={{ color: 'var(--red)' }}>⚠ Test failed: {t.error}</span>}
+                {t && typeof t === 'object' && 'error' in t && <span style={{ color: 'var(--red)' }}>⚠ Test failed: {t.error}</span>}
               </div>
+              {t && typeof t === 'object' && 'wr' in t && <RunDetails m={t.manifest} />}
               <div className="row small">
                 <button onClick={() => save(b)} disabled={!!saved} title={saved && saved !== b.deck.name ? `Saved as “${saved}” (the name belongs to a built-in deck)` : undefined}>
                   {saved ? (saved === b.deck.name ? '✓ Saved' : `✓ Saved as “${saved}”`) : '💾 Save'}

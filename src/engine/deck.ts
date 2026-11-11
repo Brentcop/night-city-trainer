@@ -179,6 +179,15 @@ export function deckFingerprint(deck: Pick<DeckList, 'legends' | 'main' | 'sideb
   return fingerprintText(canonical);
 }
 
+/**
+ * Fingerprint of the list a game actually plays: Legends and main deck, sideboard left out (games never use it, and
+ * tournament games drop it). Equal to deckFingerprint for a deck without a sideboard. Card impact is keyed by it
+ * (src/analysis/impactData.ts), and every player in a game carries it (PlayerState.listId).
+ */
+export function listFingerprint(deck: Pick<DeckList, 'legends' | 'main'>): string {
+  return deckFingerprint({ legends: deck.legends, main: deck.main, sideboard: [] });
+}
+
 export function ramLimits(deck: DeckList): Record<Color, number> {
   const r: Record<Color, number> = { Red: 0, Blue: 0, Green: 0, Yellow: 0 };
   for (const id of deck.legends) {

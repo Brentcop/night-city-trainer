@@ -9,7 +9,9 @@ import { DeckInsights } from '../components/DeckInsights';
 import { DeckTile } from '../components/DeckIdentity';
 import { ReplayBoard, type ReplayData } from '../components/ReplayBoard';
 import { Wr, Verdict, ToneLegend } from '../components/Num';
-import { gameDeck } from '../../lib/tournament';
+import { gameDeck, SIM_VERSION } from '../../lib/tournament';
+import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
+import { RunDetails } from '../components/RunDetails';
 import { GamePool, defaultThreads, errorText, isStopped } from '../../sim/pool';
 import { useReplayWorker } from '../useReplayWorker';
 
@@ -32,7 +34,8 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
   const requested = q?.get('d') ?? '';
   const requestedDeck = decks.find((d) => d.file === requested || d.deck.name === requested);
   const [a, setA] = useState(requestedDeck?.file ?? decks.find((d) => d.kind === 'meta')?.file ?? decks[0].file);
-  const [b, setB] = useState(decks.filter((d) => d.file !== requestedDeck?.file && d.kind === 'meta')[0]?.file ?? decks[1].file);
+  // B defaults to the first meta deck that is not A
+  const [b, setB] = useState(decks.find((d) => d.file !== a && d.kind === 'meta')?.file ?? decks.find((d) => d.file !== a)?.file ?? decks[0].file);
   const [n, setN] = useState(40);
   const [fast, setFast] = useState<Level>('medium');
   const [rows, setRows] = useState<Row[]>([]);
@@ -47,10 +50,11 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
   const [watch, setWatch] = useState<{ data: ReplayData; names: [string, string] } | null>(null);
   const [telemetry, setTelemetry] = useState(true);
   const [report, setReport] = useState<DeckReport | null>(null);
+  const [manifest, setManifest] = useState<RunManifest | null>(null);
 
   // Games run on the worker pool (same seeds as the old in-page loop: game i vs the k-th opponent uses
   // seed 10_000 + 7i + k, seat B's bot seed + 999, A on the play in even games), so results stay comparable.
-  const run = async (opps: string[]) => {
+  const run = async (opps: string[], mode: string) => {
     const dA = findDeck(a);
     if (!dA) return;
     const A = gameDeck(dA.deck);
@@ -63,15 +67,32 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
     const sums: (PlayerSummary | undefined)[] = [];
     let done = 0;
     let shownAt = 0;
+    // what these results were measured on; completedGames follows the run
+    const plan = gameRunManifest({
+      purpose: 'browser',
+      decks: [dA, ...field],
+      fieldMode: `matchup-lab:${mode}`,
+      fieldDeckIds: field.map((d) => manifestDeck(d).id),
+      bot: fast,
+      seedBase: 10_000,
+      seatPolicy: 'alternate',
+      plannedGames: total,
+      completedGames: 0,
+      gamesPerPair: n,
+      trace: telemetry,
+      simVersion: SIM_VERSION,
+    });
     const show = (force = false) => {
       if (!force && Date.now() - shownAt < 150) return;
       shownAt = Date.now();
       setRows(out.map((r) => ({ ...r })));
+      setManifest({ ...plan, sample: { ...plan.sample, completedGames: done } });
       setProgress(`${done}/${total} games`);
     };
     setRunning(true);
     setError('');
     setRows([]);
+    setManifest(plan);
     setReport(null);
     setProgress(`0/${total} games`);
     try {
@@ -181,13 +202,13 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
           </label>
         </div>
         <div className="row">
-          <button className="primary" disabled={running} onClick={() => run([b])}>
+          <button className="primary" disabled={running} onClick={() => run([b], 'head-to-head')}>
             A vs B
           </button>
-          <button disabled={running} onClick={() => run(metaFiles)}>
+          <button disabled={running} onClick={() => run(metaFiles, 'meta')}>
             A vs every meta deck
           </button>
-          <button disabled={running} onClick={() => run(decks.filter((d) => d.file !== a).map((d) => d.file))}>
+          <button disabled={running} onClick={() => run(decks.filter((d) => d.file !== a).map((d) => d.file), 'all')}>
             A vs all decks
           </button>
           <button disabled={!running} onClick={stopRun}>
@@ -251,6 +272,7 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
               ))}
             </tbody>
           </table>
+          <RunDetails m={manifest} />
         </div>
       )}
       {report && (

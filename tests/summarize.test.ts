@@ -60,4 +60,28 @@ describe('summarize', () => {
     expect(b.mulligan).toBe(false);
     expect(b.seen.sort()).toEqual(['b1', 'b2', 'b3', 'b4']);
   });
+
+  it('counts a Legend played to the field by paying its cost as a play, and Go Solo separately', () => {
+    const [a, b] = summarize(
+      state([
+        ...open(0, ['a1']),
+        ...open(1, ['b1']),
+        ev(1, 0, 'play', 'a1', 'hand'),
+        ev(1, 0, 'turnEnd', undefined, '0-0'),
+        ev(2, 1, 'solo', 'legB'),
+        ev(2, 1, 'turnEnd', undefined, '0-0'),
+        ev(3, 0, 'legend', 'legA'), // A's 2nd own turn
+        ev(3, 0, 'turnEnd', undefined, '0-0'),
+        ev(5, 0, 'legend', 'legA'), // played again after leaving the field: counted, first turn kept
+      ]),
+    );
+    expect(a.played).toEqual({ a1: 1, legA: 2 });
+    expect(a.playCount).toEqual({ a1: 1, legA: 2 });
+    expect(a.legendPlays).toEqual(['legA', 'legA']);
+    expect(a.seen).not.toContain('legA'); // a Legend is never drawn
+    expect(a.solos).toEqual([]);
+    expect(b.solos).toEqual(['legB']);
+    expect(b.played).toEqual({});
+    expect(b.legendPlays).toEqual([]);
+  });
 });

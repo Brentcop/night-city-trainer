@@ -32,6 +32,8 @@ export interface MatchupStat {
 
 export interface DeckReport {
   deck: string;
+  /** listFingerprint of the list measured; set by `npm run sim -- analyze`, absent in older reports */
+  id?: string;
   games: number;
   wr: number;
   wrFirst: number;

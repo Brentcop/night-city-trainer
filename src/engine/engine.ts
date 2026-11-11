@@ -2,6 +2,7 @@
 // economy (Eddies / Legends as payment), Call a Legend, Go Solo, attacks (react / fight / steal),
 // pending-effect resolution, overtime and win/lose checks. Card text lives in ./scripts.
 import { CARD_BY_ID } from './cards';
+import { listFingerprint } from './deck';
 import { nextRandom, randInt, shuffleInPlace } from './rng';
 import { SCRIPTS } from './scripts';
 import type {
@@ -135,6 +136,7 @@ export class Game {
       const ps: PlayerState = {
         id: p,
         name: d.name,
+        listId: listFingerprint(d),
         deck: [],
         hand: [],
         field: [],

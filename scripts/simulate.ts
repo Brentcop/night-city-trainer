@@ -16,13 +16,13 @@
 // or by a path to a deck text file. Results are written to reports/.
 import fs from 'node:fs';
 import path from 'node:path';
-import { deckFingerprint, exportOfficial, parseDeck, validateDeck, deckColors } from '../src/engine/deck';
+import { exportOfficial, listFingerprint, parseDeck, validateDeck, deckColors } from '../src/engine/deck';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
 import { bool, cli, int, loadLibrary, mergeProvenance, oneOf, resolveDeck, runJobs as runPool, runMain, SIM_BOTS, slugify, str, threadsOpt, type Spec } from './lib-node';
 import { shortCredit, type LibraryDeck } from '../src/lib/library';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { createRunManifest, type RunManifest } from '../src/lib/runManifest';
+import { gameRunManifest, type RunManifest } from '../src/lib/runManifest';
 import { toImpactData } from '../src/analysis/impactData';
 import type { MatchJob, MatchResult } from './worker';
 
@@ -134,24 +134,7 @@ function writeReport(name: string, data: any, md: string) {
 }
 
 function makeRunManifest(purpose: RunManifest['purpose'], decks: LibraryDeck[], mode: string, gamesPerPair: number, games: number, trace = false): RunManifest {
-  const createdAt = new Date().toISOString();
-  const records = decks.map((d) => ({ id: d.deckId ?? deckFingerprint(d.deck), name: d.deck.name, file: d.file }));
-  const seedBase = V.seed ?? 1;
-  return createRunManifest({
-    runId: `${purpose}:${createdAt}:${seedBase}`,
-    createdAt,
-    purpose,
-    simVersion: SIM_VERSION,
-    rulesVersion: null,
-    faqVersion: null,
-    bot: { level: V.bot ?? 'lookahead' },
-    decks: records,
-    field: { mode, deckIds: records.map((d) => d.id) },
-    sample: { plannedGames: games, completedGames: games, gamesPerPair },
-    seedBase,
-    seatPolicy: 'alternate',
-    trace,
-  });
+  return gameRunManifest({ purpose, decks, fieldMode: mode, bot: V.bot ?? 'lookahead', seedBase: V.seed ?? 1, seatPolicy: 'alternate', plannedGames: games, gamesPerPair, trace, simVersion: SIM_VERSION });
 }
 
 function fieldDecks(kind: string | undefined) {
@@ -324,13 +307,21 @@ async function main() {
       const focus = V.deck ? resolveDeck(V.deck) : null;
       if (focus) for (const f of field) { if (f.deck.name !== focus.deck.name) pairs.push({ a: focus.deck, b: f.deck }); }
       else for (let i = 0; i < field.length; i++) for (let j = i + 1; j < field.length; j++) pairs.push({ a: field[i].deck, b: field[j].deck });
+      const runDecks = focus ? [focus, ...field.filter((f) => f.deck.name !== focus.deck.name)] : field;
+      // telemetry is grouped by deck name, and each report records the fingerprint of the list it measured (card impact
+      // is looked up by it), so one name must mean one list in a run
+      const listOf = new Map<string, string>();
+      for (const d of runDecks) {
+        const id = listFingerprint(d.deck);
+        if (listOf.has(d.deck.name) && listOf.get(d.deck.name) !== id) throw new Error(`two different lists are named "${d.deck.name}" in this field; rename one before analysing`);
+        listOf.set(d.deck.name, id);
+      }
       console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})`);
       const res = await runJobs(jobsFor(pairs, n, bot, true));
-      const runDecks = focus ? [focus, ...field.filter((f) => f.deck.name !== focus.deck.name)] : field;
       const manifest = makeRunManifest('analysis', runDecks, focus?.file ?? V.field ?? 'meta', n, res.length, true);
       const sums = res.flatMap((r) => r.summaries ?? []);
       const { analyzeAll, reportMarkdown } = await import('../src/analysis/analyze');
-      let reps = analyzeAll(sums);
+      let reps = analyzeAll(sums).map((r) => (listOf.has(r.deck) ? { ...r, id: listOf.get(r.deck) } : r));
       if (focus) reps = reps.filter((r) => r.deck === focus.deck.name);
       const md = reportMarkdown(reps);
       fs.mkdirSync('reports', { recursive: true });

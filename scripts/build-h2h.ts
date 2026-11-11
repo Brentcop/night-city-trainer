@@ -2,8 +2,11 @@
 // The Deck Lab loads it lazily to breed "counter" decks. Rebuilt automatically after every tournament run
 // (scripts/tournament.ts) and by `npm run refresh`; run directly with:  npx tsx scripts/build-h2h.ts
 // Events are read in id order and the file is only rewritten (and "updated" only moves) when the records change.
+// The manifest names the input events (ids, sim versions, run ids) and is derived from them alone, so it never moves
+// on its own either.
 import fs from 'node:fs';
-import { cli, eventFiles, EVENTS_DIR, forEachRecordedGame, writeJsonStamped } from './lib-node';
+import { cli, eventFiles, EVENTS_DIR, forEachRecordedGame, readEvents, writeJsonStamped } from './lib-node';
+import { aggregateManifest, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
 
 export interface H2HFile {
   updated: string;
@@ -12,6 +15,8 @@ export interface H2HFile {
   decks: string[];
   /** [i, j, wins of i vs j (ties = 0.5), games] for every pair that has met, i < j */
   pairs: [number, number, number, number][];
+  /** absent in files built before manifests */
+  manifest?: RunManifest;
 }
 
 export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json'): H2HFile | null {
@@ -42,6 +47,7 @@ export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json'): H2HFil
       const [i, j] = k.split('|').map(Number);
       return [i, j, r.w, r.g];
     }),
+    manifest: aggregateManifest('h2h', readEvents(dir) as unknown as RecordedEventInput[], { games }),
   };
   writeJsonStamped(out, data as unknown as Record<string, unknown>);
   return JSON.parse(fs.readFileSync(out, 'utf8')) as H2HFile;
