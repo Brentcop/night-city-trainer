@@ -1,4 +1,4 @@
-// Deck profile: where a deck comes from (origin, lineage, idea) and every measured stat for it, plus the list shown visually.
+// Deck profile: where a deck comes from (origin, lineage, idea), its game plan, every measured stat for it, and the list shown visually.
 import { useId, useMemo } from 'react';
 import '../deckprofile.css';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
@@ -18,6 +18,7 @@ import { telemetryReport } from '../../data/analysisData';
 import { CurveAndTypes } from '../components/DeckCurve';
 import { DeckStructure } from '../components/DeckCards';
 import { DeckRecordPanel } from '../components/DeckRecord';
+import { GamePlanPanel } from '../components/GamePlan';
 
 const S = SEASONS;
 
@@ -189,6 +190,8 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
           </div>
         </div>
       </div>
+
+      <GamePlanPanel d={d} lib={lib} />
 
       {hasOrigin && (
         <div className="panel dp-origin">

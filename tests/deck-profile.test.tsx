@@ -117,3 +117,45 @@ describe('deck profile: the list with card images', () => {
     expect(html).toMatch(/<button type="button" class="on" aria-pressed="true">☰ List<\/button>/);
   });
 });
+
+describe('deck profile: game plan', () => {
+  const plan = (html: string) => html.slice(html.indexOf('>Game plan<'), html.indexOf('>Origin<'));
+
+  it('shows the note after the record, before the origin, with where it came from', () => {
+    setArtEnabled(false);
+    const html = renderToStaticMarkup(<DeckProfilePage file="RRG-smash-the-curve.txt" />);
+    expect(html.indexOf('>Game plan<')).toBeGreaterThan(html.indexOf('Recorded results'));
+    expect(html.indexOf('>Game plan<')).toBeLessThan(html.indexOf('>Origin<'));
+    const p = plan(html);
+    expect(p).toContain('Draft from the choom.gg guide by Cacheira');
+    expect(html).toMatch(/<section class="panel flair dp-plan[^"]*" aria-labelledby="([^"]+)"><div class="rec-head"><h2 id="\1"/);
+    for (const h of ['Plan', 'Key cards', 'Signs it’s working']) expect(p).toContain(`>${h}</h3>`);
+    expect(p).not.toContain('may be out of date');
+  });
+
+  it('labels Strategy page drafts, list drafts and parent drafts', () => {
+    setArtEnabled(false);
+    expect(plan(renderToStaticMarkup(<DeckProfilePage file={RATED} />))).toMatch(/Draft from the Strategy page guide <a href="#\/guides\?g=rrg-dexter-midrange">/);
+    expect(plan(renderToStaticMarkup(<DeckProfilePage file="s1-07-explorer-bbg.txt" />))).toContain('Draft from the list');
+    expect(plan(renderToStaticMarkup(<DeckProfilePage file={UNRECORDED} />))).toContain('Draft from the parent deck’s notes');
+  });
+
+  it('marks the owner’s decks as waiting for the owner’s notes', () => {
+    setArtEnabled(false);
+    const p = plan(renderToStaticMarkup(<DeckProfilePage file="ladder-rrg-v-smasher-saburo.txt" />));
+    expect(p).toContain('Needs the owner’s notes');
+    expect(p).toContain('Placeholder read off the list');
+  });
+
+  it('says when the list changed since the note was written', async () => {
+    setArtEnabled(false);
+    const d = BUILTIN.find((x) => x.file === RATED)!;
+    const main = d.deck.main;
+    d.deck.main = main.slice(1);
+    try {
+      expect(plan(renderToStaticMarkup(<DeckProfilePage file={RATED} />))).toContain('the note may be out of date');
+    } finally {
+      d.deck.main = main;
+    }
+  });
+});
