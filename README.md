@@ -83,12 +83,13 @@ npm run sim -- vs meta-rrg meta-bbg --games 400     # head-to-head
 npm run sim -- test "Smash the Curve" --games 200   # one deck vs every meta deck  (--field all for every deck)
 npm run sim -- review --field all --games 60        # full round robin, rankings + matrix
 npm run sim -- add my-list.txt --name "My RRG"      # add a deck (choom.gg / official / sim JSON / plain list)
-npx tsx scripts/tune.ts --per 8 --seed 1            # self-play tuning of the bot's evaluation weights (same seed, same run)
+npx tsx scripts/tune.ts --per 8 --seed 1            # matched training + held-out evaluation; writes a report, never applies weights
 npm run sim -- analyze --field all --bot deep       # telemetry round robin -> Insights page, rankings, reports/analysis-latest.md
 npx tsx scripts/plan.ts                             # regenerate the Tournament plan + Home recommendation from the data
 npx tsx scripts/forge.ts --nc --gens 2 --seed 1     # data-driven iteration of the Trainer-original decks (or pass any deck)
 npx tsx scripts/optimize.ts <deck> --vs <opp> --sideboard   # Bo3 sideboard swaps for one matchup
-npx tsx scripts/tune-profiles.ts --seed 1           # tune matchup-aware bot profiles
+npx tsx scripts/tune-profiles.ts --seed 1           # matched meta-field training + held-out profile evaluation
+npx tsx scripts/tune-profiles.ts --seed 1 --apply --min-gain 1 # apply only when held-out lower CI exceeds +1pp
 npx tsx scripts/season.ts                           # the next unrecorded season: breed 8 new decks, tournament, forge, finals, leaderboard
 npm run tournament -- --field meta --bo 3 --top 8 --bot hard   # record a new event (shown on the Events page)
 ```
