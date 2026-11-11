@@ -4,11 +4,14 @@ import index from '../../data/tournaments.json';
 import type { GameRec } from '../../lib/tournament';
 import { tierLabel } from '../../ai/tiers';
 import { parseEventId } from '../runParams';
+import { PageHead } from '../components/PageHead';
+import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, short, type MatchView } from '../components/TourneyViews';
 
 interface EventLite {
   id: number;
   date: string;
+  simVersion?: number;
   bot: string;
   format: string;
   champion: string;
@@ -67,12 +70,14 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   );
   if (!I.events.length)
     return (
-      <div className="panel">
-        <h1>Tournaments</h1>
-        <p className="muted">No recorded events yet. Run one live in your browser, or from the CLI with <code>npx tsx scripts/tournament.ts</code>.</p>
-        {runLink}
+      <div className="grid">
+        <PageHead kicker="Tournaments" title="Tournament history" actions={runLink} />
+        <div className="empty-state">
+          <p>No recorded events yet. Run one live in your browser, or from the CLI with <code>npx tsx scripts/tournament.ts</code>.</p>
+        </div>
       </div>
     );
+  const historical = I.events.filter((e) => isHistorical(e.simVersion)).length;
   const titles = new Map<string, number>();
   for (const e of I.events) titles.set(e.champion, (titles.get(e.champion) ?? 0) + 1);
   const openMatch = (m: MatchView) => {
@@ -84,14 +89,17 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   };
   return (
     <div className="grid">
-      <div className="spread">
-        <h1 style={{ margin: 0 }}>Tournament history</h1>
-        {runLink}
-      </div>
-      <p className="muted" style={{ margin: 0 }}>
+      <PageHead kicker="Tournaments" title="Tournament history" actions={runLink}>
         {I.events.length} events · {I.events.reduce((a, e) => a + e.games, 0).toLocaleString()} games · every deck in the library. Each event is Swiss
         rounds of best-of-3 matches (the loser of a game goes first next game), then a top-8 single-elimination bracket. Click a match to watch its games.
-      </p>
+        {historical > 0 && (
+          <>
+            {' '}
+            {historical === I.events.length ? 'All' : historical} of these events were recorded before the current simulator (v{CURRENT_SIM_VERSION}): their games no longer replay
+            exactly.
+          </>
+        )}
+      </PageHead>
 
       <div className="event-strip">
         {I.events.map((e) => (
@@ -104,14 +112,19 @@ export function TournamentsPage({ initial }: { initial?: string }) {
 
       {ev && (
         <>
-          <div className="panel">
+          <div className="panel flair">
             <div className="spread">
               <h2 style={{ margin: 0 }}>Event #{ev.id}</h2>
               <span className="muted small">
                 {ev.format} · {ev.entrants} decks · {ev.games} games · {tierLabel(ev.bot)} bots
               </span>
             </div>
-            <Champion name={ev.champion} lib={lib} note={`${titles.get(ev.champion) ?? 1} title${(titles.get(ev.champion) ?? 1) > 1 ? 's' : ''} across all events`} />
+            <Champion
+              name={ev.champion}
+              lib={lib}
+              note={`${titles.get(ev.champion) ?? 1} title${(titles.get(ev.champion) ?? 1) > 1 ? 's' : ''} across all events`}
+              list={full?.decks[ev.champion]}
+            />
             <Bracket rounds={ev.bracket} size={2 ** ev.bracket.length} seeds={ev.top8.map((t) => t.deck)} champion={ev.champion} lib={lib} onOpen={openMatch} />
           </div>
 

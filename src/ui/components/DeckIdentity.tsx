@@ -6,7 +6,12 @@ import { shortCredit } from '../../lib/library';
 import { deckStats, pct } from '../../lib/deckStats';
 import { artEnabled, useArt } from '../art';
 import { typeSplit } from '../../lib/deckTypes';
+import { SMALL_SAMPLE, tileRecord, type RatingsFile } from '../../lib/playedRecord';
+import ratings from '../../data/ratings.json';
 import { TypeSplitBar } from './TypeSplit';
+
+/** Tournament rows by deck name (ratings.json is already in the entry chunk, through the Home page). */
+const RATED = new Map((ratings as unknown as RatingsFile).decks.map((r) => [r.name, r]));
 
 export type OriginKind = 'choom-meta' | 'sim-ladder' | 'choom-guide' | 'nc-original' | 'nc-bred' | 'nc-variant' | 'nc-build' | 'mine' | 'other';
 
@@ -82,6 +87,7 @@ export function LegendStrip({ legends, height = 90 }: { legends: string[]; heigh
 /** Gallery tile for a deck: legends art, name, origin, key stats. With `href` the whole tile is a link; without, it is static. */
 export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boolean; href?: string }) {
   const st = deckStats(d.file);
+  const played = tileRecord(RATED.get(d.deck.name));
   const body = (
     <>
       <LegendStrip legends={d.deck.legends} />
@@ -96,20 +102,27 @@ export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boo
           <OriginBadge deck={d} />
         </div>
         <div className="small muted deck-tile-by">{shortCredit(d)}</div>
-        {(st.leader || st.review) && (
-          <div className="deck-tile-stats">
-            {st.leader && (
-              <span title="Pooled win rate vs the meta archetypes (shrunk rating)">
-                <b>{pct(st.leader.rating)}</b> vs meta · {st.leader.percentile}th pct
-              </span>
-            )}
-            {!st.leader && st.review && (
-              <span>
-                <b>{pct(st.review.winRate)}</b> round robin
-              </span>
-            )}
-          </div>
-        )}
+        <div className="deck-tile-stats">
+          {played ? (
+            <span className="deck-tile-played">
+              <b className={`num ${played.n < SMALL_SAMPLE ? 'thin' : ''}`}>{pct(played.wr)}</b> in {played.n.toLocaleString()} Swiss games
+              {played.n < SMALL_SAMPLE ? ' (small sample)' : ''}
+              {played.titles > 0 ? ` · ${played.titles} title${played.titles === 1 ? '' : 's'}` : played.top8 > 0 ? ` · top 8 ×${played.top8}` : ''}
+            </span>
+          ) : (
+            !st.leader && !st.review && <span>No recorded games</span>
+          )}
+          {st.leader && (
+            <span title="Pooled win rate vs the meta archetypes (shrunk rating)">
+              <b>{pct(st.leader.rating)}</b> vs meta · {st.leader.percentile}th pct
+            </span>
+          )}
+          {!st.leader && st.review && (
+            <span>
+              <b>{pct(st.review.winRate)}</b> round robin
+            </span>
+          )}
+        </div>
         <TypeSplitBar split={typeSplit(d.deck.main)} mini />
       </div>
     </>

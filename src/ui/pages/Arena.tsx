@@ -15,6 +15,7 @@ import { RunDetails } from '../components/RunDetails';
 import { errorText, isStopped } from '../../sim/pool';
 import { useReplayWorker } from '../useReplayWorker';
 import { usePoolRun } from '../usePoolRun';
+import { PageHead } from '../components/PageHead';
 
 interface Row {
   /** opponent's library file (unique; names can repeat across built-in and custom decks) */
@@ -160,12 +161,11 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
 
   return (
     <div className="grid">
-      <h1>Matchup Lab</h1>
-      <p className="muted">
+      <PageHead kicker="Tournaments" title="Matchup Lab">
         Run bot-vs-bot games in your browser to test any deck — including ones you build or import. Both seats are played by the same bot, half the
         games on the play and half on the draw. For bigger runs use the CLI: <code>npm run sim -- review</code>.
-      </p>
-      <div className="panel grid">
+      </PageHead>
+      <div className="panel grid flair">
         <div className="vs-preview">
           <div>
             <DeckPicker label="Deck A" value={a} onChange={setA} />

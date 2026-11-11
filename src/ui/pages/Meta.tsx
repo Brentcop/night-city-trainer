@@ -4,6 +4,7 @@ import { Markdown } from '../components/Markdown';
 import { CHOOM_TABLE } from '../../content/choomTable';
 import { allDecks } from '../../lib/browserLibrary';
 import { DeckTile, LegendStrip } from '../components/DeckIdentity';
+import { PageHead } from '../components/PageHead';
 
 interface MetaEntry {
   slug: string;
@@ -38,13 +39,12 @@ export function MetaPage() {
   const short = (s: string) => (s.length > 16 ? s.slice(0, 15) + '…' : s);
   return (
     <div className="grid">
-      <h1>Night City meta</h1>
-      <p className="muted">
+      <PageHead kicker="Tournaments" title="Night City meta">
         Two views of the format: choom.gg's hand-rated archetype tiers (expert opinion, Oct–Nov 2026), and this trainer's own bot-vs-bot
         round robin (measured, but only as good as the bots). Use the disagreements to decide what to test by hand.
-      </p>
+      </PageHead>
 
-      <div className="panel">
+      <div className="panel flair">
         <h2 style={{ marginTop: 0 }}>Archetype tiers (choom.gg editorial)</h2>
         {(['S', 'A', 'B', 'C'] as const).map((tier) => {
           const rows = sorted.filter((m) => m.tier === tier);

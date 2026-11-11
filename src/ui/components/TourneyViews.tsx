@@ -12,6 +12,7 @@ import { ReviewPanel } from './ReviewPanel';
 import { ReplayBoard, type ReplayData } from './ReplayBoard';
 import { Wr } from './Num';
 import { Modal } from './Modal';
+import { DeckListCompact } from './DeckCards';
 
 export type Lib = Map<string, LibraryDeck>;
 /** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
@@ -39,7 +40,8 @@ export function DeckName({ name, lib }: { name: string; lib: Lib }) {
   );
 }
 
-export function Champion({ name, lib, note }: { name: string; lib: Lib; note?: string }) {
+/** The event's champion. `list` is the list it played (from the event file), shown with card images on request. */
+export function Champion({ name, lib, note, list }: { name: string; lib: Lib; note?: string; list?: { legends: string[]; main: string[] } }) {
   const d = lib.get(name);
   return (
     <div className="champion">
@@ -57,6 +59,12 @@ export function Champion({ name, lib, note }: { name: string; lib: Lib; note?: s
           {d && <OriginBadge deck={d} full />}
           {note && <span className="muted">{note}</span>}
         </div>
+        {list && (
+          <details className="champion-list">
+            <summary className="small">Winning decklist</summary>
+            <DeckListCompact deck={list} />
+          </details>
+        )}
       </div>
     </div>
   );
@@ -287,6 +295,19 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
           ))}
         </tbody>
       </table>
+      {decks[m.a] && m.b && decks[m.b] && (
+        <details className="match-lists">
+          <summary className="small">Decklists</summary>
+          <div className="grid cols-2">
+            {[m.a, m.b].map((n) => (
+              <div key={n}>
+                <h3 className="dp-section-title rule-head">{n}</h3>
+                <DeckListCompact deck={decks[n]} noDialog />
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
       {review && <ReviewPanel key={review.i} req={review.req} title={`Game ${review.i + 1} review`} expect={m.games[review.i].winner} />}
       {replay?.busy && <p className="muted">Re-simulating game {replay.i + 1} with the same seed and bots…</p>}
       {replay?.error && (

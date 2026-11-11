@@ -4,6 +4,8 @@ import data from '../../data/seasons.json';
 import { allDecks } from '../../lib/browserLibrary';
 import { shortCredit } from '../../lib/library';
 import { DeckTile, LegendStrip, OriginBadge } from '../components/DeckIdentity';
+import { PageHead } from '../components/PageHead';
+import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 
 interface Row {
   name: string;
@@ -38,24 +40,27 @@ export function SeasonsPage() {
   const rows = D.leaderboard.filter((r) => !filter || (r.name + r.origin + r.colors + r.arch).toLowerCase().includes(filter.toLowerCase()));
   if (!D.leaderboard.length)
     return (
-      <div className="panel">
-        <h1>Seasons</h1>
-        <p>
+      <div className="grid">
+        <PageHead kicker="Tournaments" title="Seasons" />
+        <div className="empty-state">
           No seasons yet. Run <code>npx tsx scripts/season.ts --season 1</code>.
-        </p>
+        </div>
       </div>
     );
   return (
     <div className="grid">
-      <div className="spread">
-        <h1 style={{ margin: 0 }}>Seasons &amp; all-time leaderboard</h1>
-        <input aria-label="Filter the leaderboard" placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />
-      </div>
-      <p className="muted" style={{ margin: 0 }}>
+      <PageHead
+        kicker="Tournaments"
+        title="Seasons & all-time leaderboard"
+        actions={<input aria-label="Filter the leaderboard" placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />}
+      >
         Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Rating</b> = win rate vs the meta decks,
         adjusted for sample size.
-      </p>
-      <div className="panel scroll-x">
+        {isHistorical((data as { manifest?: { simVersion?: number } }).manifest?.simVersion) && (
+          <> These results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>
+        )}
+      </PageHead>
+      <div className="panel scroll-x flair">
         <h2 style={{ marginTop: 0 }}>All-time leaderboard</h2>
         <table className="small">
           <thead>
@@ -120,7 +125,7 @@ export function SeasonsPage() {
       </div>
       {[...D.seasons].reverse().map((s) => (
         <div className="panel" key={s.season}>
-          <h2 style={{ marginTop: 0 }}>
+          <h2 className="rule-head" style={{ marginTop: 0 }}>
             Season {s.season} <span className="muted small">({s.date.slice(0, 10)} · {s.games} games per pairing · {s.bot} bot)</span>
           </h2>
           <div className="grid cols-2">

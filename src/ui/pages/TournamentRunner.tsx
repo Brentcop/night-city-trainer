@@ -13,6 +13,7 @@ import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
 import { ColorPips } from '../components/DeckIdentity';
 import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
+import { PageHead } from '../components/PageHead';
 import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, type MatchView } from '../components/TourneyViews';
 
 type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'all' | 'custom';
@@ -190,16 +191,18 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
 
   return (
     <div className="grid">
-      <div className="spread">
-        <h1 style={{ margin: 0 }}>Run a tournament</h1>
-        <a href="#/tournaments" className="small">
-          Recorded events →
-        </a>
-      </div>
-      <p className="muted" style={{ margin: 0 }}>
+      <PageHead
+        kicker="Tournaments"
+        title="Run a tournament"
+        actions={
+          <a href="#/tournaments" className="btn">
+            Recorded events →
+          </a>
+        }
+      >
         Pick a field and a format, then watch it play out: Swiss rounds, then a single-elimination top cut. Games run in parallel in your browser with the
         same engine and bots as the CLI (<code>npx tsx scripts/tournament.ts</code>), and every finished match can be replayed exactly.
-      </p>
+      </PageHead>
 
       <div className="panel grid">
         <div>
@@ -354,7 +357,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               ) : (
                 <p className="muted small">{ended?.kind === 'stopped' ? 'Stopped by you.' : 'Stopped early.'} Finished matches can still be watched.</p>
               ))}
-            {ev.champion && ev.phase === 'done' && <Champion name={ev.champion} lib={lib} note={evCut ? `won the top ${evCut}` : 'top of the Swiss standings'} />}
+            {ev.champion && ev.phase === 'done' && <Champion name={ev.champion} lib={lib} note={evCut ? `won the top ${evCut}` : 'top of the Swiss standings'} list={ev.decks[ev.champion]} />}
             {liveMatches.length > 0 && (
               <div>
                 <div className="pb-label">Now playing</div>

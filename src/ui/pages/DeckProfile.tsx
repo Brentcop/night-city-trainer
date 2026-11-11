@@ -1,10 +1,9 @@
 // Deck profile: where a deck comes from (origin, lineage, idea) and every measured stat for it, plus the list shown visually.
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import '../deckprofile.css';
 import seasonsData from '../../data/seasons.json';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
-import { counts, deckColors } from '../../engine/deck';
-import type { CardDef, DeckList } from '../../engine/types';
+import { deckColors } from '../../engine/deck';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct } from '../../lib/deckStats';
@@ -13,10 +12,10 @@ import { findDeck } from '../components/DeckPicker';
 import { ColorPips, LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 import { ProvenanceBlock } from '../components/Provenance';
 import { DeckInsights } from '../components/DeckInsights';
-import { TcgCard } from '../components/TcgCard';
-import { MAIN_TYPES } from '../../lib/deckTypes';
-import { ok, deckReports, profileHref, WrBar, StatTile, type MatchRec } from '../components/DeckStats';
+import { ok, deckReports, profileHref, WrBar, type MatchRec } from '../components/DeckStats';
 import { CurveAndTypes } from '../components/DeckCurve';
+import { DeckStructure } from '../components/DeckCards';
+import { DeckRecordPanel } from '../components/DeckRecord';
 
 type SeasonsT = {
   leaderboard: { name: string; file: string; arch: string }[];
@@ -96,63 +95,12 @@ function MatchRows({ rows }: { rows: MatchRec[] }) {
   );
 }
 
-function Section({ title, caption, children }: { title: string; caption?: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, caption, flair, children }: { title: string; caption?: React.ReactNode; flair?: boolean; children: React.ReactNode }) {
   return (
-    <div className="panel">
-      <h3 className="dp-section-title">{title}</h3>
+    <div className={`panel ${flair ? 'flair' : ''}`}>
+      <h3 className="dp-section-title rule-head">{title}</h3>
       {caption && <p className="dp-caption">{caption}</p>}
       {children}
-    </div>
-  );
-}
-
-// ---------- visual decklist ----------
-
-const TYPES: CardDef['type'][] = MAIN_TYPES;
-
-function VisualDecklist({ deck, size = 'sm' }: { deck: DeckList; size?: 'sm' | 'md' }) {
-  const main = counts(deck.main);
-  const side = counts(deck.sideboard);
-  const sorted = (m: Map<string, number>, t?: CardDef['type']) =>
-    [...m.entries()]
-      .filter(([id]) => CARD_BY_ID[id] && (!t || CARD_BY_ID[id].type === t))
-      .sort((a, b) => (CARD_BY_ID[a[0]].cost ?? 0) - (CARD_BY_ID[b[0]].cost ?? 0) || cardLabel(CARD_BY_ID[a[0]]).localeCompare(cardLabel(CARD_BY_ID[b[0]])));
-  return (
-    <div>
-      <div className="dp-cardgroup">
-        <div className="zone-label">Legends</div>
-        <div className="dp-cards">
-          {deck.legends.filter((id) => CARD_BY_ID[id]).map((id) => (
-            <TcgCard key={id} def={CARD_BY_ID[id]} size="md" />
-          ))}
-        </div>
-      </div>
-      {TYPES.map((t) => {
-        const list = sorted(main, t);
-        if (!list.length) return null;
-        return (
-          <div className="dp-cardgroup" key={t}>
-            <div className="zone-label">
-              {t}s ({list.reduce((a, [, n]) => a + n, 0)})
-            </div>
-            <div className="dp-cards">
-              {list.map(([id, n]) => (
-                <TcgCard key={id} def={CARD_BY_ID[id]} size={size} count={n} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      {side.size > 0 && (
-        <div className="dp-cardgroup">
-          <div className="zone-label">Sideboard ({deck.sideboard.length})</div>
-          <div className="dp-cards">
-            {sorted(side).map(([id, n]) => (
-              <TcgCard key={id} def={CARD_BY_ID[id]} size="sm" count={n} />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -164,9 +112,9 @@ export function DeckProfilePage({ file }: { file?: string }) {
   const d = findDeck(file);
   if (!d)
     return (
-      <div className="panel">
+      <div className="empty-state">
         <h2>Deck not found</h2>
-        <p className="muted">No deck in the library matches “{file ?? ''}”.</p>
+        <p>No deck in the library matches “{file ?? ''}”.</p>
         <a href="#/decks">Browse all decks →</a>
       </div>
     );
@@ -182,6 +130,7 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
   const arch = st.leader?.arch ?? classify(d.deck.main).arch;
   const slug = d.file.replace(/\.txt$/, '');
   const enc = encodeURIComponent(d.file);
+  const recordId = useId();
 
   // lineage
   const bredParents = (bred?.parents ?? []).map((p) => lib.find((x) => x.deck.name === p) ?? p);
@@ -203,12 +152,12 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
         .map(([o, v]) => ({ opp: o, oppFile: lib.find((x) => x.deck.name === o)?.file, w: v }))
         .sort((a, b) => b.w - a.w)
     : [];
-  const finalsOverall = rep.finals?.overall ?? st.leader?.finals;
   const legendNames = d.deck.legends.map((id) => (CARD_BY_ID[id] ? cardLabel(CARD_BY_ID[id]) : id));
+  const hasOrigin = !!bred || provParents.length > 0 || !!eorSibling || !!d.idea || Object.values(d.prov).some(Boolean);
 
   return (
     <div className="grid">
-      {/* ---- hero ---- */}
+      {/* ---- hero: the name, then the recorded results, then what to do with the deck ---- */}
       <div className="dp-hero">
         <LegendStrip legends={d.deck.legends} height={240} />
         <div className="dp-hero-body">
@@ -220,8 +169,31 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
             {d.tier && <span className={`tier tier-${d.tier}`}>{d.tier}</span>}
           </div>
           <h1 className="dp-title">{name}</h1>
+          <DeckRecordPanel d={d} headingId={recordId} />
           <div className="dp-legends">Legends: {legendNames.join(' · ')}</div>
+          <div className="row">
+            <a className="btn primary" href={`#/play?d=${enc}`}>
+              ▶ Practice with it
+            </a>
+            <a className="btn" href={`#/play?o=${enc}`}>
+              ⚔ Practice against it
+            </a>
+            <a className="btn" href={`#/arena?d=${enc}`}>
+              🧪 Test in Matchup Lab
+            </a>
+            <a className="btn" href={`#/lab?d=${enc}`}>
+              🔧 Tune in Deck Lab
+            </a>
+            <a className="btn" href={`#/decks?d=${enc}`}>
+              ✎ Edit / Export
+            </a>
+          </div>
+        </div>
+      </div>
 
+      {hasOrigin && (
+        <div className="panel dp-origin">
+          <h3 className="dp-section-title rule-head">Origin</h3>
           {bred && (
             <div className="dp-lineage">
               🧬 <b>Bred in Season {bred.season}</b> by the automated breeder
@@ -272,57 +244,13 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
           )}
           {d.idea && <div>💡 {d.idea}</div>}
           <ProvenanceBlock prov={d.prov} />
-          <div className="row">
-            <a className="btn primary" href={`#/play?d=${enc}`}>
-              ▶ Practice with it
-            </a>
-            <a className="btn" href={`#/play?o=${enc}`}>
-              ⚔ Practice against it
-            </a>
-            <a className="btn" href={`#/arena?d=${enc}`}>
-              🧪 Test in Matchup Lab
-            </a>
-            <a className="btn" href={`#/lab?d=${enc}`}>
-              🔧 Tune in Deck Lab
-            </a>
-            <a className="btn" href={`#/decks?d=${enc}`}>
-              ✎ Edit / Export
-            </a>
-          </div>
         </div>
-      </div>
-
-      {/* ---- headline stats ---- */}
-      {(st.leader || st.review || ok(finalsOverall)) && (
-        <Section title="Headline stats" caption="Every number comes from bot-vs-bot simulation in this trainer. 50% is an even matchup.">
-          <div className="dp-tiles">
-            {ok(finalsOverall) && (
-              <StatTile
-                value={pct(finalsOverall)}
-                label="Finals vs meta"
-                caption={rep.finals ? `${rep.finals.games} deep-bot games vs the choom.gg meta archetypes, same seeds for every contender` : 'Large-sample run vs the meta archetypes'}
-              />
-            )}
-            {st.leader && ok(st.leader.rating) && (
-              <StatTile value={pct(st.leader.rating)} label="All-time rating" caption="Win rate vs the meta decks, shrunk toward 50% when the sample is small" />
-            )}
-            {st.leader && ok(st.leader.vsMeta) && <StatTile value={pct(st.leader.vsMeta)} label="Raw vs-meta win %" caption={`${st.leader.metaG} games vs the meta archetypes across all seasons`} />}
-            {st.leader && (
-              <StatTile
-                value={`#${st.leader.rank}`}
-                label={`of ${st.leader.of} on the leaderboard`}
-                caption={ok(st.leader.percentile) ? `${st.leader.percentile}th percentile of every deck ever rated` : undefined}
-              />
-            )}
-            {st.review && ok(st.review.winRate) && (
-              <StatTile value={pct(st.review.winRate)} label="Grand-final round robin" caption={`Rank #${st.review.rank} of ${st.review.of} · ${st.review.games} games per pairing vs the strongest decks`} />
-            )}
-            {st.report && ok(st.report.wr) && (
-              <StatTile value={pct(st.report.wrFirst)} label="On the play" caption={`vs ${pct(st.report.wrSecond)} on the draw (telemetry, ${st.report.games} games)`} />
-            )}
-          </div>
-        </Section>
       )}
+
+      <Section title="Decklist" flair caption="Legends, then Units, Gear and Programs by cost. ×N is the number of copies.">
+        <CurveAndTypes deck={d.deck} />
+        <DeckStructure deck={d.deck} />
+      </Section>
 
       <div className="grid cols-2">
         {rep.finals && rep.finals.rows.length > 0 && (
@@ -442,11 +370,6 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
         </Section>
       )}
 
-      <Section title="Decklist" caption="Legends first, then each card type sorted by cost. Hover a card to zoom; ×N is the number of copies.">
-        <CurveAndTypes deck={d.deck} />
-        <VisualDecklist deck={d.deck} />
-      </Section>
-
       {st.report && (
         <Section title="Telemetry insights" caption={`What the game logs say about how this deck wins: ${st.report.games} instrumented games against the field.`}>
           <DeckInsights r={st.report} />
@@ -461,12 +384,6 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: LibraryDeck[] }) {
             ))}
           </div>
         </Section>
-      )}
-
-      {!st.leader && !st.review && !st.report && !rep.finals && !rep.h2h && (
-        <div className="panel muted small">
-          No simulation data for this deck yet. Run it in the <a href="#/arena">Matchup Lab</a> to measure it in your browser.
-        </div>
       )}
     </div>
   );

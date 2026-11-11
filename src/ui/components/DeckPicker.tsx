@@ -2,6 +2,15 @@ import { allDecks } from '../../lib/browserLibrary';
 import { deckColors } from '../../engine/deck';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
 import { deckByFile, searchDeck } from '../deckLookup';
+import { SMALL_SAMPLE, tileRecord, type RatingsFile } from '../../lib/playedRecord';
+import ratings from '../../data/ratings.json';
+
+const RATED = new Map((ratings as unknown as RatingsFile).decks.map((r) => [r.name, r]));
+/** " · 68% in 485 games" from the deck's tournament record (an option can't be styled, so a small sample says so). */
+function playedLabel(name: string) {
+  const r = tileRecord(RATED.get(name));
+  return r ? ` · ${Math.round(r.wr * 100)}% in ${r.n} games${r.n < SMALL_SAMPLE ? ' (small sample)' : ''}` : '';
+}
 
 export function DeckPicker({ value, onChange, label }: { value: string; onChange: (key: string) => void; label?: string }) {
   const decks = allDecks();
@@ -23,6 +32,7 @@ export function DeckPicker({ value, onChange, label }: { value: string; onChange
                 <option key={d.file} value={d.file}>
                   {deckColors(d.deck)} · {d.deck.name.slice(0, 44)} — {shortCredit(d)}
                   {d.tier ? ` [${d.tier}]` : ''}
+                  {playedLabel(d.deck.name)}
                 </option>
               ))}
             </optgroup>

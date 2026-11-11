@@ -41,7 +41,7 @@ export function GuidesPage({ initial }: { initial?: string }) {
           </button>
         ))}
       </div>
-      <div className="panel">
+      <div className="panel flair">
         <div className="spread">
           <h1 style={{ margin: 0 }}>{g.title}</h1>
           <div className="row">

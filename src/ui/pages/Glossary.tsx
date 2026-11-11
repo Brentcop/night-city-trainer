@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { GLOSSARY } from '../../content/glossary';
+import { PageHead } from '../components/PageHead';
 
 export function GlossaryPage() {
   const [q, setQ] = useState('');
@@ -7,20 +8,17 @@ export function GlossaryPage() {
   const match = (t: (typeof GLOSSARY)[number]) => !q || JSON.stringify(t).toLowerCase().includes(q.toLowerCase());
   return (
     <div className="grid">
-      <div className="spread">
-        <h1 style={{ margin: 0 }}>Glossary &amp; bot toolkit</h1>
-        <input aria-label="Search terms" placeholder="Search terms…" value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      <p className="muted">
+      <PageHead kicker="Learn" title="Glossary & bot toolkit" actions={<input aria-label="Search terms" placeholder="Search terms…" value={q} onChange={(e) => setQ(e.target.value)} />}>
         Every term is defined from the official Comprehensive Rules (rule numbers cited). <b>Engine</b> notes say how this simulator models it;{' '}
         <b>Bot</b> notes say how the practice bots reason about it — so you know exactly what you are practicing against.
-      </p>
+      </PageHead>
+      {groups.every((g) => !GLOSSARY.some((t) => t.group === g && match(t))) && <div className="empty-state">No terms match “{q}”.</div>}
       {groups.map((g) => {
         const items = GLOSSARY.filter((t) => t.group === g && match(t));
         if (!items.length) return null;
         return (
           <div key={g} className="panel">
-            <h2>{g}</h2>
+            <h2 className="rule-head">{g}</h2>
             {items.map((t) => (
               <div key={t.term} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <div className="spread">

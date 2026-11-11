@@ -1,6 +1,7 @@
 import { allDecks } from '../../lib/browserLibrary';
 import { deckColors } from '../../engine/deck';
 import { safeHref } from '../components/Markdown';
+import { PageHead } from '../components/PageHead';
 
 const SOURCES: [string, string, string][] = [
   ['Card data (all 150 cards)', 'cyberpunk-tcg-sim.online public card catalog (sourced from netdeck.gg / the official card database)', 'https://cyberpunk-tcg-sim.online/'],
@@ -22,12 +23,11 @@ export function CreditsPage() {
   }
   return (
     <div className="grid">
-      <h1 style={{ marginBottom: 0 }}>Credits &amp; deck provenance</h1>
-      <p className="muted">
+      <PageHead kicker="Learn" title="Credits & deck provenance">
         Every deck on this site is tagged with where it came from and who made it. Lists collected from other sites keep their author and a link
         back. Lists made here say how they were made (hand-designed, bred, optimized) and what they were derived from. This is an unofficial
         fan-made tool, not affiliated with CD PROJEKT RED, WeirdCo, choom.gg or cyberpunk-tcg-sim.online.
-      </p>
+      </PageHead>
       <div className="panel scroll-x">
         <h2 style={{ marginTop: 0 }}>Data sources</h2>
         <table className="small">

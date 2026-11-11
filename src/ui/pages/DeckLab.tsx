@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { allDecks, upsertCustom } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
-import { counts, exportOfficial, parseDeck, validateDeck } from '../../engine/deck';
-import { CARD_BY_ID, cardLabel } from '../../engine/cards';
-import type { DeckList } from '../../engine/types';
+import { exportOfficial, parseDeck, validateDeck } from '../../engine/deck';
+import { CARD_BY_ID } from '../../engine/cards';
+import type { CardDef, DeckList } from '../../engine/types';
 import { breedInBrowser, loadH2H, playSet, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
 import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
@@ -20,6 +20,9 @@ import { DeckTile } from '../components/DeckIdentity';
 import { Signed, Wr } from '../components/Num';
 import ratings from '../../data/ratings.json';
 import { Markdown } from '../components/Markdown';
+import { PageHead } from '../components/PageHead';
+import { CardNameButton, CardThumb, DeckListCompact, useCardDialog } from '../components/DeckCards';
+import { deckDiff, parseSwap } from '../../lib/deckCards';
 
 type FieldKey = 'meta' | 'meta+ladder' | 'top8';
 const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
@@ -57,8 +60,10 @@ export function DeckLabPage({ q }: { q: URLSearchParams }) {
   const lock = busy ? 'Stop the current run first' : undefined;
   return (
     <div className="grid">
-      <div className="spread">
-        <h1 style={{ margin: 0 }}>Deck Lab</h1>
+      <PageHead
+        kicker="Decks"
+        title="Deck Lab"
+        actions={
         <div className="seg">
           <button className={tab === 'tune' ? 'on' : ''} aria-pressed={tab === 'tune'} onClick={() => setTab('tune')} disabled={busy && tab !== 'tune'} title={lock}>
             🔧 Tune a deck
@@ -67,7 +72,10 @@ export function DeckLabPage({ q }: { q: URLSearchParams }) {
             🧬 Breed new decks
           </button>
         </div>
-      </div>
+        }
+      >
+        Tune a deck against the field you choose, or breed new ones from what the recorded results say works. Everything runs in your browser.
+      </PageHead>
       {tab === 'tune' ? (
         <TunePanel initialFile={q.get('d') ?? undefined} handoff={handoff} onBusy={setBusy} />
       ) : (
@@ -177,7 +185,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     poolRun.stop();
   };
   const finalDeck = prog?.deck;
-  const changes = finalDeck && parsed.deck ? diff(parsed.deck, finalDeck) : [];
+  const changes = finalDeck && parsed.deck ? deckDiff(parsed.deck, finalDeck).filter((c) => CARD_BY_ID[c.id]) : [];
+  const { open: openCard, dialog: cardDialog } = useCardDialog();
   const save = () => {
     if (!finalDeck) return;
     const want = finalDeck.name.endsWith('(tuned)') ? finalDeck.name : `${finalDeck.name} (tuned)`;
@@ -262,7 +271,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       </div>
 
       {prog && (
-        <div className="panel grid">
+        <div className="panel grid flair">
           <div className="spread">
             <h3 style={{ margin: 0 }}>{running ? 'Tuning…' : outcome?.kind === 'failed' ? 'Tuning failed' : outcome?.kind === 'stopped' ? 'Stopped by you' : 'Tuning finished'}</h3>
             <span className="small muted">{prog.phase}</span>
@@ -302,7 +311,9 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   <tbody>
                     {l.swaps.map((s) => (
                       <tr key={s.label}>
-                        <td>{s.label}</td>
+                        <td>
+                          <SwapLabel label={s.label} onOpen={openCard} />
+                        </td>
                         <td>
                           <Wr v={s.wr} />
                         </td>
@@ -325,8 +336,33 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
           {!running && finished && finalDeck && (
             <div className="grid">
               {changes.length ? (
-                <div className="small">
-                  <b>Changes:</b> {changes.join(' · ')}
+                <div className="lab-changes">
+                  <div className="zone-label">Changes to the list</div>
+                  <ul>
+                    {changes.map(({ id, d }) => (
+                      <li key={id} className={`deck-row ${d > 0 ? 'is-in' : 'is-out'}`}>
+                        <CardThumb def={CARD_BY_ID[id]} onOpen={openCard} />
+                        <span className="qty">
+                          {d > 0 ? '+' : '−'}
+                          {Math.abs(d)}
+                        </span>
+                        <CardNameButton def={CARD_BY_ID[id]} onOpen={openCard} />
+                        <span className="muted small deck-row-cost">{d > 0 ? 'added' : 'cut'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="lab-before-after">
+                    {parsed.deck && (
+                      <details>
+                        <summary className="small">Original list</summary>
+                        <DeckListCompact deck={parsed.deck} />
+                      </details>
+                    )}
+                    <details>
+                      <summary className="small">Tuned list</summary>
+                      <DeckListCompact deck={finalDeck} />
+                    </details>
+                  </div>
                 </div>
               ) : (
                 <div className="small muted">No swap beat the original list on confirmation. The deck is already well tuned for this field (at this sample size).</div>
@@ -346,19 +382,29 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
           )}
         </div>
       )}
+      {cardDialog}
     </>
   );
 }
 
-function diff(a: DeckList, b: DeckList): string[] {
-  const A = counts(a.main);
-  const B = counts(b.main);
-  const out: string[] = [];
-  for (const id of new Set([...A.keys(), ...B.keys()])) {
-    const d = (B.get(id) ?? 0) - (A.get(id) ?? 0);
-    if (d) out.push(`${d > 0 ? '+' : '−'}${Math.abs(d)} ${cardLabel(CARD_BY_ID[id])}`);
-  }
-  return out;
+/** A swap label ("−1 A → +1 B") with the two cards' thumbnails; plain text when a name isn't a known card. */
+function SwapLabel({ label, onOpen }: { label: string; onOpen: (d: CardDef) => void }) {
+  const sw = parseSwap(label);
+  if (!sw.out || !sw.in) return <>{label}</>;
+  return (
+    <span className="lab-swap">
+      <CardThumb def={CARD_BY_ID[sw.out]} onOpen={onOpen} />
+      <span>
+        −1 <CardNameButton def={CARD_BY_ID[sw.out]} onOpen={onOpen} />
+      </span>
+      <span aria-hidden="true">→</span>
+      <span className="sr-only">replaced by</span>
+      <CardThumb def={CARD_BY_ID[sw.in]} onOpen={onOpen} />
+      <span>
+        +1 <CardNameButton def={CARD_BY_ID[sw.in]} onOpen={onOpen} />
+      </span>
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------- breed
@@ -522,6 +568,10 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
               <div className="small">
                 <span className="tag">{b.method}</span> <span className="muted">{b.idea}</span>
               </div>
+              <details>
+                <summary className="small">Decklist</summary>
+                <DeckListCompact deck={b.deck} />
+              </details>
               <div className="row small">
                 <button onClick={() => test(b)} disabled={t === 'running'}>
                   {t === 'running' ? 'Testing…' : '▶ Quick test vs meta'}

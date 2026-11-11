@@ -5,6 +5,8 @@ import ratings from '../../data/ratings.json';
 import { allDecks } from '../../lib/browserLibrary';
 import { byName } from '../deckLookup';
 import { LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
+import { PageHead } from '../components/PageHead';
+import { CURRENT_SIM_VERSION, ratingsHistorical, type RatingsFile } from '../../lib/playedRecord';
 
 interface Row {
   name: string;
@@ -39,9 +41,9 @@ export function RatingsPage() {
   const [group, setGroup] = useState('');
   if (!R.decks.length)
     return (
-      <div className="panel">
-        <h1>Power ratings</h1>
-        <p className="muted">No tournament games yet.</p>
+      <div className="grid">
+        <PageHead kicker="Tournaments" title="Power ratings" />
+        <div className="empty-state">No recorded tournament games yet, so there is nothing to rate.</div>
       </div>
     );
   const rows = R.decks.filter((r) => !group || originKind(lib.get(r.name)?.prov, lib.get(r.name)?.kind) === group);
@@ -50,24 +52,22 @@ export function RatingsPage() {
   const x = (v: number) => `${((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * 100}%`;
   return (
     <div className="grid">
-      <div className="spread">
-        <h1 style={{ margin: 0 }}>Power ratings</h1>
-        <span className="muted small">
-          {R.events} events · {R.games.toLocaleString()} games · going first is worth {(R.firstPlayerEdge * 100).toFixed(1)} pts
-        </span>
-      </div>
-      <p className="muted" style={{ margin: 0 }}>
+      <PageHead kicker="Tournaments" title="Power ratings">
+        <b>
+          {R.events} events · {R.games.toLocaleString()} games · going first is worth {(R.firstPlayerEdge * 100).toFixed(1)} pts.
+        </b>{' '}
         One model fitted to every tournament game every deck has played: each deck's <b>expected win rate against the whole field</b>, with a bar
         for the 90% confidence range. Ranges that overlap are not meaningfully different.
-      </p>
+        {ratingsHistorical(R as unknown as RatingsFile) && <> These games were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so the ratings are historical.</>}
+      </PageHead>
       <div className="seg" style={{ alignSelf: 'flex-start' }}>
         {GROUPS.map(([k, label]) => (
-          <button key={k} className={group === k ? 'on' : ''} onClick={() => setGroup(k)}>
+          <button key={k} className={group === k ? 'on' : ''} aria-pressed={group === k} onClick={() => setGroup(k)}>
             {label}
           </button>
         ))}
       </div>
-      <div className="panel scroll-x">
+      <div className="panel scroll-x flair">
         <table className="small ratings">
           <thead>
             <tr>

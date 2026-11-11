@@ -6,10 +6,12 @@ import { ROLES } from '../../ai/knowledge';
 import { costLabel } from './CardView';
 import { TcgCard } from './TcgCard';
 import { CurveAndTypes } from './DeckCurve';
+import { CardNameButton, CardThumb, useCardDialog } from './DeckCards';
 
 const COLORS: Color[] = ['Red', 'Blue', 'Green', 'Yellow'];
 
 export function DeckEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: DeckList) => void }) {
+  const { open, dialog } = useCardDialog();
   const lim = ramLimits(deck);
   const mainCounts = counts(deck.main);
   const sideCounts = counts(deck.sideboard);
@@ -35,8 +37,10 @@ export function DeckEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: Dec
         <div className="zone-label">Legends ({deck.legends.length}/3)</div>
         {deck.legends.map((id) => (
           <div className="deckrow" key={id}>
-            <span>
-              <span className={`dot ${CARD_BY_ID[id].color}`} /> {cardLabel(CARD_BY_ID[id])} <span className="muted small">{CARD_BY_ID[id].cost !== null ? `Go Solo ${CARD_BY_ID[id].cost}` : ''}</span>
+            <span className="deckrow-main">
+              <CardThumb def={CARD_BY_ID[id]} onOpen={open} />
+              <span className={`dot ${CARD_BY_ID[id].color}`} aria-hidden="true" /> <CardNameButton def={CARD_BY_ID[id]} onOpen={open} />{' '}
+              <span className="muted small">{CARD_BY_ID[id].cost !== null ? `Go Solo ${CARD_BY_ID[id].cost}` : ''}</span>
             </span>
             <button className="ghost" aria-label={`Remove ${cardLabel(CARD_BY_ID[id])}`} onClick={() => setDeck({ ...deck, legends: deck.legends.filter((x) => x !== id) })}>
               ✕
@@ -53,8 +57,9 @@ export function DeckEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: Dec
             </div>
             {byType(t).map(([id, n]) => (
               <div className="deckrow" key={id} title={CARD_BY_ID[id].text}>
-                <span>
-                  <span className="qty">{n}×</span> <span className={`dot ${CARD_BY_ID[id].color}`} /> {cardLabel(CARD_BY_ID[id])}{' '}
+                <span className="deckrow-main">
+                  <CardThumb def={CARD_BY_ID[id]} onOpen={open} />
+                  <span className="qty">{n}×</span> <span className={`dot ${CARD_BY_ID[id].color}`} aria-hidden="true" /> <CardNameButton def={CARD_BY_ID[id]} onOpen={open} />{' '}
                   <span className="muted small">{costLabel(CARD_BY_ID[id])}€$</span>
                 </span>
                 <span className="row">
@@ -75,8 +80,9 @@ export function DeckEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: Dec
         <div className="zone-label">Sideboard ({deck.sideboard.length}/7)</div>
         {[...sideCounts.entries()].map(([id, n]) => (
           <div className="deckrow" key={id}>
-            <span>
-              <span className="qty">{n}×</span> {cardLabel(CARD_BY_ID[id])}
+            <span className="deckrow-main">
+              <CardThumb def={CARD_BY_ID[id]} onOpen={open} />
+              <span className="qty">{n}×</span> <CardNameButton def={CARD_BY_ID[id]} onOpen={open} />
             </span>
             <span className="row">
               <button className="ghost" title="Move one copy to the main deck" onClick={() => setDeck({ ...deck, sideboard: removeOne(deck.sideboard, id), main: [...deck.main, id] })}>
@@ -133,6 +139,7 @@ export function DeckEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: Dec
             ))}
         </div>
       </div>
+      {dialog}
     </div>
   );
 }
@@ -147,6 +154,10 @@ function removeOne(list: string[], id: string) {
 // ---------- visual editor: card stacks with +/- controls ----------
 
 export function VisualEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: DeckList) => void }) {
+  const { open, dialog } = useCardDialog();
+  const card = (id: string, n?: number) => (
+    <TcgCard def={CARD_BY_ID[id]} size="sm" count={n} onClick={() => open(CARD_BY_ID[id])} ariaLabel={`${cardLabel(CARD_BY_ID[id])}${n ? `, ${n} in the list` : ''}: open card details`} />
+  );
   const mainCounts = counts(deck.main);
   const sideCounts = counts(deck.sideboard);
   const add = (id: string, d: number, where: 'main' | 'sideboard' = 'main') => {
@@ -163,7 +174,7 @@ export function VisualEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: D
           .filter((id) => CARD_BY_ID[id])
           .map((id) => (
             <div className="vis-card" key={id}>
-              <TcgCard def={CARD_BY_ID[id]} size="sm" />
+              {card(id)}
               <button className="ghost" onClick={() => setDeck({ ...deck, legends: deck.legends.filter((x) => x !== id) })}>
                 ✕ remove
               </button>
@@ -181,7 +192,7 @@ export function VisualEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: D
             <div className="dp-cards">
               {list.map(([id, n]) => (
                 <div className="vis-card" key={id}>
-                  <TcgCard def={CARD_BY_ID[id]} size="sm" count={n} />
+                  {card(id, n)}
                   <div className="row">
                     <button onClick={() => add(id, -1)} title="Remove one copy">
                       −
@@ -205,7 +216,7 @@ export function VisualEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: D
           <div className="dp-cards">
             {byCost(sideCounts).map(([id, n]) => (
               <div className="vis-card" key={id}>
-                <TcgCard def={CARD_BY_ID[id]} size="sm" count={n} />
+                {card(id, n)}
                 <div className="row">
                   <button onClick={() => add(id, -1, 'sideboard')} title="Remove from sideboard">
                     −
@@ -222,6 +233,7 @@ export function VisualEditor({ deck, setDeck }: { deck: DeckList; setDeck: (d: D
       <div style={{ marginTop: 14 }}>
         <CurveAndTypes deck={deck} />
       </div>
+      {dialog}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { DeckTile, originKind } from './DeckIdentity';
 import { profileHref } from './DeckStats';
 import { TypeLegend } from './TypeSplit';
 import { loadPref, savePref } from '../prefs';
+import { PageHead } from './PageHead';
+import { CURRENT_SIM_VERSION, ratingsHistorical, type RatingsFile } from '../../lib/playedRecord';
 
 const COLORS: Color[] = ['Red', 'Blue', 'Green', 'Yellow'];
 
@@ -158,24 +160,26 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
   );
   return (
     <div className="grid">
-      <div className="panel">
-        <div className="spread" style={{ padding: 0, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ minWidth: 0, flex: '1 1 260px' }}>
-            <h2 style={{ margin: 0 }}>Deck library</h2>
-            <div className="small muted">
-              {shown.length} of {decks.length} decks. Click a tile to edit or export it; “Profile” opens every stat and its lineage.
-            </div>
-          </div>
-          <div className="row">
+      <PageHead
+        kicker="Decks"
+        title="Deck library"
+        actions={
+          <>
             <a className="btn" href="#/lab">
               🧬 Breed &amp; tune
             </a>
             <button className="primary" onClick={onNew}>
               + New / import deck
             </button>
-          </div>
-        </div>
-        <div className="gal-filters" style={{ marginTop: 10 }}>
+          </>
+        }
+      >
+        {shown.length} of {decks.length} decks. Click a tile to edit or export it; “Profile” opens every stat and its lineage. Tiles lead with each deck’s
+        recorded tournament games.
+        {ratingsHistorical(ratings as unknown as RatingsFile) && <> Those results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>}
+      </PageHead>
+      <div className="panel">
+        <div className="gal-filters">
           <input aria-label="Search decks" placeholder="Search name, author, Legend…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: '1 1 180px', minWidth: 0 }} />
           <select
             aria-label="Sort decks"
@@ -260,7 +264,7 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
         </details>
       </div>
       {shown.length === 0 && (
-        <div className="panel muted">
+        <div className="empty-state">
           No decks match these filters.{' '}
           <button className="ghost" onClick={reset}>
             Reset filters

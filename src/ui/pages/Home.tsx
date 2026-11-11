@@ -144,7 +144,7 @@ export function Home() {
           ['▤', 'Browse decks', 'Every deck with its origin, art and full stats.', '#/decks'],
           ['🏆', 'Tournaments', 'Brackets, standings and replays of every simulated event.', '#/tournaments'],
         ].map(([icon, t, d, href]) => (
-          <a key={t} href={href} className="quick-action">
+          <a key={t} href={href} className="quick-action flair">
             <span className="qa-icon">{icon}</span>
             <b>{t}</b>
             <span className="muted small">{d}</span>
@@ -153,7 +153,7 @@ export function Home() {
       </div>
 
       {top.length > 0 && (
-        <div className="panel">
+        <div className="panel flair">
           <div className="spread" style={{ padding: 0, flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0 }}>{fromRatings.length ? 'Top 5 by power rating' : 'All-time leaderboard'}</h2>
             <a className="small" href={fromRatings.length ? '#/ratings' : '#/seasons'}>
