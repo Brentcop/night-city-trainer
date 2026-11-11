@@ -3,6 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ArgError, bool, eventFiles, int, maxEventId, mergeProvenance, num, oneOf, parseArgs, slugify, str, writeJsonStamped } from '../scripts/lib-node';
+import type { Spec } from '../scripts/lib-node';
+import { ALL_FLAGS, analyzeFlagProblem, analyzeOutputs, COMMANDS, protectedOutputs, type AnalyzeFlags } from '../scripts/sim-flags';
 
 const spec = {
   games: int(60, { min: 1 }),
@@ -114,5 +116,52 @@ describe('mergeProvenance', () => {
   });
   it('returns the new text when there is no old file', () => {
     expect(mergeProvenance(fresh, null)).toBe(fresh);
+  });
+});
+
+describe('sim analyze flags (scripts/sim-flags.ts)', () => {
+  const analyzeSpec = Object.fromEntries(COMMANDS.analyze[0].map((k) => [k, ALL_FLAGS[k]])) as Spec;
+  const parseAnalyze = (argv: string[]) => parseArgs(analyzeSpec, argv).values as unknown as AnalyzeFlags & { force: boolean };
+
+  it('decision telemetry is off by default; --decisions, --decision-samples, --out and --force parse', () => {
+    expect(parseAnalyze([])).toMatchObject({ decisions: false, 'decision-samples': 0, out: undefined, force: false });
+    expect(parseAnalyze(['--decisions', '--decision-samples', '3', '--out', 'tmp/x', '--force'])).toMatchObject({ decisions: true, 'decision-samples': 3, out: 'tmp/x', force: true });
+  });
+
+  it('rejects bad values and flags analyze does not take', () => {
+    expect(() => parseAnalyze(['--decision-samples=-1'])).toThrow(/at least 0/);
+    expect(() => parseAnalyze(['--decision-samples', 'x'])).toThrow(/whole number/);
+    expect(() => parseAnalyze(['--decisions=yes'])).toThrow(ArgError);
+    expect(() => parseAnalyze(['--out', ' '])).toThrow(/--out: needs a directory/);
+    expect(() => parseAnalyze(['--name', 'x'])).toThrow(/unknown option --name/);
+    expect(COMMANDS.review[0]).not.toContain('decisions');
+  });
+
+  it('--decision-samples needs --decisions (the CLI exits 2)', () => {
+    expect(analyzeFlagProblem({ 'decision-samples': 2 })).toMatch(/needs --decisions/);
+    expect(analyzeFlagProblem({ 'decision-samples': 2, decisions: true })).toBeUndefined();
+    expect(analyzeFlagProblem({})).toBeUndefined();
+  });
+
+  it('writes next to the analysis output; --out keeps every file in one directory and writes no site copy', () => {
+    const def = analyzeOutputs({ decisions: true, 'decision-samples': 2 }, null);
+    expect(def).toMatchObject({
+      analysisMd: path.join('reports', 'analysis-latest.md'),
+      analysisSite: path.join('src/data', 'analysis.json'),
+      impact: path.join('src/data', 'impact.json'),
+      decisionsJson: path.join('reports', 'decisions-latest.json'),
+      decisionsMd: path.join('reports', 'decisions-latest.md'),
+      decisionsSite: 'public/data/decisions.json',
+      decisionSamples: path.join('reports', 'decisions-samples-latest.json'),
+    });
+    expect(protectedOutputs(def, {})).toEqual(['public/data/decisions.json']);
+    expect(analyzeOutputs({}, null).decisionsJson).toBeUndefined();
+    const focus = analyzeOutputs({ decisions: true }, 'meta-x');
+    expect(focus).toEqual({ analysisMd: path.join('reports', 'analysis-meta-x-latest.md'), analysisJson: path.join('reports', 'analysis-meta-x-latest.json'), decisionsJson: path.join('reports', 'decisions-meta-x-latest.json'), decisionsMd: path.join('reports', 'decisions-meta-x-latest.md') });
+    const out = analyzeOutputs({ decisions: true, out: 'scratch' }, null);
+    expect(Object.values(out).every((f) => f!.startsWith('scratch'))).toBe(true);
+    expect(out.decisionsSite).toBeUndefined();
+    expect(out.impact).toBe(path.join('scratch', 'impact.json'));
+    expect(protectedOutputs(out, { out: 'scratch' }).sort()).toEqual(Object.values(out).sort());
   });
 });

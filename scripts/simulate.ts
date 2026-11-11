@@ -7,6 +7,11 @@
 //   npm run sim -- add <file.txt|-> [--name X] [--force]   import a deck list (choom.gg / official / sim JSON) into data/decks/custom
 //   npm run sim -- show <deck>                        print a deck with validation
 //   npm run sim -- analyze [--field meta|all] [--games 40] [--deck X]   telemetry analysis -> reports/analysis-latest.md + src/data/analysis.json
+//        [--decisions]              also record every decision (docs/DECISION_TELEMETRY.md) -> reports/decisions-latest.{json,md}
+//                                   and, for a whole field, public/data/decisions.json (the Card stats page's Decisions view)
+//        [--decision-samples N]     with --decisions: dump the raw records of the first N games -> reports/decisions-samples-latest.json
+//        [--out DIR]                write every analyze output into DIR instead of reports/ and src/data/ (no site copy)
+//        [--force]                  allow replacing public/data/decisions.json, or files already in DIR
 //
 // Game flags: --bot (default lookahead), --threads N, --seed N (default 1). --field: meta | all | custom | leaderboard:N.
 // `add` refuses to replace an existing deck file unless --force (the file's provenance header is kept).
@@ -19,7 +24,8 @@ import path from 'node:path';
 import { exportOfficial, listFingerprint, parseDeck, validateDeck, deckColors } from '../src/engine/deck';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
-import { bool, cli, int, loadLibrary, mergeProvenance, oneOf, resolveDeck, runJobs as runPool, runMain, SIM_BOTS, slugify, str, threadsOpt, type Spec } from './lib-node';
+import { cli, loadLibrary, mergeProvenance, Refusal, resolveDeck, runJobs as runPool, runMain, slugify, type Spec } from './lib-node';
+import { ALL_FLAGS, analyzeFlagProblem, analyzeOutputs, COMMANDS, protectedOutputs } from './sim-flags';
 import { shortCredit, type LibraryDeck } from '../src/lib/library';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { gameRunManifest, type RunManifest } from '../src/lib/runManifest';
@@ -27,30 +33,6 @@ import { toImpactData } from '../src/analysis/impactData';
 import type { MatchJob, MatchResult } from './worker';
 
 const NL = String.fromCharCode(10);
-const FIELD_RE = /^(meta|all|custom|leaderboard:\d+)$/;
-const ALL_FLAGS = {
-  games: int(undefined, { min: 1 }),
-  bot: oneOf(SIM_BOTS, 'lookahead'),
-  threads: threadsOpt(),
-  seed: int(1, { min: 0 }),
-  field: str('meta', (v) => (FIELD_RE.test(v) ? undefined : `must be meta | all | custom | leaderboard:N, got "${v}"`)),
-  deck: str(),
-  name: str(),
-  force: bool(),
-};
-type Flag = keyof typeof ALL_FLAGS;
-const GAME: Flag[] = ['games', 'bot', 'threads', 'seed'];
-/** command -> [flags it takes, min positionals, max positionals] */
-const COMMANDS: Record<string, [Flag[], number, number]> = {
-  catalog: [[], 0, 0],
-  help: [[], 0, 0],
-  show: [[], 1, 1],
-  add: [['name', 'force'], 0, 1],
-  vs: [GAME, 2, 2],
-  test: [[...GAME, 'field'], 1, 1],
-  review: [[...GAME, 'field'], 0, 0],
-  analyze: [[...GAME, 'field', 'deck'], 0, 0],
-};
 const argv = process.argv.slice(2);
 const cmd = argv[0] && !argv[0].startsWith('-') ? argv[0] : 'help';
 if (!COMMANDS[cmd]) {
@@ -63,8 +45,15 @@ const { values: V, positionals: positional } = cli(import.meta.url, Object.fromE
   minPositionals: minPos,
   maxPositionals: maxPos,
 });
+{
+  const problem = cmd === 'analyze' ? analyzeFlagProblem(V) : undefined;
+  if (problem) {
+    console.error(`error: ${problem}\nRun with --help for usage.`);
+    process.exit(2);
+  }
+}
 const THREADS = Math.min(V.threads ?? 1, 16);
-const runJobs = (jobs: MatchJob[]): Promise<MatchResult[]> => runPool(jobs, { threads: THREADS });
+const runJobs = (jobs: MatchJob[], onResult?: (r: MatchResult) => void): Promise<MatchResult[]> => runPool(jobs, { threads: THREADS, onResult });
 
 interface Pair {
   a: DeckList;
@@ -133,8 +122,8 @@ function writeReport(name: string, data: any, md: string) {
   console.log(`\nSaved reports/${name}-latest.md (+ timestamped copy)`);
 }
 
-function makeRunManifest(purpose: RunManifest['purpose'], decks: LibraryDeck[], mode: string, gamesPerPair: number, games: number, trace = false): RunManifest {
-  return gameRunManifest({ purpose, decks, fieldMode: mode, bot: V.bot ?? 'lookahead', seedBase: V.seed ?? 1, seatPolicy: 'alternate', plannedGames: games, gamesPerPair, trace, simVersion: SIM_VERSION });
+function makeRunManifest(purpose: RunManifest['purpose'], decks: LibraryDeck[], mode: string, gamesPerPair: number, games: number, trace = false, decisionTelemetry?: number): RunManifest {
+  return gameRunManifest({ purpose, decks, fieldMode: mode, bot: V.bot ?? 'lookahead', seedBase: V.seed ?? 1, seatPolicy: 'alternate', plannedGames: games, gamesPerPair, trace, decisionTelemetry, simVersion: SIM_VERSION });
 }
 
 function fieldDecks(kind: string | undefined) {
@@ -308,6 +297,10 @@ async function main() {
       if (focus) for (const f of field) { if (f.deck.name !== focus.deck.name) pairs.push({ a: focus.deck, b: f.deck }); }
       else for (let i = 0; i < field.length; i++) for (let j = i + 1; j < field.length; j++) pairs.push({ a: field[i].deck, b: field[j].deck });
       const runDecks = focus ? [focus, ...field.filter((f) => f.deck.name !== focus.deck.name)] : field;
+      const out = analyzeOutputs(V, focus ? focus.file.replace('.txt', '') : null);
+      // refuse before playing anything
+      const clash = protectedOutputs(out, V).filter((f) => fs.existsSync(f));
+      if (clash.length && !V.force) throw new Refusal(`${clash.join(', ')} already exist${clash.length === 1 ? 's' : ''}. Pass --force to replace ${clash.length === 1 ? 'it' : 'them'}${V.out ? ', or choose another --out directory' : ''}.`);
       // telemetry is grouped by deck name, and each report records the fingerprint of the list it measured (card impact
       // is looked up by it), so one name must mean one list in a run
       const listOf = new Map<string, string>();
@@ -316,17 +309,59 @@ async function main() {
         if (listOf.has(d.deck.name) && listOf.get(d.deck.name) !== id) throw new Error(`two different lists are named "${d.deck.name}" in this field; rename one before analysing`);
         listOf.set(d.deck.name, id);
       }
-      console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})`);
-      const res = await runJobs(jobsFor(pairs, n, bot, true));
-      const manifest = makeRunManifest('analysis', runDecks, focus?.file ?? V.field ?? 'meta', n, res.length, true);
+      console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})${V.decisions ? ', with decision telemetry' : ''}`);
+      const jobs = jobsFor(pairs, n, bot, true);
+      const samples = V['decision-samples'] ?? 0;
+      if (V.decisions) jobs.forEach((j, k) => Object.assign(j, { decisions: true, rawDecisions: k < samples }));
+      // decision aggregates are folded in as games finish and dropped from the results, so memory stays flat
+      const { emptyAggregate, mergeAggregates } = await import('../src/analysis/decisions');
+      let decisionAgg = emptyAggregate();
+      const size = { records: 0, rawBytes: 0, aggregateBytes: 0, games: 0 };
+      const sampleGames: unknown[] = [];
+      const t0 = Date.now();
+      const res = await runJobs(jobs, (r) => {
+        if (!r.decisions) return;
+        decisionAgg = mergeAggregates(decisionAgg, r.decisions);
+        if (r.decisionSize) {
+          size.games++;
+          size.records += r.decisionSize.records;
+          size.rawBytes += r.decisionSize.rawBytes;
+          size.aggregateBytes += r.decisionSize.aggregateBytes;
+        }
+        if (r.decisionRecords) sampleGames.push({ a: r.a, b: r.b, seed: r.seed, first: r.first, winner: r.winner, turns: r.turns, records: r.decisionRecords });
+        delete r.decisions;
+        delete r.decisionRecords;
+      });
+      const seconds = (Date.now() - t0) / 1000;
+      const { DECISION_TELEMETRY_SCHEMA } = await import('../src/engine/telemetry');
+      const manifest = makeRunManifest('analysis', runDecks, focus?.file ?? V.field ?? 'meta', n, res.length, true, V.decisions ? DECISION_TELEMETRY_SCHEMA : undefined);
       const sums = res.flatMap((r) => r.summaries ?? []);
       const { analyzeAll, reportMarkdown } = await import('../src/analysis/analyze');
       let reps = analyzeAll(sums).map((r) => (listOf.has(r.deck) ? { ...r, id: listOf.get(r.deck) } : r));
       if (focus) reps = reps.filter((r) => r.deck === focus.deck.name);
       const md = reportMarkdown(reps);
-      fs.mkdirSync('reports', { recursive: true });
-      fs.writeFileSync(`reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.md`, md);
-      fs.writeFileSync(`reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.json`, JSON.stringify({ manifest, decks: reps }, null, 1));
+      const write = (file: string, text: string) => {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, text);
+      };
+      write(out.analysisMd, md);
+      write(out.analysisJson, JSON.stringify({ manifest, decks: reps }, null, 1));
+      if (V.decisions) {
+        const { decisionMarkdown, decisionReport } = await import('../src/analysis/decisions');
+        const g = Math.max(1, size.games);
+        const measurements = { games: size.games, recordsPerGame: size.records / g, rawBytesPerGame: size.rawBytes / g, aggregateBytesPerGame: size.aggregateBytes / g, mergedBytes: JSON.stringify(decisionAgg).length, seconds };
+        const report = decisionReport(decisionAgg, { manifest, measurements });
+        const dmd = decisionMarkdown(report);
+        write(out.decisionsJson!, JSON.stringify(report, null, 1));
+        write(out.decisionsMd!, dmd);
+        if (out.decisionsSite) write(out.decisionsSite, JSON.stringify(report));
+        if (out.decisionSamples) write(out.decisionSamples, JSON.stringify({ telemetrySchema: DECISION_TELEMETRY_SCHEMA, manifest, games: sampleGames }, null, 1));
+        console.log(
+          `Decision telemetry: ${size.records} records over ${size.games} games (${measurements.recordsPerGame.toFixed(0)}/game); ` +
+            `${(measurements.rawBytesPerGame / 1024).toFixed(1)} KB raw vs ${(measurements.aggregateBytesPerGame / 1024).toFixed(1)} KB aggregated per game; ` +
+            `merged aggregate ${(measurements.mergedBytes / 1024).toFixed(1)} KB. Saved ${[out.decisionsMd, out.decisionsSite, out.decisionSamples].filter(Boolean).join(', ')}`,
+        );
+      }
       if (!focus) {
         // rankings + matrix from the same games (same format as `review`)
         const t = tally(res);
@@ -346,18 +381,18 @@ async function main() {
           ag += x.games;
         }
         const ranked = [...names].sort((a, b) => tot[b].w / tot[b].g - tot[a].w / tot[a].g);
-        fs.writeFileSync(
-          'src/data/review.json',
+        write(
+          out.review!,
           JSON.stringify({ date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', manifest, decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: tot[nm].w / tot[nm].g, games: tot[nm].g })), matrix: M, firstPlayerWinRate: fw / ag }, null, 1),
         );
         // trimmed copy for the web app
         const trimmed = reps.map((r) => ({ ...r, cards: r.cards.slice(0, 40) }));
-        fs.writeFileSync('src/data/analysis.json', JSON.stringify({ date: new Date().toISOString(), games: n, bot, manifest, decks: trimmed }));
+        write(out.analysisSite!, JSON.stringify({ date: new Date().toISOString(), games: n, bot, manifest, decks: trimmed }));
         // slim id/IWD/seenGames copy for the bots and the Deck Lab (src/ai/impact.ts); always written with analysis.json
-        fs.writeFileSync('src/data/impact.json', JSON.stringify(toImpactData(trimmed)));
+        write(out.impact!, JSON.stringify(toImpactData(trimmed)));
       }
       console.log(md.split(NL).slice(0, 60).join(NL));
-      console.log(`${NL}Saved reports/analysis${focus ? '-' + focus.file.replace('.txt', '') : ''}-latest.md`);
+      console.log(`${NL}Saved ${out.analysisMd}`);
       return;
     }
     default:

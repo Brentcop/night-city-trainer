@@ -7,6 +7,8 @@ import { makeTierBot } from '../src/ai/tiers';
 import { DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { BEST_PROFILES, DEFAULT_PROFILES } from '../src/ai/archetype';
 import { summarize, type PlayerSummary } from '../src/analysis/summarize';
+import { aggregateGame, type DecisionAggregate } from '../src/analysis/decisions';
+import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
 import type { Agent, DeckList } from '../src/engine/types';
 
 export interface MatchJob {
@@ -20,6 +22,10 @@ export interface MatchJob {
   agentB?: AgentSpec;
   /** record telemetry and return per-player summaries */
   trace?: boolean;
+  /** record decision telemetry (src/engine/telemetry.ts) and return this game's aggregate (src/analysis/decisions.ts) */
+  decisions?: boolean;
+  /** with `decisions`: also return the raw records (for a sample dump) */
+  rawDecisions?: boolean;
 }
 export interface AgentSpec {
   lookahead?: boolean;
@@ -46,6 +52,12 @@ export interface MatchResult {
   gigs: [number, number];
   error?: string;
   summaries?: [PlayerSummary, PlayerSummary];
+  /** decision telemetry for this game, aggregated in the worker so only counts cross to the main thread */
+  decisions?: DecisionAggregate;
+  /** records in this game and their size as JSON, raw vs aggregated (bytes) */
+  decisionSize?: { records: number; rawBytes: number; aggregateBytes: number };
+  /** the raw records, only when the job asked for them */
+  decisionRecords?: DecisionRecord[];
 }
 
 function fromSpec(spec: AgentSpec, seed: number): Agent {
@@ -70,7 +82,19 @@ parentPort?.on('message', async (job: MatchJob) => {
       log: false,
       trace: job.trace,
     });
+    const rec = job.decisions ? new DecisionRecorder() : null;
+    g.telemetry = rec;
     const s = await g.run();
+    let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords'> = {};
+    if (rec) {
+      const records = rec.finish(g);
+      const agg = aggregateGame({ records, players: [s.players[0], s.players[1]], winner: s.winner });
+      decisions = {
+        decisions: agg,
+        decisionSize: { records: records.length, rawBytes: JSON.stringify(records).length, aggregateBytes: JSON.stringify(agg).length },
+        ...(job.rawDecisions ? { decisionRecords: records } : {}),
+      };
+    }
     r = {
       a: job.a.name,
       b: job.b.name,
@@ -82,6 +106,7 @@ parentPort?.on('message', async (job: MatchJob) => {
       overtime: s.overtime,
       gigs: [s.players[0].gigs.length, s.players[1].gigs.length],
       summaries: job.trace ? summarize(s) : undefined,
+      ...decisions,
     };
   } catch (e: any) {
     // an exception is an error, never a result: callers report it and leave the game out of every tally

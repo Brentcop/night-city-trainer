@@ -20,7 +20,7 @@ export interface RunInputs {
 
 /**
  * Schema 1. Fields added after the first manifests were written are optional, so every manifest already on disk still
- * reads as schema 1: `errataVersion` (absent = not recorded), `inputs` (aggregates only), and the purposes
+ * reads as schema 1: `errataVersion` (absent = not recorded), `inputs` (aggregates only), `decisionTelemetry`, and the purposes
  * 'optimize' and 'aggregate'.
  */
 export interface RunManifest {
@@ -41,6 +41,8 @@ export interface RunManifest {
   seedBase: number;
   seatPolicy: 'alternate' | 'seeded' | 'loser-starts';
   trace: boolean;
+  /** schema of the decision telemetry the run recorded (DECISION_TELEMETRY_SCHEMA, src/engine/telemetry.ts); absent = none */
+  decisionTelemetry?: number;
   parentRunId?: string;
   inputs?: RunInputs;
 }
@@ -85,6 +87,8 @@ export interface GameRunOptions {
   completedGames?: number;
   gamesPerPair: number | null;
   trace?: boolean;
+  /** the decision telemetry schema, when the run recorded decisions */
+  decisionTelemetry?: number;
   simVersion: number;
   /** defaults to now */
   createdAt?: string;
@@ -112,6 +116,7 @@ export function gameRunManifest(o: GameRunOptions): RunManifest {
     seedBase: o.seedBase,
     seatPolicy: o.seatPolicy,
     trace: o.trace ?? false,
+    ...(o.decisionTelemetry !== undefined ? { decisionTelemetry: o.decisionTelemetry } : {}),
     ...(o.parentRunId ? { parentRunId: o.parentRunId } : {}),
   });
 }

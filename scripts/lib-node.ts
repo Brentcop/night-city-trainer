@@ -341,6 +341,8 @@ export interface RunJobsOptions {
   /** return the good results (and the errors) instead of throwing GameErrors; the exit code is still set to 1 */
   allowErrors?: boolean;
   quiet?: boolean;
+  /** called with each result as it arrives (in completion order), before it is kept: e.g. to fold a bulky field into a running total and drop it */
+  onResult?: (r: MatchResult) => void;
 }
 
 /** Play every job in the game worker pool. Results come back in job order; games that threw are reported, never counted. */
@@ -354,6 +356,7 @@ export async function runJobsDetailed(jobs: MatchJob[], o: RunJobsOptions): Prom
       jobs.map((j) =>
         pool.run(j).then((r) => {
           done++;
+          if (!r.error) o.onResult?.(r);
           if (!o.quiet && (done % 10 === 0 || done === jobs.length)) process.stderr.write(`\r  ${done}/${jobs.length} games  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
           return r;
         }),

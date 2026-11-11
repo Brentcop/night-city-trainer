@@ -5,6 +5,7 @@ import { CARD_BY_ID } from './cards';
 import { listFingerprint } from './deck';
 import { nextRandom, randInt, shuffleInPlace } from './rng';
 import { SCRIPTS } from './scripts';
+import type { DecisionRecorder } from './telemetry';
 import type {
   Ability,
   Action,
@@ -95,6 +96,11 @@ export class Game {
   pending: Pending[] = [];
   onUpdate: (() => void) | null = null;
   logEnabled = true;
+  /**
+   * Opt-in decision telemetry (src/engine/telemetry.ts): set it on the game to record. It lives on this object, not in
+   * the state, so clone() and effect probes (new Games from the state) never record. It only observes.
+   */
+  telemetry: DecisionRecorder | null = null;
 
   constructor(state: GameState, agents: [Agent, Agent]) {
     this.s = state;
@@ -603,6 +609,7 @@ export class Game {
     };
     srcs.sort((a, b) => score(a) - score(b));
     const chosen = this.agents[p]?.choosesPayment ? await this.choosePayment(p, srcs, amount, what) : srcs.slice(0, amount);
+    this.telemetry?.paid(this, p, chosen);
     for (const c of chosen) {
       c.spent = true;
       if (c.zone === 'legends') this.emit('spent', { uid: c.uid, cause: 'pay' });
@@ -1069,10 +1076,12 @@ export class Game {
   async ask(d: Decision): Promise<number[]> {
     if (d.options.length === 0) return [];
     this.update();
+    const rec = this.telemetry?.open(this, d);
     const r = await this.agents[d.player].decide(this, d);
     if (!Array.isArray(r) || r.some((i) => i < 0 || i >= d.options.length)) {
       throw new Error(`Agent ${this.agents[d.player].name} returned invalid choice ${JSON.stringify(r)} for ${d.prompt}`);
     }
+    if (rec) this.telemetry!.close(this, d, rec, r);
     return r;
   }
 
@@ -1686,6 +1695,7 @@ export class Game {
     s.attack = { attacker: uid, attackerPlayer: p, targetUnit: target.unit, targetGigs: target.gigs, step: 'declare', ended: false };
     s.stats.attacks[p]++;
     this.tr('attack', p, att.defId, target.unit ? 'unit' : 'gigs');
+    this.telemetry?.attackStart(this);
     att.spent = true;
     // mustAttack mods are satisfied; one-shot attack permissions are used up
     s.mods = s.mods.filter((m) => !((m.kind === 'mustAttack' || (m.kind === 'attackReady' && m.value === 'once')) && m.target === uid));
@@ -1714,6 +1724,7 @@ export class Game {
     if (!s.attack) return;
     const att = s.cards[uid];
     const r = other(s.attack.attackerPlayer);
+    let end: 'fizzled' | 'fight' | 'steal' = 'fizzled';
     try {
       if (!this.attackValid()) return;
       // ---- React step
@@ -1740,13 +1751,16 @@ export class Game {
       if (!this.attackValid()) return;
       if (s.attack.targetUnit !== null) {
         s.attack.step = 'fight';
+        end = 'fight';
         await this.fight(uid, s.attack.targetUnit);
       } else {
         s.attack.step = 'steal';
+        end = 'steal';
         await this.steal(uid, s.attack.targetGigs!);
       }
       await this.resolvePending();
     } finally {
+      this.telemetry?.attackEnd(this, end);
       if (s.attack) s.attack.step = 'done';
       s.attack = null;
       s.mods = s.mods.filter((m) => m.until !== 'attackEnd');

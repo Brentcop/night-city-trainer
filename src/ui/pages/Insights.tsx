@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import analysis from '../../data/analysis.json';
 import type { DeckReport } from '../../analysis/analyze';
 import { DeckInsights } from '../components/DeckInsights';
@@ -6,17 +6,43 @@ import { allDecks } from '../../lib/browserLibrary';
 import { LegendStrip, OriginBadge } from '../components/DeckIdentity';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 
+// the Decisions view and its report (public/data/decisions.json) load only when it is opened
+const DecisionStats = lazy(() => import('../components/DecisionStats').then((m) => ({ default: m.DecisionStats })));
+type View = 'draws' | 'decisions';
+
+function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+  return (
+    <div className="seg" role="group" aria-label="Statistics shown">
+      <button type="button" className={view === 'draws' ? 'on' : ''} aria-pressed={view === 'draws'} onClick={() => onChange('draws')}>
+        Draws &amp; games
+      </button>
+      <button type="button" className={view === 'decisions' ? 'on' : ''} aria-pressed={view === 'decisions'} onClick={() => onChange('decisions')}>
+        Decisions
+      </button>
+    </div>
+  );
+}
+
 export function InsightsPage({ initial }: { initial?: string }) {
   const A = analysis as unknown as { date: string; games: number; bot: string; decks: DeckReport[] };
   const [sel, setSel] = useState(A.decks.find((d) => d.deck === initial)?.deck ?? A.decks[0]?.deck);
+  const [view, setView] = useState<View>('draws');
   const r = A.decks.find((d) => d.deck === sel);
   if (!A.decks.length)
     return (
-      <div className="empty-state">
-        <h1>Card stats</h1>
-        <p>
-          No telemetry yet. Run <code>npm run sim -- analyze --field all</code>, or use the Matchup Lab with "collect telemetry".
-        </p>
+      <div className="grid">
+        <div className="empty-state">
+          <h1>Card stats</h1>
+          <p>
+            No telemetry yet. Run <code>npm run sim -- analyze --field all</code>, or use the Matchup Lab with "collect telemetry".
+          </p>
+        </div>
+        <ViewSwitch view={view} onChange={setView} />
+        {view === 'decisions' && (
+          <Suspense fallback={<p className="muted">Loading…</p>}>
+            <DecisionStats />
+          </Suspense>
+        )}
       </div>
     );
   return (
@@ -61,12 +87,21 @@ export function InsightsPage({ initial }: { initial?: string }) {
             ) : null;
           })()}
         </div>
-        <p className="muted small">
-          Statistics from bot-vs-bot telemetry. "Δ when drawn" compares the win rate in games where the card was drawn with games where it was
-          not (like 17lands' IWD). It shows how much a card matters, not just how good it looks. Small samples are noisy, so trust numbers with
-          100+ games behind them.
-        </p>
-        {r && <DeckInsights r={r} />}
+        <ViewSwitch view={view} onChange={setView} />
+        {view === 'decisions' ? (
+          <Suspense fallback={<p className="muted">Loading…</p>}>
+            <DecisionStats deck={r?.deck} listId={r?.id} />
+          </Suspense>
+        ) : (
+          <>
+            <p className="muted small">
+              Statistics from bot-vs-bot telemetry. "Δ when drawn" compares the win rate in games where the card was drawn with games where it
+              was not (like 17lands' IWD). It shows how much a card matters, not just how good it looks. Small samples are noisy, so trust
+              numbers with 100+ games behind them.
+            </p>
+            {r && <DeckInsights r={r} />}
+          </>
+        )}
       </div>
     </div>
   );
