@@ -958,6 +958,47 @@ thead th {
   align-items: center;
   gap: 4px 6px;
 }
+/* Deck Lab: synergy packages (keep toggles, the breeding picker, result chips) */
+.lab-synergies {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.lab-synergies legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.lab-pkg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+.lab-synergies .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lab-pkg-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.tag.is-in {
+  color: var(--green);
+  border-color: currentColor;
+}
+.tag.is-out {
+  color: var(--red);
+  border-color: currentColor;
+  text-decoration: line-through;
+}
 @media (max-width: 640px) {
   .deck-visual {
     --tcg-w: calc((100vw - 84px) / 3);

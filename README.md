@@ -102,6 +102,8 @@ Every script prints its usage with `--help`. Unknown flags and invalid values ex
 - `sim add`, `scripts/import-meta.ts`, `scripts/import-guides.ts`, `scripts/eor-build.ts` and `scripts/theorize-ladder.ts` will not overwrite an existing deck file without `--force`. When they do replace one, they keep its provenance header.
 - `scripts/review.ts` writes per-decision dumps to `data/reviews/` (gitignored) and summaries to `reports/review-<name>.md` (kept).
 
+The deck builders take synergy-package flags, all opt-in (without them nothing changes): `--keep-packages`, `--require-packages` and `--avoid-packages` (forge, optimizer, season, breed preview), `--lock-cards`, `--package-moves` and `--package-cands` (forge and optimizer; the season passes `--package-moves` to its forge), and `--seed-packages a+b` (season and breed preview). `forge.ts` and `optimize.ts` also take `--out DIR` to write a trial run's list and reports outside the repository, and `breed-preview.ts --lists` prints the bred lists with their packages. Details in [docs/SYNERGIES.md](docs/SYNERGIES.md) ("Using packages when building").
+
 ### Data-driven deck building
 Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`. Their forge logs came from the earlier simulator and were removed at the 2026-11-11 baseline (they are kept at the tag `archive/pre-season1-reset-2026-11-11`); new forge runs write `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
 
@@ -150,6 +152,7 @@ The table lists the main suites by area; `ls tests` has the full set.
 | `play-session.test.ts`, `pool.test.ts`, `scripts-pool.test.ts`, `scripts-args.test.ts` | The Play session (undo, errors, recording), game errors in the browser and CLI pools, and CLI flag parsing. |
 | `pages.test.ts`, `markdown.test.ts`, `summarize.test.ts` | Page helpers, link safety in the Markdown renderer, and game summaries. |
 | `runManifest.test.ts`, `check-data.test.ts`, `impact.test.ts` | Run manifests (game runs and deterministic aggregates), the recorded-data check, and card impact matched by list fingerprint. |
+| `deck-packages.test.ts`, `deck-packages-defaults.test.ts`, `deck-lab-packages.test.tsx` | Synergy packages in deck building: the plan checks, package moves, seeding, flags, the Deck Lab controls, and the builders unchanged without package flags. |
 
 ## Scripts
 
@@ -162,6 +165,7 @@ Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `
 | `ratings.ts` | Fits the power ratings (`src/data/ratings.json`, `reports/ratings-latest.md`). |
 | `check-data.ts` (`npm run check:data`) | Read-only consistency check of the recorded events, `h2h.json` and run manifests. |
 | `breed-data.ts`, `breed-preview.ts` | What the deck breeder learns from past runs; a preview of the next season's breeding without playing games. |
+| `builder-moves.ts`, `package-flags.ts` | The forge's and optimizer's candidate changes, and the synergy-package flags the deck builders share. |
 | `tag-provenance.ts` | Rewrites every deck file with a standard provenance header. |
 | `classify.ts` | Prints the archetype read of every library deck. |
 | `quick.ts`, `showlog.ts` | Quick checks: a few games between two decks, or one game's log. |

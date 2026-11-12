@@ -2,6 +2,17 @@
 //
 //   npx tsx scripts/forge.ts <deck...> [--gens 2] [--games 140] [--cands 6] [--bot lookahead] [--field meta|all] [--seed 1] [--threads N]
 //   npx tsx scripts/forge.ts --nc          # all data/decks/custom/nc-*.txt
+//   --out DIR   write the forged list and the reports to DIR (DIR/<file>, DIR/forge/) instead of the repository
+//
+// Synergy packages (opt-in; docs/SYNERGIES.md "Using packages when building"; without these flags nothing changes):
+//   --keep-packages a,b      never cut these packages' pieces below their working minimum. When any package flag is
+//                            given without this one, the deck objective's packages (if it names some) are kept;
+//                            "none" keeps nothing
+//   --require-packages a,b   the list must be built around these (moves that add a missing one are tried)
+//   --avoid-packages a,b     never add pieces of these while the list is built around them
+//   --lock-cards id[:n],...  never cut these cards below n copies (no n = every copy)
+//   --package-moves          also try whole-package moves (complete, add, swap, remove); --package-cands N per
+//                            generation (default 3)
 //
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
@@ -14,20 +25,22 @@
 // Seeds come from --seed, so a run can be repeated exactly.
 import fs from 'node:fs';
 import path from 'node:path';
-import { CARD_BY_ID, CARDS, cardLabel } from '../src/engine/cards';
-import { counts, exportOfficial, ramLimits, validateDeck } from '../src/engine/deck';
+import { exportOfficial } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
 import { analyzeDeck, type DeckReport } from '../src/analysis/analyze';
 import analysis from '../src/data/analysis.json';
 import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
-import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, threadsOpt } from './lib-node';
+import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
+import { forgeScore, forgeSwaps, packageCandidates, type Mutation } from './builder-moves';
+import { exitOnPlanProblems, objectivePackages, packagesOn, planFromFlags, tunerPackageFlags } from './package-flags';
+import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
 
 const { values: V, positionals } = cli(
   import.meta.url,
-  { gens: int(2, { min: 1 }), games: int(140, { min: 1 }), cands: int(6, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), field: oneOf(['meta', 'all'], 'meta'), nc: bool(), seed: int(1, { min: 0 }), threads: threadsOpt() },
+  { gens: int(2, { min: 1 }), games: int(140, { min: 1 }), cands: int(6, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), field: oneOf(['meta', 'all'], 'meta'), nc: bool(), seed: int(1, { min: 0 }), threads: threadsOpt(), out: str(), ...tunerPackageFlags() },
   { maxPositionals: Infinity },
 );
 const GENS = V.gens;
@@ -36,6 +49,9 @@ const CANDS = V.cands;
 const BOT = V.bot;
 const FIELD = V.field;
 const THREADS = Math.min(V.threads, 16);
+/** where the forged list and reports go: the repository (default) or --out DIR */
+const OUT = V.out;
+const PACKAGES = packagesOn(V);
 const lib = loadLibrary();
 const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
 
@@ -79,53 +95,40 @@ async function play(deck: DeckList, seed0: number, games: number, trace: boolean
   return { wr, sums };
 }
 
-interface Mutation {
-  label: string;
-  deck: DeckList;
-  prior: number;
-}
-
-function mutations(deck: DeckList, rep: DeckReport): Mutation[] {
-  const cs = counts(deck.main);
-  const lim = ramLimits(deck);
-  const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
-  // cuts: lowest IWD in this deck (cards never/rarely seen fall back to global impact)
-  const cuts = [...cs.keys()]
-    .map((id) => ({ id, v: iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }))
-    .sort((a, b) => a.v - b.v)
-    .slice(0, 3);
-  // adds: +1 of the deck's own best card, plus the best legal format-wide cards
-  const own = [...cs.entries()].filter(([, n]) => n < 3).map(([id]) => ({ id, v: iwd.get(id) ?? 0 })).sort((a, b) => b.v - a.v).slice(0, 2);
-  const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && GLOBAL_IMPACT[c.id] !== undefined)
-    .map((c) => ({ id: c.id, v: GLOBAL_IMPACT[c.id] }))
-    .sort((a, b) => b.v - a.v)
-    .slice(0, 4);
-  const adds = [...own, ...outside.filter((o) => !own.some((x) => x.id === o.id))];
-  const out: Mutation[] = [];
-  for (const c of cuts)
-    for (const a of adds) {
-      if (a.id === c.id) continue;
-      const main = [...deck.main];
-      main.splice(main.indexOf(c.id), 1, a.id);
-      const d = { ...deck, main };
-      if (validateDeck({ ...d, sideboard: [] }).length) continue;
-      out.push({ label: `-1 ${cardLabel(CARD_BY_ID[c.id])} → +1 ${cardLabel(CARD_BY_ID[a.id])}`, deck: d, prior: a.v - c.v });
-    }
-  return out.sort((a, b) => b.prior - a.prior).slice(0, CANDS);
+/** The list's plan: the flags, with the deck objective's packages as the default keep (only when package flags are on). */
+function planFor(target: (typeof lib)[number]): PackagePlan {
+  const plan = planFromFlags(V, objectivePackages(target.file));
+  exitOnPlanProblems(plan);
+  return plan;
 }
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
 async function forge(target: (typeof lib)[number]) {
   let deck: DeckList = structuredClone(target.deck);
+  const plan = planFor(target);
   const slug = target.file.replace(/\.txt$/, '');
   const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, ''];
+  if (PACKAGES) log.push(`Packages: ${describePlan(plan)}${V['package-moves'] ? `; package moves on (${V['package-cands']} per generation)` : '; package moves off'}.`, '');
+  /** package moves tried (labels), for the report and the manifest */
+  const tried: string[] = [];
   const history: { gen: number; wr: number; change: string }[] = [];
   // machine-readable twin of the log, for scripts/bundle-reports.ts (percentages and points, 1 decimal, as in the log)
   const p1 = (x: number) => +(x * 100).toFixed(1);
   const startedAt = new Date().toISOString();
   const playedBefore = gamesPlayed;
-  const json: { deck: string; file: string; date: string; seed: number; field: string; gens: { gen: number; baseline: number; swaps: { swap: string; wr: number; delta: number }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[]; summary: { gen: number; wr: number; change: string }[]; manifest?: RunManifest } = {
+  const json: {
+    deck: string;
+    file: string;
+    date: string;
+    seed: number;
+    field: string;
+    gens: { gen: number; baseline: number; swaps: { swap: string; wr: number; delta: number; package?: string }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[];
+    summary: { gen: number; wr: number; change: string }[];
+    /** with package flags only: the plan, and the built-around packages kept, added and removed from start to end */
+    packages?: { plan: PackagePlan; moves: boolean; changes: PackageChanges; adopted: string[] };
+    manifest?: RunManifest;
+  } = {
     deck: deck.name,
     file: target.file,
     date: new Date().toISOString().slice(0, 10),
@@ -140,7 +143,18 @@ async function forge(target: (typeof lib)[number]) {
     const rep = analyzeDeck(deck.name, base.sums);
     console.log(`\n[${deck.name}] gen ${gen}: baseline ${pct(base.wr)}`);
     log.push(`## Generation ${gen} — baseline ${pct(base.wr)}`, '', ...rep.insights.slice(0, 4).map((s) => `- ${s}`), '');
-    const muts = mutations(deck, rep);
+    const muts: Mutation[] = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, plan);
+    if (PACKAGES) {
+      // what the plan changed: the swaps the forge would have tried without it, and why each was not played
+      const free = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS);
+      const dropped = free.filter((m) => !muts.some((x) => x.label === m.label));
+      if (dropped.length) {
+        log.push(`The package plan kept ${dropped.length} swap${dropped.length === 1 ? '' : 's'} from being played:`, ...dropped.map((m) => `- ${m.label}: ${checkChange(deck, m.deck, plan).map((v) => v.text).join('; ') || 'replaced by a better allowed swap'}`), '');
+        console.log(`  plan: ${dropped.length} swap(s) not played (${dropped.map((m) => m.label).join('; ')})`);
+      }
+      muts.push(...packageCandidates(deck, plan, { moves: V['package-moves'], n: V['package-cands'], score: forgeScore(rep, GLOBAL_IMPACT) }));
+    }
+    tried.push(...muts.filter((m) => m.pkg).map((m) => m.label));
     const results: { m: Mutation; wr: number }[] = [];
     for (const m of muts) {
       const r = await play(m.deck, seed0, GAMES, false);
@@ -149,7 +163,12 @@ async function forge(target: (typeof lib)[number]) {
     }
     results.sort((a, b) => b.wr - a.wr);
     log.push('| Swap | Win % | Δ vs baseline |', '|---|---|---|', ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} |`), '');
-    const genRec: (typeof json.gens)[number] = { gen, baseline: p1(base.wr), swaps: results.slice(0, 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr) })), verdict: 'kept' };
+    const genRec: (typeof json.gens)[number] = {
+      gen,
+      baseline: p1(base.wr),
+      swaps: results.slice(0, PACKAGES ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(r.m.pkg ? { package: r.m.pkg.kind } : {}) })),
+      verdict: 'kept',
+    };
     json.gens.push(genRec);
     const best = results[0];
     if (!best || best.wr - base.wr < 0.02) {
@@ -172,15 +191,20 @@ async function forge(target: (typeof lib)[number]) {
   }
   // save
   const changed = history.some((h) => !h.change.startsWith('kept'));
+  const pkgChanges = packageChanges(target.deck, deck);
+  const adoptedPkg = history.filter((h) => !h.change.startsWith('kept') && tried.includes(h.change)).map((h) => h.change);
+  const pkgLine = PACKAGES ? `\n// Packages: ${describePlan(plan)}; ${describeChanges(pkgChanges)}${adoptedPkg.length ? `; package moves adopted: ${adoptedPkg.join('; ')}` : ''}` : '';
   if (changed) {
-    const hist = path.join('data/decks/custom/history');
-    fs.mkdirSync(hist, { recursive: true });
     const inCustom = target.kind === 'custom' || target.kind === 'original';
     // ladder decks are our own theorized lists: forge them in place and keep their full provenance header
     const inPlace = inCustom || target.kind === 'ladder';
     const orig = path.join(inCustom ? 'data/decks/custom' : 'data/decks', target.file);
-    if (fs.existsSync(orig)) fs.copyFileSync(orig, path.join(hist, `${slug}-${new Date().toISOString().slice(0, 10)}.txt`));
-    const outFile = inPlace ? orig : path.join('data/decks/custom', `${slug}-forged.txt`);
+    if (!OUT) {
+      const hist = path.join('data/decks/custom/history');
+      fs.mkdirSync(hist, { recursive: true });
+      if (fs.existsSync(orig)) fs.copyFileSync(orig, path.join(hist, `${slug}-${new Date().toISOString().slice(0, 10)}.txt`));
+    } else fs.mkdirSync(OUT, { recursive: true });
+    const outFile = OUT ? path.join(OUT, inPlace ? target.file : `${slug}-forged.txt`) : inPlace ? orig : path.join('data/decks/custom', `${slug}-forged.txt`);
     const prev = fs.existsSync(orig) ? fs.readFileSync(orig, 'utf8') : '';
     const idea =
       target.kind === 'ladder'
@@ -188,9 +212,13 @@ async function forge(target: (typeof lib)[number]) {
         : (prev.match(/^\/\/ Idea: .+$/m)?.[0] ?? '');
     fs.writeFileSync(
       outFile,
-      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ')}\n`,
+      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ')}${pkgLine}\n`,
     );
-    log.push(`Saved ${outFile} (previous version archived in data/decks/custom/history/).`);
+    log.push(OUT ? `Saved ${outFile} (--out: the library was not changed).` : `Saved ${outFile} (previous version archived in data/decks/custom/history/).`);
+  }
+  if (PACKAGES) {
+    log.push('', `Packages (built around, start → end): ${describeChanges(pkgChanges)}.${adoptedPkg.length ? ` Package moves adopted: ${adoptedPkg.join('; ')}.` : ''}`);
+    json.packages = { plan, moves: V['package-moves'], changes: pkgChanges, adopted: adoptedPkg };
   }
   log.push('', '## Summary', '', '| Gen | Win % | Change |', '|---|---|---|', ...history.map((h) => `| ${h.gen} | ${pct(h.wr)} | ${h.change} |`));
   json.summary = history.map((h) => ({ gen: h.gen, wr: p1(h.wr), change: h.change }));
@@ -209,10 +237,12 @@ async function forge(target: (typeof lib)[number]) {
     trace: true,
     simVersion: SIM_VERSION,
     createdAt: startedAt,
+    ...(PACKAGES ? { packages: packageProvenance(plan, { moves: tried }) } : {}),
   });
-  fs.mkdirSync('reports/forge', { recursive: true });
-  fs.writeFileSync(`reports/forge/${slug}.md`, log.join('\n'));
-  fs.writeFileSync(`reports/forge/${slug}.json`, JSON.stringify(json, null, 1));
+  const reportDir = OUT ? path.join(OUT, 'forge') : 'reports/forge';
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.writeFileSync(path.join(reportDir, `${slug}.md`), log.join('\n'));
+  fs.writeFileSync(path.join(reportDir, `${slug}.json`), JSON.stringify(json, null, 1));
   return { name: deck.name, history };
 }
 
@@ -227,7 +257,7 @@ async function main() {
     '|---|---|---|---|',
     ...all.map((a) => `| ${a.name} | ${pct(a.history[0]?.wr ?? 0)} | ${pct(a.history[a.history.length - 1]?.wr ?? 0)} | ${a.history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ') || '—'} |`),
   ].join('\n');
-  fs.writeFileSync('reports/forge/summary.md', md);
+  fs.writeFileSync(OUT ? path.join(OUT, 'forge', 'summary.md') : 'reports/forge/summary.md', md);
   console.log('\n' + md);
 }
 runMain(main);

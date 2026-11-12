@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { allDecks, upsertCustom } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
-import { exportOfficial, parseDeck, validateDeck } from '../../engine/deck';
+import { exportOfficial, listFingerprint, parseDeck, validateDeck } from '../../engine/deck';
 import { CARD_BY_ID } from '../../engine/cards';
 import type { CardDef, DeckList } from '../../engine/types';
 import { breedInBrowser, loadH2H, partialTune, playSet, recordedEventCount, tunedName, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
@@ -22,6 +22,8 @@ import { Markdown } from '../components/Markdown';
 import { PageHead } from '../components/PageHead';
 import { CardNameButton, CardThumb, DeckListCompact, useCardDialog } from '../components/DeckCards';
 import { deckDiff, parseSwap } from '../../lib/deckCards';
+import { describeChanges, describePlan, packageChanges, packageName, packageProvenance, type PackagePlan } from '../../lib/deckPackages';
+import { labDefaultKeep, LabSynergies, PackageChips, PackagePicker } from '../components/LabPackages';
 
 type FieldKey = 'meta' | 'meta+ladder' | 'top8';
 const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
@@ -33,6 +35,8 @@ const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
 const NOT_SAVED = 'Not saved: this browser’s storage is full or blocked.';
 const QUICK_TEST_SEED = 77_000;
 const QUICK_TEST_GAMES = 56;
+/** package moves tried per generation when they are on */
+const PACKAGE_CANDS = 3;
 const EFFORT = {
   quick: { label: 'Quick (~15 s)', games: 56, gens: 1, cands: 4 },
   standard: { label: 'Standard (~1 min)', games: 112, gens: 2, cands: 5 },
@@ -124,12 +128,22 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       return { deck: null, errors: [String((e as Error).message ?? e)] };
     }
   }, [source, file, text]);
+  // synergy packages: keep defaults to the list's objective packages or the packages it is built around, and resets
+  // when the list changes; package moves are off unless turned on
+  const listId = parsed.deck ? listFingerprint(parsed.deck) : '';
+  const keepDefault = useMemo(() => (parsed.deck ? labDefaultKeep(parsed.deck, source === 'library' ? file : undefined) : { keep: [] as string[], from: 'built-around' as const }), [parsed.deck, source, file]);
+  const [keepSel, setKeepSel] = useState<{ listId: string; keep: string[] } | null>(null);
+  const keep = keepSel && keepSel.listId === listId ? keepSel.keep : keepDefault.keep;
+  const [pkgMoves, setPkgMoves] = useState(false);
+  /** the package plan of the last run, for the result panel and the saved notes */
+  const [runPlan, setRunPlan] = useState<{ plan: PackagePlan; moves: boolean } | null>(null);
 
   const start = async () => {
     const deck = parsed.deck;
     if (!deck || parsed.errors.length) return;
     const fieldList = fieldDecks(field, lib, deck.name);
     const e = EFFORT[effort];
+    const packagePlan: PackagePlan = keep.length ? { keep: [...keep] } : {};
     const pool = poolRun.open();
     stopRef.current = false;
     const seedBase = 500_000 + Math.floor(Math.random() * 9_000);
@@ -142,11 +156,12 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       bot,
       seedBase,
       seatPolicy: 'alternate',
-      plannedGames: e.gens * (e.games * (1 + e.cands) + e.games * 4),
+      plannedGames: e.gens * (e.games * (1 + e.cands + (pkgMoves ? PACKAGE_CANDS : 0)) + e.games * 4),
       completedGames: 0,
       gamesPerPair: null,
       trace: true,
       simVersion: SIM_VERSION,
+      ...(keep.length || pkgMoves ? { packages: packageProvenance(packagePlan) } : {}),
     });
     let completed = 0;
     const play: PlayGame = (j) =>
@@ -160,12 +175,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     setOutcome(null);
     setProg(null);
     setManifest(plan);
+    setRunPlan(keep.length || pkgMoves ? { plan: packagePlan, moves: pkgMoves } : null);
     try {
       const onProgress = (p: TuneProgress) => {
         setProg(p);
         note();
       };
-      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase }, play, onProgress, () => stopRef.current);
+      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS }, play, onProgress, () => stopRef.current);
       setOutcome({ kind: stopRef.current || p.phase === 'Stopped' ? 'stopped' : 'done' });
     } catch (err) {
       // Stop terminates the pool, which rejects the games in flight; anything else is a game that failed.
@@ -193,9 +209,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     const want = tunedName(finalDeck.name, !!partial);
     const name = customSaveName(want, lib) ?? want;
     const done = manifest?.sample.completedGames ?? prog?.played ?? 0;
-    const notes = partial
-      ? `Partial Deck Lab tune: stopped after ${done} of ${manifest?.sample.plannedGames ?? prog?.total ?? '?'} planned games. Confirmed swaps: ${partial.adopted.join('; ')}.`
-      : finalDeck.notes;
+    const pkgNote = runPlan && parsed.deck ? `Packages: ${describePlan(runPlan.plan)}${runPlan.moves ? ', package moves on' : ''}; ${describeChanges(packageChanges(parsed.deck, finalDeck))}.` : '';
+    const notes = [
+      partial ? `Partial Deck Lab tune: stopped after ${done} of ${manifest?.sample.plannedGames ?? prog?.total ?? '?'} planned games. Confirmed swaps: ${partial.adopted.join('; ')}.` : finalDeck.notes,
+      pkgNote,
+    ]
+      .filter(Boolean)
+      .join(' ');
     if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(manifest ? { manifest } : {}) })) {
       window.alert(NOT_SAVED);
       return;
@@ -211,7 +231,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
         </p>
         <ol className="muted small" style={{ margin: 0, paddingLeft: 20 }}>
           <li>It plays the deck with telemetry to find its weakest and strongest cards.</li>
-          <li>It tests one-card swaps on the same games.</li>
+          <li>It tests one-card swaps on the same games (and whole-package moves, if you turn them on below).</li>
           <li>It confirms the best swap on fresh games before adopting it.</li>
         </ol>
         <div className="seg">
@@ -233,6 +253,9 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               <div key={e}>⚠ {e}</div>
             ))}
           </div>
+        )}
+        {parsed.deck && !parsed.errors.length && (
+          <LabSynergies deck={parsed.deck} keep={keep} from={keepDefault.from} onKeep={(ids) => setKeepSel({ listId, keep: ids })} moves={pkgMoves} onMoves={setPkgMoves} disabled={running} />
         )}
         <div className="row small">
           <label className="row muted">
@@ -323,7 +346,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                     {l.swaps.map((s) => (
                       <tr key={s.label}>
                         <td>
-                          <SwapLabel label={s.label} onOpen={openCard} />
+                          {s.pkg && <span className="tag">package · {s.pkg.kind}</span>} <SwapLabel label={s.label} onOpen={openCard} />
                         </td>
                         <td>
                           <Wr v={s.wr} />
@@ -349,6 +372,19 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               {partial && (
                 <div className="zone-label" role="note">
                   Partial result: {partial.adopted.length} confirmed swap{partial.adopted.length === 1 ? '' : 's'}, {manifest?.sample.completedGames ?? prog?.played ?? 0} of {manifest?.sample.plannedGames ?? prog?.total} planned games played
+                </div>
+              )}
+              {runPlan && parsed.deck && (
+                <div className="small" role="note">
+                  <PackageChips deck={finalDeck} before={parsed.deck} />
+                  <div className="muted">
+                    Packages: {describePlan(runPlan.plan)}
+                    {runPlan.moves ? '; package moves on' : '; package moves off'}.
+                    {(() => {
+                      const pk = prog?.logs.flatMap((l) => (l.adopted && l.swaps.find((x) => x.label === l.adopted)?.pkg ? [l.adopted] : [])) ?? [];
+                      return pk.length ? ` Package moves adopted: ${pk.join('; ')}.` : '';
+                    })()}
+                  </div>
                 </div>
               )}
               {changes.length ? (
@@ -431,6 +467,10 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   const [parents, setParents] = useState<string[]>([]);
   const [pickFile, setPickFile] = useState(lib[0].file);
   const [bred, setBred] = useState<Bred[]>([]);
+  // synergy packages to build around (none by default: breeding as before)
+  const [picked, setPicked] = useState<string[]>([]);
+  const [fitAll, setFitAll] = useState(true);
+  const [bredFor, setBredFor] = useState<string[]>([]);
   // quick-test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
   const [tests, setTests] = useState<Record<string, { wr: number; manifest: RunManifest } | 'running' | { error: string }>>({});
   const [savedAs, setSavedAs] = useState<Record<string, string>>({});
@@ -456,7 +496,11 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   const h2hReady = h2h && h2h !== 'loading' ? h2h : null;
   const stale = !!h2hReady && recorded !== null && h2hReady.events < recorded;
 
-  const breed = () => setBred(breedInBrowser(lib, { n, seed, parents, h2h: h2hReady?.lookup }));
+  const breed = () => {
+    const packages = picked.length ? { seeds: [picked], ...(fitAll ? { plan: { require: picked } } : {}) } : undefined;
+    setBred(breedInBrowser(lib, { n, seed, parents, h2h: h2hReady?.lookup, ...(packages ? { packages } : {}) }));
+    setBredFor(picked);
+  };
   const test = async (b: Bred) => {
     const key = b.deck.name;
     setTests((t) => ({ ...t, [key]: 'running' }));
@@ -557,6 +601,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
             + Add
           </button>
         </div>
+        <PackagePicker value={picked} onChange={setPicked} fitAll={fitAll} onFitAll={setFitAll} />
         <div className="row">
           <button className="primary" onClick={breed}>
             🧬 Breed {n} decks
@@ -582,6 +627,11 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
           </span>
         </div>
       </div>
+      {bredFor.length > 0 && bred.length < n && (
+        <p className="small muted" role="status">
+          {bred.length} of {n} decks could be built around {bredFor.map(packageName).join(' + ')} (the others had no Legend trio or room that holds {bredFor.length > 1 ? 'them' : 'it'}).
+        </p>
+      )}
       {bred.length > 0 && (
         <div className="deck-grid">
           {bred.map((b) => {
@@ -593,6 +643,17 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
               <div className="small">
                 <span className="tag">{b.method}</span> <span className="muted">{b.idea}</span>
               </div>
+              <PackageChips deck={b.deck} />
+              {b.packages && b.packages.changes.length > 0 && (
+                <details>
+                  <summary className="small">Package changes ({b.packages.changes.length})</summary>
+                  <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
+                    {b.packages.changes.map((c) => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <details>
                 <summary className="small">Decklist</summary>
                 <DeckListCompact deck={b.deck} />

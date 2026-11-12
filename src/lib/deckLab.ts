@@ -5,7 +5,8 @@ import { counts, listFingerprint, ramLimits, validateDeck } from '../engine/deck
 import type { DeckList } from '../engine/types';
 import { analyzeDeck, type DeckReport } from '../analysis/analyze';
 import type { PlayerSummary } from '../analysis/summarize';
-import { breedSeason, type Bred } from '../ai/breeder';
+import { breedSeason, type Bred, type BreedPackages } from '../ai/breeder';
+import { canCut, checkChange, isEmptyPlan, tunerPackageMoves, type PackageMoveKind, type PackagePlan } from './deckPackages';
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { RATINGS, SEASONS } from '../data/index';
@@ -64,17 +65,24 @@ export interface Swap {
   label: string;
   deck: DeckList;
   prior: number;
+  /** set for a package move (src/lib/deckPackages.ts) */
+  pkg?: { kind: PackageMoveKind; added: string | null; removed: string | null };
 }
 const labelOf = (id: string) => {
   const c = CARD_BY_ID[id];
   return c ? cardLabel(c) : id;
 };
-/** Candidate one-card swaps: cut the deck's lowest-impact cards, add its own best card or the best legal cards format-wide. */
-export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6): Swap[] {
+/**
+ * Candidate one-card swaps: cut the deck's lowest-impact cards, add its own best card or the best legal cards
+ * format-wide. Under a package plan, cuts the plan protects are skipped and swaps that break it are dropped.
+ */
+export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}): Swap[] {
+  const planned = !isEmptyPlan(plan);
   const cs = counts(deck.main);
   const lim = ramLimits(deck);
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
   const cuts = [...cs.keys()]
+    .filter((id) => !planned || canCut(deck, id, plan))
     .map((id) => ({ id, v: iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }))
     .sort((a, b) => a.v - b.v)
     .slice(0, 3);
@@ -99,9 +107,16 @@ export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6): Swap[] {
       main.splice(main.indexOf(c.id), 1, a.id);
       const d = { ...deck, main };
       if (validateDeck({ ...d, sideboard: [] }).length) continue;
+      if (planned && checkChange(deck, d, plan).length) continue;
       out.push({ label: `−1 ${labelOf(c.id)} → +1 ${labelOf(a.id)}`, deck: d, prior: a.v - c.v });
     }
   return out.sort((a, b) => b.prior - a.prior).slice(0, n);
+}
+
+/** Package moves for a tuning round, scored like the swaps (the list's own impact, else format-wide). */
+export function candidatePackageMoves(deck: DeckList, rep: DeckReport, plan: PackagePlan, o: { moves: boolean; n: number }): Swap[] {
+  const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
+  return tunerPackageMoves(deck, plan, { ...o, score: (id) => iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }).map((m) => ({ label: m.label, deck: m.deck, prior: m.prior, pkg: { kind: m.kind, added: m.added, removed: m.removed } }));
 }
 
 export interface TuneOptions {
@@ -113,12 +128,17 @@ export interface TuneOptions {
   minGain: number;
   /** seed base (default: random in 500,000–508,999); generation g plays seeds from seedBase + 10,000·g */
   seedBase?: number;
+  /** synergy packages: swaps that break the plan are never played (src/lib/deckPackages.ts) */
+  plan?: PackagePlan;
+  /** also try whole-package moves (complete, add, swap, remove), `packageCands` of them per generation (default 3) */
+  packageMoves?: boolean;
+  packageCands?: number;
 }
 export interface TuneLog {
   gen: number;
   baseline: number;
   report?: DeckReport;
-  swaps: { label: string; wr: number }[];
+  swaps: { label: string; wr: number; pkg?: Swap['pkg'] }[];
   confirm?: { base: number; swap: number; label: string };
   adopted: string | null;
 }
@@ -137,7 +157,9 @@ export interface TuneProgress {
 export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOptions, play: PlayGame, onProgress: (p: TuneProgress) => void, stop: () => boolean): Promise<TuneProgress> {
   let deck = structuredClone(start);
   const logs: TuneLog[] = [];
-  const total = o.gens * (o.games * (1 + o.cands) + o.games * 4);
+  const plan = o.plan ?? {};
+  const pkN = o.packageCands ?? 3;
+  const total = o.gens * (o.games * (1 + o.cands + (o.packageMoves ? pkN : 0)) + o.games * 4);
   const seedBase = o.seedBase ?? 500_000 + Math.floor(Math.random() * 9_000);
   const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck, seedBase, played: 0 };
   const tick = () => {
@@ -153,13 +175,14 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     const report = analyzeDeck(deck.name, base.sums);
     const log: TuneLog = { gen, baseline: base.wr, report, swaps: [], adopted: null };
     logs.push(log);
-    const swaps = candidateSwaps(deck, report, o.cands);
+    const swaps = candidateSwaps(deck, report, o.cands, plan);
+    if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
     for (const [k, s] of swaps.entries()) {
       if (stop()) break;
-      p.phase = `Generation ${gen}: testing swap ${k + 1} of ${swaps.length} on the same games`;
+      p.phase = `Generation ${gen}: testing ${s.pkg ? 'package move' : 'swap'} ${k + 1} of ${swaps.length} on the same games`;
       onProgress({ ...p, logs: [...logs] });
       const r = await playSet(s.deck, field, seed0, o.games, o.bot, play, false, tick);
-      log.swaps.push({ label: s.label, wr: r.wr });
+      log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}) });
     }
     log.swaps.sort((a, b) => b.wr - a.wr);
     const best = log.swaps[0];
@@ -231,6 +254,8 @@ export interface BreedOptions {
   parents: string[];
   /** tournament head-to-heads (loadH2H); when present, counter decks are bred too */
   h2h?: H2H;
+  /** synergy packages to build around (BreedInput.packages): seeds for the explorers, a plan for every deck */
+  packages?: BreedPackages;
 }
 
 export type H2H = (a: string, b: string) => { w: number; g: number };
@@ -289,7 +314,7 @@ export function breedInBrowser(lib: readonly LibraryDeck[], o: BreedOptions): Br
     const m = deckImpactOf(r.deck);
     if (m) deckImpact[r.deck.name] = m;
   }
-  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined }, o.n);
+  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined, ...(o.packages ? { packages: o.packages } : {}) }, o.n);
   return out.map((b, i) => {
     const name = b.deck.name.replace(/^S0-\d+/, `Lab-${String(o.seed % 1000).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`);
     return { ...b, deck: { ...b.deck, name } };

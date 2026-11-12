@@ -1,22 +1,28 @@
 // Deck optimizer: hill-climb single-card swaps (and legend swaps) against the meta field.
 //   npx tsx scripts/optimize.ts <deck> [--screen 70] [--confirm 280] [--candidates 40] [--bot lookahead] [--threads N]
 //   npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard     (Bo3 plan: only swaps using the deck's 7-card sideboard)
+//   --out DIR   write the reports to DIR instead of reports/
+// Synergy packages (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md): --keep-packages a,b (default with any package
+// flag: the deck objective's packages; "none" keeps nothing), --require-packages a,b, --avoid-packages a,b,
+// --lock-cards id[:n],..., --package-moves (adds --package-cands N whole-package moves, default 3, to the candidates).
 // Stage 1 screens many candidate swaps with a small sample; stage 2 re-tests the best few (and the
 // unmodified deck) with a large sample on identical seeds. Writes reports/optimize-<deck>[-vs-<opp>]-latest.md
 // and a .json twin (read by scripts/bundle-reports.ts).
 import fs from 'node:fs';
-import { CARDS, CARD_BY_ID, cardLabel } from '../src/engine/cards';
-import { counts, exportOfficial, ramLimits, validateDeck } from '../src/engine/deck';
-import type { DeckList } from '../src/engine/types';
+import path from 'node:path';
+import { exportOfficial } from '../src/engine/deck';
 import { cardValue } from '../src/ai/knowledge';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
+import { optimizeCandidates, packageCandidates, type Cand } from './builder-moves';
+import { exitOnPlanProblems, objectivePackages, packagesOn, planFromFlags, tunerPackageFlags } from './package-flags';
+import { describeChanges, describePlan, packageChanges, packageProvenance } from '../src/lib/deckPackages';
 import { gameRunManifest, manifestDeck } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
 
 const { values: V, positionals } = cli(
   import.meta.url,
-  { screen: int(70, { min: 1 }), confirm: int(280, { min: 1 }), candidates: int(40, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), vs: str(''), sideboard: bool(), threads: threadsOpt() },
+  { screen: int(70, { min: 1 }), confirm: int(280, { min: 1 }), candidates: int(40, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), vs: str(''), sideboard: bool(), threads: threadsOpt(), out: str(), ...tunerPackageFlags() },
   { minPositionals: 1, maxPositionals: 1 },
 );
 const base = resolveDeck(positionals[0]);
@@ -28,44 +34,16 @@ const VS = V.vs;
 const SIDEBOARD = V.sideboard;
 const THREADS = Math.min(V.threads, 16);
 const field = VS ? [resolveDeck(VS)] : loadLibrary().filter((d) => d.kind === 'meta' && d.deck.name !== base.deck.name);
+const OUT = V.out;
+const PACKAGES = packagesOn(V);
+const PLAN = planFromFlags(V, objectivePackages(base.file));
+exitOnPlanProblems(PLAN);
 
-interface Cand {
-  label: string;
-  deck: DeckList;
-}
-
-function candidates(deck: DeckList): Cand[] {
-  const out: Cand[] = [];
-  const lim = ramLimits(deck);
-  const cs = counts(deck.main);
-  const sbIds = new Set(deck.sideboard);
-  const inPool = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && (!SIDEBOARD || sbIds.has(c.id)));
-  // weakest cards in deck by static value are the likeliest cuts; strongest legal cards the likeliest adds
-  const cuts = [...cs.keys()].sort((a, b) => cardValue(a) - cardValue(b)).slice(0, SIDEBOARD ? 12 : 8);
-  const adds = inPool.sort((a, b) => cardValue(b.id) - cardValue(a.id)).slice(0, 14);
-  for (const out1 of cuts)
-    for (const add of adds) {
-      if (add.id === out1) continue;
-      const main = [...deck.main];
-      main.splice(main.indexOf(out1), 1, add.id);
-      out.push({ label: `-1 ${cardLabel(CARD_BY_ID[out1])} / +1 ${cardLabel(add)}`, deck: { ...deck, main, name: deck.name } });
-    }
-  if (SIDEBOARD) return out.slice(0, NCAND);
-  // legend swaps that keep the deck legal
-  for (const leg of CARDS.filter((c) => c.type === 'Legend')) {
-    for (let k = 0; k < 3; k++) {
-      const legends = [...deck.legends];
-      if (legends.includes(leg.id)) continue;
-      legends[k] = leg.id;
-      const d = { ...deck, legends };
-      if (validateDeck({ ...d, sideboard: [] }).length) continue;
-      out.push({ label: `Legend: ${cardLabel(CARD_BY_ID[deck.legends[k]])} → ${cardLabel(leg)}`, deck: d });
-    }
-  }
-  // shuffle deterministically then take N (keep variety between card & legend swaps)
-  let s = 7;
-  const rnd = () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
-  return out.sort(() => rnd() - 0.5).slice(0, NCAND);
+function candidates(deck: (typeof base)['deck']): Cand[] {
+  const out = optimizeCandidates(deck, SIDEBOARD, NCAND, PLAN);
+  // package moves come after the shuffled swaps, so every one of them is screened
+  if (PACKAGES && !SIDEBOARD) out.push(...packageCandidates(deck, PLAN, { moves: V['package-moves'], n: V['package-cands'], score: cardValue }));
+  return out;
 }
 
 async function measure(cands: Cand[], gamesPerCand: number, seed0: number): Promise<number[]> {
@@ -90,6 +68,7 @@ async function measure(cands: Cand[], gamesPerCand: number, seed0: number): Prom
 async function main() {
   const startedAt = new Date().toISOString();
   console.log(`Optimizing ${base.deck.name} vs ${field.length} meta decks (bot=${BOT})`);
+  if (PACKAGES) console.log(`Packages: ${describePlan(PLAN)}${V['package-moves'] ? `; package moves on (${V['package-cands']})` : ''}`);
   const cands = [{ label: '(unchanged)', deck: base.deck }, ...candidates(base.deck)];
   console.log(`Stage 1: ${cands.length} candidates × ${SCREEN} games`);
   const s1 = await measure(cands, SCREEN, 424242);
@@ -106,6 +85,9 @@ async function main() {
     '',
     `Baseline win rate (stage 2): **${(baseWr * 100).toFixed(1)}%**`,
     '',
+    ...(PACKAGES
+      ? [`Packages: ${describePlan(PLAN)}${V['package-moves'] ? `; package moves on` : ''}. Best list vs the original (built around): ${describeChanges(packageChanges(base.deck, final[0].c.deck))}.`, '']
+      : []),
     '| Change | Stage 1 | Stage 2 | Δ vs baseline |',
     '|---|---|---|---|',
     ...final.map((f) => `| ${f.c.label} | ${(f.wr * 100).toFixed(1)}% | ${(f.wr2 * 100).toFixed(1)}% | ${f.c === cands[0] ? '—' : ((f.wr2 - baseWr) * 100 >= 0 ? '+' : '') + ((f.wr2 - baseWr) * 100).toFixed(1)} |`),
@@ -122,9 +104,10 @@ async function main() {
     exportOfficial({ ...final[0].c.deck, name: `${base.deck.name} (optimized)` }),
     '```',
   ].join('\n');
-  fs.mkdirSync('reports', { recursive: true });
+  const dir = OUT || 'reports';
+  fs.mkdirSync(dir, { recursive: true });
   const slug = base.file.replace(/\.txt$/, '') + (VS ? `-vs-${field[0].file.replace(/\.txt$/, '')}` : '');
-  fs.writeFileSync(`reports/optimize-${slug}-latest.md`, md);
+  fs.writeFileSync(OUT ? path.join(dir, `optimize-${slug}-latest.md`) : `reports/optimize-${slug}-latest.md`, md);
   // machine-readable twin of the stage-2 table (percent / points, 1 decimal, as printed)
   const p1 = (x: number) => +(x * 100).toFixed(1);
   const json = {
@@ -137,7 +120,8 @@ async function main() {
     screen: SCREEN,
     confirm: CONFIRM,
     baseline: p1(baseWr),
-    rows: final.filter((f) => f.c !== cands[0]).map((f) => ({ change: f.c.label, s1: p1(f.wr), s2: p1(f.wr2), delta: p1(f.wr2 - baseWr) })),
+    rows: final.filter((f) => f.c !== cands[0]).map((f) => ({ change: f.c.label, s1: p1(f.wr), s2: p1(f.wr2), delta: p1(f.wr2 - baseWr), ...(f.c.pkg ? { package: f.c.pkg.kind } : {}) })),
+    ...(PACKAGES ? { packages: { plan: PLAN, moves: V['package-moves'], best: packageChanges(base.deck, final[0].c.deck) } } : {}),
     // stage 1 plays seeds from 424242, stage 2 from 777777 (the same seeds for every candidate)
     manifest: gameRunManifest({
       purpose: 'optimize',
@@ -151,9 +135,10 @@ async function main() {
       gamesPerPair: null,
       simVersion: SIM_VERSION,
       createdAt: startedAt,
+      ...(PACKAGES ? { packages: packageProvenance(PLAN, { moves: cands.filter((c) => c.pkg).map((c) => c.label) }) } : {}),
     }),
   };
-  fs.writeFileSync(`reports/optimize-${slug}-latest.json`, JSON.stringify(json, null, 1));
+  fs.writeFileSync(OUT ? path.join(dir, `optimize-${slug}-latest.json`) : `reports/optimize-${slug}-latest.json`, JSON.stringify(json, null, 1));
   console.log('\n' + md.split('## Stage 1')[0]);
 }
 runMain(main);

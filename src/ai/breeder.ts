@@ -11,6 +11,7 @@ import { counts, ramLimits, validateDeck } from '../engine/deck';
 import type { CardDef, DeckList } from '../engine/types';
 import { classify, type Archetype } from './archetype';
 import { cardValue, ROLES } from './knowledge';
+import { builtAroundIds, describePlan, fitToPlan, isEmptyPlan, packageName, packageTriples, seedAround, type PackagePlan, type TripleOption } from '../lib/deckPackages';
 
 export interface BreedInput {
   /** decks with a measured win rate, best first */
@@ -24,6 +25,20 @@ export interface BreedInput {
   deckImpact?: Record<string, Record<string, number>>;
   /** head-to-head record of deck a vs deck b (tournament games) */
   h2h?: (a: string, b: string) => { w: number; g: number };
+  /**
+   * Synergy packages (src/lib/deckPackages.ts), opt-in: absent or empty, the breeder makes exactly the decks it made
+   * before packages existed (same candidates, same order, same random numbers).
+   *   plan   every bred deck is built around the required packages, and around a kept package when a parent was;
+   *          avoided packages are taken out. A deck that can't be fitted is not bred (the slot tries again).
+   *   seeds  explorers are built around these combinations of one or two packages, in turn, on Legend trios that can
+   *          hold them, instead of a random untested trio.
+   */
+  packages?: BreedPackages;
+}
+
+export interface BreedPackages {
+  plan?: PackagePlan;
+  seeds?: string[][];
 }
 
 export interface Bred {
@@ -31,6 +46,8 @@ export interface Bred {
   method: 'mutant' | 'crossover' | 'counter' | 'explorer';
   parents: string[];
   idea: string;
+  /** with BreedInput.packages only: the packages the list is built around and the package changes made to fit the plan */
+  packages?: { builtAround: string[]; changes: string[]; seeded?: string[] };
 }
 
 const LEGENDS = CARDS.filter((c) => c.type === 'Legend');
@@ -172,9 +189,16 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   const used = new Set(input.seenTriples);
   const lscore = legendScores(input.ranked);
   const top = input.ranked.slice(0, 8);
+  const pk = input.packages && (!isEmptyPlan(input.packages.plan) || input.packages.seeds?.length) ? input.packages : undefined;
+  const pkScore = (id: string) => cardValue(id) + 100 * (input.impact[id] ?? 0);
   const push = (b: Bred) => {
     const key = tripleKey(b.deck.legends);
     if (used.has(key) || !legalTriple(b.deck.legends)) return false;
+    if (pk) {
+      const fitted = fitBred(b, pk, input, pkScore);
+      if (!fitted) return false;
+      b = fitted;
+    }
     if (validateDeck({ ...b.deck, sideboard: [] }).length) return false;
     used.add(key);
     out.push(b);
@@ -253,7 +277,31 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   }
   // explorers: untested Legend combinations, weighted toward strong Legends
   const styles: Archetype[] = ['aggro', 'midrange', 'control'];
-  for (let tries = 0; out.length < n && tries < 500; tries++) {
+  // with seed packages: explorers built around each combination in turn, on a trio that can hold it
+  if (pk?.seeds?.length) {
+    const trios = new Map<string, TripleOption[]>();
+    for (let tries = 0, k = 0; out.length < n && tries < 500; tries++) {
+      const combo = pk.seeds[k++ % pk.seeds.length]!;
+      const key = combo.join('+');
+      if (!trios.has(key)) trios.set(key, packageTriples(combo, { strength: lscore }));
+      const opts = trios.get(key)!.filter((t) => !used.has(tripleKey(t.legends)));
+      if (!opts.length) continue;
+      const pick = opts[Math.floor(r() * Math.min(4, opts.length))]!;
+      const style = styles[Math.floor(r() * 3)];
+      const seeded = seedAround(combo, pick.legends, (legends) => fill(legends, new Map(), input.impact, style, name(out.length + 1, 'Explorer', legends)), { score: pkScore, plan: pk.plan, ascii: true });
+      if (seeded.violations.length) continue;
+      const names = combo.map(packageName).join(' + ');
+      push({
+        deck: seeded.deck,
+        method: 'explorer',
+        parents: [],
+        idea: `Explorer (${style}) built around ${names}: Legends ${pick.legends.map((l) => CARD_BY_ID[l].name).join(' / ')} chosen to hold ${combo.length > 1 ? 'both packages' : 'the package'}, filled by role and curve templates, then topped up to each package's built-around minimum.`,
+        packages: { builtAround: [], changes: seeded.moves.map((m) => m.label), seeded: combo },
+      });
+    }
+  }
+  // (with seed packages the explorer slots are theirs: a combination that can't be built leaves its slot empty)
+  for (let tries = 0; !pk?.seeds?.length && out.length < n && tries < 500; tries++) {
     const legends: string[] = [];
     const weighted = jitterSort(LEGENDS, (l) => lscore(l.id), 0.25, r);
     for (const l of weighted) {
@@ -270,4 +318,22 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
     push({ deck: d, method: 'explorer', parents: [], idea: `Explorer (${style}): untested Legends ${legends.map((l) => CARD_BY_ID[l].name).join(' / ')}, filled by role and curve templates from format-wide card impact.` });
   }
   return out;
+}
+
+/** A bred list fitted to the package plan (BreedInput.packages), with what was changed; null when it can't be. */
+function fitBred(b: Bred, pk: BreedPackages, input: BreedInput, score: (id: string) => number): Bred | null {
+  let deck = b.deck;
+  const changes = [...(b.packages?.changes ?? [])];
+  if (!isEmptyPlan(pk.plan)) {
+    const parentsBuiltAround = [...new Set(b.parents.flatMap((p) => {
+      const d = input.ranked.find((x) => x.deck.name === p)?.deck;
+      return d ? builtAroundIds(d) : [];
+    }))];
+    const fit = fitToPlan(deck, pk.plan!, { score, parentsBuiltAround, ascii: true });
+    if ('error' in fit) return null;
+    deck = fit.deck;
+    changes.push(...fit.changes);
+  }
+  const note = pk.plan && !isEmptyPlan(pk.plan) ? ` Package plan: ${describePlan(pk.plan)}.` : '';
+  return { ...b, deck, idea: `${b.idea}${note}`, packages: { builtAround: builtAroundIds(deck), changes, ...(b.packages?.seeded ? { seeded: b.packages.seeded } : {}) } };
 }

@@ -1,6 +1,6 @@
 # Synergy packages
 
-Many cards are worth more together than alone. The synergy catalogue names those packages, and the synergy report measures how often each one is assembled and comes online in bot games and how games go when it does. This is [ROADMAP2.md](ROADMAP2.md) §1 steps 1 and 2. Nothing in the bots, the coach, the tuner or the breeder reads either yet (steps 3 and 4).
+Many cards are worth more together than alone. The synergy catalogue names those packages, and the synergy report measures how often each one is assembled and comes online in bot games and how games go when it does. The deck builders can keep, require, avoid, seed and move whole packages ("Using packages when building" below). This is [ROADMAP2.md](ROADMAP2.md) §1 steps 1–3. Nothing in the bots, the coach or the evaluation reads the catalogue yet (step 4).
 
 ## The catalogue (`src/content/synergies/`)
 
@@ -46,3 +46,61 @@ Per list and package: games; **pieces held** (share of games with the needed pie
 Slices under 20 games (`MIN_SLICE_GAMES`, as in the decisions report) show only their size and are not rated.
 
 **Association, not causal value.** A package that comes online mostly in games already going well looks good for that reason alone, and a package that only comes online when behind (e.g. Behind on Gigs) looks bad for the same reason. "Online versus never" is not what the package is worth; it says where to look. Observed "held by turn N" is usually above the odds because of extra draws and searches.
+
+## Using packages when building (`src/lib/deckPackages.ts`)
+
+The deck builders change one card at a time and score cards one by one, so on their own they can cut one half of a pair, strand a payoff without its enabler, or never try a whole package. `src/lib/deckPackages.ts` is the shared, plain-data layer they all use (Node scripts and the browser). On the command line it is **opt-in**: with no package flag every script makes exactly the candidates, lists and reports it made before (pinned in `tests/deck-packages-defaults.test.ts`).
+
+**The plan** (`PackagePlan`, plain data):
+
+| Part | Meaning |
+|---|---|
+| `keep` | The package's pieces in the starting list may not be cut below its **working minimum**: its `builtAround` count when the list meets it, else the pieces it `needs` at all (both roles for a package whose pieces need each other). Cards beyond that minimum stay free to change. A kept package the list doesn't hold changes nothing. |
+| `require` | The result must be built around it: a change may not move the list further away, and the tuners always try the moves that add or complete it. |
+| `avoid` | The result must not be built around it: no new pieces while it is, and fillers never bring its pieces in. |
+| `lockCards` | Card id → copies that may not be cut (a list holding fewer keeps what it has). |
+
+`checkChange(before, after, plan)` says whether one candidate breaks the plan and why; `checkList(deck, plan)` checks a whole list (and the deck-construction rules). Every builder filters its candidates through them, so a candidate that breaks the plan is never played; the forge's log lists the swaps the plan kept out and why.
+
+**Package moves** (`packageMoves`), beside the one-card swaps:
+- **complete**: a package with pieces of one side only (a payoff without its enabler, or the reverse) gets the missing side, up to that role's built-around count;
+- **add**: a package the list is not built around gets its minimum working set: members legal for the Legends' RAM, by role first, cards already in the list first, then the builder's card score;
+- **swap**: a package the list holds for one it isn't built around, when the two moves are within 3 cards of each other in size;
+- **remove**: every main-deck piece of a package, refilled with the best legal cards outside it. A package too big to cut whole (more than 10 copies, e.g. Programs as fuel, where every Program is an enabler) loses only the side that dissolves it: its payoffs, or its enablers when they are fewer.
+
+The cards cut to make room go cheapest first: cards in no kept or required package before the rest, then cards in fewer of the list's built-around packages, then the lowest score. Legends never change. Every list a move makes passes `validateDeck`, keeps its size and respects the plan; one move changes at most 10 cards; with a limit, moves are taken in turn from each kind.
+
+**Seeding** (`packageTriples`, `seedAround`, `packageCompatibility`): the Legend trios that can hold one or two packages at their built-around minimums (enough RAM in the members' colours), best first: Legends that are pieces themselves, the Legends' strength, two colours or fewer. The list is filled the way explorers are filled, then each package is topped up to its minimum. Two packages that no trio can hold are refused with the reason in plain words. With the current catalogue every pair has a trio (each Legend gives 2 RAM, and every package has enough low-RAM members), but three pairs pull opposite ways (Low Gigs with High Gigs, High Gigs with Lower then swap, Behind with Ahead on Street Cred) and get a plain warning that they will rarely be online together.
+
+**Defaults.** A deck objective's `synergies` field is the default `keep` for that deck when the owner gives no plan: on the command line only once a package flag is on (`--keep-packages none` turns it off), in the Deck Lab always. In the Deck Lab a list without one keeps the packages it is built around.
+
+### Command line
+
+| Flag | Scripts | Meaning |
+|---|---|---|
+| `--keep-packages a,b` | forge, optimize, season, breed-preview | keep these (see above); `none` keeps nothing. In the breeder: a bred deck is built around a kept package when a parent was |
+| `--require-packages a,b` | all four | the result must be built around these |
+| `--avoid-packages a,b` | all four | the result must not be built around these |
+| `--lock-cards id[:n],…` | forge, optimize | never cut these cards below n copies (no n = every copy) |
+| `--package-moves` | forge, optimize, season (passed to its forge) | also try whole-package moves |
+| `--package-cands N` | forge, optimize | package moves per round (default 3) |
+| `--seed-packages a+b,c` | season, breed-preview | the explorer slots are built around these combinations of one or two packages, in turn (the season's forge then keeps them) |
+| `--out DIR` | forge, optimize | write the forged list and the reports to DIR instead of the repository (for trials) |
+| `--lists` | breed-preview | print each bred list and the packages it holds |
+
+Ids are the catalogue ids (`min-gig`, `low-cred`, `program-fuel`, …). An unknown id, a package both kept and avoided, or a seed of two packages no Legend trio can hold exits with code 2, with the list of valid ids. Examples:
+
+```
+npx tsx scripts/forge.ts s1-01-mutant-rry --keep-packages high-cred --out <scratch dir>
+npx tsx scripts/forge.ts meta-yyb-rogue-gear --package-moves --gens 1 --out <scratch dir>
+npx tsx scripts/breed-preview.ts --seed-packages low-cred+program-fuel,arasaka --lists
+```
+
+**Provenance.** With package flags the forge writes a `// Packages:` line in the forged deck file (the plan, the built-around packages kept, added and removed, the package moves adopted), the plan and its effect in `reports/forge/<deck>.md`, and a `packages` field in its JSON; the optimizer's report and JSON name the plan and what the best list kept, added and removed; bred deck files get a `// Packages:` line, the season report names each new deck's packages and changes, and the season JSON's `bred` entries carry them. Every run manifest made with a plan has the optional `packages` field (`PackageProvenance`: the plan, seeds, the package moves tried and the catalogue version); the manifest schema stays 1.
+
+### Deck Lab (`#/lab`)
+
+- **Tune a deck → Synergies**: every package the submitted list holds, with a Keep box each. Default: the packages its game plan names (a library deck whose objective has `synergies`), else the ones it is built around; the caption says which. **Try package moves** is off by default (about 3 more tests per generation when on). Package moves are marked "package · kind" in the swap table; the result panel shows the packages the tuned list is built around, marked added (+) or removed (−), the plan and any package move adopted, and a saved list's notes repeat them. The run's manifest carries the plan.
+- **Breed new decks → Build around synergies**: pick one or two packages. The explorers are then built around them; **Also build mutants, crossovers and counters around them** (on once a package is picked) fits every other deck to them too, and a deck that can't hold them is not bred (the panel says how many could be). The picker says how many Legend trios can hold the pick, or why not, and warns when two pull opposite ways. Each bred deck shows the packages it is built around and any package change made to fit.
+
+The controls are native checkboxes and toggle buttons (`aria-pressed`) in labelled fieldsets, disabled while a run is going.

@@ -9,6 +9,16 @@
 //             Seasons recorded before per-season totals existed cannot be taken out: restore leaderboard.json first.
 //             The pooled card-impact files are not added to again on a re-run (the same seeds play the same games).
 //
+// Synergy packages (opt-in; docs/SYNERGIES.md "Using packages when building"; without these flags the season breeds,
+// forges and reports exactly as before):
+//   --seed-packages a+b,c    the explorers are built around these combinations of one or two packages, in turn
+//   --require-packages a,b   every bred deck is built around these
+//   --keep-packages a,b      a bred deck is built around a kept package when a parent was; the forge never cuts it
+//                            (the forge also keeps the seeded packages)
+//   --avoid-packages a,b     no bred deck is built around these
+//   --package-moves          the forge also tries whole-package moves
+//   Bred deck files then carry a "// Packages:" line, and the season report and manifest name the plan.
+//
 // Outputs: data/decks/custom/s<N>-*.txt, reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
 import fs from 'node:fs';
@@ -20,6 +30,8 @@ import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
 import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
 import { classify } from '../src/ai/archetype';
 import { bool, cli, existing, Refusal, int, loadLibrary, oneOf, runJobs, runMain, SIM_BOTS, slugify, threadsOpt, writeJsonStamped } from './lib-node';
+import { breederPackageFlags, exitOnPlanProblems, packagesOn, planArgs, planFromFlags, seedsFromFlags } from './package-flags';
+import { describePlan, packageName, packageProvenance } from '../src/lib/deckPackages';
 import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -33,7 +45,13 @@ const { values: V } = cli(import.meta.url, {
   'forge-games': int(112, { min: 1 }),
   threads: threadsOpt(),
   force: bool(),
+  ...breederPackageFlags(),
+  'package-moves': bool(),
 });
+const PACKAGES = packagesOn(V);
+const PLAN = planFromFlags(V);
+exitOnPlanProblems(PLAN);
+const SEEDS = seedsFromFlags(V);
 const NL = String.fromCharCode(10);
 const SEASON_RE = /^season-(\d+)\.json$/;
 const recordedSeasons = () => (fs.existsSync('data/seasons') ? fs.readdirSync('data/seasons').filter((f) => SEASON_RE.test(f)).map((f) => +f.match(SEASON_RE)![1]) : []);
@@ -230,13 +248,14 @@ async function main() {
   // 1. breed
   // (on a re-run, this season's own earlier decks don't count as seen, so the breeder makes the same choices)
   const seen = new Set(lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))).map((d) => [...d.deck.legends].sort().join('|')));
-  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined }, 8);
+  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8);
   const newFiles = bred.map((b) => `${slugify(b.deck.name)}.txt`);
   const clash = existing(newFiles.map((f) => `data/decks/custom/${f}`));
   if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
   for (const [i, b] of bred.entries()) {
     const file = newFiles[i];
-    fs.writeFileSync(`data/decks/custom/${file}`, `${exportOfficial(b.deck)}${NL}${NL}// Idea: ${b.idea}${NL}// Author: Night City Trainer breeder (season ${SEASON}, ${b.method})${NL}`);
+    const pkgLine = b.packages ? `// Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.seeded ? `; seeded from ${b.packages.seeded.map(packageName).join(' + ')}` : ''}; plan: ${describePlan(PLAN)}${b.packages.changes.length ? `; changes: ${b.packages.changes.join('; ')}` : ''}${NL}` : '';
+    fs.writeFileSync(`data/decks/custom/${file}`, `${exportOfficial(b.deck)}${NL}${NL}// Idea: ${b.idea}${NL}// Author: Night City Trainer breeder (season ${SEASON}, ${b.method})${NL}${pkgLine}`);
   }
   console.log(`Season ${SEASON}: bred ${bred.map((b) => b.deck.name).join(', ')}`);
   const lib2 = loadLibrary();
@@ -266,6 +285,7 @@ async function main() {
     trace: true,
     simVersion: SIM_VERSION,
     createdAt: startedAt,
+    ...(PACKAGES ? { packages: packageProvenance(PLAN, { seeds: SEEDS }) } : {}),
   });
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   if (!rerun) {
@@ -288,7 +308,9 @@ async function main() {
   saveLB(lb);
   // 3. forge the newcomers
   console.log('Forging newcomers…');
-  execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}`, { stdio: 'inherit' });
+  // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
+  const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
+  execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs}`, { stdio: 'inherit' });
   // 4. finals vs meta for newcomers (post-forge) and any incumbent without finals
   const lib3 = loadLibrary();
   const finalists = [...newFiles.map((f) => lib3.find((d) => d.file === f)!), ...incumbents.filter((d) => lb[d.deck.name] && lb[d.deck.name].finals === undefined)];
@@ -309,7 +331,7 @@ async function main() {
     date: new Date().toISOString(),
     games: GAMES,
     bot: BOT,
-    bred: bred.map((b) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea })),
+    bred: bred.map((b) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea, ...(b.packages ? { packages: b.packages } : {}) })),
     standings: seasonRows,
     leaderTop: board.slice(0, 12).map((e) => ({ name: e.name, vsMeta: e.vsMeta, percentile: e.percentile })),
     manifest,
@@ -322,7 +344,11 @@ async function main() {
     `${field.length} decks (7 meta, ${incumbents.length} incumbents, 8 new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. New decks were forged (${FORGE_GENS} gen) and then played the finals vs the meta (${FINALS} games per opponent).`,
     '',
     '## New decks',
-    ...bred.map((b) => `- **${b.deck.name}** (${b.method}) — ${b.idea}`),
+    ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}.`, ''] : []),
+    ...bred.map(
+      (b) =>
+        `- **${b.deck.name}** (${b.method}) — ${b.idea}${b.packages ? ` Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.changes.length ? `; package changes: ${b.packages.changes.join('; ')}` : ''}.` : ''}`,
+    ),
     '',
     '## Season standings (round robin)',
     '| # | Deck | Win % | |',
