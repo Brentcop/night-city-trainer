@@ -13,6 +13,8 @@
 //        [--synergies]              also observe the synergy packages (docs/SYNERGIES.md) -> reports/synergies-latest.{json,md}
 //                                   and, for a whole field, public/data/synergies.json (Card stats → Synergies, deck profiles)
 //        [--synergies-only]         write ONLY the synergy outputs (no analysis, review, impact or decisions files)
+//        [--impact-adjusted]        with --out: also the adjusted card impact (landmark, by opponent and seat, shrunk; kept vs
+//                                   sold at sell decisions) -> DIR/impact-adjusted-latest.{json,md} (INFO-2, docs/ANALYSIS.md)
 //        [--out DIR]                write every analyze output into DIR instead of reports/ and src/data/ (no site copy)
 //        [--force]                  allow replacing public/data/decisions.json, the synergy outputs, or files already in DIR
 //
@@ -320,6 +322,7 @@ async function main() {
       const samples = V['decision-samples'] ?? 0;
       if (V.decisions) jobs.forEach((j, k) => Object.assign(j, { decisions: true, rawDecisions: k < samples }));
       if (synergies) jobs.forEach((j) => Object.assign(j, { synergies: true }));
+      if (V['impact-adjusted']) jobs.forEach((j) => Object.assign(j, { sellSplit: true }));
       // decision and synergy aggregates are folded in as games finish and dropped from the results, so memory stays flat
       const { emptyAggregate, mergeAggregates } = await import('../src/analysis/decisions');
       const { emptySynergyAggregate, mergeSynergyAggregates } = await import('../src/analysis/synergies');
@@ -392,6 +395,14 @@ async function main() {
       let reps = analyzeAll(sums).map((r) => (listOf.has(r.deck) ? { ...r, id: listOf.get(r.deck) } : r));
       if (focus) reps = reps.filter((r) => r.deck === focus.deck.name);
       const md = reportMarkdown(reps);
+      if (out.impactAdjustedJson) {
+        const { adjustedAll, adjustedMarkdown } = await import('../src/analysis/impactAdjusted');
+        let adj = adjustedAll(sums, listOf);
+        if (focus) adj = adj.filter((r) => r.deck === focus.deck.name);
+        write(out.impactAdjustedJson, JSON.stringify({ kind: 'impact-adjusted', manifest, decks: adj }, (_k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1e5) / 1e5 : v), 1));
+        write(out.impactAdjustedMd!, adjustedMarkdown(adj, { manifestLine: `${n} games per pairing, ${bot} bot, seed ${V.seed ?? 1}, sim v${SIM_VERSION}.` }));
+        console.log(`Adjusted card impact: ${adj.map((d) => `${d.deck} rho ${d.rhoOldAdj.toFixed(2)}`).join(', ')}. Saved ${out.impactAdjustedMd}`);
+      }
       write(out.analysisMd!, md);
       write(out.analysisJson!, JSON.stringify({ manifest, decks: reps }, null, 1));
       if (V.decisions) {

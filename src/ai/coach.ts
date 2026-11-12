@@ -9,7 +9,7 @@ import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
 import { GIG_SWING, knownCards } from './eval';
 import type { SynergyRole } from '../content/synergies/index';
-import { impactDeckName, topImpactCards } from './impact';
+import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
@@ -97,6 +97,17 @@ export function isClose(gap: number, se?: number): boolean {
   return gap < CLOSE_GIGS || (se !== undefined && gap <= 2 * se);
 }
 
+/**
+ * The coach's reason for a sell it chose by rule. The card values include bot-match card impact: say where it comes from
+ * (this list's own games, or pooled from other decks when the list has none), and claim no data when there is none.
+ */
+export function sellWhy(picked: string, basis: 'own' | 'pooled' | 'none'): string {
+  const base = `${picked}: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck`;
+  if (basis === 'own') return `${base} (by bot-match telemetry on this list).`;
+  if (basis === 'pooled') return `${base} (card values pooled from bot matches of other decks; this list has none of its own).`;
+  return `${base}.`;
+}
+
 export async function advise(g: Game, d: Decision): Promise<Advice> {
   const coach = makeCoach();
   const [index] = await coach.decide(g, d);
@@ -104,7 +115,8 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
   const alternatives: Advice['alternatives'] = [];
   const picked = d.options[index]?.label ?? '';
   if (d.kind === 'action' && /^Sell/.test(picked) && !coach.lastAlternatives.length) {
-    why = `${picked}: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck (by bot-match telemetry).`;
+    const hand = d.options.map((o) => o.action as Action).flatMap((a) => (a?.type === 'sell' ? [g.c(a.uid).defId] : []));
+    why = sellWhy(picked, impactBasis(g.P(d.player), hand));
   } else if (d.kind === 'action' && coach.lastAlternatives.length) {
     const best = coach.lastAlternatives.find((a) => a.index === index) ?? coach.lastAlternatives[0];
     const label = d.options[index]?.label ?? best.label;

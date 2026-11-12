@@ -9,6 +9,14 @@ export interface PlayerSummary {
   mulligan: boolean;
   opening: string[]; // final opening hand (after mulligan)
   seen: string[]; // unique card ids in the kept opening hand or drawn later (a mulliganed-away hand doesn't count)
+  /** the global turn each card in `seen` was first seen (0 = the kept opening hand), for the landmark impact estimate
+   *  (src/analysis/impactAdjusted.ts). Optional: absent in summaries made before it was added. */
+  seenAt?: Record<string, number>;
+  /**
+   * Optional, only when the run recorded decisions for it (`sim analyze --impact-adjusted`): for each card offered as a
+   * sell at a main-phase decision where the player sold a card, 1 if it was sold at least once, else 0 (kept).
+   */
+  sellChoice?: Record<string, 0 | 1>;
   played: Record<string, number>; // id -> first turn played (own-turn index: 1,2,3...); includes Legends played to the field by paying their cost
   playCount: Record<string, number>;
   sold: Record<string, number>;
@@ -39,6 +47,7 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
       mulligan: false,
       opening: [],
       seen: [],
+      seenAt: {},
       played: {},
       playCount: {},
       sold: {},
@@ -59,6 +68,11 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
     return me;
   }) as [PlayerSummary, PlayerSummary];
   const seen: [Set<string>, Set<string>] = [new Set(), new Set()];
+  const seenAt: [Map<string, number>, Map<string, number>] = [new Map(), new Map()];
+  const see = (p: PlayerId, id: string, t: number) => {
+    seen[p].add(id);
+    if (!seenAt[p].has(id)) seenAt[p].set(id, t);
+  };
   // own-turn index: global turn t for player p -> 1-based count of p's turns
   const ownIdx = (t: number, p: PlayerId) => (p === s.first ? Math.ceil(t / 2) : Math.floor(t / 2));
   for (const e of tr) {
@@ -70,13 +84,14 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
         m.mulligan = true;
         m.opening = [];
         seen[e.p].clear();
+        seenAt[e.p].clear();
         break;
       case 'open':
         m.opening.push(e.id!);
-        seen[e.p].add(e.id!);
+        see(e.p, e.id!, 0);
         break;
       case 'draw':
-        seen[e.p].add(e.id!);
+        see(e.p, e.id!, e.t);
         break;
       case 'play':
       case 'legend': {
@@ -85,7 +100,7 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
         if (m.played[e.id!] === undefined) m.played[e.id!] = i;
         m.playCount[e.id!] = (m.playCount[e.id!] ?? 0) + 1;
         if (e.k === 'legend') m.legendPlays.push(e.id!);
-        else if (e.x === 'hand') seen[e.p].add(e.id!);
+        else if (e.x === 'hand') see(e.p, e.id!, e.t);
         break;
       }
       case 'sell':
@@ -121,5 +136,7 @@ export function summarize(s: GameState): [PlayerSummary, PlayerSummary] {
   }
   out[0].seen = [...seen[0]];
   out[1].seen = [...seen[1]];
+  out[0].seenAt = Object.fromEntries(seenAt[0]);
+  out[1].seenAt = Object.fromEntries(seenAt[1]);
   return out;
 }

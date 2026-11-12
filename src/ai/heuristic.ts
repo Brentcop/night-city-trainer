@@ -54,6 +54,13 @@ export interface HeuristicOptions {
   profiles?: Profiles | null;
   /** weight of statistical card impact (telemetry IWD) in sell/discard/search/mulligan decisions; 0 = off */
   impact?: number;
+  /**
+   * INFO-3 (measuring each use of card impact on its own): the impact weight in the sell ranking only. Default: `impact`,
+   * exactly as before. (The mulligan use is switched off with `mulligan: 'plain'`.)
+   */
+  impactSell?: number;
+  /** INFO-3: the impact weight in card choices (discard, search, take, target) only. Default: `impact`, exactly as before. */
+  impactCards?: number;
   /** deep mode: also roll out the best N attack options, even if the 1-ply screen ranks them below the top `deep` */
   deepAttacks?: number;
   /** compare the N most sellable cards by rollout (or 1-ply) instead of always selling the lowest-scored one; 0 = off */
@@ -190,6 +197,8 @@ export class HeuristicAgent implements Agent {
       deep: opts.deep ?? 0,
       profiles: opts.profiles === undefined ? null : opts.profiles,
       impact: opts.impact ?? 0,
+      impactSell: opts.impactSell ?? opts.impact ?? 0,
+      impactCards: opts.impactCards ?? opts.impact ?? 0,
       deepAttacks: opts.deepAttacks ?? 0,
       sellLookahead: opts.sellLookahead ?? 0,
       deepReactions: opts.deepReactions ?? 0,
@@ -372,7 +381,7 @@ export class HeuristicAgent implements Agent {
     for (const s of sells) {
       const c = g.c(s.uid);
       const d = g.def(c);
-      let keep = cardValue(c.defId) + this.opts.impact * cardImpact(P, c.defId);
+      let keep = cardValue(c.defId) + this.opts.impactSell * cardImpact(P, c.defId);
       const cost = g.playCost(c.uid, p);
       if (cost <= avail + 1) keep += 3; // castable now / next turn
       if (cost > avail + 3) keep -= 3; // far off
@@ -1060,7 +1069,7 @@ export class HeuristicAgent implements Agent {
       const c = g.c(o.uid!);
       const mine = c.controller === p;
       // impact telemetry is per deck: a rival card is valued for the rival's deck
-      let v = cardValue(c.defId) + this.opts.impact * cardImpact(g.P(c.controller), c.defId);
+      let v = cardValue(c.defId) + this.opts.impactCards * cardImpact(g.P(c.controller), c.defId);
       // prefer keeping / getting cards we can cast soon
       const cost = g.def(c).cost ?? 0;
       if (mine && cost <= g.P(p).eddies.length + 3) v += 1.5;

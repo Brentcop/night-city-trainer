@@ -7,6 +7,7 @@ import { makeTierBot } from '../src/ai/tiers';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import { summarize, type PlayerSummary } from '../src/analysis/summarize';
 import { aggregateGame, type DecisionAggregate } from '../src/analysis/decisions';
+import { sellChoicesOf } from '../src/analysis/impactAdjusted';
 import { aggregateSynergyGame, type SynergyAggregate } from '../src/analysis/synergies';
 import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
@@ -32,6 +33,11 @@ export interface MatchJob {
   rawDecisions?: boolean;
   /** observe the synergy packages (board snapshots on the recorder) and return this game's aggregate (src/analysis/synergies.ts) */
   synergies?: boolean;
+  /**
+   * with `trace`: record decisions (observe-only) to add each player's sell choices to its summary (`sellChoice`, for the
+   * kept-vs-sold column of `sim analyze --impact-adjusted`)
+   */
+  sellSplit?: boolean;
   /**
    * scripts/package-scoring.ts: before every decision of seat A (seat 0), ask a shadow bot built from this spec, in the
    * same state with the same random stream, and count where it would choose differently (by decision kind/tag). The
@@ -207,12 +213,14 @@ parentPort?.on('message', async (job: MatchJob) => {
     });
     // the recorder only observes (tests/decision-telemetry.test.ts): with or without it the game is the same
     // with decisions, also the bots' own option scores (INFO-6): read after each answer, aggregated here like the rest
-    const rec = job.decisions || job.synergies ? new DecisionRecorder({ boards: !!job.synergies, scores: !!job.decisions }) : null;
+    const rec = job.decisions || job.synergies || (job.sellSplit && job.trace) ? new DecisionRecorder({ boards: !!job.synergies, scores: !!job.decisions }) : null;
     g.telemetry = rec;
     const s = await g.run();
     let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords' | 'synergies' | 'synergySize'> = {};
+    const summaries = job.trace ? summarize(s) : undefined;
     if (rec) {
       const records = rec.finish(g);
+      if (job.sellSplit && summaries) for (const p of [0, 1] as const) summaries[p].sellChoice = sellChoicesOf(records, p);
       if (job.decisions) {
         const agg = aggregateGame({ records, players: [s.players[0], s.players[1]], winner: s.winner, bots: rec.bots });
         decisions = {
@@ -247,7 +255,7 @@ parentPort?.on('message', async (job: MatchJob) => {
       turns: s.turn,
       overtime: s.overtime,
       gigs: [s.players[0].gigs.length, s.players[1].gigs.length],
-      summaries: job.trace ? summarize(s) : undefined,
+      summaries,
       ...decisions,
       ...(observed && job.shadowA ? { shadow: observed.shadow } : {}),
       ...(observed && job.piecesA ? { pieces: observed.pieces } : {}),

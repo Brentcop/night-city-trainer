@@ -22,6 +22,8 @@ export const ALL_FLAGS = {
   synergies: bool(),
   /** analyze: write ONLY the synergy report: no analysis, review, impact or decisions files */
   'synergies-only': bool(),
+  /** analyze --out DIR: also write the adjusted card-impact estimate (INFO-2, src/analysis/impactAdjusted.ts) */
+  'impact-adjusted': bool(),
 };
 export type Flag = keyof typeof ALL_FLAGS;
 const GAME: Flag[] = ['games', 'bot', 'threads', 'seed'];
@@ -34,7 +36,7 @@ export const COMMANDS: Record<string, [Flag[], number, number]> = {
   vs: [GAME, 2, 2],
   test: [[...GAME, 'field'], 1, 1],
   review: [[...GAME, 'field'], 0, 0],
-  analyze: [[...GAME, 'field', 'deck', 'decisions', 'decision-samples', 'synergies', 'synergies-only', 'out', 'force'], 0, 0],
+  analyze: [[...GAME, 'field', 'deck', 'decisions', 'decision-samples', 'synergies', 'synergies-only', 'impact-adjusted', 'out', 'force'], 0, 0],
 };
 
 export interface AnalyzeFlags {
@@ -43,12 +45,16 @@ export interface AnalyzeFlags {
   out?: string;
   synergies?: boolean;
   'synergies-only'?: boolean;
+  'impact-adjusted'?: boolean;
 }
 
 /** A combination of analyze flags that makes no sense (the CLI prints it and exits 2), or undefined. */
 export function analyzeFlagProblem(v: AnalyzeFlags): string | undefined {
   if ((v['decision-samples'] ?? 0) > 0 && !v.decisions) return '--decision-samples needs --decisions';
   if (v['synergies-only'] && v.decisions) return '--synergies-only writes only the synergy report; use --synergies with --decisions';
+  if (v['impact-adjusted'] && v['synergies-only']) return '--synergies-only writes only the synergy report; drop it to use --impact-adjusted';
+  // a measurement, not the bots' data: keep it (and the run's impact.json) out of src/data/
+  if (v['impact-adjusted'] && !v.out) return '--impact-adjusted needs --out DIR (the run would otherwise rewrite src/data/impact.json, which the Hard bot reads)';
   return undefined;
 }
 
@@ -73,6 +79,9 @@ export interface AnalyzeOutputs {
   synergiesMd?: string;
   /** the copy the Card stats page's Synergies view and the deck profile fetch (whole-field runs only) */
   synergiesSite?: string;
+  /** --impact-adjusted: the adjusted card-impact estimate (INFO-2) */
+  impactAdjustedJson?: string;
+  impactAdjustedMd?: string;
 }
 export function analyzeOutputs(v: AnalyzeFlags, focus: string | null): AnalyzeOutputs {
   const tag = focus ? `-${focus}` : '';
@@ -102,6 +111,10 @@ export function analyzeOutputs(v: AnalyzeFlags, focus: string | null): AnalyzeOu
     o.synergiesJson = at('reports', `synergies${tag}-latest.json`);
     o.synergiesMd = at('reports', `synergies${tag}-latest.md`);
     if (!focus && !v.out) o.synergiesSite = 'public/data/synergies.json';
+  }
+  if (v['impact-adjusted']) {
+    o.impactAdjustedJson = at('reports', `impact-adjusted${tag}-latest.json`);
+    o.impactAdjustedMd = at('reports', `impact-adjusted${tag}-latest.md`);
   }
   return o;
 }

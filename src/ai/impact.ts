@@ -50,6 +50,18 @@ export function cardImpact(deck: ImpactDeckRef, cardId: string): number {
   return 0.5 * (GLOBAL.get(cardId) ?? 0);
 }
 
+/**
+ * Where the impact figures cardImpact gives for these cards come from: 'own' when at least one is measured on this list,
+ * 'pooled' when none is but some have the format-wide figure pooled from other decks' lists, 'none' when no card has
+ * data (cardImpact is then 0 for all of them). For honest wording in the coach.
+ */
+export function impactBasis(deck: ImpactDeckRef, cardIds: readonly string[]): 'own' | 'pooled' | 'none' {
+  const e = entryFor(deck);
+  const own = e ? perDeck.get(e)! : null;
+  if (own && cardIds.some((id) => own.has(id))) return 'own';
+  return cardIds.some((id) => GLOBAL.has(id)) ? 'pooled' : 'none';
+}
+
 /** The deck's top cards by impact (for coach tips). */
 export function topImpactCards(deck: ImpactDeckRef, n = 3): { id: string; iwd: number }[] {
   const e = entryFor(deck);
