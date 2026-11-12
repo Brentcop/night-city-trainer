@@ -45,11 +45,12 @@ export type H2H = (a: string, b: string) => { w: number; g: number };
 /** Head-to-head records from every recorded tournament event (ties count half). */
 export function loadH2H(): H2H {
   const m = new Map<string, { w: number; g: number }>();
-  forEachRecordedGame(({ match: mt, game: g }) => {
+  forEachRecordedGame(({ game: g, decks: [da, db] }) => {
+    if (da === db) return; // a deck against its own copy says nothing about the pairing
     const v = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0;
     for (const [x, y, s] of [
-      [mt.a, mt.b, v],
-      [mt.b, mt.a, 1 - v],
+      [da, db, v],
+      [db, da, 1 - v],
     ] as [string, string, number][]) {
       const k = `${x}|${y}`;
       const r = m.get(k) ?? { w: 0, g: 0 };

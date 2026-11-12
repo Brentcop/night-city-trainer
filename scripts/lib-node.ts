@@ -9,6 +9,7 @@ import { LIBRARY_DIRS, libraryDeck, type LibraryDeck } from '../src/lib/library'
 import { parseDeck } from '../src/engine/deck';
 import type { MatchJob, MatchResult } from './worker';
 import { WorkPool, type PooledWorker, type WorkerLink } from '../src/lib/workPool';
+import { entrantBase, type EventSetup } from '../src/lib/eventFormats';
 
 // ================================================================ deck library
 
@@ -86,7 +87,11 @@ interface EnumOpt<C extends string, D> {
 interface BoolOpt {
   type: 'boolean';
 }
-export type Opt = IntOpt<number | undefined> | NumOpt<number | undefined> | StrOpt<string | undefined> | EnumOpt<string, string | undefined> | BoolOpt;
+/** A string flag that may be given more than once (`--pair "A vs B" --pair "C vs D"`); its value is every one, in order. */
+interface ListOpt {
+  type: 'strings';
+}
+export type Opt = IntOpt<number | undefined> | NumOpt<number | undefined> | StrOpt<string | undefined> | EnumOpt<string, string | undefined> | BoolOpt | ListOpt;
 export type Spec = Record<string, Opt>;
 
 /** Flag builders: `int(12, { min: 1 })`, `oneOf(['meta', 'all'], 'meta')`, `str()`, `bool()`. */
@@ -95,10 +100,13 @@ export const num = <D extends number | undefined = undefined>(def?: D, o: { min?
 export const str = <D extends string | undefined = undefined>(def?: D, check?: (v: string) => string | void): StrOpt<D> => ({ type: 'string', default: def as D, check });
 export const oneOf = <const C extends string, D extends C | undefined = undefined>(choices: readonly C[], def?: D): EnumOpt<C, D> => ({ type: 'enum', choices, default: def as D });
 export const bool = (): BoolOpt => ({ type: 'boolean' });
+export const many = (): ListOpt => ({ type: 'strings' });
 
 type ValueOf<O> = O extends BoolOpt
   ? boolean
-  : O extends IntOpt<infer D> | NumOpt<infer D>
+  : O extends ListOpt
+    ? string[]
+    : O extends IntOpt<infer D> | NumOpt<infer D>
     ? D extends number ? number : number | undefined
     : O extends EnumOpt<infer C, infer D>
       ? D extends string ? C : C | undefined
@@ -119,9 +127,9 @@ export interface ParseOptions {
  * `--name value` and `--name=value` both work; booleans take no value.
  */
 export function parseArgs<S extends Spec>(spec: S, argv: string[], o: ParseOptions = {}): { values: Values<S>; positionals: string[] } {
-  const options: Record<string, { type: 'string' | 'boolean' }> = {};
-  for (const [k, v] of Object.entries(spec)) options[k] = { type: v.type === 'boolean' ? 'boolean' : 'string' };
-  let parsed: { values: Record<string, string | boolean | undefined>; positionals: string[] };
+  const options: Record<string, { type: 'string' | 'boolean'; multiple?: boolean }> = {};
+  for (const [k, v] of Object.entries(spec)) options[k] = v.type === 'strings' ? { type: 'string', multiple: true } : { type: v.type === 'boolean' ? 'boolean' : 'string' };
+  let parsed: { values: Record<string, string | boolean | string[] | undefined>; positionals: string[] };
   try {
     parsed = nodeParseArgs({ args: argv, options, strict: true, allowPositionals: true }) as typeof parsed;
   } catch (e) {
@@ -140,6 +148,10 @@ export function parseArgs<S extends Spec>(spec: S, argv: string[], o: ParseOptio
     const raw = parsed.values[k];
     if (opt.type === 'boolean') {
       values[k] = raw === true;
+      continue;
+    }
+    if (opt.type === 'strings') {
+      values[k] = Array.isArray(raw) ? raw.map(String) : raw === undefined ? [] : [String(raw)];
       continue;
     }
     if (raw === undefined) {
@@ -366,6 +378,10 @@ export interface RecordedEvent {
   bracket: RecordedPart[];
   standings: { deck: string; mp: number; mw: number; ml: number; gw: number; gl: number; omw: number }[];
   seeds?: string[];
+  /** not a standard event (another format, or pairings/seeds set by hand): games count, titles and finishes don't */
+  custom?: true;
+  /** how a non-plain event was arranged (src/lib/eventFormats.ts EventSetup) */
+  setup?: EventSetup;
   [k: string]: unknown;
 }
 export interface RecordedPart {
@@ -389,15 +405,22 @@ export interface RecordedGame {
   event: RecordedEvent;
   match: RecordedMatch & { b: string };
   game: RecordedMatch['games'][number];
+  /** 'swiss': the event's rounds (Swiss, round robin or a match list); 'top': its bracket */
   stage: 'swiss' | 'top';
+  /** the library decks the two seats played: an explicit copy "X #2" plays X (the same as match.a/b otherwise) */
+  decks: [string, string];
 }
-/** Visit every game of every recorded event (byes skipped), in event, round, match and game order. */
+/**
+ * Visit every game of every recorded event (byes skipped), in event, round, match and game order. Pooled records
+ * (head-to-heads, breeding) read `decks`, so a deck entered twice counts as itself and its mirror games are skipped there.
+ */
 export function forEachRecordedGame(cb: (g: RecordedGame) => void, dir = EVENTS_DIR) {
   for (const event of readEvents(dir))
     for (const [pi, part] of [...event.rounds, ...event.bracket].entries())
       for (const match of part.matches) {
         if (!match.b) continue;
-        for (const game of match.games) cb({ event, match: match as RecordedMatch & { b: string }, game, stage: pi < event.rounds.length ? 'swiss' : 'top' });
+        const decks: [string, string] = [entrantBase(event.setup, match.a), entrantBase(event.setup, match.b)];
+        for (const game of match.games) cb({ event, match: match as RecordedMatch & { b: string }, game, stage: pi < event.rounds.length ? 'swiss' : 'top', decks });
       }
 }
 

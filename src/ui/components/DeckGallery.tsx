@@ -95,7 +95,8 @@ export function deckFacts(decks: readonly LibraryDeck[], hidden: ReadonlySet<str
   });
 }
 
-function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
+/** A toggle chip (the gallery's filters; also the tournament runner's entrant picker). */
+export function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
   return (
     <button type="button" className={`chip-btn ${on ? 'on' : ''}`} aria-pressed={on} onClick={onClick} title={title}>
       {children}

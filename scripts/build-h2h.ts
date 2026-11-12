@@ -25,10 +25,14 @@ export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json'): H2HFil
   const id = (n: string) => (idx.has(n) ? idx.get(n)! : (idx.set(n, idx.size), idx.size - 1));
   const acc = new Map<string, { w: number; g: number }>();
   let games = 0;
-  forEachRecordedGame(({ match: m, game: g }) => {
-    const ia = id(m.a);
-    const ib = id(m.b);
-    const v = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0; // from m.a's side
+  // every event's games count, whatever its format or pairing method (custom events too); a deck entered twice ("X #2")
+  // counts as X, and its games against its own copy are counted in `games` but not as a pairing
+  forEachRecordedGame(({ game: g, decks: [da, db] }) => {
+    games++;
+    if (da === db) return;
+    const ia = id(da);
+    const ib = id(db);
+    const v = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0; // from seat A's side
     // store each pair once, lower index first
     const [lo, hi, w] = ia < ib ? [ia, ib, v] : [ib, ia, 1 - v];
     const k = `${lo}|${hi}`;
@@ -36,7 +40,6 @@ export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json'): H2HFil
     r.w += w;
     r.g++;
     acc.set(k, r);
-    games++;
   }, dir);
   const data: H2HFile = {
     updated: '',

@@ -1,0 +1,192 @@
+/* Tournament runner setup (#/run) and the format marks shared with the Events page. Loaded by those pages only, so the
+   entry chunk's stylesheet does not grow. Colours come from the theme tokens (both themes). */
+.ev-setup {
+  min-width: 0;
+}
+.ev-step {
+  border: 1px solid var(--mat-edge);
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  background: var(--mat-tile);
+}
+.ev-step legend {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+}
+.ev-sub {
+  border-top: 1px dashed var(--mat-edge);
+  padding-top: 6px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.ev-entrants {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.ev-entrant-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .ev-entrant-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ev-entrant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  max-height: 340px;
+  overflow: auto;
+}
+.ev-entrant-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 0.85rem;
+  min-width: 0;
+}
+.ev-entrant-list li.is-hidden .ev-name {
+  color: var(--muted);
+}
+.ev-seed {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 1.6em;
+  text-align: right;
+}
+.ev-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev-row-actions {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.ev-row-actions button {
+  min-width: 28px;
+  padding: 2px 6px;
+}
+.ev-add-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px;
+  max-height: 340px;
+  overflow: auto;
+}
+.ev-add-list .pick-chip {
+  background: var(--panel);
+  min-width: 0;
+}
+.ev-pairing,
+.ev-seeds,
+.ev-slots,
+.ev-matches {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.ev-free {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ev-free .chip-btn {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev-pairs,
+.ev-slot-list,
+.ev-groups,
+.ev-problems {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+}
+.ev-pairs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.ev-pairs li > span:first-child {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.ev-set {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.ev-warn {
+  color: var(--red);
+}
+.ev-problems li {
+  color: var(--red);
+}
+.ev-slot-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+.ev-slot select {
+  max-width: min(240px, 80vw);
+}
+.ev-match-table td {
+  white-space: nowrap;
+}
+.ev-run {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+}
+.ev-pause {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+  margin: 8px 0;
+  display: grid;
+  gap: 6px;
+  background: var(--panel);
+  min-width: 0;
+}
+.ev-bracket-wrap {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.match-marks {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.bracket-bo {
+  font-size: 10.5px;
+  padding: 0 8px 3px;
+}

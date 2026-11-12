@@ -11,12 +11,15 @@
 //     fingerprints of the deck lists stored next to it
 //   - every event records its simVersion and a run manifest: an event without either fails (the data was restarted from
 //     Season 1 on 2026-11-11, so nothing recorded predates them any more)
+//   - an event with a setup (another format, or pairings set by hand: src/lib/eventFormats.ts) names exactly its stored
+//     decks as entrants, is flagged `custom` exactly when it is not a standard event, and the index carries the same flag
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
 import { cli, EVENTS_DIR, eventFiles } from './lib-node';
 import { KNOWN_MANIFEST_SCHEMAS, storedDeckId, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
 import { deckFingerprint } from '../src/engine/deck';
+import { isStandardSetup, setupProblems, type EventSetup } from '../src/lib/eventFormats';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -32,10 +35,13 @@ export interface CheckEvent {
   decks: Record<string, StoredDeck>;
   rounds: { matches: EventMatch[] }[];
   bracket: { matches: EventMatch[] }[];
+  /** how a non-plain event was arranged; absent on plain Swiss events */
+  setup?: EventSetup;
+  custom?: boolean;
 }
 export interface CheckInput {
   /** src/data/tournaments.json (null when missing) */
-  index: { events: { id: number | string; champion?: string | null; games?: number }[] } | null;
+  index: { events: { id: number | string; champion?: string | null; games?: number; custom?: boolean }[] } | null;
   /** public/tournaments/event-N.json, parsed, with their file names */
   events: { file: string; event: CheckEvent }[];
   /** public/data/h2h.json (null when missing) */
@@ -87,6 +93,7 @@ function inputProblems(m: RunManifest, where: string, events: CheckEvent[]): str
     const run = (e.manifest as RunManifest | undefined)?.runId ?? null;
     if (inp.simVersion !== sim) out.push(`${where}: event ${inp.id} is listed with sim version ${inp.simVersion}, the event has ${sim}`);
     if (inp.runId !== run) out.push(`${where}: event ${inp.id} is listed with run ${inp.runId}, the event has ${run}`);
+    if (!!inp.custom !== !!e.custom) out.push(`${where}: event ${inp.id} is listed as ${inp.custom ? 'custom' : 'standard'}, the event is ${e.custom ? 'custom' : 'standard'}`);
   }
   const lists = new Set(events.flatMap((e) => Object.entries(e.decks).map(([name, d]) => `${name}\u0000${storedDeckId(d)}`)));
   for (const d of m.decks) if (!lists.has(`${d.name}\u0000${d.id}`)) out.push(`${where}: deck "${d.name}" ${d.id} is not a list stored in any recorded event`);
@@ -125,6 +132,7 @@ export function checkData(input: CheckInput): CheckResult {
       if (!e) continue;
       if (row.champion !== undefined && row.champion !== e.champion) (failures.push(`tournaments.json event ${row.id}: champion ${JSON.stringify(row.champion)}, the file says ${JSON.stringify(e.champion)}`), mismatched++);
       if (row.games !== undefined && row.games !== gamesOf(e)) (failures.push(`tournaments.json event ${row.id}: ${row.games} games, the file has ${gamesOf(e)}`), mismatched++);
+      if (!!row.custom !== !!e.custom) (failures.push(`tournaments.json event ${row.id}: ${row.custom ? 'flagged' : 'not flagged'} custom, the file ${e.custom ? 'is' : "isn't"}`), mismatched++);
     }
     if (!noFile.length && !notIndexed.length && !dupIndex.length && !mismatched) passed.push(`index matches the event files (${indexIds.length} events)`);
   }
@@ -148,6 +156,28 @@ export function checkData(input: CheckInput): CheckResult {
     manifestsChecked++;
     failures.push(...(p.length ? p : inputProblems(input.ratings.manifest as RunManifest, 'ratings.json', events)));
   } else if (input.ratings) info.push('ratings.json has no manifest (built before manifests)');
+
+  // ---- event setups (formats and hand-arranged events) and the custom flag
+  const beforeSetups = failures.length;
+  let setups = 0;
+  for (const { file, event } of input.events) {
+    if (!event.setup) {
+      if (event.custom) failures.push(`${file}: flagged custom but records no setup`);
+      continue;
+    }
+    setups++;
+    const s = event.setup;
+    if (!s || typeof s !== 'object' || !Array.isArray(s.entrants)) {
+      failures.push(`${file}: setup is malformed`);
+      continue;
+    }
+    const names = s.entrants.map((x) => x.name).sort();
+    const stored = Object.keys(event.decks).sort();
+    if (names.join('\u0000') !== stored.join('\u0000')) failures.push(`${file}: setup entrants (${names.length}) are not the stored decks (${stored.length})`);
+    for (const p of setupProblems(s)) failures.push(`${file}: setup: ${p}`);
+    if (!!event.custom !== !isStandardSetup(s)) failures.push(`${file}: ${event.custom ? 'flagged custom but its setup is a standard Swiss event' : 'its setup is not a standard Swiss event but it is not flagged custom'}`);
+  }
+  if (setups && failures.length === beforeSetups) passed.push(`event setups and custom flags (${setups} arranged event(s))`);
 
   // ---- event manifests and stored deck ids
   const beforeEvents = failures.length;

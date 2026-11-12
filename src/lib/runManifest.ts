@@ -13,8 +13,12 @@ import type { AdoptionProvenance } from './evidence';
  */
 export interface RunInputs {
   kind: 'recorded-events';
-  /** every input event in id order; simVersion/runId are null when the event predates them */
-  events: { id: number | string; simVersion: number | null; runId: string | null }[];
+  /**
+   * every input event in id order; simVersion/runId are null when the event predates them. `custom` marks an event in
+   * another format or with pairings set by hand (src/lib/eventFormats.ts): its games count, its titles and finishes
+   * don't (absent on standard events, so manifests of standard data are unchanged)
+   */
+  events: { id: number | string; simVersion: number | null; runId: string | null; custom?: true }[];
   /** distinct input sim versions, ascending; null stands for events recorded before simVersion existed */
   simVersions: (number | null)[];
   /** true when the inputs span more than one sim version (events without one count as their own version) */
@@ -153,6 +157,8 @@ export interface RecordedEventInput {
   bot?: string;
   simVersion?: number;
   manifest?: { runId?: string };
+  /** another format, or pairings set by hand */
+  custom?: boolean;
   decks: Record<string, { id?: string; legends: string[]; main: string[]; sideboard?: string[] }>;
 }
 
@@ -172,7 +178,7 @@ export const storedDeckId = (d: RecordedEventInput['decks'][string]) => d.id ?? 
  */
 export function aggregateManifest(builder: string, events: readonly RecordedEventInput[], o: { games: number }): RunManifest {
   const sorted = [...events].sort((a, b) => (typeof a.id === 'number' && typeof b.id === 'number' ? a.id - b.id : String(a.id).localeCompare(String(b.id))));
-  const rows = sorted.map((e) => ({ id: e.id, simVersion: typeof e.simVersion === 'number' ? e.simVersion : null, runId: e.manifest?.runId ?? null }));
+  const rows = sorted.map((e) => ({ id: e.id, simVersion: typeof e.simVersion === 'number' ? e.simVersion : null, runId: e.manifest?.runId ?? null, ...(e.custom ? { custom: true as const } : {}) }));
   const versions = [...new Set(rows.map((r) => r.simVersion))].sort((a, b) => (a ?? 0) - (b ?? 0));
   const inputs: RunInputs = { kind: 'recorded-events', events: rows, simVersions: versions, mixedSimVersions: versions.length > 1 };
   const seen = new Map<string, RunManifest['decks'][number]>();

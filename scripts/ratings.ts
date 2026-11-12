@@ -7,11 +7,16 @@
 // the (diagonal) Fisher information; 90% intervals are ±1.645 SE. Each deck also gets:
 //   • expected win rate vs the whole field (average over every other deck) and vs the choom.gg meta archetypes;
 //   • tournament results: events played, titles, top-8s, average Swiss finish percentile, match record.
+// Every recorded event's games feed the fit, whatever its format or pairing method. Tournament results (events, titles,
+// top 8s, finishes, match records) come only from standard events: an event flagged `custom` (another format, or
+// pairings or seeds set by hand: src/lib/eventFormats.ts) is skipped there. A deck entered twice ("X #2") plays as X,
+// and its games against its own copy are left out of the fit.
 // Output: src/data/ratings.json (site) and reports/ratings-latest.md. ratings.json carries a manifest naming the input
 // events, their sim versions and run ids (src/lib/runManifest.ts aggregateManifest).
 import fs from 'node:fs';
 import { cli, loadLibrary, readEvents, writeJsonStamped } from './lib-node';
 import { aggregateManifest, type RecordedEventInput } from '../src/lib/runManifest';
+import { poolEvents } from './event-pool';
 
 cli(import.meta.url, {});
 
@@ -19,34 +24,9 @@ const σ = (x: number) => 1 / (1 + Math.exp(-x));
 const lib = loadLibrary();
 const metaNames = new Set(lib.filter((d) => d.kind === 'meta').map((d) => d.deck.name));
 
-interface G {
-  a: string;
-  b: string;
-  first: 0 | 1;
-  s: number; // score for a: 1, 0.5, 0
-}
-const games: G[] = [];
-const results: Record<string, { events: number; titles: number; top8: number; finishes: number[]; mw: number; ml: number; gw: number; gl: number }> = {};
 const events = readEvents();
-for (const e of events) {
-  const n = e.standings.length;
-  e.standings.forEach((s: any, i: number) => {
-    const r = (results[s.deck] ??= { events: 0, titles: 0, top8: 0, finishes: [], mw: 0, ml: 0, gw: 0, gl: 0 });
-    r.events++;
-    r.finishes.push(1 - i / Math.max(1, n - 1));
-    if (i < 8) r.top8++;
-    r.mw += s.mw;
-    r.ml += s.ml;
-    r.gw += s.gw;
-    r.gl += s.gl;
-  });
-  if (results[e.champion]) results[e.champion].titles++;
-  for (const part of [...e.rounds, ...e.bracket])
-    for (const m of part.matches) {
-      if (!m.b) continue;
-      for (const g of m.games) games.push({ a: m.a, b: m.b, first: g.first, s: g.winner === 0 ? 1 : g.winner === 1 ? 0 : 0.5 });
-    }
-}
+const { games, results, customEvents } = poolEvents(events);
+if (customEvents) console.log(`note: ${customEvents} custom event(s) (another format, or pairings set by hand): their games count, their titles and finishes don't`);
 if (!games.length) {
   console.log('No tournament games yet (run scripts/tournament.ts).');
   process.exit(0);

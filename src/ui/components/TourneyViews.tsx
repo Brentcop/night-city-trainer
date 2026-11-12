@@ -14,6 +14,7 @@ import { Wr } from './Num';
 import { Modal } from './Modal';
 import { DeckListCompact } from './DeckCards';
 import { SimTierBadge, simTierFor } from './TierBadges';
+import '../tourney.css';
 
 export type Lib = Map<string, LibraryDeck>;
 /** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
@@ -28,6 +29,24 @@ export interface MatchView {
   winner: string;
   live?: boolean;
   games?: GameRec[];
+  /** paired by hand ("set by you") */
+  set?: boolean;
+  /** best-of when it differs from the event's */
+  bestOf?: number;
+}
+
+/** "set by you" and "Bo5" marks for a match. */
+function MatchMarks({ m }: { m: MatchView }) {
+  return (
+    <>
+      {m.set && (
+        <span className="tag ev-set" title="Paired by hand">
+          set by you
+        </span>
+      )}
+      {m.bestOf && <span className="tag">Bo{m.bestOf}</span>}
+    </>
+  );
 }
 
 function DeckName({ name, lib }: { name: string; lib: Lib }) {
@@ -99,16 +118,25 @@ export function Bracket({
           <div className="bracket-title">{col.name}</div>
           {col.slots.map((m, k) =>
             m ? (
-              <button key={k} className={`bracket-match ${m.live ? 'live' : ''}`} onClick={() => onOpen(m)} disabled={!m.games?.length && m.live}>
-                {[m.a, m.b ?? ''].map((side, si) => (
-                  <div key={si} className={`bracket-side ${!m.winner ? '' : m.winner === side ? 'win' : 'lose'}`}>
-                    <span className="seed">{seedOf(side) || ''}</span>
-                    <span className="bname" title={side}>
-                      {short(side, 24)}
-                    </span>
-                    <b>{m.score[si]}</b>
-                  </div>
-                ))}
+              <button key={k} className={`bracket-match ${m.live ? 'live' : ''}`} onClick={() => onOpen(m)} disabled={!m.b || (!m.games?.length && m.live)}>
+                {[m.a, m.b].map((side, si) =>
+                  side === null ? (
+                    <div key={si} className="bracket-side lose">
+                      <span className="seed" />
+                      <span className="bname muted">bye</span>
+                      <b />
+                    </div>
+                  ) : (
+                    <div key={si} className={`bracket-side ${!m.winner ? '' : m.winner === side ? 'win' : 'lose'}`}>
+                      <span className="seed">{seedOf(side) || ''}</span>
+                      <span className="bname" title={side}>
+                        {short(side, 24)}
+                      </span>
+                      <b>{m.b === null || (!m.games?.length && !m.winner && !m.live) ? '' : m.score[si]}</b>
+                    </div>
+                  ),
+                )}
+                {m.bestOf && <span className="bracket-bo muted">Bo{m.bestOf}</span>}
               </button>
             ) : (
               <div key={k} className="bracket-match tbd">
@@ -206,22 +234,38 @@ export function StandingsTable({ rows, cut, lib, full, tiers }: { rows: (Standin
   );
 }
 
-export function RoundList({ rounds, onOpen, openLast }: { rounds: { round: number; matches: MatchView[] }[]; onOpen: (m: MatchView) => void; openLast?: boolean }) {
+const matches = (n: number) => `${n} match${n === 1 ? '' : 'es'}`;
+
+/**
+ * Rounds and their matches, newest last. `openLast` opens the latest round, `openFirst` the first (a plan before play);
+ * `upcoming` labels rounds with no game played yet as planned. Hand-set pairings are marked "set by you".
+ */
+export function RoundList({ rounds, onOpen, openLast, openFirst }: { rounds: { round: number; matches: MatchView[] }[]; onOpen: (m: MatchView) => void; openLast?: boolean; openFirst?: boolean }) {
   return (
     <>
       {rounds.map((r, ri) => {
-        const done = r.matches.filter((m) => m.winner).length;
+        const done = r.matches.filter((m) => m.winner && (!m.b || m.games?.length)).length;
+        const started = r.matches.some((m) => m.games?.length || m.live);
+        const set = r.matches.filter((m) => m.set).length;
         return (
-          <details key={r.round} open={openLast && ri === rounds.length - 1}>
+          <details key={r.round} open={(openLast && ri === rounds.length - 1) || (openFirst && ri === 0)}>
             <summary className="small">
-              Round {r.round} · {done < r.matches.length ? `${done}/${r.matches.length} matches done` : `${r.matches.length} matches`}
+              Round {r.round} · {!started && done < r.matches.length ? `${matches(r.matches.length)} planned` : done < r.matches.length ? `${done}/${matches(r.matches.length)} done` : matches(r.matches.length)}
+              {set > 0 && ` · ${set} set by you`}
             </summary>
             <div className="round-list">
               {r.matches.map((m, k) => (
                 <button key={k} className={`match-row ${m.live ? 'live' : ''}`} onClick={() => onOpen(m)} disabled={!m.b || !m.games?.length}>
-                  <span className={m.winner && m.winner === m.a ? 'win' : ''}>{short(m.a)}</span>
-                  <b>{m.b ? `${m.score[0]}–${m.score[1]}` : 'bye'}</b>
-                  <span className={m.winner && m.winner === m.b ? 'win' : ''}>{m.b ? short(m.b) : ''}</span>
+                  <span className={m.winner && m.b && m.games?.length && m.winner === m.a ? 'win' : ''}>{short(m.a)}</span>
+                  <b>{m.b ? (m.games?.length || m.winner ? `${m.score[0]}–${m.score[1]}` : 'vs') : 'bye'}</b>
+                  <span className={m.winner && m.winner === m.b ? 'win' : ''}>
+                    {m.b ? short(m.b) : ''}
+                    {(m.set || m.bestOf) && (
+                      <span className="match-marks">
+                        <MatchMarks m={m} />
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>
@@ -230,6 +274,30 @@ export function RoundList({ rounds, onOpen, openLast }: { rounds: { round: numbe
       })}
     </>
   );
+}
+
+/** One standings table per round-robin group (rows keep the overall order, which ranks within each group too). */
+export function GroupTables({ groups, rows, advance, lib }: { groups: { name: string; decks: string[] }[]; rows: Parameters<typeof StandingsTable>[0]['rows']; advance: number; lib: Lib }) {
+  return (
+    <div className="grid">
+      {groups.map((g) => (
+        <div key={g.name}>
+          <h4 className="dp-section-title" style={{ margin: '4px 0' }}>
+            {g.name}
+          </h4>
+          <StandingsTable rows={rows.filter((r) => g.decks.includes(r.deck))} cut={advance} lib={lib} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** What an event's standings table is called in its format. */
+export function standingsTitle(kind: string | undefined, done: boolean): string {
+  if (kind === 'matches') return 'Results';
+  if (kind === 'round-robin') return done ? 'Final table' : 'Table';
+  if (kind === 'single-elim') return 'Results by deck';
+  return done ? 'Final standings' : 'Standings';
 }
 
 type EvDecks = Record<string, { legends: string[]; main: string[] }>;

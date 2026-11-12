@@ -1,12 +1,14 @@
-// Tournament history: every simulated event (Swiss Bo3 + top-8 bracket), with standings, round results and game replays.
+// Tournament history: every recorded event, with standings, round results and game replays. Most are Swiss Bo3 + a top-8
+// bracket; events in other formats or with pairings set by hand (src/lib/eventFormats.ts) are marked "custom" and shown
+// in their own shape (round-robin table, match list, bracket without Swiss). Titles here count standard events only.
 import { useEffect, useState } from 'react';
 import index from '../../data/tournaments.json';
-import type { GameRec } from '../../lib/tournament';
+import { arrangedNote, type EventSetup, type GameRec } from '../../lib/tournament';
 import { tierLabel } from '../../ai/tiers';
 import { parseEventId } from '../runParams';
 import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
-import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, short, type MatchView } from '../components/TourneyViews';
+import { Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useLib, short, type MatchView } from '../components/TourneyViews';
 import { RecordedAt } from '../components/RecordedAt';
 
 interface EventLite {
@@ -15,7 +17,11 @@ interface EventLite {
   simVersion?: number;
   bot: string;
   format: string;
-  champion: string;
+  /** another format, or pairings set by hand: not counted for titles */
+  custom?: boolean;
+  /** the format of a non-Swiss event */
+  kind?: string;
+  champion: string | null;
   entrants: number;
   games: number;
   top8: { deck: string; mp: number; record: string; omw: number }[];
@@ -28,6 +34,8 @@ interface EventFull {
   decks: Record<string, { file: string; legends: string[]; main: string[] }>;
   rounds: { round: number; matches: (MatchView & { games: GameRec[] })[] }[];
   bracket: { name: string; matches: (MatchView & { games: GameRec[] })[] }[];
+  setup?: EventSetup;
+  groups?: { name: string; decks: string[] }[];
 }
 
 const I = index as unknown as { updated: string; events: EventLite[] };
@@ -79,8 +87,10 @@ export function TournamentsPage({ initial }: { initial?: string }) {
       </div>
     );
   const historical = I.events.filter((e) => isHistorical(e.simVersion)).length;
+  // titles count standard events only: a custom event's winner played a format or pairings set by hand
   const titles = new Map<string, number>();
-  for (const e of I.events) titles.set(e.champion, (titles.get(e.champion) ?? 0) + 1);
+  for (const e of I.events) if (!e.custom && e.champion) titles.set(e.champion, (titles.get(e.champion) ?? 0) + 1);
+  const customCount = I.events.filter((e) => e.custom).length;
   const openMatch = (m: MatchView) => {
     if (!full) return;
     for (const part of [...full.bracket, ...full.rounds]) {
@@ -91,8 +101,15 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   return (
     <div className="grid">
       <PageHead kicker="Tournaments" title="Tournament history" actions={runLink}>
-        {I.events.length} events · {I.events.reduce((a, e) => a + e.games, 0).toLocaleString()} games · every deck in the library. Each event is Swiss
+        {I.events.length} events · {I.events.reduce((a, e) => a + e.games, 0).toLocaleString()} games · every deck in the library. A standard event is Swiss
         rounds of best-of-3 matches (the loser of a game goes first next game), then a top-8 single-elimination bracket. Click a match to watch its games.
+        {customCount > 0 && (
+          <>
+            {' '}
+            {customCount} {customCount === 1 ? 'event is' : 'events are'} marked <b>custom</b> (another format, or pairings set by hand): their games count for ratings and
+            head-to-heads, but not for titles, top 8s or Swiss records.
+          </>
+        )}
         <RecordedAt iso={I.events[I.events.length - 1]?.date} prefix=" The latest was recorded " suffix="." />
         {historical > 0 && (
           <>
@@ -106,8 +123,11 @@ export function TournamentsPage({ initial }: { initial?: string }) {
       <div className="event-strip">
         {I.events.map((e) => (
           <button key={e.id} className={`event-chip ${e.id === sel ? 'on' : ''}`} aria-pressed={e.id === sel} onClick={() => setSel(e.id)}>
-            <b>#{e.id}</b>
-            <span>{short(e.champion, 22)}</span>
+            <b>
+              #{e.id}
+              {e.custom && <span className="tag ev-set">custom</span>}
+            </b>
+            <span>{e.champion ? short(e.champion, 22) : 'no champion'}</span>
             <RecordedAt iso={e.date} className="muted" />
           </button>
         ))}
@@ -117,25 +137,36 @@ export function TournamentsPage({ initial }: { initial?: string }) {
         <>
           <div className="panel flair">
             <div className="spread">
-              <h2 style={{ margin: 0 }}>Event #{ev.id}</h2>
+              <h2 style={{ margin: 0 }}>
+                Event #{ev.id} {ev.custom && <span className="tag ev-set">custom</span>}
+              </h2>
               <span className="muted small">
                 {ev.format} · {ev.entrants} decks · {ev.games} games · {tierLabel(ev.bot)} bots
                 <RecordedAt iso={ev.date} prefix=" · recorded " />
               </span>
             </div>
-            <Champion
-              name={ev.champion}
-              lib={lib}
-              note={`${titles.get(ev.champion) ?? 1} title${(titles.get(ev.champion) ?? 1) > 1 ? 's' : ''} across all events`}
-              list={full?.decks[ev.champion]}
-            />
-            <Bracket rounds={ev.bracket} size={2 ** ev.bracket.length} seeds={ev.top8.map((t) => t.deck)} champion={ev.champion} lib={lib} onOpen={openMatch} />
+            {full?.setup && arrangedNote(full.setup) && <p className="small muted">{arrangedNote(full.setup)} Its games count for ratings; it is not counted for titles or top 8s.</p>}
+            {ev.champion && (
+              <Champion
+                name={ev.champion}
+                lib={lib}
+                note={ev.custom ? 'custom event: not counted as a title' : `${titles.get(ev.champion) ?? 1} title${(titles.get(ev.champion) ?? 1) > 1 ? 's' : ''} across standard events`}
+                list={full?.decks[ev.champion]}
+              />
+            )}
+            {ev.bracket.length > 0 && (
+              <Bracket rounds={ev.bracket} size={2 ** ev.bracket.length} seeds={ev.kind ? [] : ev.top8.map((t) => t.deck)} champion={ev.champion} lib={lib} onOpen={openMatch} />
+            )}
           </div>
 
           <div className="grid cols-2">
             <div className="panel scroll-x">
-              <h3 style={{ marginTop: 0 }}>Swiss standings</h3>
-              <StandingsTable rows={ev.standings} cut={ev.top8.length} lib={lib} tiers />
+              <h3 style={{ marginTop: 0 }}>{ev.kind ? standingsTitle(ev.kind, true) : 'Swiss standings'}</h3>
+              {full?.groups ? (
+                <GroupTables groups={full.groups} rows={ev.standings} advance={full.setup?.advance ?? 0} lib={lib} />
+              ) : (
+                <StandingsTable rows={ev.standings} cut={ev.kind ? 0 : ev.top8.length} lib={lib} tiers />
+              )}
               <p className="small muted" style={{ marginBottom: 0 }}>
                 Sim: each deck’s tier now, from every recorded event (not only this one). <a href="#/ratings">How tiers work</a>
               </p>
@@ -144,7 +175,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
               <h3 style={{ marginTop: 0 }}>Rounds</h3>
               {!full && !loadError && <p className="muted small">Loading round details…</p>}
               {loadError && <p className="small" style={{ color: 'var(--red)' }}>Couldn't load this event's round details ({loadError}). Standings and bracket above are still correct.</p>}
-              {full && <RoundList rounds={full.rounds} onOpen={(m) => m.games && setMatch(m as MatchView & { games: GameRec[] })} />}
+              {full && (full.rounds.length ? <RoundList rounds={full.rounds} onOpen={(m) => m.games && setMatch(m as MatchView & { games: GameRec[] })} /> : <p className="muted small">A bracket only: every match is in the bracket above.</p>)}
             </div>
           </div>
         </>

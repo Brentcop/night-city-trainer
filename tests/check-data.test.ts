@@ -101,4 +101,50 @@ describe('check-data', () => {
     m.decks = m.decks.filter((d) => d.name !== 'D3');
     expect(checkData(input([f])).failures).toContain('event-2.json: deck "D3" is not in the manifest');
   });
+
+  it('checks arranged events: setup entrants, the custom flag, and the index flag', async () => {
+    const decks = [deck('D0'), deck('D1'), deck('D2'), { ...deck('D2'), name: 'D2 #2' }];
+    const ev = await runTournament(decks, cfg(3), fake, {
+      id: 3,
+      setup: { format: 'matches', entrants: [{ name: 'D0' }, { name: 'D1' }, { name: 'D2' }, { name: 'D2 #2', copyOf: 'D2' }], bestOf: 1, matches: [{ a: 'D0', b: 'D1' }, { a: 'D2', b: 'D2 #2' }] },
+    });
+    const e = JSON.parse(JSON.stringify(ev)) as CheckEvent;
+    const plain = await recorded(1);
+    const good = input([plain, e]);
+    good.index!.events[1]!.custom = true;
+    const r = checkData(good);
+    expect(r.failures).toEqual([]);
+    expect(r.passed).toContain('event setups and custom flags (1 arranged event(s))');
+    // the index must carry the same flag
+    expect(checkData(input([plain, e])).failures).toContain("tournaments.json event 3: not flagged custom, the file is");
+    // the flag must match the setup
+    const unflagged = { ...e, custom: undefined };
+    const noFlag = input([unflagged]);
+    expect(checkData(noFlag).failures).toContain('event-3.json: its setup is not a standard Swiss event but it is not flagged custom');
+    const flaggedPlain = input([{ ...plain, custom: true }]);
+    flaggedPlain.index!.events[0]!.custom = true;
+    expect(checkData(flaggedPlain).failures).toContain('event-1.json: flagged custom but records no setup');
+    // the setup must name the stored decks
+    const missing = { ...e, setup: { ...e.setup!, entrants: e.setup!.entrants.slice(0, 3) } };
+    const bad = input([missing]);
+    bad.index!.events[0]!.custom = true;
+    expect(checkData(bad).failures.join('\n')).toMatch(/setup entrants \(3\) are not the stored decks \(4\)/);
+  });
+
+  it('aggregate manifests mark custom input events, and only those', async () => {
+    const plain = await recorded(1);
+    const ev = await runTournament([deck('D0'), deck('D1')], cfg(2), fake, { id: 2, setup: { format: 'round-robin', entrants: [{ name: 'D0' }, { name: 'D1' }], bestOf: 1 } });
+    const custom = JSON.parse(JSON.stringify(ev)) as CheckEvent;
+    const m = aggregateManifest('h2h', [plain, custom] as unknown as RecordedEventInput[], { games: 0 });
+    expect(m.inputs!.events.map((e) => e.custom)).toEqual([undefined, true]);
+    // standard inputs keep the manifest they always had (the run id hashes the inputs)
+    expect(aggregateManifest('h2h', [plain] as unknown as RecordedEventInput[], { games: 0 }).inputs!.events[0]).toEqual({ id: 1, simVersion: plain.simVersion, runId: (plain.manifest as { runId: string }).runId });
+    const data = input([plain, custom], { h2hManifest: true });
+    data.index!.events[1]!.custom = true;
+    expect(checkData(data).failures).toEqual([]);
+    const wrong = input([plain, custom]);
+    wrong.index!.events[1]!.custom = true;
+    wrong.h2h!.manifest = aggregateManifest('h2h', [plain, { ...custom, custom: undefined }] as unknown as RecordedEventInput[], { games: 0 });
+    expect(checkData(wrong).failures).toContain('h2h.json: event 2 is listed as standard, the event is custom');
+  });
 });

@@ -7,8 +7,12 @@ export * from './playedRecord';
 export interface EventLite {
   id: number;
   date: string;
-  champion: string;
+  champion: string | null;
   simVersion?: number;
+  /** another format, or pairings set by hand (src/lib/eventFormats.ts): its games count, its finishes don't */
+  custom?: boolean;
+  /** the format of a non-Swiss event (absent for Swiss) */
+  kind?: string;
   top8: { deck: string }[];
   standings: { deck: string; record: string; games: string }[];
 }
@@ -95,10 +99,11 @@ export function ordinal(n: number): string {
   return `${n}${s}`;
 }
 
-/** Every recorded event the deck entered, newest first. */
+/** Every standard recorded event the deck entered, newest first (custom events are not finishes: see EventLite.custom). */
 export function eventFinishes(name: string, events: EventLite[]): Finish[] {
   const out: Finish[] = [];
   for (const e of events) {
+    if (e.custom) continue;
     const i = e.standings.findIndex((s) => s.deck === name);
     const s = e.standings[i];
     if (!s) continue;

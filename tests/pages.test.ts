@@ -40,9 +40,11 @@ describe('tournament inputs', () => {
   const bots = ['easy', 'medium', 'hard'];
   it('setup-link params fall back on junk', () => {
     const p = parseRunParams(new URLSearchParams('f=nope&r=abc&t=7&bo=2&bot=godlike&s=-5&d='), bots);
-    expect(p).toEqual({ field: 'meta', decks: null, rounds: 'auto', top: 8, bestOf: 3, bot: null, seed: null });
+    expect(p).toEqual({ field: 'meta', decks: null, rounds: 'auto', top: 8, bestOf: 3, format: 'swiss', bot: null, seed: null });
     const q = parseRunParams(new URLSearchParams('f=custom&r=4&t=16&bo=1&bot=hard&s=1234&d=a.txt,,b.txt'), bots);
-    expect(q).toEqual({ field: 'custom', decks: ['a.txt', 'b.txt'], rounds: 4, top: 16, bestOf: 1, bot: 'hard', seed: 1234 });
+    expect(q).toEqual({ field: 'custom', decks: ['a.txt', 'b.txt'], rounds: 4, top: 16, bestOf: 1, format: 'swiss', bot: 'hard', seed: 1234 });
+    expect(parseRunParams(new URLSearchParams('fmt=round-robin&bo=5'), bots)).toMatchObject({ format: 'round-robin', bestOf: 5 });
+    expect(parseRunParams(new URLSearchParams('fmt=knockout'), bots)).toMatchObject({ format: 'swiss' });
     expect(parseRunParams(new URLSearchParams('r=99&t=0'), bots)).toMatchObject({ rounds: 'auto', top: 0 });
   });
   it('event ids must be recorded events', () => {

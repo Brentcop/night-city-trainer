@@ -1,6 +1,6 @@
 // Input checks for the tournament pages: setup-link params (#/run?f=…&r=…), event files opened from disk,
 // runs stored in localStorage, and the ?e= event id. Anything malformed falls back instead of crashing a page.
-import type { TourneyEvent } from '../lib/tournament';
+import { isEventFormat, type EventFormat, type TourneyEvent } from '../lib/tournament';
 
 const RUN_FIELDS = ['meta', 'ladder', 'top16', 'original', 'guide', 'all', 'custom'] as const;
 export type RunField = (typeof RUN_FIELDS)[number];
@@ -11,7 +11,9 @@ export interface RunParams {
   decks: string[] | null;
   rounds: number | 'auto';
   top: number;
-  bestOf: 1 | 3;
+  bestOf: 1 | 3 | 5;
+  /** the event format (default swiss) */
+  format: EventFormat;
   /** null = not given or not one of `bots` */
   bot: string | null;
   /** null = not given (pick a random seed) */
@@ -37,7 +39,8 @@ export function parseRunParams(q: URLSearchParams, bots: readonly string[]): Run
     decks: decks && decks.length ? decks : null,
     rounds: int(q.get('r'), 1, 12) ?? 'auto',
     top: top !== null && [0, 4, 8, 16].includes(top) ? top : 8,
-    bestOf: q.get('bo') === '1' ? 1 : 3,
+    bestOf: q.get('bo') === '1' ? 1 : q.get('bo') === '5' ? 5 : 3,
+    format: isEventFormat(q.get('fmt') ?? '') ? (q.get('fmt') as EventFormat) : 'swiss',
     bot: bot && bots.includes(bot) ? bot : null,
     seed: int(q.get('s'), 1, 2 ** 31 - 1),
   };
