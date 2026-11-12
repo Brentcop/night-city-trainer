@@ -49,6 +49,14 @@ function tierAgent(t: Tier, seed: number, name?: string) {
 
 /** The bot for a game seat. `seed` is the seat's seed (game seed for seat A, +7777 for seat B). */
 export function makeTierBot(level: string, seed: number, name?: string) {
+  const bot = tierBot(level, seed, name);
+  // a label for telemetry only (HeuristicAgent.configLabel); play never reads it
+  const t = tierOf(level);
+  bot.tier = t === 'mixed' ? `mixed:${bot.opts.deep ? 'hard' : 'medium'}` : level;
+  return bot;
+}
+
+function tierBot(level: string, seed: number, name?: string) {
   // the pre-tier Deep bot (no card impact), kept for older recorded events and comparisons
   if (level === 'deep') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, profiles: BEST_PROFILES });
   // Hard as first released (before attack rollouts), kept for comparisons and for the label on older recorded events

@@ -13,6 +13,7 @@ import { applyProfile, classify, type Archetype, type Profiles } from './archety
 import { cardImpact } from './impact';
 import { planTurn } from './turnPlan';
 import type { MulliganRule } from './mulligan';
+import { MAX_SCORED_OPTIONS, type ScoreRecord } from '../engine/telemetry';
 
 /**
  * How the bot treats each `chooseCard` tag used by the engine and the card scripts (read from the scripts, not from
@@ -116,6 +117,41 @@ export interface Alternative {
   seDiff?: number;
 }
 
+/** One option the bot valued in its last decision (HeuristicAgent.lastScores). */
+export interface ScoredOption {
+  /** option index in the decision */
+  i: number;
+  /** the value the choice was made on (evaluation points; absolute, not relative to passing) */
+  v: number;
+  /** main phase: the 1-ply screen value (its noise and Call penalty included) */
+  ply?: number;
+  /** shared worlds only: the rollout value in each world, before `off` */
+  w?: number[];
+  /** shared worlds only: added to every world's value to give `v` (5% of the 1-ply value, or a reaction Call's bonus) */
+  off?: number;
+}
+
+/**
+ * Every option the bot valued in its last decision, on the scale it chose on (observe-only: telemetry and the coach's
+ * grading read it; nothing in play does). `worlds` are the shared worlds of the rollouts, when there were any.
+ */
+export interface DecisionScores {
+  /** main-phase lookahead, the sell comparison (sellLookahead), or a reaction */
+  kind: 'main' | 'sell' | 'reaction';
+  /** 'deep': rollouts (main-phase deep, deep reactions, sells compared by rollout); '1ply': one step evaluated */
+  scale: 'deep' | '1ply';
+  opts: ScoredOption[];
+  chosen: number;
+  /** deep main phase: every candidate's 1-ply screen value (option index → value) */
+  screen?: { i: number; v: number }[];
+  worlds?: World[];
+  /** the decision these scores belong to */
+  d: Decision;
+}
+
+/** Value of option `o` in world k (its rollout plus the constant the decision added); `v` without worlds. */
+export const worldValue = (o: ScoredOption, k: number): number => (o.w ? o.w[k] + (o.off ?? 0) : o.v);
+
 /**
  * The near-tie rule of HeuristicOptions.sellKeepScarce: when `sell` has hold credit ¼ or more, the compared option within
  * `margin` of the best value with the least hold credit (then the best value) is sold instead; null to keep `sell`.
@@ -137,6 +173,10 @@ export class HeuristicAgent implements Agent {
   lastAlternatives: Alternative[] = [];
   /** the last sell decision broke a near-tie to keep a scarce package piece (sellKeepScarce): which card, sold instead, and the gap */
   lastSellKeep: { kept: string; sold: string; gap: number } | null = null;
+  /** every option valued in the last decision (null when a rule decided it): read by telemetry and the coach, never in play */
+  lastScores: DecisionScores | null = null;
+  /** the tier this bot was made as (makeTierBot), for telemetry labels; never read in play */
+  tier?: string;
   /** sellSearch chose not to sell on this turn of this game state: no further sell that turn */
   private noSellAt: { s: object; turn: number } | null = null;
 
@@ -184,6 +224,29 @@ export class HeuristicAgent implements Agent {
     if (!this.opts.profiles) return this.opts.weights;
     const { me, opp } = this.matchupRead(g, p);
     return applyProfile(this.opts.weights, this.opts.profiles, me, opp);
+  }
+
+  /**
+   * Telemetry (ScoreSource, src/engine/telemetry.ts): the last decision's scores in compact form, when they are for `d`.
+   * Read only: it changes nothing and draws no random number.
+   */
+  decisionScores(d: Decision): ScoreRecord | null {
+    return compactScores(this.lastScores, d);
+  }
+
+  /** Telemetry label: the tier this bot was made as, or the options that differ from a plain lookahead bot. */
+  configLabel(): string {
+    if (this.tier) return this.tier;
+    const o = this.opts;
+    if (!o.lookahead) return 'fast';
+    const parts = [o.deep ? `deep${o.deep}` : '1ply'];
+    if (o.deepWorlds > 1) parts.push(`w${o.deepWorlds}`);
+    if (o.deepReactions) parts.push(`rx${o.deepReactions}`);
+    if (o.sellLookahead > 1) parts.push(`sell${o.sellLookahead}`);
+    if (o.impact) parts.push(`imp${o.impact}`);
+    if (o.profiles) parts.push('prof');
+    if (o.noise) parts.push(`noise${o.noise}`);
+    return parts.join(' ');
   }
 
   private rand() {
@@ -243,6 +306,7 @@ export class HeuristicAgent implements Agent {
   }
 
   async decide(g: Game, d: Decision): Promise<number[]> {
+    this.lastScores = null;
     // explanations describe the latest main-phase action or reaction (sub-choices keep the move that caused them)
     if (d.kind === 'action' || d.kind === 'reaction') {
       this.lastThought = '';
@@ -342,9 +406,22 @@ export class HeuristicAgent implements Agent {
       if (options.length > 1) {
         let bestV = -Infinity;
         const vals: { uid: number; v: number }[] = [];
+        const scoredSells: ScoredOption[] = [];
+        // deep with shared worlds (the coach): every sell in the same worlds, on the main-phase deep scale (rollout mean
+        // + 5% of the 1-ply value), so a sell and any other move can be compared (src/ai/coach.ts). No tier sets both.
+        const worlds = this.opts.deep > 0 && this.opts.deepWorlds > 1 ? makeWorlds(this.opts.deepWorlds, () => this.rand()) : null;
         for (const uid of options) {
           const a: Action = { type: 'sell', uid };
-          const v = this.opts.deep > 0 ? await this.rollout(g, p, a) : await this.simulate(g, p, a);
+          let v: number;
+          const i = actions.findIndex((x) => x.type === 'sell' && x.uid === uid);
+          if (worlds) {
+            const s = (await this.valueMain(g, p, actions, [i], worlds))[0];
+            v = s.v;
+            scoredSells.push(s);
+          } else {
+            v = this.opts.deep > 0 ? await this.rollout(g, p, a) : await this.simulate(g, p, a);
+            scoredSells.push({ i, v });
+          }
           vals.push({ uid, v });
           if (v > bestV + 0.01) {
             bestV = v;
@@ -352,6 +429,8 @@ export class HeuristicAgent implements Agent {
           }
         }
         if (this.opts.sellKeepScarce > 0 && sell !== null) sell = this.keepScarce(g, p, sell, vals, bestV);
+        const chosenI = actions.findIndex((x) => x.type === 'sell' && x.uid === sell);
+        this.lastScores = { kind: 'sell', scale: this.opts.deep > 0 ? 'deep' : '1ply', opts: scoredSells, chosen: chosenI, ...(worlds ? { worlds } : {}), d };
       }
     }
     if (sell !== null) {
@@ -392,6 +471,9 @@ export class HeuristicAgent implements Agent {
     let deepScored: { i: number; v: number }[] | null = null;
     /** deepWorlds > 1: each rolled-out candidate's value in each world */
     const perWorld = new Map<number, number[]>();
+    /** deep: each rolled-out candidate's 1-ply value (observe-only, for lastScores) */
+    const plyOf = new Map<number, number>();
+    let deepWorldList: World[] | null = null;
     if (this.opts.deep > 0 && scored.length > 1) {
       // re-score the best few by rolling out the rest of this turn and the rival's whole reply
       scored.sort((x, y) => y.v - x.v);
@@ -404,6 +486,7 @@ export class HeuristicAgent implements Agent {
       deepScored = [];
       // deepWorlds > 1: every candidate in the same worlds (common random numbers), as deepReaction does
       const worlds = this.opts.deepWorlds > 1 ? makeWorlds(this.opts.deepWorlds, () => this.rand()) : null;
+      deepWorldList = worlds;
       for (const t of top) {
         // an unknown Call stands for every unknown slot: average the rollouts over them
         const group = isUnknownCall(g, actions[t.i]) ? unknownCalls.map((x) => x.a) : [actions[t.i]];
@@ -424,6 +507,7 @@ export class HeuristicAgent implements Agent {
         }
         const dv = rv + t.v * 0.05;
         deepScored.push({ i: t.i, v: dv });
+        plyOf.set(t.i, t.v);
         if (dv > bestDeep) {
           bestDeep = dv;
           bestI = t.i;
@@ -449,7 +533,87 @@ export class HeuristicAgent implements Agent {
         }
         return alt;
       });
+    // every valued option, for telemetry and the coach's grading (observe-only)
+    this.lastScores = deepScored
+      ? {
+          kind: 'main',
+          scale: 'deep',
+          opts: deepScored.map((x) => {
+            const w = perWorld.get(x.i);
+            const ply = plyOf.get(x.i)!;
+            return w ? { i: x.i, v: x.v, ply, w, off: ply * 0.05 } : { i: x.i, v: x.v, ply };
+          }),
+          chosen: bestI,
+          screen: scored.map((x) => ({ i: x.i, v: x.v })),
+          ...(deepWorldList ? { worlds: deepWorldList } : {}),
+          d,
+        }
+      : { kind: 'main', scale: '1ply', opts: scored.map((x) => ({ i: x.i, v: x.v, ply: x.v })), chosen: bestI, d };
     return bestI;
+  }
+
+  /**
+   * Value main-phase options `idx` of `actions` the way the deep decision values its candidates, in the given shared
+   * worlds: per world the rollout (an unknown Call averaged over every unknown slot), plus 5% of the 1-ply value (a
+   * Call's −1.5 included, no noise; passing is the position's own evaluation). Used by the coach to score a move it did
+   * not roll out, in the worlds of its own decision (src/ai/coach.ts), and by the sell comparison with shared worlds.
+   */
+  async valueMain(g: Game, p: PlayerId, actions: Action[], idx: number[], worlds: World[]): Promise<ScoredOption[]> {
+    const unknownCalls = actions.filter((a) => isUnknownCall(g, a));
+    const out: ScoredOption[] = [];
+    for (const i of idx) {
+      const a = actions[i];
+      const group = isUnknownCall(g, a) ? unknownCalls : [a];
+      let ply: number;
+      if (a.type === 'pass') ply = evaluate(g, p, this.w(g, p));
+      else {
+        let s = 0;
+        for (const x of group) s += await this.simulate(g, p, x);
+        ply = s / group.length;
+        if (a.type === 'call') ply -= 1.5;
+      }
+      const w: number[] = [];
+      for (const world of worlds) {
+        let s = 0;
+        for (const x of group) s += await this.rollout(g, p, x, world);
+        w.push(s / group.length);
+      }
+      const off = ply * 0.05;
+      out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply, w, off });
+    }
+    return out;
+  }
+
+  /**
+   * Value reaction options `idx` the way deep reactions value them, in the given shared worlds: per world the attack and
+   * both turns played out (clamped), plus 0.5 for a reaction-time Call; an unknown Call averaged over every unknown slot.
+   */
+  async valueReaction(g: Game, p: PlayerId, rx: Reaction[], idx: number[], worlds: World[]): Promise<ScoredOption[]> {
+    const unknown = rx.filter((r) => isUnknownCall(g, r));
+    const out: ScoredOption[] = [];
+    for (const i of idx) {
+      const r = rx[i];
+      const group = isUnknownCall(g, r) ? unknown : [r];
+      const w: number[] = [];
+      for (const world of worlds) {
+        let s = 0;
+        for (const x of group) s += await this.reactionWorld(g, p, x, world);
+        w.push(s / group.length);
+      }
+      const off = r.type === 'call' ? 0.5 : 0;
+      out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off });
+    }
+    return out;
+  }
+
+  /** One deep-reaction play-out: resume the attack with reaction r in world w, play p's turn, score it. */
+  private async reactionWorld(g: Game, p: PlayerId, r: Reaction, w: World): Promise<number> {
+    const attacker = g.s.attack!.attacker;
+    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
+    cg.s.rng = w.rng;
+    hideInfo(cg, p);
+    await playOut(cg, p, { reaction: r, attacker });
+    return playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
   }
 
   /** Clone, perform an action with fast policies, return evaluation. */
@@ -611,7 +775,13 @@ export class HeuristicAgent implements Agent {
     // Play the attack out in a clone (no further reactions, sub-choices by the fast policy) and evaluate the result, so
     // fight and steal effects armed by the reaction count (Safety Override, "when this blocks" triggers, ...). Letting
     // the attack resolve is valued the same way.
+    const seen = new Map<Reaction, number[]>();
     const resolved = async (r: Reaction | null) => {
+      const v = await resolve1(r);
+      if (r) seen.set(r, [v]);
+      return v;
+    };
+    const resolve1 = async (r: Reaction | null) => {
       const cg = g.clone(this.fastAgents(p));
       hideInfo(cg, p);
       try {
@@ -629,29 +799,33 @@ export class HeuristicAgent implements Agent {
     const baseV = await resolved(null);
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, resolved);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
+    // "no reaction" is valued as the attack resolving untouched (baseV)
+    this.lastScores = { kind: 'reaction', scale: '1ply', opts: reactionScores(g, rx, (r) => (r.type === 'endReact' ? [baseV] : (seen.get(r) ?? null))).map(({ i, v }) => ({ i, v })), chosen: bestI, d };
     return bestI;
   }
 
   /** Reactions by rollout: resume the attack with each reaction, let the attacker finish, play our turn, evaluate. */
   private async deepReaction(g: Game, d: Decision, rx: Reaction[], endIdx: number): Promise<number> {
     const p = d.player;
-    const attacker = g.s.attack!.attacker;
     // one random world per rollout (hidden-information deal, dice), shared by every candidate: common random numbers
     const worlds = makeWorlds(this.opts.deepReactions, () => this.rand());
+    /** each valued reaction's per-world values (observe-only, for lastScores) */
+    const seen = new Map<Reaction, number[]>();
     const value = async (r: Reaction) => {
       let sum = 0;
+      const vals: number[] = [];
       for (const w of worlds) {
-        const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
-        cg.s.rng = w.rng;
-        hideInfo(cg, p);
-        await playOut(cg, p, { reaction: r, attacker });
-        sum += playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
+        const v = await this.reactionWorld(g, p, r, w);
+        vals.push(v);
+        sum += v;
       }
+      seen.set(r, vals);
       return sum / worlds.length;
     };
     const baseV = endIdx >= 0 ? await value(rx[endIdx]) : -Infinity;
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
+    this.lastScores = { kind: 'reaction', scale: 'deep', opts: reactionScores(g, rx, (r) => seen.get(r) ?? null), chosen: bestI, worlds, d };
     return bestI;
   }
 
@@ -1055,6 +1229,34 @@ export class HeuristicAgent implements Agent {
   }
 }
 
+const r1 = (x: number) => Math.round(x * 10) / 10;
+
+/**
+ * DecisionScores → the compact telemetry form (ScoreRecord): values relative to the chosen option, best first, at most
+ * MAX_SCORED_OPTIONS; the claimed margin; for deep main-phase decisions the 1-ply rank of the chosen move and the deep
+ * rank of the 1-ply screen's top. null when the scores are not for `d` or fewer than two options were valued.
+ */
+export function compactScores(s: DecisionScores | null, d: Decision): ScoreRecord | null {
+  if (!s || s.d !== d || s.opts.length < 2) return null;
+  const mine = s.opts.find((x) => x.i === s.chosen);
+  if (!mine) return null;
+  const sorted = [...s.opts].sort((a, b) => b.v - a.v);
+  const other = Math.max(...s.opts.filter((x) => x !== mine).map((x) => x.v));
+  const rec: ScoreRecord = {
+    by: s.scale,
+    o: sorted.slice(0, MAX_SCORED_OPTIONS).map((x) => [x.i, r1(x.v - mine.v)]),
+    m: r1(mine.v - other),
+  };
+  if (s.kind === 'sell') rec.sell = true;
+  if (s.screen && s.screen.length > 1) {
+    const screen = [...s.screen].sort((a, b) => b.v - a.v);
+    rec.r1 = screen.findIndex((x) => x.i === s.chosen);
+    rec.rd = sorted.findIndex((x) => x.i === screen[0].i);
+  }
+  if (s.worlds && s.worlds.length > 1) rec.nw = s.worlds.length;
+  return rec;
+}
+
 /** Standard error of the mean of xs (sample SD / √n); 0 for fewer than 2 values. */
 export function standardError(xs: readonly number[]): number {
   const n = xs.length;
@@ -1093,6 +1295,27 @@ function fastPrior(g: Game, a: Action): number {
     default:
       return 0;
   }
+}
+
+/**
+ * The reactions a decision valued, as lastScores options: per-world values from `vals` (an unknown Call is the mean over
+ * every unknown slot, as pickReaction values it), plus pickReaction's 0.5 for a Call. Options never valued are left out.
+ */
+function reactionScores(g: Game, rx: Reaction[], vals: (r: Reaction) => number[] | null): ScoredOption[] {
+  const unknown = rx.filter((r) => isUnknownCall(g, r));
+  const out: ScoredOption[] = [];
+  for (let i = 0; i < rx.length; i++) {
+    const r = rx[i];
+    let w: number[] | null;
+    if (isUnknownCall(g, r)) {
+      const all = unknown.map(vals);
+      w = all.every((x): x is number[] => x !== null) && all.length ? all[0].map((_, k) => all.reduce((a, x) => a + x[k], 0) / all.length) : null;
+    } else w = vals(r);
+    if (!w || !w.length) continue;
+    const off = r.type === 'call' ? 0.5 : 0;
+    out.push({ i, v: w.reduce((a, x) => a + x, 0) / w.length + off, w, off });
+  }
+  return out;
 }
 
 /**

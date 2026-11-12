@@ -233,14 +233,15 @@ parentPort?.on('message', async (job: MatchJob) => {
       trace: job.trace,
     });
     // the recorder only observes (tests/decision-telemetry.test.ts): with or without it the game is the same
-    const rec = job.decisions || job.synergies ? new DecisionRecorder({ boards: !!job.synergies }) : null;
+    // with decisions, also the bots' own option scores (INFO-6): read after each answer, aggregated here like the rest
+    const rec = job.decisions || job.synergies ? new DecisionRecorder({ boards: !!job.synergies, scores: !!job.decisions }) : null;
     g.telemetry = rec;
     const s = await g.run();
     let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords' | 'synergies' | 'synergySize'> = {};
     if (rec) {
       const records = rec.finish(g);
       if (job.decisions) {
-        const agg = aggregateGame({ records, players: [s.players[0], s.players[1]], winner: s.winner });
+        const agg = aggregateGame({ records, players: [s.players[0], s.players[1]], winner: s.winner, bots: rec.bots });
         decisions = {
           decisions: agg,
           decisionSize: { records: records.length, rawBytes: JSON.stringify(records).length, aggregateBytes: JSON.stringify(agg).length },

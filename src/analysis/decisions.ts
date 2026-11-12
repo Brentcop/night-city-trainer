@@ -12,6 +12,7 @@ import { CARD_BY_ID, cardLabel } from '../engine/cards';
 import { DECISION_TELEMETRY_SCHEMA, parseOption, type AttackOutcome, type DecisionRecord } from '../engine/telemetry';
 import type { PlayerId } from '../engine/types';
 import type { RunManifest } from '../lib/runManifest';
+import { GIG_SWING } from '../ai/eval';
 
 /**
  * Game stage, by round: round = ceil(global turn / 2), so both players' Nth turns share a round. Early is rounds 1–2
@@ -117,12 +118,46 @@ export interface DeckAgg {
   kinds: Record<string, KindAgg>;
   reactions: ReactionAgg;
 }
+/**
+ * Decisions counted one by one, for the calibration of the bot's own scores: `n` decisions in `games` games, `won` of
+ * them made by the side that won the game (ties half). The rate is over decisions; its interval uses the game count
+ * (decisions in one game are not independent).
+ */
+export interface DecCell {
+  n: number;
+  won: number;
+  games: number;
+}
+/**
+ * The bands of the margin the deciding bot claimed for its choice (its chosen option's value minus the best other
+ * option's, in Gigs: one Gig swing = GIG_SWING evaluation points). '<0': it chose below its top value (a reaction kept
+ * under its 0.5 bar, a near-tie, noise).
+ */
+export const MARGIN_BANDS = ['<0', '0–0.05', '0.05–0.15', '0.15–0.5', '0.5–1', '1+'] as const;
+export type MarginBand = (typeof MARGIN_BANDS)[number];
+export function marginBand(points: number): MarginBand {
+  const x = points / GIG_SWING;
+  return x < 0 ? '<0' : x < 0.05 ? '0–0.05' : x < 0.15 ? '0.05–0.15' : x < 0.5 ? '0.15–0.5' : x < 1 ? '0.5–1' : '1+';
+}
+/** One bot label and decision type: outcome by claimed margin, and (deep main phase) whether the rollouts overturned the 1-ply pick. */
+export interface CalibrationAgg {
+  /** decisions with scores */
+  scored: number;
+  bands: Partial<Record<MarginBand, DecCell>>;
+  /** deep main phase: the rollouts kept the 1-ply screen's top pick */
+  kept?: DecCell;
+  /** deep main phase: the rollouts chose another move than the 1-ply screen's top */
+  overturned?: DecCell;
+}
+
 export interface DecisionAggregate {
   telemetrySchema: number;
   games: number;
   records: number;
   /** by deck list fingerprint (PlayerState.listId) */
   decks: Record<string, DeckAgg>;
+  /** recorder option `scores`: by bot label (ScoreSource.configLabel), then score type ('main deep', 'sell deep', 'react 1ply', ...) */
+  calibration?: Record<string, Record<string, CalibrationAgg>>;
 }
 
 export interface GamePlayer {
@@ -134,6 +169,8 @@ export interface GameDecisions {
   records: readonly DecisionRecord[];
   players: readonly [GamePlayer, GamePlayer];
   winner: PlayerId | 'tie' | null;
+  /** each seat's bot label (DecisionRecorder.bots), for the calibration section; unlabelled when absent */
+  bots?: readonly [string | null, string | null];
 }
 
 const cell = (): Cell => ({ uses: 0, games: 0, wins: 0 });
@@ -274,8 +311,60 @@ export function aggregateGame(game: GameDecisions): DecisionAggregate {
     }
     const key = deck.listId;
     agg.decks[key] = agg.decks[key] ? mergeDeck(agg.decks[key], deck) : deck;
+    // the bot's own scores (recorder option `scores`): outcome by claimed margin, and 1-ply against deep
+    const scored = game.records.filter((r) => r.p === p && r.sc);
+    if (scored.length) {
+      const bot = game.bots?.[p] ?? 'unlabelled';
+      const byType = ((agg.calibration ??= {})[bot] ??= {});
+      const inGame = new Set<DecCell>();
+      const add = (c: DecCell) => {
+        c.n++;
+        c.won += result;
+        inGame.add(c);
+      };
+      for (const r of scored) {
+        const sc = r.sc!;
+        const cal = (byType[scoreType(r)] ??= { scored: 0, bands: {} });
+        cal.scored++;
+        add((cal.bands[marginBand(sc.m)] ??= decCell()));
+        if (sc.r1 !== undefined) add(sc.r1 === 0 ? (cal.kept ??= decCell()) : (cal.overturned ??= decCell()));
+      }
+      // games are player-games: both seats of one game can add to the same cell
+      for (const c of inGame) c.games++;
+    }
   }
   return agg;
+}
+
+const decCell = (): DecCell => ({ n: 0, won: 0, games: 0 });
+const addDec = (a: DecCell, b: DecCell): DecCell => ({ n: a.n + b.n, won: a.won + b.won, games: a.games + b.games });
+/** The calibration key of a scored decision: the sell comparison or the decision type, and the scale ('main deep'). */
+const scoreType = (r: DecisionRecord) => `${r.sc!.sell ? 'sell' : decisionType(r)} ${r.sc!.by}`;
+
+function mergeCalibration(a: DecisionAggregate['calibration'], b: DecisionAggregate['calibration']): DecisionAggregate['calibration'] {
+  if (!a) return b;
+  if (!b) return a;
+  const out: NonNullable<DecisionAggregate['calibration']> = { ...a };
+  for (const [bot, types] of Object.entries(b)) {
+    const into = { ...(out[bot] ?? {}) };
+    for (const [t, x] of Object.entries(types)) {
+      const y = into[t];
+      if (!y) {
+        into[t] = x;
+        continue;
+      }
+      const bands: CalibrationAgg['bands'] = { ...y.bands };
+      for (const [k, c] of Object.entries(x.bands) as [MarginBand, DecCell][]) bands[k] = bands[k] ? addDec(bands[k]!, c) : c;
+      const m: CalibrationAgg = { scored: y.scored + x.scored, bands };
+      const kept = y.kept && x.kept ? addDec(y.kept, x.kept) : (y.kept ?? x.kept);
+      const over = y.overturned && x.overturned ? addDec(y.overturned, x.overturned) : (y.overturned ?? x.overturned);
+      if (kept) m.kept = kept;
+      if (over) m.overturned = over;
+      into[t] = m;
+    }
+    out[bot] = into;
+  }
+  return out;
 }
 
 const addCell = (a: Cell, b: Cell): Cell => ({ uses: a.uses + b.uses, games: a.games + b.games, wins: a.wins + b.wins });
@@ -344,6 +433,8 @@ export function mergeAggregates(...aggs: DecisionAggregate[]): DecisionAggregate
     out.games += a.games;
     out.records += a.records;
     for (const [k, d] of Object.entries(a.decks)) out.decks[k] = out.decks[k] ? mergeDeck(out.decks[k], d) : d;
+    const cal = mergeCalibration(out.calibration, a.calibration);
+    if (cal) out.calibration = cal;
   }
   return out;
 }
@@ -444,6 +535,55 @@ export interface DecisionReport {
   decks: DeckDecisionReport[];
   /** the same, every list pooled per card (more games per slice, but different decks mixed together) */
   pooled: CardReport[];
+  /** the bot's own scores against outcomes (recorder option `scores`), every deck pooled; absent when none were recorded */
+  calibration?: CalibrationReport[];
+}
+
+/** A rate over decisions (DecCell), with the interval from its game count; `thin` under MIN_SLICE_GAMES games. */
+export interface DecSlice {
+  decisions: number;
+  games: number;
+  winRate: number | null;
+  low95: number | null;
+  high95: number | null;
+  thin: boolean;
+}
+export function decSlice(c: DecCell | undefined, minGames = MIN_SLICE_GAMES): DecSlice {
+  const x = c ?? decCell();
+  if (x.games < minGames || x.n === 0) return { decisions: x.n, games: x.games, winRate: null, low95: null, high95: null, thin: true };
+  const rate = x.won / x.n;
+  const { low, high } = wilson(rate * x.games, x.games);
+  return { decisions: x.n, games: x.games, winRate: rate, low95: low, high95: high, thin: false };
+}
+export interface CalibrationReport {
+  bot: string;
+  /** 'main deep', 'main 1ply', 'sell deep', 'react deep', ... */
+  type: string;
+  scored: number;
+  /** the deciding side's win rate by the margin it claimed for its choice (Gigs) */
+  bands: Record<MarginBand, DecSlice>;
+  /** deep main phase: decisions where the rollouts kept the 1-ply top pick, and where they overturned it */
+  kept?: DecSlice;
+  overturned?: DecSlice;
+  /** overturned / (kept + overturned) */
+  overturnRate?: number;
+}
+
+function calibrationReports(cal: NonNullable<DecisionAggregate['calibration']>, minGames: number): CalibrationReport[] {
+  const out: CalibrationReport[] = [];
+  for (const [bot, types] of Object.entries(cal).sort(([a], [b]) => a.localeCompare(b)))
+    for (const [type, c] of Object.entries(types).sort(([, a], [, b]) => b.scored - a.scored)) {
+      const r: CalibrationReport = { bot, type, scored: c.scored, bands: Object.fromEntries(MARGIN_BANDS.map((k) => [k, decSlice(c.bands[k], minGames)])) as Record<MarginBand, DecSlice> };
+      if (c.kept || c.overturned) {
+        r.kept = decSlice(c.kept, minGames);
+        r.overturned = decSlice(c.overturned, minGames);
+        const k = c.kept?.n ?? 0;
+        const o = c.overturned?.n ?? 0;
+        r.overturnRate = k + o ? o / (k + o) : 0;
+      }
+      out.push(r);
+    }
+  return out;
 }
 
 const REPORT_NOTE =
@@ -517,6 +657,7 @@ export function decisionReport(agg: DecisionAggregate, o: { manifest?: RunManife
     decks,
     pooled: cardReports(pooledCards, minGames),
   };
+  if (agg.calibration) out.calibration = calibrationReports(agg.calibration, minGames);
   if (o.manifest) out.manifest = o.manifest;
   if (o.measurements) out.measurements = o.measurements;
   return out;
@@ -572,5 +713,33 @@ export function decisionMarkdown(r: DecisionReport, o: { cardsPerDeck?: number }
     }
     L.push('');
   }
+  if (r.calibration?.length) L.push(...calibrationMarkdown(r.calibration, r.minSliceGames));
   return L.join('\n');
+}
+
+/** "54% (41–66) 310 in 63 games", or "12 in 9 games (thin)" */
+function decSliceText(s: DecSlice): string {
+  if (s.decisions === 0) return '—';
+  if (s.thin) return `${s.decisions} in ${s.games} games (thin)`;
+  return `${pct(s.winRate)} (${Math.round(s.low95! * 100)}–${Math.round(s.high95! * 100)}) ${s.decisions} in ${s.games} games`;
+}
+
+/** The calibration section: the bot's claimed margins against outcomes, and how often the rollouts overturned the 1-ply pick. */
+export function calibrationMarkdown(cal: readonly CalibrationReport[], minGames: number): string[] {
+  const L: string[] = [
+    '## The bot’s own scores against outcomes (calibration check)',
+    '',
+    `> Association only, like the rest of this report: the deciding side's win rate over its decisions, by the margin the bot claimed for its choice (its value minus the best other option's, in Gigs), and by whether the deep rollouts kept the 1-ply screen's top pick. A big claimed margin often comes in positions that are already won or lost, so a rising win rate is not proof the margins are right; a flat one says they carry little. Intervals use the game count (decisions in one game are not independent); under ${minGames} games a cell shows only its counts.`,
+    '',
+    `| Bot | Scores | Scored | ${MARGIN_BANDS.map((b) => `${b} Gigs`).join(' | ')} |`,
+    `|---|---|---|${MARGIN_BANDS.map(() => '---').join('|')}|`,
+  ];
+  for (const c of cal) L.push(`| ${c.bot} | ${c.type} | ${c.scored} | ${MARGIN_BANDS.map((b) => decSliceText(c.bands[b])).join(' | ')} |`);
+  const deep = cal.filter((c) => c.kept && c.overturned);
+  if (deep.length) {
+    L.push('', '| Bot | Scores | Deep decisions | Rollouts kept the 1-ply pick | Rollouts overturned it | Overturned |', '|---|---|---|---|---|---|');
+    for (const c of deep) L.push(`| ${c.bot} | ${c.type} | ${c.kept!.decisions + c.overturned!.decisions} | ${decSliceText(c.kept!)} | ${decSliceText(c.overturned!)} | ${pct(c.overturnRate ?? null)} |`);
+  }
+  L.push('');
+  return L;
 }

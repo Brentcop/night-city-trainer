@@ -248,7 +248,7 @@ describe('coach sell near-ties', () => {
     expect(sellTieBreak(1, vals, 10, 0, credit)).toBeNull();
     // a card that is not scarce is sold as chosen
     expect(sellTieBreak(2, vals, 10, 0.5, credit)).toBeNull();
-    // the coach's margin is 0.05 Gigs, where its alternatives read "about as good"
+    // the coach's margin is 0.05 Gigs, well inside what its alternatives call a "close call"
     expect(COACH_SELL_KEEP_GIGS).toBe(0.05);
     expect(new HeuristicAgent().opts.sellKeepScarce).toBe(0);
   });

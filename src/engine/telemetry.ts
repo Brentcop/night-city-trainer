@@ -101,6 +101,39 @@ export interface AttackRef {
   target: string;
 }
 
+/** At most this many scored options are kept per record (best first). */
+export const MAX_SCORED_OPTIONS = 8;
+
+/**
+ * Optional (recorder option `scores`): what the deciding agent thought of the options, when it exposes it (the lookahead
+ * bots do, through `ScoreSource`). Values are evaluation points (one Gig swing is about 40), rounded to 0.1.
+ */
+export interface ScoreRecord {
+  /** what the values are: 'deep' rollouts (deep main phase, deep reactions, sells compared by rollout) or a '1ply' evaluation */
+  by: 'deep' | '1ply';
+  /** the sell comparison (sellLookahead) rather than the main-phase lookahead */
+  sell?: true;
+  /** [option index, value − the chosen option's value], best first, at most MAX_SCORED_OPTIONS */
+  o: [number, number][];
+  /** the chosen option's value minus the best other option's: the margin the agent claimed (< 0: not its top value, e.g. a reaction kept below its 0.5 bar) */
+  m: number;
+  /** deep main phase: the chosen option's rank in the 1-ply screen (0 = the screen's own top: the rollouts kept it) */
+  r1?: number;
+  /** deep main phase: where the 1-ply screen's top pick ended after the rollouts (0 = chosen) */
+  rd?: number;
+  /** shared worlds the rollouts used, when there were several */
+  nw?: number;
+}
+
+/** An agent that can say what it thought of a decision it just answered (HeuristicAgent). Read only: no state changes. */
+export interface ScoreSource {
+  decisionScores(d: Decision): ScoreRecord | null;
+  /** a short label of its configuration (the bot tier, or the options that differ from the defaults) */
+  configLabel(): string;
+}
+
+const isScoreSource = (a: unknown): a is ScoreSource => typeof (a as ScoreSource | null)?.decisionScores === 'function' && typeof (a as ScoreSource).configLabel === 'function';
+
 export interface DecisionRecord {
   /** index of this decision in the game, from 0: the same code and seed give the same index for the same decision */
   i: number;
@@ -131,6 +164,8 @@ export interface DecisionRecord {
   pay?: PaymentRecord;
   /** filled in afterwards: what the chosen Call revealed, and how the attack this decision belongs to ended */
   res?: { revealed?: string; attack?: AttackOutcome };
+  /** recorder option `scores`: the deciding agent's own scores of the options, when it exposes them (see ScoreRecord) */
+  sc?: ScoreRecord;
 }
 
 /**
@@ -371,6 +406,8 @@ function boardOf(g: Game, p: PlayerId, at: BoardSnapshot['at']): BoardSnapshot {
 export interface RecorderOptions {
   /** also keep board snapshots and card sightings for both players (src/analysis/synergies.ts reads them) */
   boards?: boolean;
+  /** also keep the deciding agent's own option scores (`sc` on each record) and each seat's `bots` label, when the agent exposes them */
+  scores?: boolean;
 }
 
 /** Records every decision of the one Game it is attached to (see the file header). */
@@ -385,11 +422,15 @@ export class DecisionRecorder {
   /** chosen Calls whose Legend is revealed after the decision */
   private calls: { rec: DecisionRecord; uid: number }[] = [];
   private readonly withBoards: boolean;
+  private readonly withScores: boolean;
   private lastBoard: [string, string] = ['', ''];
   private seen = new Set<number>();
+  /** with `scores`: each seat's agent label (ScoreSource.configLabel), null for an agent that exposes no scores */
+  readonly bots: [string | null, string | null] = [null, null];
 
   constructor(opts: RecorderOptions = {}) {
     this.withBoards = !!opts.boards;
+    this.withScores = !!opts.scores;
   }
 
   /** Board snapshots and sightings for both players (only with the `boards` option). Reads only. */
@@ -472,6 +513,14 @@ export class DecisionRecorder {
     const codes = this.codes.get(rec);
     this.codes.delete(rec);
     rec.ch = chosen.map((k) => codes?.[k] ?? encodeOption(g, d, d.options[k], k));
+    if (this.withScores) {
+      const ag = g.agents[d.player];
+      if (isScoreSource(ag)) {
+        this.bots[d.player] ??= ag.configLabel();
+        const sc = ag.decisionScores(d);
+        if (sc) rec.sc = sc;
+      }
+    }
     for (const k of chosen) {
       const a = d.options[k]?.action;
       if (a && a.type === 'call') this.calls.push({ rec, uid: a.uid });

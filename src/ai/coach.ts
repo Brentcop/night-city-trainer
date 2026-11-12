@@ -1,9 +1,11 @@
 // Coach: turns the advisor bot's decision into human advice (why, alternatives, matchup plan, deck tips, warnings).
 import { Game, other } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
-import type { Agent, Decision, GameState, Gig, Opt, PlayerId } from '../engine/types';
+import type { Action, Agent, Decision, GameState, Gig, Opt, PlayerId, Reaction } from '../engine/types';
 import { activeSteer, holdCredit, obtainableOf, packageFacts, partnerName, seatPackages, steerValue, steerWants, type PackageFacts, type SteerKind } from './packages';
-import { HeuristicAgent } from './heuristic';
+import { HeuristicAgent, standardError, worldValue, type DecisionScores } from './heuristic';
+import { makeWorlds, type World } from './playOut';
+import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
 import { GIG_SWING, knownCards } from './eval';
 import type { SynergyRole } from '../content/synergies/index';
@@ -11,10 +13,18 @@ import { impactDeckName, topImpactCards } from './impact';
 import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
-/** Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md). */
-const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 12, sellLookahead: 3, deepReactions: 3 };
 /**
- * The coach's sell advice breaks near-ties (within 0.05 Gigs, where the alternatives read "about as good") toward
+ * Shared worlds the coach scores every candidate in (HeuristicOptions.deepWorlds; also the worlds of its sell comparison,
+ * of its reactions and of an on-demand score of your move), so every gap it reports has a paired standard error.
+ * Chosen 2026-11-12 by response time (docs/IMPROVEMENT_BACKLOG.md INFO-1): one thread in Node, 171 main-phase and
+ * reaction decisions of Medium-vs-Hard games, the previous coach (12 candidates, one world each, reactions over 3) took
+ * 29 ms mean (p90 70, max 181); 6 candidates over 6 worlds 126 ms mean (p90 287, max 610); 8 over 6, 146 ms (p90 347).
+ */
+export const COACH_WORLDS = 6;
+/** Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md), then shared worlds (INFO-1). */
+const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 6, deepWorlds: COACH_WORLDS, sellLookahead: 3, deepReactions: COACH_WORLDS };
+/**
+ * The coach's sell advice breaks near-ties (within 0.05 Gigs, well inside what the alternatives call a "close call") toward
  * keeping a scarce piece of the player's own package (HeuristicOptions.sellKeepScarce). Bots never set it.
  */
 export const COACH_SELL_KEEP_GIGS = 0.05;
@@ -36,10 +46,55 @@ export function coachAdvises(d: Decision): boolean {
   return d.kind !== 'pay' && d.kind !== 'order';
 }
 
+/** One option the coach valued, as plain data: its value, and its value in each shared world when there were several. */
+export interface GradedOption {
+  /** option index */
+  i: number;
+  /** evaluation points, on the scale the coach chose on */
+  v: number;
+  /** the value in each of `GradeBasis.worlds` (constant terms included) */
+  w?: number[];
+}
+
+/**
+ * What the coach valued in this spot, so any move you make can be graded on the same scale and in the same worlds
+ * (gradeMove; a move it did not value is scored afterwards by scoreMoveRequest). Absent when a rule decided (a target,
+ * a mode, the mulligan, a sell with nothing to compare).
+ */
+export interface GradeBasis {
+  kind: 'main' | 'sell' | 'reaction';
+  opts: GradedOption[];
+  worlds?: World[];
+}
+
 export interface Advice {
   index: number;
   why: string;
-  alternatives: { index: number; label: string; gap: string; gapGigs: number }[];
+  /**
+   * Other options the coach weighed, best first: `gap` in words ("close call", "−0.4 Gigs"), `gapGigs` the value given up
+   * (≥ 0), `close` when it is within the noise of the coach's pick (see isClose), `se` the paired standard error in Gigs.
+   */
+  alternatives: { index: number; label: string; gap: string; gapGigs: number; close?: boolean; se?: number }[];
+  grade?: GradeBasis;
+}
+
+/** The coach's scores as plain data (each world's value with its constant terms). */
+function basisOf(s: DecisionScores | null): GradeBasis | undefined {
+  if (!s || !s.opts.length) return undefined;
+  const opts = s.opts.map((o): GradedOption => (o.w ? { i: o.i, v: o.v, w: o.w.map((_, k) => worldValue(o, k)) } : { i: o.i, v: o.v }));
+  return { kind: s.kind, opts, ...(s.worlds ? { worlds: s.worlds } : {}) };
+}
+
+/** Gap (Gigs) between the coach's pick `best` and option `o`, with the paired standard error when both have the same worlds. */
+function gapOf(best: GradedOption, o: GradedOption): { gap: number; se?: number } {
+  const gap = gigs(best.v - o.v);
+  if (!best.w || !o.w || best.w.length !== o.w.length || best.w.length < 2) return { gap };
+  return { gap, se: gigs(standardError(o.w.map((x, k) => x - best.w![k]))) };
+}
+
+/** A gap is a close call when it is under CLOSE_GIGS, or within 2 paired standard errors of the coach's pick. */
+export function isClose(gap: number, se?: number): boolean {
+  return gap < CLOSE_GIGS || (se !== undefined && gap <= 2 * se);
 }
 
 export async function advise(g: Game, d: Decision): Promise<Advice> {
@@ -57,10 +112,24 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
     why = /Sell/.test(label)
       ? `${label}: selling one card a turn is your mana growth. This is the least valuable card for your deck right now.`
       : `${label} — ${vsPass >= 0.05 ? `worth about ${vsPass.toFixed(1)} Gigs more than passing` : 'roughly even with passing; the alternatives are worse'}.`;
-    for (const a of coach.lastAlternatives) {
-      if (a.index === index) continue;
-      const gap = gigs(best.delta - a.delta);
-      alternatives.push({ index: a.index, label: a.label, gap: gap < 0.05 ? 'about as good' : `−${gap.toFixed(1)} Gigs`, gapGigs: Math.max(0, gap) });
+  }
+  const grade = basisOf(coach.lastScores);
+  const mine = grade?.opts.find((o) => o.i === index);
+  if (grade && mine) {
+    // the three best other options it valued (main phase, the sells it compared, or reactions)
+    for (const o of [...grade.opts].sort((a, b) => b.v - a.v)) {
+      if (o.i === index) continue;
+      if (alternatives.length >= 3) break;
+      const { gap, se } = gapOf(mine, o);
+      const close = isClose(gap, se);
+      alternatives.push({
+        index: o.i,
+        label: d.options[o.i]?.label ?? '?',
+        gap: close ? 'close call' : `−${gap.toFixed(1)} Gigs`,
+        gapGigs: Math.max(0, gap),
+        close,
+        ...(se !== undefined ? { se } : {}),
+      });
     }
   }
   // other decisions (reactions, targets): turn the bot's raw scores into plain words
@@ -73,7 +142,7 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
   const tie = coach.lastSellKeep;
   if (tie) notes.unshift(sellTieNote(g, d.player, tie));
   if (notes.length) why = [why, ...notes].filter(Boolean).join(' ');
-  return { index, why, alternatives };
+  return { index, why, alternatives, ...(grade ? { grade } : {}) };
 }
 
 /** "Sell A or B: about as good (within 0.05 Gigs); keep B, your only payoff for X left." */
@@ -235,30 +304,102 @@ const noAgent: Agent = {
   decide: () => Promise.reject(new Error('the coach position has no agents')),
 };
 
+/** The game of a serialised position (its own copy of the state: the request can be reused). */
+function rebuild(q: CoachRequest): Game {
+  const g = new Game(structuredClone(q.state), [noAgent, noAgent]);
+  g.pending = q.pending.map((x) => ({ ...x, run: async () => undefined }));
+  return g;
+}
+
 /** advise() for a serialised position: rebuilds the game and asks the same coach. */
 export function adviseRequest(q: CoachRequest): Promise<Advice> {
-  const g = new Game(q.state, [noAgent, noAgent]);
-  g.pending = q.pending.map((x) => ({ ...x, run: async () => undefined }));
-  return advise(g, q.decision);
+  return advise(rebuild(q), q.decision);
 }
+
+/** A gap under this many Gigs is a close call whatever its spread (the scorecard's threshold before INFO-1). */
+export const CLOSE_GIGS = 0.15;
+/** A gap of this many Gigs or more (outside the noise) is a mistake: the reviewer's blunder line (BLUNDER, ≈ 0.4 Gigs). */
+export const MISTAKE_GIGS = BLUNDER / GIG_SWING;
+
+/**
+ * How a move compares with the coach's pick, by value:
+ *   agree       the coach's own pick
+ *   best        another move the coach values at least as high
+ *   close       a close call: under CLOSE_GIGS behind, or within 2 paired standard errors (counts as fine)
+ *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS
+ *   mistake     behind by MISTAKE_GIGS or more, outside the noise
+ *   pending     being scored (a move the coach did not value: scoreMoveRequest)
+ *   unscored    a different choice the coach can't value (a target, a mode, the mulligan), or scoring failed
+ */
+export type MoveVerdict = 'agree' | 'best' | 'close' | 'inaccuracy' | 'mistake' | 'pending' | 'unscored';
 
 export interface MoveGrade {
   turn: number;
   chose: string;
   coach: string;
-  /** Gigs given up vs the coach's pick; null when the move was outside the coach's shortlist */
+  /** Gigs given up vs the coach's pick (< 0: the move was valued higher); null when it can't be measured (yet) */
   gap: number | null;
-  verdict: 'agree' | 'close' | 'miss';
+  /** the paired standard error of the gap in Gigs, when both moves were scored in the same worlds */
+  se?: number;
+  verdict: MoveVerdict;
 }
 
-/** Grade a human decision against the coach's advice for the same spot. */
-export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number): MoveGrade {
+/** Verdicts the scorecard counts as fine. */
+export const FINE_VERDICTS: readonly MoveVerdict[] = ['agree', 'best', 'close'];
+
+/**
+ * Grade a human decision against the coach's advice for the same spot, by value: the move's own score in the coach's
+ * worlds (from the advice, or `extra` from scoreMoveRequest), not its place in the shortlist. A move the coach did not
+ * value in a decision it can score is 'pending' until scored (`extra` undefined); once scoring has run (`extra` given,
+ * empty if it failed) a move still without a value is 'unscored'.
+ */
+export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number, extra?: readonly GradedOption[]): MoveGrade {
   const chose = d.options[chosen]?.label ?? '?';
   const coach = d.options[a.index]?.label ?? '?';
   if (chosen === a.index) return { turn, chose, coach, gap: 0, verdict: 'agree' };
-  const alt = a.alternatives.find((x) => x.index === chosen);
-  const gap = alt ? alt.gapGigs : null;
-  return { turn, chose, coach, gap, verdict: gap !== null && gap < 0.15 ? 'close' : 'miss' };
+  // scored together (extra) when the advice had no worlds to score in
+  const find = (i: number) => extra?.find((o) => o.i === i) ?? a.grade?.opts.find((o) => o.i === i);
+  const best = find(a.index);
+  const mine = find(chosen);
+  if (!best || !mine) return { turn, chose, coach, gap: null, verdict: scorable(d) && extra === undefined ? 'pending' : 'unscored' };
+  const { gap, se } = gapOf(best, mine);
+  const verdict: MoveVerdict = gap <= 0 ? 'best' : isClose(gap, se) ? 'close' : gap >= MISTAKE_GIGS ? 'mistake' : 'inaccuracy';
+  return { turn, chose, coach, gap, ...(se !== undefined ? { se } : {}), verdict };
+}
+
+/** Decisions whose every option the coach can value by rollout: main-phase actions and reactions. */
+export const scorable = (d: Decision) => d.kind === 'action' || d.kind === 'reaction';
+
+/** Everything scoreMoveRequest needs: the snapshot the advice was made from, the move made, and the coach's own scores. */
+export interface ScoreRequest {
+  req: CoachRequest;
+  chosen: number;
+  coach: number;
+  grade?: GradeBasis;
+}
+
+/**
+ * Score your move in the worlds the coach's advice used, after you made it (the advice is computed before you move, so
+ * a move it did not roll out is valued on demand, off the board's thread). When the advice has no worlds for its own
+ * pick (it sold by rule, or had one option to roll out), both moves are scored in COACH_WORLDS fresh shared worlds.
+ * Returns the scored options (yours, and the coach's when it was rescored).
+ */
+export async function scoreMoveRequest(q: ScoreRequest): Promise<GradedOption[]> {
+  const g = rebuild(q.req);
+  const d = q.req.decision;
+  if (!scorable(d)) return [];
+  const coach = makeCoach();
+  const p = d.player;
+  const pick = q.grade?.opts.find((o) => o.i === q.coach);
+  const reuse = q.grade?.worlds && pick?.w && pick.w.length === q.grade.worlds.length;
+  let seed = 0x5eed;
+  const worlds = reuse ? q.grade!.worlds! : makeWorlds(COACH_WORLDS, () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296));
+  const idx = reuse ? [q.chosen] : [q.coach, q.chosen];
+  const vals =
+    d.kind === 'reaction'
+      ? await coach.valueReaction(g, p, d.options.map((o) => o.action as Reaction), idx, worlds)
+      : await coach.valueMain(g, p, d.options.map((o) => o.action as Action), idx, worlds);
+  return vals.map((o) => ({ i: o.i, v: o.v, w: o.w!.map((_, k) => worldValue(o, k)) }));
 }
 
 /** Static matchup plan + deck tips for the human player (p = 0). */

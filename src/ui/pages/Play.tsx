@@ -9,7 +9,7 @@ import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
 import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
-import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
+import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
 import { Modal, useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, type Targeting } from '../components/board/interaction';
@@ -122,7 +122,7 @@ function Board({
       for (const k of Object.keys(vars)) st.removeProperty(k);
     };
   }, [phone]);
-  const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives'] } | null>(null);
+  const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives']; advice: Advice } | null>(null);
   const [reviewReq, setReviewReq] = useState<ReviewRequest | null>(null);
   const [toast, setToast] = useState<MoveGrade | null>(null);
   useEffect(() => {
@@ -146,7 +146,8 @@ function Board({
   const [peek, setPeek] = useState<{ uid: number; choose?: number; d: Decision | null } | null>(null);
   const [collapsedFor, setCollapsedFor] = useState<Decision | null>(null);
   const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
-  const advise = useCoach();
+  const coachApi = useCoach();
+  const advise = coachApi.advise;
 
   // Undo swaps in a restored game (same match, so the board stays mounted): close what belonged to the old one
   useEffect(() => {
@@ -162,7 +163,7 @@ function Board({
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend)
       .then((a) => {
-        if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives });
+        if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives, advice: a });
       })
       .catch(() => undefined);
     return () => {
@@ -229,14 +230,27 @@ function Board({
       setMenu(null);
       setTargeting(null);
       if (!d || !human.answer(d, i)) return;
-      // grade the move against the coach (only when the advice for this exact spot is ready)
+      // grade the move against the coach by value (only when the advice for this exact spot is ready)
       if (coach && activeHint && activeHint.d === d && d.options.length > 1) {
-        const gr = gradeMove(d, i, { index: activeHint.i, why: activeHint.why, alternatives: activeHint.alts }, g.s.turn);
+        const advice = activeHint.advice;
+        const gr = gradeMove(d, i, advice, g.s.turn);
         grades.push(gr);
         setToast(gr);
+        if (gr.verdict === 'pending') {
+          // a move the coach did not value: scored in its worlds off the board's thread; play goes on meanwhile. Undo
+          // truncates `grades`, so a score that arrives for an undone move finds its placeholder gone and is dropped.
+          const settle = (extra: GradedOption[]) => {
+            const k = grades.indexOf(gr);
+            if (k < 0) return;
+            const done = gradeMove(d, i, advice, gr.turn, extra);
+            grades[k] = done;
+            setToast((t) => (t === gr ? done : t));
+          };
+          coachApi.score(d, i, advice).then(settle, () => settle([]));
+        }
       }
     },
-    [human, coach, activeHint, g, grades],
+    [human, coach, activeHint, g, grades, coachApi],
   );
   const answer = useCallback((i: number) => answerFor(pend, i), [answerFor, pend]);
 

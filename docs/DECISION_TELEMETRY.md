@@ -49,6 +49,7 @@ The recorder only reads: it draws no random numbers, asks no agent and changes n
 | `atk` | the attack in progress, or declared by this main-phase choice: `{ n, attacker, target }` (`target` is `gigs` or the Unit's id) |
 | `pay` | €$ this decision paid and what paid it: `{ amount, eddies, faceDown, legends: [ids] }` (a Legend paying toward its own Go Solo or ordinary play is in `legends`) |
 | `res` | filled in afterwards: `revealed` (the Legend a chosen Call flipped) and `attack` (`{ end: fizzled \| fight \| steal, blocked, stolen, attackerGone, targetGone }`) |
+| `sc` | optional (recorder option `scores`): the deciding bot's own scores, see below |
 
 Option codes: `pass`, `endReact`, `sell:ID`, `play:ID`, `call:ID`, `solo:ID` (Go Solo), `legend:ID` (ordinary Legend play, rule 4.5), `ability:ID#k`, `attack:ID>gigs`, `attack:ID>TARGET`, `block:ID`; for other kinds `yes`, `no`, `none`, `mode:k`, `card:ID`, `unit:ID`, `gig:WHERE:dS=V` (WHERE is own, rival, fixer or rivalFixer), `effect:ID` (pending order), `pay:eddie` / `pay:fd` / `pay:ID`, `n:K`, `key:K`, `#k`.
 
@@ -57,6 +58,19 @@ Payments are credited to the payer's latest decision of the same turn that is no
 The engine has no separate "response to a Quick" window: Quick Programs are played as reactions in the attack's reaction window, so they appear as `react` decisions. `pay` and `order` decisions are only asked of agents that opt in (`choosesPayment`, `choosesOrder`: the human seat); bots never get them, so bot runs record their payments in `pay` on the deciding record instead.
 
 **Board snapshots (optional, 2026-11-11).** `new DecisionRecorder({ boards: true })` also keeps `recorder.boards` (each player's own public board before every decision and at the end of every main phase, deduplicated: their Units, equipped Gear, face-up Legends, Gigs, both Street Creds, trash counts by type) and `recorder.sightings` (the first time each of a player's own main-deck cards was in their hand or in play, from turn 1). The engine calls `turnEnd` at the start of the end phase for them. Records are unchanged, so the schema stays 1; the plain recorder keeps neither. The synergy observer reads them: see [SYNERGIES.md](SYNERGIES.md).
+
+**The bot's own scores (optional, 2026-11-12, INFO-6).** `new DecisionRecorder({ scores: true })` also asks the deciding agent, right after it answers, what it thought of the options, when the agent exposes it (`ScoreSource` in `src/engine/telemetry.ts`: `decisionScores(d)` and `configLabel()`; `HeuristicAgent` implements both from `lastScores`, which it fills on every main-phase lookahead, sell comparison and reaction). The record gets `sc`:
+
+| Field | Meaning |
+|---|---|
+| `by` | `deep` (rollouts: deep main phase, deep reactions, sells compared by rollout) or `1ply` (one step evaluated) |
+| `sell` | `true` for the sell comparison (`sellLookahead`), not the main-phase lookahead |
+| `o` | `[option index, value − the chosen option's value]`, best first, at most 8 (`MAX_SCORED_OPTIONS`), evaluation points to 0.1 (one Gig swing is 40) |
+| `m` | the claimed margin: the chosen option's value minus the best other option's (< 0 when it chose below its top value: a reaction kept under its 0.5 bar, a near tie) |
+| `r1`, `rd` | deep main phase only: the chosen move's rank in the 1-ply screen (0 = the rollouts kept the screen's pick; > 0 = they overturned it) and where the screen's pick ended after the rollouts |
+| `nw` | the number of shared worlds, when there were several |
+
+and `recorder.bots` holds each seat's label once (the tier from `makeTierBot`, e.g. `hard`, or the options that differ from a plain lookahead bot, e.g. `deep3 w4 imp40`). Decisions decided by a rule (effect choices, the mulligan, a rule sell with nothing compared) get no `sc`. Reading the scores is observe-only like the rest (the agent computes them whether or not anyone reads them; no random number is drawn): `tests/decision-scores.test.ts` plays Medium and Hard with the option on and off and checks the same game and the same bot state. `npm run sim -- analyze --decisions` turns it on. On 210 Hard games it added about 10% to the raw records (58.6 KB per game against 53.5 KB in the first report); only the aggregate leaves the worker (12.7 KB per game).
 
 ## Hidden information
 
@@ -70,6 +84,7 @@ A record is written from the acting player's point of view, following what `hide
 - **Availability vs use:** decisions in which the use was legal (`offered`) and taken (`chosen`), and the turns (attacks, for reactions) in which it was legal (`windows`) and taken at least once (`windowsUsed`); `notChosenRate` = 1 − windowsUsed / windows. A face-down Legend's Call is counted for the card only once it is revealed.
 - **Per decision type** (the window, or kind/tag inside effects): decisions, how often the first-listed option was taken (pass, no more reactions, Yes, the automatic payment source, queue order), and the option-count distribution (1, 2, 3–5, 6–10, 11–20, 21+).
 - **Reaction window:** attacks the deck was asked to react to, reacted vs let resolve (with win rates), how those attacks ended (fizzled, stole, stole nothing, attacker gone, target gone, both, neither), and the reaction choices by kind.
+- **The bot's own scores against outcomes** (`calibration`, with the `scores` option; every deck pooled, by bot label and score type such as `main deep`, `sell deep`, `react deep`, `main 1ply`): the deciding side's win rate by the margin the bot claimed for its choice, in bands of `<0`, 0–0.05, 0.05–0.15, 0.15–0.5, 0.5–1 and 1+ Gigs (`MARGIN_BANDS`); and for deep main-phase decisions, how often the rollouts overturned the 1-ply screen's pick, with the win rate after each case. This is the first calibration check of the bot's own numbers, and it is association like everything else here: a large claimed margin often comes in a position already won or lost. The rate is over decisions (`DecCell`: decisions, decisions won, player-games), and its Wilson interval uses the game count, since decisions of one game are not independent; under 20 games a cell shows its counts only.
 
 **Stages** are by round, round = ceil(turn / 2): early rounds 1–2 (turns 1–4), middle rounds 3–4 (turns 5–8), late round 5 on (turn 9+); the mulligan counts as early. Bot games last about 13 turns, so the three stages cover similar stretches of a typical game. `STAGE_ROUNDS` in `src/analysis/decisions.ts` is the single definition.
 
@@ -105,6 +120,8 @@ Before / after (420 games, medium bot, seed 1):
 | BBG mulligans | 26 / 120 (22%) | 26 / 120 (22%) |
 
 The fix changes how reactions are chosen, not how often the four behaviours occur: they were explained by the cards, the decks and the rules, not by the scoring.
+
+**First look at the scores (2026-11-12, small sample).** `npm run sim -- analyze --decisions --games 10 --bot hard --seed 7 --out <scratch>`: 210 Hard games of the 7 meta decks, 18,952 decisions, 7,762 deep main-phase decisions and 1,036 deep reactions scored. Main phase, win rate by claimed margin: 0–0.05 Gigs 50% (45–54, 3,728 decisions), 0.05–0.15 54% (49–58), 0.15–0.5 56% (51–61), 0.5–1 51% (43–58), 1+ 54% (49–59). The rollouts overturned the 1-ply pick in 24% of deep main-phase decisions; the side won 52% (48–57) after a kept pick and 51% (46–56) after an overturned one. Reactions run 32–42% in every band (the side reacting is the one being attacked). So on this sample the claimed margins carry no visible signal about the outcome, and the overturns neither help nor hurt measurably; half the main-phase decisions are claimed within 0.05 Gigs, which is where the coach now says "close call". A full run is needed before reading more into it.
 
 ## Deliberately left out
 
