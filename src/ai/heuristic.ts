@@ -4,8 +4,8 @@
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
-import { clampPlayOut, DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
-import { makeWorlds, playOut } from './playOut';
+import { DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
+import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
 import { shuffleInPlace } from '../engine/rng';
@@ -63,7 +63,31 @@ export interface HeuristicOptions {
    * (results unchanged); the coach sets it (src/ai/coach.ts) so its advice breaks near-ties toward keeping the piece.
    */
   sellKeepScarce?: number;
+  /**
+   * BOT-1. Deep rollouts and deep reactions score the start-of-turn win the play-out stops just before (the seat about
+   * to begin its turn holding 7+ Gigs, `nextStartResult` in playOut.ts) as a won or lost game, and main-phase rollouts
+   * are clamped to ±playOutClamp like reactions. false (default) = the play-out scoring before BOT-1, exactly.
+   */
+  rolloutWins?: boolean;
+  /**
+   * BOT-2. Deep mode: score every rolled-out main-phase candidate as the mean over this many worlds (hidden-information
+   * deal, dice, play-out bots' seeds) shared by all candidates, as deep reactions do. 0 or 1 (default) = one rollout per
+   * candidate in the game's own random state, exactly as before.
+   */
+  deepWorlds?: number;
   seed?: number;
+}
+
+/** One entry of HeuristicAgent.lastAlternatives. */
+export interface Alternative {
+  index: number;
+  label: string;
+  /** value relative to passing, on the scale the decision was made on */
+  delta: number;
+  /** deepWorlds > 1 only: the standard error of this candidate's mean over the worlds */
+  se?: number;
+  /** deepWorlds > 1 only: the paired standard error (same worlds) of this candidate's value minus the chosen one's; 0 for the chosen one */
+  seDiff?: number;
 }
 
 /**
@@ -84,7 +108,7 @@ export class HeuristicAgent implements Agent {
   /** last decision explanation (for UI "why did the bot do that") */
   lastThought = '';
   /** top alternatives of the last main-phase decision: value relative to passing (coach UI) */
-  lastAlternatives: { index: number; label: string; delta: number }[] = [];
+  lastAlternatives: Alternative[] = [];
   /** the last sell decision broke a near-tie to keep a scarce package piece (sellKeepScarce): which card, sold instead, and the gap */
   lastSellKeep: { kept: string; sold: string; gap: number } | null = null;
 
@@ -102,6 +126,8 @@ export class HeuristicAgent implements Agent {
       sellLookahead: opts.sellLookahead ?? 0,
       deepReactions: opts.deepReactions ?? 0,
       sellKeepScarce: opts.sellKeepScarce ?? 0,
+      rolloutWins: opts.rolloutWins ?? false,
+      deepWorlds: opts.deepWorlds ?? 0,
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -321,6 +347,8 @@ export class HeuristicAgent implements Agent {
       }
     }
     let deepScored: { i: number; v: number }[] | null = null;
+    /** deepWorlds > 1: each rolled-out candidate's value in each world */
+    const perWorld = new Map<number, number[]>();
     if (this.opts.deep > 0 && scored.length > 1) {
       // re-score the best few by rolling out the rest of this turn and the rival's whole reply
       scored.sort((x, y) => y.v - x.v);
@@ -331,12 +359,27 @@ export class HeuristicAgent implements Agent {
         for (const t of scored.filter((x) => actions[x.i].type === 'attack').slice(0, this.opts.deepAttacks)) if (!top.some((y) => y.i === t.i)) top.push(t);
       let bestDeep = -Infinity;
       deepScored = [];
+      // deepWorlds > 1: every candidate in the same worlds (common random numbers), as deepReaction does
+      const worlds = this.opts.deepWorlds > 1 ? makeWorlds(this.opts.deepWorlds, () => this.rand()) : null;
       for (const t of top) {
         // an unknown Call stands for every unknown slot: average the rollouts over them
         const group = isUnknownCall(g, actions[t.i]) ? unknownCalls.map((x) => x.a) : [actions[t.i]];
-        let sum = 0;
-        for (const a of group) sum += await this.rollout(g, p, a);
-        const dv = sum / group.length + t.v * 0.05;
+        let rv: number;
+        if (worlds) {
+          const vals: number[] = [];
+          for (const w of worlds) {
+            let sum = 0;
+            for (const a of group) sum += await this.rollout(g, p, a, w);
+            vals.push(sum / group.length);
+          }
+          perWorld.set(t.i, vals);
+          rv = vals.reduce((x, y) => x + y, 0) / vals.length;
+        } else {
+          let sum = 0;
+          for (const a of group) sum += await this.rollout(g, p, a);
+          rv = sum / group.length;
+        }
+        const dv = rv + t.v * 0.05;
         deepScored.push({ i: t.i, v: dv });
         if (dv > bestDeep) {
           bestDeep = dv;
@@ -350,10 +393,19 @@ export class HeuristicAgent implements Agent {
     // Alternatives on the scale the decision was actually made on (deep rollouts when used), relative to passing.
     const pool = deepScored ?? scored;
     const passV = pool.find((x) => x.i === passIdx)?.v ?? base;
+    const chosen = perWorld.get(bestI);
     this.lastAlternatives = [...pool]
       .sort((x, y) => y.v - x.v)
       .slice(0, 4)
-      .map((x) => ({ index: x.i, label: g.describeAction(actions[x.i]), delta: x.v - passV }));
+      .map((x) => {
+        const alt: Alternative = { index: x.i, label: g.describeAction(actions[x.i]), delta: x.v - passV };
+        const vals = perWorld.get(x.i);
+        if (vals && chosen) {
+          alt.se = standardError(vals);
+          alt.seDiff = standardError(vals.map((v, k) => v - chosen[k]));
+        }
+        return alt;
+      });
     return bestI;
   }
 
@@ -371,12 +423,23 @@ export class HeuristicAgent implements Agent {
     return evaluate(cg, p, this.w(g, p));
   }
 
-  /** Play the action, finish our turn with a 1-ply bot, then let a 1-ply rival take its full turn; evaluate. */
-  async rollout(g: Game, p: PlayerId, a: Action): Promise<number> {
-    const cg = g.clone(this.cloneAgents(p, (weights) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles })));
+  /**
+   * Play the action, finish our turn with a 1-ply bot, then let a 1-ply rival take its full turn; evaluate. Without a
+   * world the clone keeps the game's random state and the play-out bots their default seed (as before deepWorlds).
+   */
+  async rollout(g: Game, p: PlayerId, a: Action, world?: World): Promise<number> {
+    const cg = g.clone(
+      this.cloneAgents(p, (weights, seat) =>
+        world
+          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b })
+          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles }),
+      ),
+    );
+    if (world) cg.s.rng = world.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { action: a });
-    return evaluate(cg, p, this.w(g, p));
+    const wins = this.opts.rolloutWins;
+    return playOutValue(cg, p, this.w(g, p), { wins, clamp: wins });
   }
 
   /**
@@ -461,8 +524,7 @@ export class HeuristicAgent implements Agent {
         cg.s.rng = w.rng;
         hideInfo(cg, p);
         await playOut(cg, p, { reaction: r, attacker });
-        const wt = this.w(g, p);
-        sum += clampPlayOut(evaluate(cg, p, wt), wt);
+        sum += playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
       }
       return sum / worlds.length;
     };
@@ -870,6 +932,15 @@ export class HeuristicAgent implements Agent {
     });
     return best;
   }
+}
+
+/** Standard error of the mean of xs (sample SD / √n); 0 for fewer than 2 values. */
+export function standardError(xs: readonly number[]): number {
+  const n = xs.length;
+  if (n < 2) return 0;
+  const m = xs.reduce((a, x) => a + x, 0) / n;
+  const v = xs.reduce((a, x) => a + (x - m) ** 2, 0) / (n - 1);
+  return Math.sqrt(v / n);
 }
 
 /** A Call of a face-down Legend whose identity its controller doesn't know (every such Call looks the same). */

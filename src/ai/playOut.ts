@@ -3,6 +3,7 @@
 // (reviewer.ts) and scripts/review-debug.ts.
 import { GameOverSignal, type Game } from '../engine/engine';
 import type { Action, PlayerId, Reaction } from '../engine/types';
+import { clampPlayOut, DEFAULT_WEIGHTS, evaluate, type EvalWeights } from './eval';
 
 /** One random world of a play-out: the clone's RNG and the two bots' seeds. */
 export interface World {
@@ -61,4 +62,33 @@ export async function playOut(cg: Game, p: PlayerId, move: PlayOutMove, onStep?:
   } catch (e) {
     if (!(e instanceof GameOverSignal)) throw e;
   }
+}
+
+/**
+ * The result of the start-of-turn check the play-out stops just before (engine.ts `startPhase`): a play-out ends after
+ * an end phase, so the seat now active begins its turn next. In the engine's order: past the turn limit the game is a
+ * tie; else that seat wins with 7+ Gigs. null when the game goes on (or already ended in the play-out). Overtime needs
+ * no case here: in overtime 7+ Gigs ends the game at once (`checkState`), so no seat still holds 7 once the play-out
+ * is over.
+ */
+export function nextStartResult(cg: Game): PlayerId | 'tie' | null {
+  const s = cg.s;
+  if (s.winner !== null) return null;
+  if (s.turn + 1 > s.maxTurns) return 'tie';
+  return cg.P(s.active).gigs.length >= 7 ? s.active : null;
+}
+
+/** How a finished play-out is scored. All off = plain `evaluate()` (the bots before BOT-1). */
+export interface PlayOutScoring {
+  /** score the next start-of-turn result (`nextStartResult`) as the won, lost or tied game it is */
+  wins?: boolean;
+  /** clamp the score to ±playOutClamp (`clampPlayOut`) */
+  clamp?: boolean;
+}
+
+/** The value of a finished play-out for p (deep rollouts, deep reactions, the reviewer's oracle, review-debug). */
+export function playOutValue(cg: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS, how: PlayOutScoring = {}): number {
+  const next = how.wins ? nextStartResult(cg) : null;
+  const v = next === null ? evaluate(cg, p, w) : next === 'tie' ? 0 : next === p ? w.win : -w.win;
+  return how.clamp ? clampPlayOut(v, w) : v;
 }

@@ -14,7 +14,7 @@ import type { Action, Agent, Decision, DeckList, PlayerId, Reaction } from '../e
 import { HeuristicAgent, hideInfo, isUnknownCall } from './heuristic';
 import { BEST_PROFILES } from './archetype';
 import { clampPlayOut, DECIDED_EVAL, DEFAULT_WEIGHTS, evaluate } from './eval';
-import { makeWorlds, playOut, type World } from './playOut';
+import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 
 /** Decisions closer than this to the best move count as accurate (oracle noise floor, see validation in reports). */
 export const NOISE = 4;
@@ -107,12 +107,12 @@ const LOST = -DECIDED_EVAL;
 const DECIDED = 0.75 * TERMINAL;
 
 /** Oracle value of an action for player p: average over play-outs in the given worlds (rest of turn + rival's full turn). */
-export async function oracleValue(g: Game, p: PlayerId, a: Action, worlds: World[]): Promise<number> {
-  return (await oracleDetail(g, p, a, worlds)).v;
+export async function oracleValue(g: Game, p: PlayerId, a: Action, worlds: World[], wins = false): Promise<number> {
+  return (await oracleDetail(g, p, a, worlds, wins)).v;
 }
 
 /** Oracle value plus the share of worlds in which the action led to a lost game. */
-async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[]): Promise<{ v: number; lossRate: number }> {
+async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[], wins: boolean): Promise<{ v: number; lossRate: number }> {
   let sum = 0;
   let losses = 0;
   for (const w of worlds) {
@@ -121,7 +121,7 @@ async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[]): P
     cg.s.rng = w.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { action: a });
-    const e = evaluate(cg, p);
+    const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
     if (e < LOST) losses++;
     sum += clampPlayOut(e);
   }
@@ -129,7 +129,7 @@ async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[]): P
 }
 
 /** Oracle value of a reaction for the defending player p: resume the attack, finish the attacker's turn, play p's turn. */
-async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[]): Promise<{ v: number; lossRate: number }> {
+async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[], wins: boolean): Promise<{ v: number; lossRate: number }> {
   let sum = 0;
   let losses = 0;
   const attacker = g.s.attack!.attacker;
@@ -139,7 +139,7 @@ async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[
     cg.s.rng = w.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { reaction: rx, attacker }); // the attacker finishes their turn, then our whole turn
-    const e = evaluate(cg, p);
+    const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
     if (e < LOST) losses++;
     sum += clampPlayOut(e);
   }
@@ -214,6 +214,8 @@ export interface ReviewOptions {
   screen?: number;
   onProgress?: (decisions: number) => void;
   shouldStop?: () => boolean;
+  /** score the start-of-turn win each play-out stops just before (playOutValue, BOT-1); off by default (grades unchanged) */
+  rolloutWins?: boolean;
 }
 
 /** Wraps a seat's agent: plays exactly as it would, and reviews its main-phase decisions on the side. */
@@ -284,7 +286,7 @@ class ReviewAgent implements Agent {
       cand.add(coachI);
     }
     const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss } = await gradeAll(g, [...cand], actions, (a) => oracleDetail(g, this.seat, a, worlds));
+    const { vals, loss } = await gradeAll(g, [...cand], actions, (a) => oracleDetail(g, this.seat, a, worlds, this.opts.rolloutWins ?? false));
     const bestV = Math.max(...vals.values());
     // already decided (every option loses, or every option wins): differences between moves mean nothing
     const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
@@ -321,7 +323,7 @@ class ReviewAgent implements Agent {
     let coachI: number | undefined;
     if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
     const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds));
+    const { vals, loss } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds, this.opts.rolloutWins ?? false));
     this.record(g, d, chosen, vals, loss, coachI, reactionCategory(rxs[chosen]));
     return pick;
   }

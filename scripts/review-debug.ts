@@ -6,7 +6,7 @@ import { makeTierBot } from '../src/ai/tiers';
 import { HeuristicAgent, hideInfo } from '../src/ai/heuristic';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import { evaluate } from '../src/ai/eval';
-import { makeWorlds, playOut, type PlayOutStep } from '../src/ai/playOut';
+import { makeWorlds, nextStartResult, playOut, playOutValue, type PlayOutStep } from '../src/ai/playOut';
 import { gameDeck } from '../src/lib/tournament';
 import { cli, str } from './lib-node';
 import type { Action, Agent, Decision, PlayerId } from '../src/engine/types';
@@ -75,7 +75,9 @@ async function inspect(g: Game, d: Decision) {
       hideInfo(cg, seat);
       let phase = 'start';
       await playOut(cg, seat, { action: actions[i] }, (s) => (phase = STEP_TEXT[s]));
-      console.log(`  eval ${evaluate(cg, seat).toFixed(1).padStart(8)} | stopped at: ${phase.padEnd(16)} | winner ${cg.s.winner} ${cg.s.winReason} | gigs ${cg.P(0).gigs.length}-${cg.P(1).gigs.length} turn ${cg.s.turn}`);
+      // "next start": the start-of-turn win the play-out stops just before; "with win" scores it (the bots' rolloutWins)
+      const next = nextStartResult(cg);
+      console.log(`  eval ${evaluate(cg, seat).toFixed(1).padStart(8)} | with win ${playOutValue(cg, seat, undefined, { wins: true }).toFixed(1).padStart(8)} | stopped at: ${phase.padEnd(16)} | winner ${cg.s.winner} ${cg.s.winReason} | next start ${next ?? '-'} | gigs ${cg.P(0).gigs.length}-${cg.P(1).gigs.length} turn ${cg.s.turn}`);
     }
   }
 }
