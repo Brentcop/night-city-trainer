@@ -160,6 +160,47 @@ function atRisk(g: Game, c: CardInst): boolean {
 }
 
 export function evaluate(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS): number {
+  return evalCore(g, p, w, null);
+}
+
+/**
+ * The terms of evaluate() that enter it linearly, one per weight (INFO-4): evaluate() is Σ weight × feature over these,
+ * plus the package terms. `lowDeckAt`, `handCap` and `eddieCap` are thresholds inside features; `win` only scores a
+ * finished game. Unit features are summed over Units before the spent-risk discount; `spentRisk`'s feature is minus the
+ * value of the spent Units at risk, so the discount is exactly `spentRisk` × it.
+ */
+export const EVAL_TERMS = ['gig', 'gigNear', 'unitPower', 'unitCost', 'unitBase', 'blocker', 'unitGear', 'stealsTwo', 'goSolo', 'spentRisk', 'hand', 'eddie', 'faceUpLegend', 'legendGear', 'lowDeck', 'plan', 'exposed', 'threat', 'rivalLethal'] as const satisfies readonly (keyof EvalWeights)[];
+export type EvalTerm = (typeof EVAL_TERMS)[number];
+
+export interface EvalBreakdown {
+  /** exactly evaluate(g, p, w) */
+  total: number;
+  /** a finished game: total is ±win or 0 and every feature is 0 */
+  terminal: boolean;
+  /**
+   * The unweighted value of each term from p's view (ours minus the rival's). The next-turn features are computed even
+   * when their weights are 0 (evaluate() then skips them); they and `spentRisk` are measured with the gig and unit
+   * weights of `w`.
+   */
+  features: Record<EvalTerm, number>;
+  /** the package terms' contribution (0 unless a package weight is set) */
+  packages: number;
+}
+
+/** evaluate() with its per-term features (INFO-4): total is evaluate()'s result exactly, and Σ w × feature + packages equals it up to rounding. */
+export function evaluateTerms(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS): EvalBreakdown {
+  const acc: TermAcc = { f: Object.fromEntries(EVAL_TERMS.map((k) => [k, 0])) as Record<EvalTerm, number>, packages: 0 };
+  const total = evalCore(g, p, w, acc);
+  return { total, terminal: g.s.winner !== null, features: acc.f, packages: acc.packages };
+}
+
+interface TermAcc {
+  f: Record<EvalTerm, number>;
+  packages: number;
+}
+
+/** evaluate()'s arithmetic, unchanged; with `acc` it also records the features (never changing the value). */
+function evalCore(g: Game, p: PlayerId, w: EvalWeights, acc: TermAcc | null): number {
   const s = g.s;
   if (s.winner !== null) return s.winner === 'tie' ? 0 : s.winner === p ? w.win : -w.win;
   const r = other(p);
@@ -170,28 +211,63 @@ export function evaluate(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS)
   if (myG >= 6) v += w.gigNear * (myG - 5);
   if (rG >= 6) v -= w.gigNear * (rG - 5);
   if (s.overtime) v += (myG - rG) * w.gig; // every gig matters double in overtime
+  const f = acc?.f;
+  if (f) {
+    f.gig = (myG - rG) * (s.overtime ? 2 : 1);
+    f.gigNear = Math.max(0, myG - 5) - Math.max(0, rG - 5);
+  }
   for (const pl of [p, r] as PlayerId[]) {
     const sign = pl === p ? 1 : -1;
     let side = 0;
     for (const c of g.units(pl)) {
       let uv = unitValue(g, c, w);
-      if (c.spent && pl === s.active && atRisk(g, c)) uv *= 1 - w.spentRisk;
+      const risk = c.spent && pl === s.active && atRisk(g, c);
+      if (f) unitFeatures(g, c, sign, risk ? uv : 0, f);
+      if (risk) uv *= 1 - w.spentRisk;
       side += uv;
     }
     const P = g.P(pl);
     side += Math.min(P.hand.length, w.handCap) * w.hand;
     side += Math.min(P.eddies.length, w.eddieCap) * w.eddie;
-    side += P.legends.filter((u) => g.c(u).faceUp).length * w.faceUpLegend;
+    const faceUp = P.legends.filter((u) => g.c(u).faceUp).length;
+    side += faceUp * w.faceUpLegend;
     // legends also gear hosts
     for (const u of P.legends) side += g.c(u).gear.length * w.legendGear;
     if (P.deck.length < w.lowDeckAt) side -= (w.lowDeckAt - P.deck.length) * w.lowDeck;
-    side += planScore(g.gigsOf(pl), planFor(g, pl, p)) * w.plan;
+    const plan = planScore(g.gigsOf(pl), planFor(g, pl, p));
+    side += plan * w.plan;
     v += sign * side;
+    if (f) {
+      f.hand += sign * Math.min(P.hand.length, w.handCap);
+      f.eddie += sign * Math.min(P.eddies.length, w.eddieCap);
+      f.faceUpLegend += sign * faceUp;
+      for (const u of P.legends) f.legendGear += sign * g.c(u).gear.length;
+      if (P.deck.length < w.lowDeckAt) f.lowDeck -= sign * (w.lowDeckAt - P.deck.length);
+      f.plan += sign * plan;
+    }
   }
   // own packages only: the rival's list is not known to p
-  if (w.pkgAssembly !== 0 || w.pkgSteer !== 0 || w.pkgProtect !== 0) v += packageTerms(g, p, w);
+  if (w.pkgAssembly !== 0 || w.pkgSteer !== 0 || w.pkgProtect !== 0) {
+    const pk = packageTerms(g, p, w);
+    v += pk;
+    if (acc) acc.packages = pk;
+  }
   if (w.exposed !== 0 || w.threat !== 0 || w.rivalLethal !== 0) v += nextTurnTerms(g, p, w);
+  if (f) nextTurnFeatures(g, p, w, f);
   return v;
+}
+
+/** One Unit's unit features (unitValue's terms without weights), signed; `atRiskValue` is its value when the spent-risk discount applies. */
+function unitFeatures(g: Game, c: CardInst, sign: number, atRiskValue: number, f: Record<EvalTerm, number>) {
+  const pw = g.power(c);
+  f.unitPower += sign * pw;
+  f.unitCost += sign * (g.def(c).cost ?? 4);
+  f.unitBase += sign;
+  if (g.hasKw(c, 'blocker')) f.blocker += sign;
+  f.unitGear += sign * c.gear.length;
+  if (pw >= 10) f.stealsTwo += sign;
+  if (c.goSolo) f.goSolo += sign;
+  f.spentRisk -= sign * atRiskValue;
 }
 
 /** The Gig part of evaluate() for p holding myG Gigs against the rival's rG. */
@@ -280,6 +356,27 @@ export function nextTurnTerms(g: Game, p: PlayerId, w: EvalWeights): number {
     if (n > 0) v += w.threat * (gigTerm(myG + n, rG - n, ot, w) - base);
   }
   return v;
+}
+
+/**
+ * The features behind nextTurnTerms (INFO-4): nextTurnTerms(g, p, w) = exposed × f.exposed + threat × f.threat +
+ * rivalLethal × f.rivalLethal, the Gig swings measured with w's gig weights. Computed whatever the three weights are.
+ */
+function nextTurnFeatures(g: Game, p: PlayerId, w: EvalWeights, f: Record<EvalTerm, number>) {
+  const r = other(p);
+  const next = nextTurnSeat(g);
+  const myG = g.P(p).gigs.length;
+  const rG = g.P(r).gigs.length;
+  const ot = g.s.overtime;
+  const base = gigTerm(myG, rG, ot, w);
+  if (next === r) {
+    const n = stealableNextTurn(g, r, p);
+    if (n > 0) f.exposed = -(base - gigTerm(myG - n, rG + n, ot, w));
+    if (rG >= 7 && !ot && (g.s.phase === 'end' || stealableThisTurn(g, p) < rG - 6)) f.rivalLethal = -1;
+  } else {
+    const n = stealableNextTurn(g, p, r);
+    if (n > 0) f.threat = gigTerm(myG + n, rG - n, ot, w) - base;
+  }
 }
 
 /** The package terms of evaluate() for p's own side (src/ai/packages.ts); 0 for a list built around no package. */

@@ -13,6 +13,8 @@ import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
 import { holdCredit, packageFacts, seatPackages } from '../src/ai/packages';
 import { handFeatures, plainRuleMulligan, type HandFeatures } from '../src/ai/mulligan';
+import { evalLeaf, profiledWeights, type EvalLeaf } from '../src/analysis/evalCalibration';
+import type { EvalWeights } from '../src/ai/eval';
 import { fromSpec, type AgentSpec } from './agent-spec';
 export type { AgentSpec } from './agent-spec';
 
@@ -53,6 +55,11 @@ export interface MatchJob {
   mulliganA?: 'keep' | 'mulligan';
   /** with or without mulliganA: return seat A's opening-hand features (`opening`) */
   openingA?: boolean;
+  /**
+   * scripts/eval-calibrate.ts (INFO-4): after every end phase, record evaluate()'s value and features from both seats'
+   * view (`evalLeaves`, src/analysis/evalCalibration.ts). Evaluated on a copy: the game is the same with or without it.
+   */
+  evalLeaves?: boolean;
 }
 export interface MatchResult {
   a: string;
@@ -83,6 +90,8 @@ export interface MatchResult {
   pieces?: PieceCounts;
   /** with `openingA` / `mulliganA`: seat A's opening hand and what was done with it */
   opening?: OpeningHand;
+  /** with `evalLeaves`: one leaf per completed end phase */
+  evalLeaves?: EvalLeaf[];
 }
 
 /** Seat A's opening hand (before any mulligan), the bot's own verdict and the decision played (scripts/mulligan-check.ts). */
@@ -215,6 +224,17 @@ parentPort?.on('message', async (job: MatchJob) => {
     // with decisions, also the bots' own option scores (INFO-6): read after each answer, aggregated here like the rest
     const rec = job.decisions || job.synergies || (job.sellSplit && job.trace) ? new DecisionRecorder({ boards: !!job.synergies, scores: !!job.decisions }) : null;
     g.telemetry = rec;
+    const leaves: EvalLeaf[] | null = job.evalLeaves ? [] : null;
+    if (leaves) {
+      // observe after every end phase of this game (clones are separate objects, so lookahead is not observed)
+      const endPhase = g.endPhase.bind(g);
+      let profiled: [EvalWeights, EvalWeights] | null = null;
+      g.endPhase = async () => {
+        await endPhase();
+        profiled ??= [profiledWeights(g, 0), profiledWeights(g, 1)];
+        leaves.push(evalLeaf(g, profiled));
+      };
+    }
     const s = await g.run();
     let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords' | 'synergies' | 'synergySize'> = {};
     const summaries = job.trace ? summarize(s) : undefined;
@@ -260,6 +280,7 @@ parentPort?.on('message', async (job: MatchJob) => {
       ...(observed && job.shadowA ? { shadow: observed.shadow } : {}),
       ...(observed && job.piecesA ? { pieces: observed.pieces } : {}),
       ...(probe?.opening ? { opening: probe.opening } : {}),
+      ...(leaves ? { evalLeaves: leaves } : {}),
     };
   } catch (e: any) {
     // an exception is an error, never a result: callers report it and leave the game out of every tally

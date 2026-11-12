@@ -1,13 +1,17 @@
 // A bot configuration as plain data (botcheck, package-scoring, the benchmark): HeuristicOptions without functions, so it
 // can cross to a worker thread. Shared by scripts/worker.ts and scripts/benchmark-worker.ts.
 import { HeuristicAgent } from '../src/ai/heuristic';
-import { DEFAULT_WEIGHTS } from '../src/ai/eval';
+import { DEFAULT_WEIGHTS, type EvalWeights } from '../src/ai/eval';
+import { weightSet } from '../src/ai/weightSets';
 import { BEST_PROFILES, DEFAULT_PROFILES } from '../src/ai/archetype';
 import type { MulliganRule } from '../src/ai/mulligan';
 
 export interface AgentSpec {
   lookahead?: boolean;
-  weights?: Record<string, number>;
+  /** evaluation weights over DEFAULT_WEIGHTS (after `weightSet`), or the name of a set in src/ai/weightSets.ts */
+  weights?: Record<string, number> | string;
+  /** a named weight set (src/ai/weightSets.ts) merged over DEFAULT_WEIGHTS; `weights` then overrides single values */
+  weightSet?: string;
   noise?: number;
   deep?: number;
   impact?: number;
@@ -32,7 +36,18 @@ export interface AgentSpec {
   /** 'default' = DEFAULT_PROFILES, 'best' = BEST_PROFILES (tuned), or an explicit profile table */
   profiles?: 'default' | 'best' | Record<string, Record<string, number>>;
 }
+/** Hard's settings as a spec (src/ai/tiers.ts: deep 3, impact 40, reaction rollouts 3, the tuned profiles). */
+export const HARD_SPEC: AgentSpec = { noise: 0.15, deep: 3, impact: 40, deepAttacks: 0, deepReactions: 3, profiles: 'best' };
+
+/** The weights a spec names (undefined = the bot's default, DEFAULT_WEIGHTS). */
+export function specWeights(spec: AgentSpec): EvalWeights | undefined {
+  const named = typeof spec.weights === 'string' ? spec.weights : spec.weightSet;
+  const over = typeof spec.weights === 'object' ? spec.weights : undefined;
+  if (!named && !over) return undefined;
+  return { ...DEFAULT_WEIGHTS, ...(named ? weightSet(named) : {}), ...(over ?? {}) } as EvalWeights;
+}
+
 export function fromSpec(spec: AgentSpec, seed: number): HeuristicAgent {
-  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, impactSell: spec.impactSell, impactCards: spec.impactCards, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
+  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: specWeights(spec), noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, impactSell: spec.impactSell, impactCards: spec.impactCards, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 

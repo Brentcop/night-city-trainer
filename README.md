@@ -86,6 +86,8 @@ npm run sim -- test "Smash the Curve" --games 200   # one deck vs every meta dec
 npm run sim -- review --field all --games 60        # full round robin, rankings + matrix
 npm run sim -- add my-list.txt --name "My RRG"      # add a deck (choom.gg / official / sim JSON / plain list)
 npx tsx scripts/tune.ts --per 8 --seed 1            # matched training (adopt only if the paired 95% lower bound > 0) + held-out check vs --min-gain (default 1pp); writes a report, never applies weights
+npx tsx scripts/tune.ts --bot hard --format paired --per 4 --next-turn --start '{"exposed":0.5,"threat":0.5,"rivalLethal":400}' --out DIR   # tune Hard in the duplicate format (BOT-7)
+npx tsx scripts/eval-calibrate.ts --decks all --per 2 --view both --out DIR   # INFO-4: evaluate() against who won; ridge-logistic fit of its terms
 npm run sim -- analyze --field all --bot deep       # telemetry round robin -> Insights page, rankings, reports/analysis-latest.md
 npx tsx scripts/plan.ts                             # regenerate the Tournament plan + Home recommendation from the data
 npx tsx scripts/forge.ts --nc --gens 2 --seed 1     # data-driven iteration of the Trainer-original decks (or pass any deck)
