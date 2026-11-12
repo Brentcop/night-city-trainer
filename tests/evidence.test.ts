@@ -5,6 +5,7 @@ import {
   ADOPTION_DEFAULTS,
   adoptionRule,
   ANY_GAIN_RULE,
+  confirmationWord,
   confirmStaged,
   DEFAULT_MIN_GAIN_PP,
   describeRule,
@@ -103,7 +104,7 @@ describe('paired intervals', () => {
 
 describe('the adoption rule', () => {
   it('defaults: min gain 1 point, 200 games, 4 stages, α 0.05 split by Bonferroni', () => {
-    expect(ADOPTION_DEFAULTS).toEqual({ kind: 'evidence', minGainPp: 1, packageMinGainPp: 1, alpha: 0.05, capStages: 4, minGames: 200 });
+    expect(ADOPTION_DEFAULTS).toEqual({ kind: 'evidence', minGainPp: 1, packageMinGainPp: 1, alpha: 0.05, capStages: 4, minGames: 200, futilityAfterStages: 2, futilityMaxGainPp: 0 });
     expect(lookZ(ADOPTION_DEFAULTS)).toBeCloseTo(normalQuantile(1 - 0.05 / 8), 12);
     expect(lookZ(ADOPTION_DEFAULTS)).toBeCloseTo(2.4977, 3);
     // three nominees share it too
@@ -150,9 +151,9 @@ describe('the adoption rule', () => {
     expect(pickAdopted(results)).toBe(0);
   });
 
-  it('a noisy nominee runs to the cap and is "could not tell", never adopted', async () => {
+  it('a noisy nominee runs to the cap and is "could not tell", never adopted (futility stop off)', async () => {
     const r = rng(7);
-    const { results } = await confirmStaged(ADOPTION_DEFAULTS, [{ minGainPp: 1 }], 100, synthStage(r, { p: 0.5, rho: 0.3, gain: 0.03 }));
+    const { results } = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityAfterStages: 0 }, [{ minGainPp: 1 }], 100, synthStage(r, { p: 0.5, rho: 0.3, gain: 0.03 }));
     expect(results[0]!.looks).toBeLessThanOrEqual(4);
     if (results[0]!.outcome === 'inconclusive') {
       expect(results[0]!.looks).toBe(4);
@@ -181,6 +182,122 @@ describe('the adoption rule', () => {
     expect(results[0]).toMatchObject({ outcome: 'inconclusive', stopped: true });
   });
 
+  describe('the futility stop', () => {
+    /**
+     * Deterministic stages: the list wins every other game. Every nominee differs from it on 2 games in 10, one win and
+     * one loss (mean 0, enough spread that it is never rejected), plus a win in every 40 games per point of `extra`
+     * (each worth 2.5 points), or wins every game (`strong`).
+     */
+    const kinds = (spec: ({ extra: number } | 'strong')[]) => {
+      const played: { offset: number; games: number; active: number[] }[] = [];
+      const play: PlayStage = async (s) => {
+        played.push({ offset: s.offset, games: s.games, active: [...s.active] });
+        const base = Array.from({ length: s.games }, (_, k) => (s.offset + k) % 2);
+        const nominees = s.active.map((i) => {
+          const o = spec[i]!;
+          return base.map((b, k) => {
+            const g = s.offset + k;
+            if (o === 'strong') return 1;
+            if (g % 10 === 0 || g % 10 === 5) return 1 - b;
+            if (o.extra > 0 && g % 40 === 2) return 1;
+            return b;
+          });
+        });
+        return { base, nominees };
+      };
+      return { play, played };
+    };
+    const one = (o: { minGainPp: number }[] = [{ minGainPp: 1 }]) => o;
+
+    it('stops a nominee with no gain after 2 stages as "could not tell (stopped early)", with its games frozen there', async () => {
+      const { play, played } = kinds([{ extra: 0 }]);
+      const { results, games } = await confirmStaged(ADOPTION_DEFAULTS, one(), 80, play);
+      expect(results[0]).toMatchObject({ outcome: 'inconclusive', stopped: 'futility', looks: 2 });
+      expect(results[0]!.heldOut.games).toBe(160);
+      expect(results[0]!.heldOut.mean).toBe(0);
+      expect(played.map((p) => p.offset)).toEqual([0, 80]);
+      expect(games).toBe(2 * 160);
+      expect(pickAdopted(results)).toBe(-1);
+      expect(confirmationWord(results[0]!)).toBe('could not tell (stopped early: no gain after 160 games)');
+      expect(nomineeRecord('x', results[0]!.heldOut, results[0]!).stopped).toBe('futility');
+    });
+
+    it('the threshold is "at most" X points, and the stage is configurable', async () => {
+      // +2.5 points: above the default threshold of 0, so it runs to the cap (could not tell, not stopped)
+      const plus = await confirmStaged(ADOPTION_DEFAULTS, one(), 80, kinds([{ extra: 1 }]).play);
+      expect(plus.results[0]).toMatchObject({ outcome: 'inconclusive', looks: 4 });
+      expect(plus.results[0]!.stopped).toBeUndefined();
+      expect(plus.results[0]!.heldOut.mean).toBeCloseTo(0.025, 12);
+      // at a threshold of exactly 2.5 points it stops
+      const at = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityMaxGainPp: 2.5 }, one(), 80, kinds([{ extra: 1 }]).play);
+      expect(at.results[0]).toMatchObject({ stopped: 'futility', looks: 2 });
+      expect(confirmationWord(at.results[0]!, 2.5)).toBe('could not tell (stopped early: gain at most +2.5 pts after 160 games)');
+      // after 3 stages instead of 2
+      const k3 = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityAfterStages: 3 }, one(), 80, kinds([{ extra: 0 }]).play);
+      expect(k3.results[0]).toMatchObject({ stopped: 'futility', looks: 3 });
+      expect(k3.results[0]!.heldOut.games).toBe(240);
+      // after 1 stage
+      const k1 = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityAfterStages: 1 }, one(), 80, kinds([{ extra: 0 }]).play);
+      expect(k1.results[0]).toMatchObject({ stopped: 'futility', looks: 1 });
+    });
+
+    it('is off at 0, never reached when the cap comes first, and not part of any-gain', async () => {
+      const off = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityAfterStages: 0 }, one(), 80, kinds([{ extra: 0 }]).play);
+      expect(off.results[0]).toMatchObject({ outcome: 'inconclusive', looks: 4 });
+      expect(off.results[0]!.stopped).toBeUndefined();
+      expect(off.results[0]!.heldOut.games).toBe(320);
+      // with a cap of 2 stages the second look is the last: plain "could not tell"
+      const cap2 = await confirmStaged({ ...ADOPTION_DEFAULTS, capStages: 2 }, one(), 80, kinds([{ extra: 0 }]).play);
+      expect(cap2.results[0]).toMatchObject({ outcome: 'inconclusive', looks: 2 });
+      expect(cap2.results[0]!.stopped).toBeUndefined();
+      expect(ANY_GAIN_RULE.futilityAfterStages).toBe(0);
+      expect(adoptionRule({ kind: 'any-gain', futilityAfterStages: 2 }).futilityAfterStages).toBe(0);
+      expect(ruleProblems({ ...ADOPTION_DEFAULTS, futilityAfterStages: -1 })).toHaveLength(1);
+      expect(ruleProblems({ ...ADOPTION_DEFAULTS, futilityAfterStages: 1.5, futilityMaxGainPp: NaN })).toHaveLength(2);
+    });
+
+    it('never adopts: a nominee that would be adopted later is stopped, not adopted, when the threshold is above its gain', async () => {
+      // the strong nominee is under the 200-game floor at 160 games; a (silly) threshold of 60 points stops it there
+      const { results } = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityMaxGainPp: 60 }, one(), 80, kinds(['strong']).play);
+      expect(results[0]).toMatchObject({ outcome: 'inconclusive', stopped: 'futility' });
+      // an adopt or reject decision is taken before the stop is considered
+      const adopted = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityMaxGainPp: 60 }, one(), 120, kinds(['strong']).play);
+      expect(adopted.results[0]).toMatchObject({ outcome: 'adopt', looks: 2 });
+      expect(adopted.results[0]!.stopped).toBeUndefined();
+    });
+
+    it('stops each nominee on its own; later stages play the current list once for the survivors, on the same games as without the stop', async () => {
+      const spec: ({ extra: number } | 'strong')[] = [{ extra: 0 }, { extra: 1 }, 'strong'];
+      const on = kinds(spec);
+      const off = kinds(spec);
+      const noms = [{ minGainPp: 1 }, { minGainPp: 1 }, { minGainPp: 1 }];
+      const a = await confirmStaged(ADOPTION_DEFAULTS, noms, 80, on.play);
+      const b = await confirmStaged({ ...ADOPTION_DEFAULTS, futilityAfterStages: 0 }, noms, 80, off.play);
+      expect(a.results.map((r) => [r.outcome, r.looks, r.stopped])).toEqual([
+        ['inconclusive', 2, 'futility'],
+        ['inconclusive', 4, undefined],
+        ['adopt', 3, undefined],
+      ]);
+      expect(on.played.map((p) => [p.offset, p.active])).toEqual([
+        [0, [0, 1, 2]],
+        [80, [0, 1, 2]],
+        [160, [1, 2]],
+        [240, [1]],
+      ]);
+      expect(a.games).toBe(80 * (4 + 4 + 3 + 2));
+      // without the stop the same stages are played on the same seeds, the zero-gain nominee among them to the cap
+      expect(off.played.map((p) => [p.offset, p.games])).toEqual(on.played.map((p) => [p.offset, p.games]));
+      for (const [k, p] of on.played.entries()) for (const i of p.active) expect(off.played[k]!.active).toContain(i);
+      expect(b.results[0]).toMatchObject({ outcome: 'inconclusive', looks: 4 });
+      expect(b.games).toBe(80 * (4 + 4 + 3 + 2) + 80 * 2);
+      // the stopped nominee's interval is frozen at 160 games; the others are judged as they were without the stop
+      expect(a.results[0]!.heldOut.games).toBe(160);
+      expect(a.results[1]!.heldOut).toEqual(b.results[1]!.heldOut);
+      expect(a.results[2]!.heldOut).toEqual(b.results[2]!.heldOut);
+      expect(pickAdopted(a.results)).toBe(2);
+    });
+  });
+
   it('false adoptions on synthetic games with no true gain: at most α/2 under the rule, about half under any-gain', async () => {
     const reps = 1500;
     const run = async (rule: AdoptionRule, gain: number, seed: number) => {
@@ -203,6 +320,58 @@ describe('the adoption rule', () => {
     expect(await run(ADOPTION_DEFAULTS, 0.08, 3)).toBeGreaterThan(0.6);
   });
 
+  it('futility stop vs none on synthetic games: never more false adoptions, fewer games on a change with no gain, about the same power', async () => {
+    // games like the forge's default confirmation (2 × 112 per stage) where the two lists play the same game 90% of the
+    // time. Each repetition draws from its own random stream, so with the stop every game it plays is the game the run
+    // without it played (the stop only skips later stages): the two runs are coupled, rep by rep.
+    // A second setting, less correlated (rho 0.6, stages of 140), where a 5-point gain is hard to confirm, checks power
+    // where the stop could cost some.
+    const reps = 1000;
+    const OFF: AdoptionRule = { ...ADOPTION_DEFAULTS, futilityAfterStages: 0 };
+    const sim = async (rule: AdoptionRule, o: { gain: number; rho: number; first: number }, seed: number) => {
+      const adopted = new Set<number>();
+      let games = 0;
+      let stopped = 0;
+      for (let i = 0; i < reps; i++) {
+        const { results, games: g } = await confirmStaged(rule, [{ minGainPp: 1 }], o.first, synthStage(rng(seed * 1_000_003 + i), { p: 0.5, rho: o.rho, gain: o.gain }));
+        games += g;
+        if (results[0]!.outcome === 'adopt') adopted.add(i);
+        if (results[0]!.stopped === 'futility') stopped++;
+      }
+      return { adopt: adopted.size / reps, adopted, meanGames: games / reps, stopped: stopped / reps };
+    };
+    const rows: string[] = [];
+    const both = async (o: { gain: number; rho: number; first: number }, seed: number) => {
+      const on = await sim(ADOPTION_DEFAULTS, o, seed);
+      const off = await sim(OFF, o, seed);
+      rows.push(
+        `rho ${o.rho}, stages of ${o.first}, gain ${(o.gain * 100).toFixed(0)} pts: adopted ${(off.adopt * 100).toFixed(1)}% → ${(on.adopt * 100).toFixed(1)}%, mean games ${off.meanGames.toFixed(0)} → ${on.meanGames.toFixed(0)}, stopped early ${(on.stopped * 100).toFixed(1)}%`,
+      );
+      // (a) the stop never adopts: every adoption with it is an adoption without it
+      for (const i of on.adopted) expect(off.adopted.has(i)).toBe(true);
+      expect(on.adopt).toBeLessThanOrEqual(off.adopt);
+      return { on, off };
+    };
+    const forgeLike = { rho: 0.9, first: 224 };
+    const loose = { rho: 0.6, first: 140 };
+    const nul = await both({ ...forgeLike, gain: 0 }, 11);
+    const atBar = await both({ ...forgeLike, gain: 0.01 }, 12);
+    const real = await both({ ...forgeLike, gain: 0.05 }, 13);
+    const nulLoose = await both({ ...loose, gain: 0 }, 14);
+    const realLoose = await both({ ...loose, gain: 0.05 }, 15);
+    console.log(`futility stop (after 2 stages, gain ≤ 0), off → on, ${reps} reps:\n  ${rows.join('\n  ')}`);
+    expect(nul.on.adopt).toBeLessThan(0.01);
+    expect(atBar.on.adopt).toBeLessThan(0.035);
+    // (b) a change with no gain costs far fewer games
+    expect(nul.on.meanGames).toBeLessThan(0.8 * nul.off.meanGames);
+    expect(nulLoose.on.meanGames).toBeLessThan(0.8 * nulLoose.off.meanGames);
+    expect(nul.on.stopped).toBeGreaterThan(0.4);
+    // (c) a real 5-point gain is adopted about as often
+    expect(real.on.adopt).toBeGreaterThan(real.off.adopt - 0.03);
+    expect(real.on.adopt).toBeGreaterThan(0.8);
+    expect(realLoose.on.adopt).toBeGreaterThan(realLoose.off.adopt - 0.03);
+  });
+
   it('reports never call an inconclusive change a gain', () => {
     const iv = pairedInterval([1, 0, 1, 1, 0, 1], [0, 0, 1, 0, 1, 1]);
     expect(formatGain(iv)).toMatch(/^\+16\.7 pts \[−\d+\.\d, \+\d+\.\d\], 6 games$/);
@@ -210,6 +379,7 @@ describe('the adoption rule', () => {
     expect(rec.outcome).toBe('inconclusive');
     expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain('otherwise could not tell');
     expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain('Bonferroni, z = 2.50');
+    expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain('a nominee with no gain after 2 stages (560 games) stops early as could not tell');
     expect(describeRule(ANY_GAIN_RULE)).toMatch(/^any-gain \(legacy\)/);
   });
 });
@@ -288,6 +458,16 @@ describe('builder flags (scripts/evidence-flags.ts)', () => {
     expect(ruleFromFlags(parse(['--package-min-gain', '2'])).packageMinGainPp).toBe(2);
   });
 
+  it('the futility stop flags: after N stages (0 = off) and the threshold, passed on by the season', () => {
+    const v = parse(['--futility-after', '3', '--futility-gain=-0.5']);
+    expect(ruleFromFlags(v)).toEqual({ ...ADOPTION_DEFAULTS, futilityAfterStages: 3, futilityMaxGainPp: -0.5 });
+    expect(adoptionArgs(v)).toEqual(['--futility-after', '3', '--futility-gain=-0.5']);
+    // what the season passes on parses back to the same rule
+    expect(ruleFromFlags(parse(adoptionArgs(v)))).toEqual(ruleFromFlags(v));
+    expect(ruleFromFlags(parse(['--futility-after', '0'])).futilityAfterStages).toBe(0);
+    expect(describeRule(ruleFromFlags(parse(['--futility-after', '0'])), { firstStage: 224 })).not.toContain('stops early');
+  });
+
   it('bad values are refused (exit 2 in the scripts)', () => {
     for (const bad of [
       ['--adopt', 'maybe'],
@@ -299,6 +479,11 @@ describe('builder flags (scripts/evidence-flags.ts)', () => {
       ['--nominees', '0'],
       ['--alpha', '0'],
       ['--budget', '0'],
+      ['--futility-after', '-1'],
+      ['--futility-after', '17'],
+      ['--futility-after', '1.5'],
+      ['--futility-gain', 'x'],
+      ['--futility-gain=-51'],
     ])
       expect(() => parse(bad), bad.join(' ')).toThrow(ArgError);
   });
@@ -306,7 +491,7 @@ describe('builder flags (scripts/evidence-flags.ts)', () => {
   it('the forge, optimizer and season --help list the rule and depth flags', () => {
     for (const s of ['forge', 'optimize', 'season']) {
       const help = usageOf(new URL(`../scripts/${s}.ts`, import.meta.url).href);
-      for (const f of ['--adopt', '--min-gain', '--cards-per-change', '--packages-per-change', '--nominees']) expect(help, `${s} ${f}`).toContain(f);
+      for (const f of ['--adopt', '--min-gain', '--cards-per-change', '--packages-per-change', '--nominees', '--futility-after', '--futility-gain']) expect(help, `${s} ${f}`).toContain(f);
     }
     expect(usageOf(new URL('../scripts/forge.ts', import.meta.url).href)).toContain('--budget');
   });

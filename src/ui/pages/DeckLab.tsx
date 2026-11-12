@@ -7,7 +7,7 @@ import { exportOfficial, listFingerprint, parseDeck, validateDeck } from '../../
 import { CARD_BY_ID } from '../../engine/cards';
 import type { CardDef, DeckList } from '../../engine/types';
 import { breedInBrowser, loadH2H, partialTune, playSet, recordedEventCount, tunedName, tuneDeck, tunePlan, type H2HInfo, type TuneLog, type TuneProgress } from '../../lib/deckLab';
-import { adoptionProvenance, describeRule, formatGain, type AdoptionRule } from '../../lib/evidence';
+import { adoptionProvenance, describeRule, formatGain, stoppedWords, type AdoptionRule } from '../../lib/evidence';
 import { LAB_GAME_BUDGET } from '../../lib/deckSearch';
 import { DepthControls, NomineeTable, OutcomeChip, PairedGain } from '../components/LabEvidence';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
@@ -392,7 +392,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               {l.nominees && l.nominees.length > 0 ? (
                 <div className="small">
                   <div className="muted">Confirmation on fresh games, paired with the list (screening only nominates; the held-out gain is the one that counts):</div>
-                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} />
+                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} futilityMaxGainPp={runRule?.rule.futilityMaxGainPp ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} />
                 </div>
               ) : (
                 l.confirm && (
@@ -457,9 +457,11 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               ) : (
                 <div className="small muted">
                   No change cleared the bar on fresh games
-                  {prog.logs.some((l) => l.nominees?.some((n) => n.outcome === 'inconclusive'))
+                  {prog.logs.some((l) => l.nominees?.some((n) => n.outcome === 'inconclusive' && n.stopped !== 'futility'))
                     ? ': for at least one the lab could not tell either way at this sample size, so the list was kept. A longer run (more effort) can settle it.'
-                    : '. The deck is already well tuned for this field (at this sample size).'}
+                    : prog.logs.some((l) => l.nominees?.some((n) => n.stopped === 'futility'))
+                      ? ': the changes it confirmed showed no gain on fresh games, so they were stopped early and the list was kept.'
+                      : '. The deck is already well tuned for this field (at this sample size).'}
                 </div>
               )}
               <div className="row">
@@ -502,7 +504,7 @@ export function GenerationSummary({ log: l }: { log: TuneLog }) {
       ) : unsure ? (
         <>
           {' '}
-          · <OutcomeChip outcome="inconclusive" stopped={unsure.stopped} /> list kept
+          · <OutcomeChip outcome="inconclusive" stopped={unsure.stopped} games={unsure.heldOut?.games} /> list kept
         </>
       ) : l.swaps.length ? (
         ' · list kept'
@@ -516,7 +518,14 @@ export function GenerationSummary({ log: l }: { log: TuneLog }) {
 /** The saved list's note on what was adopted, with held-out paired gains (and what the lab could not tell). */
 export function evidenceNote(logs: readonly TuneLog[]): string {
   const adopted = logs.flatMap((l) => (l.adopted ? [`${l.adopted} (held-out ${l.adoptedGain ? formatGain(l.adoptedGain) : 'gain not recorded'})`] : []));
-  const unsure = logs.flatMap((l) => (l.nominees ?? []).filter((n) => n.outcome === 'inconclusive').map((n) => n.label));
+  const unsure = logs.flatMap((l) =>
+    (l.nominees ?? [])
+      .filter((n) => n.outcome === 'inconclusive')
+      .map((n) => {
+        const why = stoppedWords(n.stopped, n.heldOut?.games ?? 0);
+        return `${n.label}${why ? ` (${why})` : ''}`;
+      }),
+  );
   return [adopted.length ? `Deck Lab adopted: ${adopted.join('; ')}.` : '', unsure.length ? `Could not tell (not adopted): ${unsure.join('; ')}.` : ''].filter(Boolean).join(' ');
 }
 

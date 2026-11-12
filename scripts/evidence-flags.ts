@@ -9,6 +9,9 @@
 //   --min-games N               no adoption on fewer held-out paired games (200)
 //   --confirm-cap K             confirmation stages at most, each the size of the first (4)
 //   --alpha A                   two-sided error rate split over the looks and nominees (0.05)
+//   --futility-after N          futility stop: after N stages, a nominee whose held-out paired mean gain is at most
+//                               --futility-gain stops early as "could not tell" (never adopted); 0 = off (2)
+//   --futility-gain X           the futility stop's threshold in points; negative values as --futility-gain=-1 (0)
 //   --cards-per-change N        combine up to N of the best screened one-card swaps in one candidate (1-3; default 1)
 //   --packages-per-change N     combine up to N of the best screened package moves (1-2; default 1)
 //   --nominees N                candidates confirmed per generation
@@ -28,6 +31,8 @@ export const adoptionFlags = () => ({
   'min-games': int(undefined, { min: 0, max: 100_000 }),
   'confirm-cap': int(undefined, { min: 1, max: 16 }),
   alpha: num(undefined, { min: 0.0001, max: 0.5 }),
+  'futility-after': int(undefined, { min: 0, max: 16 }),
+  'futility-gain': num(undefined, { min: -50, max: 50 }),
 });
 /** The search-depth flags (`nominees` default differs per builder: forge 1, optimizer 6). */
 export const depthFlags = (nominees: number) => ({
@@ -46,6 +51,8 @@ export interface AdoptionFlagValues {
   'min-games'?: number;
   'confirm-cap'?: number;
   alpha?: number;
+  'futility-after'?: number;
+  'futility-gain'?: number;
 }
 export interface DepthFlagValues {
   'cards-per-change'?: number;
@@ -62,6 +69,8 @@ export function ruleFromFlags(v: AdoptionFlagValues): AdoptionRule {
     ...(v['min-games'] !== undefined ? { minGames: v['min-games'] } : {}),
     ...(v['confirm-cap'] !== undefined ? { capStages: v['confirm-cap'] } : {}),
     ...(v.alpha !== undefined ? { alpha: v.alpha } : {}),
+    ...(v['futility-after'] !== undefined ? { futilityAfterStages: v['futility-after'] } : {}),
+    ...(v['futility-gain'] !== undefined ? { futilityMaxGainPp: v['futility-gain'] } : {}),
   });
 }
 
@@ -86,10 +95,12 @@ export function exitOnRuleProblems(rule: AdoptionRule): void {
 export function adoptionArgs(v: AdoptionFlagValues & DepthFlagValues): string[] {
   const out: string[] = [];
   if (v.adopt && v.adopt !== 'evidence') out.push('--adopt', v.adopt);
-  for (const k of ['min-gain', 'package-min-gain', 'min-games', 'confirm-cap', 'alpha'] as const) {
+  for (const k of ['min-gain', 'package-min-gain', 'min-games', 'confirm-cap', 'alpha', 'futility-after'] as const) {
     const x = v[k];
     if (x !== undefined) out.push(`--${k}`, String(x));
   }
+  // `--name=value`, so a negative threshold is not read as a flag
+  if (v['futility-gain'] !== undefined) out.push(`--futility-gain=${v['futility-gain']}`);
   // depth flags have defaults, so only values that differ from the forge's defaults are passed on
   const d = depthFromFlags(v);
   if (d.cardsPerChange !== DEPTH_DEFAULTS.cardsPerChange) out.push('--cards-per-change', String(d.cardsPerChange));

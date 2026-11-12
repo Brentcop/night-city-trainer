@@ -118,6 +118,18 @@ Until 2026-11-11 the forge, the optimizer and the Deck Lab tuner adopted a chang
 - **rejected**: the upper bound is below 1 point;
 - **could not tell**: neither by the last stage. The change is **not** adopted, and reports say "could not tell" with the interval and the games played. It is never called a gain.
 
+**The futility stop.** A change with no real gain can almost never be formally rejected at these sample sizes: the two lists play the same game about 90% of the time, so even at 896 games the interval is still about ±2.2 points around zero, and the nominee used to run to the cap and pay 4× the confirmation for nothing. So, after **2 stages**, a nominee that is neither adopted nor rejected and whose held-out paired mean gain is **0 points or less** stops there. It ends as **could not tell**, recorded with `stopped: 'futility'` and shown as "could not tell (stopped early: no gain after N games)"; its games and interval are the ones at that point. It never adopts anything, so it cannot raise the false-adopt rate, and the α split above is left as it is (the looks it saves are not spent back). With several nominees (the optimizer's 6, or `--nominees`) each one is stopped on its own; a later stage is played only while one is still live, the current list still plays it once, and every game played is the same game it was without the stop (same seeds). The legacy `any-gain` rule has no stop. On synthetic paired games (`tests/evidence.test.ts`, 1,000 runs each, off → on):
+
+| Setting | Adopted | Mean games (both lists) | Stopped early |
+|---|---|---|---|
+| no gain, stages of 224, 90% same game | 0.1% → 0.1% | 1,684 → 1,238 | 57% |
+| +1 point (at the bar), same | 1.0% → 1.0% | 1,765 → 1,588 | 21% |
+| +5 points, same | 100% → 100% | 596 → 596 | 0% |
+| no gain, stages of 140, 60% same game | 0.3% → 0.3% | 1,095 → 791 | 59% |
+| +5 points, same | 37.8% → 37.7% | 997 → 970 | 5% |
+
+The runs are coupled (the stop only skips later stages of the same random games), so every adoption with the stop is also an adoption without it.
+
 **The correction for looking more than once.** Each look uses a wider interval: the error rate α = 0.05 is split evenly over the planned looks and the nominees (Bonferroni), so every look uses z = Φ⁻¹(1 − α / (2 × looks × nominees)): 2.50 for one nominee and 4 looks, 3.08 for the optimizer's 6. Whatever stage a decision stops at, the chance of adopting a change whose true gain is 1 point or less stays below α / 2 = 2.5%. Bonferroni is cruder than a Pocock or O'Brien–Fleming bound, but it needs no equal stage sizes or planned stopping pattern and is easy to check. When several nominees are confirmed, the adopted one is the one with the highest corrected lower bound, and its held-out figure is the one reported.
 
 **Defaults and flags** (one object, `ADOPTION_DEFAULTS`; forge, optimizer and season take the flags, the season passing them to its forge):
@@ -129,6 +141,8 @@ Until 2026-11-11 the forge, the optimizer and the Deck Lab tuner adopted a chang
 | Games before any adoption | 200 | `--min-games N` |
 | Confirmation stages (cap = stages × first stage) | 4 | `--confirm-cap K` |
 | α, split over looks and nominees | 0.05 | `--alpha A` |
+| Futility stop: after this many stages (0 = off) | 2 | `--futility-after N` |
+| Futility stop: held-out mean gain at most | 0 points | `--futility-gain X` (negative as `--futility-gain=-1`) |
 | The rule | `evidence` | `--adopt any-gain` restores the old rule, to reproduce old runs |
 
 **Search depth** (flags on forge and optimizer, passed on by the season; Deck Lab → Tune → Search depth):
@@ -143,6 +157,6 @@ Until 2026-11-11 the forge, the optimizer and the Deck Lab tuner adopted a chang
 
 A combined candidate is built only from screened changes, must be a legal list and must respect the package plan like every other candidate; it is screened on the same games and judged by the same rule.
 
-**What it costs.** Before a run the forge and optimizer print the range of games it can play (screening only, up to every confirmation running to the cap) and refuse a run over `--budget` (12,000 games per deck) unless given `--force`; the season checks its forge step against `--forge-budget` before it starts. The Deck Lab shows the range under Search depth and asks before a run over 12,000 games. A default forge run (2 generations, 140 games per test, 6 swaps) plays 1,960 to 6,440 games per deck, against 1,960 to 3,080 before; a nominee whose true gain is near zero usually runs all 4 stages, so expect the upper end when nothing much helps. The season's forge step (1 generation, 112 games, 5 swaps) is 672 to 2,464 games per new deck (was up to 1,120).
+**What it costs.** Before a run the forge and optimizer print the range of games it can play (screening only, up to every confirmation running to the cap) and refuse a run over `--budget` (12,000 games per deck) unless given `--force`; the season checks its forge step against `--forge-budget` before it starts. The Deck Lab shows the range under Search depth and asks before a run over 12,000 games. A default forge run (2 generations, 140 games per test, 6 swaps) plays 1,960 to 6,440 games per deck, against 1,960 to 3,080 before. The most is unchanged by the futility stop; a nominee whose true gain is near zero now stops after 2 stages about half the time (when its held-out mean is at or below zero) and otherwise still runs all 4, so expect somewhat less than the upper end when nothing much helps. The season's forge step (1 generation, 112 games, 5 swaps) is 672 to 2,464 games per new deck (was up to 1,120).
 
-**Where it is recorded.** Forge logs and JSON (`adoption`, each generation's `nominees` with screening and held-out results, `verdict` adopted / rejected / inconclusive / kept), the forged deck file (`// Forged …` lists each adopted change with its held-out gain, interval and games, and `// Adoption:` states the rule), the optimizer report and JSON (`nominees`, `best`), the season report, the Deck Lab result panel and saved notes, and every builder's run manifest (optional `adoption` field: rule, numbers, correction, first stage, nominees, depth; schema stays 1).
+**Where it is recorded.** Forge logs and JSON (`adoption`, each generation's `nominees` with screening and held-out results, `verdict` adopted / rejected / inconclusive / kept), the forged deck file (`// Forged …` lists each adopted change with its held-out gain, interval and games, and `// Adoption:` states the rule), the optimizer report and JSON (`nominees`, `best`), the season report, the Deck Lab result panel and saved notes, and every builder's run manifest (optional `adoption` field: rule, numbers, correction, first stage, nominees, depth, and the futility stop's `futilityAfterStages` / `futilityMaxGainPp`, absent in runs recorded before it existed; schema stays 1). A nominee stopped early carries `stopped: 'futility'` in the `nominees` records, and every report says "stopped early: no gain after N games" beside "could not tell".

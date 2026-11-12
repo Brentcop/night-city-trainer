@@ -166,7 +166,8 @@ export interface BudgetInput {
 /**
  * Games a run plays: `min` when nothing is nominated, `max` when every confirmation runs to the cap and every combined
  * candidate is built. Per generation: screening (baseline + singles + package moves + combinations), then the
- * confirmation (the current list and each nominee, every stage).
+ * confirmation (the current list and each nominee, every stage). The futility stop (src/lib/evidence.ts) only ever
+ * ends confirmations sooner, so it lowers what a run plays but never the most it may play.
  */
 export function estimateGames(o: BudgetInput): { min: number; max: number; screen: number; combos: number; confirm: number } {
   const legacy = o.rule.kind === 'any-gain';

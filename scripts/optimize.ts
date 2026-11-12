@@ -8,6 +8,8 @@
 // Adoption rule and search depth (as in scripts/forge.ts; docs/SYNERGIES.md "When a deck change is adopted"):
 //   --adopt evidence|any-gain (any-gain: the old report, best list = best stage-2 win rate)   --min-gain P (1)
 //   --package-min-gain P   --min-games N (200)   --confirm-cap K (4)   --alpha A (0.05)
+//   --futility-after N (2; 0 = off)   --futility-gain X (0): each nominee with a held-out paired mean gain of at most
+//   X points after N stages stops early as "could not tell" (negative X as --futility-gain=-1)
 //   --nominees N (6: the stage-1 leaders confirmed)   --cards-per-change N (1-3)   --packages-per-change N (1-2)
 //   --combine-from N (4)   --budget N (12000)   --force
 // Stage 1 screens many candidate swaps with a small sample on shared seeds; it only nominates. Stage 2 confirms the
@@ -26,7 +28,7 @@ import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, ex
 import { describeChanges, describePlan, packageChanges, packageProvenance } from '../src/lib/deckPackages';
 import { gameRunManifest, manifestDeck } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { adoptionProvenance, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, type Confirmation } from '../src/lib/evidence';
+import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type Confirmation } from '../src/lib/evidence';
 import { combinedCandidates, estimateGames, listKeyOf } from '../src/lib/deckSearch';
 import type { MatchJob } from './worker';
 
@@ -183,7 +185,7 @@ async function main() {
     '|---|---|---|---|---|---|',
     ...nominees.map((n, i) => {
       const c = confirmations[i];
-      return `| ${n.c.label} | ${(n.wr * 100).toFixed(1)}% | ${pts(n.iv.mean)} | ${c ? `${(c.candWr * 100).toFixed(1)}%` : '—'} | ${c ? formatGain(c.heldOut) : '—'} | ${c ? (LEGACY ? (i === best ? 'best' : '—') : outcomeWord(c.outcome)) : '—'} |`;
+      return `| ${n.c.label} | ${(n.wr * 100).toFixed(1)}% | ${pts(n.iv.mean)} | ${c ? `${(c.candWr * 100).toFixed(1)}%` : '—'} | ${c ? formatGain(c.heldOut) : '—'} | ${c ? (LEGACY ? (i === best ? 'best' : '—') : confirmationWord(c, RULE.futilityMaxGainPp)) : '—'} |`;
     }),
     '',
     '## Stage 1 (all candidates)',
@@ -217,7 +219,7 @@ async function main() {
     rows: nominees.map((n, i) => {
       const c = confirmations[i];
       const kind = n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind;
-      return { change: n.c.label, s1: p1(n.wr), s2: c ? p1(c.candWr) : null, delta: c ? p1(c.heldOut.mean) : p1(n.iv.mean), ...(c && !LEGACY ? { outcome: c.outcome } : {}), ...(kind ? { package: kind } : {}) };
+      return { change: n.c.label, s1: p1(n.wr), s2: c ? p1(c.candWr) : null, delta: c ? p1(c.heldOut.mean) : p1(n.iv.mean), ...(c && !LEGACY ? { outcome: c.outcome } : {}), ...(c?.stopped ? { stopped: c.stopped, heldOutGames: c.heldOut.games } : {}), ...(kind ? { package: kind } : {}) };
     }),
     nominees: nominees.map((n, i) => nomineeRecord(n.c.label, n.iv, confirmations[i], n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind)),
     best: best >= 0 ? { change: nominees[best].c.label, heldOut: confirmations[best].heldOut } : null,

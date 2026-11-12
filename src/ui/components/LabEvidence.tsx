@@ -2,18 +2,30 @@
 // the "Search depth" fieldset with the game estimate, the outcome chip (adopted / rejected / could not tell) and the
 // held-out paired gain of each nominee. The rule is in src/lib/evidence.ts, the depth and estimate in src/lib/deckSearch.ts.
 import { useId, type ReactNode } from 'react';
-import { outcomeWord, type AdoptionRule, type NomineeRecord, type Outcome } from '../../lib/evidence';
+import { futilityApplies, outcomeWord, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type StopReason } from '../../lib/evidence';
 import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
 import { Signed, Wr, type Tone } from './Num';
 
 const toneOf = (o: Outcome): Tone => (o === 'adopt' ? 'pos' : o === 'reject' ? 'neg' : 'neu');
 
-/** adopted / rejected / could not tell, as a verdict chip. */
-export function OutcomeChip({ outcome, stopped }: { outcome: Outcome; stopped?: boolean }) {
+/**
+ * adopted / rejected / could not tell, as a verdict chip; a nominee stopped early says why: "(stopped)" by Stop,
+ * "(stopped early: no gain after 448 games)" by the futility stop (`games` = its held-out games).
+ */
+export function OutcomeChip({ outcome, stopped, games = 0, futilityMaxGainPp = 0 }: { outcome: Outcome; stopped?: StopReason | boolean; games?: number; futilityMaxGainPp?: number }) {
+  const why = stoppedWords(stopped, games, futilityMaxGainPp);
+  const title =
+    stopped === 'futility'
+      ? `No gain worth testing further after ${games} fresh paired games, so it stopped early instead of running to the cap: not adopted`
+      : stopped
+        ? 'Stopped before it was decided; not adopted'
+        : outcome === 'inconclusive'
+          ? 'The interval still straddles the bar at the cap: not adopted'
+          : undefined;
   return (
-    <span className={`verdict ${toneOf(outcome)}`} title={stopped ? 'Stopped before it was decided; not adopted' : outcome === 'inconclusive' ? 'The interval still straddles the bar at the cap: not adopted' : undefined}>
+    <span className={`verdict ${toneOf(outcome)}`} title={title}>
       {outcomeWord(outcome)}
-      {stopped ? ' (stopped)' : ''}
+      {why ? ` (${why})` : ''}
     </span>
   );
 }
@@ -37,7 +49,7 @@ export function PairedGain({ g, floor = 0 }: { g: { mean: number; lower: number;
 }
 
 /** Each nominee of a generation: screening gain (shared games), held-out paired gain (fresh games) and the outcome. */
-export function NomineeTable({ nominees, minGames, label }: { nominees: readonly NomineeRecord[]; minGames: number; label?: (text: string) => ReactNode }) {
+export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label }: { nominees: readonly NomineeRecord[]; minGames: number; futilityMaxGainPp?: number; label?: (text: string) => ReactNode }) {
   if (!nominees.length) return null;
   return (
     <table className="small">
@@ -68,7 +80,7 @@ export function NomineeTable({ nominees, minGames, label }: { nominees: readonly
                 <span className="muted">—</span>
               )}
             </td>
-            <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} /> : <span className="muted">—</span>}</td>
+            <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
           </tr>
         ))}
       </tbody>
@@ -79,7 +91,11 @@ export function NomineeTable({ nominees, minGames, label }: { nominees: readonly
 /** The rule in one plain sentence for the Lab. */
 export function ruleSentence(rule: AdoptionRule, firstStage: number): string {
   if (rule.kind === 'any-gain') return `A change is adopted when it scores higher than the list on ${firstStage} fresh games (the old rule).`;
-  return `A change is adopted only when, on fresh games paired with the list (${firstStage} at a time, up to ${firstStage * rule.capStages}), its gain is clearly above ${rule.minGainPp} point${rule.minGainPp === 1 ? '' : 's'} with at least ${rule.minGames} games; if it is clearly below, it is rejected; otherwise the lab says it could not tell and keeps the list.`;
+  return `A change is adopted only when, on fresh games paired with the list (${firstStage} at a time, up to ${firstStage * rule.capStages}), its gain is clearly above ${rule.minGainPp} point${rule.minGainPp === 1 ? '' : 's'} with at least ${rule.minGames} games; if it is clearly below, it is rejected; otherwise the lab says it could not tell and keeps the list.${
+    futilityApplies(rule, rule.futilityAfterStages, rule.capStages)
+      ? ` A change that shows ${rule.futilityMaxGainPp === 0 ? 'no gain' : `a gain of at most ${rule.futilityMaxGainPp} point${rule.futilityMaxGainPp === 1 ? '' : 's'}`} after ${firstStage * rule.futilityAfterStages} games stops early (could not tell).`
+      : ''
+  }`;
 }
 
 /** Tune tab: search depth (cards and packages per change) with the run's game estimate. */

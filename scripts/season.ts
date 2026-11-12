@@ -21,7 +21,8 @@
 //
 // Adoption rule and search depth for the forge step (passed on to scripts/forge.ts; docs/SYNERGIES.md "When a deck
 // change is adopted"): --adopt evidence|any-gain (default evidence; any-gain reproduces seasons before 2026-11-11),
-// --min-gain P, --package-min-gain P, --min-games N, --confirm-cap K, --alpha A, --cards-per-change N,
+// --min-gain P, --package-min-gain P, --min-games N, --confirm-cap K, --alpha A, --futility-after N (2; 0 = off),
+// --futility-gain X (0), --cards-per-change N,
 // --packages-per-change N, --nominees N, --combine-from N, and --forge-budget N (games per forged deck, default 12000:
 // the season refuses to start when the forge step could play more).
 //

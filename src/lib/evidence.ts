@@ -110,6 +110,14 @@ export interface AdoptionRule {
   capStages: number;
   /** no adoption on fewer held-out paired games than this */
   minGames: number;
+  /**
+   * Futility stop: from this many stages on, a nominee still undecided whose held-out paired mean gain is at most
+   * `futilityMaxGainPp` stops there as "could not tell" (stopped early). 0 = off. It only ever stops without adopting,
+   * so it cannot raise the false-adopt rate, and the α split over `capStages` looks is left as it is.
+   */
+  futilityAfterStages: number;
+  /** the futility stop's threshold on the held-out paired mean gain, in percentage points (0: no gain at all) */
+  futilityMaxGainPp: number;
 }
 
 /**
@@ -121,7 +129,10 @@ export interface AdoptionRule {
  *   nominees)), 2.50 for one nominee and 4 looks, so the chance of adopting a change that is not worth the minimum gain
  *   is at most α / 2 = 2.5% per decision, however the stages fall;
  * - adopt when the corrected lower bound is above 1 point (the tuners' DEFAULT_MIN_GAIN_PP) with at least 200 games;
- *   reject when the corrected upper bound is below 1 point; otherwise "could not tell" at the cap, which is not adopted.
+ *   reject when the corrected upper bound is below 1 point; otherwise "could not tell" at the cap, which is not adopted;
+ * - futility stop: after 2 stages, a nominee whose held-out paired mean gain is 0 points or less stops there as "could
+ *   not tell (stopped early)" instead of playing to the cap (a change with no real gain can almost never be formally
+ *   rejected at these sample sizes). It never adopts, so the α split above is kept as it is.
  */
 export const ADOPTION_DEFAULTS: Readonly<AdoptionRule> = Object.freeze({
   kind: 'evidence',
@@ -130,10 +141,12 @@ export const ADOPTION_DEFAULTS: Readonly<AdoptionRule> = Object.freeze({
   alpha: 0.05,
   capStages: 4,
   minGames: 200,
+  futilityAfterStages: 2,
+  futilityMaxGainPp: 0,
 });
 
 /** The rule before 2026-11-11: one confirmation stage, adopt when the candidate scored more than the list at all. */
-export const ANY_GAIN_RULE: Readonly<AdoptionRule> = Object.freeze({ kind: 'any-gain', minGainPp: 0, packageMinGainPp: 0, alpha: 0.05, capStages: 1, minGames: 0 });
+export const ANY_GAIN_RULE: Readonly<AdoptionRule> = Object.freeze({ kind: 'any-gain', minGainPp: 0, packageMinGainPp: 0, alpha: 0.05, capStages: 1, minGames: 0, futilityAfterStages: 0, futilityMaxGainPp: 0 });
 
 /** A rule from partial settings: `{ kind: 'any-gain' }` is the legacy rule whatever else is set. */
 export function adoptionRule(o: Partial<AdoptionRule> = {}): AdoptionRule {
@@ -151,6 +164,8 @@ export function ruleProblems(r: AdoptionRule): string[] {
   if (!(r.minGames >= 0)) out.push(`the minimum games must be 0 or more (got ${r.minGames})`);
   if (!(r.minGainPp >= 0 && r.minGainPp < 100)) out.push(`the minimum gain must be 0 to 100 points (got ${r.minGainPp})`);
   if (!(r.packageMinGainPp >= 0 && r.packageMinGainPp < 100)) out.push(`the package minimum gain must be 0 to 100 points (got ${r.packageMinGainPp})`);
+  if (!Number.isInteger(r.futilityAfterStages) || r.futilityAfterStages < 0 || r.futilityAfterStages > 16) out.push(`the futility stop must come after 0 (off) to 16 stages (got ${r.futilityAfterStages})`);
+  if (!(r.futilityMaxGainPp > -100 && r.futilityMaxGainPp < 100)) out.push(`the futility threshold must be between -100 and 100 points (got ${r.futilityMaxGainPp})`);
   return out;
 }
 
@@ -192,8 +207,19 @@ export interface Confirmation {
   looks: number;
   /** the bar it was judged against, in points */
   minGainPp: number;
-  /** stopped before it was decided (Deck Lab's Stop); never adopted */
-  stopped?: boolean;
+  /**
+   * stopped before it was decided, never adopted: `true` by the Deck Lab's Stop; 'futility' by the futility stop (no
+   * gain after `rule.futilityAfterStages` stages; its games and interval are the ones at that point)
+   */
+  stopped?: StopReason;
+}
+
+/** Why a confirmation ended before it was decided: `true` = Stop (Deck Lab), 'futility' = the futility stop. */
+export type StopReason = true | 'futility';
+
+/** Whether `rule` may stop a nominee for futility after `stage` stages (1-based) of `stages`. */
+export function futilityApplies(rule: Pick<AdoptionRule, 'kind' | 'futilityAfterStages'>, looks: number, stages: number): boolean {
+  return rule.kind === 'evidence' && rule.futilityAfterStages > 0 && looks >= rule.futilityAfterStages && looks < stages;
 }
 
 /**
@@ -201,6 +227,10 @@ export interface Confirmation {
  * plays each stage once and every nominee still in the race is compared with the same games. Stage k plays seed offsets
  * [k·firstStage, (k+1)·firstStage), so the first stage is the builders' old confirmation and the stages never overlap.
  * Under 'any-gain' there is one stage and a nominee is adopted when its mean difference is above zero (the old rule).
+ * The futility stop (rule.futilityAfterStages) ends each nominee on its own: once it applies, a nominee that is neither
+ * adopted nor rejected and whose held-out mean gain is at most rule.futilityMaxGainPp is "could not tell" with
+ * `stopped: 'futility'`. Later stages are played only while a nominee is still live, so every game played is the same
+ * game it was without the stop.
  */
 export async function confirmStaged(
   rule: AdoptionRule,
@@ -218,7 +248,7 @@ export async function confirmStaged(
   const stages = legacy ? 1 : rule.capStages;
   const z = legacy ? 1.96 : lookZ(rule, n);
   let games = 0;
-  const conclude = (i: number, outcome: Outcome, looks: number, stopped = false): Confirmation => {
+  const conclude = (i: number, outcome: Outcome, looks: number, stopped?: StopReason): Confirmation => {
     const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], z);
     return { outcome, heldOut: iv, baseWr: mean(baseFor[i] ?? []), candWr: mean(scores[i] ?? []), looks, minGainPp: nominees[i]?.minGainPp ?? 0, ...(stopped ? { stopped } : {}) };
   };
@@ -244,6 +274,7 @@ export async function confirmStaged(
       const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], z);
       const v = judgeLook(iv, { minGainPp: nominees[i]?.minGainPp ?? rule.minGainPp, minGames: rule.minGames, last: stage === stages - 1 });
       if (v !== 'continue') done[i] = conclude(i, v, stage + 1);
+      else if (futilityApplies(rule, stage + 1, stages) && iv.mean <= rule.futilityMaxGainPp / 100) done[i] = conclude(i, 'inconclusive', stage + 1, 'futility');
     }
   }
   return { results: done.map((d, i) => d ?? conclude(i, 'inconclusive', 0, true)), games };
@@ -267,6 +298,21 @@ export const outcomeWord = (o: Outcome): string => (o === 'adopt' ? 'adopted' : 
 
 const pts = (x: number, digits = 1) => `${x >= 0 ? '+' : '−'}${Math.abs(x * 100).toFixed(digits)}`;
 
+/**
+ * Why a nominee stopped early, in plain words: "stopped early: no gain after 448 games" (futility; with a threshold
+ * other than 0, "gain at most +0.5 pts after …"), or "stopped" (Stop). Empty when it was not stopped.
+ */
+export function stoppedWords(stopped: StopReason | boolean | undefined, games: number, futilityMaxGainPp = 0): string {
+  if (stopped === 'futility') return `stopped early: ${futilityMaxGainPp === 0 ? 'no gain' : `gain at most ${pts(futilityMaxGainPp / 100)} pts`} after ${games} games`;
+  return stopped ? 'stopped' : '';
+}
+
+/** The outcome as reports say it, with why it stopped early: "could not tell (stopped early: no gain after 448 games)". */
+export function confirmationWord(c: { outcome: Outcome; stopped?: StopReason | boolean; heldOut?: { games: number } }, futilityMaxGainPp = 0): string {
+  const why = stoppedWords(c.stopped, c.heldOut?.games ?? 0, futilityMaxGainPp);
+  return `${outcomeWord(c.outcome)}${why ? ` (${why})` : ''}`;
+}
+
 /** "+4.8 pts [+0.2, +9.4], 560 games" — a paired gain with its interval and games. */
 export function formatGain(iv: Pick<PairedInterval, 'mean' | 'lower' | 'upper' | 'games'>): string {
   return `${pts(iv.mean)} pts [${pts(iv.lower)}, ${pts(iv.upper)}], ${iv.games} games`;
@@ -278,7 +324,15 @@ export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nomin
   const z = lookZ(rule, o.nominees ?? 1);
   const stages = o.firstStage ? `stages of ${o.firstStage} fresh paired games up to ${rule.capStages * o.firstStage}` : `up to ${rule.capStages} stages of fresh paired games`;
   const pkg = rule.packageMinGainPp !== rule.minGainPp ? ` (package moves ${rule.packageMinGainPp} points)` : '';
-  return `evidence: ${stages}; adopt when the lower bound of the paired gain is above ${rule.minGainPp} point${rule.minGainPp === 1 ? '' : 's'}${pkg} with at least ${rule.minGames} games, reject when the upper bound is below it, otherwise could not tell; α = ${rule.alpha} split over ${rule.capStages} looks${(o.nominees ?? 1) > 1 ? ` × ${o.nominees} nominees` : ''} (Bonferroni, z = ${z.toFixed(2)})`;
+  return `evidence: ${stages}; adopt when the lower bound of the paired gain is above ${rule.minGainPp} point${rule.minGainPp === 1 ? '' : 's'}${pkg} with at least ${rule.minGames} games, reject when the upper bound is below it, otherwise could not tell${futilityClause(rule, o.firstStage)}; α = ${rule.alpha} split over ${rule.capStages} looks${(o.nominees ?? 1) > 1 ? ` × ${o.nominees} nominees` : ''} (Bonferroni, z = ${z.toFixed(2)})`;
+}
+
+/** "; a nominee with no gain after 2 stages (560 games) stops early as could not tell", or '' when the stop is off or never reached. */
+function futilityClause(rule: AdoptionRule, firstStage?: number): string {
+  if (!futilityApplies(rule, rule.futilityAfterStages, rule.capStages)) return '';
+  const k = rule.futilityAfterStages;
+  const gain = rule.futilityMaxGainPp === 0 ? 'no gain' : `a gain of at most ${rule.futilityMaxGainPp} point${rule.futilityMaxGainPp === 1 ? '' : 's'}`;
+  return `; a nominee with ${gain} after ${k} stage${k === 1 ? '' : 's'}${firstStage ? ` (${k * firstStage} games)` : ''} stops early as could not tell`;
 }
 
 /** What a run manifest records about the rule (optional `adoption` field; schema stays 1). */
@@ -298,6 +352,10 @@ export interface AdoptionProvenance {
   /** search depth */
   cardsPerChange: number;
   packagesPerChange: number;
+  /** the futility stop: after this many stages (0 = off; absent = recorded before the stop existed, so off) */
+  futilityAfterStages?: number;
+  /** its threshold on the held-out paired mean gain, points */
+  futilityMaxGainPp?: number;
 }
 
 export function adoptionProvenance(rule: AdoptionRule, o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number }): AdoptionProvenance {
@@ -310,6 +368,7 @@ export function adoptionProvenance(rule: AdoptionRule, o: { firstStage: number; 
     capStages: rule.capStages,
     minGames: rule.minGames,
     ...o,
+    ...(rule.kind === 'evidence' ? { futilityAfterStages: rule.futilityAfterStages, futilityMaxGainPp: rule.futilityMaxGainPp } : {}),
   };
 }
 
@@ -322,8 +381,8 @@ export interface NomineeRecord {
   screen: { games: number; mean: number; lower: number; upper: number };
   heldOut?: { games: number; mean: number; lower: number; upper: number; z: number; looks: number; baseWr: number; candWr: number };
   outcome?: Outcome;
-  /** the confirmation was cut short by Stop */
-  stopped?: boolean;
+  /** the confirmation was cut short: `true` by Stop, 'futility' by the futility stop (heldOut is at that point) */
+  stopped?: StopReason;
 }
 
 const r4 = (x: number) => Math.round(x * 10_000) / 10_000;
@@ -336,7 +395,7 @@ export function nomineeRecord(label: string, screen: PairedInterval, c?: Confirm
       ? {
           heldOut: { games: c.heldOut.games, mean: r4(c.heldOut.mean), lower: r4(c.heldOut.lower), upper: r4(c.heldOut.upper), z: r4(c.heldOut.z), looks: c.looks, baseWr: r4(c.baseWr), candWr: r4(c.candWr) },
           outcome: c.outcome,
-          ...(c.stopped ? { stopped: true } : {}),
+          ...(c.stopped ? { stopped: c.stopped } : {}),
         }
       : {}),
   };

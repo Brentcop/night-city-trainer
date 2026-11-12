@@ -17,6 +17,8 @@
 // Adoption rule and search depth (docs/SYNERGIES.md "When a deck change is adopted"; src/lib/evidence.ts):
 //   --adopt evidence|any-gain   default evidence; any-gain reproduces runs before 2026-11-11 (adopt on any gain)
 //   --min-gain P (1)  --package-min-gain P (= min-gain)  --min-games N (200)  --confirm-cap K (4)  --alpha A (0.05)
+//   --futility-after N (2; 0 = off)  --futility-gain X (0): after N stages a nominee whose held-out paired mean gain
+//                     is at most X points stops early as "could not tell" (never adopted; negative X as --futility-gain=-1)
 //   --cards-per-change N (1-3, default 1)   --packages-per-change N (1-2, default 1)   --nominees N (default 1)
 //   --combine-from N (4)   --budget N (12000 games per deck; the estimate is printed first)   --force (go over it)
 //
@@ -29,8 +31,9 @@
 //      nominates: the best --nominees changes that beat the baseline by 2+ points.
 //   4. Confirm the nominees on fresh seeds (held out from the screening), paired with the current list, in stages of
 //      2 × --games up to --confirm-cap stages. Adopt only when the corrected lower bound of the held-out paired gain is
-//      above --min-gain; reject when the upper bound is below it; otherwise "could not tell" (kept). The reported gain
-//      is always the held-out one.
+//      above --min-gain; reject when the upper bound is below it; otherwise "could not tell" (kept). A nominee with no
+//      gain after --futility-after stages stops early ("could not tell (stopped early: no gain after N games)"). The
+//      reported gain is always the held-out one.
 //   5. Save the new version (data/decks/custom/<slug>.txt), archive the old one (history/), log reports/forge/<slug>.md
 //      (plus reports/forge/<slug>.json, which scripts/bundle-reports.ts reads).
 // Seeds come from --seed, so a run can be repeated exactly.
@@ -49,7 +52,7 @@ import { forgeScore, forgeSwaps, isPackageChange, packageCandidates, combineMuta
 import { exitOnPlanProblems, objectivePackages, packagesOn, planFromFlags, tunerPackageFlags } from './package-flags';
 import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
-import { adoptionProvenance, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, type AdoptionProvenance, type NomineeRecord, type PairedInterval } from '../src/lib/evidence';
+import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval } from '../src/lib/evidence';
 import { estimateGames, listKeyOf } from '../src/lib/deckSearch';
 
 const { values: V, positionals } = cli(
@@ -152,6 +155,8 @@ function planFor(target: (typeof lib)[number]): PackagePlan {
 }
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+/** "could not tell (stopped early: no gain after 448 games)" and the like */
+const word = (c: Confirmation) => confirmationWord(c, RULE.futilityMaxGainPp);
 const mutKind = (m: Mutation) => (m.combo ? `combo-${m.combo.packages ? 'packages' : 'cards'}` : m.pkg?.kind);
 
 interface Screened {
@@ -284,12 +289,12 @@ async function forge(target: (typeof lib)[number]) {
     nominated.forEach((r, i) => {
       const c = conf.results[i]!;
       const line = `baseline ${pct(c.baseWr)} vs swap ${pct(c.candWr)}; held-out paired gain ${formatGain(c.heldOut)}${RULE.kind === 'evidence' ? ` (z ${c.heldOut.z.toFixed(2)}, ${c.looks} stage${c.looks === 1 ? '' : 's'})` : ''}`;
-      log.push(`Confirmation of ${r.m.label} (fresh paired games; screening ${formatGain(r.iv)}): ${line} → **${outcomeWord(c.outcome)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
-      console.log(`  confirm ${r.m.label}: ${line} → ${outcomeWord(c.outcome).toUpperCase()}`);
+      log.push(`Confirmation of ${r.m.label} (fresh paired games; screening ${formatGain(r.iv)}): ${line} → **${word(c)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
+      console.log(`  confirm ${r.m.label}: ${line} → ${outcomeWord(c.outcome).toUpperCase()}${c.stopped ? ` (${stoppedWords(c.stopped, c.heldOut.games, RULE.futilityMaxGainPp)})` : ''}`);
     });
     const shown = pick >= 0 ? pick : 0;
     const sc = conf.results[shown]!;
-    genRec.confirm = `(${sc.heldOut.games} fresh paired games): baseline ${pct(sc.baseWr)} vs swap ${pct(sc.candWr)}; held-out gain ${formatGain(sc.heldOut)} → ${outcomeWord(sc.outcome)}`;
+    genRec.confirm = `(${sc.heldOut.games} fresh paired games): baseline ${pct(sc.baseWr)} vs swap ${pct(sc.candWr)}; held-out gain ${formatGain(sc.heldOut)} → ${word(sc)}`;
     if (pick >= 0) {
       const won = nominated[pick]!;
       deck = won.m.deck;
@@ -299,7 +304,9 @@ async function forge(target: (typeof lib)[number]) {
     } else if (conf.results.some((c) => c.outcome === 'inconclusive')) {
       genRec.verdict = 'inconclusive';
       const i = conf.results.findIndex((c) => c.outcome === 'inconclusive');
-      history.push({ gen, wr: conf.results[i]!.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${formatGain(conf.results[i]!.heldOut)})` });
+      const ci = conf.results[i]!;
+      const why = stoppedWords(ci.stopped, ci.heldOut.games, RULE.futilityMaxGainPp);
+      history.push({ gen, wr: ci.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${formatGain(ci.heldOut)}${why ? `; ${why}` : ''})` });
     } else {
       genRec.verdict = 'rejected';
       history.push({ gen, wr: sc.baseWr, change: 'kept (swap failed confirmation)' });

@@ -8,7 +8,7 @@ import { CARDS } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
 import { partialTune, tuneDeck, tunePlan, type TuneLog, type TuneOptions } from '../src/lib/deckLab';
 import type { GameJob, PlayGame } from '../src/lib/tournament';
-import { ADOPTION_DEFAULTS } from '../src/lib/evidence';
+import { ADOPTION_DEFAULTS, type NomineeRecord } from '../src/lib/evidence';
 import { LAB_GAME_BUDGET } from '../src/lib/deckSearch';
 import { DepthControls, NomineeTable, OutcomeChip } from '../src/ui/components/LabEvidence';
 import { DeckLabPage, evidenceNote, GenerationSummary } from '../src/ui/pages/DeckLab';
@@ -84,8 +84,8 @@ describe('Deck Lab tuner under the evidence rule', () => {
     expect(l.nominees![0]!.heldOut!.looks).toBe(1);
   });
 
-  it('a noisy change with no real gain runs to the cap and is "could not tell", not adopted', async () => {
-    const end = await tuneDeck(start, field, { ...OPTS, games: 20, minGain: -1 }, fake(0, 0.9), () => undefined, () => false);
+  it('a noisy change with no real gain runs to the cap and is "could not tell", not adopted (futility stop off)', async () => {
+    const end = await tuneDeck(start, field, { ...OPTS, games: 20, minGain: -1, rule: { futilityAfterStages: 0 } }, fake(0, 0.9), () => undefined, () => false);
     const l = end.logs[0]!;
     expect(l.adopted).toBeNull();
     const n = l.nominees![0]!;
@@ -93,6 +93,33 @@ describe('Deck Lab tuner under the evidence rule', () => {
     expect(n.heldOut!.games).toBe(40 * ADOPTION_DEFAULTS.capStages);
     expect(partialTune(end)).toBeNull();
     expect(evidenceNote(end.logs)).toMatch(/^Could not tell \(not adopted\): /);
+  });
+
+  it('with the default futility stop, a change with no gain after 2 stages stops early, on the same games', async () => {
+    // find a noisy no-gain run whose held-out mean after 2 stages is at most 0
+    let hit: { seedBase: number; played: string[]; n: NomineeRecord } | null = null;
+    for (let seedBase = 500_000; seedBase < 500_040 && !hit; seedBase++) {
+      const played: string[] = [];
+      const play = fake(0, 0.9);
+      const end = await tuneDeck(start, field, { ...OPTS, games: 20, minGain: -1, seedBase }, async (j) => (played.push(`${j.seed}:${j.a.main.join()}`), play(j)), () => undefined, () => false);
+      const n = end.logs[0]?.nominees?.[0];
+      if (n?.stopped === 'futility') hit = { seedBase, played, n };
+    }
+    expect(hit).not.toBeNull();
+    const { seedBase, played, n } = hit!;
+    expect(n).toMatchObject({ outcome: 'inconclusive', stopped: 'futility' });
+    expect(n.heldOut).toMatchObject({ games: 80, looks: 2 });
+    expect(n.heldOut!.mean).toBeLessThanOrEqual(0);
+    // the same run without the stop plays the same games, then two more stages
+    const playedOff: string[] = [];
+    const play = fake(0, 0.9);
+    await tuneDeck(start, field, { ...OPTS, games: 20, minGain: -1, seedBase, rule: { futilityAfterStages: 0 } }, async (j) => (playedOff.push(`${j.seed}:${j.a.main.join()}`), play(j)), () => undefined, () => false);
+    expect(playedOff.slice(0, played.length)).toEqual(played);
+    expect(playedOff.length).toBe(played.length + 2 * 2 * 40);
+    const html = renderToStaticMarkup(<NomineeTable nominees={[n]} minGames={200} />);
+    expect(html).toContain('could not tell (stopped early: no gain after 80 games)');
+    expect(renderToStaticMarkup(<GenerationSummary log={{ gen: 1, baseline: 0.5, swaps: [], nominees: [n], adopted: null }} />)).toContain('stopped early: no gain after 80 games');
+    expect(evidenceNote([{ gen: 1, baseline: 0.5, swaps: [], nominees: [n], adopted: null }])).toBe(`Could not tell (not adopted): ${n.label} (stopped early: no gain after 80 games).`);
   });
 
   it('the legacy rule adopts the same change on any gain after one confirmation', async () => {

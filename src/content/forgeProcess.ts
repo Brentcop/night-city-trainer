@@ -12,7 +12,7 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
    - **cut** the lowest-impact cards;
    - **try adding** the deck's own best cards and the format's highest-impact legal cards;
    - **test** every swap on identical seeds (this only nominates);
-   - **confirm** the nominee on fresh seeds, paired with the list, in stages: it is adopted only when the gain is clearly above 1 point, rejected when it is clearly below, and otherwise reported as "could not tell" and not adopted.
+   - **confirm** the nominee on fresh seeds, paired with the list, in stages: it is adopted only when the gain is clearly above 1 point, rejected when it is clearly below, and otherwise reported as "could not tell" and not adopted. A nominee that shows no gain after two stages stops there ("could not tell", stopped early) instead of playing to the cap.
 
    The old list is archived and the reasoning is logged in \`reports/forge/<deck>.md\`.
 5. **Sideboard.** \`npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard\` finds the swaps worth bringing in for your worst matchups.
