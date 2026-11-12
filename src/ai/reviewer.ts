@@ -22,7 +22,12 @@ export const NOISE = 4;
 export const BLUNDER = 15;
 /** Regret is capped here (3 Gigs) so a single game-ending line doesn't swamp the averages. */
 export const CAP = 120;
-/** Play-outs per candidate (validated: 8 with common random numbers, see reports/review-validation.md). */
+/**
+ * Play-outs per candidate, in shared worlds (common random numbers). Never checked against an independent oracle: the
+ * reports/review-validate-*.md runs show the reviewer separates the tiers and catches injected random moves, but with
+ * the bots' own evaluation. The position benchmark (scripts/benchmark.ts, docs/BOT_TOOLKIT.md §10) scores bots by
+ * play-outs to the end of the game instead.
+ */
 const DEFAULT_ROLLOUTS = 8;
 
 export type Category =
