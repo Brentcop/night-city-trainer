@@ -11,6 +11,8 @@ import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type 
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, classify, type Archetype, type Profiles } from './archetype';
 import { cardImpact } from './impact';
+import { planTurn } from './turnPlan';
+import type { MulliganRule } from './mulligan';
 
 /**
  * How the bot treats each `chooseCard` tag used by the engine and the card scripts (read from the scripts, not from
@@ -84,6 +86,21 @@ export interface HeuristicOptions {
   sellSearch?: boolean;
   /** Internal (sellSearch's "don't sell" play-outs): never sell on this turn number. -1 (default) = off. */
   noSellTurn?: number;
+  /**
+   * BOT-5. Main phase: value each candidate by the best sequence of our own actions for the rest of this turn that starts
+   * with it, searched up to this many actions deep (src/ai/turnPlan.ts), instead of by the position right after it. The
+   * deep rollouts (deep > 0) then re-score the top candidates as before. 0 or 1 (default) = the 1-ply screen, exactly as before.
+   */
+  turnPlan?: number;
+  /** turnPlan: most nodes (clone + action) searched per decision (default 120) */
+  turnPlanNodes?: number;
+  /** turnPlan: positions expanded per level from depth 3 on (default 3) */
+  turnPlanBeam?: number;
+  /**
+   * BOT-6. The opening-hand rule (src/ai/mulligan.ts): 'rule' (default) = the rule every bot used before, exactly;
+   * 'plain' drops the card-impact keep (2+ high-impact cards), which only bots with `impact` use.
+   */
+  mulligan?: MulliganRule;
   seed?: number;
 }
 
@@ -141,6 +158,10 @@ export class HeuristicAgent implements Agent {
       deepWorlds: opts.deepWorlds ?? 0,
       sellSearch: opts.sellSearch ?? false,
       noSellTurn: opts.noSellTurn ?? -1,
+      turnPlan: opts.turnPlan ?? 0,
+      turnPlanNodes: opts.turnPlanNodes ?? 120,
+      turnPlanBeam: opts.turnPlanBeam ?? 3,
+      mulligan: opts.mulligan ?? 'rule',
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -353,10 +374,12 @@ export class HeuristicAgent implements Agent {
       for (const { a } of unknownCalls) sum += await this.simulate(g, p, a);
       unknownCallV = sum / unknownCalls.length;
     }
+    // turnPlan (BOT-5): each candidate valued by the best line of the turn starting with it (its 1-ply value or better)
+    const planned = this.opts.turnPlan > 1 ? await this.planValues(g, p, cands.filter((x) => !isUnknownCall(g, x.a))) : null;
     const scored: { i: number; v: number }[] = [];
     if (passIdx >= 0) scored.push({ i: passIdx, v: base });
     for (const { a, i } of cands) {
-      let v = isUnknownCall(g, a) ? unknownCallV! : await this.simulate(g, p, a);
+      let v = isUnknownCall(g, a) ? unknownCallV! : (planned?.get(i) ?? (await this.simulate(g, p, a)));
       // calling with spare mana at end of turn is fine, but prefer doing it on rival's turn as a reaction
       if (a.type === 'call') v -= 1.5;
       if (this.opts.noise) v += (this.rand() - 0.5) * this.opts.noise * 10;
@@ -441,6 +464,52 @@ export class HeuristicAgent implements Agent {
       if (!(e instanceof GameOverSignal)) throw e;
     }
     return evaluate(cg, p, this.w(g, p));
+  }
+
+  /** turnPlan: the last plan's best line (descriptions, first action first) and its search size; null when not planned. */
+  lastPlan: { line: string[]; v: number; nodes: number; merged: number; depth: number; changed: boolean } | null = null;
+
+  /**
+   * BOT-5 (turnPlan): each candidate's value as the best sequence of p's own actions this turn that starts with it,
+   * searched in the 1-ply screen's world with its play-out agents and evaluation (src/ai/turnPlan.ts). Keyed by action index.
+   */
+  private async planValues(g: Game, p: PlayerId, cands: { a: Action; i: number }[]): Promise<Map<number, number>> {
+    const w = this.w(g, p);
+    const r = await planTurn(
+      p,
+      cands.map((x) => x.a),
+      {
+        root: () => {
+          const cg = g.clone(this.fastAgents(p));
+          hideInfo(cg, p);
+          return cg;
+        },
+        child: (cg) => cg.clone(this.fastAgents(p)),
+        value: (cg) => evaluate(cg, p, w),
+        // below the root: no sells (the rule sells first), no Calls (a face-down Legend's identity is unknown) and no pass
+        expand: (cg) =>
+          this.capCandidates(
+            cg,
+            cg
+              .legalActions(p)
+              .map((a, i) => ({ a, i }))
+              .filter(({ a }) => a.type !== 'pass' && a.type !== 'sell' && a.type !== 'call'),
+          ).map((x) => x.a),
+      },
+      { depth: this.opts.turnPlan, nodes: this.opts.turnPlanNodes, beam: this.opts.turnPlanBeam },
+    );
+    // later steps may name cards or abilities that exist only in the search position: described in the real game when they can be
+    const describe = (a: Action) => {
+      try {
+        return g.describeAction(a);
+      } catch {
+        return a.type;
+      }
+    };
+    this.lastPlan = r.best ? { line: r.best.line.map(describe), v: r.best.v, nodes: r.nodes, merged: r.merged, depth: r.depth, changed: r.changed } : null;
+    // first actions that lead to the same best line tie on it (merged positions): 5% of the 1-ply value breaks the tie toward
+    // the step that is best on its own; with no better line than the action itself this is exactly the 1-ply value
+    return new Map(cands.map((x, k) => [x.i, 0.95 * r.values[k] + 0.05 * r.own[k]]));
   }
 
   /**
@@ -723,7 +792,7 @@ export class HeuristicAgent implements Agent {
 
   wantsMulligan(g: Game, p: PlayerId): boolean {
     const hand = g.P(p).hand.map((u) => g.def(u));
-    if (this.opts.impact) {
+    if (this.opts.impact && this.opts.mulligan === 'rule') {
       // keep hands holding the deck's proven game-winners even if the curve is a bit off
       const winners = hand.filter((c) => cardImpact(g.P(p), c.id) >= 0.05).length;
       const cheapAny = hand.filter((c) => (c.cost ?? 9) <= 4).length;

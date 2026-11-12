@@ -12,6 +12,7 @@ import { aggregateSynergyGame, type SynergyAggregate } from '../src/analysis/syn
 import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
 import { holdCredit, packageFacts, seatPackages } from '../src/ai/packages';
+import { handFeatures, plainRuleMulligan, type HandFeatures, type MulliganRule } from '../src/ai/mulligan';
 
 export interface MatchJob {
   a: DeckList;
@@ -38,6 +39,13 @@ export interface MatchJob {
   shadowA?: AgentSpec;
   /** scripts/package-scoring.ts: count seat A's sells and give-up choices of package pieces whose partner it could still get */
   piecesA?: boolean;
+  /**
+   * scripts/mulligan-check.ts: force seat A's (seat 0's) opening-hand decision ('keep' or 'mulligan'; omitted = its bot
+   * decides) and return the hand's features with the bot's own verdict (`opening`). Nothing else in the game changes.
+   */
+  mulliganA?: 'keep' | 'mulligan';
+  /** with or without mulliganA: return seat A's opening-hand features (`opening`) */
+  openingA?: boolean;
 }
 export interface AgentSpec {
   lookahead?: boolean;
@@ -54,6 +62,12 @@ export interface AgentSpec {
   deepWorlds?: number;
   /** BOT-4 (HeuristicOptions.sellSearch): "don't sell" and the two most sellable cards compared by the deep rollout */
   sellSearch?: boolean;
+  /** BOT-5 (HeuristicOptions.turnPlan / turnPlanNodes / turnPlanBeam): candidates valued by the best line of the turn */
+  turnPlan?: number;
+  turnPlanNodes?: number;
+  turnPlanBeam?: number;
+  /** BOT-6 (HeuristicOptions.mulligan): which opening-hand rule */
+  mulligan?: MulliganRule;
   /** 'default' = DEFAULT_PROFILES, 'best' = BEST_PROFILES (tuned), or an explicit profile table */
   profiles?: 'default' | 'best' | Record<string, Record<string, number>>;
 }
@@ -84,6 +98,40 @@ export interface MatchResult {
   shadow?: Record<string, [number, number]>;
   /** with `piecesA`: seat A's package-piece sells and give-ups (see PieceCounts) */
   pieces?: PieceCounts;
+  /** with `openingA` / `mulliganA`: seat A's opening hand and what was done with it */
+  opening?: OpeningHand;
+}
+
+/** Seat A's opening hand (before any mulligan), the bot's own verdict and the decision played (scripts/mulligan-check.ts). */
+export interface OpeningHand extends HandFeatures {
+  /** the bot's own mulligan verdict on this hand (its `mulligan` option, card impact included) */
+  rule: boolean;
+  /** the plain rule's verdict (`mulligan: 'plain'`: no card-impact keep) */
+  plain: boolean;
+  /** what was played: the forced choice, or the rule's */
+  mulligan: boolean;
+}
+
+/** Seat A's agent with its opening-hand decision recorded and optionally forced. Plays exactly as `inner` otherwise. */
+class MulliganProbe implements Agent {
+  name: string;
+  opening: OpeningHand | null = null;
+  constructor(
+    private inner: Agent,
+    private bot: HeuristicAgent,
+    private force: 'keep' | 'mulligan' | undefined,
+  ) {
+    this.name = inner.name;
+  }
+  async decide(g: Game, d: Decision): Promise<number[]> {
+    if (d.kind === 'yesno' && d.tag === 'mulligan' && this.opening === null) {
+      const rule = this.bot.wantsMulligan(g, d.player);
+      const mulligan = this.force ? this.force === 'mulligan' : rule;
+      this.opening = { ...handFeatures(g, d.player), rule, plain: plainRuleMulligan(g, d.player), mulligan };
+      if (this.force) return [mulligan ? 0 : 1];
+    }
+    return this.inner.decide(g, d);
+  }
 }
 
 /** Seat A's sells and give-up choices (discard, trash, bottom-deck from hand), and how many were package pieces with a partner still obtainable. */
@@ -159,7 +207,7 @@ class ObservedAgent implements Agent {
 }
 
 function fromSpec(spec: AgentSpec, seed: number): HeuristicAgent {
-  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
+  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 
 function mkAgent(kind: string, seed: number): Agent {
@@ -175,7 +223,8 @@ parentPort?.on('message', async (job: MatchJob) => {
     const A0 = job.agentA ? fromSpec(job.agentA, job.seed) : mkAgent(job.bot, job.seed);
     const observed =
       (job.shadowA || job.piecesA) && A0 instanceof HeuristicAgent ? new ObservedAgent(A0, job.shadowA ? fromSpec(job.shadowA, job.seed) : null, !!job.piecesA) : null;
-    const A = observed ?? A0;
+    const probe = (job.mulliganA || job.openingA) && A0 instanceof HeuristicAgent ? new MulliganProbe(observed ?? A0, A0, job.mulliganA) : null;
+    const A = probe ?? observed ?? A0;
     const B = job.agentB ? fromSpec(job.agentB, job.seed + 7777) : mkAgent(job.bot, job.seed + 7777);
     const g = Game.create([job.a, job.b], [A, B], {
       seed: job.seed,
@@ -228,6 +277,7 @@ parentPort?.on('message', async (job: MatchJob) => {
       ...decisions,
       ...(observed && job.shadowA ? { shadow: observed.shadow } : {}),
       ...(observed && job.piecesA ? { pieces: observed.pieces } : {}),
+      ...(probe?.opening ? { opening: probe.opening } : {}),
     };
   } catch (e: any) {
     // an exception is an error, never a result: callers report it and leave the game out of every tally
