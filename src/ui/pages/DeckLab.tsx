@@ -539,6 +539,11 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                     ▶ Practice with “{saved}”
                   </a>
                 )}
+                {saved && (
+                  <a className="btn" href="#/tuned">
+                    🔧 All tuned decks and their results
+                  </a>
+                )}
               </div>
             </div>
           )}

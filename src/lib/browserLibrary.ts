@@ -29,7 +29,7 @@ const isManifest = (v: unknown): v is RunManifest => !!v && typeof v === 'object
 export type StoredDeck = DeckList & { manifest?: RunManifest; tuned?: TunedDeckRecord };
 
 /** A stored entry as a DeckList, or null if its shape is wrong. A missing sideboard (older saves) counts as empty. */
-function toDeck(v: unknown): StoredDeck | null {
+export function toDeck(v: unknown): StoredDeck | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   const sideboard = o.sideboard === undefined ? [] : o.sideboard;
@@ -80,15 +80,32 @@ export function loadCustom(): LibraryDeck[] {
   }));
 }
 
+/** The decks saved in this browser as stored (with their manifests and tuning records), malformed entries dropped. */
+export const loadStored = (): StoredDeck[] => readStored();
+
+/**
+ * Pages that show the library listen for this (with the `storage` event, for other tabs) to re-read it after a save,
+ * delete, hide or unhide in this tab (src/ui/useLibrary.ts).
+ */
+export const LIBRARY_CHANGED = 'nct:library-changed';
+export function notifyLibraryChanged() {
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof Event === 'function') window.dispatchEvent(new Event(LIBRARY_CHANGED));
+  } catch {
+    /* no window (tests, scripts) */
+  }
+}
+
 /** Replace the stored custom decks. Returns false if the browser refused (storage unavailable or quota exceeded). */
 export function saveCustom(decks: StoredDeck[]): boolean {
   readStored(); // backs up a corrupt store before it is overwritten
   try {
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(decks));
-    return true;
   } catch {
     return false;
   }
+  notifyLibraryChanged();
+  return true;
 }
 
 /** Save a custom deck, replacing any with the same name (and that deck's manifest). Returns false if it could not be saved. */
@@ -101,6 +118,58 @@ export function upsertCustom(deck: StoredDeck): boolean {
 /** Delete a custom deck by name. Returns false if the change could not be saved. */
 export function deleteCustom(name: string): boolean {
   return saveCustom(readStored().filter((d) => d.name !== name));
+}
+
+/** What a delete removed, so it can be put back: each deck as stored, with its place in the list. */
+export interface Removed {
+  deck: StoredDeck;
+  index: number;
+}
+
+/**
+ * Delete several custom decks by name in one write. Returns what was removed (empty when none of the names is saved),
+ * or null if the change could not be saved (nothing changed).
+ */
+export function deleteCustomDecks(names: readonly string[]): Removed[] | null {
+  const drop = new Set(names);
+  const all = readStored();
+  const removed = all.flatMap((deck, index) => (drop.has(deck.name) ? [{ deck, index }] : []));
+  if (!removed.length) return [];
+  return saveCustom(all.filter((d) => !drop.has(d.name))) ? removed : null;
+}
+
+/**
+ * Put deleted decks back where they were (Undo). A deck saved again under the same name since the delete is kept, not
+ * overwritten. Returns false if the change could not be saved.
+ */
+export function restoreCustom(removed: readonly Removed[]): boolean {
+  const all = readStored();
+  const names = new Set(all.map((d) => d.name));
+  for (const r of [...removed].sort((a, b) => a.index - b.index)) {
+    if (names.has(r.deck.name)) continue;
+    all.splice(Math.min(r.index, all.length), 0, r.deck);
+    names.add(r.deck.name);
+  }
+  return saveCustom(all);
+}
+
+/** Add decks to the stored list in one write (an import). Returns false if the change could not be saved. */
+export function addCustomDecks(decks: readonly StoredDeck[]): boolean {
+  return saveCustom([...readStored(), ...decks]);
+}
+
+/**
+ * The built-in decks whose provenance header carries a forge line (scripts/forge.ts writes "// Forged <date>: <change>
+ * (held-out <gain>); …" and "// Adoption: <rule>"), with those lines. Read from the bundled deck text on call.
+ */
+export function forgedBuiltins(): { file: string; forged: string; adoption?: string }[] {
+  return Object.entries(files).flatMap(([path, text]) => {
+    const rel = path.slice(DECKS_DIR.length);
+    const forged = text.match(/^\/\/ Forged (.+)$/m)?.[1]?.trim();
+    if (!forged || !BUILTIN.some((d) => d.file === rel.split('/').pop())) return [];
+    const adoption = text.match(/^\/\/ Adoption: (.+)$/m)?.[1]?.trim();
+    return [{ file: rel.split('/').pop() ?? rel, forged, ...(adoption ? { adoption } : {}) }];
+  });
 }
 
 let cache: { raw: string | null; decks: readonly LibraryDeck[] } | null = null;

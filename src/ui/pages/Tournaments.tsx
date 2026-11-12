@@ -135,7 +135,10 @@ export function TournamentsPage({ initial }: { initial?: string }) {
           <div className="grid cols-2">
             <div className="panel scroll-x">
               <h3 style={{ marginTop: 0 }}>Swiss standings</h3>
-              <StandingsTable rows={ev.standings} cut={ev.top8.length} lib={lib} />
+              <StandingsTable rows={ev.standings} cut={ev.top8.length} lib={lib} tiers />
+              <p className="small muted" style={{ marginBottom: 0 }}>
+                Sim: each deck’s tier now, from every recorded event (not only this one). <a href="#/ratings">How tiers work</a>
+              </p>
             </div>
             <div className="panel">
               <h3 style={{ marginTop: 0 }}>Rounds</h3>

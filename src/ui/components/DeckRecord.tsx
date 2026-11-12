@@ -13,6 +13,8 @@ import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type De
 import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
 import { RecordedAt, formatRecorded } from './RecordedAt';
+import { SimTierBadge, simTierFor } from './TierBadges';
+import { bandWords, SIM_TIER_MIN_GAMES } from '../../lib/simTier';
 
 const EVENTS = TOURNAMENT_INDEX.events;
 // every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
@@ -94,6 +96,7 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
   }, [needH2H, d.deck.name]);
   const rec = eventH2H ? recordFor(d, eventH2H) : base;
   const t = rec.tournament;
+  const sim = simTierFor(d.deck.name);
   return (
     <section className="rec flair" aria-labelledby={headingId}>
       <div className="rec-head">
@@ -163,6 +166,20 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
                   </>
                 )}
                 {!t && rec.leader && <> · rating {pct(rec.leader.rating)}, {rec.leader.percentile}th percentile</>}
+              </Tile>
+            )}
+            {sim.unrated !== 'no-games' && (
+              <Tile label="Sim tier" value={<SimTierBadge tier={sim} showUnrated />}>
+                {sim.letter ? (
+                  <>
+                    our tier from the power rating: tier {sim.letter} is {bandWords(sim.letter)} expected vs the field
+                    {sim.straddle && sim.loLetter && sim.hiLetter ? ` · uncertain: its 90% range reaches from ${sim.loLetter} to ${sim.hiLetter}` : ''}
+                  </>
+                ) : (
+                  `unrated: ${sim.games} of the ${SIM_TIER_MIN_GAMES} games a tier needs`
+                )}
+                {' · '}
+                <a href="#/ratings">how tiers work</a>
               </Tile>
             )}
             {(t || rec.finishes.length > 0) && (

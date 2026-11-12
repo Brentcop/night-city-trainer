@@ -1,4 +1,6 @@
 // Game terms, defined from the Comprehensive Rules (Oct 29 2026) — with how the engine models each one and how the bots use it.
+import { bandsLine, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS } from '../lib/simTier';
+
 export interface Term {
   term: string;
   group: 'Core' | 'Economy' | 'Gigs' | 'Combat' | 'Keywords' | 'Effects' | 'Zones' | 'Strategy';
@@ -300,6 +302,17 @@ export const GLOSSARY: Term[] = [
     term: 'Power rating',
     group: 'Strategy',
     def: 'One strength number per deck, fitted to every tournament game every deck has played (a Bradley–Terry model with a going-first term). It is shown as the expected win rate against the whole field, with a 90% confidence range. Two decks whose ranges overlap are not meaningfully different.',
+  },
+  {
+    term: 'Sim tier (S / A / B / C / D)',
+    group: 'Strategy',
+    def: `This trainer's own tier letter for a deck, from its power rating: the band its expected win rate against the whole field falls in (${bandsLine()}). The bands are fixed, so a letter means the same thing as the field changes, and it follows the ratings whenever new events are recorded. A deck needs ${SIM_TIER_MIN_GAMES} recorded games for a letter; with fewer it is unrated (–). A letter marked ± (striped) has a 90% range reaching ${SIM_TIER_STRADDLE_BANDS} or more bands away, so it could be off by two tiers. It is shown beside choom.gg's tier, never instead of it.`,
+    engine: 'src/lib/simTier.ts (the bands and thresholds), read from src/data/ratings.json (scripts/ratings.ts).',
+  },
+  {
+    term: 'choom.gg tier',
+    group: 'Strategy',
+    def: "The choom.gg editors' hand rating (S / A / B / C) of the current meta archetypes, from their Night City Meta page: expert opinion, not results. Shown as the round “choom” badge, beside our square “Sim” badge.",
   },
   {
     term: 'Bot difficulty (Easy / Medium / Hard)',

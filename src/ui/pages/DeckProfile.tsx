@@ -1,5 +1,5 @@
 // Deck profile: where a deck comes from (origin, lineage, idea), its game plan, every measured stat for it, and the list shown visually.
-import { useId, useMemo } from 'react';
+import { useId, useState } from 'react';
 import '../deckprofile.css';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
 import { deckColors } from '../../engine/deck';
@@ -9,7 +9,7 @@ import { bredInfo, deckStats, pct, statsName } from '../../lib/deckStats';
 import { SEASONS } from '../../data/index';
 import { classify } from '../../ai/archetype';
 import { findDeck } from '../components/DeckPicker';
-import { ColorPips, LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
+import { ColorPips, LegendStrip, OriginBadge, originKind, TierPair } from '../components/DeckIdentity';
 import { ProvenanceBlock } from '../components/Provenance';
 import { DeckInsights } from '../components/DeckInsights';
 import { ok, profileHref, WrBar } from '../components/DeckStats';
@@ -21,6 +21,10 @@ import { DeckRecordPanel } from '../components/DeckRecord';
 import { GamePlanPanel } from '../components/GamePlan';
 import { DeckSynergies } from '../components/DeckSynergies';
 import { objectiveFor } from '../../content/deckObjectives';
+import { useDeckActions } from '../components/DeckActions';
+import { useLibraryVersion } from '../useLibrary';
+import { isBuiltin } from '../deckLookup';
+import { loadHidden } from '../../lib/hiddenDecks';
 
 const S = SEASONS;
 
@@ -109,20 +113,52 @@ function Section({ title, caption, flair, children }: { title: string; caption?:
 // ---------- the page ----------
 
 export function DeckProfilePage({ file }: { file?: string }) {
-  const lib = useMemo(() => allDecks(), []);
+  // follows the library: a deck deleted here or in another tab shows the "deleted" state instead of stale numbers
+  useLibraryVersion();
+  const lib = allDecks();
+  const [deletedHere, setDeletedHere] = useState(false);
+  const actions = useDeckActions({ onDeleted: () => setDeletedHere(true), onRestored: () => setDeletedHere(false) });
   const d = findDeck(file);
   if (!d)
     return (
-      <div className="empty-state">
-        <h2>Deck not found</h2>
-        <p>No deck in the library matches “{file ?? ''}”.</p>
-        <a href="#/decks">Browse all decks →</a>
-      </div>
+      <>
+        <DeckMissing file={file} deletedHere={deletedHere} />
+        {actions.ui}
+      </>
     );
-  return <Profile d={d} lib={lib} />;
+  return (
+    <>
+      <Profile d={d} lib={lib} actions={actions} />
+      {actions.ui}
+    </>
+  );
 }
 
-function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
+/** A link to a deck that is not in the library: deleted from this browser, saved in another browser, or a bad link. */
+export function DeckMissing({ file, deletedHere }: { file?: string; deletedHere?: boolean }) {
+  const saved = (file ?? '').startsWith('custom:');
+  const name = saved ? (file ?? '').slice('custom:'.length) : (file ?? '');
+  return (
+    <div className="empty-state" role={deletedHere ? 'status' : undefined}>
+      <h2>{deletedHere ? 'This deck was deleted' : saved ? 'This deck is not saved in this browser' : 'Deck not found'}</h2>
+      {deletedHere ? (
+        <p>“{name}” was deleted from this browser. Use Undo below while it shows to bring it back.</p>
+      ) : saved ? (
+        <p>
+          No deck named “{name}” is saved in this browser. It was deleted, or it was saved in another browser: decks you save (and tuned decks) live in the browser that saved them.
+        </p>
+      ) : (
+        <p>No deck in the library matches “{file ?? ''}”.</p>
+      )}
+      <p className="row">
+        <a href="#/decks">Browse all decks →</a>
+        <a href="#/tuned">Tuned decks →</a>
+      </p>
+    </div>
+  );
+}
+
+function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDeck[]; actions: ReturnType<typeof useDeckActions> }) {
   const name = d.deck.name;
   const st = deckStats(d.file);
   const telemetry = telemetryReport(statsName(d.file));
@@ -133,6 +169,8 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
   const slug = d.file.replace(/\.txt$/, '');
   const enc = encodeURIComponent(d.file);
   const recordId = useId();
+  const saved = !isBuiltin(d);
+  const hidden = !saved && loadHidden().has(d.file);
 
   // lineage
   const bredParents = (bred?.parents ?? []).map((p) => lib.find((x) => x.deck.name === p) ?? p);
@@ -168,7 +206,8 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
             <ColorPips legends={d.deck.legends} />
             <span className="tag">{deckColors(d.deck)}</span>
             <span className="tag">{arch}</span>
-            {d.tier && <span className={`tier tier-${d.tier}`}>{d.tier}</span>}
+            <TierPair d={d} />
+            {hidden && <span className="tag" title="Hidden from the gallery and deck pickers in this browser">hidden in this browser</span>}
           </div>
           <h1 className="dp-title">{name}</h1>
           <DeckRecordPanel d={d} headingId={recordId} />
@@ -189,6 +228,20 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
             <a className="btn" href={`#/decks?d=${enc}`}>
               ✎ Edit / Export
             </a>
+            {d.tuned && (
+              <a className="btn" href="#/tuned">
+                🔧 Tuning result
+              </a>
+            )}
+            {saved ? (
+              <button className="danger-soft" onClick={() => actions.askDelete([d])} title="Saved in this browser: delete it from here">
+                🗑 Delete
+              </button>
+            ) : (
+              <button onClick={() => actions.hide([d.file], !hidden)} title="Built-in decks ship with the site and cannot be deleted; hiding takes it out of the gallery and pickers in this browser">
+                {hidden ? '👁 Unhide' : 'Hide from gallery'}
+              </button>
+            )}
           </div>
         </div>
       </div>

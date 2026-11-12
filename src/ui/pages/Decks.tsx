@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { deckColors, exportChoom, exportOfficial, exportSimJson, parseDeck, validateDeck } from '../../engine/deck';
 import type { DeckList } from '../../engine/types';
-import { allDecks, deleteCustom, upsertCustom } from '../../lib/browserLibrary';
+import { allDecks, upsertCustom } from '../../lib/browserLibrary';
 import { shortCredit } from '../../lib/library';
 import { download } from '../../lib/download';
 import { findDeck } from '../components/DeckPicker';
@@ -10,8 +10,11 @@ import { customSaveName, isBuiltin } from '../deckLookup';
 import { ProvenanceBlock } from '../components/Provenance';
 import { profileHref } from '../components/DeckStats';
 import { DeckEditor, VisualEditor } from '../components/DeckEditors';
+import { TierPair } from '../components/DeckIdentity';
 import { CardBrowser } from '../components/CardBrowser';
 import { DeckGallery } from '../components/DeckGallery';
+import { useDeckActions } from '../components/DeckActions';
+import { useLibraryVersion } from '../useLibrary';
 import { loadPref, savePref } from '../prefs';
 import '../deckprofile.css';
 
@@ -19,10 +22,11 @@ function copy(text: string) {
   navigator.clipboard?.writeText(text).catch(() => {});
 }
 
-export function DecksPage({ initial }: { initial?: string }) {
-  // Gallery is the default; a deck in the URL (#/decks?d=file) opens the editor.
+export function DecksPage({ initial, query }: { initial?: string; query?: string }) {
+  // Gallery is the default; a deck in the URL (#/decks?d=file) opens the editor. The rest of the query is the
+  // gallery's view (filters, sort, grouping: src/lib/galleryView.ts).
   const [mode, setMode] = useState<'gallery' | 'editor'>(initial ? 'editor' : 'gallery');
-  if (mode === 'gallery') return <DeckGallery onNew={() => setMode('editor')} />;
+  if (mode === 'gallery') return <DeckGallery onNew={() => setMode('editor')} query={query} />;
   return (
     <DeckWorkbench
       initial={initial}
@@ -51,6 +55,7 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
   // allDecks() is cached against the stored decks, so calling it each render is cheap; bumping `version` after a
   // save or delete re-renders this component so it picks the change up.
   const [, setVersion] = useState(0);
+  useLibraryVersion(); // a delete or save in another tab shows here too
   const decks = allDecks();
   // exact file match only: a link to a deleted or renamed deck must not open a different deck
   const start = findDeck(initial);
@@ -138,18 +143,24 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
     setSel(`custom:${name}`);
     setImportMsg(name !== draft.name.trim() ? `“${draft.name.trim()}” is the name of a built-in deck, so this was saved as “${name}”.` : `Saved “${name}” to My decks.`);
   };
+  // Delete asks first (the shared confirm dialog) and offers Undo; the draft stays open as unsaved work, so Save also brings it back.
+  const actions = useDeckActions({
+    onDeleted: ([name]) => {
+      setVersion((v) => v + 1);
+      setSel('');
+      setBaseline(deckSig(EMPTY_DECK()));
+      setImportMsg(`Deleted “${name}”. The list is still open here — Save brings it back.`);
+    },
+    onRestored: ([name]) => {
+      if (!name) return;
+      setVersion((v) => v + 1);
+      setSel(`custom:${name}`);
+      setImportMsg(`Restored “${name}”.`);
+    },
+  });
   const remove = () => {
     if (!selected || selected.kind !== 'custom' || isBuiltin(selected)) return;
-    if (!window.confirm(`Delete “${selected.deck.name}” from My decks? This can't be undone.`)) return;
-    if (!deleteCustom(selected.deck.name)) {
-      setImportMsg('Not deleted: this browser’s storage is blocked.');
-      return;
-    }
-    setVersion((v) => v + 1);
-    // the draft stays open as unsaved work, so an accidental delete can be undone with Save
-    setSel('');
-    setBaseline(deckSig(EMPTY_DECK()));
-    setImportMsg(`Deleted “${selected.deck.name}”. The list is still open here — Save brings it back.`);
+    actions.askDelete([selected]);
   };
 
   const errs = validateDeck(draft);
@@ -187,7 +198,7 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
             {inKind
               .map((d) => (
                 <button key={d.file} type="button" className="side-item" aria-current={d.file === sel ? 'true' : undefined} onClick={() => open(d.file)} style={{ padding: '4px 6px' }}>
-                  <span className="tag">{deckColors(d.deck)}</span> {d.deck.name.slice(0, 40)} {d.tier && <span className={`tier tier-${d.tier}`}>{d.tier}</span>}
+                  <span className="tag">{deckColors(d.deck)}</span> {d.deck.name.slice(0, 40)} <TierPair d={d} showUnrated={false} />
                   <span className="muted side-item-sub">{shortCredit(d)}</span>
                 </button>
               ))}
@@ -286,6 +297,7 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
 
         <CardBrowser deck={draft} setDeck={setDraft} />
       </div>
+      {actions.ui}
     </div>
   );
 }

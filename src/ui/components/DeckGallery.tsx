@@ -1,163 +1,190 @@
-// The deck library gallery (#/decks): every deck as a tile, grouped by origin, with search, filters and sorting.
-import { useMemo, useState } from 'react';
+// The deck library gallery (#/decks): every deck as a tile in one grid, filterable by source (multi-select chips with
+// counts), colour, tier (choom.gg's and our Sim tier), recorded results and text; sortable; optionally grouped by
+// source. The view lives in the URL hash query (#/decks?src=meta,ladder&sort=rating, src/lib/galleryView.ts) and is
+// remembered in this browser. Select mode deletes decks saved in this browser and hides built-in ones.
+import { useEffect, useMemo, useState } from 'react';
 import { CARD_BY_ID } from '../../engine/cards';
-import type { Color } from '../../engine/types';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { deckStats } from '../../lib/deckStats';
 import { classify } from '../../ai/archetype';
 import { RATINGS } from '../../data/index';
-import { DeckTile, originKind } from './DeckIdentity';
+import { deckSource, SOURCES } from '../../lib/deckSource';
+import { loadHidden } from '../../lib/hiddenDecks';
+import {
+  activeFilters,
+  applyView,
+  CHOOM_TIERS,
+  clearFilters,
+  COLORS,
+  DEFAULT_VIEW,
+  parseView,
+  queryHasView,
+  SORT_LABEL,
+  SORTS,
+  sourceCounts,
+  viewQuery,
+  type DeckFacts,
+  type GallerySort,
+  type GalleryView,
+  type SimFilter,
+} from '../../lib/galleryView';
+import { SIM_TIER_LETTERS, bandWords } from '../../lib/simTier';
+import { DeckTile } from './DeckIdentity';
 import { profileHref } from './DeckStats';
 import { TypeLegend } from './TypeSplit';
 import { loadPref, savePref } from '../prefs';
 import { PageHead } from './PageHead';
 import { CURRENT_SIM_VERSION, ratingsHistorical } from '../../lib/playedRecord';
+import { simTierFor } from './TierBadges';
+import { isBuiltin } from '../deckLookup';
+import { useLibraryVersion } from '../useLibrary';
+import { useDeckActions } from './DeckActions';
 
-const COLORS: Color[] = ['Red', 'Blue', 'Green', 'Yellow'];
+/** The remembered view (the same query string the URL carries). */
+export const VIEW_PREF = 'nct.gallery.view.v1';
+const COLLAPSED_PREF = 'nct.gallery.collapsed';
 
-interface Group {
-  key: string;
-  label: string;
-  order: number;
+/** The view to open with: the URL's when it names one, else the one remembered here (or the old sort pref), else the default. */
+export function initialView(query: string): GalleryView {
+  if (queryHasView(query)) return parseView(query);
+  const saved = loadPref(VIEW_PREF, '');
+  if (saved) return parseView(saved);
+  const oldSort = loadPref('nct.gallery.sort', '');
+  return { ...DEFAULT_VIEW, sort: oldSort === 'name' || oldSort === 'newest' || oldSort === 'cost' ? oldSort : oldSort === 'rating' ? 'meta' : 'rating' };
 }
-function groupOf(d: LibraryDeck): Group {
-  const k = originKind(d.prov, d.kind);
-  switch (k) {
-    case 'choom-meta':
-      return { key: 'meta', label: '◆ choom.gg meta archetypes', order: 0 };
-    case 'sim-ladder':
-      return { key: 'ladder', label: '▲ Sim ladder (Master-rank Legend trios)', order: 0.5 };
-    case 'choom-guide':
-      return { key: 'guide', label: '✎ choom.gg community guides', order: 1 };
-    case 'nc-original':
-      return { key: 'nc', label: '⚙ Night City Trainer originals', order: 2 };
-    case 'nc-bred': {
-      const s = d.prov.origin?.match(/season (\d+)/)?.[1] ?? '0';
-      return { key: `bred-${s}`, label: `🧬 Bred · Season ${s}`, order: 3 + Number(s) / 100 };
-    }
-    case 'nc-build':
-    case 'nc-variant':
-      return { key: 'builds', label: '🏆 Tournament builds & variants', order: 4 };
-    case 'mine':
-      return { key: 'mine', label: '★ My decks', order: 5 };
-    default:
-      return d.kind === 'custom' ? { key: 'mine', label: '★ My decks', order: 5 } : { key: 'other', label: '• Other', order: 6 };
+
+/** Put the view in the hash query without a hashchange (the page would remount), so it can be linked and survives reload. */
+function syncUrl(v: GalleryView) {
+  try {
+    const qs = viewQuery(v);
+    const hash = qs ? `#/decks?${qs}` : '#/decks';
+    if (/^#\/decks(\?|$)/.test(window.location.hash) && !/[?&]d=/.test(window.location.hash) && window.location.hash !== hash) history.replaceState(history.state, '', hash);
+  } catch {
+    /* history unavailable (sandboxed frame): the URL just doesn't follow */
   }
 }
-const GROUP_HELP: Record<string, string> = {
-  meta: 'The archetypes choom.gg tracks as the current meta, with their tier.',
-  ladder: 'Legend trios seen at Master rank on cyberpunk-tcg-sim.online. Only the Legends are public, so the main decks are theorized by this trainer from our data, then forged.',
-  guide: 'Lists from community strategy guides, credited to their authors.',
-  nc: 'Hand-built by this trainer around a single plan.',
-  builds: 'Ready-to-register lists with a data-chosen sideboard, and optimizer-tuned variants.',
-  mine: 'Saved in this browser only.',
-};
 
-export function DeckGallery({ onNew }: { onNew: () => void }) {
-  const decks = useMemo(() => allDecks(), []);
-  const R = RATINGS;
-  const power = useMemo(() => new Map(R.decks.map((r) => [r.name, r.wrField])), [R]);
-  const info = useMemo(
-    () =>
-      new Map(
-        decks.map((d) => {
-          const st = deckStats(d.file);
-          const score = st.leader?.rating ?? st.review?.winRate ?? null;
-          const cols = new Set(d.deck.legends.map((id) => CARD_BY_ID[id]?.color).filter(Boolean));
-          const costs = d.deck.main.map((id) => CARD_BY_ID[id]?.cost ?? 0);
-          return [
-            d.file,
-            {
-              group: groupOf(d),
-              arch: st.leader?.arch ?? classify(d.deck.main).arch,
-              score: typeof score === 'number' && Number.isFinite(score) ? score : null,
-              power: power.get(d.deck.name) ?? null,
-              nColors: cols.size,
-              avgCost: costs.length ? costs.reduce((a, x) => a + x, 0) / costs.length : 0,
-              cards: new Set(d.deck.main.map((id) => (CARD_BY_ID[id]?.displayName ?? id).toLowerCase())),
-            },
-          ];
-        }),
-      ),
-    [decks, power],
-  );
-  const [origin, setOrigin] = useState(() => loadPref('nct.gallery.origin', ''));
-  const [colors, setColors] = useState<Color[]>([]);
-  const [colorMode, setColorMode] = useState<'any' | 'all' | 'only'>('any');
-  const [nColors, setNColors] = useState(0);
-  const [arch, setArch] = useState('');
-  const [legend, setLegend] = useState('');
-  const [card, setCard] = useState('');
-  const [minPower, setMinPower] = useState(0);
-  const [tier, setTier] = useState('');
-  const [ratedOnly, setRatedOnly] = useState(false);
-  const [q, setQ] = useState('');
-  const [sort, setSort] = useState<'rating' | 'power' | 'name' | 'newest' | 'cost'>(() => (loadPref('nct.gallery.sort', 'rating') as 'rating'));
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(loadPref('nct.gallery.collapsed', '').split('|').filter(Boolean)));
-  const toggleGroup = (k: string, open: boolean) => {
-    const next = new Set(collapsed);
-    if (open) next.delete(k);
-    else next.add(k);
-    setCollapsed(next);
-    savePref('nct.gallery.collapsed', [...next].join('|'));
-  };
-  const groups = [...new Map([...info.values()].map((i) => [i.group.key, i.group])).values()].sort((a, b) => a.order - b.order);
-  const archs = [...new Set([...info.values()].map((i) => i.arch))].sort();
-  const legends = useMemo(() => [...new Set(decks.flatMap((d) => d.deck.legends))].map((id) => CARD_BY_ID[id]).filter(Boolean).sort((a, b) => a.displayName.localeCompare(b.displayName)), [decks]);
-  const activeOrigin = groups.some((g) => g.key === origin) ? origin : '';
-  const pick = (k: string) => {
-    setOrigin(k);
-    savePref('nct.gallery.origin', k);
-  };
-  const reset = () => {
-    pick('');
-    setColors([]);
-    setColorMode('any');
-    setNColors(0);
-    setArch('');
-    setLegend('');
-    setCard('');
-    setMinPower(0);
-    setTier('');
-    setRatedOnly(false);
-    setQ('');
-  };
-  const active = [activeOrigin, colors.length, nColors, arch, legend, card, minPower, tier, ratedOnly, q].filter(Boolean).length;
-  const shown = decks.filter((d) => {
-    const i = info.get(d.file)!;
-    const dc = new Set(d.deck.legends.map((id) => CARD_BY_ID[id]?.color));
-    const colorOk =
-      !colors.length ||
-      (colorMode === 'any' ? colors.some((c) => dc.has(c)) : colorMode === 'all' ? colors.every((c) => dc.has(c)) : colors.every((c) => dc.has(c)) && [...dc].every((c) => colors.includes(c as Color)));
-    return (
-      (!activeOrigin || i.group.key === activeOrigin) &&
-      colorOk &&
-      (!nColors || i.nColors === nColors) &&
-      (!arch || i.arch === arch) &&
-      (!legend || d.deck.legends.includes(legend)) &&
-      (!card || [...i.cards].some((n) => n.includes(card.toLowerCase()))) &&
-      (!minPower || (i.power ?? 0) * 100 >= minPower) &&
-      (!tier || d.tier === tier) &&
-      (!ratedOnly || i.power !== null) &&
-      (!q || (d.deck.name + ' ' + (d.prov.author ?? '') + ' ' + d.deck.legends.map((id) => CARD_BY_ID[id]?.displayName ?? '').join(' ')).toLowerCase().includes(q.toLowerCase()))
-    );
+/** The facts the filters and sorts read, for every deck. */
+export function deckFacts(decks: readonly LibraryDeck[], hidden: ReadonlySet<string>): DeckFacts[] {
+  const power = new Map(RATINGS.decks.map((r) => [r.name, r]));
+  return decks.map((d) => {
+    const st = deckStats(d.file);
+    const meta = st.leader?.rating ?? st.review?.winRate ?? null;
+    const colors = new Set(d.deck.legends.map((id) => CARD_BY_ID[id]?.color).filter((c): c is NonNullable<typeof c> => !!c));
+    const costs = d.deck.main.map((id) => CARD_BY_ID[id]?.cost ?? 0);
+    const row = power.get(d.deck.name);
+    return {
+      file: d.file,
+      name: d.deck.name,
+      source: deckSource(d),
+      colors,
+      arch: st.leader?.arch ?? classify(d.deck.main).arch,
+      legends: d.deck.legends,
+      text: [d.deck.name, d.prov.author ?? '', ...d.deck.legends.map((id) => CARD_BY_ID[id]?.displayName ?? '')].join(' ').toLowerCase(),
+      cards: [...new Set(d.deck.main.map((id) => (CARD_BY_ID[id]?.displayName ?? id).toLowerCase()))],
+      power: row ? row.wrField : null,
+      games: row?.games ?? 0,
+      ...(d.tier ? { choom: d.tier } : {}),
+      sim: simTierFor(d.deck.name).letter,
+      meta: typeof meta === 'number' && Number.isFinite(meta) ? meta : null,
+      avgCost: costs.length ? costs.reduce((a, x) => a + x, 0) / costs.length : 0,
+      added: d.prov.added ?? (d.tuned?.date ?? '').slice(0, 10),
+      hidden: hidden.has(d.file),
+    };
   });
-  const cmp = (a: LibraryDeck, b: LibraryDeck) => {
-    const A = info.get(a.file)!;
-    const B = info.get(b.file)!;
-    if (sort === 'name') return a.deck.name.localeCompare(b.deck.name);
-    if (sort === 'newest') return (b.prov.added ?? '').localeCompare(a.prov.added ?? '') || a.deck.name.localeCompare(b.deck.name);
-    if (sort === 'power') return (B.power ?? -1) - (A.power ?? -1) || a.deck.name.localeCompare(b.deck.name);
-    if (sort === 'cost') return A.avgCost - B.avgCost || a.deck.name.localeCompare(b.deck.name);
-    return (B.score ?? -1) - (A.score ?? -1) || a.deck.name.localeCompare(b.deck.name);
-  };
-  const visibleGroups = groups.filter((g) => shown.some((d) => info.get(d.file)!.group.key === g.key));
-  const chip = (on: boolean, label: React.ReactNode, onClick: () => void, key?: string) => (
-    <button key={key} className={`chip-btn ${on ? 'on' : ''}`} aria-pressed={on} onClick={onClick}>
-      {label}
+}
+
+function Chip({ on, onClick, children, title }: { on: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
+  return (
+    <button type="button" className={`chip-btn ${on ? 'on' : ''}`} aria-pressed={on} onClick={onClick} title={title}>
+      {children}
     </button>
   );
+}
+
+const toggle = <T,>(xs: readonly T[], x: T): T[] => (xs.includes(x) ? xs.filter((y) => y !== x) : [...xs, x]);
+
+export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: string }) {
+  useLibraryVersion(); // re-render after a save, delete or hide (here or in another tab)
+  // allDecks() keeps one list while the stored decks are unchanged, and the hidden set is keyed by its text, so the
+  // facts below are only rebuilt when the library changes
+  const decks = allDecks();
+  const hiddenKey = [...loadHidden()].join('|');
+  const hidden = useMemo(() => new Set(hiddenKey.split('|').filter(Boolean)), [hiddenKey]);
+  const facts = useMemo(() => deckFacts(decks, hidden), [decks, hidden]);
+  const byFile = useMemo(() => new Map(decks.map((d) => [d.file, d])), [decks]);
+  const [view, setViewRaw] = useState<GalleryView>(() => initialView(query));
+  // every change goes through the updater form, so two quick changes can't overwrite each other
+  const update = (fn: (v: GalleryView) => GalleryView) => setViewRaw(fn);
+  useEffect(() => {
+    syncUrl(view);
+    savePref(VIEW_PREF, viewQuery(view));
+  }, [view]);
+  const set = <K extends keyof GalleryView>(k: K, val: GalleryView[K]) => update((v) => ({ ...v, [k]: val }));
+  /** add or remove one value of a multi-select filter */
+  const flip = <K extends 'sources' | 'colors' | 'sim' | 'choom'>(k: K, x: GalleryView[K][number]) => update((v) => ({ ...v, [k]: toggle(v[k] as readonly unknown[], x) }));
+
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(loadPref(COLLAPSED_PREF, '').split('|').filter(Boolean)));
+  const saveCollapsed = (next: Set<string>) => {
+    setCollapsed(next);
+    savePref(COLLAPSED_PREF, [...next].join('|'));
+  };
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const actions = useDeckActions({ onDeleted: (names) => setSelected((s) => new Set([...s].filter((f) => !names.some((n) => f === `custom:${n}`)))) });
+
+  const shown = applyView(facts, view);
+  const counts = sourceCounts(facts, view);
+  const active = activeFilters(view);
+  const hiddenCount = facts.filter((f) => f.hidden).length;
+  const total = facts.filter((f) => !f.hidden || view.hidden).length;
+  const archs = useMemo(() => [...new Set(facts.map((f) => f.arch))].sort(), [facts]);
+  const legends = useMemo(
+    () =>
+      [...new Set(decks.flatMap((d) => d.deck.legends))]
+        .map((id) => CARD_BY_ID[id])
+        .filter((c): c is NonNullable<typeof c> => !!c)
+        .sort((a, b) => a.displayName.localeCompare(b.displayName)),
+    [decks],
+  );
+  // selection: only decks still shown count
+  const sel = shown.filter((f) => selected.has(f.file));
+  const selDecks = sel.map((f) => byFile.get(f.file)).filter((d): d is LibraryDeck => !!d);
+  const selSaved = selDecks.filter((d) => !isBuiltin(d));
+  const selBuiltin = selDecks.filter((d) => isBuiltin(d) && !hidden.has(d.file));
+  const selHidden = selDecks.filter((d) => hidden.has(d.file));
+  const pick = (file: string, on: boolean) => setSelected((s) => (on ? new Set([...s, file]) : new Set([...s].filter((f) => f !== file))));
+
+  const tile = (f: DeckFacts) => {
+    const d = byFile.get(f.file);
+    if (!d) return null;
+    const isOn = selected.has(f.file);
+    return (
+      <div className={`gal-tile-wrap ${f.hidden ? 'is-hidden' : ''} ${selecting && isOn ? 'is-picked' : ''}`} key={f.file}>
+        <DeckTile d={d} href={`#/decks?d=${encodeURIComponent(d.file)}`} />
+        <a className="gal-profile" href={profileHref(d.file)} title="Every stat, lineage and the visual decklist">
+          📊 Profile
+        </a>
+        {selecting && (
+          <label className="gal-select">
+            <input type="checkbox" checked={isOn} onChange={(e) => pick(f.file, e.target.checked)} />
+            <span className="sr-only">Select {d.deck.name}</span>
+          </label>
+        )}
+        {f.hidden && (
+          <span className="gal-hidden-tag">
+            Hidden
+            <button type="button" className="ghost small" onClick={() => actions.hide([f.file], false)}>
+              Unhide
+            </button>
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const groups = view.group ? SOURCES.map((s) => ({ s, list: shown.filter((f) => f.source === s.key) })).filter((g) => g.list.length) : [];
   return (
     <div className="grid">
       <PageHead
@@ -165,6 +192,9 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
         title="Deck library"
         actions={
           <>
+            <a className="btn" href="#/tuned">
+              🔧 Tuned decks
+            </a>
             <a className="btn" href="#/lab">
               🧬 Breed &amp; tune
             </a>
@@ -174,76 +204,109 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
           </>
         }
       >
-        {shown.length} of {decks.length} decks. Click a tile to edit or export it; “Profile” opens every stat and its lineage. Tiles lead with each deck’s
-        recorded tournament games.
+        Every deck in one list: filter it by source, colour or tier, or group it by source. Click a tile to edit or export it; “Profile” opens every stat and its lineage. Tiles lead with
+        each deck’s recorded tournament games; the <b>Sim</b> letter is our tier from those results, the <b>choom</b> letter is choom.gg’s editorial tier.
         {ratingsHistorical(RATINGS) && <> Those results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>}
       </PageHead>
-      <div className="panel">
+      <div className="panel gal-panel">
         <div className="gal-filters">
-          <input aria-label="Search decks" placeholder="Search name, author, Legend…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: '1 1 180px', minWidth: 0 }} />
-          <select
-            aria-label="Sort decks"
-            value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as typeof sort);
-              savePref('nct.gallery.sort', e.target.value);
-            }}
-          >
-            <option value="rating">Sort: rating vs meta</option>
-            <option value="power">Sort: power rating (tournaments)</option>
-            <option value="name">Sort: name</option>
-            <option value="newest">Sort: newest</option>
-            <option value="cost">Sort: lowest average cost</option>
+          <input aria-label="Search decks" type="search" placeholder="Search deck, Legend, card or author…" value={view.q} onChange={(e) => set('q', e.target.value)} style={{ flex: '1 1 200px', minWidth: 0 }} />
+          <select aria-label="Sort decks" value={view.sort} onChange={(e) => set('sort', e.target.value as GallerySort)}>
+            {SORTS.map((s) => (
+              <option key={s} value={s}>
+                Sort: {SORT_LABEL[s]}
+              </option>
+            ))}
           </select>
-          {/* outside the <summary> below: a button inside a summary is invalid and fights the toggle */}
-          {active > 0 && (
-            <button className="ghost small" onClick={reset}>
-              Reset filters ({active})
+          <Chip on={view.group} onClick={() => update((v) => ({ ...v, group: !v.group }))} title="Show one section per source instead of one list">
+            ▤ Group by source
+          </Chip>
+          <Chip
+            on={selecting}
+            onClick={() => {
+              setSelecting(!selecting);
+              setSelected(new Set());
+            }}
+            title="Pick decks to delete (saved in this browser) or hide (built-in)"
+          >
+            ☑ Select
+          </Chip>
+          {hiddenCount > 0 && (
+            <Chip on={view.hidden} onClick={() => update((v) => ({ ...v, hidden: !v.hidden }))} title="Built-in decks you hid in this browser">
+              👁 Show hidden ({hiddenCount})
+            </Chip>
+          )}
+        </div>
+        <div className="gal-filters" role="group" aria-label="Source">
+          <span className="small muted">Source</span>
+          {SOURCES.filter((s) => (counts.get(s.key) ?? 0) > 0 || view.sources.includes(s.key)).map((s) => (
+            <Chip key={s.key} on={view.sources.includes(s.key)} onClick={() => flip('sources', s.key)} title={s.help}>
+              <span aria-hidden="true">{s.icon}</span> {s.label} <span className="muted">({counts.get(s.key) ?? 0})</span>
+            </Chip>
+          ))}
+          {view.sources.length > 0 && (
+            <button type="button" className="ghost small" onClick={() => set('sources', [])}>
+              All sources
             </button>
           )}
         </div>
-        <details className="gal-more" open={active > 0 || undefined}>
-          <summary className="small">Filters{active ? ` (${active} active)` : ''}</summary>
-          <div className="gal-filters">
-            <span className="small muted">Origin</span>
-            {chip(!activeOrigin, 'All', () => pick(''))}
-            {groups.map((g) => chip(activeOrigin === g.key, g.label, () => pick(g.key), g.key))}
-          </div>
-          <div className="gal-filters">
+        <details className="gal-more" open={active - (view.sources.length ? 1 : 0) - (view.q ? 1 : 0) > 0 || undefined}>
+          <summary className="small">More filters{active ? ` (${active} active)` : ''}</summary>
+          <div className="gal-filters" role="group" aria-label="Colour">
             <span className="small muted">Colour</span>
-            {COLORS.map((c) =>
-              chip(
-                colors.includes(c),
-                <>
-                  <span className={`dot ${c}`} /> {c}
-                </>,
-                () => setColors(colors.includes(c) ? colors.filter((x) => x !== c) : [...colors, c]),
-                c,
-              ),
-            )}
-            {colors.length > 0 && (
-              <select aria-label="How the chosen colours must match the Legends" value={colorMode} onChange={(e) => setColorMode(e.target.value as typeof colorMode)} title="How the chosen colours must match the Legends">
+            {COLORS.map((c) => (
+              <Chip key={c} on={view.colors.includes(c)} onClick={() => flip('colors', c)}>
+                <span className={`dot ${c}`} /> {c}
+              </Chip>
+            ))}
+            {view.colors.length > 0 && (
+              <select aria-label="How the chosen colours must match the Legends" value={view.colorMode} onChange={(e) => set('colorMode', e.target.value as GalleryView['colorMode'])}>
                 <option value="any">uses any of these</option>
                 <option value="all">uses all of these</option>
                 <option value="only">exactly these colours</option>
               </select>
             )}
-            <span className="small muted" style={{ marginLeft: 8 }}>
-              Colours
-            </span>
-            {[0, 1, 2, 3].map((n) => chip(nColors === n, n ? `${n}` : 'Any', () => setNColors(n), `n${n}`))}
+            <span className="small muted gal-sep">Colours</span>
+            {[0, 1, 2, 3].map((n) => (
+              <Chip key={n} on={view.nColors === n} onClick={() => set('nColors', n)}>
+                {n ? `${n}` : 'Any'}
+              </Chip>
+            ))}
           </div>
-          <div className="gal-filters">
+          <div className="gal-filters" role="group" aria-label="Tier">
+            <span className="small muted" title="Our tier from recorded tournament results (power rating)">
+              Sim tier
+            </span>
+            {SIM_TIER_LETTERS.map((t) => (
+              <Chip key={t} on={view.sim.includes(t)} onClick={() => flip('sim', t)} title={`Expected ${bandWords(t)} vs the field`}>
+                {t}
+              </Chip>
+            ))}
+            <Chip on={view.sim.includes('none')} onClick={() => flip('sim', 'none' as SimFilter)} title="No tier yet: too few or no recorded games">
+              unrated
+            </Chip>
+            <span className="small muted gal-sep" title="choom.gg's editorial tier (meta archetypes only)">
+              choom tier
+            </span>
+            {CHOOM_TIERS.filter((t) => facts.some((f) => f.choom === t)).map((t) => (
+              <Chip key={t} on={view.choom.includes(t)} onClick={() => flip('choom', t)}>
+                {t}
+              </Chip>
+            ))}
+          </div>
+          <div className="gal-filters" role="group" aria-label="Archetype">
             <span className="small muted">Archetype</span>
-            {chip(!arch, 'Any', () => setArch(''))}
-            {archs.map((a) => chip(arch === a, a, () => setArch(arch === a ? '' : a), a))}
-            <span className="small muted" style={{ marginLeft: 8 }}>
-              Tier
-            </span>
-            {['', 'S', 'A', 'B'].map((t) => chip(tier === t, t || 'Any', () => setTier(t), `t${t}`))}
+            <Chip on={!view.arch} onClick={() => set('arch', '')}>
+              Any
+            </Chip>
+            {archs.map((a) => (
+              <Chip key={a} on={view.arch === a} onClick={() => update((v) => ({ ...v, arch: v.arch === a ? '' : a }))}>
+                {a}
+              </Chip>
+            ))}
           </div>
           <div className="gal-filters">
-            <select aria-label="Legend" value={legend} onChange={(e) => setLegend(e.target.value)} style={{ maxWidth: 260 }}>
+            <select aria-label="Legend" value={view.legend} onChange={(e) => set('legend', e.target.value)} style={{ maxWidth: 260, minWidth: 0 }}>
               <option value="">Any Legend</option>
               {legends.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -251,24 +314,65 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
                 </option>
               ))}
             </select>
-            <input aria-label="Contains card" placeholder="Contains card…" value={card} onChange={(e) => setCard(e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }} />
+            <input aria-label="Contains card" placeholder="Contains card…" value={view.card} onChange={(e) => set('card', e.target.value)} style={{ flex: '1 1 140px', minWidth: 0 }} />
             <label className="row small muted" title="Expected win rate vs the whole field (tournament power rating)">
-              Power ≥ {minPower || 'any'}
-              {minPower ? '%' : ''}
-              <input type="range" min={0} max={75} step={5} value={minPower} onChange={(e) => setMinPower(+e.target.value)} />
+              Power ≥ {view.minPower || 'any'}
+              {view.minPower ? '%' : ''}
+              <input type="range" min={0} max={75} step={5} value={view.minPower} onChange={(e) => set('minPower', +e.target.value)} />
             </label>
             <label className="row small muted">
-              <input type="checkbox" checked={ratedOnly} onChange={(e) => setRatedOnly(e.target.checked)} /> rated in tournaments
+              <input type="checkbox" checked={view.recorded} onChange={(e) => set('recorded', e.target.checked)} /> has tournament results
             </label>
           </div>
         </details>
+        <div className="row small gal-status">
+          <span role="status" aria-live="polite">
+            {shown.length === total ? `${total} decks` : `${shown.length} of ${total} decks`}
+            {hiddenCount > 0 && !view.hidden ? ` (${hiddenCount} hidden)` : ''}
+          </span>
+          {active > 0 && (
+            <button type="button" className="ghost small" onClick={() => update(clearFilters)}>
+              Clear filters ({active})
+            </button>
+          )}
+        </div>
+        {selecting && (
+          <div className="row small gal-selectbar" role="group" aria-label="Selected decks">
+            <span>{sel.length} selected</span>
+            <button type="button" className="ghost small" onClick={() => setSelected(new Set(shown.map((f) => f.file)))}>
+              Select all shown
+            </button>
+            <button type="button" className="ghost small" onClick={() => setSelected(new Set())} disabled={!sel.length}>
+              Clear selection
+            </button>
+            <button type="button" className="danger-soft" onClick={() => actions.askDelete(selSaved)} disabled={!selSaved.length} title="Decks saved in this browser are deleted">
+              🗑 Delete selected ({selSaved.length})
+            </button>
+            <button type="button" onClick={() => actions.hide(selBuiltin.map((d) => d.file))} disabled={!selBuiltin.length} title="Built-in decks ship with the site: hiding takes them out of the gallery and pickers in this browser only">
+              Hide selected ({selBuiltin.length})
+            </button>
+            {selHidden.length > 0 && (
+              <button type="button" onClick={() => actions.hide(selHidden.map((d) => d.file), false)}>
+                Unhide selected ({selHidden.length})
+              </button>
+            )}
+            <span className="muted">Built-in decks can only be hidden, not deleted.</span>
+          </div>
+        )}
       </div>
       {shown.length === 0 && (
         <div className="empty-state">
-          No decks match these filters.{' '}
-          <button className="ghost" onClick={reset}>
-            Reset filters
-          </button>
+          <p>No decks match these filters.</p>
+          <p>
+            <button className="ghost" onClick={() => update(clearFilters)}>
+              Clear filters
+            </button>
+            {hiddenCount > 0 && !view.hidden && (
+              <button className="ghost" onClick={() => set('hidden', true)}>
+                Show hidden decks ({hiddenCount})
+              </button>
+            )}
+          </p>
         </div>
       )}
       {shown.length > 0 && (
@@ -277,57 +381,56 @@ export function DeckGallery({ onNew }: { onNew: () => void }) {
           <TypeLegend />
         </div>
       )}
-      {visibleGroups.length > 1 && (
+      {!view.group && shown.length > 0 && <div className="deck-grid">{shown.map(tile)}</div>}
+      {view.group && groups.length > 1 && (
         <div className="row small">
-          <button className="ghost small" onClick={() => (setCollapsed(new Set()), savePref('nct.gallery.collapsed', ''))}>
+          <button className="ghost small" onClick={() => saveCollapsed(new Set())}>
             Expand all
           </button>
-          <button
-            className="ghost small"
-            onClick={() => {
-              const all = new Set(visibleGroups.map((g) => g.key));
-              setCollapsed(all);
-              savePref('nct.gallery.collapsed', [...all].join('|'));
-            }}
-          >
+          <button className="ghost small" onClick={() => saveCollapsed(new Set(groups.map((g) => g.s.key)))}>
             Collapse all
           </button>
         </div>
       )}
-      {visibleGroups.map((g) => {
-        const list = shown.filter((d) => info.get(d.file)!.group.key === g.key).sort(cmp);
-        const best = list.map((d) => info.get(d.file)!.power).filter((x): x is number => x !== null);
+      {groups.map(({ s, list }) => {
+        const best = list.map((f) => f.power).filter((x): x is number => x !== null);
         return (
-          <details key={g.key} className="gal-group" open={!collapsed.has(g.key)} onToggle={(e) => toggleGroup(g.key, (e.target as HTMLDetailsElement).open)}>
+          <details
+            key={s.key}
+            className="gal-group"
+            open={!collapsed.has(s.key)}
+            onToggle={(e) => {
+              const open = (e.target as HTMLDetailsElement).open;
+              if (open === !collapsed.has(s.key)) return;
+              const next = new Set(collapsed);
+              if (open) next.delete(s.key);
+              else next.add(s.key);
+              saveCollapsed(next);
+            }}
+          >
             <summary className="gal-group-title">
-              {g.label} <span className="small muted">({list.length})</span>
+              {s.icon} {s.label} <span className="small muted">({list.length})</span>
               {best.length > 0 && <span className="small muted">best power {Math.round(Math.max(...best) * 100)}%</span>}
-              {GROUP_HELP[g.key] && (
-                <span className="small muted gal-group-help" style={{ fontFamily: 'var(--font)', fontWeight: 400 }}>
-                  {GROUP_HELP[g.key]}
-                </span>
-              )}
+              <span className="small muted gal-group-help" style={{ fontFamily: 'var(--font)', fontWeight: 400 }}>
+                {s.help}
+              </span>
             </summary>
             {/* links stay out of the <summary>, which is itself the toggle control */}
-            {g.key.startsWith('bred-') && (
+            {s.key === 'bred' && (
               <a className="small" href="#/seasons">
                 How breeding works →
               </a>
             )}
-            <div className="deck-grid">
-              {list.map((d) => (
-                <div className="gal-tile-wrap" key={d.file}>
-                  <DeckTile d={d} href={`#/decks?d=${encodeURIComponent(d.file)}`} />
-                  <a className="gal-profile" href={profileHref(d.file)} title="Every stat, lineage and the visual decklist">
-                    📊 Profile
-                  </a>
-                </div>
-              ))}
-            </div>
+            {s.key === 'tuned' && (
+              <a className="small" href="#/tuned">
+                Every tuned deck with its end result →
+              </a>
+            )}
+            <div className="deck-grid">{list.map(tile)}</div>
           </details>
         );
       })}
+      {actions.ui}
     </div>
   );
 }
-

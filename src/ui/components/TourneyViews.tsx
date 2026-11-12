@@ -13,6 +13,7 @@ import { ReplayBoard, type ReplayData } from './ReplayBoard';
 import { Wr } from './Num';
 import { Modal } from './Modal';
 import { DeckListCompact } from './DeckCards';
+import { SimTierBadge, simTierFor } from './TierBadges';
 
 export type Lib = Map<string, LibraryDeck>;
 /** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
@@ -137,8 +138,11 @@ export function Bracket({
 }
 
 
-/** Swiss standings. With `full`, adds game win %, play/draw splits and average game length. */
-export function StandingsTable({ rows, cut, lib, full }: { rows: (StandingRow | { deck: string; mp: number; record: string; games: string; omw: number })[]; cut: number; lib: Lib; full?: boolean }) {
+/**
+ * Swiss standings. With `full`, adds game win %, play/draw splits and average game length. With `tiers`, each deck's
+ * current Sim tier (from all recorded events, not this one) beside its name.
+ */
+export function StandingsTable({ rows, cut, lib, full, tiers }: { rows: (StandingRow | { deck: string; mp: number; record: string; games: string; omw: number })[]; cut: number; lib: Lib; full?: boolean; tiers?: boolean }) {
   return (
     <table className="small">
       <thead>
@@ -169,6 +173,12 @@ export function StandingsTable({ rows, cut, lib, full }: { rows: (StandingRow | 
               <td>{i + 1}</td>
               <td>
                 <DeckName name={s.deck} lib={lib} />
+                {tiers && (
+                  <>
+                    {' '}
+                    <SimTierBadge tier={simTierFor(s.deck)} />
+                  </>
+                )}
               </td>
               <td>{s.mp}</td>
               <td>{rec}</td>

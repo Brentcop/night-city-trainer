@@ -40,13 +40,14 @@ Routes are hash-based (`#/<page>`); see `src/App.tsx`.
 | Menu | Page | Route | What it does |
 |---|---|---|---|
 | Home | Home | `#/home` | Recommendation and shortcuts. |
-| Decks | All decks | `#/decks` | Deck list with filters, builder, import and export. |
+| Decks | All decks | `#/decks` | Every deck in one grid, filterable by source (multi-select chips with counts), colour, tier (ours and choom.gg's), recorded results and text, sortable, optionally grouped by source; the view is in the URL (`#/decks?src=meta,ladder&sort=rating`) and remembered per browser. Builder, import and export; Select mode deletes decks saved in this browser (confirm, then Undo) and hides built-in ones. |
+| Decks | Tuned decks | `#/tuned` | Every deck tuned in the Deck Lab and saved in this browser, with its end result against the original, each adopted change and the run's details; sort and filter, Export all / Import (a JSON file, to move them between browsers), and the forge lines of tuned decks committed to the repository. |
 | Decks | Deck profile | `#/deck?d=<file>` | One deck's results: tests, head-to-heads, forge history, seasons, card stats. |
 | Decks | Deck Lab | `#/lab` | Tunes a submitted deck in the browser, or breeds new decks (including counter decks from the head-to-heads). |
 | Play | Play vs Bot | `#/play` | Practice against Easy, Medium or Hard bots, with coach mode, undo, and a full match review. |
 | Tournaments | Events | `#/tournaments` | The recorded tournament events: standings, brackets, and every match. Matches can be reviewed or watched as a visual replay. |
 | Tournaments | Run a tournament | `#/run` | Runs a tournament in the browser with the same rules and seeds as the CLI. |
-| Tournaments | Power ratings | `#/ratings` | Deck ratings fitted to every game of every recorded event. |
+| Tournaments | Power ratings | `#/ratings` | Deck ratings fitted to every game of every recorded event, with each deck's Sim tier (S–D, fixed bands on the expected win rate vs the field; `src/lib/simTier.ts`) and band dividers. |
 | Tournaments | Breeding seasons | `#/seasons` | Bred decks per season and the all-time leaderboard. |
 | Tournaments | choom.gg meta | `#/meta` | Meta tiers and sim results for the archetypes. |
 | Tournaments | Matchup Lab | `#/arena` | Bot-vs-bot games between any decks in the browser; any game can be watched as a visual replay. |
@@ -155,6 +156,7 @@ The table lists the main suites by area; `ls tests` has the full set.
 | `pages.test.ts`, `markdown.test.ts`, `summarize.test.ts` | Page helpers, link safety in the Markdown renderer, and game summaries. |
 | `runManifest.test.ts`, `check-data.test.ts`, `impact.test.ts` | Run manifests (game runs and deterministic aggregates), the recorded-data check, and card impact matched by list fingerprint. |
 | `deck-packages.test.ts`, `deck-packages-defaults.test.ts`, `deck-lab-packages.test.tsx` | Synergy packages in deck building: the plan checks, package moves, seeding, flags, the Deck Lab controls, and the builders unchanged without package flags. |
+| `sim-tier.test.tsx`, `gallery-view.test.tsx`, `deck-delete.test.tsx`, `tuned-decks.test.tsx` | The Sim tier rule and badges; the gallery's sources, filters, sorts and URL view; deleting and hiding decks and what refers to them afterwards; the tuned decks page with its verdicts, filters and Export / Import. |
 | `evidence.test.ts`, `deck-lab-evidence.test.tsx` | The deck builders' adoption rule: paired intervals, the staged-look correction, the three outcomes, the false-adopt rate on synthetic games, depth and game estimates, the flags, and the Deck Lab tuner and result view. |
 
 ## Scripts

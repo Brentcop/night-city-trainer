@@ -507,6 +507,67 @@ thead th {
 .tier-C {
   background: #c9c9c9;
 }
+/* tier badges name their source inside the badge: choom.gg's editorial tier (a pill) vs our Sim tier from recorded
+   tournaments (square corners); an uncertain Sim letter is striped with a dashed edge, an unrated one is a quiet dash */
+.tierb {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--tier-bg, var(--border));
+  border-radius: 999px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.55;
+  vertical-align: middle;
+  white-space: nowrap;
+  flex: none;
+}
+.tierb-sim {
+  border-radius: 4px;
+}
+.tierb-src {
+  padding: 0 5px;
+  font-weight: 600;
+  background: var(--panel-2);
+  color: var(--muted);
+}
+.tierb-l {
+  padding: 0 6px;
+  font-family: var(--display);
+  font-weight: 700;
+  background: var(--tier-bg, var(--panel-2));
+  color: #0b0b12;
+}
+.tierb.t-S {
+  --tier-bg: #fcee0a;
+}
+.tierb.t-A {
+  --tier-bg: #02d7f2;
+}
+.tierb.t-B {
+  --tier-bg: #9ad06a;
+}
+.tierb.t-C {
+  --tier-bg: #c9c9c9;
+}
+.tierb.t-D {
+  --tier-bg: #f2a08f;
+}
+.tierb.is-unsure {
+  border-style: dashed;
+}
+.tierb.is-unsure .tierb-l {
+  background: repeating-linear-gradient(135deg, var(--tier-bg) 0 4px, color-mix(in srgb, var(--tier-bg) 55%, #fff) 4px 8px);
+}
+.tierb.is-unrated .tierb-l {
+  background: transparent;
+  color: var(--muted);
+}
+.tier-pair {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 .dot {
   display: inline-block;
   width: 10px;
@@ -1071,6 +1132,53 @@ thead th {
   right: 8px;
   top: 8px;
 }
+/* a short "are you sure?" dialog (delete a deck) */
+.modal.confirm-dialog {
+  max-width: 460px;
+}
+.confirm-list {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+.confirm-actions {
+  justify-content: flex-end;
+  gap: 8px;
+}
+button.danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  font-weight: 700;
+}
+button.danger-soft {
+  border-color: color-mix(in srgb, var(--red) 55%, var(--border));
+}
+/* what was just deleted or hidden, with Undo for a few seconds */
+.undo-toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: 640px;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+}
+.undo-toast.is-error {
+  border-color: var(--red);
+}
 .modal-body {
   display: flex;
   gap: 18px;
@@ -1311,6 +1419,29 @@ tr.top-cut td:first-child {
   border-radius: 50%;
   background: var(--accent-bg);
   border: 2px solid var(--panel);
+}
+/* power ratings: a divider row where the Sim tier band changes */
+tr.tier-divider th {
+  text-align: left;
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: transparent;
+  border-top: 2px solid var(--mat-edge);
+  border-bottom: 0;
+  padding-top: 10px;
+}
+.sim-tier-note > summary {
+  cursor: pointer;
+}
+.sim-tier-bands {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
 }
 .event-bar {
   position: relative;

@@ -11,8 +11,7 @@ import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
 import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
 import { Modal, useFocusTrap } from '../components/Modal';
-import { findDeck } from '../components/DeckPicker';
-import { allDecks } from '../../lib/browserLibrary';
+import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, type Targeting } from '../components/board/interaction';
 import type { BoardCtx } from '../components/board/BoardCard';
 import { MyHand, PlayerSide } from '../components/board/Zones';
@@ -30,8 +29,9 @@ import { PlaySetup, type Seat } from '../components/PlaySetup';
 import '../board.css';
 
 export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; initialOpp?: string }) {
-  const [mine, setMine] = useState(() => findDeck(initialDeck)?.file ?? allDecks()[0]?.file);
-  const [opp, setOpp] = useState(() => findDeck(initialOpp)?.file ?? allDecks()[1]?.file);
+  // defaults skip decks hidden in this browser; a link to a deleted deck finds nothing and falls back to them
+  const [mine, setMine] = useState(() => findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file ?? '');
+  const [opp, setOpp] = useState(() => findDeck(initialOpp)?.file ?? firstVisibleDeck(findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file)?.file ?? '');
   const [seat, setSeat] = useState<Seat>('random');
   const [coach, setCoach] = useState(true);
   const [level, setLevel] = useState<Tier>('hard');

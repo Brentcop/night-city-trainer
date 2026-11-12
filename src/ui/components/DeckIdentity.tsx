@@ -9,6 +9,7 @@ import { typeSplit } from '../../lib/deckTypes';
 import { SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
 import { RATINGS } from '../../data/index';
 import { TypeSplitBar } from './TypeSplit';
+import { ChoomTierBadge, SimTierBadge, simTierFor } from './TierBadges';
 
 /** Tournament rows by deck name (ratings.json is in the entry chunk anyway, through the Home page). */
 const RATED = new Map(RATINGS.decks.map((r) => [r.name, r]));
@@ -84,6 +85,18 @@ export function LegendStrip({ legends, height = 90 }: { legends: string[]; heigh
   );
 }
 
+/** The choom.gg tier (if the deck has one) and the Sim tier from our tournaments (if it has recorded games), side by side. */
+export function TierPair({ d, showUnrated = true }: { d: Pick<LibraryDeck, 'tier' | 'deck'>; showUnrated?: boolean }) {
+  const sim = simTierFor(d.deck.name);
+  if (!d.tier && !sim.letter && !(showUnrated && sim.unrated === 'few-games')) return null;
+  return (
+    <span className="tier-pair">
+      <ChoomTierBadge tier={d.tier} />
+      <SimTierBadge tier={sim} showUnrated={showUnrated} />
+    </span>
+  );
+}
+
 /** Gallery tile for a deck: legends art, name, origin, key stats. With `href` the whole tile is a link; without, it is static. */
 export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boolean; href?: string }) {
   const st = deckStats(d.file);
@@ -94,7 +107,7 @@ export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boo
       <div className="deck-tile-body">
         <div className="spread">
           <b className="deck-tile-name">{d.deck.name}</b>
-          {d.tier && <span className={`tier tier-${d.tier}`}>{d.tier}</span>}
+          <TierPair d={d} />
         </div>
         <div className="row small">
           <ColorPips legends={d.deck.legends} />
