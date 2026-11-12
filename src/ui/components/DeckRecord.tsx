@@ -12,6 +12,7 @@ import type { LibraryDeck } from '../../lib/library';
 import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type DeckRecord, type H2HFile, type MatchLine } from '../../lib/deckRecord';
 import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
+import { RecordedAt, formatRecorded } from './RecordedAt';
 
 const EVENTS = TOURNAMENT_INDEX.events;
 // every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
@@ -52,6 +53,10 @@ function Sampled({ text, n, tone }: { text: string; n: number | null; tone?: 'po
   return <span className={`num ${tone ?? ''} ${thin ? 'thin' : ''}`}>{text}</span>;
 }
 const games = (n: number) => `${n.toLocaleString()} game${n === 1 ? '' : 's'}`;
+const recordedNote = (iso: string) => {
+  const at = formatRecorded(iso);
+  return at ? ` (recorded ${at})` : '';
+};
 const small = (n: number | null) => (n !== null && n < SMALL_SAMPLE ? ' (small sample)' : '');
 
 function Tile({ label, value, children }: { label: string; value: React.ReactNode; children?: React.ReactNode }) {
@@ -200,10 +205,11 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
                     <a
                       className={`rec-finish ${f.champion ? 'is-champ' : f.top8 ? 'is-top8' : ''}`}
                       href={`#/tournaments?e=${f.id}`}
-                      title={`Event #${f.id}: ${ordinal(f.place)} of ${f.of}, Swiss ${f.record} (games ${f.games})${f.champion ? ', champion' : f.top8 ? ', top 8' : ''}`}
+                      title={`Event #${f.id}${recordedNote(f.date)}: ${ordinal(f.place)} of ${f.of}, Swiss ${f.record} (games ${f.games})${f.champion ? ', champion' : f.top8 ? ', top 8' : ''}`}
                     >
                       <span className="muted">#{f.id}</span> {f.champion ? '🏆 won' : ordinal(f.place)}
                       {f.top8 && !f.champion && <span className="sr-only">, top 8</span>}
+                      <RecordedAt iso={f.date} compact className="muted" prefix=" · " />
                     </a>
                   </li>
                 ))}

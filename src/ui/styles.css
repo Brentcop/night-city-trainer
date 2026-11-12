@@ -1184,6 +1184,9 @@ thead th {
   font-family: var(--display);
   font-size: 13px;
 }
+.event-chip time {
+  white-space: nowrap;
+}
 .event-chip.on {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent-bg) 14%, var(--panel-2));

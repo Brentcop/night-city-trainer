@@ -11,6 +11,7 @@ import type { ReviewRequest } from '../../sim/review.worker';
 import { DeckPicker } from './DeckPicker';
 import { DeckTile } from './DeckIdentity';
 import { Modal } from './Modal';
+import { formatRecorded } from './RecordedAt';
 import { Verdict, Wr } from './Num';
 import { ReviewPanel } from './ReviewPanel';
 
@@ -127,7 +128,7 @@ function RecentReviews() {
       </div>
       {req && (
         <Modal label={`Review: ${req.r.decks[0].name} vs ${req.r.decks[1].name}`} onClose={() => setReq(null)}>
-          <ReviewPanel req={req.q} title={`${req.r.decks[0].name} vs ${req.r.decks[1].name} — ${new Date(req.r.date).toLocaleString()}`} mySeat={0} expect={reviewExpect(req.r)} />
+          <ReviewPanel req={req.q} title={[`${req.r.decks[0].name} vs ${req.r.decks[1].name}`, formatRecorded(req.r.date)].filter(Boolean).join(' — ')} mySeat={0} expect={reviewExpect(req.r)} />
         </Modal>
       )}
     </div>

@@ -14,6 +14,7 @@ import { ColorPips } from '../components/DeckIdentity';
 import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
 import { PageHead } from '../components/PageHead';
+import { RecordedAt } from '../components/RecordedAt';
 import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, type MatchView } from '../components/TourneyViews';
 
 type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'all' | 'custom';
@@ -318,6 +319,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
             <button key={String(r.id)} className={`event-chip ${ev?.id === r.id ? 'on' : ''}`} aria-pressed={ev?.id === r.id} onClick={() => !running && (setEnded(null), setMatch(null), setEv(r))} disabled={running}>
               <b>{r.champion ? `🏆 ${r.champion}` : 'stopped'}</b>
               <span>{r.name ?? r.format}</span>
+              <RecordedAt iso={r.date} className="muted" />
             </button>
           ))}
           {/* the input is visually hidden but still focusable, so the label works from the keyboard too */}
@@ -336,6 +338,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               <h2 style={{ margin: 0 }}>{ev.name ?? `Event ${ev.id}`}</h2>
               <span className="muted small">
                 {ev.format} · {tierLabel(ev.bot)} bots{ev.config ? ` · seed ${ev.config.seed}` : ''}
+                {(ev.phase === 'done' || ev.phase === 'stopped') && <RecordedAt iso={ev.date} prefix=" · recorded " />}
               </span>
             </div>
             {running && prog && (

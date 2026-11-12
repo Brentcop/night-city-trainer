@@ -7,6 +7,7 @@ import { parseEventId } from '../runParams';
 import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 import { Bracket, Champion, MatchModal, RoundList, StandingsTable, useLib, short, type MatchView } from '../components/TourneyViews';
+import { RecordedAt } from '../components/RecordedAt';
 
 interface EventLite {
   id: number;
@@ -92,6 +93,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
       <PageHead kicker="Tournaments" title="Tournament history" actions={runLink}>
         {I.events.length} events · {I.events.reduce((a, e) => a + e.games, 0).toLocaleString()} games · every deck in the library. Each event is Swiss
         rounds of best-of-3 matches (the loser of a game goes first next game), then a top-8 single-elimination bracket. Click a match to watch its games.
+        <RecordedAt iso={I.events[I.events.length - 1]?.date} prefix=" The latest was recorded " suffix="." />
         {historical > 0 && (
           <>
             {' '}
@@ -106,6 +108,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
           <button key={e.id} className={`event-chip ${e.id === sel ? 'on' : ''}`} aria-pressed={e.id === sel} onClick={() => setSel(e.id)}>
             <b>#{e.id}</b>
             <span>{short(e.champion, 22)}</span>
+            <RecordedAt iso={e.date} className="muted" />
           </button>
         ))}
       </div>
@@ -117,6 +120,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
               <h2 style={{ margin: 0 }}>Event #{ev.id}</h2>
               <span className="muted small">
                 {ev.format} · {ev.entrants} decks · {ev.games} games · {tierLabel(ev.bot)} bots
+                <RecordedAt iso={ev.date} prefix=" · recorded " />
               </span>
             </div>
             <Champion
