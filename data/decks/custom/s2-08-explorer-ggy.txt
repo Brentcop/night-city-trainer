@@ -1,0 +1,31 @@
+// S2-08 Explorer (GGY)
+// Origin: Night City Trainer bred deck (season 2, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-12
+// Idea: Explorer (aggro) built around Value-pairs: Legends Goro Takemura / Muamar Reyes / Padre chosen to hold the package, filled by role and curve templates, then topped up to each package's built-around minimum.
+// Packages: built around Value-pairs, Even Street Cred, Behind on Gigs, Spend, then punish, Face-up Legends; seeded from Value-pairs; plan: no package plan
+// Format: Constructed
+
+// Legends
+1 Goro Takemura: Vengeful Bodyguard
+1 Muamar Reyes: El Capitán
+1 Padre: Man of the Cross
+
+// Main Deck
+1 Dexter DeShawn: One Last Chance
+3 Valentino Street Racer
+2 Goro Takemura: Losing His Way
+3 Pepe Najarro: Working Doubles
+2 T-Bug: Amateur Philosopher
+2 Rockn' Rockerboy
+3 Nadia: Fighting Through Grief
+3 Saul Bright: Stormrider
+2 Sandevistan
+2 Overwatch: Panam's Gift
+2 Zetatech Berserk
+2 Fool on the Hill
+2 Cyberpsychosis
+3 Memory Relapse
+2 We Gotta Live Together
+3 Wild in the Streets
+3 (Don't Fear) The Reaper

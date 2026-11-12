@@ -10,9 +10,13 @@
 //   --package-cands N        how many package moves to try per round (default 3)
 //   --partner-aware          rank cuts and adds partner-aware (src/lib/cutRanking.ts) — forge and optimizer; on by
 //                            itself whenever any package flag is given; --plain-ranking turns it off again
+//   --keep-built-around      also keep each list's own default packages (the Deck Lab's default: those its game plan
+//                            names, else the ones the starting list is built around) — forge, and season (passed on to
+//                            its forge step)
 // Unknown ids exit with code 2 and the list of valid ids.
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
-import { compactPlan, isEmptyPlan, parseLockCards, parsePackageList, parseSeedCombos, planProblems, type PackagePlan } from '../src/lib/deckPackages';
+import type { DeckList } from '../src/engine/types';
+import { compactPlan, defaultKeep, isEmptyPlan, parseLockCards, parsePackageList, parseSeedCombos, planProblems, type PackagePlan } from '../src/lib/deckPackages';
 import { bool, int, str } from './lib-node';
 
 const listCheck = (v: string) => parsePackageList(v).error;
@@ -30,6 +34,7 @@ export const tunerPackageFlags = () => ({
   'package-cands': int(3, { min: 1, max: 12 }),
   'partner-aware': bool(),
   'plain-ranking': bool(),
+  'keep-built-around': bool(),
 });
 /** For the breeder: seed combinations. */
 export const breederPackageFlags = () => ({
@@ -46,11 +51,12 @@ export interface PackageFlagValues {
   'seed-packages'?: string;
   'partner-aware'?: boolean;
   'plain-ranking'?: boolean;
+  'keep-built-around'?: boolean;
 }
 
 /** Whether any package flag was given (only then does a builder do anything package-related). */
 export function packagesOn(v: PackageFlagValues): boolean {
-  return v['keep-packages'] !== undefined || v['require-packages'] !== undefined || v['avoid-packages'] !== undefined || v['lock-cards'] !== undefined || !!v['package-moves'] || v['seed-packages'] !== undefined;
+  return v['keep-packages'] !== undefined || v['require-packages'] !== undefined || v['avoid-packages'] !== undefined || v['lock-cards'] !== undefined || !!v['package-moves'] || v['seed-packages'] !== undefined || !!v['keep-built-around'];
 }
 
 /**
@@ -64,14 +70,17 @@ export function partnerAwareOn(v: PackageFlagValues): boolean {
 
 /**
  * The plan the flags describe (already validated by the flag checks). `objectiveKeep`: a deck objective's packages, the
- * default `keep` when package flags are on but --keep-packages is not given.
+ * default `keep` when package flags are on but --keep-packages is not given. `list`: the starting list, which
+ * --keep-built-around adds the Deck Lab's default keep of (`defaultKeep`: the objective's packages, else the list's
+ * built-around ones) to the keep; without a list that flag adds nothing.
  */
-export function planFromFlags(v: PackageFlagValues, objectiveKeep?: readonly string[]): PackagePlan {
+export function planFromFlags(v: PackageFlagValues, objectiveKeep?: readonly string[], list?: Pick<DeckList, 'legends' | 'main'>): PackagePlan {
   if (!packagesOn(v)) return {};
   const ids = (x?: string) => (x === undefined ? undefined : parsePackageList(x).ids);
   const avoid = ids(v['avoid-packages']) ?? [];
   // an objective's packages yield to an explicit --avoid-packages; explicit flags that contradict each other are refused
-  const keep = ids(v['keep-packages']) ?? (objectiveKeep ?? []).filter((id) => !avoid.includes(id));
+  let keep = ids(v['keep-packages']) ?? (objectiveKeep ?? []).filter((id) => !avoid.includes(id));
+  if (v['keep-built-around'] && list) keep = [...new Set([...keep, ...defaultKeep(list, objectiveKeep).filter((id) => !avoid.includes(id))])];
   return compactPlan({ keep, require: ids(v['require-packages']), avoid, lockCards: v['lock-cards'] ? parseLockCards(v['lock-cards']).lock : undefined });
 }
 
@@ -98,6 +107,7 @@ export function planArgs(v: PackageFlagValues): string[] {
   if (v['package-moves']) out.push('--package-moves');
   if (v['partner-aware']) out.push('--partner-aware');
   if (v['plain-ranking']) out.push('--plain-ranking');
+  if (v['keep-built-around']) out.push('--keep-built-around');
   return out;
 }
 

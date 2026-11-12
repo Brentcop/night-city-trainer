@@ -3,7 +3,8 @@
 //   npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard     (Bo3 plan: only swaps using the deck's 7-card sideboard)
 //   --out DIR   write the reports to DIR instead of reports/
 // Synergy packages (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md): --keep-packages a,b (default with any package
-// flag: the deck objective's packages; "none" keeps nothing), --require-packages a,b, --avoid-packages a,b,
+// flag: the deck objective's packages; "none" keeps nothing), --keep-built-around (also keep the list's own packages:
+// those its game plan names, else the ones it is built around), --require-packages a,b, --avoid-packages a,b,
 // --lock-cards id[:n],..., --package-moves (adds --package-cands N whole-package moves, default 3, to the candidates).
 // --partner-aware (on by itself with any package flag; --plain-ranking turns it off): the weakest-card and strongest-card
 // picks add each card's package stranding cost and add credit (src/lib/cutRanking.ts; no telemetry here, so no partner
@@ -66,7 +67,7 @@ const field = VS ? [resolveDeck(VS)] : loadLibrary().filter((d) => d.kind === 'm
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
 const PARTNER = partnerAwareOn(V);
-const PLAN = planFromFlags(V, objectivePackages(base.file));
+const PLAN = planFromFlags(V, objectivePackages(base.file), base.deck);
 exitOnPlanProblems(PLAN);
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);

@@ -1,0 +1,34 @@
+// S2-06 Counter (RGG)
+// Origin: Night City Trainer bred deck (season 2, counter)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: Ladder: V / Smasher / Saburo (RRG) × BBG Cunningham Econ
+// Added: 2026-11-12
+// Idea: Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges Ladder: V / Smasher / Saburo (RRG) (56% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.
+// Forged 2026-11-12: -1 Shattered Memories → +1 6th Street Recruits (held-out +4.5 pts [+1.2, +7.8], 448 games)
+// Adoption: evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)
+// Packages: keep Rocker Units (Johnny Silverhand), Value-pairs, Behind on Gigs, Spend, then punish; kept Value-pairs, Behind on Gigs, Spend, then punish; added High Gigs (8+)
+// Format: Constructed
+
+// Legends
+1 Adam Smasher: Ender of Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+3 Valentino Street Racer
+2 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Nadia: Fighting Through Grief
+2 Saul Bright: Stormrider
+2 Satori: Sword of Saburo
+2 Overwatch: Panam's Gift
+1 Industrial Assembly
+2 Peace Offering
+2 Corporate Surveillance
+2 Fool on the Hill
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories
+2 We Gotta Live Together
+3 Wild in the Streets
+3 (Don't Fear) The Reaper

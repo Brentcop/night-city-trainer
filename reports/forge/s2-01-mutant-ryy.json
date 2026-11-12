@@ -1,0 +1,301 @@
+{
+ "deck": "S2-01 Mutant (RYY)",
+ "file": "s2-01-mutant-ryy.txt",
+ "date": "2026-11-12",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "bonferroni",
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 46.4,
+   "swaps": [
+    {
+     "swap": "Swap Gear on Units → Ahead on Street Cred: +3 Royce: Don't Call Me Simon, +1 Industrial Assembly, +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 Cyberpsychosis",
+     "wr": 53.6,
+     "delta": 7.1,
+     "package": "swap"
+    },
+    {
+     "swap": "Complete Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -2 Shattered Memories, -1 Live with the Aftermath",
+     "wr": 51.8,
+     "delta": 5.4,
+     "package": "complete"
+    },
+    {
+     "swap": "-1 Bootleg Black Sapphire Show → +1 Industrial Assembly",
+     "wr": 49.1,
+     "delta": 2.7
+    },
+    {
+     "swap": "-1 Shattered Memories → +1 Industrial Assembly",
+     "wr": 47.3,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 6th Street Recruits → +1 Gorilla Arms",
+     "wr": 46.4,
+     "delta": 0
+    },
+    {
+     "swap": "-1 Shattered Memories → +1 Gorilla Arms",
+     "wr": 46.4,
+     "delta": 0
+    },
+    {
+     "swap": "-1 6th Street Recruits → +1 Industrial Assembly",
+     "wr": 44.6,
+     "delta": -1.8
+    },
+    {
+     "swap": "Add Block, then punish: +3 Safety Override, +3 Augmented Negotiators, +1 La Llorona: Ghost of the Past / -2 Shattered Memories, -3 Live with the Aftermath, -2 Mantis Blades",
+     "wr": 44.6,
+     "delta": -1.8,
+     "package": "add"
+    }
+   ],
+   "verdict": "inconclusive",
+   "cuts": [
+    {
+     "card": "6th Street Recruits",
+     "plain": -19,
+     "score": -18.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −19.0 pts; enabler for High Gigs (8+): 43% with a partner (86 games), 40% without (5); partner-aware −18.9 pts; surplus piece: cutting one moves High Gigs (8+) assembly odds by turn 4 only 78% → 78%"
+    },
+    {
+     "card": "Shattered Memories",
+     "plain": -15.9,
+     "score": -15.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −15.9 pts"
+    },
+    {
+     "card": "Live with the Aftermath",
+     "plain": -9.8,
+     "score": -9.8,
+     "offered": false,
+     "plainOffered": true,
+     "why": "not offered: the package view moved it up — Δ when drawn −9.8 pts"
+    },
+    {
+     "card": "Bootleg Black Sapphire Show",
+     "plain": -9.6,
+     "score": -10.4,
+     "offered": true,
+     "plainOffered": false,
+     "why": "offered as a cut (the package view moved it down) — Δ when drawn −9.6 pts; payoff for Mixed Gig values: 41% with a partner (63 games), 60% without (5); partner-aware −10.7 pts; cutting one drops Mixed Gig values assembly odds by turn 4 85% → 78%; score with the stranding cost −10.4 pts"
+    },
+    {
+     "card": "Mantis Blades",
+     "plain": -6.5,
+     "score": -4.9,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −6.5 pts; enabler for Gear on Units: 44% with a partner (62 games), never drawn without one; partner-aware −6.5 pts; cutting one drops Gear on Units assembly odds by turn 4 85% → 78%; cutting one drops Gear as fuel assembly odds by turn 4 85% → 78%; cutting one drops Cyberware toolbox (Viktor Vektor) assembly odds by turn 4 17% → 14%; score with the stranding cost −4.9 pts"
+    },
+    {
+     "card": "Afterparty at Lizzie's",
+     "plain": -3.3,
+     "score": -2,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −3.3 pts; both for Mixed Gig values: 47% with a partner (73 games), 0% without (2); partner-aware −2.3 pts; cutting one drops Mixed Gig values assembly odds by turn 4 85% → 78%; score with the stranding cost −2.0 pts"
+    },
+    {
+     "card": "Over the Edge",
+     "plain": -1.8,
+     "score": -1.8,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −1.8 pts; payoff for High Gigs (8+): 45% with a partner (88 games), 100% without (1); partner-aware −2.3 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 78% → 70%; score with the stranding cost −1.8 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 6th Street Recruits → +1 Industrial Assembly",
+    "-1 6th Street Recruits → +1 Gorilla Arms",
+    "-1 Shattered Memories → +1 Industrial Assembly",
+    "-1 Shattered Memories → +1 Gorilla Arms",
+    "-1 Live with the Aftermath → +1 Industrial Assembly"
+   ],
+   "nominees": [
+    {
+     "label": "Swap Gear on Units → Ahead on Street Cred: +3 Royce: Don't Call Me Simon, +1 Industrial Assembly, +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 Cyberpsychosis",
+     "package": "swap",
+     "screen": {
+      "games": 112,
+      "mean": 0.0714,
+      "lower": -0.0206,
+      "upper": 0.1635
+     },
+     "heldOut": {
+      "games": 896,
+      "mean": 0.0357,
+      "lower": -0.0024,
+      "upper": 0.0738,
+      "z": 2.4977,
+      "looks": 4,
+      "baseWr": 0.4576,
+      "candWr": 0.4933
+     },
+     "outcome": "inconclusive"
+    }
+   ],
+   "confirm": "(896 fresh paired games): baseline 45.8% vs swap 49.3%; held-out gain +3.6 pts [−0.2, +7.4], 896 games → could not tell"
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 45.8,
+   "change": "kept (could not tell: Swap Gear on Units → Ahead on Street Cred: +3 Royce: Don't Call Me Simon, +1 Industrial Assembly, +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 Cyberpsychosis, +3.6 pts [−0.2, +7.4], 896 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "rocker",
+    "value-pair",
+    "high-gig",
+    "gig-spread",
+    "cost-match"
+   ]
+  },
+  "moves": true,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "gig-spread",
+    "cost-match"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-12T09:34:59.391Z:1",
+  "createdAt": "2026-11-12T09:34:59.391Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "6d567c9ca1c838d9",
+    "name": "S2-01 Mutant (RYY)",
+    "file": "s2-01-mutant-ryy.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2800,
+   "completedGames": 2800,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "rocker",
+     "value-pair",
+     "high-gig",
+     "gig-spread",
+     "cost-match"
+    ]
+   },
+   "moves": [
+    "Complete Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -2 Shattered Memories, -1 Live with the Aftermath",
+    "Add Block, then punish: +3 Safety Override, +3 Augmented Negotiators, +1 La Llorona: Ghost of the Past / -2 Shattered Memories, -3 Live with the Aftermath, -2 Mantis Blades",
+    "Swap Gear on Units → Ahead on Street Cred: +3 Royce: Don't Call Me Simon, +1 Industrial Assembly, +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 Cyberpsychosis"
+   ],
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "bonferroni",
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

@@ -1,0 +1,290 @@
+{
+ "deck": "S2-05 Counter (RRG)",
+ "file": "s2-05-counter-rrg.txt",
+ "date": "2026-11-12",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "bonferroni",
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 71.4,
+   "swaps": [
+    {
+     "swap": "-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon",
+     "wr": 76.8,
+     "delta": 5.4
+    },
+    {
+     "swap": "-1 Bonnie and Clyde → +1 Yorinobu Arasaka: Steel Dragon",
+     "wr": 75.9,
+     "delta": 4.5
+    },
+    {
+     "swap": "Complete Units in the trash: +3 All is Lost / -3 Valentino Street Racer",
+     "wr": 74.1,
+     "delta": 2.7,
+     "package": "complete"
+    },
+    {
+     "swap": "Swap Even Street Cred → Ahead on Street Cred: +1 Gunpoint Diplomacy, +1 Yorinobu Arasaka: Steel Dragon / -2 Memory Relapse",
+     "wr": 74.1,
+     "delta": 2.7,
+     "package": "swap"
+    },
+    {
+     "swap": "-1 Bonnie and Clyde → +1 All is Lost",
+     "wr": 73.2,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 We Gotta Live Together → +1 Shattered Memories",
+     "wr": 72.3,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 Bonnie and Clyde → +1 Shattered Memories",
+     "wr": 71.4,
+     "delta": 0
+    },
+    {
+     "swap": "Add Block, then punish: +3 Maelstrom Zealots, +3 Corpo Security, +1 Riot Shield / -3 Valentino Street Racer, -2 Memory Relapse, -1 Swordwise Huscle, -1 Appetite for Destruction",
+     "wr": 62.5,
+     "delta": -8.9,
+     "package": "add"
+    }
+   ],
+   "verdict": "inconclusive",
+   "cuts": [
+    {
+     "card": "Bonnie and Clyde",
+     "plain": -18.1,
+     "score": -16.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −18.1 pts; piece for Behind on Gigs: 68% with a partner (44 games), 66% without (41); partner-aware −17.4 pts; cutting one drops Behind on Gigs assembly odds by turn 4 78% → 70%; score with the stranding cost −16.9 pts"
+    },
+    {
+     "card": "We Gotta Live Together",
+     "plain": -11.2,
+     "score": -13,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −11.2 pts; piece for Behind on Gigs: 61% with a partner (33 games), 83% without (6); partner-aware −13.4 pts; cutting one drops Behind on Gigs assembly odds by turn 4 78% → 70%; score with the stranding cost −13.0 pts"
+    },
+    {
+     "card": "Valentino Street Racer",
+     "plain": -7.2,
+     "score": -7.2,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −7.2 pts"
+    },
+    {
+     "card": "Memory Relapse",
+     "plain": -4.9,
+     "score": -3.9,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −4.9 pts; payoff for Even Street Cred: — with a partner (0 games), 70% without (69); partner-aware −4.9 pts; cutting one drops Even Street Cred assembly odds by turn 4 44% → 25%; score with the stranding cost −3.9 pts"
+    },
+    {
+     "card": "Carnage at the Colosseum",
+     "plain": -3.1,
+     "score": -2.8,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −3.1 pts; payoff for High Gigs (8+): 71% with a partner (89 games), never drawn without one; partner-aware −3.1 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 85% → 78%; score with the stranding cost −2.8 pts"
+    },
+    {
+     "card": "Nadia: Fighting Through Grief",
+     "plain": -1.7,
+     "score": -4.2,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −1.7 pts; piece for Behind on Gigs: 66% with a partner (32 games), 100% without (5); partner-aware −4.6 pts; cutting one drops Behind on Gigs assembly odds by turn 4 78% → 70%; score with the stranding cost −4.2 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Bonnie and Clyde → +1 Yorinobu Arasaka: Steel Dragon",
+    "-1 Bonnie and Clyde → +1 Shattered Memories",
+    "-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon",
+    "-1 Bonnie and Clyde → +1 All is Lost",
+    "-1 Bonnie and Clyde → +1 Field Operator"
+   ],
+   "nominees": [
+    {
+     "label": "-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon",
+     "screen": {
+      "games": 112,
+      "mean": 0.0536,
+      "lower": 0.0117,
+      "upper": 0.0955
+     },
+     "heldOut": {
+      "games": 896,
+      "mean": 0.0145,
+      "lower": -0.0033,
+      "upper": 0.0323,
+      "z": 2.4977,
+      "looks": 4,
+      "baseWr": 0.6931,
+      "candWr": 0.7076
+     },
+     "outcome": "inconclusive"
+    }
+   ],
+   "confirm": "(896 fresh paired games): baseline 69.3% vs swap 70.8%; held-out gain +1.5 pts [−0.3, +3.2], 896 games → could not tell"
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 69.3,
+   "change": "kept (could not tell: -1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon, +1.5 pts [−0.3, +3.2], 896 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "rocker",
+    "value-pair",
+    "high-gig",
+    "comeback"
+   ]
+  },
+  "moves": true,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "value-pair",
+    "comeback"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-12T09:38:05.490Z:1",
+  "createdAt": "2026-11-12T09:38:05.490Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "d5bf540ca72f871a",
+    "name": "S2-05 Counter (RRG)",
+    "file": "s2-05-counter-rrg.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2800,
+   "completedGames": 2800,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "rocker",
+     "value-pair",
+     "high-gig",
+     "comeback"
+    ]
+   },
+   "moves": [
+    "Complete Units in the trash: +3 All is Lost / -3 Valentino Street Racer",
+    "Add Block, then punish: +3 Maelstrom Zealots, +3 Corpo Security, +1 Riot Shield / -3 Valentino Street Racer, -2 Memory Relapse, -1 Swordwise Huscle, -1 Appetite for Destruction",
+    "Swap Even Street Cred → Ahead on Street Cred: +1 Gunpoint Diplomacy, +1 Yorinobu Arasaka: Steel Dragon / -2 Memory Relapse"
+   ],
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "bonferroni",
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

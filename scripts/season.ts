@@ -17,6 +17,7 @@
 //                            (the forge also keeps the seeded packages)
 //   --avoid-packages a,b     no bred deck is built around these
 //   --package-moves          the forge also tries whole-package moves
+//   --keep-built-around      the forge also keeps each new deck's own built-around packages (the Deck Lab's default keep)
 //   Bred deck files then carry a "// Packages:" line, and the season report and manifest name the plan.
 //
 // Adoption rule and search depth for the forge step (passed on to scripts/forge.ts; docs/SYNERGIES.md "When a deck
@@ -57,6 +58,7 @@ const { values: V } = cli(import.meta.url, {
   force: bool(),
   ...breederPackageFlags(),
   'package-moves': bool(),
+  'keep-built-around': bool(),
   ...adoptionFlags(),
   ...depthFlags(1),
   'forge-budget': int(DEFAULT_GAME_BUDGET, { min: 1 }),
@@ -293,6 +295,12 @@ async function main() {
   const newcomers = newFiles.map((f) => lib2.find((d) => d.file === f)!);
   const field = [...lib2.filter((d) => d.kind === 'meta'), ...incumbents, ...newcomers];
   for (const d of newcomers) lb[d.deck.name] = mkEntry(d, SEASON, `S${SEASON} ${bred.find((b) => b.deck.name === d.deck.name)!.method}`);
+  // an incumbent chosen by its power rating that is not on the leaderboard yet (a guide, Trainer original or sim-ladder
+  // list) joins it from this season on, so its round-robin games vs the meta and its finals count like every incumbent's
+  // (a forced re-run takes it out again: its firstSeason is this season)
+  const joined = incumbents.filter((d) => !lb[d.deck.name]);
+  for (const d of joined) lb[d.deck.name] = mkEntry(d, SEASON, d.kind === 'original' ? 'NC original' : d.kind);
+  if (joined.length) console.log(`Joining the leaderboard as incumbents: ${joined.map((d) => d.deck.name).join(', ')}`);
   console.log(`Field: ${field.length} decks × ${GAMES} games per pairing (${BOT})`);
   const jobs: MatchJob[] = [];
   let seed = SEASON * 1_000_000;
@@ -379,7 +387,7 @@ async function main() {
     `Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`,
     '',
     '## New decks',
-    ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}.`, ''] : []),
+    ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}${V['keep-built-around'] ? "; the forge kept each new deck's built-around packages" : ''}${V['package-moves'] ? '; the forge tried package moves' : ''}.`, ''] : []),
     ...bred.map(
       (b) =>
         `- **${b.deck.name}** (${b.method}) — ${b.idea}${b.packages ? ` Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.changes.length ? `; package changes: ${b.packages.changes.join('; ')}` : ''}.` : ''}`,

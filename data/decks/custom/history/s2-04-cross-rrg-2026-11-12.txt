@@ -1,0 +1,33 @@
+# S2-04 Cross (RRG)
+
+// Legends (3)
+1 Saburo Arasaka: Stubborn Patriarch
+1 V: Streetkid
+1 Dexter DeShawn: Off the Grid
+
+// Units (12)
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+2 Yorinobu Arasaka: Steel Dragon
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (24)
+1 Detonate
+2 Industrial Assembly
+2 Appetite for Destruction
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+3 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together
+3 Carnage at the Colosseum
+
+// Idea: Crossover of S1-01 Mutant (RRY) × Ladder: V / Smasher / Saburo (RRG) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Author: Night City Trainer breeder (season 2, crossover)
+// Packages: built around High Gigs (8+), Behind on Gigs, Braindance Programs; plan: no package plan

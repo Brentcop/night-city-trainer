@@ -1,0 +1,33 @@
+// S2-05 Counter (RRG)
+// Origin: Night City Trainer bred deck (season 2, counter)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-01 Mutant (RRY) × BBG Cunningham Econ
+// Added: 2026-11-12
+// Idea: Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges S1-01 Mutant (RRY) (52% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.
+// Packages: built around High Gigs (8+), Value-pairs, Behind on Gigs; plan: no package plan
+// Format: Constructed
+
+// Legends
+1 Adam Smasher: Ender of Legends
+1 Dexter DeShawn: Off the Grid
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+1 Swordwise Huscle
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+1 Nadia: Fighting Through Grief
+2 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Peace Offering
+2 Appetite for Destruction
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Memory Relapse
+2 Shattered Memories
+1 We Gotta Live Together
+3 Carnage at the Colosseum

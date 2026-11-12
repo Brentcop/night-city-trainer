@@ -1,0 +1,199 @@
+{
+ "deck": "YYY Adam v1 - Ready for Brawl",
+ "date": "2026-11-12T10:02:48.671Z",
+ "games": 60,
+ "bot": "deep",
+ "seed": 18000,
+ "overall": 0.5428571428571428,
+ "rows": [
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 43,
+   "bWins": 17,
+   "ties": 0,
+   "aFirstWins": 21,
+   "aFirstGames": 30,
+   "aSecondWins": 22,
+   "aSecondGames": 30,
+   "bFirstWins": 8,
+   "bSecondWins": 9,
+   "turns": 766,
+   "overtime": 14
+  },
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 40,
+   "bWins": 20,
+   "ties": 0,
+   "aFirstWins": 19,
+   "aFirstGames": 30,
+   "aSecondWins": 21,
+   "aSecondGames": 30,
+   "bFirstWins": 9,
+   "bSecondWins": 11,
+   "turns": 764,
+   "overtime": 13
+  },
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 35,
+   "bWins": 25,
+   "ties": 0,
+   "aFirstWins": 19,
+   "aFirstGames": 30,
+   "aSecondWins": 16,
+   "aSecondGames": 30,
+   "bFirstWins": 14,
+   "bSecondWins": 11,
+   "turns": 764,
+   "overtime": 12
+  },
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 34,
+   "bWins": 26,
+   "ties": 0,
+   "aFirstWins": 19,
+   "aFirstGames": 30,
+   "aSecondWins": 15,
+   "aSecondGames": 30,
+   "bFirstWins": 15,
+   "bSecondWins": 11,
+   "turns": 750,
+   "overtime": 12
+  },
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 29,
+   "bWins": 31,
+   "ties": 0,
+   "aFirstWins": 15,
+   "aFirstGames": 30,
+   "aSecondWins": 14,
+   "aSecondGames": 30,
+   "bFirstWins": 16,
+   "bSecondWins": 15,
+   "turns": 778,
+   "overtime": 18
+  },
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 24,
+   "bWins": 36,
+   "ties": 0,
+   "aFirstWins": 14,
+   "aFirstGames": 30,
+   "aSecondWins": 10,
+   "aSecondGames": 30,
+   "bFirstWins": 20,
+   "bSecondWins": 16,
+   "turns": 794,
+   "overtime": 16
+  },
+  {
+   "a": "YYY Adam v1 - Ready for Brawl",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 23,
+   "bWins": 37,
+   "ties": 0,
+   "aFirstWins": 11,
+   "aFirstGames": 30,
+   "aSecondWins": 12,
+   "aSecondGames": 30,
+   "bFirstWins": 18,
+   "bSecondWins": 19,
+   "turns": 771,
+   "overtime": 11
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-12T10:02:48.657Z:18000",
+  "createdAt": "2026-11-12T10:02:48.657Z",
+  "purpose": "matchup",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "721f3fcbb0102b1b",
+    "name": "YYY Adam v1 - Ready for Brawl",
+    "file": "YYY-yyy-adam-ready-for-brawl.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "721f3fcbb0102b1b",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 18000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

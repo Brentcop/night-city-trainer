@@ -159,7 +159,7 @@ The table lists the main suites by area; `ls tests` has the full set.
 | `runManifest.test.ts`, `check-data.test.ts`, `impact.test.ts` | Run manifests (game runs and deterministic aggregates), the recorded-data check, and card impact matched by list fingerprint. |
 | `deck-packages.test.ts`, `deck-packages-defaults.test.ts`, `deck-lab-packages.test.tsx` | Synergy packages in deck building: the plan checks, package moves, seeding, flags, the Deck Lab controls, and the builders unchanged without package flags. |
 | `sim-tier.test.tsx`, `gallery-view.test.tsx`, `deck-delete.test.tsx`, `tuned-decks.test.tsx` | The Sim tier rule and badges; the gallery's sources, filters, sorts and URL view; deleting and hiding decks and what refers to them afterwards; the tuned decks page with its verdicts, filters and Export / Import. |
-| `evidence.test.ts`, `deck-lab-evidence.test.tsx` | The deck builders' adoption rule: paired intervals, the staged-look correction, the three outcomes, the false-adopt rate on synthetic games, depth and game estimates, the flags, and the Deck Lab tuner and result view. |
+| `evidence.test.ts`, `deck-lab-evidence.test.tsx`, `forge-summary.test.ts` | The deck builders' adoption rule: paired intervals, the staged-look correction, the three outcomes, the false-adopt rate on synthetic games, depth and game estimates, the flags, the Deck Lab tuner and result view, and the forge's summary (held-out result first, per-generation figures labelled as their own games). |
 
 ## Scripts
 

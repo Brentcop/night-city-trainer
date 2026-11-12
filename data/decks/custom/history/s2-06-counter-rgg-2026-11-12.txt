@@ -1,0 +1,33 @@
+# S2-06 Counter (RGG)
+
+// Legends (3)
+1 Adam Smasher: Ender of Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Units (12)
+3 Valentino Street Racer
+1 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Nadia: Fighting Through Grief
+2 Saul Bright: Stormrider
+
+// Gears (4)
+2 Satori: Sword of Saburo
+2 Overwatch: Panam's Gift
+
+// Programs (24)
+1 Industrial Assembly
+2 Peace Offering
+2 Corporate Surveillance
+2 Fool on the Hill
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together
+3 Wild in the Streets
+3 (Don't Fear) The Reaper
+
+// Idea: Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges Ladder: V / Smasher / Saburo (RRG) (56% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.
+// Author: Night City Trainer breeder (season 2, counter)
+// Packages: built around Value-pairs, Behind on Gigs, Spend, then punish; plan: no package plan

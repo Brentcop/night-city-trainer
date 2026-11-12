@@ -1,0 +1,283 @@
+{
+ "deck": "S2-07 Explorer (RRB)",
+ "file": "s2-07-explorer-rrb.txt",
+ "date": "2026-11-12",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "bonferroni",
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 67,
+   "swaps": [
+    {
+     "swap": "-1 Swordwise Huscle → +1 Gunpoint Diplomacy",
+     "wr": 71.4,
+     "delta": 4.5
+    },
+    {
+     "swap": "-1 Swordwise Huscle → +1 All is Lost",
+     "wr": 71.4,
+     "delta": 4.5
+    },
+    {
+     "swap": "-1 Swordwise Huscle → +1 Bonnie and Clyde",
+     "wr": 71.4,
+     "delta": 4.5
+    },
+    {
+     "swap": "-1 Swordwise Huscle → +1 Royce: Don't Call Me Simon",
+     "wr": 70.5,
+     "delta": 3.6
+    },
+    {
+     "swap": "-1 Swordwise Huscle → +1 Placide: Voodoo Sentinel",
+     "wr": 68.8,
+     "delta": 1.8
+    },
+    {
+     "swap": "Add Low Gigs (min Gig): +3 Trust No One, +3 Chrome Reverie / -2 Swordwise Huscle, -3 Psycho Squad, -1 Unlikely Bond",
+     "wr": 65.2,
+     "delta": -1.8,
+     "package": "add"
+    },
+    {
+     "swap": "Swap Behind on Gigs → Behind on Street Cred: +3 Modded Muramasa, +2 Trust No One / -2 Bonnie and Clyde, -2 Swordwise Huscle, -1 Psycho Squad",
+     "wr": 61.6,
+     "delta": -5.4,
+     "package": "swap"
+    },
+    {
+     "swap": "Complete Programs as fuel (Blue): +3 Placide: Voodoo Sentinel, +1 Lizzy Wizzy: Delicate Weapon / -2 Swordwise Huscle, -2 Psycho Squad",
+     "wr": 60.7,
+     "delta": -6.3,
+     "package": "complete"
+    }
+   ],
+   "verdict": "inconclusive",
+   "cuts": [
+    {
+     "card": "Swordwise Huscle",
+     "plain": -29.2,
+     "score": -29.2,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −29.2 pts"
+    },
+    {
+     "card": "Psycho Squad",
+     "plain": -14.5,
+     "score": -14.5,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −14.5 pts"
+    },
+    {
+     "card": "Industrial Assembly",
+     "plain": -11.7,
+     "score": -11.1,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −11.7 pts; both for High Gigs (8+): 59% with a partner (34 games), never drawn without one; partner-aware −11.7 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 70% → 59%; score with the stranding cost −11.1 pts"
+    },
+    {
+     "card": "Bonnie and Clyde",
+     "plain": -8.6,
+     "score": -7.6,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −8.6 pts; piece for Behind on Gigs: — with a partner (0 games), 64% without (72); partner-aware −8.6 pts; cutting one drops Behind on Gigs assembly odds by turn 4 44% → 25%; score with the stranding cost −7.6 pts"
+    },
+    {
+     "card": "Over the Edge",
+     "plain": -6.6,
+     "score": -2.5,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −6.6 pts; payoff for High Gigs (8+): 70% with a partner (43 games), 47% without (15); partner-aware −2.5 pts; surplus piece: cutting one moves High Gigs (8+) assembly odds by turn 4 only 70% → 70%"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Swordwise Huscle → +1 Royce: Don't Call Me Simon",
+    "-1 Swordwise Huscle → +1 Gunpoint Diplomacy",
+    "-1 Swordwise Huscle → +1 Placide: Voodoo Sentinel",
+    "-1 Swordwise Huscle → +1 Bonnie and Clyde",
+    "-1 Swordwise Huscle → +1 All is Lost"
+   ],
+   "nominees": [
+    {
+     "label": "-1 Swordwise Huscle → +1 Gunpoint Diplomacy",
+     "screen": {
+      "games": 112,
+      "mean": 0.0446,
+      "lower": -0.0011,
+      "upper": 0.0904
+     },
+     "heldOut": {
+      "games": 448,
+      "mean": -0.0089,
+      "lower": -0.0339,
+      "upper": 0.016,
+      "z": 2.4977,
+      "looks": 2,
+      "baseWr": 0.7188,
+      "candWr": 0.7098
+     },
+     "outcome": "inconclusive",
+     "stopped": "futility"
+    }
+   ],
+   "confirm": "(448 fresh paired games): baseline 71.9% vs swap 71.0%; held-out gain −0.9 pts [−3.4, +1.6], 448 games → could not tell (stopped early: no gain after 448 games)"
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 71.9,
+   "change": "kept (could not tell: -1 Swordwise Huscle → +1 Gunpoint Diplomacy, −0.9 pts [−3.4, +1.6], 448 games; stopped early: no gain after 448 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "rocker",
+    "value-pair",
+    "high-gig",
+    "high-cred"
+   ]
+  },
+  "moves": true,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "high-cred",
+    "rocker"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-12T09:39:57.866Z:1",
+  "createdAt": "2026-11-12T09:39:57.866Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "17a9e81ff46eba40",
+    "name": "S2-07 Explorer (RRB)",
+    "file": "s2-07-explorer-rrb.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2800,
+   "completedGames": 1904,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "rocker",
+     "value-pair",
+     "high-gig",
+     "high-cred"
+    ]
+   },
+   "moves": [
+    "Complete Programs as fuel (Blue): +3 Placide: Voodoo Sentinel, +1 Lizzy Wizzy: Delicate Weapon / -2 Swordwise Huscle, -2 Psycho Squad",
+    "Add Low Gigs (min Gig): +3 Trust No One, +3 Chrome Reverie / -2 Swordwise Huscle, -3 Psycho Squad, -1 Unlikely Bond",
+    "Swap Behind on Gigs → Behind on Street Cred: +3 Modded Muramasa, +2 Trust No One / -2 Bonnie and Clyde, -2 Swordwise Huscle, -1 Psycho Squad"
+   ],
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "bonferroni",
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

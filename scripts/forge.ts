@@ -13,6 +13,8 @@
 //   --lock-cards id[:n],...  never cut these cards below n copies (no n = every copy)
 //   --package-moves          also try whole-package moves (complete, add, swap, remove); --package-cands N per
 //                            generation (default 3)
+//   --keep-built-around      also keep each list's own packages: the ones its game plan names, else the ones the
+//                            starting list is built around (the Deck Lab's default keep), beside --keep-packages
 //   --partner-aware          rank the cuts and adds partner-aware (src/lib/cutRanking.ts): a package card is judged by
 //                            its games with a partner, a cut that lowers a package's assembly odds costs in proportion,
 //                            an add that completes or deepens one earns the odds it adds; the log and JSON say why each
@@ -60,6 +62,7 @@ import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, ex
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
 import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval } from '../src/lib/evidence';
 import { estimateGames, listKeyOf } from '../src/lib/deckSearch';
+import { forgeSummaryMarkdown } from './forge-summary';
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -157,7 +160,7 @@ async function playMany(decks: DeckList[], seed0: number, games: number): Promis
 
 /** The list's plan: the flags, with the deck objective's packages as the default keep (only when package flags are on). */
 function planFor(target: (typeof lib)[number]): PackagePlan {
-  const plan = planFromFlags(V, objectivePackages(target.file));
+  const plan = planFromFlags(V, objectivePackages(target.file), target.deck);
   exitOnPlanProblems(plan);
   return plan;
 }
@@ -186,7 +189,7 @@ async function forge(target: (typeof lib)[number]) {
   if (PARTNER) log.push('Cut ranking: partner-aware (a package card is judged by its games with a partner piece; a cut that lowers a package’s assembly odds costs in proportion; an add that completes or deepens one earns the odds it adds).', '');
   /** package moves tried (labels), for the report and the manifest */
   const tried: string[] = [];
-  const history: { gen: number; wr: number; change: string; gain?: PairedInterval }[] = [];
+  const history: { gen: number; wr: number; change: string; gain?: PairedInterval; baseline: number; baselineGames: number }[] = [];
   // machine-readable twin of the log, for scripts/bundle-reports.ts (percentages and points, 1 decimal, as in the log)
   const p1 = (x: number) => +(x * 100).toFixed(1);
   const startedAt = new Date().toISOString();
@@ -297,7 +300,7 @@ async function forge(target: (typeof lib)[number]) {
     const nominated = results.filter((r) => r.wr - base.wr >= 0.02).slice(0, DEPTH.nominees);
     if (!nominated.length) {
       log.push(`No swap beat the baseline by 2+ points — **list kept**.`, '');
-      history.push({ gen, wr: base.wr, change: 'kept' });
+      history.push({ gen, wr: base.wr, change: 'kept', baseline: base.wr, baselineGames: GAMES });
       continue;
     }
     // confirm on fresh seeds (never used by this generation's screening), paired, in stages
@@ -327,16 +330,16 @@ async function forge(target: (typeof lib)[number]) {
       deck = won.m.deck;
       genRec.verdict = 'adopted';
       genRec.heldOutGain = { mean: p1(sc.heldOut.mean), lower: p1(sc.heldOut.lower), upper: p1(sc.heldOut.upper), games: sc.heldOut.games };
-      history.push({ gen, wr: sc.candWr, change: won.m.label, gain: sc.heldOut });
+      history.push({ gen, wr: sc.candWr, change: won.m.label, gain: sc.heldOut, baseline: base.wr, baselineGames: GAMES });
     } else if (conf.results.some((c) => c.outcome === 'inconclusive')) {
       genRec.verdict = 'inconclusive';
       const i = conf.results.findIndex((c) => c.outcome === 'inconclusive');
       const ci = conf.results[i]!;
       const why = stoppedWords(ci.stopped, ci.heldOut.games, RULE.futilityMaxGainPp);
-      history.push({ gen, wr: ci.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${formatGain(ci.heldOut)}${why ? `; ${why}` : ''})` });
+      history.push({ gen, wr: ci.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${formatGain(ci.heldOut)}${why ? `; ${why}` : ''})`, baseline: base.wr, baselineGames: GAMES });
     } else {
       genRec.verdict = 'rejected';
-      history.push({ gen, wr: sc.baseWr, change: 'kept (swap failed confirmation)' });
+      history.push({ gen, wr: sc.baseWr, change: 'kept (swap failed confirmation)', baseline: base.wr, baselineGames: GAMES });
     }
   }
   // save
@@ -405,7 +408,7 @@ async function forge(target: (typeof lib)[number]) {
   fs.mkdirSync(reportDir, { recursive: true });
   fs.writeFileSync(path.join(reportDir, `${slug}.md`), log.join('\n'));
   fs.writeFileSync(path.join(reportDir, `${slug}.json`), JSON.stringify(json, null, 1));
-  return { name: deck.name, history, games: gamesPlayed - playedBefore };
+  return { name: deck.name, gens: history.map(({ gen, change, gain, baseline, baselineGames }) => ({ gen, change, gain, baseline, baselineGames })), games: gamesPlayed - playedBefore };
 }
 
 async function main() {
@@ -414,23 +417,8 @@ async function main() {
   checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force);
   const all = [];
   for (const t of targets) all.push(await forge(t));
-  const md = [
-    '# Forge summary',
-    '',
-    `Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees })}. Gains are the held-out paired figures.`,
-    '',
-    '| Deck | Start | End | Changes | Games |',
-    '|---|---|---|---|---|',
-    ...all.map(
-      (a) =>
-        `| ${a.name} | ${pct(a.history[0]?.wr ?? 0)} | ${pct(a.history[a.history.length - 1]?.wr ?? 0)} | ${
-          a.history
-            .filter((h) => !h.change.startsWith('kept') || h.change.startsWith('kept (could not tell'))
-            .map((h) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)})` : ''}`)
-            .join('; ') || '—'
-        } | ${a.games} |`,
-    ),
-  ].join('\n');
+  // leads with the held-out paired result; per-generation win rates are that generation's own games (scripts/forge-summary.ts)
+  const md = forgeSummaryMarkdown(all, describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees }));
   fs.mkdirSync(OUT ? path.join(OUT, 'forge') : 'reports/forge', { recursive: true });
   fs.writeFileSync(OUT ? path.join(OUT, 'forge', 'summary.md') : 'reports/forge/summary.md', md);
   console.log('\n' + md);

@@ -1,0 +1,34 @@
+// S2-04 Cross (RRG)
+// Origin: Night City Trainer bred deck (season 2, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-01 Mutant (RRY) × Ladder: V / Smasher / Saburo (RRG)
+// Added: 2026-11-12
+// Idea: Crossover of S1-01 Mutant (RRY) × Ladder: V / Smasher / Saburo (RRG) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Forged 2026-11-12: Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy (held-out +8.9 pts [+2.8, +15.1], 224 games)
+// Adoption: evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)
+// Packages: keep Rocker Units (Johnny Silverhand), Value-pairs, High Gigs (8+), Behind on Gigs, Braindance Programs; kept High Gigs (8+), Behind on Gigs, Braindance Programs; added Even Street Cred; package moves adopted: Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 V: Streetkid
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+1 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+2 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+2 Yorinobu Arasaka: Steel Dragon
+2 Mantis Blades
+2 Satori: Sword of Saburo
+1 Detonate
+2 Industrial Assembly
+2 Appetite for Destruction
+3 Bonnie and Clyde
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together
+3 Carnage at the Colosseum

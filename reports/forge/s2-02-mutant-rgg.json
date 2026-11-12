@@ -1,0 +1,270 @@
+{
+ "deck": "S2-02 Mutant (RGG)",
+ "file": "s2-02-mutant-rgg.txt",
+ "date": "2026-11-12",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "bonferroni",
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 62.5,
+   "swaps": [
+    {
+     "swap": "-1 Saul Bright: Stormrider → +1 Field Operator",
+     "wr": 63.4,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 Satori: Sword of Saburo → +1 All is Lost",
+     "wr": 61.6,
+     "delta": -0.9
+    },
+    {
+     "swap": "-1 Valentino Street Racer → +1 Field Operator",
+     "wr": 61.6,
+     "delta": -0.9
+    },
+    {
+     "swap": "-1 Satori: Sword of Saburo → +1 We Gotta Live Together",
+     "wr": 60.7,
+     "delta": -1.8
+    },
+    {
+     "swap": "-1 Satori: Sword of Saburo → +1 Field Operator",
+     "wr": 58.9,
+     "delta": -3.6
+    },
+    {
+     "swap": "Swap Arasaka Units → Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -1 Goro Takemura: Losing His Way, -2 Satori: Sword of Saburo",
+     "wr": 58,
+     "delta": -4.5,
+     "package": "swap"
+    },
+    {
+     "swap": "Complete Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -2 Satori: Sword of Saburo, -1 Saul Bright: Stormrider",
+     "wr": 54.5,
+     "delta": -8,
+     "package": "complete"
+    },
+    {
+     "swap": "Add Block, then punish: +3 Maelstrom Zealots, +3 Corpo Security, +1 Riot Shield / -2 Satori: Sword of Saburo, -3 Saul Bright: Stormrider, -2 Valentino Street Racer",
+     "wr": 53.6,
+     "delta": -8.9,
+     "package": "add"
+    }
+   ],
+   "verdict": "kept",
+   "cuts": [
+    {
+     "card": "Satori: Sword of Saburo",
+     "plain": -14.9,
+     "score": -14.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −14.9 pts"
+    },
+    {
+     "card": "(Don't Fear) The Reaper",
+     "plain": -7.1,
+     "score": -5.4,
+     "offered": false,
+     "plainOffered": true,
+     "why": "not offered: the package view moved it up — Δ when drawn −7.1 pts; both for Spend, then punish: 62% with a partner (77 games), 43% without (7); partner-aware −5.9 pts; cutting one drops Spend, then punish assembly odds by turn 4 67% → 58%; score with the stranding cost −5.4 pts"
+    },
+    {
+     "card": "Saul Bright: Stormrider",
+     "plain": -6.4,
+     "score": -6.4,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −6.4 pts"
+    },
+    {
+     "card": "Valentino Street Racer",
+     "plain": -5.9,
+     "score": -5.9,
+     "offered": true,
+     "plainOffered": false,
+     "why": "offered as a cut (the package view moved it down) — Δ when drawn −5.9 pts"
+    },
+    {
+     "card": "Goro Takemura: Losing His Way",
+     "plain": -1.1,
+     "score": -0.3,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −1.1 pts; payoff for Face-up Legends: — with a partner (0 games), 62% without (34); partner-aware −1.1 pts; cutting one drops Face-up Legends assembly odds by turn 4 59% → 44%; score with the stranding cost −0.3 pts"
+    },
+    {
+     "card": "Fool on the Hill",
+     "plain": 2.8,
+     "score": 4.7,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn +2.8 pts; enabler for Units in the trash: 66% with a partner (41 games), 60% without (25); partner-aware +4.3 pts; cutting one drops Units in the trash assembly odds by turn 4 18% → 10%; score with the stranding cost +4.7 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Satori: Sword of Saburo → +1 Field Operator",
+    "-1 Satori: Sword of Saburo → +1 We Gotta Live Together",
+    "-1 Satori: Sword of Saburo → +1 All is Lost",
+    "-1 (Don't Fear) The Reaper → +1 Field Operator",
+    "-1 Saul Bright: Stormrider → +1 Field Operator"
+   ]
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 62.5,
+   "change": "kept"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "rocker",
+    "value-pair",
+    "cred-even",
+    "comeback",
+    "spend-punish"
+   ]
+  },
+  "moves": true,
+  "changes": {
+   "kept": [
+    "value-pair",
+    "cred-even",
+    "comeback",
+    "spend-punish"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-12T09:36:26.110Z:1",
+  "createdAt": "2026-11-12T09:36:26.110Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "207834998dd33f94",
+    "name": "S2-02 Mutant (RGG)",
+    "file": "s2-02-mutant-rgg.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2800,
+   "completedGames": 1008,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "rocker",
+     "value-pair",
+     "cred-even",
+     "comeback",
+     "spend-punish"
+    ]
+   },
+   "moves": [
+    "Complete Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -2 Satori: Sword of Saburo, -1 Saul Bright: Stormrider",
+    "Add Block, then punish: +3 Maelstrom Zealots, +3 Corpo Security, +1 Riot Shield / -2 Satori: Sword of Saburo, -3 Saul Bright: Stormrider, -2 Valentino Street Racer",
+    "Swap Arasaka Units → Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -1 Goro Takemura: Losing His Way, -2 Satori: Sword of Saburo"
+   ],
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "bonferroni",
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

@@ -1,0 +1,33 @@
+# S2-03 Cross (RGY)
+
+// Legends (3)
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+1 Kerry Eurodyne: Axe, Attitude, Audience
+
+// Units (12)
+3 Viktor Vektor: You Might Feel a Little Pinch
+3 6th Street Recruits
+1 Pepe Najarro: Working Doubles
+3 Rockn' Rockerboy
+2 Saul Bright: Stormrider
+
+// Gears (4)
+2 Mantis Blades
+2 Satori: Sword of Saburo
+
+// Programs (24)
+2 Industrial Assembly
+2 Peace Offering
+2 Synapse Burnout
+3 Corporate Surveillance
+2 The Heist
+2 Cyberpsychosis
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together
+
+// Idea: Crossover of Smash the Curve × S1-07 Explorer (RYY) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Author: Night City Trainer breeder (season 2, crossover)
+// Packages: built around High Gigs (8+); plan: no package plan

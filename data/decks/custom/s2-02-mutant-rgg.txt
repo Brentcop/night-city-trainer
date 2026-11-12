@@ -1,0 +1,32 @@
+// S2-02 Mutant (RGG)
+// Origin: Night City Trainer bred deck (season 2, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: RRG Dexter Midrange
+// Added: 2026-11-12
+// Idea: Mutant of RRG Dexter Midrange: Dexter DeShawn: Off the Grid → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Packages: built around Value-pairs, Even Street Cred, Behind on Gigs, Spend, then punish; plan: no package plan
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Mama's Favorite
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+
+// Main Deck
+1 Field Operator
+3 Valentino Street Racer
+3 6th Street Recruits
+1 Goro Takemura: Losing His Way
+3 Pepe Najarro: Working Doubles
+2 MaxTac AV
+3 Nadia: Fighting Through Grief
+3 Saul Bright: Stormrider
+2 Satori: Sword of Saburo
+2 Peace Offering
+2 Synapse Burnout
+2 Fool on the Hill
+3 Memory Relapse
+2 Shattered Memories
+2 We Gotta Live Together
+3 Wild in the Streets
+3 (Don't Fear) The Reaper

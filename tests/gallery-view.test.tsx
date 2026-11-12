@@ -124,7 +124,7 @@ describe('gallery page', () => {
     const html = renderToStaticMarkup(<DeckGallery onNew={() => undefined} />);
     expect(html).not.toContain('gal-group');
     expect((html.match(/class="deck-tile /g) ?? []).length).toBe(BUILTIN.length);
-    expect(html).toMatch(/role="status" aria-live="polite">39 decks/);
+    expect(html).toContain(`role="status" aria-live="polite">${BUILTIN.length} decks`);
     expect(html).toMatch(/aria-pressed="false"[^>]*>.*choom.gg meta/);
   });
   it('a linked view filters and groups by source', () => {

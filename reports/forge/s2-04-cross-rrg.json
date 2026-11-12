@@ -1,0 +1,295 @@
+{
+ "deck": "S2-04 Cross (RRG)",
+ "file": "s2-04-cross-rrg.txt",
+ "date": "2026-11-12",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "bonferroni",
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 63.4,
+   "swaps": [
+    {
+     "swap": "Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy",
+     "wr": 72.3,
+     "delta": 8.9,
+     "package": "swap"
+    },
+    {
+     "swap": "-1 Carnage at the Colosseum → +1 Pepe Najarro: Working Doubles",
+     "wr": 67,
+     "delta": 3.6
+    },
+    {
+     "swap": "-1 Carnage at the Colosseum → +1 Yorinobu Arasaka: Steel Dragon",
+     "wr": 67,
+     "delta": 3.6
+    },
+    {
+     "swap": "Add Value-pairs: +2 Peace Offering, +2 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy, -2 Satori: Sword of Saburo",
+     "wr": 66.1,
+     "delta": 2.7,
+     "package": "add"
+    },
+    {
+     "swap": "-1 Gunpoint Diplomacy → +1 Pepe Najarro: Working Doubles",
+     "wr": 65.2,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon",
+     "wr": 65.2,
+     "delta": 1.8
+    },
+    {
+     "swap": "Complete Value-pairs: +2 Peace Offering / -2 Gunpoint Diplomacy",
+     "wr": 64.3,
+     "delta": 0.9,
+     "package": "complete"
+    },
+    {
+     "swap": "-1 Carnage at the Colosseum → +1 Appetite for Destruction",
+     "wr": 62.5,
+     "delta": -0.9
+    }
+   ],
+   "verdict": "adopted",
+   "cuts": [
+    {
+     "card": "Gunpoint Diplomacy",
+     "plain": -17.9,
+     "score": -16.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −17.9 pts; payoff for Ahead on Street Cred: 56% with a partner (66 games), never drawn without one; partner-aware −17.9 pts; cutting one drops Ahead on Street Cred assembly odds by turn 4 44% → 25%; score with the stranding cost −16.9 pts"
+    },
+    {
+     "card": "Carnage at the Colosseum",
+     "plain": -17.1,
+     "score": -17,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −17.1 pts; payoff for High Gigs (8+): 61% with a partner (94 games), never drawn without one; partner-aware −17.1 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 92% → 89%; score with the stranding cost −17.0 pts"
+    },
+    {
+     "card": "Industrial Assembly",
+     "plain": -12.5,
+     "score": -12.3,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −12.5 pts; both for High Gigs (8+): 57% with a partner (56 games), never drawn without one; partner-aware −12.5 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 92% → 89%; score with the stranding cost −12.3 pts"
+    },
+    {
+     "card": "Bonnie and Clyde",
+     "plain": -7.8,
+     "score": -8.3,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −7.8 pts; piece for Behind on Gigs: 60% with a partner (48 games), 63% without (41); partner-aware −8.7 pts; cutting one drops Behind on Gigs assembly odds by turn 4 78% → 70%; score with the stranding cost −8.3 pts"
+    },
+    {
+     "card": "Memory Relapse",
+     "plain": -2.2,
+     "score": -1.4,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −2.2 pts; payoff for Even Street Cred: — with a partner (0 games), 63% without (75); partner-aware −2.2 pts; cutting one drops Even Street Cred assembly odds by turn 4 59% → 44%; score with the stranding cost −1.4 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Gunpoint Diplomacy → +1 Pepe Najarro: Working Doubles",
+    "-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon",
+    "-1 Carnage at the Colosseum → +1 Pepe Najarro: Working Doubles",
+    "-1 Carnage at the Colosseum → +1 Yorinobu Arasaka: Steel Dragon",
+    "-1 Gunpoint Diplomacy → +1 Appetite for Destruction"
+   ],
+   "nominees": [
+    {
+     "label": "Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy",
+     "package": "swap",
+     "screen": {
+      "games": 112,
+      "mean": 0.0893,
+      "lower": 0.0124,
+      "upper": 0.1661
+     },
+     "heldOut": {
+      "games": 224,
+      "mean": 0.0893,
+      "lower": 0.0279,
+      "upper": 0.1507,
+      "z": 2.4977,
+      "looks": 1,
+      "baseWr": 0.6339,
+      "candWr": 0.7232
+     },
+     "outcome": "adopt"
+    }
+   ],
+   "confirm": "(224 fresh paired games): baseline 63.4% vs swap 72.3%; held-out gain +8.9 pts [+2.8, +15.1], 224 games → adopted",
+   "heldOutGain": {
+    "mean": 8.9,
+    "lower": 2.8,
+    "upper": 15.1,
+    "games": 224
+   }
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 72.3,
+   "change": "Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy (held-out +8.9 pts [+2.8, +15.1], 224 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "rocker",
+    "value-pair",
+    "high-gig",
+    "comeback",
+    "braindance"
+   ]
+  },
+  "moves": true,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "comeback",
+    "braindance"
+   ],
+   "added": [
+    "cred-even"
+   ],
+   "removed": []
+  },
+  "adopted": [
+   "Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy"
+  ]
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-12T09:37:29.470Z:1",
+  "createdAt": "2026-11-12T09:37:29.470Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "84a75f0dbb7d26b4",
+    "name": "S2-04 Cross (RRG)",
+    "file": "s2-04-cross-rrg.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2800,
+   "completedGames": 1456,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "rocker",
+     "value-pair",
+     "high-gig",
+     "comeback",
+     "braindance"
+    ]
+   },
+   "moves": [
+    "Complete Value-pairs: +2 Peace Offering / -2 Gunpoint Diplomacy",
+    "Add Value-pairs: +2 Peace Offering, +2 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy, -2 Satori: Sword of Saburo",
+    "Swap Ahead on Street Cred → Even Street Cred: +1 Field Operator, +1 Pepe Najarro: Working Doubles / -2 Gunpoint Diplomacy"
+   ],
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "bonferroni",
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

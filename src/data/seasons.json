@@ -1,6 +1,25 @@
 {
- "updated": "2026-11-11T22:09:40.091Z",
+ "updated": "2026-11-12T10:02:48.726Z",
  "leaderboard": [
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "file": "s2-07-explorer-rrb.txt",
+   "kind": "original",
+   "origin": "S2 explorer",
+   "colors": "RRB",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 439,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.6553030303030303
+   },
+   "idea": "Explorer (aggro) built around Rocker Units (Johnny Silverhand): Legends Adam Smasher / Johnny Silverhand / V chosen to hold the package, filled by role and curve templates, then topped up to each package's built-around minimum.",
+   "finals": 0.7380952380952381,
+   "vsMeta": 0.7465986394557823,
+   "rating": 0.7237654320987654,
+   "percentile": 100
+  },
   {
    "name": "S1-01 Mutant (RRY)",
    "file": "s1-01-mutant-rry.txt",
@@ -9,16 +28,55 @@
    "colors": "RRY",
    "arch": "midrange",
    "firstSeason": 1,
-   "metaW": 429,
-   "metaG": 588,
+   "metaW": 556,
+   "metaG": 756,
    "seasons": {
-    "1": 0.7619047619047619
+    "1": 0.7619047619047619,
+    "2": 0.6477272727272727
    },
    "idea": "Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → Dum Dum: Maelstrom Triggerman; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
    "finals": 0.7214285714285714,
+   "vsMeta": 0.7354497354497355,
+   "rating": 0.7181372549019608,
+   "percentile": 96
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "file": "s2-02-mutant-rgg.txt",
+   "kind": "original",
+   "origin": "S2 mutant",
+   "colors": "RGG",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 433,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.6382575757575758
+   },
+   "idea": "Mutant of RRG Dexter Midrange: Dexter DeShawn: Off the Grid → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+   "finals": 0.7523809523809524,
+   "vsMeta": 0.7363945578231292,
+   "rating": 0.7145061728395061,
+   "percentile": 93
+  },
+  {
+   "name": "S2-03 Cross (RGY)",
+   "file": "s2-03-cross-rgy.txt",
+   "kind": "original",
+   "origin": "S2 crossover",
+   "colors": "RGY",
+   "arch": "midrange",
+   "firstSeason": 2,
+   "metaW": 429,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.5359848484848485
+   },
+   "idea": "Crossover of Smash the Curve × S1-07 Explorer (RYY) (control): strongest Legends of both, cards ranked by format-wide impact.",
+   "finals": 0.7904761904761904,
    "vsMeta": 0.7295918367346939,
    "rating": 0.7083333333333334,
-   "percentile": 100
+   "percentile": 89
   },
   {
    "name": "RRG Dexter Midrange",
@@ -28,15 +86,54 @@
    "colors": "RRG",
    "arch": "aggro",
    "firstSeason": 0,
-   "metaW": 950,
-   "metaG": 1344,
+   "metaW": 1056,
+   "metaG": 1488,
    "seasons": {
     "0": 0.7058333333333333,
-    "1": 0.6458333333333334
+    "1": 0.6458333333333334,
+    "2": 0.634469696969697
    },
-   "vsMeta": 0.7068452380952381,
-   "rating": 0.698005698005698,
-   "percentile": 93
+   "vsMeta": 0.7096774193548387,
+   "rating": 0.7015503875968992,
+   "percentile": 85
+  },
+  {
+   "name": "S2-05 Counter (RRG)",
+   "file": "s2-05-counter-rrg.txt",
+   "kind": "original",
+   "origin": "S2 counter",
+   "colors": "RRG",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 422,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.6571969696969697
+   },
+   "idea": "Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges S1-01 Mutant (RRY) (52% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.",
+   "finals": 0.7119047619047619,
+   "vsMeta": 0.717687074829932,
+   "rating": 0.6975308641975309,
+   "percentile": 81
+  },
+  {
+   "name": "Ladder: V / Smasher / Saburo (RRG)",
+   "file": "ladder-rrg-v-smasher-saburo.txt",
+   "kind": "ladder",
+   "origin": "ladder",
+   "colors": "RRG",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 414,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.6060606060606061
+   },
+   "idea": "aggro build for the V / Adam Smasher / Saburo Arasaka trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.",
+   "finals": 0.6904761904761905,
+   "vsMeta": 0.7040816326530612,
+   "rating": 0.6851851851851852,
+   "percentile": 78
   },
   {
    "name": "S1-03 Mutant (RBG)",
@@ -46,16 +143,92 @@
    "colors": "RBG",
    "arch": "control",
    "firstSeason": 1,
-   "metaW": 410,
-   "metaG": 588,
+   "metaW": 529,
+   "metaG": 756,
    "seasons": {
-    "1": 0.7083333333333334
+    "1": 0.7083333333333334,
+    "2": 0.5776515151515151
    },
    "idea": "Mutant of Rainbow Fixer Stuff: Padre: Man of the Cross → Saburo Arasaka: Stubborn Patriarch; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
    "finals": 0.6880952380952381,
-   "vsMeta": 0.6972789115646258,
-   "rating": 0.6790123456790124,
-   "percentile": 86
+   "vsMeta": 0.6997354497354498,
+   "rating": 0.6850490196078431,
+   "percentile": 74
+  },
+  {
+   "name": "S2-06 Counter (RGG)",
+   "file": "s2-06-counter-rgg.txt",
+   "kind": "original",
+   "origin": "S2 counter",
+   "colors": "RGG",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 400,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.5776515151515151
+   },
+   "idea": "Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges Ladder: V / Smasher / Saburo (RRG) (56% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.",
+   "finals": 0.6928571428571428,
+   "vsMeta": 0.6802721088435374,
+   "rating": 0.6635802469135802,
+   "percentile": 70
+  },
+  {
+   "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+   "file": "ladder-bbg-jackie-alt-hanako.txt",
+   "kind": "ladder",
+   "origin": "ladder",
+   "colors": "BBG",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 387,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.6136363636363636
+   },
+   "idea": "control build for the Jackie Welles / Alt Cunningham / Hanako Arasaka trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.",
+   "finals": 0.6571428571428571,
+   "vsMeta": 0.6581632653061225,
+   "rating": 0.6435185185185185,
+   "percentile": 67
+  },
+  {
+   "name": "NC-08 Merc Contract (RRG)",
+   "file": "nc-08-merc-contract-rrg.txt",
+   "kind": "original",
+   "origin": "NC original",
+   "colors": "RRG",
+   "arch": "aggro",
+   "firstSeason": 2,
+   "metaW": 377,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.4981060606060606
+   },
+   "idea": "Three MERC Go Solo Legends (V, Adam Smasher, Jackie) + Pepe readying MERC Legends = extra mana and surprise 6-9 power attackers; Jackie also protects your best Unit from removal.",
+   "finals": 0.6428571428571429,
+   "vsMeta": 0.641156462585034,
+   "rating": 0.6280864197530864,
+   "percentile": 63
+  },
+  {
+   "name": "Smash the Curve",
+   "file": "RRG-smash-the-curve.txt",
+   "kind": "guide",
+   "origin": "guide",
+   "colors": "RRG",
+   "arch": "midrange",
+   "firstSeason": 2,
+   "metaW": 359,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.509469696969697
+   },
+   "finals": 0.6166666666666667,
+   "vsMeta": 0.6105442176870748,
+   "rating": 0.6003086419753086,
+   "percentile": 59
   },
   {
    "name": "YYB Rogue Gear",
@@ -65,15 +238,16 @@
    "colors": "BYY",
    "arch": "aggro",
    "firstSeason": 0,
-   "metaW": 784,
-   "metaG": 1344,
+   "metaW": 870,
+   "metaG": 1488,
    "seasons": {
     "0": 0.5833333333333334,
-    "1": 0.5714285714285714
+    "1": 0.5714285714285714,
+    "2": 0.4678030303030303
    },
-   "vsMeta": 0.5833333333333334,
-   "rating": 0.5797720797720798,
-   "percentile": 79
+   "vsMeta": 0.5846774193548387,
+   "rating": 0.5813953488372093,
+   "percentile": 56
   },
   {
    "name": "S1-04 Cross (RBG)",
@@ -92,7 +266,26 @@
    "finals": 0.580952380952381,
    "vsMeta": 0.5867346938775511,
    "rating": 0.5787037037037037,
-   "percentile": 71
+   "percentile": 52
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "file": "s2-04-cross-rrg.txt",
+   "kind": "original",
+   "origin": "S2 crossover",
+   "colors": "RRG",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 337,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.3977272727272727
+   },
+   "idea": "Crossover of S1-01 Mutant (RRY) × Ladder: V / Smasher / Saburo (RRG) (control): strongest Legends of both, cards ranked by format-wide impact.",
+   "finals": 0.5952380952380952,
+   "vsMeta": 0.5731292517006803,
+   "rating": 0.566358024691358,
+   "percentile": 48
   },
   {
    "name": "S1-07 Explorer (RYY)",
@@ -102,16 +295,17 @@
    "colors": "RYY",
    "arch": "control",
    "firstSeason": 1,
-   "metaW": 327,
-   "metaG": 588,
+   "metaW": 427,
+   "metaG": 756,
    "seasons": {
-    "1": 0.5833333333333334
+    "1": 0.5833333333333334,
+    "2": 0.4962121212121212
    },
    "idea": "Explorer (midrange): untested Legends River Ward / Johnny Silverhand / Kerry Eurodyne, filled by role and curve templates from format-wide card impact.",
    "finals": 0.5380952380952381,
-   "vsMeta": 0.5561224489795918,
-   "rating": 0.5509259259259259,
-   "percentile": 64
+   "vsMeta": 0.5648148148148148,
+   "rating": 0.5600490196078431,
+   "percentile": 44
   },
   {
    "name": "S1-05 Cross (RBB)",
@@ -130,7 +324,7 @@
    "finals": 0.5666666666666667,
    "vsMeta": 0.5544217687074829,
    "rating": 0.5493827160493827,
-   "percentile": 57
+   "percentile": 41
   },
   {
    "name": "S1-08 Explorer (BGG)",
@@ -149,25 +343,44 @@
    "finals": 0.55,
    "vsMeta": 0.5544217687074829,
    "rating": 0.5493827160493827,
-   "percentile": 50
+   "percentile": 37
   },
   {
-   "name": "Rainbow Fixer Stuff",
-   "file": "meta-rainbow-fixer-stuff.txt",
-   "kind": "meta",
-   "origin": "meta",
-   "colors": "RBG",
-   "arch": "aggro",
-   "firstSeason": 0,
-   "metaW": 674,
-   "metaG": 1344,
+   "name": "YYY Adam v1 - Ready for Brawl",
+   "file": "YYY-yyy-adam-ready-for-brawl.txt",
+   "kind": "guide",
+   "origin": "guide",
+   "colors": "YYY",
+   "arch": "midrange",
+   "firstSeason": 2,
+   "metaW": 316,
+   "metaG": 588,
    "seasons": {
-    "0": 0.5008333333333334,
-    "1": 0.4732142857142857
+    "2": 0.5132575757575758
    },
-   "vsMeta": 0.5014880952380952,
-   "rating": 0.5014245014245015,
-   "percentile": 43
+   "finals": 0.5428571428571428,
+   "vsMeta": 0.5374149659863946,
+   "rating": 0.5339506172839507,
+   "percentile": 33
+  },
+  {
+   "name": "S2-01 Mutant (RYY)",
+   "file": "s2-01-mutant-ryy.txt",
+   "kind": "original",
+   "origin": "S2 mutant",
+   "colors": "RYY",
+   "arch": "midrange",
+   "firstSeason": 2,
+   "metaW": 300,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.4109848484848485
+   },
+   "idea": "Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Rogue Amendiares: Preem Solo; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+   "finals": 0.5071428571428571,
+   "vsMeta": 0.5102040816326531,
+   "rating": 0.5092592592592593,
+   "percentile": 30
   },
   {
    "name": "RRY Smasher Aggro",
@@ -177,15 +390,35 @@
    "colors": "RRY",
    "arch": "aggro",
    "firstSeason": 0,
-   "metaW": 666,
-   "metaG": 1344,
+   "metaW": 748,
+   "metaG": 1488,
    "seasons": {
     "0": 0.49833333333333335,
-    "1": 0.4255952380952381
+    "1": 0.4255952380952381,
+    "2": 0.3958333333333333
    },
-   "vsMeta": 0.4955357142857143,
-   "rating": 0.49572649572649574,
-   "percentile": 36
+   "vsMeta": 0.5026881720430108,
+   "rating": 0.5025839793281653,
+   "percentile": 26
+  },
+  {
+   "name": "Rainbow Fixer Stuff",
+   "file": "meta-rainbow-fixer-stuff.txt",
+   "kind": "meta",
+   "origin": "meta",
+   "colors": "RBG",
+   "arch": "aggro",
+   "firstSeason": 0,
+   "metaW": 741,
+   "metaG": 1488,
+   "seasons": {
+    "0": 0.5008333333333334,
+    "1": 0.4732142857142857,
+    "2": 0.3560606060606061
+   },
+   "vsMeta": 0.49798387096774194,
+   "rating": 0.49806201550387597,
+   "percentile": 22
   },
   {
    "name": "BBG Cunningham Econ",
@@ -195,15 +428,35 @@
    "colors": "BBG",
    "arch": "control",
    "firstSeason": 0,
-   "metaW": 659,
-   "metaG": 1344,
+   "metaW": 729,
+   "metaG": 1488,
    "seasons": {
     "0": 0.485,
-    "1": 0.5119047619047619
+    "1": 0.5119047619047619,
+    "2": 0.44507575757575757
    },
-   "vsMeta": 0.49032738095238093,
-   "rating": 0.49074074074074076,
-   "percentile": 29
+   "vsMeta": 0.4899193548387097,
+   "rating": 0.4903100775193798,
+   "percentile": 19
+  },
+  {
+   "name": "S2-08 Explorer (GGY)",
+   "file": "s2-08-explorer-ggy.txt",
+   "kind": "original",
+   "origin": "S2 explorer",
+   "colors": "GGY",
+   "arch": "control",
+   "firstSeason": 2,
+   "metaW": 283,
+   "metaG": 588,
+   "seasons": {
+    "2": 0.3522727272727273
+   },
+   "idea": "Explorer (aggro) built around Value-pairs: Legends Goro Takemura / Muamar Reyes / Padre chosen to hold the package, filled by role and curve templates, then topped up to each package's built-around minimum.",
+   "finals": 0.4785714285714286,
+   "vsMeta": 0.4812925170068027,
+   "rating": 0.48302469135802467,
+   "percentile": 15
   },
   {
    "name": "S1-02 Mutant (RYY)",
@@ -222,7 +475,7 @@
    "finals": 0.4357142857142857,
    "vsMeta": 0.4200680272108844,
    "rating": 0.42746913580246915,
-   "percentile": 21
+   "percentile": 11
   },
   {
    "name": "RRB Wakako Midrange",
@@ -232,15 +485,16 @@
    "colors": "RRB",
    "arch": "midrange",
    "firstSeason": 0,
-   "metaW": 544,
-   "metaG": 1344,
+   "metaW": 598,
+   "metaG": 1488,
    "seasons": {
     "0": 0.4033333333333333,
-    "1": 0.40476190476190477
+    "1": 0.40476190476190477,
+    "2": 0.32386363636363635
    },
-   "vsMeta": 0.40476190476190477,
-   "rating": 0.40883190883190884,
-   "percentile": 14
+   "vsMeta": 0.4018817204301075,
+   "rating": 0.40568475452196384,
+   "percentile": 7
   },
   {
    "name": "GRY Trauma Team",
@@ -250,15 +504,16 @@
    "colors": "RGY",
    "arch": "aggro",
    "firstSeason": 0,
-   "metaW": 427,
-   "metaG": 1344,
+   "metaW": 466,
+   "metaG": 1488,
    "seasons": {
     "0": 0.3233333333333333,
-    "1": 0.25595238095238093
+    "1": 0.25595238095238093,
+    "2": 0.1893939393939394
    },
-   "vsMeta": 0.3177083333333333,
-   "rating": 0.32549857549857547,
-   "percentile": 7
+   "vsMeta": 0.3131720430107527,
+   "rating": 0.32041343669250644,
+   "percentile": 4
   },
   {
    "name": "S1-06 Cross (BGY)",
@@ -639,6 +894,570 @@
     "trace": true,
     "cardDataVersion": "fnv1a64:93e933351cc80262"
    }
+  },
+  {
+   "season": 2,
+   "date": "2026-11-12T10:02:48.718Z",
+   "games": 24,
+   "bot": "deep",
+   "bred": [
+    {
+     "name": "S2-01 Mutant (RYY)",
+     "method": "mutant",
+     "parents": [
+      "S1-01 Mutant (RRY)"
+     ],
+     "idea": "Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Rogue Amendiares: Preem Solo; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+     "packages": {
+      "builtAround": [
+       "high-gig",
+       "gig-spread",
+       "cost-match"
+      ],
+      "changes": []
+     }
+    },
+    {
+     "name": "S2-02 Mutant (RGG)",
+     "method": "mutant",
+     "parents": [
+      "RRG Dexter Midrange"
+     ],
+     "idea": "Mutant of RRG Dexter Midrange: Dexter DeShawn: Off the Grid → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+     "packages": {
+      "builtAround": [
+       "value-pair",
+       "cred-even",
+       "comeback",
+       "spend-punish"
+      ],
+      "changes": []
+     }
+    },
+    {
+     "name": "S2-03 Cross (RGY)",
+     "method": "crossover",
+     "parents": [
+      "Smash the Curve",
+      "S1-07 Explorer (RYY)"
+     ],
+     "idea": "Crossover of Smash the Curve × S1-07 Explorer (RYY) (control): strongest Legends of both, cards ranked by format-wide impact.",
+     "packages": {
+      "builtAround": [
+       "high-gig"
+      ],
+      "changes": []
+     }
+    },
+    {
+     "name": "S2-04 Cross (RRG)",
+     "method": "crossover",
+     "parents": [
+      "S1-01 Mutant (RRY)",
+      "Ladder: V / Smasher / Saburo (RRG)"
+     ],
+     "idea": "Crossover of S1-01 Mutant (RRY) × Ladder: V / Smasher / Saburo (RRG) (control): strongest Legends of both, cards ranked by format-wide impact.",
+     "packages": {
+      "builtAround": [
+       "high-gig",
+       "comeback",
+       "braindance"
+      ],
+      "changes": []
+     }
+    },
+    {
+     "name": "S2-05 Counter (RRG)",
+     "method": "counter",
+     "parents": [
+      "S1-01 Mutant (RRY)",
+      "BBG Cunningham Econ"
+     ],
+     "idea": "Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges S1-01 Mutant (RRY) (52% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.",
+     "packages": {
+      "builtAround": [
+       "high-gig",
+       "value-pair",
+       "comeback"
+      ],
+      "changes": []
+     }
+    },
+    {
+     "name": "S2-06 Counter (RGG)",
+     "method": "counter",
+     "parents": [
+      "Ladder: V / Smasher / Saburo (RRG)",
+      "BBG Cunningham Econ"
+     ],
+     "idea": "Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges Ladder: V / Smasher / Saburo (RRG) (56% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.",
+     "packages": {
+      "builtAround": [
+       "value-pair",
+       "comeback",
+       "spend-punish"
+      ],
+      "changes": []
+     }
+    },
+    {
+     "name": "S2-07 Explorer (RRB)",
+     "method": "explorer",
+     "parents": [],
+     "idea": "Explorer (aggro) built around Rocker Units (Johnny Silverhand): Legends Adam Smasher / Johnny Silverhand / V chosen to hold the package, filled by role and curve templates, then topped up to each package's built-around minimum.",
+     "packages": {
+      "builtAround": [
+       "high-gig",
+       "high-cred",
+       "rocker"
+      ],
+      "changes": [
+       "Add Rocker Units (Johnny Silverhand): +3 Johnny Silverhand: Never Stop Fighting, +1 Kerry Eurodyne: The Last Rockerboy / -2 Shattered Memories, -2 Ruthless Lowlife"
+      ],
+      "seeded": [
+       "rocker"
+      ]
+     }
+    },
+    {
+     "name": "S2-08 Explorer (GGY)",
+     "method": "explorer",
+     "parents": [],
+     "idea": "Explorer (aggro) built around Value-pairs: Legends Goro Takemura / Muamar Reyes / Padre chosen to hold the package, filled by role and curve templates, then topped up to each package's built-around minimum.",
+     "packages": {
+      "builtAround": [
+       "value-pair",
+       "cred-even",
+       "comeback",
+       "spend-punish",
+       "legends-up"
+      ],
+      "changes": [],
+      "seeded": [
+       "value-pair"
+      ]
+     }
+    }
+   ],
+   "standings": [
+    {
+     "name": "S2-05 Counter (RRG)",
+     "file": "s2-05-counter-rrg.txt",
+     "kind": "original",
+     "wr": 0.6571969696969697,
+     "isNew": true
+    },
+    {
+     "name": "S2-07 Explorer (RRB)",
+     "file": "s2-07-explorer-rrb.txt",
+     "kind": "original",
+     "wr": 0.6553030303030303,
+     "isNew": true
+    },
+    {
+     "name": "S1-01 Mutant (RRY)",
+     "file": "s1-01-mutant-rry.txt",
+     "kind": "original",
+     "wr": 0.6477272727272727,
+     "isNew": false
+    },
+    {
+     "name": "S2-02 Mutant (RGG)",
+     "file": "s2-02-mutant-rgg.txt",
+     "kind": "original",
+     "wr": 0.6382575757575758,
+     "isNew": true
+    },
+    {
+     "name": "RRG Dexter Midrange",
+     "file": "meta-rrg-dexter-midrange.txt",
+     "kind": "meta",
+     "wr": 0.634469696969697,
+     "isNew": false
+    },
+    {
+     "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+     "file": "ladder-bbg-jackie-alt-hanako.txt",
+     "kind": "ladder",
+     "wr": 0.6136363636363636,
+     "isNew": false
+    },
+    {
+     "name": "Ladder: V / Smasher / Saburo (RRG)",
+     "file": "ladder-rrg-v-smasher-saburo.txt",
+     "kind": "ladder",
+     "wr": 0.6060606060606061,
+     "isNew": false
+    },
+    {
+     "name": "S1-03 Mutant (RBG)",
+     "file": "s1-03-mutant-rbg.txt",
+     "kind": "original",
+     "wr": 0.5776515151515151,
+     "isNew": false
+    },
+    {
+     "name": "S2-06 Counter (RGG)",
+     "file": "s2-06-counter-rgg.txt",
+     "kind": "original",
+     "wr": 0.5776515151515151,
+     "isNew": true
+    },
+    {
+     "name": "S2-03 Cross (RGY)",
+     "file": "s2-03-cross-rgy.txt",
+     "kind": "original",
+     "wr": 0.5359848484848485,
+     "isNew": true
+    },
+    {
+     "name": "YYY Adam v1 - Ready for Brawl",
+     "file": "YYY-yyy-adam-ready-for-brawl.txt",
+     "kind": "guide",
+     "wr": 0.5132575757575758,
+     "isNew": false
+    },
+    {
+     "name": "Smash the Curve",
+     "file": "RRG-smash-the-curve.txt",
+     "kind": "guide",
+     "wr": 0.509469696969697,
+     "isNew": false
+    },
+    {
+     "name": "NC-08 Merc Contract (RRG)",
+     "file": "nc-08-merc-contract-rrg.txt",
+     "kind": "original",
+     "wr": 0.4981060606060606,
+     "isNew": false
+    },
+    {
+     "name": "S1-07 Explorer (RYY)",
+     "file": "s1-07-explorer-ryy.txt",
+     "kind": "original",
+     "wr": 0.4962121212121212,
+     "isNew": false
+    },
+    {
+     "name": "YYB Rogue Gear",
+     "file": "meta-yyb-rogue-gear.txt",
+     "kind": "meta",
+     "wr": 0.4678030303030303,
+     "isNew": false
+    },
+    {
+     "name": "BBG Cunningham Econ",
+     "file": "meta-bbg-cunningham-econ.txt",
+     "kind": "meta",
+     "wr": 0.44507575757575757,
+     "isNew": false
+    },
+    {
+     "name": "S2-01 Mutant (RYY)",
+     "file": "s2-01-mutant-ryy.txt",
+     "kind": "original",
+     "wr": 0.4109848484848485,
+     "isNew": true
+    },
+    {
+     "name": "S2-04 Cross (RRG)",
+     "file": "s2-04-cross-rrg.txt",
+     "kind": "original",
+     "wr": 0.3977272727272727,
+     "isNew": true
+    },
+    {
+     "name": "RRY Smasher Aggro",
+     "file": "meta-rry-smasher-aggro.txt",
+     "kind": "meta",
+     "wr": 0.3958333333333333,
+     "isNew": false
+    },
+    {
+     "name": "Rainbow Fixer Stuff",
+     "file": "meta-rainbow-fixer-stuff.txt",
+     "kind": "meta",
+     "wr": 0.3560606060606061,
+     "isNew": false
+    },
+    {
+     "name": "S2-08 Explorer (GGY)",
+     "file": "s2-08-explorer-ggy.txt",
+     "kind": "original",
+     "wr": 0.3522727272727273,
+     "isNew": true
+    },
+    {
+     "name": "RRB Wakako Midrange",
+     "file": "meta-rrb-wakako-midrange.txt",
+     "kind": "meta",
+     "wr": 0.32386363636363635,
+     "isNew": false
+    },
+    {
+     "name": "GRY Trauma Team",
+     "file": "meta-gry-trauma-team.txt",
+     "kind": "meta",
+     "wr": 0.1893939393939394,
+     "isNew": false
+    }
+   ],
+   "leaderTop": [
+    {
+     "name": "S2-07 Explorer (RRB)",
+     "vsMeta": 0.7465986394557823,
+     "percentile": 100
+    },
+    {
+     "name": "S1-01 Mutant (RRY)",
+     "vsMeta": 0.7354497354497355,
+     "percentile": 96
+    },
+    {
+     "name": "S2-02 Mutant (RGG)",
+     "vsMeta": 0.7363945578231292,
+     "percentile": 93
+    },
+    {
+     "name": "S2-03 Cross (RGY)",
+     "vsMeta": 0.7295918367346939,
+     "percentile": 89
+    },
+    {
+     "name": "RRG Dexter Midrange",
+     "vsMeta": 0.7096774193548387,
+     "percentile": 85
+    },
+    {
+     "name": "S2-05 Counter (RRG)",
+     "vsMeta": 0.717687074829932,
+     "percentile": 81
+    },
+    {
+     "name": "Ladder: V / Smasher / Saburo (RRG)",
+     "vsMeta": 0.7040816326530612,
+     "percentile": 78
+    },
+    {
+     "name": "S1-03 Mutant (RBG)",
+     "vsMeta": 0.6997354497354498,
+     "percentile": 74
+    },
+    {
+     "name": "S2-06 Counter (RGG)",
+     "vsMeta": 0.6802721088435374,
+     "percentile": 70
+    },
+    {
+     "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+     "vsMeta": 0.6581632653061225,
+     "percentile": 67
+    },
+    {
+     "name": "NC-08 Merc Contract (RRG)",
+     "vsMeta": 0.641156462585034,
+     "percentile": 63
+    },
+    {
+     "name": "Smash the Curve",
+     "vsMeta": 0.6105442176870748,
+     "percentile": 59
+    }
+   ],
+   "manifest": {
+    "schema": 1,
+    "runId": "season:2026-11-12T09:13:05.903Z:2000000",
+    "createdAt": "2026-11-12T09:13:05.903Z",
+    "purpose": "season",
+    "simVersion": 5,
+    "rulesVersion": "2026-10-29",
+    "faqVersion": "2026-11-09T15:28:32.570Z",
+    "errataVersion": null,
+    "bot": {
+     "level": "deep"
+    },
+    "decks": [
+     {
+      "id": "0b6272134a22585c",
+      "name": "BBG Cunningham Econ",
+      "file": "meta-bbg-cunningham-econ.txt"
+     },
+     {
+      "id": "3d6b0327f672d914",
+      "name": "GRY Trauma Team",
+      "file": "meta-gry-trauma-team.txt"
+     },
+     {
+      "id": "189f8a3b59f1117f",
+      "name": "Rainbow Fixer Stuff",
+      "file": "meta-rainbow-fixer-stuff.txt"
+     },
+     {
+      "id": "06552ee884386887",
+      "name": "RRB Wakako Midrange",
+      "file": "meta-rrb-wakako-midrange.txt"
+     },
+     {
+      "id": "d615ca2a4ad09bf8",
+      "name": "RRG Dexter Midrange",
+      "file": "meta-rrg-dexter-midrange.txt"
+     },
+     {
+      "id": "ee779ed4dea87217",
+      "name": "RRY Smasher Aggro",
+      "file": "meta-rry-smasher-aggro.txt"
+     },
+     {
+      "id": "078ce02dba6dd2c0",
+      "name": "YYB Rogue Gear",
+      "file": "meta-yyb-rogue-gear.txt"
+     },
+     {
+      "id": "52592f87a5675ab9",
+      "name": "S1-01 Mutant (RRY)",
+      "file": "s1-01-mutant-rry.txt"
+     },
+     {
+      "id": "e7b0b38e8ab5b225",
+      "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+      "file": "ladder-bbg-jackie-alt-hanako.txt"
+     },
+     {
+      "id": "1abcf0f14da08881",
+      "name": "S1-03 Mutant (RBG)",
+      "file": "s1-03-mutant-rbg.txt"
+     },
+     {
+      "id": "6ec722391d7c9d82",
+      "name": "Smash the Curve",
+      "file": "RRG-smash-the-curve.txt"
+     },
+     {
+      "id": "779315ff7aa233e2",
+      "name": "Ladder: V / Smasher / Saburo (RRG)",
+      "file": "ladder-rrg-v-smasher-saburo.txt"
+     },
+     {
+      "id": "c98b1332deca6e62",
+      "name": "NC-08 Merc Contract (RRG)",
+      "file": "nc-08-merc-contract-rrg.txt"
+     },
+     {
+      "id": "3066980fc1c3c3a2",
+      "name": "S1-07 Explorer (RYY)",
+      "file": "s1-07-explorer-ryy.txt"
+     },
+     {
+      "id": "721f3fcbb0102b1b",
+      "name": "YYY Adam v1 - Ready for Brawl",
+      "file": "YYY-yyy-adam-ready-for-brawl.txt"
+     },
+     {
+      "id": "6d567c9ca1c838d9",
+      "name": "S2-01 Mutant (RYY)",
+      "file": "s2-01-mutant-ryy.txt"
+     },
+     {
+      "id": "207834998dd33f94",
+      "name": "S2-02 Mutant (RGG)",
+      "file": "s2-02-mutant-rgg.txt"
+     },
+     {
+      "id": "9ace4c9da452818b",
+      "name": "S2-03 Cross (RGY)",
+      "file": "s2-03-cross-rgy.txt"
+     },
+     {
+      "id": "84a75f0dbb7d26b4",
+      "name": "S2-04 Cross (RRG)",
+      "file": "s2-04-cross-rrg.txt"
+     },
+     {
+      "id": "d5bf540ca72f871a",
+      "name": "S2-05 Counter (RRG)",
+      "file": "s2-05-counter-rrg.txt"
+     },
+     {
+      "id": "40126420639663fe",
+      "name": "S2-06 Counter (RGG)",
+      "file": "s2-06-counter-rgg.txt"
+     },
+     {
+      "id": "17a9e81ff46eba40",
+      "name": "S2-07 Explorer (RRB)",
+      "file": "s2-07-explorer-rrb.txt"
+     },
+     {
+      "id": "957336d0f03542ad",
+      "name": "S2-08 Explorer (GGY)",
+      "file": "s2-08-explorer-ggy.txt"
+     }
+    ],
+    "field": {
+     "mode": "season-2",
+     "deckIds": [
+      "0b6272134a22585c",
+      "3d6b0327f672d914",
+      "189f8a3b59f1117f",
+      "06552ee884386887",
+      "d615ca2a4ad09bf8",
+      "ee779ed4dea87217",
+      "078ce02dba6dd2c0",
+      "52592f87a5675ab9",
+      "e7b0b38e8ab5b225",
+      "1abcf0f14da08881",
+      "6ec722391d7c9d82",
+      "779315ff7aa233e2",
+      "c98b1332deca6e62",
+      "3066980fc1c3c3a2",
+      "721f3fcbb0102b1b",
+      "6d567c9ca1c838d9",
+      "207834998dd33f94",
+      "9ace4c9da452818b",
+      "84a75f0dbb7d26b4",
+      "d5bf540ca72f871a",
+      "40126420639663fe",
+      "17a9e81ff46eba40",
+      "957336d0f03542ad"
+     ]
+    },
+    "sample": {
+     "plannedGames": 6072,
+     "completedGames": 6072,
+     "gamesPerPair": 24
+    },
+    "seedBase": 2000000,
+    "seatPolicy": "alternate",
+    "trace": true,
+    "packages": {
+     "plan": {},
+     "seeds": [
+      [
+       "rocker"
+      ],
+      [
+       "value-pair"
+      ]
+     ],
+     "catalogue": "fnv1a64:06922d57a2142f8b"
+    },
+    "adoption": {
+     "rule": "evidence",
+     "minGainPp": 1,
+     "packageMinGainPp": 1,
+     "alpha": 0.05,
+     "correction": "bonferroni",
+     "capStages": 4,
+     "minGames": 200,
+     "firstStage": 224,
+     "nominees": 1,
+     "cardsPerChange": 1,
+     "packagesPerChange": 1,
+     "futilityAfterStages": 2,
+     "futilityMaxGainPp": 0
+    },
+    "cardDataVersion": "fnv1a64:93e933351cc80262"
+   }
   }
  ],
  "manifest": {
@@ -648,6 +1467,11 @@
    {
     "season": 1,
     "runId": "season:2026-11-11T21:39:58.246Z:1000000",
+    "simVersion": 5
+   },
+   {
+    "season": 2,
+    "runId": "season:2026-11-12T09:13:05.903Z:2000000",
     "simVersion": 5
    }
   ]

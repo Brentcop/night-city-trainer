@@ -1,0 +1,314 @@
+{
+ "deck": "S2-03 Cross (RGY)",
+ "file": "s2-03-cross-rgy.txt",
+ "date": "2026-11-12",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "bonferroni",
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 49.1,
+   "swaps": [
+    {
+     "swap": "Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis",
+     "wr": 72.3,
+     "delta": 23.2,
+     "package": "swap"
+    },
+    {
+     "swap": "Complete Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -2 Mantis Blades, -1 Corporate Surveillance",
+     "wr": 59.8,
+     "delta": 10.7,
+     "package": "complete"
+    },
+    {
+     "swap": "-1 Peace Offering → +1 Valentino Street Racer",
+     "wr": 56.3,
+     "delta": 7.1
+    },
+    {
+     "swap": "-1 Peace Offering → +1 Pepe Najarro: Working Doubles",
+     "wr": 55.4,
+     "delta": 6.3
+    },
+    {
+     "swap": "-1 Over the Edge → +1 Valentino Street Racer",
+     "wr": 54.5,
+     "delta": 5.4
+    },
+    {
+     "swap": "-1 Peace Offering → +1 Saul Bright: Stormrider",
+     "wr": 53.6,
+     "delta": 4.5
+    },
+    {
+     "swap": "-1 Over the Edge → +1 Pepe Najarro: Working Doubles",
+     "wr": 52.7,
+     "delta": 3.6
+    },
+    {
+     "swap": "Add Block, then punish: +3 Maelstrom Zealots, +3 Corpo Security, +1 Riot Shield / -2 Mantis Blades, -3 Corporate Surveillance, -2 We Gotta Live Together",
+     "wr": 49.1,
+     "delta": 0,
+     "package": "add"
+    }
+   ],
+   "verdict": "adopted",
+   "cuts": [
+    {
+     "card": "Peace Offering",
+     "plain": -14.4,
+     "score": -16.1,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −14.4 pts; both for Value-pairs: 41% with a partner (29 games), 47% without (51); partner-aware −16.5 pts; cutting one drops Value-pairs assembly odds by turn 4 15% → 6%; score with the stranding cost −16.1 pts"
+    },
+    {
+     "card": "Over the Edge",
+     "plain": -12.6,
+     "score": -11.4,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −12.6 pts; payoff for High Gigs (8+): 48% with a partner (91 games), 33% without (6); partner-aware −11.8 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 58% → 50%; score with the stranding cost −11.4 pts"
+    },
+    {
+     "card": "Mantis Blades",
+     "plain": -9.5,
+     "score": -7,
+     "offered": false,
+     "plainOffered": true,
+     "why": "not offered: the package view moved it up — Δ when drawn −9.5 pts; enabler for Cyberware toolbox (Viktor Vektor): 48% with a partner (61 games), 40% without (15); partner-aware −8.4 pts; cutting one drops Cyberware toolbox (Viktor Vektor) assembly odds by turn 4 25% → 14%; cutting one drops Gear on Units assembly odds by turn 4 36% → 33%; score with the stranding cost −7.0 pts"
+    },
+    {
+     "card": "Corporate Surveillance",
+     "plain": -8.9,
+     "score": -8.9,
+     "offered": true,
+     "plainOffered": false,
+     "why": "offered as a cut (the package view moved it down) — Δ when drawn −8.9 pts"
+    },
+    {
+     "card": "We Gotta Live Together",
+     "plain": -5.4,
+     "score": -4,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −5.4 pts; piece for Behind on Gigs: — with a partner (0 games), 47% without (76); partner-aware −5.4 pts; cutting one drops Behind on Gigs assembly odds by turn 4 44% → 25%; cutting one drops Units in the trash assembly odds by turn 4 18% → 10%; score with the stranding cost −4.0 pts"
+    },
+    {
+     "card": "Satori: Sword of Saburo",
+     "plain": -5.3,
+     "score": -3.1,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −5.3 pts; enabler for Gear on Units: 50% with a partner (48 games), 42% without (26); partner-aware −3.4 pts; cutting one drops Gear on Units assembly odds by turn 4 36% → 33%; score with the stranding cost −3.1 pts"
+    },
+    {
+     "card": "The Heist",
+     "plain": -5.2,
+     "score": -3.5,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −5.2 pts; payoff for Gig value matches a cost: — with a partner (0 games), 47% without (66); partner-aware −5.2 pts; cutting one drops Gig value matches a cost assembly odds by turn 4 44% → 25%; cutting one drops Units in the trash assembly odds by turn 4 18% → 10%; cutting one drops Gear on Units assembly odds by turn 4 36% → 33%; score with the stranding cost −3.5 pts"
+    },
+    {
+     "card": "Memory Relapse",
+     "plain": -3.9,
+     "score": -3.1,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −3.9 pts; payoff for Even Street Cred: — with a partner (0 games), 48% without (89); partner-aware −3.9 pts; cutting one drops Even Street Cred assembly odds by turn 4 59% → 44%; score with the stranding cost −3.1 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Peace Offering → +1 Valentino Street Racer",
+    "-1 Peace Offering → +1 Pepe Najarro: Working Doubles",
+    "-1 Over the Edge → +1 Valentino Street Racer",
+    "-1 Over the Edge → +1 Pepe Najarro: Working Doubles",
+    "-1 Mantis Blades → +1 Valentino Street Racer"
+   ],
+   "nominees": [
+    {
+     "label": "Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis",
+     "package": "swap",
+     "screen": {
+      "games": 112,
+      "mean": 0.2321,
+      "lower": 0.1426,
+      "upper": 0.3217
+     },
+     "heldOut": {
+      "games": 224,
+      "mean": 0.1563,
+      "lower": 0.0686,
+      "upper": 0.2439,
+      "z": 2.4977,
+      "looks": 1,
+      "baseWr": 0.5759,
+      "candWr": 0.7321
+     },
+     "outcome": "adopt"
+    }
+   ],
+   "confirm": "(224 fresh paired games): baseline 57.6% vs swap 73.2%; held-out gain +15.6 pts [+6.9, +24.4], 224 games → adopted",
+   "heldOutGain": {
+    "mean": 15.6,
+    "lower": 6.9,
+    "upper": 24.4,
+    "games": 224
+   }
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 73.2,
+   "change": "Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis (held-out +15.6 pts [+6.9, +24.4], 224 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "rocker",
+    "value-pair",
+    "high-gig"
+   ]
+  },
+  "moves": true,
+  "changes": {
+   "kept": [
+    "high-gig"
+   ],
+   "added": [
+    "cred-even",
+    "arasaka"
+   ],
+   "removed": []
+  },
+  "adopted": [
+   "Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis"
+  ]
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-12T09:36:51.405Z:1",
+  "createdAt": "2026-11-12T09:36:51.405Z",
+  "purpose": "forge",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "9ace4c9da452818b",
+    "name": "S2-03 Cross (RGY)",
+    "file": "s2-03-cross-rgy.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2800,
+   "completedGames": 1456,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "rocker",
+     "value-pair",
+     "high-gig"
+    ]
+   },
+   "moves": [
+    "Complete Ahead on Street Cred: +3 Royce: Don't Call Me Simon / -2 Mantis Blades, -1 Corporate Surveillance",
+    "Add Block, then punish: +3 Maelstrom Zealots, +3 Corpo Security, +1 Riot Shield / -2 Mantis Blades, -3 Corporate Surveillance, -2 We Gotta Live Together",
+    "Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis"
+   ],
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "bonferroni",
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

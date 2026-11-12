@@ -26,7 +26,7 @@ Planned work that is decided in principle but not scheduled. The item-level back
 
 Consistency: `check:data` now fails an event with no `simVersion` or manifest; the event index, `seasons.json` and each finals or head-to-head report carry their sim version, so the "historical" notes are hidden on this data and come back by themselves once `SIM_VERSION` moves past it. Numbers and samples are in `docs/STRATEGY.md`.
 
-**What remains.** More seasons (Season 1 bred only from the 7 meta decks, since the new leaderboard starts with them); a re-evaluation of the archived bred decks against the new baseline, to decide whether any return (§4 step 3); `data/seasons/deck-impact.json` is still keyed by deck name; and §5 steps 3 and 5 (counterfactual decision value, one value contract).
+**What remains.** More seasons: **Season 2 done 2026-11-12** (parents from every rated deck, including the owner's sim-ladder lists; events 5–7 recorded after it; see [ROADMAP2.md](ROADMAP2.md) "Season 2"), Season 3 onward not yet run; a re-evaluation of the archived bred decks against the new baseline, to decide whether any return (§4 step 3); `data/seasons/deck-impact.json` is still keyed by deck name; and §5 steps 3 and 5 (counterfactual decision value, one value contract).
 
 ## 2. How production is updated (part of the refactoring wave)
 

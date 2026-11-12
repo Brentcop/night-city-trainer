@@ -19,6 +19,10 @@ const GOLDEN: { event: number; a: string; b: string; game: number; winner: 0 | 1
   { event: 2, a: 'YYB Rogue Gear', b: 'Rainbow Fixer Stuff', game: 0, winner: 0, turns: 10 },
   { event: 3, a: 'RRB Wakako Midrange', b: 'Smash the Curve', game: 0, winner: 1, turns: 9 },
   { event: 4, a: "Gear'n'Go", b: "NC-05 Emperor's Guard (GGB)", game: 0, winner: 1, turns: 9 },
+  // picked 2026-11-12 from the events after Season 2 (meta + sim-ladder + Season 2 decks, then the whole library)
+  { event: 5, a: 'S2-08 Explorer (GGY)', b: 'Ladder: Jackie / Alt / Hanako (BBG)', game: 1, winner: 1, turns: 10 },
+  { event: 6, a: 'Ladder: V / Smasher / Padre (RRG)', b: 'S2-06 Counter (RGG)', game: 2, winner: 0, turns: 9 },
+  { event: 7, a: 'Ladder: Dexter / V / Wakako (RRB)', b: 'NC-08 Merc Contract (RRG)', game: 2, winner: 1, turns: 9 },
 ];
 
 const events = new Map<number, TourneyEvent>();

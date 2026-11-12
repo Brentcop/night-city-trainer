@@ -1,0 +1,34 @@
+// S2-01 Mutant (RYY)
+// Origin: Night City Trainer bred deck (season 2, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-01 Mutant (RRY)
+// Added: 2026-11-12
+// Idea: Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Rogue Amendiares: Preem Solo; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Packages: built around High Gigs (8+), Mixed Gig values, Gig value matches a cost; plan: no package plan
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Dum Dum: Maelstrom Triggerman
+1 Rogue Amendiares: Preem Solo
+
+// Main Deck
+3 Dexter DeShawn: One Last Chance
+1 Viktor Vektor: You Might Feel a Little Pinch
+3 6th Street Recruits
+1 Gilded Matón
+2 T-Bug: Amateur Philosopher
+3 Rockn' Rockerboy
+1 Heywood Ripperdoc
+2 Alt Cunningham: Mother of Daemons
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Gorilla Arms
+2 Afterparty at Lizzie's
+2 Detonate
+2 Industrial Assembly
+2 Cyberpsychosis
+3 Live with the Aftermath
+3 Over the Edge
+2 Shattered Memories
+2 Bootleg Black Sapphire Show

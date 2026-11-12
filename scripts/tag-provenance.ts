@@ -1,5 +1,10 @@
-// Rewrite every deck file with a standard provenance header (where the list came from and who made it).
-//   npx tsx scripts/tag-provenance.ts
+// Rewrite deck files with a standard provenance header (where the list came from and who made it).
+//   npx tsx scripts/tag-provenance.ts            # every deck file in data/decks and data/decks/custom
+//   npx tsx scripts/tag-provenance.ts s2-        # only the files whose names start with one of these prefixes
+//
+// The sim-ladder lists (ladder-*.txt) are never rewritten: their hand-written header and layout are the owner's.
+// The forge's lines are kept as they are: "// Forged <date>: …" (with its date), "// Adoption: …" and "// Packages: …"
+// (bred decks carry the breeder's "// Packages:" line until a forge adopts a change).
 //
 // Header keys (all "// Key: value" lines, parsed by src/lib/library.ts):
 //   Origin   – category (choom.gg meta archetype, choom.gg community guide, Night City Trainer original/bred/variant/build)
@@ -15,7 +20,7 @@ import path from 'node:path';
 import { exportChoom, parseDeck } from '../src/engine/deck';
 import { cli } from './lib-node';
 
-cli(import.meta.url, {});
+const { positionals: ONLY } = cli(import.meta.url, {}, { maxPositionals: Infinity });
 
 const NL = String.fromCharCode(10);
 const PRIMER = 'Troy Yamaguchi (Plus Two) — "The Cyberpunk Primer" video, 6 Sep 2026';
@@ -38,6 +43,8 @@ function header(text: string): Record<string, string> {
   }
   return h;
 }
+/** The forge's and breeder's lines, verbatim and in order: "// Forged <date>: …", "// Adoption: …", "// Packages: …". */
+const forgeLines = (text: string) => text.split(/\r?\n/).filter((l) => /^\/\/ Forged \d{4}-\d{2}-\d{2}: /.test(l) || /^\/\/ (Adoption|Packages): /.test(l));
 
 // season breeding records → parents per deck name
 const parents: Record<string, { season: number; method: string; parents: string[]; date: string }> = {};
@@ -55,6 +62,11 @@ const files = [
 const PRIMER_DECK_CREDIT = 'RRG Dexter Midrange (list: Troy Yamaguchi / The Cyberpunk Primer, via choom.gg)';
 for (const file of files) {
   const base = path.basename(file);
+  if (ONLY.length && !ONLY.some((p) => base.startsWith(p))) continue;
+  if (base.startsWith('ladder-')) {
+    console.log(`${base.padEnd(52)} kept as it is (sim-ladder list: hand-written header)`);
+    continue;
+  }
   const text = fs.readFileSync(file, 'utf8');
   const old = header(text);
   const { deck } = parseDeck(text, base);
@@ -67,9 +79,6 @@ for (const file of files) {
     p.Credits = META_AUTHORS[base]?.credits ?? 'choom.gg editors';
     p.Added = '2026-11-09';
     if (old.Tier) p.Tier = old.Tier;
-  } else if (base.startsWith('ladder-')) {
-    // Legend trios from the sim site's Master ladder; main decks theorized here. Keep the hand-written header.
-    for (const k of ['Origin', 'Author', 'Source', 'Via', 'Credits', 'Parents', 'Added'] as const) if (old[k]) p[k] = old[k]!;
   } else if (!file.includes('custom')) {
     const m = (old.Author ?? '').match(/^(.+?) \((\w+) (\d+), (\d{4})\)$/);
     p.Origin = 'choom.gg community guide';
@@ -106,7 +115,7 @@ for (const file of files) {
   if (old.Idea) p.Idea = old.Idea;
   if (old.Forged) p.Forged = old.Forged;
   const order = ['Origin', 'Author', 'Source', 'Via', 'Credits', 'Parents', 'Added', 'Tier', 'Idea', 'Forged'];
-  const block = order.filter((k) => p[k]).map((k) => `// ${k}: ${p[k]}`).join(NL);
+  const block = [...order.filter((k) => p[k]).map((k) => `// ${k}: ${p[k]}`), ...forgeLines(text)].join(NL);
   const body = exportChoom(deck).split(NL);
   // exportChoom starts with "// Name", "// Format: Constructed"
   const out = [body[0], block, ...body.slice(1)].join(NL) + NL;

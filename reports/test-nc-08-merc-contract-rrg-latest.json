@@ -1,0 +1,199 @@
+{
+ "deck": "NC-08 Merc Contract (RRG)",
+ "date": "2026-11-12T10:01:17.238Z",
+ "games": 60,
+ "bot": "deep",
+ "seed": 18000,
+ "overall": 0.6428571428571429,
+ "rows": [
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 49,
+   "bWins": 11,
+   "ties": 0,
+   "aFirstWins": 23,
+   "aFirstGames": 30,
+   "aSecondWins": 26,
+   "aSecondGames": 30,
+   "bFirstWins": 4,
+   "bSecondWins": 7,
+   "turns": 765,
+   "overtime": 16
+  },
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 45,
+   "bWins": 15,
+   "ties": 0,
+   "aFirstWins": 23,
+   "aFirstGames": 30,
+   "aSecondWins": 22,
+   "aSecondGames": 30,
+   "bFirstWins": 8,
+   "bSecondWins": 7,
+   "turns": 773,
+   "overtime": 19
+  },
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 43,
+   "bWins": 17,
+   "ties": 0,
+   "aFirstWins": 19,
+   "aFirstGames": 30,
+   "aSecondWins": 24,
+   "aSecondGames": 30,
+   "bFirstWins": 6,
+   "bSecondWins": 11,
+   "turns": 762,
+   "overtime": 19
+  },
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 42,
+   "bWins": 18,
+   "ties": 0,
+   "aFirstWins": 20,
+   "aFirstGames": 30,
+   "aSecondWins": 22,
+   "aSecondGames": 30,
+   "bFirstWins": 8,
+   "bSecondWins": 10,
+   "turns": 785,
+   "overtime": 15
+  },
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 39,
+   "bWins": 21,
+   "ties": 0,
+   "aFirstWins": 20,
+   "aFirstGames": 30,
+   "aSecondWins": 19,
+   "aSecondGames": 30,
+   "bFirstWins": 11,
+   "bSecondWins": 10,
+   "turns": 745,
+   "overtime": 11
+  },
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 27,
+   "bWins": 33,
+   "ties": 0,
+   "aFirstWins": 16,
+   "aFirstGames": 30,
+   "aSecondWins": 11,
+   "aSecondGames": 30,
+   "bFirstWins": 19,
+   "bSecondWins": 14,
+   "turns": 748,
+   "overtime": 12
+  },
+  {
+   "a": "NC-08 Merc Contract (RRG)",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 25,
+   "bWins": 35,
+   "ties": 0,
+   "aFirstWins": 12,
+   "aFirstGames": 30,
+   "aSecondWins": 13,
+   "aSecondGames": 30,
+   "bFirstWins": 17,
+   "bSecondWins": 18,
+   "turns": 808,
+   "overtime": 30
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-12T10:01:17.224Z:18000",
+  "createdAt": "2026-11-12T10:01:17.224Z",
+  "purpose": "matchup",
+  "simVersion": 5,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "deep"
+  },
+  "decks": [
+   {
+    "id": "c98b1332deca6e62",
+    "name": "NC-08 Merc Contract (RRG)",
+    "file": "nc-08-merc-contract-rrg.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "c98b1332deca6e62",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 18000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

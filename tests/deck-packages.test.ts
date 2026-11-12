@@ -329,6 +329,21 @@ describe('package flags (scripts/package-flags.ts)', () => {
     expect(parseSeedCombos('low-cred+program-fuel, arasaka').combos).toEqual([['low-cred', 'program-fuel'], ['arasaka']]);
   });
 
+  it('--keep-built-around adds the list’s own default keep (objective, else built-around) beside --keep-packages', () => {
+    const d = deck([E, E, P1, P1, P2, P2]);
+    const v = parse(['--keep-built-around']);
+    expect(packagesOn(v)).toBe(true);
+    expect(planFromFlags(v, undefined, d)).toEqual({ keep: builtAroundIds(d) });
+    expect(builtAroundIds(d)).toContain('min-gig');
+    // with an explicit keep: the union; the objective's packages stand in for the built-around ones when named
+    expect(planFromFlags(parse(['--keep-built-around', '--keep-packages', 'rocker']), undefined, d).keep).toEqual(['rocker', ...builtAroundIds(d)]);
+    expect(planFromFlags(v, ['arasaka'], d)).toEqual({ keep: ['arasaka'] });
+    // an avoided package is never kept, and without a list the flag adds nothing (the breeder's plan)
+    expect(planFromFlags(parse(['--keep-built-around', '--avoid-packages', 'min-gig']), undefined, d).keep ?? []).not.toContain('min-gig');
+    expect(planFromFlags(v)).toEqual({});
+    expect(planArgs(v)).toEqual(['--keep-built-around']);
+  });
+
   it('unknown ids and bad values are refused with the valid ids (exit 2 in the scripts)', () => {
     expect(() => parse(['--keep-packages', 'min-gig,bogus'])).toThrow(ArgError);
     expect(() => parse(['--keep-packages', 'bogus'])).toThrow(/unknown package id "bogus"\. Valid ids: min-gig, high-gig/);

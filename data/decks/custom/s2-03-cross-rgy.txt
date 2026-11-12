@@ -1,0 +1,33 @@
+// S2-03 Cross (RGY)
+// Origin: Night City Trainer bred deck (season 2, crossover)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: Smash the Curve × S1-07 Explorer (RYY)
+// Added: 2026-11-12
+// Idea: Crossover of Smash the Curve × S1-07 Explorer (RYY) (control): strongest Legends of both, cards ranked by format-wide impact.
+// Forged 2026-11-12: Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis (held-out +15.6 pts [+6.9, +24.4], 224 games)
+// Adoption: evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 split over 4 looks (Bonferroni, z = 2.50)
+// Packages: keep Rocker Units (Johnny Silverhand), Value-pairs, High Gigs (8+); kept High Gigs (8+); added Even Street Cred, Arasaka Units; package moves adopted: Swap Gear on Units → Arasaka Units: +3 Field Operator, +2 Hanako Arasaka: In a Gilded Cage, +2 Valentino Street Racer, +1 Pepe Najarro: Working Doubles / -2 Mantis Blades, -2 Satori: Sword of Saburo, -2 The Heist, -2 Cyberpsychosis
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+1 Kerry Eurodyne: Axe, Attitude, Audience
+
+// Main Deck
+3 Field Operator
+2 Valentino Street Racer
+3 Viktor Vektor: You Might Feel a Little Pinch
+3 6th Street Recruits
+2 Hanako Arasaka: In a Gilded Cage
+2 Pepe Najarro: Working Doubles
+3 Rockn' Rockerboy
+2 Saul Bright: Stormrider
+2 Industrial Assembly
+2 Peace Offering
+2 Synapse Burnout
+3 Corporate Surveillance
+3 Over the Edge
+3 Memory Relapse
+3 Shattered Memories
+2 We Gotta Live Together
