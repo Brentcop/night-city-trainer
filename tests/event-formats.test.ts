@@ -64,14 +64,16 @@ const strip = (ev: TourneyEvent) => ({
 });
 
 describe('default Swiss events are unchanged', () => {
-  // Fingerprints of whole events (timestamps and run ids blanked) taken on the code before formats existed (ef3a160).
+  // Fingerprints of whole events (timestamps and run ids blanked) taken on the code before formats existed (ef3a160),
+  // re-taken 2026-11-12 for SIM_VERSION 6 (the bots' weights and the version in the manifest changed; formats did not).
+  // Was 45897336bdcc9ad0, 54bbe7499b81c094, 9877c9cc94e35543, dd86acc9077ee253.
   // A default event must stay byte-identical: same pairings, seeds, seats, standings, manifest, and no new fields.
   const norm = (ev: TourneyEvent) => JSON.stringify({ ...ev, date: '', manifest: { ...ev.manifest, runId: '', createdAt: '', cardDataVersion: '' } });
   const PINS: [number, number, number, 1 | 3, number, string][] = [
-    [7, 3, 4, 3, 42, '45897336bdcc9ad0'],
-    [8, 3, 8, 1, 7, '54bbe7499b81c094'],
-    [11, 4, 8, 3, 5, '9877c9cc94e35543'],
-    [2, 1, 0, 3, 9, 'dd86acc9077ee253'],
+    [7, 3, 4, 3, 42, 'bc64b9aabb9a4dfe'],
+    [8, 3, 8, 1, 7, '2b85388a6d682872'],
+    [11, 4, 8, 3, 5, 'c8f7538ddb12de79'],
+    [2, 1, 0, 3, 9, 'c84960e51169155d'],
   ];
   it.each(PINS)('%i decks, %i rounds, top %i, Bo%i, seed %i', async (n, rounds, top, bestOf, seed, pin) => {
     const ev = await runTournament(field(n), { name: 'pin', rounds, top, bestOf, bot: 'medium', seed }, play, { id: seed });

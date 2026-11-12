@@ -1,13 +1,11 @@
 // Bot difficulty tiers, shared by Play, the Matchup Lab, tournaments (browser + CLI) and replays.
-// Chosen by head-to-head testing (reports/bot-tiers.log, docs/BOT_TOOLKIT.md §6):
-//   Easy   — the Fast bot: plays by simple rules, no lookahead.
+// Chosen by head-to-head testing (docs/BOT_TOOLKIT.md §6, docs/IMPROVEMENT_BACKLOG.md WP-D1 / WP-D2):
+//   Easy   — the Fast bot: plays by simple rules, no lookahead (it never reads the evaluation weights).
 //   Medium — the Lookahead bot: scores every action one step ahead with the tuned matchup profiles.
-//   Hard   — the Deep bot plus card impact: rolls out the rest of its turn and the rival's whole reply for its best
-//            3 options, values cards by how much they swing games for its deck (bot-match telemetry), and since the
-//            review-driven refinement also plays out each block / reaction (wins 56% vs the previous Hard, 168 games).
-// Measured before the 2026-11 review fixes (168 games each, every meta pairing; not re-measured since): Easy wins 37.5%
-// vs Medium; Medium vs the Deep bot is a tie (49.4%); Hard wins 52.4% vs the Deep bot and makes far fewer blunders by
-// the coach oracle (reports/coach-eval-latest.md). The 56% above is from the same period.
+//   Hard   — the Deep bot: rolls out the rest of its turn and the rival's whole reply for its best 3 options and plays
+//            out each block / reaction; the plain mulligan rule and no card impact since SIM_VERSION 6.
+// Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6. Paired botcheck,
+// meta decks, 2026-11-12: new Hard vs new Medium 64.4% [61.9, 66.9]; new Medium vs Easy 76.5% [74.0, 79.1].
 // Tournaments can also mix Hard and Medium: each seat of each game is Hard or Medium, decided by the game seed,
 // so a replay rebuilds exactly the same bots.
 // Bot fixes change play for every tier and the legacy names alike (the owner chose to fix forward, 2026-11-10): events
@@ -43,7 +41,8 @@ export const tierLabel = (level: string) => {
 
 function tierAgent(t: Tier, seed: number, name?: string) {
   if (t === 'easy') return new HeuristicAgent({ name, lookahead: false, seed });
-  if (t === 'hard') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, impact: 40, deepAttacks: HARD_DEEP_ATTACKS, deepReactions: 3, profiles: BEST_PROFILES });
+  // card impact (impact 0 vs 40: 49.7% [49.1, 50.3] on all decks) and its mulligan keep dropped in SIM_VERSION 6
+  if (t === 'hard') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, deepAttacks: HARD_DEEP_ATTACKS, deepReactions: 3, mulligan: 'plain', profiles: BEST_PROFILES });
   return new HeuristicAgent({ name, seed, noise: 0.15, profiles: BEST_PROFILES });
 }
 

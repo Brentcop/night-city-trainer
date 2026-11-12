@@ -1,7 +1,41 @@
-// Named alternative weight sets for the evaluation (src/ai/eval.ts), measured but NOT used by any tier: a set is merged
-// over DEFAULT_WEIGHTS when a bot config names it (scripts/agent-spec.ts: `"weightSet": "<name>"`, or `"weights": "<name>"`).
-// Switching one on for a tier changes results (a SIM_VERSION bump and re-recorded events); see docs/BOT_TOOLKIT.md §3.
+// Named weight sets for the evaluation (src/ai/eval.ts), kept for comparisons: a set is merged over DEFAULT_WEIGHTS when a
+// bot config names it (scripts/agent-spec.ts: `"weightSet": "<name>"`, or `"weights": "<name>"`). Since SIM_VERSION 6
+// DEFAULT_WEIGHTS is `calibrated-2026-11` + rivalLethal 400, so every tier that reads the evaluation uses it; the
+// weights before that are `hand-2026-10`. Changing the defaults changes results (a SIM_VERSION bump and re-recorded
+// events); see docs/BOT_TOOLKIT.md §3.
 import type { EvalWeights } from './eval';
+
+/** The hand-tuned DEFAULT_WEIGHTS used until SIM_VERSION 5 (self-play tuning, last changed 2026-11-10), every key. */
+export const HAND_2026_10: EvalWeights = {
+  gig: 20,
+  gigNear: 45,
+  unitPower: 1.2,
+  unitCost: 1.2,
+  hand: 3.6,
+  eddie: 2.6,
+  faceUpLegend: 4.8,
+  plan: 1.5,
+  spentRisk: 0.087,
+  unitBase: 2,
+  blocker: 2,
+  unitGear: 1.5,
+  stealsTwo: 6,
+  goSolo: 2,
+  legendGear: 2,
+  lowDeck: 8,
+  lowDeckAt: 4,
+  handCap: 10,
+  eddieCap: 10,
+  win: 10000,
+  playOutClamp: 600,
+  pkgHold: 0,
+  pkgAssembly: 0,
+  pkgSteer: 0,
+  pkgProtect: 0,
+  exposed: 0,
+  threat: 0,
+  rivalLethal: 0,
+};
 
 /** BOT-3: the next-turn terms at the setting measured +1.5 points for Hard (docs/IMPROVEMENT_BACKLOG.md WP-D1). */
 export const NEXT_TURN_SET: Partial<EvalWeights> = { exposed: 0.5, threat: 0.5, rivalLethal: 400 };
@@ -51,6 +85,7 @@ export const CALIBRATED_DECKS_2026_11: Partial<EvalWeights> = {
 };
 
 export const WEIGHT_SETS: Record<string, Partial<EvalWeights>> = {
+  'hand-2026-10': HAND_2026_10,
   'next-turn': NEXT_TURN_SET,
   'calibrated-2026-11': CALIBRATED_2026_11,
   'calibrated-decks-2026-11': CALIBRATED_DECKS_2026_11,

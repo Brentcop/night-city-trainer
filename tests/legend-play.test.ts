@@ -2,6 +2,7 @@
 // helping pay for itself (general FAQ #10 for Go Solo; the FAQ text is not in the repo, see the engine comments).
 import { describe, expect, it } from 'vitest';
 import { HeuristicAgent } from '../src/ai/heuristic';
+import { HAND_2026_10 } from '../src/ai/weightSets';
 import { resolveDrop } from '../src/ui/components/board/drag';
 import { buildInteraction } from '../src/ui/components/board/interaction';
 import type { Decision } from '../src/engine/types';
@@ -191,7 +192,9 @@ describe('Legends to the field: bots and the Play board', () => {
     for (const lookahead of [false, true]) {
       const a = scene();
       eddies(a.g, 0, 5);
-      const bot = new HeuristicAgent({ lookahead });
+      // on the hand weights; the fitted defaults (SIM_VERSION 6) score a Legend gone solo at about its power alone
+      // (goSolo −50.6 against unitBase 50.3), so the lookahead bot then plays it to the field instead
+      const bot = new HeuristicAgent({ lookahead, weights: HAND_2026_10 });
       const d = actionDecision(a.g);
       const pick = d.options[(await bot.decide(a.g, d))[0]].action!;
       expect(pick.type).toBe('goSolo');

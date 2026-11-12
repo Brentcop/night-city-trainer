@@ -9,6 +9,8 @@ import { BUILTIN, loadCustom, upsertCustom } from '../src/lib/browserLibrary';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
+import { SEASONS } from '../src/data/index';
+import { isHistorical } from '../src/lib/playedRecord';
 
 const RATED = 'meta-rrg-dexter-midrange.txt';
 // a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
@@ -49,9 +51,10 @@ describe('deck profile: recorded results first', () => {
     expect(html).toMatch(/\d+ games in Swiss rounds/);
     expect(html).toMatch(/on the play \d+ games, on the draw \d+ games/);
     expect(html).toMatch(/Best matchup/);
-    // every bundled source carries the current SIM_VERSION, so the note stays hidden (tests/deck-record.test.ts covers
-    // the note coming back once SIM_VERSION moves past the recorded data)
-    expect(html).not.toContain('Historical:');
+    // the events, ratings and reports were re-recorded on SIM_VERSION 6; the Season 1–2 records (finals vs the meta,
+    // the leaderboard) were not re-run and carry version 5, so this bred deck's record is marked historical while they
+    // are older than the simulator (tests/deck-record.test.ts covers the rule)
+    expect(html.includes('Historical:')).toBe(isHistorical(SEASONS.manifest?.simVersion));
     expect(html).not.toContain('No recorded games');
   });
 

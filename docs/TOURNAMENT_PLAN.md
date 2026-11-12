@@ -2,53 +2,62 @@
 
 > Generated 2026-11-12 from 7 decks × 200 games per pairing (deep bot) plus telemetry. Re-run `npm run sim -- analyze --field all --bot deep` and then `npx tsx scripts/plan.ts` to refresh.
 
-## Register: [Ladder: Jackie / Alt / Hanako (BBG)](#/deck?d=ladder-bbg-jackie-alt-hanako.txt)
-- **Full stats:** [Ladder: Jackie / Alt / Hanako (BBG) deck profile](#/deck?d=ladder-bbg-jackie-alt-hanako.txt) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
-- **Expected-field score: 76%**. This is the win rate against choom.gg's meta archetypes, weighted by their tier power. Overall round-robin win rate: 75%; worst meta matchup: 52%.
-- **Why this one:** Highest power rating from 7 tournament events (2,221 games): expected 75% against the whole field (90% range 70%–81%) and 76% against the choom.gg meta decks; 0 event titles, top 8 in 5 of 5.
-- **Telemetry:** this deck is not in the analysed field (`src/data/analysis.json`), so there are no card insights for it yet.
+## Register: [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt)
+- **Full stats:** [RRG Dexter Midrange deck profile](#/deck?d=meta-rrg-dexter-midrange.txt) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
+- **Expected-field score: 77%**. This is the win rate against choom.gg's meta archetypes, weighted by their tier power. Overall round-robin win rate: 75%; worst meta matchup: 62%.
+- **Why this one:** Highest power rating from 7 tournament events (2,281 games): expected 75% against the whole field (90% range 70%–80%) and 77% against the choom.gg meta decks; 5 event titles, top 8 in 6 of 7. Chosen over 1 statistically tied deck (Smash the Curve) for its record against the meta decks.
+- **Why (from 1200 telemetry games):**
+  - **Seat:** 84% on the play vs 63% on the draw. When you choose (you lost the last game), choose to go **first**.
+  - **Cards that win games:** Yorinobu Arasaka: Steel Dragon (+16 pts when drawn), Animals Wrecker (+11 pts when drawn), Mantis Blades (+8 pts when drawn), Pepe Najarro: Working Doubles (+6 pts when drawn). Keep these over everything when you sell or mulligan.
+  - **Underperformers:** Meredith Stout: Stone Cold Corpo (-5 pts). Sell these first, and consider cutting them or moving them to the sideboard.
+  - **Usual Eddie fodder:** Detonate (sold in 98% of games it's drawn), Synapse Burnout (sold in 96% of games it's drawn), Mantis Blades (sold in 89% of games it's drawn), Peace Offering (sold in 86% of games it's drawn).
+  - **Tempo check:** after your 4th turn you win 83% when ahead on Gigs and 65% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
+  - **Overtime:** 40% of games reach overtime, and you win 73% of those. You do worse in long games, so close it out before both players run out of dice.
+  - **Mulligans:** 14% of hands are mulliganed, and those games are won 69% of the time (overall 73%).
+  - **First Legend flipped:** Dexter DeShawn: Off the Grid 78% (439) · Adam Smasher: Ender of Legends 74% (378) · Saburo Arasaka: Stubborn Patriarch 68% (383). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
+  - **Reactive Calls:** 23% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
+  - **Best matchup:** Rainbow Fixer Stuff (84%). **Worst:** BBG Cunningham Econ (62%). Sideboard for the worst one first.
 - **Ready-to-register list:** the list on the Decks page.
-- **Backup / sideboard partner:** [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) (aggro, field score 78%). Practise it second, in case the room skews hard against control decks.
+- **Backup / sideboard partner:** [Smash the Curve](#/deck?d=RRG-smash-the-curve.txt) (midrange, field score 72%). Practise it second, in case the room skews hard against aggro decks.
 
 ## Power ratings (all decks, 7 tournament events)
 Expected win rate against the whole field, from a Bradley–Terry fit over every tournament game. Overlapping ranges are not meaningfully different. The full table is on Tournaments → Power ratings.
 
 | # | Deck | vs field (90% range) | vs meta | Titles | Top 8 |
 |---|---|---|---|---|---|
-| 1 | [Ladder: Jackie / Alt / Hanako (BBG)](#/deck?d=ladder-bbg-jackie-alt-hanako.txt) | **75%** (70%–81%) | 76% | 0 | 5/5 |
-| 2 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | **74%** (68%–79%) | 78% | 3 | 6/7 |
-| 3 | [S2-06 Counter (RGG)](#/deck?d=s2-06-counter-rgg.txt) | **72%** (65%–78%) | 72% | 0 | 3/3 |
-| 4 | [Smash the Curve](#/deck?d=RRG-smash-the-curve.txt) | **70%** (63%–76%) | 70% | 1 | 3/4 |
-| 5 | [S2-03 Cross (RGY)](#/deck?d=s2-03-cross-rgy.txt) | **69%** (61%–77%) | 70% | 0 | 2/3 |
-| 6 | [S1-03 Mutant (RBG)](#/deck?d=s1-03-mutant-rbg.txt) | **68%** (61%–74%) | 68% | 1 | 3/4 |
-| 7 | [S2-07 Explorer (RRB)](#/deck?d=s2-07-explorer-rrb.txt) | **68%** (59%–75%) | 68% | 1 | 1/3 |
-| 8 | [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) | **66%** (59%–73%) | 66% | 0 | 2/4 |
-| 9 | [S2-05 Counter (RRG)](#/deck?d=s2-05-counter-rrg.txt) | **64%** (55%–73%) | 65% | 0 | 2/3 |
-| 10 | [S2-02 Mutant (RGG)](#/deck?d=s2-02-mutant-rgg.txt) | **62%** (52%–70%) | 62% | 0 | 1/3 |
+| 1 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | **75%** (70%–80%) | 77% | 5 | 6/7 |
+| 2 | [Smash the Curve](#/deck?d=RRG-smash-the-curve.txt) | **74%** (68%–80%) | 72% | 1 | 4/4 |
+| 3 | [S2-05 Counter (RRG)](#/deck?d=s2-05-counter-rrg.txt) | **73%** (65%–80%) | 71% | 1 | 2/3 |
+| 4 | [Ladder: V / Smasher / Saburo (RRG)](#/deck?d=ladder-rrg-v-smasher-saburo.txt) | **69%** (63%–75%) | 67% | 0 | 4/5 |
+| 5 | [NC-07 Braindance Burn (RRB)](#/deck?d=nc-07-braindance-burn-rrb.txt) | **69%** (61%–75%) | 67% | 0 | 2/4 |
+| 6 | [Ladder: V / Smasher / Padre (RRG)](#/deck?d=ladder-rrg-v-smasher-padre.txt) | **68%** (62%–74%) | 66% | 0 | 4/5 |
+| 7 | [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) | **65%** (59%–71%) | 65% | 0 | 5/7 |
+| 8 | [S2-04 Cross (RRG)](#/deck?d=s2-04-cross-rrg.txt) | **65%** (56%–73%) | 63% | 0 | 2/3 |
+| 9 | [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) | **63%** (55%–70%) | 61% | 0 | 2/4 |
+| 10 | [NC-02 Stormrider Stampede (GGR)](#/deck?d=nc-02-stormrider-stampede-ggr.txt) | **62%** (54%–69%) | 60% | 0 | 2/4 |
 
 ## Expected-field ranking
 | # | Deck | Archetype | Finals vs meta (games) | Round-robin vs meta field | Overall | Worst meta matchup |
 |---|---|---|---|---|---|---|
-| 1 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | aggro | — | 70% | 71% | 59% |
-| 2 | [YYB Rogue Gear](#/deck?d=meta-yyb-rogue-gear.txt) | aggro | — | 58% | 58% | 32% |
-| 3 | [Rainbow Fixer Stuff](#/deck?d=meta-rainbow-fixer-stuff.txt) | aggro | — | 50% | 50% | 31% |
-| 4 | [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) | aggro | — | 49% | 50% | 28% |
-| 5 | [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) | control | — | 48% | 49% | 36% |
-| 6 | [RRB Wakako Midrange](#/deck?d=meta-rrb-wakako-midrange.txt) | midrange | — | 40% | 40% | 26% |
-| 7 | [GRY Trauma Team](#/deck?d=meta-gry-trauma-team.txt) | aggro | — | 32% | 32% | 16% |
+| 1 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | aggro | — | 72% | 73% | 62% |
+| 2 | [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) | aggro | — | 60% | 61% | 37% |
+| 3 | [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) | control | — | 50% | 51% | 38% |
+| 4 | [GRY Trauma Team](#/deck?d=meta-gry-trauma-team.txt) | aggro | — | 42% | 43% | 25% |
+| 5 | [YYB Rogue Gear](#/deck?d=meta-yyb-rogue-gear.txt) | aggro | — | 41% | 42% | 21% |
+| 6 | [Rainbow Fixer Stuff](#/deck?d=meta-rainbow-fixer-stuff.txt) | aggro | — | 41% | 41% | 17% |
+| 7 | [RRB Wakako Midrange](#/deck?d=meta-rrb-wakako-midrange.txt) | midrange | — | 38% | 39% | 23% |
 
 
 
-## Matchup plan with Ladder: Jackie / Alt / Hanako (BBG)
+## Matchup plan with RRG Dexter Midrange
 | Opponent | Sim win % | Seat | Key cards | Plan |
 |---|---|---|---|---|
-| [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) (control) | **74%** | — |  | Card advantage and Eddies decide it; don’t fire sweepers into one Unit. |
-| [GRY Trauma Team](#/deck?d=meta-gry-trauma-team.txt) (aggro) | **87%** | — |  | Stabilise: blockers and removal first; Gigs come back once the rival runs out of Units. |
-| [Rainbow Fixer Stuff](#/deck?d=meta-rainbow-fixer-stuff.txt) (aggro) | **80%** | — |  | Stabilise: blockers and removal first; Gigs come back once the rival runs out of Units. |
-| [RRB Wakako Midrange](#/deck?d=meta-rrb-wakako-midrange.txt) (midrange) | **81%** | — |  | Trade removal for threats one-for-one; win with card advantage in the long game. |
-| [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) (aggro) | **52%** | — |  | Stabilise: blockers and removal first; Gigs come back once the rival runs out of Units. |
-| [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) (aggro) | **79%** | — |  | Stabilise: blockers and removal first; Gigs come back once the rival runs out of Units. |
-| [YYB Rogue Gear](#/deck?d=meta-yyb-rogue-gear.txt) (aggro) | **76%** | — |  | Stabilise: blockers and removal first; Gigs come back once the rival runs out of Units. |
+| [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) (control) | **69%** | go first | Gunpoint Diplomacy, Mantis Blades | Race. Commit Units every turn and push Gigs before sweepers and card advantage take over. |
+| [GRY Trauma Team](#/deck?d=meta-gry-trauma-team.txt) (aggro) | **83%** | go first | Mantis Blades, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
+| [Rainbow Fixer Stuff](#/deck?d=meta-rainbow-fixer-stuff.txt) (aggro) | **84%** | go first | Yorinobu Arasaka: Steel Dragon, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
+| [RRB Wakako Midrange](#/deck?d=meta-rrb-wakako-midrange.txt) (midrange) | **82%** | go first | Animals Wrecker, 6th Street Recruits | Be the beatdown before their bigger Units land; remove their first blocker. |
+| [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) (aggro) | **62%** | go first | Yorinobu Arasaka: Steel Dragon, Gunpoint Diplomacy | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
+| [YYB Rogue Gear](#/deck?d=meta-yyb-rogue-gear.txt) (aggro) | **80%** | go first | Yorinobu Arasaka: Steel Dragon, Peace Offering | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
 
 ## List tuning
 The optimizer found no single-card change that clearly beats the stock list, so register it as-is.
@@ -56,12 +65,12 @@ The optimizer found no single-card change that clearly beats the stock list, so 
 
 
 ## Bo3 notes (tournament rules)
-- The **loser of each game chooses who goes first**. Use the seat column above. Across all sim games, going first won 50%; choom.gg's human games show 57% for going first.
-- Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. Play at a steady pace.
+- The **loser of each game chooses who goes first**. Use the seat column above. Across all sim games, going first won 58%; choom.gg's human games show 57% for going first.
+- Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. Average sim game length for this deck is 13.3 turns, so play at a steady pace.
 - The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab, or with `npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard`.
 
 ## Practice schedule (29 days to Chicago)
-1. **This week:** 10+ games a day in **Play vs Bot** with Ladder: Jackie / Alt / Hanako (BBG) on Deep, Coach on. Read every Coach line where you disagreed with it.
+1. **This week:** 10+ games a day in **Play vs Bot** with RRG Dexter Midrange on Deep, Coach on. Read every Coach line where you disagreed with it.
 2. **Next week:** play the three worst matchups from the table above on both seats, and log the results (the Play page keeps a practice log).
 3. **Final week:** best-of-3 sets against the top two meta decks; finalise the 7-card sideboard; refresh the meta data (choom.gg) and re-run the sims.
 

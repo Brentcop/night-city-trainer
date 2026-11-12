@@ -9,6 +9,11 @@
 // commit before the change, never from new code. The one exception is `tuneEvidence` (ROADMAP2 §1 step 5): the
 // default adoption rule changed on purpose, so its game sequence is pinned from the new code, and the old sequence is
 // still checked under the legacy rule (`rule: { kind: 'any-gain' }`).
+//
+// The Deck Lab's swaps and tuner sequence also read src/data/impact.json (the format-wide card impact). That table was
+// regenerated on SIM_VERSION 6 (2026-11-12), so `lab`, `tune` and `tuneEvidence` were re-taken from the code with the
+// new table and no package flags (with the old table the code still gives the old pins: 88e5174eb4a34a27,
+// 7095ce0b3f7b7f99, f401608b7786746d); the other pins read only the card data and did not move.
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/engine/cards';
 import { ramLimits } from '../src/engine/deck';
@@ -25,10 +30,10 @@ const PINNED = {
   forge: 'ecd7078f19459f62',
   optimize: '18b7a931bc44040a',
   optimizeSb: '7f8c37968f57e36c',
-  lab: '88e5174eb4a34a27',
-  tune: '7095ce0b3f7b7f99',
+  lab: '9d976f2194fa16a4',
+  tune: '4e61c7b7b1289165',
   // taken from the evidence-rule code (ROADMAP2 §1 step 5), not from 2546b64: the default rule's own sequence
-  tuneEvidence: 'f401608b7786746d',
+  tuneEvidence: '401102d01c85b8ed',
 };
 
 const decks = synthDecks();

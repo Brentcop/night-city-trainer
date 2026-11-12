@@ -34,28 +34,31 @@ export interface EvalWeights {
   pkgAssembly: number; // a package's pieces available together (hand, play, Legends)
   pkgSteer: number; // own Gigs / Street Cred toward a package's condition while a payoff is available (also roll-in, steal, adjust, swap)
   pkgProtect: number; // per member in play of a `requires` package assembled in play
-  // The next turn (BOT-3, nextTurnTerms below). All 0 by default: the evaluation is exactly as before until one is set.
+  // The next turn (BOT-3, nextTurnTerms below). 0 = the term is skipped; the defaults set all three since SIM_VERSION 6.
   exposed: number; // share of the Gig swing (gig, gigNear, overtime) of the Gigs the rival can steal on its next turn
   threat: number; // share of the Gig swing of the Gigs we can steal on our next turn, when ours is the next turn
   rivalLethal: number; // points off when the rival holds 7+ Gigs and will start its turn before we can take enough back
 }
 
-// Tuned by self-play (scripts/tune.ts): round 1 halved gig, unitPower, spentRisk; round 2 raised faceUpLegend, halved spentRisk again (Nov 10 2026).
+// Since SIM_VERSION 6 (2026-11-12): the fitted set `calibrated-2026-11` (src/ai/weightSets.ts, INFO-4: a logistic fit of
+// who won on these terms, on the gig scale) plus rivalLethal 400 (BOT-3). Terms the fit could not identify (spentRisk,
+// unitGear, legendGear, lowDeck) keep their hand values. The hand-tuned weights used until then are the named set
+// `hand-2026-10`. Measured in docs/IMPROVEMENT_BACKLOG.md WP-D1 / WP-D2 (status 2026-11-12, switch-on).
 export const DEFAULT_WEIGHTS: EvalWeights = {
   gig: 20,
-  gigNear: 45,
-  unitPower: 1.2,
-  unitCost: 1.2,
-  hand: 3.6,
-  eddie: 2.6,
-  faceUpLegend: 4.8,
-  plan: 1.5,
+  gigNear: 50.8,
+  unitPower: 13.2,
+  unitCost: -4.81,
+  hand: 4.54,
+  eddie: 26.9,
+  faceUpLegend: 8.99,
+  plan: 0.915,
   spentRisk: 0.087,
-  unitBase: 2,
-  blocker: 2,
+  unitBase: 50.3,
+  blocker: -44.1,
   unitGear: 1.5,
-  stealsTwo: 6,
-  goSolo: 2,
+  stealsTwo: 42.8,
+  goSolo: -50.6,
   legendGear: 2,
   lowDeck: 8,
   lowDeckAt: 4,
@@ -67,9 +70,9 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   pkgAssembly: 0,
   pkgSteer: 0,
   pkgProtect: 0,
-  exposed: 0,
-  threat: 0,
-  rivalLethal: 0,
+  exposed: 0.886,
+  threat: 0.971,
+  rivalLethal: 400,
 };
 
 /** The next-turn weights of BOT-3 (not in TUNED_WEIGHTS: measured by paired botcheck, docs/BOT_TOOLKIT.md §3). */

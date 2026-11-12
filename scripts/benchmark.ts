@@ -34,7 +34,7 @@ const { values: V, positionals } = cli(
 const TIER_SPECS: Record<string, AgentSpec> = {
   easy: { lookahead: false, noise: 0 },
   medium: { profiles: 'best' },
-  hard: { deep: 3, impact: 40, deepReactions: 3, profiles: 'best' },
+  hard: { deep: 3, deepReactions: 3, mulligan: 'plain', profiles: 'best' },
 };
 
 function parseBot(s: string): BenchBot {

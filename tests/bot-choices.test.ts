@@ -8,6 +8,7 @@ import type { Agent, CardInst, CardType, Decision, DeckList, Intent, PlayerId, R
 import { CARD_TAG_POLICY, HeuristicAgent } from '../src/ai/heuristic';
 import { cardValue } from '../src/ai/knowledge';
 import { makeTierBot } from '../src/ai/tiers';
+import { HAND_2026_10 } from '../src/ai/weightSets';
 
 const first: Agent = { name: 'first', decide: async () => [0] };
 const FILLER = 'animals_wrecker';
@@ -201,6 +202,9 @@ describe('yes/no rules', () => {
   });
 
   it('Jackie Welles takes the hit only for a Unit worth more than herself', () => {
+    // the comparison is in the bot's own unit values; pinned on the hand weights (with the fitted defaults since
+    // SIM_VERSION 6 a 10-power Unit is worth more than the face-up Jackie, so the bot saves it)
+    const bot = () => new HeuristicAgent({ seed: 3, weights: HAND_2026_10 });
     const g = setup();
     eddies(g, 0, 2);
     const jackie = add(g, 0, 'jackie_welles_mama_s_favorite', 'legends');

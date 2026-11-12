@@ -13,7 +13,16 @@ import { applyProfile, classify, type Archetype, type Profiles } from './archety
 import { cardImpact } from './impact';
 import { planTurn } from './turnPlan';
 import type { MulliganRule } from './mulligan';
+import { HAND_2026_10 } from './weightSets';
 import { MAX_SCORED_OPTIONS, type ScoreRecord } from '../engine/telemetry';
+
+/**
+ * The fast policy's weights: the hand-tuned set the evaluation used until SIM_VERSION 6. The fast policy (Easy, and the
+ * sub-choices and reaction clones inside every lookahead) compares unit values with fixed thresholds written in those
+ * units (a block worth making under 25, an attack worth 12 + the target), so it keeps them when DEFAULT_WEIGHTS moved to
+ * the fitted set; the switch-on was measured with exactly this split (docs/IMPROVEMENT_BACKLOG.md WP-D1, 2026-11-12).
+ */
+export const FAST_WEIGHTS: EvalWeights = HAND_2026_10;
 
 /**
  * How the bot treats each `chooseCard` tag used by the engine and the card scripts (read from the scripts, not from
@@ -191,7 +200,8 @@ export class HeuristicAgent implements Agent {
     this.opts = {
       name: opts.name ?? (opts.lookahead === false ? 'Fast bot' : opts.deep ? 'Deep bot' : 'Lookahead bot'),
       lookahead: opts.lookahead ?? true,
-      weights: opts.weights ?? DEFAULT_WEIGHTS,
+      // the fast policy (lookahead off: Easy, clone agents) keeps the hand weights; see FAST_WEIGHTS
+      weights: opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS),
       noise: opts.noise ?? 0,
       maxCandidates: opts.maxCandidates ?? 40,
       deep: opts.deep ?? 0,
@@ -286,11 +296,11 @@ export class HeuristicAgent implements Agent {
     return [mk(p === 0 ? own : rival, 0), mk(p === 1 ? own : rival, 1)];
   }
 
-  /** Weights for the fast agents of simulate() / reaction clones: as before (defaults) unless package weights are set. */
+  /** The fast agents of simulate() / reaction clones: FAST_WEIGHTS, plus the deciding seat's package weights when set. */
   private fastAgents(p: PlayerId): [Agent, Agent] {
-    if (!usesPackages(this.opts.weights) && !usesPackages(DEFAULT_WEIGHTS)) return [new HeuristicAgent({ lookahead: false }), new HeuristicAgent({ lookahead: false })];
-    const own: EvalWeights = { ...DEFAULT_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
-    const rival = withoutPackages(DEFAULT_WEIGHTS);
+    if (!usesPackages(this.opts.weights) && !usesPackages(FAST_WEIGHTS)) return [new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS }), new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS })];
+    const own: EvalWeights = { ...FAST_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
+    const rival = withoutPackages(FAST_WEIGHTS);
     return [new HeuristicAgent({ lookahead: false, weights: p === 0 ? own : rival }), new HeuristicAgent({ lookahead: false, weights: p === 1 ? own : rival })];
   }
 
@@ -851,7 +861,7 @@ export class HeuristicAgent implements Agent {
         const pb = g.power(b);
         if (pb > pa) s = 20;
         else if (a.targetGigs !== null && pb === pa) s = 10;
-        else if (a.targetGigs !== null && unitValue(g, b) < 25) s = 6;
+        else if (a.targetGigs !== null && unitValue(g, b, FAST_WEIGHTS) < 25) s = 6;
       } else if (r.type === 'call') s = 3;
       if (s > bestS) {
         bestS = s;
@@ -988,7 +998,7 @@ export class HeuristicAgent implements Agent {
   }
 
   private threat(g: Game, c: CardInst): number {
-    let v = unitValue(g, c);
+    let v = unitValue(g, c, FAST_WEIGHTS);
     if (!c.spent) v += 2; // ready units can attack/block
     return v;
   }
@@ -1288,7 +1298,7 @@ function fastPrior(g: Game, a: Action): number {
     case 'attack': {
       if (g.power(g.c(a.uid)) === 0) return -1;
       if (a.targetGigs !== null) return 30;
-      if (a.targetUnit !== null) return g.fightOutcome(a.uid, a.targetUnit).a === 'win' ? 12 + unitValue(g, g.c(a.targetUnit)) : -5;
+      if (a.targetUnit !== null) return g.fightOutcome(a.uid, a.targetUnit).a === 'win' ? 12 + unitValue(g, g.c(a.targetUnit), FAST_WEIGHTS) : -5;
       return 0;
     }
     case 'goSolo':

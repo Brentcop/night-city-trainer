@@ -36,8 +36,8 @@ export interface AgentSpec {
   /** 'default' = DEFAULT_PROFILES, 'best' = BEST_PROFILES (tuned), or an explicit profile table */
   profiles?: 'default' | 'best' | Record<string, Record<string, number>>;
 }
-/** Hard's settings as a spec (src/ai/tiers.ts: deep 3, impact 40, reaction rollouts 3, the tuned profiles). */
-export const HARD_SPEC: AgentSpec = { noise: 0.15, deep: 3, impact: 40, deepAttacks: 0, deepReactions: 3, profiles: 'best' };
+/** Hard's settings as a spec (src/ai/tiers.ts: deep 3, reaction rollouts 3, the plain mulligan, the tuned profiles, no card impact). */
+export const HARD_SPEC: AgentSpec = { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, mulligan: 'plain', profiles: 'best' };
 
 /** The weights a spec names (undefined = the bot's default, DEFAULT_WEIGHTS). */
 export function specWeights(spec: AgentSpec): EvalWeights | undefined {

@@ -85,9 +85,14 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    coach) also read src/data/impact.json, which that baseline's `sim analyze` regenerated, so Hard games moved with
  *    no code change; no event recorded with the old table remains. Regenerating impact.json after events are recorded
  *    changes their Hard games too: bump this version then.
+ * 6: the bots' evaluation switched to the fitted weights (DEFAULT_WEIGHTS = `calibrated-2026-11` + rivalLethal 400; the
+ *    old hand weights are the named set `hand-2026-10`), so Medium, Hard, the legacy `deep` bot and the coach play
+ *    differently (Easy never reads the weights). Hard also drops card impact and its mulligan keep (`mulligan: 'plain'`),
+ *    so its games no longer depend on src/data/impact.json. 2026-11-12: every recorded event was re-recorded on version 6
+ *    with its own field, format, seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1, switch-on).
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 5;
+export const SIM_VERSION = 6;
 
 export interface GameRec {
   seed: number;

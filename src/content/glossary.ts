@@ -317,7 +317,7 @@ export const GLOSSARY: Term[] = [
   {
     term: 'Bot difficulty (Easy / Medium / Hard)',
     group: 'Strategy',
-    def: 'Easy plays by simple rules. Medium looks one action ahead and follows its matchup plan. Hard also plays out the rest of its turn and your whole reply for its best options, plays out its blocks and reactions, and values cards by how much they swing games for its deck. In bot-vs-bot testing Easy wins about 37% against Medium; Medium and Hard are close, but Hard makes far fewer single-move blunders.',
+    def: 'Easy plays by simple rules. Medium looks one action ahead and follows its matchup plan. Hard also plays out the rest of its turn and your whole reply for its best options, and plays out its blocks and reactions. Medium and Hard score positions with weights fitted to who won thousands of bot games. In bot-vs-bot testing (November 2026) Medium wins about 77% of games against Easy, and Hard about 64% against Medium.',
     engine: 'src/ai/tiers.ts — one definition shared by Play, the Matchup Lab, tournaments and replays.',
   },
   {

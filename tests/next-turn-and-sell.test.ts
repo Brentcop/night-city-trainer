@@ -1,13 +1,15 @@
-// BOT-3 (the next-turn evaluation terms exposed / threat / rivalLethal) and BOT-4 (sellSearch), both off by default
+// BOT-3 (the next-turn evaluation terms exposed / threat / rivalLethal; in DEFAULT_WEIGHTS since SIM_VERSION 6, 0 in the
+// hand weights the tests below start from) and BOT-4 (sellSearch, off by default)
 // (docs/BOT_TOOLKIT.md, docs/IMPROVEMENT_BACKLOG.md WP-D1).
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_WEIGHTS, evaluate, nextTurnSeat, nextTurnTerms, stealableNextTurn, type EvalWeights } from '../src/ai/eval';
 import { HeuristicAgent } from '../src/ai/heuristic';
+import { HAND_2026_10 } from '../src/ai/weightSets';
 import type { Game } from '../src/engine/engine';
 import type { Action, PlayerId } from '../src/engine/types';
 import { eddies, gig, setup, spawn } from './engine-helpers';
 
-const W = (o: Partial<EvalWeights>): EvalWeights => ({ ...DEFAULT_WEIGHTS, ...o });
+const W = (o: Partial<EvalWeights>): EvalWeights => ({ ...HAND_2026_10, ...o });
 const OFF = W({ exposed: 0, threat: 0, rivalLethal: 0 });
 
 /** Seat 0 (in its main phase) holds 3 Gigs, the rival 2, and the rival has two 6-power Units on the field. */
@@ -32,12 +34,12 @@ function lethalState() {
 }
 
 describe('BOT-3: next-turn terms', () => {
-  it('all three weights 0 by default: evaluate() is unchanged and never reads the terms', () => {
-    expect(DEFAULT_WEIGHTS.exposed).toBe(0);
-    expect(DEFAULT_WEIGHTS.threat).toBe(0);
-    expect(DEFAULT_WEIGHTS.rivalLethal).toBe(0);
+  it('all three weights 0: evaluate() is the hand evaluation and never reads the terms; the defaults set them', () => {
+    expect([HAND_2026_10.exposed, HAND_2026_10.threat, HAND_2026_10.rivalLethal]).toEqual([0, 0, 0]);
+    expect([DEFAULT_WEIGHTS.exposed, DEFAULT_WEIGHTS.threat, DEFAULT_WEIGHTS.rivalLethal]).toEqual([0.886, 0.971, 400]);
     const { g } = exposedState();
-    expect(evaluate(g, 0)).toBe(evaluate(g, 0, OFF));
+    expect(evaluate(g, 0, HAND_2026_10)).toBe(evaluate(g, 0, OFF));
+    expect(evaluate(g, 0)).not.toBe(evaluate(g, 0, { ...DEFAULT_WEIGHTS, exposed: 0, threat: 0, rivalLethal: 0 }));
     expect(nextTurnTerms(g, 0, OFF)).toBe(0);
   });
 
