@@ -9,6 +9,7 @@ import type { Game } from '../engine/engine';
 import type { Decision } from '../engine/types';
 import { adviseRequest, coachRequest, scoreMoveRequest, type Advice, type CoachRequest, type GradedOption, type ScoreRequest } from '../ai/coach';
 import type { CoachJob, CoachReply } from '../sim/coach.worker';
+import type { SeatLift } from '../ai/packageLift';
 
 type Payload = { req: CoachRequest } | { score: ScoreRequest };
 
@@ -35,10 +36,13 @@ export class CoachClient {
 
   constructor(private make: () => Worker = startWorker) {}
 
-  /** Advice for decision `d` in the game's current position (snapshotted now, so the game may move on). */
-  advise(g: Game, d: Decision): Promise<Advice> {
+  /**
+   * Advice for decision `d` in the game's current position (snapshotted now, so the game may move on). `lift`: the
+   * deciding seat's measured package lift (INFO-8), sent with the position; absent = package notes worded as unmeasured.
+   */
+  advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice> {
     if (this.disposed) return Promise.reject(new Error('coach closed'));
-    const req = coachRequest(g, d);
+    const req = coachRequest(g, d, lift);
     this.reqs.set(d, req);
     return new Promise<Advice>((resolve, reject) => {
       this.next?.reject(new Error('superseded'));
@@ -129,7 +133,7 @@ export class CoachClient {
 }
 
 export interface CoachApi {
-  advise(g: Game, d: Decision): Promise<Advice>;
+  advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice>;
   score(d: Decision, chosen: number, a: Advice): Promise<GradedOption[]>;
 }
 
@@ -145,6 +149,6 @@ export function useCoach(): CoachApi {
   );
   return useMemo(() => {
     const client = () => (ref.current ??= new CoachClient());
-    return { advise: (g, d) => client().advise(g, d), score: (d, chosen, a) => client().score(d, chosen, a) };
+    return { advise: (g, d, lift) => client().advise(g, d, lift), score: (d, chosen, a) => client().score(d, chosen, a) };
   }, []);
 }

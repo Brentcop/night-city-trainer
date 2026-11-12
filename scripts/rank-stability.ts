@@ -10,6 +10,8 @@
 // --bots: two or more tier names (easy, medium, hard, deep, ...), comma-separated.
 // --out: also write the per-deck table and the comparisons, with a run manifest, to DIR/rank-stability-<decks>-<bots>.json
 //   (refuses to overwrite it without --force). Nothing else is written.
+// --cache: read games already played with the same code from .cache/games and store new ones (scripts/game-cache.ts);
+//   prints how many games were hits (the per-bot seconds then count only the games played).
 import fs from 'node:fs';
 import path from 'node:path';
 import { bool, cli, int, loadLibrary, runJobsDetailed, runMain, str, threadsOpt, Refusal, TIER_BOTS } from './lib-node';
@@ -18,6 +20,7 @@ import { rankStability, type Deal } from '../src/lib/rankStability';
 import { gameRunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob, MatchResult } from './worker';
+import { cliGameCache } from './game-cache';
 
 const { values: V } = cli(import.meta.url, {
   bots: str('medium,hard', (v) => {
@@ -35,7 +38,9 @@ const { values: V } = cli(import.meta.url, {
   threads: threadsOpt(),
   out: str(),
   force: bool(),
+  cache: bool(),
 });
+const cache = cliGameCache(V.cache);
 
 runMain(async () => {
   const bots = V.bots.split(',').map((x) => x.trim());
@@ -56,7 +61,7 @@ runMain(async () => {
   for (const bot of bots) {
     const t0 = Date.now();
     const jobs: MatchJob[] = deals.map((d) => ({ a: field[d.a]!.deck, b: field[d.b]!.deck, seed: d.seed, first: d.first, bot }));
-    const { results } = await runJobsDetailed(jobs, { threads: V.threads, allowErrors: true });
+    const { results } = await runJobsDetailed(jobs, { threads: V.threads, allowErrors: true, cache });
     byBot.push(new Map(results.map((r) => [r.seed, r])));
     seconds.push((Date.now() - t0) / 1000);
     console.log(`  ${bot}: ${results.length} games in ${seconds[seconds.length - 1]!.toFixed(0)} s`);

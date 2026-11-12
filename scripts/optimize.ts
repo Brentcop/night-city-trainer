@@ -2,6 +2,8 @@
 //   npx tsx scripts/optimize.ts <deck> [--screen 70] [--confirm 280] [--candidates 40] [--bot lookahead] [--threads N]
 //   npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard     (Bo3 plan: only swaps using the deck's 7-card sideboard)
 //   --out DIR   write the reports to DIR instead of reports/
+//   --cache     read games already played with the same code, decks, seeds and bot from .cache/games and store new
+//               ones (scripts/game-cache.ts); prints how many games were hits
 // Synergy packages (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md): --keep-packages a,b (default with any package
 // flag: the deck objective's packages; "none" keeps nothing), --keep-built-around (also keep the list's own packages:
 // those its game plan names, else the ones it is built around), --require-packages a,b, --avoid-packages a,b,
@@ -35,6 +37,7 @@ import { SIM_VERSION } from '../src/lib/tournament';
 import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type Confirmation } from '../src/lib/evidence';
 import { combinedCandidates, estimateGames, listKeyOf } from '../src/lib/deckSearch';
 import type { MatchJob } from './worker';
+import { cliGameCache } from './game-cache';
 
 const NOMINEES = 6;
 const { values: V, positionals } = cli(
@@ -48,6 +51,7 @@ const { values: V, positionals } = cli(
     sideboard: bool(),
     threads: threadsOpt(),
     out: str(),
+    cache: bool(),
     ...tunerPackageFlags(),
     ...adoptionFlags(),
     ...depthFlags(NOMINEES),
@@ -63,6 +67,8 @@ const BOT = V.bot;
 const VS = V.vs;
 const SIDEBOARD = V.sideboard;
 const THREADS = Math.min(V.threads, 16);
+/** --cache: games already played with the same code are read from .cache/games (scripts/game-cache.ts) */
+const cache = cliGameCache(V.cache);
 const field = VS ? [resolveDeck(VS)] : loadLibrary().filter((d) => d.kind === 'meta' && d.deck.name !== base.deck.name);
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
@@ -101,7 +107,7 @@ async function measure(cands: Cand[], gamesPerCand: number, seed0: number): Prom
       jobs.push({ a: { ...c.deck, name: `cand${ci}` }, b: opp.deck, seed: seed++, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT });
     }
   });
-  const res = await runJobs(jobs, { threads: THREADS });
+  const res = await runJobs(jobs, { threads: THREADS, cache });
   const out: number[][] = cands.map(() => []);
   for (const r of res) out[+r.a.slice(4)].push(scoreOf(r.winner));
   return out;

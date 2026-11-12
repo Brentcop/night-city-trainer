@@ -150,6 +150,7 @@ export function GameMenu({
   onExit,
   exitLabel,
   onResult,
+  onExport,
   onClose,
 }: {
   speed: number;
@@ -160,6 +161,8 @@ export function GameMenu({
   onExit: () => void;
   exitLabel: string;
   onResult?: () => void;
+  /** after the game: save it as a file with the coach's advice (INFO-9) */
+  onExport?: () => void;
   onClose: () => void;
 }) {
   const id = useId();
@@ -191,6 +194,11 @@ export function GameMenu({
         <button role="menuitem" onClick={onSort} title="Sort your hand (or drag a card onto another to reorder)">
           ⇅ Hand: {sortLabel}
         </button>
+        {onExport && (
+          <button role="menuitem" onClick={run(onExport)}>
+            ⤓ Export game
+          </button>
+        )}
         <button role="menuitem" onClick={run(onSite)}>
           Pages, theme and card art…
         </button>

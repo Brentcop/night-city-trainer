@@ -6,12 +6,14 @@ import { COACH_CONFIG_V1, makeCoach } from '../src/ai/coach';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import type { Agent, Decision, DeckList, PlayerId } from '../src/engine/types';
 import type { Game } from '../src/engine/engine';
+import { practiceAgents, type PracticeReviewSpec } from '../src/sim/practiceReview';
 
 export interface ReviewJob {
   id: string;
   decks: [DeckList, DeckList];
   seed: number;
-  first: PlayerId;
+  /** absent: the engine picks from the seed (an exported practice game that left it to chance) */
+  first?: PlayerId;
   bots: [string, string];
   rollouts: number;
   withCoach: boolean;
@@ -21,6 +23,8 @@ export interface ReviewJob {
   meta?: Record<string, unknown>;
   /** validation: each seat plays a random move with this probability (on main-phase decisions with 3+ options) */
   chaos?: number;
+  /** a recorded practice game (an export from Play, src/lib/coachedReplay.ts): seat 0 replays the recorded answers, seat 1 is its bot */
+  practice?: PracticeReviewSpec;
 }
 
 /** Plays like its inner bot, except that sometimes it makes a random move. Logs which reviewed decisions were random. */
@@ -55,7 +59,7 @@ class ChaosAgent implements Agent {
 parentPort?.on('message', async (job: ReviewJob) => {
   try {
     const opts: ReviewOptions = { rollouts: job.rollouts, withCoach: job.withCoach, coach: job.coachV1 ? () => new HeuristicAgent({ name: 'Coach v1', ...COACH_CONFIG_V1 }) : makeCoach, seats: job.seats };
-    const base: [Agent, Agent] = [makeTierBot(job.bots[0], job.seed), makeTierBot(job.bots[1], job.seed + 7777)];
+    const base: [Agent, Agent] = job.practice ? practiceAgents(job.practice) : [makeTierBot(job.bots[0], job.seed), makeTierBot(job.bots[1], job.seed + 7777)];
     const chaos = job.chaos ? [new ChaosAgent(base[0], job.chaos, job.seed * 3 + 1), new ChaosAgent(base[1], job.chaos, job.seed * 3 + 2)] : null;
     const r = await reviewGame({ decks: job.decks, seed: job.seed, first: job.first, agents: chaos ? [chaos[0], chaos[1]] : base, agentNames: job.bots }, opts);
     parentPort!.postMessage({ id: job.id, review: r, meta: chaos ? { ...job.meta, chaos: [chaos[0].flags, chaos[1].flags] } : job.meta });

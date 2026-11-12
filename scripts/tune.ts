@@ -22,6 +22,8 @@
 // paired, over 50%). This script reports candidates, it never applies them.
 // The report goes to --out (default reports/) as tune-weights-<seed>-<time>.json; it never overwrites a file unless
 // --force; --dry-run writes nothing.
+// --cache: read games already played with the same code from .cache/games and store new ones (scripts/game-cache.ts;
+//   the baseline's games repeat in every test); prints how many games were hits.
 import fs from 'node:fs';
 import path from 'node:path';
 import { deckFingerprint, fingerprintText } from '../src/engine/deck';
@@ -33,6 +35,7 @@ import { duplicateSummary, scoreOf, type DuplicateSummary } from '../src/lib/evi
 import { bool, cli, int, oneOf, loadLibrary, runJobs, runMain, str, threadsOpt } from './lib-node';
 import { HARD_SPEC, type AgentSpec } from './agent-spec';
 import type { MatchJob } from './worker';
+import { cliGameCache } from './game-cache';
 import { adoptInTraining, assertFitsWindow, DEFAULT_MIN_GAIN_PP, passesHeldOut, seedPlan, summarizePaired, WEIGHT_SEEDS, type PairedSummary } from './tuning';
 
 const KNOWN = Object.keys(DEFAULT_WEIGHTS);
@@ -63,7 +66,9 @@ const { values: V } = cli(import.meta.url, {
   out: str('reports'),
   'dry-run': bool(),
   force: bool(),
+  cache: bool(),
 });
+const cache = cliGameCache(V.cache);
 const PAIRED = V.format === 'paired';
 if (!PAIRED && V.per < 2) {
   console.error('error: --per must be at least 2 with --format unpaired\nRun with --help for usage.');
@@ -113,7 +118,7 @@ function jobsFor(seedBase: number, variant: Record<string, number>, base: Record
 
 /** Unpaired: the variant's score in seat 0 against the baseline, game by game. */
 async function score(seedBase: number, variant: Record<string, number>, base: Record<string, number>, special?: { lookaheadA?: boolean }) {
-  const res = await runJobs(jobsFor(seedBase, variant, base, special), { threads: THREADS });
+  const res = await runJobs(jobsFor(seedBase, variant, base, special), { threads: THREADS, cache });
   if (res.some((r) => r.winner === null)) throw new Error('a tuning game failed; refusing to score an incomplete sample');
   return res.map((r) => scoreOf(r.winner));
 }
@@ -125,7 +130,7 @@ async function duel(seedBase: number, variant: Record<string, number>, base: Rec
   for (const x of field) for (const y of field) if (x !== y) for (let k = 0; k < PER; k++) deals.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: 'lookahead' });
   const A = spec(variant);
   const B = spec(base);
-  const res = await runJobs([...deals.map((d) => ({ ...d, agentA: A, agentB: B })), ...deals.map((d) => ({ ...d, agentA: B, agentB: A }))], { threads: THREADS });
+  const res = await runJobs([...deals.map((d) => ({ ...d, agentA: A, agentB: B })), ...deals.map((d) => ({ ...d, agentA: B, agentB: A }))], { threads: THREADS, cache });
   if (res.length !== 2 * deals.length) throw new Error('a tuning game failed; refusing to score an incomplete sample');
   return duplicateSummary(
     res.slice(0, deals.length).map((r) => scoreOf(r.winner)),

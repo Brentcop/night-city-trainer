@@ -1,7 +1,7 @@
 // Replayable records of practice games (seeds + every human choice), so a finished game can be reviewed later.
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DeckList, PlayerId } from '../engine/types';
-import type { ReviewRequest } from '../sim/review.worker';
+import type { ReviewRequest } from '../sim/practiceReview';
 
 export interface PracticeReplay {
   id: string;
@@ -64,16 +64,23 @@ function isReplay(x: unknown): x is PracticeReplay {
   );
 }
 
+const withSideboards = (r: PracticeReplay): PracticeReplay => ({ ...r, decks: [{ ...r.decks[0], sideboard: r.decks[0].sideboard ?? [] }, { ...r.decks[1], sideboard: r.decks[1].sideboard ?? [] }] });
+
 /** Parse stored replays, keeping only complete ones (never throws). */
 export function parseReplays(raw: string | null): PracticeReplay[] {
   if (!raw) return [];
   try {
     const v: unknown = JSON.parse(raw);
     if (!Array.isArray(v)) return [];
-    return v.filter(isReplay).map((r) => ({ ...r, decks: [{ ...r.decks[0], sideboard: r.decks[0].sideboard ?? [] }, { ...r.decks[1], sideboard: r.decks[1].sideboard ?? [] }] }));
+    return v.filter(isReplay).map(withSideboards);
   } catch {
     return [];
   }
+}
+
+/** One replay record read back from elsewhere (an exported file, src/lib/coachedReplay.ts), or null when incomplete. */
+export function asReplay(x: unknown): PracticeReplay | null {
+  return isReplay(x) ? withSideboards(x) : null;
 }
 
 export function loadReplays(): PracticeReplay[] {

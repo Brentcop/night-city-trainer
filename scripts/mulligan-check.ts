@@ -39,10 +39,10 @@ if (field.length < 2) {
 const deal: Omit<MatchJob, 'mulliganA'>[] = [];
 let seed = V.seed;
 for (const x of field) for (const y of field) if (x !== y) for (let k = 0; k < V.per; k++) deal.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: V.bot });
-const half = Math.max(1, Math.ceil(V.threads / 2));
+// two batches on the one game pool (they share its --threads workers)
 const [kept, mulled] = await Promise.all([
-  runJobsDetailed(deal.map((j) => ({ ...j, mulliganA: 'keep' as const })), { threads: half, allowErrors: true }),
-  runJobsDetailed(deal.map((j) => ({ ...j, mulliganA: 'mulligan' as const })), { threads: Math.max(1, V.threads - half), allowErrors: true, quiet: true }),
+  runJobsDetailed(deal.map((j) => ({ ...j, mulliganA: 'keep' as const })), { threads: V.threads, allowErrors: true }),
+  runJobsDetailed(deal.map((j) => ({ ...j, mulliganA: 'mulligan' as const })), { threads: V.threads, allowErrors: true, quiet: true }),
 ]);
 const bySeed = (rs: typeof kept.results) => new Map(rs.map((r) => [r.seed, r]));
 const [K, M] = [bySeed(kept.results), bySeed(mulled.results)];

@@ -10,6 +10,7 @@ import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype
 import { GIG_SWING, knownCards } from './eval';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
+import { liftGate, liftLabel, type SeatLift } from './packageLift';
 import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
@@ -108,7 +109,11 @@ export function sellWhy(picked: string, basis: 'own' | 'pooled' | 'none'): strin
   return `${base}.`;
 }
 
-export async function advise(g: Game, d: Decision): Promise<Advice> {
+/**
+ * `lift`: the measured lift of the deciding seat's packages (packageLift.ts seatLift; undefined or null = no synergy
+ * report, so package notes are worded as unmeasured ideas).
+ */
+export async function advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice> {
   const coach = makeCoach();
   const [index] = await coach.decide(g, d);
   let why = coach.lastThought;
@@ -150,7 +155,7 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
     const diff = gigs(+m[2] - +m[3]);
     why = `${m[1]} — ${Math.abs(diff) < 0.05 ? 'about even with doing nothing' : diff > 0 ? `saves about ${diff.toFixed(1)} Gigs compared with not acting` : 'the least bad option here'}.`;
   }
-  const notes = packageNotes(g, d, index);
+  const notes = packageNotes(g, d, index, lift);
   const tie = coach.lastSellKeep;
   if (tie) notes.unshift(sellTieNote(g, d.player, tie));
   if (notes.length) why = [why, ...notes].filter(Boolean).join(' ');
@@ -213,15 +218,37 @@ function awayText(k: SteerKind, after: { mine: Gig[]; theirs: Gig[] }): string {
 }
 
 /**
+ * The player's own packages the coach may name (INFO-8, packageLift.ts): with a synergy report, only those whose
+ * measured lift has an interval above 0; without one, all of them (each note then says it is unmeasured).
+ */
+function speakablePackages(g: Game, p: PlayerId, lift: SeatLift | undefined) {
+  return seatPackages(g, p).filter((x) => liftGate(lift, x.id) !== 'hidden');
+}
+
+/** Labels for the packages a note names, each package's label once per advice. */
+function labeller(lift: SeatLift | undefined) {
+  const done = new Set<string>();
+  return (pkgs: readonly { id: string; name: string }[]) =>
+    liftLabel(
+      lift,
+      pkgs.filter((x) => !done.has(x.id) && done.add(x.id)),
+    );
+}
+const withLabel = (note: string, label: string) => (label ? `${note} ${label}` : note);
+
+/**
  * Plain-words notes when a synergy package the player's own list is built around is the reason for the advice
  * (package names come from the catalogue, src/content/synergies): which cards to keep when selling, and what a Gig
- * choice does for a Street Cred or Gig-value package. Empty when the list is built around none.
+ * choice does for a Street Cred or Gig-value package. Empty when the list is built around none. Gated by `lift`
+ * (INFO-8): only packages with a measured lift above 0, labelled as an association; with no report, every package,
+ * labelled as unmeasured.
  */
-export function packageNotes(g: Game, d: Decision, index: number): string[] {
+export function packageNotes(g: Game, d: Decision, index: number, lift?: SeatLift): string[] {
   const p = d.player;
-  const pkgs = seatPackages(g, p);
+  const pkgs = speakablePackages(g, p, lift);
   if (!pkgs.length) return [];
   const facts = packageFacts(g, p, pkgs);
+  const label = labeller(lift);
   const out: string[] = [];
   const opt = d.options[index];
   if (!opt) return out;
@@ -230,7 +257,7 @@ export function packageNotes(g: Game, d: Decision, index: number): string[] {
     const sold = g.c(opt.action.uid).defId;
     const fs = facts.find((x) => x.pkg.roles.has(sold) && holdCredit([x], sold) >= 0.25);
     const soldPartner = fs && partnerName(g, p, fs, sold);
-    if (fs && soldPartner) out.push(`Selling ${cardName(sold)} gives up ${scarcityText(fs, sold)} (it pairs with ${soldPartner}); the coach still rates it the card in hand you can best spare right now.`);
+    if (fs && soldPartner) out.push(withLabel(`Selling ${cardName(sold)} gives up ${scarcityText(fs, sold)} (it pairs with ${soldPartner}); the coach still rates it the card in hand you can best spare right now.`, label([fs.pkg])));
     // name up to two scarce pieces kept in hand (not the card sold), with a partner the player can still get
     const seen = new Set([sold]);
     for (const u of g.P(p).hand) {
@@ -240,7 +267,7 @@ export function packageNotes(g: Game, d: Decision, index: number): string[] {
       const f = facts.find((x) => x.pkg.roles.has(id) && holdCredit([x], id) >= 0.25);
       const partner = f && partnerName(g, p, f, id);
       if (!f || !partner) continue;
-      out.push(`Keep ${cardName(id)}: it is ${scarcityText(f, id)}, and it pairs with ${partner} in your deck.`);
+      out.push(withLabel(`Keep ${cardName(id)}: it is ${scarcityText(f, id)}, and it pairs with ${partner} in your deck.`, label([f.pkg])));
       if (out.length >= 2) break;
     }
     return out;
@@ -262,25 +289,30 @@ export function packageNotes(g: Game, d: Decision, index: number): string[] {
     });
     const alt = worst as { label: string; v: number; after: { mine: Gig[]; theirs: Gig[] } } | null;
     if (!alt || alt.v >= v - 1e-9) continue;
-    const names = pkgs.filter((x) => x.steer.includes(k)).map((x) => x.name);
-    out.push(`Your deck wants ${steerWants(k)} (${names.join(', ')}): ${alt.label} ${awayText(k, alt.after)}.`);
+    const named = pkgs.filter((x) => x.steer.includes(k));
+    out.push(withLabel(`Your deck wants ${steerWants(k)} (${named.map((x) => x.name).join(', ')}): ${alt.label} ${awayText(k, alt.after)}.`, label(named)));
   }
   return out;
 }
 
-/** Live warnings for a Street Cred package the player's list is built around, while a payoff is in hand or in play. */
-export function packageWarnings(g: Game, p: PlayerId): string[] {
-  const pkgs = seatPackages(g, p);
+/**
+ * Live warnings for a Street Cred package the player's list is built around, while a payoff is in hand or in play.
+ * Gated and labelled by `lift` as packageNotes are (INFO-8).
+ */
+export function packageWarnings(g: Game, p: PlayerId, lift?: SeatLift): string[] {
+  const pkgs = speakablePackages(g, p, lift);
   if (!pkgs.length) return [];
   const facts = packageFacts(g, p, pkgs);
   const kinds = activeSteer(facts);
   const mine = g.streetCred(p) ?? 0;
   const theirs = g.streetCred(other(p)) ?? 0;
-  const names = (k: SteerKind) => pkgs.filter((x) => x.steer.includes(k)).map((x) => x.name).join(', ');
+  const label = labeller(lift);
+  const named = (k: SteerKind) => pkgs.filter((x) => x.steer.includes(k));
+  const names = (k: SteerKind) => named(k).map((x) => x.name).join(', ');
   const out: string[] = [];
-  if (kinds.includes('cred-low') && g.P(p).gigs.length && mine >= theirs) out.push(`Your Street Cred (${mine}) is not below the rival’s (${theirs}); your deck wants it lower (${names('cred-low')}).`);
-  if (kinds.includes('cred-high') && mine <= theirs) out.push(`Your Street Cred (${mine}) is not above the rival’s (${theirs}); your deck wants it higher (${names('cred-high')}).`);
-  if (kinds.includes('cred-20') && mine < 20) out.push(`Your Street Cred (${mine}) is below 20; your deck wants 20 or more (${names('cred-20')}).`);
+  if (kinds.includes('cred-low') && g.P(p).gigs.length && mine >= theirs) out.push(withLabel(`Your Street Cred (${mine}) is not below the rival’s (${theirs}); your deck wants it lower (${names('cred-low')}).`, label(named('cred-low'))));
+  if (kinds.includes('cred-high') && mine <= theirs) out.push(withLabel(`Your Street Cred (${mine}) is not above the rival’s (${theirs}); your deck wants it higher (${names('cred-high')}).`, label(named('cred-high'))));
+  if (kinds.includes('cred-20') && mine < 20) out.push(withLabel(`Your Street Cred (${mine}) is below 20; your deck wants 20 or more (${names('cred-20')}).`, label(named('cred-20'))));
   return out;
 }
 
@@ -294,9 +326,11 @@ export interface CoachRequest {
   state: GameState;
   decision: Decision;
   pending: { player: PlayerId; label: string }[];
+  /** the deciding seat's package lift (INFO-8; packageLift.ts), absent when no synergy report is loaded */
+  lift?: SeatLift;
 }
 
-export function coachRequest(g: Game, d: Decision): CoachRequest {
+export function coachRequest(g: Game, d: Decision, lift?: SeatLift): CoachRequest {
   const { log, trace } = g.s;
   g.s.log = [];
   g.s.trace = undefined;
@@ -304,7 +338,7 @@ export function coachRequest(g: Game, d: Decision): CoachRequest {
     // a snapshot: the live game moves on after the human answers
     const state = structuredClone(g.s);
     if (trace) state.trace = [];
-    return { state, decision: structuredClone(d), pending: g.pending.map((x) => ({ player: x.player, label: x.label })) };
+    return { state, decision: structuredClone(d), pending: g.pending.map((x) => ({ player: x.player, label: x.label })), ...(lift ? { lift } : {}) };
   } finally {
     g.s.log = log;
     g.s.trace = trace;
@@ -325,7 +359,7 @@ function rebuild(q: CoachRequest): Game {
 
 /** advise() for a serialised position: rebuilds the game and asks the same coach. */
 export function adviseRequest(q: CoachRequest): Promise<Advice> {
-  return advise(rebuild(q), q.decision);
+  return advise(rebuild(q), q.decision, q.lift);
 }
 
 /** A gap under this many Gigs is a close call whatever its spread (the scorecard's threshold before INFO-1). */
@@ -433,8 +467,8 @@ export function matchupTips(g: Game, p: PlayerId = 0): string[] {
   return tips;
 }
 
-/** Live warnings about the board (cheap; recomputed each decision). */
-export function boardWarnings(g: Game, p: PlayerId = 0): string[] {
+/** Live warnings about the board (cheap; recomputed each decision). `lift` gates the package warnings (INFO-8). */
+export function boardWarnings(g: Game, p: PlayerId = 0, lift?: SeatLift): string[] {
   const r = other(p);
   const out: string[] = [];
   const rivalUnits = g.units(r);
@@ -448,6 +482,6 @@ export function boardWarnings(g: Game, p: PlayerId = 0): string[] {
   if (theirs >= 6) out.push(`Rival is at ${theirs} Gigs — one steal from winning at the start of their turn.`);
   else if (mine >= 6) out.push(`You are at ${mine} Gigs — keep them safe to win at the start of your turn.`);
   if (g.s.overtime) out.push('Overtime: 7 Gigs wins immediately.');
-  out.push(...packageWarnings(g, p));
+  out.push(...packageWarnings(g, p, lift));
   return out;
 }

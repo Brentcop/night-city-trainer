@@ -254,6 +254,9 @@ describe('coach sell near-ties', () => {
   });
 });
 
+// With no synergy report the notes say they are unmeasured (INFO-8; the gating itself: tests/coach-package-lift.test.ts).
+const UNMEASURED = ' (Behind on Street Cred is an idea from the package catalogue, not measured in bot games.)';
+
 describe('coach wording', () => {
   it('names the piece kept and its partner when advising a sell', () => {
     const g = bbgGame();
@@ -265,10 +268,10 @@ describe('coach wording', () => {
     const sell = take(g, 0, 'psycho_squad', 'hand');
     const d: Decision = { player: 0, kind: 'action', prompt: '', min: 1, max: 1, options: [{ label: `Sell ${g.name(sell.uid)}`, action: { type: 'sell', uid: sell.uid } }, { label: `Sell ${g.name(keep.uid)}`, action: { type: 'sell', uid: keep.uid } }] };
     // the partner-aware view: how scarce the piece is (from the player's own hand, play, Legends and deck), and its partner
-    expect(packageNotes(g, d, 0)).toEqual(['Keep Towerfall: it is your only payoff for Behind on Street Cred left, and it pairs with Jackie Welles: Pour One Out For Me in your deck.']);
+    expect(packageNotes(g, d, 0)).toEqual(['Keep Towerfall: it is your only payoff for Behind on Street Cred left, and it pairs with Jackie Welles: Pour One Out For Me in your deck.' + UNMEASURED]);
     // advising to sell the piece itself says what that gives up (and no "keep" note about it)
     expect(packageNotes(g, d, 1)).toEqual([
-      'Selling Towerfall gives up your only payoff for Behind on Street Cred left (it pairs with Jackie Welles: Pour One Out For Me); the coach still rates it the card in hand you can best spare right now.',
+      'Selling Towerfall gives up your only payoff for Behind on Street Cred left (it pairs with Jackie Welles: Pour One Out For Me); the coach still rates it the card in hand you can best spare right now.' + UNMEASURED,
     ]);
     // one of eleven min-Gig payoffs is not scarce enough to name
     take(g, 0, 'three_mouths_one_desire', 'hand');
@@ -292,16 +295,16 @@ describe('coach wording', () => {
       ],
     };
     // raising to 4 still leaves Street Cred below the rival's 5: cred-low has nothing to say; min-gig does
-    expect(packageNotes(g, d, 0)).toContain('Your deck wants a Gig at its lowest value (Low Gigs (min Gig), Lower, then swap): d4 → 4 would move away from that.');
+    expect(packageNotes(g, d, 0)).toContain('Your deck wants a Gig at its lowest value (Low Gigs (min Gig), Lower, then swap): d4 → 4 would move away from that. (Low Gigs (min Gig) and Lower, then swap are ideas from the package catalogue, not measured in bot games.)');
     const steal: Decision = { player: 0, kind: 'gig', tag: 'steal', prompt: '', min: 1, max: 1, options: g.gigsOf(1).map((x) => ({ label: `d${x.sides} (${x.value})`, gig: x.id })) };
     gig(g, 1, 4, 1);
     steal.options = g.gigsOf(1).map((x) => ({ label: `d${x.sides} (${x.value})`, gig: x.id }));
     // stealing the 1 keeps Street Cred (3) below the rival's (5); stealing the 5 puts it at 7 against 1
     const i1 = steal.options.findIndex((o) => o.label === 'd4 (1)');
-    expect(packageNotes(g, steal, i1)).toContain('Your deck wants your Street Cred below the rival’s (Behind on Street Cred): d6 (5) would put your Street Cred at or above the rival’s.');
+    expect(packageNotes(g, steal, i1)).toContain('Your deck wants your Street Cred below the rival’s (Behind on Street Cred): d6 (5) would put your Street Cred at or above the rival’s.' + UNMEASURED);
     expect(packageWarnings(g, 0)).toEqual([]);
     gig(g, 0, 12, 12);
-    expect(packageWarnings(g, 0)).toEqual(['Your Street Cred (14) is not below the rival’s (6); your deck wants it lower (Behind on Street Cred).']);
+    expect(packageWarnings(g, 0)).toEqual(['Your Street Cred (14) is not below the rival’s (6); your deck wants it lower (Behind on Street Cred).' + UNMEASURED]);
     expect(boardWarnings(g, 0)).toContain(packageWarnings(g, 0)[0]);
   });
 });

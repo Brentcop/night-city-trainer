@@ -3,6 +3,8 @@
 //   npx tsx scripts/forge.ts <deck...> [--gens 2] [--games 140] [--cands 6] [--bot lookahead] [--field meta|all] [--seed 1] [--threads N]
 //   npx tsx scripts/forge.ts --nc          # all data/decks/custom/nc-*.txt
 //   --out DIR   write the forged list and the reports to DIR (DIR/<file>, DIR/forge/) instead of the repository
+//   --cache     read games already played with the same code, decks, seeds and bot from .cache/games and store new
+//               ones (scripts/game-cache.ts); prints how many games were hits
 //
 // Synergy packages (opt-in; docs/SYNERGIES.md "Using packages when building"; without these flags nothing changes):
 //   --keep-packages a,b      never cut these packages' pieces below their working minimum. When any package flag is
@@ -55,6 +57,7 @@ import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_
 import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
+import { cliGameCache } from './game-cache';
 import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
@@ -76,6 +79,7 @@ const { values: V, positionals } = cli(
     seed: int(1, { min: 0 }),
     threads: threadsOpt(),
     out: str(),
+    cache: bool(),
     ...tunerPackageFlags(),
     ...adoptionFlags(),
     ...depthFlags(1),
@@ -89,6 +93,8 @@ const CANDS = V.cands;
 const BOT = V.bot;
 const FIELD = V.field;
 const THREADS = Math.min(V.threads, 16);
+/** --cache: games already played with the same code are read from .cache/games (scripts/game-cache.ts) */
+const cache = cliGameCache(V.cache);
 /** where the forged list and reports go: the repository (default) or --out DIR */
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
@@ -144,7 +150,7 @@ const jobsFor = (deck: DeckList, seed0: number, games: number, trace: boolean): 
 
 /** The baseline with telemetry: win rate, summaries and per-game scores. */
 async function play(deck: DeckList, seed0: number, games: number, trace: boolean) {
-  const res = await runJobs(jobsFor(deck, seed0, games, trace), { threads: THREADS });
+  const res = await runJobs(jobsFor(deck, seed0, games, trace), { threads: THREADS, cache });
   gamesPlayed += res.length;
   const scores = res.map((r) => scoreOf(r.winner));
   const sums = trace ? res.map((r) => r.summaries![0]) : [];
@@ -153,7 +159,7 @@ async function play(deck: DeckList, seed0: number, games: number, trace: boolean
 
 /** Several lists on the same games (one worker pool): per-game scores for each, in game order. */
 async function playMany(decks: DeckList[], seed0: number, games: number): Promise<number[][]> {
-  const res = await runJobs(decks.flatMap((d) => jobsFor(d, seed0, games, false)), { threads: THREADS });
+  const res = await runJobs(decks.flatMap((d) => jobsFor(d, seed0, games, false)), { threads: THREADS, cache });
   gamesPlayed += res.length;
   return decks.map((_, i) => res.slice(i * games, (i + 1) * games).map((r) => scoreOf(r.winner)));
 }

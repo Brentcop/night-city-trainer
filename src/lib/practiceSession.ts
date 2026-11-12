@@ -3,7 +3,7 @@
 import { Game } from '../engine/engine';
 import type { Agent, Decision, DecisionKind, DeckList, GameState, PlayerId } from '../engine/types';
 import type { HeuristicAgent } from '../ai/heuristic';
-import type { MoveGrade } from '../ai/coach';
+import type { CoachedGrade } from './coachedReplay';
 import { makeTierBot } from '../ai/tiers';
 import { HumanAgent } from '../ui/HumanAgent';
 import { saveReplay, type PracticeReplay } from './practiceReplays';
@@ -109,8 +109,8 @@ export interface Running {
   replay: PracticeReplay;
   /** one snapshot before each of your main-phase decisions (for Undo) */
   snaps: Snapshot[];
-  /** coach grades of your moves, truncated by Undo like the recorded choices */
-  grades: MoveGrade[];
+  /** coach grades of your moves with the advice behind each (for the export, INFO-9), truncated by Undo like the recorded choices */
+  grades: CoachedGrade[];
   /** set when the game loop threw; the game is stopped but Undo and Quit still work */
   error: string | null;
   /**
@@ -293,7 +293,7 @@ export class PracticeSession {
   }
 
   /** Wire up and run a game: a fresh one (run) or one restored from a snapshot (resume). */
-  private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: MoveGrade[], match: number, resumed: boolean): Running {
+  private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: CoachedGrade[], match: number, resumed: boolean): Running {
     if (this.current) this.cancel(this.current);
     const human = new HumanAgent();
     const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false, conceded: false } as Omit<Running, 'g' | 'done'> as Running;

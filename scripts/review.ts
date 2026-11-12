@@ -3,6 +3,8 @@
 //   npx tsx scripts/review.ts --from events [--games 60] [--rollouts 8] [--coach] [--name backfill]
 //   npx tsx scripts/review.ts --from tiers  [--games 42] [--tiers easy,medium,hard]      fresh games, every tier pairing
 //   npx tsx scripts/review.ts --from file --file data/reviews/practice.json              recorded practice games
+//   npx tsx scripts/review.ts --from file --file nct-game-….json --name my-game          a game exported from Play
+//     (⤓ Export game, src/lib/coachedReplay.ts: your seat replays your answers, with the coach's view of each)
 //   npx tsx scripts/review.ts --from chaos [--chaos 0.15] [--chaos-bot medium]           validation: planted random moves
 //   common: [--threads N] [--seed 1] [--coach-v1]
 //
@@ -15,6 +17,8 @@ import { BLUNDER, NOISE, type DecisionReview, type GameReview } from '../src/ai/
 import { tierLabel } from '../src/ai/tiers';
 import { GIG_SWING } from '../src/ai/eval';
 import type { ReviewJob } from './review-worker';
+import { COACHED_REPLAY_KIND, coachedReviewSpec, parseCoachedReplay } from '../src/lib/coachedReplay';
+import { reviewExpect } from '../src/lib/practiceReplays';
 
 const tierList = (v: string) => {
   const bad = v.split(',').filter((t) => !(TIER_BOTS as readonly string[]).includes(t));
@@ -104,7 +108,34 @@ function fromChaos(): ReviewJob[] {
   const b = V['chaos-bot'];
   return fromTiers().map((j) => ({ ...j, id: `c${j.seed}`, bots: [b, b] as [string, string], chaos: V.chaos, meta: { chaos: true } }));
 }
-const jobs = FROM === 'chaos' ? fromChaos() : FROM === 'tiers' ? fromTiers() : FROM === 'file' ? (JSON.parse(fs.readFileSync(V.file!, 'utf8')) as ReviewJob[]) : fromEvents();
+/** --from file: a list of review jobs, or one game exported from the Play page with the coach's advice (INFO-9). */
+function fromFile(): ReviewJob[] {
+  const text = fs.readFileSync(V.file!, 'utf8');
+  const v: unknown = JSON.parse(text);
+  if (Array.isArray(v)) return v as ReviewJob[];
+  const c = parseCoachedReplay(text);
+  if (!c.ok) {
+    console.error(`error: ${V.file} is neither a list of review jobs nor a game exported from Play (${c.why})`);
+    process.exit(2);
+  }
+  const spec = coachedReviewSpec(c.value);
+  const r = c.value.replay;
+  return [
+    {
+      id: r.id,
+      decks: spec.decks,
+      seed: spec.seed,
+      first: spec.first,
+      bots: ['you', spec.botLevel],
+      rollouts: ROLLOUTS,
+      withCoach: true,
+      seats: [0],
+      practice: spec,
+      meta: { kind: COACHED_REPLAY_KIND, exported: c.value.exported, recordedWinner: reviewExpect(r), coachDecisions: c.value.decisions.length },
+    },
+  ];
+}
+const jobs = FROM === 'chaos' ? fromChaos() : FROM === 'tiers' ? fromTiers() : FROM === 'file' ? fromFile() : fromEvents();
 
 // ---------------------------------------------------------------- run
 interface Done {

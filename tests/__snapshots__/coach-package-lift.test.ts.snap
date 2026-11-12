@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`coach package notes, gated by measured lift > with the bundled synergy report: notes for two decks 1`] = `
+{
+  "bbg": {
+    "lowCred": "hidden",
+    "sellNotes": [],
+  },
+  "rry": {
+    "highCred": "measured",
+    "warnings": [
+      "Your Street Cred (2) is not above the rival’s (5); your deck wants it higher (Ahead on Street Cred). (In bot games on this list, games where Ahead on Street Cred came online were won 74% of the time, against 36% when it never did: an association, not proof that it wins games.)",
+    ],
+  },
+}
+`;

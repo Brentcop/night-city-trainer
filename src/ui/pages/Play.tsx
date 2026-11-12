@@ -4,11 +4,16 @@ import type { Decision, DeckList, PlayerId } from '../../engine/types';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
 import { practiceRequest, reviewExpect } from '../../lib/practiceReplays';
+import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
+import { download } from '../../lib/download';
+import { GIG_SWING } from '../../ai/eval';
 import { canConcede, canUndo, type PracticeSession, type Running } from '../../lib/practiceSession';
 import { ReviewPanel } from '../components/ReviewPanel';
 import type { ReviewRequest } from '../../sim/review.worker';
 import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
+import { useSynergyReport } from '../synergyReport';
+import { seatLift } from '../../ai/packageLift';
 import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
 import { Modal, useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
@@ -131,8 +136,12 @@ function Board({
     return () => clearTimeout(t);
   }, [toast]);
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
+  // INFO-8: the coach names a package only when the synergy report measured a lift above 0 for it (unmeasured wording
+  // while the report is loading or missing)
+  const synergy = useSynergyReport();
+  const lift0 = useMemo(() => (synergy.state === 'ready' ? seatLift(synergy.report, g.P(0).listId, synergy.current) : null), [synergy, g]);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the game state changes in place; `version` says when
-  const warnings = useMemo(() => (coach && s.winner === null ? boardWarnings(g, 0) : NO_WARNINGS), [g, coach, version, s.winner]);
+  const warnings = useMemo(() => (coach && s.winner === null ? boardWarnings(g, 0, lift0) : NO_WARNINGS), [g, coach, version, s.winner, lift0]);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [targeting, setTargeting] = useState<Targeting | null>(null);
   const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
@@ -161,7 +170,7 @@ function Board({
     if (!pend || !coach || !coachAdvises(pend)) return;
     let alive = true;
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
-    advise(g, pend)
+    advise(g, pend, lift0)
       .then((a) => {
         if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives, advice: a });
       })
@@ -169,7 +178,7 @@ function Board({
     return () => {
       alive = false;
     };
-  }, [pend, coach, g, advise]);
+  }, [pend, coach, g, advise, lift0]);
 
   // a new decision closes any open menu / target mode
   useEffect(() => {
@@ -233,7 +242,9 @@ function Board({
       // grade the move against the coach by value (only when the advice for this exact spot is ready)
       if (coach && activeHint && activeHint.d === d && d.options.length > 1) {
         const advice = activeHint.advice;
-        const gr = gradeMove(d, i, advice, g.s.turn);
+        // this answer's place among the recorded choices (the recorder adds it once the answer settles)
+        const at = game.replay.choices.length;
+        const gr = coachedGrade(d, i, advice, gradeMove(d, i, advice, g.s.turn), at);
         grades.push(gr);
         setToast(gr);
         if (gr.verdict === 'pending') {
@@ -242,7 +253,7 @@ function Board({
           const settle = (extra: GradedOption[]) => {
             const k = grades.indexOf(gr);
             if (k < 0) return;
-            const done = gradeMove(d, i, advice, gr.turn, extra);
+            const done = coachedGrade(d, i, advice, gradeMove(d, i, advice, gr.turn, extra), at, extra);
             grades[k] = done;
             setToast((t) => (t === gr ? done : t));
           };
@@ -250,7 +261,7 @@ function Board({
         }
       }
     },
-    [human, coach, activeHint, g, grades, coachApi],
+    [human, coach, activeHint, g, grades, coachApi, game.replay],
   );
   const answer = useCallback((i: number) => answerFor(pend, i), [answerFor, pend]);
 
@@ -280,6 +291,11 @@ function Board({
 
   const over = s.winner !== null;
   const failed = game.error;
+  // INFO-9: the finished game as a file, with the coach's advice, grade and scores per decision (src/lib/coachedReplay.ts)
+  const exportGame = () => {
+    const c = buildCoachedReplay(game.replay, grades, new Date().toISOString(), GIG_SWING);
+    download(coachedReplayFileName(c), JSON.stringify(c, null, 1), 'application/json');
+  };
   const mulligan = !!pend && pend.kind === 'yesno' && pend.tag === 'mulligan';
   const head = failed ? { text: 'The game stopped because of an error', tone: 'rival' } : headline(ctx);
   const panel = narrow ? phonePanelState({ pend, targeting, over, allOpen, collapsed: !!pend && collapsedFor === pend }) : 'none';
@@ -513,6 +529,7 @@ function Board({
               onSite={() => setNavOpen(true)}
               onExit={over ? onQuit : () => openLeave('exit')}
               exitLabel={over ? 'New game' : 'Exit game'}
+              onExport={over ? exportGame : undefined}
               onClose={() => setGameMenu(false)}
             />
           )}
@@ -563,9 +580,14 @@ function Board({
           review={
             <>
               {coach && <Scorecard grades={grades} />}
-              <button className="ghost" style={{ marginTop: 10 }} onClick={() => (setHideOver(true), setReviewReq(practiceRequest(game.replay)))}>
-                🔍 Full match review
-              </button>
+              <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
+                <button className="ghost" onClick={() => (setHideOver(true), setReviewReq(practiceRequest(game.replay)))}>
+                  🔍 Full match review
+                </button>
+                <button className="ghost" onClick={exportGame} title="Save this game as a file: seeds, your moves and the coach's advice on each">
+                  ⤓ Export game
+                </button>
+              </div>
             </>
           }
         />

@@ -2,12 +2,9 @@
 import { reviewGame, type GameReview } from '../ai/reviewer';
 import { makeTierBot } from '../ai/tiers';
 import { makeCoach } from '../ai/coach';
-import type { DeckList, PlayerId } from '../engine/types';
-import { practiceAgents, type PracticeReviewSpec } from './practiceReview';
+import { practiceAgents, type ReviewRequest } from './practiceReview';
 
-export type ReviewRequest =
-  | { kind: 'bots'; decks: [DeckList, DeckList]; seed: number; first: PlayerId; bot: string; rollouts: number; withCoach: boolean }
-  | ({ kind: 'practice'; rollouts: number; withCoach: boolean } & PracticeReviewSpec);
+export type { ReviewRequest };
 export type ReviewReply = { progress: number } | { review: GameReview } | { error: string };
 
 self.onmessage = async (e: MessageEvent<ReviewRequest>) => {

@@ -20,6 +20,11 @@ export interface PracticeReviewSpec {
   conceded?: boolean;
 }
 
+/** What the review worker (review.worker.ts) is asked: a bot game, or a recorded practice game. Here so Node code can name it. */
+export type ReviewRequest =
+  | { kind: 'bots'; decks: [DeckList, DeckList]; seed: number; first: PlayerId; bot: string; rollouts: number; withCoach: boolean }
+  | ({ kind: 'practice'; rollouts: number; withCoach: boolean } & PracticeReviewSpec);
+
 /** An agent whose first decision ends the game: you (seat 0) concede, the bot wins. */
 export const conceding: Agent = {
   name: 'conceded',

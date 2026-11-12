@@ -10,6 +10,7 @@ import { parseDeck } from '../src/engine/deck';
 import type { MatchJob, MatchResult } from './worker';
 import { WorkPool, type PooledWorker, type WorkerLink } from '../src/lib/workPool';
 import { entrantBase, type EventSetup } from '../src/lib/eventFormats';
+import type { GameCache } from './game-cache';
 
 // ================================================================ deck library
 
@@ -229,9 +230,15 @@ export interface PoolOptions {
   maxAttempts?: number;
   /** total worker crashes tolerated before the pool gives up (default 2 × size + 2) */
   maxCrashes?: number;
+  /** an idle worker does not keep the process alive (unref'd until it gets a job), so a pool kept for reuse needs no close() */
+  unrefIdle?: boolean;
 }
 export interface Pool<J, R> {
   run(job: J): Promise<R>;
+  /** add workers until there are `size` (a closed or failed pool is left alone) */
+  grow(size: number): void;
+  /** workers alive now */
+  readonly size: number;
   close(): Promise<void>;
   /** set once the pool has given up; every pending and later run() rejects with it */
   readonly failed: Error | null;
@@ -246,19 +253,29 @@ export interface Pool<J, R> {
  */
 export function workerPool<J, R>(source: URL | (() => Worker), size: number, o: PoolOptions = {}): Pool<J, R> {
   const make = typeof source === 'function' ? source : () => new Worker(source);
-  const maxCrashes = o.maxCrashes ?? 2 * size + 2;
+  let target = Math.max(1, size);
   const spawn = (link: WorkerLink<R>): PooledWorker<J> => {
     const w = make();
     let lastError: Error | undefined;
-    w.on('message', (r: R) => link.done(r));
+    if (o.unrefIdle) w.unref();
+    w.on('message', (r: R) => {
+      if (o.unrefIdle) w.unref(); // re-ref'd at once if the pool hands it another job
+      link.done(r);
+    });
     w.on('error', (e) => (lastError = e));
     w.on('messageerror', (e) => (lastError = e));
     w.on('exit', (code) => link.died(lastError ? String(lastError.stack ?? lastError) : `worker exited with code ${code}`));
-    return { post: (job) => w.postMessage(job), terminate: () => w.terminate() };
+    return {
+      post: (job) => {
+        if (o.unrefIdle) w.ref();
+        w.postMessage(job);
+      },
+      terminate: () => w.terminate(),
+    };
   };
   const pool = new WorkPool<J, R>(spawn, size, {
     maxAttempts: o.maxAttempts ?? 2,
-    crashLimit: () => maxCrashes,
+    crashLimit: () => o.maxCrashes ?? 2 * target + 2,
     resetCrashesOnDone: false,
     jobFailureIsFatal: true,
     jobFailed: (why, attempts) => new Error(`a job crashed its worker ${attempts} times; giving up.\n${why}`),
@@ -270,6 +287,13 @@ export function workerPool<J, R>(source: URL | (() => Worker), size: number, o: 
   });
   return {
     run: (job: J) => pool.run(job),
+    grow(n: number) {
+      target = Math.max(target, n);
+      pool.grow(n);
+    },
+    get size() {
+      return pool.size;
+    },
     async close() {
       await pool.stop(new Error('worker pool closed'), 'abandon');
     },
@@ -298,18 +322,42 @@ export interface RunJobsOptions {
   quiet?: boolean;
   /** called with each result as it arrives (in completion order), before it is kept: e.g. to fold a bulky field into a running total and drop it */
   onResult?: (r: MatchResult) => void;
+  /** SIM-8: read games already played from this cache and store the new ones (scripts/game-cache.ts; a script's --cache) */
+  cache?: GameCache;
+}
+
+let sharedGamePool: Pool<MatchJob, MatchResult> | null = null;
+/**
+ * The game worker pool, kept for the whole process (SIM-8): later batches reuse the workers instead of booting new ones.
+ * It grows to the largest thread count asked for so far (never more workers than a batch has jobs) and its idle workers
+ * don't keep the process alive. A pool that gave up (the crash policy of workerPool) is replaced by a fresh one on the
+ * next batch, as a per-batch pool would have been.
+ */
+export function gamePool(threads: number): Pool<MatchJob, MatchResult> {
+  if (!sharedGamePool || sharedGamePool.failed) sharedGamePool = workerPool<MatchJob, MatchResult>(GAME_WORKER, threads, { unrefIdle: true });
+  else sharedGamePool.grow(threads);
+  return sharedGamePool;
+}
+/** Terminate the kept game pool (tests, or a script that wants its workers gone before it exits). */
+export async function closeGamePool() {
+  const p = sharedGamePool;
+  sharedGamePool = null;
+  await p?.close();
 }
 
 /** Play every job in the game worker pool. Results come back in job order; games that threw are reported, never counted. */
 export async function runJobsDetailed(jobs: MatchJob[], o: RunJobsOptions): Promise<{ results: MatchResult[]; errors: MatchResult[] }> {
   if (!jobs.length) return { results: [], errors: [] };
-  const pool = workerPool<MatchJob, MatchResult>(GAME_WORKER, Math.min(o.threads, jobs.length));
+  const cache = o.cache;
+  const cached = cache ? jobs.map((j) => cache.get(j)) : [];
+  const toPlay = jobs.filter((_, i) => !cached[i]).length;
+  const pool = toPlay ? gamePool(Math.min(o.threads, toPlay)) : null;
   const t0 = Date.now();
   let done = 0;
   try {
     const all = await Promise.all(
-      jobs.map((j) =>
-        pool.run(j).then((r) => {
+      jobs.map((j, i) =>
+        (cached[i] ? Promise.resolve(cached[i]) : pool!.run(j).then((r) => (cache?.put(j, r), r))).then((r) => {
           done++;
           if (!r.error) o.onResult?.(r);
           if (!o.quiet && (done % 10 === 0 || done === jobs.length)) process.stderr.write(`\r  ${done}/${jobs.length} games  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
@@ -318,14 +366,19 @@ export async function runJobsDetailed(jobs: MatchJob[], o: RunJobsOptions): Prom
       ),
     );
     if (!o.quiet) process.stderr.write('\n');
+    if (cache && !o.quiet) process.stderr.write(`  cache: ${jobs.length - toPlay} of ${jobs.length} games were hits\n`);
     const errors = all.filter((r) => r.error);
     if (errors.length) {
       process.exitCode = 1;
       console.error(`\n${errors.length} of ${all.length} games threw an error. First (${errors[0].a} vs ${errors[0].b}, seed ${errors[0].seed}, first ${errors[0].first}):\n${errors[0].error}`);
     }
     return { results: all.filter((r) => !r.error), errors };
+  } catch (e) {
+    // a batch cut short leaves no games running behind it: drop the kept pool, as the per-batch pool was closed
+    if (pool && pool === sharedGamePool) await closeGamePool();
+    throw e;
   } finally {
-    await pool.close();
+    cache?.flush();
   }
 }
 

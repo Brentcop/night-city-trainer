@@ -1,6 +1,7 @@
 // The synergy report (public/data/synergies.json, written by `npm run sim -- analyze --synergies`), fetched once at
 // runtime by the Card stats page's Synergies view and the deck profile's "Synergies in this list" block. Never imported
 // by the Home entry chunk; no report is bundled with the site.
+import { useEffect, useState } from 'react';
 import { CATALOGUE_VERSION } from '../content/synergies';
 import type { SynergyReport } from '../analysis/synergies';
 
@@ -24,6 +25,19 @@ export function loadSynergyReport(): Promise<SynergyLoaded> {
     .then(readSynergyReport)
     .catch((): SynergyLoaded => ({ state: 'missing' }));
   return file;
+}
+
+/** The report, loaded on first use (a fetch, so it never weighs on the entry chunk). */
+export function useSynergyReport(): SynergyLoaded {
+  const [loaded, setLoaded] = useState<SynergyLoaded>({ state: 'loading' });
+  useEffect(() => {
+    let live = true;
+    void loadSynergyReport().then((x) => live && setLoaded(x));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return loaded;
 }
 
 /** "42%", or "—" for no rate. */

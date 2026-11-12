@@ -78,6 +78,13 @@ export class WorkPool<J, R> {
     return this.stopped || this.failure !== null;
   }
 
+  /** Add workers until there are `size` (never removes any); a closed pool is left alone. */
+  grow(size: number) {
+    if (this.closed) return;
+    while (this.slots.length < size) this.add();
+    this.pump();
+  }
+
   run(job: J): Promise<R> {
     if (this.closed) return Promise.reject(this.policy.refused(this.failure));
     return new Promise<R>((resolve, reject) => {

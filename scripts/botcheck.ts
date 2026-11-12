@@ -8,7 +8,10 @@
 // Prints A's win rate with the paired 95% interval (duplicateSummary, src/lib/evidence.ts), the pairs split (each config
 // won one game) and swept, the per-pair SD of the difference, and the plain binomial interval on the same games for
 // comparison. A pair with a game that throws is reported (first stack printed) and left out; the exit code is then 1.
-import { cli, int, loadLibrary, runJobsDetailed, str, threadsOpt } from './lib-node';
+// --cache: read games already played with the same code, decks, seeds and specs from .cache/games and store new ones
+//   (scripts/game-cache.ts); prints how many games were hits.
+import { bool, cli, int, loadLibrary, runJobsDetailed, str, threadsOpt } from './lib-node';
+import { cliGameCache } from './game-cache';
 import { duplicateSummary, scoreOf } from '../src/lib/evidence';
 import type { AgentSpec, MatchJob, MatchResult } from './worker';
 
@@ -19,6 +22,7 @@ const { values: V, positionals } = cli(
     decks: str('meta', (v) => (/^[\w.-]+$/.test(v) ? undefined : 'a deck set: meta, all, or a file-name prefix')),
     seed: int(31337),
     threads: threadsOpt(),
+    cache: bool(),
   },
   { maxPositionals: 2 },
 );
@@ -46,11 +50,12 @@ if (field.length < 2) {
 const deal: Omit<MatchJob, 'agentA' | 'agentB'>[] = [];
 let seed = V.seed;
 for (const x of field) for (const y of field) if (x !== y) for (let k = 0; k < V.per; k++) deal.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: 'lookahead' });
-// The two halves run side by side in two pools, so each result is known to belong to its half.
-const half = Math.max(1, Math.ceil(V.threads / 2));
+// The two halves are two batches on the one game pool (they share its --threads workers), so each result is known to
+// belong to its half.
+const cache = cliGameCache(V.cache);
 const [ab, ba] = await Promise.all([
-  runJobsDetailed(deal.map((j) => ({ ...j, agentA: A, agentB: B })), { threads: half, allowErrors: true }),
-  runJobsDetailed(deal.map((j) => ({ ...j, agentA: B, agentB: A })), { threads: Math.max(1, V.threads - half), allowErrors: true, quiet: true }),
+  runJobsDetailed(deal.map((j) => ({ ...j, agentA: A, agentB: B })), { threads: V.threads, allowErrors: true, cache }),
+  runJobsDetailed(deal.map((j) => ({ ...j, agentA: B, agentB: A })), { threads: V.threads, allowErrors: true, quiet: true, cache }),
 ]);
 const bySeed = (rs: MatchResult[]) => new Map(rs.map((r) => [r.seed, r]));
 const [withA, withB] = [bySeed(ab.results), bySeed(ba.results)];
