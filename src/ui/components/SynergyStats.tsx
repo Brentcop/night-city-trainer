@@ -218,6 +218,18 @@ export function SynergyReportView({ loaded, deck, listId }: { loaded: SynergyLoa
           <h3 className="rule-head">Packages, every list pooled</h3>
           <p className="muted small">More games per row, but different decks mixed together; counts are per player-game, with no draw odds.</p>
           <PackageTable rows={r.pooled} rounds={r.rounds} caption="Packages, every list pooled" />
+          {r.dormant?.length ? (
+            <p className="muted small">
+              Not in any library deck (dormant, left out of these tables):{' '}
+              {r.dormant.map((d, i) => (
+                <span key={d.id} title={d.reason}>
+                  {i ? ', ' : ''}
+                  {d.name}
+                </span>
+              ))}
+              .
+            </p>
+          ) : null}
         </div>
       ) : current ? (
         <>

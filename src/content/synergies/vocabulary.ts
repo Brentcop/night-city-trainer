@@ -92,10 +92,13 @@ export const CONDITION_TERMS = {
   'cred-even': 'Your Street Cred is an even number (Null is neither).',
   'cred-vs-rival': 'Your Street Cred is less (`cmp: less`) or more (`cmp: more`) than the rival’s; Null counts as the lowest.',
   'cred-at-least': 'Your Street Cred is at least `value`.',
+  'gig-cost-match':
+    'At least `min` friendly Gigs show a value equal to the printed cost of a card in your own hand (your hand is your own knowledge; the rival’s hand is never read).',
   'gigs-behind': 'The rival controls at least `by` more Gigs than you.',
   equipped: 'At least `min` friendly Units and Legends have Gear equipped.',
   'legends-up': 'At least `min` of your Legends are face-up (in the Legends area or on the field).',
   trash: 'Your trash holds at least `min` cards of card type `type`.',
+  'in-trash': 'Your trash holds at least `min` copies, in all, of the cards named in `ids` (your trash is public).',
 } as const;
 
 export type ConditionTerm = keyof typeof CONDITION_TERMS;
@@ -116,10 +119,12 @@ export type SynergyCondition =
   | { term: 'cred-even' }
   | { term: 'cred-vs-rival'; cmp: 'less' | 'more' }
   | { term: 'cred-at-least'; value: number }
+  | { term: 'gig-cost-match'; min: number }
   | { term: 'gigs-behind'; by: number }
   | { term: 'equipped'; min: number }
   | { term: 'legends-up'; min: number }
-  | { term: 'trash'; type: CardType; min: number };
+  | { term: 'trash'; type: CardType; min: number }
+  | { term: 'in-trash'; ids: string[]; min: number };
 
 /**
  * - draft: written from the card text as a starting point; the owner has not checked it.
@@ -154,4 +159,10 @@ export interface Synergy {
   /** the condition in plain words */
   onlineText: string;
   status: SynergyStatus;
+  /**
+   * A package kept in the catalogue but switched off by default: no list counts as built around it, the builders never
+   * add, complete, swap in or remove it unless asked for it by id, the bots and the coach never score it, and the report
+   * lists it apart from the headline tables. `reason` says why (e.g. no library deck plays its key card).
+   */
+  dormant?: { reason: string };
 }

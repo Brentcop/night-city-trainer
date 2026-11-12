@@ -8,6 +8,13 @@
 // Gigs (We Gotta Live Together) in comeback, Cyberware (Viktor Vektor: Drop Your Illusions) in cyberware. Two discounts
 // depend on the rival or the game clock rather than on cards you build around, so they have no package: Maxtac Heavy
 // (per rival Unit) and Nocturne Op55N1 (empty fixer area).
+//
+// Owner review, 2026-11-12 (docs/SYNERGIES.md "Owner review, 2026-11-12"): El Sombreron stays in high-gig (confirmed);
+// Yorinobu: Embracing Destruction moved from high-cred to its own cred-20 package; cost-match, forced-attacks,
+// block-punish and relic-loop are new; spend-punish counts forced attacks as spenders; program-fuel counts Programs only
+// beside enough engines; corpo-ganger-steals is dormant. Still open with the owner: Pacifica Netrunner in spend-punish,
+// Chrome Fang in high-gig, Westbrook Netrunner left out of min-gig, Padre in value-pair. Packages made or reshaped from
+// an answer stay `draft`: the owner has not seen their member lists.
 import type { Synergy, SynergyCondition } from './vocabulary';
 
 /** A payoff of the package is in play or was used this turn. */
@@ -82,10 +89,11 @@ export const SYNERGY_LIST: Synergy[] = [
       { id: 'kerry_eurodyne_the_last_rockerboy', role: 'payoff', note: '{Spend}: draws 2 with an 8+ Gig' },
       { id: 'carnage_at_the_colosseum', role: 'payoff', note: 'costs 1 less per friendly 8+ Gig' },
       { id: 'octant', role: 'payoff', note: 'costs 1 less per friendly 8+ Gig' },
-      { id: 'el_sombreron_la_venganza_lenta', role: 'payoff', note: 'gains power equal to a friendly max Gig' },
+      { id: 'el_sombreron_la_venganza_lenta', role: 'payoff', note: 'gains power equal to a friendly max Gig (owner, 2026-11-12: belongs here)' },
       { id: 'chrome_fang', role: 'payoff', note: 'rival Units can’t steal friendly Gigs worth more than their power' },
+      { id: 'over_the_edge', role: 'payoff', note: 'defeats a Unit with power up to your d20’s value: only a d20 counts (library sweep, 2026-11-12)' },
     ],
-    propose: [{ text: '8\\+ value' }, { text: 'increase a Gig' }, { text: 'max Gig' }],
+    propose: [{ text: '8\\+ value' }, { text: 'increase a Gig' }, { text: 'max Gig' }, { text: 'value of a friendly d20' }],
     rejected: [],
     needs: { enabler: 1, payoff: 1 },
     builtAround: { any: 6, enabler: 2, payoff: 2 },
@@ -158,6 +166,35 @@ export const SYNERGY_LIST: Synergy[] = [
     onlineText: 'A swap card used on a turn you held a min Gig (the condition does not check which Gig was swapped).',
     status: 'draft',
   },
+  {
+    // owner, 2026-11-12: "yes most likely" a package of its own; the member list below has not been seen by the owner
+    id: 'cost-match',
+    name: 'Gig value matches a cost',
+    description:
+      'Yellow cards that reward a friendly Gig showing the same number as a card’s cost: Hanako finds those cards, The Heist plays its Gear free, Heywood and Caliber draw or strip a card, Alt Cunningham stops a steal.',
+    family: 'gig-value',
+    bond: 'helps',
+    members: [
+      { id: 'hanako_arasaka_in_a_gilded_cage', role: 'payoff', note: 'keeps every card in the top 4 whose cost matches a friendly Gig' },
+      { id: 'the_heist', role: 'payoff', note: 'plays the Gear it finds for free when the Gear’s cost matches a friendly Gig' },
+      { id: 'heywood_ripperdoc', role: 'payoff', note: 'draws when the Gear it defeats costs the same as a friendly Gig' },
+      { id: 'caliber_totentanz_s_top_dog', role: 'payoff', note: 'when defeated, the rival discards one more if their discard costs the same as a friendly Gig' },
+      { id: 'alt_cunningham_mother_of_daemons', role: 'payoff', note: 'stops a steal by discarding a card whose cost is the threatened Gig’s value' },
+      ...ONE_STEP.map((r) => ({ ...r, role: 'enabler' as const })),
+    ],
+    propose: [{ text: 'value of a friendly Gig|friendly Gig values|Gig.s value' }],
+    rejected: [
+      { id: 'peace_offering', why: 'copies one Gig’s value onto another (a value-pair); it does not aim a Gig at a cost' },
+      { id: 'shattered_memories', why: 'its bonus compares a Gig with how many cards were discarded, not with a card’s cost' },
+      { id: 'wraith_marauders', why: 'compares a stolen Gig’s value with a Unit’s power, not with a cost' },
+    ],
+    needs: { payoff: 1 },
+    builtAround: { any: 5, payoff: 3 },
+    online: { term: 'all', of: [{ term: 'gig-cost-match', min: 1 }, PAYOFF_ACTIVE] },
+    onlineText:
+      'A friendly Gig showing the cost of a card in your hand while a payoff is in play or used that turn (the hand stands in for the deck that Hanako and The Heist dig through).',
+    status: 'draft',
+  },
 
   // ------------------------------------------------------------------ Street Cred
   {
@@ -176,7 +213,7 @@ export const SYNERGY_LIST: Synergy[] = [
     propose: [{ text: 'less ☆' }],
     rejected: [
       { id: 'gunpoint_diplomacy', why: 'penalised while your Street Cred is lower: it belongs to high-cred' },
-      { id: 'yorinobu_arasaka_embracing_destruction', why: 'wants 20 or more Street Cred: it belongs to high-cred' },
+      { id: 'yorinobu_arasaka_embracing_destruction', why: 'wants 20 or more Street Cred of your own: it belongs to cred-20' },
     ],
     needs: { payoff: 1 },
     builtAround: { any: 5, payoff: 3 },
@@ -196,14 +233,34 @@ export const SYNERGY_LIST: Synergy[] = [
       { id: 'royce_don_t_call_me_simon', role: 'payoff', note: 'its removal reaches power 3 while your Street Cred is higher' },
       { id: 'minotaur', role: 'payoff', note: 'defeats a rival Unit of power 5 or less while your Street Cred is higher' },
       { id: 'gunpoint_diplomacy', role: 'payoff', note: 'you keep both effects unless your Street Cred is lower' },
-      { id: 'yorinobu_arasaka_embracing_destruction', role: 'payoff', note: 'its draw has no discard at 20 or more Street Cred' },
     ],
     propose: [{ text: 'more ☆' }],
-    rejected: [{ id: 'evelyn_parker_scheming_siren', why: 'discards while your Street Cred is higher: it belongs to low-cred' }],
+    rejected: [
+      { id: 'evelyn_parker_scheming_siren', why: 'discards while your Street Cred is higher: it belongs to low-cred' },
+      { id: 'yorinobu_arasaka_embracing_destruction', why: 'wants 20 or more Street Cred of your own, not more than the rival’s (owner, 2026-11-12): see cred-20' },
+    ],
     needs: { payoff: 1 },
     builtAround: { any: 5, payoff: 3 },
     online: { term: 'all', of: [{ term: 'cred-vs-rival', cmp: 'more' }, PAYOFF_ACTIVE] },
-    onlineText: 'Your Street Cred above the rival’s while a payoff is in play or used that turn (Yorinobu’s own bar is 20).',
+    onlineText: 'Your Street Cred above the rival’s while a payoff is in play or used that turn.',
+    status: 'draft',
+  },
+  {
+    id: 'cred-20',
+    name: 'Street Cred 20+ (Yorinobu)',
+    description: 'Yorinobu Arasaka: Embracing Destruction draws when an ARASAKA Unit attacks and stops making you discard once your own Street Cred reaches 20; Gig raisers get you there.',
+    family: 'street-cred',
+    bond: 'helps',
+    members: [
+      { id: 'yorinobu_arasaka_embracing_destruction', role: 'payoff', note: 'its draw costs no discard at 20 or more Street Cred (owner, 2026-11-12: it needs at least 20)' },
+      ...RAISERS.map((r) => ({ ...r, role: 'enabler' as const })),
+    ],
+    propose: [{ text: 'than \\d+ ☆' }],
+    rejected: [],
+    needs: { payoff: 1, enabler: 1 },
+    builtAround: { payoff: 1, enabler: 4 },
+    online: { term: 'all', of: [{ term: 'cred-at-least', value: 20 }, { term: 'in-play', role: ['payoff'], min: 1 }] },
+    onlineText: 'Your Street Cred at 20 or more while Yorinobu is face-up.',
     status: 'draft',
   },
   {
@@ -251,27 +308,81 @@ export const SYNERGY_LIST: Synergy[] = [
   {
     id: 'spend-punish',
     name: 'Spend, then punish',
-    description: 'Spend rival Units, then defeat or bottom-deck spent ones (spent rival Units are also legal attack targets).',
+    description:
+      'Spend rival Units (with Programs, Calls and Units, or by forcing them to attack), then defeat or bottom-deck spent ones (spent rival Units are also legal attack targets).',
     family: 'tempo',
     bond: 'helps',
     members: [
-      { id: 'corporate_surveillance', role: 'enabler', note: 'spends a rival Unit costing 4 or less' },
-      { id: 'memory_relapse', role: 'enabler', note: 'spends a rival Unit and keeps it from readying' },
+      { id: 'corporate_surveillance', role: 'enabler', note: 'a Program: spends a rival Unit costing 4 or less' },
+      { id: 'memory_relapse', role: 'enabler', note: 'a Program: spends a rival Unit and keeps it from readying' },
       { id: 'padre_man_of_the_cross', role: 'enabler', note: 'its Call can spend a rival Unit' },
       { id: 'offduty_malfini', role: 'enabler', note: 'spends itself and a rival Unit' },
       { id: 'sandayu_oda_hanako_s_guardian', role: 'enabler', note: 'spends a rival Unit per value-pair' },
       { id: 'pacifica_netrunner', role: 'enabler', note: 'keeps a rival Unit from readying (with even Street Cred)' },
-      { id: 'don_t_fear_the_reaper', role: 'both', note: 'spends every rival Unit, then defeats a spent one' },
+      { id: 'mox_inciters', role: 'enabler', note: 'a rival Unit must attack next turn, which leaves it spent for your turn (owner, 2026-11-12)' },
+      { id: 'evelyn_parker_beautiful_enigma', role: 'enabler', note: '{Spend}: a rival Unit must attack next turn, which leaves it spent for your turn (owner, 2026-11-12)' },
+      { id: 'don_t_fear_the_reaper', role: 'both', note: 'a Program: spends every rival Unit, then defeats a spent one' },
       { id: 'wild_in_the_streets', role: 'payoff', note: 'defeats a spent Unit' },
       { id: 'overwatch_panam_s_gift', role: 'payoff', note: 'defeats a spent rival Unit' },
       { id: 'unlikely_bond', role: 'payoff', note: 'bottom-decks a spent rival Unit' },
     ],
-    propose: [{ text: 'spend a rival Unit|spend all rival Units|and a rival Unit' }, { text: 'spent rival Unit|spent Unit' }],
+    propose: [{ text: 'spend a rival Unit|spend all rival Units|and a rival Unit' }, { text: 'spent rival Unit|spent Unit' }, { text: 'must attack' }],
     rejected: [{ id: 'johnny_silverhand_rocking_renegade', why: 'lets a newly played Unit attack spent Units; it does not reward spending them' }],
     needs: { enabler: 1, payoff: 1 },
     builtAround: { any: 5, enabler: 2, payoff: 2 },
     online: { term: 'all', of: [{ term: 'used', role: ['enabler'] }, { term: 'used', role: ['payoff'] }] },
     onlineText: 'A spender and a punisher used in the same turn (Don’t Fear the Reaper is both on its own).',
+    status: 'draft',
+  },
+  {
+    // owner, 2026-11-12: "yes" to forcing attacks into Blockers; the member list below has not been seen by the owner
+    id: 'forced-attacks',
+    name: 'Forced attacks into Blockers',
+    description:
+      'Make a rival Unit attack on its next turn (Mox Inciters, Evelyn Parker: Beautiful Enigma), catch it with a Blocker and punish it; the attacker is left spent for your turn.',
+    family: 'tempo',
+    bond: 'requires',
+    members: [
+      { id: 'mox_inciters', role: 'both', note: 'a rival Unit must attack next turn, and Mox Inciters can block it itself' },
+      { id: 'evelyn_parker_beautiful_enigma', role: 'enabler', note: '1 €$, {Spend}: a rival Unit must attack next turn' },
+      { id: 'safety_override', role: 'payoff', note: 'defeats the attacker when the chosen friendly Unit (a blocker) loses the fight' },
+      { id: 'maelstrom_zealots', role: 'payoff', note: 'defeats the Unit it loses a fight to; it needs Blocker from elsewhere (Goro, Mandibular Upgrade) to take the attack' },
+      { id: 'augmented_negotiators', role: 'payoff', note: 'a Blocker: the rival discards when it blocks' },
+      { id: 'la_llorona_ghost_of_the_past', role: 'payoff', note: 'a Blocker: raises a Gig by up to 3 when it blocks' },
+      { id: 'rita_wheeler_no_stupid_questions', role: 'payoff', note: 'a Blocker: draws then discards the first time it is spent each turn (blocking spends it)' },
+      { id: 'goro_takemura_vengeful_bodyguard', role: 'payoff', note: 'loots when a friendly Unit blocks, and gives a cheap Unit Blocker' },
+    ],
+    groups: [{ role: 'payoff', where: { keyword: 'blocker' }, label: 'cards with Blocker (they catch the attack)' }],
+    propose: [{ text: 'must attack' }],
+    rejected: [],
+    needs: { enabler: 1, payoff: 1 },
+    builtAround: { enabler: 2, payoff: 5 },
+    online: { term: 'all', of: [{ term: 'used', role: ['enabler'] }, { term: 'in-play', role: ['payoff'], min: 2 }] },
+    onlineText: 'A forcing card used (Mox Inciters played, Evelyn’s ability) on a turn you had two Blockers or punishers in play (Mox Inciters counts as one).',
+    status: 'draft',
+  },
+  {
+    // owner, 2026-11-12: from the YYY sweep (answer 12) and answer 9; the member list has not been seen by the owner
+    id: 'block-punish',
+    name: 'Block, then punish',
+    description:
+      'Cheap Blockers take the hit and cards that fire when your Unit blocks or loses a fight punish the attacker: Safety Override defeats it, Augmented Negotiators makes the rival discard.',
+    family: 'tempo',
+    bond: 'helps',
+    members: [
+      { id: 'safety_override', role: 'payoff', note: 'Quick: when the chosen friendly Unit loses a fight this turn, defeats the rival Unit it fought (a losing blocker counts)' },
+      { id: 'maelstrom_zealots', role: 'payoff', note: 'defeats the Unit it loses a fight to; with Blocker from Goro or Mandibular Upgrade it can take the attack' },
+      { id: 'augmented_negotiators', role: 'both', note: 'a Blocker: the rival discards when it blocks' },
+    ],
+    groups: [{ role: 'enabler', where: { keyword: 'blocker' }, label: 'cards with Blocker (Units, Legends and Gear)' }],
+    propose: [{ text: 'uses \\{Blocker\\}|loses a fight' }],
+    rejected: [
+      { id: 'goro_takemura_vengeful_bodyguard', why: 'rewards a block with a loot rather than punishing the attacker: see blockers' },
+    ],
+    needs: { enabler: 1, payoff: 1 },
+    builtAround: { any: 7, payoff: 3 },
+    online: { term: 'all', of: [{ term: 'used', role: ['payoff'] }, { term: 'in-play', role: ['enabler'], min: 1 }] },
+    onlineText: 'A punisher used (Safety Override played, a punishing Blocker blocking or played) on a turn you had a Blocker in play.',
     status: 'draft',
   },
 
@@ -321,6 +432,10 @@ export const SYNERGY_LIST: Synergy[] = [
     online: { term: 'all', of: [{ term: 'in-play', role: ['payoff'], min: 1 }, { term: 'in-play', role: ['enabler'], min: 1 }] },
     onlineText: 'Evelyn face-up with a CORPO or GANGER Unit on the field.',
     status: 'draft',
+    dormant: {
+      reason:
+        'No library deck plays Evelyn Parker: Beautiful Enigma, and the owner does not see the package being played (2026-11-12). Kept for reference; name it by id to build around it.',
+    },
   },
   {
     id: 'rocker',
@@ -376,32 +491,36 @@ export const SYNERGY_LIST: Synergy[] = [
 
   // ------------------------------------------------------------------ Programs
   {
+    // owner, 2026-11-12: Programs count "only when the cards that are operating on the programs for fuel" are there. The
+    // engines (payoffs) define the package; a Program is fuel only in a list that holds them, and a list is built around
+    // it only with 4+ engine copies AND 8+ Programs (a few Placides among ordinary Programs is not enough).
     id: 'program-fuel',
     name: 'Programs as fuel (Blue)',
-    description: 'Blue cards that replay, discard or need Programs: Alt Cunningham and Lizzy Wizzy recast them, Maman Brigitte and Placide discard them for removal.',
+    description:
+      'Blue engines that recast or spend Programs: Alt Cunningham and Lizzy Wizzy replay them, Maman Brigitte and Placide discard them for removal. Programs are the fuel, and count only beside these engines.',
     family: 'program',
     bond: 'requires',
     members: [
-      { id: 'alt_cunningham_soulkiller_architect', role: 'payoff', note: 'plays a Program from your trash (and discounts the next one per min Gig)' },
-      { id: 'lizzy_wizzy_delicate_weapon', role: 'payoff', note: 'plays a Program costing 3 or less from hand or trash for free' },
-      { id: 'maman_brigitte_spirit_of_death', role: 'payoff', note: 'discards 2 Programs to bottom-deck a rival Unit' },
-      { id: 'placide_voodoo_sentinel', role: 'payoff', note: 'discards a Program to bottom-deck a rival Unit, on play and attack' },
-      { id: 'jacked_in_voodoo_boy', role: 'payoff', note: 'attacks only on a turn you played a Program' },
-      { id: 'hacked_corpo', role: 'enabler', note: 'trashes 3 and takes a Program from them' },
-      { id: 'judy_alvarez_braindance_maestro', role: 'enabler', note: '{Spend}: trashes the top card and keeps it if it is a Program' },
+      { id: 'alt_cunningham_soulkiller_architect', role: 'payoff', note: 'engine: plays a Program from your trash (and discounts the next one per min Gig)' },
+      { id: 'lizzy_wizzy_delicate_weapon', role: 'payoff', note: 'engine: plays a Program costing 3 or less from hand or trash for free' },
+      { id: 'maman_brigitte_spirit_of_death', role: 'payoff', note: 'engine: discards 2 Programs to bottom-deck a rival Unit' },
+      { id: 'placide_voodoo_sentinel', role: 'payoff', note: 'engine: discards a Program to bottom-deck a rival Unit, on play and attack' },
+      { id: 'hacked_corpo', role: 'enabler', note: 'finds fuel: trashes 3 and takes a Program from them' },
+      { id: 'judy_alvarez_braindance_maestro', role: 'enabler', note: 'finds fuel: {Spend} trashes the top card and keeps it if it is a Program' },
     ],
-    groups: [{ role: 'enabler', where: { types: ['Program'] }, label: 'every Program' }],
+    groups: [{ role: 'enabler', where: { types: ['Program'] }, label: 'every Program (fuel, only beside the engines)' }],
     propose: [{ types: ['Unit', 'Legend', 'Gear'], text: 'Program' }],
     rejected: [
       { id: 'v_streetkid', why: 'returns BRAINDANCE Programs only: see braindance' },
       { id: 'misty_olszewski_mender_of_broken_spirits', why: 'names Program only as a card type to guess' },
+      { id: 'jacked_in_voodoo_boy', why: 'can only attack on a turn you played a Program: a drawback, it does not use Programs as fuel (owner, 2026-11-12)' },
     ],
     needs: { enabler: 1, payoff: 1 },
-    builtAround: { payoff: 3, enabler: 8 },
+    builtAround: { payoff: 4, enabler: 8 },
     online: {
       term: 'all',
       of: [
-        PAYOFF_ACTIVE,
+        { term: 'used', role: ['payoff'] },
         {
           term: 'any',
           of: [
@@ -411,7 +530,7 @@ export const SYNERGY_LIST: Synergy[] = [
         },
       ],
     },
-    onlineText: 'A payoff in play or used, with a Program played that turn or 2+ Programs in your trash.',
+    onlineText: 'An engine used (played, its ability activated or attacking) with a Program played that turn or 2+ Programs in your trash.',
     status: 'draft',
   },
 
@@ -555,6 +674,8 @@ export const SYNERGY_LIST: Synergy[] = [
       { id: 'tetratronic_rippler', role: 'enabler', note: 'may trash the top card when its Unit is spent' },
       { id: 'misty_olszewski_mender_of_broken_spirits', role: 'enabler', note: 'trashes the top card when the guess misses' },
       { id: 'fool_on_the_hill', role: 'enabler', note: 'the rival may have the top 2 trashed' },
+      { id: 'live_with_the_aftermath', role: 'enabler', note: 'you defeat one of your own Units: it goes to your trash (YYY sweep, 2026-11-12)' },
+      { id: 'adam_smasher_metal_over_meat', role: 'enabler', note: 'defeats every other Unit, yours into your trash (YYY sweep, 2026-11-12)' },
     ],
     propose: [{ text: 'Unit[^.]*from your trash|Unit in your trash' }, { text: 'trash \\d|trash the top|trash it|trash 1' }],
     rejected: [],
@@ -562,6 +683,36 @@ export const SYNERGY_LIST: Synergy[] = [
     builtAround: { payoff: 2, enabler: 3 },
     online: { term: 'all', of: [{ term: 'trash', type: 'Unit', min: 3 }, PAYOFF_ACTIVE] },
     onlineText: 'Three or more Units in your trash while a payoff is in play or used that turn.',
+    status: 'draft',
+  },
+  {
+    // from the YYY sweep (owner answer 12, 2026-11-12): the plan of the Ripbecca and Adam Ready for Brawl guide lists; the
+    // member list has not been seen by the owner
+    id: 'relic-loop',
+    name: 'The Relic loop (Metal Over Meat)',
+    // Only the two cards of the loop are members, so a list with The Relic but no Smasher is not counted. What helps it
+    // (Live with the Aftermath and Cyberpsychosis defeat the Relic's carrier; The Heist and other trash fillers bin a
+    // Smasher) is in units-in-trash or stands alone.
+    description:
+      'Equip The Relic, get Adam Smasher: Metal Over Meat into your trash, then let the Relic’s Unit die (a fight, Live with the Aftermath, Cyberpsychosis): Smasher comes back free and defeats every other Unit, which can set off the next Relic.',
+    family: 'trash',
+    bond: 'requires',
+    members: [
+      { id: 'the_relic_experimental_biochip', role: 'payoff', note: 'when its Unit is defeated, plays another Unit costing 9 or less from your trash for free' },
+      { id: 'adam_smasher_metal_over_meat', role: 'enabler', note: 'the Unit worth bringing back; its wipe also defeats the next Relic carrier' },
+    ],
+    propose: [{ text: 'cost 9 or less from your trash|Defeat all other Units' }],
+    rejected: [],
+    needs: { enabler: 1, payoff: 1 },
+    builtAround: { payoff: 2, enabler: 2 },
+    online: {
+      term: 'all',
+      of: [
+        { term: 'in-play', role: ['payoff'], min: 1 },
+        { term: 'in-trash', ids: ['adam_smasher_metal_over_meat'], min: 1 },
+      ],
+    },
+    onlineText: 'The Relic equipped while Adam Smasher: Metal Over Meat is in your trash.',
     status: 'draft',
   },
 ];

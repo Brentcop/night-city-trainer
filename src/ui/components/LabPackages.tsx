@@ -3,7 +3,7 @@
 // picker on the Breed tab, and the package chips on results. The logic is in src/lib/deckPackages.ts.
 import { useId, useMemo } from 'react';
 import type { DeckList } from '../../engine/types';
-import { SYNERGIES, synergiesIn } from '../../content/synergies';
+import { ACTIVE_SYNERGIES, SYNERGIES, synergiesIn } from '../../content/synergies';
 import { DECK_OBJECTIVES } from '../../content/deckObjectives';
 import { builtAroundIds, defaultKeep, packageChanges, packageCompatibility, packageName } from '../../lib/deckPackages';
 import { roleText } from './SynergyStats';
@@ -55,7 +55,8 @@ export function LabSynergies({
               <label title={`${x.synergy.description} Online: ${x.synergy.onlineText}`}>
                 <input type="checkbox" checked={keep.includes(x.synergy.id)} onChange={() => onKeep(toggleId(keep, x.synergy.id))} /> Keep <b>{x.synergy.name}</b>
               </label>{' '}
-              {x.builtAround && <span className="tag">built around</span>} <span className="muted small">{roleText(x.copies)}</span>
+              {x.builtAround && <span className="tag">built around</span>}
+              {x.synergy.dormant && <span className="tag" title={x.synergy.dormant.reason}>dormant</span>} <span className="muted small">{roleText(x.copies)}</span>
             </li>
           ))}
           {keep
@@ -92,12 +93,21 @@ export function PackagePicker({ value, onChange, fitAll, onFitAll }: { value: re
         Pick one or two packages (optional). Explorers are then built on Legend trios that can hold them and topped up to each package&apos;s built-around minimum.
       </p>
       <div className="chip-row" role="group" aria-label="Packages">
-        {SYNERGIES.map((s) => (
+        {ACTIVE_SYNERGIES.map((s) => (
           <button key={s.id} type="button" className={`chip-btn${value.includes(s.id) ? ' on' : ''}`} aria-pressed={value.includes(s.id)} title={s.description} onClick={() => onChange(pickPackage(value, s.id))}>
             {s.name}
           </button>
         ))}
       </div>
+      {SYNERGIES.some((s) => s.dormant) && (
+        <p className="muted small" style={{ margin: 0 }}>
+          Not offered (dormant, in no library deck):{' '}
+          {SYNERGIES.filter((s) => s.dormant)
+            .map((s) => s.name)
+            .join(', ')}
+          .
+        </p>
+      )}
       {compat && (
         <p className="small" role="status" style={{ margin: 0, color: compat.ok ? undefined : 'var(--red)' }}>
           {compat.ok ? (

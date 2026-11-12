@@ -282,7 +282,12 @@ describe('no hidden information in a record', () => {
       const text = JSON.stringify(b);
       for (const c of hidden) expect(text, `board of player ${b.p} at turn ${b.t} names face-down ${c.defId}`).not.toContain(c.defId);
       for (const id of rivalHand) expect(text, `board of player ${b.p} names hand card ${id}`).not.toContain(id);
+      // the own hand appears only as printed costs, ascending; the trash by id (it is public)
+      expect(b.handCosts).toEqual([...b.handCosts!].sort((x, y) => x - y));
+      expect(Array.isArray(b.trashCards)).toBe(true);
     }
+    // player 1's own view carries the costs of player 1's hand (Floor It and Synapse Burnout 1, Take Control 2)
+    expect(rec.boards.some((b) => b.p === 1 && [1, 1, 2].every((c, _k, a) => b.handCosts!.filter((x) => x === c).length >= a.filter((y) => y === c).length))).toBe(true);
     for (const x of rec.sightings) if (x.p === 0) expect(rivalHand).not.toContain(x.id);
     // player 1 sees their own hand: its Quick Program is a reaction option, and its cards are main-phase options
     const own = records.filter((r) => r.p === 1).map((r) => JSON.stringify(r)).join('');

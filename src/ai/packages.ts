@@ -17,7 +17,7 @@ import { covers, memberName, roleMap, SYNERGY_BY_ID, synergiesIn, zeroRoles, typ
 import { DECK_OBJECTIVES } from '../content/deckObjectives/index';
 
 /** A quantity the deck's own choices can move toward a package's condition (which Gig to roll in, take or adjust). */
-export type SteerKind = 'cred-low' | 'cred-high' | 'cred-even' | 'min-gig' | 'high-gig' | 'value-pair' | 'gig-spread';
+export type SteerKind = 'cred-low' | 'cred-high' | 'cred-20' | 'cred-even' | 'min-gig' | 'high-gig' | 'value-pair' | 'gig-spread';
 
 export interface SeatPackage {
   id: string;
@@ -45,6 +45,10 @@ export function steerOf(c: SynergyCondition): SteerKind[] {
         break;
       case 'cred-vs-rival':
         out.add(x.cmp === 'less' ? 'cred-low' : 'cred-high');
+        break;
+      case 'cred-at-least':
+        // the only threshold in the catalogue (Yorinobu: Embracing Destruction); another value would need its own kind
+        if (x.value === 20) out.add('cred-20');
         break;
       case 'cred-even':
         out.add('cred-even');
@@ -267,6 +271,9 @@ export function steerValue(kind: SteerKind, mine: readonly Pick<Gig, 'value' | '
       return clamp1((cred(theirs) - cred(mine)) / 6);
     case 'cred-high':
       return clamp1((cred(mine) - cred(theirs)) / 6);
+    case 'cred-20':
+      // as cred-high, with 20 in place of the rival's Street Cred: 0 at 19, 1/6 at 20
+      return clamp1((cred(mine) - 19) / 6);
     case 'cred-even':
       return mine.length && cred(mine) % 2 === 0 ? 1 : 0;
     case 'min-gig': {
@@ -310,6 +317,7 @@ export function steerCredit(kinds: readonly SteerKind[], mine: readonly Pick<Gig
 const STEER_WANT: Record<SteerKind, string> = {
   'cred-low': 'your Street Cred below the rival’s',
   'cred-high': 'your Street Cred above the rival’s',
+  'cred-20': 'your Street Cred at 20 or more',
   'cred-even': 'your Street Cred even',
   'min-gig': 'a Gig at its lowest value',
   'high-gig': 'a Gig at 8 or more',

@@ -135,8 +135,9 @@ export interface DecisionRecord {
 
 /**
  * Optional (recorder option `boards`): one player's own view of their board at one moment, for the synergy observer
- * (src/analysis/synergies.ts). Only public cards and counts: their field, equipped Gear, face-up Legends, Gigs, trash
- * counts, and the rival's public counts. A snapshot is taken for both players before every decision and at the end of
+ * (src/analysis/synergies.ts). Public cards and counts (their field, equipped Gear, face-up Legends, Gigs, trash, and
+ * the rival's public counts) plus one thing only that player knows: the printed costs of the cards in their own hand
+ * (never ids, never the rival's hand). A snapshot is taken for both players before every decision and at the end of
  * every main phase, and kept only when it differs from that player's previous one in the same turn.
  */
 export interface BoardSnapshot {
@@ -165,6 +166,10 @@ export interface BoardSnapshot {
   opUnits: number;
   /** the player's trash by card type */
   trash: Partial<Record<CardType, number>>;
+  /** the player's trash by card id, in trash order (public). Optional: absent in snapshots recorded before it was added */
+  trashCards?: string[];
+  /** printed costs of the cards in the player's own hand, ascending (cards without a cost left out). Optional, as above */
+  handCosts?: number[];
 }
 
 /**
@@ -330,10 +335,18 @@ function boardOf(g: Game, p: PlayerId, at: BoardSnapshot['at']): BoardSnapshot {
     for (const u of c.gear) gear.push(g.s.cards[u].defId);
   }
   const trash: Partial<Record<CardType, number>> = {};
+  const trashCards: string[] = [];
   for (const u of ps.trash) {
     const t = g.def(u).type;
     trash[t] = (trash[t] ?? 0) + 1;
+    trashCards.push(g.s.cards[u].defId);
   }
+  const handCosts: number[] = [];
+  for (const u of ps.hand) {
+    const cost = g.def(u).cost;
+    if (cost !== null && cost !== undefined) handCosts.push(cost);
+  }
+  handCosts.sort((a, b) => a - b);
   const rival = (1 - p) as PlayerId;
   return {
     t: g.s.turn,
@@ -350,6 +363,8 @@ function boardOf(g: Game, p: PlayerId, at: BoardSnapshot['at']): BoardSnapshot {
     opGigs: g.P(rival).gigs.length,
     opUnits: g.units(rival).length,
     trash,
+    trashCards,
+    handCosts,
   };
 }
 

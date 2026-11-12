@@ -9,7 +9,7 @@ import { DeckLabPage } from '../src/ui/pages/DeckLab';
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 import { BUILTIN } from '../src/lib/browserLibrary';
 import { builtAroundIds, removePackage } from '../src/lib/deckPackages';
-import { synergiesIn } from '../src/content/synergies';
+import { ACTIVE_SYNERGIES, SYNERGIES, synergiesIn } from '../src/content/synergies';
 import { cardValue } from '../src/ai/knowledge';
 import { setArtEnabled } from '../src/ui/art';
 
@@ -87,10 +87,14 @@ describe('Deck Lab: build around synergies (breed)', () => {
     expect(pickPackage(['a', 'b'], 'a')).toEqual(['b']);
   });
 
-  it('lists every package as a toggle button and reports the pair: trios that hold it, and a plain warning', () => {
+  it('lists every package that is not dormant as a toggle button and reports the pair: trios that hold it, and a plain warning', () => {
     const none = renderToStaticMarkup(<PackagePicker value={[]} onChange={() => undefined} fitAll onFitAll={() => undefined} />);
     expect(none).toContain('<legend>Build around synergies</legend>');
-    expect((none.match(/aria-pressed="false"/g) ?? []).length).toBe(21);
+    expect((none.match(/aria-pressed="false"/g) ?? []).length).toBe(ACTIVE_SYNERGIES.length);
+    expect(ACTIVE_SYNERGIES.length).toBe(SYNERGIES.length - SYNERGIES.filter((s) => s.dormant).length);
+    // a dormant package is not offered, only named
+    expect(none).not.toContain('>Corpo and Ganger steals (Evelyn Parker)</button>');
+    expect(none).toMatch(/Not offered \(dormant, in no library deck\): Corpo and Ganger steals \(Evelyn Parker\)/);
     expect(none).not.toContain('role="status"');
     const two = renderToStaticMarkup(<PackagePicker value={['low-cred', 'high-cred']} onChange={() => undefined} fitAll onFitAll={() => undefined} />);
     expect((two.match(/aria-pressed="true"/g) ?? []).length).toBe(2);

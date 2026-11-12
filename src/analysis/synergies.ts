@@ -23,6 +23,7 @@ import {
   ODDS_ROUNDS,
   roleMap,
   roleMatches,
+  SYNERGIES,
   SYNERGY_BY_ID,
   synergiesIn,
   type RoleCounts,
@@ -107,6 +108,8 @@ const viewOf = (b: BoardSnapshot, used: readonly string[]): SynergyView => ({
   equipped: b.equipped,
   legendsUp: b.legendsUp,
   trash: b.trash,
+  handCosts: b.handCosts,
+  trashCards: b.trashCards,
 });
 
 /** Own turns player p played by global turn T. */
@@ -394,8 +397,10 @@ export interface SynergyReport {
   manifest?: RunManifest;
   measurements?: Record<string, number>;
   decks: SynergyDeckReport[];
-  /** every list pooled per package (more games per slice, different decks mixed; no draw odds) */
+  /** every list pooled per package (more games per slice, different decks mixed; no draw odds). Dormant packages are left out */
   pooled: SynergyRow[];
+  /** the catalogue's dormant packages, kept out of the tables above: why, and the player-games that held one anyway */
+  dormant?: { id: string; name: string; reason: string; games: number }[];
 }
 
 const REPORT_NOTE =
@@ -462,6 +467,7 @@ export function synergyReport(agg: SynergyAggregate, o: { manifest?: RunManifest
         games: d.games,
         winRate: d.games ? d.wins / d.games : 0,
         synergies: Object.entries(d.synergies)
+          .filter(([id]) => !SYNERGY_BY_ID[id]?.dormant)
           .map(([id, a]) => row(id, a, minGames, d.lists[id]))
           .sort((x, y) => Number(!!y.builtAround) - Number(!!x.builtAround) || y.games - x.games || x.name.localeCompare(y.name)),
       }),
@@ -480,8 +486,10 @@ export function synergyReport(agg: SynergyAggregate, o: { manifest?: RunManifest
     games: agg.games,
     decks,
     pooled: Object.entries(pooled)
+      .filter(([id]) => !SYNERGY_BY_ID[id]?.dormant)
       .map(([id, a]) => row(id, a, minGames))
       .sort((x, y) => y.games - x.games || x.name.localeCompare(y.name)),
+    dormant: SYNERGIES.filter((s) => s.dormant).map((s) => ({ id: s.id, name: s.name, reason: s.dormant!.reason, games: pooled[s.id]?.games ?? 0 })),
   };
   if (o.manifest) out.manifest = o.manifest;
   if (o.measurements) out.measurements = o.measurements;
@@ -523,6 +531,15 @@ export function synergyMarkdown(r: SynergyReport): string {
       .map((b) => `${pct(b.assembled.rate)}${b.expected !== null ? ` (${pct(b.expected)})` : ''} / ${pct(b.online.rate)} n=${b.reached}`)
       .join(' | ')} | ${rateText(x.onlineRate)} | ${x.medianRound ?? '—'} | ${sliceText(x.online)} | ${sliceText(x.never)} | ${x.gap === null ? '—' : `${x.gap >= 0 ? '+' : ''}${Math.round(x.gap * 100)}`} |`;
   L.push('## Every list pooled', '', 'Player-games of every list that holds the package, mixed together.', '', head, sep, ...r.pooled.map(line), '');
+  if (r.dormant?.length)
+    L.push(
+      '## Dormant packages (not in any library deck)',
+      '',
+      'Kept in the catalogue but left out of the tables, the builders and the bots’ scoring.',
+      '',
+      ...r.dormant.map((d) => `- ${d.name} (\`${d.id}\`): ${d.reason}${d.games ? ` Held in ${d.games} player-games.` : ''}`),
+      '',
+    );
   for (const d of r.decks) {
     L.push(`## ${d.name} — ${d.games} games, ${pct(d.winRate)} won`, '', head, sep, ...d.synergies.map(line), '');
     const cards = d.synergies.flatMap((s) => s.cards.filter((c) => c.present.games + c.absent.games > 0).map((c) => ({ s, c })));

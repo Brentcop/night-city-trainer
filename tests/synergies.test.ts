@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 import { BUILTIN } from '../src/lib/browserLibrary';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import {
+  ACTIVE_SYNERGIES,
   CATALOGUE_VERSION,
+  conditionCardIds,
   CONDITION_TERM_NAMES,
   CONDITION_TERMS,
   conditionHolds,
@@ -16,6 +18,7 @@ import {
   ODDS_ROUNDS,
   roleMap,
   SYNERGIES,
+  SYNERGY_BY_ID,
   SYNERGY_ROLES,
   synergiesIn,
   termsOf,
@@ -68,10 +71,12 @@ describe('synergy catalogue', () => {
     }
   });
 
-  it('uses only defined condition terms, each with a definition', () => {
+  it('uses only defined condition terms, each with a definition, and names only real cards in them', () => {
     for (const t of CONDITION_TERM_NAMES) expect(CONDITION_TERMS[t].length).toBeGreaterThan(10);
     const bad = SYNERGIES.flatMap((s) => termsOf(s.online).filter((t) => !(t in CONDITION_TERMS)).map((t) => `${s.id}: ${t}`));
     expect(bad).toEqual([]);
+    const unknown = SYNERGIES.flatMap((s) => conditionCardIds(s.online).filter((id) => !CARD_BY_ID[id]).map((id) => `${s.id}: ${id}`));
+    expect(unknown).toEqual([]);
   });
 
   it('confirms every proposal: each card a proposal predicate matches is a member or rejected with a reason', () => {
@@ -115,6 +120,50 @@ describe('synergy catalogue', () => {
 
   it('a deck objective names only real synergies', () => {
     for (const [f, n] of Object.entries(DECK_OBJECTIVES)) for (const id of n.synergies ?? []) expect(SYNERGIES.map((s) => s.id), `${f}: ${id}`).toContain(id);
+  });
+
+  it('a dormant package says why, is never built around, and is left out of the active list', () => {
+    const dormant = SYNERGIES.filter((s) => s.dormant);
+    expect(dormant.map((s) => s.id)).toEqual(['corpo-ganger-steals']);
+    for (const s of dormant) expect(s.dormant!.reason.trim().length).toBeGreaterThan(20);
+    expect(ACTIVE_SYNERGIES.map((s) => s.id)).not.toContain('corpo-ganger-steals');
+    expect(CARD_BY_ID.evelyn_parker_beautiful_enigma?.displayName).toBe('Evelyn Parker: Beautiful Enigma');
+    // a list meeting its built-around count still lists it (it holds the pieces), but never as built around
+    const s = SYNERGY_BY_ID['corpo-ganger-steals']!;
+    const units = membersOf(s)
+      .filter((m) => m.role === 'enabler' && CARD_BY_ID[m.id]!.type !== 'Legend')
+      .map((m) => m.id);
+    const deck = { legends: ['evelyn_parker_beautiful_enigma', 'v_corporate_exile', 'goro_takemura_hands_unclean'], main: units.slice(0, 14).flatMap((id) => [id, id, id]).slice(0, 40) };
+    const x = synergiesIn(deck).find((y) => y.synergy.id === 'corpo-ganger-steals');
+    expect(x).toBeDefined();
+    expect(x!.builtAround).toBe(false);
+    // no active library deck holds it
+    for (const d of BUILTIN) expect(synergiesIn(d.deck).map((y) => y.synergy.id), d.file).not.toContain('corpo-ganger-steals');
+  });
+
+  it('Programs as fuel: the engines define it; Programs alone, or a few engine copies among them, are not built around it', () => {
+    const roles = roleMap(SYNERGY_BY_ID['program-fuel']!);
+    expect(roles.get('jacked_in_voodoo_boy')).toBeUndefined(); // a drawback, not an engine
+    expect(roles.get('trust_no_one')).toBe('enabler'); // a Program is fuel
+    const fuel = ['trust_no_one', 'floor_it', 'chrome_reverie', 'pyramid_song', 'three_mouths_one_desire', 'towerfall'].flatMap((id) => [id, id, id]); // 18 Programs
+    const fill = (main: string[]) => [...main, ...Array(40 - main.length).fill('psycho_squad')];
+    const legends = ['jackie_welles_pour_one_out_for_me', 'wakako_okada_peace_and_harmony', 'v_corporate_exile'];
+    const pf = (main: string[]) => synergiesIn({ legends, main: fill(main) }).find((x) => x.synergy.id === 'program-fuel');
+    expect(pf(fuel)).toBeUndefined(); // only Programs: not even held
+    const placide3 = ['placide_voodoo_sentinel', 'placide_voodoo_sentinel', 'placide_voodoo_sentinel'];
+    expect(pf([...fuel, ...placide3])!.builtAround).toBe(false); // 3 engine copies among 18 Programs
+    const engines4 = ['placide_voodoo_sentinel', 'placide_voodoo_sentinel', 'lizzy_wizzy_delicate_weapon', 'lizzy_wizzy_delicate_weapon'];
+    expect(pf([...fuel, ...engines4])!.builtAround).toBe(true); // 4 engine copies and 8+ Programs
+    expect(pf([...fuel.slice(0, 6), ...engines4])!.builtAround).toBe(false); // 4 engines but only 6 Programs
+  });
+
+  it('owner review 2026-11-12: Yorinobu wants 20 Street Cred of its own; forced attacks count as spending', () => {
+    expect(roleMap(SYNERGY_BY_ID['high-cred']!).has('yorinobu_arasaka_embracing_destruction')).toBe(false);
+    expect(roleMap(SYNERGY_BY_ID['cred-20']!).get('yorinobu_arasaka_embracing_destruction')).toBe('payoff');
+    expect(termsOf(SYNERGY_BY_ID['cred-20']!.online)).toContain('cred-at-least');
+    const sp = roleMap(SYNERGY_BY_ID['spend-punish']!);
+    expect(sp.get('mox_inciters')).toBe('enabler');
+    expect(sp.get('evelyn_parker_beautiful_enigma')).toBe('enabler');
   });
 });
 
@@ -163,6 +212,35 @@ describe('online conditions', () => {
     expect(conditionHolds({ term: 'cred-even' }, view({ cred: null }), r)).toBe(false);
     expect(conditionHolds({ term: 'gigs-behind', by: 2 }, view({ gigCount: 1, opGigCount: 3 }), r)).toBe(true);
     expect(conditionHolds({ term: 'trash', type: 'Unit', min: 3 }, view({ trash: { Unit: 3 } }), r)).toBe(true);
+    expect(conditionHolds({ term: 'cred-at-least', value: 20 }, view({ cred: 20 }), r)).toBe(true);
+    expect(conditionHolds({ term: 'cred-at-least', value: 20 }, view({ cred: 19 }), r)).toBe(false);
+  });
+  it('a Gig matching a cost in your own hand (gig-cost-match)', () => {
+    const r = new Map();
+    const c = { term: 'gig-cost-match', min: 1 } as const;
+    expect(conditionHolds(c, view({ gigs: [[6, 4], [8, 7]], handCosts: [2, 4, 5] }), r)).toBe(true);
+    expect(conditionHolds(c, view({ gigs: [[6, 4], [8, 7]], handCosts: [2, 5] }), r)).toBe(false);
+    expect(conditionHolds({ term: 'gig-cost-match', min: 2 }, view({ gigs: [[6, 4], [8, 4]], handCosts: [4] }), r)).toBe(true); // two Gigs, one card
+    expect(conditionHolds(c, view({ gigs: [[6, 4]] }), r)).toBe(false); // an older snapshot without hand costs
+    const cm = SYNERGY_BY_ID['cost-match']!;
+    const roles = roleMap(cm);
+    expect(conditionHolds(cm.online, view({ gigs: [[6, 2]], handCosts: [2], used: ['the_heist'] }), roles)).toBe(true);
+    expect(conditionHolds(cm.online, view({ gigs: [[6, 2]], handCosts: [2], used: ['muamar_reyes_el_capitan'] }), roles)).toBe(false); // an enabler is no payoff
+  });
+  it('named cards in your trash (in-trash): the Relic loop', () => {
+    const s = SYNERGY_BY_ID['relic-loop']!;
+    const roles = roleMap(s);
+    const relic = { inPlay: ['the_relic_experimental_biochip'] };
+    expect(conditionHolds(s.online, view({ ...relic, trashCards: ['adam_smasher_metal_over_meat'] }), roles)).toBe(true);
+    expect(conditionHolds(s.online, view({ ...relic, trashCards: ['psycho_squad'] }), roles)).toBe(false);
+    expect(conditionHolds(s.online, view({ trashCards: ['adam_smasher_metal_over_meat'] }), roles)).toBe(false);
+  });
+  it('Programs as fuel comes online only when an engine is used, not when it is merely face-up', () => {
+    const s = SYNERGY_BY_ID['program-fuel']!;
+    const roles = roleMap(s);
+    expect(conditionHolds(s.online, view({ inPlay: ['alt_cunningham_soulkiller_architect'], used: ['trust_no_one'] }), roles)).toBe(false);
+    expect(conditionHolds(s.online, view({ inPlay: ['alt_cunningham_soulkiller_architect'], used: ['alt_cunningham_soulkiller_architect'], trash: { Program: 2 } }), roles)).toBe(true);
+    expect(conditionHolds(s.online, view({ used: ['lizzy_wizzy_delicate_weapon', 'trust_no_one'] }), roles)).toBe(true);
   });
 });
 
@@ -254,6 +332,12 @@ describe('synergy observation', () => {
     expect(big.online.thin).toBe(false);
     expect(big.online.winRate).toBeCloseTo(0.5);
     expect(big.online.low95!).toBeLessThan(0.5);
+  });
+  it('keeps dormant packages out of the tables and lists them apart', () => {
+    const r = synergyReport(aggregateSynergyGame(GAME));
+    expect(r.pooled.map((x) => x.id)).not.toContain('corpo-ganger-steals');
+    expect(r.dormant?.map((d) => d.id)).toEqual(['corpo-ganger-steals']);
+    expect(synergyMarkdown(r)).toContain('## Dormant packages (not in any library deck)');
   });
   it('refuses to merge aggregates from another catalogue', () => {
     const other = { ...aggregateSynergyGame(GAME), catalogue: 'fnv1a64:other' };

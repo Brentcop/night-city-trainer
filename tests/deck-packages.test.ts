@@ -223,6 +223,20 @@ describe('package moves', () => {
     expect(optimizeCandidates(around, false, 200).some((s) => checkChange(around, s.deck, plan).length > 0)).toBe(true);
   });
 
+  it('a dormant package is never added, swapped in or counted as built around unless named by id', () => {
+    const d = deck([E, E, P1, P1, P2, P2], BBR);
+    const all = packageMoves(d, { score: cardValue });
+    expect(all.some((m) => m.added === 'corpo-ganger-steals' || m.removed === 'corpo-ganger-steals')).toBe(false);
+    // named explicitly, the builders may still use it
+    const named = packageMoves(d, { score: cardValue, packages: ['corpo-ganger-steals'], kinds: ['add'] });
+    expect(named.every((m) => m.added === 'corpo-ganger-steals')).toBe(true);
+    // a list that meets its count by the numbers is still not reported as built around it
+    for (const m of named) {
+      expect(isBuiltAround('corpo-ganger-steals', m.deck)).toBe(true);
+      expect(builtAroundIds(m.deck)).not.toContain('corpo-ganger-steals');
+    }
+  });
+
   it('packageChanges says what was kept, added and removed', () => {
     const d = deck([E, E, P1, P1, P2, P2], BBR);
     const m = swapPackage(d, 'min-gig', 'high-gig', { score: cardValue })!;

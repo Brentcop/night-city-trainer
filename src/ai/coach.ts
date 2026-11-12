@@ -92,6 +92,7 @@ function awayText(k: SteerKind, after: { mine: Gig[]; theirs: Gig[] }): string {
   const cred = (xs: Gig[]) => xs.reduce((a, x) => a + x.value, 0);
   if (k === 'cred-low' && cred(after.mine) >= cred(after.theirs)) return 'would put your Street Cred at or above the rival’s';
   if (k === 'cred-high' && cred(after.mine) <= cred(after.theirs)) return 'would leave your Street Cred at or below the rival’s';
+  if (k === 'cred-20' && cred(after.mine) < 20) return 'would leave your Street Cred below 20';
   if (k === 'cred-even' && cred(after.mine) % 2 === 1) return 'would make your Street Cred odd';
   return 'would move away from that';
 }
@@ -159,6 +160,7 @@ export function packageWarnings(g: Game, p: PlayerId): string[] {
   const out: string[] = [];
   if (kinds.includes('cred-low') && g.P(p).gigs.length && mine >= theirs) out.push(`Your Street Cred (${mine}) is not below the rival’s (${theirs}); your deck wants it lower (${names('cred-low')}).`);
   if (kinds.includes('cred-high') && mine <= theirs) out.push(`Your Street Cred (${mine}) is not above the rival’s (${theirs}); your deck wants it higher (${names('cred-high')}).`);
+  if (kinds.includes('cred-20') && mine < 20) out.push(`Your Street Cred (${mine}) is below 20; your deck wants 20 or more (${names('cred-20')}).`);
   return out;
 }
 

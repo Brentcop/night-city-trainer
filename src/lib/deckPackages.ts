@@ -14,7 +14,7 @@
 import { CARD_BY_ID, CARDS, cardLabel } from '../engine/cards';
 import { counts, ramLimits, validateDeck } from '../engine/deck';
 import type { CardDef, Color, DeckList } from '../engine/types';
-import { CATALOGUE_VERSION, SYNERGIES, SYNERGY_BY_ID, covers, meetsBuiltAround, membersOf, roleMap, zeroRoles, type PieceCount, type RoleCounts, type Synergy, type SynergyCondition, type SynergyRole } from '../content/synergies';
+import { CATALOGUE_VERSION, SYNERGIES, SYNERGY_BY_ID, covers, isDormant, meetsBuiltAround, membersOf, roleMap, zeroRoles, type PieceCount, type RoleCounts, type Synergy, type SynergyCondition, type SynergyRole } from '../content/synergies';
 
 // ---------------------------------------------------------------- the plan
 
@@ -34,8 +34,10 @@ export interface PackagePlan {
   lockCards?: Record<string, number>;
 }
 
-/** Every package id, in catalogue order. */
+/** Every package id, in catalogue order (dormant ones included: they may still be named by id). */
 export const PACKAGE_IDS: readonly string[] = SYNERGIES.map((s) => s.id);
+/** The ids builders use when not told otherwise: every package that is not dormant. */
+export const ACTIVE_PACKAGE_IDS: readonly string[] = PACKAGE_IDS.filter((id) => !isDormant(id));
 export const packageName = (id: string) => SYNERGY_BY_ID[id]?.name ?? id;
 
 export function isEmptyPlan(p?: PackagePlan | null): boolean {
@@ -157,7 +159,7 @@ export function packageCopies(s: Synergy, deck: Pick<DeckList, 'legends' | 'main
   return { main, legends, copies: plus(main, legends) };
 }
 
-/** The list meets the package's built-around minimum. */
+/** The list meets the package's built-around minimum (by count; a dormant package too, when it is named by id). */
 export const isBuiltAround = (id: string, deck: Pick<DeckList, 'legends' | 'main'>) => {
   const s = SYNERGY_BY_ID[id];
   return !!s && meetsBuiltAround(packageCopies(s, deck).copies, s.builtAround);
@@ -167,8 +169,8 @@ export const holdsPackage = (id: string, deck: Pick<DeckList, 'legends' | 'main'
   const s = SYNERGY_BY_ID[id];
   return !!s && covers(packageCopies(s, deck).copies, s.needs);
 };
-/** Ids of the packages a list is built around, in catalogue order. */
-export const builtAroundIds = (deck: Pick<DeckList, 'legends' | 'main'>) => PACKAGE_IDS.filter((id) => isBuiltAround(id, deck));
+/** Ids of the packages a list is built around, in catalogue order (never a dormant one). */
+export const builtAroundIds = (deck: Pick<DeckList, 'legends' | 'main'>) => ACTIVE_PACKAGE_IDS.filter((id) => isBuiltAround(id, deck));
 
 /** How many pieces short of a built-around minimum (0 when met); a `both` card counts toward each role. */
 export function shortfall(c: RoleCounts, min: PieceCount): number {
@@ -322,7 +324,8 @@ export interface PackageMoveOptions {
   /** the builder's card score (higher is better): picks members to add, fillers, and the cheapest cuts */
   score?: (id: string) => number;
   kinds?: readonly PackageMoveKind[];
-  /** only these packages may be added, completed or swapped in (default: all) */
+  /** only these packages may be added, completed or swapped in (default: every package that is not dormant; a dormant one
+   *  named here may also be swapped out or removed) */
   packages?: readonly string[];
   /** the most cards one move may change (default 10) */
   maxCards?: number;
@@ -571,8 +574,9 @@ export function packageMoves(deck: DeckList, o: PackageMoveOptions = {}): Packag
   const kinds = new Set(o.kinds ?? PACKAGE_MOVE_KINDS);
   const avoid = new Set(plan.avoid ?? []);
   const guarded = new Set([...(plan.keep ?? []), ...(plan.require ?? [])]);
-  const may = (id: string) => !avoid.has(id) && (!o.packages || o.packages.includes(id));
-  const held = PACKAGE_IDS.filter((id) => holdsPackage(id, deck) && !guarded.has(id));
+  // a dormant package is moved only when named in `packages`
+  const may = (id: string) => !avoid.has(id) && (o.packages ? o.packages.includes(id) : !isDormant(id));
+  const held = PACKAGE_IDS.filter((id) => holdsPackage(id, deck) && !guarded.has(id) && (!isDormant(id) || !!o.packages?.includes(id)));
   const byKind: Record<PackageMoveKind, PackageMove[]> = { complete: [], add: [], swap: [], remove: [] };
   const seen = new Set<string>();
   const keep = (m: PackageMove | null) => {

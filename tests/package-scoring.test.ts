@@ -32,6 +32,12 @@ import { fillerDeck, gig, Scripted } from './engine-helpers';
 
 const deck = (f: string) => parseDeck(readFileSync(`data/decks/${f}`, 'utf8'), f).deck;
 const BBG = deck('meta-bbg-cunningham-econ.txt');
+/** A list built around no package: archived S4-03 Mutant with its 3 Over the Edge (a High Gigs payoff since the
+ *  2026-11-12 review) swapped for 3 Japantown Jonin. */
+function builtAroundNothing(): DeckList {
+  const d = deck('archive/s4-03-mutant-rrb.txt');
+  return { ...d, main: d.main.map((id) => (id === 'over_the_edge' ? 'japantown_jonin' : id)) };
+}
 
 /** A BBG Cunningham Econ game (seat 0) in seat 0's main phase on turn 3, with both hands put back in the decks. */
 function bbgGame(): Game {
@@ -77,6 +83,10 @@ describe('package context', () => {
     expect(steerOf(SYNERGY_BY_ID['gig-swap'].online)).toEqual(['min-gig']);
     expect(steerOf(SYNERGY_BY_ID['comeback'].online)).toEqual([]);
     expect(steerOf(SYNERGY_BY_ID['units-in-trash'].online)).toEqual([]);
+    expect(steerOf(SYNERGY_BY_ID['cred-20'].online)).toEqual(['cred-20']);
+    // a hand-dependent or trash condition is not steered
+    expect(steerOf(SYNERGY_BY_ID['cost-match'].online)).toEqual([]);
+    expect(steerOf(SYNERGY_BY_ID['relic-loop'].online)).toEqual([]);
   });
   it('counts own pieces by zone and role from the seat’s own view', () => {
     const g = bbgGame();
@@ -91,7 +101,7 @@ describe('package context', () => {
     expect(f.legendsDown).toEqual({ ...zeroRoles(), payoff: 1, both: 1 });
   });
   it('a list built around nothing has no package context', () => {
-    const none = deck('archive/s4-03-mutant-rrb.txt');
+    const none = builtAroundNothing();
     expect(packagesForList(none)).toEqual([]);
   });
 });
@@ -139,6 +149,8 @@ describe('the terms on hand-built positions', () => {
     expect(steerValue('cred-low', [d(8, 8)], [d(6, 5)])).toBeCloseTo(-0.5);
     expect(steerValue('cred-low', [], [d(4, 1)])).toBeCloseTo(1 / 6); // Null is the lowest
     expect(steerValue('cred-high', [d(12, 12)], [d(4, 3)])).toBe(1);
+    expect(steerValue('cred-20', [d(12, 12), d(8, 8)], [d(20, 20)])).toBeCloseTo(1 / 6); // 20: just there, whatever the rival holds
+    expect(steerValue('cred-20', [d(12, 12), d(8, 7)], [])).toBe(0);
     expect(steerValue('cred-even', [d(4, 3), d(6, 3)], [])).toBe(1);
     expect(steerValue('min-gig', [d(4, 1), d(6, 2)], [])).toBeCloseTo(0.625);
     expect(steerValue('high-gig', [d(4, 4), d(10, 9)], [])).toBe(1);
@@ -198,7 +210,7 @@ describe('zero package weights are today’s bot', () => {
     expect(await medium(BBG, deck('meta-rrg-dexter-midrange.txt'), zero, 11)).toEqual(await medium(BBG, deck('meta-rrg-dexter-midrange.txt'), undefined, 11));
   }, 60_000);
   it('a list built around no package plays the same game with the weights on', async () => {
-    const none = deck('archive/s4-03-mutant-rrb.txt');
+    const none = builtAroundNothing();
     const opp = deck('meta-yyb-rogue-gear.txt');
     expect(await medium(none, opp, ON, 12)).toEqual(await medium(none, opp, undefined, 12));
   }, 60_000);

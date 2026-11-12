@@ -70,6 +70,11 @@ export function DeckSynergies({ deck, named = [] }: { deck: Pick<DeckList, 'lege
                   <b>{x.synergy.name}</b>
                   {x.builtAround && <span className="tag" style={{ marginLeft: 6 }}>built around</span>}
                   {named.includes(x.synergy.id) && <span className="tag" style={{ marginLeft: 6 }}>in the game plan</span>}
+                  {x.synergy.dormant && (
+                    <span className="tag" style={{ marginLeft: 6 }} title={x.synergy.dormant.reason}>
+                      dormant
+                    </span>
+                  )}
                   <div className="muted small">{x.synergy.bond === 'requires' ? 'pieces need each other' : 'pieces help each other'}</div>
                 </th>
                 <td>

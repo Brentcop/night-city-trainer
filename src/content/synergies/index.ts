@@ -12,6 +12,9 @@ export * from './vocabulary';
 
 export const SYNERGIES: readonly Synergy[] = SYNERGY_LIST;
 export const SYNERGY_BY_ID: Readonly<Record<string, Synergy>> = Object.fromEntries(SYNERGY_LIST.map((s) => [s.id, s]));
+/** The packages that are switched on (not `dormant`), in catalogue order: what builders, scoring and headlines use by default. */
+export const ACTIVE_SYNERGIES: readonly Synergy[] = SYNERGY_LIST.filter((s) => !s.dormant);
+export const isDormant = (id: string) => !!SYNERGY_BY_ID[id]?.dormant;
 
 /** Fingerprint of the catalogue: a report made with another catalogue says so (its packages may have changed). */
 export const CATALOGUE_VERSION = `fnv1a64:${fingerprintText(JSON.stringify(SYNERGY_LIST))}`;
@@ -134,7 +137,7 @@ export interface ListSynergy {
   legends: RoleCounts;
   /** the member cards in the list */
   cards: { id: string; role: SynergyRole; copies: number }[];
-  /** the list meets the package's builtAround minimum */
+  /** the list meets the package's builtAround minimum (never for a dormant package) */
   builtAround: boolean;
   /** odds of holding the needed pieces by your own turn N (ODDS_ROUNDS) */
   odds: { round: number; p: number }[];
@@ -143,6 +146,7 @@ export interface ListSynergy {
 /**
  * The packages a list contains: those whose needed pieces it holds at all (every copy drawn would cover `needs`),
  * with copies per role, whether it is built around each, and the draw odds. Most built-around first, then by copies.
+ * A dormant package is still listed when the list holds it, but never as built around.
  */
 export function synergiesIn(deck: Pick<DeckList, 'legends' | 'main'>): ListSynergy[] {
   const out: ListSynergy[] = [];
@@ -170,7 +174,7 @@ export function synergiesIn(deck: Pick<DeckList, 'legends' | 'main'>): ListSyner
       copies,
       legends,
       cards: [...counts].map(([id, n]) => ({ id, role: roles.get(id)!, copies: n })).sort((a, b) => b.copies - a.copies || a.id.localeCompare(b.id)),
-      builtAround: meetsBuiltAround(copies, s.builtAround),
+      builtAround: !s.dormant && meetsBuiltAround(copies, s.builtAround),
       odds: ODDS_ROUNDS.map((round) => ({ round, p: holdOdds(main, legends, deck.main.length, cardsSeenBy(round), s.needs) })),
     });
   }
@@ -195,6 +199,10 @@ export interface SynergyView {
   equipped: number;
   legendsUp: number;
   trash: Partial<Record<CardType, number>>;
+  /** printed costs of the cards in the player's own hand (absent in older snapshots: treated as none) */
+  handCosts?: readonly number[];
+  /** card ids in the player's own trash (public; absent in older snapshots: treated as none) */
+  trashCards?: readonly string[];
 }
 
 function valuePairs(gigs: SynergyView['gigs']): number {
@@ -244,6 +252,14 @@ export function conditionHolds(c: SynergyCondition, v: SynergyView, roles: Reado
       return c.cmp === 'less' ? lessCred(v.cred, v.opCred) : moreCred(v.cred, v.opCred);
     case 'cred-at-least':
       return v.cred !== null && v.cred >= c.value;
+    case 'gig-cost-match': {
+      const costs = new Set(v.handCosts ?? []);
+      return v.gigs.filter(([, val]) => costs.has(val)).length >= c.min;
+    }
+    case 'in-trash': {
+      const ids = new Set(c.ids);
+      return (v.trashCards ?? []).filter((id) => ids.has(id)).length >= c.min;
+    }
     case 'gigs-behind':
       return v.opGigCount - v.gigCount >= c.by;
     case 'equipped':
@@ -258,6 +274,12 @@ export function conditionHolds(c: SynergyCondition, v: SynergyView, roles: Reado
 /** Every term a condition uses, nested ones included (tests check each is defined). */
 export function termsOf(c: SynergyCondition): string[] {
   return c.term === 'all' || c.term === 'any' ? [c.term, ...c.of.flatMap(termsOf)] : [c.term];
+}
+
+/** Every card id a condition names (`in-trash`), nested ones included (tests check each is a real card). */
+export function conditionCardIds(c: SynergyCondition): string[] {
+  if (c.term === 'all' || c.term === 'any') return c.of.flatMap(conditionCardIds);
+  return c.term === 'in-trash' ? [...c.ids] : [];
 }
 
 /** A card's display label, or its id. */
