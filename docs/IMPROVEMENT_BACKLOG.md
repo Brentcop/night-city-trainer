@@ -322,6 +322,63 @@ Owns: `.github/workflows/**`. Needs one owner step in the repository settings. D
 
 ---
 
+## Wave D — better information from bot games (review, 2026-11-12)
+
+A review of how the bots and the coach learn which moves are better, and of how much each hour of bot games tells us. Nothing here is started. "Checked" means the code path or number was confirmed in the code or by a scratch run; "inferred" means the size of the effect is a judgement, to be measured before and after the change. Everything in D1 changes how games play out, so it needs a `SIM_VERSION` bump and re-recorded events.
+
+Measured baseline (one thread, meta-bbg vs meta-rrg-dexter): Medium 0.10 s per game, Hard 1.14 s per game and about 2,500 state clones per game; `structuredClone` is 66–70% of bot time. A plain recursive copy of the same state is about 6× faster (40 µs against 247 µs).
+
+### WP-D1 · Bot play (changes results)
+
+Owns: `src/ai/heuristic.ts`, `src/ai/playOut.ts`, `src/ai/eval.ts`, `src/ai/tiers.ts`.
+
+| ID | Sev | Problem | Fix | Verify |
+|---|---|---|---|---|
+| BOT-1 | H | Main-phase play-outs can see the rival win but never our own win. The win check runs at the start of a player's own turn (`engine.ts:282`); the play-out stops after the rival's end phase (`playOut.ts:52-59`). Holding 7 Gigs through the rival's turn scores about +90 (`gigNear`), a rival win −10,000. Reaction play-outs have the mirror gap. Main-phase rollout scores are also unclamped (`heuristic.ts:379`), reactions are clamped (`:465`). Checked; the direction of the bias on play (too cautious when closing) is inferred. | After the play-out, score the next start-of-turn win for whichever seat was not checked; clamp main-phase rollouts with `clampPlayOut`. | Paired `botcheck` (SIM-2) fixed against current. |
+| BOT-2 | H | Main-phase rollouts score each candidate in one random world (`heuristic.ts:375-379`); reactions use 3 shared worlds, the reviewer 8. In a 45-decision probe, 24% of coach picks changed when only the hidden deal changed, and the median gap between first and second choice was 0.009 Gigs. Checked (small probe). | Score candidates over N shared worlds from `makeWorlds`, as `deepReaction` does. Costs N× rollout time: do SIM-1 first. | Re-run the probe for the flip rate; paired `botcheck`. |
+| BOT-3 | M | The evaluation cannot see the rival's next turn: nothing values Gigs a ready rival attacker can take against our blockers, and a rival on 7+ Gigs at our end of turn is −90, not a loss (`eval.ts:146-167`). This drives Medium, the rollout policy and Hard's 1-ply screen. | A "Gigs stealable next turn" term and a rival-lethal check. | Held-out tune, then paired `botcheck`. |
+| BOT-4 | M | Whether to sell is a rule (sell up to 9 Eddies, `heuristic.ts:240-241`), never searched; Hard has `sellLookahead` 0 (`tiers.ts:41`). | Add "don't sell" and the best two sells as rollout candidates. | Paired `botcheck`; sell rates in telemetry. |
+| BOT-5 | M | Actions in a turn are picked one at a time, so a fight trick is never planned with the attack it enables (already noted in BOT_TOOLKIT §9). Measured branching is about 4 options per decision. | Depth-limited search over whole-turn sequences, de-duplicated by state. Large. | Benchmark positions (INFO-5), paired `botcheck`. |
+| BOT-6 | M | The mulligan is one fixed rule for every deck (`heuristic.ts:610-622`); mulligan rates run 6–27% by deck, which may bias ratings of fast decks (inferred). | Per-deck keep thresholds from telemetry outcomes or rollouts. | Win rate by keep/mulligan per deck, before and after. |
+| BOT-7 | M | `tune.ts` tunes Medium with no profiles and no impact (`tune.ts:46-53`), but events are played by Hard; 168 unpaired games per test is a ±7-point interval. The 2026-11-11 run applied nothing. | Tune the Hard configuration on paired seeds; or replace the hill-climb with INFO-4. | Held-out paired games. |
+
+### WP-D2 · What the bots and coach are told (knowledge and feedback)
+
+Owns: `src/ai/coach.ts`, `src/ai/reviewer.ts`, `src/ai/impact.ts`, `src/ai/knowledge.ts`, `src/engine/telemetry.ts`, `src/analysis/**`.
+
+| ID | Sev | Problem | Fix | Verify |
+|---|---|---|---|---|
+| INFO-1 | H | The scorecard grades by shortlist, not by value: a human move outside the coach's top 4, or any other sell, is a "miss" with no gap (`coach.ts:255-261`, `heuristic.ts:355`). | Always score the human's actual move in the same worlds, sells included, and report the gap with its spread; say "close call" when the top two overlap. | Unit test: a different sell within noise grades as close. |
+| INFO-2 | H | Card impact ("win rate when drawn") is pooled over opponent, seat and game length, so long games and draw engines inflate it (`analyze.ts:80-92`; partly in ROADMAP §5). It is then used as value for sells, mulligans and coach tips (`heuristic.ts:250`, `:612`, `coach.ts:269`). Size of the bias inferred. | Estimate "drawn by turn T among games still running at T", stratified by matchup and seat, with intervals and shrinkage. | A synthetic deck with a dead filler card should measure about 0. |
+| INFO-3 | H | Impact is measured from the bot's own games on the 7 meta lists and read back by the same bot: a card the bot sells looks weak when drawn and gets sold more (inferred loop). Hard's 54.8% against Deep moved impact and reaction rollouts together and on those same lists. Other decks get half the pooled number, yet the coach still says "by bot-match telemetry". | Paired `botcheck` of `impact` 0 against 40 on non-meta decks; coach text says when a list has no data of its own; longer term, value a card by outcomes when kept against sold. | The paired check itself. |
+| INFO-4 | M | The evaluation's "Gigs" are never calibrated against who won (part of AI-8). | Fit win probability to `evaluate()`'s features on recorded decision states (logistic fit, held-out games), and check the coach's claimed gaps against outcomes. | Held-out log-loss and a calibration plot; then paired `botcheck`. |
+| INFO-5 | M | No fixed benchmark of positions; the tests check behaviour only. The reviewer's oracle is the same bot with more samples (AI-8), and `reviewer.ts:26` cites a validation report that does not exist. | Freeze a few hundred telemetry positions labelled by a stronger, different oracle (longer horizon, more worlds); report regret by decision type for every bot change. | The suite runs in CI as a report, not a gate, at first. |
+| INFO-6 | M | Telemetry drops the bot's own scores (`telemetry.ts:104-134`). | Record per-option scores, the top-two margin, the bot config, and 1-ply against deep rank. Positions where shallow and deep disagree are the cheapest to study. | Margin against outcome table in the decisions report. |
+| INFO-7 | L | Hand-written `cardValue` (regexes plus 9 choom.gg ratings, `knowledge.ts:68-86`) decides which card is sold and is never checked. | Rank-correlate it per deck with sell-rollout values and the corrected impact; list outliers. | The outlier report. |
+| INFO-8 | L | Coach package notes assert keep or sell from catalogue membership alone (`coach.ts:139-188`). | Show a note only when the package's measured lift has an interval above 0, labelled as association. | Snapshot of notes for two decks. |
+| INFO-9 | L | Human games stay in localStorage (25 replays) without the coach's advice (ROADMAP2 §2/§3). | JSON export of a replay with the advice per decision, readable by `scripts/review.ts`. | Round-trip test. |
+
+### WP-D3 · More information per hour of games
+
+Owns: `src/engine/engine.ts` (clone only), `scripts/botcheck.ts`, `src/lib/evidence.ts`, `scripts/ratings.ts`, `scripts/build-h2h.ts`, `scripts/lib-node.ts`.
+
+**Status 2026-11-12: SIM-1 and SIM-2 done.** SIM-1: `copyState` (`src/engine/copyState.ts`, a generic plain-data copy that throws on anything else) replaces `structuredClone` in `clone()` and `probeCopy()`; Hard, one thread, meta-bbg vs meta-rrg-dexter, 20 games: 1.13 → 0.43 s per game (2.6×), 288 → 53 µs per clone, clones 74% → 36% of time, the same 20 results; `tests/copy-state.test.ts` compares it with `structuredClone` through seeded games. The state has no shared objects in 720 scanned games; the only sharing the code can create (synapse_burnout's read-only `data` on two delayed mods) is never written. SIM-2: `botcheck` plays the duplicate format (each deal twice, configs swapped) with `duplicateSummary` in `evidence.ts`, plus `--decks` and `--seed`. `{}` vs `{}` is exactly 50% with every pair split; Medium vs Hard (`--per 3`, 126 pairs): 47.6% [42.1, 53.1], per-pair SD 0.63, half-width ±5.5 against ±6.2 unpaired on the same games (not the "half as wide" expected; the gain should be larger between closer configs, unmeasured).
+
+| ID | Sev | Problem | Fix | Expected gain | Verify |
+|---|---|---|---|---|---|
+| SIM-1 | H | `Game.clone()` and `probeCopy()` use `structuredClone` (`engine.ts:184`, `:205`): 66–70% of bot time. Measured. | A hand-written typed copy of `GameState` (plain data, no Map or Set). Changes no result. | Clone 6× faster (measured); about 2.5× per Hard game (estimated). | `tests/replay-events.test.ts` byte-identical; bench before and after. |
+| SIM-2 | H | `botcheck` plays each seed once, config A always in seat 0, with a binomial interval (`botcheck.ts:22-29`). `bot-tiers.sh` claims "seats swapped, same seeds". Checked. | Play every seed twice with the two configs swapped and the decks fixed; report the paired interval from `evidence.ts`. | Interval about half as wide for the same games (inferred from the forge's paired data: SD 0.28 against 0.69). | Same comparison both ways. |
+| SIM-3 | M | Nothing checks that deck rankings survive a change of bot; builders screen with Medium, seasons use Deep, events Hard. Medium is 10× cheaper and wins 43.8% against Hard. | A check that plays the meta round robin with Medium and Hard on the same seeds and reports rank correlation and letter flips; then nominate with Medium, confirm with Hard. | Exposes bot artefacts; 3–5× less compute in builders (estimated). | The report. |
+| SIM-4 | M | Head-to-heads have a median of 3 games per pair (596 of 1,081 pairs met, none with 20+), and `breeder.ts:255` shrinks toward 50%. | Shrink toward the rating model's prediction plus a fitted pair residual; unmet pairs get a prediction. | Large at n = 3 (estimated); no extra games. | Leave-one-event-out prediction error. |
+| SIM-5 | M | Adoption uses a Bonferroni z of 2.50 at every look (`evidence.ts:173-175`). At the 896-game cap a true gain needs about 4 points for 80% power. | O'Brien–Fleming-type alpha spending, same error rate. | 25–35% fewer games or smaller gains adoptable (estimated). | Simulated false-adopt rate in the unit tests. |
+| SIM-6 | M | Rating standard errors use the diagonal of the information matrix only (`ratings.ts:72-79`), so intervals are too narrow (inferred). Games come only from Swiss pairings: 62–150 per deck, 90% half-widths of 5–9 points. | Full Hessian inverse; an extra-games mode that picks pairs by expected drop in rating variance. | Honest intervals; 20–30% fewer games for a given width (estimated). | Coverage on simulated ratings. |
+| SIM-7 | L | `ratings.ts` and `build-h2h.ts` pool every event without checking the bot. All 7 events are Hard on version 5 today. | Refuse or group by bot and `simVersion`. | Guards against a silent mix. | Test with a Medium event. |
+| SIM-8 | L | No cache of games; tuning loops replay the same baseline games. `runJobs` boots a new pool per call (`lib-node.ts:306`). | Cache by sim version, bot spec, impact hash, list fingerprints, seed and first player; keep one pool per process. | 10–30% in tuning loops (estimated). | Cache hit counts. |
+
+Order that pays for itself: SIM-1 and SIM-2 first (faster games and a sharper yardstick, no result changes), then BOT-1 and BOT-2 measured with them, then INFO-1, INFO-3 and INFO-5. AI-10 (Gig-plan regexes, about 6% of time now) rises to 15–20% of the remainder once SIM-1 lands.
+
+---
+
 ## Appendix — `scripts/` classification
 
 | File | Status | Action |

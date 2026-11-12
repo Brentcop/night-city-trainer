@@ -60,6 +60,66 @@ export function pairedInterval(candidate: readonly number[], baseline: readonly 
   return { games: n, mean, lower: Math.max(-1, mean - margin), upper: Math.min(1, mean + margin), z };
 }
 
+/** A bot comparison played in the duplicate format (scripts/botcheck.ts): config A's win rate with its paired interval. */
+export interface DuplicateSummary {
+  pairs: number;
+  /** A's share of the points over both games of every pair */
+  winRate: number;
+  lower95: number;
+  upper95: number;
+  /** SD of the per-pair difference in seat-0 score (A in seat 0 minus B in seat 0); about 0.71 if the two games were unrelated */
+  sdDiff: number;
+  /** pairs where each config won one game (the same deck won both: the pilots made no difference) */
+  split: number;
+  /** pairs where one config won both games */
+  swept: number;
+  /** of those, the pairs A won both games of */
+  sweptByA: number;
+  /** pairs with a tie in either game */
+  tied: number;
+  /** half-width of the plain binomial 95% interval on the same 2 × pairs games, as if each were an independent game */
+  unpairedHalf95: number;
+}
+
+/**
+ * The duplicate format: every deal is played twice, A piloting the seat-0 deck against B, then B piloting it against A,
+ * with decks, seed and first player the same. `aSeat0[i]` and `bSeat0[i]` are the seat-0 deck's scores (win 1, tie ½,
+ * loss 0) in the two games of pair i. A's win rate over the pair is ½ + (aSeat0 − bSeat0)/2, so its interval is the
+ * paired interval of that difference (pairedInterval), halved and moved to ½: what the deal favours cancels out.
+ */
+export function duplicateSummary(aSeat0: readonly number[], bSeat0: readonly number[]): DuplicateSummary {
+  const iv = pairedInterval(aSeat0, bSeat0);
+  const n = iv.games;
+  const d = differences(aSeat0, bSeat0);
+  const sdDiff = n >= 2 ? Math.sqrt(d.reduce((s, x) => s + (x - iv.mean) ** 2, 0) / (n - 1)) : 0;
+  let split = 0;
+  let swept = 0;
+  let sweptByA = 0;
+  let tied = 0;
+  d.forEach((diff, i) => {
+    if (aSeat0[i] === 0.5 || bSeat0[i] === 0.5) tied++;
+    else if (diff === 0) split++;
+    else {
+      swept++;
+      if (diff > 0) sweptByA++;
+    }
+  });
+  const winRate = 0.5 + iv.mean / 2;
+  const games = 2 * n;
+  return {
+    pairs: n,
+    winRate,
+    lower95: 0.5 + iv.lower / 2,
+    upper95: 0.5 + iv.upper / 2,
+    sdDiff,
+    split,
+    swept,
+    sweptByA,
+    tied,
+    unpairedHalf95: games ? 1.96 * Math.sqrt((winRate * (1 - winRate)) / games) : 0.5,
+  };
+}
+
 /** Score of one game for the list under test (seat a): win 1, tie ½, loss 0. */
 export const scoreOf = (winner: 0 | 1 | 'tie' | null | undefined): number => (winner === 0 ? 1 : winner === 'tie' ? 0.5 : 0);
 

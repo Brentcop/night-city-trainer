@@ -118,13 +118,15 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 | **Medium** | Lookahead | Scores every action one step ahead, with the tuned matchup profiles |
 | **Hard** | Deep + card impact + reaction rollouts | Also rolls out the rest of its turn and your whole reply for its best 3 options, plays out each block / reaction, and values cards by how much they swing games for its deck |
 
-Head-to-head, **re-measured 2026-11-11** on SIM_VERSION 5 with the fresh baseline's `src/data/impact.json` (`scripts/botcheck.ts --per 10`: every ordered meta pairing, seats swapped, 420 games each, same seeds; the configs are the tiers' settings in `src/ai/tiers.ts`):
+Head-to-head, **re-measured 2026-11-11** on SIM_VERSION 5 with the fresh baseline's `src/data/impact.json` (`scripts/botcheck.ts --per 10` as it was then: every ordered meta pairing, 420 games each, one game per seed with the first bot always in seat 0, plain binomial interval; the configs are the tiers' settings in `src/ai/tiers.ts`):
 
 | Matchup | First bot wins (95%) |
 |---|---|
 | Easy vs Medium | 36.7% ±4.6 |
 | Medium vs Hard | 43.8% ±4.7 |
 | Hard vs Deep (the pre-tier `deep` setting: no card impact or reaction rollouts) | 54.8% ±4.8 |
+
+**How `botcheck` compares two configs (since 2026-11-12).** `npx tsx scripts/botcheck.ts '<A json>' '<B json>' [--per N] [--decks meta|all|<file prefix>] [--seed S] [--threads T]` uses the duplicate format: every ordered pairing of the chosen decks gets `--per` deals, and every deal is played twice with the same decks, seed and first player, once with A piloting the seat-0 deck against B and once with B piloting it against A (each seat's bot keeps the seat's random stream). A's win rate comes with the paired 95% interval (`duplicateSummary` in `src/lib/evidence.ts`, built on `pairedInterval`), so what the deal favours cancels out. It also prints the pairs split (the same deck won both games: the pilots made no difference) and swept, the per-pair SD of the difference (about 0.71 if the two games of a pair were unrelated) and the plain binomial half-width on the same games. A config against itself is exactly 50% with every pair split, because the two games are the same game. On Medium vs Hard (`--per 3`, 126 pairs) the per-pair SD was 0.63, so the paired interval was ±5.5 against ±6.2 unpaired: between bots this far apart the deal matters less than in the deck builders' comparisons, and the gain should grow as the configs get closer (not yet measured). A pair with a game that throws is left out, and the exit code is 1.
 
 Not re-measured (the old numbers predate the November 2026 fixes and were removed): Hard vs the first Hard (`hard-v1`) and the coach's deep 12 + card impact as a player. Easy is clearly weaker; Hard is now measurably stronger than Medium and the old Deep setting in bot-vs-bot play. Its blunder rate against the rollout oracle (16% vs 25% for Medium) is from before the fixes and is pending a re-run of `scripts/coach-eval.ts`.
 

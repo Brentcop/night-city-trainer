@@ -9,6 +9,7 @@ import {
   confirmStaged,
   DEFAULT_MIN_GAIN_PP,
   describeRule,
+  duplicateSummary,
   formatGain,
   judgeLook,
   lookZ,
@@ -90,6 +91,27 @@ describe('paired intervals', () => {
     expect(pairedInterval([1], [0])).toMatchObject({ games: 1, lower: -1, upper: 1 });
     expect(pairedInterval([], [])).toMatchObject({ games: 0, lower: -1, upper: 1 });
     expect(() => pairedInterval([1, 0], [1])).toThrow();
+  });
+
+  it('duplicateSummary: A’s win rate over seat-swapped pairs, its paired interval, and split/swept/tied counts', () => {
+    // pairs (seat-0 score with A in seat 0, with B in seat 0): deck won both, A swept, B swept, deck lost both, A swept, a tie
+    const a = [1, 1, 0, 0, 1, 0.5];
+    const b = [1, 0, 1, 0, 0, 0];
+    const s = duplicateSummary(a, b);
+    const iv = pairedInterval(a, b);
+    expect(s.pairs).toBe(6);
+    // A's points: 1, 2, 0, 1, 2, 1.5 of 12
+    expect(s.winRate).toBeCloseTo(7.5 / 12, 12);
+    expect(s.lower95).toBeCloseTo(0.5 + iv.lower / 2, 12);
+    expect(s.upper95).toBeCloseTo(0.5 + iv.upper / 2, 12);
+    expect({ split: s.split, swept: s.swept, sweptByA: s.sweptByA, tied: s.tied }).toEqual({ split: 2, swept: 3, sweptByA: 2, tied: 1 });
+    // differences 0, 1, -1, 0, 1, 0.5
+    const m = 1.5 / 6;
+    expect(s.sdDiff).toBeCloseTo(Math.sqrt([0, 1, -1, 0, 1, 0.5].reduce((t, x) => t + (x - m) ** 2, 0) / 5), 12);
+    expect(s.unpairedHalf95).toBeCloseTo(1.96 * Math.sqrt((s.winRate * (1 - s.winRate)) / 12), 12);
+    // the same configs in both games: every pair is split, the interval is exactly 50%
+    expect(duplicateSummary([1, 0, 1], [1, 0, 1])).toMatchObject({ winRate: 0.5, lower95: 0.5, upper95: 0.5, sdDiff: 0, split: 3, swept: 0 });
+    expect(duplicateSummary([], [])).toMatchObject({ pairs: 0, winRate: 0.5, lower95: 0, upper95: 1 });
   });
 
   it('the normal quantile matches the tables', () => {

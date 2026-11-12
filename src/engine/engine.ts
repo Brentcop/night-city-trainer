@@ -6,6 +6,7 @@
 // zones, gigs, choices, pending, history, actions, combat), which takes the game as its first argument.
 import { CARD_BY_ID } from './cards';
 import { listFingerprint } from './deck';
+import { copyState } from './copyState';
 import { nextRandom, randInt, shuffleInPlace } from './rng';
 import { SCRIPTS } from './scripts';
 import type { DecisionRecorder } from './telemetry';
@@ -181,7 +182,7 @@ export class Game {
     this.s.log = [];
     this.s.trace = undefined;
     try {
-      st = structuredClone(this.s);
+      st = copyState(this.s);
     } finally {
       this.s.log = log;
       this.s.trace = trace;
@@ -202,7 +203,7 @@ export class Game {
     this.s.log = [];
     this.s.trace = undefined;
     try {
-      st = structuredClone(this.s);
+      st = copyState(this.s);
     } finally {
       this.s.log = log;
       this.s.trace = trace;
