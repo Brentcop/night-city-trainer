@@ -2,6 +2,7 @@
 import { libraryDeck, type LibraryDeck } from './library';
 import type { DeckList } from '../engine/types';
 import type { RunManifest } from './runManifest';
+import { isTunedRecord, type TunedDeckRecord } from './tuneRecord';
 
 // The library's folders (LIBRARY_DIRS in src/lib/library.ts, which libraryDeck() enforces): the glob has to be a literal,
 // so it names the same two folders and leaves out custom/history/ and archive/ (see its README).
@@ -20,8 +21,12 @@ export const CUSTOM_BACKUP_KEY = 'nct.customDecks.v1.backup';
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 const isManifest = (v: unknown): v is RunManifest => !!v && typeof v === 'object' && typeof (v as RunManifest).schema === 'number' && typeof (v as RunManifest).runId === 'string';
 
-/** A saved custom deck; Deck Lab results also keep the manifest of the run that produced or tested them. */
-export type StoredDeck = DeckList & { manifest?: RunManifest };
+/**
+ * A saved custom deck; Deck Lab results also keep the manifest of the run that produced or tested them, and a tuned list
+ * its tuning record (src/lib/tuneRecord.ts: original and final list ids, each adopted change, the final list against
+ * the original, the rule, field, bot and date).
+ */
+export type StoredDeck = DeckList & { manifest?: RunManifest; tuned?: TunedDeckRecord };
 
 /** A stored entry as a DeckList, or null if its shape is wrong. A missing sideboard (older saves) counts as empty. */
 function toDeck(v: unknown): StoredDeck | null {
@@ -33,6 +38,7 @@ function toDeck(v: unknown): StoredDeck | null {
   if (typeof o.source === 'string') deck.source = o.source;
   if (typeof o.notes === 'string') deck.notes = o.notes;
   if (isManifest(o.manifest)) deck.manifest = o.manifest;
+  if (isTunedRecord(o.tuned)) deck.tuned = o.tuned;
   return deck;
 }
 
@@ -64,12 +70,13 @@ function readStored(): StoredDeck[] {
 }
 
 export function loadCustom(): LibraryDeck[] {
-  return readStored().map(({ manifest, ...deck }) => ({
+  return readStored().map(({ manifest, tuned, ...deck }) => ({
     file: `custom:${deck.name}`,
     deck,
     kind: 'custom' as const,
     prov: { origin: 'My deck (saved in this browser)', source: deck.source },
     ...(manifest ? { manifest } : {}),
+    ...(tuned ? { tuned } : {}),
   }));
 }
 

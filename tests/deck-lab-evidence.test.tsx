@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARDS } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
-import { partialTune, tuneDeck, tunePlan, type TuneLog, type TuneOptions } from '../src/lib/deckLab';
+import { partialTune, tuneDeck, tunePlan, vsOriginalGames, type TuneLog, type TuneOptions } from '../src/lib/deckLab';
 import type { GameJob, PlayGame } from '../src/lib/tournament';
 import { ADOPTION_DEFAULTS, type NomineeRecord } from '../src/lib/evidence';
 import { LAB_GAME_BUDGET } from '../src/lib/deckSearch';
@@ -218,7 +218,11 @@ describe('Deck Lab result view', () => {
     const lib = BUILTIN.find((d) => d.kind === 'meta')!;
     const html = renderToStaticMarkup(<DeckLabPage q={new URLSearchParams(`d=${lib.file}`)} />);
     expect(html).toContain('<legend>Search depth</legend>');
-    const p = tunePlan({ games: 56, gens: 1, cands: 4, packageCands: 3 });
-    expect(html).toContain(`This run plays ${p.estimate.min}–${p.estimate.max.toLocaleString('en-US')} games.`);
+    // the vs-original comparison (the original once, each adopted list once, 4 × games each) is part of the estimate
+    const p = tunePlan({ games: 56, gens: 1, cands: 4, packageCands: 3, vsOriginal: vsOriginalGames(56) });
+    expect(p.vsMax).toBe(2 * 224);
+    expect(html).toContain(`This run plays ${p.estimate.min}–${p.estimate.max.toLocaleString('en-US')} games. That includes up to 448 games comparing the tuned list with your original on the same 224 held-out games each`);
+    // partner-aware cuts are on by default, with a visible line saying so
+    expect(html).toMatch(/<input type="checkbox" checked=""\/><span><b>Partner-aware cuts<\/b> \(on by default\)/);
   });
 });

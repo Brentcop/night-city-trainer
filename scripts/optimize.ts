@@ -5,6 +5,9 @@
 // Synergy packages (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md): --keep-packages a,b (default with any package
 // flag: the deck objective's packages; "none" keeps nothing), --require-packages a,b, --avoid-packages a,b,
 // --lock-cards id[:n],..., --package-moves (adds --package-cands N whole-package moves, default 3, to the candidates).
+// --partner-aware (on by itself with any package flag; --plain-ranking turns it off): the weakest-card and strongest-card
+// picks add each card's package stranding cost and add credit (src/lib/cutRanking.ts; no telemetry here, so no partner
+// split). Without it the candidates are the pinned ones.
 // Adoption rule and search depth (as in scripts/forge.ts; docs/SYNERGIES.md "When a deck change is adopted"):
 //   --adopt evidence|any-gain (any-gain: the old report, best list = best stage-2 win rate)   --min-gain P (1)
 //   --package-min-gain P   --min-games N (200)   --confirm-cap K (4)   --alpha A (0.05)
@@ -23,7 +26,7 @@ import { exportOfficial } from '../src/engine/deck';
 import { cardValue } from '../src/ai/knowledge';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
 import { optimizeCandidates, packageCandidates, type Cand } from './builder-moves';
-import { exitOnPlanProblems, objectivePackages, packagesOn, planFromFlags, tunerPackageFlags } from './package-flags';
+import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
 import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
 import { describeChanges, describePlan, packageChanges, packageProvenance } from '../src/lib/deckPackages';
 import { gameRunManifest, manifestDeck } from '../src/lib/runManifest';
@@ -62,6 +65,7 @@ const THREADS = Math.min(V.threads, 16);
 const field = VS ? [resolveDeck(VS)] : loadLibrary().filter((d) => d.kind === 'meta' && d.deck.name !== base.deck.name);
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
+const PARTNER = partnerAwareOn(V);
 const PLAN = planFromFlags(V, objectivePackages(base.file));
 exitOnPlanProblems(PLAN);
 const RULE = ruleFromFlags(V);
@@ -80,7 +84,7 @@ const PKG_N = PACKAGES && !SIDEBOARD ? (V['package-moves'] ? V['package-cands'] 
 const ESTIMATE = estimateGames({ gens: 1, screenGames: SCREEN, singles: NCAND + 1, packageMoves: PKG_N, depth: LEGACY ? { ...DEPTH, nominees: 6 } : DEPTH, firstStage: CONFIRM, rule: RULE, baselineScreen: false });
 
 function candidates(deck: (typeof base)['deck']): Cand[] {
-  const out = optimizeCandidates(deck, SIDEBOARD, NCAND, PLAN);
+  const out = optimizeCandidates(deck, SIDEBOARD, NCAND, PLAN, PARTNER);
   // package moves come after the shuffled swaps, so every one of them is screened
   if (PACKAGES && !SIDEBOARD) out.push(...packageCandidates(deck, PLAN, { moves: V['package-moves'], n: V['package-cands'], score: cardValue }));
   return out;
@@ -108,6 +112,7 @@ async function main() {
   const startedAt = new Date().toISOString();
   console.log(`Optimizing ${base.deck.name} vs ${field.length} meta decks (bot=${BOT})`);
   if (PACKAGES) console.log(`Packages: ${describePlan(PLAN)}${V['package-moves'] ? `; package moves on (${V['package-cands']})` : ''}`);
+  if (PARTNER) console.log('Cut ranking: partner-aware (stranding cost and add credit; no telemetry, so no partner split)');
   console.log(`Adoption rule: ${describeRule(RULE, { firstStage: CONFIRM, nominees: DEPTH.nominees })}`);
   checkBudget('optimizer', ESTIMATE, V.budget, V.force);
   const cands: Cand[] = [{ label: '(unchanged)', deck: base.deck }, ...candidates(base.deck)];
@@ -175,6 +180,7 @@ async function main() {
     ...(PACKAGES
       ? [`Packages: ${describePlan(PLAN)}${V['package-moves'] ? `; package moves on` : ''}. Best list vs the original (built around): ${describeChanges(packageChanges(base.deck, bestDeck))}.`, '']
       : []),
+    ...(PARTNER ? ['Cut ranking: partner-aware (each cut adds its package stranding cost, each add its assembly-odds credit; no partner split without telemetry).', ''] : []),
     best >= 0
       ? `**Best list: ${nominees[best].c.label}**, held-out paired gain ${formatGain(confirmations[best].heldOut)}.`
       : nominees.length

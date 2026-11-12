@@ -13,6 +13,11 @@
 //   --lock-cards id[:n],...  never cut these cards below n copies (no n = every copy)
 //   --package-moves          also try whole-package moves (complete, add, swap, remove); --package-cands N per
 //                            generation (default 3)
+//   --partner-aware          rank the cuts and adds partner-aware (src/lib/cutRanking.ts): a package card is judged by
+//                            its games with a partner, a cut that lowers a package's assembly odds costs in proportion,
+//                            an add that completes or deepens one earns the odds it adds; the log and JSON say why each
+//                            card was or was not offered as a cut. On by itself with any package flag; --plain-ranking
+//                            turns it off. Without either, the candidates are the pinned ones
 //
 // Adoption rule and search depth (docs/SYNERGIES.md "When a deck change is adopted"; src/lib/evidence.ts):
 //   --adopt evidence|any-gain   default evidence; any-gain reproduces runs before 2026-11-11 (adopt on any gain)
@@ -48,8 +53,9 @@ import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_
 import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
-import { forgeScore, forgeSwaps, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
-import { exitOnPlanProblems, objectivePackages, packagesOn, planFromFlags, tunerPackageFlags } from './package-flags';
+import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
+import { cutTableRows } from '../src/lib/cutRanking';
+import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
 import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
 import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval } from '../src/lib/evidence';
@@ -83,6 +89,8 @@ const THREADS = Math.min(V.threads, 16);
 /** where the forged list and reports go: the repository (default) or --out DIR */
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
+/** partner-aware cut and add ranking (--partner-aware, or any package flag; --plain-ranking turns it off) */
+const PARTNER = partnerAwareOn(V);
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
 const DEPTH = depthFromFlags(V, 1);
@@ -175,6 +183,7 @@ async function forge(target: (typeof lib)[number]) {
   if (DEPTH.cardsPerChange > 1 || DEPTH.packagesPerChange > 1 || DEPTH.nominees > 1)
     log.push(`Search depth: up to ${DEPTH.cardsPerChange} card swap(s) and ${DEPTH.packagesPerChange} package move(s) per candidate (combined from the best ${DEPTH.combineFrom} screened), ${DEPTH.nominees} nominee(s) confirmed per generation.`, '');
   if (PACKAGES) log.push(`Packages: ${describePlan(plan)}${V['package-moves'] ? `; package moves on (${V['package-cands']} per generation)` : '; package moves off'}.`, '');
+  if (PARTNER) log.push('Cut ranking: partner-aware (a package card is judged by its games with a partner piece; a cut that lowers a package’s assembly odds costs in proportion; an add that completes or deepens one earns the odds it adds).', '');
   /** package moves tried (labels), for the report and the manifest */
   const tried: string[] = [];
   const history: { gen: number; wr: number; change: string; gain?: PairedInterval }[] = [];
@@ -195,6 +204,10 @@ async function forge(target: (typeof lib)[number]) {
       gen: number;
       baseline: number;
       swaps: { swap: string; wr: number; delta: number; package?: string }[];
+      /** partner-aware runs: the cut ranking (plain and partner-aware scores in points, offered or not and why) */
+      cuts?: { card: string; plain: number; score: number; offered: boolean; plainOffered: boolean; why: string }[];
+      /** partner-aware runs: the swaps the plain ranking would have screened from the same games */
+      plainSwaps?: string[];
       /** the nominees with their screening and held-out results */
       nominees?: NomineeRecord[];
       confirm?: string;
@@ -232,10 +245,22 @@ async function forge(target: (typeof lib)[number]) {
     const rep = analyzeDeck(deck.name, base.sums);
     console.log(`\n[${deck.name}] gen ${gen}: baseline ${pct(base.wr)}`);
     log.push(`## Generation ${gen} — baseline ${pct(base.wr)}`, '', ...rep.insights.slice(0, 4).map((s) => `- ${s}`), '');
-    const muts: Mutation[] = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, plan);
+    const partner = PARTNER ? { sums: base.sums } : undefined;
+    const explained = forgeSwapsExplained(deck, rep, GLOBAL_IMPACT, CANDS, plan, partner);
+    const muts: Mutation[] = explained.swaps;
+    const cutRows = explained.cuts ? cutTableRows(explained.cuts) : [];
+    let genRecPlain: string[] | undefined;
+    if (cutRows.length) {
+      log.push('Cut ranking (partner-aware; plain = "Δ when drawn", lower is cut first):', '', '| Card | Plain | Partner-aware score | Offered | Why |', '|---|---|---|---|---|', ...cutRows.map((r) => `| ${r.name} | ${((r.plain) * 100).toFixed(1)} | ${(r.score * 100).toFixed(1)} | ${r.offered ? 'yes' : 'no'} | ${r.why} |`), '');
+      console.log(`  cuts (partner-aware): ${cutRows.filter((r) => r.offered).map((r) => r.name).join(', ')}${cutRows.some((r) => r.plainOffered !== r.offered) ? ` (plain ranking: ${cutRows.filter((r) => r.plainOffered).map((r) => r.name).join(', ')})` : ''}`);
+      // the candidates the plain ranking would have screened from the same games, for comparison
+      const plainMuts = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, plan);
+      log.push('Screened (partner-aware):', ...muts.map((m) => `- ${m.label}`), '', 'The plain ranking would have screened:', ...plainMuts.map((m) => `- ${m.label}`), '');
+      genRecPlain = plainMuts.map((m) => m.label);
+    }
     if (PACKAGES) {
       // what the plan changed: the swaps the forge would have tried without it, and why each was not played
-      const free = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS);
+      const free = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, {}, partner);
       const dropped = free.filter((m) => !muts.some((x) => x.label === m.label));
       if (dropped.length) {
         log.push(`The package plan kept ${dropped.length} swap${dropped.length === 1 ? '' : 's'} from being played:`, ...dropped.map((m) => `- ${m.label}: ${checkChange(deck, m.deck, plan).map((v) => v.text).join('; ') || 'replaced by a better allowed swap'}`), '');
@@ -264,6 +289,8 @@ async function forge(target: (typeof lib)[number]) {
       baseline: p1(base.wr),
       swaps: results.slice(0, PACKAGES || combos.length ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(mutKind(r.m) ? { package: mutKind(r.m) } : {}) })),
       verdict: 'kept',
+      ...(cutRows.length ? { cuts: cutRows.map((r) => ({ card: r.name, plain: p1(r.plain), score: p1(r.score), offered: r.offered, plainOffered: r.plainOffered, why: r.why })) } : {}),
+      ...(genRecPlain ? { plainSwaps: genRecPlain } : {}),
     };
     json.gens.push(genRec);
     // screening only nominates: the best changes that beat the baseline by 2+ points on the shared seeds

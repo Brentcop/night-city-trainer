@@ -2,21 +2,27 @@
 import { Game, other } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
 import type { Agent, Decision, GameState, Gig, Opt, PlayerId } from '../engine/types';
-import { activeSteer, holdCredit, packageFacts, partnerName, seatPackages, steerValue, steerWants, type SteerKind } from './packages';
+import { activeSteer, holdCredit, obtainableOf, packageFacts, partnerName, seatPackages, steerValue, steerWants, type PackageFacts, type SteerKind } from './packages';
 import { HeuristicAgent } from './heuristic';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
 import { GIG_SWING, knownCards } from './eval';
+import type { SynergyRole } from '../content/synergies/index';
 import { impactDeckName, topImpactCards } from './impact';
 import analysis from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
 /** Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md). */
 const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 12, sellLookahead: 3, deepReactions: 3 };
+/**
+ * The coach's sell advice breaks near-ties (within 0.05 Gigs, where the alternatives read "about as good") toward
+ * keeping a scarce piece of the player's own package (HeuristicOptions.sellKeepScarce). Bots never set it.
+ */
+export const COACH_SELL_KEEP_GIGS = 0.05;
 /** The coach before the review-driven refinement (kept for comparisons). */
 export const COACH_CONFIG_V1 = { profiles: BEST_PROFILES, impact: 40, deep: 12 };
 
 export function makeCoach() {
-  return new HeuristicAgent({ name: 'Coach', ...COACH_CONFIG });
+  return new HeuristicAgent({ name: 'Coach', ...COACH_CONFIG, sellKeepScarce: COACH_SELL_KEEP_GIGS * GIG_SWING });
 }
 
 /** Evaluation points → "Gig swing". */
@@ -64,8 +70,36 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
     why = `${m[1]} — ${Math.abs(diff) < 0.05 ? 'about even with doing nothing' : diff > 0 ? `saves about ${diff.toFixed(1)} Gigs compared with not acting` : 'the least bad option here'}.`;
   }
   const notes = packageNotes(g, d, index);
+  const tie = coach.lastSellKeep;
+  if (tie) notes.unshift(sellTieNote(g, d.player, tie));
   if (notes.length) why = [why, ...notes].filter(Boolean).join(' ');
   return { index, why, alternatives };
+}
+
+/** "Sell A or B: about as good (within 0.05 Gigs); keep B, your only payoff for X left." */
+function sellTieNote(g: Game, p: PlayerId, t: { kept: string; sold: string }): string {
+  const facts = packageFacts(g, p, seatPackages(g, p));
+  const f = facts.find((x) => x.pkg.roles.has(t.kept) && holdCredit([x], t.kept) >= 0.25);
+  const why = f ? scarcityText(f, t.kept) : 'a scarce piece of your deck’s package';
+  return `Selling ${cardName(t.sold)} or ${cardName(t.kept)} comes out about the same (within ${COACH_SELL_KEEP_GIGS} Gigs), so keep ${cardName(t.kept)}: it is ${why}.`;
+}
+
+const roleWord = (r: SynergyRole) => (r === 'enabler' ? 'enabler' : r === 'payoff' ? 'payoff' : 'piece');
+/** The roles that do the same job as a piece of `role` (a `both` card stands in for either half). */
+const sameJob = (r: SynergyRole): SynergyRole[] => (r === 'enabler' ? ['enabler', 'both'] : r === 'payoff' ? ['payoff', 'both'] : r === 'both' ? ['enabler', 'payoff', 'both'] : ['piece', 'enabler', 'payoff', 'both']);
+
+/**
+ * How scarce a piece is, from the player's own view (hand, play, Legends and deck; the partner-aware view the deck
+ * builders use, src/lib/cutRanking.ts): "your only enabler for Low Gigs left", "one of your last two payoffs for …".
+ */
+export function scarcityText(f: PackageFacts, id: string): string {
+  const r = f.pkg.roles.get(id) ?? 'piece';
+  const pool = obtainableOf(f);
+  const n = sameJob(r).reduce((a, k) => a + pool[k], 0);
+  const w = roleWord(r);
+  if (n <= 1) return `your only ${w} for ${f.pkg.name} left`;
+  if (n === 2) return `one of your last two ${w}s for ${f.pkg.name}`;
+  return `one of only ${n} ${w}s for ${f.pkg.name} you can still draw or play`;
 }
 
 const cardName = (id: string) => CARD_BY_ID[id]?.displayName ?? id;
@@ -111,8 +145,13 @@ export function packageNotes(g: Game, d: Decision, index: number): string[] {
   const opt = d.options[index];
   if (!opt) return out;
   if (d.kind === 'action' && opt.action?.type === 'sell') {
+    // selling a scarce piece itself: say what it gives up (the coach rated everything else in hand worse to lose)
+    const sold = g.c(opt.action.uid).defId;
+    const fs = facts.find((x) => x.pkg.roles.has(sold) && holdCredit([x], sold) >= 0.25);
+    const soldPartner = fs && partnerName(g, p, fs, sold);
+    if (fs && soldPartner) out.push(`Selling ${cardName(sold)} gives up ${scarcityText(fs, sold)} (it pairs with ${soldPartner}); the coach still rates it the card in hand you can best spare right now.`);
     // name up to two scarce pieces kept in hand (not the card sold), with a partner the player can still get
-    const seen = new Set([g.c(opt.action.uid).defId]);
+    const seen = new Set([sold]);
     for (const u of g.P(p).hand) {
       const id = g.c(u).defId;
       if (seen.has(id)) continue;
@@ -120,7 +159,7 @@ export function packageNotes(g: Game, d: Decision, index: number): string[] {
       const f = facts.find((x) => x.pkg.roles.has(id) && holdCredit([x], id) >= 0.25);
       const partner = f && partnerName(g, p, f, id);
       if (!f || !partner) continue;
-      out.push(`Keep ${cardName(id)}: it pairs with ${partner} in your deck (${f.pkg.name}).`);
+      out.push(`Keep ${cardName(id)}: it is ${scarcityText(f, id)}, and it pairs with ${partner} in your deck.`);
       if (out.length >= 2) break;
     }
     return out;

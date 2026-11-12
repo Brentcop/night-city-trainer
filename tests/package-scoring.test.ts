@@ -24,8 +24,8 @@ import {
   type PackageFacts,
   type SeatPackage,
 } from '../src/ai/packages';
-import { HeuristicAgent } from '../src/ai/heuristic';
-import { boardWarnings, packageNotes, packageWarnings } from '../src/ai/coach';
+import { HeuristicAgent, sellTieBreak } from '../src/ai/heuristic';
+import { boardWarnings, COACH_SELL_KEEP_GIGS, packageNotes, packageWarnings } from '../src/ai/coach';
 import { SYNERGY_BY_ID, roleMap, zeroRoles } from '../src/content/synergies/index';
 import { BEST_PROFILES } from '../src/ai/archetype';
 import { fillerDeck, gig, Scripted } from './engine-helpers';
@@ -232,6 +232,28 @@ describe('plain data', () => {
   });
 });
 
+describe('coach sell near-ties', () => {
+  it('keeps a scarce package piece only when another option is within the margin, and never for a bot (margin 0)', () => {
+    const credit = (uid: number) => ({ 1: 1, 2: 0, 3: 0.1 })[uid as 1 | 2 | 3] ?? 0;
+    const vals = [
+      { uid: 1, v: 10 },
+      { uid: 2, v: 9.8 },
+      { uid: 3, v: 9.95 },
+    ];
+    // card 1 (the only payoff left) is best by 0.2; card 2 (no package) is within 0.5: sell card 2
+    expect(sellTieBreak(1, vals, 10, 0.5, credit)).toEqual({ uid: 2, v: 9.8 });
+    // within 0.1 only card 3 qualifies (and it has less hold credit than card 1)
+    expect(sellTieBreak(1, vals, 10, 0.1, credit)).toEqual({ uid: 3, v: 9.95 });
+    // margin 0 (every bot): unchanged
+    expect(sellTieBreak(1, vals, 10, 0, credit)).toBeNull();
+    // a card that is not scarce is sold as chosen
+    expect(sellTieBreak(2, vals, 10, 0.5, credit)).toBeNull();
+    // the coach's margin is 0.05 Gigs, where its alternatives read "about as good"
+    expect(COACH_SELL_KEEP_GIGS).toBe(0.05);
+    expect(new HeuristicAgent().opts.sellKeepScarce).toBe(0);
+  });
+});
+
 describe('coach wording', () => {
   it('names the piece kept and its partner when advising a sell', () => {
     const g = bbgGame();
@@ -242,9 +264,13 @@ describe('coach wording', () => {
     const keep = take(g, 0, 'towerfall', 'hand');
     const sell = take(g, 0, 'psycho_squad', 'hand');
     const d: Decision = { player: 0, kind: 'action', prompt: '', min: 1, max: 1, options: [{ label: `Sell ${g.name(sell.uid)}`, action: { type: 'sell', uid: sell.uid } }, { label: `Sell ${g.name(keep.uid)}`, action: { type: 'sell', uid: keep.uid } }] };
-    expect(packageNotes(g, d, 0)).toEqual(['Keep Towerfall: it pairs with Jackie Welles: Pour One Out For Me in your deck (Behind on Street Cred).']);
-    // advising to sell the piece itself adds no "keep" note about it; one of eleven min-Gig payoffs is not scarce enough to name
-    expect(packageNotes(g, d, 1)).toEqual([]);
+    // the partner-aware view: how scarce the piece is (from the player's own hand, play, Legends and deck), and its partner
+    expect(packageNotes(g, d, 0)).toEqual(['Keep Towerfall: it is your only payoff for Behind on Street Cred left, and it pairs with Jackie Welles: Pour One Out For Me in your deck.']);
+    // advising to sell the piece itself says what that gives up (and no "keep" note about it)
+    expect(packageNotes(g, d, 1)).toEqual([
+      'Selling Towerfall gives up your only payoff for Behind on Street Cred left (it pairs with Jackie Welles: Pour One Out For Me); the coach still rates it the card in hand you can best spare right now.',
+    ]);
+    // one of eleven min-Gig payoffs is not scarce enough to name
     take(g, 0, 'three_mouths_one_desire', 'hand');
     expect(packageNotes(g, d, 0).some((n) => n.includes('Three Mouths'))).toBe(false);
   });

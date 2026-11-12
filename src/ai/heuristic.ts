@@ -57,7 +57,24 @@ export interface HeuristicOptions {
   sellLookahead?: number;
   /** deep mode: choose reactions (blocks, reaction calls/programs) by rolling the attack and both turns out, N rollouts each */
   deepReactions?: number;
+  /**
+   * sell lookahead only: a near-tie margin (eval points) within which the sell comparison keeps a scarce piece of the
+   * player's own package (hold credit ¼ or more, src/ai/packages.ts) and sells another card instead. 0 = off: every bot
+   * (results unchanged); the coach sets it (src/ai/coach.ts) so its advice breaks near-ties toward keeping the piece.
+   */
+  sellKeepScarce?: number;
   seed?: number;
+}
+
+/**
+ * The near-tie rule of HeuristicOptions.sellKeepScarce: when `sell` has hold credit ¼ or more, the compared option within
+ * `margin` of the best value with the least hold credit (then the best value) is sold instead; null to keep `sell`.
+ */
+export function sellTieBreak(sell: number, vals: readonly { uid: number; v: number }[], bestV: number, margin: number, credit: (uid: number) => number): { uid: number; v: number } | null {
+  const mine = credit(sell);
+  if (margin <= 0 || mine < 0.25) return null;
+  const near = vals.filter((x) => x.uid !== sell && x.v >= bestV - margin && credit(x.uid) < mine).sort((a, b) => credit(a.uid) - credit(b.uid) || b.v - a.v);
+  return near[0] ?? null;
 }
 
 export class HeuristicAgent implements Agent {
@@ -68,6 +85,8 @@ export class HeuristicAgent implements Agent {
   lastThought = '';
   /** top alternatives of the last main-phase decision: value relative to passing (coach UI) */
   lastAlternatives: { index: number; label: string; delta: number }[] = [];
+  /** the last sell decision broke a near-tie to keep a scarce package piece (sellKeepScarce): which card, sold instead, and the gap */
+  lastSellKeep: { kept: string; sold: string; gap: number } | null = null;
 
   constructor(opts: HeuristicOptions = {}) {
     this.opts = {
@@ -82,6 +101,7 @@ export class HeuristicAgent implements Agent {
       deepAttacks: opts.deepAttacks ?? 0,
       sellLookahead: opts.sellLookahead ?? 0,
       deepReactions: opts.deepReactions ?? 0,
+      sellKeepScarce: opts.sellKeepScarce ?? 0,
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -197,6 +217,20 @@ export class HeuristicAgent implements Agent {
     return this.sellRanking(g, p, actions)[0] ?? null;
   }
 
+  /**
+   * sellKeepScarce (the coach only): when the card about to be sold is a scarce piece of p's own package and another
+   * compared option is within the margin of the best, sell that one instead (the least scarce, then the best value).
+   */
+  private keepScarce(g: Game, p: PlayerId, sell: number, vals: { uid: number; v: number }[], bestV: number): number {
+    const pkgs = seatPackages(g, p);
+    if (!pkgs.length) return sell;
+    const facts = packageFacts(g, p, pkgs);
+    const alt = sellTieBreak(sell, vals, bestV, this.opts.sellKeepScarce, (uid) => holdCredit(facts, g.c(uid).defId));
+    if (alt === null) return sell;
+    this.lastSellKeep = { kept: g.c(sell).defId, sold: g.c(alt.uid).defId, gap: bestV - alt.v };
+    return alt.uid;
+  }
+
   /** Sellable cards, least valuable to keep first (one per distinct card). Empty when the bot shouldn't sell now. */
   private sellRanking(g: Game, p: PlayerId, actions: Action[]): number[] {
     const sells = actions.filter((a) => a.type === 'sell') as { type: 'sell'; uid: number }[];
@@ -234,19 +268,23 @@ export class HeuristicAgent implements Agent {
     const passIdx = actions.findIndex((a) => a.type === 'pass');
     // 1) sell first
     let sell = this.sellChoice(g, p, actions);
+    this.lastSellKeep = null;
     // which card to sell: compare the few most sellable by playing them out (the "whether" stays rule-based)
     if (sell !== null && this.opts.sellLookahead > 1 && this.opts.lookahead) {
       const options = this.sellRanking(g, p, actions).slice(0, this.opts.sellLookahead);
       if (options.length > 1) {
         let bestV = -Infinity;
+        const vals: { uid: number; v: number }[] = [];
         for (const uid of options) {
           const a: Action = { type: 'sell', uid };
           const v = this.opts.deep > 0 ? await this.rollout(g, p, a) : await this.simulate(g, p, a);
+          vals.push({ uid, v });
           if (v > bestV + 0.01) {
             bestV = v;
             sell = uid;
           }
         }
+        if (this.opts.sellKeepScarce > 0 && sell !== null) sell = this.keepScarce(g, p, sell, vals, bestV);
       }
     }
     if (sell !== null) {

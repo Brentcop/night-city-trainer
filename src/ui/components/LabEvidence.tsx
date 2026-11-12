@@ -4,6 +4,8 @@
 import { useId, type ReactNode } from 'react';
 import { futilityApplies, outcomeWord, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type StopReason } from '../../lib/evidence';
 import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
+import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type TuneLog } from '../../lib/deckLab';
+import { cutTableRows } from '../../lib/cutRanking';
 import { Signed, Wr, type Tone } from './Num';
 
 const toneOf = (o: Outcome): Tone => (o === 'adopt' ? 'pos' : o === 'reject' ? 'neg' : 'neu');
@@ -110,6 +112,7 @@ export function DepthControls({
   rule,
   firstStage,
   disabled,
+  vsOriginal,
 }: {
   cards: number;
   onCards: (n: number) => void;
@@ -122,6 +125,8 @@ export function DepthControls({
   rule: AdoptionRule;
   firstStage: number;
   disabled?: boolean;
+  /** games the vs-original comparison may add (included in `estimate.max`) and its block size per list */
+  vsOriginal?: { max: number; games: number };
 }) {
   const headId = useId();
   const over = estimate.max > budget;
@@ -155,8 +160,80 @@ export function DepthControls({
       </div>
       <p className="small" role="status" style={{ margin: 0, color: over ? 'var(--red)' : undefined }}>
         This run plays {estimate.min.toLocaleString('en-US')}–{estimate.max.toLocaleString('en-US')} games.
+        {vsOriginal && vsOriginal.max > 0 && ` That includes up to ${vsOriginal.max.toLocaleString('en-US')} games comparing the tuned list with your original on the same ${vsOriginal.games} held-out games each (only after a change is adopted).`}
         {over && ` ⚠ That is over the lab's budget of ${budget.toLocaleString('en-US')} games; you'll be asked to confirm.`}
       </p>
     </fieldset>
+  );
+}
+
+/**
+ * The headline: the current list against the ORIGINAL list on the same held-out games, after every generation, and the
+ * result in one sentence once the run is over. Screening and per-generation numbers stay in the generations below.
+ */
+export function TuneTrajectory({ logs, minGainPp, games, finished, partial }: { logs: readonly TuneLog[]; minGainPp: number; games: number; finished: boolean; partial?: boolean }) {
+  const lines = logs.map((l) => trajectoryLine(l, minGainPp)).filter(Boolean);
+  const v = finalVsOriginal(logs);
+  const verdict = vsOriginalVerdict(v, minGainPp);
+  const tone: Tone = verdict === 'better' ? 'pos' : verdict === 'worse' ? 'neg' : 'neu';
+  return (
+    <section className="lab-trajectory" aria-label="Tuned list against your original list">
+      <div className="zone-label">Your list against the original</div>
+      <p className="small muted" style={{ margin: 0 }}>
+        After each generation that adopts a change, the current list and your original list play the same {games} held-out games (games no screening or confirmation used), and the paired difference is shown with its 95% interval. This is the
+        number to read; the screening win rates below only nominate changes.
+      </p>
+      {lines.length > 0 ? (
+        <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+          {lines.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>
+          Nothing yet: the first generation is still running.
+        </p>
+      )}
+      {(finished || partial) && logs.length > 0 && (
+        <p className="small" role="status" style={{ margin: 0 }}>
+          {verdict && verdict !== 'unchanged' && <span className={`verdict ${tone}`}>{verdict === 'better' ? 'better' : verdict === 'worse' ? 'worse' : 'not shown better'}</span>} {tuneSummaryText(logs, { minGainPp, partial })}
+        </p>
+      )}
+    </section>
+  );
+}
+
+const pts1 = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x * 100).toFixed(1)}`;
+
+/** Why each card was or was not offered as a cut (partner-aware runs): both scores, the package and the odds. */
+export function CutTable({ cuts, label }: { cuts: readonly CutExplained[]; label?: (id: string, name: string) => ReactNode }) {
+  const rows = cutTableRows(cuts);
+  if (!rows.length) return null;
+  return (
+    <details className="small">
+      <summary>Why these cuts (partner-aware ranking)</summary>
+      <table className="small">
+        <thead>
+          <tr>
+            <th>Card</th>
+            <th title="Win rate when drawn minus when not drawn, this generation's games">Plain</th>
+            <th title="Judged by its games with a partner piece, plus what cutting it costs the package's assembly odds">Partner-aware score</th>
+            <th>Cut?</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td>{label ? label(r.id, r.name) : r.name}</td>
+              <td className="num">{pts1(r.plain)}</td>
+              <td className="num">{pts1(r.score)}</td>
+              <td>{r.offered ? 'offered' : 'no'}</td>
+              <td className="muted">{r.why}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
   );
 }

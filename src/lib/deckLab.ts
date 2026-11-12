@@ -6,14 +6,18 @@ import type { DeckList } from '../engine/types';
 import { analyzeDeck, type DeckReport } from '../analysis/analyze';
 import type { PlayerSummary } from '../analysis/summarize';
 import { breedSeason, type Bred, type BreedPackages } from '../ai/breeder';
-import { canCut, checkChange, isEmptyPlan, tunerPackageMoves, type PackageMoveKind, type PackagePlan } from './deckPackages';
+import { canCut, checkChange, isEmptyPlan, packageName, tunerPackageMoves, type PackageMoveKind, type PackagePlan } from './deckPackages';
+import { cutReason, partnerAwarePicks, type CutRow } from './cutRanking';
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, type PlayGame } from './tournament';
-import { adoptionRule, confirmStaged, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval } from './evidence';
+import { adoptionRule, confirmStaged, formatGain, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval } from './evidence';
 import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, type SearchDepth } from './deckSearch';
 import type { LibraryDeck } from './library';
+import { finalVsOriginal, vsOriginalVerdict, type VsOriginal } from './tuneRecord';
+
+export { finalVsOriginal, vsOriginalVerdict, type VsOriginal, type VsOriginalVerdict } from './tuneRecord';
 
 const A = impact as unknown as ImpactData;
 
@@ -79,33 +83,69 @@ const labelOf = (id: string) => {
   const c = CARD_BY_ID[id];
   return c ? cardLabel(c) : id;
 };
+/** The tuner's plain card score: the list's own "Δ when drawn", else format-wide impact, else 0. */
+const plainScore = (rep: DeckReport) => {
+  const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
+  return (id: string) => iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0;
+};
+
+/** Partner-aware ranking input for candidateSwaps (src/lib/cutRanking.ts): the baseline's own summaries. */
+export interface PartnerAwareInput {
+  sums: readonly PlayerSummary[];
+}
+
 /**
  * Candidate one-card swaps: cut the deck's lowest-impact cards, add its own best card or the best legal cards
  * format-wide. Under a package plan, cuts the plan protects are skipped and swaps that break it are dropped.
+ * With `partner` the cuts and adds are ranked partner-aware (src/lib/cutRanking.ts) and `rows` explains every cut;
+ * without it the candidates are exactly the ones before that ranking existed (tests/deck-packages-defaults.test.ts).
  */
-export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}): Swap[] {
+export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}, partner?: PartnerAwareInput): Swap[] {
+  return swapsAndCuts(deck, rep, n, plan, partner).swaps;
+}
+
+/** candidateSwaps with the partner-aware cut ranking (rows: every main-deck card, both scores, offered or not and why). */
+export function swapsAndCuts(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}, partner?: PartnerAwareInput): { swaps: Swap[]; cuts?: CutExplained[] } {
   const planned = !isEmptyPlan(plan);
   const cs = counts(deck.main);
   const lim = ramLimits(deck);
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
-  const cuts = [...cs.keys()]
-    .filter((id) => !planned || canCut(deck, id, plan))
-    .map((id) => ({ id, v: iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }))
-    .sort((a, b) => a.v - b.v)
-    .slice(0, 3);
-  const own = [...cs.entries()]
-    .filter(([, k]) => k < 3)
-    .map(([id]) => ({ id, v: iwd.get(id) ?? 0 }))
-    .sort((a, b) => b.v - a.v)
-    .slice(0, 2);
-  const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3)
-    .flatMap((c) => {
-      const v = GLOBAL_IMPACT[c.id];
-      return v === undefined ? [] : [{ id: c.id, v }];
-    })
-    .sort((a, b) => b.v - a.v)
-    .slice(0, 4);
-  const adds = [...own, ...outside.filter((o) => !own.some((x) => x.id === o.id))];
+  let cuts: { id: string; v: number }[];
+  let adds: { id: string; v: number }[];
+  let rows: CutExplained[] | undefined;
+  if (partner) {
+    const legal = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3).map((c) => c.id);
+    const picks = partnerAwarePicks(deck, {
+      plain: plainScore(rep),
+      sums: partner.sums,
+      lockedWhy: (id) => (planned ? cutBlock(deck, id, plan) : undefined),
+      own: (id) => iwd.get(id) ?? 0,
+      globalImpact: GLOBAL_IMPACT,
+      outside: legal,
+    });
+    cuts = picks.cuts;
+    adds = picks.adds;
+    rows = explainCuts(deck, rep, plan, picks.rows);
+  } else {
+    cuts = [...cs.keys()]
+      .filter((id) => !planned || canCut(deck, id, plan))
+      .map((id) => ({ id, v: iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }))
+      .sort((a, b) => a.v - b.v)
+      .slice(0, 3);
+    const own = [...cs.entries()]
+      .filter(([, k]) => k < 3)
+      .map(([id]) => ({ id, v: iwd.get(id) ?? 0 }))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 2);
+    const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3)
+      .flatMap((c) => {
+        const v = GLOBAL_IMPACT[c.id];
+        return v === undefined ? [] : [{ id: c.id, v }];
+      })
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 4);
+    adds = [...own, ...outside.filter((o) => !own.some((x) => x.id === o.id))];
+  }
   const out: Swap[] = [];
   for (const c of cuts)
     for (const a of adds) {
@@ -117,7 +157,58 @@ export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6, plan: Pac
       if (planned && checkChange(deck, d, plan).length) continue;
       out.push({ label: `−1 ${labelOf(c.id)} → +1 ${labelOf(a.id)}`, deck: d, prior: a.v - c.v });
     }
-  return out.sort((a, b) => b.prior - a.prior).slice(0, n);
+  return { swaps: out.sort((a, b) => b.prior - a.prior).slice(0, n), ...(rows ? { cuts: rows } : {}) };
+}
+
+/** Why the plan refuses cutting one copy of `id` (keep or lock), or undefined when it allows it. */
+function cutBlock(deck: DeckList, id: string, plan: PackagePlan): string | undefined {
+  const i = deck.main.indexOf(id);
+  if (i < 0) return undefined;
+  const main = [...deck.main];
+  main.splice(i, 1);
+  const v = checkChange(deck, { ...deck, main }, plan);
+  return v.length ? `the plan ${v[0]!.rule === 'lock' ? 'locks it' : `keeps ${packageName(v[0]!.id)}`}` : undefined;
+}
+
+/** One cut row for the Lab's table: both scores, offered or not, and why in one line. */
+export interface CutExplained {
+  id: string;
+  name: string;
+  plain: number;
+  /** the partner-aware score with every stranding penalty (lower = cut first) */
+  score: number;
+  partner?: CutRow['partner'];
+  strand: CutRow['strand'];
+  offered: boolean;
+  /** offered by the plain ranking (the one before partner-aware ranking) */
+  plainOffered: boolean;
+  locked?: string;
+  why: string;
+}
+
+function explainCuts(deck: DeckList, rep: DeckReport, plan: PackagePlan, rows: (CutRow & { offered: boolean })[]): CutExplained[] {
+  const planned = !isEmptyPlan(plan);
+  const plain = plainScore(rep);
+  const plainCuts = new Set(
+    [...counts(deck.main).keys()]
+      .filter((id) => !planned || canCut(deck, id, plan))
+      .map((id) => ({ id, v: plain(id) }))
+      .sort((a, b) => a.v - b.v)
+      .slice(0, 3)
+      .map((x) => x.id),
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    plain: r.plain,
+    score: r.score,
+    ...(r.partner ? { partner: r.partner } : {}),
+    strand: r.strand,
+    offered: r.offered,
+    plainOffered: plainCuts.has(r.id),
+    ...(r.locked ? { locked: r.locked } : {}),
+    why: cutReason(r, plainCuts.has(r.id)),
+  }));
 }
 
 /** Package moves for a tuning round, scored like the swaps (the list's own impact, else format-wide). */
@@ -144,7 +235,60 @@ export interface TuneOptions {
   rule?: Partial<AdoptionRule>;
   /** search depth (src/lib/deckSearch.ts; default one change per candidate, one nominee) */
   depth?: Partial<SearchDepth>;
+  /**
+   * rank cuts and adds partner-aware (src/lib/cutRanking.ts) from each generation's own telemetry, and record why each
+   * card was or was not offered as a cut (TuneLog.cuts). Off here so the pinned sequences hold; the Deck Lab page turns it on.
+   */
+  partnerAware?: boolean;
+  /**
+   * games per list on one common held-out block (seeds no screening or confirmation uses) on which the current list is
+   * compared with the original, paired, after every generation that adopted a change (TuneLog.vsOriginal). 0 or unset:
+   * off. The Deck Lab page passes vsOriginalGames(games). It plays only after an adoption: the original once, then each
+   * adopted list once.
+   */
+  vsOriginal?: number;
 }
+
+/** Games per list on the vs-original block for `games` games per test: twice the first confirmation stage. */
+export const vsOriginalGames = (games: number) => 4 * games;
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * One line per generation for the headline trajectory: the current list against the original on the common held-out
+ * games ("After generation 2: 1 change adopted; +2.1 pts [−0.4, +4.6], 448 games against your original list — could
+ * not tell."). Empty for a generation that has no vs-original state (a run without `vsOriginal`, or one stopped first).
+ */
+export function trajectoryLine(l: Pick<TuneLog, 'gen' | 'vsOriginal'>, minGainPp: number): string {
+  const v = l.vsOriginal;
+  if (!v) return '';
+  if (v.same) return `After generation ${l.gen}: no change adopted yet, so the list is still your original.`;
+  const verdict = vsOriginalVerdict(v, minGainPp);
+  const word = verdict === 'better' ? 'better' : verdict === 'worse' ? 'worse' : 'could not tell';
+  const g = v.gain ? `${formatGain(v.gain)} against your original list (the same games for both)` : 'not measured';
+  return `After generation ${l.gen}: ${plural(v.adopted, 'change')} adopted${v.measured ? '' : ' (none this generation)'}; ${g} — ${word}.`;
+}
+
+/**
+ * The run's result in plain words, from the final list's vs-original state: what was adopted and whether the tuned list
+ * is shown better than the original. When it is not, it says so and that the original stays the result.
+ */
+export function tuneSummaryText(logs: readonly Pick<TuneLog, 'gen' | 'adopted' | 'vsOriginal'>[], o: { minGainPp: number; partial?: boolean }): string {
+  const gens = logs.length;
+  const adopted = logs.filter((l) => l.adopted).length;
+  const head = `After ${plural(gens, 'generation')}${o.partial ? ' (stopped early)' : ''}`;
+  if (!adopted) return `${head}: no change was adopted, so the result is your original list.`;
+  const v = finalVsOriginal(logs);
+  const verdict = vsOriginalVerdict(v, o.minGainPp);
+  const did = `adopted ${plural(adopted, 'change')}`;
+  if (!v?.gain || !verdict || verdict === 'unchanged')
+    return `${head}: ${did}, but the run ended before the tuned list was compared with your original list, so it is not shown to be better. Your original list stays the result; the tuned list is kept below for reference.`;
+  const g = `${formatGain(v.gain)} against your original list on the same held-out games`;
+  if (verdict === 'better') return `${head}: ${did}; the tuned list is ${g} — better (the lower bound clears ${plural(o.minGainPp, 'point')}).`;
+  if (verdict === 'worse') return `${head}: ${did}, but the tuned list is ${g} — worse than your original list. Your original list stays the result; the tuned list is kept below for reference.`;
+  return `${head}: ${did}, but the tuned list is ${g} — could not tell. It is not shown to be better, so your original list stays the result; the tuned list is kept below for reference.`;
+}
+
 export interface TuneLog {
   gen: number;
   baseline: number;
@@ -158,10 +302,14 @@ export interface TuneLog {
   adopted: string | null;
   /** the adopted change's held-out paired gain */
   adoptedGain?: PairedInterval;
+  /** partner-aware runs: every main-deck card's cut ranking, both scores, offered or not and why */
+  cuts?: CutExplained[];
+  /** runs with `vsOriginal`: the current list against the original after this generation */
+  vsOriginal?: VsOriginal;
 }
 
 /** The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). */
-export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan'>) {
+export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal'>) {
   const rule = adoptionRule(o.rule);
   const depth: SearchDepth = { ...DEPTH_DEFAULTS, ...o.depth };
   const pkN = o.packageCands ?? 3;
@@ -174,7 +322,10 @@ export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'pack
     firstStage: o.games * 2,
     rule,
   });
-  return { rule, depth, estimate, firstStage: o.games * 2 };
+  // the vs-original block: the original once and each adopted list once (at most one adoption per generation)
+  const vsGames = o.vsOriginal ?? 0;
+  const vsMax = vsGames ? vsGames * (o.gens + 1) : 0;
+  return { rule, depth, estimate: { ...estimate, max: estimate.max + vsMax }, firstStage: o.games * 2, vsGames, vsMax };
 }
 export interface TuneProgress {
   done: number;
@@ -206,6 +357,27 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     if (p.done % 4 === 0) onProgress({ ...p, logs: [...logs] });
   };
   const isPkg = (s: Swap) => !!s.pkg || !!s.combo?.packages;
+  // the vs-original block: seeds after the last generation's (generation g uses seedBase + g·10,000 up to + 5,000 + cap)
+  const vsN = o.vsOriginal ?? 0;
+  const vsSeed = seedBase + (o.gens + 1) * 10_000;
+  let origScores: number[] | null = null;
+  let adoptedSoFar = 0;
+  /** after each generation: the current list against the original (measured only when this generation adopted) */
+  const track = async (log: TuneLog, adoptedNow: boolean) => {
+    if (!vsN) return;
+    const prev = finalVsOriginal(logs.slice(0, -1));
+    if (!adoptedNow) {
+      log.vsOriginal = prev ? { ...prev, measured: false } : { same: true, adopted: 0, measured: false };
+      return;
+    }
+    if (stop()) return;
+    p.phase = `Generation ${log.gen}: comparing the list with the original on ${vsN} common held-out games`;
+    onProgress({ ...p, logs: [...logs] });
+    if (!origScores) origScores = (await playSet(start, field, vsSeed, vsN, o.bot, play, false, tick)).scores;
+    const cur = await playSet(deck, field, vsSeed, vsN, o.bot, play, false, tick);
+    const orig = origScores;
+    log.vsOriginal = { same: false, adopted: adoptedSoFar, gain: pairedInterval(cur.scores, orig), origWr: orig.reduce((a, x) => a + x, 0) / Math.max(1, orig.length), curWr: cur.wr, measured: true };
+  };
   for (let gen = 1; gen <= o.gens && !stop(); gen++) {
     const seed0 = seedBase + gen * 10_000;
     p.phase = `Generation ${gen}: measuring the deck (${o.games} games with telemetry)`;
@@ -214,7 +386,9 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     const report = analyzeDeck(deck.name, base.sums);
     const log: TuneLog = { gen, baseline: base.wr, report, swaps: [], adopted: null };
     logs.push(log);
-    const swaps = candidateSwaps(deck, report, o.cands, plan);
+    const ranked = swapsAndCuts(deck, report, o.cands, plan, o.partnerAware ? { sums: base.sums } : undefined);
+    const swaps = ranked.swaps;
+    if (ranked.cuts) log.cuts = ranked.cuts;
     if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
     const screened: { s: Swap; wr: number }[] = [];
     const screen = async (list: Swap[], what: (s: Swap) => string) => {
@@ -245,6 +419,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     // screening only nominates: the best changes that beat the baseline by minGain on the shared games
     const nominated = log.swaps.filter((x) => x.wr - base.wr >= o.minGain).slice(0, depth.nominees);
     if (!nominated.length || stop()) {
+      if (!stop()) await track(log, false);
       p.done = Math.max(p.done, Math.round(gen * perGen));
       continue;
     }
@@ -275,8 +450,12 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       deck = nomDecks[pick]!.deck;
       log.adopted = nominated[pick]!.label;
       log.adoptedGain = shown.heldOut;
+      adoptedSoFar++;
     }
     p.deck = deck;
+    // report the adopted list before the vs-original games, so a run stopped during them can still save it
+    if (pick >= 0) onProgress({ ...p, logs: [...logs] });
+    if (!stop()) await track(log, pick >= 0);
     p.done = Math.max(p.done, Math.round(gen * perGen));
     // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
     onProgress({ ...p, logs: [...logs] });
@@ -300,10 +479,13 @@ export function partialTune(p: Pick<TuneProgress, 'deck' | 'logs'> | null | unde
   return adopted.length ? { deck: p.deck, adopted } : null;
 }
 
-/** The name a tuned list is saved under before the library's reserved-name check: "X (tuned)", or "X (tuned, partial)" for a stopped run. */
-export function tunedName(name: string, partial = false): string {
-  const base = name.replace(/ ?\(tuned(, partial)?\)$/, '');
-  return `${base} (tuned${partial ? ', partial' : ''})`;
+/**
+ * The name a tuned list is saved under before the library's reserved-name check: "X (tuned)", "X (tuned, partial)" for a
+ * stopped run, and ", not shown better" added when the tuned list was not shown better than the original.
+ */
+export function tunedName(name: string, partial = false, notShownBetter = false): string {
+  const base = name.replace(/ ?\(tuned(, partial)?(, not shown better)?\)$/, '');
+  return `${base} (tuned${partial ? ', partial' : ''}${notShownBetter ? ', not shown better' : ''})`;
 }
 
 // ---------------------------------------------------------------- breeding

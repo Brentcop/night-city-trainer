@@ -28,6 +28,8 @@ export interface LibraryDeck {
   prov: Provenance;
   /** browser custom decks saved from a Deck Lab run: what that run measured (src/lib/runManifest.ts) */
   manifest?: RunManifest;
+  /** a Deck Lab tuned list's record (src/lib/tuneRecord.ts), custom decks only */
+  tuned?: import('./tuneRecord').TunedDeckRecord;
 }
 
 /**

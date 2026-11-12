@@ -6,10 +6,27 @@ import type { LibraryDeck } from '../../lib/library';
 import { exportOfficial, listFingerprint, parseDeck, validateDeck } from '../../engine/deck';
 import { CARD_BY_ID } from '../../engine/cards';
 import type { CardDef, DeckList } from '../../engine/types';
-import { breedInBrowser, loadH2H, partialTune, playSet, recordedEventCount, tunedName, tuneDeck, tunePlan, type H2HInfo, type TuneLog, type TuneProgress } from '../../lib/deckLab';
+import {
+  breedInBrowser,
+  finalVsOriginal,
+  loadH2H,
+  partialTune,
+  playSet,
+  recordedEventCount,
+  tunedName,
+  tuneDeck,
+  tunePlan,
+  tuneSummaryText,
+  vsOriginalGames,
+  vsOriginalVerdict,
+  type H2HInfo,
+  type TuneLog,
+  type TuneProgress,
+} from '../../lib/deckLab';
+import { manifestTune, tunedRecord } from '../../lib/tuneRecord';
 import { adoptionProvenance, describeRule, formatGain, stoppedWords, type AdoptionRule } from '../../lib/evidence';
 import { LAB_GAME_BUDGET } from '../../lib/deckSearch';
-import { DepthControls, NomineeTable, OutcomeChip, PairedGain } from '../components/LabEvidence';
+import { CutTable, DepthControls, NomineeTable, OutcomeChip, PairedGain, TuneTrajectory } from '../components/LabEvidence';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
 import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
 import { RunDetails } from '../components/RunDetails';
@@ -145,10 +162,12 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const [cardsPer, setCardsPer] = useState(1);
   const [pkgsPer, setPkgsPer] = useState(1);
   const depth = { cardsPerChange: cardsPer, packagesPerChange: pkgMoves ? pkgsPer : 1 };
+  // partner-aware cut ranking (src/lib/cutRanking.ts): on by default in the Lab
+  const [partnerAware, setPartnerAware] = useState(true);
   const e0 = EFFORT[effort];
-  const planned = tunePlan({ games: e0.games, gens: e0.gens, cands: e0.cands, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth });
+  const planned = tunePlan({ games: e0.games, gens: e0.gens, cands: e0.cands, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, vsOriginal: vsOriginalGames(e0.games) });
   /** the rule the last run used, for its result panel */
-  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number } | null>(null);
+  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number; vsGames: number; gens: number; partnerAware: boolean; field: FieldKey; fieldDeckIds: string[]; bot: string } | null>(null);
 
   const start = async () => {
     const deck = parsed.deck;
@@ -190,13 +209,20 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     setProg(null);
     setManifest(plan);
     setRunPlan(keep.length || pkgMoves ? { plan: packagePlan, moves: pkgMoves } : null);
-    setRunRule({ rule: planned.rule, firstStage: planned.firstStage });
+    setRunRule({ rule: planned.rule, firstStage: planned.firstStage, vsGames: planned.vsGames, gens: e.gens, partnerAware, field, fieldDeckIds: fieldList.map((d) => manifestDeck(d).id), bot });
     try {
       const onProgress = (p: TuneProgress) => {
         setProg(p);
         note();
       };
-      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth }, play, onProgress, () => stopRef.current);
+      const p = await tuneDeck(
+        deck,
+        fieldList,
+        { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, partnerAware, vsOriginal: planned.vsGames },
+        play,
+        onProgress,
+        () => stopRef.current,
+      );
       setOutcome({ kind: stopRef.current || p.phase === 'Stopped' ? 'stopped' : 'done' });
     } catch (err) {
       // Stop terminates the pool, which rejects the games in flight; anything else is a game that failed.
@@ -219,20 +245,41 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const finalDeck = finished ? prog?.deck : partial?.deck;
   const changes = finalDeck && parsed.deck ? deckDiff(parsed.deck, finalDeck).filter((c) => CARD_BY_ID[c.id]) : [];
   const { open: openCard, dialog: cardDialog } = useCardDialog();
+  const minGainPp = runRule?.rule.minGainPp ?? planned.rule.minGainPp;
+  // the tuned list against the original: only a list shown better is offered as the result
+  const verdict = vsOriginalVerdict(finalVsOriginal(prog?.logs ?? []), minGainPp);
+  const shownBetter = verdict === 'better';
   const save = () => {
-    if (!finalDeck) return;
-    const want = tunedName(finalDeck.name, !!partial);
+    if (!finalDeck || !parsed.deck) return;
+    const want = tunedName(finalDeck.name, !!partial, !shownBetter);
     const name = customSaveName(want, lib) ?? want;
     const done = manifest?.sample.completedGames ?? prog?.played ?? 0;
-    const pkgNote = runPlan && parsed.deck ? `Packages: ${describePlan(runPlan.plan)}${runPlan.moves ? ', package moves on' : ''}; ${describeChanges(packageChanges(parsed.deck, finalDeck))}.` : '';
+    const logs = prog?.logs ?? [];
+    const pkgNote = runPlan ? `Packages: ${describePlan(runPlan.plan)}${runPlan.moves ? ', package moves on' : ''}; ${describeChanges(packageChanges(parsed.deck, finalDeck))}.` : '';
     const notes = [
       partial ? `Partial Deck Lab tune: stopped after ${done} of ${manifest?.sample.plannedGames ?? prog?.total ?? '?'} planned games. Confirmed swaps: ${partial.adopted.join('; ')}.` : finalDeck.notes,
-      evidenceNote(prog?.logs ?? []),
+      tuneSummaryText(logs, { minGainPp, partial: !!partial }),
+      evidenceNote(logs),
       pkgNote,
     ]
       .filter(Boolean)
       .join(' ');
-    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(manifest ? { manifest } : {}) })) {
+    const record = tunedRecord({
+      original: { ...parsed.deck, ...(source === 'library' ? { file } : {}) },
+      final: finalDeck,
+      logs,
+      partial: !!partial,
+      gens: runRule?.gens ?? logs.length,
+      rule: manifest?.adoption ?? adoptionProvenance(planned.rule, { firstStage: planned.firstStage, nominees: planned.depth.nominees, cardsPerChange: planned.depth.cardsPerChange, packagesPerChange: planned.depth.packagesPerChange }),
+      manifest,
+      bot: runRule?.bot ?? bot,
+      fieldMode: `deck-lab-tune:${runRule?.field ?? field}`,
+      fieldDeckIds: runRule?.fieldDeckIds ?? [],
+      partnerAware: runRule?.partnerAware ?? partnerAware,
+      ...(manifest?.packages ? { packages: manifest.packages } : {}),
+    });
+    const m = manifest ? { ...manifest, tune: manifestTune(record) } : undefined;
+    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(m ? { manifest: m } : {}), tuned: record })) {
       window.alert(NOT_SAVED);
       return;
     }
@@ -252,7 +299,15 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
             It confirms the best swap on fresh games paired with your list, in stages, and adopts it only when the gain is clearly above {planned.rule.minGainPp} point; otherwise it rejects it or says it
             could not tell, and keeps the list.
           </li>
+          <li>After every generation that adopts a change, it plays the tuned list and your original list on the same held-out games, and the result says whether the tuned list is shown better than yours.</li>
         </ol>
+        <label className="row small">
+          <input type="checkbox" checked={partnerAware} onChange={(e) => setPartnerAware(e.target.checked)} disabled={running} />
+          <span>
+            <b>Partner-aware cuts</b> (on by default): a card in one of the list’s synergy packages is judged by its games with a partner piece, a cut that lowers a package’s odds of coming together costs
+            in proportion, and a card that completes or deepens a package gets credit. Each generation shows why a card was or was not offered as a cut.
+          </span>
+        </label>
         <div className="seg">
           <button className={source === 'library' ? 'on' : ''} aria-pressed={source === 'library'} onClick={() => setSource('library')} disabled={running}>
             From the library
@@ -287,6 +342,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
           rule={planned.rule}
           firstStage={planned.firstStage}
           disabled={running}
+          vsOriginal={{ max: planned.vsMax, games: planned.vsGames }}
         />
         <div className="row small">
           <label className="row muted">
@@ -354,8 +410,10 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               </div>
             </div>
           )}
+          {runRule && runRule.vsGames > 0 && <TuneTrajectory logs={prog.logs} minGainPp={minGainPp} games={runRule.vsGames} finished={!running && finished} partial={!running && !!partial} />}
+          {runRule?.partnerAware && <div className="small muted">Cuts ranked partner-aware (on by default in the Lab; the ranking and its reasons are under each generation).</div>}
           {prog.logs.map((l) => (
-            <details key={l.gen} open>
+            <details key={l.gen} open={running || l.gen === prog.logs.length}>
               <summary className="small">
                 <GenerationSummary log={l} />
               </summary>
@@ -364,13 +422,15 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   <Markdown text={l.report.insights.slice(0, 3).map((s) => `- ${s}`).join(String.fromCharCode(10))} />
                 </div>
               )}
+              {l.cuts && <CutTable cuts={l.cuts} label={(id, name) => (CARD_BY_ID[id] ? <CardNameButton def={CARD_BY_ID[id]} onOpen={openCard} /> : name)} />}
               {l.swaps.length > 0 && (
-                <table className="small">
+                <table className="small lab-screening">
+                  <caption className="muted">Screening: each change on this generation’s {l.swaps[0]?.gain?.games ?? ''} games, paired with the list. It only nominates; the best of several is biased high.</caption>
                   <thead>
                     <tr>
-                      <th>Change (screened on the same games)</th>
-                      <th>Win %</th>
-                      <th>vs baseline</th>
+                      <th>Change</th>
+                      <th title="On this generation's screening games only: not the deck's win rate">Screening win %</th>
+                      <th>vs the list, same games</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -380,8 +440,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                           {s.pkg && <span className="tag">package · {s.pkg.kind}</span>}
                           {s.combo && <span className="tag">combined</span>} <SwapLabel label={s.label} onOpen={openCard} />
                         </td>
-                        <td>
-                          <Wr v={s.wr} n={s.gain?.games} />
+                        <td className="muted num" title={`Screening only, ${s.gain?.games ?? '?'} games: not the deck's win rate`}>
+                          {Math.round(s.wr * 100)}%
                         </td>
                         <td>{s.gain ? <PairedGain g={s.gain} /> : <Signed v={s.wr - l.baseline} unit=" pts" />}</td>
                       </tr>
@@ -427,7 +487,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               )}
               {changes.length ? (
                 <div className="lab-changes">
-                  <div className="zone-label">Changes to the list</div>
+                  <div className="zone-label">{shownBetter ? 'Changes to the list' : 'Changes in the tuned list (not shown to be better than your original)'}</div>
                   <ul>
                     {changes.map(({ id, d }) => (
                       <li key={id} className={`deck-row ${d > 0 ? 'is-in' : 'is-out'}`}>
@@ -465,10 +525,15 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 </div>
               )}
               <div className="row">
-                <button className="primary" onClick={save} disabled={!changes.length}>
-                  {partial ? '💾 Save partial result to My decks' : '💾 Save to My decks'}
+                {changes.length > 0 && !shownBetter && parsed.deck && (
+                  <button className="primary" onClick={() => navigator.clipboard?.writeText(exportOfficial(parsed.deck!))}>
+                    Keep your original list (copy it)
+                  </button>
+                )}
+                <button className={shownBetter || !changes.length ? 'primary' : ''} onClick={save} disabled={!changes.length}>
+                  {shownBetter || !changes.length ? (partial ? '💾 Save partial result to My decks' : '💾 Save to My decks') : '💾 Save the tuned list anyway (not shown to be better)'}
                 </button>
-                <button onClick={() => navigator.clipboard?.writeText(exportOfficial(finalDeck))}>Copy list</button>
+                <button onClick={() => navigator.clipboard?.writeText(exportOfficial(finalDeck))}>{changes.length ? 'Copy tuned list' : 'Copy list'}</button>
                 {saved && (
                   <a className="btn" href={`#/play?d=${encodeURIComponent(`custom:${saved}`)}`}>
                     ▶ Practice with “{saved}”
@@ -484,12 +549,17 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   );
 }
 
-/** A generation's one-line summary: baseline, then what was adopted (with its held-out gain), not told, or kept. */
+/**
+ * A generation's one-line summary: what was adopted (with its held-out gain), not told, or kept; then, secondary, the
+ * list's score on this generation's own screening games. Every generation plays new games, so those scores are not a
+ * trend; the headline (TuneTrajectory) compares the list with the original on the same games.
+ */
 export function GenerationSummary({ log: l }: { log: TuneLog }) {
   const unsure = l.nominees?.find((n) => n.outcome === 'inconclusive');
+  const n = l.swaps[0]?.gain?.games;
   return (
     <>
-      Generation {l.gen}: baseline <Wr v={l.baseline} />
+      Generation {l.gen}
       {l.adopted ? (
         <>
           {' '}
@@ -511,6 +581,10 @@ export function GenerationSummary({ log: l }: { log: TuneLog }) {
       ) : (
         ''
       )}
+      <span className="muted">
+        {' '}
+        · screening games: the list scored {Math.round(l.baseline * 100)}% on this generation’s {n ? `${n} ` : ''}games (new games each generation, so not a trend)
+      </span>
     </>
   );
 }

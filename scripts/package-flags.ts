@@ -8,6 +8,8 @@
 //   --seed-packages a+b,c    breed explorers around these combinations of one or two packages — breeder only
 //   --package-moves          also try whole-package moves: complete, add, swap, remove — forge and optimizer
 //   --package-cands N        how many package moves to try per round (default 3)
+//   --partner-aware          rank cuts and adds partner-aware (src/lib/cutRanking.ts) — forge and optimizer; on by
+//                            itself whenever any package flag is given; --plain-ranking turns it off again
 // Unknown ids exit with code 2 and the list of valid ids.
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 import { compactPlan, isEmptyPlan, parseLockCards, parsePackageList, parseSeedCombos, planProblems, type PackagePlan } from '../src/lib/deckPackages';
@@ -26,6 +28,8 @@ export const tunerPackageFlags = () => ({
   'lock-cards': str(undefined, (v) => parseLockCards(v).error),
   'package-moves': bool(),
   'package-cands': int(3, { min: 1, max: 12 }),
+  'partner-aware': bool(),
+  'plain-ranking': bool(),
 });
 /** For the breeder: seed combinations. */
 export const breederPackageFlags = () => ({
@@ -40,11 +44,22 @@ export interface PackageFlagValues {
   'lock-cards'?: string;
   'package-moves'?: boolean;
   'seed-packages'?: string;
+  'partner-aware'?: boolean;
+  'plain-ranking'?: boolean;
 }
 
 /** Whether any package flag was given (only then does a builder do anything package-related). */
 export function packagesOn(v: PackageFlagValues): boolean {
   return v['keep-packages'] !== undefined || v['require-packages'] !== undefined || v['avoid-packages'] !== undefined || v['lock-cards'] !== undefined || !!v['package-moves'] || v['seed-packages'] !== undefined;
+}
+
+/**
+ * Whether the tuners rank cuts and adds partner-aware (src/lib/cutRanking.ts): --partner-aware, or any package flag,
+ * unless --plain-ranking. With neither, the candidates are exactly the pinned ones (tests/deck-packages-defaults.test.ts).
+ */
+export function partnerAwareOn(v: PackageFlagValues): boolean {
+  if (v['plain-ranking']) return false;
+  return !!v['partner-aware'] || packagesOn(v);
 }
 
 /**
@@ -81,6 +96,8 @@ export function planArgs(v: PackageFlagValues): string[] {
   const out: string[] = [];
   for (const k of ['keep-packages', 'require-packages', 'avoid-packages'] as const) if (v[k] !== undefined) out.push(`--${k}`, v[k] || 'none');
   if (v['package-moves']) out.push('--package-moves');
+  if (v['partner-aware']) out.push('--partner-aware');
+  if (v['plain-ranking']) out.push('--plain-ranking');
   return out;
 }
 

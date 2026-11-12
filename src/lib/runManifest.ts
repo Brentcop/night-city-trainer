@@ -24,7 +24,7 @@ export interface RunInputs {
 /**
  * Schema 1. Fields added after the first manifests were written are optional, so every manifest already on disk still
  * reads as schema 1: `errataVersion` (absent = not recorded), `inputs` (aggregates only), `decisionTelemetry`, `packages`,
- * `adoption`, and the purposes 'optimize' and 'aggregate'.
+ * `adoption`, `tune` (Deck Lab tuning results), and the purposes 'optimize' and 'aggregate'.
  */
 export interface RunManifest {
   schema: 1;
@@ -52,6 +52,17 @@ export interface RunManifest {
   packages?: PackageProvenance;
   /** a deck builder's adoption rule and search depth (src/lib/evidence.ts); absent = written before the rule was recorded (any-gain) */
   adoption?: AdoptionProvenance;
+  /**
+   * a Deck Lab tuning run's result (src/lib/tuneRecord.ts): the original and final list ids, changes adopted, and the
+   * final list against the original on common held-out games (null when not measured); absent = not a tuning run, or
+   * one saved before this was recorded
+   */
+  tune?: {
+    originalListId: string;
+    finalListId: string;
+    adopted: number;
+    vsOriginal: { verdict: 'unchanged' | 'better' | 'unclear' | 'worse'; gain?: { mean: number; lower: number; upper: number; games: number; z: number }; origWr?: number; finalWr?: number; minGainPp: number } | null;
+  };
 }
 
 /** Manifest schemas this code can read (scripts/check-data.ts rejects anything else). */
