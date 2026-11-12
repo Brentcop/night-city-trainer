@@ -61,6 +61,11 @@ describe('entry chunk', () => {
   it('does not reach the large data files statically', () => {
     for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(graph).not.toContain(big);
   });
+  it('does not reach the synergy catalogue or its report views statically (they load with the deck profile and Card stats)', () => {
+    for (const f of ['src/content/synergies/index.ts', 'src/analysis/synergies.ts', 'src/ui/components/SynergyStats.tsx', 'src/ui/synergyReport.ts']) expect(graph).not.toContain(f);
+    const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
+    expect(profile).toContain('src/content/synergies/index.ts');
+  });
   it('(control) the walker does see them from a page that imports them', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(profile).toContain(big);

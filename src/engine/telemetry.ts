@@ -4,7 +4,8 @@
 // attacks the outcome.
 //
 // How it hooks in: a `DecisionRecorder` is set on one Game instance (`g.telemetry = new DecisionRecorder()`), not on
-// its state. The engine calls it from `ask()`, `pay()` and the attack steps, behind a single `if` each. Lookahead
+// its state. The engine calls it from `ask()`, `pay()`, the attack steps and the end of each main phase (`turnEnd`, used
+// only by the optional board snapshots), behind a single `if` each. Lookahead
 // clones and effect probes are new Game objects built from the state alone, so they never carry a recorder and can
 // never write records. The recorder only reads the game: it draws no random numbers, asks no agent and changes no
 // state, so a game plays out identically with telemetry on or off (tests/decision-telemetry.test.ts).
@@ -13,7 +14,7 @@
 // player can see the card (the same split `hideInfo` in src/ai/heuristic.ts re-deals for the bots): the rival's hand,
 // either deck, and face-down Legends the player hasn't looked at are written as `?`. A Legend chosen with a Call is
 // face-up right after, so its id is added afterwards in `res.revealed`, never among the options.
-import type { CardInst, Decision, DecisionKind, Opt, PlayerId } from './types';
+import type { CardInst, CardType, Decision, DecisionKind, Opt, PlayerId } from './types';
 import type { Game } from './engine';
 
 /** Bump when a field changes meaning or is removed; adding an optional field keeps the version. */
@@ -130,6 +131,51 @@ export interface DecisionRecord {
   pay?: PaymentRecord;
   /** filled in afterwards: what the chosen Call revealed, and how the attack this decision belongs to ended */
   res?: { revealed?: string; attack?: AttackOutcome };
+}
+
+/**
+ * Optional (recorder option `boards`): one player's own view of their board at one moment, for the synergy observer
+ * (src/analysis/synergies.ts). Only public cards and counts: their field, equipped Gear, face-up Legends, Gigs, trash
+ * counts, and the rival's public counts. A snapshot is taken for both players before every decision and at the end of
+ * every main phase, and kept only when it differs from that player's previous one in the same turn.
+ */
+export interface BoardSnapshot {
+  /** global turn */
+  t: number;
+  /** whose view */
+  p: PlayerId;
+  /** taken before decision `at` (its index), or 'end' at the end of a main phase or of the game */
+  at: number | 'end';
+  /** friendly Units on the field (Legends there included), by card id */
+  units: string[];
+  /** Gear equipped to friendly Units and face-up Legends, by card id */
+  gear: string[];
+  /** friendly Units and Legends with Gear equipped */
+  equipped: number;
+  /** face-up Legends still in the Legends area (Legends on the field are in `units`) */
+  legends: string[];
+  /** all face-up friendly Legends (Legends area and field) */
+  legendsUp: number;
+  /** friendly Gigs as [sides, value] */
+  gigs: [number, number][];
+  /** Street Cred, null when Null (no Gigs) */
+  cred: number | null;
+  opCred: number | null;
+  opGigs: number;
+  opUnits: number;
+  /** the player's trash by card type */
+  trash: Partial<Record<CardType, number>>;
+}
+
+/**
+ * Optional (recorder option `boards`): the first time one of a player's own main-deck cards was seen in their hand or in
+ * play (field, equipped, resolving), by global turn. Only turns 1 and later count, so a hand shuffled away by a
+ * mulligan is not counted. Written for the card's owner, who can see their own hand.
+ */
+export interface CardSighting {
+  p: PlayerId;
+  t: number;
+  id: string;
 }
 
 /** A card the acting player can see: public zones, their own hand / deck / Eddies, and their face-up or known Legends. */
@@ -272,17 +318,108 @@ interface OpenAttack {
   records: DecisionRecord[];
 }
 
+/** One player's board snapshot (see BoardSnapshot). Reads only. */
+function boardOf(g: Game, p: PlayerId, at: BoardSnapshot['at']): BoardSnapshot {
+  const ps = g.P(p);
+  const units = g.units(p);
+  const upInArea = ps.legends.map((u) => g.s.cards[u]).filter((c) => c.faceUp);
+  const gear: string[] = [];
+  let equipped = 0;
+  for (const c of [...units, ...upInArea]) {
+    if (c.gear.length) equipped++;
+    for (const u of c.gear) gear.push(g.s.cards[u].defId);
+  }
+  const trash: Partial<Record<CardType, number>> = {};
+  for (const u of ps.trash) {
+    const t = g.def(u).type;
+    trash[t] = (trash[t] ?? 0) + 1;
+  }
+  const rival = (1 - p) as PlayerId;
+  return {
+    t: g.s.turn,
+    p,
+    at,
+    units: units.map((c) => c.defId),
+    gear,
+    equipped,
+    legends: upInArea.map((c) => c.defId),
+    legendsUp: g.faceUpLegends(p).length,
+    gigs: g.gigsOf(p).map((x) => [x.sides, x.value]),
+    cred: g.streetCred(p),
+    opCred: g.streetCred(rival),
+    opGigs: g.P(rival).gigs.length,
+    opUnits: g.units(rival).length,
+    trash,
+  };
+}
+
+export interface RecorderOptions {
+  /** also keep board snapshots and card sightings for both players (src/analysis/synergies.ts reads them) */
+  boards?: boolean;
+}
+
 /** Records every decision of the one Game it is attached to (see the file header). */
 export class DecisionRecorder {
   readonly records: DecisionRecord[] = [];
+  /** with `boards`: each player's own board before every decision and at the end of every main phase (deduplicated) */
+  readonly boards: BoardSnapshot[] = [];
+  /** with `boards`: the first sighting of each own main-deck card in hand or play */
+  readonly sightings: CardSighting[] = [];
   private attacks = 0;
   private attack: OpenAttack | null = null;
   /** chosen Calls whose Legend is revealed after the decision */
   private calls: { rec: DecisionRecord; uid: number }[] = [];
+  private readonly withBoards: boolean;
+  private lastBoard: [string, string] = ['', ''];
+  private seen = new Set<number>();
+
+  constructor(opts: RecorderOptions = {}) {
+    this.withBoards = !!opts.boards;
+  }
+
+  /** Board snapshots and sightings for both players (only with the `boards` option). Reads only. */
+  private observe(g: Game, at: BoardSnapshot['at']) {
+    if (!this.withBoards) return;
+    for (const p of [0, 1] as PlayerId[]) {
+      const b = boardOf(g, p, at);
+      const key = JSON.stringify({ ...b, at: 0 });
+      if (key !== this.lastBoard[p]) {
+        this.lastBoard[p] = key;
+        this.boards.push(b);
+      }
+      if (g.s.turn < 1) continue;
+      const ps = g.P(p);
+      const look = (uid: number) => {
+        if (this.seen.has(uid)) return;
+        const c = g.s.cards[uid];
+        if (!c || c.owner !== p || g.def(c).type === 'Legend') return;
+        this.seen.add(uid);
+        this.sightings.push({ p, t: g.s.turn, id: c.defId });
+      };
+      for (const u of ps.hand) look(u);
+      for (const u of ps.field) {
+        look(u);
+        for (const x of g.s.cards[u]?.gear ?? []) look(x);
+      }
+      for (const u of ps.legends) for (const x of g.s.cards[u]?.gear ?? []) look(x);
+    }
+    // a Program resolving (limbo) is in play for its owner
+    for (const c of Object.values(g.s.cards)) {
+      if (c.zone !== 'limbo' || this.seen.has(c.uid) || g.s.turn < 1 || g.def(c).type === 'Legend') continue;
+      this.seen.add(c.uid);
+      this.sightings.push({ p: c.owner, t: g.s.turn, id: c.defId });
+    }
+  }
+
+  /** engine: the active player's main phase is over (before end-of-turn effects) */
+  turnEnd(g: Game) {
+    this.observe(g, 'end');
+  }
 
   /** engine: a decision is about to be asked (features are taken before the agent answers) */
   open(g: Game, d: Decision): DecisionRecord {
     this.settleCalls(g);
+    this.observe(g, this.records.length);
     const seen = new Map<string, true>();
     const codes = d.options.map((o, k) => encodeOption(g, d, o, k));
     for (const c of codes) seen.set(c, true);
@@ -398,6 +535,7 @@ export class DecisionRecorder {
     this.settleCalls(g);
     this.calls = [];
     if (this.attack) this.attackEnd(g, 'fizzled');
+    this.observe(g, 'end');
     return this.records;
   }
 }

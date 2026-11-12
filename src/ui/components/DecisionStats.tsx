@@ -29,7 +29,7 @@ function loadReport(): Promise<Loaded> {
 const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
 
 /** A win rate with its interval and sample, or the sample alone (dotted underline) when it is thin. */
-function SliceCell({ s }: { s: Slice }) {
+export function SliceCell({ s }: { s: Slice }) {
   if (!s.games) return <span className="muted">—</span>;
   const uses = `${s.uses} use${s.uses === 1 ? '' : 's'} in ${s.games} game${s.games === 1 ? '' : 's'}`;
   if (s.thin) {

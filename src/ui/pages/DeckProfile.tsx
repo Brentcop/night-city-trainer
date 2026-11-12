@@ -19,6 +19,8 @@ import { CurveAndTypes } from '../components/DeckCurve';
 import { DeckStructure } from '../components/DeckCards';
 import { DeckRecordPanel } from '../components/DeckRecord';
 import { GamePlanPanel } from '../components/GamePlan';
+import { DeckSynergies } from '../components/DeckSynergies';
+import { objectiveFor } from '../../content/deckObjectives';
 
 const S = SEASONS;
 
@@ -192,6 +194,8 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
       </div>
 
       <GamePlanPanel d={d} lib={lib} />
+
+      <DeckSynergies deck={d.deck} named={objectiveFor(d.file, d.deck)?.note.synergies} />
 
       {hasOrigin && (
         <div className="panel dp-origin">

@@ -38,13 +38,13 @@ class Counting implements Agent {
   }
 }
 
-async function playTier(level: string, seed: number, first: PlayerId, telemetry: boolean) {
+async function playTier(level: string, seed: number, first: PlayerId, telemetry: boolean, boards = false) {
   const agents: [Counting, Counting] = [new Counting(makeTierBot(level, seed)), new Counting(makeTierBot(level, seed + 7777))];
   const g = Game.create([A, B], agents, { seed, first });
-  const rec = telemetry ? new DecisionRecorder() : null;
+  const rec = telemetry ? new DecisionRecorder({ boards }) : null;
   g.telemetry = rec;
   const s = await g.run();
-  return { out: { winner: s.winner, turns: s.turn, log: hashLog(s.log), rng: s.rng, stats: s.stats }, records: rec?.finish(g) ?? [], asked: agents[0].asked + agents[1].asked };
+  return { out: { winner: s.winner, turns: s.turn, log: hashLog(s.log), rng: s.rng, stats: s.stats }, records: rec?.finish(g) ?? [], asked: agents[0].asked + agents[1].asked, rec };
 }
 
 describe('decision telemetry only observes', () => {
@@ -66,6 +66,22 @@ describe('decision telemetry only observes', () => {
     }, 60_000);
   }
 
+  it('board snapshots (the synergy observer) only observe too: the same game, one snapshot per turn at least', async () => {
+    const off = await playTier('hard', 404, 0, false);
+    const on = await playTier('hard', 404, 0, true, true);
+    expect(on.out).toEqual(off.out);
+    expect(on.asked).toBe(off.asked);
+    const rec = on.rec!;
+    for (let t = 1; t <= on.out.turns; t++) for (const p of [0, 1] as PlayerId[]) expect(rec.boards.some((b) => b.t === t && b.p === p), `turn ${t}, player ${p}`).toBe(true);
+    // every own main-deck card is sighted at most once, never before turn 1
+    expect(rec.sightings.every((x) => x.t >= 1)).toBe(true);
+    expect(rec.sightings.filter((x) => x.p === 0).length).toBeLessThanOrEqual(A.main.length);
+    // the plain recorder keeps none
+    const plain = await playTier('easy', 101, 0, true);
+    expect(plain.rec!.boards).toEqual([]);
+    expect(plain.rec!.sightings).toEqual([]);
+  }, 60_000);
+
   it('a clone never carries the recorder, and playing on a clone writes no record', async () => {
     const { g } = scene();
     spawn(g, 0, 'psycho_squad', 'hand');
@@ -78,10 +94,10 @@ describe('decision telemetry only observes', () => {
   });
 });
 
-/** setup() with a recorder on the game. */
+/** setup() with a recorder on the game (board snapshots on, so the hidden-information check covers them too). */
 function scene(hooks: [Hook | null, Hook | null] = [null, null]) {
   const s = setup(hooks);
-  const rec = new DecisionRecorder();
+  const rec = new DecisionRecorder({ boards: true });
   s.g.telemetry = rec;
   return { ...s, rec };
 }
@@ -260,6 +276,14 @@ describe('no hidden information in a record', () => {
       for (const c of hidden) expect(text, `record ${r.i} names face-down ${c.defId}`).not.toContain(c.defId);
       if (r.p === 0) for (const id of rivalHand) expect(text, `player 0's record ${r.i} names rival hand card ${id}`).not.toContain(id);
     }
+    // board snapshots hold public cards only; sightings are each player's own cards
+    expect(rec.boards.length).toBeGreaterThan(0);
+    for (const b of rec.boards) {
+      const text = JSON.stringify(b);
+      for (const c of hidden) expect(text, `board of player ${b.p} at turn ${b.t} names face-down ${c.defId}`).not.toContain(c.defId);
+      for (const id of rivalHand) expect(text, `board of player ${b.p} names hand card ${id}`).not.toContain(id);
+    }
+    for (const x of rec.sightings) if (x.p === 0) expect(rivalHand).not.toContain(x.id);
     // player 1 sees their own hand: its Quick Program is a reaction option, and its cards are main-phase options
     const own = records.filter((r) => r.p === 1).map((r) => JSON.stringify(r)).join('');
     expect(rivalHand.some((id) => own.includes(id))).toBe(true);

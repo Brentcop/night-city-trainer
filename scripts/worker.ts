@@ -8,6 +8,7 @@ import { DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { BEST_PROFILES, DEFAULT_PROFILES } from '../src/ai/archetype';
 import { summarize, type PlayerSummary } from '../src/analysis/summarize';
 import { aggregateGame, type DecisionAggregate } from '../src/analysis/decisions';
+import { aggregateSynergyGame, type SynergyAggregate } from '../src/analysis/synergies';
 import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
 import type { Agent, DeckList } from '../src/engine/types';
 
@@ -26,6 +27,8 @@ export interface MatchJob {
   decisions?: boolean;
   /** with `decisions`: also return the raw records (for a sample dump) */
   rawDecisions?: boolean;
+  /** observe the synergy packages (board snapshots on the recorder) and return this game's aggregate (src/analysis/synergies.ts) */
+  synergies?: boolean;
 }
 export interface AgentSpec {
   lookahead?: boolean;
@@ -58,6 +61,10 @@ export interface MatchResult {
   decisionSize?: { records: number; rawBytes: number; aggregateBytes: number };
   /** the raw records, only when the job asked for them */
   decisionRecords?: DecisionRecord[];
+  /** synergy observation for this game, aggregated in the worker */
+  synergies?: SynergyAggregate;
+  /** board snapshots and card sightings this game recorded, and their size as JSON (bytes) */
+  synergySize?: { boards: number; sightings: number; rawBytes: number; aggregateBytes: number };
 }
 
 function fromSpec(spec: AgentSpec, seed: number): Agent {
@@ -82,18 +89,36 @@ parentPort?.on('message', async (job: MatchJob) => {
       log: false,
       trace: job.trace,
     });
-    const rec = job.decisions ? new DecisionRecorder() : null;
+    // the recorder only observes (tests/decision-telemetry.test.ts): with or without it the game is the same
+    const rec = job.decisions || job.synergies ? new DecisionRecorder({ boards: !!job.synergies }) : null;
     g.telemetry = rec;
     const s = await g.run();
-    let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords'> = {};
+    let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords' | 'synergies' | 'synergySize'> = {};
     if (rec) {
       const records = rec.finish(g);
-      const agg = aggregateGame({ records, players: [s.players[0], s.players[1]], winner: s.winner });
-      decisions = {
-        decisions: agg,
-        decisionSize: { records: records.length, rawBytes: JSON.stringify(records).length, aggregateBytes: JSON.stringify(agg).length },
-        ...(job.rawDecisions ? { decisionRecords: records } : {}),
-      };
+      if (job.decisions) {
+        const agg = aggregateGame({ records, players: [s.players[0], s.players[1]], winner: s.winner });
+        decisions = {
+          decisions: agg,
+          decisionSize: { records: records.length, rawBytes: JSON.stringify(records).length, aggregateBytes: JSON.stringify(agg).length },
+          ...(job.rawDecisions ? { decisionRecords: records } : {}),
+        };
+      }
+      if (job.synergies) {
+        const lists = [job.a, job.b] as const;
+        const player = (p: 0 | 1) => ({ listId: s.players[p].listId, name: s.players[p].name, legends: lists[p].legends, main: lists[p].main });
+        const agg = aggregateSynergyGame({
+          records,
+          boards: rec.boards,
+          sightings: rec.sightings,
+          players: [player(0), player(1)],
+          winner: s.winner,
+          first: s.first,
+          turns: s.turn,
+        });
+        decisions.synergies = agg;
+        decisions.synergySize = { boards: rec.boards.length, sightings: rec.sightings.length, rawBytes: JSON.stringify(rec.boards).length + JSON.stringify(rec.sightings).length, aggregateBytes: JSON.stringify(agg).length };
+      }
     }
     r = {
       a: job.a.name,

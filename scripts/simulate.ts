@@ -10,8 +10,11 @@
 //        [--decisions]              also record every decision (docs/DECISION_TELEMETRY.md) -> reports/decisions-latest.{json,md}
 //                                   and, for a whole field, public/data/decisions.json (the Card stats page's Decisions view)
 //        [--decision-samples N]     with --decisions: dump the raw records of the first N games -> reports/decisions-samples-latest.json
+//        [--synergies]              also observe the synergy packages (docs/SYNERGIES.md) -> reports/synergies-latest.{json,md}
+//                                   and, for a whole field, public/data/synergies.json (Card stats → Synergies, deck profiles)
+//        [--synergies-only]         write ONLY the synergy outputs (no analysis, review, impact or decisions files)
 //        [--out DIR]                write every analyze output into DIR instead of reports/ and src/data/ (no site copy)
-//        [--force]                  allow replacing public/data/decisions.json, or files already in DIR
+//        [--force]                  allow replacing public/data/decisions.json, the synergy outputs, or files already in DIR
 //
 // Game flags: --bot (default lookahead), --threads N, --seed N (default 1). --field: meta | all | custom | leaderboard:N.
 // `add` refuses to replace an existing deck file unless --force (the file's provenance header is kept).
@@ -25,7 +28,7 @@ import { exportOfficial, listFingerprint, parseDeck, validateDeck, deckColors } 
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
 import { cli, loadLibrary, mergeProvenance, Refusal, resolveDeck, runJobs as runPool, runMain, slugify, type Spec } from './lib-node';
-import { ALL_FLAGS, analyzeFlagProblem, analyzeOutputs, COMMANDS, protectedOutputs } from './sim-flags';
+import { ALL_FLAGS, analyzeFlagProblem, analyzeOutputs, COMMANDS, protectedOutputs, wantsSynergies } from './sim-flags';
 import { shortCredit, type LibraryDeck } from '../src/lib/library';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { gameRunManifest, type RunManifest } from '../src/lib/runManifest';
@@ -309,17 +312,35 @@ async function main() {
         if (listOf.has(d.deck.name) && listOf.get(d.deck.name) !== id) throw new Error(`two different lists are named "${d.deck.name}" in this field; rename one before analysing`);
         listOf.set(d.deck.name, id);
       }
-      console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})${V.decisions ? ', with decision telemetry' : ''}`);
-      const jobs = jobsFor(pairs, n, bot, true);
+      const synergies = wantsSynergies(V);
+      const only = !!V['synergies-only'];
+      console.log(`Telemetry run: ${pairs.length} pairings × ${n} games (bot=${bot})${V.decisions ? ', with decision telemetry' : ''}${synergies ? `, observing synergy packages${only ? ' (synergy report only)' : ''}` : ''}`);
+      // --synergies-only needs no per-card trace (the trace only observes; the games are the same either way)
+      const jobs = jobsFor(pairs, n, bot, !only);
       const samples = V['decision-samples'] ?? 0;
       if (V.decisions) jobs.forEach((j, k) => Object.assign(j, { decisions: true, rawDecisions: k < samples }));
-      // decision aggregates are folded in as games finish and dropped from the results, so memory stays flat
+      if (synergies) jobs.forEach((j) => Object.assign(j, { synergies: true }));
+      // decision and synergy aggregates are folded in as games finish and dropped from the results, so memory stays flat
       const { emptyAggregate, mergeAggregates } = await import('../src/analysis/decisions');
+      const { emptySynergyAggregate, mergeSynergyAggregates } = await import('../src/analysis/synergies');
       let decisionAgg = emptyAggregate();
+      let synergyAgg = emptySynergyAggregate();
       const size = { records: 0, rawBytes: 0, aggregateBytes: 0, games: 0 };
+      const synSize = { games: 0, boards: 0, sightings: 0, rawBytes: 0, aggregateBytes: 0 };
       const sampleGames: unknown[] = [];
       const t0 = Date.now();
       const res = await runJobs(jobs, (r) => {
+        if (r.synergies) {
+          synergyAgg = mergeSynergyAggregates(synergyAgg, r.synergies);
+          if (r.synergySize) {
+            synSize.games++;
+            synSize.boards += r.synergySize.boards;
+            synSize.sightings += r.synergySize.sightings;
+            synSize.rawBytes += r.synergySize.rawBytes;
+            synSize.aggregateBytes += r.synergySize.aggregateBytes;
+          }
+          delete r.synergies;
+        }
         if (!r.decisions) return;
         decisionAgg = mergeAggregates(decisionAgg, r.decisions);
         if (r.decisionSize) {
@@ -334,18 +355,45 @@ async function main() {
       });
       const seconds = (Date.now() - t0) / 1000;
       const { DECISION_TELEMETRY_SCHEMA } = await import('../src/engine/telemetry');
-      const manifest = makeRunManifest('analysis', runDecks, focus?.file ?? V.field ?? 'meta', n, res.length, true, V.decisions ? DECISION_TELEMETRY_SCHEMA : undefined);
+      const manifest = makeRunManifest('analysis', runDecks, focus?.file ?? V.field ?? 'meta', n, res.length, !only, V.decisions || synergies ? DECISION_TELEMETRY_SCHEMA : undefined);
+      const write = (file: string, text: string) => {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, text);
+      };
+      if (synergies) {
+        const { synergyMarkdown, synergyReport } = await import('../src/analysis/synergies');
+        const g = Math.max(1, synSize.games);
+        const measurements = {
+          games: synSize.games,
+          boardSnapshotsPerGame: synSize.boards / g,
+          sightingsPerGame: synSize.sightings / g,
+          rawBytesPerGame: synSize.rawBytes / g,
+          aggregateBytesPerGame: synSize.aggregateBytes / g,
+          mergedBytes: JSON.stringify(synergyAgg).length,
+          seconds,
+        };
+        const report = synergyReport(synergyAgg, { manifest, measurements });
+        write(out.synergiesJson!, JSON.stringify(report, null, 1));
+        write(out.synergiesMd!, synergyMarkdown(report));
+        // the site copy: compact, rates to 4 decimals (the page shows whole percents)
+        if (out.synergiesSite) write(out.synergiesSite, JSON.stringify(report, (_k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1e4) / 1e4 : v)));
+        console.log(
+          `Synergies: ${report.pooled.length} packages over ${synSize.games} games; ${measurements.boardSnapshotsPerGame.toFixed(0)} board snapshots/game, ` +
+            `${(measurements.rawBytesPerGame / 1024).toFixed(1)} KB raw vs ${(measurements.aggregateBytesPerGame / 1024).toFixed(1)} KB aggregated per game. ` +
+            `Saved ${[out.synergiesMd, out.synergiesSite].filter(Boolean).join(', ')}`,
+        );
+      }
+      if (only) {
+        console.log(`${NL}Synergy report only: no analysis, review, impact or decisions file was written.`);
+        return;
+      }
       const sums = res.flatMap((r) => r.summaries ?? []);
       const { analyzeAll, reportMarkdown } = await import('../src/analysis/analyze');
       let reps = analyzeAll(sums).map((r) => (listOf.has(r.deck) ? { ...r, id: listOf.get(r.deck) } : r));
       if (focus) reps = reps.filter((r) => r.deck === focus.deck.name);
       const md = reportMarkdown(reps);
-      const write = (file: string, text: string) => {
-        fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, text);
-      };
-      write(out.analysisMd, md);
-      write(out.analysisJson, JSON.stringify({ manifest, decks: reps }, null, 1));
+      write(out.analysisMd!, md);
+      write(out.analysisJson!, JSON.stringify({ manifest, decks: reps }, null, 1));
       if (V.decisions) {
         const { decisionMarkdown, decisionReport } = await import('../src/analysis/decisions');
         const g = Math.max(1, size.games);

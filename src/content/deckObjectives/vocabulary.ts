@@ -98,6 +98,8 @@ export interface DeckObjective {
   basedOn?: string[];
   /** true for a minimal list-derived placeholder awaiting the owner's note */
   placeholder?: boolean;
+  /** optional: ids of the synergy packages (src/content/synergies) this deck is built around, as the owner sees it */
+  synergies?: string[];
 }
 
 /** Entries keyed by deck file name (e.g. "meta-rrg-dexter-midrange.txt"). */

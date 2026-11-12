@@ -321,6 +321,7 @@ export class Game {
     const s = this.s;
     const p = s.active;
     const fixerEmptyAtStart = s.counters.fixerEmptyAtStart === 1;
+    this.telemetry?.turnEnd(this);
     s.phase = 'end';
     this.tr('turnEnd', p, undefined, `${this.P(0).gigs.length}-${this.P(1).gigs.length}`);
     const spent = Object.values(s.cards)

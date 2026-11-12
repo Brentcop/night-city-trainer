@@ -164,4 +164,28 @@ describe('sim analyze flags (scripts/sim-flags.ts)', () => {
     expect(out.impact).toBe(path.join('scratch', 'impact.json'));
     expect(protectedOutputs(out, { out: 'scratch' }).sort()).toEqual(Object.values(out).sort());
   });
+
+  it('--synergies adds the synergy report; --synergies-only writes nothing else; both are protected', () => {
+    expect(parseAnalyze([])).toMatchObject({ synergies: false, 'synergies-only': false });
+    const both = analyzeOutputs({ decisions: true, synergies: true }, null);
+    expect(both).toMatchObject({
+      impact: path.join('src/data', 'impact.json'),
+      decisionsSite: 'public/data/decisions.json',
+      synergiesJson: path.join('reports', 'synergies-latest.json'),
+      synergiesMd: path.join('reports', 'synergies-latest.md'),
+      synergiesSite: 'public/data/synergies.json',
+    });
+    expect(protectedOutputs(both, {}).sort()).toEqual(['public/data/decisions.json', 'public/data/synergies.json', path.join('reports', 'synergies-latest.json'), path.join('reports', 'synergies-latest.md')].sort());
+    // only the synergy files: no analysis, review, impact or decisions output at all
+    expect(analyzeOutputs({ 'synergies-only': true }, null)).toEqual({
+      synergiesJson: path.join('reports', 'synergies-latest.json'),
+      synergiesMd: path.join('reports', 'synergies-latest.md'),
+      synergiesSite: 'public/data/synergies.json',
+    });
+    const scratch = analyzeOutputs({ 'synergies-only': true, out: 'scratch' }, null);
+    expect(scratch).toEqual({ synergiesJson: path.join('scratch', 'synergies-latest.json'), synergiesMd: path.join('scratch', 'synergies-latest.md') });
+    expect(analyzeOutputs({ 'synergies-only': true }, 'meta-x').synergiesSite).toBeUndefined();
+    expect(analyzeFlagProblem({ 'synergies-only': true, decisions: true })).toMatch(/--synergies-only/);
+    expect(analyzeFlagProblem({ synergies: true, decisions: true })).toBeUndefined();
+  });
 });

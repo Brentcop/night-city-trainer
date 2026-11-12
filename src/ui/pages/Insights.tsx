@@ -5,9 +5,10 @@ import { allDecks } from '../../lib/browserLibrary';
 import { LegendStrip, OriginBadge } from '../components/DeckIdentity';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 
-// the Decisions view and its report (public/data/decisions.json) load only when it is opened
+// the Decisions and Synergies views and their reports (public/data/decisions.json, synergies.json) load only when opened
 const DecisionStats = lazy(() => import('../components/DecisionStats').then((m) => ({ default: m.DecisionStats })));
-type View = 'draws' | 'decisions';
+const SynergyStats = lazy(() => import('../components/SynergyStats').then((m) => ({ default: m.SynergyStats })));
+type View = 'draws' | 'decisions' | 'synergies';
 
 function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
   return (
@@ -17,6 +18,9 @@ function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => voi
       </button>
       <button type="button" className={view === 'decisions' ? 'on' : ''} aria-pressed={view === 'decisions'} onClick={() => onChange('decisions')}>
         Decisions
+      </button>
+      <button type="button" className={view === 'synergies' ? 'on' : ''} aria-pressed={view === 'synergies'} onClick={() => onChange('synergies')}>
+        Synergies
       </button>
     </div>
   );
@@ -40,6 +44,11 @@ export function InsightsPage({ initial }: { initial?: string }) {
         {view === 'decisions' && (
           <Suspense fallback={<p className="muted">Loading…</p>}>
             <DecisionStats />
+          </Suspense>
+        )}
+        {view === 'synergies' && (
+          <Suspense fallback={<p className="muted">Loading…</p>}>
+            <SynergyStats />
           </Suspense>
         )}
       </div>
@@ -90,6 +99,10 @@ export function InsightsPage({ initial }: { initial?: string }) {
         {view === 'decisions' ? (
           <Suspense fallback={<p className="muted">Loading…</p>}>
             <DecisionStats deck={r?.deck} listId={r?.id} />
+          </Suspense>
+        ) : view === 'synergies' ? (
+          <Suspense fallback={<p className="muted">Loading…</p>}>
+            <SynergyStats deck={r?.deck} listId={r?.id} />
           </Suspense>
         ) : (
           <>
