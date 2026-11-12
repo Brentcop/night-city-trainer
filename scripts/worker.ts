@@ -10,7 +10,8 @@ import { summarize, type PlayerSummary } from '../src/analysis/summarize';
 import { aggregateGame, type DecisionAggregate } from '../src/analysis/decisions';
 import { aggregateSynergyGame, type SynergyAggregate } from '../src/analysis/synergies';
 import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
-import type { Agent, DeckList } from '../src/engine/types';
+import type { Agent, Decision, DeckList } from '../src/engine/types';
+import { holdCredit, packageFacts, seatPackages } from '../src/ai/packages';
 
 export interface MatchJob {
   a: DeckList;
@@ -29,6 +30,14 @@ export interface MatchJob {
   rawDecisions?: boolean;
   /** observe the synergy packages (board snapshots on the recorder) and return this game's aggregate (src/analysis/synergies.ts) */
   synergies?: boolean;
+  /**
+   * scripts/package-scoring.ts: before every decision of seat A (seat 0), ask a shadow bot built from this spec, in the
+   * same state with the same random stream, and count where it would choose differently (by decision kind/tag). The
+   * game is the one seat A plays; the shadow only observes.
+   */
+  shadowA?: AgentSpec;
+  /** scripts/package-scoring.ts: count seat A's sells and give-up choices of package pieces whose partner it could still get */
+  piecesA?: boolean;
 }
 export interface AgentSpec {
   lookahead?: boolean;
@@ -65,9 +74,85 @@ export interface MatchResult {
   synergies?: SynergyAggregate;
   /** board snapshots and card sightings this game recorded, and their size as JSON (bytes) */
   synergySize?: { boards: number; sightings: number; rawBytes: number; aggregateBytes: number };
+  /** with `shadowA`: per decision kind/tag, [decisions, decisions where the shadow chose differently] */
+  shadow?: Record<string, [number, number]>;
+  /** with `piecesA`: seat A's package-piece sells and give-ups (see PieceCounts) */
+  pieces?: PieceCounts;
 }
 
-function fromSpec(spec: AgentSpec, seed: number): Agent {
+/** Seat A's sells and give-up choices (discard, trash, bottom-deck from hand), and how many were package pieces with a partner still obtainable. */
+export interface PieceCounts {
+  sells: number;
+  /** sells where at least one sellable card was such a piece */
+  sellsWithPieceOption: number;
+  pieceSells: number;
+  giveUps: number;
+  giveUpsWithPieceOption: number;
+  pieceGiveUps: number;
+}
+
+const GIVE_UP_TAGS = new Set(['discard', 'trash', 'bottom', 'bottomdeck']);
+
+/** Seat A's agent, observed: shadow decisions and package-piece counts (scripts/package-scoring.ts). Plays exactly as `inner`. */
+class ObservedAgent implements Agent {
+  name: string;
+  shadow: Record<string, [number, number]> = {};
+  pieces: PieceCounts = { sells: 0, sellsWithPieceOption: 0, pieceSells: 0, giveUps: 0, giveUpsWithPieceOption: 0, pieceGiveUps: 0 };
+  constructor(
+    private inner: HeuristicAgent,
+    private shadowAgent: HeuristicAgent | null,
+    private countPieces: boolean,
+  ) {
+    this.name = inner.name;
+  }
+  async decide(g: Game, d: Decision): Promise<number[]> {
+    let alt: number[] | null = null;
+    if (this.shadowAgent) {
+      this.shadowAgent.syncFrom(this.inner);
+      alt = await this.shadowAgent.decide(g, d);
+    }
+    const piece = this.countPieces ? this.pieceTest(g, d.player) : null;
+    const r = await this.inner.decide(g, d);
+    if (alt) {
+      const key = `${d.kind}/${d.tag ?? ''}`;
+      const c = (this.shadow[key] ??= [0, 0]);
+      c[0]++;
+      if (alt.join(',') !== r.join(',')) c[1]++;
+    }
+    if (piece) {
+      const pick = (i: number) => d.options[i];
+      if (d.kind === 'action') {
+        const a = pick(r[0])?.action;
+        if (a && a.type === 'sell') {
+          this.pieces.sells++;
+          if (d.options.some((o) => o.action?.type === 'sell' && piece(g.c(o.action.uid).defId))) this.pieces.sellsWithPieceOption++;
+          if (piece(g.c(a.uid).defId)) this.pieces.pieceSells++;
+        }
+      } else if (d.kind === 'card' && GIVE_UP_TAGS.has(d.tag ?? '')) {
+        const own = (u: number | undefined) => u !== undefined && g.c(u).controller === d.player && g.c(u).zone === 'hand';
+        const chosen = r.map((i) => pick(i)?.uid).filter(own);
+        if (chosen.length) {
+          this.pieces.giveUps++;
+          if (d.options.some((o) => own(o.uid) && piece(g.c(o.uid!).defId))) this.pieces.giveUpsWithPieceOption++;
+          if (chosen.some((u) => piece(g.c(u!).defId))) this.pieces.pieceGiveUps++;
+        }
+      }
+    }
+    return r;
+  }
+  /**
+   * A card of p's is a scarce package piece whose partner p can still get (judged before the decision): its hold credit
+   * is at least ¼, i.e. at most 4 obtainable copies do its job in a `requires` package, at most 2 in a `helps` one.
+   */
+  private pieceTest(g: Game, p: 0 | 1): ((defId: string) => boolean) | null {
+    const pkgs = seatPackages(g, p);
+    if (!pkgs.length) return () => false;
+    const facts = packageFacts(g, p, pkgs);
+    return (id) => holdCredit(facts, id) >= 0.25;
+  }
+}
+
+function fromSpec(spec: AgentSpec, seed: number): HeuristicAgent {
   return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: spec.weights ? ({ ...DEFAULT_WEIGHTS, ...spec.weights } as any) : undefined, noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 
@@ -81,7 +166,10 @@ function mkAgent(kind: string, seed: number): Agent {
 parentPort?.on('message', async (job: MatchJob) => {
   let r: MatchResult;
   try {
-    const A = job.agentA ? fromSpec(job.agentA, job.seed) : mkAgent(job.bot, job.seed);
+    const A0 = job.agentA ? fromSpec(job.agentA, job.seed) : mkAgent(job.bot, job.seed);
+    const observed =
+      (job.shadowA || job.piecesA) && A0 instanceof HeuristicAgent ? new ObservedAgent(A0, job.shadowA ? fromSpec(job.shadowA, job.seed) : null, !!job.piecesA) : null;
+    const A = observed ?? A0;
     const B = job.agentB ? fromSpec(job.agentB, job.seed + 7777) : mkAgent(job.bot, job.seed + 7777);
     const g = Game.create([job.a, job.b], [A, B], {
       seed: job.seed,
@@ -132,6 +220,8 @@ parentPort?.on('message', async (job: MatchJob) => {
       gigs: [s.players[0].gigs.length, s.players[1].gigs.length],
       summaries: job.trace ? summarize(s) : undefined,
       ...decisions,
+      ...(observed && job.shadowA ? { shadow: observed.shadow } : {}),
+      ...(observed && job.piecesA ? { pieces: observed.pieces } : {}),
     };
   } catch (e: any) {
     // an exception is an error, never a result: callers report it and leave the game out of every tally

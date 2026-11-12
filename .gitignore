@@ -7,6 +7,8 @@ reports/*-20*.md
 # ...except the tuner reports of the 2026-11-11 fresh baseline (docs/ROADMAP.md §1), kept as new-era data
 !reports/tune-weights-1-2026-11-11T21-15-00-176Z.json
 !reports/tune-profiles-1-2026-11-11T21-18-27-022Z.json
+# ...and the held-out measurement of package scoring (docs/ROADMAP2.md §1 step 4)
+!reports/package-scoring-2026-11-11.md
 reports-run*.log
 reports/*.out
 coverage/

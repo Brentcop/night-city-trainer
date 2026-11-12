@@ -1,7 +1,8 @@
 // Coach: turns the advisor bot's decision into human advice (why, alternatives, matchup plan, deck tips, warnings).
 import { Game, other } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
-import type { Agent, Decision, GameState, PlayerId } from '../engine/types';
+import type { Agent, Decision, GameState, Gig, Opt, PlayerId } from '../engine/types';
+import { activeSteer, holdCredit, packageFacts, partnerName, seatPackages, steerValue, steerWants, type SteerKind } from './packages';
 import { HeuristicAgent } from './heuristic';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
 import { GIG_SWING, knownCards } from './eval';
@@ -62,7 +63,103 @@ export async function advise(g: Game, d: Decision): Promise<Advice> {
     const diff = gigs(+m[2] - +m[3]);
     why = `${m[1]} — ${Math.abs(diff) < 0.05 ? 'about even with doing nothing' : diff > 0 ? `saves about ${diff.toFixed(1)} Gigs compared with not acting` : 'the least bad option here'}.`;
   }
+  const notes = packageNotes(g, d, index);
+  if (notes.length) why = [why, ...notes].filter(Boolean).join(' ');
   return { index, why, alternatives };
+}
+
+const cardName = (id: string) => CARD_BY_ID[id]?.displayName ?? id;
+
+/** What an option of a Gig decision leaves as each player's Gigs, when that is known before it resolves (adjust, set, steal). */
+function gigsAfter(g: Game, p: PlayerId, d: Decision, o: Opt): { mine: Gig[]; theirs: Gig[] } | null {
+  if (o.gig === undefined) return null;
+  const mine = g.gigsOf(p);
+  const theirs = g.gigsOf(other(p));
+  if (d.kind === 'gigValue' && o.n !== undefined) {
+    const set = (xs: Gig[]) => xs.map((x) => (x.id === o.gig ? { ...x, value: o.n! } : x));
+    return { mine: set(mine), theirs: set(theirs) };
+  }
+  if (d.kind === 'gig' && d.tag === 'steal') {
+    const x = g.gig(o.gig);
+    if (x.controller !== other(p)) return null;
+    return { mine: [...mine, x], theirs: theirs.filter((y) => y.id !== x.id) };
+  }
+  return null;
+}
+
+/** How an alternative moves away from a steerable quantity, in plain words (only when it is true of that alternative). */
+function awayText(k: SteerKind, after: { mine: Gig[]; theirs: Gig[] }): string {
+  const cred = (xs: Gig[]) => xs.reduce((a, x) => a + x.value, 0);
+  if (k === 'cred-low' && cred(after.mine) >= cred(after.theirs)) return 'would put your Street Cred at or above the rival’s';
+  if (k === 'cred-high' && cred(after.mine) <= cred(after.theirs)) return 'would leave your Street Cred at or below the rival’s';
+  if (k === 'cred-even' && cred(after.mine) % 2 === 1) return 'would make your Street Cred odd';
+  return 'would move away from that';
+}
+
+/**
+ * Plain-words notes when a synergy package the player's own list is built around is the reason for the advice
+ * (package names come from the catalogue, src/content/synergies): which cards to keep when selling, and what a Gig
+ * choice does for a Street Cred or Gig-value package. Empty when the list is built around none.
+ */
+export function packageNotes(g: Game, d: Decision, index: number): string[] {
+  const p = d.player;
+  const pkgs = seatPackages(g, p);
+  if (!pkgs.length) return [];
+  const facts = packageFacts(g, p, pkgs);
+  const out: string[] = [];
+  const opt = d.options[index];
+  if (!opt) return out;
+  if (d.kind === 'action' && opt.action?.type === 'sell') {
+    // name up to two scarce pieces kept in hand (not the card sold), with a partner the player can still get
+    const seen = new Set([g.c(opt.action.uid).defId]);
+    for (const u of g.P(p).hand) {
+      const id = g.c(u).defId;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const f = facts.find((x) => x.pkg.roles.has(id) && holdCredit([x], id) >= 0.25);
+      const partner = f && partnerName(g, p, f, id);
+      if (!f || !partner) continue;
+      out.push(`Keep ${cardName(id)}: it pairs with ${partner} in your deck (${f.pkg.name}).`);
+      if (out.length >= 2) break;
+    }
+    return out;
+  }
+  if (d.kind !== 'gig' && d.kind !== 'gigValue') return out;
+  const kinds = activeSteer(facts);
+  const chosen = gigsAfter(g, p, d, opt);
+  if (!kinds.length || !chosen) return out;
+  for (const k of kinds) {
+    const v = steerValue(k, chosen.mine, chosen.theirs);
+    // the alternative that moves furthest away from what the package wants
+    let worst: { label: string; v: number; after: { mine: Gig[]; theirs: Gig[] } } | null = null;
+    d.options.forEach((o, i) => {
+      if (i === index) return;
+      const after = gigsAfter(g, p, d, o);
+      if (!after) return;
+      const w = steerValue(k, after.mine, after.theirs);
+      if (!worst || w < worst.v) worst = { label: o.label, v: w, after };
+    });
+    const alt = worst as { label: string; v: number; after: { mine: Gig[]; theirs: Gig[] } } | null;
+    if (!alt || alt.v >= v - 1e-9) continue;
+    const names = pkgs.filter((x) => x.steer.includes(k)).map((x) => x.name);
+    out.push(`Your deck wants ${steerWants(k)} (${names.join(', ')}): ${alt.label} ${awayText(k, alt.after)}.`);
+  }
+  return out;
+}
+
+/** Live warnings for a Street Cred package the player's list is built around, while a payoff is in hand or in play. */
+export function packageWarnings(g: Game, p: PlayerId): string[] {
+  const pkgs = seatPackages(g, p);
+  if (!pkgs.length) return [];
+  const facts = packageFacts(g, p, pkgs);
+  const kinds = activeSteer(facts);
+  const mine = g.streetCred(p) ?? 0;
+  const theirs = g.streetCred(other(p)) ?? 0;
+  const names = (k: SteerKind) => pkgs.filter((x) => x.steer.includes(k)).map((x) => x.name).join(', ');
+  const out: string[] = [];
+  if (kinds.includes('cred-low') && g.P(p).gigs.length && mine >= theirs) out.push(`Your Street Cred (${mine}) is not below the rival’s (${theirs}); your deck wants it lower (${names('cred-low')}).`);
+  if (kinds.includes('cred-high') && mine <= theirs) out.push(`Your Street Cred (${mine}) is not above the rival’s (${theirs}); your deck wants it higher (${names('cred-high')}).`);
+  return out;
 }
 
 /**
@@ -157,5 +254,6 @@ export function boardWarnings(g: Game, p: PlayerId = 0): string[] {
   if (theirs >= 6) out.push(`Rival is at ${theirs} Gigs — one steal from winning at the start of their turn.`);
   else if (mine >= 6) out.push(`You are at ${mine} Gigs — keep them safe to win at the start of your turn.`);
   if (g.s.overtime) out.push('Overtime: 7 Gigs wins immediately.');
+  out.push(...packageWarnings(g, p));
   return out;
 }

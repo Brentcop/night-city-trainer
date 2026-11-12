@@ -1,6 +1,6 @@
 # Synergy packages
 
-Many cards are worth more together than alone. The synergy catalogue names those packages, and the synergy report measures how often each one is assembled and comes online in bot games and how games go when it does. The deck builders can keep, require, avoid, seed and move whole packages ("Using packages when building" below). This is [ROADMAP2.md](ROADMAP2.md) §1 steps 1–3. Nothing in the bots, the coach or the evaluation reads the catalogue yet (step 4).
+Many cards are worth more together than alone. The synergy catalogue names those packages, and the synergy report measures how often each one is assembled and comes online in bot games and how games go when it does. The deck builders can keep, require, avoid, seed and move whole packages ("Using packages when building" below). The bots' evaluation has package terms and the coach names packages in its advice ("How scoring uses packages" below). This is [ROADMAP2.md](ROADMAP2.md) §1 steps 1–4.
 
 ## The catalogue (`src/content/synergies/`)
 
@@ -104,6 +104,17 @@ npx tsx scripts/breed-preview.ts --seed-packages low-cred+program-fuel,arasaka -
 - **Breed new decks → Build around synergies**: pick one or two packages. The explorers are then built around them; **Also build mutants, crossovers and counters around them** (on once a package is picked) fits every other deck to them too, and a deck that can't hold them is not bred (the panel says how many could be). The picker says how many Legend trios can hold the pick, or why not, and warns when two pull opposite ways. Each bred deck shows the packages it is built around and any package change made to fit.
 
 The controls are native checkboxes and toggle buttons (`aria-pressed`) in labelled fieldsets, disabled while a run is going.
+
+## How scoring uses packages (`src/ai/packages.ts`)
+
+The bots and the coach score positions with `evaluate()` and a few rules (docs/BOT_TOOLKIT.md §3, §5). Package knowledge enters there for the player's **own** list only:
+
+- **Which packages.** The deck objective's `synergies` when the owner named them for this exact list (matched by `listFingerprint`), else every package `synergiesIn(list)` marks built-around. Computed once per list fingerprint and cached in a module map, never in the game state (bots `structuredClone` it). Every list in the active library is built around at least one package (2 to 6).
+- **Facts per position** (`packageFacts`): own copies of each package's members by role in hand, in play (Units, equipped Gear, face-up Legends), among the face-down Legends, in the trash and still in the deck. Only the player's own hand and deck contents and public cards are read; the rival's list and hidden cards never are, and inside lookahead clones the rival seat's bots get no package weights.
+- **Terms** (weights in `EvalWeights`, all 0 by default): `pkgHold` (keep a piece whose partner can still be had; scaled down by how many copies do the same job, so the last payoff counts and one of twelve Programs barely does), `pkgAssembly` (both halves available), `pkgSteer` (own Gigs and Street Cred toward the condition of a package whose payoff is in hand, in play or a Legend; it also chooses the roll-in die and counts in steal, swap, adjust and reroll choices), `pkgProtect` (members in play of a `requires` package assembled in play).
+- **What is not rewarded:** being "online" as such. Several packages come online mostly when the deck is already losing (Behind on Street Cred, Behind on Gigs, Units in the trash, Spend then punish), so no term credits the condition holding; `pkgSteer` credits only quantities the deck's own choices move, and only while a payoff is there to use them. Board, trash and tempo conditions are not steered.
+- **The coach** names a package when it is the reason, in plain words with the catalogue's names: when advising a sell, "Keep Towerfall: it pairs with Jackie Welles: Pour One Out For Me in your deck (Behind on Street Cred)." (only scarce pieces: hold credit ¼ or more); on a Gig choice, "Your deck wants your Street Cred below the rival’s (Behind on Street Cred): d6 (5) would put your Street Cred at or above the rival’s."; and a live warning, "Your Street Cred (14) is not below the rival’s (6); your deck wants it lower (Behind on Street Cred)." These describe the position, so they show whatever the weights are.
+- **Measuring** (`scripts/package-scoring.ts`): every library deck built around a package against every meta deck, weights on vs off on the same seeds, seats and opponents; paired gain overall, per family, per package and per deck; how many of the deck's decisions each weight changes (a weights-off shadow bot asked at every decision); and how often a scarce piece was sold or discarded while its partner was obtainable. First measurement (2026-11-11, Hard, `reports/package-scoring-2026-11-11.md`): every term changes decisions, none showed a gain (held-out `pkgAssembly` 6: −1.6 points [−3.2, +0.0] over 1,092 games), so all four stay 0.
 
 ## When a deck change is adopted (`src/lib/evidence.ts`, `src/lib/deckSearch.ts`)
 

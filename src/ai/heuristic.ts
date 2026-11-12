@@ -4,9 +4,10 @@
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
-import { clampPlayOut, DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, type EvalWeights } from './eval';
+import { clampPlayOut, DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
 import { makeWorlds, playOut } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
+import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, classify, type Archetype, type Profiles } from './archetype';
 import { cardImpact } from './impact';
@@ -110,6 +111,56 @@ export class HeuristicAgent implements Agent {
     return this.rng / 4294967296;
   }
 
+  /**
+   * Copy another agent's decision state (random stream, matchup read, a planned Gig swap), so this agent decides the
+   * next decision exactly as `o` would with this agent's options. Used to count the decisions a weight changes
+   * (scripts/package-scoring.ts); never in play.
+   */
+  syncFrom(o: HeuristicAgent) {
+    this.rng = o.rng;
+    this.myArch = o.myArch;
+    this.oppArch = o.oppArch;
+    this.pendingSwapTake = o.pendingSwapTake;
+  }
+
+  /**
+   * The agents of a lookahead clone. The deciding seat p keeps its own package weights (it knows its own list); the rival
+   * seat gets none (p doesn't know the rival's list). With no package weight set this is exactly the old pair.
+   */
+  private cloneAgents(p: PlayerId, mk: (w: EvalWeights, seat: PlayerId) => Agent): [Agent, Agent] {
+    const own = this.opts.weights;
+    const rival = withoutPackages(own); // the same object when no package weight is set
+    return [mk(p === 0 ? own : rival, 0), mk(p === 1 ? own : rival, 1)];
+  }
+
+  /** Weights for the fast agents of simulate() / reaction clones: as before (defaults) unless package weights are set. */
+  private fastAgents(p: PlayerId): [Agent, Agent] {
+    if (!usesPackages(this.opts.weights) && !usesPackages(DEFAULT_WEIGHTS)) return [new HeuristicAgent({ lookahead: false }), new HeuristicAgent({ lookahead: false })];
+    const own: EvalWeights = { ...DEFAULT_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
+    const rival = withoutPackages(DEFAULT_WEIGHTS);
+    return [new HeuristicAgent({ lookahead: false, weights: p === 0 ? own : rival }), new HeuristicAgent({ lookahead: false, weights: p === 1 ? own : rival })];
+  }
+
+  /** Package facts for seat p, or null when no package weight counts for this agent or p's list is built around none. */
+  private pkgFacts(g: Game, p: PlayerId) {
+    if (!usesPackages(this.opts.weights)) return null;
+    const pkgs = seatPackages(g, p);
+    return pkgs.length ? packageFacts(g, p, pkgs) : null;
+  }
+
+  /** The steering kinds that count for p now (pkgSteer set, a payoff available), or null. */
+  private steerKinds(g: Game, p: PlayerId): SteerKind[] | null {
+    if (this.opts.weights.pkgSteer === 0) return null;
+    const f = this.pkgFacts(g, p);
+    const k = f ? activeSteer(f) : [];
+    return k.length ? k : null;
+  }
+
+  /** pkgSteer in the Gig plan's units (the Gig sub-choices compare plan scores). */
+  private steerInPlanUnits(): number {
+    return this.opts.weights.pkgSteer / (this.opts.weights.plan || 1);
+  }
+
   async decide(g: Game, d: Decision): Promise<number[]> {
     // explanations describe the latest main-phase action or reaction (sub-choices keep the move that caused them)
     if (d.kind === 'action' || d.kind === 'reaction') {
@@ -158,6 +209,7 @@ export class HeuristicAgent implements Agent {
     const counts = new Map<string, number>();
     for (const u of P.hand) counts.set(g.c(u).defId, (counts.get(g.c(u).defId) ?? 0) + 1);
     const scored: { uid: number; keep: number; def: string }[] = [];
+    const facts = this.opts.weights.pkgHold !== 0 ? this.pkgFacts(g, p) : null;
     for (const s of sells) {
       const c = g.c(s.uid);
       const d = g.def(c);
@@ -167,6 +219,8 @@ export class HeuristicAgent implements Agent {
       if (cost > avail + 3) keep -= 3; // far off
       if ((counts.get(c.defId) ?? 0) > 1) keep -= 2;
       if (d.type === 'Gear' && g.gearHosts(p).length === 0) keep -= 2;
+      // a package piece whose partner can still be had is worth keeping (pkgHold)
+      if (facts) keep += this.opts.weights.pkgHold * holdCredit(facts, c.defId);
       scored.push({ uid: s.uid, keep, def: c.defId });
     }
     scored.sort((a, b) => a.keep - b.keep);
@@ -267,8 +321,7 @@ export class HeuristicAgent implements Agent {
 
   /** Clone, perform an action with fast policies, return evaluation. */
   async simulate(g: Game, p: PlayerId, a: Action): Promise<number> {
-    const fast: [Agent, Agent] = [new HeuristicAgent({ lookahead: false }), new HeuristicAgent({ lookahead: false })];
-    const cg = g.clone(fast);
+    const cg = g.clone(this.fastAgents(p));
     hideInfo(cg, p);
     try {
       await cg.doAction(p, a);
@@ -282,8 +335,7 @@ export class HeuristicAgent implements Agent {
 
   /** Play the action, finish our turn with a 1-ply bot, then let a 1-ply rival take its full turn; evaluate. */
   async rollout(g: Game, p: PlayerId, a: Action): Promise<number> {
-    const mk = () => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights: this.opts.weights, profiles: this.opts.profiles });
-    const cg = g.clone([mk(), mk()]);
+    const cg = g.clone(this.cloneAgents(p, (weights) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles })));
     hideInfo(cg, p);
     await playOut(cg, p, { action: a });
     return evaluate(cg, p, this.w(g, p));
@@ -338,8 +390,7 @@ export class HeuristicAgent implements Agent {
     // fight and steal effects armed by the reaction count (Safety Override, "when this blocks" triggers, ...). Letting
     // the attack resolve is valued the same way.
     const resolved = async (r: Reaction | null) => {
-      const fast: [Agent, Agent] = [new HeuristicAgent({ lookahead: false }), new HeuristicAgent({ lookahead: false })];
-      const cg = g.clone(fast);
+      const cg = g.clone(this.fastAgents(p));
       hideInfo(cg, p);
       try {
         if (r) {
@@ -368,8 +419,7 @@ export class HeuristicAgent implements Agent {
     const value = async (r: Reaction) => {
       let sum = 0;
       for (const w of worlds) {
-        const mk = (seed: number) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights: this.opts.weights, profiles: this.opts.profiles, seed });
-        const cg = g.clone([mk(w.a), mk(w.b)]);
+        const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
         cg.s.rng = w.rng;
         hideInfo(cg, p);
         await playOut(cg, p, { reaction: r, attacker });
@@ -442,7 +492,7 @@ export class HeuristicAgent implements Agent {
         // Maman Brigitte: two Programs from hand for bottom-decking the rival's best unequipped Unit
         const targets = g.units(other(p)).filter((c) => c.gear.length === 0);
         const best = Math.max(0, ...targets.map((c) => unitValue(g, c, w)));
-        return best > 2 * w.hand;
+        return best > 2 * w.hand + this.discardPackageCost(g, p, 2, (id) => g.def(id).type === 'Program');
       }
       case 'pay':
         return this.wantsSombreron(g, p, d);
@@ -452,6 +502,20 @@ export class HeuristicAgent implements Agent {
     }
   }
 
+  /** pkgHold: what discarding the n cards in hand matching `which` that a give-up choice would pick costs p's packages (0 when off). */
+  private discardPackageCost(g: Game, p: PlayerId, n: number, which: (uid: number) => boolean): number {
+    const wt = this.opts.weights.pkgHold;
+    if (wt === 0) return 0;
+    const facts = this.pkgFacts(g, p);
+    if (!facts) return 0;
+    const cards = g.P(p).hand.filter(which).map((u) => {
+      const h = wt * holdCredit(facts, g.c(u).defId);
+      return { v: cardValue(g.c(u).defId) + h, h };
+    });
+    cards.sort((a, b) => a.v - b.v);
+    return cards.slice(0, n).reduce((a, x) => a + x.h, 0);
+  }
+
   /** Kerry Eurodyne: reroll a Fixer-rolled Gig when the expected roll (plan fit + min/max draws) beats the current one. */
   private wantsReroll(g: Game, p: PlayerId, d: Decision, w: EvalWeights): boolean {
     const plan = planFor(g, p, p);
@@ -459,10 +523,13 @@ export class HeuristicAgent implements Agent {
     // the Gig just rolled in from the Fixer is the newest friendly Gig (the engine appends it before the trigger)
     const gig = gigs[gigs.length - 1];
     if (!gig || d.source === undefined) return false;
+    const steer = this.steerKinds(g, p);
+    const theirs = steer ? g.gigsOf(other(p)) : [];
     const score = (v: number) => {
       const view = gigs.map((x) => (x.id === gig.id ? ({ ...x, value: v } as Gig) : x));
       const draws = v === 1 || v === gig.sides ? (gig.sides === 20 ? 3 : 1) : 0;
-      return planScore(view, plan) * w.plan + draws * w.hand;
+      const s = planScore(view, plan) * w.plan + draws * w.hand;
+      return steer ? s + this.opts.weights.pkgSteer * steerCredit(steer, view, theirs) : s;
     };
     let mean = 0;
     for (let v = 1; v <= gig.sides; v++) mean += score(v);
@@ -593,6 +660,7 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const policy = CARD_TAG_POLICY[d.tag ?? ''] ?? (d.intent === 'harm' ? 'target' : 'take');
     if (policy === 'blind') return real[0].i;
+    const facts = this.opts.weights.pkgHold !== 0 ? this.pkgFacts(g, p) : null;
     const scored = real.map(({ o, i }) => {
       const c = g.c(o.uid!);
       const mine = c.controller === p;
@@ -601,6 +669,8 @@ export class HeuristicAgent implements Agent {
       // prefer keeping / getting cards we can cast soon
       const cost = g.def(c).cost ?? 0;
       if (mine && cost <= g.P(p).eddies.length + 3) v += 1.5;
+      // own package pieces whose partner can still be had: keep them, take them (pkgHold; never for rival cards)
+      if (mine && facts) v += this.opts.weights.pkgHold * holdCredit(facts, c.defId);
       return { i, v, mine };
     });
     const best = (xs: typeof scored) => [...xs].sort((a, b) => b.v - a.v || a.i - b.i)[0].i;
@@ -621,20 +691,42 @@ export class HeuristicAgent implements Agent {
     if (!real.length) return Math.max(0, none);
     const gigs = real.map(({ o, i }) => ({ x: g.gig(o.gig!), i }));
     const myPlan = planFor(g, p, p);
+    // the package steering kinds that count now (pkgSteer set and a payoff to use them), in the plan's units
+    const steer = this.steerKinds(g, p);
+    const k = steer ? this.steerInPlanUnits() : 0;
     if (d.tag === 'rollIn') {
       // high plans roll big dice early; low plans roll small dice (better min odds); default: big dice
       const wantSmall = myPlan.low > myPlan.high + 0.2;
       gigs.sort((a, b) => (wantSmall ? a.x.sides - b.x.sides : b.x.sides - a.x.sides));
+      if (steer) {
+        // a package that steers Gigs: the die whose roll is expected to land closest to what the package wants
+        // (ties keep the order above)
+        const mine = g.gigsOf(p);
+        const theirs = g.gigsOf(other(p));
+        const expected = (x: Gig) => {
+          let s = 0;
+          for (let v = 1; v <= x.sides; v++) s += steerCredit(steer, [...mine, { value: v, sides: x.sides }], theirs);
+          return s / x.sides;
+        };
+        let best = gigs[0];
+        let bestV = expected(best.x);
+        for (const y of gigs.slice(1)) {
+          const v = expected(y.x);
+          if (v > bestV + 1e-9) (best = y), (bestV = v);
+        }
+        return best.i;
+      }
       return gigs[0].i;
     }
     const rPlan = planFor(g, other(p), p);
-    /** our plan score minus the rival's, with `give` moved to the rival and `take` moved to us */
+    /** our plan score minus the rival's, with `give` moved to the rival and `take` moved to us (plus package steering) */
     const swing = (give: Gig | null, take: Gig | null) => {
       const mineAfter = g.gigsOf(p).filter((y) => y.id !== give?.id);
       const theirsAfter = g.gigsOf(other(p)).filter((y) => y.id !== take?.id);
       if (take) mineAfter.push(take);
       if (give) theirsAfter.push(give);
-      return planScore(mineAfter, myPlan) - planScore(theirsAfter, rPlan);
+      const s = planScore(mineAfter, myPlan) - planScore(theirsAfter, rPlan);
+      return steer ? s + k * steerCredit(steer, mineAfter, theirsAfter) : s;
     };
     const argmax = <T>(xs: T[], f: (x: T) => number) => {
       let best = xs[0];
@@ -691,10 +783,13 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const myPlan = planFor(g, p, p);
     const rPlan = planFor(g, other(p), p);
+    const steer = this.steerKinds(g, p);
+    const k = steer ? this.steerInPlanUnits() : 0;
     const score = (override?: { gig: number; n: number }) => {
       const view = (pl: PlayerId) =>
         g.gigsOf(pl).map((x) => (override && x.id === override.gig ? ({ ...x, value: override.n } as Gig) : x));
-      return planScore(view(p), myPlan) - planScore(view(other(p)), rPlan);
+      const s = planScore(view(p), myPlan) - planScore(view(other(p)), rPlan);
+      return steer ? s + k * steerCredit(steer, view(p), view(other(p))) : s;
     };
     let bestI = d.options.findIndex((o) => o.key === 'none');
     let bestV = score();

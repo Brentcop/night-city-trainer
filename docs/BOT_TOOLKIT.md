@@ -52,6 +52,23 @@ The evaluation scores a position from one player's view: ours minus the rival's.
 
 The weights were tuned by self-play (`scripts/tune.ts`): each weight is tried at ×0.5 and ×1.6 against the baseline across every meta pairing. Two early rounds (before the November 2026 fixes, when a variant was adopted at a 54% win rate) halved the Gig, unit-power and spent-risk weights, then raised face-up Legends and halved spent risk again. Since 2026-11-11 a variant is adopted in training only when the lower bound of its paired 95% interval is above zero, and a candidate is applied only when its held-out lower bound clears 1 point (`scripts/tuning.ts`). The re-tune for the fresh baseline (2026-11-11, `--seed 1`, defaults: 168 games per evaluation) adopted unitPower ×1.6 in training, but the held-out check gave +0.6 points [−3.3, +4.5] over 168 games, so nothing was applied (report `reports/tune-weights-1-2026-11-11T21-15-00-176Z.json`). The values above are `DEFAULT_WEIGHTS` in `src/ai/eval.ts`; the per-Gig, Gear, Blocker and low-deck numbers are fixed in the code, not tuned.
 
+### Package terms (`src/ai/packages.ts`, docs/SYNERGIES.md "How scoring uses packages")
+
+Four more weights credit the synergy packages the player's **own** list is built around (the deck objective's `synergies` when named for that exact list, else every package `synergiesIn` marks built-around; computed once per list fingerprint and cached outside the state). They are **0 by default**: with all four at 0 the bots play exactly as before (the golden replays, and `tests/package-scoring.test.ts`). They are not in `TUNED_WEIGHTS`; `scripts/package-scoring.ts` measures them.
+
+| Weight | Where it counts | What it credits |
+|---|---|---|
+| `pkgHold` | sell ranking, card choices (discard/trash/bottom-deck own cards, search and free-play picks), Maman Brigitte's discard | a piece in hand whose partner the player can still get (hand, play, Legends, deck): 1 per `requires` package (½ `helps`), divided by the copies still obtainable that do the same job, at most 2 |
+| `pkgAssembly` | `evaluate()` | per package, enabler and payoff (or two members) available together in hand, play or the Legends: 1 (`helps` ½) |
+| `pkgSteer` | `evaluate()`, and the Gig choices: roll-in die, steal, swap, adjust/set value, Kerry's reroll | for each steerable quantity of a package with a payoff available (Street Cred below / above the rival's, even Street Cred, min Gig, 8+ Gig, value-pair, mixed values), how far the own Gigs are toward it, in [−1, 1] |
+| `pkgProtect` | `evaluate()` | per member in play (at most 3) of a `requires` package assembled in play: losing one costs this |
+
+Only the deciding player's own packages count: inside lookahead clones the rival seat's bots get no package weights (`withoutPackages`), since the bot does not know the rival's list. The roll-in die choice (always the first option before) and Maman Brigitte's discard (`yesno/discardFor`) go through the package terms only when their weight is set. `mode/mode` is unchanged: no package gives a clear reason to pick a mode differently.
+
+**How to measure one.** `npx tsx scripts/package-scoring.ts --out <scratch dir> --configs "name:pkgHold=8;…" [--phase train|heldout] [--per N] [--shadow-games M] [--bot hard|deep]` plays every library deck built around a package against every meta deck, weights on vs off on the same seeds, seats and opponents (opponent: the same bot, weights off). It prints the paired gain overall, per family, package and deck, the apply gate, how many of the deck's decisions the weights change (`--shadow-games`: a weights-off shadow bot is asked at every decision in the same state and random stream), and how often a scarce package piece was sold or discarded while its partner was obtainable. A weight that changes no decision is not worth measuring further.
+
+**Measured 2026-11-11 (SIM_VERSION 5, Hard; `reports/package-scoring-2026-11-11.md`):** in training (546 paired games each) `pkgHold` 8 −0.5 points [−2.1, +1.0], `pkgAssembly` 6 +1.1 [−0.9, +3.1], `pkgSteer` 6 −2.0 [−4.4, +0.4], `pkgProtect` 3 −0.4 [−2.1, +1.4], all four +0.2 [−3.3, +3.7]. Each changes decisions (47, 36, 154 and 43 of about 3,400 in 80 shadowed games; `pkgSteer` changes a quarter of the roll-in choices). Held-out, `pkgAssembly` 6 gave −1.6 [−3.2, +0.0] over 1,092 games, so nothing was applied and every package weight stays 0. `pkgHold` 8 cuts sells of a scarce piece whose partner is obtainable from 55% to 40% of the sells where one was in hand, with no measurable gain.
+
 ## 4. Gig plan (`src/ai/knowledge.ts → gigPlanOf`)
 
 The bot counts how many of its deck's cards reference each pattern:

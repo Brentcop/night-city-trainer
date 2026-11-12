@@ -2,6 +2,7 @@
 import { other, type Game } from '../engine/engine';
 import type { CardInst, Gig, PlayerId } from '../engine/types';
 import { gigPlanOf, type GigPlan } from './knowledge';
+import { activeSteer, assemblyCredit, packageFacts, protectCredit, seatPackages, steerCredit } from './packages';
 
 export interface EvalWeights {
   gig: number; // per gig difference
@@ -26,6 +27,12 @@ export interface EvalWeights {
   eddieCap: number; // Eddies counted at most
   win: number; // a won game (a lost one is −win)
   playOutClamp: number; // a play-out's score is clamped to ±this, so one lost world can't outweigh the rest
+  // Synergy packages the player's own list is built around (src/ai/packages.ts, docs/SYNERGIES.md). All 0 by default:
+  // the bots play exactly as before until a measured value is applied (docs/BOT_TOOLKIT.md §3).
+  pkgHold: number; // keep value of a package piece in hand whose partner can still be had (sell, discard, search choices)
+  pkgAssembly: number; // a package's pieces available together (hand, play, Legends)
+  pkgSteer: number; // own Gigs / Street Cred toward a package's condition while a payoff is available (also roll-in, steal, adjust, swap)
+  pkgProtect: number; // per member in play of a `requires` package assembled in play
 }
 
 // Tuned by self-play (scripts/tune.ts): round 1 halved gig, unitPower, spentRisk; round 2 raised faceUpLegend, halved spentRisk again (Nov 10 2026).
@@ -51,7 +58,23 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   eddieCap: 10,
   win: 10000,
   playOutClamp: 600,
+  pkgHold: 0,
+  pkgAssembly: 0,
+  pkgSteer: 0,
+  pkgProtect: 0,
 };
+
+/** The package weights (not in TUNED_WEIGHTS: they are measured by scripts/package-scoring.ts). */
+export const PACKAGE_WEIGHTS = ['pkgHold', 'pkgAssembly', 'pkgSteer', 'pkgProtect'] as const satisfies readonly (keyof EvalWeights)[];
+
+/** Does any package weight count? (All 0 = the evaluation never looks at packages.) */
+export const usesPackages = (w: EvalWeights) => w.pkgHold !== 0 || w.pkgAssembly !== 0 || w.pkgSteer !== 0 || w.pkgProtect !== 0;
+
+/**
+ * The weights for the RIVAL seat inside a lookahead clone: no package terms, because the deciding bot doesn't know the
+ * rival's list. The same object when no package weight is set (so play is unchanged).
+ */
+export const withoutPackages = (w: EvalWeights): EvalWeights => (usesPackages(w) ? { ...w, pkgHold: 0, pkgAssembly: 0, pkgSteer: 0, pkgProtect: 0 } : w);
 
 /** The weights scripts/tune.ts searches, in its order; the rest of EvalWeights keeps its defaults. */
 export const TUNED_WEIGHTS = ['gig', 'gigNear', 'unitPower', 'unitCost', 'hand', 'eddie', 'faceUpLegend', 'plan', 'spentRisk'] as const satisfies readonly (keyof EvalWeights)[];
@@ -153,6 +176,23 @@ export function evaluate(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS)
     if (P.deck.length < w.lowDeckAt) side -= (w.lowDeckAt - P.deck.length) * w.lowDeck;
     side += planScore(g.gigsOf(pl), planFor(g, pl, p)) * w.plan;
     v += sign * side;
+  }
+  // own packages only: the rival's list is not known to p
+  if (w.pkgAssembly !== 0 || w.pkgSteer !== 0 || w.pkgProtect !== 0) v += packageTerms(g, p, w);
+  return v;
+}
+
+/** The package terms of evaluate() for p's own side (src/ai/packages.ts); 0 for a list built around no package. */
+export function packageTerms(g: Game, p: PlayerId, w: EvalWeights): number {
+  const pkgs = seatPackages(g, p);
+  if (!pkgs.length) return 0;
+  const facts = packageFacts(g, p, pkgs);
+  let v = 0;
+  if (w.pkgAssembly !== 0) v += w.pkgAssembly * assemblyCredit(facts);
+  if (w.pkgProtect !== 0) v += w.pkgProtect * protectCredit(facts);
+  if (w.pkgSteer !== 0) {
+    const kinds = activeSteer(facts);
+    if (kinds.length) v += w.pkgSteer * steerCredit(kinds, g.gigsOf(p), g.gigsOf(other(p)));
   }
   return v;
 }
