@@ -11,6 +11,7 @@ import type { DeckList } from '../src/engine/types';
 import type { DeckReport } from '../src/analysis/analyze';
 import { cardValue } from '../src/ai/knowledge';
 import { canCut, checkChange, isEmptyPlan, tunerPackageMoves, type PackageMove, type PackagePlan } from '../src/lib/deckPackages';
+import { combinedCandidates } from '../src/lib/deckSearch';
 
 export interface Mutation {
   label: string;
@@ -18,6 +19,24 @@ export interface Mutation {
   prior: number;
   /** set for a package move */
   pkg?: Pick<PackageMove, 'kind' | 'added' | 'removed'>;
+  /** set for a candidate combined from several screened changes (search depth 2 or 3) */
+  combo?: { parts: string[]; packages: boolean };
+}
+
+/** Whether a candidate is judged as a package change (its own minimum gain may differ). */
+export const isPackageChange = (m: Pick<Mutation, 'pkg' | 'combo'>) => !!m.pkg || !!m.combo?.packages;
+
+/**
+ * Candidates of two or three changes from the best screened single changes (`singles`, best first, all one kind):
+ * pairs (and triples) of the first `from` that make a legal list and respect the plan (src/lib/deckSearch.ts).
+ */
+export function combineMutations(deck: DeckList, singles: readonly Mutation[], o: { maxParts: number; from: number; plan?: PackagePlan; seen?: Set<string> }): Mutation[] {
+  return combinedCandidates(deck, singles, o, (parts, d) => ({
+    label: parts.map((p) => p.label).join(' + '),
+    deck: d,
+    prior: parts.reduce((s, p) => s + p.prior, 0),
+    combo: { parts: parts.map((p) => p.label), packages: parts.some((p) => !!p.pkg) },
+  }));
 }
 
 /**
@@ -72,6 +91,7 @@ export interface Cand {
   label: string;
   deck: DeckList;
   pkg?: Mutation['pkg'];
+  combo?: Mutation['combo'];
 }
 
 /**

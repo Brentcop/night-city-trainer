@@ -167,4 +167,6 @@ Open:
 
 Settled on 2026-11-11 (owner-delegated): tuner adoption. During the training search a candidate is adopted only when the lower bound of its paired 95% interval is above zero; a candidate is applied only when its held-out paired lower bound exceeds a minimum practical gain of 1 percentage point by default (`--min-gain`). Both rules live in `scripts/tuning.ts`.
 
+Settled on 2026-11-11 (owner-delegated): deck-change adoption. The forge, optimizer, season forge and Deck Lab tuner adopt a change only when the corrected lower bound of its paired gain on fresh held-out games (staged up to 4× the first confirmation, α = 0.05 Bonferroni-split over looks and nominees, at least 200 games) is above 1 point, reject it when the upper bound is below, and otherwise report "could not tell" without adopting (`src/lib/evidence.ts`; `--adopt any-gain` reproduces older runs).
+
 Settled on 2026-11-10: the code is MIT-licensed (`LICENSE`, with third-party content listed in `NOTICE.md`), and the dev-dependency major upgrades (vite, vitest, tsx) are done as part of the current change rather than deferred.

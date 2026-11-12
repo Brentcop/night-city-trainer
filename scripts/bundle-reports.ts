@@ -48,7 +48,7 @@ interface ForgeGen {
   baseline: number | null;
   swaps: { swap: string; wr: number; delta: number }[];
   confirm?: string;
-  verdict: 'adopted' | 'rejected' | 'kept';
+  verdict: 'adopted' | 'rejected' | 'inconclusive' | 'kept';
 }
 interface DeckReports {
   finals?: { overall: number; games: number; date?: string; simVersion?: number; rows: H2H[] };

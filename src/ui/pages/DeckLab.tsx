@@ -6,7 +6,10 @@ import type { LibraryDeck } from '../../lib/library';
 import { exportOfficial, listFingerprint, parseDeck, validateDeck } from '../../engine/deck';
 import { CARD_BY_ID } from '../../engine/cards';
 import type { CardDef, DeckList } from '../../engine/types';
-import { breedInBrowser, loadH2H, partialTune, playSet, recordedEventCount, tunedName, tuneDeck, type H2HInfo, type TuneProgress } from '../../lib/deckLab';
+import { breedInBrowser, loadH2H, partialTune, playSet, recordedEventCount, tunedName, tuneDeck, tunePlan, type H2HInfo, type TuneLog, type TuneProgress } from '../../lib/deckLab';
+import { adoptionProvenance, describeRule, formatGain, type AdoptionRule } from '../../lib/evidence';
+import { LAB_GAME_BUDGET } from '../../lib/deckSearch';
+import { DepthControls, NomineeTable, OutcomeChip, PairedGain } from '../components/LabEvidence';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
 import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
 import { RunDetails } from '../components/RunDetails';
@@ -38,9 +41,10 @@ const QUICK_TEST_GAMES = 56;
 /** package moves tried per generation when they are on */
 const PACKAGE_CANDS = 3;
 const EFFORT = {
-  quick: { label: 'Quick (~15 s)', games: 56, gens: 1, cands: 4 },
-  standard: { label: 'Standard (~1 min)', games: 112, gens: 2, cands: 5 },
-  thorough: { label: 'Thorough (~3 min)', games: 168, gens: 3, cands: 6 },
+  // the game count, with the confirmation stages, is shown under Search depth
+  quick: { label: 'Quick (1 generation)', games: 56, gens: 1, cands: 4 },
+  standard: { label: 'Standard (2 generations)', games: 112, gens: 2, cands: 5 },
+  thorough: { label: 'Thorough (3 generations)', games: 168, gens: 3, cands: 6 },
 };
 
 function fieldDecks(key: FieldKey, lib: readonly LibraryDeck[], exclude: string): DeckList[] {
@@ -137,10 +141,19 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const [pkgMoves, setPkgMoves] = useState(false);
   /** the package plan of the last run, for the result panel and the saved notes */
   const [runPlan, setRunPlan] = useState<{ plan: PackagePlan; moves: boolean } | null>(null);
+  // search depth: one change per candidate by default (the breadth before depth existed)
+  const [cardsPer, setCardsPer] = useState(1);
+  const [pkgsPer, setPkgsPer] = useState(1);
+  const depth = { cardsPerChange: cardsPer, packagesPerChange: pkgMoves ? pkgsPer : 1 };
+  const e0 = EFFORT[effort];
+  const planned = tunePlan({ games: e0.games, gens: e0.gens, cands: e0.cands, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth });
+  /** the rule the last run used, for its result panel */
+  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number } | null>(null);
 
   const start = async () => {
     const deck = parsed.deck;
     if (!deck || parsed.errors.length) return;
+    if (planned.estimate.max > LAB_GAME_BUDGET && !window.confirm(`This run may play up to ${planned.estimate.max.toLocaleString('en-US')} games, over the lab's budget of ${LAB_GAME_BUDGET.toLocaleString('en-US')}. Run it anyway?`)) return;
     const fieldList = fieldDecks(field, lib, deck.name);
     const e = EFFORT[effort];
     const packagePlan: PackagePlan = keep.length ? { keep: [...keep] } : {};
@@ -156,12 +169,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       bot,
       seedBase,
       seatPolicy: 'alternate',
-      plannedGames: e.gens * (e.games * (1 + e.cands + (pkgMoves ? PACKAGE_CANDS : 0)) + e.games * 4),
+      plannedGames: planned.estimate.max,
       completedGames: 0,
       gamesPerPair: null,
       trace: true,
       simVersion: SIM_VERSION,
       ...(keep.length || pkgMoves ? { packages: packageProvenance(packagePlan) } : {}),
+      adoption: adoptionProvenance(planned.rule, { firstStage: planned.firstStage, nominees: planned.depth.nominees, cardsPerChange: planned.depth.cardsPerChange, packagesPerChange: planned.depth.packagesPerChange }),
     });
     let completed = 0;
     const play: PlayGame = (j) =>
@@ -176,12 +190,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     setProg(null);
     setManifest(plan);
     setRunPlan(keep.length || pkgMoves ? { plan: packagePlan, moves: pkgMoves } : null);
+    setRunRule({ rule: planned.rule, firstStage: planned.firstStage });
     try {
       const onProgress = (p: TuneProgress) => {
         setProg(p);
         note();
       };
-      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS }, play, onProgress, () => stopRef.current);
+      const p = await tuneDeck(deck, fieldList, { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth }, play, onProgress, () => stopRef.current);
       setOutcome({ kind: stopRef.current || p.phase === 'Stopped' ? 'stopped' : 'done' });
     } catch (err) {
       // Stop terminates the pool, which rejects the games in flight; anything else is a game that failed.
@@ -212,6 +227,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     const pkgNote = runPlan && parsed.deck ? `Packages: ${describePlan(runPlan.plan)}${runPlan.moves ? ', package moves on' : ''}; ${describeChanges(packageChanges(parsed.deck, finalDeck))}.` : '';
     const notes = [
       partial ? `Partial Deck Lab tune: stopped after ${done} of ${manifest?.sample.plannedGames ?? prog?.total ?? '?'} planned games. Confirmed swaps: ${partial.adopted.join('; ')}.` : finalDeck.notes,
+      evidenceNote(prog?.logs ?? []),
       pkgNote,
     ]
       .filter(Boolean)
@@ -232,7 +248,10 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
         <ol className="muted small" style={{ margin: 0, paddingLeft: 20 }}>
           <li>It plays the deck with telemetry to find its weakest and strongest cards.</li>
           <li>It tests one-card swaps on the same games (and whole-package moves, if you turn them on below).</li>
-          <li>It confirms the best swap on fresh games before adopting it.</li>
+          <li>
+            It confirms the best swap on fresh games paired with your list, in stages, and adopts it only when the gain is clearly above {planned.rule.minGainPp} point; otherwise it rejects it or says it
+            could not tell, and keeps the list.
+          </li>
         </ol>
         <div className="seg">
           <button className={source === 'library' ? 'on' : ''} aria-pressed={source === 'library'} onClick={() => setSource('library')} disabled={running}>
@@ -257,6 +276,18 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
         {parsed.deck && !parsed.errors.length && (
           <LabSynergies deck={parsed.deck} keep={keep} from={keepDefault.from} onKeep={(ids) => setKeepSel({ listId, keep: ids })} moves={pkgMoves} onMoves={setPkgMoves} disabled={running} />
         )}
+        <DepthControls
+          cards={cardsPer}
+          onCards={setCardsPer}
+          packages={pkgsPer}
+          onPackages={setPkgsPer}
+          packagesOn={pkgMoves}
+          estimate={planned.estimate}
+          budget={LAB_GAME_BUDGET}
+          rule={planned.rule}
+          firstStage={planned.firstStage}
+          disabled={running}
+        />
         <div className="row small">
           <label className="row muted">
             Tune against
@@ -326,7 +357,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
           {prog.logs.map((l) => (
             <details key={l.gen} open>
               <summary className="small">
-                Generation {l.gen}: baseline <Wr v={l.baseline} /> {l.adopted ? <b> · adopted {l.adopted}</b> : l.swaps.length ? ' · list kept' : ''}
+                <GenerationSummary log={l} />
               </summary>
               {l.report && l.report.insights.length > 0 && (
                 <div className="small muted">
@@ -337,7 +368,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 <table className="small">
                   <thead>
                     <tr>
-                      <th>Swap (same games)</th>
+                      <th>Change (screened on the same games)</th>
                       <th>Win %</th>
                       <th>vs baseline</th>
                     </tr>
@@ -346,26 +377,33 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                     {l.swaps.map((s) => (
                       <tr key={s.label}>
                         <td>
-                          {s.pkg && <span className="tag">package · {s.pkg.kind}</span>} <SwapLabel label={s.label} onOpen={openCard} />
+                          {s.pkg && <span className="tag">package · {s.pkg.kind}</span>}
+                          {s.combo && <span className="tag">combined</span>} <SwapLabel label={s.label} onOpen={openCard} />
                         </td>
                         <td>
-                          <Wr v={s.wr} />
+                          <Wr v={s.wr} n={s.gain?.games} />
                         </td>
-                        <td>
-                          <Signed v={s.wr - l.baseline} unit=" pts" />
-                        </td>
+                        <td>{s.gain ? <PairedGain g={s.gain} /> : <Signed v={s.wr - l.baseline} unit=" pts" />}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
-              {l.confirm && (
+              {l.nominees && l.nominees.length > 0 ? (
                 <div className="small">
-                  Confirmation on fresh games: baseline <Wr v={l.confirm.base} /> vs swap <Wr v={l.confirm.swap} /> → <b>{l.adopted ? 'adopted' : 'rejected'}</b>
+                  <div className="muted">Confirmation on fresh games, paired with the list (screening only nominates; the held-out gain is the one that counts):</div>
+                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} />
                 </div>
+              ) : (
+                l.confirm && (
+                  <div className="small">
+                    Confirmation on fresh games: baseline <Wr v={l.confirm.base} /> vs swap <Wr v={l.confirm.swap} /> → <b>{l.adopted ? 'adopted' : 'rejected'}</b>
+                  </div>
+                )
               )}
             </details>
           ))}
+          {runRule && <div className="small muted">Adoption rule: {describeRule(runRule.rule, { firstStage: runRule.firstStage })}.</div>}
           <RunDetails m={manifest} />
           {!running && finalDeck && (finished || partial) && (
             <div className="grid">
@@ -417,7 +455,12 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   </div>
                 </div>
               ) : (
-                <div className="small muted">No swap beat the original list on confirmation. The deck is already well tuned for this field (at this sample size).</div>
+                <div className="small muted">
+                  No change cleared the bar on fresh games
+                  {prog.logs.some((l) => l.nominees?.some((n) => n.outcome === 'inconclusive'))
+                    ? ': for at least one the lab could not tell either way at this sample size, so the list was kept. A longer run (more effort) can settle it.'
+                    : '. The deck is already well tuned for this field (at this sample size).'}
+                </div>
               )}
               <div className="row">
                 <button className="primary" onClick={save} disabled={!changes.length}>
@@ -437,6 +480,44 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       {cardDialog}
     </>
   );
+}
+
+/** A generation's one-line summary: baseline, then what was adopted (with its held-out gain), not told, or kept. */
+export function GenerationSummary({ log: l }: { log: TuneLog }) {
+  const unsure = l.nominees?.find((n) => n.outcome === 'inconclusive');
+  return (
+    <>
+      Generation {l.gen}: baseline <Wr v={l.baseline} />
+      {l.adopted ? (
+        <>
+          {' '}
+          · <OutcomeChip outcome="adopt" /> <b>{l.adopted}</b>
+          {l.adoptedGain && (
+            <>
+              {' '}
+              (held-out <PairedGain g={l.adoptedGain} />)
+            </>
+          )}
+        </>
+      ) : unsure ? (
+        <>
+          {' '}
+          · <OutcomeChip outcome="inconclusive" stopped={unsure.stopped} /> list kept
+        </>
+      ) : l.swaps.length ? (
+        ' · list kept'
+      ) : (
+        ''
+      )}
+    </>
+  );
+}
+
+/** The saved list's note on what was adopted, with held-out paired gains (and what the lab could not tell). */
+export function evidenceNote(logs: readonly TuneLog[]): string {
+  const adopted = logs.flatMap((l) => (l.adopted ? [`${l.adopted} (held-out ${l.adoptedGain ? formatGain(l.adoptedGain) : 'gain not recorded'})`] : []));
+  const unsure = logs.flatMap((l) => (l.nominees ?? []).filter((n) => n.outcome === 'inconclusive').map((n) => n.label));
+  return [adopted.length ? `Deck Lab adopted: ${adopted.join('; ')}.` : '', unsure.length ? `Could not tell (not adopted): ${unsure.join('; ')}.` : ''].filter(Boolean).join(' ');
 }
 
 /** A swap label ("−1 A → +1 B") with the two cards' thumbnails; plain text when a name isn't a known card. */

@@ -18,7 +18,9 @@ const sameList = (a: DeckList, b: DeckList) => [...a.main].sort().join() === [..
 
 /** A fake game: any list that differs from the starting list wins, the starting list loses. */
 const play: PlayGame = async (j: GameJob) => ({ seed: j.seed, first: j.first, turns: 5, reason: 'test', winner: sameList(j.a, start) ? 1 : 0 });
-const OPTS = { games: 4, gens: 3, cands: 2, bot: 'easy', minGain: 0.02, seedBase: 500_000 };
+// the fake games are perfectly one-sided, so 8 held-out games settle it; the floor is lowered to that (the default 200
+// is the evidence rule's own test, tests/evidence.test.ts)
+const OPTS = { games: 4, gens: 3, cands: 2, bot: 'easy', minGain: 0.02, seedBase: 500_000, rule: { minGames: 8 } };
 
 describe('Deck Lab partial tune', () => {
   it('keeps only the swaps confirmed before Stop', async () => {

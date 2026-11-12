@@ -5,6 +5,7 @@ import { deckFingerprint, fingerprintText } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { RULES_VERSIONS } from './rulesVersions';
 import type { PackageProvenance } from './deckPackages';
+import type { AdoptionProvenance } from './evidence';
 
 /**
  * What an aggregate (ratings, head-to-heads) was built from. Aggregates play no games: they pool recorded events, so
@@ -23,7 +24,7 @@ export interface RunInputs {
 /**
  * Schema 1. Fields added after the first manifests were written are optional, so every manifest already on disk still
  * reads as schema 1: `errataVersion` (absent = not recorded), `inputs` (aggregates only), `decisionTelemetry`, `packages`,
- * and the purposes 'optimize' and 'aggregate'.
+ * `adoption`, and the purposes 'optimize' and 'aggregate'.
  */
 export interface RunManifest {
   schema: 1;
@@ -49,6 +50,8 @@ export interface RunManifest {
   inputs?: RunInputs;
   /** a deck builder's synergy-package plan, seeds and package moves (src/lib/deckPackages.ts); absent = none were used */
   packages?: PackageProvenance;
+  /** a deck builder's adoption rule and search depth (src/lib/evidence.ts); absent = written before the rule was recorded (any-gain) */
+  adoption?: AdoptionProvenance;
 }
 
 /** Manifest schemas this code can read (scripts/check-data.ts rejects anything else). */
@@ -101,6 +104,8 @@ export interface GameRunOptions {
   parentRunId?: string;
   /** the synergy-package plan the run built under (only when one was used) */
   packages?: PackageProvenance;
+  /** the adoption rule and search depth of a deck builder's run */
+  adoption?: AdoptionProvenance;
 }
 
 /**
@@ -126,6 +131,7 @@ export function gameRunManifest(o: GameRunOptions): RunManifest {
     ...(o.decisionTelemetry !== undefined ? { decisionTelemetry: o.decisionTelemetry } : {}),
     ...(o.parentRunId ? { parentRunId: o.parentRunId } : {}),
     ...(o.packages ? { packages: o.packages } : {}),
+    ...(o.adoption ? { adoption: o.adoption } : {}),
   });
 }
 

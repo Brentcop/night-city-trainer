@@ -11,8 +11,8 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
 4. **Forge.** \`npx tsx scripts/forge.ts <deck> --gens 2\` repeats this cycle:
    - **cut** the lowest-impact cards;
    - **try adding** the deck's own best cards and the format's highest-impact legal cards;
-   - **test** every swap on identical seeds;
-   - **confirm** the winner on fresh seeds before adopting it.
+   - **test** every swap on identical seeds (this only nominates);
+   - **confirm** the nominee on fresh seeds, paired with the list, in stages: it is adopted only when the gain is clearly above 1 point, rejected when it is clearly below, and otherwise reported as "could not tell" and not adopted.
 
    The old list is archived and the reasoning is logged in \`reports/forge/<deck>.md\`.
 5. **Sideboard.** \`npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard\` finds the swaps worth bringing in for your worst matchups.
@@ -38,7 +38,7 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
 Each season is one run of \`npx tsx scripts/season.ts --season <next number>\`. The script refuses to re-run a season that already exists, so the leaderboard is never counted twice.
 
 ## Reading the numbers
-- **±3 points is noise** at ~300 games. The forge requires +2 points on the paired test **and** a win on fresh seeds before adopting a change.
+- **±3 points is noise** at ~300 games. The forge requires +2 points on the paired test to nominate a change, and a held-out paired gain whose corrected lower bound is above 1 point (at least 200 fresh games) to adopt it. Changes forged before 2026-11-11 were adopted on any gain on the fresh seeds, so many of them were noise.
 - **Δ when drawn** measures impact, not quality. A cheap card you always sell can score low and still be right to run as Eddie fodder.
 - Bots under-play complex control decks, so treat a control deck's numbers as a floor.
 `;

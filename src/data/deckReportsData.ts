@@ -24,7 +24,7 @@ export interface DeckReports {
   h2h?: MatchRec[];
   forge?: {
     field?: string;
-    gens: { gen: number; baseline: number | null; swaps: { swap: string; wr: number; delta: number }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[];
+    gens: { gen: number; baseline: number | null; swaps: { swap: string; wr: number; delta: number }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'inconclusive' | 'kept' }[];
     summary: { gen: number; wr: number | null; change: string }[];
   };
   optimize?: { vs: string; baseline: number | null; rows: { change: string; s1: number | null; s2: number | null; delta: number }[] }[];

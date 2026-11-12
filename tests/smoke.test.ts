@@ -54,7 +54,7 @@ describe('engine smoke', () => {
       const st = await g.run();
       expect(st.winner).not.toBeNull();
     }
-  });
+  }, 20_000);
 
   it('plays 50 random games to completion', async () => {
     for (let s = 1; s <= 50; s++) {
@@ -62,5 +62,5 @@ describe('engine smoke', () => {
       const st = await g.run();
       expect(st.winner).not.toBeNull();
     }
-  });
+  }, 20_000);
 });

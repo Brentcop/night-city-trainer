@@ -315,7 +315,8 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
           title="Forge history"
           caption={
             <>
-              The forge tries single-card swaps against the meta field, then re-tests the best one on fresh games and adopts it only if it still wins.{' '}
+              The forge screens single-card swaps against the meta field, then re-tests the best on fresh games paired with the list. Since 2026-11-11 it adopts a swap only
+              when the held-out gain is clearly above 1 point; before that, any gain on the fresh games was adopted.{' '}
               {rep.forge.field && <span>Field: {rep.forge.field}.</span>}
             </>
           }
@@ -325,7 +326,13 @@ function Profile({ d, lib }: { d: LibraryDeck; lib: readonly LibraryDeck[] }) {
               <div key={g.gen} className={`dp-forge-gen ${g.verdict}`}>
                 <b>Generation {g.gen}</b> · baseline {ok(g.baseline) ? `${g.baseline.toFixed(1)}%` : '—'} ·{' '}
                 <b className={g.verdict === 'adopted' ? 'dp-pos' : g.verdict === 'rejected' ? 'dp-neg' : ''}>
-                  {g.verdict === 'adopted' ? 'swap adopted' : g.verdict === 'rejected' ? 'swap rejected on confirmation' : 'list kept (no swap beat it by 2+ pts)'}
+                  {g.verdict === 'adopted'
+                    ? 'swap adopted'
+                    : g.verdict === 'rejected'
+                      ? 'swap rejected on confirmation'
+                      : g.verdict === 'inconclusive'
+                        ? 'could not tell on confirmation (list kept)'
+                        : 'list kept (no swap beat it by 2+ pts)'}
                 </b>
                 {g.confirm && <div className="muted small">Confirmation {g.confirm}</div>}
                 {g.swaps.length > 0 && (

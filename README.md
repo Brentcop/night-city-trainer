@@ -104,8 +104,10 @@ Every script prints its usage with `--help`. Unknown flags and invalid values ex
 
 The deck builders take synergy-package flags, all opt-in (without them nothing changes): `--keep-packages`, `--require-packages` and `--avoid-packages` (forge, optimizer, season, breed preview), `--lock-cards`, `--package-moves` and `--package-cands` (forge and optimizer; the season passes `--package-moves` to its forge), and `--seed-packages a+b` (season and breed preview). `forge.ts` and `optimize.ts` also take `--out DIR` to write a trial run's list and reports outside the repository, and `breed-preview.ts --lists` prints the bred lists with their packages. Details in [docs/SYNERGIES.md](docs/SYNERGIES.md) ("Using packages when building").
 
+The forge, the optimizer, the season's forge step and the Deck Lab tuner adopt a change only on evidence: screening on shared seeds only nominates, and a nominee is confirmed on fresh, paired, held-out games in stages (up to 4× the first confirmation). It is **adopted** when the corrected lower bound of its held-out paired gain is above 1 point with at least 200 games, **rejected** when the upper bound is below 1 point, and otherwise reported as **could not tell** and not adopted. Flags (forge, optimizer, season): `--adopt evidence|any-gain` (`any-gain` reproduces runs before 2026-11-11), `--min-gain`, `--package-min-gain`, `--min-games`, `--confirm-cap`, `--alpha`, and search depth `--cards-per-change 1-3`, `--packages-per-change 1-2`, `--nominees`, `--combine-from`. Each run prints its game estimate first; forge and optimizer refuse a run over `--budget` (12,000 games per deck) without `--force`, and the season checks its forge step against `--forge-budget` before it starts. Details in [docs/SYNERGIES.md](docs/SYNERGIES.md) ("When a deck change is adopted").
+
 ### Data-driven deck building
-Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh seeds. Earlier versions are archived in `data/decks/custom/history/`. Their forge logs came from the earlier simulator and were removed at the 2026-11-11 baseline (they are kept at the tag `archive/pre-season1-reset-2026-11-11`); new forge runs write `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
+Eight original decks (`data/decks/custom/nc-*.txt`, "Trainer originals" on the site) were designed from gaps in the meta, then refined with the **forge** loop: baseline vs the meta with telemetry, then cut the lowest-impact cards, test adds on identical seeds, and confirm on fresh, paired seeds (since 2026-11-11 a change is adopted only when its held-out gain is clearly above 1 point). Earlier versions are archived in `data/decks/custom/history/`. Their forge logs came from the earlier simulator and were removed at the 2026-11-11 baseline (they are kept at the tag `archive/pre-season1-reset-2026-11-11`); new forge runs write `reports/forge/`. The full process is on the Strategy page → "How decks are built here", and in `docs/ANALYSIS.md`.
 
 **Fresh baseline (2026-11-11).** All recorded results were wiped and regenerated on SIM_VERSION 5, starting again from Season 1 (`docs/ROADMAP.md` §1). Decks bred or optimised from the old results moved to `data/decks/archive/` (not loaded; see its README); the old data is at the tags `archive/pre-season1-reset-2026-11-11` and `archive/sim-v2-pre-fairness-baseline-2026-11`.
 
@@ -153,6 +155,7 @@ The table lists the main suites by area; `ls tests` has the full set.
 | `pages.test.ts`, `markdown.test.ts`, `summarize.test.ts` | Page helpers, link safety in the Markdown renderer, and game summaries. |
 | `runManifest.test.ts`, `check-data.test.ts`, `impact.test.ts` | Run manifests (game runs and deterministic aggregates), the recorded-data check, and card impact matched by list fingerprint. |
 | `deck-packages.test.ts`, `deck-packages-defaults.test.ts`, `deck-lab-packages.test.tsx` | Synergy packages in deck building: the plan checks, package moves, seeding, flags, the Deck Lab controls, and the builders unchanged without package flags. |
+| `evidence.test.ts`, `deck-lab-evidence.test.tsx` | The deck builders' adoption rule: paired intervals, the staged-look correction, the three outcomes, the false-adopt rate on synthetic games, depth and game estimates, the flags, and the Deck Lab tuner and result view. |
 
 ## Scripts
 
@@ -165,7 +168,7 @@ Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `
 | `ratings.ts` | Fits the power ratings (`src/data/ratings.json`, `reports/ratings-latest.md`). |
 | `check-data.ts` (`npm run check:data`) | Read-only consistency check of the recorded events, `h2h.json` and run manifests. |
 | `breed-data.ts`, `breed-preview.ts` | What the deck breeder learns from past runs; a preview of the next season's breeding without playing games. |
-| `builder-moves.ts`, `package-flags.ts` | The forge's and optimizer's candidate changes, and the synergy-package flags the deck builders share. |
+| `builder-moves.ts`, `package-flags.ts`, `evidence-flags.ts` | The forge's and optimizer's candidate changes, and the synergy-package and adoption-rule / search-depth flags the deck builders share. |
 | `tag-provenance.ts` | Rewrites every deck file with a standard provenance header. |
 | `classify.ts` | Prints the archetype read of every library deck. |
 | `quick.ts`, `showlog.ts` | Quick checks: a few games between two decks, or one game's log. |

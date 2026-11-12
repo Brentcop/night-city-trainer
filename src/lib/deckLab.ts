@@ -11,6 +11,8 @@ import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, type PlayGame } from './tournament';
+import { adoptionRule, confirmStaged, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval } from './evidence';
+import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, type SearchDepth } from './deckSearch';
 import type { LibraryDeck } from './library';
 
 const A = impact as unknown as ImpactData;
@@ -44,6 +46,8 @@ export interface SetResult {
   wr: number;
   games: number;
   sums: PlayerSummary[];
+  /** each game's score for the deck (win 1, tie ½, loss 0), in seed order, for paired comparisons */
+  scores: number[];
 }
 /** Deck vs every field deck in turn (seats alternate), same seeds for the same seed0. */
 export async function playSet(deck: DeckList, field: DeckList[], seed0: number, n: number, bot: string, play: PlayGame, trace: boolean, onGame?: () => void): Promise<SetResult> {
@@ -56,8 +60,9 @@ export async function playSet(deck: DeckList, field: DeckList[], seed0: number, 
     });
   });
   const res = await Promise.all(jobs);
-  const w = res.reduce((a, r) => a + (r.winner === 0 ? 1 : r.winner === 'tie' ? 0.5 : 0), 0);
-  return { wr: w / res.length, games: res.length, sums: res.flatMap((r) => (r.summary ? [r.summary] : [])) };
+  const scores = res.map((r) => scoreOf(r.winner));
+  const w = scores.reduce((a, s) => a + s, 0);
+  return { wr: w / res.length, games: res.length, sums: res.flatMap((r) => (r.summary ? [r.summary] : [])), scores };
 }
 
 // ---------------------------------------------------------------- tuning (forge)
@@ -67,6 +72,8 @@ export interface Swap {
   prior: number;
   /** set for a package move (src/lib/deckPackages.ts) */
   pkg?: { kind: PackageMoveKind; added: string | null; removed: string | null };
+  /** set for a candidate combined from several screened changes (search depth 2 or 3) */
+  combo?: { parts: string[]; packages: boolean };
 }
 const labelOf = (id: string) => {
   const c = CARD_BY_ID[id];
@@ -124,7 +131,7 @@ export interface TuneOptions {
   gens: number;
   cands: number;
   bot: string;
-  /** a swap must beat the baseline by this much on the shared seeds before it is confirmed */
+  /** a swap must beat the baseline by this much on the shared seeds to be nominated (screening only nominates) */
   minGain: number;
   /** seed base (default: random in 500,000–508,999); generation g plays seeds from seedBase + 10,000·g */
   seedBase?: number;
@@ -133,14 +140,41 @@ export interface TuneOptions {
   /** also try whole-package moves (complete, add, swap, remove), `packageCands` of them per generation (default 3) */
   packageMoves?: boolean;
   packageCands?: number;
+  /** the adoption rule (src/lib/evidence.ts; default ADOPTION_DEFAULTS); `{ kind: 'any-gain' }` is the rule before 2026-11-11 */
+  rule?: Partial<AdoptionRule>;
+  /** search depth (src/lib/deckSearch.ts; default one change per candidate, one nominee) */
+  depth?: Partial<SearchDepth>;
 }
 export interface TuneLog {
   gen: number;
   baseline: number;
   report?: DeckReport;
-  swaps: { label: string; wr: number; pkg?: Swap['pkg'] }[];
-  confirm?: { base: number; swap: number; label: string };
+  /** every candidate screened on the baseline's games, best first; `gain` is the paired screening gain (plain 95%) */
+  swaps: { label: string; wr: number; pkg?: Swap['pkg']; combo?: boolean; gain?: { mean: number; lower: number; upper: number; games: number } }[];
+  /** the first nominee's confirmation (the adopted one when there is one), for the one-line summary */
+  confirm?: { base: number; swap: number; label: string; outcome?: Outcome; gain?: PairedInterval; looks?: number };
+  /** each nominee: screening and held-out paired results and the outcome */
+  nominees?: NomineeRecord[];
   adopted: string | null;
+  /** the adopted change's held-out paired gain */
+  adoptedGain?: PairedInterval;
+}
+
+/** The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). */
+export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan'>) {
+  const rule = adoptionRule(o.rule);
+  const depth: SearchDepth = { ...DEPTH_DEFAULTS, ...o.depth };
+  const pkN = o.packageCands ?? 3;
+  const estimate = estimateGames({
+    gens: o.gens,
+    screenGames: o.games,
+    singles: o.cands,
+    packageMoves: (o.packageMoves ? pkN : 0) + (o.plan?.require?.length ? pkN : 0),
+    depth,
+    firstStage: o.games * 2,
+    rule,
+  });
+  return { rule, depth, estimate, firstStage: o.games * 2 };
 }
 export interface TuneProgress {
   done: number;
@@ -159,7 +193,11 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const logs: TuneLog[] = [];
   const plan = o.plan ?? {};
   const pkN = o.packageCands ?? 3;
-  const total = o.gens * (o.games * (1 + o.cands + (o.packageMoves ? pkN : 0)) + o.games * 4);
+  const { rule, depth, estimate, firstStage } = tunePlan(o);
+  const stages = rule.kind === 'any-gain' ? 1 : rule.capStages;
+  if (o.games > 5_000 || firstStage * stages > 5_000) throw new Error(`the confirmation would need ${firstStage * stages} seeds but each generation has 5,000; use fewer games or a lower cap`);
+  const total = estimate.max;
+  const perGen = total / Math.max(1, o.gens);
   const seedBase = o.seedBase ?? 500_000 + Math.floor(Math.random() * 9_000);
   const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck, seedBase, played: 0 };
   const tick = () => {
@@ -167,6 +205,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     p.played++;
     if (p.done % 4 === 0) onProgress({ ...p, logs: [...logs] });
   };
+  const isPkg = (s: Swap) => !!s.pkg || !!s.combo?.packages;
   for (let gen = 1; gen <= o.gens && !stop(); gen++) {
     const seed0 = seedBase + gen * 10_000;
     p.phase = `Generation ${gen}: measuring the deck (${o.games} games with telemetry)`;
@@ -177,30 +216,68 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     logs.push(log);
     const swaps = candidateSwaps(deck, report, o.cands, plan);
     if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
-    for (const [k, s] of swaps.entries()) {
-      if (stop()) break;
-      p.phase = `Generation ${gen}: testing ${s.pkg ? 'package move' : 'swap'} ${k + 1} of ${swaps.length} on the same games`;
-      onProgress({ ...p, logs: [...logs] });
-      const r = await playSet(s.deck, field, seed0, o.games, o.bot, play, false, tick);
-      log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}) });
-    }
+    const screened: { s: Swap; wr: number }[] = [];
+    const screen = async (list: Swap[], what: (s: Swap) => string) => {
+      for (const [k, s] of list.entries()) {
+        if (stop()) break;
+        p.phase = `Generation ${gen}: testing ${what(s)} ${k + 1} of ${list.length} on the same games`;
+        onProgress({ ...p, logs: [...logs] });
+        const r = await playSet(s.deck, field, seed0, o.games, o.bot, play, false, tick);
+        const iv = pairedInterval(r.scores, base.scores);
+        screened.push({ s, wr: r.wr });
+        log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games } });
+      }
+    };
+    await screen(swaps, (s) => (s.pkg ? 'package move' : 'swap'));
+    // depth: combine the best screened single changes (those above the baseline)
+    const seen = new Set([listKeyOf(deck), ...swaps.map((s) => listKeyOf(s.deck))]);
+    const above = (pkg: boolean) => [...screened].filter((x) => !!x.s.pkg === pkg && x.wr > base.wr).sort((a, b) => b.wr - a.wr).map((x) => x.s);
+    const make = (parts: Swap[], d: DeckList): Swap => ({ label: parts.map((x) => x.label).join(' + '), deck: d, prior: parts.reduce((t, x) => t + x.prior, 0), combo: { parts: parts.map((x) => x.label), packages: parts.some((x) => !!x.pkg) } });
+    const combos = stop()
+      ? []
+      : [
+          ...(depth.cardsPerChange > 1 ? combinedCandidates(deck, above(false), { maxParts: depth.cardsPerChange, from: depth.combineFrom, plan, seen }, make) : []),
+          ...(depth.packagesPerChange > 1 ? combinedCandidates(deck, above(true), { maxParts: depth.packagesPerChange, from: depth.combineFrom, plan, seen }, make) : []),
+        ];
+    await screen(combos, () => 'combined change');
+    const all = [...swaps, ...combos];
     log.swaps.sort((a, b) => b.wr - a.wr);
-    const best = log.swaps[0];
-    if (!best || best.wr - base.wr < o.minGain || stop()) {
-      p.done += o.games * 4;
+    // screening only nominates: the best changes that beat the baseline by minGain on the shared games
+    const nominated = log.swaps.filter((x) => x.wr - base.wr >= o.minGain).slice(0, depth.nominees);
+    if (!nominated.length || stop()) {
+      p.done = Math.max(p.done, Math.round(gen * perGen));
       continue;
     }
-    p.phase = `Generation ${gen}: confirming the best swap on ${o.games * 2} fresh games`;
+    const nomDecks = nominated.map((x) => all.find((s) => s.label === x.label)!);
+    p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''})`;
     onProgress({ ...p, logs: [...logs] });
-    const bestDeck = swaps.find((s) => s.label === best.label)!.deck;
     const seed1 = seed0 + 5_000;
-    const [cb, cm] = await Promise.all([playSet(deck, field, seed1, o.games * 2, o.bot, play, false, tick), playSet(bestDeck, field, seed1, o.games * 2, o.bot, play, false, tick)]);
-    log.confirm = { base: cb.wr, swap: cm.wr, label: best.label };
-    if (cm.wr > cb.wr) {
-      deck = bestDeck;
-      log.adopted = best.label;
+    const conf = await confirmStaged(
+      rule,
+      nomDecks.map((s) => ({ minGainPp: isPkg(s) ? rule.packageMinGainPp : rule.minGainPp })),
+      firstStage,
+      async ({ offset, games, active }) => {
+        // the current list's games are started first, then each nominee's (the order the legacy confirmation used)
+        const [b, ...ns] = await Promise.all([deck, ...active.map((i) => nomDecks[i]!.deck)].map((d) => playSet(d, field, seed1 + offset, games, o.bot, play, false, tick)));
+        return { base: b!.scores, nominees: ns.map((r) => r.scores) };
+      },
+      stop,
+    );
+    const pick = pickAdopted(conf.results);
+    log.nominees = nominated.map((x, i) => {
+      const s = nomDecks[i]!;
+      const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
+      return nomineeRecord(x.label, { ...sg, z: 1.96 }, conf.results[i], s.combo ? `combo-${s.combo.packages ? 'packages' : 'cards'}` : s.pkg?.kind);
+    });
+    const shown = conf.results[pick >= 0 ? pick : 0]!;
+    log.confirm = { base: shown.baseWr, swap: shown.candWr, label: nominated[pick >= 0 ? pick : 0]!.label, outcome: shown.outcome, gain: shown.heldOut, looks: shown.looks };
+    if (pick >= 0) {
+      deck = nomDecks[pick]!.deck;
+      log.adopted = nominated[pick]!.label;
+      log.adoptedGain = shown.heldOut;
     }
     p.deck = deck;
+    p.done = Math.max(p.done, Math.round(gen * perGen));
     // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
     onProgress({ ...p, logs: [...logs] });
   }

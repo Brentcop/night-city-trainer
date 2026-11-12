@@ -14,12 +14,23 @@
 //   --package-moves          also try whole-package moves (complete, add, swap, remove); --package-cands N per
 //                            generation (default 3)
 //
+// Adoption rule and search depth (docs/SYNERGIES.md "When a deck change is adopted"; src/lib/evidence.ts):
+//   --adopt evidence|any-gain   default evidence; any-gain reproduces runs before 2026-11-11 (adopt on any gain)
+//   --min-gain P (1)  --package-min-gain P (= min-gain)  --min-games N (200)  --confirm-cap K (4)  --alpha A (0.05)
+//   --cards-per-change N (1-3, default 1)   --packages-per-change N (1-2, default 1)   --nominees N (default 1)
+//   --combine-from N (4)   --budget N (12000 games per deck; the estimate is printed first)   --force (go over it)
+//
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
 //   2. Cuts: the deck's lowest-IWD cards. Adds: +1 of its best card, and the format's highest-impact legal cards
 //      (from src/data/analysis.json, averaged across decks).
-//   3. Test each cut→add swap on the SAME seeds as the baseline (paired comparison).
-//   4. Confirm the best swap on fresh seeds; adopt only if it still beats the baseline.
+//   3. Screen each cut→add swap on the SAME seeds as the baseline (paired). With --cards-per-change 2 or 3 (or
+//      --packages-per-change 2) the best screened single changes are also combined and screened. Screening only
+//      nominates: the best --nominees changes that beat the baseline by 2+ points.
+//   4. Confirm the nominees on fresh seeds (held out from the screening), paired with the current list, in stages of
+//      2 × --games up to --confirm-cap stages. Adopt only when the corrected lower bound of the held-out paired gain is
+//      above --min-gain; reject when the upper bound is below it; otherwise "could not tell" (kept). The reported gain
+//      is always the held-out one.
 //   5. Save the new version (data/decks/custom/<slug>.txt), archive the old one (history/), log reports/forge/<slug>.md
 //      (plus reports/forge/<slug>.json, which scripts/bundle-reports.ts reads).
 // Seeds come from --seed, so a run can be repeated exactly.
@@ -34,13 +45,30 @@ import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_
 import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
-import { forgeScore, forgeSwaps, packageCandidates, type Mutation } from './builder-moves';
+import { forgeScore, forgeSwaps, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
 import { exitOnPlanProblems, objectivePackages, packagesOn, planFromFlags, tunerPackageFlags } from './package-flags';
+import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
+import { adoptionProvenance, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, type AdoptionProvenance, type NomineeRecord, type PairedInterval } from '../src/lib/evidence';
+import { estimateGames, listKeyOf } from '../src/lib/deckSearch';
 
 const { values: V, positionals } = cli(
   import.meta.url,
-  { gens: int(2, { min: 1 }), games: int(140, { min: 1 }), cands: int(6, { min: 1 }), bot: oneOf(SIM_BOTS, 'lookahead'), field: oneOf(['meta', 'all'], 'meta'), nc: bool(), seed: int(1, { min: 0 }), threads: threadsOpt(), out: str(), ...tunerPackageFlags() },
+  {
+    gens: int(2, { min: 1 }),
+    games: int(140, { min: 1 }),
+    cands: int(6, { min: 1 }),
+    bot: oneOf(SIM_BOTS, 'lookahead'),
+    field: oneOf(['meta', 'all'], 'meta'),
+    nc: bool(),
+    seed: int(1, { min: 0 }),
+    threads: threadsOpt(),
+    out: str(),
+    ...tunerPackageFlags(),
+    ...adoptionFlags(),
+    ...depthFlags(1),
+    ...budgetFlags(),
+  },
   { maxPositionals: Infinity },
 );
 const GENS = V.gens;
@@ -52,6 +80,18 @@ const THREADS = Math.min(V.threads, 16);
 /** where the forged list and reports go: the repository (default) or --out DIR */
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
+const RULE = ruleFromFlags(V);
+exitOnRuleProblems(RULE);
+const DEPTH = depthFromFlags(V, 1);
+/** the first confirmation stage: the forge's confirmation size before staging existed */
+const FIRST_STAGE = GAMES * 2;
+/** confirmation seeds start this far after the generation's screening seeds */
+const CONFIRM_GAP = 50_000;
+const STAGES = RULE.kind === 'any-gain' ? 1 : RULE.capStages;
+if (GAMES + 0 > CONFIRM_GAP || FIRST_STAGE * STAGES > CONFIRM_GAP) {
+  console.error(`error: the confirmation may need ${FIRST_STAGE * STAGES} seeds but each generation has ${CONFIRM_GAP}; lower --games or --confirm-cap.\nRun with --help for usage.`);
+  process.exit(2);
+}
 const lib = loadLibrary();
 const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
 
@@ -78,21 +118,30 @@ const GLOBAL_IMPACT: Record<string, number> = (() => {
   return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
 })();
 
+/** package moves screened per generation, at most (for the estimate) */
+const PKG_N = PACKAGES ? (V['package-moves'] ? V['package-cands'] : 0) + (V['require-packages'] ? V['package-cands'] : 0) : 0;
+const ESTIMATE = estimateGames({ gens: GENS, screenGames: GAMES, singles: CANDS, packageMoves: PKG_N, depth: DEPTH, firstStage: FIRST_STAGE, rule: RULE });
+
 /** games played so far in this process (each forged deck's manifest counts its own) */
 let gamesPlayed = 0;
 
+const jobsFor = (deck: DeckList, seed0: number, games: number, trace: boolean): MatchJob[] =>
+  Array.from({ length: games }, (_, k) => ({ a: deck, b: field[k % field.length].deck, seed: seed0 + k, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT, trace }));
+
+/** The baseline with telemetry: win rate, summaries and per-game scores. */
 async function play(deck: DeckList, seed0: number, games: number, trace: boolean) {
-  const jobs: MatchJob[] = [];
-  let seed = seed0;
-  for (let k = 0; k < games; k++) {
-    const opp = field[k % field.length];
-    jobs.push({ a: deck, b: opp.deck, seed: seed++, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT, trace });
-  }
-  const res = await runJobs(jobs, { threads: THREADS });
+  const res = await runJobs(jobsFor(deck, seed0, games, trace), { threads: THREADS });
   gamesPlayed += res.length;
-  const wr = res.reduce((a, r) => a + (r.winner === 0 ? 1 : r.winner === 'tie' ? 0.5 : 0), 0) / res.length;
+  const scores = res.map((r) => scoreOf(r.winner));
   const sums = trace ? res.map((r) => r.summaries![0]) : [];
-  return { wr, sums };
+  return { wr: scores.reduce((a, b) => a + b, 0) / scores.length, sums, scores };
+}
+
+/** Several lists on the same games (one worker pool): per-game scores for each, in game order. */
+async function playMany(decks: DeckList[], seed0: number, games: number): Promise<number[][]> {
+  const res = await runJobs(decks.flatMap((d) => jobsFor(d, seed0, games, false)), { threads: THREADS });
+  gamesPlayed += res.length;
+  return decks.map((_, i) => res.slice(i * games, (i + 1) * games).map((r) => scoreOf(r.winner)));
 }
 
 /** The list's plan: the flags, with the deck objective's packages as the default keep (only when package flags are on). */
@@ -103,27 +152,51 @@ function planFor(target: (typeof lib)[number]): PackagePlan {
 }
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+const mutKind = (m: Mutation) => (m.combo ? `combo-${m.combo.packages ? 'packages' : 'cards'}` : m.pkg?.kind);
+
+interface Screened {
+  m: Mutation;
+  wr: number;
+  /** paired with the baseline on the screening seeds (plain 95%) */
+  iv: PairedInterval;
+}
 
 async function forge(target: (typeof lib)[number]) {
   let deck: DeckList = structuredClone(target.deck);
   const plan = planFor(target);
   const slug = target.file.replace(/\.txt$/, '');
-  const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, ''];
+  const ruleLine = describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees });
+  const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, '', `Adoption rule: ${ruleLine}.`, ''];
+  if (DEPTH.cardsPerChange > 1 || DEPTH.packagesPerChange > 1 || DEPTH.nominees > 1)
+    log.push(`Search depth: up to ${DEPTH.cardsPerChange} card swap(s) and ${DEPTH.packagesPerChange} package move(s) per candidate (combined from the best ${DEPTH.combineFrom} screened), ${DEPTH.nominees} nominee(s) confirmed per generation.`, '');
   if (PACKAGES) log.push(`Packages: ${describePlan(plan)}${V['package-moves'] ? `; package moves on (${V['package-cands']} per generation)` : '; package moves off'}.`, '');
   /** package moves tried (labels), for the report and the manifest */
   const tried: string[] = [];
-  const history: { gen: number; wr: number; change: string }[] = [];
+  const history: { gen: number; wr: number; change: string; gain?: PairedInterval }[] = [];
   // machine-readable twin of the log, for scripts/bundle-reports.ts (percentages and points, 1 decimal, as in the log)
   const p1 = (x: number) => +(x * 100).toFixed(1);
   const startedAt = new Date().toISOString();
   const playedBefore = gamesPlayed;
+  const adoption: AdoptionProvenance = adoptionProvenance(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange });
   const json: {
     deck: string;
     file: string;
     date: string;
     seed: number;
     field: string;
-    gens: { gen: number; baseline: number; swaps: { swap: string; wr: number; delta: number; package?: string }[]; confirm?: string; verdict: 'adopted' | 'rejected' | 'kept' }[];
+    /** the adoption rule in words and numbers */
+    adoption: AdoptionProvenance & { text: string };
+    gens: {
+      gen: number;
+      baseline: number;
+      swaps: { swap: string; wr: number; delta: number; package?: string }[];
+      /** the nominees with their screening and held-out results */
+      nominees?: NomineeRecord[];
+      confirm?: string;
+      verdict: 'adopted' | 'rejected' | 'inconclusive' | 'kept';
+      /** held-out paired gain of the adopted change, points */
+      heldOutGain?: { mean: number; lower: number; upper: number; games: number };
+    }[];
     summary: { gen: number; wr: number; change: string }[];
     /** with package flags only: the plan, and the built-around packages kept, added and removed from start to end */
     packages?: { plan: PackagePlan; moves: boolean; changes: PackageChanges; adopted: string[] };
@@ -134,8 +207,19 @@ async function forge(target: (typeof lib)[number]) {
     date: new Date().toISOString().slice(0, 10),
     seed: V.seed,
     field: `${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`,
+    adoption: { ...adoption, text: ruleLine },
     gens: [],
     summary: [],
+  };
+  const screen = async (muts: Mutation[], seed0: number, base: number[]): Promise<Screened[]> => {
+    if (!muts.length) return [];
+    const all = await playMany(muts.map((m) => m.deck), seed0, GAMES);
+    return muts.map((m, i) => {
+      const s = all[i]!;
+      const r = { m, wr: s.reduce((a, b) => a + b, 0) / s.length, iv: pairedInterval(s, base) };
+      console.log(`  ${pct(r.wr)} (${(r.iv.mean * 100).toFixed(1)})  ${m.label}`);
+      return r;
+    });
   };
   for (let gen = 1; gen <= GENS; gen++) {
     const seed0 = 100_000 * gen + nextSeedOffset();
@@ -155,45 +239,79 @@ async function forge(target: (typeof lib)[number]) {
       muts.push(...packageCandidates(deck, plan, { moves: V['package-moves'], n: V['package-cands'], score: forgeScore(rep, GLOBAL_IMPACT) }));
     }
     tried.push(...muts.filter((m) => m.pkg).map((m) => m.label));
-    const results: { m: Mutation; wr: number }[] = [];
-    for (const m of muts) {
-      const r = await play(m.deck, seed0, GAMES, false);
-      results.push({ m, wr: r.wr });
-      console.log(`  ${pct(r.wr)} (${((r.wr - base.wr) * 100).toFixed(1)})  ${m.label}`);
+    const screened = await screen(muts, seed0, base.scores);
+    // depth: combine the best screened single changes (only those that screened above the baseline)
+    const seen = new Set([listKeyOf(deck), ...muts.map((m) => listKeyOf(m.deck))]);
+    const above = (pkg: boolean) => screened.filter((r) => !!r.m.pkg === pkg && r.wr > base.wr).sort((a, b) => b.wr - a.wr).map((r) => r.m);
+    const combos = [
+      ...(DEPTH.cardsPerChange > 1 ? combineMutations(deck, above(false), { maxParts: DEPTH.cardsPerChange, from: DEPTH.combineFrom, plan, seen }) : []),
+      ...(DEPTH.packagesPerChange > 1 ? combineMutations(deck, above(true), { maxParts: DEPTH.packagesPerChange, from: DEPTH.combineFrom, plan, seen }) : []),
+    ];
+    if (combos.length) {
+      console.log(`  combined candidates: ${combos.length}`);
+      tried.push(...combos.filter((m) => m.combo?.packages).map((m) => m.label));
+      screened.push(...(await screen(combos, seed0, base.scores)));
     }
-    results.sort((a, b) => b.wr - a.wr);
-    log.push('| Swap | Win % | Δ vs baseline |', '|---|---|---|', ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} |`), '');
+    const results = [...screened].sort((a, b) => b.wr - a.wr);
+    log.push('| Swap | Win % | Δ vs baseline | Paired 95% (screening) |', '|---|---|---|---|', ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} | [${(r.iv.lower * 100).toFixed(1)}, ${(r.iv.upper * 100).toFixed(1)}] |`), '');
     const genRec: (typeof json.gens)[number] = {
       gen,
       baseline: p1(base.wr),
-      swaps: results.slice(0, PACKAGES ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(r.m.pkg ? { package: r.m.pkg.kind } : {}) })),
+      swaps: results.slice(0, PACKAGES || combos.length ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(mutKind(r.m) ? { package: mutKind(r.m) } : {}) })),
       verdict: 'kept',
     };
     json.gens.push(genRec);
-    const best = results[0];
-    if (!best || best.wr - base.wr < 0.02) {
+    // screening only nominates: the best changes that beat the baseline by 2+ points on the shared seeds
+    const nominated = results.filter((r) => r.wr - base.wr >= 0.02).slice(0, DEPTH.nominees);
+    if (!nominated.length) {
       log.push(`No swap beat the baseline by 2+ points — **list kept**.`, '');
       history.push({ gen, wr: base.wr, change: 'kept' });
       continue;
     }
-    // confirm on fresh seeds, bigger sample
-    const seed1 = seed0 + 50_000;
-    const [cb, cm] = [await play(deck, seed1, GAMES * 2, false), await play(best.m.deck, seed1, GAMES * 2, false)];
-    const ok = cm.wr > cb.wr;
-    log.push(`Confirmation (${GAMES * 2} fresh games): baseline ${pct(cb.wr)} vs swap ${pct(cm.wr)} → **${ok ? 'adopted' : 'rejected'}**`, '');
-    genRec.confirm = `(${GAMES * 2} fresh games): baseline ${pct(cb.wr)} vs swap ${pct(cm.wr)}`;
-    genRec.verdict = ok ? 'adopted' : 'rejected';
-    console.log(`  confirm: ${pct(cb.wr)} → ${pct(cm.wr)} ${ok ? 'ADOPT' : 'reject'}`);
-    if (ok) {
-      deck = best.m.deck;
-      history.push({ gen, wr: cm.wr, change: best.m.label });
-    } else history.push({ gen, wr: cb.wr, change: 'kept (swap failed confirmation)' });
+    // confirm on fresh seeds (never used by this generation's screening), paired, in stages
+    const seed1 = seed0 + CONFIRM_GAP;
+    const conf = await confirmStaged(
+      RULE,
+      nominated.map((r) => ({ minGainPp: isPackageChange(r.m) ? RULE.packageMinGainPp : RULE.minGainPp })),
+      FIRST_STAGE,
+      async ({ offset, games, active }) => {
+        const [b, ...ns] = await playMany([deck, ...active.map((i) => nominated[i]!.m.deck)], seed1 + offset, games);
+        return { base: b!, nominees: ns };
+      },
+    );
+    const pick = pickAdopted(conf.results);
+    genRec.nominees = nominated.map((r, i) => nomineeRecord(r.m.label, r.iv, conf.results[i], mutKind(r.m)));
+    nominated.forEach((r, i) => {
+      const c = conf.results[i]!;
+      const line = `baseline ${pct(c.baseWr)} vs swap ${pct(c.candWr)}; held-out paired gain ${formatGain(c.heldOut)}${RULE.kind === 'evidence' ? ` (z ${c.heldOut.z.toFixed(2)}, ${c.looks} stage${c.looks === 1 ? '' : 's'})` : ''}`;
+      log.push(`Confirmation of ${r.m.label} (fresh paired games; screening ${formatGain(r.iv)}): ${line} → **${outcomeWord(c.outcome)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
+      console.log(`  confirm ${r.m.label}: ${line} → ${outcomeWord(c.outcome).toUpperCase()}`);
+    });
+    const shown = pick >= 0 ? pick : 0;
+    const sc = conf.results[shown]!;
+    genRec.confirm = `(${sc.heldOut.games} fresh paired games): baseline ${pct(sc.baseWr)} vs swap ${pct(sc.candWr)}; held-out gain ${formatGain(sc.heldOut)} → ${outcomeWord(sc.outcome)}`;
+    if (pick >= 0) {
+      const won = nominated[pick]!;
+      deck = won.m.deck;
+      genRec.verdict = 'adopted';
+      genRec.heldOutGain = { mean: p1(sc.heldOut.mean), lower: p1(sc.heldOut.lower), upper: p1(sc.heldOut.upper), games: sc.heldOut.games };
+      history.push({ gen, wr: sc.candWr, change: won.m.label, gain: sc.heldOut });
+    } else if (conf.results.some((c) => c.outcome === 'inconclusive')) {
+      genRec.verdict = 'inconclusive';
+      const i = conf.results.findIndex((c) => c.outcome === 'inconclusive');
+      history.push({ gen, wr: conf.results[i]!.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${formatGain(conf.results[i]!.heldOut)})` });
+    } else {
+      genRec.verdict = 'rejected';
+      history.push({ gen, wr: sc.baseWr, change: 'kept (swap failed confirmation)' });
+    }
   }
   // save
-  const changed = history.some((h) => !h.change.startsWith('kept'));
+  const adoptedRows = history.filter((h) => !h.change.startsWith('kept'));
+  const changed = adoptedRows.length > 0;
   const pkgChanges = packageChanges(target.deck, deck);
-  const adoptedPkg = history.filter((h) => !h.change.startsWith('kept') && tried.includes(h.change)).map((h) => h.change);
+  const adoptedPkg = adoptedRows.filter((h) => tried.includes(h.change)).map((h) => h.change);
   const pkgLine = PACKAGES ? `\n// Packages: ${describePlan(plan)}; ${describeChanges(pkgChanges)}${adoptedPkg.length ? `; package moves adopted: ${adoptedPkg.join('; ')}` : ''}` : '';
+  const withGain = (h: (typeof history)[number]) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)})` : ''}`;
   if (changed) {
     const inCustom = target.kind === 'custom' || target.kind === 'original';
     // ladder decks are our own theorized lists: forge them in place and keep their full provenance header
@@ -212,7 +330,7 @@ async function forge(target: (typeof lib)[number]) {
         : (prev.match(/^\/\/ Idea: .+$/m)?.[0] ?? '');
     fs.writeFileSync(
       outFile,
-      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ')}${pkgLine}\n`,
+      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${adoptedRows.map(withGain).join('; ')}\n// Adoption: ${ruleLine}${pkgLine}\n`,
     );
     log.push(OUT ? `Saved ${outFile} (--out: the library was not changed).` : `Saved ${outFile} (previous version archived in data/decks/custom/history/).`);
   }
@@ -220,9 +338,17 @@ async function forge(target: (typeof lib)[number]) {
     log.push('', `Packages (built around, start → end): ${describeChanges(pkgChanges)}.${adoptedPkg.length ? ` Package moves adopted: ${adoptedPkg.join('; ')}.` : ''}`);
     json.packages = { plan, moves: V['package-moves'], changes: pkgChanges, adopted: adoptedPkg };
   }
-  log.push('', '## Summary', '', '| Gen | Win % | Change |', '|---|---|---|', ...history.map((h) => `| ${h.gen} | ${pct(h.wr)} | ${h.change} |`));
-  json.summary = history.map((h) => ({ gen: h.gen, wr: p1(h.wr), change: h.change }));
-  // planned = every generation testing every candidate and confirming; generations that keep the list skip the confirmation
+  log.push(
+    '',
+    '## Summary',
+    '',
+    'Win % is the held-out win rate of the list after the generation (the baseline when nothing was adopted); gains are paired, on fresh games.',
+    '',
+    '| Gen | Win % | Change |',
+    '|---|---|---|',
+    ...history.map((h) => `| ${h.gen} | ${pct(h.wr)} | ${withGain(h)} |`),
+  );
+  json.summary = history.map((h) => ({ gen: h.gen, wr: p1(h.wr), change: withGain(h) }));
   json.manifest = gameRunManifest({
     purpose: 'forge',
     decks: [target, ...field],
@@ -231,32 +357,47 @@ async function forge(target: (typeof lib)[number]) {
     bot: BOT,
     seedBase: V.seed,
     seatPolicy: 'alternate',
-    plannedGames: GENS * GAMES * (1 + CANDS + 4),
+    // planned = the most this run could play (every confirmation to the cap); generations that keep the list skip it
+    plannedGames: ESTIMATE.max,
     completedGames: gamesPlayed - playedBefore,
     gamesPerPair: null,
     trace: true,
     simVersion: SIM_VERSION,
     createdAt: startedAt,
     ...(PACKAGES ? { packages: packageProvenance(plan, { moves: tried }) } : {}),
+    adoption,
   });
   const reportDir = OUT ? path.join(OUT, 'forge') : 'reports/forge';
   fs.mkdirSync(reportDir, { recursive: true });
   fs.writeFileSync(path.join(reportDir, `${slug}.md`), log.join('\n'));
   fs.writeFileSync(path.join(reportDir, `${slug}.json`), JSON.stringify(json, null, 1));
-  return { name: deck.name, history };
+  return { name: deck.name, history, games: gamesPlayed - playedBefore };
 }
 
 async function main() {
   console.log(`Forging ${targets.length} deck(s) × ${GENS} generations vs ${field.length} field decks`);
+  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees })}`);
+  checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force);
   const all = [];
   for (const t of targets) all.push(await forge(t));
   const md = [
     '# Forge summary',
     '',
-    '| Deck | Start | End | Changes |',
-    '|---|---|---|---|',
-    ...all.map((a) => `| ${a.name} | ${pct(a.history[0]?.wr ?? 0)} | ${pct(a.history[a.history.length - 1]?.wr ?? 0)} | ${a.history.filter((h) => !h.change.startsWith('kept')).map((h) => h.change).join('; ') || '—'} |`),
+    `Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees })}. Gains are the held-out paired figures.`,
+    '',
+    '| Deck | Start | End | Changes | Games |',
+    '|---|---|---|---|---|',
+    ...all.map(
+      (a) =>
+        `| ${a.name} | ${pct(a.history[0]?.wr ?? 0)} | ${pct(a.history[a.history.length - 1]?.wr ?? 0)} | ${
+          a.history
+            .filter((h) => !h.change.startsWith('kept') || h.change.startsWith('kept (could not tell'))
+            .map((h) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)})` : ''}`)
+            .join('; ') || '—'
+        } | ${a.games} |`,
+    ),
   ].join('\n');
+  fs.mkdirSync(OUT ? path.join(OUT, 'forge') : 'reports/forge', { recursive: true });
   fs.writeFileSync(OUT ? path.join(OUT, 'forge', 'summary.md') : 'reports/forge/summary.md', md);
   console.log('\n' + md);
 }
