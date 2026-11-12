@@ -6,7 +6,9 @@
 //   - src/data/tournaments.json lists exactly the events in public/tournaments/event-N.json (same ids, no orphans either
 //     way; each file's id matches its name; champion and game count match the file)
 //   - public/data/h2h.json covers the recorded events: its event and game counts match them (the Deck Lab calls it
-//     stale when it counts fewer events than the index), and its manifest, when it has one, names exactly those events
+//     stale when it counts fewer events than the index), and its manifest, when it has one, names exactly those events;
+//     events it lists as left out of its pool (`pool.excluded`, SIM-7: another sim version or bot) are subtracted first,
+//     and each must be a recorded event outside the pooled version and bot (the same holds for ratings.json)
 //   - every run manifest in those files (and src/data/ratings.json) has a known schema, and its deck ids are the
 //     fingerprints of the deck lists stored next to it
 //   - every event records its simVersion and a run manifest: an event without either fails (the data was restarted from
@@ -31,6 +33,7 @@ export interface CheckEvent {
   id: number | string;
   champion?: string | null;
   simVersion?: number;
+  bot?: string;
   manifest?: unknown;
   decks: Record<string, StoredDeck>;
   rounds: { matches: EventMatch[] }[];
@@ -45,9 +48,15 @@ export interface CheckInput {
   /** public/tournaments/event-N.json, parsed, with their file names */
   events: { file: string; event: CheckEvent }[];
   /** public/data/h2h.json (null when missing) */
-  h2h: { events: number; games: number; manifest?: unknown } | null;
-  /** src/data/ratings.json (null when missing): only its manifest is checked */
-  ratings?: { manifest?: unknown } | null;
+  h2h: { events: number; games: number; manifest?: unknown; pool?: PoolRecordLike } | null;
+  /** src/data/ratings.json (null when missing): only its manifest and pool are checked */
+  ratings?: { manifest?: unknown; pool?: PoolRecordLike } | null;
+}
+/** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
+interface PoolRecordLike {
+  simVersion: number | null | 'all';
+  bot: string | 'all';
+  excluded: { id: number | string; simVersion: number | null; bot: string }[];
 }
 export interface CheckResult {
   failures: string[];
@@ -100,6 +109,29 @@ function inputProblems(m: RunManifest, where: string, events: CheckEvent[]): str
   return out;
 }
 
+/**
+ * The recorded events an aggregate file pooled: every event except those its `pool` lists as left out. A listed event must
+ * exist, carry the version and bot listed, and fall outside the pooled version and bot; every pooled one must fall inside.
+ */
+function pooledEvents(pool: PoolRecordLike | undefined, where: string, events: CheckEvent[], failures: string[]): CheckEvent[] {
+  if (!pool) return events;
+  const byId = new Map(events.map((e) => [String(e.id), e]));
+  const out = new Set<string>();
+  const ver = (e: CheckEvent) => (typeof e.simVersion === 'number' ? e.simVersion : null);
+  const bot = (e: CheckEvent) => e.bot ?? '?';
+  const inside = (e: CheckEvent) => (pool.simVersion === 'all' || ver(e) === pool.simVersion) && (pool.bot === 'all' || bot(e) === pool.bot);
+  for (const x of pool.excluded ?? []) {
+    const e = byId.get(String(x.id));
+    if (!e) failures.push(`${where}: leaves out event ${x.id}, which is not recorded`);
+    else if (ver(e) !== x.simVersion || bot(e) !== x.bot) failures.push(`${where}: leaves out event ${x.id} as sim v${x.simVersion} ${x.bot}, the event is sim v${ver(e)} ${bot(e)}`);
+    else if (inside(e)) failures.push(`${where}: leaves out event ${x.id}, but it has the pooled sim version and bot`);
+    out.add(String(x.id));
+  }
+  const kept = events.filter((e) => !out.has(String(e.id)));
+  for (const e of kept) if (!inside(e)) failures.push(`${where}: pools event ${e.id} (sim v${ver(e)} ${bot(e)}) outside its sim v${pool.simVersion} ${pool.bot} pool`);
+  return kept;
+}
+
 export function checkData(input: CheckInput): CheckResult {
   const failures: string[] = [];
   const passed: string[] = [];
@@ -140,21 +172,26 @@ export function checkData(input: CheckInput): CheckResult {
   // ---- head-to-heads cover the recorded events
   if (!input.h2h) failures.push('public/data/h2h.json is missing (build it with npm run build-h2h)');
   else {
-    const games = events.reduce((a, e) => a + gamesOf(e), 0);
     const before = failures.length;
-    if (input.h2h.events !== events.length) failures.push(`h2h.json counts ${input.h2h.events} events, ${events.length} are recorded${input.h2h.events < events.length ? ' (the Deck Lab shows it as stale)' : ''}`);
-    if (input.h2h.games !== games) failures.push(`h2h.json counts ${input.h2h.games} games, the recorded events have ${games}`);
+    const pooled = pooledEvents(input.h2h.pool, 'h2h.json', events, failures);
+    const games = pooled.reduce((a, e) => a + gamesOf(e), 0);
+    const left = events.length - pooled.length;
+    if (left) info.push(`h2h.json leaves out ${left} event(s) of another sim version or bot (its pool: sim v${input.h2h.pool?.simVersion} ${input.h2h.pool?.bot})`);
+    if (input.h2h.events !== pooled.length) failures.push(`h2h.json counts ${input.h2h.events} events, ${pooled.length} are recorded${left ? ' in its pool' : ''}${input.h2h.events < pooled.length ? ' (the Deck Lab shows it as stale)' : ''}`);
+    if (input.h2h.games !== games) failures.push(`h2h.json counts ${input.h2h.games} games, the ${left ? 'pooled' : 'recorded'} events have ${games}`);
     if (input.h2h.manifest !== undefined) {
       const p = manifestProblems(input.h2h.manifest, 'h2h.json');
       manifestsChecked++;
-      failures.push(...(p.length ? p : inputProblems(input.h2h.manifest as RunManifest, 'h2h.json', events)));
+      failures.push(...(p.length ? p : inputProblems(input.h2h.manifest as RunManifest, 'h2h.json', pooled)));
     } else info.push('h2h.json has no manifest (built before manifests)');
-    if (failures.length === before) passed.push(`h2h.json covers the recorded events (${events.length} events, ${games} games)`);
+    if (failures.length === before) passed.push(`h2h.json covers the recorded events (${pooled.length} events, ${games} games${left ? `; ${left} left out` : ''})`);
   }
   if (input.ratings?.manifest !== undefined) {
     const p = manifestProblems(input.ratings.manifest, 'ratings.json');
     manifestsChecked++;
-    failures.push(...(p.length ? p : inputProblems(input.ratings.manifest as RunManifest, 'ratings.json', events)));
+    const pooled = pooledEvents(input.ratings.pool, 'ratings.json', events, failures);
+    if (pooled.length < events.length) info.push(`ratings.json leaves out ${events.length - pooled.length} event(s) of another sim version or bot`);
+    failures.push(...(p.length ? p : inputProblems(input.ratings.manifest as RunManifest, 'ratings.json', pooled)));
   } else if (input.ratings) info.push('ratings.json has no manifest (built before manifests)');
 
   // ---- event setups (formats and hand-arranged events) and the custom flag

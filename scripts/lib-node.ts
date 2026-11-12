@@ -415,7 +415,11 @@ export interface RecordedGame {
  * (head-to-heads, breeding) read `decks`, so a deck entered twice counts as itself and its mirror games are skipped there.
  */
 export function forEachRecordedGame(cb: (g: RecordedGame) => void, dir = EVENTS_DIR) {
-  for (const event of readEvents(dir))
+  forEachGameOf(readEvents(dir), cb);
+}
+/** forEachRecordedGame over events already read (and perhaps filtered: scripts/event-pool.ts selectEvents). */
+export function forEachGameOf(events: readonly RecordedEvent[], cb: (g: RecordedGame) => void) {
+  for (const event of events)
     for (const [pi, part] of [...event.rounds, ...event.bracket].entries())
       for (const match of part.matches) {
         if (!match.b) continue;

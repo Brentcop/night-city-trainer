@@ -8,7 +8,9 @@
 //   --package-min-gain P        the same for whole-package moves (default: --min-gain)
 //   --min-games N               no adoption on fewer held-out paired games (200)
 //   --confirm-cap K             confirmation stages at most, each the size of the first (4)
-//   --alpha A                   two-sided error rate split over the looks and nominees (0.05)
+//   --alpha A                   two-sided error rate shared by the looks and nominees (0.05)
+//   --boundary B                how the looks share it: obrien-fleming (default; alpha spending, strict early looks) or
+//                               bonferroni (the same z at every look, the rule of 2026-11-11); nominees split it evenly
 //   --futility-after N          futility stop: after N stages, a nominee whose held-out paired mean gain is at most
 //                               --futility-gain stops early as "could not tell" (never adopted); 0 = off (2)
 //   --futility-gain X           the futility stop's threshold in points; negative values as --futility-gain=-1 (0)
@@ -17,7 +19,7 @@
 //   --nominees N                candidates confirmed per generation
 //   --combine-from N            how many of the best screened single changes are combined (4)
 //   --budget N                  refuse a run that may play more than N games per deck (12000) unless --force
-import { adoptionRule, ruleProblems, type AdoptionRule } from '../src/lib/evidence';
+import { ADOPTION_BOUNDARIES, adoptionRule, ruleProblems, type AdoptionBoundary, type AdoptionRule } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, DEPTH_DEFAULTS, type SearchDepth } from '../src/lib/deckSearch';
 import { bool, int, num, oneOf } from './lib-node';
 
@@ -31,6 +33,7 @@ export const adoptionFlags = () => ({
   'min-games': int(undefined, { min: 0, max: 100_000 }),
   'confirm-cap': int(undefined, { min: 1, max: 16 }),
   alpha: num(undefined, { min: 0.0001, max: 0.5 }),
+  boundary: oneOf(ADOPTION_BOUNDARIES, undefined),
   'futility-after': int(undefined, { min: 0, max: 16 }),
   'futility-gain': num(undefined, { min: -50, max: 50 }),
 });
@@ -51,6 +54,7 @@ export interface AdoptionFlagValues {
   'min-games'?: number;
   'confirm-cap'?: number;
   alpha?: number;
+  boundary?: AdoptionBoundary;
   'futility-after'?: number;
   'futility-gain'?: number;
 }
@@ -69,6 +73,7 @@ export function ruleFromFlags(v: AdoptionFlagValues): AdoptionRule {
     ...(v['min-games'] !== undefined ? { minGames: v['min-games'] } : {}),
     ...(v['confirm-cap'] !== undefined ? { capStages: v['confirm-cap'] } : {}),
     ...(v.alpha !== undefined ? { alpha: v.alpha } : {}),
+    ...(v.boundary !== undefined ? { boundary: v.boundary } : {}),
     ...(v['futility-after'] !== undefined ? { futilityAfterStages: v['futility-after'] } : {}),
     ...(v['futility-gain'] !== undefined ? { futilityMaxGainPp: v['futility-gain'] } : {}),
   });
@@ -99,6 +104,7 @@ export function adoptionArgs(v: AdoptionFlagValues & DepthFlagValues): string[] 
     const x = v[k];
     if (x !== undefined) out.push(`--${k}`, String(x));
   }
+  if (v.boundary !== undefined) out.push('--boundary', v.boundary);
   // `--name=value`, so a negative threshold is not read as a flag
   if (v['futility-gain'] !== undefined) out.push(`--futility-gain=${v['futility-gain']}`);
   // depth flags have defaults, so only values that differ from the forge's defaults are passed on

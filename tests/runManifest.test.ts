@@ -121,12 +121,14 @@ describe('aggregateManifest (ratings, head-to-heads)', () => {
     const match = { a: 'A', b: 'B', games: [{ seed: 1, first: 0, winner: 0, turns: 9 }], score: [1, 0], winner: 'A' };
     for (const e of [legacy, current]) fs.writeFileSync(path.join(events, `event-${e.id}.json`), JSON.stringify({ ...e, champion: 'A', rounds: [{ matches: [match] }], bracket: [], standings: [] }));
     const out = path.join(dir, 'h2h.json');
-    const first = buildH2H(events, out)!;
+    // a legacy event (no sim version) and a current one: pooled only on request (SIM-7), by default the newest's group
+    expect(buildH2H(events, out)!.manifest?.inputs?.events.map((e) => e.id)).toEqual([2]);
+    const first = buildH2H(events, out, { simVersion: 'all', bot: 'all' })!;
     expect(first.manifest?.inputs?.events.map((e) => e.id)).toEqual([1, 2]);
     expect(first.manifest?.sample.completedGames).toBe(2);
     const bytes = fs.readFileSync(out, 'utf8');
     const mtime = fs.statSync(out).mtimeMs;
-    buildH2H(events, out);
+    buildH2H(events, out, { simVersion: 'all', bot: 'all' });
     expect(fs.readFileSync(out, 'utf8')).toBe(bytes);
     expect(fs.statSync(out).mtimeMs).toBe(mtime);
     fs.rmSync(dir, { recursive: true, force: true });

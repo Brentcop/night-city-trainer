@@ -192,7 +192,7 @@ Until 2026-11-11 the forge, the optimizer and the Deck Lab tuner adopted a chang
 - **rejected**: the upper bound is below 1 point;
 - **could not tell**: neither by the last stage. The change is **not** adopted, and reports say "could not tell" with the interval and the games played. It is never called a gain.
 
-**The futility stop.** A change with no real gain can almost never be formally rejected at these sample sizes: the two lists play the same game about 90% of the time, so even at 896 games the interval is still about ±2.2 points around zero, and the nominee used to run to the cap and pay 4× the confirmation for nothing. So, after **2 stages**, a nominee that is neither adopted nor rejected and whose held-out paired mean gain is **0 points or less** stops there. It ends as **could not tell**, recorded with `stopped: 'futility'` and shown as "could not tell (stopped early: no gain after N games)"; its games and interval are the ones at that point. It never adopts anything, so it cannot raise the false-adopt rate, and the α split above is left as it is (the looks it saves are not spent back). With several nominees (the optimizer's 6, or `--nominees`) each one is stopped on its own; a later stage is played only while one is still live, the current list still plays it once, and every game played is the same game it was without the stop (same seeds). The legacy `any-gain` rule has no stop. On synthetic paired games (`tests/evidence.test.ts`, 1,000 runs each, off → on):
+**The futility stop.** A change with no real gain can almost never be formally rejected at these sample sizes: the two lists play the same game about 90% of the time, so even at 896 games the interval is still about ±2.2 points around zero, and the nominee used to run to the cap and pay 4× the confirmation for nothing. So, after **2 stages**, a nominee that is neither adopted nor rejected and whose held-out paired mean gain is **0 points or less** stops there. It ends as **could not tell**, recorded with `stopped: 'futility'` and shown as "could not tell (stopped early: no gain after N games)"; its games and interval are the ones at that point. It never adopts anything, so it cannot raise the false-adopt rate, and the boundaries of the looks (below) are left as they are (the looks it saves are not spent back). With several nominees (the optimizer's 6, or `--nominees`) each one is stopped on its own; a later stage is played only while one is still live, the current list still plays it once, and every game played is the same game it was without the stop (same seeds). The legacy `any-gain` rule has no stop. On synthetic paired games (`tests/evidence.test.ts`, 1,000 runs each, off → on):
 
 | Setting | Adopted | Mean games (both lists) | Stopped early |
 |---|---|---|---|
@@ -204,7 +204,24 @@ Until 2026-11-11 the forge, the optimizer and the Deck Lab tuner adopted a chang
 
 The runs are coupled (the stop only skips later stages of the same random games), so every adoption with the stop is also an adoption without it.
 
-**The correction for looking more than once.** Each look uses a wider interval: the error rate α = 0.05 is split evenly over the planned looks and the nominees (Bonferroni), so every look uses z = Φ⁻¹(1 − α / (2 × looks × nominees)): 2.50 for one nominee and 4 looks, 3.08 for the optimizer's 6. Whatever stage a decision stops at, the chance of adopting a change whose true gain is 1 point or less stays below α / 2 = 2.5%. Bonferroni is cruder than a Pocock or O'Brien–Fleming bound, but it needs no equal stage sizes or planned stopping pattern and is easy to check. When several nominees are confirmed, the adopted one is the one with the highest corrected lower bound, and its held-out figure is the one reported.
+**The correction for looking more than once.** Each look uses a wider interval than the plain 95% one. The nominees split the error rate α = 0.05 evenly (Bonferroni), so each nominee gets a one-sided α / (2 × nominees). Since 2026-11-12 (SIM-5) that share is spent over the planned looks by an O'Brien–Fleming-type spending function (Lan–DeMets; `src/lib/groupSequential.ts`), at equal information fractions 1/4, 2/4, 3/4, 1: the early looks are strict and the last one is close to the unsplit bound. For one nominee and 4 looks the z's are 4.33, 2.96, 2.36, 2.01; for the optimizer's 6 nominees 5.61, 3.89, 3.11, 2.66. Before, α was split evenly over looks and nominees (Bonferroni), so every look used z = Φ⁻¹(1 − α / (2 × looks × nominees)): 2.50 for one nominee and 4 looks, 3.08 for 6 nominees; `--boundary bonferroni` (Lab: `boundary: 'bonferroni'`) keeps that rule for reproducing old runs, and the manifest's `adoption.correction` says which ran (`obrien-fleming`, `bonferroni`, or `none` for any-gain), with `adoption.lookZ` the z of each look. Either way, whatever stage a decision stops at, the chance of adopting a change whose true gain is 1 point or less stays below α / 2 = 2.5%. The bound assumes equal stages, which the builders always play. When several nominees are confirmed, the adopted one is the one with the highest corrected lower bound, and its held-out figure is the one reported.
+
+On synthetic paired games (`tests/group-sequential.test.ts`, 2,000 runs each, one nominee, futility stop on; Bonferroni → O'Brien–Fleming; mean games counts both lists):
+
+| Setting | true gain | Adopted | Mean games |
+|---|---|---|---|
+| stages of 224 (cap 896), 90% same game | 0 | 0.1% → 0.0% | 1,253 → 1,271 |
+| same | +1 point (the bar) | 1.1% → 2.1% | 1,577 → 1,585 |
+| same | +2 points | 16.9% → 27.3% | 1,676 → 1,704 |
+| same | +3 points | 63.4% → 78.0% | 1,429 → 1,516 |
+| same | +4 points | 97.6% → 99.4% | 941 → 1,166 |
+| same | +5 points | 100% → 100% | 598 → 936 |
+| stages of 140 (cap 560), 60% same game | 0 | 0.4% → 0.7% | 784 → 789 |
+| same | +1 point | 1.5% → 2.3% | 886 → 889 |
+| same | +3 points | 11.1% → 19.1% | 996 → 1,003 |
+| same | +5 points | 41.7% → 55.9% | 971 → 991 |
+
+So the false-adopt rate at the bar stays under 2.5% and gains of 2 to 5 points are adopted more often; the cost is that a large gain, which Bonferroni could adopt at the second look, now usually waits for the third (+5 points: 598 → 936 games). It does not save games, as the backlog expected; it buys power at the same cap.
 
 **Defaults and flags** (one object, `ADOPTION_DEFAULTS`; forge, optimizer and season take the flags, the season passing them to its forge):
 
@@ -214,7 +231,8 @@ The runs are coupled (the stop only skips later stages of the same random games)
 | Minimum gain for package moves | the same | `--package-min-gain P` |
 | Games before any adoption | 200 | `--min-games N` |
 | Confirmation stages (cap = stages × first stage) | 4 | `--confirm-cap K` |
-| α, split over looks and nominees | 0.05 | `--alpha A` |
+| α, shared by looks and nominees | 0.05 | `--alpha A` |
+| How the looks share it | O'Brien–Fleming-type spending | `--boundary bonferroni` (the same z at every look, the rule of 2026-11-11) |
 | Futility stop: after this many stages (0 = off) | 2 | `--futility-after N` |
 | Futility stop: held-out mean gain at most | 0 points | `--futility-gain X` (negative as `--futility-gain=-1`) |
 | The rule | `evidence` | `--adopt any-gain` restores the old rule, to reproduce old runs |

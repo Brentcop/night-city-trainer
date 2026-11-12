@@ -15,6 +15,7 @@ import { gameDeck, type PlayGame } from './tournament';
 import { adoptionRule, confirmStaged, formatGain, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval } from './evidence';
 import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, type SearchDepth } from './deckSearch';
 import type { LibraryDeck } from './library';
+import { h2hFileLookup, type H2HFileLike, type H2HRecord } from './h2hModel';
 import { finalVsOriginal, vsOriginalVerdict, type VsOriginal } from './tuneRecord';
 
 export { finalVsOriginal, vsOriginalVerdict, type VsOriginal, type VsOriginalVerdict } from './tuneRecord';
@@ -517,12 +518,18 @@ export interface BreedOptions {
   packages?: BreedPackages;
 }
 
-export type H2H = (a: string, b: string) => { w: number; g: number };
+/** a's record against b (wins w of g games) and, when h2h.json has a model, the shrunk estimate p (src/lib/h2hModel.ts) */
+export type H2H = (a: string, b: string) => H2HRecord;
 export interface H2HInfo {
   lookup: H2H;
+  /** events pooled into the file */
   events: number;
+  /** recorded events the file left out on purpose (another sim version or bot: its `pool` field) */
+  excluded: number;
   games: number;
   updated: string;
+  /** the file carries shrunk estimates (built from 2026-11-12) */
+  shrunk: boolean;
 }
 /**
  * How many events are recorded (the length of src/data/tournaments.json's index), for telling whether h2h.json is
@@ -539,19 +546,15 @@ export async function recordedEventCount(): Promise<number | null> {
 
 /**
  * Lazily load the head-to-head file (public/data/h2h.json, built by scripts/build-h2h.ts after every tournament run).
- * Returns null when it hasn't been built yet.
+ * Returns null when it hasn't been built yet. The lookup gives the raw record and, from files with a model, the
+ * estimate shrunk toward the power ratings (which the breeder's counter ranking prefers).
  */
 export async function loadH2H(): Promise<H2HInfo | null> {
   try {
     const r = await fetch(`${import.meta.env.BASE_URL}data/h2h.json`);
     if (!r.ok) return null;
-    const d = (await r.json()) as { updated: string; events: number; games: number; decks: string[]; pairs: [number, number, number, number][] };
-    const m = new Map<string, { w: number; g: number }>();
-    for (const [i, j, w, g] of d.pairs) {
-      m.set(`${d.decks[i]}|${d.decks[j]}`, { w, g });
-      m.set(`${d.decks[j]}|${d.decks[i]}`, { w: g - w, g });
-    }
-    return { lookup: (a, b) => m.get(`${a}|${b}`) ?? { w: 0, g: 0 }, events: d.events, games: d.games, updated: d.updated };
+    const d = (await r.json()) as H2HFileLike & { updated: string; events: number; games: number; pool?: { excluded: unknown[] } };
+    return { lookup: h2hFileLookup(d), events: d.events, excluded: d.pool?.excluded.length ?? 0, games: d.games, updated: d.updated, shrunk: !!d.shrunk };
   } catch {
     return null;
   }

@@ -7,6 +7,7 @@
 // A comparison is paired: the candidate list and the current list play the same games (same opponents, same seeds,
 // same seats), and the evidence is the per-game difference in score (win 1, tie ½, loss 0), never two win rates
 // measured apart.
+import { equalFractions, obfBoundaries } from './groupSequential';
 
 // ---------------------------------------------------------------- paired summaries
 
@@ -156,6 +157,14 @@ export const DEFAULT_MIN_GAIN_PP = 1;
 
 export type AdoptionKind = 'evidence' | 'any-gain';
 export type Outcome = 'adopt' | 'reject' | 'inconclusive';
+/**
+ * How the staged looks share α (the nominees always split it by Bonferroni):
+ * - 'obrien-fleming' (default since 2026-11-12, SIM-5): Lan–DeMets alpha spending with an O'Brien–Fleming-type function
+ *   (src/lib/groupSequential.ts): strict early looks, close to the unsplit z at the last one;
+ * - 'bonferroni': the same z at every look, α split evenly over them (the rule of 2026-11-11, kept to reproduce old runs).
+ */
+export type AdoptionBoundary = 'obrien-fleming' | 'bonferroni';
+export const ADOPTION_BOUNDARIES: readonly AdoptionBoundary[] = ['obrien-fleming', 'bonferroni'];
 
 export interface AdoptionRule {
   /** 'evidence' (default) or 'any-gain' (the rule before 2026-11-11, kept to reproduce old runs) */
@@ -164,8 +173,10 @@ export interface AdoptionRule {
   minGainPp: number;
   /** the same bar for whole-package moves (default: the same as for card swaps) */
   packageMinGainPp: number;
-  /** two-sided error rate shared by every look and every nominee of one decision (Bonferroni split) */
+  /** two-sided error rate shared by every look and every nominee of one decision */
   alpha: number;
+  /** how the looks share it (the nominees split it by Bonferroni either way) */
+  boundary: AdoptionBoundary;
   /** confirmation runs in equal stages of the builder's first confirmation size, at most this many (cap = capStages × first stage) */
   capStages: number;
   /** no adoption on fewer held-out paired games than this */
@@ -173,7 +184,7 @@ export interface AdoptionRule {
   /**
    * Futility stop: from this many stages on, a nominee still undecided whose held-out paired mean gain is at most
    * `futilityMaxGainPp` stops there as "could not tell" (stopped early). 0 = off. It only ever stops without adopting,
-   * so it cannot raise the false-adopt rate, and the α split over `capStages` looks is left as it is.
+   * so it cannot raise the false-adopt rate, and the boundaries over `capStages` looks are left as they are.
    */
   futilityAfterStages: number;
   /** the futility stop's threshold on the held-out paired mean gain, in percentage points (0: no gain at all) */
@@ -185,9 +196,11 @@ export interface AdoptionRule {
  * - screening (cheap, noisy, on shared seeds) only nominates; it never adopts;
  * - each nominee is confirmed on fresh seeds the screening never used, paired against the current list, in stages of the
  *   builder's confirmation size, while the interval still straddles the bar, up to 4 stages;
- * - the staged looks and the nominees share α = 0.05 by a Bonferroni split: every look uses z = Φ⁻¹(1 − α / (2 · looks ·
- *   nominees)), 2.50 for one nominee and 4 looks, so the chance of adopting a change that is not worth the minimum gain
- *   is at most α / 2 = 2.5% per decision, however the stages fall;
+ * - the nominees share α = 0.05 by a Bonferroni split, and each nominee's one-sided α / (2 · nominees) is spent over the
+ *   staged looks by an O'Brien–Fleming-type spending function (src/lib/groupSequential.ts; SIM-5, 2026-11-12): for one
+ *   nominee and 4 looks the z's are 4.33, 2.96, 2.36, 2.01, so the chance of adopting a change that is not worth the
+ *   minimum gain is at most α / 2 = 2.5% per decision, and the last looks keep most of the power the plain z of 1.96
+ *   would have (the Bonferroni split used 2.50 at every look; `boundary: 'bonferroni'` keeps it);
  * - adopt when the corrected lower bound is above 1 point (the tuners' DEFAULT_MIN_GAIN_PP) with at least 200 games;
  *   reject when the corrected upper bound is below 1 point; otherwise "could not tell" at the cap, which is not adopted;
  * - futility stop: after 2 stages, a nominee whose held-out paired mean gain is 0 points or less stops there as "could
@@ -199,6 +212,7 @@ export const ADOPTION_DEFAULTS: Readonly<AdoptionRule> = Object.freeze({
   minGainPp: DEFAULT_MIN_GAIN_PP,
   packageMinGainPp: DEFAULT_MIN_GAIN_PP,
   alpha: 0.05,
+  boundary: 'obrien-fleming',
   capStages: 4,
   minGames: 200,
   futilityAfterStages: 2,
@@ -206,7 +220,7 @@ export const ADOPTION_DEFAULTS: Readonly<AdoptionRule> = Object.freeze({
 });
 
 /** The rule before 2026-11-11: one confirmation stage, adopt when the candidate scored more than the list at all. */
-export const ANY_GAIN_RULE: Readonly<AdoptionRule> = Object.freeze({ kind: 'any-gain', minGainPp: 0, packageMinGainPp: 0, alpha: 0.05, capStages: 1, minGames: 0, futilityAfterStages: 0, futilityMaxGainPp: 0 });
+export const ANY_GAIN_RULE: Readonly<AdoptionRule> = Object.freeze({ kind: 'any-gain', minGainPp: 0, packageMinGainPp: 0, alpha: 0.05, boundary: 'bonferroni', capStages: 1, minGames: 0, futilityAfterStages: 0, futilityMaxGainPp: 0 });
 
 /** A rule from partial settings: `{ kind: 'any-gain' }` is the legacy rule whatever else is set. */
 export function adoptionRule(o: Partial<AdoptionRule> = {}): AdoptionRule {
@@ -220,6 +234,7 @@ export function adoptionRule(o: Partial<AdoptionRule> = {}): AdoptionRule {
 export function ruleProblems(r: AdoptionRule): string[] {
   const out: string[] = [];
   if (!(r.alpha > 0 && r.alpha < 1)) out.push(`alpha must be between 0 and 1 (got ${r.alpha})`);
+  if (!ADOPTION_BOUNDARIES.includes(r.boundary)) out.push(`the boundary must be one of ${ADOPTION_BOUNDARIES.join(', ')} (got ${String(r.boundary)})`);
   if (!Number.isInteger(r.capStages) || r.capStages < 1 || r.capStages > 16) out.push(`the confirmation cap must be 1 to 16 stages (got ${r.capStages})`);
   if (!(r.minGames >= 0)) out.push(`the minimum games must be 0 or more (got ${r.minGames})`);
   if (!(r.minGainPp >= 0 && r.minGainPp < 100)) out.push(`the minimum gain must be 0 to 100 points (got ${r.minGainPp})`);
@@ -229,9 +244,21 @@ export function ruleProblems(r: AdoptionRule): string[] {
   return out;
 }
 
-/** z for every look of a decision with `nominees` nominees: the Bonferroni split of α over looks × nominees. */
-export function lookZ(rule: Pick<AdoptionRule, 'alpha' | 'capStages'>, nominees = 1): number {
-  return normalQuantile(1 - rule.alpha / (2 * rule.capStages * Math.max(1, nominees)));
+/**
+ * z at each of the `capStages` looks (index 0 = the first) of a decision with `nominees` nominees. Each nominee gets a
+ * one-sided α / (2 · nominees); 'bonferroni' splits that evenly over the looks (the same z at every look),
+ * 'obrien-fleming' spends it with the O'Brien–Fleming-type function at equal information fractions k / capStages.
+ */
+export function lookZs(rule: Pick<AdoptionRule, 'alpha' | 'capStages'> & { boundary?: AdoptionBoundary }, nominees = 1): number[] {
+  const oneSided = rule.alpha / (2 * Math.max(1, nominees));
+  if ((rule.boundary ?? 'bonferroni') === 'bonferroni') return Array.from({ length: rule.capStages }, () => normalQuantile(1 - oneSided / rule.capStages));
+  return obfBoundaries(oneSided, equalFractions(rule.capStages));
+}
+
+/** z at look `look` (1-based; default the last) of a decision with `nominees` nominees (see lookZs). */
+export function lookZ(rule: Pick<AdoptionRule, 'alpha' | 'capStages'> & { boundary?: AdoptionBoundary }, nominees = 1, look = rule.capStages): number {
+  const zs = lookZs(rule, nominees);
+  return zs[Math.min(zs.length, Math.max(1, look)) - 1] ?? 1.96;
 }
 
 /**
@@ -306,10 +333,12 @@ export async function confirmStaged(
   const done: (Confirmation | null)[] = nominees.map(() => null);
   const legacy = rule.kind === 'any-gain';
   const stages = legacy ? 1 : rule.capStages;
-  const z = legacy ? 1.96 : lookZ(rule, n);
+  const zs = legacy ? [1.96] : lookZs(rule, n);
+  /** z of look `looks` (1-based); a nominee concluded before any look reads the first */
+  const zAt = (looks: number) => zs[Math.max(1, Math.min(zs.length, looks)) - 1] ?? 1.96;
   let games = 0;
   const conclude = (i: number, outcome: Outcome, looks: number, stopped?: StopReason): Confirmation => {
-    const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], z);
+    const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], zAt(looks));
     return { outcome, heldOut: iv, baseWr: mean(baseFor[i] ?? []), candWr: mean(scores[i] ?? []), looks, minGainPp: nominees[i]?.minGainPp ?? 0, ...(stopped ? { stopped } : {}) };
   };
   for (let stage = 0; stage < stages; stage++) {
@@ -331,7 +360,7 @@ export async function confirmStaged(
         done[i] = conclude(i, m > 0 ? 'adopt' : 'reject', 1);
         continue;
       }
-      const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], z);
+      const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], zAt(stage + 1));
       const v = judgeLook(iv, { minGainPp: nominees[i]?.minGainPp ?? rule.minGainPp, minGames: rule.minGames, last: stage === stages - 1 });
       if (v !== 'continue') done[i] = conclude(i, v, stage + 1);
       else if (futilityApplies(rule, stage + 1, stages) && iv.mean <= rule.futilityMaxGainPp / 100) done[i] = conclude(i, 'inconclusive', stage + 1, 'futility');
@@ -381,10 +410,15 @@ export function formatGain(iv: Pick<PairedInterval, 'mean' | 'lower' | 'upper' |
 /** One line for reports: what the rule is, with its numbers. */
 export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number } = {}): string {
   if (rule.kind === 'any-gain') return `any-gain (legacy): one confirmation${o.firstStage ? ` of ${o.firstStage} fresh games` : ''}; a change is adopted when it scores higher at all`;
-  const z = lookZ(rule, o.nominees ?? 1);
+  const zs = lookZs(rule, o.nominees ?? 1);
   const stages = o.firstStage ? `stages of ${o.firstStage} fresh paired games up to ${rule.capStages * o.firstStage}` : `up to ${rule.capStages} stages of fresh paired games`;
   const pkg = rule.packageMinGainPp !== rule.minGainPp ? ` (package moves ${rule.packageMinGainPp} points)` : '';
-  return `evidence: ${stages}; adopt when the lower bound of the paired gain is above ${rule.minGainPp} point${rule.minGainPp === 1 ? '' : 's'}${pkg} with at least ${rule.minGames} games, reject when the upper bound is below it, otherwise could not tell${futilityClause(rule, o.firstStage)}; α = ${rule.alpha} split over ${rule.capStages} looks${(o.nominees ?? 1) > 1 ? ` × ${o.nominees} nominees` : ''} (Bonferroni, z = ${z.toFixed(2)})`;
+  const many = (o.nominees ?? 1) > 1;
+  const split =
+    rule.boundary === 'bonferroni'
+      ? `α = ${rule.alpha} split over ${rule.capStages} looks${many ? ` × ${o.nominees} nominees` : ''} (Bonferroni, z = ${(zs[0] ?? 0).toFixed(2)})`
+      : `α = ${rule.alpha}${many ? ` split over ${o.nominees} nominees (Bonferroni) and` : ''} spent over ${rule.capStages} look${rule.capStages === 1 ? '' : 's'} (O'Brien–Fleming-type, z = ${zs.map((z) => z.toFixed(2)).join(' / ')})`;
+  return `evidence: ${stages}; adopt when the lower bound of the paired gain is above ${rule.minGainPp} point${rule.minGainPp === 1 ? '' : 's'}${pkg} with at least ${rule.minGames} games, reject when the upper bound is below it, otherwise could not tell${futilityClause(rule, o.firstStage)}; ${split}`;
 }
 
 /** "; a nominee with no gain after 2 stages (560 games) stops early as could not tell", or '' when the stop is off or never reached. */
@@ -401,8 +435,13 @@ export interface AdoptionProvenance {
   minGainPp: number;
   packageMinGainPp: number;
   alpha: number;
-  /** how the staged looks and nominees share α */
-  correction: 'bonferroni' | 'none';
+  /**
+   * how the staged looks and nominees share α: 'bonferroni' (an even split over looks × nominees, the rule of 2026-11-11),
+   * 'obrien-fleming' (nominees by Bonferroni, looks by O'Brien–Fleming-type spending, from 2026-11-12), 'none' (any-gain)
+   */
+  correction: 'bonferroni' | 'obrien-fleming' | 'none';
+  /** the z of each look for `nominees` nominees (absent in runs recorded before 2026-11-12) */
+  lookZ?: number[];
   capStages: number;
   minGames: number;
   /** games in the first confirmation stage */
@@ -424,7 +463,8 @@ export function adoptionProvenance(rule: AdoptionRule, o: { firstStage: number; 
     minGainPp: rule.minGainPp,
     packageMinGainPp: rule.packageMinGainPp,
     alpha: rule.alpha,
-    correction: rule.kind === 'evidence' ? 'bonferroni' : 'none',
+    correction: rule.kind === 'evidence' ? rule.boundary : 'none',
+    ...(rule.kind === 'evidence' ? { lookZ: lookZs(rule, o.nominees).map(r4) } : {}),
     capStages: rule.capStages,
     minGames: rule.minGames,
     ...o,

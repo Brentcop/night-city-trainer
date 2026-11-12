@@ -24,7 +24,8 @@ export interface BreedInput {
   /** per-deck card impact (deck name → card id → IWD) from the parents' own telemetry */
   deckImpact?: Record<string, Record<string, number>>;
   /** head-to-head record of deck a vs deck b (tournament games) */
-  h2h?: (a: string, b: string) => { w: number; g: number };
+  /** a's record against b; `p`, when given, is a's estimated win probability shrunk toward the ratings (preferred) */
+  h2h?: (a: string, b: string) => { w: number; g: number; p?: number };
   /**
    * Synergy packages (src/lib/deckPackages.ts), opt-in: absent or empty, the breeder makes exactly the decks it made
    * before packages existed (same candidates, same order, same random numbers).
@@ -245,14 +246,21 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
       .map((x) => {
         let w = 0;
         let g = 0;
+        let ps = 0;
+        let pn = 0;
         for (const b of bosses) {
           if (b === x.deck.name) continue;
           const rec = h2h(x.deck.name, b);
           w += rec.w;
           g += rec.g;
+          if (rec.p !== undefined) {
+            ps += rec.p;
+            pn++;
+          }
         }
-        // shrink toward 50% (prior of 6 games) so a 2-0 doesn't look like a hard counter
-        return { deck: x.deck, score: (w + 3) / (g + 6), g };
+        // with estimates shrunk toward the power ratings (h2h.json's model, src/lib/h2hModel.ts) the mean estimate over the
+        // bosses; without, shrink the raw record toward 50% (prior of 6 games) so a 2-0 doesn't look like a hard counter
+        return { deck: x.deck, score: pn ? ps / pn : (w + 3) / (g + 6), g };
       })
       .filter((x) => x.g >= 4)
       .sort((x, y) => y.score - x.score)

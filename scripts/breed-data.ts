@@ -6,7 +6,9 @@
 import fs from 'node:fs';
 import type { DeckReport } from '../src/analysis/analyze';
 import { IMPACT_MIN_DECK_GAMES } from '../src/analysis/impactData';
-import { forEachRecordedGame } from './lib-node';
+import { readEvents } from './lib-node';
+import { poolEvents, selectEvents } from './event-pool';
+import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
 
 const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
 type Acc = Record<string, Record<string, { s: number; n: number }>>;
@@ -41,25 +43,18 @@ export function loadDeckImpact(min = IMPACT_MIN_DECK_GAMES): Record<string, Reco
   return Object.fromEntries(Object.entries(acc).map(([deck, cards]) => [deck, Object.fromEntries(Object.entries(cards).filter(([, v]) => v.n >= min).map(([id, v]) => [id, v.s / v.n]))]));
 }
 
-export type H2H = (a: string, b: string) => { w: number; g: number };
-/** Head-to-head records from every recorded tournament event (ties count half). */
+export type H2H = (a: string, b: string) => H2HRecord;
+/**
+ * Head-to-head records from the pooled tournament events (ties count half; the default pool of scripts/event-pool.ts:
+ * the newest event's sim version and bot), each with its estimate shrunk toward the power ratings (src/lib/h2hModel.ts),
+ * which the breeder's counter ranking prefers. A pair that never met has g = 0 and the ratings' prediction.
+ */
 export function loadH2H(): H2H {
-  const m = new Map<string, { w: number; g: number }>();
-  forEachRecordedGame(({ game: g, decks: [da, db] }) => {
-    if (da === db) return; // a deck against its own copy says nothing about the pairing
-    const v = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0;
-    for (const [x, y, s] of [
-      [da, db, v],
-      [db, da, 1 - v],
-    ] as [string, string, number][]) {
-      const k = `${x}|${y}`;
-      const r = m.get(k) ?? { w: 0, g: 0 };
-      r.w += s;
-      r.g++;
-      m.set(k, r);
-    }
-  });
-  return (a, b) => m.get(`${a}|${b}`) ?? { w: 0, g: 0 };
+  const sel = selectEvents(readEvents());
+  for (const w of sel.warnings) console.log(w);
+  const games = poolEvents(sel.kept).games;
+  if (!games.length) return () => ({ w: 0, g: 0 });
+  return h2hEstimator(games).lookup;
 }
 
 /**

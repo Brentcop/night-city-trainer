@@ -663,7 +663,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
     };
   }, []);
   const h2hReady = h2h && h2h !== 'loading' ? h2h : null;
-  const stale = !!h2hReady && recorded !== null && h2hReady.events < recorded;
+  const stale = !!h2hReady && recorded !== null && h2hReady.events + h2hReady.excluded < recorded;
 
   const breed = () => {
     const packages = picked.length ? { seeds: [picked], ...(fitAll ? { plan: { require: picked } } : {}) } : undefined;
@@ -780,11 +780,13 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
               'Loading tournament head-to-heads…'
             ) : h2hReady ? (
               <>
-                <b>Counter decks on</b>: built against the current top decks from {h2hReady.games.toLocaleString()} head-to-head games ({h2hReady.events} events).
+                <b>Counter decks on</b>: built against the current top decks from {h2hReady.games.toLocaleString()} head-to-head games ({h2hReady.events} events)
+                {h2hReady.shrunk ? ', each matchup estimated from the power ratings plus its own record, so a 2–1 is not read as a 67% matchup' : ''}.
+                {h2hReady.excluded > 0 && ` ${h2hReady.excluded} event(s) from another simulator version or bot are left out.`}
                 {stale && (
                   <span style={{ color: 'var(--accent)' }}>
                     {' '}
-                    ⚠ {(recorded ?? 0) - h2hReady.events} newer event(s) aren't included yet — rebuild with <code>npm run build-h2h</code> (runs automatically after every tournament series).
+                    ⚠ {(recorded ?? 0) - h2hReady.events - h2hReady.excluded} newer event(s) aren't included yet — rebuild with <code>npm run build-h2h</code> (runs automatically after every tournament series).
                   </span>
                 )}
               </>

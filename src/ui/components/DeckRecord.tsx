@@ -75,6 +75,32 @@ function Opp({ m }: { m: MatchLine }) {
   return m.oppFile ? <a href={profileHref(m.oppFile)}>{m.opp}</a> : <>{m.opp}</>;
 }
 
+/**
+ * A matchup's number: the estimate shrunk toward the power ratings when the row has one (tournament head-to-heads), with
+ * the raw record beside it; otherwise the raw win rate.
+ */
+function MatchValue({ m }: { m: MatchLine }) {
+  if (m.est !== undefined)
+    return (
+      <>
+        <Sampled text={pct(m.est)} n={m.g} tone={wrTone(m.est)} />{' '}
+        <span className="muted small" title="Estimated from the power ratings plus this pairing's own record, shrunk by how much pairings differ from the ratings' prediction">
+          (estimate; raw {pct(m.w)} in {games(m.g)}
+          {small(m.g)})
+        </span>
+      </>
+    );
+  return (
+    <>
+      <Sampled text={pct(m.w)} n={m.g} tone={wrTone(m.w)} />{' '}
+      <span className="muted small">
+        ({games(m.g)}
+        {small(m.g)})
+      </span>
+    </>
+  );
+}
+
 const MATCHUP_SOURCE: Record<NonNullable<DeckRecord['matchups']>['source'], string> = {
   finals: 'vs the choom.gg meta archetypes (finals)',
   h2h: 'from dedicated head-to-head runs',
@@ -192,20 +218,12 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
             <div className="rec-matchups">
               <span>
                 <span className="rec-k">Best matchup</span> <Opp m={rec.matchups.best} />{' '}
-                <Sampled text={pct(rec.matchups.best.w)} n={rec.matchups.best.g} tone={wrTone(rec.matchups.best.w)} />{' '}
-                <span className="muted small">
-                  ({games(rec.matchups.best.g)}
-                  {small(rec.matchups.best.g)})
-                </span>
+                <MatchValue m={rec.matchups.best} />
               </span>
               {rec.matchups.worst && (
                 <span>
                   <span className="rec-k">Worst matchup</span> <Opp m={rec.matchups.worst} />{' '}
-                  <Sampled text={pct(rec.matchups.worst.w)} n={rec.matchups.worst.g} tone={wrTone(rec.matchups.worst.w)} />{' '}
-                  <span className="muted small">
-                    ({games(rec.matchups.worst.g)}
-                    {small(rec.matchups.worst.g)})
-                  </span>
+                  <MatchValue m={rec.matchups.worst} />
                 </span>
               )}
               <span className="muted small">

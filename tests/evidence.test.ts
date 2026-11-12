@@ -125,12 +125,16 @@ describe('paired intervals', () => {
 });
 
 describe('the adoption rule', () => {
-  it('defaults: min gain 1 point, 200 games, 4 stages, α 0.05 split by Bonferroni', () => {
-    expect(ADOPTION_DEFAULTS).toEqual({ kind: 'evidence', minGainPp: 1, packageMinGainPp: 1, alpha: 0.05, capStages: 4, minGames: 200, futilityAfterStages: 2, futilityMaxGainPp: 0 });
-    expect(lookZ(ADOPTION_DEFAULTS)).toBeCloseTo(normalQuantile(1 - 0.05 / 8), 12);
-    expect(lookZ(ADOPTION_DEFAULTS)).toBeCloseTo(2.4977, 3);
+  it("defaults: min gain 1 point, 200 games, 4 stages, α 0.05 spent over the looks by O'Brien–Fleming (Bonferroni kept as an option)", () => {
+    expect(ADOPTION_DEFAULTS).toEqual({ kind: 'evidence', minGainPp: 1, packageMinGainPp: 1, alpha: 0.05, boundary: 'obrien-fleming', capStages: 4, minGames: 200, futilityAfterStages: 2, futilityMaxGainPp: 0 });
+    // the last look of the default is close to the unsplit 1.96 (tests/group-sequential.test.ts has the rest)
+    expect(lookZ(ADOPTION_DEFAULTS)).toBeCloseTo(2.014, 2);
+    const bonf = { ...ADOPTION_DEFAULTS, boundary: 'bonferroni' as const };
+    expect(lookZ(bonf)).toBeCloseTo(normalQuantile(1 - 0.05 / 8), 12);
+    expect(lookZ(bonf)).toBeCloseTo(2.4977, 3);
     // three nominees share it too
-    expect(lookZ(ADOPTION_DEFAULTS, 3)).toBeCloseTo(normalQuantile(1 - 0.05 / 24), 12);
+    expect(lookZ(bonf, 3)).toBeCloseTo(normalQuantile(1 - 0.05 / 24), 12);
+    expect(ruleProblems({ ...ADOPTION_DEFAULTS, boundary: 'pocock' as never })).toHaveLength(1);
     expect(adoptionRule({ minGainPp: 2 }).packageMinGainPp).toBe(2);
     expect(adoptionRule({ minGainPp: 2, packageMinGainPp: 3 }).packageMinGainPp).toBe(3);
     expect(adoptionRule({ kind: 'any-gain', minGainPp: 5 })).toEqual(ANY_GAIN_RULE);
@@ -400,7 +404,8 @@ describe('the adoption rule', () => {
     const rec = nomineeRecord('-1 A → +1 B', iv, { outcome: 'inconclusive', heldOut: { ...iv, z: 2.5 }, baseWr: 0.5, candWr: 0.67, looks: 4, minGainPp: 1 });
     expect(rec.outcome).toBe('inconclusive');
     expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain('otherwise could not tell');
-    expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain('Bonferroni, z = 2.50');
+    expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain("O'Brien–Fleming-type, z = 4.33 / 2.96 / 2.36 / 2.01");
+    expect(describeRule({ ...ADOPTION_DEFAULTS, boundary: 'bonferroni' }, { firstStage: 280 })).toContain('Bonferroni, z = 2.50');
     expect(describeRule(ADOPTION_DEFAULTS, { firstStage: 280 })).toContain('a nominee with no gain after 2 stages (560 games) stops early as could not tell');
     expect(describeRule(ANY_GAIN_RULE)).toMatch(/^any-gain \(legacy\)/);
   });
@@ -478,6 +483,9 @@ describe('builder flags (scripts/evidence-flags.ts)', () => {
     expect(ruleFromFlags(parse(['--adopt', 'any-gain', '--min-gain', '3']))).toEqual(ANY_GAIN_RULE);
     expect(adoptionArgs(parse(['--adopt', 'any-gain']))).toEqual(['--adopt', 'any-gain']);
     expect(ruleFromFlags(parse(['--package-min-gain', '2'])).packageMinGainPp).toBe(2);
+    expect(ruleFromFlags(parse([])).boundary).toBe('obrien-fleming');
+    expect(ruleFromFlags(parse(['--boundary', 'bonferroni'])).boundary).toBe('bonferroni');
+    expect(adoptionArgs(parse(['--boundary', 'bonferroni']))).toEqual(['--boundary', 'bonferroni']);
   });
 
   it('the futility stop flags: after N stages (0 = off) and the threshold, passed on by the season', () => {

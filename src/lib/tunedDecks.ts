@@ -93,7 +93,7 @@ export function ruleLine(r: TunedDeckRecord): string {
   const a = r.rule;
   if (a.rule === 'any-gain') return 'any-gain (legacy): adopted when a change scored higher at all on fresh games';
   const stop = a.futilityAfterStages ? `; stops early with ${a.futilityMaxGainPp ? `a gain of at most ${a.futilityMaxGainPp} pts` : 'no gain'} after ${a.futilityAfterStages} stage${a.futilityAfterStages === 1 ? '' : 's'}` : '';
-  return `evidence: adopt when the held-out paired gain's lower bound clears ${a.minGainPp} pt${a.minGainPp === 1 ? '' : 's'} with at least ${a.minGames} games; stages of ${a.firstStage} up to ${a.firstStage * a.capStages} games; α ${a.alpha} (${a.correction})${stop}`;
+  return `evidence: adopt when the held-out paired gain's lower bound clears ${a.minGainPp} pt${a.minGainPp === 1 ? '' : 's'} with at least ${a.minGames} games; stages of ${a.firstStage} up to ${a.firstStage * a.capStages} games; α ${a.alpha} (${a.correction === 'obrien-fleming' ? "O'Brien–Fleming" : a.correction})${stop}`;
 }
 
 // ---------------------------------------------------------------- export / import

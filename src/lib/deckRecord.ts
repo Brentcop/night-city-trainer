@@ -26,12 +26,16 @@ export interface MatchLine {
   fg?: number;
   sw?: number;
   sg?: number;
+  /** the matchup estimate shrunk toward the power ratings (tournament head-to-heads from h2h.json with a model) */
+  est?: number;
 }
 export interface H2HFile {
   events: number;
   decks: string[];
   /** [i, j, wins of i vs j (ties half), games], i < j */
   pairs: [number, number, number, number][];
+  /** the shrunk estimate of i beating j per entry of `pairs` (src/lib/h2hModel.ts; absent in older files) */
+  shrunk?: number[];
 }
 
 export interface RecordSources {
@@ -118,19 +122,25 @@ export function h2hFor(name: string, file: H2HFile | null | undefined): MatchLin
   const me = file.decks.indexOf(name);
   if (me < 0) return [];
   const out: MatchLine[] = [];
-  for (const [i, j, w, g] of file.pairs) {
-    if (!g || (i !== me && j !== me)) continue;
+  file.pairs.forEach(([i, j, w, g], q) => {
+    if (!g || (i !== me && j !== me)) return;
     const opp = file.decks[i === me ? j : i];
-    if (opp === undefined) continue;
-    out.push(i === me ? { opp, g, w: w / g } : { opp, g, w: (g - w) / g });
-  }
+    if (opp === undefined) return;
+    const p = file.shrunk?.[q];
+    const est = p === undefined ? {} : { est: i === me ? p : 1 - p };
+    out.push(i === me ? { opp, g, w: w / g, ...est } : { opp, g, w: (g - w) / g, ...est });
+  });
   return out.sort((a, b) => b.g - a.g || a.opp.localeCompare(b.opp));
 }
 
-/** Best and worst of the matchups with at least `minGames` games (worst is null when only one qualifies). */
+/**
+ * Best and worst of the matchups with at least `minGames` games (worst is null when only one qualifies), ranked by the
+ * shrunk estimate where a row has one, else by the raw win rate.
+ */
 export function extremes(rows: MatchLine[], minGames = 1): { best: MatchLine; worst: MatchLine | null; count: number } | null {
   const ok2 = rows.filter((r) => r.g >= minGames && ok(r.w));
-  const sorted = [...ok2].sort((a, b) => b.w - a.w || b.g - a.g || a.opp.localeCompare(b.opp));
+  const v = (r: MatchLine) => (ok(r.est) ? r.est : r.w);
+  const sorted = [...ok2].sort((a, b) => v(b) - v(a) || b.g - a.g || a.opp.localeCompare(b.opp));
   const best = sorted[0];
   if (!best) return null;
   return { best, worst: sorted.length > 1 ? (sorted[sorted.length - 1] ?? null) : null, count: ok2.length };
