@@ -16,8 +16,11 @@ export interface World {
 export const makeWorlds = (n: number, rnd: () => number): World[] =>
   Array.from({ length: n }, () => ({ rng: Math.floor(rnd() * 2 ** 31), a: Math.floor(rnd() * 1e9), b: Math.floor(rnd() * 1e9) }));
 
-/** Where a play-out starts: a main-phase action of player p, or p's reaction to the attack by `attacker`. */
-export type PlayOutMove = { action: Action } | { reaction: Reaction; attacker: number };
+/**
+ * Where a play-out starts: a main-phase action of player p, p's reaction to the attack by `attacker`, or (`rest`) the
+ * rest of p's main phase as p's clone bot plays it from here.
+ */
+export type PlayOutMove = { action: Action } | { reaction: Reaction; attacker: number } | { rest: true };
 
 /** The steps of a play-out, in order (reported to `onStep` as each begins; 'done' once it ran to the end). */
 export type PlayOutStep = 'move' | 'restOfTurn' | 'endPhase' | 'nextStart' | 'nextMain' | 'nextEnd' | 'done';
@@ -25,11 +28,15 @@ export type PlayOutStep = 'move' | 'restOfTurn' | 'endPhase' | 'nextStart' | 'ne
 /**
  * Play `move` out in the clone `cg` for player p. After an action (none for 'pass'): resolve it, the rest of p's turn,
  * p's end phase, then the rival's whole turn. After a reaction: the rest of the attack, the attacker's turn, then p's
- * whole turn. A game that ends on the way stops the play-out; any other error is thrown.
+ * whole turn. With `rest`: the rest of p's turn, p's end phase, then the rival's whole turn. A game that ends on the
+ * way stops the play-out; any other error is thrown.
  */
 export async function playOut(cg: Game, p: PlayerId, move: PlayOutMove, onStep?: (s: PlayOutStep) => void): Promise<void> {
   try {
-    if ('action' in move) {
+    if ('rest' in move) {
+      onStep?.('restOfTurn');
+      await cg.mainLoop();
+    } else if ('action' in move) {
       if (move.action.type !== 'pass') {
         onStep?.('move');
         await cg.doAction(p, move.action);

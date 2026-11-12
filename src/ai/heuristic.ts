@@ -75,6 +75,15 @@ export interface HeuristicOptions {
    * candidate in the game's own random state, exactly as before.
    */
   deepWorlds?: number;
+  /**
+   * BOT-4. Deep mode: when the sell rule would sell, roll out "don't sell this turn" against the two most sellable cards
+   * (the same rollout as deep candidates, over shared worlds when deepWorlds > 1) and take the best; after choosing not
+   * to sell, the bot doesn't sell again that turn. Takes precedence over sellLookahead. false (default) = the rule
+   * decides whether to sell, exactly as before. Needs deep > 0 (ignored otherwise).
+   */
+  sellSearch?: boolean;
+  /** Internal (sellSearch's "don't sell" play-outs): never sell on this turn number. -1 (default) = off. */
+  noSellTurn?: number;
   seed?: number;
 }
 
@@ -111,6 +120,8 @@ export class HeuristicAgent implements Agent {
   lastAlternatives: Alternative[] = [];
   /** the last sell decision broke a near-tie to keep a scarce package piece (sellKeepScarce): which card, sold instead, and the gap */
   lastSellKeep: { kept: string; sold: string; gap: number } | null = null;
+  /** sellSearch chose not to sell on this turn of this game state: no further sell that turn */
+  private noSellAt: { s: object; turn: number } | null = null;
 
   constructor(opts: HeuristicOptions = {}) {
     this.opts = {
@@ -128,6 +139,8 @@ export class HeuristicAgent implements Agent {
       sellKeepScarce: opts.sellKeepScarce ?? 0,
       rolloutWins: opts.rolloutWins ?? false,
       deepWorlds: opts.deepWorlds ?? 0,
+      sellSearch: opts.sellSearch ?? false,
+      noSellTurn: opts.noSellTurn ?? -1,
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -167,6 +180,7 @@ export class HeuristicAgent implements Agent {
     this.myArch = o.myArch;
     this.oppArch = o.oppArch;
     this.pendingSwapTake = o.pendingSwapTake;
+    this.noSellAt = o.noSellAt;
   }
 
   /**
@@ -294,9 +308,15 @@ export class HeuristicAgent implements Agent {
     const passIdx = actions.findIndex((a) => a.type === 'pass');
     // 1) sell first
     let sell = this.sellChoice(g, p, actions);
+    // sellSearch decided (or a "don't sell" play-out assumes) no sell this turn
+    if (sell !== null && (g.s.turn === this.opts.noSellTurn || (this.noSellAt?.s === g.s && this.noSellAt.turn === g.s.turn))) sell = null;
     this.lastSellKeep = null;
-    // which card to sell: compare the few most sellable by playing them out (the "whether" stays rule-based)
-    if (sell !== null && this.opts.sellLookahead > 1 && this.opts.lookahead) {
+    if (sell !== null && this.opts.sellSearch && this.opts.lookahead && this.opts.deep > 0) {
+      // BOT-4: whether to sell, and which of the two most sellable, by the deep rollout
+      sell = await this.searchSell(g, p, actions);
+      if (sell === null) this.noSellAt = { s: g.s, turn: g.s.turn }; // its play-out kept every sell off for the turn
+    } else if (sell !== null && this.opts.sellLookahead > 1 && this.opts.lookahead) {
+      // which card to sell: compare the few most sellable by playing them out (the "whether" stays rule-based)
       const options = this.sellRanking(g, p, actions).slice(0, this.opts.sellLookahead);
       if (options.length > 1) {
         let bestV = -Infinity;
@@ -428,18 +448,50 @@ export class HeuristicAgent implements Agent {
    * world the clone keeps the game's random state and the play-out bots their default seed (as before deepWorlds).
    */
   async rollout(g: Game, p: PlayerId, a: Action, world?: World): Promise<number> {
+    return this.rolloutMove(g, p, a, world);
+  }
+
+  /** rollout(), or with `a` null (sellSearch's "don't sell"): p's clone bot plays the rest of the turn without selling. */
+  private async rolloutMove(g: Game, p: PlayerId, a: Action | null, world?: World): Promise<number> {
+    const noSell = a === null ? g.s.turn : undefined;
     const cg = g.clone(
-      this.cloneAgents(p, (weights, seat) =>
-        world
-          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b })
-          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles }),
-      ),
+      this.cloneAgents(p, (weights, seat) => {
+        const noSellTurn = seat === p ? noSell : undefined;
+        return world
+          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn })
+          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, noSellTurn });
+      }),
     );
     if (world) cg.s.rng = world.rng;
     hideInfo(cg, p);
-    await playOut(cg, p, { action: a });
+    await playOut(cg, p, a === null ? { rest: true } : { action: a });
     const wins = this.opts.rolloutWins;
     return playOutValue(cg, p, this.w(g, p), { wins, clamp: wins });
+  }
+
+  /**
+   * BOT-4 (sellSearch): roll out "don't sell this turn" and the two most sellable cards, every option in the same worlds
+   * (deepWorlds > 1) or each once in the game's own random state; the best is taken, a sell on ties. null = don't sell.
+   */
+  private async searchSell(g: Game, p: PlayerId, actions: Action[]): Promise<number | null> {
+    const sells = this.sellRanking(g, p, actions).slice(0, 2);
+    const worlds = this.opts.deepWorlds > 1 ? makeWorlds(this.opts.deepWorlds, () => this.rand()) : null;
+    const value = async (a: Action | null) => {
+      if (!worlds) return this.rolloutMove(g, p, a);
+      let sum = 0;
+      for (const w of worlds) sum += await this.rolloutMove(g, p, a, w);
+      return sum / worlds.length;
+    };
+    let best: number | null = sells[0] ?? null;
+    let bestV = -Infinity;
+    for (const uid of sells) {
+      const v = await value({ type: 'sell', uid });
+      if (v > bestV + 0.01) {
+        bestV = v;
+        best = uid;
+      }
+    }
+    return (await value(null)) > bestV + 0.01 ? null : best;
   }
 
   /**

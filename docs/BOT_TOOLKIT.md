@@ -69,6 +69,22 @@ Only the deciding player's own packages count: inside lookahead clones the rival
 
 **Measured 2026-11-11 (SIM_VERSION 5, Hard; `reports/package-scoring-2026-11-11.md`):** in training (546 paired games each) `pkgHold` 8 −0.5 points [−2.1, +1.0], `pkgAssembly` 6 +1.1 [−0.9, +3.1], `pkgSteer` 6 −2.0 [−4.4, +0.4], `pkgProtect` 3 −0.4 [−2.1, +1.4], all four +0.2 [−3.3, +3.7]. Each changes decisions (47, 36, 154 and 43 of about 3,400 in 80 shadowed games; `pkgSteer` changes a quarter of the roll-in choices). Held-out, `pkgAssembly` 6 gave −1.6 [−3.2, +0.0] over 1,092 games, so nothing was applied and every package weight stays 0. `pkgHold` 8 cuts sells of a scarce piece whose partner is obtainable from 55% to 40% of the sells where one was in hand, with no measurable gain.
 
+### Next-turn terms (BOT-3, `nextTurnTerms` in `src/ai/eval.ts`)
+
+The rest of the evaluation is static: it can't see what the next turn will do. Three more weights look one turn ahead from public information. They are **0 by default** (with all three at 0 `evaluate()` never computes them, and every game plays as before) and are not in `TUNED_WEIGHTS`; set them in a `botcheck` / worker `AgentSpec` with `"weights": {...}`.
+
+How the next turn works (engine): a player's Units ready only at that player's start, and lag ends with every turn, so every Unit a player has on the field now can attack on its next turn (unless an attack restriction bans it, or a "can't ready" outlasts that start keeps a spent one spent), while the defender's Units stay as they are now: only Units that are ready now and have Blocker can block, each one attack. An unblocked attack on the Gig area steals ⌊power/10⌋+1 Gigs. 7+ Gigs at the start of your own turn wins.
+
+Whose turn is next (`nextTurnSeat`): the other seat during a turn (the 1-ply screen evaluates in our own main phase; a reaction in the rival's), the active seat once an end phase has run (the end of a deep play-out, where our turn is next).
+
+| Weight | When | What it counts |
+|---|---|---|
+| `exposed` | the rival's turn is next | − `exposed` × the Gig swing (the gig, near-win and overtime terms of `evaluate()`) of the Gigs the rival can steal (`stealableNextTurn`: each rival Unit's steals, minus the biggest one per ready Blocker of ours, capped at our Gigs) |
+| `threat` | our turn is next | + `threat` × the Gig swing of the Gigs we can steal, the same estimate the other way round (so `exposed` = `threat` keeps the evaluation zero-sum) |
+| `rivalLethal` | the rival's turn is next and it holds 7+ Gigs (not in overtime, where 7 ends the game at once) | − `rivalLethal` points when our turn is over, or when it isn't but our Units that can attack the rival's Gigs now can't steal it below 7 past its ready Blockers |
+
+Being a share of the Gig swing, `exposed` and `threat` are on the evaluation's own scale: 0.5 counts an open steal as half of a stolen Gig. The estimate ignores Units still to be played (they lag), unblockable attackers, steal modifiers, attacks on spent Units (that is `spentRisk`) and this turn's power changes. Measured: see docs/IMPROVEMENT_BACKLOG.md WP-D1 (status 2026-11-12, BOT-3/BOT-4).
+
 ## 4. Gig plan (`src/ai/knowledge.ts → gigPlanOf`)
 
 The bot counts how many of its deck's cards reference each pattern:
@@ -85,6 +101,8 @@ The plan drives which die to roll in, which Gig to steal, and every adjust, set 
 
 1. **Mulligan.** Keep the hand only if it has a Unit costing ≤4, three cards costing ≤4, and something to sell. The mulligan costs nothing (a new hand of 6), so a deck's mulligan rate is just the chance its opening hand fails the rule: from about 6% (Rainbow Fixer Stuff) to 27% (RRY Smasher Aggro) for the meta decks (1,200 games each in the 2026-11-11 baseline), almost all of it from having no Unit costing ≤4. BBG Cunningham Econ is at 22%: it has 9 such Units in 40 cards, the fewest.
 2. **Sell first.** Sell once per turn until about 9 Eddies. Sell the card with the lowest keep value: a duplicate, something not castable soon, or Gear with no host.
+   - `sellLookahead: N` (the coach uses 3; every tier 0): which card to sell is chosen among the N lowest keep values by rollout (deep) or 1-ply; whether to sell stays the rule.
+   - `sellSearch: true` (BOT-4, off by default and in every tier; needs `deep`): when the rule would sell, "don't sell this turn" and the two lowest keep values are rolled out like deep candidates (in shared worlds when `deepWorlds` > 1) and the best is taken, a sell on ties. The "don't sell" play-out starts with the rest of our main phase (`playOut` move `{ rest: true }`), our clone bot barred from selling that turn (`noSellTurn`); after choosing not to sell the bot doesn't sell again that turn. Costs three rollouts on each turn the rule would sell. It takes precedence over `sellLookahead`. Measured 2026-11-12 against Hard: 25% (it under-sells, as a two-turn rollout can't see what an Eddie is worth later); `sellLookahead: 3` on Hard 50.2%, no gain (docs/IMPROVEMENT_BACKLOG.md WP-D1).
 3. **Main actions, 1-ply lookahead.**
    - For every legal action, clone the game, play the action out, and evaluate.
    - Inside the clone, sub-choices and the rival's reactions use the fast policy.
