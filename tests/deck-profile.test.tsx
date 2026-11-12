@@ -8,6 +8,7 @@ import { DeckTile } from '../src/ui/components/DeckIdentity';
 import { BUILTIN, loadCustom, upsertCustom } from '../src/lib/browserLibrary';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
+import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 
 const RATED = 'meta-rrg-dexter-midrange.txt';
 // a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
@@ -148,11 +149,24 @@ describe('deck profile: game plan', () => {
     expect(plan(renderToStaticMarkup(<DeckProfilePage file={RECORDED} />))).toContain('Draft from the parent deck’s notes');
   });
 
-  it('marks the owner’s decks as waiting for the owner’s notes', () => {
+  it('labels the sim-ladder drafts, and marks a needs-owner placeholder as waiting for the owner’s notes', () => {
     setArtEnabled(false);
-    const p = plan(renderToStaticMarkup(<DeckProfilePage file="ladder-rrg-v-smasher-saburo.txt" />));
-    expect(p).toContain('Needs the owner’s notes');
-    expect(p).toContain('Placeholder read off the list');
+    const file = 'ladder-rrg-v-smasher-saburo.txt';
+    const draft = plan(renderToStaticMarkup(<DeckProfilePage file={file} />));
+    expect(draft).toContain('Draft from the list');
+    expect(draft).not.toContain('Placeholder read off the list');
+    // no library deck is a placeholder today; the mechanism stays, so turn one note into a placeholder for the check
+    const note = DECK_OBJECTIVES[file];
+    const saved = { ...note };
+    Object.assign(note, { status: 'needs-owner', placeholder: true, objective: `Placeholder: ${note.objective}` });
+    try {
+      const p = plan(renderToStaticMarkup(<DeckProfilePage file={file} />));
+      expect(p).toContain('Needs the owner’s notes');
+      expect(p).toContain('Placeholder read off the list');
+    } finally {
+      delete note.placeholder;
+      Object.assign(note, saved);
+    }
   });
 
   it('says when the list changed since the note was written', async () => {

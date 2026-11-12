@@ -25,8 +25,9 @@ export const DECK_OBJECTIVES: ObjectiveTable = {
 
 /**
  * The library decks the owner brought in, whose notes the owner writes: the sim-ladder decks (Legend trios from the
- * owner's Master-ladder screenshot; origin "cyberpunk-tcg-sim.online …", gallery group "Sim ladder"). Their entries are
- * `needs-owner` placeholders until then. Decks saved in the browser ("My decks") have no entry at all.
+ * owner's Master-ladder screenshot; origin "cyberpunk-tcg-sim.online …", gallery group "Sim ladder"). An entry is a
+ * `needs-owner` placeholder, a `draft` read off the list, or the owner's note (the five current ones are agent-written
+ * drafts the owner asked for). Decks saved in the browser ("My decks") have no entry at all.
  */
 export function isOwnerImport(prov: { origin?: string }): boolean {
   return (prov.origin ?? '').startsWith('cyberpunk-tcg-sim.online');

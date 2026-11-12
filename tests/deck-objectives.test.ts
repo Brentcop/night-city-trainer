@@ -71,9 +71,12 @@ describe('deck objectives', () => {
 
   it.each(entries)('%s: status and source agree with the deck’s origin', (file, n) => {
     const d = byFile.get(file)!;
-    // the decks the owner brought in wait for the owner's note; nothing else is a placeholder
-    if (isOwnerImport(d.prov)) expect(['needs-owner', 'owner']).toContain(n.status);
-    else expect(n.status).not.toBe('needs-owner');
+    // the decks the owner brought in have a placeholder, a draft read off the list, or the owner's note; nothing else
+    // is a placeholder
+    if (isOwnerImport(d.prov)) {
+      expect(['needs-owner', 'draft', 'owner']).toContain(n.status);
+      if (n.status === 'draft') expect(n.source).toBe('list');
+    } else expect(n.status).not.toBe('needs-owner');
     if (n.status === 'needs-owner') {
       expect(n.placeholder).toBe(true);
       expect(n.source).toBe('list');
