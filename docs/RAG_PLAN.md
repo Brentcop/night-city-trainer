@@ -94,8 +94,8 @@ flowchart TD
 Why this shape and not "split files, embed, let a model answer" (measured 2026-11-13):
 
 - The corpus is small and already structured: 150 cards, 311 rulings, 47 library decks with notes,
-  26 synergy packages, 54 glossary terms and about 60 guide sections. Every unit has a stable id and
-  tested links. Chunking would discard both.
+  26 synergy packages, 54 glossary terms and 80 guide sections (counting each guide's opening). Every
+  unit has a stable id and tested links. Chunking would discard both.
 - Most questions name a thing or want an exact number. Sixteen card names belong to two or three cards,
   which similarity search confuses, and embeddings retrieve numbers poorly.
 - The site cannot carry a model: a query encoder is a 23 to 34 MB download against a first visit of
@@ -109,13 +109,13 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 
 | Step | Outcome | Status | Landed in |
 |---|---|---|---|
-| 0.1 | Play reads a small lift slice, not the whole synergy report | blocked: `Play.tsx` is being edited by the tutorial work | |
+| 0.1 | Play reads a small lift slice, not the whole synergy report | next | |
 | 0.2 | Short `CLAUDE.md` core, per-directory files, wrapped doc lines | waiting: D7, and needs step 1.5 first | |
 | 0.3 | FAQ-wording guard; quotes paraphrased; insights worded as association | next | |
-| 1.1 | Record model and search core in `src/lib/kb/` | in progress | |
-| 1.2 | Builders for authored, dev and local-only sources | in progress | |
-| 1.3 | `npm run kb` (search, get, related, stats) | in progress | |
-| 1.4 | Question set and `kb-eval` with first baselines | next | |
+| 1.1 | Record model and search core in `src/lib/kb/` | done | 2026-11-13 |
+| 1.2 | Builders for authored, dev and local-only sources | done | 2026-11-13 |
+| 1.3 | `npm run kb` (search, get, related, stats, build) | done | 2026-11-13 |
+| 1.4 | Question set and `kb-eval` with first baselines | in progress | |
 | 1.5 | Agent skill and a `CLAUDE.md` pointer | next | |
 | 2.1 | Records query module: numbers by code | later | |
 | 2.2 | Event, round and deck sheets from templates | later | |
@@ -219,6 +219,9 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   (exact only, plus linked, plus keyword, all fused), with a seeded paired bootstrap for the difference
   between two configurations and the mean and 90th-percentile answer size in tokens. Writes
   `reports/kb-eval-latest.md` and `.json`; rules questions are skipped when `data/raw` is absent.
+- First thing to measure: a one-word glossary or vocabulary name inside a longer question takes the exact
+  rank and pushes out the package or deck that answers it ("which deck wins by filling the trash" lists
+  two "trash" terms before the trash package, and no deck in the first three).
 - Done when: the scoreboard in §7 holds the first baselines and the weakest question type is named.
 
 **1.5 Agent skill and pointer.**
@@ -316,6 +319,8 @@ interface KbRecord {
 | ruling | `ruling:<first 8 of the FAQ id>` | the same prefix the FAQ tests use in `faq:<prefix>` |
 | faq (local) | `faq:<first 8 of the FAQ id>` | official wording, linked from its ruling |
 | rule (local) | `rule:<number>` | `rule:10.28` |
+| trule (local) | `trule:<number>` | tournament rules, one record per second-level entry |
+| errata (local) | `errata:<slug of the entry heading>` | |
 | deck | `deck:<file name without .txt>` | list fingerprint in `stamps.listId` and as an alias |
 | objective | `objective:<deck file>` | |
 | package | `pkg:<synergy id>` | |
@@ -327,9 +332,21 @@ interface KbRecord {
 
 **Link types**: `card`, `deck`, `package`, `ruling`, `rule`, `objective`, `guide`, `term`, `official`,
 `test`, `parent`, `mentions`. Links are stored one way; the index adds the reverse direction when it loads.
+A public record never links to a local one, so the public records are byte-identical with or without
+`data/raw`; local records link outward (an official FAQ item to its ruling and card, a rule to the
+glossary terms that cite it). `test` is reserved: a ruling's test file is in `fields.test`.
+
+**Search details settled in step 1.1**: names inside a question are looked for only among card, deck,
+package, term, rule, tournament-rule and deck-note records (doc headings such as "Method" would match
+ordinary words). Linked records are ordered by keyword score, then id. "No match" means no exact hit and
+a best keyword hit holding under half of the question's words. Guides are split at second-level
+headings, docs at levels one to four, and a deck links to the packages its list is built around.
 
 **Local pack**: `.cache/kb/records.jsonl` (one record per line, sorted by id) and `.cache/kb/manifest.json`
-(`kind: 'nct-kb'`, schema 1, counts by kind, a hash per input file, the rules, FAQ and card data versions).
+(`kind: 'nct-kb'`, schema 1, a builder number, counts by kind and scope, a hash per input file, the rules,
+FAQ and card data versions, and a build report: mentions linked, resolved by the deck's list, left
+ambiguous, links dropped, inputs skipped). Every source file is an input, so an edit triggers a rebuild
+on the next query; a rebuild takes about 0.6 s.
 
 **Command line**:
 
@@ -351,7 +368,13 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Whole synergy report fetched by Play | 807 KB raw, 115 KB gzip; slice 10.4 KB gzip | research |
 | 2026-11-13 | `CLAUDE.md` per agent session | about 11k tokens (bytes divided by 4) | research |
 | 2026-11-13 | Text on lines over 500 characters in `CLAUDE.md` and `docs/` | 52% | research |
-| | Pack: records by kind, size of the local pack | not measured yet | step 1.2 |
+| 2026-11-13 | Pack, public player records | 761: card 150, ruling 311, deck 47, deck note 47, package 26, term 100, guide 80 | step 1.2 |
+| 2026-11-13 | Pack, public dev records | 1,491: doc passage 1,191, code header 300 | step 1.2 |
+| 2026-11-13 | Pack, local records | 1,024: official FAQ 311, rule 680, tournament rule 26, errata 7 | step 1.2 |
+| 2026-11-13 | Local pack on disk | 2,925 KB in `records.jsonl`, 5,431 links, 401 input files | step 1.2 |
+| 2026-11-13 | Card names in prose | 1,173 linked, 64 resolved by the deck's list, 71 left ambiguous | step 1.2 |
+| 2026-11-13 | Speed | build 0.6 s; one query 0.7 to 4.9 ms in process; 0.8 s for a warm command | step 1.3 |
+| 2026-11-13 | A default `kb search` answer (5 results) | about 430 to 620 tokens | step 1.3 |
 | | Question set: recall at 5 and MRR at 10 by configuration | not measured yet | step 1.4 |
 | | Answer size from `kb search` | not measured yet | step 1.4 |
 
@@ -382,7 +405,11 @@ while the tournament index and the finish chips use the real cut, so five decks 
 - **Local text leaking into the site or the repo.** Guard: M6, the FAQ-wording guard test (step 0.3), and
   builders that read `data/raw` only for `local` records.
 - **Determinism.** If bot code ever imported a kb module, each index rebuild would change the game-cache
-  code hash and move the pins. Guard: M10 and its test.
+  code hash and move the pins. Guard: M10 and its test (`tests/kb-guards.test.ts`).
+- **The game cache covers more than code.** Its hash includes every file the game worker loads, and that
+  includes the card scripts and the tables under `src/content/deckObjectives/` and
+  `src/content/synergies/`. Editing any of them, even a comment, discards the cached games. The pack only
+  reads these files; a step that edits them says so first.
 - **Self-consistency.** Coach grades, review ratings and bot statistics all rest on the bots' own
   evaluation. "How to play a card" from that data describes what the bots do, as association.
 - **Drafts read as fact.** None of the 91 deck notes or 26 packages is owner-confirmed. Guard: status is
@@ -396,3 +423,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
 ## 10. Log
 
 - 2026-11-13: plan written from the research. Steps 1.1 to 1.3 started.
+- 2026-11-13: steps 1.1 to 1.3 landed. `src/lib/kb/` (record model, tokenizer, BM25, name lookup, fusion,
+  dossier, rendering, builders), `scripts/kb.ts` and `scripts/kb-sources.ts`, 64 tests in four files, and
+  the `npm run kb` script. Verified in a clean checkout without `data/raw`: typecheck, 135 test files,
+  lint, `check:data` and the build all pass. Two kinds were added for local text (`trule`, `errata`).
