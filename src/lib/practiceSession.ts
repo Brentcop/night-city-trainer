@@ -247,6 +247,7 @@ function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
     reason: st.winReason,
     gigs: [st.players[0].gigs.length, st.players[1].gigs.length],
     ...(replay.conceded ? { conceded: true } : {}),
+    ...(replay.multiDay ? { multiDay: { ...replay.multiDay } } : {}),
   };
 }
 
@@ -254,7 +255,7 @@ function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
  * Save the replay and the practice-log entry of a finished game (both upsert by the replay id). A conceded game is
  * recorded the same way; `replay.conceded` marks it.
  */
-function recordFinished(replay: PracticeReplay, st: GameState) {
+export function recordFinished(replay: PracticeReplay, st: GameState) {
   replay.result = outcome(st);
   saveReplay(replay);
   recordPractice(practiceEntry(replay, st));

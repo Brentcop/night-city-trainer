@@ -17,6 +17,20 @@ import { ResumeButton, ResumeNote, SavedGamesPanel, type SavesProps } from './Sa
 
 export type Seat = 'random' | 'first' | 'second';
 
+/** The multi-day choice on the setup screen (features.multiDayGames). */
+export interface MultiDaySetup {
+  on: boolean;
+  setOn: (on: boolean) => void;
+  days: number;
+  setDays: (n: number) => void;
+  min: number;
+  max: number;
+  /** why a new multi-day game can't be started now (the cap), or null */
+  blocked: string | null;
+  /** the Ongoing games panel */
+  panel: React.ReactNode;
+}
+
 export function PlaySetup({
   mine,
   setMine,
@@ -36,6 +50,7 @@ export function PlaySetup({
   onSettings,
   saves,
   online = false,
+  multiDay,
 }: {
   mine: string;
   setMine: (file: string) => void;
@@ -61,7 +76,10 @@ export function PlaySetup({
   saves?: SavesProps;
   /** online play is on (site config): the Play online choice shows */
   online?: boolean;
+  /** multi-day games are on (site config) and this browser can store them */
+  multiDay?: MultiDaySetup;
 }) {
+  const md = multiDay?.on ? multiDay : null;
   return (
     <div className="grid" style={{ maxWidth: 860 }}>
       <h1>Play vs Bot</h1>
@@ -77,6 +95,19 @@ export function PlaySetup({
             </a>
             <a className="btn" href="#/play/online?mode=join">
               Join a game
+            </a>
+          </div>
+        </div>
+      )}
+      {multiDay && (
+        <div className="panel play-online-entry">
+          <div>
+            <b>Play a person over days</b>
+            <div className="small muted">A game by turn packets: make your move whenever you like and send the packet by any messenger; they reply with theirs.</div>
+          </div>
+          <div className="row">
+            <a className="btn" href="#/play/corr">
+              Multi-day game vs a person
             </a>
           </div>
         </div>
@@ -122,10 +153,36 @@ export function PlaySetup({
             <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
           </label>
         )}
+        {multiDay && (
+          <div className="grid multi-day-pick">
+            <label className="row">
+              <input type="checkbox" checked={multiDay.on} onChange={(e) => multiDay.setOn(e.target.checked)} />
+              <span>Multi-day game — play it whenever you like; it is kept until you finish it</span>
+            </label>
+            {md && (
+              <label className="row">
+                <span className="muted small">Finish within</span>
+                <select value={md.days} onChange={(e) => md.setDays(+e.target.value)} aria-label="Game length in days">
+                  {Array.from({ length: md.max - md.min + 1 }, (_, k) => md.min + k).map((d) => (
+                    <option key={d} value={d}>
+                      {d} days
+                    </option>
+                  ))}
+                </select>
+                <span className="small muted">Then you choose: finish it late, or take a loss on time.</span>
+              </label>
+            )}
+            {md?.blocked && (
+              <p className="small online-error" role="status">
+                {md.blocked}
+              </p>
+            )}
+          </div>
+        )}
         <div className="row">
-          {saves && <ResumeButton saves={saves} />}
-          <button className={saves?.autosave && saves.storage ? '' : 'primary'} onClick={onStart} disabled={!mine || !opp || !!saves?.restoring}>
-            Start game
+          {saves && !md && <ResumeButton saves={saves} />}
+          <button className={saves?.autosave && saves.storage && !md ? '' : 'primary'} onClick={onStart} disabled={!mine || !opp || !!saves?.restoring || !!md?.blocked}>
+            {md ? 'Start multi-day game' : 'Start game'}
           </button>
           {onSettings && (
             <button type="button" onClick={onSettings}>
@@ -136,6 +193,7 @@ export function PlaySetup({
         </div>
         {saves && <ResumeNote saves={saves} />}
       </div>
+      {multiDay?.panel}
       {saves && <SavedGamesPanel saves={saves} />}
       <MatchupRead A={dA} B={dB} />
       {reviews && <RecentReviews />}

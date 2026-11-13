@@ -2,6 +2,7 @@
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DeckList, PlayerId } from '../engine/types';
 import type { PracticeReviewSpec, PvpReplay, ReviewRequest } from '../sim/practiceReview';
+import type { MultiDayMark } from './practiceLog';
 
 export type { PvpReplay };
 
@@ -38,6 +39,8 @@ export interface PracticeReplay {
    * abandoned (a draw). Never part of the bots' or the sims' data.
    */
   pvp?: PvpReplay;
+  /** a multi-day game (src/lib/multiDay.ts, src/net/corr.ts): its length, finished late or ended on time */
+  multiDay?: MultiDayMark;
 }
 
 export const REPLAYS_KEY = 'nct.practiceReplays.v1';

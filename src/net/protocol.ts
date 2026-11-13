@@ -80,7 +80,7 @@ export interface ViewMsg {
   /** whose decision the game is waiting on: 0 you, 1 the rival, null nobody */
   waiting: 0 | 1 | null;
   /** how the game ended (once it has): by whom, 0 you, 1 the rival */
-  end: { why: 'finished' | 'conceded' | 'abandoned'; by: 0 | 1 | null } | null;
+  end: { why: 'finished' | 'conceded' | 'abandoned' | 'timeout'; by: 0 | 1 | null } | null;
   /** the game stopped because of an error in the host's browser */
   error: string | null;
 }
@@ -110,6 +110,15 @@ class Bad extends Error {}
 const fail = (why: string): never => {
   throw new Bad(why);
 };
+/** Run one of the readers below (readViewState, readDecision, readDeck, readEnd, readRecord): its result, or why it refused. */
+export function tryRead<T>(f: () => T): { ok: true; value: T } | { ok: false; why: string } {
+  try {
+    return { ok: true, value: f() };
+  } catch (e) {
+    if (e instanceof Bad) return { ok: false, why: e.message };
+    throw e;
+  }
+}
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const obj = (v: unknown, what: string): Record<string, unknown> => (isObj(v) ? v : fail(`${what} is not an object`));
 function str(v: unknown, what: string, max: number, o: { empty?: boolean } = {}): string {
@@ -361,8 +370,8 @@ export function readDecision(v: unknown): Decision {
   };
 }
 
-const END_WHY = ['finished', 'conceded', 'abandoned'] as const;
-function readEnd(v: unknown): ViewMsg['end'] {
+const END_WHY = ['finished', 'conceded', 'abandoned', 'timeout'] as const;
+export function readEnd(v: unknown): ViewMsg['end'] {
   if (v === null || v === undefined) return null;
   const e = obj(v, 'end');
   const why = str(e.why, 'end.why', 12) as (typeof END_WHY)[number];
@@ -370,7 +379,7 @@ function readEnd(v: unknown): ViewMsg['end'] {
   return { why, by: e.by === null ? null : seat(e.by, 'end.by') };
 }
 
-function readRecord(v: unknown): GameRecordMsg {
+export function readRecord(v: unknown): GameRecordMsg {
   const r = obj(v, 'record');
   const ans = (x: unknown, what: string) => list(x, what, CAPS.record, (y, i) => list(y, `${what}[${i}]`, 10, (z, j) => int(z, `${what}[${i}][${j}]`, 0, CAPS.options)));
   const decks = list(r.decks, 'record.decks', 2, readDeck);

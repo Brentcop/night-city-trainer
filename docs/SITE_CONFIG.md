@@ -27,7 +27,7 @@ file.
 - Every text is plain text (never HTML) and has a length cap. Links must be a page of this site (`#/…`) or an `https://`
   address. Dates are `YYYY-MM-DD` (a start date counts from the start of that day, an end date to the end of that day,
   in the visitor's time) or an ISO date-time such as `2026-12-11T09:00:00-06:00`.
-- The committed file equals the defaults (the site as it was before the config existed, plus online play and chat, which are on).
+- The committed file equals the defaults (the site as it was before the config existed, plus online play, chat and multi-day games, which are on).
 
 ## Keys
 
@@ -51,7 +51,7 @@ file.
 | `features.tunedDecks` | `true` | The Tuned decks page (`#/tuned`) and links to it. |
 | `features.cardArtToggle` | `true` | The Art / Text button in the header (a visitor's saved choice stays). |
 | `features.multiplayer` | `true` | Play online against another person (Play → Host a game / Join a game, `#/play/online`, invite links `#/play/join/<code>`). Off: the choice is hidden and those addresses show the ordinary Play page. |
-| `features.multiDayGames` | `false` | Reserved for a later step; nothing reads it yet. |
+| `features.multiDayGames` | `true` | Multi-day games: a "Multi-day game" choice on the Play setup (a bot game kept until finished, with a deadline), games against a person by turn packets (`#/play/corr`, packet links `#/play/turn/<code>`), the Ongoing games panel and the count on the Play tab. Off: all of it is hidden and those addresses show the ordinary Play page; games already kept stay in the browser. |
 | `features.chat` | `true` | The text chat between the two players of an online game (a Chat tab in the side panel). |
 | `banner.text` | `""` | The announcement under the header. Empty: no banner. Max 300. |
 | `banner.link` | `""` | Optional link after the text (`#/…` or `https://…`). |
@@ -82,6 +82,10 @@ file.
 | `maintenance.allowPlay` | `true` | Play against the bot stays open during maintenance. |
 | `multiplayer.iceServers` | `["stun:stun.l.google.com:19302"]` | STUN servers for online games: they tell each browser its public network address so players on different networks can connect. Each is `stun:` or `stuns:` with a host name and an optional port (no TURN: its password would be public); at most 5. Connecting shares each player's network address with the other player and with these servers (the lobby says so). An empty list `[]` means same-network play only. There is no signalling server: the players pass the invite and reply codes themselves. |
 | `multiplayer.turnTimer` | `0` | The turn timer a host's lobby starts on, in seconds per decision: `0` (off), `30`, `60`, `90`, `120` or `300`. The host can change it per game. |
+| `multiDay.minDays` | `3` | The shortest multi-day game offered, in whole days (1–60). |
+| `multiDay.maxDays` | `20` | The longest, in whole days (1–60). Shorter than `minDays`: both fall back to the defaults. |
+| `multiDay.defaultDays` | `7` | The length picked at first. Outside `minDays`–`maxDays`: the nearest allowed value. |
+| `multiDay.maxOngoing` | `8` | How many ongoing multi-day games (bot and person together) one browser keeps (1–20). A new one is refused at the cap. |
 
 `npm run check:data` also fails when `home.featuredDeck` or a `decks.hidden` entry is not a library deck, or
 `home.featuredEvent` is not a recorded event.

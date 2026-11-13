@@ -21,6 +21,25 @@ export interface PracticeGame {
   coach?: CoachSummary;
   /** your counts per rating from the Game review, once it has been run (src/lib/gameReview.ts reviewCounts) */
   review?: ReviewSummary;
+  /** a multi-day game (src/lib/multiDay.ts, src/net/corr.ts) */
+  multiDay?: MultiDayMark;
+}
+
+/** How a multi-day game was played: its length, and whether it was finished after its deadline or closed on time. */
+export interface MultiDayMark {
+  days: number;
+  /** finished after the deadline had passed */
+  late?: boolean;
+  /** ended on time (a timed-out loss, or a win claimed on time) */
+  timedOut?: boolean;
+}
+
+/** A stored multi-day mark, or null when it is not one. */
+export function toMultiDay(x: unknown): MultiDayMark | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  if (typeof o.days !== 'number' || !Number.isInteger(o.days) || o.days < 1 || o.days > 366) return null;
+  return { days: o.days, ...(o.late === true ? { late: true } : {}), ...(o.timedOut === true ? { timedOut: true } : {}) };
 }
 
 /** The Game review in numbers: your accuracy (0–100, null when nothing counted) and counts in RATINGS order (seven). */
@@ -93,6 +112,7 @@ function toEntry(x: unknown): PracticeGame | null {
     ...(Array.isArray(o.gigs) && o.gigs.length === 2 && o.gigs.every(count) ? { gigs: [o.gigs[0], o.gigs[1]] as [number, number] } : {}),
     ...(toCoach(o.coach) ? { coach: toCoach(o.coach)! } : {}),
     ...(toReview(o.review) ? { review: toReview(o.review)! } : {}),
+    ...(toMultiDay(o.multiDay) ? { multiDay: toMultiDay(o.multiDay)! } : {}),
   };
 }
 

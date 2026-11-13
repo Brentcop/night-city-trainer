@@ -219,7 +219,7 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
 }
 
 /** A history row with, for the player's own games, the review button. */
-export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void; ratings?: string };
+export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void; ratings?: string; multiDay?: { days: number; late?: boolean; timedOut?: boolean } };
 
 export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; caption: string }) {
   const showReview = rows.some((r) => r.review);
@@ -246,7 +246,17 @@ export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; c
               <td className="nowrap">{formatRecorded(g.date, { compact: true }) ?? '—'}</td>
               <td>{g.deck}</td>
               <td>{g.opp || '—'}</td>
-              <td>{BOT_TIER_LABEL[g.tier]}</td>
+              <td>
+                {BOT_TIER_LABEL[g.tier]}
+                {g.multiDay && (
+                  <span
+                    className="history-tag"
+                    title={`A ${g.multiDay.days}-day game${g.multiDay.late ? ', finished after its deadline' : ''}${g.multiDay.timedOut ? ', ended on time' : ''}`}
+                  >
+                    multi-day{g.multiDay.late ? ' · late' : g.multiDay.timedOut ? ' · on time' : ''}
+                  </span>
+                )}
+              </td>
               <td className={g.result === 'win' ? 'pos' : g.result === 'loss' ? 'neg' : ''}>
                 <b>{resultText(g.result, g.conceded)}</b>
                 <div className="muted">{g.first ? 'went first' : 'went second'}</div>

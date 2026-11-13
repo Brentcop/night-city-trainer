@@ -185,10 +185,24 @@ describe('parser', () => {
 });
 
 describe('features and pages', () => {
-  it('every feature has a default; only multi-day games (a later step) is off', () => {
+  it('every feature has a default, and every one is on', () => {
     const d = defaultSiteConfig();
     expect(Object.keys(d.features).sort()).toEqual([...FEATURES].sort());
-    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['multiDayGames']);
+    expect(FEATURES.filter((f) => !d.features[f])).toEqual([]);
+  });
+  it('multi-day games: whole days within bounds, min ≤ default ≤ max, and a cap on ongoing games', () => {
+    expect(defaultSiteConfig().multiDay).toEqual({ minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 });
+    const ok = parseObj((o) => (o.multiDay = { minDays: 1, maxDays: 30, defaultDays: 10, maxOngoing: 3 }));
+    expect(ok.errors).toEqual([]);
+    expect(ok.config.multiDay).toEqual({ minDays: 1, maxDays: 30, defaultDays: 10, maxOngoing: 3 });
+    const bad = parseObj((o) => (o.multiDay = { minDays: 2.5, maxDays: 99, defaultDays: 7, maxOngoing: 0 }));
+    expect(bad.config.multiDay).toEqual({ minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 });
+    expect(bad.errors.map((e) => e.path)).toEqual(['multiDay.minDays', 'multiDay.maxDays', 'multiDay.maxOngoing']);
+    const swapped = parseObj((o) => (o.multiDay = { minDays: 10, maxDays: 5, defaultDays: 7, maxOngoing: 8 }));
+    expect(swapped.config.multiDay).toMatchObject({ minDays: 3, maxDays: 20 });
+    const outside = parseObj((o) => (o.multiDay = { minDays: 3, maxDays: 5, defaultDays: 9, maxOngoing: 8 }));
+    expect(outside.config.multiDay.defaultDays).toBe(5);
+    expect(outside.errors.map((e) => e.path)).toEqual(['multiDay.defaultDays']);
   });
   it('multiplayer: STUN servers checked one by one (empty = same network only), the turn timer from a fixed list', () => {
     expect(defaultSiteConfig().multiplayer).toEqual({ iceServers: ['stun:stun.l.google.com:19302'], turnTimer: 0 });
@@ -212,11 +226,11 @@ describe('features and pages', () => {
   });
   it('featureEnabled reads the config in effect (here: a previewed draft, then the published one)', () => {
     expect(featureEnabled('coach')).toBe(true);
-    expect(featureEnabled('multiDayGames')).toBe(false);
-    previewDraft(siteConfigText(withC((c) => ((c.features.coach = false), (c.features.multiDayGames = true)))));
-    expect([featureEnabled('coach'), featureEnabled('multiDayGames')]).toEqual([false, true]);
+    expect(featureEnabled('multiDayGames')).toBe(true);
+    previewDraft(siteConfigText(withC((c) => ((c.features.coach = false), (c.features.multiDayGames = false)))));
+    expect([featureEnabled('coach'), featureEnabled('multiDayGames')]).toEqual([false, false]);
     previewDraft(null);
-    expect([featureEnabled('coach'), featureEnabled('multiDayGames')]).toEqual([true, false]);
+    expect([featureEnabled('coach'), featureEnabled('multiDayGames')]).toEqual([true, true]);
     expect(siteConfig()).toEqual(defaultSiteConfig());
   });
 });

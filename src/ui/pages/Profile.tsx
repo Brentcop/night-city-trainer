@@ -299,6 +299,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
       first: g.first,
       gigs: g.gigs ?? null,
       conceded: !!g.conceded,
+      ...(g.multiDay ? { multiDay: g.multiDay } : {}),
       grade: g.coach?.grade ?? null,
       review: r && reviews ? () => setReview({ src: { replay: r, coach: [], persist: true, turns: g.turns || undefined }, title: [`${r.decks[0].name} vs ${r.decks[1].name}`, formatRecorded(r.date)].filter(Boolean).join(' — ') }) : undefined,
       ...(g.review ? { ratings: [g.review.acc === null ? '' : `accuracy ${g.review.acc}`, costlyText(g.review.n) || 'no slips'].filter(Boolean).join(' · ') } : {}),

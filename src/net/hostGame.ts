@@ -42,7 +42,8 @@ export interface HostSave {
   saved: string;
 }
 
-export type EndWhy = 'finished' | 'conceded' | 'abandoned';
+/** 'timeout': a player's clock in a multi-day game ran out and the other claimed the win (src/net/corr.ts) */
+export type EndWhy = 'finished' | 'conceded' | 'abandoned' | 'timeout';
 
 /** Thrown inside a seat once the game is stopped (concede, abandon, quit), so the engine's loop unwinds quietly. */
 export class GameStopped extends Error {
@@ -276,6 +277,23 @@ export class HostGame {
     st.phase = 'over';
     this.g.log(null, `${this.setup.names[seat]} conceded: ${this.setup.names[1 - seat]} wins`);
     this.ended = { why: 'conceded', by: seat };
+    this.onChange?.();
+    return true;
+  }
+
+  /**
+   * `seat` ran out of time in a multi-day game and the other player claimed the win (src/net/corr.ts): the game ends
+   * now as a win for the other seat. A session verdict like concede: the engine is stopped first.
+   */
+  timeLoss(seat: PlayerId): boolean {
+    if (this.stopped || this.ended || this.g.s.winner !== null) return false;
+    this.stop();
+    const st = this.g.s;
+    st.winner = (1 - seat) as PlayerId;
+    st.winReason = `${this.setup.names[seat]} ran out of time`;
+    st.phase = 'over';
+    this.g.log(null, `${this.setup.names[seat]} ran out of time: ${this.setup.names[1 - seat]} claims the win`);
+    this.ended = { why: 'timeout', by: seat };
     this.onChange?.();
     return true;
   }

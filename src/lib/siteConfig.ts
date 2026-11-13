@@ -29,7 +29,11 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
   tunedDecks: { label: 'Tuned decks page', help: 'The list of decks tuned in the Lab (#/tuned).', default: true },
   cardArtToggle: { label: 'Card art switch', help: 'The Art / Text button in the header.', default: true },
   multiplayer: { label: 'Play online', help: 'Play another person online (Play → Play online): a direct browser-to-browser link set up with invite codes.', default: true },
-  multiDayGames: { label: 'Multi-day games (not built yet)', help: 'Reserved for a later step; nothing reads it yet.', default: false },
+  multiDayGames: {
+    label: 'Multi-day games',
+    help: 'Games that last days (Play): a bot game kept until it is finished, and a game against a person by sending turn packets. Without a server, clocks are kept by each device.',
+    default: true,
+  },
   chat: { label: 'Chat', help: 'The text chat between the two players of an online game.', default: true },
 };
 
@@ -105,6 +109,8 @@ export type TurnTimer = (typeof TURN_TIMERS)[number];
 export const STUN_URL = /^stuns?:[A-Za-z0-9.-]+(:\d{1,5})?$/;
 export const MAX_ICE_SERVERS = 5;
 export const DEFAULT_ICE_SERVERS = ['stun:stun.l.google.com:19302'];
+/** Bounds for the multi-day game settings (whole days; the ongoing-game cap). */
+export const MULTI_DAY_BOUNDS = { days: [1, 60], ongoing: [1, 20] } as const;
 
 /** Length caps, in characters. */
 export const LIMITS = {
@@ -186,6 +192,14 @@ export interface SiteConfig {
     /** the turn timer the host's lobby starts on, in seconds (0 = off) */
     turnTimer: TurnTimer;
   };
+  /** multi-day games (features.multiDayGames): the game lengths offered, in whole days, and how many may be ongoing */
+  multiDay: {
+    minDays: number;
+    maxDays: number;
+    defaultDays: number;
+    /** ongoing multi-day games (bot and person together) kept in one browser */
+    maxOngoing: number;
+  };
 }
 
 const DEFAULT_FOOTER =
@@ -214,6 +228,7 @@ export function defaultSiteConfig(): SiteConfig {
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
     multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0 },
+    multiDay: { minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 },
   };
 }
 
@@ -377,7 +392,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
   if (raw.kind !== SITE_CONFIG_KIND) return { config: d, errors: [{ path: 'kind', message: `must be "${SITE_CONFIG_KIND}"; this is not a site config file, so the defaults are used` }], warnings };
   if (raw.schema !== SITE_CONFIG_SCHEMA)
     return { config: d, errors: [{ path: 'schema', message: `must be ${SITE_CONFIG_SCHEMA} (this site reads schema ${SITE_CONFIG_SCHEMA} only); the defaults are used` }], warnings };
-  const o = r.obj(raw, '', ['kind', 'schema', 'site', 'nav', 'features', 'banner', 'home', 'play', 'decks', 'maintenance', 'multiplayer']);
+  const o = r.obj(raw, '', ['kind', 'schema', 'site', 'nav', 'features', 'banner', 'home', 'play', 'decks', 'maintenance', 'multiplayer', 'multiDay']);
 
   const site = r.obj(o.site, 'site', ['title', 'tagline', 'footer']);
   const cfgSite = {
@@ -507,7 +522,31 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
   }
   const multiplayer = { iceServers, turnTimer };
 
-  const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance, multiplayer };
+  const md = r.obj(o.multiDay, 'multiDay', ['minDays', 'maxDays', 'defaultDays', 'maxOngoing']);
+  const [dLo, dHi] = MULTI_DAY_BOUNDS.days;
+  const whole = (v: unknown, path: string, fallback: number, lo: number, hi: number): number => {
+    if (v === undefined) return fallback;
+    if (typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi) return v;
+    r.err(path, `must be a whole number from ${lo} to ${hi}; the default (${fallback}) is used`);
+    return fallback;
+  };
+  let minDays = whole(md.minDays, 'multiDay.minDays', d.multiDay.minDays, dLo, dHi);
+  let maxDays = whole(md.maxDays, 'multiDay.maxDays', d.multiDay.maxDays, dLo, dHi);
+  if (minDays > maxDays) {
+    r.err('multiDay.maxDays', `is shorter than multiDay.minDays (${minDays}); the defaults are used for both`);
+    minDays = d.multiDay.minDays;
+    maxDays = d.multiDay.maxDays;
+  }
+  let defaultDays = whole(md.defaultDays, 'multiDay.defaultDays', d.multiDay.defaultDays, dLo, dHi);
+  if (defaultDays < minDays || defaultDays > maxDays) {
+    const fb = Math.min(maxDays, Math.max(minDays, d.multiDay.defaultDays));
+    r.err('multiDay.defaultDays', `${defaultDays} is outside ${minDays}–${maxDays} days; ${fb} is used`);
+    defaultDays = fb;
+  }
+  const maxOngoing = whole(md.maxOngoing, 'multiDay.maxOngoing', d.multiDay.maxOngoing, MULTI_DAY_BOUNDS.ongoing[0], MULTI_DAY_BOUNDS.ongoing[1]);
+  const multiDay = { minDays, maxDays, defaultDays, maxOngoing };
+
+  const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance, multiplayer, multiDay };
   // Home and Play cannot both be off: a visitor would land on nothing useful
   if (!pageOn(config, 'home') && !pageOn(config, 'play')) {
     r.err('nav', 'Home and Play cannot both be hidden; Play is shown');

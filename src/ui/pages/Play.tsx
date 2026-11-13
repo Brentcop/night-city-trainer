@@ -67,15 +67,46 @@ import {
 import { ConfirmDialog, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard } from '../components/board/CoachPanel';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
+import { OngoingGames } from '../components/OngoingGames';
 import { useSiteConfig } from '../useSiteConfig';
+import { recordPractice } from '../../lib/practiceLog';
+import { saveReplay } from '../../lib/practiceReplays';
+import {
+  botItem,
+  capProblem,
+  clampDays,
+  corrItem,
+  loadBotGames,
+  ongoingFileName,
+  ongoingFileText,
+  parseOngoingFile,
+  removeBotGame,
+  sortOngoing,
+  spanText,
+  timedOutRecords,
+  writeBotGame,
+  type BotMultiDay,
+  type OngoingItem,
+} from '../../lib/multiDay';
+import { deleteCorrGame, listCorrGames } from '../../net/corr';
+import { tierLabel } from '../../ai/tiers';
 import '../board.css';
 
 // online play (src/net/) loads only when it is opened, so the ordinary Play page doesn't carry it
 const PlayOnline = lazy(() => import('./PlayOnline').then((m) => ({ default: m.PlayOnline })));
+// multi-day games against a person (turn packets) load the same way
+const PlayCorr = lazy(() => import('./PlayCorr').then((m) => ({ default: m.PlayCorr })));
 
 /** `sub`: "online" opens online play's lobby, "join/<code>" opens it on an invite (when multiplayer is on). */
 export function PlayPage({ initialDeck, initialOpp, sub = '', mode = null }: { initialDeck?: string; initialOpp?: string; sub?: string; mode?: string | null }) {
   const site = useSiteConfig();
+  if (site.features.multiDayGames && (sub === 'corr' || sub.startsWith('corr/') || sub.startsWith('turn/'))) {
+    return (
+      <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>
+        <PlayCorr sub={sub} initialDeck={initialDeck} />
+      </Suspense>
+    );
+  }
   if (site.features.multiplayer && (sub === 'online' || sub.startsWith('join/'))) {
     return (
       <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>
@@ -109,7 +140,7 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
   speedRef.current = speed;
   const coachRef = useRef(coach);
   coachRef.current = coach;
-  const { session, game, start: startMatch, resume, undo, quit, concede } = usePracticeGame(
+  const { session, game, start: startMatch, startMultiDay, resume, resumeMultiDay, undo, quit, concede, multiDay } = usePracticeGame(
     () => speedRef.current,
     () => coachRef.current,
   );
@@ -118,18 +149,45 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
   const dA = useMemo(() => findDeck(mine), [mine]);
   const dB = useMemo(() => findDeck(opp), [opp]);
 
+  // multi-day games (src/lib/multiDay.ts; features.multiDayGames): kept in their own list, never in the autosave
+  const mdOn = site.features.multiDayGames;
+  const [mdPick, setMdPick] = useState(false);
+  const [mdDaysPick, setMdDays] = useState(site.multiDay.defaultDays);
+  const mdDays = clampDays(mdDaysPick, site.multiDay);
+  const [mdNow, setMdNow] = useState(Date.now);
+  const [botGames, setBotGames] = useState(loadBotGames);
+  const [corrGames, setCorrGames] = useState(() => listCorrGames());
+  const reloadOngoing = useCallback(() => {
+    setBotGames(loadBotGames());
+    setCorrGames(listCorrGames());
+    setMdNow(Date.now());
+  }, []);
+  useEffect(() => {
+    if (game || !mdOn) return;
+    reloadOngoing();
+    const t = setInterval(() => setMdNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [game, mdOn, reloadOngoing]);
+  const ongoingOpen = { bot: botGames.length, pvp: corrGames.filter((g) => g.stage !== 'over' && g.stage !== 'refused').length };
+  const cap = site.multiDay.maxOngoing;
+  const mdBlocked = capProblem(ongoingOpen, cap);
+  const [storageWorksHere] = useState(storageWorks);
+  const mdWanted = mdOn && mdPick && storageWorksHere;
+
   const begin = () => {
     const A = dA?.deck;
     const B = dB?.deck;
     if (!A || !B) return;
     const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
     const decks: [DeckList, DeckList] = [gameDeck(A), gameDeck(B)];
-    startMatch({ decks, seed: Math.floor(Math.random() * 2 ** 31), first, level, botSeed: Date.now() % 100000 });
+    const m = { decks, seed: Math.floor(Math.random() * 2 ** 31), first, level, botSeed: Date.now() % 100000 };
+    if (mdWanted) {
+      if (!mdBlocked) startMultiDay(m, mdDays);
+    } else startMatch(m);
   };
 
   // saved games (src/lib/savedGames.ts): the autosave of the unfinished game and the named saves, read again whenever
   // the setup screen shows; with storage blocked the feature is hidden and the setup screen says why
-  const [storageWorksHere] = useState(storageWorks);
   const storageOk = storageWorksHere && site.features.savedGames;
   const [autosave, setAutosave] = useState(loadAutosave);
   const [slots, setSlots] = useState(loadSlots);
@@ -141,11 +199,75 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
     setAutosave(loadAutosave());
     setSlots(loadSlots());
   }, [game]);
-  // a new game from the setup screen while an unfinished one is saved asks first (a rematch after a game doesn't)
+  // a new game from the setup screen while an unfinished one is saved asks first (a rematch after a game doesn't; a
+  // multi-day game never replaces the autosave, so it doesn't ask)
   const start = () => {
-    if (!game && storageOk && loadAutosave()) setAskNew(true);
+    if (!game && storageOk && loadAutosave() && !mdWanted) setAskNew(true);
     else begin();
   };
+  const [mdBusy, setMdBusy] = useState(false);
+  const resumeBot = (e: BotMultiDay, late: boolean) => {
+    setMdBusy(true);
+    void resumeMultiDay(e, late).then((r) => {
+      setMdBusy(false);
+      if (r.ok) setCoach(e.save.coach);
+      else if (r.mismatch) setProblem({ save: e.save, why: r.why });
+    });
+  };
+  const botOf = (it: OngoingItem) => botGames.find((x) => x.id === it.id);
+  const corrOf = (it: OngoingItem) => corrGames.find((x) => x.id === it.id && x.role === it.role);
+  const ongoingItems = sortOngoing([...botGames.map((e) => botItem(e, mdNow, tierLabel)), ...corrGames.map((g) => corrItem(g, mdNow))]);
+  const ongoingPanel = (
+    <OngoingGames
+      items={ongoingItems}
+      now={mdNow}
+      storage={storageWorksHere}
+      cap={cap}
+      busy={mdBusy || restoring}
+      onOpen={(it) => {
+        const e = botOf(it);
+        if (e) resumeBot(e, false);
+        else if (corrOf(it)) location.hash = `#/play/corr/${it.id}/${it.role}`;
+      }}
+      onFinishLate={(it) => {
+        const e = botOf(it);
+        if (e) resumeBot(e, true);
+      }}
+      onCloseTimedOut={(it) => {
+        const e = botOf(it);
+        if (!e) return;
+        const r = timedOutRecords(e, Date.now());
+        saveReplay(r.replay);
+        recordPractice(r.entry);
+        removeBotGame(e.id);
+        reloadOngoing();
+      }}
+      onExport={(it) => {
+        const e = botOf(it);
+        const c = corrOf(it);
+        const when = new Date().toISOString();
+        const g = e ? ({ type: 'bot', game: e } as const) : c ? ({ type: 'pvp', game: c } as const) : null;
+        if (g) download(ongoingFileName(g, when), ongoingFileText(g, when), 'application/json');
+      }}
+      onDelete={(it) => {
+        if (it.type === 'bot') removeBotGame(it.id);
+        else if (it.role) deleteCorrGame(it.id, it.role);
+        reloadOngoing();
+      }}
+      onImport={async (text) => {
+        // a game against a person is checked with the game code (loaded now, as when one is opened)
+        const corr = text.includes('"nct-corr-game"') ? await import('../../net/corrStore') : null;
+        const r = parseOngoingFile(text, corr?.parseCorrGame);
+        if (!r.ok) return r.why;
+        const v = r.value;
+        const known = v.type === 'bot' ? botGames.some((x) => x.id === v.game.id) : corrGames.some((x) => x.id === v.game.id && x.role === v.game.role);
+        if (!known && mdBlocked) return mdBlocked;
+        const why = v.type === 'bot' ? writeBotGame(v.game) : (corr?.browserCorrStore().save(v.game) ?? 'This game could not be stored.');
+        reloadOngoing();
+        return why ?? (known ? 'Imported: it replaced the copy of this game already in this browser.' : null);
+      }}
+    />
+  );
   const resumeSave = (s: SavedGame) => {
     setRestoring(true);
     void resume(s).then((r) => {
@@ -195,6 +317,20 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
           onSettings={() => setShowSettings(true)}
           saves={site.features.savedGames ? saves : undefined}
           online={online}
+          multiDay={
+            mdOn
+              ? {
+                  on: mdWanted,
+                  setOn: setMdPick,
+                  days: mdDays,
+                  setDays: setMdDays,
+                  min: site.multiDay.minDays,
+                  max: site.multiDay.maxDays,
+                  blocked: mdBlocked,
+                  panel: ongoingPanel,
+                }
+              : undefined
+          }
         />
         {askNew && autosave && (
           <ConfirmDialog
@@ -247,7 +383,42 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
       </>
     );
   }
-  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} canSave={storageOk} canReview={site.features.gameReview} />;
+  const md = multiDay(game);
+  return (
+    <Board
+      key={game.match}
+      session={session}
+      game={game}
+      coach={coach}
+      speed={speed}
+      setSpeed={setSpeed}
+      onQuit={quit}
+      onConcede={concede}
+      onRematch={start}
+      onUndo={undo}
+      canSave={storageOk}
+      canReview={site.features.gameReview}
+      banner={md ? <MultiDayBanner days={md.days} deadline={md.deadline} late={md.late} /> : undefined}
+      exitNote={md ? 'You leave the game for now. It stays in Ongoing games on the Play screen until you finish it; nothing is recorded yet.' : undefined}
+    />
+  );
+}
+
+/** Under the turn strip of a multi-day game against the bot: its length and the time left, ticking. */
+function MultiDayBanner({ days, deadline, late }: { days: number; deadline: number; late: boolean }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const left = deadline - now;
+  return (
+    <div className={`online-status ${left <= 0 ? 'is-lost' : ''}`} role="status">
+      <span>Multi-day game ({days} days)</span>
+      <span className="online-timer">{left > 0 ? `${spanText(left)} left` : late ? 'Time is up: finishing late' : 'Time is up: finishing it is recorded as late'}</span>
+      <span>Exit keeps it in Ongoing games</span>
+    </div>
+  );
 }
 
 /** The seat the board answers through: the practice HumanAgent, or an online seat (src/net/session.ts SeatControl). */
@@ -286,6 +457,10 @@ export interface OnlineBoard {
   /** the Game review of the finished game, once the record is known */
   review: () => GameReviewSource | null;
   exportGame: () => void;
+  /** what Exit does, when it is not "the game ends as abandoned" (a multi-day game is kept) */
+  exitNote?: string;
+  /** your costs are paid the automatic way (a multi-day game's guest: the host's device answers them) */
+  autoPay?: boolean;
 }
 
 export function Board({
@@ -301,6 +476,8 @@ export function Board({
   canSave,
   canReview,
   online,
+  banner,
+  exitNote,
 }: {
   session: TickSource;
   game: BoardRun;
@@ -316,6 +493,10 @@ export function Board({
   /** game review is on (site config) */
   canReview: boolean;
   online?: OnlineBoard;
+  /** under the turn strip (a multi-day game's countdown) */
+  banner?: React.ReactNode;
+  /** what Exit does, when it is not the usual (a multi-day game is kept) */
+  exitNote?: string;
 }) {
   // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
@@ -379,7 +560,7 @@ export function Board({
   // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
-  const payMode = settings.payMode;
+  const payMode = online?.autoPay ? 'auto' : settings.payMode;
   const panelSet = settings.panel;
   const panelHidden = panelSet.position === 'hidden';
   // paying a cost by choice: the sources selected before playing ("Choose before"), the prompt for one cost (both
@@ -793,6 +974,7 @@ export function Board({
       </div>
       )}
       {online?.status}
+      {banner}
       <div className="pb-stage">
         {failed && (
           <div className="panel pb-error" role="alert">
@@ -953,6 +1135,7 @@ export function Board({
       {leave && (
         <LeaveDialog
           online={!!online}
+          note={exitNote ?? online?.exitNote}
           kind={leave}
           onCancel={() => setLeave(null)}
           onConfirm={() => {

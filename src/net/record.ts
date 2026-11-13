@@ -3,7 +3,7 @@
 // record at once; the guest receives it from the host after the game is over. Nothing here touches the bots' data,
 // ratings or recorded events: PvP games never enter sim data.
 import type { DeckList, PlayerId } from '../engine/types';
-import { loadPractice, recordPractice, type PracticeGame } from '../lib/practiceLog';
+import { loadPractice, recordPractice, type MultiDayMark, type PracticeGame } from '../lib/practiceLog';
 import { loadReplays, saveReplay, type PracticeReplay } from '../lib/practiceReplays';
 import type { GameRecordMsg } from './protocol';
 
@@ -27,6 +27,8 @@ export interface OnlineOutcome {
   conceded: boolean;
   rivalConceded: boolean;
   abandoned: boolean;
+  /** a multi-day game played by turn packets (src/net/corrSession.ts) */
+  multiDay?: MultiDayMark;
 }
 
 export function practiceEntryOf(o: OnlineOutcome): PracticeGame {
@@ -43,6 +45,7 @@ export function practiceEntryOf(o: OnlineOutcome): PracticeGame {
     reason: o.reason,
     gigs: o.gigs,
     ...(o.conceded ? { conceded: true } : {}),
+    ...(o.multiDay ? { multiDay: { ...o.multiDay } } : {}),
   };
 }
 
@@ -71,6 +74,7 @@ export function replayOf(o: OnlineOutcome, rec: GameRecordMsg, seat: PlayerId): 
       ...(o.rivalConceded ? { rivalConceded: true } : {}),
       ...(o.abandoned ? { abandoned: true } : {}),
     },
+    ...(o.multiDay ? { multiDay: { ...o.multiDay } } : {}),
   };
 }
 

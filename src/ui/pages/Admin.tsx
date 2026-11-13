@@ -20,6 +20,7 @@ import {
   siteConfigText,
   TIER_KEYS,
   TURN_TIMERS,
+  MULTI_DAY_BOUNDS,
   visibleNav,
   type ConfigIssue,
   type SiteConfig,
@@ -477,6 +478,32 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
           onChange={(v) => up((c) => void (c.multiplayer.turnTimer = Number(v) as SiteConfig['multiplayer']['turnTimer']))}
         />
         <Errs issues={issues} path="multiplayer.turnTimer" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Multi-day games</legend>
+        <p className="small muted">
+          Games played over days (the “Multi-day games” feature): against the bot, kept until finished; against a person, by turn packets. The lengths offered, in whole days, and how many ongoing games one
+          browser keeps (bot and person together).
+        </p>
+        {(
+          [
+            ['minDays', 'Shortest game (days)', MULTI_DAY_BOUNDS.days],
+            ['maxDays', 'Longest game (days)', MULTI_DAY_BOUNDS.days],
+            ['defaultDays', 'Length picked at first (days)', MULTI_DAY_BOUNDS.days],
+            ['maxOngoing', 'Ongoing games kept per browser', MULTI_DAY_BOUNDS.ongoing],
+          ] as const
+        ).map(([k, label, [lo, hi]]) => (
+          <div key={k}>
+            <Select
+              label={label}
+              value={String(draft.multiDay[k])}
+              options={Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i))}
+              onChange={(v) => up((c) => void (c.multiDay[k] = Number(v)))}
+            />
+            <Errs issues={issues} path={`multiDay.${k}`} />
+          </div>
+        ))}
       </fieldset>
 
       <fieldset>

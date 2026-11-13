@@ -39,6 +39,29 @@ import { artEnabled, setArtEnabled } from './ui/art';
 import { landingPage, pageOn, textHash, visibleNav } from './lib/siteConfig';
 import { useFeature, useSiteConfigState } from './ui/useSiteConfig';
 import { DraftBar, LinkedText, MaintenancePage, PageOff, SiteBanner } from './ui/components/SiteChrome';
+import { ONGOING_EVENT, ongoingWaiting } from './lib/ongoingBadge';
+
+/** Multi-day games waiting for your move (the Play tab's count); 0 when the feature is off. */
+function useOngoingWaiting(on: boolean): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!on) {
+      setN(0);
+      return;
+    }
+    const read = () => setN(ongoingWaiting());
+    read();
+    window.addEventListener(ONGOING_EVENT, read);
+    window.addEventListener('storage', read);
+    window.addEventListener('hashchange', read);
+    return () => {
+      window.removeEventListener(ONGOING_EVENT, read);
+      window.removeEventListener('storage', read);
+      window.removeEventListener('hashchange', read);
+    };
+  }, [on]);
+  return n;
+}
 
 // Every page but Home loads on first visit (its own chunk); a failed load shows the Boundary's Reload message.
 const MetaPage = lazy(() => import('./ui/pages/Meta').then((m) => ({ default: m.MetaPage })));
@@ -111,6 +134,7 @@ export function App() {
   const { config, previewing } = useSiteConfigState();
   const nav = visibleNav(config);
   const landing = landingPage(config);
+  const waiting = useOngoingWaiting(config.features.multiDayGames);
   const [[rawPath, q], setRoute] = useState(parseHash());
   const path = rawPath || landing; // '#/' and no hash: the start page
   // Scroll: a link click opens the new page at the top; Back/Forward restore where you were on that page.
@@ -181,6 +205,12 @@ export function App() {
                 {sec.icon}
               </span>
               {sec.label}
+              {waiting > 0 && sec.routes.includes('play') && (
+                <span className="nav-count" title={`${waiting} multi-day game${waiting === 1 ? '' : 's'} waiting for your move`}>
+                  {waiting}
+                  <span className="sr-only"> multi-day game{waiting === 1 ? '' : 's'} waiting for your move</span>
+                </span>
+              )}
             </a>
           ))}
         </nav>

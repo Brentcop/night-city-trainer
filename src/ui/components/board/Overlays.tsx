@@ -10,7 +10,7 @@ import { TcgCard } from '../TcgCard';
 import type { BoardCtx } from './BoardCard';
 
 /** "Are you sure?" before conceding (a recorded loss) or exiting (nothing recorded). Rendered at the document body. */
-export function LeaveDialog({ kind, onConfirm, onCancel, online }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void; online?: boolean }) {
+export function LeaveDialog({ kind, onConfirm, onCancel, online, note }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void; online?: boolean; note?: string }) {
   const id = useId();
   const concede = kind === 'concede';
   return createPortal(
@@ -19,7 +19,9 @@ export function LeaveDialog({ kind, onConfirm, onCancel, online }: { kind: 'conc
         {concede ? 'Concede this game?' : 'Exit this game?'}
       </h3>
       <p className="muted">
-        {online
+        {note && !concede
+          ? note
+          : online
           ? concede
             ? 'The game ends now as a loss for you and a win for the other player, recorded as conceded.'
             : 'You leave the game and the connection closes. The game ends as abandoned and is recorded as a draw on both sides.'
@@ -29,7 +31,7 @@ export function LeaveDialog({ kind, onConfirm, onCancel, online }: { kind: 'conc
       </p>
       <div className="row pb-leave-actions">
         <button className={concede ? 'pb-danger' : 'primary'} onClick={onConfirm}>
-          {concede ? '⚑ Concede' : online ? 'Leave game' : 'Exit game'}
+          {concede ? '⚑ Concede' : online && !note ? 'Leave game' : 'Exit game'}
         </button>
         <button onClick={onCancel}>Keep playing</button>
       </div>

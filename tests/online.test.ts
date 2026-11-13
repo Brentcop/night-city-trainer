@@ -16,6 +16,7 @@ import { loopbackPair } from '../src/net/transport';
 import { HIDDEN_BASE, redactLine, viewDecision, viewFor, ViewGame } from '../src/net/view';
 import { decodeSignal, encodeSignal } from '../src/net/webrtc';
 import type { PracticeReplay } from '../src/lib/practiceReplays';
+import { hiddenUids, knownIds } from './netLeak';
 
 const LIB = loadLibrary();
 const legal = LIB.map((d) => gameDeck(d.deck)).filter((d) => validateDeck(d).length === 0);
@@ -117,18 +118,6 @@ describe('protocol', () => {
 
 // ---------------------------------------------------------------- viewFor
 
-/** Card ids a seat may legitimately know: visible cards, this turn's plays, delayed effects' programs. */
-function knownIds(st: GameState, seat: PlayerId): Set<string> {
-  const out = new Set<string>();
-  for (const c of Object.values(st.cards)) {
-    const vis = c.zone === 'field' || c.zone === 'trash' || c.zone === 'removed' || c.zone === 'limbo' || (c.zone === 'hand' && c.owner === seat) || (c.zone === 'legends' && (c.faceUp || (c.controller === seat && c.known)));
-    if (vis) out.add(c.defId);
-  }
-  for (const e of st.turnEvents ?? []) out.add(e.defId);
-  for (const m of st.mods) if (m.kind === 'delayed') out.add(m.value.defId);
-  return out;
-}
-
 /** Every leak check for one seat's view of one position. */
 function checkView(st: GameState, d: Decision | null, seat: PlayerId) {
   const view = viewFor(st, seat);
@@ -136,9 +125,7 @@ function checkView(st: GameState, d: Decision | null, seat: PlayerId) {
   const known = knownIds(st, seat);
   const rival = (1 - seat) as PlayerId;
   // the cards the seat may not see: both decks, the rival's hand, every Eddie, face-down Legends it doesn't know
-  const hidden = [...st.players[0].deck, ...st.players[1].deck, ...st.players[rival].hand, ...st.players[0].eddies, ...st.players[1].eddies];
-  for (const p of [0, 1] as PlayerId[]) for (const u of st.players[p].legends) if (!st.cards[u]!.faceUp && !(st.cards[u]!.controller === seat && st.cards[u]!.known)) hidden.push(u);
-  for (const u of hidden) {
+  for (const u of hiddenUids(st, seat)) {
     const id = st.cards[u]!.defId;
     if (!known.has(id)) expect(text.includes(`"${id}"`), `hidden ${id} (uid ${u}) in seat ${seat}'s view`).toBe(false);
     // the real uid of a hidden card names its place in the list: it is never a card of the view

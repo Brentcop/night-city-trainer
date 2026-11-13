@@ -367,6 +367,18 @@ thead th {
   color: var(--accent);
   opacity: 1;
 }
+/* multi-day games waiting for your move (the Play tab) */
+.nav-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
 .header-toggles {
   margin-left: auto;
   display: flex;
@@ -1141,6 +1153,34 @@ thead th {
   padding-left: 20px;
   max-height: 30vh;
   overflow-y: auto;
+}
+/* multi-day games: the Ongoing games panel and the setup choice */
+.history-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ongoing-row.is-mine {
+  border-color: var(--accent);
+}
+.ongoing-mine {
+  color: var(--accent);
+  font-weight: 700;
+}
+.ongoing-late {
+  color: var(--red);
+  font-weight: 700;
+}
+.multi-day-pick select {
+  max-width: 100%;
+}
+.multi-day-pick .row {
+  flex-wrap: wrap;
 }
 /* saved games (Play setup screen and the in-game Save dialog) */
 .save-list {

@@ -2824,6 +2824,28 @@ button.pb-pp-min {
   border-bottom: 1px solid var(--border);
   background: var(--panel);
 }
+/* on the full board the strip sits under the turn strip, and the stage starts below it (online status, multi-day countdown) */
+.pb-full > .online-status {
+  position: absolute;
+  top: var(--pb-strip-h);
+  left: 0;
+  right: 0;
+  height: var(--pb-status-h, 30px);
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  z-index: 31;
+}
+.pb-phone > .online-status {
+  flex: none;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.pb-full:has(> .online-status) .pb-stage {
+  top: calc(var(--pb-strip-h) + var(--pb-status-h, 30px));
+}
 .online-status.is-lost {
   color: var(--red);
 }

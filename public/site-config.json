@@ -148,7 +148,7 @@
     "tunedDecks": true,
     "cardArtToggle": true,
     "multiplayer": true,
-    "multiDayGames": false,
+    "multiDayGames": true,
     "chat": true
   },
   "banner": {
@@ -230,5 +230,11 @@
       "stun:stun.l.google.com:19302"
     ],
     "turnTimer": 0
+  },
+  "multiDay": {
+    "minDays": 3,
+    "maxDays": 20,
+    "defaultDays": 7,
+    "maxOngoing": 8
   }
 }
