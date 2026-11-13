@@ -295,7 +295,9 @@ describe('a game between two sessions over the loopback link', () => {
       }
     }
     await until(() => !!host.over && !!guest.over && !!guest.record(), 'the end and the record');
-    expect(checked).toBeGreaterThan(20);
+    // the first-player roll uses fresh random secrets, so the game and its length differ from run to run (a short one
+    // has under 20 guest decisions): ask only for enough to show the view was compared throughout a real game
+    expect(checked).toBeGreaterThan(5);
     expect(guest.board!.s).toEqual(JSON.parse(JSON.stringify(viewFor(host.game!.g.s, 1))));
     const flip = { win: 'loss', loss: 'win', draw: 'draw' } as const;
     expect(guest.over!.result).toBe(flip[host.over!.result]);

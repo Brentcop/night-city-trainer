@@ -329,7 +329,9 @@ describe('a game between two sessions through the relay', () => {
       }
     }
     await until(() => !!host.over && !!guest.over && !!guest.record(), 'the end and the record');
-    expect(checked).toBeGreaterThan(20);
+    // the roll's secrets and the join secret are random, so the game's length differs from run to run (18 guest
+    // decisions failed a "more than 20" check on CI): ask only for enough to show the view was compared throughout
+    expect(checked).toBeGreaterThan(5);
     expect(hr.entries).toHaveLength(1);
     expect(gr.entries).toHaveLength(1);
     expect(gr.replays).toHaveLength(1);
