@@ -7,6 +7,7 @@ import { HeuristicAgent } from '../src/ai/heuristic';
 import type { Agent, Decision, DeckList, PlayerId } from '../src/engine/types';
 import type { Game } from '../src/engine/engine';
 import { practiceAgents, type PracticeReviewSpec } from '../src/sim/practiceReview';
+import { runGameReview, type GameReviewJob } from '../src/sim/gameReviewRun';
 
 export interface ReviewJob {
   id: string;
@@ -25,6 +26,8 @@ export interface ReviewJob {
   chaos?: number;
   /** a recorded practice game (an export from Play, src/lib/coachedReplay.ts): seat 0 replays the recorded answers, seat 1 is its bot */
   practice?: PracticeReviewSpec;
+  /** the Game review of a practice game (src/sim/gameReviewRun.ts, as the browser runs it): replies `game` instead of `review` */
+  game?: GameReviewJob;
 }
 
 /** Plays like its inner bot, except that sometimes it makes a random move. Logs which reviewed decisions were random. */
@@ -58,6 +61,12 @@ class ChaosAgent implements Agent {
 
 parentPort?.on('message', async (job: ReviewJob) => {
   try {
+    if (job.game) {
+      const t0 = Date.now();
+      const game = await runGameReview(job.game);
+      parentPort!.postMessage({ id: job.id, game, ms: Date.now() - t0, meta: job.meta });
+      return;
+    }
     const opts: ReviewOptions = { rollouts: job.rollouts, withCoach: job.withCoach, coach: job.coachV1 ? () => new HeuristicAgent({ name: 'Coach v1', ...COACH_CONFIG_V1 }) : makeCoach, seats: job.seats };
     const base: [Agent, Agent] = job.practice ? practiceAgents(job.practice) : [makeTierBot(job.bots[0], job.seed), makeTierBot(job.bots[1], job.seed + 7777)];
     const chaos = job.chaos ? [new ChaosAgent(base[0], job.chaos, job.seed * 3 + 1), new ChaosAgent(base[1], job.chaos, job.seed * 3 + 2)] : null;

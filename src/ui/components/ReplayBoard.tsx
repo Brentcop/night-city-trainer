@@ -8,6 +8,7 @@ import { PlayerSide } from './board/Zones';
 import { BoardCard } from './board/BoardCard';
 import { useNarrow } from './board/useNarrow';
 import type { ReplayData } from '../../lib/replayFrames';
+import type { GameState, LogEntry } from '../../engine/types';
 import '../board.css';
 
 // The recording half (frames, recordReplay) lives in lib/replayFrames so the game worker can use it without React.
@@ -32,6 +33,56 @@ export const REPLAY_SPEEDS = [
 export const DEFAULT_REPLAY_SPEED = 'normal';
 type ReplaySpeed = (typeof REPLAY_SPEEDS)[number]['label'];
 type ReplayMode = 'turn' | 'fast' | 'step';
+
+/** The playmat for one recorded board state (a replay frame): both sides, the line it follows, and the first seat's hand. */
+export function FrameBoard({ state, line, names, narrow, at }: { state: GameState; line?: LogEntry; names: [string, string]; narrow: boolean; at: number }) {
+  // a game around the frame's own copy of the state (the board components read a Game)
+  const g = useMemo(() => new Game(structuredClone(state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]), [state]);
+  const ctx: BoardCtx = {
+    g,
+    pend: null,
+    ix: EMPTY_IX,
+    coach: null,
+    targeting: null,
+    narrow,
+    menuUid: null,
+    answer: noop,
+    openMenu: noop,
+    startTargeting: noop,
+    cancelTargeting: noop,
+    openTrash: noop,
+    seatLabels: names,
+  };
+  const s = g.s;
+  const handSize = narrow ? 'xs' : 'sm';
+  return (
+    <div className="pb pb-replay">
+      <div className="pb-topbar">
+        <div className="pb-turn">
+          <span className="pb-turn-no">TURN {s.turn}</span>
+          <span className={`pb-turn-who ${s.active === 0 ? 'me' : 'rival'}`}>{names[s.active]}</span>
+          {s.overtime && <span className="pb-overtime">OVERTIME</span>}
+        </div>
+      </div>
+      <div className="pb-mat">
+        <PlayerSide p={1} ctx={ctx} />
+        <div className={`pb-midline ${line?.player === 0 ? 'pb-tone-me' : line?.player === 1 ? 'pb-tone-rival' : ''}`} key={at}>
+          <span>{line ? `${line.player === null ? '' : `${names[line.player]}: `}${line.text}` : ''}</span>
+        </div>
+        <PlayerSide p={0} ctx={ctx} />
+        <div className="replay-hand">
+          <span className="pb-label">{names[0]}'s hand</span>
+          <div className="pb-cards">
+            {s.players[0].hand.map((u) => (
+              <BoardCard key={u} uid={u} size={handSize} ctx={ctx} />
+            ))}
+            {!s.players[0].hand.length && <span className="muted small">empty</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ReplayBoard({ data, names }: { data: ReplayData; names: [string, string] }) {
   const frames = data.frames;
@@ -92,9 +143,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
     return () => window.removeEventListener('keydown', k);
   }, [n, cur, playing, mode]);
 
-  // The board for the current frame. It depends only on the frames (data.frames) and the position.
-  const g = useMemo(() => (n ? new Game(structuredClone(frames[Math.max(0, cur)].state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]) : null), [frames, cur, n]);
-  if (!g || !n) return <p className="muted">No moves were recorded for this game.</p>;
+  if (!n) return <p className="muted">No moves were recorded for this game.</p>;
   const turnOf = (i: number) => frames[i]?.line.turn ?? 0;
   const lastTurn = turnOf(n - 1);
   const turnNow = turnOf(cur);
@@ -107,23 +156,6 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
     if (end) setCur(0);
     setPlaying(true);
   };
-  const ctx: BoardCtx = {
-    g,
-    pend: null,
-    ix: EMPTY_IX,
-    coach: null,
-    targeting: null,
-    narrow,
-    menuUid: null,
-    answer: noop,
-    openMenu: noop,
-    startTargeting: noop,
-    cancelTargeting: noop,
-    openTrash: noop,
-    seatLabels: names,
-  };
-  const s = g.s;
-  const handSize = narrow ? 'xs' : 'sm';
   return (
     <div className="replay">
       <div className="replay-controls row small">
@@ -158,31 +190,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
       </div>
       <input className="replay-scrub" type="range" min={0} max={n - 1} value={cur} onChange={(e) => (setPlaying(false), setCur(+e.target.value))} aria-label="Scrub through the game" />
       <div className="replay-layout">
-        <div className="pb pb-replay">
-          <div className="pb-topbar">
-            <div className="pb-turn">
-              <span className="pb-turn-no">TURN {s.turn}</span>
-              <span className={`pb-turn-who ${s.active === 0 ? 'me' : 'rival'}`}>{names[s.active]}</span>
-              {s.overtime && <span className="pb-overtime">OVERTIME</span>}
-            </div>
-          </div>
-          <div className="pb-mat">
-            <PlayerSide p={1} ctx={ctx} />
-            <div className={`pb-midline ${line?.player === 0 ? 'pb-tone-me' : line?.player === 1 ? 'pb-tone-rival' : ''}`} key={cur}>
-              <span>{line ? `${line.player === null ? '' : `${names[line.player]}: `}${line.text}` : ''}</span>
-            </div>
-            <PlayerSide p={0} ctx={ctx} />
-            <div className="replay-hand">
-              <span className="pb-label">{names[0]}'s hand</span>
-              <div className="pb-cards">
-                {s.players[0].hand.map((u) => (
-                  <BoardCard key={u} uid={u} size={handSize} ctx={ctx} />
-                ))}
-                {!s.players[0].hand.length && <span className="muted small">empty</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+        <FrameBoard state={frames[Math.max(0, cur)]!.state} line={line} names={names} narrow={narrow} at={cur} />
         <div className="replay-log log" ref={listRef}>
           {frames.map(({ line: l }, i) => (
             <button

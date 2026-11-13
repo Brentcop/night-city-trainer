@@ -3,20 +3,20 @@ import { createPortal } from 'react-dom';
 import type { Decision, DeckList, PlayerId } from '../../engine/types';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
-import { practiceRequest, reviewExpect } from '../../lib/practiceReplays';
 import { annotatePractice, coachSummary } from '../../lib/practiceLog';
 import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
 import { download } from '../../lib/download';
 import { GIG_SWING } from '../../ai/eval';
 import { canConcede, canUndo, type PracticeSession, type Running } from '../../lib/practiceSession';
-import { ReviewPanel } from '../components/ReviewPanel';
-import type { ReviewRequest } from '../../sim/review.worker';
+import { GameReviewModal, type GameReviewSource } from '../components/GameReview';
+import { coachRatingsFrom } from '../../lib/gameReview';
+import { saveCoachRatings } from '../../lib/gameReviewStore';
 import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
 import { useSynergyReport } from '../synergyReport';
 import { seatLift } from '../../ai/packageLift';
 import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
-import { Modal, useFocusTrap } from '../components/Modal';
+import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, type Targeting } from '../components/board/interaction';
 import type { BoardCtx } from '../components/board/BoardCard';
@@ -268,7 +268,7 @@ function Board({
     };
   }, [phone]);
   const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives']; advice: Advice } | null>(null);
-  const [reviewReq, setReviewReq] = useState<ReviewRequest | null>(null);
+  const [review, setReview] = useState<GameReviewSource | null>(null);
   const [toast, setToast] = useState<MoveGrade | null>(null);
   useEffect(() => {
     if (!toast) return;
@@ -320,7 +320,7 @@ function Board({
   // Undo swaps in a restored game (same match, so the board stays mounted): close what belonged to the old one
   useEffect(() => {
     setHideOver(false);
-    setReviewReq(null);
+    setReview(null);
     setTrashOf(null);
     setPaySel(EMPTY_SELECTION);
     setPayAsk(null);
@@ -515,7 +515,13 @@ function Board({
     if (!over || !coach) return;
     const sum = coachSummary(grades);
     if (sum && sum.measured > 0) annotatePractice(game.replay.id, sum);
-  }, [over, coach, grades, grades.length, game.replay.id]);
+    // the coach's grades go with the game, so a Game review run later (from the Profile) keeps them
+    saveCoachRatings(game.replay.id, coachRatingsFrom(grades.map((x) => x.record), game.replay.choices.length, GIG_SWING), game.replay.choices);
+  }, [over, coach, grades, grades.length, game.replay.id, game.replay.choices]);
+  const openReview = () => {
+    setHideOver(true);
+    setReview({ replay: game.replay, coach: coachRatingsFrom(grades.map((x) => x.record), game.replay.choices.length, GIG_SWING), persist: true, turns: g.s.turn });
+  };
   // a game can be saved once you have been asked something, until it ends
   const savable = canSave && !over && !failed && !game.cancelled && !!game.stable;
   const openSave = () => {
@@ -891,8 +897,8 @@ function Board({
             <>
               {coach && <Scorecard grades={grades} />}
               <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
-                <button className="ghost" onClick={() => (setHideOver(true), setReviewReq(practiceRequest(game.replay)))}>
-                  🔍 Full match review
+                <button className="ghost" onClick={openReview} title="A rating for every move of both sides, the turning point, and the board at each move">
+                  🔍 Game review
                 </button>
                 <button className="ghost" onClick={exportGame} title="Save this game as a file: seeds, your moves and the coach's advice on each">
                   ⤓ Export game
@@ -902,11 +908,7 @@ function Board({
           }
         />
       )}
-      {reviewReq && (
-        <Modal label="Match review" onClose={() => setReviewReq(null)} backdropClassName="pb-review-backdrop">
-          <ReviewPanel req={reviewReq} title="Match review" mySeat={0} expect={reviewExpect(game.replay)} />
-        </Modal>
-      )}
+      {review && <GameReviewModal src={review} title="Game review" onClose={() => setReview(null)} backdropClassName="pb-review-backdrop" />}
     </div>
   );
 }

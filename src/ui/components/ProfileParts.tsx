@@ -219,7 +219,7 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
 }
 
 /** A history row with, for the player's own games, the review button. */
-export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void };
+export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void; ratings?: string };
 
 export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; caption: string }) {
   const showReview = rows.some((r) => r.review);
@@ -261,10 +261,13 @@ export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; c
                       Review
                     </button>
                   ) : (
-                    <span className="muted" title="Only the last 25 games keep a replay">
-                      —
-                    </span>
+                    !g.ratings && (
+                      <span className="muted" title="Only the last 25 games keep a replay">
+                        —
+                      </span>
+                    )
                   )}
+                  {g.ratings && <div className="muted nowrap">{g.ratings}</div>}
                 </td>
               )}
             </tr>

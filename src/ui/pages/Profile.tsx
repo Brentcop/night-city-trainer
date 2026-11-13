@@ -9,7 +9,10 @@ import { allDecks } from '../../lib/browserLibrary';
 import { loadHidden } from '../../lib/hiddenDecks';
 import type { LibraryDeck } from '../../lib/library';
 import { clearPractice, loadPractice, PRACTICE_KEY, type PracticeGame } from '../../lib/practiceLog';
-import { clearReplays, loadReplays, practiceRequest, REPLAYS_KEY, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
+import { clearReplays, loadReplays, REPLAYS_KEY, type PracticeReplay } from '../../lib/practiceReplays';
+import { clearGameReviews, GAME_REVIEWS_KEY } from '../../lib/gameReviewStore';
+import { costlyText } from '../../lib/gameReview';
+import { coachedReviewSource, OpenGameFile } from '../components/GameReviewOpen';
 import { deleteProfile, loadProfile, NAME_MAX, PROFILE_CHANGED, PROFILE_KEY, PROFILE_SECTIONS, profileFromNewerVersion, saveProfile, SECTION_HELP, SECTION_LABEL, type ProfileDoc } from '../../lib/profile';
 import {
   botTier,
@@ -27,9 +30,8 @@ import { buildShared, decodeShared, encodeShared, favouriteDeck, LINK_MAX, parse
 import { download } from '../../lib/download';
 import { useLibraryVersion } from '../useLibrary';
 import { PageHead } from '../components/PageHead';
-import { Modal } from '../components/Modal';
 import { ConfirmDialog } from '../components/SavedGames';
-import { ReviewPanel } from '../components/ReviewPanel';
+import { GameReviewModal, type GameReviewSource } from '../components/GameReview';
 import { formatRecorded, RecordedAt } from '../components/RecordedAt';
 import { profileHref } from '../components/DeckStats';
 import { ColorPips, LegendStrip, OriginBadge, TierPair } from '../components/DeckIdentity';
@@ -274,7 +276,7 @@ const PAGE_SIZE = 20;
 function History({ games, replays, reload }: { games: PracticeGame[]; replays: Map<string, PracticeReplay>; reload: () => void }) {
   const [f, setF] = useState<HistoryFilter>({ deck: '', result: '' });
   const [page, setPage] = useState(1);
-  const [review, setReview] = useState<PracticeReplay | null>(null);
+  const [review, setReview] = useState<{ src: GameReviewSource; title: string } | null>(null);
   const [confirm, setConfirm] = useState(false);
   const decks = useMemo(() => [...new Set(games.map((g) => g.deck))].sort((a, b) => a.localeCompare(b)), [games]);
   const list = useMemo(() => filterHistory(games, f), [games, f]);
@@ -293,7 +295,8 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
       gigs: g.gigs ?? null,
       conceded: !!g.conceded,
       grade: g.coach?.grade ?? null,
-      review: r ? () => setReview(r) : undefined,
+      review: r ? () => setReview({ src: { replay: r, coach: [], persist: true, turns: g.turns || undefined }, title: [`${r.decks[0].name} vs ${r.decks[1].name}`, formatRecorded(r.date)].filter(Boolean).join(' — ') }) : undefined,
+      ...(g.review ? { ratings: [g.review.acc === null ? '' : `accuracy ${g.review.acc}`, costlyText(g.review.n) || 'no slips'].filter(Boolean).join(' · ') } : {}),
     };
   });
   if (!games.length)
@@ -340,6 +343,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
         <span className="small muted" aria-live="polite">
           {list.length} of {games.length} games
         </span>
+        <OpenGameFile onOpen={(c, name) => setReview({ src: coachedReviewSource(c), title: `${c.replay.decks[0].name} vs ${c.replay.decks[1].name} (from ${name})` })} />
         <button type="button" className="ghost danger-soft" onClick={() => setConfirm(true)} style={{ marginLeft: 'auto' }}>
           Clear history…
         </button>
@@ -358,17 +362,11 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
           </button>
         </nav>
       )}
-      <p className="small muted">The last 500 games are kept; the last 25 also keep a replay you can review. The coach grade is recorded for games played with the coach on.</p>
-      {review && (
-        <Modal label={`Review: ${review.decks[0].name} vs ${review.decks[1].name}`} onClose={() => setReview(null)}>
-          <ReviewPanel
-            req={practiceRequest(review)}
-            title={[`${review.decks[0].name} vs ${review.decks[1].name}`, formatRecorded(review.date)].filter(Boolean).join(' — ')}
-            mySeat={0}
-            expect={reviewExpect(review)}
-          />
-        </Modal>
-      )}
+      <p className="small muted">
+        The last 500 games are kept; the last 25 also keep a replay you can review. The coach grade is recorded for games played with the coach on; the review's accuracy and
+        costly moves once you have opened its Game review. Open a game file exported from Play (⤓ Export game) to review it here.
+      </p>
+      {review && <GameReviewModal src={review.src} title={review.title} onClose={() => setReview(null)} />}
       {confirm && (
         <ConfirmDialog
           title="Clear your game history?"
@@ -378,6 +376,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
           onConfirm={() => {
             clearPractice();
             clearReplays();
+            clearGameReviews();
             reload();
             setConfirm(false);
           }}
@@ -551,6 +550,9 @@ function Sharing({ profile, update, games, lib, reload }: { profile: ProfileDoc;
           <li>
             <code>{REPLAYS_KEY}</code>: replays of your last 25 games, for review.
           </li>
+          <li>
+            <code>{GAME_REVIEWS_KEY}</code>: the Game reviews of those games, and the coach's grades from play they start from.
+          </li>
           <li>Your saved decks stay in the deck library (delete them from the deck pages).</li>
         </ul>
         <p className="small muted">With card art on, the pictures load from the card database like every card on the site; nothing about you is sent.</p>
@@ -589,6 +591,7 @@ function Sharing({ profile, update, games, lib, reload }: { profile: ProfileDoc;
           onConfirm={() => {
             clearPractice();
             clearReplays();
+            clearGameReviews();
             reload();
             setAsk(null);
             setDone('Game history deleted.');

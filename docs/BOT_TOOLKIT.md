@@ -212,6 +212,41 @@ The reviewer replays a game exactly with the code it was played on (same seeds a
 
 Full write-up and backlog: `docs/REVIEW_FINDINGS.md`.
 
+### Game review: a rating for every move (`src/lib/gameReview.ts`)
+
+After a practice game, **🔍 Game review** (the game-over scorecard; Profile → Game history → Review; Play → Review a recent game; Profile → Game history → Open a game file… for a game exported with ⤓ Export game) rates every decision of both sides. It runs `runGameReview` (`src/sim/gameReviewRun.ts`) in the review worker, with progress and Stop: the game is re-simulated (your seat replays your answers), both seats are graded by the oracle above (8 play-outs per candidate, `GAME_REVIEW_ROLLOUTS`), except your moves the coach graded during play, which keep the coach's grade (`ReviewOptions.skip`; only the 1-ply screen looks at them). The rival is graded with what it could know (`hideInfo` for the deciding seat). `scripts/review.ts --from file --file <export>.json` runs the same function and prints the same ratings (and writes `data/reviews/<name>.game.json`); its reports also count the ratings per bot. The "Full match review" (the older report) is the dialog's second tab.
+
+**Measurements.** The reviewer records, beside `regret`, the paired standard error of the gap over the shared worlds (`se`), every other graded option's gap and SE (`others`), whether the move made is the oracle's top (`top`), the 1-ply screen's first choice with its gap and the move made's rank in the screen's order (`screen`), and `decided`. Gaps are in Gigs: `GIG_SWING` = 40 points per Gig. On 6 Medium-vs-Hard games the median SE of a non-top gap was 0.20 Gigs (p90 0.88); the coach's own gaps are noisier under the fitted weights too (median 0.124, p90 0.9; `docs/IMPROVEMENT_BACKLOG.md` WP-D1), so every band below asks for a gap clear of 2 SE before calling it a loss.
+
+**Ratings** (g = gap below the best move in Gigs, se its paired SE; "within the noise" = g < 0.15 or g ≤ 2 se, the coach's `isClose`):
+
+| Rating | Mark | Definition |
+|---|---|---|
+| Inspired | ◆◆ | Sharp, the 1-ply screen ranked the move third or lower (or left it off its 4-move shortlist), and the screen's first choice is clearly a whole Gig worse. |
+| Sharp | ◆ | The move is the oracle's top, the best other option measured is clearly a mistake-sized gap worse (≥ 0.375 Gigs, outside the noise), and the screen's first choice was another move. |
+| Best | ● | g ≤ 0.1 Gigs (the reviewer's `NOISE`). |
+| Close call | ○ | Within the noise, g > 0.1. |
+| Slip | ▽ | Outside the noise, g < 0.375. |
+| Mistake | ▼ | Outside the noise, 0.375 ≤ g < 1. |
+| Blunder | ▼▼ | Outside the noise and g ≥ 1 Gig, or a mistake that loses the game in at least 1 in 4 more play-outs than the best move (`gameLosing`). |
+| No clear difference | = | The game was already decided in every play-out, or every option measured (the move made included) is within the noise of the best. Not counted. |
+| Forced | – | One option. Not counted (the engine rarely asks these; none in the measurement below). |
+
+Your moves the coach graded keep its verdict (agree / as good → Best, close call → Close call, inaccuracy → Slip, mistake → Mistake, or Blunder from a whole Gig), with the same "no clear difference" check over the options it scored, and Sharp / Inspired only for its own pick, using the review's screen and the coach's paired scores. Moves the coach left pending or unscored are graded by the oracle. Sharp and Inspired need a screen, so reactions and sells chosen by rule are never more than Best. Not measured, so left out: "punished a rival error" as a reason for Sharp, and "gives up material now" for Inspired (a sell is the normal mana growth every turn, not a sacrifice).
+
+**Accuracy** per side = 100 × e^(−L), L = average Gigs lost per counted move, where a move inside the noise (Inspired, Sharp, Best, Close call) loses 0 and a gap counts at most 3 Gigs (`CAP`): 0.1 → 90, 0.25 → 78, 0.5 → 61, 1 → 37. **Turning point:** the counted move with the largest loss outside the noise, either side, earliest on ties. **Rival moves** are listed only when they are a Mistake, Blunder, Sharp or Inspired; after a rival Mistake or Blunder, your counted moves after it in your next turn (the rest of the same turn when the rival erred with a reaction) decide "missed chance" (one of them a Mistake or Blunder) or "followed up" (all Close call or better). The advantage line is the evaluation at the start of each turn from your side, in Gigs.
+
+**Stored** with the game in `nct.gameReviews.v1` (`src/lib/gameReviewStore.ts`; `schema: 1`, newest 25, keyed by the replay id): at game over the coach's grades (`CoachRating`, small), then the finished review (`GameReviewRecord`: every rated move, the timeline, and both seats' answers so the board at each move is rebuilt with no bot thinking, `src/lib/reviewFrames.ts`). A review whose answers differ from the replay's (the game was finished again after Undo) is run again. A 14-turn game with 59 rated moves took 9.8 KB (all graded by the oracle) and 15 KB with 33 coach grades and their reasons. The practice log gets your accuracy and counts (`PracticeGame.review`) for the Profile's history; older records without them still open.
+
+**Measured** 2026-11-12 with `npx tsx scripts/game-review-check.ts --games 20` (a Medium bot in the player's seat against Hard, 20 meta games, each reviewed twice with different oracle seeds; numbers from the first run):
+
+| | Inspired | Sharp | Best | Close call | Slip | Mistake | Blunder | No clear difference | Accuracy (mean) |
+|---|---|---|---|---|---|---|---|---|---|
+| Player (Medium) | 0 | 0 | 260 (50.0%) | 25 (4.8%) | 4 (0.8%) | 15 (2.9%) | 54 (10.4%) | 162 (31.2%) | 69.0 |
+| Rival (Hard) | 11 (2.0%) | 9 (1.6%) | 345 (62.1%) | 23 (4.1%) | 2 (0.4%) | 5 (0.9%) | 17 (3.1%) | 144 (25.9%) | 89.8 |
+
+Per game: Hard 0.55 Inspired and 0.45 Sharp, Medium none (its moves are the screen's own picks, so never non-obvious). Blunders outnumber mistakes because a play-out that loses a Gig or the game moves the mean in large steps. Re-run with another oracle seed: 1,076 decisions rated both times, 89.3% the same rating, **95.7% of the counted ones within one step** (95.9% of all; No clear difference counts as half a step from Best and Close call), so the bands and 8 play-outs were kept. Review time: 5.4 s in the browser's review worker for that 14-turn game (Chrome, desktop), about 8 s for a typical game on one Node thread with no other load (20 s median, 50 s max with 15 reviews in parallel on 16 cores); a game the coach graded is faster, as its graded moves are not played out. Before the Inspired line was tightened (screen rank ≥ 2 alone) Hard had 0.65 Inspired a game; with "only good move" alone as Sharp (no screen condition, 4 games) 1.75 per game for Medium and 5.5 for Hard, far from rare.
+
 ## 9. Known blind spots
 
 - No long-term planning beyond the rival's next turn, even in deep mode. The bot doesn't sandbag removal for a bigger threat on purpose.

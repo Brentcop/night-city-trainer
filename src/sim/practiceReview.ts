@@ -6,6 +6,7 @@ import { ScriptedAgent } from '../ai/reviewer';
 import { makeTierBot } from '../ai/tiers';
 import type { Agent, DeckList, PlayerId } from '../engine/types';
 import { CONCEDED_REASON } from '../lib/practiceVerdict';
+import type { GameReviewJob } from './gameReviewRun';
 
 export interface PracticeReviewSpec {
   decks: [DeckList, DeckList];
@@ -23,7 +24,9 @@ export interface PracticeReviewSpec {
 /** What the review worker (review.worker.ts) is asked: a bot game, or a recorded practice game. Here so Node code can name it. */
 export type ReviewRequest =
   | { kind: 'bots'; decks: [DeckList, DeckList]; seed: number; first: PlayerId; bot: string; rollouts: number; withCoach: boolean }
-  | ({ kind: 'practice'; rollouts: number; withCoach: boolean } & PracticeReviewSpec);
+  | ({ kind: 'practice'; rollouts: number; withCoach: boolean } & PracticeReviewSpec)
+  /** the Game review of a practice game (src/sim/gameReviewRun.ts): both seats rated, your coach grades kept */
+  | { kind: 'game'; job: GameReviewJob };
 
 /** An agent whose first decision ends the game: you (seat 0) concede, the bot wins. */
 export const conceding: Agent = {

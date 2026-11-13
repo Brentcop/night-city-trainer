@@ -22,7 +22,7 @@ function useReview(req: ReviewRequest | null) {
       const m = e.data;
       if ('progress' in m) setState((s) => ({ ...s, progress: m.progress }));
       else if ('review' in m) setState({ progress: m.review.decisions.length, review: m.review, busy: false }), worker.terminate();
-      else setState({ progress: 0, error: m.error, busy: false }), worker.terminate();
+      else if ('error' in m) setState({ progress: 0, error: m.error, busy: false }), worker.terminate();
     };
     // a worker that fails to load or crashes reports here (not via onmessage), so stop the spinner
     worker.onerror = (e: ErrorEvent) => {
@@ -71,8 +71,8 @@ export function ReviewPanel({ req, title, mySeat, expect }: { req: ReviewRequest
       <Categories seats={r.seats} />
       <Costly r={r} />
       <p className="small muted" style={{ marginBottom: 0 }}>
-        Accurate = within {gigs(NOISE)} Gigs of the best move found; blunder = more than {gigs(BLUNDER)} Gigs given up. Only main-phase moves are graded (not blocks,
-        reactions or targets), and the judge uses the bots' own evaluation: trust the costly-move list and game-losing flags most. Reviewed in {(r.ms / 1000).toFixed(0)} s.
+        Accurate = within {gigs(NOISE)} Gigs of the best move found; blunder = more than {gigs(BLUNDER)} Gigs given up. Main-phase moves and reactions are graded (not
+        targets or modes), and the judge uses the bots' own evaluation: trust the costly-move list and game-losing flags most. Reviewed in {(r.ms / 1000).toFixed(0)} s.
       </p>
     </div>
   );

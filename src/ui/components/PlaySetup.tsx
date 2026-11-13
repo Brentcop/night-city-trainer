@@ -7,14 +7,12 @@ import { classify, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
 import { telemetryReport } from '../../data/analysisData';
 import type { LibraryDeck } from '../../lib/library';
 import { clearPractice, loadPractice } from '../../lib/practiceLog';
-import { loadReplays, practiceRequest, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
-import type { ReviewRequest } from '../../sim/review.worker';
+import { loadReplays, type PracticeReplay } from '../../lib/practiceReplays';
 import { DeckPicker } from './DeckPicker';
 import { DeckTile } from './DeckIdentity';
-import { Modal } from './Modal';
 import { formatRecorded } from './RecordedAt';
 import { Verdict, Wr } from './Num';
-import { ReviewPanel } from './ReviewPanel';
+import { GameReviewModal } from './GameReview';
 import { ResumeButton, ResumeNote, SavedGamesPanel, type SavesProps } from './SavedGames';
 
 export type Seat = 'random' | 'first' | 'second';
@@ -126,14 +124,14 @@ export function PlaySetup({
 /** Recorded practice games, each reviewable by the match reviewer. */
 function RecentReviews() {
   const [list] = useState(() => loadReplays().slice(-6).reverse());
-  const [req, setReq] = useState<{ r: PracticeReplay; q: ReviewRequest } | null>(null);
+  const [req, setReq] = useState<PracticeReplay | null>(null);
   if (!list.length) return null;
   return (
     <div className="panel">
       <h3 style={{ marginTop: 0 }}>Review a recent game</h3>
       <div className="round-list">
         {list.map((r) => (
-          <button key={r.id} className="match-row" onClick={() => setReq({ r, q: practiceRequest(r) })}>
+          <button key={r.id} className="match-row" onClick={() => setReq(r)}>
             <span className={r.result === 'win' ? 'win' : ''}>{r.decks[0].name}</span>
             <b title={r.conceded ? 'You conceded' : undefined}>{r.result === 'win' ? 'W' : r.result === 'loss' ? (r.conceded ? 'L · conceded' : 'L') : 'D'}</b>
             <span>
@@ -142,11 +140,7 @@ function RecentReviews() {
           </button>
         ))}
       </div>
-      {req && (
-        <Modal label={`Review: ${req.r.decks[0].name} vs ${req.r.decks[1].name}`} onClose={() => setReq(null)}>
-          <ReviewPanel req={req.q} title={[`${req.r.decks[0].name} vs ${req.r.decks[1].name}`, formatRecorded(req.r.date)].filter(Boolean).join(' — ')} mySeat={0} expect={reviewExpect(req.r)} />
-        </Modal>
-      )}
+      {req && <GameReviewModal src={{ replay: req, coach: [], persist: true }} title={[`${req.decks[0].name} vs ${req.decks[1].name}`, formatRecorded(req.date)].filter(Boolean).join(' — ')} onClose={() => setReq(null)} />}
     </div>
   );
 }

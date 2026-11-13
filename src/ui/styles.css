@@ -1918,3 +1918,236 @@ ol.costly {
   display: grid;
   gap: 3px;
 }
+
+/* ---------- game review (src/ui/components/GameReview.tsx) ---------- */
+.modal.gr-modal {
+  max-width: 1100px;
+}
+.gr-title {
+  margin: 0 36px 6px 0;
+}
+.gr-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--mat-edge);
+  margin: 6px 0 10px;
+  padding-top: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.gr-tabs [role='tab'] {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 7px 12px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: -2px;
+}
+.gr-tabs [role='tab'].is-on {
+  color: var(--text);
+  background: var(--panel);
+  border-color: var(--mat-edge);
+  border-bottom: 2px solid var(--panel);
+  box-shadow: inset 0 3px 0 var(--accent-bg);
+}
+.gr-tabs [role='tab']:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+.gr {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.gr-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+.gr-seat {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+  min-width: 0;
+}
+.gr-acc {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  line-height: 1;
+}
+.gr-acc span {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+.gr-acc small {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gr-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.gr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.gr-mark {
+  font-size: 0.7rem;
+  letter-spacing: -0.08em;
+}
+.gr-top {
+  color: var(--cyan);
+}
+.gr-good {
+  color: var(--green);
+}
+.gr-fine {
+  color: var(--text);
+}
+.gr-warn {
+  color: var(--yellow);
+}
+.gr-bad {
+  color: var(--red);
+}
+.gr-none {
+  color: var(--muted);
+}
+.gr-turning {
+  margin: 0;
+}
+.gr-adv .gr-tp {
+  stroke: var(--red);
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+.gr-adv .gr-at {
+  stroke: var(--cyan);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.gr-adv-key span {
+  margin-right: 10px;
+}
+.gr-legend {
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.gr-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.gr-filters button.is-on {
+  border-color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent-bg);
+}
+.gr-split {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.gr-list {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 44vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.gr-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 8px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.gr-row.rival {
+  background: color-mix(in srgb, var(--magenta) 6%, transparent);
+}
+.gr-row.on {
+  background: color-mix(in srgb, var(--accent-bg) 18%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.gr-who {
+  font-weight: 700;
+}
+.gr-tag {
+  margin-left: 6px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  border: 1px dashed var(--muted);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.gr-detail {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.gr-step {
+  justify-content: space-between;
+}
+.gr-move-detail p {
+  margin: 4px 0 0;
+}
+.gr-note {
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+}
+.gr-board {
+  min-width: 0;
+  overflow-x: auto;
+}
+.gr-open {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 760px) {
+  .gr-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gr-list {
+    max-height: 32vh;
+  }
+  .gr-seats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

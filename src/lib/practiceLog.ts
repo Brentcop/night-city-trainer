@@ -16,6 +16,14 @@ export interface PracticeGame {
   gigs?: [number, number];
   /** the coach's end-of-game scorecard, when the coach was on and measured at least one move */
   coach?: CoachSummary;
+  /** your counts per rating from the Game review, once it has been run (src/lib/gameReview.ts reviewCounts) */
+  review?: ReviewSummary;
+}
+
+/** The Game review in numbers: your accuracy (0–100, null when nothing counted) and counts in RATINGS order (seven). */
+export interface ReviewSummary {
+  acc: number | null;
+  n: number[];
 }
 
 /** The scorecard in numbers: moves the coach measured, how many were fine, and the letter grade. */
@@ -48,6 +56,13 @@ export function coachSummary(grades: readonly { verdict: string }[]): (CoachSumm
 }
 
 const count = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0;
+function toReview(x: unknown): ReviewSummary | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  if (!(o.acc === null || (typeof o.acc === 'number' && o.acc >= 0 && o.acc <= 100))) return null;
+  if (!Array.isArray(o.n) || o.n.length !== 7 || !o.n.every(count)) return null;
+  return { acc: o.acc as number | null, n: [...(o.n as number[])] };
+}
 function toCoach(x: unknown): CoachSummary | null {
   if (!x || typeof x !== 'object') return null;
   const o = x as Record<string, unknown>;
@@ -73,6 +88,7 @@ function toEntry(x: unknown): PracticeGame | null {
     ...(o.conceded === true ? { conceded: true } : {}),
     ...(Array.isArray(o.gigs) && o.gigs.length === 2 && o.gigs.every(count) ? { gigs: [o.gigs[0], o.gigs[1]] as [number, number] } : {}),
     ...(toCoach(o.coach) ? { coach: toCoach(o.coach)! } : {}),
+    ...(toReview(o.review) ? { review: toReview(o.review)! } : {}),
   };
 }
 
@@ -112,6 +128,18 @@ export function annotatePractice(id: string, coach: CoachSummary) {
     const at = all.findIndex((x) => x.id === id);
     if (at < 0) return;
     all[at] = { ...all[at]!, coach: { fine: coach.fine, measured: coach.measured, grade: coach.grade } };
+    localStorage.setItem(KEY, JSON.stringify(all));
+  } catch {
+    /* ignore */
+  }
+}
+/** Add the Game review's counts to a recorded game (by its id). Does nothing when that game isn't in the log. */
+export function annotateReview(id: string, review: ReviewSummary) {
+  try {
+    const all = loadPractice();
+    const at = all.findIndex((x) => x.id === id);
+    if (at < 0) return;
+    all[at] = { ...all[at]!, review: { acc: review.acc, n: [...review.n] } };
     localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
     /* ignore */

@@ -4,11 +4,13 @@
 //   npx tsx scripts/review.ts --from tiers  [--games 42] [--tiers easy,medium,hard]      fresh games, every tier pairing
 //   npx tsx scripts/review.ts --from file --file data/reviews/practice.json              recorded practice games
 //   npx tsx scripts/review.ts --from file --file nct-game-….json --name my-game          a game exported from Play
-//     (⤓ Export game, src/lib/coachedReplay.ts: your seat replays your answers, with the coach's view of each)
+//     (⤓ Export game, src/lib/coachedReplay.ts: your seat replays your answers, with the coach's view of each); also
+//     runs its Game review exactly as the browser does (src/sim/gameReviewRun.ts) and prints every move's rating
 //   npx tsx scripts/review.ts --from chaos [--chaos 0.15] [--chaos-bot medium]           validation: planted random moves
 //   common: [--threads N] [--seed 1] [--coach-v1]
 //
-// Outputs: data/reviews/<name>.json (every review) and reports/review-<name>.md (aggregates).
+// Outputs: data/reviews/<name>.json (every review) and reports/review-<name>.md (aggregates, with the Game review's
+// ratings per bot, src/lib/gameReview.ts); for an exported game also data/reviews/<name>.game.json (its Game review).
 // Games whose review threw are kept in the JSON with their error, left out of the aggregates, and make the exit code 1.
 import fs from 'node:fs';
 import { bool, cli, forEachRecordedGame, int, loadLibrary, num, oneOf, runMain, str, threadsOpt, TIER_BOTS, workerPool } from './lib-node';
@@ -19,6 +21,8 @@ import { GIG_SWING } from '../src/ai/eval';
 import type { ReviewJob } from './review-worker';
 import { COACHED_REPLAY_KIND, coachedReviewSpec, parseCoachedReplay } from '../src/lib/coachedReplay';
 import { reviewExpect } from '../src/lib/practiceReplays';
+import { coachRatingsFrom, explain, RATING_INFO, RATINGS, rateOracle, seatSummary, turningPoint, type GameReviewRecord, type Rating } from '../src/lib/gameReview';
+import { runGameReview } from '../src/sim/gameReviewRun';
 
 const tierList = (v: string) => {
   const bad = v.split(',').filter((t) => !(TIER_BOTS as readonly string[]).includes(t));
@@ -120,6 +124,7 @@ function fromFile(): ReviewJob[] {
   }
   const spec = coachedReviewSpec(c.value);
   const r = c.value.replay;
+  gameJob = { id: r.id, spec, coach: coachRatingsFrom(c.value.decisions, r.choices.length, c.value.gigSwing), rollouts: ROLLOUTS, made: new Date().toISOString() };
   return [
     {
       id: r.id,
@@ -135,6 +140,8 @@ function fromFile(): ReviewJob[] {
     },
   ];
 }
+/** --from file with an exported game: its Game review, run as the browser runs it */
+let gameJob: Parameters<typeof runGameReview>[0] | null = null;
 const jobs = FROM === 'chaos' ? fromChaos() : FROM === 'tiers' ? fromTiers() : FROM === 'file' ? fromFile() : fromEvents();
 
 // ---------------------------------------------------------------- run
@@ -197,6 +204,7 @@ export function aggregate(done: Done[]) {
   const winLose = { win: empty(), lose: empty() };
   const coach = { n: 0, agree: 0, regret: 0, botAgree: 0, byCat: new Map<string, { n: number; agree: number; regret: number; bot: number }>() };
   const worst: (DecisionReview & { deck: string; agent: string })[] = [];
+  const rated = new Map<string, DecisionReview[]>();
   let replayMismatch = 0;
   let ms = 0;
   for (const { review: r, meta } of reviews) {
@@ -208,6 +216,7 @@ export function aggregate(done: Done[]) {
     for (const s of r!.seats) {
       const ds = r!.decisions.filter((d) => d.player === s.player);
       const agent = s.agent === 'deep' ? 'Deep (series bot)' : s.agent === 'hard-v1' ? 'Hard v1 (before refinement)' : tierLabel(s.agent);
+      rated.set(agent, [...(rated.get(agent) ?? []), ...ds]);
       for (const d of ds) {
         add(byAgent.get(agent) ?? (byAgent.set(agent, empty()), byAgent.get(agent)!), d);
         add(byCat.get(d.category) ?? (byCat.set(d.category, empty()), byCat.get(d.category)!), d);
@@ -232,7 +241,19 @@ export function aggregate(done: Done[]) {
       }
     }
   }
-  const sorted = (m: Map<string, Agg>) => [...m.entries()].sort((a, b) => b[1].regret / b[1].n - a[1].regret / a[1].n);
+  /** The Game review's ratings per bot (src/lib/gameReview.ts rateOracle; decisions reviewed before its fields count as far as they can). */
+function ratingsTable(rows: [string, DecisionReview[]][]): string[] {
+  const cols: Rating[] = [...RATINGS, 'unclear'];
+  const out = [`| | ${cols.map((k) => RATING_INFO[k].label).join(' | ')} |`, `|---|${'---|'.repeat(cols.length)}`];
+  for (const [k, ds] of rows) {
+    const n = new Map<Rating, number>();
+    for (const d of ds) n.set(rateOracle(d), (n.get(rateOracle(d)) ?? 0) + 1);
+    out.push(`| ${k} | ${cols.map((c) => `${n.get(c) ?? 0} (${pc((n.get(c) ?? 0) / Math.max(1, ds.length))})`).join(' | ')} |`);
+  }
+  return out;
+}
+
+const sorted = (m: Map<string, Agg>) => [...m.entries()].sort((a, b) => b[1].regret / b[1].n - a[1].regret / a[1].n);
   const md = [
     `# Match review — ${NAME} (${reviews.length} games, ${ROLLOUTS} play-outs per candidate${COACH ? ', coach checked on every decision' : ''})`,
     '',
@@ -243,6 +264,10 @@ export function aggregate(done: Done[]) {
     '',
     ...HEAD,
     ...[...byAgent.entries()].map(([k, a]) => row(k, a)),
+    '',
+    '## Game review ratings by bot (src/lib/gameReview.ts)',
+    '',
+    ...ratingsTable([...rated.entries()]),
     '',
     '## Winners vs losers',
     '',
@@ -406,5 +431,25 @@ async function main() {
   fs.mkdirSync('reports', { recursive: true });
   fs.writeFileSync(`reports/review-${NAME}.md`, md);
   console.log(md);
+  if (gameJob) {
+    const rec = await runGameReview(gameJob);
+    fs.writeFileSync(`data/reviews/${NAME}.game.json`, JSON.stringify(rec));
+    console.log('');
+    console.log(gameReviewText(rec));
+  }
+}
+
+/** The Game review of one game as text: the same ratings, accuracy and turning point the review screen shows. */
+function gameReviewText(rec: GameReviewRecord): string {
+  const who = (p: number) => (p === rec.me ? 'You' : 'Rival');
+  const lines = [`## Game review (${rec.rollouts} play-outs per candidate, oracle seed ${rec.oracleSeed})`, ''];
+  for (const p of [rec.me, 1 - rec.me] as const) {
+    const s = seatSummary(rec.moves, p as 0 | 1, rec.forced[p]);
+    lines.push(`${who(p)}: accuracy ${s.accuracy ?? '—'} over ${s.counted} counted moves; ${RATINGS.filter((k) => s.n[k]).map((k) => `${RATING_INFO[k].label} ${s.n[k]}`).join(', ')}${s.n.unclear ? `; no clear difference ${s.n.unclear}` : ''}`);
+  }
+  const tp = turningPoint(rec.moves);
+  lines.push(tp ? `Turning point: turn ${tp.turn}, ${who(tp.p)}: ${tp.chosen} (${RATING_INFO[tp.r].label}, −${tp.gap} Gigs)` : 'No turning point.', '');
+  for (const m of rec.moves) lines.push(`T${m.turn} ${who(m.p).padEnd(5)} ${RATING_INFO[m.r].mark.padEnd(2)} ${RATING_INFO[m.r].label.padEnd(19)} ${m.chosen} [${m.src}]${m.r !== 'best' && m.r !== 'unclear' ? ` — ${explain({ ...m, why: undefined })}` : ''}`);
+  return lines.join('\n');
 }
 runMain(main);
