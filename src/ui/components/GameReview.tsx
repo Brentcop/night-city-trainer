@@ -24,7 +24,7 @@ import {
 } from '../../lib/gameReview';
 import { loadGameReview, saveGameReview } from '../../lib/gameReviewStore';
 import { annotateReview } from '../../lib/practiceLog';
-import { practiceRequest, practiceSpec, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
+import { mySeat, practiceRequest, practiceSpec, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
 import { reviewFrames, type ReviewFrames } from '../../lib/reviewFrames';
 import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
 import { Modal } from './Modal';
@@ -166,7 +166,7 @@ export function GameReviewModal({ src: given, title, onClose, backdropClassName 
         <GameReviewView src={src} active={tab === 'game'} />
       </div>
       <div role="tabpanel" id="gr-panel-full" aria-labelledby="gr-tab-full" hidden={tab !== 'full'}>
-        {fullSeen && <ReviewPanel req={fullReq} mySeat={0} expect={reviewExpect(src.replay)} />}
+        {fullSeen && <ReviewPanel req={fullReq} mySeat={mySeat(src.replay)} expect={reviewExpect(src.replay)} />}
       </div>
     </Modal>
   );

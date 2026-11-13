@@ -9,15 +9,18 @@ import { deckSource } from './deckSource';
 
 export type Result = PracticeGame['result'];
 
-/** Bot tiers as the practice log names them; legacy names map as src/ai/tiers.ts tierOf does (tests check they agree). */
-export type BotTier = 'easy' | 'medium' | 'hard' | 'mixed' | 'other';
-export const BOT_TIERS: readonly BotTier[] = ['easy', 'medium', 'hard', 'mixed', 'other'];
+/**
+ * Bot tiers as the practice log names them; legacy names map as src/ai/tiers.ts tierOf does (tests check they agree).
+ * 'pvp' is not a bot: games against other players online (level 'pvp') are their own split, never counted in a tier.
+ */
+export type BotTier = 'easy' | 'medium' | 'hard' | 'mixed' | 'other' | 'pvp';
+export const BOT_TIERS: readonly BotTier[] = ['easy', 'medium', 'hard', 'mixed', 'other', 'pvp'];
 const LEGACY_LEVEL: Record<string, BotTier> = { fast: 'easy', lookahead: 'medium', deep: 'hard', 'hard-v1': 'hard' };
 export function botTier(level: string): BotTier {
   if (level in LEGACY_LEVEL) return LEGACY_LEVEL[level] as BotTier;
-  return level === 'easy' || level === 'medium' || level === 'hard' || level === 'mixed' ? level : 'other';
+  return level === 'easy' || level === 'medium' || level === 'hard' || level === 'mixed' || level === 'pvp' ? level : 'other';
 }
-export const BOT_TIER_LABEL: Record<BotTier, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard', mixed: 'Hard + Medium', other: 'Other' };
+export const BOT_TIER_LABEL: Record<BotTier, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard', mixed: 'Hard + Medium', other: 'Other', pvp: 'vs players' };
 
 /** Wins, losses and draws. */
 export interface WLD {

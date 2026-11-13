@@ -189,10 +189,10 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
       {h.byTier.length > 0 && (
         <div className="table-scroll">
           <table className="small profile-table">
-            <caption className="sr-only">Record by bot tier</caption>
+            <caption className="sr-only">Record by bot tier, and against other players</caption>
             <thead>
               <tr>
-                <th scope="col">Bot tier</th>
+                <th scope="col">Opponent</th>
                 <th scope="col">Games</th>
                 <th scope="col">Record</th>
                 <th scope="col">Win rate</th>
@@ -232,7 +232,7 @@ export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; c
             <th scope="col">Date</th>
             <th scope="col">Deck</th>
             <th scope="col">Rival deck</th>
-            <th scope="col">Bot</th>
+            <th scope="col">Opponent</th>
             <th scope="col">Result</th>
             <th scope="col">Turns</th>
             <th scope="col">Gigs</th>
@@ -358,7 +358,7 @@ export function DeckStatsTable({ rows, deckLink }: { rows: readonly SharedDeckSt
                         </ul>
                       </div>
                       <div>
-                        <b>By bot tier</b>
+                        <b>By opponent</b>
                         <ul className="plain-list">
                           {r.byTier.map((t) => (
                             <li key={t.tier}>

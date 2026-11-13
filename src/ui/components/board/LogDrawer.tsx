@@ -1,4 +1,4 @@
-// The side panel: the game log and the coach notes (an online chat may share it later). Full board: a slim tab in the
+// The side panel: the game log and the coach notes, and in an online game a Chat tab beside the log. Full board: a slim tab in the
 // turn strip shows the latest line, and the panel opens over the board on the right (default), the left, or along the
 // bottom above the hand (board settings, src/lib/boardSettings.ts `panel`); 'hidden' leaves it out. Compact (phone)
 // board: a bottom sheet. Its open state is the caller's (kept for the session).
@@ -51,12 +51,18 @@ export function LogTab({
   onToggle,
   warnings,
   side = 'right',
+  unread = 0,
+  chat = false,
 }: {
   log: Game['s']['log'];
   open: boolean;
   onToggle: (open: boolean) => void;
   warnings: number;
   side?: SidePanelSettings['position'];
+  /** chat messages not seen yet (a dot while the panel is closed) */
+  unread?: number;
+  /** the panel has a Chat tab */
+  chat?: boolean;
 }) {
   const last = log[log.length - 1];
   const arrow = side === 'left' ? (open ? '◂' : '▸') : side === 'bottom' ? (open ? '▾' : '▴') : open ? '▸' : '◂';
@@ -67,9 +73,11 @@ export function LogTab({
       aria-expanded={open}
       aria-controls={DRAWER_ID}
       onClick={() => onToggle(!open)}
-      title={open ? 'Close the game log' : 'Open the game log'}
+      title={open ? `Close the ${chat ? 'log and chat' : 'game log'}` : `Open the ${chat ? 'log and chat' : 'game log'}`}
+      aria-label={unread > 0 ? `${chat ? 'Log and chat' : 'Log'}, ${unread} unread message${unread > 1 ? 's' : ''}` : undefined}
     >
-      <span className="pb-logtab-label">Log</span>
+      <span className="pb-logtab-label">{chat ? 'Log · Chat' : 'Log'}</span>
+      {unread > 0 && <span className="pb-unread-dot" aria-hidden="true" />}
       {warnings > 0 && (
         <span className="pb-logtab-warn" title={`${warnings} coach warning${warnings > 1 ? 's' : ''}`}>
           ⚠ {warnings}
@@ -91,6 +99,9 @@ export function LogDrawer({
   coach,
   footer,
   panel = DEFAULT_BOARD_SETTINGS.panel,
+  chat,
+  unread = 0,
+  onChatShown,
 }: {
   log: Game['s']['log'];
   n: number;
@@ -102,8 +113,15 @@ export function LogDrawer({
   footer?: React.ReactNode;
   /** position and display settings (position 'hidden' draws nothing) */
   panel?: SidePanelSettings;
+  /** an online game's chat: a Chat tab beside the log */
+  chat?: React.ReactNode;
+  unread?: number;
+  /** whether the chat is on screen now (its messages count as read) */
+  onChatShown?: (shown: boolean) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<'log' | 'chat'>('log');
+  const showChat = !!chat && tab === 'chat';
   const box = useRef<HTMLElement>(null);
   const shown = open && panel.position !== 'hidden';
   // a panel already open when the board appears (its state lasts the session) doesn't take focus; one opened now does
@@ -117,7 +135,10 @@ export function LogDrawer({
   const newestFirst = panel.order === 'newest-first';
   useEffect(() => {
     if (shown && ref.current) ref.current.scrollTop = newestFirst ? 0 : ref.current.scrollHeight;
-  }, [n, shown, newestFirst]);
+  }, [n, shown, newestFirst, showChat]);
+  useEffect(() => {
+    onChatShown?.(shown && showChat);
+  }, [onChatShown, shown, showChat]);
   // Escape also closes a panel that was already open (no focus wiring then); a dialog's own Escape comes first
   useEffect(() => {
     if (!shown) return;
@@ -128,18 +149,35 @@ export function LogDrawer({
   if (!shown) return null;
   const cls = ['pb-drawer', sheet ? 'pb-drawer-sheet' : `pb-panel-${panel.position}`, `pb-panel-${panel.density}`, `pb-panel-text-${panel.textSize}`].join(' ');
   return (
-    <aside ref={box} id={DRAWER_ID} className={cls} aria-label="Game log" tabIndex={-1}>
+    <aside ref={box} id={DRAWER_ID} className={cls} aria-label={chat ? 'Game log and chat' : 'Game log'} tabIndex={-1}>
       <div className="pb-drawer-head">
-        <span className="pb-label">Game log</span>
-        <button type="button" className="ghost pb-drawer-close" onClick={onClose} aria-label="Close the game log">
+        {chat ? (
+          <div className="pb-drawer-tabs" role="tablist" aria-label="Side panel">
+            <button type="button" role="tab" aria-selected={!showChat} className={!showChat ? 'on' : ''} onClick={() => setTab('log')}>
+              Log
+            </button>
+            <button type="button" role="tab" aria-selected={showChat} className={showChat ? 'on' : ''} onClick={() => setTab('chat')}>
+              Chat{unread > 0 && !showChat ? <span className="pb-unread-dot" aria-label={`${unread} unread`} /> : null}
+            </button>
+          </div>
+        ) : (
+          <span className="pb-label">Game log</span>
+        )}
+        <button type="button" className="ghost pb-drawer-close" onClick={onClose} aria-label={chat ? 'Close the log and chat' : 'Close the game log'}>
           ✕
         </button>
       </div>
-      {coach}
-      <div className="log pb-log" ref={ref} aria-live="off">
-        <GameLog log={log} n={n} view={panel} />
-      </div>
-      {footer}
+      {showChat ? (
+        chat
+      ) : (
+        <>
+          {coach}
+          <div className="log pb-log" ref={ref} aria-live="off">
+            <GameLog log={log} n={n} view={panel} />
+          </div>
+          {footer}
+        </>
+      )}
     </aside>
   );
 }

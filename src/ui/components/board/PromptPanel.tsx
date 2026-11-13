@@ -11,7 +11,7 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
   const { g, pend, targeting } = ctx;
   if (g.s.winner !== null) return { text: g.s.winner === 0 ? 'You win!' : g.s.winner === 1 ? 'Rival wins' : 'Draw', tone: 'idle' };
   if (targeting) return { text: `Choose a target for ${g.name(targeting.attacker)} — a glowing unit or the Gig area`, tone: 'me' };
-  if (!pend) return { text: g.s.active === 1 ? "Rival's turn…" : 'Resolving…', tone: 'rival' };
+  if (!pend) return { text: ctx.rivalName ? `Waiting for ${ctx.rivalName}…` : g.s.active === 1 ? "Rival's turn…" : 'Resolving…', tone: 'rival' };
   if (pend.kind === 'action') return { text: 'Your move — click a marked card to act, or end your turn', tone: 'me' };
   if (pend.kind === 'reaction') {
     const a = g.s.attack;
@@ -47,7 +47,7 @@ export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: strin
   if (!pend) {
     return (
       <div className="pb-prompt pb-wait">
-        <span className="pb-spinner" /> Rival is thinking…
+        <span className="pb-spinner" /> {ctx.rivalName ? `Waiting for ${ctx.rivalName}…` : 'Rival is thinking…'}
       </div>
     );
   }

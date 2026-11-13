@@ -8,6 +8,15 @@ import type { Agent, DeckList, PlayerId } from '../engine/types';
 import { CONCEDED_REASON } from '../lib/practiceVerdict';
 import type { GameReviewJob } from './gameReviewRun';
 
+/** An online game against a person (src/net/): your engine seat, the rival's name and answers, how it ended. */
+export interface PvpReplay {
+  rival: string;
+  seat: PlayerId;
+  rivalChoices: number[][];
+  rivalConceded?: boolean;
+  abandoned?: boolean;
+}
+
 export interface PracticeReviewSpec {
   decks: [DeckList, DeckList];
   seed: number;
@@ -19,6 +28,8 @@ export interface PracticeReviewSpec {
   orderChoice?: boolean;
   /** you conceded: the re-simulation ends where your recorded choices end */
   conceded?: boolean;
+  /** an online game against a person: both seats replay their recorded answers (src/net/) */
+  pvp?: PvpReplay;
 }
 
 /** What the review worker (review.worker.ts) is asked: a bot game, or a recorded practice game. Here so Node code can name it. */
@@ -34,8 +45,23 @@ export const conceding: Agent = {
   decide: async (g) => g.endGame(1, CONCEDED_REASON),
 };
 
-/** [your recorded seat, the bot] for re-simulating a practice game. */
+/** An agent whose first decision ends the game: this seat concedes, the other wins. */
+const concedingSeat = (p: PlayerId): Agent => ({ name: 'conceded', decide: async (g) => g.endGame((1 - p) as PlayerId, CONCEDED_REASON) });
+/** An agent whose first decision ends the game as a draw (an online game that was abandoned). */
+const abandoning: Agent = { name: 'abandoned', decide: async (g) => g.endGame('tie', 'abandoned') };
+
+/** [your recorded seat, the bot] for re-simulating a practice game; for an online game, both seats' recorded answers. */
 export function practiceAgents(q: PracticeReviewSpec): [Agent, Agent] {
+  const v = q.pvp;
+  if (v) {
+    const me = v.seat;
+    const rival = (1 - me) as PlayerId;
+    // a record that runs out: where the player conceded, the game was abandoned, or (an old record) a stand-in bot
+    const end = (p: PlayerId, conceded: boolean): Agent => (conceded ? concedingSeat(p) : v.abandoned ? abandoning : makeTierBot('medium', 1));
+    const mine = new ScriptedAgent('You', q.choices, end(me, !!q.conceded), true, true);
+    const theirs = new ScriptedAgent('Rival', v.rivalChoices, end(rival, !!v.rivalConceded), true, true);
+    return me === 0 ? [mine, theirs] : [theirs, mine];
+  }
   const fallback = q.conceded ? conceding : makeTierBot('medium', 1);
   return [new ScriptedAgent('You', q.choices, fallback, !!q.payChoice, !!q.orderChoice), makeTierBot(q.botLevel, q.botSeed, 'Bot')];
 }

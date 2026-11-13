@@ -237,7 +237,7 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   return (
     <section className={`pb-side ${me ? 'pb-me' : 'pb-rival'} ${active ? 'pb-active' : ''}`}>
       <div className="pb-side-name">
-        <span className="pb-who">{ctx.seatLabels ? ctx.seatLabels[p] : me ? 'You' : 'Rival bot'}</span>
+        <span className="pb-who">{ctx.seatLabels ? ctx.seatLabels[p] : me ? 'You' : (ctx.rivalName ?? 'Rival bot')}</span>
         {!ctx.seatLabels && <span className="muted small">{P.name}</span>}
         {/* the full board shows the rival's hand size here instead of a row of card backs */}
         {!me && <span className="pb-name-hand small muted">{P.hand.length} in hand</span>}

@@ -1,7 +1,9 @@
 // Replayable records of practice games (seeds + every human choice), so a finished game can be reviewed later.
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DeckList, PlayerId } from '../engine/types';
-import type { PracticeReviewSpec, ReviewRequest } from '../sim/practiceReview';
+import type { PracticeReviewSpec, PvpReplay, ReviewRequest } from '../sim/practiceReview';
+
+export type { PvpReplay };
 
 export interface PracticeReplay {
   id: string;
@@ -30,12 +32,32 @@ export interface PracticeReplay {
    * that runs past them is no longer your game.
    */
   conceded?: boolean;
+  /**
+   * A game against another player online (src/net/), not a bot (botLevel 'pvp'): your seat in the engine's numbering
+   * (`choices` are that seat's answers), the rival's name and answers, and whether the rival conceded or the game was
+   * abandoned (a draw). Never part of the bots' or the sims' data.
+   */
+  pvp?: PvpReplay;
 }
+
 export const REPLAYS_KEY = 'nct.practiceReplays.v1';
 const KEY = REPLAYS_KEY;
 const MAX = 25;
 
 const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string');
+const isChoices = (x: unknown): x is number[][] => Array.isArray(x) && x.every((c) => Array.isArray(c) && c.every((i) => typeof i === 'number'));
+const isPvp = (x: unknown): x is PvpReplay => {
+  const p = x as PvpReplay | null;
+  return (
+    !!p &&
+    typeof p === 'object' &&
+    typeof p.rival === 'string' &&
+    (p.seat === 0 || p.seat === 1) &&
+    isChoices(p.rivalChoices) &&
+    (p.rivalConceded === undefined || typeof p.rivalConceded === 'boolean') &&
+    (p.abandoned === undefined || typeof p.abandoned === 'boolean')
+  );
+};
 const isDeck = (x: unknown): x is DeckList => {
   const d = x as DeckList | null;
   return !!d && typeof d === 'object' && typeof d.name === 'string' && isStrArr(d.legends) && isStrArr(d.main) && (d.sideboard === undefined || isStrArr(d.sideboard));
@@ -56,8 +78,8 @@ function isReplay(x: unknown): x is PracticeReplay {
     (r.first === undefined || r.first === 0 || r.first === 1) &&
     typeof r.botLevel === 'string' &&
     typeof r.botSeed === 'number' &&
-    Array.isArray(r.choices) &&
-    r.choices.every((c) => Array.isArray(c) && c.every((i) => typeof i === 'number')) &&
+    isChoices(r.choices) &&
+    (r.pvp === undefined || isPvp(r.pvp)) &&
     (r.payChoice === undefined || typeof r.payChoice === 'boolean') &&
     (r.orderChoice === undefined || typeof r.orderChoice === 'boolean') &&
     (r.conceded === undefined || typeof r.conceded === 'boolean') &&
@@ -110,12 +132,29 @@ export function clearReplays() {
   }
 }
 
+/** The seat you played (0 unless an online game put you in seat 1). */
+export const mySeat = (r: PracticeReplay): PlayerId => r.pvp?.seat ?? 0;
+
 /** The result a review's re-simulation should reproduce (a conceded game's re-simulation ends at the concession). */
-export const reviewExpect = (r: PracticeReplay): 0 | 1 | 'tie' => (r.result === 'win' ? 0 : r.result === 'loss' ? 1 : 'tie');
+export const reviewExpect = (r: PracticeReplay): 0 | 1 | 'tie' => {
+  const me = mySeat(r);
+  return r.result === 'win' ? me : r.result === 'loss' ? ((1 - me) as PlayerId) : 'tie';
+};
 
 /** What the reviewers need to re-simulate a recorded practice game (your seat replays your answers). */
 export function practiceSpec(r: PracticeReplay): PracticeReviewSpec {
-  return { decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, conceded: !!r.conceded };
+  return {
+    decks: r.decks,
+    seed: r.seed,
+    first: r.first,
+    botLevel: r.botLevel,
+    botSeed: r.botSeed,
+    choices: r.choices,
+    payChoice: !!r.payChoice,
+    orderChoice: !!r.orderChoice,
+    conceded: !!r.conceded,
+    ...(r.pvp ? { pvp: { ...r.pvp } } : {}),
+  };
 }
 
 /** Review request for a recorded practice game (your decisions only, with the coach's view of each; a conceded game ends where you conceded). */

@@ -5,7 +5,10 @@ export interface PracticeGame {
   date: string;
   deck: string;
   opp: string;
+  /** the bot tier, or 'pvp' for a game against another player online (src/net/) */
   level: string;
+  /** an online game: the other player's name as they gave it (capped) */
+  rival?: string;
   result: 'win' | 'loss' | 'draw';
   first: boolean;
   turns: number;
@@ -81,6 +84,7 @@ function toEntry(x: unknown): PracticeGame | null {
     deck: o.deck,
     opp: o.opp,
     level: typeof o.level === 'string' ? o.level : '',
+    ...(typeof o.rival === 'string' ? { rival: o.rival.slice(0, 30) } : {}),
     result: o.result as PracticeGame['result'],
     first: o.first === true,
     turns: typeof o.turns === 'number' ? o.turns : 0,

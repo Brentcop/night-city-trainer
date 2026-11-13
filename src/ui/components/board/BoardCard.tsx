@@ -42,6 +42,8 @@ export interface BoardCtx {
    * first ones, as Eddies are interchangeable), and a tap on your €$ pile that selects one more.
    */
   eddiePick?: { selected: number; add: () => void };
+  /** an online game: the other player's name (in place of "Rival bot" and "Rival") */
+  rivalName?: string;
 }
 
 /** How long a touch must stay put to read a card instead of tapping it (ms). */

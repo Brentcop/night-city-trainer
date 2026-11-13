@@ -185,10 +185,21 @@ describe('parser', () => {
 });
 
 describe('features and pages', () => {
-  it('every feature has a default; the three later ones are off', () => {
+  it('every feature has a default; only multi-day games (a later step) is off', () => {
     const d = defaultSiteConfig();
     expect(Object.keys(d.features).sort()).toEqual([...FEATURES].sort());
-    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['multiplayer', 'multiDayGames', 'chat']);
+    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['multiDayGames']);
+  });
+  it('multiplayer: STUN servers checked one by one (empty = same network only), the turn timer from a fixed list', () => {
+    expect(defaultSiteConfig().multiplayer).toEqual({ iceServers: ['stun:stun.l.google.com:19302'], turnTimer: 0 });
+    const p = parseObj((o) => {
+      o.multiplayer = { iceServers: ['stun:a.example.com:3478', 'turn:x.example.com', 'stuns:b.example.com', 'stun:a.example.com:3478', 5 as unknown as string], turnTimer: 45 as 0 };
+    });
+    expect(p.config.multiplayer).toEqual({ iceServers: ['stun:a.example.com:3478', 'stuns:b.example.com'], turnTimer: 0 });
+    expect(p.errors.map((e) => e.path)).toEqual(['multiplayer.iceServers[1]', 'multiplayer.iceServers[4]', 'multiplayer.turnTimer']);
+    const none = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 60 }));
+    expect(none.errors).toEqual([]);
+    expect(none.config.multiplayer).toEqual({ iceServers: [], turnTimer: 60 });
   });
   it('a feature that is off turns its pages off', () => {
     const d = defaultSiteConfig();
@@ -201,11 +212,11 @@ describe('features and pages', () => {
   });
   it('featureEnabled reads the config in effect (here: a previewed draft, then the published one)', () => {
     expect(featureEnabled('coach')).toBe(true);
-    expect(featureEnabled('chat')).toBe(false);
-    previewDraft(siteConfigText(withC((c) => ((c.features.coach = false), (c.features.chat = true)))));
-    expect([featureEnabled('coach'), featureEnabled('chat')]).toEqual([false, true]);
+    expect(featureEnabled('multiDayGames')).toBe(false);
+    previewDraft(siteConfigText(withC((c) => ((c.features.coach = false), (c.features.multiDayGames = true)))));
+    expect([featureEnabled('coach'), featureEnabled('multiDayGames')]).toEqual([false, true]);
     previewDraft(null);
-    expect([featureEnabled('coach'), featureEnabled('chat')]).toEqual([true, false]);
+    expect([featureEnabled('coach'), featureEnabled('multiDayGames')]).toEqual([true, false]);
     expect(siteConfig()).toEqual(defaultSiteConfig());
   });
 });

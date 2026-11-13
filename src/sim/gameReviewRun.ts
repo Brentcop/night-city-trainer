@@ -35,16 +35,18 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
     choosesOrder: a.choosesOrder,
     decide: (g: Parameters<typeof a.decide>[0], d: Parameters<typeof a.decide>[1]) => ((turn = g.s.turn), a.decide(g, d)),
   }));
+  const me = q.pvp?.seat ?? 0;
+  const names: [string, string] = q.pvp ? (me === 0 ? ['you', 'rival'] : ['rival', 'you']) : ['you', q.botLevel];
   const review = await reviewGame(
-    { decks: q.decks, seed: q.seed, first: q.first, agents: [tracked[0]!, tracked[1]!], agentNames: ['you', q.botLevel] },
+    { decks: q.decks, seed: q.seed, first: q.first, agents: [tracked[0]!, tracked[1]!], agentNames: names },
     {
       rollouts: job.rollouts ?? GAME_REVIEW_ROLLOUTS,
       seats: [0, 1],
-      skip: coachSkip(job.coach, 0),
+      skip: coachSkip(job.coach, me),
       keepAnswers: true,
       ...(job.oracleSeed !== undefined ? { oracleSeed: job.oracleSeed } : {}),
       onProgress: (n) => onProgress?.(n, turn),
     },
   );
-  return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me: 0 });
+  return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me });
 }

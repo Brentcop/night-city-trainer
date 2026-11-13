@@ -292,7 +292,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
       key: g.id ?? `${g.date}-${i}`,
       date: g.date,
       deck: g.deck,
-      opp: g.opp,
+      opp: g.rival ? `${g.opp} (${g.rival})` : g.opp,
       tier: botTier(g.level),
       result: g.result,
       turns: g.turns,

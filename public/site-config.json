@@ -147,9 +147,9 @@
     "tournamentRunner": true,
     "tunedDecks": true,
     "cardArtToggle": true,
-    "multiplayer": false,
+    "multiplayer": true,
     "multiDayGames": false,
-    "chat": false
+    "chat": true
   },
   "banner": {
     "text": "",
@@ -224,5 +224,11 @@
     "on": false,
     "message": "The site is down for maintenance. Please check back soon.",
     "allowPlay": true
+  },
+  "multiplayer": {
+    "iceServers": [
+      "stun:stun.l.google.com:19302"
+    ],
+    "turnTimer": 0
   }
 }

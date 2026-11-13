@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { Game } from '../../engine/engine';
 import type { Decision, DeckList, PlayerId } from '../../engine/types';
+import type { CoachedGrade } from '../../lib/coachedReplay';
+import type { PracticeReplay } from '../../lib/practiceReplays';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
 import { annotatePractice, coachSummary } from '../../lib/practiceLog';
 import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
 import { download } from '../../lib/download';
 import { GIG_SWING } from '../../ai/eval';
-import { canConcede, canUndo, type PracticeSession, type Running } from '../../lib/practiceSession';
+import { canConcede, canUndo, type Running } from '../../lib/practiceSession';
 import { GameReviewModal, type GameReviewSource } from '../components/GameReview';
 import { coachRatingsFrom } from '../../lib/gameReview';
 import { saveCoachRatings } from '../../lib/gameReviewStore';
@@ -45,7 +48,7 @@ import { useViewport } from '../components/board/useNarrow';
 import { phoneLayout, phoneVars } from '../components/board/layout';
 import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
-import { saveOfRun, useGameTick, usePracticeGame } from '../usePracticeGame';
+import { saveOfRun, useGameTick, usePracticeGame, type TickSource } from '../usePracticeGame';
 import {
   addSlot,
   clearAutosave,
@@ -67,7 +70,23 @@ import { PlaySetup, type Seat } from '../components/PlaySetup';
 import { useSiteConfig } from '../useSiteConfig';
 import '../board.css';
 
-export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; initialOpp?: string }) {
+// online play (src/net/) loads only when it is opened, so the ordinary Play page doesn't carry it
+const PlayOnline = lazy(() => import('./PlayOnline').then((m) => ({ default: m.PlayOnline })));
+
+/** `sub`: "online" opens online play's lobby, "join/<code>" opens it on an invite (when multiplayer is on). */
+export function PlayPage({ initialDeck, initialOpp, sub = '', mode = null }: { initialDeck?: string; initialOpp?: string; sub?: string; mode?: string | null }) {
+  const site = useSiteConfig();
+  if (site.features.multiplayer && (sub === 'online' || sub.startsWith('join/'))) {
+    return (
+      <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>
+        <PlayOnline invite={sub.startsWith('join/') ? sub.slice(5) : null} mode={mode === 'join' ? 'join' : 'host'} initialDeck={initialDeck} />
+      </Suspense>
+    );
+  }
+  return <PracticePlay initialDeck={initialDeck} initialOpp={initialOpp} online={site.features.multiplayer} />;
+}
+
+function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: string; initialOpp?: string; online: boolean }) {
   // defaults skip decks hidden in this browser; a link to a deleted deck finds nothing and falls back to them
   const [mine, setMine] = useState(() => findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file ?? '');
   const [opp, setOpp] = useState(() => findDeck(initialOpp)?.file ?? firstVisibleDeck(findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file)?.file ?? '');
@@ -175,6 +194,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
           onStart={start}
           onSettings={() => setShowSettings(true)}
           saves={site.features.savedGames ? saves : undefined}
+          online={online}
         />
         {askNew && autosave && (
           <ConfirmDialog
@@ -230,7 +250,45 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} canSave={storageOk} canReview={site.features.gameReview} />;
 }
 
-function Board({
+/** The seat the board answers through: the practice HumanAgent, or an online seat (src/net/session.ts SeatControl). */
+export interface BoardSeat {
+  pending: { d: Decision } | null;
+  answer(d: Decision | null, i: number): boolean;
+}
+
+/** What the board reads of a game: a practice game (Running), or an online game's view. */
+export interface BoardRun {
+  match: number;
+  g: Game;
+  human: BoardSeat;
+  bot?: { lastThought?: string | null };
+  grades: CoachedGrade[];
+  replay: PracticeReplay;
+  error: string | null;
+  cancelled: boolean;
+  conceded: boolean;
+  stable: Running['stable'];
+}
+
+/** An online game's parts of the board (src/ui/pages/PlayOnline.tsx); absent for a game against the bot. */
+export interface OnlineBoard {
+  rivalName: string;
+  canConcede: boolean;
+  /** under the turn strip: the connection, whose turn, the timer */
+  status: React.ReactNode;
+  /** the chat for the side panel's Chat tab (absent when chat is off) */
+  chat?: { node: React.ReactNode; unread: number; onSeen: (open: boolean) => void };
+  /** the game-over dialog's rematch button and what it says */
+  rematchLabel: string;
+  rematchDisabled: boolean;
+  /** under the result: what happens next (rematch offers, the record) */
+  overNote?: React.ReactNode;
+  /** the Game review of the finished game, once the record is known */
+  review: () => GameReviewSource | null;
+  exportGame: () => void;
+}
+
+export function Board({
   session,
   game,
   coach,
@@ -242,9 +300,10 @@ function Board({
   onUndo,
   canSave,
   canReview,
+  online,
 }: {
-  session: PracticeSession;
-  game: Running;
+  session: TickSource;
+  game: BoardRun;
   coach: boolean;
   speed: number;
   setSpeed: (n: number) => void;
@@ -256,14 +315,16 @@ function Board({
   canSave: boolean;
   /** game review is on (site config) */
   canReview: boolean;
+  online?: OnlineBoard;
 }) {
   // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
   const { g, human, bot, grades } = game;
   const s = g.s;
   const pend = human.pending?.d ?? null;
-  const undoable = canUndo(game);
-  const concedable = canConcede(game);
+  // a practice game is a Running; an online game has no Undo and its own concede rule
+  const undoable = online ? false : canUndo(game as Running);
+  const concedable = online ? online.canConcede : canConcede(game as Running);
   const conceded = game.conceded;
   // the single layout switch: the full board, or the phone board (portrait or landscape) sized from the viewport
   const vp = useViewport();
@@ -517,6 +578,7 @@ function Board({
     handOrder,
     marks,
     inspect: narrow ? (uid) => setPeek({ uid, d: null }) : undefined,
+    rivalName: online?.rivalName,
     eddiePick: beforeSel && beforeSources ? { selected: beforeSel.eddies, add: () => setPaySel(addEddie(beforeSel, readyEddies(beforeSources))) } : undefined,
   };
 
@@ -530,12 +592,17 @@ function Board({
     // the coach's grades go with the game, so a Game review run later (from the Profile) keeps them
     saveCoachRatings(game.replay.id, coachRatingsFrom(grades.map((x) => x.record), game.replay.choices.length, GIG_SWING), game.replay.choices);
   }, [over, coach, grades, grades.length, game.replay.id, game.replay.choices]);
+  const onlineReview = online && over ? online.review() : null;
   const openReview = () => {
     setHideOver(true);
+    if (online) {
+      if (onlineReview) setReview(onlineReview);
+      return;
+    }
     setReview({ replay: game.replay, coach: coachRatingsFrom(grades.map((x) => x.record), game.replay.choices.length, GIG_SWING), persist: true, turns: g.s.turn });
   };
   // a game can be saved once you have been asked something, until it ends
-  const savable = canSave && !over && !failed && !game.cancelled && !!game.stable;
+  const savable = !online && canSave && !over && !failed && !game.cancelled && !!game.stable;
   const openSave = () => {
     setMenu(null);
     setTargeting(null);
@@ -544,7 +611,8 @@ function Board({
   };
   // INFO-9: the finished game as a file, with the coach's advice, grade and scores per decision (src/lib/coachedReplay.ts)
   const exportGame = () => {
-    const c = buildCoachedReplay(game.replay, grades, new Date().toISOString(), GIG_SWING);
+    if (online) return online.exportGame();
+    const c =buildCoachedReplay(game.replay, grades, new Date().toISOString(), GIG_SWING);
     download(coachedReplayFileName(c), JSON.stringify(c, null, 1), 'application/json');
   };
   const mulligan = !!pend && pend.kind === 'yesno' && pend.tag === 'mulligan';
@@ -596,8 +664,11 @@ function Board({
   );
   const allActions = <AllActions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} open={allOpen} onToggle={setAllOpen} />;
   const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} /> : null;
-  const lastMove = bot.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div> : null;
+  const lastMove = bot?.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div> : null;
   const closeLog = useCallback(() => setLogOpen(false), [setLogOpen]);
+  // online: the chat shares the side panel; its unread count shows on the panel's toggle while it is closed
+  const chat = online?.chat;
+  const unread = chat?.unread ?? 0;
   // side panel setting: open it when the rival's turn starts
   const rivalTurn = s.active === 1 && s.winner === null ? s.turn : null;
   const autoOpen = panelSet.autoOpenRivalTurn && !panelHidden;
@@ -625,7 +696,7 @@ function Board({
           </button>
           <div className="pb-turn">
             <span className="pb-turn-no">T{s.turn}</span>
-            <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'OVER' : s.active === 0 ? 'YOU' : 'RIVAL'}</span>
+            <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'OVER' : s.active === 0 ? 'YOU' : online ? 'THEM' : 'RIVAL'}</span>
             {s.overtime && <span className="pb-overtime">OT</span>}
           </div>
           <div className="pb-strip-tools">
@@ -635,16 +706,19 @@ function Board({
                 className={`ghost pb-icon ${logOpen ? 'on' : ''}`}
                 aria-expanded={logOpen}
                 aria-controls={DRAWER_ID}
-                aria-label={warnings.length ? `Game log, ${warnings.length} coach warnings` : 'Game log'}
-                title="Game log"
+                aria-label={`${chat ? 'Game log and chat' : 'Game log'}${warnings.length ? `, ${warnings.length} coach warnings` : ''}${unread ? `, ${unread} unread messages` : ''}`}
+                title={chat ? 'Game log and chat' : 'Game log'}
                 onClick={() => setLogOpen(!logOpen)}
               >
                 ≡{warnings.length > 0 && <span className="pb-icon-badge">{warnings.length}</span>}
+                {unread > 0 && <span className="pb-unread-dot" aria-hidden="true" />}
               </button>
             )}
-            <button type="button" className="pb-icon" onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Undo: back to before your last action">
-              ↶
-            </button>
+            {!online && (
+              <button type="button" className="pb-icon" onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Undo: back to before your last action">
+                ↶
+              </button>
+            )}
             {over ? (
               <button type="button" className="pb-icon" onClick={() => setHideOver(false)} disabled={!hideOver} aria-label="Show the result" title="Show the result">
                 ⚐
@@ -670,7 +744,7 @@ function Board({
         </button>
         <div className="pb-turn">
           <span className="pb-turn-no">TURN {s.turn}</span>
-          <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'GAME OVER' : s.active === 0 ? 'YOUR TURN' : "RIVAL'S TURN"}</span>
+          <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'GAME OVER' : s.active === 0 ? 'YOUR TURN' : online ? `${online.rivalName.toUpperCase()}'S TURN` : "RIVAL'S TURN"}</span>
           {s.overtime && <span className="pb-overtime">OVERTIME</span>}
         </div>
         <div className="pb-strip-tools">
@@ -679,18 +753,20 @@ function Board({
               Log{warnings.length > 0 ? ` ⚠${warnings.length}` : ''}
             </button>
           ) : (
-            !panelHidden && <LogTab log={s.log} open={logOpen} onToggle={setLogOpen} warnings={warnings.length} side={panelSet.position} />
+            !panelHidden && <LogTab log={s.log} open={logOpen} onToggle={setLogOpen} warnings={warnings.length} side={panelSet.position} unread={unread} chat={!!chat} />
           )}
-          <label className="pb-speed small muted">
-            <span className="pb-speed-cap">Bot speed</span>
-            <select value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="Bot speed">
-              {BOT_SPEEDS.map((x) => (
-                <option key={x.ms} value={x.ms}>
-                  {x.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!online && (
+            <label className="pb-speed small muted">
+              <span className="pb-speed-cap">Bot speed</span>
+              <select value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="Bot speed">
+                {BOT_SPEEDS.map((x) => (
+                  <option key={x.ms} value={x.ms}>
+                    {x.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <button type="button" className="ghost pb-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings: paying costs, the log panel, colours and backgrounds">
             ⚙
           </button>
@@ -699,29 +775,34 @@ function Board({
               Save
             </button>
           )}
-          <button onClick={onUndo} disabled={!undoable} title="Go back to before your last action (also undoes the bot's moves since)">
-            ↶ Undo
-          </button>
+          {!online && (
+            <button onClick={onUndo} disabled={!undoable} title="Go back to before your last action (also undoes the bot's moves since)">
+              ↶ Undo
+            </button>
+          )}
           {over && hideOver && <button onClick={() => setHideOver(false)}>Result</button>}
           {!over && (
             <button className="pb-concede" onClick={() => openLeave('concede')} disabled={!concedable} title="End the game now as a recorded loss">
               ⚑ Concede
             </button>
           )}
-          <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} title={over ? 'Back to the game setup' : 'Leave this game without recording a result'}>
+          <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} title={over ? 'Back to the game setup' : online ? 'Leave this game: it ends as abandoned (a draw)' : 'Leave this game without recording a result'}>
             {over ? 'New game' : 'Exit game'}
           </button>
         </div>
       </div>
       )}
+      {online?.status}
       <div className="pb-stage">
         {failed && (
           <div className="panel pb-error" role="alert">
             <b style={{ color: 'var(--red)' }}>The game stopped because of an error.</b> <span className="small muted">{failed.slice(0, 300)}</span>
             <div className="row" style={{ marginTop: 8 }}>
-              <button className="primary" onClick={onUndo} disabled={!undoable}>
-                ↶ Undo to before your last decision
-              </button>
+              {!online && (
+                <button className="primary" onClick={onUndo} disabled={!undoable}>
+                  ↶ Undo to before your last decision
+                </button>
+              )}
               <button onClick={onQuit}>Exit game</button>
             </div>
           </div>
@@ -766,7 +847,7 @@ function Board({
             }}
           />
         )}
-        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} panel={panelSet} />
+        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} panel={panelSet} chat={chat?.node} unread={unread} onChatShown={chat?.onSeen} />
       </div>
       {navOpen && (
         <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
@@ -794,7 +875,7 @@ function Board({
           {gameMenu && (
             <GameMenu
               speed={speed}
-              setSpeed={setSpeed}
+              setSpeed={online ? undefined : setSpeed}
               sortLabel={SORT_LABEL[sortMode]}
               onSort={() => setSortMode(nextSort(sortMode))}
               onSite={() => setNavOpen(true)}
@@ -834,7 +915,7 @@ function Board({
                 setSpeed(DEFAULT_BOT_SPEED);
               }}
               speed={speed}
-              setSpeed={setSpeed}
+              setSpeed={online ? undefined : setSpeed}
               panels={{ logOpen, setLogOpen, allOpen, setAllOpen }}
               onClose={() => setShowSettings(false)}
             />
@@ -849,7 +930,7 @@ function Board({
               defaultName={defaultSaveName({ decks: game.replay.decks, turn: s.turn })}
               slots={saving}
               onSave={(name) => {
-                const save = saveOfRun(game, coach, newSlotId(), name);
+                const save = saveOfRun(game as Running, coach, newSlotId(), name);
                 if (!save) return 'There is nothing to save yet: wait for your next decision.';
                 const r = addSlot(save);
                 if (!r.ok) return r.why;
@@ -871,6 +952,7 @@ function Board({
       )}
       {leave && (
         <LeaveDialog
+          online={!!online}
           kind={leave}
           onCancel={() => setLeave(null)}
           onConfirm={() => {
@@ -902,19 +984,28 @@ function Board({
           g={g}
           conceded={conceded}
           onRematch={onRematch}
+          rematchLabel={online?.rematchLabel}
+          rematchDisabled={online?.rematchDisabled}
+          newLabel={online ? 'Leave' : undefined}
           onNew={onQuit}
           onHide={() => setHideOver(true)}
           onUndo={undoable ? onUndo : undefined}
           review={
             <>
               {coach && <Scorecard grades={grades} />}
+              {online?.overNote}
               <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
-                {canReview && (
+                {canReview && (!online || onlineReview) && (
                   <button className="ghost" onClick={openReview} title="A rating for every move of both sides, the turning point, and the board at each move">
                     🔍 Game review
                   </button>
                 )}
-                <button className="ghost" onClick={exportGame} title="Save this game as a file: seeds, your moves and the coach's advice on each">
+                <button
+                  className="ghost"
+                  onClick={exportGame}
+                  disabled={!!online && !onlineReview}
+                  title={online ? 'Save this game as a file: the full record and the chat' : "Save this game as a file: seeds, your moves and the coach's advice on each"}
+                >
                   ⤓ Export game
                 </button>
               </div>

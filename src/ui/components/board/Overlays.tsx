@@ -10,7 +10,7 @@ import { TcgCard } from '../TcgCard';
 import type { BoardCtx } from './BoardCard';
 
 /** "Are you sure?" before conceding (a recorded loss) or exiting (nothing recorded). Rendered at the document body. */
-export function LeaveDialog({ kind, onConfirm, onCancel }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void }) {
+export function LeaveDialog({ kind, onConfirm, onCancel, online }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void; online?: boolean }) {
   const id = useId();
   const concede = kind === 'concede';
   return createPortal(
@@ -19,13 +19,17 @@ export function LeaveDialog({ kind, onConfirm, onCancel }: { kind: 'concede' | '
         {concede ? 'Concede this game?' : 'Exit this game?'}
       </h3>
       <p className="muted">
-        {concede
-          ? 'The game ends now as a loss, recorded in your practice log and replays as conceded. You can still undo from the result screen.'
-          : 'The game ends now and nothing is recorded: no result and no replay. Its autosave is removed too; use Save first to keep it.'}
+        {online
+          ? concede
+            ? 'The game ends now as a loss for you and a win for the other player, recorded as conceded.'
+            : 'You leave the game and the connection closes. The game ends as abandoned and is recorded as a draw on both sides.'
+          : concede
+            ? 'The game ends now as a loss, recorded in your practice log and replays as conceded. You can still undo from the result screen.'
+            : 'The game ends now and nothing is recorded: no result and no replay. Its autosave is removed too; use Save first to keep it.'}
       </p>
       <div className="row pb-leave-actions">
         <button className={concede ? 'pb-danger' : 'primary'} onClick={onConfirm}>
-          {concede ? '⚑ Concede' : 'Exit game'}
+          {concede ? '⚑ Concede' : online ? 'Leave game' : 'Exit game'}
         </button>
         <button onClick={onCancel}>Keep playing</button>
       </div>
@@ -200,10 +204,16 @@ export function GameOverOverlay({
   onHide,
   onUndo,
   review,
+  rematchLabel = 'Rematch',
+  rematchDisabled = false,
+  newLabel = 'New game',
 }: {
   g: Game;
   conceded?: boolean;
   onRematch: () => void;
+  rematchLabel?: string;
+  rematchDisabled?: boolean;
+  newLabel?: string;
   onNew: () => void;
   onHide: () => void;
   /** offered when there is a position to go back to (after a concede: the position you conceded from) */
@@ -229,11 +239,11 @@ export function GameOverOverlay({
         </div>
         {review}
         <div className="row" style={{ marginTop: 16, justifyContent: 'center' }}>
-          <button className="primary pb-big" onClick={onRematch}>
-            Rematch
+          <button className="primary pb-big" onClick={onRematch} disabled={rematchDisabled}>
+            {rematchLabel}
           </button>
           <button className="pb-big" onClick={onNew}>
-            New game
+            {newLabel}
           </button>
           {onUndo && (
             <button className="ghost" onClick={onUndo} title={conceded ? 'Take back the concession: back to before your last decision' : 'Back to before your last decision'}>

@@ -2762,3 +2762,160 @@ button.pb-pp-min {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------------------------------------------------------------- online play (src/ui/pages/PlayOnline.tsx) */
+.play-online-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.online-lobby .row label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.online-lobby input[type='text'],
+.online-code textarea,
+.online-exchange textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+.online-code textarea,
+.online-exchange textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.online-code {
+  display: grid;
+  gap: 6px;
+}
+.online-notes p {
+  margin: 4px 0;
+}
+.online-error {
+  color: var(--red);
+  margin: 0;
+}
+.online-saved {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.online-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.online-status.is-lost {
+  color: var(--red);
+}
+.online-status button {
+  min-height: 24px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+.online-timer {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.online-timer.low {
+  color: var(--red);
+  font-weight: 700;
+}
+.pb-unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+.pb-icon .pb-unread-dot {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  margin: 0;
+}
+.pb-drawer-tabs {
+  display: flex;
+  gap: 4px;
+}
+.pb-drawer-tabs button {
+  min-height: 26px;
+  padding: 2px 10px;
+  font-size: 12px;
+}
+.pb-drawer-tabs button.on {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.pb-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  flex: 1;
+}
+.pb-chat-lines {
+  flex: 1;
+  min-height: 80px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  font-size: 13px;
+}
+.pb-chat-system {
+  color: var(--muted);
+  font-style: italic;
+}
+.pb-chat-me b {
+  color: var(--cyan);
+}
+.pb-chat-rival b {
+  color: var(--accent);
+}
+.pb-chat-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pb-chat-quick button {
+  min-height: 26px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+.pb-chat-form {
+  display: flex;
+  gap: 6px;
+}
+.pb-chat-form input {
+  flex: 1;
+  min-width: 0;
+}
+.pb-chat-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}

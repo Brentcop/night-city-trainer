@@ -35,6 +35,7 @@ export function PlaySetup({
   onStart,
   onSettings,
   saves,
+  online = false,
 }: {
   mine: string;
   setMine: (file: string) => void;
@@ -58,10 +59,28 @@ export function PlaySetup({
   onSettings?: () => void;
   /** saved games: Resume game (the autosave) beside Start, and the list of named saves */
   saves?: SavesProps;
+  /** online play is on (site config): the Play online choice shows */
+  online?: boolean;
 }) {
   return (
     <div className="grid" style={{ maxWidth: 860 }}>
       <h1>Play vs Bot</h1>
+      {online && (
+        <div className="panel play-online-entry">
+          <div>
+            <b>Play online</b>
+            <div className="small muted">Play a friend in their own browser: host a game and send them the invite, or join with theirs.</div>
+          </div>
+          <div className="row">
+            <a className="btn primary" href="#/play/online?mode=host">
+              Host a game
+            </a>
+            <a className="btn" href="#/play/online?mode=join">
+              Join a game
+            </a>
+          </div>
+        </div>
+      )}
       {dA && dB && (
         <div className="pb-versus">
           <div className="pb-versus-deck">

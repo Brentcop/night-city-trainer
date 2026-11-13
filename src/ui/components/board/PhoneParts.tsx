@@ -160,7 +160,8 @@ export function GameMenu({
   onClose,
 }: {
   speed: number;
-  setSpeed: (ms: number) => void;
+  /** absent in an online game (no bot): no Bot speed row */
+  setSpeed?: (ms: number) => void;
   sortLabel: string;
   onSort: () => void;
   onSite: () => void;
@@ -191,16 +192,18 @@ export function GameMenu({
             Show the result
           </button>
         )}
-        <label className="pb-gamemenu-row" htmlFor={id}>
-          <span>Bot speed</span>
-          <select id={id} value={speed} onChange={(e) => setSpeed(+e.target.value)}>
-            {BOT_SPEEDS.map((x) => (
-              <option key={x.ms} value={x.ms}>
-                {x.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {setSpeed && (
+          <label className="pb-gamemenu-row" htmlFor={id}>
+            <span>Bot speed</span>
+            <select id={id} value={speed} onChange={(e) => setSpeed(+e.target.value)}>
+              {BOT_SPEEDS.map((x) => (
+                <option key={x.ms} value={x.ms}>
+                  {x.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <button role="menuitem" onClick={onSort} title="Sort your hand (or drag a card onto another to reorder)">
           ⇅ Hand: {sortLabel}
         </button>

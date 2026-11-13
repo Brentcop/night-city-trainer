@@ -83,7 +83,8 @@ export function SettingsDialog({
   /** back to the defaults (the bot's pace included) */
   onReset: () => void;
   speed: number;
-  setSpeed: (ms: number) => void;
+  /** absent in an online game (no bot): the Bot section is left out */
+  setSpeed?: (ms: number) => void;
   /** during a game: the panels kept open for the session */
   panels?: SessionPanels;
   onClose: () => void;
@@ -194,10 +195,12 @@ export function SettingsDialog({
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend>Bot</legend>
-        <Select<string> label="Bot speed" value={String(speed)} options={BOT_SPEEDS.map((x) => ({ value: String(x.ms), label: x.label }))} onChange={(v) => setSpeed(+v)} />
-      </fieldset>
+      {setSpeed && (
+        <fieldset>
+          <legend>Bot</legend>
+          <Select<string> label="Bot speed" value={String(speed)} options={BOT_SPEEDS.map((x) => ({ value: String(x.ms), label: x.label }))} onChange={(v) => setSpeed(+v)} />
+        </fieldset>
+      )}
 
       <div className="pb-settings-actions">
         <button type="button" onClick={onReset}>

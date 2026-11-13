@@ -56,7 +56,13 @@ export function usePracticeGame(pace: () => number, coach: () => boolean = () =>
   return { session, game, start, resume, undo, quit, concede };
 }
 
+/** Anything the board can follow: a practice session, or an online game (src/net/session.ts). */
+export interface TickSource {
+  subscribe: (fn: () => void) => () => void;
+  readonly version: number;
+}
+
 /** Re-render on every change of the running game (engine updates, new decisions, game over, errors). */
-export function useGameTick(session: PracticeSession): number {
+export function useGameTick(session: TickSource): number {
   return useSyncExternalStore(session.subscribe, () => session.version);
 }

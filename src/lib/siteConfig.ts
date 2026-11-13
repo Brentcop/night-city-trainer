@@ -28,9 +28,9 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
   tournamentRunner: { label: 'Tournament runner', help: 'Running a tournament in the browser (#/run).', default: true },
   tunedDecks: { label: 'Tuned decks page', help: 'The list of decks tuned in the Lab (#/tuned).', default: true },
   cardArtToggle: { label: 'Card art switch', help: 'The Art / Text button in the header.', default: true },
-  multiplayer: { label: 'Multiplayer (not built yet)', help: 'Reserved for a later step; nothing reads it yet.', default: false },
+  multiplayer: { label: 'Play online', help: 'Play another person online (Play → Play online): a direct browser-to-browser link set up with invite codes.', default: true },
   multiDayGames: { label: 'Multi-day games (not built yet)', help: 'Reserved for a later step; nothing reads it yet.', default: false },
-  chat: { label: 'Chat (not built yet)', help: 'Reserved for a later step; nothing reads it yet.', default: false },
+  chat: { label: 'Chat', help: 'The text chat between the two players of an online game.', default: true },
 };
 
 // ---------------------------------------------------------------- navigation catalogue
@@ -98,6 +98,14 @@ export type TierKey = (typeof TIER_KEYS)[number];
 export const BANNER_LEVELS = ['info', 'warning'] as const;
 export type BannerLevel = (typeof BANNER_LEVELS)[number];
 
+/** Turn timer choices for online games, in seconds per decision (0 = no timer). */
+export const TURN_TIMERS = [0, 30, 60, 90, 120, 300] as const;
+export type TurnTimer = (typeof TURN_TIMERS)[number];
+/** A STUN server address: stun: or stuns:, a host name, an optional port (no TURN: its credentials would be public). */
+export const STUN_URL = /^stuns?:[A-Za-z0-9.-]+(:\d{1,5})?$/;
+export const MAX_ICE_SERVERS = 5;
+export const DEFAULT_ICE_SERVERS = ['stun:stun.l.google.com:19302'];
+
 /** Length caps, in characters. */
 export const LIMITS = {
   title: 60,
@@ -113,6 +121,7 @@ export const LIMITS = {
   eventId: 40,
   hiddenDecks: 500,
   maintenance: 1000,
+  iceServer: 200,
 } as const;
 
 // ---------------------------------------------------------------- the schema
@@ -170,6 +179,13 @@ export interface SiteConfig {
     defaultSort: GallerySort;
   };
   maintenance: { on: boolean; message: string; allowPlay: boolean };
+  /** online games (features.multiplayer) */
+  multiplayer: {
+    /** STUN servers that tell each browser its public address; empty = same-network play only */
+    iceServers: string[];
+    /** the turn timer the host's lobby starts on, in seconds (0 = off) */
+    turnTimer: TurnTimer;
+  };
 }
 
 const DEFAULT_FOOTER =
@@ -197,6 +213,7 @@ export function defaultSiteConfig(): SiteConfig {
     play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
+    multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0 },
   };
 }
 
@@ -360,7 +377,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
   if (raw.kind !== SITE_CONFIG_KIND) return { config: d, errors: [{ path: 'kind', message: `must be "${SITE_CONFIG_KIND}"; this is not a site config file, so the defaults are used` }], warnings };
   if (raw.schema !== SITE_CONFIG_SCHEMA)
     return { config: d, errors: [{ path: 'schema', message: `must be ${SITE_CONFIG_SCHEMA} (this site reads schema ${SITE_CONFIG_SCHEMA} only); the defaults are used` }], warnings };
-  const o = r.obj(raw, '', ['kind', 'schema', 'site', 'nav', 'features', 'banner', 'home', 'play', 'decks', 'maintenance']);
+  const o = r.obj(raw, '', ['kind', 'schema', 'site', 'nav', 'features', 'banner', 'home', 'play', 'decks', 'maintenance', 'multiplayer']);
 
   const site = r.obj(o.site, 'site', ['title', 'tagline', 'footer']);
   const cfgSite = {
@@ -471,7 +488,26 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     allowPlay: r.bool(m.allowPlay, 'maintenance.allowPlay', d.maintenance.allowPlay),
   };
 
-  const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance };
+  const mp = r.obj(o.multiplayer, 'multiplayer', ['iceServers', 'turnTimer']);
+  const iceServers: string[] = [];
+  if (mp.iceServers === undefined) iceServers.push(...d.multiplayer.iceServers);
+  else if (!Array.isArray(mp.iceServers)) {
+    r.err('multiplayer.iceServers', 'must be a list of STUN addresses; the default is used');
+    iceServers.push(...d.multiplayer.iceServers);
+  } else
+    mp.iceServers.forEach((x: unknown, i: number) => {
+      if (typeof x !== 'string' || x.length > LIMITS.iceServer || !STUN_URL.test(x)) r.err(`multiplayer.iceServers[${i}]`, `${JSON.stringify(x)?.slice(0, 60)} is not a STUN address such as stun:stun.example.com:3478; it is left out`);
+      else if (iceServers.length >= MAX_ICE_SERVERS) r.err(`multiplayer.iceServers[${i}]`, `only ${MAX_ICE_SERVERS} servers are used; it is left out`);
+      else if (!iceServers.includes(x)) iceServers.push(x);
+    });
+  let turnTimer: TurnTimer = d.multiplayer.turnTimer;
+  if (mp.turnTimer !== undefined) {
+    if (typeof mp.turnTimer === 'number' && (TURN_TIMERS as readonly number[]).includes(mp.turnTimer)) turnTimer = mp.turnTimer as TurnTimer;
+    else r.err('multiplayer.turnTimer', `must be one of ${TURN_TIMERS.join(', ')} (seconds; 0 = off); the default is used`);
+  }
+  const multiplayer = { iceServers, turnTimer };
+
+  const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance, multiplayer };
   // Home and Play cannot both be off: a visitor would land on nothing useful
   if (!pageOn(config, 'home') && !pageOn(config, 'play')) {
     r.err('nav', 'Home and Play cannot both be hidden; Play is shown');

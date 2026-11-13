@@ -19,6 +19,7 @@ import {
   SITE_CONFIG_FILE,
   siteConfigText,
   TIER_KEYS,
+  TURN_TIMERS,
   visibleNav,
   type ConfigIssue,
   type SiteConfig,
@@ -33,6 +34,30 @@ import { DRAFT_KEY, previewDraft, useSiteConfigState } from '../useSiteConfig';
 import { SiteBanner } from '../components/SiteChrome';
 import { Modal } from '../components/Modal';
 import { PageHead } from '../components/PageHead';
+
+/** The STUN server list as lines of text (blank lines are left out of the config). */
+function IceServers({ servers, onChange }: { servers: string[]; onChange: (list: string[]) => void }) {
+  const id = useId();
+  const [text, setText] = useState(servers.join('\n'));
+  return (
+    <div className="grid">
+      <label htmlFor={id}>STUN servers</label>
+      <textarea
+        id={id}
+        rows={3}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(
+            e.target.value
+              .split(/\s+/)
+              .filter(Boolean),
+          );
+        }}
+      />
+    </div>
+  );
+}
 
 const TIER_LABEL: Record<(typeof TIER_KEYS)[number], string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 
@@ -434,6 +459,24 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
         <Select label="Gig area background" value={draft.play.board.gigBg} options={GIG_BACKGROUNDS} labels={GIG_BG_LABEL} onChange={(v) => up((c) => void (c.play.board.gigBg = v))} />
         <Select label="Paying costs" value={draft.play.board.payMode} options={PAY_MODES} labels={PAY_MODE_LABEL} onChange={(v) => up((c) => void (c.play.board.payMode = v))} />
         <Select label="Side panel position" value={draft.play.board.panelPosition} options={PANEL_POSITIONS} labels={POSITION_LABEL} onChange={(v) => up((c) => void (c.play.board.panelPosition = v))} />
+      </fieldset>
+
+      <fieldset>
+        <legend>Online play</legend>
+        <p className="small muted">
+          Games against another person (the “Play online” feature). The STUN servers tell each browser its public network address so players on different networks can connect; connecting shares each
+          player's address with the other player and with these servers. Leave the list empty for same-network play only. One address per line, such as stun:stun.l.google.com:19302.
+        </p>
+        <IceServers servers={draft.multiplayer.iceServers} onChange={(list) => up((c) => void (c.multiplayer.iceServers = list))} />
+        <Errs issues={issues} path="multiplayer.iceServers" />
+        <Select
+          label="Turn timer a host starts with"
+          value={String(draft.multiplayer.turnTimer)}
+          options={TURN_TIMERS.map(String)}
+          labels={Object.fromEntries(TURN_TIMERS.map((t) => [String(t), t ? `${t} seconds per decision` : 'Off']))}
+          onChange={(v) => up((c) => void (c.multiplayer.turnTimer = Number(v) as SiteConfig['multiplayer']['turnTimer']))}
+        />
+        <Errs issues={issues} path="multiplayer.turnTimer" />
       </fieldset>
 
       <fieldset>

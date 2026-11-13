@@ -68,7 +68,7 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'tuned', label: 'Tuned decks', el: () => <TunedDecksPage /> },
   { path: 'lab', label: 'Deck Lab', el: (q) => <DeckLabPage q={q} /> },
   { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} /> },
-  { path: 'play', label: 'Play vs Bot', el: (q) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} /> },
+  { path: 'play', label: 'Play vs Bot', el: (q, sub) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} sub={sub} mode={q.get('mode')} /> },
   { path: 'tournaments', label: 'Events', el: (q) => <TournamentsPage initial={q.get('e') ?? undefined} /> },
   { path: 'run', label: 'Run a tournament', el: (q) => <TournamentRunnerPage q={q} /> },
   { path: 'ratings', label: 'Power ratings', el: () => <RatingsPage /> },
@@ -86,8 +86,8 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'admin', label: 'Site config', el: () => <AdminPage /> },
 ];
 
-/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`); every other route matches its path exactly. */
-const NESTED = new Set(['profile', 'u']);
+/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`, `#/play/join/<invite>`); every other route matches its path exactly. */
+const NESTED = new Set(['profile', 'u', 'play']);
 
 /** The top tabs and their pages are in the site config (visibleNav in src/lib/siteConfig.ts). */
 
