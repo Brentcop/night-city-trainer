@@ -109,7 +109,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 
 | Step | Outcome | Status | Landed in |
 |---|---|---|---|
-| 0.1 | Play reads a small lift slice, not the whole synergy report | next | |
+| 0.1 | Play reads a small lift slice, not the whole synergy report | done | 2026-11-13 |
 | 0.2 | Short `CLAUDE.md` core, per-directory files, wrapped doc lines | waiting: D7, and needs step 1.5 first | |
 | 0.3 | FAQ-wording guard; quotes paraphrased; insights worded as association | next | |
 | 1.1 | Record model and search core in `src/lib/kb/` | done | 2026-11-13 |
@@ -143,6 +143,13 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   `Play.tsx` ask for it only when the coach is on. `check:data` verifies the slice equals the derivation.
 - Done when: Play no longer requests `synergies.json`; the coach's package wording is unchanged on the
   pinned tests (`tests/coach-package-lift.test.ts`); the slice is checked for freshness.
+- Landed: `liftSlice`, `seatLiftFromSlice` and `readLiftSlice` in `src/ai/packageLift.ts`;
+  `scripts/build-lift.ts` (also the last step of `npm run refresh`); the analyze run writes the slice
+  beside the report; `check:data` compares the two byte for byte. The slice holds 23 pooled rows and 47
+  lists, unrounded, because the coach's gate is "lower bound above 0". For every list, an unknown list
+  and a stale catalogue, the slice gives exactly the table the full report gives
+  (`tests/lift-slice.test.ts`). In the browser: coach off, no request; coach on, one request for
+  `data/lift.json` and none for the report.
 
 **0.2 `CLAUDE.md` core and wrapped docs.**
 - Goal: an agent session starts with about 2k tokens of rules instead of about 11k, and every doc line
@@ -392,6 +399,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Whole synergy report fetched by Play | 807 KB raw, 115 KB gzip; slice 10.4 KB gzip | research |
 | 2026-11-13 | `CLAUDE.md` per agent session | about 11k tokens (bytes divided by 4) | research |
 | 2026-11-13 | Text on lines over 500 characters in `CLAUDE.md` and `docs/` | 52% | research |
+| 2026-11-13 | What Play downloads for the coach's package wording | 11.6 KB gzip (`lift.json`), was 118.6 KB; nothing with the coach off | step 0.1 |
 | 2026-11-13 | Pack, public player records | 761: card 150, ruling 311, deck 47, deck note 47, package 26, term 100, guide 80 | step 1.2 |
 | 2026-11-13 | Pack, public dev records | 1,491: doc passage 1,191, code header 300 | step 1.2 |
 | 2026-11-13 | Pack, local records | 1,024: official FAQ 311, rule 680, tournament rule 26, errata 7 | step 1.2 |
@@ -471,3 +479,6 @@ while the tournament index and the finish chips use the real cut, so five decks 
   experiments: one dropped, one kept (see §7). The evaluation also found that 121 rule records carried the
   heading of the section before them; the rules builder now gives each rule its own heading, else its
   nearest titled ancestor's, and the reports were regenerated after that fix.
+- 2026-11-13: step 0.1 landed. Play reads `public/data/lift.json` (11.6 KB gzip) only while the coach is
+  on, in place of the whole synergy report (118.6 KB gzip) on every board. No file the game cache hashes
+  was edited. Checked in a clean checkout and in the browser.

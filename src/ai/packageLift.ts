@@ -61,6 +61,64 @@ export function seatLift(report: SynergyReport | null | undefined, listId: strin
   return out;
 }
 
+/**
+ * Exactly what `seatLift` reads from a report, small enough for Play to fetch (public/data/lift.json, written beside the
+ * synergy report and by `npm run refresh`; `check:data` checks it): the pooled table and each list's own measured rows,
+ * keyed by list fingerprint. Numbers are as derived (not rounded: the gate is `low95 > 0`). Keys are sorted (rule M8).
+ */
+export interface LiftSlice {
+  kind: 'nct-lift';
+  schema: 1;
+  catalogueVersion: string;
+  pooled: Record<string, PackageLift>;
+  lists: Record<string, Record<string, PackageLift>>;
+}
+
+const sorted = <T>(o: Record<string, T>): Record<string, T> => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+
+function table(rows: readonly SynergyRow[], basis: PackageLift['basis']): Record<string, PackageLift> {
+  const out: Record<string, PackageLift> = {};
+  for (const r of rows) {
+    const l = liftOf(r, basis);
+    if (l) out[r.id] = l;
+  }
+  return sorted(out);
+}
+
+/** The slice of a report: `seatLiftFromSlice(liftSlice(r), id, c)` equals `seatLift(r, id, c)` for every list id. */
+export function liftSlice(report: SynergyReport): LiftSlice {
+  const lists: Record<string, Record<string, PackageLift>> = {};
+  const seen = new Set<string>();
+  for (const d of report.decks) {
+    // seatLift reads the first deck with the list's id; a list with no measured row is left out
+    if (seen.has(d.listId)) continue;
+    seen.add(d.listId);
+    const t = table(d.synergies, 'list');
+    if (Object.keys(t).length) lists[d.listId] = t;
+  }
+  return { kind: 'nct-lift', schema: 1, catalogueVersion: report.catalogueVersion, pooled: table(report.pooled, 'pooled'), lists: sorted(lists) };
+}
+
+/** lift.json's text for a report: minified, keys in a fixed order, so the same report gives the same bytes. */
+export const liftSliceText = (report: SynergyReport): string => JSON.stringify(liftSlice(report));
+
+/** A seat's table from the slice, as `seatLift` gives it from the whole report. */
+export function seatLiftFromSlice(slice: LiftSlice | null | undefined, listId: string | undefined, current = true): SeatLift {
+  if (!slice || !current) return null;
+  return { ...slice.pooled, ...(listId && has(slice.lists, listId) ? slice.lists[listId] : {}) };
+}
+
+const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
+const rowsOk = (t: unknown) => isObj(t) && Object.values(t).every((r) => isObj(r) && (r.basis === 'list' || r.basis === 'pooled') && ['online', 'never', 'low95', 'high95'].every((k) => typeof r[k] === 'number'));
+
+/** What a fetched lift.json holds: the slice, or null when it is not one. */
+export function readLiftSlice(value: unknown): LiftSlice | null {
+  const v = value as Partial<LiftSlice> | null;
+  if (!isObj(v) || v.kind !== 'nct-lift' || v.schema !== 1 || typeof v.catalogueVersion !== 'string' || !rowsOk(v.pooled) || !isObj(v.lists) || !Object.values(v.lists).every(rowsOk)) return null;
+  return v as LiftSlice;
+}
+
 /** How the coach may speak of a package: 'measured' (lift interval above 0), 'unmeasured' (no report), or 'hidden'. */
 export function liftGate(lift: SeatLift | undefined, id: string): 'measured' | 'unmeasured' | 'hidden' {
   if (!lift) return 'unmeasured';

@@ -20,7 +20,7 @@
     "sim": "tsx scripts/simulate.ts",
     "tournament": "tsx scripts/tournament.ts",
     "bundle-reports": "tsx scripts/bundle-reports.ts",
-    "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts && tsx scripts/build-h2h.ts",
+    "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts && tsx scripts/build-h2h.ts && tsx scripts/build-lift.ts",
     "build-h2h": "tsx scripts/build-h2h.ts",
     "check:data": "tsx scripts/check-data.ts",
     "kb": "tsx scripts/kb.ts",

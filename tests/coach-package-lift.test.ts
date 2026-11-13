@@ -7,7 +7,7 @@ import { Game } from '../src/engine/engine';
 import { listFingerprint, parseDeck } from '../src/engine/deck';
 import type { Decision, PlayerId } from '../src/engine/types';
 import { advise, coachRequest, adviseRequest, packageNotes, packageWarnings } from '../src/ai/coach';
-import { liftGate, liftLabel, newcombeDiff, seatLift, type PackageLift, type SeatLift } from '../src/ai/packageLift';
+import { liftGate, liftLabel, newcombeDiff, readLiftSlice, seatLift, seatLiftFromSlice, type PackageLift, type SeatLift } from '../src/ai/packageLift';
 import { readSynergyReport } from '../src/ui/synergyReport';
 import type { SynergyReport, SynergyRow } from '../src/analysis/synergies';
 import { fillerDeck, gig, Scripted } from './engine-helpers';
@@ -132,6 +132,10 @@ describe('coach package notes, gated by measured lift', () => {
     if (loaded.state !== 'ready') return;
     const bbg = seatLift(loaded.report, listFingerprint(BBG), loaded.current);
     const rry = seatLift(loaded.report, listFingerprint(RRY), loaded.current);
+    // the Play page's path: the tracked lift slice gives the same tables (RAG_PLAN step 0.1)
+    const slice = readLiftSlice(JSON.parse(readFileSync('public/data/lift.json', 'utf8')));
+    expect(seatLiftFromSlice(slice, listFingerprint(BBG), loaded.current)).toEqual(bbg);
+    expect(seatLiftFromSlice(slice, listFingerprint(RRY), loaded.current)).toEqual(rry);
     const { g, d } = bbgSell();
     const r = rryBehind();
     expect({

@@ -17,6 +17,8 @@
 //     decks as entrants, is flagged `custom` exactly when it is not a standard event, and the index carries the same flag
 //   - public/site-config.json (the owner's site config, src/lib/siteConfig.ts) reads without a problem, and the decks and
 //     event it names exist
+//   - public/data/lift.json (the Play page's lift slice) is exactly the slice derived from public/data/synergies.json
+//     (`liftSliceText` in src/ai/packageLift.ts) whenever the report exists; `npx tsx scripts/build-lift.ts` rebuilds it
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,6 +28,8 @@ import { deckFingerprint } from '../src/engine/deck';
 import { LIBRARY_DIRS } from '../src/lib/library';
 import { isStandardSetup, setupProblems, type EventSetup } from '../src/lib/eventFormats';
 import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
+import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/ai/packageLift';
+import type { SynergyReport } from '../src/analysis/synergies';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -59,6 +63,10 @@ export interface CheckInput {
   siteConfig?: string | null;
   /** the library's deck files (data/decks), for the decks the site config names */
   deckFiles?: readonly string[];
+  /** public/data/synergies.json, parsed (null when missing; the lift slice is not checked when absent) */
+  synergies?: unknown;
+  /** public/data/lift.json's text (null when missing) */
+  lift?: string | null;
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -154,6 +162,40 @@ export function siteConfigProblems(text: string | null, deckFiles: readonly stri
   }
   if (c.home.featuredEvent && !eventIds.includes(c.home.featuredEvent)) failures.push(`site-config.json: home.featuredEvent: no recorded event ${c.home.featuredEvent}`);
   return { failures, info };
+}
+
+const REBUILD_LIFT = 'rebuild it with npx tsx scripts/build-lift.ts';
+
+/** How public/data/lift.json differs from the slice of the synergy report (empty when it is that slice, byte for byte). */
+export function liftProblems(report: unknown, liftText: string | null): string[] {
+  const r = report as SynergyReport | null;
+  if (!r || r.kind !== 'synergy-report' || !Array.isArray(r.decks) || !Array.isArray(r.pooled)) return ['public/data/synergies.json is not a synergy report, so lift.json cannot be checked'];
+  if (liftText === null) return [`public/data/lift.json is missing (the coach would word every package as unmeasured); ${REBUILD_LIFT}`];
+  const want = liftSliceText(r);
+  if (liftText === want) return [];
+  let got: LiftSlice | null = null;
+  try {
+    got = readLiftSlice(JSON.parse(liftText));
+  } catch {
+    // not JSON: said below
+  }
+  if (!got) return [`public/data/lift.json is not a lift slice; ${REBUILD_LIFT}`];
+  const exp = liftSlice(r);
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const diff: string[] = [];
+  if (got.catalogueVersion !== exp.catalogueVersion) diff.push(`catalogue ${got.catalogueVersion}, the report's is ${exp.catalogueVersion}`);
+  const keys = (a: object, b: object) => [...new Set([...Object.keys(a), ...Object.keys(b)])].sort();
+  const pooled = keys(got.pooled, exp.pooled).filter((k) => !same(got.pooled[k], exp.pooled[k]));
+  if (pooled.length) diff.push(`pooled row(s) differ: ${pooled.join(', ')}`);
+  const lists = keys(got.lists, exp.lists);
+  const missing = lists.filter((k) => !Object.hasOwn(got.lists, k));
+  const extra = lists.filter((k) => !Object.hasOwn(exp.lists, k));
+  const changed = lists.filter((k) => Object.hasOwn(got.lists, k) && Object.hasOwn(exp.lists, k) && !same(got.lists[k], exp.lists[k]));
+  if (missing.length) diff.push(`${missing.length} list(s) missing (${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ', …' : ''})`);
+  if (extra.length) diff.push(`${extra.length} list(s) the report does not measure (${extra.slice(0, 3).join(', ')}${extra.length > 3 ? ', …' : ''})`);
+  if (changed.length) diff.push(`${changed.length} list(s) with other rows (${changed.slice(0, 3).join(', ')}${changed.length > 3 ? ', …' : ''})`);
+  if (!diff.length) diff.push('same content, other bytes (key order or formatting)');
+  return [`public/data/lift.json is stale against public/data/synergies.json: ${diff.join('; ')}; ${REBUILD_LIFT}`];
 }
 
 export function checkData(input: CheckInput): CheckResult {
@@ -279,6 +321,16 @@ export function checkData(input: CheckInput): CheckResult {
     info.push(...sc.info);
     if (!sc.failures.length) passed.push('public/site-config.json reads as a valid site config');
   }
+
+  // ---- the Play page's lift slice is the one derived from the synergy report
+  if (input.synergies !== undefined && input.synergies !== null) {
+    const p = liftProblems(input.synergies, input.lift ?? null);
+    failures.push(...p);
+    if (!p.length) {
+      const s = liftSlice(input.synergies as SynergyReport);
+      passed.push(`public/data/lift.json is the slice of the synergy report (${Object.keys(s.pooled).length} pooled rows, ${Object.keys(s.lists).length} lists)`);
+    }
+  } else if (input.synergies === null && typeof input.lift === 'string') info.push('public/data/lift.json has no synergy report beside it to be checked against');
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -295,6 +347,8 @@ export function loadCheckInput(root = '.'): CheckInput {
     h2h: read('public/data/h2h.json'),
     ratings: read('src/data/ratings.json'),
     siteConfig: fs.existsSync(path.join(root, 'public/site-config.json')) ? fs.readFileSync(path.join(root, 'public/site-config.json'), 'utf8') : null,
+    synergies: read('public/data/synergies.json'),
+    lift: fs.existsSync(path.join(root, 'public/data/lift.json')) ? fs.readFileSync(path.join(root, 'public/data/lift.json'), 'utf8') : null,
     deckFiles: LIBRARY_DIRS.flatMap((d) => {
       const dir = path.join(root, 'data/decks', d);
       return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];

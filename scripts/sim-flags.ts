@@ -79,6 +79,8 @@ export interface AnalyzeOutputs {
   synergiesMd?: string;
   /** the copy the Card stats page's Synergies view and the deck profile fetch (whole-field runs only) */
   synergiesSite?: string;
+  /** the Play page's lift slice, derived from the site copy and written beside it (src/ai/packageLift.ts liftSlice) */
+  liftSite?: string;
   /** --impact-adjusted: the adjusted card-impact estimate (INFO-2) */
   impactAdjustedJson?: string;
   impactAdjustedMd?: string;
@@ -90,7 +92,10 @@ export function analyzeOutputs(v: AnalyzeFlags, focus: string | null): AnalyzeOu
   if (v['synergies-only']) {
     o.synergiesJson = at('reports', `synergies${tag}-latest.json`);
     o.synergiesMd = at('reports', `synergies${tag}-latest.md`);
-    if (!focus && !v.out) o.synergiesSite = 'public/data/synergies.json';
+    if (!focus && !v.out) {
+      o.synergiesSite = 'public/data/synergies.json';
+      o.liftSite = 'public/data/lift.json';
+    }
     return o;
   }
   o.analysisMd = at('reports', `analysis${tag}-latest.md`);
@@ -110,7 +115,10 @@ export function analyzeOutputs(v: AnalyzeFlags, focus: string | null): AnalyzeOu
   if (v.synergies) {
     o.synergiesJson = at('reports', `synergies${tag}-latest.json`);
     o.synergiesMd = at('reports', `synergies${tag}-latest.md`);
-    if (!focus && !v.out) o.synergiesSite = 'public/data/synergies.json';
+    if (!focus && !v.out) {
+      o.synergiesSite = 'public/data/synergies.json';
+      o.liftSite = 'public/data/lift.json';
+    }
   }
   if (v['impact-adjusted']) {
     o.impactAdjustedJson = at('reports', `impact-adjusted${tag}-latest.json`);
@@ -121,11 +129,11 @@ export function analyzeOutputs(v: AnalyzeFlags, focus: string | null): AnalyzeOu
 
 /**
  * Outputs `sim analyze` won't overwrite without --force: everything in an --out directory, the site's decisions report
- * (recorded data the site serves), and every synergy output (reports/synergies-latest.* and the site copy). The
+ * (recorded data the site serves), and every synergy output (reports/synergies-latest.*, the site copy and its lift slice). The
  * long-standing outputs (reports/analysis-latest.*, reports/decisions-latest.*, src/data/analysis.json, review.json,
  * impact.json) are rewritten by every analyze run, as before.
  */
 export function protectedOutputs(o: AnalyzeOutputs, v: AnalyzeFlags): string[] {
   if (v.out) return Object.values(o).filter((x): x is string => typeof x === 'string');
-  return [o.decisionsSite, o.synergiesJson, o.synergiesMd, o.synergiesSite].filter((x): x is string => typeof x === 'string');
+  return [o.decisionsSite, o.synergiesJson, o.synergiesMd, o.synergiesSite, o.liftSite].filter((x): x is string => typeof x === 'string');
 }

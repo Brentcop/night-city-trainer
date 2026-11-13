@@ -16,8 +16,8 @@ import { coachRatingsFrom } from '../../lib/gameReview';
 import { saveCoachRatings } from '../../lib/gameReviewStore';
 import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
-import { useSynergyReport } from '../synergyReport';
-import { seatLift } from '../../ai/packageLift';
+import { useLiftSlice } from '../synergyReport';
+import { seatLiftFromSlice } from '../../ai/packageLift';
 import { boardWarnings, coachWorthAsking, gradeMove, scorable, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
@@ -665,9 +665,9 @@ export function Board({
   const seatB = s.players[1].name;
   const logSkip = useMemo(() => [seatA, seatB], [seatA, seatB]);
   // INFO-8: the coach names a package only when the synergy report measured a lift above 0 for it (unmeasured wording
-  // while the report is loading or missing)
-  const synergy = useSynergyReport();
-  const lift0 = useMemo(() => (synergy.state === 'ready' ? seatLift(synergy.report, g.P(0).listId, synergy.current) : null), [synergy, g]);
+  // while the lift slice, public/data/lift.json, is loading or missing); fetched only once the coach is on
+  const liftData = useLiftSlice(coach);
+  const lift0 = useMemo(() => (liftData.state === 'ready' ? seatLiftFromSlice(liftData.slice, g.P(0).listId, liftData.current) : null), [liftData, g]);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the game state changes in place; `version` says when
   const warnings = useMemo(() => (coach && s.winner === null ? boardWarnings(g, 0, lift0) : NO_WARNINGS), [g, coach, version, s.winner, lift0]);
   const [menu, setMenu] = useState<MenuState | null>(null);

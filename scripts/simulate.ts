@@ -379,11 +379,20 @@ async function main() {
         write(out.synergiesJson!, JSON.stringify(report, null, 1));
         write(out.synergiesMd!, synergyMarkdown(report));
         // the site copy: compact, rates to 4 decimals (the page shows whole percents)
-        if (out.synergiesSite) write(out.synergiesSite, JSON.stringify(report, (_k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1e4) / 1e4 : v)));
+        if (out.synergiesSite) {
+          const site = JSON.stringify(report, (_k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1e4) / 1e4 : v));
+          write(out.synergiesSite, site);
+          // the Play page's lift slice, derived from the report as stored (so it always equals `liftSlice` of the file;
+          // check:data compares them, scripts/build-lift.ts rebuilds it)
+          if (out.liftSite) {
+            const { liftSliceText } = await import('../src/ai/packageLift');
+            write(out.liftSite, liftSliceText(JSON.parse(site)));
+          }
+        }
         console.log(
           `Synergies: ${report.pooled.length} packages over ${synSize.games} games; ${measurements.boardSnapshotsPerGame.toFixed(0)} board snapshots/game, ` +
             `${(measurements.rawBytesPerGame / 1024).toFixed(1)} KB raw vs ${(measurements.aggregateBytesPerGame / 1024).toFixed(1)} KB aggregated per game. ` +
-            `Saved ${[out.synergiesMd, out.synergiesSite].filter(Boolean).join(', ')}`,
+            `Saved ${[out.synergiesMd, out.synergiesSite, out.liftSite].filter(Boolean).join(', ')}`,
         );
       }
       if (only) {

@@ -10,7 +10,7 @@ Scopes: public 79, local 21. Splits: dev 60, test 40. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-3291 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+3293 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -20,15 +20,15 @@ Stale expectations: none.
 | exact | dev | 60 | 15.0 | 16.7 | 16.7 | 0.158 | 56 | 114 |
 | exact | test | 40 | 10.0 | 12.5 | 12.5 | 0.113 | 68 | 165 |
 | exact | all | 100 | 13.0 | 15.0 | 15.0 | 0.140 | 61 | 115 |
-| keyword | dev | 60 | 55.0 | 76.7 | 83.3 | 0.638 | 492 | 581 |
+| keyword | dev | 60 | 55.0 | 76.7 | 83.3 | 0.638 | 493 | 583 |
 | keyword | test | 40 | 37.5 | 70.0 | 75.0 | 0.503 | 478 | 604 |
-| keyword | all | 100 | 48.0 | 74.0 | 80.0 | 0.584 | 487 | 590 |
-| exact+keyword | dev | 60 | 46.7 | 75.0 | 83.3 | 0.591 | 488 | 579 |
+| keyword | all | 100 | 48.0 | 74.0 | 80.0 | 0.584 | 487 | 592 |
+| exact+keyword | dev | 60 | 46.7 | 75.0 | 83.3 | 0.591 | 489 | 579 |
 | exact+keyword | test | 40 | 30.0 | 72.5 | 80.0 | 0.472 | 508 | 598 |
-| exact+keyword | all | 100 | 40.0 | 74.0 | 82.0 | 0.544 | 496 | 588 |
-| exact+linked+keyword | dev | 60 | 56.7 | 75.0 | 83.3 | 0.648 | 488 | 580 |
+| exact+keyword | all | 100 | 40.0 | 74.0 | 82.0 | 0.544 | 496 | 589 |
+| exact+linked+keyword | dev | 60 | 56.7 | 75.0 | 83.3 | 0.648 | 488 | 581 |
 | exact+linked+keyword | test | 40 | 40.0 | 80.0 | 82.5 | 0.555 | 515 | 598 |
-| exact+linked+keyword | all | 100 | 50.0 | 77.0 | 83.0 | 0.611 | 499 | 591 |
+| exact+linked+keyword | all | 100 | 50.0 | 77.0 | 83.0 | 0.611 | 499 | 592 |
 
 ### By question type
 
@@ -114,7 +114,7 @@ Rank "–" means no expected record in the first 10. "Ranked above" lists up to 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2267 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 21.
+2269 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 21.
 Stale expectations: none.
 
 ### By configuration and split
