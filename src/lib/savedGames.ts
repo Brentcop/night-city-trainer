@@ -171,9 +171,23 @@ export function restoredGrades(s: SavedGame): CoachedGrade[] {
 }
 
 /** Why this code can't resume the save before even trying (another bot/engine version), or null. */
-export function versionProblem(s: SavedGame): string | null {
+export function versionProblem(s: Pick<SavedGame, 'simVersion'>): string | null {
   if (s.simVersion === SIM_VERSION) return null;
-  return `It was saved with version ${s.simVersion} of the bots and rules engine, and this is version ${SIM_VERSION}: the game would not play on the same way.`;
+  if (s.simVersion > SIM_VERSION)
+    return `It was saved with version ${s.simVersion} of the bots and rules engine, newer than this app (version ${SIM_VERSION}). Reload the page to get the latest version, then resume it.`;
+  return `It was saved with version ${s.simVersion} of the bots and rules engine. This app now runs version ${SIM_VERSION}, and the bots or rules changed in between, so the same moves would no longer lead to the same game.`;
+}
+
+/** The short line a list shows for a save it can't resume because of its version. */
+export const staleLine = (s: Pick<SavedGame, 'simVersion'>) =>
+  s.simVersion > SIM_VERSION ? `saved with a newer version (${s.simVersion}): reload the page to resume it` : `saved with version ${s.simVersion}: can't be resumed on this version (${SIM_VERSION}); you can read its log, export it or delete it`;
+
+/**
+ * Resuming `s` would replace the autosave of another unfinished game (resuming writes the resumed game into the
+ * autosave): the player is asked first, as before starting a new game.
+ */
+export function replacesAutosave(autosave: SavedGame | null, s: SavedGame): boolean {
+  return !!autosave && s.id !== 'auto' && autosave.replayId !== s.replayId;
 }
 
 /** Said when the replay doesn't reach the saved position. */

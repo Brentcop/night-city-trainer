@@ -85,7 +85,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
       <div className="grid">
         <PageHead kicker="Tournaments" title="Tournament history" actions={runLink} />
         <div className="empty-state">
-          <p>No recorded events yet. Run one live in your browser, or from the CLI with <code>npx tsx scripts/tournament.ts</code>.</p>
+          <p>No recorded events yet. <span title="For the site owner: npx tsx scripts/tournament.ts records one">Run one live in your browser.</span></p>
         </div>
       </div>
     );

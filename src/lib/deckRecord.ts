@@ -96,12 +96,6 @@ export interface DeckRecord {
 
 const ok = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 
-/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st … */
-export function ordinal(n: number): string {
-  const t = n % 100;
-  const s = t >= 11 && t <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';
-  return `${n}${s}`;
-}
 
 /** Every standard recorded event the deck entered, newest first (custom events are not finishes: see EventLite.custom). */
 export function eventFinishes(name: string, events: EventLite[]): Finish[] {

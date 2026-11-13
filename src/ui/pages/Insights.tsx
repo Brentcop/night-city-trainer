@@ -67,7 +67,7 @@ export function InsightsPage({ initial }: { initial?: string }) {
           <button key={d.deck} type="button" className="side-item" aria-current={d.deck === sel ? 'true' : undefined} onClick={() => setSel(d.deck)}>
             <span className="spread">
               <span>{d.deck.slice(0, 34)}</span>
-              <b>{Math.round(d.wr * 100)}%</b>
+              <b title="Telemetry win rate">{Math.round(d.wr * 100)}%</b>
             </span>
           </button>
         ))}

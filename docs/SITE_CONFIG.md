@@ -65,6 +65,7 @@ file.
 | `home.featuredEvent` | `""` | A recorded event id to feature on Home; empty: none. |
 | `home.nextEvent.name` | `"Edgerunner Open Regional — Chicago"` | The next event bar. Max 100. |
 | `home.nextEvent.start` | `"2026-12-11T09:00:00-06:00"` | When the countdown ends. The Strategy page's plan keeps its own date (`src/content/event.ts`). |
+| `home.nextEvent.end` | `"2026-12-13"` | When the event is over: a date (`YYYY-MM-DD`, to the end of that day) or an ISO date-time, not before the start. Between start and end the bar says "Event underway"; from the end on Home hides the bar. `""`: no end (it says "underway" until the config is edited). The Strategy page's plan keeps its own dates (`src/content/event.ts`). |
 | `home.nextEvent.detail` | `"Dec 11–13 · Bo3 Swiss"` | The text after the name. Max 80. |
 | `play.tiers` | `["easy", "medium", "hard"]` | Bot tiers offered in Play setup. At least one. |
 | `play.defaultTier` | `"hard"` | The tier picked at first. Must be offered. |

@@ -101,7 +101,8 @@ export function FrameBoard({ state, line: seatLine, names: seatNames, narrow, at
 export function ReplayBoard({ data, names }: { data: ReplayData; names: [string, string] }) {
   const frames = data.frames;
   const n = frames.length;
-  const [cur, setCur] = useState(n - 1);
+  // "Watch" starts at the first move (UX-15)
+  const [cur, setCur] = useState(0);
   const [playing, setPlaying] = useState(false);
   // Replay opens in a readable turn-by-turn mode. Fast-forward preserves the
   // old frame playback, while Next action is an explicit one-frame step mode.
@@ -112,7 +113,7 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setCur(n - 1);
+    setCur(0);
     setPlaying(false);
     setMode('turn');
   }, [data, n]);

@@ -1,11 +1,11 @@
 # Tournament plan — EOR Chicago
 
-> Generated 2026-11-13 from 7 decks × 200 games per pairing (deep bot) plus telemetry. Re-run `npm run sim -- analyze --field all --bot deep` and then `npx tsx scripts/plan.ts` to refresh.
+> Generated 2026-11-13 from 7 decks × 200 games per pairing (deep bot) plus telemetry.
 
 ## Register: [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt)
 - **Full stats:** [RRG Dexter Midrange deck profile](#/deck?d=meta-rrg-dexter-midrange.txt) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
-- **Expected-field score: 70%**. This is the win rate against choom.gg's meta archetypes, weighted by their tier power. Overall round-robin win rate: 71%; worst meta matchup: 60%.
-- **Why this one:** Highest power rating from 7 tournament events (2,264 games): expected 71% against the whole field (90% range 65%–76%) and 70% against the choom.gg meta decks; 1 event title, top 8 in 6 of 7. Chosen over 2 statistically tied decks (S1-01 Mutant (RRY), Smash the Curve) for its record against the meta decks.
+- **Power rating: 71% expected against the whole tournament field**, and 70% expected against the choom.gg meta decks (the same model); worst meta matchup: 60%.
+- **Why this one:** Highest power rating from 7 tournament events (2,264 games; its 90% range against the whole field is 65%–76%); 1 event title, top 8 in 6 of 7. Chosen over 2 statistically tied decks (S1-01 Mutant (RRY), Smash the Curve) for its record against the meta decks.
 - **Why (from 1200 telemetry games):**
   - **Seat:** 82% on the play vs 66% on the draw. When you choose (you lost the last game), choose to go **first**.
   - **Cards that win games:** Yorinobu Arasaka: Steel Dragon (+15 pts when drawn), Animals Wrecker (+13 pts when drawn), Pepe Najarro: Working Doubles (+8 pts when drawn), Mantis Blades (+6 pts when drawn). Keep these over everything when you sell or mulligan.
@@ -18,7 +18,7 @@
   - **Reactive Calls:** 20% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
   - **Best matchup:** Rainbow Fixer Stuff (85%). **Worst:** BBG Cunningham Econ (61%). Sideboard for the worst one first.
 - **Ready-to-register list:** the list on the Decks page.
-- **Backup / sideboard partner:** [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) (midrange, field score 67%). Practise it second, in case the room skews hard against aggro decks.
+- **Backup / sideboard partner:** [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) (midrange, expected 67% against the meta decks). Practise it second, in case the room skews hard against aggro decks.
 
 ## Power ratings (all decks, 7 tournament events)
 Expected win rate against the whole field, from a Bradley–Terry fit over every tournament game. Overlapping ranges are not meaningfully different. The full table is on Tournaments → Power ratings.
@@ -36,7 +36,7 @@ Expected win rate against the whole field, from a Bradley–Terry fit over every
 | 9 | [S2-06 Counter (RGG)](#/deck?d=s2-06-counter-rgg.txt) | **63%** (55%–71%) | 60% | 0 | 2/3 |
 | 10 | [NC-02 Stormrider Stampede (GGR)](#/deck?d=nc-02-stormrider-stampede-ggr.txt) | **63%** (55%–70%) | 59% | 1 | 2/4 |
 
-## Expected-field ranking
+## Ranking against the meta decks (finals and round robin)
 | # | Deck | Archetype | Finals vs meta (games) | Round-robin vs meta field | Overall | Worst meta matchup |
 |---|---|---|---|---|---|---|
 | 1 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | aggro | — | 73% | 74% | 61% |
@@ -67,7 +67,7 @@ The optimizer found no single-card change that clearly beats the stock list, so 
 ## Bo3 notes (tournament rules)
 - The **loser of each game chooses who goes first**. Use the seat column above. Across all sim games, going first won 56%; choom.gg's human games show 57% for going first.
 - Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. Average sim game length for this deck is 13.2 turns, so play at a steady pace.
-- The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab, or with `npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard`.
+- The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab.
 
 ## Practice schedule (28 days to Chicago)
 1. **This week:** 10+ games a day in **Play vs Bot** with RRG Dexter Midrange on Deep, Coach on. Read every Coach line where you disagreed with it.

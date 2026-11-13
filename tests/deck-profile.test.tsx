@@ -47,8 +47,12 @@ describe('deck profile: recorded results first', () => {
     expect(rec).toBeLessThan(html.indexOf('Legends:'));
     expect(rec).toBeLessThan(html.indexOf('Decklist'));
     // tiles with their samples
-    for (const label of ['Games played', 'Win rate', 'Going first / second', 'Vs the meta field', 'Rating and rank', 'Event finishes']) expect(html).toContain(label);
-    expect(html).toMatch(/\d+ games in Swiss rounds/);
+    // UX-8: each figure is named for its source (Swiss record, power rating, finals or seasons vs the meta)
+    for (const label of ['Games played', 'Swiss win rate', 'Going first / second', 'Power rank', 'Event finishes']) expect(html).toContain(label);
+    expect(html).toMatch(/Finals vs the meta|Seasons vs the meta/);
+    expect(html).toMatch(/the raw record in \d+ games of Swiss rounds/);
+    expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
+    expect(html).not.toMatch(/\d+th pct|1th|2th|3th/);
     expect(html).toMatch(/on the play \d+ games, on the draw \d+ games/);
     expect(html).toMatch(/Best matchup/);
     // the events, ratings and reports were re-recorded on SIM_VERSION 6; the Season 1–2 records (finals vs the meta,

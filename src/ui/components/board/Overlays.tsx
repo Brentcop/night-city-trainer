@@ -11,9 +11,35 @@ import type { BoardCtx } from './BoardCard';
 import { CoachBox, type CoachNote } from './CoachPanel';
 
 /** "Are you sure?" before conceding (a recorded loss) or exiting (nothing recorded). Rendered at the document body. */
-export function LeaveDialog({ kind, onConfirm, onCancel, online, note }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void; online?: boolean; note?: string }) {
+/** What the Exit dialog says when the game can be kept for later (a practice game with saved games on). */
+export const EXIT_KEEP_TEXT =
+  'Save and exit keeps this game in this browser: Resume game on the Play screen brings it back where you left it, and nothing is recorded until you finish it. One unfinished game is kept this way; starting another one asks first. Exit and discard ends the game with no result and removes its save.';
+/** …and when it can't (saved games off, or this browser blocks storage). */
+export const EXIT_DISCARD_TEXT = 'The game ends now and nothing is recorded: no result and no replay. This browser can’t keep it for later.';
+
+/**
+ * Concede or Exit, confirmed. Exit: with `onKeep` (the game can be kept) the safe choice comes first, "Save and exit",
+ * and "Exit and discard" (`onConfirm`) is the second, red one; with a `note` (a multi-day game, an online game's own
+ * wording) there is one button, which keeps the game when `onKeep` is given.
+ */
+export function LeaveDialog({
+  kind,
+  onConfirm,
+  onCancel,
+  onKeep,
+  online,
+  note,
+}: {
+  kind: 'concede' | 'exit';
+  onConfirm: () => void;
+  onCancel: () => void;
+  onKeep?: () => void;
+  online?: boolean;
+  note?: string;
+}) {
   const id = useId();
   const concede = kind === 'concede';
+  const keepChoice = !concede && !online && !note && !!onKeep;
   return createPortal(
     <Modal labelledBy={id} onClose={onCancel} className="pb-leave">
       <h3 id={id} style={{ marginTop: 0 }}>
@@ -28,12 +54,25 @@ export function LeaveDialog({ kind, onConfirm, onCancel, online, note }: { kind:
             : 'You leave the game and the connection closes. The game ends as abandoned and is recorded as a draw on both sides.'
           : concede
             ? 'The game ends now as a loss, recorded in your practice log and replays as conceded. You can still undo from the result screen.'
-            : 'The game ends now and nothing is recorded: no result and no replay. Its autosave is removed too; use Save first to keep it.'}
+            : keepChoice
+              ? EXIT_KEEP_TEXT
+              : EXIT_DISCARD_TEXT}
       </p>
       <div className="row pb-leave-actions">
-        <button className={concede ? 'pb-danger' : 'primary'} onClick={onConfirm}>
-          {concede ? '⚑ Concede' : online && !note ? 'Leave game' : 'Exit game'}
-        </button>
+        {keepChoice ? (
+          <>
+            <button className="primary" onClick={onKeep} data-autofocus>
+              Save and exit
+            </button>
+            <button className="pb-danger" onClick={onConfirm}>
+              Exit and discard
+            </button>
+          </>
+        ) : (
+          <button className={concede ? 'pb-danger' : 'primary'} onClick={!concede && note && onKeep ? onKeep : onConfirm}>
+            {concede ? '⚑ Concede' : online && !note ? 'Leave game' : 'Exit game'}
+          </button>
+        )}
         <button onClick={onCancel}>Keep playing</button>
       </div>
     </Modal>,
@@ -175,10 +214,13 @@ export function MulliganScreen({ ctx, note }: { ctx: BoardCtx; note?: CoachNote 
         </div>
         <div className="pb-legend-peek small muted">
           Legends:{' '}
-          {g.P(0).legends.map((u) => {
-            const c = g.s.cards[u];
-            return <span key={u}>{c && (c.faceUp || c.known) ? g.name(u) : 'face-down'} · </span>;
-          })}
+          {g
+            .P(0)
+            .legends.map((u) => {
+              const c = g.s.cards[u];
+              return c && (c.faceUp || c.known) ? g.name(u) : 'face-down';
+            })
+            .join(' · ')}
         </div>
         <CoachBox pick={coachI !== undefined ? (coachI === yes ? 'Mulligan' : 'Keep hand') : null} why={note?.why} thinking={note?.thinking} />
         <div className="row" style={{ marginTop: 12, justifyContent: 'center' }}>

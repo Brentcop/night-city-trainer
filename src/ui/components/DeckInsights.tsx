@@ -22,9 +22,9 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
   return (
     <div className="grid">
       <div className="row">
-        <span className="stat"><Wr v={r.wr} n={r.games} /></span>
+        <span className="stat" title="Telemetry win rate: bot-vs-bot games against the analysed field"><Wr v={r.wr} n={r.games} /></span>
         <span className="muted small">
-          {r.games} games · <Wr v={r.wrFirst} /> on the play / <Wr v={r.wrSecond} /> on the draw · {fix1(r.avgTurns)} turns avg · overtime {pct(r.overtimeRate)}
+          telemetry win rate in {r.games} bot games vs the analysed field · <Wr v={r.wrFirst} /> on the play / <Wr v={r.wrSecond} /> on the draw · {fix1(r.avgTurns)} turns avg · overtime {pct(r.overtimeRate)}
           {myArch && <> · plays as <b>{myArch}</b></>}
         </span>
       </div>

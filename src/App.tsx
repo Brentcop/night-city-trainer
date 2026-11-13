@@ -36,7 +36,7 @@ class Boundary extends Component<{ children: React.ReactNode }, { err: Error | n
 }
 import { Home } from './ui/pages/Home';
 import { artEnabled, setArtEnabled } from './ui/art';
-import { landingPage, pageOn, textHash, visibleNav } from './lib/siteConfig';
+import { documentTitle, landingPage, pageOn, textHash, visibleNav } from './lib/siteConfig';
 import { useFeature, useSiteConfigState } from './ui/useSiteConfig';
 import { DraftBar, LinkedText, MaintenancePage, PageOff, SiteBanner } from './ui/components/SiteChrome';
 import { ONGOING_EVENT, ongoingWaiting } from './lib/ongoingBadge';
@@ -167,6 +167,11 @@ export function App() {
   const off = !!route && !pageOn(config, route.path);
   const section = route && nav.find((sec) => sec.routes.includes(route.path));
   const qs = q.toString(); // the effect re-runs when the query changes, compared as a string
+  // the tab's title names the page (bookmarks, history and screen readers can tell pages apart)
+  const title = documentTitle(config, route ? { path: route.path, label: route.label } : null);
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
   useEffect(() => {
     if (viaLink.current) window.scrollTo(0, 0);
     else {
@@ -186,6 +191,17 @@ export function App() {
   return (
     <div className="app">
       {previewing && <DraftBar />}
+      {/* the first Tab stop: straight to the page, past the header (a hash link would change the route, so it moves focus) */}
+      <a
+        className="skip-link"
+        href="#main"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById('main')?.focus();
+        }}
+      >
+        Skip to content
+      </a>
       <header className="topbar">
         <div className="brand">
           <a href={`#/${landing}`} style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -227,7 +243,7 @@ export function App() {
         </nav>
       )}
       {/* a sub-path change (#/profile → #/profile/history) keeps the page mounted, so its tabs keep focus */}
-      <main className="main" key={base + q.toString()}>
+      <main className="main" id="main" tabIndex={-1} key={base + q.toString()}>
         <Boundary>
           <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>{off ? <PageOff home={landing} /> : route ? route.el(q, sub) : <NotFound path={path} />}</Suspense>
         </Boundary>

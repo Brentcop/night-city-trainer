@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { configDefaults, defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { budgetProblems } from './tools/size-budget.ts';
 
 /**
  * Puts the owner's site config (public/site-config.json, src/lib/siteConfig.ts) into index.html as a JSON script and
@@ -32,10 +33,29 @@ function siteConfigInline(): Plugin {
   };
 }
 
+/** Fails the build when a Web Worker bundle grows past its budget (tools/size-budget.ts, APP-14). */
+function workerBudget(): Plugin {
+  let outDir = 'dist';
+  return {
+    name: 'nct-worker-budget',
+    apply: 'build',
+    configResolved(c) {
+      outDir = c.build.outDir;
+    },
+    closeBundle() {
+      const dir = `${outDir}/assets`;
+      if (!fs.existsSync(dir)) return;
+      const files = fs.readdirSync(dir).map((name) => ({ name, bytes: fs.statSync(`${dir}/${name}`).size }));
+      const problems = budgetProblems(files);
+      if (problems.length) throw new Error(['Worker size budget:', ...problems].join('\n'));
+    },
+  };
+}
+
 // base './' makes the build work from any GitHub Pages sub-path (https://<user>.github.io/<repo>/).
 export default defineConfig({
   base: './',
-  plugins: [react(), siteConfigInline()],
+  plugins: [react(), siteConfigInline(), workerBudget()],
   // Pages load lazily and the large data files have their own chunks (src/data/index.ts), so every chunk is under
   // Vite's default 500 kB warning limit; no override.
   build: { outDir: 'dist' },

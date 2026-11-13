@@ -68,7 +68,9 @@ describe('setup screen: saved games', () => {
     expect(html).toContain(`(2 of ${MAX_SLOTS})`);
     expect(html.indexOf('Before the big attack')).toBeLessThan(html.indexOf('Old one'));
     for (const t of ['Resume', 'Rename', 'Export', 'Delete', 'Import a save']) expect(html).toContain(t);
-    expect(html).toContain('made with another version: it can be read, not resumed');
+    // a save from an older version: said plainly, read rather than resumed (its button opens the log)
+    expect(html).toContain(`saved with version ${SIM_VERSION - 1}: can&#x27;t be resumed on this version (${SIM_VERSION}); you can read its log, export it or delete it`);
+    expect(html).toContain('Read the log');
   });
 
   it('says Restoring while a save is being restored, and Start waits', () => {

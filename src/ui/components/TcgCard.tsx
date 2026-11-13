@@ -24,6 +24,8 @@ export interface TcgCardProps {
   count?: number; // stack count in deck views
   onClick?: () => void;
   noZoom?: boolean;
+  /** never show the power badge (a pile's top card, where a number reads like a count) */
+  noPower?: boolean;
   title?: string;
   /** accessible name when the card is a button (e.g. "Panam: can attack") */
   ariaLabel?: string;
@@ -51,7 +53,7 @@ export function placeZoom(card: Box, size: { w: number; h: number }, vp: { w: nu
   return { left, top };
 }
 
-export function TcgCard({ def, size = 'md', power, spent, selected, targetable, dim, badges, count, onClick, noZoom, title, ariaLabel }: TcgCardProps) {
+export function TcgCard({ def, size = 'md', power, spent, selected, targetable, dim, badges, count, onClick, noZoom, title, ariaLabel, noPower }: TcgCardProps) {
   const { url, onError } = useArt(def.id);
   const [broken, setBroken] = useState(false);
   // Track which URL finished loading (a cached image can finish before React's onLoad is attached,
@@ -115,7 +117,7 @@ export function TcgCard({ def, size = 'md', power, spent, selected, targetable, 
             }}
           />
         )}
-        {(boosted || (showArt && size === 'xs')) && pw !== null && def.type !== 'Program' && (
+        {!noPower && (boosted || (showArt && size === 'xs')) && pw !== null && def.type !== 'Program' && (
           <span className={`tcg-pw ${boosted ? (power! > (def.power ?? 0) ? 'up' : 'down') : ''}`}>{pw}</span>
         )}
         {count !== undefined && <span className="tcg-count">×{count}</span>}

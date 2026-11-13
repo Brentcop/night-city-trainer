@@ -163,7 +163,8 @@ export function ArenaPage({ q }: { q?: URLSearchParams }) {
     <div className="grid">
       <PageHead kicker="Tournaments" title="Matchup Lab">
         Run bot-vs-bot games in your browser to test any deck — including ones you build or import. Both seats are played by the same bot, half the
-        games on the play and half on the draw. For bigger runs use the CLI: <code>npm run sim -- review</code>.
+        games on the play and half on the draw.{' '}
+        <span title="For the site owner: npm run sim -- review">Bigger runs are made offline by the site’s owner.</span>
       </PageHead>
       <div className="panel grid flair">
         <div className="vs-preview">

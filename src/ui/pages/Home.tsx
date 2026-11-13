@@ -6,11 +6,12 @@ import '../deckprofile.css';
 import { RATINGS, SEASONS } from '../../data/index';
 import type { DeckReports } from '../../data/deckReportsData';
 import { RECOMMENDATION } from '../../content/recommendation';
-import { configTime, pageOn, type SiteConfig } from '../../lib/siteConfig';
+import { configTime, nextEventPhase, pageOn, type SiteConfig } from '../../lib/siteConfig';
 import { useSiteConfig } from '../useSiteConfig';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct } from '../../lib/deckStats';
+import { ordinal } from '../../lib/playedRecord';
 import { DeckTile, LegendStrip, OriginBadge, ColorPips } from '../components/DeckIdentity';
 import { Markdown } from '../components/Markdown';
 import { ok, profileHref, StatTile, WrBar } from '../components/DeckStats';
@@ -38,12 +39,17 @@ function useDeckReports(file: string): DeckReports | undefined {
   return rep?.file === file ? rep.rep : undefined;
 }
 
-function Countdown({ start }: { start: number }) {
+/** The time now, ticking each minute. */
+function useMinute(): number {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(t);
   }, []);
+  return now;
+}
+
+function Countdown({ start, now }: { start: number; now: number }) {
   const ms = start - now;
   if (ms <= 0) return <span className="countdown">Event underway</span>;
   const d = Math.floor(ms / 86_400_000);
@@ -114,7 +120,11 @@ export function RecommendedHeroView({ d, backup, lib, rep, own }: { d: LibraryDe
             ok(finals) && <StatTile value={pct(finals)} label="Finals vs meta" caption={rep.finals ? `${rep.finals.games} deep-bot games vs the meta archetypes` : undefined} />
           )}
           {st.leader && ok(st.leader.rating) && (
-            <StatTile value={pct(st.leader.rating)} label="All-time rating" caption={`#${st.leader.rank} of ${st.leader.of}${ok(st.leader.percentile) ? ` · ${st.leader.percentile}th percentile` : ''}`} />
+            <StatTile
+              value={pct(st.leader.rating)}
+              label="Season rating"
+              caption={`vs the meta decks in the breeding seasons · #${st.leader.rank} of ${st.leader.of}${ok(st.leader.percentile) ? ` · ${ordinal(st.leader.percentile)} percentile` : ''}`}
+            />
           )}
         </div>
         {h2h.length > 0 && (
@@ -210,6 +220,8 @@ export function Home() {
   const top = (fromRatings.length ? fromRatings : fromSeasons).slice(0, 5);
   const ev = cfg.home.nextEvent;
   const start = configTime(ev.start, 'start') ?? 0;
+  const now = useMinute();
+  // once the event's end date has passed the bar is not shown (APP-12): it would say "next" about a past event
   const actions = (
     [
       ['▶', 'Practice', 'Play the recommended deck against the bot, with a coach.', `#/play?d=${encodeURIComponent(pick?.file ?? '')}`, 'play'],
@@ -218,13 +230,13 @@ export function Home() {
     ] as const
   ).filter((a) => pageOn(cfg, a[4]));
   const parts: Record<SiteConfig['home']['sections'][number]['id'], React.ReactNode> = {
-    nextEvent: (
+    nextEvent: nextEventPhase(ev, now) !== 'finished' && (
       <div className="event-bar">
         <div>
           <span className="muted small">NEXT EVENT</span> <b>{ev.name}</b>
           {ev.detail && <span className="muted small"> · {ev.detail}</span>}
         </div>
-        <Countdown start={start} />
+        <Countdown start={start} now={now} />
       </div>
     ),
     featuredDeck: pick && <RecommendedHero d={pick} backup={backup} lib={lib} own={own} />,

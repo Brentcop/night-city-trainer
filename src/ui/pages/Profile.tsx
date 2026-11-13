@@ -4,6 +4,7 @@
 // of the public sections only (src/lib/profileShare.ts) carried by a link or a file. #/u/<payload> is the read-only
 // viewer of someone else's shared profile.
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { IfPage } from '../components/SiteChrome';
 import { CARD_BY_ID } from '../../engine/cards';
 import { allDecks } from '../../lib/browserLibrary';
 import { loadHidden } from '../../lib/hiddenDecks';
@@ -414,7 +415,11 @@ function MyDecksPage({ lib }: { lib: readonly LibraryDeck[] }) {
   if (!decks.length)
     return (
       <p className="muted">
-        No decks saved in this browser yet. Build or import one in the <a href="#/decks">deck editor</a>, or tune or breed one in the <a href="#/lab">Deck Lab</a>.
+        No decks saved in this browser yet. Build or import one in the <a href="#/decks">deck editor</a>
+        <IfPage path="lab">
+          , or tune or breed one in the <a href="#/lab">Deck Lab</a>
+        </IfPage>
+        .
       </p>
     );
   return (
@@ -443,9 +448,11 @@ function MyDecksPage({ lib }: { lib: readonly LibraryDeck[] }) {
               ))}
             </ul>
             {g === 'tuned' && (
-              <p className="small muted">
-                Results against the original list are on the <a href="#/tuned">Tuned decks</a> page.
-              </p>
+              <IfPage path="tuned">
+                <p className="small muted">
+                  Results against the original list are on the <a href="#/tuned">Tuned decks</a> page.
+                </p>
+              </IfPage>
             )}
           </div>
         );

@@ -74,7 +74,7 @@ export function MetaPage() {
         <h2>Bot round robin</h2>
         <p className="small muted">
           {R.decks.length} decks, {R.games} games per pairing (alternating who goes first), run {R.date.slice(0, 10)}. Going first won{' '}
-          {Math.round(R.firstPlayerWinRate * 100)}% of these games. Rerun anytime with <code>npm run sim -- review --field all</code>.
+          <span title="For the site owner: npm run sim -- review --field all">{Math.round(R.firstPlayerWinRate * 100)}% of these games.</span>
         </p>
         <table>
           <thead>

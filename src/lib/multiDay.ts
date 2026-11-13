@@ -14,7 +14,7 @@ import { CORR_KIND, clockState, corrStatus, spanText, deadlineOf, type CorrGame 
 import { BOT_GAMES_KEY, ongoingChanged } from './ongoingBadge';
 import type { MultiDayMark, PracticeGame } from './practiceLog';
 import type { PracticeReplay } from './practiceReplays';
-import { parseSavedGame, replayOf, versionProblem, type SavedGame } from './savedGames';
+import { parseSavedGame, replayOf, staleLine, versionProblem, type SavedGame } from './savedGames';
 
 export const DAY_MS = 86_400_000;
 export const BOT_MD_KIND = 'nct-multiday-bot';
@@ -209,8 +209,15 @@ export function botItem(e: BotMultiDay, now: number, tierName: (level: string) =
     against: `${tierName(e.save.botLevel)} bot`,
     turn: e.save.turn,
     gigs: [e.save.gigs[0], e.save.gigs[1]],
-    yourMove: true,
-    status: stale ? 'Made with another version: it can be read, not resumed' : expired ? 'The deadline passed: finish it late, or close it as a loss on time' : e.late ? 'Your move (finishing late)' : 'Your move',
+    // a game this version can't resume isn't waiting for a move (it is not counted on the Play tab either)
+    yourMove: !stale,
+    status: stale
+      ? `${staleLine(e.save).replace(/^s/, 'S')}${expired ? '; its deadline has passed, so you can also close it as a loss on time' : ''}`
+      : expired
+        ? 'The deadline passed: finish it late, or close it as a loss on time'
+        : e.late
+          ? 'Your move (finishing late)'
+          : 'Your move',
     lastPlayed: Date.parse(e.lastPlayed) || 0,
     deadline: e.late ? null : Date.parse(e.deadline),
     expired,
@@ -238,10 +245,13 @@ export function corrItem(g: CorrGame, now: number): OngoingItem {
   };
 }
 
-/** Your move first, then the soonest deadline, then the most recently played; finished games last. */
+/** Not playable: finished, or (a bot game) made with another version. Not counted as ongoing; listed last. */
+export const notPlayable = (x: Pick<OngoingItem, 'over' | 'stale'>) => !!x.over || !!x.stale;
+
+/** Your move first, then the soonest deadline, then the most recently played; games that can't be played last. */
 export function sortOngoing(items: readonly OngoingItem[]): OngoingItem[] {
   return [...items].sort((a, b) => {
-    if (!!a.over !== !!b.over) return a.over ? 1 : -1;
+    if (notPlayable(a) !== notPlayable(b)) return notPlayable(a) ? 1 : -1;
     if (a.yourMove !== b.yourMove) return a.yourMove ? -1 : 1;
     const da = a.deadline ?? Infinity;
     const db = b.deadline ?? Infinity;

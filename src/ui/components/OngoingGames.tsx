@@ -4,7 +4,7 @@
 // exports it as a file (to carry it to another device) or deletes it (confirmed). An expired bot game offers "Finish it
 // anyway" (recorded as finished late) or "Close as a timed-out loss". Import reads a file back. Dialogs are Modals.
 import { useRef, useState } from 'react';
-import { timeLeftText, type OngoingItem } from '../../lib/multiDay';
+import { notPlayable, timeLeftText, type OngoingItem } from '../../lib/multiDay';
 import { formatRecorded } from './RecordedAt';
 import { ConfirmDialog } from './SavedGames';
 
@@ -17,7 +17,8 @@ export interface OngoingProps {
   busy?: boolean;
   onOpen: (it: OngoingItem) => void;
   onFinishLate: (it: OngoingItem) => void;
-  onCloseTimedOut: (it: OngoingItem) => void;
+  /** record the loss and remove the game; the reason when the record could not be written (the game is then kept) */
+  onCloseTimedOut: (it: OngoingItem) => string | null | void;
   onExport: (it: OngoingItem) => void;
   onDelete: (it: OngoingItem) => void;
   /** import a file's text; the reason when it is refused */
@@ -34,7 +35,8 @@ export function OngoingGames(p: OngoingProps) {
   const [msg, setMsg] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
   if (!p.storage) return <p className="small muted">This browser blocks site storage, so multi-day games can't be kept here.</p>;
-  const open = p.items.filter((x) => !x.over).length;
+  // the count beside the cap: games that can still be played (not finished, not made with another version)
+  const open = p.items.filter((x) => !notPlayable(x)).length;
   const readFile = (f: File | undefined) => {
     if (!f) return;
     void f
@@ -96,7 +98,19 @@ export function OngoingGames(p: OngoingProps) {
                   </div>
                 </div>
                 <div className="row save-actions">
-                  {it.type === 'bot' && it.expired && !it.stale ? (
+                  {it.type === 'bot' && it.stale ? (
+                    // made with another version: it can't be resumed; its log can still be read (no game is started)
+                    <>
+                      <button onClick={() => p.onOpen(it)} disabled={p.busy} title="This game can't be resumed on this version: read its log">
+                        Read the log
+                      </button>
+                      {it.expired && (
+                        <button onClick={() => setClosing(it)} disabled={p.busy}>
+                          Close as a timed-out loss
+                        </button>
+                      )}
+                    </>
+                  ) : it.type === 'bot' && it.expired ? (
                     <>
                       <button className="primary" onClick={() => p.onFinishLate(it)} disabled={p.busy}>
                         Finish it anyway
@@ -106,7 +120,7 @@ export function OngoingGames(p: OngoingProps) {
                       </button>
                     </>
                   ) : (
-                    <button className={it.yourMove ? 'primary' : ''} onClick={() => p.onOpen(it)} disabled={p.busy || (it.type === 'bot' && !!it.stale)}>
+                    <button className={it.yourMove ? 'primary' : ''} onClick={() => p.onOpen(it)} disabled={p.busy}>
                       {it.type === 'bot' ? 'Resume' : 'Open'}
                     </button>
                   )}
@@ -154,7 +168,8 @@ export function OngoingGames(p: OngoingProps) {
           confirm="Record the loss"
           danger
           onConfirm={() => {
-            p.onCloseTimedOut(closing);
+            const why = p.onCloseTimedOut(closing);
+            if (why) setMsg(why);
             setClosing(null);
           }}
           onCancel={() => setClosing(null)}

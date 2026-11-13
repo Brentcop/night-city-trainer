@@ -97,7 +97,7 @@ if (useRatings) {
   const L = lib.find((x) => x.deck.name === r.name)!;
   const worst = Math.min(...metaNames.filter((o) => o !== r.name).map((o) => expWr(r.name, o) ?? 1));
   pick = { name: r.name, file: L.file, winRate: r.wrField, games: r.games, field: r.wrMeta ?? r.wrField, worst } as any;
-  pickReason = `Highest power rating from ${RT!.events} tournament events (${RT!.games.toLocaleString()} games): expected ${pct(r.wrField)} against the whole field (90% range ${pct(r.wrFieldLo)}–${pct(r.wrFieldHi)}) and ${pct(r.wrMeta ?? NaN)} against the choom.gg meta decks; ${r.titles} event title${r.titles === 1 ? '' : 's'}, top 8 in ${r.top8} of ${r.events}.${close.length > 1 ? ` Chosen over ${close.length - 1} statistically tied deck${close.length > 2 ? 's' : ''} (${close.filter((d) => d !== r).map((d) => d.name).join(', ')}) for its record against the meta decks.` : ''}`;
+  pickReason = `Highest power rating from ${RT!.events} tournament events (${RT!.games.toLocaleString()} games; its 90% range against the whole field is ${pct(r.wrFieldLo)}–${pct(r.wrFieldHi)}); ${r.titles} event title${r.titles === 1 ? '' : 's'}, top 8 in ${r.top8} of ${r.events}.${close.length > 1 ? ` Chosen over ${close.length - 1} statistically tied deck${close.length > 2 ? 's' : ''} (${close.filter((d) => d !== r).map((d) => d.name).join(', ')}) for its record against the meta decks.` : ''}`;
 }
 let backup = ranked.find((d) => d.name !== pick.name && arch(d.name) !== arch(pick.name)) ?? ranked[1];
 if (useRatings) {
@@ -170,16 +170,16 @@ const today = new Date();
 const days = daysUntil(EVENT.start, today);
 
 const plan = `
-> Generated ${today.toISOString().slice(0, 10)} from ${R.decks.length} decks × ${R.games} games per pairing (${R.bot} bot) plus telemetry. Re-run \`npm run sim -- analyze --field all --bot deep\` and then \`npx tsx scripts/plan.ts\` to refresh.
+> Generated ${today.toISOString().slice(0, 10)} from ${R.decks.length} decks × ${R.games} games per pairing (${R.bot} bot) plus telemetry.
 
 ## Register: ${link(pick.name)}
 - **Full stats:** [${pick.name} deck profile](#/deck?d=${encodeURIComponent(pick.file)}) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
-- ${finals[pick.name] ? `**Finals: ${pct(finals[pick.name].overall)} over ${finals[pick.name].games} deep-bot games vs the meta archetypes.** ` : ''}**Expected-field score: ${pct(pick.field)}**. This is the win rate against choom.gg's meta archetypes, weighted by their tier power. Overall round-robin win rate: ${pct(pick.winRate)}; worst meta matchup: ${pct(pick.worst)}.
+- ${finals[pick.name] ? `**Finals: ${pct(finals[pick.name].overall)} over ${finals[pick.name].games} deep-bot games vs the meta archetypes.** ` : ''}${useRatings ? `**Power rating: ${pct(pick.winRate)} expected against the whole tournament field**, and ${pct(pick.field)} expected against the choom.gg meta decks (the same model); worst meta matchup: ${pct(pick.worst)}.` : `**Meta-weighted score: ${pct(pick.field)}**: the round-robin win rate against choom.gg's meta archetypes, weighted by their tier power. Round-robin win rate against every deck: ${pct(pick.winRate)}; worst meta matchup: ${pct(pick.worst)}.`}
 ${pickReason ? `- **Why this one:** ${pickReason}` : ''}
 ${rep ? `- **Why (from ${rep.games} telemetry games):**
 ${rep.insights.map((x) => `  - ${x}`).join(String.fromCharCode(10))}` : '- **Telemetry:** this deck is not in the analysed field (`src/data/analysis.json`), so there are no card insights for it yet.'}
 - **Ready-to-register list:** ${eorDeck ? `${link(eorDeck.deck.name)} (\`${eorFile}\`, Decks page → Tournament builds): the list plus a data-chosen 7-card sideboard.` : 'the list on the Decks page.'}
-- **Backup / sideboard partner:** ${link(backup.name)} (${arch(backup.name)}, field score ${pct(backup.field)}). Practise it second, in case the room skews hard against ${arch(pick.name)} decks.
+- **Backup / sideboard partner:** ${link(backup.name)} (${arch(backup.name)}, ${useRatings ? `expected ${pct(backup.field)} against the meta decks` : `meta-weighted score ${pct(backup.field)}`}). Practise it second, in case the room skews hard against ${arch(pick.name)} decks.
 
 ${
   useRatings
@@ -198,7 +198,7 @@ ${RT!.decks
 `
     : ''
 }
-## Expected-field ranking
+## Ranking against the meta decks (finals and round robin)
 | # | Deck | Archetype | Finals vs meta (games) | Round-robin vs meta field | Overall | Worst meta matchup |
 |---|---|---|---|---|---|---|
 ${ranked
@@ -213,14 +213,14 @@ ${hasFinals ? `Ranking uses the **finals** (\`sim test\` vs the meta archetypes,
 |---|---|---|---|---|
 ${matchupLines.join('\n')}
 
-${optRows.length ? `## List tuning (optimizer)\nThese single-card changes beat the stock list in confirmation runs (same seeds; ±3 pts is noise):\n${optRows.map((c) => `- ${c[1]}: ${c[3]} (${c[4]} pts)`).join('\n')}\n\nThe full report is in \`reports/optimize-${pick.file.replace(/\.txt$/, '')}-latest.md\`.` : '## List tuning\nThe optimizer found no single-card change that clearly beats the stock list, so register it as-is.'}
+${optRows.length ? `## List tuning (optimizer)\nThese single-card changes beat the stock list in confirmation runs (same seeds; ±3 pts is noise):\n${optRows.map((c) => `- ${c[1]}: ${c[3]} (${c[4]} pts)`).join('\n')}` : '## List tuning\nThe optimizer found no single-card change that clearly beats the stock list, so register it as-is.'}
 
 ${problemLines.length ? `## Problem matchups\n${problemLines.join('\n')}` : ''}
 
 ## Bo3 notes (tournament rules)
 - The **loser of each game chooses who goes first**. Use the seat column above. Across all sim games, going first won ${pct(R.firstPlayerWinRate)}; choom.gg's human games show 57% for going first.
 - Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. ${rep ? `Average sim game length for this deck is ${rep.avgTurns.toFixed(1)} turns, so play at a steady pace.` : 'Play at a steady pace.'}
-- The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab, or with \`npx tsx scripts/optimize.ts <deck> --vs <opponent> --sideboard\`.
+- The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab.
 
 ## Practice schedule (${days} days to Chicago)
 1. **This week:** 10+ games a day in **Play vs Bot** with ${pick.name} on Deep, Coach on. Read every Coach line where you disagreed with it.
@@ -238,7 +238,7 @@ const recommendation = `## Recommended deck
 ${rep ? rep.insights.slice(0, 2).map((s) => `- ${s}`).join('\n') : ''}
 `;
 
-fs.writeFileSync('src/content/tournamentPlan.ts', `// Generated by scripts/plan.ts — do not edit by hand.\nexport const TOURNAMENT_PLAN = ${JSON.stringify(plan)};\n`);
+fs.writeFileSync('src/content/tournamentPlan.ts', `// Generated by scripts/plan.ts — do not edit by hand. Refresh: npm run sim -- analyze --field all --bot deep, then npx tsx scripts/plan.ts.\nexport const TOURNAMENT_PLAN = ${JSON.stringify(plan)};\n`);
 fs.writeFileSync('src/content/recommendation.ts', `// Generated by scripts/plan.ts — do not edit by hand.\nexport const RECOMMENDATION = ${JSON.stringify(recommendation)};\n`);
 fs.writeFileSync('docs/TOURNAMENT_PLAN.md', `# Tournament plan — EOR Chicago\n${plan}`);
 console.log(plan);

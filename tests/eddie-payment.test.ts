@@ -8,6 +8,7 @@ import type { Decision } from '../src/engine/types';
 import {
   addEddie,
   automaticSelection,
+  autoPayAnswer,
   clampSelection,
   costOfAnswer,
   EMPTY_SELECTION,
@@ -160,5 +161,32 @@ describe('paying with a confirmed selection (planAnswer)', () => {
     expect(planAnswer(d, { eddies: 1, legends: [2] })).toEqual({ i: 1, rest: { eddies: 1, legends: [] } });
     expect(planAnswer(d, { eddies: 1, legends: [] })).toEqual({ i: 0, rest: { eddies: 0, legends: [] } });
     expect(planAnswer({ ...d, kind: 'card' }, { eddies: 1, legends: [] })).toBeNull();
+  });
+});
+
+describe('Automatic payment never asks (UX-9)', () => {
+  it("the seat is asked per €$ while a Legend could pay; Automatic answers each with option 0, which leaves the game exactly as the engine's automatic payment", async () => {
+    const auto = scene(false);
+    await auto.g.playFromHand(0, auto.card.uid);
+    // the board's human seat chooses payments; in Automatic the board answers every 'pay' question itself
+    const asked: Decision[] = [];
+    const { g, agents } = setup([(d) => (d.kind === 'pay' ? (asked.push(d), autoPayAnswer(d, 'auto') ?? undefined) : undefined), null]);
+    Object.assign(agents[0], { choosesPayment: true });
+    eddies(g, 0, 4);
+    g.c(g.P(0).legends[0]!).spent = false;
+    const card = spawn(g, 0, FILLER, 'hand');
+    await g.playFromHand(0, card.uid);
+    expect(asked.length).toBeGreaterThan(0); // the engine did ask (a Legend was on offer) ...
+    expect(asked.every((d) => d.options[0]?.key === 'eddie')).toBe(true); // ... and option 0 is the automatic pick
+    expect(JSON.stringify(g.s)).toBe(JSON.stringify(auto.g.s));
+  });
+
+  it('only Automatic answers, and only payment questions', () => {
+    const d: Decision = { player: 0, kind: 'pay', prompt: 'pay', min: 1, max: 1, options: [{ label: 'an Eddie (2 ready)', uid: 1, key: 'eddie' }, { label: 'Legend', uid: 2, key: 'legend' }] };
+    expect(autoPayAnswer(d, 'auto')).toBe(0);
+    expect(autoPayAnswer(d, 'before')).toBeNull();
+    expect(autoPayAnswer(d, 'after')).toBeNull();
+    expect(autoPayAnswer({ ...d, kind: 'card' }, 'auto')).toBeNull();
+    expect(autoPayAnswer(null, 'auto')).toBeNull();
   });
 });

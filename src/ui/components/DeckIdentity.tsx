@@ -6,7 +6,7 @@ import { shortCredit } from '../../lib/library';
 import { deckStats, pct } from '../../lib/deckStats';
 import { artEnabled, useArt } from '../art';
 import { typeSplit } from '../../lib/deckTypes';
-import { SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
+import { ordinal, SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
 import { RATINGS } from '../../data/index';
 import { TypeSplitBar } from './TypeSplit';
 import { ChoomTierBadge, SimTierBadge, simTierFor } from './TierBadges';
@@ -117,7 +117,7 @@ export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boo
         <div className="small muted deck-tile-by">{shortCredit(d)}</div>
         <div className="deck-tile-stats">
           {played ? (
-            <span className="deck-tile-played">
+            <span className="deck-tile-played" title="Swiss win rate: the raw record in the Swiss rounds of recorded tournament events">
               <b className={`num ${played.n < SMALL_SAMPLE ? 'thin' : ''}`}>{pct(played.wr)}</b> in {played.n.toLocaleString()} Swiss games
               {played.n < SMALL_SAMPLE ? ' (small sample)' : ''}
               {played.titles > 0 ? ` · ${played.titles} title${played.titles === 1 ? '' : 's'}` : played.top8 > 0 ? ` · top 8 ×${played.top8}` : ''}
@@ -126,12 +126,12 @@ export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boo
             !st.leader && !st.review && <span>No recorded games</span>
           )}
           {st.leader && (
-            <span title="Pooled win rate vs the meta archetypes (shrunk rating)">
-              <b>{pct(st.leader.rating)}</b> vs meta · {st.leader.percentile}th pct
+            <span title="Season rating: win rate vs the meta decks across the breeding seasons, adjusted for sample size (the Seasons leaderboard)">
+              <b>{pct(st.leader.rating)}</b> season rating · {ordinal(st.leader.percentile)} percentile
             </span>
           )}
           {!st.leader && st.review && (
-            <span>
+            <span title="Win rate in the bot round robin of the top decks (every deck against every other)">
               <b>{pct(st.review.winRate)}</b> round robin
             </span>
           )}

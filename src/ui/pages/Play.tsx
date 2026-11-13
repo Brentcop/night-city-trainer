@@ -10,7 +10,7 @@ import { annotatePractice, coachSummary } from '../../lib/practiceLog';
 import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
 import { download } from '../../lib/download';
 import { GIG_SWING } from '../../ai/eval';
-import { canConcede, canUndo, type Running } from '../../lib/practiceSession';
+import { canConcede, canUndo, rematchOf, type Running } from '../../lib/practiceSession';
 import { GameReviewModal, type GameReviewSource } from '../components/GameReview';
 import { coachRatingsFrom } from '../../lib/gameReview';
 import { saveCoachRatings } from '../../lib/gameReviewStore';
@@ -34,6 +34,7 @@ import { useBoardSettings } from '../useBoardSettings';
 import {
   addEddie,
   automaticSelection,
+  autoPayAnswer,
   clampSelection,
   costOfAnswer,
   EMPTY_SELECTION,
@@ -49,28 +50,31 @@ import { phoneLayout, phoneVars } from '../components/board/layout';
 import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
 import { saveOfRun, useGameTick, usePracticeGame, type TickSource } from '../usePracticeGame';
+import { removeUnresumable } from '../../lib/gameKeeper';
 import {
   addSlot,
-  clearAutosave,
   defaultSaveName,
   deleteSlot,
   loadAutosave,
   loadSlots,
+  MAX_SLOTS,
   newSlotId,
   parseSavedGame,
   renameSlot,
+  replacesAutosave,
   saveFileName,
   saveFileText,
   storageWorks,
+  versionProblem,
   type SavedGame,
 } from '../../lib/savedGames';
-import { ConfirmDialog, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
+import { ConfirmDialog, ResumeConfirm, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard, type CoachNote } from '../components/board/CoachPanel';
 import { shownLabel } from '../../lib/coachWords';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
 import { OngoingGames } from '../components/OngoingGames';
 import { useSiteConfig } from '../useSiteConfig';
-import { recordPractice } from '../../lib/practiceLog';
+import { loadPractice, recordPractice } from '../../lib/practiceLog';
 import { saveReplay } from '../../lib/practiceReplays';
 import {
   botItem,
@@ -141,9 +145,14 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
   speedRef.current = speed;
   const coachRef = useRef(coach);
   coachRef.current = coach;
-  const { session, game, start: startMatch, startMultiDay, resume, resumeMultiDay, undo, quit, concede, multiDay } = usePracticeGame(
+  // with saved games turned off (site config) no autosave is written (APP-9)
+  const savesRef = useRef(site.features.savedGames);
+  savesRef.current = site.features.savedGames;
+  const { session, game, start: startMatch, startMultiDay, resume, resumeMultiDay, undo, quit, leave, concede, multiDay, storageNote } = usePracticeGame(
     () => speedRef.current,
     () => coachRef.current,
+    Date.now,
+    () => savesRef.current,
   );
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
@@ -169,7 +178,8 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
     const t = setInterval(() => setMdNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, [game, mdOn, reloadOngoing]);
-  const ongoingOpen = { bot: botGames.length, pvp: corrGames.filter((g) => g.stage !== 'over' && g.stage !== 'refused').length };
+  // the cap counts games that can still be played: not over, and (against the bot) saved with this version
+  const ongoingOpen = { bot: botGames.filter((e) => !versionProblem(e.save)).length, pvp: corrGames.filter((g) => g.stage !== 'over' && g.stage !== 'refused').length };
   const cap = site.multiDay.maxOngoing;
   const mdBlocked = capProblem(ongoingOpen, cap);
   const [storageWorksHere] = useState(storageWorks);
@@ -194,26 +204,44 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
   const [autosave, setAutosave] = useState(loadAutosave);
   const [slots, setSlots] = useState(loadSlots);
   const [restoring, setRestoring] = useState(false);
-  const [problem, setProblem] = useState<{ save: SavedGame; why: string } | null>(null);
-  const [askNew, setAskNew] = useState(false);
+  // a save that can't be resumed, and where it lives (so Delete removes it from the right list)
+  const [problem, setProblem] = useState<{ save: SavedGame; why: string; from: 'auto' | 'slot' | 'md'; id: string } | null>(null);
+  // a new game that would replace the autosave of an unfinished game: what to start once confirmed
+  const [askNew, setAskNew] = useState<(() => void) | null>(null);
+  const [askResume, setAskResume] = useState<{ save: SavedGame; replaces: SavedGame | null; finished: { result: string; date: string } | null; error?: string } | null>(null);
   useEffect(() => {
     if (game) return;
     setAutosave(loadAutosave());
     setSlots(loadSlots());
   }, [game]);
-  // a new game from the setup screen while an unfinished one is saved asks first (a rematch after a game doesn't; a
-  // multi-day game never replaces the autosave, so it doesn't ask)
+  // a new game from the setup screen while an unfinished one is saved asks first (a multi-day game never replaces the
+  // autosave, so it doesn't ask)
   const start = () => {
-    if (!game && storageOk && loadAutosave() && !mdWanted) setAskNew(true);
+    if (!game && storageOk && loadAutosave() && !mdWanted) setAskNew(() => begin);
     else begin();
+  };
+  // Rematch: the game just played again (its decks, tier and seat rule, APP-3), as a quick game. After a multi-day game
+  // that would replace another game's autosave, so it asks first; after a quick game the autosave is that game's own.
+  const rematch = () => {
+    if (!game) return;
+    const m = rematchOf(game.replay, { endTurnClick: settings.endTurn === 'click', seed: Math.floor(Math.random() * 2 ** 31), botSeed: Date.now() % 100000 });
+    const go = () => void startMatch(m);
+    if (multiDay(game) && storageOk && loadAutosave()) setAskNew(() => go);
+    else go();
   };
   const [mdBusy, setMdBusy] = useState(false);
   const resumeBot = (e: BotMultiDay, late: boolean) => {
+    // made with another version: nothing is replayed, its log is shown
+    const old = versionProblem(e.save);
+    if (old) {
+      setProblem({ save: e.save, why: old, from: 'md', id: e.id });
+      return;
+    }
     setMdBusy(true);
     void resumeMultiDay(e, late).then((r) => {
       setMdBusy(false);
       if (r.ok) setCoach(e.save.coach);
-      else if (r.mismatch) setProblem({ save: e.save, why: r.why });
+      else if (r.mismatch) setProblem({ save: e.save, why: r.why, from: 'md', id: e.id });
     });
   };
   const botOf = (it: OngoingItem) => botGames.find((x) => x.id === it.id);
@@ -237,12 +265,13 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
       }}
       onCloseTimedOut={(it) => {
         const e = botOf(it);
-        if (!e) return;
+        if (!e) return null;
         const r = timedOutRecords(e, Date.now());
-        saveReplay(r.replay);
-        recordPractice(r.entry);
+        // the game is removed only once its loss is recorded (APP-2)
+        if (!saveReplay(r.replay) || !recordPractice(r.entry)) return 'This browser refused to record the loss (its storage is full or blocked), so the game is kept. Free some space and try again.';
         removeBotGame(e.id);
         reloadOngoing();
+        return null;
       }}
       onExport={(it) => {
         const e = botOf(it);
@@ -271,19 +300,37 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
     />
   );
   const resumeSave = (s: SavedGame) => {
+    setAskResume(null);
+    const from = s.id === 'auto' ? 'auto' : 'slot';
+    // made with another version: nothing is replayed, its log is shown
+    const old = versionProblem(s);
+    if (old) {
+      setProblem({ save: s, why: old, from, id: s.id });
+      return;
+    }
     setRestoring(true);
     void resume(s).then((r) => {
       setRestoring(false);
       if (r.ok) setCoach(s.coach);
-      else if (r.mismatch) setProblem({ save: s, why: r.why });
+      else if (r.mismatch) setProblem({ save: s, why: r.why, from, id: s.id });
     });
+  };
+  // a named or imported save asks first when resuming it would replace another unfinished game's autosave (APP-1), or
+  // would finish again a game already recorded (APP-5: the new result replaces the old one)
+  const requestResume = (s: SavedGame) => {
+    const a = loadAutosave();
+    const replaces = replacesAutosave(a, s) ? a : null;
+    const done = s.id !== 'auto' && !versionProblem(s) ? loadPractice().find((x) => x.id === s.replayId) : undefined;
+    const finished = done ? { result: done.conceded ? 'conceded' : done.result, date: done.date } : null;
+    if ((replaces || finished) && !versionProblem(s)) setAskResume({ save: s, replaces, finished });
+    else resumeSave(s);
   };
   const saves: SavesProps = {
     storage: storageOk,
     autosave,
     slots,
     restoring,
-    onResume: resumeSave,
+    onResume: requestResume,
     onRename: (id, name) => setSlots(renameSlot(id, name)),
     onDelete: (id) => setSlots(deleteSlot(id)),
     onExport: (s) => download(saveFileName(s), saveFileText(s), 'application/json'),
@@ -296,6 +343,40 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
       return null;
     },
   };
+
+  const pendingAuto = askNew ? loadAutosave() : null;
+  const autoOld = pendingAuto ? !!versionProblem(pendingAuto) : false;
+  const newGameDialog =
+    askNew && pendingAuto ? (
+      <ConfirmDialog
+        title="Start a new game?"
+        text={
+          <p>
+            {autoOld
+              ? `Your unfinished game from an older version of the app (${saveSummary(pendingAuto)}) can’t be resumed. Starting a new game replaces it; read its log first if you want to keep anything from it.`
+              : `Your unfinished game (${saveSummary(pendingAuto)}) is saved. Starting a new game replaces that autosave. Use Resume game to go on with it instead.`}
+          </p>
+        }
+        confirm="Start a new game"
+        onConfirm={() => {
+          const go = askNew;
+          setAskNew(null);
+          go();
+        }}
+        extra={
+          game
+            ? undefined
+            : {
+                label: autoOld ? 'Read it first' : 'Resume it',
+                onClick: () => {
+                  setAskNew(null);
+                  resumeSave(pendingAuto);
+                },
+              }
+        }
+        onCancel={() => setAskNew(null)}
+      />
+    ) : null;
 
   if (!game) {
     return (
@@ -334,34 +415,38 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
               : undefined
           }
         />
-        {askNew && autosave && (
-          <ConfirmDialog
-            title="Start a new game?"
-            text={<p>Your unfinished game ({saveSummary(autosave)}) is saved. Starting a new game replaces that autosave. Use Resume game to go on with it instead.</p>}
-            confirm="Start a new game"
-            onConfirm={() => {
-              setAskNew(false);
-              begin();
+        {newGameDialog}
+        {askResume && (
+          <ResumeConfirm
+            save={askResume.save}
+            replaces={askResume.replaces}
+            finished={askResume.finished}
+            error={askResume.error}
+            slotFree={slots.length < MAX_SLOTS}
+            onKeepAndResume={() => {
+              const kept = askResume.replaces ? addSlot(askResume.replaces) : null;
+              if (kept && !kept.ok) {
+                // the slot could not be written: nothing is replaced, and the dialog says why
+                setAskResume({ ...askResume, error: kept.why });
+                return;
+              }
+              if (kept) setSlots(kept.list);
+              resumeSave(askResume.save);
             }}
-            extra={{
-              label: 'Resume it',
-              onClick: () => {
-                setAskNew(false);
-                resumeSave(autosave);
-              },
-            }}
-            onCancel={() => setAskNew(false)}
+            onResume={() => resumeSave(askResume.save)}
+            onCancel={() => setAskResume(null)}
           />
         )}
         {problem && (
           <UnresumableDialog
             save={problem.save}
             why={problem.why}
+            deleteLabel={problem.from === 'md' ? 'Delete this game' : 'Delete this save'}
             onDelete={() => {
-              if (problem.save.id === 'auto') {
-                clearAutosave();
-                setAutosave(null);
-              } else setSlots(deleteSlot(problem.save.id));
+              removeUnresumable(problem.from, problem.id);
+              setAutosave(loadAutosave());
+              setSlots(loadSlots());
+              reloadOngoing();
               setProblem(null);
             }}
             onClose={() => setProblem(null)}
@@ -387,22 +472,30 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
   }
   const md = multiDay(game);
   return (
-    <Board
-      key={game.match}
-      session={session}
-      game={game}
-      coach={coach}
-      speed={speed}
-      setSpeed={setSpeed}
-      onQuit={quit}
-      onConcede={concede}
-      onRematch={start}
-      onUndo={undo}
-      canSave={storageOk}
-      canReview={site.features.gameReview}
-      banner={md ? <MultiDayBanner days={md.days} deadline={md.deadline} late={md.late} /> : undefined}
-      exitNote={md ? 'You leave the game for now. It stays in Ongoing games on the Play screen until you finish it; nothing is recorded yet.' : undefined}
-    />
+    <>
+      <Board
+        key={game.match}
+        session={session}
+        game={game}
+        coach={coach}
+        speed={speed}
+        setSpeed={setSpeed}
+        onQuit={quit}
+        // Exit keeps the game by default: a multi-day game in Ongoing games, a quick one in the autosave (UX-10)
+        onLeave={md || storageOk ? leave : undefined}
+        onConcede={concede}
+        onRematch={rematch}
+        rematchLabel={md ? 'Rematch (quick game)' : undefined}
+        onUndo={undo}
+        // a multi-day game is always saved in its own list: a slot would be a second live copy of it (APP-5)
+        canSave={storageOk && !md}
+        canReview={site.features.gameReview}
+        storageNote={storageNote}
+        banner={md ? <MultiDayBanner days={md.days} deadline={md.deadline} late={md.late} /> : undefined}
+        exitNote={md ? 'You leave the game for now. It stays in Ongoing games on the Play screen until you finish it; nothing is recorded yet.' : undefined}
+      />
+      {newGameDialog}
+    </>
   );
 }
 
@@ -472,11 +565,14 @@ export function Board({
   speed,
   setSpeed,
   onQuit,
+  onLeave,
   onConcede,
   onRematch,
+  rematchLabel,
   onUndo,
   canSave,
   canReview,
+  storageNote,
   online,
   banner,
   exitNote,
@@ -486,10 +582,16 @@ export function Board({
   coach: boolean;
   speed: number;
   setSpeed: (n: number) => void;
+  /** Exit and discard (and New game once it is over) */
   onQuit: () => void;
+  /** Save and exit: keep the game for Resume; false when this browser refused to store it (the game goes on) */
+  onLeave?: () => boolean;
   onConcede: () => void;
   onRematch: () => void;
+  rematchLabel?: string;
   onUndo: () => void;
+  /** a storage write failed (the autosave, a multi-day save, the record): shown in the notice */
+  storageNote?: { text: string; n: number } | null;
   /** this browser can store saves (and saved games are on) */
   canSave: boolean;
   /** game review is on (site config) */
@@ -558,12 +660,17 @@ export function Board({
   const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
   // Save game: the named saves while the dialog is open, and a short note once saved
   const [saving, setSaving] = useState<SavedGame[] | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // a short note (saved, a move not graded), or a storage failure, which stays up longer
+  const [notice, setNoticeRaw] = useState<{ text: string; ms: number } | null>(null);
+  const setNotice = useCallback((text: string | null, ms = 2600) => setNoticeRaw(text ? { text, ms } : null), []);
   useEffect(() => {
     if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 2600);
+    const t = setTimeout(() => setNoticeRaw(null), notice.ms);
     return () => clearTimeout(t);
   }, [notice]);
+  useEffect(() => {
+    if (storageNote) setNotice(storageNote.text, 9000);
+  }, [storageNote, setNotice]);
   // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
@@ -591,7 +698,7 @@ export function Board({
   // coach: ask the advisor bot what it would do in this spot
   useEffect(() => {
     // nothing to advise for a one-option decision (ending the turn when nothing else is left: forced, not graded either)
-    if (!pend || !coach || !coachWorthAsking(pend) || onlyEndTurn(pend)) return;
+    if (!pend || !coach || !coachWorthAsking(pend) || onlyEndTurn(pend) || autoPayAnswer(pend, payMode) !== null) return;
     let alive = true;
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend, lift0)
@@ -605,7 +712,7 @@ export function Board({
     return () => {
       alive = false;
     };
-  }, [pend, coach, g, advise, lift0]);
+  }, [pend, coach, g, advise, lift0, payMode]);
 
   // a new decision closes any open menu / target mode
   useEffect(() => {
@@ -705,7 +812,7 @@ export function Board({
       }
       return true;
     },
-    [human, coach, activeHint, adviceFailed, g, grades, coachApi, game.replay],
+    [human, coach, activeHint, adviceFailed, g, grades, coachApi, game.replay, setNotice],
   );
   /** Answer with these sources paying its cost: the engine's 'pay' decisions that follow are answered from them. */
   const payAndCommit = useCallback(
@@ -742,9 +849,16 @@ export function Board({
     [payMode, human, g, commit, paySel, payAndCommit],
   );
   // a confirmed selection answers the 'pay' decisions of its cost; anything else (or nothing left to give) ends it
-  useEffect(() => {
+  // Automatic: the engine's per-€$ 'pay' questions are answered with what the automatic rule spends, so nothing is asked
+  // (layout effect: the prompt never paints)
+  useLayoutEffect(() => {
     const plan = payPlan.current;
-    if (!plan || !pend) return;
+    if (!plan) {
+      const auto = autoPayAnswer(pend, payMode);
+      if (auto !== null) human.answer(pend, auto);
+      return;
+    }
+    if (!pend) return;
     const r = pend.kind === 'pay' ? planAnswer(pend, plan) : null;
     if (!r) {
       payPlan.current = null;
@@ -752,7 +866,7 @@ export function Board({
     }
     payPlan.current = r.rest;
     human.answer(pend, r.i);
-  }, [pend, human]);
+  }, [pend, human, payMode]);
   const answer = useCallback((i: number) => answerFor(pend, i), [answerFor, pend]);
 
   // "Choose before": your selection, kept to what can still pay, while you can act (main phase or a reaction)
@@ -1150,7 +1264,7 @@ export function Board({
           )}
           {notice && (
             <div className="pb-refusal pb-notice" role="status">
-              {notice}
+              {notice.text}
             </div>
           )}
         </>,
@@ -1162,6 +1276,14 @@ export function Board({
           note={exitNote ?? online?.exitNote}
           kind={leave}
           onCancel={() => setLeave(null)}
+          onKeep={
+            onLeave
+              ? () => {
+                  setLeave(null);
+                  if (!onLeave()) setNotice('This browser refused to save the game (its storage is full or blocked), so it was not closed. Keep playing, or use Exit and discard.', 9000);
+                }
+              : undefined
+          }
           onConfirm={() => {
             setLeave(null);
             if (leave === 'concede') onConcede();
@@ -1191,7 +1313,7 @@ export function Board({
           g={g}
           conceded={conceded}
           onRematch={onRematch}
-          rematchLabel={online?.rematchLabel}
+          rematchLabel={online?.rematchLabel ?? rematchLabel}
           rematchDisabled={online?.rematchDisabled}
           newLabel={online ? 'Leave' : undefined}
           onNew={onQuit}

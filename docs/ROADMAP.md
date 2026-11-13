@@ -4,7 +4,7 @@ Planned work that is decided in principle but not scheduled. The item-level back
 
 ## 1. Fresh baseline: wipe recorded data and restart at Season 1
 
-**Done 2026-11-11** (working tree, for the owner to review and commit). Decided 2026-11-10; the owner authorised the run on 2026-11-11.
+**Done 2026-11-11** (committed). Decided 2026-11-10; the owner authorised the run on 2026-11-11.
 
 **Why.** Every recorded event, season, rating, head-to-head and card statistic had been produced by the pre-review engine and bots (worst-card recovery, bad Gig swaps, yes to every prompt, hidden Legend identities, a lossy candidate cap, several rules divergences, Swiss rematches, mulliganed cards counted as drawn). After Wave B and the FAQ conformance pass none of the old numbers described the sim and old events no longer replayed, so the data was restarted rather than regenerated piecemeal.
 
@@ -32,7 +32,7 @@ Consistency: `check:data` now fails an event with no `simVersion` or manifest; t
 
 **Decided 2026-11-10.** Fold into Wave C of the backlog (package WP-C5).
 
-**Done in the working tree 2026-11-11 (WP-C5), not yet run on GitHub.** `.github/workflows/pages.yml` now uses GitHub's official Pages flow:
+**Done 2026-11-11 (WP-C5), committed.** `.github/workflows/pages.yml` now uses GitHub's official Pages flow:
 - `check` runs on every push and pull request with read-only permissions: `npm ci` (npm cache, Node from `.nvmrc`), `npm run typecheck`, `vitest run`, `npm run lint`, `npm run check:data` (event index matches the event files; `h2h.json` covers the recorded events; manifests valid), then `vite build`. On a push to `main` it also uploads `dist/` with `actions/upload-pages-artifact`, so what deploys is exactly what passed.
 - `deploy` needs `check`, runs only for pushes to `main`, holds `pages: write` and `id-token: write` (the only job that does), uses the `github-pages` environment, runs no repository code, and publishes with `actions/deploy-pages`. Its concurrency group `pages` queues deploys and never cancels one in progress.
 - Every action is pinned to a full commit SHA with its tag in a comment. The third-party `gh-pages` publish step is gone.
@@ -49,11 +49,11 @@ Consistency: `check:data` now fails an event with no `simVersion` or manifest; t
 
 ## 3. Remaining backlog waves
 
-- **Wave C — structure, performance, accessibility.** Status on 2026-11-11 (working tree, not yet committed or checked by eye):
+- **Wave C — structure, performance, accessibility.** Status on 2026-11-11 (all committed since):
   - WP-C1 (bundle size and data loading): done. Home's first paint no longer bundles the large data files: the entry chunk is 427 kB (102 kB gzip), was 823 kB (169 kB gzip); `analysis.json`, `deckReports.json` and `tournaments.json` have their own chunks, typed views live in `src/data/` (`index.ts` and one module per large file), Home loads the recommended deck's reports at runtime with a placeholder tile, the Deck Lab loads the event count on demand, `allDecks()` is cached, the tournament plan's day count is computed when shown, and the `chunkSizeWarningLimit` override is gone (every chunk is under Vite's 500 kB default). LIB-12's thresholds are one shared pair since 2026-11-11.
   - WP-C2 (Play performance and accessibility): done. Every board overlay, dialog and menu takes focus, traps Tab (the full-board log drawer excepted, by design) and restores focus (`useFocusTrap` in `components/Modal.tsx`); dead and overridden rules removed from `board.css`; the setup screen and coach panel moved out of `Play.tsx`.
-  - WP-C3 (pages accessibility and CSS): done in the working tree on 2026-11-11 (APP-13 to APP-17, APP-19, APP-20; see the backlog), not yet checked by eye in a browser or committed.
-  - WP-C4 (type hardening and engine structure): done in the working tree on 2026-11-11, not committed. Split tsconfigs (app, worker, node, test; `npm run typecheck`), unused-code checks on, index-access checks for `src/lib` and `src/analysis`, `Mod` as a typed union, one worker pool core and one deck-path rule, one `playOut` helper with the evaluation's constants in the weights, and the `Game` class split into `src/engine/game/` modules behind the same methods. Results are unchanged: `SIM_VERSION` stays 5 and the golden replays still match. Payment choice (ENG-8) and the dev-dependency upgrade were done earlier.
+  - WP-C3 (pages accessibility and CSS): done 2026-11-11 (APP-13 to APP-17, APP-19, APP-20; see the backlog), committed.
+  - WP-C4 (type hardening and engine structure): done 2026-11-11, committed. Split tsconfigs (app, worker, node, test; `npm run typecheck`), unused-code checks on, index-access checks for `src/lib` and `src/analysis`, `Mod` as a typed union, one worker pool core and one deck-path rule, one `playOut` helper with the evaluation's constants in the weights, and the `Game` class split into `src/engine/game/` modules behind the same methods. Results are unchanged: `SIM_VERSION` stays 5 and the golden replays still match. Payment choice (ENG-8) and the dev-dependency upgrade were done earlier.
   - WP-C5 (production deploy): workflow rewritten to the official Pages flow (§2); waits on the owner's Pages setting, and has not run on GitHub yet.
 
 ## 4. Retire results and bred decks that fail the fairness bar

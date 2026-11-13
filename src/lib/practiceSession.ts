@@ -221,6 +221,22 @@ export interface MatchSetup {
   endTurnClick?: boolean;
 }
 
+/**
+ * A rematch of the game just played: its own decks, bot tier and seat rule (a fixed seat stays fixed; a random one is
+ * drawn again), new seeds, and the End turn mode of the board settings now (as any new game). Built from the game's
+ * record, so a resumed game's rematch is that game's matchup, not whatever the setup screen shows.
+ */
+export function rematchOf(replay: Pick<PracticeReplay, 'decks' | 'botLevel' | 'first'>, o: { endTurnClick: boolean; seed: number; botSeed: number }): MatchSetup {
+  return {
+    decks: [replay.decks[0], replay.decks[1]],
+    seed: o.seed,
+    ...(replay.first !== undefined ? { first: replay.first } : {}),
+    level: replay.botLevel,
+    botSeed: o.botSeed,
+    ...(o.endTurnClick ? { endTurnClick: true } : {}),
+  };
+}
+
 let replaySeq = 0;
 function newPracticeReplay(m: MatchSetup): PracticeReplay {
   return {
@@ -261,15 +277,17 @@ function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
 
 /**
  * Save the replay and the practice-log entry of a finished game (both upsert by the replay id). A conceded game is
- * recorded the same way; `replay.conceded` marks it.
+ * recorded the same way; `replay.conceded` marks it. False when this browser refused to store either (storage full or
+ * blocked): the caller keeps anything it would otherwise delete (a multi-day game's entry) and says so.
  */
-export function recordFinished(replay: PracticeReplay, st: GameState) {
+export function recordFinished(replay: PracticeReplay, st: GameState): boolean {
   replay.result = outcome(st);
   // what the Game review checks its replay against: this code's version, and how long the game lasted
   replay.simVersion = SIM_VERSION;
   replay.turns = st.turn;
-  saveReplay(replay);
-  recordPractice(practiceEntry(replay, st));
+  const kept = saveReplay(replay);
+  const logged = recordPractice(practiceEntry(replay, st));
+  return kept && logged;
 }
 
 const errorText = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
@@ -277,8 +295,8 @@ const errorText = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}
 export interface SessionOptions {
   /** bot delay after each of its actions, in ms */
   pace?: () => number;
-  /** called after a finished game is recorded (default: save replay and practice entry) */
-  record?: (replay: PracticeReplay, st: GameState) => void;
+  /** called after a finished game is recorded (default: save replay and practice entry); false: storage refused it */
+  record?: (replay: PracticeReplay, st: GameState) => boolean | void;
   /** a new decision of yours is waiting (the moment a save can come back to): the autosave is written here */
   onStable?: (run: Running) => void;
   /**
@@ -429,8 +447,8 @@ export class PracticeSession {
   }
 
   /**
-   * Stop the running game without recording anything. Exit (the default) ends it for good (onClosed: the autosave is
-   * cleared); `keepSave` (leaving the page) keeps the autosave so the game can be resumed.
+   * Stop the running game without recording anything. "Exit and discard" (the default) ends it for good (onClosed: the
+   * autosave is cleared); `keepSave` ("Save and exit", or leaving the page) keeps the autosave so the game can be resumed.
    */
   quit(o: { keepSave?: boolean } = {}) {
     this.restoreSeq++;

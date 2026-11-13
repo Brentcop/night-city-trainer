@@ -252,6 +252,23 @@ thead th {
   background: var(--mat-tile);
   border-bottom: 2px solid var(--mat-edge);
 }
+/* "Skip to content": hidden until it has keyboard focus, then shown over the header's corner */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -100px;
+  z-index: 1000;
+  padding: 8px 12px;
+  background: var(--panel, #111);
+  color: inherit;
+  border: 2px solid currentColor;
+}
+.skip-link:focus {
+  top: 8px;
+}
+#main:focus {
+  outline: none;
+}
 .sr-only {
   position: absolute;
   width: 1px;

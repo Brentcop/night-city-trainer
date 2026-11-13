@@ -258,7 +258,8 @@ export interface SiteConfig {
     featuredDeck: string;
     /** a recorded event id; '' = none */
     featuredEvent: string;
-    nextEvent: { name: string; start: string; detail: string };
+    /** `end`: when the event is over (YYYY-MM-DD lasts to the end of that day); '' = no end (it stays "underway") */
+    nextEvent: { name: string; start: string; end: string; detail: string };
   };
   play: {
     defaultTier: TierKey;
@@ -322,7 +323,7 @@ export function defaultSiteConfig(): SiteConfig {
       sections: HOME_SECTIONS.map((id) => ({ id, hidden: false })),
       featuredDeck: '',
       featuredEvent: '',
-      nextEvent: { name: EVENT.name, start: EVENT.startText, detail: EVENT.detail },
+      nextEvent: { name: EVENT.name, start: EVENT.startText, end: EVENT.endText, detail: EVENT.detail },
     },
     play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
@@ -533,11 +534,19 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     r.err('home.featuredEvent', 'must be an event id (letters, digits, - and _); none is shown');
     featuredEvent = '';
   }
-  const ne = r.obj(h.nextEvent, 'home.nextEvent', ['name', 'start', 'detail']);
+  const ne = r.obj(h.nextEvent, 'home.nextEvent', ['name', 'start', 'end', 'detail']);
   let neStart = r.text(ne.start, 'home.nextEvent.start', d.home.nextEvent.start, 40, { required: true });
   if (!isConfigDate(neStart)) {
     r.err('home.nextEvent.start', 'must be a date (YYYY-MM-DD) or an ISO date-time such as 2026-12-11T09:00:00-06:00; the default is used');
     neStart = d.home.nextEvent.start;
+  }
+  // absent: the default end; "" (or a bad date): no end
+  let neEnd = r.date(ne.end, 'home.nextEvent.end', ne.end === undefined ? d.home.nextEvent.end : '');
+  const nes = configTime(neStart, 'start');
+  const nee = configTime(neEnd, 'end');
+  if (nes !== null && nee !== null && nee <= nes) {
+    r.err('home.nextEvent.end', 'is before the start, so the event would end before it began; it is left out');
+    neEnd = '';
   }
   const home: SiteConfig['home'] = {
     sections: homeSections,
@@ -546,6 +555,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     nextEvent: {
       name: r.text(ne.name, 'home.nextEvent.name', d.home.nextEvent.name, LIMITS.eventName, { required: true }),
       start: neStart,
+      end: neEnd,
       detail: r.text(ne.detail, 'home.nextEvent.detail', d.home.nextEvent.detail, LIMITS.eventDetail),
     },
   };
@@ -795,6 +805,17 @@ export function visibleNav(c: SiteConfig): NavSection[] {
   return out;
 }
 
+/**
+ * Where the next event stands at `now`: before its start, between start and end, or over (only with an end date; with
+ * none it stays underway until the config is edited). Home shows a countdown, "Event underway", or nothing.
+ */
+export function nextEventPhase(ev: { start: string; end: string }, now: number): 'upcoming' | 'underway' | 'finished' {
+  const start = configTime(ev.start, 'start');
+  const end = configTime(ev.end, 'end');
+  if (end !== null && now >= end) return 'finished';
+  return start !== null && now < start ? 'upcoming' : 'underway';
+}
+
 /** Where '#/' goes: Home when it is on, else the first shown tab's page. */
 export function landingPage(c: SiteConfig): string {
   if (pageOn(c, 'home')) return 'home';
@@ -808,6 +829,18 @@ export function pageLabel(c: SiteConfig, path: string): string {
     if (p) return p.label;
   }
   return PAGE_LABEL[path] ?? path;
+}
+
+/**
+ * The browser tab's title for a page (UX-20): "Page · Site", its label as the nav shows it (the route's own name for
+ * pages outside the nav); the site title alone on Home; "Page not found · Site" for an unknown route (`page` null).
+ */
+export function documentTitle(c: SiteConfig, page: { path: string; label: string } | null): string {
+  const site = c.site.title;
+  if (!page) return `Page not found · ${site}`;
+  if (page.path === 'home') return site;
+  const inNav = c.nav.sections.some((s) => s.pages.some((p) => p.path === page.path));
+  return `${inNav ? pageLabel(c, page.path) : page.label} · ${site}`;
 }
 
 /** Text with [label](link) links, split into parts; a link that is not safe stays plain text (`bad`). */

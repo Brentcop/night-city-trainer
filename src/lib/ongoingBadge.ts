@@ -1,7 +1,9 @@
 // The count of multi-day games waiting for you, shown on the Play tab (src/App.tsx). Kept tiny on purpose: the header is
-// in the entry chunk, so it reads only the two lists' raw JSON (src/lib/multiDay.ts bot games, all waiting for you; and
-// src/net/corr.ts games against a person, those whose `summary.yourMove` is set) and never imports the game code.
-// Every storage access is wrapped: blocked storage just shows no count.
+// in the entry chunk, so it reads only the two lists' raw JSON (src/lib/multiDay.ts bot games saved with this
+// SIM_VERSION, the ones that can be resumed; and src/net/corr.ts games against a person that are neither over nor
+// refused and whose `summary.yourMove` is set) and never imports the game code (the version comes from the small
+// playedRecord.ts mirror). Every storage access is wrapped: blocked storage just shows no count.
+import { CURRENT_SIM_VERSION } from './playedRecord';
 
 export const BOT_GAMES_KEY = 'nct.multiDay.bot.v1';
 export const CORR_GAMES_KEY = 'nct.corr.v1';
@@ -19,10 +21,10 @@ function list(key: string): unknown[] {
 
 /** Ongoing multi-day games waiting for your move in this browser. */
 export function ongoingWaiting(): number {
-  const bots = list(BOT_GAMES_KEY).length;
+  const bots = list(BOT_GAMES_KEY).filter((g) => (g as { save?: { simVersion?: unknown } } | null)?.save?.simVersion === CURRENT_SIM_VERSION).length;
   const people = list(CORR_GAMES_KEY).filter((g) => {
     const o = g as { stage?: unknown; summary?: { yourMove?: unknown } } | null;
-    return !!o && o.stage !== 'over' && o.summary?.yourMove === true;
+    return !!o && o.stage !== 'over' && o.stage !== 'refused' && o.summary?.yourMove === true;
   }).length;
   return bots + people;
 }

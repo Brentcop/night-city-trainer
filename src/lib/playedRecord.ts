@@ -7,6 +7,13 @@
  */
 export const CURRENT_SIM_VERSION = 8;
 
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st … (here, not in deckRecord.ts, so deck tiles and Home can use it). */
+export function ordinal(n: number): string {
+  const t = n % 100;
+  const s = t >= 11 && t <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';
+  return `${n}${s}`;
+}
+
 /** Below this many games a number is shown as a small sample (the `.num.thin` convention in Num.tsx). */
 export const SMALL_SAMPLE = 20;
 

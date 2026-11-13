@@ -28,7 +28,7 @@ import {
 import { Modal } from '../Modal';
 import { BOT_SPEEDS } from './prefs';
 
-export const END_TURN_NOTE = 'A change applies from your next game. Multi-day games against a person always end the turn by itself.';
+export const END_TURN_NOTE = 'A change applies from your next game. In multi-day games against a person your turn always ends by itself.';
 export const PAY_NOTE = 'Eddies are interchangeable in the current rules, so choosing changes nothing in the game unless a Legend could pay instead.';
 
 /** Panels that stay open for the browser session (shown only during a game). */

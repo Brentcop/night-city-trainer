@@ -44,7 +44,11 @@ Routes are hash-based (`#/<page>`); see `src/App.tsx`.
 | Decks | Tuned decks | `#/tuned` | Every deck tuned in the Deck Lab and saved in this browser, with its end result against the original, each adopted change and the run's details; sort and filter, Export all / Import (a JSON file, to move them between browsers), and the forge lines of tuned decks committed to the repository. |
 | Decks | Deck profile | `#/deck?d=<file>` | One deck's results: tests, head-to-heads, forge history, seasons, card stats. |
 | Decks | Deck Lab | `#/lab` | Tunes a submitted deck in the browser, or breeds new decks (including counter decks from the head-to-heads). |
-| Play | Play vs Bot | `#/play` | Practice against Easy, Medium or Hard bots, with coach mode, undo, and a full match review. |
+| Play | Play vs Bot | `#/play` | Practice against Easy, Medium or Hard bots, with coach mode, undo and a Game review of every move. Choices for paying costs, the side panel, colours and backgrounds are in ⚙ Settings. |
+| Play | Saved games | `#/play` (setup screen) | The unfinished game is kept automatically (Exit offers "Save and exit"; Resume game brings it back) and up to 5 named saves, each with Rename, Export and Delete; a save file can be imported. A save from another version of the bots can be read, not resumed. |
+| Play | Multi-day games | `#/play` (setup screen), `#/play/corr`, `#/play/turn/<code>` | A game against the bot kept for 3–20 days in its own Ongoing games list, or a game against a person played by turn packets (links or codes you send each other); no server. |
+| Play | Play online | `#/play/online`, `#/play/join/<code>` | A live game against a person, browser to browser (invite and reply codes, or two tabs of one browser); the host's browser runs the game. |
+| Play | Game review | from a finished game or Profile | A rating for every move of a finished practice game (Inspired … Blunder), the turning point and the board at each move. |
 | Tournaments | Events | `#/tournaments` | The recorded tournament events: standings, brackets, and every match. Matches can be reviewed or watched as a visual replay. |
 | Tournaments | Run a tournament | `#/run` | Sets up and runs an event in the browser with the same rules and seeds as the CLI: pick the entrants (quick sets, any library or saved deck, a deck twice as "#2"), the format (Swiss + top cut, a bracket you arrange, round robin with optional groups, or a list of exact matches), pairings or top-cut seeds set by hand, best-of per bracket round and who goes first; see the plan, then run it all at once or round by round. Stopped runs are saved in the browser and can be resumed. Browser runs never feed the recorded ratings. |
 | Tournaments | Power ratings | `#/ratings` | Deck ratings fitted to every game of every recorded event, with each deck's Sim tier (S–D, fixed bands on the expected win rate vs the field; `src/lib/simTier.ts`) and band dividers. |
@@ -56,6 +60,9 @@ Routes are hash-based (`#/<page>`); see `src/App.tsx`.
 | Learn | Glossary | `#/glossary` | Rules terms. |
 | Learn | Card stats | `#/insights` | Per-deck card telemetry from `sim -- analyze` ("Δ when drawn" and more). |
 | Learn | Credits | `#/credits` | Where every deck came from and who made it. |
+| Profile | Profile | `#/profile`, `#/profile/history`, `/decks`, `/my-decks`, `/sharing` | Your practice record, decks and coach scorecard, kept in this browser only; choose which sections are public and share them as a link. |
+| Profile | Shared profile | `#/u/<payload>` | Read-only view of someone else's shared profile (the link carries it; nothing is uploaded). |
+| — | Site config editor | `#/admin` | The owner's editor for `public/site-config.json` (nav, features, banner, Home, Play defaults); not in the nav and not a security boundary. See [docs/SITE_CONFIG.md](docs/SITE_CONFIG.md). |
 
 Visual replays show a game on the real board; click a log line to rewind to it.
 
@@ -161,6 +168,13 @@ The table lists the main suites by area; `ls tests` has the full set.
 | `runManifest.test.ts`, `check-data.test.ts`, `impact.test.ts` | Run manifests (game runs and deterministic aggregates), the recorded-data check, and card impact matched by list fingerprint. |
 | `deck-packages.test.ts`, `deck-packages-defaults.test.ts`, `deck-lab-packages.test.tsx` | Synergy packages in deck building: the plan checks, package moves, seeding, flags, the Deck Lab controls, and the builders unchanged without package flags. |
 | `sim-tier.test.tsx`, `gallery-view.test.tsx`, `deck-delete.test.tsx`, `tuned-decks.test.tsx` | The Sim tier rule and badges; the gallery's sources, filters, sorts and URL view; deleting and hiding decks and what refers to them afterwards; the tuned decks page with its verdicts, filters and Export / Import. |
+| `saved-games.test.ts`, `saved-games-ui.test.tsx`, `saves-and-leaving.test.tsx` | Saves restore exactly or are refused (another version, a different position); the setup screen's saves; asking before a resume replaces another game or a recorded result; Exit keeps the game by default; storage refusals reported and never costing a record; Rematch; Delete from every list; games from another version counted nowhere. |
+| `multi-day-bot.test.tsx`, `multi-day-corr.test.ts` | Multi-day games against the bot (own list, deadlines, timed-out losses, the one-game file) and against a person (turn packets, chains, clocks, leaks). |
+| `online.test.ts`, `online-ui.test.tsx` | Online play: protocol, host and guest sessions, the guest's view, reconnection, chat and the lobby. |
+| `profile.test.ts` | Profile settings, derived stats, and a shared profile carrying only public sections. |
+| `site-config.test.tsx`, `pages-wording.test.tsx` | The site config (parser, defaults, committed file, editor); page titles, the skip link, the next event's end, headline numbers named by source, owner commands kept out of player copy, and the worker size budget. |
+| `board-settings.test.ts`, `settings-dialog.test.tsx`, `eddie-payment.test.ts`, `end-turn-click.test.ts` | Board settings and their dialog; paying costs (Automatic never asks, Choose before / after); clicking End turn. |
+| `game-review.test.ts`, `game-review-render.test.tsx`, `game-review-replay.test.tsx` | Game review: ratings per move, the screen, and strict replays. |
 | `evidence.test.ts`, `deck-lab-evidence.test.tsx`, `forge-summary.test.ts` | The deck builders' adoption rule: paired intervals, the staged-look correction, the three outcomes, the false-adopt rate on synthetic games, depth and game estimates, the flags, the Deck Lab tuner and result view, and the forge's summary (held-out result first, per-generation figures labelled as their own games). |
 
 ## Scripts

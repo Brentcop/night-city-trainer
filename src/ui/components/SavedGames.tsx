@@ -3,7 +3,8 @@
 // Every dialog is a Modal (useFocusTrap: focus in, Tab kept inside, Escape closes, focus restored).
 import { useId, useRef, useState } from 'react';
 import { tierLabel } from '../../ai/tiers';
-import { MAX_SLOTS, versionProblem, type SavedGame } from '../../lib/savedGames';
+import { MAX_SLOTS, staleLine, versionProblem, type SavedGame } from '../../lib/savedGames';
+import { SIM_VERSION } from '../../lib/tournament';
 import { Modal } from './Modal';
 import { formatRecorded } from './RecordedAt';
 
@@ -52,8 +53,12 @@ export function ConfirmDialog({
   );
 }
 
-/** A save that this version can't resume: why, its log to read, and Delete. */
-export function UnresumableDialog({ save, why, onDelete, onClose }: { save: SavedGame; why: string; onDelete?: () => void; onClose: () => void }) {
+/** What the can't-resume dialog says after the reason. */
+export const UNRESUMABLE_NOTE =
+  'It is not resumed, so nothing changes: it stays where it is until you delete it. You can read its log here, and export it from the list to keep a copy.';
+
+/** A save that this version can't resume: why, its log to read, and Delete (`deleteLabel`: "Delete this game" for a multi-day game). */
+export function UnresumableDialog({ save, why, onDelete, onClose, deleteLabel = 'Delete this save' }: { save: SavedGame; why: string; onDelete?: () => void; onClose: () => void; deleteLabel?: string }) {
   const id = useId();
   const [showLog, setShowLog] = useState(false);
   return (
@@ -63,14 +68,14 @@ export function UnresumableDialog({ save, why, onDelete, onClose }: { save: Save
       </h3>
       <p className="small muted">{saveSummary(save)}</p>
       <p>{why}</p>
-      <p className="small muted">Resuming it would play a different game, so it is not resumed. You can still read what happened.</p>
+      <p className="small muted">{UNRESUMABLE_NOTE}</p>
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         <button className="primary" onClick={() => setShowLog(!showLog)} aria-expanded={showLog}>
           {showLog ? 'Hide the log' : 'Open the game log'}
         </button>
         {onDelete && (
           <button className="pb-danger" onClick={onDelete}>
-            Delete this save
+            {deleteLabel}
           </button>
         )}
         <button onClick={onClose}>Close</button>
@@ -104,13 +109,14 @@ export interface SavesProps {
   onImport: (text: string) => string | null;
 }
 
-/** The autosave, beside Start game: "Resume game" and what it is. */
+/** The autosave, beside Start game: "Resume game" and what it is (one from another version can only be read). */
 export function ResumeButton({ saves }: { saves: SavesProps }) {
   const a = saves.autosave;
   if (!saves.storage || !a) return null;
+  const old = a.simVersion < SIM_VERSION;
   return (
-    <button className="primary save-resume" onClick={() => saves.onResume(a)} disabled={saves.restoring} title={saveSummary(a)}>
-      {saves.restoring ? 'Restoring…' : 'Resume game'}
+    <button className={`${old ? '' : 'primary '}save-resume`} onClick={() => saves.onResume(a)} disabled={saves.restoring} title={saveSummary(a)}>
+      {saves.restoring ? 'Restoring…' : old ? 'Read the old game' : 'Resume game'}
     </button>
   );
 }
@@ -119,13 +125,78 @@ export function ResumeButton({ saves }: { saves: SavesProps }) {
 export function ResumeNote({ saves }: { saves: SavesProps }) {
   const a = saves.autosave;
   if (!saves.storage || !a) return null;
-  const old = versionProblem(a);
-  return (
-    <p className="small muted save-resume-note">
-      Unfinished game: {saveSummary(a)}
-      {old ? ' (made with another version: it can be read, not resumed)' : ''}
-    </p>
+  if (versionProblem(a))
+    return (
+      <p className="small muted save-resume-note">
+        {a.simVersion > SIM_VERSION
+          ? `Unfinished game saved by a newer version of the app (${a.simVersion}): ${saveSummary(a)}. Reload the page to resume it.`
+          : `Unfinished game from an older version of the app (${a.simVersion}; this is version ${SIM_VERSION}): ${saveSummary(a)}. It can’t be resumed, but you can read its log or delete it.`}
+      </p>
+    );
+  return <p className="small muted save-resume-note">Unfinished game: {saveSummary(a)}</p>;
+}
+
+/**
+ * Asked before a save is resumed when that would replace the autosave of another unfinished game (APP-1), or would
+ * finish again a game already recorded (its new result replaces the old one: APP-5, kept as it is, said here).
+ */
+export function ResumeConfirm({
+  save,
+  replaces,
+  finished,
+  slotFree,
+  error,
+  onKeepAndResume,
+  onResume,
+  onCancel,
+}: {
+  /** keeping the autosave in a slot was refused: why */
+  error?: string;
+  save: SavedGame;
+  /** the autosave that resuming would replace */
+  replaces: SavedGame | null;
+  /** the recorded result of this game, when it was already finished */
+  finished: { result: string; date: string } | null;
+  /** a save slot is free to keep `replaces` in */
+  slotFree: boolean;
+  onKeepAndResume: () => void;
+  onResume: () => void;
+  onCancel: () => void;
+}) {
+  const when = finished ? formatRecorded(finished.date) : '';
+  const text = (
+    <>
+      {replaces && (
+        <p>
+          Your unfinished game ({saveSummary(replaces)}) is kept as the autosave. Resuming <b>{save.name}</b> replaces it, and that game can’t be resumed afterwards
+          {slotFree ? ' unless you keep it in a save slot first.' : `. All ${MAX_SLOTS} save slots are in use, so it can’t be kept in one; delete a slot first to keep it.`}
+        </p>
+      )}
+      {finished && (
+        <p>
+          You already finished this game ({finished.result}
+          {when ? `, ${when}` : ''}). If you finish it again from this save, the new result replaces that one in your history and profile.
+        </p>
+      )}
+      {error && (
+        <p role="alert" style={{ color: 'var(--red)' }}>
+          {error}
+        </p>
+      )}
+    </>
   );
+  if (replaces && slotFree)
+    return (
+      <ConfirmDialog
+        title="Resume this save?"
+        text={text}
+        confirm="Keep it in a slot, then resume"
+        onConfirm={onKeepAndResume}
+        extra={{ label: 'Resume and replace it', onClick: onResume }}
+        onCancel={onCancel}
+      />
+    );
+  return <ConfirmDialog title="Resume this save?" text={text} confirm={replaces ? 'Resume and replace it' : 'Resume'} danger={!!replaces} onConfirm={onResume} onCancel={onCancel} />;
 }
 
 /** The named saves: resume, rename, export or delete each; import a file. */
@@ -199,14 +270,20 @@ export function SavedGamesPanel({ saves }: { saves: SavesProps }) {
                   <b>{s.name}</b>
                   <div className="small muted">
                     {saveSummary(s)}
-                    {versionProblem(s) ? ' · made with another version: it can be read, not resumed' : ''}
+                    {versionProblem(s) ? ` · ${staleLine(s)}` : ''}
                   </div>
                 </div>
               )}
               <div className="row save-actions">
-                <button className="primary" onClick={() => saves.onResume(s)} disabled={saves.restoring}>
-                  Resume
-                </button>
+                {s.simVersion < SIM_VERSION ? (
+                  <button onClick={() => saves.onResume(s)} disabled={saves.restoring} title="This save can't be resumed on this version: read its log">
+                    Read the log
+                  </button>
+                ) : (
+                  <button className="primary" onClick={() => saves.onResume(s)} disabled={saves.restoring}>
+                    Resume
+                  </button>
+                )}
                 <button onClick={() => setRenaming({ id: s.id, name: s.name })} disabled={saves.restoring}>
                   Rename
                 </button>

@@ -29,7 +29,7 @@ export function SeasonsPage() {
         title="Seasons & all-time leaderboard"
         actions={<input aria-label="Filter the leaderboard" placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />}
       >
-        Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Rating</b> = win rate vs the meta decks,
+        Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Season rating</b> = win rate vs the meta decks,
         adjusted for sample size.
         {isHistorical(D.manifest?.simVersion) && (
           <> These results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>
@@ -44,10 +44,10 @@ export function SeasonsPage() {
               <th>Deck</th>
               <th>Origin</th>
               <th>Style</th>
-              <th>Rating</th>
+              <th>Season rating</th>
               <th>vs meta (raw)</th>
               <th>Games</th>
-              <th>Pctl</th>
+              <th>Percentile</th>
               {seasonCols.map((s) => (
                 <th key={s}>S{s}</th>
               ))}

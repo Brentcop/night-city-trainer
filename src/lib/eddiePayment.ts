@@ -1,7 +1,8 @@
 // Choosing what pays a cost on the Play board ("Choose before" / "Choose after" in the board settings). A UI layer only:
 // the engine is untouched. A cost is paid right after its action is chosen (Game.pay); the human seat already answers a
-// 'pay' decision per €$ whenever a Legend could pay instead of an Eddie. The board holds the chosen action back until the
-// player has picked the sources, then answers it and answers those 'pay' decisions from the picks (planAnswer). With
+// 'pay' decision per €$ whenever a Legend could pay instead of an Eddie. "Automatic" answers those itself with the
+// engine's automatic pick (autoPayAnswer), so it never asks. The other modes hold the chosen action back until the
+// player has picked the sources, then answer it and answer those 'pay' decisions from the picks (planAnswer). With
 // only Eddies to pay from the engine asks nothing and spends the first ready ones: Eddies are interchangeable in the
 // current rules, so a selection of Eddies is a count, shown as your first ready Eddies.
 import type { Game } from '../engine/engine';
@@ -139,6 +140,17 @@ export function planAnswer(d: Decision, plan: PaySelection): { i: number; rest: 
   const ei = d.options.findIndex((o) => o.key === 'eddie');
   if (ei >= 0 && plan.eddies > 0) return { i: ei, rest: { ...plan, eddies: plan.eddies - 1 } };
   return null;
+}
+
+/**
+ * "Automatic" payment answers the engine's 'pay' decisions itself (UX-9): the human seat is always asked which source
+ * pays each €$ when a Legend could pay instead of an Eddie, and the first option is always what the engine's automatic
+ * rule would spend (Eddies first, then the Legends that lose least by being spent: economy.ts paySourceOrder), so
+ * Automatic answers 0 and the player is never prompted. The other modes pick the sources themselves (planAnswer) and
+ * leave anything their plan doesn't cover to the player. Returns the option to answer, or null to leave it.
+ */
+export function autoPayAnswer(d: Decision | null, mode: 'auto' | 'before' | 'after'): number | null {
+  return mode === 'auto' && d?.kind === 'pay' && d.options.length > 0 ? 0 : null;
 }
 
 /** The cost of answering option `i` of a main-phase or reaction decision (null for any other decision, or no cost). */

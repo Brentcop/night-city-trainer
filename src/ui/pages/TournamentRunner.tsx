@@ -340,7 +340,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
         }
       >
         Set up an event and watch it play out: Swiss rounds and a top cut, a bracket you arrange, a round robin, or exactly the matches you list. Pair any round by
-        hand, run it all at once or round by round. Games run in parallel in your browser with the same engine and bots as the CLI (<code>npm run tournament</code>), and
+        hand, run it all at once or round by round. Games run in parallel in your browser with the same engine and bots as the{' '}
+        <span title="For the site owner: npm run tournament">recorded events</span>, and
         every finished match can be replayed exactly. Runs stay in this browser; they never feed the recorded ratings.
       </PageHead>
 

@@ -86,7 +86,7 @@ function MatchValue({ m }: { m: MatchLine }) {
         <Sampled text={pct(m.est)} n={m.g} tone={wrTone(m.est)} />{' '}
         <span className="muted small" title="Estimated from the power ratings plus this pairing's own record, shrunk by how much pairings differ from the ratings' prediction">
           (estimate; raw {pct(m.w)} in {games(m.g)}
-          {small(m.g)})
+          {m.g < SMALL_SAMPLE ? ', a small sample' : ''})
         </span>
       </>
     );
@@ -155,8 +155,9 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
               </Tile>
             )}
             {t && t.wr !== null && (
-              <Tile label="Win rate" value={<Sampled text={pct(t.wr)} n={t.won + t.lost} tone={wrTone(t.wr)} />}>
-                {games(t.won + t.lost)} in Swiss rounds{small(t.won + t.lost)} · expected vs the field {pct(t.expected.v)} (90% range {pct(t.expected.lo)}–{pct(t.expected.hi)})
+              <Tile label="Swiss win rate" value={<Sampled text={pct(t.wr)} n={t.won + t.lost} tone={wrTone(t.wr)} />}>
+                the raw record in {games(t.won + t.lost)} of Swiss rounds{small(t.won + t.lost)} · its power rating expects {pct(t.expected.v)} vs the whole field (90% range{' '}
+                {pct(t.expected.lo)}–{pct(t.expected.hi)})
               </Tile>
             )}
             {rec.seats && (
@@ -177,21 +178,26 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
               </Tile>
             )}
             {rec.vsMeta && (
-              <Tile label="Vs the meta field" value={<Sampled text={pct(rec.vsMeta.wr)} n={rec.vsMeta.n} tone={wrTone(rec.vsMeta.wr)} />}>
-                {games(rec.vsMeta.n)}
-                {small(rec.vsMeta.n)} {rec.vsMeta.source === 'finals' ? 'in the finals vs the choom.gg meta archetypes' : 'vs the meta decks across the breeding seasons'}
+              <Tile label={rec.vsMeta.source === 'finals' ? 'Finals vs the meta' : 'Seasons vs the meta'} value={<Sampled text={pct(rec.vsMeta.wr)} n={rec.vsMeta.n} tone={wrTone(rec.vsMeta.wr)} />}>
+                raw win rate in {games(rec.vsMeta.n)}
+                {small(rec.vsMeta.n)} {rec.vsMeta.source === 'finals' ? 'of the finals vs the choom.gg meta archetypes' : 'vs the meta decks across the breeding seasons'}
               </Tile>
             )}
             {(t || rec.leader) && (
-              <Tile label="Rating and rank" value={t ? `#${t.rank} of ${t.of}` : `#${rec.leader!.rank} of ${rec.leader!.of}`}>
-                {t ? 'by tournament power rating' : 'on the all-time season leaderboard'}
+              <Tile label={t ? 'Power rank' : 'Season rank'} value={t ? `#${t.rank} of ${t.of}` : `#${rec.leader!.rank} of ${rec.leader!.of}`}>
+                {t ? 'by tournament power rating (expected win rate vs the whole field)' : 'on the all-time season leaderboard'}
                 {t && rec.leader && (
                   <>
                     {' '}
-                    · season leaderboard #{rec.leader.rank} of {rec.leader.of} (rating {pct(rec.leader.rating)})
+                    · season leaderboard #{rec.leader.rank} of {rec.leader.of} (season rating {pct(rec.leader.rating)})
                   </>
                 )}
-                {!t && rec.leader && <> · rating {pct(rec.leader.rating)}, {rec.leader.percentile}th percentile</>}
+                {!t && rec.leader && (
+                  <>
+                    {' '}
+                    · season rating {pct(rec.leader.rating)}, {ordinal(rec.leader.percentile)} percentile
+                  </>
+                )}
               </Tile>
             )}
             {sim.unrated !== 'no-games' && (

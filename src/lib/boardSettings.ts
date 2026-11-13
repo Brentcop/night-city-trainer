@@ -171,7 +171,7 @@ export const PAY_MODE_LABEL: Record<PayMode, string> = {
   after: 'Choose after playing',
 };
 export const PAY_MODE_HELP: Record<PayMode, string> = {
-  auto: 'The game spends your Eddies for you. You are asked only when a Legend could pay instead.',
+  auto: 'The game pays every cost for you without asking: Eddies first, then the Legends that lose least by being spent. To pick what pays, choose before or after playing.',
   before: 'Select what to spend first (tap your €$ pile or the "Pay with" row), then play the card.',
   after: 'Play the card, then pick what to spend. Cancel takes the play back.',
 };

@@ -154,6 +154,9 @@ function EddiePile({ p, ctx, row }: { p: PlayerId; ctx: BoardCtx; row?: boolean 
   );
 }
 
+/** "1 card", "3 cards". */
+const cardCount = (n: number) => `${n} card${n === 1 ? '' : 's'}`;
+
 function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: boolean }) {
   const { g } = ctx;
   const P = g.P(p);
@@ -170,10 +173,10 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
     <div
       className={`pb-piles ${columnOpens ? 'pb-piles-tap' : ''}`}
       onClick={columnOpens ? () => ctx.openTrash(p) : undefined}
-      {...pressable(columnOpens ? () => ctx.openTrash(p) : undefined, `${p === 0 ? 'Your' : "The rival's"} piles: open the trash (${P.trash.length} cards)`)}
+      {...pressable(columnOpens ? () => ctx.openTrash(p) : undefined, `${p === 0 ? 'Your' : "The rival's"} piles: open the trash (${cardCount(P.trash.length)})`)}
     >
       {!byLegends && <EddiePile p={p} ctx={ctx} />}
-      <div className="pb-pile" title={`Deck: ${P.deck.length} cards`}>
+      <div className="pb-pile" title={`Deck: ${cardCount(P.deck.length)}`}>
         <div className={`pb-stack ${P.deck.length ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(P.deck.length, 5) }}>
           {P.deck.length ? <CardBack size="xs" /> : <div className="pb-empty-slot">deck</div>}
         </div>
@@ -186,11 +189,12 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
         className="pb-pile pb-trash"
         title="Open the trash"
         onClick={columnOpens ? undefined : () => ctx.openTrash(p)}
-        {...pressable(columnOpens ? undefined : () => ctx.openTrash(p), `${p === 0 ? 'Open your trash' : "Open the rival's trash"} (${P.trash.length} cards)`)}
+        {...pressable(columnOpens ? undefined : () => ctx.openTrash(p), `${p === 0 ? 'Open your trash' : "Open the rival's trash"} (${cardCount(P.trash.length)})`)}
       >
         <div className="pb-stack">
           {top !== undefined && g.s.cards[top] ? (
-            <TcgCard def={g.def(top)} size="xs" />
+            // no power badge: beside "Trash N" a number on the card reads like a count (UX-22)
+            <TcgCard def={g.def(top)} size="xs" noPower />
           ) : (
             <div className="pb-empty-slot">trash</div>
           )}
@@ -201,7 +205,7 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
       </div>
       {/* phones: the rival's hand size lives with their piles (their name row is hidden) */}
       {p === 1 && (
-        <div className="pb-pile pb-pile-hand" title={`Rival hand: ${P.hand.length} cards`}>
+        <div className="pb-pile pb-pile-hand" title={`Rival hand: ${cardCount(P.hand.length)}`}>
           <div className="pb-pile-cap">
             Hand <b>{P.hand.length}</b>
           </div>
@@ -214,7 +218,7 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
 function RivalHand({ ctx }: { ctx: BoardCtx }) {
   const n = ctx.g.P(1).hand.length;
   return (
-    <div className="pb-rival-hand" title={`Rival hand: ${n} cards`}>
+    <div className="pb-rival-hand" title={`Rival hand: ${cardCount(n)}`}>
       {Array.from({ length: n }, (_, i) => (
         <div key={i} className="pb-rival-hand-card">
           <CardBack size="xs" />

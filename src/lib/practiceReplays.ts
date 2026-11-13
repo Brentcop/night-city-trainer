@@ -136,13 +136,15 @@ export function loadReplays(): PracticeReplay[] {
     return [];
   }
 }
-export function saveReplay(r: PracticeReplay) {
+/** Keep a replay (replacing one with the same id); false when this browser refused to store it (full or blocked). */
+export function saveReplay(r: PracticeReplay): boolean {
   try {
     const all = loadReplays().filter((x) => x.id !== r.id);
     all.push(r);
     localStorage.setItem(KEY, JSON.stringify(all.slice(-MAX)));
+    return true;
   } catch {
-    /* storage full or blocked */
+    return false;
   }
 }
 

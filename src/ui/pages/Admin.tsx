@@ -2,7 +2,7 @@
 // and is not a security boundary: anyone can open it, and all it does is build a file. The owner downloads the file,
 // replaces public/site-config.json in the repository, commits and pushes to main. The draft is kept in this browser,
 // and "Preview this draft" shows the whole site with it, in this browser only.
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   BANNER_LEVELS,
   bannerActive,
@@ -135,6 +135,12 @@ export function moveItem<T>(list: readonly T[], i: number, dir: -1 | 1): T[] {
 /** The file the editor downloads and copies for a draft (the same text the parser reads back). */
 export const draftFileText = (c: SiteConfig): string => siteConfigText(c);
 
+/**
+ * Store the draft? Only once it differs from what the page opened with (`opened`: that text, or null once an edit was
+ * stored, after which every change is kept), so visiting #/admin writes nothing.
+ */
+export const shouldStoreDraft = (opened: string | null, text: string): boolean => opened === null || opened !== text;
+
 /** The problems of a draft, as the site would read it. */
 export function draftIssues(c: SiteConfig): { errors: ConfigIssue[]; warnings: ConfigIssue[] } {
   const p = parseSiteConfig(JSON.parse(siteConfigText(c)));
@@ -265,12 +271,17 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
   const issues = errors;
   const nav = useMemo(() => visibleNav(parseSiteConfig(JSON.parse(text)).config), [text]);
 
-  // the draft is kept in this browser; while previewing, the preview follows every edit
+  // the draft is kept in this browser once it is edited (just opening the page stores nothing, UX-23); while previewing,
+  // the preview follows every edit
+  const opened = useRef<string | null>(text);
   useEffect(() => {
-    try {
-      localStorage.setItem(DRAFT_KEY, text);
-    } catch {
-      /* storage blocked: the draft lasts while this page is open */
+    if (shouldStoreDraft(opened.current, text)) {
+      opened.current = null;
+      try {
+        localStorage.setItem(DRAFT_KEY, text);
+      } catch {
+        /* storage blocked: the draft lasts while this page is open */
+      }
     }
     if (previewing) previewDraft(text);
   }, [text, previewing]);
@@ -487,6 +498,15 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
           issues={issues}
           path="home.nextEvent.start"
           hint="An ISO date-time with its time zone, e.g. 2026-12-11T09:00:00-06:00. The countdown runs to it."
+        />
+        <Text
+          label="Next event: end"
+          value={draft.home.nextEvent.end}
+          onChange={(v) => up((c) => void (c.home.nextEvent.end = v))}
+          max={40}
+          issues={issues}
+          path="home.nextEvent.end"
+          hint="The last day (YYYY-MM-DD, to the end of that day) or an ISO date-time. From then on Home hides the bar. Empty: it shows “Event underway” until you change it."
         />
         <Text label="Next event: details" value={draft.home.nextEvent.detail} onChange={(v) => up((c) => void (c.home.nextEvent.detail = v))} max={LIMITS.eventDetail} issues={issues} path="home.nextEvent.detail" />
       </fieldset>

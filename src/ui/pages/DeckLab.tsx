@@ -1,6 +1,7 @@
 // Deck Lab: submit a deck to be tuned for the meta, or breed new decks — all in the browser, using the trainer's own
 // methods (forge swaps confirmed on fresh games; data-driven breeding). Results can be saved to "My decks".
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { IfPage } from '../components/SiteChrome';
 import { allDecks, upsertCustom } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { exportOfficial, listFingerprint, parseDeck, validateDeck } from '../../engine/deck';
@@ -540,9 +541,11 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   </a>
                 )}
                 {saved && (
-                  <a className="btn" href="#/tuned">
-                    🔧 All tuned decks and their results
-                  </a>
+                  <IfPage path="tuned">
+                    <a className="btn" href="#/tuned">
+                      🔧 All tuned decks and their results
+                    </a>
+                  </IfPage>
                 )}
               </div>
             </div>
@@ -786,13 +789,14 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
                 {stale && (
                   <span style={{ color: 'var(--accent)' }}>
                     {' '}
-                    ⚠ {(recorded ?? 0) - h2hReady.events - h2hReady.excluded} newer event(s) aren't included yet — rebuild with <code>npm run build-h2h</code> (runs automatically after every tournament series).
+                    ⚠ {(recorded ?? 0) - h2hReady.events - h2hReady.excluded} newer event(s) aren't included yet;{' '}
+                    <span title="For the site owner: npm run build-h2h (runs automatically after every tournament series)">they arrive when the site's data is next rebuilt.</span>
                   </span>
                 )}
               </>
             ) : (
               <>
-                <b>Counter decks off</b>: the head-to-head data hasn't been built. Run <code>npm run build-h2h</code> (or any tournament series) and republish.
+                <b>Counter decks off</b>: <span title="For the site owner: npm run build-h2h (or any tournament series), then publish">the head-to-head data hasn't been built for this site yet.</span>
               </>
             )}
           </span>

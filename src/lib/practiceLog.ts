@@ -135,14 +135,18 @@ export function loadPractice(): PracticeGame[] {
     return [];
   }
 }
-/** Add a finished game, or replace the entry with the same id (a game finished again after Undo counts once). */
-export function recordPractice(g: PracticeGame) {
+/**
+ * Add a finished game, or replace the entry with the same id (a game finished again after Undo counts once). False when
+ * this browser refused to store it (storage full or blocked): callers that would otherwise lose the game check it.
+ */
+export function recordPractice(g: PracticeGame): boolean {
   try {
     const all = loadPractice().filter((x) => !g.id || x.id !== g.id);
     all.push(g);
     localStorage.setItem(KEY, JSON.stringify(all.slice(-500)));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }
 /** Add the coach's scorecard to a recorded game (by its id). Does nothing when that game isn't in the log. */

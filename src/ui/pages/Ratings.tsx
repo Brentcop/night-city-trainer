@@ -6,7 +6,7 @@ import { allDecks } from '../../lib/browserLibrary';
 import { byName } from '../deckLookup';
 import { LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
-import { CURRENT_SIM_VERSION, ratingsHistorical } from '../../lib/playedRecord';
+import { CURRENT_SIM_VERSION, ordinal, ratingsHistorical } from '../../lib/playedRecord';
 import { bandOf, bandWords, SIM_TIER_LETTERS, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS, simTier } from '../../lib/simTier';
 import { SimTierBadge } from '../components/TierBadges';
 
@@ -62,7 +62,7 @@ export function RatingsPage() {
               <th title="Our tier from this table: the band the expected win rate falls in">Sim tier</th>
               <th>Deck</th>
               <th style={{ minWidth: 220 }}>Expected win % vs field (90% range)</th>
-              <th>vs meta</th>
+              <th title="The same model's expected win rate against the choom.gg meta decks only">Expected vs meta decks</th>
               <th>Titles</th>
               <th>Top 8</th>
               <th>Avg finish</th>
@@ -120,7 +120,7 @@ export function RatingsPage() {
                   <td>
                     {r.top8}/{r.events}
                   </td>
-                  <td>{r.avgFinish === null ? '—' : `${Math.round(r.avgFinish * 100)}th pct`}</td>
+                  <td>{r.avgFinish === null ? '—' : `${ordinal(Math.round(r.avgFinish * 100))} percentile`}</td>
                   <td>{r.games}</td>
                 </tr>
                 </Fragment>

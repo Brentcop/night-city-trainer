@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",
-  "description": "Local Cyberpunk TCG simulator: deck builder, meta/guides, play vs bots, and bot-vs-bot deck testing.",
+  "description": "Night City Trainer: an unofficial Cyberpunk TCG practice site (static, no server): play vs bots with a coach, saved and multi-day games, play online, game review, deck builder and Deck Lab, meta and guides, bot-vs-bot tournaments and ratings.",
   "engines": {
     "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
