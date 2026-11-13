@@ -118,8 +118,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.4 | Question set and `kb-eval` with first baselines | done | 2026-11-13 |
 | 1.5 | Agent skill and a `CLAUDE.md` pointer | done | 2026-11-13 |
 | 1.6 | Unanswerable questions; measure the "no match" floor and the rules misses | next | |
-| 2.1 | Records query module: numbers by code | later | |
-| 2.2 | Event, round and deck sheets from templates | later | |
+| 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
+| 2.2 | Event, round, rating and matchup records from templates | done in the pack; upsets, Gig margins and site files later | 2026-11-13 |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
 | 2.4 | Decision, synergy and impact cells as keyed records | later | |
 | 3.1 | Public pack, byte budgets, guards | waiting: D1, D2 | |
@@ -270,6 +270,11 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   because the neighbours of a one-word glossary term crowd out rule records. Stop expanding links from
   one-word term hits while still letting those hits block "no match". This needs fresh held-out questions:
   the current `test` totals already informed the idea.
+- Matchups asked with "against": "how does X do against Y" does not find the matchup record, because
+  "against" is not a cue (it also names the guide sections "Playing against it"). Add questions in that
+  phrasing first, then test a cue that needs two deck names in the question.
+- Growth costs a little: each batch of new records moves a few older questions down a rank or two (see
+  the scoreboard). Watch the earlier questions whenever a kind is added.
 
 ### Step 2. Measured and competitive records
 
@@ -279,6 +284,17 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   split, end-reason mix, matchup (shrunk estimate with the raw record), rating and Sim tier with their
   range, and upsets judged against ratings fitted only on earlier events.
 - Exposed as `npm run kb -- fact <name> ...` and to templates.
+- Landed: `src/lib/eventFacts.ts` (`eventSummary`, `standingsAfter`, `roundSummary`, `deckCompetitive`,
+  `matchupFact`), each result carrying its bot, sim version and recorded date. Rebuilt standings equal the
+  stored standings on all 7 recorded events (`tests/event-facts.test.ts`). The commands are
+  `fact champion --event N`, `fact standings --event N [--round K]`, `fact round --event N --round K`,
+  `fact rating <deck>`, `fact finishes <deck>` and `fact matchup <a> vs <b>`.
+- "Top 8" comes back as two named numbers (D6): real top-cut appearances, and the ratings file's count of
+  Swiss finishes in the first eight places. They differ for five decks today.
+- Two things to know: the module reuses `computeStandings` from `src/lib/tournament.ts` (now exported),
+  so it pulls in bot and engine imports; and that function breaks its last tie with `localeCompare`,
+  which rule M8 would not allow in new code.
+- Not built yet: upsets judged against ratings fitted on earlier events, and anything needing Gig margins.
 
 **2.2 Sheets.**
 - One sheet per event, per round and per deck, rendered by templates from 2.1. A sheet is keyed on its
@@ -288,6 +304,15 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   rejected by `check:data` when an input hash no longer matches.
 - A richer round summary needs per-game Gig counts, which the tournament worker computes and the event
   writer drops (`scripts/worker.ts` lines 73 to 74 and 276 to 277); keeping them is about 15 bytes a game.
+- Landed in the pack: 7 event, 71 round (52 Swiss and 19 bracket), 47 rating and 103 matchup records
+  (pairings with at least 6 games; the rest are answered by `fact matchup`). Each is `measured`, names
+  its bot and sim version in its first sentence, shows every rate with its sample, and is marked stale when
+  its sim version is not the current one. They are rebuilt with the pack from the event files, the index,
+  `ratings.json` and `h2h.json`, so they are exactly as fresh as those files. A round record is a round
+  summary: results, sweeps and deciding games, first-player share, game length, how games ended, and the
+  leaders after the round as records.
+- Still to do here: emit the same sheets as site files (step 3), who moved into or out of the top-cut
+  places per round, and wording for round-robin and match-list events on real data.
 
 **2.3 Findings as records.**
 - When `src/lib/findings.ts` and `public/data/evidence/` exist (TUNING_STUDY P2), each `Finding` becomes
@@ -371,7 +396,11 @@ interface KbRecord {
 | guide | `guide:<slug>#<section slug>` | |
 | doc | `doc:<path>#<heading slug>` | a long section adds `~2`, `~3` for later passages |
 | code | `code:<path>` | the file's opening comment |
-| later | `event:<id>`, `round:<event>/<n>`, `rating:<deck file>`, `finding:<id>` | step 2 |
+| event | `event:<id>` | `event:6`; aliases "event 6" and the event's name |
+| round | `round:<event>/<n>`, `round:<event>/<bracket round slug>` | `round:6/5` |
+| rating | `rating:<deck file without .txt>` | one per rated deck |
+| matchup | `matchup:<deck a>~<deck b>` | the two deck keys in sorted order; 6 games or more |
+| later | `finding:<id>`, the measured cells | steps 2.3 and 2.4 |
 
 **Link types**: `card`, `deck`, `package`, `ruling`, `rule`, `objective`, `guide`, `term`, `official`,
 `test`, `parent`, `mentions`. Links are stored one way; the index adds the reverse direction when it loads.
@@ -424,6 +453,11 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Held-out questions, public records (32): default search | top 5: 81%, MRR 0.64; keyword alone 69%, 0.52 | step 1.4 |
 | 2026-11-13 | Top 5 by question type, all 100 questions | entity 100%, cross 93%, dev 95%, rules 60%, paraphrase 48% | step 1.4 |
 | 2026-11-13 | Answer size from `kb search`, 5 results | mean 499 tokens, 90th percentile 592 | step 1.4 |
+| 2026-11-13 | Pack after the competitive records | 3,530 records (2,506 public, 1,024 local), 3,344 KB, built in 0.6 s | step 2.2 |
+| 2026-11-13 | Held-out questions, all records (46, with 6 number questions): default search | top 1: 43%, top 5: 80%, top 10: 85%, MRR 0.59; keyword alone 67%, 0.51 | step 2.2 |
+| 2026-11-13 | Top 5 by question type, all 116 questions | entity 100%, number 100%, cross 93%, dev 90%, rules 60%, paraphrase 48% | step 2.2 |
+| 2026-11-13 | Answer size from `kb fact` | champion 82 tokens, matchup 67, finishes 145, rating 301, round 495, full standings 1,027 | step 2.1 |
+| 2026-11-13 | Cost of growth: the 40 earlier held-out questions after 228 records were added | top 5: −2.5 points [−7.5, 0] with all records, −6.3 [−15.6, 0] public only | step 2.2 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -431,6 +465,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 |---|---|---|---|---|
 | 2026-11-13 | A one-word term name inside a longer question takes the exact rank and pushes out the answer | Terms named inside a question only by names of two or more words | Recall at 5: −2.5 points [−7.5, 0]; MRR −0.006 [−0.019, 0] | Dropped: worse |
 | 2026-11-13 | A question names the kind of record it wants ("rulings on", "decks that play") | Neighbours of the asked-for kind sort first and join the exact list | Recall at 5: +5.0 points [0, +12.5]; MRR +0.080 [+0.013, +0.160]; cross-entity MRR 0.24 to 0.78 | Kept |
+| 2026-11-13 | Measured records should appear only when asked for ("who won", "rating", "round", "vs") | Names such as "event 6" are recognised; cue words for the four new kinds; measured records join the lists only when cued | Recall at 5: +8.7 points [+2.2, +17.4]; MRR +0.098 [+0.029, +0.174]; no type worse | Kept. Caveat: the cue words were chosen after a first run that showed `test` results |
 
 ## 8. Decisions and stopgaps
 
@@ -500,3 +535,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
   tournament rules, errata), one quotation paraphrased, two named exceptions in hashed engine files.
   The analysis insights are worded as observations and associations, the stored sentences were re-derived
   without games, and the glossary entry and the two deck-profile table headings for "Δ when drawn" follow.
+- 2026-11-13: steps 2.1 and 2.2 landed in the pack. `src/lib/eventFacts.ts` computes champions, standings
+  after any round, round summaries, a deck's competitive record and matchups; `npm run kb -- fact` prints
+  them; 228 event, round, rating and matchup records answer questions such as "who won event 6". Sixteen
+  number questions joined the question set (116 now), and one ranking change was kept (see §7).

@@ -1,13 +1,15 @@
 // The knowledge pack command line (scripts/kb.ts, docs/RAG_PLAN.md step 1.3): argument conventions (exit 2 on a bad
-// flag or value, --help prints the header), the query commands on an invented index, and the cache under a temp
-// directory (public sources only: nothing from data/raw is written outside .cache/kb).
+// flag or value, --help prints the header), the query commands on an invented index, the fact command on the recorded
+// files, and the cache under a temp directory (public sources only: nothing from data/raw is written outside .cache/kb).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ArgError } from '../scripts/lib-node';
-import { ensurePack, parseKbArgs, runQuery, statsText } from '../scripts/kb';
+import { deckResolver, ensurePack, parseKbArgs, runQuery, statsText } from '../scripts/kb';
+import { loadCompetitive } from '../scripts/kb-sources';
+import { runFact } from '../src/lib/kb/facts';
 import { finishRecord } from '../src/lib/kb/build/record';
 import { buildIndex } from '../src/lib/kb/search';
 import { estimateTokens, kindOfId, type KbLink, type KbRecord } from '../src/lib/kb/types';
@@ -58,6 +60,73 @@ describe('parseKbArgs', () => {
     for (const argv of bad) expect(() => parseKbArgs(argv), argv.join(' ')).toThrow(ArgError);
     expect(() => parseKbArgs(['stats', '--k', '3'])).toThrow(/--k does not apply to stats/);
     expect(() => parseKbArgs(['find'])).toThrow(/unknown command "find"/);
+  });
+});
+
+describe('fact', () => {
+  it('reads the fact, its flags and its decks', () => {
+    expect(parseKbArgs(['fact', 'champion', '--event', '6']).fact).toEqual({ fact: 'champion', event: 6, decks: [], json: false });
+    expect(parseKbArgs(['fact', 'standings', '--event', '6', '--round', '5', '--json']).fact).toEqual({ fact: 'standings', event: 6, round: '5', decks: [], json: true });
+    expect(parseKbArgs(['fact', 'round', '--event', '3', '--round', 'final']).fact).toMatchObject({ round: 'final' });
+    expect(parseKbArgs(['fact', 'rating', 'smash', 'the', 'curve']).fact!.decks).toEqual(['smash the curve']);
+    expect(parseKbArgs(['fact', 'matchup', 'S1-01 Mutant (RRY)', 'Samurai']).fact!.decks).toEqual(['S1-01 Mutant (RRY)', 'Samurai']);
+    expect(parseKbArgs(['fact', 'matchup', 'smash', 'the', 'curve', 'vs', 'samurai']).fact!.decks).toEqual(['smash the curve', 'samurai']);
+  });
+  it('refuses an unknown fact, a missing or misplaced flag and the wrong number of decks (exit 2)', () => {
+    const bad: string[][] = [
+      ['fact'],
+      ['fact', 'upsets', '--event', '6'],
+      ['fact', 'champion'],
+      ['fact', 'champion', '--event', '0'],
+      ['fact', 'champion', '--event', 'six'],
+      ['fact', 'champion', '--event', '6', '--round', '2'],
+      ['fact', 'round', '--event', '6'],
+      ['fact', 'standings', '--event', '6', '--round', 'final'],
+      ['fact', 'rating'],
+      ['fact', 'rating', 'samurai', '--event', '6'],
+      ['fact', 'matchup', 'samurai'],
+      ['fact', 'champion', '--event', '6', 'extra'],
+      ['fact', 'champion', '--event', '6', '--k', '3'],
+      ['search', 'x', '--event', '6'],
+    ];
+    for (const argv of bad) expect(() => parseKbArgs(argv), argv.join(' ')).toThrow(ArgError);
+  });
+
+  // the real recorded files; deck names resolved through invented deck records (the resolver also reads the files' names)
+  const src = loadCompetitive(ROOT);
+  const deckIx = buildIndex([
+    finishRecord({ id: 'deck:s1-01-mutant-rry', kind: 'deck', title: 'S1-01 Mutant (RRY)', aliases: ['s1-01-mutant-rry.txt', 'LISTFP01'], text: 'An invented deck record.', source: { file: 'fixture' }, origin: 'authored', scope: 'public' }),
+    finishRecord({ id: 'deck:RBY-samurai', kind: 'deck', title: 'Samurai', text: 'Another invented deck record.', source: { file: 'fixture' }, origin: 'authored', scope: 'public' }),
+  ]);
+  const fact = (argv: string[]) => runFact(parseKbArgs(['fact', ...argv]).fact!, src, deckResolver(deckIx, src));
+  const ev6 = src.events.find((e) => e.event.id === 6);
+
+  it.skipIf(!ev6)('prints exact numbers with their source, bot and sim version', () => {
+    const champ = fact(['champion', '--event', '6']);
+    expect(champ.code).toBe(0);
+    expect(champ.out).toContain(`Event #6 champion: ${ev6!.event.champion}`);
+    expect(champ.out).toMatch(/source: public\/tournaments\/event-6\.json \(the \w+ bot on sim version \d+, recorded 20\d\d-/);
+    const st = fact(['standings', '--event', '6', '--round', '5']);
+    expect(st.out).toMatch(/^Event #6 standings after round 5 of 9/);
+    const json = JSON.parse(fact(['standings', '--event', '6', '--json']).out);
+    expect(json.rows.map((r: { deck: string }) => r.deck)).toEqual(ev6!.event.standings.map((s) => s.deck));
+    expect(json.source).toBe('public/tournaments/event-6.json');
+    expect(fact(['round', '--event', '6', '--round', 'Final']).out).toMatch(/^Event #6, Final: a top-cut round/);
+    // a deck by file, by list fingerprint and by name, any case
+    for (const name of ['s1-01-mutant-rry.txt', 'LISTFP01', 's1-01 mutant (rry)']) expect(fact(['rating', name]).out, name).toMatch(/^S1-01 Mutant \(RRY\) rating: /);
+    expect(fact(['finishes', 'Samurai']).out).toMatch(/^Samurai finishes in standard events/);
+    const m = JSON.parse(fact(['matchup', 'S1-01 Mutant (RRY)', 'Samurai', '--json']).out);
+    expect(m).toMatchObject({ fact: 'matchup', a: 'S1-01 Mutant (RRY)', b: 'Samurai', known: true, source: 'public/data/h2h.json' });
+    expect(estimateTokens(champ.out)).toBeLessThan(200);
+  });
+
+  it('exits 1 on an unknown event, round or deck, saying what exists', () => {
+    const noEvent = fact(['champion', '--event', '999']);
+    expect([noEvent.code, noEvent.out]).toEqual([1, expect.stringMatching(/^no recorded event 999; recorded: /)]);
+    if (ev6) expect(fact(['round', '--event', '6', '--round', '12'])).toMatchObject({ code: 1, out: expect.stringContaining('has rounds 1 to 9') });
+    const noDeck = fact(['rating', 'mutant']);
+    expect(noDeck.code).toBe(1);
+    expect(noDeck.out).toMatch(/^no deck named "mutant"; nearest:\n {2}S1-01 Mutant \(RRY\)/);
   });
 });
 

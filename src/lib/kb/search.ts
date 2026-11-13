@@ -2,7 +2,9 @@
 // first: (1) exact id or name, (2) records one link away from those, (3) BM25 keywords; later rankers add one entry to
 // RANKERS. The ranked lists are merged by reciprocal rank fusion: score = sum of weight / (60 + rank). A neighbour of a
 // kind the question asks for by name ("rulings on X", "decks that play X") also joins the exact list (KIND_CUES; kept
-// after the step 1.4 question set showed it helps on held-out questions).
+// after the step 1.4 question set showed it helps on held-out questions). Measured records (events, rounds, ratings,
+// matchups; step 2.2) are named inside a question like decks are, and join the keyword and linked lists only when the
+// question asks for their kind (CUE_ONLY_KINDS): kept after the number questions showed it helps on held-out questions.
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
 import { buildNameIndex, findNames, lookupName, type NameIndex } from './names';
@@ -21,7 +23,7 @@ export const MATCH_FLOOR = 0.5;
 /** How deep each ranker's list goes before fusion. */
 export const RANK_DEPTH = 100;
 /** Kinds a part of a question may name (doc and code titles are headings and paths, not names people use). */
-export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term', 'rule', 'trule', 'objective'];
+export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term', 'rule', 'trule', 'objective', 'event', 'round', 'rating', 'matchup'];
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -121,7 +123,40 @@ export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
   guide: ['guide'],
   pilot: ['guide'],
   piloted: ['guide'],
+  // measured records (plan step 2.2)
+  event: ['event'],
+  tournament: ['event'],
+  champion: ['event'],
+  won: ['event'],
+  winner: ['event'],
+  entered: ['event'],
+  round: ['round'],
+  final: ['round'],
+  semifinal: ['round'],
+  quarterfinal: ['round'],
+  standing: ['round'],
+  leading: ['round'],
+  leader: ['round'],
+  sweep: ['round'],
+  bye: ['round'],
+  rating: ['rating'],
+  tier: ['rating'],
+  strong: ['rating'],
+  rank: ['rating'],
+  ranking: ['rating'],
+  title: ['rating'],
+  cut: ['rating'],
+  matchup: ['matchup'],
+  vs: ['matchup'],
+  versus: ['matchup'],
+  head: ['matchup'],
 };
+
+/**
+ * Measured kinds that are many and look alike (a matchup or round record per pairing or round): they join the keyword
+ * and linked lists only when the question asks for their kind (KIND_CUES); named exactly, they are always found.
+ */
+export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', 'rating'];
 
 /** The kinds a question asks for by name. */
 export function cuedKinds(q: string): Set<KbKind> {
@@ -151,11 +186,12 @@ export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: reado
 export function search(ix: KbIndex, query: string, o: SearchOptions = {}): SearchResult {
   const k = o.k ?? 5;
   const use = new Set<Ranker>(o.rankers ?? RANKERS);
-  const keyword = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query) : [];
+  const cued = cuedKinds(query);
+  const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
+  const keyword = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
   const exact = use.has('exact') || use.has('linked') ? rankExact(ix, query) : [];
   const lists: Partial<Record<Ranker, string[]>> = {};
-  const cued = cuedKinds(query);
-  const linked = use.has('linked') ? rankLinked(ix, exact, keyword, cued) : [];
+  const linked = use.has('linked') ? rankLinked(ix, exact, keyword, cued).filter((id) => !gated(id)) : [];
   // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
   // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
   const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));

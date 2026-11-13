@@ -1,6 +1,6 @@
 // Knowledge pack builders (src/lib/kb/build, scripts/kb-sources.ts; docs/RAG_PLAN.md step 1.2): each builder on small
 // invented fixtures, then one pass over the real public sources (ids unique, every link resolves, hashes stable, two
-// builds byte-identical). Fixtures never hold official rules or FAQ wording; the data/raw check is structural only
+// builds byte-identical; the measured records name their bot and sim version and link as the plan says). Fixtures never hold official rules or FAQ wording; the data/raw check is structural only
 // and is skipped when data/raw is absent.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,6 +10,8 @@ import { createRunManifest } from '../src/lib/runManifest';
 import { RULES_VERSIONS } from '../src/lib/rulesVersions';
 import { buildCards, cardDataVersion, type CardInput } from '../src/lib/kb/build/cards';
 import { buildDecks, buildObjectives, type DeckInput, type ObjectiveInput } from '../src/lib/kb/build/decks';
+import { buildCompetitive, MATCHUP_MIN_GAMES } from '../src/lib/kb/build/events';
+import type { RecordedEvent } from '../src/lib/eventFacts';
 import { buildErrata, buildFaq, buildRules, buildTournamentRules, citedRules, rulesDate } from '../src/lib/kb/build/local';
 import { MAX_WORDS, mdSections, passages } from '../src/lib/kb/build/markdown';
 import { mentionLinker } from '../src/lib/kb/build/mentions';
@@ -20,7 +22,7 @@ import { finishRecord } from '../src/lib/kb/build/record';
 import { buildRulings } from '../src/lib/kb/build/rulings';
 import { wordCount } from '../src/lib/kb/text';
 import { recordHash } from '../src/lib/kb/types';
-import { buildFromSources, RAW_FILES } from '../scripts/kb-sources';
+import { buildFromSources, loadCompetitive, RAW_FILES } from '../scripts/kb-sources';
 import { FAQ_MATRIX } from './faq/matrix';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -248,6 +250,75 @@ describe('builders on fixtures', () => {
     for (const r of rs) expect(wordCount(r.text)).toBeLessThanOrEqual(MAX_WORDS);
   });
 
+  it('competitive: event, round, rating and matchup records, worded by templates, stamped and linked', () => {
+    const g = (first: 0 | 1, winner: 0 | 1) => ({ seed: 0, first, winner, turns: 10, reason: 'invented end' });
+    const event: RecordedEvent = {
+      id: 9,
+      name: 'Event #9',
+      date: '2030-05-06T07:08:09.000Z',
+      bot: 'fixture-bot',
+      format: 'Swiss 1 round (Bo3) + top 2',
+      config: { rounds: 1, top: 2, bestOf: 3 },
+      decks: { 'Fixture Mill': { file: 'fx-mill.txt' }, 'Fixture Burn': { file: 'fx-burn.txt' }, Outsider: {} },
+      rounds: [{ round: 1, matches: [{ a: 'Fixture Mill', b: 'Fixture Burn', games: [g(0, 0), g(1, 0)], winner: 'Fixture Mill', score: [2, 0] }, { a: 'Outsider', b: null, games: [], winner: 'Outsider', score: [2, 0] }] }],
+      bracket: [{ name: 'Final', matches: [{ a: 'Fixture Mill', b: 'Outsider', games: [g(0, 1), g(1, 0), g(0, 0)], winner: 'Fixture Mill', score: [2, 1] }] }],
+      standings: [],
+      champion: 'Fixture Mill',
+      simVersion: 7,
+    };
+    const row = (name: string, file: string, games: number) => ({ name, file, rating: 0.1, se: 0.2, games, wrField: 0.55, wrFieldLo: 0.45, wrFieldHi: 0.65, wrMeta: null, events: 1, titles: name === 'Fixture Mill' ? 1 : 0, top8: 1, avgFinish: 0.5, matches: '1-0', gamesRecord: '2-0' });
+    const skipped: Record<string, number> = {};
+    const rs = buildCompetitive(
+      {
+        events: [{ file: 'public/tournaments/event-9.json', event }],
+        index: { file: 'index.json', data: { events: [{ id: 9, date: event.date, champion: 'Fixture Mill', simVersion: 7, bot: 'fixture-bot', top8: [{ deck: 'Fixture Mill' }, { deck: 'Outsider' }], standings: [{ deck: 'Fixture Mill', record: '1-0', games: '2-0' }, { deck: 'Outsider', record: '1-0', games: '0-0' }, { deck: 'Fixture Burn', record: '0-1', games: '0-2' }] }] } },
+        ratings: { file: 'ratings.json', data: { events: 1, decks: [row('Fixture Mill', 'fx-mill.txt', 25), row('Fixture Burn', 'fx-burn.txt', 2)], manifest: { simVersion: 7, bot: { level: 'fixture-bot' }, createdAt: event.date } } },
+        h2h: { file: 'h2h.json', data: { events: 1, decks: ['Fixture Mill', 'Fixture Burn', 'Outsider'], pairs: [[0, 1, 6, 7], [0, 2, 1, 2]], shrunk: [0.61, 0.5], model: { kind: 'bradley-terry-shrunk', ratings: [0.1, 0, 0], firstPlayer: 0.2, rho: 0.1, priorGames: 9 }, manifest: { simVersion: 7, bot: { level: 'fixture-bot' }, createdAt: event.date } } },
+      },
+      { deckId: (f) => (f === 'fx-mill.txt' || f === 'fx-burn.txt' ? `deck:${f.replace(/\.txt$/, '')}` : undefined), skipped },
+    );
+    expect(rs.map((r) => r.id)).toEqual(['event:9', 'round:9/1', 'round:9/final', 'rating:fx-mill', 'rating:fx-burn', 'matchup:fx-burn~fx-mill']);
+    const byId = new Map(rs.map((r) => [r.id, r]));
+    for (const r of rs) {
+      expect([r.origin, r.scope]).toEqual(['measured', 'public']);
+      expect(r.stamps).toEqual({ asOf: '2030-05-06T07:08:09.000Z', bot: 'fixture-bot', simVersion: 7 });
+      // the first sentence says what it is and names the bot and the sim version, and an old version is stale
+      expect(r.text.split('\n')[0]).toContain('the fixture-bot bot on sim version 7 (stale: the current sim version is 8)');
+      expect(r.fields?.stale).toBe(true);
+      expect(r.text).not.toMatch(/\bbest deck\b|\byou should\b|\bbecause\b/i);
+    }
+    const ev = byId.get('event:9')!;
+    expect(ev.aliases).toContain('event 9');
+    expect(ev.links).toEqual([{ rel: 'deck', to: 'deck:fx-mill' }]);
+    expect(ev.fields).toMatchObject({ champion: 'Fixture Mill', runnerUp: 'Outsider', games: 5, topCut: 2, entrants: 3, firstPlayerWins: 2, gamesWithWinner: 5 });
+    expect(ev.text).toContain('The player going first won 2 of 5 (40.0%) games with a winner.');
+    const r1 = byId.get('round:9/1')!;
+    expect(r1.links).toEqual([{ rel: 'parent', to: 'event:9' }]);
+    expect(r1.text).toContain('Leaders after round 1: Fixture Mill 1-0; Outsider 1-0 (2 decks on 3 match points).');
+    expect(r1.fields).toMatchObject({ sweeps: 1, deciders: 0, byes: 1 });
+    expect(byId.get('round:9/final')!.fields).toMatchObject({ sweeps: 0, deciders: 1 });
+    expect(byId.get('round:9/final')!.aliases).toContain('final of event 9');
+    const rating = byId.get('rating:fx-mill')!;
+    expect(rating.title).toBe('Fixture Mill rating');
+    expect(rating.links).toEqual([{ rel: 'deck', to: 'deck:fx-mill' }]);
+    expect(rating.text).toContain('55.0% (90% range 45.0%–65.0%) over 25 rated games');
+    expect(rating.text).toContain('Sim tier now: A.');
+    expect(rating.fields).toMatchObject({ titles: 1, topCutAppearances: 1, swissTopEight: 1 });
+    expect(Object.keys(rating.fields ?? {})).not.toContain('top8');
+    expect(byId.get('rating:fx-burn')!.text).toContain('Sim tier now: unrated.');
+    // only pairings with at least MATCHUP_MIN_GAMES games; written from the side whose key sorts first
+    expect(MATCHUP_MIN_GAMES).toBe(6);
+    const m = byId.get('matchup:fx-burn~fx-mill')!;
+    expect(m.title).toBe('Fixture Burn vs Fixture Mill');
+    expect(m.links).toEqual([
+      { rel: 'deck', to: 'deck:fx-burn' },
+      { rel: 'deck', to: 'deck:fx-mill' },
+    ]);
+    expect(m.text).toContain('Raw record: Fixture Burn won 1 of 7 (14.3%) games (ties count half)');
+    expect(m.text).toContain('Shrunk estimate: 39.0% for Fixture Burn');
+    expect(skipped).toEqual({});
+  });
+
   it('code headers: line comments or a block comment at the top, nothing otherwise', () => {
     expect(headerComment('// One line header here.\n// Second line.\nimport x from "y";')).toEqual({ text: 'One line header here.\nSecond line.', from: 1, to: 2 });
     expect(headerComment('\n/**\n * Block header with words.\n */\nexport {};')).toEqual({ text: 'Block header with words.', from: 2, to: 4 });
@@ -385,6 +456,32 @@ describe('the real public sources', async () => {
     expect(packLines(b.records)).toBe(packLines(a.records));
     const man = (s: typeof a) => JSON.stringify(packManifest(s.records, { report: s.report, inputs: { x: '1' }, local: s.local, rulesVersion: s.rulesVersion, faqVersion: s.faqVersion, cardDataVersion: s.cardDataVersion }));
     expect(man(b)).toBe(man(a));
+  });
+
+  it('builds the measured records from the recorded events, ratings and head-to-heads', () => {
+    const src = loadCompetitive(ROOT);
+    expect(count('event')).toBe(src.events.length);
+    expect(count('round')).toBe(src.events.reduce((a, e) => a + e.event.rounds.length + e.event.bracket.length, 0));
+    expect(count('rating')).toBe(src.ratings!.data.decks.length);
+    expect(count('matchup')).toBe(src.h2h!.data.pairs.filter((p) => p[3] >= MATCHUP_MIN_GAMES).length);
+    const measured = a.records.filter((x) => ['event', 'round', 'rating', 'matchup'].includes(x.kind));
+    for (const x of measured) {
+      expect([x.origin, x.scope], x.id).toEqual(['measured', 'public']);
+      const s = x.stamps!;
+      expect(typeof s.simVersion === 'number' && typeof s.bot === 'string' && typeof s.asOf === 'string', x.id).toBe(true);
+      expect(x.text.split('\n')[0], x.id).toContain(`the ${s.bot} bot on sim version ${s.simVersion}`);
+      // D6: "top 8" only inside a recorded format label ("+ top 8") or naming the ratings file's count
+      expect(x.text, x.id).not.toMatch(/(?<!\+ )\btop 8\b(?!" count)/i);
+    }
+    // links: a round to its event, an event to its champion's deck, a rating to its deck, a matchup to both decks
+    for (const x of measured) {
+      const rels = x.links.map((l) => `${l.rel} ${l.to.slice(0, l.to.indexOf(':'))}`);
+      if (x.kind === 'round') expect(rels).toEqual(['parent event']);
+      if (x.kind === 'event' || x.kind === 'rating') expect(rels).toEqual(['deck deck']);
+      if (x.kind === 'matchup') expect(rels).toEqual(['deck deck', 'deck deck']);
+    }
+    const ev6 = a.records.find((x) => x.id === 'event:6');
+    if (ev6) expect(ev6.stamps?.asOf).toBe(src.events.find((e) => e.event.id === 6)!.event.date);
   });
 
   it('reads no generated, tutorial or archived source', () => {

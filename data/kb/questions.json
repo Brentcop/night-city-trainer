@@ -8,7 +8,7 @@
     "expect: every record that answers the question on its own. A question is found at k when any one of them is in the first k results. An entry ending in * accepts any passage of one doc section (later passages end in ~2, ~3).",
     "scope: public, or local when only a rules, tournament-rules, errata or official FAQ record (data/raw, never tracked) answers it. A checkout without data/raw skips local questions and counts them as skipped. Rules questions are in our own words and store ids only.",
     "type: entity (a name or part of one, as people type it), paraphrase (the thing asked for without the words of its title), cross (the answer is one link away: a card's rulings or packages, a deck's plan, the decks that play a card), dev (this codebase and its docs), rules (the game's rules, local scope).",
-    "No number questions yet: records that answer them (event, round and rating facts) arrive in step 2 of the plan.",
+    "number (q101 onward, plan step 2.2): a question whose answer is a number or a result from the recorded tournaments (a champion, a round's results, a rating, a tier, a matchup, a count). It expects the measured record that holds the answer (event, round, rating or matchup); the number itself comes from code (`npm run kb -- fact`), never from the search. Written from the need first, before the records were searched.",
     "Split rule: within each type, in file order, the question at position i (0-based) is test when i mod 5 is 1 or 3, dev otherwise. That puts 40% of every type in test.",
     "Rule M9: tune on dev, report on test. Once written, a question is never reworded to raise a score; only a wrong expect is corrected, and each correction is listed in the step's report."
   ],
@@ -116,6 +116,22 @@
     { "id": "q097", "q": "my attack reaches the steal step but the rival has no gigs, what is stolen", "type": "rules", "scope": "local", "split": "test", "expect": ["rule:9.19"] },
     { "id": "q098", "q": "are any cards banned or restricted in organized play", "type": "rules", "scope": "local", "split": "dev", "expect": ["trule:B"] },
     { "id": "q099", "q": "was kiroshi optics changed by an errata", "type": "rules", "scope": "local", "split": "test", "expect": ["errata:kiroshi-optics"] },
-    { "id": "q100", "q": "how many copies of one card can a main deck hold, and does a different card number make it a different card", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:7.3.3"] }
+    { "id": "q100", "q": "how many copies of one card can a main deck hold, and does a different card number make it a different card", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:7.3.3"] },
+    { "id": "q101", "q": "who won event 6", "type": "number", "scope": "public", "split": "dev", "expect": ["event:6", "round:6/final"] },
+    { "id": "q102", "q": "how strong is smash the curve", "type": "number", "scope": "public", "split": "test", "expect": ["rating:RRG-smash-the-curve"] },
+    { "id": "q103", "q": "who was leading after round 5 of event 6", "type": "number", "scope": "public", "split": "dev", "expect": ["round:6/5"] },
+    { "id": "q104", "q": "what is samurai's sim tier", "type": "number", "scope": "public", "split": "test", "expect": ["rating:RBY-samurai"] },
+    { "id": "q105", "q": "how often does the player going first win in event 3", "type": "number", "scope": "public", "split": "dev", "expect": ["event:3"] },
+    { "id": "q106", "q": "how many titles has bbg cunningham econ won", "type": "number", "scope": "public", "split": "dev", "expect": ["rating:meta-bbg-cunningham-econ"] },
+    { "id": "q107", "q": "head to head record of s1-01 mutant against samurai", "type": "number", "scope": "public", "split": "test", "expect": ["matchup:RBY-samurai~s1-01-mutant-rry"] },
+    { "id": "q108", "q": "who did the event 6 champion beat in the final", "type": "number", "scope": "public", "split": "dev", "expect": ["round:6/final", "event:6"] },
+    { "id": "q109", "q": "how many games were decided in overtime in event 7", "type": "number", "scope": "public", "split": "test", "expect": ["event:7"] },
+    { "id": "q110", "q": "power rating of rrg dexter midrange with its range", "type": "number", "scope": "public", "split": "dev", "expect": ["rating:meta-rrg-dexter-midrange"] },
+    { "id": "q111", "q": "results of the semifinals in event 4", "type": "number", "scope": "public", "split": "dev", "expect": ["round:4/semifinals", "event:4"] },
+    { "id": "q112", "q": "how many decks entered event 5", "type": "number", "scope": "public", "split": "test", "expect": ["event:5"] },
+    { "id": "q113", "q": "smash the curve vs rrg dexter midrange win rate", "type": "number", "scope": "public", "split": "dev", "expect": ["matchup:RRG-smash-the-curve~meta-rrg-dexter-midrange"] },
+    { "id": "q114", "q": "which deck won event 1", "type": "number", "scope": "public", "split": "test", "expect": ["event:1", "round:1/final"] },
+    { "id": "q115", "q": "how many top cuts has smash the curve made", "type": "number", "scope": "public", "split": "dev", "expect": ["rating:RRG-smash-the-curve"] },
+    { "id": "q116", "q": "how many sweeps were there in round 3 of event 3", "type": "number", "scope": "public", "split": "dev", "expect": ["round:3/3"] }
   ]
 }

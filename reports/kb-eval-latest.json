@@ -9,7 +9,7 @@
     {
       "scope": "all",
       "localPresent": true,
-      "records": 3299,
+      "records": 3537,
       "skipped": [],
       "stale": {},
       "configs": [
@@ -17,31 +17,31 @@
           "config": "exact",
           "splits": {
             "dev": {
-              "n": 60,
-              "r1": 0.15,
-              "r5": 0.1667,
-              "r10": 0.1667,
-              "mrr": 0.1583,
-              "tokensMean": 56.4167,
-              "tokensP90": 114
+              "n": 70,
+              "r1": 0.2143,
+              "r5": 0.2429,
+              "r10": 0.2429,
+              "mrr": 0.2286,
+              "tokensMean": 68.3429,
+              "tokensP90": 123
             },
             "test": {
-              "n": 40,
-              "r1": 0.1,
-              "r5": 0.125,
-              "r10": 0.125,
-              "mrr": 0.1125,
-              "tokensMean": 67.925,
-              "tokensP90": 165
+              "n": 46,
+              "r1": 0.1522,
+              "r5": 0.1739,
+              "r10": 0.1739,
+              "mrr": 0.163,
+              "tokensMean": 77.5217,
+              "tokensP90": 183
             },
             "all": {
-              "n": 100,
-              "r1": 0.13,
-              "r5": 0.15,
-              "r10": 0.15,
-              "mrr": 0.14,
-              "tokensMean": 61.02,
-              "tokensP90": 115
+              "n": 116,
+              "r1": 0.1897,
+              "r5": 0.2155,
+              "r10": 0.2155,
+              "mrr": 0.2026,
+              "tokensMean": 71.9828,
+              "tokensP90": 134
             }
           },
           "types": {
@@ -72,6 +72,15 @@
                 "mrr": 0,
                 "tokensMean": 86.7778,
                 "tokensP90": 118
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.6,
+                "r5": 0.7,
+                "r10": 0.7,
+                "mrr": 0.65,
+                "tokensMean": 139.9,
+                "tokensP90": 218
               },
               "dev": {
                 "n": 12,
@@ -120,6 +129,15 @@
                 "tokensMean": 106.6667,
                 "tokensP90": 114
               },
+              "number": {
+                "n": 6,
+                "r1": 0.5,
+                "r5": 0.5,
+                "r10": 0.5,
+                "mrr": 0.5,
+                "tokensMean": 141.5,
+                "tokensP90": 284
+              },
               "dev": {
                 "n": 8,
                 "r1": 0,
@@ -166,6 +184,15 @@
                 "mrr": 0,
                 "tokensMean": 94.7333,
                 "tokensP90": 114
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.5625,
+                "r5": 0.625,
+                "r10": 0.625,
+                "mrr": 0.5938,
+                "tokensMean": 140.5,
+                "tokensP90": 222
               },
               "dev": {
                 "n": 20,
@@ -887,6 +914,118 @@
               "split": "dev",
               "rank": null,
               "tokens": 31
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 114
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 120
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 113
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 218
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 118
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 108
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 284
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 222
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 123
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 134
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 114
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 120
             }
           ]
         },
@@ -894,31 +1033,31 @@
           "config": "keyword",
           "splits": {
             "dev": {
-              "n": 60,
-              "r1": 0.55,
-              "r5": 0.7667,
-              "r10": 0.8333,
-              "mrr": 0.638,
-              "tokensMean": 492.6833,
-              "tokensP90": 583
+              "n": 70,
+              "r1": 0.5714,
+              "r5": 0.7714,
+              "r10": 0.8286,
+              "mrr": 0.6547,
+              "tokensMean": 505.4286,
+              "tokensP90": 600
             },
             "test": {
-              "n": 40,
-              "r1": 0.375,
-              "r5": 0.7,
-              "r10": 0.75,
-              "mrr": 0.5029,
-              "tokensMean": 478.225,
-              "tokensP90": 604
+              "n": 46,
+              "r1": 0.3913,
+              "r5": 0.6739,
+              "r10": 0.7609,
+              "mrr": 0.5089,
+              "tokensMean": 490.087,
+              "tokensP90": 612
             },
             "all": {
-              "n": 100,
-              "r1": 0.48,
-              "r5": 0.74,
-              "r10": 0.8,
-              "mrr": 0.584,
-              "tokensMean": 486.9,
-              "tokensP90": 592
+              "n": 116,
+              "r1": 0.5,
+              "r5": 0.7328,
+              "r10": 0.8017,
+              "mrr": 0.5969,
+              "tokensMean": 499.3448,
+              "tokensP90": 605
             }
           },
           "types": {
@@ -929,7 +1068,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 1,
-                "tokensMean": 483.5833,
+                "tokensMean": 484.9167,
                 "tokensP90": 555
               },
               "paraphrase": {
@@ -938,8 +1077,8 @@
                 "r5": 0.5333,
                 "r10": 0.6,
                 "mrr": 0.3929,
-                "tokensMean": 444.2667,
-                "tokensP90": 600
+                "tokensMean": 445.6,
+                "tokensP90": 591
               },
               "cross": {
                 "n": 9,
@@ -947,16 +1086,25 @@
                 "r5": 0.7778,
                 "r10": 0.8889,
                 "mrr": 0.6512,
-                "tokensMean": 505.2222,
+                "tokensMean": 508.8889,
                 "tokensP90": 579
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.7,
+                "r5": 0.8,
+                "r10": 0.8,
+                "mrr": 0.75,
+                "tokensMean": 572.9,
+                "tokensP90": 616
               },
               "dev": {
                 "n": 12,
                 "r1": 0.6667,
                 "r5": 0.9167,
                 "r10": 1,
-                "mrr": 0.762,
-                "tokensMean": 552.3333,
+                "mrr": 0.7662,
+                "tokensMean": 551.1667,
                 "tokensP90": 588
               },
               "rules": {
@@ -965,8 +1113,8 @@
                 "r5": 0.6667,
                 "r10": 0.75,
                 "mrr": 0.4486,
-                "tokensMean": 493.25,
-                "tokensP90": 590
+                "tokensMean": 496.1667,
+                "tokensP90": 608
               }
             },
             "test": {
@@ -997,14 +1145,23 @@
                 "tokensMean": 514,
                 "tokensP90": 562
               },
+              "number": {
+                "n": 6,
+                "r1": 0.5,
+                "r5": 0.6667,
+                "r10": 0.8333,
+                "mrr": 0.5583,
+                "tokensMean": 555.8333,
+                "tokensP90": 662
+              },
               "dev": {
                 "n": 8,
                 "r1": 0.625,
-                "r5": 1,
+                "r5": 0.875,
                 "r10": 1,
-                "mrr": 0.7438,
-                "tokensMean": 561.25,
-                "tokensP90": 606
+                "mrr": 0.7366,
+                "tokensMean": 561.5,
+                "tokensP90": 612
               },
               "rules": {
                 "n": 8,
@@ -1012,8 +1169,8 @@
                 "r5": 0.75,
                 "r10": 0.75,
                 "mrr": 0.5417,
-                "tokensMean": 469.5,
-                "tokensP90": 647
+                "tokensMean": 479.25,
+                "tokensP90": 662
               }
             },
             "all": {
@@ -1023,7 +1180,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.8917,
-                "tokensMean": 502,
+                "tokensMean": 502.8,
                 "tokensP90": 567
               },
               "paraphrase": {
@@ -1032,8 +1189,8 @@
                 "r5": 0.48,
                 "r10": 0.52,
                 "mrr": 0.305,
-                "tokensMean": 409.04,
-                "tokensP90": 604
+                "tokensMean": 409.84,
+                "tokensP90": 600
               },
               "cross": {
                 "n": 15,
@@ -1041,17 +1198,26 @@
                 "r5": 0.6,
                 "r10": 0.8,
                 "mrr": 0.5419,
-                "tokensMean": 508.7333,
-                "tokensP90": 576
+                "tokensMean": 510.9333,
+                "tokensP90": 578
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.625,
+                "r5": 0.75,
+                "r10": 0.8125,
+                "mrr": 0.6781,
+                "tokensMean": 566.5,
+                "tokensP90": 617
               },
               "dev": {
                 "n": 20,
                 "r1": 0.65,
-                "r5": 0.95,
+                "r5": 0.9,
                 "r10": 1,
-                "mrr": 0.7547,
-                "tokensMean": 555.9,
-                "tokensP90": 592
+                "mrr": 0.7544,
+                "tokensMean": 555.3,
+                "tokensP90": 605
               },
               "rules": {
                 "n": 20,
@@ -1059,8 +1225,8 @@
                 "r5": 0.7,
                 "r10": 0.75,
                 "mrr": 0.4858,
-                "tokensMean": 483.75,
-                "tokensP90": 590
+                "tokensMean": 489.4,
+                "tokensP90": 621
               }
             }
           },
@@ -1140,7 +1306,7 @@
               "type": "entity",
               "split": "dev",
               "rank": 1,
-              "tokens": 469
+              "tokens": 485
             },
             {
               "id": "q012",
@@ -1210,7 +1376,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 606
+              "tokens": 587
             },
             {
               "id": "q022",
@@ -1238,7 +1404,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": 2,
-              "tokens": 552
+              "tokens": 591
             },
             {
               "id": "q026",
@@ -1469,7 +1635,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 502
+              "tokens": 533
             },
             {
               "id": "q059",
@@ -1483,7 +1649,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 2,
-              "tokens": 576
+              "tokens": 578
             },
             {
               "id": "q061",
@@ -1511,28 +1677,28 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 579
+              "tokens": 574
             },
             {
               "id": "q065",
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 561
+              "tokens": 540
             },
             {
               "id": "q066",
               "type": "dev",
               "split": "dev",
-              "rank": 5,
+              "rank": 4,
               "tokens": 532
             },
             {
               "id": "q067",
               "type": "dev",
               "split": "test",
-              "rank": 5,
-              "tokens": 515
+              "rank": 7,
+              "tokens": 500
             },
             {
               "id": "q068",
@@ -1553,7 +1719,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 528
+              "tokens": 535
             },
             {
               "id": "q071",
@@ -1602,7 +1768,7 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 590
+              "tokens": 612
             },
             {
               "id": "q078",
@@ -1637,7 +1803,7 @@
               "type": "rules",
               "split": "test",
               "rank": 1,
-              "tokens": 647
+              "tokens": 662
             },
             {
               "id": "q083",
@@ -1651,7 +1817,7 @@
               "type": "rules",
               "split": "test",
               "rank": null,
-              "tokens": 558
+              "tokens": 621
             },
             {
               "id": "q085",
@@ -1665,7 +1831,7 @@
               "type": "rules",
               "split": "dev",
               "rank": 1,
-              "tokens": 510
+              "tokens": 527
             },
             {
               "id": "q087",
@@ -1700,7 +1866,7 @@
               "type": "rules",
               "split": "dev",
               "rank": 10,
-              "tokens": 590
+              "tokens": 608
             },
             {
               "id": "q092",
@@ -1764,6 +1930,118 @@
               "split": "dev",
               "rank": 1,
               "tokens": 575
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 564
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": 4,
+              "tokens": 442
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 600
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 558
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 577
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 536
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 662
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 617
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 10,
+              "tokens": 572
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 549
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 616
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 552
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 593
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 549
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 477
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 600
             }
           ]
         },
@@ -1771,31 +2049,31 @@
           "config": "exact+keyword",
           "splits": {
             "dev": {
-              "n": 60,
-              "r1": 0.4667,
-              "r5": 0.75,
-              "r10": 0.8333,
-              "mrr": 0.5914,
-              "tokensMean": 488.6,
-              "tokensP90": 579
+              "n": 70,
+              "r1": 0.4857,
+              "r5": 0.7857,
+              "r10": 0.8571,
+              "mrr": 0.6195,
+              "tokensMean": 502.0286,
+              "tokensP90": 591
             },
             "test": {
-              "n": 40,
-              "r1": 0.3,
-              "r5": 0.725,
-              "r10": 0.8,
-              "mrr": 0.4719,
-              "tokensMean": 507.925,
-              "tokensP90": 598
+              "n": 46,
+              "r1": 0.3261,
+              "r5": 0.7391,
+              "r10": 0.8261,
+              "mrr": 0.4988,
+              "tokensMean": 514.8478,
+              "tokensP90": 612
             },
             "all": {
-              "n": 100,
-              "r1": 0.4,
-              "r5": 0.74,
-              "r10": 0.82,
-              "mrr": 0.5436,
-              "tokensMean": 496.33,
-              "tokensP90": 589
+              "n": 116,
+              "r1": 0.4224,
+              "r5": 0.7672,
+              "r10": 0.8448,
+              "mrr": 0.5716,
+              "tokensMean": 507.1121,
+              "tokensP90": 600
             }
           },
           "types": {
@@ -1806,7 +2084,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 1,
-                "tokensMean": 484.1667,
+                "tokensMean": 485.5,
                 "tokensP90": 555
               },
               "paraphrase": {
@@ -1815,8 +2093,8 @@
                 "r5": 0.5333,
                 "r10": 0.6,
                 "mrr": 0.3562,
-                "tokensMean": 442.5333,
-                "tokensP90": 600
+                "tokensMean": 443.8667,
+                "tokensP90": 591
               },
               "cross": {
                 "n": 9,
@@ -1824,16 +2102,25 @@
                 "r5": 0.7778,
                 "r10": 0.8889,
                 "mrr": 0.429,
-                "tokensMean": 507.4444,
+                "tokensMean": 511.1111,
                 "tokensP90": 579
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.6,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.7833,
+                "tokensMean": 575.4,
+                "tokensP90": 611
               },
               "dev": {
                 "n": 12,
                 "r1": 0.6667,
                 "r5": 0.9167,
                 "r10": 1,
-                "mrr": 0.762,
-                "tokensMean": 552.3333,
+                "mrr": 0.7662,
+                "tokensMean": 551.1667,
                 "tokensP90": 588
               },
               "rules": {
@@ -1842,7 +2129,7 @@
                 "r5": 0.5833,
                 "r10": 0.75,
                 "mrr": 0.4278,
-                "tokensMean": 472.75,
+                "tokensMean": 474.1667,
                 "tokensP90": 555
               }
             },
@@ -1861,8 +2148,8 @@
                 "r1": 0.1,
                 "r5": 0.5,
                 "r10": 0.6,
-                "mrr": 0.221,
-                "tokensMean": 487.7,
+                "mrr": 0.2083,
+                "tokensMean": 490,
                 "tokensP90": 598
               },
               "cross": {
@@ -1874,14 +2161,23 @@
                 "tokensMean": 508.5,
                 "tokensP90": 562
               },
+              "number": {
+                "n": 6,
+                "r1": 0.5,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.7083,
+                "tokensMean": 543.8333,
+                "tokensP90": 634
+              },
               "dev": {
                 "n": 8,
                 "r1": 0.625,
-                "r5": 1,
+                "r5": 0.875,
                 "r10": 1,
-                "mrr": 0.7438,
-                "tokensMean": 561.25,
-                "tokensP90": 606
+                "mrr": 0.7366,
+                "tokensMean": 561.5,
+                "tokensP90": 612
               },
               "rules": {
                 "n": 8,
@@ -1889,8 +2185,8 @@
                 "r5": 0.75,
                 "r10": 0.75,
                 "mrr": 0.4,
-                "tokensMean": 461.125,
-                "tokensP90": 647
+                "tokensMean": 470.875,
+                "tokensP90": 662
               }
             },
             "all": {
@@ -1900,7 +2196,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.9125,
-                "tokensMean": 501,
+                "tokensMean": 501.8,
                 "tokensP90": 567
               },
               "paraphrase": {
@@ -1908,9 +2204,9 @@
                 "r1": 0.16,
                 "r5": 0.52,
                 "r10": 0.6,
-                "mrr": 0.3021,
-                "tokensMean": 460.6,
-                "tokensP90": 600
+                "mrr": 0.297,
+                "tokensMean": 462.32,
+                "tokensP90": 598
               },
               "cross": {
                 "n": 15,
@@ -1918,17 +2214,26 @@
                 "r5": 0.6,
                 "r10": 0.8,
                 "mrr": 0.3419,
-                "tokensMean": 507.8667,
-                "tokensP90": 576
+                "tokensMean": 510.0667,
+                "tokensP90": 578
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.5625,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.7552,
+                "tokensMean": 563.5625,
+                "tokensP90": 616
               },
               "dev": {
                 "n": 20,
                 "r1": 0.65,
-                "r5": 0.95,
+                "r5": 0.9,
                 "r10": 1,
-                "mrr": 0.7547,
-                "tokensMean": 555.9,
-                "tokensP90": 592
+                "mrr": 0.7544,
+                "tokensMean": 555.3,
+                "tokensP90": 605
               },
               "rules": {
                 "n": 20,
@@ -1936,8 +2241,8 @@
                 "r5": 0.65,
                 "r10": 0.75,
                 "mrr": 0.4167,
-                "tokensMean": 468.1,
-                "tokensP90": 558
+                "tokensMean": 472.85,
+                "tokensP90": 575
               }
             }
           },
@@ -2017,7 +2322,7 @@
               "type": "entity",
               "split": "dev",
               "rank": 1,
-              "tokens": 469
+              "tokens": 485
             },
             {
               "id": "q012",
@@ -2087,7 +2392,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 606
+              "tokens": 587
             },
             {
               "id": "q022",
@@ -2108,14 +2413,14 @@
               "type": "paraphrase",
               "split": "test",
               "rank": null,
-              "tokens": 584
+              "tokens": 578
             },
             {
               "id": "q025",
               "type": "paraphrase",
               "split": "dev",
               "rank": 2,
-              "tokens": 552
+              "tokens": 591
             },
             {
               "id": "q026",
@@ -2128,8 +2433,8 @@
               "id": "q027",
               "type": "paraphrase",
               "split": "test",
-              "rank": 7,
-              "tokens": 489
+              "rank": 10,
+              "tokens": 492
             },
             {
               "id": "q028",
@@ -2142,8 +2447,8 @@
               "id": "q029",
               "type": "paraphrase",
               "split": "test",
-              "rank": 3,
-              "tokens": 469
+              "rank": 4,
+              "tokens": 495
             },
             {
               "id": "q030",
@@ -2346,7 +2651,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 502
+              "tokens": 533
             },
             {
               "id": "q059",
@@ -2360,7 +2665,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 2,
-              "tokens": 576
+              "tokens": 578
             },
             {
               "id": "q061",
@@ -2388,28 +2693,28 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 579
+              "tokens": 574
             },
             {
               "id": "q065",
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 561
+              "tokens": 540
             },
             {
               "id": "q066",
               "type": "dev",
               "split": "dev",
-              "rank": 5,
+              "rank": 4,
               "tokens": 532
             },
             {
               "id": "q067",
               "type": "dev",
               "split": "test",
-              "rank": 5,
-              "tokens": 515
+              "rank": 7,
+              "tokens": 500
             },
             {
               "id": "q068",
@@ -2430,7 +2735,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 528
+              "tokens": 535
             },
             {
               "id": "q071",
@@ -2479,7 +2784,7 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 590
+              "tokens": 612
             },
             {
               "id": "q078",
@@ -2514,7 +2819,7 @@
               "type": "rules",
               "split": "test",
               "rank": 1,
-              "tokens": 647
+              "tokens": 662
             },
             {
               "id": "q083",
@@ -2528,7 +2833,7 @@
               "type": "rules",
               "split": "test",
               "rank": null,
-              "tokens": 558
+              "tokens": 621
             },
             {
               "id": "q085",
@@ -2542,7 +2847,7 @@
               "type": "rules",
               "split": "dev",
               "rank": 1,
-              "tokens": 510
+              "tokens": 527
             },
             {
               "id": "q087",
@@ -2641,6 +2946,118 @@
               "split": "dev",
               "rank": 1,
               "tokens": 575
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 564
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": 4,
+              "tokens": 442
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 600
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 558
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 568
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 536
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 634
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 611
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 513
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": 3,
+              "tokens": 589
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 616
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 567
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 593
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 549
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 477
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 600
             }
           ]
         },
@@ -2648,31 +3065,31 @@
           "config": "exact+linked+keyword",
           "splits": {
             "dev": {
-              "n": 60,
-              "r1": 0.5667,
-              "r5": 0.75,
-              "r10": 0.8333,
-              "mrr": 0.6484,
-              "tokensMean": 488.5667,
-              "tokensP90": 581
+              "n": 70,
+              "r1": 0.5857,
+              "r5": 0.7857,
+              "r10": 0.8571,
+              "mrr": 0.678,
+              "tokensMean": 499.3714,
+              "tokensP90": 591
             },
             "test": {
-              "n": 40,
-              "r1": 0.4,
-              "r5": 0.8,
-              "r10": 0.825,
-              "mrr": 0.5546,
-              "tokensMean": 515.375,
-              "tokensP90": 598
+              "n": 46,
+              "r1": 0.4348,
+              "r5": 0.8043,
+              "r10": 0.8478,
+              "mrr": 0.5886,
+              "tokensMean": 521.3043,
+              "tokensP90": 612
             },
             "all": {
-              "n": 100,
-              "r1": 0.5,
-              "r5": 0.77,
-              "r10": 0.83,
-              "mrr": 0.6109,
-              "tokensMean": 499.29,
-              "tokensP90": 592
+              "n": 116,
+              "r1": 0.5259,
+              "r5": 0.7931,
+              "r10": 0.8534,
+              "mrr": 0.6425,
+              "tokensMean": 508.069,
+              "tokensP90": 598
             }
           },
           "types": {
@@ -2692,8 +3109,8 @@
                 "r5": 0.4667,
                 "r10": 0.6,
                 "mrr": 0.3512,
-                "tokensMean": 437.8,
-                "tokensP90": 600
+                "tokensMean": 439.1333,
+                "tokensP90": 591
               },
               "cross": {
                 "n": 9,
@@ -2701,16 +3118,25 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.8611,
-                "tokensMean": 518.2222,
-                "tokensP90": 580
+                "tokensMean": 520.1111,
+                "tokensP90": 581
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.7,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.85,
+                "tokensMean": 560.2,
+                "tokensP90": 608
               },
               "dev": {
                 "n": 12,
                 "r1": 0.6667,
                 "r5": 0.9167,
                 "r10": 1,
-                "mrr": 0.762,
-                "tokensMean": 552.3333,
+                "mrr": 0.7662,
+                "tokensMean": 551.1667,
                 "tokensP90": 588
               },
               "rules": {
@@ -2719,7 +3145,7 @@
                 "r5": 0.5,
                 "r10": 0.6667,
                 "mrr": 0.3954,
-                "tokensMean": 468.1667,
+                "tokensMean": 469.5833,
                 "tokensP90": 555
               }
             },
@@ -2738,8 +3164,8 @@
                 "r1": 0.1,
                 "r5": 0.5,
                 "r10": 0.5,
-                "mrr": 0.1983,
-                "tokensMean": 485.8,
+                "mrr": 0.1933,
+                "tokensMean": 485.3,
                 "tokensP90": 598
               },
               "cross": {
@@ -2751,14 +3177,23 @@
                 "tokensMean": 530.1667,
                 "tokensP90": 593
               },
+              "number": {
+                "n": 6,
+                "r1": 0.6667,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.8333,
+                "tokensMean": 548.3333,
+                "tokensP90": 649
+              },
               "dev": {
                 "n": 8,
                 "r1": 0.625,
-                "r5": 1,
+                "r5": 0.875,
                 "r10": 1,
-                "mrr": 0.7438,
-                "tokensMean": 561.25,
-                "tokensP90": 606
+                "mrr": 0.7366,
+                "tokensMean": 561.5,
+                "tokensP90": 612
               },
               "rules": {
                 "n": 8,
@@ -2766,8 +3201,8 @@
                 "r5": 0.75,
                 "r10": 0.75,
                 "mrr": 0.3854,
-                "tokensMean": 457.5,
-                "tokensP90": 647
+                "tokensMean": 467.25,
+                "tokensP90": 662
               }
             },
             "all": {
@@ -2785,9 +3220,9 @@
                 "r1": 0.16,
                 "r5": 0.48,
                 "r10": 0.56,
-                "mrr": 0.29,
-                "tokensMean": 457,
-                "tokensP90": 600
+                "mrr": 0.288,
+                "tokensMean": 457.6,
+                "tokensP90": 598
               },
               "cross": {
                 "n": 15,
@@ -2795,17 +3230,26 @@
                 "r5": 0.9333,
                 "r10": 1,
                 "mrr": 0.8278,
-                "tokensMean": 523,
+                "tokensMean": 524.1333,
                 "tokensP90": 592
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.6875,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.8438,
+                "tokensMean": 555.75,
+                "tokensP90": 609
               },
               "dev": {
                 "n": 20,
                 "r1": 0.65,
-                "r5": 0.95,
+                "r5": 0.9,
                 "r10": 1,
-                "mrr": 0.7547,
-                "tokensMean": 555.9,
-                "tokensP90": 592
+                "mrr": 0.7544,
+                "tokensMean": 555.3,
+                "tokensP90": 605
               },
               "rules": {
                 "n": 20,
@@ -2813,8 +3257,8 @@
                 "r5": 0.6,
                 "r10": 0.7,
                 "mrr": 0.3914,
-                "tokensMean": 463.9,
-                "tokensP90": 558
+                "tokensMean": 468.65,
+                "tokensP90": 575
               }
             }
           },
@@ -2964,7 +3408,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 606
+              "tokens": 587
             },
             {
               "id": "q022",
@@ -2992,7 +3436,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": 2,
-              "tokens": 552
+              "tokens": 591
             },
             {
               "id": "q026",
@@ -3019,8 +3463,8 @@
               "id": "q029",
               "type": "paraphrase",
               "split": "test",
-              "rank": 4,
-              "tokens": 459
+              "rank": 5,
+              "tokens": 454
             },
             {
               "id": "q030",
@@ -3153,7 +3597,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 576
+              "tokens": 561
             },
             {
               "id": "q049",
@@ -3223,7 +3667,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 502
+              "tokens": 533
             },
             {
               "id": "q059",
@@ -3237,7 +3681,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 580
+              "tokens": 581
             },
             {
               "id": "q061",
@@ -3265,28 +3709,28 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 579
+              "tokens": 574
             },
             {
               "id": "q065",
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 561
+              "tokens": 540
             },
             {
               "id": "q066",
               "type": "dev",
               "split": "dev",
-              "rank": 5,
+              "rank": 4,
               "tokens": 532
             },
             {
               "id": "q067",
               "type": "dev",
               "split": "test",
-              "rank": 5,
-              "tokens": 515
+              "rank": 7,
+              "tokens": 500
             },
             {
               "id": "q068",
@@ -3307,7 +3751,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 528
+              "tokens": 535
             },
             {
               "id": "q071",
@@ -3356,7 +3800,7 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 590
+              "tokens": 612
             },
             {
               "id": "q078",
@@ -3391,7 +3835,7 @@
               "type": "rules",
               "split": "test",
               "rank": 1,
-              "tokens": 647
+              "tokens": 662
             },
             {
               "id": "q083",
@@ -3405,7 +3849,7 @@
               "type": "rules",
               "split": "test",
               "rank": null,
-              "tokens": 558
+              "tokens": 621
             },
             {
               "id": "q085",
@@ -3419,7 +3863,7 @@
               "type": "rules",
               "split": "dev",
               "rank": 1,
-              "tokens": 510
+              "tokens": 527
             },
             {
               "id": "q087",
@@ -3518,6 +3962,118 @@
               "split": "dev",
               "rank": 1,
               "tokens": 575
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 565
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 442
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 595
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 558
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 562
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 537
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 649
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 609
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 503
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 526
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 608
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 576
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 563
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 562
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 442
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 595
             }
           ]
         }
@@ -3526,7 +4082,7 @@
     {
       "scope": "public",
       "localPresent": false,
-      "records": 2275,
+      "records": 2513,
       "skipped": [
         "q010",
         "q081",
@@ -3556,31 +4112,31 @@
           "config": "exact",
           "splits": {
             "dev": {
-              "n": 47,
-              "r1": 0.1702,
-              "r5": 0.1915,
-              "r10": 0.1915,
-              "mrr": 0.1809,
-              "tokensMean": 56.2979,
-              "tokensP90": 114
+              "n": 57,
+              "r1": 0.2456,
+              "r5": 0.2807,
+              "r10": 0.2807,
+              "mrr": 0.2632,
+              "tokensMean": 70.9649,
+              "tokensP90": 123
             },
             "test": {
-              "n": 32,
-              "r1": 0.125,
-              "r5": 0.1563,
-              "r10": 0.1563,
-              "mrr": 0.1406,
-              "tokensMean": 70.6875,
-              "tokensP90": 165
+              "n": 38,
+              "r1": 0.1842,
+              "r5": 0.2105,
+              "r10": 0.2105,
+              "mrr": 0.1974,
+              "tokensMean": 81.8684,
+              "tokensP90": 183
             },
             "all": {
-              "n": 79,
-              "r1": 0.1519,
-              "r5": 0.1772,
-              "r10": 0.1772,
-              "mrr": 0.1646,
-              "tokensMean": 62.1266,
-              "tokensP90": 115
+              "n": 95,
+              "r1": 0.2211,
+              "r5": 0.2526,
+              "r10": 0.2526,
+              "mrr": 0.2368,
+              "tokensMean": 75.3263,
+              "tokensP90": 134
             }
           },
           "types": {
@@ -3611,6 +4167,15 @@
                 "mrr": 0,
                 "tokensMean": 86.7778,
                 "tokensP90": 118
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.6,
+                "r5": 0.7,
+                "r10": 0.7,
+                "mrr": 0.65,
+                "tokensMean": 139.9,
+                "tokensP90": 218
               },
               "dev": {
                 "n": 12,
@@ -3650,6 +4215,15 @@
                 "tokensMean": 106.6667,
                 "tokensP90": 114
               },
+              "number": {
+                "n": 6,
+                "r1": 0.5,
+                "r5": 0.5,
+                "r10": 0.5,
+                "mrr": 0.5,
+                "tokensMean": 141.5,
+                "tokensP90": 284
+              },
               "dev": {
                 "n": 8,
                 "r1": 0,
@@ -3687,6 +4261,15 @@
                 "mrr": 0,
                 "tokensMean": 94.7333,
                 "tokensP90": 114
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.5625,
+                "r5": 0.625,
+                "r10": 0.625,
+                "mrr": 0.5938,
+                "tokensMean": 140.5,
+                "tokensP90": 222
               },
               "dev": {
                 "n": 20,
@@ -4252,6 +4835,118 @@
               "split": "dev",
               "rank": null,
               "tokens": 18
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 114
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 120
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 113
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 218
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 118
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 108
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 284
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 222
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 123
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 134
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 115
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 114
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 120
             }
           ]
         },
@@ -4259,31 +4954,31 @@
           "config": "keyword",
           "splits": {
             "dev": {
-              "n": 47,
-              "r1": 0.5745,
-              "r5": 0.7872,
-              "r10": 0.8298,
-              "mrr": 0.6681,
-              "tokensMean": 470.8723,
-              "tokensP90": 581
-            },
-            "test": {
-              "n": 32,
-              "r1": 0.4063,
-              "r5": 0.6875,
-              "r10": 0.75,
-              "mrr": 0.5186,
-              "tokensMean": 472.4688,
+              "n": 57,
+              "r1": 0.5965,
+              "r5": 0.7895,
+              "r10": 0.8421,
+              "mrr": 0.6847,
+              "tokensMean": 500.7544,
               "tokensP90": 600
             },
+            "test": {
+              "n": 38,
+              "r1": 0.3684,
+              "r5": 0.6316,
+              "r10": 0.7368,
+              "mrr": 0.4963,
+              "tokensMean": 488.6316,
+              "tokensP90": 612
+            },
             "all": {
-              "n": 79,
-              "r1": 0.5063,
-              "r5": 0.7468,
-              "r10": 0.7975,
-              "mrr": 0.6076,
-              "tokensMean": 471.519,
-              "tokensP90": 598
+              "n": 95,
+              "r1": 0.5053,
+              "r5": 0.7263,
+              "r10": 0.8,
+              "mrr": 0.6094,
+              "tokensMean": 495.9053,
+              "tokensP90": 605
             }
           },
           "types": {
@@ -4303,8 +4998,8 @@
                 "r5": 0.5333,
                 "r10": 0.5333,
                 "mrr": 0.3889,
-                "tokensMean": 378.1333,
-                "tokensP90": 604
+                "tokensMean": 418.6,
+                "tokensP90": 591
               },
               "cross": {
                 "n": 9,
@@ -4312,8 +5007,17 @@
                 "r5": 0.7778,
                 "r10": 0.8889,
                 "mrr": 0.6528,
-                "tokensMean": 510.2222,
+                "tokensMean": 512.8889,
                 "tokensP90": 578
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.7,
+                "r5": 0.8,
+                "r10": 0.9,
+                "mrr": 0.7625,
+                "tokensMean": 579.6,
+                "tokensP90": 616
               },
               "dev": {
                 "n": 12,
@@ -4321,7 +5025,7 @@
                 "r5": 0.9167,
                 "r10": 1,
                 "mrr": 0.7245,
-                "tokensMean": 552,
+                "tokensMean": 550.75,
                 "tokensP90": 588
               }
             },
@@ -4338,11 +5042,11 @@
               "paraphrase": {
                 "n": 10,
                 "r1": 0.2,
-                "r5": 0.4,
+                "r5": 0.3,
                 "r10": 0.4,
-                "mrr": 0.2533,
-                "tokensMean": 344.1,
-                "tokensP90": 598
+                "mrr": 0.25,
+                "tokensMean": 351.9,
+                "tokensP90": 609
               },
               "cross": {
                 "n": 6,
@@ -4353,14 +5057,23 @@
                 "tokensMean": 510.8333,
                 "tokensP90": 600
               },
+              "number": {
+                "n": 6,
+                "r1": 0.3333,
+                "r5": 0.6667,
+                "r10": 0.6667,
+                "mrr": 0.4722,
+                "tokensMean": 560.6667,
+                "tokensP90": 662
+              },
               "dev": {
                 "n": 8,
-                "r1": 0.625,
-                "r5": 1,
+                "r1": 0.5,
+                "r5": 0.875,
                 "r10": 1,
-                "mrr": 0.7438,
-                "tokensMean": 560.625,
-                "tokensP90": 606
+                "mrr": 0.6771,
+                "tokensMean": 561.5,
+                "tokensP90": 612
               }
             },
             "all": {
@@ -4376,11 +5089,11 @@
               "paraphrase": {
                 "n": 25,
                 "r1": 0.24,
-                "r5": 0.48,
+                "r5": 0.44,
                 "r10": 0.48,
-                "mrr": 0.3347,
-                "tokensMean": 364.52,
-                "tokensP90": 604
+                "mrr": 0.3333,
+                "tokensMean": 391.92,
+                "tokensP90": 609
               },
               "cross": {
                 "n": 15,
@@ -4388,17 +5101,26 @@
                 "r5": 0.6,
                 "r10": 0.8,
                 "mrr": 0.5435,
-                "tokensMean": 510.4667,
+                "tokensMean": 512.0667,
                 "tokensP90": 578
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.5625,
+                "r5": 0.75,
+                "r10": 0.8125,
+                "mrr": 0.6536,
+                "tokensMean": 572.5,
+                "tokensP90": 617
               },
               "dev": {
                 "n": 20,
-                "r1": 0.6,
-                "r5": 0.95,
+                "r1": 0.55,
+                "r5": 0.9,
                 "r10": 1,
-                "mrr": 0.7322,
-                "tokensMean": 555.45,
-                "tokensP90": 592
+                "mrr": 0.7056,
+                "tokensMean": 555.05,
+                "tokensP90": 605
               }
             }
           },
@@ -4541,21 +5263,21 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 606
+              "tokens": 587
             },
             {
               "id": "q022",
               "type": "paraphrase",
               "split": "test",
-              "rank": 5,
-              "tokens": 598
+              "rank": 6,
+              "tokens": 659
             },
             {
               "id": "q023",
               "type": "paraphrase",
               "split": "dev",
               "rank": 3,
-              "tokens": 530
+              "tokens": 583
             },
             {
               "id": "q024",
@@ -4569,7 +5291,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": 2,
-              "tokens": 604
+              "tokens": 591
             },
             {
               "id": "q026",
@@ -4653,7 +5375,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": 3,
-              "tokens": 561
+              "tokens": 578
             },
             {
               "id": "q038",
@@ -4681,7 +5403,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 24
+              "tokens": 610
             },
             {
               "id": "q042",
@@ -4730,7 +5452,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 480
+              "tokens": 504
             },
             {
               "id": "q049",
@@ -4849,7 +5571,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 2,
-              "tokens": 561
+              "tokens": 540
             },
             {
               "id": "q066",
@@ -4862,8 +5584,8 @@
               "id": "q067",
               "type": "dev",
               "split": "test",
-              "rank": 5,
-              "tokens": 515
+              "rank": 6,
+              "tokens": 500
             },
             {
               "id": "q068",
@@ -4884,7 +5606,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 523
+              "tokens": 529
             },
             {
               "id": "q071",
@@ -4897,7 +5619,7 @@
               "id": "q072",
               "type": "dev",
               "split": "test",
-              "rank": 1,
+              "rank": 2,
               "tokens": 606
             },
             {
@@ -4933,7 +5655,7 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 590
+              "tokens": 612
             },
             {
               "id": "q078",
@@ -4955,6 +5677,118 @@
               "split": "dev",
               "rank": 1,
               "tokens": 588
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 564
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": 3,
+              "tokens": 442
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 600
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 569
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 8,
+              "tokens": 555
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 536
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 662
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 617
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 591
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 549
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 616
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": null,
+              "tokens": 551
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 593
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 549
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 566
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": null,
+              "tokens": 600
             }
           ]
         },
@@ -4962,31 +5796,31 @@
           "config": "exact+keyword",
           "splits": {
             "dev": {
-              "n": 47,
-              "r1": 0.4681,
-              "r5": 0.7872,
-              "r10": 0.8298,
-              "mrr": 0.6132,
-              "tokensMean": 471.0213,
-              "tokensP90": 581
-            },
-            "test": {
-              "n": 32,
-              "r1": 0.375,
-              "r5": 0.7188,
-              "r10": 0.8125,
-              "mrr": 0.5212,
-              "tokensMean": 515.2188,
+              "n": 57,
+              "r1": 0.4912,
+              "r5": 0.8246,
+              "r10": 0.8596,
+              "mrr": 0.643,
+              "tokensMean": 500.2807,
               "tokensP90": 600
             },
+            "test": {
+              "n": 38,
+              "r1": 0.3684,
+              "r5": 0.7105,
+              "r10": 0.8421,
+              "mrr": 0.5325,
+              "tokensMean": 521.7632,
+              "tokensP90": 612
+            },
             "all": {
-              "n": 79,
-              "r1": 0.4304,
-              "r5": 0.7595,
-              "r10": 0.8228,
-              "mrr": 0.5759,
-              "tokensMean": 488.9241,
-              "tokensP90": 598
+              "n": 95,
+              "r1": 0.4421,
+              "r5": 0.7789,
+              "r10": 0.8526,
+              "mrr": 0.5988,
+              "tokensMean": 508.8737,
+              "tokensP90": 605
             }
           },
           "types": {
@@ -5006,8 +5840,8 @@
                 "r5": 0.5333,
                 "r10": 0.5333,
                 "mrr": 0.35,
-                "tokensMean": 376.8,
-                "tokensP90": 604
+                "tokensMean": 413.7333,
+                "tokensP90": 591
               },
               "cross": {
                 "n": 9,
@@ -5015,8 +5849,17 @@
                 "r5": 0.7778,
                 "r10": 0.8889,
                 "mrr": 0.4306,
-                "tokensMean": 512.4444,
+                "tokensMean": 515.1111,
                 "tokensP90": 578
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.6,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.7833,
+                "tokensMean": 581.5,
+                "tokensP90": 611
               },
               "dev": {
                 "n": 12,
@@ -5024,7 +5867,7 @@
                 "r5": 0.9167,
                 "r10": 1,
                 "mrr": 0.7245,
-                "tokensMean": 552,
+                "tokensMean": 550.75,
                 "tokensP90": 588
               }
             },
@@ -5041,11 +5884,11 @@
               "paraphrase": {
                 "n": 10,
                 "r1": 0.2,
-                "r5": 0.5,
+                "r5": 0.4,
                 "r10": 0.6,
-                "mrr": 0.32,
-                "tokensMean": 486.9,
-                "tokensP90": 598
+                "mrr": 0.2958,
+                "tokensMean": 493.6,
+                "tokensP90": 609
               },
               "cross": {
                 "n": 6,
@@ -5056,14 +5899,23 @@
                 "tokensMean": 505.3333,
                 "tokensP90": 600
               },
-              "dev": {
-                "n": 8,
-                "r1": 0.625,
+              "number": {
+                "n": 6,
+                "r1": 0.5,
                 "r5": 1,
                 "r10": 1,
-                "mrr": 0.7438,
-                "tokensMean": 560.625,
-                "tokensP90": 606
+                "mrr": 0.7222,
+                "tokensMean": 544.3333,
+                "tokensP90": 634
+              },
+              "dev": {
+                "n": 8,
+                "r1": 0.5,
+                "r5": 0.875,
+                "r10": 1,
+                "mrr": 0.6771,
+                "tokensMean": 561.5,
+                "tokensP90": 612
               }
             },
             "all": {
@@ -5079,11 +5931,11 @@
               "paraphrase": {
                 "n": 25,
                 "r1": 0.2,
-                "r5": 0.52,
+                "r5": 0.48,
                 "r10": 0.56,
-                "mrr": 0.338,
-                "tokensMean": 420.84,
-                "tokensP90": 604
+                "mrr": 0.3283,
+                "tokensMean": 445.68,
+                "tokensP90": 609
               },
               "cross": {
                 "n": 15,
@@ -5091,17 +5943,26 @@
                 "r5": 0.6,
                 "r10": 0.8,
                 "mrr": 0.3435,
-                "tokensMean": 509.6,
+                "tokensMean": 511.2,
                 "tokensP90": 578
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.5625,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.7604,
+                "tokensMean": 567.5625,
+                "tokensP90": 616
               },
               "dev": {
                 "n": 20,
-                "r1": 0.6,
-                "r5": 0.95,
+                "r1": 0.55,
+                "r5": 0.9,
                 "r10": 1,
-                "mrr": 0.7322,
-                "tokensMean": 555.45,
-                "tokensP90": 592
+                "mrr": 0.7056,
+                "tokensMean": 555.05,
+                "tokensP90": 605
               }
             }
           },
@@ -5244,14 +6105,14 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 606
+              "tokens": 587
             },
             {
               "id": "q022",
               "type": "paraphrase",
               "split": "test",
-              "rank": 5,
-              "tokens": 598
+              "rank": 6,
+              "tokens": 659
             },
             {
               "id": "q023",
@@ -5265,14 +6126,14 @@
               "type": "paraphrase",
               "split": "test",
               "rank": null,
-              "tokens": 569
+              "tokens": 558
             },
             {
               "id": "q025",
               "type": "paraphrase",
               "split": "dev",
               "rank": 2,
-              "tokens": 604
+              "tokens": 591
             },
             {
               "id": "q026",
@@ -5285,7 +6146,7 @@
               "id": "q027",
               "type": "paraphrase",
               "split": "test",
-              "rank": 6,
+              "rank": 8,
               "tokens": 522
             },
             {
@@ -5299,7 +6160,7 @@
               "id": "q029",
               "type": "paraphrase",
               "split": "test",
-              "rank": 2,
+              "rank": 3,
               "tokens": 532
             },
             {
@@ -5356,7 +6217,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": 3,
-              "tokens": 561
+              "tokens": 578
             },
             {
               "id": "q038",
@@ -5384,7 +6245,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 24
+              "tokens": 610
             },
             {
               "id": "q042",
@@ -5433,7 +6294,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 2,
-              "tokens": 480
+              "tokens": 504
             },
             {
               "id": "q049",
@@ -5552,7 +6413,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 2,
-              "tokens": 561
+              "tokens": 540
             },
             {
               "id": "q066",
@@ -5565,8 +6426,8 @@
               "id": "q067",
               "type": "dev",
               "split": "test",
-              "rank": 5,
-              "tokens": 515
+              "rank": 6,
+              "tokens": 500
             },
             {
               "id": "q068",
@@ -5587,7 +6448,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 523
+              "tokens": 529
             },
             {
               "id": "q071",
@@ -5600,7 +6461,7 @@
               "id": "q072",
               "type": "dev",
               "split": "test",
-              "rank": 1,
+              "rank": 2,
               "tokens": 606
             },
             {
@@ -5636,7 +6497,7 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 590
+              "tokens": 612
             },
             {
               "id": "q078",
@@ -5658,6 +6519,118 @@
               "split": "dev",
               "rank": 1,
               "tokens": 588
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 564
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": 3,
+              "tokens": 442
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 600
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 569
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 555
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 536
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 634
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 611
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 513
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": 3,
+              "tokens": 589
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 616
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 559
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 593
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 549
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 551
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 600
             }
           ]
         },
@@ -5665,31 +6638,31 @@
           "config": "exact+linked+keyword",
           "splits": {
             "dev": {
-              "n": 47,
-              "r1": 0.5957,
-              "r5": 0.8298,
-              "r10": 0.8511,
-              "mrr": 0.6956,
-              "tokensMean": 473.8511,
-              "tokensP90": 588
+              "n": 57,
+              "r1": 0.614,
+              "r5": 0.8596,
+              "r10": 0.8772,
+              "mrr": 0.7227,
+              "tokensMean": 498.1228,
+              "tokensP90": 595
             },
             "test": {
-              "n": 32,
+              "n": 38,
               "r1": 0.5,
-              "r5": 0.8125,
-              "r10": 0.875,
-              "mrr": 0.6349,
-              "tokensMean": 527.0625,
-              "tokensP90": 598
+              "r5": 0.7895,
+              "r10": 0.8947,
+              "mrr": 0.6458,
+              "tokensMean": 533.0263,
+              "tokensP90": 612
             },
             "all": {
-              "n": 79,
-              "r1": 0.557,
-              "r5": 0.8228,
-              "r10": 0.8608,
-              "mrr": 0.671,
-              "tokensMean": 495.4051,
-              "tokensP90": 593
+              "n": 95,
+              "r1": 0.5684,
+              "r5": 0.8316,
+              "r10": 0.8842,
+              "mrr": 0.692,
+              "tokensMean": 512.0842,
+              "tokensP90": 605
             }
           },
           "types": {
@@ -5709,8 +6682,8 @@
                 "r5": 0.5333,
                 "r10": 0.5333,
                 "mrr": 0.35,
-                "tokensMean": 376.8,
-                "tokensP90": 604
+                "tokensMean": 413.7333,
+                "tokensP90": 591
               },
               "cross": {
                 "n": 9,
@@ -5718,8 +6691,17 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.8611,
-                "tokensMean": 524.6667,
+                "tokensMean": 523,
                 "tokensP90": 581
+              },
+              "number": {
+                "n": 10,
+                "r1": 0.7,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.85,
+                "tokensMean": 559.8,
+                "tokensP90": 608
               },
               "dev": {
                 "n": 12,
@@ -5727,7 +6709,7 @@
                 "r5": 0.9167,
                 "r10": 1,
                 "mrr": 0.7245,
-                "tokensMean": 552,
+                "tokensMean": 550.75,
                 "tokensP90": 588
               }
             },
@@ -5744,11 +6726,11 @@
               "paraphrase": {
                 "n": 10,
                 "r1": 0.2,
-                "r5": 0.5,
+                "r5": 0.4,
                 "r10": 0.6,
-                "mrr": 0.32,
-                "tokensMean": 490.4,
-                "tokensP90": 598
+                "mrr": 0.2958,
+                "tokensMean": 497.1,
+                "tokensP90": 609
               },
               "cross": {
                 "n": 6,
@@ -5759,14 +6741,23 @@
                 "tokensMean": 527.5,
                 "tokensP90": 593
               },
-              "dev": {
-                "n": 8,
-                "r1": 0.625,
+              "number": {
+                "n": 6,
+                "r1": 0.6667,
                 "r5": 1,
                 "r10": 1,
-                "mrr": 0.7438,
-                "tokensMean": 560.625,
-                "tokensP90": 606
+                "mrr": 0.8333,
+                "tokensMean": 552.5,
+                "tokensP90": 649
+              },
+              "dev": {
+                "n": 8,
+                "r1": 0.5,
+                "r5": 0.875,
+                "r10": 1,
+                "mrr": 0.6771,
+                "tokensMean": 561.5,
+                "tokensP90": 612
               }
             },
             "all": {
@@ -5782,11 +6773,11 @@
               "paraphrase": {
                 "n": 25,
                 "r1": 0.2,
-                "r5": 0.52,
+                "r5": 0.48,
                 "r10": 0.56,
-                "mrr": 0.338,
-                "tokensMean": 422.24,
-                "tokensP90": 604
+                "mrr": 0.3283,
+                "tokensMean": 447.08,
+                "tokensP90": 609
               },
               "cross": {
                 "n": 15,
@@ -5794,17 +6785,26 @@
                 "r5": 0.9333,
                 "r10": 1,
                 "mrr": 0.8278,
-                "tokensMean": 525.8,
+                "tokensMean": 524.8,
                 "tokensP90": 592
+              },
+              "number": {
+                "n": 16,
+                "r1": 0.6875,
+                "r5": 1,
+                "r10": 1,
+                "mrr": 0.8438,
+                "tokensMean": 557.0625,
+                "tokensP90": 609
               },
               "dev": {
                 "n": 20,
-                "r1": 0.6,
-                "r5": 0.95,
+                "r1": 0.55,
+                "r5": 0.9,
                 "r10": 1,
-                "mrr": 0.7322,
-                "tokensMean": 555.45,
-                "tokensP90": 592
+                "mrr": 0.7056,
+                "tokensMean": 555.05,
+                "tokensP90": 605
               }
             }
           },
@@ -5947,14 +6947,14 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 606
+              "tokens": 587
             },
             {
               "id": "q022",
               "type": "paraphrase",
               "split": "test",
-              "rank": 5,
-              "tokens": 598
+              "rank": 6,
+              "tokens": 659
             },
             {
               "id": "q023",
@@ -5968,14 +6968,14 @@
               "type": "paraphrase",
               "split": "test",
               "rank": null,
-              "tokens": 569
+              "tokens": 558
             },
             {
               "id": "q025",
               "type": "paraphrase",
               "split": "dev",
               "rank": 2,
-              "tokens": 604
+              "tokens": 591
             },
             {
               "id": "q026",
@@ -5988,7 +6988,7 @@
               "id": "q027",
               "type": "paraphrase",
               "split": "test",
-              "rank": 6,
+              "rank": 8,
               "tokens": 522
             },
             {
@@ -6002,7 +7002,7 @@
               "id": "q029",
               "type": "paraphrase",
               "split": "test",
-              "rank": 2,
+              "rank": 3,
               "tokens": 532
             },
             {
@@ -6059,7 +7059,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": 3,
-              "tokens": 561
+              "tokens": 578
             },
             {
               "id": "q038",
@@ -6087,7 +7087,7 @@
               "type": "paraphrase",
               "split": "dev",
               "rank": null,
-              "tokens": 24
+              "tokens": 610
             },
             {
               "id": "q042",
@@ -6136,7 +7136,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 576
+              "tokens": 561
             },
             {
               "id": "q049",
@@ -6255,7 +7255,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 2,
-              "tokens": 561
+              "tokens": 540
             },
             {
               "id": "q066",
@@ -6268,8 +7268,8 @@
               "id": "q067",
               "type": "dev",
               "split": "test",
-              "rank": 5,
-              "tokens": 515
+              "rank": 6,
+              "tokens": 500
             },
             {
               "id": "q068",
@@ -6290,7 +7290,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 523
+              "tokens": 529
             },
             {
               "id": "q071",
@@ -6303,7 +7303,7 @@
               "id": "q072",
               "type": "dev",
               "split": "test",
-              "rank": 1,
+              "rank": 2,
               "tokens": 606
             },
             {
@@ -6339,7 +7339,7 @@
               "type": "dev",
               "split": "test",
               "rank": 1,
-              "tokens": 590
+              "tokens": 612
             },
             {
               "id": "q078",
@@ -6361,6 +7361,118 @@
               "split": "dev",
               "rank": 1,
               "tokens": 588
+            },
+            {
+              "id": "q101",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 565
+            },
+            {
+              "id": "q102",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 442
+            },
+            {
+              "id": "q103",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 595
+            },
+            {
+              "id": "q104",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 569
+            },
+            {
+              "id": "q105",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 569
+            },
+            {
+              "id": "q106",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 537
+            },
+            {
+              "id": "q107",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 649
+            },
+            {
+              "id": "q108",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 609
+            },
+            {
+              "id": "q109",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 518
+            },
+            {
+              "id": "q110",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 526
+            },
+            {
+              "id": "q111",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 608
+            },
+            {
+              "id": "q112",
+              "type": "number",
+              "split": "test",
+              "rank": 2,
+              "tokens": 575
+            },
+            {
+              "id": "q113",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 552
+            },
+            {
+              "id": "q114",
+              "type": "number",
+              "split": "test",
+              "rank": 1,
+              "tokens": 562
+            },
+            {
+              "id": "q115",
+              "type": "number",
+              "split": "dev",
+              "rank": 1,
+              "tokens": 442
+            },
+            {
+              "id": "q116",
+              "type": "number",
+              "split": "dev",
+              "rank": 2,
+              "tokens": 595
             }
           ]
         }

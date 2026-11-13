@@ -200,7 +200,7 @@ export type PlayGame = (job: GameJob) => Promise<GameRec>;
 
 const floor3 = (x: number) => Math.max(1 / 3, x);
 
-function computeStandings(st: Map<string, StandingRow>): StandingRow[] {
+export function computeStandings(st: Map<string, StandingRow>): StandingRow[] {
   const mwp = (s: StandingRow) => floor3(s.mw / Math.max(1, s.mw + s.ml));
   return [...st.values()]
     .map((s) => {

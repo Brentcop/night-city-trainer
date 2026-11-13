@@ -2,8 +2,11 @@
 // `node:` imports, so the site and the command line share it. Nothing under src/engine, src/ai or src/sim imports
 // src/lib/kb (rule M10, tests/kb-guards.test.ts).
 
-/** Record kinds. `faq`, `rule`, `trule` (tournament rules) and `errata` come from data/raw and are always `local`. */
-export const KB_KINDS = ['card', 'ruling', 'faq', 'rule', 'trule', 'errata', 'deck', 'objective', 'package', 'term', 'guide', 'doc', 'code'] as const;
+/**
+ * Record kinds. `faq`, `rule`, `trule` (tournament rules) and `errata` come from data/raw and are always `local`.
+ * `event`, `round`, `rating` and `matchup` are measured: built from the recorded tournaments by src/lib/eventFacts.ts.
+ */
+export const KB_KINDS = ['card', 'ruling', 'faq', 'rule', 'trule', 'errata', 'deck', 'objective', 'package', 'term', 'guide', 'doc', 'code', 'event', 'round', 'rating', 'matchup'] as const;
 export type KbKind = (typeof KB_KINDS)[number];
 
 /** The id prefix of each kind: ids are '<prefix>:<stable key>'. */
@@ -21,6 +24,10 @@ export const KIND_PREFIX: Readonly<Record<KbKind, string>> = {
   guide: 'guide',
   doc: 'doc',
   code: 'code',
+  event: 'event',
+  round: 'round',
+  rating: 'rating',
+  matchup: 'matchup',
 };
 
 /** Link types. A link is stored once, on the record that names the other; the index adds the reverse direction. */

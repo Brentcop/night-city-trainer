@@ -183,7 +183,10 @@ describe('the question set', () => {
     expect(questionFileProblems(file)).toEqual([]);
     expect(file.status).toBe('draft');
     expect(new Set(qs.map((x) => x.id)).size).toBe(qs.length);
-    expect(qs.length).toBeGreaterThanOrEqual(90);
+    expect(qs.length).toBeGreaterThanOrEqual(116);
+    // every type has questions; number questions (step 2.2) expect measured records only
+    for (const t of QUESTION_TYPES) expect(qs.filter((x) => x.type === t).length, t).toBeGreaterThanOrEqual(15);
+    for (const x of qs.filter((y) => y.type === 'number')) for (const e of x.expect) expect(['event', 'round', 'rating', 'matchup'], `${x.id} ${e}`).toContain(expectKind(e));
     for (const x of qs) {
       expect(QUESTION_TYPES).toContain(x.type);
       expect(QUESTION_SPLITS).toContain(x.split);

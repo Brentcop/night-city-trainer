@@ -16,7 +16,10 @@ Plan, method and status: `docs/RAG_PLAN.md`.
 - To check a card's text, its rulings, the packages it belongs to, or the decks that play it.
 - To read a rule or an official ruling on this machine (local-only records, see the rules below).
 
-Skip it when you already know the file and line, or when the answer is a number (see the last section).
+- To get a tournament result, standings after a round, a round summary, a deck's rating and finishes, or
+  a matchup: the `fact` command computes these from the recorded data.
+
+Skip it when you already know the file and line.
 
 ## Commands
 
@@ -35,6 +38,27 @@ npm run kb -- related "Detonate"
 ```bash
 npm run kb -- stats
 ```
+
+Exact numbers from the recorded events, ratings and head-to-heads come from `fact`:
+
+```bash
+npm run kb -- fact champion --event 6
+```
+
+```bash
+npm run kb -- fact standings --event 6 --round 5
+```
+
+```bash
+npm run kb -- fact rating "RRG Dexter Midrange"
+```
+
+```bash
+npm run kb -- fact matchup "RRG Dexter Midrange" vs "BBG Cunningham Econ"
+```
+
+Also `fact round --event N --round K` (a round summary) and `fact finishes <deck>`. A deck is named by
+file, by name or by list fingerprint. Add `--json` for data.
 
 - `search` returns the best five records. Flags: `--k 8`, `--kind card,ruling`, `--scope public|local|all`,
   `--max-tokens 800`, `--json`.
@@ -66,8 +90,11 @@ Each hit shows its id, title, `[kind · origin · scope · status]`, its version
 
 ## What it cannot answer yet
 
-- Numbers. Ratings, rankings, event results, win rates and matchups are not records yet (plan step 2).
-  Read them from the data files through the project's own modules and scripts, and do not take a number
-  from a doc passage: docs go stale.
+- Per-card and per-decision statistics (how often a card is played or sold, synergy rates, card impact)
+  are not records yet (plan step 2.4). Read them from the data files through the project's own modules.
+- Take a number from `fact` or from a `measured` record, never from a doc passage: docs go stale. Every
+  measured record names its bot and sim version; one marked stale was measured under an older version.
+- "Top 8" has two meanings here. `fact` reports real top-cut appearances and the ratings file's count of
+  Swiss finishes in the first eight places as two separate numbers; say which one you mean.
 - Paraphrased questions are the weak spot (about half find their record in the first five). Add the
   thing's name when you know it.

@@ -2,12 +2,15 @@
 // in src/lib/kb/build/. The content modules are imported only when a build runs, so `npm run kb -- search` on a fresh
 // cache loads none of them. Paths in records and in the manifest use forward slashes, from the repository root.
 // data/raw/ is read only when present and only into `local` records (rule M6); nothing here writes a file.
+// Measured records (plan step 2.2) come from the recorded events, the event index, the ratings and the head-to-heads;
+// `loadCompetitive` also feeds `npm run kb -- fact`.
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { LIBRARY_DIRS, libraryDeck } from '../src/lib/library';
 import { buildCards, cardDataVersion, type CardInput } from '../src/lib/kb/build/cards';
 import { buildDecks, buildObjectives, deckRecordId, type DeckInput, type ObjectiveDeck } from '../src/lib/kb/build/decks';
+import { buildCompetitive, type CompetitiveSources } from '../src/lib/kb/build/events';
 import { buildErrata, buildFaq, buildRules, buildTournamentRules, type FaqItemInput } from '../src/lib/kb/build/local';
 import { mentionLinker } from '../src/lib/kb/build/mentions';
 import { assemblePack } from '../src/lib/kb/build/pack';
@@ -24,6 +27,11 @@ export const RAW_FILES = {
 } as const;
 
 const CARDS_FILE = 'src/data/cards.json';
+/** Recorded tournaments and what is pooled from them (measured records, plan step 2.2). */
+export const EVENTS_DIR = 'public/tournaments';
+export const INDEX_FILE = 'src/data/tournaments.json';
+export const RATINGS_FILE = 'src/data/ratings.json';
+export const H2H_FILE = 'public/data/h2h.json';
 const FAQ_ENTRIES_DIR = 'tests/faq/entries';
 const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
@@ -67,9 +75,34 @@ export function deckFiles(root: string): string[] {
   return LIBRARY_DIRS.flatMap((sub) => listDir(root, sub ? `data/decks/${sub}` : 'data/decks', '.txt'));
 }
 
+/** The recorded event files (public/tournaments/event-*.json), as paths from the root. */
+export function eventFiles(root: string): string[] {
+  return listDir(root, EVENTS_DIR, '.json').filter((f) => /\/event-[^/]+\.json$/.test(f));
+}
+
+/** The competitive inputs that exist: the event files, the index, the ratings and the head-to-heads. */
+export function competitiveFiles(root: string): string[] {
+  return [...eventFiles(root), ...[INDEX_FILE, RATINGS_FILE, H2H_FILE].filter((f) => fs.existsSync(path.join(root, f)))];
+}
+
+/** Read the recorded tournaments and the files pooled from them (missing pooled files are null). */
+export function loadCompetitive(root: string): CompetitiveSources {
+  const json = <T,>(f: string): T => JSON.parse(fs.readFileSync(path.join(root, f), 'utf8')) as T;
+  const maybe = <T,>(f: string): { file: string; data: T } | null => (fs.existsSync(path.join(root, f)) ? { file: f, data: json<T>(f) } : null);
+  const events = eventFiles(root)
+    .map((file) => ({ file, event: json<CompetitiveSources['events'][number]['event']>(file) }))
+    .sort((a, b) => (typeof a.event.id === 'number' && typeof b.event.id === 'number' ? a.event.id - b.event.id : String(a.event.id) < String(b.event.id) ? -1 : 1));
+  return {
+    events,
+    index: maybe<CompetitiveSources['index']['data']>(INDEX_FILE) ?? { file: INDEX_FILE, data: { events: [] } },
+    ratings: maybe(RATINGS_FILE),
+    h2h: maybe(H2H_FILE),
+  };
+}
+
 /** Every file a build reads, sorted: what the manifest hashes to know when the pack is stale. */
 export function inputFiles(root: string, o: { raw: boolean }): string[] {
-  const files = new Set<string>([CARDS_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root)]);
+  const files = new Set<string>([CARDS_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root)]);
   if (o.raw) for (const f of Object.values(RAW_FILES)) if (fs.existsSync(path.join(root, f))) files.add(f);
   return [...files].sort();
 }
@@ -179,6 +212,10 @@ export async function buildFromSources(root: string, o: { raw?: boolean } = {}):
   const guideDecks = new Map(decks.map((d) => [d.file, { id: deckRecordId(d.file), cards: [...d.legends, ...d.main, ...d.sideboard] }]));
   const guides = GUIDES.filter((g) => !GUIDE_SKIP.has(g.slug)).map((g) => ({ ...g, file: guideFile(g.slug) }));
   records.push(...buildGuides(guides, { decks: guideDecks, linker, skipped }));
+
+  // measured: recorded events and their rounds, power ratings, head-to-heads (numbers from src/lib/eventFacts.ts)
+  const deckIds = new Set(decks.map((d) => deckRecordId(d.file)));
+  records.push(...buildCompetitive(loadCompetitive(root), { deckId: (file) => (deckIds.has(deckRecordId(file)) ? deckRecordId(file) : undefined), skipped }));
 
   // docs and code headers
   for (const f of docFiles(root)) records.push(...buildDocPassages(f, read(f), { linker, bulletLeads: f === 'CLAUDE.md' }));

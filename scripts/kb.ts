@@ -1,13 +1,27 @@
 // Knowledge pack (docs/RAG_PLAN.md): ask about cards, rulings, decks, deck notes, synergy packages, glossary terms,
-// guides, docs and code headers, and get back the few records that answer, each with its source and version.
+// guides, docs, code headers, recorded events and rounds, power ratings and matchups, and get back the few records that
+// answer, each with its source and version.
 //   npm run kb -- search "<question>"   the best records: exact name, records linked to it, then keywords
 //   npm run kb -- get <id or name>      every record with that id, title or alias, in full
 //   npm run kb -- related <id or name>  the record and its neighbours, grouped by link type
 //   npm run kb -- stats                 records by kind and scope, pack size, mentions left unlinked
 //   npm run kb -- build                 rebuild the local pack now
+//   npm run kb -- fact <name> …         an exact number computed from the recorded data, with its source file, bot and
+//                                       sim version (src/lib/eventFacts.ts), never looked up by similarity:
+//     fact champion --event 6                    the champion, the final and the runner-up
+//     fact standings --event 6 [--round 5]       Swiss standings after a round (default: the last Swiss round)
+//     fact round --event 6 --round 5             one round: matches, byes, sweeps, deciding games, leaders after it
+//                                                (--round final | semifinals | quarterfinals for a top-cut round)
+//     fact rating <deck>                         power rating, 90% range, Sim tier, Swiss record, titles, top cuts
+//     fact finishes <deck>                       every standard event the deck entered
+//     fact matchup "<deck a>" "<deck b>"         shrunk estimate, raw record and games (or: <deck a> vs <deck b>)
+//   A deck is named by file, by name or by list fingerprint; an unknown name exits 1 and lists the nearest.
 // Flags:
 //   --k N                 results for search (default 5)
 //   --kind a,b            only these kinds: card ruling faq rule trule errata deck objective package term guide doc code
+//                         event round rating matchup
+//   --event N             fact: the recorded event's id
+//   --round R             fact: a round number, or a top-cut round's name
 //   --scope S             public | local | all (default all)
 //   --rankers a,b         search rankers to run: exact, linked, keyword (default all three)
 //   --json                JSON output
@@ -18,8 +32,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ArgError, bool, int, oneOf, parseArgs, runMain, str, usageOf, writeIfChanged, type Values } from './lib-node';
-import { buildFromSources, hashInputs, inputFiles, rawPresent } from './kb-sources';
+import { buildFromSources, hashInputs, inputFiles, loadCompetitive, rawPresent } from './kb-sources';
+import type { CompetitiveSources } from '../src/lib/kb/build/events';
 import { dossier } from '../src/lib/kb/dossier';
+import { FACT_NEEDS, FACTS, runFact, type DeckResolver, type FactName, type FactRequest } from '../src/lib/kb/facts';
+import { nameKey } from '../src/lib/kb/text';
 import { KB_BUILDER_VERSION, packLines, packManifest, parsePackLines } from '../src/lib/kb/build/pack';
 import { DOSSIER_COST, renderDossierJson, renderDossierText, renderRecordsJson, renderRecordsText, renderSearchJson, renderSearchText } from '../src/lib/kb/render';
 import { buildIndex, lookup, RANKERS, search, type KbIndex, type Ranker } from '../src/lib/kb/search';
@@ -28,7 +45,7 @@ import { KB_KINDS, type KbKind, type KbManifest, type KbRecord } from '../src/li
 export const ROOT = path.resolve(import.meta.dirname, '..');
 export const CACHE_DIR = '.cache/kb';
 
-const COMMANDS = ['search', 'get', 'related', 'stats', 'build'] as const;
+const COMMANDS = ['search', 'get', 'related', 'stats', 'build', 'fact'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const listOf = (all: readonly string[]) => (v: string) => {
@@ -45,6 +62,8 @@ export const KB_SPEC = {
   rankers: str(undefined, listOf(RANKERS)),
   json: bool(),
   'max-tokens': int(2000, { min: 50, max: 1_000_000 }),
+  event: int(undefined, { min: 1 }),
+  round: str(undefined, (v) => (/^\d+$/.test(v) ? (Number(v) >= 1 ? undefined : 'a round number from 1') : /^[a-z][a-z0-9 -]*$/i.test(v) ? undefined : 'a round number or a top-cut round name')),
 };
 
 /** The flags each command takes (anything else is an error, exit 2). */
@@ -54,6 +73,7 @@ const FLAGS: Record<Command, readonly (keyof typeof KB_SPEC)[]> = {
   related: ['kind', 'scope', 'json', 'max-tokens'],
   stats: ['json'],
   build: ['json'],
+  fact: ['event', 'round', 'json'],
 };
 
 export interface KbArgs {
@@ -63,6 +83,32 @@ export interface KbArgs {
   values: Values<typeof KB_SPEC>;
   kinds?: KbKind[];
   rankers?: Ranker[];
+  /** the fact command's request */
+  fact?: FactRequest;
+}
+
+/** `fact <name> …`: check the fact's name, its flags and its decks (two for a matchup: two arguments, or "a vs b"). */
+function parseFact(words: readonly string[], values: Values<typeof KB_SPEC>): FactRequest {
+  const [name, ...rest] = words;
+  if (!name) throw new ArgError(`fact needs a name (${FACTS.join(', ')})`);
+  if (!(FACTS as readonly string[]).includes(name)) throw new ArgError(`unknown fact "${name}" (choose from ${FACTS.join(', ')})`);
+  const fact = name as FactName;
+  const need = FACT_NEEDS[fact];
+  if (need.event && values.event === undefined) throw new ArgError(`fact ${fact} needs --event N`);
+  if (!need.event && values.event !== undefined) throw new ArgError(`--event does not apply to fact ${fact}`);
+  if (need.round === 'required' && values.round === undefined) throw new ArgError(`fact ${fact} needs --round`);
+  if (need.round === 'no' && values.round !== undefined) throw new ArgError(`--round does not apply to fact ${fact}`);
+  if (fact === 'standings' && values.round !== undefined && !/^\d+$/.test(values.round)) throw new ArgError('fact standings takes a round number');
+  let decks: string[] = [];
+  if (need.decks === 1) decks = rest.length ? [rest.join(' ').trim()] : [];
+  else if (need.decks === 2) {
+    const split = rest.join(' ').split(/\s+(?:vs\.?|versus|against)\s+/i);
+    decks = rest.length === 2 ? [...rest] : split.length === 2 ? split : [];
+    decks = decks.map((d) => d.trim());
+  } else if (rest.length) throw new ArgError(`fact ${fact} takes no deck, got "${rest.join(' ')}"`);
+  if (decks.length !== need.decks || decks.some((d) => !d))
+    throw new ArgError(need.decks === 2 ? `fact ${fact} needs two decks: "<deck a>" "<deck b>", or <deck a> vs <deck b>` : `fact ${fact} needs a deck (file, name or list fingerprint)`);
+  return { fact, ...(values.event !== undefined ? { event: values.event } : {}), ...(values.round !== undefined ? { round: values.round } : {}), decks, json: values.json };
 }
 
 /** Parse a kb command line; throws ArgError on anything invalid. */
@@ -76,13 +122,34 @@ export function parseKbArgs(argv: string[]): KbArgs {
   if (wrong.length) throw new ArgError(`${wrong.map((k) => `--${k}`).join(', ')} does not apply to ${command}`);
   const query = rest.join(' ').trim();
   if ((command === 'stats' || command === 'build') && rest.length) throw new ArgError(`${command} takes no arguments, got "${query}"`);
-  if (command !== 'stats' && command !== 'build' && !query) throw new ArgError(`${command} needs ${command === 'search' ? 'a question' : 'an id or a name'}`);
+  if (command !== 'stats' && command !== 'build' && !query) throw new ArgError(`${command} needs ${command === 'search' ? 'a question' : command === 'fact' ? `a fact name (${FACTS.join(', ')})` : 'an id or a name'}`);
   return {
     command,
     query,
     values,
     kinds: values.kind?.split(',').map((x) => x.trim() as KbKind),
     rankers: values.rankers?.split(',').map((x) => x.trim() as Ranker),
+    ...(command === 'fact' ? { fact: parseFact(rest, values) } : {}),
+  };
+}
+
+/**
+ * Deck names for `fact`: a recorded deck name (any case), else a library deck's file, file stem, list fingerprint or
+ * deck id through the pack's deck records; an unknown name gets the three nearest deck records by search.
+ */
+export function deckResolver(ix: KbIndex, src: CompetitiveSources): DeckResolver {
+  const known = new Map<string, string>();
+  const add = (n: string) => known.set(nameKey(n), n);
+  for (const r of src.ratings?.data.decks ?? []) add(r.name);
+  for (const { event } of src.events) for (const n of Object.keys(event.decks)) if (!known.has(nameKey(n))) add(n);
+  for (const n of src.h2h?.data.decks ?? []) if (!known.has(nameKey(n))) add(n);
+  return (typed) => {
+    const hit = known.get(nameKey(typed)) ?? known.get(nameKey(typed.replace(/\.txt$/i, '')));
+    if (hit) return { name: hit };
+    const decks = lookup(ix, typed).filter((r) => r.kind === 'deck');
+    const named = decks.length === 1 ? known.get(nameKey(decks[0]!.title)) : undefined;
+    if (named) return { name: named };
+    return { nearest: search(ix, typed, { k: 3, kinds: ['deck'] }).hits.map((h) => `${h.record.title} (${String(h.record.fields?.file ?? h.record.id)})`) };
   };
 }
 
@@ -185,6 +252,13 @@ async function main() {
   }
   const pack = await ensurePack({ force: a.command === 'build' });
   if (pack.rebuilt && a.command !== 'build') console.error(`kb: pack rebuilt (inputs changed) in ${(pack.buildMs! / 1000).toFixed(1)} s`);
+  if (a.command === 'fact') {
+    const src = loadCompetitive(ROOT);
+    const { out, code } = runFact(a.fact!, src, deckResolver(buildIndex(pack.records), src));
+    process.stdout.write(out);
+    process.exitCode = code;
+    return;
+  }
   if (a.command === 'build' || a.command === 'stats') {
     if (a.values.json) console.log(JSON.stringify({ ...pack.manifest, bytes: pack.bytes, ...(pack.buildMs !== undefined ? { buildMs: Math.round(pack.buildMs) } : {}) }, null, 2));
     else {
