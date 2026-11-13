@@ -28,6 +28,7 @@ import { loadHidden } from '../../lib/hiddenDecks';
 import { pageOn } from '../../lib/siteConfig';
 import { useSiteConfig } from '../useSiteConfig';
 import { IfPage } from '../components/SiteChrome';
+import { CardMention, MentionText } from '../components/CardMention';
 
 const S = SEASONS;
 
@@ -217,7 +218,15 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
           </div>
           <h1 className="dp-title">{name}</h1>
           <DeckRecordPanel d={d} headingId={recordId} />
-          <div className="dp-legends">Legends: {legendNames.join(' · ')}</div>
+          <div className="dp-legends">
+            Legends:{' '}
+            {d.deck.legends.map((id, i) => (
+              <span key={`${id}:${i}`}>
+                {i > 0 && ' · '}
+                <CardMention id={id}>{legendNames[i]}</CardMention>
+              </span>
+            ))}
+          </div>
           <div className="row">
             <IfPage path="play">
             <a className="btn primary" href={`#/play?d=${enc}`}>
@@ -313,7 +322,8 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
               )}
             </div>
           )}
-          {d.idea && <div>💡 {d.idea}</div>}
+          {/* a library deck's idea names its cards; a saved deck's is the player's own text, left plain */}
+          {d.idea && <div>💡 {saved ? d.idea : <MentionText text={d.idea} />}</div>}
           <ProvenanceBlock prov={d.prov} />
         </div>
       )}
@@ -404,7 +414,7 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
                   <ul className="small">
                     {g.swaps.slice(0, 3).map((s) => (
                       <li key={s.swap}>
-                        {s.swap} — {s.wr.toFixed(1)}% <span className={s.delta >= 0 ? 'dp-pos' : 'dp-neg'}>({s.delta >= 0 ? '+' : ''}{s.delta.toFixed(1)})</span>
+                        <MentionText text={s.swap} /> — {s.wr.toFixed(1)}% <span className={s.delta >= 0 ? 'dp-pos' : 'dp-neg'}>({s.delta >= 0 ? '+' : ''}{s.delta.toFixed(1)})</span>
                       </li>
                     ))}
                   </ul>
@@ -414,7 +424,7 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
             {rep.forge.gens.length === 0 &&
               rep.forge.summary.map((s) => (
                 <div key={s.gen} className="dp-forge-gen">
-                  <b>Generation {s.gen}</b> · {ok(s.wr) ? `${s.wr.toFixed(1)}%` : '—'} · {s.change}
+                  <b>Generation {s.gen}</b> · {ok(s.wr) ? `${s.wr.toFixed(1)}%` : '—'} · <MentionText text={s.change} />
                 </div>
               ))}
           </div>
@@ -433,7 +443,9 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
                   <tbody>
                     {o.rows.slice(0, 5).map((r) => (
                       <tr key={r.change}>
-                        <td>{r.change}</td>
+                        <td>
+                          <MentionText text={r.change} />
+                        </td>
                         <td className={r.delta >= 0 ? 'dp-pos' : 'dp-neg'} style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
                           {r.delta >= 0 ? '+' : ''}
                           {r.delta.toFixed(1)}

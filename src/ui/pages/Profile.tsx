@@ -39,6 +39,7 @@ import { ColorPips, LegendStrip, OriginBadge, TierPair } from '../components/Dec
 import { Avatar, DeckStatsTable, HeadlineTiles, HistoryTable, PicturePicker, SharedProfileView, Tabs, type HistoryRow } from '../components/ProfileParts';
 import { useFeature } from '../useSiteConfig';
 import '../profile.css';
+import { CardMention } from '../components/CardMention';
 
 const TABS = [
   { key: 'overview', label: 'Overview', path: '' },
@@ -273,7 +274,7 @@ function Overview({ profile, update, games, lib }: { profile: ProfileDoc; update
 }
 
 function PictureName({ id }: { id: string }) {
-  return <>{CARD_BY_ID[id]?.displayName ?? 'a card no longer in the catalogue'}</>;
+  return CARD_BY_ID[id] ? <CardMention id={id} /> : <>a card no longer in the catalogue</>;
 }
 
 const PAGE_SIZE = 20;

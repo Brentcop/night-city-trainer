@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GUIDES } from '../../content/guides';
 import { Markdown } from '../components/Markdown';
+import { MentionText } from '../components/CardMention';
 import { REVIEW } from '../../data/index';
 import { telemetryReport } from '../../data/analysisData';
 import { withLiveCountdown } from '../../content/event';
@@ -67,7 +68,11 @@ export function GuidesPage({ initial }: { initial?: string }) {
             <LegendStrip legends={libDeck.deck.legends} height={110} />
           </div>
         )}
-        {g.summary && <p className="muted">{g.summary}</p>}
+        {g.summary && (
+          <p className="muted">
+            <MentionText text={g.summary} />
+          </p>
+        )}
         {libDeck && <ProvenanceBlock prov={libDeck.prov} />}
         {/* the tournament plan's "(N days to Chicago)" was frozen when scripts/plan.ts ran; count from today instead */}
         <Markdown text={withLiveCountdown(g.md)} />

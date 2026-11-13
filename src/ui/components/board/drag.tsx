@@ -8,6 +8,7 @@ import { useFocusTrap } from '../Modal';
 import type { Game } from '../../../engine/engine';
 import { TcgCard } from '../TcgCard';
 import type { Interaction } from './interaction';
+import { MentionText } from '../CardMention';
 
 export type DropTarget = { kind: 'play' | 'sell' | 'gigs' } | { kind: 'unit'; uid: number } | { kind: 'hand'; uid: number };
 export interface DropChoice {
@@ -212,12 +213,12 @@ export function ConfirmPrompt({ p, onPick, onCancel, side }: { p: PendingConfirm
     <div className={`pb-modal-wrap ${side ? 'pb-confirm-side' : ''}`} onClick={onCancel}>
       <div ref={ref} className="pb-modal pb-confirm" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
         <div id={id} className="pb-confirm-title">
-          {p.title}
+          <MentionText text={p.title} />
         </div>
         <div className="pb-confirm-actions">
           {p.choices.map((c) => (
             <button key={c.i} className="primary pb-big" onClick={() => onPick(c.i)}>
-              {c.label}
+              <MentionText text={c.label} passive />
             </button>
           ))}
           <button className="ghost" onClick={onCancel}>

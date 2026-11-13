@@ -41,6 +41,7 @@ import { useFeature, useSiteConfigState } from './ui/useSiteConfig';
 import { DraftBar, LinkedText, MaintenancePage, PageOff, SiteBanner } from './ui/components/SiteChrome';
 import { ONGOING_EVENT, ongoingWaiting } from './lib/ongoingBadge';
 import { MainNav } from './ui/components/MainNav';
+import { CardDialogHost } from './ui/components/CardMention';
 
 /** Multi-day games waiting for your move (the Play tab's count); 0 when the feature is off. */
 function useOngoingWaiting(on: boolean): number {
@@ -232,6 +233,8 @@ export function App() {
       <footer className="footer">
         <LinkedText text={config.site.footer} />
       </footer>
+      {/* the card dialog a card name in text opens (CardMention.tsx), above every page's own overlays */}
+      <CardDialogHost />
     </div>
   );
 }

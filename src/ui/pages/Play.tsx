@@ -71,6 +71,7 @@ import {
 import { ConfirmDialog, ResumeConfirm, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard, type CoachNote } from '../components/board/CoachPanel';
 import { shownLabel } from '../../lib/coachWords';
+import { MentionText } from '../components/CardMention';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
 import { OngoingGames } from '../components/OngoingGames';
 import { useSiteConfig } from '../useSiteConfig';
@@ -639,6 +640,10 @@ export function Board({
     return () => clearTimeout(t);
   }, [toast]);
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
+  // the seats' names (deck names, chosen by players) are never read as card names in the log
+  const seatA = s.players[0].name;
+  const seatB = s.players[1].name;
+  const logSkip = useMemo(() => [seatA, seatB], [seatA, seatB]);
   // INFO-8: the coach names a package only when the synergy report measured a lift above 0 for it (unmeasured wording
   // while the report is loading or missing)
   const synergy = useSynergyReport();
@@ -1041,7 +1046,9 @@ export function Board({
   );
   const allActions = <AllActions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} open={allOpen} onToggle={setAllOpen} />;
   const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} /> : null;
-  const lastMove = bot?.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {shownLabel(bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, ''))}</div> : null;
+  const lastMove = bot?.lastThought ? <div className="small muted pb-lastmove">
+      Bot's last move: <MentionText text={shownLabel(bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, ''))} />
+    </div> : null;
   const closeLog = useCallback(() => setLogOpen(false), [setLogOpen]);
   // online: the chat shares the side panel; its unread count shows on the panel's toggle while it is closed
   const chat = online?.chat;
@@ -1207,7 +1214,9 @@ export function Board({
         <div className="pb-mat">
           <PlayerSide p={1} ctx={ctx} />
           <div className={`pb-midline pb-tone-${head.tone}`}>
-            <span className="pb-midline-text">{head.text}</span>
+            <span className="pb-midline-text">
+              <MentionText text={head.text} />
+            </span>
             {toast && <MoveToast key={grades.length} gr={toast} />}
             {/* phones: the turn button sits in the banner, in the middle of the screen */}
             {narrow && handAction && <span className="pb-midline-action">{handAction}</span>}
@@ -1246,7 +1255,7 @@ export function Board({
             }}
           />
         )}
-        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} panel={panelSet} chat={chat?.node} unread={unread} onChatShown={chat?.onSeen} />
+        <LogDrawer log={s.log} n={s.log.length} names={logSkip} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} panel={panelSet} chat={chat?.node} unread={unread} onChatShown={chat?.onSeen} />
       </div>
       {navOpen && (
         <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
@@ -1321,7 +1330,7 @@ export function Board({
           )}
           {refusal && (
             <div className="pb-refusal" role="status">
-              {refusal}
+              <MentionText text={refusal} passive />
             </div>
           )}
           {saving && (

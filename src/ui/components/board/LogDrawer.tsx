@@ -8,6 +8,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import type { Game } from '../../../engine/engine';
 import { DEFAULT_BOARD_SETTINGS, type SidePanelSettings } from '../../../lib/boardSettings';
 import { useFocusTrap } from '../Modal';
+import { MentionRoving, MentionText, rovingProps } from '../CardMention';
 
 type LogLine = Game['s']['log'][number];
 
@@ -25,20 +26,22 @@ export function visibleLines(log: readonly LogLine[], view: LogView): LogLine[] 
   return view.order === 'newest-first' ? kept.reverse() : kept;
 }
 
-/** The log lines. The engine appends to `log` in place, so `n` (its length) is what changes. */
-export const GameLog = memo(function GameLog({ log, view = DEFAULT_VIEW }: { log: Game['s']['log']; n: number; view?: LogView }) {
+/** The log lines. The engine appends to `log` in place, so `n` (its length) is what changes. Card names are mentions
+ * (CardMention.tsx), reached with the arrow keys from the log box (one Tab stop for the whole log). */
+export const GameLog = memo(function GameLog({ log, view = DEFAULT_VIEW, names }: { log: Game['s']['log']; n: number; view?: LogView; names?: readonly string[] }) {
   const marks = view.turnMarkers && view.density === 'detailed';
   return (
-    <>
+    <MentionRoving>
       {visibleLines(log, view).map((l, i) => (
         <div key={i} className={l.player === null ? 'sys' : l.player === 0 ? 'p0' : 'p1'} title={view.density === 'compact' ? `${who(l)}${l.text}` : undefined}>
           {marks && !isTurnHeader(l) && <span className="pb-log-turn">T{l.turn}</span>}
           {/* who acted, in words as well as colour (turn headers already name the deck) */}
           {who(l) && <b>{who(l)}</b>}
-          {l.text}
+          {/* card names point to the card (a turn header names the decks: plain) */}
+          {isTurnHeader(l) ? l.text : <MentionText text={l.text} skip={names} />}
         </div>
       ))}
-    </>
+    </MentionRoving>
   );
 });
 
@@ -83,7 +86,16 @@ export function LogTab({
           ⚠ {warnings}
         </span>
       )}
-      <span className={`pb-logtab-line ${last ? (last.player === null ? 'sys' : last.player === 0 ? 'p0' : 'p1') : ''}`}>{last ? `${who(last)}${last.text}` : 'No moves yet'}</span>
+      <span className={`pb-logtab-line ${last ? (last.player === null ? 'sys' : last.player === 0 ? 'p0' : 'p1') : ''}`}>
+        {last ? (
+          <>
+            {who(last)}
+            {isTurnHeader(last) ? last.text : <MentionText text={last.text} passive />}
+          </>
+        ) : (
+          'No moves yet'
+        )}
+      </span>
       <span aria-hidden="true">{arrow}</span>
     </button>
   );
@@ -93,6 +105,7 @@ export function LogTab({
 export function LogDrawer({
   log,
   n,
+  names,
   open,
   sheet,
   onClose,
@@ -105,6 +118,8 @@ export function LogDrawer({
 }: {
   log: Game['s']['log'];
   n: number;
+  /** the seats' names (deck names): never read as card names */
+  names?: readonly string[];
   open: boolean;
   /** phones: a bottom sheet */
   sheet: boolean;
@@ -172,8 +187,8 @@ export function LogDrawer({
       ) : (
         <>
           {coach}
-          <div className="log pb-log" ref={ref} aria-live="off">
-            <GameLog log={log} n={n} view={panel} />
+          <div className="log pb-log" ref={ref} aria-live="off" aria-label="Log lines (Left and Right arrows move between card names)" {...rovingProps}>
+            <GameLog log={log} n={n} view={panel} names={names} />
           </div>
           {footer}
         </>

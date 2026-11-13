@@ -1,5 +1,7 @@
-// Tiny markdown renderer (headings, lists, tables, bold/italic/code, links, blockquotes, paragraphs).
+// Tiny markdown renderer (headings, lists, tables, bold/italic/code, links, blockquotes, paragraphs). Card names in
+// the text, bold and italics are card mentions (CardMention.tsx); never inside code or a link's text.
 import { Fragment } from 'react';
+import { MentionText } from './CardMention';
 
 /**
  * Link targets we render as clickable: in-app hash routes and http(s)/mailto URLs. Anything else (javascript:, data:,
@@ -22,9 +24,14 @@ function inline(s: string): React.ReactNode[] {
   let m: RegExpExecArray | null;
   let k = 0;
   while ((m = re.exec(s))) {
-    if (m.index > last) out.push(s.slice(last, m.index));
+    if (m.index > last) out.push(<MentionText key={k++} text={s.slice(last, m.index)} />);
     const t = m[0];
-    if (t.startsWith('**')) out.push(<b key={k++}>{t.slice(2, -2)}</b>);
+    if (t.startsWith('**'))
+      out.push(
+        <b key={k++}>
+          <MentionText text={t.slice(2, -2)} />
+        </b>,
+      );
     else if (t.startsWith('`')) out.push(<code key={k++}>{t.slice(1, -1)}</code>);
     else if (t.startsWith('[')) {
       const mm = t.match(/\[([^\]]+)\]\(([^)]+)\)/)!;
@@ -38,10 +45,15 @@ function inline(s: string): React.ReactNode[] {
           <span key={k++}>{mm[1]}</span>
         ),
       );
-    } else out.push(<i key={k++}>{t.slice(1, -1)}</i>);
+    } else
+      out.push(
+        <i key={k++}>
+          <MentionText text={t.slice(1, -1)} />
+        </i>,
+      );
     last = m.index + t.length;
   }
-  if (last < s.length) out.push(s.slice(last));
+  if (last < s.length) out.push(<MentionText key={k++} text={s.slice(last)} />);
   return out;
 }
 

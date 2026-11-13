@@ -2,6 +2,7 @@
 // (resume, rename, export, delete, import), the in-game Save dialog, and the dialogs for a save that can't be resumed.
 // Every dialog is a Modal (useFocusTrap: focus in, Tab kept inside, Escape closes, focus restored).
 import { useId, useRef, useState } from 'react';
+import { MentionRoving, MentionText, rovingProps } from './CardMention';
 import { tierLabel } from '../../ai/tiers';
 import { MAX_SLOTS, staleLine, versionProblem, type SavedGame } from '../../lib/savedGames';
 import { SIM_VERSION } from '../../lib/tournament';
@@ -81,14 +82,17 @@ export function UnresumableDialog({ save, why, onDelete, onClose, deleteLabel = 
         <button onClick={onClose}>Close</button>
       </div>
       {showLog && (
-        <ol className="save-log small" aria-label="Game log">
-          {save.log.map((e, i) => (
-            <li key={i} className={e.player === 0 ? 'me' : e.player === 1 ? 'rival' : ''}>
-              <span className="muted">T{e.turn}</span> {e.player === 0 ? 'You: ' : e.player === 1 ? 'Bot: ' : ''}
-              {e.text}
-            </li>
-          ))}
-        </ol>
+        <MentionRoving>
+          {/* one Tab stop: Left and Right move between the card names in the log */}
+          <ol className="save-log small" aria-label="Game log (Left and Right arrows move between card names)" {...rovingProps}>
+            {save.log.map((e, i) => (
+              <li key={i} className={e.player === 0 ? 'me' : e.player === 1 ? 'rival' : ''}>
+                <span className="muted">T{e.turn}</span> {e.player === 0 ? 'You: ' : e.player === 1 ? 'Bot: ' : ''}
+                {e.text.startsWith('--- Turn') ? e.text : <MentionText text={e.text} />}
+              </li>
+            ))}
+          </ol>
+        </MentionRoving>
       )}
     </Modal>
   );

@@ -3,6 +3,7 @@ import { Signed, Wr } from './Num';
 import { Markdown } from './Markdown';
 import { classify, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
 import { allDecks } from '../../lib/browserLibrary';
+import { CardMention, MentionText } from './CardMention';
 
 // JSON turns NaN into null, so treat anything non-finite as "no data"
 const ok = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -47,7 +48,9 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
             <tbody>
               {best.map((c) => (
                 <tr key={c.id}>
-                  <td>{c.name}</td>
+                  <td>
+                    <CardMention id={c.id}>{c.name}</CardMention>
+                  </td>
                   <td><Signed v={c.iwd} /></td>
                   <td>{fix1(c.avgPlayTurn)}</td>
                   <td>{pct(c.soldRate)}</td>
@@ -70,7 +73,9 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
             <tbody>
               {worst.map((c) => (
                 <tr key={c.id}>
-                  <td>{c.name}</td>
+                  <td>
+                    <CardMention id={c.id}>{c.name}</CardMention>
+                  </td>
                   <td><Signed v={c.iwd} /></td>
                   <td>{fix1(c.avgPlayTurn)}</td>
                   <td>{pct(c.soldRate)}</td>
@@ -145,8 +150,17 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
                     <Wr v={m.wrFirst} /> / <Wr v={m.wrSecond} />
                   </td>
                   <td>{fix1(m.avgTurns)}</td>
-                  <td style={{ minWidth: 220 }}>{plan}</td>
-                  <td>{m.topCards.map((c) => `${c.name} ${signed(c.iwd)}`).join(', ')}</td>
+                  <td style={{ minWidth: 220 }}>
+                    <MentionText text={plan} />
+                  </td>
+                  <td>
+                    {m.topCards.map((c, k) => (
+                      <span key={c.name}>
+                        {k > 0 && ', '}
+                        <MentionText text={c.name} /> {signed(c.iwd)}
+                      </span>
+                    ))}
+                  </td>
                 </tr>
               );
             })}

@@ -10,6 +10,7 @@ import { behindText, gapFigure, gapSize, shownLabel } from '../../lib/coachWords
 import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
 import { RatingPill } from './RatingPill';
 import { Wr } from './Num';
+import { MentionText } from './CardMention';
 
 const gigs = (pts: number) => pts / GIG_SWING;
 
@@ -234,8 +235,11 @@ function Costly({ r, rated }: { r: GameReview; rated: Rated[] }) {
         {worst.map(({ d, r: rating }) => (
           <li key={d.turn + d.chosen + d.i}>
             <span className="muted">T{d.turn}</span> {r.seats.length > 1 && <span className="muted">{r.names[d.player]}: </span>}
-            {shownLabel(d.chosen)} <RatingPill r={rating} /> <span className="muted">→ better: </span>
-            <b>{shownLabel(d.best)}</b> <span className="num neg">{behindText(gigs(d.raw ?? d.regret), d.se !== undefined ? gigs(d.se) : undefined)}</span>
+            <MentionText text={shownLabel(d.chosen)} skip={r.names} /> <RatingPill r={rating} /> <span className="muted">→ better: </span>
+            <b>
+              <MentionText text={shownLabel(d.best)} skip={r.names} />
+            </b>{' '}
+            <span className="num neg">{behindText(gigs(d.raw ?? d.regret), d.se !== undefined ? gigs(d.se) : undefined)}</span>
             {d.gameLosing && <span className="verdict neg">lost more play-outs</span>}
           </li>
         ))}

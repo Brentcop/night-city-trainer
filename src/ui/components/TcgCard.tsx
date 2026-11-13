@@ -31,7 +31,7 @@ export interface TcgCardProps {
   ariaLabel?: string;
 }
 
-interface Box {
+export interface Box {
   left: number;
   top: number;
   right: number;
@@ -129,7 +129,7 @@ export function TcgCard({ def, size = 'md', power, spent, selected, targetable, 
 }
 
 /** The hover preview: the card at full size beside its text, in the document's top layer of stacking. */
-function CardZoom({ def, power, card }: { def: CardDef; power?: number | null; card: Box }) {
+export function CardZoom({ def, power, card }: { def: CardDef; power?: number | null; card: Box }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   // measure once rendered (its size depends on the art and the text), then place it; hidden until placed

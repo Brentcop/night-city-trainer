@@ -1426,6 +1426,10 @@ button.danger-soft {
     width: 220px !important;
     margin: 0 auto;
   }
+  /* the card dialog's text goes under the card on a phone (beside it, it was squeezed into a column a word wide) */
+  .modal-body > .tcg + * {
+    flex-basis: 100% !important;
+  }
 }
 .tier-row {
   display: flex;

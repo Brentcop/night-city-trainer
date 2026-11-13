@@ -1,6 +1,7 @@
 // Phone board pieces: the small prompt panel against the right edge (collapsible to a tab), the game menu behind ☰,
 // and the card reader (a tap on a card with nothing to do, a long press on any card, or "Read card").
 import { useId, useRef } from 'react';
+import { MentionText } from '../CardMention';
 import { useFocusTrap } from '../Modal';
 import { createPortal } from 'react-dom';
 import type { Game } from '../../../engine/engine';
@@ -101,7 +102,7 @@ export function PhonePanel({
   const title = panelTitle(ctx);
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
-      {label ?? shownLabel(pend.options[i]?.label ?? '')}
+      <MentionText text={label ?? shownLabel(pend.options[i]?.label ?? '')} passive />
     </button>
   );
   let body: React.ReactNode = null;
@@ -123,7 +124,11 @@ export function PhonePanel({
     const { board, tray, buttons } = promptChoices(g, ix);
     body = (
       <>
-        {pend.source !== undefined && g.s.cards[pend.source] && <div className="pb-pp-hint">from {g.name(pend.source)}</div>}
+        {pend.source !== undefined && g.s.cards[pend.source] && (
+          <div className="pb-pp-hint">
+            from <MentionText text={g.name(pend.source)} />
+          </div>
+        )}
         {board.length > 0 && <div className="pb-pp-hint">Tap a ◎ card on the board.</div>}
         {pend.kind === 'pay' && <div className="pb-pp-hint">Or tap a ◎ Legend.</div>}
         {ix.gigDirect.size > 0 && <div className="pb-pp-hint">Or tap a glowing die.</div>}
@@ -155,7 +160,9 @@ export function PhonePanel({
   return (
     <aside className={`pb-pp ${pend.kind === 'reaction' ? 'is-alert' : ''} ${box?.bottom !== undefined ? 'is-low' : ''}`} style={style} aria-label="Prompt">
       <div className="pb-pp-head">
-        <b className="pb-pp-title">{title}</b>
+        <b className="pb-pp-title">
+          <MentionText text={title} />
+        </b>
         <button type="button" className="ghost pb-pp-min" onClick={onCollapse} aria-label="Hide the prompt (a button in the top bar shows it again)">
           ▴
         </button>

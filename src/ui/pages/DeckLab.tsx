@@ -42,6 +42,7 @@ import { RATINGS } from '../../data/index';
 import { Markdown } from '../components/Markdown';
 import { PageHead } from '../components/PageHead';
 import { CardNameButton, CardThumb, DeckListCompact, useCardDialog } from '../components/DeckCards';
+import { MentionText } from '../components/CardMention';
 import { deckDiff, parseSwap } from '../../lib/deckCards';
 import { describeChanges, describePlan, packageChanges, packageName, packageProvenance, type PackagePlan } from '../../lib/deckPackages';
 import { labDefaultKeep, LabSynergies, PackageChips, PackagePicker } from '../components/LabPackages';
@@ -477,7 +478,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 <div className="small" role="note">
                   <PackageChips deck={finalDeck} before={parsed.deck} />
                   <div className="muted">
-                    Packages: {describePlan(runPlan.plan)}
+                    Packages: <MentionText text={describePlan(runPlan.plan)} />
                     {runPlan.moves ? '; package moves on' : '; package moves off'}.
                     {(() => {
                       const pk = prog?.logs.flatMap((l) => (l.adopted && l.swaps.find((x) => x.label === l.adopted)?.pkg ? [l.adopted] : [])) ?? [];
@@ -571,7 +572,11 @@ export function GenerationSummary({ log: l }: { log: TuneLog }) {
       {l.adopted ? (
         <>
           {' '}
-          · <OutcomeChip outcome="adopt" /> <b>{l.adopted}</b>
+          · <OutcomeChip outcome="adopt" />{' '}
+          <b>
+            {/* shown in a <summary>: hover only */}
+            <MentionText text={l.adopted} passive />
+          </b>
           {l.adoptedGain && (
             <>
               {' '}
@@ -614,7 +619,7 @@ export function evidenceNote(logs: readonly TuneLog[]): string {
 /** A swap label ("−1 A → +1 B") with the two cards' thumbnails; plain text when a name isn't a known card. */
 function SwapLabel({ label, onOpen }: { label: string; onOpen: (d: CardDef) => void }) {
   const sw = parseSwap(label);
-  if (!sw.out || !sw.in) return <>{label}</>;
+  if (!sw.out || !sw.in) return <MentionText text={label} />;
   return (
     <span className="lab-swap">
       <CardThumb def={CARD_BY_ID[sw.out]} onOpen={onOpen} />
@@ -816,7 +821,10 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
             <div key={b.deck.name} className="panel grid" style={{ padding: 10 }}>
               <DeckTile d={asLib(b)} />
               <div className="small">
-                <span className="tag">{b.method}</span> <span className="muted">{b.idea}</span>
+                <span className="tag">{b.method}</span>{' '}
+                <span className="muted">
+                  <MentionText text={b.idea ?? ''} />
+                </span>
               </div>
               <PackageChips deck={b.deck} />
               {b.packages && b.packages.changes.length > 0 && (
@@ -824,7 +832,9 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
                   <summary className="small">Package changes ({b.packages.changes.length})</summary>
                   <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
                     {b.packages.changes.map((c) => (
-                      <li key={c}>{c}</li>
+                      <li key={c}>
+                        <MentionText text={c} />
+                      </li>
                     ))}
                   </ul>
                 </details>

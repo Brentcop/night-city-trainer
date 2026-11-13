@@ -521,3 +521,35 @@
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   justify-items: center;
 }
+
+/* card mentions (CardMention.tsx): a card's name in running text. A faint dotted underline in the accent says "point
+   here"; the name keeps the text's own font, colour and line box and wraps like the words around it, so a log line, a
+   button or a table row keeps its height. */
+.card-mention {
+  cursor: pointer;
+  border-radius: 2px;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  transition: text-decoration-color var(--t-fast, 0.16s) ease;
+}
+.card-mention:hover {
+  text-decoration-style: solid;
+  text-decoration-color: var(--accent);
+}
+.card-mention:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+  text-decoration-color: var(--accent);
+}
+/* inside a button or a link: the control's cursor, and a fainter line (the control already says it can be pressed) */
+.card-mention.is-passive {
+  cursor: inherit;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+/* the dialog a mention opens sits above every board overlay (they reach 2600), under the hover preview (3000) */
+.modal-backdrop.card-mention-backdrop {
+  z-index: 2700;
+}

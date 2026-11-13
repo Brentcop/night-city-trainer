@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { modeText, STAGES, STANDINGS, type CardReport, type DecisionReport, type ModeReport, type Slice } from '../../analysis/decisions';
 import { DECISION_TELEMETRY_SCHEMA } from '../../engine/telemetry';
+import { CardMention } from './CardMention';
 
 export type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'stale'; schema: unknown } | { state: 'ready'; report: DecisionReport };
 
@@ -90,7 +91,7 @@ function ModeRow({ c, m }: { c: CardReport; m: ModeReport }) {
   return (
     <tr>
       <th scope="row" style={{ fontWeight: 'normal' }}>
-        {c.name}
+        <CardMention id={c.id}>{c.name}</CardMention>
       </th>
       <td>
         {modeText(m.mode)}

@@ -66,6 +66,10 @@ describe('entry chunk', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     expect(profile).toContain('src/content/synergies/index.ts');
   });
+  it('reaches the card-mention component, but not its name index or preview (they load with the first mention shown)', () => {
+    expect(graph).toContain('src/ui/components/CardMention.tsx');
+    for (const f of ['src/ui/components/mentionRuntime.tsx', 'src/lib/cardMentions.ts', 'src/ui/components/CardModal.tsx']) expect(graph).not.toContain(f);
+  });
   it('reads the site config statically, but not its editor (#/admin loads on demand)', () => {
     expect(graph).toContain('src/lib/siteConfig.ts');
     expect(graph).toContain('src/ui/useSiteConfig.ts');

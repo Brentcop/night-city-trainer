@@ -9,6 +9,7 @@ import type { RateWithInterval, SynergyRow } from '../../analysis/synergies';
 import type { RoleCounts } from '../../content/synergies';
 import { loadSynergyReport, pct, type SynergyLoaded } from '../synergyReport';
 import { SliceCell } from './DecisionStats';
+import { CardMention, MentionText } from './CardMention';
 
 /** "42% (21/50)" with the interval in the tooltip, or "—". */
 export function RateCell({ r }: { r: RateWithInterval }) {
@@ -62,7 +63,7 @@ function PackageTable({ rows, rounds, caption }: { rows: SynergyRow[]; rounds: r
           {rows.map((x) => (
             <tr key={x.id}>
               <th scope="row" style={{ fontWeight: 'normal' }}>
-                {x.name}
+                <MentionText text={x.name} />
                 {x.builtAround && <span className="tag" style={{ marginLeft: 6 }}>built around</span>}
                 {x.copies && <div className="muted small">{roleText(x.copies)}</div>}
               </th>
@@ -116,9 +117,11 @@ function CardSplit({ rows }: { rows: SynergyRow[] }) {
         <tbody>
           {cards.map(({ s, c }) => (
             <tr key={`${s.id}|${c.id}`}>
-              <td>{s.name}</td>
+              <td>
+                <MentionText text={s.name} />
+              </td>
               <th scope="row" style={{ fontWeight: 'normal' }}>
-                {c.name}
+                <CardMention id={c.id}>{c.name}</CardMention>
               </th>
               <td>{c.role}</td>
               <td>
@@ -224,7 +227,7 @@ export function SynergyReportView({ loaded, deck, listId }: { loaded: SynergyLoa
               {r.dormant.map((d, i) => (
                 <span key={d.id} title={d.reason}>
                   {i ? ', ' : ''}
-                  {d.name}
+                  <MentionText text={d.name} />
                 </span>
               ))}
               .

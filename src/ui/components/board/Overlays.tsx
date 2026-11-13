@@ -9,6 +9,7 @@ import { Modal, useFocusTrap } from '../Modal';
 import { TcgCard } from '../TcgCard';
 import type { BoardCtx } from './BoardCard';
 import { CoachBox, type CoachNote } from './CoachPanel';
+import { MentionText } from '../CardMention';
 
 /** "Are you sure?" before conceding (a recorded loss) or exiting (nothing recorded). Rendered at the document body. */
 /** What the Exit dialog says when the game can be kept for later (a practice game with saved games on). */
@@ -136,7 +137,7 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
               onClick={() => (it.kind === 'attack' ? ctx.startTargeting(menu.uid) : ctx.answer(it.i))}
             >
               {it.kind === 'attack' || it.kind === 'attackDirect' ? '⚔ ' : ''}
-              {it.label}
+              <MentionText text={it.label} passive />
               {isCoach && <span className="chip pb-chip-coach">Coach</span>}
             </button>
           );

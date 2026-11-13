@@ -6,6 +6,7 @@ import type { LibraryDeck } from '../../lib/library';
 import { objectiveFor, VOCABULARY, type DeckObjective, type PlanPhase, type SignalTerm } from '../../content/deckObjectives';
 import { safeHref } from './Markdown';
 import { profileHref } from './DeckStats';
+import { CardMention, MentionText } from './CardMention';
 
 const PHASE: Record<PlanPhase, string> = { early: 'Early', mid: 'Mid game', closing: 'Closing' };
 
@@ -88,14 +89,16 @@ export function GamePlanPanel({ d, lib }: { d: Pick<LibraryDeck, 'file' | 'deck'
           <span aria-hidden="true">✎ </span>Placeholder read off the list until the owner writes this deck’s plan.
         </p>
       )}
-      <p className="dp-plan-objective">{note.objective}</p>
+      <p className="dp-plan-objective">
+        <MentionText text={note.objective} />
+      </p>
       <div className="dp-plan-grid">
         <div>
           <h3 className="zone-label">Plan</h3>
           <ol className="dp-plan-steps">
             {note.plan.map((s, i) => (
               <li key={i}>
-                <b>{PHASE[s.phase]}:</b> {s.text}
+                <b>{PHASE[s.phase]}:</b> <MentionText text={s.text} />
               </li>
             ))}
           </ol>
@@ -105,7 +108,8 @@ export function GamePlanPanel({ d, lib }: { d: Pick<LibraryDeck, 'file' | 'deck'
           <ul className="dp-plan-list">
             {note.keyCards.map((k) => (
               <li key={k.id}>
-                <b>{CARD_BY_ID[k.id] ? cardLabel(CARD_BY_ID[k.id]) : k.id}</b> — {k.role}
+                {/* the note knows the card: linked by id */}
+                <b>{CARD_BY_ID[k.id] ? <CardMention id={k.id}>{cardLabel(CARD_BY_ID[k.id])}</CardMention> : k.id}</b> — <MentionText text={k.role} />
               </li>
             ))}
           </ul>
@@ -114,7 +118,9 @@ export function GamePlanPanel({ d, lib }: { d: Pick<LibraryDeck, 'file' | 'deck'
           <h3 className="zone-label">Signs it’s working</h3>
           <ul className="dp-plan-list">
             {note.signals.map((s) => (
-              <li key={s.text}>{s.text}</li>
+              <li key={s.text}>
+                <MentionText text={s.text} />
+              </li>
             ))}
           </ul>
           <details className="dp-plan-terms small">
@@ -134,7 +140,9 @@ export function GamePlanPanel({ d, lib }: { d: Pick<LibraryDeck, 'file' | 'deck'
             <h3 className="zone-label">Risks</h3>
             <ul className="dp-plan-list">
               {note.risks.map((r) => (
-                <li key={r}>{r}</li>
+                <li key={r}>
+                  <MentionText text={r} />
+                </li>
               ))}
             </ul>
           </div>

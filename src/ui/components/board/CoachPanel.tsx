@@ -7,6 +7,7 @@ import { memo, useState } from 'react';
 import type { Game } from '../../../engine/engine';
 import type { Advice, MoveGrade } from '../../../ai/coach';
 import { Markdown } from '../Markdown';
+import { MentionText } from '../CardMention';
 import { coachSummary } from '../../../lib/practiceLog';
 import { fixedTerms, RATING_INFO } from '../../../lib/gameReview';
 import { behindText, GIG_NOTE, isWideClose, shownLabel, verdictRating } from '../../../lib/coachWords';
@@ -72,7 +73,8 @@ export function MoveToast({ gr }: { gr: MoveGrade }) {
   return (
     <span className={`move-toast ${m.tone}`} role="status">
       <i aria-hidden="true">{m.icon}</i>
-      {verdictText(gr)}
+      {/* a passing toast: card names show the card on hover, but take no Tab stop */}
+      <MentionText text={verdictText(gr)} passive />
     </span>
   );
 }
@@ -139,8 +141,10 @@ export function Scorecard({ grades }: { grades: MoveGrade[] }) {
               const r = verdictRating(m.verdict, m.gap);
               return (
                 <li key={k}>
-                  <span className="muted">T{m.turn}</span> {shownLabel(m.chose)} <span className="muted">→ coach: </span>
-                  <b>{shownLabel(m.coach)}</b>{' '}
+                  <span className="muted">T{m.turn}</span> <MentionText text={shownLabel(m.chose)} /> <span className="muted">→ coach: </span>
+                  <b>
+                    <MentionText text={shownLabel(m.coach)} />
+                  </b>{' '}
                   <span className="neg">
                     {r ? RATING_INFO[r].label : ''}, {behindText(m.gap ?? 0, m.se)}
                   </span>
@@ -189,11 +193,11 @@ export function CoachBox({
   return (
     <div className={className}>
       <div className="pb-coach-pick">
-        <b>Coach:</b> {pick}
+        <b>Coach:</b> <MentionText text={pick} />
       </div>
       {why && (
         <div className={`muted small pb-coach-why ${compact && !open ? 'is-clamped' : ''}`}>
-          {why}
+          <MentionText text={why} />
         </div>
       )}
       {why && compact && (
@@ -203,7 +207,7 @@ export function CoachBox({
       )}
       {next && (!compact || open) && (
         <div className="small pb-coach-next">
-          <span className="muted">Next best:</span> {next.label} <span className="muted">({next.close ? 'close call: either is fine' : altText(next)})</span>
+          <span className="muted">Next best:</span> <MentionText text={next.label} /> <span className="muted">({next.close ? 'close call: either is fine' : altText(next)})</span>
         </div>
       )}
     </div>
@@ -224,7 +228,9 @@ export const CoachPanel = memo(function CoachPanel({ alts, tips, warnings }: { g
           {alts.map((a, i) => (
             // labels are distinct (the coach lists one move per name), but keep the index in the key all the same
             <div key={`${i}:${a.label}`} className="coach-alt">
-              <span>{shownLabel(a.label)}</span>
+              <span>
+                <MentionText text={shownLabel(a.label)} />
+              </span>
               <b title={a.close ? 'Within the noise of the coach’s pick: either is fine' : undefined}>{altText(a)}</b>
             </div>
           ))}
@@ -234,7 +240,9 @@ export const CoachPanel = memo(function CoachPanel({ alts, tips, warnings }: { g
       {warnings.length > 0 && (
         <div className="coach-warn">
           {warnings.map((w) => (
-            <div key={w}>⚠ {w}</div>
+            <div key={w}>
+              ⚠ <MentionText text={w} />
+            </div>
           ))}
         </div>
       )}

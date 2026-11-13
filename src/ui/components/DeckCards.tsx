@@ -9,6 +9,7 @@ import { groupDeck, type CardGroup } from '../../lib/deckCards';
 import { loadPref, savePref } from '../prefs';
 import { costLabel } from './CardView';
 import { TcgCard } from './TcgCard';
+import { CardMention } from './CardMention';
 
 // the dialog reads the card scripts (which pull in the engine), so it loads on first open, not with the page
 const CardModal = lazy(() => import('./CardModal').then((m) => ({ default: m.CardModal })));
@@ -43,12 +44,17 @@ export function CardThumb({ def, onOpen }: { def: CardDef; onOpen?: (d: CardDef)
 export function CardNameButton({ def, onOpen, children }: { def: CardDef; onOpen: (d: CardDef) => void; children?: React.ReactNode }) {
   return (
     <button type="button" className="card-name-btn" onClick={() => onOpen(def)} title="Open card details">
-      {children ?? cardLabel(def)}
+      {children ?? (
+        // inside the button: the hover preview only (the button opens the dialog)
+        <CardMention id={def.id} passive>
+          {cardLabel(def)}
+        </CardMention>
+      )}
     </button>
   );
 }
 
-/** Compact list: one row per card with its thumbnail, copies and cost. Without `onOpen` the names are plain text (inside another dialog). */
+/** Compact list: one row per card with its thumbnail, copies and cost. Without `onOpen` (inside another dialog) the names are card mentions, whose dialog opens above it. */
 function DeckRows({ groups, onOpen }: { groups: CardGroup[]; onOpen?: (d: CardDef) => void }) {
   return (
     <div className="deck-rows">
@@ -69,7 +75,9 @@ function DeckRows({ groups, onOpen }: { groups: CardGroup[]; onOpen?: (d: CardDe
                     </span>
                   )}
                   <span className={`dot ${def.color}`} aria-hidden="true" />
-                  {onOpen ? <CardNameButton def={def} onOpen={onOpen} /> : <span className="deck-row-name">{cardLabel(def)}</span>}
+                  {onOpen ? <CardNameButton def={def} onOpen={onOpen} /> : <span className="deck-row-name">
+                      <CardMention id={id}>{cardLabel(def)}</CardMention>
+                    </span>}
                   <span className="muted small deck-row-cost">{def.type === 'Legend' ? (def.cost !== null ? `Go Solo ${def.cost}` : '') : `${costLabel(def)} €$`}</span>
                 </li>
               );
@@ -152,7 +160,8 @@ export function DeckStructure({ deck, initialView }: { deck: Pick<DeckList, 'leg
 
 /**
  * A compact decklist with thumbnails, for places that show a list on the side (events, match details, lab results).
- * `noDialog` inside another dialog: one modal at a time, so the names stay plain text there.
+ * `noDialog` inside another dialog: the names are card mentions instead (hover shows the card; the card dialog opens
+ * above the one they are in).
  */
 export function DeckListCompact({ deck, noDialog }: { deck: Pick<DeckList, 'legends' | 'main'> & { sideboard?: string[] }; noDialog?: boolean }) {
   const { open, dialog } = useCardDialog();

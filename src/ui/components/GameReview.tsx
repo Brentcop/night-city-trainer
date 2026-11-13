@@ -35,6 +35,7 @@ import { explain, FOLLOW_TEXT, gapTag, REVIEW_BASIS } from '../../lib/reviewWord
 import { shownLabel } from '../../lib/coachWords';
 import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
 import { Modal } from './Modal';
+import { MentionText } from './CardMention';
 import { RatingPill } from './RatingPill';
 import { ReviewPanel } from './ReviewPanel';
 import { FrameBoard } from './ReplayBoard';
@@ -320,7 +321,7 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
       <p className="small muted gr-basis">{REVIEW_BASIS}</p>
       {turning ? (
         <p className="gr-turning">
-          <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played {shownLabel(turning.chosen)} <RatingPill r={turning.r} /> ({gapTag(turning)}).{' '}
+          <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played <MentionText text={shownLabel(turning.chosen)} skip={rec.names} /> <RatingPill r={turning.r} /> ({gapTag(turning)}).{' '}
           <button type="button" className="ghost" onClick={() => (setFilter('all'), setSel(turning.seq))}>
             Show
           </button>
@@ -369,7 +370,9 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
               {shown.map((m) => (
                 <li key={m.seq}>
                   <button type="button" data-seq={m.seq} className={`gr-row ${m.p === me ? 'me' : 'rival'} ${cur?.seq === m.seq ? 'on' : ''}`} aria-current={cur?.seq === m.seq ? 'true' : undefined} onClick={() => setSel(m.seq)}>
-                    <span className="muted">T{m.turn}</span> <span className="gr-who">{who(m.p)}</span> <RatingPill r={m.r} /> <span className="gr-move">{shownLabel(m.chosen)}</span>
+                    <span className="muted">T{m.turn}</span> <span className="gr-who">{who(m.p)}</span> <RatingPill r={m.r} /> <span className="gr-move">
+                      <MentionText text={shownLabel(m.chosen)} skip={rec.names} passive />
+                    </span>
                     {follow.get(m.seq) === 'missed' && <span className="gr-tag">missed chance</span>}
                   </button>
                 </li>
@@ -388,7 +391,7 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
                     Next ▶
                   </button>
                 </div>
-                <MoveDetail m={cur} me={me} follow={follow.get(cur.seq)} />
+                <MoveDetail m={cur} me={me} follow={follow.get(cur.seq)} names={rec.names} />
                 <MoveBoard m={cur} frames={frames} names={rec.names} viewer={me} />
               </div>
             )}
@@ -423,13 +426,18 @@ function SeatCard({ who, s, note }: { who: string; s: SeatSummary; note?: string
   );
 }
 
-function MoveDetail({ m, me, follow }: { m: ReviewMove; me: 0 | 1; follow?: 'missed' | 'followed' }) {
+function MoveDetail({ m, me, follow, names }: { m: ReviewMove; me: 0 | 1; follow?: 'missed' | 'followed'; names: readonly string[] }) {
   return (
     <div className="gr-move-detail" aria-live="polite">
       <div>
-        <span className="muted">Turn {m.turn} · {m.p === me ? 'You' : 'Rival'}:</span> <b>{shownLabel(m.chosen)}</b> <RatingPill r={m.r} />
+        <span className="muted">Turn {m.turn} · {m.p === me ? 'You' : 'Rival'}:</span> <b>
+          <MentionText text={shownLabel(m.chosen)} skip={names} />
+        </b>{' '}
+        <RatingPill r={m.r} />
       </div>
-      <p className="small">{explain(m)}</p>
+      <p className="small">
+        <MentionText text={explain(m)} skip={names} />
+      </p>
       {m.p !== me && follow && <p className="small gr-note">{FOLLOW_TEXT[follow]}</p>}
       <p className="small muted gr-before">The board below is the position before this move.</p>
     </div>

@@ -7,6 +7,7 @@ import { hiddenFromMe, type BoardCtx } from './BoardCard';
 import { onlyEndTurn, promptChoices } from './interaction';
 import { CoachBox, type CoachNote } from './CoachPanel';
 import { optionName, shownLabel } from '../../../lib/coachWords';
+import { MentionText } from '../CardMention';
 
 /** One-line headline for the middle of the table. */
 export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 'alert' | 'idle' } {
@@ -58,14 +59,17 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
   const coachBox = <CoachBox pick={coach && pend.options[coach.i] ? optionName(pend, coach.i) : null} why={note?.why} next={note?.next} thinking={note?.thinking} />;
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
-      {label ?? shownLabel(pend.options[i]?.label ?? '')}
+      {/* inside the option button: card names show the card on hover only */}
+      <MentionText text={label ?? shownLabel(pend.options[i]?.label ?? '')} passive />
     </button>
   );
 
   if (targeting) {
     return (
       <div className="pb-prompt">
-        <b>Attack with {g.name(targeting.attacker)}</b>
+        <b>
+          Attack with <MentionText text={g.name(targeting.attacker)} />
+        </b>
         <div className="small muted">Click a glowing rival unit or the rival Gig area.</div>
         {coachBox}
         <div className="pb-opts">
@@ -109,7 +113,9 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
     const h = headline(ctx);
     return (
       <div className="pb-prompt pb-prompt-alert">
-        <b>{h.text}</b>
+        <b>
+          <MentionText text={h.text} />
+        </b>
         <div className="small muted">Click a ⛨ unit to block, or choose a reaction.</div>
         {coachBox}
         <div className="pb-opts">
@@ -133,11 +139,15 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
   const onBoardCount = board.length;
   return (
     <div className="pb-prompt">
-      <b>{pend.prompt}</b>
+      <b>
+        <MentionText text={pend.prompt} />
+      </b>
       {pend.source !== undefined && g.s.cards[pend.source] && (
         <div className="pb-source">
           <TcgCard def={g.def(pend.source)} size="xs" />
-          <span className="small muted">from {g.name(pend.source)}</span>
+          <span className="small muted">
+            from <MentionText text={g.name(pend.source)} />
+          </span>
         </div>
       )}
       {onBoardCount > 0 && <div className="small muted">Click a glowing card on the table.</div>}
@@ -196,7 +206,7 @@ export const AllActions = memo(function AllActions({
           {pend ? (
             pend.options.map((o, i) => (
               <button key={i} className={coachI === i ? 'pb-coach-btn' : ''} onClick={() => answer(i)}>
-                {shownLabel(o.label)}
+                <MentionText text={shownLabel(o.label)} passive />
               </button>
             ))
           ) : (

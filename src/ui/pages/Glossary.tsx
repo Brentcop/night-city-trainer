@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GLOSSARY } from '../../content/glossary';
 import { PageHead } from '../components/PageHead';
+import { MentionText } from '../components/CardMention';
 
 export function GlossaryPage() {
   const [q, setQ] = useState('');
@@ -25,15 +26,17 @@ export function GlossaryPage() {
                   <b>{t.term}</b>
                   {t.rule && <span className="tag">{t.rule}</span>}
                 </div>
-                <div>{t.def}</div>
+                <div>
+                  <MentionText text={t.def} />
+                </div>
                 {t.engine && (
                   <div className="small muted">
-                    <b>Engine:</b> {t.engine}
+                    <b>Engine:</b> <MentionText text={t.engine} />
                   </div>
                 )}
                 {t.bot && (
                   <div className="small" style={{ color: 'var(--cyan)' }}>
-                    <b>Bot:</b> {t.bot}
+                    <b>Bot:</b> <MentionText text={t.bot} />
                   </div>
                 )}
               </div>

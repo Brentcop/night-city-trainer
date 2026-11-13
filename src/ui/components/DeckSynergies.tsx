@@ -11,6 +11,7 @@ import type { SynergyRow } from '../../analysis/synergies';
 import { loadSynergyReport, pct, type SynergyLoaded } from '../synergyReport';
 import { SliceCell } from './DecisionStats';
 import { RateCell, roleText } from './SynergyStats';
+import { CardMention, MentionText } from './CardMention';
 
 const name = (id: string) => (CARD_BY_ID[id] ? cardLabel(CARD_BY_ID[id]) : id);
 
@@ -67,7 +68,9 @@ export function DeckSynergies({ deck, named = [] }: { deck: Pick<DeckList, 'lege
             {found.map((x) => (
               <tr key={x.synergy.id}>
                 <th scope="row" style={{ fontWeight: 'normal' }} title={`${x.synergy.description} Online: ${x.synergy.onlineText}`}>
-                  <b>{x.synergy.name}</b>
+                  <b>
+                    <MentionText text={x.synergy.name} />
+                  </b>
                   {x.builtAround && <span className="tag" style={{ marginLeft: 6 }}>built around</span>}
                   {named.includes(x.synergy.id) && <span className="tag" style={{ marginLeft: 6 }}>in the game plan</span>}
                   {x.synergy.dormant && (
@@ -80,10 +83,13 @@ export function DeckSynergies({ deck, named = [] }: { deck: Pick<DeckList, 'lege
                 <td>
                   {roleText(x.copies)}
                   <div className="muted small">
-                    {x.cards
-                      .slice(0, 6)
-                      .map((c) => `${c.copies}× ${name(c.id)}`)
-                      .join(', ')}
+                    {/* members are known by id: linked by id */}
+                    {x.cards.slice(0, 6).map((c, k) => (
+                      <span key={c.id}>
+                        {k > 0 && ', '}
+                        {c.copies}× <CardMention id={c.id}>{name(c.id)}</CardMention>
+                      </span>
+                    ))}
                     {x.cards.length > 6 && `, +${x.cards.length - 6} more`}
                   </div>
                 </td>

@@ -7,6 +7,7 @@ import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSea
 import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type TuneLog } from '../../lib/deckLab';
 import { cutTableRows } from '../../lib/cutRanking';
 import { Signed, Wr, type Tone } from './Num';
+import { CardMention, MentionText } from './CardMention';
 
 const toneOf = (o: Outcome): Tone => (o === 'adopt' ? 'pos' : o === 'reject' ? 'neg' : 'neu');
 
@@ -225,11 +226,13 @@ export function CutTable({ cuts, label }: { cuts: readonly CutExplained[]; label
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td>{label ? label(r.id, r.name) : r.name}</td>
+              <td>{label ? label(r.id, r.name) : <CardMention id={r.id}>{r.name}</CardMention>}</td>
               <td className="num">{pts1(r.plain)}</td>
               <td className="num">{pts1(r.score)}</td>
               <td>{r.offered ? 'offered' : 'no'}</td>
-              <td className="muted">{r.why}</td>
+              <td className="muted">
+                <MentionText text={r.why} />
+              </td>
             </tr>
           ))}
         </tbody>

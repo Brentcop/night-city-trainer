@@ -12,6 +12,7 @@ import { ColorPips } from './DeckIdentity';
 import { BOT_TIER_LABEL, DECK_SORT_LABEL, MY_DECK_GROUPS, MY_DECK_LABEL, smallSample, sortDeckStats, winRate, wldText, type DeckSortKey, type WLD } from '../../lib/profileStats';
 import type { SharedDeck, SharedDeckStat, SharedHistoryGame, SharedProfile } from '../../lib/profileShare';
 import { SMALL_SAMPLE } from '../../lib/playedRecord';
+import { CardMention } from './CardMention';
 
 /** Two letters from a card's name ("Alt Cunningham" → "AC"). */
 export const initials = (name: string) =>
@@ -395,12 +396,12 @@ function SharedDeckCards({ d }: { d: SharedDeck }) {
     <ul className="plain-list small profile-cardlist">
       {d.legends.map((id) => (
         <li key={`L-${id}`}>
-          <span className="muted">Legend</span> {CARD_BY_ID[id]?.displayName ?? id}
+          <span className="muted">Legend</span> {CARD_BY_ID[id] ? <CardMention id={id} /> : id}
         </li>
       ))}
       {d.cards.map(([id, n]) => (
         <li key={id}>
-          {n}× {CARD_BY_ID[id]?.displayName ?? id}
+          {n}× {CARD_BY_ID[id] ? <CardMention id={id} /> : id}
         </li>
       ))}
     </ul>
@@ -478,7 +479,17 @@ export function SharedProfileView({ p, mode, deckLink }: { p: SharedProfile; mod
             <ColorPips legends={p.favourite.legends.filter((id) => CARD_BY_ID[id])} /> <b>{(deckLink && deckLink(p.favourite.name) && <a href={deckLink(p.favourite.name)!}>{p.favourite.name}</a>) || p.favourite.name}</b>
             <span className="muted small"> · {p.favourite.chosen ? 'chosen' : 'most played'}</span>
           </p>
-          {p.favourite.legends.length > 0 && <p className="small muted">Legends: {p.favourite.legends.map((id) => CARD_BY_ID[id]?.displayName ?? id).join(', ')}</p>}
+          {p.favourite.legends.length > 0 && (
+            <p className="small muted">
+              Legends:{' '}
+              {p.favourite.legends.map((id, i) => (
+                <span key={`${id}:${i}`}>
+                  {i > 0 && ', '}
+                  {CARD_BY_ID[id] ? <CardMention id={id} /> : id}
+                </span>
+              ))}
+            </p>
+          )}
         </section>
       )}
       {p.headline && (

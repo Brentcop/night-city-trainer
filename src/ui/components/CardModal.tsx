@@ -1,6 +1,6 @@
 // The card dialog: the card at full size with its text, tags, roles, rulings link and the library decks that play it.
 // Opened from the card database and from every deck list (through useCardDialog, which loads this file on first use,
-// because the card scripts it reads pull in the engine).
+// because the card scripts it reads pull in the engine), and from card mentions in text (CardMention.tsx's CardDialogHost).
 import { useId } from 'react';
 import type { CardDef } from '../../engine/types';
 import { CHOOM_RATINGS, ROLES } from '../../ai/knowledge';
@@ -10,11 +10,11 @@ import { TcgCard } from './TcgCard';
 import { CardText } from './CardView';
 import { Modal } from './Modal';
 
-export function CardModal({ def, onClose }: { def: CardDef; onClose: () => void }) {
+export function CardModal({ def, onClose, backdropClassName }: { def: CardDef; onClose: () => void; backdropClassName?: string }) {
   const decks = allDecks().filter((d) => d.deck.legends.includes(def.id) || d.deck.main.includes(def.id));
   const titleId = useId();
   return (
-    <Modal labelledBy={titleId} onClose={onClose}>
+    <Modal labelledBy={titleId} onClose={onClose} backdropClassName={backdropClassName}>
       <div className="modal-body">
         <TcgCard def={def} size="xl" noZoom />
         <div style={{ minWidth: 0, flex: 1 }}>

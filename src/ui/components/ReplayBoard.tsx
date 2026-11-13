@@ -10,6 +10,7 @@ import { useNarrow } from './board/useNarrow';
 import type { ReplayData } from '../../lib/replayFrames';
 import type { GameState, LogEntry, PlayerId } from '../../engine/types';
 import { redactLine, viewFor, ViewGame } from '../../net/view';
+import { MentionText } from './CardMention';
 import '../board.css';
 
 // The recording half (frames, recordReplay) lives in lib/replayFrames so the game worker can use it without React.
@@ -81,7 +82,16 @@ export function FrameBoard({ state, line: seatLine, names: seatNames, narrow, at
       <div className="pb-mat">
         <PlayerSide p={1} ctx={ctx} />
         <div className={`pb-midline ${line?.player === 0 ? 'pb-tone-me' : line?.player === 1 ? 'pb-tone-rival' : ''}`} key={at}>
-          <span>{line ? `${line.player === null ? '' : `${names[line.player]}: `}${line.text}` : ''}</span>
+          <span>
+            {line ? (
+              <>
+                {line.player === null ? '' : `${names[line.player]}: `}
+                <MentionText text={line.text} skip={names} />
+              </>
+            ) : (
+              ''
+            )}
+          </span>
         </div>
         <PlayerSide p={0} ctx={ctx} />
         <div className="replay-hand">
@@ -215,7 +225,8 @@ export function ReplayBoard({ data, names }: { data: ReplayData; names: [string,
               onClick={() => (setPlaying(false), setCur(i))}
             >
               <span className="muted">T{l.turn}</span> {l.player !== null && !l.text.startsWith('---') && <b>{names[l.player]}: </b>}
-              {l.text}
+              {/* a log line is a button (it jumps there): its card names show the card on hover only */}
+              <MentionText text={l.text} skip={names} passive />
             </button>
           ))}
           {end && <div className="sys replay-result">{data.final.winner === 'tie' ? 'Draw' : `${names[data.final.winner as 0 | 1]} wins`} ({data.final.winReason})</div>}

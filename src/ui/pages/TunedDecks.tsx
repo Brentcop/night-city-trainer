@@ -33,6 +33,7 @@ import {
   type TunedSort,
 } from '../../lib/tunedDecks';
 import { CardNameButton, CardThumb, useCardDialog } from '../components/DeckCards';
+import { MentionText } from '../components/CardMention';
 import { PageHead } from '../components/PageHead';
 import { RecordedAt } from '../components/RecordedAt';
 import { RunDetails } from '../components/RunDetails';
@@ -64,7 +65,12 @@ function ChangeRow({ c, onOpen }: { c: TunedEntry['record']['changes'][number]; 
           const sw = parseSwap(p);
           const out = sw.out ? CARD_BY_ID[sw.out] : undefined;
           const inn = sw.in ? CARD_BY_ID[sw.in] : undefined;
-          if (!out || !inn) return <span key={p}>{p}</span>;
+          if (!out || !inn)
+            return (
+              <span key={p}>
+                <MentionText text={p} />
+              </span>
+            );
           return (
             <span key={p} className="lab-swap">
               <CardThumb def={out} onOpen={onOpen} />
@@ -336,15 +342,22 @@ export function TunedDecksPage() {
                       <ul className="small">
                         {p.changes.map((c) => (
                           <li key={c.label}>
-                            {c.label} {c.heldOut ? <span className="muted">(held-out {c.heldOut})</span> : <span className="muted">(no held-out figure recorded: an older forge run)</span>}
+                            <MentionText text={c.label} /> {c.heldOut ? <span className="muted">(held-out {c.heldOut})</span> : <span className="muted">(no held-out figure recorded: an older forge run)</span>}
                           </li>
                         ))}
                       </ul>
                     </>
                   ) : (
-                    <span className="small muted"> · {x.forged}</span>
+                    <span className="small muted">
+                      {' '}
+                      · <MentionText text={x.forged} />
+                    </span>
                   )}
-                  {x.adoption && <div className="small muted">Adoption: {x.adoption}</div>}
+                  {x.adoption && (
+                    <div className="small muted">
+                      Adoption: <MentionText text={x.adoption} />
+                    </div>
+                  )}
                 </li>
               );
             })}

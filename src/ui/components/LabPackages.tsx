@@ -7,6 +7,7 @@ import { ACTIVE_SYNERGIES, SYNERGIES, synergiesIn } from '../../content/synergie
 import { DECK_OBJECTIVES } from '../../content/deckObjectives';
 import { builtAroundIds, defaultKeep, packageChanges, packageCompatibility, packageName } from '../../lib/deckPackages';
 import { roleText } from './SynergyStats';
+import { MentionText } from './CardMention';
 
 /** Toggle one id in a list (order kept). */
 export const toggleId = (list: readonly string[], id: string): string[] => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -53,7 +54,10 @@ export function LabSynergies({
           {found.map((x) => (
             <li key={x.synergy.id}>
               <label title={`${x.synergy.description} Online: ${x.synergy.onlineText}`}>
-                <input type="checkbox" checked={keep.includes(x.synergy.id)} onChange={() => onKeep(toggleId(keep, x.synergy.id))} /> Keep <b>{x.synergy.name}</b>
+                <input type="checkbox" checked={keep.includes(x.synergy.id)} onChange={() => onKeep(toggleId(keep, x.synergy.id))} /> Keep{' '}
+                <b>
+                  <MentionText text={x.synergy.name} passive />
+                </b>
               </label>{' '}
               {x.builtAround && <span className="tag">built around</span>}
               {x.synergy.dormant && <span className="tag" title={x.synergy.dormant.reason}>dormant</span>} <span className="muted small">{roleText(x.copies)}</span>
@@ -95,7 +99,7 @@ export function PackagePicker({ value, onChange, fitAll, onFitAll }: { value: re
       <div className="chip-row" role="group" aria-label="Packages">
         {ACTIVE_SYNERGIES.map((s) => (
           <button key={s.id} type="button" className={`chip-btn${value.includes(s.id) ? ' on' : ''}`} aria-pressed={value.includes(s.id)} title={s.description} onClick={() => onChange(pickPackage(value, s.id))}>
-            {s.name}
+            <MentionText text={s.name} passive />
           </button>
         ))}
       </div>
@@ -116,7 +120,9 @@ export function PackagePicker({ value, onChange, fitAll, onFitAll }: { value: re
               {compat.warning && <span className="muted"> {compat.warning}</span>}
             </>
           ) : (
-            <>⚠ {compat.reason}</>
+            <>
+              ⚠ <MentionText text={compat.reason} />
+            </>
           )}
         </p>
       )}
