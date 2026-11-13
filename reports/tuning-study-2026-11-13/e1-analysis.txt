@@ -1,0 +1,174 @@
+
+quick-s2-08-1: baseline 41.1% | cuts offered: (plain ranking)
+      7.1  -1 (Don't Fear) The Reaper → +1 Dexter DeShawn: One Last Chance
+      3.6  -1 (Don't Fear) The Reaper → +1 Overwatch: Panam's Gift
+      3.6  -1 Zetatech Berserk → +1 Dexter DeShawn: One Last Chance
+     -1.8  -1 Zetatech Berserk → +1 Overwatch: Panam's Gift
+   => nominee: -1 (Don't Fear) The Reaper → +1 Dexter DeShawn: One Last Chance | screen 7.1 | held-out 1.6 [-0.7, 3.8] 448g | inconclusive
+
+quick-s2-08-2: baseline 46.4% | cuts offered: (plain ranking)
+      3.6  -1 Fool on the Hill → +1 Rockn' Rockerboy
+      3.6  -1 Cyberpsychosis → +1 Rockn' Rockerboy
+        0  -1 Zetatech Berserk → +1 Rockn' Rockerboy
+     -1.8  -1 Zetatech Berserk → +1 We Gotta Live Together
+   => nominee: -1 Fool on the Hill → +1 Rockn' Rockerboy | screen 3.6 | held-out 2.0 [-0.6, 4.6] 448g | inconclusive
+
+quick-s2-08-3: baseline 39.3% | cuts offered: (plain ranking)
+      3.6  -1 T-Bug: Amateur Philosopher → +1 Zetatech Berserk
+      3.6  -1 T-Bug: Amateur Philosopher → +1 We Gotta Live Together
+        0  -1 Sandevistan → +1 Zetatech Berserk
+        0  -1 Sandevistan → +1 We Gotta Live Together
+   => nominee: -1 T-Bug: Amateur Philosopher → +1 Zetatech Berserk | screen 3.6 | held-out 1.1 [-1.3, 3.5] 448g | inconclusive
+
+quick-s2-08-4: baseline 48.2% | cuts offered: (plain ranking)
+      1.8  -1 Fool on the Hill → +1 Viktor Vektor: You Might Feel a Little Pinch
+      1.8  -1 Fool on the Hill → +1 Secondhand Bombus
+        0  -1 Fool on the Hill → +1 T-Bug: Amateur Philosopher
+        0  -1 Fool on the Hill → +1 Rockn' Rockerboy
+   => nominee: - | screen - | held-out - | nothing beat the list by 2+
+
+quick-s2-08-5: baseline 41.1% | cuts offered: (plain ranking)
+      3.6  -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy
+      1.8  -1 Zetatech Berserk → +1 Rockn' Rockerboy
+      1.8  -1 Zetatech Berserk → +1 Fool on the Hill
+        0  -1 Memory Relapse → +1 Rockn' Rockerboy
+   => nominee: -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy | screen 3.6 | held-out 5.9 [2.1, 9.9] 336g | adopt
+
+season-s2-05-counter-rrg-1: baseline 56.3% | cuts offered: Mantis Blades, Carnage at the Colosseum, Gunpoint Diplomacy
+      7.1  Swap Ahead on Street Cred → Arasaka Units: +3 Field Operator / -2 Gunpoint Diplomacy, -1 Mantis Blades
+      6.3  -1 Mantis Blades → +1 Johnny Silverhand: Never Stop Fighting
+      3.6  -1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon
+      3.6  Complete Units in the trash: +3 All is Lost / -2 Mantis Blades, -1 Gunpoint Diplomacy
+      1.8  -1 Carnage at the Colosseum → +1 Yorinobu Arasaka: Steel Dragon
+      0.9  -1 Mantis Blades → +1 Shattered Memories
+        0  -1 Mantis Blades → +1 Appetite for Destruction
+     -2.7  Add Block, then punish: +3 Maelstrom Zealots, +3 La Llorona: Ghost of the Past, +1 Corpo Security / -2 Mantis 
+   => nominee: Swap Ahead on Street Cred → Arasaka Units: +3 Field Operator / -2 Gunpoint Diplomacy, -1 M | screen 7.1 | held-out 0.7 [-2.4, 3.7] 896g | inconclusive
+
+season-s2-05-counter-rrg-2: baseline 59.8% | cuts offered: Valentino Street Racer, Mantis Blades, Satori: Sword of Saburo
+      2.7  -1 Valentino Street Racer → +1 Johnny Silverhand: Never Stop Fighting
+      1.8  -1 Valentino Street Racer → +1 Yorinobu Arasaka: Steel Dragon
+        0  -1 Valentino Street Racer → +1 Memory Relapse
+        0  -1 Valentino Street Racer → +1 Industrial Assembly
+     -0.9  -1 Valentino Street Racer → +1 Shattered Memories
+     -5.4  Complete Units in the trash: +3 All is Lost / -3 Valentino Street Racer
+     -5.4  Add Block, then punish: +3 Maelstrom Zealots, +3 La Llorona: Ghost of the Past, +1 Corpo Security / -3 Valenti
+     -6.3  Swap Ahead on Street Cred → Face-up Legends: +3 Zetatech Berserk, +2 Arasaka Emergency Radioport / -2 Gunpoint
+   => nominee: -1 Valentino Street Racer → +1 Johnny Silverhand: Never Stop Fighting | screen 2.7 | held-out 1.6 [-0.3, 3.4] 896g | inconclusive
+
+season-s2-05-counter-rrg-3: baseline 53.6% | cuts offered: We Gotta Live Together, Gunpoint Diplomacy, Bonnie and Clyde
+      9.8  Swap Behind on Gigs → Even Street Cred: +1 Memory Relapse, +1 Field Operator, +1 Yorinobu Arasaka: Steel Drago
+      5.4  -1 We Gotta Live Together → +1 Johnny Silverhand: Never Stop Fighting
+      5.4  Add Even Street Cred: +1 Memory Relapse, +1 Field Operator / -2 Gunpoint Diplomacy
+      4.5  -1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon
+      3.6  -1 Bonnie and Clyde → +1 Yorinobu Arasaka: Steel Dragon
+      2.7  -1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon
+      2.7  Complete Units in the trash: +3 All is Lost / -2 Gunpoint Diplomacy, -1 Satori: Sword of Saburo
+        0  -1 We Gotta Live Together → +1 Mantis Blades
+   => nominee: Swap Behind on Gigs → Even Street Cred: +1 Memory Relapse, +1 Field Operator, +1 Yorinobu  | screen 9.8 | held-out 5.1 [1.9, 8.3] 896g | adopt
+
+season-s2-05-counter-rrg-4: baseline 52.7% | cuts offered: Swordwise Huscle, Memory Relapse, We Gotta Live Together
+      4.5  -1 Swordwise Huscle → +1 Johnny Silverhand: Never Stop Fighting
+      2.7  -1 Swordwise Huscle → +1 Yorinobu Arasaka: Steel Dragon
+      2.7  Swap Behind on Gigs → Arasaka Units: +3 Field Operator, +1 Satori: Sword of Saburo, +1 Yorinobu Arasaka: Steel
+      0.9  -1 Swordwise Huscle → +1 Satori: Sword of Saburo
+      0.9  Add Block, then punish: +3 Maelstrom Zealots, +3 La Llorona: Ghost of the Past, +1 Corpo Security / -1 Swordwi
+        0  -1 Memory Relapse → +1 Satori: Sword of Saburo
+        0  -1 We Gotta Live Together → +1 Satori: Sword of Saburo
+     -0.9  Complete Units in the trash: +3 All is Lost / -1 Swordwise Huscle, -2 Memory Relapse
+   => nominee: -1 Swordwise Huscle → +1 Johnny Silverhand: Never Stop Fighting | screen 4.5 | held-out 2.9 [1.1, 4.7] 896g | adopt
+
+season-s2-05-counter-rrg-5: baseline 62.5% | cuts offered: Mantis Blades, Satori: Sword of Saburo, We Gotta Live Together
+      3.6  -1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon
+      3.6  -1 Mantis Blades → +1 Nadia: Fighting Through Grief
+      1.8  -1 Satori: Sword of Saburo → +1 Yorinobu Arasaka: Steel Dragon
+      1.8  Swap Behind on Gigs → Even Street Cred: +1 Memory Relapse, +1 Field Operator, +1 Shattered Memories, +2 Johnny
+      0.9  -1 Mantis Blades → +1 Memory Relapse
+     -2.7  Complete Units in the trash: +3 All is Lost / -2 Mantis Blades, -1 Satori: Sword of Saburo
+     -4.5  -1 Satori: Sword of Saburo → +1 Nadia: Fighting Through Grief
+     -5.4  Add Arasaka Units: +3 Field Operator / -2 Mantis Blades, -1 Satori: Sword of Saburo
+   => nominee: -1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon | screen 3.6 | held-out 2.0 [0.5, 3.6] 896g | inconclusive
+
+season-s2-08-explorer-ggy-1: baseline 40.2% | cuts offered: Saul Bright: Stormrider, Cyberpsychosis, (Don't Fear) The Reaper
+     15.2  Swap Face-up Legends → Blockers (Goro Takemura): +3 Secondhand Bombus, +1 Overwatch: Panam's Gift, +2 Dexter D
+      7.1  Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -3 Saul Bright: Stormr
+      3.6  -1 (Don't Fear) The Reaper → +1 Dexter DeShawn: One Last Chance
+      2.7  -1 Cyberpsychosis → +1 Overwatch: Panam's Gift
+      0.9  -1 Saul Bright: Stormrider → +1 Overwatch: Panam's Gift
+        0  -1 Saul Bright: Stormrider → +1 Dexter DeShawn: One Last Chance
+     -0.9  -1 (Don't Fear) The Reaper → +1 Overwatch: Panam's Gift
+     -2.7  Complete Gear as fuel: +3 Gilded Matón / -3 Saul Bright: Stormrider
+   => nominee: Swap Face-up Legends → Blockers (Goro Takemura): +3 Secondhand Bombus, +1 Overwatch: Panam | screen 15.2 | held-out 16.1 [7.1, 25.0] 448g | adopt
+
+season-s2-08-explorer-ggy-2: baseline 47.3% | cuts offered: Zetatech Berserk, Fool on the Hill, Cyberpsychosis
+      5.4  -1 Cyberpsychosis → +1 Rockn' Rockerboy
+      0.9  -1 Zetatech Berserk → +1 Rockn' Rockerboy
+      0.9  -1 Fool on the Hill → +1 Rockn' Rockerboy
+     -0.9  -1 Zetatech Berserk → +1 Viktor Vektor: You Might Feel a Little Pinch
+     -1.8  Complete Cyberware toolbox (Viktor Vektor): +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Fool on the H
+     -3.6  -1 Zetatech Berserk → +1 T-Bug: Amateur Philosopher
+     -3.6  Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -2 Fool on the Hill, -
+     -7.1  Swap Gear on Units → Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security, +1 Roc
+   => nominee: -1 Cyberpsychosis → +1 Rockn' Rockerboy | screen 5.4 | held-out 2.5 [0.4, 4.5] 896g | inconclusive
+
+season-s2-08-explorer-ggy-3: baseline 42.9% | cuts offered: Valentino Street Racer, Sandevistan, T-Bug: Amateur Philosopher
+      1.8  -1 T-Bug: Amateur Philosopher → +1 Zetatech Berserk
+      0.9  -1 Valentino Street Racer → +1 Zetatech Berserk
+      0.9  -1 Valentino Street Racer → +1 Fool on the Hill
+        0  -1 Sandevistan → +1 Zetatech Berserk
+        0  -1 Sandevistan → +1 Fool on the Hill
+     -5.4  Swap Face-up Legends → Gear on Units: +1 Zetatech Berserk, +1 Overwatch: Panam's Gift, +1 Fool on the Hill, +1
+     -8.9  Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -3 Valentino Street Ra
+    -14.3  Complete Gear as fuel: +3 Gilded Matón / -3 Valentino Street Racer
+   => nominee: - | screen - | held-out - | nothing beat the list by 2+
+
+season-s2-08-explorer-ggy-4: baseline 40.2% | cuts offered: Fool on the Hill, Dexter DeShawn: One Last Chance, Goro Takemura: Losing His Way
+      5.4  -1 Fool on the Hill → +1 Secondhand Bombus
+      4.5  -1 Fool on the Hill → +1 Rockn' Rockerboy
+      4.5  -1 Fool on the Hill → +1 Viktor Vektor: You Might Feel a Little Pinch
+      4.5  -1 Fool on the Hill → +1 Field Operator
+      3.6  Add Cyberware toolbox (Viktor Vektor): +1 Sandevistan, +1 Zetatech Berserk, +2 Viktor Vektor: You Might Feel a
+      3.6  Swap Units in the trash → Gear on Units: +1 Sandevistan, +1 Zetatech Berserk, +1 Rockn' Rockerboy, +1 Viktor V
+        0  -1 Fool on the Hill → +1 Sandevistan
+     -0.9  Complete Cyberware toolbox (Viktor Vektor): +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Fool on the H
+   => nominee: -1 Fool on the Hill → +1 Secondhand Bombus | screen 5.4 | held-out 4.0 [1.3, 6.7] 672g | adopt
+
+season-s2-08-explorer-ggy-5: baseline 41.1% | cuts offered: Zetatech Berserk, T-Bug: Amateur Philosopher, Saul Bright: Stormrider
+     22.3  Swap Face-up Legends → Blockers (Goro Takemura): +3 Secondhand Bombus, +1 Rockn' Rockerboy, +1 Overwatch: Pana
+      8.9  -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy
+      6.3  Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -2 Cyberpsychosis, -3 
+      1.8  -1 Zetatech Berserk → +1 Rockn' Rockerboy
+      1.8  -1 Saul Bright: Stormrider → +1 Rockn' Rockerboy
+      1.8  -1 Zetatech Berserk → +1 Overwatch: Panam's Gift
+      0.9  -1 T-Bug: Amateur Philosopher → +1 Overwatch: Panam's Gift
+     -2.7  Complete Cyberware toolbox (Viktor Vektor): +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Cyberpsychosi
+   => nominee: Swap Face-up Legends → Blockers (Goro Takemura): +3 Secondhand Bombus, +1 Rockn' Rockerboy | screen 22.3 | held-out 23.7 [5.6, 41.7] 224g | adopt
+
+==== summary by config
+
+quick-s2-08: 5 runs; baselines 41.1, 46.4, 39.3, 48.2, 41.1; distinct candidates 18; candidates in every run 0
+  nominees: -1 (Don't Fear) The Reaper → +1 Dexter DeShawn: On → inconclusive 1.6 [-0.7,3.8] 448g
+            -1 Fool on the Hill → +1 Rockn' Rockerboy → inconclusive 2.0 [-0.6,4.6] 448g
+            -1 T-Bug: Amateur Philosopher → +1 Zetatech Berser → inconclusive 1.1 [-1.3,3.5] 448g
+            none → none nominated
+            -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerbo → adopt 5.9 [2.1,9.9] 336g
+  repeated: -1 Fool on the Hill → +1 Rockn' Rockerboy: screened 3.6, 0
+  repeated: -1 Zetatech Berserk → +1 Rockn' Rockerboy: screened 0, 1.8
+
+season-s2-05-counter-rrg: 5 runs; baselines 56.3, 59.8, 53.6, 52.7, 62.5; distinct candidates 39; candidates in every run 0
+  nominees: Swap Ahead on Street Cred → Arasaka Units: +3 Fiel → inconclusive 0.7 [-2.4,3.7] 896g
+            -1 Valentino Street Racer → +1 Johnny Silverhand:  → inconclusive 1.6 [-0.3,3.4] 896g
+            Swap Behind on Gigs → Even Street Cred: +1 Memory  → adopt 5.1 [1.9,8.3] 896g
+            -1 Swordwise Huscle → +1 Johnny Silverhand: Never  → adopt 2.9 [1.1,4.7] 896g
+            -1 Mantis Blades → +1 Yorinobu Arasaka: Steel Drag → inconclusive 2.0 [0.5,3.6] 896g
+  repeated: -1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon: screened 3.6, 3.6
+
+season-s2-08-explorer-ggy: 5 runs; baselines 40.2, 47.3, 42.9, 40.2, 41.1; distinct candidates 37; candidates in every run 0
+  nominees: Swap Face-up Legends → Blockers (Goro Takemura): + → adopt 16.1 [7.1,25.0] 448g
+            -1 Cyberpsychosis → +1 Rockn' Rockerboy → inconclusive 2.5 [0.4,4.5] 896g
+            none → none nominated
+            -1 Fool on the Hill → +1 Secondhand Bombus → adopt 4.0 [1.3,6.7] 672g
+            Swap Face-up Legends → Blockers (Goro Takemura): + → adopt 23.7 [5.6,41.7] 224g
+  repeated: -1 Zetatech Berserk → +1 Rockn' Rockerboy: screened 0.9, 1.8
+  repeated: -1 Fool on the Hill → +1 Rockn' Rockerboy: screened 0.9, 4.5
+  repeated: Complete Cyberware toolbox (Viktor Vektor): +2 Viktor Vektor: You Might Feel a L: screened -1.8, -0.9

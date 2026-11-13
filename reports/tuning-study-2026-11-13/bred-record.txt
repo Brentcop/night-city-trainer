@@ -1,0 +1,22 @@
+deck | method | parents | season vs-meta (deep v5, games) | Hard v8 vs field [90%] (games) | Hard v8 vs meta | parents mean vs field | best parent vs field | child-mean parent
+S1-01 Mutant (RRY) | mutant | RRG Dexter Midrange | 73.5 (756) | 70.9 [63.6,77.2] (102) | 67.5 | 70.7 | 70.7 | 0.2
+S1-02 Mutant (RYY) | mutant | YYB Rogue Gear | 42.0 (588) | 35.4 [27.9,43.6] (83) | 31.4 | 48.3 | 48.3 | -13.0
+S1-03 Mutant (RBG) | mutant | Rainbow Fixer Stuff | 70.0 (756) | 44.1 [36.1,52.5] (87) | 40.0 | 46.1 | 46.1 | -2.0
+S1-04 Cross (RBG) | crossover | Rainbow Fixer Stuff x RRG Dexter Midrange | 58.7 (588) | 38.5 [30.9,46.8] (89) | 34.5 | 58.4 | 70.7 | -19.9
+S1-05 Cross (RBB) | crossover | GRY Trauma Team x BBG Cunningham Econ | 55.4 (588) | 49.5 [41.3,57.8] (89) | 45.4 | 54.4 | 61.8 | -4.9
+S1-06 Cross (BGY) | crossover | BBG Cunningham Econ x GRY Trauma Team | 27.7 (588) | 20.3 [14.7,27.3] (79) | 17.4 | 54.4 | 61.8 | -34.1
+S1-07 Explorer (RYY) | explorer |  | 56.5 (756) | 45.3 [37.5,53.3] (96) | 41.1 |   -   |   -   | -
+S1-08 Explorer (BGG) | explorer |  | 55.4 (588) | 44.3 [36.4,52.6] (90) | 40.2 |   -   |   -   | -
+S2-01 Mutant (RYY) | mutant | S1-01 Mutant (RRY) | 51.0 (588) | 50.8 [41.6,60.0] (68) | 46.7 | 70.9 | 70.9 | -20.1
+S2-02 Mutant (RGG) | mutant | RRG Dexter Midrange | 73.6 (588) | 62.3 [53.0,70.8] (68) | 58.5 | 70.7 | 70.7 | -8.4
+S2-03 Cross (RGY) | crossover | Smash the Curve x S1-07 Explorer (RYY) | 73.0 (588) | 45.9 [36.7,55.4] (65) | 41.8 | 57.8 | 70.3 | -11.9
+S2-04 Cross (RRG) | crossover | S1-01 Mutant (RRY) x Ladder: V / Smasher / Saburo (RRG) | 57.3 (588) | 46.7 [37.4,56.2] (64) | 42.6 | 69.0 | 70.9 | -22.3
+S2-05 Counter (RRG) | counter | S1-01 Mutant (RRY) x BBG Cunningham Econ | 71.8 (588) | 66.0 [57.2,74.0] (69) | 62.4 | 66.3 | 70.9 | -0.3
+S2-06 Counter (RGG) | counter | Ladder: V / Smasher / Saburo (RRG) x BBG Cunningham Econ | 68.0 (588) | 63.3 [54.6,71.3] (75) | 59.5 | 64.4 | 67.1 | -1.1
+S2-07 Explorer (RRB) | explorer |  | 74.7 (588) | 55.2 [45.5,64.6] (63) | 51.2 |   -   |   -   | -
+S2-08 Explorer (GGY) | explorer |  | 48.1 (588) | 38.4 [29.5,48.1] (61) | 34.3 |   -   |   -   | -
+child - mean parent (vs field, Hard v8): mean -11.5 n 12 children above mean parent 1
+child - best parent: mean -15.5 above best parent 1 of 12
+season vs-meta (deep v5) mean 59.8  Hard v8 vs-meta mean 44.7
+ranks of bred decks among 47 : S1-01#1, S1-02#43, S1-03#37, S1-04#39, S1-05#22, S1-06#46, S1-07#33, S1-08#36, S2-01#20, S2-02#11, S2-03#31, S2-04#29, S2-05#6, S2-06#9, S2-07#17, S2-08#41
+spearman season-meta(deep v5) vs Hard v8 meta, bred decks n 16 0.69

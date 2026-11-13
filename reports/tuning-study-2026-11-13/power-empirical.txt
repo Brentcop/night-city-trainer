@@ -1,0 +1,18 @@
+z per look (1 nominee): 4.33 / 2.96 / 2.36 / 2.01
+
+1. Confirmation alone (one nominee): P(adopt) by true gain, and the gain adopted 80% of the time
+  single card (sd 0.24), stages of 112 up to 448: +0: 0%  +1: 3%  +2: 14%  +3: 40%  +5: 94% | 50% at +3.5, 80% at +4.3 pts
+  single card (sd 0.24), stages of 224 up to 896: +0: 0%  +1: 2%  +2: 24%  +3: 69%  +5: 100% | 50% at +2.7, 80% at +3.5 pts
+  single card (sd 0.24), stages of 280 up to 1120: +0: 0%  +1: 2%  +2: 28%  +3: 80%  +5: 100% | 50% at +2.5, 80% at +3.2 pts
+  single card (sd 0.24), stages of 336 up to 1344: +0: 0%  +1: 2%  +2: 32%  +3: 86%  +5: 100% | 50% at +2.5, 80% at +3.0 pts
+  package move (sd 0.5), stages of 112 up to 448: +0: 1%  +1: 2%  +2: 6%  +3: 14%  +5: 39% | 50% at +5.8, 80% at +7.8 pts
+  package move (sd 0.5), stages of 224 up to 896: +0: 1%  +1: 2%  +2: 9%  +3: 22%  +5: 67% | 50% at +4.5, 80% at +5.8 pts
+  package move (sd 0.5), stages of 280 up to 1120: +0: 1%  +1: 2%  +2: 10%  +3: 26%  +5: 74% | 50% at +4.0, 80% at +5.3 pts
+  package move (sd 0.5), stages of 336 up to 1344: +0: 1%  +1: 2%  +2: 10%  +3: 30%  +5: 82% | 50% at +3.8, 80% at +5.0 pts
+
+2. Whole pipeline, true single-card effects resampled from E3 (54 measured candidates); screen SD 0.24
+  Lab Quick (56 screen, stages 112 to 448, 4 cands): nominated 85% of runs, screening overstates the nominee by 3.5 pts; adopted 22.3%, of those true gain < 1 pt 1%, mean true gain adopted 3.7 pts; screen picks the truly best candidate 43%; best candidate's true gain averages 2.6 pts; ~907 games per run
+  Lab Standard (112, 224 to 896, 5 cands): nominated 87% of runs, screening overstates the nominee by 2.4 pts; adopted 38.1%, of those true gain < 1 pt 0%, mean true gain adopted 3.7 pts; screen picks the truly best candidate 47%; best candidate's true gain averages 2.8 pts; ~1913 games per run
+  Lab Thorough (168, 336 to 1344, 6 cands): nominated 90% of runs, screening overstates the nominee by 1.9 pts; adopted 50.9%, of those true gain < 1 pt 0%, mean true gain adopted 3.7 pts; screen picks the truly best candidate 51%; best candidate's true gain averages 3.1 pts; ~2985 games per run
+  Season forge step (112, 224 to 896, 5 cands + 3 pkg): nominated 97% of runs, screening overstates the nominee by 2.6 pts; adopted 48.1%, of those true gain < 1 pt 0%, mean true gain adopted 3.8 pts; screen picks the truly best candidate 41%; best candidate's true gain averages 3.4 pts; ~2369 games per run
+  Forge default (140, 280 to 1120, 6 cands): nominated 91% of runs, screening overstates the nominee by 2.1 pts; adopted 47.7%, of those true gain < 1 pt 0%, mean true gain adopted 3.7 pts; screen picks the truly best candidate 49%; best candidate's true gain averages 3.1 pts; ~2546 games per run

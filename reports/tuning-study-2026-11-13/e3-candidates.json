@@ -1,0 +1,1398 @@
+[
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Swap Ahead on Street Cred → Arasaka Units: +3 Field Operator / -2 Gunpoint Diplomacy, -1 Mantis Blades",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.007142857142857143,
+  "se": 0.012693757391701452,
+  "sd": 0.4248143758463222,
+  "same": 0.8196428571428571,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 7.1
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Mantis Blades → +1 Johnny Silverhand: Never Stop Fighting",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.033928571428571426,
+  "se": 0.007823551734153292,
+  "sd": 0.26182612005949624,
+  "same": 0.9303571428571429,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 6.3
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.024107142857142858,
+  "se": 0.0069392313997745595,
+  "sd": 0.23223110108245892,
+  "same": 0.9455357142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 3.6
+   },
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Complete Units in the trash: +3 All is Lost / -2 Mantis Blades, -1 Gunpoint Diplomacy",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.0125,
+  "se": 0.009859256272788677,
+  "sd": 0.32995382459190503,
+  "same": 0.8910714285714286,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Carnage at the Colosseum → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.022321428571428572,
+  "se": 0.006710841865429072,
+  "sd": 0.2245877253278349,
+  "same": 0.9491071428571428,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Mantis Blades → +1 Shattered Memories",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.005357142857142857,
+  "se": 0.0030901826060283533,
+  "sd": 0.10341729044619283,
+  "same": 0.9892857142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Mantis Blades → +1 Appetite for Destruction",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0008928571428571428,
+  "se": 0.0019972028072006444,
+  "sd": 0.06683919014665686,
+  "same": 0.9955357142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 La Llorona: Ghost of the Past, +1 Corpo Security / -2 Mantis Blades, -2 Gunpoint Diplomacy, -1 Swordwise Huscle, -2 Memory Relapse",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.05089285714285714,
+  "se": 0.016521592862725892,
+  "sd": 0.5529182529165375,
+  "same": 0.6919642857142857,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-1",
+    "delta": -2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Valentino Street Racer → +1 Johnny Silverhand: Never Stop Fighting",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.00625,
+  "se": 0.007309227954437301,
+  "sd": 0.24461355417212474,
+  "same": 0.9401785714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": 2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Valentino Street Racer → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.007142857142857143,
+  "se": 0.00714285714285722,
+  "sd": 0.2390457218668813,
+  "same": 0.9428571428571428,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Valentino Street Racer → +1 Memory Relapse",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0017857142857142857,
+  "se": 0.007683893289351578,
+  "sd": 0.25715225453415586,
+  "same": 0.9339285714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Valentino Street Racer → +1 Industrial Assembly",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0035714285714285713,
+  "se": 0.00747275330186928,
+  "sd": 0.2500861590329821,
+  "same": 0.9375,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Valentino Street Racer → +1 Shattered Memories",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.004464285714285714,
+  "se": 0.0074187413939095755,
+  "sd": 0.2482785748591132,
+  "same": 0.9383928571428571,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": -0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Complete Units in the trash: +3 All is Lost / -3 Valentino Street Racer",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.024107142857142858,
+  "se": 0.0161861613479155,
+  "sd": 0.5416925673132724,
+  "same": 0.70625,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": -5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 La Llorona: Ghost of the Past, +1 Corpo Security / -3 Valentino Street Racer, -2 Mantis Blades, -2 Satori: Sword of Saburo",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.05714285714285714,
+  "se": 0.01647912946101932,
+  "sd": 0.5514971556845956,
+  "same": 0.6928571428571428,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": -5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Swap Ahead on Street Cred → Face-up Legends: +3 Zetatech Berserk, +2 Arasaka Emergency Radioport / -2 Gunpoint Diplomacy, -3 Valentino Street Racer",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.023214285714285715,
+  "se": 0.016211954957386667,
+  "sd": 0.5425557865926547,
+  "same": 0.7053571428571429,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-2",
+    "delta": -6.3
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Swap Behind on Gigs → Even Street Cred: +1 Memory Relapse, +1 Field Operator, +1 Yorinobu Arasaka: Steel Dragon, +2 Johnny Silverhand: Never Stop Fighting / -1 Nadia: Fighting Through Grief, -3 Bonnie and Clyde, -1 We Gotta Live Together",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.060714285714285714,
+  "se": 0.014565043296238412,
+  "sd": 0.4874395804280316,
+  "same": 0.7589285714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 9.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 We Gotta Live Together → +1 Johnny Silverhand: Never Stop Fighting",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.005357142857142857,
+  "se": 0.007471799889178033,
+  "sd": 0.2500542517414798,
+  "same": 0.9375,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Add Even Street Cred: +1 Memory Relapse, +1 Field Operator / -2 Gunpoint Diplomacy",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.009821428571428571,
+  "se": 0.010219565652341788,
+  "sd": 0.3420120827942003,
+  "same": 0.8830357142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.013392857142857142,
+  "se": 0.00597875317685103,
+  "sd": 0.20008735166339486,
+  "same": 0.9598214285714286,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 4.5
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Bonnie and Clyde → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0026785714285714286,
+  "se": 0.006860762318591326,
+  "sd": 0.22960502334066418,
+  "same": 0.9473214285714285,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.022321428571428572,
+  "se": 0.007281103040174889,
+  "sd": 0.24367231451160243,
+  "same": 0.9401785714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Complete Units in the trash: +3 All is Lost / -2 Gunpoint Diplomacy, -1 Satori: Sword of Saburo",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.008035714285714285,
+  "se": 0.010063617321834846,
+  "sd": 0.33679305342060495,
+  "same": 0.8866071428571428,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 We Gotta Live Together → +1 Mantis Blades",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0035714285714285713,
+  "se": 0.0030924871649332954,
+  "sd": 0.10349441573877516,
+  "same": 0.9892857142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-3",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Swordwise Huscle → +1 Johnny Silverhand: Never Stop Fighting",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.01875,
+  "se": 0.007611372008408008,
+  "sd": 0.25472522826061456,
+  "same": 0.9348214285714286,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 4.5
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Swordwise Huscle → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.009821428571428571,
+  "se": 0.006496370617468143,
+  "sd": 0.21741014452744342,
+  "same": 0.9526785714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Swap Behind on Gigs → Arasaka Units: +3 Field Operator, +1 Satori: Sword of Saburo, +1 Yorinobu Arasaka: Steel Dragon / -1 Nadia: Fighting Through Grief, -3 Bonnie and Clyde, -1 We Gotta Live Together",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.01607142857142857,
+  "se": 0.01472411929605709,
+  "sd": 0.49276328163720073,
+  "same": 0.7571428571428571,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Swordwise Huscle → +1 Satori: Sword of Saburo",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0008928571428571428,
+  "se": 0.0068611776629724265,
+  "sd": 0.22961892342230067,
+  "same": 0.9473214285714285,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 La Llorona: Ghost of the Past, +1 Corpo Security / -1 Swordwise Huscle, -2 Memory Relapse, -2 Gunpoint Diplomacy, -2 Valentino Street Racer",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.05714285714285714,
+  "se": 0.016479129461019315,
+  "sd": 0.5514971556845955,
+  "same": 0.6928571428571428,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Memory Relapse → +1 Satori: Sword of Saburo",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.00625,
+  "se": 0.0075243895742755735,
+  "sd": 0.2518142392346449,
+  "same": 0.9366071428571429,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 We Gotta Live Together → +1 Satori: Sword of Saburo",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0035714285714285713,
+  "se": 0.003092487164933288,
+  "sd": 0.10349441573877491,
+  "same": 0.9892857142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Complete Units in the trash: +3 All is Lost / -1 Swordwise Huscle, -2 Memory Relapse",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.008035714285714285,
+  "se": 0.013922410843348039,
+  "sd": 0.4659329850245548,
+  "same": 0.7830357142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-4",
+    "delta": -0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Mantis Blades → +1 Nadia: Fighting Through Grief",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.017857142857142856,
+  "se": 0.006898507889359973,
+  "sd": 0.23086823175029778,
+  "same": 0.9464285714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Satori: Sword of Saburo → +1 Yorinobu Arasaka: Steel Dragon",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.013392857142857142,
+  "se": 0.006965054935308395,
+  "sd": 0.23309532187945664,
+  "same": 0.9455357142857143,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Swap Behind on Gigs → Even Street Cred: +1 Memory Relapse, +1 Field Operator, +1 Shattered Memories, +2 Johnny Silverhand: Never Stop Fighting / -1 Nadia: Fighting Through Grief, -3 Bonnie and Clyde, -1 We Gotta Live Together",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.04017857142857143,
+  "se": 0.01449146385992427,
+  "sd": 0.48497714150247345,
+  "same": 0.7633928571428571,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Mantis Blades → +1 Memory Relapse",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0008928571428571428,
+  "se": 0.0032205697328530104,
+  "sd": 0.10778087832574561,
+  "same": 0.9883928571428572,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Complete Units in the trash: +3 All is Lost / -2 Mantis Blades, -1 Satori: Sword of Saburo",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.020535714285714286,
+  "se": 0.009887649159797491,
+  "sd": 0.330904032335832,
+  "same": 0.8901785714285714,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": -2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "-1 Satori: Sword of Saburo → +1 Nadia: Fighting Through Grief",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.015178571428571428,
+  "se": 0.007187351444171864,
+  "sd": 0.24053478599962233,
+  "same": 0.9419642857142857,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": -4.5
+   }
+  ]
+ },
+ {
+  "deck": "S2-05 Counter (RRG)",
+  "label": "Add Arasaka Units: +3 Field Operator / -2 Mantis Blades, -1 Satori: Sword of Saburo",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0,
+  "se": 0.01318876688955023,
+  "sd": 0.4413805622305133,
+  "same": 0.8053571428571429,
+  "screens": [
+   {
+    "run": "season-s2-05-counter-rrg-5",
+    "delta": -5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 (Don't Fear) The Reaper → +1 Dexter DeShawn: One Last Chance",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.009821428571428571,
+  "se": 0.007934002447725264,
+  "sd": 0.2655225079374096,
+  "same": 0.9294642857142857,
+  "screens": [
+   {
+    "run": "quick-s2-08-1",
+    "delta": 7.1
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 (Don't Fear) The Reaper → +1 Overwatch: Panam's Gift",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.00625,
+  "se": 0.006250000000000048,
+  "sd": 0.2091650066335205,
+  "same": 0.95625,
+  "screens": [
+   {
+    "run": "quick-s2-08-1",
+    "delta": 3.6
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": -0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 Dexter DeShawn: One Last Chance",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0008928571428571428,
+  "se": 0.008039259753754595,
+  "sd": 0.2690450911556258,
+  "same": 0.9276785714285715,
+  "screens": [
+   {
+    "run": "quick-s2-08-1",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 Overwatch: Panam's Gift",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0026785714285714286,
+  "se": 0.004972794321448016,
+  "sd": 0.1664215291572479,
+  "same": 0.9723214285714286,
+  "screens": [
+   {
+    "run": "quick-s2-08-1",
+    "delta": -1.8
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Fool on the Hill → +1 Rockn' Rockerboy",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.04017857142857143,
+  "se": 0.009074002302287226,
+  "sd": 0.30367420028007575,
+  "same": 0.90625,
+  "screens": [
+   {
+    "run": "quick-s2-08-2",
+    "delta": 3.6
+   },
+   {
+    "run": "quick-s2-08-4",
+    "delta": 0
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": 0.9
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 4.5
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Cyberpsychosis → +1 Rockn' Rockerboy",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.03571428571428571,
+  "se": 0.008686721940917864,
+  "sd": 0.29071332038329906,
+  "same": 0.9142857142857143,
+  "screens": [
+   {
+    "run": "quick-s2-08-2",
+    "delta": 3.6
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": 5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 Rockn' Rockerboy",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.03214285714285714,
+  "se": 0.008227797378731305,
+  "sd": 0.2753547669282532,
+  "same": 0.9232142857142858,
+  "screens": [
+   {
+    "run": "quick-s2-08-2",
+    "delta": 0
+   },
+   {
+    "run": "quick-s2-08-5",
+    "delta": 1.8
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": 0.9
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 We Gotta Live Together",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0017857142857142857,
+  "se": 0.0012621263496316,
+  "sd": 0.042238826606885216,
+  "same": 0.9982142857142857,
+  "screens": [
+   {
+    "run": "quick-s2-08-2",
+    "delta": -1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 T-Bug: Amateur Philosopher → +1 Zetatech Berserk",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0,
+  "se": 0.007365977734433463,
+  "sd": 0.24651276506962044,
+  "same": 0.9392857142857143,
+  "screens": [
+   {
+    "run": "quick-s2-08-3",
+    "delta": 3.6
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 T-Bug: Amateur Philosopher → +1 We Gotta Live Together",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0035714285714285713,
+  "se": 0.007256060689868775,
+  "sd": 0.2428342371727389,
+  "same": 0.9410714285714286,
+  "screens": [
+   {
+    "run": "quick-s2-08-3",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Sandevistan → +1 Zetatech Berserk",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0008928571428571428,
+  "se": 0.0034594626738756224,
+  "sd": 0.11577576530073688,
+  "same": 0.9866071428571429,
+  "screens": [
+   {
+    "run": "quick-s2-08-3",
+    "delta": 0
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Sandevistan → +1 We Gotta Live Together",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0017857142857142857,
+  "se": 0.003572625230390436,
+  "sd": 0.11956290880219081,
+  "same": 0.9857142857142858,
+  "screens": [
+   {
+    "run": "quick-s2-08-3",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Fool on the Hill → +1 Viktor Vektor: You Might Feel a Little Pinch",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0008928571428571428,
+  "se": 0.006624510076023161,
+  "sd": 0.22169851103923155,
+  "same": 0.9508928571428571,
+  "screens": [
+   {
+    "run": "quick-s2-08-4",
+    "delta": 1.8
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 4.5
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Fool on the Hill → +1 Secondhand Bombus",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.04375,
+  "se": 0.008699793037154149,
+  "sd": 0.2911507629322542,
+  "same": 0.9133928571428571,
+  "screens": [
+   {
+    "run": "quick-s2-08-4",
+    "delta": 1.8
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Fool on the Hill → +1 T-Bug: Amateur Philosopher",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.011607142857142858,
+  "se": 0.006967918309406289,
+  "sd": 0.23319114870540547,
+  "same": 0.9455357142857143,
+  "screens": [
+   {
+    "run": "quick-s2-08-4",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.04285714285714286,
+  "se": 0.008085958289107902,
+  "sd": 0.2706079230687378,
+  "same": 0.925,
+  "screens": [
+   {
+    "run": "quick-s2-08-5",
+    "delta": 3.6
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 8.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 Fool on the Hill",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0026785714285714286,
+  "se": 0.004465562181866529,
+  "sd": 0.14944629494280057,
+  "same": 0.9776785714285714,
+  "screens": [
+   {
+    "run": "quick-s2-08-5",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Memory Relapse → +1 Rockn' Rockerboy",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.03660714285714286,
+  "se": 0.008544455130324494,
+  "sd": 0.28595216224226033,
+  "same": 0.9169642857142857,
+  "screens": [
+   {
+    "run": "quick-s2-08-5",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Swap Face-up Legends → Blockers (Goro Takemura): +3 Secondhand Bombus, +1 Overwatch: Panam's Gift, +2 Dexter DeShawn: One Last Chance / -2 Goro Takemura: Losing His Way, -2 T-Bug: Amateur Philosopher, -2 Zetatech Berserk",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.15089285714285713,
+  "se": 0.0181640727840717,
+  "sd": 0.6078861446995323,
+  "same": 0.6080357142857142,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": 15.2
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -3 Saul Bright: Stormrider, -2 Cyberpsychosis, -2 Sandevistan",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.022321428571428572,
+  "se": 0.01709930845522997,
+  "sd": 0.572252314634682,
+  "same": 0.6723214285714286,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": 7.1
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Cyberpsychosis → +1 Overwatch: Panam's Gift",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0017857142857142857,
+  "se": 0.003994405614401406,
+  "sd": 0.13367838029331763,
+  "same": 0.9821428571428571,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": 2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Saul Bright: Stormrider → +1 Overwatch: Panam's Gift",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.014285714285714285,
+  "se": 0.007672202237038574,
+  "sd": 0.2567609970886195,
+  "same": 0.9339285714285714,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Saul Bright: Stormrider → +1 Dexter DeShawn: One Last Chance",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.011607142857142858,
+  "se": 0.007931847127654861,
+  "sd": 0.26545037713151787,
+  "same": 0.9294642857142857,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Complete Gear as fuel: +3 Gilded Matón / -3 Saul Bright: Stormrider",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.05178571428571429,
+  "se": 0.014704752836326593,
+  "sd": 0.4921151559287212,
+  "same": 0.7553571428571428,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-1",
+    "delta": -2.7
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 Viktor Vektor: You Might Feel a Little Pinch",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.005357142857142857,
+  "se": 0.007577836509960512,
+  "sd": 0.25360291581977795,
+  "same": 0.9357142857142857,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": -0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Complete Cyberware toolbox (Viktor Vektor): +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Fool on the Hill",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.011607142857142858,
+  "se": 0.01284703095947634,
+  "sd": 0.4299438905375826,
+  "same": 0.8151785714285714,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": -1.8
+   },
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": -0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Zetatech Berserk → +1 T-Bug: Amateur Philosopher",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.019642857142857142,
+  "se": 0.007342534880992832,
+  "sd": 0.24572821713435353,
+  "same": 0.9392857142857143,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": -3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -2 Fool on the Hill, -2 Cyberpsychosis, -3 Saul Bright: Stormrider",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.010714285714285714,
+  "se": 0.016945314333067812,
+  "sd": 0.5670986855813107,
+  "same": 0.6785714285714286,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": -3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Swap Gear on Units → Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security, +1 Rockn' Rockerboy / -2 Sandevistan, -2 Overwatch: Panam's Gift, -2 Zetatech Berserk, -2 Cyberpsychosis",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.025892857142857145,
+  "se": 0.017509848114958454,
+  "sd": 0.5859915995387509,
+  "same": 0.65625,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-2",
+    "delta": -7.1
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Valentino Street Racer → +1 Zetatech Berserk",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.009821428571428571,
+  "se": 0.007305718261327316,
+  "sd": 0.2444960973749037,
+  "same": 0.9401785714285714,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Valentino Street Racer → +1 Fool on the Hill",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.007142857142857143,
+  "se": 0.006799483097997767,
+  "sd": 0.2275542283675524,
+  "same": 0.9482142857142857,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Sandevistan → +1 Fool on the Hill",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0035714285714285713,
+  "se": 0.0017833189603091632,
+  "sd": 0.059681267546039383,
+  "same": 0.9964285714285714,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Swap Face-up Legends → Gear on Units: +1 Zetatech Berserk, +1 Overwatch: Panam's Gift, +1 Fool on the Hill, +1 Viktor Vektor: You Might Feel a Little Pinch / -2 Goro Takemura: Losing His Way, -2 T-Bug: Amateur Philosopher",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.030357142857142857,
+  "se": 0.01752621682387967,
+  "sd": 0.5865394013163651,
+  "same": 0.6553571428571429,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": -5.4
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -3 Valentino Street Racer, -2 Sandevistan, -2 Cyberpsychosis",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.015178571428571428,
+  "se": 0.018922315863387777,
+  "sd": 0.633261811693927,
+  "same": 0.5991071428571428,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": -8.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Complete Gear as fuel: +3 Gilded Matón / -3 Valentino Street Racer",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.05625,
+  "se": 0.017763362036255833,
+  "sd": 0.5944757981035278,
+  "same": 0.64375,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-3",
+    "delta": -14.3
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Fool on the Hill → +1 Field Operator",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0008928571428571428,
+  "se": 0.006624510076023161,
+  "sd": 0.22169851103923155,
+  "same": 0.9508928571428571,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 4.5
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Add Cyberware toolbox (Viktor Vektor): +1 Sandevistan, +1 Zetatech Berserk, +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Fool on the Hill, -2 Saul Bright: Stormrider",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.013392857142857142,
+  "se": 0.014699398353935514,
+  "sd": 0.49193596067354534,
+  "same": 0.7580357142857143,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Swap Units in the trash → Gear on Units: +1 Sandevistan, +1 Zetatech Berserk, +1 Rockn' Rockerboy, +1 Viktor Vektor: You Might Feel a Little Pinch / -2 Fool on the Hill, -2 We Gotta Live Together",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.04107142857142857,
+  "se": 0.013725677578255154,
+  "sd": 0.45934903067284494,
+  "same": 0.7875,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 3.6
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Fool on the Hill → +1 Sandevistan",
+  "pkg": false,
+  "n": 1120,
+  "mean": -0.0008928571428571428,
+  "se": 0.0026796350924388128,
+  "sd": 0.08967774270165989,
+  "same": 0.9919642857142857,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-4",
+    "delta": 0
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Swap Face-up Legends → Blockers (Goro Takemura): +3 Secondhand Bombus, +1 Rockn' Rockerboy, +1 Overwatch: Panam's Gift, +1 Fool on the Hill / -2 Goro Takemura: Losing His Way, -2 T-Bug: Amateur Philosopher, -2 Zetatech Berserk",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.16428571428571428,
+  "se": 0.019111742568845052,
+  "sd": 0.6396012417904929,
+  "same": 0.5642857142857143,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 22.3
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Add Block, then punish: +3 Maelstrom Zealots, +3 Secondhand Bombus, +1 Corpo Security / -2 Cyberpsychosis, -3 Saul Bright: Stormrider, -2 Sandevistan",
+  "pkg": true,
+  "n": 1120,
+  "mean": 0.022321428571428572,
+  "se": 0.01709930845522997,
+  "sd": 0.572252314634682,
+  "same": 0.6723214285714286,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 6.3
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 Saul Bright: Stormrider → +1 Rockn' Rockerboy",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.044642857142857144,
+  "se": 0.008649737763561337,
+  "sd": 0.28947559307096093,
+  "same": 0.9142857142857143,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 1.8
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "-1 T-Bug: Amateur Philosopher → +1 Overwatch: Panam's Gift",
+  "pkg": false,
+  "n": 1120,
+  "mean": 0.0125,
+  "se": 0.006909033509229925,
+  "sd": 0.23122048636628503,
+  "same": 0.9464285714285714,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": 0.9
+   }
+  ]
+ },
+ {
+  "deck": "S2-08 Explorer (GGY)",
+  "label": "Complete Cyberware toolbox (Viktor Vektor): +2 Viktor Vektor: You Might Feel a Little Pinch / -2 Cyberpsychosis",
+  "pkg": true,
+  "n": 1120,
+  "mean": -0.0125,
+  "se": 0.012690052709240849,
+  "sd": 0.42469039345729065,
+  "same": 0.8196428571428571,
+  "screens": [
+   {
+    "run": "season-s2-08-explorer-ggy-5",
+    "delta": -2.7
+   }
+  ]
+ }
+]
