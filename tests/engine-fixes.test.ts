@@ -35,8 +35,8 @@ describe('ENG-1 replacement effects: mandatory before optional (10.28)', () => {
 });
 
 describe('ENG-2 effect steals obey steal restrictions (11.5.1.3)', () => {
-  // FAQ Chrome Fang #5: a Unit with "when this Unit steals a Gig, steal an additional Gig" still can't take a Gig with a
-  // value higher than its power after Chrome Fang's {Play}.
+  // FAQ Chrome Fang #5 (faq:fa5d28f5, paraphrased): an extra steal granted by an effect is still bound by Chrome Fang's
+  // {Play}, so it cannot take a Gig worth more than the stealing Unit's power.
   it("Chrome Fang's ban applies to stealOne", async () => {
     const { g } = setup();
     const att = spawn(g, 0, 'psycho_squad', 'field'); // power 6
@@ -67,8 +67,8 @@ describe('ENG-2 effect steals obey steal restrictions (11.5.1.3)', () => {
     expect(g.gig(x).controller).toBe(1);
   });
 
-  // Official rules FAQ (2026-11-09), Take Control #1: "When a rival Unit attempts to steal a Gig through an effect, it
-  // steals 1 fewer Gig this turn while under the effect of Take Control." — Yes. Confirms the reading of 11.5.1.3.
+  // Official rules FAQ (2026-11-09), Take Control #1 (faq:4e9fde1b, paraphrased): the "1 fewer" from Take Control also
+  // applies when the affected rival Unit steals by an effect rather than by attacking. Confirms the reading of 11.5.1.3.
   it('FAQ Take Control #1: an effect steal (Gorilla Arms) also steals 1 fewer', async () => {
     const { g } = setup();
     const att = spawn(g, 0, 'psycho_squad', 'field'); // power 6
