@@ -83,48 +83,6 @@ export function PlaySetup({
   return (
     <div className="grid" style={{ maxWidth: 860 }}>
       <h1>Play vs Bot</h1>
-      {online && (
-        <div className="panel play-online-entry">
-          <div>
-            <b>Play online</b>
-            <div className="small muted">Play a friend in their own browser: host a game and send them the invite, or join with theirs.</div>
-          </div>
-          <div className="row">
-            <a className="btn primary" href="#/play/online?mode=host">
-              Host a game
-            </a>
-            <a className="btn" href="#/play/online?mode=join">
-              Join a game
-            </a>
-          </div>
-        </div>
-      )}
-      {multiDay && (
-        <div className="panel play-online-entry">
-          <div>
-            <b>Play a person over days</b>
-            <div className="small muted">A game by turn packets: make your move whenever you like and send the packet by any messenger; they reply with theirs.</div>
-          </div>
-          <div className="row">
-            <a className="btn" href="#/play/corr">
-              Multi-day game vs a person
-            </a>
-          </div>
-        </div>
-      )}
-      {dA && dB && (
-        <div className="pb-versus">
-          <div className="pb-versus-deck">
-            <div className="pb-label">You</div>
-            <DeckTile d={dA} />
-          </div>
-          <div className="pb-versus-vs">VS</div>
-          <div className="pb-versus-deck">
-            <div className="pb-label">Bot</div>
-            <DeckTile d={dB} />
-          </div>
-        </div>
-      )}
       <div className="panel grid">
         <DeckPicker label="Your deck" value={mine} onChange={setMine} />
         <DeckPicker label="Bot deck" value={opp} onChange={setOpp} />
@@ -179,7 +137,8 @@ export function PlaySetup({
             )}
           </div>
         )}
-        <div className="row">
+        {/* stays in view at the bottom of the screen while the form is longer than it (phones), so Start is always reachable */}
+        <div className="row play-start-row">
           {saves && !md && <ResumeButton saves={saves} />}
           <button className={saves?.autosave && saves.storage && !md ? '' : 'primary'} onClick={onStart} disabled={!mine || !opp || !!saves?.restoring || !!md?.blocked}>
             {md ? 'Start multi-day game' : 'Start game'}
@@ -189,10 +148,54 @@ export function PlaySetup({
               ⚙ Settings
             </button>
           )}
-          <a href="#/guides">Read the matchup guide first →</a>
         </div>
         {saves && <ResumeNote saves={saves} />}
+        <a href="#/guides" className="small">
+          Read the matchup guide first →
+        </a>
       </div>
+      {dA && dB && (
+        <div className="pb-versus">
+          <div className="pb-versus-deck">
+            <div className="pb-label">You</div>
+            <DeckTile d={dA} />
+          </div>
+          <div className="pb-versus-vs">VS</div>
+          <div className="pb-versus-deck">
+            <div className="pb-label">Bot</div>
+            <DeckTile d={dB} />
+          </div>
+        </div>
+      )}
+      {(online || multiDay) && (
+        // playing a person: a compact row under the bot game (UX-13: Start game comes first, on the first screen)
+        <div className="panel play-online-entry">
+          <div>
+            <b>Play a person instead</b>
+            <div className="small muted">
+              {online && 'Online: host a game and send a friend the invite, or join with theirs. '}
+              {multiDay && 'Over days: make your move whenever you like and send the turn packet by any messenger.'}
+            </div>
+          </div>
+          <div className="row">
+            {online && (
+              <>
+                <a className="btn" href="#/play/online?mode=host">
+                  Host a game
+                </a>
+                <a className="btn" href="#/play/online?mode=join">
+                  Join a game
+                </a>
+              </>
+            )}
+            {multiDay && (
+              <a className="btn" href="#/play/corr">
+                Multi-day game vs a person
+              </a>
+            )}
+          </div>
+        </div>
+      )}
       {multiDay?.panel}
       {saves && <SavedGamesPanel saves={saves} />}
       <MatchupRead A={dA} B={dB} />

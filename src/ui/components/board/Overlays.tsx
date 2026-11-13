@@ -278,7 +278,7 @@ export function GameOverOverlay({
           {s.turn} turns · you went {s.first === 0 ? 'first' : 'second'} · Gigs {g.gigsOf(0).length}–{g.gigsOf(1).length}
         </div>
         {review}
-        <div className="row" style={{ marginTop: 16, justifyContent: 'center' }}>
+        <div className="row pb-over-actions">
           <button className="primary pb-big" onClick={onRematch} disabled={rematchDisabled}>
             {rematchLabel}
           </button>

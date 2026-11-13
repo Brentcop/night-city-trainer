@@ -21,7 +21,7 @@ import { seatLift } from '../../ai/packageLift';
 import { boardWarnings, coachWorthAsking, gradeMove, scorable, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
-import { boardMarks, buildInteraction, coachMark, onlyEndTurn, type Targeting } from '../components/board/interaction';
+import { boardMarks, buildInteraction, coachMark, onlyEndTurn, promptZones, type Targeting } from '../components/board/interaction';
 import type { BoardCtx } from '../components/board/BoardCard';
 import { MyHand, PlayerSide } from '../components/board/Zones';
 import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
@@ -46,8 +46,8 @@ import {
   type PaySelection,
 } from '../../lib/eddiePayment';
 import { useViewport } from '../components/board/useNarrow';
-import { phoneLayout, phoneVars } from '../components/board/layout';
-import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
+import { FALLBACK_SLOT, phoneLayout, phonePanelSlot, phoneVars, slotBox, type SlotBox } from '../components/board/layout';
+import { CardPeek, GameMenu, PhonePanel, PhonePanelTab, phonePanelState } from '../components/board/PhoneParts';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
 import { saveOfRun, useGameTick, usePracticeGame, type TickSource } from '../usePracticeGame';
 import { removeUnresumable } from '../../lib/gameKeeper';
@@ -657,6 +657,8 @@ export function Board({
   const [gameMenu, setGameMenu] = useState(false);
   const [peek, setPeek] = useState<{ uid: number; choose?: number; d: Decision | null } | null>(null);
   const [collapsedFor, setCollapsedFor] = useState<Decision | null>(null);
+  // phones: a prompt whose every possible place on the table is in use opens as a tab; this is the one opened anyway
+  const [expandedFor, setExpandedFor] = useState<Decision | null>(null);
   const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
   // Save game: the named saves while the dialog is open, and a short note once saved
   const [saving, setSaving] = useState<SavedGame[] | null>(null);
@@ -936,7 +938,63 @@ export function Board({
   };
   const mulligan = !!pend && pend.kind === 'yesno' && pend.tag === 'mulligan';
   const head = failed ? { text: 'The game stopped because of an error', tone: 'rival' } : headline(ctx);
-  const panel = narrow ? phonePanelState({ pend, targeting, over, allOpen, collapsed: !!pend && collapsedFor === pend }) : 'none';
+  // phones: the prompt panel sits over a part of the table this decision doesn't use (phonePanelSlot)
+  const needs = useMemo(() => promptZones(g, pend, ix, targeting), [g, pend, ix, targeting]);
+  const freeSlot = phone ? phonePanelSlot(phone.mode, needs) : null;
+  const panelSlot = freeSlot ?? FALLBACK_SLOT;
+  const panel = narrow
+    ? phonePanelState({ pend, targeting, over, allOpen, collapsed: !!pend && collapsedFor === pend, slotFree: freeSlot !== null, expanded: !!pend && expandedFor === pend })
+    : 'none';
+  // where the panel and the card menus sit, measured from the board (slotBox); the menus render at <body>, so their
+  // place goes there as variables
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [boxes, setBoxes] = useState<{ panel: SlotBox; menu: SlotBox } | null>(null);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!phone || !root) return;
+    const mode = phone.mode;
+    const measure = () => {
+      const rect = (sel: string) => root.querySelector(sel)?.getBoundingClientRect() ?? null;
+      const mat = rect('.pb-mat');
+      const rivalField = rect('.pb-rival .pb-field');
+      const ownField = rect('.pb-me .pb-field');
+      const hand = rect('.pb-handbar');
+      const midline = rect('.pb-midline');
+      if (!mat || !rivalField || !ownField || !hand || !midline) return;
+      const r = { mat, rivalField, ownField, hand, midline };
+      const next = { panel: slotBox(panelSlot, mode, r, window.innerHeight), menu: slotBox('menu', mode, r, window.innerHeight) };
+      setBoxes((old) => (old && JSON.stringify(old) === JSON.stringify(next) ? old : next));
+    };
+    measure();
+    const mat = root.querySelector('.pb-mat');
+    const ro = typeof ResizeObserver !== 'undefined' && mat ? new ResizeObserver(measure) : null;
+    if (ro && mat) ro.observe(mat);
+    return () => ro?.disconnect();
+  }, [phone, panelSlot, version]);
+  // the full board: the hand bar takes the spare height (board.css), and the log drawer stops above it
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const bar = narrow ? null : root?.querySelector<HTMLElement>('.pb-handbar');
+    if (!root || !bar || typeof ResizeObserver === 'undefined') return;
+    const set = () => root.style.setProperty('--pb-handbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(bar);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty('--pb-handbar-h');
+    };
+  }, [narrow]);
+  useLayoutEffect(() => {
+    const m = phone ? boxes?.menu : null;
+    if (!m) return;
+    const st = document.body.style;
+    const vars: Record<string, string> = { '--pp-x': `${m.left}px`, '--pp-y': `${m.top ?? 0}px`, '--pp-w': `${m.width}px`, '--pp-h': `${m.maxHeight}px` };
+    for (const [k, v] of Object.entries(vars)) st.setProperty(k, v);
+    return () => {
+      for (const k of Object.keys(vars)) st.removeProperty(k);
+    };
+  }, [phone, boxes]);
 
   // a concede that the game ended before (or an exit after it ended) has nothing left to confirm
   useEffect(() => {
@@ -1006,7 +1064,7 @@ export function Board({
   ].join(' ');
 
   return (
-    <div className={rootCls} style={phone ? (phoneVars(phone) as React.CSSProperties) : undefined} data-board-bg={settings.boardBg} data-gig-bg={settings.gigBg}>
+    <div ref={rootRef} className={rootCls} style={phone ? (phoneVars(phone) as React.CSSProperties) : undefined} data-board-bg={settings.boardBg} data-gig-bg={settings.gigBg}>
       {narrow ? (
         // phones: one row — the game menu, the turn, the log, Undo and Concede (speed, hand order, pages and Exit are in ☰)
         <div className="pb-topbar pb-strip-phone">
@@ -1018,6 +1076,17 @@ export function Board({
             <span className={`pb-turn-who ${s.active === 0 && !over ? 'me' : 'rival'}`}>{conceded ? 'CONCEDED' : over ? 'OVER' : s.active === 0 ? 'YOU' : online ? 'THEM' : 'RIVAL'}</span>
             {s.overtime && <span className="pb-overtime">OT</span>}
           </div>
+          {/* the prompt panel, hidden: a button here, so it covers nothing on the table */}
+          {panel === 'tab' && (
+            <PhonePanelTab
+              ctx={ctx}
+              onExpand={() => {
+                setCollapsedFor(null);
+                setExpandedFor(pend);
+                if (pend?.kind === 'action' && !targeting) setAllOpen(true);
+              }}
+            />
+          )}
           <div className="pb-strip-tools">
             {!panelHidden && (
               <button
@@ -1077,7 +1146,7 @@ export function Board({
           {!online && (
             <label className="pb-speed small muted">
               <span className="pb-speed-cap">Bot speed</span>
-              <select value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="Bot speed">
+              <select value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="Bot speed" title="Bot speed">
                 {BOT_SPEEDS.map((x) => (
                   <option key={x.ms} value={x.ms}>
                     {x.label}
@@ -1095,18 +1164,24 @@ export function Board({
             </button>
           )}
           {!online && (
-            <button onClick={onUndo} disabled={!undoable} title="Go back to before your last action (also undoes the bot's moves since)">
-              ↶ Undo
+            <button onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Go back to before your last action (also undoes the bot's moves since)">
+              ↶<span className="pb-strip-text"> Undo</span>
             </button>
           )}
           {over && hideOver && <button onClick={() => setHideOver(false)}>Result</button>}
           {!over && (
-            <button className="pb-concede" onClick={() => openLeave('concede')} disabled={!concedable} title="End the game now as a recorded loss">
-              ⚑ Concede
+            <button className="pb-concede" onClick={() => openLeave('concede')} disabled={!concedable} aria-label="Concede" title="End the game now as a recorded loss">
+              ⚑<span className="pb-strip-text"> Concede</span>
             </button>
           )}
-          <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} title={over ? 'Back to the game setup' : online ? 'Leave this game: it ends as abandoned (a draw)' : 'Leave this game without recording a result'}>
-            {over ? 'New game' : 'Exit game'}
+          <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} aria-label={over ? undefined : 'Exit game'} title={over ? 'Back to the game setup' : online ? 'Leave this game: it ends as abandoned (a draw)' : 'Leave this game without recording a result'}>
+            {over ? (
+              'New game'
+            ) : (
+              <>
+                Exit<span className="pb-strip-text"> game</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -1145,9 +1220,10 @@ export function Board({
                   {handAction}
                   {sortButton}
                 </div>
+                {/* the prompt first (its heading and the coach in view without scrolling), then every option */}
+                <PromptPanel ctx={ctx} note={coachNote} hidePass />
                 {paySelect}
                 {allActions}
-                <PromptPanel ctx={ctx} note={coachNote} hidePass />
               </section>
             )}
           </div>
@@ -1157,13 +1233,14 @@ export function Board({
             ctx={ctx}
             state={panel}
             note={coachNote}
+            box={boxes?.panel}
             allActions={allActions}
             paySelect={paySelect}
             onPeek={(uid, choose) => setPeek({ uid, choose, d: pend })}
-            onCollapse={() => (pend?.kind === 'action' && !targeting ? setAllOpen(false) : setCollapsedFor(pend))}
-            onExpand={() => {
-              setCollapsedFor(null);
-              if (pend?.kind === 'action' && !targeting) setAllOpen(true);
+            onCollapse={() => {
+              setExpandedFor(null);
+              if (pend?.kind === 'action' && !targeting) setAllOpen(false);
+              else setCollapsedFor(pend);
             }}
           />
         )}

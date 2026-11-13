@@ -241,6 +241,12 @@ export function MyHand({ ctx }: { ctx: BoardCtx }) {
         return (
           <div key={u} className="pb-fan" style={{ ['--rot' as any]: `${ctx.narrow ? 0 : off * 2.2}deg`, ['--dy' as any]: `${ctx.narrow ? 0 : Math.abs(off) * Math.abs(off) * 1.4}px` }}>
             <BoardCard uid={u} size={size} ctx={ctx} />
+            {/* phones: an overlapped card shows only a strip, so its name rides on that strip (board.css .pb-fan-cap) */}
+            {ctx.narrow && (
+              <span className="pb-fan-cap" aria-hidden="true">
+                {ctx.g.def(u).displayName}
+              </span>
+            )}
           </div>
         );
       })}

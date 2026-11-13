@@ -121,7 +121,10 @@ describe('the lobby', () => {
       onStart: () => undefined,
     };
     expect(renderToStaticMarkup(<PlaySetup {...props} online />)).toContain('#/play/online?mode=host');
-    expect(renderToStaticMarkup(<PlaySetup {...props} />)).not.toContain('Play online');
+    expect(renderToStaticMarkup(<PlaySetup {...props} />)).not.toContain('#/play/online');
+    // the bot game's Start comes before the play-a-person row (UX-13)
+    const html = renderToStaticMarkup(<PlaySetup {...props} online />);
+    expect(html.indexOf('Start game')).toBeLessThan(html.indexOf('#/play/online?mode=host'));
   });
 });
 

@@ -20,6 +20,11 @@ export type Lib = Map<string, LibraryDeck>;
 /** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
 export const useLib = () => useMemo(() => byName(allDecks()), []);
 export const short = (s: string, n = 26) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+/**
+ * A long name shortened in the middle, keeping its start and its end: deck names that share a start ("Ladder: V /
+ * Smasher / Padre" and "… / Saburo") differ at the end, so the end must show (UX-16). The full name goes in a title.
+ */
+export const midShort = (s: string, n = 44) => (s.length > n ? `${s.slice(0, Math.ceil((n - 1) / 2)).trimEnd()}…${s.slice(s.length - Math.floor((n - 1) / 2)).trimStart()}` : s);
 
 /** Minimal match shape: history index entries have no games, live/full ones do. */
 export interface MatchView {
@@ -49,14 +54,14 @@ function MatchMarks({ m }: { m: MatchView }) {
   );
 }
 
-function DeckName({ name, lib }: { name: string; lib: Lib }) {
+function DeckName({ name, lib, label }: { name: string; lib: Lib; label?: string }) {
   const d = lib.get(name);
   return d ? (
     <a href={`#/deck?d=${encodeURIComponent(d.file)}`} title={name}>
-      {name}
+      {label ?? name}
     </a>
   ) : (
-    <span>{name}</span>
+    <span title={label && label !== name ? name : undefined}>{label ?? name}</span>
   );
 }
 
@@ -130,7 +135,7 @@ export function Bracket({
                     <div key={si} className={`bracket-side ${!m.winner ? '' : m.winner === side ? 'win' : 'lose'}`}>
                       <span className="seed">{seedOf(side) || ''}</span>
                       <span className="bname" title={side}>
-                        {short(side, 24)}
+                        {midShort(side)}
                       </span>
                       <b>{m.b === null || (!m.games?.length && !m.winner && !m.live) ? '' : m.score[si]}</b>
                     </div>
@@ -157,7 +162,9 @@ export function Bracket({
         <div className={`bracket-match champ ${champion ? '' : 'tbd'}`}>
           <div className={`bracket-side ${champion ? 'win' : ''}`}>
             <span className="seed">🏆</span>
-            <span className="bname">{champion ? <DeckName name={champion} lib={lib} /> : <span className="muted">TBD</span>}</span>
+            <span className="bname" title={champion ?? undefined}>
+              {champion ? <DeckName name={champion} lib={lib} label={midShort(champion)} /> : <span className="muted">TBD</span>}
+            </span>
           </div>
         </div>
       </div>

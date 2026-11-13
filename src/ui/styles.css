@@ -194,6 +194,13 @@ textarea {
   padding: 6px 10px;
   min-height: 34px;
 }
+/* a checkbox or radio is drawn at its own size: the field height above made its box 34px tall, so it sat a line above
+   its words (UX-17); its label is the tap target */
+input[type='checkbox'],
+input[type='radio'] {
+  min-height: 0;
+  padding: 0;
+}
 select:focus,
 input:focus,
 textarea:focus {
@@ -282,6 +289,14 @@ thead th {
 }
 
 /* ===== layout and top bar: solid deep base, framed section strip, glowing active tab ===== */
+/* UX-7: the scrollbar's room is kept on every page, so a page with no scrollbar (one still loading) is as wide as one
+   with a scrollbar and the header doesn't jump; the Play board (fixed to the screen, no page scroll) gives it back */
+html {
+  scrollbar-gutter: stable;
+}
+html:has(.pb-game) {
+  scrollbar-gutter: auto;
+}
 .app {
   display: flex;
   flex-direction: column;
@@ -341,15 +356,17 @@ thead th {
   clip-path: polygon(0 0, 100% 0, 100% 70%, 88% 100%, 0 100%);
 }
 .nav {
+  position: relative;
   display: flex;
+  min-width: 0;
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--panel) 80%, transparent);
   flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
+  /* the tabs that don't fit the row go under More (MainNav measures them), so nothing scrolls or is cut here */
+  overflow: visible;
 }
 /* transitions for .nav a and .subnav a are in motion.css */
 .nav a {
@@ -383,6 +400,78 @@ thead th {
 .nav a.active .nav-icon {
   color: var(--accent);
   opacity: 1;
+}
+/* More: a tab-like button whose menu holds the tabs that don't fit the row (MainNav.tsx). Every box property is set,
+   so the hidden span the header measures it by is exactly as wide as the button. */
+.nav-more {
+  position: relative;
+  display: inline-flex;
+}
+.nav-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.98rem;
+  line-height: inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+button.nav-more-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: transparent;
+  box-shadow: none;
+}
+.nav-more-btn.active,
+.nav-more-btn[aria-expanded='true'] {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent-bg) 13%, var(--panel-2));
+}
+.nav-more-btn:focus-visible {
+  outline-offset: -2px;
+}
+.nav-more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 60;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.nav-more-menu a {
+  padding: 8px 12px;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+/* the measuring copy: real sizes, nothing shown, nothing to scroll */
+.nav-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
 }
 /* multi-day games waiting for your move (the Play tab) */
 .nav-count {
@@ -445,13 +534,29 @@ thead th {
   padding: 12px 20px;
   border-top: 1px solid var(--border);
 }
-@media (max-width: 900px) {
-  .nav {
-    order: 3;
-    width: 100%;
+/* narrower desktops and tablets: tighter spacing, so more tabs stay on the one row */
+@media (max-width: 1100px) {
+  .topbar {
+    gap: 14px;
+    padding: 9px 14px;
+  }
+  .brand a {
+    letter-spacing: 0.1em;
+  }
+  .nav a,
+  .nav-more-btn {
+    padding: 6px 10px;
+    letter-spacing: 0.04em;
   }
 }
+/* phones: the tabs get a row of their own under the brand (MainNav reads --nav-own-row) */
 @media (max-width: 640px) {
+  .nav {
+    --nav-own-row: 1;
+    order: 3;
+    width: 100%;
+    box-sizing: border-box;
+  }
   .main {
     padding: 12px 16px;
   }
@@ -463,7 +568,8 @@ thead th {
     font-size: 1rem;
     letter-spacing: 0.1em;
   }
-  .nav a {
+  .nav a,
+  .nav-more-btn {
     padding: 6px 10px;
     font-size: 0.92rem;
   }
@@ -493,6 +599,18 @@ thead th {
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+/* a checkbox (or radio) and its words: the box stays beside the first line and the words wrap beside it, instead of
+   the words dropping to a line of their own (UX-17) */
+label.row:has(> input[type='checkbox']:first-child),
+label.row:has(> input[type='radio']:first-child) {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+label.row > input[type='checkbox']:first-child,
+label.row > input[type='radio']:first-child {
+  flex: none;
+  margin-top: 0.2em;
 }
 .spread {
   display: flex;
@@ -871,9 +989,25 @@ thead th {
   gap: 8px;
   align-items: center;
 }
+/* "More…" under a cut context line: phones only (PageHead shows it when the text is cut) */
+.page-head-more {
+  display: none;
+}
 @media (max-width: 640px) {
   .page-head {
     padding: 12px 12px 14px 16px;
+  }
+  .page-head-sub:not(.is-open) {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .page-head-more {
+    display: inline-flex;
+    min-height: 32px;
+    margin-top: 2px;
+    padding: 2px 8px;
   }
 }
 /* a panel framed like the board's active side: yellow corner top left, cyan corner bottom right */
@@ -1462,10 +1596,14 @@ button.danger-soft {
   color: var(--muted);
   text-align: center;
 }
+/* up to two lines, so decks whose names share a long start can be told apart (midShort keeps the end) */
 .bracket-side .bname {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 tr.top-cut td:first-child {
   box-shadow: inset 3px 0 0 var(--accent-bg);
@@ -1698,6 +1836,16 @@ tr.tier-divider th {
   outline-offset: 2px;
 }
 
+/* the Play setup's Start row: sticks to the bottom of the screen while the form runs past it (UX-13) */
+.play-start-row {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -16px;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
 /* ---------- difficulty picker ---------- */
 .tier-pick {
   display: grid;

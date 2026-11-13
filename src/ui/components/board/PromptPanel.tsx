@@ -15,7 +15,8 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
   if (targeting) return { text: `Choose a target for ${g.name(targeting.attacker)} — a glowing unit or the Gig area`, tone: 'me' };
   if (!pend) return { text: ctx.rivalName ? `Waiting for ${ctx.rivalName}…` : g.s.active === 1 ? "Rival's turn…" : 'Resolving…', tone: 'rival' };
   if (onlyEndTurn(pend)) return { text: 'Nothing left to do: end your turn', tone: 'me' };
-  if (pend.kind === 'action') return { text: 'Your move — click a marked card to act, or end your turn', tone: 'me' };
+  // "pick", not "click": the same words on touch screens (phones and tablets) and with a mouse
+  if (pend.kind === 'action') return { text: 'Your move — pick a marked card to act, or end your turn', tone: 'me' };
   if (pend.kind === 'reaction') {
     const a = g.s.attack;
     if (a) {

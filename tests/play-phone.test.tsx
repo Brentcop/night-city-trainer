@@ -1,13 +1,13 @@
 // Play board on phones (P1b): which layout a screen gets, the phone board's size budget, which prompt options are
-// picked on the board and which show in the small right-edge panel, and the panel's open/tab/collapsed state.
+// picked on the board and which show in the prompt panel, where that panel sits, and its open/tab/collapsed state.
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Game } from '../src/engine/engine';
 import type { Decision } from '../src/engine/types';
 import type { BoardCtx } from '../src/ui/components/board/BoardCard';
-import { buildInteraction, promptChoices } from '../src/ui/components/board/interaction';
-import { compactFor, layoutMode, PHONE_FIXED, phoneLayout, phoneVars } from '../src/ui/components/board/layout';
-import { PhonePanel, phonePanelState } from '../src/ui/components/board/PhoneParts';
+import { buildInteraction, promptChoices, promptZones } from '../src/ui/components/board/interaction';
+import { compactFor, layoutMode, PHONE_FIXED, phoneLayout, phonePanelSlot, phoneVars, slotBox } from '../src/ui/components/board/layout';
+import { PhonePanel, PhonePanelTab, phonePanelState } from '../src/ui/components/board/PhoneParts';
 import { fillerDeck, Scripted } from './engine-helpers';
 
 const PHONES: [number, number][] = [
@@ -68,22 +68,47 @@ describe('phone size budget', () => {
     });
   }
 
-  it('the prompt panel is at most a third of the old prompt dock, and leaves the centre free', () => {
-    for (const [w, h] of PHONES) {
-      const L = phoneLayout(w, h);
-      // the old dock: full width, up to 45% of the height in portrait and 60% in landscape
-      const before = w * h * (w > h ? 0.6 : 0.45);
-      expect(L.panel.w * L.panel.maxH).toBeLessThanOrEqual(before / 3);
-      expect(L.panel.w).toBeLessThanOrEqual(w * 0.5); // never reaches the middle of the screen
-    }
+  // UX-3 / UX-6 (review 2026-11-13): the old right-edge panel covered the Gigs, the piles and End turn. It now sits over
+  // a part of the table the decision isn't made on, never a back row (Legends, Gigs, piles) or the banner.
+  it('the prompt panel goes over a part of the table the decision does not use', () => {
+    expect(phonePanelSlot('phone', new Set())).toBe('hand');
+    expect(phonePanelSlot('phone', new Set(['hand']))).toBe('rivalField');
+    expect(phonePanelSlot('phone', new Set(['hand', 'rivalField']))).toBe('ownField');
+    expect(phonePanelSlot('phone', new Set(['hand', 'rivalField', 'ownField']))).toBeNull();
+    // back rows are never a slot, so needing them never moves the panel
+    expect(phonePanelSlot('phone', new Set(['ownBack', 'rivalBack']))).toBe('hand');
+    expect(phonePanelSlot('phone-land', new Set())).toBe('ownField');
+    expect(phonePanelSlot('phone-land', new Set(['ownField']))).toBe('rivalField');
+    expect(phonePanelSlot('phone-land', new Set(['ownField', 'rivalField']))).toBeNull();
+  });
+
+  it("a slot's box stays inside its part of the table, clear of the banner", () => {
+    const R = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
+    const r = { mat: R(0, 44, 375, 812), rivalField: R(9, 142, 366, 250), midline: R(4, 276, 371, 316), ownField: R(9, 342, 366, 488), hand: R(4, 593, 371, 787) };
+    const hand = slotBox('hand', 'phone', r, 812);
+    expect(hand.bottom).toBe(4);
+    expect(812 - hand.bottom! - hand.maxHeight).toBeGreaterThanOrEqual(r.hand.top);
+    const top = slotBox('rivalField', 'phone', r, 812);
+    expect(top.top).toBe(r.rivalField.top);
+    expect(top.top! + top.maxHeight).toBeLessThanOrEqual(r.midline.top);
+    const own = slotBox('ownField', 'phone', r, 812);
+    expect(own.top).toBeGreaterThanOrEqual(r.midline.bottom);
+    expect(own.top! + own.maxHeight).toBeLessThanOrEqual(r.ownField.bottom);
+    // a card's menu: the rival's side above the banner
+    const menu = slotBox('menu', 'phone', r, 812);
+    expect(menu.top! + menu.maxHeight).toBeLessThanOrEqual(r.midline.top);
+    for (const b of [hand, top, own, menu]) expect(b.left + b.width).toBeLessThanOrEqual(375);
+    // landscape: the field itself
+    const land = { mat: R(0, 44, 716, 375), rivalField: R(219, 56, 530, 160), midline: R(4, 171, 708, 211), ownField: R(219, 224, 605, 363), hand: R(712, 56, 808, 364) };
+    expect(slotBox('ownField', 'phone-land', land, 375)).toEqual({ left: 219, width: 386, top: 224, maxHeight: 139 });
   });
 
   it('turns into CSS variables', () => {
     const v = phoneVars(phoneLayout(375, 812));
     expect(v['--pf']).toMatch(/^\d+(\.\d)?px$/);
     expect(v['--pb-strip-h']).toBe('44px');
-    expect(v['--pb-side-right']).toBe('0px');
-    expect(phoneVars(phoneLayout(812, 375))['--pb-side-right']).not.toBe('0px');
+    expect(v['--phcol']).toBe('0px');
+    expect(phoneVars(phoneLayout(812, 375))['--phcol']).not.toBe('0px');
   });
 });
 
@@ -117,21 +142,25 @@ describe('prompt options: on the board or in the panel', () => {
     const { g, ctx } = scene();
     const roll: Decision = { player: 0, kind: 'gig', prompt: 'Roll in a Gig from your fixer area', tag: 'rollIn', min: 1, max: 1, options: g.P(0).fixer.slice(0, 4).map((id) => ({ label: `d${g.gig(id).sides}`, gig: id })) };
     const noop = () => undefined;
-    const html = renderToStaticMarkup(<PhonePanel ctx={ctx(roll)} state="open" onCollapse={noop} onExpand={noop} onPeek={noop} allActions={null} />);
+    const html = renderToStaticMarkup(<PhonePanel ctx={ctx(roll)} state="open" onCollapse={noop} onPeek={noop} allActions={null} />);
     expect(html).toContain('pb-pp-btns');
     for (const o of roll.options) expect(html).toContain(`>${o.label}</button>`);
     const discard: Decision = { player: 0, kind: 'card', prompt: 'Discard a card', tag: 'discard', min: 1, max: 1, options: g.P(0).hand.map((uid) => ({ label: g.name(uid), uid })) };
-    const h2 = renderToStaticMarkup(<PhonePanel ctx={ctx(discard)} state="open" onCollapse={noop} onExpand={noop} onPeek={noop} allActions={null} />);
+    const h2 = renderToStaticMarkup(<PhonePanel ctx={ctx(discard)} state="open" onCollapse={noop} onPeek={noop} allActions={null} />);
     expect(h2).toContain('Discard a card');
     expect(h2).toContain('Tap a ◎ card on the board');
     expect(h2).not.toContain('pb-tray-item');
     expect(h2).not.toContain('pb-pp-btns');
-    // collapsed: just the tab, which names the prompt and reopens it
-    const tab = renderToStaticMarkup(<PhonePanel ctx={ctx(discard)} state="tab" onCollapse={noop} onExpand={noop} onPeek={noop} allActions={null} />);
+    // collapsed: the panel is gone and a button in the strip names the prompt and reopens it
+    expect(renderToStaticMarkup(<PhonePanel ctx={ctx(discard)} state="tab" onCollapse={noop} onPeek={noop} allActions={null} />)).toBe('');
+    const tab = renderToStaticMarkup(<PhonePanelTab ctx={ctx(discard)} onExpand={noop} />);
     expect(tab).toContain('pb-pp-tab');
     expect(tab).toContain('Show the prompt: Discard a card');
     expect(tab).not.toContain('pb-pp-head');
-    expect(renderToStaticMarkup(<PhonePanel ctx={ctx(discard)} state="none" onCollapse={noop} onExpand={noop} onPeek={noop} allActions={null} />)).toBe('');
+    expect(renderToStaticMarkup(<PhonePanel ctx={ctx(discard)} state="none" onCollapse={noop} onPeek={noop} allActions={null} />)).toBe('');
+    // the zones each decision is made on: a hand-card choice uses the hand, a Gig roll your back row
+    expect([...promptZones(g, discard, buildInteraction(g, discard), null)]).toEqual(['hand']);
+    expect([...promptZones(g, roll, buildInteraction(g, roll), null)]).toEqual(['ownBack']);
   });
 });
 
@@ -155,5 +184,10 @@ describe('phone prompt panel state', () => {
     expect(phonePanelState({ ...base, pend: d('action'), allOpen: true, collapsed: true })).toBe('tab');
     // choosing an attack target is a prompt
     expect(phonePanelState({ ...base, pend: d('action'), targeting: { attacker: 1, targets: [] } })).toBe('open');
+  });
+  it('a prompt with no part of the table free opens as the strip button, until the player opens it', () => {
+    expect(phonePanelState({ ...base, pend: d('card'), slotFree: false })).toBe('tab');
+    expect(phonePanelState({ ...base, pend: d('card'), slotFree: false, expanded: true })).toBe('open');
+    expect(phonePanelState({ ...base, pend: d('card'), slotFree: true })).toBe('open');
   });
 });

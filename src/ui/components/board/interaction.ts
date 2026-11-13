@@ -278,6 +278,43 @@ export function promptChoices(g: Game, ix: Interaction): PromptChoices {
   return { board, tray, buttons: ix.buttonOpts };
 }
 
+/**
+ * The parts of the table a decision is made on (the phone's prompt panel never covers them): your hand, either field,
+ * and either back row (Legends, Gigs and piles; your €$ pile pays costs). From the options only, like the marks.
+ */
+export type TableZone = 'hand' | 'ownField' | 'rivalField' | 'ownBack' | 'rivalBack';
+
+export function promptZones(g: Game, pend: Decision | null, ix: Interaction, targeting: Targeting | null): Set<TableZone> {
+  const out = new Set<TableZone>();
+  const add = (uid: number) => {
+    const c = g.s.cards[uid];
+    if (!c) return;
+    const mine = c.controller === 0;
+    if (c.zone === 'hand' && mine) out.add('hand');
+    else if (c.zone === 'field') out.add(mine ? 'ownField' : 'rivalField');
+    else if (c.zone === 'legends') out.add(mine ? 'ownBack' : 'rivalBack');
+  };
+  const addGig = (id: number) => {
+    // a die sits in its controller's Gig area, or in its owner's fixer area until it is rolled in
+    const gig = g.s.gigs[id];
+    out.add(gig && (gig.controller ?? gig.owner) !== 0 ? 'rivalBack' : 'ownBack');
+  };
+  if (!pend) return out;
+  if (targeting) {
+    for (const t of targeting.targets) {
+      if (t.unit !== null) add(t.unit);
+      if (t.gigs !== null) out.add(t.gigs === 0 ? 'ownBack' : 'rivalBack');
+    }
+    return out;
+  }
+  for (const uid of ix.menus.keys()) add(uid);
+  for (const uid of ix.direct.keys()) add(uid);
+  for (const id of ix.gigDirect.keys()) addGig(id);
+  for (const id of ix.gigHighlight) addGig(id);
+  if (pend.kind === 'pay') out.add('ownBack');
+  return out;
+}
+
 /** What the coach's suggested option points at on the board. */
 export interface CoachMark {
   i: number;

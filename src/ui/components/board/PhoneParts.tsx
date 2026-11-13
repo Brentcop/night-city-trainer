@@ -12,21 +12,32 @@ import { promptChoices, type Targeting } from './interaction';
 import { headline } from './PromptPanel';
 import { BOT_SPEEDS } from './prefs';
 import { CoachBox, type CoachNote } from './CoachPanel';
+import type { SlotBox } from './layout';
 import { optionName, shownLabel } from '../../../lib/coachWords';
 
 export type PanelState = 'none' | 'tab' | 'open';
 
 /**
- * Whether the phone's prompt panel shows, as a tab or open. Nothing to decide, the mulligan (its own dialog) and a
- * finished game: none. Your main phase: the panel only carries "All actions", so it is open while that list is open
- * and a tab otherwise. Any other prompt (a choice, a Gig roll, a reaction, choosing an attack target): open, unless the
- * player collapsed it for this decision.
+ * Whether the phone's prompt panel shows, as a tab (a button in the strip) or open. Nothing to decide, the mulligan
+ * (its own dialog) and a finished game: none. Your main phase: the panel only carries "All actions", so it is open while
+ * that list is open and a tab otherwise. Any other prompt (a choice, a Gig roll, a reaction, choosing an attack target):
+ * open, unless the player collapsed it for this decision, or every part of the table it could cover is one the decision
+ * is made on (`slotFree` false; phonePanelSlot) and the player hasn't opened it for this decision (`expanded`).
  */
-export function phonePanelState(o: { pend: Decision | null; targeting: Targeting | null; over: boolean; allOpen: boolean; collapsed: boolean }): PanelState {
+export function phonePanelState(o: {
+  pend: Decision | null;
+  targeting: Targeting | null;
+  over: boolean;
+  allOpen: boolean;
+  collapsed: boolean;
+  slotFree?: boolean;
+  expanded?: boolean;
+}): PanelState {
   const { pend, targeting, over } = o;
   if (!pend || over || (pend.kind === 'yesno' && pend.tag === 'mulligan')) return 'none';
   if (pend.kind === 'action' && !targeting) return o.allOpen && !o.collapsed ? 'open' : 'tab';
-  return o.collapsed ? 'tab' : 'open';
+  if (o.collapsed) return 'tab';
+  return o.slotFree === false && !o.expanded ? 'tab' : 'open';
 }
 
 /** The prompt's one-line title for the panel and its tab. */
@@ -40,7 +51,25 @@ function panelTitle(ctx: BoardCtx): string {
 }
 
 /**
- * The phone's prompt panel: a small box against the right edge with the instruction and buttons. Cards on the table are
+ * The collapsed panel: a button in the phone's strip (so it covers nothing) naming the prompt, or "Actions" in your
+ * main phase; it opens the panel.
+ */
+export function PhonePanelTab({ ctx, onExpand }: { ctx: BoardCtx; onExpand: () => void }) {
+  const { pend, targeting } = ctx;
+  if (!pend) return null;
+  const title = panelTitle(ctx);
+  const main = pend.kind === 'action' && !targeting;
+  return (
+    <button type="button" className={`pb-pp-tab ${main ? '' : 'is-prompt'}`} onClick={onExpand} aria-label={`Show the prompt: ${title}`}>
+      <span aria-hidden="true">▾</span>
+      <span className="pb-pp-tab-text">{main ? 'Actions' : title}</span>
+    </button>
+  );
+}
+
+/**
+ * The phone's prompt panel: the instruction, the coach and buttons, over a part of the table the decision is not made
+ * on (`box`, from slotBox: never the Gigs, piles, Legends or the banner with the turn button). Cards on the table are
  * picked on the board (they are marked), so they aren't repeated here; cards that aren't on the table show small (tap
  * one to read it, then choose it). The turn button (End turn / No reaction / Cancel attack) is in the banner.
  */
@@ -48,8 +77,8 @@ export function PhonePanel({
   ctx,
   state,
   note,
+  box,
   onCollapse,
-  onExpand,
   onPeek,
   allActions,
   paySelect,
@@ -60,23 +89,16 @@ export function PhonePanel({
   state: PanelState;
   /** the coach's reason, its next best option, or that it is thinking (shown as text: touch screens have no tooltips) */
   note?: CoachNote;
+  /** where it sits (measured from the board); absent before the first measure and in tests */
+  box?: SlotBox | null;
   onCollapse: () => void;
-  onExpand: () => void;
   /** read a card; with `choose`, the reader offers to pick that option */
   onPeek: (uid: number, choose?: number) => void;
   allActions: React.ReactNode;
 }) {
   const { g, pend, ix, coach, targeting } = ctx;
-  if (state === 'none' || !pend) return null;
+  if (state !== 'open' || !pend) return null;
   const title = panelTitle(ctx);
-  if (state === 'tab') {
-    return (
-      <button type="button" className={`pb-pp-tab ${pend.kind === 'action' && !targeting ? '' : 'is-prompt'}`} onClick={onExpand} aria-label={`Show the prompt: ${title}`}>
-        <span aria-hidden="true">◂</span>
-        <span className="pb-pp-tab-text">{pend.kind === 'action' && !targeting ? 'Actions' : title}</span>
-      </button>
-    );
-  }
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
       {label ?? shownLabel(pend.options[i]?.label ?? '')}
@@ -127,12 +149,15 @@ export function PhonePanel({
     );
   }
   const coachPick = coach && pend.options[coach.i] ? optionName(pend, coach.i) : null;
+  const style: React.CSSProperties | undefined = box
+    ? { left: box.left, width: box.width, top: box.top ?? 'auto', bottom: box.bottom ?? 'auto', maxHeight: box.maxHeight, ['--pp-w' as string]: `${box.width}px` }
+    : undefined;
   return (
-    <aside className={`pb-pp ${pend.kind === 'reaction' ? 'is-alert' : ''}`} aria-label="Prompt">
+    <aside className={`pb-pp ${pend.kind === 'reaction' ? 'is-alert' : ''} ${box?.bottom !== undefined ? 'is-low' : ''}`} style={style} aria-label="Prompt">
       <div className="pb-pp-head">
         <b className="pb-pp-title">{title}</b>
-        <button type="button" className="ghost pb-pp-min" onClick={onCollapse} aria-label="Hide the prompt to a tab">
-          ▸
+        <button type="button" className="ghost pb-pp-min" onClick={onCollapse} aria-label="Hide the prompt (a button in the top bar shows it again)">
+          ▴
         </button>
       </div>
       <CoachBox pick={coachPick} why={note?.why} next={note?.next} thinking={note?.thinking} compact className="pb-pp-coach" />

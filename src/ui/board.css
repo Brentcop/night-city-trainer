@@ -770,6 +770,30 @@ button.pb-big {
   font-size: 1.05rem;
   margin: 6px 0;
 }
+/* Rematch / New game stay in view at the card's bottom edge when the card scrolls (a phone held sideways) */
+.pb-over-actions {
+  position: sticky;
+  bottom: -18px;
+  z-index: 1;
+  justify-content: center;
+  margin: 16px -18px -18px;
+  padding: 10px 18px 14px;
+  background: var(--panel);
+  border-radius: 0 0 14px 14px;
+}
+@media (max-height: 520px) {
+  .pb-over-title {
+    font-size: 2rem;
+  }
+  .pb-over-actions {
+    gap: 6px;
+    padding: 6px 12px 10px;
+  }
+  .pb-over-actions button.pb-big {
+    padding: 6px 14px;
+    font-size: 1rem;
+  }
+}
 
 /* ---- setup screen ---- */
 .pb-versus {
@@ -1135,7 +1159,8 @@ body.pb-dragging [data-drop].pb-drop-over {
   .brand {
     font-size: 1rem;
   }
-  .nav a {
+  .nav a,
+  .nav-more-btn {
     padding: 4px 8px;
   }
   .pb-topbar {
@@ -1488,15 +1513,17 @@ body:has(.pb-game.pb-nav-open) .topbar {
 }
 
 /* ============ full board (desktop and tablets): the game fills the viewport ============
-   --cw is the field card width, from the space available. Height: two field rows (one per side, 1.397 card widths
-   tall each) and the hand (1.05 × 1.397) are 4.26 card widths; everything else (mat padding 12, two sides' padding
-   and borders 2 × 24, the banner about 31-40, the hand bar's lift and fan room 36, gaps 18) is about 155px, and the
-   formula reserves 180px so there is spare room. At 1280×800 that gives a card width of 132.6 (width-limited) and a
-   board of about 710 of the 754px under the strip. Width: three Legends, four field cards and the Gig/pile column.
-   Every zone sizes its cards from it through --tcg-w (TcgCard reads it). */
+   --cw is the field card width, from the space available. Height: each side is as tall as its Legends column (the
+   name 23, Legends at 0.75 × 1.397 card widths, and the Eddie row under them at about 0.46: 1.51 card widths and
+   about 55px with padding), and the hand is 1.05 × 1.397, so 4.49 card widths; everything else (mat padding 12, the
+   banner about 31, the hand bar's lift and fan room 36, gaps 18) is about 207px, and the formula reserves 200px (the
+   hand bar can give up 24px of its lift room). At 1280×800 that gives a card width of 123 (height-limited; the old
+   estimate left out the Eddie row, so the board scrolled there) and at 1024×768 102 (width-limited). Width: three
+   Legends, four field cards and the Gig/pile column. Every zone sizes its cards from it through --tcg-w (TcgCard
+   reads it). */
 .pb-full {
   --pb-strip-h: 46px;
-  --cw: clamp(56px, min(calc((100vh - var(--pb-strip-h) - 180px) / 4.3), calc((100vw - 166px) / 8.4)), 230px);
+  --cw: clamp(56px, min(calc((100vh - var(--pb-strip-h) - 200px) / 4.5), calc((100vw - 166px) / 8.4)), 230px);
   --pb-hand-h: calc(var(--cw) * 1.05 * 1.397 + 36px);
   position: fixed;
   inset: 0;
@@ -1522,8 +1549,14 @@ body:has(.pb-full) {
   background: color-mix(in srgb, var(--bg) 90%, var(--cyan) 10%);
 }
 .pb-full .pb-turn {
+  flex: none;
   flex-wrap: nowrap;
   white-space: nowrap;
+}
+.pb-full .pb-turn-who {
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pb-full .pb-turn-no {
   font-size: 0.95rem;
@@ -1535,6 +1568,24 @@ body:has(.pb-full) {
   flex: 1;
   flex-wrap: nowrap;
   justify-content: flex-end;
+  /* if it still overflows, it is cut at the right, never drawn over the turn chip */
+  justify-content: safe flex-end;
+}
+/* UX-5: the strip is one row at every full-board width: below about 1100px the Bot speed caption goes (the picker keeps
+   its name), and below about 960px Undo, Concede and Exit show as their icon or a short word (their names stay in
+   aria-label and the tooltip) */
+.pb-full .pb-topbar {
+  container: pbstrip / inline-size;
+}
+@container pbstrip (max-width: 1100px) {
+  .pb-speed-cap {
+    display: none;
+  }
+}
+@container pbstrip (max-width: 960px) {
+  .pb-strip-text {
+    display: none;
+  }
 }
 .pb-full .pb-strip-tools > button,
 .pb-full .pb-strip-tools select {
@@ -1547,6 +1598,7 @@ body:has(.pb-full) {
 .pb-full .pb-logtab {
   order: 99;
   flex: 0 1 30vw;
+  min-width: 76px;
 }
 .pb-full .pb-stage {
   position: absolute;
@@ -1703,6 +1755,20 @@ body:has(.pb-full) {
   width: calc(var(--die) * 0.8);
   height: calc(var(--die) * 0.8);
 }
+/* a die you can pick (a Gig roll, a steal) is a 40px target: padding grows its hit area around the drawn die. Across,
+   it spreads the dice while the choice is open, so side-by-side targets never overlap; up and down a negative margin
+   takes it back, so the rows keep their height (the board's height budget has no room for more) */
+.pb-full .pb-die .die.is-click {
+  --pad: max(0px, calc((40px - var(--die)) / 2));
+  box-sizing: content-box;
+  padding: var(--pad);
+  margin: calc(-1 * var(--pad)) 0;
+  position: relative;
+  z-index: 1;
+}
+.pb-full .pb-die-fixer .die.is-click {
+  --pad: max(0px, calc((40px - var(--die) * 0.8) / 2));
+}
 .pb-full .pb-pile {
   width: calc(var(--tcg-w) + 12px);
 }
@@ -1718,10 +1784,14 @@ body:has(.pb-full) {
   padding: 3px 12px;
   font-size: 0.95rem;
 }
-/* the hand bar: the fanned hand, and the action dock where you act on it */
+/* the hand bar: the fanned hand, and the action dock where you act on it. It takes the board's spare height (the rows
+   above keep their size), so the dock gets room without reaching over your piles; the log drawer stops above it
+   (--pb-handbar-h, measured by the board). When the rows come out a little taller than the estimate (a portrait tablet),
+   it gives up to 24px of the lift room above the fan rather than make the board scroll. */
 .pb-full .pb-handbar {
-  flex: none;
-  height: var(--pb-hand-h);
+  flex: 1 1 var(--pb-hand-h);
+  height: auto;
+  min-height: calc(var(--pb-hand-h) - 24px);
   margin: 0;
   align-items: stretch;
   position: relative;
@@ -1779,15 +1849,22 @@ body:has(.pb-full) {
   font-size: 1rem;
   padding: 6px 12px;
 }
-/* anchored to the bottom of the hand bar: at least its height, and taller (over the board) when the prompt, the coach
-   note or the open All actions list need it, before it ever scrolls */
+/* the hand bar's height exactly, never over the board (UX-4: it used to grow over your Deck and Trash); the turn button
+   row stays in view while the rest scrolls, and the prompt (its heading and the coach) comes first under it */
 .pb-full .pb-actions {
   position: absolute;
   right: 0;
+  top: 0;
   bottom: 0;
-  min-height: 100%;
-  max-height: calc(100% + var(--cw) * 1.3);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+}
+.pb-full .pb-actions-main {
+  position: sticky;
+  top: -6px;
+  z-index: 2;
+  margin: -6px -6px 0;
+  padding: 6px 6px 4px;
+  background: var(--panel);
 }
 .pb-actions .pb-prompt {
   border-width: 1px;
@@ -1801,7 +1878,7 @@ body:has(.pb-full) {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: calc(var(--pb-hand-h) + 8px);
+  bottom: calc(var(--pb-handbar-h, var(--pb-hand-h)) + 8px);
   width: min(400px, 40vw);
   box-sizing: border-box;
   z-index: 40;
@@ -1839,7 +1916,8 @@ body:has(.pb-full) {
 /* ============ phone board (P1b): the whole game on one screen, no scrolling ============
    The sizes come from phoneLayout() (board/layout.ts) as CSS variables on the board and on <body> (for the menus and
    dialogs rendered there): --pf your field card width, --prf the rival's, --pl / --prl Legends, --ph hand cards,
-   --pd / --prd dice, --phcol the landscape hand column, --pp-w / --pp-h the prompt panel's width and greatest height.
+   --pd / --prd dice, --phcol the landscape hand column; on <body> only, --pp-x / --pp-y / --pp-w / --pp-h place the
+   card menus and drop confirms (slotBox). The prompt panel's place is inline on it (slotBox, phonePanelSlot).
    Portrait, top to bottom: strip, rival Legends | Gigs | piles, rival field, banner (with the turn button), your field,
    your Legends | Gigs | piles, your hand. Landscape: one row per side and the hand down the right. */
 .pb-game.pb-phone {
@@ -1901,10 +1979,10 @@ body:has(.pb-phone) {
   line-height: 15px;
 }
 .pb-phone .pb-turn {
+  flex: none;
   flex-wrap: nowrap;
   gap: 6px;
   white-space: nowrap;
-  min-width: 0;
 }
 .pb-phone .pb-turn-no {
   font-size: 0.95rem;
@@ -2063,6 +2141,19 @@ body:has(.pb-phone) {
   width: calc(var(--prd) * 0.8);
   height: calc(var(--prd) * 0.8);
 }
+/* the compact rule's 40px tap area, from the size the dice are drawn at here */
+.pb-phone .pb-die .die.is-click {
+  --pad: max(0px, calc((40px - var(--pd)) / 2));
+}
+.pb-phone .pb-rival .pb-die .die.is-click {
+  --pad: max(0px, calc((40px - var(--prd)) / 2));
+}
+.pb-phone .pb-die-fixer .die.is-click {
+  --pad: max(0px, calc((40px - var(--pd) * 0.8) / 2));
+}
+.pb-phone .pb-rival .pb-die-fixer .die.is-click {
+  --pad: max(0px, calc((40px - var(--prd) * 0.8) / 2));
+}
 /* the piles: a column of counts, one tap target (opens the trash) */
 .pb-phone .pb-piles {
   grid-area: piles;
@@ -2199,6 +2290,46 @@ body:has(.pb-phone) {
   order: -1;
   max-width: 100%;
 }
+/* With card art the name is at the bottom of the art, out of a covered card's strip: the name rides on the strip
+   instead (portrait: down the left edge, under the cost; landscape: along the top, after the cost). The top card, and
+   one lifted by a tap, focus or its menu, show the card whole, so the caption goes; a text frame (art off or loading)
+   has its own name in the strip (the rule above). Long press reads any card in full. */
+.pb-fan-cap {
+  display: none;
+}
+.pb-phone .pb-fan:not(:last-child):not(:hover):not(:focus-within):not(:has(.pb-menu-host)):not(:has(.tcg-frame)) .pb-fan-cap {
+  display: block;
+  position: absolute;
+  z-index: 3;
+  left: 2px;
+  bottom: 8px;
+  max-height: calc(var(--tcg-w) * 1.397 * 0.62);
+  padding: 4px 1px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(8, 10, 18, 0.82);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.pb-phone-land .pb-fan:not(:last-child):not(:hover):not(:focus-within):not(:has(.pb-menu-host)):not(:has(.tcg-frame)) .pb-fan-cap {
+  left: calc(var(--tcg-w) * 0.3);
+  right: 2px;
+  top: 2px;
+  bottom: auto;
+  max-height: none;
+  padding: 1px 4px;
+  writing-mode: horizontal-tb;
+  transform: none;
+}
 .pb-phone .tcg,
 .pb-phone .tcg * {
   -webkit-touch-callout: none;
@@ -2260,34 +2391,33 @@ body:has(.pb-phone) {
   transform: translateX(-8px);
 }
 
-/* ---- the prompt panel: small, against the right edge, collapsible to a tab ---- */
-.pb-pp,
-.pb-pp-tab {
+/* ---- the prompt panel: over a part of the table the decision doesn't use, collapsible to a button in the strip ----
+   Its place comes from slotBox() (board/layout.ts) as inline left/top or bottom/width/max-height: your hand, the rival's
+   field or your field, never the Gigs, piles, Legends or the banner with the turn button. */
+.pb-pp {
   position: fixed;
-  right: 0;
+  right: auto;
   top: calc(var(--pb-strip-h, 44px) + 4px);
   z-index: 820;
-}
-.pb-phone-land .pb-pp,
-.pb-phone-land .pb-pp-tab {
-  right: var(--phcol);
-}
-.pb-pp {
-  width: var(--pp-w, min(46vw, 190px));
-  max-height: var(--pp-h, 30vh);
+  width: min(46vw, 190px);
+  max-height: 30vh;
   box-sizing: border-box;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 6px;
-  background: var(--panel);
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
   border: 2px solid var(--accent);
-  border-right: 0;
-  border-radius: 12px 0 0 12px;
-  box-shadow: -8px 8px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   font-size: 0.8rem;
   animation: pb-drawer-in 0.18s var(--ease-out, ease) backwards;
+}
+/* the hand slot: the panel sits on its bottom edge */
+.pb-pp.is-low {
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
 }
 .pb-pp.is-alert {
   border-color: var(--red);
@@ -2358,10 +2488,10 @@ button.pb-coach-more {
 }
 .pb-pp-tray {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   gap: 4px;
   justify-items: center;
-  --tcg-w: calc((var(--pp-w, 180px) - 24px) / 2);
+  --tcg-w: 72px;
 }
 .pb-pp .pb-all-toggle {
   min-height: 40px;
@@ -2375,16 +2505,15 @@ button.pb-coach-more {
   font-size: 0.8rem;
 }
 .pb-pp-tab {
+  flex: 0 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 46vw;
   min-height: 40px;
   padding: 4px 10px;
-  border-right: 0;
-  border-radius: 10px 0 0 10px;
+  border-radius: 10px;
   font-size: 0.8rem;
-  box-shadow: -4px 4px 14px rgba(0, 0, 0, 0.35);
 }
 .pb-pp-tab.is-prompt {
   border-color: var(--accent);
@@ -2396,12 +2525,12 @@ button.pb-coach-more {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* the card action menu and a drop's confirm take the prompt panel's place (they render at the body: the variables
-   are set there too) */
+/* the card action menu and a drop's confirm sit over the rival's field (they are about one of your cards); they render
+   at the body, so their place is set there as --pp-x / --pp-y / --pp-w / --pp-h (slotBox, FALLBACK_SLOT) */
 .pb-menu.pb-menu-side {
-  left: auto;
-  right: var(--pb-side-right, 0px);
-  top: calc(var(--pb-strip-h, 44px) + 4px);
+  left: var(--pp-x, 4px);
+  right: auto;
+  top: var(--pp-y, calc(var(--pb-strip-h, 44px) + 4px));
   bottom: auto;
   transform: none;
   width: var(--pp-w, min(46vw, 190px));
@@ -2410,8 +2539,7 @@ button.pb-coach-more {
   box-sizing: border-box;
   overflow-y: auto;
   padding: 6px;
-  border-right: 0;
-  border-radius: 12px 0 0 12px;
+  border-radius: 12px;
   font-size: 0.85rem;
 }
 .pb-menu-side .pb-menu-item {
@@ -2420,16 +2548,16 @@ button.pb-coach-more {
 .pb-modal-wrap.pb-confirm-side {
   background: transparent;
   align-items: flex-start;
-  justify-content: flex-end;
-  padding: calc(var(--pb-strip-h, 44px) + 4px) var(--pb-side-right, 0px) 0 0;
+  justify-content: flex-start;
+  padding: var(--pp-y, calc(var(--pb-strip-h, 44px) + 4px)) 0 0 var(--pp-x, 4px);
 }
 .pb-confirm-side .pb-modal {
   width: var(--pp-w, min(46vw, 190px));
   max-height: var(--pp-h, 30vh);
   box-sizing: border-box;
+  overflow-y: auto;
   padding: 8px;
-  border-right: 0;
-  border-radius: 12px 0 0 12px;
+  border-radius: 12px;
 }
 .pb-confirm-side .pb-confirm-title {
   font-size: 0.9rem;
@@ -2734,6 +2862,8 @@ button.pb-coach-more {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* fills its box, so every background preview in a grid is the same width whatever its label (UX-21) */
+  flex: 1;
   min-width: 0;
 }
 .pb-set-row {

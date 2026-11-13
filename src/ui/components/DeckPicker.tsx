@@ -29,7 +29,7 @@ export function DeckPicker({ value, onChange, label }: { value: string; onChange
   return (
     <label className="row">
       {label && <span className="muted small">{label}</span>}
-      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ maxWidth: 340 }} aria-label={label ? undefined : 'Deck'}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ maxWidth: 'min(340px, calc(100vw - 72px))' }} aria-label={label ? undefined : 'Deck'}>
         {missing && (
           <option value={value} disabled>
             {value.startsWith('custom:') ? `“${value.slice(7)}” (deleted from this browser)` : `${value} (not in the library)`}

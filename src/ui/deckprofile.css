@@ -533,13 +533,26 @@
 .rec-see:hover {
   filter: brightness(1.08);
 }
-@media (max-width: 760px) {
+/* UX-14: below about 1300px the text column grows tall and narrow, and three Legends side by side in a column that
+   tall were cut to a sliver mid-name (at 1024px under half of each card's width showed); the hero stacks there
+   instead, a wide strip above the text */
+@media (max-width: 1300px) {
   .rec-hero {
     grid-template-columns: minmax(0, 1fr);
   }
   .rec-hero .legend-strip {
-    height: 160px !important;
+    height: 200px !important;
     min-height: 0;
+  }
+  /* wide cells: each card from its top, so its name shows whole above the art */
+  .rec-hero .legend-art img {
+    top: 0;
+    transform: none;
+  }
+}
+@media (max-width: 760px) {
+  .rec-hero .legend-strip {
+    height: 160px !important;
   }
   .dp-bar-row {
     grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) 2.8rem;
@@ -572,6 +585,25 @@
 }
 @media (max-width: 720px) {
   .gal-group-help {
+    display: none;
+  }
+}
+/* UX-12: on phones search and sort stay in view and the other filters open from a button, so the first decks show on
+   the first screen; elsewhere the button is hidden and the chips sit in the first row as before */
+.gal-filters-toggle {
+  display: none;
+}
+.gal-fold-chips {
+  display: contents;
+}
+@media (max-width: 640px) {
+  .gal-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 40px;
+  }
+  .gal-panel:not(.is-open) .gal-fold {
     display: none;
   }
 }

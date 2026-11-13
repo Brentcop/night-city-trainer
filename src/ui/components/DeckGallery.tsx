@@ -138,6 +138,8 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
     savePref(COLLAPSED_PREF, [...next].join('|'));
   };
   const [selecting, setSelecting] = useState(false);
+  // phones: the filters past search and sort sit behind a button, so the first decks show on the first screen (UX-12)
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const actions = useDeckActions({ onDeleted: (names) => setSelected((s) => new Set([...s].filter((f) => !names.some((n) => f === `custom:${n}`)))) });
 
@@ -219,7 +221,7 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
         each deck’s recorded tournament games; the <b>Sim</b> letter is our tier from those results, the <b>choom</b> letter is choom.gg’s editorial tier.
         {ratingsHistorical(RATINGS) && <> Those results were recorded before the current simulator (v{CURRENT_SIM_VERSION}), so they are historical.</>}
       </PageHead>
-      <div className="panel gal-panel">
+      <div className={`panel gal-panel ${filtersOpen ? 'is-open' : ''}`}>
         <div className="gal-filters">
           <input aria-label="Search decks" type="search" placeholder="Search deck, Legend, card or author…" value={view.q} onChange={(e) => set('q', e.target.value)} style={{ flex: '1 1 200px', minWidth: 0 }} />
           <select aria-label="Sort decks" value={view.sort} onChange={(e) => set('sort', e.target.value as GallerySort)}>
@@ -229,6 +231,11 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
               </option>
             ))}
           </select>
+          {/* shown on phones only (deckprofile.css): the rest of the filters open under it */}
+          <button type="button" className="gal-filters-toggle" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>
+            {filtersOpen ? '▾' : '▸'} Filters{active - (view.q ? 1 : 0) > 0 ? ` (${active - (view.q ? 1 : 0)} active)` : ''}
+          </button>
+          <span className="gal-fold gal-fold-chips">
           <Chip on={view.group} onClick={() => update((v) => ({ ...v, group: !v.group }))} title="Show one section per source instead of one list">
             ▤ Group by source
           </Chip>
@@ -247,8 +254,9 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
               👁 Show hidden ({hiddenCount})
             </Chip>
           )}
+          </span>
         </div>
-        <div className="gal-filters" role="group" aria-label="Source">
+        <div className="gal-filters gal-fold" role="group" aria-label="Source">
           <span className="small muted">Source</span>
           {SOURCES.filter((s) => site.decks.sources.includes(s.key) && ((counts.get(s.key) ?? 0) > 0 || view.sources.includes(s.key))).map((s) => (
             <Chip key={s.key} on={view.sources.includes(s.key)} onClick={() => flip('sources', s.key)} title={s.help}>
@@ -261,7 +269,7 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
             </button>
           )}
         </div>
-        <details className="gal-more" open={active - (view.sources.length ? 1 : 0) - (view.q ? 1 : 0) > 0 || undefined}>
+        <details className="gal-more gal-fold" open={active - (view.sources.length ? 1 : 0) - (view.q ? 1 : 0) > 0 || undefined}>
           <summary className="small">More filters{active ? ` (${active} active)` : ''}</summary>
           <div className="gal-filters" role="group" aria-label="Colour">
             <span className="small muted">Colour</span>

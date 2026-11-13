@@ -40,6 +40,7 @@ import { documentTitle, landingPage, pageOn, textHash, visibleNav } from './lib/
 import { useFeature, useSiteConfigState } from './ui/useSiteConfig';
 import { DraftBar, LinkedText, MaintenancePage, PageOff, SiteBanner } from './ui/components/SiteChrome';
 import { ONGOING_EVENT, ongoingWaiting } from './lib/ongoingBadge';
+import { MainNav } from './ui/components/MainNav';
 
 /** Multi-day games waiting for your move (the Play tab's count); 0 when the feature is off. */
 function useOngoingWaiting(on: boolean): number {
@@ -208,28 +209,7 @@ export function App() {
             <span className="chip">NC</span> {config.site.title.toUpperCase()}
           </a>
         </div>
-        <nav className="nav" aria-label="Main">
-          {nav.map((sec) => (
-            <a
-              key={sec.id}
-              href={`#/${sec.landing}`}
-              className={section === sec ? 'active' : ''}
-              // the section you are in; "page" when its link is exactly this page
-              aria-current={section === sec ? (route?.path === sec.landing ? 'page' : 'true') : undefined}
-            >
-              <span className="nav-icon" aria-hidden>
-                {sec.icon}
-              </span>
-              {sec.label}
-              {waiting > 0 && sec.routes.includes('play') && (
-                <span className="nav-count" title={`${waiting} multi-day game${waiting === 1 ? '' : 's'} waiting for your move`}>
-                  {waiting}
-                  <span className="sr-only"> multi-day game{waiting === 1 ? '' : 's'} waiting for your move</span>
-                </span>
-              )}
-            </a>
-          ))}
-        </nav>
+        <MainNav nav={nav} current={section} routePath={route?.path} waiting={waiting} />
         <HeaderToggles />
       </header>
       <SiteBanner key={textHash(config.banner.text)} banner={config.banner} />

@@ -73,8 +73,6 @@ export interface PhoneLayout {
   rows: Record<string, number>;
   /** landscape: the hand column's width */
   handCol: number;
-  /** the prompt panel (right edge): its width and greatest height */
-  panel: { w: number; maxH: number };
   /** height the board uses, and what is left over (spread between the rows) */
   used: number;
   spare: number;
@@ -116,7 +114,6 @@ export function phoneLayout(w: number, h: number): PhoneLayout {
       cards: { field, rivalField: r1(field * R.rivalField), legend: r1(field * R.landLegend), rivalLegend: r1(field * R.rivalLegend), hand: fl(hand), die: r1(field * R.die), rivalDie: r1(field * R.rivalDie) },
       rows,
       handCol: r1(hand + 12),
-      panel: { w: Math.round(Math.min(230, w * 0.28)), maxH: Math.round(h * 0.6) },
       used,
       spare: r1(h - used),
     };
@@ -156,7 +153,6 @@ export function phoneLayout(w: number, h: number): PhoneLayout {
     cards: { field, rivalField: r1(field * R.rivalField), legend: r1(field * R.legend), rivalLegend: r1(field * R.rivalLegend), hand, die: r1(field * R.die), rivalDie: r1(field * R.rivalDie) },
     rows,
     handCol: 0,
-    panel: { w: Math.round(Math.min(190, w * 0.46)), maxH: Math.round(h * 0.3) },
     used,
     spare: r1(h - used),
   };
@@ -175,9 +171,62 @@ export function phoneVars(L: PhoneLayout): Record<string, string> {
     '--pd': px(L.cards.die),
     '--prd': px(L.cards.rivalDie),
     '--phcol': px(L.handCol),
-    /** how far from the right edge the prompt panel and its stand-ins sit (landscape: left of the hand column) */
-    '--pb-side-right': px(L.handCol),
-    '--pp-w': px(L.panel.w),
-    '--pp-h': px(L.panel.maxH),
   };
+}
+
+/**
+ * Where the phone's prompt panel sits: over a part of the table the decision is not made on, so nothing it needs is
+ * covered. Never over a back row (Legends, Gigs, piles), the banner with the turn button, or the strip: the slots are
+ * your hand, the rival's field and your field. Portrait prefers the hand (the widest and tallest), landscape your
+ * field (the hand is a narrow column there).
+ */
+export type PanelSlot = 'hand' | 'rivalField' | 'ownField';
+
+const SLOTS: Record<Exclude<BoardMode, 'full'>, PanelSlot[]> = {
+  phone: ['hand', 'rivalField', 'ownField'],
+  'phone-land': ['ownField', 'rivalField'],
+};
+
+/** The first slot whose part of the table the decision doesn't use (`needs`: TableZone names), or null for none. */
+export function phonePanelSlot(mode: Exclude<BoardMode, 'full'>, needs: ReadonlySet<string>): PanelSlot | null {
+  return SLOTS[mode].find((s) => !needs.has(s)) ?? null;
+}
+
+/** Where the panel goes when every slot is in use and the player opens it anyway. */
+export const FALLBACK_SLOT: PanelSlot = 'rivalField';
+
+export interface Rect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** A slot's box on screen: `top` set for a panel that hangs down from its top edge, `bottom` for one that sits on its bottom edge. */
+export interface SlotBox {
+  left: number;
+  width: number;
+  top?: number;
+  bottom?: number;
+  maxHeight: number;
+}
+
+/**
+ * The slot's box from the measured board: in portrait the rival-field slot runs from the rival field's top to just above
+ * the banner, your field's from just under the banner to its bottom, and the hand's from the hand's top to the mat's
+ * bottom (the panel sits on the bottom edge); each spans the mat's width. In landscape a field slot is that field.
+ * 'menu' (a card's action menu or a drop's confirm, over a backdrop while it is open, about one of your cards): the
+ * rival's whole side above the banner in portrait, the rival field in landscape.
+ */
+export function slotBox(slot: PanelSlot | 'menu', mode: Exclude<BoardMode, 'full'>, r: { mat: Rect; rivalField: Rect; ownField: Rect; hand: Rect; midline: Rect }, vh: number): SlotBox {
+  const gap = 4;
+  const across = { left: r.mat.left + gap, width: r.mat.right - r.mat.left - 2 * gap };
+  if (mode === 'phone-land') {
+    const f = slot === 'ownField' ? r.ownField : r.rivalField;
+    return { left: f.left, width: f.right - f.left, top: f.top, maxHeight: Math.max(0, f.bottom - f.top) };
+  }
+  if (slot === 'menu') return { ...across, top: r.mat.top + gap, maxHeight: Math.max(0, r.midline.top - r.mat.top - 2 * gap) };
+  if (slot === 'hand') return { ...across, bottom: Math.max(0, vh - r.mat.bottom + gap), maxHeight: Math.max(0, r.mat.bottom - gap - r.hand.top) };
+  if (slot === 'rivalField') return { ...across, top: r.rivalField.top, maxHeight: Math.max(0, r.midline.top - gap - r.rivalField.top) };
+  return { ...across, top: r.midline.bottom + gap, maxHeight: Math.max(0, r.ownField.bottom - r.midline.bottom - gap) };
 }
