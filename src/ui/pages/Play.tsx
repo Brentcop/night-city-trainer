@@ -103,8 +103,11 @@ const PlayOnline = lazy(() => import('./PlayOnline').then((m) => ({ default: m.P
 // multi-day games against a person (turn packets) load the same way
 const PlayCorr = lazy(() => import('./PlayCorr').then((m) => ({ default: m.PlayCorr })));
 
-/** `sub`: "online" opens online play's lobby, "join/<code>" opens it on an invite (when multiplayer is on). */
-export function PlayPage({ initialDeck, initialOpp, sub = '', mode = null }: { initialDeck?: string; initialOpp?: string; sub?: string; mode?: string | null }) {
+/**
+ * `sub`: "online" opens online play's lobby, "join/<code>" opens it on an invite (when multiplayer is on).
+ * `initialTier`: the bot tier picked at first (`#/play?tier=easy`, the tutorial's last lesson), when the site offers it.
+ */
+export function PlayPage({ initialDeck, initialOpp, initialTier, sub = '', mode = null }: { initialDeck?: string; initialOpp?: string; initialTier?: string; sub?: string; mode?: string | null }) {
   const site = useSiteConfig();
   if (site.features.multiDayGames && (sub === 'corr' || sub.startsWith('corr/') || sub.startsWith('turn/'))) {
     return (
@@ -120,10 +123,10 @@ export function PlayPage({ initialDeck, initialOpp, sub = '', mode = null }: { i
       </Suspense>
     );
   }
-  return <PracticePlay initialDeck={initialDeck} initialOpp={initialOpp} online={site.features.multiplayer} />;
+  return <PracticePlay initialDeck={initialDeck} initialOpp={initialOpp} initialTier={initialTier} online={site.features.multiplayer} />;
 }
 
-function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: string; initialOpp?: string; online: boolean }) {
+function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initialDeck?: string; initialOpp?: string; initialTier?: string; online: boolean }) {
   // defaults skip decks hidden in this browser; a link to a deleted deck finds nothing and falls back to them
   const [mine, setMine] = useState(() => findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file ?? '');
   const [opp, setOpp] = useState(() => findDeck(initialOpp)?.file ?? firstVisibleDeck(findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file)?.file ?? '');
@@ -133,7 +136,7 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
   const coachOn = site.features.coach;
   const [coachPick, setCoach] = useState(true);
   const coach = coachPick && coachOn;
-  const [levelPick, setLevel] = useState<Tier>(site.play.defaultTier);
+  const [levelPick, setLevel] = useState<Tier>(() => (site.play.tiers as readonly string[]).includes(initialTier ?? '') ? (initialTier as Tier) : site.play.defaultTier);
   const level: Tier = site.play.tiers.includes(levelPick) ? levelPick : site.play.defaultTier;
   // the bot's pace is remembered in this browser (an old stored "fast" of 250 ms maps to today's fast)
   const [speed, setSpeedRaw] = useState(loadBotSpeed);
@@ -559,6 +562,20 @@ export interface OnlineBoard {
   autoPay?: boolean;
 }
 
+/**
+ * A tutorial lesson on the board (src/ui/pages/Tutorial.tsx): the tutor panel sits where the coach box sits, the move
+ * the lesson expects is marked like the coach's pick, and the practice game's tools (Save, Undo, Concede, the result
+ * dialog, the coach) are not shown. Costs are paid automatically for the lesson; the stored settings are untouched.
+ */
+export interface TutorialBoard {
+  title: string;
+  panel: React.ReactNode;
+  /** the option the lesson expects now (null: nothing marked) */
+  mark: number | null;
+  /** changes with each refused move, so a hidden panel opens again on a phone */
+  hintKey: number;
+}
+
 export function Board({
   session,
   game,
@@ -577,6 +594,7 @@ export function Board({
   online,
   banner,
   exitNote,
+  tutorial,
 }: {
   session: TickSource;
   game: BoardRun;
@@ -602,6 +620,8 @@ export function Board({
   banner?: React.ReactNode;
   /** what Exit does, when it is not the usual (a multi-day game is kept) */
   exitNote?: string;
+  /** a tutorial lesson (nothing is recorded, saved or graded) */
+  tutorial?: TutorialBoard;
 }) {
   // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
@@ -609,8 +629,8 @@ export function Board({
   const s = g.s;
   const pend = human.pending?.d ?? null;
   // a practice game is a Running; an online game has no Undo and its own concede rule
-  const undoable = online ? false : canUndo(game as Running);
-  const concedable = online ? online.canConcede : canConcede(game as Running);
+  const undoable = online || tutorial ? false : canUndo(game as Running);
+  const concedable = tutorial ? false : online ? online.canConcede : canConcede(game as Running);
   const conceded = game.conceded;
   // the single layout switch: the full board, or the phone board (portrait or landscape) sized from the viewport
   const vp = useViewport();
@@ -681,7 +701,8 @@ export function Board({
   // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
-  const payMode = online?.autoPay ? 'auto' : settings.payMode;
+  // a tutorial lesson pays automatically (the stored setting is not changed)
+  const payMode = online?.autoPay || tutorial ? 'auto' : settings.payMode;
   const panelSet = settings.panel;
   const panelHidden = panelSet.position === 'hidden';
   // paying a cost by choice: the sources selected before playing ("Choose before"), the prompt for one cost (both
@@ -889,7 +910,8 @@ export function Board({
     g,
     pend,
     ix,
-    coach: coach ? mark : null,
+    coach: tutorial ? coachMark(pend, tutorial.mark) : coach ? mark : null,
+    ...(tutorial ? { markLabel: 'Tutor' } : {}),
     targeting,
     narrow,
     menuUid: menu?.uid ?? null,
@@ -950,8 +972,20 @@ export function Board({
   const needs = useMemo(() => promptZones(g, pend, ix, targeting), [g, pend, ix, targeting]);
   const freeSlot = phone ? phonePanelSlot(phone.mode, needs) : null;
   const panelSlot = freeSlot ?? FALLBACK_SLOT;
+  // a tutorial lesson keeps its panel open (it is the lesson) unless you hide it; a refused move opens it again
+  const [tutorHidden, setTutorHidden] = useState(false);
+  const hintKey = tutorial?.hintKey ?? 0;
+  useEffect(() => {
+    if (hintKey) setTutorHidden(false);
+  }, [hintKey]);
   const panel = narrow
-    ? phonePanelState({ pend, targeting, over, allOpen, collapsed: !!pend && collapsedFor === pend, slotFree: freeSlot !== null, expanded: !!pend && expandedFor === pend })
+    ? tutorial
+      ? over
+        ? 'none'
+        : tutorHidden
+          ? 'tab'
+          : 'open'
+      : phonePanelState({ pend, targeting, over, allOpen, collapsed: !!pend && collapsedFor === pend, slotFree: freeSlot !== null, expanded: !!pend && expandedFor === pend })
     : 'none';
   // where the panel and the card menus sit, measured from the board (slotBox); the menus render at <body>, so their
   // place goes there as variables
@@ -1090,7 +1124,12 @@ export function Board({
           {panel === 'tab' && (
             <PhonePanelTab
               ctx={ctx}
+              label={tutorial?.title}
               onExpand={() => {
+                if (tutorial) {
+                  setTutorHidden(false);
+                  return;
+                }
                 setCollapsedFor(null);
                 setExpandedFor(pend);
                 if (pend?.kind === 'action' && !targeting) setAllOpen(true);
@@ -1112,12 +1151,12 @@ export function Board({
                 {unread > 0 && <span className="pb-unread-dot" aria-hidden="true" />}
               </button>
             )}
-            {!online && (
+            {!online && !tutorial && (
               <button type="button" className="pb-icon" onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Undo: back to before your last action">
                 ↶
               </button>
             )}
-            {over ? (
+            {tutorial ? null : over ? (
               <button type="button" className="pb-icon" onClick={() => setHideOver(false)} disabled={!hideOver} aria-label="Show the result" title="Show the result">
                 ⚐
               </button>
@@ -1173,17 +1212,22 @@ export function Board({
               Save
             </button>
           )}
-          {!online && (
+          {!online && !tutorial && (
             <button onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Go back to before your last action (also undoes the bot's moves since)">
               ↶<span className="pb-strip-text"> Undo</span>
             </button>
           )}
-          {over && hideOver && <button onClick={() => setHideOver(false)}>Result</button>}
-          {!over && (
+          {over && hideOver && !tutorial && <button onClick={() => setHideOver(false)}>Result</button>}
+          {!over && !tutorial && (
             <button className="pb-concede" onClick={() => openLeave('concede')} disabled={!concedable} aria-label="Concede" title="End the game now as a recorded loss">
               ⚑<span className="pb-strip-text"> Concede</span>
             </button>
           )}
+          {tutorial ? (
+            <button className="pb-exit" onClick={onQuit} title="Back to the lesson list (nothing is lost: a lesson can be played again any time)">
+              Exit<span className="pb-strip-text"> lesson</span>
+            </button>
+          ) : (
           <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} aria-label={over ? undefined : 'Exit game'} title={over ? 'Back to the game setup' : online ? 'Leave this game: it ends as abandoned (a draw)' : 'Leave this game without recording a result'}>
             {over ? (
               'New game'
@@ -1193,6 +1237,7 @@ export function Board({
               </>
             )}
           </button>
+          )}
         </div>
       </div>
       )}
@@ -1235,7 +1280,7 @@ export function Board({
                   {sortButton}
                 </div>
                 {/* the prompt first (its heading and the coach in view without scrolling), then every option */}
-                <PromptPanel ctx={ctx} note={coachNote} hidePass />
+                <PromptPanel ctx={ctx} note={coachNote} hidePass tutor={tutorial?.panel} />
                 {paySelect}
                 {allActions}
               </section>
@@ -1247,11 +1292,17 @@ export function Board({
             ctx={ctx}
             state={panel}
             note={coachNote}
+            tutor={tutorial?.panel}
+            tutorTitle={tutorial?.title}
             box={boxes?.panel}
             allActions={allActions}
             paySelect={paySelect}
             onPeek={(uid, choose) => setPeek({ uid, choose, d: pend })}
             onCollapse={() => {
+              if (tutorial) {
+                setTutorHidden(true);
+                return;
+              }
               setExpandedFor(null);
               if (pend?.kind === 'action' && !targeting) setAllOpen(false);
               else setCollapsedFor(pend);
@@ -1290,9 +1341,9 @@ export function Board({
               sortLabel={SORT_LABEL[sortMode]}
               onSort={() => setSortMode(nextSort(sortMode))}
               onSite={() => setNavOpen(true)}
-              onExit={over ? onQuit : () => openLeave('exit')}
-              exitLabel={over ? 'New game' : 'Exit game'}
-              onExport={over ? exportGame : undefined}
+              onExit={tutorial || over ? onQuit : () => openLeave('exit')}
+              exitLabel={tutorial ? 'Exit lesson' : over ? 'New game' : 'Exit game'}
+              onExport={over && !tutorial ? exportGame : undefined}
               onSave={savable ? openSave : undefined}
               onSettings={() => setShowSettings(true)}
               onClose={() => setGameMenu(false)}
@@ -1399,7 +1450,7 @@ export function Board({
       )}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
       {mulligan && !over && !failed && <MulliganScreen ctx={ctx} note={coachNote} />}
-      {over && !hideOver && (
+      {over && !hideOver && !tutorial && (
         <GameOverOverlay
           g={g}
           conceded={conceded}

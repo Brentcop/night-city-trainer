@@ -1714,6 +1714,20 @@ tr.tier-divider th {
 .event-bar .countdown {
   font-size: 1.4rem;
 }
+/* the Play setup screen's one-line pointer to the tutorial (TutorialNudge) */
+.tut-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  border-color: var(--accent);
+}
+.tut-nudge button {
+  flex: none;
+  min-width: 36px;
+  min-height: 36px;
+}
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

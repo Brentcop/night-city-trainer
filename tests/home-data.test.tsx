@@ -75,6 +75,10 @@ describe('entry chunk', () => {
     expect(graph).toContain('src/ui/useSiteConfig.ts');
     expect(graph).not.toContain('src/ui/pages/Admin.tsx');
   });
+  it('does not reach the tutorial statically (its lessons and runner load with #/tutorial)', () => {
+    for (const f of ['src/ui/pages/Tutorial.tsx', 'src/ui/pages/TutorialRules.tsx', 'src/lib/tutorial.ts', 'src/content/tutorial/lessons.ts']) expect(graph).not.toContain(f);
+    expect([...staticGraph('src/ui/pages/Tutorial.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'))).toContain('src/lib/tutorial.ts');
+  });
   it('(control) the walker does see them from a page that imports them', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(profile).toContain(big);

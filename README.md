@@ -55,6 +55,7 @@ Routes are hash-based (`#/<page>`); see `src/App.tsx`.
 | Tournaments | Breeding seasons | `#/seasons` | Bred decks per season and the all-time leaderboard. |
 | Tournaments | choom.gg meta | `#/meta` | Meta tiers and sim results for the archetypes. |
 | Tournaments | Matchup Lab | `#/arena` | Bot-vs-bot games between any decks in the browser; any game can be watched as a visual replay. |
+| Learn | How to play | `#/tutorial`, `#/tutorial/<lesson>`, `#/tutorial/rules` | For newcomers: eight short lessons played on the real board (the table and winning, a turn, attacking, defending, Legends, Gear and Programs, Gigs, then a turn against the Easy bot), each with a tutor that marks the move and refuses a wrong one with a hint, and "The rules in five minutes" to read. Practice only: nothing is recorded. Also a quick link on Home and, for a browser with no games yet, a line on the Play setup screen. |
 | Learn | Strategy | `#/guides` | Strategy guides and the tournament plan. |
 | Learn | Cards | `#/cards` | Card list; approximated cards are marked. |
 | Learn | Glossary | `#/glossary` | Rules terms. |

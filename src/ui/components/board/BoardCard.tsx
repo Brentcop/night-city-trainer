@@ -44,6 +44,8 @@ export interface BoardCtx {
   eddiePick?: { selected: number; add: () => void };
   /** an online game: the other player's name (in place of "Rival bot" and "Rival") */
   rivalName?: string;
+  /** the chip on the marked pick: "Coach" (default), or "Tutor" in a tutorial lesson */
+  markLabel?: string;
 }
 
 /** How long a touch must stay put to read a card instead of tapping it (ms). */
@@ -59,12 +61,12 @@ export function hiddenFromMe(g: Game, uid: number): boolean {
   return false;
 }
 
-function cardChips(g: Game, uid: number, coach: boolean, extra?: React.ReactNode) {
+function cardChips(g: Game, uid: number, coach: string | null, extra?: React.ReactNode) {
   const c = g.s.cards[uid];
   if (!c) return null;
   const inPlay = c.zone === 'field' || c.zone === 'legends';
   const chips: React.ReactNode[] = [];
-  if (coach) chips.push(<span key="coach" className="chip pb-chip-coach">Coach</span>);
+  if (coach) chips.push(<span key="coach" className="chip pb-chip-coach">{coach}</span>);
   if (c.zone === 'legends' && !c.faceUp) chips.push(<span key="fd" className="chip">face-down</span>);
   if (inPlay) {
     if (c.lag && c.zone === 'field') chips.push(<span key="lag" className="chip warn">lag</span>);
@@ -218,7 +220,7 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
           targetable={targetable}
           dim={c.zone === 'legends' && !c.faceUp}
           onClick={onClick}
-          badges={cardChips(g, uid, isCoach)}
+          badges={cardChips(g, uid, isCoach ? (ctx.markLabel ?? 'Coach') : null)}
           ariaLabel={label}
         />
       )}
@@ -227,7 +229,7 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
           {icon}
         </span>
       )}
-      {hidden && isCoach && <span className="chip pb-chip-coach pb-float-chip">Coach</span>}
+      {hidden && isCoach && <span className="chip pb-chip-coach pb-float-chip">{ctx.markLabel ?? 'Coach'}</span>}
       {c.gear.length > 0 && (
         <div className="pb-gear">
           {c.gear.map((gu) => {

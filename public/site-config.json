@@ -97,6 +97,11 @@
         "hidden": false,
         "pages": [
           {
+            "path": "tutorial",
+            "label": "How to play",
+            "hidden": false
+          },
+          {
             "path": "guides",
             "label": "Strategy",
             "hidden": false

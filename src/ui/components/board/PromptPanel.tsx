@@ -38,25 +38,36 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
 /**
  * The current prompt. `hidePass`: the End turn / No reaction button is shown next to it already (the full board's
  * action dock), so the panel leaves it out. `note`: the coach's reason, its next best option, or that it is thinking.
+ * `tutor`: a tutorial lesson's panel, shown where the coach box sits (and while the rival plays).
  */
-export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: CoachNote; hidePass?: boolean }) {
+export function PromptPanel({ ctx, note, hidePass, tutor }: { ctx: BoardCtx; note?: CoachNote; hidePass?: boolean; tutor?: React.ReactNode }) {
   const { g, pend, ix, targeting, coach } = ctx;
   if (g.s.winner !== null) {
     return (
       <div className="pb-prompt">
         <b>{g.s.winner === 0 ? 'You win!' : g.s.winner === 1 ? 'Rival wins' : 'Draw'}</b>
         <div className="muted small">{g.s.winReason}</div>
+        {tutor}
       </div>
     );
   }
   if (!pend) {
+    if (tutor)
+      return (
+        <div className="pb-prompt">
+          <div className="pb-wait small">
+            <span className="pb-spinner" /> {g.s.active === 1 ? 'The rival is playing…' : 'Resolving…'}
+          </div>
+          {tutor}
+        </div>
+      );
     return (
       <div className="pb-prompt pb-wait">
         <span className="pb-spinner" /> {ctx.rivalName ? `Waiting for ${ctx.rivalName}…` : 'Rival is thinking…'}
       </div>
     );
   }
-  const coachBox = <CoachBox pick={coach && pend.options[coach.i] ? optionName(pend, coach.i) : null} why={note?.why} next={note?.next} thinking={note?.thinking} />;
+  const coachBox = tutor ?? <CoachBox pick={coach && pend.options[coach.i] ? optionName(pend, coach.i) : null} why={note?.why} next={note?.next} thinking={note?.thinking} />;
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
       {/* inside the option button: card names show the card on hover only */}
@@ -86,7 +97,22 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
     return (
       <div className="pb-prompt">
         <b>Nothing left to do: end your turn</b>
+        {tutor}
         {!hidePass && ix.passIndex !== null && <div className="pb-opts">{btn(ix.passIndex, 'End turn', true)}</div>}
+      </div>
+    );
+  }
+
+  if (pend.kind === 'action' && tutor) {
+    // a lesson's main phase: the tutor says what to do, so the dock's short height goes to it
+    return (
+      <div className="pb-prompt">
+        {tutor}
+        {ix.passIndex === null && (
+          <div className="small" style={{ color: 'var(--red)', marginTop: 6 }}>
+            A unit must attack before you can end your turn.
+          </div>
+        )}
       </div>
     );
   }
@@ -113,11 +139,15 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
     const h = headline(ctx);
     return (
       <div className="pb-prompt pb-prompt-alert">
-        <b>
-          <MentionText text={h.text} />
-        </b>
-        <div className="small muted">Click a ⛨ unit to block, or choose a reaction.</div>
-        {coachBox}
+        {/* a lesson: its words first (the banner over the table already names the attack) */}
+        {tutor}
+        {!tutor && (
+          <b>
+            <MentionText text={h.text} />
+          </b>
+        )}
+        {!tutor && <div className="small muted">Click a ⛨ unit to block, or choose a reaction.</div>}
+        {!tutor && coachBox}
         <div className="pb-opts">
           {pend.options.map((_o, i) => (i === ix.passIndex ? null : btn(i)))}
           {ix.passIndex !== null && !hidePass && btn(ix.passIndex, 'No reaction', true)}
@@ -142,6 +172,8 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
       <b>
         <MentionText text={pend.prompt} />
       </b>
+      {/* a lesson: its words right under the question */}
+      {tutor}
       {pend.source !== undefined && g.s.cards[pend.source] && (
         <div className="pb-source">
           <TcgCard def={g.def(pend.source)} size="xs" />
@@ -154,7 +186,7 @@ export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: Coa
       {pend.kind === 'pay' && <div className="small muted">Or click a glowing Legend, or your €$ pile for an Eddie.</div>}
       {pend.kind === 'order' && <div className="small muted">The others stay pending; you choose again after this one resolves.</div>}
       {ix.gigDirect.size > 0 && <div className="small muted">Click a glowing die.</div>}
-      {coachBox}
+      {!tutor && coachBox}
       {tray.length > 0 && (
         <div className="pb-tray">
           {tray.map((o) => {

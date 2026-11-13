@@ -39,8 +39,8 @@ file.
 | `site.tagline` | the site description | The page description. Max 200. |
 | `site.footer` | the fan-made notice with a Credits link | Footer text. Max 400. Links as `[label](#/page)` or `[label](https://…)`. |
 | `nav.sections` | Home, Decks, Play, Tournaments, Learn, Profile | The top tabs in order. Each is `{ id, label, hidden, pages }`. Ids: `home`, `decks`, `play`, `tournaments`, `learn`, `profile`. Labels max 30. Tabs missing from the list come back at the end. |
-| `nav.sections[].pages` | each tab's pages | The tab's pages in order (the sub-menu for Decks, Tournaments and Learn): `{ path, label, hidden }`. Decks: `decks`, `tuned`, `lab`. Tournaments: `tournaments`, `run`, `ratings`, `seasons`, `meta`, `arena`. Learn: `guides`, `cards`, `glossary`, `insights`, `credits`. Home, Play and Profile have one page each. A tab's first shown page is where its tab link goes. |
-| (rule) | | A hidden tab or page shows "This page is turned off" at its address. A deck's profile (`#/deck`) follows the Decks tab, a shared profile (`#/u`) the Profile tab. Home and Play cannot both be hidden. With Home hidden, `#/` opens the first tab shown. |
+| `nav.sections[].pages` | each tab's pages | The tab's pages in order (the sub-menu for Decks, Tournaments and Learn): `{ path, label, hidden }`. Decks: `decks`, `tuned`, `lab`. Tournaments: `tournaments`, `run`, `ratings`, `seasons`, `meta`, `arena`. Learn: `tutorial` (How to play: the lessons and the rules in five minutes), `guides`, `cards`, `glossary`, `insights`, `credits`. Home, Play and Profile have one page each. A tab's first shown page is where its tab link goes. |
+| (rule) | | Hiding Learn → How to play (`tutorial`) also removes its quick link on Home, the line on the Play setup screen and the lessons' links. A hidden tab or page shows "This page is turned off" at its address. A deck's profile (`#/deck`) follows the Decks tab, a shared profile (`#/u`) the Profile tab. Home and Play cannot both be hidden. With Home hidden, `#/` opens the first tab shown. |
 | `features.coach` | `true` | The coach in Play (switch, advice, move grades). |
 | `features.gameReview` | `true` | Game review buttons in Play and Profile. |
 | `features.savedGames` | `true` | Resume game, named saves and save files in Play. |
@@ -60,7 +60,7 @@ file.
 | `banner.start` | `""` | Show from this date; empty: no start. |
 | `banner.end` | `""` | Show until this date; empty: no end. |
 | `banner.dismissible` | `true` | Visitors can close it. A closed banner stays closed in that browser until its text changes. |
-| `home.sections` | `nextEvent`, `featuredDeck`, `quickActions`, `featuredEvent`, `topDecks`, all shown | Home's sections in order, each `{ id, hidden }`. |
+| `home.sections` | `nextEvent`, `featuredDeck`, `quickActions`, `featuredEvent`, `topDecks`, all shown | Home's sections in order, each `{ id, hidden }`. The quick links (Learn to play, Practice, Browse decks, Tournaments) each show only while their page is on. |
 | `home.featuredDeck` | `""` | A library deck file (e.g. `meta-rrg-dexter-midrange.txt`) to feature; empty: the generated recommendation. |
 | `home.featuredEvent` | `""` | A recorded event id to feature on Home; empty: none. |
 | `home.nextEvent.name` | `"Edgerunner Open Regional — Chicago"` | The next event bar. Max 100. |

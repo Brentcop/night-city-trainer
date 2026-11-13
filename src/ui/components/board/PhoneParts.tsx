@@ -55,8 +55,16 @@ function panelTitle(ctx: BoardCtx): string {
  * The collapsed panel: a button in the phone's strip (so it covers nothing) naming the prompt, or "Actions" in your
  * main phase; it opens the panel.
  */
-export function PhonePanelTab({ ctx, onExpand }: { ctx: BoardCtx; onExpand: () => void }) {
+export function PhonePanelTab({ ctx, onExpand, label }: { ctx: BoardCtx; onExpand: () => void; /** a tutorial lesson: the tab names the lesson, and shows with nothing to decide too */ label?: string }) {
   const { pend, targeting } = ctx;
+  if (label) {
+    return (
+      <button type="button" className="pb-pp-tab is-prompt" onClick={onExpand} aria-label={`Show the lesson: ${label}`}>
+        <span aria-hidden="true">▾</span>
+        <span className="pb-pp-tab-text">{label}</span>
+      </button>
+    );
+  }
   if (!pend) return null;
   const title = panelTitle(ctx);
   const main = pend.kind === 'action' && !targeting;
@@ -83,7 +91,13 @@ export function PhonePanel({
   onPeek,
   allActions,
   paySelect,
+  tutor,
+  tutorTitle,
 }: {
+  /** a tutorial lesson's panel: in place of the coach, and shown while the rival plays too */
+  tutor?: React.ReactNode;
+  /** the lesson's name: the panel's title while nothing is asked */
+  tutorTitle?: string;
   /** "Choose before playing": the "Pay with" row, shown in your main phase and reactions */
   paySelect?: React.ReactNode;
   ctx: BoardCtx;
@@ -98,8 +112,31 @@ export function PhonePanel({
   allActions: React.ReactNode;
 }) {
   const { g, pend, ix, coach, targeting } = ctx;
-  if (state !== 'open' || !pend) return null;
-  const title = panelTitle(ctx);
+  if (state !== 'open' || (!pend && !tutor)) return null;
+  // a lesson: its name heads the panel while you act or react (the banner over the table says what is attacking)
+  const title = pend && !(tutor && (pend.kind === 'action' || pend.kind === 'reaction')) ? panelTitle(ctx) : (tutorTitle ?? '');
+  const style: React.CSSProperties | undefined = box
+    ? { left: box.left, width: box.width, top: box.top ?? 'auto', bottom: box.bottom ?? 'auto', maxHeight: box.maxHeight, ['--pp-w' as string]: `${box.width}px` }
+    : undefined;
+  const head = (
+    <div className="pb-pp-head">
+      <b className="pb-pp-title">
+        <MentionText text={title} />
+      </b>
+      <button type="button" className="ghost pb-pp-min" onClick={onCollapse} aria-label={tutor ? 'Hide the lesson (a button in the top bar shows it again)' : 'Hide the prompt (a button in the top bar shows it again)'}>
+        ▴
+      </button>
+    </div>
+  );
+  if (!pend) {
+    // a tutorial lesson while the rival plays: the lesson's panel alone
+    return (
+      <aside className={`pb-pp has-tutor ${box?.bottom !== undefined ? 'is-low' : ''}`} style={style} aria-label="Lesson">
+        {head}
+        {tutor}
+      </aside>
+    );
+  }
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
       <MentionText text={label ?? shownLabel(pend.options[i]?.label ?? '')} passive />
@@ -117,7 +154,8 @@ export function PhonePanel({
       </div>
     );
   } else if (pend.kind === 'action') {
-    body = <div className="pb-pp-hint">Tap a marked card to act.</div>;
+    // a lesson's panel says what to tap; the panel is small, so it gets the room
+    body = tutor ? null : <div className="pb-pp-hint">Tap a marked card to act.</div>;
   } else if (pend.kind === 'reaction') {
     body = <div className="pb-pp-hint">Tap a ⛨ unit to block, or a marked card to react.</div>;
   } else {
@@ -154,20 +192,10 @@ export function PhonePanel({
     );
   }
   const coachPick = coach && pend.options[coach.i] ? optionName(pend, coach.i) : null;
-  const style: React.CSSProperties | undefined = box
-    ? { left: box.left, width: box.width, top: box.top ?? 'auto', bottom: box.bottom ?? 'auto', maxHeight: box.maxHeight, ['--pp-w' as string]: `${box.width}px` }
-    : undefined;
   return (
-    <aside className={`pb-pp ${pend.kind === 'reaction' ? 'is-alert' : ''} ${box?.bottom !== undefined ? 'is-low' : ''}`} style={style} aria-label="Prompt">
-      <div className="pb-pp-head">
-        <b className="pb-pp-title">
-          <MentionText text={title} />
-        </b>
-        <button type="button" className="ghost pb-pp-min" onClick={onCollapse} aria-label="Hide the prompt (a button in the top bar shows it again)">
-          ▴
-        </button>
-      </div>
-      <CoachBox pick={coachPick} why={note?.why} next={note?.next} thinking={note?.thinking} compact className="pb-pp-coach" />
+    <aside className={`pb-pp ${tutor ? 'has-tutor' : ''} ${pend.kind === 'reaction' ? 'is-alert' : ''} ${box?.bottom !== undefined ? 'is-low' : ''}`} style={style} aria-label="Prompt">
+      {head}
+      {tutor ?? <CoachBox pick={coachPick} why={note?.why} next={note?.next} thinking={note?.thinking} compact className="pb-pp-coach" />}
       {body}
       {!targeting && (pend.kind === 'action' || pend.kind === 'reaction') && paySelect}
       {allActions}

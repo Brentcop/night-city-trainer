@@ -224,6 +224,7 @@ export function Home() {
   // once the event's end date has passed the bar is not shown (APP-12): it would say "next" about a past event
   const actions = (
     [
+      ['🎓', 'Learn to play', 'New to the game? Short lessons on the real board, from your first turn to your first win.', '#/tutorial', 'tutorial'],
       ['▶', 'Practice', 'Play the recommended deck against the bot, with a coach.', `#/play?d=${encodeURIComponent(pick?.file ?? '')}`, 'play'],
       ['▤', 'Browse decks', 'Every deck with its origin, art and full stats.', '#/decks', 'decks'],
       ['🏆', 'Tournaments', 'Brackets, standings and replays of every simulated event.', '#/tournaments', 'tournaments'],

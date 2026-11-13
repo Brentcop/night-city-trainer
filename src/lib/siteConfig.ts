@@ -70,7 +70,7 @@ export const NAV_CATALOG: readonly { id: SectionId; label: string; icon: string;
   { id: 'decks', label: 'Decks', icon: '▤', pages: ['decks', 'tuned', 'lab'], extra: ['deck'], subnav: true },
   { id: 'play', label: 'Play', icon: '▶', pages: ['play'], extra: [], subnav: false },
   { id: 'tournaments', label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], extra: [], subnav: true },
-  { id: 'learn', label: 'Learn', icon: '♟', pages: ['guides', 'cards', 'glossary', 'insights', 'credits'], extra: [], subnav: true },
+  { id: 'learn', label: 'Learn', icon: '♟', pages: ['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits'], extra: [], subnav: true },
   { id: 'profile', label: 'Profile', icon: '◉', pages: ['profile'], extra: ['u'], subnav: false },
 ];
 
@@ -88,6 +88,7 @@ export const PAGE_LABEL: Readonly<Record<string, string>> = {
   seasons: 'Breeding seasons',
   meta: 'choom.gg meta',
   arena: 'Matchup Lab',
+  tutorial: 'How to play',
   guides: 'Strategy',
   cards: 'Cards',
   glossary: 'Glossary',
@@ -113,7 +114,7 @@ export type HomeSectionId = (typeof HOME_SECTIONS)[number];
 export const HOME_SECTION_LABEL: Record<HomeSectionId, string> = {
   nextEvent: 'Next event bar',
   featuredDeck: 'Featured deck',
-  quickActions: 'Quick links (Practice, Browse decks, Tournaments)',
+  quickActions: 'Quick links (Learn to play, Practice, Browse decks, Tournaments)',
   featuredEvent: 'Featured event (shows only when one is set)',
   topDecks: 'Top 5 decks',
 };

@@ -14,6 +14,7 @@ import { formatRecorded } from './RecordedAt';
 import { Verdict, Wr } from './Num';
 import { GameReviewModal } from './GameReview';
 import { ResumeButton, ResumeNote, SavedGamesPanel, type SavesProps } from './SavedGames';
+import { TutorialNudge } from './TutorialNudge';
 
 export type Seat = 'random' | 'first' | 'second';
 
@@ -83,6 +84,7 @@ export function PlaySetup({
   return (
     <div className="grid" style={{ maxWidth: 860 }}>
       <h1>Play vs Bot</h1>
+      <TutorialNudge />
       <div className="panel grid">
         <DeckPicker label="Your deck" value={mine} onChange={setMine} />
         <DeckPicker label="Bot deck" value={opp} onChange={setOpp} />

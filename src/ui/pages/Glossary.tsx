@@ -3,8 +3,9 @@ import { GLOSSARY } from '../../content/glossary';
 import { PageHead } from '../components/PageHead';
 import { MentionText } from '../components/CardMention';
 
-export function GlossaryPage() {
-  const [q, setQ] = useState('');
+/** `initial`: a term to search for at once (`#/glossary?q=Lag`, the tutorial's links). */
+export function GlossaryPage({ initial }: { initial?: string }) {
+  const [q, setQ] = useState(initial ?? '');
   const groups = [...new Set(GLOSSARY.map((t) => t.group))];
   const match = (t: (typeof GLOSSARY)[number]) => !q || JSON.stringify(t).toLowerCase().includes(q.toLowerCase());
   return (

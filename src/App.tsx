@@ -71,6 +71,7 @@ const DecksPage = lazy(() => import('./ui/pages/Decks').then((m) => ({ default: 
 const PlayPage = lazy(() => import('./ui/pages/Play').then((m) => ({ default: m.PlayPage })));
 const ArenaPage = lazy(() => import('./ui/pages/Arena').then((m) => ({ default: m.ArenaPage })));
 const GuidesPage = lazy(() => import('./ui/pages/Guides').then((m) => ({ default: m.GuidesPage })));
+const TutorialPage = lazy(() => import('./ui/pages/Tutorial').then((m) => ({ default: m.TutorialPage })));
 const GlossaryPage = lazy(() => import('./ui/pages/Glossary').then((m) => ({ default: m.GlossaryPage })));
 const CardsPage = lazy(() => import('./ui/pages/Cards').then((m) => ({ default: m.CardsPage })));
 const InsightsPage = lazy(() => import('./ui/pages/Insights').then((m) => ({ default: m.InsightsPage })));
@@ -93,16 +94,17 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'tuned', label: 'Tuned decks', el: () => <TunedDecksPage /> },
   { path: 'lab', label: 'Deck Lab', el: (q) => <DeckLabPage q={q} /> },
   { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} /> },
-  { path: 'play', label: 'Play vs Bot', el: (q, sub) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} sub={sub} mode={q.get('mode')} /> },
+  { path: 'play', label: 'Play vs Bot', el: (q, sub) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} initialTier={q.get('tier') ?? undefined} sub={sub} mode={q.get('mode')} /> },
   { path: 'tournaments', label: 'Events', el: (q) => <TournamentsPage initial={q.get('e') ?? undefined} /> },
   { path: 'run', label: 'Run a tournament', el: (q) => <TournamentRunnerPage q={q} /> },
   { path: 'ratings', label: 'Power ratings', el: () => <RatingsPage /> },
   { path: 'seasons', label: 'Breeding seasons', el: () => <SeasonsPage /> },
   { path: 'meta', label: 'choom.gg meta', el: () => <MetaPage /> },
   { path: 'arena', label: 'Matchup Lab', el: (q) => <ArenaPage q={q} /> },
+  { path: 'tutorial', label: 'How to play', el: (_q, sub) => <TutorialPage sub={sub} /> },
   { path: 'guides', label: 'Strategy', el: (q) => <GuidesPage initial={q.get('g') ?? undefined} /> },
   { path: 'cards', label: 'Cards', el: () => <CardsPage /> },
-  { path: 'glossary', label: 'Glossary', el: () => <GlossaryPage /> },
+  { path: 'glossary', label: 'Glossary', el: (q) => <GlossaryPage initial={q.get('q') ?? undefined} /> },
   { path: 'insights', label: 'Card stats', el: (q) => <InsightsPage initial={q.get('d') ?? undefined} /> },
   { path: 'credits', label: 'Credits', el: () => <CreditsPage /> },
   { path: 'profile', label: 'Profile', el: (_q, sub) => <ProfilePage sub={sub} /> },
@@ -111,8 +113,8 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'admin', label: 'Site config', el: () => <AdminPage /> },
 ];
 
-/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`, `#/play/join/<invite>`); every other route matches its path exactly. */
-const NESTED = new Set(['profile', 'u', 'play']);
+/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`, `#/play/join/<invite>`, `#/tutorial/<lesson>`); every other route matches its path exactly. */
+const NESTED = new Set(['profile', 'u', 'play', 'tutorial']);
 
 /** The top tabs and their pages are in the site config (visibleNav in src/lib/siteConfig.ts). */
 

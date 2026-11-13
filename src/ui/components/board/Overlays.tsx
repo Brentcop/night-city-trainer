@@ -138,7 +138,7 @@ export function ActionMenu({ ctx, menu, onClose }: { ctx: BoardCtx; menu: MenuSt
             >
               {it.kind === 'attack' || it.kind === 'attackDirect' ? '⚔ ' : ''}
               <MentionText text={it.label} passive />
-              {isCoach && <span className="chip pb-chip-coach">Coach</span>}
+              {isCoach && <span className="chip pb-chip-coach">{ctx.markLabel ?? 'Coach'}</span>}
             </button>
           );
         })}

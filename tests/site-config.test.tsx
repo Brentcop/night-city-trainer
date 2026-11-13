@@ -289,8 +289,11 @@ describe('features and pages', () => {
 describe('nav', () => {
   it('the defaults are today’s tabs and sub-menus', () => {
     const nav = visibleNav(defaultSiteConfig());
-    expect(nav.map((s) => `${s.icon} ${s.label} → ${s.landing}`)).toEqual(['⌂ Home → home', '▤ Decks → decks', '▶ Play → play', '🏆 Tournaments → tournaments', '♟ Learn → guides', '◉ Profile → profile']);
+    expect(nav.map((s) => `${s.icon} ${s.label} → ${s.landing}`)).toEqual(['⌂ Home → home', '▤ Decks → decks', '▶ Play → play', '🏆 Tournaments → tournaments', '♟ Learn → tutorial', '◉ Profile → profile']);
     expect(nav[1]!.pages.map((p) => p.label)).toEqual(['All decks', 'Tuned decks', 'Deck Lab']);
+    // How to play (the tutorial) leads the Learn sub-menu
+    expect(nav[4]!.pages.map((p) => p.path)).toEqual(['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits']);
+    expect(nav[4]!.pages[0]!.label).toBe('How to play');
     expect(nav[1]!.routes).toContain('deck');
     expect(nav.filter((s) => s.subnav).map((s) => s.id)).toEqual(['decks', 'tournaments', 'learn']);
   });

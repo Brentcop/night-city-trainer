@@ -45,7 +45,7 @@ function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
         <span className="pb-cred" title="Street Cred (sum of your Gig values)">
           ☆ {cred ?? '–'}
         </span>
-        {coachArea && <span className="chip pb-chip-coach">Coach</span>}
+        {coachArea && <span className="chip pb-chip-coach">{ctx.markLabel ?? 'Coach'}</span>}
       </div>
       <div className="pb-dice">
         {gigs.map((x) => {
