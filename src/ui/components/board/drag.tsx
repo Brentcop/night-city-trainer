@@ -2,7 +2,9 @@
 //   hand card → your field = play, → your €$ pile = sell, → another hand card = reorder your hand
 //   face-up Legend → your field = Go Solo / play it by paying its cost (the prompt offers whichever are legal)
 //   your unit → a rival unit = attack it, → the rival Gig area = attack the Gig area
-// Every drop that does something in the game asks for confirmation first.
+// Every drop that does something in the game asks for confirmation first, unless the board setting "Confirm before
+// acting" is off: then a drop that can mean only one thing is done at once, and one that could mean two or more (Play or
+// Go Solo) still asks which (planDrop). Either way the answer given to the game is the same.
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useFocusTrap } from '../Modal';
 import type { Game } from '../../../engine/engine';
@@ -31,6 +33,22 @@ export function resolveDrop(_g: Game, ix: Interaction, uid: number, t: DropTarge
   if (t.kind === 'gigs') return attacks.filter((a) => a.gigs !== null).map((a) => ({ i: a.i, label: a.label }));
   if (t.kind === 'unit') return attacks.filter((a) => a.unit === t.uid).map((a) => ({ i: a.i, label: a.label }));
   return [];
+}
+
+/**
+ * What a drop on `t` does on the board: nothing (no target), a refusal (nothing legal there), the decision answered at
+ * once (`act`), or a question (`ask`). With `confirm` (the default, "Confirm before acting") every drop that acts asks;
+ * without it only a drop with two or more ways to resolve asks (that is a choice, not a confirmation). The option
+ * index is the one the question's single button would give, so the game records the same answer either way.
+ */
+export type DropPlan = { kind: 'none' } | { kind: 'refuse'; message: string } | { kind: 'act'; i: number } | { kind: 'ask'; p: PendingConfirm };
+export function planDrop(g: Game, ix: Interaction, uid: number, t: DropTarget | null, confirm = true): DropPlan {
+  if (!t || t.kind === 'hand') return { kind: 'none' };
+  const choices = resolveDrop(g, ix, uid, t);
+  if (!choices.length) return { kind: 'refuse', message: `${g.name(uid)} can't ${verb(t).toLowerCase()} there right now.` };
+  if (!confirm && choices.length === 1) return { kind: 'act', i: choices[0].i };
+  const target = t.kind === 'unit' ? ` → ${g.name(t.uid)}` : t.kind === 'gigs' ? ' → the rival Gig area' : '';
+  return { kind: 'ask', p: { uid, title: `${verb(t)} ${g.name(uid)}${target}?`, choices } };
 }
 
 const sameTarget = (a: DropTarget | null, b: DropTarget | null) =>
@@ -68,7 +86,17 @@ export interface DragApi {
  * Pointer-driven drag. On touch, a hand card only starts dragging on a mostly-vertical move, so sideways swipes still
  * scroll the hand.
  */
-export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: PendingConfirm) => void; onReorder: (uid: number, before: number) => void; onRefuse: (msg: string) => void }): DragApi {
+export interface DragOptions {
+  /** "Confirm before acting" (default true): ask before every drop that acts, not only when it could mean two things */
+  confirm?: boolean;
+  /** a drop that asks (planDrop's `ask`) */
+  onConfirm: (p: PendingConfirm) => void;
+  /** a drop answered at once (planDrop's `act`, only with `confirm` off): the option index */
+  onAct: (i: number) => void;
+  onReorder: (uid: number, before: number) => void;
+  onRefuse: (msg: string) => void;
+}
+export function useCardDrag(g: Game, ix: Interaction, opts: DragOptions): DragApi {
   // React state changes only when a drag starts or ends, or the hovered drop target changes; the ghost follows the
   // pointer through a ref (one transform per animation frame), so moving the pointer doesn't re-render the board.
   const [state, setState] = useState<{ uid: number; over: DropTarget | null } | null>(null);
@@ -143,11 +171,10 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
       const { g, ix, opts } = live.current;
       const t = hitTest(e.clientX, e.clientY, d.uid, g);
       if (t?.kind === 'hand') return opts.onReorder(d.uid, t.uid);
-      const choices = resolveDrop(g, ix, d.uid, t);
-      if (!t) return;
-      if (!choices.length) return opts.onRefuse(`${g.name(d.uid)} can't ${verb(t).toLowerCase()} there right now.`);
-      const target = t.kind === 'unit' ? ` → ${g.name(t.uid)}` : t.kind === 'gigs' ? ' → the rival Gig area' : '';
-      opts.onConfirm({ uid: d.uid, title: `${verb(t)} ${g.name(d.uid)}${target}?`, choices });
+      const plan = planDrop(g, ix, d.uid, t, opts.confirm ?? true);
+      if (plan.kind === 'refuse') opts.onRefuse(plan.message);
+      else if (plan.kind === 'act') opts.onAct(plan.i);
+      else if (plan.kind === 'ask') opts.onConfirm(plan.p);
     },
     [onMove, onTouchMove],
   );
@@ -193,8 +220,9 @@ export function useCardDrag(g: Game, ix: Interaction, opts: { onConfirm: (p: Pen
 }
 
 /**
- * "Are you sure?" for a dropped card, listing every way the drop can resolve (e.g. Play or Go Solo). `side`: phones,
- * a small panel against the right edge instead of a centred dialog.
+ * "Are you sure?" for a dropped card, listing every way the drop can resolve (e.g. Play or Go Solo); with "Confirm
+ * before acting" off it shows only for a drop with two or more ways. `side`: phones, a small panel against the right
+ * edge instead of a centred dialog.
  */
 export function ConfirmPrompt({ p, onPick, onCancel, side }: { p: PendingConfirm; onPick: (i: number) => void; onCancel: () => void; side?: boolean }) {
   // focus in, Tab kept inside, Escape cancels, focus back where it was (the shared Modal's wiring)

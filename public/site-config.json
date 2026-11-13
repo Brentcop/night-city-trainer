@@ -209,6 +209,7 @@
       "numerals": "readout",
       "payMode": "auto",
       "endTurn": "click",
+      "confirmActions": true,
       "panelPosition": "right"
     }
   },

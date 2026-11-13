@@ -8,6 +8,8 @@ import {
   applyPatch,
   BOARD_BACKGROUNDS,
   CARD_BACKS,
+  CONFIRM_ACTIONS_HELP,
+  CONFIRM_ACTIONS_LABEL,
   defaultBoardSettings,
   END_TURN_MODES,
   FRAMES,
@@ -146,6 +148,41 @@ describe('settings dialog', () => {
     expect(patches).toContainEqual({ glow: 'strong' });
     expect(patches).toContainEqual({ frame: 'plain' });
     expect(patches).toContainEqual({ ...LOOK_PRESETS.find((p) => p.id === 'neon-rain')!.look });
+  });
+
+  it('"Confirm before acting": a checkbox in the Game group, ticked by default, with its help, and it changes the setting', () => {
+    const html = render();
+    const box = new RegExp(`<label class="pb-set-row"><span>${CONFIRM_ACTIONS_LABEL}</span><input type="checkbox"( checked="")?/>`);
+    const at = html.search(box);
+    expect(at).toBeGreaterThan(html.indexOf('>Game</h4>'));
+    expect(at).toBeLessThan(html.indexOf('>Look</h4>'));
+    expect(html).toContain('<legend>Confirming moves</legend>');
+    expect(html.match(box)?.[1]).toBe(' checked=""');
+    expect(html).toContain(CONFIRM_ACTIONS_HELP);
+    expect(CONFIRM_ACTIONS_HELP).toMatch(/Undo/);
+    expect(CONFIRM_ACTIONS_HELP).toMatch(/no Undo/);
+    expect(render(applyPatch(defaultBoardSettings(), { confirmActions: false })).match(box)?.[1]).toBeUndefined();
+    // the box's onChange sends the patch
+    const patches: BoardSettingsPatch[] = [];
+    let el: unknown = null;
+    function Probe() {
+      el = SettingsDialog({ settings: defaultBoardSettings(), onChange: (p) => patches.push(p), onReset: noop, speed: 1200, setSpeed: noop, onClose: noop });
+      return null;
+    }
+    renderToStaticMarkup(<Probe />);
+    let check: { onChange: (on: boolean) => void } | null = null;
+    const walk = (n: unknown): void => {
+      if (!n || typeof n !== 'object') return;
+      if (Array.isArray(n)) return n.forEach(walk);
+      const props = (n as { props?: Record<string, unknown> }).props ?? {};
+      if (props.label === CONFIRM_ACTIONS_LABEL && typeof props.onChange === 'function') check = props as never;
+      walk(props.children);
+    };
+    walk(el);
+    expect(check).not.toBeNull();
+    check!.onChange(false);
+    check!.onChange(true);
+    expect(patches).toEqual([{ confirmActions: false }, { confirmActions: true }]);
   });
 
   it('every select has a label pointing at it, showing the current value', () => {

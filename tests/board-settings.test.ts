@@ -39,6 +39,7 @@ describe('board settings store', () => {
       payMode: 'auto',
       endTurn: 'click',
       panel: { position: 'right', density: 'detailed', textSize: 'medium', order: 'newest-last', turnMarkers: true, autoOpenRivalTurn: false },
+      confirmActions: true,
       accent: 'yellow',
       boardBg: 'grid',
       gigBg: 'panel',
@@ -93,7 +94,7 @@ describe('board settings store', () => {
       gigBg: 'stripes',
     };
     store.setItem(BOARD_SETTINGS_KEY, JSON.stringify(old));
-    expect(loadBoardSettings(store)).toEqual({ ...old, cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', motion: 'system' });
+    expect(loadBoardSettings(store)).toEqual({ ...old, confirmActions: true, cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', motion: 'system' });
     try {
       setSiteBoardDefaults({ glow: 'off', frame: 'plain', cardBack: 'scan' });
       const t = loadBoardSettings(store);
@@ -104,6 +105,22 @@ describe('board settings store', () => {
     } finally {
       setSiteBoardDefaults({});
     }
+  });
+
+  it('"Confirm before acting": a boolean, on by default; junk falls back to on, and older saved settings load with it on', () => {
+    expect(defaultBoardSettings().confirmActions).toBe(true);
+    expect(parseBoardSettings({ confirmActions: false }).confirmActions).toBe(false);
+    for (const junk of ['no', 0, null, {}]) expect(parseBoardSettings({ confirmActions: junk }).confirmActions).toBe(true);
+    expect(applyPatch(defaultBoardSettings(), { confirmActions: false }).confirmActions).toBe(false);
+    const store = memStore();
+    // what the version before this choice wrote: every field but confirmActions
+    const { confirmActions: _drop, ...before } = defaultBoardSettings();
+    void _drop;
+    store.setItem(BOARD_SETTINGS_KEY, JSON.stringify({ ...before, accent: 'cyan' }));
+    expect(loadBoardSettings(store)).toEqual({ ...defaultBoardSettings(), accent: 'cyan' });
+    // a saved choice round-trips
+    saveBoardSettings(applyPatch(defaultBoardSettings(), { confirmActions: false }), store);
+    expect(loadBoardSettings(store).confirmActions).toBe(false);
   });
 
   it('presets: valid settings, all different, the defaults are one of them and the old look is another', () => {

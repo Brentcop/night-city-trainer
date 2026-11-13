@@ -767,7 +767,10 @@ export function Board({
   const [manual, setManual] = useState<number[]>([]);
   const handOrder = sortHand(g, g.P(0).hand, sortMode, manual);
   const drag = useCardDrag(g, ix, {
+    // "Confirm before acting" off: a drop that can mean only one thing answers at once, exactly as its prompt would have
+    confirm: settings.confirmActions,
     onConfirm: (p) => setConfirm({ p, d: pend }),
+    onAct: (i) => answerFor(pend, i),
     onRefuse: setRefusal,
     onReorder: (uid, onto) => {
       setManual(reorderHand(handOrder, uid, onto));

@@ -283,6 +283,8 @@ export interface SiteConfig {
       numerals: Numerals;
       payMode: PayMode;
       endTurn: EndTurnMode;
+      /** Confirm before acting: a dropped card asks before it acts */
+      confirmActions: boolean;
       panelPosition: PanelPosition;
     };
   };
@@ -344,7 +346,7 @@ export function defaultSiteConfig(): SiteConfig {
       featuredEvent: '',
       nextEvent: { name: EVENT.name, start: EVENT.startText, end: EVENT.endText, detail: EVENT.detail },
     },
-    play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
+    play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', payMode: 'auto', endTurn: 'click', confirmActions: true, panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
     multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true, turnServers: [], turnCredentialsUrl: '', relayUrl: '' },
@@ -588,7 +590,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     r.err('play.defaultTier', `${defaultTier} is not one of the offered tiers; ${fb} is used`);
     defaultTier = fb;
   }
-  const pb = r.obj(p.board, 'play.board', ['accent', 'boardBg', 'gigBg', 'cardBack', 'glow', 'frame', 'numerals', 'payMode', 'endTurn', 'panelPosition']);
+  const pb = r.obj(p.board, 'play.board', ['accent', 'boardBg', 'gigBg', 'cardBack', 'glow', 'frame', 'numerals', 'payMode', 'endTurn', 'confirmActions', 'panelPosition']);
   const play: SiteConfig['play'] = {
     defaultTier,
     tiers,
@@ -602,6 +604,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
       numerals: r.pick(pb.numerals, 'play.board.numerals', NUMERALS, d.play.board.numerals),
       payMode: r.pick(pb.payMode, 'play.board.payMode', PAY_MODES, d.play.board.payMode),
       endTurn: r.pick(pb.endTurn, 'play.board.endTurn', END_TURN_MODES, d.play.board.endTurn),
+      confirmActions: r.bool(pb.confirmActions, 'play.board.confirmActions', d.play.board.confirmActions),
       panelPosition: r.pick(pb.panelPosition, 'play.board.panelPosition', PANEL_POSITIONS, d.play.board.panelPosition),
     },
   };

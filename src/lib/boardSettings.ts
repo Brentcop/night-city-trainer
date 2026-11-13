@@ -1,5 +1,6 @@
 // Play board settings, kept per browser under one versioned localStorage key: how Eddies are paid, where the side
-// panel (the game log and coach notes today, a chat later) sits and how it reads, and the look: accent colours, the board
+// panel (the game log and coach notes today, a chat later) sits and how it reads, whether a dropped card asks before it
+// acts, and the look: accent colours, the board
 // and Gig area backgrounds, card backs, glow, HUD frames, the read-out numerals and motion (with presets that set the
 // look in one click). The look fields are optional in storage: settings saved before they existed take their defaults.
 // Pure: defaults, validation and migration take plain values, and storage is passed in (blocked
@@ -73,6 +74,12 @@ export interface BoardSettings {
   payMode: PayMode;
   endTurn: EndTurnMode;
   panel: SidePanelSettings;
+  /**
+   * Confirm before acting: a card dropped on the board asks "Play X?" before it acts (the default, as before). Off, a
+   * drop that can mean only one thing is done at once; one that could mean two or more (Play or Go Solo) still asks
+   * which. The human seat's UI only: the answers the game records are the same either way.
+   */
+  confirmActions: boolean;
   accent: Accent;
   boardBg: BoardBackground;
   gigBg: GigBackground;
@@ -87,7 +94,7 @@ export interface BoardSettings {
 export const LOOK_FIELDS = ['accent', 'boardBg', 'gigBg', 'cardBack', 'glow', 'frame'] as const;
 export type Look = Pick<BoardSettings, (typeof LOOK_FIELDS)[number]>;
 /** Fields added after the first release: absent in older saved settings, which then take the site's default for each. */
-const LATER_FIELDS = ['endTurn', 'cardBack', 'glow', 'frame', 'numerals', 'motion'] as const;
+const LATER_FIELDS = ['endTurn', 'confirmActions', 'cardBack', 'glow', 'frame', 'numerals', 'motion'] as const;
 
 export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
   v: BOARD_SETTINGS_VERSION,
@@ -101,6 +108,7 @@ export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
     turnMarkers: true,
     autoOpenRivalTurn: false,
   }) as SidePanelSettings,
+  confirmActions: true,
   accent: 'yellow',
   boardBg: 'grid',
   gigBg: 'panel',
@@ -122,6 +130,7 @@ let siteDefaults: {
   numerals?: Numerals;
   payMode?: PayMode;
   endTurn?: EndTurnMode;
+  confirmActions?: boolean;
   panelPosition?: PanelPosition;
 } = {};
 export function setSiteBoardDefaults(d: typeof siteDefaults): void {
@@ -164,6 +173,7 @@ export function parseBoardSettings(raw: unknown): BoardSettings {
       turnMarkers: bool(p.turnMarkers, d.panel.turnMarkers),
       autoOpenRivalTurn: bool(p.autoOpenRivalTurn, d.panel.autoOpenRivalTurn),
     },
+    confirmActions: bool(o.confirmActions, d.confirmActions),
     accent: pick(ACCENTS, o.accent, d.accent),
     boardBg: pick(BOARD_BACKGROUNDS, o.boardBg, d.boardBg),
     gigBg: pick(GIG_BACKGROUNDS, o.gigBg, d.gigBg),
@@ -200,7 +210,7 @@ export function loadBoardSettings(store: Store | null = localStore()): BoardSett
     if (!text) return defaultBoardSettings();
     const raw: unknown = JSON.parse(text);
     const s = parseBoardSettings(raw);
-    // settings saved before a choice existed (End turn, then the look) take the site's default for it
+    // settings saved before a choice existed (End turn, Confirm before acting, the look) take the site's default for it
     const site = defaultBoardSettings();
     for (const k of LATER_FIELDS) if (!isObj(raw) || raw[k] === undefined) (s as unknown as Record<string, unknown>)[k] = site[k];
     return s;
@@ -236,6 +246,9 @@ export const END_TURN_HELP: Record<EndTurnMode, string> = {
   click: 'Your turn ends only when you click End turn.',
   auto: 'When the only thing left is to end your turn, it ends by itself.',
 };
+export const CONFIRM_ACTIONS_LABEL = 'Confirm before acting';
+export const CONFIRM_ACTIONS_HELP =
+  'Ticked, a card you drag onto the board asks before it acts. Unticked, a drop that can mean only one thing happens at once; one that could mean more (Play or Go Solo) still asks which. Undo takes back a move in practice games; against a person there is no Undo.';
 export const POSITION_LABEL: Record<PanelPosition, string> = { right: 'Right', left: 'Left', bottom: 'Bottom', hidden: 'Hidden' };
 export const ACCENT_LABEL: Record<Accent, string> = {
   yellow: 'Yellow (default)',

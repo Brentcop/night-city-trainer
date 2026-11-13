@@ -78,6 +78,7 @@ file.
 | `play.board.numerals` | `"readout"` | Face for counts and stats: `readout` (monospaced, tabular) or `standard`. |
 | `play.board.payMode` | `"auto"` | Paying costs: `auto`, `before`, `after`. |
 | `play.board.endTurn` | `"click"` | End of turn: `click` (the player clicks End turn every turn) or `auto` (the turn ends by itself when nothing is left to do). Also used for a visitor whose saved settings predate this choice. A game keeps the mode it started with. |
+| `play.board.confirmActions` | `true` | Confirm before acting: a card dropped on the board asks before it acts. `false`: a drop that can mean only one thing happens at once (one that could mean more, such as Play or Go Solo, still asks which). Session confirmations (Concede, Exit, deleting a save, claiming a win on time) always ask. Also used for a visitor whose saved settings predate this choice. |
 | `play.board.panelPosition` | `"right"` | Side panel: `right`, `left`, `bottom`, `hidden`. |
 | (rule) | | A visitor's own saved board settings always win over `play.board`. |
 | (rule) | | Motion is not set here: each visitor's Motion setting follows their device's reduced-motion choice until they change it. The board settings' look presets (Settings dialog) are fixed in `src/lib/boardSettings.ts`. |

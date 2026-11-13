@@ -1,6 +1,6 @@
 // The Play board's settings dialog (gear on the full board's strip, "Settings" in the phone ☰ menu, and a button on
-// the setup screen), in two groups. Game: paying costs, ending your turn, the side panel (game log and coach notes), the
-// bot's pace and the panels kept open for the session (board/prefs.ts). Look: a live mini-board showing the current
+// the setup screen), in two groups. Game: paying costs, ending your turn, confirming before acting, the side panel
+// (game log and coach notes), the bot's pace and the panels kept open for the session (board/prefs.ts). Look: a live mini-board showing the current
 // choices, one-click presets (or Custom), colours, board and Gig area backgrounds, card backs, and the effects (glow,
 // frames, numbers, motion). Every change applies at once (End of turn from the next game) and is saved in this browser
 // (src/lib/boardSettings.ts, through src/ui/useBoardSettings.ts). The caller renders it at <body>.
@@ -12,6 +12,8 @@ import {
   BOARD_BG_LABEL,
   CARD_BACK_LABEL,
   CARD_BACKS,
+  CONFIRM_ACTIONS_HELP,
+  CONFIRM_ACTIONS_LABEL,
   END_TURN_HELP,
   END_TURN_LABEL,
   END_TURN_MODES,
@@ -204,6 +206,12 @@ export function SettingsDialog({
           ))}
         </div>
         <p className="small muted pb-set-note">{END_TURN_NOTE}</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Confirming moves</legend>
+        <Check label={CONFIRM_ACTIONS_LABEL} checked={settings.confirmActions} onChange={(on) => onChange({ confirmActions: on })} />
+        <p className="small muted pb-set-note">{CONFIRM_ACTIONS_HELP}</p>
       </fieldset>
 
       <fieldset>

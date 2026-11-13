@@ -33,6 +33,7 @@ import {
   BOARD_BG_LABEL,
   CARD_BACK_LABEL,
   CARD_BACKS,
+  CONFIRM_ACTIONS_LABEL,
   END_TURN_LABEL,
   END_TURN_MODES,
   GIG_BACKGROUNDS,
@@ -543,6 +544,13 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
         <Select label="Numbers" value={draft.play.board.numerals} options={NUMERALS} labels={NUMERALS_LABEL} onChange={(v) => up((c) => void (c.play.board.numerals = v))} />
         <Select label="Paying costs" value={draft.play.board.payMode} options={PAY_MODES} labels={PAY_MODE_LABEL} onChange={(v) => up((c) => void (c.play.board.payMode = v))} />
         <Select label="End of turn" value={draft.play.board.endTurn} options={END_TURN_MODES} labels={END_TURN_LABEL} onChange={(v) => up((c) => void (c.play.board.endTurn = v))} />
+        <Check
+          label={CONFIRM_ACTIONS_LABEL}
+          checked={draft.play.board.confirmActions}
+          onChange={(v) => up((c) => void (c.play.board.confirmActions = v))}
+          help="a card dropped on the board asks before it acts; off, a drop that can mean only one thing happens at once"
+        />
+        <Errs issues={issues} path="play.board.confirmActions" />
         <Select label="Side panel position" value={draft.play.board.panelPosition} options={PANEL_POSITIONS} labels={POSITION_LABEL} onChange={(v) => up((c) => void (c.play.board.panelPosition = v))} />
       </fieldset>
 
