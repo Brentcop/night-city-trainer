@@ -1,22 +1,41 @@
 // Bot difficulty tiers, shared by Play, the Matchup Lab, tournaments (browser + CLI) and replays.
 // Chosen by head-to-head testing (docs/BOT_TOOLKIT.md §6, docs/IMPROVEMENT_BACKLOG.md WP-D1 / WP-D2):
-//   Easy   — the Fast bot: plays by simple rules, no lookahead (it never reads the evaluation weights).
+//   Easy   — the Fast bot: plays by simple rules, no lookahead (it never reads the evaluation weights); since SIM_VERSION 8
+//            it skips a Program that would do nothing (easyGuard).
 //   Medium — the Lookahead bot: scores every action one step ahead with the tuned matchup profiles.
 //   Hard   — the Deep bot: rolls out the rest of its turn and the rival's whole reply for its best 3 options and plays
 //            out each block / reaction; the plain mulligan rule and no card impact since SIM_VERSION 6; picks the card
 //            to sell by rollout among its 3 most sellable (sellLookahead 3) since SIM_VERSION 7.
-// Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6. Paired botcheck,
-// meta decks, 2026-11-12: new Hard vs new Medium 64.4% [61.9, 66.9]; new Medium vs Easy 76.5% [74.0, 79.1].
+// Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6 (goSolo 0 since 8).
+// Paired botcheck, meta decks --per 10, on SIM_VERSION 8 (2026-11-13): Hard vs Medium 67.0% [64.6, 69.5]; Medium vs Easy
+// 79.8% [77.1, 82.4]. Bot time per game (one thread, meta decks): Easy 0.004 s, Medium 0.04 s, Hard 1.0 s.
 // Tournaments can also mix Hard and Medium: each seat of each game is Hard or Medium, decided by the game seed,
 // so a replay rebuilds exactly the same bots.
 // Bot fixes change play for every tier and the legacy names alike (the owner chose to fix forward, 2026-11-10): events
 // recorded before a fix replay identically only with the code they were recorded with. Same code + same seed = same game.
-import { HeuristicAgent } from './heuristic';
+import { HeuristicAgent, type HeuristicOptions } from './heuristic';
 import { BEST_PROFILES } from './archetype';
 
 export type Tier = 'easy' | 'medium' | 'hard';
-/** Hard also rolls out its best N attack options (set by reports/refine-*.md). */
-const HARD_DEEP_ATTACKS = 0; // attack rollouts measured no gain (reports/refine-results.md)
+
+/** A tier's settings as plain data (the HeuristicOptions a tier sets; `profiles: 'best'` = BEST_PROFILES). */
+export type TierSettings = Pick<HeuristicOptions, 'lookahead' | 'noise' | 'deep' | 'deepAttacks' | 'deepReactions' | 'sellLookahead' | 'mulligan' | 'easyGuard'> & { profiles?: 'best' };
+
+/**
+ * Each tier's settings: the one source for makeTierBot and for the scripts' worker specs (TIER_SPECS and HARD_SPEC in
+ * scripts/agent-spec.ts: botcheck, tune, the benchmark, package-scoring). tests/impact-uses.test.ts checks that a spec
+ * builds exactly the tier's bot.
+ *  - Hard: card impact (impact 0 vs 40: 49.7% [49.1, 50.3] on all decks) and its mulligan keep dropped in SIM_VERSION 6;
+ *    the sold card chosen by rollout among the 3 most sellable since SIM_VERSION 7 (sellLookahead 3 vs 0: 51.7%
+ *    [50.2, 53.1] meta); attack rollouts (deepAttacks) measured no gain (reports/refine-results.md).
+ *  - Easy: skips Programs that would do nothing since SIM_VERSION 8 (easyGuard, BOT-F).
+ */
+export const TIER_SETTINGS: Readonly<Record<Tier, Readonly<TierSettings>>> = {
+  easy: { lookahead: false, noise: 0, easyGuard: true },
+  medium: { noise: 0.15, profiles: 'best' },
+  hard: { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: 'best' },
+};
+
 export type BotChoice = Tier | 'mixed';
 
 export const TIERS: Record<Tier, { label: string; blurb: string; speed: string }> = {
@@ -27,7 +46,7 @@ export const TIERS: Record<Tier, { label: string; blurb: string; speed: string }
 export const TOURNEY_BOTS: { key: BotChoice; label: string; blurb: string }[] = [
   { key: 'hard', label: 'All Hard', blurb: 'Most accurate results, slowest' },
   { key: 'mixed', label: 'Hard + Medium mix', blurb: 'Each seat is Hard or Medium at random: adds human-like variance' },
-  { key: 'medium', label: 'All Medium', blurb: 'Good results, ~4× quicker than Hard' },
+  { key: 'medium', label: 'All Medium', blurb: 'Good results, ~20× quicker than Hard' },
   { key: 'easy', label: 'All Easy', blurb: 'Quick sanity checks only' },
 ];
 
@@ -41,11 +60,8 @@ export const tierLabel = (level: string) => {
 };
 
 function tierAgent(t: Tier, seed: number, name?: string) {
-  if (t === 'easy') return new HeuristicAgent({ name, lookahead: false, seed });
-  // card impact (impact 0 vs 40: 49.7% [49.1, 50.3] on all decks) and its mulligan keep dropped in SIM_VERSION 6
-  // the sold card chosen by rollout among the 3 most sellable since SIM_VERSION 7 (sellLookahead 3 vs 0: 51.7% [50.2, 53.1] meta)
-  if (t === 'hard') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, deepAttacks: HARD_DEEP_ATTACKS, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: BEST_PROFILES });
-  return new HeuristicAgent({ name, seed, noise: 0.15, profiles: BEST_PROFILES });
+  const { profiles, ...rest } = TIER_SETTINGS[t];
+  return new HeuristicAgent({ ...rest, name, seed, profiles: profiles === 'best' ? BEST_PROFILES : null });
 }
 
 /** The bot for a game seat. `seed` is the seat's seed (game seed for seat A, +7777 for seat B). */

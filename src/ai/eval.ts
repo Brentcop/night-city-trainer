@@ -1,7 +1,7 @@
 // Static position evaluation from one player's perspective.
 import { other, type Game } from '../engine/engine';
 import { attackBanned } from '../engine/game/combat';
-import type { CardInst, Gig, PlayerId } from '../engine/types';
+import type { CardInst, Gig, Mod, PlayerId } from '../engine/types';
 import { gigPlanOf, type GigPlan } from './knowledge';
 import { activeSteer, assemblyCredit, packageFacts, protectCredit, seatPackages, steerCredit } from './packages';
 
@@ -44,6 +44,10 @@ export interface EvalWeights {
 // who won on these terms, on the gig scale) plus rivalLethal 400 (BOT-3). Terms the fit could not identify (spentRisk,
 // unitGear, legendGear, lowDeck) keep their hand values. The hand-tuned weights used until then are the named set
 // `hand-2026-10`. Measured in docs/IMPROVEMENT_BACKLOG.md WP-D1 / WP-D2 (status 2026-11-12, switch-on).
+// Since SIM_VERSION 8 (BOT-A, 2026-11-13): goSolo 0, not the fitted −50.6 (the named set keeps it). Going solo costs the
+// same as playing the Legend to the field and makes the same Unit, only ready and free to attack this turn (11.29.1; no
+// card returns a Unit to the Legends area, the one place where the two differ later), so the flag carries no lasting
+// cost: the fit picked up an association, and the bots played the Legend with Lag instead (docs/BOT_TOOLKIT.md §3).
 export const DEFAULT_WEIGHTS: EvalWeights = {
   gig: 20,
   gigNear: 50.8,
@@ -58,7 +62,7 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   blocker: -44.1,
   unitGear: 1.5,
   stealsTwo: 42.8,
-  goSolo: -50.6,
+  goSolo: 0,
   legendGear: 2,
   lowDeck: 8,
   lowDeckAt: 4,
@@ -145,9 +149,57 @@ export function planScore(gigs: Gig[], plan: GigPlan): number {
   return s;
 }
 
+/** Is `m` a power mod that ends with this turn (or this attack)? */
+const tempPowerMod = (m: Mod, uid: number) => m.kind === 'power' && m.target === uid && (m.until === 'endOfTurn' || m.until === 'attackEnd');
+
+/** c's power without the power mods that end with this turn or this attack. */
+export function lastingPower(g: Game, c: CardInst): number {
+  let p = g.rawPower(c);
+  for (const m of g.s.mods) if (tempPowerMod(m, c.uid)) p -= m.amount ?? 0;
+  return Math.max(0, p);
+}
+
+/**
+ * Can this turn's power on c still change anything this turn? c can still attack, a Unit of the active player can still
+ * attack it, it is ready with Blocker while the active player can still attack, or it is in the attack in progress.
+ */
+function tempPowerMatters(g: Game, c: CardInst): boolean {
+  const s = g.s;
+  if (s.phase !== 'main' && !s.attack) return false;
+  if (s.attack && (s.attack.attacker === c.uid || s.attack.targetUnit === c.uid)) return true;
+  const a = s.active;
+  if (c.controller === a) return g.attackTargets(c).length > 0;
+  const attackers = g.units(a).map((u) => g.attackTargets(u)).filter((ts) => ts.length > 0);
+  if (attackers.some((ts) => ts.some((t) => t.unit === c.uid))) return true;
+  return attackers.length > 0 && !c.spent && g.hasKw(c, 'blocker');
+}
+
+/**
+ * The power evaluate() counts for c (BOT-B, SIM_VERSION 8): this turn's power mods only where they can still matter this
+ * turn, so a pump on a Unit that can no longer fight, or a weaken on a rival Unit nothing can attack, is worth nothing
+ * lasting, while the trick that sets up an attack this turn keeps its credit.
+ */
+export function evalPower(g: Game, c: CardInst): number {
+  if (!g.s.mods.some((m) => tempPowerMod(m, c.uid))) return g.power(c);
+  return tempPowerMatters(g, c) ? g.power(c) : lastingPower(g, c);
+}
+
+/**
+ * c's power on `att`'s next turn: without the mods that end before it (this turn's, this attack's, and those that end
+ * at att's start).
+ */
+function nextTurnPower(g: Game, c: CardInst, att: PlayerId): number {
+  let p = g.rawPower(c);
+  for (const m of g.s.mods) if (m.kind === 'power' && m.target === c.uid && endsBefore(m, att)) p -= m.amount ?? 0;
+  return Math.max(0, p);
+}
+
+/** Does mod m end before att's next turn's attacks? */
+const endsBefore = (m: Mod, att: PlayerId) => m.until === 'endOfTurn' || m.until === 'attackEnd' || (m.until === 'startOfTurn' && m.untilPlayer === att);
+
 export function unitValue(g: Game, c: CardInst, w: EvalWeights = DEFAULT_WEIGHTS): number {
   const d = g.def(c);
-  const pw = g.power(c);
+  const pw = evalPower(g, c);
   let v = pw * w.unitPower + (d.cost ?? 4) * w.unitCost + w.unitBase;
   if (g.hasKw(c, 'blocker')) v += w.blocker;
   v += c.gear.length * w.unitGear;
@@ -262,7 +314,7 @@ function evalCore(g: Game, p: PlayerId, w: EvalWeights, acc: TermAcc | null): nu
 
 /** One Unit's unit features (unitValue's terms without weights), signed; `atRiskValue` is its value when the spent-risk discount applies. */
 function unitFeatures(g: Game, c: CardInst, sign: number, atRiskValue: number, f: Record<EvalTerm, number>) {
-  const pw = g.power(c);
+  const pw = evalPower(g, c);
   f.unitPower += sign * pw;
   f.unitCost += sign * (g.def(c).cost ?? 4);
   f.unitBase += sign;
@@ -286,10 +338,11 @@ export const nextTurnSeat = (g: Game): PlayerId => (g.s.phase === 'end' ? g.s.ac
 
 /**
  * Gigs seat `att` can steal from `def` on att's next turn, from public information: every Unit att has on the field
- * now readies and has no lag by then (lag ends with every turn) unless an attack restriction bans it from attacking,
- * and steals ⌊power/10⌋+1; each of def's Units that is ready now with Blocker stays ready through att's turn (Units
- * ready only at their controller's start) and stops one attack, taken to be the one stealing most. Capped at def's
- * Gigs. Ignores Units att will play (they lag), unblockable attackers, steal modifiers and this turn's power mods.
+ * now readies and has no lag by then (lag ends with every turn) unless an attack restriction bans it from attacking or
+ * a "can't attack" lasts into that turn (BOT-C), and steals ⌊next turn's power/10⌋+1 (power mods that end before then
+ * left out, BOT-B); each of def's Units that is ready now with Blocker stays ready through att's turn (Units ready only
+ * at their controller's start) and stops one attack, taken to be the one stealing most. Capped at def's Gigs. Ignores
+ * Units att will play (they lag), unblockable attackers and steal modifiers.
  */
 export function stealableNextTurn(g: Game, att: PlayerId, def: PlayerId): number {
   const have = g.P(def).gigs.length;
@@ -298,8 +351,9 @@ export function stealableNextTurn(g: Game, att: PlayerId, def: PlayerId): number
   for (const c of g.units(att)) {
     // a spent Unit stays spent through a "can't ready" that outlasts this turn and att's start
     if (c.spent && g.s.mods.some((m) => m.kind === 'cantReady' && m.target === c.uid && m.until !== 'endOfTurn' && !(m.until === 'startOfTurn' && m.untilPlayer === att))) continue;
-    const pw = g.power(c);
+    const pw = nextTurnPower(g, c, att);
     if (pw <= 0 || attackBanned(g, c, null)) continue;
+    if (g.s.mods.some((m) => m.kind === 'cantAttack' && m.target === c.uid && !endsBefore(m, att))) continue;
     steals.push(Math.floor(pw / 10) + 1);
   }
   if (!steals.length) return 0;

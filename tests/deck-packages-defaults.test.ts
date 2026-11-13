@@ -14,6 +14,9 @@
 // regenerated on SIM_VERSION 6 (2026-11-12), so `lab`, `tune` and `tuneEvidence` were re-taken from the code with the
 // new table and no package flags (with the old table the code still gives the old pins: 88e5174eb4a34a27,
 // 7095ce0b3f7b7f99, f401608b7786746d); the other pins read only the card data and did not move.
+// Regenerated again on SIM_VERSION 8 (2026-11-13: the legacy deep bot that `sim analyze` plays moved with the bot review's
+// fixes), so the three were re-taken the same way; with the version-7 table the code still gives the version-7 pins
+// (9d976f2194fa16a4, 4e61c7b7b1289165, 401102d01c85b8ed).
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/engine/cards';
 import { ramLimits } from '../src/engine/deck';
@@ -30,10 +33,10 @@ const PINNED = {
   forge: 'ecd7078f19459f62',
   optimize: '18b7a931bc44040a',
   optimizeSb: '7f8c37968f57e36c',
-  lab: '9d976f2194fa16a4',
-  tune: '4e61c7b7b1289165',
+  lab: '951f917960182521',
+  tune: '396cb8ea6eff43fd',
   // taken from the evidence-rule code (ROADMAP2 §1 step 5), not from 2546b64: the default rule's own sequence
-  tuneEvidence: '401102d01c85b8ed',
+  tuneEvidence: '6b9dddf10d2dcced',
 };
 
 const decks = synthDecks();

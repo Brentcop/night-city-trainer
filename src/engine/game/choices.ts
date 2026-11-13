@@ -31,13 +31,19 @@ export async function yesNo(game: Game, p: PlayerId, prompt: string, tag?: strin
   return i === 0;
 }
 
+/**
+ * The label of a card `p` may not see the face of (a face-down Legend that is not p's own known one): its slot only, so
+ * an option never names a hidden card (the label reaches the chooser, and online the guest). null when p may see it.
+ */
+function hiddenLabel(game: Game, c: CardInst, p: PlayerId): string | null {
+  if (c.zone !== 'legends' || c.faceUp || (c.controller === p && c.known)) return null;
+  return `${c.controller === p ? '' : 'Rival '}Face-down Legend (slot ${game.P(c.controller).legends.indexOf(c.uid) + 1})`;
+}
+
 export async function chooseUnit(game: Game, p: PlayerId, cands: CardInst[], prompt: string, opts: { optional?: boolean; intent?: Intent; tag?: string; source?: number } = {},): Promise<CardInst | null> {
   if (!cands.length) return null;
   const options: Opt[] = cands.map((c) => ({
-    label:
-      c.zone === 'legends' && !c.faceUp && !c.known
-        ? `Face-down Legend (slot ${game.P(c.controller).legends.indexOf(c.uid) + 1})`
-        : `${c.controller === p ? '' : 'Rival '}${game.name(c)} (${game.power(c)})${c.spent ? ' [spent]' : ''}`,
+    label: hiddenLabel(game, c, p) ?? `${c.controller === p ? '' : 'Rival '}${game.name(c)} (${game.power(c)})${c.spent ? ' [spent]' : ''}`,
     uid: c.uid,
   }));
   if (opts.optional) options.push({ label: 'None', key: 'none' });
@@ -47,7 +53,7 @@ export async function chooseUnit(game: Game, p: PlayerId, cands: CardInst[], pro
 
 export async function chooseCard(game: Game, p: PlayerId, uids: number[], prompt: string, optional = false, tag?: string, intent?: Intent): Promise<number | null> {
   if (!uids.length) return null;
-  const options: Opt[] = uids.map((u) => ({ label: game.name(u), uid: u }));
+  const options: Opt[] = uids.map((u) => ({ label: hiddenLabel(game, game.s.cards[u], p) ?? game.name(u), uid: u }));
   if (optional) options.push({ label: 'None', key: 'none' });
   const [i] = await game.ask({ player: p, kind: 'card', prompt, options, min: 1, max: 1, tag, intent });
   return options[i].key === 'none' ? null : options[i].uid!;

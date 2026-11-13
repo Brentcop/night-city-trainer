@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { makeTierBot } from '../src/ai/tiers';
-import { fromSpec, HARD_SPEC } from '../scripts/agent-spec';
+import { fromSpec, HARD_SPEC, TIER_SPECS } from '../scripts/agent-spec';
 
 describe('card impact uses', () => {
   it('default to the impact weight', () => {
@@ -17,6 +17,14 @@ describe('card impact uses', () => {
     expect(fromSpec(HARD_SPEC, 1).opts).toMatchObject({ sellLookahead: 3, mulligan: 'plain', deep: 3, deepReactions: 3, impact: 0 });
     expect(makeTierBot('hard-v1', 1).opts).toMatchObject({ impact: 40, impactSell: 40, impactCards: 40, mulligan: 'rule' });
     expect(fromSpec({ impact: 40 }, 1).opts).toMatchObject({ impactSell: 40, impactCards: 40 });
+  });
+  it("a tier's spec builds exactly the tier's bot (one source: TIER_SETTINGS)", () => {
+    for (const t of ['easy', 'medium', 'hard'] as const) {
+      const { name: _a, seed: _b, ...spec } = fromSpec(TIER_SPECS[t], 1).opts;
+      const { name: _c, seed: _d, ...tier } = makeTierBot(t, 1).opts;
+      expect(spec, t).toEqual(tier);
+    }
+    expect(HARD_SPEC).toBe(TIER_SPECS.hard);
   });
   it('can be set one by one', () => {
     expect(new HeuristicAgent({ impact: 40, impactSell: 0 }).opts).toMatchObject({ impact: 40, impactSell: 0, impactCards: 40 });

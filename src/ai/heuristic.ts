@@ -7,6 +7,7 @@ import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } 
 import { DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
 import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
+import { CARDS } from '../engine/cards';
 import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, classify, type Archetype, type Profiles } from './archetype';
@@ -125,6 +126,11 @@ export interface HeuristicOptions {
    * 'plain' drops the card-impact keep (2+ high-impact cards), which only bots with `impact` use.
    */
   mulligan?: MulliganRule;
+  /**
+   * BOT-F (Easy only, set by tierAgent('easy')): the fast main phase skips a Program that would do nothing (played in a
+   * clone, the position is no better than losing the card and nothing new lasts). Never set on clone agents.
+   */
+  easyGuard?: boolean;
   seed?: number;
 }
 
@@ -229,6 +235,7 @@ export class HeuristicAgent implements Agent {
       turnPlanNodes: opts.turnPlanNodes ?? 120,
       turnPlanBeam: opts.turnPlanBeam ?? 3,
       mulligan: opts.mulligan ?? 'rule',
+      easyGuard: opts.easyGuard ?? false,
       seed: opts.seed ?? 7,
     };
     this.name = this.opts.name;
@@ -465,12 +472,12 @@ export class HeuristicAgent implements Agent {
       this.lastAlternatives = [];
       return actions.findIndex((a) => a.type === 'sell' && a.uid === sell);
     }
-    if (!this.opts.lookahead) return this.fastMain(g, actions);
+    if (!this.opts.lookahead) return this.fastMain(g, p, actions);
     // 2) lookahead over the rest
     const base = evaluate(g, p, this.w(g, p));
     let bestI = passIdx;
     let bestV = passIdx >= 0 ? base : -Infinity;
-    const all = actions.map((a, i) => ({ a, i })).filter(({ a }) => a.type !== 'pass' && a.type !== 'sell');
+    const all = actions.map((a, i) => ({ a, i })).filter(({ a }) => a.type !== 'pass' && a.type !== 'sell' && !dominatedLegendPlay(g, p, a, actions));
     // Face-down Legends are unknown to their owner: all unknown Calls are one candidate, valued as their average.
     const unknownCalls = all.filter(({ a }) => isUnknownCall(g, a));
     const cands = this.capCandidates(g, unknownCalls.length ? [...all.filter((x) => !isUnknownCall(g, x.a)), unknownCalls[0]] : all);
@@ -543,10 +550,11 @@ export class HeuristicAgent implements Agent {
       }
     }
     if (bestI < 0) bestI = 0;
-    this.lastThought = `${g.describeAction(actions[bestI])} (eval ${bestV.toFixed(1)} vs pass ${base.toFixed(1)})`;
     // Alternatives on the scale the decision was actually made on (deep rollouts when used), relative to passing.
     const pool = deepScored ?? scored;
     const passV = pool.find((x) => x.i === passIdx)?.v ?? base;
+    // both figures on that scale (a deep decision's chosen value is a rollout, so passing is too)
+    this.lastThought = `${g.describeAction(actions[bestI])} (eval ${bestV.toFixed(1)} vs pass ${passV.toFixed(1)})`;
     const chosen = perWorld.get(bestI);
     this.lastAlternatives = [...pool]
       .sort((x, y) => y.v - x.v)
@@ -781,18 +789,45 @@ export class HeuristicAgent implements Agent {
     return pool.filter((x) => keep.has(x));
   }
 
-  /** Cheap greedy policy used inside lookahead clones. */
-  private fastMain(g: Game, actions: Action[]): number {
-    let best = actions.findIndex((a) => a.type === 'pass');
-    let bestScore = 0;
-    actions.forEach((a, i) => {
-      const s = a.type === 'play' || a.type === 'attack' || a.type === 'goSolo' || a.type === 'playLegend' ? fastPrior(g, a) : 0;
-      if (s > bestScore) {
-        bestScore = s;
-        best = i;
-      }
-    });
-    return best < 0 ? 0 : best;
+  /** Cheap greedy policy used inside lookahead clones (and Easy, with easyGuard). */
+  private async fastMain(g: Game, p: PlayerId, actions: Action[]): Promise<number> {
+    const pass = actions.findIndex((a) => a.type === 'pass');
+    const scored = actions
+      .map((a, i) => ({ i, s: a.type === 'play' || a.type === 'attack' || a.type === 'goSolo' || a.type === 'playLegend' ? fastPrior(g, a) : 0 }))
+      .filter((x) => x.s > 0);
+    // the first best wins ties, as before
+    scored.sort((x, y) => y.s - x.s || x.i - y.i);
+    for (const { i } of scored) {
+      const a = actions[i];
+      if (this.opts.easyGuard && a.type === 'play' && g.def(g.c(a.uid)).type === 'Program' && (await this.isDud(g, p, a))) continue;
+      return i;
+    }
+    return pass < 0 ? 0 : pass;
+  }
+
+  /**
+   * BOT-F: would playing this Program do nothing? Played in a clone (hidden information re-dealt, sub-choices by the fast
+   * policy): a dud leaves the position no better than losing the card from hand (this turn's power counted only where it
+   * can still matter) and adds no lasting mod (a lock, a delayed trigger, a keyword...).
+   */
+  private async isDud(g: Game, p: PlayerId, a: Action): Promise<boolean> {
+    const w = FAST_WEIGHTS;
+    const P = g.P(p);
+    const base = evaluate(g, p, w) - (P.hand.length <= w.handCap ? w.hand : 0);
+    const modIds = new Set(g.s.mods.map((m) => m.id));
+    const cg = g.clone(this.fastAgents(p));
+    hideInfo(cg, p);
+    try {
+      await cg.doAction(p, a);
+      await cg.resolvePending();
+      cg.checkState();
+    } catch (e) {
+      if (!(e instanceof GameOverSignal)) throw e;
+      return false;
+    }
+    if (cg.s.winner !== null) return false;
+    if (cg.s.mods.some((m) => !modIds.has(m.id) && m.kind !== 'power')) return false;
+    return evaluate(cg, p, w) <= base + 0.01;
   }
 
   // ------------------------------------------------------------------ reactions
@@ -1057,11 +1092,22 @@ export class HeuristicAgent implements Agent {
         return lagging[0].i;
       }
     }
+    if (d.tag === 'bottomdeckOwn' && mine.length) {
+      // BOT-E: a friendly Unit given up as the price of the effect (Unlikely Bond): the least valuable one
+      mine.sort((a, b) => this.threat(g, a.c) - this.threat(g, b.c));
+      return mine[0].i;
+    }
     let intent = d.intent;
     if (!intent) intent = theirs.length && !mine.length ? 'harm' : 'help';
     if (intent === 'harm') {
       const pool = theirs.length ? theirs : units;
       if (theirs.length === 0 && none >= 0) return none; // don't hurt ourselves if optional
+      // BOT-D: during an attack, the rival Unit in the fight (the attacker, or the Unit our attacker fights)
+      const att = g.s.attack;
+      if (att) {
+        const inFight = theirs.find(({ c }) => (c.uid === att.attacker || c.uid === att.targetUnit) && !(d.tag === 'spend' && c.spent));
+        if (inFight) return inFight.i;
+      }
       pool.sort((a, b) => this.threat(g, b.c) - this.threat(g, a.c));
       // prefer harming the rival's unit; if forced to pick own, pick our weakest
       if (!theirs.length) {
@@ -1232,6 +1278,21 @@ export class HeuristicAgent implements Agent {
 
   private chooseModeOpt(g: Game, d: Decision): number {
     const p = d.player;
+    if (d.tag === 'cardType') {
+      // Misty: name the card type most common among the cards left in our own deck (its make-up is known, its order not)
+      const n = d.options.map((o) => g.P(p).deck.filter((u) => g.def(u).type === o.label).length);
+      return n.indexOf(Math.max(...n));
+    }
+    if (d.tag === 'foolOnTheHill') {
+      // the rival chooses for the Fool's player: trash the two revealed cards when they are worth more than two unknown
+      // draws (an average card of the pool), else let them be added to hand
+      const owner = other(p);
+      const top = g.P(owner).deck.slice(0, 2);
+      const revealed = top.reduce((a, u) => a + cardValue(g.c(u).defId), 0) / Math.max(1, top.length);
+      const add = d.options.findIndex((o) => /^Add/.test(o.label));
+      const trash = d.options.findIndex((o) => /^Trash/.test(o.label));
+      if (add >= 0 && trash >= 0) return revealed > AVERAGE_CARD_VALUE ? trash : add;
+    }
     const rivalUnits = g.units(other(p));
     const myUnits = g.units(p);
     const rivalReady = rivalUnits.filter((c) => !c.spent);
@@ -1261,6 +1322,12 @@ export class HeuristicAgent implements Agent {
 }
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
+
+/** The mean cardValue over the card pool (a card the chooser can't see is valued at this). */
+const AVERAGE_CARD_VALUE = (() => {
+  const xs = CARDS.filter((c) => c.type !== 'Legend').map((c) => cardValue(c.id));
+  return xs.reduce((a, x) => a + x, 0) / xs.length;
+})();
 
 /**
  * DecisionScores → the compact telemetry form (ScoreRecord): values relative to the chosen option, best first, at most
@@ -1295,6 +1362,16 @@ export function standardError(xs: readonly number[]): number {
   const m = xs.reduce((a, x) => a + x, 0) / n;
   const v = xs.reduce((a, x) => a + (x - m) ** 2, 0) / (n - 1);
   return Math.sqrt(v / n);
+}
+
+/**
+ * The ordinary play of a Legend (4.5) when Go Solo for the same Legend is offered at no higher cost: Go Solo makes the same
+ * Unit, ready and free to attack this turn (11.29.1), so the ordinary play is never better. The 1-ply screen values the two
+ * alike (it scores the position before any attack), so without this the noise chose between them.
+ */
+export function dominatedLegendPlay(g: Game, p: PlayerId, a: Action, actions: readonly Action[]): boolean {
+  if (a.type !== 'playLegend') return false;
+  return actions.some((x) => x.type === 'goSolo' && x.uid === a.uid) && g.playCost(a.uid, p, 'goSolo') <= g.playCost(a.uid, p);
 }
 
 /** A Call of a face-down Legend whose identity its controller doesn't know (every such Call looks the same). */

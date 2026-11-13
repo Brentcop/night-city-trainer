@@ -93,9 +93,18 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  * 7: Hard picks the card it sells by rollout among its 3 most sellable (`sellLookahead: 3`; whether to sell stays the
  *    rule), so Hard games play differently; Easy and Medium are unchanged. 2026-11-12: every recorded event was
  *    re-recorded on version 7 with its own field, format, seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1).
+ * 8: the bot review of 2026-11-13. DEFAULT_WEIGHTS.goSolo 0 (the fitted −50.6 is kept in the named set) and the
+ *    ordinary Legend play is no candidate when Go Solo costs no more (dominatedLegendPlay); this turn's power counts
+ *    only where it can still matter this turn (evalPower) and the next-turn steal estimate uses next turn's power and
+ *    respects cantAttack locks; harm effects during an attack prefer the rival Unit in the fight; bottomdeckOwn gives
+ *    up the least valuable Unit; Misty names the deck's commonest type; Fool on the Hill's rival choice reads the
+ *    revealed cards. Medium, Hard, the legacy deep / hard-v1 bots, the coach and the reviewer's oracle play
+ *    differently; Easy too (the fast policy's sub-choices, plus easyGuard: it skips Programs that would do nothing).
+ *    Measured in docs/BOT_TOOLKIT.md §6. 2026-11-13: every recorded event was re-recorded on version 8 with its own
+ *    field, format, seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1).
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 7;
+export const SIM_VERSION = 8;
 
 export interface GameRec {
   seed: number;

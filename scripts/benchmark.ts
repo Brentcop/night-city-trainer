@@ -15,7 +15,7 @@ import path from 'node:path';
 import { cli, int, str, bool, threadsOpt, workerPool, runMain, Refusal, ArgError } from './lib-node';
 import { BENCH_KINDS, BENCH_STAGES, positionOutcomes, suiteRef, type BenchSuite, type SuitePosition } from '../src/ai/benchmark';
 import { positionStats, regretDifference, summarizeRegret, type PickRow, type PositionStat } from '../src/lib/benchmarkStats';
-import type { AgentSpec } from './agent-spec';
+import { TIER_SPECS, type AgentSpec } from './agent-spec';
 import type { BenchBot, BenchJob, BenchResult } from './benchmark-worker';
 
 const { values: V, positionals } = cli(
@@ -30,19 +30,13 @@ const { values: V, positionals } = cli(
   { minPositionals: 1, maxPositionals: 2 },
 );
 
-/** Each tier's settings as an AgentSpec (src/ai/tiers.ts), for 'tier+{...}' overrides. */
-const TIER_SPECS: Record<string, AgentSpec> = {
-  easy: { lookahead: false, noise: 0 },
-  medium: { profiles: 'best' },
-  hard: { deep: 3, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: 'best' },
-};
 
 function parseBot(s: string): BenchBot {
   const t = s.trim();
   const plus = t.match(/^(\w+)\s*\+\s*(\{.*\})$/s);
   try {
     if (plus) {
-      const base = TIER_SPECS[plus[1]!.toLowerCase()];
+      const base = (TIER_SPECS as Record<string, AgentSpec | undefined>)[plus[1]!.toLowerCase()];
       if (!base) throw new ArgError(`"${plus[1]}+..." needs one of ${Object.keys(TIER_SPECS).join(', ')} before the +`);
       const extra = JSON.parse(plus[2]!) as AgentSpec;
       return { ...base, ...extra };

@@ -4,8 +4,9 @@ import type { Game } from '../engine/engine';
 import type { PlayerId } from '../engine/types';
 
 /**
- * HeuristicOptions.mulligan. 'rule' (default): the bots' rule, where a bot with card impact (Hard, the coach) also keeps
- * a hand holding 2+ high-impact cards and 2+ cards costing ≤4. 'plain': the same rule without that card-impact keep.
+ * HeuristicOptions.mulligan. 'rule' (default): the bots' rule, where a bot with card impact (the coach, `hard-v1`) also
+ * keeps a hand holding 2+ high-impact cards and 2+ cards costing ≤4. 'plain': the same rule without that card-impact
+ * keep (Hard since SIM_VERSION 6, which reads no card impact).
  * Measured 2026-11-12 (scripts/mulligan-check.ts, Hard, 4,200 forced-choice hands): on the hands where the two differ,
  * mulliganing was worth +11.0 points [3.6, 18.5].
  */

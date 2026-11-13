@@ -448,7 +448,7 @@ export const BLUE: Record<string, CardScript> = {
       const p = self.controller;
       const milled = g.mill(p, 3);
       const cands = milled.filter((u) => g.c(u).zone === 'trash' && g.def(u).type === 'Program');
-      if (!cands.length) return;
+      if (!cands.length) return noEffect(g, self, 'no Program among the trashed cards');
       const u = await g.chooseCard(p, cands, 'Hacked Corpo: add a Program to your hand', false, 'search', 'help');
       if (u !== null) {
         g.move(u, 'hand');

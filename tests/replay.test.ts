@@ -4,7 +4,8 @@
 // that change alters recorded games: re-run this file, update the goldens below to the new values, and bump
 // `SIM_VERSION` in src/lib/tournament.ts in the same commit so older recorded events are flagged as made with other code.
 // If you did not mean to change play, a failure here is a regression: find what changed instead of updating the goldens.
-// Since SIM_VERSION 6 Hard reads no card impact, so regenerating src/data/impact.json no longer moves these games.
+// Since SIM_VERSION 6 Hard reads no card impact, so regenerating src/data/impact.json no longer moves these games
+// (checked again on SIM_VERSION 8: they pass with the version-7 table and the version-8 one).
 // Games from the recorded events are pinned in tests/replay-events.test.ts.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -34,12 +35,12 @@ async function play(level: string, seed: number, first: 0 | 1, mk: (level: strin
 
 const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'; turns: number; log: string }[]> = {
   easy: [
-    { seed: 101, first: 0, winner: 0, turns: 11, log: 'e9ac3d15' },
-    { seed: 102, first: 1, winner: 1, turns: 13, log: 'e9f7dece' },
+    { seed: 101, first: 0, winner: 0, turns: 11, log: '30b29a3e' },
+    { seed: 102, first: 1, winner: 1, turns: 13, log: '28161a31' },
   ],
   medium: [
-    { seed: 201, first: 0, winner: 1, turns: 12, log: 'c16a835e' },
-    { seed: 202, first: 1, winner: 1, turns: 14, log: 'e62bf71e' },
+    { seed: 201, first: 0, winner: 1, turns: 12, log: '11d126ae' },
+    { seed: 202, first: 1, winner: 1, turns: 13, log: '170e3ed4' },
   ],
   // Re-pinned 2026-11-12 for SIM_VERSION 6 (the fitted evaluation weights; Hard without card impact, plain mulligan).
   // Easy did not move (the fast policy keeps the hand weights). Was 0/11/8888fe17 and 1/11/589d1a10 (Medium 5d0e65c4, 0/14/1c55ca83).
@@ -48,9 +49,12 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
   // Log hashes re-taken 2026-11-12 for the "why an effect did nothing" log lines (log only): every winner, turn count and
   // final state is unchanged (Medium game 2 logged no such line). Before: easy c5b1a212, 826caaf2; medium b67d76fe;
   // hard a807cd81, cbf6d762.
+  // Re-pinned 2026-11-13 for SIM_VERSION 8 (the bot review's fixes: every tier moved, Easy through easyGuard and the fast
+  // policy's sub-choices): winners unchanged; Medium game 2 and both Hard games end on another turn. Version 7: easy
+  // e9ac3d15, e9f7dece; medium c16a835e, 14/e62bf71e; hard 14/af90824d, 11/0c9f8216.
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 14, log: 'af90824d' },
-    { seed: 302, first: 1, winner: 1, turns: 11, log: '0c9f8216' },
+    { seed: 301, first: 0, winner: 0, turns: 13, log: '2806f35d' },
+    { seed: 302, first: 1, winner: 1, turns: 13, log: '79232b1c' },
   ],
 };
 

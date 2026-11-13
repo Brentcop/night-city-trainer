@@ -389,8 +389,9 @@ export const YELLOW: Record<string, CardScript> = {
     play: async (g, self) => {
       const p = self.controller;
       const hostOk = (h: CardInst) => h.zone === 'field' && h.uid !== self.uid;
-      if (!g.units(p).some(hostOk)) return;
+      if (!g.units(p).some(hostOk)) return noEffect(g, self, 'no other friendly Unit to equip');
       const cands = g.P(p).trash.filter((u) => isCyberware(g)(g.c(u)) && (g.def(u).cost ?? 0) <= 2);
+      if (!cands.length) return noEffect(g, self, 'no Cyberware Gear (cost ≤2) in the trash');
       const u = await g.chooseCard(p, cands, 'Viktor Vektor: play a Cyberware Gear (cost ≤2) from your trash', false, 'playFree', 'help');
       if (u !== null) await g.playFree(p, u, 'trash', { hostFilter: hostOk });
     },

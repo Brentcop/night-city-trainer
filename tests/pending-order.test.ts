@@ -146,10 +146,16 @@ async function replay(choices: number[][], orderChoice: boolean, seed: number) {
   return { st, fallbacks };
 }
 
+/**
+ * Seeds to try. A real order decision is rare: with the SIM_VERSION 8 bots (Easy skips Programs that do nothing) seed 62
+ * is the only one of 1–80 that reaches one, so it goes first; the rest still check that keeping the order changes nothing.
+ */
+const ORDER_SEEDS = [62, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
 describe('pending order: whole games', () => {
   it('opting in and always keeping the queue order plays exactly like not opting in (bots unchanged)', async () => {
     let asked = 0;
-    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) {
+    for (const seed of ORDER_SEEDS) {
       const keep = new Orderer(() => 0);
       const a = await Game.create(decks, [keep, makeTierBot('medium', 4242, 'Bot')], { seed, first: 0 }).run();
       const b = await Game.create(decks, [makeTierBot('easy', 9), makeTierBot('medium', 4242, 'Bot')], { seed, first: 0 }).run();
@@ -162,7 +168,7 @@ describe('pending order: whole games', () => {
 
   it('a game recorded with a non-default order replays identically from the recorded choices (and through the reviewer)', async () => {
     let checked = 0;
-    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) {
+    for (const seed of ORDER_SEEDS) {
       const human = new Orderer((d) => d.options.length - 1);
       const choices: number[][] = [];
       const rec = new RecordingAgent(human, choices);

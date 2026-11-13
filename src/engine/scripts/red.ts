@@ -207,7 +207,7 @@ export const RED: Record<string, CardScript> = {
   over_the_edge: {
     play: async (g, self) => {
       const d20 = g.gigsOf(self.controller).filter((x) => x.sides === 20);
-      if (!d20.length) return;
+      if (!d20.length) return noEffect(g, self, 'no d20 Gig, so nothing is defeated');
       const v = Math.max(...d20.map((x) => x.value));
       const cands = [...rivalUnits(g, self), ...friendlyUnits(g, self)].filter((c) => g.power(c) <= v);
       const t = await pick(g, self, cands, `Over the Edge: defeat a Unit with power ${v} or less`, 'harm', false, 'defeat');
@@ -249,7 +249,7 @@ export const RED: Record<string, CardScript> = {
     selfCost: (g, _self, p) => -count8Plus(g, p),
     play: async (g, self) => {
       const mine = friendlyUnits(g, self);
-      if (!mine.length) return;
+      if (!mine.length) return noEffect(g, self, 'no friendly Unit, so nothing is defeated');
       const best = Math.max(...mine.map((c) => g.power(c)));
       await defeatRival(g, self, (c) => g.power(c) < best);
     },

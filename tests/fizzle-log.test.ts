@@ -85,6 +85,43 @@ describe('fizzle lines', () => {
     expect(lines(g)).toContain('Industrial Assembly: no Gig with 8+ value, so no card drawn');
   });
 
+  it('Carnage at the Colosseum with no friendly Unit: says nothing is defeated', async () => {
+    const { g } = setup();
+    eddies(g, 0, 6);
+    spawn(g, 1, 'psycho_squad', 'field');
+    const c = spawn(g, 0, 'carnage_at_the_colosseum', 'hand');
+    await play(g, 0, c);
+    expect(lines(g)).toContain(`${g.name(c)}: no friendly Unit, so nothing is defeated`);
+  });
+
+  it('Over the Edge without a d20 Gig: says nothing is defeated', async () => {
+    const { g } = setup();
+    eddies(g, 0, 3);
+    spawn(g, 1, 'psycho_squad', 'field');
+    const c = spawn(g, 0, 'over_the_edge', 'hand');
+    await play(g, 0, c);
+    expect(lines(g)).toContain(`${g.name(c)}: no d20 Gig, so nothing is defeated`);
+  });
+
+  it('Hacked Corpo with no Program among the trashed cards: says so', async () => {
+    const { g } = setup();
+    eddies(g, 0, 4);
+    const c = spawn(g, 0, 'hacked_corpo', 'hand');
+    await play(g, 0, c);
+    expect(lines(g)).toContain(`${g.name(c)}: no Program among the trashed cards`);
+  });
+
+  it('Viktor Vektor with no other friendly Unit, or no Cyberware in the trash: says which', async () => {
+    const { g } = setup();
+    eddies(g, 0, 6);
+    const v1 = spawn(g, 0, 'viktor_vektor_you_might_feel_a_little_pinch', 'hand');
+    await play(g, 0, v1);
+    expect(lines(g)).toContain(`${g.name(v1)}: no other friendly Unit to equip`);
+    const v2 = spawn(g, 0, 'viktor_vektor_you_might_feel_a_little_pinch', 'hand');
+    await play(g, 0, v2);
+    expect(lines(g)).toContain(`${g.name(v2)}: no Cyberware Gear (cost ≤2) in the trash`);
+  });
+
   it('clones and probes never log the lines', async () => {
     const { g } = setup();
     gig(g, 0, 4, 3);
