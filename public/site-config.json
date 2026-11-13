@@ -231,7 +231,10 @@
       "stun:stun.l.google.com:19302"
     ],
     "turnTimer": 0,
-    "lockCodes": true
+    "lockCodes": true,
+    "turnServers": [],
+    "turnCredentialsUrl": "",
+    "relayUrl": ""
   },
   "multiDay": {
     "minDays": 3,

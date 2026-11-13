@@ -122,6 +122,82 @@ export type TurnTimer = (typeof TURN_TIMERS)[number];
 export const STUN_URL = /^stuns?:[A-Za-z0-9.-]+(:\d{1,5})?$/;
 export const MAX_ICE_SERVERS = 5;
 export const DEFAULT_ICE_SERVERS = ['stun:stun.l.google.com:19302'];
+/** A TURN server address: turn: or turns:, a host name (or IPv4), an optional port and `?transport=udp|tcp`. */
+export const TURN_URL = /^turns?:[A-Za-z0-9.-]+(:\d{1,5})?(\?transport=(udp|tcp))?$/;
+/** TURN servers at most, addresses per server at most, and the length caps of a server's fields. */
+export const TURN_LIMITS = { servers: 3, urls: 4, url: 200, username: 256, credential: 512 } as const;
+/**
+ * A TURN relay for "Private connection" (relay only). `username` / `credential` are the TURN long-term credentials
+ * ('' = none). Written in public site-config.json they are public: anyone can use the relay with them.
+ */
+export interface TurnServer {
+  urls: string[];
+  username: string;
+  credential: string;
+}
+/** An https address (or http on this computer, for development): where short-lived TURN credentials come from. */
+export function isCredentialsUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'https:' || (u.protocol === 'http:' && isLocalHost(u.hostname));
+  } catch {
+    return false;
+  }
+}
+/** A relay server address: wss:, or ws: on this computer (development). */
+export function isRelayUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return (u.protocol === 'wss:' || (u.protocol === 'ws:' && isLocalHost(u.hostname))) && !u.username && !u.password && !u.hash;
+  } catch {
+    return false;
+  }
+}
+const isLocalHost = (h: string) => h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+// eslint-disable-next-line no-control-regex
+const TURN_TEXT = /^[^\u0000-\u001F\u007F]*$/;
+
+/**
+ * TURN servers read from untrusted JSON (the site config, or a credentials endpoint's answer): each `{ urls, username?,
+ * credential? }` with `urls` one address or a list of turn:/turns: addresses; anything else is left out and said why.
+ * `path` names the list in the problems.
+ */
+export function parseTurnServers(v: unknown, path: string): { servers: TurnServer[]; problems: ConfigIssue[] } {
+  const problems: ConfigIssue[] = [];
+  const servers: TurnServer[] = [];
+  if (v === undefined) return { servers, problems };
+  const list = Array.isArray(v) ? v : isObj(v) ? [v] : null;
+  if (!list) return { servers, problems: [{ path, message: 'must be a list of TURN servers; none is used' }] };
+  list.forEach((x: unknown, i: number) => {
+    const at = `${path}[${i}]`;
+    if (!isObj(x)) return void problems.push({ path: at, message: 'must be an object { urls, username, credential }; it is left out' });
+    if (servers.length >= TURN_LIMITS.servers) return void problems.push({ path: at, message: `only ${TURN_LIMITS.servers} TURN servers are used; it is left out` });
+    const rawUrls = typeof x.urls === 'string' ? [x.urls] : Array.isArray(x.urls) ? x.urls : null;
+    if (!rawUrls) return void problems.push({ path: `${at}.urls`, message: 'must be a turn: or turns: address or a list of them; the server is left out' });
+    const urls: string[] = [];
+    rawUrls.forEach((u: unknown, j: number) => {
+      if (typeof u !== 'string' || u.length > TURN_LIMITS.url || !TURN_URL.test(u)) problems.push({ path: `${at}.urls[${j}]`, message: `${JSON.stringify(u)?.slice(0, 60)} is not a TURN address such as turns:turn.example.com:5349; it is left out` });
+      else if (urls.length >= TURN_LIMITS.urls) problems.push({ path: `${at}.urls[${j}]`, message: `only ${TURN_LIMITS.urls} addresses per server are used; it is left out` });
+      else if (!urls.includes(u)) urls.push(u);
+    });
+    if (!urls.length) return void problems.push({ path: `${at}.urls`, message: 'has no usable TURN address; the server is left out' });
+    const field = (f: 'username' | 'credential'): string | null => {
+      const val = x[f];
+      if (val === undefined) return '';
+      if (typeof val !== 'string' || val.length > TURN_LIMITS[f] || !TURN_TEXT.test(val)) {
+        problems.push({ path: `${at}.${f}`, message: `must be text of at most ${TURN_LIMITS[f]} characters on one line; the server is left out` });
+        return null;
+      }
+      return val;
+    };
+    const username = field('username');
+    const credential = field('credential');
+    if (username === null || credential === null) return;
+    for (const k of Object.keys(x)) if (k !== 'urls' && k !== 'username' && k !== 'credential' && k !== 'credentialType') problems.push({ path: `${at}.${k}`, message: 'is not a TURN server field; it is ignored' });
+    servers.push({ urls, username, credential });
+  });
+  return { servers, problems };
+}
 /** Bounds for the multi-day game settings (whole days; the ongoing-game cap). */
 export const MULTI_DAY_BOUNDS = { days: [1, 60], ongoing: [1, 20] } as const;
 
@@ -206,6 +282,15 @@ export interface SiteConfig {
     turnTimer: TurnTimer;
     /** invite and reply codes (online and multi-day) start locked with a phrase; players can still make unlocked ones */
     lockCodes: boolean;
+    /**
+     * TURN relays for "Private connection" (relay only: neither player sees the other's address). Empty with no
+     * `turnCredentialsUrl`: the mode is shown but unavailable. Credentials written here are public.
+     */
+    turnServers: TurnServer[];
+    /** an https endpoint that answers with short-lived TURN credentials (TURN_CREDENTIALS in src/net/turn.ts); '' = none */
+    turnCredentialsUrl: string;
+    /** a relay server (docs/RELAY_PROTOCOL.md, wss:) for "Play through the relay"; '' = off and not shown */
+    relayUrl: string;
   };
   /** multi-day games (features.multiDayGames): the game lengths offered, in whole days, and how many may be ongoing */
   multiDay: {
@@ -242,7 +327,7 @@ export function defaultSiteConfig(): SiteConfig {
     play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
-    multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true },
+    multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true, turnServers: [], turnCredentialsUrl: '', relayUrl: '' },
     multiDay: { minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 },
   };
 }
@@ -519,7 +604,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     allowPlay: r.bool(m.allowPlay, 'maintenance.allowPlay', d.maintenance.allowPlay),
   };
 
-  const mp = r.obj(o.multiplayer, 'multiplayer', ['iceServers', 'turnTimer', 'lockCodes']);
+  const mp = r.obj(o.multiplayer, 'multiplayer', ['iceServers', 'turnTimer', 'lockCodes', 'turnServers', 'turnCredentialsUrl', 'relayUrl']);
   const iceServers: string[] = [];
   if (mp.iceServers === undefined) iceServers.push(...d.multiplayer.iceServers);
   else if (!Array.isArray(mp.iceServers)) {
@@ -536,7 +621,26 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     if (typeof mp.turnTimer === 'number' && (TURN_TIMERS as readonly number[]).includes(mp.turnTimer)) turnTimer = mp.turnTimer as TurnTimer;
     else r.err('multiplayer.turnTimer', `must be one of ${TURN_TIMERS.join(', ')} (seconds; 0 = off); the default is used`);
   }
-  const multiplayer = { iceServers, turnTimer, lockCodes: r.bool(mp.lockCodes, 'multiplayer.lockCodes', d.multiplayer.lockCodes) };
+  const turn = parseTurnServers(mp.turnServers, 'multiplayer.turnServers');
+  for (const e of turn.problems) r.err(e.path, e.message);
+  let turnCredentialsUrl = r.text(mp.turnCredentialsUrl, 'multiplayer.turnCredentialsUrl', '', LIMITS.link);
+  if (turnCredentialsUrl && !isCredentialsUrl(turnCredentialsUrl)) {
+    r.err('multiplayer.turnCredentialsUrl', 'must be an https:// address (http:// only on localhost); none is used');
+    turnCredentialsUrl = '';
+  }
+  let relayUrl = r.text(mp.relayUrl, 'multiplayer.relayUrl', '', LIMITS.link);
+  if (relayUrl && !isRelayUrl(relayUrl)) {
+    r.err('multiplayer.relayUrl', 'must be a wss:// address (ws:// only on localhost); the relay is off');
+    relayUrl = '';
+  }
+  const multiplayer = {
+    iceServers,
+    turnTimer,
+    lockCodes: r.bool(mp.lockCodes, 'multiplayer.lockCodes', d.multiplayer.lockCodes),
+    turnServers: turn.servers,
+    turnCredentialsUrl,
+    relayUrl,
+  };
 
   const md = r.obj(o.multiDay, 'multiDay', ['minDays', 'maxDays', 'defaultDays', 'maxOngoing']);
   const [dLo, dHi] = MULTI_DAY_BOUNDS.days;

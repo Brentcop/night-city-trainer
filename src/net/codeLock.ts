@@ -29,7 +29,10 @@ export const LOCK_HEADER = 3 + SALT + NONCE;
 const LABEL = 'nct-locked-code:v1:';
 
 /** What a locked code is for (in its header, in the clear, and bound into the lock). */
-export const PURPOSES = { 'rtc-offer': 1, 'rtc-answer': 2, 'corr-invite': 3, 'corr-join': 4 } as const;
+// 5 and 6: a private connection's (relay only) invite and reply; 7: the relay server's invite (relayTransport.ts).
+// An older copy of the site does not know these, so it refuses such a code as "not a code" instead of reading it as a
+// direct connection's.
+export const PURPOSES = { 'rtc-offer': 1, 'rtc-answer': 2, 'corr-invite': 3, 'corr-join': 4, 'rtc-offer-relay': 5, 'rtc-answer-relay': 6, 'relay-invite': 7 } as const;
 export type LockPurpose = keyof typeof PURPOSES;
 const purposeOf = (b: number): LockPurpose | null => (Object.keys(PURPOSES) as LockPurpose[]).find((k) => PURPOSES[k] === b) ?? null;
 

@@ -70,6 +70,28 @@ export function loopbackPair(): [Transport, Transport] {
   return [a, b];
 }
 
+/**
+ * A link through a room that the other player joins or leaves: two tabs (BroadcastTransport) or a relay server
+ * (relayTransport.ts). Either side may come and go; the session hears a link that comes back as "closed" then "open"
+ * (and says hello again over it), and a peer that left as "closed", while this end keeps waiting in the room. Only
+ * close() ends it for good.
+ */
+export abstract class RoomTransport extends BaseTransport {
+  /** The peer is here (the first time, or back after a restart): a link that was open is reported closed, then open. */
+  protected peerHere() {
+    if (this.state === 'closed') return;
+    if (this.state === 'open') this.onState?.('closed');
+    this.state = 'connecting';
+    this.setState('open');
+  }
+  /** The peer left (or the way to it dropped): reported as closed; the link may open again. */
+  protected peerGone() {
+    if (this.state === 'closed') return;
+    this.state = 'connecting';
+    this.onState?.('closed');
+  }
+}
+
 type BcFrame = { room: string; from: string; k: 'hi' | 'hi-back' | 'msg' | 'bye'; to?: string; text?: string };
 
 /**
@@ -77,7 +99,7 @@ type BcFrame = { room: string; from: string; k: 'hi' | 'hi-back' | 'msg' | 'bye'
  * the other answers, so either tab can be reloaded and the link opens again; a closed tab says goodbye (pagehide).
  * Only the first other tab to answer is paired with; anything from a third tab is ignored.
  */
-export class BroadcastTransport extends BaseTransport {
+export class BroadcastTransport extends RoomTransport {
   private ch: BroadcastChannel;
   private id = Math.random().toString(36).slice(2, 10);
   private peerId: string | null = null;
@@ -103,31 +125,22 @@ export class BroadcastTransport extends BaseTransport {
       if (this.peerId && this.peerId !== f.from && this.state === 'open') return;
       this.peerId = f.from;
       this.post({ k: 'hi-back', to: f.from });
-      this.reopen();
+      this.peerHere();
       return;
     }
     if (f.k === 'hi-back') {
       if (f.to !== this.id || (this.peerId && this.peerId !== f.from && this.state === 'open')) return;
       this.peerId = f.from;
-      this.reopen();
+      this.peerHere();
       return;
     }
     if (f.from !== this.peerId) return;
     if (f.k === 'bye') {
       this.peerId = null;
-      this.state = 'connecting';
-      this.onState?.('closed');
+      this.peerGone();
       return;
     }
     if (f.k === 'msg' && typeof f.text === 'string') this.deliver(f.text);
-  }
-  private reopen() {
-    if (this.state === 'open') {
-      // the peer restarted: tell the session the old link is gone, then that a new one is open
-      this.onState?.('closed');
-    }
-    this.state = 'connecting';
-    this.setState('open');
   }
   send(text: string) {
     if (this.state !== 'open') return;
@@ -142,10 +155,10 @@ export class BroadcastTransport extends BaseTransport {
   }
 }
 
-/** A room code for the two-tabs mode: 8 letters and digits. */
-export function newRoomCode(): string {
+/** A room code: `len` letters and digits (8 for the two-tabs mode). */
+export function newRoomCode(len = 8): string {
   const a = 'abcdefghjkmnpqrstuvwxyz23456789';
-  const bytes = new Uint8Array(8);
+  const bytes = new Uint8Array(len);
   crypto.getRandomValues(bytes);
   return [...bytes].map((b) => a[b % a.length]).join('');
 }

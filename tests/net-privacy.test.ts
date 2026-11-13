@@ -173,7 +173,8 @@ describe('sanitizeSdp: only what a connection needs', () => {
     expect(describeText(describeSdp(sanitizeSdp(CHROME, { dropIpv6: true }), true))).toBe('Locked: without the phrase, nobody can read this code. With it, it shows your public internet address.');
     expect(describeText(describeSdp(sdp(['v=0', `a=candidate:1 1 udp 1 ${MDNS1} 1 typ host`])))).toMatch(/only a random name/);
     expect(describeText(describeSdp('v=0\r\n'))).toMatch(/no way to reach you/);
-    expect(describeText(describeSdp(sanitizeSdp(RAW, { relayOnly: true })))).toBe("This code shows a relay server's address.");
+    expect(describeText(describeSdp(sanitizeSdp(RAW, { relayOnly: true })))).toBe("This code shows only a relay server's address (nothing that names you).");
+    expect(describeText(describeSdp(sanitizeSdp(RAW)))).toMatch(/^This code shows your public internet address and a relay server's address: anyone/);
   });
 });
 

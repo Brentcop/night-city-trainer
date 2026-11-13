@@ -205,19 +205,66 @@ describe('features and pages', () => {
     expect(outside.errors.map((e) => e.path)).toEqual(['multiDay.defaultDays']);
   });
   it('multiplayer: STUN servers checked one by one (empty = same network only), the turn timer from a fixed list, codes locked by default', () => {
-    expect(defaultSiteConfig().multiplayer).toEqual({ iceServers: ['stun:stun.l.google.com:19302'], turnTimer: 0, lockCodes: true });
+    const OFF = { turnServers: [], turnCredentialsUrl: '', relayUrl: '' };
+    expect(defaultSiteConfig().multiplayer).toEqual({ iceServers: ['stun:stun.l.google.com:19302'], turnTimer: 0, lockCodes: true, ...OFF });
     const p = parseObj((o) => {
-      o.multiplayer = { iceServers: ['stun:a.example.com:3478', 'turn:x.example.com', 'stuns:b.example.com', 'stun:a.example.com:3478', 5 as unknown as string], turnTimer: 45 as 0, lockCodes: 'yes' as unknown as boolean };
+      o.multiplayer = { iceServers: ['stun:a.example.com:3478', 'turn:x.example.com', 'stuns:b.example.com', 'stun:a.example.com:3478', 5 as unknown as string], turnTimer: 45 as 0, lockCodes: 'yes' as unknown as boolean, ...OFF };
     });
-    expect(p.config.multiplayer).toEqual({ iceServers: ['stun:a.example.com:3478', 'stuns:b.example.com'], turnTimer: 0, lockCodes: true });
+    expect(p.config.multiplayer).toEqual({ iceServers: ['stun:a.example.com:3478', 'stuns:b.example.com'], turnTimer: 0, lockCodes: true, ...OFF });
     expect(p.errors.map((e) => e.path)).toEqual(['multiplayer.iceServers[1]', 'multiplayer.iceServers[4]', 'multiplayer.turnTimer', 'multiplayer.lockCodes']);
-    const none = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 60, lockCodes: false }));
+    const none = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 60, lockCodes: false } as unknown as typeof o.multiplayer));
     expect(none.errors).toEqual([]);
-    expect(none.config.multiplayer).toEqual({ iceServers: [], turnTimer: 60, lockCodes: false });
+    expect(none.config.multiplayer).toEqual({ iceServers: [], turnTimer: 60, lockCodes: false, ...OFF });
     // a config written before the key existed reads as locked
     const older = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 0 } as unknown as typeof o.multiplayer));
     expect(older.errors).toEqual([]);
     expect(older.config.multiplayer.lockCodes).toBe(true);
+    expect(older.config.multiplayer).toMatchObject(OFF);
+  });
+  it('multiplayer: TURN servers (turn:/turns: only, capped), the credentials endpoint (https) and the relay (wss) are checked', () => {
+    const p = parseObj((o) => {
+      o.multiplayer.turnServers = [
+        { urls: ['turns:turn.example.com:5349', 'turn:turn.example.com:3478?transport=udp', 'stun:x.example.com', 'turn:a b'], username: 'u', credential: 'c' },
+        { urls: 'turn:203.0.113.5' } as unknown as (typeof o.multiplayer.turnServers)[number],
+        { urls: [], username: 'u', credential: 'c' },
+        { urls: ['turn:t.example.com'], username: 'x'.repeat(300), credential: 'c' },
+        { urls: ['turn:t.example.com'], username: 'line\nbreak', credential: 'c' },
+        { urls: ['turn:c.example.com'], username: '', credential: '' },
+        { urls: ['turn:d.example.com'], username: '', credential: '' },
+      ];
+      o.multiplayer.turnCredentialsUrl = 'http://creds.example.com/turn';
+      o.multiplayer.relayUrl = 'ws://relay.example.com';
+    });
+    expect(p.config.multiplayer.turnServers).toEqual([
+      { urls: ['turns:turn.example.com:5349', 'turn:turn.example.com:3478?transport=udp'], username: 'u', credential: 'c' },
+      { urls: ['turn:203.0.113.5'], username: '', credential: '' },
+      { urls: ['turn:c.example.com'], username: '', credential: '' },
+    ]);
+    expect(p.errors.map((e) => e.path)).toEqual([
+      'multiplayer.turnServers[0].urls[2]',
+      'multiplayer.turnServers[0].urls[3]',
+      'multiplayer.turnServers[2].urls',
+      'multiplayer.turnServers[3].username',
+      'multiplayer.turnServers[4].username',
+      'multiplayer.turnServers[6]',
+      'multiplayer.turnCredentialsUrl',
+      'multiplayer.relayUrl',
+    ]);
+    expect(p.config.multiplayer.turnCredentialsUrl).toBe('');
+    expect(p.config.multiplayer.relayUrl).toBe('');
+    const ok = parseObj((o) => {
+      o.multiplayer.turnCredentialsUrl = 'https://creds.example.com/turn';
+      o.multiplayer.relayUrl = 'wss://relay.example.com/v1';
+    });
+    expect(ok.errors).toEqual([]);
+    expect(ok.config.multiplayer).toMatchObject({ turnCredentialsUrl: 'https://creds.example.com/turn', relayUrl: 'wss://relay.example.com/v1' });
+    // development on this computer
+    const dev = parseObj((o) => {
+      o.multiplayer.turnCredentialsUrl = 'http://localhost:8787/turn';
+      o.multiplayer.relayUrl = 'ws://localhost:8787';
+    });
+    expect(dev.errors).toEqual([]);
+    expect(parseObj((o) => (o.multiplayer.turnServers = 'turn:x' as unknown as [])).errors.map((e) => e.path)).toEqual(['multiplayer.turnServers']);
   });
   it('a feature that is off turns its pages off', () => {
     const d = defaultSiteConfig();

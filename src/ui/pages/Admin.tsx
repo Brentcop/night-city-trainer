@@ -24,6 +24,7 @@ import {
   visibleNav,
   type ConfigIssue,
   type SiteConfig,
+  type TurnServer,
 } from '../../lib/siteConfig';
 import {
   ACCENT_LABEL,
@@ -49,6 +50,9 @@ import { SiteBanner } from '../components/SiteChrome';
 import { Modal } from '../components/Modal';
 import { PageHead } from '../components/PageHead';
 
+export const TURN_PUBLIC_WARNING =
+  'These TURN credentials are public: site-config.json is a public file, so anyone can read them and use your relay, at your cost. Use short-lived credentials from an endpoint (below) when you can.';
+
 /** The STUN server list as lines of text (blank lines are left out of the config). */
 function IceServers({ servers, onChange }: { servers: string[]; onChange: (list: string[]) => void }) {
   const id = useId();
@@ -67,6 +71,40 @@ function IceServers({ servers, onChange }: { servers: string[]; onChange: (list:
               .split(/\s+/)
               .filter(Boolean),
           );
+        }}
+      />
+    </div>
+  );
+}
+
+/** One TURN server per line: its address (several joined by commas), then the username and the credential, if any. */
+export function turnLines(list: readonly TurnServer[]): string {
+  return list.map((s) => [s.urls.join(','), s.username, s.credential].filter(Boolean).join(' ')).join('\n');
+}
+/** The lines back to servers (the config's parser then checks them). */
+export function readTurnLines(text: string): TurnServer[] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim().split(/\s+/))
+    .filter((p) => p[0])
+    .map(([urls, username = '', credential = '']) => ({ urls: urls!.split(',').filter(Boolean), username, credential }));
+}
+
+function TurnServers({ servers, onChange }: { servers: TurnServer[]; onChange: (list: TurnServer[]) => void }) {
+  const id = useId();
+  const [text, setText] = useState(turnLines(servers));
+  return (
+    <div className="grid">
+      <label htmlFor={id}>TURN relays for “Private connection”</label>
+      <textarea
+        id={id}
+        rows={3}
+        value={text}
+        placeholder="turns:turn.example.com:5349 username credential"
+        spellCheck={false}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(readTurnLines(e.target.value));
         }}
       />
     </div>
@@ -501,6 +539,34 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
           help="On: a host's invite (online and multi-day) starts locked with a generated phrase, and the reply is locked with it too, so a code posted in a public place shows nothing to whoever sees it. Players can still make an unlocked code."
         />
         <Errs issues={issues} path="multiplayer.lockCodes" />
+        <p className="small muted">
+          Private connection: both players go through a TURN relay, so the other player sees only the relay’s address and the relay’s operator sees both. With no relay below (and no credentials
+          endpoint), the lobby shows the choice as unavailable and never connects directly in its place. One relay per line: its address (turn: or turns:; several for one relay joined by commas),
+          then the username and the credential. At most 3.
+        </p>
+        <p className="small admin-err" style={{ display: 'block' }}>{TURN_PUBLIC_WARNING}</p>
+        <TurnServers servers={draft.multiplayer.turnServers} onChange={(list) => up((c) => void (c.multiplayer.turnServers = list))} />
+        <Errs issues={issues} path="multiplayer.turnServers" />
+        <Text
+          label="Short-lived TURN credentials from (https)"
+          value={draft.multiplayer.turnCredentialsUrl}
+          onChange={(v) => up((c) => void (c.multiplayer.turnCredentialsUrl = v))}
+          max={LIMITS.link}
+          issues={issues}
+          path="multiplayer.turnCredentialsUrl"
+          placeholder="https://turn-credentials.example.com/"
+          hint="An endpoint you run that answers with fresh TURN credentials ({ iceServers: [{ urls, username, credential }], ttl }; docs/SITE_CONFIG.md). It is asked only when a player makes a private code. With it set, leave the credentials out of the list above (the list is then only a fallback). Empty: none."
+        />
+        <Text
+          label="Relay server (wss)"
+          value={draft.multiplayer.relayUrl}
+          onChange={(v) => up((c) => void (c.multiplayer.relayUrl = v))}
+          max={LIMITS.link}
+          issues={issues}
+          path="multiplayer.relayUrl"
+          placeholder="wss://relay.example.com/"
+          hint="A relay server that speaks docs/RELAY_PROTOCOL.md. Set: “Through the relay server” appears in the lobby and is picked first; the invite is a room code and the game is encrypted end to end, so the relay sees both players' addresses but not the game. Empty: the choice is not shown."
+        />
       </fieldset>
 
       <fieldset>

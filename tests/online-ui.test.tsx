@@ -16,7 +16,9 @@ import { MyHand, PlayerSide } from '../src/ui/components/board/Zones';
 import { PromptPanel } from '../src/ui/components/board/PromptPanel';
 import { boardMarks, buildInteraction } from '../src/ui/components/board/interaction';
 import type { BoardCtx } from '../src/ui/components/board/BoardCard';
-import { addressNote, PlayOnline } from '../src/ui/pages/PlayOnline';
+import { addressNote, DIRECT_CONSEQUENCE, GUEST_MODES_NOTE, inviteModeNote, netModes, PlayOnline, PRIVATE_LABEL, PRIVATE_NOTE, PRIVATE_UNAVAILABLE, RELAY_LABEL, RELAY_NOTE } from '../src/ui/pages/PlayOnline';
+import { defaultSiteConfig, siteConfigText, type SiteConfig } from '../src/lib/siteConfig';
+import { previewDraft } from '../src/ui/useSiteConfig';
 import { CORR_PRIVACY, PlayCorr } from '../src/ui/pages/PlayCorr';
 
 function memoryStorage() {
@@ -48,6 +50,54 @@ describe('the lobby', () => {
     const join = renderToStaticMarkup(<PlayOnline invite="local-abcd2345" mode="join" />);
     expect(join).toContain('Join the room');
     expect(join).toContain('abcd2345');
+  });
+  it('with the default config: the private connection is shown unavailable, with why and the way to play without sharing an address; nothing about a relay server', () => {
+    const html = renderToStaticMarkup(<PlayOnline invite={null} mode="host" />);
+    const esc = (s: string) => s.replace(/'/g, '&#x27;');
+    expect(html).toContain(PRIVATE_LABEL);
+    expect(html).toContain(esc(PRIVATE_UNAVAILABLE));
+    expect(html).toMatch(/name="online-mode" disabled=""/);
+    expect(html).toContain('To play without sharing any address, play a <a href="#/play/corr">multi-day game</a>.');
+    expect(html).not.toContain(RELAY_LABEL);
+    expect(html).not.toContain(esc(DIRECT_CONSEQUENCE));
+    expect(netModes(defaultSiteConfig().multiplayer)).toEqual({ relay: false, private: false, initial: 'direct' });
+    // the guest's lobby is as before
+    const join = renderToStaticMarkup(<PlayOnline invite={null} mode="join" />);
+    expect(join).not.toContain(PRIVATE_LABEL);
+    expect(join).not.toContain(GUEST_MODES_NOTE.replace(/'/g, '&#x27;'));
+  });
+  it('with a relay or TURN configured: the most private choice is picked first, and direct states its consequence', () => {
+    const preview = (f: (c: SiteConfig) => void) => {
+      const c = defaultSiteConfig();
+      f(c);
+      previewDraft(siteConfigText(c));
+    };
+    const esc = (s: string) => s.replace(/'/g, '&#x27;');
+    try {
+      preview((c) => (c.multiplayer.turnServers = [{ urls: ['turns:turn.example.test:5349'], username: 'u', credential: 'c' }]));
+      let html = renderToStaticMarkup(<PlayOnline invite={null} mode="host" />);
+      expect(html).not.toContain(RELAY_LABEL);
+      expect(html).toContain(esc(PRIVATE_NOTE));
+      expect(html).toContain(esc(DIRECT_CONSEQUENCE));
+      expect(html).not.toMatch(/name="online-mode" disabled=""/);
+      // the private choice is checked
+      expect(html).toMatch(/<input type="radio" name="online-mode" checked=""\/><span>Private connection/);
+      preview((c) => {
+        c.multiplayer.relayUrl = 'wss://relay.example.test/';
+        c.multiplayer.turnCredentialsUrl = 'https://creds.example.test/';
+      });
+      html = renderToStaticMarkup(<PlayOnline invite={null} mode="host" />);
+      expect(html).toContain(RELAY_LABEL);
+      expect(html).toMatch(/<input type="radio" name="online-mode" checked=""\/><span>Through the relay server/);
+      expect(html).toContain(esc(RELAY_NOTE));
+      const join = renderToStaticMarkup(<PlayOnline invite={null} mode="join" />);
+      expect(join).toContain(esc(GUEST_MODES_NOTE));
+    } finally {
+      previewDraft(null);
+    }
+    expect(inviteModeNote('relay')).toMatch(/never sees your address/);
+    expect(inviteModeNote('direct')).toMatch(/host will see it/);
+    expect(inviteModeNote(null)).toBeNull();
   });
   it('the multi-day lobby says packets carry no address, and offers a locked invite', () => {
     const html = renderToStaticMarkup(<PlayCorr sub="corr" />);

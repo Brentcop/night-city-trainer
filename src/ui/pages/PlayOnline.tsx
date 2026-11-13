@@ -9,11 +9,13 @@ import { loadProfile } from '../../lib/profile';
 import { download } from '../../lib/download';
 import type { PracticeReplay } from '../../lib/practiceReplays';
 import { gameDeck } from '../../lib/tournament';
-import { TURN_TIMERS } from '../../lib/siteConfig';
+import { TURN_TIMERS, type SiteConfig } from '../../lib/siteConfig';
 import { OnlineGuest, OnlineHost, NAME_MAX, type OnlineSessionAny } from '../../net/session';
 import { BroadcastTransport, newRoomCode } from '../../net/transport';
 import { newPassphrase, phraseProblem } from '../../net/codeLock';
-import { describeText, guestAnswer, hostOffer, isLockedCode, MAX_LINK_CODE, webrtcAvailable, type SignalInfo } from '../../net/webrtc';
+import { lockRelayInvite, newRelayInvite, openRelayInvite, relaySecret, RelayTransport, type RelayStatus } from '../../net/relayTransport';
+import { privateAvailable, turnServersFor } from '../../net/turn';
+import { describeText, guestAnswer, hostOffer, inviteMode, inviteProblem, isLockedCode, MAX_LINK_CODE, NEWER_CODE, webrtcAvailable, type SignalInfo } from '../../net/webrtc';
 import { DeckPicker, findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { Modal } from '../components/Modal';
 import { ChatPanel } from '../components/board/ChatPanel';
@@ -24,9 +26,13 @@ import { Board, type BoardRun, type OnlineBoard } from './Play';
 
 type Role = 'host' | 'guest';
 type Via = 'net' | 'tabs';
+/** How a host's game goes over the internet: the relay server's room, a private (TURN relay only) link, or direct. */
+export type NetMode = 'relay' | 'private' | 'direct';
 
 const NAME_KEY = 'nct.online.name.v1';
 const ROOM_KEY = 'nct.online.room.v1';
+/** the host's last relay invite (a reload of a saved game rejoins the same room, where the guest is still waiting) */
+const RELAY_KEY = 'nct.online.relay.v1';
 const LOCAL_PREFIX = 'local-';
 
 const kv = {
@@ -60,12 +66,80 @@ export function addressNote(ice: readonly string[], tabs = false): string {
 export const NO_ADDRESS_NOTE = 'To play without sharing any address, play a multi-day game: its turn packets carry no network address, and the site contacts no one.';
 export const TRUST_NOTE = "The host's browser runs the game, so this is for friendly play. A modified host could see hidden cards.";
 export const DECK_NOTE = "The other player's board shows only your deck's name; the host's device holds both lists to run the game.";
+/** The connection choices (the host's lobby), each with what it shares. */
+export const RELAY_LABEL = 'Through the relay server';
+const RELAY_WHAT =
+  "neither player sees the other's address. The invite is a room on the relay with nothing to send back. The relay's operator sees both players' addresses and when you play, but not the game: it is encrypted end to end.";
+export const RELAY_NOTE = `Through the relay server: ${RELAY_WHAT}`;
+export const PRIVATE_LABEL = 'Private connection (through a TURN relay)';
+const PRIVATE_WHAT =
+  "the other player sees only the relay's address, never yours, and so does anyone who reads your codes. The relay's operator sees both players' addresses (not the game: the link is encrypted).";
+export const PRIVATE_NOTE = `Private connection: ${PRIVATE_WHAT}`;
+export const PRIVATE_UNAVAILABLE = 'Unavailable: this site has no relay server set up, so a private connection can’t be made (and the site never switches to a direct one by itself).';
+export const DIRECT_LABEL = 'Direct connection';
+export const DIRECT_CONSEQUENCE = 'The other player sees your internet address (IP), and so does anyone who reads an unlocked code.';
+export const GUEST_MODES_NOTE = 'How you connect follows the host’s invite: a relay or private invite keeps your address from the host; a direct one shares it, and you are asked first.';
+export const RELAY_BACK = 'Through the relay: the link comes back by itself once you are both online again (it keeps trying), and the game picks up where it was. If the other page was closed, send a new invite.';
+export const RELAY_NOT_HERE = 'This invite is for the relay server, but this copy of the site has no relay set up. Check that you both use the same site.';
+
+const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
+
+/** The connections this site offers a host, and the one picked at first (the most private one available). */
+export function netModes(mp: Pick<SiteConfig['multiplayer'], 'relayUrl' | 'turnServers' | 'turnCredentialsUrl'>): { relay: boolean; private: boolean; initial: NetMode } {
+  const relay = !!mp.relayUrl;
+  const priv = privateAvailable(mp);
+  return { relay, private: priv, initial: relay ? 'relay' : priv ? 'private' : 'direct' };
+}
+
+/** The host's choice of connection (shown for "Over the internet"). */
+function ConnectionChoice({ mode, setMode, corr }: { mode: NetMode; setMode: (m: NetMode) => void; corr: boolean }) {
+  const site = useSiteConfig();
+  const m = netModes(site.multiplayer);
+  return (
+    <div className="grid online-modes" role="radiogroup" aria-label="Connection">
+      {m.relay && (
+        <label className="online-check">
+          <input type="radio" name="online-mode" checked={mode === 'relay'} onChange={() => setMode('relay')} />
+          <span>
+            {RELAY_LABEL} <span className="small muted">— {cap(RELAY_WHAT)}</span>
+          </span>
+        </label>
+      )}
+      <label className="online-check">
+        <input type="radio" name="online-mode" checked={mode === 'private'} disabled={!m.private} onChange={() => setMode('private')} />
+        <span>
+          {PRIVATE_LABEL}{' '}
+          {m.private ? (
+            <span className="small muted">— {cap(PRIVATE_WHAT)}</span>
+          ) : (
+            <span className="small muted">
+              — {PRIVATE_UNAVAILABLE}{' '}
+              {corr ? (
+                <>
+                  To play without sharing any address, play a <a href="#/play/corr">multi-day game</a>.
+                </>
+              ) : null}
+            </span>
+          )}
+        </span>
+      </label>
+      <label className="online-check">
+        <input type="radio" name="online-mode" checked={mode === 'direct'} onChange={() => setMode('direct')} />
+        <span>
+          {DIRECT_LABEL}
+          {(m.relay || m.private) && <span className="small muted"> — {DIRECT_CONSEQUENCE}</span>}
+        </span>
+      </label>
+    </div>
+  );
+}
 
 /** The plain-words notes every lobby shows. */
-function LobbyNotes({ ice, tabs, corr }: { ice: readonly string[]; tabs?: boolean; corr?: boolean }) {
+function LobbyNotes({ ice, tabs, corr, mode, guest }: { ice: readonly string[]; tabs?: boolean; corr?: boolean; mode?: NetMode; guest?: boolean }) {
   return (
     <div className="small muted online-notes">
-      <p>{addressNote(ice, tabs)}</p>
+      <p>{tabs || !mode || mode === 'direct' ? addressNote(ice, tabs) : mode === 'relay' ? RELAY_NOTE : PRIVATE_NOTE}</p>
+      {guest && !tabs && <p>{GUEST_MODES_NOTE}</p>}
       {corr && (
         <p>
           To play without sharing any address, play a <a href="#/play/corr">multi-day game</a>: its turn packets carry no network address, and the site contacts no one.
@@ -158,27 +232,128 @@ function CodeBox({ label, code, link, note }: { label: string; code: string; lin
   );
 }
 
-/** The invite exchange over WebRTC (host: make an invite, take the reply; guest: take the invite, make the reply). */
-function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; session: OnlineSessionAny; ice: readonly string[]; invite?: string | null; onCancel?: () => void }) {
+/** Where the relay link is, in a line. */
+function RelayLine({ status, onRetry }: { status: RelayStatus | null; onRetry?: () => void }) {
+  if (!status) return null;
+  const text =
+    status.k === 'connecting'
+      ? 'Connecting to the relay…'
+      : status.k === 'waiting'
+        ? 'In the room: waiting for the other player…'
+        : status.k === 'open'
+          ? 'Connected through the relay.'
+          : status.k === 'retrying'
+            ? `Lost the relay (${status.why}); trying again in ${Math.ceil(status.inMs / 1000)} s.`
+            : status.why;
+  return (
+    <p className={`small ${status.k === 'stopped' ? 'online-error' : 'muted'}`} role="status">
+      {text}{' '}
+      {status.k === 'retrying' && onRetry && (
+        <button type="button" className="ghost" onClick={onRetry}>
+          Try now
+        </button>
+      )}
+    </p>
+  );
+}
+
+/** The guest's line on what the pasted invite asks for (shown when the site offers more than a direct connection). */
+export function inviteModeNote(mode: ReturnType<typeof inviteMode>): string | null {
+  switch (mode) {
+    case 'relay':
+      return 'This invite is through the relay server: the host never sees your address (the relay’s operator does).';
+    case 'private':
+      return 'This is a private invite: your reply names only the relay, never your address.';
+    case 'direct':
+      return 'This is a direct invite: your reply carries your internet address, and the host will see it.';
+    case 'newer':
+      return NEWER_CODE;
+    default:
+      return null;
+  }
+}
+
+/**
+ * The invite exchange (host: make an invite, take the reply; guest: take the invite, make the reply). `mode` is the
+ * host's choice: a direct or private (TURN relay only) WebRTC link with invite and reply codes, or the relay server's
+ * room (an invite only). The guest follows whatever the invite asks for.
+ */
+function NetExchange({
+  role,
+  session,
+  ice,
+  mode,
+  invite,
+  onCancel,
+  onRelay,
+}: {
+  role: Role;
+  session: OnlineSessionAny;
+  ice: readonly string[];
+  mode: NetMode;
+  invite?: string | null;
+  onCancel?: () => void;
+  onRelay?: (t: RelayTransport, invite: string) => void;
+}) {
   const site = useSiteConfig();
+  const mp = site.multiplayer;
+  const choices = !!mp.relayUrl || privateAvailable(mp);
   const [step, setStep] = useState<
-    { k: 'idle' } | { k: 'busy' } | { k: 'invite'; code: string; info: SignalInfo; phrase: string | null; accept: (r: string) => Promise<string | null> } | { k: 'reply'; code: string; info: SignalInfo } | { k: 'sent' }
+    | { k: 'idle' }
+    | { k: 'busy' }
+    | { k: 'invite'; code: string; info: SignalInfo; phrase: string | null; accept: (r: string) => Promise<string | null> }
+    | { k: 'reply'; code: string; info: SignalInfo }
+    | { k: 'sent' }
+    | { k: 'relay'; code: string; phrase: string | null }
+    | { k: 'joined' }
   >({ k: 'idle' });
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [paste, setPaste] = useState(invite && !invite.startsWith(LOCAL_PREFIX) ? invite : '');
-  const [lock, setLock] = useState(site.multiplayer.lockCodes);
+  const [lock, setLock] = useState(mp.lockCodes);
   const [phrase, setPhrase] = useState(newPassphrase);
   const [theirPhrase, setTheirPhrase] = useState('');
   const [noV6, setNoV6] = useState(false);
+  const [direct, setDirect] = useState(false);
+  const [relayStatus, setRelayStatus] = useState<RelayStatus | null>(null);
+  const [relayLink, setRelayLink] = useState<RelayTransport | null>(null);
   const id = useId();
   const weak = lock ? phraseProblem(phrase) : null;
   const lockedInvite = role === 'guest' && isLockedCode(paste);
+  const pasted = role === 'guest' && paste.trim() ? inviteMode(paste) : null;
+  const relayFor = privateAvailable(mp)
+    ? async () => {
+        const c = await turnServersFor(mp);
+        setNotice(c.fallback);
+        return c.servers;
+      }
+    : null;
+  const joinRelay = (inv: string, r: Role) => {
+    const t = new RelayTransport({ url: mp.relayUrl, invite: inv, role: r, onStatus: setRelayStatus });
+    session.attach(t);
+    setRelayLink(t);
+    onRelay?.(t, inv);
+  };
   const makeInvite = async () => {
     if (weak) return;
     setStep({ k: 'busy' });
     setError(null);
+    setNotice(null);
     try {
-      const o = await hostOffer({ iceServers: ice, dropIpv6: noV6, phrase: lock ? phrase : null });
+      if (mode === 'relay') {
+        const inv = newRelayInvite();
+        const code = lock ? await lockRelayInvite(inv, phrase) : inv;
+        joinRelay(inv, 'host');
+        setStep({ k: 'relay', code, phrase: lock ? phrase : null });
+        return;
+      }
+      let relay = null;
+      if (mode === 'private') {
+        const c = await turnServersFor(mp);
+        setNotice(c.fallback);
+        relay = c.servers;
+      }
+      const o = await hostOffer({ iceServers: ice, dropIpv6: noV6, phrase: lock ? phrase : null, relay });
       session.attach(o.transport);
       setStep({ k: 'invite', code: o.code, info: o.info, phrase: lock ? phrase : null, accept: o.accept });
     } catch (e) {
@@ -189,8 +364,21 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
   const makeReply = async () => {
     setStep({ k: 'busy' });
     setError(null);
+    setNotice(null);
     try {
-      const r = await guestAnswer(paste, { iceServers: ice, dropIpv6: noV6, phrase: lockedInvite ? theirPhrase : null });
+      if (pasted === 'relay') {
+        if (!mp.relayUrl) throw new Error(RELAY_NOT_HERE);
+        const r = await openRelayInvite(paste, lockedInvite ? theirPhrase : null);
+        if (!r.ok) {
+          setError(inviteProblem(r.why));
+          setStep({ k: 'idle' });
+          return;
+        }
+        joinRelay(r.invite, 'guest');
+        setStep({ k: 'joined' });
+        return;
+      }
+      const r = await guestAnswer(paste, { iceServers: ice, dropIpv6: noV6, phrase: lockedInvite ? theirPhrase : null, relayFor, ...(choices ? { directOk: direct } : {}) });
       if ('error' in r) {
         setError(r.error);
         setStep({ k: 'idle' });
@@ -199,7 +387,7 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
       session.attach(r.transport);
       setStep({ k: 'reply', code: r.code, info: r.info });
     } catch (e) {
-      setError(`Could not make a reply: ${(e as Error).message}`);
+      setError(`Could not ${pasted === 'relay' ? 'join' : 'make a reply'}: ${(e as Error).message}`);
       setStep({ k: 'idle' });
     }
   };
@@ -211,7 +399,8 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
       </span>
     </label>
   );
-  if (!webrtcAvailable()) return <p className="muted">This browser can't make direct connections (WebRTC). Use "Two tabs on this device", or another browser.</p>;
+  if (mode !== 'relay' && pasted !== 'relay' && !webrtcAvailable()) return <p className="muted">This browser can't make direct connections (WebRTC). Use "Two tabs on this device", or another browser.</p>;
+  const relayCode = mode === 'relay';
   return (
     <div className="grid online-exchange">
       {role === 'host' ? (
@@ -224,9 +413,15 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
                   <span>Lock the invite with a phrase</span>
                 </label>
                 <p className="small muted" style={{ margin: 0 }}>
-                  {lock
-                    ? 'Locked: without the phrase, nobody who sees the invite or the reply can read anything in them. You send the phrase by another route; their reply is locked with it too.'
-                    : 'Unlocked: anyone who sees the invite or the reply can read your internet address in it. Send it only in a private message.'}
+                  {relayCode
+                    ? lock
+                      ? 'Locked: without the phrase, nobody who sees the invite can open it or join your room. You send the phrase by another route.'
+                      : 'Unlocked: the invite holds no address, but anyone who sees it could join your room before your friend. Send it only in a private message.'
+                    : lock
+                      ? 'Locked: without the phrase, nobody who sees the invite or the reply can read anything in them. You send the phrase by another route; their reply is locked with it too.'
+                      : mode === 'private'
+                        ? 'Unlocked: anyone who sees the invite or the reply can read the relay’s address in it (not yours). Send it only in a private message.'
+                        : 'Unlocked: anyone who sees the invite or the reply can read your internet address in it. Send it only in a private message.'}
                 </p>
                 {lock && (
                   <div className="online-phrase-row">
@@ -240,17 +435,43 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
                   </div>
                 )}
                 {weak && <p className="small online-error">{weak}</p>}
-                {v6}
+                {mode === 'direct' && v6}
               </div>
               <div className="row">
                 <button type="button" className="primary" disabled={!!weak} onClick={() => void makeInvite()}>
-                  Create invite
+                  {mode === 'private' ? 'Create a private invite' : mode === 'direct' && choices ? 'Create a direct invite' : 'Create invite'}
                 </button>
                 {onCancel && <button onClick={onCancel}>Cancel</button>}
               </div>
             </>
           )}
-          {step.k === 'busy' && <p className="muted">Making the invite ({lock ? 'locking it, ' : ''}finding your network address)…</p>}
+          {step.k === 'busy' && (
+            <p className="muted">
+              {relayCode ? 'Making the invite…' : `Making the invite (${lock ? 'locking it, ' : ''}${mode === 'private' ? 'reaching the relay' : 'finding your network address'})…`}
+            </p>
+          )}
+          {step.k === 'relay' && (
+            <>
+              <p>
+                <b>Send this invite to the other player in a private message.</b> {step.code.length <= MAX_LINK_CODE ? 'The link opens the game for them.' : 'They open Play → Join a game and paste it.'} There is nothing to send back.
+              </p>
+              <CodeBox
+                label="Invite"
+                code={step.code}
+                link={step.code.length <= MAX_LINK_CODE ? pageLink(`#/play/join/${step.code}`) : null}
+                note={step.phrase ? 'Locked: without the phrase, nobody can read anything in this invite.' : 'This invite shows no address: only a room on the relay and the key to it. Anyone who has it could join before your friend, so send it privately.'}
+              />
+              {step.phrase && <PhraseBox phrase={step.phrase} />}
+              <RelayLine status={relayStatus} onRetry={() => relayLink?.retryNow()} />
+              {onCancel && (
+                <div className="row">
+                  <button type="button" onClick={onCancel}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </>
+          )}
           {step.k === 'invite' && (
             <>
               <p>
@@ -302,16 +523,23 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
             >
               <label htmlFor={id}>Invite link or code from the host</label>
               <textarea id={id} rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Paste the invite here" />
+              {(choices || (pasted !== 'direct' && pasted !== null)) && inviteModeNote(pasted) && <p className="small muted">{inviteModeNote(pasted)}</p>}
               {lockedInvite && (
                 <label className="grid">
                   <span>This invite is locked: type the phrase the host sent you.</span>
                   <input type="text" value={theirPhrase} onChange={(e) => setTheirPhrase(e.target.value)} maxLength={200} autoComplete="off" spellCheck={false} placeholder="four words" />
                 </label>
               )}
-              {v6}
+              {choices && pasted === 'direct' && (
+                <label className="online-check">
+                  <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} />
+                  <span>Connect directly: the host will see my internet address</span>
+                </label>
+              )}
+              {pasted !== 'relay' && pasted !== 'private' && v6}
               <div className="row">
-                <button type="submit" className="primary" disabled={!paste.trim() || (lockedInvite && !theirPhrase.trim())}>
-                  Make my reply code
+                <button type="submit" className="primary" disabled={!paste.trim() || (lockedInvite && !theirPhrase.trim()) || pasted === 'newer' || (choices && pasted === 'direct' && !direct)}>
+                  {pasted === 'relay' ? 'Join through the relay' : 'Make my reply code'}
                 </button>
                 {onCancel && (
                   <button type="button" onClick={onCancel}>
@@ -321,7 +549,12 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
               </div>
             </form>
           )}
-          {step.k === 'busy' && <p className="muted">Making your reply ({lockedInvite ? 'opening the invite, ' : ''}finding your network address)…</p>}
+          {step.k === 'busy' && (
+            <p className="muted">
+              {pasted === 'relay' ? 'Joining the room…' : `Making your reply (${lockedInvite ? 'opening the invite, ' : ''}${pasted === 'private' ? 'reaching the relay' : 'finding your network address'})…`}
+            </p>
+          )}
+          {step.k === 'joined' && <RelayLine status={relayStatus} onRetry={() => relayLink?.retryNow()} />}
           {step.k === 'reply' && (
             <>
               <p>
@@ -332,6 +565,7 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
           )}
         </>
       )}
+      {notice && <p className="small muted">{notice}</p>}
       {error && (
         <p className="online-error" role="alert">
           {error}
@@ -407,8 +641,17 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
   const [reconnect, setReconnect] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, updateSettings, resetSettings] = useBoardSettings();
+  const modes = netModes(site.multiplayer);
+  const [netMode, setNetMode] = useState<NetMode>(modes.initial);
+  // a choice the config no longer offers (it was re-read) falls back to the most private one it does
+  const connMode: NetMode = (netMode === 'relay' && !modes.relay) || (netMode === 'private' && !modes.private) ? modes.initial : netMode;
+  const [relayLink, setRelayLink] = useState<RelayTransport | null>(null);
   const v = useSession(session);
   const deck = findDeck(deckKey);
+  const onRelay = (t: RelayTransport, inv: string) => {
+    setRelayLink(t);
+    if (session?.role === 'host') kv.set(RELAY_KEY, inv);
+  };
 
   // an invite read from a join link: take the code out of the address bar (and so the browser's history) at once
   useEffect(() => {
@@ -464,9 +707,16 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
         setSession(h);
         setRole('host');
         const last = kv.get(ROOM_KEY);
+        const lastRelay = kv.get(RELAY_KEY);
         if (via === 'tabs' && last) {
           setRoom(last);
           joinRoom(h, last);
+        } else if (via === 'net' && connMode === 'relay' && lastRelay && relaySecret(lastRelay)) {
+          // back in the same room on the relay: a guest whose page is still open comes back by itself
+          const t = new RelayTransport({ url: site.multiplayer.relayUrl, invite: lastRelay, role: 'host' });
+          h.attach(t);
+          setRelayLink(t);
+          setReconnect(true);
         } else setReconnect(true);
       },
       (e: unknown) => setProblem(`The saved game could not be brought back: ${(e as Error).message}`),
@@ -477,6 +727,7 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
     if (session) session.leave();
     setSession(null);
     setRoom(null);
+    setRelayLink(null);
     setSaved(OnlineHost.saved());
     location.hash = '#/play/online';
   };
@@ -565,7 +816,17 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
             {room ? (
               <p className="muted">Two tabs on this device: the other tab reconnects by itself when it is open on the room link.</p>
             ) : (
-              <NetExchange role={session.role} session={session} ice={ice} onCancel={() => setReconnect(false)} />
+              <>
+                {relayLink && (
+                  <p className="muted">
+                    {RELAY_BACK}{' '}
+                    <button type="button" className="ghost" onClick={() => relayLink.retryNow()}>
+                      Try now
+                    </button>
+                  </p>
+                )}
+                <NetExchange role={session.role} session={session} ice={ice} mode={relayLink ? 'relay' : connMode} onCancel={() => setReconnect(false)} onRelay={onRelay} />
+              </>
             )}
             <div className="row">
               <button onClick={() => setReconnect(false)}>Close</button>
@@ -602,6 +863,7 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
               <input type="radio" name="online-via" checked={via === 'tabs'} onChange={() => setVia('tabs')} /> Two tabs on this device
             </label>
           </div>
+          {via === 'net' && role === 'host' && <ConnectionChoice mode={connMode} setMode={setNetMode} corr={corrOn} />}
           <label className="row">
             <span className="muted small">Your name</span>
             <input type="text" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} placeholder="Shown to the other player" />
@@ -661,7 +923,7 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
               {problem}
             </p>
           )}
-          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} corr={corrOn} />
+          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} corr={corrOn} mode={role === 'host' ? connMode : undefined} guest={role === 'guest' && (modes.relay || modes.private)} />
         </div>
       )}
 
@@ -687,10 +949,19 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
             <>
               {session.stage !== 'waiting' && (
                 <p className="online-error">
-                  The connection was lost before the game started. {session.role === 'host' ? 'Make a new invite and send it' : "Open the host's new invite"}: the roll picks up where it was.
+                  The connection was lost before the game started.{' '}
+                  {relayLink ? RELAY_BACK : `${session.role === 'host' ? 'Make a new invite and send it' : "Open the host's new invite"}: the roll picks up where it was.`}
                 </p>
               )}
-              <NetExchange key={session.stage === 'waiting' ? 'first' : 'again'} role={session.role} session={session} ice={ice} invite={session.stage === 'waiting' ? invite : null} />
+              <NetExchange
+                key={session.stage === 'waiting' ? 'first' : 'again'}
+                role={session.role}
+                session={session}
+                ice={ice}
+                mode={connMode}
+                invite={session.stage === 'waiting' ? invite : null}
+                onRelay={onRelay}
+              />
             </>
           )}
           {session.stage === 'waiting' && room && session.role === 'host' && (
@@ -727,7 +998,13 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
             </p>
           )}
           {session.conn === 'lost' && session.stage === 'waiting' && <p className="online-error">The connection was lost.</p>}
-          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} corr={corrOn} />
+          <LobbyNotes
+            ice={ice}
+            tabs={via === 'tabs' || !!room}
+            corr={corrOn}
+            mode={session.role === 'host' ? (relayLink ? 'relay' : connMode) : undefined}
+            guest={session.role === 'guest' && (modes.relay || modes.private)}
+          />
         </div>
       )}
       {settingsOpen &&
