@@ -479,8 +479,10 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
       <fieldset>
         <legend>Online play</legend>
         <p className="small muted">
-          Games against another person (the “Play online” feature). The STUN servers tell each browser its public network address so players on different networks can connect; connecting shares each
-          player's address with the other player and with these servers. Leave the list empty for same-network play only. One address per line, such as stun:stun.l.google.com:19302.
+          Games against another person (the “Play online” feature). The players connect directly, so each one's internet address goes to the other player, and to these STUN servers, which tell each
+          browser its public address when a code is made so players on different networks can connect. The invite and reply codes carry the address too: unlocked, anyone who sees a code can read it;
+          locked with a phrase, only someone with the phrase can. Leave the list empty for same-network play only (the codes then carry the local network address). One address per line, such as
+          stun:stun.l.google.com:19302. Multi-day games share no address at all.
         </p>
         <IceServers servers={draft.multiplayer.iceServers} onChange={(list) => up((c) => void (c.multiplayer.iceServers = list))} />
         <Errs issues={issues} path="multiplayer.iceServers" />
@@ -492,6 +494,13 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
           onChange={(v) => up((c) => void (c.multiplayer.turnTimer = Number(v) as SiteConfig['multiplayer']['turnTimer']))}
         />
         <Errs issues={issues} path="multiplayer.turnTimer" />
+        <Check
+          label="Lock invite and reply codes with a phrase by default"
+          checked={draft.multiplayer.lockCodes}
+          onChange={(v) => up((c) => void (c.multiplayer.lockCodes = v))}
+          help="On: a host's invite (online and multi-day) starts locked with a generated phrase, and the reply is locked with it too, so a code posted in a public place shows nothing to whoever sees it. Players can still make an unlocked code."
+        />
+        <Errs issues={issues} path="multiplayer.lockCodes" />
       </fieldset>
 
       <fieldset>

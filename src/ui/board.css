@@ -2833,6 +2833,29 @@ button.pb-coach-more {
 .online-notes p {
   margin: 4px 0;
 }
+/* the lock and address choices before a code is made, and the phrase to send */
+.online-lock {
+  gap: 6px;
+}
+.online-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.online-check input {
+  flex: none;
+  margin-top: 3px;
+}
+.online-phrase-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.online-lobby .online-phrase-row input[type='text'] {
+  flex: 1 1 16em;
+  font-family: ui-monospace, monospace;
+}
 .online-error {
   color: var(--red);
   margin: 0;

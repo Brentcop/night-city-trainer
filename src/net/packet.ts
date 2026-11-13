@@ -3,6 +3,8 @@
 //
 //   code  = "T" + ("1" deflate | "0" plain) + base64url(bytes)
 //   bytes = mac (64 hex, or "-" on the invite, made before there is a key) + the packet's JSON
+//   or, for an invite or a reply locked with a phrase (codeLock.ts), "T2" + base64url(lock header + AES-GCM of
+//   [0 plain | 1 deflate] + bytes as above): only someone with the phrase can read the key half inside
 //
 // The MAC is an HMAC-SHA-256 with a key both players make at the handshake (gameKey: from the host's key in the invite
 // and the guest's key in its reply), over the exact JSON text, so a packet changed by hand, or one from another game,
@@ -12,6 +14,7 @@
 // the record). A view is sent in full the first time and after that as a patch to the last view sent (`patch`, with a
 // hash of the result so a patch applied to the wrong board is caught), with the new log lines only.
 import type { Decision, GameState, LogEntry } from '../engine/types';
+import { keyFromPhrase, lockAvailable, lockBytes, lockedHeader, unlockBytes, WRONG_PHRASE, type CodeKey, type LockPurpose } from './codeLock';
 import { CAPS, readDeck, readDecision, readEnd, readRecord, readViewState, tryRead, type DeckMsg, type GameRecordMsg, type ViewMsg } from './protocol';
 
 export const PACKET_KIND = 'nct-turn';
@@ -183,41 +186,88 @@ async function macOf(key: CryptoKey, json: string): Promise<string> {
   return toHex(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(json))));
 }
 
-/** Pack a packet into its code: signed with `key` (null only for the invite). */
-export async function packPacket(p: Packet, key: CryptoKey | null): Promise<{ code: string; mac: string; json: string }> {
+/** The lock's purpose for a packet that may be locked (the invite and the guest's reply only). */
+const lockPurpose = (b: Body): LockPurpose | null => (b.t === 'invite' ? 'corr-invite' : b.t === 'join' ? 'corr-join' : null);
+
+/**
+ * Pack a packet into its code: signed with `key` (null only for the invite). With `lock` (an invite or a reply only),
+ * the code is locked with the phrase's key ("T2").
+ */
+export async function packPacket(p: Packet, key: CryptoKey | null, lock?: CodeKey | null): Promise<{ code: string; mac: string; json: string }> {
   const json = JSON.stringify(p);
   const mac = key ? await macOf(key, json) : '';
   const raw = new TextEncoder().encode((mac || '-') + json);
-  let code = `T0${b64url(raw)}`;
+  let deflated: Uint8Array | null = null;
   if (typeof CompressionStream !== 'undefined') {
     try {
-      code = `T1${b64url(await pipe(raw, new CompressionStream('deflate-raw')))}`;
+      deflated = await pipe(raw, new CompressionStream('deflate-raw'));
     } catch {
       /* plain */
     }
   }
-  return { code, mac, json };
+  const purpose = lockPurpose(p.b);
+  if (lock && purpose) {
+    const body = deflated ?? raw;
+    const inner = new Uint8Array(body.length + 1);
+    inner[0] = deflated ? 1 : 0;
+    inner.set(body, 1);
+    return { code: `T2${b64url(await lockBytes(inner, lock, purpose))}`, mac, json };
+  }
+  return { code: deflated ? `T1${b64url(deflated)}` : `T0${b64url(raw)}`, mac, json };
 }
 
 /** The packet code inside a pasted link (#/play/turn/<code>), file text or code; '' when there is none. */
 export function codeFromText(text: string): string {
   const t = text.trim();
-  const m = t.match(/#\/play\/turn\/(T[01][A-Za-z0-9_-]+)/);
+  const m = t.match(/#\/play\/turn\/(T[012][A-Za-z0-9_-]+)/);
   if (m) return m[1]!;
   const c = t.replace(/\s+/g, '');
-  return /^T[01][A-Za-z0-9_-]+$/.test(c) ? c : '';
+  return /^T[012][A-Za-z0-9_-]+$/.test(c) ? c : '';
 }
 
-/** Unpack a code (not yet checking its MAC: that needs the game's key). Never throws. */
-export async function openPacket(text: string): Promise<{ ok: true; value: Opened } | { ok: false; why: string }> {
+/** A locked packet's header, read without the phrase: what it is (invite or reply) and its salt (hex); else null. */
+export function lockedPacketInfo(text: string): { purpose: 'corr-invite' | 'corr-join'; salt: string } | null {
+  const code = codeFromText(text);
+  if (code[1] !== '2' || code.length > MAX_CODE) return null;
+  try {
+    const h = lockedHeader(unb64url(code.slice(2)));
+    if (!h || (h.purpose !== 'corr-invite' && h.purpose !== 'corr-join')) return null;
+    return { purpose: h.purpose, salt: toHex(h.salt) };
+  } catch {
+    return null;
+  }
+}
+
+/** The reason openPacket gives a locked packet opened without its phrase. */
+export const LOCKED_PACKET = 'This packet is locked with a phrase: type the phrase the other player sent you.';
+
+/**
+ * Unpack a code (not yet checking its MAC: that needs the game's key). Never throws. A locked code ("T2") needs the
+ * phrase, or the key already made from it: `locked` says the phrase is missing or wrong, and `lock` is the key it
+ * opened with (the guest locks its reply with the same one).
+ */
+export async function openPacket(text: string, unlock?: string | CodeKey | null): Promise<{ ok: true; value: Opened; lock: CodeKey | null } | { ok: false; why: string; locked?: true }> {
   if (text.length > MAX_CODE * 2) return { ok: false, why: 'This is far too long to be a turn packet.' };
   const code = codeFromText(text);
   if (!code) return { ok: false, why: 'This is not a turn packet (a link or code made by this site for a multi-day game).' };
   if (code.length > MAX_CODE) return { ok: false, why: 'This packet is too long.' };
   let s: string;
+  let lock: CodeKey | null = null;
   try {
     let bytes = unb64url(code.slice(2));
-    if (code[1] === '1') {
+    let deflated = code[1] === '1';
+    if (code[1] === '2') {
+      const info = lockedPacketInfo(code);
+      if (!info) return { ok: false, why: 'This packet is not one this version reads (an unknown lock).' };
+      if (!lockAvailable()) return { ok: false, why: "This browser can't open locked packets here (Web Crypto needs a secure page: https or localhost)." };
+      if (!unlock) return { ok: false, why: LOCKED_PACKET, locked: true };
+      const r = await unlockBytes(bytes, unlock, info.purpose);
+      if (!r.ok) return { ok: false, why: WRONG_PHRASE, locked: true };
+      lock = r.key;
+      deflated = r.plain[0] === 1;
+      bytes = r.plain.slice(1);
+    }
+    if (deflated) {
       if (typeof DecompressionStream === 'undefined') return { ok: false, why: 'This browser cannot unpack this packet (no DecompressionStream).' };
       bytes = await pipe(bytes, new DecompressionStream('deflate-raw'), MAX_JSON + 70);
     }
@@ -238,8 +288,13 @@ export async function openPacket(text: string): Promise<{ ok: true; value: Opene
   const r = readPacket(raw);
   if (!r.ok) return { ok: false, why: `This packet is not one this version reads (${r.why}).` };
   if (!mac && r.value.b.t !== 'invite') return { ok: false, why: 'This packet is not signed, so it was not used.' };
-  return { ok: true, value: { packet: r.value, mac, json } };
+  // a locked code must hold what its header says (an invite as an invite, a reply as a reply)
+  if (lock && lockPurpose(r.value.b) !== lockedPacketInfo(code)?.purpose) return { ok: false, why: 'This packet is damaged (its lock does not fit what it holds).' };
+  return { ok: true, value: { packet: r.value, mac, json }, lock };
 }
+
+/** Make the lock for a new invite from a phrase. */
+export const packetLock = (phrase: string): Promise<CodeKey> => keyFromPhrase(phrase);
 
 /** Whether `opened` was signed with `key` over its exact text. */
 export async function checkMac(opened: Opened, key: CryptoKey): Promise<boolean> {

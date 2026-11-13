@@ -204,16 +204,20 @@ describe('features and pages', () => {
     expect(outside.config.multiDay.defaultDays).toBe(5);
     expect(outside.errors.map((e) => e.path)).toEqual(['multiDay.defaultDays']);
   });
-  it('multiplayer: STUN servers checked one by one (empty = same network only), the turn timer from a fixed list', () => {
-    expect(defaultSiteConfig().multiplayer).toEqual({ iceServers: ['stun:stun.l.google.com:19302'], turnTimer: 0 });
+  it('multiplayer: STUN servers checked one by one (empty = same network only), the turn timer from a fixed list, codes locked by default', () => {
+    expect(defaultSiteConfig().multiplayer).toEqual({ iceServers: ['stun:stun.l.google.com:19302'], turnTimer: 0, lockCodes: true });
     const p = parseObj((o) => {
-      o.multiplayer = { iceServers: ['stun:a.example.com:3478', 'turn:x.example.com', 'stuns:b.example.com', 'stun:a.example.com:3478', 5 as unknown as string], turnTimer: 45 as 0 };
+      o.multiplayer = { iceServers: ['stun:a.example.com:3478', 'turn:x.example.com', 'stuns:b.example.com', 'stun:a.example.com:3478', 5 as unknown as string], turnTimer: 45 as 0, lockCodes: 'yes' as unknown as boolean };
     });
-    expect(p.config.multiplayer).toEqual({ iceServers: ['stun:a.example.com:3478', 'stuns:b.example.com'], turnTimer: 0 });
-    expect(p.errors.map((e) => e.path)).toEqual(['multiplayer.iceServers[1]', 'multiplayer.iceServers[4]', 'multiplayer.turnTimer']);
-    const none = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 60 }));
+    expect(p.config.multiplayer).toEqual({ iceServers: ['stun:a.example.com:3478', 'stuns:b.example.com'], turnTimer: 0, lockCodes: true });
+    expect(p.errors.map((e) => e.path)).toEqual(['multiplayer.iceServers[1]', 'multiplayer.iceServers[4]', 'multiplayer.turnTimer', 'multiplayer.lockCodes']);
+    const none = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 60, lockCodes: false }));
     expect(none.errors).toEqual([]);
-    expect(none.config.multiplayer).toEqual({ iceServers: [], turnTimer: 60 });
+    expect(none.config.multiplayer).toEqual({ iceServers: [], turnTimer: 60, lockCodes: false });
+    // a config written before the key existed reads as locked
+    const older = parseObj((o) => (o.multiplayer = { iceServers: [], turnTimer: 0 } as unknown as typeof o.multiplayer));
+    expect(older.errors).toEqual([]);
+    expect(older.config.multiplayer.lockCodes).toBe(true);
   });
   it('a feature that is off turns its pages off', () => {
     const d = defaultSiteConfig();

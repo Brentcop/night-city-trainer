@@ -12,7 +12,8 @@ import { storageWorks } from '../../lib/savedGames';
 import { clockState, spanText, type CorrGame } from '../../net/corr';
 import { browserCorrStore } from '../../net/corrStore';
 import { CorrSession, createInvite, joinGame, readInvite } from '../../net/corrSession';
-import { codeFromText, MAX_LINK_PACKET, openPacket, packetsAvailable } from '../../net/packet';
+import { newPassphrase, phraseProblem } from '../../net/codeLock';
+import { codeFromText, lockedPacketInfo, MAX_LINK_PACKET, openPacket, packetsAvailable } from '../../net/packet';
 import { NAME_MAX } from '../../net/session';
 import { DeckPicker, findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { Modal } from '../components/Modal';
@@ -49,6 +50,10 @@ const go = (hash: string) => {
 export const CORR_TRUST =
   "The host's device runs the game, so this is for friendly play: a modified host could see hidden cards. The clocks are kept by each player's own device, so nothing happens by itself when time runs out: the other player may claim the win or give more time.";
 
+/** What these games share over the network: nothing (the packets are carried by the players). */
+export const CORR_PRIVACY =
+  "Turn packets carry no network address, and this site contacts no one to pass them: you carry them yourselves. Send the invite and the reply privately (or lock them with a phrase): together they hold the key that signs this game's packets.";
+
 /** Why the End turn setting does not apply here: each extra click would cost the guest another packet round trip. */
 export const CORR_END_TURN =
   'In these games your turn ends by itself when nothing is left to do, whatever your End turn setting: a click to end it would cost another packet each turn.';
@@ -56,6 +61,7 @@ export const CORR_END_TURN =
 function TrustNotes() {
   return (
     <div className="small muted online-notes">
+      <p>{CORR_PRIVACY}</p>
       <p>{CORR_TRUST}</p>
       <p>{MULTI_DAY_NOTE}</p>
       <p>{CORR_END_TURN}</p>
@@ -79,7 +85,7 @@ export function PacketBox({ code, rival, what = 'packet' }: { code: string; riva
   return (
     <div className="online-code">
       <label htmlFor={id} className="small muted">
-        {fits ? `Send this link to ${rival} by any messenger.` : `Send this code to ${rival} (${code.length.toLocaleString()} characters: too long for a link), or save it as a file and send the file.`}
+        {fits ? `Send this link to ${rival} in a private message.` : `Send this code to ${rival} in a private message (${code.length.toLocaleString()} characters: too long for a link), or save it as a file and send the file.`}
       </label>
       <textarea id={id} readOnly value={link ?? code} rows={3} onFocus={(e) => e.currentTarget.select()} />
       <div className="row">
@@ -105,6 +111,41 @@ export function PacketBox({ code, rival, what = 'packet' }: { code: string; riva
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The phrase that opens a locked invite, to copy and send by another route than the link. */
+function PhraseBox({ phrase }: { phrase: string }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const id = useId();
+  return (
+    <div className="online-code online-phrase">
+      <label htmlFor={id} className="small muted">
+        The phrase that opens it
+      </label>
+      <div className="online-phrase-row">
+        <input id={id} type="text" readOnly value={phrase} onFocus={(e) => e.currentTarget.select()} />
+        <button
+          type="button"
+          onClick={() =>
+            void navigator.clipboard?.writeText(phrase).then(
+              () => setCopied('Phrase copied'),
+              () => setCopied('Copy failed: select the text and copy it'),
+            )
+          }
+        >
+          Copy phrase
+        </button>
+        {copied && (
+          <span className="small muted" role="status">
+            {copied}
+          </span>
+        )}
+      </div>
+      <p className="small muted" style={{ margin: 0 }}>
+        Send the phrase separately from the link (another app, or say it). If the link goes anywhere public, the phrase must not: anyone with both can read the invite.
+      </p>
     </div>
   );
 }
@@ -204,6 +245,19 @@ function PacketLink({ code, initialDeck }: { code: string; initialDeck?: string 
   const [state, setState] = useState<{ k: 'reading' } | { k: 'invite' } | { k: 'game'; id: string; role: Role } | { k: 'bad'; why: string }>({ k: 'reading' });
   useEffect(() => {
     let alive = true;
+    const lockInfo = lockedPacketInfo(code);
+    if (lockInfo) {
+      // a locked invite asks for its phrase; a locked reply goes to the host's game whose invite has the same lock
+      if (lockInfo.purpose === 'corr-invite') {
+        setState({ k: 'invite' });
+        return;
+      }
+      const game = browserCorrStore()
+        .load()
+        .find((g) => g.role === 'host' && g.stage === 'invited' && g.lock?.salt === lockInfo.salt);
+      setState(game ? { k: 'game', id: game.id, role: 'host' } : { k: 'bad', why: "This reply is locked, and its invite is not one waiting in this browser. Open it on the device that made the invite (Ongoing games: the game's page)." });
+      return;
+    }
     void openPacket(code).then((r) => {
       if (!alive) return;
       if (!r.ok) return setState({ k: 'bad', why: r.why });
@@ -221,9 +275,21 @@ function PacketLink({ code, initialDeck }: { code: string; initialDeck?: string 
     };
   }, [code]);
   if (state.k === 'reading') return <p className="muted">Reading the packet…</p>;
-  if (state.k === 'invite') return <Lobby initialDeck={initialDeck} invite={code} />;
+  if (state.k === 'invite') return <InviteLink code={code} initialDeck={initialDeck} />;
   if (state.k === 'game') return <GamePage id={state.id} role={state.role} incoming={code} />;
   return <Blocked why={state.why} />;
+}
+
+/** An invite opened from its link: the code leaves the address bar (and the browser's history) once it is read. */
+function InviteLink({ code, initialDeck }: { code: string; initialDeck?: string }) {
+  useEffect(() => {
+    try {
+      if (location.hash.startsWith('#/play/turn/')) history.replaceState(history.state, '', '#/play/corr');
+    } catch {
+      /* history unavailable (sandboxed frame) */
+    }
+  }, []);
+  return <Lobby initialDeck={initialDeck} invite={code} />;
 }
 
 function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string | null }) {
@@ -239,6 +305,11 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
   const [info, setInfo] = useState<Awaited<ReturnType<typeof readInvite>> | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lock, setLock] = useState(site.multiplayer.lockCodes);
+  const [phrase, setPhrase] = useState(newPassphrase);
+  const [theirPhrase, setTheirPhrase] = useState('');
+  const weak = lock ? phraseProblem(phrase) : null;
+  const lockedInvite = role === 'guest' && lockedPacketInfo(paste)?.purpose === 'corr-invite';
   const deck = findDeck(deckKey);
   const store = useMemo(() => browserCorrStore(), []);
   const open = store.load().filter((g) => g.stage !== 'over' && g.stage !== 'refused').length;
@@ -250,17 +321,25 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
       return;
     }
     let alive = true;
-    void readInvite(c).then((r) => alive && setInfo(r));
+    // a locked invite is read once its phrase is typed and "Open it" pressed (the key takes a moment to make)
+    if (lockedPacketInfo(c)) setInfo(null);
+    else void readInvite(c).then((r) => alive && setInfo(r));
     return () => {
       alive = false;
     };
   }, [paste]);
+  const unlock = async () => {
+    setBusy(true);
+    const r = await readInvite(codeFromText(paste), theirPhrase);
+    setBusy(false);
+    setInfo(r);
+  };
   const host = async () => {
     if (!deck || blocked) return;
     setBusy(true);
     kvSet(NAME_KEY, name.trim().slice(0, NAME_MAX));
     try {
-      const r = await createInvite({ name: name || 'Host', deck: deck.deck, days, prefFirst }, Date.now());
+      const r = await createInvite({ name: name || 'Host', deck: deck.deck, days, prefFirst }, Date.now(), lock ? phrase : null);
       const why = store.save(r.game);
       if (why) setProblem(why);
       else go(`#/play/corr/${r.game.id}/host`);
@@ -273,7 +352,7 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
     if (!deck || blocked) return;
     setBusy(true);
     kvSet(NAME_KEY, name.trim().slice(0, NAME_MAX));
-    const r = await joinGame(paste, { name: name || 'Guest', deck: deck.deck, days: 0, prefFirst, auto }, Date.now());
+    const r = await joinGame(paste, { name: name || 'Guest', deck: deck.deck, days: 0, prefFirst, auto }, Date.now(), lockedInvite ? theirPhrase : null);
     setBusy(false);
     if (!r.ok) return setProblem(r.why);
     if (store.load().some((g) => g.id === r.game.id && g.role === 'guest')) return setProblem('This invite is already in your Ongoing games: open it from there.');
@@ -289,7 +368,7 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
       </p>
       <div className="panel grid">
         <p style={{ margin: 0 }}>
-          Play over days, whenever you like: each move goes to the other player as a <b>turn packet</b> (a link, or a code or file when it is too long) that you send by any messenger. The host takes a whole turn before
+          Play over days, whenever you like: each move goes to the other player as a <b>turn packet</b> (a link, or a code or file when it is too long) that you send in a private message. The host takes a whole turn before
           a packet is needed; each decision of the guest's, including a reaction during the host's turn, is a round trip.
         </p>
         <div className="row" role="radiogroup" aria-label="Host or join">
@@ -306,7 +385,7 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
         </label>
         <DeckPicker label="Your deck" value={deckKey} onChange={setDeckKey} />
         <p className="small muted" style={{ margin: 0 }}>
-          The other player sees your deck's name only.
+          The other player's board shows only your deck's name; the host's device holds both lists to run the game.
         </p>
         {role === 'host' && (
           <label className="row">
@@ -325,12 +404,50 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
             The clock: each player has half the game's length, and a player's clock runs from the moment the other's packet was made until they make theirs (like a chess clock, in days).
           </p>
         )}
+        {role === 'host' && (
+          <div className="grid online-lock">
+            <label className="online-check">
+              <input type="checkbox" checked={lock} onChange={(e) => setLock(e.target.checked)} />
+              <span>Lock the invite with a phrase</span>
+            </label>
+            <p className="small muted" style={{ margin: 0 }}>
+              {lock
+                ? 'Locked: without the phrase, nobody who sees the invite or the reply can read them, or the key halves inside that sign this game. You send the phrase by another route; their reply is locked with it too.'
+                : "Unlocked: anyone who sees both the invite and the reply could sign packets for this game. Send them only in a private message."}
+            </p>
+            {lock && (
+              <div className="online-phrase-row">
+                <label className="online-phrase-row" style={{ flex: '1 1 18em' }}>
+                  <span className="muted small">Phrase</span>
+                  <input type="text" value={phrase} onChange={(e) => setPhrase(e.target.value)} maxLength={200} autoComplete="off" spellCheck={false} aria-invalid={!!weak} />
+                </label>
+                <button type="button" className="ghost" onClick={() => setPhrase(newPassphrase())}>
+                  New phrase
+                </button>
+              </div>
+            )}
+            {weak && <p className="small online-error">{weak}</p>}
+          </div>
+        )}
         {role === 'guest' && (
           <>
             <label className="grid">
               <span>Invite link or code from the host</span>
               <textarea rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Paste the invite here" />
             </label>
+            {lockedInvite && !info?.ok && (
+              <div className="grid">
+                <label className="grid">
+                  <span>This invite is locked: type the phrase the host sent you.</span>
+                  <input type="text" value={theirPhrase} onChange={(e) => setTheirPhrase(e.target.value)} maxLength={200} autoComplete="off" spellCheck={false} placeholder="four words" />
+                </label>
+                <div className="row">
+                  <button type="button" disabled={!theirPhrase.trim() || busy} onClick={() => void unlock()}>
+                    Open it
+                  </button>
+                </div>
+              </div>
+            )}
             {info && (info.ok ? <p className="small">{`${info.host} invites you to a ${info.days}-day game; they play ${info.deck}.`}</p> : <p className="small online-error">{info.why}</p>)}
             <label className="row">
               <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
@@ -348,7 +465,7 @@ function Lobby({ initialDeck, invite }: { initialDeck?: string; invite: string |
         {blocked && <p className="small online-error">{blocked}</p>}
         <div className="row">
           {role === 'host' ? (
-            <button className="primary" disabled={!deck || busy || !!blocked} onClick={() => void host()}>
+            <button className="primary" disabled={!deck || busy || !!blocked || !!weak} onClick={() => void host()}>
               Make the game and its invite
             </button>
           ) : (
@@ -459,6 +576,7 @@ function GamePage({ id, role, incoming }: { id: string; role: Role | null; incom
                 <b>Step 1.</b> Send this invite to the other player.
               </p>
               <PacketBox code={g.outbox.code} rival="the other player" what="invite" />
+              {g.lock && <PhraseBox phrase={g.lock.phrase} />}
               <p>
                 <b>Step 2.</b> Open the reply they send back.
               </p>
@@ -471,6 +589,7 @@ function GamePage({ id, role, incoming }: { id: string; role: Role | null; incom
                 <b>Send this reply to {rival}.</b> Their first packet starts the game: open it here (or just open its link).
               </p>
               <PacketBox code={g.outbox.code} rival={rival} what="reply" />
+              {lockedPacketInfo(g.outbox.code) && <p className="small muted">Your reply is locked with the same phrase as the invite: there is nothing else to send.</p>}
               <PacketInput label={`${rival}'s first packet`} onOpen={receive} busy={session.busy} />
             </>
           )}

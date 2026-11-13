@@ -12,13 +12,14 @@ import { gameDeck } from '../src/lib/tournament';
 import { loadLibrary } from '../scripts/lib-node';
 import { ongoingFileText, parseOngoingFile } from '../src/lib/multiDay';
 import { clockState, DAY_MS, type CorrGame } from '../src/net/corr';
-import { kvCorrStore, parseCorrGame } from '../src/net/corrStore';
+import { FINISHED_KEEP, kvCorrStore, parseCorrGame, pruneList, settled, slimGame } from '../src/net/corrStore';
 import { CorrSession, createInvite, joinGame, readInvite } from '../src/net/corrSession';
-import { applyPatch, diffView, MAX_LINK_PACKET, openPacket, viewHash } from '../src/net/packet';
+import { WRONG_PHRASE } from '../src/net/codeLock';
+import { applyPatch, codeFromText, diffView, lockedPacketInfo, MAX_LINK_PACKET, openPacket, viewHash } from '../src/net/packet';
 import type { OnlineOutcome, OnlineRecorder } from '../src/net/record';
 import { viewFor } from '../src/net/view';
 import type { PracticeReplay } from '../src/lib/practiceReplays';
-import { expectNoHiddenIds } from './netLeak';
+import { expectNoAddresses, expectNoHiddenIds } from './netLeak';
 
 const LIB = loadLibrary();
 const legal = LIB.map((d) => gameDeck(d.deck)).filter((d) => validateDeck(d).length === 0);
@@ -60,7 +61,7 @@ const T0 = Date.parse('2026-11-12T10:00:00.000Z');
 const HOUR = 3_600_000;
 
 /** Two devices: a host and a guest, each with its own storage, recorder and clock, joined by the invite and the reply. */
-async function pair(o: { decks?: [DeckList, DeckList]; days?: number } = {}) {
+async function pair(o: { decks?: [DeckList, DeckList]; days?: number; phrase?: string } = {}) {
   const clock = { t: T0 };
   const now = () => clock.t;
   const hs = kvCorrStore(memKV());
@@ -69,12 +70,12 @@ async function pair(o: { decks?: [DeckList, DeckList]; days?: number } = {}) {
   const gr = recorder();
   const [dh, dg] = o.decks ?? [deckA, deckB];
   const days = o.days ?? 7;
-  const inv = await createInvite({ name: 'Ana', deck: dh, days, prefFirst: true }, now());
+  const inv = await createInvite({ name: 'Ana', deck: dh, days, prefFirst: true }, now(), o.phrase);
   hs.save(inv.game);
-  const info = await readInvite(`https://example.test/#/play/turn/${inv.code}`);
-  expect(info).toMatchObject({ ok: true, host: 'Ana', deck: dh.name, days });
+  const info = await readInvite(`https://example.test/#/play/turn/${inv.code}`, o.phrase);
+  expect(info).toMatchObject({ ok: true, host: 'Ana', deck: dh.name, days, locked: !!o.phrase });
   clock.t += HOUR;
-  const j = await joinGame(inv.code, { name: 'Bo', deck: dg, days: 0, prefFirst: false, auto: true }, now());
+  const j = await joinGame(inv.code, { name: 'Bo', deck: dg, days: 0, prefFirst: false, auto: true }, now(), o.phrase);
   if (!j.ok) throw new Error(j.why);
   gs.save(j.game);
   const host = await CorrSession.open(hs.load()[0]!, { store: hs, recorder: hr.r, now });
@@ -123,6 +124,7 @@ async function playOn(P: Pair, o: { seed: number; maxPackets?: number; until?: (
       if (!opened.ok) throw new Error(opened.why);
       const b = opened.value.packet.b;
       if (o.check !== false && host.game && b.t === 'move' && !b.end) expectNoHiddenIds(host.game.g.s, 1, opened.value.json, `packet ${toGuest}`);
+      if (o.check !== false) expectNoAddresses(opened.value.json, `packet ${toGuest}`);
       if (b.t === 'move' && b.view) stats.fullViews++;
       stats.packets++;
       stats.hostPackets++;
@@ -222,6 +224,128 @@ describe('a multi-day game between two devices, by turn packets only', () => {
     expect(host.g.problem).toBeNull();
     expect(P.guest.g.problem).toBeNull();
   }, 60_000);
+});
+
+describe('an invite and a reply locked with a phrase (NET-13)', () => {
+  const PHRASE = 'lantern orbit river velvet';
+  it('a bystander reads nothing; the guest opens it with the phrase; the reply is locked with the same key; the game plays on', async () => {
+    const inv = await createInvite({ name: 'Ana', deck: deckA, days: 5, prefFirst: true }, T0, PHRASE);
+    expect(inv.code.startsWith('T2')).toBe(true);
+    expect(inv.game.lock?.phrase).toBe(PHRASE);
+    expect(lockedPacketInfo(inv.code)).toEqual({ purpose: 'corr-invite', salt: inv.game.lock!.salt });
+    expect(codeFromText(`https://example.test/app/#/play/turn/${inv.code}`)).toBe(inv.code);
+    // without the phrase: nothing, and the key half never shows
+    expect(await openPacket(inv.code)).toMatchObject({ ok: false, locked: true });
+    const bytes = Buffer.from(inv.code.slice(2), 'base64url').toString('latin1');
+    expect(bytes).not.toContain(inv.game.keys.host);
+    expect(bytes).not.toContain('Ana');
+    expect(await readInvite(inv.code)).toMatchObject({ ok: false, locked: true });
+    expect(await readInvite(inv.code, 'lantern orbit river velvets')).toEqual({ ok: false, why: WRONG_PHRASE, locked: true });
+    expect(await joinGame(inv.code, { name: 'Bo', deck: deckB, days: 0, prefFirst: false, auto: true }, T0, 'wrong wrong wrong phrase')).toMatchObject({ ok: false, locked: true });
+    // the whole game, with the phrase on both sides
+    const P = await pair({ phrase: PHRASE, days: 5 });
+    expect(P.invite.startsWith('T2')).toBe(true);
+    expect(P.join.startsWith('T2')).toBe(true);
+    expect(lockedPacketInfo(P.join)?.purpose).toBe('corr-join');
+    const joinBytes = Buffer.from(P.join.slice(2), 'base64url').toString('latin1');
+    expect(joinBytes).not.toContain(P.guest.g.keys.guest!);
+    // the host forgets the phrase once the reply is in; packets after the handshake are signed, not locked
+    expect(P.host.g.lock).toBeUndefined();
+    expect(P.host.g.stage).toBe('playing');
+    await playOn(P, { seed: 31, maxPackets: 6 });
+    expect(P.host.outbox!.code.startsWith('T1')).toBe(true);
+    expect(P.host.g.problem).toBeNull();
+    expect(P.guest.g.problem).toBeNull();
+  }, 60_000);
+
+  it('a locked reply for another invite is refused; an unlocked invite still joins; a weak phrase is refused', async () => {
+    const a = await createInvite({ name: 'Ana', deck: deckA, days: 5, prefFirst: true }, T0, PHRASE);
+    const b = await createInvite({ name: 'Ana', deck: deckA, days: 5, prefFirst: true }, T0, PHRASE);
+    const j = await joinGame(b.code, { name: 'Bo', deck: deckB, days: 0, prefFirst: false, auto: true }, T0, PHRASE);
+    if (!j.ok) throw new Error(j.why);
+    const hs = kvCorrStore(memKV());
+    hs.save(a.game);
+    const host = await CorrSession.open(a.game, { store: hs, recorder: recorder().r, now: () => T0 });
+    expect(await host.receive(j.code)).toMatch(/locked for another invite/);
+    expect(host.g.stage).toBe('invited');
+    host.close();
+    const plain = await createInvite({ name: 'Ana', deck: deckA, days: 5, prefFirst: true }, T0);
+    expect(plain.code.startsWith('T1')).toBe(true);
+    expect(plain.game.lock).toBeUndefined();
+    expect(await readInvite(plain.code)).toMatchObject({ ok: true, locked: false });
+    await expect(createInvite({ name: 'Ana', deck: deckA, days: 5, prefFirst: true }, T0, 'too short')).rejects.toThrow(/four words/);
+  }, 30_000);
+});
+
+describe('the host checks a claim on time by its own clock (NET-8)', () => {
+  it('a claim that the host ran out is refused while the host still has time by its own clock', async () => {
+    const P = await pair({ days: 3 });
+    const { host, guest } = P;
+    await untilHostDecides(P, 13, 4);
+    // a modified guest (its clock three days ahead) claims at once
+    const fake = await CorrSession.open(JSON.parse(JSON.stringify(guest.g)) as CorrGame, { store: kvCorrStore(memKV()), recorder: recorder().r, now: () => P.now() + 3 * DAY_MS });
+    expect(await fake.claimWin()).toBe(true);
+    const head = JSON.stringify(host.g.head);
+    expect(await host.receive(fake.outbox!.code)).toMatch(/claims your time ran out, but by this device.s clock you still have/);
+    expect(host.g.end).toBeNull();
+    expect(JSON.stringify(host.g.head)).toBe(head);
+    fake.close();
+  }, 60_000);
+});
+
+describe('finished games are kept light (NET-12)', () => {
+  it('a settled game drops its save, board and (after a while) its last packet; the list keeps the newest finished games', async () => {
+    const P = await pair();
+    await playOn(P, { seed: 3 });
+    const h = P.hs.load()[0]!;
+    const g = P.gs.load()[0]!;
+    expect(settled(h) && settled(g)).toBe(true);
+    // stored without the heavy parts, but still a finished game that reopens on its last board with its record
+    expect(h.host!.save).toBeNull();
+    expect(h.host!.sent).toBeNull();
+    expect(g.guest!.view).toBeNull();
+    expect(h.finalView).not.toBeNull();
+    expect(h.record).not.toBeNull();
+    expect(h.outbox).not.toBeNull();
+    expect(slimGame(h, Date.parse(h.lastPlayed) + 31 * DAY_MS).outbox).toBeNull();
+    // a game in progress is never slimmed
+    const Q = await pair();
+    expect(slimGame(Q.host.g, Date.now() + 365 * DAY_MS)).toBe(Q.host.g);
+    // only the newest FINISHED_KEEP finished games stay
+    const many = Array.from({ length: FINISHED_KEEP + 5 }, (_, i) => ({ ...h, id: i.toString(16).padStart(16, '0'), lastPlayed: new Date(T0 + i * HOUR).toISOString() }));
+    const kept = pruneList([...many, Q.host.g], T0);
+    expect(kept).toHaveLength(FINISHED_KEEP + 1);
+    expect(kept).toContain(Q.host.g);
+    expect(kept.some((x) => x.id === '0000000000000000')).toBe(false);
+  }, 120_000);
+
+  it('a full store makes room from finished games before refusing to save the game in progress', async () => {
+    const P = await pair();
+    await playOn(P, { seed: 3 });
+    const done = P.hs.load()[0]!;
+    // a storage that holds at most `cap` characters under one key
+    const m = new Map<string, string>();
+    let cap = Infinity;
+    const kv = {
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        if (v.length > cap) throw new Error('QuotaExceededError');
+        m.set(k, v);
+      },
+    };
+    const store = kvCorrStore(kv, 'nct.corr.v1', () => T0);
+    for (let i = 0; i < 6; i++) expect(store.save({ ...done, id: `${i}`.padStart(16, 'a'), lastPlayed: new Date(T0 + i * HOUR).toISOString() })).toBeNull();
+    const Q = await pair();
+    const live = Q.host.g;
+    cap = m.get('nct.corr.v1')!.length;
+    expect(store.save(live)).toBeNull();
+    const after = store.load();
+    expect(after.some((x) => x.id === live.id)).toBe(true);
+    expect(after.filter((x) => settled(x)).length).toBeLessThanOrEqual(6);
+    // nothing finished left to drop and still no room: then it says so
+    cap = 10;
+    expect(store.save(live)).toMatch(/storage is full or blocked/);
+  }, 120_000);
 });
 
 describe('packets refused, with the reason, and nothing applied', () => {

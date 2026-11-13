@@ -26,6 +26,8 @@ export const GUEST_RESUME_KEY = 'nct.online.guest.v1';
 export const PING_MS = 2000;
 export const LOST_MS = 8000;
 export const NAME_MAX = 30;
+/** refused guest messages answered and noted per second at most (past it they are dropped, and counted in one note) */
+export const REFUSALS_PER_SECOND = 10;
 
 export type Role = 'host' | 'guest';
 /**
@@ -181,23 +183,35 @@ abstract class OnlineSession {
     this.transport = t;
     t.onMessage = (text) => {
       this.lastHeard = this.now();
-      if (this.conn !== 'open') this.conn = 'open';
+      if (this.conn !== 'open') this.setConn('open');
       this.receive(text);
     };
     t.onState = (s) => this.linkState(s);
-    this.conn = t.state === 'open' ? 'open' : 'connecting';
+    this.setConn(t.state === 'open' ? 'open' : 'connecting');
     if (t.state === 'open') this.linkState('open');
     this.startBeat();
     this.changed();
   }
 
+  /** The connection's state changed (subclasses follow it: the host pauses the turn timer while it is not open). */
+  protected setConn(c: Conn) {
+    this.conn = c;
+    this.connChanged();
+  }
+  protected connChanged() {
+    // the host overrides
+  }
+
+  /** The turn timer is stopped because the connection is lost (said on both screens). */
+  abstract get timerPaused(): boolean;
+
   private linkState(s: LinkState) {
     if (this.closed) return;
     if (s === 'open') {
-      this.conn = 'open';
+      this.setConn('open');
       this.lastHeard = this.now();
       this.opened();
-    } else if (s === 'closed') this.conn = 'lost';
+    } else if (s === 'closed') this.setConn('lost');
     this.changed();
   }
 
@@ -209,7 +223,7 @@ abstract class OnlineSession {
   tick() {
     if (this.conn === 'open') {
       if (this.now() - this.lastHeard > LOST_MS) {
-        this.conn = 'lost';
+        this.setConn('lost');
         this.changed();
       } else this.send({ v: 1, t: 'ping', at: this.now() });
     }
@@ -252,6 +266,8 @@ abstract class OnlineSession {
   }
 
   private rollQueue: Promise<void> = Promise.resolve();
+  /** bumps when the roll starts again (a step still waiting on its hash then sends nothing) */
+  private rollGen = 0;
   /** The roll: send our commitment (once), and our secret once we have theirs. Steps run one at a time, in order. */
   protected rollStep(): Promise<void> {
     this.rollQueue = this.rollQueue.then(() => this.rollStepNow()).catch((e: unknown) => this.note(`The roll failed: ${String(e)}`));
@@ -261,15 +277,19 @@ abstract class OnlineSession {
     if (!this.myNonce) this.myNonce = newNonce();
     if (!this.sentCommit) {
       this.sentCommit = true;
-      this.send({ v: 1, t: 'commit', h: await commitOf(this.myNonce) });
+      const gen = this.rollGen;
+      const h = await commitOf(this.myNonce);
+      if (gen !== this.rollGen) return;
+      this.send({ v: 1, t: 'commit', h });
     }
     if (this.theirCommit && !this.sentReveal) {
       this.sentReveal = true;
       this.send({ v: 1, t: 'reveal', n: this.myNonce });
     }
   }
-  protected resetRoll() {
-    this.myNonce = null;
+  protected resetRoll(keepNonce = false) {
+    this.rollGen++;
+    if (!keepNonce) this.myNonce = null;
     this.theirCommit = null;
     this.sentCommit = false;
     this.sentReveal = false;
@@ -377,6 +397,10 @@ export class OnlineHost extends OnlineSession {
   private pendKey = -1;
   /** the guest's first-or-second choice, when it arrived before this side finished checking the roll */
   private earlyFirst: boolean | null = null;
+  /** a guest back before the game started must commit to the same roll secret as before (or the roll starts over unfairly) */
+  private expectCommit: string | null = null;
+  /** refused messages: this second's window, how many were answered in it, how many dropped */
+  private refusals = { at: 0, n: 0, dropped: 0 };
 
   constructor(o: SessionOptions) {
     super(o);
@@ -420,25 +444,52 @@ export class OnlineHost extends OnlineSession {
     // the guest speaks first (hello)
   }
 
-  protected receive(text: string) {
-    const p = parseGuestMessage(text);
-    if (!p.ok) {
-      this.note(`Refused a message from the guest: ${p.why}`);
-      this.send({ v: 1, t: 'reject', why: `Message refused: ${p.why}`.slice(0, 300) });
+  get timerPaused(): boolean {
+    return !!this.game?.timerPaused && this.timer > 0 && !this.over;
+  }
+
+  /** The turn timer stops while the connection is not open, and goes on with the time that was left once it is. */
+  protected connChanged() {
+    const g = this.game;
+    if (!g || g.ended) return;
+    if (this.conn === 'open') g.resumeTimer();
+    else g.pauseTimer();
+  }
+
+  /** Refuse a guest message: noted and answered, up to REFUSALS_PER_SECOND a second; past that, dropped and counted. */
+  private refusal(note: string, why: string) {
+    this.refusalWindow();
+    if (++this.refusals.n > REFUSALS_PER_SECOND) {
+      this.refusals.dropped++;
       return;
     }
+    this.note(note);
+    this.send({ v: 1, t: 'reject', why: why.slice(0, 300) });
+  }
+  /** A new second: say once how many refusals were dropped in the last one. */
+  private refusalWindow() {
+    const t = this.now();
+    if (t - this.refusals.at < 1000) return;
+    const dropped = this.refusals.dropped;
+    this.refusals = { at: t, n: 0, dropped: 0 };
+    if (dropped) this.note(`Dropped ${dropped} more refused message${dropped === 1 ? '' : 's'} from the guest (too many at once).`);
+  }
+
+  protected receive(text: string) {
+    const p = parseGuestMessage(text);
+    if (!p.ok) return this.refusal(`Refused a message from the guest: ${p.why}`, `Message refused: ${p.why}`);
     const m = p.msg;
+    if (this.refusals.dropped) this.refusalWindow();
     if (this.heard(m)) return;
-    const refuse = (why: string) => {
-      this.note(`Refused the guest's ${m.t}: ${why}`);
-      this.send({ v: 1, t: 'reject', why });
-    };
+    const refuse = (why: string) => this.refusal(`Refused the guest's ${m.t}: ${why}`, why);
     switch (m.t) {
       case 'hello':
         return this.hello(m);
       case 'commit':
         if (this.stage !== 'roll' || this.theirCommit) return refuse('No roll is waiting for a commitment.');
+        if (this.expectCommit && m.h !== this.expectCommit) return this.rollRefused();
         this.theirCommit = m.h;
+        this.expectCommit = m.h;
         void this.rollStep();
         return;
       case 'reveal':
@@ -499,13 +550,42 @@ export class OnlineHost extends OnlineSession {
     }
   }
 
+  /** A guest back before the game started committed to another secret: a fresh one against ours, already shown, isn't fair. */
+  private rollRefused() {
+    this.problem = 'The guest came back with a different roll, so the roll can’t be trusted. Start again with a new invite.';
+    this.note(this.problem);
+    this.send({ v: 1, t: 'refuse', why: this.problem });
+    this.stage = 'waiting';
+    this.rivalName = null;
+    this.rivalDeck = null;
+    this.guestDeck = null;
+    this.gameId = '';
+    this.expectCommit = null;
+    this.resetRoll();
+    this.changed();
+  }
+
   private hello(m: Extract<GuestMsg, { t: 'hello' }>) {
     const g = this.game;
-    if (m.resume && g && m.resume.game === this.gameId && m.resume.token === this.token) {
+    const same = !!m.resume && !!this.gameId && m.resume.game === this.gameId && m.resume.token === this.token;
+    if (same && g) {
       // the guest is back (reload or new connection): the same game, from where it is
       this.send({ v: 1, t: 'welcome', name: this.name, deckName: this.deck.name, game: this.gameId, token: this.token, timer: this.timer, resumed: true });
       this.chat.note(`${this.rivalName ?? 'The guest'} is back.`);
       this.sendView();
+      this.changed();
+      return;
+    }
+    if (same && (this.stage === 'roll' || this.stage === 'choose')) {
+      // back before the game started (the roll, the first-or-second choice, or a rematch's roll): the roll is made
+      // again from the same two secrets (each side keeps its own), so it comes out the same
+      this.send({ v: 1, t: 'welcome', name: this.name, deckName: this.deck.name, game: this.gameId, token: this.token, timer: this.timer, resumed: false });
+      this.chat.note(`${this.rivalName ?? 'The guest'} is back.`);
+      this.problem = null;
+      this.stage = 'roll';
+      this.earlyFirst = null;
+      this.resetRoll(true);
+      void this.rollStep();
       this.changed();
       return;
     }
@@ -529,6 +609,7 @@ export class OnlineHost extends OnlineSession {
     this.token = randomHex(16);
     this.send({ v: 1, t: 'welcome', name: this.name, deckName: this.deck.name, game: this.gameId, token: this.token, timer: this.timer, resumed: false });
     this.stage = 'roll';
+    this.expectCommit = null;
     this.resetRoll();
     void this.rollStep();
     this.changed();
@@ -570,6 +651,7 @@ export class OnlineHost extends OnlineSession {
     };
     this.youFirst = first === 0;
     this.stage = 'game';
+    this.expectCommit = null;
     this.send({ v: 1, t: 'start', youFirst: first === 1 });
     this.useGame(new HostGame(setup, { now: this.now }));
   }
@@ -583,6 +665,7 @@ export class OnlineHost extends OnlineSession {
     this.recorded = false;
     this.rematch = { mine: false, theirs: false };
     this.board = new ViewGame(viewFor(game.g.s, 0));
+    if (this.conn !== 'open') game.pauseTimer();
     game.onAsk = (seat) => {
       if (seat === 1) this.sendView();
       this.saveGame();
@@ -740,6 +823,7 @@ export class OnlineHost extends OnlineSession {
     this.gameId = randomHex(8);
     this.rematch = { mine: false, theirs: false };
     this.stage = 'roll';
+    this.expectCommit = null;
     this.resetRoll();
     this.send({ v: 1, t: 'welcome', name: this.name, deckName: this.deck.name, game: this.gameId, token: this.token, timer: this.timer, resumed: false });
     void this.rollStep();
@@ -767,6 +851,8 @@ export interface GuestResume {
   token: string;
   host: string;
   saved: string;
+  /** this side's roll secret for that game, kept until it starts (a link lost during the roll makes the same roll again) */
+  nonce?: string;
 }
 
 export class OnlineGuest extends OnlineSession {
@@ -787,6 +873,7 @@ export class OnlineGuest extends OnlineSession {
     try {
       const v = JSON.parse(store?.getItem(GUEST_RESUME_KEY) ?? 'null') as GuestResume | null;
       if (!v || typeof v.game !== 'string' || typeof v.token !== 'string' || typeof v.host !== 'string' || typeof v.saved !== 'string') return null;
+      if (v.nonce !== undefined && (typeof v.nonce !== 'string' || !/^[0-9a-f]{32}$/.test(v.nonce))) return null;
       // a day old at most
       if (Date.now() - Date.parse(v.saved) > 24 * 3600 * 1000) return null;
       return v;
@@ -849,6 +936,11 @@ export class OnlineGuest extends OnlineSession {
       case 'start':
         this.youFirst = m.youFirst;
         this.stage = 'game';
+        if (this.resume?.nonce) {
+          // the roll is over: its secret is no longer needed
+          this.resume = { game: this.resume.game, token: this.resume.token, host: this.resume.host, saved: this.resume.saved };
+          this.saveResume();
+        }
         this.match++;
         this.over = null;
         this.recorded = false;
@@ -888,29 +980,44 @@ export class OnlineGuest extends OnlineSession {
     this.rivalDeck = m.deckName;
     this.timer = m.timer;
     this.problem = null;
+    // the same game before it started (the link was lost during the roll): roll again with the same secret
+    const sameGame = !m.resumed && this.resume?.game === m.game && this.resume.token === m.token;
+    const again = sameGame ? (this.resume?.nonce ?? (m.game === this.gameId ? this.myNonce : null)) : null;
     this.gameId = m.game;
     // a restarted host numbers its views and decisions afresh
     this.viewN = 0;
     this.pendSeq = -1;
-    this.resume = { game: m.game, token: m.token, host: this.rivalName, saved: new Date(this.now()).toISOString() };
-    try {
-      this.store?.setItem(GUEST_RESUME_KEY, JSON.stringify(this.resume));
-    } catch {
-      /* storage blocked: coming back after a reload won't work */
+    if (!m.resumed) {
+      this.resetRoll();
+      this.myNonce = again ?? newNonce();
     }
+    this.resume = { game: m.game, token: m.token, host: this.rivalName, saved: new Date(this.now()).toISOString(), ...(!m.resumed && this.myNonce ? { nonce: this.myNonce } : {}) };
+    this.saveResume();
     if (m.resumed) {
       this.stage = 'game';
       this.chat.note('Back in the game.');
     } else {
-      // a fresh game (or a rematch): the roll
+      // a fresh game (or a rematch), or the same roll again
+      if (again) this.chat.note('Back: the roll is made again.');
       this.stage = 'roll';
       this.board = null;
       this.over = null;
       this.seat.pending = null;
-      this.resetRoll();
       void this.rollStep();
     }
     this.changed();
+  }
+
+  private saveResume() {
+    try {
+      if (this.resume) this.store?.setItem(GUEST_RESUME_KEY, JSON.stringify(this.resume));
+    } catch {
+      /* storage blocked: coming back after a reload won't work */
+    }
+  }
+
+  get timerPaused(): boolean {
+    return this.timer > 0 && this.stage === 'game' && !this.over && !!this.board && this.conn !== 'open';
   }
 
   chooseFirst(goFirst: boolean) {

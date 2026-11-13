@@ -12,7 +12,8 @@ import { gameDeck } from '../../lib/tournament';
 import { TURN_TIMERS } from '../../lib/siteConfig';
 import { OnlineGuest, OnlineHost, NAME_MAX, type OnlineSessionAny } from '../../net/session';
 import { BroadcastTransport, newRoomCode } from '../../net/transport';
-import { guestAnswer, hostOffer, MAX_LINK_CODE, webrtcAvailable } from '../../net/webrtc';
+import { newPassphrase, phraseProblem } from '../../net/codeLock';
+import { describeText, guestAnswer, hostOffer, isLockedCode, MAX_LINK_CODE, webrtcAvailable, type SignalInfo } from '../../net/webrtc';
 import { DeckPicker, findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { Modal } from '../components/Modal';
 import { ChatPanel } from '../components/board/ChatPanel';
@@ -48,24 +49,70 @@ const kv = {
 /** The page's own address with a hash route (works from any GitHub Pages sub-path). */
 const pageLink = (hash: string) => `${location.origin}${location.pathname}${location.search}${hash}`;
 
+/** What a direct connection shares, in plain words (shown before any code is made, and under the lobby). */
+export function addressNote(ice: readonly string[], tabs = false): string {
+  if (tabs) return 'Two tabs on this device talk inside this browser only: nothing goes over the network. Over the internet, a direct connection shares your internet address with the other player and with a STUN service.';
+  if (!ice.length)
+    return 'A direct connection shares your address on the local network with the other player, and the invite and reply codes carry it too unless they are locked with a phrase. This site uses no STUN service, so it only connects players on the same network.';
+  const stun = ice.map((s) => s.replace(/^stuns?:/, '')).join(', ');
+  return `A direct connection shares your internet address (IP) with the other player, and with the STUN service this site uses to find it (${stun}) when you make a code. The invite and reply codes carry your address too unless they are locked with a phrase: send codes only in a private message, never in a public channel.`;
+}
+export const NO_ADDRESS_NOTE = 'To play without sharing any address, play a multi-day game: its turn packets carry no network address, and the site contacts no one.';
+export const TRUST_NOTE = "The host's browser runs the game, so this is for friendly play. A modified host could see hidden cards.";
+export const DECK_NOTE = "The other player's board shows only your deck's name; the host's device holds both lists to run the game.";
+
 /** The plain-words notes every lobby shows. */
-function LobbyNotes({ ice, tabs }: { ice: readonly string[]; tabs?: boolean }) {
+function LobbyNotes({ ice, tabs, corr }: { ice: readonly string[]; tabs?: boolean; corr?: boolean }) {
   return (
     <div className="small muted online-notes">
-      <p>
-        {tabs
-          ? 'Two tabs on this device talk inside this browser only: nothing goes over the network. Over the internet, connecting shares your network address with the other player and with a STUN service.'
-          : ice.length
-          ? 'Connecting shares your network address with the other player and with the STUN service this site uses to find it (' + ice.map((s) => s.replace(/^stuns?:/, '')).join(', ') + ').'
-          : 'Connecting shares your network address with the other player; this site uses no STUN service, so it only connects players on the same network.'}
-      </p>
-      <p>The host's browser runs the game, so this is for friendly play. A modified host could see hidden cards.</p>
+      <p>{addressNote(ice, tabs)}</p>
+      {corr && (
+        <p>
+          To play without sharing any address, play a <a href="#/play/corr">multi-day game</a>: its turn packets carry no network address, and the site contacts no one.
+        </p>
+      )}
+      <p>{TRUST_NOTE}</p>
     </div>
   );
 }
 
-/** A code with Copy and (where the device offers it) Share. */
-function CodeBox({ label, code, link }: { label: string; code: string; link?: string | null }) {
+/** The phrase that opens a locked code, to copy and send by another route. */
+function PhraseBox({ phrase }: { phrase: string }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const id = useId();
+  return (
+    <div className="online-code online-phrase">
+      <label htmlFor={id} className="small muted">
+        The phrase that opens it
+      </label>
+      <div className="online-phrase-row">
+        <input id={id} type="text" readOnly value={phrase} onFocus={(e) => e.currentTarget.select()} />
+        <button
+          type="button"
+          onClick={() =>
+            void navigator.clipboard?.writeText(phrase).then(
+              () => setCopied('Phrase copied'),
+              () => setCopied('Copy failed: select the text and copy it'),
+            )
+          }
+        >
+          Copy phrase
+        </button>
+        {copied && (
+          <span className="small muted" role="status">
+            {copied}
+          </span>
+        )}
+      </div>
+      <p className="small muted" style={{ margin: 0 }}>
+        Send the phrase separately from the link (another app, or say it). If the link goes anywhere public, the phrase must not: anyone with both can read the code.
+      </p>
+    </div>
+  );
+}
+
+/** A code with Copy and (where the device offers it) Share, and a line on what it shows. */
+function CodeBox({ label, code, link, note }: { label: string; code: string; link?: string | null; note?: string }) {
   const [copied, setCopied] = useState<string | null>(null);
   const id = useId();
   const copy = (what: string, text: string) => {
@@ -82,6 +129,11 @@ function CodeBox({ label, code, link }: { label: string; code: string; link?: st
         {label}
       </label>
       <textarea id={id} readOnly value={text} rows={3} onFocus={(e) => e.currentTarget.select()} />
+      {note && (
+        <p className="small muted online-code-note" style={{ margin: 0 }}>
+          {note}
+        </p>
+      )}
       <div className="row">
         {link && (
           <button type="button" className="primary" onClick={() => copy('Link copied', link)}>
@@ -108,17 +160,27 @@ function CodeBox({ label, code, link }: { label: string; code: string; link?: st
 
 /** The invite exchange over WebRTC (host: make an invite, take the reply; guest: take the invite, make the reply). */
 function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; session: OnlineSessionAny; ice: readonly string[]; invite?: string | null; onCancel?: () => void }) {
-  const [step, setStep] = useState<{ k: 'idle' } | { k: 'busy' } | { k: 'invite'; code: string; accept: (r: string) => Promise<string | null> } | { k: 'reply'; code: string } | { k: 'sent' }>({ k: 'idle' });
+  const site = useSiteConfig();
+  const [step, setStep] = useState<
+    { k: 'idle' } | { k: 'busy' } | { k: 'invite'; code: string; info: SignalInfo; phrase: string | null; accept: (r: string) => Promise<string | null> } | { k: 'reply'; code: string; info: SignalInfo } | { k: 'sent' }
+  >({ k: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const [paste, setPaste] = useState(invite && !invite.startsWith(LOCAL_PREFIX) ? invite : '');
+  const [lock, setLock] = useState(site.multiplayer.lockCodes);
+  const [phrase, setPhrase] = useState(newPassphrase);
+  const [theirPhrase, setTheirPhrase] = useState('');
+  const [noV6, setNoV6] = useState(false);
   const id = useId();
+  const weak = lock ? phraseProblem(phrase) : null;
+  const lockedInvite = role === 'guest' && isLockedCode(paste);
   const makeInvite = async () => {
+    if (weak) return;
     setStep({ k: 'busy' });
     setError(null);
     try {
-      const o = await hostOffer(ice);
+      const o = await hostOffer({ iceServers: ice, dropIpv6: noV6, phrase: lock ? phrase : null });
       session.attach(o.transport);
-      setStep({ k: 'invite', code: o.code, accept: o.accept });
+      setStep({ k: 'invite', code: o.code, info: o.info, phrase: lock ? phrase : null, accept: o.accept });
     } catch (e) {
       setError(`Could not make an invite: ${(e as Error).message}`);
       setStep({ k: 'idle' });
@@ -128,39 +190,74 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
     setStep({ k: 'busy' });
     setError(null);
     try {
-      const r = await guestAnswer(paste, ice);
+      const r = await guestAnswer(paste, { iceServers: ice, dropIpv6: noV6, phrase: lockedInvite ? theirPhrase : null });
       if ('error' in r) {
         setError(r.error);
         setStep({ k: 'idle' });
         return;
       }
       session.attach(r.transport);
-      setStep({ k: 'reply', code: r.code });
+      setStep({ k: 'reply', code: r.code, info: r.info });
     } catch (e) {
       setError(`Could not make a reply: ${(e as Error).message}`);
       setStep({ k: 'idle' });
     }
   };
+  const v6 = (
+    <label className="online-check">
+      <input type="checkbox" checked={noV6} onChange={(e) => setNoV6(e.target.checked)} />
+      <span>
+        Leave out my IPv6 address <span className="small muted">(it can name the device itself; without it, a player who has only IPv6 may not be able to connect)</span>
+      </span>
+    </label>
+  );
   if (!webrtcAvailable()) return <p className="muted">This browser can't make direct connections (WebRTC). Use "Two tabs on this device", or another browser.</p>;
   return (
     <div className="grid online-exchange">
       {role === 'host' ? (
         <>
           {step.k === 'idle' && (
-            <div className="row">
-              <button type="button" className="primary" onClick={() => void makeInvite()}>
-                Create invite
-              </button>
-              {onCancel && <button onClick={onCancel}>Cancel</button>}
-            </div>
+            <>
+              <div className="grid online-lock">
+                <label className="online-check">
+                  <input type="checkbox" checked={lock} onChange={(e) => setLock(e.target.checked)} />
+                  <span>Lock the invite with a phrase</span>
+                </label>
+                <p className="small muted" style={{ margin: 0 }}>
+                  {lock
+                    ? 'Locked: without the phrase, nobody who sees the invite or the reply can read anything in them. You send the phrase by another route; their reply is locked with it too.'
+                    : 'Unlocked: anyone who sees the invite or the reply can read your internet address in it. Send it only in a private message.'}
+                </p>
+                {lock && (
+                  <div className="online-phrase-row">
+                    <label className="online-phrase-row" style={{ flex: '1 1 18em' }}>
+                      <span className="muted small">Phrase</span>
+                      <input type="text" value={phrase} onChange={(e) => setPhrase(e.target.value)} maxLength={200} autoComplete="off" spellCheck={false} aria-invalid={!!weak} />
+                    </label>
+                    <button type="button" className="ghost" onClick={() => setPhrase(newPassphrase())}>
+                      New phrase
+                    </button>
+                  </div>
+                )}
+                {weak && <p className="small online-error">{weak}</p>}
+                {v6}
+              </div>
+              <div className="row">
+                <button type="button" className="primary" disabled={!!weak} onClick={() => void makeInvite()}>
+                  Create invite
+                </button>
+                {onCancel && <button onClick={onCancel}>Cancel</button>}
+              </div>
+            </>
           )}
-          {step.k === 'busy' && <p className="muted">Making the invite (finding your network address)…</p>}
+          {step.k === 'busy' && <p className="muted">Making the invite ({lock ? 'locking it, ' : ''}finding your network address)…</p>}
           {step.k === 'invite' && (
             <>
               <p>
-                <b>Step 1.</b> Send this invite to the other player (any messenger). {step.code.length <= MAX_LINK_CODE ? 'The link opens the game for them.' : 'It is too long for a link here, so send the code: they open Play → Join a game and paste it.'}
+                <b>Step 1.</b> Send this invite to the other player in a private message. {step.code.length <= MAX_LINK_CODE ? 'The link opens the game for them.' : 'It is too long for a link here, so send the code: they open Play → Join a game and paste it.'}
               </p>
-              <CodeBox label="Invite" code={step.code} link={step.code.length <= MAX_LINK_CODE ? pageLink(`#/play/join/${step.code}`) : null} />
+              <CodeBox label="Invite" code={step.code} link={step.code.length <= MAX_LINK_CODE ? pageLink(`#/play/join/${step.code}`) : null} note={describeText(step.info)} />
+              {step.phrase && <PhraseBox phrase={step.phrase} />}
               <p>
                 <b>Step 2.</b> Paste the reply code they send back.
               </p>
@@ -205,8 +302,15 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
             >
               <label htmlFor={id}>Invite link or code from the host</label>
               <textarea id={id} rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Paste the invite here" />
+              {lockedInvite && (
+                <label className="grid">
+                  <span>This invite is locked: type the phrase the host sent you.</span>
+                  <input type="text" value={theirPhrase} onChange={(e) => setTheirPhrase(e.target.value)} maxLength={200} autoComplete="off" spellCheck={false} placeholder="four words" />
+                </label>
+              )}
+              {v6}
               <div className="row">
-                <button type="submit" className="primary" disabled={!paste.trim()}>
+                <button type="submit" className="primary" disabled={!paste.trim() || (lockedInvite && !theirPhrase.trim())}>
                   Make my reply code
                 </button>
                 {onCancel && (
@@ -217,13 +321,13 @@ function NetExchange({ role, session, ice, invite, onCancel }: { role: Role; ses
               </div>
             </form>
           )}
-          {step.k === 'busy' && <p className="muted">Making your reply (finding your network address)…</p>}
+          {step.k === 'busy' && <p className="muted">Making your reply ({lockedInvite ? 'opening the invite, ' : ''}finding your network address)…</p>}
           {step.k === 'reply' && (
             <>
               <p>
-                <b>Send this reply code back to the host.</b> The game connects as soon as they paste it.
+                <b>Send this reply code back to the host in a private message.</b> The game connects as soon as they paste it.{step.info.locked ? ' It is locked with the same phrase: there is nothing else to send.' : ''}
               </p>
-              <CodeBox label="Reply code" code={step.code} />
+              <CodeBox label="Reply code" code={step.code} note={describeText(step.info)} />
             </>
           )}
         </>
@@ -268,7 +372,7 @@ function OnlineStatus({ session, onReconnect }: { session: OnlineSessionAny; onR
     <div className={`online-status ${conn === 'lost' || conn === 'idle' ? 'is-lost' : ''}`} role="status">
       {conn === 'open' ? <span>Connected to {rival}</span> : conn === 'connecting' ? <span>Connecting…</span> : <span>{conn === 'idle' ? `Not connected to ${rival} yet` : 'Connection lost, trying again…'}</span>}
       {waiting && <span>{waiting}</span>}
-      {session.deadlineAt !== null && !session.over && <Countdown at={session.deadlineAt} />}
+      {session.timerPaused ? <span className="online-timer">⏸ Turn timer paused while the connection is lost</span> : session.deadlineAt !== null && !session.over && <Countdown at={session.deadlineAt} />}
       {(conn === 'lost' || conn === 'idle') && !session.over && (
         <span className="row">
           <button type="button" className="ghost" onClick={onReconnect}>
@@ -289,6 +393,7 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
   const site = useSiteConfig();
   const ice = site.multiplayer.iceServers;
   const chatOn = site.features.chat;
+  const corrOn = site.features.multiDayGames;
   const [role, setRole] = useState<Role>(invite || mode === 'join' ? 'guest' : 'host');
   const [via, setVia] = useState<Via>(invite?.startsWith(LOCAL_PREFIX) ? 'tabs' : 'net');
   const [name, setName] = useState(() => kv.get(NAME_KEY) ?? loadProfile().name ?? '');
@@ -304,6 +409,16 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const v = useSession(session);
   const deck = findDeck(deckKey);
+
+  // an invite read from a join link: take the code out of the address bar (and so the browser's history) at once
+  useEffect(() => {
+    if (!invite || invite.startsWith(LOCAL_PREFIX)) return;
+    try {
+      if (location.hash.startsWith('#/play/join/')) history.replaceState(history.state, '', '#/play/online?mode=join');
+    } catch {
+      /* history unavailable (sandboxed frame) */
+    }
+  }, [invite]);
 
   // leaving the page: the host keeps its save (a reload brings the game back); the link closes
   useEffect(() => {
@@ -493,7 +608,7 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
           </label>
           <DeckPicker label="Your deck" value={deckKey} onChange={setDeckKey} />
           <p className="small muted" style={{ margin: 0 }}>
-            The other player sees your deck's name only.
+            {DECK_NOTE}
           </p>
           {role === 'host' && (
             <label className="row">
@@ -546,7 +661,7 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
               {problem}
             </p>
           )}
-          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} />
+          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} corr={corrOn} />
         </div>
       )}
 
@@ -568,7 +683,16 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
               Playing <b>{session.rivalName}</b> ({session.rivalDeck}). {session.timer ? `Turn timer: ${session.timer} s per decision.` : 'No turn timer.'}
             </p>
           )}
-          {session.stage === 'waiting' && !room && session.conn !== 'open' && <NetExchange role={session.role} session={session} ice={ice} invite={invite} />}
+          {!room && session.conn !== 'open' && !board && session.stage !== 'refused' && (
+            <>
+              {session.stage !== 'waiting' && (
+                <p className="online-error">
+                  The connection was lost before the game started. {session.role === 'host' ? 'Make a new invite and send it' : "Open the host's new invite"}: the roll picks up where it was.
+                </p>
+              )}
+              <NetExchange key={session.stage === 'waiting' ? 'first' : 'again'} role={session.role} session={session} ice={ice} invite={session.stage === 'waiting' ? invite : null} />
+            </>
+          )}
           {session.stage === 'waiting' && room && session.role === 'host' && (
             <>
               <p>Open this link in another tab of this browser (it joins room {room}):</p>
@@ -602,8 +726,8 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
               {session.problem}
             </p>
           )}
-          {session.conn === 'lost' && <p className="online-error">The connection was lost.</p>}
-          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} />
+          {session.conn === 'lost' && session.stage === 'waiting' && <p className="online-error">The connection was lost.</p>}
+          <LobbyNotes ice={ice} tabs={via === 'tabs' || !!room} corr={corrOn} />
         </div>
       )}
       {settingsOpen &&

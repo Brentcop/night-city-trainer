@@ -26,8 +26,11 @@ import {
   CORR_SCHEMA,
   mySeat,
   newClock,
+  spanText,
+  timeLeft,
   type CorrGame,
 } from './corr';
+import { keyFromPhrase, phraseProblem, type CodeKey } from './codeLock';
 import type { CorrStore } from './corrStore';
 import { checkReveal, chosenSeat, commitOf, newNonce } from './fair';
 import { HostGame, type OnlineSetup } from './hostGame';
@@ -37,7 +40,9 @@ import {
   diffView,
   gameKey,
   MAX_GRANT,
+  lockedPacketInfo,
   openPacket,
+  packetLock,
   packPacket,
   PACKET_CHAT,
   PACKET_KIND,
@@ -123,16 +128,27 @@ function baseGame(o: { id: string; role: 'host' | 'guest'; me: string; deck: Dec
   };
 }
 
-/** The host makes a new game and its invite packet. */
-export async function createInvite(o: NewGame, now: number): Promise<{ game: CorrGame; code: string }> {
+/** How long a host's clock may run ahead of the guest's before a claim on time is refused (devices' clocks differ). */
+export const CLAIM_SKEW_MS = 15 * 60_000;
+
+const saltHex = (k: CodeKey) => [...k.salt].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+/**
+ * The host makes a new game and its invite packet. With `phrase`, the invite is locked with it (the guest needs the
+ * phrase to read it, and its reply is locked with the same key): the phrase must pass phraseProblem.
+ */
+export async function createInvite(o: NewGame, now: number, phrase?: string | null): Promise<{ game: CorrGame; code: string }> {
+  if (phrase && phraseProblem(phrase)) throw new Error(phraseProblem(phrase)!);
+  const lock = phrase ? await packetLock(phrase) : null;
   const id = randomHex(8);
   const hostKey = randomHex(32);
   const nonce = newNonce();
   const commit = await commitOf(nonce);
   const name = cleanName(o.name, 'Host');
   const packet: Packet = { k: PACKET_KIND, v: PACKET_VERSION, g: id, n: 0, p: '', f: 'h', t: now, b: { t: 'invite', name, deck: o.deck.name.slice(0, 80), days: o.days, key: hostKey, commit, sv: SIM_VERSION } };
-  const { code } = await packPacket(packet, null);
+  const { code } = await packPacket(packet, null, lock);
   const game = baseGame({ id, role: 'host', me: name, deck: gameDeck(o.deck), days: o.days, now, nonce, prefFirst: o.prefFirst, auto: true, hostKey, guestKey: null });
+  if (phrase && lock) game.lock = { phrase, salt: saltHex(lock) };
   // the invite has no MAC: the chain starts from the host's commitment
   game.head = { n: 0, m: commit, f: 'h' };
   game.outbox = { n: 0, code, made: iso(now) };
@@ -140,18 +156,18 @@ export async function createInvite(o: NewGame, now: number): Promise<{ game: Cor
   return { game, code };
 }
 
-/** What an invite says (to show before joining), or why it is not one. */
-export async function readInvite(text: string): Promise<{ ok: true; id: string; host: string; deck: string; days: number; sv: number } | { ok: false; why: string }> {
-  const r = await openPacket(text);
+/** What an invite says (to show before joining), or why it is not one (`locked`: it needs the phrase, or another one). */
+export async function readInvite(text: string, phrase?: string | null): Promise<{ ok: true; id: string; host: string; deck: string; days: number; sv: number; locked: boolean } | { ok: false; why: string; locked?: true }> {
+  const r = await openPacket(text, phrase);
   if (!r.ok) return r;
   const b = r.value.packet.b;
   if (b.t !== 'invite') return { ok: false, why: 'This is a packet of a game in progress, not an invite.' };
-  return { ok: true, id: r.value.packet.g, host: b.name, deck: b.deck, days: b.days, sv: b.sv };
+  return { ok: true, id: r.value.packet.g, host: b.name, deck: b.deck, days: b.days, sv: b.sv, locked: !!r.lock };
 }
 
-/** The guest joins with its deck: its game and the reply packet for the host. */
-export async function joinGame(text: string, o: NewGame & { auto: boolean }, now: number): Promise<{ ok: true; game: CorrGame; code: string } | { ok: false; why: string }> {
-  const r = await openPacket(text);
+/** The guest joins with its deck: its game and the reply packet for the host (locked like the invite, with its key). */
+export async function joinGame(text: string, o: NewGame & { auto: boolean }, now: number, phrase?: string | null): Promise<{ ok: true; game: CorrGame; code: string } | { ok: false; why: string; locked?: true }> {
+  const r = await openPacket(text, phrase);
   if (!r.ok) return r;
   const p = r.value.packet;
   const b = p.b;
@@ -165,7 +181,7 @@ export async function joinGame(text: string, o: NewGame & { auto: boolean }, now
   const name = cleanName(o.name, 'Guest');
   const key = await gameKey(b.key, guestKey);
   const join: Packet = { k: PACKET_KIND, v: PACKET_VERSION, g: p.g, n: 1, p: b.commit, f: 'g', t: now, b: { t: 'join', name, deck: deckMsg(deck), key: guestKey, nonce, first: o.prefFirst, auto: o.auto } };
-  const packed = await packPacket(join, key);
+  const packed = await packPacket(join, key, r.lock);
   const game = baseGame({ id: p.g, role: 'guest', me: name, deck, days: b.days, now, nonce, prefFirst: o.prefFirst, auto: o.auto, hostKey: b.key, guestKey });
   game.rival = cleanName(b.name, 'Host');
   game.rivalDeck = b.deck;
@@ -199,6 +215,8 @@ export class CorrSession {
   /** the board bumps when the game (re)starts */
   match = 1;
   private key: CryptoKey | null = null;
+  /** host, invited: the key the invite was locked with (made from the phrase once, when a locked reply arrives) */
+  private lockKey: CodeKey | null = null;
   private subs = new Set<() => void>();
   private queue: Promise<unknown> = Promise.resolve();
   private recorder: OnlineRecorder;
@@ -451,8 +469,13 @@ export class CorrSession {
   }
 
   private async receiveNow(text: string): Promise<string | null> {
-    const r = await openPacket(text);
-    if (!r.ok) return r.why;
+    const g0 = this.g;
+    if (!this.lockKey && g0.lock && lockedPacketInfo(text)) {
+      const salt = g0.lock.salt.match(/../g)!.map((h) => parseInt(h, 16));
+      this.lockKey = await keyFromPhrase(g0.lock.phrase, new Uint8Array(salt));
+    }
+    const r = await openPacket(text, this.lockKey);
+    if (!r.ok) return r.locked ? (this.g.role === 'host' && this.g.stage === 'invited' ? 'This reply is locked for another invite (not the one of this game).' : 'This packet is locked: only an invite and its reply are, and this game is past them.') : r.why;
     const o = r.value;
     const p = o.packet;
     const g = this.g;
@@ -508,6 +531,9 @@ export class CorrSession {
       g.rivalDeck = deck.name;
       g.keys.guest = b.key;
       this.key = key;
+      // the phrase did its job: it isn't kept once the reply is in
+      delete g.lock;
+      this.lockKey = null;
       this.link(o);
       if (errs.length) {
         g.stage = 'refused';
@@ -550,6 +576,12 @@ export class CorrSession {
       if (!pv) return `Nothing is waiting for ${this.rivalName}'s answer here, so this packet does not fit this game.`;
       if (pv.seq !== b.a.seq) return `This packet answers another decision (number ${b.a.seq}; the game waits on number ${pv.seq}). It was not used.`;
       if (b.a.i >= pv.d.options.length) return 'This packet answers with an option that does not exist. It was not used.';
+    }
+    if (b.claim && !g.end) {
+      // the guest says your clock ran out: check it by this device's own clock (with a little room for clocks that differ)
+      const left = g.clock.onMove === 0 ? timeLeft(g.clock, 0, this.deps.now() + CLAIM_SKEW_MS) : 1;
+      if (left > 0)
+        return `${this.rivalName} claims your time ran out, but by this device's clock you still have ${spanText(timeLeft(g.clock, 0, this.deps.now()))}. The packet was not used. (If one of the devices' clocks is wrong, set it right; you can also concede.)`;
     }
     this.link(o);
     this.takeChat(b.chat);

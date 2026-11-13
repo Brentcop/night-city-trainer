@@ -101,6 +101,11 @@ export interface CorrGame {
   /** once the game is over: this side's last view (you are player 0), and the full record (the guest gets it from the host) */
   finalView: GameState | null;
   record: GameRecordMsg | null;
+  /**
+   * host only, until the guest's reply arrives: the phrase the invite is locked with (shown again to send it) and the
+   * lock's salt (hex: a locked reply names it, so a reply link finds its game without trying every phrase)
+   */
+  lock?: { phrase: string; salt: string };
   host?: {
     save: HostSave | null;
     /** the last view sent to the guest (log left out) and how many log lines it had seen */

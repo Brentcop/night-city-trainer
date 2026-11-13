@@ -68,6 +68,16 @@ export function defaultAnswer(d: Decision): number {
   return i >= 0 ? i : 0;
 }
 
+/** The turn timer's log line names the kind of choice only: an option's label can name a card the other seat can't see. */
+const KIND_WORDS: Partial<Record<Decision['kind'], string>> = {
+  action: 'an action',
+  reaction: 'a reaction',
+  mulligan: 'the mulligan',
+  yesno: 'a yes-or-no choice',
+  pay: 'a payment',
+  order: 'an order of effects',
+};
+
 interface Waiting {
   d: Decision;
   seq: number;
@@ -124,6 +134,10 @@ export class HostGame {
   /** a seat's new decision is waiting */
   onAsk: ((seat: PlayerId) => void) | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** the decision the timer runs for (kept while paused) */
+  private timing: { seat: PlayerId; seq: number } | null = null;
+  /** ms left on the timer while it is paused, or null when it is not */
+  private paused: number | null = null;
   private feed: [number[][], number[][]];
   private fed: [number, number] = [0, 0];
   private now: () => number;
@@ -244,7 +258,17 @@ export class HostGame {
   private startTimer(seat: PlayerId, seq: number) {
     this.clearTimer();
     if (this.restoring || this.setup.timer <= 0) return;
-    const ms = this.setup.timer * 1000;
+    this.runTimer(seat, seq, this.setup.timer * 1000);
+  }
+
+  private runTimer(seat: PlayerId, seq: number, ms: number) {
+    this.timing = { seat, seq };
+    if (this.paused !== null) {
+      // the connection is lost: the decision's full time waits until it is back
+      this.paused = ms;
+      this.deadline = null;
+      return;
+    }
     this.deadline = this.now() + ms;
     this.timer = setTimeout(() => this.expire(seat, seq), ms);
   }
@@ -253,14 +277,41 @@ export class HostGame {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.deadline = null;
+    this.timing = null;
+    if (this.paused !== null) this.paused = 0;
   }
 
-  /** The timer ran out: answer with the safe default and say so in the log. */
+  /** The turn timer is stopped (the connection is lost): true while paused. */
+  get timerPaused(): boolean {
+    return this.paused !== null;
+  }
+
+  /** Stop the turn timer where it is (the connection to the other player is lost); resumeTimer() carries on. */
+  pauseTimer() {
+    if (this.paused !== null) return;
+    this.paused = this.deadline === null ? 0 : Math.max(0, this.deadline - this.now());
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    this.deadline = null;
+    this.onChange?.();
+  }
+
+  /** Start the turn timer again with the time that was left when it was paused. */
+  resumeTimer() {
+    if (this.paused === null) return;
+    const left = this.paused;
+    this.paused = null;
+    const t = this.timing;
+    if (t && !this.stopped && this.seats[t.seat].pending?.seq === t.seq) this.runTimer(t.seat, t.seq, Math.max(left, 1000));
+    this.onChange?.();
+  }
+
+  /** The timer ran out: answer with the safe default and say so in the log (the kind of choice only, never its option). */
   expire(seat: PlayerId, seq: number) {
     const w = this.seats[seat].pending;
     if (!w || w.seq !== seq) return;
     const i = defaultAnswer(w.d);
-    this.g.log(null, `Time ran out for ${this.setup.names[seat]}: ${w.d.options[i]?.label ?? 'the first option'} (chosen automatically)`);
+    this.g.log(null, `Time ran out for ${this.setup.names[seat]}: ${KIND_WORDS[w.d.kind] ?? 'a choice'} was answered automatically`);
     this.answer(seat, seq, i);
   }
 

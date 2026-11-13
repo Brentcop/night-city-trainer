@@ -204,6 +204,8 @@ export interface SiteConfig {
     iceServers: string[];
     /** the turn timer the host's lobby starts on, in seconds (0 = off) */
     turnTimer: TurnTimer;
+    /** invite and reply codes (online and multi-day) start locked with a phrase; players can still make unlocked ones */
+    lockCodes: boolean;
   };
   /** multi-day games (features.multiDayGames): the game lengths offered, in whole days, and how many may be ongoing */
   multiDay: {
@@ -240,7 +242,7 @@ export function defaultSiteConfig(): SiteConfig {
     play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
-    multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0 },
+    multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true },
     multiDay: { minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 },
   };
 }
@@ -517,7 +519,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     allowPlay: r.bool(m.allowPlay, 'maintenance.allowPlay', d.maintenance.allowPlay),
   };
 
-  const mp = r.obj(o.multiplayer, 'multiplayer', ['iceServers', 'turnTimer']);
+  const mp = r.obj(o.multiplayer, 'multiplayer', ['iceServers', 'turnTimer', 'lockCodes']);
   const iceServers: string[] = [];
   if (mp.iceServers === undefined) iceServers.push(...d.multiplayer.iceServers);
   else if (!Array.isArray(mp.iceServers)) {
@@ -534,7 +536,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     if (typeof mp.turnTimer === 'number' && (TURN_TIMERS as readonly number[]).includes(mp.turnTimer)) turnTimer = mp.turnTimer as TurnTimer;
     else r.err('multiplayer.turnTimer', `must be one of ${TURN_TIMERS.join(', ')} (seconds; 0 = off); the default is used`);
   }
-  const multiplayer = { iceServers, turnTimer };
+  const multiplayer = { iceServers, turnTimer, lockCodes: r.bool(mp.lockCodes, 'multiplayer.lockCodes', d.multiplayer.lockCodes) };
 
   const md = r.obj(o.multiDay, 'multiDay', ['minDays', 'maxDays', 'defaultDays', 'maxOngoing']);
   const [dLo, dHi] = MULTI_DAY_BOUNDS.days;

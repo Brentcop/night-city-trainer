@@ -3,7 +3,7 @@
 // uses. Loaded with the game code (src/ui/pages/PlayCorr.tsx), not by the Play setup screen.
 import type { Decision, DeckList, GameState } from '../engine/types';
 import { ongoingChanged } from '../lib/ongoingBadge';
-import { CORR_CHAT_KEEP, CORR_GAMES_KEY, CORR_KIND, CORR_SCHEMA, type ChainLink, type CorrGame, type CorrStage } from './corr';
+import { CORR_CHAT_KEEP, CORR_GAMES_KEY, CORR_KIND, CORR_SCHEMA, DAY_MS, type ChainLink, type CorrGame, type CorrStage } from './corr';
 import { parseHostSave } from './hostGame';
 import { readDecision, readDeck, readRecord, readViewState, tryRead } from './protocol';
 
@@ -51,6 +51,8 @@ export function parseCorrGame(x: unknown): { ok: true; value: CorrGame } | { ok:
   const e = g.end;
   if (!(e === null || (e && ['win', 'loss', 'draw'].includes(e.result) && isStr(e.reason) && isStr(e.why) && (e.byMe === null || typeof e.byMe === 'boolean') && typeof e.recorded === 'boolean' && typeof e.replay === 'boolean'))) return bad('its result is damaged');
   if (!(g.problem === null || isStr(g.problem))) return bad('its note is damaged');
+  const lk = g.lock;
+  if (lk !== undefined && lk !== null && !(isStr(lk.phrase) && lk.phrase.length <= 200 && HEX(32)(lk.salt))) return bad('its lock is damaged');
   const out: CorrGame = {
     kind: CORR_KIND,
     schema: CORR_SCHEMA,
@@ -80,6 +82,7 @@ export function parseCorrGame(x: unknown): { ok: true; value: CorrGame } | { ok:
     problem: g.problem ?? null,
     finalView: null,
     record: null,
+    ...(lk ? { lock: { phrase: lk.phrase, salt: lk.salt } } : {}),
   };
   if (g.finalView) {
     const v = view(g.finalView);
@@ -144,8 +147,46 @@ export function parseCorrList(raw: string | null): CorrGame[] {
   }
 }
 
+// ---------------------------------------------------------------- finished games: kept light
+
+/** Finished games kept in the list at most (the newest; older ones are in the Profile's history already). */
+export const FINISHED_KEEP = 20;
+/** A finished game's last packet is kept this long after the last move, to send again if the rival didn't get it. */
+export const OUTBOX_KEEP_MS = 30 * DAY_MS;
+
+/** Whether nothing more can happen to a finished game here (its result and, for the guest, the record are in). */
+export const settled = (g: CorrGame) => g.stage === 'refused' || (g.stage === 'over' && !!g.end?.recorded && (g.role === 'host' || g.end.replay));
+
+/**
+ * A settled game without what only a game in progress needs: the host's save and last view sent, the guest's board
+ * and decision (the last board is kept as finalView, the record as record), the lock's phrase, and the last packet
+ * once OUTBOX_KEEP_MS have passed (or at once with `dropOutbox`, to make room). Anything else is returned unchanged.
+ */
+export function slimGame(g: CorrGame, now: number, dropOutbox = false): CorrGame {
+  if (!settled(g)) return g;
+  const old = Date.parse(g.lastPlayed);
+  const keepOutbox = !dropOutbox && !!g.outbox && (!Number.isFinite(old) || now - old <= OUTBOX_KEEP_MS);
+  const lean = (!g.host || (g.host.save === null && g.host.sent === null)) && (!g.guest || (g.guest.view === null && g.guest.decision === null)) && !g.lock && (keepOutbox || !g.outbox);
+  if (lean) return g;
+  const { lock: _lock, ...rest } = g;
+  return {
+    ...rest,
+    outbox: keepOutbox ? g.outbox : null,
+    ...(g.host ? { host: { ...g.host, save: null, sent: null } } : {}),
+    ...(g.guest ? { guest: { ...g.guest, view: null, decision: null } } : {}),
+  };
+}
+
+/** The list as it is stored: settled games slimmed, and only the newest FINISHED_KEEP of them. */
+export function pruneList(list: CorrGame[], now: number): CorrGame[] {
+  const slim = list.map((g) => slimGame(g, now));
+  const done = slim.filter(settled).sort((a, b) => Date.parse(b.lastPlayed) - Date.parse(a.lastPlayed));
+  const drop = new Set(done.slice(FINISHED_KEEP));
+  return slim.filter((g) => !drop.has(g));
+}
+
 /** A store over a key-value storage (localStorage by default). */
-export function kvCorrStore(kv: Pick<Storage, 'getItem' | 'setItem'> | null, key = CORR_GAMES_KEY): CorrStore {
+export function kvCorrStore(kv: Pick<Storage, 'getItem' | 'setItem'> | null, key = CORR_GAMES_KEY, now: () => number = Date.now): CorrStore {
   const read = () => {
     try {
       return parseCorrList(kv?.getItem(key) ?? null);
@@ -153,14 +194,38 @@ export function kvCorrStore(kv: Pick<Storage, 'getItem' | 'setItem'> | null, key
       return [];
     }
   };
+  const write = (list: CorrGame[]): boolean => {
+    try {
+      kv!.setItem(key, JSON.stringify(list));
+      return true;
+    } catch {
+      return false;
+    }
+  };
   return {
     load: read,
     save: (g) => {
       try {
         if (!kv) return 'This browser does not let the page store data.';
-        const list = read().filter((x) => x.id !== g.id || x.role !== g.role);
-        list.push(g);
-        kv.setItem(key, JSON.stringify(list));
+        const t = now();
+        let list = pruneList([...read().filter((x) => x.id !== g.id || x.role !== g.role), g], t);
+        if (!list.includes(g) && !list.some((x) => x.id === g.id && x.role === g.role)) list.push(g);
+        if (!write(list)) {
+          // storage is full: make room from finished games, lightest loss first (their last packets, oldest first;
+          // then the oldest finished games themselves), never from a game in progress
+          const done = () => list.filter((x) => settled(x) && !(x.id === g.id && x.role === g.role)).sort((a, b) => Date.parse(a.lastPlayed) - Date.parse(b.lastPlayed));
+          let ok = false;
+          for (const x of done().filter((y) => y.outbox)) {
+            list = list.map((y) => (y === x ? slimGame(y, t, true) : y));
+            if ((ok = write(list))) break;
+          }
+          if (!ok)
+            for (const x of done()) {
+              list = list.filter((y) => y !== x);
+              if ((ok = write(list))) break;
+            }
+          if (!ok) return 'This browser refused to store the game (storage is full or blocked).';
+        }
         ongoingChanged();
         return null;
       } catch {

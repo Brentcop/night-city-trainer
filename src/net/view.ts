@@ -7,7 +7,9 @@
 //   - face-down Legends, unless the seat knows that one of its own (`known`): masked, their slot and spent state kept;
 //   - the random state (the seed would give away every shuffle), the trace, a delayed effect's private data, and the
 //     rival's list fingerprint (it would name their exact list);
-//   - the rival's log lines that name a card they sold or took into their hand without revealing it.
+//   - the rival's log lines that name a card they took into their hand without revealing it. (A card sold with the Sell
+//     for Turn action is revealed first, Comprehensive Rules 8.11 and 5.8.2.2, so "sells X for an Eddie" stays named, as
+//     in a practice game's log; an effect that sells a card unseen logs no name.)
 // A hidden card gets a stand-in uid by position (HIDDEN_BASE and up), never its real uid: real uids follow the deck
 // list's order, so they would tell which card it is. viewDecision() turns that seat's own decision round the same way.
 // ViewGame wraps a view so the board's Game calls (power, names, costs) work on it; a stand-in card reads as a blank
@@ -73,10 +75,7 @@ function visibleTo(c: CardInst, seat: PlayerId): boolean {
 }
 
 /** A rival's log line with the card it names left out, when the line names a card they kept hidden. */
-const HIDDEN_LINES: [RegExp, string][] = [
-  [/^sells .+ for an Eddie$/, 'sells a card for an Eddie'],
-  [/^adds .+ to hand$/, 'adds a card to hand'],
-];
+const HIDDEN_LINES: [RegExp, string][] = [[/^adds .+ to hand$/, 'adds a card to hand']];
 export function redactLine(text: string): string {
   for (const [re, to] of HIDDEN_LINES) if (re.test(text)) return to;
   return text;

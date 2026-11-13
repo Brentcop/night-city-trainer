@@ -16,7 +16,8 @@ import { MyHand, PlayerSide } from '../src/ui/components/board/Zones';
 import { PromptPanel } from '../src/ui/components/board/PromptPanel';
 import { boardMarks, buildInteraction } from '../src/ui/components/board/interaction';
 import type { BoardCtx } from '../src/ui/components/board/BoardCard';
-import { PlayOnline } from '../src/ui/pages/PlayOnline';
+import { addressNote, PlayOnline } from '../src/ui/pages/PlayOnline';
+import { CORR_PRIVACY, PlayCorr } from '../src/ui/pages/PlayCorr';
 
 function memoryStorage() {
   const m = new Map<string, string>();
@@ -36,11 +37,23 @@ describe('the lobby', () => {
     expect(html).toContain('Play online');
     expect(html).toContain('Host the game');
     expect(html).toContain('Turn timer');
-    expect(html).toContain('Connecting shares your network address with the other player and with the STUN service');
+    // before any code is made: what a direct connection shares, with whom, and that the codes carry it
+    expect(html).toContain('A direct connection shares your internet address (IP) with the other player, and with the STUN service this site uses to find it (stun.l.google.com:19302) when you make a code.');
+    expect(html).toContain('The invite and reply codes carry your address too unless they are locked with a phrase: send codes only in a private message, never in a public channel.');
+    expect(html).toContain('To play without sharing any address, play a <a href="#/play/corr">multi-day game</a>: its turn packets carry no network address, and the site contacts no one.');
+    expect(html).toContain('The other player&#x27;s board shows only your deck&#x27;s name; the host&#x27;s device holds both lists to run the game.');
+    expect(html).not.toContain('sees your deck&#x27;s name only');
     expect(html).toContain('The host&#x27;s browser runs the game, so this is for friendly play. A modified host could see hidden cards.');
+    expect(addressNote([])).toMatch(/^A direct connection shares your address on the local network with the other player.*only connects players on the same network.$/);
     const join = renderToStaticMarkup(<PlayOnline invite="local-abcd2345" mode="join" />);
     expect(join).toContain('Join the room');
     expect(join).toContain('abcd2345');
+  });
+  it('the multi-day lobby says packets carry no address, and offers a locked invite', () => {
+    const html = renderToStaticMarkup(<PlayCorr sub="corr" />);
+    expect(html).toContain(CORR_PRIVACY.replace(/'/g, '&#x27;'));
+    expect(html).toContain('Lock the invite with a phrase');
+    expect(html).not.toContain('sees your deck&#x27;s name only');
   });
   it('Play setup offers Play online only when multiplayer is on', () => {
     const props = {

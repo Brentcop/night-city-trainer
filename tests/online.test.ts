@@ -11,12 +11,12 @@ import { checkReveal, chosenSeat, commitOf, newNonce } from '../src/net/fair';
 import { defaultAnswer, HostGame, parseHostSave, type OnlineSetup } from '../src/net/hostGame';
 import { CAPS, encode, parseGuestMessage, parseHostMessage } from '../src/net/protocol';
 import type { OnlineOutcome, OnlineRecorder } from '../src/net/record';
-import { OnlineGuest, OnlineHost, type OnlineSessionAny } from '../src/net/session';
-import { loopbackPair } from '../src/net/transport';
+import { OnlineGuest, OnlineHost, REFUSALS_PER_SECOND, type OnlineSessionAny } from '../src/net/session';
+import { loopbackPair, type Transport } from '../src/net/transport';
 import { HIDDEN_BASE, redactLine, viewDecision, viewFor, ViewGame } from '../src/net/view';
 import { decodeSignal, encodeSignal } from '../src/net/webrtc';
 import type { PracticeReplay } from '../src/lib/practiceReplays';
-import { hiddenUids, knownIds } from './netLeak';
+import { expectNoAddresses, hiddenUids, knownIds } from './netLeak';
 
 const LIB = loadLibrary();
 const legal = LIB.map((d) => gameDeck(d.deck)).filter((d) => validateDeck(d).length === 0);
@@ -179,7 +179,7 @@ describe('viewFor hides what a seat may not see', () => {
     expect(decisions).toBeGreaterThan(200);
   }, 60_000);
 
-  it('a face-down Legend its controller knows shows to it, never to the rival; sells are unnamed for the rival', () => {
+  it('a face-down Legend its controller knows shows to it, never to the rival; a sold card is named (it was revealed), one taken unseen is not', () => {
     const h = new HostGame(setup(21));
     const st = h.g.s;
     const fd = st.players[0].legends.find((u) => !st.cards[u]!.faceUp)!;
@@ -189,9 +189,13 @@ describe('viewFor hides what a seat may not see', () => {
     const theirs = viewFor(st, 1);
     expect(theirs.cards[fd]).toBeUndefined();
     expect(Object.values(theirs.cards).some((c) => c.zone === 'legends' && c.known && c.defId === 'hidden-legend')).toBe(true);
+    // Sell for Turn reveals the card it sells (Comprehensive Rules 8.11, 5.8.2.2): named for both, as in practice games
     st.log.push({ turn: 1, player: 0, text: 'sells Some Card for an Eddie' });
-    expect(viewFor(st, 1).log.at(-1)).toEqual({ turn: 1, player: 1, text: 'sells a card for an Eddie' });
+    expect(viewFor(st, 1).log.at(-1)).toEqual({ turn: 1, player: 1, text: 'sells Some Card for an Eddie' });
     expect(viewFor(st, 0).log.at(-1)!.text).toBe('sells Some Card for an Eddie');
+    // a card taken into the hand unseen stays unnamed for the rival
+    st.log.push({ turn: 1, player: 0, text: 'adds Some Card to hand' });
+    expect(viewFor(st, 1).log.at(-1)!.text).toBe('adds a card to hand');
     h.quit();
   });
 });
@@ -217,15 +221,46 @@ async function until(f: () => boolean, what: string, steps = 400) {
   throw new Error(`timed out waiting for ${what}`);
 }
 
+/**
+ * A loopback pair whose sends are recorded in `log` and can be held back (`pass` false: dropped), so a test can see
+ * every message and cut the link at a chosen moment.
+ */
+function tapPair(log: string[] = [], pass: (from: 'h' | 'g', text: string) => boolean = () => true): [Transport, Transport] {
+  const [a, b] = loopbackPair();
+  const wrap = (t: Transport, from: 'h' | 'g'): Transport => ({
+    get state() {
+      return t.state;
+    },
+    send: (x) => {
+      log.push(x);
+      if (pass(from, x)) t.send(x);
+    },
+    close: () => t.close(),
+    get onMessage() {
+      return t.onMessage;
+    },
+    set onMessage(f) {
+      t.onMessage = f;
+    },
+    get onState() {
+      return t.onState;
+    },
+    set onState(f) {
+      t.onState = f;
+    },
+  });
+  return [wrap(a, 'h'), wrap(b, 'g')];
+}
+
 /** Connect a host and a guest and get them through the roll to the first decision. */
-async function connect(seed = 1) {
+async function connect(seed = 1, o: { log?: string[]; timer?: number } = {}) {
   const hs = memStore();
   const gs = memStore();
   const hr = recorder();
   const gr = recorder();
-  const host = new OnlineHost({ name: 'Ana', deck: deckA, heartbeat: false, store: hs, recorder: hr.r });
+  const host = new OnlineHost({ name: 'Ana', deck: deckA, heartbeat: false, store: hs, recorder: hr.r, timer: o.timer ?? 0 });
   const guest = new OnlineGuest({ name: 'Bo', deck: deckB, heartbeat: false, store: gs, recorder: gr.r, resume: null });
-  const [a, b] = loopbackPair();
+  const [a, b] = tapPair(o.log);
   host.attach(a);
   guest.attach(b);
   await until(() => host.stage === 'choose' && guest.stage === 'choose', 'the roll');
@@ -237,8 +272,9 @@ async function connect(seed = 1) {
 }
 
 describe('a game between two sessions over the loopback link', () => {
-  it('plays to the end; the guest always sees exactly its view; each side records once', async () => {
-    const { host, guest, hr, gr } = await connect(2);
+  it('plays to the end; the guest always sees exactly its view; each side records once; no message names an address', async () => {
+    const log: string[] = [];
+    const { host, guest, hr, gr } = await connect(2, { log });
     expect(guest.rivalName).toBe('Ana');
     expect(host.rivalDeck).toBe(deckB.name);
     expect(guest.rivalDeck).toBe(deckA.name);
@@ -272,6 +308,8 @@ describe('a game between two sessions over the loopback link', () => {
     // both records are the same game: the host's answers are the guest's rival answers
     expect(gr.replays[0]!.pvp!.rivalChoices).toEqual(hr.replays[0]!.choices);
     expect(gr.replays[0]!.choices).toEqual(hr.replays[0]!.pvp!.rivalChoices);
+    expect(log.length).toBeGreaterThan(50);
+    log.forEach((m, i) => expectNoAddresses(m, `message ${i}`));
     host.close();
     guest.close();
   }, 60_000);
@@ -405,9 +443,191 @@ describe('a game between two sessions over the loopback link', () => {
   });
 });
 
+// ---------------------------------------------------------------- a link lost before the game starts
+
+/** Cut the link of a connected pair (both sides see it closed). */
+function cut(t: Transport) {
+  t.close();
+}
+
+describe('a link lost before the game starts comes back (NET-6)', () => {
+  /** Host and guest over a tapped link, the host's messages filtered by `pass`. */
+  function lobby(pass: (from: 'h' | 'g', text: string) => boolean) {
+    const hs = memStore();
+    const gs = memStore();
+    const host = new OnlineHost({ name: 'Ana', deck: deckA, heartbeat: false, store: hs, recorder: recorder().r });
+    const guest = new OnlineGuest({ name: 'Bo', deck: deckB, heartbeat: false, store: gs, recorder: recorder().r, resume: null });
+    const [a, b] = tapPair([], pass);
+    host.attach(a);
+    guest.attach(b);
+    return { host, guest, gs, a };
+  }
+  /** A new link (a new invite and reply), then on to the first view. */
+  async function reconnectAndStart(host: OnlineHost, guest: OnlineGuest) {
+    const back = host.chat.lines.filter((l) => /is back/.test(l.text)).length;
+    const [a, b] = tapPair();
+    host.attach(a);
+    guest.attach(b);
+    await until(() => host.chat.lines.filter((l) => /is back/.test(l.text)).length > back, 'the guest back');
+    await until(() => host.stage === 'choose' && guest.stage === 'choose', 'the roll again');
+    const chooser = host.chooser;
+    (host.chooser === 'me' ? host : guest).chooseFirst(true);
+    await until(() => !!host.board && !!guest.board, 'the first view');
+    expect(host.stage).toBe('game');
+    expect(guest.stage).toBe('game');
+    return chooser;
+  }
+
+  it('during the roll', async () => {
+    // the host's commitment never reaches the guest: both wait in the roll when the link goes
+    const { host, guest, a } = lobby((from, t) => !(from === 'h' && t.includes('"t":"commit"')));
+    await until(() => host.stage === 'roll' && guest.stage === 'roll' && guest.resume !== null, 'the roll');
+    await flush();
+    cut(a);
+    await until(() => host.conn === 'lost' && guest.conn === 'lost', 'the link lost');
+    expect(guest.resume?.nonce).toMatch(/^[0-9a-f]{32}$/);
+    await reconnectAndStart(host, guest);
+    host.close();
+    guest.close();
+  }, 30_000);
+
+  it('during the first-or-second choice: the roll comes out the same', async () => {
+    const { host, guest, a } = lobby(() => true);
+    await until(() => host.stage === 'choose' && guest.stage === 'choose', 'the roll');
+    const before = host.chooser;
+    cut(a);
+    await until(() => host.conn === 'lost', 'the link lost');
+    expect(await reconnectAndStart(host, guest)).toBe(before);
+    host.close();
+    guest.close();
+  }, 30_000);
+
+  it('after a reload of the guest page during the choice (its roll secret kept with its token)', async () => {
+    const { host, guest, gs, a } = lobby(() => true);
+    await until(() => host.stage === 'choose' && guest.stage === 'choose', 'the roll');
+    const before = host.chooser;
+    guest.close();
+    cut(a);
+    const again = new OnlineGuest({ name: 'Bo', deck: deckB, heartbeat: false, store: gs, recorder: recorder().r });
+    expect(again.resume?.nonce).toMatch(/^[0-9a-f]{32}$/);
+    expect(await reconnectAndStart(host, again)).toBe(before);
+    // the game started: the secret is no longer kept
+    expect(JSON.parse(gs.getItem('nct.online.guest.v1')!).nonce).toBeUndefined();
+    host.close();
+    again.close();
+  }, 30_000);
+
+  it('a guest back with another roll secret is refused (no re-roll by dropping the link)', async () => {
+    const { host, guest, gs, a } = lobby(() => true);
+    await until(() => host.stage === 'choose' && guest.stage === 'choose', 'the roll');
+    guest.close();
+    cut(a);
+    const saved = JSON.parse(gs.getItem('nct.online.guest.v1')!);
+    const again = new OnlineGuest({ name: 'Bo', deck: deckB, heartbeat: false, store: gs, recorder: recorder().r, resume: { ...saved, nonce: undefined } });
+    const [x, y] = tapPair();
+    host.attach(x);
+    again.attach(y);
+    await until(() => again.stage === 'refused', 'the refusal');
+    expect(again.problem).toMatch(/different roll/);
+    expect(host.stage).toBe('waiting');
+    host.close();
+    again.close();
+  }, 30_000);
+
+  it('after a rematch, before its game starts', async () => {
+    const { host, guest } = await connect(14);
+    guest.concede();
+    await until(() => !!host.over && !!guest.over, 'the concession');
+    host.offerRematch();
+    guest.offerRematch();
+    await until(() => host.stage === 'choose' && guest.stage === 'choose', 'the rematch roll');
+    const before = host.chooser;
+    (host as unknown as { transport: Transport }).transport.close();
+    await until(() => host.conn === 'lost' && guest.conn === 'lost', 'the link lost');
+    expect(await reconnectAndStart(host, guest)).toBe(before);
+    host.close();
+    guest.close();
+  }, 30_000);
+});
+
+// ---------------------------------------------------------------- refusals are rate-limited
+
+describe('refused guest messages (NET-9)', () => {
+  it('past a few a second they are dropped unanswered and counted in one note', async () => {
+    let t = 1_000_000;
+    const host = new OnlineHost({ name: 'Ana', deck: deckA, heartbeat: false, store: memStore(), recorder: recorder().r, now: () => t });
+    const guest = new OnlineGuest({ name: 'Bo', deck: deckB, heartbeat: false, store: memStore(), recorder: recorder().r, resume: null, now: () => t });
+    const log: string[] = [];
+    const [a, b] = tapPair(log);
+    host.attach(a);
+    guest.attach(b);
+    await until(() => host.stage === 'choose', 'the roll');
+    const notes = host.notes.length;
+    const versions = host.version;
+    for (let i = 0; i < 60; i++) b.send('{"v":1,"t":"answer","seq":"x","i":0}');
+    await until(() => guest.notes.filter((n) => /host refused/.test(n)).length >= REFUSALS_PER_SECOND, 'the answers');
+    await flush();
+    expect(log.filter((m) => m.includes('"t":"reject"'))).toHaveLength(REFUSALS_PER_SECOND);
+    expect(host.notes.length - notes).toBe(REFUSALS_PER_SECOND);
+    expect(host.version - versions).toBeLessThanOrEqual(REFUSALS_PER_SECOND + 2);
+    t += 1500;
+    b.send('{"v":1,"t":"answer","seq":"x","i":0}');
+    await until(() => host.notes.some((n) => /Dropped 50 more refused messages/.test(n)), 'the summary');
+    host.close();
+    guest.close();
+  });
+});
+
 // ---------------------------------------------------------------- turn timer
 
 describe('turn timer', () => {
+  it('pauses while the connection is lost and goes on with the time that was left (NET-7)', async () => {
+    vi.useFakeTimers();
+    const h = new HostGame(setup(32, 0, 30));
+    await vi.advanceTimersByTimeAsync(0);
+    const w = h.waitingSeat()!;
+    await vi.advanceTimersByTimeAsync(10_000);
+    h.pauseTimer();
+    expect(h.timerPaused).toBe(true);
+    expect(h.timeLeft()).toBeNull();
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(h.answers[w]).toEqual([]);
+    h.resumeTimer();
+    expect(h.timeLeft()).toBe(20_000);
+    await vi.advanceTimersByTimeAsync(19_000);
+    expect(h.answers[w]).toEqual([]);
+    // a decision asked while paused waits with its whole time
+    h.pauseTimer();
+    expect(h.answer(w, h.seq, 0)).toBeNull();
+    await vi.advanceTimersByTimeAsync(0);
+    const w2 = h.waitingSeat()!;
+    await vi.advanceTimersByTimeAsync(300_000);
+    expect(h.answers[w2]).toHaveLength(w2 === w ? 1 : 0);
+    h.resumeTimer();
+    expect(h.timeLeft()).toBe(30_000);
+    h.quit();
+  });
+
+  it('the sessions pause it on a lost link and say so on both sides', async () => {
+    const { host, guest } = await connect(16, { timer: 60 });
+    await until(() => host.deadlineAt !== null || guest.deadlineAt !== null, 'a timed decision');
+    expect(host.timerPaused).toBe(false);
+    (host as unknown as { transport: Transport }).transport.close();
+    await until(() => host.conn === 'lost' && guest.conn === 'lost', 'the link lost');
+    expect(host.game!.timerPaused).toBe(true);
+    expect(host.timerPaused).toBe(true);
+    expect(guest.timerPaused).toBe(true);
+    expect(host.game!.timeLeft()).toBeNull();
+    const [a, b] = tapPair();
+    host.attach(a);
+    guest.attach(b);
+    await until(() => host.conn === 'open' && guest.conn === 'open' && !host.timerPaused, 'back');
+    expect(host.game!.timeLeft()).toBeGreaterThan(50_000);
+    expect(guest.timerPaused).toBe(false);
+    host.close();
+    guest.close();
+  });
+
   it('answers with the safe default when time runs out and says so in the log', async () => {
     vi.useFakeTimers();
     const h = new HostGame(setup(31, 0, 30));
@@ -419,7 +639,10 @@ describe('turn timer', () => {
     await vi.advanceTimersByTimeAsync(30_000);
     expect(h.answers[w]).toEqual([[defaultAnswer(d)]]);
     expect(d.options[defaultAnswer(d)]!.key).toBe('no'); // keep the hand
-    expect(h.g.s.log.some((l) => /Time ran out for (Ana|Bo): No \(chosen automatically\)/.test(l.text))).toBe(true);
+    // the log names the kind of choice only, never the option (a label can name a card the other seat can't see)
+    const line = h.g.s.log.find((l) => /Time ran out/.test(l.text))!;
+    expect(line.text).toMatch(/^Time ran out for (Ana|Bo): a yes-or-no choice was answered automatically$/);
+    expect(line.text).not.toContain(d.options[defaultAnswer(d)]!.label);
     h.quit();
   });
   it('the default is pass, no reaction or "none" when offered, else the first option', () => {
