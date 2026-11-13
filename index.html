@@ -23,26 +23,42 @@
         }
         apply();
         if (mq && mq.addEventListener) mq.addEventListener('change', apply);
-        // the accent colours from the board settings (src/lib/boardSettings.ts); src/ui/useBoardSettings.ts changes them.
-        // A visitor with no saved settings gets the site config's default (play.board.accent in the config the build
-        // inlines above as #nct-site-config, vite.config.ts).
-        var accent = null;
+        // the look from the board settings (src/lib/boardSettings.ts): accent, card back, glow, frame, numerals and
+        // motion; src/ui/useBoardSettings.ts (applyLook) sets the same attributes later and changes them. A field the
+        // visitor never saved takes the site config's default (play.board in the config the build inlines above as
+        // #nct-site-config, vite.config.ts). The accent of settings saved without one is yellow, as it always was.
+        var bs = null;
+        var site = {};
         try {
-          var bs = JSON.parse(localStorage.getItem('nct.boardSettings.v1') || 'null');
-          if (bs) accent = typeof bs.accent === 'string' ? bs.accent : 'yellow';
+          bs = JSON.parse(localStorage.getItem('nct.boardSettings.v1') || 'null');
         } catch (e) {
           /* no settings, or storage blocked */
         }
-        if (accent === null) {
-          try {
-            var sc = document.getElementById('nct-site-config');
-            var cfg = sc ? JSON.parse(sc.textContent || 'null') : null;
-            if (cfg && cfg.play && cfg.play.board && typeof cfg.play.board.accent === 'string') accent = cfg.play.board.accent;
-          } catch (e) {
-            /* no inlined config: the defaults */
-          }
+        try {
+          var sc = document.getElementById('nct-site-config');
+          var cfg = sc ? JSON.parse(sc.textContent || 'null') : null;
+          if (cfg && cfg.play && cfg.play.board) site = cfg.play.board;
+        } catch (e) {
+          /* no inlined config: the defaults */
         }
-        if (accent && /^[a-z]+$/.test(accent) && accent !== 'yellow') root.setAttribute('data-accent', accent);
+        function look(k, d) {
+          var v = bs && typeof bs[k] === 'string' ? bs[k] : site && typeof site[k] === 'string' ? site[k] : d;
+          return /^[a-z-]+$/.test(v) ? v : d;
+        }
+        var accent = bs && typeof bs === 'object' ? (typeof bs.accent === 'string' ? bs.accent : 'yellow') : look('accent', 'yellow');
+        if (/^[a-z]+$/.test(accent) && accent !== 'yellow') root.setAttribute('data-accent', accent);
+        root.setAttribute('data-card-back', look('cardBack', 'stripes'));
+        root.setAttribute('data-glow', look('glow', 'soft'));
+        root.setAttribute('data-frame', look('frame', 'hud'));
+        root.setAttribute('data-numerals', look('numerals', 'readout'));
+        var motion = bs && typeof bs.motion === 'string' ? bs.motion : 'system';
+        var mm = function (q) {
+          return !!(window.matchMedia && window.matchMedia(q).matches);
+        };
+        var level = motion === 'full' || motion === 'reduced' || motion === 'off' ? motion : mm('(prefers-reduced-motion: reduce)') ? 'off' : 'full';
+        var ambient = motion === 'full' || (motion !== 'reduced' && motion !== 'off' && level === 'full' && mm('(hover: hover) and (pointer: fine)'));
+        root.setAttribute('data-motion', level);
+        root.setAttribute('data-ambient', ambient ? 'on' : 'off');
       })();
     </script>
     <meta name="description" content="Unofficial Cyberpunk TCG practice simulator: deck builder, meta, guides, bot battles and matchup lab." />

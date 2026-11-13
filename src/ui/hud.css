@@ -1,0 +1,231 @@
+/* ===== The look, site-wide: glow levels, HUD frames, read-out numerals, motion levels =====
+   Driven by attributes on <html> from the board settings (src/lib/boardSettings.ts; set by applyLook in
+   src/ui/useBoardSettings.ts and before first paint by index.html): data-glow (off | soft | strong), data-frame (hud |
+   plain), data-numerals (readout | standard), data-motion (full | reduced | off, 'system' already resolved) and
+   data-ambient (on | off: effects that run all the time). A missing attribute reads as the default (soft, hud, readout;
+   motion from the device), so a page without the script looks the same. Decoration only: frames and glows sit on borders
+   and backgrounds, never over card text or art, and never use clip-path on anything that takes focus. The board's own
+   rules (card glow, dice, the active side's light, the backgrounds' moving layers) are in board.css and themes.css. */
+
+:root {
+  /* a terminal face for the numbers a player watches: system fonts only, digits all one width */
+  --readout: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace;
+  /* glow: alpha and radius of decorative glows, the rim on card frames, the tint inside dice, and the action marks'
+     halo (at 'off' the marks keep the halo they always had, so their meaning never depends on glow) */
+  --glow-a: 34%;
+  --glow-r: 10px;
+  --glow-rim: 45%;
+  --die-tint: 10%;
+  --mark-a: 60%;
+  --mark-r: 16px;
+  /* HUD corner brackets: signature colour top left, cyan bottom right */
+  --hud-a: var(--accent);
+  --hud-b: var(--cyan);
+  --hud:
+    linear-gradient(var(--hud-a), var(--hud-a)) 0 0 / 16px 2px no-repeat, linear-gradient(var(--hud-a), var(--hud-a)) 0 0 / 2px 16px no-repeat,
+    linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 16px 2px no-repeat, linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 2px 16px no-repeat;
+  --hud-sm:
+    linear-gradient(var(--hud-a), var(--hud-a)) 0 0 / 10px 2px no-repeat, linear-gradient(var(--hud-a), var(--hud-a)) 0 0 / 2px 10px no-repeat,
+    linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 10px 2px no-repeat, linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 2px 10px no-repeat;
+}
+:root[data-glow='off'] {
+  --glow-a: 0%;
+  --glow-r: 0px;
+  --glow-rim: 0%;
+  --die-tint: 0%;
+  --mark-a: 55%;
+  --mark-r: 14px;
+}
+:root[data-glow='strong'] {
+  --glow-a: 58%;
+  --glow-r: 18px;
+  --glow-rim: 75%;
+  --die-tint: 16%;
+  --mark-a: 70%;
+  --mark-r: 22px;
+}
+
+/* ---------- read-out numerals ---------- */
+/* (not :where: the stats pages' own rules for these come later, in lazily loaded sheets) */
+:root:not([data-numerals='standard']) :is(.num, .stat, .countdown, .dp-tile-val, .rec-tile-val, .profile-tile-v, .dp-bar-val, .heat td, .qty, .deck-tile-stats b, .online-timer, .scorecard-grade) {
+  font-family: var(--readout);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: -0.02em;
+}
+/* the big figures: the mono face runs wider than the display face at the same size */
+:root:not([data-numerals='standard']) :is(.stat, .dp-tile-val, .rec-tile-val, .profile-tile-v) {
+  font-size: 1.5rem;
+}
+
+/* ---------- HUD frames: square-ish corners with corner brackets, on panels, tiles, tables and dialogs ---------- */
+:root:not([data-frame='plain']) {
+  --radius: 5px;
+  --radius-sm: 3px;
+}
+:where(:root:not([data-frame='plain'])) .panel:where(:not(.flair)) {
+  background: var(--hud), linear-gradient(180deg, color-mix(in srgb, var(--text) 2.5%, transparent), transparent 120px), var(--panel);
+}
+:where(:root:not([data-frame='plain'])) .modal {
+  border-radius: 6px;
+  background: var(--hud), var(--panel);
+}
+:where(:root:not([data-frame='plain'])) :is(.quick-action, .tcg-zoom) {
+  border-radius: 6px;
+  background: var(--hud-sm), var(--panel);
+}
+:where(:root:not([data-frame='plain'])) .deck-tile {
+  border-radius: 6px;
+  background: var(--hud-sm), var(--panel);
+}
+/* tables: the header strip is a HUD bar, bracketed at its outer corners */
+:where(:root:not([data-frame='plain'])) thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.82rem;
+}
+:where(:root:not([data-frame='plain'])) thead th:first-child {
+  background: linear-gradient(var(--hud-a), var(--hud-a)) 0 0 / 12px 2px no-repeat, linear-gradient(var(--hud-a), var(--hud-a)) 0 0 / 2px 12px no-repeat, var(--mat-tile);
+}
+:where(:root:not([data-frame='plain'])) thead th:last-child {
+  background: linear-gradient(var(--hud-b), var(--hud-b)) 100% 0 / 12px 2px no-repeat, linear-gradient(var(--hud-b), var(--hud-b)) 100% 0 / 2px 12px no-repeat, var(--mat-tile);
+}
+:where(:root:not([data-frame='plain'])) thead th:only-child {
+  background: var(--hud-sm), var(--mat-tile);
+}
+
+/* terminal section labels: "// DECK LIBRARY", with a block cursor that blinks only when motion is full */
+:where(:root:not([data-frame='plain'])) .page-kicker::before {
+  content: '// ' / '';
+  opacity: 0.7;
+}
+:where(:root:not([data-frame='plain'])) .page-kicker::after {
+  content: '' / '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.9em;
+  margin-left: 0.3em;
+  vertical-align: -0.1em;
+  background: currentColor;
+  opacity: 0.55;
+}
+:where(:root[data-ambient='on']:not([data-frame='plain'])) .page-kicker::after {
+  animation: hud-cursor 1.2s steps(1, end) infinite;
+}
+@keyframes hud-cursor {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* nothing to show: a quiet "no signal" card (the words under it say what to do) */
+:where(:root:not([data-frame='plain'])) .empty-state {
+  position: relative;
+  border-radius: 4px;
+  padding-top: 30px;
+  background: var(--hud-sm), repeating-linear-gradient(0deg, color-mix(in srgb, var(--text) 3%, transparent) 0 1px, transparent 1px 4px), var(--mat);
+}
+:where(:root:not([data-frame='plain'])) .empty-state::before {
+  content: 'NO SIGNAL' / '';
+  position: absolute;
+  top: 9px;
+  left: 16px;
+  padding-left: 22px;
+  font-family: var(--readout);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  /* a small broken-signal mark: three bars, the last one cut */
+  background:
+    linear-gradient(var(--muted), var(--muted)) 0 9px / 3px 4px no-repeat,
+    linear-gradient(var(--muted), var(--muted)) 5px 6px / 3px 7px no-repeat,
+    linear-gradient(var(--red), var(--red)) 10px 3px / 3px 4px no-repeat,
+    linear-gradient(var(--red), var(--red)) 10px 9px / 3px 4px no-repeat;
+}
+/* the not-found page (App.tsx) uses the same card, larger and centred */
+.empty-state.nosignal {
+  max-width: 640px;
+  margin: 32px auto;
+  padding: 48px 24px 32px;
+  text-align: center;
+}
+.nosignal h2 {
+  padding-left: 0;
+  font-family: var(--readout);
+  font-size: 1.7rem;
+  letter-spacing: 0.08em;
+}
+.nosignal h2::before {
+  display: none;
+}
+
+/* the light theme keeps the HUD: a faint mat grid behind every page and the brand line a touch heavier */
+:where(:root[data-theme='light']:not([data-frame='plain'])) body {
+  background-image: repeating-linear-gradient(0deg, transparent 0 39px, color-mix(in srgb, var(--cyan) 7%, transparent) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--cyan) 7%, transparent) 39px 40px),
+    radial-gradient(1100px 560px at 100% -12%, color-mix(in srgb, var(--accent-bg) 12%, transparent), transparent),
+    radial-gradient(900px 520px at -10% 112%, color-mix(in srgb, var(--cyan) 9%, transparent), transparent);
+}
+:where(:root[data-theme='light']:not([data-frame='plain'])) .panel {
+  border-color: color-mix(in srgb, var(--cyan) 18%, var(--border));
+}
+
+/* ---------- header: the signature line slowly shifts (a second line fading in and out; full motion only) ---------- */
+.topbar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--magenta), var(--cyan) 45%, var(--accent-bg));
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+:where(:root[data-ambient='on']) .topbar::before {
+  animation: hud-line 9s ease-in-out infinite alternate;
+}
+@keyframes hud-line {
+  to {
+    opacity: 0.85;
+  }
+}
+
+/* ---------- motion levels ---------- */
+/* off (and 'system' when the device asks for reduced motion): nothing moves, as the site always did then */
+:where(:root[data-motion='off']) *,
+:where(:root[data-motion='off']) *::before,
+:where(:root[data-motion='off']) *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+/* reduced: one short pass of each animation, nothing loops, and what travels, shakes or spins only fades */
+:where(:root[data-motion='reduced']) *,
+:where(:root[data-motion='reduced']) *::before,
+:where(:root[data-motion='reduced']) *::after {
+  animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+:where(:root[data-motion='reduced']) :is(.pb-attacking > .tcg, .pb-attacked > .tcg, .pb-gigs.pb-attacked, .pb-die, .pb-fan, .pb-inplay, .pb-mull-card, .pb-spinner, .scorecard-grade, .pb-over-card, .brand a, .main > *, .deck-grid > *, .bracket-col) {
+  animation-name: hud-fade !important;
+  animation-duration: 0.2s !important;
+}
+@keyframes hud-fade {
+  from {
+    opacity: 0;
+  }
+}
+/* the recommended deck's light sweep and the champion's glow run all the time: only with ambient motion */
+:where(:root[data-ambient='off']) .rec-hero .legend-strip::after {
+  animation: none;
+  opacity: 0;
+}
+:where(:root[data-ambient='off']) .bracket-match.champ:not(.tbd) {
+  animation: none;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 18px -6px var(--accent);
+}

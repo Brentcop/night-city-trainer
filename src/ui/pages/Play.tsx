@@ -23,7 +23,7 @@ import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, onlyEndTurn, promptZones, type Targeting } from '../components/board/interaction';
 import type { BoardCtx } from '../components/board/BoardCard';
-import { MyHand, PlayerSide } from '../components/board/Zones';
+import { BoardFx, MyHand, PlayerSide } from '../components/board/Zones';
 import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
 import { AllActions, PromptPanel, headline } from '../components/board/PromptPanel';
 import { DRAWER_ID, LogDrawer, LogTab } from '../components/board/LogDrawer';
@@ -1189,6 +1189,8 @@ export function Board({
       {online?.status}
       {banner}
       <div className="pb-stage">
+        {/* the board background, behind the translucent zones (themes.css) */}
+        <BoardFx />
         {failed && (
           <div className="panel pb-error" role="alert">
             <b style={{ color: 'var(--red)' }}>The game stopped because of an error.</b> <span className="small muted">{failed.slice(0, 300)}</span>

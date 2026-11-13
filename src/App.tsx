@@ -123,7 +123,8 @@ function parseHash(): [string, URLSearchParams] {
 
 function NotFound({ path }: { path: string }) {
   return (
-    <div className="panel">
+    // the "no signal" card the empty states use (hud.css), larger
+    <div className="empty-state nosignal">
       <h2>Page not found</h2>
       <p className="muted">There is no page at <code>#/{path}</code>. The link may be old or mistyped.</p>
       <a href="#/">Go to the start page →</a>

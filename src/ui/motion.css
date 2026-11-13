@@ -2,7 +2,7 @@
    Entrance animations use fill-mode `backwards`, never `both`/`forwards`: a finished animation that keeps a transform
    applied makes its element the containing block for position: fixed children, which pushed the game's pinned menus,
    dock and dialogs off screen. Entrances on page change, lift on hover, bars that grow, live states that
-   breathe. Everything is switched off for people who ask their OS for reduced motion. */
+   breathe. The Motion setting (board settings; hud.css) turns it down or off, and by default it follows the device. */
 
 :root {
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -334,11 +334,12 @@ details[open] > :not(summary) {
   animation: rise 0.3s var(--ease-out) backwards;
 }
 
-/* ---------- respect reduced motion ---------- */
+/* ---------- respect reduced motion ----------
+   The Motion setting (hud.css, data-motion on <html>) decides; this is the fallback before it is set. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :where(:root:not([data-motion])) *,
+  :where(:root:not([data-motion])) *::before,
+  :where(:root:not([data-motion])) *::after {
     animation-duration: 0.001ms !important;
     animation-delay: 0s !important;
     animation-iteration-count: 1 !important;

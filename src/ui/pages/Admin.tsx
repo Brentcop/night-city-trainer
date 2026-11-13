@@ -31,10 +31,18 @@ import {
   ACCENTS,
   BOARD_BACKGROUNDS,
   BOARD_BG_LABEL,
+  CARD_BACK_LABEL,
+  CARD_BACKS,
   END_TURN_LABEL,
   END_TURN_MODES,
   GIG_BACKGROUNDS,
   GIG_BG_LABEL,
+  FRAME_LABEL,
+  FRAMES,
+  GLOW_LABEL,
+  GLOWS,
+  NUMERALS,
+  NUMERALS_LABEL,
   PANEL_POSITIONS,
   PAY_MODE_LABEL,
   PAY_MODES,
@@ -529,6 +537,10 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
         <Select label="Accent colours" value={draft.play.board.accent} options={ACCENTS} labels={ACCENT_LABEL} onChange={(v) => up((c) => void (c.play.board.accent = v))} />
         <Select label="Board background" value={draft.play.board.boardBg} options={BOARD_BACKGROUNDS} labels={BOARD_BG_LABEL} onChange={(v) => up((c) => void (c.play.board.boardBg = v))} />
         <Select label="Gig area background" value={draft.play.board.gigBg} options={GIG_BACKGROUNDS} labels={GIG_BG_LABEL} onChange={(v) => up((c) => void (c.play.board.gigBg = v))} />
+        <Select label="Card backs" value={draft.play.board.cardBack} options={CARD_BACKS} labels={CARD_BACK_LABEL} onChange={(v) => up((c) => void (c.play.board.cardBack = v))} />
+        <Select label="Glow" value={draft.play.board.glow} options={GLOWS} labels={GLOW_LABEL} onChange={(v) => up((c) => void (c.play.board.glow = v))} />
+        <Select label="Frames" value={draft.play.board.frame} options={FRAMES} labels={FRAME_LABEL} onChange={(v) => up((c) => void (c.play.board.frame = v))} />
+        <Select label="Numbers" value={draft.play.board.numerals} options={NUMERALS} labels={NUMERALS_LABEL} onChange={(v) => up((c) => void (c.play.board.numerals = v))} />
         <Select label="Paying costs" value={draft.play.board.payMode} options={PAY_MODES} labels={PAY_MODE_LABEL} onChange={(v) => up((c) => void (c.play.board.payMode = v))} />
         <Select label="End of turn" value={draft.play.board.endTurn} options={END_TURN_MODES} labels={END_TURN_LABEL} onChange={(v) => up((c) => void (c.play.board.endTurn = v))} />
         <Select label="Side panel position" value={draft.play.board.panelPosition} options={PANEL_POSITIONS} labels={POSITION_LABEL} onChange={(v) => up((c) => void (c.play.board.panelPosition = v))} />

@@ -203,6 +203,10 @@
       "accent": "yellow",
       "boardBg": "grid",
       "gigBg": "panel",
+      "cardBack": "stripes",
+      "glow": "soft",
+      "frame": "hud",
+      "numerals": "readout",
       "payMode": "auto",
       "endTurn": "click",
       "panelPosition": "right"

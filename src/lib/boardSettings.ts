@@ -1,6 +1,8 @@
 // Play board settings, kept per browser under one versioned localStorage key: how Eddies are paid, where the side
-// panel (the game log and coach notes today, a chat later) sits and how it reads, the accent colours, and the board and
-// Gig area backgrounds. Pure: defaults, validation and migration take plain values, and storage is passed in (blocked
+// panel (the game log and coach notes today, a chat later) sits and how it reads, and the look: accent colours, the board
+// and Gig area backgrounds, card backs, glow, HUD frames, the read-out numerals and motion (with presets that set the
+// look in one click). The look fields are optional in storage: settings saved before they existed take their defaults.
+// Pure: defaults, validation and migration take plain values, and storage is passed in (blocked
 // or missing storage means defaults). The React side is src/ui/useBoardSettings.ts; the dialog is
 // src/ui/components/board/SettingsDialog.tsx.
 
@@ -31,10 +33,28 @@ export type PanelOrder = (typeof PANEL_ORDERS)[number];
 /** Accent colour sets (src/ui/themes.css, both themes). 'yellow' is the site's own signature. */
 export const ACCENTS = ['yellow', 'cyan', 'magenta', 'green', 'amber', 'cb'] as const;
 export type Accent = (typeof ACCENTS)[number];
-export const BOARD_BACKGROUNDS = ['grid', 'plain', 'circuit', 'dots', 'scanlines', 'neon'] as const;
+export const BOARD_BACKGROUNDS = ['grid', 'plain', 'circuit', 'dots', 'scanlines', 'neon', 'hex', 'rain', 'skyline', 'floor'] as const;
 export type BoardBackground = (typeof BOARD_BACKGROUNDS)[number];
-export const GIG_BACKGROUNDS = ['panel', 'plain', 'stripes', 'dots', 'grid', 'glow'] as const;
+export const GIG_BACKGROUNDS = ['panel', 'plain', 'stripes', 'dots', 'grid', 'glow', 'hex', 'scan'] as const;
 export type GigBackground = (typeof GIG_BACKGROUNDS)[number];
+/** Card backs (face-down Legends, Eddies, deck piles): a pattern drawn in the accent colour. 'stripes' is the old back. */
+export const CARD_BACKS = ['stripes', 'circuit', 'hex', 'scan'] as const;
+export type CardBack = (typeof CARD_BACKS)[number];
+/** Neon glow on card frames, the action marks, dice and the active side. */
+export const GLOWS = ['off', 'soft', 'strong'] as const;
+export type Glow = (typeof GLOWS)[number];
+/** Panel frames: cut corners and corner brackets ('hud'), or plain rounded boxes as before. */
+export const FRAMES = ['hud', 'plain'] as const;
+export type Frame = (typeof FRAMES)[number];
+/** The face for the numbers a player watches (€$, Gigs, turn, counts, stats): a monospaced read-out, or the text face. */
+export const NUMERALS = ['readout', 'standard'] as const;
+export type Numerals = (typeof NUMERALS)[number];
+/**
+ * Motion: 'system' follows the device's reduced-motion setting (and keeps always-running effects off on touch screens);
+ * 'full' runs everything, 'reduced' keeps short fades but no looping or travelling effects, 'off' stops all of it.
+ */
+export const MOTIONS = ['system', 'full', 'reduced', 'off'] as const;
+export type Motion = (typeof MOTIONS)[number];
 
 /** The side panel: position and display. Belongs to the panel, not to the log, so a chat can share it. */
 export interface SidePanelSettings {
@@ -56,7 +76,18 @@ export interface BoardSettings {
   accent: Accent;
   boardBg: BoardBackground;
   gigBg: GigBackground;
+  cardBack: CardBack;
+  glow: Glow;
+  frame: Frame;
+  numerals: Numerals;
+  motion: Motion;
 }
+
+/** The fields that make up the look (what a preset sets); motion and numerals are left to the player. */
+export const LOOK_FIELDS = ['accent', 'boardBg', 'gigBg', 'cardBack', 'glow', 'frame'] as const;
+export type Look = Pick<BoardSettings, (typeof LOOK_FIELDS)[number]>;
+/** Fields added after the first release: absent in older saved settings, which then take the site's default for each. */
+const LATER_FIELDS = ['endTurn', 'cardBack', 'glow', 'frame', 'numerals', 'motion'] as const;
 
 export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
   v: BOARD_SETTINGS_VERSION,
@@ -73,10 +104,26 @@ export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
   accent: 'yellow',
   boardBg: 'grid',
   gigBg: 'panel',
+  cardBack: 'stripes',
+  glow: 'soft',
+  frame: 'hud',
+  numerals: 'readout',
+  motion: 'system',
 }) as BoardSettings;
 
 /** The site owner's defaults for new visitors (play.board in the site config, set by src/ui/useSiteConfig.ts). */
-let siteDefaults: { accent?: Accent; boardBg?: BoardBackground; gigBg?: GigBackground; payMode?: PayMode; endTurn?: EndTurnMode; panelPosition?: PanelPosition } = {};
+let siteDefaults: {
+  accent?: Accent;
+  boardBg?: BoardBackground;
+  gigBg?: GigBackground;
+  cardBack?: CardBack;
+  glow?: Glow;
+  frame?: Frame;
+  numerals?: Numerals;
+  payMode?: PayMode;
+  endTurn?: EndTurnMode;
+  panelPosition?: PanelPosition;
+} = {};
 export function setSiteBoardDefaults(d: typeof siteDefaults): void {
   siteDefaults = { ...d };
 }
@@ -120,6 +167,11 @@ export function parseBoardSettings(raw: unknown): BoardSettings {
     accent: pick(ACCENTS, o.accent, d.accent),
     boardBg: pick(BOARD_BACKGROUNDS, o.boardBg, d.boardBg),
     gigBg: pick(GIG_BACKGROUNDS, o.gigBg, d.gigBg),
+    cardBack: pick(CARD_BACKS, o.cardBack, d.cardBack),
+    glow: pick(GLOWS, o.glow, d.glow),
+    frame: pick(FRAMES, o.frame, d.frame),
+    numerals: pick(NUMERALS, o.numerals, d.numerals),
+    motion: pick(MOTIONS, o.motion, d.motion),
   };
 }
 
@@ -148,8 +200,9 @@ export function loadBoardSettings(store: Store | null = localStore()): BoardSett
     if (!text) return defaultBoardSettings();
     const raw: unknown = JSON.parse(text);
     const s = parseBoardSettings(raw);
-    // settings saved before the End turn choice existed take the site's default for it
-    if (!isObj(raw) || raw.endTurn === undefined) s.endTurn = defaultBoardSettings().endTurn;
+    // settings saved before a choice existed (End turn, then the look) take the site's default for it
+    const site = defaultBoardSettings();
+    for (const k of LATER_FIELDS) if (!isObj(raw) || raw[k] === undefined) (s as unknown as Record<string, unknown>)[k] = site[k];
     return s;
   } catch {
     return defaultBoardSettings();
@@ -199,6 +252,10 @@ export const BOARD_BG_LABEL: Record<BoardBackground, string> = {
   dots: 'Dots',
   scanlines: 'Scanlines',
   neon: 'Neon glow',
+  hex: 'Hex grid',
+  rain: 'Rain',
+  skyline: 'Skyline',
+  floor: 'Grid floor',
 };
 export const GIG_BG_LABEL: Record<GigBackground, string> = {
   panel: 'Panel (default)',
@@ -207,4 +264,48 @@ export const GIG_BG_LABEL: Record<GigBackground, string> = {
   dots: 'Dots',
   grid: 'Fine grid',
   glow: 'Accent glow',
+  hex: 'Hex grid',
+  scan: 'Scan bars',
 };
+export const CARD_BACK_LABEL: Record<CardBack, string> = {
+  stripes: 'Stripes (default)',
+  circuit: 'Circuit',
+  hex: 'Hex mesh',
+  scan: 'Scan bars',
+};
+export const GLOW_LABEL: Record<Glow, string> = { off: 'Off', soft: 'Soft (default)', strong: 'Strong' };
+export const FRAME_LABEL: Record<Frame, string> = { hud: 'HUD corners (default)', plain: 'Plain' };
+export const NUMERALS_LABEL: Record<Numerals, string> = { readout: 'Read-out (default)', standard: 'Standard' };
+export const MOTION_LABEL: Record<Motion, string> = {
+  system: 'Follow this device (default)',
+  full: 'Full',
+  reduced: 'Reduced',
+  off: 'Off',
+};
+export const MOTION_HELP: Record<Motion, string> = {
+  system: 'Full motion unless the device asks for less; effects that run all the time stay off on touch screens.',
+  full: 'Everything, including the light round the active side, falling rain and the moving header line.',
+  reduced: 'Short fades only: nothing loops, travels or shakes.',
+  off: 'No animation at all.',
+};
+
+/** One-click looks: each sets the accent, both backgrounds, the card back, glow and frame together. */
+export interface LookPreset {
+  id: string;
+  label: string;
+  blurb: string;
+  look: Look;
+}
+export const LOOK_PRESETS: readonly LookPreset[] = Object.freeze([
+  { id: 'signal', label: 'Signal (default)', blurb: 'Yellow on the grid, soft glow, HUD corners.', look: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', cardBack: 'stripes', glow: 'soft', frame: 'hud' } },
+  { id: 'classic', label: 'Classic', blurb: 'The board as it looked before: no glow, plain frames.', look: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', cardBack: 'stripes', glow: 'off', frame: 'plain' } },
+  { id: 'neon-rain', label: 'Neon Rain', blurb: 'Cyan rain, circuit backs, strong glow.', look: { accent: 'cyan', boardBg: 'rain', gigBg: 'scan', cardBack: 'circuit', glow: 'strong', frame: 'hud' } },
+  { id: 'skyline', label: 'Midnight Skyline', blurb: 'Magenta over a city horizon, hex backs.', look: { accent: 'magenta', boardBg: 'skyline', gigBg: 'glow', cardBack: 'hex', glow: 'soft', frame: 'hud' } },
+  { id: 'grid-runner', label: 'Grid Runner', blurb: 'Green on a perspective floor, scan-bar backs.', look: { accent: 'green', boardBg: 'floor', gigBg: 'grid', cardBack: 'scan', glow: 'strong', frame: 'hud' } },
+  { id: 'clear-signal', label: 'Clear Signal', blurb: 'Colour-blind safe orange and blue on hex.', look: { accent: 'cb', boardBg: 'hex', gigBg: 'hex', cardBack: 'hex', glow: 'soft', frame: 'hud' } },
+] satisfies LookPreset[]);
+
+/** The preset the settings' look matches, or null ("Custom"). */
+export function matchingPreset(s: Look): LookPreset | null {
+  return LOOK_PRESETS.find((p) => LOOK_FIELDS.every((k) => p.look[k] === s[k])) ?? null;
+}

@@ -7,9 +7,9 @@
 import { useSyncExternalStore } from 'react';
 import { defaultSiteConfig, featureOn, parseSiteConfig, parseSiteConfigText, SITE_CONFIG_FILE, type FeatureName, type SiteConfig } from '../lib/siteConfig';
 import { setSiteHiddenDecks } from '../lib/hiddenDecks';
-import { BOARD_SETTINGS_KEY, setSiteBoardDefaults } from '../lib/boardSettings';
+import { loadBoardSettings, setSiteBoardDefaults } from '../lib/boardSettings';
 import { notifyLibraryChanged } from '../lib/browserLibrary';
-import { applyAccent } from './useBoardSettings';
+import { applyLook } from './useBoardSettings';
 
 /** The editor's draft (the file's text) and whether this browser previews it. */
 export const DRAFT_KEY = 'nct.siteConfig.draft.v1';
@@ -54,13 +54,8 @@ function sideEffects(c: SiteConfig, first: boolean) {
   if (typeof document === 'undefined') return;
   document.title = c.site.title;
   document.querySelector('meta[name="description"]')?.setAttribute('content', c.site.tagline);
-  let saved = true;
-  try {
-    saved = !!store()?.getItem(BOARD_SETTINGS_KEY);
-  } catch {
-    /* storage blocked */
-  }
-  if (!saved) applyAccent(c.play.board.accent);
+  // the look on <html>: a visitor's saved settings, with the owner's defaults for anything they never chose
+  applyLook(loadBoardSettings());
   if (!first) notifyLibraryChanged(); // hidden decks may have changed
 }
 sideEffects(current, true);

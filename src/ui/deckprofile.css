@@ -721,3 +721,9 @@
   display: grid;
   gap: 8px;
 }
+
+/* HUD frame (hud.css): a cyan corner bracket on the stat tiles */
+:where(:root:not([data-frame='plain'])) :is(.dp-tile, .rec-tile) {
+  border-radius: 4px;
+  background: linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 10px 2px no-repeat, linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 2px 10px no-repeat, var(--mat-tile);
+}

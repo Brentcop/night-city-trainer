@@ -70,12 +70,17 @@ file.
 | `play.tiers` | `["easy", "medium", "hard"]` | Bot tiers offered in Play setup. At least one. |
 | `play.defaultTier` | `"hard"` | The tier picked at first. Must be offered. |
 | `play.board.accent` | `"yellow"` | Accent colours for visitors with no saved board settings: `yellow`, `cyan`, `magenta`, `green`, `amber`, `cb`. |
-| `play.board.boardBg` | `"grid"` | Board background: `grid`, `plain`, `circuit`, `dots`, `scanlines`, `neon`. |
-| `play.board.gigBg` | `"panel"` | Gig area background: `panel`, `plain`, `stripes`, `dots`, `grid`, `glow`. |
+| `play.board.boardBg` | `"grid"` | Board background: `grid`, `plain`, `circuit`, `dots`, `scanlines`, `neon`, `hex`, `rain`, `skyline`, `floor`. |
+| `play.board.gigBg` | `"panel"` | Gig area background: `panel`, `plain`, `stripes`, `dots`, `grid`, `glow`, `hex`, `scan`. |
+| `play.board.cardBack` | `"stripes"` | Card backs (drawn in the accent colour): `stripes`, `circuit`, `hex`, `scan`. |
+| `play.board.glow` | `"soft"` | Neon glow on cards, action marks, dice and the active side: `off`, `soft`, `strong`. |
+| `play.board.frame` | `"hud"` | Panel and dialog frames: `hud` (cut corners and corner brackets) or `plain`. |
+| `play.board.numerals` | `"readout"` | Face for counts and stats: `readout` (monospaced, tabular) or `standard`. |
 | `play.board.payMode` | `"auto"` | Paying costs: `auto`, `before`, `after`. |
 | `play.board.endTurn` | `"click"` | End of turn: `click` (the player clicks End turn every turn) or `auto` (the turn ends by itself when nothing is left to do). Also used for a visitor whose saved settings predate this choice. A game keeps the mode it started with. |
 | `play.board.panelPosition` | `"right"` | Side panel: `right`, `left`, `bottom`, `hidden`. |
 | (rule) | | A visitor's own saved board settings always win over `play.board`. |
+| (rule) | | Motion is not set here: each visitor's Motion setting follows their device's reduced-motion choice until they change it. The board settings' look presets (Settings dialog) are fixed in `src/lib/boardSettings.ts`. |
 | `decks.hidden` | `[]` | Built-in deck files hidden for everyone by default. A visitor can still show them ("Show hidden") and unhide one for themselves; that choice is kept in their browser. Hidden decks stay reachable by link and in events. |
 | `decks.sources` | all eight | The deck sources the gallery shows: `meta`, `guide`, `nc`, `ladder`, `bred`, `mine`, `tuned`, `lab`. At least one. |
 | `decks.defaultSort` | `"rating"` | The gallery's sort on a first visit: `rating`, `name`, `newest`, `games`, `choom`, `meta`, `cost`. |

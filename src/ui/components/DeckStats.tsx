@@ -2,6 +2,7 @@
 // Kept out of src/ui/pages/DeckProfile.tsx so the Home page (in the entry chunk) does not pull in the whole profile page.
 import { useEffect, useState } from 'react';
 import { pct } from '../../lib/deckStats';
+import { lessMotion } from '../useBoardSettings';
 
 // The report data itself (deckReports.json) is in src/data/deckReportsData.ts, so this file stays small for Home.
 export type { DeckReports, MatchRec } from '../../data/deckReportsData';
@@ -32,8 +33,7 @@ function CountUp({ value }: { value: React.ReactNode }) {
   const [v, setV] = useState(numeric ? 0 : target);
   useEffect(() => {
     if (!numeric) return;
-    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return setV(target);
+    if (lessMotion()) return setV(target);
     let raf = 0;
     const t0 = performance.now();
     const step = (t: number) => {

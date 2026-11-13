@@ -7,14 +7,22 @@
 import {
   ACCENTS,
   BOARD_BACKGROUNDS,
+  CARD_BACKS,
   END_TURN_MODES,
+  FRAMES,
   GIG_BACKGROUNDS,
+  GLOWS,
+  NUMERALS,
   PANEL_POSITIONS,
   PAY_MODES,
   type Accent,
   type BoardBackground,
+  type CardBack,
   type EndTurnMode,
+  type Frame,
   type GigBackground,
+  type Glow,
+  type Numerals,
   type PanelPosition,
   type PayMode,
 } from './boardSettings';
@@ -265,7 +273,18 @@ export interface SiteConfig {
     defaultTier: TierKey;
     tiers: TierKey[];
     /** board settings for visitors who have not saved their own */
-    board: { accent: Accent; boardBg: BoardBackground; gigBg: GigBackground; payMode: PayMode; endTurn: EndTurnMode; panelPosition: PanelPosition };
+    board: {
+      accent: Accent;
+      boardBg: BoardBackground;
+      gigBg: GigBackground;
+      cardBack: CardBack;
+      glow: Glow;
+      frame: Frame;
+      numerals: Numerals;
+      payMode: PayMode;
+      endTurn: EndTurnMode;
+      panelPosition: PanelPosition;
+    };
   };
   decks: {
     /** library deck files hidden for everyone by default (a visitor can unhide one for themselves) */
@@ -325,7 +344,7 @@ export function defaultSiteConfig(): SiteConfig {
       featuredEvent: '',
       nextEvent: { name: EVENT.name, start: EVENT.startText, end: EVENT.endText, detail: EVENT.detail },
     },
-    play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
+    play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
     multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true, turnServers: [], turnCredentialsUrl: '', relayUrl: '' },
@@ -569,7 +588,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     r.err('play.defaultTier', `${defaultTier} is not one of the offered tiers; ${fb} is used`);
     defaultTier = fb;
   }
-  const pb = r.obj(p.board, 'play.board', ['accent', 'boardBg', 'gigBg', 'payMode', 'endTurn', 'panelPosition']);
+  const pb = r.obj(p.board, 'play.board', ['accent', 'boardBg', 'gigBg', 'cardBack', 'glow', 'frame', 'numerals', 'payMode', 'endTurn', 'panelPosition']);
   const play: SiteConfig['play'] = {
     defaultTier,
     tiers,
@@ -577,6 +596,10 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
       accent: r.pick(pb.accent, 'play.board.accent', ACCENTS, d.play.board.accent),
       boardBg: r.pick(pb.boardBg, 'play.board.boardBg', BOARD_BACKGROUNDS, d.play.board.boardBg),
       gigBg: r.pick(pb.gigBg, 'play.board.gigBg', GIG_BACKGROUNDS, d.play.board.gigBg),
+      cardBack: r.pick(pb.cardBack, 'play.board.cardBack', CARD_BACKS, d.play.board.cardBack),
+      glow: r.pick(pb.glow, 'play.board.glow', GLOWS, d.play.board.glow),
+      frame: r.pick(pb.frame, 'play.board.frame', FRAMES, d.play.board.frame),
+      numerals: r.pick(pb.numerals, 'play.board.numerals', NUMERALS, d.play.board.numerals),
       payMode: r.pick(pb.payMode, 'play.board.payMode', PAY_MODES, d.play.board.payMode),
       endTurn: r.pick(pb.endTurn, 'play.board.endTurn', END_TURN_MODES, d.play.board.endTurn),
       panelPosition: r.pick(pb.panelPosition, 'play.board.panelPosition', PANEL_POSITIONS, d.play.board.panelPosition),

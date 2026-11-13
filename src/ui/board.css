@@ -3187,3 +3187,536 @@ button.pb-coach-more {
   box-sizing: border-box;
   overflow: hidden;
 }
+
+/* ============ board background layers (themes.css has the flat part, --pb-mat-bg) ============
+/* the moving and masked layers (BoardFx in board/Zones.tsx; the settings previews hold the same markup) */
+:root {
+  --fx-far: color-mix(in srgb, var(--cyan) 10%, transparent);
+  --fx-near: color-mix(in srgb, var(--cyan) 20%, transparent);
+}
+:root[data-theme='dark'] {
+  --fx-far: color-mix(in srgb, var(--cyan) 13%, transparent);
+  --fx-near: color-mix(in srgb, var(--bg) 72%, transparent);
+}
+.pb-fx {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--pb-mat-bg, var(--mat));
+}
+.pb-fx > i {
+  position: absolute;
+  display: none;
+}
+[data-board-bg='hex'] .pb-fx-a {
+  display: block;
+  inset: 0;
+  background: color-mix(in srgb, var(--cyan) 24%, transparent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48'%3E%3Cpath d='M14 0L28 8V24L14 32L0 24V8ZM14 32V48' fill='none' stroke='%23000' stroke-width='1.3'/%3E%3C/svg%3E") 0 0 / 36px 62px repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48'%3E%3Cpath d='M14 0L28 8V24L14 32L0 24V8ZM14 32V48' fill='none' stroke='%23000' stroke-width='1.3'/%3E%3C/svg%3E") 0 0 / 36px 62px repeat;
+}
+[data-board-bg='rain'] .pb-fx > i {
+  display: block;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--fall));
+  bottom: 0;
+  --fall: 160px;
+  background: color-mix(in srgb, var(--cyan) 42%, transparent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='160'%3E%3Cpath d='M6 10v22M22 72v16M38 30v26M54 112v18M14 124v14M46 2v12M30 140v16M60 64v12' stroke='%23000' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 64px 160px repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='160'%3E%3Cpath d='M6 10v22M22 72v16M38 30v26M54 112v18M14 124v14M46 2v12M30 140v16M60 64v12' stroke='%23000' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 64px 160px repeat;
+}
+[data-board-bg='rain'] .pb-fx > .pb-fx-b {
+  --fall: 200px;
+  opacity: 0.6;
+  background: color-mix(in srgb, var(--accent-bg) 30%, transparent);
+  -webkit-mask-size: 80px 200px;
+  mask-size: 80px 200px;
+  -webkit-mask-position: 37px 61px;
+  mask-position: 37px 61px;
+}
+:root[data-ambient='on'] [data-board-bg='rain'] .pb-fx-a {
+  animation: fx-fall 1.1s linear infinite;
+}
+:root[data-ambient='on'] [data-board-bg='rain'] .pb-fx-b {
+  animation: fx-fall 1.9s linear infinite;
+}
+@keyframes fx-fall {
+  to {
+    transform: translateY(var(--fall));
+  }
+}
+[data-board-bg='skyline'] .pb-fx > i {
+  display: block;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: min(150px, 34%);
+  background: var(--fx-far);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='120'%3E%3Cpath d='M0 120V78H14V60H30V70H38V40H56V52H64V84H78V30H86V22H89V6H91V22H94V30H102V66H118V50H136V90H146V58H160V44H172V36H184V44H196V74H210V62H226V28H238V20H241V10H243V20H244V28H252V70H266V56H280V82H292V48H308V64H320V120Z'/%3E%3C/svg%3E") 140px 100% / auto 100% repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='120'%3E%3Cpath d='M0 120V78H14V60H30V70H38V40H56V52H64V84H78V30H86V22H89V6H91V22H94V30H102V66H118V50H136V90H146V58H160V44H172V36H184V44H196V74H210V62H226V28H238V20H241V10H243V20H244V28H252V70H266V56H280V82H292V48H308V64H320V120Z'/%3E%3C/svg%3E") 140px 100% / auto 100% repeat-x;
+}
+[data-board-bg='skyline'] .pb-fx > .pb-fx-b {
+  height: min(110px, 25%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-bg) 45%, transparent) 0.8px, transparent 1.3px) 3px 5px / 13px 17px, var(--fx-near);
+  -webkit-mask-position: 0 100%;
+  mask-position: 0 100%;
+}
+[data-board-bg='floor'] .pb-fx {
+  perspective: 420px;
+  perspective-origin: 50% 40%;
+}
+[data-board-bg='floor'] .pb-fx-a {
+  display: block;
+  left: -150%;
+  right: -150%;
+  bottom: 0;
+  height: 300%;
+  background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent-bg) 42%, transparent) 0 1.5px, transparent 1.5px 40px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--cyan) 42%, transparent) 0 1.5px, transparent 1.5px 40px);
+  transform-origin: 50% 100%;
+  transform: rotateX(80deg);
+  -webkit-mask: linear-gradient(to top, #000 20%, transparent 85%);
+  mask: linear-gradient(to top, #000 20%, transparent 85%);
+}
+:root[data-ambient='on'] [data-board-bg='floor'] .pb-fx-a {
+  animation: fx-floor 1.8s linear infinite;
+}
+/* a thumbnail is only 36px tall: a closer eye and finer cells, so the floor reads at that size */
+:is(.pb-bg-preview, .pb-preset-thumb)[data-board-bg='floor'] .pb-fx {
+  perspective: 60px;
+}
+:is(.pb-bg-preview, .pb-preset-thumb)[data-board-bg='floor'] .pb-fx-a {
+  background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent-bg) 55%, transparent) 0 1px, transparent 1px 10px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--cyan) 55%, transparent) 0 1px, transparent 1px 10px);
+}
+@keyframes fx-floor {
+  from {
+    transform: rotateX(80deg) translateY(0);
+  }
+  to {
+    transform: rotateX(80deg) translateY(40px);
+  }
+}
+
+/* ============ the look on the board (board settings; tokens in hud.css and themes.css) ============
+   Glow (--glow-*, --mark-*), HUD frames (data-frame), read-out numerals (data-numerals) and the ambient effects
+   (data-ambient). Nothing here changes a box size or position: only backgrounds, borders, shadows, radii and fonts, so
+   the --cw height budget above is untouched. */
+
+/* the live board paints its mat on .pb-fx (a layer behind everything in the stage, Play.tsx) and its zones let it show */
+.pb-game .pb-mat {
+  background: transparent;
+}
+:is(.pb-game, .pb-set-preview) .pb-side {
+  background: color-mix(in srgb, var(--panel) var(--pb-zone-a), transparent);
+}
+/* how much of the zone covers the background: less with HUD frames, as before with plain ones (the Classic look) */
+:root {
+  --pb-zone-a: 58%;
+}
+:root[data-frame='plain'] {
+  --pb-zone-a: 70%;
+}
+
+/* card frames: a rim and a soft halo in the card's game colour (low specificity: the marks, selection and targeting
+   rules keep theirs) */
+:where(.pb .tcg:not(.tcg-back)) > .tcg-inner {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--card-c, transparent) var(--glow-rim), rgba(255, 255, 255, 0.06)),
+    0 0 var(--glow-r) color-mix(in srgb, var(--card-c, transparent) var(--glow-a), transparent);
+}
+/* the action marks' halo follows the Glow setting; their outline style and icon (boardMarks) are unchanged */
+.pb-st-play > .tcg > .tcg-inner {
+  box-shadow: 0 0 var(--mark-r) color-mix(in srgb, var(--green) var(--mark-a), transparent);
+}
+.pb-st-attack > .tcg > .tcg-inner {
+  box-shadow: 0 0 calc(var(--mark-r) + 2px) color-mix(in srgb, var(--red) var(--mark-a), transparent);
+}
+.pb-st-ability > .tcg > .tcg-inner {
+  box-shadow: 0 0 var(--glow-r) color-mix(in srgb, var(--magenta) var(--glow-a), transparent);
+}
+.pb-st-block > .tcg > .tcg-inner,
+.pb-st-target > .tcg > .tcg-inner {
+  box-shadow: 0 0 var(--glow-r) color-mix(in srgb, var(--accent-bg) var(--glow-a), transparent);
+}
+.pb-st-badge {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 calc(var(--glow-r) * 0.6) color-mix(in srgb, currentColor var(--glow-a), transparent);
+}
+
+/* the active side: its glow grows with the setting; with ambient motion a light travels round its edge */
+.pb-side {
+  position: relative;
+}
+.pb-side.pb-active {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 calc(26px + var(--glow-r)) var(--pb-glow-me);
+}
+.pb-rival.pb-active {
+  box-shadow: 0 0 0 1px var(--red), 0 0 calc(26px + var(--glow-r)) color-mix(in srgb, var(--red) 30%, transparent);
+}
+.pb-side-light {
+  display: none;
+}
+:root[data-ambient='on'] .pb-side-light {
+  display: block;
+  position: absolute;
+  inset: -2px;
+  padding: 3px;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.pb-side-light::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160%;
+  aspect-ratio: 1;
+  background: conic-gradient(from 0deg, transparent 0 62%, color-mix(in srgb, var(--light-c) 40%, transparent) 80%, color-mix(in srgb, var(--light-c) 60%, #fff) 89% 92%, transparent 93.5%);
+  transform: translate(-50%, -50%);
+  animation: pb-orbit 6s linear infinite;
+}
+.pb-me .pb-side-light {
+  --light-c: var(--accent-bg);
+}
+.pb-rival .pb-side-light {
+  --light-c: var(--red);
+}
+@keyframes pb-orbit {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* dice: neon faces in the roller's colour */
+.pb .die-me polygon {
+  fill: color-mix(in srgb, var(--cyan) var(--die-tint), var(--panel-2));
+}
+.pb .die-rival polygon {
+  fill: color-mix(in srgb, var(--red) var(--die-tint), var(--panel-2));
+}
+.pb .die-me {
+  filter: drop-shadow(0 0 calc(var(--glow-r) * 0.5) color-mix(in srgb, var(--cyan) var(--glow-a), transparent));
+}
+.pb .die-rival {
+  filter: drop-shadow(0 0 calc(var(--glow-r) * 0.5) color-mix(in srgb, var(--red) var(--glow-a), transparent));
+}
+/* a stolen Gig flashes once in the thief's colour as it lands */
+.pb-die-stolen {
+  position: relative;
+  isolation: isolate;
+}
+.pb-die-stolen::after {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--thief) 75%, transparent), transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: pb-steal 0.9s ease-out 1;
+}
+.pb-thief-me {
+  --thief: var(--cyan);
+}
+.pb-thief-rival {
+  --thief: var(--red);
+}
+@keyframes pb-steal {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/* read-out numerals for what a player watches: the turn, €$, Gigs, Street Cred, deck and trash counts, dice */
+:where(:root:not([data-numerals='standard'])) :is(.pb-turn-no, .pb-pile-cap b, .pb-gigs-head b, .pb-cred, .pb-eddie-more, .pb-pay-count, .pb-hand-count, .pb-name-hand) {
+  font-family: var(--readout);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: -0.02em;
+}
+:where(:root:not([data-numerals='standard'])) .pb .die text {
+  font-family: var(--readout);
+  font-weight: 700;
+  font-size: 32px;
+}
+:where(:root:not([data-numerals='standard'])) .pb .die text.die-sides {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---- HUD frames on the board ---- */
+:where(:root:not([data-frame='plain'])) .pb .pb-side {
+  border-radius: 6px;
+}
+:where(:root:not([data-frame='plain'])) :is(.pb-game, .pb-set-preview) .pb-me {
+  background:
+    linear-gradient(var(--cyan), var(--cyan)) 0 0 / 18px 2px no-repeat, linear-gradient(var(--cyan), var(--cyan)) 0 0 / 2px 18px no-repeat,
+    linear-gradient(var(--cyan), var(--cyan)) 100% 100% / 18px 2px no-repeat, linear-gradient(var(--cyan), var(--cyan)) 100% 100% / 2px 18px no-repeat,
+    color-mix(in srgb, var(--panel) var(--pb-zone-a), transparent);
+}
+:where(:root:not([data-frame='plain'])) :is(.pb-game, .pb-set-preview) .pb-rival {
+  background:
+    linear-gradient(var(--red), var(--red)) 0 0 / 18px 2px no-repeat, linear-gradient(var(--red), var(--red)) 0 0 / 2px 18px no-repeat,
+    linear-gradient(var(--red), var(--red)) 100% 100% / 18px 2px no-repeat, linear-gradient(var(--red), var(--red)) 100% 100% / 2px 18px no-repeat,
+    color-mix(in srgb, var(--panel) var(--pb-zone-a), transparent);
+}
+:where(:root:not([data-frame='plain'])) .pb-gigs {
+  border-radius: 4px;
+  background: var(--hud-sm), var(--pb-gig-bg, color-mix(in srgb, var(--panel-2) 80%, transparent));
+}
+:where(:root:not([data-frame='plain'])) .pb-prompt {
+  border-radius: 4px;
+  background: linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 12px 2px no-repeat, linear-gradient(var(--hud-b), var(--hud-b)) 100% 100% / 2px 12px no-repeat, var(--panel);
+}
+:where(:root:not([data-frame='plain'])) .pb-actions {
+  border-radius: 6px;
+  background: var(--hud-sm), color-mix(in srgb, var(--panel) 92%, transparent);
+}
+:where(:root:not([data-frame='plain'])) :is(.pb-modal, .pb-menu) {
+  border-radius: 6px;
+  background: var(--hud), var(--panel);
+}
+:where(:root:not([data-frame='plain'])) .pb-pp {
+  border-radius: 6px;
+  background: var(--hud-sm), color-mix(in srgb, var(--panel) 96%, transparent);
+}
+:where(:root:not([data-frame='plain'])) .pb-midline:not(.pb-tone-alert) {
+  border-radius: 4px;
+  background: var(--hud-sm), var(--panel);
+}
+:where(:root:not([data-frame='plain'])) .pb-coach-box {
+  border-radius: 2px;
+}
+:where(:root:not([data-frame='plain'])) .pb-field .pb-cards {
+  border-radius: 4px;
+}
+/* the turn chips get the brand chip's cut corners (text only, nothing focusable inside) */
+:where(:root:not([data-frame='plain'])) :is(.pb-turn-who, .pb-active-tag) {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+}
+
+/* ---- the result screen as a verdict read-out ---- */
+.pb-over-kicker {
+  font-family: var(--readout);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pb-over-title {
+  position: relative;
+  overflow: hidden;
+  padding: 4px 0;
+  animation: pb-resolve 0.7s var(--ease-out, ease-out) 0.05s backwards;
+}
+/* one scan sweep across the title after it resolves */
+.pb-over-title::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, currentColor 30%, transparent), transparent);
+  transform: translateX(-120%);
+  pointer-events: none;
+  animation: pb-scan 1s ease-in-out 0.45s 1 backwards;
+}
+@keyframes pb-resolve {
+  from {
+    opacity: 0;
+    transform: scaleX(1.35) skewX(-14deg);
+  }
+  55% {
+    opacity: 0.75;
+  }
+}
+@keyframes pb-scan {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(480%);
+  }
+}
+.pb-over-card.draw .pb-over-title {
+  color: var(--cyan);
+}
+.pb-over-stats {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+  flex-wrap: wrap;
+}
+.pb-over-stats > div {
+  min-width: 84px;
+  padding: 4px 10px;
+  border: 1px solid var(--mat-edge);
+  border-radius: 4px;
+  background: var(--mat-tile);
+}
+.pb-over-stats dt {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pb-over-stats dd {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+:where(:root:not([data-numerals='standard'])) .pb-over-stats dd {
+  font-family: var(--readout);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.98rem;
+}
+:where(:root:not([data-frame='plain'])) .pb-over-card.loss {
+  background:
+    linear-gradient(var(--red), var(--red)) 0 0 / 22px 2px no-repeat, linear-gradient(var(--red), var(--red)) 0 0 / 2px 22px no-repeat,
+    linear-gradient(var(--red), var(--red)) 100% 100% / 22px 2px no-repeat, linear-gradient(var(--red), var(--red)) 100% 100% / 2px 22px no-repeat,
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--red) 4%, transparent) 0 1px, transparent 1px 4px), var(--panel);
+}
+:where(:root:not([data-frame='plain'])) .pb-over-card.win {
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 22px 2px no-repeat, linear-gradient(var(--accent), var(--accent)) 0 0 / 2px 22px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / 22px 2px no-repeat, linear-gradient(var(--accent), var(--accent)) 100% 100% / 2px 22px no-repeat,
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent-bg) 10%, transparent), transparent 60%), var(--panel);
+}
+/* the grade: a framed badge in its own colour */
+.pb-over-card .scorecard-grade {
+  border-radius: 3px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 10px 3px no-repeat, linear-gradient(currentColor, currentColor) 0 0 / 3px 10px no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 100% / 10px 3px no-repeat, linear-gradient(currentColor, currentColor) 100% 100% / 3px 10px no-repeat,
+    color-mix(in srgb, currentColor 8%, var(--panel));
+  box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 4px color-mix(in srgb, currentColor 40%, transparent), 0 0 var(--glow-r) color-mix(in srgb, currentColor var(--glow-a), transparent);
+}
+
+/* ---- the settings dialog: preview, presets and uniform thumbnails ---- */
+.pb-set-group {
+  margin: 16px 0 8px;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+:where(:root:not([data-frame='plain'])) .pb-set-group::before {
+  content: '// ' / '';
+}
+.pb-set-preview {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  --tcg-w: 34px;
+}
+.pb-set-preview .pb-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+.pb-set-preview .pb-gigs {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  padding: 2px 6px;
+}
+.pb-set-preview .pb-gigs-head b {
+  font-size: 1rem;
+}
+.pb-set-preview .pb-prompt {
+  font-size: 0.78rem;
+  padding: 4px 8px;
+}
+.pb-prev-face {
+  width: var(--tcg-w);
+}
+.pb-prev-face .tcg-inner {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--card-c) 40%, #14141c), #0d0d14);
+}
+.pb-set-preview .pb-st-badge {
+  min-width: 14px;
+  height: 14px;
+  top: -6px;
+  left: auto;
+  right: -6px;
+  font-size: 8px;
+  border-width: 1.5px;
+}
+.pb-set-preview .pb-slot > .tcg {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+.pb-set-choices.is-thumbs {
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+}
+.pb-preset-thumb {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  --tcg-w: 20px;
+}
+.pb-preset-chip {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--accent-bg);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-bg) 60%, transparent);
+}
+.pb-back-thumb {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 72px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--mat);
+  --tcg-w: 46px;
+}
+.pb-set-sub {
+  margin: 6px 0 4px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

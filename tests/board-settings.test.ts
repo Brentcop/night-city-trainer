@@ -7,14 +7,24 @@ import {
   applyPatch,
   BOARD_BACKGROUNDS,
   BOARD_SETTINGS_KEY,
+  CARD_BACKS,
   DEFAULT_BOARD_SETTINGS,
   defaultBoardSettings,
+  FRAMES,
   GIG_BACKGROUNDS,
+  GLOWS,
   loadBoardSettings,
+  LOOK_FIELDS,
+  LOOK_PRESETS,
+  matchingPreset,
   migrateBoardSettings,
+  MOTIONS,
+  NUMERALS,
   parseBoardSettings,
   saveBoardSettings,
+  setSiteBoardDefaults,
 } from '../src/lib/boardSettings';
+import { resolveMotion } from '../src/ui/useBoardSettings';
 
 function memStore() {
   const m = new Map<string, string>();
@@ -32,6 +42,11 @@ describe('board settings store', () => {
       accent: 'yellow',
       boardBg: 'grid',
       gigBg: 'panel',
+      cardBack: 'stripes',
+      glow: 'soft',
+      frame: 'hud',
+      numerals: 'readout',
+      motion: 'system',
     });
     // a fresh copy each time: editing it never touches the defaults
     const d = defaultBoardSettings();
@@ -46,6 +61,79 @@ describe('board settings store', () => {
     expect(BOARD_BACKGROUNDS).toContain('plain');
     expect(GIG_BACKGROUNDS).toContain('plain');
     expect(ACCENTS).toContain('cb');
+    // the look: card backs, glow, frames, numbers and motion, each with the old look among its choices
+    expect(CARD_BACKS).toContain('stripes');
+    expect(GLOWS).toEqual(['off', 'soft', 'strong']);
+    expect(FRAMES).toEqual(['hud', 'plain']);
+    expect(NUMERALS).toEqual(['readout', 'standard']);
+    expect(MOTIONS).toEqual(['system', 'full', 'reduced', 'off']);
+  });
+
+  it('new look fields: junk falls back field by field', () => {
+    const s = parseBoardSettings({ cardBack: 'hex', glow: 'blinding', frame: 7, numerals: 'standard', motion: 'warp', boardBg: 'skyline', gigBg: 'scan' });
+    expect(s.cardBack).toBe('hex');
+    expect(s.glow).toBe('soft');
+    expect(s.frame).toBe('hud');
+    expect(s.numerals).toBe('standard');
+    expect(s.motion).toBe('system');
+    expect(s.boardBg).toBe('skyline');
+    expect(s.gigBg).toBe('scan');
+  });
+
+  it('settings saved before the look fields existed still load, with the defaults (or the site owner’s) for the new ones', () => {
+    const store = memStore();
+    // exactly what the previous version wrote
+    const old = {
+      v: 1,
+      payMode: 'before',
+      endTurn: 'auto',
+      panel: { position: 'left', density: 'compact', textSize: 'large', order: 'newest-first', turnMarkers: false, autoOpenRivalTurn: true },
+      accent: 'magenta',
+      boardBg: 'neon',
+      gigBg: 'stripes',
+    };
+    store.setItem(BOARD_SETTINGS_KEY, JSON.stringify(old));
+    expect(loadBoardSettings(store)).toEqual({ ...old, cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', motion: 'system' });
+    try {
+      setSiteBoardDefaults({ glow: 'off', frame: 'plain', cardBack: 'scan' });
+      const t = loadBoardSettings(store);
+      expect([t.glow, t.frame, t.cardBack, t.accent]).toEqual(['off', 'plain', 'scan', 'magenta']);
+      // a visitor's own saved choice still wins over the site's
+      store.setItem(BOARD_SETTINGS_KEY, JSON.stringify({ ...old, glow: 'strong' }));
+      expect(loadBoardSettings(store).glow).toBe('strong');
+    } finally {
+      setSiteBoardDefaults({});
+    }
+  });
+
+  it('presets: valid settings, all different, the defaults are one of them and the old look is another', () => {
+    const ids = new Set<string>();
+    const looks = new Set<string>();
+    for (const p of LOOK_PRESETS) {
+      ids.add(p.id);
+      looks.add(JSON.stringify(p.look));
+      expect(Object.keys(p.look).sort(), p.id).toEqual([...LOOK_FIELDS].sort());
+      // parsing changes nothing: every value is a known choice
+      const s = applyPatch(defaultBoardSettings(), p.look);
+      for (const k of LOOK_FIELDS) expect(s[k], `${p.id} ${k}`).toBe(p.look[k]);
+      expect(matchingPreset(s)?.id).toBe(p.id);
+    }
+    expect(LOOK_PRESETS.length).toBeGreaterThanOrEqual(5);
+    expect(ids.size).toBe(LOOK_PRESETS.length);
+    expect(looks.size).toBe(LOOK_PRESETS.length);
+    expect(matchingPreset(defaultBoardSettings())?.id).toBe('signal');
+    // the board as it looked before this version: yellow, grid, panel, stripes, no glow, plain frames
+    expect(LOOK_PRESETS.find((p) => p.id === 'classic')?.look).toEqual({ accent: 'yellow', boardBg: 'grid', gigBg: 'panel', cardBack: 'stripes', glow: 'off', frame: 'plain' });
+    expect(matchingPreset(applyPatch(defaultBoardSettings(), { glow: 'strong' }))).toBeNull();
+  });
+
+  it('motion: system follows the device (off when it asks for less) and runs ambient effects only with a fine pointer', () => {
+    expect(resolveMotion('system', false, true)).toEqual({ level: 'full', ambient: true });
+    expect(resolveMotion('system', false, false)).toEqual({ level: 'full', ambient: false }); // phones: nothing that runs all the time
+    expect(resolveMotion('system', true, true)).toEqual({ level: 'off', ambient: false });
+    expect(resolveMotion('full', true, false)).toEqual({ level: 'full', ambient: true }); // an explicit choice wins
+    expect(resolveMotion('reduced', false, true)).toEqual({ level: 'reduced', ambient: false });
+    expect(resolveMotion('off', false, true)).toEqual({ level: 'off', ambient: false });
   });
 
   it('parse validates field by field: junk falls back to the default, good fields are kept', () => {
@@ -110,6 +198,13 @@ const contrast = (a: string, b: string) => {
   const y = lum(b);
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 };
+/** srgb color-mix of two hex colours: `k` of the second. */
+const mix = (a: string, b: string, k: number) => {
+  const ch = (h: string) => [0, 2, 4].map((i) => parseInt(h.replace('#', '').slice(i, i + 2), 16));
+  const x = ch(a);
+  const y = ch(b);
+  return '#' + x.map((v, i) => Math.round(v * (1 - k) + y[i]! * k).toString(16).padStart(2, '0')).join('');
+};
 const hexVars = (body: string) => Object.fromEntries([...body.matchAll(/(--[\w-]+):\s*(#[0-9a-fA-F]{3,6})\s*;/g)].map((m) => [m[1]!, m[2]!]));
 
 function baseTokens(): { light: Record<string, string>; dark: Record<string, string> } {
@@ -168,6 +263,14 @@ describe('accent colour sets (themes.css)', () => {
         expect(contrast(t['--accent-ink']!, t['--accent-bg']!), `${a} ${theme}: ink on fill`).toBeGreaterThanOrEqual(4.5);
         // board.css puts #0b0b12 on the accent fill (the "your turn" tag)
         expect(contrast('#0b0b12', t['--accent-bg']!), `${a} ${theme}: tag text on fill`).toBeGreaterThanOrEqual(4.5);
+        // card backs (cards.css): the label is the accent fill on the dark back, in both themes
+        for (const back of ['#0b0b12', '#2a2a3d']) expect(contrast(t['--accent-bg']!, back), `${a} ${theme}: card back label on ${back}`).toBeGreaterThanOrEqual(4.5);
+        // the playmat (styles.css --mat, --mat-tile: the panel mixed with cyan): stat values in --accent on the tiles,
+        // and the HUD brackets and the active side's border in --accent / --cyan / --red on the mat as graphics (3:1)
+        const matTile = mix(t['--panel']!, t['--cyan']!, 0.07);
+        const mat = mix(t['--panel']!, t['--cyan']!, 0.12);
+        expect(contrast(t['--accent']!, matTile), `${a} ${theme}: accent on --mat-tile`).toBeGreaterThanOrEqual(4.5);
+        for (const fg of ['--accent', '--cyan', '--red']) expect(contrast(t[fg]!, mat), `${a} ${theme}: ${fg} on --mat`).toBeGreaterThanOrEqual(3);
       }
     });
   }

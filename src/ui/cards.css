@@ -232,39 +232,90 @@
   font-size: 8px;
 }
 
-/* card back */
+/* card back: drawn in the accent colour (board settings), so it never clashes with the chosen accent. The pattern comes
+   from the nearest data-card-back (on <html>, or on a preview swatch in the settings dialog) as --back-pattern, so an
+   inner choice wins: stripes (the old back, also with no attribute), circuit, hex or scan bars. The back stays dark in
+   both themes, so the accent fill reads on it everywhere. */
+[data-card-back='stripes'] {
+  --back-pattern: repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent-bg) 7%, transparent) 0 6px, transparent 6px 12px);
+  --back-hex: 0;
+}
+[data-card-back='circuit'] {
+  --back-pattern: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent-bg) 28%, transparent) 1.5px, transparent 2.5px) 0 0 / 16px 16px,
+    repeating-linear-gradient(45deg, transparent 0 10px, color-mix(in srgb, var(--accent-bg) 12%, transparent) 10px 11px),
+    repeating-linear-gradient(-45deg, transparent 0 15px, color-mix(in srgb, var(--accent-bg) 8%, transparent) 15px 16px);
+  --back-hex: 0;
+}
+[data-card-back='hex'] {
+  --back-pattern: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--accent-bg) 10%, transparent), transparent 70%);
+  --back-hex: 1;
+}
+[data-card-back='scan'] {
+  --back-pattern: linear-gradient(90deg, color-mix(in srgb, var(--accent-bg) 10%, transparent), transparent 30% 70%, color-mix(in srgb, var(--accent-bg) 10%, transparent)),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent-bg) 12%, transparent) 0 2px, transparent 2px 6px);
+  --back-hex: 0;
+}
 .tcg-back .tcg-inner {
   background: radial-gradient(circle at 30% 20%, #2a2a3d, #0b0b12 70%);
 }
 .tcg-back-face {
   position: absolute;
   inset: 6%;
-  border: 2px solid rgba(252, 238, 10, 0.55);
+  border: 2px solid color-mix(in srgb, var(--accent-bg) 55%, transparent);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: repeating-linear-gradient(135deg, rgba(252, 238, 10, 0.06) 0 6px, transparent 6px 12px);
+  background: var(--back-pattern, repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent-bg) 7%, transparent) 0 6px, transparent 6px 12px));
+  box-shadow: inset 0 0 calc(var(--glow-r, 0px) * 1.2) color-mix(in srgb, var(--accent-bg) var(--glow-a, 0%), transparent);
+}
+.tcg-back-face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--accent-bg) 24%, transparent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48'%3E%3Cpath d='M14 0L28 8V24L14 32L0 24V8ZM14 32V48' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3C/svg%3E") 50% 50% / 14px 24px repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48'%3E%3Cpath d='M14 0L28 8V24L14 32L0 24V8ZM14 32V48' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3C/svg%3E") 50% 50% / 14px 24px repeat;
+  opacity: var(--back-hex, 0);
+  pointer-events: none;
 }
 .tcg-back-logo {
+  position: relative;
   font-family: var(--display);
   font-weight: 700;
-  color: #0b0b12;
-  background: #fcee0a;
+  color: var(--accent-ink, #0b0b12);
+  background: var(--accent-bg);
   padding: 0 6px;
   border-radius: 4px;
   font-size: 1.1em;
+  box-shadow: 0 0 calc(var(--glow-r, 0px) * 0.8) color-mix(in srgb, var(--accent-bg) var(--glow-a, 0%), transparent);
 }
 .tcg-back-label {
-  color: #fcee0a;
+  position: relative;
+  color: var(--accent-bg);
   font-size: 10px;
   text-align: center;
   padding: 0 4px;
 }
 .tcg-xs .tcg-back-logo {
   font-size: 10px;
+}
+
+/* the card's game colour, for the neon rim on the board (board.css) */
+.tcg.Red {
+  --card-c: var(--c-red);
+}
+.tcg.Blue {
+  --card-c: var(--c-blue);
+}
+.tcg.Green {
+  --card-c: var(--c-green);
+}
+.tcg.Yellow {
+  --card-c: var(--c-yellow);
 }
 
 /* ============ dice ============ */

@@ -270,13 +270,29 @@ export function GameOverOverlay({
   return (
     <div className="pb-modal-wrap pb-over">
       <div ref={ref} className={`pb-modal pb-over-card ${win ? 'win' : loss ? 'loss' : 'draw'} ${conceded ? 'conceded' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
+        <div className="pb-over-kicker" aria-hidden="true">
+          {'// match result'}
+        </div>
         <div id={id} className="pb-over-title">
           {conceded ? 'CONCEDED' : win ? 'VICTORY' : loss ? 'DEFEAT' : 'DRAW'}
         </div>
         <div className="pb-over-reason">{conceded ? 'You conceded. Recorded as a loss.' : s.winReason || '—'}</div>
-        <div className="small muted">
-          {s.turn} turns · you went {s.first === 0 ? 'first' : 'second'} · Gigs {g.gigsOf(0).length}–{g.gigsOf(1).length}
-        </div>
+        <dl className="pb-over-stats">
+          <div>
+            <dt>Turns</dt>
+            <dd>{s.turn}</dd>
+          </div>
+          <div>
+            <dt>You went</dt>
+            <dd>{s.first === 0 ? 'First' : 'Second'}</dd>
+          </div>
+          <div>
+            <dt>Gigs</dt>
+            <dd>
+              {g.gigsOf(0).length}–{g.gigsOf(1).length}
+            </dd>
+          </div>
+        </dl>
         {review}
         <div className="row pb-over-actions">
           <button className="primary pb-big" onClick={onRematch} disabled={rematchDisabled}>

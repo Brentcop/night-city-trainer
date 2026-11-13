@@ -1,8 +1,22 @@
-// Playmat zones: Gig area (dice), piles (deck / trash / Eddies), hands, and a full player side.
+// Playmat zones: Gig area (dice), piles (deck / trash / Eddies), hands, a full player side, and the board background's
+// layers (BoardFx).
 import type { PlayerId } from '../../../engine/types';
 import { Die } from '../Dice';
 import { CardBack, pressable, TcgCard } from '../TcgCard';
 import { BoardCard, type BoardCtx } from './BoardCard';
+
+/**
+ * The board background's layers (src/ui/themes.css .pb-fx): the mat itself, plus two layers the hex, rain, skyline and
+ * floor backgrounds draw into. Decoration only, behind everything; the settings dialog's previews use it too.
+ */
+export function BoardFx() {
+  return (
+    <span className="pb-fx" aria-hidden="true">
+      <i className="pb-fx-a" />
+      <i className="pb-fx-b" />
+    </span>
+  );
+}
 
 function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const { g, ix, targeting, coach } = ctx;
@@ -36,8 +50,10 @@ function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       <div className="pb-dice">
         {gigs.map((x) => {
           const pick = ix.gigDirect.get(x.id);
+          // a stolen Gig (it sits with the player who did not roll it) flashes once in the thief's colour as it lands
+          const stolen = x.owner !== p ? ` pb-die-stolen pb-thief-${p === 0 ? 'me' : 'rival'}` : '';
           return (
-            <span key={x.id} className="pb-die">
+            <span key={x.id} className={`pb-die${stolen}`}>
               <Die
                 sides={x.sides}
                 value={x.value}
@@ -297,6 +313,8 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   );
   return (
     <section className={`pb-side ${me ? 'pb-me' : 'pb-rival'} ${active ? 'pb-active' : ''}`}>
+      {/* the light that travels round the active side's edge (shown only with ambient motion, board.css) */}
+      {active && <span className="pb-side-light" aria-hidden="true" />}
       <div className="pb-side-name">
         <span className="pb-who">{ctx.seatLabels ? ctx.seatLabels[p] : me ? 'You' : (ctx.rivalName ?? 'Rival bot')}</span>
         {!ctx.seatLabels && <span className="muted small">{P.name}</span>}
