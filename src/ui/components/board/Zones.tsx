@@ -81,9 +81,14 @@ function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const total = P.eddies.length;
   // paying a cost: clicking your Eddie pile spends an Eddie
   const payEddie = p === 0 && ctx.pend?.kind === 'pay' ? ctx.pend.options.findIndex((o) => o.key === 'eddie') : -1;
+  // "Choose before playing": a tap on your €$ pile selects one more Eddie for the next cost
+  const pick = p === 0 && payEddie < 0 ? ctx.eddiePick : undefined;
+  const onPile = payEddie >= 0 ? () => ctx.answer(payEddie) : pick ? pick.add : undefined;
   // phones: the piles are a column of counts, and the whole column is one tap target for the trash (unless paying,
-  // when your €$ count spends an Eddie)
-  const columnOpens = !!ctx.inspect && payEddie < 0;
+  // when your €$ count spends or selects an Eddie)
+  const columnOpens = !!ctx.inspect && !onPile;
+  // ready Eddies come first in the pips' order of selection: the first `selected` ready ones are marked
+  let readySeen = 0;
   return (
     <div
       className={`pb-piles ${columnOpens ? 'pb-piles-tap' : ''}`}
@@ -93,20 +98,31 @@ function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       <div
         className={`pb-pile ${p === 0 ? 'pb-sell-zone' : ''} ${p === 0 && ctx.drag?.over?.kind === 'sell' ? 'pb-drop-over' : ''}`}
         data-drop={p === 0 ? 'sell' : undefined}
-        title={payEddie >= 0 ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.` : p === 0 ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.` : `Eddies: ${ready} ready of ${total}`}
-        onClick={payEddie >= 0 ? () => ctx.answer(payEddie) : undefined}
-        {...pressable(payEddie >= 0 ? () => ctx.answer(payEddie) : undefined, 'Spend an Eddie')}
+        title={
+          payEddie >= 0
+            ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.`
+            : pick
+              ? `Eddies: ${ready} ready of ${total}, ${pick.selected} selected to pay. Click to select one more.`
+              : p === 0
+                ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.`
+                : `Eddies: ${ready} ready of ${total}`
+        }
+        onClick={onPile}
+        {...pressable(onPile, payEddie >= 0 ? 'Spend an Eddie' : `Select an Eddie to pay with (${pick?.selected ?? 0} selected)`)}
       >
         <div className={`pb-stack ${total ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(total, 5) }}>
           {total ? <CardBack size="xs" label="€$" /> : <div className="pb-empty-slot">€$</div>}
         </div>
         <div className="pb-pile-cap">
           €$ <b>{ready}</b>/{total}
+          {pick && pick.selected > 0 && <span className="pb-pay-count"> · {pick.selected} sel.</span>}
         </div>
         <div className="pb-pips">
-          {P.eddies.slice(0, 12).map((u) => (
-            <i key={u} className={g.s.cards[u]?.spent ? 'off' : 'on'} />
-          ))}
+          {P.eddies.slice(0, 12).map((u) => {
+            const spent = !!g.s.cards[u]?.spent;
+            const sel = !spent && !!pick && readySeen++ < pick.selected;
+            return <i key={u} className={`${spent ? 'off' : 'on'}${sel ? ' sel' : ''}`} />;
+          })}
         </div>
       </div>
       <div className="pb-pile" title={`Deck: ${P.deck.length} cards`}>

@@ -1,0 +1,147 @@
+/* ===== Board settings: accent colour sets and Play board backgrounds (src/lib/boardSettings.ts) =====
+   Accents: <html data-accent> (set by src/ui/useBoardSettings.ts, and before first paint by index.html) swaps the
+   signature colour for the board and the site chrome; no attribute is the default yellow from styles.css. Each set
+   defines the same tokens in both themes. Text tokens (--accent, and in the colour-blind set --cyan, --red, --green,
+   --magenta) stay at 4.5:1 or more on --bg, --panel and --panel-2, and --accent-ink on --accent-bg too:
+   tests/board-settings.test.ts reads this file and checks every pair. .pb-accent-preview[data-accent] gives a
+   swatch in the settings dialog the same tokens. */
+:root[data-accent='yellow'],
+.pb-accent-preview[data-accent='yellow'] {
+  --accent: #756800;
+  --accent-bg: #fcee0a;
+  --accent-ink: #15151a;
+}
+:root[data-theme='dark'][data-accent='yellow'],
+:root[data-theme='dark'] .pb-accent-preview[data-accent='yellow'] {
+  --accent: #fcee0a;
+  --accent-bg: #fcee0a;
+  --accent-ink: #0b0b12;
+}
+:root[data-accent='cyan'],
+.pb-accent-preview[data-accent='cyan'] {
+  --accent: #006b7a;
+  --accent-bg: #02d7f2;
+  --accent-ink: #15151a;
+}
+:root[data-theme='dark'][data-accent='cyan'],
+:root[data-theme='dark'] .pb-accent-preview[data-accent='cyan'] {
+  --accent: #02d7f2;
+  --accent-bg: #02d7f2;
+  --accent-ink: #0b0b12;
+}
+:root[data-accent='magenta'],
+.pb-accent-preview[data-accent='magenta'] {
+  --accent: #a1268f;
+  --accent-bg: #ff4fc8;
+  --accent-ink: #15151a;
+}
+:root[data-theme='dark'][data-accent='magenta'],
+:root[data-theme='dark'] .pb-accent-preview[data-accent='magenta'] {
+  --accent: #ff4fc8;
+  --accent-bg: #ff4fc8;
+  --accent-ink: #0b0b12;
+}
+:root[data-accent='green'],
+.pb-accent-preview[data-accent='green'] {
+  --accent: #146b3d;
+  --accent-bg: #3ddc84;
+  --accent-ink: #15151a;
+}
+:root[data-theme='dark'][data-accent='green'],
+:root[data-theme='dark'] .pb-accent-preview[data-accent='green'] {
+  --accent: #3ddc84;
+  --accent-bg: #3ddc84;
+  --accent-ink: #0b0b12;
+}
+:root[data-accent='amber'],
+.pb-accent-preview[data-accent='amber'] {
+  --accent: #875200;
+  --accent-bg: #ffb000;
+  --accent-ink: #15151a;
+}
+:root[data-theme='dark'][data-accent='amber'],
+:root[data-theme='dark'] .pb-accent-preview[data-accent='amber'] {
+  --accent: #ffb347;
+  --accent-bg: #ffb000;
+  --accent-ink: #0b0b12;
+}
+/* colour-blind safe (Okabe-Ito hues): an orange signature, you in blue and the rival in vermillion, so no pair the
+   board tells apart is red against green */
+:root[data-accent='cb'],
+.pb-accent-preview[data-accent='cb'] {
+  --accent: #8f5400;
+  --accent-bg: #e69f00;
+  --accent-ink: #15151a;
+  --cyan: #00669e;
+  --red: #a63f00;
+  --green: #007357;
+  --magenta: #a6427e;
+}
+:root[data-theme='dark'][data-accent='cb'],
+:root[data-theme='dark'] .pb-accent-preview[data-accent='cb'] {
+  --accent: #e69f00;
+  --accent-bg: #e69f00;
+  --accent-ink: #0b0b12;
+  --cyan: #56b4e9;
+  --red: #ff7a33;
+  --green: #2ec4a0;
+  --magenta: #e08fc0;
+}
+
+/* ---- Play board background (the mat): data-board-bg on the board, or on a preview swatch ----
+   Patterns only (gradients from the theme tokens, no images), kept faint so the cards and the text on the side
+   panels stay as legible as on the default grid in both themes. */
+[data-board-bg='grid'] {
+  --pb-mat-bg: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 70%),
+    repeating-linear-gradient(0deg, transparent 0 39px, color-mix(in srgb, var(--border) 45%, transparent) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--border) 45%, transparent) 39px 40px), var(--mat);
+}
+[data-board-bg='plain'] {
+  --pb-mat-bg: var(--mat);
+}
+[data-board-bg='circuit'] {
+  --pb-mat-bg: radial-gradient(circle at 30px 30px, color-mix(in srgb, var(--cyan) 30%, transparent) 2px, transparent 3px) 0 0 / 60px 60px,
+    repeating-linear-gradient(45deg, transparent 0 41px, color-mix(in srgb, var(--cyan) 13%, transparent) 41px 42px),
+    repeating-linear-gradient(-45deg, transparent 0 41px, color-mix(in srgb, var(--cyan) 9%, transparent) 41px 42px), var(--mat);
+}
+[data-board-bg='dots'] {
+  --pb-mat-bg: radial-gradient(circle, color-mix(in srgb, var(--border) 95%, transparent) 1.4px, transparent 2px) 0 0 / 22px 22px, var(--mat);
+}
+[data-board-bg='scanlines'] {
+  --pb-mat-bg: repeating-linear-gradient(0deg, color-mix(in srgb, var(--text) 5%, transparent) 0 1px, transparent 1px 4px),
+    radial-gradient(ellipse at 50% 50%, transparent 55%, color-mix(in srgb, var(--bg) 35%, transparent)), var(--mat);
+}
+[data-board-bg='neon'] {
+  --pb-mat-bg: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--accent-bg) 18%, transparent), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, color-mix(in srgb, var(--magenta) 16%, transparent), transparent 55%),
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--cyan) 7%, transparent)), var(--mat);
+}
+
+/* ---- Gig area background (the dice and the Gig count): data-gig-bg ---- */
+[data-gig-bg='panel'] {
+  --pb-gig-bg: color-mix(in srgb, var(--panel-2) 80%, transparent);
+}
+[data-gig-bg='plain'] {
+  --pb-gig-bg: var(--panel);
+}
+[data-gig-bg='stripes'] {
+  --pb-gig-bg: repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent-bg) 11%, transparent) 0 6px, transparent 6px 14px), var(--panel-2);
+}
+[data-gig-bg='dots'] {
+  --pb-gig-bg: radial-gradient(circle, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1.6px) 0 0 / 9px 9px, var(--panel-2);
+}
+[data-gig-bg='grid'] {
+  --pb-gig-bg: repeating-linear-gradient(0deg, transparent 0 11px, color-mix(in srgb, var(--border) 80%, transparent) 11px 12px),
+    repeating-linear-gradient(90deg, transparent 0 11px, color-mix(in srgb, var(--border) 80%, transparent) 11px 12px), var(--panel-2);
+}
+[data-gig-bg='glow'] {
+  --pb-gig-bg: radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--accent-bg) 24%, transparent), transparent 70%), var(--panel-2);
+}
+
+/* previews in the settings dialog */
+.pb-bg-preview {
+  background: var(--pb-mat-bg, var(--mat));
+}
+.pb-gig-preview {
+  background: var(--pb-gig-bg, var(--panel-2));
+}

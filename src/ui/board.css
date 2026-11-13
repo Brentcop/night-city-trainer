@@ -70,11 +70,14 @@
   min-width: 0;
   border-radius: 16px;
   padding: 10px;
-  background:
+  /* --pb-mat-bg: the board background picked in the settings (src/ui/themes.css); the grid below is the default */
+  background: var(
+    --pb-mat-bg,
     radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 70%),
     repeating-linear-gradient(0deg, transparent 0 39px, color-mix(in srgb, var(--border) 45%, transparent) 39px 40px),
     repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--border) 45%, transparent) 39px 40px),
-    var(--pb-mat);
+    var(--pb-mat)
+  );
   border: 1px solid var(--border);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.18);
 }
@@ -272,7 +275,8 @@
   border-radius: 10px;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+  /* --pb-gig-bg: the Gig area background picked in the settings (src/ui/themes.css) */
+  background: var(--pb-gig-bg, color-mix(in srgb, var(--panel-2) 80%, transparent));
   transition: box-shadow 0.2s, outline-color 0.2s;
 }
 .pb-gigs-head {
@@ -2496,4 +2500,246 @@ button.pb-pp-min {
 }
 .pb-phone .pb-over-title {
   font-size: 2rem;
+}
+
+/* ============ board settings (SettingsDialog.tsx; tokens and backgrounds in themes.css) ============ */
+/* ---- paying a cost: Eddies selected on the pile, the "Pay with" row, the payment prompt ---- */
+.pb-pips i.sel {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+.pb-pay-count {
+  color: var(--accent);
+  font-weight: 700;
+}
+.pb-paysel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.pb-paysel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pb-paysel-status.is-short {
+  color: var(--accent);
+  font-weight: 600;
+}
+.pb-paysel-clear {
+  margin-left: auto;
+  min-height: 28px;
+  padding: 2px 8px;
+}
+.pb-paysel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pb-pay-chip {
+  min-height: 32px;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+.pb-pay-chip.is-eddie {
+  min-width: 40px;
+  font-family: var(--display);
+  font-weight: 700;
+}
+.pb-pay-chip[aria-pressed='true'] {
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+  border-color: var(--accent-bg);
+}
+.pb-payprompt {
+  max-width: 460px;
+}
+.pb-payprompt .pb-paysel {
+  margin-bottom: 8px;
+}
+.pb-paynote {
+  margin: 0 0 8px;
+}
+.pb-confirm-side .pb-payprompt {
+  width: min(86vw, 320px);
+  max-height: calc(100dvh - var(--pb-strip-h, 44px) - 16px);
+  overflow-y: auto;
+}
+
+/* ---- the side panel (game log and coach notes): position and display ---- */
+.pb-full .pb-drawer.pb-panel-left {
+  right: auto;
+  left: 0;
+  border-radius: 0 0 12px 0;
+  box-shadow: 12px 0 30px rgba(0, 0, 0, 0.4);
+}
+.pb-full .pb-drawer.pb-panel-bottom {
+  top: auto;
+  left: 0;
+  /* clear of the action dock, which can rise over the board above the hand bar */
+  right: calc(var(--pb-dock-w) + 10px);
+  width: auto;
+  height: min(36vh, 340px);
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.4);
+  animation-name: pb-panel-up;
+}
+@keyframes pb-panel-up {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+}
+.pb-full .pb-drawer.pb-panel-bottom .coach-panel {
+  max-height: 45%;
+}
+.pb-drawer.pb-panel-text-small {
+  font-size: 0.85rem;
+}
+.pb-drawer.pb-panel-text-small .pb-log {
+  font-size: 11px;
+}
+.pb-drawer.pb-panel-text-large {
+  font-size: 1.1rem;
+}
+.pb-drawer.pb-panel-text-large .pb-log {
+  font-size: 14.5px;
+}
+.pb-drawer.pb-panel-compact .pb-log > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.pb-drawer.pb-panel-detailed .pb-log > div {
+  padding: 1px 0;
+}
+.pb-log .pb-log-turn {
+  display: inline-block;
+  min-width: 2.4em;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* ---- the settings dialog ---- */
+.modal-backdrop:has(> .pb-settings) {
+  z-index: 1100;
+}
+.pb-settings {
+  max-width: 640px;
+}
+.pb-settings h3 {
+  margin-top: 0;
+}
+.pb-settings fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px 10px;
+  margin: 0 0 12px;
+  min-width: 0;
+}
+.pb-settings legend {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0 6px;
+}
+.pb-set-note {
+  margin: 4px 0 6px;
+}
+.pb-set-choices {
+  display: grid;
+  gap: 6px;
+}
+.pb-set-choices.is-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.pb-set-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 40px;
+}
+.pb-set-choice:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.pb-set-choice:has(input:focus-visible) {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+.pb-set-choice input {
+  margin-top: 3px;
+}
+.pb-set-choice > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pb-set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  flex-wrap: wrap;
+}
+.pb-set-row select {
+  min-height: 36px;
+}
+.pb-accent-preview {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+.pb-accent-preview i {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.pb-accent-preview i:nth-child(1) {
+  background: var(--accent-bg);
+}
+.pb-accent-preview i:nth-child(2) {
+  background: var(--accent);
+}
+.pb-accent-preview i:nth-child(3) {
+  background: var(--cyan);
+}
+.pb-accent-preview i:nth-child(4) {
+  background: var(--red);
+}
+.pb-bg-preview,
+.pb-gig-preview {
+  display: block;
+  width: 100%;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.pb-settings-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .pb-settings {
+    padding: 14px 12px;
+  }
+  .pb-set-choices.is-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

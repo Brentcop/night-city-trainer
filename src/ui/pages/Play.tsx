@@ -23,7 +23,23 @@ import { MyHand, PlayerSide } from '../components/board/Zones';
 import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
 import { AllActions, PromptPanel, headline } from '../components/board/PromptPanel';
 import { DRAWER_ID, LogDrawer, LogTab } from '../components/board/LogDrawer';
-import { ALL_ACTIONS_KEY, BOT_SPEEDS, LOG_OPEN_KEY, loadBotSpeed, normalizeBotSpeed, saveBotSpeed, useSessionFlag } from '../components/board/prefs';
+import { ALL_ACTIONS_KEY, BOT_SPEEDS, DEFAULT_BOT_SPEED, LOG_OPEN_KEY, loadBotSpeed, normalizeBotSpeed, saveBotSpeed, useSessionFlag } from '../components/board/prefs';
+import { SettingsDialog } from '../components/board/SettingsDialog';
+import { PayPrompt, PaySelector } from '../components/board/PayParts';
+import { useBoardSettings } from '../useBoardSettings';
+import {
+  addEddie,
+  automaticSelection,
+  clampSelection,
+  costOfAnswer,
+  EMPTY_SELECTION,
+  paySources,
+  payStatus,
+  planAnswer,
+  readyEddies,
+  type PayCost,
+  type PaySelection,
+} from '../../lib/eddiePayment';
 import { useViewport } from '../components/board/useNarrow';
 import { phoneLayout, phoneVars } from '../components/board/layout';
 import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
@@ -50,6 +66,8 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   const speedRef = useRef(speed);
   speedRef.current = speed;
   const { session, game, start: startMatch, undo, quit, concede } = usePracticeGame(() => speedRef.current);
+  const [settings, updateSettings, resetSettings] = useBoardSettings();
+  const [showSettings, setShowSettings] = useState(false);
   const dA = useMemo(() => findDeck(mine), [mine]);
   const dB = useMemo(() => findDeck(opp), [opp]);
 
@@ -64,21 +82,39 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
 
   if (!game) {
     return (
-      <PlaySetup
-        mine={mine}
-        setMine={setMine}
-        opp={opp}
-        setOpp={setOpp}
-        seat={seat}
-        setSeat={setSeat}
-        coach={coach}
-        setCoach={setCoach}
-        level={level}
-        setLevel={setLevel}
-        dA={dA}
-        dB={dB}
-        onStart={start}
-      />
+      <>
+        <PlaySetup
+          mine={mine}
+          setMine={setMine}
+          opp={opp}
+          setOpp={setOpp}
+          seat={seat}
+          setSeat={setSeat}
+          coach={coach}
+          setCoach={setCoach}
+          level={level}
+          setLevel={setLevel}
+          dA={dA}
+          dB={dB}
+          onStart={start}
+          onSettings={() => setShowSettings(true)}
+        />
+        {showSettings &&
+          createPortal(
+            <SettingsDialog
+              settings={settings}
+              onChange={updateSettings}
+              onReset={() => {
+                resetSettings();
+                setSpeed(DEFAULT_BOT_SPEED);
+              }}
+              speed={speed}
+              setSpeed={setSpeed}
+              onClose={() => setShowSettings(false)}
+            />,
+            document.body,
+          )}
+      </>
     );
   }
   return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} />;
@@ -155,6 +191,17 @@ function Board({
   const [peek, setPeek] = useState<{ uid: number; choose?: number; d: Decision | null } | null>(null);
   const [collapsedFor, setCollapsedFor] = useState<Decision | null>(null);
   const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
+  // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds
+  const [settings, updateSettings, resetSettings] = useBoardSettings();
+  const [showSettings, setShowSettings] = useState(false);
+  const payMode = settings.payMode;
+  const panelSet = settings.panel;
+  const panelHidden = panelSet.position === 'hidden';
+  // paying a cost by choice: the sources selected before playing ("Choose before"), the prompt for one cost (both
+  // modes), and the confirmed sources the engine's 'pay' decisions are answered from (planAnswer)
+  const [paySel, setPaySel] = useState<PaySelection>(EMPTY_SELECTION);
+  const [payAsk, setPayAsk] = useState<{ d: Decision; i: number; cost: PayCost; sel: PaySelection; finish: boolean } | null>(null);
+  const payPlan = useRef<PaySelection | null>(null);
   const coachApi = useCoach();
   const advise = coachApi.advise;
 
@@ -163,6 +210,9 @@ function Board({
     setHideOver(false);
     setReviewReq(null);
     setTrashOf(null);
+    setPaySel(EMPTY_SELECTION);
+    setPayAsk(null);
+    payPlan.current = null;
   }, [g]);
 
   // coach: ask the advisor bot what it would do in this spot
@@ -214,7 +264,10 @@ function Board({
     const t = setTimeout(() => setRefusal(null), 2600);
     return () => clearTimeout(t);
   }, [refusal]);
-  useEffect(() => setConfirm(null), [pend]);
+  useEffect(() => {
+    setConfirm(null);
+    setPayAsk(null);
+  }, [pend]);
   const [sortMode, setSortModeRaw] = useState<HandSort>(loadHandSort);
   const setSortMode = (m: HandSort) => {
     setSortModeRaw(m);
@@ -234,11 +287,11 @@ function Board({
   const mark = useMemo(() => coachMark(pend, activeHint?.i), [pend, activeHint]);
 
   /** Answer decision `d` (the one shown when the control was drawn); stale or invalid answers are ignored. */
-  const answerFor = useCallback(
-    (d: Decision | null, i: number) => {
+  const commit = useCallback(
+    (d: Decision | null, i: number): boolean => {
       setMenu(null);
       setTargeting(null);
-      if (!d || !human.answer(d, i)) return;
+      if (!d || !human.answer(d, i)) return false;
       // grade the move against the coach by value (only when the advice for this exact spot is ready)
       if (coach && activeHint && activeHint.d === d && d.options.length > 1) {
         const advice = activeHint.advice;
@@ -260,10 +313,63 @@ function Board({
           coachApi.score(d, i, advice).then(settle, () => settle([]));
         }
       }
+      return true;
     },
     [human, coach, activeHint, g, grades, coachApi, game.replay],
   );
+  /** Answer with these sources paying its cost: the engine's 'pay' decisions that follow are answered from them. */
+  const payAndCommit = useCallback(
+    (d: Decision, i: number, sel: PaySelection) => {
+      payPlan.current = sel;
+      setPaySel(EMPTY_SELECTION);
+      if (!commit(d, i)) payPlan.current = null;
+    },
+    [commit],
+  );
+  /**
+   * Every answer from the board goes through here. With Automatic payment (the default) it is just commit. Otherwise an
+   * option with a cost is held back until the sources are picked: "Choose before" plays at once when the selection pays
+   * the cost exactly and asks you to finish selecting when it doesn't; "Choose after" asks every time (Cancel: no play).
+   */
+  const answerFor = useCallback(
+    (d: Decision | null, i: number) => {
+      const cost = payMode !== 'auto' && d && human.pending?.d === d ? costOfAnswer(g, d, i) : null;
+      if (!d || !cost) {
+        commit(d, i);
+        return;
+      }
+      setMenu(null);
+      setTargeting(null);
+      const sources = paySources(g, d.player, cost);
+      if (payMode === 'before') {
+        const sel = clampSelection(paySel, sources);
+        if (payStatus(sel, cost.amount).exact) payAndCommit(d, i, sel);
+        else setPayAsk({ d, i, cost, sel, finish: true });
+        return;
+      }
+      setPayAsk({ d, i, cost, sel: automaticSelection(sources, cost.amount), finish: false });
+    },
+    [payMode, human, g, commit, paySel, payAndCommit],
+  );
+  // a confirmed selection answers the 'pay' decisions of its cost; anything else (or nothing left to give) ends it
+  useEffect(() => {
+    const plan = payPlan.current;
+    if (!plan || !pend) return;
+    const r = pend.kind === 'pay' ? planAnswer(pend, plan) : null;
+    if (!r) {
+      payPlan.current = null;
+      return;
+    }
+    payPlan.current = r.rest;
+    human.answer(pend, r.i);
+  }, [pend, human]);
   const answer = useCallback((i: number) => answerFor(pend, i), [answerFor, pend]);
+
+  // "Choose before": your selection, kept to what can still pay, while you can act (main phase or a reaction)
+  const selecting = payMode === 'before' && !!pend && (pend.kind === 'action' || pend.kind === 'reaction') && !targeting && s.winner === null;
+  const beforeSources = selecting ? paySources(g, 0) : null;
+  const beforeSel = beforeSources ? clampSelection(paySel, beforeSources) : null;
+  const paySelect = beforeSources && beforeSel ? <PaySelector sources={beforeSources} sel={beforeSel} onChange={setPaySel} /> : null;
 
   const ctx: BoardCtx = {
     g,
@@ -287,6 +393,7 @@ function Board({
     handOrder,
     marks,
     inspect: narrow ? (uid) => setPeek({ uid, d: null }) : undefined,
+    eddiePick: beforeSel && beforeSources ? { selected: beforeSel.eddies, add: () => setPaySel(addEddie(beforeSel, readyEddies(beforeSources))) } : undefined,
   };
 
   const over = s.winner !== null;
@@ -347,6 +454,12 @@ function Board({
   const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} /> : null;
   const lastMove = bot.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div> : null;
   const closeLog = useCallback(() => setLogOpen(false), [setLogOpen]);
+  // side panel setting: open it when the rival's turn starts
+  const rivalTurn = s.active === 1 && s.winner === null ? s.turn : null;
+  const autoOpen = panelSet.autoOpenRivalTurn && !panelHidden;
+  useEffect(() => {
+    if (autoOpen && rivalTurn !== null) setLogOpen(true);
+  }, [autoOpen, rivalTurn, setLogOpen]);
 
   const rootCls = [
     'pb',
@@ -359,7 +472,7 @@ function Board({
   ].join(' ');
 
   return (
-    <div className={rootCls} style={phone ? (phoneVars(phone) as React.CSSProperties) : undefined}>
+    <div className={rootCls} style={phone ? (phoneVars(phone) as React.CSSProperties) : undefined} data-board-bg={settings.boardBg} data-gig-bg={settings.gigBg}>
       {narrow ? (
         // phones: one row — the game menu, the turn, the log, Undo and Concede (speed, hand order, pages and Exit are in ☰)
         <div className="pb-topbar pb-strip-phone">
@@ -372,17 +485,19 @@ function Board({
             {s.overtime && <span className="pb-overtime">OT</span>}
           </div>
           <div className="pb-strip-tools">
-            <button
-              type="button"
-              className={`ghost pb-icon ${logOpen ? 'on' : ''}`}
-              aria-expanded={logOpen}
-              aria-controls={DRAWER_ID}
-              aria-label={warnings.length ? `Game log, ${warnings.length} coach warnings` : 'Game log'}
-              title="Game log"
-              onClick={() => setLogOpen(!logOpen)}
-            >
-              ≡{warnings.length > 0 && <span className="pb-icon-badge">{warnings.length}</span>}
-            </button>
+            {!panelHidden && (
+              <button
+                type="button"
+                className={`ghost pb-icon ${logOpen ? 'on' : ''}`}
+                aria-expanded={logOpen}
+                aria-controls={DRAWER_ID}
+                aria-label={warnings.length ? `Game log, ${warnings.length} coach warnings` : 'Game log'}
+                title="Game log"
+                onClick={() => setLogOpen(!logOpen)}
+              >
+                ≡{warnings.length > 0 && <span className="pb-icon-badge">{warnings.length}</span>}
+              </button>
+            )}
             <button type="button" className="pb-icon" onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Undo: back to before your last action">
               ↶
             </button>
@@ -420,7 +535,7 @@ function Board({
               Log{warnings.length > 0 ? ` ⚠${warnings.length}` : ''}
             </button>
           ) : (
-            <LogTab log={s.log} open={logOpen} onToggle={setLogOpen} warnings={warnings.length} />
+            !panelHidden && <LogTab log={s.log} open={logOpen} onToggle={setLogOpen} warnings={warnings.length} side={panelSet.position} />
           )}
           <label className="pb-speed small muted">
             <span className="pb-speed-cap">Bot speed</span>
@@ -432,6 +547,9 @@ function Board({
               ))}
             </select>
           </label>
+          <button type="button" className="ghost pb-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings: paying costs, the log panel, colours and backgrounds">
+            ⚙
+          </button>
           <button onClick={onUndo} disabled={!undoable} title="Go back to before your last action (also undoes the bot's moves since)">
             ↶ Undo
           </button>
@@ -477,6 +595,7 @@ function Board({
                   {handAction}
                   {sortButton}
                 </div>
+                {paySelect}
                 {allActions}
                 <PromptPanel ctx={ctx} why={activeHint?.why} hidePass />
               </section>
@@ -489,6 +608,7 @@ function Board({
             state={panel}
             why={activeHint?.why}
             allActions={allActions}
+            paySelect={paySelect}
             onPeek={(uid, choose) => setPeek({ uid, choose, d: pend })}
             onCollapse={() => (pend?.kind === 'action' && !targeting ? setAllOpen(false) : setCollapsedFor(pend))}
             onExpand={() => {
@@ -497,7 +617,7 @@ function Board({
             }}
           />
         )}
-        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} />
+        <LogDrawer log={s.log} n={s.log.length} open={logOpen} sheet={narrow} onClose={closeLog} coach={coachPanel} footer={lastMove} panel={panelSet} />
       </div>
       {navOpen && (
         <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
@@ -530,7 +650,41 @@ function Board({
               onExit={over ? onQuit : () => openLeave('exit')}
               exitLabel={over ? 'New game' : 'Exit game'}
               onExport={over ? exportGame : undefined}
+              onSettings={() => setShowSettings(true)}
               onClose={() => setGameMenu(false)}
+            />
+          )}
+          {payAsk && (
+            <PayPrompt
+              title={`${payAsk.finish ? 'Finish selecting: pay' : 'Pay'} ${payAsk.cost.amount} €$ for ${payAsk.cost.what}`}
+              amount={payAsk.cost.amount}
+              sources={paySources(g, payAsk.d.player, payAsk.cost)}
+              sel={payAsk.sel}
+              onChange={(sel) => setPayAsk((a) => (a ? { ...a, sel } : a))}
+              onConfirm={() => {
+                setPayAsk(null);
+                payAndCommit(payAsk.d, payAsk.i, payAsk.sel);
+              }}
+              onCancel={() => {
+                // nothing was played; in "Choose before" the selection made in the prompt stays for the next try
+                if (payAsk.finish) setPaySel(payAsk.sel);
+                setPayAsk(null);
+              }}
+              side={narrow}
+            />
+          )}
+          {showSettings && (
+            <SettingsDialog
+              settings={settings}
+              onChange={updateSettings}
+              onReset={() => {
+                resetSettings();
+                setSpeed(DEFAULT_BOT_SPEED);
+              }}
+              speed={speed}
+              setSpeed={setSpeed}
+              panels={{ logOpen, setLogOpen, allOpen, setAllOpen }}
+              onClose={() => setShowSettings(false)}
             />
           )}
           {refusal && (

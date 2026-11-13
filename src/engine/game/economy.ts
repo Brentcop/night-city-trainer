@@ -59,8 +59,23 @@ export function available(game: Game, p: PlayerId): number {
  */
 export async function pay(game: Game, p: PlayerId, amount: number, exclude: number[] = [], what = 'a cost', order: { first?: number[]; last?: number[] } = {}): Promise<boolean> {
   if (amount <= 0) return true;
-  const srcs = game.payables(p).filter((c) => !exclude.includes(c.uid));
+  const srcs = paySourceOrder(game, p, exclude, order);
   if (srcs.length < amount) return false;
+  const chosen = game.agents[p]?.choosesPayment ? await choosePayment(game, p, srcs, amount, what) : srcs.slice(0, amount);
+  game.telemetry?.paid(game, p, chosen);
+  for (const c of chosen) {
+    c.spent = true;
+    if (c.zone === 'legends') game.emit('spent', { uid: c.uid, cause: 'pay' });
+  }
+  return true;
+}
+
+/**
+ * The ready sources that may pay a cost, in the order automatic payment spends them (see pay). Read-only: the Play
+ * board's payment prompt shows it, and its first `amount` sources are what Automatic would spend.
+ */
+export function paySourceOrder(game: Game, p: PlayerId, exclude: number[] = [], order: { first?: number[]; last?: number[] } = {}): CardInst[] {
+  const srcs = game.payables(p).filter((c) => !exclude.includes(c.uid));
   const score = (c: CardInst) => {
     if (order.first?.includes(c.uid)) return -1;
     if (order.last?.includes(c.uid)) return 9;
@@ -71,13 +86,7 @@ export async function pay(game: Game, p: PlayerId, amount: number, exclude: numb
     return sc.abilities?.some((a) => a.spend) ? 4 : 3;
   };
   srcs.sort((a, b) => score(a) - score(b));
-  const chosen = game.agents[p]?.choosesPayment ? await choosePayment(game, p, srcs, amount, what) : srcs.slice(0, amount);
-  game.telemetry?.paid(game, p, chosen);
-  for (const c of chosen) {
-    c.spent = true;
-    if (c.zone === 'legends') game.emit('spent', { uid: c.uid, cause: 'pay' });
-  }
-  return true;
+  return srcs;
 }
 
 /** Let the paying player pick `amount` of the (already sorted) sources, asking only while the choice is real. */

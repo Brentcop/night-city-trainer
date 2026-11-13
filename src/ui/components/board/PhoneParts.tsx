@@ -50,7 +50,10 @@ export function PhonePanel({
   onExpand,
   onPeek,
   allActions,
+  paySelect,
 }: {
+  /** "Choose before playing": the "Pay with" row, shown in your main phase and reactions */
+  paySelect?: React.ReactNode;
   ctx: BoardCtx;
   state: PanelState;
   why?: string;
@@ -135,6 +138,7 @@ export function PhonePanel({
         </div>
       )}
       {body}
+      {!targeting && (pend.kind === 'action' || pend.kind === 'reaction') && paySelect}
       {allActions}
     </aside>
   );
@@ -151,6 +155,7 @@ export function GameMenu({
   exitLabel,
   onResult,
   onExport,
+  onSettings,
   onClose,
 }: {
   speed: number;
@@ -163,6 +168,8 @@ export function GameMenu({
   onResult?: () => void;
   /** after the game: save it as a file with the coach's advice (INFO-9) */
   onExport?: () => void;
+  /** the board settings dialog (paying costs, side panel, colours, backgrounds) */
+  onSettings?: () => void;
   onClose: () => void;
 }) {
   const id = useId();
@@ -194,6 +201,11 @@ export function GameMenu({
         <button role="menuitem" onClick={onSort} title="Sort your hand (or drag a card onto another to reorder)">
           ⇅ Hand: {sortLabel}
         </button>
+        {onSettings && (
+          <button role="menuitem" onClick={run(onSettings)}>
+            ⚙ Settings…
+          </button>
+        )}
         {onExport && (
           <button role="menuitem" onClick={run(onExport)}>
             ⤓ Export game

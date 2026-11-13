@@ -23,6 +23,13 @@
         }
         apply();
         if (mq && mq.addEventListener) mq.addEventListener('change', apply);
+        // the accent colours from the board settings (src/lib/boardSettings.ts); src/ui/useBoardSettings.ts changes them
+        try {
+          var bs = JSON.parse(localStorage.getItem('nct.boardSettings.v1') || 'null');
+          if (bs && typeof bs.accent === 'string' && /^[a-z]+$/.test(bs.accent) && bs.accent !== 'yellow') root.setAttribute('data-accent', bs.accent);
+        } catch (e) {
+          /* no settings, or storage blocked */
+        }
       })();
     </script>
     <meta name="description" content="Unofficial Cyberpunk TCG practice simulator: deck builder, meta, guides, bot battles and matchup lab." />

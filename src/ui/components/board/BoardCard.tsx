@@ -37,6 +37,11 @@ export interface BoardCtx {
    * reads any card without acting.
    */
   inspect?: (uid: number) => void;
+  /**
+   * "Choose before playing" (board settings): how many of your ready Eddies are selected to pay the next cost (your
+   * first ones, as Eddies are interchangeable), and a tap on your €$ pile that selects one more.
+   */
+  eddiePick?: { selected: number; add: () => void };
 }
 
 /** How long a touch must stay put to read a card instead of tapping it (ms). */

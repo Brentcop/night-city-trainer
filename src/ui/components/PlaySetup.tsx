@@ -31,6 +31,7 @@ export function PlaySetup({
   dA,
   dB,
   onStart,
+  onSettings,
 }: {
   mine: string;
   setMine: (file: string) => void;
@@ -45,6 +46,8 @@ export function PlaySetup({
   dA: LibraryDeck | undefined;
   dB: LibraryDeck | undefined;
   onStart: () => void;
+  /** open the board settings (paying costs, side panel, colours, backgrounds, bot speed) */
+  onSettings?: () => void;
 }) {
   return (
     <div className="grid" style={{ maxWidth: 860 }}>
@@ -92,6 +95,11 @@ export function PlaySetup({
           <button className="primary" onClick={onStart} disabled={!mine || !opp}>
             Start game
           </button>
+          {onSettings && (
+            <button type="button" onClick={onSettings}>
+              ⚙ Settings
+            </button>
+          )}
           <a href="#/guides">Read the matchup guide first →</a>
         </div>
       </div>
