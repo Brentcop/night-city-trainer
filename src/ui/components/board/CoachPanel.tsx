@@ -4,6 +4,7 @@ import { memo } from 'react';
 import type { Game } from '../../../engine/engine';
 import type { Advice, MoveGrade } from '../../../ai/coach';
 import { Markdown } from '../Markdown';
+import { coachSummary } from '../../../lib/practiceLog';
 
 export const NO_ALTS: Advice['alternatives'] = [];
 
@@ -64,15 +65,14 @@ const isCostly = (g: MoveGrade) => g.verdict === 'inaccuracy' || g.verdict === '
 export function Scorecard({ grades }: { grades: MoveGrade[] }) {
   if (!grades.length) return null;
   const measured = grades.filter((x) => isFine(x) || isCostly(x));
-  const fine = measured.filter(isFine).length;
+  // the same numbers the practice log keeps for the profile (src/lib/practiceLog.ts coachSummary)
+  const { fine, pct, grade } = coachSummary(grades)!;
   const close = grades.filter((x) => x.verdict === 'close').length;
   const other = grades.length - measured.length;
-  const pct = measured.length ? Math.round((100 * fine) / measured.length) : 100;
   const costly = measured
     .filter(isCostly)
     .sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0))
     .slice(0, 3);
-  const grade = pct >= 85 ? 'A' : pct >= 70 ? 'B' : pct >= 55 ? 'C' : 'D';
   return (
     <div className="scorecard">
       <div className={`scorecard-grade g-${grade}`} aria-label={`Grade ${grade}`}>

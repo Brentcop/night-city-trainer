@@ -30,6 +30,10 @@ export interface LibraryDeck {
   manifest?: RunManifest;
   /** a Deck Lab tuned list's record (src/lib/tuneRecord.ts), custom decks only */
   tuned?: import('./tuneRecord').TunedDeckRecord;
+  /** custom decks: when first saved in this browser (ISO), if known */
+  added?: string;
+  /** custom decks from the deck editor: imported or built here, if known */
+  saved?: 'imported' | 'created';
 }
 
 /**

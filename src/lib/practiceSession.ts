@@ -245,6 +245,7 @@ function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
     first: st.first === 0,
     turns: st.turn,
     reason: st.winReason,
+    gigs: [st.players[0].gigs.length, st.players[1].gigs.length],
     ...(replay.conceded ? { conceded: true } : {}),
   };
 }

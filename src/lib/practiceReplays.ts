@@ -31,7 +31,8 @@ export interface PracticeReplay {
    */
   conceded?: boolean;
 }
-const KEY = 'nct.practiceReplays.v1';
+export const REPLAYS_KEY = 'nct.practiceReplays.v1';
+const KEY = REPLAYS_KEY;
 const MAX = 25;
 
 const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string');
@@ -97,6 +98,15 @@ export function saveReplay(r: PracticeReplay) {
     localStorage.setItem(KEY, JSON.stringify(all.slice(-MAX)));
   } catch {
     /* storage full or blocked */
+  }
+}
+
+/** Remove every recorded replay (the practice log is cleared apart: src/lib/practiceLog.ts clearPractice). */
+export function clearReplays() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
   }
 }
 

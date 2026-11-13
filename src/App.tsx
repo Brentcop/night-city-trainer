@@ -54,8 +54,11 @@ const RatingsPage = lazy(() => import('./ui/pages/Ratings').then((m) => ({ defau
 const TournamentRunnerPage = lazy(() => import('./ui/pages/TournamentRunner').then((m) => ({ default: m.TournamentRunnerPage })));
 const TunedDecksPage = lazy(() => import('./ui/pages/TunedDecks').then((m) => ({ default: m.TunedDecksPage })));
 const DeckLabPage = lazy(() => import('./ui/pages/DeckLab').then((m) => ({ default: m.DeckLabPage })));
+const ProfilePage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfilePage })));
+const ProfileViewPage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfileViewPage })));
 
-const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.ReactNode }[] = [
+/** `sub` is the rest of the path after the route's own (`#/profile/history` → 'history'); most pages ignore it. */
+const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: string) => React.ReactNode }[] = [
   { path: 'home', label: 'Home', el: () => <Home /> },
   { path: 'decks', label: 'All decks', el: (q) => <DecksPage initial={q.get('d') ?? undefined} query={q.toString()} /> },
   { path: 'tuned', label: 'Tuned decks', el: () => <TunedDecksPage /> },
@@ -73,7 +76,12 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams) => React.R
   { path: 'glossary', label: 'Glossary', el: () => <GlossaryPage /> },
   { path: 'insights', label: 'Card stats', el: (q) => <InsightsPage initial={q.get('d') ?? undefined} /> },
   { path: 'credits', label: 'Credits', el: () => <CreditsPage /> },
+  { path: 'profile', label: 'Profile', el: (_q, sub) => <ProfilePage sub={sub} /> },
+  { path: 'u', label: 'Shared profile', el: (_q, sub) => <ProfileViewPage payload={sub} /> },
 ];
+
+/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`); every other route matches its path exactly. */
+const NESTED = new Set(['profile', 'u']);
 
 /** Top-level sections; each lists its pages (first = landing page). Pages not listed in `sub` don't show in the sub-menu. */
 const SECTIONS: { label: string; icon: string; pages: string[]; sub?: string[] }[] = [
@@ -82,6 +90,7 @@ const SECTIONS: { label: string; icon: string; pages: string[]; sub?: string[] }
   { label: 'Play', icon: '▶', pages: ['play'] },
   { label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], sub: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'] },
   { label: 'Learn', icon: '♟', pages: ['guides', 'cards', 'glossary', 'insights', 'credits'], sub: ['guides', 'cards', 'glossary', 'insights', 'credits'] },
+  { label: 'Profile', icon: '◉', pages: ['profile', 'u'] },
 ];
 
 function parseHash(): [string, URLSearchParams] {
@@ -125,7 +134,10 @@ export function App() {
       document.removeEventListener('click', onClick);
     };
   }, []);
-  const route = ROUTES.find((r) => r.path === path);
+  const slash = path.indexOf('/');
+  const base = slash > 0 && NESTED.has(path.slice(0, slash)) ? path.slice(0, slash) : path;
+  const sub = base === path ? '' : path.slice(slash + 1);
+  const route = ROUTES.find((r) => r.path === base);
   const section = route && SECTIONS.find((sec) => sec.pages.includes(route.path));
   const qs = q.toString(); // the effect re-runs when the query changes, compared as a string
   useEffect(() => {
@@ -171,9 +183,10 @@ export function App() {
           ))}
         </nav>
       )}
-      <main className="main" key={path + q.toString()}>
+      {/* a sub-path change (#/profile → #/profile/history) keeps the page mounted, so its tabs keep focus */}
+      <main className="main" key={base + q.toString()}>
         <Boundary>
-          <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>{route ? route.el(q) : <NotFound path={path} />}</Suspense>
+          <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>{route ? route.el(q, sub) : <NotFound path={path} />}</Suspense>
         </Boundary>
       </main>
       <footer className="footer">

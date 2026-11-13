@@ -26,7 +26,14 @@ const isManifest = (v: unknown): v is RunManifest => !!v && typeof v === 'object
  * its tuning record (src/lib/tuneRecord.ts: original and final list ids, each adopted change, the final list against
  * the original, the rule, field, bot and date).
  */
-export type StoredDeck = DeckList & { manifest?: RunManifest; tuned?: TunedDeckRecord };
+export type StoredDeck = DeckList & {
+  manifest?: RunManifest;
+  tuned?: TunedDeckRecord;
+  /** when it was first saved here (ISO); decks saved before this was kept lack it */
+  added?: string;
+  /** how a deck saved from the deck editor began: pasted in as an import, or built here (unknown for older saves) */
+  origin?: 'imported' | 'created';
+};
 
 /** A stored entry as a DeckList, or null if its shape is wrong. A missing sideboard (older saves) counts as empty. */
 export function toDeck(v: unknown): StoredDeck | null {
@@ -39,6 +46,8 @@ export function toDeck(v: unknown): StoredDeck | null {
   if (typeof o.notes === 'string') deck.notes = o.notes;
   if (isManifest(o.manifest)) deck.manifest = o.manifest;
   if (isTunedRecord(o.tuned)) deck.tuned = o.tuned;
+  if (typeof o.added === 'string' && !Number.isNaN(Date.parse(o.added))) deck.added = o.added;
+  if (o.origin === 'imported' || o.origin === 'created') deck.origin = o.origin;
   return deck;
 }
 
@@ -70,13 +79,15 @@ function readStored(): StoredDeck[] {
 }
 
 export function loadCustom(): LibraryDeck[] {
-  return readStored().map(({ manifest, tuned, ...deck }) => ({
+  return readStored().map(({ manifest, tuned, added, origin, ...deck }) => ({
     file: `custom:${deck.name}`,
     deck,
     kind: 'custom' as const,
     prov: { origin: 'My deck (saved in this browser)', source: deck.source },
     ...(manifest ? { manifest } : {}),
     ...(tuned ? { tuned } : {}),
+    ...(added ? { added } : {}),
+    ...(origin ? { saved: origin } : {}),
   }));
 }
 
@@ -110,8 +121,13 @@ export function saveCustom(decks: StoredDeck[]): boolean {
 
 /** Save a custom deck, replacing any with the same name (and that deck's manifest). Returns false if it could not be saved. */
 export function upsertCustom(deck: StoredDeck): boolean {
-  const all = readStored().filter((d) => d.name !== deck.name);
-  all.push(deck);
+  const stored = readStored();
+  const prev = stored.find((d) => d.name === deck.name);
+  const all = stored.filter((d) => d.name !== deck.name);
+  // a deck saved again keeps when it was first added and how it began
+  const added = deck.added ?? prev?.added ?? new Date().toISOString();
+  const origin = deck.origin ?? prev?.origin;
+  all.push({ ...deck, added, ...(origin ? { origin } : {}) });
   return saveCustom(all);
 }
 
@@ -155,7 +171,8 @@ export function restoreCustom(removed: readonly Removed[]): boolean {
 
 /** Add decks to the stored list in one write (an import). Returns false if the change could not be saved. */
 export function addCustomDecks(decks: readonly StoredDeck[]): boolean {
-  return saveCustom([...readStored(), ...decks]);
+  const now = new Date().toISOString();
+  return saveCustom([...readStored(), ...decks.map((d) => (d.added ? d : { ...d, added: now }))]);
 }
 
 /**

@@ -12,9 +12,48 @@ export interface PracticeGame {
   reason: string;
   /** you conceded this game (always a 'loss') */
   conceded?: boolean;
+  /** Gigs held at the end, [yours, the bot's] (games recorded before this was kept lack it) */
+  gigs?: [number, number];
+  /** the coach's end-of-game scorecard, when the coach was on and measured at least one move */
+  coach?: CoachSummary;
 }
-const KEY = 'nct.practice.v1';
+
+/** The scorecard in numbers: moves the coach measured, how many were fine, and the letter grade. */
+export interface CoachSummary {
+  fine: number;
+  measured: number;
+  grade: 'A' | 'B' | 'C' | 'D';
+}
+
+export const PRACTICE_KEY = 'nct.practice.v1';
+const KEY = PRACTICE_KEY;
 const RESULTS = new Set(['win', 'loss', 'draw']);
+const GRADES = new Set(['A', 'B', 'C', 'D']);
+
+/** The letter for a share of fine moves (the end-of-game scorecard's bands). */
+export const gradeFor = (pct: number): CoachSummary['grade'] => (pct >= 85 ? 'A' : pct >= 70 ? 'B' : pct >= 55 ? 'C' : 'D');
+
+/**
+ * The scorecard of a game's graded moves: fine = the coach's pick, as good, or a close call; costly = an inaccuracy or a
+ * mistake; anything else (choices the coach can't value) is not measured. Null when nothing was graded.
+ */
+export function coachSummary(grades: readonly { verdict: string }[]): (CoachSummary & { pct: number }) | null {
+  if (!grades.length) return null;
+  const fineV = new Set(['agree', 'best', 'close']);
+  const costlyV = new Set(['inaccuracy', 'mistake']);
+  const measured = grades.filter((g) => fineV.has(g.verdict) || costlyV.has(g.verdict));
+  const fine = measured.filter((g) => fineV.has(g.verdict)).length;
+  const pct = measured.length ? Math.round((100 * fine) / measured.length) : 100;
+  return { fine, measured: measured.length, grade: gradeFor(pct), pct };
+}
+
+const count = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0;
+function toCoach(x: unknown): CoachSummary | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  if (!count(o.fine) || !count(o.measured) || o.fine > o.measured || typeof o.grade !== 'string' || !GRADES.has(o.grade)) return null;
+  return { fine: o.fine, measured: o.measured, grade: o.grade as CoachSummary['grade'] };
+}
 
 /** A stored entry is usable if it has a deck pair and a result; missing optional fields get defaults. */
 function toEntry(x: unknown): PracticeGame | null {
@@ -32,6 +71,8 @@ function toEntry(x: unknown): PracticeGame | null {
     turns: typeof o.turns === 'number' ? o.turns : 0,
     reason: typeof o.reason === 'string' ? o.reason : '',
     ...(o.conceded === true ? { conceded: true } : {}),
+    ...(Array.isArray(o.gigs) && o.gigs.length === 2 && o.gigs.every(count) ? { gigs: [o.gigs[0], o.gigs[1]] as [number, number] } : {}),
+    ...(toCoach(o.coach) ? { coach: toCoach(o.coach)! } : {}),
   };
 }
 
@@ -60,6 +101,18 @@ export function recordPractice(g: PracticeGame) {
     const all = loadPractice().filter((x) => !g.id || x.id !== g.id);
     all.push(g);
     localStorage.setItem(KEY, JSON.stringify(all.slice(-500)));
+  } catch {
+    /* ignore */
+  }
+}
+/** Add the coach's scorecard to a recorded game (by its id). Does nothing when that game isn't in the log. */
+export function annotatePractice(id: string, coach: CoachSummary) {
+  try {
+    const all = loadPractice();
+    const at = all.findIndex((x) => x.id === id);
+    if (at < 0) return;
+    all[at] = { ...all[at]!, coach: { fine: coach.fine, measured: coach.measured, grade: coach.grade } };
+    localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
     /* ignore */
   }

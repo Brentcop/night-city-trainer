@@ -101,7 +101,10 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
   useEffect(() => syncUrl(sel), [sel]);
 
   const discardOk = () => !dirty || window.confirm('You have unsaved changes to this deck. Discard them?');
+  // the draft came from an import (recorded with the saved deck, for the profile's "My decks")
+  const [imported, setImported] = useState(false);
   const load = (file: string, deck: DeckList) => {
+    setImported(false);
     setSel(file);
     setDraft(structuredClone(deck));
     setBaseline(deckSig(deck));
@@ -119,6 +122,7 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
     if (!discardOk()) return;
     const { deck, errors } = parseDeck(importText, 'Imported deck');
     setDraft(deck);
+    setImported(true);
     setSel('');
     setBaseline(deckSig(EMPTY_DECK())); // an import is unsaved work until it is saved
     setImportMsg(errors.length ? `Imported with ${errors.length} unrecognized line(s): ${errors.slice(0, 5).join(' | ')}` : `Imported "${deck.name}".`);
@@ -133,7 +137,9 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
       return;
     }
     const deck = { ...draft, name };
-    if (!upsertCustom(deck)) {
+    // a deck saved again keeps how it began (upsertCustom); a new one is an import or built here
+    const known = decks.some((d) => d.file === `custom:${name}`);
+    if (!upsertCustom(imported ? { ...deck, origin: 'imported' } : known ? deck : { ...deck, origin: 'created' })) {
       setImportMsg('Not saved: this browser’s storage is full or blocked. Export the list to keep it.');
       return;
     }

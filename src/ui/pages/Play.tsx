@@ -4,6 +4,7 @@ import type { Decision, DeckList, PlayerId } from '../../engine/types';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
 import { practiceRequest, reviewExpect } from '../../lib/practiceReplays';
+import { annotatePractice, coachSummary } from '../../lib/practiceLog';
 import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
 import { download } from '../../lib/download';
 import { GIG_SWING } from '../../ai/eval';
@@ -509,6 +510,12 @@ function Board({
 
   const over = s.winner !== null;
   const failed = game.error;
+  // the scorecard goes into the practice log with the game (the profile's coach averages read it)
+  useEffect(() => {
+    if (!over || !coach) return;
+    const sum = coachSummary(grades);
+    if (sum && sum.measured > 0) annotatePractice(game.replay.id, sum);
+  }, [over, coach, grades, grades.length, game.replay.id]);
   // a game can be saved once you have been asked something, until it ends
   const savable = canSave && !over && !failed && !game.cancelled && !!game.stable;
   const openSave = () => {
