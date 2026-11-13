@@ -80,8 +80,16 @@ function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
 function EddiePile({ p, ctx, row }: { p: PlayerId; ctx: BoardCtx; row?: boolean }) {
   const { g } = ctx;
   const P = g.P(p);
-  const ready = P.eddies.filter((u) => g.s.cards[u] && !g.s.cards[u].spent).length;
-  const total = P.eddies.length;
+  // the €$ figure counts everything that can pay: Eddies, and the Legends in the Legends area (1 €$ each)
+  const readyEddies = P.eddies.filter((u) => g.s.cards[u] && !g.s.cards[u].spent).length;
+  const ready = g.payables(p).length;
+  // a face-up Legend pays only if it is sellable (economy.ts payables)
+  const payLegends = P.legends.filter((u) => {
+    const c = g.s.cards[u];
+    return c && (!c.faceUp || g.def(c).sellable);
+  }).length;
+  const total = P.eddies.length + payLegends;
+  const split = `${readyEddies} of ${P.eddies.length} Eddies and ${ready - readyEddies} of ${payLegends} Legends ready`;
   // paying a cost: clicking your Eddie pile spends an Eddie
   const payEddie = p === 0 && ctx.pend?.kind === 'pay' ? ctx.pend.options.findIndex((o) => o.key === 'eddie') : -1;
   // "Choose before playing": a tap on your €$ pile selects one more Eddie for the next cost
@@ -100,12 +108,12 @@ function EddiePile({ p, ctx, row }: { p: PlayerId; ctx: BoardCtx; row?: boolean 
           data-drop={p === 0 ? 'sell' : undefined}
           title={
             payEddie >= 0
-              ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.`
+              ? `€$ ${ready} ready of ${total} (${split}). Click to spend an Eddie.`
               : pick
-                ? `Eddies: ${ready} ready of ${total}, ${pick.selected} selected to pay. Click to select one more.`
+                ? `€$ ${ready} ready of ${total} (${split}), ${pick.selected} selected to pay. Click to select one more.`
                 : p === 0
-                  ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.`
-                  : `Eddies: ${ready} ready of ${total}`
+                  ? `€$ ${ready} ready of ${total} (${split}). Drag a card here to sell it.`
+                  : `€$ ${ready} ready of ${total} (${split})`
           }
           onClick={onPile}
           {...pressable(onPile, payEddie >= 0 ? 'Spend an Eddie' : `Select an Eddie to pay with (${pick?.selected ?? 0} selected)`)}
@@ -122,8 +130,8 @@ function EddiePile({ p, ctx, row }: { p: PlayerId; ctx: BoardCtx; row?: boolean 
                     <CardBack size="xs" label="€$" />
                   </span>
                 ))}
-                {total > marks.length && <span className="pb-eddie-more">+{total - marks.length}</span>}
-                {!total && <span className="pb-eddie-none">{p === 0 ? 'sell a card for an Eddie' : 'no Eddies'}</span>}
+                {P.eddies.length > marks.length && <span className="pb-eddie-more">+{P.eddies.length - marks.length}</span>}
+                {!P.eddies.length && <span className="pb-eddie-none">{p === 0 ? 'sell a card for an Eddie' : 'no Eddies'}</span>}
               </div>
             </>
           ) : (
