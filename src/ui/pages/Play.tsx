@@ -18,7 +18,7 @@ import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
 import { useSynergyReport } from '../synergyReport';
 import { seatLift } from '../../ai/packageLift';
-import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
+import { boardWarnings, coachWorthAsking, gradeMove, scorable, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, onlyEndTurn, type Targeting } from '../components/board/interaction';
@@ -65,7 +65,8 @@ import {
   type SavedGame,
 } from '../../lib/savedGames';
 import { ConfirmDialog, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
-import { CoachPanel, MoveToast, NO_ALTS, Scorecard } from '../components/board/CoachPanel';
+import { CoachPanel, MoveToast, NO_ALTS, Scorecard, type CoachNote } from '../components/board/CoachPanel';
+import { shownLabel } from '../../lib/coachWords';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
 import { OngoingGames } from '../components/OngoingGames';
 import { useSiteConfig } from '../useSiteConfig';
@@ -525,6 +526,11 @@ export function Board({
   const [hint, setHint] = useState<{ d: Decision; i: number; why: string; alts: Advice['alternatives']; advice: Advice } | null>(null);
   const [review, setReview] = useState<GameReviewSource | null>(null);
   const [toast, setToast] = useState<MoveGrade | null>(null);
+  // the decision whose advice failed (the coach declined: no 'thinking…' for it), and a bump when a late score lands
+  const [adviceFailed, setAdviceFailed] = useState<Decision | null>(null);
+  const [gradeTick, setGradeTick] = useState(0);
+  // games where you were told once that a move made before the advice arrived is not graded (COACH-8)
+  const earlyNoted = useRef(new Set<string>());
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4500);
@@ -584,15 +590,18 @@ export function Board({
 
   // coach: ask the advisor bot what it would do in this spot
   useEffect(() => {
-    // nothing to advise when ending the turn is the only option left (a forced decision: not graded either)
-    if (!pend || !coach || !coachAdvises(pend) || onlyEndTurn(pend)) return;
+    // nothing to advise for a one-option decision (ending the turn when nothing else is left: forced, not graded either)
+    if (!pend || !coach || !coachWorthAsking(pend) || onlyEndTurn(pend)) return;
     let alive = true;
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend, lift0)
       .then((a) => {
         if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives, advice: a });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        // the coach declined (or its worker failed): stop saying it is thinking; a superseded request is not alive
+        if (alive) setAdviceFailed(pend);
+      });
     return () => {
       alive = false;
     };
@@ -652,6 +661,12 @@ export function Board({
     },
   });
   const activeHint = hint && hint.d === pend ? hint : null;
+  // what the coach box shows besides the pick: the reason, the best other option, or 'thinking…' while advice is on its way
+  const coachNote = useMemo<CoachNote | undefined>(() => {
+    if (!coach || !pend || !coachWorthAsking(pend) || onlyEndTurn(pend)) return undefined;
+    if (activeHint) return { why: activeHint.why, ...(activeHint.alts[0] ? { next: activeHint.alts[0] } : {}) };
+    return { thinking: adviceFailed !== pend };
+  }, [coach, pend, activeHint, adviceFailed]);
   const mark = useMemo(() => coachMark(pend, activeHint?.i), [pend, activeHint]);
 
   /** Answer decision `d` (the one shown when the control was drawn); stale or invalid answers are ignored. */
@@ -660,8 +675,13 @@ export function Board({
       setMenu(null);
       setTargeting(null);
       if (!d || !human.answer(d, i)) return false;
+      // a move made before the advice arrived can't be graded: say so once a game, plainly, instead of nothing
+      if (coach && coachWorthAsking(d) && scorable(d) && !(activeHint && activeHint.d === d) && adviceFailed !== d && !earlyNoted.current.has(game.replay.id)) {
+        earlyNoted.current.add(game.replay.id);
+        setNotice('That move was made before the coach had finished thinking, so it is not graded. A move is graded once the coach’s pick shows.');
+      }
       // grade the move against the coach by value (only when the advice for this exact spot is ready)
-      if (coach && activeHint && activeHint.d === d && d.options.length > 1) {
+      if (coach && activeHint && activeHint.d === d && coachWorthAsking(d)) {
         const advice = activeHint.advice;
         // this answer's place among the recorded choices (the recorder adds it once the answer settles)
         const at = game.replay.choices.length;
@@ -677,13 +697,15 @@ export function Board({
             const done = coachedGrade(d, i, advice, gradeMove(d, i, advice, gr.turn, extra), at, extra);
             grades[k] = done;
             setToast((t) => (t === gr ? done : t));
+            // the game-over effect (practice log, stored coach grades) and the scorecard must see the finished grade
+            setGradeTick((x) => x + 1);
           };
           coachApi.score(d, i, advice).then(settle, () => settle([]));
         }
       }
       return true;
     },
-    [human, coach, activeHint, g, grades, coachApi, game.replay],
+    [human, coach, activeHint, adviceFailed, g, grades, coachApi, game.replay],
   );
   /** Answer with these sources paying its cost: the engine's 'pay' decisions that follow are answered from them. */
   const payAndCommit = useCallback(
@@ -774,7 +796,7 @@ export function Board({
     if (sum && sum.measured > 0) annotatePractice(game.replay.id, sum);
     // the coach's grades go with the game, so a Game review run later (from the Profile) keeps them
     saveCoachRatings(game.replay.id, coachRatingsFrom(grades.map((x) => x.record), game.replay.choices.length, GIG_SWING), game.replay.choices);
-  }, [over, coach, grades, grades.length, game.replay.id, game.replay.choices]);
+  }, [over, coach, grades, grades.length, gradeTick, game.replay.id, game.replay.choices]);
   const onlineReview = online && over ? online.review() : null;
   const openReview = () => {
     setHideOver(true);
@@ -847,7 +869,7 @@ export function Board({
   );
   const allActions = <AllActions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} open={allOpen} onToggle={setAllOpen} />;
   const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} /> : null;
-  const lastMove = bot?.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, '')}</div> : null;
+  const lastMove = bot?.lastThought ? <div className="small muted pb-lastmove">Bot's last move: {shownLabel(bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, ''))}</div> : null;
   const closeLog = useCallback(() => setLogOpen(false), [setLogOpen]);
   // online: the chat shares the side panel; its unread count shows on the panel's toggle while it is closed
   const chat = online?.chat;
@@ -1011,7 +1033,7 @@ export function Board({
                 </div>
                 {paySelect}
                 {allActions}
-                <PromptPanel ctx={ctx} why={activeHint?.why} hidePass />
+                <PromptPanel ctx={ctx} note={coachNote} hidePass />
               </section>
             )}
           </div>
@@ -1020,7 +1042,7 @@ export function Board({
           <PhonePanel
             ctx={ctx}
             state={panel}
-            why={activeHint?.why}
+            note={coachNote}
             allActions={allActions}
             paySelect={paySelect}
             onPeek={(uid, choose) => setPeek({ uid, choose, d: pend })}
@@ -1163,7 +1185,7 @@ export function Board({
         />
       )}
       {trashOf !== null && <TrashModal g={g} p={trashOf} onClose={() => setTrashOf(null)} />}
-      {mulligan && !over && !failed && <MulliganScreen ctx={ctx} why={activeHint?.why} />}
+      {mulligan && !over && !failed && <MulliganScreen ctx={ctx} note={coachNote} />}
       {over && !hideOver && (
         <GameOverOverlay
           g={g}

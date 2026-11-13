@@ -1,7 +1,10 @@
 // Coach evaluation: how good is the advice? Samples main-phase decisions from real bot games and compares each
 // coach configuration against an oracle that scores every candidate action with several full-turn rollouts.
 //
-//   npx tsx scripts/coach-eval.ts [--samples 120] [--rollouts 8] [--seed 1] [--set base|deep]
+//   npx tsx scripts/coach-eval.ts [--samples 120] [--rollouts 8] [--seed 1] [--set base|deep|shipped]
+//
+// Every set includes the coach the Play page ships (makeCoach, src/ai/coach.ts); --set shipped compares it with the
+// coach before the review-driven refinement (COACH_CONFIG_V1) only.
 //
 // Writes reports/coach-eval-<set>-latest.md.
 //
@@ -15,22 +18,29 @@ import { Game, type Game as G } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { makeWorlds, oracleValue } from '../src/ai/reviewer';
 import { BEST_PROFILES } from '../src/ai/archetype';
+import { COACH_CONFIG_V1, makeCoach } from '../src/ai/coach';
 import type { Action, Agent, Decision } from '../src/engine/types';
 import { cli, int, loadLibrary, oneOf, runMain } from './lib-node';
 
-const { values: V } = cli(import.meta.url, { samples: int(120, { min: 1 }), rollouts: int(8, { min: 1 }), seed: int(1, { min: 0 }), set: oneOf(['base', 'deep'], 'base') });
+const { values: V } = cli(import.meta.url, { samples: int(120, { min: 1 }), rollouts: int(8, { min: 1 }), seed: int(1, { min: 0 }), set: oneOf(['base', 'deep', 'shipped'], 'base') });
 const SAMPLES = V.samples;
 const ROLLOUTS = V.rollouts;
 let rngState = V.seed * 2654435761;
 const rnd = () => ((rngState = (rngState * 1664525 + 1013904223) >>> 0) / 4294967296);
 
 const SET = V.set;
-const CONFIGS: Record<string, () => HeuristicAgent> = SET === 'deep' ? {
+const SHIPPED: Record<string, () => HeuristicAgent> = { 'shipped coach (makeCoach)': makeCoach };
+const CONFIGS: Record<string, () => HeuristicAgent> = SET === 'shipped' ? {
+  ...SHIPPED,
+  'coach v1 (deep 12 + profiles + card impact)': () => new HeuristicAgent({ ...COACH_CONFIG_V1 }),
+} : SET === 'deep' ? {
+  ...SHIPPED,
   'deep 5 + profiles + card impact': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 5, impact: 40 }),
   'deep 8 + profiles + card impact': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 8, impact: 40 }),
   'deep 12 + profiles + card impact': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 12, impact: 40 }),
   'deep 8 + profiles (no impact)': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 8 }),
 } : {
+  ...SHIPPED,
   'current (1-ply + profiles)': () => new HeuristicAgent({ profiles: BEST_PROFILES }),
   '1-ply + profiles + card impact': () => new HeuristicAgent({ profiles: BEST_PROFILES, impact: 40 }),
   'deep 3 + profiles': () => new HeuristicAgent({ profiles: BEST_PROFILES, deep: 3 }),

@@ -5,6 +5,8 @@ import type { Decision } from '../../../engine/types';
 import { CardBack, TcgCard } from '../TcgCard';
 import { hiddenFromMe, type BoardCtx } from './BoardCard';
 import { onlyEndTurn, promptChoices } from './interaction';
+import { CoachBox, type CoachNote } from './CoachPanel';
+import { optionName, shownLabel } from '../../../lib/coachWords';
 
 /** One-line headline for the middle of the table. */
 export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 'alert' | 'idle' } {
@@ -33,9 +35,9 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
 
 /**
  * The current prompt. `hidePass`: the End turn / No reaction button is shown next to it already (the full board's
- * action dock), so the panel leaves it out.
+ * action dock), so the panel leaves it out. `note`: the coach's reason, its next best option, or that it is thinking.
  */
-export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: string; hidePass?: boolean }) {
+export function PromptPanel({ ctx, note, hidePass }: { ctx: BoardCtx; note?: CoachNote; hidePass?: boolean }) {
   const { g, pend, ix, targeting, coach } = ctx;
   if (g.s.winner !== null) {
     return (
@@ -52,15 +54,10 @@ export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: strin
       </div>
     );
   }
-  const coachBox = coach && pend.options[coach.i] && (
-    <div className="pb-coach-box">
-      <b>Coach:</b> {pend.options[coach.i].label}
-      {why && <div className="muted small">{why}</div>}
-    </div>
-  );
+  const coachBox = <CoachBox pick={coach && pend.options[coach.i] ? optionName(pend, coach.i) : null} why={note?.why} next={note?.next} thinking={note?.thinking} />;
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
-      {label ?? pend.options[i]?.label}
+      {label ?? shownLabel(pend.options[i]?.label ?? '')}
     </button>
   );
 
@@ -198,7 +195,7 @@ export const AllActions = memo(function AllActions({
           {pend ? (
             pend.options.map((o, i) => (
               <button key={i} className={coachI === i ? 'pb-coach-btn' : ''} onClick={() => answer(i)}>
-                {o.label}
+                {shownLabel(o.label)}
               </button>
             ))
           ) : (

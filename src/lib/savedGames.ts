@@ -157,11 +157,16 @@ export function replayOf(s: SavedGame): PracticeReplay {
   };
 }
 
-/** Coach grades as restored: a grade whose scoring was still running when saved can't finish now, so it is unscored. */
+/**
+ * Coach grades as restored: a grade whose scoring was still running when saved can't finish now, so it is unscored; so
+ * is an older save's 'agree' with a choice the coach made by rule (a target, a Gig pick, the mulligan), which measured
+ * nothing (the coach grades those 'unscored' since 2026-11-13, src/ai/coach.ts gradeMove).
+ */
 export function restoredGrades(s: SavedGame): CoachedGrade[] {
   return s.grades.map((g) => {
-    if (g.verdict !== 'pending') return { ...g };
-    return { ...g, verdict: 'unscored', ...(g.record ? { record: { ...g.record, verdict: 'unscored' } } : {}) };
+    const ruleAgree = g.verdict === 'agree' && !!g.record && g.record.kind !== undefined && g.record.kind !== 'action' && g.record.kind !== 'reaction' && g.record.scoreKind === undefined;
+    if (g.verdict !== 'pending' && !ruleAgree) return { ...g };
+    return { ...g, verdict: 'unscored', gap: null, ...(g.record ? { record: { ...g.record, verdict: 'unscored', gap: null } } : {}) };
   });
 }
 

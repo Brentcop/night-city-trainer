@@ -193,6 +193,9 @@ export interface CoachRecordLike {
   gap: number | null;
   se?: number;
   scores: { i: number; v: number; w?: number[] }[];
+  /** the decision kind and what the coach scored (absent: a rule decided); older records without them read as before */
+  kind?: string;
+  scoreKind?: string;
 }
 
 const WHY_MAX = 220;
@@ -208,6 +211,9 @@ const r3 = (x: number) => Math.round(x * 1000) / 1000;
 /** The compact coach grade of a recorded decision, or null when the coach did not measure the move (pending, unscored). */
 export function coachRatingOf(rec: CoachRecordLike, gigSwing = GIG): CoachRating | null {
   if (!(MEASURED as readonly string[]).includes(rec.verdict) || rec.gap === null) return null;
+  // an older record that agreed with a choice the coach made by rule (a target, a Gig pick, the mulligan) measured nothing
+  // (since 2026-11-13 the coach grades those 'unscored'): leave it to the oracle like any unmeasured move
+  if (rec.verdict === 'agree' && rec.kind !== undefined && rec.kind !== 'action' && rec.kind !== 'reaction' && rec.scoreKind === undefined) return null;
   const pick = rec.scores.find((o) => o.i === rec.coach);
   const alts: CoachRating['alts'] = [];
   if (pick)

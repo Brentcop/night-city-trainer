@@ -8,6 +8,7 @@ import type { PlayerId } from '../../../engine/types';
 import { Modal, useFocusTrap } from '../Modal';
 import { TcgCard } from '../TcgCard';
 import type { BoardCtx } from './BoardCard';
+import { CoachBox, type CoachNote } from './CoachPanel';
 
 /** "Are you sure?" before conceding (a recorded loss) or exiting (nothing recorded). Rendered at the document body. */
 export function LeaveDialog({ kind, onConfirm, onCancel, online, note }: { kind: 'concede' | 'exit'; onConfirm: () => void; onCancel: () => void; online?: boolean; note?: string }) {
@@ -147,7 +148,7 @@ export function TrashModal({ g, p, onClose }: { g: Game; p: PlayerId; onClose: (
   );
 }
 
-export function MulliganScreen({ ctx, why }: { ctx: BoardCtx; why?: string }) {
+export function MulliganScreen({ ctx, note }: { ctx: BoardCtx; note?: CoachNote }) {
   const { g, pend } = ctx;
   const ref = useRef<HTMLDivElement>(null);
   // the opening-hand choice can't be dismissed: Escape does nothing, it is answered with Keep or Mulligan
@@ -179,12 +180,7 @@ export function MulliganScreen({ ctx, why }: { ctx: BoardCtx; why?: string }) {
             return <span key={u}>{c && (c.faceUp || c.known) ? g.name(u) : 'face-down'} · </span>;
           })}
         </div>
-        {coachI !== undefined && (
-          <div className="pb-coach-box">
-            <b>Coach:</b> {coachI === yes ? 'Mulligan' : 'Keep'}
-            {why && <div className="muted small">{why}</div>}
-          </div>
-        )}
+        <CoachBox pick={coachI !== undefined ? (coachI === yes ? 'Mulligan' : 'Keep hand') : null} why={note?.why} thinking={note?.thinking} />
         <div className="row" style={{ marginTop: 12, justifyContent: 'center' }}>
           <button className={`primary pb-big ${coachI === no ? 'pb-coach-btn' : ''}`} onClick={() => no >= 0 && ctx.answer(no)}>
             Keep hand

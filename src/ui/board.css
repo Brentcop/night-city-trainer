@@ -2316,10 +2316,26 @@ button.pb-pp-min {
 }
 .pb-pp-coach {
   font-size: 0.75rem;
+}
+/* phones: the pick in at most two lines, the reason in one until "Why?" opens it (no tooltips on touch) */
+.pb-pp-coach .pb-coach-pick {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.pb-coach-why.is-clamped {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+button.pb-coach-more {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+}
+.pb-coach-next {
+  margin-top: 2px;
 }
 .pb-pp-coach b {
   color: var(--cyan);

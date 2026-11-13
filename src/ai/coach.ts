@@ -7,7 +7,9 @@ import { HeuristicAgent, standardError, worldValue, type DecisionScores } from '
 import { makeWorlds, type World } from './playOut';
 import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
-import { GIG_SWING, knownCards } from './eval';
+import { DECIDED_EVAL, GIG_SWING, knownCards } from './eval';
+import { handFeatures } from './mulligan';
+import { behindText, gapFigure, gapSize, optionName } from '../lib/coachWords';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
@@ -22,8 +24,12 @@ import type { DeckReport } from '../analysis/analyze';
  * 29 ms mean (p90 70, max 181); 6 candidates over 6 worlds 126 ms mean (p90 287, max 610); 8 over 6, 146 ms (p90 347).
  */
 export const COACH_WORLDS = 6;
-/** Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md), then shared worlds (INFO-1). */
-const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 6, deepWorlds: COACH_WORLDS, sellLookahead: 3, deepReactions: COACH_WORLDS };
+/**
+ * Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md), then shared worlds (INFO-1).
+ * `mulligan: 'plain'`: the keep rule Hard uses since SIM_VERSION 6, without the card-impact keep (measured 48.9% against
+ * no impact, docs/BOT_TOOLKIT.md §5), so the coach does not teach a keep that measured worse.
+ */
+export const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 6, deepWorlds: COACH_WORLDS, sellLookahead: 3, deepReactions: COACH_WORLDS, mulligan: 'plain' as const };
 /**
  * The coach's sell advice breaks near-ties (within 0.05 Gigs, well inside what the alternatives call a "close call") toward
  * keeping a scarce piece of the player's own package (HeuristicOptions.sellKeepScarce). Bots never set it.
@@ -45,6 +51,11 @@ const gigs = (delta: number) => delta / GIG_SWING;
  */
 export function coachAdvises(d: Decision): boolean {
   return d.kind !== 'pay' && d.kind !== 'order';
+}
+
+/** Decisions worth asking the coach about: one it advises on, with a choice to make (a one-option decision is forced). */
+export function coachWorthAsking(d: Decision): boolean {
+  return coachAdvises(d) && d.options.length >= 2;
 }
 
 /** One option the coach valued, as plain data: its value, and its value in each shared world when there were several. */
@@ -104,9 +115,112 @@ export function isClose(gap: number, se?: number): boolean {
  */
 export function sellWhy(picked: string, basis: 'own' | 'pooled' | 'none'): string {
   const base = `${picked}: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck`;
-  if (basis === 'own') return `${base} (by bot-match telemetry on this list).`;
-  if (basis === 'pooled') return `${base} (card values pooled from bot matches of other decks; this list has none of its own).`;
-  return `${base}.`;
+  return `${base}${valueSource(basis)}.`;
+}
+
+/** Where the card values come from, as a parenthesis (empty when there is no bot-match data). */
+function valueSource(basis: 'own' | 'pooled' | 'none'): string {
+  if (basis === 'own') return ' (by bot-match telemetry on this list)';
+  if (basis === 'pooled') return ' (card values pooled from bot matches of other decks; this list has none of its own)';
+  return '';
+}
+
+/**
+ * The reason for a sell the coach chose by playing out the few cards it can best spare (sellLookahead): how it was
+ * actually chosen, not "the least valuable card".
+ */
+export function sellPlayedOutWhy(picked: string, basis: 'own' | 'pooled' | 'none', compared: number): string {
+  return `${picked}: one sell a turn is your mana growth. Of the ${compared} cards in hand you can best spare by card value${valueSource(basis)}, selling this one came out best when the coach played each out.`;
+}
+
+/** How a game-deciding difference reads, from the values (points) of the better move and of the other one. */
+function decidedWords(better: number, worse: number, other: string): string {
+  if (better >= DECIDED_EVAL) return `wins the game in the coach's play-outs (${other} does not)`;
+  if (worse <= -DECIDED_EVAL) return `${other} instead loses the game in the coach's play-outs`;
+  return `the coach's play-outs say this decides the game, compared with ${other}`;
+}
+
+/** An alternative's tag: "close call", "−0.4 ± 0.1 Gigs", "more than 3 Gigs behind", or how the game ends in the play-outs. */
+function altTag(pick: GradedOption, o: GradedOption, gap: number, se: number | undefined, close: boolean): string {
+  if (close) return 'close call';
+  if (gapSize(gap) === 'decided') {
+    if (o.v <= -DECIDED_EVAL) return 'loses the game in the play-outs';
+    if (pick.v >= DECIDED_EVAL) return 'gives up a win in the play-outs';
+  }
+  return behindText(gap, se);
+}
+
+/**
+ * The best other options the coach valued (main phase, the sells it compared, or reactions), best first, one per name:
+ * a move with the same name as the pick (another copy of the same card) or as one already listed is left out.
+ */
+function alternativesOf(d: Decision, index: number, grade: GradeBasis | undefined, max = 3): Advice['alternatives'] {
+  const out: Advice['alternatives'] = [];
+  const mine = grade?.opts.find((o) => o.i === index);
+  if (!grade || !mine) return out;
+  const seen = new Set([d.options[index]?.label]);
+  for (const o of [...grade.opts].sort((a, b) => b.v - a.v)) {
+    if (out.length >= max) break;
+    const raw = d.options[o.i]?.label;
+    if (o.i === index || seen.has(raw)) continue;
+    seen.add(raw);
+    const { gap, se } = gapOf(mine, o);
+    const close = isClose(gap, se);
+    out.push({ index: o.i, label: optionName(d, o.i), gap: altTag(mine, o, gap, se, close), gapGigs: Math.max(0, gap), close, ...(se !== undefined ? { se } : {}) });
+  }
+  return out;
+}
+
+/**
+ * Why the coach picked `index` over the "do nothing" option `none` (End turn, or No reaction): what it is worth over
+ * doing nothing, or, when doing nothing is the pick, what the best other move would cost. `nothing` is how the reason
+ * names doing nothing ("ending the turn", "no reaction"). Null when the scores needed are missing.
+ */
+function vsNothingWhy(d: Decision, index: number, none: number, grade: GradeBasis | undefined, nothing: string): string | null {
+  const pick = grade?.opts.find((o) => o.i === index);
+  if (!grade || !pick) return null;
+  const name = optionName(d, index);
+  const pickLabel = d.options[index]?.label;
+  if (index === none) {
+    const other = [...grade.opts].sort((a, b) => b.v - a.v).find((o) => o.i !== index && d.options[o.i]?.label !== pickLabel);
+    if (!other) return `${name}: nothing else here is worth doing.`;
+    const otherName = optionName(d, other.i);
+    const { gap, se } = gapOf(pick, other);
+    if (gapSize(Math.max(0, gap)) === 'decided') return `${name}: the best other move, ${otherName}, ${other.v <= -DECIDED_EVAL ? 'loses the game' : 'gives up a win'} in the coach's play-outs.`;
+    if (isClose(gap, se)) {
+      if (gap < CLOSE_GIGS) return `${name}: about as good as the best other move, ${otherName}; either is fine.`;
+      return `${name}: the coach leans this way, but against ${otherName} it is too noisy to call (${behindText(gap, se)}; its play-outs disagree).`;
+    }
+    return `${name}: nothing else scores better. The best other move, ${otherName}, comes out ${gapSize(gap) === 'figure' ? 'about ' : ''}${gapFigure(gap)} behind.`;
+  }
+  const base = grade.opts.find((o) => o.i === none);
+  if (!base) {
+    const next = alternativesOf(d, index, grade, 1)[0];
+    return next ? `${name} — the best of the moves the coach weighed (next: ${next.label}, ${next.gap}).` : `${name} — the best of the moves the coach weighed.`;
+  }
+  const delta = gigs(pick.v - base.v);
+  if (gapSize(Math.max(0, delta)) === 'decided') return `${name} — ${decidedWords(pick.v, base.v, nothing)}.`;
+  if (delta >= 0.05) return `${name} — worth ${gapSize(delta) === 'figure' ? 'about ' : ''}${gapFigure(delta)} more than ${nothing}.`;
+  const next = alternativesOf(d, index, grade, 3).find((a) => a.index !== none);
+  return `${name} — about as good as ${nothing}${next ? `, and ahead of ${next.label} (${next.gap})` : ''}; the coach leans this way.`;
+}
+
+/**
+ * The mulligan in words: what the coach's keep rule (the plain rule the bots use, src/ai/mulligan.ts) looks at, and what
+ * this hand has. `mulligan`: the coach's pick.
+ */
+export function mulliganWhy(g: Game, p: PlayerId, mulligan: boolean): string {
+  const f = handFeatures(g, p);
+  const rule = 'The coach keeps a hand with at least one Unit costing 4 or less, three cards costing 4 or less and a card it can sell, so it can play on curve and sell for Eddies.';
+  if (!mulligan) {
+    const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+    return `Keep: this hand has ${n(f.cheapUnits, 'Unit', 'Units')} costing 4 or less, ${n(f.cheap, 'card', 'cards')} costing 4 or less and ${n(f.sellable, 'card', 'cards')} it can sell. ${rule}`;
+  }
+  const missing: string[] = [];
+  if (f.cheapUnits < 1) missing.push('no Unit costing 4 or less');
+  if (f.cheap < 3) missing.push(`only ${f.cheap} card${f.cheap === 1 ? '' : 's'} costing 4 or less`);
+  if (f.sellable < 1) missing.push('nothing it can sell');
+  return `Mulligan: this hand has ${missing.join(', ')}. ${rule}`;
 }
 
 /**
@@ -116,45 +230,30 @@ export function sellWhy(picked: string, basis: 'own' | 'pooled' | 'none'): strin
 export async function advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice> {
   const coach = makeCoach();
   const [index] = await coach.decide(g, d);
-  let why = coach.lastThought;
-  const alternatives: Advice['alternatives'] = [];
-  const picked = d.options[index]?.label ?? '';
-  if (d.kind === 'action' && /^Sell/.test(picked) && !coach.lastAlternatives.length) {
-    const hand = d.options.map((o) => o.action as Action).flatMap((a) => (a?.type === 'sell' ? [g.c(a.uid).defId] : []));
-    why = sellWhy(picked, impactBasis(g.P(d.player), hand));
-  } else if (d.kind === 'action' && coach.lastAlternatives.length) {
-    const best = coach.lastAlternatives.find((a) => a.index === index) ?? coach.lastAlternatives[0];
-    const label = d.options[index]?.label ?? best.label;
-    const vsPass = gigs(best.delta);
-    why = /Sell/.test(label)
-      ? `${label}: selling one card a turn is your mana growth. This is the least valuable card for your deck right now.`
-      : `${label} — ${vsPass >= 0.05 ? `worth about ${vsPass.toFixed(1)} Gigs more than passing` : 'roughly even with passing; the alternatives are worse'}.`;
-  }
   const grade = basisOf(coach.lastScores);
-  const mine = grade?.opts.find((o) => o.i === index);
-  if (grade && mine) {
-    // the three best other options it valued (main phase, the sells it compared, or reactions)
-    for (const o of [...grade.opts].sort((a, b) => b.v - a.v)) {
-      if (o.i === index) continue;
-      if (alternatives.length >= 3) break;
-      const { gap, se } = gapOf(mine, o);
-      const close = isClose(gap, se);
-      alternatives.push({
-        index: o.i,
-        label: d.options[o.i]?.label ?? '?',
-        gap: close ? 'close call' : `−${gap.toFixed(1)} Gigs`,
-        gapGigs: Math.max(0, gap),
-        close,
-        ...(se !== undefined ? { se } : {}),
-      });
-    }
+  let why = coach.lastThought;
+  const picked = d.options[index]?.action;
+  if (d.kind === 'action' && picked?.type === 'sell') {
+    // a sell: chosen by playing out the few most sellable cards when there were several, else by card value
+    const hand = d.options.map((o) => o.action as Action).flatMap((a) => (a?.type === 'sell' ? [g.c(a.uid).defId] : []));
+    const basis = impactBasis(g.P(d.player), hand);
+    const name = optionName(d, index);
+    why = grade?.kind === 'sell' && grade.opts.length > 1 ? sellPlayedOutWhy(name, basis, grade.opts.length) : sellWhy(name, basis);
+  } else if (d.kind === 'action' || d.kind === 'reaction') {
+    const none = d.options.findIndex((o) => o.action?.type === (d.kind === 'action' ? 'pass' : 'endReact'));
+    const said = vsNothingWhy(d, index, none, grade, d.kind === 'action' ? 'ending the turn' : 'no reaction');
+    if (said) why = said;
+  } else if (d.kind === 'yesno' && d.tag === 'mulligan') {
+    why = mulliganWhy(g, d.player, d.options[index]?.key === 'yes');
   }
-  // other decisions (reactions, targets): turn the bot's raw scores into plain words
+  // anything still in the bot's raw form (scored without the values above): plain words
   const m = why.match(/^(.*?) \((?:eval|projected) (-?[\d.]+) vs (?:pass )?(-?[\d.]+)\)$/);
   if (m) {
     const diff = gigs(+m[2] - +m[3]);
-    why = `${m[1]} — ${Math.abs(diff) < 0.05 ? 'about even with doing nothing' : diff > 0 ? `saves about ${diff.toFixed(1)} Gigs compared with not acting` : 'the least bad option here'}.`;
+    const label = optionName({ kind: d.kind, options: [{ label: m[1] }] }, 0);
+    why = `${label} — ${Math.abs(diff) < 0.05 ? 'about as good as doing nothing' : diff > 0 ? `saves ${gapSize(diff) === 'figure' ? 'about ' : ''}${gapFigure(diff)} compared with doing nothing` : 'the least bad option here'}.`;
   }
+  const alternatives = alternativesOf(d, index, grade);
   const notes = packageNotes(g, d, index, lift);
   const tie = coach.lastSellKeep;
   if (tie) notes.unshift(sellTieNote(g, d.player, tie));
@@ -277,20 +376,23 @@ export function packageNotes(g: Game, d: Decision, index: number, lift?: SeatLif
   const chosen = gigsAfter(g, p, d, opt);
   if (!kinds.length || !chosen) return out;
   for (const k of kinds) {
+    // the coach picks Gigs by its rule (pkgSteer is 0 for bots and coach), so this is a side note, not its reason: it
+    // says when another option suits the package better than the pick, and only otherwise names one that moves away
     const v = steerValue(k, chosen.mine, chosen.theirs);
-    // the alternative that moves furthest away from what the package wants
-    let worst: { label: string; v: number; after: { mine: Gig[]; theirs: Gig[] } } | null = null;
+    type Scored = { label: string; v: number; after: { mine: Gig[]; theirs: Gig[] } };
+    const others: Scored[] = [];
     d.options.forEach((o, i) => {
       if (i === index) return;
       const after = gigsAfter(g, p, d, o);
-      if (!after) return;
-      const w = steerValue(k, after.mine, after.theirs);
-      if (!worst || w < worst.v) worst = { label: o.label, v: w, after };
+      if (after) others.push({ label: o.label, v: steerValue(k, after.mine, after.theirs), after });
     });
-    const alt = worst as { label: string; v: number; after: { mine: Gig[]; theirs: Gig[] } } | null;
-    if (!alt || alt.v >= v - 1e-9) continue;
+    if (!others.length) continue;
     const named = pkgs.filter((x) => x.steer.includes(k));
-    out.push(withLabel(`Your deck wants ${steerWants(k)} (${named.map((x) => x.name).join(', ')}): ${alt.label} ${awayText(k, alt.after)}.`, label(named)));
+    const head = `Side note for your deck's package (${named.map((x) => x.name).join(', ')}), which wants ${steerWants(k)}:`;
+    const better = others.reduce((a, b) => (b.v > a.v ? b : a));
+    const worse = others.reduce((a, b) => (b.v < a.v ? b : a));
+    if (better.v > v + 1e-9) out.push(withLabel(`${head} ${better.label} would suit it better than the coach's pick (the coach picks Gigs by its own rule, not by the package).`, label(named)));
+    else if (worse.v < v - 1e-9) out.push(withLabel(`${head} the coach's pick suits it as well as any option; ${worse.label} ${awayText(k, worse.after)}.`, label(named)));
   }
   return out;
 }
@@ -369,13 +471,15 @@ export const MISTAKE_GIGS = BLUNDER / GIG_SWING;
 
 /**
  * How a move compares with the coach's pick, by value:
- *   agree       the coach's own pick
+ *   agree       the coach's own pick (or a move with the same name: another copy of the same card), in a decision the
+ *               coach values by play-outs (main phase, reactions, or a sell it compared)
  *   best        another move the coach values at least as high
  *   close       a close call: under CLOSE_GIGS behind, or within 2 paired standard errors (counts as fine)
  *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS
  *   mistake     behind by MISTAKE_GIGS or more, outside the noise
  *   pending     being scored (a move the coach did not value: scoreMoveRequest)
- *   unscored    a different choice the coach can't value (a target, a mode, the mulligan), or scoring failed
+ *   unscored    a choice the coach decides by rule and can't value (a target, a mode, a Gig pick, the mulligan),
+ *               whether or not it matches the coach's pick ("Same as the coach's pick (not measured)"), or scoring failed
  */
 export type MoveVerdict = 'agree' | 'best' | 'close' | 'inaccuracy' | 'mistake' | 'pending' | 'unscored';
 
@@ -390,19 +494,22 @@ export interface MoveGrade {
   verdict: MoveVerdict;
 }
 
-/** Verdicts the scorecard counts as fine. */
+/** Verdicts the scorecard counts as fine (all of them measured: agreeing on a rule-decided choice is 'unscored'). */
 export const FINE_VERDICTS: readonly MoveVerdict[] = ['agree', 'best', 'close'];
 
 /**
  * Grade a human decision against the coach's advice for the same spot, by value: the move's own score in the coach's
  * worlds (from the advice, or `extra` from scoreMoveRequest), not its place in the shortlist. A move the coach did not
  * value in a decision it can score is 'pending' until scored (`extra` undefined); once scoring has run (`extra` given,
- * empty if it failed) a move still without a value is 'unscored'.
+ * empty if it failed) a move still without a value is 'unscored'. Agreeing with a choice the coach made by rule (no
+ * scores) measures nothing, so it is 'unscored' too, never 'agree'. `chose` and `coach` are the names the board shows
+ * (src/lib/coachWords.ts optionName: End turn, No reaction, Keep hand / Mulligan).
  */
 export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number, extra?: readonly GradedOption[]): MoveGrade {
-  const chose = d.options[chosen]?.label ?? '?';
-  const coach = d.options[a.index]?.label ?? '?';
-  if (chosen === a.index) return { turn, chose, coach, gap: 0, verdict: 'agree' };
+  const chose = optionName(d, chosen);
+  const coach = optionName(d, a.index);
+  const same = chosen === a.index || (d.options[chosen] !== undefined && d.options[chosen].label === d.options[a.index]?.label);
+  if (same) return !scorable(d) && !a.grade ? { turn, chose, coach, gap: null, verdict: 'unscored' } : { turn, chose, coach, gap: 0, verdict: 'agree' };
   // scored together (extra) when the advice had no worlds to score in
   const find = (i: number) => extra?.find((o) => o.i === i) ?? a.grade?.opts.find((o) => o.i === i);
   const best = find(a.index);
@@ -454,7 +561,8 @@ export function matchupTips(g: Game, p: PlayerId = 0): string[] {
   const opp = classify(knownCards(g, other(p), other(p))).arch;
   const tips: string[] = [`**Plan (${me} vs ${opp}):** ${PLAN_TEXT[`${me}>${opp}` as ProfileKey]}`];
   const top = topImpactCards(g.P(p), 3).filter((c) => c.iwd > 0.02);
-  if (top.length) tips.push(`**Your game-winners:** ${top.map((c) => `${CARD_BY_ID[c.id]?.displayName} (+${Math.round(c.iwd * 100)} pts when drawn)`).join(', ')}. Keep them; sell other cards first.`);
+  // an association from pooled bot games (confounded: docs/BOT_TOOLKIT.md §5), so no instruction to keep them
+  if (top.length) tips.push(`**Cards most associated with wins** (bot games with this list; an association, not proof that they win): ${top.map((c) => `${CARD_BY_ID[c.id]?.displayName} (+${Math.round(c.iwd * 100)} win-rate points when drawn)`).join(', ')}.`);
   // analysis reports describe one list each: only use the one measured on this list (and on the rival's list)
   const name = impactDeckName(g.P(p));
   const rep = name === null ? undefined : (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === name);

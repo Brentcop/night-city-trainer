@@ -39,10 +39,12 @@ describe('coach wording about card impact', () => {
     expect(sellWhy('Sell X', 'none')).toBe('Sell X: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck.');
   });
 
-  it('matchup tips name game-winners only for a list measured on its own', () => {
+  it('matchup tips name the cards most associated with wins only for a list measured on its own, as an association', () => {
     const idle: Agent = { name: 'idle', decide: async () => [0] } as unknown as Agent;
     const tips = (a: string, b: string) => matchupTips(Game.create([deck(a), deck(b)], [idle, idle], { seed: 1, first: 0, log: false }), 0).join('\n');
-    expect(tips(META, OFF_META)).toMatch(/game-winners/);
-    expect(tips(OFF_META, META)).not.toMatch(/game-winners/);
+    expect(tips(META, OFF_META)).toMatch(/Cards most associated with wins.*an association, not proof/);
+    // no causal instruction from a pooled association (COACH-12)
+    expect(tips(META, OFF_META)).not.toMatch(/Keep them|game-winners/);
+    expect(tips(OFF_META, META)).not.toMatch(/associated with wins/);
   });
 });

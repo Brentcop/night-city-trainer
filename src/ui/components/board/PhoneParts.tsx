@@ -11,6 +11,8 @@ import { hiddenFromMe, type BoardCtx } from './BoardCard';
 import { promptChoices, type Targeting } from './interaction';
 import { headline } from './PromptPanel';
 import { BOT_SPEEDS } from './prefs';
+import { CoachBox, type CoachNote } from './CoachPanel';
+import { optionName, shownLabel } from '../../../lib/coachWords';
 
 export type PanelState = 'none' | 'tab' | 'open';
 
@@ -45,7 +47,7 @@ function panelTitle(ctx: BoardCtx): string {
 export function PhonePanel({
   ctx,
   state,
-  why,
+  note,
   onCollapse,
   onExpand,
   onPeek,
@@ -56,7 +58,8 @@ export function PhonePanel({
   paySelect?: React.ReactNode;
   ctx: BoardCtx;
   state: PanelState;
-  why?: string;
+  /** the coach's reason, its next best option, or that it is thinking (shown as text: touch screens have no tooltips) */
+  note?: CoachNote;
   onCollapse: () => void;
   onExpand: () => void;
   /** read a card; with `choose`, the reader offers to pick that option */
@@ -76,7 +79,7 @@ export function PhonePanel({
   }
   const btn = (i: number, label?: string, primary = false) => (
     <button key={i} className={`${primary ? 'primary' : ''} ${coach?.i === i ? 'pb-coach-btn' : ''}`} onClick={() => ctx.answer(i)}>
-      {label ?? pend.options[i]?.label}
+      {label ?? shownLabel(pend.options[i]?.label ?? '')}
     </button>
   );
   let body: React.ReactNode = null;
@@ -123,7 +126,7 @@ export function PhonePanel({
       </>
     );
   }
-  const coachLabel = coach && pend.options[coach.i]?.label;
+  const coachPick = coach && pend.options[coach.i] ? optionName(pend, coach.i) : null;
   return (
     <aside className={`pb-pp ${pend.kind === 'reaction' ? 'is-alert' : ''}`} aria-label="Prompt">
       <div className="pb-pp-head">
@@ -132,11 +135,7 @@ export function PhonePanel({
           ▸
         </button>
       </div>
-      {coachLabel && (
-        <div className="pb-pp-coach" title={why}>
-          <b>Coach:</b> {coachLabel}
-        </div>
-      )}
+      <CoachBox pick={coachPick} why={note?.why} next={note?.next} thinking={note?.thinking} compact className="pb-pp-coach" />
       {body}
       {!targeting && (pend.kind === 'action' || pend.kind === 'reaction') && paySelect}
       {allActions}

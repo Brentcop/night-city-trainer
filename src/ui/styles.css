@@ -1786,9 +1786,10 @@ tr.tier-divider th {
   font-style: normal;
   display: grid;
   place-items: center;
-  width: 18px;
+  min-width: 18px;
   height: 18px;
-  border-radius: 50%;
+  padding: 0 3px;
+  border-radius: 9px;
   background: currentColor;
   color: var(--bg);
   font-size: 0.72rem;
@@ -1836,6 +1837,10 @@ tr.tier-divider th {
 }
 .scorecard .neg {
   color: var(--red);
+}
+.scorecard-note,
+.coach-gig-note {
+  margin-top: 6px;
 }
 .scorecard-grade {
   flex: none;
