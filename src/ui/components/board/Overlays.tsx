@@ -21,7 +21,7 @@ export function LeaveDialog({ kind, onConfirm, onCancel }: { kind: 'concede' | '
       <p className="muted">
         {concede
           ? 'The game ends now as a loss, recorded in your practice log and replays as conceded. You can still undo from the result screen.'
-          : 'The game ends now and nothing is recorded: no result and no replay.'}
+          : 'The game ends now and nothing is recorded: no result and no replay. Its autosave is removed too; use Save first to keep it.'}
       </p>
       <div className="row pb-leave-actions">
         <button className={concede ? 'pb-danger' : 'primary'} onClick={onConfirm}>

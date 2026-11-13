@@ -155,6 +155,7 @@ export function GameMenu({
   exitLabel,
   onResult,
   onExport,
+  onSave,
   onSettings,
   onClose,
 }: {
@@ -168,6 +169,8 @@ export function GameMenu({
   onResult?: () => void;
   /** after the game: save it as a file with the coach's advice (INFO-9) */
   onExport?: () => void;
+  /** during the game: save it to come back to (a named save in this browser) */
+  onSave?: () => void;
   /** the board settings dialog (paying costs, side panel, colours, backgrounds) */
   onSettings?: () => void;
   onClose: () => void;
@@ -204,6 +207,11 @@ export function GameMenu({
         {onSettings && (
           <button role="menuitem" onClick={run(onSettings)}>
             ⚙ Settings…
+          </button>
+        )}
+        {onSave && (
+          <button role="menuitem" onClick={run(onSave)}>
+            Save game…
           </button>
         )}
         {onExport && (

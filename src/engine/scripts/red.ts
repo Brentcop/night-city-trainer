@@ -1,7 +1,7 @@
 // Red card scripts.
 import type { Game } from '../engine';
 import type { CardInst, CardScript, DelayedMod, PlayerId } from '../types';
-import { count8Plus, defeatRival, friendlyUnits, has8Plus, millAndTake, pick, rival, rivalUnits, untilMyNextTurn } from './helpers';
+import { count8Plus, defeatRival, friendlyUnits, has8Plus, millAndTake, noEffect, pick, rival, rivalUnits, untilMyNextTurn } from './helpers';
 
 /** Increase a specific gig by 0..max (capped by its sides). */
 async function increaseSpecific(g: Game, p: PlayerId, gid: number, max: number, source?: number) {
@@ -96,6 +96,7 @@ export const RED: Record<string, CardScript> = {
         if (!g.firstThisTurn(ev.seq, 'attack', arasaka)) return;
         await g.draw(self.controller, 1);
         if ((g.streetCred(self.controller) ?? 0) < 20) await g.discard(self.controller, 1);
+        else noEffect(g, self, '20 or more Street Cred, so no discard');
       },
     },
   },
@@ -149,6 +150,7 @@ export const RED: Record<string, CardScript> = {
     play: async (g, self) => {
       await g.adjustGig(self.controller, 4, 'up', 'any', { source: self.uid });
       if (has8Plus(g, self.controller)) await g.draw(self.controller, 1);
+      else noEffect(g, self, 'no Gig with 8+ value, so no card drawn');
     },
   },
 
@@ -344,6 +346,7 @@ export const RED: Record<string, CardScript> = {
         // activatable without an 8+ Gig; the condition is checked on resolution (FAQ Kerry Eurodyne: The Last Rockerboy #2)
         run: async (g, self) => {
           if (has8Plus(g, self.controller)) await g.draw(self.controller, 2);
+          else noEffect(g, self, 'no Gig with 8+ value, so no cards drawn');
         },
       },
     ],
@@ -441,6 +444,7 @@ export const RED: Record<string, CardScript> = {
   minotaur: {
     play: async (g, self) => {
       if (g.moreCred(self.controller)) await defeatRival(g, self, (c) => g.power(c) <= 5);
+      else noEffect(g, self, 'not more Street Cred than the rival, so nothing is defeated');
     },
   },
 

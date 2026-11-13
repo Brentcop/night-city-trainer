@@ -9,6 +9,7 @@ import { HumanAgent } from '../ui/HumanAgent';
 import { saveReplay, type PracticeReplay } from './practiceReplays';
 import { recordPractice, type PracticeGame } from './practiceLog';
 import { CONCEDED_REASON } from './practiceVerdict';
+import { MISMATCH_WHY, replayOf, restoredGrades, stateHash, versionProblem, type SaveCheck, type SavedGame } from './savedGames';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -67,6 +68,70 @@ export class RecordingAgent implements Agent {
   }
 }
 
+/** Thrown while restoring a saved game when the replay does not reach the saved position: other code, never resumed. */
+class ReplayMismatch extends Error {
+  constructor(why: string) {
+    super(why);
+    this.name = 'ReplayMismatch';
+  }
+}
+
+/** The answers a restore replays, the check it must pass, and the saved coach grades it hands back in step. */
+interface Feed {
+  choices: number[][];
+  check: SaveCheck;
+  grades: CoachedGrade[];
+  /** called once the replay has given every saved answer and your next decision is waiting */
+  onReached: () => void;
+}
+
+/**
+ * Your seat while a saved game is restored: answers from the save until they run out, then hands over to you. Checks
+ * the position at the save's check point (state hash, prompt and options) and each answer's range; any difference
+ * stops the restore (ReplayMismatch). Hands back each saved coach grade as the answer it graded is replayed.
+ */
+class FeedAgent implements Agent {
+  name: string;
+  readonly choosesPayment = true;
+  readonly choosesOrder = true;
+  private i = 0;
+  private reached = false;
+  constructor(
+    private inner: HumanAgent,
+    private feed: Feed,
+    private grades: CoachedGrade[],
+  ) {
+    this.name = inner.name;
+  }
+  async decide(g: Game, d: Decision): Promise<number[]> {
+    const f = this.feed;
+    if (this.reached) return this.inner.decide(g, d);
+    if (this.i === f.check.at) {
+      const c = f.check;
+      const same =
+        stateHash(g.s) === c.hash &&
+        d.kind === c.decision.kind &&
+        d.prompt === c.decision.prompt &&
+        d.options.length === c.decision.options.length &&
+        d.options.every((o, k) => o.label === c.decision.options[k]);
+      if (!same) throw new ReplayMismatch(MISMATCH_WHY);
+    }
+    const r = f.choices[this.i];
+    if (r) {
+      if (!r.every((x) => Number.isInteger(x) && x >= 0 && x < d.options.length)) throw new ReplayMismatch(MISMATCH_WHY);
+      for (const gr of f.grades) if (gr.record?.at === this.i) this.grades.push(gr);
+      this.i++;
+      return [...r];
+    }
+    const answer = this.inner.decide(g, d);
+    if (!this.reached) {
+      this.reached = true;
+      f.onReached();
+    }
+    return answer;
+  }
+}
+
 /** A copy of a bot including its private random state, so a restored game plays on exactly as before. */
 export function cloneBot<T extends HeuristicAgent>(b: T): T {
   return Object.assign(Object.create(Object.getPrototypeOf(b)), structuredClone({ ...b })) as T;
@@ -122,6 +187,10 @@ export interface Running {
   conceded: boolean;
   /** settles when this game's loop ends (finished, errored or cancelled) */
   done: Promise<void>;
+  /** the last decision you were asked (for saves): set when it is asked */
+  stable: (SaveCheck & { gigs: [number, number] }) | null;
+  /** being restored from a save: the replay runs unpaced, nothing is recorded, and the board isn't shown yet */
+  restoring: boolean;
 }
 
 /** Undo is offered while you are deciding something, after the game ends, or after an error, if there is a snapshot to go to. */
@@ -197,6 +266,30 @@ export interface SessionOptions {
   pace?: () => number;
   /** called after a finished game is recorded (default: save replay and practice entry) */
   record?: (replay: PracticeReplay, st: GameState) => void;
+  /** a new decision of yours is waiting (the moment a save can come back to): the autosave is written here */
+  onStable?: (run: Running) => void;
+  /**
+   * the game ended for good: finished, conceded, or quit with Exit (the autosave is cleared here). Leaving the page
+   * (quit with keepSave) doesn't call it.
+   */
+  onClosed?: (run: Running, why: 'finished' | 'conceded' | 'quit') => void;
+}
+
+/** What restore() gives back: the resumed game, or why it can't be resumed (`mismatch`: other code; offer the log). */
+export type RestoreResult = { ok: true; run: Running } | { ok: false; why: string; mismatch: boolean };
+
+/** The position check for the decision now waiting for you. */
+function stableOf(run: Running): Running['stable'] {
+  const d = run.human.pending?.d;
+  if (!d) return run.stable;
+  const st = run.g.s;
+  return {
+    at: run.replay.choices.length,
+    turn: st.turn,
+    hash: stateHash(st),
+    decision: { kind: d.kind, prompt: d.prompt, options: d.options.map((o) => o.label) },
+    gigs: [st.players[0].gigs.length, st.players[1].gigs.length],
+  };
 }
 
 /**
@@ -210,6 +303,8 @@ export class PracticeSession {
   private ticks = new Set<() => void>();
   private games = new Set<() => void>();
   private matchSeq = 0;
+  /** bumped by start and quit: a restore still replaying when either happens is dropped */
+  private restoreSeq = 0;
 
   constructor(private opts: SessionOptions = {}) {}
 
@@ -224,9 +319,57 @@ export class PracticeSession {
 
   /** Start a new match (cancels any running one). */
   start(m: MatchSetup): Running {
+    this.restoreSeq++;
     const replay = newPracticeReplay(m);
     const bot = makeTierBot(m.level, m.botSeed, 'Bot') as HeuristicAgent;
     return this.launch((agents) => Game.create(m.decks, agents, { first: m.first, seed: m.seed }), bot, replay, [], [], ++this.matchSeq, false);
+  }
+
+  /**
+   * Resume a saved game (src/lib/savedGames.ts): replay it from the start with its seeds and your saved answers, unpaced
+   * and unseen, to the decision you were at; check the position on the way; then show it. Undo works throughout (its
+   * snapshots are rebuilt by the replay) and the coach grades come back with the answers they graded. A save from other
+   * code is refused (another SIM_VERSION, or a replay that doesn't reach the saved state), never resumed into a
+   * different game. The running game, if any, is replaced only once the restore succeeded.
+   */
+  async restore(save: SavedGame): Promise<RestoreResult> {
+    const problem = versionProblem(save);
+    if (problem) return { ok: false, why: problem, mismatch: true };
+    const token = ++this.restoreSeq;
+    const replay = replayOf(save);
+    let reached!: () => void;
+    let failed!: (e: unknown) => void;
+    const ready = new Promise<void>((res, rej) => {
+      reached = res;
+      failed = rej;
+    });
+    const feed: Feed = { choices: save.choices, check: save.check, grades: restoredGrades(save), onReached: () => reached() };
+    let run: Running;
+    try {
+      const bot = makeTierBot(save.botLevel, save.botSeed, 'Bot') as HeuristicAgent;
+      run = this.launch((agents) => Game.create(save.decks, agents, { first: save.first, seed: save.seed }), bot, replay, [], [], ++this.matchSeq, false, feed);
+    } catch (e) {
+      return { ok: false, why: `${MISMATCH_WHY} (${errorText(e)})`, mismatch: true };
+    }
+    // the game loop ending before your decision came back (an error, a mismatch, or the game over) fails the restore
+    void run.done.then(() => failed(new Error(run.error ?? MISMATCH_WHY)));
+    try {
+      await ready;
+    } catch (e) {
+      this.cancel(run);
+      return { ok: false, why: e instanceof Error ? e.message : String(e), mismatch: true };
+    }
+    if (token !== this.restoreSeq) {
+      this.cancel(run);
+      return { ok: false, why: 'The restore was stopped.', mismatch: false };
+    }
+    run.restoring = false;
+    run.stable = stableOf(run);
+    if (this.current && this.current !== run) this.cancel(this.current);
+    this.current = run;
+    this.opts.onStable?.(run);
+    this.changed(true);
+    return { ok: true, run };
   }
 
   /** Go back to just before your previous main-phase decision (or the one you're in the middle of). */
@@ -267,15 +410,22 @@ export class PracticeSession {
     g.log(null, `${CONCEDED_REASON}: ${g.P(1).name} wins`);
     run.replay.conceded = true;
     (this.opts.record ?? recordFinished)(run.replay, st);
+    this.opts.onClosed?.(run, 'conceded');
     this.changed();
     return true;
   }
 
-  /** Stop the running game without recording anything. */
-  quit() {
-    if (!this.current) return;
-    this.cancel(this.current);
+  /**
+   * Stop the running game without recording anything. Exit (the default) ends it for good (onClosed: the autosave is
+   * cleared); `keepSave` (leaving the page) keeps the autosave so the game can be resumed.
+   */
+  quit(o: { keepSave?: boolean } = {}) {
+    this.restoreSeq++;
+    const run = this.current;
+    if (!run) return;
+    this.cancel(run);
     this.current = null;
+    if (!o.keepSave) this.opts.onClosed?.(run, 'quit');
     this.changed(true);
   }
 
@@ -292,34 +442,54 @@ export class PracticeSession {
     if (game) for (const f of [...this.games]) f();
   }
 
-  /** Wire up and run a game: a fresh one (run) or one restored from a snapshot (resume). */
-  private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: CoachedGrade[], match: number, resumed: boolean): Running {
-    if (this.current) this.cancel(this.current);
+  /**
+   * Wire up and run a game: a fresh one (run), one restored from a snapshot (resume), or one replayed from a save
+   * (`feed`: unpaced and not the current game until restore() shows it).
+   */
+  private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: CoachedGrade[], match: number, resumed: boolean, feed?: Feed): Running {
+    if (this.current && !feed) this.cancel(this.current);
     const human = new HumanAgent();
-    const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false, conceded: false } as Omit<Running, 'g' | 'done'> as Running;
-    const recorder = new RecordingAgent(human, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, grades.length)), run);
-    const g = make([recorder, new PacedAgent(bot, this.opts.pace ?? (() => 0), run)]);
+    const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false, conceded: false, stable: null, restoring: !!feed } as Omit<Running, 'g' | 'done'> as Running;
+    const seat: Agent = feed ? new FeedAgent(human, feed, grades) : human;
+    const recorder = new RecordingAgent(seat, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, grades.length)), run);
+    const pace = this.opts.pace ?? (() => 0);
+    const g = make([recorder, new PacedAgent(bot, () => (run.restoring ? 0 : pace()), run)]);
     run.g = g;
     const tick = () => {
       if (!run.cancelled && this.current === run) this.changed();
     };
     g.onUpdate = tick;
-    human.onChange = tick;
-    this.current = run;
+    let asked: Decision | null = null;
+    human.onChange = () => {
+      // a new decision of yours: the position a save comes back to
+      const d = human.pending?.d ?? null;
+      if (d && d !== asked && !run.restoring && !run.cancelled) {
+        asked = d;
+        run.stable = stableOf(run);
+        if (this.current === run) this.opts.onStable?.(run);
+      }
+      tick();
+    };
+    if (!feed) this.current = run;
     run.done = (resumed ? g.resume() : g.run()).then(
       (st) => {
-        if (run.cancelled) return;
+        if (run.cancelled || run.restoring) return;
         (this.opts.record ?? recordFinished)(replay, st);
+        this.opts.onClosed?.(run, 'finished');
         tick();
       },
       (e: unknown) => {
         if (run.cancelled || e instanceof GameCancelled) return;
+        if (run.restoring) {
+          run.error = e instanceof ReplayMismatch ? e.message : `${MISMATCH_WHY} (${errorText(e)})`;
+          return;
+        }
         console.error('Practice game stopped by an error', e);
         run.error = errorText(e);
         tick();
       },
     );
-    this.changed(true);
+    if (!feed) this.changed(true);
     return run;
   }
 }

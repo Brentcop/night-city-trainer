@@ -12,7 +12,29 @@ export function friendlyUnits(g: Game, self: CardInst, filter?: (c: CardInst) =>
   return g.units(self.controller).filter((c) => !filter || filter(c));
 }
 
-/** Choose a unit among candidates for the card's controller. */
+/**
+ * Say in the log why an effect (or one part of it) did nothing: "<card>: <why>". Log only: nothing reads the log to
+ * decide anything, and clones and effect probes don't log, so play and results never depend on it. The log is shown to
+ * both players: `why` may only state what both can see (Gigs, Street Cred, face-up cards, the field), never the
+ * contents of a hand, a deck or a face-down Legend. `p`: whose line it is (default the card's controller).
+ */
+export function noEffect(g: Game, self: CardInst, why: string, p: PlayerId = self.controller) {
+  g.log(p, `${g.name(self)}: ${why}`);
+}
+
+/** The action a choice prompt asks for, without the card name in front or a "(1/2)" count after: the generic reason's wording. */
+function promptAction(prompt: string): string {
+  const k = prompt.lastIndexOf(': ');
+  const tail = k >= 0 ? prompt.slice(k + 2) : prompt;
+  const s = tail.replace(/\s*\(\d+\/\d+\)\s*$/, '').replace(/\?$/, '');
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
+/**
+ * Choose a unit among candidates for the card's controller. With no candidate there is nothing to choose: the log says
+ * so (`none`, or a generic line built from the prompt), unless `quiet` (a later pick of "up to N" after an earlier one).
+ * Candidates here are Units on the field or face-up Legends, so saying there are none reveals nothing hidden.
+ */
 export function pick(
   g: Game,
   self: CardInst,
@@ -21,7 +43,9 @@ export function pick(
   intent: Intent,
   optional = false,
   tag?: string,
+  none?: string | false,
 ) {
+  if (!cands.length && none !== false) noEffect(g, self, none ?? `no legal target for "${promptAction(prompt)}"`);
   return g.chooseUnit(self.controller, cands, prompt, { optional, intent, tag, source: self.uid });
 }
 

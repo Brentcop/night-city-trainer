@@ -1187,6 +1187,25 @@ button.pb-danger {
   justify-content: flex-end;
   gap: 8px;
 }
+/* Save game: the name field, and the slots listed oldest first when every one is in use */
+.pb-save-name {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.pb-save-name input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.pb-save-full .save-list {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+/* a short note once a game is saved (the refusal toast's place, in the accent colour) */
+.pb-refusal.pb-notice {
+  border-color: var(--accent);
+  color: var(--text);
+}
 /* the Concede / Exit dialog and the match review sit above the game strip (which rises over the mulligan screen) */
 .modal-backdrop:has(> .pb-leave),
 .modal-backdrop.pb-review-backdrop {

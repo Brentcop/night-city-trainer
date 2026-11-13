@@ -1,7 +1,7 @@
 // Yellow card scripts.
 import { other, type Game } from '../engine';
 import type { CardInst, CardScript, DelayedMod, PlayerId } from '../types';
-import { costLE, defeatRival, isType, pick, rival, rivalDiscards, rivalHasMoreGigs, searchTop } from './helpers';
+import { costLE, defeatRival, isType, noEffect, pick, rival, rivalDiscards, rivalHasMoreGigs, searchTop } from './helpers';
 
 // ---------------------------------------------------------------- local helpers
 
@@ -204,6 +204,7 @@ export const YELLOW: Record<string, CardScript> = {
         const p = self.controller;
         await g.adjustGig(p, 1, 'either', 'any', { source: self.uid });
         if (g.distinctValues(p) >= 3) await g.draw(p, 1);
+        else noEffect(g, self, 'fewer than 3 Gigs with different values, so no card drawn');
       },
     },
   },
@@ -245,6 +246,7 @@ export const YELLOW: Record<string, CardScript> = {
       const p = self.controller;
       await g.adjustGig(p, 1, 'either', 'any', { source: self.uid });
       if (g.distinctValues(p) >= 2) await g.draw(p, 1);
+      else noEffect(g, self, 'fewer than 2 Gigs with different values, so no card drawn');
     },
   },
 
@@ -332,6 +334,7 @@ export const YELLOW: Record<string, CardScript> = {
       }
       const gigs = g.gigsOf(p);
       if (gigs.some((x) => x.value % 2 === 0) && gigs.some((x) => x.value % 2 === 1)) await g.draw(p, 2);
+      else noEffect(g, self, 'no pair of an even-value and an odd-value Gig, so no cards drawn');
     },
   },
 
@@ -366,9 +369,10 @@ export const YELLOW: Record<string, CardScript> = {
     attack: async (g, self) => {
       await g.adjustGig(self.controller, 1, 'either', 'any', { source: self.uid });
     },
-    defeated: async (g, _self, info) => {
+    defeated: async (g, self, info) => {
       const p = info.controller;
       if (Math.abs(credOf(g, p) - credOf(g, other(p))) >= 10) await g.draw(p, 2);
+      else noEffect(g, self, 'Street Cred differs from the rival by less than 10, so no cards drawn', p);
     },
   },
 

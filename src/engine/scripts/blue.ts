@@ -2,7 +2,7 @@
 import type { Game } from '../engine';
 import { shuffleInPlace } from '../rng';
 import type { CardInst, CardScript, CardType, PlayerId } from '../types';
-import { countMinGigs, friendlyUnits, hasMinGig, pick, rival, rivalDiscards, rivalUnits, untilMyNextTurn } from './helpers';
+import { countMinGigs, friendlyUnits, hasMinGig, noEffect, pick, rival, rivalDiscards, rivalUnits, untilMyNextTurn } from './helpers';
 
 // ---------------------------------------------------------------- local helpers
 
@@ -228,6 +228,7 @@ export const BLUE: Record<string, CardScript> = {
     play: async (g, self) => {
       await g.adjustGig(self.controller, 3, 'down', 'any', { source: self.uid });
       if (hasMinGig(g, self.controller)) await g.draw(self.controller, 1);
+      else noEffect(g, self, 'no min Gig, so no card drawn');
     },
   },
 
@@ -267,7 +268,8 @@ export const BLUE: Record<string, CardScript> = {
       await lockRival(g, self);
       if (hasMinGig(g, self.controller) && g.canCall(self.controller)) {
         await g.callLegend(self.controller, undefined, { free: true });
-      }
+      } else if (!hasMinGig(g, self.controller)) noEffect(g, self, 'no min Gig, so no free Call');
+      else noEffect(g, self, 'no Legend can be Called now, so no free Call');
     },
   },
 
@@ -385,6 +387,7 @@ export const BLUE: Record<string, CardScript> = {
     attack: async (g, self) => {
       await g.draw(self.controller, 1);
       if (g.moreCred(self.controller)) await g.discard(self.controller, 1);
+      else noEffect(g, self, 'not more Street Cred than the rival, so no discard');
     },
   },
 

@@ -1142,6 +1142,52 @@ thead th {
   max-height: 30vh;
   overflow-y: auto;
 }
+/* saved games (Play setup screen and the in-game Save dialog) */
+.save-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.save-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.save-name {
+  min-width: 0;
+  flex: 1 1 220px;
+  overflow-wrap: anywhere;
+}
+.save-actions,
+.save-rename {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.save-rename input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.save-resume-note {
+  margin: 0;
+}
+.save-log {
+  margin: 12px 0 0;
+  padding-left: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+.save-log li {
+  padding: 2px 0;
+}
 .confirm-actions {
   justify-content: flex-end;
   gap: 8px;

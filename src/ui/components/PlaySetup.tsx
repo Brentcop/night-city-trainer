@@ -1,5 +1,6 @@
-// The Play page's setup screen (before a game): deck and bot pickers, the matchup read, recent games to review, and
-// the practice log. The page keeps the choices (they also start a rematch); this only draws them.
+// The Play page's setup screen (before a game): deck and bot pickers, Resume game and the saved games, the matchup
+// read, recent games to review, and the practice log. The page keeps the choices (they also start a rematch); this
+// only draws them.
 import { useState } from 'react';
 import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
 import { classify, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
@@ -14,6 +15,7 @@ import { Modal } from './Modal';
 import { formatRecorded } from './RecordedAt';
 import { Verdict, Wr } from './Num';
 import { ReviewPanel } from './ReviewPanel';
+import { ResumeButton, ResumeNote, SavedGamesPanel, type SavesProps } from './SavedGames';
 
 export type Seat = 'random' | 'first' | 'second';
 
@@ -32,6 +34,7 @@ export function PlaySetup({
   dB,
   onStart,
   onSettings,
+  saves,
 }: {
   mine: string;
   setMine: (file: string) => void;
@@ -48,6 +51,8 @@ export function PlaySetup({
   onStart: () => void;
   /** open the board settings (paying costs, side panel, colours, backgrounds, bot speed) */
   onSettings?: () => void;
+  /** saved games: Resume game (the autosave) beside Start, and the list of named saves */
+  saves?: SavesProps;
 }) {
   return (
     <div className="grid" style={{ maxWidth: 860 }}>
@@ -92,7 +97,8 @@ export function PlaySetup({
           <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
         </label>
         <div className="row">
-          <button className="primary" onClick={onStart} disabled={!mine || !opp}>
+          {saves && <ResumeButton saves={saves} />}
+          <button className={saves?.autosave && saves.storage ? '' : 'primary'} onClick={onStart} disabled={!mine || !opp || !!saves?.restoring}>
             Start game
           </button>
           {onSettings && (
@@ -102,7 +108,9 @@ export function PlaySetup({
           )}
           <a href="#/guides">Read the matchup guide first →</a>
         </div>
+        {saves && <ResumeNote saves={saves} />}
       </div>
+      {saves && <SavedGamesPanel saves={saves} />}
       <MatchupRead A={dA} B={dB} />
       <RecentReviews />
       <PracticeStats />

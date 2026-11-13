@@ -1,7 +1,7 @@
 // Green card scripts.
 import type { CardInst, CardScript, DelayedMod, Opt, PlayerId } from '../types';
 import type { Game } from '../engine';
-import { friendlyUnits, pick, rival, rivalHasMoreGigs, rivalUnits, untilMyNextTurn } from './helpers';
+import { friendlyUnits, noEffect, pick, rival, rivalHasMoreGigs, rivalUnits, untilMyNextTurn } from './helpers';
 
 const printedCost = (g: Game, c: CardInst) => g.def(c).cost ?? 0;
 
@@ -58,12 +58,12 @@ async function spendRival(g: Game, self: CardInst, filter: (c: CardInst) => bool
   return t;
 }
 
-/** Choose up to n distinct cards from candidates (recomputed each pick). */
-async function chooseUpTo(g: Game, self: CardInst, n: number, cands: () => CardInst[], prompt: string, intent: 'help' | 'harm', tag: string) {
+/** Choose up to n distinct cards from candidates (recomputed each pick). `none`: the log line when there is none at all. */
+async function chooseUpTo(g: Game, self: CardInst, n: number, cands: () => CardInst[], prompt: string, intent: 'help' | 'harm', tag: string, none?: string) {
   const got: CardInst[] = [];
   for (let i = 0; i < n; i++) {
     const cs = cands().filter((c) => !got.includes(c));
-    const c = await pick(g, self, cs, `${prompt} (${i + 1}/${n})`, intent, true, tag);
+    const c = await pick(g, self, cs, `${prompt} (${i + 1}/${n})`, intent, true, tag, i === 0 ? none : false);
     if (!c) break;
     got.push(c);
   }
@@ -95,6 +95,7 @@ export const GREEN: Record<string, CardScript> = {
           if (!t) return;
           g.giveKeyword(t.uid, 'blocker');
           if (g.valuePairs(self.controller) > 0) g.givePower(t.uid, 1, 'endOfTurn', undefined, self.uid);
+          else noEffect(g, self, 'no value-pair of Gigs, so no +1 power');
         },
       },
     ],
@@ -203,6 +204,7 @@ export const GREEN: Record<string, CardScript> = {
     play: async (g, self) => {
       await setGigToOther(g, self, false, true);
       if (g.valuePairs(self.controller) > 0) await g.draw(self.controller, 1);
+      else noEffect(g, self, 'no value-pair of Gigs, so no card drawn');
     },
   },
 
@@ -269,6 +271,7 @@ export const GREEN: Record<string, CardScript> = {
       const t = await spendRival(g, self, undefined, false, true);
       if (t) g.addMod({ kind: 'cantReady', target: t.uid, ...untilMyNextTurn(self), source: self.uid });
       if (g.credEven(self.controller)) await g.draw(self.controller, 1);
+      else noEffect(g, self, 'Street Cred is not an even number, so no card drawn');
     },
   },
 
@@ -353,6 +356,7 @@ export const GREEN: Record<string, CardScript> = {
   field_operator: {
     play: async (g, self) => {
       if (g.credEven(self.controller)) await g.draw(self.controller, 1);
+      else noEffect(g, self, 'Street Cred is not an even number, so no card drawn');
     },
   },
 
@@ -397,7 +401,7 @@ export const GREEN: Record<string, CardScript> = {
 
   pacifica_netrunner: {
     play: async (g, self) => {
-      if (!g.credEven(self.controller)) return;
+      if (!g.credEven(self.controller)) return noEffect(g, self, "Street Cred is not an even number, so no rival Unit is stopped from readying");
       const t = await pick(g, self, rivalUnits(g, self), `${g.name(self)}: a rival Unit can't ready until your next turn`, 'harm', false, 'cantReady');
       if (t) g.addMod({ kind: 'cantReady', target: t.uid, ...untilMyNextTurn(self), source: self.uid });
     },
@@ -405,10 +409,10 @@ export const GREEN: Record<string, CardScript> = {
 
   pepe_najarro_working_doubles: {
     attack: async (g, self) => {
-      if (g.valuePairs(self.controller) === 0) return;
+      if (g.valuePairs(self.controller) === 0) return noEffect(g, self, 'no value-pair of Gigs, so nothing readies');
       const cands = () =>
         g.P(self.controller).legends.map((u) => g.c(u)).filter((c) => c.faceUp && c.spent && g.isTag(c, 'Merc') && !g.hasMod('cantReady', c.uid));
-      const got = await chooseUpTo(g, self, 2, cands, `${g.name(self)}: ready a MERC Legend`, 'help', 'ready');
+      const got = await chooseUpTo(g, self, 2, cands, `${g.name(self)}: ready a MERC Legend`, 'help', 'ready', 'no spent, face-up MERC Legend to ready');
       for (const c of got) g.ready(c.uid);
     },
   },

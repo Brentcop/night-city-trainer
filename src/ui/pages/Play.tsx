@@ -44,7 +44,23 @@ import { useViewport } from '../components/board/useNarrow';
 import { phoneLayout, phoneVars } from '../components/board/layout';
 import { CardPeek, GameMenu, PhonePanel, phonePanelState } from '../components/board/PhoneParts';
 import { loadHandSort, nextSort, reorderHand, saveHandSort, sortHand, SORT_LABEL, type HandSort } from '../components/board/handSort';
-import { useGameTick, usePracticeGame } from '../usePracticeGame';
+import { saveOfRun, useGameTick, usePracticeGame } from '../usePracticeGame';
+import {
+  addSlot,
+  clearAutosave,
+  defaultSaveName,
+  deleteSlot,
+  loadAutosave,
+  loadSlots,
+  newSlotId,
+  parseSavedGame,
+  renameSlot,
+  saveFileName,
+  saveFileText,
+  storageWorks,
+  type SavedGame,
+} from '../../lib/savedGames';
+import { ConfirmDialog, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard } from '../components/board/CoachPanel';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
 import '../board.css';
@@ -65,19 +81,69 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   }, []);
   const speedRef = useRef(speed);
   speedRef.current = speed;
-  const { session, game, start: startMatch, undo, quit, concede } = usePracticeGame(() => speedRef.current);
+  const coachRef = useRef(coach);
+  coachRef.current = coach;
+  const { session, game, start: startMatch, resume, undo, quit, concede } = usePracticeGame(
+    () => speedRef.current,
+    () => coachRef.current,
+  );
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
   const dA = useMemo(() => findDeck(mine), [mine]);
   const dB = useMemo(() => findDeck(opp), [opp]);
 
-  const start = () => {
+  const begin = () => {
     const A = dA?.deck;
     const B = dB?.deck;
     if (!A || !B) return;
     const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
     const decks: [DeckList, DeckList] = [gameDeck(A), gameDeck(B)];
     startMatch({ decks, seed: Math.floor(Math.random() * 2 ** 31), first, level, botSeed: Date.now() % 100000 });
+  };
+
+  // saved games (src/lib/savedGames.ts): the autosave of the unfinished game and the named saves, read again whenever
+  // the setup screen shows; with storage blocked the feature is hidden and the setup screen says why
+  const [storageOk] = useState(storageWorks);
+  const [autosave, setAutosave] = useState(loadAutosave);
+  const [slots, setSlots] = useState(loadSlots);
+  const [restoring, setRestoring] = useState(false);
+  const [problem, setProblem] = useState<{ save: SavedGame; why: string } | null>(null);
+  const [askNew, setAskNew] = useState(false);
+  useEffect(() => {
+    if (game) return;
+    setAutosave(loadAutosave());
+    setSlots(loadSlots());
+  }, [game]);
+  // a new game from the setup screen while an unfinished one is saved asks first (a rematch after a game doesn't)
+  const start = () => {
+    if (!game && storageOk && loadAutosave()) setAskNew(true);
+    else begin();
+  };
+  const resumeSave = (s: SavedGame) => {
+    setRestoring(true);
+    void resume(s).then((r) => {
+      setRestoring(false);
+      if (r.ok) setCoach(s.coach);
+      else if (r.mismatch) setProblem({ save: s, why: r.why });
+    });
+  };
+  const saves: SavesProps = {
+    storage: storageOk,
+    autosave,
+    slots,
+    restoring,
+    onResume: resumeSave,
+    onRename: (id, name) => setSlots(renameSlot(id, name)),
+    onDelete: (id) => setSlots(deleteSlot(id)),
+    onExport: (s) => download(saveFileName(s), saveFileText(s), 'application/json'),
+    onImport: (text) => {
+      const p = parseSavedGame(text);
+      if (!p.ok) return p.why;
+      const r = addSlot({ ...p.value, id: newSlotId() });
+      if (!r.ok) return r.why;
+      setSlots(r.list);
+      return null;
+    },
   };
 
   if (!game) {
@@ -98,7 +164,41 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
           dB={dB}
           onStart={start}
           onSettings={() => setShowSettings(true)}
+          saves={saves}
         />
+        {askNew && autosave && (
+          <ConfirmDialog
+            title="Start a new game?"
+            text={<p>Your unfinished game ({saveSummary(autosave)}) is saved. Starting a new game replaces that autosave. Use Resume game to go on with it instead.</p>}
+            confirm="Start a new game"
+            onConfirm={() => {
+              setAskNew(false);
+              begin();
+            }}
+            extra={{
+              label: 'Resume it',
+              onClick: () => {
+                setAskNew(false);
+                resumeSave(autosave);
+              },
+            }}
+            onCancel={() => setAskNew(false)}
+          />
+        )}
+        {problem && (
+          <UnresumableDialog
+            save={problem.save}
+            why={problem.why}
+            onDelete={() => {
+              if (problem.save.id === 'auto') {
+                clearAutosave();
+                setAutosave(null);
+              } else setSlots(deleteSlot(problem.save.id));
+              setProblem(null);
+            }}
+            onClose={() => setProblem(null)}
+          />
+        )}
         {showSettings &&
           createPortal(
             <SettingsDialog
@@ -117,7 +217,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
       </>
     );
   }
-  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} />;
+  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} canSave={storageOk} />;
 }
 
 function Board({
@@ -130,6 +230,7 @@ function Board({
   onConcede,
   onRematch,
   onUndo,
+  canSave,
 }: {
   session: PracticeSession;
   game: Running;
@@ -140,6 +241,8 @@ function Board({
   onConcede: () => void;
   onRematch: () => void;
   onUndo: () => void;
+  /** this browser can store saves */
+  canSave: boolean;
 }) {
   // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
@@ -191,6 +294,14 @@ function Board({
   const [peek, setPeek] = useState<{ uid: number; choose?: number; d: Decision | null } | null>(null);
   const [collapsedFor, setCollapsedFor] = useState<Decision | null>(null);
   const [leave, setLeave] = useState<'concede' | 'exit' | null>(null);
+  // Save game: the named saves while the dialog is open, and a short note once saved
+  const [saving, setSaving] = useState<SavedGame[] | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 2600);
+    return () => clearTimeout(t);
+  }, [notice]);
   // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds
   const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
@@ -398,6 +509,14 @@ function Board({
 
   const over = s.winner !== null;
   const failed = game.error;
+  // a game can be saved once you have been asked something, until it ends
+  const savable = canSave && !over && !failed && !game.cancelled && !!game.stable;
+  const openSave = () => {
+    setMenu(null);
+    setTargeting(null);
+    setGameMenu(false);
+    setSaving(loadSlots());
+  };
   // INFO-9: the finished game as a file, with the coach's advice, grade and scores per decision (src/lib/coachedReplay.ts)
   const exportGame = () => {
     const c = buildCoachedReplay(game.replay, grades, new Date().toISOString(), GIG_SWING);
@@ -550,6 +669,11 @@ function Board({
           <button type="button" className="ghost pb-settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings" title="Settings: paying costs, the log panel, colours and backgrounds">
             ⚙
           </button>
+          {canSave && (
+            <button onClick={openSave} disabled={!savable} title={savable ? 'Save this game to come back to it later' : 'Nothing to save yet, or the game is over'}>
+              Save
+            </button>
+          )}
           <button onClick={onUndo} disabled={!undoable} title="Go back to before your last action (also undoes the bot's moves since)">
             ↶ Undo
           </button>
@@ -621,7 +745,9 @@ function Board({
       </div>
       {navOpen && (
         <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
-          <p className="pb-nav-note">Opening another page ends this game{over ? '' : ' without recording it'}. Click here or press Escape to go back to it.</p>
+          <p className="pb-nav-note">
+            {over ? 'Opening another page ends this game.' : 'Opening another page leaves this game without recording it; it stays saved, and Resume game on the Play page brings it back.'} Click here or press Escape to go back to it.
+          </p>
         </div>
       )}
       {/* overlays live at the top of the page so no animated or transformed container can move them off screen */}
@@ -650,6 +776,7 @@ function Board({
               onExit={over ? onQuit : () => openLeave('exit')}
               exitLabel={over ? 'New game' : 'Exit game'}
               onExport={over ? exportGame : undefined}
+              onSave={savable ? openSave : undefined}
               onSettings={() => setShowSettings(true)}
               onClose={() => setGameMenu(false)}
             />
@@ -690,6 +817,28 @@ function Board({
           {refusal && (
             <div className="pb-refusal" role="status">
               {refusal}
+            </div>
+          )}
+          {saving && (
+            <SaveGameDialog
+              defaultName={defaultSaveName({ decks: game.replay.decks, turn: s.turn })}
+              slots={saving}
+              onSave={(name) => {
+                const save = saveOfRun(game, coach, newSlotId(), name);
+                if (!save) return 'There is nothing to save yet: wait for your next decision.';
+                const r = addSlot(save);
+                if (!r.ok) return r.why;
+                setSaving(null);
+                setNotice(`Saved: ${save.name}`);
+                return null;
+              }}
+              onDelete={(id) => setSaving(deleteSlot(id))}
+              onClose={() => setSaving(null)}
+            />
+          )}
+          {notice && (
+            <div className="pb-refusal pb-notice" role="status">
+              {notice}
             </div>
           )}
         </>,
