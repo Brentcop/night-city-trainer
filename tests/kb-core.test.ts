@@ -7,7 +7,7 @@ import { finishRecord, type RecordDraft } from '../src/lib/kb/build/record';
 import { dossier, neighbours } from '../src/lib/kb/dossier';
 import { buildNameIndex, findNames, lookupName } from '../src/lib/kb/names';
 import { capBlocks, LOCAL_LABEL, renderDossierText, renderRecordsJson, renderSearchJson, renderSearchText, snippet, SNIPPET_MAX } from '../src/lib/kb/render';
-import { buildIndex, fuse, MATCH_FLOOR, RRF_K, search } from '../src/lib/kb/search';
+import { buildIndex, cuedKinds, fuse, MATCH_FLOOR, RRF_K, search } from '../src/lib/kb/search';
 import { slug, tokenize } from '../src/lib/kb/text';
 import { estimateTokens, hashText, kindOfId, recordHash, type KbLink, type KbRecord } from '../src/lib/kb/types';
 
@@ -110,10 +110,21 @@ describe('fuse', () => {
 
 describe('search', () => {
   it('puts the record named in the question first, then its neighbours', () => {
-    const r = search(IX, 'Kilo Byte rulings');
+    const r = search(IX, 'Kilo Byte');
     expect(r.hits[0]!.record.id).toBe('card:kilo_byte');
     expect(r.hits[0]!.ranks.exact).toBe(1);
     expect(r.hits.map((h) => h.record.id)).toContain('ruling:aaaaaaaa');
+  });
+  it('lets a neighbour of the kind the question asks for join the exact hits (kept by the step 1.4 measurement)', () => {
+    expect([...cuedKinds('Kilo Byte rulings')]).toEqual(['ruling', 'faq']);
+    expect([...cuedKinds('which decks play it, and the game plan')]).toEqual(['deck', 'objective']);
+    expect(cuedKinds('Kilo Byte').size).toBe(0);
+    const r = search(IX, 'Kilo Byte rulings');
+    expect(r.hits[0]!.record.id).toBe('ruling:aaaaaaaa');
+    expect(r.hits[0]!.ranks).toMatchObject({ exact: 2, linked: 1 });
+    expect(r.hits[1]!.record.id).toBe('card:kilo_byte');
+    // only with the linked ranker: exact alone finds the card and nothing it links to
+    expect(search(IX, 'Kilo Byte rulings', { rankers: ['exact'] }).hits.map((h) => h.record.id)).toEqual(['card:kilo_byte']);
   });
   it('filters by kind and scope, and runs only the rankers asked for', () => {
     expect(search(IX, 'Kilo Byte', { kinds: ['ruling'] }).hits.map((h) => h.record.id)).toEqual(['ruling:aaaaaaaa']);

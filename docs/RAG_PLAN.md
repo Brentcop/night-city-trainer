@@ -115,8 +115,9 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.1 | Record model and search core in `src/lib/kb/` | done | 2026-11-13 |
 | 1.2 | Builders for authored, dev and local-only sources | done | 2026-11-13 |
 | 1.3 | `npm run kb` (search, get, related, stats, build) | done | 2026-11-13 |
-| 1.4 | Question set and `kb-eval` with first baselines | in progress | |
+| 1.4 | Question set and `kb-eval` with first baselines | done | 2026-11-13 |
 | 1.5 | Agent skill and a `CLAUDE.md` pointer | next | |
+| 1.6 | Unanswerable questions; measure the "no match" floor and the rules misses | next | |
 | 2.1 | Records query module: numbers by code | later | |
 | 2.2 | Event, round and deck sheets from templates | later | |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
@@ -153,6 +154,7 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   Move each area's detail into a `CLAUDE.md` in that area's directory. Wrap long lines in `docs/`.
 - Before starting: step 1.5 is done (so moved detail stays findable), no other session is editing
   `CLAUDE.md`, and nested-file loading has been checked in a throwaway session.
+- With it: update the question set's `doc:CLAUDE.md#…` expectations, which all change when the file is split.
 
 **0.3 Corpus hygiene.**
 - Goal: the repository follows its own rules before an index copies its text around.
@@ -223,10 +225,32 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   rank and pushes out the package or deck that answers it ("which deck wins by filling the trash" lists
   two "trash" terms before the trash package, and no deck in the first three).
 - Done when: the scoreboard in §7 holds the first baselines and the weakest question type is named.
+- Landed: 100 questions (entity 20, paraphrase 25, cross-entity 15, dev 20, rules 20; 79 public and 21
+  local; 60 `dev` and 40 `test`, split by position within each type). Run it with
+  `npm run kb:eval`; `--out` rewrites the two reports, `--against FILE` pairs a run with an earlier report,
+  `--scope public` is what a checkout without `data/raw` sees. Reports print a local record by id only,
+  because a local title can carry official wording.
+- What it showed: names and links work (entity and cross-entity questions find their record in the first
+  five 100% and 93% of the time). Paraphrased questions are the weak type (48%), then rules (60%).
+  The paraphrase gap is the case experiment 4.1 has to win.
+- Keeping it honest: the numbers move a little whenever an indexed doc or code header changes, so rerun
+  `npm run kb:eval -- --out` in a commit that edits docs heavily. An expectation that names one passage of
+  a doc (`…~3`) goes stale when that doc is reorganised; the script lists stale ids and `--strict` fails on them.
 
 **1.5 Agent skill and pointer.**
 - `.claude/skills/kb/SKILL.md` tells an agent when to call `npm run kb` instead of reading whole files,
   and a short bullet in `CLAUDE.md` points to this plan and the command.
+
+**1.6 The "no match" floor and the rules misses.**
+- Four `dev` questions return nothing although keyword search has candidates: the floor (best keyword
+  hit must hold half of the question's words) discards real answers, and its benefit is unmeasured
+  because the set has no question without an answer.
+- How: add about ten questions the pack cannot answer, with their own metric (share correctly refused).
+  Then test a lower floor, or coverage over the first three hits, against the paraphrase and rules misses.
+- Rules questions: keyword search alone beats the default on `dev` (recall at 5 of 67% against 42%),
+  because the neighbours of a one-word glossary term crowd out rule records. Stop expanding links from
+  one-word term hits while still letting those hits block "no match". This needs fresh held-out questions:
+  the current `test` totals already informed the idea.
 
 ### Step 2. Measured and competitive records
 
@@ -375,8 +399,18 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Card names in prose | 1,173 linked, 64 resolved by the deck's list, 71 left ambiguous | step 1.2 |
 | 2026-11-13 | Speed | build 0.6 s; one query 0.7 to 4.9 ms in process; 0.8 s for a warm command | step 1.3 |
 | 2026-11-13 | A default `kb search` answer (5 results) | about 430 to 620 tokens | step 1.3 |
-| | Question set: recall at 5 and MRR at 10 by configuration | not measured yet | step 1.4 |
-| | Answer size from `kb search` | not measured yet | step 1.4 |
+| 2026-11-13 | Held-out questions, all records (40): default search | top 1: 40%, top 5: 80%, top 10: 83%, MRR 0.56 | step 1.4 |
+| 2026-11-13 | Same, keyword ranking alone | top 5: 70%, MRR 0.50 | step 1.4 |
+| 2026-11-13 | Held-out questions, public records (32): default search | top 5: 81%, MRR 0.64; keyword alone 69%, 0.52 | step 1.4 |
+| 2026-11-13 | Top 5 by question type, all 100 questions | entity 100%, cross 93%, dev 95%, rules 60%, paraphrase 48% | step 1.4 |
+| 2026-11-13 | Answer size from `kb search`, 5 results | mean 499 tokens, 90th percentile 592 | step 1.4 |
+
+**Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
+
+| Date | Hypothesis | Change | `test` result | Decision |
+|---|---|---|---|---|
+| 2026-11-13 | A one-word term name inside a longer question takes the exact rank and pushes out the answer | Terms named inside a question only by names of two or more words | Recall at 5: −2.5 points [−7.5, 0]; MRR −0.006 [−0.019, 0] | Dropped: worse |
+| 2026-11-13 | A question names the kind of record it wants ("rulings on", "decks that play") | Neighbours of the asked-for kind sort first and join the exact list | Recall at 5: +5.0 points [0, +12.5]; MRR +0.080 [+0.013, +0.160]; cross-entity MRR 0.24 to 0.78 | Kept |
 
 ## 8. Decisions and stopgaps
 
@@ -419,6 +453,11 @@ while the tournament index and the finish chips use the real cut, so five decks 
   "review" names three things. Records name which definition they use.
 - **Mixed versions after a deploy.** Files under `public/` are cached for ten minutes. Guard (step 3.1):
   hashed shard names behind one small manifest.
+- **Local titles can carry official wording.** A tournament-rule title is the opening words of its text.
+  That is fine in `.cache/kb/` and on screen (labelled local-only), but anything written to a tracked file
+  shows a local record by its id only, as the evaluation reports do.
+- **A question set written by an agent.** The same kind of author wrote the questions and the ranker's
+  tuning. Guard: the `dev`/`test` split, no rewording after scoring, and the owner's edits (D8).
 
 ## 10. Log
 
@@ -427,3 +466,8 @@ while the tournament index and the finish chips use the real cut, so five decks 
   dossier, rendering, builders), `scripts/kb.ts` and `scripts/kb-sources.ts`, 64 tests in four files, and
   the `npm run kb` script. Verified in a clean checkout without `data/raw`: typecheck, 135 test files,
   lint, `check:data` and the build all pass. Two kinds were added for local text (`trule`, `errata`).
+- 2026-11-13: step 1.4 landed. `data/kb/questions.json` (100 questions, a draft), `src/lib/kb/eval.ts`,
+  `scripts/kb-eval.ts` (`npm run kb:eval`), `reports/kb-eval-latest.md` and `.json`. Two ranking
+  experiments: one dropped, one kept (see §7). The evaluation also found that 121 rule records carried the
+  heading of the section before them; the rules builder now gives each rule its own heading, else its
+  nearest titled ancestor's, and the reports were regenerated after that fix.

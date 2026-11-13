@@ -23,7 +23,8 @@
     "refresh": "tsx scripts/bundle-reports.ts && tsx scripts/plan.ts && tsx scripts/build-h2h.ts",
     "build-h2h": "tsx scripts/build-h2h.ts",
     "check:data": "tsx scripts/check-data.ts",
-    "kb": "tsx scripts/kb.ts"
+    "kb": "tsx scripts/kb.ts",
+    "kb:eval": "tsx scripts/kb-eval.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

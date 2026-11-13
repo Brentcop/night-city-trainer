@@ -41,9 +41,11 @@ export function citedRules(cite: string, known: ReadonlySet<string>): string[] {
 }
 
 /**
- * The Comprehensive Rules text, one record per numbered rule (its examples included), titled by the section heading
- * above it. Rule a.b.c links to a.b as `parent`; `citations` (glossary terms and their "CR …" references) add links
- * from each cited rule to the term.
+ * The Comprehensive Rules text, one record per numbered rule (its examples included). A heading right after a rule
+ * number (blank lines and change marks aside) is that rule's own title; other headings start a chapter or an
+ * unnumbered section. A rule's section is its own title, else its nearest titled ancestor's, else the last unnumbered
+ * heading above it. Rule a.b.c links to a.b as `parent`; `citations` (glossary terms and their "CR …" references) add
+ * links from each cited rule to the term.
  */
 export function buildRules(text: string, o: { file: string; citations: readonly { id: string; cite: string }[] }): KbRecord[] {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
@@ -57,19 +59,24 @@ export function buildRules(text: string, o: { file: string; citations: readonly 
       startAt = k;
       break;
     }
-  const rules: { n: string; chapter: string; section: string; line: number; body: string[]; changed: boolean }[] = [];
+  const rules: { n: string; chapter: string; loose: string; own: string; line: number; body: string[]; changed: boolean }[] = [];
   let chapter = '';
-  let section = '';
+  let loose = '';
   let expectChapter = false;
+  let afterNumber = false;
   for (let i = startAt; i < lines.length; i++) {
     const l = lines[i]!.trim();
     if (l === 'CREDITS') break;
+    if (!l) continue;
     if (RULE_NUMBER.test(l)) {
-      rules.push({ n: l, chapter, section, line: i + 1, body: [], changed: false });
+      rules.push({ n: l, chapter, loose, own: '', line: i + 1, body: [], changed: false });
+      afterNumber = true;
+      expectChapter = false;
       continue;
     }
     if (/^\d{2}$/.test(l)) {
       expectChapter = true;
+      afterNumber = false;
       continue;
     }
     if (/^\((RECENTLY CHANGED|UPDATED[^)]*)\)$/.test(l)) {
@@ -77,28 +84,53 @@ export function buildRules(text: string, o: { file: string; citations: readonly 
       if (last && !last.body.length) last.changed = true;
       continue;
     }
+    const last = rules[rules.length - 1];
     if (isHeading(l)) {
-      if (expectChapter) chapter = titleCase(l);
-      section = titleCase(l);
+      if (afterNumber && last) last.own = titleCase(l);
+      else {
+        if (expectChapter) chapter = titleCase(l);
+        loose = titleCase(l);
+      }
       expectChapter = false;
+      afterNumber = false;
       continue;
     }
     expectChapter = false;
-    if (l) rules[rules.length - 1]?.body.push(l);
+    afterNumber = false;
+    last?.body.push(l);
   }
-  const known = new Set(rules.map((r) => r.n));
+  const byNumber = new Map(rules.map((r) => [r.n, r]));
+  const parentOf = (n: string) => n.split('.').slice(0, -1).join('.');
+  const sectionOf = (r: (typeof rules)[number]): string => {
+    if (r.own) return r.own;
+    for (let p = parentOf(r.n); p; p = parentOf(p)) {
+      const own = byNumber.get(p)?.own;
+      if (own) return own;
+    }
+    return r.loose;
+  };
+  const children = new Map<string, string[]>();
+  for (const r of rules) children.set(parentOf(r.n), [...(children.get(parentOf(r.n)) ?? []), r.n]);
+  const known = new Set(byNumber.keys());
   const citing = new Map<string, string[]>();
   for (const c of o.citations) for (const r of citedRules(c.cite, known)) citing.set(r, [...(citing.get(r) ?? []), c.id]);
   return rules.map((r) => {
-    const parent = r.n.split('.').slice(0, -1).join('.');
+    const parent = parentOf(r.n);
     const id = `rule:${r.n}`;
+    const section = sectionOf(r);
+    const subs = children.get(r.n) ?? [];
+    const body = r.body.length
+      ? r.body.join('\n')
+      : r.own
+        ? `a section heading${subs.length ? `; its rules are ${subs.join(', ')}` : ''}.`
+        : '';
     return finishRecord({
       id,
       kind: 'rule',
-      title: `Rule ${r.n}${r.section ? ` (${r.section})` : ''}`,
+      title: `Rule ${r.n}${section ? ` (${section})` : ''}`,
       aliases: [r.n, `CR ${r.n}`, `rule ${r.n}`],
-      text: `Comprehensive Rules ${r.n}${r.section ? `, ${r.section}` : ''}: ${r.body.join('\n')}`,
-      fields: { chapter: r.chapter || undefined, section: r.section || undefined, changed: r.changed || undefined },
+      text: `Comprehensive Rules ${r.n}${section ? `, ${section}` : ''}: ${body}`,
+      fields: { chapter: r.chapter || undefined, section: section || undefined, titled: r.own ? true : undefined, changed: r.changed || undefined },
       links: [...(known.has(parent) ? [{ rel: 'parent' as const, to: `rule:${parent}` }] : []), ...linksTo('term', citing.get(id) ?? [])],
       source: { file: o.file, at: `L${r.line}` },
       ...LOCAL,

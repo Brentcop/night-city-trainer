@@ -261,11 +261,15 @@ describe('builders on fixtures', () => {
 });
 
 describe('local-only builders on invented text', () => {
-  const rulesText = ['Preamble', 'LAST UPDATED', 'MAR 3, 2030', '01', 'FIRST CHAPTER', 'OPENING SECTION', '1.1', '', 'Invented rule text one.', '1.1.1', '(RECENTLY CHANGED)', '', 'Invented sub rule.', 'EXAMPLE: an invented example.', 'SECOND SECTION', '1.2', '', 'Invented rule two.', '1.3', 'More.', 'CREDITS', 'Names here'].join('\n');
+  const rulesText = ['Preamble', 'LAST UPDATED', 'MAR 3, 2030', '01', 'FIRST CHAPTER', 'OPENING SECTION', '1.1', '', 'Invented rule text one.', '1.1.1', '(RECENTLY CHANGED)', '', 'Invented sub rule.', 'EXAMPLE: an invented example.', 'SECOND SECTION', '1.2', '', 'Invented rule two.', '1.3', 'More.',
+    // a depth-2 rule with its own heading (a change mark between) and sub-rules; a titled sub-rule; an untitled sibling
+    '1.4', '(RECENTLY CHANGED)', '', 'TITLED PART', '1.4.1', 'Invented text a.', '1.4.2', '', 'NAMED SUB', 'Invented text b.', '1.4.3', 'Invented text c.',
+    // a chapter heading after a two-digit chapter number
+    '02', 'SECOND CHAPTER', '2.1', 'Invented text d.', 'CREDITS', 'Names here'].join('\n');
   it('rules: one record per number, parent links, section titles, cited terms', () => {
     expect(rulesDate(rulesText)).toBe('2030-03-03');
     const rs = buildRules(rulesText, { file: 'raw/rules.txt', citations: [{ id: 'term:x', cite: 'CR 1.1–1.3' }] });
-    expect(rs.map((r) => r.id)).toEqual(['rule:1.1', 'rule:1.1.1', 'rule:1.2', 'rule:1.3']);
+    expect(rs.map((r) => r.id)).toEqual(['rule:1.1', 'rule:1.1.1', 'rule:1.2', 'rule:1.3', 'rule:1.4', 'rule:1.4.1', 'rule:1.4.2', 'rule:1.4.3', 'rule:2.1']);
     expect(rs[0]!.title).toBe('Rule 1.1 (Opening Section)');
     expect(rs[1]!.title).toBe('Rule 1.1.1 (Opening Section)');
     expect(rs[1]!.text).toContain('EXAMPLE: an invented example.');
@@ -273,7 +277,23 @@ describe('local-only builders on invented text', () => {
     expect(rs[1]!.links).toEqual([{ rel: 'parent', to: 'rule:1.1' }]);
     expect(rs[2]!.title).toBe('Rule 1.2 (Second Section)');
     expect(rs[2]!.links).toEqual([{ rel: 'term', to: 'term:x' }]);
-    expect(rs[3]!.text).not.toContain('Names here');
+    expect(rs[3]!.title).toBe('Rule 1.3 (Second Section)');
+    const [r14, r141, r142, r143, r21] = rs.slice(4);
+    expect(r14!.title).toBe('Rule 1.4 (Titled Part)');
+    expect(r14!.text).toBe('Comprehensive Rules 1.4, Titled Part: a section heading; its rules are 1.4.1, 1.4.2, 1.4.3.');
+    expect(r14!.fields).toMatchObject({ changed: true, titled: true, section: 'Titled Part', chapter: 'First Chapter' });
+    expect(r141!.title).toBe('Rule 1.4.1 (Titled Part)');
+    expect(r141!.text).toBe('Comprehensive Rules 1.4.1, Titled Part: Invented text a.');
+    expect(r142!.title).toBe('Rule 1.4.2 (Named Sub)');
+    expect(r142!.text).toBe('Comprehensive Rules 1.4.2, Named Sub: Invented text b.');
+    expect(r142!.fields).toMatchObject({ titled: true });
+    // an untitled sibling after a titled one takes the parent's title, not the sibling's
+    expect(r143!.title).toBe('Rule 1.4.3 (Titled Part)');
+    expect(r143!.fields).toMatchObject({ section: 'Titled Part' });
+    expect(r143!.fields?.titled).toBeUndefined();
+    expect(r21!.title).toBe('Rule 2.1 (Second Chapter)');
+    expect(r21!.fields).toMatchObject({ chapter: 'Second Chapter' });
+    expect(r21!.text).not.toContain('Names here');
     for (const r of rs) expect([r.scope, r.origin, r.stamps?.rulesVersion]).toEqual(['local', 'official', '2030-03-03']);
     expect(citedRules('CR 1.1, 1.2.9, 1.3', new Set(['1.1', '1.3']))).toEqual(['rule:1.1', 'rule:1.3']);
   });

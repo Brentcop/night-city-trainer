@@ -1,9 +1,12 @@
 // Knowledge pack: the index over a set of records and the retrieval ladder of docs/RAG_PLAN.md rule M2. Cheapest
 // first: (1) exact id or name, (2) records one link away from those, (3) BM25 keywords; later rankers add one entry to
-// RANKERS. The ranked lists are merged by reciprocal rank fusion: score = sum of weight / (60 + rank).
+// RANKERS. The ranked lists are merged by reciprocal rank fusion: score = sum of weight / (60 + rank). A neighbour of a
+// kind the question asks for by name ("rulings on X", "decks that play X") also joins the exact list (KIND_CUES; kept
+// after the step 1.4 question set showed it helps on held-out questions).
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
 import { buildNameIndex, findNames, lookupName, type NameIndex } from './names';
+import { tokenize } from './text';
 import { byString, type KbKind, type KbRecord, type KbRel, type KbScope } from './types';
 
 export const RANKERS = ['exact', 'linked', 'keyword'] as const;
@@ -102,14 +105,41 @@ export function rankExact(ix: KbIndex, q: string): string[] {
   return findNames(ix.names, q, (id) => PHRASE_KINDS.includes(ix.byId.get(id)!.kind));
 }
 
-/** Records one link away from the exact hits, either direction: ranker 2. Ordered by keyword score, then by id. */
-export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: readonly Scored[]): string[] {
+/**
+ * Words that ask for a kind of record ("rulings on …", "packages with …", "decks that play …", "the game plan for …").
+ * Matched against the question's tokens (plurals already stripped).
+ */
+export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
+  ruling: ['ruling', 'faq'],
+  faq: ['faq', 'ruling'],
+  package: ['package'],
+  synergy: ['package'],
+  deck: ['deck'],
+  list: ['deck'],
+  plan: ['objective'],
+  note: ['objective'],
+  guide: ['guide'],
+  pilot: ['guide'],
+  piloted: ['guide'],
+};
+
+/** The kinds a question asks for by name. */
+export function cuedKinds(q: string): Set<KbKind> {
+  return new Set(tokenize(q).flatMap((t) => (Object.prototype.hasOwnProperty.call(KIND_CUES, t) ? [...KIND_CUES[t]!] : [])));
+}
+
+/**
+ * Records one link away from the exact hits, either direction: ranker 2. For each exact hit, its neighbours of a kind
+ * the question asks for come first; then by keyword score, then by id.
+ */
+export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: readonly Scored[], cued: ReadonlySet<KbKind> = new Set()): string[] {
   const score = new Map(keyword.map((s) => [s.id, s.score]));
   const seen = new Set(exact);
   const out: string[] = [];
+  const cue = (id: string) => (cued.has(ix.byId.get(id)!.kind) ? 1 : 0);
   for (const id of exact) {
     const near = [...new Set((ix.edges.get(id) ?? []).map((e) => e.other))].filter((o) => !seen.has(o));
-    near.sort((a, b) => (score.get(b) ?? 0) - (score.get(a) ?? 0) || byString(a, b));
+    near.sort((a, b) => cue(b) - cue(a) || (score.get(b) ?? 0) - (score.get(a) ?? 0) || byString(a, b));
     for (const o of near) {
       seen.add(o);
       out.push(o);
@@ -124,8 +154,13 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   const keyword = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query) : [];
   const exact = use.has('exact') || use.has('linked') ? rankExact(ix, query) : [];
   const lists: Partial<Record<Ranker, string[]>> = {};
-  if (use.has('exact')) lists.exact = exact.slice(0, RANK_DEPTH);
-  if (use.has('linked')) lists.linked = rankLinked(ix, exact, keyword).slice(0, RANK_DEPTH);
+  const cued = cuedKinds(query);
+  const linked = use.has('linked') ? rankLinked(ix, exact, keyword, cued) : [];
+  // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
+  // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
+  const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));
+  if (use.has('exact')) lists.exact = [...exact, ...asked].slice(0, RANK_DEPTH);
+  if (use.has('linked')) lists.linked = linked.slice(0, RANK_DEPTH);
   if (use.has('keyword')) lists.keyword = keyword.slice(0, RANK_DEPTH).map((s) => s.id);
   const best = keyword[0];
   const noMatch = !exact.length && (!best || coverage(ix.bm25, best.id, query) < MATCH_FLOOR);
