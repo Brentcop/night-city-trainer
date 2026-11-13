@@ -39,7 +39,21 @@ import {
   type TourneyConfig,
   type TourneyEvent,
 } from '../../lib/tournament';
-import { DEFAULT_DRAFT, draftSetup, entrantName, entrantsFromList, entrantsToList, planText, reachedBefore, type EventDraft } from '../../lib/eventDraft';
+import {
+  DEFAULT_DRAFT,
+  draftSetup,
+  entrantName,
+  entrantsFromList,
+  entrantsToList,
+  handSetNames,
+  initialSeed,
+  planText,
+  randomSeed,
+  reachedBefore,
+  seedAfterStart,
+  type EventDraft,
+  type SeedChoice,
+} from '../../lib/eventDraft';
 import { defaultThreads, errorText, isStopped } from '../../sim/pool';
 import { download } from '../../lib/download';
 import { usePoolRun } from '../usePoolRun';
@@ -57,6 +71,8 @@ const BOTS = TOURNEY_BOTS;
 const SAVE_KEY = 'nct.runs.v1';
 const RATE_KEY = 'nct.runRate.v1';
 const MAX_RUNS = 6;
+/** The largest seed a setup link carries (parseRunParams). */
+const SEED_LIMIT = 2 ** 31 - 1;
 
 /** Every distinct deck (tournament "-eor" builds share their base deck's main list, so they are skipped). */
 function distinct(lib: readonly LibraryDeck[]) {
@@ -154,7 +170,9 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const set = <K extends keyof EventDraft>(k: K, v: EventDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const [runMode, setRunMode] = useState<'all' | 'rounds'>('all');
   const [bot, setBot] = useState<BotLevel>((params.bot as BotLevel | null) ?? 'medium');
-  const [seed, setSeed] = useState(params.seed ?? Math.floor(Math.random() * 9000) + 1000);
+  // a link's seed (s=…) reproduces that event and is kept; otherwise every visit and every new event gets a fresh one
+  const [seedChoice, setSeedChoice] = useState<SeedChoice>(() => initialSeed(params.seed));
+  const seed = seedChoice.seed;
   const [threads, setThreads] = useState(defaultThreads());
 
   const [ev, setEv] = useState<TourneyEvent | null>(null);
@@ -261,6 +279,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     const s = plan.setup;
     const cfg: TourneyConfig = { name: `${EVENT_FORMATS.find((f) => f.key === s.format)?.label} · ${n} decks`, rounds: s.rounds ?? 0, top: s.top ?? 0, bestOf: s.bestOf, bot, seed };
     void launch({ decks: plan.decks, cfg, setup: isPlainSetup(s) ? undefined : s, id: `run-${Date.now().toString(36)}` });
+    // the event keeps its seed (in its config); the form moves on to a new one unless the seed is kept on purpose
+    setSeedChoice((c) => seedAfterStart(c));
   };
   const resume = (saved: TourneyEvent) => {
     if (!saved.config) return setFileMsg('This run was saved before runs could be resumed.');
@@ -350,7 +370,13 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           <h2 style={{ margin: 0 }}>Set up the event</h2>
           <fieldset className="ev-step">
             <legend>1 · Entrants</legend>
-            <EntrantPicker pool={pool} entrants={draft.entrants} onChange={(e) => set('entrants', e)} />
+            <EntrantPicker
+              pool={pool}
+              entrants={draft.entrants}
+              onChange={(e) => set('entrants', e)}
+              handSet={handSetNames(draft)}
+              placesByHand={draft.format === 'single-elim' && draft.slots ? 'bracket' : draft.format === 'matches' ? 'matches' : null}
+            />
             <p className="small" role="status" aria-live="polite" style={{ margin: 0 }}>
               {fieldNote(plan.setup)}
               {plan.unused.length > 0 && <span className="muted"> Not in any match (left out): {plan.unused.join(', ')}.</span>}
@@ -537,10 +563,25 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
                   ))}
                 </select>
               </label>
-              <label className="row muted" title="Same seed + same setup = the same event">
-                Seed
-                <input type="number" value={seed} onChange={(e) => setSeed(+e.target.value || 1)} style={{ width: 90 }} />
-              </label>
+              <span className="row muted ev-seed-field" role="group" aria-label="Event seed">
+                <label className="row" title="Same seed + same setup = the same event">
+                  Seed
+                  <input
+                    type="number"
+                    min={1}
+                    max={SEED_LIMIT}
+                    value={seed}
+                    onChange={(e) => setSeedChoice((c) => ({ ...c, seed: Math.min(SEED_LIMIT, Math.max(1, Math.floor(+e.target.value) || 1)) }))}
+                    style={{ width: 96 }}
+                  />
+                </label>
+                <button type="button" className="ghost small" title="Pick a new random seed" onClick={() => setSeedChoice((c) => ({ ...c, seed: randomSeed(Math.random, c.seed) }))}>
+                  <span aria-hidden="true">🎲</span> New seed
+                </button>
+                <label className="row" title="Use this seed again for the next event too">
+                  <input type="checkbox" checked={seedChoice.keep} onChange={(e) => setSeedChoice((c) => ({ ...c, keep: e.target.checked }))} /> Keep this seed
+                </label>
+              </span>
               <label className="row muted" title="Parallel game workers">
                 Threads
                 <select value={threads} onChange={(e) => setThreads(+e.target.value)}>
@@ -550,6 +591,11 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
                 </select>
               </label>
             </div>
+            <p className="muted small" style={{ margin: 0 }}>
+              {seedChoice.keep
+                ? `Seed ${seed} is kept: the next event uses it too (same seed + same setup = the same event). Untick “Keep this seed” for a new one each time.`
+                : 'Every new event gets a new random seed. Tick “Keep this seed” to play this one again (same seed + same setup = the same event).'}
+            </p>
           </fieldset>
 
           <fieldset className="ev-step">

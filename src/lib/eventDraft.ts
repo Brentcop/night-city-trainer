@@ -92,6 +92,125 @@ export function duplicateEntrant(list: readonly DraftEntrant[], file: string): D
 }
 /** Remove an entrant; removing a deck's first copy promotes nothing (its copies keep their numbers). */
 export const removeEntrant = (list: readonly DraftEntrant[], index: number): DraftEntrant[] => list.filter((_, i) => i !== index);
+
+// ---------------------------------------------------------------- copies in bulk
+
+/** The most times one deck can be entered ("#16" at most). */
+export const MAX_COPIES = 16;
+/** The most entrants the bulk copy actions build (a field this size already takes a long time with the stronger bots). */
+export const MAX_ENTRANTS = 256;
+
+/** A stable key for an entrant row ("file#copy"): selection and React keys survive reordering. */
+export const entrantKey = (e: DraftEntrant) => `${e.file}#${e.copy}`;
+/** How many times a deck is entered. */
+export const copyCount = (list: readonly DraftEntrant[], file: string) => list.filter((e) => e.file === file).length;
+/** The distinct decks in the field, in order of first appearance. */
+export const distinctFiles = (list: readonly DraftEntrant[]) => [...new Set(list.map((e) => e.file))];
+
+/**
+ * The result of a bulk entrant action: the new list, or, when the action would pass a limit, the list unchanged and
+ * `problem` saying why (an action is done whole or not at all).
+ */
+export interface EntrantEdit {
+  list: DraftEntrant[];
+  problem: string | null;
+}
+type NameOf = (file: string) => string;
+const plainName: NameOf = (f) => f;
+const andList = (xs: readonly string[]) => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** Why a list passes a limit (null when it does not). */
+function limitProblem(next: readonly DraftEntrant[], nameOf: NameOf): string | null {
+  const over = distinctFiles(next).filter((f) => copyCount(next, f) > MAX_COPIES);
+  if (over.length) return `${andList(over.map(nameOf))} would be entered more than ${MAX_COPIES} times (×${MAX_COPIES} is the most)`;
+  if (next.length > MAX_ENTRANTS) return `that would make ${next.length} entrants; the most is ${MAX_ENTRANTS}`;
+  return null;
+}
+const refuse = (list: readonly DraftEntrant[], problem: string): EntrantEdit => ({ list: [...list], problem: `Nothing changed: ${problem}.` });
+const checked = (list: readonly DraftEntrant[], next: DraftEntrant[], nameOf: NameOf): EntrantEdit => {
+  const p = limitProblem(next, nameOf);
+  return p ? refuse(list, p) : { list: next, problem: null };
+};
+
+/** Enter each of these decks once more (its next copy, right after its last one), all or nothing. */
+export function duplicateDecks(list: readonly DraftEntrant[], files: Iterable<string>, nameOf: NameOf = plainName): EntrantEdit {
+  const want = [...new Set(files)].filter((f) => list.some((e) => e.file === f));
+  return checked(list, want.reduce<DraftEntrant[]>((l, f) => duplicateEntrant(l, f), [...list]), nameOf);
+}
+/** Enter every deck in the field once more. */
+export const duplicateAll = (list: readonly DraftEntrant[], nameOf: NameOf = plainName) => duplicateDecks(list, distinctFiles(list), nameOf);
+
+/**
+ * Set how many times a deck is entered (1…MAX_COPIES). More: the next copies go right after its last one. Fewer: the
+ * highest-numbered copies go. A deck not in the field is added first.
+ */
+export function setCopies(list: readonly DraftEntrant[], file: string, k: number, nameOf: NameOf = plainName): EntrantEdit {
+  if (!Number.isInteger(k) || k < 1) return refuse(list, `a deck is entered at least once (remove it with ✕)`);
+  if (k > MAX_COPIES) return refuse(list, `${nameOf(file)} can be entered at most ${MAX_COPIES} times`);
+  let next = addEntrant(list, file);
+  while (copyCount(next, file) < k) next = duplicateEntrant(next, file);
+  const extra = next
+    .filter((e) => e.file === file)
+    .map((e) => e.copy)
+    .sort((a, b) => b - a)
+    .slice(0, Math.max(0, copyCount(next, file) - k));
+  next = next.filter((e) => e.file !== file || !extra.includes(e.copy));
+  return checked(list, next, nameOf);
+}
+
+/** Every deck once: drop the extra copies, keeping each deck's lowest-numbered copy where it stands. */
+export function oneCopyEach(list: readonly DraftEntrant[]): DraftEntrant[] {
+  const keep = new Map<string, number>();
+  for (const e of list) keep.set(e.file, Math.min(keep.get(e.file) ?? Infinity, e.copy));
+  return list.filter((e) => keep.get(e.file) === e.copy);
+}
+/** Remove the entrants with these keys (entrantKey). */
+export const removeKeys = (list: readonly DraftEntrant[], keys: ReadonlySet<string>): DraftEntrant[] => list.filter((e) => !keys.has(entrantKey(e)));
+
+/** The names entered after `before` became `after`: the entrants added and removed, by key, in list order. */
+export function entrantChanges(before: readonly DraftEntrant[], after: readonly DraftEntrant[]): { added: DraftEntrant[]; removed: DraftEntrant[] } {
+  const b = new Set(before.map(entrantKey));
+  const a = new Set(after.map(entrantKey));
+  return { added: after.filter((e) => !b.has(entrantKey(e))), removed: before.filter((e) => !a.has(entrantKey(e))) };
+}
+
+/**
+ * The entrant names the draft's hand-set parts use (round-1 pairings, a fixed top-cut order, bracket slots, the match
+ * list), for the current format only. Bulk entrant changes never rewrite these: a name that is no longer entered shows
+ * as a problem in the setup.
+ */
+export function handSetNames(draft: EventDraft): string[] {
+  const out: string[] = [];
+  if (draft.format === 'swiss') {
+    out.push(...draft.pairings.flatMap((p) => [p.a, p.b]));
+    if (draft.cutSeeding === 'manual') out.push(...draft.cutSeeds);
+  } else if (draft.format === 'single-elim') out.push(...(draft.slots ?? []).filter((s): s is string => s !== null));
+  else if (draft.format === 'matches') out.push(...draft.matches.flatMap((m) => [m.a, m.b]));
+  return [...new Set(out.filter(Boolean))];
+}
+
+// ---------------------------------------------------------------- the event seed
+
+/** Random seeds are six digits: easy to read and type, 900 000 of them. */
+export const SEED_MIN = 100_000;
+export const SEED_MAX = 999_999;
+/** A new random seed; `avoid` (the last one) is never returned. */
+export function randomSeed(rand: () => number = Math.random, avoid?: number): number {
+  const v = Math.min(SEED_MAX, Math.max(SEED_MIN, SEED_MIN + Math.floor(rand() * (SEED_MAX - SEED_MIN + 1))));
+  return v !== avoid ? v : v === SEED_MAX ? SEED_MIN : v + 1;
+}
+/** The setup form's seed: the number, and whether it is kept for the next event on purpose. */
+export interface SeedChoice {
+  seed: number;
+  keep: boolean;
+}
+/**
+ * The seed a visit to the setup starts with. A setup link's seed (s=…) is a request to reproduce that event, so it is
+ * used and kept; otherwise a new random seed, not kept. Nothing remembers the last seed used between visits.
+ */
+export const initialSeed = (linkSeed: number | null, rand: () => number = Math.random): SeedChoice => (linkSeed !== null ? { seed: linkSeed, keep: true } : { seed: randomSeed(rand), keep: false });
+/** The form's seed once an event has started with it: the same when kept on purpose, otherwise a new random one. */
+export const seedAfterStart = (s: SeedChoice, rand: () => number = Math.random): SeedChoice => (s.keep ? s : { seed: randomSeed(rand, s.seed), keep: false });
 /** Move an entrant up (−1) or down (+1) in seed order. */
 export function moveEntrant<T>(list: readonly T[], index: number, delta: number): T[] {
   const j = index + delta;

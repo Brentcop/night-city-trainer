@@ -8,9 +8,25 @@ import type { LibraryDeck } from '../src/lib/library';
 import { HIDDEN_KEY } from '../src/lib/hiddenDecks';
 import {
   addEntrant,
+  copyCount,
   DEFAULT_DRAFT,
   draftSetup,
+  duplicateAll,
+  duplicateDecks,
   duplicateEntrant,
+  entrantChanges,
+  entrantKey,
+  handSetNames,
+  initialSeed,
+  MAX_COPIES,
+  MAX_ENTRANTS,
+  oneCopyEach,
+  randomSeed,
+  removeKeys,
+  SEED_MAX,
+  SEED_MIN,
+  seedAfterStart,
+  setCopies,
   durationText,
   entrantName,
   entrantsFromList,
@@ -63,6 +79,67 @@ describe('entrants', () => {
     expect(moveEntrant(list, 3, -1).map((e) => e.copy)).toEqual([1, 2, 1, 3]);
     expect(moveEntrant(list, 0, -1)).toEqual(list);
     expect(removeEntrant(list, 1).map((e) => e.copy)).toEqual([1, 3, 1]);
+  });
+  it('every deck again: each distinct deck gets its next copy after its last one; one of each undoes it', () => {
+    const [, , c] = meta.map((d) => d.file);
+    const start = [{ file: a!, copy: 1 }, { file: a!, copy: 2 }, { file: b!, copy: 1 }, { file: c!, copy: 1 }];
+    const r = duplicateAll(start);
+    expect(r.problem).toBeNull();
+    expect(r.list).toEqual([
+      { file: a, copy: 1 },
+      { file: a, copy: 2 },
+      { file: a, copy: 3 },
+      { file: b, copy: 1 },
+      { file: b, copy: 2 },
+      { file: c, copy: 1 },
+      { file: c, copy: 2 },
+    ]);
+    expect(oneCopyEach(r.list)).toEqual([{ file: a, copy: 1 }, { file: b, copy: 1 }, { file: c, copy: 1 }]);
+    // the lowest copy left stays where it stands (no renumbering: hand-set names are never rewritten)
+    expect(oneCopyEach([{ file: b!, copy: 1 }, { file: a!, copy: 3 }, { file: a!, copy: 2 }])).toEqual([{ file: b, copy: 1 }, { file: a, copy: 2 }]);
+    expect(duplicateAll([]).list).toEqual([]);
+  });
+  it('copies per deck in one step: up adds after the last copy, down drops the highest numbers', () => {
+    const start = [{ file: a!, copy: 1 }, { file: b!, copy: 1 }];
+    const up = setCopies(start, a!, 4);
+    expect(up.list.map((e) => `${e.file === a ? 'a' : 'b'}${e.copy}`)).toEqual(['a1', 'a2', 'a3', 'a4', 'b1']);
+    expect(copyCount(up.list, a!)).toBe(4);
+    const down = setCopies([{ file: a!, copy: 1 }, { file: b!, copy: 1 }, { file: a!, copy: 3 }, { file: a!, copy: 2 }], a!, 2);
+    expect(down.list).toEqual([{ file: a, copy: 1 }, { file: b, copy: 1 }, { file: a, copy: 2 }]);
+    expect(setCopies(start, b!, 1).list).toEqual(start);
+    expect(setCopies(start, a!, 0)).toEqual({ list: start, problem: expect.stringMatching(/^Nothing changed: a deck is entered at least once/) });
+  });
+  it('bulk actions past a limit change nothing and say why', () => {
+    const full = setCopies([{ file: a!, copy: 1 }, { file: b!, copy: 1 }], a!, MAX_COPIES).list;
+    const name = (f: string) => (f === a ? 'Deck A' : 'Deck B');
+    const r = duplicateAll(full, name);
+    expect(r.list).toEqual(full); // not half done: b did not get its copy either
+    expect(r.problem).toBe(`Nothing changed: Deck A would be entered more than ${MAX_COPIES} times (×${MAX_COPIES} is the most).`);
+    expect(setCopies(full, a!, MAX_COPIES + 1, name).problem).toMatch(/at most 16 times/);
+    const many = Array.from({ length: MAX_ENTRANTS - 1 }, (_, i) => ({ file: `f${i}.txt`, copy: 1 }));
+    expect(duplicateAll(many).problem).toBe(`Nothing changed: that would make ${2 * (MAX_ENTRANTS - 1)} entrants; the most is ${MAX_ENTRANTS}.`);
+    expect(duplicateDecks(many, ['f0.txt']).list).toHaveLength(MAX_ENTRANTS);
+  });
+  it('several at once: the selected decks once more each, the selected rows removed', () => {
+    const start = [{ file: a!, copy: 1 }, { file: a!, copy: 2 }, { file: b!, copy: 1 }];
+    // both copies of a ticked: a is entered once more (by deck, like "every deck again"), not twice
+    expect(duplicateDecks(start, [a!, a!, 'not-entered.txt']).list).toEqual([...start.slice(0, 2), { file: a, copy: 3 }, start[2]]);
+    const keys = new Set([entrantKey(start[1]!), entrantKey(start[2]!)]);
+    expect(removeKeys(start, keys)).toEqual([start[0]]);
+    expect(entrantChanges(start, removeKeys(start, keys))).toEqual({ added: [], removed: [start[1], start[2]] });
+  });
+  it('hand-set names: only the current format’s parts, never rewritten by bulk changes', () => {
+    const d = draft({ pairings: [{ a: 'A', b: 'B' }], cutSeeding: 'manual', cutSeeds: ['C'], slots: ['X', null], matches: [{ a: 'M', b: 'N' }] });
+    expect(handSetNames(d)).toEqual(['A', 'B', 'C']);
+    expect(handSetNames({ ...d, format: 'single-elim' })).toEqual(['X']);
+    expect(handSetNames({ ...d, format: 'matches' })).toEqual(['M', 'N']);
+    expect(handSetNames({ ...d, format: 'round-robin' })).toEqual([]);
+    // removing a copy a pairing names leaves the pairing alone; the setup reports it
+    const n = meta.map(nameOf);
+    const two = draft({ entrants: [...draft().entrants, { file: meta[0]!.file, copy: 2 }], pairings: [{ a: `${n[0]} #2`, b: n[1]! }] });
+    const cut = { ...two, entrants: oneCopyEach(two.entrants) };
+    expect(cut.pairings).toEqual(two.pairings);
+    expect(draftSetup(cut, byFile).problems.join(' ')).toMatch(new RegExp(`${n[0]} #2 is not an entrant`));
   });
   it('setup links carry copies and read them back', () => {
     const list = [{ file: a!, copy: 1 }, { file: a!, copy: 2 }, { file: b!, copy: 1 }];
@@ -130,6 +207,25 @@ describe('the setup a draft builds', () => {
     expect(durationText(30)).toBe('under a minute');
     expect(durationText(3600 + 20 * 60)).toBe('about 1 h 20 min');
   });
+  it('the seed rule: a new visit and each new event get a fresh seed; a link’s seed is kept on purpose', () => {
+    const seq = (...xs: number[]) => {
+      let i = 0;
+      return () => xs[i++ % xs.length]!;
+    };
+    // a new visit (no s= in the address): random, six digits, not kept
+    const visit = initialSeed(null, seq(0.5));
+    expect(visit).toEqual({ seed: 550000, keep: false });
+    expect(initialSeed(null, seq(0)).seed).toBe(SEED_MIN);
+    expect(initialSeed(null, seq(0.9999999)).seed).toBe(SEED_MAX);
+    // after an event starts: a new seed, never the one just used (even if the generator repeats itself)
+    expect(seedAfterStart(visit, seq(0.25))).toEqual({ seed: 325000, keep: false });
+    expect(seedAfterStart(visit, seq(0.5)).seed).not.toBe(visit.seed);
+    expect(randomSeed(seq(0.9999999), SEED_MAX)).toBe(SEED_MIN);
+    // kept on purpose: the next event uses it again
+    expect(seedAfterStart({ seed: 4242, keep: true }, seq(0.25))).toEqual({ seed: 4242, keep: true });
+    // a shared setup link (s=77) reproduces that event: its seed, kept
+    expect(initialSeed(77, seq(0.5))).toEqual({ seed: 77, keep: true });
+  });
   it('a resumed run passes the points the saved run had reached', () => {
     const saved = { rounds: [{ matches: [{ games: [1] }] }, { matches: [{ games: [] }] }], bracket: [{}], seeds: ['A', 'B'] };
     expect(reachedBefore(saved, { stage: 'swiss', round: 2 })).toBe(true);
@@ -155,6 +251,17 @@ describe('setup parts (rendered)', () => {
     expect(html).toMatch(/tierb tierb-sim/);
     expect(html).toContain('All meta');
     expect(html).toContain('aria-live="polite"');
+    // copies in bulk: select all, the selected rows, the whole field, and ×N on each deck's first row only
+    expect(html).toContain('aria-label="Several entrants at once"');
+    expect(html).toContain('Select all');
+    expect(html).toContain(`aria-label="Select ${n[0]} #2"`);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>⧉ Selected again<\/button>/);
+    expect(html).toContain('⧉ Every deck again');
+    expect(html).toMatch(/<button[^>]*>One of each<\/button>/);
+    expect(html).toContain(`aria-label="Times ${n[0]} is entered"`);
+    expect(html.split(`aria-label="Times ${n[0]} is entered"`)).toHaveLength(2);
+    expect(html).toMatch(/<option value="2" selected="">×2<\/option>/);
+    expect(html).toContain(`<option value="${MAX_COPIES}">×${MAX_COPIES}</option>`);
   });
   it('pairing editor: keyboard pairing controls, set-by-you marks, the rematch tick', () => {
     const html = renderToStaticMarkup(<PairingEditor names={n} pairs={[{ a: n[0]!, b: n[1]! }]} met={() => true} onChange={() => undefined} />);
@@ -192,6 +299,22 @@ describe('the runner page', () => {
     expect(html).toContain(`${meta[0]!.deck.name} #2`);
     expect(html).toMatch(/This event plays 6 matches/);
     expect(html).toContain('aria-pressed="true" title="Everyone plays everyone');
+    // the link's seed reproduces its event: used and kept
+    expect(html).toMatch(/<input type="number" min="1" max="2147483647"[^>]*value="77"/);
+    expect(html).toMatch(/<input type="checkbox" checked=""\/> Keep this seed/);
+    expect(html).toContain('Seed 77 is kept');
+    expect(html).toContain('New seed');
+  });
+  it('a plain visit starts with a new random seed, not kept, every time', () => {
+    const seedIn = (html: string) => Number(html.match(/<input type="number" min="1" max="2147483647"[^>]*value="(\d+)"/)?.[1]);
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.1).mockReturnValueOnce(0.7);
+    const first = renderToStaticMarkup(<TournamentRunnerPage q={new URLSearchParams()} />);
+    const second = renderToStaticMarkup(<TournamentRunnerPage q={new URLSearchParams()} />);
+    vi.restoreAllMocks();
+    expect(seedIn(first)).toBe(190000);
+    expect(seedIn(second)).toBe(730000);
+    expect(first).toMatch(/<input type="checkbox"\/> Keep this seed/);
+    expect(first).toContain('Every new event gets a new random seed');
   });
   it('a stopped saved run offers Resume and Forget', () => {
     const run = { id: 'r1', name: 'Run 1', date: '2026-11-12T00:00:00Z', bot: 'easy', format: 'Swiss', config: { name: 'x', rounds: 2, top: 0, bestOf: 1, bot: 'easy', seed: 3 }, decks: {}, rounds: [], bracket: [], standings: [], champion: null, phase: 'stopped', custom: true };

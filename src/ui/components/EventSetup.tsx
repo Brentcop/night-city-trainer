@@ -7,7 +7,24 @@ import { loadHidden } from '../../lib/hiddenDecks';
 import { applyView, DEFAULT_VIEW, sourceCounts, type GalleryView } from '../../lib/galleryView';
 import { SOURCES, deckSource, sourceInfo } from '../../lib/deckSource';
 import { RATINGS } from '../../data/index';
-import { addEntrant, duplicateEntrant, entrantName, moveEntrant, quickSets, removeEntrant, type DraftEntrant } from '../../lib/eventDraft';
+import {
+  addEntrant,
+  copyCount,
+  duplicateAll,
+  duplicateDecks,
+  entrantChanges,
+  entrantKey,
+  entrantName,
+  MAX_COPIES,
+  moveEntrant,
+  oneCopyEach,
+  quickSets,
+  removeEntrant,
+  removeKeys,
+  setCopies,
+  type DraftEntrant,
+  type EntrantEdit,
+} from '../../lib/eventDraft';
 import { BEST_OF, bracketSize, roundName, seededSlots, type BestOf, type ForcedPair, type MatchSpec } from '../../lib/eventFormats';
 import { Chip, deckFacts } from './DeckGallery';
 import { ColorPips } from './DeckIdentity';
@@ -24,7 +41,28 @@ function Said({ text }: { text: string }) {
 
 // ---------------------------------------------------------------- entrants
 
-export function EntrantPicker({ pool, entrants, onChange, disabled }: { pool: readonly LibraryDeck[]; entrants: DraftEntrant[]; onChange: (e: DraftEntrant[]) => void; disabled?: boolean }) {
+/**
+ * The entrant list and the decks to add. Copies: ⧉ on a row adds one, the ×N menu on a deck's first row sets how many
+ * times it is entered, and the bulk bar enters every deck (or the ticked rows) once more, removes the ticked rows, or
+ * keeps one copy of each. A bulk action that would pass a limit (MAX_COPIES, MAX_ENTRANTS) changes nothing and says why.
+ * `handSet` is the names the setup's hand-set parts use and `placesByHand` says new entrants must be placed by hand
+ * (a slot-by-slot bracket or a match list): bulk changes never rewrite those, they only say so.
+ */
+export function EntrantPicker({
+  pool,
+  entrants,
+  onChange,
+  disabled,
+  handSet = [],
+  placesByHand = null,
+}: {
+  pool: readonly LibraryDeck[];
+  entrants: DraftEntrant[];
+  onChange: (e: DraftEntrant[]) => void;
+  disabled?: boolean;
+  handSet?: readonly string[];
+  placesByHand?: 'bracket' | 'matches' | null;
+}) {
   const hiddenKey = [...loadHidden()].join('|');
   const hidden = useMemo(() => new Set(hiddenKey.split('|').filter(Boolean)), [hiddenKey]);
   const facts = useMemo(() => deckFacts(pool, hidden), [pool, hidden]);
@@ -33,20 +71,59 @@ export function EntrantPicker({ pool, entrants, onChange, disabled }: { pool: re
   // hidden decks stay pickable (marked); the picker's own filters are the gallery's source chips and search
   const [view, setView] = useState<GalleryView>({ ...DEFAULT_VIEW, hidden: true });
   const [said, setSaid] = useState('');
+  /** why the last bulk action changed nothing (shown until the next change) */
+  const [problem, setProblem] = useState('');
+  /** ticked rows, by entrantKey (keys of rows that are gone are ignored) */
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const shown = applyView(facts, view);
   const counts = sourceCounts(facts, view);
   const inSet = new Set(entrants.map((e) => e.file));
   const listId = useId();
   const change = (next: DraftEntrant[], msg: string) => {
     onChange(next);
+    setProblem('');
     setSaid(msg);
+    // rows that are gone leave the selection (so a deck entered again later does not come back ticked)
+    setTicked((t) => new Set([...t].filter((k) => next.some((e) => entrantKey(e) === k))));
   };
   const nameOf = (e: DraftEntrant) => entrantName(byFile.get(e.file), e) || `${e.file} (missing)`;
+  const deckName = (file: string) => byFile.get(file)?.deck.name ?? file;
   const toggle = (file: string) => {
     const d = byFile.get(file);
     if (inSet.has(file)) change(entrants.filter((e) => e.file !== file), `Removed ${d?.deck.name ?? file}`);
     else change(addEntrant(entrants, file), `Added ${d?.deck.name ?? file}`);
   };
+  /** Apply a bulk edit: refused (with the reason, shown and announced) or done (with what changed, announced). */
+  const apply = (edit: EntrantEdit, what: string) => {
+    if (edit.problem) {
+      setProblem(edit.problem);
+      setSaid(edit.problem);
+      return;
+    }
+    const { added, removed } = entrantChanges(entrants, edit.list);
+    const names = (xs: DraftEntrant[]) => (xs.length <= 3 ? xs.map(nameOf).join(', ') : `${xs.length} entrants`);
+    const parts = [added.length ? `added ${names(added)}` : '', removed.length ? `removed ${names(removed)}` : ''].filter(Boolean);
+    let msg = `${what}: ${parts.join('; ') || 'nothing to change'} (${edit.list.length} entrant${edit.list.length === 1 ? '' : 's'}).`;
+    const still = removed.map(nameOf).filter((n) => handSet.includes(n));
+    if (still.length) msg += ` Still named by hand: ${still.join(', ')} (see the problems in step 4).`;
+    if (added.length && placesByHand) msg += placesByHand === 'bracket' ? ' New copies are not placed in your bracket until you place them.' : ' New copies play only once you add them to the match list.';
+    change(edit.list, msg);
+  };
+  const selected = entrants.filter((e) => ticked.has(entrantKey(e)));
+  const allTicked = entrants.length > 0 && selected.length === entrants.length;
+  const tick = (e: DraftEntrant, on: boolean) => {
+    const next = new Set([...ticked].filter((k) => entrants.some((x) => entrantKey(x) === k)));
+    if (on) next.add(entrantKey(e));
+    else next.delete(entrantKey(e));
+    setTicked(next);
+  };
+  const tickAll = (on: boolean) => {
+    setTicked(on ? new Set(entrants.map(entrantKey)) : new Set());
+    setSaid(on ? `Selected all ${entrants.length} entrants` : 'Selection cleared');
+  };
+  const hasExtras = entrants.length > new Set(entrants.map((e) => e.file)).size;
+  const firstRow = new Map<string, number>();
+  entrants.forEach((e, i) => firstRow.has(e.file) || firstRow.set(e.file, i));
   return (
     <div className="ev-entrants">
       <Said text={said} />
@@ -69,6 +146,59 @@ export function EntrantPicker({ pool, entrants, onChange, disabled }: { pool: re
           <div className="pb-label" id={listId}>
             Entrants in seed order ({entrants.length})
           </div>
+          {entrants.length > 0 && (
+            <div className="ev-bulk small" role="group" aria-label="Several entrants at once">
+              <label className="ev-bulk-all">
+                <input
+                  type="checkbox"
+                  checked={allTicked}
+                  ref={(el) => {
+                    if (el) el.indeterminate = selected.length > 0 && !allTicked;
+                  }}
+                  disabled={disabled}
+                  onChange={(ev) => tickAll(ev.target.checked)}
+                />{' '}
+                Select all{selected.length > 0 && <span className="muted"> ({selected.length} selected)</span>}
+              </label>
+              {selected.length > 0 && (
+                <button type="button" className="ghost small" disabled={disabled} onClick={() => tickAll(false)}>
+                  None
+                </button>
+              )}
+              <button
+                type="button"
+                className="small"
+                disabled={disabled || !selected.length}
+                title="Enter each selected deck once more (its next copy goes after its last one)"
+                onClick={() => apply(duplicateDecks(entrants, selected.map((e) => e.file), deckName), 'Entered the selected decks again')}
+              >
+                ⧉ Selected again
+              </button>
+              <button
+                type="button"
+                className="small"
+                disabled={disabled || !selected.length}
+                onClick={() => {
+                  setTicked(new Set());
+                  apply({ list: removeKeys(entrants, new Set(selected.map(entrantKey))), problem: null }, 'Removed the selected entrants');
+                }}
+              >
+                ✕ Remove selected
+              </button>
+              <span className="ev-bulk-sep" aria-hidden="true" />
+              <button type="button" className="small" disabled={disabled} title="Enter every deck in the field once more (each gets its next copy)" onClick={() => apply(duplicateAll(entrants, deckName), 'Entered every deck again')}>
+                ⧉ Every deck again
+              </button>
+              <button type="button" className="small" disabled={disabled || !hasExtras} title="Drop the extra copies: every deck once" onClick={() => apply({ list: oneCopyEach(entrants), problem: null }, 'One copy of each deck')}>
+                One of each
+              </button>
+            </div>
+          )}
+          {problem && (
+            <p className="small ev-warn" style={{ margin: 0 }}>
+              ⚠ {problem}
+            </p>
+          )}
           {entrants.length === 0 ? (
             <p className="muted small">No entrants yet: pick a quick set or add decks from the list.</p>
           ) : (
@@ -76,8 +206,10 @@ export function EntrantPicker({ pool, entrants, onChange, disabled }: { pool: re
               {entrants.map((e, i) => {
                 const d = byFile.get(e.file);
                 const name = nameOf(e);
+                const copies = copyCount(entrants, e.file);
                 return (
-                  <li key={`${e.file}#${e.copy}`} className={hidden.has(e.file) ? 'is-hidden' : ''}>
+                  <li key={entrantKey(e)} className={`${hidden.has(e.file) ? 'is-hidden' : ''}${ticked.has(entrantKey(e)) ? ' is-ticked' : ''}`.trim() || undefined}>
+                    <input type="checkbox" aria-label={`Select ${name}`} checked={ticked.has(entrantKey(e))} disabled={disabled} onChange={(ev) => tick(e, ev.target.checked)} />
                     <span className="ev-seed">{i + 1}</span>
                     {d && <ColorPips legends={d.deck.legends} />}
                     <span className="ev-name" title={name}>
@@ -87,13 +219,30 @@ export function EntrantPicker({ pool, entrants, onChange, disabled }: { pool: re
                     {d && <SimTierBadge tier={simTierFor(d.deck.name)} />}
                     {hidden.has(e.file) && <span className="tag">hidden</span>}
                     <span className="ev-row-actions">
+                      {!(d && firstRow.get(e.file) === i) && <span className="ev-copies-gap" aria-hidden="true" />}
+                      {d && firstRow.get(e.file) === i && (
+                        <select
+                          className="ev-copies"
+                          aria-label={`Times ${d.deck.name} is entered`}
+                          title="How many times this deck is entered (copies play as #2, #3…)"
+                          value={copies}
+                          disabled={disabled}
+                          onChange={(ev) => apply(setCopies(entrants, e.file, +ev.target.value, deckName), `${d.deck.name} ×${ev.target.value}`)}
+                        >
+                          {Array.from({ length: Math.max(MAX_COPIES, copies) }, (_, k) => k + 1).map((k) => (
+                            <option key={k} value={k}>
+                              ×{k}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <button type="button" className="ghost small" aria-label={`Move ${name} up`} disabled={disabled || i === 0} onClick={() => change(moveEntrant(entrants, i, -1), `${name} is seed ${i}`)}>
                         ↑
                       </button>
                       <button type="button" className="ghost small" aria-label={`Move ${name} down`} disabled={disabled || i === entrants.length - 1} onClick={() => change(moveEntrant(entrants, i, 1), `${name} is seed ${i + 2}`)}>
                         ↓
                       </button>
-                      <button type="button" className="ghost small" aria-label={`Enter ${d?.deck.name ?? name} again`} title="Enter this deck again (as #2, #3…)" disabled={disabled || !d} onClick={() => change(duplicateEntrant(entrants, e.file), `Added another copy of ${d?.deck.name}`)}>
+                      <button type="button" className="ghost small" aria-label={`Enter ${d?.deck.name ?? name} again`} title="Enter this deck again (as #2, #3…)" disabled={disabled || !d} onClick={() => apply(duplicateDecks(entrants, [e.file], deckName), `Entered ${d?.deck.name} again`)}>
                         ⧉
                       </button>
                       <button type="button" className="ghost small" aria-label={`Remove ${name}`} disabled={disabled} onClick={() => change(removeEntrant(entrants, i), `Removed ${name}`)}>
