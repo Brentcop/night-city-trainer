@@ -116,7 +116,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.2 | Builders for authored, dev and local-only sources | done | 2026-11-13 |
 | 1.3 | `npm run kb` (search, get, related, stats, build) | done | 2026-11-13 |
 | 1.4 | Question set and `kb-eval` with first baselines | done | 2026-11-13 |
-| 1.5 | Agent skill and a `CLAUDE.md` pointer | next | |
+| 1.5 | Agent skill and a `CLAUDE.md` pointer | done | 2026-11-13 |
 | 1.6 | Unanswerable questions; measure the "no match" floor and the rules misses | next | |
 | 2.1 | Records query module: numbers by code | later | |
 | 2.2 | Event, round and deck sheets from templates | later | |
@@ -482,3 +482,5 @@ while the tournament index and the finish chips use the real cut, so five decks 
 - 2026-11-13: step 0.1 landed. Play reads `public/data/lift.json` (11.6 KB gzip) only while the coach is
   on, in place of the whole synergy report (118.6 KB gzip) on every board. No file the game cache hashes
   was edited. Checked in a clean checkout and in the browser.
+- 2026-11-13: step 1.5 landed. `.claude/skills/kb/SKILL.md` tells an agent when and how to use
+  `npm run kb`, and `CLAUDE.md` has a short "Knowledge pack (kb)" bullet whose lines a search tool can show.
