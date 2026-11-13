@@ -4,6 +4,7 @@
 // ratings or recorded events: PvP games never enter sim data.
 import type { DeckList, PlayerId } from '../engine/types';
 import { loadPractice, recordPractice, type MultiDayMark, type PracticeGame } from '../lib/practiceLog';
+import { CURRENT_SIM_VERSION } from '../lib/playedRecord';
 import { loadReplays, saveReplay, type PracticeReplay } from '../lib/practiceReplays';
 import type { GameRecordMsg } from './protocol';
 
@@ -27,6 +28,9 @@ export interface OnlineOutcome {
   conceded: boolean;
   rivalConceded: boolean;
   abandoned: boolean;
+  /** a multi-day game ended on time: your clock ran out (the rival claimed the win), or the rival's did */
+  timedOut?: boolean;
+  rivalTimedOut?: boolean;
   /** a multi-day game played by turn packets (src/net/corrSession.ts) */
   multiDay?: MultiDayMark;
 }
@@ -68,6 +72,8 @@ export function replayOf(o: OnlineOutcome, rec: GameRecordMsg, seat: PlayerId): 
     ...(rec.endTurnClick?.[seat] ? { endTurnClick: true } : {}),
     result: o.result,
     ...(o.conceded ? { conceded: true } : {}),
+    simVersion: CURRENT_SIM_VERSION,
+    turns: o.turns,
     pvp: {
       rival: o.rival.slice(0, 30),
       seat,
@@ -75,6 +81,8 @@ export function replayOf(o: OnlineOutcome, rec: GameRecordMsg, seat: PlayerId): 
       ...(o.rivalConceded ? { rivalConceded: true } : {}),
       ...(rec.endTurnClick?.[rival] ? { rivalEndTurnClick: true } : {}),
       ...(o.abandoned ? { abandoned: true } : {}),
+      // the clock loss ends the replay where the game stopped (the Game review never plays the timed-out seat on)
+      ...(o.timedOut ? { timedOut: seat } : o.rivalTimedOut ? { timedOut: rival } : {}),
     },
     ...(o.multiDay ? { multiDay: { ...o.multiDay } } : {}),
   };

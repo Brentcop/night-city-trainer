@@ -8,7 +8,7 @@ import type { Game } from '../../../engine/engine';
 import type { Advice, MoveGrade } from '../../../ai/coach';
 import { Markdown } from '../Markdown';
 import { coachSummary } from '../../../lib/practiceLog';
-import { RATING_INFO } from '../../../lib/gameReview';
+import { fixedTerms, RATING_INFO } from '../../../lib/gameReview';
 import { behindText, GIG_NOTE, isWideClose, shownLabel, verdictRating } from '../../../lib/coachWords';
 
 export const NO_ALTS: Advice['alternatives'] = [];
@@ -52,9 +52,10 @@ export function verdictText(gr: MoveGrade): string {
     case 'best':
       return `${name}: as strong as the coach's pick (${coach})`;
     case 'close':
-      return isWideClose(gr.gap)
-        ? `${name} (too noisy to call): the coach preferred ${coach}, but its play-outs disagree (${behindText(gr.gap ?? 0, gr.se)})`
-        : `${name}: the coach slightly preferred ${coach}`;
+      if (!isWideClose(gr.gap)) return `${name}: the coach slightly preferred ${coach}`;
+      // the same difference in every play-out: fixed terms of the evaluation, not a measurement (COACH-14)
+      if (fixedTerms(gr.se)) return `${name} (not measured): the coach preferred ${coach} (${behindText(gr.gap ?? 0)}), but only by fixed terms of its evaluation, about the same in every play-out`;
+      return `${name} (too noisy to call): the coach preferred ${coach}, but its play-outs disagree (${behindText(gr.gap ?? 0, gr.se)})`;
     case 'inaccuracy':
     case 'mistake':
       return `${name}: the coach preferred ${coach} (${behindText(gr.gap ?? 0, gr.se)})`;

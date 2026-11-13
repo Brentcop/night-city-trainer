@@ -8,7 +8,8 @@ import { PlayerSide } from './board/Zones';
 import { BoardCard } from './board/BoardCard';
 import { useNarrow } from './board/useNarrow';
 import type { ReplayData } from '../../lib/replayFrames';
-import type { GameState, LogEntry } from '../../engine/types';
+import type { GameState, LogEntry, PlayerId } from '../../engine/types';
+import { redactLine, viewFor, ViewGame } from '../../net/view';
 import '../board.css';
 
 // The recording half (frames, recordReplay) lives in lib/replayFrames so the game worker can use it without React.
@@ -34,10 +35,23 @@ export const DEFAULT_REPLAY_SPEED = 'normal';
 type ReplaySpeed = (typeof REPLAY_SPEEDS)[number]['label'];
 type ReplayMode = 'turn' | 'fast' | 'step';
 
-/** The playmat for one recorded board state (a replay frame): both sides, the line it follows, and the first seat's hand. */
-export function FrameBoard({ state, line, names, narrow, at }: { state: GameState; line?: LogEntry; names: [string, string]; narrow: boolean; at: number }) {
-  // a game around the frame's own copy of the state (the board components read a Game)
-  const g = useMemo(() => new Game(structuredClone(state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }]), [state]);
+/**
+ * The playmat for one recorded board state (a replay frame): both sides, the line it follows, and the viewer's hand at
+ * the bottom. `viewer` (default 0) is the seat the board is drawn for: seat 1 (the guest of an online game) sees the
+ * state turned round and masked as that seat could see it (src/net/view.ts viewFor), so its own hand is shown, never
+ * the rival's.
+ */
+export function FrameBoard({ state, line: seatLine, names: seatNames, narrow, at, viewer = 0 }: { state: GameState; line?: LogEntry; names: [string, string]; narrow: boolean; at: number; viewer?: PlayerId }) {
+  // a game around the frame's own copy of the state (the board components read a Game); seat 0 is always the viewer
+  const g = useMemo(
+    () => (viewer === 1 ? new ViewGame(viewFor(state, 1)) : new Game(structuredClone(state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }])),
+    [state, viewer],
+  );
+  const names: [string, string] = viewer === 1 ? [seatNames[1], seatNames[0]] : seatNames;
+  const line: LogEntry | undefined =
+    viewer === 1 && seatLine
+      ? { ...seatLine, player: seatLine.player === null ? null : ((1 - seatLine.player) as PlayerId), text: seatLine.player === 0 ? redactLine(seatLine.text) : seatLine.text }
+      : seatLine;
   const ctx: BoardCtx = {
     g,
     pend: null,
@@ -71,7 +85,7 @@ export function FrameBoard({ state, line, names, narrow, at }: { state: GameStat
         </div>
         <PlayerSide p={0} ctx={ctx} />
         <div className="replay-hand">
-          <span className="pb-label">{names[0]}'s hand</span>
+          <span className="pb-label">{names[0] === 'you' ? 'Your' : `${names[0]}'s`} hand</span>
           <div className="pb-cards">
             {s.players[0].hand.map((u) => (
               <BoardCard key={u} uid={u} size={handSize} ctx={ctx} />

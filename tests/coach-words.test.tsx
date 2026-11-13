@@ -101,8 +101,11 @@ describe('agreeing is measured only where the coach measures', () => {
   it('older records: a stored rule-decided "agree" is read as not measured', () => {
     const rec = { at: 3, turn: 2, options: ['A', 'B'], chose: 0, coach: 0, why: '', verdict: 'agree', gap: 0, scores: [] };
     expect(coachRatingOf({ ...rec, kind: 'gig' })).toBeNull();
-    expect(coachRatingOf({ ...rec, kind: 'action', scoreKind: 'main' })).not.toBeNull();
-    expect(coachRatingOf(rec)).not.toBeNull(); // no kind recorded: read as before
+    const scored = { ...rec, scores: [{ i: 0, v: 10 }, { i: 1, v: 0 }] };
+    expect(coachRatingOf({ ...scored, kind: 'action', scoreKind: 'main' })).not.toBeNull();
+    expect(coachRatingOf(scored)).not.toBeNull(); // no kind recorded: read as before
+    // agreeing when the coach scored no other option measured nothing either: left to the review (REV-11)
+    expect(coachRatingOf({ ...rec, kind: 'action', scoreKind: 'main' })).toBeNull();
     const grade = (kind: string): CoachedGrade => ({ turn: 1, chose: 'A', coach: 'A', gap: 0, verdict: 'agree', record: { at: 1, kind, verdict: 'agree', gap: 0 } as unknown as CoachedGrade['record'] });
     const back = restoredGrades({ grades: [grade('gig'), grade('action')] } as unknown as SavedGame);
     expect(back.map((x) => [x.verdict, x.record?.verdict])).toEqual([

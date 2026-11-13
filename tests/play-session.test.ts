@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import { makeTierBot } from '../src/ai/tiers';
-import { reviewGame, ScriptedAgent } from '../src/ai/reviewer';
+import { ReplayDiverged, reviewGame, ScriptedAgent } from '../src/ai/reviewer';
 import { practiceAgents } from '../src/sim/practiceReview';
 import type { Agent, Decision, DeckList, GameState } from '../src/engine/types';
 import { canConcede, canUndo, CONCEDED_REASON, outcome, PracticeSession, type MatchSetup, type Running } from '../src/lib/practiceSession';
@@ -381,9 +381,8 @@ describe('practice session: conceding', () => {
     expect(st.winReason).toBe(CONCEDED_REASON);
     expect(st.turn).toBe(run.g.s.turn);
     expect(st.log.slice(0, -1)).toEqual(run.g.s.log.slice(0, -1)); // the last lines word the concession differently
-    // a finished game's record is untouched: running out of choices still falls back to a stand-in bot
-    const plain = await Game.create(r.decks, practiceAgents(spec), { seed: r.seed, first: r.first }).run();
-    expect(plain.winReason).not.toBe(CONCEDED_REASON);
+    // without the concession the record runs out before the game ends: the strict replay refuses it, never a stand-in bot
+    await expect(Game.create(r.decks, practiceAgents(spec), { seed: r.seed, first: r.first }).run()).rejects.toBeInstanceOf(ReplayDiverged);
     // the reviewer itself: same result as recorded, and only your decisions up to the concession are graded
     const review = await reviewGame(
       { decks: r.decks, seed: r.seed, first: r.first, agents: practiceAgents({ ...spec, conceded: true }), agentNames: ['you', r.botLevel] },

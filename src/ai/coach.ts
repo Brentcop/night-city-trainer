@@ -10,6 +10,7 @@ import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype
 import { DECIDED_EVAL, GIG_SWING, knownCards } from './eval';
 import { handFeatures } from './mulligan';
 import { behindText, gapFigure, gapSize, optionName } from '../lib/coachWords';
+import { fixedTerms, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
@@ -104,9 +105,14 @@ function gapOf(best: GradedOption, o: GradedOption): { gap: number; se?: number 
   return { gap, se: gigs(standardError(o.w.map((x, k) => x - best.w![k]))) };
 }
 
-/** A gap is a close call when it is under CLOSE_GIGS, or within 2 paired standard errors of the coach's pick. */
+/**
+ * A gap is a close call when it is under CLOSE_GIGS, or within 2 paired standard errors of the coach's pick; a gap that
+ * is about the same in every world (paired SE under 1 point: fixed evaluation terms, not measured, COACH-14) is given a typical SE, so it
+ * is a close call up to 0.5 Gigs. The Game review's own noise test (src/lib/gameReview.ts withinNoise), so the coach
+ * and the review always agree.
+ */
 export function isClose(gap: number, se?: number): boolean {
-  return gap < CLOSE_GIGS || (se !== undefined && gap <= 2 * se);
+  return withinNoise(gap, se);
 }
 
 /**
@@ -189,6 +195,7 @@ function vsNothingWhy(d: Decision, index: number, none: number, grade: GradeBasi
     if (gapSize(Math.max(0, gap)) === 'decided') return `${name}: the best other move, ${otherName}, ${other.v <= -DECIDED_EVAL ? 'loses the game' : 'gives up a win'} in the coach's play-outs.`;
     if (isClose(gap, se)) {
       if (gap < CLOSE_GIGS) return `${name}: about as good as the best other move, ${otherName}; either is fine.`;
+      if (fixedTerms(se)) return `${name}: the coach leans this way over ${otherName} (${behindText(gap)}), but the play-outs all give about the same difference, so it comes from fixed terms of its evaluation, not from the play-outs: too little to call.`;
       return `${name}: the coach leans this way, but against ${otherName} it is too noisy to call (${behindText(gap, se)}; its play-outs disagree).`;
     }
     return `${name}: nothing else scores better. The best other move, ${otherName}, comes out ${gapSize(gap) === 'figure' ? 'about ' : ''}${gapFigure(gap)} behind.`;

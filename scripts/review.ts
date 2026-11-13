@@ -15,13 +15,15 @@
 import fs from 'node:fs';
 import { bool, cli, forEachRecordedGame, int, loadLibrary, num, oneOf, runMain, str, threadsOpt, TIER_BOTS, workerPool } from './lib-node';
 import { gameDeck } from '../src/lib/tournament';
-import { BLUNDER, NOISE, type DecisionReview, type GameReview } from '../src/ai/reviewer';
+import { BLUNDER, NOISE, ReplayDiverged, type DecisionReview, type GameReview } from '../src/ai/reviewer';
 import { tierLabel } from '../src/ai/tiers';
 import { GIG_SWING } from '../src/ai/eval';
 import type { ReviewJob } from './review-worker';
 import { COACHED_REPLAY_KIND, coachedReviewSpec, parseCoachedReplay } from '../src/lib/coachedReplay';
 import { reviewExpect } from '../src/lib/practiceReplays';
-import { coachRatingsFrom, explain, RATING_INFO, RATINGS, rateOracle, seatSummary, turningPoint, type GameReviewRecord, type Rating } from '../src/lib/gameReview';
+import { coachRatingsFrom, RATING_INFO, RATINGS, rateOracle, seatSummary, turningName, turningPoint, type GameReviewRecord, type Rating } from '../src/lib/gameReview';
+import { explain, gapTag } from '../src/lib/reviewWords';
+import { shownLabel } from '../src/lib/coachWords';
 import { runGameReview } from '../src/sim/gameReviewRun';
 
 const tierList = (v: string) => {
@@ -419,6 +421,18 @@ const sorted = (m: Map<string, Agg>) => [...m.entries()].sort((a, b) => b[1].reg
 async function main() {
   console.log(`Reviewing ${jobs.length} games (${FROM}), ${ROLLOUTS} play-outs per candidate, ${THREADS} threads${COACH ? ', with coach' : ''}`);
   if (!jobs.length) throw new Error('no games to review; nothing written');
+  // an exported game: its Game review first, so a game this code no longer replays is refused in plain words (nothing written)
+  let gameRec: GameReviewRecord | null = null;
+  if (gameJob) {
+    try {
+      gameRec = await runGameReview(gameJob);
+    } catch (e) {
+      if (!(e instanceof ReplayDiverged)) throw e;
+      console.error(e.message);
+      process.exitCode = 1;
+      return;
+    }
+  }
   const done = await run();
   const errors = done.filter((d) => d.error);
   if (errors.length) {
@@ -431,11 +445,10 @@ async function main() {
   fs.mkdirSync('reports', { recursive: true });
   fs.writeFileSync(`reports/review-${NAME}.md`, md);
   console.log(md);
-  if (gameJob) {
-    const rec = await runGameReview(gameJob);
-    fs.writeFileSync(`data/reviews/${NAME}.game.json`, JSON.stringify(rec));
+  if (gameRec) {
+    fs.writeFileSync(`data/reviews/${NAME}.game.json`, JSON.stringify(gameRec));
     console.log('');
-    console.log(gameReviewText(rec));
+    console.log(gameReviewText(gameRec));
   }
 }
 
@@ -447,9 +460,9 @@ function gameReviewText(rec: GameReviewRecord): string {
     const s = seatSummary(rec.moves, p as 0 | 1, rec.forced[p]);
     lines.push(`${who(p)}: accuracy ${s.accuracy ?? '—'} over ${s.counted} counted moves; ${RATINGS.filter((k) => s.n[k]).map((k) => `${RATING_INFO[k].label} ${s.n[k]}`).join(', ')}${s.n.unclear ? `; no clear difference ${s.n.unclear}` : ''}`);
   }
-  const tp = turningPoint(rec.moves);
-  lines.push(tp ? `Turning point: turn ${tp.turn}, ${who(tp.p)}: ${tp.chosen} (${RATING_INFO[tp.r].label}, −${tp.gap} Gigs)` : 'No turning point.', '');
-  for (const m of rec.moves) lines.push(`T${m.turn} ${who(m.p).padEnd(5)} ${RATING_INFO[m.r].mark.padEnd(2)} ${RATING_INFO[m.r].label.padEnd(19)} ${m.chosen} [${m.src}]${m.r !== 'best' && m.r !== 'unclear' ? ` — ${explain({ ...m, why: undefined })}` : ''}`);
+  const tp = turningPoint(rec.moves, rec.winner);
+  lines.push(tp ? `${turningName(rec.winner)}: turn ${tp.turn}, ${who(tp.p)}: ${shownLabel(tp.chosen)} (${RATING_INFO[tp.r].label}, ${gapTag(tp)})` : 'No turning point.', '');
+  for (const m of rec.moves) lines.push(`T${m.turn} ${who(m.p).padEnd(5)} ${RATING_INFO[m.r].mark.padEnd(2)} ${RATING_INFO[m.r].label.padEnd(19)} ${shownLabel(m.chosen)} [${m.src}]${m.r !== 'best' && m.r !== 'unclear' ? ` — ${explain({ ...m, why: undefined })}` : ''}`);
   return lines.join('\n');
 }
 runMain(main);

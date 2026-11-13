@@ -36,8 +36,11 @@ describe('gradeMove: by value with uncertainty', () => {
 
   it('a small gap outside the noise is an inaccuracy; a clearly worse move a mistake; a better one best', () => {
     const d = sellDecision(4);
-    const a = advice('sell', [coachSell, coachSell.map((x) => x - 10), coachSell.map((x, k) => x - 60 + (k % 2)), coachSell.map((x) => x + 4)]);
-    expect(gradeMove(d, 1, a, 3)).toMatchObject({ verdict: 'inaccuracy', gap: 0.25, se: 0 });
+    const a = advice('sell', [coachSell, coachSell.map((x, k) => x - 10 + (k % 2 ? 3 : -3)), coachSell.map((x, k) => x - 60 + (k % 2)), coachSell.map((x) => x + 4)]);
+    expect(gradeMove(d, 1, a, 3)).toMatchObject({ verdict: 'inaccuracy', gap: 0.25 });
+    // the same 0.25 Gigs in every world is fixed terms of the evaluation, not a measurement: a close call (COACH-14)
+    const fixed = advice('sell', [coachSell, coachSell.map((x) => x - 10)]);
+    expect(gradeMove(sellDecision(2), 1, fixed, 3)).toMatchObject({ verdict: 'close', gap: 0.25, se: 0 });
     const worse = gradeMove(d, 2, a, 3);
     expect(worse.verdict).toBe('mistake');
     expect(worse.gap!).toBeGreaterThanOrEqual(MISTAKE_GIGS);

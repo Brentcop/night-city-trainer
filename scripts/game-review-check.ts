@@ -1,9 +1,12 @@
 // Measures the Game review's ratings (src/lib/gameReview.ts) on fresh games: a Medium bot plays the "player" seat
 // against Hard, as a recorded practice game, and each game is reviewed twice, with the default oracle seed and another
-// one. Reports the ratings per side, Inspired / Sharp per game, review time, and how often a rating moves by more
-// than one step on the re-run (docs/BOT_TOOLKIT.md §8).
+// one. Reports the ratings per side, Inspired / Sharp per game, review time, how often a rating moves by more than one
+// step on the re-run, and what a learner reads: how many Mistakes and Blunders, and Sharp / Inspired moves, keep their
+// rating, how far accuracy moves, and whether the turning point is the same move (docs/BOT_TOOLKIT.md §8).
 //
-//   npx tsx scripts/game-review-check.ts [--games 20] [--rollouts 8] [--seed 1] [--threads N] [--out DIR]
+//   npx tsx scripts/game-review-check.ts [--games 20] [--rollouts 8] [--confirm 16] [--seed 1] [--threads N] [--out DIR]
+//
+// --confirm: fresh worlds each Slip-or-worse is confirmed on (the Game review's GAME_REVIEW_CONFIRM; 0 = off).
 //
 // --out writes the reviews as JSON into DIR (nothing is written otherwise).
 import fs from 'node:fs';
@@ -14,12 +17,14 @@ import { Game } from '../src/engine/engine';
 import { makeTierBot } from '../src/ai/tiers';
 import type { Agent, Decision } from '../src/engine/types';
 import type { ReviewJob } from './review-worker';
-import { counts, RATING_INFO, RATINGS, ratingStep, seatSummary, type GameReviewRecord, type Rating } from '../src/lib/gameReview';
+import { counts, RATING_INFO, RATINGS, ratingStep, seatSummary, turningPoint, type GameReviewRecord, type Rating } from '../src/lib/gameReview';
+import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
 import type { PracticeReviewSpec } from '../src/sim/practiceReview';
 
 const { values: V } = cli(import.meta.url, {
   games: int(20, { min: 1 }),
   rollouts: int(8, { min: 1 }),
+  confirm: int(16, { min: 0 }),
   seed: int(1, { min: 0 }),
   threads: threadsOpt(),
   out: str(),
@@ -55,8 +60,10 @@ async function playOne(k: number): Promise<{ id: string; spec: PracticeReviewSpe
   const first = (k % 2) as 0 | 1;
   const me = new Recorder(makeTierBot('medium', seed + 3));
   const decks = [gameDeck(a.deck), gameDeck(b.deck)] as [ReturnType<typeof gameDeck>, ReturnType<typeof gameDeck>];
-  await Game.create(decks, [me, makeTierBot('hard', botSeed, 'Bot')], { seed, first, log: false }).run();
-  return { id: `g${seed}`, spec: { decks, seed, first, botLevel: 'hard', botSeed, choices: me.choices, payChoice: !!me.choosesPayment, orderChoice: !!me.choosesOrder } };
+  const st = await Game.create(decks, [me, makeTierBot('hard', botSeed, 'Bot')], { seed, first, log: false }).run();
+  // checked like a recorded practice game: the result, the length and the simulator version
+  const expect = st.winner === 0 || st.winner === 1 ? st.winner : 'tie';
+  return { id: `g${seed}`, spec: { decks, seed, first, botLevel: 'hard', botSeed, choices: me.choices, payChoice: !!me.choosesPayment, orderChoice: !!me.choosesOrder, expect, turns: st.turn, simVersion: CURRENT_SIM_VERSION } };
 }
 
 async function main() {
@@ -72,7 +79,7 @@ async function main() {
     bots: ['you', 'hard'],
     rollouts: V.rollouts,
     withCoach: false,
-    game: { id: g.id, spec: g.spec, coach: [], rollouts: V.rollouts, made, ...(oracleSeed !== undefined ? { oracleSeed } : {}) },
+    game: { id: g.id, spec: g.spec, coach: [], rollouts: V.rollouts, confirm: V.confirm, made, ...(oracleSeed !== undefined ? { oracleSeed } : {}) },
   });
   let done = 0;
   const t0 = Date.now();
@@ -144,5 +151,35 @@ async function main() {
   }
   console.log(`\nRe-run with another oracle seed: ${both} decisions rated both times; same rating ${((100 * same) / both).toFixed(1)}%, within one step ${((100 * within) / both).toFixed(1)}% (counted by both runs: ${((100 * withinCounted) / Math.max(1, countedBoth)).toFixed(1)}% of ${countedBoth})`);
   if (moved.length) console.log(`Examples that moved more than one step:\n  ${moved.join('\n  ')}`);
+  // what a learner reads: the flagged ratings, the accuracy and the turning point, run A against run B
+  const kept = (from: Rating[], to: Rating[]) => {
+    let n = 0;
+    let k = 0;
+    for (const [a, b] of pairs) {
+      const bm = new Map(b.moves.map((m) => [`${m.p}:${m.at}`, m]));
+      for (const m of a.moves) {
+        const o = bm.get(`${m.p}:${m.at}`);
+        if (!o || !from.includes(m.r)) continue;
+        n++;
+        if (to.includes(o.r)) k++;
+      }
+    }
+    return `${k}/${n} (${n ? ((100 * k) / n).toFixed(0) : '—'}%)`;
+  };
+  const bad: Rating[] = ['mistake', 'blunder'];
+  const dAcc: number[] = [];
+  let tpSame = 0;
+  for (const [a, b] of pairs) {
+    for (const p of [0, 1] as const) {
+      const x = seatSummary(a.moves, p).accuracy;
+      const y = seatSummary(b.moves, p).accuracy;
+      if (x !== null && y !== null) dAcc.push(Math.abs(x - y));
+    }
+    const ta = turningPoint(a.moves, a.winner);
+    const tb = turningPoint(b.moves, b.winner);
+    if (ta?.p === tb?.p && ta?.at === tb?.at) tpSame++;
+  }
+  console.log(`Kept on the re-run: Mistake or worse ${kept(bad, bad)}, Blunder ${kept(['blunder'], ['blunder'])}, Sharp or Inspired ${kept(['sharp', 'inspired'], ['sharp', 'inspired'])}`);
+  console.log(`Accuracy moved by ${(dAcc.reduce((s, x) => s + x, 0) / Math.max(1, dAcc.length)).toFixed(1)} points on average (most ${Math.max(0, ...dAcc)}); the turning point is the same move in ${tpSame} of ${pairs.length} games`);
 }
 runMain(main);

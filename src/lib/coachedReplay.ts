@@ -6,7 +6,7 @@
 // Pure: the Play page builds the per-decision records as you move (coachedGrade) and the file when you export.
 import type { Advice, GradedOption, MoveGrade, MoveVerdict } from '../ai/coach';
 import type { Decision, DecisionKind } from '../engine/types';
-import { asReplay, type PracticeReplay } from './practiceReplays';
+import { asReplay, practiceSpec, type PracticeReplay } from './practiceReplays';
 import type { PracticeReviewSpec } from '../sim/practiceReview';
 
 export const COACHED_REPLAY_KIND = 'nct-coached-replay';
@@ -148,10 +148,13 @@ export function parseCoachedReplay(text: string): { ok: true; value: CoachedRepl
   return { ok: true, value: { kind: COACHED_REPLAY_KIND, schema: COACHED_REPLAY_SCHEMA, exported: c.exported, gigSwing: c.gigSwing, replay, decisions: c.decisions } };
 }
 
-/** What the match reviewer needs to re-simulate the exported game (your seat replays your answers). */
+/**
+ * What the match reviewer needs to re-simulate the exported game: the same spec as a game recorded in this browser
+ * (src/lib/practiceReplays.ts practiceSpec: your seat replays your answers, an online game both seats, with the result,
+ * turns and simulator version the strict replay checks).
+ */
 export function coachedReviewSpec(c: CoachedReplay): PracticeReviewSpec {
-  const r = c.replay;
-  return { decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, ...(r.endTurnClick ? { endTurnClick: true } : {}), conceded: !!r.conceded };
+  return practiceSpec(c.replay);
 }
 
 /** A file name for the export: deck vs deck and the date. */

@@ -1,8 +1,10 @@
 // Stored Game reviews (src/lib/gameReview.ts), per browser, beside the practice replays they review: the finished
 // review, so reopening it is instant, and before that the coach's grades from play (kept at game over, so a review run
-// later from the Profile rates your moves exactly as the coach did). Keyed by the replay's id, newest last, capped like
-// the replays. Versioned (`nct.gameReviews.v1`, records carry `schema`); an unreadable entry is dropped, never thrown.
-import { REVIEW_KIND, REVIEW_SCHEMA, RATINGS, type CoachRating, type GameReviewRecord, type Rating } from './gameReview';
+// later from the Profile rates your moves exactly as the coach did; kept with the review too, so a review made under
+// older rating rules can be re-rated). Keyed by the replay's id, newest last, capped like the replays. Versioned
+// (`nct.gameReviews.v1`, records carry `schema`, and `rules`: a review made under other rating rules than REVIEW_RULES is
+// handed back as `stale`, to be run again); an unreadable entry is dropped, never thrown.
+import { REVIEW_KIND, REVIEW_RULES, REVIEW_SCHEMA, RATINGS, type CoachRating, type GameReviewRecord, type Rating } from './gameReview';
 
 export const GAME_REVIEWS_KEY = 'nct.gameReviews.v1';
 const MAX = 25;
@@ -52,6 +54,7 @@ function isMove(x: unknown): boolean {
     (m.best === undefined || typeof m.best === 'string') &&
     RATING_SET.has(m.r as Rating) &&
     (m.gap === null || isNum(m.gap)) &&
+    (m.raw === undefined || isNum(m.raw)) &&
     (m.se === undefined || isNum(m.se)) &&
     (m.src === 'coach' || m.src === 'oracle') &&
     (m.why === undefined || typeof m.why === 'string')
@@ -68,6 +71,7 @@ export function asReviewRecord(x: unknown): GameReviewRecord | null {
   const r = x as GameReviewRecord | null;
   if (!r || typeof r !== 'object' || r.kind !== REVIEW_KIND || r.schema !== REVIEW_SCHEMA) return null;
   const ok =
+    (r.rules === undefined || isNum(r.rules)) &&
     typeof r.id === 'string' &&
     typeof r.made === 'string' &&
     isNum(r.rollouts) &&
@@ -143,12 +147,20 @@ export function reviewMatches(rec: GameReviewRecord, choices: readonly (readonly
   return !!mine && mine.length === choices.length && mine.every((c, i) => c.length === choices[i]!.length && c.every((x, k) => x === choices[i]![k]));
 }
 
-/** The stored entry of a game, if any; a review of other answers than `choices` (the game was replayed after Undo) is left out. */
-export function loadGameReview(id: string, choices?: readonly (readonly number[])[]): StoredReviewEntry | null {
+/** The review was made under the current rating rules (an older one shows old ratings: run it again). */
+export const currentRules = (rec: GameReviewRecord) => (rec.rules ?? 1) === REVIEW_RULES;
+
+/**
+ * The stored entry of a game, if any; a review of other answers than `choices` (the game was replayed after Undo) is left
+ * out. A review of the same answers made under other rating rules comes back as `stale`, not `review`: run the review
+ * again (its coach-graded moves can be kept from it when the coach's grades are no longer stored).
+ */
+export function loadGameReview(id: string, choices?: readonly (readonly number[])[]): (StoredReviewEntry & { stale?: GameReviewRecord }) | null {
   const e = loadAll().find((x) => x.id === id) ?? null;
-  if (!e || !e.review || !choices || reviewMatches(e.review, choices)) return e;
-  const { review: _stale, ...rest } = e;
-  return rest.coach ? rest : null;
+  if (!e || !e.review) return e;
+  const { review, ...rest } = e;
+  if (choices && !reviewMatches(review, choices)) return rest.coach ? rest : null;
+  return currentRules(review) ? e : { ...rest, stale: review };
 }
 
 /** Keep the coach's grades of a finished game. A finished review of the same answers is kept; one of other answers is dropped. */
@@ -156,9 +168,12 @@ export function saveCoachRatings(id: string, coach: CoachRating[], choices: read
   update(id, (e) => (e.review && reviewMatches(e.review, choices) ? e : { id, ...(coach.length ? { coach } : {}) }));
 }
 
-/** Keep a finished review (the coach grades it was built from are no longer needed). */
-export function saveGameReview(rec: GameReviewRecord) {
-  update(rec.id, () => ({ id: rec.id, review: rec }));
+/** Keep a finished review, with the coach's grades it was built from (a later rules change re-rates it from them). */
+export function saveGameReview(rec: GameReviewRecord, coach?: readonly CoachRating[]) {
+  update(rec.id, (e) => {
+    const keep = coach?.length ? [...coach] : e.coach;
+    return { id: rec.id, ...(keep?.length ? { coach: keep } : {}), review: rec };
+  });
 }
 
 export function clearGameReviews() {

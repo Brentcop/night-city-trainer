@@ -1,12 +1,12 @@
 // Worker thread for scripts/review.ts: reviews one game per message.
 import { parentPort } from 'node:worker_threads';
-import { reviewGame, type ReviewOptions } from '../src/ai/reviewer';
+import { ReplayDiverged, reviewGame, type ReviewOptions } from '../src/ai/reviewer';
 import { makeTierBot } from '../src/ai/tiers';
 import { COACH_CONFIG_V1, makeCoach } from '../src/ai/coach';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import type { Agent, Decision, DeckList, PlayerId } from '../src/engine/types';
 import type { Game } from '../src/engine/engine';
-import { practiceAgents, type PracticeReviewSpec } from '../src/sim/practiceReview';
+import { checkReplayed, practiceAgents, refuseOtherVersion, type PracticeReviewSpec } from '../src/sim/practiceReview';
 import { runGameReview, type GameReviewJob } from '../src/sim/gameReviewRun';
 
 export interface ReviewJob {
@@ -68,11 +68,14 @@ parentPort?.on('message', async (job: ReviewJob) => {
       return;
     }
     const opts: ReviewOptions = { rollouts: job.rollouts, withCoach: job.withCoach, coach: job.coachV1 ? () => new HeuristicAgent({ name: 'Coach v1', ...COACH_CONFIG_V1 }) : makeCoach, seats: job.seats };
+    if (job.practice) refuseOtherVersion(job.practice);
     const base: [Agent, Agent] = job.practice ? practiceAgents(job.practice) : [makeTierBot(job.bots[0], job.seed), makeTierBot(job.bots[1], job.seed + 7777)];
     const chaos = job.chaos ? [new ChaosAgent(base[0], job.chaos, job.seed * 3 + 1), new ChaosAgent(base[1], job.chaos, job.seed * 3 + 2)] : null;
     const r = await reviewGame({ decks: job.decks, seed: job.seed, first: job.first, agents: chaos ? [chaos[0], chaos[1]] : base, agentNames: job.bots }, opts);
+    if (job.practice) checkReplayed(job.practice, base, r);
     parentPort!.postMessage({ id: job.id, review: r, meta: chaos ? { ...job.meta, chaos: [chaos[0].flags, chaos[1].flags] } : job.meta });
   } catch (e) {
-    parentPort!.postMessage({ id: job.id, error: String((e as Error)?.stack ?? e), meta: job.meta });
+    // a recorded game that no longer replays: its plain sentence, not a stack
+    parentPort!.postMessage({ id: job.id, error: e instanceof ReplayDiverged ? e.message : String((e as Error)?.stack ?? e), ...(e instanceof ReplayDiverged ? { refused: true } : {}), meta: job.meta });
   }
 });

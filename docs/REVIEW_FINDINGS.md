@@ -86,4 +86,4 @@ npx tsx scripts/review.ts --from events --games 200 --coach --name backfill
 npx tsx scripts/review-debug.ts data/reviews/backfill.json <game-id> <seat> <decision#>   # one decision, world by world (data/reviews/ is gitignored review.ts output)
 ```
 
-In the app: **Play** → finish a game → **Full match review** (or **Review a recent game**). **Tournaments** → any match → **🔍 Review**.
+In the app: **Play** → finish a game → **🔍 Game review** (its second tab, **Play-out details**, is this reviewer's report in the Game review's rating names; or **Review a recent game**). **Tournaments** → any match → **🔍 Review**. A recorded practice or online game is replayed strictly: one that no longer replays as it was played (another simulator version, an answer that doesn't fit, a record that runs out or is left over, another result) is refused in a plain sentence, never reviewed as a different game (docs/BOT_TOOLKIT.md §8).

@@ -686,6 +686,7 @@ export class CorrSession {
       conceded: e.why === 'conceded' && e.byMe === true,
       rivalConceded: e.why === 'conceded' && e.byMe === false,
       abandoned: e.why === 'abandoned',
+      ...(e.why === 'timeout' ? (e.byMe ? { timedOut: true } : { rivalTimedOut: true }) : {}),
       multiDay: this.mark(),
     };
   }

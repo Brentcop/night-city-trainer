@@ -3,6 +3,9 @@
 import type { DeckList, PlayerId } from '../engine/types';
 import type { PracticeReviewSpec, PvpReplay, ReviewRequest } from '../sim/practiceReview';
 import type { MultiDayMark } from './practiceLog';
+import { replayVersionProblem } from './practiceVerdict';
+
+export { replayVersionProblem };
 
 export type { PvpReplay };
 
@@ -46,6 +49,13 @@ export interface PracticeReplay {
   pvp?: PvpReplay;
   /** a multi-day game (src/lib/multiDay.ts, src/net/corr.ts): its length, finished late or ended on time */
   multiDay?: MultiDayMark;
+  /**
+   * The bots' and rules engine's version the game was played with (SIM_VERSION): the Game review refuses to replay a
+   * game from another version. Absent in records made before it: replayed strictly, refused if it no longer fits.
+   */
+  simVersion?: number;
+  /** how many turns the game lasted (checked by the Game review's replay); absent in older records */
+  turns?: number;
 }
 
 export const REPLAYS_KEY = 'nct.practiceReplays.v1';
@@ -64,7 +74,8 @@ const isPvp = (x: unknown): x is PvpReplay => {
     isChoices(p.rivalChoices) &&
     (p.rivalConceded === undefined || typeof p.rivalConceded === 'boolean') &&
     (p.rivalEndTurnClick === undefined || typeof p.rivalEndTurnClick === 'boolean') &&
-    (p.abandoned === undefined || typeof p.abandoned === 'boolean')
+    (p.abandoned === undefined || typeof p.abandoned === 'boolean') &&
+    (p.timedOut === undefined || p.timedOut === 0 || p.timedOut === 1)
   );
 };
 const isDeck = (x: unknown): x is DeckList => {
@@ -93,6 +104,8 @@ function isReplay(x: unknown): x is PracticeReplay {
     (r.orderChoice === undefined || typeof r.orderChoice === 'boolean') &&
     (r.endTurnClick === undefined || typeof r.endTurnClick === 'boolean') &&
     (r.conceded === undefined || typeof r.conceded === 'boolean') &&
+    (r.simVersion === undefined || (typeof r.simVersion === 'number' && Number.isInteger(r.simVersion))) &&
+    (r.turns === undefined || (typeof r.turns === 'number' && Number.isInteger(r.turns))) &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
 }
@@ -151,8 +164,23 @@ export const reviewExpect = (r: PracticeReplay): 0 | 1 | 'tie' => {
   return r.result === 'win' ? me : r.result === 'loss' ? ((1 - me) as PlayerId) : 'tie';
 };
 
-/** What the reviewers need to re-simulate a recorded practice game (your seat replays your answers). */
-export function practiceSpec(r: PracticeReplay): PracticeReviewSpec {
+/**
+ * An online game's ending as the replay carries it. A multi-day game won on time before `timedOut` was recorded says
+ * only that a clock ran out: whose follows from the result.
+ */
+function pvpOf(r: PracticeReplay & { pvp: PvpReplay }): PvpReplay {
+  const v = { ...r.pvp };
+  if (v.timedOut === undefined && r.multiDay?.timedOut && !r.conceded && !v.rivalConceded && !v.abandoned && r.result !== 'draw') v.timedOut = r.result === 'win' ? ((1 - v.seat) as PlayerId) : v.seat;
+  return v;
+}
+
+/**
+ * What the reviewers need to re-simulate a recorded practice game (your seat replays your answers), with what the replay
+ * must reproduce: the result, the number of turns when known (`turns`: the caller's, for records without their own), and
+ * the simulator version it was recorded with.
+ */
+export function practiceSpec(r: PracticeReplay, turns?: number): PracticeReviewSpec {
+  const t = r.turns ?? turns;
   return {
     decks: r.decks,
     seed: r.seed,
@@ -164,11 +192,15 @@ export function practiceSpec(r: PracticeReplay): PracticeReviewSpec {
     orderChoice: !!r.orderChoice,
     ...(r.endTurnClick ? { endTurnClick: true } : {}),
     conceded: !!r.conceded,
-    ...(r.pvp ? { pvp: { ...r.pvp } } : {}),
+    ...(r.conceded && !r.pvp && r.multiDay?.timedOut ? { outOfTime: true } : {}),
+    ...(r.pvp ? { pvp: pvpOf(r as PracticeReplay & { pvp: PvpReplay }) } : {}),
+    expect: reviewExpect(r),
+    ...(t !== undefined && t > 0 ? { turns: t } : {}),
+    ...(r.simVersion !== undefined ? { simVersion: r.simVersion } : {}),
   };
 }
 
 /** Review request for a recorded practice game (your decisions only, with the coach's view of each; a conceded game ends where you conceded). */
-export function practiceRequest(r: PracticeReplay): ReviewRequest {
-  return { kind: 'practice', ...practiceSpec(r), rollouts: 8, withCoach: true };
+export function practiceRequest(r: PracticeReplay, turns?: number): ReviewRequest {
+  return { kind: 'practice', ...practiceSpec(r, turns), rollouts: 8, withCoach: true };
 }

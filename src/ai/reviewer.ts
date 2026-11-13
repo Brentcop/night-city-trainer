@@ -57,6 +57,8 @@ export interface DecisionReview {
   best: string;
   coach?: string;
   regret: number; // capped, eval points
+  /** the gap before the cap (eval points): the Game review tests noise on it (absent in reviews stored before it) */
+  raw?: number;
   gameLosing: boolean; // the move made loses the game in the oracle's play-outs where the best one doesn't
   coachRegret?: number;
   /**
@@ -80,6 +82,8 @@ export interface DecisionReview {
   screen?: { gap: number; se: number; chosenRank: number };
   /** every candidate is within reach of a won or lost game: differences between moves mean nothing (regret 0) */
   decided?: boolean;
+  /** the gap, SE and game-losing flag were confirmed on this many fresh worlds (ReviewOptions.confirm) */
+  confirmed?: number;
 }
 
 /** A decision the reviewer did not grade because it was graded already (ReviewOptions.skip): what the screen made of it. */
@@ -314,6 +318,13 @@ export interface ReviewOptions {
   skip?: (seat: PlayerId, at: number) => boolean;
   /** keep every answer of both seats (GameReview.answers) */
   keepAnswers?: boolean;
+  /**
+   * Confirm the decisions `flag` picks (the Game review: those it would rate Slip or worse) on `worlds` fresh worlds from
+   * a separate seed stream: the move made and the best one found are played out again and the gap, its SE and the
+   * game-losing flag are taken from the fresh play-outs only (the screening value of the best is the maximum over every
+   * candidate in the same worlds, so it is biased upward). Other decisions are measured exactly as without it.
+   */
+  confirm?: { worlds: number; flag: (d: DecisionReview) => boolean };
 }
 
 /** Wraps a seat's agent: plays exactly as it would, and reviews its main-phase decisions on the side. */
@@ -328,6 +339,8 @@ class ReviewAgent implements Agent {
   forced = 0;
   answers: number[][] = [];
   private rnd: () => number;
+  /** the confirmation worlds' own stream, so confirming never moves the other decisions' worlds */
+  private confirmRnd: () => number;
   private count = 0;
   /** this seat's answers so far (the `at` of the decision being made) */
   private at = 0;
@@ -344,6 +357,7 @@ class ReviewAgent implements Agent {
     this.choosesOrder = inner.choosesOrder;
     this.confirmsEndTurn = inner.confirmsEndTurn;
     this.rnd = rng(seed * 31 + seat * 7 + 1);
+    this.confirmRnd = rng(seed * 31 + seat * 7 + 1 + 0x5bd1e995);
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
     const at = this.at++;
@@ -352,19 +366,24 @@ class ReviewAgent implements Agent {
     return pick;
   }
 
+  /** The seat's own move, checked to be one of the options before anything reads it (a record can hand back anything). */
+  private async play(g: Game, d: Decision): Promise<number[]> {
+    return legalAnswer(await this.inner.decide(g, d), d, g, this.inner.name === 'You' ? 'your' : `${this.inner.name}'s`);
+  }
+
   private async decideAt(g: Game, d: Decision, at: number): Promise<number[]> {
     if (d.kind === 'action' && this.shared.lastTurn !== g.s.turn) {
       this.shared.lastTurn = g.s.turn;
       this.timeline.push({ turn: g.s.turn, v: evaluate(g, 0) });
     }
-    if (this.opts.shouldStop?.()) return this.inner.decide(g, d);
+    if (this.opts.shouldStop?.()) return this.play(g, d);
     const gradable = (d.kind === 'action' || (d.kind === 'reaction' && !!g.s.attack)) && d.options.length >= 2;
     if (this.review && (d.kind === 'action' || d.kind === 'reaction') && d.options.length === 1) this.forced++;
     if (this.review && gradable && this.opts.skip?.(this.seat, at)) return this.skipOne(g, d, at);
     if (this.review && d.kind === 'reaction' && d.options.length >= 2 && g.s.attack) return this.reviewReaction(g, d, at);
-    if (!this.review || d.kind !== 'action' || d.options.length < 2) return this.inner.decide(g, d);
+    if (!this.review || d.kind !== 'action' || d.options.length < 2) return this.play(g, d);
     // the move actually made (decide first: oracle play-outs are clones and never touch the real game)
-    const pick = await this.inner.decide(g, d);
+    const pick = await this.play(g, d);
     const seq = this.shared.seq++;
     const chosen = pick[0];
     const actions = d.options.map((o) => o.action as Action);
@@ -422,12 +441,14 @@ class ReviewAgent implements Agent {
       best: d.options[bestI].label,
       coach: coachI !== undefined ? d.options[coachI].label : undefined,
       regret: Math.min(CAP, Math.max(0, raw)),
+      raw: round2(Math.max(0, raw)),
       gameLosing: lostLine,
       coachRegret: cr !== undefined ? Math.max(0, cr) : undefined,
       at,
       seq,
       ...measures(vals, per, chosen, bestI, decided, screenOrder.length ? { top: screenOrder[0], order: screenOrder } : undefined),
     });
+    await this.confirmLast(g, actions, chosen, bestI, decided, (a, w) => oracleDetail(g, this.seat, a, w, this.opts.rolloutWins ?? false));
     this.shared.n++;
     this.opts.onProgress?.(this.shared.n);
     return pick;
@@ -435,7 +456,7 @@ class ReviewAgent implements Agent {
 
   /** A decision graded already: play the move, and keep only what the quick screen made of it (for the rating's checks). */
   private async skipOne(g: Game, d: Decision, at: number): Promise<number[]> {
-    const pick = await this.inner.decide(g, d);
+    const pick = await this.play(g, d);
     const seq = this.shared.seq++;
     const entry: SkippedDecision = { player: this.seat, at, seq, turn: g.s.turn };
     if (d.kind === 'action') {
@@ -455,7 +476,7 @@ class ReviewAgent implements Agent {
 
   /** Reactions (blocks, reaction-time calls and programs, or letting the attack through), graded like main-phase moves. */
   private async reviewReaction(g: Game, d: Decision, at: number): Promise<number[]> {
-    const pick = await this.inner.decide(g, d);
+    const pick = await this.play(g, d);
     const seq = this.shared.seq++;
     const chosen = pick[0];
     const rxs = d.options.map((o) => o.action as Reaction);
@@ -465,11 +486,32 @@ class ReviewAgent implements Agent {
     if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
     const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
     const { vals, loss, per } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds, this.opts.rolloutWins ?? false));
-    this.record(g, d, chosen, vals, loss, per, coachI, reactionCategory(rxs[chosen]), at, seq);
+    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, reactionCategory(rxs[chosen]), at, seq);
+    await this.confirmLast(g, rxs, chosen, bestI, decided, (r, w) => oracleReaction(g, this.seat, r, w, this.opts.rolloutWins ?? false));
+    this.shared.n++;
+    this.opts.onProgress?.(this.shared.n);
     return pick;
   }
 
-  private record(g: Game, d: Decision, chosen: number, vals: Map<number, number>, loss: Map<number, number>, per: Map<number, number[]>, coachI: number | undefined, category: Category, at: number, seq: number) {
+  /**
+   * ReviewOptions.confirm: the decision just recorded, when flagged, measured again on fresh worlds (the move made against
+   * the best one found only). Its regret, raw gap, SE and game-losing flag come from the fresh play-outs.
+   */
+  private async confirmLast<T extends Action | Reaction>(g: Game, opts: T[], chosen: number, bestI: number, decided: boolean, oracle: (o: T, w: World[]) => Promise<Detail>) {
+    const c = this.opts.confirm;
+    const rec = this.out[this.out.length - 1];
+    if (!c || !rec || decided || chosen === bestI || !c.flag(rec)) return;
+    const worlds = makeWorlds(c.worlds, this.confirmRnd);
+    const { vals, loss, per } = await gradeAll(g, [bestI, chosen], opts, (o) => oracle(o, worlds));
+    const raw = vals.get(bestI)! - vals.get(chosen)!;
+    rec.regret = Math.min(CAP, Math.max(0, raw));
+    rec.raw = round2(Math.max(0, raw));
+    rec.se = round2(standardError(per.get(bestI)!.map((x, k) => x - per.get(chosen)![k])));
+    rec.gameLosing = loss.get(chosen)! - loss.get(bestI)! >= 0.25;
+    rec.confirmed = c.worlds;
+  }
+
+  private record(g: Game, d: Decision, chosen: number, vals: Map<number, number>, loss: Map<number, number>, per: Map<number, number[]>, coachI: number | undefined, category: Category, at: number, seq: number): { bestI: number; decided: boolean } {
     const bestV = Math.max(...vals.values());
     const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
     const bestI = [...vals.entries()].find(([, v]) => v === bestV)![0];
@@ -485,14 +527,14 @@ class ReviewAgent implements Agent {
       best: d.options[bestI].label,
       coach: coachI !== undefined ? d.options[coachI].label : undefined,
       regret: Math.min(CAP, Math.max(0, raw)),
+      raw: round2(Math.max(0, raw)),
       gameLosing: !decided && loss.get(chosen)! - loss.get(bestI)! >= 0.25,
       coachRegret: cr !== undefined ? Math.max(0, cr) : undefined,
       at,
       seq,
       ...measures(vals, per, chosen, bestI, decided),
     });
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
+    return { bestI, decided };
   }
 }
 
@@ -571,22 +613,53 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
 const answersOf = (a: ReviewAgent): SeatAnswers => ({ choices: a.answers, pay: !!a.choosesPayment, order: !!a.choosesOrder, ...(a.confirmsEndTurn ? { endTurn: true } : {}) });
 
 /**
- * An agent that replays recorded choices (a human's game). Falls back to `fallback` if the record runs out.
+ * A recorded game that this code does not replay as it was played: a recorded answer is not one of the options of the
+ * decision asked, the record runs out before the game ends (or is left over after it), or the replay ends differently.
+ * `message` is a plain sentence for the player (the review screens and scripts/review.ts show it as it is).
+ */
+export class ReplayDiverged extends Error {
+  constructor(why: string) {
+    super(why);
+    this.name = 'ReplayDiverged';
+  }
+}
+
+/** The sentence a refused replay starts with; `detail` says where it parted from the record. */
+export const divergedText = (detail: string) =>
+  `This game can't be reviewed: replaying its recorded moves with this version of the bots and rules engine gives a different game (${detail}).`;
+
+/** `pick` when it is a legal answer to `d` (whole option indices, in range, none twice), else a ReplayDiverged. */
+export function legalAnswer(pick: unknown, d: Decision, g: Game, whose: string): number[] {
+  const ok = Array.isArray(pick) && pick.every((i) => Number.isInteger(i) && i >= 0 && i < d.options.length) && new Set(pick).size === pick.length;
+  if (!ok) throw new ReplayDiverged(divergedText(`at turn ${g.s.turn}, ${whose} recorded answer is not one of the choices offered`));
+  return pick as number[];
+}
+
+/**
+ * An agent that replays recorded choices (a human's game). Every answer is checked against the decision asked (a
+ * ReplayDiverged when it is not one of its options). When the record runs out it hands over to `fallback`; with no
+ * fallback (null: the Game review's strict replay) that is a ReplayDiverged too, since the game went on past the record.
  * `choosesPayment`, `choosesOrder` and `confirmsEndTurn` must match the recording (a practice replay's `payChoice`,
- * `orderChoice` and `endTurnClick`), or the choices won't line up.
+ * `orderChoice` and `endTurnClick`), or the choices won't line up. `whose` names the seat in a refusal ("your").
  */
 export class ScriptedAgent implements Agent {
   private k = 0;
   constructor(
     public name: string,
     private choices: number[][],
-    private fallback: Agent,
+    private fallback: Agent | null,
     public choosesPayment = false,
     public choosesOrder = false,
     public confirmsEndTurn = false,
+    private whose = name === 'You' ? 'your' : `${name}'s`,
   ) {}
+  /** recorded answers not used (yet) */
+  get left(): number {
+    return this.choices.length - this.k;
+  }
   async decide(g: Game, d: Decision): Promise<number[]> {
-    if (this.k < this.choices.length) return this.choices[this.k++];
+    if (this.k < this.choices.length) return legalAnswer(this.choices[this.k++], d, g, this.whose);
+    if (!this.fallback) throw new ReplayDiverged(divergedText(`at turn ${g.s.turn}, ${this.whose} recorded moves ran out before the game ended`));
     return this.fallback.decide(g, d);
   }
 }

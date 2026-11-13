@@ -22,6 +22,26 @@ export const BLUNDER_GIGS = 1;
 export const CAP_GIGS = 3;
 /** Accuracy = 100 × exp(−average loss / ACCURACY_SCALE_GIGS): with 1 Gig, 100 × e^(−Gigs lost per counted move). */
 export const ACCURACY_SCALE_GIGS = 1;
+/**
+ * A paired standard error under this many Gigs (one evaluation point) means the play-outs all but agree on the
+ * difference: it comes from fixed terms of the evaluation (a face-up Legend, the 1-ply offset, a card kept in hand), not
+ * from anything the play-outs showed, so so small an SE says nothing about how sure the gap is (COACH-14: the coach's
+ * "Call a Legend" grades had 0.19–0.49 Gigs at an SE of 0 to 0.024).
+ */
+export const FIXED_SE_GIGS = 0.025;
+/**
+ * The standard error such a fixed-term gap is given instead: about the median paired SE the review measures (0.29 Gigs
+ * over 12 Medium-vs-Hard games, 2026-11-13). So a fixed difference counts only when it is as clear as a typically
+ * measured one would have to be: over 2 × 0.25 = 0.5 Gigs (a key card sold, a game lost in every world); the 0.2–0.5 Gig
+ * face-up-Legend and 1-ply-offset gaps of COACH-14 are close calls.
+ */
+export const FIXED_GAP_SE_GIGS = 0.25;
+/**
+ * The rules the stored ratings were made with. Bump it whenever a rating rule changes, so stored reviews are re-rated
+ * instead of showing the old ratings (src/lib/gameReviewStore.ts). 2: noise tested on the raw gap, fixed-term gaps not
+ * measured, Sharp needs every option clearly worse, passing at most Sharp (2026-11-13).
+ */
+export const REVIEW_RULES = 2;
 
 /** The seven ratings, best first. */
 export const RATINGS = ['inspired', 'sharp', 'best', 'close', 'slip', 'mistake', 'blunder'] as const;
@@ -39,13 +59,13 @@ export interface RatingInfo {
   means: string;
 }
 export const RATING_INFO: Record<Rating, RatingInfo> = {
-  inspired: { label: 'Inspired', mark: '◆◆', tone: 'top', means: 'A Sharp move that a quick read ranks third or lower, where its first choice would have been a blunder: hard to find.' },
-  sharp: { label: 'Sharp', mark: '◆', tone: 'top', means: 'The only good move (everything else is a clear mistake or worse), and not the one a quick read picks first.' },
+  inspired: { label: 'Inspired', mark: '◆◆', tone: 'top', means: 'A Sharp move that a quick read ranks third or lower, where its first choice would have been a blunder: hard to find. Never for ending the turn.' },
+  sharp: { label: 'Sharp', mark: '◆', tone: 'top', means: 'The only good move (every other option measured is clearly worse by a mistake or more), and not the one a quick read picks first.' },
   best: { label: 'Best', mark: '●', tone: 'good', means: 'The best move found, or within 0.1 Gigs of it.' },
-  close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Slightly behind the best move, but within the noise: under 0.15 Gigs, or within 2 standard errors.' },
+  close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Behind the best move found, but too little or too uncertain to call: under 0.15 Gigs, or within 2 standard errors.' },
   slip: { label: 'Slip', mark: '▽', tone: 'warn', means: 'Clearly behind the best move, by less than 0.375 Gigs.' },
   mistake: { label: 'Mistake', mark: '▼', tone: 'bad', means: 'Clearly behind the best move by 0.375 Gigs or more.' },
-  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: 'Clearly behind by a whole Gig or more, or a mistake that loses the game in the play-outs.' },
+  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: 'Clearly behind by a whole Gig or more, or a mistake that also loses the game in at least 1 in 4 more of the play-outs.' },
   forced: { label: 'Forced', mark: '–', tone: 'none', means: 'Only one option. Not counted.' },
   unclear: { label: 'No clear difference', mark: '=', tone: 'none', means: 'Every option measured comes out about the same, or the game was already decided. Not counted.' },
 };
@@ -62,17 +82,31 @@ export const counts = (r: Rating): r is RatingKey => r !== 'forced' && r !== 'un
 /** Ratings inside the noise (no loss counted). */
 const FINE: ReadonlySet<Rating> = new Set(['inspired', 'sharp', 'best', 'close']);
 
-/** A gap is within the noise when under CLOSE_GIGS, or within SE_FACTOR paired standard errors (src/ai/coach.ts isClose). */
+/**
+ * A gap is within the noise when under CLOSE_GIGS, or within SE_FACTOR paired standard errors (src/ai/coach.ts isClose
+ * calls this, so the coach and the review share it). A gap with no spread at all (paired SE under FIXED_SE_GIGS) is
+ * fixed evaluation terms, not a measurement: it is given FIXED_GAP_SE_GIGS instead, so it is within the noise up to 0.5
+ * Gigs. Pass the raw (uncapped) gap: a capped gap would hide a large error inside a wide SE.
+ */
 export function withinNoise(gap: number, se?: number | null): boolean {
-  return gap < CLOSE_GIGS || (se != null && gap <= SE_FACTOR * se);
+  if (gap < CLOSE_GIGS) return true;
+  if (se == null) return false;
+  return gap <= SE_FACTOR * (se < FIXED_SE_GIGS ? FIXED_GAP_SE_GIGS : se);
 }
+
+/** A gap with (almost) no spread across the play-outs (fixed evaluation terms): the words say so, not "the play-outs disagree". */
+export const fixedTerms = (se?: number | null) => se != null && se < FIXED_SE_GIGS;
 
 /** What the oracle measured about one decision, in Gigs. */
 export interface Measured {
-  /** the best move's value minus the move made's (≥ 0) */
+  /** the best move's value minus the move made's (≥ 0), capped at CAP_GIGS (what is counted) */
   gap: number;
+  /** the same gap before the cap: the noise test reads it (absent: the gap) */
+  raw?: number;
   /** its paired standard error */
   se?: number;
+  /** the move made is ending the turn (passing): never more than Sharp */
+  pass?: boolean;
   /** the move made is the best (not just within the noise) */
   top?: boolean;
   /** every other graded option: [gap below the best, paired SE] */
@@ -91,30 +125,32 @@ const clearOf = (gap: number, se: number | null | undefined, line: number) => ga
 /** Every graded option, the move made included, is within the noise of the best: the decision made no measurable difference. */
 function noDifference(m: Measured): boolean {
   if (!m.others?.length) return false;
-  return withinNoise(m.gap, m.se) && m.others.every(([g, se]) => withinNoise(Math.max(0, g), se));
+  return withinNoise(m.raw ?? m.gap, m.se) && m.others.every(([g, se]) => withinNoise(Math.max(0, g), se));
 }
 
 /**
  * Sharp and Inspired, for a move that is the best (`top`). Both need the quick 1-ply read (the reviewer's screen) to
  * have preferred another move, so an obvious move (the one any quick read finds) is never more than Best; decisions with
  * no screen (reactions, sells chosen by rule) are never more than Best either.
- *   Sharp     the only good move: every other option measured is clearly worse by a mistake-sized gap, and the quick
- *             read's first choice was another move
+ *   Sharp     the only good move: every other option measured is clearly worse by a mistake-sized gap (each one
+ *             outside its own noise), and the quick read's first choice was another move
  *   Inspired  Sharp, the quick read ranked the move third or lower (or left it off its shortlist), and its first choice
  *             would have been a blunder (clearly a whole Gig worse)
+ * Ending the turn is never more than Sharp: holding back when every play is clearly worse is a real find (the quick read
+ * acts whenever any play scores above passing), but the quick read never ranks passing at all, so its place there says
+ * nothing about how hard it was to see.
  */
 function upgrade(m: Measured): RatingKey | null {
   if (!m.top || !m.screen || m.screen.chosenRank === 0) return null;
-  const runnerUp = m.others?.[0];
-  if (!runnerUp || !clearOf(runnerUp[0], runnerUp[1], MISTAKE_GIGS)) return null;
+  if (!m.others?.length || !m.others.every(([g, se]) => clearOf(g, se, MISTAKE_GIGS))) return null;
   const hidden = m.screen.chosenRank === -1 || m.screen.chosenRank >= 2;
-  return hidden && clearOf(m.screen.gap, m.screen.se, BLUNDER_GIGS) ? 'inspired' : 'sharp';
+  return hidden && !m.pass && clearOf(m.screen.gap, m.screen.se, BLUNDER_GIGS) ? 'inspired' : 'sharp';
 }
 
-/** The rating from the size of a gap (no upgrade, no "no clear difference"). */
+/** The rating from the size of a gap (no upgrade, no "no clear difference"); the noise test reads the raw gap. */
 function band(m: Measured): RatingKey {
   if (m.gap <= BEST_GIGS) return 'best';
-  if (withinNoise(m.gap, m.se)) return 'close';
+  if (withinNoise(m.raw ?? m.gap, m.se)) return 'close';
   if (m.gap >= BLUNDER_GIGS || (m.gap >= MISTAKE_GIGS && m.gameLosing)) return 'blunder';
   return m.gap >= MISTAKE_GIGS ? 'mistake' : 'slip';
 }
@@ -141,7 +177,9 @@ const gigs = (pts: number) => pts / GIG;
 export function oracleMeasured(d: DecisionReview): Measured {
   return {
     gap: gigs(d.regret),
+    ...(d.raw !== undefined ? { raw: gigs(d.raw) } : {}),
     ...(d.se !== undefined ? { se: gigs(d.se) } : {}),
+    ...(d.category === 'end turn' ? { pass: true } : {}),
     ...(d.top !== undefined ? { top: d.top } : {}),
     ...(d.others ? { others: d.others.map(([g, se]) => [gigs(g), gigs(se)] as const) } : {}),
     ...(d.screen ? { screen: { gap: gigs(d.screen.gap), se: gigs(d.screen.se), chosenRank: d.screen.chosenRank } } : {}),
@@ -222,6 +260,8 @@ export function coachRatingOf(rec: CoachRecordLike, gigSwing = GIG): CoachRating
       const paired = pick.w && o.w && pick.w.length === o.w.length && pick.w.length >= 2 ? stdErr(o.w.map((x, k) => x - pick.w![k]!)) / gigSwing : null;
       alts.push([o.i, r3((pick.v - o.v) / gigSwing), paired === null ? null : r3(paired)]);
     }
+  // agreeing with the coach's pick when it scored nothing else measured nothing: the oracle grades the move instead
+  if (rec.verdict === 'agree' && !alts.length) return null;
   const why = rec.why.length > WHY_MAX ? `${rec.why.slice(0, WHY_MAX - 1).trimEnd()}…` : rec.why;
   return {
     at: rec.at,
@@ -250,10 +290,12 @@ export function coachRatingsFrom(records: readonly (CoachRecordLike | undefined)
 }
 
 /**
- * The rating of a move the coach graded during play. It keeps the coach's verdict (agree / as good → Best, close call,
- * inaccuracy → Slip, mistake → Mistake, or Blunder from a whole Gig), so the review never grades a move differently from
- * the verdict shown in the game; on top, the same "no clear difference" check over the options the coach scored, and
- * for the coach's own pick the same Inspired / Sharp checks, with the quick screen's first choice from the review pass.
+ * The rating of a move the coach graded during play. It keeps the coach's verdict in the names the coach shows it in
+ * during play (src/lib/coachWords.ts verdictRating: agree / as good → Best, close call, inaccuracy → Slip, mistake →
+ * Mistake, or Blunder from a whole Gig), so the review never grades a move differently from the game; on top, the same
+ * "no clear difference" check over the options the coach scored (a move where every option was within the noise is not
+ * counted), and for the coach's own pick the same Inspired / Sharp checks, with the quick screen's first choice from the
+ * review pass.
  */
 export function rateCoach(c: CoachRating, screen?: { screenTop?: number; chosenRank?: number }): Rating {
   const vsMine = c.alts.filter(([i]) => i !== c.chose);
@@ -273,7 +315,8 @@ export function rateCoach(c: CoachRating, screen?: { screenTop?: number; chosenR
       const top = vsMine.every(([, g]) => g >= 0);
       const others = [...vsMine].sort((a, b) => a[1] - b[1]).map(([, g, se]) => [g, se] as const);
       const sc = screen?.screenTop !== undefined && screen.screenTop !== c.chose ? vsMine.find(([i]) => i === screen.screenTop) : undefined;
-      const m: Measured = { gap: 0, top, others, ...(sc ? { screen: { gap: sc[1], se: sc[2], chosenRank: screen?.chosenRank ?? -1 } } : {}) };
+      const pass = c.chosen === 'Pass turn' || c.chosen === 'End turn';
+      const m: Measured = { gap: 0, top, others, ...(pass ? { pass } : {}), ...(sc ? { screen: { gap: sc[1], se: sc[2], chosenRank: screen?.chosenRank ?? -1 } } : {}) };
       return upgrade(m) ?? 'best';
     }
   }
@@ -295,7 +338,10 @@ export interface ReviewMove {
   /** the move the measurement preferred (the coach's pick for a coach grade); absent when it is the move made */
   best?: string;
   r: Rating;
+  /** Gigs below the best move, capped at CAP_GIGS for an oracle grade (what accuracy counts) */
   gap: number | null;
+  /** the oracle's gap before the cap (absent: the gap; reviews stored before it, and coach grades, which are not capped) */
+  raw?: number;
   se?: number;
   /** who measured it: the coach during play, or the review's oracle afterwards */
   src: 'coach' | 'oracle';
@@ -311,6 +357,8 @@ export const REVIEW_SCHEMA = 1;
 export interface GameReviewRecord {
   kind: typeof REVIEW_KIND;
   schema: typeof REVIEW_SCHEMA;
+  /** the rating rules it was made with (REVIEW_RULES; absent: before rules were versioned, i.e. 1) */
+  rules?: number;
   /** the practice replay's id */
   id: string;
   /** when the review was made (ISO) */
@@ -340,11 +388,13 @@ const r2 = (x: number) => Math.round(x * 100) / 100;
  * The stored review of a game: the oracle's grades of both seats, merged with the coach's grades from play for the
  * moves the coach measured (`coach`; the review skipped those, GameReview.skipped carries what the screen made of them).
  */
-export function buildReviewRecord(review: GameReview, coach: readonly CoachRating[], meta: { id: string; made: string; me?: PlayerId }): GameReviewRecord {
+export function buildReviewRecord(review: GameReview, coach: readonly CoachRating[], meta: { id: string; made: string; me?: PlayerId }, keep?: readonly ReviewMove[]): GameReviewRecord {
   const me = meta.me ?? 0;
   const moves: ReviewMove[] = [];
   for (const d of review.decisions) {
     const r = rateOracle(d);
+    const gap = r2(gigs(d.regret));
+    const raw = d.raw !== undefined ? r2(gigs(d.raw)) : gap;
     moves.push({
       seq: d.seq ?? moves.length,
       p: d.player,
@@ -354,15 +404,20 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
       chosen: d.chosen,
       ...(d.best !== d.chosen ? { best: d.best } : {}),
       r,
-      gap: r2(gigs(d.regret)),
+      gap,
+      ...(raw !== gap ? { raw } : {}),
       ...(d.se !== undefined ? { se: r2(gigs(d.se)) } : {}),
       src: 'oracle',
       ...(d.gameLosing ? { lost: true as const } : {}),
     });
   }
   const byAt = new Map(coach.map((c) => [c.at, c]));
+  const kept = new Map((keep ?? []).filter((m) => m.p === me && m.src === 'coach').map((m) => [m.at, m]));
   for (const s of review.skipped ?? []) {
     const c = s.player === me ? byAt.get(s.at) : undefined;
+    const k = s.player === me && !c ? kept.get(s.at) : undefined;
+    // a coach grade from an earlier review whose coach record is gone: kept as it was rated
+    if (k) moves.push({ ...k, seq: s.seq, turn: s.turn });
     if (!c) continue;
     moves.push({
       seq: s.seq,
@@ -383,6 +438,7 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
   return {
     kind: REVIEW_KIND,
     schema: REVIEW_SCHEMA,
+    rules: REVIEW_RULES,
     id: meta.id,
     made: meta.made,
     rollouts: review.rollouts,
@@ -440,15 +496,27 @@ export function seatSummary(moves: readonly ReviewMove[], p: PlayerId, forced = 
   return { accuracy: counted.length ? accuracyOf(avgLoss) : null, avgLoss, n, counted: counted.length };
 }
 
-/** The decision with the biggest swing: the largest gap outside the noise (a Slip or worse), earliest on ties; null in a clean game. */
-export function turningPoint(moves: readonly ReviewMove[]): ReviewMove | null {
+/** A move's gap before the cap (Gigs): what breaks a tie between two losses at the cap. */
+const rawOf = (m: Pick<ReviewMove, 'gap' | 'raw'>) => m.raw ?? m.gap ?? 0;
+
+/**
+ * The turning point: the losing side's costliest move outside the noise (a Slip or worse), so it is where the loser's
+ * game turned, never a mistake the winner got away with. Ties (two losses at the cap) go to the larger raw gap, then
+ * to the earlier move. With no winner (a draw, an abandoned game, or `winner` not given) either side's costliest move
+ * counts: the biggest error. Null when the losing side made no move outside the noise.
+ */
+export function turningPoint(moves: readonly ReviewMove[], winner?: PlayerId | 'tie' | null): ReviewMove | null {
+  const loser = winner === 0 || winner === 1 ? ((1 - winner) as PlayerId) : null;
   let best: ReviewMove | null = null;
   for (const m of moves) {
-    if (!counts(m.r) || FINE.has(m.r)) continue;
-    if (!best || lossOf(m) > lossOf(best)) best = m;
+    if (!counts(m.r) || FINE.has(m.r) || (loser !== null && m.p !== loser)) continue;
+    if (!best || lossOf(m) > lossOf(best) || (lossOf(m) === lossOf(best) && rawOf(m) > rawOf(best))) best = m;
   }
   return best;
 }
+
+/** What the turning point is called: "Turning point" when the game had a winner, else "Biggest error". */
+export const turningName = (winner: PlayerId | 'tie' | null | undefined) => (winner === 0 || winner === 1 ? 'Turning point' : 'Biggest error');
 
 /** What you did after a rival Mistake or Blunder: on your next turn you made a Mistake or Blunder (missed), or nothing worse than a Close call (followed up). */
 export type RivalFollow = 'missed' | 'followed';
@@ -484,8 +552,8 @@ export function isKeyMoment(m: ReviewMove, me: PlayerId, turning: ReviewMove | n
   return m.r === 'inspired' || m.r === 'sharp' || m.r === 'mistake' || m.r === 'blunder';
 }
 
-/** The moves listed in the review: all of yours, and the rival's relevant ones. */
-export const listed = (m: ReviewMove, me: PlayerId) => m.p === me || rivalRelevant(m);
+/** The moves listed in the review: all of yours, the rival's relevant ones, and always the turning point. */
+export const listed = (m: ReviewMove, me: PlayerId, turning?: ReviewMove | null) => m.p === me || rivalRelevant(m) || (!!turning && m.seq === turning.seq);
 
 /** Your counts per rating, small enough for the practice log (the Profile's history shows them). */
 export interface ReviewCounts {
@@ -509,34 +577,5 @@ export function costlyText(n: readonly number[]): string {
   return parts.join(', ');
 }
 
-/** One or two plain sentences on a move: what was better and by how much, and the coach's reason when it had one. */
-export function explain(m: ReviewMove): string {
-  const g = m.gap ?? 0;
-  const better = m.best ?? m.chosen;
-  const se = m.se ? ` ± ${m.se.toFixed(2)}` : '';
-  const who = m.src === 'coach' ? 'The coach' : 'The review';
-  let s: string;
-  switch (m.r) {
-    case 'inspired':
-      s = `${who} rates this the best move, and a quick read would have picked something clearly worse.`;
-      break;
-    case 'sharp':
-      s = `${who} rates this the best move, and every other option it measured was clearly worse.`;
-      break;
-    case 'best':
-      s = better === m.chosen || g <= 0 ? `${who} rates this the best move.` : `As good as ${better} (within 0.1 Gigs).`;
-      break;
-    case 'close':
-      s = `${who} slightly preferred ${better} (${g.toFixed(2)}${se} Gigs), but that is within the noise.`;
-      break;
-    case 'unclear':
-      s = 'Every option measured comes out about the same here (or the game was already decided), so this move is not counted.';
-      break;
-    case 'forced':
-      s = 'The only option.';
-      break;
-    default:
-      s = `${who} preferred ${better}: about ${g.toFixed(2)}${se} Gigs better.${m.lost ? ' This move also lost the game in clearly more of the play-outs.' : ''}`;
-  }
-  return m.why && m.src === 'coach' ? `${s} Coach: ${m.why}` : s;
-}
+// The words for a rated move (explain, the turning point's figure) are in src/lib/reviewWords.ts, beside the coach's
+// (src/lib/coachWords.ts), so no review text prints a gap past CAP_GIGS.

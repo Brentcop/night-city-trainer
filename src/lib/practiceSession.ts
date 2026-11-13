@@ -10,6 +10,7 @@ import { saveReplay, type PracticeReplay } from './practiceReplays';
 import { recordPractice, type PracticeGame } from './practiceLog';
 import { CONCEDED_REASON } from './practiceVerdict';
 import { MISMATCH_WHY, replayOf, restoredGrades, stateHash, versionProblem, type SaveCheck, type SavedGame } from './savedGames';
+import { SIM_VERSION } from './tournament';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -264,6 +265,9 @@ function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
  */
 export function recordFinished(replay: PracticeReplay, st: GameState) {
   replay.result = outcome(st);
+  // what the Game review checks its replay against: this code's version, and how long the game lasted
+  replay.simVersion = SIM_VERSION;
+  replay.turns = st.turn;
   saveReplay(replay);
   recordPractice(practiceEntry(replay, st));
 }

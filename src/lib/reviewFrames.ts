@@ -5,7 +5,7 @@ import { Game } from '../engine/engine';
 import type { Agent, Decision, DeckList, PlayerId } from '../engine/types';
 import type { SeatAnswers } from '../ai/reviewer';
 import { captureFrames, type ReplayData } from './replayFrames';
-import { CONCEDED_REASON } from './practiceVerdict';
+import { CONCEDED_REASON, type SessionEnding } from './practiceVerdict';
 
 export interface ReviewFrames {
   data: ReplayData;
@@ -13,7 +13,11 @@ export interface ReviewFrames {
   at: [number[], number[]];
 }
 
-/** Answers one seat from its recorded answers; when they run out, a conceded game ends there and any other picks option 0. */
+/**
+ * Answers one seat from its recorded answers; when they run out, a game the session ended (a concession, a clock, an
+ * abandoned online game: src/lib/practiceVerdict.ts sessionEnding) ends there, whichever seat runs out, and any other
+ * picks option 0.
+ */
 class AnswerAgent implements Agent {
   private k = 0;
   marks: number[] = [];
@@ -24,7 +28,7 @@ class AnswerAgent implements Agent {
     public name: string,
     private a: SeatAnswers,
     private frameCount: () => number,
-    private concede: boolean,
+    private end: SessionEnding | null,
   ) {
     this.choosesPayment = a.pay;
     this.choosesOrder = a.order;
@@ -34,15 +38,22 @@ class AnswerAgent implements Agent {
     this.marks.push(this.frameCount() - 1);
     const c = this.a.choices[this.k++];
     if (c) return c;
-    if (this.concede) g.endGame(1, CONCEDED_REASON);
+    if (this.end) g.endGame(this.end.winner, this.end.reason);
     return d.min > 0 ? [0] : [];
   }
 }
 
-export async function reviewFrames(game: { decks: [DeckList, DeckList]; seed: number; first?: PlayerId; conceded?: boolean }, answers: [SeatAnswers, SeatAnswers]): Promise<ReviewFrames> {
+/**
+ * `end`: how the session ended the game (absent: `conceded` means seat 0 conceded, as in records before online games).
+ */
+export async function reviewFrames(
+  game: { decks: [DeckList, DeckList]; seed: number; first?: PlayerId; end?: SessionEnding | null; conceded?: boolean },
+  answers: [SeatAnswers, SeatAnswers],
+): Promise<ReviewFrames> {
   let captured: ReplayData['frames'] = [];
   const count = () => captured.length;
-  const agents = [new AnswerAgent('a', answers[0], count, !!game.conceded), new AnswerAgent('b', answers[1], count, false)] as const;
+  const end = game.end !== undefined ? game.end : game.conceded ? { winner: 1 as const, reason: CONCEDED_REASON } : null;
+  const agents = [new AnswerAgent('a', answers[0], count, end), new AnswerAgent('b', answers[1], count, end)] as const;
   const g = Game.create(game.decks, [agents[0], agents[1]], { seed: game.seed, first: game.first });
   captured = captureFrames(g);
   const final = await g.run();

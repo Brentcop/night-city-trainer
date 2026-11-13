@@ -106,7 +106,7 @@ export const TIMED_OUT_REASON = 'Time ran out (multi-day game)';
 export function timedOutRecords(e: BotMultiDay, now: number): { entry: PracticeGame; replay: PracticeReplay } {
   const s = e.save;
   const mark: MultiDayMark = { days: e.days, timedOut: true };
-  const replay: PracticeReplay = { ...replayOf(s), choices: s.choices.map((c) => [...c]), result: 'loss', conceded: true, multiDay: mark };
+  const replay: PracticeReplay = { ...replayOf(s), choices: s.choices.map((c) => [...c]), result: 'loss', conceded: true, multiDay: mark, simVersion: s.simVersion };
   const entry: PracticeGame = {
     id: s.replayId,
     date: new Date(now).toISOString(),

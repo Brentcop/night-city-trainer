@@ -2085,6 +2085,17 @@ ol.costly {
 .gr-turning {
   margin: 0;
 }
+.gr-basis,
+.gr-before {
+  margin: 0;
+}
+/* a game that can't be reviewed: a plain sentence, not an error trace */
+.gr-refused {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--red);
+  background: var(--panel);
+}
 .gr-adv .gr-tp {
   stroke: var(--red);
   stroke-dasharray: 3 3;
