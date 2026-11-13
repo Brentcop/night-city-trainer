@@ -2,16 +2,16 @@
 
 ## RRG Dexter Midrange — 74% over 1200 games
 
-- **Seat:** 82% on the play vs 66% on the draw. When you choose (you lost the last game), choose to go **first**.
-- **Cards that win games:** Yorinobu Arasaka: Steel Dragon (+15 pts when drawn), Animals Wrecker (+13 pts when drawn), Pepe Najarro: Working Doubles (+8 pts when drawn), Mantis Blades (+6 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Underperformers:** Bonnie and Clyde (-7 pts), Synapse Burnout (-6 pts), Carnage at the Colosseum (-4 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-- **Usual Eddie fodder:** Detonate (sold in 97% of games it's drawn), Synapse Burnout (sold in 96% of games it's drawn), Mantis Blades (sold in 88% of games it's drawn), Peace Offering (sold in 85% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 84% when ahead on Gigs and 66% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 36% of games reach overtime, and you win 72% of those. You do worse in long games, so close it out before both players run out of dice.
-- **Mulligans:** 14% of hands are mulliganed, and those games are won 76% of the time (overall 74%).
-- **First Legend flipped:** Dexter DeShawn: Off the Grid 78% (439) · Adam Smasher: Ender of Legends 72% (378) · Saburo Arasaka: Stubborn Patriarch 71% (382). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 20% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** Rainbow Fixer Stuff (85%). **Worst:** BBG Cunningham Econ (61%). Sideboard for the worst one first.
+- **Seat:** in 1200 games, this list won 82% on the play and 66% on the draw.
+- **Cards most associated with wins:** Yorinobu Arasaka: Steel Dragon (+15 points, drawn in 860 games), Animals Wrecker (+13 points, drawn in 885 games), Pepe Najarro: Working Doubles (+8 points, drawn in 898 games), Mantis Blades (+6 points, drawn in 853 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Cards most associated with losses:** Bonnie and Clyde (-7 points, drawn in 878 games), Synapse Burnout (-6 points, drawn in 867 games), Carnage at the Colosseum (-4 points, drawn in 829 games). Games where each was drawn were won that many points less often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Detonate (sold in 97% of the 881 games it was drawn), Synapse Burnout (sold in 96% of the 867 games it was drawn), Mantis Blades (sold in 88% of the 853 games it was drawn), Peace Offering (sold in 85% of the 848 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 84% of the 538 games it was ahead on Gigs and 66% of the 542 games it was behind.
+- **Overtime:** 36% of 1200 games reached overtime, and this list won 72% of those (74% overall).
+- **Mulligans:** the bot mulliganed in 14% of 1200 games, and won 76% of those (74% overall).
+- **First Legend flipped:** Dexter DeShawn: Off the Grid 78% (439 games) · Adam Smasher: Ender of Legends 72% (378 games) · Saburo Arasaka: Stubborn Patriarch 71% (382 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 20% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** Rainbow Fixer Stuff (85% over 200 games). **Worst:** BBG Cunningham Econ (61% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|
@@ -42,16 +42,16 @@
 
 ## RRY Smasher Aggro — 57% over 1200 games
 
-- **Seat:** 64% on the play vs 50% on the draw. When you choose (you lost the last game), choose to go **first**.
-- **Cards that win games:** Animals Wrecker (+12 pts when drawn), Rockn' Rockerboy (+7 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Underperformers:** Offduty Malfini (-8 pts), Meredith Stout: Stone Cold Corpo (-6 pts), Gunpoint Diplomacy (-5 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-- **Usual Eddie fodder:** Detonate (sold in 99% of games it's drawn), Zetatech Faceplate (sold in 95% of games it's drawn), Mantis Blades (sold in 95% of games it's drawn), All is Lost (sold in 90% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 63% when ahead on Gigs and 51% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 41% of games reach overtime, and you win 58% of those. The deck is built for the long game; plan to be the one at 7 when overtime starts.
-- **Mulligans:** 27% of hands are mulliganed, and those games are won 59% of the time (overall 57%).
-- **First Legend flipped:** Dum Dum: Maelstrom Triggerman 61% (387) · Adam Smasher: Ender of Legends 60% (419) · V: Streetkid 48% (384). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 26% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** GRY Trauma Team (74%). **Worst:** RRG Dexter Midrange (28%). Sideboard for the worst one first.
+- **Seat:** in 1200 games, this list won 64% on the play and 50% on the draw.
+- **Cards most associated with wins:** Animals Wrecker (+12 points, drawn in 783 games), Rockn' Rockerboy (+7 points, drawn in 795 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Cards most associated with losses:** Offduty Malfini (-8 points, drawn in 363 games), Meredith Stout: Stone Cold Corpo (-6 points, drawn in 821 games), Gunpoint Diplomacy (-5 points, drawn in 640 games). Games where each was drawn were won that many points less often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Detonate (sold in 99% of the 760 games it was drawn), Zetatech Faceplate (sold in 95% of the 753 games it was drawn), Mantis Blades (sold in 95% of the 763 games it was drawn), All is Lost (sold in 90% of the 603 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 63% of the 674 games it was ahead on Gigs and 51% of the 393 games it was behind.
+- **Overtime:** 41% of 1200 games reached overtime, and this list won 58% of those (57% overall).
+- **Mulligans:** the bot mulliganed in 27% of 1200 games, and won 59% of those (57% overall).
+- **First Legend flipped:** Dum Dum: Maelstrom Triggerman 61% (387 games) · Adam Smasher: Ender of Legends 60% (419 games) · V: Streetkid 48% (384 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 26% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** GRY Trauma Team (74% over 200 games). **Worst:** RRG Dexter Midrange (28% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|
@@ -85,15 +85,15 @@
 
 ## BBG Cunningham Econ — 53% over 1200 games
 
-- **Seat:** 59% on the play vs 47% on the draw. When you choose (you lost the last game), choose to go **first**.
-- **Cards that win games:** Les Élémens (+20 pts when drawn), Pepe Najarro: Working Doubles (+7 pts when drawn), Towerfall (+7 pts when drawn), Maman Brigitte: Spirit of Death (+6 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Usual Eddie fodder:** Peace Offering (sold in 91% of games it's drawn), Floor It (sold in 88% of games it's drawn), Chrome Reverie (sold in 84% of games it's drawn), Trust No One (sold in 83% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 59% when ahead on Gigs and 34% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 33% of games reach overtime, and you win 53% of those. You do worse in long games, so close it out before both players run out of dice.
-- **Mulligans:** 22% of hands are mulliganed, and those games are won 55% of the time (overall 53%).
-- **First Legend flipped:** Jackie Welles: Pour One Out For Me 61% (397) · Hanako Arasaka: Daughter of the Emperor 52% (382) · Alt Cunningham: Soulkiller Architect 46% (421). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 21% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** YYB Rogue Gear (65%). **Worst:** RRG Dexter Midrange (39%). Sideboard for the worst one first.
+- **Seat:** in 1200 games, this list won 59% on the play and 47% on the draw.
+- **Cards most associated with wins:** Les Élémens (+20 points, drawn in 975 games), Pepe Najarro: Working Doubles (+7 points, drawn in 859 games), Towerfall (+7 points, drawn in 942 games), Maman Brigitte: Spirit of Death (+6 points, drawn in 815 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Peace Offering (sold in 91% of the 952 games it was drawn), Floor It (sold in 88% of the 955 games it was drawn), Chrome Reverie (sold in 84% of the 954 games it was drawn), Trust No One (sold in 83% of the 921 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 59% of the 887 games it was ahead on Gigs and 34% of the 212 games it was behind.
+- **Overtime:** 33% of 1200 games reached overtime, and this list won 53% of those (53% overall).
+- **Mulligans:** the bot mulliganed in 22% of 1200 games, and won 55% of those (53% overall).
+- **First Legend flipped:** Jackie Welles: Pour One Out For Me 61% (397 games) · Hanako Arasaka: Daughter of the Emperor 52% (382 games) · Alt Cunningham: Soulkiller Architect 46% (421 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 21% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** YYB Rogue Gear (65% over 200 games). **Worst:** RRG Dexter Midrange (39% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|
@@ -125,16 +125,16 @@
 
 ## YYB Rogue Gear — 49% over 1200 games
 
-- **Seat:** 53% on the play vs 46% on the draw. When you choose (you lost the last game), choose to go **first**.
-- **Cards that win games:** Psycho Squad (+9 pts when drawn), Viktor Vektor: You Might Feel a Little Pinch (+6 pts when drawn), Adrenaline Converter (+5 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Underperformers:** Zetatech Faceplate (-10 pts), Trauma Team Operatives (-8 pts), Modded Kusanagi (-5 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-- **Usual Eddie fodder:** Mandibular Upgrade (sold in 96% of games it's drawn), Reboot Optics (sold in 95% of games it's drawn), Safety Override (sold in 93% of games it's drawn), The Heist (sold in 92% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 54% when ahead on Gigs and 34% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 49% of games reach overtime, and you win 45% of those. You do worse in long games, so close it out before both players run out of dice.
-- **Mulligans:** 18% of hands are mulliganed, and those games are won 42% of the time (overall 49%).
-- **First Legend flipped:** River Ward: Detective on the Hunt 51% (387) · V: Corporate Exile 48% (420) · Viktor Vektor: Sit Down and Relax 48% (393). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 18% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** GRY Trauma Team (65%). **Worst:** RRG Dexter Midrange (25%). Sideboard for the worst one first.
+- **Seat:** in 1200 games, this list won 53% on the play and 46% on the draw.
+- **Cards most associated with wins:** Psycho Squad (+9 points, drawn in 924 games), Viktor Vektor: You Might Feel a Little Pinch (+6 points, drawn in 431 games), Adrenaline Converter (+5 points, drawn in 961 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Cards most associated with losses:** Zetatech Faceplate (-10 points, drawn in 864 games), Trauma Team Operatives (-8 points, drawn in 847 games), Modded Kusanagi (-5 points, drawn in 678 games). Games where each was drawn were won that many points less often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Mandibular Upgrade (sold in 96% of the 421 games it was drawn), Reboot Optics (sold in 95% of the 643 games it was drawn), Safety Override (sold in 93% of the 672 games it was drawn), The Heist (sold in 92% of the 852 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 54% of the 922 games it was ahead on Gigs and 34% of the 189 games it was behind.
+- **Overtime:** 49% of 1200 games reached overtime, and this list won 45% of those (49% overall).
+- **Mulligans:** the bot mulliganed in 18% of 1200 games, and won 42% of those (49% overall).
+- **First Legend flipped:** River Ward: Detective on the Hunt 51% (387 games) · V: Corporate Exile 48% (420 games) · Viktor Vektor: Sit Down and Relax 48% (393 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 18% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** GRY Trauma Team (65% over 200 games). **Worst:** RRG Dexter Midrange (25% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|
@@ -167,14 +167,14 @@
 
 ## Rainbow Fixer Stuff — 41% over 1200 games
 
-- **Seat:** 49% on the play vs 33% on the draw. When you choose (you lost the last game), choose to go **first**.
-- **Cards that win games:** Psycho Squad (+10 pts when drawn), 6th Street Recruits (+9 pts when drawn), Detonate (+8 pts when drawn), Mantis Blades (+6 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Usual Eddie fodder:** Synapse Burnout (sold in 97% of games it's drawn), Detonate (sold in 97% of games it's drawn), Mantis Blades (sold in 80% of games it's drawn), Floor It (sold in 76% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 47% when ahead on Gigs and 33% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 46% of games reach overtime, and you win 42% of those. The deck is built for the long game; plan to be the one at 7 when overtime starts.
-- **First Legend flipped:** Padre: Man of the Cross 42% (436) · Wakako Okada: Peace and Harmony 41% (406) · Adam Smasher: Ender of Legends 40% (357). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 30% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** GRY Trauma Team (53%). **Worst:** RRG Dexter Midrange (16%). Sideboard for the worst one first.
+- **Seat:** in 1200 games, this list won 49% on the play and 33% on the draw.
+- **Cards most associated with wins:** Psycho Squad (+10 points, drawn in 804 games), 6th Street Recruits (+9 points, drawn in 1004 games), Detonate (+8 points, drawn in 943 games), Mantis Blades (+6 points, drawn in 933 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Synapse Burnout (sold in 97% of the 926 games it was drawn), Detonate (sold in 97% of the 943 games it was drawn), Mantis Blades (sold in 80% of the 933 games it was drawn), Floor It (sold in 76% of the 948 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 47% of the 705 games it was ahead on Gigs and 33% of the 395 games it was behind.
+- **Overtime:** 46% of 1200 games reached overtime, and this list won 42% of those (41% overall).
+- **First Legend flipped:** Padre: Man of the Cross 42% (436 games) · Wakako Okada: Peace and Harmony 41% (406 games) · Adam Smasher: Ender of Legends 40% (357 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 30% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** GRY Trauma Team (53% over 200 games). **Worst:** RRG Dexter Midrange (16% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|
@@ -205,16 +205,16 @@
 
 ## GRY Trauma Team — 38% over 1200 games
 
-- **Seat:** about even (40% on the play / 37% on the draw), so pick based on the matchup table below.
-- **Cards that win games:** Johnny Silverhand: Never Stop Fighting (+10 pts when drawn), 6th Street Recruits (+7 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Underperformers:** Afterparty at Lizzie's (-11 pts), Shattered Memories (-9 pts), Detonate (-7 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-- **Usual Eddie fodder:** Detonate (sold in 97% of games it's drawn), The Heist (sold in 95% of games it's drawn), Mantis Blades (sold in 89% of games it's drawn), All is Lost (sold in 89% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 47% when ahead on Gigs and 26% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 43% of games reach overtime, and you win 39% of those. The deck is built for the long game; plan to be the one at 7 when overtime starts.
-- **Mulligans:** 11% of hands are mulliganed, and those games are won 36% of the time (overall 38%).
-- **First Legend flipped:** Muamar Reyes: El Capitán 40% (404) · Padre: Man of the Cross 39% (394) · V: Streetkid 35% (401). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 31% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** RRB Wakako Midrange (51%). **Worst:** RRG Dexter Midrange (23%). Sideboard for the worst one first.
+- **Seat:** about even in 1200 games (40% on the play, 37% on the draw).
+- **Cards most associated with wins:** Johnny Silverhand: Never Stop Fighting (+10 points, drawn in 718 games), 6th Street Recruits (+7 points, drawn in 890 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Cards most associated with losses:** Afterparty at Lizzie's (-11 points, drawn in 700 games), Shattered Memories (-9 points, drawn in 404 games), Detonate (-7 points, drawn in 854 games). Games where each was drawn were won that many points less often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Detonate (sold in 97% of the 854 games it was drawn), The Heist (sold in 95% of the 850 games it was drawn), Mantis Blades (sold in 89% of the 852 games it was drawn), All is Lost (sold in 89% of the 873 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 47% of the 662 games it was ahead on Gigs and 26% of the 440 games it was behind.
+- **Overtime:** 43% of 1200 games reached overtime, and this list won 39% of those (38% overall).
+- **Mulligans:** the bot mulliganed in 11% of 1200 games, and won 36% of those (38% overall).
+- **First Legend flipped:** Muamar Reyes: El Capitán 40% (404 games) · Padre: Man of the Cross 39% (394 games) · V: Streetkid 35% (401 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 31% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** RRB Wakako Midrange (51% over 200 games). **Worst:** RRG Dexter Midrange (23% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|
@@ -245,16 +245,16 @@
 
 ## RRB Wakako Midrange — 38% over 1200 games
 
-- **Seat:** 49% on the play vs 26% on the draw. When you choose (you lost the last game), choose to go **first**.
-- **Cards that win games:** Yorinobu Arasaka: Steel Dragon (+15 pts when drawn), Psycho Squad (+11 pts when drawn), Mantis Blades (+11 pts when drawn), Industrial Assembly (+9 pts when drawn). Keep these over everything when you sell or mulligan.
-- **Underperformers:** Jacked-In Voodoo Boy (-13 pts), Lizzy Wizzy: Delicate Weapon (-6 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-- **Usual Eddie fodder:** Detonate (sold in 96% of games it's drawn), Mantis Blades (sold in 92% of games it's drawn), Floor It (sold in 80% of games it's drawn), Industrial Assembly (sold in 77% of games it's drawn).
-- **Tempo check:** after your 4th turn you win 44% when ahead on Gigs and 34% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-- **Overtime:** 37% of games reach overtime, and you win 47% of those. The deck is built for the long game; plan to be the one at 7 when overtime starts.
-- **Mulligans:** 17% of hands are mulliganed, and those games are won 32% of the time (overall 38%).
-- **First Legend flipped:** Dexter DeShawn: Off the Grid 40% (400) · Wakako Okada: Peace and Harmony 38% (399) · Adam Smasher: Ender of Legends 35% (401). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-- **Reactive Calls:** 26% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-- **Best matchup:** GRY Trauma Team (49%). **Worst:** RRG Dexter Midrange (26%). Sideboard for the worst one first.
+- **Seat:** in 1200 games, this list won 49% on the play and 26% on the draw.
+- **Cards most associated with wins:** Yorinobu Arasaka: Steel Dragon (+15 points, drawn in 876 games), Psycho Squad (+11 points, drawn in 738 games), Mantis Blades (+11 points, drawn in 906 games), Industrial Assembly (+9 points, drawn in 703 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Cards most associated with losses:** Jacked-In Voodoo Boy (-13 points, drawn in 949 games), Lizzy Wizzy: Delicate Weapon (-6 points, drawn in 717 games). Games where each was drawn were won that many points less often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+- **Usual Eddie fodder:** Detonate (sold in 96% of the 871 games it was drawn), Mantis Blades (sold in 92% of the 906 games it was drawn), Floor It (sold in 80% of the 870 games it was drawn), Industrial Assembly (sold in 77% of the 703 games it was drawn). These are the cards the bot sold most often.
+- **Tempo check:** after its 4th turn, this list won 44% of the 602 games it was ahead on Gigs and 34% of the 465 games it was behind.
+- **Overtime:** 37% of 1200 games reached overtime, and this list won 47% of those (38% overall).
+- **Mulligans:** the bot mulliganed in 17% of 1200 games, and won 32% of those (38% overall).
+- **First Legend flipped:** Dexter DeShawn: Off the Grid 40% (400 games) · Wakako Okada: Peace and Harmony 38% (399 games) · Adam Smasher: Ender of Legends 35% (401 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+- **Reactive Calls:** the bot made 26% of its Legend Calls during the rival's attack, over 1200 games.
+- **Best matchup:** GRY Trauma Team (49% over 200 games). **Worst:** RRG Dexter Midrange (26% over 200 games).
 
 | Card | Seen | WR seen | WR not seen | Δ (IWD) | Avg turn played | Sold % | Steals/game |
 |---|---|---|---|---|---|---|---|

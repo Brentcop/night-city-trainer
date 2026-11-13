@@ -29,7 +29,8 @@ const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
 /**
  * Not read: the tutorial content (being written), generated modules, unmaintained one-off scripts. The `insights`
- * arrays of src/data/analysis.json are not read either (plan step 0.3), and neither are archived decks (D9).
+ * arrays of src/data/analysis.json are not read either (they come with the measured cells, plan step 2.4), and neither
+ * are archived decks (D9).
  */
 const CODE_SKIP = [/^src\/content\/tutorial\//, /^src\/content\/(tournamentPlan|recommendation)\.ts$/, /^scripts\/archive\//];
 /** Guides whose text is generated (by scripts/plan.ts), not written. */

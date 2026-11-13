@@ -348,7 +348,7 @@ export const GLOSSARY: Term[] = [
   {
     term: 'Δ when drawn (IWD)',
     group: 'Strategy',
-    def: 'Win rate in games where a card was drawn, minus win rate in games where it was not. It measures how much a card swings games — not how strong it looks. The Insights page and the data-driven guide sections use it to suggest keeps, sells and cuts.',
+    def: 'Win rate in games where a card was drawn, minus win rate in games where it was not. It is an association, not the card’s value: cards are drawn more in long games, and the bot sells what looks weak. The Insights page and the data-driven guide sections show it with the number of games behind it.',
   },
   {
     term: 'Tempo check',

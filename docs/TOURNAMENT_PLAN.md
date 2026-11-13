@@ -7,16 +7,16 @@
 - **Power rating: 71% expected against the whole tournament field**, and 70% expected against the choom.gg meta decks (the same model); worst meta matchup: 60%.
 - **Why this one:** Highest power rating from 7 tournament events (2,264 games; its 90% range against the whole field is 65%–76%); 1 event title, top 8 in 6 of 7. Chosen over 2 statistically tied decks (S1-01 Mutant (RRY), Smash the Curve) for its record against the meta decks.
 - **Why (from 1200 telemetry games):**
-  - **Seat:** 82% on the play vs 66% on the draw. When you choose (you lost the last game), choose to go **first**.
-  - **Cards that win games:** Yorinobu Arasaka: Steel Dragon (+15 pts when drawn), Animals Wrecker (+13 pts when drawn), Pepe Najarro: Working Doubles (+8 pts when drawn), Mantis Blades (+6 pts when drawn). Keep these over everything when you sell or mulligan.
-  - **Underperformers:** Bonnie and Clyde (-7 pts), Synapse Burnout (-6 pts), Carnage at the Colosseum (-4 pts). Sell these first, and consider cutting them or moving them to the sideboard.
-  - **Usual Eddie fodder:** Detonate (sold in 97% of games it's drawn), Synapse Burnout (sold in 96% of games it's drawn), Mantis Blades (sold in 88% of games it's drawn), Peace Offering (sold in 85% of games it's drawn).
-  - **Tempo check:** after your 4th turn you win 84% when ahead on Gigs and 66% when behind. This deck recovers from early deficits, so don’t over-commit to early trades.
-  - **Overtime:** 36% of games reach overtime, and you win 72% of those. You do worse in long games, so close it out before both players run out of dice.
-  - **Mulligans:** 14% of hands are mulliganed, and those games are won 76% of the time (overall 74%).
-  - **First Legend flipped:** Dexter DeShawn: Off the Grid 78% (439) · Adam Smasher: Ender of Legends 72% (378) · Saburo Arasaka: Stubborn Patriarch 71% (382). You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.
-  - **Reactive Calls:** 20% of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.
-  - **Best matchup:** Rainbow Fixer Stuff (85%). **Worst:** BBG Cunningham Econ (61%). Sideboard for the worst one first.
+  - **Seat:** in 1200 games, this list won 82% on the play and 66% on the draw.
+  - **Cards most associated with wins:** Yorinobu Arasaka: Steel Dragon (+15 points, drawn in 860 games), Animals Wrecker (+13 points, drawn in 885 games), Pepe Najarro: Working Doubles (+8 points, drawn in 898 games), Mantis Blades (+6 points, drawn in 853 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+  - **Cards most associated with losses:** Bonnie and Clyde (-7 points, drawn in 878 games), Synapse Burnout (-6 points, drawn in 867 games), Carnage at the Colosseum (-4 points, drawn in 829 games). Games where each was drawn were won that many points less often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
+  - **Usual Eddie fodder:** Detonate (sold in 97% of the 881 games it was drawn), Synapse Burnout (sold in 96% of the 867 games it was drawn), Mantis Blades (sold in 88% of the 853 games it was drawn), Peace Offering (sold in 85% of the 848 games it was drawn). These are the cards the bot sold most often.
+  - **Tempo check:** after its 4th turn, this list won 84% of the 538 games it was ahead on Gigs and 66% of the 542 games it was behind.
+  - **Overtime:** 36% of 1200 games reached overtime, and this list won 72% of those (74% overall).
+  - **Mulligans:** the bot mulliganed in 14% of 1200 games, and won 76% of those (74% overall).
+  - **First Legend flipped:** Dexter DeShawn: Off the Grid 78% (439 games) · Adam Smasher: Ender of Legends 72% (378 games) · Saburo Arasaka: Stubborn Patriarch 71% (382 games). Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.
+  - **Reactive Calls:** the bot made 20% of its Legend Calls during the rival's attack, over 1200 games.
+  - **Best matchup:** Rainbow Fixer Stuff (85% over 200 games). **Worst:** BBG Cunningham Econ (61% over 200 games).
 - **Ready-to-register list:** the list on the Decks page.
 - **Backup / sideboard partner:** [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) (midrange, expected 67% against the meta decks). Practise it second, in case the room skews hard against aggro decks.
 

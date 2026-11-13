@@ -10,7 +10,7 @@ Scopes: public 79, local 21. Splits: dev 60, test 40. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-3293 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+3299 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -26,7 +26,7 @@ Stale expectations: none.
 | exact+keyword | dev | 60 | 46.7 | 75.0 | 83.3 | 0.591 | 489 | 579 |
 | exact+keyword | test | 40 | 30.0 | 72.5 | 80.0 | 0.472 | 508 | 598 |
 | exact+keyword | all | 100 | 40.0 | 74.0 | 82.0 | 0.544 | 496 | 589 |
-| exact+linked+keyword | dev | 60 | 56.7 | 75.0 | 83.3 | 0.648 | 488 | 581 |
+| exact+linked+keyword | dev | 60 | 56.7 | 75.0 | 83.3 | 0.648 | 489 | 581 |
 | exact+linked+keyword | test | 40 | 40.0 | 80.0 | 82.5 | 0.555 | 515 | 598 |
 | exact+linked+keyword | all | 100 | 50.0 | 77.0 | 83.0 | 0.611 | 499 | 592 |
 
@@ -114,7 +114,7 @@ Rank "–" means no expected record in the first 10. "Ranked above" lists up to 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2269 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 21.
+2275 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 21.
 Stale expectations: none.
 
 ### By configuration and split
@@ -125,14 +125,14 @@ Stale expectations: none.
 | exact | test | 32 | 12.5 | 15.6 | 15.6 | 0.141 | 71 | 165 |
 | exact | all | 79 | 15.2 | 17.7 | 17.7 | 0.165 | 62 | 115 |
 | keyword | dev | 47 | 57.4 | 78.7 | 83.0 | 0.668 | 471 | 581 |
-| keyword | test | 32 | 40.6 | 68.8 | 75.0 | 0.519 | 473 | 600 |
+| keyword | test | 32 | 40.6 | 68.8 | 75.0 | 0.519 | 472 | 600 |
 | keyword | all | 79 | 50.6 | 74.7 | 79.7 | 0.608 | 472 | 598 |
-| exact+keyword | dev | 47 | 46.8 | 78.7 | 83.0 | 0.613 | 472 | 581 |
+| exact+keyword | dev | 47 | 46.8 | 78.7 | 83.0 | 0.613 | 471 | 581 |
 | exact+keyword | test | 32 | 37.5 | 71.9 | 81.3 | 0.521 | 515 | 600 |
 | exact+keyword | all | 79 | 43.0 | 75.9 | 82.3 | 0.576 | 489 | 598 |
 | exact+linked+keyword | dev | 47 | 59.6 | 83.0 | 85.1 | 0.696 | 474 | 588 |
-| exact+linked+keyword | test | 32 | 50.0 | 81.3 | 87.5 | 0.635 | 528 | 598 |
-| exact+linked+keyword | all | 79 | 55.7 | 82.3 | 86.1 | 0.671 | 496 | 593 |
+| exact+linked+keyword | test | 32 | 50.0 | 81.3 | 87.5 | 0.635 | 527 | 598 |
+| exact+linked+keyword | all | 79 | 55.7 | 82.3 | 86.1 | 0.671 | 495 | 593 |
 
 ### By question type
 

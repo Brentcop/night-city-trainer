@@ -35,7 +35,7 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
       </div>
       <div className="grid cols-2">
         <div className="scroll-x">
-          <h3>Highest-impact cards</h3>
+          <h3>Highest Δ when drawn</h3>
           <table className="small">
             <thead>
               <tr>
@@ -60,7 +60,7 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
           </table>
         </div>
         <div className="scroll-x">
-          <h3>Lowest-impact cards</h3>
+          <h3>Lowest Δ when drawn</h3>
           <table className="small">
             <thead>
               <tr>

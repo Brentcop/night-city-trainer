@@ -9,7 +9,7 @@
     {
       "scope": "all",
       "localPresent": true,
-      "records": 3293,
+      "records": 3299,
       "skipped": [],
       "stale": {},
       "configs": [
@@ -899,7 +899,7 @@
               "r5": 0.7667,
               "r10": 0.8333,
               "mrr": 0.638,
-              "tokensMean": 492.6,
+              "tokensMean": 492.6833,
               "tokensP90": 583
             },
             "test": {
@@ -908,7 +908,7 @@
               "r5": 0.7,
               "r10": 0.75,
               "mrr": 0.5029,
-              "tokensMean": 477.975,
+              "tokensMean": 478.225,
               "tokensP90": 604
             },
             "all": {
@@ -917,7 +917,7 @@
               "r5": 0.74,
               "r10": 0.8,
               "mrr": 0.584,
-              "tokensMean": 486.75,
+              "tokensMean": 486.9,
               "tokensP90": 592
             }
           },
@@ -956,7 +956,7 @@
                 "r5": 0.9167,
                 "r10": 1,
                 "mrr": 0.762,
-                "tokensMean": 551.9167,
+                "tokensMean": 552.3333,
                 "tokensP90": 588
               },
               "rules": {
@@ -976,7 +976,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.7292,
-                "tokensMean": 528.375,
+                "tokensMean": 529.625,
                 "tokensP90": 621
               },
               "paraphrase": {
@@ -1023,7 +1023,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.8917,
-                "tokensMean": 501.5,
+                "tokensMean": 502,
                 "tokensP90": 567
               },
               "paraphrase": {
@@ -1050,7 +1050,7 @@
                 "r5": 0.95,
                 "r10": 1,
                 "mrr": 0.7547,
-                "tokensMean": 555.65,
+                "tokensMean": 555.9,
                 "tokensP90": 592
               },
               "rules": {
@@ -1112,7 +1112,7 @@
               "type": "entity",
               "split": "test",
               "rank": 2,
-              "tokens": 522
+              "tokens": 532
             },
             {
               "id": "q008",
@@ -1553,7 +1553,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 523
+              "tokens": 528
             },
             {
               "id": "q071",
@@ -1776,7 +1776,7 @@
               "r5": 0.75,
               "r10": 0.8333,
               "mrr": 0.5914,
-              "tokensMean": 488.5167,
+              "tokensMean": 488.6,
               "tokensP90": 579
             },
             "test": {
@@ -1785,7 +1785,7 @@
               "r5": 0.725,
               "r10": 0.8,
               "mrr": 0.4719,
-              "tokensMean": 507.675,
+              "tokensMean": 507.925,
               "tokensP90": 598
             },
             "all": {
@@ -1794,7 +1794,7 @@
               "r5": 0.74,
               "r10": 0.82,
               "mrr": 0.5436,
-              "tokensMean": 496.18,
+              "tokensMean": 496.33,
               "tokensP90": 589
             }
           },
@@ -1833,7 +1833,7 @@
                 "r5": 0.9167,
                 "r10": 1,
                 "mrr": 0.762,
-                "tokensMean": 551.9167,
+                "tokensMean": 552.3333,
                 "tokensP90": 588
               },
               "rules": {
@@ -1853,7 +1853,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.7813,
-                "tokensMean": 525,
+                "tokensMean": 526.25,
                 "tokensP90": 621
               },
               "paraphrase": {
@@ -1900,7 +1900,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.9125,
-                "tokensMean": 500.5,
+                "tokensMean": 501,
                 "tokensP90": 567
               },
               "paraphrase": {
@@ -1927,7 +1927,7 @@
                 "r5": 0.95,
                 "r10": 1,
                 "mrr": 0.7547,
-                "tokensMean": 555.65,
+                "tokensMean": 555.9,
                 "tokensP90": 592
               },
               "rules": {
@@ -1989,7 +1989,7 @@
               "type": "entity",
               "split": "test",
               "rank": 1,
-              "tokens": 522
+              "tokens": 532
             },
             {
               "id": "q008",
@@ -2430,7 +2430,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 523
+              "tokens": 528
             },
             {
               "id": "q071",
@@ -2653,7 +2653,7 @@
               "r5": 0.75,
               "r10": 0.8333,
               "mrr": 0.6484,
-              "tokensMean": 488.4833,
+              "tokensMean": 488.5667,
               "tokensP90": 581
             },
             "test": {
@@ -2671,7 +2671,7 @@
               "r5": 0.77,
               "r10": 0.83,
               "mrr": 0.6109,
-              "tokensMean": 499.24,
+              "tokensMean": 499.29,
               "tokensP90": 592
             }
           },
@@ -2710,7 +2710,7 @@
                 "r5": 0.9167,
                 "r10": 1,
                 "mrr": 0.762,
-                "tokensMean": 551.9167,
+                "tokensMean": 552.3333,
                 "tokensP90": 588
               },
               "rules": {
@@ -2804,7 +2804,7 @@
                 "r5": 0.95,
                 "r10": 1,
                 "mrr": 0.7547,
-                "tokensMean": 555.65,
+                "tokensMean": 555.9,
                 "tokensP90": 592
               },
               "rules": {
@@ -3307,7 +3307,7 @@
               "type": "dev",
               "split": "dev",
               "rank": 1,
-              "tokens": 523
+              "tokens": 528
             },
             {
               "id": "q071",
@@ -3526,7 +3526,7 @@
     {
       "scope": "public",
       "localPresent": false,
-      "records": 2269,
+      "records": 2275,
       "skipped": [
         "q010",
         "q081",
@@ -4264,7 +4264,7 @@
               "r5": 0.7872,
               "r10": 0.8298,
               "mrr": 0.6681,
-              "tokensMean": 471.383,
+              "tokensMean": 470.8723,
               "tokensP90": 581
             },
             "test": {
@@ -4273,7 +4273,7 @@
               "r5": 0.6875,
               "r10": 0.75,
               "mrr": 0.5186,
-              "tokensMean": 472.625,
+              "tokensMean": 472.4688,
               "tokensP90": 600
             },
             "all": {
@@ -4282,7 +4282,7 @@
               "r5": 0.7468,
               "r10": 0.7975,
               "mrr": 0.6076,
-              "tokensMean": 471.8861,
+              "tokensMean": 471.519,
               "tokensP90": 598
             }
           },
@@ -4312,7 +4312,7 @@
                 "r5": 0.7778,
                 "r10": 0.8889,
                 "mrr": 0.6528,
-                "tokensMean": 512.8889,
+                "tokensMean": 510.2222,
                 "tokensP90": 578
               },
               "dev": {
@@ -4332,7 +4332,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.7292,
-                "tokensMean": 514.75,
+                "tokensMean": 516,
                 "tokensP90": 621
               },
               "paraphrase": {
@@ -4341,7 +4341,7 @@
                 "r5": 0.4,
                 "r10": 0.4,
                 "mrr": 0.2533,
-                "tokensMean": 345.6,
+                "tokensMean": 344.1,
                 "tokensP90": 598
               },
               "cross": {
@@ -4370,7 +4370,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.886,
-                "tokensMean": 492.6842,
+                "tokensMean": 493.2105,
                 "tokensP90": 574
               },
               "paraphrase": {
@@ -4379,7 +4379,7 @@
                 "r5": 0.48,
                 "r10": 0.48,
                 "mrr": 0.3347,
-                "tokensMean": 365.12,
+                "tokensMean": 364.52,
                 "tokensP90": 604
               },
               "cross": {
@@ -4388,7 +4388,7 @@
                 "r5": 0.6,
                 "r10": 0.8,
                 "mrr": 0.5435,
-                "tokensMean": 512.0667,
+                "tokensMean": 510.4667,
                 "tokensP90": 578
               },
               "dev": {
@@ -4450,7 +4450,7 @@
               "type": "entity",
               "split": "test",
               "rank": 2,
-              "tokens": 522
+              "tokens": 532
             },
             {
               "id": "q008",
@@ -4618,7 +4618,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": null,
-              "tokens": 532
+              "tokens": 542
             },
             {
               "id": "q033",
@@ -4667,7 +4667,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": 1,
-              "tokens": 482
+              "tokens": 457
             },
             {
               "id": "q040",
@@ -4730,7 +4730,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 1,
-              "tokens": 504
+              "tokens": 480
             },
             {
               "id": "q049",
@@ -4967,7 +4967,7 @@
               "r5": 0.7872,
               "r10": 0.8298,
               "mrr": 0.6132,
-              "tokensMean": 471.5319,
+              "tokensMean": 471.0213,
               "tokensP90": 581
             },
             "test": {
@@ -4976,7 +4976,7 @@
               "r5": 0.7188,
               "r10": 0.8125,
               "mrr": 0.5212,
-              "tokensMean": 515.375,
+              "tokensMean": 515.2188,
               "tokensP90": 600
             },
             "all": {
@@ -4985,7 +4985,7 @@
               "r5": 0.7595,
               "r10": 0.8228,
               "mrr": 0.5759,
-              "tokensMean": 489.2911,
+              "tokensMean": 488.9241,
               "tokensP90": 598
             }
           },
@@ -5015,7 +5015,7 @@
                 "r5": 0.7778,
                 "r10": 0.8889,
                 "mrr": 0.4306,
-                "tokensMean": 515.1111,
+                "tokensMean": 512.4444,
                 "tokensP90": 578
               },
               "dev": {
@@ -5035,7 +5035,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.7813,
-                "tokensMean": 511.375,
+                "tokensMean": 512.625,
                 "tokensP90": 621
               },
               "paraphrase": {
@@ -5044,7 +5044,7 @@
                 "r5": 0.5,
                 "r10": 0.6,
                 "mrr": 0.32,
-                "tokensMean": 488.4,
+                "tokensMean": 486.9,
                 "tokensP90": 598
               },
               "cross": {
@@ -5073,7 +5073,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.9079,
-                "tokensMean": 491.6316,
+                "tokensMean": 492.1579,
                 "tokensP90": 574
               },
               "paraphrase": {
@@ -5082,7 +5082,7 @@
                 "r5": 0.52,
                 "r10": 0.56,
                 "mrr": 0.338,
-                "tokensMean": 421.44,
+                "tokensMean": 420.84,
                 "tokensP90": 604
               },
               "cross": {
@@ -5091,7 +5091,7 @@
                 "r5": 0.6,
                 "r10": 0.8,
                 "mrr": 0.3435,
-                "tokensMean": 511.2,
+                "tokensMean": 509.6,
                 "tokensP90": 578
               },
               "dev": {
@@ -5153,7 +5153,7 @@
               "type": "entity",
               "split": "test",
               "rank": 1,
-              "tokens": 522
+              "tokens": 532
             },
             {
               "id": "q008",
@@ -5321,7 +5321,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": null,
-              "tokens": 532
+              "tokens": 542
             },
             {
               "id": "q033",
@@ -5370,7 +5370,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": 1,
-              "tokens": 482
+              "tokens": 457
             },
             {
               "id": "q040",
@@ -5433,7 +5433,7 @@
               "type": "cross",
               "split": "dev",
               "rank": 2,
-              "tokens": 504
+              "tokens": 480
             },
             {
               "id": "q049",
@@ -5679,7 +5679,7 @@
               "r5": 0.8125,
               "r10": 0.875,
               "mrr": 0.6349,
-              "tokensMean": 527.5313,
+              "tokensMean": 527.0625,
               "tokensP90": 598
             },
             "all": {
@@ -5688,7 +5688,7 @@
               "r5": 0.8228,
               "r10": 0.8608,
               "mrr": 0.671,
-              "tokensMean": 495.5949,
+              "tokensMean": 495.4051,
               "tokensP90": 593
             }
           },
@@ -5747,7 +5747,7 @@
                 "r5": 0.5,
                 "r10": 0.6,
                 "mrr": 0.32,
-                "tokensMean": 491.9,
+                "tokensMean": 490.4,
                 "tokensP90": 598
               },
               "cross": {
@@ -5785,7 +5785,7 @@
                 "r5": 0.52,
                 "r10": 0.56,
                 "mrr": 0.338,
-                "tokensMean": 422.84,
+                "tokensMean": 422.24,
                 "tokensP90": 604
               },
               "cross": {
@@ -6024,7 +6024,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": null,
-              "tokens": 532
+              "tokens": 542
             },
             {
               "id": "q033",
@@ -6073,7 +6073,7 @@
               "type": "paraphrase",
               "split": "test",
               "rank": 1,
-              "tokens": 482
+              "tokens": 457
             },
             {
               "id": "q040",

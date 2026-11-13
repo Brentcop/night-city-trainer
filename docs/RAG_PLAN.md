@@ -111,7 +111,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 |---|---|---|---|
 | 0.1 | Play reads a small lift slice, not the whole synergy report | done | 2026-11-13 |
 | 0.2 | Short `CLAUDE.md` core, per-directory files, wrapped doc lines | waiting: D7, and needs step 1.5 first | |
-| 0.3 | FAQ-wording guard; quotes paraphrased; insights worded as association | next | |
+| 0.3 | Official-wording guard; quotes paraphrased; insights worded as association | done | 2026-11-13 |
 | 1.1 | Record model and search core in `src/lib/kb/` | done | 2026-11-13 |
 | 1.2 | Builders for authored, dev and local-only sources | done | 2026-11-13 |
 | 1.3 | `npm run kb` (search, get, related, stats, build) | done | 2026-11-13 |
@@ -169,14 +169,25 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   or more consecutive words with the local FAQ (skipped when `data/raw` is absent; runs that also occur
   in a card's own text are ignored; the message names file, line and run length, never the text).
   Paraphrase the quotations it finds in test files now.
-- How, part b: `src/engine/scripts/blue.ts` (near line 517) holds an 18-word match. Editing a card script
-  changes the game-cache code hash and discards the cached games (168,784 under v8 on 2026-11-13), so
-  that one comment is paraphrased at the next change that turns the cache over anyway. Until then the
-  guard carries a single named exception for it.
+- How, part b: a quotation inside a file the game cache hashes is not edited now, because editing such a
+  file discards the cached games (168,784 under v8 on 2026-11-13). The guard carries a named exception
+  for it (the file, one run, its longest length) until a change turns the cache over anyway.
 - How, part c: `insights()` in `src/analysis/analyze.ts` turns win-rate association into instructions
   ("Keep these over everything when you sell or mulligan"). Reword as association, regenerate the stored
   sentences in `src/data/analysis.json` and the texts copied from them, and add a wording test.
-- Until part c lands, pack builders do not read the `insights` arrays.
+- Landed, parts a and b: `tests/faq/wording-guard.test.ts` scans every tracked text file against the FAQ,
+  the Comprehensive Rules, the tournament rules and the errata, at ten words, with card text masked word
+  by word. It found one labelled FAQ quotation, in `tests/engine-fixes.test.ts`, now paraphrased. A
+  correction to the research: the 18-word match in `src/engine/scripts/blue.ts` is that card's own text,
+  not FAQ wording, and needs nothing. The real second case is one 15-word sentence from the rules,
+  copied into `src/engine/engine.ts` and `src/engine/game/actions.ts`; both are hashed by the game cache,
+  so those two are the named exceptions.
+- Landed, part c: every line `insights()` writes now states what was observed and its sample, with no
+  instruction; the two win-rate-gap lines say they are associations. The stored sentences in
+  `src/data/analysis.json` and `reports/analysis-latest.*` were re-derived without playing games (only
+  the `insights` arrays changed), `scripts/plan.ts` refreshed the copies, and
+  `tests/insights-wording.test.ts` fails on advice wording. Left as they are: the 16 historical forge logs
+  under `reports/forge/`, which cannot be re-derived without games.
 
 ### Step 1. The pack and the local tool
 
@@ -209,7 +220,8 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
 - Links come from fields that already exist (ruling to card, note to deck and key cards, package to
   members, guide to deck). Card names in prose are linked with the card-mention matcher; a mention that
   stays ambiguous is counted in the build report, never guessed.
-- Not read yet: the `insights` arrays (step 0.3), archived decks (D9), `src/content/tutorial/` (in flux).
+- Not read yet: the `insights` arrays (they come with the measured cells in step 2.4), archived decks
+  (D9), and the tutorial lessons under `src/content/tutorial/` (they landed while this step was built).
 
 **1.3 Command line** (`scripts/kb.ts`, run as `npm run kb -- <command>`).
 - `search "<question>"`, `get <id or name>`, `related <id or name>`, `stats`, `build`.
@@ -484,3 +496,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
   was edited. Checked in a clean checkout and in the browser.
 - 2026-11-13: step 1.5 landed. `.claude/skills/kb/SKILL.md` tells an agent when and how to use
   `npm run kb`, and `CLAUDE.md` has a short "Knowledge pack (kb)" bullet whose lines a search tool can show.
+- 2026-11-13: step 0.3 landed. A guard test against official wording in tracked files (FAQ, rules,
+  tournament rules, errata), one quotation paraphrased, two named exceptions in hashed engine files.
+  The analysis insights are worded as observations and associations, the stored sentences were re-derived
+  without games, and the glossary entry and the two deck-profile table headings for "Δ when drawn" follow.

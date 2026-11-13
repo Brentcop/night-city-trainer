@@ -184,35 +184,54 @@ export function analyzeDeck(deck: string, all: PlayerSummary[]): DeckReport {
   return rep;
 }
 
-/** Turn statistics into concrete, plain-language advice. */
+/** Why a card's win-rate gap when drawn is an association, not its value (docs/TUNING_STUDY_2026-11-13.md, honesty rule 1). */
+export const IWD_CAVEAT = 'This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.';
+
+/**
+ * Turn statistics into plain-language observations. Each line says what was seen in these bot games and on how many
+ * games; none of them is advice, because none is a measured effect with an interval (a card's gap when drawn is an
+ * association and is worded as one). tests/insights-wording.test.ts holds the rule.
+ */
 export function insights(r: DeckReport): string[] {
   const out: string[] = [];
-  const keep = r.wr;
+  const overall = r.wr;
+  const games = (n: number) => `${n} game${n === 1 ? '' : 's'}`;
   if (r.games >= 100) {
     const seat = r.wrFirst - r.wrSecond;
-    if (Math.abs(seat) >= 0.06)
-      out.push(`**Seat:** ${pct(r.wrFirst)} on the play vs ${pct(r.wrSecond)} on the draw. When you choose (you lost the last game), choose to go **${seat > 0 ? 'first' : 'second'}**.`);
-    else out.push(`**Seat:** about even (${pct(r.wrFirst)} on the play / ${pct(r.wrSecond)} on the draw), so pick based on the matchup table below.`);
+    if (Math.abs(seat) >= 0.06) out.push(`**Seat:** in ${games(r.games)}, this list won ${pct(r.wrFirst)} on the play and ${pct(r.wrSecond)} on the draw.`);
+    else out.push(`**Seat:** about even in ${games(r.games)} (${pct(r.wrFirst)} on the play, ${pct(r.wrSecond)} on the draw).`);
   }
   const good = r.cards.filter((c) => !isNaN(c.iwd) && c.iwd >= 0.04).slice(0, 4);
-  if (good.length) out.push(`**Cards that win games:** ${good.map((c) => `${c.name} (+${Math.round(c.iwd * 100)} pts when drawn)`).join(', ')}. Keep these over everything when you sell or mulligan.`);
+  if (good.length)
+    out.push(
+      `**Cards most associated with wins:** ${good.map((c) => `${c.name} (+${Math.round(c.iwd * 100)} points, drawn in ${games(c.seenGames)})`).join(', ')}. ` +
+        `Games where each was drawn were won that many points more often than games where it was not, over ${games(r.games)}. ${IWD_CAVEAT}`,
+    );
   const weak = [...r.cards].filter((c) => !isNaN(c.iwd) && c.iwd <= -0.04).sort((a, b) => a.iwd - b.iwd).slice(0, 3);
-  if (weak.length) out.push(`**Underperformers:** ${weak.map((c) => `${c.name} (${Math.round(c.iwd * 100)} pts)`).join(', ')}. Sell these first, and consider cutting them or moving them to the sideboard.`);
+  if (weak.length)
+    out.push(
+      `**Cards most associated with losses:** ${weak.map((c) => `${c.name} (${Math.round(c.iwd * 100)} points, drawn in ${games(c.seenGames)})`).join(', ')}. ` +
+        `Games where each was drawn were won that many points less often than games where it was not, over ${games(r.games)}. ${IWD_CAVEAT}`,
+    );
   const sellers = r.cards.filter((c) => c.soldRate >= 0.45).sort((a, b) => b.soldRate - a.soldRate).slice(0, 4);
-  if (sellers.length) out.push(`**Usual Eddie fodder:** ${sellers.map((c) => `${c.name} (sold in ${pct(c.soldRate)} of games it's drawn)`).join(', ')}.`);
+  if (sellers.length)
+    out.push(`**Usual Eddie fodder:** ${sellers.map((c) => `${c.name} (sold in ${pct(c.soldRate)} of the ${games(c.seenGames)} it was drawn)`).join(', ')}. These are the cards the bot sold most often.`);
   const t4 = r.tempo[3];
   if (t4 && t4.leadN >= 20 && t4.behindN >= 20)
-    out.push(`**Tempo check:** after your 4th turn you win ${pct(t4.leadWr)} when ahead on Gigs and ${pct(t4.behindWr)} when behind. ${t4.leadWr - t4.behindWr > 0.3 ? 'Early Gig pressure decides this deck’s games, so prioritise attacking the Gig area early.' : 'This deck recovers from early deficits, so don’t over-commit to early trades.'}`);
-  if (r.overtimeRate >= 0.25) out.push(`**Overtime:** ${pct(r.overtimeRate)} of games reach overtime, and you win ${pct(r.overtimeWr)} of those. ${r.overtimeWr >= keep ? 'The deck is built for the long game; plan to be the one at 7 when overtime starts.' : 'You do worse in long games, so close it out before both players run out of dice.'}`);
-  if (r.mulliganRate >= 0.08 && !isNaN(r.wrMulligan)) out.push(`**Mulligans:** ${pct(r.mulliganRate)} of hands are mulliganed, and those games are won ${pct(r.wrMulligan)} of the time (overall ${pct(keep)}).`);
+    out.push(`**Tempo check:** after its 4th turn, this list won ${pct(t4.leadWr)} of the ${games(t4.leadN)} it was ahead on Gigs and ${pct(t4.behindWr)} of the ${games(t4.behindN)} it was behind.`);
+  if (r.overtimeRate >= 0.25)
+    out.push(`**Overtime:** ${pct(r.overtimeRate)} of ${games(r.games)} reached overtime, and this list won ${pct(r.overtimeWr)} of those (${pct(overall)} overall).`);
+  if (r.mulliganRate >= 0.08 && !isNaN(r.wrMulligan))
+    out.push(`**Mulligans:** the bot mulliganed in ${pct(r.mulliganRate)} of ${games(r.games)}, and won ${pct(r.wrMulligan)} of those (${pct(overall)} overall).`);
   if (r.firstCall.length >= 2) {
     const best = [...r.firstCall].filter((c) => c.games >= 15).sort((a, b) => b.wr - a.wr);
-    if (best.length >= 2) out.push(`**First Legend flipped:** ${best.map((c) => `${c.name} ${pct(c.wr)} (${c.games})`).join(' · ')}. You can't pick which face-down Legend you flip, but this shows which Legend's early effect matters most.`);
+    if (best.length >= 2)
+      out.push(`**First Legend flipped:** ${best.map((c) => `${c.name} ${pct(c.wr)} (${games(c.games)})`).join(' · ')}. Win rate by the first Legend Called; the flip is blind, but these gaps carry no interval, so small ones may be chance.`);
   }
-  if (r.reactCallRate >= 0.1) out.push(`**Reactive Calls:** ${pct(r.reactCallRate)} of Legend Calls happen during the rival's attack, so keep 1 €$ open on the rival's turn.`);
+  if (r.reactCallRate >= 0.1) out.push(`**Reactive Calls:** the bot made ${pct(r.reactCallRate)} of its Legend Calls during the rival's attack, over ${games(r.games)}.`);
   const worst = r.matchups[r.matchups.length - 1];
   const best = r.matchups[0];
-  if (worst && best) out.push(`**Best matchup:** ${best.opp} (${pct(best.wr)}). **Worst:** ${worst.opp} (${pct(worst.wr)}). Sideboard for the worst one first.`);
+  if (worst && best) out.push(`**Best matchup:** ${best.opp} (${pct(best.wr)} over ${games(best.games)}). **Worst:** ${worst.opp} (${pct(worst.wr)} over ${games(worst.games)}).`);
   return out;
 }
 
