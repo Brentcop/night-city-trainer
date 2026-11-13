@@ -184,6 +184,25 @@ describe('BOT-4: sellSearch', () => {
     expect((await g.chooseAction(0, g.legalActions(0))).type).not.toBe('sell');
   });
 
+  it('sellEddieByStage: off by default; when set, each sell counts its Eddie at the stage value', async () => {
+    expect(new HeuristicAgent({ deep: 3, sellSearch: true }).opts.sellEddieByStage).toBeNull();
+    // rollouts: "don't sell" `noSell` Eddies (of the weights' value) ahead of every sell
+    const pick = async (stage: [number, number, number] | undefined, turn: number, noSell: number) => {
+      const { g } = sellState();
+      g.s.turn = turn;
+      const bot = new HeuristicAgent({ deep: 3, sellSearch: true, sellEddieByStage: stage });
+      const eddie = bot.w(g, 0).eddie;
+      stub(bot, noSell * eddie, () => 0);
+      g.agents[0] = bot;
+      return (await g.chooseAction(0, g.legalActions(0))).type;
+    };
+    expect(await pick(undefined, 3, 0.5)).not.toBe('sell');
+    expect(await pick([200, 0, 0], 3, 0.5)).toBe('sell'); // early (turns 1–4): worth far more than the weights say
+    expect(await pick(undefined, 7, -0.5)).toBe('sell');
+    expect(await pick([200, 0, 0], 7, -0.5)).not.toBe('sell'); // mid (5–9): worth 0
+    expect(await pick([200, 0, 100], 11, 0.5)).toBe('sell'); // late (10+)
+  });
+
   it('the real "don\'t sell" rollout runs the rest of the turn and the rival reply', async () => {
     const { g } = sellState();
     const bot = new HeuristicAgent({ deep: 3, sellSearch: true });

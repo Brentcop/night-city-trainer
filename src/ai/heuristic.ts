@@ -101,6 +101,13 @@ export interface HeuristicOptions {
    * decides whether to sell, exactly as before. Needs deep > 0 (ignored otherwise).
    */
   sellSearch?: boolean;
+  /**
+   * sellSearch only: the value of the Eddie a sell gains, by game stage (turn counter 1–4, 5–9, 10+, as `stageOf` in
+   * src/analysis/evalCalibration.ts), in evaluation points. Each sell's rollout value gets (this value − the weights'
+   * `eddie`) added, so the comparison with "don't sell" counts that Eddie at its stage value (INFO-4's stage fit: 177 /
+   * 38 / −16). null (default) = the weights' `eddie` throughout, exactly as before.
+   */
+  sellEddieByStage?: readonly [number, number, number] | null;
   /** Internal (sellSearch's "don't sell" play-outs): never sell on this turn number. -1 (default) = off. */
   noSellTurn?: number;
   /**
@@ -216,6 +223,7 @@ export class HeuristicAgent implements Agent {
       rolloutWins: opts.rolloutWins ?? false,
       deepWorlds: opts.deepWorlds ?? 0,
       sellSearch: opts.sellSearch ?? false,
+      sellEddieByStage: opts.sellEddieByStage ?? null,
       noSellTurn: opts.noSellTurn ?? -1,
       turnPlan: opts.turnPlan ?? 0,
       turnPlanNodes: opts.turnPlanNodes ?? 120,
@@ -734,10 +742,14 @@ export class HeuristicAgent implements Agent {
       for (const w of worlds) sum += await this.rolloutMove(g, p, a, w);
       return sum / worlds.length;
     };
+    // the sold Eddie at its stage value instead of the weights' (sellEddieByStage); 0 when unset
+    const st = this.opts.sellEddieByStage;
+    const turn = g.s.turn;
+    const eddieAdj = st ? st[turn <= 4 ? 0 : turn <= 9 ? 1 : 2] - this.w(g, p).eddie : 0;
     let best: number | null = sells[0] ?? null;
     let bestV = -Infinity;
     for (const uid of sells) {
-      const v = await value({ type: 'sell', uid });
+      const v = (await value({ type: 'sell', uid })) + eddieAdj;
       if (v > bestV + 0.01) {
         bestV = v;
         best = uid;

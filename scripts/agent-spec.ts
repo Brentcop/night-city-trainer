@@ -27,6 +27,8 @@ export interface AgentSpec {
   deepWorlds?: number;
   /** BOT-4 (HeuristicOptions.sellSearch): "don't sell" and the two most sellable cards compared by the deep rollout */
   sellSearch?: boolean;
+  /** HeuristicOptions.sellEddieByStage (sellSearch only): the sold Eddie's value early / mid / late, in evaluation points */
+  sellEddieByStage?: [number, number, number];
   /** BOT-5 (HeuristicOptions.turnPlan / turnPlanNodes / turnPlanBeam): candidates valued by the best line of the turn */
   turnPlan?: number;
   turnPlanNodes?: number;
@@ -48,6 +50,6 @@ export function specWeights(spec: AgentSpec): EvalWeights | undefined {
 }
 
 export function fromSpec(spec: AgentSpec, seed: number): HeuristicAgent {
-  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: specWeights(spec), noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, impactSell: spec.impactSell, impactCards: spec.impactCards, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
+  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: specWeights(spec), noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, impactSell: spec.impactSell, impactCards: spec.impactCards, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, sellEddieByStage: spec.sellEddieByStage ?? null, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 
