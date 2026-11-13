@@ -1,8 +1,15 @@
-// The next event the trainer prepares for. One definition for the Home page's countdown, the live day count in the
-// tournament plan (which scripts/plan.ts generates with the count frozen at generation time) and plan.ts itself.
+// The next event the trainer prepares for. The default for the site config's home.nextEvent (src/lib/siteConfig.ts;
+// public/site-config.json is what the Home page shows, and tests/site-config.test.ts keeps the two equal), and the one
+// definition for the tournament plan's countdown, which scripts/plan.ts generates with the count frozen at generation
+// time and the Strategy page recomputes when shown.
+const START = '2026-12-11T09:00:00-06:00';
 export const EVENT = {
   name: 'Edgerunner Open Regional — Chicago',
-  start: new Date('2026-12-11T09:00:00-06:00'),
+  start: new Date(START),
+  /** the start as written in the config */
+  startText: START,
+  /** the line after the name on the Home page */
+  detail: 'Dec 11–13 · Bo3 Swiss',
   url: 'https://cyberpunktcg.com/eor',
 };
 

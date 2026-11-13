@@ -66,9 +66,16 @@ export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
   gigBg: 'panel',
 }) as BoardSettings;
 
-/** A fresh, mutable copy of the defaults. */
+/** The site owner's defaults for new visitors (play.board in the site config, set by src/ui/useSiteConfig.ts). */
+let siteDefaults: { accent?: Accent; boardBg?: BoardBackground; gigBg?: GigBackground; payMode?: PayMode; panelPosition?: PanelPosition } = {};
+export function setSiteBoardDefaults(d: typeof siteDefaults): void {
+  siteDefaults = { ...d };
+}
+
+/** A fresh, mutable copy of the defaults: the built-in ones with the site owner's choices on top. */
 export function defaultBoardSettings(): BoardSettings {
-  return { ...DEFAULT_BOARD_SETTINGS, panel: { ...DEFAULT_BOARD_SETTINGS.panel } };
+  const { panelPosition, ...rest } = siteDefaults;
+  return { ...DEFAULT_BOARD_SETTINGS, ...rest, panel: { ...DEFAULT_BOARD_SETTINGS.panel, ...(panelPosition ? { position: panelPosition } : {}) } };
 }
 
 const pick = <T extends string>(list: readonly T[], v: unknown, fallback: T): T => (typeof v === 'string' && (list as readonly string[]).includes(v) ? (v as T) : fallback);
@@ -127,7 +134,8 @@ export function localStore(): Store | null {
 export function loadBoardSettings(store: Store | null = localStore()): BoardSettings {
   try {
     const text = store?.getItem(BOARD_SETTINGS_KEY);
-    return parseBoardSettings(text ? JSON.parse(text) : null);
+    // nothing saved: the site's defaults (a visitor's own saved settings always win)
+    return text ? parseBoardSettings(JSON.parse(text)) : defaultBoardSettings();
   } catch {
     return defaultBoardSettings();
   }

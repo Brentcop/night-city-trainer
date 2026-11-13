@@ -40,18 +40,21 @@ import { simTierFor } from './TierBadges';
 import { isBuiltin } from '../deckLookup';
 import { useLibraryVersion } from '../useLibrary';
 import { useDeckActions } from './DeckActions';
+import { pageOn } from '../../lib/siteConfig';
+import { useSiteConfig } from '../useSiteConfig';
 
 /** The remembered view (the same query string the URL carries). */
 export const VIEW_PREF = 'nct.gallery.view.v1';
 const COLLAPSED_PREF = 'nct.gallery.collapsed';
 
 /** The view to open with: the URL's when it names one, else the one remembered here (or the old sort pref), else the default. */
-export function initialView(query: string): GalleryView {
+export function initialView(query: string, defaultSort: GallerySort = DEFAULT_VIEW.sort): GalleryView {
   if (queryHasView(query)) return parseView(query);
   const saved = loadPref(VIEW_PREF, '');
   if (saved) return parseView(saved);
   const oldSort = loadPref('nct.gallery.sort', '');
-  return { ...DEFAULT_VIEW, sort: oldSort === 'name' || oldSort === 'newest' || oldSort === 'cost' ? oldSort : oldSort === 'rating' ? 'meta' : 'rating' };
+  // a first visit opens with the site config's sort (decks.defaultSort)
+  return { ...DEFAULT_VIEW, sort: oldSort === 'name' || oldSort === 'newest' || oldSort === 'cost' ? oldSort : oldSort === 'rating' ? 'meta' : defaultSort };
 }
 
 /** Put the view in the hash query without a hashchange (the page would remount), so it can be linked and survives reload. */
@@ -108,14 +111,17 @@ const toggle = <T,>(xs: readonly T[], x: T): T[] => (xs.includes(x) ? xs.filter(
 
 export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: string }) {
   useLibraryVersion(); // re-render after a save, delete or hide (here or in another tab)
+  const site = useSiteConfig();
+  const allowed = site.decks.sources.join(',');
   // allDecks() keeps one list while the stored decks are unchanged, and the hidden set is keyed by its text, so the
   // facts below are only rebuilt when the library changes
   const decks = allDecks();
   const hiddenKey = [...loadHidden()].join('|');
   const hidden = useMemo(() => new Set(hiddenKey.split('|').filter(Boolean)), [hiddenKey]);
-  const facts = useMemo(() => deckFacts(decks, hidden), [decks, hidden]);
+  // only the deck sources the site config shows (decks.sources)
+  const facts = useMemo(() => deckFacts(decks, hidden).filter((f) => allowed.split(',').includes(f.source)), [decks, hidden, allowed]);
   const byFile = useMemo(() => new Map(decks.map((d) => [d.file, d])), [decks]);
-  const [view, setViewRaw] = useState<GalleryView>(() => initialView(query));
+  const [view, setViewRaw] = useState<GalleryView>(() => initialView(query, site.decks.defaultSort));
   // every change goes through the updater form, so two quick changes can't overwrite each other
   const update = (fn: (v: GalleryView) => GalleryView) => setViewRaw(fn);
   useEffect(() => {
@@ -193,12 +199,16 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
         title="Deck library"
         actions={
           <>
-            <a className="btn" href="#/tuned">
-              🔧 Tuned decks
-            </a>
-            <a className="btn" href="#/lab">
-              🧬 Breed &amp; tune
-            </a>
+            {pageOn(site, 'tuned') && (
+              <a className="btn" href="#/tuned">
+                🔧 Tuned decks
+              </a>
+            )}
+            {pageOn(site, 'lab') && (
+              <a className="btn" href="#/lab">
+                🧬 Breed &amp; tune
+              </a>
+            )}
             <button className="primary" onClick={onNew}>
               + New / import deck
             </button>
@@ -233,14 +243,14 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
             ☑ Select
           </Chip>
           {hiddenCount > 0 && (
-            <Chip on={view.hidden} onClick={() => update((v) => ({ ...v, hidden: !v.hidden }))} title="Built-in decks you hid in this browser">
+            <Chip on={view.hidden} onClick={() => update((v) => ({ ...v, hidden: !v.hidden }))} title="Built-in decks hidden in this browser (by you, or by the site by default)">
               👁 Show hidden ({hiddenCount})
             </Chip>
           )}
         </div>
         <div className="gal-filters" role="group" aria-label="Source">
           <span className="small muted">Source</span>
-          {SOURCES.filter((s) => (counts.get(s.key) ?? 0) > 0 || view.sources.includes(s.key)).map((s) => (
+          {SOURCES.filter((s) => site.decks.sources.includes(s.key) && ((counts.get(s.key) ?? 0) > 0 || view.sources.includes(s.key))).map((s) => (
             <Chip key={s.key} on={view.sources.includes(s.key)} onClick={() => flip('sources', s.key)} title={s.help}>
               <span aria-hidden="true">{s.icon}</span> {s.label} <span className="muted">({counts.get(s.key) ?? 0})</span>
             </Chip>
@@ -422,7 +432,7 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
                 How breeding works →
               </a>
             )}
-            {s.key === 'tuned' && (
+            {s.key === 'tuned' && pageOn(site, 'tuned') && (
               <a className="small" href="#/tuned">
                 Every tuned deck with its end result →
               </a>

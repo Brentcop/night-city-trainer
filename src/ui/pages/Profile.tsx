@@ -36,6 +36,7 @@ import { formatRecorded, RecordedAt } from '../components/RecordedAt';
 import { profileHref } from '../components/DeckStats';
 import { ColorPips, LegendStrip, OriginBadge, TierPair } from '../components/DeckIdentity';
 import { Avatar, DeckStatsTable, HeadlineTiles, HistoryTable, PicturePicker, SharedProfileView, Tabs, type HistoryRow } from '../components/ProfileParts';
+import { useFeature } from '../useSiteConfig';
 import '../profile.css';
 
 const TABS = [
@@ -100,7 +101,10 @@ const deckLinker = (lib: readonly LibraryDeck[]) => {
 };
 
 export function ProfilePage({ sub }: { sub: string }) {
-  const tab: TabKey = (TABS.find((t) => t.path === sub)?.key ?? 'overview') as TabKey;
+  // profile sharing turned off (site config): no Sharing & privacy tab
+  const sharing = useFeature('profileSharing');
+  const tabs = useMemo(() => TABS.filter((t) => sharing || t.key !== 'sharing'), [sharing]);
+  const tab: TabKey = (tabs.find((t) => t.path === sub)?.key ?? 'overview') as TabKey;
   const idBase = useId();
   const v = useLibraryVersion();
   const lib = useMemo(() => {
@@ -112,7 +116,7 @@ export function ProfilePage({ sub }: { sub: string }) {
   const [saveFailed, setSaveFailed] = useState(false);
   const update = (p: ProfileDoc) => setSaveFailed(!save(p));
   const select = (key: string) => {
-    const t = TABS.find((x) => x.key === key);
+    const t = tabs.find((x) => x.key === key);
     if (t) window.location.hash = t.path ? `#/profile/${t.path}` : '#/profile';
   };
   const newer = useMemo(() => profileFromNewerVersion(), []);
@@ -131,7 +135,7 @@ export function ProfilePage({ sub }: { sub: string }) {
           Not saved: this browser's storage is full or blocked.
         </div>
       )}
-      <Tabs tabs={TABS} active={tab} onSelect={select} idBase={idBase} label="Profile sections" />
+      <Tabs tabs={tabs} active={tab} onSelect={select} idBase={idBase} label="Profile sections" />
       <div role="tabpanel" id={`${idBase}-panel`} aria-labelledby={`${idBase}-tab-${tab}`} className="profile-panel">
         {tab === 'overview' && <Overview profile={profile} update={update} games={games} lib={lib} />}
         {tab === 'history' && <History games={games} replays={replays} reload={reload} />}
@@ -277,6 +281,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
   const [f, setF] = useState<HistoryFilter>({ deck: '', result: '' });
   const [page, setPage] = useState(1);
   const [review, setReview] = useState<{ src: GameReviewSource; title: string } | null>(null);
+  const reviews = useFeature('gameReview');
   const [confirm, setConfirm] = useState(false);
   const decks = useMemo(() => [...new Set(games.map((g) => g.deck))].sort((a, b) => a.localeCompare(b)), [games]);
   const list = useMemo(() => filterHistory(games, f), [games, f]);
@@ -295,7 +300,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
       gigs: g.gigs ?? null,
       conceded: !!g.conceded,
       grade: g.coach?.grade ?? null,
-      review: r ? () => setReview({ src: { replay: r, coach: [], persist: true, turns: g.turns || undefined }, title: [`${r.decks[0].name} vs ${r.decks[1].name}`, formatRecorded(r.date)].filter(Boolean).join(' — ') }) : undefined,
+      review: r && reviews ? () => setReview({ src: { replay: r, coach: [], persist: true, turns: g.turns || undefined }, title: [`${r.decks[0].name} vs ${r.decks[1].name}`, formatRecorded(r.date)].filter(Boolean).join(' — ') }) : undefined,
       ...(g.review ? { ratings: [g.review.acc === null ? '' : `accuracy ${g.review.acc}`, costlyText(g.review.n) || 'no slips'].filter(Boolean).join(' · ') } : {}),
     };
   });
@@ -343,7 +348,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
         <span className="small muted" aria-live="polite">
           {list.length} of {games.length} games
         </span>
-        <OpenGameFile onOpen={(c, name) => setReview({ src: coachedReviewSource(c), title: `${c.replay.decks[0].name} vs ${c.replay.decks[1].name} (from ${name})` })} />
+        {reviews && <OpenGameFile onOpen={(c, name) => setReview({ src: coachedReviewSource(c), title: `${c.replay.decks[0].name} vs ${c.replay.decks[1].name} (from ${name})` })} />}
         <button type="button" className="ghost danger-soft" onClick={() => setConfirm(true)} style={{ marginLeft: 'auto' }}>
           Clear history…
         </button>

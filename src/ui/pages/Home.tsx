@@ -1,12 +1,13 @@
 // The Home page is in the entry chunk, so it bundles only what its first paint needs: the deck library, cards,
 // ratings, seasons and the round robin. The recommended deck's finals and head-to-heads (deckReports.json, ~110 KB)
 // load at runtime (useDeckReports); their tile keeps its place with a placeholder until then.
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import '../deckprofile.css';
 import { RATINGS, SEASONS } from '../../data/index';
 import type { DeckReports } from '../../data/deckReportsData';
 import { RECOMMENDATION } from '../../content/recommendation';
-import { EVENT } from '../../content/event';
+import { configTime, pageOn, type SiteConfig } from '../../lib/siteConfig';
+import { useSiteConfig } from '../useSiteConfig';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct } from '../../lib/deckStats';
@@ -37,13 +38,13 @@ function useDeckReports(file: string): DeckReports | undefined {
   return rep?.file === file ? rep.rep : undefined;
 }
 
-function Countdown() {
+function Countdown({ start }: { start: number }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(t);
   }, []);
-  const ms = EVENT.start.getTime() - now;
+  const ms = start - now;
   if (ms <= 0) return <span className="countdown">Event underway</span>;
   const d = Math.floor(ms / 86_400_000);
   const h = Math.floor((ms % 86_400_000) / 3_600_000);
@@ -64,28 +65,31 @@ function recommended(lib: readonly LibraryDeck[]) {
   return { pick, backup: lib.find((d) => d.deck.name === backupName) };
 }
 
-function RecommendedHero({ d, backup, lib }: { d: LibraryDeck; backup?: LibraryDeck; lib: readonly LibraryDeck[] }) {
-  return <RecommendedHeroView d={d} backup={backup} lib={lib} rep={useDeckReports(d.file)} />;
+function RecommendedHero({ d, backup, lib, own }: { d: LibraryDeck; backup?: LibraryDeck; lib: readonly LibraryDeck[]; own?: boolean }) {
+  return <RecommendedHeroView d={d} backup={backup} lib={lib} rep={useDeckReports(d.file)} own={own} />;
 }
 
 /** The hero itself; `rep` undefined = the deck's reports are still loading (a placeholder tile keeps the finals' place). */
-export function RecommendedHeroView({ d, backup, lib, rep }: { d: LibraryDeck; backup?: LibraryDeck; lib: readonly LibraryDeck[]; rep: DeckReports | undefined }) {
+/** `own`: the site owner's featured deck (home.featuredDeck) rather than the generated recommendation. */
+export function RecommendedHeroView({ d, backup, lib, rep, own }: { d: LibraryDeck; backup?: LibraryDeck; lib: readonly LibraryDeck[]; rep: DeckReports | undefined; own?: boolean }) {
   const st = deckStats(d.file);
   const bred = bredInfo(d.deck.name);
   const slug = d.file.replace(/\.txt$/, '');
   const build = lib.find((x) => x.file === `${slug}-eor.txt`);
   const loading = rep === undefined;
   const finals = rep?.finals?.overall ?? st.leader?.finals;
-  const tips = RECOMMENDATION.split('\n')
-    .filter((l) => l.startsWith('- '))
-    .slice(0, 1) // keep Home short: seat advice only; the rest is on the deck profile
-    .join('\n');
+  const tips = own
+    ? '' // the recommendation's seat advice belongs to the recommended deck
+    : RECOMMENDATION.split('\n')
+        .filter((l) => l.startsWith('- '))
+        .slice(0, 1) // keep Home short: seat advice only; the rest is on the deck profile
+        .join('\n');
   const h2h = (rep?.h2h ?? []).slice().sort((a, b) => a.opp.localeCompare(b.opp));
   return (
     <div className="rec-hero">
       <LegendStrip legends={d.deck.legends} height={190} />
       <div className="rec-hero-body">
-        <div className="rec-kicker">RECOMMENDED DECK FOR THE EVENT</div>
+        <div className="rec-kicker">{own ? 'FEATURED DECK' : 'RECOMMENDED DECK FOR THE EVENT'}</div>
         <div className="row">
           <OriginBadge deck={d} full />
           <ColorPips legends={d.deck.legends} />
@@ -157,30 +161,76 @@ export function RecommendedHeroView({ d, backup, lib, rep }: { d: LibraryDeck; b
   );
 }
 
+/** The featured event (home.featuredEvent): its number, date and champion from the event index, loaded on demand. */
+function FeaturedEvent({ id }: { id: string }) {
+  const [ev, setEv] = useState<{ id: string; date?: string; champion?: string | null } | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    import('../../data/tournamentIndex')
+      .then((m) => {
+        const e = m.TOURNAMENT_INDEX.events.find((x) => String(x.id) === id);
+        if (live) setEv(e ? { id, date: e.date, champion: e.champion } : null);
+      })
+      .catch(() => live && setEv(null));
+    return () => {
+      live = false;
+    };
+  }, [id]);
+  if (ev === null) return null; // no such event
+  return (
+    <div className="panel flair">
+      <div className="spread" style={{ padding: 0, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0 }}>Featured event: Event {id}</h2>
+        <a className="small" href={`#/tournaments?e=${encodeURIComponent(id)}`}>
+          See the event →
+        </a>
+      </div>
+      {ev && (
+        <p className="small muted" style={{ marginBottom: 0 }}>
+          {[ev.date ? `Played ${ev.date.slice(0, 10)}` : '', ev.champion ? `Champion: ${ev.champion}` : ''].filter(Boolean).join(' · ')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The featured deck: the owner's pick (home.featuredDeck) when it is in the library, else the generated recommendation. */
+function featured(lib: readonly LibraryDeck[], cfg: SiteConfig) {
+  const own = cfg.home.featuredDeck ? lib.find((d) => d.file === cfg.home.featuredDeck) : undefined;
+  return own ? { pick: own, backup: undefined, own: true } : { ...recommended(lib), own: false };
+}
+
 export function Home() {
+  const cfg = useSiteConfig();
   const lib = allDecks();
-  const { pick, backup } = recommended(lib);
+  const { pick, backup, own } = featured(lib, cfg);
   // Top 5: power ratings from the tournament series when available, else the season leaderboard
   const fromRatings = RATINGS.decks.map((r) => lib.find((d) => d.deck.name === r.name)).filter((d): d is LibraryDeck => !!d);
   const fromSeasons = SEASONS.leaderboard.map((r) => lib.find((d) => d.file === r.file)).filter((d): d is LibraryDeck => !!d);
   const top = (fromRatings.length ? fromRatings : fromSeasons).slice(0, 5);
-  return (
-    <div className="grid">
+  const ev = cfg.home.nextEvent;
+  const start = configTime(ev.start, 'start') ?? 0;
+  const actions = (
+    [
+      ['▶', 'Practice', 'Play the recommended deck against the bot, with a coach.', `#/play?d=${encodeURIComponent(pick?.file ?? '')}`, 'play'],
+      ['▤', 'Browse decks', 'Every deck with its origin, art and full stats.', '#/decks', 'decks'],
+      ['🏆', 'Tournaments', 'Brackets, standings and replays of every simulated event.', '#/tournaments', 'tournaments'],
+    ] as const
+  ).filter((a) => pageOn(cfg, a[4]));
+  const parts: Record<SiteConfig['home']['sections'][number]['id'], React.ReactNode> = {
+    nextEvent: (
       <div className="event-bar">
         <div>
-          <span className="muted small">NEXT EVENT</span> <b>{EVENT.name}</b> <span className="muted small">· Dec 11–13 · Bo3 Swiss</span>
+          <span className="muted small">NEXT EVENT</span> <b>{ev.name}</b>
+          {ev.detail && <span className="muted small"> · {ev.detail}</span>}
         </div>
-        <Countdown />
+        <Countdown start={start} />
       </div>
-
-      {pick && <RecommendedHero d={pick} backup={backup} lib={lib} />}
-
+    ),
+    featuredDeck: pick && <RecommendedHero d={pick} backup={backup} lib={lib} own={own} />,
+    quickActions: actions.length > 0 && (
       <div className="quick-actions">
-        {[
-          ['▶', 'Practice', 'Play the recommended deck against the bot, with a coach.', `#/play?d=${encodeURIComponent(pick?.file ?? '')}`],
-          ['▤', 'Browse decks', 'Every deck with its origin, art and full stats.', '#/decks'],
-          ['🏆', 'Tournaments', 'Brackets, standings and replays of every simulated event.', '#/tournaments'],
-        ].map(([icon, t, d, href]) => (
+        {actions.map(([icon, t, d, href]) => (
           <a key={t} href={href} className="quick-action flair">
             <span className="qa-icon">{icon}</span>
             <b>{t}</b>
@@ -188,22 +238,31 @@ export function Home() {
           </a>
         ))}
       </div>
-
-      {top.length > 0 && (
-        <div className="panel flair">
-          <div className="spread" style={{ padding: 0, flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0 }}>{fromRatings.length ? 'Top 5 by power rating' : 'All-time leaderboard'}</h2>
-            <a className="small" href={fromRatings.length ? '#/ratings' : '#/seasons'}>
-              See all →
-            </a>
-          </div>
-          <div className="deck-grid" style={{ marginTop: 8 }}>
-            {top.map((d) => (
-              <DeckTile key={d.file} d={d} href={profileHref(d.file)} />
-            ))}
-          </div>
+    ),
+    featuredEvent: cfg.home.featuredEvent && pageOn(cfg, 'tournaments') ? <FeaturedEvent id={cfg.home.featuredEvent} /> : null,
+    topDecks: top.length > 0 && (
+      <div className="panel flair">
+        <div className="spread" style={{ padding: 0, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0 }}>{fromRatings.length ? 'Top 5 by power rating' : 'All-time leaderboard'}</h2>
+          <a className="small" href={fromRatings.length ? '#/ratings' : '#/seasons'}>
+            See all →
+          </a>
         </div>
-      )}
+        <div className="deck-grid" style={{ marginTop: 8 }}>
+          {top.map((d) => (
+            <DeckTile key={d.file} d={d} href={profileHref(d.file)} />
+          ))}
+        </div>
+      </div>
+    ),
+  };
+  return (
+    <div className="grid">
+      {cfg.home.sections
+        .filter((x) => !x.hidden)
+        .map((x) => (
+          <Fragment key={x.id}>{parts[x.id]}</Fragment>
+        ))}
     </div>
   );
 }

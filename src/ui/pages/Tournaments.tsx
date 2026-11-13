@@ -10,6 +10,7 @@ import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 import { Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useLib, short, type MatchView } from '../components/TourneyViews';
 import { RecordedAt } from '../components/RecordedAt';
+import { IfPage } from '../components/SiteChrome';
 
 interface EventLite {
   id: number;
@@ -73,9 +74,11 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   }, [sel]);
 
   const runLink = (
-    <a className="btn primary" href="#/run">
-      ▶ Run your own tournament
-    </a>
+    <IfPage path="run">
+      <a className="btn primary" href="#/run">
+        ▶ Run your own tournament
+      </a>
+    </IfPage>
   );
   if (!I.events.length)
     return (

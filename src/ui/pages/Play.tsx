@@ -64,6 +64,7 @@ import {
 import { ConfirmDialog, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard } from '../components/board/CoachPanel';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
+import { useSiteConfig } from '../useSiteConfig';
 import '../board.css';
 
 export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; initialOpp?: string }) {
@@ -71,8 +72,13 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
   const [mine, setMine] = useState(() => findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file ?? '');
   const [opp, setOpp] = useState(() => findDeck(initialOpp)?.file ?? firstVisibleDeck(findDeck(initialDeck)?.file ?? firstVisibleDeck()?.file)?.file ?? '');
   const [seat, setSeat] = useState<Seat>('random');
-  const [coach, setCoach] = useState(true);
-  const [level, setLevel] = useState<Tier>('hard');
+  // the site config sets the default bot tier and can turn the coach, saved games and game review off
+  const site = useSiteConfig();
+  const coachOn = site.features.coach;
+  const [coachPick, setCoach] = useState(true);
+  const coach = coachPick && coachOn;
+  const [levelPick, setLevel] = useState<Tier>(site.play.defaultTier);
+  const level: Tier = site.play.tiers.includes(levelPick) ? levelPick : site.play.defaultTier;
   // the bot's pace is remembered in this browser (an old stored "fast" of 250 ms maps to today's fast)
   const [speed, setSpeedRaw] = useState(loadBotSpeed);
   const setSpeed = useCallback((ms: number) => {
@@ -104,7 +110,8 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
 
   // saved games (src/lib/savedGames.ts): the autosave of the unfinished game and the named saves, read again whenever
   // the setup screen shows; with storage blocked the feature is hidden and the setup screen says why
-  const [storageOk] = useState(storageWorks);
+  const [storageWorksHere] = useState(storageWorks);
+  const storageOk = storageWorksHere && site.features.savedGames;
   const [autosave, setAutosave] = useState(loadAutosave);
   const [slots, setSlots] = useState(loadSlots);
   const [restoring, setRestoring] = useState(false);
@@ -158,14 +165,16 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
           seat={seat}
           setSeat={setSeat}
           coach={coach}
-          setCoach={setCoach}
+          setCoach={coachOn ? setCoach : undefined}
           level={level}
           setLevel={setLevel}
+          tiers={site.play.tiers}
+          reviews={site.features.gameReview}
           dA={dA}
           dB={dB}
           onStart={start}
           onSettings={() => setShowSettings(true)}
-          saves={saves}
+          saves={site.features.savedGames ? saves : undefined}
         />
         {askNew && autosave && (
           <ConfirmDialog
@@ -218,7 +227,7 @@ export function PlayPage({ initialDeck, initialOpp }: { initialDeck?: string; in
       </>
     );
   }
-  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} canSave={storageOk} />;
+  return <Board key={game.match} session={session} game={game} coach={coach} speed={speed} setSpeed={setSpeed} onQuit={quit} onConcede={concede} onRematch={start} onUndo={undo} canSave={storageOk} canReview={site.features.gameReview} />;
 }
 
 function Board({
@@ -232,6 +241,7 @@ function Board({
   onRematch,
   onUndo,
   canSave,
+  canReview,
 }: {
   session: PracticeSession;
   game: Running;
@@ -242,8 +252,10 @@ function Board({
   onConcede: () => void;
   onRematch: () => void;
   onUndo: () => void;
-  /** this browser can store saves */
+  /** this browser can store saves (and saved games are on) */
   canSave: boolean;
+  /** game review is on (site config) */
+  canReview: boolean;
 }) {
   // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
@@ -897,9 +909,11 @@ function Board({
             <>
               {coach && <Scorecard grades={grades} />}
               <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
-                <button className="ghost" onClick={openReview} title="A rating for every move of both sides, the turning point, and the board at each move">
-                  🔍 Game review
-                </button>
+                {canReview && (
+                  <button className="ghost" onClick={openReview} title="A rating for every move of both sides, the turning point, and the board at each move">
+                    🔍 Game review
+                  </button>
+                )}
                 <button className="ghost" onClick={exportGame} title="Save this game as a file: seeds, your moves and the coach's advice on each">
                   ⤓ Export game
                 </button>

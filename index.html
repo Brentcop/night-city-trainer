@@ -23,13 +23,26 @@
         }
         apply();
         if (mq && mq.addEventListener) mq.addEventListener('change', apply);
-        // the accent colours from the board settings (src/lib/boardSettings.ts); src/ui/useBoardSettings.ts changes them
+        // the accent colours from the board settings (src/lib/boardSettings.ts); src/ui/useBoardSettings.ts changes them.
+        // A visitor with no saved settings gets the site config's default (play.board.accent in the config the build
+        // inlines above as #nct-site-config, vite.config.ts).
+        var accent = null;
         try {
           var bs = JSON.parse(localStorage.getItem('nct.boardSettings.v1') || 'null');
-          if (bs && typeof bs.accent === 'string' && /^[a-z]+$/.test(bs.accent) && bs.accent !== 'yellow') root.setAttribute('data-accent', bs.accent);
+          if (bs) accent = typeof bs.accent === 'string' ? bs.accent : 'yellow';
         } catch (e) {
           /* no settings, or storage blocked */
         }
+        if (accent === null) {
+          try {
+            var sc = document.getElementById('nct-site-config');
+            var cfg = sc ? JSON.parse(sc.textContent || 'null') : null;
+            if (cfg && cfg.play && cfg.play.board && typeof cfg.play.board.accent === 'string') accent = cfg.play.board.accent;
+          } catch (e) {
+            /* no inlined config: the defaults */
+          }
+        }
+        if (accent && /^[a-z]+$/.test(accent) && accent !== 'yellow') root.setAttribute('data-accent', accent);
       })();
     </script>
     <meta name="description" content="Unofficial Cyberpunk TCG practice simulator: deck builder, meta, guides, bot battles and matchup lab." />

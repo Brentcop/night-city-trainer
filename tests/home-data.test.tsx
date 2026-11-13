@@ -66,6 +66,11 @@ describe('entry chunk', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     expect(profile).toContain('src/content/synergies/index.ts');
   });
+  it('reads the site config statically, but not its editor (#/admin loads on demand)', () => {
+    expect(graph).toContain('src/lib/siteConfig.ts');
+    expect(graph).toContain('src/ui/useSiteConfig.ts');
+    expect(graph).not.toContain('src/ui/pages/Admin.tsx');
+  });
   it('(control) the walker does see them from a page that imports them', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(profile).toContain(big);

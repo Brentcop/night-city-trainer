@@ -36,6 +36,9 @@ class Boundary extends Component<{ children: React.ReactNode }, { err: Error | n
 }
 import { Home } from './ui/pages/Home';
 import { artEnabled, setArtEnabled } from './ui/art';
+import { landingPage, pageOn, textHash, visibleNav } from './lib/siteConfig';
+import { useFeature, useSiteConfigState } from './ui/useSiteConfig';
+import { DraftBar, LinkedText, MaintenancePage, PageOff, SiteBanner } from './ui/components/SiteChrome';
 
 // Every page but Home loads on first visit (its own chunk); a failed load shows the Boundary's Reload message.
 const MetaPage = lazy(() => import('./ui/pages/Meta').then((m) => ({ default: m.MetaPage })));
@@ -56,6 +59,7 @@ const TunedDecksPage = lazy(() => import('./ui/pages/TunedDecks').then((m) => ({
 const DeckLabPage = lazy(() => import('./ui/pages/DeckLab').then((m) => ({ default: m.DeckLabPage })));
 const ProfilePage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfilePage })));
 const ProfileViewPage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfileViewPage })));
+const AdminPage = lazy(() => import('./ui/pages/Admin').then((m) => ({ default: m.AdminPage })));
 
 /** `sub` is the rest of the path after the route's own (`#/profile/history` → 'history'); most pages ignore it. */
 const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: string) => React.ReactNode }[] = [
@@ -78,25 +82,19 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'credits', label: 'Credits', el: () => <CreditsPage /> },
   { path: 'profile', label: 'Profile', el: (_q, sub) => <ProfilePage sub={sub} /> },
   { path: 'u', label: 'Shared profile', el: (_q, sub) => <ProfileViewPage payload={sub} /> },
+  // the owner's site config editor: not in the nav, never turned off, and not a security boundary (it only builds a file)
+  { path: 'admin', label: 'Site config', el: () => <AdminPage /> },
 ];
 
 /** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`); every other route matches its path exactly. */
 const NESTED = new Set(['profile', 'u']);
 
-/** Top-level sections; each lists its pages (first = landing page). Pages not listed in `sub` don't show in the sub-menu. */
-const SECTIONS: { label: string; icon: string; pages: string[]; sub?: string[] }[] = [
-  { label: 'Home', icon: '⌂', pages: ['home'] },
-  { label: 'Decks', icon: '▤', pages: ['decks', 'deck', 'lab', 'tuned'], sub: ['decks', 'tuned', 'lab'] },
-  { label: 'Play', icon: '▶', pages: ['play'] },
-  { label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], sub: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'] },
-  { label: 'Learn', icon: '♟', pages: ['guides', 'cards', 'glossary', 'insights', 'credits'], sub: ['guides', 'cards', 'glossary', 'insights', 'credits'] },
-  { label: 'Profile', icon: '◉', pages: ['profile', 'u'] },
-];
+/** The top tabs and their pages are in the site config (visibleNav in src/lib/siteConfig.ts). */
 
 function parseHash(): [string, URLSearchParams] {
   const h = window.location.hash.replace(/^#\/?/, '');
   const [path, qs] = h.split('?');
-  return [path || 'home', new URLSearchParams(qs ?? '')];
+  return [path ?? '', new URLSearchParams(qs ?? '')];
 }
 
 function NotFound({ path }: { path: string }) {
@@ -104,13 +102,17 @@ function NotFound({ path }: { path: string }) {
     <div className="panel">
       <h2>Page not found</h2>
       <p className="muted">There is no page at <code>#/{path}</code>. The link may be old or mistyped.</p>
-      <a href="#/home">Go to the home page →</a>
+      <a href="#/">Go to the start page →</a>
     </div>
   );
 }
 
 export function App() {
-  const [[path, q], setRoute] = useState(parseHash());
+  const { config, previewing } = useSiteConfigState();
+  const nav = visibleNav(config);
+  const landing = landingPage(config);
+  const [[rawPath, q], setRoute] = useState(parseHash());
+  const path = rawPath || landing; // '#/' and no hash: the start page
   // Scroll: a link click opens the new page at the top; Back/Forward restore where you were on that page.
   const viaLink = useRef(false);
   useEffect(() => {
@@ -138,7 +140,8 @@ export function App() {
   const base = slash > 0 && NESTED.has(path.slice(0, slash)) ? path.slice(0, slash) : path;
   const sub = base === path ? '' : path.slice(slash + 1);
   const route = ROUTES.find((r) => r.path === base);
-  const section = route && SECTIONS.find((sec) => sec.pages.includes(route.path));
+  const off = !!route && !pageOn(config, route.path);
+  const section = route && nav.find((sec) => sec.routes.includes(route.path));
   const qs = q.toString(); // the effect re-runs when the query changes, compared as a string
   useEffect(() => {
     if (viaLink.current) window.scrollTo(0, 0);
@@ -148,22 +151,31 @@ export function App() {
     }
     viaLink.current = false;
   }, [path, qs]);
+  // maintenance: a plain notice instead of the site (Play may stay open; the editor always does)
+  if (config.maintenance.on && base !== 'admin' && !(config.maintenance.allowPlay && base === 'play'))
+    return (
+      <div className="app">
+        {previewing && <DraftBar />}
+        <MaintenancePage config={config} />
+      </div>
+    );
   return (
     <div className="app">
+      {previewing && <DraftBar />}
       <header className="topbar">
         <div className="brand">
-          <a href="#/home" style={{ color: 'inherit', textDecoration: 'none' }}>
-            <span className="chip">NC</span> NIGHT CITY TRAINER
+          <a href={`#/${landing}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+            <span className="chip">NC</span> {config.site.title.toUpperCase()}
           </a>
         </div>
         <nav className="nav" aria-label="Main">
-          {SECTIONS.map((sec) => (
+          {nav.map((sec) => (
             <a
-              key={sec.label}
-              href={`#/${sec.pages[0]}`}
+              key={sec.id}
+              href={`#/${sec.landing}`}
               className={section === sec ? 'active' : ''}
               // the section you are in; "page" when its link is exactly this page
-              aria-current={section === sec ? (route?.path === sec.pages[0] ? 'page' : 'true') : undefined}
+              aria-current={section === sec ? (route?.path === sec.landing ? 'page' : 'true') : undefined}
             >
               <span className="nav-icon" aria-hidden>
                 {sec.icon}
@@ -174,11 +186,12 @@ export function App() {
         </nav>
         <HeaderToggles />
       </header>
-      {section?.sub && (
+      <SiteBanner key={textHash(config.banner.text)} banner={config.banner} />
+      {section?.subnav && (
         <nav className="subnav" aria-label={section.label}>
-          {section.sub.map((p) => (
-            <a key={p} href={`#/${p}`} className={p === route?.path ? 'active' : ''} aria-current={p === route?.path ? 'page' : undefined}>
-              {ROUTES.find((r) => r.path === p)?.label}
+          {section.pages.map((p) => (
+            <a key={p.path} href={`#/${p.path}`} className={p.path === route?.path ? 'active' : ''} aria-current={p.path === route?.path ? 'page' : undefined}>
+              {p.label}
             </a>
           ))}
         </nav>
@@ -186,18 +199,18 @@ export function App() {
       {/* a sub-path change (#/profile → #/profile/history) keeps the page mounted, so its tabs keep focus */}
       <main className="main" key={base + q.toString()}>
         <Boundary>
-          <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>{route ? route.el(q, sub) : <NotFound path={path} />}</Suspense>
+          <Suspense fallback={<p className="muted" aria-live="polite">Loading…</p>}>{off ? <PageOff home={landing} /> : route ? route.el(q, sub) : <NotFound path={path} />}</Suspense>
         </Boundary>
       </main>
       <footer className="footer">
-        Unofficial fan-made practice tool — not affiliated with CD PROJEKT RED, WeirdCo, choom.gg or cyberpunk-tcg-sim.online. Every deck is
-        tagged with its origin and author — see <a href="#/credits">Credits</a>.
+        <LinkedText text={config.site.footer} />
       </footer>
     </div>
   );
 }
 
 function HeaderToggles() {
+  const artToggle = useFeature('cardArtToggle');
   const [art, setArt] = useState(artEnabled());
   const [theme, setTheme] = useState<string>(() => {
     try {
@@ -219,6 +232,7 @@ function HeaderToggles() {
   const dark = theme ? theme === 'dark' : window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   return (
     <div className="header-toggles">
+      {artToggle && (
       <button
         className="ghost"
         title={art ? 'Card art on (click for text frames)' : 'Card art off'}
@@ -229,6 +243,7 @@ function HeaderToggles() {
       >
         {art ? '🖼 Art' : '▭ Text'}
       </button>
+      )}
       <button className="ghost" title="Toggle light/dark" aria-label={dark ? 'Switch to the light theme' : 'Switch to the dark theme'} onClick={() => setTheme(dark ? 'light' : 'dark')}>
         {dark ? '☾' : '☀'}
       </button>

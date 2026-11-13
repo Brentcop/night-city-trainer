@@ -25,6 +25,9 @@ import { useDeckActions } from '../components/DeckActions';
 import { useLibraryVersion } from '../useLibrary';
 import { isBuiltin } from '../deckLookup';
 import { loadHidden } from '../../lib/hiddenDecks';
+import { pageOn } from '../../lib/siteConfig';
+import { useSiteConfig } from '../useSiteConfig';
+import { IfPage } from '../components/SiteChrome';
 
 const S = SEASONS;
 
@@ -152,13 +155,16 @@ export function DeckMissing({ file, deletedHere }: { file?: string; deletedHere?
       )}
       <p className="row">
         <a href="#/decks">Browse all decks →</a>
-        <a href="#/tuned">Tuned decks →</a>
+        <IfPage path="tuned">
+          <a href="#/tuned">Tuned decks →</a>
+        </IfPage>
       </p>
     </div>
   );
 }
 
 function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDeck[]; actions: ReturnType<typeof useDeckActions> }) {
+  const site = useSiteConfig();
   const name = d.deck.name;
   const st = deckStats(d.file);
   const telemetry = telemetryReport(statsName(d.file));
@@ -213,22 +219,28 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
           <DeckRecordPanel d={d} headingId={recordId} />
           <div className="dp-legends">Legends: {legendNames.join(' · ')}</div>
           <div className="row">
+            <IfPage path="play">
             <a className="btn primary" href={`#/play?d=${enc}`}>
               ▶ Practice with it
             </a>
             <a className="btn" href={`#/play?o=${enc}`}>
               ⚔ Practice against it
             </a>
+            </IfPage>
+            <IfPage path="arena">
             <a className="btn" href={`#/arena?d=${enc}`}>
               🧪 Test in Matchup Lab
             </a>
+            </IfPage>
+            <IfPage path="lab">
             <a className="btn" href={`#/lab?d=${enc}`}>
               🔧 Tune in Deck Lab
             </a>
+            </IfPage>
             <a className="btn" href={`#/decks?d=${enc}`}>
               ✎ Edit / Export
             </a>
-            {d.tuned && (
+            {d.tuned && pageOn(site, 'tuned') && (
               <a className="btn" href="#/tuned">
                 🔧 Tuning result
               </a>

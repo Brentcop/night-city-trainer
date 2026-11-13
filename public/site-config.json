@@ -1,0 +1,228 @@
+{
+  "kind": "nct-site-config",
+  "schema": 1,
+  "site": {
+    "title": "Night City Trainer",
+    "tagline": "Unofficial Cyberpunk TCG practice simulator: deck builder, meta, guides, bot battles and matchup lab.",
+    "footer": "Unofficial fan-made practice tool — not affiliated with CD PROJEKT RED, WeirdCo, choom.gg or cyberpunk-tcg-sim.online. Every deck is tagged with its origin and author — see [Credits](#/credits)."
+  },
+  "nav": {
+    "sections": [
+      {
+        "id": "home",
+        "label": "Home",
+        "hidden": false,
+        "pages": [
+          {
+            "path": "home",
+            "label": "Home",
+            "hidden": false
+          }
+        ]
+      },
+      {
+        "id": "decks",
+        "label": "Decks",
+        "hidden": false,
+        "pages": [
+          {
+            "path": "decks",
+            "label": "All decks",
+            "hidden": false
+          },
+          {
+            "path": "tuned",
+            "label": "Tuned decks",
+            "hidden": false
+          },
+          {
+            "path": "lab",
+            "label": "Deck Lab",
+            "hidden": false
+          }
+        ]
+      },
+      {
+        "id": "play",
+        "label": "Play",
+        "hidden": false,
+        "pages": [
+          {
+            "path": "play",
+            "label": "Play vs Bot",
+            "hidden": false
+          }
+        ]
+      },
+      {
+        "id": "tournaments",
+        "label": "Tournaments",
+        "hidden": false,
+        "pages": [
+          {
+            "path": "tournaments",
+            "label": "Events",
+            "hidden": false
+          },
+          {
+            "path": "run",
+            "label": "Run a tournament",
+            "hidden": false
+          },
+          {
+            "path": "ratings",
+            "label": "Power ratings",
+            "hidden": false
+          },
+          {
+            "path": "seasons",
+            "label": "Breeding seasons",
+            "hidden": false
+          },
+          {
+            "path": "meta",
+            "label": "choom.gg meta",
+            "hidden": false
+          },
+          {
+            "path": "arena",
+            "label": "Matchup Lab",
+            "hidden": false
+          }
+        ]
+      },
+      {
+        "id": "learn",
+        "label": "Learn",
+        "hidden": false,
+        "pages": [
+          {
+            "path": "guides",
+            "label": "Strategy",
+            "hidden": false
+          },
+          {
+            "path": "cards",
+            "label": "Cards",
+            "hidden": false
+          },
+          {
+            "path": "glossary",
+            "label": "Glossary",
+            "hidden": false
+          },
+          {
+            "path": "insights",
+            "label": "Card stats",
+            "hidden": false
+          },
+          {
+            "path": "credits",
+            "label": "Credits",
+            "hidden": false
+          }
+        ]
+      },
+      {
+        "id": "profile",
+        "label": "Profile",
+        "hidden": false,
+        "pages": [
+          {
+            "path": "profile",
+            "label": "Profile",
+            "hidden": false
+          }
+        ]
+      }
+    ]
+  },
+  "features": {
+    "coach": true,
+    "gameReview": true,
+    "savedGames": true,
+    "profile": true,
+    "profileSharing": true,
+    "deckLab": true,
+    "tournamentRunner": true,
+    "tunedDecks": true,
+    "cardArtToggle": true,
+    "multiplayer": false,
+    "multiDayGames": false,
+    "chat": false
+  },
+  "banner": {
+    "text": "",
+    "link": "",
+    "linkText": "",
+    "level": "info",
+    "start": "",
+    "end": "",
+    "dismissible": true
+  },
+  "home": {
+    "sections": [
+      {
+        "id": "nextEvent",
+        "hidden": false
+      },
+      {
+        "id": "featuredDeck",
+        "hidden": false
+      },
+      {
+        "id": "quickActions",
+        "hidden": false
+      },
+      {
+        "id": "featuredEvent",
+        "hidden": false
+      },
+      {
+        "id": "topDecks",
+        "hidden": false
+      }
+    ],
+    "featuredDeck": "",
+    "featuredEvent": "",
+    "nextEvent": {
+      "name": "Edgerunner Open Regional — Chicago",
+      "start": "2026-12-11T09:00:00-06:00",
+      "detail": "Dec 11–13 · Bo3 Swiss"
+    }
+  },
+  "play": {
+    "defaultTier": "hard",
+    "tiers": [
+      "easy",
+      "medium",
+      "hard"
+    ],
+    "board": {
+      "accent": "yellow",
+      "boardBg": "grid",
+      "gigBg": "panel",
+      "payMode": "auto",
+      "panelPosition": "right"
+    }
+  },
+  "decks": {
+    "hidden": [],
+    "sources": [
+      "meta",
+      "guide",
+      "nc",
+      "ladder",
+      "bred",
+      "mine",
+      "tuned",
+      "lab"
+    ],
+    "defaultSort": "rating"
+  },
+  "maintenance": {
+    "on": false,
+    "message": "The site is down for maintenance. Please check back soon.",
+    "allowPlay": true
+  }
+}

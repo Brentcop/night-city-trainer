@@ -28,6 +28,8 @@ export function PlaySetup({
   setCoach,
   level,
   setLevel,
+  tiers = Object.keys(TIERS) as Tier[],
+  reviews = true,
   dA,
   dB,
   onStart,
@@ -41,9 +43,14 @@ export function PlaySetup({
   seat: Seat;
   setSeat: (s: Seat) => void;
   coach: boolean;
-  setCoach: (on: boolean) => void;
+  /** absent when the coach is turned off (site config): the coach switch is not shown */
+  setCoach?: (on: boolean) => void;
   level: Tier;
   setLevel: (t: Tier) => void;
+  /** the bot tiers offered (site config), in order */
+  tiers?: readonly Tier[];
+  /** game review is on (site config): the recent games to review show */
+  reviews?: boolean;
   dA: LibraryDeck | undefined;
   dB: LibraryDeck | undefined;
   onStart: () => void;
@@ -82,7 +89,7 @@ export function PlaySetup({
         <div>
           <span className="muted small">Bot difficulty</span>
           <div className="tier-pick">
-            {(Object.keys(TIERS) as Tier[]).map((t) => (
+            {tiers.map((t) => (
               <button key={t} className={`tier-btn tier-${t} ${level === t ? 'on' : ''}`} onClick={() => setLevel(t)} aria-pressed={level === t}>
                 <b>{TIERS[t].label}</b>
                 <span>{TIERS[t].blurb}</span>
@@ -90,10 +97,12 @@ export function PlaySetup({
             ))}
           </div>
         </div>
-        <label className="row">
-          <input type="checkbox" checked={coach} onChange={(e) => setCoach(e.target.checked)} />
-          <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
-        </label>
+        {setCoach && (
+          <label className="row">
+            <input type="checkbox" checked={coach} onChange={(e) => setCoach(e.target.checked)} />
+            <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
+          </label>
+        )}
         <div className="row">
           {saves && <ResumeButton saves={saves} />}
           <button className={saves?.autosave && saves.storage ? '' : 'primary'} onClick={onStart} disabled={!mine || !opp || !!saves?.restoring}>
@@ -110,7 +119,7 @@ export function PlaySetup({
       </div>
       {saves && <SavedGamesPanel saves={saves} />}
       <MatchupRead A={dA} B={dB} />
-      <RecentReviews />
+      {reviews && <RecentReviews />}
       <PracticeStats />
       <p className="muted small">
         Rules follow the official Comprehensive Rules (Oct 29, 2026): 3 Legends, 40–50 card decks, sell one card per turn for an Eddie,

@@ -15,13 +15,17 @@
 //     Season 1 on 2026-11-11, so nothing recorded predates them any more)
 //   - an event with a setup (another format, or pairings set by hand: src/lib/eventFormats.ts) names exactly its stored
 //     decks as entrants, is flagged `custom` exactly when it is not a standard event, and the index carries the same flag
+//   - public/site-config.json (the owner's site config, src/lib/siteConfig.ts) reads without a problem, and the decks and
+//     event it names exist
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
 import { cli, EVENTS_DIR, eventFiles } from './lib-node';
 import { KNOWN_MANIFEST_SCHEMAS, storedDeckId, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
 import { deckFingerprint } from '../src/engine/deck';
+import { LIBRARY_DIRS } from '../src/lib/library';
 import { isStandardSetup, setupProblems, type EventSetup } from '../src/lib/eventFormats';
+import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -51,6 +55,10 @@ export interface CheckInput {
   h2h: { events: number; games: number; manifest?: unknown; pool?: PoolRecordLike } | null;
   /** src/data/ratings.json (null when missing): only its manifest and pool are checked */
   ratings?: { manifest?: unknown; pool?: PoolRecordLike } | null;
+  /** public/site-config.json's text (null when missing; not checked when absent) */
+  siteConfig?: string | null;
+  /** the library's deck files (data/decks), for the decks the site config names */
+  deckFiles?: readonly string[];
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -130,6 +138,22 @@ function pooledEvents(pool: PoolRecordLike | undefined, where: string, events: C
   const kept = events.filter((e) => !out.has(String(e.id)));
   for (const e of kept) if (!inside(e)) failures.push(`${where}: pools event ${e.id} (sim v${ver(e)} ${bot(e)}) outside its sim v${pool.simVersion} ${pool.bot} pool`);
   return kept;
+}
+
+/** Problems with the owner's site config: every parser error, and decks or an event it names that do not exist. */
+export function siteConfigProblems(text: string | null, deckFiles: readonly string[] | undefined, eventIds: readonly string[]): { failures: string[]; info: string[] } {
+  if (text === null) return { failures: ['public/site-config.json is missing (the site would use its built-in defaults; restore it from git or the editor at #/admin)'], info: [] };
+  const p = parseSiteConfigText(text);
+  const failures = p.errors.map((e) => `site-config.json: ${issueLine(e)}`);
+  const info = p.warnings.map((w) => `site-config.json: ${issueLine(w)}`);
+  if (failures.length) return { failures, info };
+  const c = p.config;
+  if (deckFiles) {
+    if (c.home.featuredDeck && !deckFiles.includes(c.home.featuredDeck)) failures.push(`site-config.json: home.featuredDeck: no library deck ${c.home.featuredDeck} (the recommendation would show)`);
+    for (const f of c.decks.hidden) if (!deckFiles.includes(f)) failures.push(`site-config.json: decks.hidden: no library deck ${f}`);
+  }
+  if (c.home.featuredEvent && !eventIds.includes(c.home.featuredEvent)) failures.push(`site-config.json: home.featuredEvent: no recorded event ${c.home.featuredEvent}`);
+  return { failures, info };
 }
 
 export function checkData(input: CheckInput): CheckResult {
@@ -247,6 +271,14 @@ export function checkData(input: CheckInput): CheckResult {
     for (const id of m.field.deckIds) if (!ids.has(id)) failures.push(`${file}: manifest field deck ${id} is not one of its decks`);
   }
   if (failures.length === beforeEvents) passed.push(`event manifests and stored deck ids (${manifestsChecked} manifest(s) checked in all files)`);
+
+  // ---- the owner's site config
+  if (input.siteConfig !== undefined) {
+    const sc = siteConfigProblems(input.siteConfig, input.deckFiles, events.map((e) => String(e.id)));
+    failures.push(...sc.failures);
+    info.push(...sc.info);
+    if (!sc.failures.length) passed.push('public/site-config.json reads as a valid site config');
+  }
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -262,6 +294,11 @@ export function loadCheckInput(root = '.'): CheckInput {
     events: eventFiles(dir).map((file) => ({ file, event: JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')) as CheckEvent })),
     h2h: read('public/data/h2h.json'),
     ratings: read('src/data/ratings.json'),
+    siteConfig: fs.existsSync(path.join(root, 'public/site-config.json')) ? fs.readFileSync(path.join(root, 'public/site-config.json'), 'utf8') : null,
+    deckFiles: LIBRARY_DIRS.flatMap((d) => {
+      const dir = path.join(root, 'data/decks', d);
+      return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];
+    }),
   };
 }
 
