@@ -1,12 +1,12 @@
 # Decision telemetry
 
-4200 games, 397028 decisions (telemetry schema 1). Sim v6, deep bot, seed 1.
+4200 games, 397028 decisions (telemetry schema 1). Sim v7, deep bot, seed 1.
 
 > Descriptive association only: win rates in games where a card was used a given way, with 95% Wilson intervals. They are not the value of the card or of the choice (no counterfactual comparison yet; ROADMAP §5 steps 3 and 5). A slice from fewer than 20 games shows only its count ("thin").
 
 Stages: early turns 1–4, middle turns 5–8, late turn 9+. Ahead / even / behind: the acting player's Gig count against the rival's when the decision was made. "Not chosen": share of the turns (attacks, for reactions) in which the use was legal but not taken.
 
-Measured: games 4200, recordsPerGame 94.5, rawBytesPerGame 62483.0, aggregateBytesPerGame 13243.1, mergedBytes 148063, seconds 426.5.
+Measured: games 4200, recordsPerGame 94.5, rawBytesPerGame 62483.0, aggregateBytesPerGame 13243.1, mergedBytes 148063, seconds 432.4.
 
 ## BBG Cunningham Econ — 1200 games, 51% won, 59817 decisions
 
@@ -105,7 +105,7 @@ Reaction windows: 2037 attacks. Reacted to 1505 (deck won 46% (42–49) n=917): 
 | yesno/playFree | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 2996 attacks. Reacted to 2017 (deck won 39% (36–42) n=1003): stole 687, attackerGone 37, targetGone 1107, bothGone 74, noneGone 112. Let 979 resolve (47% (43–51) n=498): stole 880, attackerGone 4, targetGone 53, bothGone 42. Choices: endReact 1452, block 1215, call 1045, play 16.
+Reaction windows: 2996 attacks. Reacted to 2017 (deck won 39% (36–42) n=1003): stole 687, attackerGone 37, targetGone 1107, bothGone 74, noneGone 112. Let 979 resolve (47% (43–51) n=498): stole 880, attackerGone 4, targetGone 53, bothGone 42. Choices: call 1045, endReact 1452, block 1215, play 16.
 
 ## Rainbow Fixer Stuff — 1200 games, 41% won, 61028 decisions
 
@@ -341,7 +341,7 @@ Reaction windows: 2966 attacks. Reacted to 1516 (deck won 55% (52–59) n=906): 
 | yesno/draw | 16 | 100% | 0 / 16 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 9 | 11% | 0 / 9 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 3875 attacks. Reacted to 1417 (deck won 39% (36–42) n=886): stole 427, attackerGone 10, targetGone 913, bothGone 59, noneGone 8. Let 2458 resolve (37% (33–40) n=764): stole 2081, attackerGone 1, targetGone 336, bothGone 40. Choices: block 812, call 634, endReact 2811, ability 108, play 33.
+Reaction windows: 3875 attacks. Reacted to 1417 (deck won 39% (36–42) n=886): stole 427, attackerGone 10, targetGone 913, bothGone 59, noneGone 8. Let 2458 resolve (37% (33–40) n=764): stole 2081, attackerGone 1, targetGone 336, bothGone 40. Choices: call 634, block 812, endReact 2811, ability 108, play 33.
 
 ## The bot’s own scores against outcomes (calibration check)
 

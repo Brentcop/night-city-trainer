@@ -90,9 +90,12 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    differently (Easy never reads the weights). Hard also drops card impact and its mulligan keep (`mulligan: 'plain'`),
  *    so its games no longer depend on src/data/impact.json. 2026-11-12: every recorded event was re-recorded on version 6
  *    with its own field, format, seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1, switch-on).
+ * 7: Hard picks the card it sells by rollout among its 3 most sellable (`sellLookahead: 3`; whether to sell stays the
+ *    rule), so Hard games play differently; Easy and Medium are unchanged. 2026-11-12: every recorded event was
+ *    re-recorded on version 7 with its own field, format, seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1).
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 6;
+export const SIM_VERSION = 7;
 
 export interface GameRec {
   seed: number;

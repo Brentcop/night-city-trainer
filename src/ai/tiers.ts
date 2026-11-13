@@ -3,7 +3,8 @@
 //   Easy   — the Fast bot: plays by simple rules, no lookahead (it never reads the evaluation weights).
 //   Medium — the Lookahead bot: scores every action one step ahead with the tuned matchup profiles.
 //   Hard   — the Deep bot: rolls out the rest of its turn and the rival's whole reply for its best 3 options and plays
-//            out each block / reaction; the plain mulligan rule and no card impact since SIM_VERSION 6.
+//            out each block / reaction; the plain mulligan rule and no card impact since SIM_VERSION 6; picks the card
+//            to sell by rollout among its 3 most sellable (sellLookahead 3) since SIM_VERSION 7.
 // Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6. Paired botcheck,
 // meta decks, 2026-11-12: new Hard vs new Medium 64.4% [61.9, 66.9]; new Medium vs Easy 76.5% [74.0, 79.1].
 // Tournaments can also mix Hard and Medium: each seat of each game is Hard or Medium, decided by the game seed,
@@ -42,7 +43,8 @@ export const tierLabel = (level: string) => {
 function tierAgent(t: Tier, seed: number, name?: string) {
   if (t === 'easy') return new HeuristicAgent({ name, lookahead: false, seed });
   // card impact (impact 0 vs 40: 49.7% [49.1, 50.3] on all decks) and its mulligan keep dropped in SIM_VERSION 6
-  if (t === 'hard') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, deepAttacks: HARD_DEEP_ATTACKS, deepReactions: 3, mulligan: 'plain', profiles: BEST_PROFILES });
+  // the sold card chosen by rollout among the 3 most sellable since SIM_VERSION 7 (sellLookahead 3 vs 0: 51.7% [50.2, 53.1] meta)
+  if (t === 'hard') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, deepAttacks: HARD_DEEP_ATTACKS, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: BEST_PROFILES });
   return new HeuristicAgent({ name, seed, noise: 0.15, profiles: BEST_PROFILES });
 }
 

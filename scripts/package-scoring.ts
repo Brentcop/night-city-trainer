@@ -77,7 +77,7 @@ if (!field.length) {
 
 /** The tier's settings as a worker spec (the same bot makeTierBot builds). */
 const tierSpec = (): AgentSpec =>
-  V.bot === 'hard' ? { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, mulligan: 'plain', profiles: 'best' } : { noise: 0.15, deep: 3, profiles: 'best' };
+  V.bot === 'hard' ? { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: 'best' } : { noise: 0.15, deep: 3, profiles: 'best' };
 
 interface JobMeta {
   deck: string;

@@ -43,9 +43,11 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
   ],
   // Re-pinned 2026-11-12 for SIM_VERSION 6 (the fitted evaluation weights; Hard without card impact, plain mulligan).
   // Easy did not move (the fast policy keeps the hand weights). Was 0/11/8888fe17 and 1/11/589d1a10 (Medium 5d0e65c4, 0/14/1c55ca83).
+  // Re-pinned 2026-11-12 for SIM_VERSION 7 (Hard picks its sell by rollout, sellLookahead 3): the logs moved, the
+  // winners and turn counts did not; Easy and Medium did not move. Version 6: 71f08fdb, 8f89047f.
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 14, log: '71f08fdb' },
-    { seed: 302, first: 1, winner: 1, turns: 11, log: '8f89047f' },
+    { seed: 301, first: 0, winner: 0, turns: 14, log: 'a807cd81' },
+    { seed: 302, first: 1, winner: 1, turns: 11, log: 'cbf6d762' },
   ],
 };
 

@@ -3199,9 +3199,9 @@
      "firstChosenRate": 0.22563912560207483,
      "options": {
       "2": 78,
-      "6-10": 1145,
       "3-5": 641,
       "11-20": 734,
+      "6-10": 1145,
       "21+": 101
      }
     },
@@ -3279,8 +3279,8 @@
      "options": {
       "1": 32,
       "2": 75,
-      "3-5": 511,
       "6-10": 434,
+      "3-5": 511,
       "11-20": 2
      }
     },
@@ -6923,8 +6923,8 @@
     },
     "outcomes": {
      "reacted": {
-      "bothGone": 74,
       "stole": 687,
+      "bothGone": 74,
       "targetGone": 1107,
       "noneGone": 112,
       "attackerGone": 37
@@ -6937,9 +6937,9 @@
      }
     },
     "choices": {
+     "call": 1045,
      "endReact": 1452,
      "block": 1215,
-     "call": 1045,
      "play": 16
     }
    }
@@ -7245,8 +7245,8 @@
        "notChosenRate": 0.1630434782608695,
        "selfPaid": 0,
        "outcomes": {
-        "targetGone": 422,
         "stole": 1408,
+        "targetGone": 422,
         "bothGone": 64,
         "noneGone": 5,
         "attackerGone": 4
@@ -22172,8 +22172,8 @@
        "notChosenRate": 0.11611030478955009,
        "selfPaid": 0,
        "outcomes": {
-        "stole": 1424,
         "targetGone": 529,
+        "stole": 1424,
         "bothGone": 53,
         "noneGone": 6,
         "attackerGone": 5
@@ -22393,8 +22393,8 @@
        "notChosenRate": 0.06815761448349311,
        "selfPaid": 0,
        "outcomes": {
-        "targetGone": 416,
         "stole": 532,
+        "targetGone": 416,
         "noneGone": 3,
         "bothGone": 8,
         "attackerGone": 4
@@ -22614,8 +22614,8 @@
        "notChosenRate": 0.013388259526261548,
        "selfPaid": 0,
        "outcomes": {
-        "stole": 434,
         "targetGone": 462,
+        "stole": 434,
         "bothGone": 57,
         "noneGone": 1,
         "attackerGone": 4
@@ -25519,8 +25519,8 @@
      }
     },
     "choices": {
-     "block": 812,
      "call": 634,
+     "block": 812,
      "endReact": 2811,
      "ability": 108,
      "play": 33
@@ -32721,8 +32721,8 @@
      "notChosenRate": 0.013388259526261548,
      "selfPaid": 0,
      "outcomes": {
-      "stole": 434,
       "targetGone": 462,
+      "stole": 434,
       "bothGone": 57,
       "noneGone": 1,
       "attackerGone": 4
@@ -38322,10 +38322,10 @@
  ],
  "manifest": {
   "schema": 1,
-  "runId": "analysis:2026-11-12T21:31:38.997Z:1",
-  "createdAt": "2026-11-12T21:31:38.997Z",
+  "runId": "analysis:2026-11-13T00:51:29.606Z:1",
+  "createdAt": "2026-11-13T00:51:29.606Z",
   "purpose": "analysis",
-  "simVersion": 6,
+  "simVersion": 7,
   "rulesVersion": "2026-10-29",
   "faqVersion": "2026-11-09T15:28:32.570Z",
   "errataVersion": null,
@@ -38398,6 +38398,6 @@
   "rawBytesPerGame": 62483.02,
   "aggregateBytesPerGame": 13243.076190476191,
   "mergedBytes": 148063,
-  "seconds": 426.525
+  "seconds": 432.432
  }
 }

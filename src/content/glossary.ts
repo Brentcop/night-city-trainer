@@ -76,7 +76,7 @@ export const GLOSSARY: Term[] = [
     rule: 'CR 8.11, 11.12',
     def: 'Once per turn in your Main Phase, put a card with a Sell Tag from your hand into your Eddies area face-down and ready. Every Program, Gear and Legend can be sold; only one Unit (MT0D12 Flathead) has a Sell Tag.',
     engine: 'Sell action, limited to once per turn per player.',
-    bot: 'Sells first every turn until it has about 9 Eddies — like a land drop. It sells the card with the lowest "keep value": duplicates, cards it can’t cast soon, or Gear with no host.',
+    bot: 'Sells first every turn until it has about 9 Eddies — like a land drop. It sells the card with the lowest "keep value": duplicates, cards it can’t cast soon, or Gear with no host. Hard (and the coach) instead plays out its three most sellable cards and sells the one that does best.',
   },
   {
     term: 'Legends as money',
@@ -317,7 +317,7 @@ export const GLOSSARY: Term[] = [
   {
     term: 'Bot difficulty (Easy / Medium / Hard)',
     group: 'Strategy',
-    def: 'Easy plays by simple rules. Medium looks one action ahead and follows its matchup plan. Hard also plays out the rest of its turn and your whole reply for its best options, and plays out its blocks and reactions. Medium and Hard score positions with weights fitted to who won thousands of bot games. In bot-vs-bot testing (November 2026) Medium wins about 77% of games against Easy, and Hard about 64% against Medium.',
+    def: 'Easy plays by simple rules. Medium looks one action ahead and follows its matchup plan. Hard also plays out the rest of its turn and your whole reply for its best options, and plays out its blocks and reactions and which card to sell. Medium and Hard score positions with weights fitted to who won thousands of bot games. In bot-vs-bot testing (November 2026) Medium wins about 77% of games against Easy, and Hard about 64% against Medium.',
     engine: 'src/ai/tiers.ts — one definition shared by Play, the Matchup Lab, tournaments and replays.',
   },
   {

@@ -70559,10 +70559,10 @@
  ],
  "manifest": {
   "schema": 1,
-  "runId": "analysis:2026-11-12T21:41:28.794Z:1",
-  "createdAt": "2026-11-12T21:41:28.794Z",
+  "runId": "analysis:2026-11-13T01:01:56.757Z:1",
+  "createdAt": "2026-11-13T01:01:56.757Z",
   "purpose": "analysis",
-  "simVersion": 6,
+  "simVersion": 7,
   "rulesVersion": "2026-10-29",
   "faqVersion": "2026-11-09T15:28:32.570Z",
   "errataVersion": null,
@@ -70876,6 +70876,6 @@
   "rawBytesPerGame": 49521.38374961456,
   "aggregateBytesPerGame": 9874.2725871107,
   "mergedBytes": 326610,
-  "seconds": 587.66
+  "seconds": 605.903
  }
 }

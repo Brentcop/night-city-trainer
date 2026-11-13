@@ -1,12 +1,12 @@
 # Synergy packages
 
-6486 games. Sim v6, deep bot, seed 1. Catalogue fnv1a64:06922d57a2142f8b.
+6486 games. Sim v7, deep bot, seed 1. Catalogue fnv1a64:06922d57a2142f8b.
 
 > Association, not causal value: rates in games where a package was assembled or came online, with 95% Wilson intervals. A package that comes online mostly in games already going well looks good for that reason alone. Draw odds count the opening 6 plus one card per turn, with Legends held from the start; observed rates also include extra draws and searches. A slice from fewer than 20 games shows only its count ("thin"): not rated.
 
 "Assembled": the needed pieces were held (drawn, or a Legend in the list) at some point. "Online": the package’s board condition held at some point (src/content/synergies). Rounds are your own turns.
 
-Measured: games 6486, boardSnapshotsPerGame 131.2, sightingsPerGame 30.2, rawBytesPerGame 49521.4, aggregateBytesPerGame 9874.3, mergedBytes 326610, seconds 587.7.
+Measured: games 6486, boardSnapshotsPerGame 131.2, sightingsPerGame 30.2, rawBytesPerGame 49521.4, aggregateBytesPerGame 9874.3, mergedBytes 326610, seconds 605.9.
 
 ## Every list pooled
 

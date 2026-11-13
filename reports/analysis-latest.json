@@ -1,10 +1,10 @@
 {
  "manifest": {
   "schema": 1,
-  "runId": "analysis:2026-11-12T21:31:38.997Z:1",
-  "createdAt": "2026-11-12T21:31:38.997Z",
+  "runId": "analysis:2026-11-13T00:51:29.606Z:1",
+  "createdAt": "2026-11-13T00:51:29.606Z",
   "purpose": "analysis",
-  "simVersion": 6,
+  "simVersion": 7,
   "rulesVersion": "2026-10-29",
   "faqVersion": "2026-11-09T15:28:32.570Z",
   "errataVersion": null,
