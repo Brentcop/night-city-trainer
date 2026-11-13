@@ -17,6 +17,15 @@ The following material comes from other parties and stays under its owners' righ
 | Official rules | Not stored in this repository (`data/raw/` is local-only). The app and docs paraphrase the Comprehensive Rules and Tournament Rules and cite rule numbers. | WeirdCo, cyberpunktcg.com. |
 | Meta tiers, archetype lists, community guide lists and Choom Table statistics | `data/decks/meta-*.txt`, the guide lists in `data/decks/`, `src/data/meta.json`, `src/content/choomTable.ts` | choom.gg and the deck authors credited in each file's provenance header and on the in-app Credits page. |
 
+## Typefaces
+
+The site serves its two typefaces itself; no font service is contacted. Both are licensed under the SIL Open Font License 1.1 and are bundled unmodified by the build from the `@fontsource/inter` and `@fontsource/rajdhani` npm packages (each package carries the licence text in its `LICENSE` file).
+
+| Typeface | Used for | Copyright |
+|---|---|---|
+| Inter | Text | The Inter Project Authors (github.com/rsms/inter) |
+| Rajdhani | Headings and labels | Indian Type Foundry |
+
 Each deck file carries a provenance header (`// Origin:`, `// Author:`, `// Source:`, `// Via:`, `// Credits:`) naming where it came from. The in-app Credits page (`#/credits`) lists every source and author.
 
 "Cyberpunk", "Cyberpunk 2077" and related names are trademarks of their respective owners.

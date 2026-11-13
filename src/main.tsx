@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { refreshSiteConfig } from './ui/useSiteConfig';
+import './ui/fonts.css';
 import './ui/styles.css';
 import './ui/themes.css';
 import './ui/motion.css';

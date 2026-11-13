@@ -11,6 +11,7 @@ const SOURCES: [string, string, string][] = [
   ['Archetype reference lists (3)', 'UltPotatoe, Armbarred, MMantanza — public decks on choom.gg', 'https://choom.gg/decks'],
   ['Community guide lists (11)', 'choom.gg guide authors, credited on each deck', 'https://choom.gg/guides'],
   ['Choom Table statistics', 'choom.gg simulator data (snapshot 9 Nov 2026)', 'https://choom.gg/meta'],
+  ['Typefaces', 'Inter (The Inter Project Authors) and Rajdhani (Indian Type Foundry), SIL Open Font License 1.1, served from this site', 'https://openfontlicense.org/'],
   ['Community stats & event info', 'gamertagmythras.com, tcgcontender.com (referenced by choom.gg), cyberpunktcg.com/eor', 'https://cyberpunktcg.com/eor'],
 ];
 
