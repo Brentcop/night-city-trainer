@@ -151,7 +151,7 @@ export function parseCoachedReplay(text: string): { ok: true; value: CoachedRepl
 /** What the match reviewer needs to re-simulate the exported game (your seat replays your answers). */
 export function coachedReviewSpec(c: CoachedReplay): PracticeReviewSpec {
   const r = c.replay;
-  return { decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, conceded: !!r.conceded };
+  return { decks: r.decks, seed: r.seed, first: r.first, botLevel: r.botLevel, botSeed: r.botSeed, choices: r.choices, payChoice: !!r.payChoice, orderChoice: !!r.orderChoice, ...(r.endTurnClick ? { endTurnClick: true } : {}), conceded: !!r.conceded };
 }
 
 /** A file name for the export: deck vs deck and the date. */

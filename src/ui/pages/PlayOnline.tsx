@@ -323,7 +323,8 @@ export function PlayOnline({ invite, mode, initialDeck }: { invite: string | nul
     if (!deck) return;
     const n = name.trim().slice(0, NAME_MAX);
     kv.set(NAME_KEY, n);
-    const o = { name: n || (r === 'host' ? 'Host' : 'Guest'), deck: gameDeck(deck.deck), timer };
+    // your End turn setting goes to the host with your hello, and holds for the games of this session
+    const o = { name: n || (r === 'host' ? 'Host' : 'Guest'), deck: gameDeck(deck.deck), timer, endTurnClick: settings.endTurn === 'click' };
     const s = r === 'host' ? new OnlineHost(o) : new OnlineGuest(o);
     setSession(s);
     setProblem(null);

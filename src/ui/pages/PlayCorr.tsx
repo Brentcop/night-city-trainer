@@ -49,11 +49,16 @@ const go = (hash: string) => {
 export const CORR_TRUST =
   "The host's device runs the game, so this is for friendly play: a modified host could see hidden cards. The clocks are kept by each player's own device, so nothing happens by itself when time runs out: the other player may claim the win or give more time.";
 
+/** Why the End turn setting does not apply here: each extra click would cost the guest another packet round trip. */
+export const CORR_END_TURN =
+  'In these games your turn ends by itself when nothing is left to do, whatever your End turn setting: a click to end it would cost another packet each turn.';
+
 function TrustNotes() {
   return (
     <div className="small muted online-notes">
       <p>{CORR_TRUST}</p>
       <p>{MULTI_DAY_NOTE}</p>
+      <p>{CORR_END_TURN}</p>
     </div>
   );
 }

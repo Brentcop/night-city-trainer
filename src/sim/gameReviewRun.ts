@@ -33,6 +33,7 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
     name: a.name,
     choosesPayment: a.choosesPayment,
     choosesOrder: a.choosesOrder,
+    confirmsEndTurn: a.confirmsEndTurn,
     decide: (g: Parameters<typeof a.decide>[0], d: Parameters<typeof a.decide>[1]) => ((turn = g.s.turn), a.decide(g, d)),
   }));
   const me = q.pvp?.seat ?? 0;

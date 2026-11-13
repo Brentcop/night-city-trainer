@@ -84,6 +84,8 @@ export interface SessionOptions {
   deck: DeckList;
   /** host: seconds per decision (0 = off) */
   timer?: number;
+  /** this player ends each turn with End turn even when nothing else is left (their board setting; sent at the handshake) */
+  endTurnClick?: boolean;
   /** the heartbeat (off in tests that step by hand) */
   heartbeat?: boolean;
   store?: KV | null;
@@ -101,6 +103,8 @@ abstract class OnlineSession {
   rivalName: string | null = null;
   rivalDeck: string | null = null;
   timer: number;
+  /** this player's End turn setting for the games of this session (fixed when the session starts) */
+  readonly endTurnClick: boolean;
   /** why the host refused us, or why the lobby failed */
   problem: string | null = null;
   /** after the roll: who picks first or second */
@@ -145,6 +149,7 @@ abstract class OnlineSession {
     this.name = cleanName(o.name);
     this.deck = o.deck;
     this.timer = o.timer ?? 0;
+    this.endTurnClick = !!o.endTurnClick;
     this.heartbeat = o.heartbeat ?? true;
     this.store = o.store === undefined ? localKV() : o.store;
     this.recorder = o.recorder ?? browserRecorder;
@@ -362,6 +367,8 @@ export class OnlineHost extends OnlineSession {
   readonly role = 'host' as const;
   game: HostGame | null = null;
   guestDeck: DeckList | null = null;
+  /** the guest's End turn setting, from its hello */
+  private guestEndTurnClick = false;
   private gameId = '';
   private token = '';
   private viewN = 0;
@@ -394,13 +401,14 @@ export class OnlineHost extends OnlineSession {
   /** Bring back a saved game (replayed to where it was); the guest comes back with a new invite and its token. */
   static async restore(save: HostSave, o: Omit<SessionOptions, 'name' | 'deck' | 'timer'>): Promise<OnlineHost> {
     const s = save.setup;
-    const h = new OnlineHost({ ...o, name: s.names[0], deck: s.decks[0], timer: s.timer });
+    const h = new OnlineHost({ ...o, name: s.names[0], deck: s.decks[0], timer: s.timer, endTurnClick: !!s.endTurnClick?.[0] });
     const game = await HostGame.restore(save);
     h.gameId = s.game;
     h.token = s.token;
     h.rivalName = s.names[1];
     h.rivalDeck = s.decks[1].name;
     h.guestDeck = s.decks[1];
+    h.guestEndTurnClick = !!s.endTurnClick?.[1];
     h.youFirst = s.first === 0;
     h.stage = 'game';
     h.useGame(game);
@@ -514,6 +522,7 @@ export class OnlineHost extends OnlineSession {
       return;
     }
     this.guestDeck = deck;
+    this.guestEndTurnClick = !!m.endTurnClick;
     this.rivalName = cleanName(m.name, 'Guest');
     this.rivalDeck = deck.name;
     this.gameId = randomHex(8);
@@ -557,6 +566,7 @@ export class OnlineHost extends OnlineSession {
       first,
       timer: this.timer,
       started: new Date(this.now()).toISOString(),
+      ...(this.endTurnClick || this.guestEndTurnClick ? { endTurnClick: [this.endTurnClick, this.guestEndTurnClick] as [boolean, boolean] } : {}),
     };
     this.youFirst = first === 0;
     this.stage = 'game';
@@ -677,7 +687,14 @@ export class OnlineHost extends OnlineSession {
     const g = this.game;
     if (!g || !(g.ended || g.g.s.winner !== null)) return null;
     const s = g.setup;
-    return { game: s.game, seed: s.seed, first: s.first, decks: [deckMsg(s.decks[0]), deckMsg(s.decks[1])], answers: [g.answers[0].map((a) => [...a]), g.answers[1].map((a) => [...a])] };
+    return {
+      game: s.game,
+      seed: s.seed,
+      first: s.first,
+      decks: [deckMsg(s.decks[0]), deckMsg(s.decks[1])],
+      answers: [g.answers[0].map((a) => [...a]), g.answers[1].map((a) => [...a])],
+      ...(s.endTurnClick ? { endTurnClick: [s.endTurnClick[0], s.endTurnClick[1]] as [boolean, boolean] } : {}),
+    };
   }
 
   protected submit(d: Decision, i: number): boolean {
@@ -786,7 +803,14 @@ export class OnlineGuest extends OnlineSession {
   }
 
   protected opened() {
-    this.send({ v: 1, t: 'hello', name: this.name, deck: deckMsg(this.deck), ...(this.resume ? { resume: { game: this.resume.game, token: this.resume.token } } : {}) });
+    this.send({
+      v: 1,
+      t: 'hello',
+      name: this.name,
+      deck: deckMsg(this.deck),
+      ...(this.resume ? { resume: { game: this.resume.game, token: this.resume.token } } : {}),
+      ...(this.endTurnClick ? { endTurnClick: true } : {}),
+    });
   }
 
   protected receive(text: string) {

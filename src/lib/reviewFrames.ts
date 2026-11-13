@@ -19,6 +19,7 @@ class AnswerAgent implements Agent {
   marks: number[] = [];
   choosesPayment: boolean;
   choosesOrder: boolean;
+  confirmsEndTurn: boolean;
   constructor(
     public name: string,
     private a: SeatAnswers,
@@ -27,6 +28,7 @@ class AnswerAgent implements Agent {
   ) {
     this.choosesPayment = a.pay;
     this.choosesOrder = a.order;
+    this.confirmsEndTurn = !!a.endTurn;
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
     this.marks.push(this.frameCount() - 1);

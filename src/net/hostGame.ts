@@ -26,6 +26,11 @@ export interface OnlineSetup {
   timer: number;
   /** ISO start time */
   started: string;
+  /**
+   * [host, guest]: the seat ends its turns with End turn even when nothing else is left (each player's own setting,
+   * fixed at the start). Absent: both automatic, as every game before it existed.
+   */
+  endTurnClick?: [boolean, boolean];
 }
 
 export const HOST_SAVE_KIND = 'nct-online-host';
@@ -75,12 +80,15 @@ interface Waiting {
 class SeatAgent implements Agent {
   readonly choosesPayment = true;
   readonly choosesOrder = true;
+  readonly confirmsEndTurn: boolean;
   pending: Waiting | null = null;
   constructor(
     readonly name: string,
     private host: HostGame,
     readonly seat: PlayerId,
-  ) {}
+  ) {
+    this.confirmsEndTurn = !!host.setup.endTurnClick?.[seat];
+  }
   decide(g: Game, d: Decision): Promise<number[]> {
     return this.host.ask(this, g, d);
   }
@@ -358,6 +366,7 @@ export function parseHostSave(text: string | null): HostSave | null {
     if (v?.kind !== HOST_SAVE_KIND || v.schema !== 1 || !isInt(v.simVersion) || !s || typeof s !== 'object') return null;
     if (typeof s.game !== 'string' || typeof s.token !== 'string' || !Array.isArray(s.names) || s.names.length !== 2 || !s.names.every((n) => typeof n === 'string')) return null;
     if (!Array.isArray(s.decks) || s.decks.length !== 2 || !s.decks.every(isDeck) || !isInt(s.seed) || (s.first !== 0 && s.first !== 1) || !isInt(s.timer) || typeof s.started !== 'string') return null;
+    if (s.endTurnClick !== undefined && (!Array.isArray(s.endTurnClick) || s.endTurnClick.length !== 2 || !s.endTurnClick.every((x) => typeof x === 'boolean'))) return null;
     if (!Array.isArray(v.answers) || v.answers.length !== 2 || !v.answers.every(isAnswers)) return null;
     const c = v.check;
     if (c !== null && (!c || !Array.isArray(c.at) || c.at.length !== 2 || !c.at.every(isInt) || typeof c.hash !== 'string')) return null;

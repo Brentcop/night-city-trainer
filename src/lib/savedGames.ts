@@ -57,6 +57,8 @@ export interface SavedGame {
   first?: PlayerId;
   botLevel: string;
   botSeed: number;
+  /** you end each turn with End turn even when nothing else is left (absent: automatic, as every save made before it existed) */
+  endTurnClick?: boolean;
   /** every answer you gave, in order (may run past `check.at` when you saved while the bot was moving) */
   choices: number[][];
   undos?: number;
@@ -124,6 +126,7 @@ export function buildSave(src: SaveSource, o: { id: string; name?: string; saved
     ...(r.first !== undefined ? { first: r.first } : {}),
     botLevel: r.botLevel,
     botSeed: r.botSeed,
+    ...(r.endTurnClick ? { endTurnClick: true } : {}),
     choices: copy(r.choices),
     ...(r.undos ? { undos: r.undos } : {}),
     coach: o.coach,
@@ -148,6 +151,7 @@ export function replayOf(s: SavedGame): PracticeReplay {
     choices: [],
     payChoice: true,
     orderChoice: true,
+    ...(s.endTurnClick ? { endTurnClick: true } : {}),
     result: 'draw',
     ...(s.undos ? { undos: s.undos } : {}),
   };
@@ -217,6 +221,7 @@ export function parseSavedGame(input: unknown): { ok: true; value: SavedGame } |
   if (!isInt(s.seed) || !isInt(s.botSeed) || !isStr(s.botLevel) || (s.first !== undefined && s.first !== 0 && s.first !== 1)) return bad('the match setup is incomplete');
   if (!Array.isArray(s.choices) || !s.choices.every((c) => Array.isArray(c) && c.length > 0 && c.every((i) => isInt(i) && i >= 0))) return bad('the moves are incomplete');
   if (s.undos !== undefined && !isInt(s.undos)) return bad('the Undo count is not a number');
+  if (s.endTurnClick !== undefined && typeof s.endTurnClick !== 'boolean') return bad('the End turn setting is not true or false');
   if (typeof s.coach !== 'boolean') return bad('the coach setting is missing');
   if (!Array.isArray(s.grades) || !s.grades.every(isGrade)) return bad('the coach grades are incomplete');
   const c = s.check;

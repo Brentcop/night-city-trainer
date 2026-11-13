@@ -59,8 +59,8 @@ function isMove(x: unknown): boolean {
 }
 
 const isAnswers = (x: unknown) => {
-  const a = x as { choices?: unknown; pay?: unknown; order?: unknown } | null;
-  return !!a && Array.isArray(a.choices) && a.choices.every((c) => Array.isArray(c) && c.every(isNum)) && typeof a.pay === 'boolean' && typeof a.order === 'boolean';
+  const a = x as { choices?: unknown; pay?: unknown; order?: unknown; endTurn?: unknown } | null;
+  return !!a && Array.isArray(a.choices) && a.choices.every((c) => Array.isArray(c) && c.every(isNum)) && typeof a.pay === 'boolean' && typeof a.order === 'boolean' && (a.endTurn === undefined || typeof a.endTurn === 'boolean');
 };
 
 /** A stored review read back, or null when it is not one this version reads (another kind, a newer schema, incomplete). */

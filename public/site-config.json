@@ -203,6 +203,7 @@
       "boardBg": "grid",
       "gigBg": "panel",
       "payMode": "auto",
+      "endTurn": "click",
       "panelPosition": "right"
     }
   },

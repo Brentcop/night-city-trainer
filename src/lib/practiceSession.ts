@@ -48,6 +48,7 @@ export class RecordingAgent implements Agent {
   name: string;
   choosesPayment?: boolean;
   choosesOrder?: boolean;
+  confirmsEndTurn?: boolean;
   constructor(
     public inner: Agent,
     public choices: number[][],
@@ -57,6 +58,7 @@ export class RecordingAgent implements Agent {
     this.name = inner.name;
     this.choosesPayment = inner.choosesPayment;
     this.choosesOrder = inner.choosesOrder;
+    this.confirmsEndTurn = inner.confirmsEndTurn;
   }
   async decide(g: Game, d: Decision) {
     if (this.run.cancelled) throw new GameCancelled();
@@ -94,6 +96,7 @@ class FeedAgent implements Agent {
   name: string;
   readonly choosesPayment = true;
   readonly choosesOrder = true;
+  readonly confirmsEndTurn: boolean;
   private i = 0;
   private reached = false;
   constructor(
@@ -102,6 +105,7 @@ class FeedAgent implements Agent {
     private grades: CoachedGrade[],
   ) {
     this.name = inner.name;
+    this.confirmsEndTurn = inner.confirmsEndTurn;
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
     const f = this.feed;
@@ -212,6 +216,8 @@ export interface MatchSetup {
   first?: PlayerId;
   level: string;
   botSeed: number;
+  /** you end each turn with End turn, even when nothing else is left (the board setting at the start; absent: automatic) */
+  endTurnClick?: boolean;
 }
 
 let replaySeq = 0;
@@ -227,6 +233,7 @@ function newPracticeReplay(m: MatchSetup): PracticeReplay {
     choices: [],
     payChoice: true,
     orderChoice: true,
+    ...(m.endTurnClick ? { endTurnClick: true } : {}),
     result: 'draw',
   };
 }
@@ -450,7 +457,8 @@ export class PracticeSession {
    */
   private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: CoachedGrade[], match: number, resumed: boolean, feed?: Feed): Running {
     if (this.current && !feed) this.cancel(this.current);
-    const human = new HumanAgent();
+    // the game's End turn mode comes from its record, so Undo and a restore play it the same way
+    const human = new HumanAgent({ confirmsEndTurn: !!replay.endTurnClick });
     const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false, conceded: false, stable: null, restoring: !!feed } as Omit<Running, 'g' | 'done'> as Running;
     const seat: Agent = feed ? new FeedAgent(human, feed, grades) : human;
     const recorder = new RecordingAgent(seat, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, grades.length)), run);

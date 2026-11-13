@@ -25,7 +25,20 @@ import {
   type ConfigIssue,
   type SiteConfig,
 } from '../../lib/siteConfig';
-import { ACCENT_LABEL, ACCENTS, BOARD_BACKGROUNDS, BOARD_BG_LABEL, GIG_BACKGROUNDS, GIG_BG_LABEL, PANEL_POSITIONS, PAY_MODE_LABEL, PAY_MODES, POSITION_LABEL } from '../../lib/boardSettings';
+import {
+  ACCENT_LABEL,
+  ACCENTS,
+  BOARD_BACKGROUNDS,
+  BOARD_BG_LABEL,
+  END_TURN_LABEL,
+  END_TURN_MODES,
+  GIG_BACKGROUNDS,
+  GIG_BG_LABEL,
+  PANEL_POSITIONS,
+  PAY_MODE_LABEL,
+  PAY_MODES,
+  POSITION_LABEL,
+} from '../../lib/boardSettings';
 import { SORT_LABEL, SORTS } from '../../lib/galleryView';
 import { SOURCES } from '../../lib/deckSource';
 import { BUILTIN } from '../../lib/browserLibrary';
@@ -459,6 +472,7 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
         <Select label="Board background" value={draft.play.board.boardBg} options={BOARD_BACKGROUNDS} labels={BOARD_BG_LABEL} onChange={(v) => up((c) => void (c.play.board.boardBg = v))} />
         <Select label="Gig area background" value={draft.play.board.gigBg} options={GIG_BACKGROUNDS} labels={GIG_BG_LABEL} onChange={(v) => up((c) => void (c.play.board.gigBg = v))} />
         <Select label="Paying costs" value={draft.play.board.payMode} options={PAY_MODES} labels={PAY_MODE_LABEL} onChange={(v) => up((c) => void (c.play.board.payMode = v))} />
+        <Select label="End of turn" value={draft.play.board.endTurn} options={END_TURN_MODES} labels={END_TURN_LABEL} onChange={(v) => up((c) => void (c.play.board.endTurn = v))} />
         <Select label="Side panel position" value={draft.play.board.panelPosition} options={PANEL_POSITIONS} labels={POSITION_LABEL} onChange={(v) => up((c) => void (c.play.board.panelPosition = v))} />
       </fieldset>
 

@@ -328,13 +328,17 @@ describe('decks and board defaults', () => {
     expect([...loadHidden()].sort()).toEqual(['meta-a.txt', 'meta-c.txt']);
   });
   it('board defaults apply to visitors with nothing saved; saved settings win', () => {
-    setSiteBoardDefaults({ accent: 'cyan', boardBg: 'plain', gigBg: 'dots', payMode: 'before', panelPosition: 'left' });
+    setSiteBoardDefaults({ accent: 'cyan', boardBg: 'plain', gigBg: 'dots', payMode: 'before', endTurn: 'auto', panelPosition: 'left' });
     const st = memoryStorage();
     const fresh = loadBoardSettings(st);
-    expect([fresh.accent, fresh.boardBg, fresh.gigBg, fresh.payMode, fresh.panel.position]).toEqual(['cyan', 'plain', 'dots', 'before', 'left']);
+    expect([fresh.accent, fresh.boardBg, fresh.gigBg, fresh.payMode, fresh.endTurn, fresh.panel.position]).toEqual(['cyan', 'plain', 'dots', 'before', 'auto', 'left']);
     expect(defaultBoardSettings().accent).toBe('cyan');
     st.setItem('nct.boardSettings.v1', JSON.stringify({ v: 1, accent: 'green' }));
     expect(loadBoardSettings(st).accent).toBe('green');
+    // settings saved before the End turn choice existed take the site's default for it; a saved choice wins
+    expect(loadBoardSettings(st).endTurn).toBe('auto');
+    st.setItem('nct.boardSettings.v1', JSON.stringify({ v: 1, endTurn: 'click' }));
+    expect(loadBoardSettings(st).endTurn).toBe('click');
   });
 });
 
@@ -360,7 +364,7 @@ describe('the editor (#/admin)', () => {
       c.nav.sections[0]!.pages = moveItem(c.nav.sections[0]!.pages, 2, -1);
       c.home.sections = moveItem(c.home.sections, 4, -1);
       c.home.featuredDeck = 'meta-rrg-dexter-midrange.txt';
-      c.play = { defaultTier: 'medium', tiers: ['easy', 'medium'], board: { accent: 'amber', boardBg: 'neon', gigBg: 'glow', payMode: 'after', panelPosition: 'bottom' } };
+      c.play = { defaultTier: 'medium', tiers: ['easy', 'medium'], board: { accent: 'amber', boardBg: 'neon', gigBg: 'glow', payMode: 'after', endTurn: 'auto', panelPosition: 'bottom' } };
       c.decks = { hidden: ['meta-a.txt'], sources: ['meta', 'nc'], defaultSort: 'name' };
       c.features.chat = true;
       c.maintenance = { on: true, message: 'Two\nlines', allowPlay: false };

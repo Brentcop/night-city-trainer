@@ -15,6 +15,8 @@ export interface PvpReplay {
   rivalChoices: number[][];
   rivalConceded?: boolean;
   abandoned?: boolean;
+  /** the rival ended their turns with End turn even when nothing else was left (their own setting; absent: automatic) */
+  rivalEndTurnClick?: boolean;
 }
 
 export interface PracticeReviewSpec {
@@ -26,6 +28,8 @@ export interface PracticeReviewSpec {
   choices: number[][];
   payChoice?: boolean;
   orderChoice?: boolean;
+  /** you ended your turns with End turn even when nothing else was left (absent: automatic, as every older record) */
+  endTurnClick?: boolean;
   /** you conceded: the re-simulation ends where your recorded choices end */
   conceded?: boolean;
   /** an online game against a person: both seats replay their recorded answers (src/net/) */
@@ -58,10 +62,10 @@ export function practiceAgents(q: PracticeReviewSpec): [Agent, Agent] {
     const rival = (1 - me) as PlayerId;
     // a record that runs out: where the player conceded, the game was abandoned, or (an old record) a stand-in bot
     const end = (p: PlayerId, conceded: boolean): Agent => (conceded ? concedingSeat(p) : v.abandoned ? abandoning : makeTierBot('medium', 1));
-    const mine = new ScriptedAgent('You', q.choices, end(me, !!q.conceded), true, true);
-    const theirs = new ScriptedAgent('Rival', v.rivalChoices, end(rival, !!v.rivalConceded), true, true);
+    const mine = new ScriptedAgent('You', q.choices, end(me, !!q.conceded), true, true, !!q.endTurnClick);
+    const theirs = new ScriptedAgent('Rival', v.rivalChoices, end(rival, !!v.rivalConceded), true, true, !!v.rivalEndTurnClick);
     return me === 0 ? [mine, theirs] : [theirs, mine];
   }
   const fallback = q.conceded ? conceding : makeTierBot('medium', 1);
-  return [new ScriptedAgent('You', q.choices, fallback, !!q.payChoice, !!q.orderChoice), makeTierBot(q.botLevel, q.botSeed, 'Bot')];
+  return [new ScriptedAgent('You', q.choices, fallback, !!q.payChoice, !!q.orderChoice, !!q.endTurnClick), makeTierBot(q.botLevel, q.botSeed, 'Bot')];
 }

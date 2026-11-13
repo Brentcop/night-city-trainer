@@ -25,6 +25,11 @@ export interface PracticeReplay {
    * that existed lack it, and must be replayed with first-in-first-out resolution to line up.
    */
   orderChoice?: boolean;
+  /**
+   * You ended each turn with End turn even when nothing else was left (the choices include that 'action' answer). Absent:
+   * the turn ended by itself then (games played before this existed, or with the automatic setting).
+   */
+  endTurnClick?: boolean;
   result: 'win' | 'loss' | 'draw';
   /** how many times Undo was used (the recorded choices are the final line of play) */
   undos?: number;
@@ -58,6 +63,7 @@ const isPvp = (x: unknown): x is PvpReplay => {
     (p.seat === 0 || p.seat === 1) &&
     isChoices(p.rivalChoices) &&
     (p.rivalConceded === undefined || typeof p.rivalConceded === 'boolean') &&
+    (p.rivalEndTurnClick === undefined || typeof p.rivalEndTurnClick === 'boolean') &&
     (p.abandoned === undefined || typeof p.abandoned === 'boolean')
   );
 };
@@ -85,6 +91,7 @@ function isReplay(x: unknown): x is PracticeReplay {
     (r.pvp === undefined || isPvp(r.pvp)) &&
     (r.payChoice === undefined || typeof r.payChoice === 'boolean') &&
     (r.orderChoice === undefined || typeof r.orderChoice === 'boolean') &&
+    (r.endTurnClick === undefined || typeof r.endTurnClick === 'boolean') &&
     (r.conceded === undefined || typeof r.conceded === 'boolean') &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
@@ -155,6 +162,7 @@ export function practiceSpec(r: PracticeReplay): PracticeReviewSpec {
     choices: r.choices,
     payChoice: !!r.payChoice,
     orderChoice: !!r.orderChoice,
+    ...(r.endTurnClick ? { endTurnClick: true } : {}),
     conceded: !!r.conceded,
     ...(r.pvp ? { pvp: { ...r.pvp } } : {}),
   };

@@ -67,8 +67,12 @@ export async function chooseMode(game: Game, p: PlayerId, prompt: string, modes:
   return i;
 }
 
+/**
+ * The main-phase action. A single legal action is taken without asking, except ending the turn ("pass" alone) for an
+ * agent with `confirmsEndTurn`: that agent is asked the ordinary 'action' decision with the one option.
+ */
 export async function chooseAction(game: Game, p: PlayerId, actions: Action[]): Promise<Action> {
-  if (actions.length === 1) return actions[0];
+  if (actions.length === 1 && !(actions[0].type === 'pass' && game.agents[p]?.confirmsEndTurn)) return actions[0];
   const [i] = await game.ask({
     player: p,
     kind: 'action',

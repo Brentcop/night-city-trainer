@@ -1,13 +1,16 @@
 // The Play board's settings dialog (gear on the full board's strip, "Settings" in the phone ☰ menu, and a button on
-// the setup screen): paying costs, the side panel (game log and coach notes), colours and backgrounds, plus the bot's
-// pace and the panels kept open for the session (board/prefs.ts). Every change applies at once and is saved in this
-// browser (src/lib/boardSettings.ts, through src/ui/useBoardSettings.ts). The caller renders it at <body>.
+// the setup screen): paying costs, ending your turn, the side panel (game log and coach notes), colours and backgrounds,
+// plus the bot's pace and the panels kept open for the session (board/prefs.ts). Every change applies at once (End of
+// turn from the next game) and is saved in this browser (src/lib/boardSettings.ts, through src/ui/useBoardSettings.ts). The caller renders it at <body>.
 import { useId } from 'react';
 import {
   ACCENT_LABEL,
   ACCENTS,
   BOARD_BACKGROUNDS,
   BOARD_BG_LABEL,
+  END_TURN_HELP,
+  END_TURN_LABEL,
+  END_TURN_MODES,
   GIG_BACKGROUNDS,
   GIG_BG_LABEL,
   PANEL_POSITIONS,
@@ -25,6 +28,7 @@ import {
 import { Modal } from '../Modal';
 import { BOT_SPEEDS } from './prefs';
 
+export const END_TURN_NOTE = 'A change applies from your next game. Multi-day games against a person always end the turn by itself.';
 export const PAY_NOTE = 'Eddies are interchangeable in the current rules, so choosing changes nothing in the game unless a Legend could pay instead.';
 
 /** Panels that stay open for the browser session (shown only during a game). */
@@ -109,6 +113,19 @@ export function SettingsDialog({
           ))}
         </div>
         <p className="small muted pb-set-note">{PAY_NOTE}</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>End of turn</legend>
+        <div className="pb-set-choices" role="radiogroup" aria-label="End of turn">
+          {END_TURN_MODES.map((m) => (
+            <Choice key={m} name={`${name}-endturn`} value={m} checked={settings.endTurn === m} onPick={() => onChange({ endTurn: m })}>
+              <b>{END_TURN_LABEL[m]}</b>
+              <span className="small muted">{END_TURN_HELP[m]}</span>
+            </Choice>
+          ))}
+        </div>
+        <p className="small muted pb-set-note">{END_TURN_NOTE}</p>
       </fieldset>
 
       <fieldset>

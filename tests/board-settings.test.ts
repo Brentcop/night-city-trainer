@@ -22,11 +22,12 @@ function memStore() {
 }
 
 describe('board settings store', () => {
-  it('defaults: automatic payment, the panel on the right as today, the yellow accent and the grid board', () => {
+  it('defaults: automatic payment, End turn clicked, the panel on the right as today, the yellow accent and the grid board', () => {
     expect(BOARD_SETTINGS_KEY).toBe('nct.boardSettings.v1');
     expect(defaultBoardSettings()).toEqual({
       v: 1,
       payMode: 'auto',
+      endTurn: 'click',
       panel: { position: 'right', density: 'detailed', textSize: 'medium', order: 'newest-last', turnMarkers: true, autoOpenRivalTurn: false },
       accent: 'yellow',
       boardBg: 'grid',

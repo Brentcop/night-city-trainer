@@ -4,7 +4,20 @@
 // it (which pages are on, the nav, the banner's dates). The React side is src/ui/useSiteConfig.ts; the reference is
 // docs/SITE_CONFIG.md. Every string is plain text (React renders it as text, never HTML) and capped in length; links
 // are same-site hash routes (#/…) or https addresses.
-import { ACCENTS, BOARD_BACKGROUNDS, GIG_BACKGROUNDS, PANEL_POSITIONS, PAY_MODES, type Accent, type BoardBackground, type GigBackground, type PanelPosition, type PayMode } from './boardSettings';
+import {
+  ACCENTS,
+  BOARD_BACKGROUNDS,
+  END_TURN_MODES,
+  GIG_BACKGROUNDS,
+  PANEL_POSITIONS,
+  PAY_MODES,
+  type Accent,
+  type BoardBackground,
+  type EndTurnMode,
+  type GigBackground,
+  type PanelPosition,
+  type PayMode,
+} from './boardSettings';
 import { SORTS, type GallerySort } from './galleryView';
 import { SOURCES, type SourceKey } from './deckSource';
 import { EVENT } from '../content/event';
@@ -175,7 +188,7 @@ export interface SiteConfig {
     defaultTier: TierKey;
     tiers: TierKey[];
     /** board settings for visitors who have not saved their own */
-    board: { accent: Accent; boardBg: BoardBackground; gigBg: GigBackground; payMode: PayMode; panelPosition: PanelPosition };
+    board: { accent: Accent; boardBg: BoardBackground; gigBg: GigBackground; payMode: PayMode; endTurn: EndTurnMode; panelPosition: PanelPosition };
   };
   decks: {
     /** library deck files hidden for everyone by default (a visitor can unhide one for themselves) */
@@ -224,7 +237,7 @@ export function defaultSiteConfig(): SiteConfig {
       featuredEvent: '',
       nextEvent: { name: EVENT.name, start: EVENT.startText, detail: EVENT.detail },
     },
-    play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', panelPosition: 'right' } },
+    play: { defaultTier: 'hard', tiers: [...TIER_KEYS], board: { accent: 'yellow', boardBg: 'grid', gigBg: 'panel', payMode: 'auto', endTurn: 'click', panelPosition: 'right' } },
     decks: { hidden: [], sources: SOURCES.map((s) => s.key), defaultSort: 'rating' },
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
     multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0 },
@@ -459,7 +472,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     r.err('play.defaultTier', `${defaultTier} is not one of the offered tiers; ${fb} is used`);
     defaultTier = fb;
   }
-  const pb = r.obj(p.board, 'play.board', ['accent', 'boardBg', 'gigBg', 'payMode', 'panelPosition']);
+  const pb = r.obj(p.board, 'play.board', ['accent', 'boardBg', 'gigBg', 'payMode', 'endTurn', 'panelPosition']);
   const play: SiteConfig['play'] = {
     defaultTier,
     tiers,
@@ -468,6 +481,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
       boardBg: r.pick(pb.boardBg, 'play.board.boardBg', BOARD_BACKGROUNDS, d.play.board.boardBg),
       gigBg: r.pick(pb.gigBg, 'play.board.gigBg', GIG_BACKGROUNDS, d.play.board.gigBg),
       payMode: r.pick(pb.payMode, 'play.board.payMode', PAY_MODES, d.play.board.payMode),
+      endTurn: r.pick(pb.endTurn, 'play.board.endTurn', END_TURN_MODES, d.play.board.endTurn),
       panelPosition: r.pick(pb.panelPosition, 'play.board.panelPosition', PANEL_POSITIONS, d.play.board.panelPosition),
     },
   };

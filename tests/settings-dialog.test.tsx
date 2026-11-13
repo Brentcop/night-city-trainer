@@ -3,8 +3,8 @@
 // display options applied to the log. Server-rendered: there is no DOM here.
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ACCENTS, applyPatch, BOARD_BACKGROUNDS, defaultBoardSettings, GIG_BACKGROUNDS, PAY_MODES } from '../src/lib/boardSettings';
-import { SettingsDialog, PAY_NOTE } from '../src/ui/components/board/SettingsDialog';
+import { ACCENTS, applyPatch, BOARD_BACKGROUNDS, defaultBoardSettings, END_TURN_MODES, GIG_BACKGROUNDS, PAY_MODES } from '../src/lib/boardSettings';
+import { END_TURN_NOTE, SettingsDialog, PAY_NOTE } from '../src/ui/components/board/SettingsDialog';
 import { INTERCHANGEABLE_NOTE, PayPrompt, PaySelector } from '../src/ui/components/board/PayParts';
 import { GameMenu } from '../src/ui/components/board/PhoneParts';
 import { LogDrawer, visibleLines } from '../src/ui/components/board/LogDrawer';
@@ -39,20 +39,24 @@ describe('settings dialog', () => {
     const html = render();
     const id = dialog(html);
     expect(html).toMatch(new RegExp(`id="${id.replace(/:/g, '\\:')}"[^>]*>Settings<`));
-    for (const legend of ['Paying costs', 'Side panel (game log and coach)', 'Colours', 'Board background', 'Gig area background', 'Bot']) expect(html).toContain(`<legend>${legend}</legend>`);
+    for (const legend of ['Paying costs', 'End of turn', 'Side panel (game log and coach)', 'Colours', 'Board background', 'Gig area background', 'Bot']) expect(html).toContain(`<legend>${legend}</legend>`);
     expect(html).toContain('Reset to defaults');
     expect(html).toContain('>Done<');
     // the honest line about Eddies
     expect(html).toContain(PAY_NOTE.replace(/'/g, '&#x27;'));
+    // End turn: the default is to click it, and a change applies to the next game
+    expect(html).toContain('Click End turn');
+    expect(html).toContain('End automatically when nothing is left to do');
+    expect(html).toContain(END_TURN_NOTE);
   });
 
   it('one radio per choice, the current one checked, every radio inside its label', () => {
-    const s = applyPatch(defaultBoardSettings(), { payMode: 'after', accent: 'cb', boardBg: 'neon', gigBg: 'stripes' });
+    const s = applyPatch(defaultBoardSettings(), { payMode: 'after', endTurn: 'auto', accent: 'cb', boardBg: 'neon', gigBg: 'stripes' });
     const html = render(s);
     const radios = html.match(/<input type="radio"[^>]*>/g) ?? [];
-    expect(radios.length).toBe(PAY_MODES.length + ACCENTS.length + BOARD_BACKGROUNDS.length + GIG_BACKGROUNDS.length);
+    expect(radios.length).toBe(PAY_MODES.length + END_TURN_MODES.length + ACCENTS.length + BOARD_BACKGROUNDS.length + GIG_BACKGROUNDS.length);
     const checked = radios.filter((r) => r.includes('checked=""')).map((r) => r.match(/value="([^"]+)"/)?.[1]);
-    expect(checked).toEqual(['after', 'cb', 'neon', 'stripes']);
+    expect(checked).toEqual(['after', 'auto', 'cb', 'neon', 'stripes']);
     expect((html.match(/<label class="pb-set-choice"><input type="radio"/g) ?? []).length).toBe(radios.length);
     // previews carry the attribute their CSS keys on
     expect(html).toContain('data-accent="cb"');

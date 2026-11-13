@@ -72,6 +72,7 @@ file.
 | `play.board.boardBg` | `"grid"` | Board background: `grid`, `plain`, `circuit`, `dots`, `scanlines`, `neon`. |
 | `play.board.gigBg` | `"panel"` | Gig area background: `panel`, `plain`, `stripes`, `dots`, `grid`, `glow`. |
 | `play.board.payMode` | `"auto"` | Paying costs: `auto`, `before`, `after`. |
+| `play.board.endTurn` | `"click"` | End of turn: `click` (the player clicks End turn every turn) or `auto` (the turn ends by itself when nothing is left to do). Also used for a visitor whose saved settings predate this choice. A game keeps the mode it started with. |
 | `play.board.panelPosition` | `"right"` | Side panel: `right`, `left`, `bottom`, `hidden`. |
 | (rule) | | A visitor's own saved board settings always win over `play.board`. |
 | `decks.hidden` | `[]` | Built-in deck files hidden for everyone by default. A visitor can still show them ("Show hidden") and unhide one for themselves; that choice is kept in their browser. Hidden decks stay reachable by link and in events. |

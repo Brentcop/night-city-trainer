@@ -11,6 +11,13 @@ export const BOARD_SETTINGS_VERSION = 1;
 export const PAY_MODES = ['auto', 'before', 'after'] as const;
 export type PayMode = (typeof PAY_MODES)[number];
 
+/**
+ * Ending your turn: you click End turn every turn (the default), or the turn ends by itself once nothing else is left
+ * to do. A game keeps the mode it started with (its record says which), so a change applies to the next game.
+ */
+export const END_TURN_MODES = ['click', 'auto'] as const;
+export type EndTurnMode = (typeof END_TURN_MODES)[number];
+
 /** Where the side panel sits on the full board (phones always use their bottom sheet, but honour 'hidden'). */
 export const PANEL_POSITIONS = ['right', 'left', 'bottom', 'hidden'] as const;
 export type PanelPosition = (typeof PANEL_POSITIONS)[number];
@@ -44,6 +51,7 @@ export interface SidePanelSettings {
 export interface BoardSettings {
   v: typeof BOARD_SETTINGS_VERSION;
   payMode: PayMode;
+  endTurn: EndTurnMode;
   panel: SidePanelSettings;
   accent: Accent;
   boardBg: BoardBackground;
@@ -53,6 +61,7 @@ export interface BoardSettings {
 export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
   v: BOARD_SETTINGS_VERSION,
   payMode: 'auto',
+  endTurn: 'click',
   panel: Object.freeze({
     position: 'right',
     density: 'detailed',
@@ -67,7 +76,7 @@ export const DEFAULT_BOARD_SETTINGS: Readonly<BoardSettings> = Object.freeze({
 }) as BoardSettings;
 
 /** The site owner's defaults for new visitors (play.board in the site config, set by src/ui/useSiteConfig.ts). */
-let siteDefaults: { accent?: Accent; boardBg?: BoardBackground; gigBg?: GigBackground; payMode?: PayMode; panelPosition?: PanelPosition } = {};
+let siteDefaults: { accent?: Accent; boardBg?: BoardBackground; gigBg?: GigBackground; payMode?: PayMode; endTurn?: EndTurnMode; panelPosition?: PanelPosition } = {};
 export function setSiteBoardDefaults(d: typeof siteDefaults): void {
   siteDefaults = { ...d };
 }
@@ -99,6 +108,7 @@ export function parseBoardSettings(raw: unknown): BoardSettings {
   return {
     v: BOARD_SETTINGS_VERSION,
     payMode: pick(PAY_MODES, o.payMode, d.payMode),
+    endTurn: pick(END_TURN_MODES, o.endTurn, d.endTurn),
     panel: {
       position: pick(PANEL_POSITIONS, p.position, d.panel.position),
       density: pick(PANEL_DENSITIES, p.density, d.panel.density),
@@ -135,7 +145,12 @@ export function loadBoardSettings(store: Store | null = localStore()): BoardSett
   try {
     const text = store?.getItem(BOARD_SETTINGS_KEY);
     // nothing saved: the site's defaults (a visitor's own saved settings always win)
-    return text ? parseBoardSettings(JSON.parse(text)) : defaultBoardSettings();
+    if (!text) return defaultBoardSettings();
+    const raw: unknown = JSON.parse(text);
+    const s = parseBoardSettings(raw);
+    // settings saved before the End turn choice existed take the site's default for it
+    if (!isObj(raw) || raw.endTurn === undefined) s.endTurn = defaultBoardSettings().endTurn;
+    return s;
   } catch {
     return defaultBoardSettings();
   }
@@ -159,6 +174,14 @@ export const PAY_MODE_HELP: Record<PayMode, string> = {
   auto: 'The game spends your Eddies for you. You are asked only when a Legend could pay instead.',
   before: 'Select what to spend first (tap your €$ pile or the "Pay with" row), then play the card.',
   after: 'Play the card, then pick what to spend. Cancel takes the play back.',
+};
+export const END_TURN_LABEL: Record<EndTurnMode, string> = {
+  click: 'Click End turn',
+  auto: 'End automatically when nothing is left to do',
+};
+export const END_TURN_HELP: Record<EndTurnMode, string> = {
+  click: 'Your turn ends only when you click End turn.',
+  auto: 'When the only thing left is to end your turn, it ends by itself.',
 };
 export const POSITION_LABEL: Record<PanelPosition, string> = { right: 'Right', left: 'Left', bottom: 'Bottom', hidden: 'Hidden' };
 export const ACCENT_LABEL: Record<Accent, string> = {

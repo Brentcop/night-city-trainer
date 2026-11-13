@@ -46,6 +46,14 @@ export const EMPTY_IX: Interaction = {
   buttonOpts: [],
 };
 
+/**
+ * Your turn with nothing left to do but end it: a main-phase decision whose one option is to pass. The engine asks it
+ * only of a seat that ends its turns by hand (`confirmsEndTurn`). It is forced: the coach neither advises nor grades it.
+ */
+export function onlyEndTurn(d: Decision | null | undefined): boolean {
+  return !!d && d.kind === 'action' && d.options.length === 1 && (d.options[0]?.action as Action | undefined)?.type === 'pass';
+}
+
 function safeName(g: Game, uid: number): string {
   try {
     return g.name(uid);

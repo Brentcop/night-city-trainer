@@ -65,6 +65,7 @@ export function replayOf(o: OnlineOutcome, rec: GameRecordMsg, seat: PlayerId): 
     choices: rec.answers[seat].map((a) => [...a]),
     payChoice: true,
     orderChoice: true,
+    ...(rec.endTurnClick?.[seat] ? { endTurnClick: true } : {}),
     result: o.result,
     ...(o.conceded ? { conceded: true } : {}),
     pvp: {
@@ -72,6 +73,7 @@ export function replayOf(o: OnlineOutcome, rec: GameRecordMsg, seat: PlayerId): 
       seat,
       rivalChoices: rec.answers[rival].map((a) => [...a]),
       ...(o.rivalConceded ? { rivalConceded: true } : {}),
+      ...(rec.endTurnClick?.[rival] ? { rivalEndTurnClick: true } : {}),
       ...(o.abandoned ? { abandoned: true } : {}),
     },
     ...(o.multiDay ? { multiDay: { ...o.multiDay } } : {}),

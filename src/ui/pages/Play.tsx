@@ -21,7 +21,7 @@ import { seatLift } from '../../ai/packageLift';
 import { boardWarnings, coachAdvises, gradeMove, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
-import { boardMarks, buildInteraction, coachMark, type Targeting } from '../components/board/interaction';
+import { boardMarks, buildInteraction, coachMark, onlyEndTurn, type Targeting } from '../components/board/interaction';
 import type { BoardCtx } from '../components/board/BoardCard';
 import { MyHand, PlayerSide } from '../components/board/Zones';
 import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
@@ -180,7 +180,8 @@ function PracticePlay({ initialDeck, initialOpp, online }: { initialDeck?: strin
     if (!A || !B) return;
     const first: PlayerId | undefined = seat === 'first' ? 0 : seat === 'second' ? 1 : undefined;
     const decks: [DeckList, DeckList] = [gameDeck(A), gameDeck(B)];
-    const m = { decks, seed: Math.floor(Math.random() * 2 ** 31), first, level, botSeed: Date.now() % 100000 };
+    // the End turn setting is fixed for the game when it starts (a change applies to the next game)
+    const m = { decks, seed: Math.floor(Math.random() * 2 ** 31), first, level, botSeed: Date.now() % 100000, ...(settings.endTurn === 'click' ? { endTurnClick: true } : {}) };
     if (mdWanted) {
       if (!mdBlocked) startMultiDay(m, mdDays);
     } else startMatch(m);
@@ -583,7 +584,8 @@ export function Board({
 
   // coach: ask the advisor bot what it would do in this spot
   useEffect(() => {
-    if (!pend || !coach || !coachAdvises(pend)) return;
+    // nothing to advise when ending the turn is the only option left (a forced decision: not graded either)
+    if (!pend || !coach || !coachAdvises(pend) || onlyEndTurn(pend)) return;
     let alive = true;
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend, lift0)
@@ -823,7 +825,7 @@ export function Board({
   } else if (pend?.kind === 'action') {
     handAction =
       ix.passIndex !== null ? (
-        <button className={`pb-endturn primary ${ctx.coach?.i === ix.passIndex ? 'pb-coach-btn' : ''}`} onClick={() => answer(ix.passIndex!)}>
+        <button className={`pb-endturn primary ${onlyEndTurn(pend) ? 'pb-endturn-now' : ''} ${ctx.coach?.i === ix.passIndex ? 'pb-coach-btn' : ''}`} onClick={() => answer(ix.passIndex!)}>
           End turn
         </button>
       ) : (

@@ -195,6 +195,7 @@ export class GameRecorder {
       name: a.name,
       ...(a.choosesPayment ? { choosesPayment: true } : {}),
       ...(a.choosesOrder ? { choosesOrder: true } : {}),
+      ...(a.confirmsEndTurn ? { confirmsEndTurn: true } : {}),
       decide: async (g, d) => {
         const k = this.answers.length;
         this.metas.push(describeDecision(g, d, k));

@@ -301,6 +301,12 @@ export interface Agent {
    * the order they became pending (first in, first out) and nothing is asked: that is the bots' ordering policy.
    */
   choosesOrder?: boolean;
+  /**
+   * Opt in to ending your own turn by hand: when set, a main phase whose only legal action is to pass (end the turn)
+   * asks the ordinary 'action' decision with that one option instead of ending the turn by itself. Nothing else that
+   * has a single option starts asking. When unset (all bots), the turn ends at once, as before.
+   */
+  confirmsEndTurn?: boolean;
   decide(g: import('./engine').Game, d: Decision): Promise<number[]>;
 }
 

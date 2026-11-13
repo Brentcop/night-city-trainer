@@ -51,10 +51,13 @@ export interface GameRecordMsg {
   decks: [DeckMsg, DeckMsg];
   /** each seat's answers, in engine seat order (the host is seat 0) */
   answers: [number[][], number[][]];
+  /** per seat, it ended its turns with End turn even when nothing else was left (absent: both automatic) */
+  endTurnClick?: [boolean, boolean];
 }
 
 export type GuestMsg =
-  | { v: 1; t: 'hello'; name: string; deck: DeckMsg; resume?: { game: string; token: string } }
+  /** `endTurnClick`: the guest ends its turns with End turn even when nothing else is left (its own setting; absent: automatic) */
+  | { v: 1; t: 'hello'; name: string; deck: DeckMsg; resume?: { game: string; token: string }; endTurnClick?: boolean }
   | { v: 1; t: 'commit'; h: string }
   | { v: 1; t: 'reveal'; n: string }
   | { v: 1; t: 'first'; first: boolean }
@@ -184,6 +187,7 @@ export function parseGuestMessage(text: unknown): Parsed<GuestMsg> {
           const r = obj(m.resume, 'resume');
           out.resume = { game: str(r.game, 'resume.game', CAPS.gameId), token: str(r.token, 'resume.token', CAPS.token) };
         }
+        if (m.endTurnClick !== undefined && bool(m.endTurnClick, 'endTurnClick')) out.endTurnClick = true;
         return { ok: true, msg: out };
       }
       case 'commit':
@@ -385,7 +389,16 @@ export function readRecord(v: unknown): GameRecordMsg {
   const decks = list(r.decks, 'record.decks', 2, readDeck);
   const answers = list(r.answers, 'record.answers', 2, (x, i) => ans(x, `answers[${i}]`));
   if (decks.length !== 2 || answers.length !== 2) fail('record needs two decks and two answer lists');
-  return { game: str(r.game, 'record.game', CAPS.gameId), seed: int(r.seed, 'record.seed', 0, 2 ** 32), first: seat(r.first, 'record.first'), decks: [decks[0]!, decks[1]!], answers: [answers[0]!, answers[1]!] };
+  const click = r.endTurnClick === undefined ? null : list(r.endTurnClick, 'record.endTurnClick', 2, (x, i) => bool(x, `endTurnClick[${i}]`));
+  if (click && click.length !== 2) fail('record.endTurnClick needs two seats');
+  return {
+    game: str(r.game, 'record.game', CAPS.gameId),
+    seed: int(r.seed, 'record.seed', 0, 2 ** 32),
+    first: seat(r.first, 'record.first'),
+    decks: [decks[0]!, decks[1]!],
+    answers: [answers[0]!, answers[1]!],
+    ...(click && (click[0] || click[1]) ? { endTurnClick: [click[0]!, click[1]!] as [boolean, boolean] } : {}),
+  };
 }
 
 export function parseHostMessage(text: unknown): Parsed<HostMsg> {

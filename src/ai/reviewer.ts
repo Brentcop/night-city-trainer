@@ -93,11 +93,13 @@ export interface SkippedDecision {
   chosenRank?: number;
 }
 
-/** Every answer a seat gave, with its agent's payment and order flags (a ScriptedAgent needs both to line up). */
+/** Every answer a seat gave, with its agent's payment, order and End turn flags (a ScriptedAgent needs them to line up). */
 export interface SeatAnswers {
   choices: number[][];
   pay: boolean;
   order: boolean;
+  /** the seat ended its turns by hand (confirmsEndTurn); absent in reviews stored before it existed: false */
+  endTurn?: boolean;
 }
 export interface CatStat {
   n: number;
@@ -319,6 +321,7 @@ class ReviewAgent implements Agent {
   name: string;
   choosesPayment?: boolean;
   choosesOrder?: boolean;
+  confirmsEndTurn?: boolean;
   out: DecisionReview[] = [];
   timeline: { turn: number; v: number }[] = [];
   skipped: SkippedDecision[] = [];
@@ -339,6 +342,7 @@ class ReviewAgent implements Agent {
     this.name = inner.name;
     this.choosesPayment = inner.choosesPayment;
     this.choosesOrder = inner.choosesOrder;
+    this.confirmsEndTurn = inner.confirmsEndTurn;
     this.rnd = rng(seed * 31 + seat * 7 + 1);
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
@@ -564,12 +568,12 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
   };
 }
 
-const answersOf = (a: ReviewAgent): SeatAnswers => ({ choices: a.answers, pay: !!a.choosesPayment, order: !!a.choosesOrder });
+const answersOf = (a: ReviewAgent): SeatAnswers => ({ choices: a.answers, pay: !!a.choosesPayment, order: !!a.choosesOrder, ...(a.confirmsEndTurn ? { endTurn: true } : {}) });
 
 /**
  * An agent that replays recorded choices (a human's game). Falls back to `fallback` if the record runs out.
- * `choosesPayment` and `choosesOrder` must match the recording (a practice replay's `payChoice` and `orderChoice`), or
- * the choices won't line up.
+ * `choosesPayment`, `choosesOrder` and `confirmsEndTurn` must match the recording (a practice replay's `payChoice`,
+ * `orderChoice` and `endTurnClick`), or the choices won't line up.
  */
 export class ScriptedAgent implements Agent {
   private k = 0;
@@ -579,6 +583,7 @@ export class ScriptedAgent implements Agent {
     private fallback: Agent,
     public choosesPayment = false,
     public choosesOrder = false,
+    public confirmsEndTurn = false,
   ) {}
   async decide(g: Game, d: Decision): Promise<number[]> {
     if (this.k < this.choices.length) return this.choices[this.k++];

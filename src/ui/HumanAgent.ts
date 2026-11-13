@@ -11,6 +11,15 @@ export class HumanAgent implements Agent {
   readonly choosesPayment = true;
   /** you choose the order of your own pending effects (an 'order' decision when 2+ would each do something) */
   readonly choosesOrder = true;
+  /**
+   * you end your turn with the End turn button even when nothing else is left to do (an 'action' decision with the one
+   * option); false: the turn ends by itself then. Fixed for the game (its record says which: `endTurnClick`).
+   */
+  readonly confirmsEndTurn: boolean;
+
+  constructor(o: { confirmsEndTurn?: boolean } = {}) {
+    this.confirmsEndTurn = !!o.confirmsEndTurn;
+  }
 
   decide(_g: Game, d: Decision): Promise<number[]> {
     return new Promise((resolve, reject) => {

@@ -4,7 +4,7 @@ import { memo } from 'react';
 import type { Decision } from '../../../engine/types';
 import { CardBack, TcgCard } from '../TcgCard';
 import { hiddenFromMe, type BoardCtx } from './BoardCard';
-import { promptChoices } from './interaction';
+import { onlyEndTurn, promptChoices } from './interaction';
 
 /** One-line headline for the middle of the table. */
 export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 'alert' | 'idle' } {
@@ -12,6 +12,7 @@ export function headline(ctx: BoardCtx): { text: string; tone: 'me' | 'rival' | 
   if (g.s.winner !== null) return { text: g.s.winner === 0 ? 'You win!' : g.s.winner === 1 ? 'Rival wins' : 'Draw', tone: 'idle' };
   if (targeting) return { text: `Choose a target for ${g.name(targeting.attacker)} — a glowing unit or the Gig area`, tone: 'me' };
   if (!pend) return { text: ctx.rivalName ? `Waiting for ${ctx.rivalName}…` : g.s.active === 1 ? "Rival's turn…" : 'Resolving…', tone: 'rival' };
+  if (onlyEndTurn(pend)) return { text: 'Nothing left to do: end your turn', tone: 'me' };
   if (pend.kind === 'action') return { text: 'Your move — click a marked card to act, or end your turn', tone: 'me' };
   if (pend.kind === 'reaction') {
     const a = g.s.attack;
@@ -75,6 +76,15 @@ export function PromptPanel({ ctx, why, hidePass }: { ctx: BoardCtx; why?: strin
             Cancel
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (onlyEndTurn(pend)) {
+    return (
+      <div className="pb-prompt">
+        <b>Nothing left to do: end your turn</b>
+        {!hidePass && ix.passIndex !== null && <div className="pb-opts">{btn(ix.passIndex, 'End turn', true)}</div>}
       </div>
     );
   }

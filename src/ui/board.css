@@ -437,6 +437,21 @@
   padding: 10px 18px;
   letter-spacing: 0.04em;
 }
+/* nothing left to do but end the turn: the button is the one thing to press */
+.pb-endturn.pb-endturn-now {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 14px var(--accent);
+  animation: pb-endturn-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pb-endturn-pulse {
+  50% {
+    box-shadow: 0 0 0 2px var(--accent), 0 0 4px var(--accent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pb-endturn.pb-endturn-now {
+    animation: none;
+  }
+}
 .pb-hand {
   flex: 1;
   min-width: 0;
