@@ -2919,3 +2919,65 @@ button.pb-pp-min {
   gap: 8px;
   justify-content: space-between;
 }
+
+/* ---- Eddies under the Legends (desktop and tablet): everything that pays a cost sits together ---- */
+.pb-eddie-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  min-height: calc(var(--ew) * 1.4 + 4px);
+  --ew: calc(var(--tcg-w, 64px) * 0.44);
+}
+.pb-eddie-row.pb-sell-zone {
+  cursor: pointer;
+}
+.pb-eddie-row .pb-pile-cap {
+  flex: none;
+}
+.pb-eddie-cards {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.pb-eddie {
+  flex: none;
+  display: block;
+  --tcg-w: var(--ew);
+  margin-left: calc(var(--ew) * -0.25);
+  border-radius: 3px;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.pb-eddie:first-child {
+  margin-left: 0;
+}
+.pb-eddie .tcg-back-label {
+  display: none;
+}
+/* a spent Eddie lies sideways and fades, like a spent Legend */
+.pb-eddie.off {
+  opacity: 0.4;
+  transform: rotate(90deg) scale(0.8);
+  filter: grayscale(0.7);
+}
+.pb-eddie.sel {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  transform: translateY(-3px);
+}
+.pb-eddie-more,
+.pb-eddie-none {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pb-full .pb-legends .pb-eddie-row {
+  /* never widens the Legends column */
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}

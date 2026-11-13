@@ -73,12 +73,83 @@ function GigArea({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   );
 }
 
-function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
+/**
+ * A player's Eddies. `row`: laid out as a row of face-down cards under the Legends (desktop and tablet), so everything
+ * that pays a cost sits together and a spent Eddie looks spent; otherwise the pile with pips (phones).
+ */
+function EddiePile({ p, ctx, row }: { p: PlayerId; ctx: BoardCtx; row?: boolean }) {
+  const { g } = ctx;
+  const P = g.P(p);
+  const ready = P.eddies.filter((u) => g.s.cards[u] && !g.s.cards[u].spent).length;
+  const total = P.eddies.length;
+  // paying a cost: clicking your Eddie pile spends an Eddie
+  const payEddie = p === 0 && ctx.pend?.kind === 'pay' ? ctx.pend.options.findIndex((o) => o.key === 'eddie') : -1;
+  // "Choose before playing": a tap on your €$ pile selects one more Eddie for the next cost
+  const pick = p === 0 && payEddie < 0 ? ctx.eddiePick : undefined;
+  const onPile = payEddie >= 0 ? () => ctx.answer(payEddie) : pick ? pick.add : undefined;
+  // ready Eddies come first in the order of selection: the first `selected` ready ones are marked
+  let readySeen = 0;
+  const marks = P.eddies.slice(0, row ? 14 : 12).map((u) => {
+    const spent = !!g.s.cards[u]?.spent;
+    const sel = !spent && !!pick && readySeen++ < pick.selected;
+    return { u, cls: `${spent ? 'off' : 'on'}${sel ? ' sel' : ''}` };
+  });
+  return (
+        <div
+          className={`${row ? 'pb-eddie-row' : 'pb-pile'} ${p === 0 ? 'pb-sell-zone' : ''} ${p === 0 && ctx.drag?.over?.kind === 'sell' ? 'pb-drop-over' : ''}`}
+          data-drop={p === 0 ? 'sell' : undefined}
+          title={
+            payEddie >= 0
+              ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.`
+              : pick
+                ? `Eddies: ${ready} ready of ${total}, ${pick.selected} selected to pay. Click to select one more.`
+                : p === 0
+                  ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.`
+                  : `Eddies: ${ready} ready of ${total}`
+          }
+          onClick={onPile}
+          {...pressable(onPile, payEddie >= 0 ? 'Spend an Eddie' : `Select an Eddie to pay with (${pick?.selected ?? 0} selected)`)}
+        >
+          {row ? (
+            <>
+              <div className="pb-pile-cap">
+                €$ <b>{ready}</b>/{total}
+                {pick && pick.selected > 0 && <span className="pb-pay-count"> · {pick.selected} sel.</span>}
+              </div>
+              <div className="pb-eddie-cards">
+                {marks.map((m) => (
+                  <span key={m.u} className={`pb-eddie ${m.cls}`}>
+                    <CardBack size="xs" label="€$" />
+                  </span>
+                ))}
+                {total > marks.length && <span className="pb-eddie-more">+{total - marks.length}</span>}
+                {!total && <span className="pb-eddie-none">{p === 0 ? 'sell a card for an Eddie' : 'no Eddies'}</span>}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={`pb-stack ${total ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(total, 5) }}>
+                {total ? <CardBack size="xs" label="€$" /> : <div className="pb-empty-slot">€$</div>}
+              </div>
+              <div className="pb-pile-cap">
+                €$ <b>{ready}</b>/{total}
+                {pick && pick.selected > 0 && <span className="pb-pay-count"> · {pick.selected} sel.</span>}
+              </div>
+              <div className="pb-pips">
+                {marks.map((m) => (
+                  <i key={m.u} className={m.cls} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+  );
+}
+
+function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: boolean }) {
   const { g } = ctx;
   const P = g.P(p);
   const top = P.trash[P.trash.length - 1];
-  const ready = P.eddies.filter((u) => g.s.cards[u] && !g.s.cards[u].spent).length;
-  const total = P.eddies.length;
   // paying a cost: clicking your Eddie pile spends an Eddie
   const payEddie = p === 0 && ctx.pend?.kind === 'pay' ? ctx.pend.options.findIndex((o) => o.key === 'eddie') : -1;
   // "Choose before playing": a tap on your €$ pile selects one more Eddie for the next cost
@@ -87,44 +158,13 @@ function Piles({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   // phones: the piles are a column of counts, and the whole column is one tap target for the trash (unless paying,
   // when your €$ count spends or selects an Eddie)
   const columnOpens = !!ctx.inspect && !onPile;
-  // ready Eddies come first in the pips' order of selection: the first `selected` ready ones are marked
-  let readySeen = 0;
   return (
     <div
       className={`pb-piles ${columnOpens ? 'pb-piles-tap' : ''}`}
       onClick={columnOpens ? () => ctx.openTrash(p) : undefined}
       {...pressable(columnOpens ? () => ctx.openTrash(p) : undefined, `${p === 0 ? 'Your' : "The rival's"} piles: open the trash (${P.trash.length} cards)`)}
     >
-      <div
-        className={`pb-pile ${p === 0 ? 'pb-sell-zone' : ''} ${p === 0 && ctx.drag?.over?.kind === 'sell' ? 'pb-drop-over' : ''}`}
-        data-drop={p === 0 ? 'sell' : undefined}
-        title={
-          payEddie >= 0
-            ? `Eddies: ${ready} ready of ${total}. Click to spend an Eddie.`
-            : pick
-              ? `Eddies: ${ready} ready of ${total}, ${pick.selected} selected to pay. Click to select one more.`
-              : p === 0
-                ? `Eddies: ${ready} ready of ${total}. Drag a card here to sell it.`
-                : `Eddies: ${ready} ready of ${total}`
-        }
-        onClick={onPile}
-        {...pressable(onPile, payEddie >= 0 ? 'Spend an Eddie' : `Select an Eddie to pay with (${pick?.selected ?? 0} selected)`)}
-      >
-        <div className={`pb-stack ${total ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(total, 5) }}>
-          {total ? <CardBack size="xs" label="€$" /> : <div className="pb-empty-slot">€$</div>}
-        </div>
-        <div className="pb-pile-cap">
-          €$ <b>{ready}</b>/{total}
-          {pick && pick.selected > 0 && <span className="pb-pay-count"> · {pick.selected} sel.</span>}
-        </div>
-        <div className="pb-pips">
-          {P.eddies.slice(0, 12).map((u) => {
-            const spent = !!g.s.cards[u]?.spent;
-            const sel = !spent && !!pick && readySeen++ < pick.selected;
-            return <i key={u} className={`${spent ? 'off' : 'on'}${sel ? ' sel' : ''}`} />;
-          })}
-        </div>
-      </div>
+      {!byLegends && <EddiePile p={p} ctx={ctx} />}
       <div className="pb-pile" title={`Deck: ${P.deck.length} cards`}>
         <div className={`pb-stack ${P.deck.length ? '' : 'pb-empty'}`} style={{ ['--n' as any]: Math.min(P.deck.length, 5) }}>
           {P.deck.length ? <CardBack size="xs" /> : <div className="pb-empty-slot">deck</div>}
@@ -203,6 +243,8 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
   const me = p === 0;
   const size = ctx.narrow ? 'xs' : 'sm';
   const active = g.s.active === p && g.s.winner === null;
+  // desktop and tablet: the Eddies sit under the Legends (phones keep the count in the piles column)
+  const eddiesByLegends = !ctx.inspect;
   const legends = (
     <div className="pb-zone pb-legends">
       <div className="pb-label">Legends</div>
@@ -211,13 +253,14 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
           <BoardCard key={u} uid={u} size={size} ctx={ctx} />
         ))}
       </div>
+      {eddiesByLegends && <EddiePile p={p} ctx={ctx} row />}
     </div>
   );
   const backRow = (
     <div className="pb-row pb-backrow">
       {legends}
       <GigArea p={p} ctx={ctx} />
-      <Piles p={p} ctx={ctx} />
+      <Piles p={p} ctx={ctx} byLegends={eddiesByLegends} />
     </div>
   );
   // --n: how many card widths the field needs (a spent card lies sideways and takes a bit more); the full board
