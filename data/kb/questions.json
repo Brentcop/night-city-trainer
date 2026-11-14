@@ -12,6 +12,7 @@
     "none (q117 onward, plan step 1.6): a question the pack cannot answer (a card that does not exist, another game, prices, real-world dates, accounts, apps, shops), with expect []. It is scored by refusal: the share of none questions for which the search says \"no match\". None questions are left out of recall and MRR; an answerable question the search refuses is counted as wrongly refused.",
     "Step 1.6 also added rules questions q129-q138 (written after the step 1.4 totals had informed the rules idea, so they are fresh held-out questions for it) and number questions q139-q146 in phrasings the step 2.2 cue words do not cover (\"how does X do against Y\", \"does X beat Y\", \"which decks are strongest\", \"who is top of the ratings\"). q141 and q146 also expect the rating record of the deck first in src/data/ratings.json now: when the ratings are rebuilt and another deck leads, correct that id.",
     "q147-q176 add 30 paraphrase questions (12 cards, 5 packages, 5 terms, 4 deck notes, 4 guide sections), so that the weakest type has enough held-out questions (22 of 55) for a usable interval. Written from the need first and checked against the sources; their ids were confirmed only after the wording was final, with no search or evaluation run before. A package whose own description names the cards that do the asked thing (q174 forced-attacks, q176 program-fuel) is expected beside them; a deck plan question expects the deck note and the guide section that states the same plan.",
+    "q177-q226 add 50 fresh questions across every type (entity 4, paraphrase 8, cross 8, number 8, dev 8, rules 8, none 6) to refresh the held-out split, which had judged about ten ranking changes. Written from the need first and checked against the sources; ids were confirmed with `kb get` only after the wording of all 50 was final, with no search or evaluation run before. The rules questions ask about points that no glossary term or ruling covers, so only rule records answer them.",
     "Split rule: within each type, in file order, the question at position i (0-based) is test when i mod 5 is 1 or 3, dev otherwise. That puts 40% of every type in test.",
     "Rule M9: tune on dev, report on test. Once written, a question is never reworded to raise a score; only a wrong expect is corrected, and each correction is listed in the step's report."
   ],
@@ -199,6 +200,63 @@
     { "id": "q173", "q": "how does the deck that piles units into its trash early so the 7 power medtech guys cost almost nothing play", "type": "paraphrase", "scope": "public", "split": "test", "expect": ["objective:meta-gry-trauma-team", "objective:RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum", "guide:gry-trauma-team#game-plan"] },
     { "id": "q174", "q": "which cards make an enemy unit have to swing at me on its next turn", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["card:evelyn_parker_beautiful_enigma", "card:mox_inciters", "pkg:forced-attacks"] },
     { "id": "q175", "q": "what is it called when I end up holding more useful stuff than my rival, and which colours are best at it", "type": "paraphrase", "scope": "public", "split": "test", "expect": ["term:card-advantage"] },
-    { "id": "q176", "q": "how can I cast a program a second time straight out of my discard pile", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["card:alt_cunningham_soulkiller_architect", "card:lizzy_wizzy_delicate_weapon", "pkg:program-fuel"] }
+    { "id": "q176", "q": "how can I cast a program a second time straight out of my discard pile", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["card:alt_cunningham_soulkiller_architect", "card:lizzy_wizzy_delicate_weapon", "pkg:program-fuel"] },
+
+    { "id": "q177", "q": "trauma team operatives", "type": "entity", "scope": "public", "split": "dev", "expect": ["card:trauma_team_operatives"] },
+    { "id": "q178", "q": "emperor's guard", "type": "entity", "scope": "public", "split": "test", "expect": ["deck:nc-05-emperor-s-guard-ggb"] },
+    { "id": "q179", "q": "alt cunningham", "type": "entity", "scope": "public", "split": "dev", "expect": ["card:alt_cunningham_soulkiller_architect", "card:alt_cunningham_mother_of_daemons"] },
+    { "id": "q180", "q": "cyberware toolbox", "type": "entity", "scope": "public", "split": "test", "expect": ["pkg:cyberware"] },
+
+    { "id": "q181", "q": "is there a legend that can hand its equipment over to a unit on the board and untap it", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["card:panam_palmer_nomad_cavalry"] },
+    { "id": "q182", "q": "deck idea where I keep two of my dice showing the same number so the green cards draw and hit harder", "type": "paraphrase", "scope": "public", "split": "test", "expect": ["pkg:value-pair"] },
+    { "id": "q183", "q": "why does the player who starts only have one mana on their first turn", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["term:going-first", "guide:fundamentals#economy-checklist", "rule:7.7.4"] },
+    { "id": "q184", "q": "a piece of equipment that untaps whatever is wearing it when my turn ends", "type": "paraphrase", "scope": "public", "split": "test", "expect": ["card:sandevistan"] },
+    { "id": "q185", "q": "how is the green yellow list that sits back, flips its legends early and hands out blocker in the middle of the opponent's attack meant to be played", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["objective:GYY-keep-em-guessing"] },
+    { "id": "q186", "q": "which opening hands should I keep with the community red green list that plays V instead of Dexter", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["guide:smash-the-curve#mulligan", "objective:RRG-smash-the-curve"] },
+    { "id": "q187", "q": "deck plan where I set my dice to the same numbers as the prices of the cards I'm digging for", "type": "paraphrase", "scope": "public", "split": "test", "expect": ["pkg:cost-match"] },
+    { "id": "q188", "q": "what cost and power should a solid early unit have to keep up in this format", "type": "paraphrase", "scope": "public", "split": "dev", "expect": ["term:tempo"] },
+
+    { "id": "q189", "q": "are there any rulings on live with the aftermath", "type": "cross", "scope": "public", "split": "dev", "expect": ["ruling:3c7f6d4d", "ruling:a391a6fc", "ruling:8ebfb418"] },
+    { "id": "q190", "q": "what packages is trust no one in", "type": "cross", "scope": "public", "split": "test", "expect": ["pkg:min-gig", "pkg:gig-swap", "pkg:low-cred", "pkg:braindance", "pkg:program-fuel"] },
+    { "id": "q191", "q": "which decks run pyramid song", "type": "cross", "scope": "public", "split": "dev", "expect": ["deck:BBG-bbg-draw-and-wipe", "deck:ladder-bbg-jackie-alt-hanako", "deck:meta-bbg-cunningham-econ", "deck:nc-03-static-shock-bbr", "deck:s1-05-cross-rbb"] },
+    { "id": "q192", "q": "game plan for gear n go", "type": "cross", "scope": "public", "split": "test", "expect": ["objective:GGY-gear-n-go"] },
+    { "id": "q193", "q": "how do I beat nc-05 emperor's guard", "type": "cross", "scope": "public", "split": "dev", "expect": ["guide:nc-05#against-it", "objective:nc-05-emperor-s-guard-ggb"] },
+    { "id": "q194", "q": "official clarifications for river ward's ability", "type": "cross", "scope": "public", "split": "dev", "expect": ["ruling:88707f62", "ruling:81489d83", "ruling:a6ed37cc", "ruling:28a594b5"] },
+    { "id": "q195", "q": "decks with adam smasher metal over meat in them", "type": "cross", "scope": "public", "split": "test", "expect": ["deck:YYY-ripbecca", "deck:YYY-yyy-adam-ready-for-brawl", "deck:nc-06-metal-over-meat-yyy"] },
+    { "id": "q196", "q": "key cards for the ladder jackie alt hanako deck", "type": "cross", "scope": "public", "split": "dev", "expect": ["objective:ladder-bbg-jackie-alt-hanako"] },
+
+    { "id": "q197", "q": "which deck took the title at the third event", "type": "number", "scope": "public", "split": "dev", "expect": ["event:3", "round:3/final"] },
+    { "id": "q198", "q": "is rrb wakako midrange favoured against rry smasher aggro", "type": "number", "scope": "public", "split": "dev", "expect": ["matchup:meta-rrb-wakako-midrange~meta-rry-smasher-aggro"] },
+    { "id": "q199", "q": "quarterfinal results from event 5", "type": "number", "scope": "public", "split": "test", "expect": ["round:5/quarterfinals", "event:5"] },
+    { "id": "q200", "q": "how many times has s1-01 mutant made the top 8", "type": "number", "scope": "public", "split": "dev", "expect": ["rating:s1-01-mutant-rry"] },
+    { "id": "q201", "q": "how does smash the curve fare against the s1-01 mutant deck", "type": "number", "scope": "public", "split": "test", "expect": ["matchup:RRG-smash-the-curve~s1-01-mutant-rry"] },
+    { "id": "q202", "q": "standings after round 3 of event 4", "type": "number", "scope": "public", "split": "dev", "expect": ["round:4/3"] },
+    { "id": "q203", "q": "what's the power rating and tier of nc-08 merc contract", "type": "number", "scope": "public", "split": "dev", "expect": ["rating:nc-08-merc-contract-rrg"] },
+    { "id": "q204", "q": "who topped the swiss rounds at event 7", "type": "number", "scope": "public", "split": "test", "expect": ["event:7", "round:7/9"] },
+
+    { "id": "q205", "q": "how do I add a new kind of mod to the engine", "type": "dev", "scope": "public", "split": "dev", "expect": ["doc:CLAUDE.md#engine~3"] },
+    { "id": "q206", "q": "where does the coach turn a value gap into the words and numbers the player sees", "type": "dev", "scope": "public", "split": "test", "expect": ["code:src/lib/coachWords.ts", "doc:CLAUDE.md#play-ui~2", "doc:docs/BOT_TOOLKIT.md#7-coach-src-ai-coach-ts~4"] },
+    { "id": "q207", "q": "why won't my saved game load after the bots were updated", "type": "dev", "scope": "public", "split": "dev", "expect": ["code:src/lib/savedGames.ts", "doc:CLAUDE.md#play-ui~12"] },
+    { "id": "q208", "q": "what are the steps to publish a change to the site config", "type": "dev", "scope": "public", "split": "test", "expect": ["doc:docs/SITE_CONFIG.md#changing-it"] },
+    { "id": "q209", "q": "how is the relay room id worked out from the invite link", "type": "dev", "scope": "public", "split": "dev", "expect": ["doc:docs/RELAY_PROTOCOL.md#the-invite-and-the-keys", "code:src/net/relayTransport.ts", "doc:CLAUDE.md#online-play~4"] },
+    { "id": "q210", "q": "is there a script that checks whether deck rankings change when you switch bots", "type": "dev", "scope": "public", "split": "dev", "expect": ["code:scripts/rank-stability.ts", "code:src/lib/rankStability.ts", "doc:CLAUDE.md#sims~2", "doc:docs/BOT_TOOLKIT.md#11-rank-stability-across-bots-sim-3-scripts-rank-stability-ts*", "doc:docs/IMPROVEMENT_BACKLOG.md#wp-d3-more-information-per-hour-of-games~3"] },
+    { "id": "q211", "q": "what happens in an online game when a player's turn timer runs out", "type": "dev", "scope": "public", "split": "test", "expect": ["code:src/net/hostGame.ts", "doc:CLAUDE.md#online-play~6"] },
+    { "id": "q212", "q": "how do I regenerate cards.json from the card catalog", "type": "dev", "scope": "public", "split": "dev", "expect": ["code:tools/build-data.ts", "doc:CLAUDE.md#card-data", "doc:README.md#npm-scripts~2", "doc:README.md#scripts~4"] },
+
+    { "id": "q213", "q": "is there a limit on how many cards I can hold in my hand", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:5.4.5"] },
+    { "id": "q214", "q": "can I stack three pieces of gear on the same unit", "type": "rules", "scope": "local", "split": "test", "expect": ["rule:4.10.3"] },
+    { "id": "q215", "q": "after we both shuffle, is my opponent allowed to cut my deck", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:7.6.2"] },
+    { "id": "q216", "q": "a legend with no cost printed on it, can I pay to put it on the field", "type": "rules", "scope": "local", "split": "test", "expect": ["rule:4.5.3", "rule:3.11.2.1"] },
+    { "id": "q217", "q": "can I count how many cards are left in my opponent's deck", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:5.5.5"] },
+    { "id": "q218", "q": "my 10 power unit hits the gig area but the rival only has one die, do I just take that one", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:9.20.1.3"] },
+    { "id": "q219", "q": "when a card makes both players do something at the same time, who goes first", "type": "rules", "scope": "local", "split": "test", "expect": ["rule:2.9", "rule:10.2.2"] },
+    { "id": "q220", "q": "once I've peeked at one of my face down legends, can I look at it again later", "type": "rules", "scope": "local", "split": "dev", "expect": ["rule:5.7.4.3"] },
+
+    { "id": "q221", "q": "when does the next booster set come out", "type": "none", "scope": "public", "split": "dev", "expect": [] },
+    { "id": "q222", "q": "how do I trade cards with other players on the site", "type": "none", "scope": "public", "split": "test", "expect": [] },
+    { "id": "q223", "q": "what does the porsche 911 card do", "type": "none", "scope": "public", "split": "dev", "expect": [] },
+    { "id": "q224", "q": "how many cards are in a hearthstone deck", "type": "none", "scope": "public", "split": "dev", "expect": [] },
+    { "id": "q225", "q": "what's the best way to get my collection graded", "type": "none", "scope": "public", "split": "test", "expect": [] },
+    { "id": "q226", "q": "who drew the art on the judy alvarez cards", "type": "none", "scope": "public", "split": "dev", "expect": [] }
   ]
 }

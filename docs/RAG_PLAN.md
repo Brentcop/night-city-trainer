@@ -59,7 +59,9 @@ These rules hold in every step. A step that needs to break one says so in §8 fi
   clock, no locale-dependent formatting. Tracked outputs are written with `writeIfChanged`.
 - **M9. Measure first.** A change to ranking is compared with the current configuration on the question
   set, tuned on the `dev` split and reported on the `test` split, with a paired interval.
-  "Could not tell" is a valid result and means the simpler configuration stays.
+  "Could not tell" is a valid result and means the simpler configuration stays. One look at the `test`
+  split per experiment. After about ten looks the split is refreshed with questions written by an agent
+  that does not know what they will judge, and the agent that builds a change never reads `test` wording.
 - **M10. Kept away from play.** No file under `src/engine`, `src/ai` or `src/sim` imports `src/lib/kb`.
   The entry chunk never reaches it. A test enforces both.
 - **M11. Small until measured.** No new runtime dependency and no model download until a measurement on
@@ -131,7 +133,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
-| 4.7 | What the remaining paraphrase misses need: word forms, described mechanics, decks by description | next | |
+| 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | in progress | |
+| 4.7b | The other paraphrase misses: described mechanics, decks by description, long questions | next | |
 | 5.x | Exact reuse in game tools: coach cache, review measurements | later | |
 
 ## 5. Steps
@@ -560,6 +563,8 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Paraphrased questions with the synonym table, held out (22) | top 5: 45%, MRR 0.23; 3 of 22 refused | step 4.6 |
 | 2026-11-13 | What indexing this plan cost, once it described the synonym table in everyday words | held-out MRR 0.466 to 0.459 with all records, and a plan passage ranked first for "spell that kills an enemy creature" | rule M12 |
 | 2026-11-13 | After the pack stopped indexing its own plan and code (3,440 records) | held-out answerable (66): top 5 65%, MRR 0.47; public only (54): top 5 67%, MRR 0.53 (was 0.51) | rule M12 |
+| 2026-11-13 | Held-out split refreshed: 226 questions, 50 new across every type. Held-out answerable (83), all records | top 1: 34%, top 5: 65%, top 10: 72%, MRR 0.47; 5 of 83 wrongly refused; 1 of 7 unanswerable refused | step 4.7a |
+| 2026-11-13 | Same baseline, top 5 by type on the held-out split | entity 100%, cross 89%, dev 82%, number 62%, rules 53%, paraphrase 44% | step 4.7a |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -664,3 +669,5 @@ while the tournament index and the finish chips use the real cut, so five decks 
   into this file, and its passages began to outrank real answers. The pack no longer indexes this plan
   or its own code headers; the three example questions that showed the problem now return cards and
   packages, and the held-out figures are back to where they were before the description was written.
+- 2026-11-13: the held-out split was refreshed after about ten looks. Fifty questions across every type
+  were written blind (226 now, 90 held out), and rule M9 now says when and how that is done.
