@@ -65,6 +65,32 @@ describe('workerPool (scripts/lib-node.ts)', () => {
     await Promise.all(exited); // the original workers are gone, nothing left running
   });
 
+  it('close() settles every job still running or queued (rejects it), terminates every worker, then resolves', async () => {
+    const spawned: Worker[] = [];
+    const pool = makePool(2, spawned);
+    const exited = spawned.map((w) => new Promise((res) => w.once('exit', res)));
+    const running = [pool.run({ x: 1, delay: 60_000 }), pool.run({ x: 2, delay: 60_000 })];
+    const queued = [pool.run({ x: 3 }), pool.run({ x: 4 })];
+    const all = Promise.allSettled([...running, ...queued]);
+    await pool.close();
+    const settled = await all;
+    expect(settled.map((s) => s.status)).toEqual(['rejected', 'rejected', 'rejected', 'rejected']);
+    for (const s of settled) expect((s as PromiseRejectedResult).reason.message).toBe('worker pool closed');
+    await Promise.all(exited);
+    expect(pool.size).toBe(0);
+    await pool.close(); // a second close is a no-op
+  });
+
+  it('keeps its crash limit at the intended size while crashed workers are replaced', async () => {
+    // default limit 2 × size + 2 = 6 for a pool of 2 (counted from the size it was made with, not the workers alive
+    // after a death); a job that crashes every worker, with retries allowed, uses it up: the 7th crash gives up
+    const shared = new SharedArrayBuffer(4);
+    let spawned = 0;
+    const pool = workerPool<Job, number>(() => (spawned++, new Worker(CODE, { eval: true, workerData: { shared } })), 2, { maxAttempts: 100 });
+    await expect(pool.run({ x: 1, crash: true })).rejects.toThrow(/^7 worker crashes; giving up/);
+    expect(spawned).toBe(2 + 6); // two at start + six replacements
+  });
+
   it('rejects new jobs after close', async () => {
     const pool = makePool(1);
     await pool.close();

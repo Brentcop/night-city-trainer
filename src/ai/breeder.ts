@@ -7,11 +7,11 @@
 // Seed-deck weight uses the parent's own card impact: proven performers in that deck are kept, cards that lose games
 // in that deck are not carried over.
 import { CARD_BY_ID, CARDS, cardLabel } from '../engine/cards';
-import { counts, ramLimits, validateDeck } from '../engine/deck';
+import { counts, listFingerprint, ramLimits, validateDeck } from '../engine/deck';
 import type { CardDef, DeckList } from '../engine/types';
 import { classify, type Archetype } from './archetype';
 import { cardValue, ROLES } from './knowledge';
-import { builtAroundIds, describePlan, fitToPlan, isEmptyPlan, packageName, packageTriples, seedAround, type PackagePlan, type TripleOption } from '../lib/deckPackages';
+import { builtAroundIds, checkChange, checkList, describePlan, fitToPlan, isEmptyPlan, packageName, packageTriples, seedAround, type PackagePlan, type TripleOption } from '../lib/deckPackages';
 
 export interface BreedInput {
   /** decks with a measured win rate, best first */
@@ -21,7 +21,7 @@ export interface BreedInput {
   /** legend triples already tested (sorted ids joined by '|') */
   seenTriples: Set<string>;
   seed: number;
-  /** per-deck card impact (deck name → card id → IWD) from the parents' own telemetry */
+  /** per-list card impact (listFingerprint → card id → IWD) from the parents' own telemetry; matched by list, never by name */
   deckImpact?: Record<string, Record<string, number>>;
   /** head-to-head record of deck a vs deck b (tournament games) */
   /** a's record against b; `p`, when given, is a's estimated win probability shrunk toward the ratings (preferred) */
@@ -87,6 +87,65 @@ function isRemoval(id: string) {
 function isDraw(id: string) {
   const r = ROLES[id] ?? [];
   return r.includes('draw') || r.includes('tutor');
+}
+
+/**
+ * The fewest Units a bred list may have. From the library's hand-built lists (2026-11-14): the 7 choom.gg meta lists
+ * hold 14–22 Units, the 11 guide lists 15–28, the 8 Trainer originals 18–26 and the owner's 5 sim-ladder lists 13–19,
+ * so no hand-built list has fewer than 13 (Ladder: Jackie / Alt / Hanako, the top-rated deck of events 5–7, has 13).
+ * Bred lists with 13 have done well and badly on the current simulator (S2-06 Counter 63% expected vs the field,
+ * S1-06 Cross 20%). The 'control' template below aims at 12, under every hand-built list, and fitting a list to a
+ * package plan can cut Units too; the 44 archived bred lists had 11–20 (25 of them 11–13). In those older simulator
+ * eras the 9 lists with 11–12 Units scored about as well against the meta as the 16 with 13 (64.2% vs 63.5%), so
+ * this is a floor at the edge of what hand-built lists do, not a measured gain.
+ */
+export const MIN_BRED_UNITS = 13;
+
+export const unitCount = (deck: Pick<DeckList, 'main'>) => deck.main.filter((id) => CARD_BY_ID[id]?.type === 'Unit').length;
+
+/**
+ * Bring a list up to `min` Units by one-for-one swaps: the lowest-scored non-Unit copy out, the best-scored Unit the
+ * Legends' RAM allows (and that still has a free copy) in, taking the first swap the package plan allows
+ * (checkChange). No randomness, so the same list always gets the same repair. Returns the list unchanged when it
+ * already has `min`, or null when no allowed swap is left or the result breaks the plan or the deck rules (the
+ * candidate is then dropped).
+ */
+export function topUpUnits(deck: DeckList, min: number, score: (id: string) => number, plan?: PackagePlan): { deck: DeckList; swaps: string[] } | null {
+  let cur = deck;
+  const swaps: string[] = [];
+  const planned = plan && !isEmptyPlan(plan) ? plan : undefined;
+  const lim = ramLimits(deck);
+  const units = CARDS.filter((c) => c.type === 'Unit' && c.ram <= lim[c.color])
+    .map((c, i) => ({ id: c.id, s: score(c.id), i }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.id);
+  while (unitCount(cur) < min) {
+    const have = counts(cur.main);
+    const cuts = [...have.keys()]
+      .filter((id) => CARD_BY_ID[id]?.type !== 'Unit')
+      .map((id, i) => ({ id, s: score(id), i }))
+      .sort((a, b) => a.s - b.s || a.i - b.i)
+      .map((x) => x.id);
+    let next: DeckList | null = null;
+    for (const add of units) {
+      if ((have.get(add) ?? 0) >= 3) continue;
+      for (const cut of cuts) {
+        const main = [...cur.main];
+        main.splice(main.lastIndexOf(cut), 1, add);
+        const cand = { ...cur, main };
+        if (validateDeck({ ...cand, sideboard: [] }).length) continue;
+        if (planned && checkChange(cur, cand, planned).length) continue;
+        next = cand;
+        swaps.push(`-1 ${cardLabel(CARD_BY_ID[cut])} → +1 ${cardLabel(CARD_BY_ID[add])}`);
+        break;
+      }
+      if (next) break;
+    }
+    if (!next) return null;
+    cur = next;
+  }
+  if (planned && checkList(cur, planned).length) return null;
+  return { deck: cur, swaps };
 }
 
 /** Fill a 40-card deck for given Legends, preferring seed cards. */
@@ -160,13 +219,15 @@ export function fill(legends: string[], seeds: Map<string, number>, impact: Reco
 /** Card preferences carried over from parent decks, adjusted by how each card performed in that parent. */
 export function seedsOf(decks: DeckList[], deckImpact: BreedInput['deckImpact'] = {}): Map<string, number> {
   const m = new Map<string, number>();
-  for (const d of decks)
+  for (const d of decks) {
+    const fp = listFingerprint(d);
     for (const [id, n] of counts(d.main)) {
-      const imp = deckImpact[d.name]?.[id];
+      const imp = deckImpact[fp]?.[id];
       // +8 pts when drawn ≈ +1 copy's worth of preference; a card that loses games in this deck is not carried over
       const w = imp === undefined ? n / 3 + 0.5 : imp < -0.04 ? 0 : n / 3 + 0.5 + Math.max(-0.5, Math.min(1.5, imp * 12));
       m.set(id, Math.max(m.get(id) ?? 0, w));
     }
+  }
   return m;
 }
 
@@ -199,6 +260,14 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
       const fitted = fitBred(b, pk, input, pkScore);
       if (!fitted) return false;
       b = fitted;
+    }
+    // a workable number of Units (MIN_BRED_UNITS): repaired by swaps the plan allows, else the candidate is dropped
+    if (unitCount(b.deck) < MIN_BRED_UNITS) {
+      const from = unitCount(b.deck);
+      const fixed = topUpUnits(b.deck, MIN_BRED_UNITS, pkScore, pk?.plan);
+      if (!fixed) return false;
+      b = { ...b, deck: fixed.deck, idea: `${b.idea} Topped up from ${from} to ${MIN_BRED_UNITS} Units: ${fixed.swaps.join('; ')}.` };
+      if (b.packages) b = { ...b, packages: { ...b.packages, builtAround: builtAroundIds(fixed.deck) } };
     }
     if (validateDeck({ ...b.deck, sideboard: [] }).length) return false;
     used.add(key);

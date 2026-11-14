@@ -107,6 +107,37 @@ describe('GamePool', () => {
     await expect(pool.play(job(2))).rejects.toBeInstanceOf(PoolStoppedError);
   });
 
+  it('gives up after more crashes in a row than the intended size + 2, however many workers are alive at the time', async () => {
+    // WP-C4: the limit used to be read from the workers left after each death (always size − 1, since every dead worker
+    // is replaced before the next death is handled), one fewer than the documented "workers + 2"
+    const { pool, live } = setup(3);
+    const games = Array.from({ length: 8 }, (_, i) => pool.play(job(i + 1)).catch((e) => e));
+    for (let i = 0; i < 5; i++) {
+      // crash a different worker each time: the oldest one still alive
+      live()[0].crash(`crash ${i + 1}`);
+      expect(pool.terminated).toBe(false);
+      expect(pool.size).toBe(3);
+    }
+    live()[0].crash('crash 6');
+    expect(pool.terminated).toBe(true);
+    expect(live()).toHaveLength(0);
+    const errs = await Promise.all(games);
+    expect(errs.every((e) => e instanceof GameError)).toBe(true);
+    expect(errs.filter((e) => /giving up/.test(e.message)).length).toBeGreaterThan(0);
+  });
+
+  it('a finished game resets the crash count (only crashes in a row count)', () => {
+    const { pool, live } = setup(1);
+    for (let round = 0; round < 3; round++) {
+      void pool.play(job(round * 10)).catch(() => {});
+      for (let i = 0; i < 3; i++) live()[0].crash();
+      expect(pool.terminated).toBe(false);
+      void pool.play(job(round * 10 + 1));
+      live()[0].reply();
+    }
+    expect(pool.terminated).toBe(false);
+  });
+
   it('terminate rejects running and queued games as stopped, and later play() rejects at once', async () => {
     const { pool, made } = setup(1);
     const p1 = pool.play(job(1));

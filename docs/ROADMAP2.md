@@ -74,7 +74,8 @@ Table-cam video of two players is the hard case for automatic reading: cards are
 - **Telemetry gaps:** resolving effects as their own records, the human seat, slices by opponent strategy and by a deck's declared objective.
 - **Coach re-measurement:** blunder rates and reviewer validation on the new baseline; grade mulligans, payments, target and mode choices, Gig selection and effect ordering.
 - **More seasons** (Season 2 done 2026-11-12, §7), and a re-measurement of the archived bred decks to decide whether any return.
-- **Small leftovers:** `data/seasons/deck-impact.json` is keyed by deck name; an effect that does nothing yet is never offered when ordering pending effects; the policy numbers still fixed inside `src/ai/heuristic.ts`.
+- **Small leftovers:** an effect that does nothing yet is never offered when ordering pending effects; the policy numbers still fixed inside `src/ai/heuristic.ts`. (Both change the engine or the bots, so each needs a `SIM_VERSION` bump and re-recorded events.)
+  - **Done 2026-11-14:** `data/seasons/deck-impact.json` is keyed by list fingerprint (`src/lib/seasonDeckImpact.ts`; `scripts/migrate-deck-impact.ts` re-keyed all 28 names, none unmatched). Three entries (S1-01, S2-03, S2-04) pool games from before a forge change and are marked `keyedFrom: 'name'`. A breeding preview on the current data was byte-identical before and after; the breeder and `check:data` refuse the old name-keyed file.
 - **Visual checks** of the Play board, phone board and pages in both themes (ROADMAP §6).
 
 ## 4. Reported defects, not yet scheduled
@@ -83,9 +84,9 @@ Table-cam video of two players is the hard case for automatic reading: cards are
 - The evaluation undervalues Gear and "can't attack" effects; some of those cards are never played.
 - Several evaluation weights change no decision (variants scored exactly 0.0 over matched games), which limits the tuner.
 - The bot takes the first listed option every time on Gig roll-in and discard-for prompts.
-- The forge adopted a change on any gain (fixed 2026-11-11 by §1 step 5); the breeder can produce a deck with 12 Units.
-- `tag-provenance.ts` dropped the forge's dated line and reformatted ladder files (fixed 2026-11-12, §7); the ratings report prints "93th" (still: "51th").
-- The two pool behaviours noted in WP-C4: the browser pool's give-up limit follows the workers still alive, and the Node pool's `close()` leaves running jobs unsettled.
+- The forge adopted a change on any gain (fixed 2026-11-11 by §1 step 5); the breeder can produce a deck with 12 Units (fixed 2026-11-14: the "control" template aimed at 12, so any slot in that style came out with 12; bred lists now keep at least `MIN_BRED_UNITS` 13, the fewest in any hand-built library list, topped up by swaps the package plan allows, or the candidate is dropped. A floor at the edge of what people build, not a measured gain: in the older simulator eras the 11–12 Unit lists scored about as well as the 13 Unit ones. The two breeder pins whose lists were under the floor were re-taken).
+- `tag-provenance.ts` dropped the forge's dated line and reformatted ladder files (fixed 2026-11-12, §7); the ratings report prints "93th" (fixed 2026-11-14: it uses `ordinal()`; `ratings.json` unchanged).
+- The two pool behaviours noted in WP-C4 (fixed 2026-11-14): the give-up limit comes from the pool's intended size (in the browser pool it had been one crash short of the documented "workers + 2", not a limit that kept moving), and the Node pool's `close()` now rejects running and queued jobs, where it left running ones waiting forever.
 
 ## 5. Site: decks pages (requested 2026-11-12)
 
@@ -156,4 +157,4 @@ Nothing was rejected outright. Package moves tried: 24 (3 per deck); 2 adopted, 
 
 **Also done:** provenance headers for the 8 decks; draft strategy notes (`src/content/deckObjectives/seasons.ts`; `parent` for the mutants, crossovers and counters with what changed, `list` for the explorers; each names its central packages); three golden replays from events 5–7 in `tests/replay-events.test.ts`; the synergy report re-measured over the 47 decks (docs/SYNERGIES.md "Runs").
 
-**Remaining / noticed.** The round robin is played before the forge, so a forged deck's season figure and its leaderboard total mix two lists (existing behaviour; worth changing before Season 3, by playing the round robin after the forge or recording the forged list under its own entry). The forge's package moves draw on the same few packages across very different decks (Ahead on Street Cred and Block, then punish each in five of eight), which suggests the move generator ranks candidates more by the catalogue than by the deck. `ratings-latest.md` still prints "51th pct" (§4). `data/seasons/deck-impact.json` is still keyed by deck name.
+**Remaining / noticed.** The round robin is played before the forge, so a forged deck's season figure and its leaderboard total mix two lists (existing behaviour; worth changing before Season 3, by playing the round robin after the forge or recording the forged list under its own entry). The forge's package moves draw on the same few packages across very different decks (Ahead on Street Cred and Block, then punish each in five of eight), which suggests the move generator ranks candidates more by the catalogue than by the deck. (The ordinal in `ratings-latest.md` and the name-keyed `data/seasons/deck-impact.json` were fixed on 2026-11-14, §3 and §4. Season 3's preview, seed 1231, shows S3-04 Cross topped up from 12 to 13 Units by the new floor.)

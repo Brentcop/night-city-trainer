@@ -17,6 +17,11 @@
 // Regenerated again on SIM_VERSION 8 (2026-11-13: the legacy deep bot that `sim analyze` plays moved with the bot review's
 // fixes), so the three were re-taken the same way; with the version-7 table the code still gives the version-7 pins
 // (9d976f2194fa16a4, 4e61c7b7b1289165, 401102d01c85b8ed).
+// The two breeder pins were re-taken on 2026-11-14 when the breeder got its Unit floor (MIN_BRED_UNITS, src/ai/breeder.ts):
+// the old outputs were themselves under it (7 of the 8 lists without head-to-heads and 6 of 8 with them had 12 Units,
+// from the 'control' template), and each such list is now topped up to 13 by one swap. Checked against the code before
+// the floor (HEAD 6ef3b93): every list that was not under the floor comes out byte-identical, in the same slot, and every
+// repaired one keeps its slot, method, parents and Legends. The old pins were b96b4ff77120e8bb and 6fd1450b99bc7b5f.
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/engine/cards';
 import { ramLimits } from '../src/engine/deck';
@@ -28,8 +33,8 @@ import { listKey, pin, synthBreedInput, synthDecks, synthReport, SYNTH_IMPACT } 
 
 const PINNED = {
   decks: 'a0f0088bdb8876e4',
-  breedNoH2H: 'b96b4ff77120e8bb',
-  breedH2H: '6fd1450b99bc7b5f',
+  breedNoH2H: 'a96eb602d83e090f',
+  breedH2H: '16bd86a5abc882ea',
   forge: 'ecd7078f19459f62',
   optimize: '18b7a931bc44040a',
   optimizeSb: '7f8c37968f57e36c',

@@ -19,6 +19,9 @@
 //     event it names exist
 //   - public/data/lift.json (the Play page's lift slice) is exactly the slice derived from public/data/synergies.json
 //     (`liftSliceText` in src/ai/packageLift.ts) whenever the report exists; `npx tsx scripts/build-lift.ts` rebuilds it
+//   - data/seasons/deck-impact.json (the season breeder's per-list card impact, src/lib/seasonDeckImpact.ts), when it
+//     exists, is keyed by list fingerprint: the old file keyed by deck name, or a malformed one, fails (the breeder
+//     refuses to read it); `npx tsx scripts/migrate-deck-impact.ts --write` re-keys an old one
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,6 +33,7 @@ import { isStandardSetup, setupProblems, type EventSetup } from '../src/lib/even
 import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
 import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/ai/packageLift';
 import type { SynergyReport } from '../src/analysis/synergies';
+import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -67,6 +71,8 @@ export interface CheckInput {
   synergies?: unknown;
   /** public/data/lift.json's text (null when missing) */
   lift?: string | null;
+  /** data/seasons/deck-impact.json, parsed (null when missing; not checked when absent) */
+  deckImpact?: unknown;
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -331,6 +337,18 @@ export function checkData(input: CheckInput): CheckResult {
       passed.push(`public/data/lift.json is the slice of the synergy report (${Object.keys(s.pooled).length} pooled rows, ${Object.keys(s.lists).length} lists)`);
     }
   } else if (input.synergies === null && typeof input.lift === 'string') info.push('public/data/lift.json has no synergy report beside it to be checked against');
+
+  // ---- the season breeder's per-list card impact is keyed by list fingerprint
+  if (input.deckImpact !== undefined && input.deckImpact !== null) {
+    const r = parseDeckImpact(input.deckImpact);
+    if (!r.file) failures.push(`data/seasons/deck-impact.json ${r.problem}`);
+    else {
+      const lists = Object.values(r.file.lists);
+      const fromName = lists.filter((e) => e.keyedFrom === 'name').length;
+      const unmatched = Object.keys(r.file.unmatched ?? {}).length;
+      passed.push(`data/seasons/deck-impact.json is keyed by list fingerprint (${lists.length} lists${fromName ? `, ${fromName} migrated from names` : ''}${unmatched ? `; ${unmatched} old name(s) kept apart, unread` : ''})`);
+    }
+  }
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -349,6 +367,7 @@ export function loadCheckInput(root = '.'): CheckInput {
     siteConfig: fs.existsSync(path.join(root, 'public/site-config.json')) ? fs.readFileSync(path.join(root, 'public/site-config.json'), 'utf8') : null,
     synergies: read('public/data/synergies.json'),
     lift: fs.existsSync(path.join(root, 'public/data/lift.json')) ? fs.readFileSync(path.join(root, 'public/data/lift.json'), 'utf8') : null,
+    deckImpact: read('data/seasons/deck-impact.json'),
     deckFiles: LIBRARY_DIRS.flatMap((d) => {
       const dir = path.join(root, 'data/decks', d);
       return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];

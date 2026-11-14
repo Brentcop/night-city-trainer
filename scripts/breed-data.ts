@@ -1,6 +1,7 @@
 // Everything the deck breeder learns from past test runs, gathered in one place:
 //   strength   — per-deck strength: power rating (tournament series) blended with the season leaderboard, discounted by uncertainty
-//   deckImpact — per-deck card impact ("Δ when drawn"), pooled from the review telemetry and every season round robin
+//   deckImpact — per-list card impact ("Δ when drawn"), pooled from the review telemetry and every season round robin,
+//                keyed by list fingerprint (data/seasons/deck-impact.json; src/lib/seasonDeckImpact.ts)
 //   h2h        — head-to-head game records from every recorded tournament event
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
@@ -9,38 +10,44 @@ import { IMPACT_MIN_DECK_GAMES } from '../src/analysis/impactData';
 import { readEvents } from './lib-node';
 import { poolEvents, selectEvents } from './event-pool';
 import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
+import { addCards, breederDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
 
-const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
-type Acc = Record<string, Record<string, { s: number; n: number }>>;
+export const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
 
-/** Add season telemetry to the pooled per-deck card impact. */
-export function recordDeckImpact(reps: DeckReport[]) {
-  const acc: Acc = fs.existsSync(DECK_IMPACT_FILE) ? JSON.parse(fs.readFileSync(DECK_IMPACT_FILE, 'utf8')) : {};
-  for (const r of reps)
-    for (const c of r.cards) {
-      if (typeof c.iwd !== 'number' || !Number.isFinite(c.iwd) || !c.seenGames) continue;
-      const d = (acc[r.deck] ??= {});
-      d[c.id] ??= { s: 0, n: 0 };
-      d[c.id].s += c.iwd * c.seenGames;
-      d[c.id].n += c.seenGames;
-    }
-  fs.writeFileSync(DECK_IMPACT_FILE, JSON.stringify(acc));
+/** The pooled per-list impact file (keyed by list fingerprint), or an empty one; the old name-keyed file is refused. */
+export function readDeckImpactFile(file = DECK_IMPACT_FILE): DeckImpactFile {
+  if (!fs.existsSync(file)) return emptyDeckImpact();
+  const r = parseDeckImpact(JSON.parse(fs.readFileSync(file, 'utf8')));
+  if (!r.file) throw new Error(`${file} ${r.problem}`);
+  return r.file;
 }
 
-/** Per-deck card impact, needing at least `min` games where the card was drawn. */
+/**
+ * Add season telemetry to the pooled per-list card impact. `fingerprintOf` gives the listFingerprint of the list each
+ * report's deck played (the round robin's field); a report whose list it does not know is not recorded (returned).
+ */
+export function recordDeckImpact(reps: DeckReport[], fingerprintOf: (deckName: string) => string | undefined): string[] {
+  const acc = readDeckImpactFile();
+  const skipped: string[] = [];
+  for (const r of reps) {
+    const fp = fingerprintOf(r.deck);
+    if (fp) addCards(acc, fp, r.deck, r.cards);
+    else skipped.push(r.deck);
+  }
+  fs.writeFileSync(DECK_IMPACT_FILE, JSON.stringify(acc));
+  return skipped;
+}
+
+/**
+ * Per-list card impact (list fingerprint → card id → Δ when drawn), needing at least `min` games where the card was
+ * drawn. The original review telemetry (src/data/analysis.json) counts too, matched by each report's fingerprint
+ * (`id`); a report without one is left out.
+ */
 export function loadDeckImpact(min = IMPACT_MIN_DECK_GAMES): Record<string, Record<string, number>> {
-  const acc: Acc = fs.existsSync(DECK_IMPACT_FILE) ? JSON.parse(fs.readFileSync(DECK_IMPACT_FILE, 'utf8')) : {};
-  // the original review telemetry counts too
+  const acc = readDeckImpactFile();
   if (fs.existsSync('src/data/analysis.json'))
-    for (const r of JSON.parse(fs.readFileSync('src/data/analysis.json', 'utf8')).decks as DeckReport[])
-      for (const c of r.cards) {
-        if (typeof c.iwd !== 'number' || !Number.isFinite(c.iwd) || !c.seenGames) continue;
-        const d = (acc[r.deck] ??= {});
-        d[c.id] ??= { s: 0, n: 0 };
-        d[c.id].s += c.iwd * c.seenGames;
-        d[c.id].n += c.seenGames;
-      }
-  return Object.fromEntries(Object.entries(acc).map(([deck, cards]) => [deck, Object.fromEntries(Object.entries(cards).filter(([, v]) => v.n >= min).map(([id, v]) => [id, v.s / v.n]))]));
+    for (const r of JSON.parse(fs.readFileSync('src/data/analysis.json', 'utf8')).decks as DeckReport[]) if (r.id) addCards(acc, r.id, r.deck, r.cards);
+  return breederDeckImpact(acc, min);
 }
 
 export type H2H = (a: string, b: string) => H2HRecord;

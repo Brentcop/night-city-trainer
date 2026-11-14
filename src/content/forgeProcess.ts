@@ -23,7 +23,8 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
 \`npx tsx scripts/season.ts --season N\` runs a full design cycle with no manual input:
 1. **Breed 8 decks** from everything earlier runs measured:
    - **Parent strength:** power ratings from the tournament series (discounted by their uncertainty), blended with the vs-meta leaderboard.
-   - **Card choice:** format-wide "Δ when drawn" plus each parent's own card impact. Cards that won games in the parent are kept; cards that lost games there are not carried over.
+   - **Card choice:** format-wide "Δ when drawn" plus each parent's own card impact (matched by the parent's exact list, so a changed list starts fresh). Cards that won games in the parent are kept; cards that lost games there are not carried over.
+   - **Unit floor:** a bred deck never has fewer than 13 Units, the fewest in any hand-built list in the library; one that would is topped up by swapping its weakest non-Units for the best Units its Legends allow (within any package plan), or not bred.
    - **Legend strength:** the average strength of decks using the Legend, pulled toward 50% when few decks have tried it.
    - **2 mutants:** a top deck with one Legend swapped, cards re-fitted to the new RAM limits;
    - **2 crossovers:** two strong decks merged;

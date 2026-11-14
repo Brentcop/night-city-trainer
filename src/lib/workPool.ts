@@ -22,8 +22,11 @@ export interface PooledWorker<J> {
 export interface WorkPoolPolicy {
   /** times a job may be tried when its worker dies (1: it fails at once; 2: one retry) */
   maxAttempts: number;
-  /** the pool gives up once its worker deaths exceed this; `alive` = workers left after the latest death */
-  crashLimit(alive: number): number;
+  /**
+   * the pool gives up once its worker deaths exceed this. `size` is the pool's intended size (the size it was made
+   * with, or grown to), never the workers alive at the moment, so the limit does not move as workers die.
+   */
+  crashLimit(size: number): number;
   /** a finished job resets the death count (only deaths in a row count) */
   resetCrashesOnDone: boolean;
   /** a job that may not be tried again ends the whole pool (true) or only fails that job (false) */
@@ -56,18 +59,25 @@ export class WorkPool<J, R> {
   private crashes = 0;
   private failure: Error | null = null;
   private stopped = false;
+  /** the intended size: what the pool was made with or grown to (the crash limit is computed from it) */
+  private target: number;
 
   constructor(
     private spawn: (link: WorkerLink<R>) => PooledWorker<J>,
     size: number,
     private policy: WorkPoolPolicy,
   ) {
-    for (let i = 0; i < Math.max(1, size); i++) this.add();
+    this.target = Math.max(1, size);
+    for (let i = 0; i < this.target; i++) this.add();
   }
 
   /** workers alive now */
   get size() {
     return this.slots.length;
+  }
+  /** the size the pool was made with or grown to (dead workers are replaced up to it) */
+  get intendedSize() {
+    return this.target;
   }
   /** the error the pool gave up with, or null */
   get failed() {
@@ -81,6 +91,7 @@ export class WorkPool<J, R> {
   /** Add workers until there are `size` (never removes any); a closed pool is left alone. */
   grow(size: number) {
     if (this.closed) return;
+    this.target = Math.max(this.target, size);
     while (this.slots.length < size) this.add();
     this.pump();
   }
@@ -94,16 +105,17 @@ export class WorkPool<J, R> {
   }
 
   /**
-   * Stop for good and terminate every worker. Queued jobs reject with `err`; running jobs do too when `running` is
-   * 'reject', and are dropped unsettled when it is 'abandon'. Resolves once every worker is terminated.
+   * Stop for good and terminate every worker. Every job still running or queued rejects with `err` (running ones
+   * first, then the queue in order), so no caller is left waiting; a reply that arrives later is ignored. Resolves once
+   * every worker is terminated.
    */
-  stop(err: Error, running: 'reject' | 'abandon'): Promise<unknown> {
+  stop(err: Error): Promise<unknown> {
     if (this.closed) return Promise.resolve();
     this.stopped = true;
     const slots = this.slots.splice(0);
     for (const s of slots) {
       s.retired = true;
-      if (running === 'reject') s.task?.reject(err);
+      s.task?.reject(err);
       s.task = null;
     }
     for (const t of this.queue.splice(0)) t.reject(err);
@@ -150,7 +162,7 @@ export class WorkPool<J, R> {
       }
     }
     // A worker that cannot even start would die forever: past the limit, fail everything instead of respawning.
-    if (this.crashes > this.policy.crashLimit(this.slots.length)) return this.giveUp(this.policy.gaveUp(why, this.crashes));
+    if (this.crashes > this.policy.crashLimit(this.target)) return this.giveUp(this.policy.gaveUp(why, this.crashes));
     this.policy.onRestart?.(why, retrying);
     this.add();
     this.pump();

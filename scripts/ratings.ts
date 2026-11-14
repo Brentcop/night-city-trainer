@@ -23,6 +23,7 @@ import { bool, cli, loadLibrary, readEvents, str, writeJsonStamped } from './lib
 import { aggregateManifest, type RecordedEventInput } from '../src/lib/runManifest';
 import { checkSimVersionFlag, parsePoolFilter, poolEvents, poolRecord, selectEvents } from './event-pool';
 import { fieldInterval, fitRatings } from '../src/lib/ratingModel';
+import { ordinal } from '../src/lib/playedRecord';
 
 const { values: V } = cli(import.meta.url, { 'sim-version': str('latest', checkSimVersionFlag), bot: str('latest'), diagonal: bool() });
 
@@ -88,7 +89,7 @@ const md = [
   '',
   '| # | Deck | Exp. win % vs field (90% CI) | vs meta | Titles | Top 8 | Avg finish | Matches | Games |',
   '|---|---|---|---|---|---|---|---|---|',
-  ...rows.map((x, i) => `| ${i + 1} | ${x.name} | ${pct(x.wrField)} (${pct(x.wrFieldLo)}–${pct(x.wrFieldHi)}) | ${pct(x.wrMeta)} | ${x.titles} | ${x.top8}/${x.events} | ${x.avgFinish === null ? '—' : Math.round(x.avgFinish * 100) + 'th pct'} | ${x.matches} | ${x.games} |`),
+  ...rows.map((x, i) => `| ${i + 1} | ${x.name} | ${pct(x.wrField)} (${pct(x.wrFieldLo)}–${pct(x.wrFieldHi)}) | ${pct(x.wrMeta)} | ${x.titles} | ${x.top8}/${x.events} | ${x.avgFinish === null ? '—' : `${ordinal(Math.round(x.avgFinish * 100))} pct`} | ${x.matches} | ${x.games} |`),
 ].join('\n');
 if (!V.diagonal) fs.writeFileSync('reports/ratings-latest.md', md);
 console.log(md.split('\n').slice(0, 25).join('\n'));

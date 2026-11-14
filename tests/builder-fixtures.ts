@@ -2,7 +2,7 @@
 // data: no library deck, recorded result or impact file is read, so the pinned outputs in
 // tests/deck-packages-defaults.test.ts change only when the builders' code (or src/data/cards.json) changes.
 import { CARDS } from '../src/engine/cards';
-import { counts, fingerprintText, validateDeck } from '../src/engine/deck';
+import { counts, fingerprintText, listFingerprint, validateDeck } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
 import type { DeckReport } from '../src/analysis/analyze';
 import { fill, type BreedInput } from '../src/ai/breeder';
@@ -50,7 +50,7 @@ export function synthBreedInput(h2h: boolean): BreedInput {
   const decks = synthDecks();
   const ranked = decks.map((deck, i) => ({ deck, wr: 0.62 - i * 0.02 }));
   const deckImpact: Record<string, Record<string, number>> = {};
-  for (const d of decks.slice(0, 3)) deckImpact[d.name] = Object.fromEntries(synthReport(d).cards.map((c) => [c.id, c.iwd]));
+  for (const d of decks.slice(0, 3)) deckImpact[listFingerprint(d)] = Object.fromEntries(synthReport(d).cards.map((c) => [c.id, c.iwd]));
   return {
     ranked,
     impact: SYNTH_IMPACT,

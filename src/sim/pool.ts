@@ -47,10 +47,13 @@ export const errorText = (e: unknown) => (e instanceof Error ? e.message : Strin
 type MakeWorker = () => Worker;
 const defaultWorker: MakeWorker = () => new Worker(new URL('./game.worker.ts', import.meta.url), { type: 'module' });
 
-/** A crashed game worker fails the game it held (no retry); after more crashes in a row than workers + 2, give up. */
+/**
+ * A crashed game worker fails the game it held (no retry); after more crashes in a row than workers + 2, give up
+ * ("workers" = the pool's intended size, so the limit stays put while crashed workers are being replaced).
+ */
 const GAME_POLICY: WorkPoolPolicy = {
   maxAttempts: 1,
-  crashLimit: (alive) => Math.max(3, alive + 2),
+  crashLimit: (size) => size + 2,
   resetCrashesOnDone: true,
   jobFailureIsFatal: false,
   jobFailed: (why) => new GameError(why),
@@ -103,6 +106,6 @@ export class GamePool {
 
   /** Stop everything; queued and running games reject with PoolStoppedError, and later play() calls reject at once. */
   terminate() {
-    void this.pool.stop(new PoolStoppedError(), 'reject');
+    void this.pool.stop(new PoolStoppedError());
   }
 }

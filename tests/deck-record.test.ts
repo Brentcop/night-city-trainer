@@ -55,6 +55,8 @@ describe('deck record', () => {
     expect(parseWL('')).toBeNull();
     expect(parseWL(undefined)).toBeNull();
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 68].map(ordinal)).toEqual(['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '68th']);
+    // the ratings report's "Avg finish" column (scripts/ratings.ts) printed "51th pct" / "93th pct" before it used ordinal()
+    expect([51, 93, 100, 101, 111, 112, 113, 0].map(ordinal)).toEqual(['51st', '93rd', '100th', '101st', '111th', '112th', '113th', '0th']);
   });
 
   it('lists event finishes newest first, with top-8 and title flags', () => {

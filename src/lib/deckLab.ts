@@ -570,11 +570,12 @@ export function breedInBrowser(lib: readonly LibraryDeck[], o: BreedOptions): Br
   }
   const seenTriples = new Set(lib.map((d) => [...d.deck.legends].sort().join('|')));
   const usable = !!o.h2h && ranked.slice(0, 4).some((x) => ranked.some((y) => o.h2h!(y.deck.name, x.deck.name).g > 0));
-  // the breeder reads per-deck impact by parent name; parent names are unique in `ranked`, and each gets its own list's numbers
+  // the breeder reads per-list impact by the parent's list fingerprint (deckImpactOf matches by fingerprint too, so two
+  // parents with the same list get the same numbers either way)
   const deckImpact: Record<string, Record<string, number>> = {};
   for (const r of ranked) {
     const m = deckImpactOf(r.deck);
-    if (m) deckImpact[r.deck.name] = m;
+    if (m) deckImpact[listFingerprint(r.deck)] = m;
   }
   const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined, ...(o.packages ? { packages: o.packages } : {}) }, o.n);
   return out.map((b, i) => {

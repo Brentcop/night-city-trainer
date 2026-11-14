@@ -228,7 +228,7 @@ export const TIER_BOTS = ['easy', 'medium', 'hard', 'hard-v1', 'mixed', 'fast', 
 export interface PoolOptions {
   /** times one job may be attempted when its worker crashes (default 2: one retry) */
   maxAttempts?: number;
-  /** total worker crashes tolerated before the pool gives up (default 2 × size + 2) */
+  /** total worker crashes tolerated before the pool gives up (default 2 × size + 2, size = the size made with or grown to) */
   maxCrashes?: number;
   /** an idle worker does not keep the process alive (unref'd until it gets a job), so a pool kept for reuse needs no close() */
   unrefIdle?: boolean;
@@ -239,6 +239,10 @@ export interface Pool<J, R> {
   grow(size: number): void;
   /** workers alive now */
   readonly size: number;
+  /**
+   * Stop for good: every job still running or queued rejects with "worker pool closed" (so nothing awaiting a job waits
+   * forever), every worker is terminated, then it resolves. Later run() calls reject at once.
+   */
   close(): Promise<void>;
   /** set once the pool has given up; every pending and later run() rejects with it */
   readonly failed: Error | null;
@@ -253,7 +257,6 @@ export interface Pool<J, R> {
  */
 export function workerPool<J, R>(source: URL | (() => Worker), size: number, o: PoolOptions = {}): Pool<J, R> {
   const make = typeof source === 'function' ? source : () => new Worker(source);
-  let target = Math.max(1, size);
   const spawn = (link: WorkerLink<R>): PooledWorker<J> => {
     const w = make();
     let lastError: Error | undefined;
@@ -275,7 +278,7 @@ export function workerPool<J, R>(source: URL | (() => Worker), size: number, o: 
   };
   const pool = new WorkPool<J, R>(spawn, size, {
     maxAttempts: o.maxAttempts ?? 2,
-    crashLimit: () => o.maxCrashes ?? 2 * target + 2,
+    crashLimit: (target) => o.maxCrashes ?? 2 * target + 2,
     resetCrashesOnDone: false,
     jobFailureIsFatal: true,
     jobFailed: (why, attempts) => new Error(`a job crashed its worker ${attempts} times; giving up.\n${why}`),
@@ -287,15 +290,12 @@ export function workerPool<J, R>(source: URL | (() => Worker), size: number, o: 
   });
   return {
     run: (job: J) => pool.run(job),
-    grow(n: number) {
-      target = Math.max(target, n);
-      pool.grow(n);
-    },
+    grow: (n: number) => pool.grow(n),
     get size() {
       return pool.size;
     },
     async close() {
-      await pool.stop(new Error('worker pool closed'), 'abandon');
+      await pool.stop(new Error('worker pool closed'));
     },
     get failed() {
       return pool.failed;

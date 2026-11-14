@@ -33,7 +33,7 @@ import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { breedSeason } from '../src/ai/breeder';
 import { loadDeckImpact, loadH2H, recordDeckImpact, strengthOf } from './breed-data';
-import { exportOfficial, deckColors } from '../src/engine/deck';
+import { exportOfficial, deckColors, listFingerprint } from '../src/engine/deck';
 import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
 import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
 import { classify } from '../src/ai/archetype';
@@ -329,7 +329,11 @@ async function main() {
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   if (!rerun) {
     impactMap(reps);
-    recordDeckImpact(reps);
+    // keyed by the list each deck played in this round robin (the forge below may change a list: its new fingerprint
+    // starts without per-list impact)
+    const played = new Map(field.map((d) => [d.deck.name, listFingerprint(d.deck)]));
+    const skipped = recordDeckImpact(reps, (name) => played.get(name));
+    if (skipped.length) console.log(`per-list card impact: no list known for ${skipped.join(', ')}; not recorded`);
   }
   // per-deck season win rate + pooled vs-meta record
   const tot: Record<string, { w: number; g: number }> = {};

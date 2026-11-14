@@ -12,7 +12,7 @@ Scopes: public 246, local 40. Splits: dev 171, test 115. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-4009 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+4016 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -22,14 +22,14 @@ Stale expectations: none.
 | exact | dev | 160 | 11.3 | 18.1 | 18.1 | 0.137 | 95 | 224 | 8 of 11 (72.7%) | 74 of 160 (46.3%) |
 | exact | test | 108 | 13.9 | 22.2 | 22.2 | 0.170 | 115 | 284 | 7 of 7 (100.0%) | 39 of 108 (36.1%) |
 | exact | all | 268 | 12.3 | 19.8 | 19.8 | 0.150 | 103 | 232 | 15 of 18 (83.3%) | 113 of 268 (42.2%) |
-| keyword | dev | 160 | 38.1 | 55.0 | 58.1 | 0.449 | 467 | 613 | 4 of 11 (36.4%) | 24 of 160 (15.0%) |
+| keyword | dev | 160 | 38.1 | 55.0 | 58.1 | 0.449 | 467 | 612 | 4 of 11 (36.4%) | 24 of 160 (15.0%) |
 | keyword | test | 108 | 25.9 | 46.3 | 54.6 | 0.350 | 491 | 621 | 1 of 7 (14.3%) | 12 of 108 (11.1%) |
-| keyword | all | 268 | 33.2 | 51.5 | 56.7 | 0.409 | 477 | 616 | 5 of 18 (27.8%) | 36 of 268 (13.4%) |
-| exact+keyword | dev | 160 | 36.9 | 66.3 | 72.5 | 0.489 | 520 | 619 | 3 of 11 (27.3%) | 9 of 160 (5.6%) |
+| keyword | all | 268 | 33.2 | 51.5 | 56.7 | 0.409 | 476 | 615 | 5 of 18 (27.8%) | 36 of 268 (13.4%) |
+| exact+keyword | dev | 160 | 36.9 | 66.3 | 72.5 | 0.489 | 520 | 618 | 3 of 11 (27.3%) | 9 of 160 (5.6%) |
 | exact+keyword | test | 108 | 30.6 | 62.0 | 74.1 | 0.447 | 519 | 621 | 1 of 7 (14.3%) | 5 of 108 (4.6%) |
 | exact+keyword | all | 268 | 34.3 | 64.6 | 73.1 | 0.472 | 520 | 621 | 4 of 18 (22.2%) | 14 of 268 (5.2%) |
 | exact+linked+keyword | dev | 160 | 53.8 | 73.8 | 78.8 | 0.624 | 524 | 656 | 3 of 11 (27.3%) | 9 of 160 (5.6%) |
-| exact+linked+keyword | test | 108 | 44.4 | 66.7 | 74.1 | 0.548 | 527 | 649 | 1 of 7 (14.3%) | 5 of 108 (4.6%) |
+| exact+linked+keyword | test | 108 | 44.4 | 66.7 | 74.1 | 0.548 | 526 | 649 | 1 of 7 (14.3%) | 5 of 108 (4.6%) |
 | exact+linked+keyword | all | 268 | 50.0 | 70.9 | 76.9 | 0.593 | 525 | 652 | 4 of 18 (22.2%) | 14 of 268 (5.2%) |
 
 ### By question type
@@ -153,7 +153,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2985 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 40.
+2992 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 40.
 Stale expectations: none.
 
 ### By configuration and split
@@ -164,10 +164,10 @@ Stale expectations: none.
 | exact | test | 92 | 16.3 | 26.1 | 26.1 | 0.199 | 123 | 295 | 7 of 7 (100.0%) | 30 of 92 (32.6%) |
 | exact | all | 228 | 14.0 | 22.8 | 22.8 | 0.173 | 112 | 284 | 15 of 18 (83.3%) | 88 of 228 (38.6%) |
 | keyword | dev | 136 | 37.5 | 52.9 | 57.4 | 0.443 | 458 | 612 | 4 of 11 (36.4%) | 23 of 136 (16.9%) |
-| keyword | test | 92 | 27.2 | 46.7 | 52.2 | 0.356 | 498 | 626 | 4 of 7 (57.1%) | 9 of 92 (9.8%) |
+| keyword | test | 92 | 27.2 | 46.7 | 52.2 | 0.356 | 497 | 626 | 4 of 7 (57.1%) | 9 of 92 (9.8%) |
 | keyword | all | 228 | 33.3 | 50.4 | 55.3 | 0.408 | 474 | 616 | 8 of 18 (44.4%) | 32 of 228 (14.0%) |
-| exact+keyword | dev | 136 | 36.8 | 66.2 | 74.3 | 0.496 | 524 | 625 | 3 of 11 (27.3%) | 8 of 136 (5.9%) |
-| exact+keyword | test | 92 | 34.8 | 63.0 | 76.1 | 0.478 | 528 | 626 | 4 of 7 (57.1%) | 3 of 92 (3.3%) |
+| exact+keyword | dev | 136 | 36.8 | 66.2 | 74.3 | 0.496 | 523 | 625 | 3 of 11 (27.3%) | 8 of 136 (5.9%) |
+| exact+keyword | test | 92 | 34.8 | 63.0 | 76.1 | 0.478 | 527 | 626 | 4 of 7 (57.1%) | 3 of 92 (3.3%) |
 | exact+keyword | all | 228 | 36.0 | 64.9 | 75.0 | 0.489 | 525 | 626 | 7 of 18 (38.9%) | 11 of 228 (4.8%) |
 | exact+linked+keyword | dev | 136 | 56.6 | 77.2 | 81.6 | 0.658 | 529 | 664 | 3 of 11 (27.3%) | 8 of 136 (5.9%) |
 | exact+linked+keyword | test | 92 | 51.1 | 68.5 | 77.2 | 0.602 | 541 | 649 | 4 of 7 (57.1%) | 3 of 92 (3.3%) |
