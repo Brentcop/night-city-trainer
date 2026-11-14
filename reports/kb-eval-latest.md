@@ -12,7 +12,7 @@ Scopes: public 115, local 31. Splits: dev 87, test 59. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-3543 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+3553 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -137,7 +137,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2519 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 31.
+2529 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 31.
 Stale expectations: none.
 
 ### By configuration and split

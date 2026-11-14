@@ -69,6 +69,13 @@ file, by name or by list fingerprint. Add `--json` for data.
 - A question that names the kind of record it wants finds linked records: "rulings on Detonate",
   "decks that play Kiroshi Optics", "game plan for nc-01".
 
+Running the script directly is about twice as fast (0.8 s against 1.9 s through npm) and is the form to
+use in Windows PowerShell, where `npm run kb -- …` drops flags such as `--event`, `--k` and `--json`:
+
+```bash
+node --import tsx scripts/kb.ts fact champion --event 6
+```
+
 ## Reading a result
 
 Each hit shows its id, title, `[kind · origin · scope · status]`, its version stamps and its source as
@@ -99,3 +106,6 @@ Each hit shows its id, title, `[kind · origin · scope · status]`, its version
   Swiss finishes in the first eight places as two separate numbers; say which one you mean.
 - Paraphrased questions are the weak spot (about half find their record in the first five). Add the
   thing's name when you know it.
+- The search is keywords, names and links. An embeddings ranker exists only as an opt-in experiment
+  (`--rankers exact,linked,keyword,dense`, plan step 4.1): it was measured and did not earn a place in
+  the default, and it needs tools in `.cache/kb-dense/` that `npm run kb -- stats` reports on.

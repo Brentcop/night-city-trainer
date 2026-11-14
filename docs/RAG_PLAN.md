@@ -124,7 +124,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 2.4 | Decision, synergy and impact cells as keyed records | later | |
 | 3.1 | Public pack, byte budgets, guards | waiting: D1, D2 | |
 | 3.2 | Search and dossiers on the site behind a feature flag | waiting: D1, D2, D3 | |
-| 4.x | Experiments: embeddings, reranker, related lists, drafted notes | waiting: step 1.4, D3, D4 | |
+| 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
+| 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
 | 5.x | Exact reuse in game tools: coach cache, review measurements | later | |
 
 ## 5. Steps
@@ -353,6 +354,30 @@ the decision (keep, drop, could not tell) and its cost.
 
 - 4.1 Embeddings computed on the owner's machine (bge-small-en-v1.5 or arctic-embed-s, 384 dimensions),
   scanned by a plain loop and fused by M2. Needs a dev dependency and a model download: owner approval.
+  - Run on 2026-11-13 with the owner's approval. Built: `src/lib/kb/dense.ts` (a plain dot-product scan),
+    a fourth ranker `dense` that runs only when asked (`--rankers exact,linked,keyword,dense`),
+    `scripts/kb-dense.ts` (offline embedder and a vector cache keyed on each record's text), and
+    `npm run kb -- embed`. `npm run kb:eval -- --dense` adds the dense configurations.
+  - The tools are not in `package.json`. They sit in `.cache/kb-dense/` (gitignored): the package
+    `@huggingface/transformers@4.3.2` with its dependencies (456 MB on disk, mostly `onnxruntime-node`) in
+    `tools/`, and the model `Xenova/bge-small-en-v1.5` at hub revision `ea104da` in `models/`
+    (`onnx/model_quantized.onnx`, 34,014,426 bytes, sha256 `6c9c6101…7dbfe4`, plus four small files).
+    `npm run kb -- stats` says what is missing; nothing is ever fetched by the code.
+  - Result on the held-out answerable questions (54, all records), keyword-and-links default against the
+    hybrid: first five 70.4% to 75.9%, +5.6 points [−1.8, +14.8]; MRR 0.512 to 0.567. The planned single
+    look gave MRR +0.049 [−0.008, +0.108]: could not tell. A second look, after a determinism fix, gave
+    +0.055 [+0.002, +0.113]. Public records only: +4.8 points [−4.8, +14.3], MRR +0.011 [−0.040, +0.068].
+  - Where it helped and where it did not: rules questions gained (MRR +0.185 [+0.046, +0.333], and two
+    wrongly refused questions answered). Paraphrased questions, the reason for the experiment, did not
+    (first five 50% to 40%). Unanswerable questions were refused no more often. Dense alone was poor
+    (first five 54%, and it refused a third of the answerable questions).
+  - Decision: not kept in the default search. Two looks, a lower bound of +0.002 on one scope and "could
+    not tell" on the other do not justify 456 MB of tools and a second of start-up per search (M11).
+  - Found on the way: with the quantized model a text's vector depended on what else was in its batch
+    (cosine 0.995 against itself), so embedding is done one text per call. That is byte-identical on a
+    rebuild, faster (61 s for 3,545 records) and far smaller in memory.
+  - Next, in order: retest on fresh held-out questions; dense for rules questions only; dense as a
+    signal for refusing; then the reranker (4.2).
 - 4.2 A small cross-encoder reranking the top 50.
 - 4.3 Precomputed "related" lists shipped to the site as id lists.
 - 4.4 Per-card play notes drafted by Claude from dossiers, checked by a validator (no figure missing from
@@ -444,6 +469,18 @@ npm run kb -- search "which deck wins by filling the trash"
 npm run kb -- get "Detonate"
 ```
 
+Running the script directly is about twice as fast, and it is the form to use in Windows PowerShell 5.1,
+where `npm run kb -- …` drops flags such as `--event` and `--rankers` (npm takes them for its own):
+
+```bash
+node --import tsx scripts/kb.ts fact champion --event 6
+```
+
+Where a search spends its time (measured 2026-11-13, about 1.85 s through npm): npm itself 0.85 s, node
+and tsx start-up 0.45 s, loading modules 0.2 s (0.14 s of it the tournament code behind the event
+builders), hashing 419 input files 0.1 s, building the index 0.2 s, the query itself 5 ms. Loading the
+builders only when the pack must be rebuilt (`scripts/kb-sources.ts`) would save about 0.14 s.
+
 ## 7. Scoreboard
 
 Numbers over time. A row is added when a step lands or an experiment ends; old rows stay.
@@ -477,6 +514,9 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | How much these figures move when a doc is edited | one paraphrase question moved in and out of the first five between two edits of this file (40% and 50% of 10) | step 1.6 |
 | 2026-11-13 | Unanswerable questions refused (held-out, 5) | 1 of 5 with all records, 4 of 5 public only; answerable wrongly refused: 3 of 54 and 1 of 42 | step 1.6 |
 | 2026-11-13 | Cost of adding the ratings table record | top 5 on the held-out split: −1.9 points [−5.6, 0] | step 1.6 |
+| 2026-11-13 | Hybrid with embeddings, held-out answerable (54), all records | top 1: 44%, top 5: 76%, top 10: 78%, MRR 0.57 (default 37%, 70%, 78%, 0.51) | step 4.1 |
+| 2026-11-13 | Embeddings alone, same questions | top 5: 54%, MRR 0.44; 18 of 54 answerable questions wrongly refused | step 4.1 |
+| 2026-11-13 | Cost of embeddings | 61 s to embed 3,545 records; 5.6 MB of vectors; about 1 s more per search from a cold start; 456 MB of tools and a 34 MB model on disk | step 4.1 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -488,6 +528,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | The "no match" floor throws away real answers | Best keyword hit must hold a third of the question's words, not half | Recall at 5 and MRR: no change [0, 0]; public: unanswerable refused 4 of 5 to 1 of 5 | Dropped |
 | 2026-11-13 | Neighbours of a one-word glossary term crowd out rule records | No link expansion from a term named by one word | Recall at 5: no change [0, 0]; MRR −0.000 [−0.008, +0.006] | Dropped: could not tell |
 | 2026-11-13 | A question naming two decks wants their matchup | The pair's matchup record joins the exact list | Recall at 5: +3.7 points [0, +9.3]; MRR +0.012 [0, +0.031]; number questions 60% to 80%; no type worse | Not kept: the interval reaches zero. Retest with more questions |
+| 2026-11-13 | Embeddings find paraphrased questions that keywords miss, and help refuse the unanswerable | A dense ranker (bge-small-en-v1.5, quantized) fused at weight 0.5, with a similarity floor of 0.75 | Recall at 5: +5.6 points [−1.8, +14.8]; MRR +0.049 [−0.008, +0.108] on the planned look, +0.055 [+0.002, +0.113] on a second; paraphrase 50% to 40%; rules MRR +0.185 [+0.046, +0.333]; refusals unchanged | Not kept in the default. Two looks; the gain is in rules, not where it was predicted |
 
 ## 8. Decisions and stopgaps
 
@@ -505,6 +546,7 @@ The owner decides these. Until then the stopgap in the last column applies, and 
 | D8 | Who writes the question set? | An agent drafts it, marked draft; the owner edits. |
 | D9 | Archived and history decks in the pack? | Not yet; the 47 library decks only. |
 | D10 | A nickname table for cards ("Smasher")? | None; ambiguous mentions are counted, not guessed. |
+| D11 | If a dense ranker is kept later, how are its tools carried? As a dev dependency they add about 456 MB to every install and to CI. | A side folder, `.cache/kb-dense/`, outside `package.json`. |
 
 D6 in detail: `scripts/event-pool.ts` line 132 counts `i < 8`, even in 7-deck events that cut to four,
 while the tournament index and the finish chips use the real cut, so five decks show two different counts.
@@ -564,3 +606,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
 - 2026-11-13: step 1.6 landed. The question set is 146 with unanswerable questions and harder phrasings,
   the evaluation reports refusals, and `fact ratings` with a ratings-table record was added. Three ranking
   changes were measured and none was kept. This is the baseline the embeddings experiment starts from.
+- 2026-11-13: experiment 4.1 ran. A dense ranker over bge-small-en-v1.5 vectors was built and measured.
+  It lifted rules questions and did nothing for paraphrased or unanswerable ones, and its overall gain
+  could not be told from zero on the planned look. The default search stays keyword-and-links; the dense
+  ranker stays in the code as an opt-in for the next experiments. Its tools live outside `package.json`.

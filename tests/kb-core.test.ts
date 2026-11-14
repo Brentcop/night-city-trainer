@@ -148,7 +148,8 @@ describe('search', () => {
     expect(search(IX, 'fills trash replays').noMatch).toBe(false);
   });
   it('keeps the step 1.6 settings at their defaults (none of the three experiments was kept)', () => {
-    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false });
+    // the dense settings (step 4.1) apply only when a search is given a dense index
+    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75 });
     expect([...cuedKinds('which decks are strongest')]).toEqual(['deck', 'rating']);
   });
   it('varies the floor and how many keyword hits may meet it, for experiments', () => {

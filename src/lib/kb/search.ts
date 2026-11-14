@@ -6,16 +6,21 @@
 // matchups; step 2.2) are named inside a question like decks are, and join the keyword and linked lists only when the
 // question asks for their kind (CUE_ONLY_KINDS): kept after the number questions showed it helps on held-out questions.
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
+// Rung 4, `dense` (step 4.1, dense.ts), runs only when the caller passes a dense index and the question's vector; it is
+// gated like the keyword list and can only lift a "no match" when its best similarity reaches `denseFloor`.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
+import { rankDense, type DenseIndex } from './dense';
 import { buildNameIndex, findNameHits, lookupName, type NameHit, type NameIndex } from './names';
 import { tokenize } from './text';
 import { byString, type KbKind, type KbRecord, type KbRel, type KbScope } from './types';
 
-export const RANKERS = ['exact', 'linked', 'keyword'] as const;
+export const RANKERS = ['exact', 'linked', 'keyword', 'dense'] as const;
 export type Ranker = (typeof RANKERS)[number];
+/** The rankers a search runs when the caller names none: the lexical ladder (dense is opt-in, step 4.1). */
+export const DEFAULT_RANKERS: readonly Ranker[] = ['exact', 'linked', 'keyword'];
 
-/** Fusion weights (tuned only on the question set's `dev` split, docs/RAG_PLAN.md step 1.4). */
-export const RANK_WEIGHTS: Readonly<Record<Ranker, number>> = { exact: 2, linked: 1, keyword: 1 };
+/** Fusion weights (tuned only on the question set's `dev` split, docs/RAG_PLAN.md step 1.4); dense: SearchTuning.denseWeight. */
+export const RANK_WEIGHTS: Readonly<Record<Ranker, number>> = { exact: 2, linked: 1, keyword: 1, dense: 1 };
 /** The reciprocal-rank constant. */
 export const RRF_K = 60;
 /** Without an exact hit, the best keyword hit must hold at least this share of the question's words. */
@@ -32,6 +37,8 @@ export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term
  * floor 0.34 found no more answers and refused 1 of 5 unanswerable public questions instead of 4; no links from
  * one-word term hits changed nothing for rules questions; the deck-pair matchup found 2 more number questions, none
  * lost, but its interval reached zero (recall at 5 +3.7 points [0, +9.3]): could not tell.
+ * Step 4.1 (dense): denseWeight 0.5 and denseFloor 0.75 were chosen on `dev` from 0.5, 1, 2 and 0.72, 0.75, 1; the
+ * dense ranker stays opt-in (DEFAULT_RANKERS) until a measurement keeps it.
  */
 export interface SearchTuning {
   /** the "no match" floor: without an exact hit, the share of the question's words a keyword hit must hold (MATCH_FLOOR) */
@@ -42,9 +49,13 @@ export interface SearchTuning {
   singleWordTermLinks: boolean;
   /** when the question names two different decks, their matchup record (if there is one) joins the exact list */
   deckPairMatchup: boolean;
+  /** the dense list's weight in the fusion (used only when a dense index is passed) */
+  denseWeight: number;
+  /** without an exact hit or a keyword hit over the floor, a best dense similarity at least this high still answers */
+  denseFloor: number;
 }
 
-export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false };
+export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75 };
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -85,10 +96,12 @@ export interface SearchOptions {
   kinds?: readonly KbKind[];
   /** 'all' (default) or one scope */
   scope?: KbScope | 'all';
-  /** which rankers run (default all) */
+  /** which rankers run (default DEFAULT_RANKERS); `dense` runs only with `dense` below */
   rankers?: readonly Ranker[];
   /** experiments only: settings other than SEARCH_TUNING */
   tuning?: Partial<SearchTuning>;
+  /** the dense index (aligned to this index's records) and the question's unit vector from the same model */
+  dense?: { index: DenseIndex; query: ArrayLike<number> };
 }
 
 export interface SearchHit {
@@ -108,8 +121,9 @@ export interface SearchResult {
   total: number;
 }
 
-/** Merge ranked id lists by reciprocal rank fusion; ties by id. */
-export function fuse(lists: Partial<Record<Ranker, readonly string[]>>, weights: Readonly<Record<Ranker, number>> = RANK_WEIGHTS): { id: string; score: number; ranks: Partial<Record<Ranker, number>> }[] {
+/** Merge ranked id lists by reciprocal rank fusion; ties by id. A weight not given is RANK_WEIGHTS'. */
+export function fuse(lists: Partial<Record<Ranker, readonly string[]>>, given: Readonly<Partial<Record<Ranker, number>>> = RANK_WEIGHTS): { id: string; score: number; ranks: Partial<Record<Ranker, number>> }[] {
+  const weights = { ...RANK_WEIGHTS, ...given };
   const acc = new Map<string, { score: number; ranks: Partial<Record<Ranker, number>> }>();
   for (const r of RANKERS) {
     const list = lists[r];
@@ -229,7 +243,7 @@ export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: reado
 export function search(ix: KbIndex, query: string, o: SearchOptions = {}): SearchResult {
   const k = o.k ?? 5;
   const t: SearchTuning = { ...SEARCH_TUNING, ...o.tuning };
-  const use = new Set<Ranker>(o.rankers ?? RANKERS);
+  const use = new Set<Ranker>(o.rankers ?? DEFAULT_RANKERS);
   const cued = cuedKinds(query);
   const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
   const keyword = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
@@ -245,12 +259,16 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   if (use.has('exact')) lists.exact = [...exact, ...pairs, ...asked].slice(0, RANK_DEPTH);
   if (use.has('linked')) lists.linked = linked.slice(0, RANK_DEPTH);
   if (use.has('keyword')) lists.keyword = keyword.slice(0, RANK_DEPTH).map((s) => s.id);
+  // the dense list scans every vector; gated kinds are left out before the cut to RANK_DEPTH, as in the keyword list
+  const dense = use.has('dense') && o.dense ? rankDense(o.dense.index, o.dense.query, Infinity).filter((s) => ix.byId.has(s.id) && !gated(s.id)).slice(0, RANK_DEPTH) : [];
+  if (dense.length) lists.dense = dense.map((s) => s.id);
   const floorMet = keyword.slice(0, Math.max(1, t.floorHits)).some((s) => coverage(ix.bm25, s.id, query) >= t.floor);
-  const noMatch = !exact.length && !floorMet;
+  const denseMet = (dense[0]?.score ?? -Infinity) >= t.denseFloor;
+  const noMatch = !exact.length && !floorMet && !denseMet;
   if (noMatch) return { query, hits: [], noMatch: true, total: 0 };
   const scope = o.scope ?? 'all';
   const keep = (r: KbRecord) => (scope === 'all' || r.scope === scope) && (!o.kinds?.length || o.kinds.includes(r.kind));
-  const fused = fuse(lists)
+  const fused = fuse(lists, { dense: t.denseWeight })
     .map((f) => ({ record: ix.byId.get(f.id)!, score: f.score, ranks: f.ranks }))
     .filter((h) => keep(h.record));
   return { query, hits: fused.slice(0, k), noMatch: fused.length === 0, total: fused.length };

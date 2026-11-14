@@ -6,9 +6,15 @@
 //   npm run kb:eval                          every configuration, both scopes, every split
 //   npm run kb:eval -- --split dev --config exact+keyword,exact+linked+keyword --compare exact+keyword,exact+linked+keyword
 //   npm run kb:eval -- --out                 also write reports/kb-eval-latest.md and .json (only when they change)
+//   npm run kb:eval -- --dense               also the three configurations with the dense ranker (step 4.1)
 // Flags:
-//   --config a,b       configurations to run: exact, keyword, exact+keyword, exact+linked+keyword (default all four;
-//                      the last is the default search)
+//   --config a,b       configurations to run: exact, keyword, exact+keyword, exact+linked+keyword (the default search;
+//                      default these four), and with --dense also dense, keyword+dense, exact+linked+keyword+dense
+//   --dense            add the dense configurations (default all three). Needs the embedding tools and model in
+//                      .cache/kb-dense/ (scripts/kb-dense.ts; exit 1 saying what is missing otherwise); the vectors are
+//                      refreshed first and each question is embedded once. Dense results go to stdout, and with --out
+//                      to .cache/kb-dense/kb-eval-dense.md and .json; the tracked reports hold the lexical
+//                      configurations only, so they are the same on every machine.
 //   --split S          dev | test | all (default all). Tune on dev, report on test.
 //   --scope S          public | all (default both, one after the other). `all` searches the whole local pack;
 //                      `public` searches the public records only, as a checkout without data/raw does, and skips the
@@ -19,7 +25,9 @@
 //   --seed N           bootstrap seed (default 1; 2,000 resamples, 95% percentile interval)
 //   --tune k=v,…       experiments only: run the search with other settings than SEARCH_TUNING (src/lib/kb/search.ts):
 //                      floor=0.4 (the "no match" share), floorHits=3 (the floor is met by any of the first N keyword
-//                      hits), singleWordTermLinks=false, deckPairMatchup=true. The report records the setting.
+//                      hits), singleWordTermLinks=false, deckPairMatchup=true, denseWeight=2 (the dense list's fusion
+//                      weight), denseFloor=0.75 (the best dense similarity that still answers without an exact or keyword
+//                      hit over the floor). The report records the setting.
 //   --questions FILE   the question set (default data/kb/questions.json)
 //   --json             JSON on stdout instead of tables
 //   --strict           exit 1 when an expected id is not in the pack (stale expectations are always listed)
@@ -28,8 +36,9 @@
 // The per-question listing shows dev questions only: test results are read as totals (rule M9).
 import fs from 'node:fs';
 import path from 'node:path';
-import { ArgError, bool, cli, int, oneOf, Refusal, runMain, str, writeIfChanged } from './lib-node';
+import { ArgError, bool, cli, int, oneOf, Refusal, runMain, str, writeIfChanged, type Values } from './lib-node';
 import { ensurePack, ROOT } from './kb';
+import { alignDense, type DenseIndex } from '../src/lib/kb/dense';
 import {
   ANSWERABLE_TYPES,
   availability,
@@ -38,6 +47,7 @@ import {
   EVAL_DEPTH,
   groupBy,
   isAnswerable,
+  needsDense,
   parseTuning,
   QUESTION_SPLITS,
   QUESTION_TYPES,
@@ -86,7 +96,12 @@ export const EVAL_SPEC = {
   json: bool(),
   out: bool(),
   strict: bool(),
+  dense: bool(),
 };
+
+/** The configurations without the dense ranker: the default list, and the only ones in the tracked reports. */
+export const LEXICAL_CONFIGS: readonly EvalConfig[] = EVAL_CONFIG_NAMES.filter((c) => !needsDense(c));
+const DENSE_REPORT = 'kb-eval-dense';
 
 type ScopeName = 'all' | 'public';
 const SCOPE_TITLE: Record<ScopeName, string> = {
@@ -146,8 +161,13 @@ export function readQuestions(file: string): KbQuestionFile {
   return parsed as KbQuestionFile;
 }
 
-/** Evaluate configurations over one scope's index. */
-export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], questions: readonly KbQuestion[], configs: readonly EvalConfig[], tuning?: Partial<SearchTuning>): ScopeRun {
+/** The dense run (--dense): which model made the vectors. Never in the tracked reports. */
+export interface DenseNote {
+  model: string;
+}
+
+/** Evaluate configurations over one scope's index. `dense`: the whole pack's vectors and one vector per question id. */
+export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], questions: readonly KbQuestion[], configs: readonly EvalConfig[], tuning?: Partial<SearchTuning>, dense?: { index: DenseIndex; queries: ReadonlyMap<string, Float32Array> }): ScopeRun {
   const recs = scope === 'public' ? records.filter((r) => r.scope === 'public') : records;
   const ix: KbIndex = buildIndex(recs);
   const localPresent = recs.some((r) => r.scope === 'local');
@@ -162,7 +182,8 @@ export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], qu
     if (a.skip) skipped.push(q.id);
     else scored.push(q);
   }
-  return { scope, localPresent, records: recs.length, skipped, stale, runs: configs.map((config) => ({ config, results: runQuestions(ix, scored, config, tuning) })) };
+  const run = dense ? { index: alignDense(dense.index, ix.records.map((r) => r.id)).index, queries: dense.queries } : undefined;
+  return { scope, localPresent, records: recs.length, skipped, stale, runs: configs.map((config) => ({ config, results: runQuestions(ix, scored, config, tuning, needsDense(config) ? run : undefined) })) };
 }
 
 const pct = (x: number) => (100 * x).toFixed(1);
@@ -188,7 +209,7 @@ function table(head: string[], rows: string[][]): string[] {
 const metricCells = (s: Summary) => [String(s.n), pct(s.r1), pct(s.r5), pct(s.r10), num(s.mrr)];
 
 /** The markdown report (also the plain-text output: markdown tables read fine in a terminal). */
-export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; titles: Map<string, string>; questions: Map<string, KbQuestion>; comparisons: Comparison[]; against?: string; tuning?: Partial<SearchTuning> }): string {
+export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; titles: Map<string, string>; questions: Map<string, KbQuestion>; comparisons: Comparison[]; against?: string; tuning?: Partial<SearchTuning>; dense?: DenseNote }): string {
   const qs = o.file.questions;
   const count = (pick: (q: KbQuestion) => string, keys: readonly string[]) => keys.map((k) => `${k} ${qs.filter((q) => pick(q) === k).length}`).join(', ');
   const L: string[] = [
@@ -204,6 +225,7 @@ export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string;
     `Question set: \`${o.questionsFile}\` (${o.file.status}), ${qs.length} questions. Types: ${count((q) => q.type, QUESTION_TYPES.filter((t) => qs.some((q) => q.type === t)))}.`,
     `Scopes: ${count((q) => q.scope, ['public', 'local'])}. Splits: ${count((q) => q.split, QUESTION_SPLITS)}. Shown here: split ${o.split}.`,
     ...(o.tuning ? [`Search settings changed for an experiment (--tune): ${Object.entries(o.tuning).map(([k, x]) => `${k}=${String(x)}`).join(', ')}.`] : []),
+    ...(o.dense ? [`Dense ranker (--dense, step 4.1): ${o.dense.model}; not part of the tracked reports.`] : []),
     '',
   ];
   for (const sc of o.scopes) {
@@ -292,7 +314,7 @@ const summaryJson = (s: Summary) => ({
 });
 const intervalJson = (p: PairedInterval) => ({ n: p.n, diff: round(p.diff), lo: round(p.lo), hi: round(p.hi) });
 
-export function reportJson(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; comparisons: Comparison[]; against?: string; tuning?: Partial<SearchTuning> }) {
+export function reportJson(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; comparisons: Comparison[]; against?: string; tuning?: Partial<SearchTuning>; dense?: DenseNote }) {
   return {
     kind: 'nct-kb-eval',
     schema: 1,
@@ -301,6 +323,7 @@ export function reportJson(o: { file: KbQuestionFile; questionsFile: string; spl
     split: o.split,
     seed: o.seed,
     ...(o.tuning ? { tuning: o.tuning } : {}),
+    ...(o.dense ? { dense: o.dense } : {}),
     scopes: o.scopes.map((sc) => ({
       scope: sc.scope,
       localPresent: sc.localPresent,
@@ -370,21 +393,42 @@ function compareAgainst(scopes: readonly ScopeRun[], earlier: ReportJson, file: 
   return out;
 }
 
-async function main() {
-  const { values: v } = cli(import.meta.url, EVAL_SPEC);
-  const configs = new Set<EvalConfig>(v.config ? (v.config.split(',').map((x) => x.trim()) as EvalConfig[]) : EVAL_CONFIG_NAMES);
+/** A markdown and a JSON report. */
+export interface ReportPair {
+  md: string;
+  json: string;
+}
+
+export interface EvalOutput {
+  /** what the run prints (with --dense: the dense configurations too) */
+  stdout: string;
+  /** what --out writes to reports/: the lexical configurations only, so the same on every machine */
+  tracked: ReportPair;
+  /** with --dense: the whole report, which --out writes under .cache/kb-dense/ */
+  dense?: ReportPair & { dir: string };
+  staleCount: number;
+}
+
+/**
+ * Run the evaluation for parsed flags. Throws ArgError for a dense configuration named without --dense, and Refusal
+ * (with what is missing) for --dense when the dense ranker is not ready.
+ */
+export async function runEval(v: Values<typeof EVAL_SPEC>, earlier?: ReportJson): Promise<EvalOutput> {
+  const named = [...(v.config?.split(',') ?? []), ...(v.compare?.split(',') ?? [])].map((x) => x.trim() as EvalConfig);
+  const denseNamed = named.filter(needsDense);
+  if (denseNamed.length && !v.dense) throw new ArgError(`${[...new Set(denseNamed)].join(', ')} needs --dense`);
+  const configs = new Set<EvalConfig>(v.config ? (v.config.split(',').map((x) => x.trim()) as EvalConfig[]) : v.dense ? EVAL_CONFIG_NAMES : LEXICAL_CONFIGS);
   const pair = v.compare?.split(',').map((x) => x.trim()) as [EvalConfig, EvalConfig] | undefined;
   if (pair) for (const c of pair) configs.add(c);
   const configList = EVAL_CONFIG_NAMES.filter((c) => configs.has(c));
-  let earlier: ReportJson | undefined;
-  try {
-    if (v.against) earlier = readReport(v.against);
-  } catch (e) {
-    if (!(e instanceof ArgError)) throw e;
-    console.error(`error: ${e.message}\nRun with --help for usage.`);
-    process.exit(2);
-  }
 
+  // the dense ranker is loaded only for --dense
+  const kd = v.dense ? await import('./kb-dense') : undefined;
+  const dp = kd?.densePaths(ROOT);
+  if (kd && dp) {
+    const st = kd.denseStatus(dp);
+    if (!st.ready) throw new Refusal(`--dense: ${kd.missingText(st)}`);
+  }
   const file = readQuestions(v.questions);
   const questions = file.questions.filter((q) => v.split === 'all' || q.split === v.split);
   const pack = await ensurePack();
@@ -392,23 +436,58 @@ async function main() {
   const scopeNames: ScopeName[] = v.scope ? [v.scope] : ['all', 'public'];
   const tuned = v.tune === undefined ? undefined : parseTuning(v.tune);
   const tuning = typeof tuned === 'object' ? tuned : undefined;
-  const scopes = scopeNames.map((s) => evaluateScope(s, pack.records, questions, configList, tuning));
-  const comparisons = [...(pair ? compare(scopes, pair[0], pair[1], v.seed) : []), ...(earlier ? compareAgainst(scopes, earlier, v.against!, v.split, v.seed) : [])];
+  // the dense configurations: vectors refreshed and every question embedded once
+  let dense: { index: DenseIndex; queries: Map<string, Float32Array> } | undefined;
+  let denseNote: DenseNote | undefined;
+  if (kd && dp && configList.some(needsDense)) {
+    const embed = await kd.loadEmbedder(dp);
+    const r = await kd.refreshVectors(pack.records, embed, dp.vectors);
+    if (r.embedded || r.dropped) console.error(`kb-eval: dense vectors refreshed (${r.embedded} embedded, ${r.dropped} dropped)`);
+    const vecs = await kd.embedQueries(embed, questions.map((q) => q.q));
+    dense = { index: r.index, queries: new Map(questions.map((q, i) => [q.id, vecs[i]!])) };
+    denseNote = { model: `${kd.DENSE_MODEL.id} ${kd.DENSE_MODEL.dtype}` };
+  }
+  const scopes = scopeNames.map((s) => evaluateScope(s, pack.records, questions, configList, tuning, dense));
+  const comparisonsOf = (scs: ScopeRun[]) => [...(pair ? compare(scs, pair[0], pair[1], v.seed) : []), ...(earlier ? compareAgainst(scs, earlier, v.against!, v.split, v.seed) : [])];
   // public titles only: a local title can hold the first words of official text (rule M6)
   const titles = new Map(pack.records.filter((r) => r.scope === 'public').map((r) => [r.id, r.title]));
   const qById = new Map(file.questions.map((q) => [q.id, q]));
-  const common = { file, questionsFile: v.questions, split: v.split, seed: v.seed, scopes, comparisons, against: v.against, tuning };
-  const md = renderMarkdown({ ...common, titles, questions: qById }) + '\n';
-  const json = JSON.stringify(reportJson(common), null, 2) + '\n';
+  const reports = (scs: ScopeRun[], note?: DenseNote): ReportPair => {
+    const common = { file, questionsFile: v.questions, split: v.split, seed: v.seed, scopes: scs, comparisons: comparisonsOf(scs), against: v.against, tuning, dense: note };
+    return { md: renderMarkdown({ ...common, titles, questions: qById }) + '\n', json: JSON.stringify(reportJson(common), null, 2) + '\n' };
+  };
+  const full = reports(scopes, denseNote);
+  const tracked = denseNote ? reports(scopes.map((sc) => ({ ...sc, runs: sc.runs.filter((r) => !needsDense(r.config)) }))) : full;
+  return {
+    stdout: v.json ? full.json : full.md,
+    tracked,
+    ...(denseNote && dp ? { dense: { ...full, dir: dp.dir } } : {}),
+    staleCount: scopes.reduce((a, s) => a + Object.keys(s.stale).length, 0),
+  };
+}
 
-  process.stdout.write(v.json ? json : md);
-  if (v.out) {
-    const wrote = [writeIfChanged(path.join(ROOT, REPORT_MD), md) && REPORT_MD, writeIfChanged(path.join(ROOT, REPORT_JSON), json) && REPORT_JSON].filter(Boolean);
-    console.error(wrote.length ? `kb-eval: wrote ${wrote.join(', ')}` : 'kb-eval: reports unchanged');
+async function main() {
+  const { values: v } = cli(import.meta.url, EVAL_SPEC);
+  let earlier: ReportJson | undefined;
+  let out: EvalOutput;
+  try {
+    if (v.against) earlier = readReport(v.against);
+    out = await runEval(v, earlier);
+  } catch (e) {
+    if (!(e instanceof ArgError)) throw e;
+    console.error(`error: ${e.message}\nRun with --help for usage.`);
+    process.exit(2);
   }
-  const staleCount = scopes.reduce((a, s) => a + Object.keys(s.stale).length, 0);
-  if (staleCount) console.error(`kb-eval: ${staleCount} question(s) expect records that are not in the pack (listed under "Stale expectations")`);
-  if (v.strict && staleCount) process.exitCode = 1;
+  process.stdout.write(out.stdout);
+  if (v.out) {
+    const write = (file: string, text: string) => writeIfChanged(file, text) && path.relative(ROOT, file).split(path.sep).join('/');
+    const wrote = [write(path.join(ROOT, REPORT_MD), out.tracked.md), write(path.join(ROOT, REPORT_JSON), out.tracked.json)];
+    if (out.dense) wrote.push(write(path.join(out.dense.dir, `${DENSE_REPORT}.md`), out.dense.md), write(path.join(out.dense.dir, `${DENSE_REPORT}.json`), out.dense.json));
+    const list = wrote.filter(Boolean);
+    console.error(list.length ? `kb-eval: wrote ${list.join(', ')}` : 'kb-eval: reports unchanged');
+  }
+  if (out.staleCount) console.error(`kb-eval: ${out.staleCount} question(s) expect records that are not in the pack (listed under "Stale expectations")`);
+  if (v.strict && out.staleCount) process.exitCode = 1;
 }
 
 if (/[\\/]kb-eval\.ts$/.test(process.argv[1] ?? '')) runMain(main);

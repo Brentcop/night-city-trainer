@@ -9,7 +9,7 @@
     {
       "scope": "all",
       "localPresent": true,
-      "records": 3543,
+      "records": 3553,
       "skipped": [],
       "stale": {},
       "configs": [
@@ -2761,7 +2761,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 584
+              "tokens": 541
             },
             {
               "id": "q118",
@@ -4253,7 +4253,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 584
+              "tokens": 541
             },
             {
               "id": "q118",
@@ -5986,7 +5986,7 @@
     {
       "scope": "public",
       "localPresent": false,
-      "records": 2519,
+      "records": 2529,
       "skipped": [
         "q010",
         "q081",
@@ -8454,7 +8454,7 @@
               "r5": 0.6429,
               "r10": 0.7857,
               "mrr": 0.4845,
-              "tokensMean": 525.9524,
+              "tokensMean": 526.0238,
               "tokensP90": 612,
               "refusal": {
                 "n": 5,
@@ -8473,7 +8473,7 @@
               "r5": 0.7282,
               "r10": 0.8058,
               "mrr": 0.5631,
-              "tokensMean": 511.9903,
+              "tokensMean": 512.0194,
               "tokensP90": 605,
               "refusal": {
                 "n": 12,
@@ -8609,7 +8609,7 @@
                 "r5": 0.6,
                 "r10": 0.7,
                 "mrr": 0.4444,
-                "tokensMean": 553.4,
+                "tokensMean": 553.7,
                 "tokensP90": 632,
                 "wrongRefusals": {
                   "n": 10,
@@ -8681,7 +8681,7 @@
                 "r5": 0.7083,
                 "r10": 0.75,
                 "mrr": 0.5532,
-                "tokensMean": 561.5833,
+                "tokensMean": 561.7083,
                 "tokensP90": 616,
                 "wrongRefusals": {
                   "n": 24,
@@ -9432,7 +9432,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 565
+              "tokens": 568
             },
             {
               "id": "q113",

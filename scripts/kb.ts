@@ -4,8 +4,10 @@
 //   npm run kb -- search "<question>"   the best records: exact name, records linked to it, then keywords
 //   npm run kb -- get <id or name>      every record with that id, title or alias, in full
 //   npm run kb -- related <id or name>  the record and its neighbours, grouped by link type
-//   npm run kb -- stats                 records by kind and scope, pack size, mentions left unlinked
+//   npm run kb -- stats                 records by kind and scope, pack size, mentions left unlinked, dense ready or not
 //   npm run kb -- build                 rebuild the local pack now
+//   npm run kb -- embed                 build or refresh the dense vectors (step 4.1, scripts/kb-dense.ts): only records
+//                                       whose text changed are embedded again; prints counts, time and size
 //   npm run kb -- fact <name> …         an exact number computed from the recorded data, with its source file, bot and
 //                                       sim version (src/lib/eventFacts.ts), never looked up by similarity:
 //     fact champion --event 6                    the champion, the final and the runner-up
@@ -26,7 +28,8 @@
 //   --round R             fact: a round number, or a top-cut round's name
 //   --top N               fact ratings: only the first N decks (default all)
 //   --scope S             public | local | all (default all)
-//   --rankers a,b         search rankers to run: exact, linked, keyword (default all three)
+//   --rankers a,b         search rankers to run: exact, linked, keyword, dense (default the first three). dense needs
+//                         the embedding tools and model in .cache/kb-dense/ (exit 1 saying what is missing otherwise)
 //   --json                JSON output
 //   --max-tokens N        cap the output at about N tokens, counted as characters / 4 (default 2000)
 // The local pack is a cache in .cache/kb/ (records.jsonl and manifest.json), rebuilt by itself when an input changed.
@@ -35,10 +38,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ArgError, bool, int, oneOf, parseArgs, runMain, str, usageOf, writeIfChanged, type Values } from './lib-node';
+import type { densePaths as DensePathsFn } from './kb-dense';
 import { buildFromSources, hashInputs, inputFiles, loadCompetitive, rawPresent } from './kb-sources';
+import type { DenseIndex } from '../src/lib/kb/dense';
 import type { CompetitiveSources } from '../src/lib/kb/build/events';
 import { dossier } from '../src/lib/kb/dossier';
-import { FACT_NEEDS, FACTS, runFact, type DeckResolver, type FactName, type FactRequest } from '../src/lib/kb/facts';
+import { FACT_NEEDS, FACTS, type DeckResolver, type FactName, type FactRequest } from '../src/lib/kb/factNames';
 import { nameKey } from '../src/lib/kb/text';
 import { KB_BUILDER_VERSION, packLines, packManifest, parsePackLines } from '../src/lib/kb/build/pack';
 import { DOSSIER_COST, renderDossierJson, renderDossierText, renderRecordsJson, renderRecordsText, renderSearchJson, renderSearchText } from '../src/lib/kb/render';
@@ -48,7 +53,7 @@ import { KB_KINDS, type KbKind, type KbManifest, type KbRecord } from '../src/li
 export const ROOT = path.resolve(import.meta.dirname, '..');
 export const CACHE_DIR = '.cache/kb';
 
-const COMMANDS = ['search', 'get', 'related', 'stats', 'build', 'fact'] as const;
+const COMMANDS = ['search', 'get', 'related', 'stats', 'build', 'fact', 'embed'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const listOf = (all: readonly string[]) => (v: string) => {
@@ -78,7 +83,11 @@ const FLAGS: Record<Command, readonly (keyof typeof KB_SPEC)[]> = {
   stats: ['json'],
   build: ['json'],
   fact: ['event', 'round', 'top', 'json'],
+  embed: [],
 };
+
+/** Commands that take no words. */
+const BARE: readonly Command[] = ['stats', 'build', 'embed'];
 
 export interface KbArgs {
   command: Command;
@@ -133,8 +142,8 @@ export function parseKbArgs(argv: string[]): KbArgs {
   const wrong = given.filter((k) => !FLAGS[command].includes(k));
   if (wrong.length) throw new ArgError(`${wrong.map((k) => `--${k}`).join(', ')} does not apply to ${command}`);
   const query = rest.join(' ').trim();
-  if ((command === 'stats' || command === 'build') && rest.length) throw new ArgError(`${command} takes no arguments, got "${query}"`);
-  if (command !== 'stats' && command !== 'build' && !query) throw new ArgError(`${command} needs ${command === 'search' ? 'a question' : command === 'fact' ? `a fact name (${FACTS.join(', ')})` : 'an id or a name'}`);
+  if (BARE.includes(command) && rest.length) throw new ArgError(`${command} takes no arguments, got "${query}"`);
+  if (!BARE.includes(command) && !query) throw new ArgError(`${command} needs ${command === 'search' ? 'a question' : command === 'fact' ? `a fact name (${FACTS.join(', ')})` : 'an id or a name'}`);
   return {
     command,
     query,
@@ -222,6 +231,15 @@ export function statsText(p: Pick<Pack, 'manifest' | 'bytes' | 'records'>): stri
   ].join('\n');
 }
 
+/** One line on the dense ranker (step 4.1): ready or what is missing, and how many records have a current vector. */
+export async function denseStatsText(records: readonly KbRecord[], dp: ReturnType<typeof DensePathsFn>): Promise<string> {
+  const { denseStatus, DENSE_MODEL, vectorState } = await import('./kb-dense');
+  const st = denseStatus(dp);
+  if (!st.ready) return `dense: not ready (${st.missing.length} missing piece${st.missing.length > 1 ? 's' : ''}; \`npm run kb -- embed\` lists them); search is lexical only`;
+  const v = vectorState(records, dp.vectors);
+  return `dense: ready (${DENSE_MODEL.id}, ${DENSE_MODEL.dtype}, ${DENSE_MODEL.dims} dims); vectors ${v.built ? `current for ${v.current} of ${v.records} records, ${kb(v.bytes)}${v.current < v.records ? ' (the rest are embedded on the next dense search or `embed`)' : ''}` : 'not built yet (`npm run kb -- embed`)'}`;
+}
+
 /** Records named `q`, filtered by --kind and --scope. */
 function named(ix: KbIndex, a: KbArgs): KbRecord[] {
   return lookup(ix, a.query).filter((r) => (!a.kinds || a.kinds.includes(r.kind)) && (a.values.scope === 'all' || r.scope === a.values.scope));
@@ -233,11 +251,11 @@ function notFound(ix: KbIndex, a: KbArgs): { out: string; code: number } {
 }
 
 /** Run a query command against an index. Returns the output and the exit code (1 when nothing was found). */
-export function runQuery(a: KbArgs, ix: KbIndex): { out: string; code: number } {
+export function runQuery(a: KbArgs, ix: KbIndex, dense?: { index: DenseIndex; query: ArrayLike<number> }): { out: string; code: number } {
   const max = a.values['max-tokens'];
   const json = a.values.json;
   if (a.command === 'search') {
-    const res = search(ix, a.query, { k: a.values.k, kinds: a.kinds, scope: a.values.scope, rankers: a.rankers });
+    const res = search(ix, a.query, { k: a.values.k, kinds: a.kinds, scope: a.values.scope, rankers: a.rankers, ...(dense ? { dense } : {}) });
     return { out: (json ? renderSearchJson(res, max) : renderSearchText(res, max)) + '\n', code: res.noMatch ? 1 : 0 };
   }
   const rs = named(ix, a);
@@ -262,9 +280,40 @@ async function main() {
     console.error(`error: ${e.message}\nRun with --help for usage.`);
     process.exit(2);
   }
+  const wantsDense = a.command === 'embed' || (a.command === 'search' && !!a.rankers?.includes('dense'));
+  // the dense module only for dense, embed and stats; the facts module only for fact
+  const kd = wantsDense || a.command === 'stats' ? await import('./kb-dense') : undefined;
+  const dp = kd?.densePaths(ROOT);
+  if (wantsDense && kd && dp) {
+    const st = kd.denseStatus(dp);
+    if (!st.ready) {
+      console.error(`kb: ${kd.missingText(st)}`);
+      process.exit(1);
+    }
+  }
   const pack = await ensurePack({ force: a.command === 'build' });
   if (pack.rebuilt && a.command !== 'build') console.error(`kb: pack rebuilt (inputs changed) in ${(pack.buildMs! / 1000).toFixed(1)} s`);
+  if (wantsDense && kd && dp) {
+    const t0 = performance.now();
+    const embed = await kd.loadEmbedder(dp);
+    const t1 = performance.now();
+    const r = await kd.refreshVectors(pack.records, embed, dp.vectors);
+    const t2 = performance.now();
+    const line = `${r.embedded} records embedded, ${r.reused} reused, ${r.dropped} dropped; model loaded in ${((t1 - t0) / 1000).toFixed(1)} s, embedding took ${((t2 - t1) / 1000).toFixed(1)} s; ${path.relative(ROOT, dp.vectors).split(path.sep).join('/')}/ ${kb(r.bytes)}`;
+    if (a.command === 'embed') {
+      console.log(`kb embed: ${line}; ${(process.memoryUsage().rss / 2 ** 20).toFixed(0)} MB resident`);
+      return;
+    }
+    if (r.embedded || r.dropped) console.error(`kb: dense vectors refreshed: ${line}`);
+    const [query] = await kd.embedQueries(embed, [a.query]);
+    const ix = buildIndex(pack.records);
+    const { out, code } = runQuery(a, ix, { index: kd.denseFor(r.index, ix.records), query: query! });
+    process.stdout.write(out);
+    process.exitCode = code;
+    return;
+  }
   if (a.command === 'fact') {
+    const { runFact } = await import('../src/lib/kb/facts');
     const src = loadCompetitive(ROOT);
     const { out, code } = runFact(a.fact!, src, deckResolver(buildIndex(pack.records), src));
     process.stdout.write(out);
@@ -272,10 +321,13 @@ async function main() {
     return;
   }
   if (a.command === 'build' || a.command === 'stats') {
-    if (a.values.json) console.log(JSON.stringify({ ...pack.manifest, bytes: pack.bytes, ...(pack.buildMs !== undefined ? { buildMs: Math.round(pack.buildMs) } : {}) }, null, 2));
+    const st = kd && dp ? kd.denseStatus(dp) : undefined;
+    const dense = kd && dp && st ? { dense: { ...st, ...(st.ready ? { vectors: kd.vectorState(pack.records, dp.vectors) } : {}) } } : {};
+    if (a.values.json) console.log(JSON.stringify({ ...pack.manifest, bytes: pack.bytes, ...(pack.buildMs !== undefined ? { buildMs: Math.round(pack.buildMs) } : {}), ...dense }, null, 2));
     else {
       if (a.command === 'build') console.log(`kb: built ${CACHE_DIR}/ in ${(pack.buildMs! / 1000).toFixed(1)} s`);
       console.log(statsText(pack));
+      if (a.command === 'stats' && dp) console.log(await denseStatsText(pack.records, dp));
     }
     return;
   }

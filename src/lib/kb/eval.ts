@@ -6,6 +6,7 @@
 // Questions of type `none` (step 1.6) have no answer in the pack: they are scored by refusal (the search says "no
 // match") and left out of recall and MRR; an answerable question the search refuses counts as wrongly refused.
 import { renderSearchText } from './render';
+import type { DenseIndex } from './dense';
 import { search, type KbIndex, type Ranker, type SearchTuning } from './search';
 import { estimateTokens, KB_KINDS, KIND_PREFIX, type KbKind } from './types';
 
@@ -184,15 +185,30 @@ export function sizeStats(tokens: readonly number[]): SizeStats {
   return { mean: mean(tokens), p90: quantile([...tokens].sort((x, y) => x - y), 0.9) };
 }
 
-/** The ranker subsets the evaluation compares; the last is the default search. */
+/**
+ * The ranker subsets the evaluation compares; `exact+linked+keyword` is the default search. The configurations with
+ * `dense` (step 4.1) run only when the dense vectors are ready (scripts/kb-dense.ts); otherwise they are listed as
+ * unavailable.
+ */
 export const EVAL_CONFIGS = {
   exact: ['exact'],
   keyword: ['keyword'],
   'exact+keyword': ['exact', 'keyword'],
   'exact+linked+keyword': ['exact', 'linked', 'keyword'],
+  dense: ['dense'],
+  'keyword+dense': ['keyword', 'dense'],
+  'exact+linked+keyword+dense': ['exact', 'linked', 'keyword', 'dense'],
 } as const satisfies Record<string, readonly Ranker[]>;
 export type EvalConfig = keyof typeof EVAL_CONFIGS;
 export const EVAL_CONFIG_NAMES = Object.keys(EVAL_CONFIGS) as EvalConfig[];
+/** Whether a configuration needs the dense vectors. */
+export const needsDense = (c: EvalConfig): boolean => (EVAL_CONFIGS[c] as readonly Ranker[]).includes('dense');
+
+/** What runQuestions needs for the dense configurations: the index (aligned to the searched records) and one vector per question id. */
+export interface DenseRun {
+  index: DenseIndex;
+  queries: ReadonlyMap<string, ArrayLike<number>>;
+}
 
 /** The answer size is measured on a default-sized answer. */
 export const ANSWER_K = 5;
@@ -235,11 +251,17 @@ export function availability(q: KbQuestion, has: (id: string) => boolean, hasPre
   return { stale, skip: (q.scope === 'local' && !localPresent) || usable === 0 };
 }
 
-/** Run one configuration over questions (callers filter by split and scope first). `tuning`: experiments only. */
-export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], config: EvalConfig, tuning?: Partial<SearchTuning>): QuestionResult[] {
+/**
+ * Run one configuration over questions (callers filter by split and scope first). `tuning`: experiments only. A
+ * configuration with `dense` needs `dense` (throws without it, or without a question's vector).
+ */
+export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], config: EvalConfig, tuning?: Partial<SearchTuning>, dense?: DenseRun): QuestionResult[] {
   const rankers = EVAL_CONFIGS[config];
+  if (needsDense(config) && !dense) throw new Error(`configuration ${config} needs the dense vectors`);
   return questions.map((q) => {
-    const deep = search(ix, q.q, { k: EVAL_DEPTH, rankers, ...(tuning ? { tuning } : {}) });
+    const query = needsDense(config) ? dense!.queries.get(q.id) : undefined;
+    if (needsDense(config) && !query) throw new Error(`no dense vector for question ${q.id}`);
+    const deep = search(ix, q.q, { k: EVAL_DEPTH, rankers, ...(tuning ? { tuning } : {}), ...(query ? { dense: { index: dense!.index, query } } : {}) });
     const top = deep.hits.map((h) => h.record.id);
     const answer = deep.noMatch ? deep : { ...deep, hits: deep.hits.slice(0, ANSWER_K) };
     return { id: q.id, type: q.type, split: q.split, rank: firstRank(top, q.expect), top, tokens: estimateTokens(renderSearchText(answer)), refused: deep.noMatch };
@@ -247,11 +269,12 @@ export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], conf
 }
 
 /** The settings `scripts/kb-eval.ts --tune` may vary, and how each value is read. */
-const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool'>> = { floor: 'share', floorHits: 'count', singleWordTermLinks: 'bool', deckPairMatchup: 'bool' };
+const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' | 'weight'>> = { floor: 'share', floorHits: 'count', singleWordTermLinks: 'bool', deckPairMatchup: 'bool', denseWeight: 'weight', denseFloor: 'share' };
 
 /**
- * Parse `key=value,key=value` into search settings (floor: a share from 0 to 1; floorHits: a whole number from 1 to 100;
- * singleWordTermLinks, deckPairMatchup: true or false). Returns the problem as a string when the text is not valid.
+ * Parse `key=value,key=value` into search settings (floor, denseFloor: a share from 0 to 1; floorHits: a whole number
+ * from 1 to 100; denseWeight: a number from 0 to 10; singleWordTermLinks, deckPairMatchup: true or false). Returns the
+ * problem as a string when the text is not valid.
  */
 export function parseTuning(text: string): Partial<SearchTuning> | string {
   const out: Partial<Record<keyof SearchTuning, number | boolean>> = {};
@@ -267,7 +290,8 @@ export function parseTuning(text: string): Partial<SearchTuning> | string {
       out[key] = raw === 'true';
     } else {
       const v = Number(raw);
-      if (!/^\d+(\.\d+)?$/.test(raw) || (how === 'share' ? v > 1 : !Number.isInteger(v) || v < 1 || v > 100)) return how === 'share' ? `${key} takes a share from 0 to 1, not "${raw}"` : `${key} takes a whole number from 1 to 100, not "${raw}"`;
+      const ok = /^\d+(\.\d+)?$/.test(raw) && (how === 'share' ? v <= 1 : how === 'weight' ? v <= 10 : Number.isInteger(v) && v >= 1 && v <= 100);
+      if (!ok) return how === 'share' ? `${key} takes a share from 0 to 1, not "${raw}"` : how === 'weight' ? `${key} takes a number from 0 to 10, not "${raw}"` : `${key} takes a whole number from 1 to 100, not "${raw}"`;
       out[key] = v;
     }
   }
