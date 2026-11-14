@@ -286,7 +286,8 @@ describe('the local pack cache', () => {
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
-  });
+    // two builds of the whole pack: about 2 s alone, but it passed the default 10 s once while the full suite ran beside it
+  }, 30_000);
 });
 
 describe('the script', () => {

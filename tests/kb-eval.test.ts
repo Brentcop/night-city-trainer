@@ -222,15 +222,17 @@ describe('the question set', () => {
     expect(questionFileProblems(file)).toEqual([]);
     expect(file.status).toBe('draft');
     expect(new Set(qs.map((x) => x.id)).size).toBe(qs.length);
-    expect(qs.length).toBeGreaterThanOrEqual(226);
+    expect(qs.length).toBeGreaterThanOrEqual(286);
     // ids run q001, q002, … in file order (questions are only ever appended)
     qs.forEach((x, i) => expect(x.id).toBe(`q${String(i + 1).padStart(3, '0')}`));
     // every type has questions (step 1.6 added none 12, rules 10, number 8; q147-q176 added paraphrase 30; q177-q226
-    // refreshed the held-out split with entity 4, paraphrase 8, cross 8, number 8, dev 8, rules 8, none 6); number
-    // questions expect measured records only
+    // refreshed the held-out split with entity 4, paraphrase 8, cross 8, number 8, dev 8, rules 8, none 6; q227-q286
+    // added stat 40, number 15, paraphrase 3, cross 1, rules 1); number questions expect measured records only, stat
+    // questions the card and package statistics records only
     const counts = Object.fromEntries(QUESTION_TYPES.map((t) => [t, qs.filter((x) => x.type === t).length]));
-    expect(counts).toEqual({ entity: 24, paraphrase: 63, cross: 23, number: 32, dev: 28, rules: 38, none: 18 });
+    expect(counts).toEqual({ entity: 24, paraphrase: 66, cross: 24, number: 47, dev: 28, rules: 39, stat: 40, none: 18 });
     for (const x of qs.filter((y) => y.type === 'number')) for (const e of x.expect) expect(['event', 'round', 'rating', 'matchup'], `${x.id} ${e}`).toContain(expectKind(e));
+    for (const x of qs.filter((y) => y.type === 'stat')) for (const e of x.expect) expect(['cardstat', 'pkgstat'], `${x.id} ${e}`).toContain(expectKind(e));
     // none questions: public, nothing expected
     for (const x of qs.filter((y) => y.type === 'none')) expect([x.scope, x.expect], x.id).toEqual(['public', []]);
     for (const x of qs) {

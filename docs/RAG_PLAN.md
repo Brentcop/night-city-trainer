@@ -134,7 +134,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
 | 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
-| 4.7b | The other paraphrase misses: described mechanics, decks by description, long questions | next | |
+| 4.7b | Wordings that should reach the statistics records, and questions naming two decks; then described mechanics, decks by description, long questions | in progress: 60 blind questions written, experiment next | |
 | 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | done | 2026-11-14 |
 | 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
 | 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
@@ -466,6 +466,15 @@ the decision (keep, drop, could not tell) and its cost.
   better there), and the matchup record for a question that names two decks. Since step 2.4 also: which
   everyday wordings should reach the card and package statistics ("how often is X sold", "win rate with
   X"), chosen on questions written before the cue words are.
+  - Questions first (2026-11-14): q227 to q286, written from the need before any search was run. Forty
+    are a new type, `stat` (a play statistic of a card or package); ten use everyday counting words but
+    are answered by another kind of record (a rule, a deck, a rating, an event), so that a wider net
+    for statistics can be seen to catch the wrong things; ten ask about two decks meeting.
+  - Before any change the search finds almost none of the statistics questions: 1 of 24 on `dev`
+    (the one that says "stats"), 0 of 16 held out. Held-out number questions fell from 62% to 47% in
+    the first five, because the new two-deck questions are mostly missed.
+  - Caveat: the writer's required reading (the agent skill and §6 here) said which words reach the
+    statistics records today. It reports writing naturally without steering; one question says "stats".
 
 ### Step 5. Exact reuse in game tools
 
@@ -667,6 +676,8 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Re-rating a stored game review from its kept measurements | 0.18 to 0.27 ms per review; a fresh review of the same six games took 7 to 22 s | step 5.2 |
 | 2026-11-14 | Bytes per stored game review with the measurements kept (six Medium-vs-Hard games) | median 11.8 KB to 16.3 KB (+41%), largest 12.4 KB to 17.0 KB; 25 at the cap about 0.29 MB to 0.41 MB | step 5.2 |
 | 2026-11-14 | Coach answer for a position already answered (Node, 21 positions) | computed 73 ms (median), remembered 0.8 ms; about 28 KB of memory per remembered answer, 32 kept | step 5.1 |
+| 2026-11-14 | New baseline, 286 questions (60 new: statistics, counting words, two decks). Held-out answerable (108), all records: default search | top 1: 29%, top 5: 53%, top 10: 59%, MRR 0.39; 6 of 108 wrongly refused; 1 of 7 unanswerable refused | step 4.7b |
+| 2026-11-14 | Same baseline, top 5 by type on the held-out split | entity 100%, cross 90%, dev 82%, rules 50%, number 47%, paraphrase 46%, statistics 0% (of 16) | step 4.7b |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -789,3 +800,6 @@ while the tournament index and the finish chips use the real cut, so five decks 
   an older sim version the boards shown may not match the game (true before this step as well).
 - 2026-11-14: step 5.1 landed. The coach remembers its answers within a tab, so Undo and a resume show
   advice at once. It was built only after a test showed that Undo re-asks exactly the same request.
+- 2026-11-14: sixty questions joined the question set (286 now, 115 held out), written blind for the
+  next experiment: statistics of cards and packages, counting words that mean something else, and two
+  decks meeting. The search answers almost none of the statistics questions yet, which is the point.

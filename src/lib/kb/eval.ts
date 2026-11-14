@@ -11,7 +11,9 @@ import { search, type KbIndex, type Ranker, type SearchTuning } from './search';
 import { STEM_MODES, type StemMode } from './text';
 import { estimateTokens, KB_KINDS, KIND_PREFIX, type KbKind } from './types';
 
-export const QUESTION_TYPES = ['entity', 'paraphrase', 'cross', 'number', 'dev', 'rules', 'none'] as const;
+// `stat` (q227 onward): the answer is a play statistic of a card or a synergy package from the bot's games
+// (cardstat or pkgstat records).
+export const QUESTION_TYPES = ['entity', 'paraphrase', 'cross', 'number', 'dev', 'rules', 'stat', 'none'] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 /** The types that have an answer in the pack (scored by recall and MRR). */
 export const ANSWERABLE_TYPES: readonly QuestionType[] = QUESTION_TYPES.filter((t) => t !== 'none');
