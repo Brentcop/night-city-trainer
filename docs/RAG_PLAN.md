@@ -135,7 +135,9 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
 | 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
 | 4.7b | The other paraphrase misses: described mechanics, decks by description, long questions | next | |
-| 5.x | Exact reuse in game tools: coach cache, review measurements | later | |
+| 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | next | |
+| 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
+| 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
 
 ## 5. Steps
 
@@ -473,6 +475,23 @@ an opening hand about once in 10,000 to 30,000) and approximate reuse changes ho
 - 5.1 Cache coach answers by state hash, options and build: about 126 ms saved per Undo or resume.
 - 5.2 Keep each review move's raw measurements, so a change of rating rules re-rates stored reviews in
   milliseconds instead of re-simulating 5 to 8 seconds each.
+  - Landed 2026-11-14. Each stored move keeps what its rating read (`ReviewMove.ms`), and each record how
+    it was measured (`measure`, `rollouts`, `confirm`). `rerateRecord` in `src/lib/gameReview.ts` rates a
+    stored review under the current rules in about 0.2 ms; a fresh review of the same games took 7 to
+    22 s. Details are in `docs/BOT_TOOLKIT.md` §8.
+  - The gain a player sees: a review of a game that can no longer be replayed (played on an older sim
+    version) gets current ratings. Before, it was shown as it was, under rules that no longer applied.
+  - What a re-rated review is: the same measurements judged by the new rules. It equals a fresh run when
+    the same moves are confirmed. A move the new rules would confirm that never was is not invented: that
+    review is run again, as before. So is one measured another way (other play-outs or oracle).
+  - Cost: about 41% more bytes per stored review (median 11.8 KB to 16.3 KB; 25 reviews about 0.29 MB to
+    0.41 MB of browser storage). Reviews stored earlier keep working unchanged.
+  - Exactness is tested on real reviews: re-rating returns every rating and the whole record unchanged,
+    and a record with older rules and corrupted ratings is restored. No Inspired move turned up in the
+    cheap test games, so that one rating is covered only by the shared code path.
+  - Later, if a rule change ever flags more moves for confirmation: confirm only the missing moves, and
+    draw each confirmation's worlds from its own decision so that a re-rated review always equals a fresh
+    one. The second changes what a fresh review measures, so it needs a measurement version bump.
 - 5.3 A repeat probe (exact, public and position keys per decision) before anything larger is considered.
 
 ## 6. Reference
@@ -633,6 +652,8 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Answer size from `kb fact card` and `kb fact package` | one card on one list 757 tokens, pooled 796 (the two report files: about 158,000); one package pooled 691, on one list 605 (the synergy report: about 202,000) | step 2.4 |
 | 2026-11-14 | Cost of growth with the 547 new records counted by the keyword ranker (208 answerable questions, all records) | 26 questions changed rank; top 5: −0.5 points [−2.9, +1.9]; MRR −0.010 [−0.024, +0.004]; public paraphrase top 5: −4.8 [−11.1, 0] | step 2.4 |
 | 2026-11-14 | The same with the new records scored but not counted | no question changed rank with all records; public only, one held-out question went from rank 4 to 5 (a new code header, not the statistics) | step 2.4 |
+| 2026-11-14 | Re-rating a stored game review from its kept measurements | 0.18 to 0.27 ms per review; a fresh review of the same six games took 7 to 22 s | step 5.2 |
+| 2026-11-14 | Bytes per stored game review with the measurements kept (six Medium-vs-Hard games) | median 11.8 KB to 16.3 KB (+41%), largest 12.4 KB to 17.0 KB; 25 at the cap about 0.29 MB to 0.41 MB | step 5.2 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -748,3 +769,8 @@ while the tournament index and the finish chips use the real cut, so five decks 
   them; 547 statistics records answer when a question asks for statistics. Adding them first moved 26
   earlier questions, so the keyword ranker now scores these records without counting their words, and
   nothing earlier moved. No file the game cache depends on was edited.
+- 2026-11-14: step 5.2 landed. A stored game review keeps the measurements its ratings came from, so a
+  change of rating rules rates it again in a fraction of a millisecond, also when the game can no longer
+  be replayed. A measurement version keeps re-rating apart from re-measuring. Found on the way, not
+  fixed: the review screen rebuilds each move's board with the current engine, so for a game played on
+  an older sim version the boards shown may not match the game (true before this step as well).

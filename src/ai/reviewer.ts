@@ -84,6 +84,12 @@ export interface DecisionReview {
   decided?: boolean;
   /** the gap, SE and game-losing flag were confirmed on this many fresh worlds (ReviewOptions.confirm) */
   confirmed?: number;
+  /**
+   * A confirmed decision's screening figures, before the confirmation replaced them: the Game review keeps them, since
+   * whether a move is confirmed is a rating rule and a later rule may rate it from these (src/lib/gameReview.ts
+   * rerateRecord). Kept only; nothing here reads them.
+   */
+  first?: Pick<DecisionReview, 'regret' | 'raw' | 'se' | 'gameLosing'>;
 }
 
 /** A decision the reviewer did not grade because it was graded already (ReviewOptions.skip): what the screen made of it. */
@@ -504,6 +510,7 @@ class ReviewAgent implements Agent {
     const worlds = makeWorlds(c.worlds, this.confirmRnd);
     const { vals, loss, per } = await gradeAll(g, [bestI, chosen], opts, (o) => oracle(o, worlds));
     const raw = vals.get(bestI)! - vals.get(chosen)!;
+    rec.first = { regret: rec.regret, raw: rec.raw, se: rec.se, gameLosing: rec.gameLosing };
     rec.regret = Math.min(CAP, Math.max(0, raw));
     rec.raw = round2(Math.max(0, raw));
     rec.se = round2(standardError(per.get(bestI)!.map((x, k) => x - per.get(chosen)![k])));

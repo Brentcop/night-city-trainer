@@ -62,6 +62,16 @@ export function explain(m: ReviewMove): string {
 /** A rated move's gap as a short tag: "−0.6 ± 0.1 Gigs", "more than 3 Gigs behind". */
 export const gapTag = (m: Pick<ReviewMove, 'gap' | 'raw' | 'se'>) => behindText(rawGap(m), m.se);
 
+/** Above a stored review rated again under newer rules from the measurements kept with it (src/lib/gameReview.ts rerateRecord). */
+export const RERATED_TEXT = 'Rated again with the current rating rules, from the measurements kept with this review.';
+
+/**
+ * Above a stored review that could not be rated again and whose game no longer replays, so it is shown as it was:
+ * made with older rating rules, or measured another way than reviews are now (src/lib/gameReview.ts measuredAsNow).
+ */
+export const staleText = (olderRules: boolean) =>
+  olderRules ? 'The review below was made earlier, with older rating rules, and is shown as it was.' : 'The review below was made earlier, measured in an older way, and is shown as it was.';
+
 /** After a rival Mistake or Blunder (src/lib/gameReview.ts rivalFollowUps): what your next turn had. */
 export const FOLLOW_TEXT = {
   missed: 'Missed chance: your next turn had a Mistake or Blunder.',

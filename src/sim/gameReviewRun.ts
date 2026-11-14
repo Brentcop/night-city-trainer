@@ -4,20 +4,12 @@
 // (scripts/review.ts), so both rate a game the same way. The replay is strict (src/sim/practiceReview.ts): a record from
 // another simulator version, or one that no longer replays as the game that was played, is a ReplayDiverged.
 import { reviewGame } from '../ai/reviewer';
-import { buildReviewRecord, coachSkip, rateOracle, type CoachRating, type GameReviewRecord, type ReviewMove } from '../lib/gameReview';
+import { buildReviewRecord, coachSkip, confirmFlag, GAME_REVIEW_CONFIRM, GAME_REVIEW_ROLLOUTS, type CoachRating, type GameReviewRecord, type ReviewMove } from '../lib/gameReview';
 import { checkReplayed, practiceAgents, refuseOtherVersion, type PracticeReviewSpec } from './practiceReview';
 
-/**
- * Play-outs per candidate in the Game review: 8, as the match reviewer. Chosen 2026-11-12 by re-running 20 Medium-vs-Hard
- * reviews with another oracle seed: see docs/BOT_TOOLKIT.md §8 (ratings within one step of each other on re-run).
- */
-export const GAME_REVIEW_ROLLOUTS = 8;
-/**
- * Fresh worlds a move rated Slip or worse is confirmed on before it is shown (REV-4: the move made against the best one
- * found, docs/BOT_TOOLKIT.md §8). 0 turns the confirmation off.
- */
-export const GAME_REVIEW_CONFIRM = 16;
-const COSTLY = new Set(['slip', 'mistake', 'blunder']);
+// The play-outs and confirmation worlds are part of how a review is measured: they live beside REVIEW_MEASURE in
+// src/lib/gameReview.ts (the store checks a stored review against them without loading the oracle).
+export { GAME_REVIEW_CONFIRM, GAME_REVIEW_ROLLOUTS };
 
 export interface GameReviewJob {
   /** the practice replay's id */
@@ -55,6 +47,7 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
   const names: [string, string] = q.pvp ? (me === 0 ? ['you', 'rival'] : ['rival', 'you']) : ['you', q.botLevel];
   const coachAt = coachSkip(job.coach, me);
   const kept = new Set((job.keep ?? []).filter((m) => m.p === me).map((m) => m.at));
+  const confirm = job.confirm ?? GAME_REVIEW_CONFIRM;
   const review = await reviewGame(
     { decks: q.decks, seed: q.seed, first: q.first, agents: [tracked[0]!, tracked[1]!], agentNames: names },
     {
@@ -62,11 +55,11 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
       seats: [0, 1],
       skip: (seat, at) => coachAt(seat, at) || (seat === me && kept.has(at)),
       keepAnswers: true,
-      ...((job.confirm ?? GAME_REVIEW_CONFIRM) > 0 ? { confirm: { worlds: job.confirm ?? GAME_REVIEW_CONFIRM, flag: (d) => COSTLY.has(rateOracle(d)) } } : {}),
+      ...(confirm > 0 ? { confirm: { worlds: confirm, flag: confirmFlag } } : {}),
       ...(job.oracleSeed !== undefined ? { oracleSeed: job.oracleSeed } : {}),
       onProgress: (n) => onProgress?.(n, turn),
     },
   );
   checkReplayed(q, agents, review);
-  return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me }, job.keep);
+  return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me, confirm }, job.keep);
 }

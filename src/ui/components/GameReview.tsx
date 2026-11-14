@@ -16,7 +16,6 @@ import {
   MISTAKE_GIGS,
   RATING_INFO,
   RATINGS,
-  reviewCounts,
   rivalFollowUps,
   seatSummary,
   turningName,
@@ -26,12 +25,11 @@ import {
   type ReviewMove,
   type SeatSummary,
 } from '../../lib/gameReview';
-import { loadGameReview, saveGameReview } from '../../lib/gameReviewStore';
-import { annotateReview } from '../../lib/practiceLog';
+import { currentRules, keepReview, loadGameReview } from '../../lib/gameReviewStore';
 import { mySeat, practiceRequest, practiceSpec, replayVersionProblem, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
 import { sessionEnding } from '../../lib/practiceVerdict';
 import { reviewFrames, type ReviewFrames } from '../../lib/reviewFrames';
-import { explain, FOLLOW_TEXT, gapTag, REVIEW_BASIS } from '../../lib/reviewWords';
+import { explain, FOLLOW_TEXT, gapTag, RERATED_TEXT, REVIEW_BASIS, staleText } from '../../lib/reviewWords';
 import { shownLabel } from '../../lib/coachWords';
 import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
 import { Modal } from './Modal';
@@ -63,10 +61,16 @@ type RunState =
 
 /**
  * The stored review of an own game, or a new one run in the review worker (Stop terminates it). A stored review made
- * under older rating rules is run again; if the game can't be replayed any more, it is shown as it was, with the refusal.
+ * under older rating rules is rated again from the measurements kept with it when it can be (shown at once, then kept
+ * with its counts by the effect below: the load runs during render and only reads); otherwise it is run again, and if
+ * the game can't be replayed any more, it is shown as it was, with the refusal.
  */
 function useGameReview(src: GameReviewSource): { st: RunState; stop: () => void; start: () => void } {
   const stored = useMemo(() => (src.persist ? loadGameReview(src.replay.id, src.replay.choices) : null), [src]);
+  // a review rated again from storage: keep it under the current rules, and the practice log's counts with it
+  useEffect(() => {
+    if (stored?.reratedNow && stored.review) keepReview(stored.review);
+  }, [stored]);
   // another simulator version: refused before starting a worker (a current stored review is still shown)
   const versionWhy = useMemo(() => replayVersionProblem(src.replay), [src]);
   const [st, setSt] = useState<RunState>(() =>
@@ -103,10 +107,7 @@ function useGameReview(src: GameReviewSource): { st: RunState; stop: () => void;
       const m = e.data;
       if ('progress' in m) setSt({ status: 'running', decisions: m.progress, turn: m.turn ?? 0 });
       else if ('game' in m) {
-        if (src.persist) {
-          saveGameReview(m.game, coach);
-          annotateReview(m.game.id, reviewCounts(m.game));
-        }
+        if (src.persist) keepReview(m.game, coach);
         setSt({ status: 'done', rec: m.game });
         w.terminate();
       } else if ('refused' in m) {
@@ -207,7 +208,7 @@ export function GameReviewView({ src, active = true }: { src: GameReviewSource; 
         </p>
         {st.stale && (
           <>
-            <p className="small muted">The review below was made earlier, with older rating rules, and is shown as it was.</p>
+            <p className="small muted">{staleText(!currentRules(st.stale))}</p>
             <ReviewResult rec={st.stale} replay={src.replay} active={active} />
           </>
         )}
@@ -239,7 +240,12 @@ export function GameReviewView({ src, active = true }: { src: GameReviewSource; 
         </div>
       </div>
     );
-  return <ReviewResult rec={st.rec} replay={src.replay} active={active} />;
+  return (
+    <>
+      {st.rec.rerated !== undefined && <p className="small muted">{RERATED_TEXT}</p>}
+      <ReviewResult rec={st.rec} replay={src.replay} active={active} />
+    </>
+  );
 }
 
 type Filter = 'all' | 'mine' | 'key';
