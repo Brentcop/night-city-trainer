@@ -1,7 +1,8 @@
 // Knowledge pack: BM25 keyword ranking (k1 = 1.2, b = 0.75) over each record's title, aliases and text. Title and
 // alias tokens count three times. Ties are broken by id, so a ranking is the same on every machine. Terms added to the
-// question by the caller (the synonym table, synonyms.ts) count at a weight the caller gives.
-import { tokenize } from './text';
+// question by the caller (the synonym table, synonyms.ts) count at a weight the caller gives. The index stems records
+// in one mode (text.ts StemMode, default `s`) and every query against it is stemmed the same way.
+import { tokenize, type StemMode } from './text';
 import { byString } from './types';
 
 export const BM25_K1 = 1.2;
@@ -26,6 +27,8 @@ export interface Bm25Index {
   avgLen: number;
   /** documents containing each term */
   df: Map<string, number>;
+  /** how the records were stemmed; queries are stemmed the same way */
+  stem: StemMode;
 }
 
 export interface Scored {
@@ -33,7 +36,7 @@ export interface Scored {
   score: number;
 }
 
-export function buildBm25(docs: readonly Bm25Doc[]): Bm25Index {
+export function buildBm25(docs: readonly Bm25Doc[], stem: StemMode = 's'): Bm25Index {
   const ids: string[] = [];
   const tf: Map<string, number>[] = [];
   const len: number[] = [];
@@ -41,8 +44,8 @@ export function buildBm25(docs: readonly Bm25Doc[]): Bm25Index {
   for (const d of docs) {
     const m = new Map<string, number>();
     const add = (t: string, w: number) => m.set(t, (m.get(t) ?? 0) + w);
-    for (const t of tokenize([d.title, ...(d.aliases ?? [])].join(' '))) add(t, TITLE_WEIGHT);
-    for (const t of tokenize(d.text)) add(t, 1);
+    for (const t of tokenize([d.title, ...(d.aliases ?? [])].join(' '), stem)) add(t, TITLE_WEIGHT);
+    for (const t of tokenize(d.text, stem)) add(t, 1);
     let n = 0;
     for (const [t, c] of m) {
       n += c;
@@ -53,7 +56,7 @@ export function buildBm25(docs: readonly Bm25Doc[]): Bm25Index {
     len.push(n);
   }
   const total = len.reduce((a, b) => a + b, 0);
-  return { ids, pos: new Map(ids.map((id, i) => [id, i])), tf, len, avgLen: docs.length ? total / docs.length : 0, df };
+  return { ids, pos: new Map(ids.map((id, i) => [id, i])), tf, len, avgLen: docs.length ? total / docs.length : 0, df, stem };
 }
 
 export const idf = (ix: Bm25Index, term: string): number => {
@@ -72,7 +75,7 @@ export interface AddedTerms {
  * `added.weight` times its usual score; a term the query already holds is not counted twice.
  */
 export function bm25Search(ix: Bm25Index, query: string, added?: AddedTerms): Scored[] {
-  const own = [...new Set(tokenize(query))];
+  const own = [...new Set(tokenize(query, ix.stem))];
   const extra = added && added.weight > 0 ? [...new Set(added.terms)].filter((t) => !own.includes(t)) : [];
   const terms = [...own, ...extra].filter((t) => ix.df.has(t));
   if (!terms.length) return [];
@@ -97,7 +100,7 @@ export function bm25Search(ix: Bm25Index, query: string, added?: AddedTerms): Sc
  * that hold a token (the synonym table's expansions); the token counts as held when the document has one of them.
  */
 export function coverage(ix: Bm25Index, id: string, query: string, alt?: ReadonlyMap<string, readonly string[]>): number {
-  const terms = [...new Set(tokenize(query))];
+  const terms = [...new Set(tokenize(query, ix.stem))];
   const m = ix.tf[ix.pos.get(id) ?? -1];
   if (!terms.length || !m) return 0;
   return terms.filter((t) => m.has(t) || (alt?.get(t) ?? []).some((a) => m.has(a))).length / terms.length;

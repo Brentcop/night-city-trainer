@@ -29,8 +29,9 @@
 //                      hits), singleWordTermLinks=false, deckPairMatchup=true, denseWeight=2 (the dense list's fusion
 //                      weight), denseFloor=0.75 (the best dense similarity that still answers without an exact or keyword
 //                      hit over the floor), synonymWeight=1 (the weight of the synonym table's added terms, step 4.6),
-//                      synonymCoverage=true (the table's terms hold a question word for the floor). The report records
-//                      the setting.
+//                      synonymCoverage=true (the table's terms hold a question word for the floor), stem=light (how the
+//                      keyword ranker folds word forms: s, light or porter, step 4.7a; the index is built in that mode).
+//                      The report records the setting.
 //   --questions FILE   the question set (default data/kb/questions.json)
 //   --json             JSON on stdout instead of tables
 //   --strict           exit 1 when an expected id is not in the pack (stale expectations are always listed)
@@ -68,7 +69,7 @@ import {
   type RefusalCount,
   type Summary,
 } from '../src/lib/kb/eval';
-import { buildIndex, type KbIndex, type SearchTuning } from '../src/lib/kb/search';
+import { buildIndex, SEARCH_TUNING, type KbIndex, type SearchTuning } from '../src/lib/kb/search';
 import { byString, type KbRecord } from '../src/lib/kb/types';
 
 const QUESTIONS_FILE = 'data/kb/questions.json';
@@ -184,7 +185,8 @@ export interface DenseNote {
 /** Evaluate configurations over one scope's index. `dense`: the whole pack's vectors and one vector per question id. */
 export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], questions: readonly KbQuestion[], configs: readonly EvalConfig[], tuning?: Partial<SearchTuning>, dense?: { index: DenseIndex; queries: ReadonlyMap<string, Float32Array> }): ScopeRun {
   const recs = scope === 'public' ? records.filter((r) => r.scope === 'public') : records;
-  const ix: KbIndex = buildIndex(recs);
+  // the stem mode belongs to the index: one is built per mode a run needs (step 4.7a)
+  const ix: KbIndex = buildIndex(recs, { stem: tuning?.stem ?? SEARCH_TUNING.stem });
   const localPresent = recs.some((r) => r.scope === 'local');
   const ids = ix.records.map((r) => r.id);
   const hasPrefix = (base: string) => ids.some((id) => id === base || id.startsWith(`${base}~`));

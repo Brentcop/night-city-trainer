@@ -15,7 +15,7 @@ import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './
 import { rankDense, type DenseIndex } from './dense';
 import { buildNameIndex, findNameHits, lookupName, type NameHit, type NameIndex } from './names';
 import { expandQuestion } from './synonyms';
-import { tokenize } from './text';
+import { stem as stemWord, STEM_MODES, words, type StemMode } from './text';
 import { byString, type KbKind, type KbRecord, type KbRel, type KbScope } from './types';
 
 export const RANKERS = ['exact', 'linked', 'keyword', 'dense'] as const;
@@ -47,6 +47,11 @@ export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term
  * off, and kept after one look at `test` (answerable questions, paired bootstrap): MRR at 10 +0.027 [+0.005, +0.058]
  * with all records, +0.037 [+0.006, +0.078] public only; recall at 5 +4.5 points [0, +10.6]; paraphrase questions
  * MRR +0.082 [+0.018, +0.159]; no other type moved; unanswerable questions refused unchanged.
+ * Step 4.7a (word forms, text.ts StemMode): `porter` was chosen on `dev` over `light` (both +2 to +3 points recall at
+ * 5 there; porter kept the unanswerable refusals that light lost one of) and not kept after one look at `test`
+ * (answerable questions, paired bootstrap): recall at 5 ±0 [−4.8, +4.8] points and MRR at 10 −0.002 [−0.043, +0.041]
+ * with all records; public only +2.9 [0, +7.4] and −0.002 [−0.049, +0.047]. Could not tell: `stem` stays `s`, and
+ * `light` and `porter` stay available for `--tune stem=…`.
  */
 export interface SearchTuning {
   /** the "no match" floor: without an exact hit, the share of the question's words a keyword hit must hold (MATCH_FLOOR) */
@@ -65,9 +70,14 @@ export interface SearchTuning {
   synonymWeight: number;
   /** for the floor, a question word with an expansion is held by a hit that holds the word or one of its expansions */
   synonymCoverage: boolean;
+  /**
+   * how the keyword ranker folds word forms (text.ts StemMode). It belongs to the index: buildIndex takes it, and a
+   * search whose tuning names another mode than its index's is refused.
+   */
+  stem: StemMode;
 }
 
-export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true };
+export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' };
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -84,8 +94,13 @@ export interface KbIndex {
   edges: Map<string, Edge[]>;
 }
 
-/** Build the index. Links to records that are not in the set are left out of `edges`. */
-export function buildIndex(records: readonly KbRecord[]): KbIndex {
+/**
+ * Build the index. Links to records that are not in the set are left out of `edges`. `stem`: how the keyword ranker
+ * folds word forms (default SEARCH_TUNING.stem); names are never stemmed.
+ */
+export function buildIndex(records: readonly KbRecord[], o: { stem?: StemMode } = {}): KbIndex {
+  const mode = o.stem ?? SEARCH_TUNING.stem;
+  if (!STEM_MODES.includes(mode)) throw new Error(`unknown stem mode ${String(mode)}`);
   const sorted = [...records].sort((a, b) => byString(a.id, b.id));
   const byId = new Map(sorted.map((r) => [r.id, r]));
   const edges = new Map<string, Edge[]>(sorted.map((r) => [r.id, []]));
@@ -95,7 +110,7 @@ export function buildIndex(records: readonly KbRecord[]): KbIndex {
       edges.get(r.id)!.push({ rel: l.rel, other: l.to, dir: 'out' });
       edges.get(l.to)!.push({ rel: l.rel, other: r.id, dir: 'in' });
     }
-  return { records: sorted, byId, names: buildNameIndex(sorted), bm25: buildBm25(sorted), edges };
+  return { records: sorted, byId, names: buildNameIndex(sorted), bm25: buildBm25(sorted, mode), edges };
 }
 
 /** The records named `q` exactly (id, title or alias). */
@@ -226,9 +241,9 @@ export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
  */
 export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', 'rating'];
 
-/** The kinds a question asks for by name. */
+/** The kinds a question asks for by name (read from the plain, mode `s` tokens whatever the index's stem mode). */
 export function cuedKinds(q: string): Set<KbKind> {
-  return new Set(tokenize(q).flatMap((t) => (Object.prototype.hasOwnProperty.call(KIND_CUES, t) ? [...KIND_CUES[t]!] : [])));
+  return new Set(words(q).map((w) => stemWord(w, 's')).flatMap((t) => (Object.prototype.hasOwnProperty.call(KIND_CUES, t) ? [...KIND_CUES[t]!] : [])));
 }
 
 /**
@@ -254,13 +269,16 @@ export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: reado
 
 export function search(ix: KbIndex, query: string, o: SearchOptions = {}): SearchResult {
   const k = o.k ?? 5;
-  const t: SearchTuning = { ...SEARCH_TUNING, ...o.tuning };
+  if (o.tuning?.stem !== undefined && o.tuning.stem !== ix.bm25.stem) throw new Error(`this index folds word forms with stem mode ${ix.bm25.stem}, not ${o.tuning.stem}: build one with buildIndex(records, { stem: '${o.tuning.stem}' })`);
+  const t: SearchTuning = { ...SEARCH_TUNING, ...o.tuning, stem: ix.bm25.stem };
   const use = new Set<Ranker>(o.rankers ?? DEFAULT_RANKERS);
   const cued = cuedKinds(query);
   const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
   const plain = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
   // the synonym table (step 4.6): only the keyword list and the floor read it
-  const syn = t.synonymWeight > 0 || t.synonymCoverage ? expandQuestion(tokenize(query)) : undefined;
+  // phrases are matched on the plain tokens; the terms and the words they hold are in the index's stem mode
+  const raw = t.synonymWeight > 0 || t.synonymCoverage ? words(query) : [];
+  const syn = t.synonymWeight > 0 || t.synonymCoverage ? expandQuestion(raw.map((w) => stemWord(w, 's')), t.stem, raw.map((w) => stemWord(w, t.stem))) : undefined;
   const keyword = use.has('keyword') && syn?.terms.length && t.synonymWeight > 0 ? bm25Search(ix.bm25, query, { terms: syn.terms, weight: t.synonymWeight }).filter((s) => !gated(s.id)) : plain;
   const exactHits = use.has('exact') || use.has('linked') ? rankExactHits(ix, query) : [];
   const exact = exactHits.map((h) => h.id);

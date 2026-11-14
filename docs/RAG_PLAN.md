@@ -133,7 +133,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
-| 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | in progress | |
+| 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
 | 4.7b | The other paraphrase misses: described mechanics, decks by description, long questions | next | |
 | 5.x | Exact reuse in game tools: coach cache, review measurements | later | |
 
@@ -419,6 +419,23 @@ the decision (keep, drop, could not tell) and its cost.
   tokenizer ("flipping", "triggered", "abilities"); matching a described mechanic to its keyword ("can
   attack the turn it arrives" is Adrenaline); finding a deck from a description of how it plays; number
   words as digits; and a floor that suits long questions. Each is its own measured experiment.
+- 4.7a Word forms. Built in `src/lib/kb/text.ts` as a mode of the index: `s` (a plural "s" only, the
+  default), `light` (plurals, "-ing" and "-ed" with doubled consonants and a silent "e" handled, and
+  the irregular forms of verbs the game uses) and `porter` (the published Porter algorithm, checked
+  against the paper's 77 worked examples). `npm run kb:eval -- --tune stem=porter` runs a variant.
+  - Diagnosis: of 37 answerable `dev` misses only 8 had a word-form difference, and most of those had
+    other differences too.
+  - On `dev`, `porter` looked good: first five +3.2 points [0, +7.2]. On the refreshed held-out split
+    it was flat: first five ±0.0 [−4.8, +4.8], MRR −0.002 [−0.043, +0.041]. Dev and rules questions
+    leaned better (rules MRR +0.063 [−0.010, +0.167]); paraphrase, cross-entity and number questions
+    leaned worse.
+  - Decision: could not tell, so the default stays `s`. Both modes stay in the code switched off.
+  - Why it probably fails here: stemming merges words this game keeps apart. "ruling" meets "rule",
+    "attacker" meets "attack", and under `light` the card name "Dying" meets "die". The fresh held-out
+    questions are what showed that the `dev` gain was not real.
+- 4.7b The rest of the list above, each as its own experiment. Narrow retests suggested by the data so
+  far, each needing fresh questions: stemming and the dense ranker for rules questions only (both leaned
+  better there), and the matchup record for a question that names two decks.
 
 ### Step 5. Exact reuse in game tools
 
@@ -578,6 +595,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | A question naming two decks wants their matchup | The pair's matchup record joins the exact list | Recall at 5: +3.7 points [0, +9.3]; MRR +0.012 [0, +0.031]; number questions 60% to 80%; no type worse | Not kept: the interval reaches zero. Retest with more questions |
 | 2026-11-13 | Embeddings find paraphrased questions that keywords miss, and help refuse the unanswerable | A dense ranker (bge-small-en-v1.5, quantized) fused at weight 0.5, with a similarity floor of 0.75 | Recall at 5: +5.6 points [−1.8, +14.8]; MRR +0.049 [−0.008, +0.108] on the planned look, +0.055 [+0.002, +0.113] on a second; paraphrase 50% to 40%; rules MRR +0.185 [+0.046, +0.333]; refusals unchanged | Not kept in the default. Two looks; the gain is in rules, not where it was predicted |
 | 2026-11-13 | Paraphrased questions miss because players use other words than the records | A 41-entry synonym table expands the question for the keyword ranker and the "no match" floor | Recall at 5: +4.5 points [0.0, +10.6]; MRR +0.027 [+0.005, +0.058]; paraphrase recall at 5 32% to 45%, MRR +0.082 [+0.018, +0.159]; other types unchanged; refusals unchanged | Kept. One look, on questions written before the table by an agent that did not know of it |
+| 2026-11-13 | Word forms keep questions and records apart ("flipping" and "flip") | The Porter stemmer for the keyword ranker, in records and questions alike | Recall at 5: ±0.0 [−4.8, +4.8]; MRR −0.002 [−0.043, +0.041]; on `dev` it had been +3.2 points [0, +7.2] | Not kept: could not tell. One look, on the split refreshed with fifty blind questions |
 
 ## 8. Decisions and stopgaps
 
@@ -671,3 +689,6 @@ while the tournament index and the finish chips use the real cut, so five decks 
   packages, and the held-out figures are back to where they were before the description was written.
 - 2026-11-13: the held-out split was refreshed after about ten looks. Fifty questions across every type
   were written blind (226 now, 90 held out), and rule M9 now says when and how that is done.
+- 2026-11-13: experiment 4.7a ran and was not kept. Folding word forms looked like a gain on the
+  development questions and was flat on the refreshed held-out ones, so the tokenizer stays as it was.
+  The two stemming modes remain in the code, switched off, for narrower retests.

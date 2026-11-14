@@ -8,6 +8,7 @@
 import { renderSearchText } from './render';
 import type { DenseIndex } from './dense';
 import { search, type KbIndex, type Ranker, type SearchTuning } from './search';
+import { STEM_MODES, type StemMode } from './text';
 import { estimateTokens, KB_KINDS, KIND_PREFIX, type KbKind } from './types';
 
 export const QUESTION_TYPES = ['entity', 'paraphrase', 'cross', 'number', 'dev', 'rules', 'none'] as const;
@@ -269,7 +270,7 @@ export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], conf
 }
 
 /** The settings `scripts/kb-eval.ts --tune` may vary, and how each value is read. */
-const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' | 'weight'>> = {
+const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' | 'weight' | 'stem'>> = {
   floor: 'share',
   floorHits: 'count',
   singleWordTermLinks: 'bool',
@@ -278,15 +279,17 @@ const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' 
   denseFloor: 'share',
   synonymWeight: 'weight',
   synonymCoverage: 'bool',
+  stem: 'stem',
 };
 
 /**
  * Parse `key=value,key=value` into search settings (floor, denseFloor: a share from 0 to 1; floorHits: a whole number
  * from 1 to 100; denseWeight, synonymWeight: a number from 0 to 10; singleWordTermLinks, deckPairMatchup,
- * synonymCoverage: true or false). Returns the problem as a string when the text is not valid.
+ * synonymCoverage: true or false; stem: s, light or porter, which needs an index built in that mode). Returns the
+ * problem as a string when the text is not valid.
  */
 export function parseTuning(text: string): Partial<SearchTuning> | string {
-  const out: Partial<Record<keyof SearchTuning, number | boolean>> = {};
+  const out: Partial<Record<keyof SearchTuning, number | boolean | StemMode>> = {};
   for (const part of text.split(',').map((x) => x.trim())) {
     const m = /^([A-Za-z]+)=(.+)$/.exec(part);
     const key = m?.[1] as keyof SearchTuning | undefined;
@@ -294,7 +297,10 @@ export function parseTuning(text: string): Partial<SearchTuning> | string {
     if (!key || !Object.prototype.hasOwnProperty.call(TUNE_KEYS, key)) return `give key=value pairs with keys ${Object.keys(TUNE_KEYS).join(', ')}, not "${part}"`;
     if (key in out) return `${key} is given twice`;
     const how = TUNE_KEYS[key];
-    if (how === 'bool') {
+    if (how === 'stem') {
+      if (!(STEM_MODES as readonly string[]).includes(raw)) return `${key} takes ${STEM_MODES.join(', ')}, not "${raw}"`;
+      out[key] = raw as StemMode;
+    } else if (how === 'bool') {
       if (raw !== 'true' && raw !== 'false') return `${key} takes true or false, not "${raw}"`;
       out[key] = raw === 'true';
     } else {

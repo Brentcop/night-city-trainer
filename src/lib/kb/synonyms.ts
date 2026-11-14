@@ -4,10 +4,11 @@
 // stand for (`means`) and why. `expand` gives the terms a tokenized question adds: the keyword ranker counts them at
 // SearchTuning.synonymWeight (0: off), and with SearchTuning.synonymCoverage a question word counts as held for the
 // "no match" floor when a hit holds one of its expansions. The exact-name and linked rankers never read the table. Word
-// forms the tokenizer does not fold (past tenses, "-ing", "-ies") are matched here. An entry must be a general fact
+// forms the `s` tokenizer does not fold (past tenses, "-ing", "-ies") are matched here, on the question's `s` tokens in
+// every stem mode; the terms it adds are stemmed in the index's mode (step 4.7a). An entry must be a general fact
 // about vocabulary that would hold without the question set, never a fix for one question; tests/kb-synonyms.test.ts
 // checks that every `means` term is in the pack and that no `says` word is a game term or card name of its own.
-import { tokenize } from './text';
+import { tokenize, type StemMode } from './text';
 
 export interface Synonym {
   /** words or short phrases a player may use, in their plain form ("tap", "discard pile") */
@@ -87,14 +88,21 @@ interface Phrase {
   means: string[];
 }
 
-/** Each `says` phrase as tokens, with the tokens of its `means`, longest phrase first; built once. */
-let phrases: Phrase[] | null = null;
-function table(): Phrase[] {
-  phrases ??= SYNONYMS.flatMap((e) => {
-    const means = [...new Set(e.means.flatMap((m) => tokenize(m)))];
-    return e.says.map((s) => ({ words: tokenize(s), means }));
-  }).sort((a, b) => b.words.length - a.words.length);
-  return phrases;
+/**
+ * Each `says` phrase as plain (`s` mode) tokens, with the tokens of its `means` in the index's stem mode, longest phrase
+ * first; built once per mode.
+ */
+const phrases = new Map<StemMode, Phrase[]>();
+function table(mode: StemMode): Phrase[] {
+  let t = phrases.get(mode);
+  if (!t) {
+    t = SYNONYMS.flatMap((e) => {
+      const means = [...new Set(e.means.flatMap((m) => tokenize(m, mode)))];
+      return e.says.map((s) => ({ words: tokenize(s), means }));
+    }).sort((a, b) => b.words.length - a.words.length);
+    phrases.set(mode, t);
+  }
+  return t;
 }
 
 export interface Expansion {
@@ -105,26 +113,29 @@ export interface Expansion {
 }
 
 /**
- * The synonym table applied to a tokenized question (tokens from text.ts `tokenize`). The longest phrase wins: a word
- * inside a matched phrase ("summoning" in "summoning sickness") is not matched again on its own.
+ * The synonym table applied to a tokenized question (tokens from text.ts `tokenize`, mode `s`). The longest phrase
+ * wins: a word inside a matched phrase ("summoning" in "summoning sickness") is not matched again on its own. For an
+ * index stemmed in another mode, pass the mode and the same words' tokens in it (`modeTokens`, one per token): the
+ * phrases are still matched on the plain tokens, and the added terms and the `held` keys are in that mode.
  */
-export function expandQuestion(tokens: readonly string[]): Expansion {
+export function expandQuestion(tokens: readonly string[], mode: StemMode = 's', modeTokens: readonly string[] = tokens): Expansion {
+  if (modeTokens.length !== tokens.length) throw new Error(`expandQuestion needs one mode token per token, got ${modeTokens.length} and ${tokens.length}`);
   const forms = tokens.map(wordForms);
   const held = new Map<string, string[]>();
   const terms: string[] = [];
   const used = new Set<number>();
   for (let i = 0; i < tokens.length; i++)
-    for (const p of table()) {
+    for (const p of table(mode)) {
       if (i + p.words.length > tokens.length) continue;
       if (!p.words.every((w, j) => !used.has(i + j) && forms[i + j]!.includes(w))) continue;
       for (let j = 0; j < p.words.length; j++) {
         if (p.words.length > 1) used.add(i + j);
-        const tok = tokens[i + j]!;
+        const tok = modeTokens[i + j]!;
         const list = held.get(tok) ?? [];
         for (const m of p.means) if (!list.includes(m)) list.push(m);
         held.set(tok, list);
       }
-      for (const m of p.means) if (!terms.includes(m) && !tokens.includes(m)) terms.push(m);
+      for (const m of p.means) if (!terms.includes(m) && !modeTokens.includes(m)) terms.push(m);
     }
   return { terms, held };
 }
