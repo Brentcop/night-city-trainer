@@ -336,8 +336,9 @@ describe('a game between two sessions through the relay', () => {
     expect(gr.entries).toHaveLength(1);
     expect(gr.replays).toHaveLength(1);
     expect(gr.replays[0]!.pvp!.rivalChoices).toEqual(hr.replays[0]!.choices);
-    // everything the relay operator could read
-    expect(relay.seen.length).toBeGreaterThan(50);
+    // everything the relay operator could read (how many frames depends on this run's game length, like the guest's
+    // decisions above: ask only for enough to show that the search below read a real game's traffic)
+    expect(relay.seen.length).toBeGreaterThan(10);
     const secrets = secretsOf([deckA, deckB], ['Annabelle', 'Bartholomew']);
     expect(secrets.length).toBeGreaterThan(20);
     for (const [i, f] of relay.seen.entries()) {

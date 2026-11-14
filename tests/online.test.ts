@@ -310,7 +310,9 @@ describe('a game between two sessions over the loopback link', () => {
     // both records are the same game: the host's answers are the guest's rival answers
     expect(gr.replays[0]!.pvp!.rivalChoices).toEqual(hr.replays[0]!.choices);
     expect(gr.replays[0]!.choices).toEqual(hr.replays[0]!.pvp!.rivalChoices);
-    expect(log.length).toBeGreaterThan(50);
+    // like the guest's decisions above, the number of messages depends on how long this run's game is (a short one
+    // sent 49): ask only for enough to show that the address check below read a real game's traffic
+    expect(log.length).toBeGreaterThan(10);
     log.forEach((m, i) => expectNoAddresses(m, `message ${i}`));
     host.close();
     guest.close();
