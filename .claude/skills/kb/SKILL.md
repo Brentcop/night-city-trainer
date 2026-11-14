@@ -64,6 +64,12 @@ Also `fact round --event N --round K` (a round summary), `fact finishes <deck>` 
 `fact ratings --top 10` (the ratings table, which says when the ranges overlap). A deck is named by
 file, by name or by list fingerprint. Add `--json` for data.
 
+A round summary also says who moved into or out of the top-cut places, the biggest climb and drop, who
+missed the cut on tiebreakers (after the last Swiss round), and the round's upsets.
+`fact upsets --event N [--round R]` lists the matches won by the underdog, judged by ratings fitted on
+earlier events only (event 1 has none to judge; a deck with under 18 earlier games is not judged).
+Report an upset as a statement about that prediction, with the yardstick the answer names.
+
 The bot's play statistics, from the decision, synergy and deck-analysis reports:
 
 ```bash

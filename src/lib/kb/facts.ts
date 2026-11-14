@@ -1,6 +1,7 @@
 // Knowledge pack: `npm run kb -- fact …` (docs/RAG_PLAN.md rule M3, step 2.1). Exact numbers from the recorded data through
 // src/lib/eventFacts.ts, each answer with its source file and the bot and sim version it was played with. Pure: the script
 // reads the files and resolves deck names; this module only computes and prints. Text, or JSON with the facts' own data.
+// `fact upsets` and the upsets in `fact round` are judged by ratings fitted on earlier events only (src/lib/eventUpsets.ts).
 // `fact card` and `fact package` (step 2.4) read the decision, synergy and deck-analysis reports through
 // src/lib/cardFacts.ts and print the same sentences as the cardstat and pkgstat records.
 import {
@@ -16,7 +17,8 @@ import {
 } from '../eventFacts';
 import { cardAnalysis, cardAnalysisLists, cardUse, cardUseLists, packageFact, packageLists, pooledImpact, type StatBasis } from '../cardFacts';
 import { liftLabel } from '../../ai/packageLift';
-import { day, pc1, playedBy, ratingsTableText, ratingText, roundText, share, type CompetitiveSources } from './build/events';
+import { eventUpsets, type UpsetsFact } from '../eventUpsets';
+import { day, eventList, pc1, playedBy, ratingsTableText, ratingText, roundText, share, upsetsText, type CompetitiveSources } from './build/events';
 import { cardPooledText, cardStatText, packageStatText, type StatDeck, type StatsSources } from './build/stats';
 import { FACT_NEEDS, type DeckResolver, type FactRequest, type StatResolver } from './factNames';
 
@@ -87,6 +89,10 @@ const sourceLine = (file: string, b: Basis) => `source: ${file} (${playedBy(b)},
 
 const fail = (msg: string) => ({ out: `${msg}\n`, code: 1 });
 
+const allEvents = (src: CompetitiveSources): RecordedEvent[] => src.events.map((e) => e.event);
+/** The yardstick's own source: the earlier event files it was fitted on (nothing when there were none). */
+const upsetSource = (u: UpsetsFact) => (u.yardstick.events.length ? `\n  upsets judged by the ratings fitted on the games of ${eventList(u.yardstick.events)} only (${u.yardstick.games} games)` : '');
+
 function findEvent(src: CompetitiveSources, id: number): { file: string; event: RecordedEvent } | null {
   return src.events.find((e) => e.event.id === id || String(e.event.id) === String(id)) ?? null;
 }
@@ -134,7 +140,12 @@ export function runFact(req: FactRequest, src: CompetitiveSources, resolve: Deck
       }
       case 'round': {
         const r = roundSummary(ev!.event, req.round!);
-        return out(`${roundText(r)}\n  ${sourceLine(ev!.file, r)}`, { fact: 'round', source: ev!.file, ...r });
+        const u = eventUpsets(allEvents(src), ev!.event, { round: req.round! });
+        return out(`${roundText(r, u)}\n  ${sourceLine(ev!.file, r)}${upsetSource(u)}`, { fact: 'round', source: ev!.file, ...r, upsets: u });
+      }
+      case 'upsets': {
+        const u = eventUpsets(allEvents(src), ev!.event, req.round === undefined ? {} : { round: req.round });
+        return out(`${upsetsText(u)}\n  ${sourceLine(ev!.file, { simVersion: u.simVersion, bot: u.bot, asOf: u.asOf })}${upsetSource(u)}`, { fact: 'upsets', source: ev!.file, ...u });
       }
       case 'ratings': {
         if (!src.ratings) return fail('no ratings file');

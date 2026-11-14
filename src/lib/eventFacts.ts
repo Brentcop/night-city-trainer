@@ -16,8 +16,13 @@
 //     places, whatever the cut. Nothing here returns a bare "top 8".
 //   - Titles and finishes come from standard events only (a custom event's games count for ratings, never for titles).
 //   - A rate always comes with its sample: wins with the games they are out of.
-// Not here yet: upsets judged against earlier ratings, per-game Gig counts, findings, decision and synergy cells.
+//   - Movement (`roundMovement`) is about the event's own top-cut places, Swiss rounds of standard events only: who
+//     moved into or out of them in a round, the biggest climb and drop in places, and after the last Swiss round who
+//     made the cut and who missed it on tiebreakers.
+// Upsets judged against ratings fitted on earlier events are in src/lib/eventUpsets.ts. Not here yet: per-game Gig
+// counts, findings, decision and synergy cells.
 import { eventFinishes, type EventLite } from './deckRecord';
+import type { EventSetup } from './eventFormats';
 import { h2hFileLookup, type H2HModelBlock } from './h2hModel';
 import { simTier, simTierText, type SimTier } from './simTier';
 import { computeStandings, type MatchRec, type StandingRow } from './tournament';
@@ -42,7 +47,7 @@ export interface RecordedEvent {
   champion: string | null;
   simVersion?: number;
   custom?: boolean;
-  setup?: { format?: string; bestOf?: number };
+  setup?: { format?: string; bestOf?: number; entrants?: EventSetup['entrants'] };
 }
 
 /** The event index (src/data/tournaments.json). */
@@ -325,6 +330,8 @@ export interface RoundSummary extends Basis {
   atTop: number;
   /** bracket rounds: the decks that won their match */
   advancing: string[];
+  /** numbered rounds: movement around the top-cut places (`roundMovement`); null for a bracket round */
+  movement: RoundMovement | null;
 }
 
 export const LEADERS_SHOWN = 8;
@@ -403,7 +410,110 @@ export function roundSummary(ev: RecordedEvent, round: number | string): RoundSu
     leaders,
     atTop,
     advancing: stage === 'bracket' ? matches.map((m) => m.winner) : [],
+    movement: stage === 'bracket' ? null : roundMovement(ev, index),
   };
+}
+
+// ---------------------------------------------------------------- movement around the top-cut places
+
+/** A deck's place in the standings before and after a round, and its match record after it. */
+export interface PlaceChange {
+  deck: string;
+  /** place after the round before (1 = first) */
+  before: number;
+  /** place after this round */
+  place: number;
+  matchRecord: string;
+}
+
+/** A deck at the cut line after the last Swiss round. */
+export interface CutRow {
+  deck: string;
+  place: number;
+  matchRecord: string;
+  mp: number;
+}
+
+/** Which ranking step put a deck below the last deck in the cut when their match points are level. */
+export type TiebreakStep = 'omw' | 'gwp' | 'name';
+
+/** After the last Swiss round: who made the cut, and who missed it with the same match points as the last deck in. */
+export interface CutLine {
+  made: CutRow[];
+  /** the last deck that made the cut (place = cut) */
+  last: CutRow;
+  /** decks outside the cut on the same match points as `last`, best first, with the ranking step that separated each */
+  missedOnTiebreak: (CutRow & { separatedBy: TiebreakStep })[];
+  /** the recorded top-cut seeds are exactly these places (null: the event stored no seeds) */
+  seedsAgree: boolean | null;
+}
+
+export interface RoundMovement extends Basis {
+  event: number | string;
+  round: number;
+  of: number;
+  /** null: movement applies; else why it does not (another format, a custom event, no top cut) */
+  notApplicable: string | null;
+  /** the event's top-cut size (places 1 to cut); 0 without a cut */
+  cut: number;
+  /** false for round 1: there are no standings before it, so nothing moved */
+  hasBefore: boolean;
+  /** inside the cut after this round, outside it after the round before (in this round's standings order) */
+  movedIn: PlaceChange[];
+  /** the reverse */
+  droppedOut: PlaceChange[];
+  /** the largest gain in places this round and every deck that made it (null: none climbed, or round 1) */
+  climb: { places: number; decks: PlaceChange[] } | null;
+  /** the largest loss in places and every deck that made it */
+  drop: { places: number; decks: PlaceChange[] } | null;
+  /** the last Swiss round only */
+  cutLine: CutLine | null;
+}
+
+/** The event's top-cut size: two seats per first bracket match (as `eventSummary` counts it). */
+const cutSize = (ev: RecordedEvent): number => (ev.bracket[0] ? ev.bracket[0].matches.length * 2 : 0);
+
+/**
+ * Movement around the top-cut places in Swiss round k: places come from `standingsAfter(ev, k)` against
+ * `standingsAfter(ev, k − 1)`, the cut is the event's own. Only Swiss rounds of standard events with a top cut have
+ * movement; any other format, a custom event (arranged by hand) or an event without a cut is "not applicable", with
+ * the reason, and nothing is guessed. Round 1 has no standings before it: `hasBefore` false and no movement. After the
+ * last Swiss round `cutLine` names the decks that made the cut and those that missed it on the same match points as the
+ * last deck in (missed on tiebreakers: opponents' match-win share, then game-win share, then the deck name, the
+ * standings' own order). Throws a RangeError for a round the event did not play.
+ */
+export function roundMovement(ev: RecordedEvent, round: number): RoundMovement {
+  const after = standingsAfter(ev, round);
+  const cut = cutSize(ev);
+  const base: RoundMovement = { event: ev.id, ...eventBasis(ev), round, of: ev.rounds.length, notApplicable: null, cut, hasBefore: round > 1, movedIn: [], droppedOut: [], climb: null, drop: null, cutLine: null };
+  if (ev.custom) return { ...base, notApplicable: 'a custom event (another format, or pairings or seeds set by hand)' };
+  if (roundStage(ev) !== 'swiss') return { ...base, notApplicable: `not a Swiss event (${ev.setup?.format ?? ev.format})` };
+  if (!cut) return { ...base, notApplicable: 'the event had no top cut' };
+  if (round > 1) {
+    const prev = new Map(standingsAfter(ev, round - 1).rows.map((r) => [r.deck, r.place]));
+    const changes: PlaceChange[] = after.rows.map((r) => ({ deck: r.deck, before: prev.get(r.deck) ?? after.rows.length, place: r.place, matchRecord: r.matchRecord }));
+    base.movedIn = changes.filter((c) => c.place <= cut && c.before > cut);
+    base.droppedOut = changes.filter((c) => c.place > cut && c.before <= cut);
+    const most = (gain: (c: PlaceChange) => number) => {
+      const best = Math.max(0, ...changes.map(gain));
+      return best > 0 ? { places: best, decks: changes.filter((c) => gain(c) === best) } : null;
+    };
+    base.climb = most((c) => c.before - c.place);
+    base.drop = most((c) => c.place - c.before);
+  }
+  if (round === ev.rounds.length && after.rows.length >= cut) {
+    const row = (r: StandingLine): CutRow => ({ deck: r.deck, place: r.place, matchRecord: r.matchRecord, mp: r.mp });
+    const lastRow = after.rows[cut - 1]!;
+    const step = (r: StandingLine): TiebreakStep => (r.omw !== lastRow.omw ? 'omw' : r.gwp !== lastRow.gwp ? 'gwp' : 'name');
+    const made = after.rows.slice(0, cut).map(row);
+    base.cutLine = {
+      made,
+      last: row(lastRow),
+      missedOnTiebreak: after.rows.slice(cut).filter((r) => r.mp === lastRow.mp).map((r) => ({ ...row(r), separatedBy: step(r) })),
+      seedsAgree: ev.seeds ? ev.seeds.length === cut && ev.seeds.every((d, i) => d === made[i]?.deck) : null,
+    };
+  }
+  return base;
 }
 
 // ---------------------------------------------------------------- one deck

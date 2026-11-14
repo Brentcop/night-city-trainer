@@ -81,7 +81,10 @@ describe('fact', () => {
   it('refuses an unknown fact, a missing or misplaced flag and the wrong number of decks (exit 2)', () => {
     const bad: string[][] = [
       ['fact'],
-      ['fact', 'upsets', '--event', '6'],
+      ['fact', 'upset', '--event', '6'],
+      ['fact', 'upsets'],
+      ['fact', 'upsets', '--event', '6', 'samurai'],
+      ['fact', 'upsets', '--event', '6', '--top', '3'],
       ['fact', 'champion'],
       ['fact', 'champion', '--event', '0'],
       ['fact', 'champion', '--event', 'six'],
@@ -131,6 +134,24 @@ describe('fact', () => {
     expect(json.rows.map((r: { deck: string }) => r.deck)).toEqual(ev6!.event.standings.map((s) => s.deck));
     expect(json.source).toBe('public/tournaments/event-6.json');
     expect(fact(['round', '--event', '6', '--round', 'Final']).out).toMatch(/^Event #6, Final: a top-cut round/);
+    // movement and upsets inside a Swiss round, in text and in JSON
+    const r5 = fact(['round', '--event', '6', '--round', '5']);
+    expect(r5.out).toMatch(/\n(Into the top-cut places \(the first 8\) in round 5: |No deck moved into or out of the top-cut places)/);
+    expect(r5.out).toMatch(/\nBiggest climb: /);
+    expect(r5.out).toMatch(/\nUpsets by the ratings fitted on events 1 to 5 \(\d+ games\), the winner's chance per game 30\.0% or less: \d+ of \d+ judged matches/);
+    const r5j = JSON.parse(fact(['round', '--event', '6', '--round', '5', '--json']).out);
+    expect(r5j.movement).toMatchObject({ round: 5, cut: 8, hasBefore: true, notApplicable: null });
+    expect(r5j.upsets).toMatchObject({ round: 'Round 5', yardstick: { events: [1, 2, 3, 4, 5] } });
+    // fact upsets: the whole event, one round, a bracket round
+    const up = fact(['upsets', '--event', '6']);
+    expect(up.code).toBe(0);
+    expect(up.out).toMatch(/^Event #6 upsets: judged by the ratings fitted on events 1 to 5 \(\d+ games\), never by ratings that include this event/);
+    expect(up.out).toMatch(/\nPlayed matches: \d+ \(byes left out\); judged: \d+; not judged: \d+/);
+    expect(up.out).toContain('source: public/tournaments/event-6.json');
+    const upj = JSON.parse(fact(['upsets', '--event', '6', '--round', 'quarterfinals', '--json']).out);
+    expect(upj).toMatchObject({ fact: 'upsets', event: 6, round: 'Quarterfinals', played: 4 });
+    expect(fact(['upsets', '--event', '1']).out).toMatch(/^Event #1 upsets: not judged, no earlier recorded event on sim version \d+ with the \w+ bot/);
+    expect(estimateTokens(up.out)).toBeLessThan(1000);
     // a deck by file, by list fingerprint and by name, any case
     for (const name of ['s1-01-mutant-rry.txt', 'LISTFP01', 's1-01 mutant (rry)']) expect(fact(['rating', name]).out, name).toMatch(/^S1-01 Mutant \(RRY\) rating: /);
     expect(fact(['finishes', 'Samurai']).out).toMatch(/^Samurai finishes in standard events/);
@@ -158,6 +179,9 @@ describe('fact', () => {
     const noEvent = fact(['champion', '--event', '999']);
     expect([noEvent.code, noEvent.out]).toEqual([1, expect.stringMatching(/^no recorded event 999; recorded: /)]);
     if (ev6) expect(fact(['round', '--event', '6', '--round', '12'])).toMatchObject({ code: 1, out: expect.stringContaining('has rounds 1 to 9') });
+    if (ev6) expect(fact(['upsets', '--event', '6', '--round', '12'])).toMatchObject({ code: 1, out: expect.stringContaining('has rounds 1 to 9') });
+    if (ev6) expect(fact(['upsets', '--event', '6', '--round', 'round of 16'])).toMatchObject({ code: 1, out: expect.stringContaining('(it has Quarterfinals, Semifinals, Final)') });
+    expect(fact(['upsets', '--event', '999'])).toMatchObject({ code: 1, out: expect.stringMatching(/^no recorded event 999; recorded: /) });
     const noDeck = fact(['rating', 'mutant']);
     expect(noDeck.code).toBe(1);
     expect(noDeck.out).toMatch(/^no deck named "mutant"; nearest:\n {2}S1-01 Mutant \(RRY\)/);

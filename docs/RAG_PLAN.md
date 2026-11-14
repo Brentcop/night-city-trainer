@@ -125,7 +125,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.5 | Agent skill and a `CLAUDE.md` pointer | done | 2026-11-13 |
 | 1.6 | Unanswerable questions; the "no match" floor, the rules misses, two-deck questions | done: measured, no change kept | 2026-11-13 |
 | 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
-| 2.2 | Event, round, rating and matchup records from templates | done in the pack; upsets, Gig margins and site files later | 2026-11-13 |
+| 2.2 | Event, round, rating and matchup records from templates; movement around the cut and upsets | done in the pack; Gig margins and site files later | 2026-11-14 |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
 | 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; found only when asked for by name ("stats"), wider wording to be measured in 4.7b | 2026-11-14 |
 | 3.1 | Public pack, byte budgets, guards | waiting: D1, D2 | |
@@ -135,7 +135,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
 | 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
 | 4.7b | Wordings that should reach the statistics records, and questions naming two decks | done: both kept, part of the default search | 2026-11-14 |
-| 4.7c | What is left of the paraphrase misses: things asked for by description, long questions, a guard for short names | next (needs fresh questions for the parts already looked at) | |
+| 4.7c | What is left of the paraphrase misses: things asked for by description, long questions, a guard for short names | later (needs fresh questions for the parts already looked at) | |
+| 4.8 | Records found only when asked for no longer shape the keyword scores of everything else | next | |
 | 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | done | 2026-11-14 |
 | 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
 | 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
@@ -322,7 +323,22 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
 - Two things to know: the module reuses `computeStandings` from `src/lib/tournament.ts` (now exported),
   so it pulls in bot and engine imports; and that function breaks its last tie with `localeCompare`,
   which rule M8 would not allow in new code.
-- Not built yet: upsets judged against ratings fitted on earlier events, and anything needing Gig margins.
+- Upsets landed 2026-11-14 in `src/lib/eventUpsets.ts` (`fact upsets --event N [--round R]`).
+  - The yardstick for an event is one rating fit on the games of earlier events only (same sim version
+    and bot), taken through the ratings' own game extraction (`src/lib/ratingGames.ts`, now shared with
+    `scripts/event-pool.ts`; a test reproduces `ratings.json` from it, and a ratings rebuild is
+    byte-identical).
+  - A match is judged when both decks have at least 18 earlier games: the count at which a deck's own
+    rating is surer than the starting assumption by half.
+  - An upset is a judged match won by a deck given 30% a game or less. That line comes from the data:
+    over 641 judged matches, favourites given 50 to 70% a game won about half their matches (240 of
+    461), and favourites given 70% or more won 150 of 180 (83%). Below 70% the earlier ratings barely
+    beat a coin at naming a match winner, so nothing there is called an upset.
+  - Counts: 30 upsets in events 4 to 7 (10, 2, 13, 5). Events 1 and 2 have none to judge, event 3 only
+    5 judged matches of 178, because the decks had too few earlier games.
+  - The line was chosen on the same 641 matches it is applied to. It is a label with its evidence
+    beside it, not a tested prediction.
+- Not built yet: anything needing Gig margins.
 
 **2.2 Sheets.**
 - One sheet per event, per round and per deck, rendered by templates from 2.1. A sheet is keyed on its
@@ -339,8 +355,18 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   `ratings.json` and `h2h.json`, so they are exactly as fresh as those files. A round record is a round
   summary: results, sweeps and deciding games, first-player share, game length, how games ended, and the
   leaders after the round as records.
-- Still to do here: emit the same sheets as site files (step 3), who moved into or out of the top-cut
-  places per round, and wording for round-robin and match-list events on real data.
+- Movement landed 2026-11-14 (`roundMovement` in `src/lib/eventFacts.ts`, shown by `fact round`): after
+  each Swiss round, which decks moved into the top-cut places and which dropped out, the biggest climb
+  and drop, and after the last Swiss round who made the cut and who missed it on tiebreakers, with the
+  tiebreaker that decided it. All 52 Swiss rounds have it; in 39 a deck moved in or out; 13 decks over
+  the seven events missed a cut on tiebreakers. Round records carry these sentences and the round's
+  upsets; event records give the upset count and the largest one (builder 6).
+- What that growth cost: 6 of 286 questions changed rank, 3 up and 3 down. Held out, first five 67.6%
+  to 66.7% (one number question fell out of the first five); every paired interval reaches zero.
+  Five of the six questions have nothing to do with tournaments: they moved only because the keyword
+  ranker counts the words of round and event records. See experiment 4.8.
+- Still to do here: emit the same sheets as site files (step 3), and wording for round-robin and
+  match-list events on real data.
 
 **2.3 Findings as records.**
 - When `src/lib/findings.ts` and `public/data/evidence/` exist (TUNING_STUDY P2), each `Finding` becomes
@@ -719,6 +745,9 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Default search after both 4.7b experiments. Held-out answerable (108), all records | top 1: 45%, top 5: 68%, top 10: 74%, MRR 0.55; 5 of 108 wrongly refused; 1 of 7 unanswerable refused. Public only (92): top 5 71%, MRR 0.61 | step 4.7b |
 | 2026-11-14 | Same, top 5 by type on the held-out split | entity 100%, cross 90%, dev 82%, number 79%, statistics 62% (10 of 16), rules 50%, paraphrase 46% | step 4.7b |
 | 2026-11-14 | Cost of the two mechanisms | about 96 lines of code; search time per question unchanged (mean 2.3 ms in process); mean answer 506 to 526 tokens | step 4.7b |
+| 2026-11-14 | Do earlier ratings name a match winner? 641 judged matches, events 3 to 7 | favourite given 50 to 60% a game won 128 of 256 (50%); 60 to 70%: 112 of 205 (55%); 70% or more: 150 of 180 (83%) | step 2.1 |
+| 2026-11-14 | Answer size from `kb fact upsets` and the richer `kb fact round` | upsets of one event 534 to 619 tokens, of one round 285; a round summary 714 to 847 | step 2.2 |
+| 2026-11-14 | Cost of growth: round and event records with movement and upsets (286 questions) | 6 questions changed rank (3 up, 3 down); all records: top 5 −0.4 points [−1.1, 0], MRR −0.002 [−0.007, +0.001]; public: top 5 −0.9 [−2.2, 0]. Held-out answerable (108): top 5 67.6% to 66.7%, MRR 0.552 to 0.548 | step 2.2 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -850,3 +879,10 @@ while the tournament index and the finish chips use the real cut, so five decks 
   decks now finds their matchup first, and decks are found by the names players use. A question naming a
   card or package and asking how it went now finds its statistics. Held-out questions in the first five
   went from 53% to 68%. Three looks have now been taken on the split refreshed on 2026-11-13.
+- 2026-11-14: the open parts of 2.1 and 2.2 landed. Round summaries say who moved into or out of the
+  top-cut places and who missed the cut on tiebreakers, and `fact upsets` lists the matches won by the
+  underdog, judged by ratings fitted on earlier events only. The line for "underdog" was set where the
+  data showed the earlier ratings start to mean something (a favourite given 70% a game or more).
+  Found on the way, not fixed: the rating fit has no starting assumption on the going-first term, so on
+  very small data where a deck wins every game from one seat it runs away and every prediction becomes
+  50%. Real data is unaffected today. A fix changes rating numbers, so it is the owner's call.

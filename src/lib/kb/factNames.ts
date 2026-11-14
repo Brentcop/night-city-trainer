@@ -2,7 +2,7 @@
 // facts.ts so that reading a command line does not load the recorded-data code (src/lib/eventFacts.ts and, through
 // it, the tournament rules, bots and engine). facts.ts re-exports all of this.
 
-export const FACTS = ['champion', 'standings', 'round', 'rating', 'ratings', 'finishes', 'matchup', 'card', 'package'] as const;
+export const FACTS = ['champion', 'standings', 'round', 'upsets', 'rating', 'ratings', 'finishes', 'matchup', 'card', 'package'] as const;
 export type FactName = (typeof FACTS)[number];
 
 /**
@@ -13,6 +13,7 @@ export const FACT_NEEDS: Readonly<Record<FactName, { event: boolean; round: 'no'
   champion: { event: true, round: 'no', decks: 0 },
   standings: { event: true, round: 'optional', decks: 0 },
   round: { event: true, round: 'required', decks: 0 },
+  upsets: { event: true, round: 'optional', decks: 0 },
   rating: { event: false, round: 'no', decks: 1 },
   ratings: { event: false, round: 'no', decks: 0, top: true },
   finishes: { event: false, round: 'no', decks: 1 },

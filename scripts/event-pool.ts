@@ -2,10 +2,12 @@
 // results (events, titles, top 8s, finishes, match records) from standard events only. Pure, so it is tested directly.
 //
 //   - Games: every recorded event counts, whatever its format or pairing method (custom events too). A deck entered
-//     twice ("X #2", src/lib/eventFormats.ts) plays as X; its games against its own copy are left out.
+//     twice ("X #2", src/lib/eventFormats.ts) plays as X; its games against its own copy are left out. The extraction is
+//     src/lib/ratingGames.ts, which the upset yardstick (src/lib/eventUpsets.ts) also reads.
 //   - Results: an event flagged `custom` (another format, or pairings or seeds set by hand) is skipped, so titles, top-8
 //     counts, finishes and Swiss records come only from standard Swiss events.
 import { entrantBase, type EventSetup } from '../src/lib/eventFormats';
+import { eventRatedGames } from '../src/lib/ratingGames';
 
 /** The parts of a recorded event the pool reads. */
 export interface PoolEvent {
@@ -138,14 +140,8 @@ export function poolEvents(events: readonly PoolEvent[]): { games: PooledGame[];
       const champ = e.champion ? results[base(e.champion)] : undefined;
       if (champ) champ.titles++;
     }
-    for (const part of [...e.rounds, ...e.bracket])
-      for (const m of part.matches) {
-        if (!m.b) continue;
-        const a = base(m.a);
-        const b = base(m.b);
-        if (a === b) continue;
-        for (const g of m.games) games.push({ a, b, first: g.first, s: g.winner === 0 ? 1 : g.winner === 1 ? 0 : 0.5 });
-      }
+    // the fit's games: one definition, shared with the upset yardstick (src/lib/ratingGames.ts)
+    games.push(...eventRatedGames(e));
   }
   return { games, results, customEvents };
 }

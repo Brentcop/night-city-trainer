@@ -12,8 +12,11 @@
 //                                       sim version (src/lib/eventFacts.ts), never looked up by similarity:
 //     fact champion --event 6                    the champion, the final and the runner-up
 //     fact standings --event 6 [--round 5]       Swiss standings after a round (default: the last Swiss round)
-//     fact round --event 6 --round 5             one round: matches, byes, sweeps, deciding games, leaders after it
+//     fact round --event 6 --round 5             one round: matches, byes, sweeps, deciding games, leaders after it,
+//                                                who moved into or out of the top-cut places, its upsets
 //                                                (--round final | semifinals | quarterfinals for a top-cut round)
+//     fact upsets --event 6 [--round 5]          matches won by the underdog by the ratings fitted on earlier events
+//                                                only (src/lib/eventUpsets.ts), and what could not be judged
 //     fact rating <deck>                         power rating, 90% range, Sim tier, Swiss record, titles, top cuts
 //     fact ratings [--top N]                     the ratings table in its own order: expected win rate, 90% range,
 //                                                rated games and Sim tier per deck, and which ranges overlap

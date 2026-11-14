@@ -5,7 +5,10 @@
 // every sentence from a template here: the first says what the record is and names the bot and the sim version, a rate
 // shows its sample, a rating its 90% range, a matchup its shrunk estimate beside the raw record. Facts only: no ranking
 // words, no advice, no cause. Stamps carry the sim version, the bot and the recorded date the data holds (never the
-// clock); a record from an older sim version than the current one says so and is flagged `stale`.
+// clock); a record from an older sim version than the current one says so and is flagged `stale`. A Swiss round record
+// also says who moved into or out of the top-cut places and the biggest climb and drop (after the last Swiss round, who
+// made the cut and who missed it on tiebreakers: `roundMovement`); round and event records say which matches were upsets
+// by the ratings fitted on earlier events only (src/lib/eventUpsets.ts), naming that yardstick and what was not judged.
 import {
   deckCompetitive,
   eventSummary,
@@ -22,10 +25,14 @@ import {
   type RatingsTable,
   type RatingsTableRow,
   type ReasonCount,
+  type PlaceChange,
   type RecordedEvent,
+  type RoundMovement,
   type RoundSummary,
+  type TiebreakStep,
   type TurnTally,
 } from '../../eventFacts';
+import { eventUpsets, judgeMatches, upsetYardstick, type JudgedMatch, type UpsetsFact } from '../../eventUpsets';
 import { CURRENT_SIM_VERSION } from '../../playedRecord';
 import { byString, type KbFieldValue, type KbLink, type KbRecord } from '../types';
 import { deckStem } from './decks';
@@ -76,7 +83,7 @@ const stamps = (b: Basis) => ({ simVersion: b.simVersion ?? undefined, bot: b.bo
 
 // ---------------------------------------------------------------- events and rounds
 
-function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | null | undefined) => KbLink[]): KbRecord {
+function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | null | undefined) => KbLink[], upsets: UpsetsFact): KbRecord {
   const s = eventSummary(ev);
   const cut = s.format.topCut;
   const shape = `${plural(s.entrants, 'entrant')}; ${plural(s.format.rounds, s.format.stage === 'swiss' ? 'Swiss round' : 'round')}${cut ? `, then a top cut of ${cut}` : ''}; best of ${s.format.bestOf}.`;
@@ -102,6 +109,7 @@ function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | 
     );
   }
   for (const b of ev.bracket) lines.push(`${b.name}: ${b.matches.map(score).join('; ')}.`);
+  lines.push(...upsetLines(upsets, 'event'));
   return finishRecord({
     id: eventId(ev.id),
     kind: 'event',
@@ -132,6 +140,7 @@ function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | 
       meanTurns: s.turns.mean,
       stale: isStale(s),
       ...reasonFields(s.endReasons),
+      ...upsetFields(upsets),
     },
     links: deckLink(s.champion),
     source: { file },
@@ -141,8 +150,101 @@ function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | 
   });
 }
 
+// ---------------------------------------------------------------- movement and upsets (wording)
+
+const change = (c: PlaceChange) => `${c.deck} (place ${c.before} to ${c.place})`;
+const STEP_WORDS: Record<TiebreakStep, string> = { omw: "opponents' match-win share", gwp: 'game-win share', name: 'deck name order' };
+
+/** The movement sentences of a Swiss round (empty for a bracket round). */
+export function movementLines(m: RoundMovement | null): string[] {
+  if (!m) return [];
+  if (m.notApplicable) return [`Movement around the top-cut places: not applicable (${m.notApplicable}).`];
+  const top = `the top-cut places (the first ${m.cut})`;
+  const lines: string[] = [];
+  if (!m.hasBefore) lines.push(`Movement around ${top}: none counted, as round 1 has no standings before it.`);
+  else {
+    lines.push(
+      m.movedIn.length || m.droppedOut.length
+        ? `Into ${top} in round ${m.round}: ${m.movedIn.map(change).join('; ') || 'none'}. Out of them: ${m.droppedOut.map(change).join('; ') || 'none'}.`
+        : `No deck moved into or out of ${top} in round ${m.round}.`,
+    );
+    const most = (what: string, x: RoundMovement['climb']) => (x ? `${what}: ${plural(x.places, 'place')}, ${x.decks.map(change).join('; ')}` : `${what}: none`);
+    lines.push(`${most('Biggest climb', m.climb)}. ${most('Biggest drop', m.drop)}.`);
+  }
+  const c = m.cutLine;
+  if (c) {
+    lines.push(`Made the top cut of ${m.cut}: ${c.made.map((r) => `${r.place} ${r.deck} ${r.matchRecord}`).join('; ')}.`);
+    lines.push(
+      c.missedOnTiebreak.length
+        ? `Missed the cut on tiebreakers, on the same ${c.last.mp} match points as ${c.last.deck} (place ${c.last.place}, ${c.last.matchRecord}): ${c.missedOnTiebreak.map((r) => `${r.deck} (place ${r.place}, behind on ${STEP_WORDS[r.separatedBy]})`).join('; ')}.`
+        : `None missed the cut on tiebreakers: no deck below place ${c.last.place} had the ${c.last.mp} match points of ${c.last.deck} (${c.last.matchRecord}).`,
+    );
+    if (c.seedsAgree === false) lines.push('The recorded top-cut seeds differ from these places (seeded by hand).');
+  }
+  return lines;
+}
+
+/** "event 1", "events 1 to 5", "events 1, 3 and 4". */
+export function eventList(ids: readonly (number | string)[]): string {
+  if (ids.length === 1) return `event ${ids[0]}`;
+  const nums = ids.every((x) => typeof x === 'number') ? (ids as number[]) : null;
+  if (nums && nums.length > 2 && nums.every((x, i) => i === 0 || x === nums[i - 1]! + 1)) return `events ${nums[0]} to ${nums[nums.length - 1]}`;
+  return `events ${ids.slice(0, -1).join(', ')} and ${ids[ids.length - 1]}`;
+}
+
+/** "the ratings fitted on events 1 to 5 (1234 games)". */
+export const yardstickPhrase = (u: UpsetsFact): string => `the ratings fitted on ${eventList(u.yardstick.events)} (${plural(u.yardstick.games, 'game')})`;
+
+const noYardstick = (u: UpsetsFact) => `no earlier recorded event on sim version ${u.simVersion ?? 'none'} with the ${u.bot} bot`;
+
+/** One upset: who beat whom, the score, the winner's chance per game and each deck's earlier games. */
+export const upsetLine = (m: JudgedMatch, o: { round?: boolean } = {}): string =>
+  `${o.round ? `${m.roundName}: ` : ''}${m.winner} beat ${m.loser} ${m.score[0]}-${m.score[1]}, with a chance per game of ${pc1(m.winnerChance!)}; earlier games: winner ${m.earlierGames.winner}, loser ${m.earlierGames.loser}`;
+
+const notJudgedWhy = (u: UpsetsFact) => {
+  const copies = u.matches.filter((m) => !m.judged && m.reason?.startsWith('a deck against its own copy')).length;
+  const few = u.notJudged - copies;
+  return [few ? `${few} with a deck under ${u.yardstick.minEarlierGames} earlier games` : null, copies ? `${copies} a deck against its own copy` : null].filter(Boolean).join(', ');
+};
+
+/** The upset sentences of a round or event record (`scope` names what the counts cover). */
+export function upsetLines(u: UpsetsFact, scope: 'round' | 'event'): string[] {
+  if (!u.yardstick.events.length) return [`Upsets: not judged, ${noYardstick(u)} to fit ratings on.`];
+  if (!u.played) return [];
+  const rule = `the winner's chance per game ${pc1(u.yardstick.upsetMaxChance)} or less`;
+  const notJ = u.notJudged ? `; ${u.notJudged} of ${u.played} played matches not judged (${notJudgedWhy(u)})` : '';
+  const head = u.judged
+    ? `Upsets by ${yardstickPhrase(u)}, ${rule}: ${u.upsets.length} of ${u.judged} judged matches${notJ}.`
+    : `Upsets by ${yardstickPhrase(u)}: none judged; ${u.notJudged} of ${u.played} played matches not judged (${notJudgedWhy(u)}).`;
+  if (!u.upsets.length) return [head];
+  if (scope === 'round') return [head, ...u.upsets.map((m) => `Upset: ${upsetLine(m)}.`)];
+  return [head, `Largest upset: ${upsetLine(u.upsets[0]!, { round: true })}.`];
+}
+
+/** The `kb fact upsets` sentences: the definition, the counts, every upset, and the decks below the minimum. */
+export function upsetsText(u: UpsetsFact): string {
+  const what = `${u.eventName}${u.round ? `, ${u.round}` : ''} upsets`;
+  if (!u.yardstick.events.length) return `${what}: not judged, ${noYardstick(u)} to fit ratings on (played by ${playedBy(u)}, recorded ${day(u.asOf)}).`;
+  const lines = [
+    `${what}: judged by ${yardstickPhrase(u)}, never by ratings that include this event; played by ${playedBy(u)}, recorded ${day(u.asOf)}.`,
+    `An upset is a judged match won by the deck whose chance per game was ${pc1(u.yardstick.upsetMaxChance)} or less (the fit's prediction averaged over going first and second). A match is judged when both decks had ${u.yardstick.minEarlierGames} or more earlier games. An upset is about the prediction, not about a deck's worth.`,
+    `Played matches: ${u.played} (byes left out); judged: ${u.judged}; not judged: ${u.notJudged}${u.notJudged ? ` (${notJudgedWhy(u)})` : ''}.`,
+    `Upsets: ${u.upsets.length} of ${u.judged} judged matches${u.upsets.length ? ':' : '.'}`,
+    ...u.upsets.map((m) => `  ${upsetLine(m, { round: true })}`),
+  ];
+  if (u.belowMinimum.length) lines.push(`Decks under ${u.yardstick.minEarlierGames} earlier games (earlier games): ${u.belowMinimum.map((d) => `${d.deck} ${d.earlierGames}`).join('; ')}.`);
+  return lines.join('\n');
+}
+
+/** The upsets of every round of an event and of the whole event, from one yardstick fit. */
+export function eventUpsetFacts(events: readonly RecordedEvent[], ev: RecordedEvent): { event: UpsetsFact; round: (round: number | string) => UpsetsFact } {
+  const yardstick = upsetYardstick(events, ev);
+  const judged = judgeMatches(ev, yardstick);
+  return { event: eventUpsets(events, ev, { yardstick, judged }), round: (round) => eventUpsets(events, ev, { round, yardstick, judged }) };
+}
+
 /** The round sentences (the record's text and `kb fact round`). */
-export function roundText(r: RoundSummary): string {
+export function roundText(r: RoundSummary, upsets?: UpsetsFact): string {
   const what = r.stage === 'bracket' ? `a top-cut round (${r.round} of ${r.of})` : `${r.stage === 'swiss' ? 'a Swiss round' : 'a round'} (${r.round} of ${r.of})`;
   const multi = r.bestOf > 1;
   const lines: (string | null)[] = [
@@ -157,20 +259,37 @@ export function roundText(r: RoundSummary): string {
       : null,
     `Results: ${r.matches.map(score).join('; ')}.`,
     r.stage === 'bracket' ? (r.round === r.of ? `Champion: ${r.advancing[0] ?? 'none'}.` : `Advancing: ${r.advancing.join('; ')}.`) : null,
+    ...movementLines(r.movement),
+    ...(upsets ? upsetLines(upsets, 'round') : []),
   ];
   return lines.filter(Boolean).join('\n');
 }
 
-function roundRecord(file: string, ev: RecordedEvent, round: number | string): KbRecord {
+const upsetFields = (u: UpsetsFact) => ({
+  upsets: u.yardstick.events.length ? u.upsets.length : null,
+  judgedMatches: u.judged,
+  notJudgedMatches: u.notJudged,
+  upsetYardstick: u.yardstick.events.length ? eventList(u.yardstick.events) : null,
+  upsetYardstickGames: u.yardstick.games,
+});
+
+function roundRecord(file: string, ev: RecordedEvent, round: number | string, upsets: UpsetsFact): KbRecord {
   const r = roundSummary(ev, round);
+  const mv = r.movement && !r.movement.notApplicable ? r.movement : null;
   const tag = r.stage === 'bracket' ? r.name.toLowerCase() : `round ${r.round}`;
   return finishRecord({
     id: roundId(ev.id, r.key),
     kind: 'round',
     title: `${r.eventName}, ${r.name}`,
     aliases: [`event ${ev.id} ${tag}`, `event #${ev.id} ${tag}`, `tournament ${ev.id} ${tag}`, `${tag} of event ${ev.id}`, `${tag} in event ${ev.id}`],
-    text: roundText(r),
+    text: roundText(r, upsets),
     fields: {
+      ...upsetFields(upsets),
+      movedIntoCut: mv?.hasBefore ? mv.movedIn.length : undefined,
+      droppedOutOfCut: mv?.hasBefore ? mv.droppedOut.length : undefined,
+      biggestClimb: mv?.hasBefore ? (mv.climb?.places ?? 0) : undefined,
+      biggestDrop: mv?.hasBefore ? (mv.drop?.places ?? 0) : undefined,
+      missedCutOnTiebreak: mv?.cutLine ? mv.cutLine.missedOnTiebreak.length : undefined,
       event: typeof ev.id === 'number' ? ev.id : String(ev.id),
       stage: r.stage,
       round: r.round,
@@ -381,10 +500,12 @@ export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: st
     return id ? [{ rel: 'deck', to: id }] : [];
   };
   const out: KbRecord[] = [];
+  const all = src.events.map((e) => e.event);
   for (const { file, event } of src.events) {
-    out.push(eventRecord(file, event, deckLink));
-    for (let k = 1; k <= event.rounds.length; k++) out.push(roundRecord(file, event, k));
-    for (const b of event.bracket) out.push(roundRecord(file, event, b.name));
+    const up = eventUpsetFacts(all, event);
+    out.push(eventRecord(file, event, deckLink, up.event));
+    for (let k = 1; k <= event.rounds.length; k++) out.push(roundRecord(file, event, k, up.round(k)));
+    for (const b of event.bracket) out.push(roundRecord(file, event, b.name, up.round(b.name)));
   }
   if (src.ratings) {
     const events = typeof src.ratings.data.events === 'number' ? src.ratings.data.events : null;
