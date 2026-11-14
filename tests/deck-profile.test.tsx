@@ -52,7 +52,10 @@ describe('deck profile: recorded results first', () => {
     expect(html).toMatch(/Finals vs the meta|Seasons vs the meta/);
     expect(html).toMatch(/the raw record in \d+ games of Swiss rounds/);
     expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
-    expect(html).not.toMatch(/\d+th pct|1th|2th|3th/);
+    // a wrong ordinal ("1th", "22th"); 11th, 12th and 13th are right (a deck finished 12th of 47 in event 8)
+    expect(html).not.toMatch(/\d+th pct|(?<!1)[123]th\b/);
+    for (const [s, wrong] of [['1th', true], ['2th', true], ['23th', true], ['11th', false], ['12th of 47', false], ['113th', false], ['4th', false]] as const)
+      expect(/(?<!1)[123]th\b/.test(s), s).toBe(wrong);
     expect(html).toMatch(/on the play \d+ games, on the draw \d+ games/);
     expect(html).toMatch(/Best matchup/);
     // the events, ratings and reports were re-recorded on SIM_VERSION 6; the Season 1–2 records (finals vs the meta,

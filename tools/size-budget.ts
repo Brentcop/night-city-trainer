@@ -36,9 +36,12 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // tools/kb-site.ts) and the search page's chunk load only when a visitor opens #/search and types, so their gzip size
 // is what a search costs. Set 2026-11-14 a little above the sizes then (gzip, level 9: core 79.4 kB, events 33.0 kB,
 // cardstat 81.9 kB, pkgstat 86.9 kB; the page chunk 11.8 kB): growth fails the build and becomes a decision.
+// Decided 2026-11-14: `events` raised from 37 to 84 when events 8 to 14 were recorded (seven more, each with all 47
+// decks: the shard went from 33.0 to 77.0 kB). The shard grows with every recorded event, about 6 kB for one with the
+// whole library; if that becomes too much for a first search, split it (rounds by event) rather than raise it again.
 
 /** gzip kB per knowledge-pack shard, by shard name. */
-export const KB_SHARD_BUDGET_KB: Readonly<Record<string, number>> = { core: 88, events: 37, cardstat: 90, pkgstat: 96 };
+export const KB_SHARD_BUDGET_KB: Readonly<Record<string, number>> = { core: 88, events: 84, cardstat: 90, pkgstat: 96 };
 /** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core). */
 export const SEARCH_CHUNK_BUDGET_KB = 13;
 
