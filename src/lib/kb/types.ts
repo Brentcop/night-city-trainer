@@ -5,8 +5,10 @@
 /**
  * Record kinds. `faq`, `rule`, `trule` (tournament rules) and `errata` come from data/raw and are always `local`.
  * `event`, `round`, `rating` and `matchup` are measured: built from the recorded tournaments by src/lib/eventFacts.ts.
+ * `cardstat` and `pkgstat` are measured too: the evidence cells of the decision, synergy and deck-analysis reports, by
+ * src/lib/cardFacts.ts (step 2.4).
  */
-export const KB_KINDS = ['card', 'ruling', 'faq', 'rule', 'trule', 'errata', 'deck', 'objective', 'package', 'term', 'guide', 'doc', 'code', 'event', 'round', 'rating', 'matchup'] as const;
+export const KB_KINDS = ['card', 'ruling', 'faq', 'rule', 'trule', 'errata', 'deck', 'objective', 'package', 'term', 'guide', 'doc', 'code', 'event', 'round', 'rating', 'matchup', 'cardstat', 'pkgstat'] as const;
 export type KbKind = (typeof KB_KINDS)[number];
 
 /** The id prefix of each kind: ids are '<prefix>:<stable key>'. */
@@ -28,6 +30,8 @@ export const KIND_PREFIX: Readonly<Record<KbKind, string>> = {
   round: 'round',
   rating: 'rating',
   matchup: 'matchup',
+  cardstat: 'cardstat',
+  pkgstat: 'pkgstat',
 };
 
 /** Link types. A link is stored once, on the record that names the other; the index adds the reverse direction. */

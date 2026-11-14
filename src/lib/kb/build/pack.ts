@@ -6,7 +6,7 @@ import type { MentionReport } from './mentions';
 import { finishRecord } from './record';
 
 /** Bump when the builders make different records from the same inputs (the manifest records it, so caches rebuild). */
-export const KB_BUILDER_VERSION = 4;
+export const KB_BUILDER_VERSION = 5;
 
 export function assemblePack(records: readonly KbRecord[], o: { mentions: MentionReport; skipped: Readonly<Record<string, number>> }): { records: KbRecord[]; report: KbBuildReport } {
   const byId = new Map<string, KbRecord>();

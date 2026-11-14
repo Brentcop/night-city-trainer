@@ -7,8 +7,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ArgError } from '../scripts/lib-node';
-import { deckResolver, ensurePack, parseKbArgs, runQuery, statsText } from '../scripts/kb';
-import { loadCompetitive } from '../scripts/kb-sources';
+import { deckResolver, ensurePack, parseKbArgs, runQuery, statResolver, statsText } from '../scripts/kb';
+import { loadCompetitive, loadStats } from '../scripts/kb-sources';
+import { CATALOGUE_VERSION } from '../src/content/synergies';
 import { runFact } from '../src/lib/kb/facts';
 import { finishRecord } from '../src/lib/kb/build/record';
 import { buildIndex } from '../src/lib/kb/search';
@@ -73,6 +74,9 @@ describe('fact', () => {
     expect(parseKbArgs(['fact', 'matchup', 'smash', 'the', 'curve', 'vs', 'samurai']).fact!.decks).toEqual(['smash the curve', 'samurai']);
     expect(parseKbArgs(['fact', 'ratings']).fact).toEqual({ fact: 'ratings', decks: [], json: false });
     expect(parseKbArgs(['fact', 'ratings', '--top', '10']).fact).toEqual({ fact: 'ratings', top: 10, decks: [], json: false });
+    expect(parseKbArgs(['fact', 'card', 'Jacked-In', 'Voodoo', 'Boy']).fact).toEqual({ fact: 'card', decks: [], subject: 'Jacked-In Voodoo Boy', json: false });
+    expect(parseKbArgs(['fact', 'card', 'floor_it', '--deck', 'meta-bbg-cunningham-econ', '--json']).fact).toEqual({ fact: 'card', decks: [], subject: 'floor_it', deck: 'meta-bbg-cunningham-econ', json: true });
+    expect(parseKbArgs(['fact', 'package', 'rocker', '--deck', 'Samurai']).fact).toEqual({ fact: 'package', decks: [], subject: 'rocker', deck: 'Samurai', json: false });
   });
   it('refuses an unknown fact, a missing or misplaced flag and the wrong number of decks (exit 2)', () => {
     const bad: string[][] = [
@@ -96,6 +100,13 @@ describe('fact', () => {
       ['fact', 'ratings', '--event', '6'],
       ['fact', 'rating', 'samurai', '--top', '3'],
       ['search', 'x', '--top', '3'],
+      ['fact', 'card'],
+      ['fact', 'card', '--deck', 'Samurai'],
+      ['fact', 'package'],
+      ['fact', 'card', 'x', '--deck', ''],
+      ['fact', 'card', 'x', '--event', '6'],
+      ['fact', 'rating', 'samurai', '--deck', 'Samurai'],
+      ['search', 'x', '--deck', 'Samurai'],
     ];
     for (const argv of bad) expect(() => parseKbArgs(argv), argv.join(' ')).toThrow(ArgError);
   });
@@ -150,6 +161,63 @@ describe('fact', () => {
     const noDeck = fact(['rating', 'mutant']);
     expect(noDeck.code).toBe(1);
     expect(noDeck.out).toMatch(/^no deck named "mutant"; nearest:\n {2}S1-01 Mutant \(RRY\)/);
+  });
+});
+
+describe('fact card and fact package (step 2.4)', () => {
+  // the real report files; names resolved through invented card, package and deck records with the real ids
+  const stats = loadStats(ROOT, CATALOGUE_VERSION);
+  const BBG = { file: 'meta-bbg-cunningham-econ.txt', name: 'BBG Cunningham Econ', listId: '0b6272134a22585c' };
+  const ix = buildIndex([
+    finishRecord({ id: 'card:jacked_in_voodoo_boy', kind: 'card', title: 'Jacked-In Voodoo Boy', text: 'An invented card record.', source: { file: 'fixture' }, origin: 'authored', scope: 'public' }),
+    finishRecord({ id: 'card:kilo_byte', kind: 'card', title: 'Kilo Byte', text: 'A card no report has.', source: { file: 'fixture' }, origin: 'authored', scope: 'public' }),
+    finishRecord({ id: 'pkg:rocker', kind: 'package', title: 'Rocker Units (Johnny Silverhand)', text: 'An invented package record.', source: { file: 'fixture' }, origin: 'authored', scope: 'public' }),
+    finishRecord({ id: 'deck:meta-bbg-cunningham-econ', kind: 'deck', title: BBG.name, aliases: [BBG.file, BBG.listId], text: 'An invented deck record.', fields: { file: BBG.file }, stamps: { listId: BBG.listId }, source: { file: 'fixture' }, origin: 'authored', scope: 'public' }),
+  ]);
+  const src = loadCompetitive(ROOT);
+  const st = { sources: stats, names: statResolver(ix), deckOf: (l: string) => (l === BBG.listId ? { file: BBG.file, name: BBG.name } : undefined) };
+  const fact = (argv: string[]) => runFact(parseKbArgs(['fact', ...argv]).fact!, src, deckResolver(ix, src), st);
+  const there = !!stats.decisions && !!stats.synergies && !!stats.analysis;
+
+  it.skipIf(!there)('prints a card on one list and pooled, with the source file, bot and sim version', () => {
+    const one = fact(['card', 'Jacked-In Voodoo Boy', '--deck', 'meta-bbg-cunningham-econ.txt']);
+    expect(one.code).toBe(0);
+    expect(one.out).toMatch(/^Jacked-In Voodoo Boy on BBG Cunningham Econ: statistics of how the bot used one card on one library list, measured by the \w+ bot on sim version \d+/);
+    expect(one.out).toMatch(/Played from hand in the main phase: \d+ times in \d+ of the list's \d+ games/);
+    expect(one.out).toMatch(/source: public\/data\/decisions\.json \(the \w+ bot on sim version \d+, recorded 20\d\d-/);
+    expect(one.out).toContain('source: src/data/analysis.json');
+    const row = stats.decisions!.data.decks.find((d) => d.listId === BBG.listId)!.cards.find((c) => c.id === 'jacked_in_voodoo_boy')!.modes[0]!;
+    expect(one.out).toContain(`${row.all.uses} times in ${row.all.games} of the list's`);
+    // the same deck by list fingerprint, the card by its id
+    expect(fact(['card', 'jacked_in_voodoo_boy', '--deck', BBG.listId]).out).toBe(one.out);
+    const json = JSON.parse(fact(['card', 'Jacked-In Voodoo Boy', '--deck', BBG.name, '--json']).out);
+    expect(json).toMatchObject({ fact: 'card', card: 'jacked_in_voodoo_boy', deck: BBG.file, use: { scope: 'list', basis: { file: 'public/data/decisions.json' } } });
+    expect(json.use.modes[0].won.games).toBe(row.all.games);
+    const pooled = fact(['card', 'Jacked-In Voodoo Boy']);
+    expect(pooled.out).toMatch(/^Jacked-In Voodoo Boy: statistics of how the bot used one card, pooled over the \d+ lists of the \d+ in the decision report/);
+    expect(pooled.out).toContain('lists with a cell: ');
+    expect(estimateTokens(one.out)).toBeLessThan(1500);
+  });
+
+  it.skipIf(!there)('prints a package pooled and on a list, with the coach’s gate', () => {
+    const p = fact(['package', 'rocker']);
+    expect(p.code).toBe(0);
+    expect(p.out).toMatch(/^Rocker Units \(Johnny Silverhand\): statistics of one synergy package, pooled over the \d+ lists in the synergy report that hold it, measured by the \w+ bot on sim version \d+/);
+    expect(p.out).toMatch(/Lift \(won when online minus won when never\): [+-]\d+\.\d points \(95% interval /);
+    expect(p.out).toMatch(/The coach's lift gate \(liftGate in src\/ai\/packageLift\.ts\) would (call it measured|leave it unnamed)/);
+    expect(p.out).toMatch(/source: public\/data\/synergies\.json \(the \w+ bot on sim version \d+/);
+    expect(JSON.parse(fact(['package', 'Rocker Units (Johnny Silverhand)', '--json']).out)).toMatchObject({ fact: 'package', scope: 'pooled', package: { id: 'rocker' } });
+    // a list that does not hold it says which lists do
+    const no = fact(['package', 'rocker', '--deck', BBG.file]);
+    expect([no.code, no.out]).toEqual([1, expect.stringMatching(/^BBG Cunningham Econ does not hold Rocker Units \(Johnny Silverhand\) in public\/data\/synergies\.json; lists that do: /)]);
+  });
+
+  it('exits 1 on an unknown card, package or deck, listing the nearest; and on a card no report has', () => {
+    const card = fact(['card', 'Voodoo Boyz']);
+    expect([card.code, card.out]).toEqual([1, expect.stringMatching(/^no card named "Voodoo Boyz"; nearest:\n {2}Jacked-In Voodoo Boy \(card:jacked_in_voodoo_boy\)/)]);
+    expect(fact(['package', 'rockers']).out).toMatch(/^no package named "rockers"; nearest:\n {2}Rocker Units/);
+    expect(fact(['card', 'Jacked-In Voodoo Boy', '--deck', 'cunningham econ deck']).out).toMatch(/^no library deck named "cunningham econ deck"; nearest:\n {2}BBG Cunningham Econ/);
+    if (there) expect(fact(['card', 'Kilo Byte'])).toMatchObject({ code: 1, out: expect.stringMatching(/^no statistics for Kilo Byte in public\/data\/decisions\.json or src\/data\/analysis\.json/) });
   });
 });
 

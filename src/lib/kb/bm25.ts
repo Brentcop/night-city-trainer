@@ -2,6 +2,8 @@
 // alias tokens count three times. Ties are broken by id, so a ranking is the same on every machine. Terms added to the
 // question by the caller (the synonym table, synonyms.ts) count at a weight the caller gives. The index stems records
 // in one mode (text.ts StemMode, default `s`) and every query against it is stemmed the same way.
+// The corpus statistics (document count, document frequencies, mean length) can leave some documents out (`inStats`):
+// those are still scored, against the statistics of the others, so adding them moves no other document's score.
 import { tokenize, type StemMode } from './text';
 import { byString } from './types';
 
@@ -25,8 +27,10 @@ export interface Bm25Index {
   tf: Map<string, number>[];
   len: number[];
   avgLen: number;
-  /** documents containing each term */
+  /** documents containing each term (of the documents counted in the statistics) */
   df: Map<string, number>;
+  /** how many documents the statistics count (all of them unless `inStats` left some out) */
+  statDocs: number;
   /** how the records were stemmed; queries are stemmed the same way */
   stem: StemMode;
 }
@@ -36,32 +40,39 @@ export interface Scored {
   score: number;
 }
 
-export function buildBm25(docs: readonly Bm25Doc[], stem: StemMode = 's'): Bm25Index {
+/** `inStats`: whether a document counts in the corpus statistics (default all); the others are scored against them. */
+export function buildBm25(docs: readonly Bm25Doc[], stem: StemMode = 's', o: { inStats?: (d: Bm25Doc) => boolean } = {}): Bm25Index {
   const ids: string[] = [];
   const tf: Map<string, number>[] = [];
   const len: number[] = [];
   const df = new Map<string, number>();
+  let total = 0;
+  let statDocs = 0;
   for (const d of docs) {
     const m = new Map<string, number>();
     const add = (t: string, w: number) => m.set(t, (m.get(t) ?? 0) + w);
     for (const t of tokenize([d.title, ...(d.aliases ?? [])].join(' '), stem)) add(t, TITLE_WEIGHT);
     for (const t of tokenize(d.text, stem)) add(t, 1);
+    const counted = o.inStats ? o.inStats(d) : true;
     let n = 0;
     for (const [t, c] of m) {
       n += c;
-      df.set(t, (df.get(t) ?? 0) + 1);
+      if (counted) df.set(t, (df.get(t) ?? 0) + 1);
+    }
+    if (counted) {
+      total += n;
+      statDocs++;
     }
     ids.push(d.id);
     tf.push(m);
     len.push(n);
   }
-  const total = len.reduce((a, b) => a + b, 0);
-  return { ids, pos: new Map(ids.map((id, i) => [id, i])), tf, len, avgLen: docs.length ? total / docs.length : 0, df, stem };
+  return { ids, pos: new Map(ids.map((id, i) => [id, i])), tf, len, avgLen: statDocs ? total / statDocs : 0, df, statDocs, stem };
 }
 
 export const idf = (ix: Bm25Index, term: string): number => {
   const n = ix.df.get(term) ?? 0;
-  return Math.log(1 + (ix.ids.length - n + 0.5) / (n + 0.5));
+  return Math.log(1 + (ix.statDocs - n + 0.5) / (n + 0.5));
 };
 
 /** Terms added to a query and the weight each counts at (1 = like a word of the query). */
@@ -77,7 +88,8 @@ export interface AddedTerms {
 export function bm25Search(ix: Bm25Index, query: string, added?: AddedTerms): Scored[] {
   const own = [...new Set(tokenize(query, ix.stem))];
   const extra = added && added.weight > 0 ? [...new Set(added.terms)].filter((t) => !own.includes(t)) : [];
-  const terms = [...own, ...extra].filter((t) => ix.df.has(t));
+  // a term only the uncounted documents hold has no document frequency: it gets the idf of a term held by none
+  const terms = [...own, ...extra].filter((t) => ix.df.has(t) || ix.statDocs < ix.ids.length);
   if (!terms.length) return [];
   const weights = terms.map((t) => idf(ix, t) * (own.includes(t) ? 1 : added!.weight));
   const out: Scored[] = [];

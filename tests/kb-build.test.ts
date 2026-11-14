@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CARDS } from '../src/engine/cards';
+import { CARDS, cardLabel } from '../src/engine/cards';
 import { createRunManifest } from '../src/lib/runManifest';
 import { RULES_VERSIONS } from '../src/lib/rulesVersions';
 import { buildCards, cardDataVersion, type CardInput } from '../src/lib/kb/build/cards';
@@ -21,11 +21,22 @@ import { buildCodeHeader, buildDocPassages, buildGuides, headerComment } from '.
 import { finishRecord } from '../src/lib/kb/build/record';
 import { buildRulings } from '../src/lib/kb/build/rulings';
 import { wordCount } from '../src/lib/kb/text';
+import { buildIndex, cuedKinds, lookup, search, STATS_FREE_KINDS } from '../src/lib/kb/search';
 import { recordHash } from '../src/lib/kb/types';
 import { buildFromSources, loadCompetitive, RAW_FILES } from '../scripts/kb-sources';
 import { FAQ_MATRIX } from './faq/matrix';
 
 const ROOT = path.resolve(__dirname, '..');
+
+/** Advice wording (the patterns of tests/insights-wording.test.ts): an imperative opening a sentence, or a known phrase. */
+const ADVICE: RegExp[] = [
+  /(^|[.!?;] |, so |and )(keep|sell|cut|mulligan|choose|pick|prioriti[sz]e|plan|close|consider|sideboard|avoid|hold|attack|play|register|don[’']t)/i,
+  /(sell|cut|keep|mulligan) (these|them|it|this)/i,
+  /(should|must|need to|have to|choose to go)/i,
+  /cards that win|underperform/i,
+];
+/** Card names first, longest first: they are not words of the sentence. Deck and package names are added per record. */
+const NAME_LIST = CARDS.map(cardLabel).filter((n) => n.length > 2).sort((a, b) => b.length - a.length);
 
 const card = (id: string, name: string, subname: string | null, more: Partial<CardInput> = {}): CardInput => ({
   id,
@@ -497,6 +508,70 @@ describe('the real public sources', async () => {
     }
     const ev6 = a.records.find((x) => x.id === 'event:6');
     if (ev6) expect(ev6.stamps?.asOf).toBe(src.events.find((e) => e.event.id === 6)!.event.date);
+  });
+
+  it('builds the evidence cells from the measured reports (step 2.4): one per card or package on a library list, and pooled', () => {
+    const dec = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/decisions.json'), 'utf8')) as { decks: { listId: string; cards: { id: string }[] }[]; manifest: { simVersion: number; bot: { level: string } } };
+    const syn = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/synergies.json'), 'utf8')) as { decks: { listId: string; synergies: { id: string }[] }[]; pooled: { id: string }[] };
+    const libLists = new Set(a.records.filter((x) => x.kind === 'deck').map((x) => x.stamps!.listId));
+    const cells = a.records.filter((x) => x.kind === 'cardstat' || x.kind === 'pkgstat');
+    const names = [...NAME_LIST, ...a.records.filter((x) => x.kind === 'deck' || x.kind === 'package').map((x) => x.title)].sort((p, q) => q.length - p.length);
+    // every report list matches a library deck today; a list that matched none would be skipped and counted
+    const decLists = dec.decks.filter((d) => libLists.has(d.listId));
+    expect(decLists).toHaveLength(dec.decks.length);
+    expect(Object.keys(a.report.skipped).filter((k) => k.startsWith('stats:'))).toEqual([]);
+    expect(count('pkgstat')).toBe(syn.decks.filter((d) => libLists.has(d.listId)).reduce((n, d) => n + d.synergies.length, 0) + syn.pooled.length);
+    expect(a.records.filter((x) => x.id.startsWith('cardstat:') && x.id.includes('/')).length).toBeGreaterThanOrEqual(decLists.reduce((n, d) => n + d.cards.length, 0));
+    for (const x of cells) {
+      expect([x.origin, x.scope], x.id).toEqual(['measured', 'public']);
+      const s = x.stamps!;
+      expect(typeof s.simVersion === 'number' && typeof s.bot === 'string' && typeof s.asOf === 'string', x.id).toBe(true);
+      expect(x.fields?.stale, x.id).toBe(false);
+      const first = x.text.split('\n')[0]!;
+      expect(first, x.id).toContain(`the ${s.bot} bot on sim version ${s.simVersion}`);
+      expect(first, x.id).toMatch(/: statistics (of how the bot used one card|of one synergy package)/);
+      expect(x.text, x.id).toMatch(/\bassociations?\b/);
+      expect(x.text, x.id).toContain('not advice');
+      // every rate has its games and an interval, a draw odds figure says it is computed, or the text says too few games
+      const left = x.text
+        .replace(/\d+\.\d% of \d+ (player-)?games? \(95% interval \d+\.\d%–\d+\.\d%\)/g, 'R')
+        .replace(/\d+\.\d% of \d+ games? \(\d+\.\d%–\d+\.\d%\)/g, 'R')
+        .replace(/\d+ of \d+ games? \(\d+\.\d%, 95% interval \d+\.\d%–\d+\.\d%\)/g, 'R')
+        .replace(/computed draw odds of holding the pieces, not measured: [\d.% /]+/g, 'R')
+        .replace(/95% (interval|\(Wilson\))/g, 'R');
+      expect(left.match(/[^\n]*\d%[^\n]*/g) ?? [], x.id).toEqual([]);
+      expect(x.text, x.id).not.toMatch(/NaN|undefined|null|Infinity/);
+      // no advice: the patterns of tests/insights-wording.test.ts, on the sentences without card and deck names
+      const plain = names.reduce((t, n) => (t.includes(n) ? t.split(n).join('NAME') : t), x.text);
+      for (const re of ADVICE) expect(plain, `${x.id}: ${re.source}`).not.toMatch(re);
+      expect(plain, x.id).not.toMatch(/\b(best|worst|strongest|weakest|keep it|sell first)\b/i);
+    }
+    // links: a cell on a list to its card or package, its deck and the pooled cell; a pooled cell to its card or package
+    for (const x of cells) {
+      const rels = x.links.map((l) => `${l.rel} ${l.to.slice(0, l.to.indexOf(':'))}`);
+      const onList = x.id.includes('/');
+      if (x.kind === 'cardstat') expect(rels, x.id).toEqual(onList ? ['card card', 'deck deck', 'parent cardstat'] : ['card card']);
+      else expect(rels, x.id).toEqual(onList ? ['deck deck', 'package pkg', 'parent pkgstat'] : ['package pkg']);
+    }
+    const one = a.records.find((x) => x.id === `cardstat:meta-bbg-cunningham-econ/jacked_in_voodoo_boy`);
+    if (one) expect(one.fields).toMatchObject({ card: 'jacked_in_voodoo_boy', file: 'meta-bbg-cunningham-econ.txt', association: true });
+    expect(dec.manifest.simVersion).toBe(cells[0]!.stamps!.simVersion);
+  });
+
+  it('the evidence cells join a search only when it asks for statistics, and are always found by id and as neighbours', () => {
+    const ix = buildIndex(a.records);
+    const kinds = (q: string) => search(ix, q, { k: 20 }).hits.map((h) => h.record.kind);
+    for (const q of ['Jacked-In Voodoo Boy', 'how often is Jacked-In Voodoo Boy played and how did those games go', 'Rocker Units package win rate'])
+      expect(kinds(q).filter((k) => k === 'cardstat' || k === 'pkgstat'), q).toEqual([]);
+    for (const w of ['stat', 'stats', 'statistic', 'statistics', 'telemetry']) expect([...cuedKinds(`Jacked-In Voodoo Boy ${w}`)].sort(), w).toEqual(['cardstat', 'pkgstat']);
+    expect(kinds('Jacked-In Voodoo Boy stats')).toContain('cardstat');
+    expect(lookup(ix, 'cardstat:jacked_in_voodoo_boy').map((r) => r.id)).toEqual(['cardstat:jacked_in_voodoo_boy']);
+    expect((ix.edges.get('card:jacked_in_voodoo_boy') ?? []).some((e) => e.other === 'cardstat:jacked_in_voodoo_boy')).toBe(true);
+    // the cells are left out of the keyword statistics: the other records score as they would without them
+    const without = buildIndex(a.records.filter((x) => !STATS_FREE_KINDS.includes(x.kind)));
+    expect([ix.bm25.statDocs, ix.bm25.avgLen]).toEqual([without.bm25.statDocs, without.bm25.avgLen]);
+    for (const q of ['which deck wins by filling the trash', 'Detonate ruling', 'games won when drawn'])
+      expect(search(ix, q, { k: 10 }).hits.map((h) => [h.record.id, h.score]), q).toEqual(search(without, q, { k: 10 }).hits.map((h) => [h.record.id, h.score]));
   });
 
   it('reads no generated, tutorial or archived source', () => {

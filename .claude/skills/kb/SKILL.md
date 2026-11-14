@@ -1,6 +1,6 @@
 ---
 name: kb
-description: Look up this project's knowledge with `npm run kb` instead of reading whole files - cards, rulings, the game's rules, decks, deck notes, synergy packages, glossary terms, guides, project docs and code file headers. Use it first when a question is about the game, a card, a deck, a ruling, or where something lives in this repository.
+description: Look up this project's knowledge with `npm run kb` instead of reading whole files - cards, rulings, the game's rules, decks, deck notes, synergy packages, glossary terms, guides, recorded events, ratings, matchups, how the bot used each card and package, project docs and code file headers. Use it first when a question is about the game, a card, a deck, a ruling, a result, or where something lives in this repository.
 ---
 
 # Knowledge pack (kb)
@@ -18,6 +18,9 @@ Plan, method and status: `docs/RAG_PLAN.md`.
 
 - To get a tournament result, standings after a round, a round summary, a deck's rating and finishes, or
   a matchup: the `fact` command computes these from the recorded data.
+- To get how the bot used a card (played, sold, attacked with, by stage and Gig standing, the gap when
+  drawn) or how a synergy package did (assembled, online, lift, the coach's gate): `fact card` and
+  `fact package`. One answer is about 760 tokens; the report files are 85 KB to 807 KB.
 
 Skip it when you already know the file and line.
 
@@ -61,6 +64,20 @@ Also `fact round --event N --round K` (a round summary), `fact finishes <deck>` 
 `fact ratings --top 10` (the ratings table, which says when the ranges overlap). A deck is named by
 file, by name or by list fingerprint. Add `--json` for data.
 
+The bot's play statistics, from the decision, synergy and deck-analysis reports:
+
+```bash
+npm run kb -- fact card "Jacked-In Voodoo Boy" --deck meta-bbg-cunningham-econ
+```
+
+```bash
+npm run kb -- fact package rocker
+```
+
+Without `--deck` the lists are pooled. Card statistics exist for the meta lists only (the reports cover
+that field); package statistics for every library list. These are associations from the bot's own games:
+report them as what the bot did, with the games and interval shown, never as what a card is worth.
+
 - `search` returns the best five records. Flags: `--k 8`, `--kind card,ruling`, `--scope public|local|all`,
   `--max-tokens 800`, `--json`.
 - `get` prints every record with that id, title or alias, in full. Names work in lower case and without
@@ -98,8 +115,9 @@ Each hit shows its id, title, `[kind · origin · scope · status]`, its version
 
 ## What it cannot answer yet
 
-- Per-card and per-decision statistics (how often a card is played or sold, synergy rates, card impact)
-  are not records yet (plan step 2.4). Read them from the data files through the project's own modules.
+- `search` shows the card and package statistics records only when the question says "stats",
+  "statistics" or "telemetry" (or names the record, such as `cardstat:<card id>`). "How often is X sold"
+  does not reach them yet: use `fact card` or `fact package`, which always do.
 - Take a number from `fact` or from a `measured` record, never from a doc passage: docs go stale. Every
   measured record names its bot and sim version; one marked stale was measured under an older version.
 - "Top 8" has two meanings here. `fact` reports real top-cut appearances and the ratings file's count of

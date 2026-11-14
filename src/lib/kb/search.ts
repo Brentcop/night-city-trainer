@@ -5,6 +5,8 @@
 // after the step 1.4 question set showed it helps on held-out questions). Measured records (events, rounds, ratings,
 // matchups; step 2.2) are named inside a question like decks are, and join the keyword and linked lists only when the
 // question asks for their kind (CUE_ONLY_KINDS): kept after the number questions showed it helps on held-out questions.
+// The evidence cells (cardstat, pkgstat; step 2.4) are gated the same way, cued only by "stats", "statistics" and
+// "telemetry".
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
 // Rung 4, `dense` (step 4.1, dense.ts), runs only when the caller passes a dense index and the question's vector; it is
 // gated like the keyword list and can only lift a "no match" when its best similarity reaches `denseFloor`.
@@ -110,7 +112,9 @@ export function buildIndex(records: readonly KbRecord[], o: { stem?: StemMode } 
       edges.get(r.id)!.push({ rel: l.rel, other: l.to, dir: 'out' });
       edges.get(l.to)!.push({ rel: l.rel, other: r.id, dir: 'in' });
     }
-  return { records: sorted, byId, names: buildNameIndex(sorted), bm25: buildBm25(sorted, mode), edges };
+  const kindOf = new Map(sorted.map((r) => [r.id, r.kind]));
+  const inStats = (d: { id: string }) => !STATS_FREE_KINDS.includes(kindOf.get(d.id)!);
+  return { records: sorted, byId, names: buildNameIndex(sorted), bm25: buildBm25(sorted, mode, { inStats }), edges };
 }
 
 /** The records named `q` exactly (id, title or alias). */
@@ -233,13 +237,28 @@ export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
   vs: ['matchup'],
   versus: ['matchup'],
   head: ['matchup'],
+  // step 2.4: the evidence cells, only by words that no earlier question uses for anything else ("stats" and
+  // "statistics" reach these keys with their plural stripped). Broader words ("played", "sold", "rate") would be a
+  // ranking change, to be measured on questions written blind.
+  stat: ['cardstat', 'pkgstat'],
+  statistic: ['cardstat', 'pkgstat'],
+  telemetry: ['cardstat', 'pkgstat'],
 };
 
 /**
  * Measured kinds that are many and look alike (a matchup or round record per pairing or round): they join the keyword
  * and linked lists only when the question asks for their kind (KIND_CUES); named exactly, they are always found.
  */
-export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', 'rating'];
+export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', 'rating', 'cardstat', 'pkgstat'];
+
+/**
+ * Kinds left out of the keyword ranker's corpus statistics (document count, document frequencies, mean length): they
+ * are still scored, against the statistics of the other records, so adding them moves no other record's score. The
+ * evidence cells (step 2.4) are many, long and full of the words every question uses ("games", "won", card names);
+ * counted, they moved the earlier questions' rankings although they never appear unless asked for. The older measured
+ * kinds stay counted: leaving them out too would be a ranking change, to be measured first (rule M9).
+ */
+export const STATS_FREE_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
 
 /** The kinds a question asks for by name (read from the plain, mode `s` tokens whatever the index's stem mode). */
 export function cuedKinds(q: string): Set<KbKind> {

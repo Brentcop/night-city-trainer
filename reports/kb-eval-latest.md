@@ -12,7 +12,7 @@ Scopes: public 187, local 39. Splits: dev 136, test 90. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-3440 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+3989 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -141,7 +141,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2416 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 39.
+2965 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 39.
 Stale expectations: none.
 
 ### By configuration and split
@@ -152,14 +152,14 @@ Stale expectations: none.
 | exact | test | 68 | 13.2 | 16.2 | 16.2 | 0.147 | 80 | 210 | 7 of 7 (100.0%) | 31 of 68 (45.6%) |
 | exact | all | 169 | 15.4 | 17.8 | 17.8 | 0.166 | 71 | 175 | 15 of 18 (83.3%) | 91 of 169 (53.8%) |
 | keyword | dev | 101 | 48.5 | 68.3 | 74.3 | 0.577 | 491 | 605 | 4 of 11 (36.4%) | 10 of 101 (9.9%) |
-| keyword | test | 68 | 33.8 | 61.8 | 67.6 | 0.458 | 514 | 630 | 4 of 7 (57.1%) | 5 of 68 (7.4%) |
-| keyword | all | 169 | 42.6 | 65.7 | 71.6 | 0.529 | 500 | 616 | 8 of 18 (44.4%) | 15 of 169 (8.9%) |
+| keyword | test | 68 | 33.8 | 61.8 | 67.6 | 0.457 | 513 | 626 | 4 of 7 (57.1%) | 5 of 68 (7.4%) |
+| keyword | all | 169 | 42.6 | 65.7 | 71.6 | 0.529 | 500 | 615 | 8 of 18 (44.4%) | 15 of 169 (8.9%) |
 | exact+keyword | dev | 101 | 40.6 | 72.3 | 77.2 | 0.549 | 502 | 600 | 3 of 11 (27.3%) | 8 of 101 (7.9%) |
-| exact+keyword | test | 68 | 29.4 | 64.7 | 75.0 | 0.450 | 517 | 608 | 4 of 7 (57.1%) | 3 of 68 (4.4%) |
-| exact+keyword | all | 169 | 36.1 | 69.2 | 76.3 | 0.509 | 508 | 607 | 7 of 18 (38.9%) | 11 of 169 (6.5%) |
+| exact+keyword | test | 68 | 29.4 | 64.7 | 75.0 | 0.450 | 516 | 608 | 4 of 7 (57.1%) | 3 of 68 (4.4%) |
+| exact+keyword | all | 169 | 36.1 | 69.2 | 76.3 | 0.509 | 507 | 607 | 7 of 18 (38.9%) | 11 of 169 (6.5%) |
 | exact+linked+keyword | dev | 101 | 48.5 | 75.2 | 79.2 | 0.606 | 500 | 599 | 3 of 11 (27.3%) | 8 of 101 (7.9%) |
-| exact+linked+keyword | test | 68 | 39.7 | 67.6 | 76.5 | 0.528 | 519 | 608 | 4 of 7 (57.1%) | 3 of 68 (4.4%) |
-| exact+linked+keyword | all | 169 | 45.0 | 72.2 | 78.1 | 0.574 | 508 | 607 | 7 of 18 (38.9%) | 11 of 169 (6.5%) |
+| exact+linked+keyword | test | 68 | 39.7 | 67.6 | 76.5 | 0.527 | 518 | 608 | 4 of 7 (57.1%) | 3 of 68 (4.4%) |
+| exact+linked+keyword | all | 169 | 45.0 | 72.2 | 78.1 | 0.574 | 507 | 607 | 7 of 18 (38.9%) | 11 of 169 (6.5%) |
 
 ### By question type
 
@@ -186,12 +186,12 @@ Stale expectations: none.
 | keyword | number | dev | 19 | 47.4 | 52.6 | 57.9 | 0.507 | 1 |
 | keyword | dev | dev | 17 | 58.8 | 88.2 | 100.0 | 0.717 | 0 |
 | keyword | entity | test | 10 | 50.0 | 100.0 | 100.0 | 0.717 | 0 |
-| keyword | paraphrase | test | 25 | 24.0 | 52.0 | 52.0 | 0.357 | 5 |
+| keyword | paraphrase | test | 25 | 24.0 | 52.0 | 52.0 | 0.355 | 5 |
 | keyword | cross | test | 9 | 33.3 | 55.6 | 77.8 | 0.409 | 0 |
 | keyword | number | test | 13 | 23.1 | 38.5 | 46.2 | 0.303 | 0 |
 | keyword | dev | test | 11 | 54.5 | 81.8 | 90.9 | 0.674 | 0 |
 | keyword | entity | all | 23 | 78.3 | 100.0 | 100.0 | 0.877 | 0 |
-| keyword | paraphrase | all | 63 | 25.4 | 52.4 | 55.6 | 0.374 | 14 |
+| keyword | paraphrase | all | 63 | 25.4 | 52.4 | 55.6 | 0.373 | 14 |
 | keyword | cross | all | 23 | 43.5 | 69.6 | 82.6 | 0.546 | 0 |
 | keyword | number | all | 32 | 37.5 | 46.9 | 53.1 | 0.424 | 1 |
 | keyword | dev | all | 28 | 57.1 | 85.7 | 96.4 | 0.700 | 0 |
@@ -201,12 +201,12 @@ Stale expectations: none.
 | exact+keyword | number | dev | 19 | 42.1 | 68.4 | 68.4 | 0.544 | 0 |
 | exact+keyword | dev | dev | 17 | 58.8 | 88.2 | 100.0 | 0.717 | 0 |
 | exact+keyword | entity | test | 10 | 60.0 | 100.0 | 100.0 | 0.758 | 0 |
-| exact+keyword | paraphrase | test | 25 | 16.0 | 52.0 | 60.0 | 0.301 | 3 |
+| exact+keyword | paraphrase | test | 25 | 16.0 | 52.0 | 60.0 | 0.299 | 3 |
 | exact+keyword | cross | test | 9 | 0.0 | 44.4 | 77.8 | 0.238 | 0 |
 | exact+keyword | number | test | 13 | 30.8 | 61.5 | 69.2 | 0.457 | 0 |
 | exact+keyword | dev | test | 11 | 54.5 | 81.8 | 90.9 | 0.674 | 0 |
 | exact+keyword | entity | all | 23 | 82.6 | 100.0 | 100.0 | 0.895 | 0 |
-| exact+keyword | paraphrase | all | 63 | 19.0 | 54.0 | 60.3 | 0.337 | 11 |
+| exact+keyword | paraphrase | all | 63 | 19.0 | 54.0 | 60.3 | 0.336 | 11 |
 | exact+keyword | cross | all | 23 | 8.7 | 65.2 | 82.6 | 0.363 | 0 |
 | exact+keyword | number | all | 32 | 37.5 | 65.6 | 68.8 | 0.509 | 0 |
 | exact+keyword | dev | all | 28 | 57.1 | 85.7 | 96.4 | 0.700 | 0 |
@@ -216,12 +216,12 @@ Stale expectations: none.
 | exact+linked+keyword | number | dev | 19 | 42.1 | 68.4 | 68.4 | 0.553 | 0 |
 | exact+linked+keyword | dev | dev | 17 | 58.8 | 88.2 | 100.0 | 0.717 | 0 |
 | exact+linked+keyword | entity | test | 10 | 60.0 | 100.0 | 100.0 | 0.783 | 0 |
-| exact+linked+keyword | paraphrase | test | 25 | 16.0 | 44.0 | 56.0 | 0.285 | 3 |
+| exact+linked+keyword | paraphrase | test | 25 | 16.0 | 44.0 | 56.0 | 0.283 | 3 |
 | exact+linked+keyword | cross | test | 9 | 66.7 | 88.9 | 100.0 | 0.796 | 0 |
 | exact+linked+keyword | number | test | 13 | 38.5 | 61.5 | 69.2 | 0.489 | 0 |
 | exact+linked+keyword | dev | test | 11 | 54.5 | 81.8 | 90.9 | 0.674 | 0 |
 | exact+linked+keyword | entity | all | 23 | 82.6 | 100.0 | 100.0 | 0.906 | 0 |
-| exact+linked+keyword | paraphrase | all | 63 | 19.0 | 50.8 | 58.7 | 0.331 | 11 |
+| exact+linked+keyword | paraphrase | all | 63 | 19.0 | 50.8 | 58.7 | 0.330 | 11 |
 | exact+linked+keyword | cross | all | 23 | 69.6 | 95.7 | 100.0 | 0.822 | 0 |
 | exact+linked+keyword | number | all | 32 | 40.6 | 65.6 | 68.8 | 0.527 | 0 |
 | exact+linked+keyword | dev | all | 28 | 57.1 | 85.7 | 96.4 | 0.700 | 0 |
@@ -252,7 +252,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 | q122 | how many players are in a game of magic the gathering commander | doc:docs/DECISION_TELEMETRY.md#record-schema-version-1~3 (Record schema (version 1) (part 3)); doc:docs/IMPROVEMENT_BACKLOG.md#wp-c4-type-hardening-and-engine-structure~3 (WP-C4 · Type hardening and engine structure (part 3)); doc:docs/SYNERGIES.md#deck-lab-lab~3 (Deck Lab (#/lab) (part 3)) |
 | q124 | what is a foil johnny silverhand selling for on ebay | card:johnny_silverhand_never_stop_fighting (Johnny Silverhand: Never Stop Fighting); card:johnny_silverhand_rocking_renegade (Johnny Silverhand: Rocking Renegade); pkg:rocker (Rocker Units (Johnny Silverhand)) |
 | q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~19 (Keys (part 19)); doc:docs/SITE_CONFIG.md#keys~18 (Keys (part 18)) |
-| q127 | what time does my local game store open on saturdays | doc:README.md#night-city-trainer-cyberpunk-tcg-practice-simulator (Night City Trainer — Cyberpunk TCG practice simulator); doc:docs/RESEARCH.md#open-questions-and-caveats (Open questions and caveats); doc:CLAUDE.md#knowledge-pack-kb~3 (Knowledge pack (kb) (part 3)) |
+| q127 | what time does my local game store open on saturdays | doc:README.md#night-city-trainer-cyberpunk-tcg-practice-simulator (Night City Trainer — Cyberpunk TCG practice simulator); doc:docs/RESEARCH.md#open-questions-and-caveats (Open questions and caveats); doc:CLAUDE.md#knowledge-pack-kb~4 (Knowledge pack (kb) (part 4)) |
 | q224 | how many cards are in a hearthstone deck | code:src/lib/deckSearch.ts (src/lib/deckSearch.ts); doc:docs/ROADMAP2.md#1-synergy-packages-and-evidence-thresholds-requested-2026-11-11~5 (1. Synergy packages and evidence thresholds (requested 2026-11-11) (part 5)); doc:docs/SYNERGIES.md#deck-lab-lab~3 (Deck Lab (#/lab) (part 3)) |
 | q226 | who drew the art on the judy alvarez cards | card:judy_alvarez_braindance_maestro (Judy Álvarez: Braindance Maestro); card:judy_alvarez_nothing_to_doubt (Judy Álvarez: Nothing to Doubt); ruling:3dbd8dd8 (Judy Álvarez: Braindance Maestro ruling 1) |
 

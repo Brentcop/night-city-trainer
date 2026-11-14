@@ -3,7 +3,8 @@
 // cache loads none of them. Paths in records and in the manifest use forward slashes, from the repository root.
 // data/raw/ is read only when present and only into `local` records (rule M6); nothing here writes a file.
 // Measured records (plan step 2.2) come from the recorded events, the event index, the ratings and the head-to-heads;
-// `loadCompetitive` also feeds `npm run kb -- fact`.
+// `loadCompetitive` also feeds `npm run kb -- fact`. The evidence cells (plan step 2.4: cardstat, pkgstat) come from the
+// decision, synergy, deck-analysis and impact reports (`loadStats`, which also feeds `fact card` and `fact package`).
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,6 +18,7 @@ import { assemblePack } from '../src/lib/kb/build/pack';
 import { buildGlossary, buildPackages, buildVocabulary, termId } from '../src/lib/kb/build/packages';
 import { buildCodeHeader, buildDocPassages, buildGuides } from '../src/lib/kb/build/prose';
 import { buildRulings, rulingId, type RulingInput } from '../src/lib/kb/build/rulings';
+import { buildStats, type StatsSources } from '../src/lib/kb/build/stats';
 import type { KbBuildReport, KbRecord } from '../src/lib/kb/types';
 
 export const RAW_FILES = {
@@ -32,6 +34,13 @@ export const EVENTS_DIR = 'public/tournaments';
 export const INDEX_FILE = 'src/data/tournaments.json';
 export const RATINGS_FILE = 'src/data/ratings.json';
 export const H2H_FILE = 'public/data/h2h.json';
+/** The measured reports behind the evidence cells (plan step 2.4). */
+export const STATS_FILES = {
+  decisions: 'public/data/decisions.json',
+  synergies: 'public/data/synergies.json',
+  analysis: 'src/data/analysis.json',
+  impact: 'src/data/impact.json',
+} as const;
 const FAQ_ENTRIES_DIR = 'tests/faq/entries';
 const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
@@ -106,9 +115,26 @@ export function loadCompetitive(root: string): CompetitiveSources {
   };
 }
 
+/** The measured reports that exist (decisions, synergies, deck analysis, impact). */
+export function statsFiles(root: string): string[] {
+  return Object.values(STATS_FILES).filter((f) => fs.existsSync(path.join(root, f)));
+}
+
+/** Read the measured reports (a missing one is null). `catalogueVersion`: the current package catalogue's. */
+export function loadStats(root: string, catalogueVersion: string): StatsSources {
+  const maybe = <T,>(f: string): { file: string; data: T } | null => (fs.existsSync(path.join(root, f)) ? { file: f, data: JSON.parse(fs.readFileSync(path.join(root, f), 'utf8')) as T } : null);
+  return {
+    decisions: maybe(STATS_FILES.decisions),
+    synergies: maybe(STATS_FILES.synergies),
+    analysis: maybe(STATS_FILES.analysis),
+    impact: maybe(STATS_FILES.impact),
+    catalogueVersion,
+  };
+}
+
 /** Every file a build reads, sorted: what the manifest hashes to know when the pack is stale. */
 export function inputFiles(root: string, o: { raw: boolean }): string[] {
-  const files = new Set<string>([CARDS_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root)]);
+  const files = new Set<string>([CARDS_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...statsFiles(root)]);
   if (o.raw) for (const f of Object.values(RAW_FILES)) if (fs.existsSync(path.join(root, f))) files.add(f);
   return [...files].sort();
 }
@@ -222,6 +248,18 @@ export async function buildFromSources(root: string, o: { raw?: boolean } = {}):
   // measured: recorded events and their rounds, power ratings, head-to-heads (numbers from src/lib/eventFacts.ts)
   const deckIds = new Set(decks.map((d) => deckRecordId(d.file)));
   records.push(...buildCompetitive(loadCompetitive(root), { deckId: (file) => (deckIds.has(deckRecordId(file)) ? deckRecordId(file) : undefined), skipped }));
+
+  // measured: the evidence cells (numbers from src/lib/cardFacts.ts), for library lists matched by fingerprint
+  const deckByList = new Map(decks.map((d) => [d.listId, { file: d.file, name: d.name }]));
+  records.push(
+    ...buildStats(loadStats(root, CATALOGUE_VERSION), {
+      deckOf: (listId) => deckByList.get(listId),
+      cardName,
+      hasCard: (id) => cardById.has(id),
+      hasPackage: (id) => packageName.has(id),
+      skipped,
+    }),
+  );
 
   // docs and code headers
   for (const f of docFiles(root)) records.push(...buildDocPassages(f, read(f), { linker, bulletLeads: f === 'CLAUDE.md' }));

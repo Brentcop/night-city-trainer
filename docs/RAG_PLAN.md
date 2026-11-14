@@ -127,7 +127,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
 | 2.2 | Event, round, rating and matchup records from templates | done in the pack; upsets, Gig margins and site files later | 2026-11-13 |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
-| 2.4 | Decision, synergy and impact cells as keyed records | later | |
+| 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; found only when asked for by name ("stats"), wider wording to be measured in 4.7b | 2026-11-14 |
 | 3.1 | Public pack, byte budgets, guards | waiting: D1, D2 | |
 | 3.2 | Search and dossiers on the site behind a feature flag | waiting: D1, D2, D3 | |
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
@@ -347,6 +347,32 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
 - Decision cells, synergy rows and impact rows (about 1,550 today) become keyed records with n, rate,
   interval, the gate fields (thin, association, lift gate) and one template sentence each, so that a
   question about one card on one list reads under 1 KB instead of a 547 KB file.
+- Landed: `src/lib/cardFacts.ts` (pure, one function per number: `cardUse`, `cardAnalysis`,
+  `pooledImpact`, `packageFact`), read by `npm run kb -- fact card <card> [--deck <deck>]` and
+  `fact package <package> [--deck <deck>]`, and by the builder `src/lib/kb/build/stats.ts`.
+  - Records: 205 `cardstat` (133 for a card on one list, 72 pooled over lists) and 342 `pkgstat` (318 for
+    a package on one list, 24 pooled). Lists are matched by fingerprint; none was skipped.
+  - Card statistics exist only for the 7 meta lists (the decision report and the deck analysis cover that
+    field, 4,200 games); package statistics for all 47 lists (the synergy report, 6,486 games). Each
+    record names its own run.
+  - Every record says in its first sentence what was measured, by which bot, on which sim version and
+    over how many games; every count has its denominator, every rate its games and 95% interval; a slice
+    under 20 games says "too few games" and gives no rate. They say what the bot did, as associations,
+    never what a card is worth.
+  - The interval on the "gap when drawn" is rebuilt (Newcombe's method on the stored win rates and
+    game counts), because the analysis file stores none. The coach's pooled impact figure is shown as
+    what it is, a weighted mean with no interval of its own.
+  - Where two reports define a word differently the record says which is which: "played" is a main-phase
+    play from hand in the decision report and any play in the deck analysis; "turn" is the game's turn in
+    one and the list's own turn in the other.
+- A single-card answer is about 760 tokens, where reading the two report files would be about 158,000.
+- These records join a search only when the question says "stats", "statistics" or "telemetry" (or
+  names the record). Questions such as "how often is X sold" do not reach them yet: that wording is to be
+  chosen on questions written blind (step 4.7b), not guessed.
+- The first build moved 26 of the 208 answerable questions, although the new records never appear
+  unasked: the keyword ranker counted their words when weighing every other record. They are now scored
+  but left out of those counts (`STATS_FREE_KINDS` in `search.ts`), and no earlier ranking moved.
+- Not built: statistics as site files (step 3), per-opponent slices (the reports do not keep them).
 
 ### Step 3. Site surface
 
@@ -435,7 +461,9 @@ the decision (keep, drop, could not tell) and its cost.
     questions are what showed that the `dev` gain was not real.
 - 4.7b The rest of the list above, each as its own experiment. Narrow retests suggested by the data so
   far, each needing fresh questions: stemming and the dense ranker for rules questions only (both leaned
-  better there), and the matchup record for a question that names two decks.
+  better there), and the matchup record for a question that names two decks. Since step 2.4 also: which
+  everyday wordings should reach the card and package statistics ("how often is X sold", "win rate with
+  X"), chosen on questions written before the cue words are.
 
 ### Step 5. Exact reuse in game tools
 
@@ -491,7 +519,9 @@ interface KbRecord {
 | round | `round:<event>/<n>`, `round:<event>/<bracket round slug>` | `round:6/5` |
 | rating | `rating:<deck file without .txt>` | one per rated deck |
 | matchup | `matchup:<deck a>~<deck b>` | the two deck keys in sorted order; 6 games or more |
-| later | `finding:<id>`, the measured cells | steps 2.3 and 2.4 |
+| cardstat | `cardstat:<deck file without .txt>/<card id>`, `cardstat:<card id>` | a card on one list; a card pooled over lists |
+| pkgstat | `pkgstat:<deck file without .txt>/<synergy id>`, `pkgstat:<synergy id>` | a package on one list; pooled |
+| later | `finding:<id>` | step 2.3 |
 
 **Link types**: `card`, `deck`, `package`, `ruling`, `rule`, `objective`, `guide`, `term`, `official`,
 `test`, `parent`, `mentions`. Links are stored one way; the index adds the reverse direction when it loads.
@@ -509,6 +539,13 @@ package, term, rule, tournament-rule and deck-note records (doc headings such as
 ordinary words). Linked records are ordered by keyword score, then id. "No match" means no exact hit and
 a best keyword hit holding under half of the question's words. Guides are split at second-level
 headings, docs at levels one to four, and a deck links to the packages its list is built around.
+
+**Kinds found only when asked for**: event, round, rating, matchup, cardstat and pkgstat records are many
+and look alike, so they join the keyword and linked lists only when the question names their kind
+(`KIND_CUES`, `CUE_ONLY_KINDS` in `search.ts`); named exactly they are always found. The two statistics
+kinds are also left out of the keyword ranker's word counts (`STATS_FREE_KINDS`), so adding more of them
+cannot move the ranking of anything else. The four older kinds are still counted: changing that would be
+a ranking change, to be measured first.
 
 **Local pack**: `.cache/kb/records.jsonl` (one record per line, sorted by id) and `.cache/kb/manifest.json`
 (`kind: 'nct-kb'`, schema 1, a builder number, counts by kind and scope, a hash per input file, the rules,
@@ -531,6 +568,16 @@ where `npm run kb -- …` drops flags such as `--event` and `--rankers` (npm tak
 
 ```bash
 node --import tsx scripts/kb.ts fact champion --event 6
+```
+
+How the bot used one card on one list, and how a synergy package did over every list that holds it:
+
+```bash
+node --import tsx scripts/kb.ts fact card "Jacked-In Voodoo Boy" --deck meta-bbg-cunningham-econ
+```
+
+```bash
+node --import tsx scripts/kb.ts fact package rocker
 ```
 
 Where a search spends its time (measured 2026-11-13, about 1.85 s through npm): npm itself 0.85 s, node
@@ -582,6 +629,10 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | After the pack stopped indexing its own plan and code (3,440 records) | held-out answerable (66): top 5 65%, MRR 0.47; public only (54): top 5 67%, MRR 0.53 (was 0.51) | rule M12 |
 | 2026-11-13 | Held-out split refreshed: 226 questions, 50 new across every type. Held-out answerable (83), all records | top 1: 34%, top 5: 65%, top 10: 72%, MRR 0.47; 5 of 83 wrongly refused; 1 of 7 unanswerable refused | step 4.7a |
 | 2026-11-13 | Same baseline, top 5 by type on the held-out split | entity 100%, cross 89%, dev 82%, number 62%, rules 53%, paraphrase 44% | step 4.7a |
+| 2026-11-14 | Pack after the card and package statistics | 3,988 records (2,964 public, 1,024 local): 205 card and 342 package statistics added; 5,014 KB, built in 0.7 s | step 2.4 |
+| 2026-11-14 | Answer size from `kb fact card` and `kb fact package` | one card on one list 757 tokens, pooled 796 (the two report files: about 158,000); one package pooled 691, on one list 605 (the synergy report: about 202,000) | step 2.4 |
+| 2026-11-14 | Cost of growth with the 547 new records counted by the keyword ranker (208 answerable questions, all records) | 26 questions changed rank; top 5: −0.5 points [−2.9, +1.9]; MRR −0.010 [−0.024, +0.004]; public paraphrase top 5: −4.8 [−11.1, 0] | step 2.4 |
+| 2026-11-14 | The same with the new records scored but not counted | no question changed rank with all records; public only, one held-out question went from rank 4 to 5 (a new code header, not the statistics) | step 2.4 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -692,3 +743,8 @@ while the tournament index and the finish chips use the real cut, so five decks 
 - 2026-11-13: experiment 4.7a ran and was not kept. Folding word forms looked like a gain on the
   development questions and was flat on the refreshed held-out ones, so the tokenizer stays as it was.
   The two stemming modes remain in the code, switched off, for narrower retests.
+- 2026-11-14: step 2.4 landed in the pack. `src/lib/cardFacts.ts` computes how the bot used a card and
+  how a synergy package did, with the run each number rests on; `fact card` and `fact package` print
+  them; 547 statistics records answer when a question asks for statistics. Adding them first moved 26
+  earlier questions, so the keyword ranker now scores these records without counting their words, and
+  nothing earlier moved. No file the game cache depends on was edited.

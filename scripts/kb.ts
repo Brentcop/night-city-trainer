@@ -1,6 +1,6 @@
 // Knowledge pack (docs/RAG_PLAN.md): ask about cards, rulings, decks, deck notes, synergy packages, glossary terms,
-// guides, docs, code headers, recorded events and rounds, power ratings and matchups, and get back the few records that
-// answer, each with its source and version.
+// guides, docs, code headers, recorded events and rounds, power ratings and matchups, and the bot's card and package
+// statistics, and get back the few records that answer, each with its source and version.
 //   npm run kb -- search "<question>"   the best records: exact name, records linked to it, then keywords
 //   npm run kb -- get <id or name>      every record with that id, title or alias, in full
 //   npm run kb -- related <id or name>  the record and its neighbours, grouped by link type
@@ -19,14 +19,21 @@
 //                                                rated games and Sim tier per deck, and which ranges overlap
 //     fact finishes <deck>                       every standard event the deck entered
 //     fact matchup "<deck a>" "<deck b>"         shrunk estimate, raw record and games (or: <deck a> vs <deck b>)
-//   A deck is named by file, by name or by list fingerprint; an unknown name exits 1 and lists the nearest.
+//     fact card <card> [--deck <deck>]           how the bot used a card on a library list, or every list pooled: uses,
+//                                                games, win rates with 95% intervals by stage and Gig standing, the gap
+//                                                when drawn (src/lib/cardFacts.ts; associations, not value)
+//     fact package <package> [--deck <deck>]     how a synergy package did: assembled, online, win rates online and
+//                                                never, the lift with its interval and the coach's gate
+//   A deck is named by file, by name or by list fingerprint; an unknown name exits 1 and lists the nearest. A card or a
+//   package is named by its name or id.
 // Flags:
 //   --k N                 results for search (default 5)
 //   --kind a,b            only these kinds: card ruling faq rule trule errata deck objective package term guide doc code
-//                         event round rating matchup
+//                         event round rating matchup cardstat pkgstat
 //   --event N             fact: the recorded event's id
 //   --round R             fact: a round number, or a top-cut round's name
 //   --top N               fact ratings: only the first N decks (default all)
+//   --deck D              fact card / package: one library list (file, name or list fingerprint; default every list pooled)
 //   --scope S             public | local | all (default all)
 //   --rankers a,b         search rankers to run: exact, linked, keyword, dense (default the first three). dense needs
 //                         the embedding tools and model in .cache/kb-dense/ (exit 1 saying what is missing otherwise)
@@ -39,11 +46,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ArgError, bool, int, oneOf, parseArgs, runMain, str, usageOf, writeIfChanged, type Values } from './lib-node';
 import type { densePaths as DensePathsFn } from './kb-dense';
-import { buildFromSources, hashInputs, inputFiles, loadCompetitive, rawPresent } from './kb-sources';
+import { buildFromSources, hashInputs, inputFiles, loadCompetitive, loadStats, rawPresent } from './kb-sources';
 import type { DenseIndex } from '../src/lib/kb/dense';
 import type { CompetitiveSources } from '../src/lib/kb/build/events';
 import { dossier } from '../src/lib/kb/dossier';
-import { FACT_NEEDS, FACTS, type DeckResolver, type FactName, type FactRequest } from '../src/lib/kb/factNames';
+import { FACT_NEEDS, FACTS, type DeckResolver, type FactName, type FactRequest, type StatResolver } from '../src/lib/kb/factNames';
 import { nameKey } from '../src/lib/kb/text';
 import { KB_BUILDER_VERSION, packLines, packManifest, parsePackLines } from '../src/lib/kb/build/pack';
 import { DOSSIER_COST, renderDossierJson, renderDossierText, renderRecordsJson, renderRecordsText, renderSearchJson, renderSearchText } from '../src/lib/kb/render';
@@ -73,6 +80,7 @@ export const KB_SPEC = {
   event: int(undefined, { min: 1 }),
   top: int(undefined, { min: 1, max: 1000 }),
   round: str(undefined, (v) => (/^\d+$/.test(v) ? (Number(v) >= 1 ? undefined : 'a round number from 1') : /^[a-z][a-z0-9 -]*$/i.test(v) ? undefined : 'a round number or a top-cut round name')),
+  deck: str(undefined, (v) => (v.trim() ? undefined : 'a library deck: file, name or list fingerprint')),
 };
 
 /** The flags each command takes (anything else is an error, exit 2). */
@@ -82,7 +90,7 @@ const FLAGS: Record<Command, readonly (keyof typeof KB_SPEC)[]> = {
   related: ['kind', 'scope', 'json', 'max-tokens'],
   stats: ['json'],
   build: ['json'],
-  fact: ['event', 'round', 'top', 'json'],
+  fact: ['event', 'round', 'top', 'deck', 'json'],
   embed: [],
 };
 
@@ -113,6 +121,12 @@ function parseFact(words: readonly string[], values: Values<typeof KB_SPEC>): Fa
   if (need.round === 'no' && values.round !== undefined) throw new ArgError(`--round does not apply to fact ${fact}`);
   if (fact === 'standings' && values.round !== undefined && !/^\d+$/.test(values.round)) throw new ArgError('fact standings takes a round number');
   if (!need.top && values.top !== undefined) throw new ArgError(`--top does not apply to fact ${fact}`);
+  if (!need.subject && values.deck !== undefined) throw new ArgError(`--deck does not apply to fact ${fact}`);
+  if (need.subject) {
+    const subject = rest.join(' ').trim();
+    if (!subject) throw new ArgError(`fact ${fact} needs a ${need.subject} (name or id)`);
+    return { fact, decks: [], subject, ...(values.deck !== undefined ? { deck: values.deck.trim() } : {}), json: values.json };
+  }
   let decks: string[] = [];
   if (need.decks === 1) decks = rest.length ? [rest.join(' ').trim()] : [];
   else if (need.decks === 2) {
@@ -171,6 +185,36 @@ export function deckResolver(ix: KbIndex, src: CompetitiveSources): DeckResolver
     const named = decks.length === 1 ? known.get(nameKey(decks[0]!.title)) : undefined;
     if (named) return { name: named };
     return { nearest: search(ix, typed, { k: 3, kinds: ['deck'] }).hits.map((h) => `${h.record.title} (${String(h.record.fields?.file ?? h.record.id)})`) };
+  };
+}
+
+/**
+ * Names for `fact card` and `fact package`: a card or package record of the pack by id, name or alias (the bare card or
+ * package id works too), and a library deck record by file, stem, name or list fingerprint; an unknown name gets the
+ * three nearest records of that kind by search.
+ */
+export function statResolver(ix: KbIndex): StatResolver {
+  const near = (typed: string, kind: KbKind) => search(ix, typed, { k: 3, kinds: [kind] }).hits.map((h) => `${h.record.title} (${h.record.id})`);
+  const one = (typed: string, kind: KbKind, prefix: string) => {
+    const hits = [...lookup(ix, typed), ...lookup(ix, `${prefix}:${typed.trim()}`)].filter((r) => r.kind === kind);
+    const ids = [...new Set(hits.map((r) => r.id))];
+    return ids.length === 1 ? hits[0]! : null;
+  };
+  return {
+    card: (typed) => {
+      const r = one(typed, 'card', 'card');
+      return r ? { id: r.id.slice('card:'.length), name: r.title } : { nearest: near(typed, 'card') };
+    },
+    package: (typed) => {
+      const r = one(typed, 'package', 'pkg');
+      return r ? { id: r.id.slice('pkg:'.length), name: r.title } : { nearest: near(typed, 'package') };
+    },
+    deck: (typed) => {
+      const r = one(typed.replace(/\.txt$/i, ''), 'deck', 'deck') ?? one(typed, 'deck', 'deck');
+      const file = r?.fields?.file;
+      const listId = r?.stamps?.listId;
+      return r && typeof file === 'string' && listId ? { file, name: r.title, listId } : { nearest: near(typed, 'deck').map((n) => n) };
+    },
   };
 }
 
@@ -315,7 +359,14 @@ async function main() {
   if (a.command === 'fact') {
     const { runFact } = await import('../src/lib/kb/facts');
     const src = loadCompetitive(ROOT);
-    const { out, code } = runFact(a.fact!, src, deckResolver(buildIndex(pack.records), src));
+    const ix = buildIndex(pack.records);
+    let stats;
+    if (FACT_NEEDS[a.fact!.fact].subject) {
+      const { CATALOGUE_VERSION } = await import('../src/content/synergies/index');
+      const decks = new Map(pack.records.filter((r) => r.kind === 'deck' && r.stamps?.listId).map((r) => [r.stamps!.listId!, { file: String(r.fields?.file), name: r.title }]));
+      stats = { sources: loadStats(ROOT, CATALOGUE_VERSION), names: statResolver(ix), deckOf: (listId: string) => decks.get(listId) };
+    }
+    const { out, code } = runFact(a.fact!, src, deckResolver(ix, src), stats);
     process.stdout.write(out);
     process.exitCode = code;
     return;
