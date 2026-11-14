@@ -9,7 +9,7 @@
     {
       "scope": "all",
       "localPresent": true,
-      "records": 4016,
+      "records": 4075,
       "skipped": [],
       "stale": {},
       "configs": [
@@ -2675,9 +2675,9 @@
               "r1": 0.3813,
               "r5": 0.55,
               "r10": 0.5813,
-              "mrr": 0.4489,
-              "tokensMean": 466.7438,
-              "tokensP90": 612,
+              "mrr": 0.4484,
+              "tokensMean": 466.8875,
+              "tokensP90": 611,
               "refusal": {
                 "n": 11,
                 "refused": 4,
@@ -2691,11 +2691,11 @@
             },
             "test": {
               "n": 108,
-              "r1": 0.2593,
-              "r5": 0.463,
+              "r1": 0.25,
+              "r5": 0.4722,
               "r10": 0.5463,
-              "mrr": 0.3497,
-              "tokensMean": 490.713,
+              "mrr": 0.345,
+              "tokensMean": 488.6852,
               "tokensP90": 621,
               "refusal": {
                 "n": 7,
@@ -2710,12 +2710,12 @@
             },
             "all": {
               "n": 268,
-              "r1": 0.3321,
-              "r5": 0.5149,
+              "r1": 0.3284,
+              "r5": 0.5187,
               "r10": 0.5672,
-              "mrr": 0.4089,
-              "tokensMean": 476.403,
-              "tokensP90": 615,
+              "mrr": 0.4067,
+              "tokensMean": 475.6716,
+              "tokensP90": 614,
               "refusal": {
                 "n": 18,
                 "refused": 5,
@@ -2748,9 +2748,9 @@
                 "n": 40,
                 "r1": 0.3,
                 "r5": 0.55,
-                "r10": 0.6,
-                "mrr": 0.4082,
-                "tokensMean": 456.225,
+                "r10": 0.575,
+                "mrr": 0.4057,
+                "tokensMean": 455.2,
                 "tokensP90": 614,
                 "wrongRefusals": {
                   "n": 40,
@@ -2778,7 +2778,7 @@
                 "r5": 0.3929,
                 "r10": 0.3929,
                 "mrr": 0.369,
-                "tokensMean": 472.7143,
+                "tokensMean": 472.4643,
                 "tokensP90": 616,
                 "wrongRefusals": {
                   "n": 28,
@@ -2792,7 +2792,7 @@
                 "r5": 0.9412,
                 "r10": 1,
                 "mrr": 0.7431,
-                "tokensMean": 546.5294,
+                "tokensMean": 547.4118,
                 "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 17,
@@ -2804,9 +2804,9 @@
                 "n": 23,
                 "r1": 0.3043,
                 "r5": 0.5652,
-                "r10": 0.6087,
-                "mrr": 0.4116,
-                "tokensMean": 496.3043,
+                "r10": 0.6522,
+                "mrr": 0.4123,
+                "tokensMean": 497.3043,
                 "tokensP90": 611,
                 "wrongRefusals": {
                   "n": 23,
@@ -2820,7 +2820,7 @@
                 "r5": 0.0417,
                 "r10": 0.0417,
                 "mrr": 0.0083,
-                "tokensMean": 349.0417,
+                "tokensMean": 350.4167,
                 "tokensP90": 621,
                 "wrongRefusals": {
                   "n": 24,
@@ -2846,12 +2846,12 @@
               },
               "paraphrase": {
                 "n": 26,
-                "r1": 0.2308,
+                "r1": 0.1923,
                 "r5": 0.5,
                 "r10": 0.5,
-                "mrr": 0.3314,
-                "tokensMean": 444.9231,
-                "tokensP90": 618,
+                "mrr": 0.3154,
+                "tokensMean": 439.8846,
+                "tokensP90": 612,
                 "wrongRefusals": {
                   "n": 26,
                   "refused": 6,
@@ -2863,7 +2863,7 @@
                 "r1": 0.4,
                 "r5": 0.4,
                 "r10": 0.8,
-                "mrr": 0.4576,
+                "mrr": 0.4533,
                 "tokensMean": 519.3,
                 "tokensP90": 562,
                 "wrongRefusals": {
@@ -2878,7 +2878,7 @@
                 "r5": 0.2632,
                 "r10": 0.4211,
                 "mrr": 0.2012,
-                "tokensMean": 536.2105,
+                "tokensMean": 534.3158,
                 "tokensP90": 632,
                 "wrongRefusals": {
                   "n": 19,
@@ -2892,7 +2892,7 @@
                 "r5": 0.8182,
                 "r10": 0.9091,
                 "mrr": 0.6742,
-                "tokensMean": 564.7273,
+                "tokensMean": 563.8182,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 11,
@@ -2903,10 +2903,10 @@
               "rules": {
                 "n": 16,
                 "r1": 0.25,
-                "r5": 0.5625,
+                "r5": 0.625,
                 "r10": 0.625,
-                "mrr": 0.3854,
-                "tokensMean": 486.3125,
+                "mrr": 0.3823,
+                "tokensMean": 485.1875,
                 "tokensP90": 621,
                 "wrongRefusals": {
                   "n": 16,
@@ -2920,7 +2920,7 @@
                 "r5": 0,
                 "r10": 0,
                 "mrr": 0,
-                "tokensMean": 432,
+                "tokensMean": 430.5,
                 "tokensP90": 570,
                 "wrongRefusals": {
                   "n": 16,
@@ -2946,12 +2946,12 @@
               },
               "paraphrase": {
                 "n": 66,
-                "r1": 0.2727,
+                "r1": 0.2576,
                 "r5": 0.5303,
-                "r10": 0.5606,
-                "mrr": 0.3779,
-                "tokensMean": 451.7727,
-                "tokensP90": 616,
+                "r10": 0.5455,
+                "mrr": 0.3701,
+                "tokensMean": 449.1667,
+                "tokensP90": 614,
                 "wrongRefusals": {
                   "n": 66,
                   "refused": 14,
@@ -2963,7 +2963,7 @@
                 "r1": 0.4583,
                 "r5": 0.625,
                 "r10": 0.8333,
-                "mrr": 0.5599,
+                "mrr": 0.5581,
                 "tokensMean": 514.25,
                 "tokensP90": 579,
                 "wrongRefusals": {
@@ -2978,7 +2978,7 @@
                 "r5": 0.3404,
                 "r10": 0.4043,
                 "mrr": 0.3012,
-                "tokensMean": 498.383,
+                "tokensMean": 497.4681,
                 "tokensP90": 617,
                 "wrongRefusals": {
                   "n": 47,
@@ -2992,7 +2992,7 @@
                 "r5": 0.8929,
                 "r10": 0.9643,
                 "mrr": 0.7161,
-                "tokensMean": 553.6786,
+                "tokensMean": 553.8571,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 28,
@@ -3003,10 +3003,10 @@
               "rules": {
                 "n": 39,
                 "r1": 0.2821,
-                "r5": 0.5641,
-                "r10": 0.6154,
-                "mrr": 0.4009,
-                "tokensMean": 492.2051,
+                "r5": 0.5897,
+                "r10": 0.641,
+                "mrr": 0.4,
+                "tokensMean": 492.3333,
                 "tokensP90": 621,
                 "wrongRefusals": {
                   "n": 39,
@@ -3020,8 +3020,8 @@
                 "r5": 0.025,
                 "r10": 0.025,
                 "mrr": 0.005,
-                "tokensMean": 382.225,
-                "tokensP90": 611,
+                "tokensMean": 382.45,
+                "tokensP90": 609,
                 "wrongRefusals": {
                   "n": 40,
                   "refused": 13,
@@ -3203,7 +3203,7 @@
               "id": "q022",
               "type": "paraphrase",
               "split": "test",
-              "rank": 4,
+              "rank": 3,
               "refused": false,
               "tokens": 575
             },
@@ -3221,7 +3221,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 609
+              "tokens": 583
             },
             {
               "id": "q025",
@@ -3229,7 +3229,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 582
             },
             {
               "id": "q026",
@@ -3357,7 +3357,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 577
+              "tokens": 566
             },
             {
               "id": "q042",
@@ -3541,7 +3541,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 574
+              "tokens": 564
             },
             {
               "id": "q065",
@@ -3573,7 +3573,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 543
+              "tokens": 547
             },
             {
               "id": "q069",
@@ -3685,7 +3685,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 662
+              "tokens": 635
             },
             {
               "id": "q083",
@@ -3693,7 +3693,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 504
+              "tokens": 509
             },
             {
               "id": "q084",
@@ -3797,7 +3797,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 611
+              "tokens": 605
             },
             {
               "id": "q097",
@@ -3829,7 +3829,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 575
+              "tokens": 580
             },
             {
               "id": "q101",
@@ -4005,7 +4005,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 597
+              "tokens": 598
             },
             {
               "id": "q123",
@@ -4053,7 +4053,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 517
             },
             {
               "id": "q129",
@@ -4061,21 +4061,21 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 500
+              "tokens": 483
             },
             {
               "id": "q130",
               "type": "rules",
               "split": "test",
-              "rank": 3,
+              "rank": 4,
               "refused": false,
-              "tokens": 521
+              "tokens": 526
             },
             {
               "id": "q131",
               "type": "rules",
               "split": "dev",
-              "rank": null,
+              "rank": 10,
               "refused": false,
               "tokens": 431
             },
@@ -4083,9 +4083,9 @@
               "id": "q132",
               "type": "rules",
               "split": "test",
-              "rank": 6,
+              "rank": 5,
               "refused": false,
-              "tokens": 598
+              "tokens": 602
             },
             {
               "id": "q133",
@@ -4093,7 +4093,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 504
+              "tokens": 533
             },
             {
               "id": "q134",
@@ -4115,7 +4115,7 @@
               "id": "q136",
               "type": "rules",
               "split": "dev",
-              "rank": 3,
+              "rank": 4,
               "refused": false,
               "tokens": 611
             },
@@ -4141,7 +4141,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 532
+              "tokens": 496
             },
             {
               "id": "q140",
@@ -4283,9 +4283,9 @@
               "id": "q157",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 10,
+              "rank": null,
               "refused": false,
-              "tokens": 580
+              "tokens": 573
             },
             {
               "id": "q158",
@@ -4307,9 +4307,9 @@
               "id": "q160",
               "type": "paraphrase",
               "split": "test",
-              "rank": 1,
+              "rank": 2,
               "refused": false,
-              "tokens": 602
+              "tokens": 563
             },
             {
               "id": "q161",
@@ -4365,7 +4365,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 419
+              "tokens": 442
             },
             {
               "id": "q168",
@@ -4485,7 +4485,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 524
+              "tokens": 516
             },
             {
               "id": "q183",
@@ -4493,7 +4493,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 572
+              "tokens": 556
             },
             {
               "id": "q184",
@@ -4501,7 +4501,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 492
+              "tokens": 482
             },
             {
               "id": "q185",
@@ -4525,7 +4525,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 618
+              "tokens": 607
             },
             {
               "id": "q188",
@@ -4547,7 +4547,7 @@
               "id": "q190",
               "type": "cross",
               "split": "test",
-              "rank": 7,
+              "rank": 10,
               "refused": false,
               "tokens": 433
             },
@@ -4605,7 +4605,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 546
+              "tokens": 539
             },
             {
               "id": "q198",
@@ -4709,7 +4709,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 628
+              "tokens": 639
             },
             {
               "id": "q211",
@@ -4749,7 +4749,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 533
+              "tokens": 539
             },
             {
               "id": "q216",
@@ -4789,7 +4789,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 546
+              "tokens": 547
             },
             {
               "id": "q221",
@@ -4893,7 +4893,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 520
             },
             {
               "id": "q234",
@@ -5045,7 +5045,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 611
+              "tokens": 609
             },
             {
               "id": "q253",
@@ -5149,7 +5149,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 487
+              "tokens": 484
             },
             {
               "id": "q266",
@@ -5157,7 +5157,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 565
+              "tokens": 600
             },
             {
               "id": "q267",
@@ -5173,7 +5173,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 521
+              "tokens": 484
             },
             {
               "id": "q269",
@@ -5329,8 +5329,8 @@
               "r1": 0.3688,
               "r5": 0.6625,
               "r10": 0.725,
-              "mrr": 0.4885,
-              "tokensMean": 520.15,
+              "mrr": 0.488,
+              "tokensMean": 520.3688,
               "tokensP90": 618,
               "refusal": {
                 "n": 11,
@@ -5348,8 +5348,8 @@
               "r1": 0.3056,
               "r5": 0.6204,
               "r10": 0.7407,
-              "mrr": 0.4466,
-              "tokensMean": 518.8796,
+              "mrr": 0.4459,
+              "tokensMean": 517.1019,
               "tokensP90": 621,
               "refusal": {
                 "n": 7,
@@ -5367,9 +5367,9 @@
               "r1": 0.3433,
               "r5": 0.6455,
               "r10": 0.7313,
-              "mrr": 0.4716,
-              "tokensMean": 519.6381,
-              "tokensP90": 621,
+              "mrr": 0.471,
+              "tokensMean": 519.0522,
+              "tokensP90": 619,
               "refusal": {
                 "n": 18,
                 "refused": 4,
@@ -5402,10 +5402,10 @@
                 "n": 40,
                 "r1": 0.225,
                 "r5": 0.575,
-                "r10": 0.625,
-                "mrr": 0.3757,
-                "tokensMean": 464.825,
-                "tokensP90": 612,
+                "r10": 0.6,
+                "mrr": 0.3732,
+                "tokensMean": 463.8,
+                "tokensP90": 600,
                 "wrongRefusals": {
                   "n": 40,
                   "refused": 7,
@@ -5432,7 +5432,7 @@
                 "r5": 0.7857,
                 "r10": 0.7857,
                 "mrr": 0.6667,
-                "tokensMean": 577.1786,
+                "tokensMean": 576.9286,
                 "tokensP90": 645,
                 "wrongRefusals": {
                   "n": 28,
@@ -5446,7 +5446,7 @@
                 "r5": 0.9412,
                 "r10": 1,
                 "mrr": 0.7431,
-                "tokensMean": 546.5294,
+                "tokensMean": 547.4118,
                 "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 17,
@@ -5458,9 +5458,9 @@
                 "n": 23,
                 "r1": 0.3043,
                 "r5": 0.5652,
-                "r10": 0.6087,
-                "mrr": 0.3935,
-                "tokensMean": 481.0435,
+                "r10": 0.6522,
+                "mrr": 0.3942,
+                "tokensMean": 482.4783,
                 "tokensP90": 587,
                 "wrongRefusals": {
                   "n": 23,
@@ -5474,7 +5474,7 @@
                 "r5": 0.2917,
                 "r10": 0.5,
                 "mrr": 0.115,
-                "tokensMean": 584.3333,
+                "tokensMean": 585.7917,
                 "tokensP90": 670,
                 "wrongRefusals": {
                   "n": 24,
@@ -5503,8 +5503,8 @@
                 "r1": 0.1538,
                 "r5": 0.5385,
                 "r10": 0.6154,
-                "mrr": 0.3039,
-                "tokensMean": 483.3077,
+                "mrr": 0.3052,
+                "tokensMean": 480,
                 "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 26,
@@ -5517,7 +5517,7 @@
                 "r1": 0.1,
                 "r5": 0.4,
                 "r10": 0.8,
-                "mrr": 0.3052,
+                "mrr": 0.301,
                 "tokensMean": 510.5,
                 "tokensP90": 562,
                 "wrongRefusals": {
@@ -5532,7 +5532,7 @@
                 "r5": 0.8421,
                 "r10": 0.8947,
                 "mrr": 0.7295,
-                "tokensMean": 581,
+                "tokensMean": 577.1053,
                 "tokensP90": 640,
                 "wrongRefusals": {
                   "n": 19,
@@ -5546,7 +5546,7 @@
                 "r5": 0.8182,
                 "r10": 0.9091,
                 "mrr": 0.6742,
-                "tokensMean": 564.7273,
+                "tokensMean": 563.8182,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 11,
@@ -5559,8 +5559,8 @@
                 "r1": 0.125,
                 "r5": 0.5625,
                 "r10": 0.625,
-                "mrr": 0.3104,
-                "tokensMean": 467.6875,
+                "mrr": 0.3059,
+                "tokensMean": 466.3125,
                 "tokensP90": 621,
                 "wrongRefusals": {
                   "n": 16,
@@ -5602,9 +5602,9 @@
                 "n": 66,
                 "r1": 0.197,
                 "r5": 0.5606,
-                "r10": 0.6212,
-                "mrr": 0.3474,
-                "tokensMean": 472.1061,
+                "r10": 0.6061,
+                "mrr": 0.3464,
+                "tokensMean": 470.1818,
                 "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 66,
@@ -5617,7 +5617,7 @@
                 "r1": 0.125,
                 "r5": 0.625,
                 "r10": 0.8333,
-                "mrr": 0.3783,
+                "mrr": 0.3766,
                 "tokensMean": 509.4583,
                 "tokensP90": 579,
                 "wrongRefusals": {
@@ -5632,7 +5632,7 @@
                 "r5": 0.8085,
                 "r10": 0.8298,
                 "mrr": 0.6921,
-                "tokensMean": 578.7234,
+                "tokensMean": 577,
                 "tokensP90": 642,
                 "wrongRefusals": {
                   "n": 47,
@@ -5646,7 +5646,7 @@
                 "r5": 0.8929,
                 "r10": 0.9643,
                 "mrr": 0.7161,
-                "tokensMean": 553.6786,
+                "tokensMean": 553.8571,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 28,
@@ -5658,10 +5658,10 @@
                 "n": 39,
                 "r1": 0.2308,
                 "r5": 0.5641,
-                "r10": 0.6154,
-                "mrr": 0.3594,
-                "tokensMean": 475.5641,
-                "tokensP90": 611,
+                "r10": 0.641,
+                "mrr": 0.358,
+                "tokensMean": 475.8462,
+                "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 39,
                   "refused": 4,
@@ -5674,7 +5674,7 @@
                 "r5": 0.3,
                 "r10": 0.525,
                 "mrr": 0.1199,
-                "tokensMean": 562.875,
+                "tokensMean": 563.75,
                 "tokensP90": 642,
                 "wrongRefusals": {
                   "n": 40,
@@ -5857,7 +5857,7 @@
               "id": "q022",
               "type": "paraphrase",
               "split": "test",
-              "rank": 4,
+              "rank": 3,
               "refused": false,
               "tokens": 575
             },
@@ -5875,7 +5875,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 578
+              "tokens": 558
             },
             {
               "id": "q025",
@@ -5883,7 +5883,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 582
             },
             {
               "id": "q026",
@@ -6011,7 +6011,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 577
+              "tokens": 566
             },
             {
               "id": "q042",
@@ -6195,7 +6195,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 574
+              "tokens": 564
             },
             {
               "id": "q065",
@@ -6227,7 +6227,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 543
+              "tokens": 547
             },
             {
               "id": "q069",
@@ -6339,7 +6339,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 662
+              "tokens": 635
             },
             {
               "id": "q083",
@@ -6347,7 +6347,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 504
+              "tokens": 509
             },
             {
               "id": "q084",
@@ -6451,7 +6451,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 611
+              "tokens": 605
             },
             {
               "id": "q097",
@@ -6483,7 +6483,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 575
+              "tokens": 580
             },
             {
               "id": "q101",
@@ -6659,7 +6659,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 597
+              "tokens": 598
             },
             {
               "id": "q123",
@@ -6707,7 +6707,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 517
             },
             {
               "id": "q129",
@@ -6715,21 +6715,21 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 500
+              "tokens": 483
             },
             {
               "id": "q130",
               "type": "rules",
               "split": "test",
-              "rank": 3,
+              "rank": 4,
               "refused": false,
-              "tokens": 521
+              "tokens": 526
             },
             {
               "id": "q131",
               "type": "rules",
               "split": "dev",
-              "rank": null,
+              "rank": 10,
               "refused": false,
               "tokens": 431
             },
@@ -6737,7 +6737,7 @@
               "id": "q132",
               "type": "rules",
               "split": "test",
-              "rank": 10,
+              "rank": 9,
               "refused": false,
               "tokens": 393
             },
@@ -6747,7 +6747,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 494
+              "tokens": 533
             },
             {
               "id": "q134",
@@ -6769,7 +6769,7 @@
               "id": "q136",
               "type": "rules",
               "split": "dev",
-              "rank": 3,
+              "rank": 4,
               "refused": false,
               "tokens": 611
             },
@@ -6795,7 +6795,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 638
+              "tokens": 564
             },
             {
               "id": "q140",
@@ -6937,9 +6937,9 @@
               "id": "q157",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 10,
+              "rank": null,
               "refused": false,
-              "tokens": 580
+              "tokens": 573
             },
             {
               "id": "q158",
@@ -6961,7 +6961,7 @@
               "id": "q160",
               "type": "paraphrase",
               "split": "test",
-              "rank": 4,
+              "rank": 5,
               "refused": false,
               "tokens": 419
             },
@@ -7019,7 +7019,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 419
+              "tokens": 442
             },
             {
               "id": "q168",
@@ -7139,7 +7139,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 524
+              "tokens": 516
             },
             {
               "id": "q183",
@@ -7147,7 +7147,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 572
+              "tokens": 556
             },
             {
               "id": "q184",
@@ -7155,7 +7155,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 492
+              "tokens": 482
             },
             {
               "id": "q185",
@@ -7179,7 +7179,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 618
+              "tokens": 607
             },
             {
               "id": "q188",
@@ -7201,7 +7201,7 @@
               "id": "q190",
               "type": "cross",
               "split": "test",
-              "rank": 7,
+              "rank": 10,
               "refused": false,
               "tokens": 433
             },
@@ -7259,7 +7259,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 546
+              "tokens": 539
             },
             {
               "id": "q198",
@@ -7363,7 +7363,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 628
+              "tokens": 639
             },
             {
               "id": "q211",
@@ -7403,7 +7403,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 533
+              "tokens": 539
             },
             {
               "id": "q216",
@@ -7443,7 +7443,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 546
+              "tokens": 547
             },
             {
               "id": "q221",
@@ -7811,7 +7811,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 565
+              "tokens": 600
             },
             {
               "id": "q267",
@@ -7827,7 +7827,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 521
+              "tokens": 484
             },
             {
               "id": "q269",
@@ -7983,8 +7983,8 @@
               "r1": 0.5375,
               "r5": 0.7375,
               "r10": 0.7875,
-              "mrr": 0.6239,
-              "tokensMean": 524.0563,
+              "mrr": 0.6233,
+              "tokensMean": 523.8875,
               "tokensP90": 656,
               "refusal": {
                 "n": 11,
@@ -8002,9 +8002,9 @@
               "r1": 0.4444,
               "r5": 0.6667,
               "r10": 0.7407,
-              "mrr": 0.5478,
-              "tokensMean": 526.3519,
-              "tokensP90": 649,
+              "mrr": 0.548,
+              "tokensMean": 525.4444,
+              "tokensP90": 638,
               "refusal": {
                 "n": 7,
                 "refused": 1,
@@ -8021,9 +8021,9 @@
               "r1": 0.5,
               "r5": 0.709,
               "r10": 0.7687,
-              "mrr": 0.5932,
-              "tokensMean": 524.9813,
-              "tokensP90": 652,
+              "mrr": 0.593,
+              "tokensMean": 524.5149,
+              "tokensP90": 649,
               "refusal": {
                 "n": 18,
                 "refused": 4,
@@ -8056,10 +8056,10 @@
                 "n": 40,
                 "r1": 0.225,
                 "r5": 0.525,
-                "r10": 0.625,
-                "mrr": 0.3717,
-                "tokensMean": 460.4,
-                "tokensP90": 612,
+                "r10": 0.6,
+                "mrr": 0.3692,
+                "tokensMean": 459.375,
+                "tokensP90": 600,
                 "wrongRefusals": {
                   "n": 40,
                   "refused": 7,
@@ -8086,7 +8086,7 @@
                 "r5": 0.7857,
                 "r10": 0.7857,
                 "mrr": 0.7143,
-                "tokensMean": 588.3571,
+                "tokensMean": 588.1071,
                 "tokensP90": 683,
                 "wrongRefusals": {
                   "n": 28,
@@ -8100,7 +8100,7 @@
                 "r5": 0.9412,
                 "r10": 1,
                 "mrr": 0.7431,
-                "tokensMean": 546.5294,
+                "tokensMean": 547.4118,
                 "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 17,
@@ -8112,9 +8112,9 @@
                 "n": 23,
                 "r1": 0.3043,
                 "r5": 0.5217,
-                "r10": 0.6087,
-                "mrr": 0.3843,
-                "tokensMean": 481.6522,
+                "r10": 0.6522,
+                "mrr": 0.385,
+                "tokensMean": 481.913,
                 "tokensP90": 587,
                 "wrongRefusals": {
                   "n": 23,
@@ -8157,8 +8157,8 @@
                 "r1": 0.1538,
                 "r5": 0.4615,
                 "r10": 0.5385,
-                "mrr": 0.2737,
-                "tokensMean": 468.8077,
+                "mrr": 0.2769,
+                "tokensMean": 466.2692,
                 "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 26,
@@ -8200,7 +8200,7 @@
                 "r5": 0.8182,
                 "r10": 0.9091,
                 "mrr": 0.6742,
-                "tokensMean": 564.7273,
+                "tokensMean": 563.8182,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 11,
@@ -8213,8 +8213,8 @@
                 "r1": 0.125,
                 "r5": 0.5,
                 "r10": 0.625,
-                "mrr": 0.2954,
-                "tokensMean": 460.6875,
+                "mrr": 0.2917,
+                "tokensMean": 459.3125,
                 "tokensP90": 621,
                 "wrongRefusals": {
                   "n": 16,
@@ -8256,9 +8256,9 @@
                 "n": 66,
                 "r1": 0.197,
                 "r5": 0.5,
-                "r10": 0.5909,
-                "mrr": 0.3331,
-                "tokensMean": 463.7121,
+                "r10": 0.5758,
+                "mrr": 0.3328,
+                "tokensMean": 462.0909,
                 "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 66,
@@ -8286,7 +8286,7 @@
                 "r5": 0.766,
                 "r10": 0.8085,
                 "mrr": 0.6965,
-                "tokensMean": 595.4468,
+                "tokensMean": 595.2979,
                 "tokensP90": 684,
                 "wrongRefusals": {
                   "n": 47,
@@ -8300,7 +8300,7 @@
                 "r5": 0.8929,
                 "r10": 0.9643,
                 "mrr": 0.7161,
-                "tokensMean": 553.6786,
+                "tokensMean": 553.8571,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 28,
@@ -8312,10 +8312,10 @@
                 "n": 39,
                 "r1": 0.2308,
                 "r5": 0.5128,
-                "r10": 0.6154,
-                "mrr": 0.3478,
-                "tokensMean": 473.0513,
-                "tokensP90": 611,
+                "r10": 0.641,
+                "mrr": 0.3467,
+                "tokensMean": 472.641,
+                "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 39,
                   "refused": 4,
@@ -8511,7 +8511,7 @@
               "id": "q022",
               "type": "paraphrase",
               "split": "test",
-              "rank": 4,
+              "rank": 3,
               "refused": false,
               "tokens": 575
             },
@@ -8537,7 +8537,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 582
             },
             {
               "id": "q026",
@@ -8665,7 +8665,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 577
+              "tokens": 566
             },
             {
               "id": "q042",
@@ -8849,7 +8849,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 574
+              "tokens": 564
             },
             {
               "id": "q065",
@@ -8881,7 +8881,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 543
+              "tokens": 547
             },
             {
               "id": "q069",
@@ -8993,7 +8993,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 662
+              "tokens": 635
             },
             {
               "id": "q083",
@@ -9001,7 +9001,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 504
+              "tokens": 509
             },
             {
               "id": "q084",
@@ -9105,7 +9105,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 611
+              "tokens": 605
             },
             {
               "id": "q097",
@@ -9137,7 +9137,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 575
+              "tokens": 580
             },
             {
               "id": "q101",
@@ -9313,7 +9313,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 597
+              "tokens": 598
             },
             {
               "id": "q123",
@@ -9361,7 +9361,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 517
             },
             {
               "id": "q129",
@@ -9369,21 +9369,21 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 500
+              "tokens": 483
             },
             {
               "id": "q130",
               "type": "rules",
               "split": "test",
-              "rank": 3,
+              "rank": 4,
               "refused": false,
-              "tokens": 521
+              "tokens": 526
             },
             {
               "id": "q131",
               "type": "rules",
               "split": "dev",
-              "rank": null,
+              "rank": 10,
               "refused": false,
               "tokens": 431
             },
@@ -9391,7 +9391,7 @@
               "id": "q132",
               "type": "rules",
               "split": "test",
-              "rank": 7,
+              "rank": 6,
               "refused": false,
               "tokens": 365
             },
@@ -9401,7 +9401,7 @@
               "split": "dev",
               "rank": 4,
               "refused": false,
-              "tokens": 477
+              "tokens": 489
             },
             {
               "id": "q134",
@@ -9423,7 +9423,7 @@
               "id": "q136",
               "type": "rules",
               "split": "dev",
-              "rank": 3,
+              "rank": 4,
               "refused": false,
               "tokens": 611
             },
@@ -9591,9 +9591,9 @@
               "id": "q157",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 10,
+              "rank": null,
               "refused": false,
-              "tokens": 580
+              "tokens": 573
             },
             {
               "id": "q158",
@@ -9673,7 +9673,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 419
+              "tokens": 442
             },
             {
               "id": "q168",
@@ -9793,7 +9793,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 524
+              "tokens": 516
             },
             {
               "id": "q183",
@@ -9801,7 +9801,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 572
+              "tokens": 556
             },
             {
               "id": "q184",
@@ -9809,7 +9809,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 492
+              "tokens": 482
             },
             {
               "id": "q185",
@@ -9833,7 +9833,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 618
+              "tokens": 607
             },
             {
               "id": "q188",
@@ -9913,7 +9913,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 546
+              "tokens": 539
             },
             {
               "id": "q198",
@@ -10017,7 +10017,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 628
+              "tokens": 639
             },
             {
               "id": "q211",
@@ -10057,7 +10057,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 533
+              "tokens": 539
             },
             {
               "id": "q216",
@@ -10097,7 +10097,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 546
+              "tokens": 547
             },
             {
               "id": "q221",
@@ -10481,7 +10481,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 521
+              "tokens": 484
             },
             {
               "id": "q269",
@@ -10634,7 +10634,7 @@
     {
       "scope": "public",
       "localPresent": false,
-      "records": 2992,
+      "records": 3051,
       "skipped": [
         "q010",
         "q081",
@@ -12978,10 +12978,10 @@
               "n": 136,
               "r1": 0.375,
               "r5": 0.5294,
-              "r10": 0.5735,
-              "mrr": 0.443,
-              "tokensMean": 458.0147,
-              "tokensP90": 612,
+              "r10": 0.5662,
+              "mrr": 0.4409,
+              "tokensMean": 457.3971,
+              "tokensP90": 607,
               "refusal": {
                 "n": 11,
                 "refused": 4,
@@ -12995,11 +12995,11 @@
             },
             "test": {
               "n": 92,
-              "r1": 0.2717,
-              "r5": 0.4674,
+              "r1": 0.2609,
+              "r5": 0.4565,
               "r10": 0.5217,
-              "mrr": 0.3564,
-              "tokensMean": 497.2065,
+              "mrr": 0.3502,
+              "tokensMean": 496.1522,
               "tokensP90": 626,
               "refusal": {
                 "n": 7,
@@ -13014,11 +13014,11 @@
             },
             "all": {
               "n": 228,
-              "r1": 0.3333,
-              "r5": 0.5044,
-              "r10": 0.5526,
-              "mrr": 0.4081,
-              "tokensMean": 473.8289,
+              "r1": 0.3289,
+              "r5": 0.5,
+              "r10": 0.5482,
+              "mrr": 0.4043,
+              "tokensMean": 473.0351,
               "tokensP90": 616,
               "refusal": {
                 "n": 18,
@@ -13040,7 +13040,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 1,
-                "tokensMean": 487.3077,
+                "tokensMean": 491.6154,
                 "tokensP90": 574,
                 "wrongRefusals": {
                   "n": 13,
@@ -13052,10 +13052,10 @@
                 "n": 40,
                 "r1": 0.275,
                 "r5": 0.525,
-                "r10": 0.575,
-                "mrr": 0.3886,
-                "tokensMean": 433.7,
-                "tokensP90": 612,
+                "r10": 0.55,
+                "mrr": 0.3817,
+                "tokensMean": 430.8,
+                "tokensP90": 607,
                 "wrongRefusals": {
                   "n": 40,
                   "refused": 10,
@@ -13081,8 +13081,8 @@
                 "r1": 0.3571,
                 "r5": 0.3929,
                 "r10": 0.4286,
-                "mrr": 0.373,
-                "tokensMean": 473.5714,
+                "mrr": 0.3726,
+                "tokensMean": 472.5714,
                 "tokensP90": 616,
                 "wrongRefusals": {
                   "n": 28,
@@ -13096,7 +13096,7 @@
                 "r5": 0.8824,
                 "r10": 1,
                 "mrr": 0.7167,
-                "tokensMean": 547.4118,
+                "tokensMean": 547.6471,
                 "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 17,
@@ -13136,11 +13136,11 @@
               },
               "paraphrase": {
                 "n": 26,
-                "r1": 0.2692,
+                "r1": 0.2308,
                 "r5": 0.5,
                 "r10": 0.5385,
-                "mrr": 0.3782,
-                "tokensMean": 464.2692,
+                "mrr": 0.359,
+                "tokensMean": 463.2692,
                 "tokensP90": 630,
                 "wrongRefusals": {
                   "n": 26,
@@ -13151,10 +13151,10 @@
               "cross": {
                 "n": 10,
                 "r1": 0.4,
-                "r5": 0.6,
+                "r5": 0.5,
                 "r10": 0.8,
-                "mrr": 0.4678,
-                "tokensMean": 525.3,
+                "mrr": 0.4603,
+                "tokensMean": 522.8,
                 "tokensP90": 600,
                 "wrongRefusals": {
                   "n": 10,
@@ -13168,7 +13168,7 @@
                 "r5": 0.2632,
                 "r10": 0.3158,
                 "mrr": 0.1944,
-                "tokensMean": 538.6316,
+                "tokensMean": 536.7368,
                 "tokensP90": 632,
                 "wrongRefusals": {
                   "n": 19,
@@ -13182,7 +13182,7 @@
                 "r5": 0.8182,
                 "r10": 0.9091,
                 "mrr": 0.6742,
-                "tokensMean": 565.6364,
+                "tokensMean": 564.7273,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 11,
@@ -13212,7 +13212,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.8768,
-                "tokensMean": 494.3043,
+                "tokensMean": 496.7391,
                 "tokensP90": 574,
                 "wrongRefusals": {
                   "n": 23,
@@ -13222,11 +13222,11 @@
               },
               "paraphrase": {
                 "n": 66,
-                "r1": 0.2727,
+                "r1": 0.2576,
                 "r5": 0.5152,
-                "r10": 0.5606,
-                "mrr": 0.3845,
-                "tokensMean": 445.7424,
+                "r10": 0.5455,
+                "mrr": 0.3727,
+                "tokensMean": 443.5909,
                 "tokensP90": 626,
                 "wrongRefusals": {
                   "n": 66,
@@ -13237,10 +13237,10 @@
               "cross": {
                 "n": 24,
                 "r1": 0.4583,
-                "r5": 0.7083,
+                "r5": 0.6667,
                 "r10": 0.8333,
-                "mrr": 0.5647,
-                "tokensMean": 516.3333,
+                "mrr": 0.5616,
+                "tokensMean": 515.2917,
                 "tokensP90": 600,
                 "wrongRefusals": {
                   "n": 24,
@@ -13253,8 +13253,8 @@
                 "r1": 0.2766,
                 "r5": 0.3404,
                 "r10": 0.383,
-                "mrr": 0.3008,
-                "tokensMean": 499.8723,
+                "mrr": 0.3006,
+                "tokensMean": 498.5106,
                 "tokensP90": 617,
                 "wrongRefusals": {
                   "n": 47,
@@ -13268,7 +13268,7 @@
                 "r5": 0.8571,
                 "r10": 0.9643,
                 "mrr": 0.7,
-                "tokensMean": 554.5714,
+                "tokensMean": 554.3571,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 28,
@@ -13299,7 +13299,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 397
+              "tokens": 402
             },
             {
               "id": "q002",
@@ -13403,7 +13403,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 439
+              "tokens": 490
             },
             {
               "id": "q016",
@@ -13475,7 +13475,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 577
+              "tokens": 563
             },
             {
               "id": "q025",
@@ -13483,7 +13483,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 582
             },
             {
               "id": "q026",
@@ -13579,7 +13579,7 @@
               "split": "test",
               "rank": 3,
               "refused": false,
-              "tokens": 573
+              "tokens": 574
             },
             {
               "id": "q038",
@@ -13609,9 +13609,9 @@
               "id": "q041",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 2,
+              "rank": 3,
               "refused": false,
-              "tokens": 581
+              "tokens": 566
             },
             {
               "id": "q042",
@@ -13795,7 +13795,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 574
+              "tokens": 564
             },
             {
               "id": "q065",
@@ -13883,7 +13883,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 522
+              "tokens": 525
             },
             {
               "id": "q076",
@@ -13907,7 +13907,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 536
+              "tokens": 537
             },
             {
               "id": "q079",
@@ -13961,9 +13961,9 @@
               "id": "q105",
               "type": "number",
               "split": "dev",
-              "rank": 9,
+              "rank": 10,
               "refused": false,
-              "tokens": 555
+              "tokens": 540
             },
             {
               "id": "q106",
@@ -14099,7 +14099,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 579
+              "tokens": 562
             },
             {
               "id": "q123",
@@ -14147,7 +14147,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 517
             },
             {
               "id": "q139",
@@ -14155,7 +14155,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 532
+              "tokens": 496
             },
             {
               "id": "q140",
@@ -14227,7 +14227,7 @@
               "split": "test",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 608
             },
             {
               "id": "q149",
@@ -14267,7 +14267,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 549
+              "tokens": 550
             },
             {
               "id": "q154",
@@ -14297,9 +14297,9 @@
               "id": "q157",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 9,
+              "rank": null,
               "refused": false,
-              "tokens": 589
+              "tokens": 573
             },
             {
               "id": "q158",
@@ -14321,7 +14321,7 @@
               "id": "q160",
               "type": "paraphrase",
               "split": "test",
-              "rank": 1,
+              "rank": 2,
               "refused": false,
               "tokens": 616
             },
@@ -14379,7 +14379,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 447
+              "tokens": 442
             },
             {
               "id": "q168",
@@ -14403,7 +14403,7 @@
               "split": "test",
               "rank": 2,
               "refused": false,
-              "tokens": 435
+              "tokens": 497
             },
             {
               "id": "q171",
@@ -14499,7 +14499,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 514
+              "tokens": 506
             },
             {
               "id": "q183",
@@ -14507,7 +14507,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 578
+              "tokens": 556
             },
             {
               "id": "q184",
@@ -14515,7 +14515,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 492
+              "tokens": 449
             },
             {
               "id": "q185",
@@ -14539,7 +14539,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 598
+              "tokens": 577
             },
             {
               "id": "q188",
@@ -14561,9 +14561,9 @@
               "id": "q190",
               "type": "cross",
               "split": "test",
-              "rank": 5,
+              "rank": 8,
               "refused": false,
-              "tokens": 494
+              "tokens": 469
             },
             {
               "id": "q191",
@@ -14619,7 +14619,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 546
+              "tokens": 539
             },
             {
               "id": "q198",
@@ -15123,7 +15123,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 625
+              "tokens": 597
             },
             {
               "id": "q270",
@@ -15187,7 +15187,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 491
+              "tokens": 485
             },
             {
               "id": "q278",
@@ -15270,10 +15270,10 @@
               "n": 136,
               "r1": 0.3676,
               "r5": 0.6618,
-              "r10": 0.7426,
-              "mrr": 0.4961,
-              "tokensMean": 523.4632,
-              "tokensP90": 625,
+              "r10": 0.7353,
+              "mrr": 0.4941,
+              "tokensMean": 523,
+              "tokensP90": 622,
               "refusal": {
                 "n": 11,
                 "refused": 3,
@@ -15288,11 +15288,11 @@
             "test": {
               "n": 92,
               "r1": 0.3478,
-              "r5": 0.6304,
+              "r5": 0.6196,
               "r10": 0.7609,
-              "mrr": 0.4782,
-              "tokensMean": 527.3261,
-              "tokensP90": 626,
+              "mrr": 0.4768,
+              "tokensMean": 526.1848,
+              "tokensP90": 621,
               "refusal": {
                 "n": 7,
                 "refused": 4,
@@ -15307,11 +15307,11 @@
             "all": {
               "n": 228,
               "r1": 0.3596,
-              "r5": 0.6491,
-              "r10": 0.75,
-              "mrr": 0.4889,
-              "tokensMean": 525.0219,
-              "tokensP90": 626,
+              "r5": 0.6447,
+              "r10": 0.7456,
+              "mrr": 0.4871,
+              "tokensMean": 524.2851,
+              "tokensP90": 622,
               "refusal": {
                 "n": 18,
                 "refused": 7,
@@ -15332,7 +15332,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 1,
-                "tokensMean": 487.8462,
+                "tokensMean": 492.1538,
                 "tokensP90": 574,
                 "wrongRefusals": {
                   "n": 13,
@@ -15344,10 +15344,10 @@
                 "n": 40,
                 "r1": 0.225,
                 "r5": 0.55,
-                "r10": 0.625,
-                "mrr": 0.3707,
-                "tokensMean": 455.95,
-                "tokensP90": 612,
+                "r10": 0.6,
+                "mrr": 0.3637,
+                "tokensMean": 453.05,
+                "tokensP90": 599,
                 "wrongRefusals": {
                   "n": 40,
                   "refused": 8,
@@ -15374,7 +15374,7 @@
                 "r5": 0.7857,
                 "r10": 0.7857,
                 "mrr": 0.6667,
-                "tokensMean": 577.9286,
+                "tokensMean": 577.6786,
                 "tokensP90": 642,
                 "wrongRefusals": {
                   "n": 28,
@@ -15388,7 +15388,7 @@
                 "r5": 0.8824,
                 "r10": 1,
                 "mrr": 0.7167,
-                "tokensMean": 547.4118,
+                "tokensMean": 547.6471,
                 "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 17,
@@ -15431,9 +15431,9 @@
                 "r1": 0.1923,
                 "r5": 0.5,
                 "r10": 0.6154,
-                "mrr": 0.3251,
-                "tokensMean": 481,
-                "tokensP90": 612,
+                "mrr": 0.3232,
+                "tokensMean": 480.4231,
+                "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 26,
                   "refused": 3,
@@ -15443,10 +15443,10 @@
               "cross": {
                 "n": 10,
                 "r1": 0.1,
-                "r5": 0.5,
+                "r5": 0.4,
                 "r10": 0.8,
-                "mrr": 0.3144,
-                "tokensMean": 516.2,
+                "mrr": 0.3069,
+                "tokensMean": 515.6,
                 "tokensP90": 596,
                 "wrongRefusals": {
                   "n": 10,
@@ -15460,7 +15460,7 @@
                 "r5": 0.8421,
                 "r10": 0.8947,
                 "mrr": 0.7339,
-                "tokensMean": 577.3158,
+                "tokensMean": 573.4211,
                 "tokensP90": 640,
                 "wrongRefusals": {
                   "n": 19,
@@ -15474,7 +15474,7 @@
                 "r5": 0.8182,
                 "r10": 0.9091,
                 "mrr": 0.6742,
-                "tokensMean": 565.6364,
+                "tokensMean": 564.7273,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 11,
@@ -15504,7 +15504,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.9565,
-                "tokensMean": 494.6087,
+                "tokensMean": 497.0435,
                 "tokensP90": 574,
                 "wrongRefusals": {
                   "n": 23,
@@ -15516,10 +15516,10 @@
                 "n": 66,
                 "r1": 0.2121,
                 "r5": 0.5303,
-                "r10": 0.6212,
-                "mrr": 0.3527,
-                "tokensMean": 465.8182,
-                "tokensP90": 612,
+                "r10": 0.6061,
+                "mrr": 0.3478,
+                "tokensMean": 463.8333,
+                "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 66,
                   "refused": 11,
@@ -15529,10 +15529,10 @@
               "cross": {
                 "n": 24,
                 "r1": 0.125,
-                "r5": 0.6667,
+                "r5": 0.625,
                 "r10": 0.8333,
-                "mrr": 0.3828,
-                "tokensMean": 513.0833,
+                "mrr": 0.3796,
+                "tokensMean": 512.8333,
                 "tokensP90": 596,
                 "wrongRefusals": {
                   "n": 24,
@@ -15546,7 +15546,7 @@
                 "r5": 0.8085,
                 "r10": 0.8298,
                 "mrr": 0.6939,
-                "tokensMean": 577.6809,
+                "tokensMean": 575.9574,
                 "tokensP90": 640,
                 "wrongRefusals": {
                   "n": 47,
@@ -15560,7 +15560,7 @@
                 "r5": 0.8571,
                 "r10": 0.9643,
                 "mrr": 0.7,
-                "tokensMean": 554.5714,
+                "tokensMean": 554.3571,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 28,
@@ -15591,7 +15591,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 397
+              "tokens": 402
             },
             {
               "id": "q002",
@@ -15695,7 +15695,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 439
+              "tokens": 490
             },
             {
               "id": "q016",
@@ -15767,7 +15767,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 558
+              "tokens": 555
             },
             {
               "id": "q025",
@@ -15775,7 +15775,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 582
             },
             {
               "id": "q026",
@@ -15871,7 +15871,7 @@
               "split": "test",
               "rank": 3,
               "refused": false,
-              "tokens": 573
+              "tokens": 574
             },
             {
               "id": "q038",
@@ -15901,9 +15901,9 @@
               "id": "q041",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 2,
+              "rank": 3,
               "refused": false,
-              "tokens": 581
+              "tokens": 566
             },
             {
               "id": "q042",
@@ -15951,7 +15951,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 499
+              "tokens": 518
             },
             {
               "id": "q048",
@@ -16087,7 +16087,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 574
+              "tokens": 564
             },
             {
               "id": "q065",
@@ -16175,7 +16175,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 522
+              "tokens": 525
             },
             {
               "id": "q076",
@@ -16199,7 +16199,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 536
+              "tokens": 537
             },
             {
               "id": "q079",
@@ -16391,7 +16391,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 579
+              "tokens": 562
             },
             {
               "id": "q123",
@@ -16439,7 +16439,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 517
             },
             {
               "id": "q139",
@@ -16447,7 +16447,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 638
+              "tokens": 564
             },
             {
               "id": "q140",
@@ -16519,7 +16519,7 @@
               "split": "test",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 608
             },
             {
               "id": "q149",
@@ -16559,7 +16559,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 549
+              "tokens": 550
             },
             {
               "id": "q154",
@@ -16589,9 +16589,9 @@
               "id": "q157",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 9,
+              "rank": null,
               "refused": false,
-              "tokens": 589
+              "tokens": 573
             },
             {
               "id": "q158",
@@ -16613,7 +16613,7 @@
               "id": "q160",
               "type": "paraphrase",
               "split": "test",
-              "rank": 4,
+              "rank": 5,
               "refused": false,
               "tokens": 419
             },
@@ -16671,7 +16671,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 447
+              "tokens": 442
             },
             {
               "id": "q168",
@@ -16695,7 +16695,7 @@
               "split": "test",
               "rank": 2,
               "refused": false,
-              "tokens": 435
+              "tokens": 497
             },
             {
               "id": "q171",
@@ -16791,7 +16791,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 514
+              "tokens": 506
             },
             {
               "id": "q183",
@@ -16799,7 +16799,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 578
+              "tokens": 556
             },
             {
               "id": "q184",
@@ -16807,7 +16807,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 492
+              "tokens": 449
             },
             {
               "id": "q185",
@@ -16831,7 +16831,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 598
+              "tokens": 577
             },
             {
               "id": "q188",
@@ -16853,9 +16853,9 @@
               "id": "q190",
               "type": "cross",
               "split": "test",
-              "rank": 5,
+              "rank": 8,
               "refused": false,
-              "tokens": 494
+              "tokens": 469
             },
             {
               "id": "q191",
@@ -16911,7 +16911,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 546
+              "tokens": 539
             },
             {
               "id": "q198",
@@ -17415,7 +17415,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 625
+              "tokens": 597
             },
             {
               "id": "q270",
@@ -17562,9 +17562,9 @@
               "n": 136,
               "r1": 0.5662,
               "r5": 0.7721,
-              "r10": 0.8162,
-              "mrr": 0.658,
-              "tokensMean": 528.7059,
+              "r10": 0.8088,
+              "mrr": 0.656,
+              "tokensMean": 528.2426,
               "tokensP90": 664,
               "refusal": {
                 "n": 11,
@@ -17583,7 +17583,7 @@
               "r5": 0.6848,
               "r10": 0.7717,
               "mrr": 0.6018,
-              "tokensMean": 540.8152,
+              "tokensMean": 539.9348,
               "tokensP90": 649,
               "refusal": {
                 "n": 7,
@@ -17600,9 +17600,9 @@
               "n": 228,
               "r1": 0.5439,
               "r5": 0.7368,
-              "r10": 0.7982,
-              "mrr": 0.6353,
-              "tokensMean": 533.5921,
+              "r10": 0.7939,
+              "mrr": 0.6341,
+              "tokensMean": 532.9605,
               "tokensP90": 662,
               "refusal": {
                 "n": 18,
@@ -17624,7 +17624,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 1,
-                "tokensMean": 489.6154,
+                "tokensMean": 493.9231,
                 "tokensP90": 579,
                 "wrongRefusals": {
                   "n": 13,
@@ -17636,10 +17636,10 @@
                 "n": 40,
                 "r1": 0.225,
                 "r5": 0.55,
-                "r10": 0.625,
-                "mrr": 0.3707,
-                "tokensMean": 455.95,
-                "tokensP90": 612,
+                "r10": 0.6,
+                "mrr": 0.3637,
+                "tokensMean": 453.05,
+                "tokensP90": 599,
                 "wrongRefusals": {
                   "n": 40,
                   "refused": 8,
@@ -17666,7 +17666,7 @@
                 "r5": 0.7857,
                 "r10": 0.7857,
                 "mrr": 0.7143,
-                "tokensMean": 590.0714,
+                "tokensMean": 589.8214,
                 "tokensP90": 683,
                 "wrongRefusals": {
                   "n": 28,
@@ -17680,7 +17680,7 @@
                 "r5": 0.8824,
                 "r10": 1,
                 "mrr": 0.7167,
-                "tokensMean": 547.4118,
+                "tokensMean": 547.6471,
                 "tokensP90": 605,
                 "wrongRefusals": {
                   "n": 17,
@@ -17724,8 +17724,8 @@
                 "r5": 0.4231,
                 "r10": 0.5769,
                 "mrr": 0.3094,
-                "tokensMean": 474.5769,
-                "tokensP90": 612,
+                "tokensMean": 474,
+                "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 26,
                   "refused": 3,
@@ -17752,7 +17752,7 @@
                 "r5": 0.7368,
                 "r10": 0.8421,
                 "mrr": 0.6703,
-                "tokensMean": 607.2632,
+                "tokensMean": 607.3158,
                 "tokensP90": 688,
                 "wrongRefusals": {
                   "n": 19,
@@ -17766,7 +17766,7 @@
                 "r5": 0.8182,
                 "r10": 0.9091,
                 "mrr": 0.6742,
-                "tokensMean": 565.6364,
+                "tokensMean": 564.7273,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 11,
@@ -17780,7 +17780,7 @@
                 "r5": 0.625,
                 "r10": 0.625,
                 "mrr": 0.625,
-                "tokensMean": 577.875,
+                "tokensMean": 574.3125,
                 "tokensP90": 649,
                 "wrongRefusals": {
                   "n": 16,
@@ -17796,7 +17796,7 @@
                 "r5": 1,
                 "r10": 1,
                 "mrr": 0.9565,
-                "tokensMean": 494.1739,
+                "tokensMean": 496.6087,
                 "tokensP90": 579,
                 "wrongRefusals": {
                   "n": 23,
@@ -17808,10 +17808,10 @@
                 "n": 66,
                 "r1": 0.2121,
                 "r5": 0.5,
-                "r10": 0.6061,
-                "mrr": 0.3466,
-                "tokensMean": 463.2879,
-                "tokensP90": 612,
+                "r10": 0.5909,
+                "mrr": 0.3424,
+                "tokensMean": 461.303,
+                "tokensP90": 608,
                 "wrongRefusals": {
                   "n": 66,
                   "refused": 11,
@@ -17838,7 +17838,7 @@
                 "r5": 0.766,
                 "r10": 0.8085,
                 "mrr": 0.6965,
-                "tokensMean": 597.0213,
+                "tokensMean": 596.8936,
                 "tokensP90": 684,
                 "wrongRefusals": {
                   "n": 47,
@@ -17852,7 +17852,7 @@
                 "r5": 0.8571,
                 "r10": 0.9643,
                 "mrr": 0.7,
-                "tokensMean": 554.5714,
+                "tokensMean": 554.3571,
                 "tokensP90": 606,
                 "wrongRefusals": {
                   "n": 28,
@@ -17866,7 +17866,7 @@
                 "r5": 0.725,
                 "r10": 0.75,
                 "mrr": 0.6973,
-                "tokensMean": 585.625,
+                "tokensMean": 584.2,
                 "tokensP90": 670,
                 "wrongRefusals": {
                   "n": 40,
@@ -17883,7 +17883,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 397
+              "tokens": 402
             },
             {
               "id": "q002",
@@ -17987,7 +17987,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 439
+              "tokens": 490
             },
             {
               "id": "q016",
@@ -18059,7 +18059,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 558
+              "tokens": 555
             },
             {
               "id": "q025",
@@ -18067,7 +18067,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 582
             },
             {
               "id": "q026",
@@ -18163,7 +18163,7 @@
               "split": "test",
               "rank": 3,
               "refused": false,
-              "tokens": 573
+              "tokens": 574
             },
             {
               "id": "q038",
@@ -18193,9 +18193,9 @@
               "id": "q041",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 2,
+              "rank": 3,
               "refused": false,
-              "tokens": 581
+              "tokens": 566
             },
             {
               "id": "q042",
@@ -18379,7 +18379,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 574
+              "tokens": 564
             },
             {
               "id": "q065",
@@ -18467,7 +18467,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 522
+              "tokens": 525
             },
             {
               "id": "q076",
@@ -18491,7 +18491,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 536
+              "tokens": 537
             },
             {
               "id": "q079",
@@ -18683,7 +18683,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 579
+              "tokens": 562
             },
             {
               "id": "q123",
@@ -18731,7 +18731,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 541
+              "tokens": 517
             },
             {
               "id": "q139",
@@ -18811,7 +18811,7 @@
               "split": "test",
               "rank": 2,
               "refused": false,
-              "tokens": 612
+              "tokens": 608
             },
             {
               "id": "q149",
@@ -18851,7 +18851,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 549
+              "tokens": 550
             },
             {
               "id": "q154",
@@ -18881,9 +18881,9 @@
               "id": "q157",
               "type": "paraphrase",
               "split": "dev",
-              "rank": 9,
+              "rank": null,
               "refused": false,
-              "tokens": 589
+              "tokens": 573
             },
             {
               "id": "q158",
@@ -18963,7 +18963,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 447
+              "tokens": 442
             },
             {
               "id": "q168",
@@ -18987,7 +18987,7 @@
               "split": "test",
               "rank": 2,
               "refused": false,
-              "tokens": 435
+              "tokens": 497
             },
             {
               "id": "q171",
@@ -19083,7 +19083,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 514
+              "tokens": 506
             },
             {
               "id": "q183",
@@ -19091,7 +19091,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 578
+              "tokens": 556
             },
             {
               "id": "q184",
@@ -19099,7 +19099,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 492
+              "tokens": 449
             },
             {
               "id": "q185",
@@ -19123,7 +19123,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 598
+              "tokens": 577
             },
             {
               "id": "q188",
@@ -19203,7 +19203,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 546
+              "tokens": 539
             },
             {
               "id": "q198",
@@ -19523,7 +19523,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 600
+              "tokens": 543
             },
             {
               "id": "q246",
@@ -19707,7 +19707,7 @@
               "split": "dev",
               "rank": 1,
               "refused": false,
-              "tokens": 625
+              "tokens": 597
             },
             {
               "id": "q270",
@@ -19723,7 +19723,7 @@
               "split": "test",
               "rank": 1,
               "refused": false,
-              "tokens": 580
+              "tokens": 581
             },
             {
               "id": "q272",
