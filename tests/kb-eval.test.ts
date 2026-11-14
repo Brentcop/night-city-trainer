@@ -222,12 +222,13 @@ describe('the question set', () => {
     expect(questionFileProblems(file)).toEqual([]);
     expect(file.status).toBe('draft');
     expect(new Set(qs.map((x) => x.id)).size).toBe(qs.length);
-    expect(qs.length).toBeGreaterThanOrEqual(146);
+    expect(qs.length).toBeGreaterThanOrEqual(176);
     // ids run q001, q002, … in file order (questions are only ever appended)
     qs.forEach((x, i) => expect(x.id).toBe(`q${String(i + 1).padStart(3, '0')}`));
-    // every type has questions (step 1.6 added none 12, rules 10, number 8); number questions expect measured records only
+    // every type has questions (step 1.6 added none 12, rules 10, number 8; q147-q176 added paraphrase 30); number
+    // questions expect measured records only
     const counts = Object.fromEntries(QUESTION_TYPES.map((t) => [t, qs.filter((x) => x.type === t).length]));
-    expect(counts).toEqual({ entity: 20, paraphrase: 25, cross: 15, number: 24, dev: 20, rules: 30, none: 12 });
+    expect(counts).toEqual({ entity: 20, paraphrase: 55, cross: 15, number: 24, dev: 20, rules: 30, none: 12 });
     for (const x of qs.filter((y) => y.type === 'number')) for (const e of x.expect) expect(['event', 'round', 'rating', 'matchup'], `${x.id} ${e}`).toContain(expectKind(e));
     // none questions: public, nothing expected
     for (const x of qs.filter((y) => y.type === 'none')) expect([x.scope, x.expect], x.id).toEqual(['public', []]);

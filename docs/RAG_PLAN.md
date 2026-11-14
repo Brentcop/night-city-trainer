@@ -126,6 +126,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 3.2 | Search and dossiers on the site behind a feature flag | waiting: D1, D2, D3 | |
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
+| 4.6 | A small domain synonym table applied to the question | in progress | |
 | 5.x | Exact reuse in game tools: coach cache, review measurements | later | |
 
 ## 5. Steps
@@ -384,6 +385,12 @@ the decision (keep, drop, could not tell) and its cost.
   the records, no figure past the caps, association wording) and reviewed by the owner before commit.
 - 4.5 The baseline every index must beat: the whole public prose in one cached prompt (about 65k tokens;
   Anthropic's guidance is to skip retrieval under about 200k). 4.4 and 4.5 spend API money: owner approval.
+- 4.6 A domain synonym table. Paraphrased questions miss because players use everyday words, or words
+  from other card games, where the records use this game's terms ("equipment" for Gear, "tap" for spend,
+  "discard pile" for trash). A small, reviewable table maps such words to the game's terms and expands
+  the question for the keyword ranker. No model and no dependency. To keep it honest, thirty fresh
+  paraphrased questions were written first by an agent that knew nothing of the table, and the agent that
+  builds the table never reads the held-out ones.
 
 ### Step 5. Exact reuse in game tools
 
@@ -517,6 +524,8 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Hybrid with embeddings, held-out answerable (54), all records | top 1: 44%, top 5: 76%, top 10: 78%, MRR 0.57 (default 37%, 70%, 78%, 0.51) | step 4.1 |
 | 2026-11-13 | Embeddings alone, same questions | top 5: 54%, MRR 0.44; 18 of 54 answerable questions wrongly refused | step 4.1 |
 | 2026-11-13 | Cost of embeddings | 61 s to embed 3,545 records; 5.6 MB of vectors; about 1 s more per search from a cold start; 456 MB of tools and a 34 MB model on disk | step 4.1 |
+| 2026-11-13 | Baseline with 176 questions (30 fresh paraphrased ones). Held-out answerable (66), all records | top 1: 30%, top 5: 62%, top 10: 71%, MRR 0.44; 7 of 66 wrongly refused | step 4.6 |
+| 2026-11-13 | Paraphrased questions, held out (22) | top 5: 36%, MRR 0.15; 5 of 22 refused. Over all 55: top 5 36%, 15 refused | step 4.6 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -610,3 +619,6 @@ while the tournament index and the finish chips use the real cut, so five decks 
   It lifted rules questions and did nothing for paraphrased or unanswerable ones, and its overall gain
   could not be told from zero on the planned look. The default search stays keyword-and-links; the dense
   ranker stays in the code as an opt-in for the next experiments. Its tools live outside `package.json`.
+- 2026-11-13: thirty fresh paraphrased questions joined the question set (176 now; 55 paraphrased, 22 of
+  them held out), written before the synonym experiment by an agent that did not know what would be
+  tested. Paraphrase turned out weaker than the first 25 questions showed: 36% in the first five.
