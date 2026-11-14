@@ -1,6 +1,8 @@
 // Playmat zones: Gig area (dice), piles (deck / trash / Eddies), hands, a full player side, and the board background's
 // layers (BoardFx).
+import { useState } from 'react';
 import type { PlayerId } from '../../../engine/types';
+import { lessMotion } from '../../useBoardSettings';
 import { Die } from '../Dice';
 import { CardBack, pressable, TcgCard } from '../TcgCard';
 import { BoardCard, type BoardCtx } from './BoardCard';
@@ -173,6 +175,53 @@ function EddiePile({ p, ctx, row }: { p: PlayerId; ctx: BoardCtx; row?: boolean 
 /** "1 card", "3 cards". */
 const cardCount = (n: number) => `${n} card${n === 1 ? '' : 's'}`;
 
+/** The rival's hand fan stops growing at this many backs. */
+export const HAND_BACKS_MAX = 7;
+
+/**
+ * The pulse when the rival's hand size changes: `k` counts the pulses so far (the number is re-keyed by it, so each one
+ * runs once). The first render never pulses (the state starts at the number shown), nor does a change while motion is
+ * reduced or off (`less`, from lessMotion()).
+ */
+export function handPulse(prev: { n: number; k: number }, n: number, less: boolean): { n: number; k: number } {
+  if (prev.n === n) return prev;
+  return { n, k: less ? prev.k : prev.k + 1 };
+}
+
+/** Whose hand it is, as the rest of the rival's side names the seat. */
+export const rivalHandOwner = (ctx: BoardCtx) => ctx.seatLabels?.[1] ?? ctx.rivalName ?? 'Rival';
+
+/**
+ * The rival's hand size, said the same way on every layout: a few small card backs (`backs`; the board's own back, at
+ * most HAND_BACKS_MAX, none for an empty hand), the word "Hand" and the number in bold read-out numerals. The desktop
+ * board shows it in the rival's name row, phones as a tile in the rival's piles column (`tile`, no backs: the column is
+ * 60px wide), and the replay boards beside their row of backs. Not focusable and no click of its own; it pulses once
+ * when the number changes (handPulse).
+ */
+export function RivalHandCount({ n, owner, backs, tile, className }: { n: number; owner: string; backs?: boolean; tile?: boolean; className?: string }) {
+  const label = `${owner}'s hand: ${cardCount(n)}`;
+  const [pulse, setPulse] = useState(() => ({ n, k: 0 }));
+  // a render-phase update (React's "state from the previous render" pattern): the pulse starts with the render that
+  // shows the new number
+  if (pulse.n !== n) setPulse(handPulse(pulse, n, lessMotion()));
+  const shown = backs ? Math.min(n, HAND_BACKS_MAX) : 0;
+  return (
+    <div className={['pb-rh', tile ? 'pb-rh-tile' : '', className ?? ''].filter(Boolean).join(' ')} role="img" aria-label={label} title={label}>
+      {shown > 0 && (
+        <div className="pb-rh-backs" aria-hidden="true">
+          {Array.from({ length: shown }, (_, i) => (
+            <CardBack key={i} size="xs" />
+          ))}
+        </div>
+      )}
+      <span className="pb-rh-word">Hand</span>
+      <b key={pulse.k} className={pulse.k ? 'pb-rh-n pb-rh-pulse' : 'pb-rh-n'}>
+        {n}
+      </b>
+    </div>
+  );
+}
+
 function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: boolean }) {
   const { g } = ctx;
   const P = g.P(p);
@@ -219,12 +268,10 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
           Trash <b>{P.trash.length}</b>
         </div>
       </div>
-      {/* phones: the rival's hand size lives with their piles (their name row is hidden) */}
+      {/* phones: the rival's hand size lives with their piles (their name row is hidden), as a tile */}
       {p === 1 && (
-        <div className="pb-pile pb-pile-hand" title={`Rival hand: ${cardCount(P.hand.length)}`}>
-          <div className="pb-pile-cap">
-            Hand <b>{P.hand.length}</b>
-          </div>
+        <div className="pb-pile pb-pile-hand">
+          <RivalHandCount n={P.hand.length} owner={rivalHandOwner(ctx)} tile />
         </div>
       )}
     </div>
@@ -234,13 +281,13 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
 function RivalHand({ ctx }: { ctx: BoardCtx }) {
   const n = ctx.g.P(1).hand.length;
   return (
-    <div className="pb-rival-hand" title={`Rival hand: ${cardCount(n)}`}>
+    <div className="pb-rival-hand">
       {Array.from({ length: n }, (_, i) => (
-        <div key={i} className="pb-rival-hand-card">
+        <div key={i} className="pb-rival-hand-card" aria-hidden="true">
           <CardBack size="xs" />
         </div>
       ))}
-      <span className="pb-hand-count">{n} in hand</span>
+      <RivalHandCount n={n} owner={rivalHandOwner(ctx)} />
     </div>
   );
 }
@@ -318,8 +365,8 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
       <div className="pb-side-name">
         <span className="pb-who">{ctx.seatLabels ? ctx.seatLabels[p] : me ? 'You' : (ctx.rivalName ?? 'Rival bot')}</span>
         {!ctx.seatLabels && <span className="muted small">{P.name}</span>}
-        {/* the full board shows the rival's hand size here instead of a row of card backs */}
-        {!me && <span className="pb-name-hand small muted">{P.hand.length} in hand</span>}
+        {/* the full board shows the rival's hand size here instead of a row of card backs (hidden on other layouts) */}
+        {!me && <RivalHandCount n={P.hand.length} owner={rivalHandOwner(ctx)} backs className="pb-name-hand" />}
         {active && <span className="pb-active-tag">{me ? 'your turn' : 'their turn'}</span>}
       </div>
       {me ? (

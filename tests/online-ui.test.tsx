@@ -163,7 +163,7 @@ describe('the board from a view', () => {
       </>,
     );
     expect(html).toContain('Ana');
-    expect(html).toContain('6 in hand');
+    expect(html).toContain('<span class="pb-rh-word">Hand</span><b class="pb-rh-n">6</b>');
     // the guest's own hand shows; the host's hidden cards never do
     const real = h.g.s;
     const hostHidden = [...real.players[0].hand, ...real.players[0].deck, ...real.players[1].deck].map((u) => real.cards[u]!.defId);

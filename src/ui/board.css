@@ -419,10 +419,88 @@
   transform: rotate(180deg);
   --tcg-w: 44px;
 }
-.pb-hand-count {
+.pb-rival-hand > .pb-rh {
   margin-left: 10px;
-  font-size: 12px;
-  color: var(--muted);
+}
+/* the rival's hand size (Zones.tsx RivalHandCount), the same on every layout: small backs, "Hand" and the number in
+   the text colour. Its own row or tile only: nothing here sizes another zone. */
+.pb-rh {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text);
+}
+.pb-rh-backs {
+  display: flex;
+  align-items: center;
+  margin-right: 1px;
+  --tcg-w: 11px;
+}
+/* each back after the first shows a 4px strip; the board's own back (follows the card-back setting), without its
+   logo, which has no room at this size */
+.pb-rh-backs > .tcg + .tcg {
+  margin-left: -7px;
+}
+.pb-rh-backs .tcg-back-face {
+  border-width: 1px;
+  border-radius: 2px;
+}
+.pb-rh-backs .tcg-back-logo {
+  display: none;
+}
+.pb-rh-backs .tcg-inner {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.pb-rh-word {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+.pb-rh-n {
+  display: inline-block;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+/* phones: a highlighted tile in the rival's piles column, 17px high (the column's budget is PHONE_FIXED.rivalPiles,
+   board/layout.ts), reaching into the column's side padding so a two-digit number fits */
+.pb-rh-tile {
+  flex: 1;
+  justify-content: center;
+  gap: 3px;
+  margin: 0 -3px;
+  padding: 0 3px;
+  border: 1px solid color-mix(in srgb, var(--red) 60%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+.pb-rh-tile .pb-rh-word {
+  font-size: 0.7rem;
+  line-height: 15px;
+}
+.pb-rh-tile .pb-rh-n {
+  line-height: 15px;
+}
+/* the number pulses once when it changes (only with full motion: the script adds the class only then, and the rule
+   below keeps it still if the setting changes afterwards) */
+.pb-rh-pulse {
+  animation: pb-rh-pulse 0.6s ease-out 1;
+}
+@keyframes pb-rh-pulse {
+  from {
+    transform: scale(1.4);
+    opacity: 0.35;
+  }
+  45% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+:where(:root[data-motion='reduced'], :root[data-motion='off']) .pb-rh-pulse {
+  animation: none;
 }
 .pb-handbar {
   display: flex;
@@ -1665,8 +1743,30 @@ body:has(.pb-full) {
 .pb-full .pb-side-name > :not(.muted) {
   flex: none;
 }
+/* when the row is tight the deck name gives way first (its far larger shrink factor), then the player's name; the
+   rival's hand size and the turn tag never shrink */
+.pb-full .pb-side-name > .muted {
+  flex-shrink: 1000;
+}
+.pb-full .pb-side-name > .pb-who {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .pb-full .pb-name-hand {
-  display: inline;
+  display: flex;
+  align-self: center;
+}
+/* a narrow Legends column on the rival's turn (the turn tag takes about 92px): the small backs go before the rival's
+   name has to shrink (the word and number stay) */
+.pb-full .pb-side-name {
+  container: pbname / inline-size;
+}
+@container pbname (max-width: 270px) {
+  .pb-side-name:has(> .pb-active-tag) > .pb-name-hand .pb-rh-backs {
+    display: none;
+  }
 }
 .pb-full .pb-rival-hand {
   display: none;
@@ -3447,8 +3547,9 @@ button.pb-coach-more {
   }
 }
 
-/* read-out numerals for what a player watches: the turn, €$, Gigs, Street Cred, deck and trash counts, dice */
-:where(:root:not([data-numerals='standard'])) :is(.pb-turn-no, .pb-pile-cap b, .pb-gigs-head b, .pb-cred, .pb-eddie-more, .pb-pay-count, .pb-hand-count, .pb-name-hand) {
+/* read-out numerals for what a player watches: the turn, €$, Gigs, Street Cred, deck, trash and the rival's hand
+   counts, dice */
+:where(:root:not([data-numerals='standard'])) :is(.pb-turn-no, .pb-pile-cap b, .pb-gigs-head b, .pb-cred, .pb-eddie-more, .pb-pay-count, .pb-rh-n) {
   font-family: var(--readout);
   font-variant-numeric: tabular-nums slashed-zero;
   letter-spacing: -0.02em;

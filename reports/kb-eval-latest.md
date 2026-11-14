@@ -12,7 +12,7 @@ Scopes: public 246, local 40. Splits: dev 171, test 115. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-4608 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+4609 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -154,7 +154,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-3584 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 40.
+3585 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 40.
 Stale expectations: none.
 
 ### By configuration and split
@@ -165,7 +165,7 @@ Stale expectations: none.
 | exact | test | 92 | 16.3 | 25.0 | 25.0 | 0.196 | 122 | 284 | 7 of 7 (100.0%) | 30 of 92 (32.6%) |
 | exact | all | 228 | 14.0 | 20.6 | 20.6 | 0.165 | 109 | 232 | 15 of 18 (83.3%) | 88 of 228 (38.6%) |
 | keyword | dev | 136 | 36.8 | 52.2 | 55.1 | 0.430 | 468 | 611 | 3 of 11 (27.3%) | 21 of 136 (15.4%) |
-| keyword | test | 92 | 25.0 | 47.8 | 51.1 | 0.349 | 517 | 626 | 4 of 7 (57.1%) | 7 of 92 (7.6%) |
+| keyword | test | 92 | 25.0 | 47.8 | 51.1 | 0.349 | 517 | 630 | 4 of 7 (57.1%) | 7 of 92 (7.6%) |
 | keyword | all | 228 | 32.0 | 50.4 | 53.5 | 0.397 | 488 | 621 | 7 of 18 (38.9%) | 28 of 228 (12.3%) |
 | exact+keyword | dev | 136 | 34.6 | 62.5 | 69.1 | 0.464 | 529 | 629 | 2 of 11 (18.2%) | 7 of 136 (5.1%) |
 | exact+keyword | test | 92 | 32.6 | 65.2 | 73.9 | 0.463 | 539 | 621 | 4 of 7 (57.1%) | 2 of 92 (2.2%) |

@@ -1,15 +1,21 @@
 // Play board (P1): which cards are marked as actionable (derived only from the decision's options), the bot and replay
-// speed options, the session-long "All actions" state, and where the hover preview goes.
-import { describe, expect, it } from 'vitest';
+// speed options, the session-long "All actions" state, where the hover preview goes, and the rival's hand size.
+import { readFileSync } from 'node:fs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import type { Decision } from '../src/engine/types';
-import { boardMarks, buildInteraction, NO_MARKS, type Targeting } from '../src/ui/components/board/interaction';
+import { setArtEnabled } from '../src/ui/art';
+import type { BoardCtx } from '../src/ui/components/board/BoardCard';
+import { boardMarks, buildInteraction, EMPTY_IX, NO_MARKS, type Targeting } from '../src/ui/components/board/interaction';
+import { PHONE_FIXED } from '../src/ui/components/board/layout';
 import { AllActions } from '../src/ui/components/board/PromptPanel';
 import { ALL_ACTIONS_KEY, BOT_SPEEDS, DEFAULT_BOT_SPEED, loadBotSpeed, normalizeBotSpeed, readFlag, saveBotSpeed, writeFlag } from '../src/ui/components/board/prefs';
+import { HAND_BACKS_MAX, handPulse, PlayerSide, RivalHandCount, rivalHandOwner } from '../src/ui/components/board/Zones';
 import { DEFAULT_REPLAY_SPEED, REPLAY_SPEEDS } from '../src/ui/components/ReplayBoard';
 import { placeZoom } from '../src/ui/components/TcgCard';
+import { lessMotion } from '../src/ui/useBoardSettings';
 import { eddies, FILLER, gig, setup, spawn } from './engine-helpers';
 
 /** The main-phase decision the engine would ask player 0 now. */
@@ -176,5 +182,105 @@ describe('hover preview placement', () => {
     expect(p.top + size.h).toBeLessThanOrEqual(500);
     expect(p.left).toBeGreaterThanOrEqual(8);
     expect(p.left + size.w).toBeLessThanOrEqual(narrow.w - 8);
+  });
+});
+
+describe("the rival's hand size (RivalHandCount)", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const esc = (s: string) => s.replace(/'/g, '&#x27;');
+  const backsIn = (html: string) => html.match(/class="tcg tcg-xs tcg-back/g)?.length ?? 0;
+
+  it('says "Hand" and the number, with at most seven small backs, and names the seat and the count', () => {
+    expect(HAND_BACKS_MAX).toBe(7);
+    for (const [n, shown, words] of [
+      [0, 0, '0 cards'],
+      [1, 1, '1 card'],
+      [5, 5, '5 cards'],
+      [7, 7, '7 cards'],
+      [12, 7, '12 cards'],
+    ] as const) {
+      const html = renderToStaticMarkup(<RivalHandCount n={n} owner="Rival" backs />);
+      expect(html, `${n}`).toContain(`<span class="pb-rh-word">Hand</span><b class="pb-rh-n">${n}</b>`);
+      expect(backsIn(html), `${n}`).toBe(shown);
+      expect(html).toContain(`role="img" aria-label="${esc(`Rival's hand: ${words}`)}" title="${esc(`Rival's hand: ${words}`)}"`);
+      // an empty hand shows no backs at all; nothing in it is focusable or a button
+      if (!n) expect(html).not.toContain('pb-rh-backs');
+      expect(html).not.toMatch(/tabindex|role="button"|muted/);
+    }
+    // without backs (the phone tile, the replay row) it is the word and the number only
+    const tile = renderToStaticMarkup(<RivalHandCount n={5} owner="Ana" tile />);
+    expect(tile).toMatch(/^<div class="pb-rh pb-rh-tile" role="img" aria-label="Ana&#x27;s hand: 5 cards"/);
+    expect(backsIn(tile)).toBe(0);
+  });
+
+  function sideCtx(over: Partial<BoardCtx> = {}): { ctx: BoardCtx; g: Game } {
+    setArtEnabled(false);
+    const { g } = setup();
+    for (let i = 0; i < 5; i++) spawn(g, 1, FILLER, 'hand');
+    const noop = () => undefined;
+    const ctx: BoardCtx = { g, pend: null, ix: EMPTY_IX, coach: null, targeting: null, narrow: false, menuUid: null, answer: noop, openMenu: noop, startTargeting: noop, cancelTargeting: noop, openTrash: noop, ...over };
+    return { ctx, g };
+  }
+
+  it('names the seat as the rest of the side does: a person online, the replay seat labels, else Rival', () => {
+    expect(rivalHandOwner(sideCtx().ctx)).toBe('Rival');
+    expect(rivalHandOwner(sideCtx({ rivalName: 'Ana' }).ctx)).toBe('Ana');
+    expect(rivalHandOwner(sideCtx({ seatLabels: ['you', 'Hard bot'] }).ctx)).toBe('Hard bot');
+    const html = renderToStaticMarkup(<PlayerSide p={1} ctx={sideCtx({ seatLabels: ['you', 'Hard bot'] }).ctx} />);
+    expect(html).toContain(`aria-label="${esc("Hard bot's hand: 5 cards")}"`);
+    expect(renderToStaticMarkup(<PlayerSide p={1} ctx={sideCtx({ rivalName: 'Ana' }).ctx} />)).toContain(`aria-label="${esc("Ana's hand: 5 cards")}"`);
+  });
+
+  it("every layout's place for it renders it: the desktop name row, the phone piles column and the replay row", () => {
+    const { ctx } = sideCtx();
+    const html = renderToStaticMarkup(<PlayerSide p={1} ctx={ctx} />);
+    const label = esc("Rival's hand: 5 cards");
+    // desktop and tablet: in the name row, with its backs (board.css shows .pb-name-hand on .pb-full only)
+    expect(html).toMatch(new RegExp(`<div class="pb-side-name">.*<div class="pb-rh pb-name-hand" role="img" aria-label="${label}"`));
+    expect(backsIn(html.slice(html.indexOf('pb-name-hand'), html.indexOf('pb-rh-word', html.indexOf('pb-name-hand'))))).toBe(5);
+    // phones: a tile in the piles column (no backs: the column is 60px wide)
+    expect(html).toContain(`<div class="pb-pile pb-pile-hand"><div class="pb-rh pb-rh-tile" role="img" aria-label="${label}" title="${label}"><span class="pb-rh-word">Hand</span><b class="pb-rh-n">5</b></div></div>`);
+    // other layouts (the replay and review boards): beside the row of backs
+    expect(html).toMatch(new RegExp(`<div class="pb-rival-hand">(<div class="pb-rival-hand-card" aria-hidden="true">.*?</div></div></div></div>){5}<div class="pb-rh" role="img" aria-label="${label}"`));
+    expect(html.match(/<span class="pb-rh-word">Hand<\/span><b class="pb-rh-n">5<\/b>/g)).toHaveLength(3);
+    // the old muted wording is gone
+    expect(html).not.toContain('in hand');
+    expect(html).not.toContain('Rival hand:');
+    // your own side has none
+    expect(renderToStaticMarkup(<PlayerSide p={0} ctx={ctx} />)).not.toContain('pb-rh');
+  });
+
+  it('pulses once when the number changes: never on the first render, never with motion reduced or off', () => {
+    // the first render starts from the number shown
+    expect(renderToStaticMarkup(<RivalHandCount n={5} owner="Rival" backs />)).not.toContain('pb-rh-pulse');
+    const start = { n: 5, k: 0 };
+    expect(handPulse(start, 5, false)).toBe(start);
+    expect(handPulse(start, 6, false)).toEqual({ n: 6, k: 1 });
+    expect(handPulse({ n: 6, k: 1 }, 4, false)).toEqual({ n: 4, k: 2 });
+    expect(handPulse(start, 6, true)).toEqual({ n: 6, k: 0 });
+    // the gate is the Motion setting on <html>
+    const at = (level: string | null) => vi.stubGlobal('document', { documentElement: { getAttribute: (k: string) => (k === 'data-motion' ? level : null) } });
+    at('full');
+    expect(lessMotion()).toBe(false);
+    at('reduced');
+    expect(lessMotion()).toBe(true);
+    at('off');
+    expect(lessMotion()).toBe(true);
+  });
+
+  it('board.css: the pulse moves only transform and opacity and is off with reduced or no motion; the number is a read-out', () => {
+    const css = readFileSync(new URL('../src/ui/board.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const frames = css.match(/@keyframes pb-rh-pulse \{([\s\S]*?)\n\}/)?.[1];
+    expect(frames).toBeTruthy();
+    const props = new Set([...frames!.matchAll(/([\w-]+)\s*:/g)].map((m) => m[1]));
+    expect([...props].sort()).toEqual(['opacity', 'transform']);
+    expect(css).toMatch(/:where\(:root\[data-motion='reduced'\], :root\[data-motion='off'\]\) \.pb-rh-pulse \{\s*animation: none;/);
+    expect(css).toMatch(/:where\(:root:not\(\[data-numerals='standard'\]\)\) :is\([^)]*\.pb-rh-n[^)]*\)/);
+    // nothing of it is cut with clip-path
+    expect(css).not.toMatch(/\.pb-rh[^{]*\{[^}]*clip-path/);
+    // the phone tile (15px lines and a 1px border) keeps the rival's piles column inside its budget: four rows (€$,
+    // Deck, Trash 15px each, the tile 17px), 1px gaps, 2px padding and a 1px border top and bottom
+    expect(css).toMatch(/\.pb-rh-tile \.pb-rh-n \{\s*line-height: 15px;/);
+    expect(3 * 15 + 17 + 3 * 1 + 2 * 2 + 2 * 1).toBeLessThanOrEqual(PHONE_FIXED.rivalPiles);
   });
 });

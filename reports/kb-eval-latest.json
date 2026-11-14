@@ -9,7 +9,7 @@
     {
       "scope": "all",
       "localPresent": true,
-      "records": 4608,
+      "records": 4609,
       "skipped": [],
       "stale": {},
       "configs": [
@@ -2676,7 +2676,7 @@
               "r5": 0.5375,
               "r10": 0.55,
               "mrr": 0.4399,
-              "tokensMean": 462.9,
+              "tokensMean": 462.875,
               "tokensP90": 612,
               "refusal": {
                 "n": 11,
@@ -2714,7 +2714,7 @@
               "r5": 0.5112,
               "r10": 0.5373,
               "mrr": 0.4009,
-              "tokensMean": 480.7575,
+              "tokensMean": 480.7425,
               "tokensP90": 617,
               "refusal": {
                 "n": 18,
@@ -2792,7 +2792,7 @@
                 "r5": 0.8824,
                 "r10": 0.8824,
                 "mrr": 0.7225,
-                "tokensMean": 517.2941,
+                "tokensMean": 517.0588,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 17,
@@ -2992,7 +2992,7 @@
                 "r5": 0.8571,
                 "r10": 0.8571,
                 "mrr": 0.7185,
-                "tokensMean": 539.9643,
+                "tokensMean": 539.8214,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 28,
@@ -3629,7 +3629,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 525
+              "tokens": 521
             },
             {
               "id": "q076",
@@ -5330,7 +5330,7 @@
               "r5": 0.625,
               "r10": 0.6688,
               "mrr": 0.4616,
-              "tokensMean": 518.4563,
+              "tokensMean": 518.4313,
               "tokensP90": 621,
               "refusal": {
                 "n": 11,
@@ -5368,7 +5368,7 @@
               "r5": 0.6269,
               "r10": 0.6866,
               "mrr": 0.4533,
-              "tokensMean": 522.2761,
+              "tokensMean": 522.2612,
               "tokensP90": 621,
               "refusal": {
                 "n": 18,
@@ -5446,7 +5446,7 @@
                 "r5": 0.8824,
                 "r10": 0.8824,
                 "mrr": 0.7225,
-                "tokensMean": 517.2941,
+                "tokensMean": 517.0588,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 17,
@@ -5646,7 +5646,7 @@
                 "r5": 0.8571,
                 "r10": 0.8571,
                 "mrr": 0.7185,
-                "tokensMean": 538.5714,
+                "tokensMean": 538.4286,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 28,
@@ -6283,7 +6283,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 525
+              "tokens": 521
             },
             {
               "id": "q076",
@@ -7984,7 +7984,7 @@
               "r5": 0.7063,
               "r10": 0.7438,
               "mrr": 0.5957,
-              "tokensMean": 520.0438,
+              "tokensMean": 520.0188,
               "tokensP90": 635,
               "refusal": {
                 "n": 11,
@@ -8022,7 +8022,7 @@
               "r5": 0.6903,
               "r10": 0.7351,
               "mrr": 0.573,
-              "tokensMean": 526.1269,
+              "tokensMean": 526.1119,
               "tokensP90": 644,
               "refusal": {
                 "n": 18,
@@ -8100,7 +8100,7 @@
                 "r5": 0.8824,
                 "r10": 0.8824,
                 "mrr": 0.7225,
-                "tokensMean": 517.2941,
+                "tokensMean": 517.0588,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 17,
@@ -8300,7 +8300,7 @@
                 "r5": 0.8571,
                 "r10": 0.8571,
                 "mrr": 0.7185,
-                "tokensMean": 538.5714,
+                "tokensMean": 538.4286,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 28,
@@ -8937,7 +8937,7 @@
               "split": "dev",
               "rank": 2,
               "refused": false,
-              "tokens": 525
+              "tokens": 521
             },
             {
               "id": "q076",
@@ -10634,7 +10634,7 @@
     {
       "scope": "public",
       "localPresent": false,
-      "records": 3584,
+      "records": 3585,
       "skipped": [
         "q010",
         "q081",
@@ -12980,7 +12980,7 @@
               "r5": 0.5221,
               "r10": 0.5515,
               "mrr": 0.4295,
-              "tokensMean": 468.3971,
+              "tokensMean": 468.3676,
               "tokensP90": 611,
               "refusal": {
                 "n": 11,
@@ -12999,8 +12999,8 @@
               "r5": 0.4783,
               "r10": 0.5109,
               "mrr": 0.3489,
-              "tokensMean": 517.2065,
-              "tokensP90": 626,
+              "tokensMean": 517.3043,
+              "tokensP90": 630,
               "refusal": {
                 "n": 7,
                 "refused": 4,
@@ -13018,7 +13018,7 @@
               "r5": 0.5044,
               "r10": 0.5351,
               "mrr": 0.397,
-              "tokensMean": 488.0921,
+              "tokensMean": 488.114,
               "tokensP90": 621,
               "refusal": {
                 "n": 18,
@@ -13096,7 +13096,7 @@
                 "r5": 0.8824,
                 "r10": 0.9412,
                 "mrr": 0.6931,
-                "tokensMean": 549.1765,
+                "tokensMean": 548.9412,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 17,
@@ -13140,8 +13140,8 @@
                 "r5": 0.5,
                 "r10": 0.5385,
                 "mrr": 0.3141,
-                "tokensMean": 488,
-                "tokensP90": 630,
+                "tokensMean": 488.3462,
+                "tokensP90": 635,
                 "wrongRefusals": {
                   "n": 26,
                   "refused": 4,
@@ -13226,7 +13226,7 @@
                 "r5": 0.5303,
                 "r10": 0.5606,
                 "mrr": 0.3582,
-                "tokensMean": 470.0303,
+                "tokensMean": 470.1667,
                 "tokensP90": 626,
                 "wrongRefusals": {
                   "n": 66,
@@ -13268,7 +13268,7 @@
                 "r5": 0.8571,
                 "r10": 0.8929,
                 "mrr": 0.6798,
-                "tokensMean": 559.8929,
+                "tokensMean": 559.75,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 28,
@@ -13883,7 +13883,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 525
+              "tokens": 521
             },
             {
               "id": "q076",
@@ -14363,7 +14363,7 @@
               "split": "test",
               "rank": null,
               "refused": false,
-              "tokens": 626
+              "tokens": 635
             },
             {
               "id": "q166",
@@ -15272,7 +15272,7 @@
               "r5": 0.625,
               "r10": 0.6912,
               "mrr": 0.4644,
-              "tokensMean": 529.2279,
+              "tokensMean": 529.1985,
               "tokensP90": 629,
               "refusal": {
                 "n": 11,
@@ -15310,7 +15310,7 @@
               "r5": 0.636,
               "r10": 0.7105,
               "mrr": 0.4639,
-              "tokensMean": 533.1842,
+              "tokensMean": 533.1667,
               "tokensP90": 623,
               "refusal": {
                 "n": 18,
@@ -15388,7 +15388,7 @@
                 "r5": 0.8824,
                 "r10": 0.9412,
                 "mrr": 0.6931,
-                "tokensMean": 549.1765,
+                "tokensMean": 548.9412,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 17,
@@ -15560,7 +15560,7 @@
                 "r5": 0.8571,
                 "r10": 0.8929,
                 "mrr": 0.6798,
-                "tokensMean": 558.5,
+                "tokensMean": 558.3571,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 28,
@@ -16175,7 +16175,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 525
+              "tokens": 521
             },
             {
               "id": "q076",
@@ -17564,7 +17564,7 @@
               "r5": 0.7426,
               "r10": 0.7721,
               "mrr": 0.6233,
-              "tokensMean": 531.7721,
+              "tokensMean": 531.8162,
               "tokensP90": 662,
               "refusal": {
                 "n": 11,
@@ -17602,7 +17602,7 @@
               "r5": 0.7237,
               "r10": 0.7632,
               "mrr": 0.6066,
-              "tokensMean": 538.7456,
+              "tokensMean": 538.7719,
               "tokensP90": 652,
               "refusal": {
                 "n": 18,
@@ -17680,7 +17680,7 @@
                 "r5": 0.8824,
                 "r10": 0.9412,
                 "mrr": 0.6931,
-                "tokensMean": 549.1765,
+                "tokensMean": 548.9412,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 17,
@@ -17694,7 +17694,7 @@
                 "r5": 0.7917,
                 "r10": 0.8333,
                 "mrr": 0.7455,
-                "tokensMean": 596.0833,
+                "tokensMean": 596.5,
                 "tokensP90": 693,
                 "wrongRefusals": {
                   "n": 24,
@@ -17852,7 +17852,7 @@
                 "r5": 0.8571,
                 "r10": 0.8929,
                 "mrr": 0.6798,
-                "tokensMean": 558.5,
+                "tokensMean": 558.3571,
                 "tokensP90": 629,
                 "wrongRefusals": {
                   "n": 28,
@@ -17866,7 +17866,7 @@
                 "r5": 0.725,
                 "r10": 0.75,
                 "mrr": 0.6973,
-                "tokensMean": 589.875,
+                "tokensMean": 590.125,
                 "tokensP90": 670,
                 "wrongRefusals": {
                   "n": 40,
@@ -18467,7 +18467,7 @@
               "split": "dev",
               "rank": 3,
               "refused": false,
-              "tokens": 525
+              "tokens": 521
             },
             {
               "id": "q076",
@@ -19635,7 +19635,7 @@
               "split": "dev",
               "rank": null,
               "refused": false,
-              "tokens": 599
+              "tokens": 609
             },
             {
               "id": "q260",
