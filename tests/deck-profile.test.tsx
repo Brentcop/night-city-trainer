@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DeckProfilePage } from '../src/ui/pages/DeckProfile';
 import { DeckTile } from '../src/ui/components/DeckIdentity';
+import { needsEventH2H } from '../src/ui/components/DeckRecord';
+import type { DeckRecord } from '../src/lib/deckRecord';
 import { BUILTIN, loadCustom, upsertCustom } from '../src/lib/browserLibrary';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
@@ -189,5 +191,20 @@ describe('deck profile: game plan', () => {
     } finally {
       d.deck.main = main;
     }
+  });
+});
+
+describe('deck record panel: when it needs the tournament head-to-heads', () => {
+  // An effect depends on this value. It used to be the record's `tournament` object, a new object on every render, so the
+  // effect ran again after every render and set new state each time: the panel re-rendered without end, and going from
+  // one deck's page to another (once the head-to-head file had loaded) froze the tab. It must be a plain boolean.
+  it('is a plain boolean, never the tournament object', () => {
+    const tournament = {} as NonNullable<DeckRecord['tournament']>;
+    const finish = {} as DeckRecord['finishes'][number];
+    const matchups = {} as NonNullable<DeckRecord['matchups']>;
+    expect(needsEventH2H({ finishes: [], tournament })).toBe(true);
+    expect(needsEventH2H({ finishes: [finish] })).toBe(true);
+    expect(needsEventH2H({ finishes: [] })).toBe(false);
+    expect(needsEventH2H({ finishes: [finish], tournament, matchups })).toBe(false);
   });
 });

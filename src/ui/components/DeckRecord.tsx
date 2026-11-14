@@ -2,7 +2,7 @@
 // the meta, best and worst matchups, event finishes and power rank, each with its sample size. Small samples are
 // marked the `.num.thin` way and say so; a deck with nothing recorded says that plainly; numbers recorded before the
 // current simulator get a one-line note. The summary itself is src/lib/deckRecord.ts.
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RATINGS, SEASONS } from '../../data/index';
 import { TOURNAMENT_INDEX } from '../../data/tournamentIndex';
 import { ANALYSIS, telemetryReport } from '../../data/analysisData';
@@ -107,19 +107,30 @@ const MATCHUP_SOURCE: Record<NonNullable<DeckRecord['matchups']>['source'], stri
   events: `from tournament games (pairings with at least 6 games)`,
 };
 
+/**
+ * Whether a deck's best and worst matchups must come from the tournament head-to-heads (the bundled reports have none
+ * for it, and it has played in recorded events). A boolean on purpose: it is an effect dependency, and the record it is
+ * read from is a new object on every render.
+ */
+export const needsEventH2H = (base: Pick<DeckRecord, 'matchups' | 'tournament' | 'finishes'>): boolean => !base.matchups && (!!base.tournament || base.finishes.length > 0);
+
 export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' | 'deck'>; headingId: string }) {
-  const [eventH2H, setEventH2H] = useState<MatchLine[] | undefined>(undefined);
+  // the head-to-head file once it has loaded (undefined until then; null when it could not be read). The state is the
+  // file, never one deck's lines: the file is the same object for every deck, so setting it again changes nothing, and
+  // the page can go from one deck to another without showing the first deck's lines or re-rendering without end
+  const [h2h, setH2h] = useState<H2HFile | null | undefined>(undefined);
   const base = recordFor(d);
   // tournament head-to-heads only fill in best/worst matchups when the bundled reports have none
-  const needH2H = !base.matchups && (base.tournament || base.finishes.length > 0);
+  const needH2H = needsEventH2H(base);
   useEffect(() => {
-    if (!needH2H) return;
+    if (!needH2H || h2h !== undefined) return;
     let live = true;
-    loadEventH2H().then((f) => live && setEventH2H(h2hFor(d.deck.name, f)));
+    void loadEventH2H().then((f) => live && setH2h(f));
     return () => {
       live = false;
     };
-  }, [needH2H, d.deck.name]);
+  }, [needH2H, h2h]);
+  const eventH2H = useMemo<MatchLine[] | undefined>(() => (needH2H && h2h !== undefined ? h2hFor(d.deck.name, h2h) : undefined), [needH2H, h2h, d.deck.name]);
   const rec = eventH2H ? recordFor(d, eventH2H) : base;
   const t = rec.tournament;
   const sim = simTierFor(d.deck.name);
