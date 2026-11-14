@@ -27,7 +27,7 @@ file.
 - Every text is plain text (never HTML) and has a length cap. Links must be a page of this site (`#/…`) or an `https://`
   address. Dates are `YYYY-MM-DD` (a start date counts from the start of that day, an end date to the end of that day,
   in the visitor's time) or an ISO date-time such as `2026-12-11T09:00:00-06:00`.
-- The committed file equals the defaults (the site as it was before the config existed, plus online play, chat and multi-day games, which are on).
+- The committed file equals the defaults (the site as it was before the config existed, plus online play, chat and multi-day games, which are on). The site search starts off and the committed file does not name it: a file without `features.search` reads it as `false`, and a Learn page list without `search` gets it back at the end.
 
 ## Keys
 
@@ -39,7 +39,7 @@ file.
 | `site.tagline` | the site description | The page description. Max 200. |
 | `site.footer` | the fan-made notice with a Credits link | Footer text. Max 400. Links as `[label](#/page)` or `[label](https://…)`. |
 | `nav.sections` | Home, Decks, Play, Tournaments, Learn, Profile | The top tabs in order. Each is `{ id, label, hidden, pages }`. Ids: `home`, `decks`, `play`, `tournaments`, `learn`, `profile`. Labels max 30. Tabs missing from the list come back at the end. |
-| `nav.sections[].pages` | each tab's pages | The tab's pages in order (the sub-menu for Decks, Tournaments and Learn): `{ path, label, hidden }`. Decks: `decks`, `tuned`, `lab`. Tournaments: `tournaments`, `run`, `ratings`, `seasons`, `meta`, `arena`. Learn: `tutorial` (How to play: the lessons and the rules in five minutes), `guides`, `cards`, `glossary`, `insights`, `credits`. Home, Play and Profile have one page each. A tab's first shown page is where its tab link goes. |
+| `nav.sections[].pages` | each tab's pages | The tab's pages in order (the sub-menu for Decks, Tournaments and Learn): `{ path, label, hidden }`. Decks: `decks`, `tuned`, `lab`. Tournaments: `tournaments`, `run`, `ratings`, `seasons`, `meta`, `arena`. Learn: `tutorial` (How to play: the lessons and the rules in five minutes), `guides`, `cards`, `glossary`, `insights`, `credits`, `search` (shown only while `features.search` is on). Home, Play and Profile have one page each. A tab's first shown page is where its tab link goes. |
 | (rule) | | Hiding Learn → How to play (`tutorial`) also removes its quick link on Home, the line on the Play setup screen and the lessons' links. A hidden tab or page shows "This page is turned off" at its address. A deck's profile (`#/deck`) follows the Decks tab, a shared profile (`#/u`) the Profile tab. Home and Play cannot both be hidden. With Home hidden, `#/` opens the first tab shown. |
 | `features.coach` | `true` | The coach in Play (switch, advice, move grades). |
 | `features.gameReview` | `true` | Game review buttons in Play and Profile. |
@@ -53,6 +53,7 @@ file.
 | `features.multiplayer` | `true` | Play online against another person (Play → Host a game / Join a game, `#/play/online`, invite links `#/play/join/<code>`). Off: the choice is hidden and those addresses show the ordinary Play page. |
 | `features.multiDayGames` | `true` | Multi-day games: a "Multi-day game" choice on the Play setup (a bot game kept until finished, with a deadline), games against a person by turn packets (`#/play/corr`, packet links `#/play/turn/<code>`), the Ongoing games panel and the count on the Play tab. Off: all of it is hidden and those addresses show the ordinary Play page; games already kept stay in the browser. |
 | `features.chat` | `true` | The text chat between the two players of an online game (a Chat tab in the side panel). |
+| `features.search` | `false` | The site search: Learn → Search (`#/search`). A visitor's question is answered in their own browser from the site's knowledge pack (cards, library decks and their game plans, synergy packages, the glossary, strategy guides, recorded events, rounds, ratings and matchups, and the bots' card and package statistics); questions are never sent anywhere or stored. Not included: the FAQ rulings, the contributors' docs and code, and anything from the official rules text. The pack is built with the site (`vite build`), so it always matches the content; nothing loads until a visitor types on the page (about 112 kB gzip for the first search, about 82 to 87 kB more for a question about statistics). Off: no nav entry, no link, and `#/search` shows "This page is turned off". To try it locally: `npm run dev`, open `#/admin`, tick Site search, and press **Preview this draft in this browser only** (or set `"search": true` under `features` in your local copy of the file). |
 | `banner.text` | `""` | The announcement under the header. Empty: no banner. Max 300. |
 | `banner.link` | `""` | Optional link after the text (`#/…` or `https://…`). |
 | `banner.linkText` | `""` | The link's text; empty reads "Read more". Max 60. |

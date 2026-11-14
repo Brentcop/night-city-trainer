@@ -1,6 +1,8 @@
 // Rule M10 of docs/RAG_PLAN.md: the knowledge pack is kept away from play. Nothing under src/engine, src/ai or src/sim
-// reaches src/lib/kb through static imports, the entry src/main.tsx does not reach it, and (in this step) no file
-// under those folders or src/ui imports it at all. Also: the core stays pure (M7) and builds stay deterministic (M8).
+// reaches src/lib/kb through static imports, the entry src/main.tsx does not reach it, and no file under those folders
+// or src/ui imports it at all, except the site's Search page (docs/RAG_PLAN.md step 3), a lazy page whose own imports
+// never reach the pack's builders, the number functions or anything that reaches the engine, the bots or the
+// simulator. Also: the core stays pure (M7) and builds stay deterministic (M8).
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -45,6 +47,10 @@ function staticGraph(entries: readonly string[]): Set<string> {
 
 const inKb = (f: string) => f.startsWith(KB_DIR);
 
+/** The only files under src/ui that may import src/lib/kb: the Search page and the type of its manifest module. */
+const SEARCH_PAGE = path.join(ROOT, 'src', 'ui', 'pages', 'Search.tsx');
+const UI_KB_ALLOWED = new Set([SEARCH_PAGE, path.join(ROOT, 'src', 'ui', 'kbSite.d.ts')]);
+
 describe('M10: the pack is kept away from play', () => {
   it('nothing under src/engine, src/ai or src/sim reaches src/lib/kb through static imports', () => {
     const entries = ['src/engine', 'src/ai', 'src/sim'].flatMap(filesUnder);
@@ -59,14 +65,35 @@ describe('M10: the pack is kept away from play', () => {
     expect([...graph].filter(inKb).map(rel)).toEqual([]);
   });
 
-  it('no file under src/engine, src/ai, src/sim or src/ui imports src/lib/kb at all, even dynamically', () => {
+  it('no file under src/engine, src/ai, src/sim or src/ui imports src/lib/kb at all, even dynamically (but the Search page)', () => {
     const offenders: string[] = [];
-    for (const f of ['src/engine', 'src/ai', 'src/sim', 'src/ui'].flatMap(filesUnder))
+    for (const f of ['src/engine', 'src/ai', 'src/sim', 'src/ui'].flatMap(filesUnder).filter((x) => !UI_KB_ALLOWED.has(x)))
       for (const m of fs.readFileSync(f, 'utf8').matchAll(ANY_IMPORT)) {
         const hit = resolveSpec(f, m[1]!);
         if ((hit && inKb(hit)) || /(^|\/)lib\/kb(\/|$)/.test(m[1]!)) offenders.push(`${rel(f)} → ${m[1]}`);
       }
     expect(offenders).toEqual([]);
+  });
+
+  it('the Search page is loaded only lazily: the entry does not reach it, and App imports it dynamically', () => {
+    const graph = staticGraph([path.join(ROOT, 'src', 'main.tsx')]);
+    expect(graph.has(SEARCH_PAGE)).toBe(false);
+    expect(fs.readFileSync(path.join(ROOT, 'src', 'App.tsx'), 'utf8')).toContain("lazy(() => import('./ui/pages/Search')");
+  });
+
+  it('the Search page reaches the search core only: no builder, number function, engine, bot, simulator or script', () => {
+    const graph = [...staticGraph([SEARCH_PAGE])].map(rel);
+    expect(graph).toContain('src/lib/kb/search.ts');
+    expect(graph).toContain('src/lib/kb/site.ts');
+    const banned = /^(src\/lib\/kb\/build\/|src\/lib\/kb\/(facts|factNames|eval|dossier)\.ts$|src\/lib\/(eventFacts|cardFacts)\.ts$|src\/(engine|ai|sim|analysis)\/|scripts\/|tools\/|src\/data\/)/;
+    expect(banned.test('src/lib/kb/build/pack.ts') && banned.test('src/engine/cards.ts') && !banned.test('src/lib/kb/search.ts')).toBe(true);
+    expect(graph.filter((f) => banned.test(f))).toEqual([]);
+    // and not dynamically either, from the page or the kb modules it reaches
+    const dynamic: string[] = [];
+    const DYNAMIC = /\bimport\s*\(\s*['"]([^'"]+)['"]/g;
+    for (const f of graph.filter((x) => x.startsWith('src/lib/kb/') || x === 'src/ui/pages/Search.tsx'))
+      for (const m of fs.readFileSync(path.join(ROOT, f), 'utf8').matchAll(DYNAMIC)) dynamic.push(`${f} → ${m[1]}`);
+    expect(dynamic).toEqual([]);
   });
 
   it('the guard sees an import into src/lib/kb when there is one', () => {

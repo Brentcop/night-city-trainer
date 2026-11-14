@@ -3,11 +3,20 @@ import { GLOSSARY } from '../../content/glossary';
 import { PageHead } from '../components/PageHead';
 import { MentionText } from '../components/CardMention';
 
+type Term = (typeof GLOSSARY)[number];
+
+/** Whether a term's own words hold `q` (any case): its name, group, definition, rule and notes, never the field names. */
+export function termMatches(t: Term, q: string): boolean {
+  if (!q) return true;
+  const own = [t.term, t.group, t.def, t.rule, t.engine, t.bot].filter((x): x is string => typeof x === 'string');
+  return own.join('\n').toLowerCase().includes(q.toLowerCase());
+}
+
 /** `initial`: a term to search for at once (`#/glossary?q=Lag`, the tutorial's links). */
 export function GlossaryPage({ initial }: { initial?: string }) {
   const [q, setQ] = useState(initial ?? '');
   const groups = [...new Set(GLOSSARY.map((t) => t.group))];
-  const match = (t: (typeof GLOSSARY)[number]) => !q || JSON.stringify(t).toLowerCase().includes(q.toLowerCase());
+  const match = (t: Term) => termMatches(t, q);
   return (
     <div className="grid">
       <PageHead kicker="Learn" title="Glossary & bot toolkit" actions={<input aria-label="Search terms" placeholder="Search terms…" value={q} onChange={(e) => setQ(e.target.value)} />}>

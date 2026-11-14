@@ -185,10 +185,10 @@ describe('parser', () => {
 });
 
 describe('features and pages', () => {
-  it('every feature has a default, and every one is on', () => {
+  it('every feature has a default, and every one is on but the site search, which ships switched off', () => {
     const d = defaultSiteConfig();
     expect(Object.keys(d.features).sort()).toEqual([...FEATURES].sort());
-    expect(FEATURES.filter((f) => !d.features[f])).toEqual([]);
+    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['search']);
   });
   it('multi-day games: whole days within bounds, min ≤ default ≤ max, and a cap on ongoing games', () => {
     expect(defaultSiteConfig().multiDay).toEqual({ minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 });

@@ -37,7 +37,7 @@ export const SITE_CONFIG_FILE = 'site-config.json';
 
 // ---------------------------------------------------------------- features
 
-export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat'] as const;
+export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search'] as const;
 export type FeatureName = (typeof FEATURES)[number];
 export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; default: boolean }> = {
   coach: { label: 'Coach', help: 'The coach in Play: suggested moves, warnings and the move grades.', default: true },
@@ -56,6 +56,11 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
     default: true,
   },
   chat: { label: 'Chat', help: 'The text chat between the two players of an online game.', default: true },
+  search: {
+    label: 'Site search',
+    help: 'The Search page (Learn → Search, #/search): answers questions about cards, decks, game plans, packages, the glossary, guides, events, ratings and play statistics in the browser. Off until the owner turns it on.',
+    default: false,
+  },
 };
 
 // ---------------------------------------------------------------- navigation catalogue
@@ -70,7 +75,7 @@ export const NAV_CATALOG: readonly { id: SectionId; label: string; icon: string;
   { id: 'decks', label: 'Decks', icon: '▤', pages: ['decks', 'tuned', 'lab'], extra: ['deck'], subnav: true },
   { id: 'play', label: 'Play', icon: '▶', pages: ['play'], extra: [], subnav: false },
   { id: 'tournaments', label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], extra: [], subnav: true },
-  { id: 'learn', label: 'Learn', icon: '♟', pages: ['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits'], extra: [], subnav: true },
+  { id: 'learn', label: 'Learn', icon: '♟', pages: ['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits', 'search'], extra: [], subnav: true },
   { id: 'profile', label: 'Profile', icon: '◉', pages: ['profile'], extra: ['u'], subnav: false },
 ];
 
@@ -94,6 +99,7 @@ export const PAGE_LABEL: Readonly<Record<string, string>> = {
   glossary: 'Glossary',
   insights: 'Card stats',
   credits: 'Credits',
+  search: 'Search',
   profile: 'Profile',
   u: 'Shared profile',
 };
@@ -103,6 +109,7 @@ export const PAGE_FEATURES: Readonly<Record<string, readonly FeatureName[]>> = {
   lab: ['deckLab'],
   run: ['tournamentRunner'],
   tuned: ['tunedDecks'],
+  search: ['search'],
   profile: ['profile'],
   u: ['profile', 'profileSharing'],
 };

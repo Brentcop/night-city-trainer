@@ -128,8 +128,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 2.2 | Event, round, rating and matchup records from templates; movement around the cut and upsets | done in the pack; Gig margins and site files later | 2026-11-14 |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
 | 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; reached by everyday wording since 4.7b; site files later | 2026-11-14 |
-| 3.1 | Public pack, byte budgets, guards | waiting: D1, D2 | |
-| 3.2 | Search and dossiers on the site behind a feature flag | waiting: D1, D2, D3 | |
+| 3.1 | Public pack, byte budgets, guards | done: shards built with the site, named by content hash, budgets checked by the build | 2026-11-14 |
+| 3.2 | Search and dossiers on the site behind a feature flag | done: the Search page behind the feature `search`, off until the owner turns it on; card-ruling dossiers wait on D2 | 2026-11-14 |
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
@@ -411,6 +411,32 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
 - 3.2 A search box and dossier panels (card rulings, deck profile) behind a `FEATURES` flag, loaded on
   intent only. Glossary search is repaired on the way (it matches JSON field names today).
 - Waits on D1, D2 and D3, and on the tutorial work finishing its `siteConfig.ts` edits.
+- Landed 2026-11-14, with the owner's go-ahead for a search that ships switched off, stays serverless and
+  leaves out the FAQ paraphrases and any model-written text.
+  - The pack is built when the site is built, by a Vite plugin (`kbSitePack` in `vite.config.ts`,
+    `tools/kb-site.ts`), not kept as files under `public/data/kb/`. A content edit can therefore never
+    leave a stale pack behind, nothing generated is committed, and `check:data` needs no freshness rule.
+    The manifest sits inside the page's own hashed chunk, so a deploy never pairs an old manifest with
+    new shards.
+  - What ships: twelve public kinds (card, deck, objective, package, term, guide, event, round, rating,
+    matchup, cardstat, pkgstat). Never `ruling` (D2), `doc`, `code` or a local record; a test proves it.
+  - What loads when: nothing until the visitor types. The first search fetches `core` (450 records,
+    79 kB gzip) and `events` (229 records, 33 kB). Each statistics shard (82 and 87 kB) is fetched only
+    when a question asks for statistics, and the page searches again when it arrives. A test shows the
+    ranking without the statistics shards equals the ranking with the whole site pack.
+  - The old budgets did not survive the statistics records: a first search is 112 kB gzip (planned 50),
+    everything is 281 kB (planned 150), the page chunk 11.8 kB (planned 10). The build now fails when a
+    shard or the chunk passes a limit a little above today's size (`tools/size-budget.ts`).
+  - With the flag off the site is unchanged apart from 577 bytes in the entry chunk (the route and the
+    flag's text). `#/search` then says the page is turned off.
+  - Looked at in a browser on a fresh port (no saved games involved): flag off, flag previewed on, a
+    statistics question, "no match", phone width and both themes. Not checked: a real phone's timing,
+    and a screen reader.
+  - To switch it on for visitors: `#/admin`, tick Site search, download `site-config.json`, replace
+    `public/site-config.json`, commit.
+  - Known gaps: an excerpt shows the start of a record, not the sentence that answers; about 46 signal
+    and condition terms have no page to link to; in the dev server an open page keeps its old manifest
+    after an input file is edited, until reload.
 
 ### Step 4. Experiments
 
@@ -764,6 +790,9 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Cost of the two mechanisms | about 96 lines of code; search time per question unchanged (mean 2.3 ms in process); mean answer 506 to 526 tokens | step 4.7b |
 | 2026-11-14 | Do earlier ratings name a match winner? 641 judged matches, events 3 to 7 | favourite given 50 to 60% a game won 128 of 256 (50%); 60 to 70%: 112 of 205 (55%); 70% or more: 150 of 180 (83%) | step 2.1 |
 | 2026-11-14 | Answer size from `kb fact upsets` and the richer `kb fact round` | upsets of one event 534 to 619 tokens, of one round 285; a round summary 714 to 847 | step 2.2 |
+| 2026-11-14 | Site pack, gzip | core 450 records 79.4 kB, events 229 records 33.0 kB, card statistics 205 records 81.9 kB, package statistics 342 records 86.9 kB; first search 112.4 kB; page chunk 11.8 kB | step 3 |
+| 2026-11-14 | Site index build (Node, as a stand-in for a browser) | first two shards 45 to 60 ms, all four about 160 ms; one question 1 to 3 ms | step 3 |
+| 2026-11-14 | Search quality on exactly the site pack (73 questions skipped: they expect a ruling, doc, code or local record) | held-out answerable (80): top 1 50%, top 5 68%, top 10 74%, MRR 0.59; 5 of 80 wrongly refused; 7 of 7 unanswerable refused | step 3 |
 | 2026-11-14 | Cost of growth: round and event records with movement and upsets (286 questions) | 6 questions changed rank (3 up, 3 down); all records: top 5 −0.4 points [−1.1, 0], MRR −0.002 [−0.007, +0.001]; public: top 5 −0.9 [−2.2, 0]. Held-out answerable (108): top 5 67.6% to 66.7%, MRR 0.552 to 0.548 | step 2.2 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
@@ -789,9 +818,9 @@ The owner decides these. Until then the stopgap in the last column applies, and 
 
 | # | Decision | Stopgap in force |
 |---|---|---|
-| D1 | First user: the owner and agents, or site visitors? | Local tool first; the site waits. |
-| D2 | May the 311 FAQ paraphrases be shown to visitors as per-card rulings? | In the pack, not on the site. |
-| D3 | LLM-written text on the site: none, reviewed drafts, or opt-in with the visitor's key? | None. |
+| D1 | First user: the owner and agents, or site visitors? | The site search is built and switched off; the owner turns it on (answered 2026-11-14: build it behind a flag). |
+| D2 | May the 311 FAQ paraphrases be shown to visitors as per-card rulings? | In the pack, not on the site: rulings are not in the site pack (tested). |
+| D3 | LLM-written text on the site: none, reviewed drafts, or opt-in with the visitor's key? | None: the site pack is template sentences and the site's own content. |
 | D4 | May a local tool send rules or FAQ wording to a hosted model? | No. Steps 0 to 3 call no API. |
 | D5 | Old sim versions: keep as history or keep only the current one? | Current only; older marked stale. |
 | D6 | "Top 8": any Swiss finish in the first eight, or a real top-cut appearance? | Unchanged; see below. |
@@ -910,3 +939,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
   ranker's word counts was meant to stop new events from shifting unrelated results; on the tuning
   questions it refused one more answerable question and gained nothing, so it stopped there, with no
   look at the held-out questions.
+- 2026-11-14: step 3 landed behind the feature `search`, which is off. The Search page answers in the
+  visitor's browser from a pack built with the site; nothing is fetched until they type and nothing they
+  type leaves the browser. The Glossary page's own search, which matched JSON field names ("def",
+  "term"), was fixed on the way.

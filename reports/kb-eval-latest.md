@@ -12,7 +12,7 @@ Scopes: public 246, local 40. Splits: dev 171, test 115. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-4003 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+4009 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -29,7 +29,7 @@ Stale expectations: none.
 | exact+keyword | test | 108 | 30.6 | 62.0 | 74.1 | 0.447 | 519 | 621 | 1 of 7 (14.3%) | 5 of 108 (4.6%) |
 | exact+keyword | all | 268 | 34.3 | 64.6 | 73.1 | 0.472 | 520 | 621 | 4 of 18 (22.2%) | 14 of 268 (5.2%) |
 | exact+linked+keyword | dev | 160 | 53.8 | 73.8 | 78.8 | 0.624 | 524 | 656 | 3 of 11 (27.3%) | 9 of 160 (5.6%) |
-| exact+linked+keyword | test | 108 | 44.4 | 66.7 | 74.1 | 0.548 | 526 | 649 | 1 of 7 (14.3%) | 5 of 108 (4.6%) |
+| exact+linked+keyword | test | 108 | 44.4 | 66.7 | 74.1 | 0.548 | 527 | 649 | 1 of 7 (14.3%) | 5 of 108 (4.6%) |
 | exact+linked+keyword | all | 268 | 50.0 | 70.9 | 76.9 | 0.593 | 525 | 652 | 4 of 18 (22.2%) | 14 of 268 (5.2%) |
 
 ### By question type
@@ -61,7 +61,7 @@ Stale expectations: none.
 | keyword | paraphrase | dev | 40 | 30.0 | 55.0 | 60.0 | 0.408 | 8 |
 | keyword | cross | dev | 14 | 50.0 | 78.6 | 85.7 | 0.633 | 0 |
 | keyword | number | dev | 28 | 35.7 | 39.3 | 39.3 | 0.369 | 4 |
-| keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.744 | 0 |
+| keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.743 | 0 |
 | keyword | rules | dev | 23 | 30.4 | 56.5 | 60.9 | 0.412 | 2 |
 | keyword | stat | dev | 24 | 0.0 | 4.2 | 4.2 | 0.008 | 10 |
 | keyword | entity | test | 10 | 50.0 | 100.0 | 100.0 | 0.717 | 0 |
@@ -82,7 +82,7 @@ Stale expectations: none.
 | exact+keyword | paraphrase | dev | 40 | 22.5 | 57.5 | 62.5 | 0.376 | 7 |
 | exact+keyword | cross | dev | 14 | 14.3 | 78.6 | 85.7 | 0.431 | 0 |
 | exact+keyword | number | dev | 28 | 57.1 | 78.6 | 78.6 | 0.667 | 0 |
-| exact+keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.744 | 0 |
+| exact+keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.743 | 0 |
 | exact+keyword | rules | dev | 23 | 30.4 | 56.5 | 60.9 | 0.393 | 2 |
 | exact+keyword | stat | dev | 24 | 0.0 | 29.2 | 50.0 | 0.115 | 0 |
 | exact+keyword | entity | test | 10 | 80.0 | 100.0 | 100.0 | 0.900 | 0 |
@@ -103,7 +103,7 @@ Stale expectations: none.
 | exact+linked+keyword | paraphrase | dev | 40 | 22.5 | 52.5 | 62.5 | 0.372 | 7 |
 | exact+linked+keyword | cross | dev | 14 | 71.4 | 100.0 | 100.0 | 0.827 | 0 |
 | exact+linked+keyword | number | dev | 28 | 64.3 | 78.6 | 78.6 | 0.714 | 0 |
-| exact+linked+keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.744 | 0 |
+| exact+linked+keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.743 | 0 |
 | exact+linked+keyword | rules | dev | 23 | 30.4 | 52.2 | 60.9 | 0.384 | 2 |
 | exact+linked+keyword | stat | dev | 24 | 70.8 | 79.2 | 83.3 | 0.746 | 0 |
 | exact+linked+keyword | entity | test | 10 | 80.0 | 100.0 | 100.0 | 0.900 | 0 |
@@ -146,14 +146,14 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 | q121 | is there an iphone app I can download | doc:docs/IMPROVEMENT_BACKLOG.md#wp-c3-pages-accessibility-css-and-structure~2 (WP-C3 · Pages accessibility, CSS and structure (part 2)); doc:docs/REVIEW_2026-11-13.md#newer-features-app~5 (Newer features (APP) (part 5)); code:src/lib/download.ts (src/lib/download.ts) |
 | q122 | how many players are in a game of magic the gathering commander | doc:docs/DECISION_TELEMETRY.md#record-schema-version-1~3 (Record schema (version 1) (part 3)); trule:3.4; trule:D.2 |
 | q124 | what is a foil johnny silverhand selling for on ebay | card:johnny_silverhand_never_stop_fighting (Johnny Silverhand: Never Stop Fighting); card:johnny_silverhand_rocking_renegade (Johnny Silverhand: Rocking Renegade); faq:e512816e |
-| q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~19 (Keys (part 19)); trule:E.2 |
+| q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~22 (Keys (part 22)); trule:E.2 |
 | q127 | what time does my local game store open on saturdays | doc:docs/BOT_TOOLKIT.md#game-review-a-rating-for-every-move-src-lib-gamereview-ts~20 (Game review: a rating for every move (src/lib/gameReview.ts) (part 20)); doc:README.md#night-city-trainer-cyberpunk-tcg-practice-simulator (Night City Trainer — Cyberpunk TCG practice simulator); trule:3.3 |
 | q224 | how many cards are in a hearthstone deck | rule:11.17.3; code:src/lib/deckSearch.ts (src/lib/deckSearch.ts); doc:docs/ROADMAP2.md#1-synergy-packages-and-evidence-thresholds-requested-2026-11-11~5 (1. Synergy packages and evidence thresholds (requested 2026-11-11) (part 5)) |
 | q226 | who drew the art on the judy alvarez cards | card:judy_alvarez_braindance_maestro (Judy Álvarez: Braindance Maestro); card:judy_alvarez_nothing_to_doubt (Judy Álvarez: Nothing to Doubt); ruling:3dbd8dd8 (Judy Álvarez: Braindance Maestro ruling 1) |
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2979 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 40.
+2985 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 40.
 Stale expectations: none.
 
 ### By configuration and split
@@ -166,7 +166,7 @@ Stale expectations: none.
 | keyword | dev | 136 | 37.5 | 52.9 | 57.4 | 0.443 | 458 | 612 | 4 of 11 (36.4%) | 23 of 136 (16.9%) |
 | keyword | test | 92 | 27.2 | 46.7 | 52.2 | 0.356 | 498 | 626 | 4 of 7 (57.1%) | 9 of 92 (9.8%) |
 | keyword | all | 228 | 33.3 | 50.4 | 55.3 | 0.408 | 474 | 616 | 8 of 18 (44.4%) | 32 of 228 (14.0%) |
-| exact+keyword | dev | 136 | 36.8 | 66.2 | 74.3 | 0.496 | 523 | 625 | 3 of 11 (27.3%) | 8 of 136 (5.9%) |
+| exact+keyword | dev | 136 | 36.8 | 66.2 | 74.3 | 0.496 | 524 | 625 | 3 of 11 (27.3%) | 8 of 136 (5.9%) |
 | exact+keyword | test | 92 | 34.8 | 63.0 | 76.1 | 0.478 | 528 | 626 | 4 of 7 (57.1%) | 3 of 92 (3.3%) |
 | exact+keyword | all | 228 | 36.0 | 64.9 | 75.0 | 0.489 | 525 | 626 | 7 of 18 (38.9%) | 11 of 228 (4.8%) |
 | exact+linked+keyword | dev | 136 | 56.6 | 77.2 | 81.6 | 0.658 | 529 | 664 | 3 of 11 (27.3%) | 8 of 136 (5.9%) |
@@ -275,7 +275,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 | q121 | is there an iphone app I can download | doc:docs/IMPROVEMENT_BACKLOG.md#wp-c3-pages-accessibility-css-and-structure~2 (WP-C3 · Pages accessibility, CSS and structure (part 2)); doc:docs/REVIEW_2026-11-13.md#newer-features-app~5 (Newer features (APP) (part 5)); code:src/lib/download.ts (src/lib/download.ts) |
 | q122 | how many players are in a game of magic the gathering commander | doc:docs/DECISION_TELEMETRY.md#record-schema-version-1~3 (Record schema (version 1) (part 3)); doc:docs/IMPROVEMENT_BACKLOG.md#wp-c4-type-hardening-and-engine-structure~3 (WP-C4 · Type hardening and engine structure (part 3)); doc:docs/SYNERGIES.md#deck-lab-lab~3 (Deck Lab (#/lab) (part 3)) |
 | q124 | what is a foil johnny silverhand selling for on ebay | card:johnny_silverhand_never_stop_fighting (Johnny Silverhand: Never Stop Fighting); card:johnny_silverhand_rocking_renegade (Johnny Silverhand: Rocking Renegade); pkg:rocker (Rocker Units (Johnny Silverhand)) |
-| q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~19 (Keys (part 19)); doc:docs/SITE_CONFIG.md#keys~18 (Keys (part 18)) |
+| q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~22 (Keys (part 22)); doc:docs/SITE_CONFIG.md#keys~21 (Keys (part 21)) |
 | q127 | what time does my local game store open on saturdays | doc:docs/BOT_TOOLKIT.md#game-review-a-rating-for-every-move-src-lib-gamereview-ts~20 (Game review: a rating for every move (src/lib/gameReview.ts) (part 20)); doc:README.md#night-city-trainer-cyberpunk-tcg-practice-simulator (Night City Trainer — Cyberpunk TCG practice simulator); doc:docs/RESEARCH.md#open-questions-and-caveats (Open questions and caveats) |
 | q224 | how many cards are in a hearthstone deck | code:src/lib/deckSearch.ts (src/lib/deckSearch.ts); doc:docs/ROADMAP2.md#1-synergy-packages-and-evidence-thresholds-requested-2026-11-11~5 (1. Synergy packages and evidence thresholds (requested 2026-11-11) (part 5)); doc:docs/SYNERGIES.md#deck-lab-lab~3 (Deck Lab (#/lab) (part 3)) |
 | q226 | who drew the art on the judy alvarez cards | card:judy_alvarez_braindance_maestro (Judy Álvarez: Braindance Maestro); card:judy_alvarez_nothing_to_doubt (Judy Álvarez: Nothing to Doubt); ruling:3dbd8dd8 (Judy Álvarez: Braindance Maestro ruling 1) |

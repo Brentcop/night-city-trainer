@@ -8,7 +8,8 @@ import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 // the Decisions and Synergies views and their reports (public/data/decisions.json, synergies.json) load only when opened
 const DecisionStats = lazy(() => import('../components/DecisionStats').then((m) => ({ default: m.DecisionStats })));
 const SynergyStats = lazy(() => import('../components/SynergyStats').then((m) => ({ default: m.SynergyStats })));
-type View = 'draws' | 'decisions' | 'synergies';
+const VIEWS = ['draws', 'decisions', 'synergies'] as const;
+type View = (typeof VIEWS)[number];
 
 function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
   return (
@@ -26,10 +27,11 @@ function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => voi
   );
 }
 
-export function InsightsPage({ initial }: { initial?: string }) {
+/** `initial`: a deck name (`?d=`); `view`: the view to open (`?v=decisions` or `synergies`, the site search's links). */
+export function InsightsPage({ initial, view: initialView }: { initial?: string; view?: string }) {
   const A = ANALYSIS;
   const [sel, setSel] = useState(A.decks.find((d) => d.deck === initial)?.deck ?? A.decks[0]?.deck);
-  const [view, setView] = useState<View>('draws');
+  const [view, setView] = useState<View>(VIEWS.find((v) => v === initialView) ?? 'draws');
   const r = A.decks.find((d) => d.deck === sel);
   if (!A.decks.length)
     return (

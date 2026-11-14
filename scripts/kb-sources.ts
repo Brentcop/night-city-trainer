@@ -45,11 +45,12 @@ const FAQ_ENTRIES_DIR = 'tests/faq/entries';
 const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
 /**
- * Not read: the tutorial content (being written), generated modules, unmaintained one-off scripts. The `insights`
+ * Not read: the tutorial content (being written), generated modules, unmaintained one-off scripts, and the pack's own
+ * code (rule M12; the site pack's build tool and manifest type since step 3). The `insights`
  * arrays of src/data/analysis.json are not read either (they come with the measured cells, plan step 2.4), and neither
  * are archived decks (D9).
  */
-const CODE_SKIP = [/^src\/content\/tutorial\//, /^src\/content\/(tournamentPlan|recommendation)\.ts$/, /^scripts\/archive\//, /^src\/lib\/kb\//, /^scripts\/kb(-[a-z]+)?\.ts$/];
+const CODE_SKIP = [/^src\/content\/tutorial\//, /^src\/content\/(tournamentPlan|recommendation)\.ts$/, /^scripts\/archive\//, /^src\/lib\/kb\//, /^scripts\/kb(-[a-z]+)?\.ts$/, /^tools\/kb-site\.ts$/, /^src\/ui\/kbSite\.d\.ts$/];
 /**
  * The pack does not index material about itself (docs/RAG_PLAN.md rule M12): its plan and its own code headers quote
  * example questions and everyday words ("tap", "graveyard"), so they would compete with the records those questions

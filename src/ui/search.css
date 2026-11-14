@@ -1,0 +1,59 @@
+/* #/search (src/ui/pages/Search.tsx): the site's own tokens only, both themes from themes.css; loaded with the page */
+.kb-search {
+  display: grid;
+  gap: 8px;
+}
+.kb-search-label {
+  font-weight: 600;
+}
+.kb-search-input {
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  font-size: 16px; /* no zoom on focus in phone browsers */
+}
+.kb-search-status {
+  margin: 0;
+  min-height: 1.4em;
+}
+.kb-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.kb-hits {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+}
+.kb-hit {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.kb-hit:last-child {
+  border-bottom: 0;
+}
+.kb-hit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.kb-hit-title {
+  font-size: 17px;
+  margin: 6px 0 4px;
+  overflow-wrap: anywhere;
+}
+.kb-hit-text {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+.kb-hit-basis,
+.kb-hit-where {
+  margin: 2px 0 0;
+}
+.tag.kb-stale {
+  border-color: var(--red);
+  color: var(--red);
+}

@@ -85,6 +85,7 @@ const TunedDecksPage = lazy(() => import('./ui/pages/TunedDecks').then((m) => ({
 const DeckLabPage = lazy(() => import('./ui/pages/DeckLab').then((m) => ({ default: m.DeckLabPage })));
 const ProfilePage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfilePage })));
 const ProfileViewPage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfileViewPage })));
+const SearchPage = lazy(() => import('./ui/pages/Search').then((m) => ({ default: m.SearchPage })));
 const AdminPage = lazy(() => import('./ui/pages/Admin').then((m) => ({ default: m.AdminPage })));
 
 /** `sub` is the rest of the path after the route's own (`#/profile/history` → 'history'); most pages ignore it. */
@@ -105,8 +106,9 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'guides', label: 'Strategy', el: (q) => <GuidesPage initial={q.get('g') ?? undefined} /> },
   { path: 'cards', label: 'Cards', el: () => <CardsPage /> },
   { path: 'glossary', label: 'Glossary', el: (q) => <GlossaryPage initial={q.get('q') ?? undefined} /> },
-  { path: 'insights', label: 'Card stats', el: (q) => <InsightsPage initial={q.get('d') ?? undefined} /> },
+  { path: 'insights', label: 'Card stats', el: (q) => <InsightsPage initial={q.get('d') ?? undefined} view={q.get('v') ?? undefined} /> },
   { path: 'credits', label: 'Credits', el: () => <CreditsPage /> },
+  { path: 'search', label: 'Search', el: () => <SearchPage /> },
   { path: 'profile', label: 'Profile', el: (_q, sub) => <ProfilePage sub={sub} /> },
   { path: 'u', label: 'Shared profile', el: (_q, sub) => <ProfileViewPage payload={sub} /> },
   // the owner's site config editor: not in the nav, never turned off, and not a security boundary (it only builds a file)

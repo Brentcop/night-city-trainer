@@ -181,6 +181,6 @@ describe('APP-14: worker size budget', () => {
     expect(budgetProblems(ok.slice(1))).toEqual(['the game worker was not built; update WORKER_BUDGET_KB in tools/size-budget.ts']);
   });
   it('the build runs the check', () => {
-    expect(src('vite.config.ts')).toMatch(/plugins: \[react\(\), siteConfigInline\(\), workerBudget\(\)\]/);
+    expect(src('vite.config.ts')).toMatch(/plugins: \[react\(\), siteConfigInline\(\), workerBudget\(\), kbSitePack\(\), kbOwnFoldText\(\)\]/);
   });
 });
