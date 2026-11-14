@@ -58,32 +58,28 @@ describe('the yardstick takes the same games as the ratings', () => {
 describe('movement on a real round, checked by hand', () => {
   const ev6 = EVENTS.find((e) => e.id === 6);
 
-  // Event 6, round 9 (the last Swiss round, top cut of 8). In round 9 the two decks that moved in won (Jackie / Alt /
-  // Hanako beat Rockerboy Express 2-1, Rogue Gear beat Chrome Rockers 2-1) and the two that dropped out lost (Smasher Aggro
-  // lost 0-2 to Merc Contract, Mutant (RGG) 1-2 to Adam). After round 8 Smasher Aggro was on 18 match points (places 4 to
-  // 7) and the other three on 15 (places 8 to 16); after round 9 places 7 to 11 are all on 18 points.
+  // Event 6, round 9 (the last Swiss round, top cut of 8), as re-recorded on SIM_VERSION 9 (2026-11-14; re-checked by hand
+  // from the round results: match points, OMW and GWP rebuilt independently, the same order as the stored standings). In
+  // round 9 the deck that moved in won (V / Smasher / Padre beat S1-05 Cross 2-0) and the one that dropped out lost
+  // (Braindance Burn lost 1-2 to V / Smasher / Saburo). After round 8 both were on 15 match points (places 7 to 18),
+  // Braindance Burn 7th and Padre 10th on OMW; after round 9 places 6 to 12 are all on 18 points.
   it.skipIf(!ev6)('event 6 round 9: who moved in and out of the top 8, the cut and who missed it on tiebreakers', () => {
     const m = roundMovement(ev6!, 9);
     expect(m).toMatchObject({ notApplicable: null, cut: 8, hasBefore: true });
-    expect(m.movedIn.map((c) => [c.deck, c.before, c.place])).toEqual([
-      ['Ladder: Jackie / Alt / Hanako (BBG)', 12, 7],
-      ['YYB Rogue Gear', 11, 8],
-    ]);
-    expect(m.droppedOut.map((c) => [c.deck, c.before, c.place])).toEqual([
-      ['RRY Smasher Aggro', 7, 10],
-      ['S2-02 Mutant (RGG)', 8, 12],
-    ]);
+    expect(m.movedIn.map((c) => [c.deck, c.before, c.place])).toEqual([['Ladder: V / Smasher / Padre (RRG)', 10, 8]]);
+    expect(m.droppedOut.map((c) => [c.deck, c.before, c.place])).toEqual([['NC-07 Braindance Burn (RRB)', 7, 14]]);
     // the cut line equals the stored standings and the recorded seeds
     const cl = m.cutLine!;
     expect(cl.made.map((r) => r.deck)).toEqual(ev6!.standings.slice(0, 8).map((s) => s.deck));
     expect(cl.seedsAgree).toBe(true);
-    expect(cl.last).toMatchObject({ deck: 'YYB Rogue Gear', place: 8, mp: 18, matchRecord: '6-3' });
+    expect(cl.last).toMatchObject({ deck: 'Ladder: V / Smasher / Padre (RRG)', place: 8, mp: 18, matchRecord: '6-3' });
     expect(cl.missedOnTiebreak.map((r) => [r.deck, r.place, r.separatedBy])).toEqual([
-      ['YYY Adam v1 - Ready for Brawl', 9, 'omw'],
-      ['RRY Smasher Aggro', 10, 'omw'],
-      ['S1-04 Cross (RBG)', 11, 'omw'],
+      ['RRG Dexter Midrange', 9, 'omw'],
+      ['Ladder: V / Smasher / Saburo (RRG)', 10, 'omw'],
+      ['BBG Cunningham Econ', 11, 'omw'],
+      ['YYY Adam v1 - Ready for Brawl', 12, 'omw'],
     ]);
-    expect(ev6!.standings[11]!.mp).toBeLessThan(18);
+    expect(ev6!.standings[12]!.mp).toBeLessThan(18);
     // a climb and a drop are the largest change in places, every deck that made it
     const before = new Map(standingsAfter(ev6!, 8).rows.map((r) => [r.deck, r.place]));
     const gains = standingsAfter(ev6!, 9).rows.map((r) => before.get(r.deck)! - r.place);

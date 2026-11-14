@@ -338,6 +338,10 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
     5 judged matches of 178, because the decks had too few earlier games.
   - The line was chosen on the same 641 matches it is applied to. It is a label with its evidence
     beside it, not a tested prediction.
+  - Re-measured the same day on the events as re-recorded on SIM_VERSION 9 (both constants kept): over
+    642 judged matches, favourites given 50 to 60% a game won 130 of 253 (51%), 60 to 70% 130 of 211
+    (62%), 70% or more 138 of 178 (78%). Counts: 40 upsets in events 4 to 7 (14, 1, 18, 7); event 3
+    has 1 judged match of 178.
 - Not built yet: anything needing Gig margins.
 
 **2.2 Sheets.**
@@ -792,6 +796,9 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Answer size from `kb fact upsets` and the richer `kb fact round` | upsets of one event 534 to 619 tokens, of one round 285; a round summary 714 to 847 | step 2.2 |
 | 2026-11-14 | Site pack, gzip | core 450 records 79.4 kB, events 229 records 33.0 kB, card statistics 205 records 81.9 kB, package statistics 342 records 86.9 kB; first search 112.4 kB; page chunk 11.8 kB | step 3 |
 | 2026-11-14 | Site index build (Node, as a stand-in for a browser) | first two shards 45 to 60 ms, all four about 160 ms; one question 1 to 3 ms | step 3 |
+| 2026-11-14 | Do earlier ratings name a match winner? Events re-recorded on SIM_VERSION 9, 642 judged matches, events 3 to 7 | favourite given 50 to 60% a game won 130 of 253 (51%); 60 to 70%: 130 of 211 (62%); 70% or more: 138 of 178 (78%); 40 upsets | step 2.1 |
+| 2026-11-14 | Evaluation re-run on the SIM_VERSION 9 data | the 11 two-deck questions whose pairing has fewer than 6 games on version 9 (q107, q113, q145, q198, q280-q286; 4 held out) expected a matchup record no longer in the pack; on the other 257 answerable questions no rank moved (default search: top 5 ±0.0, MRR +0.000) | SIM_VERSION 9 |
+| 2026-11-14 | Same, with those 11 expectations corrected to the two decks' rating records (rule M9; not reworded) | held-out answerable (108), all records: top 1 42%, top 5 64%, top 10 71%, MRR 0.52 (was 44%, 67%, 74%, 0.55); public only (92): top 5 65%, MRR 0.57 (was 69%, 0.60); held-out number questions (19): top 5 58% (was 74%). The default search does not bring either rating record into the first ten for a pairing with no matchup record: −21 points on number questions over both splits (10 of 47) | SIM_VERSION 9 |
 | 2026-11-14 | Search quality on exactly the site pack (73 questions skipped: they expect a ruling, doc, code or local record) | held-out answerable (80): top 1 50%, top 5 68%, top 10 74%, MRR 0.59; 5 of 80 wrongly refused; 7 of 7 unanswerable refused | step 3 |
 | 2026-11-14 | Cost of growth: round and event records with movement and upsets (286 questions) | 6 questions changed rank (3 up, 3 down); all records: top 5 −0.4 points [−1.1, 0], MRR −0.002 [−0.007, +0.001]; public: top 5 −0.9 [−2.2, 0]. Held-out answerable (108): top 5 67.6% to 66.7%, MRR 0.552 to 0.548 | step 2.2 |
 

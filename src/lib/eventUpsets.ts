@@ -14,19 +14,22 @@
 // match won by the deck whose chance per game was at most UPSET_MAX_CHANCE. An upset is a statement about a prediction,
 // not about a deck's worth.
 //
-// How the two constants were chosen (2026-11-14, sim version 8, hard bot, events 2 to 7; regenerate with
-// `upsetCalibration`):
+// How the two constants were chosen (2026-11-14, sim version 8, hard bot, events 2 to 7), and the evidence regenerated
+// with `upsetCalibration` on the events as re-recorded on sim version 9 (2026-11-14, hard bot, events 2 to 7):
 //   - MIN_EARLIER_GAMES = 18: the smallest count at which a deck's own rating sd (√ of its diagonal entry in the fit's
 //     covariance) is under 0.5, half the prior's sd of 1, so its games hold at least three quarters of the information
-//     and the prior's "average" at most a quarter. In the earlier fits the mean sd is 0.68 at 8 games, 0.62 at 12, 0.58
-//     at 16 and 0.55 at 17 (the decks of the two seven-deck four-round events), then 0.48 at 19 and 0.46 at 20 (no deck
-//     has 18); in sdRating terms the 90% range on the expected win rate against the field is 32 to 43 points wide at 8
-//     to 17 games and 24 to 33 at 19 to 20.
-//   - UPSET_MAX_CHANCE = 0.30. Over the 641 judged matches the favourite won 128 of 256 (50.0%) with a chance per game
-//     of 50 to 60%, 112 of 205 (54.6%) at 60 to 70%, and 150 of 180 (83.3%) at 70% or more: below 70% the earlier
-//     ratings barely beat a coin at naming the match winner, above it they clearly do. The mean sd of the rating
-//     difference in those matches is 0.44, and a 70% chance is a difference of about 0.85 (σ⁻¹(0.7)), about two of its
-//     own standard errors. So an underdog's win counts as an upset only when its chance per game was 30% or less.
+//     and the prior's "average" at most a quarter. In the earlier fits on version 9 the mean sd is 0.68 at 8 games, 0.61
+//     at 12, 0.59 at 15 and 0.57 at 17 (the decks of the two seven-deck four-round events), then 0.48 at 18 and 19 and
+//     0.47 at 20; in sdRating terms the 90% range on the expected win rate against the field is 31 to 46 points wide at 8
+//     to 17 games and 20 to 34 at 18 to 20. (Version 8: 0.68 at 8, 0.62 at 12, 0.58 at 16, 0.55 at 17, then 0.48 at 19
+//     and 0.46 at 20, no deck at 18; 32 to 43 and 24 to 33 points.)
+//   - UPSET_MAX_CHANCE = 0.30. Over the 642 judged matches on version 9 the favourite won 130 of 253 (51.4%) with a
+//     chance per game of 50 to 60%, 130 of 211 (61.6%) at 60 to 70%, and 138 of 178 (77.5%) at 70% or more: below 60%
+//     the earlier ratings do no better than a coin at naming the match winner, between 60 and 70% only somewhat better,
+//     and at 70% or more clearly better. (Version 8, 641 matches: 128 of 256, 50.0%; 112 of 205, 54.6%; 150 of 180,
+//     83.3%.) The mean sd of the rating difference in those matches is 0.44 (both versions), and a 70% chance is a
+//     difference of about 0.85 (σ⁻¹(0.7)), about two of its own standard errors. So an underdog's win counts as an upset
+//     only when its chance per game was 30% or less (40 of the 642 judged matches on version 9; 30 of 641 on version 8).
 import { fitRatings, predictPair, type RatingFit } from './ratingModel';
 import { eventRatedGames, type GamesEvent } from './ratingGames';
 import { entrantBase } from './eventFormats';

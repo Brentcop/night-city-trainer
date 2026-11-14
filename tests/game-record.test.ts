@@ -56,8 +56,10 @@ function game(key: 'easy' | 'person' | 'mulligan'): Promise<ExportResult> {
     const spec: Record<typeof key, () => Promise<ExportResult>> = {
       easy: () => exportGame({ decks: [RRG, BBG], agents: [makeTierBot('easy', 7), makeTierBot('easy', 7784)], seed: 7, first: 0 }),
       person: () => exportGame({ decks: [GRY, YYB], agents: [new Person(11), makeTierBot('easy', 12)], seed: 11, first: 1 }),
-      // seed 162: a game with a mulligan, a search, mills, a block, a Go Solo, an ability and steals (docs/GAME_RECORD.md)
-      mulligan: () => exportGame({ decks: [GRY, BBG], agents: [makeTierBot('medium', 162), makeTierBot('medium', 162 + 7777)], seed: 162 }),
+      // seed 165: a game with a mulligan, a search, mills, a block, a Go Solo, an ability and steals. It was seed 162 (the
+      // worked example in docs/GAME_RECORD.md) until SIM_VERSION 9, whose bots play that deal with no search or block;
+      // 165 is the nearest seed whose game has every line kind checked below.
+      mulligan: () => exportGame({ decks: [GRY, BBG], agents: [makeTierBot('medium', 165), makeTierBot('medium', 165 + 7777)], seed: 165 }),
     };
     games.set(key, spec[key]());
   }

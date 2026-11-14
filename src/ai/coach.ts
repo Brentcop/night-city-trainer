@@ -6,8 +6,8 @@ import { activeSteer, holdCredit, obtainableOf, packageFacts, partnerName, seatP
 import { HeuristicAgent, standardError, worldValue, type DecisionScores } from './heuristic';
 import { makeWorlds, type World } from './playOut';
 import { BLUNDER } from './reviewer';
-import { BEST_PROFILES, classify, PLAN_TEXT, type ProfileKey } from './archetype';
-import { DECIDED_EVAL, GIG_SWING, knownCards } from './eval';
+import { BEST_PROFILES, PLAN_TEXT, type ProfileKey } from './archetype';
+import { DECIDED_EVAL, GIG_SWING, seatArchetype } from './eval';
 import { handFeatures } from './mulligan';
 import { behindText, gapFigure, gapSize, optionName } from '../lib/coachWords';
 import { fixedTerms, withinNoise } from '../lib/gameReview';
@@ -564,8 +564,8 @@ export async function scoreMoveRequest(q: ScoreRequest): Promise<GradedOption[]>
 
 /** Static matchup plan + deck tips for the human player (p = 0). */
 export function matchupTips(g: Game, p: PlayerId = 0): string[] {
-  const me = classify(knownCards(g, p, p)).arch;
-  const opp = classify(knownCards(g, other(p), other(p))).arch;
+  const me = seatArchetype(g, p);
+  const opp = seatArchetype(g, other(p));
   const tips: string[] = [`**Plan (${me} vs ${opp}):** ${PLAN_TEXT[`${me}>${opp}` as ProfileKey]}`];
   const top = topImpactCards(g.P(p), 3).filter((c) => c.iwd > 0.02);
   // an association from pooled bot games (confounded: docs/BOT_TOOLKIT.md §5), so no instruction to keep them

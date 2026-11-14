@@ -102,9 +102,17 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    differently; Easy too (the fast policy's sub-choices, plus easyGuard: it skips Programs that would do nothing).
  *    Measured in docs/BOT_TOOLKIT.md §6. 2026-11-13: every recorded event was re-recorded on version 8 with its own
  *    field, format, seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1).
+ * 9: whole-list reads. A seat's own Gig plan (planFor) and both seats' archetypes (seatArchetype, read by matchupRead,
+ *    the coach's tips and evalCalibration) come from every card the seat owns (ownedCards), wherever it is, instead of
+ *    from the cards in its zones, cached at first use on the game object or the agent. The live game and every copy of
+ *    it, and the live bot, its rollout agents and the coach, now score alike (tests/gig-plan-consistency.test.ts).
+ *    Hard, Medium and Easy play differently (Easy's live plan used to be frozen at its first Gig choice, after some
+ *    sales), as do the legacy deep / hard-v1 bots, the coach and the reviewer's oracle. Measured in
+ *    docs/BOT_TOOLKIT.md §6. 2026-11-14: every recorded event was re-recorded on version 9 with its own field, format,
+ *    seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1).
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 8;
+export const SIM_VERSION = 9;
 
 export interface GameRec {
   seed: number;

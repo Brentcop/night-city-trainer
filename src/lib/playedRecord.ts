@@ -5,7 +5,7 @@
  * Mirror of SIM_VERSION in src/lib/tournament.ts (tests/deck-record.test.ts checks they match). Kept here because
  * importing tournament.ts would pull the bots and the engine into every page that only wants to label old data.
  */
-export const CURRENT_SIM_VERSION = 8;
+export const CURRENT_SIM_VERSION = 9;
 
 /** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st … (here, not in deckRecord.ts, so deck tiles and Home can use it). */
 export function ordinal(n: number): string {

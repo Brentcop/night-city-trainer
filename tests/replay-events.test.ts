@@ -1,7 +1,8 @@
 // Golden replays from the recorded events (docs/ROADMAP.md §4 step 4): a few games from public/tournaments/, replayed
 // with makeBot() on their recorded seed and seat, must end exactly as recorded (winner and turn count). Each pins the
 // engine and the bots to what recorded the events (since SIM_VERSION 6 Hard reads no card impact, so src/data/impact.json
-// no longer moves them; since SIM_VERSION 7 Hard also picks its sell by rollout; SIM_VERSION 8 is the bot review's fixes).
+// no longer moves them; since SIM_VERSION 7 Hard also picks its sell by rollout; SIM_VERSION 8 is the bot review's fixes;
+// SIM_VERSION 9 reads the Gig plan and archetypes from the whole list).
 //
 // If one fails after a DELIBERATE change to the bots, the engine or the impact table, the recorded events no longer
 // replay: bump SIM_VERSION (src/lib/tournament.ts, CURRENT_SIM_VERSION in src/lib/playedRecord.ts) in the same commit,
@@ -13,17 +14,18 @@ import { gameDeck, makeBot, SIM_VERSION, type GameRec, type TourneyEvent } from 
 
 /**
  * event id, the match's two decks (a first, as recorded), the game's index in the match, and its recorded result
- * (winner 0 = deck a). Picked 2026-11-13 from the events as re-recorded on SIM_VERSION 8 (the bot review's fixes):
- * games whose winner differs from the same deal on version 7 (the shortest such game of each event), both winners.
+ * (winner 0 = deck a). Picked 2026-11-14 from the events as re-recorded on SIM_VERSION 9 (whole-list reads): games
+ * whose winner differs from the same deal on version 8 (the shortest such game of each event; on a tie, the first in
+ * recorded order), both winners.
  */
 const GOLDEN: { event: number; a: string; b: string; game: number; winner: 0 | 1 | 'tie'; turns: number }[] = [
-  { event: 1, a: 'RRY Smasher Aggro', b: 'Rainbow Fixer Stuff', game: 0, winner: 1, turns: 10 },
-  { event: 2, a: 'BBG Cunningham Econ', b: 'RRB Wakako Midrange', game: 0, winner: 0, turns: 11 },
-  { event: 3, a: 'S1-07 Explorer (RYY)', b: 'BBG Cunningham Econ', game: 0, winner: 1, turns: 10 },
-  { event: 4, a: "Gear'n'Go", b: 'RRG Dexter Midrange', game: 0, winner: 0, turns: 12 },
-  { event: 5, a: 'Ladder: Dexter / V / Wakako (RRB)', b: 'Ladder: Smasher / River / Viktor (RYY)', game: 0, winner: 0, turns: 13 },
-  { event: 6, a: 'Ladder: V / Smasher / Saburo (RRG)', b: 'NC-08 Merc Contract (RRG)', game: 0, winner: 1, turns: 11 },
-  { event: 7, a: 'S1-07 Explorer (RYY)', b: 'S1-06 Cross (BGY)', game: 0, winner: 0, turns: 13 },
+  { event: 1, a: 'RRB Wakako Midrange', b: 'BBG Cunningham Econ', game: 0, winner: 0, turns: 11 },
+  { event: 2, a: 'BBG Cunningham Econ', b: 'RRG Dexter Midrange', game: 2, winner: 0, turns: 12 },
+  { event: 3, a: 'YYB Rogue Gear', b: 'YYY Adam v1 - Ready for Brawl', game: 1, winner: 0, turns: 12 },
+  { event: 4, a: 'Ladder: Smasher / River / Viktor (RYY)', b: 'RRG Dexter Midrange', game: 1, winner: 1, turns: 12 },
+  { event: 5, a: 'Ladder: Smasher / River / Viktor (RYY)', b: 'BBG Cunningham Econ', game: 0, winner: 0, turns: 14 },
+  { event: 6, a: 'S1-06 Cross (BGY)', b: 'YYY Adam v1 - Ready for Brawl', game: 1, winner: 0, turns: 11 },
+  { event: 7, a: 'S2-05 Counter (RRG)', b: 'S2-01 Mutant (RYY)', game: 0, winner: 1, turns: 14 },
 ];
 
 const events = new Map<number, TourneyEvent>();

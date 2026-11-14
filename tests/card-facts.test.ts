@@ -166,7 +166,7 @@ const mode = (m: ModeReport['mode'], games: number, winRate = 0.5): ModeReport =
   notChosenRate: 0.5,
   selfPaid: 0,
 });
-const decReport = (simVersion = 8): DecisionReport =>
+const decReport = (simVersion = 9): DecisionReport =>
   ({
     kind: 'decision-telemetry',
     reportSchema: 1,
@@ -185,7 +185,7 @@ const decReport = (simVersion = 8): DecisionReport =>
     pooled: [{ id: 'kilo', name: 'Kilo Byte', modes: [mode('play', 90, 0.5), mode('sell', 12)] }],
   }) as unknown as DecisionReport;
 const anaReport: AnalysisInput = {
-  manifest: MANIFEST(8) as AnalysisInput['manifest'],
+  manifest: MANIFEST(9) as AnalysisInput['manifest'],
   decks: [
     {
       deck: 'Deck A',
@@ -226,7 +226,7 @@ const synReport = (catalogueVersion = 'CAT'): SynergyReport =>
     minSliceGames: MIN_SLICE_GAMES,
     rounds: [2, 4, 6],
     games: 100,
-    manifest: MANIFEST(8),
+    manifest: MANIFEST(9),
     decks: [
       { listId: 'LIST_A', name: 'Deck A', games: 60, winRate: 0.5, synergies: [pkgRow('dead', { online: 0, neverWr: 0.45, never: 60 }), pkgRow('hot', { online: 40, never: 20, onlineWr: 0.8, neverWr: 0.3 })] },
       { listId: 'LIST_GONE', name: 'Retired', games: 20, winRate: 0.5, synergies: [pkgRow('hot', { online: 10, never: 10 })] },
@@ -300,8 +300,8 @@ describe('on fixtures', () => {
       { rel: 'parent', to: 'cardstat:kilo' },
     ]);
     expect(rs.find((r) => r.id === 'pkgstat:deck-a/dead')!.links.map((l) => l.rel)).toEqual(['deck', 'parent']);
-    expect(a.stamps).toEqual({ asOf: '2026-01-02T03:04:05.000Z', bot: 'fixture', listId: 'LIST_A', simVersion: 8 });
-    expect(a.text.split('\n')[0]).toContain('measured by the fixture bot on sim version 8 (2026-01-02, 100 games in the run)');
+    expect(a.stamps).toEqual({ asOf: '2026-01-02T03:04:05.000Z', bot: 'fixture', listId: 'LIST_A', simVersion: 9 });
+    expect(a.text.split('\n')[0]).toContain('measured by the fixture bot on sim version 9 (2026-01-02, 100 games in the run)');
     // no report at all: nothing built, each missing report counted
     const none: Record<string, number> = {};
     expect(buildStats({ decisions: null, synergies: null, analysis: null, impact: null, catalogueVersion: 'CAT' }, { deckOf: () => undefined, cardName: () => undefined, hasCard: () => false, hasPackage: () => false, skipped: none })).toEqual([]);

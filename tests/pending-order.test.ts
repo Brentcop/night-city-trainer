@@ -148,9 +148,11 @@ async function replay(choices: number[][], orderChoice: boolean, seed: number) {
 
 /**
  * Seeds to try. A real order decision is rare: with the SIM_VERSION 8 bots (Easy skips Programs that do nothing) seed 62
- * is the only one of 1–80 that reaches one, so it goes first; the rest still check that keeping the order changes nothing.
+ * was the only one of 1–80 that reached one. With the SIM_VERSION 9 bots (whole-list Gig plan and archetypes) seed 62 no
+ * longer does; 58, 59 and 61 do (and 12 of 1–200), so 58 goes first; the rest still check that keeping the order changes
+ * nothing.
  */
-const ORDER_SEEDS = [62, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const ORDER_SEEDS = [58, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 describe('pending order: whole games', () => {
   it('opting in and always keeping the queue order plays exactly like not opting in (bots unchanged)', async () => {

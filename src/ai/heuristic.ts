@@ -4,13 +4,13 @@
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
-import { DEFAULT_WEIGHTS, evaluate, knownCards, planFor, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
+import { DEFAULT_WEIGHTS, evaluate, planFor, seatArchetype, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
 import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { CARDS } from '../engine/cards';
 import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
 import { shuffleInPlace } from '../engine/rng';
-import { applyProfile, classify, type Archetype, type Profiles } from './archetype';
+import { applyProfile, type Archetype, type Profiles } from './archetype';
 import { cardImpact } from './impact';
 import { planTurn } from './turnPlan';
 import type { MulliganRule } from './mulligan';
@@ -242,16 +242,13 @@ export class HeuristicAgent implements Agent {
     this.rng = this.opts.seed;
   }
 
-  private myArch: Archetype | null = null;
-  private oppArch: Archetype | null = null;
   /**
-   * Read of the matchup. The rival's archetype is "scouted" from their whole deck, as you would know it
-   * after game 1 of a Bo3 or from open decklists. Card-level hidden information is still respected.
+   * Read of the matchup: both archetypes from the whole lists (seatArchetype). The rival's is "scouted" from their whole
+   * deck, as you would know it after game 1 of a Bo3 or from open decklists. Card-level hidden information is still
+   * respected. The same for this agent, a fresh agent on a copy (rollouts), the coach and the reviewer.
    */
   matchupRead(g: Game, p: PlayerId): { me: Archetype; opp: Archetype } {
-    if (!this.myArch) this.myArch = classify(knownCards(g, p, p)).arch;
-    if (!this.oppArch) this.oppArch = classify(knownCards(g, other(p), other(p))).arch;
-    return { me: this.myArch, opp: this.oppArch };
+    return { me: seatArchetype(g, p), opp: seatArchetype(g, other(p)) };
   }
   /** Evaluation weights adjusted for the current matchup. */
   w(g: Game, p: PlayerId): EvalWeights {
@@ -289,14 +286,12 @@ export class HeuristicAgent implements Agent {
   }
 
   /**
-   * Copy another agent's decision state (random stream, matchup read, a planned Gig swap), so this agent decides the
+   * Copy another agent's decision state (random stream, a planned Gig swap), so this agent decides the
    * next decision exactly as `o` would with this agent's options. Used to count the decisions a weight changes
    * (scripts/package-scoring.ts); never in play.
    */
   syncFrom(o: HeuristicAgent) {
     this.rng = o.rng;
-    this.myArch = o.myArch;
-    this.oppArch = o.oppArch;
     this.pendingSwapTake = o.pendingSwapTake;
     this.noSellAt = o.noSellAt;
   }

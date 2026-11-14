@@ -166,7 +166,8 @@ describe('fact', () => {
     expect(t.code).toBe(0);
     const lines = t.out.trimEnd().split('\n');
     expect(lines[0]).toMatch(/^Power ratings table: .* played by the \w+ bot on sim version \d+.*The first 3 of \d+ rated decks now:$/);
-    expect(lines.slice(1, 4).map((l) => l.slice(0, l.indexOf(':')))).toEqual(rows.slice(0, 3).map((r, i) => `${i + 1}. ${r.name}`));
+    // a deck name may itself hold a colon ("Ladder: V / Smasher / Saburo (RRG)"), so each line is matched by its prefix
+    expect(lines.slice(1, 4).map((l, i) => l.startsWith(`${i + 1}. ${rows[i]!.name}: `))).toEqual([true, true, true]);
     expect(lines[1]).toMatch(/expected win rate against the whole field [\d.]+% \(90% range [\d.]+%–[\d.]+%\) over \d+ rated games; Sim tier now /);
     expect(lines.at(-1)).toMatch(/^ {2}source: src\/data\/ratings\.json \(the \w+ bot on sim version \d+, recorded /);
     expect(fact(['ratings']).out).toContain(`All ${rows.length} rated decks now:`);

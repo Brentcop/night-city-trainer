@@ -1,14 +1,14 @@
 {
- "date": "2026-11-13T08:07:26.521Z",
+ "date": "2026-11-14T15:47:12.639Z",
  "games": 200,
  "bot": "deep",
  "field": "meta",
  "manifest": {
   "schema": 1,
-  "runId": "analysis:2026-11-13T08:07:26.176Z:1",
-  "createdAt": "2026-11-13T08:07:26.176Z",
+  "runId": "analysis:2026-11-14T15:47:12.017Z:1",
+  "createdAt": "2026-11-14T15:47:12.017Z",
   "purpose": "analysis",
-  "simVersion": 8,
+  "simVersion": 9,
   "rulesVersion": "2026-10-29",
   "faqVersion": "2026-11-09T15:28:32.570Z",
   "errataVersion": null,
@@ -79,7 +79,7 @@
   {
    "name": "RRG Dexter Midrange",
    "file": "meta-rrg-dexter-midrange.txt",
-   "winRate": 0.74,
+   "winRate": 0.7425,
    "games": 1200
   },
   {
@@ -91,91 +91,91 @@
   {
    "name": "BBG Cunningham Econ",
    "file": "meta-bbg-cunningham-econ.txt",
-   "winRate": 0.5291666666666667,
+   "winRate": 0.5233333333333333,
    "games": 1200
   },
   {
    "name": "YYB Rogue Gear",
    "file": "meta-yyb-rogue-gear.txt",
-   "winRate": 0.49083333333333334,
+   "winRate": 0.49833333333333335,
    "games": 1200
   },
   {
    "name": "Rainbow Fixer Stuff",
    "file": "meta-rainbow-fixer-stuff.txt",
-   "winRate": 0.41083333333333333,
+   "winRate": 0.42833333333333334,
    "games": 1200
   },
   {
    "name": "GRY Trauma Team",
    "file": "meta-gry-trauma-team.txt",
-   "winRate": 0.38333333333333336,
+   "winRate": 0.37,
    "games": 1200
   },
   {
    "name": "RRB Wakako Midrange",
    "file": "meta-rrb-wakako-midrange.txt",
-   "winRate": 0.375,
+   "winRate": 0.36666666666666664,
    "games": 1200
   }
  ],
  "matrix": {
   "BBG Cunningham Econ": {
-   "GRY Trauma Team": 0.525,
-   "Rainbow Fixer Stuff": 0.555,
-   "RRB Wakako Midrange": 0.62,
-   "RRG Dexter Midrange": 0.39,
-   "RRY Smasher Aggro": 0.435,
-   "YYB Rogue Gear": 0.65
+   "GRY Trauma Team": 0.52,
+   "Rainbow Fixer Stuff": 0.535,
+   "RRB Wakako Midrange": 0.615,
+   "RRG Dexter Midrange": 0.395,
+   "RRY Smasher Aggro": 0.43,
+   "YYB Rogue Gear": 0.645
   },
   "GRY Trauma Team": {
-   "BBG Cunningham Econ": 0.475,
-   "Rainbow Fixer Stuff": 0.475,
-   "RRB Wakako Midrange": 0.51,
-   "RRG Dexter Midrange": 0.225,
-   "RRY Smasher Aggro": 0.265,
-   "YYB Rogue Gear": 0.35
+   "BBG Cunningham Econ": 0.48,
+   "Rainbow Fixer Stuff": 0.455,
+   "RRB Wakako Midrange": 0.525,
+   "RRG Dexter Midrange": 0.185,
+   "RRY Smasher Aggro": 0.24,
+   "YYB Rogue Gear": 0.335
   },
   "Rainbow Fixer Stuff": {
-   "BBG Cunningham Econ": 0.44499999999999995,
-   "GRY Trauma Team": 0.525,
-   "RRB Wakako Midrange": 0.52,
-   "RRG Dexter Midrange": 0.155,
-   "RRY Smasher Aggro": 0.395,
-   "YYB Rogue Gear": 0.425
+   "BBG Cunningham Econ": 0.46499999999999997,
+   "GRY Trauma Team": 0.5449999999999999,
+   "RRB Wakako Midrange": 0.555,
+   "RRG Dexter Midrange": 0.16,
+   "RRY Smasher Aggro": 0.41,
+   "YYB Rogue Gear": 0.435
   },
   "RRB Wakako Midrange": {
-   "BBG Cunningham Econ": 0.38,
-   "GRY Trauma Team": 0.49,
-   "Rainbow Fixer Stuff": 0.48,
-   "RRG Dexter Midrange": 0.26,
+   "BBG Cunningham Econ": 0.385,
+   "GRY Trauma Team": 0.475,
+   "Rainbow Fixer Stuff": 0.44499999999999995,
+   "RRG Dexter Midrange": 0.25,
    "RRY Smasher Aggro": 0.275,
-   "YYB Rogue Gear": 0.365
+   "YYB Rogue Gear": 0.37
   },
   "RRG Dexter Midrange": {
-   "BBG Cunningham Econ": 0.61,
-   "GRY Trauma Team": 0.775,
-   "Rainbow Fixer Stuff": 0.845,
-   "RRB Wakako Midrange": 0.74,
+   "BBG Cunningham Econ": 0.605,
+   "GRY Trauma Team": 0.815,
+   "Rainbow Fixer Stuff": 0.84,
+   "RRB Wakako Midrange": 0.75,
    "RRY Smasher Aggro": 0.715,
-   "YYB Rogue Gear": 0.755
+   "YYB Rogue Gear": 0.73
   },
   "RRY Smasher Aggro": {
-   "BBG Cunningham Econ": 0.565,
-   "GRY Trauma Team": 0.735,
-   "Rainbow Fixer Stuff": 0.605,
+   "BBG Cunningham Econ": 0.5700000000000001,
+   "GRY Trauma Team": 0.76,
+   "Rainbow Fixer Stuff": 0.5900000000000001,
    "RRB Wakako Midrange": 0.725,
    "RRG Dexter Midrange": 0.28500000000000003,
-   "YYB Rogue Gear": 0.51
+   "YYB Rogue Gear": 0.495
   },
   "YYB Rogue Gear": {
-   "BBG Cunningham Econ": 0.35,
-   "GRY Trauma Team": 0.65,
-   "Rainbow Fixer Stuff": 0.575,
-   "RRB Wakako Midrange": 0.635,
-   "RRG Dexter Midrange": 0.245,
-   "RRY Smasher Aggro": 0.49
+   "BBG Cunningham Econ": 0.355,
+   "GRY Trauma Team": 0.665,
+   "Rainbow Fixer Stuff": 0.565,
+   "RRB Wakako Midrange": 0.63,
+   "RRG Dexter Midrange": 0.27,
+   "RRY Smasher Aggro": 0.505
   }
  },
- "firstPlayerWinRate": 0.5645238095238095
+ "firstPlayerWinRate": 0.564047619047619
 }

@@ -3,6 +3,7 @@ import { other, type Game } from '../engine/engine';
 import { attackBanned } from '../engine/game/combat';
 import type { CardInst, Gig, Mod, PlayerId } from '../engine/types';
 import { gigPlanOf, type GigPlan } from './knowledge';
+import { classify, type Archetype } from './archetype';
 import { activeSteer, assemblyCredit, packageFacts, protectCredit, seatPackages, steerCredit } from './packages';
 
 export interface EvalWeights {
@@ -114,16 +115,52 @@ export function knownCards(g: Game, p: PlayerId, viewer: PlayerId): string[] {
   return ids;
 }
 
-const planCache = new WeakMap<object, Map<string, GigPlan>>();
+/**
+ * The defIds of every card p owns, wherever it is: deck, hand, field, Legends, Eddies, trash, removed from the game, a
+ * Program resolving, or Gear attached to a card (which is in no zone list). Owners never change and no card is made or
+ * destroyed once play starts (Game.create, and the tutorial's buildPosition before any decision, make them all), so this
+ * is p's list at every moment of the game.
+ */
+export function ownedCards(g: Game, p: PlayerId): string[] {
+  const ids: string[] = [];
+  for (const k in g.s.cards) {
+    const c = g.s.cards[k];
+    if (c.owner === p) ids.push(c.defId);
+  }
+  return ids;
+}
+
+/** Each seat's own plan per state copy (keyed on its cards record). */
+const ownPlans = new WeakMap<object, (GigPlan | undefined)[]>();
+
+/**
+ * Player p's Gig plan as `viewer` sees it.
+ *  - Its own (viewer === p): the plan of its whole list, every card it owns wherever the card is (ownedCards). It never
+ *    changes in play, so the live game, every copy (lookahead clones, Undo, the coach's snapshot) and every option of one
+ *    decision are scored by the same plan, and a game continued from a copy plays out as the game continued in place
+ *    (tests/gig-plan-consistency.test.ts). Cached per state copy, which changes nothing: every copy has the same value.
+ *  - The rival's: the cards the viewer can see (field, trash, face-up Legends), recomputed on every call.
+ */
 export function planFor(g: Game, p: PlayerId, viewer: PlayerId): GigPlan {
-  // cache per state object for own plans (stable); rival plan recomputed (cheap)
-  const key = `${p}:${viewer}`;
-  let m = planCache.get(g.s.players[p]);
-  if (!m) planCache.set(g.s.players[p], (m = new Map()));
-  if (viewer === p && m.has(key)) return m.get(key)!;
-  const plan = gigPlanOf(knownCards(g, p, viewer));
-  if (viewer === p) m.set(key, plan);
-  return plan;
+  if (viewer !== p) return gigPlanOf(knownCards(g, p, viewer));
+  let m = ownPlans.get(g.s.cards);
+  if (!m) ownPlans.set(g.s.cards, (m = []));
+  return (m[p] ??= gigPlanOf(ownedCards(g, p)));
+}
+
+/** Each seat's archetype per state copy (keyed on its cards record). */
+const listArchetypes = new WeakMap<object, (Archetype | undefined)[]>();
+
+/**
+ * Seat p's archetype, as the bots (both seats' reads: their own and the rival's, "scouted" as from open decklists), the
+ * coach's tips and the calibration's profiled weights read it: the archetype of its whole list (ownedCards), so it never
+ * changes in play and the live bot, its rollout agents, the coach and the reviewer all apply the same matchup profile
+ * (tests/gig-plan-consistency.test.ts). Cached per state copy, which changes nothing: every copy has the same value.
+ */
+export function seatArchetype(g: Game, p: PlayerId): Archetype {
+  let m = listArchetypes.get(g.s.cards);
+  if (!m) listArchetypes.set(g.s.cards, (m = []));
+  return (m[p] ??= classify(ownedCards(g, p)).arch);
 }
 
 /** How good a set of gigs is for a plan (independent of gig count). */

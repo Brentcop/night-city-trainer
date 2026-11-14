@@ -388,7 +388,9 @@ lists are about 40 lines and 1 KB when the decks are not named by file.
 
 A complete game, exported with `npm run record -- export --decks meta-gry-trauma-team,meta-bbg-cunningham-econ --seed 162
 --bot medium`: a mulligan, searches (`looks at`), mills, Calls, a block, Go Solo, an ability, discards and steals, won by
-p1 with 7 Gigs at the start of turn 12. `npm run record -- check` replays it from any seed.
+p1 with 7 Gigs at the start of turn 12. `npm run record -- check` replays it from any seed. It was exported on
+SIM_VERSION 8; the bots of version 9 play that deal differently (the export command no longer gives this text), but the
+record holds every choice, so it still replays exactly (checked 2026-11-14).
 
 ```
 nct-record 1

@@ -4,8 +4,8 @@
 // logistic on it, a ridge logistic on the features (src/lib/logistic.ts), and a candidate weight set on the gig scale.
 import { other, type Game } from '../engine/engine';
 import type { PlayerId } from '../engine/types';
-import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluateTerms, knownCards, type EvalTerm, type EvalWeights } from '../ai/eval';
-import { applyProfile, BEST_PROFILES, classify } from '../ai/archetype';
+import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluateTerms, seatArchetype, type EvalTerm, type EvalWeights } from '../ai/eval';
+import { applyProfile, BEST_PROFILES } from '../ai/archetype';
 import { brier, chooseRidge, fitLogistic, logLoss, predict, type LogisticFit } from '../lib/logistic';
 
 /** One end of a turn: evaluate()'s value and features from the view of the seat that just ended it and of the seat about to start. */
@@ -36,8 +36,8 @@ const r4 = (x: number) => Math.round(x * 1e4) / 1e4;
 
 /** The weights a Hard-like bot (BEST_PROFILES) uses for seat p in this game. */
 export function profiledWeights(g: Game, p: PlayerId, base: EvalWeights = DEFAULT_WEIGHTS): EvalWeights {
-  const me = classify(knownCards(g, p, p)).arch;
-  const opp = classify(knownCards(g, other(p), other(p))).arch;
+  const me = seatArchetype(g, p);
+  const opp = seatArchetype(g, other(p));
   return applyProfile(base, BEST_PROFILES, me, opp);
 }
 

@@ -17,6 +17,9 @@
 // Regenerated again on SIM_VERSION 8 (2026-11-13: the legacy deep bot that `sim analyze` plays moved with the bot review's
 // fixes), so the three were re-taken the same way; with the version-7 table the code still gives the version-7 pins
 // (9d976f2194fa16a4, 4e61c7b7b1289165, 401102d01c85b8ed).
+// Regenerated again on SIM_VERSION 9 (2026-11-14: the legacy deep bot moved with the whole-list Gig plan), so the three
+// were re-taken the same way; with the version-8 table the version-9 code still gives the version-8 pins
+// (951f917960182521, 396cb8ea6eff43fd, 6b9dddf10d2dcced), so the move is the table's.
 // The two breeder pins were re-taken on 2026-11-14 when the breeder got its Unit floor (MIN_BRED_UNITS, src/ai/breeder.ts):
 // the old outputs were themselves under it (7 of the 8 lists without head-to-heads and 6 of 8 with them had 12 Units,
 // from the 'control' template), and each such list is now topped up to 13 by one swap. Checked against the code before
@@ -38,10 +41,10 @@ const PINNED = {
   forge: 'ecd7078f19459f62',
   optimize: '18b7a931bc44040a',
   optimizeSb: '7f8c37968f57e36c',
-  lab: '951f917960182521',
-  tune: '396cb8ea6eff43fd',
+  lab: '5325241c62e34ae3',
+  tune: 'a8b38f24196ebfed',
   // taken from the evidence-rule code (ROADMAP2 §1 step 5), not from 2546b64: the default rule's own sequence
-  tuneEvidence: '6b9dddf10d2dcced',
+  tuneEvidence: '30991c32c0a8f32d',
 };
 
 const decks = synthDecks();
