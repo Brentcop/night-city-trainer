@@ -269,12 +269,21 @@ export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], conf
 }
 
 /** The settings `scripts/kb-eval.ts --tune` may vary, and how each value is read. */
-const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' | 'weight'>> = { floor: 'share', floorHits: 'count', singleWordTermLinks: 'bool', deckPairMatchup: 'bool', denseWeight: 'weight', denseFloor: 'share' };
+const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' | 'weight'>> = {
+  floor: 'share',
+  floorHits: 'count',
+  singleWordTermLinks: 'bool',
+  deckPairMatchup: 'bool',
+  denseWeight: 'weight',
+  denseFloor: 'share',
+  synonymWeight: 'weight',
+  synonymCoverage: 'bool',
+};
 
 /**
  * Parse `key=value,key=value` into search settings (floor, denseFloor: a share from 0 to 1; floorHits: a whole number
- * from 1 to 100; denseWeight: a number from 0 to 10; singleWordTermLinks, deckPairMatchup: true or false). Returns the
- * problem as a string when the text is not valid.
+ * from 1 to 100; denseWeight, synonymWeight: a number from 0 to 10; singleWordTermLinks, deckPairMatchup,
+ * synonymCoverage: true or false). Returns the problem as a string when the text is not valid.
  */
 export function parseTuning(text: string): Partial<SearchTuning> | string {
   const out: Partial<Record<keyof SearchTuning, number | boolean>> = {};

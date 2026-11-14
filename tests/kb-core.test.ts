@@ -149,7 +149,7 @@ describe('search', () => {
   });
   it('keeps the step 1.6 settings at their defaults (none of the three experiments was kept)', () => {
     // the dense settings (step 4.1) apply only when a search is given a dense index
-    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75 });
+    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true });
     expect([...cuedKinds('which decks are strongest')]).toEqual(['deck', 'rating']);
   });
   it('varies the floor and how many keyword hits may meet it, for experiments', () => {

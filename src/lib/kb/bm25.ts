@@ -1,5 +1,6 @@
 // Knowledge pack: BM25 keyword ranking (k1 = 1.2, b = 0.75) over each record's title, aliases and text. Title and
-// alias tokens count three times. Ties are broken by id, so a ranking is the same on every machine.
+// alias tokens count three times. Ties are broken by id, so a ranking is the same on every machine. Terms added to the
+// question by the caller (the synonym table, synonyms.ts) count at a weight the caller gives.
 import { tokenize } from './text';
 import { byString } from './types';
 
@@ -60,11 +61,22 @@ export const idf = (ix: Bm25Index, term: string): number => {
   return Math.log(1 + (ix.ids.length - n + 0.5) / (n + 0.5));
 };
 
-/** Every document with a positive score for the query, best first (ties by id). */
-export function bm25Search(ix: Bm25Index, query: string): Scored[] {
-  const terms = [...new Set(tokenize(query))].filter((t) => ix.df.has(t));
+/** Terms added to a query and the weight each counts at (1 = like a word of the query). */
+export interface AddedTerms {
+  terms: readonly string[];
+  weight: number;
+}
+
+/**
+ * Every document with a positive score for the query, best first (ties by id). `added`: more terms, each counted at
+ * `added.weight` times its usual score; a term the query already holds is not counted twice.
+ */
+export function bm25Search(ix: Bm25Index, query: string, added?: AddedTerms): Scored[] {
+  const own = [...new Set(tokenize(query))];
+  const extra = added && added.weight > 0 ? [...new Set(added.terms)].filter((t) => !own.includes(t)) : [];
+  const terms = [...own, ...extra].filter((t) => ix.df.has(t));
   if (!terms.length) return [];
-  const weights = terms.map((t) => idf(ix, t));
+  const weights = terms.map((t) => idf(ix, t) * (own.includes(t) ? 1 : added!.weight));
   const out: Scored[] = [];
   for (let i = 0; i < ix.ids.length; i++) {
     const m = ix.tf[i]!;
@@ -80,10 +92,13 @@ export function bm25Search(ix: Bm25Index, query: string): Scored[] {
   return out.sort((a, b) => b.score - a.score || byString(a.id, b.id));
 }
 
-/** The share of the query's distinct tokens that a document contains (0 when the query has none). */
-export function coverage(ix: Bm25Index, id: string, query: string): number {
+/**
+ * The share of the query's distinct tokens that a document contains (0 when the query has none). `alt`: other terms
+ * that hold a token (the synonym table's expansions); the token counts as held when the document has one of them.
+ */
+export function coverage(ix: Bm25Index, id: string, query: string, alt?: ReadonlyMap<string, readonly string[]>): number {
   const terms = [...new Set(tokenize(query))];
   const m = ix.tf[ix.pos.get(id) ?? -1];
   if (!terms.length || !m) return 0;
-  return terms.filter((t) => m.has(t)).length / terms.length;
+  return terms.filter((t) => m.has(t) || (alt?.get(t) ?? []).some((a) => m.has(a))).length / terms.length;
 }

@@ -504,6 +504,11 @@ describe('the real public sources', async () => {
     expect(ids.has('guide:tournament-plan#intro')).toBe(false);
   });
 
+  it('indexes nothing about itself (rule M12): not its plan, not its own code headers, but still the CLAUDE.md bullet', () => {
+    for (const x of a.records) expect(x.source.file).not.toMatch(/^docs\/RAG_PLAN\.md$|^src\/lib\/kb\/|^scripts\/kb(-[a-z]+)?\.ts$|^data\/kb\/|^reports\//);
+    expect(ids.has('doc:CLAUDE.md#knowledge-pack-kb')).toBe(true);
+  });
+
   const rawThere = Object.values(RAW_FILES).every((f) => fs.existsSync(path.join(ROOT, f)));
   it.skipIf(!rawThere)('with data/raw: local records only add to the public ones (structure only)', async () => {
     const full = await buildFromSources(ROOT, { raw: true });

@@ -22,12 +22,15 @@
 //   --compare a,b      paired bootstrap of b minus a (recall at 5 and MRR at 10) on the same questions
 //   --against FILE     paired bootstrap of this run minus an earlier JSON report (from --json or --out), for each
 //                      configuration and scope both hold: how a ranking change is judged
+//   --by-type          with --compare or --against, also one paired comparison per answerable question type
 //   --seed N           bootstrap seed (default 1; 2,000 resamples, 95% percentile interval)
 //   --tune k=v,…       experiments only: run the search with other settings than SEARCH_TUNING (src/lib/kb/search.ts):
 //                      floor=0.4 (the "no match" share), floorHits=3 (the floor is met by any of the first N keyword
 //                      hits), singleWordTermLinks=false, deckPairMatchup=true, denseWeight=2 (the dense list's fusion
 //                      weight), denseFloor=0.75 (the best dense similarity that still answers without an exact or keyword
-//                      hit over the floor). The report records the setting.
+//                      hit over the floor), synonymWeight=1 (the weight of the synonym table's added terms, step 4.6),
+//                      synonymCoverage=true (the table's terms hold a question word for the floor). The report records
+//                      the setting.
 //   --questions FILE   the question set (default data/kb/questions.json)
 //   --json             JSON on stdout instead of tables
 //   --strict           exit 1 when an expected id is not in the pack (stale expectations are always listed)
@@ -87,6 +90,7 @@ export const EVAL_SPEC = {
   scope: oneOf(['public', 'all']),
   compare: str(undefined, (v) => configList(v) ?? (v.split(',').length !== 2 ? 'give exactly two configurations, a,b' : undefined)),
   against: str(),
+  'by-type': bool(),
   seed: int(1, { min: 0, max: 2 ** 31 - 1 }),
   tune: str(undefined, (v) => {
     const t = parseTuning(v);
@@ -129,6 +133,8 @@ interface Comparison {
   scope: ScopeName;
   a: string;
   b: string;
+  /** with --by-type: the question type this comparison is limited to (absent: every question) */
+  type?: QuestionResult['type'];
   /** answerable questions both runs hold */
   r5: PairedInterval;
   mrr: PairedInterval;
@@ -150,6 +156,15 @@ function pairedRefusals(a: readonly Scored[], b: readonly Scored[], none: boolea
 function comparison(scope: ScopeName, a: string, b: string, ra: readonly Scored[], rb: readonly Scored[], seed: number): Comparison {
   const one = (m: PairedMetric) => compareRuns(ra, rb, m, { seed });
   return { scope, a, b, r5: one('r5'), mrr: one('mrr'), refusal: pairedRefusals(ra, rb, true), wrongRefusals: pairedRefusals(ra, rb, false) };
+}
+
+/** The comparison over every question, then (with `byType`) one per answerable type that both runs hold. */
+function comparisons(scope: ScopeName, a: string, b: string, ra: readonly Scored[], rb: readonly Scored[], seed: number, byType: boolean): Comparison[] {
+  const all = comparison(scope, a, b, ra, rb, seed);
+  if (!byType) return [all];
+  const types = ANSWERABLE_TYPES.filter((t) => ra.some((r) => r.type === t) && rb.some((r) => r.type === t));
+  const of = (rs: readonly Scored[], t: string) => rs.filter((r) => r.type === t);
+  return [all, ...types.map((t) => ({ ...comparison(scope, a, b, of(ra, t), of(rb, t), seed), type: t }))];
 }
 
 export function readQuestions(file: string): KbQuestionFile {
@@ -287,10 +302,12 @@ export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string;
     L.push(`## Paired comparisons (b minus a, ${o.against ? `this run minus ${o.against}` : 'configurations'}; seed ${o.seed}, 2,000 resamples, 95% interval)`, '');
     L.push('Recall and MRR over the answerable questions both runs hold; refusals counted over the questions both runs hold.', '');
     const pair = (p: { a: RefusalCount; b: RefusalCount } | null) => (p ? `${ofCell(p.a)} → ${ofCell(p.b)}` : 'not recorded');
+    // with --by-type a "type" column says which questions a row covers ("all": every question)
+    const typed = o.comparisons.some((c) => c.type);
     L.push(
       ...table(
-        ['scope', 'a', 'b', 'n', 'R@5 diff (pp)', 'R@5 95% interval', 'MRR diff', 'MRR 95% interval', 'none refused (a → b)', 'wrongly refused (a → b)'],
-        o.comparisons.map((c) => [c.scope, c.a, c.b, String(c.r5.n), signed(c.r5.diff, pct), `${pct(c.r5.lo)} to ${pct(c.r5.hi)}`, signed(c.mrr.diff, num), `${num(c.mrr.lo)} to ${num(c.mrr.hi)}`, pair(c.refusal), pair(c.wrongRefusals)]),
+        ['scope', ...(typed ? ['type'] : []), 'a', 'b', 'n', 'R@5 diff (pp)', 'R@5 95% interval', 'MRR diff', 'MRR 95% interval', 'none refused (a → b)', 'wrongly refused (a → b)'],
+        o.comparisons.map((c) => [c.scope, ...(typed ? [c.type ?? 'all'] : []), c.a, c.b, String(c.r5.n), signed(c.r5.diff, pct), `${pct(c.r5.lo)} to ${pct(c.r5.hi)}`, signed(c.mrr.diff, num), `${num(c.mrr.lo)} to ${num(c.mrr.hi)}`, pair(c.refusal), pair(c.wrongRefusals)]),
       ),
       '',
     );
@@ -341,7 +358,7 @@ export function reportJson(o: { file: KbQuestionFile; questionsFile: string; spl
     })),
     ...(o.comparisons.length
       ? {
-          comparisons: o.comparisons.map((c) => ({ scope: c.scope, a: c.a, b: c.b, r5: intervalJson(c.r5), mrr: intervalJson(c.mrr), refusal: c.refusal && pairJson(c.refusal), wrongRefusals: c.wrongRefusals && pairJson(c.wrongRefusals) })),
+          comparisons: o.comparisons.map((c) => ({ scope: c.scope, ...(c.type ? { type: c.type } : {}), a: c.a, b: c.b, r5: intervalJson(c.r5), mrr: intervalJson(c.mrr), refusal: c.refusal && pairJson(c.refusal), wrongRefusals: c.wrongRefusals && pairJson(c.wrongRefusals) })),
           ...(o.against ? { against: o.against } : {}),
         }
       : {}),
@@ -364,17 +381,17 @@ export function readReport(file: string): ReportJson {
   return parsed;
 }
 
-function compare(scopes: readonly ScopeRun[], a: string, b: string, seed: number): Comparison[] {
+function compare(scopes: readonly ScopeRun[], a: string, b: string, seed: number, byType = false): Comparison[] {
   return scopes.flatMap((sc) => {
     const ra = sc.runs.find((r) => r.config === a);
     const rb = sc.runs.find((r) => r.config === b);
     if (!ra || !rb) return [];
-    return [comparison(sc.scope, a, b, ra.results, rb.results, seed)];
+    return comparisons(sc.scope, a, b, ra.results, rb.results, seed, byType);
   });
 }
 
 /** This run minus an earlier report, per scope and configuration both hold, on this run's split. */
-function compareAgainst(scopes: readonly ScopeRun[], earlier: ReportJson, file: string, split: string, seed: number): Comparison[] {
+function compareAgainst(scopes: readonly ScopeRun[], earlier: ReportJson, file: string, split: string, seed: number, byType = false): Comparison[] {
   const out: Comparison[] = [];
   for (const sc of scopes) {
     const old = earlier.scopes.find((s) => s.scope === sc.scope);
@@ -387,7 +404,7 @@ function compareAgainst(scopes: readonly ScopeRun[], earlier: ReportJson, file: 
       const before: Scored[] = (prev.results as { id: string; type: string; split: string; rank: number | null; refused?: boolean }[])
         .filter(inSplit)
         .map((r) => ({ id: r.id, type: r.type as QuestionResult['type'], rank: r.rank, ...(typeof r.refused === 'boolean' ? { refused: r.refused } : {}) }));
-      out.push(comparison(sc.scope, `${run.config} (${file})`, `${run.config} (now)`, before, run.results.filter(inSplit), seed));
+      out.push(...comparisons(sc.scope, `${run.config} (${file})`, `${run.config} (now)`, before, run.results.filter(inSplit), seed, byType));
     }
   }
   return out;
@@ -448,7 +465,8 @@ export async function runEval(v: Values<typeof EVAL_SPEC>, earlier?: ReportJson)
     denseNote = { model: `${kd.DENSE_MODEL.id} ${kd.DENSE_MODEL.dtype}` };
   }
   const scopes = scopeNames.map((s) => evaluateScope(s, pack.records, questions, configList, tuning, dense));
-  const comparisonsOf = (scs: ScopeRun[]) => [...(pair ? compare(scs, pair[0], pair[1], v.seed) : []), ...(earlier ? compareAgainst(scs, earlier, v.against!, v.split, v.seed) : [])];
+  const byType = v['by-type'];
+  const comparisonsOf = (scs: ScopeRun[]) => [...(pair ? compare(scs, pair[0], pair[1], v.seed, byType) : []), ...(earlier ? compareAgainst(scs, earlier, v.against!, v.split, v.seed, byType) : [])];
   // public titles only: a local title can hold the first words of official text (rule M6)
   const titles = new Map(pack.records.filter((r) => r.scope === 'public').map((r) => [r.id, r.title]));
   const qById = new Map(file.questions.map((q) => [q.id, q]));

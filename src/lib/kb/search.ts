@@ -8,9 +8,13 @@
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
 // Rung 4, `dense` (step 4.1, dense.ts), runs only when the caller passes a dense index and the question's vector; it is
 // gated like the keyword list and can only lift a "no match" when its best similarity reaches `denseFloor`.
+// The synonym table (step 4.6, synonyms.ts) adds this game's terms to the keyword list's question at `synonymWeight`
+// (0: off) and, with `synonymCoverage`, lets them hold a question word for the floor; the linked list's order and the
+// exact names never use it.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
 import { rankDense, type DenseIndex } from './dense';
 import { buildNameIndex, findNameHits, lookupName, type NameHit, type NameIndex } from './names';
+import { expandQuestion } from './synonyms';
 import { tokenize } from './text';
 import { byString, type KbKind, type KbRecord, type KbRel, type KbScope } from './types';
 
@@ -39,6 +43,10 @@ export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term
  * lost, but its interval reached zero (recall at 5 +3.7 points [0, +9.3]): could not tell.
  * Step 4.1 (dense): denseWeight 0.5 and denseFloor 0.75 were chosen on `dev` from 0.5, 1, 2 and 0.72, 0.75, 1; the
  * dense ranker stays opt-in (DEFAULT_RANKERS) until a measurement keeps it.
+ * Step 4.6 (synonym table): synonymWeight 1 with synonymCoverage on was chosen on `dev` from 0.5 and 1, coverage on and
+ * off, and kept after one look at `test` (answerable questions, paired bootstrap): MRR at 10 +0.027 [+0.005, +0.058]
+ * with all records, +0.037 [+0.006, +0.078] public only; recall at 5 +4.5 points [0, +10.6]; paraphrase questions
+ * MRR +0.082 [+0.018, +0.159]; no other type moved; unanswerable questions refused unchanged.
  */
 export interface SearchTuning {
   /** the "no match" floor: without an exact hit, the share of the question's words a keyword hit must hold (MATCH_FLOOR) */
@@ -53,9 +61,13 @@ export interface SearchTuning {
   denseWeight: number;
   /** without an exact hit or a keyword hit over the floor, a best dense similarity at least this high still answers */
   denseFloor: number;
+  /** the weight of the terms the synonym table adds to the keyword ranker's question (synonyms.ts; 0: the table is off) */
+  synonymWeight: number;
+  /** for the floor, a question word with an expansion is held by a hit that holds the word or one of its expansions */
+  synonymCoverage: boolean;
 }
 
-export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75 };
+export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true };
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -246,12 +258,15 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   const use = new Set<Ranker>(o.rankers ?? DEFAULT_RANKERS);
   const cued = cuedKinds(query);
   const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
-  const keyword = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
+  const plain = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
+  // the synonym table (step 4.6): only the keyword list and the floor read it
+  const syn = t.synonymWeight > 0 || t.synonymCoverage ? expandQuestion(tokenize(query)) : undefined;
+  const keyword = use.has('keyword') && syn?.terms.length && t.synonymWeight > 0 ? bm25Search(ix.bm25, query, { terms: syn.terms, weight: t.synonymWeight }).filter((s) => !gated(s.id)) : plain;
   const exactHits = use.has('exact') || use.has('linked') ? rankExactHits(ix, query) : [];
   const exact = exactHits.map((h) => h.id);
   const from = t.singleWordTermLinks ? exact : exactHits.filter((h) => !(h.words === 1 && ix.byId.get(h.id)!.kind === 'term')).map((h) => h.id);
   const lists: Partial<Record<Ranker, string[]>> = {};
-  const linked = use.has('linked') ? rankLinked(ix, exact, keyword, cued, from).filter((id) => !gated(id)) : [];
+  const linked = use.has('linked') ? rankLinked(ix, exact, plain, cued, from).filter((id) => !gated(id)) : [];
   // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
   // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
   const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));
@@ -262,7 +277,8 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   // the dense list scans every vector; gated kinds are left out before the cut to RANK_DEPTH, as in the keyword list
   const dense = use.has('dense') && o.dense ? rankDense(o.dense.index, o.dense.query, Infinity).filter((s) => ix.byId.has(s.id) && !gated(s.id)).slice(0, RANK_DEPTH) : [];
   if (dense.length) lists.dense = dense.map((s) => s.id);
-  const floorMet = keyword.slice(0, Math.max(1, t.floorHits)).some((s) => coverage(ix.bm25, s.id, query) >= t.floor);
+  const held = t.synonymCoverage ? syn?.held : undefined;
+  const floorMet = keyword.slice(0, Math.max(1, t.floorHits)).some((s) => coverage(ix.bm25, s.id, query, held) >= t.floor);
   const denseMet = (dense[0]?.score ?? -Infinity) >= t.denseFloor;
   const noMatch = !exact.length && !floorMet && !denseMet;
   if (noMatch) return { query, hits: [], noMatch: true, total: 0 };

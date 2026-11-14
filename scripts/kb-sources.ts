@@ -40,7 +40,13 @@ const CODE_DIRS = ['src', 'scripts', 'tools'];
  * arrays of src/data/analysis.json are not read either (they come with the measured cells, plan step 2.4), and neither
  * are archived decks (D9).
  */
-const CODE_SKIP = [/^src\/content\/tutorial\//, /^src\/content\/(tournamentPlan|recommendation)\.ts$/, /^scripts\/archive\//];
+const CODE_SKIP = [/^src\/content\/tutorial\//, /^src\/content\/(tournamentPlan|recommendation)\.ts$/, /^scripts\/archive\//, /^src\/lib\/kb\//, /^scripts\/kb(-[a-z]+)?\.ts$/];
+/**
+ * The pack does not index material about itself (docs/RAG_PLAN.md rule M12): its plan and its own code headers quote
+ * example questions and everyday words ("tap", "graveyard"), so they would compete with the records those questions
+ * are looking for. CLAUDE.md's "Knowledge pack" bullet stays, so the tool can still be found.
+ */
+const DOC_SKIP = new Set(['docs/RAG_PLAN.md']);
 /** Guides whose text is generated (by scripts/plan.ts), not written. */
 const GUIDE_SKIP = new Set(['tournament-plan']);
 
@@ -67,7 +73,7 @@ export function codeFiles(root: string): string[] {
 }
 
 export function docFiles(root: string): string[] {
-  return [...['CLAUDE.md', 'README.md'].filter((f) => fs.existsSync(path.join(root, f))), ...listDir(root, 'docs', '.md')];
+  return [...['CLAUDE.md', 'README.md'].filter((f) => fs.existsSync(path.join(root, f))), ...listDir(root, 'docs', '.md').filter((f) => !DOC_SKIP.has(f))];
 }
 
 /** The library deck files (LIBRARY_DIRS: the top level of data/decks and custom/), as paths from the root. */

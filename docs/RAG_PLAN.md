@@ -64,6 +64,10 @@ These rules hold in every step. A step that needs to break one says so in §8 fi
   The entry chunk never reaches it. A test enforces both.
 - **M11. Small until measured.** No new runtime dependency and no model download until a measurement on
   the question set justifies it and the owner agrees.
+- **M12. No self-reference.** The pack does not index material about itself: this plan, its own code
+  headers, its question set and its reports. They quote example questions and everyday words, so they
+  compete with the records those questions are looking for. The `CLAUDE.md` bullet about the pack stays
+  indexed, so the tool can still be found.
 
 ## 3. How it fits together
 
@@ -126,7 +130,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 3.2 | Search and dossiers on the site behind a feature flag | waiting: D1, D2, D3 | |
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
-| 4.6 | A small domain synonym table applied to the question | in progress | |
+| 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
+| 4.7 | What the remaining paraphrase misses need: word forms, described mechanics, decks by description | next | |
 | 5.x | Exact reuse in game tools: coach cache, review measurements | later | |
 
 ## 5. Steps
@@ -216,7 +221,8 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   synergy packages (`src/content/synergies/`), glossary terms and the two vocabularies, and guide
   sections split at second-level headings.
 - Dev knowledge: `CLAUDE.md`, `README.md` and `docs/*.md` split by heading into passages of at most about
-  120 words, and one record per source file from its opening comment block.
+  120 words, and one record per source file from its opening comment block. By rule M12 this plan and
+  the pack's own code (`src/lib/kb/`, `scripts/kb*.ts`) are left out.
 - Local scope, only when `data/raw/` is present: rules by numbered rule, official FAQ wording linked to
   its ruling, tournament rules and errata by section.
 - Links come from fields that already exist (ruling to card, note to deck and key cards, package to
@@ -391,6 +397,25 @@ the decision (keep, drop, could not tell) and its cost.
   the question for the keyword ranker. No model and no dependency. To keep it honest, thirty fresh
   paraphrased questions were written first by an agent that knew nothing of the table, and the agent that
   builds the table never reads the held-out ones.
+  - Built: `src/lib/kb/synonyms.ts`, 41 entries, each with its reason (tap and exhaust mean spend;
+    graveyard and discard pile mean trash; creature and minion mean Unit; opponent and enemy mean rival;
+    kill and destroy mean defeat; and so on). A test refuses an entry whose target is not in the pack or
+    whose everyday word is itself one of this game's terms or part of a card name. Only the keyword
+    ranker and the "no match" floor read the table; exact names and links do not.
+  - Diagnosis first: of the 21 paraphrased `dev` questions the search missed, 12 were vocabulary gaps
+    the table could bridge and 9 were something else.
+  - Result on the held-out answerable questions (66, all records), one planned look: first five 60.6%
+    to 65.2%, +4.5 points [0.0, +10.6]; MRR +0.027 [+0.005, +0.058]. Paraphrased questions alone (22):
+    first five 31.8% to 45.5%, MRR +0.082 [+0.018, +0.159]. Every other type unchanged. Unanswerable
+    questions refused as before; answerable ones wrongly refused fell from 7 to 5. Public records only:
+    MRR +0.037 [+0.006, +0.078].
+  - Decision: kept. `synonymWeight` is 1 and `synonymCoverage` is on by default.
+  - Two side effects seen on `dev`: one unanswerable question is now answered ("commander" stands for
+    Legend), and one rules question fell from first to second ("dice" adds Gig).
+- 4.7 What the remaining paraphrase misses need, from the same diagnosis: folding word forms in the
+  tokenizer ("flipping", "triggered", "abilities"); matching a described mechanic to its keyword ("can
+  attack the turn it arrives" is Adrenaline); finding a deck from a description of how it plays; number
+  words as digits; and a floor that suits long questions. Each is its own measured experiment.
 
 ### Step 5. Exact reuse in game tools
 
@@ -453,6 +478,11 @@ interface KbRecord {
 A public record never links to a local one, so the public records are byte-identical with or without
 `data/raw`; local records link outward (an official FAQ item to its ruling and card, a rule to the
 glossary terms that cite it). `test` is reserved: a ruling's test file is in `fields.test`.
+
+**Synonyms (step 4.6)**: the keyword ranker expands the question with `src/lib/kb/synonyms.ts`, a small
+table from everyday and other-card-game words to this game's terms, so "tap", "graveyard" or "opponent"
+find records that say spend, trash or rival. An entry is a general fact about vocabulary with a stated
+reason, never a fix for one question.
 
 **Search details settled in step 1.1**: names inside a question are looked for only among card, deck,
 package, term, rule, tournament-rule and deck-note records (doc headings such as "Method" would match
@@ -526,6 +556,10 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Cost of embeddings | 61 s to embed 3,545 records; 5.6 MB of vectors; about 1 s more per search from a cold start; 456 MB of tools and a 34 MB model on disk | step 4.1 |
 | 2026-11-13 | Baseline with 176 questions (30 fresh paraphrased ones). Held-out answerable (66), all records | top 1: 30%, top 5: 62%, top 10: 71%, MRR 0.44; 7 of 66 wrongly refused | step 4.6 |
 | 2026-11-13 | Paraphrased questions, held out (22) | top 5: 36%, MRR 0.15; 5 of 22 refused. Over all 55: top 5 36%, 15 refused | step 4.6 |
+| 2026-11-13 | Default search with the synonym table. Held-out answerable (66), all records | top 1: 32%, top 5: 65%, top 10: 74%, MRR 0.47; 5 of 66 wrongly refused | step 4.6 |
+| 2026-11-13 | Paraphrased questions with the synonym table, held out (22) | top 5: 45%, MRR 0.23; 3 of 22 refused | step 4.6 |
+| 2026-11-13 | What indexing this plan cost, once it described the synonym table in everyday words | held-out MRR 0.466 to 0.459 with all records, and a plan passage ranked first for "spell that kills an enemy creature" | rule M12 |
+| 2026-11-13 | After the pack stopped indexing its own plan and code (3,440 records) | held-out answerable (66): top 5 65%, MRR 0.47; public only (54): top 5 67%, MRR 0.53 (was 0.51) | rule M12 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -538,6 +572,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Neighbours of a one-word glossary term crowd out rule records | No link expansion from a term named by one word | Recall at 5: no change [0, 0]; MRR −0.000 [−0.008, +0.006] | Dropped: could not tell |
 | 2026-11-13 | A question naming two decks wants their matchup | The pair's matchup record joins the exact list | Recall at 5: +3.7 points [0, +9.3]; MRR +0.012 [0, +0.031]; number questions 60% to 80%; no type worse | Not kept: the interval reaches zero. Retest with more questions |
 | 2026-11-13 | Embeddings find paraphrased questions that keywords miss, and help refuse the unanswerable | A dense ranker (bge-small-en-v1.5, quantized) fused at weight 0.5, with a similarity floor of 0.75 | Recall at 5: +5.6 points [−1.8, +14.8]; MRR +0.049 [−0.008, +0.108] on the planned look, +0.055 [+0.002, +0.113] on a second; paraphrase 50% to 40%; rules MRR +0.185 [+0.046, +0.333]; refusals unchanged | Not kept in the default. Two looks; the gain is in rules, not where it was predicted |
+| 2026-11-13 | Paraphrased questions miss because players use other words than the records | A 41-entry synonym table expands the question for the keyword ranker and the "no match" floor | Recall at 5: +4.5 points [0.0, +10.6]; MRR +0.027 [+0.005, +0.058]; paraphrase recall at 5 32% to 45%, MRR +0.082 [+0.018, +0.159]; other types unchanged; refusals unchanged | Kept. One look, on questions written before the table by an agent that did not know of it |
 
 ## 8. Decisions and stopgaps
 
@@ -622,3 +657,10 @@ while the tournament index and the finish chips use the real cut, so five decks 
 - 2026-11-13: thirty fresh paraphrased questions joined the question set (176 now; 55 paraphrased, 22 of
   them held out), written before the synonym experiment by an agent that did not know what would be
   tested. Paraphrase turned out weaker than the first 25 questions showed: 36% in the first five.
+- 2026-11-13: experiment 4.6 ran and was kept. A 41-entry synonym table now expands questions for the
+  keyword ranker: held-out paraphrased questions went from 32% to 45% in the first five, nothing else
+  moved, and no model or dependency was needed. Step 4.7 lists what the remaining misses need.
+- 2026-11-13: rule M12 added. Describing the synonym table here put words like "kill" and "graveyard"
+  into this file, and its passages began to outrank real answers. The pack no longer indexes this plan
+  or its own code headers; the three example questions that showed the problem now return cards and
+  packages, and the held-out figures are back to where they were before the description was written.

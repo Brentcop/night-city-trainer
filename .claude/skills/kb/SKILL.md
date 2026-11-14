@@ -104,8 +104,10 @@ Each hit shows its id, title, `[kind · origin · scope · status]`, its version
   measured record names its bot and sim version; one marked stale was measured under an older version.
 - "Top 8" has two meanings here. `fact` reports real top-cut appearances and the ratings file's count of
   Swiss finishes in the first eight places as two separate numbers; say which one you mean.
-- Paraphrased questions are the weak spot (about half find their record in the first five). Add the
-  thing's name when you know it.
+- Paraphrased questions are the weak spot (under half find their record in the first five). Add the
+  thing's name when you know it. Words from other card games are understood: "tap", "graveyard",
+  "creature", "opponent" and "kill" find records that say spend, trash, Unit, rival and defeat
+  (`src/lib/kb/synonyms.ts`).
 - The search is keywords, names and links. An embeddings ranker exists only as an opt-in experiment
   (`--rankers exact,linked,keyword,dense`, plan step 4.1): it was measured and did not earn a place in
   the default, and it needs tools in `.cache/kb-dense/` that `npm run kb -- stats` reports on.
