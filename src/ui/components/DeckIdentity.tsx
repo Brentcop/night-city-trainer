@@ -7,12 +7,10 @@ import { deckStats, pct } from '../../lib/deckStats';
 import { artEnabled, useArt } from '../art';
 import { typeSplit } from '../../lib/deckTypes';
 import { ordinal, SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
-import { RATINGS } from '../../data/index';
+import { listOf } from '../../lib/listTwin';
 import { TypeSplitBar } from './TypeSplit';
-import { ChoomTierBadge, SimTierBadge, simTierFor } from './TierBadges';
-
-/** Tournament rows by deck name (ratings.json is in the entry chunk anyway, through the Home page). */
-const RATED = new Map(RATINGS.decks.map((r) => [r.name, r]));
+import { ChoomTierBadge, recordedRow, recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
+import { useYourStats, yourStatsFor } from '../useYourStats';
 
 export type OriginKind = 'choom-meta' | 'sim-ladder' | 'choom-guide' | 'nc-original' | 'nc-bred' | 'nc-variant' | 'nc-build' | 'mine' | 'other';
 
@@ -85,22 +83,32 @@ export function LegendStrip({ legends, height = 90 }: { legends: string[]; heigh
   );
 }
 
-/** The choom.gg tier (if the deck has one) and the Sim tier from our tournaments (if it has recorded games), side by side. */
-export function TierPair({ d, showUnrated = true }: { d: Pick<LibraryDeck, 'tier' | 'deck'>; showUnrated?: boolean }) {
-  const sim = simTierFor(d.deck.name);
-  if (!d.tier && !sim.letter && !(showUnrated && sim.unrated === 'few-games')) return null;
+/**
+ * The choom.gg tier (if the deck has one) and the Sim tier from our tournaments (if it has recorded games), side by side;
+ * for a list with no recorded games, the provisional tier from your own tournaments when it has a letter.
+ */
+export function TierPair({ d, showUnrated = true }: { d: Pick<LibraryDeck, 'tier' | 'deck' | 'file'>; showUnrated?: boolean }) {
+  const sim = simTierOf(d);
+  const yours = yourStatsFor(useYourStats(), listOf(d.deck)).prov;
+  const prov = sim.unrated === 'no-games' && yours?.tier?.letter ? yours.tier : null;
+  if (!d.tier && !sim.letter && !(showUnrated && sim.unrated === 'few-games') && !prov) return null;
   return (
     <span className="tier-pair">
       <ChoomTierBadge tier={d.tier} />
       <SimTierBadge tier={sim} showUnrated={showUnrated} />
+      <YourTierBadge tier={prov} />
     </span>
   );
 }
 
 /** Gallery tile for a deck: legends art, name, origin, key stats. With `href` the whole tile is a link; without, it is static. */
 export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boolean; href?: string }) {
-  const st = deckStats(d.file);
-  const played = tileRecord(RATED.get(d.deck.name));
+  // a deck saved here with a library deck's list shows that deck's recorded results
+  const src = recordedSource(d);
+  const st = deckStats(src?.file ?? d.file);
+  const played = tileRecord(recordedRow(d));
+  const yours = useYourStats();
+  const mine = played ? undefined : yourStatsFor(yours, listOf(d.deck)).rec;
   const body = (
     <>
       <LegendStrip legends={d.deck.legends} />
@@ -122,9 +130,16 @@ export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boo
               {played.n < SMALL_SAMPLE ? ' (small sample)' : ''}
               {played.titles > 0 ? ` · ${played.titles} title${played.titles === 1 ? '' : 's'}` : played.top8 > 0 ? ` · top 8 ×${played.top8}` : ''}
             </span>
+          ) : mine ? (
+            <span className="deck-tile-played deck-tile-yours" title="Your tournaments: the games this list played in tournaments you ran in this browser, ties counting half. Kept apart from the recorded results.">
+              <b className={`num ${mine.games < SMALL_SAMPLE ? 'thin' : ''}`}>{pct(mine.wr)}</b> in {mine.games.toLocaleString()} game{mine.games === 1 ? '' : 's'} of your tournaments
+              {mine.games < SMALL_SAMPLE ? ' (small sample)' : ''}
+              {mine.won > 0 ? ` · won ${mine.won} of ${mine.runs}` : ''}
+            </span>
           ) : (
             !st.leader && !st.review && <span>No recorded games</span>
           )}
+          {src?.twin && <span className="deck-tile-twin">Same list as {src.twin.deck.name}</span>}
           {st.leader && (
             <span title="Season rating: win rate vs the meta decks across the breeding seasons, adjusted for sample size (the Seasons leaderboard)">
               <b>{pct(st.leader.rating)}</b> season rating · {ordinal(st.leader.percentile)} percentile

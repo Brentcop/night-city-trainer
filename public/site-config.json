@@ -150,6 +150,7 @@
     "profileSharing": true,
     "deckLab": true,
     "tournamentRunner": true,
+    "yourTournamentStats": true,
     "tunedDecks": true,
     "cardArtToggle": true,
     "multiplayer": true,

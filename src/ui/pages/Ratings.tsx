@@ -9,6 +9,7 @@ import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, ordinal, ratingsHistorical } from '../../lib/playedRecord';
 import { bandOf, bandWords, SIM_TIER_LETTERS, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS, simTier } from '../../lib/simTier';
 import { SimTierBadge } from '../components/TierBadges';
+import { YourDecks } from '../components/YourStats';
 
 const R = RATINGS;
 const pct = (x: number | null | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
@@ -129,6 +130,7 @@ export function RatingsPage() {
           </tbody>
         </table>
       </div>
+      <YourDecks />
     </div>
   );
 }

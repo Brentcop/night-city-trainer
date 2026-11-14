@@ -36,7 +36,7 @@ import { TypeLegend } from './TypeSplit';
 import { loadPref, savePref } from '../prefs';
 import { PageHead } from './PageHead';
 import { CURRENT_SIM_VERSION, ratingsHistorical } from '../../lib/playedRecord';
-import { simTierFor } from './TierBadges';
+import { recordedRow, simTierOf } from './TierBadges';
 import { isBuiltin } from '../deckLookup';
 import { useLibraryVersion } from '../useLibrary';
 import { useDeckActions } from './DeckActions';
@@ -70,13 +70,13 @@ function syncUrl(v: GalleryView) {
 
 /** The facts the filters and sorts read, for every deck. */
 export function deckFacts(decks: readonly LibraryDeck[], hidden: ReadonlySet<string>): DeckFacts[] {
-  const power = new Map(RATINGS.decks.map((r) => [r.name, r]));
   return decks.map((d) => {
     const st = deckStats(d.file);
     const meta = st.leader?.rating ?? st.review?.winRate ?? null;
     const colors = new Set(d.deck.legends.map((id) => CARD_BY_ID[id]?.color).filter((c): c is NonNullable<typeof c> => !!c));
     const costs = d.deck.main.map((id) => CARD_BY_ID[id]?.cost ?? 0);
-    const row = power.get(d.deck.name);
+    // recorded results only (a deck saved here with a library deck's list reads that deck's), never your own tournaments
+    const row = recordedRow(d);
     return {
       file: d.file,
       name: d.deck.name,
@@ -89,7 +89,7 @@ export function deckFacts(decks: readonly LibraryDeck[], hidden: ReadonlySet<str
       power: row ? row.wrField : null,
       games: row?.games ?? 0,
       ...(d.tier ? { choom: d.tier } : {}),
-      sim: simTierFor(d.deck.name).letter,
+      sim: simTierOf(d).letter,
       meta: typeof meta === 'number' && Number.isFinite(meta) ? meta : null,
       avgCost: costs.length ? costs.reduce((a, x) => a + x, 0) / costs.length : 0,
       added: d.prov.added ?? (d.tuned?.date ?? '').slice(0, 10),

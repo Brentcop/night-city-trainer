@@ -2,6 +2,11 @@
 // the meta, best and worst matchups, event finishes and power rank, each with its sample size. Small samples are
 // marked the `.num.thin` way and say so; a deck with nothing recorded says that plainly; numbers recorded before the
 // current simulator get a one-line note. The summary itself is src/lib/deckRecord.ts.
+//
+// A deck saved in this browser with a library deck's list shows that deck's recorded results, with a line naming it
+// (src/lib/listTwin.ts). Below them, "Your tournaments": this list's record in the tournaments the visitor ran in this
+// browser (src/lib/runLedger.ts) and, for a list with no recorded rating, its provisional rating (src/lib/yourStats.ts),
+// always labelled as theirs and set apart from the recorded results (feature `yourTournamentStats`).
 import { useEffect, useMemo, useState } from 'react';
 import { RATINGS, SEASONS } from '../../data/index';
 import { TOURNAMENT_INDEX } from '../../data/tournamentIndex';
@@ -13,8 +18,12 @@ import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type De
 import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
 import { RecordedAt, formatRecorded } from './RecordedAt';
-import { SimTierBadge, simTierFor } from './TierBadges';
+import { recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
 import { bandWords, SIM_TIER_MIN_GAMES } from '../../lib/simTier';
+import { listOf } from '../../lib/listTwin';
+import { BOT_LABEL, type YourRecord } from '../../lib/runLedger';
+import type { Provisional } from '../../lib/yourStats';
+import { useYourStats, yourStatsFor } from '../useYourStats';
 
 const EVENTS = TOURNAMENT_INDEX.events;
 // every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
@@ -119,7 +128,10 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
   // file, never one deck's lines: the file is the same object for every deck, so setting it again changes nothing, and
   // the page can go from one deck to another without showing the first deck's lines or re-rendering without end
   const [h2h, setH2h] = useState<H2HFile | null | undefined>(undefined);
-  const base = recordFor(d);
+  // whose recorded results: the deck's own, or the library deck with the same list (a deck saved here)
+  const twin = recordedSource(d)?.twin ?? null;
+  const rd = twin ?? d;
+  const base = recordFor(rd);
   // tournament head-to-heads only fill in best/worst matchups when the bundled reports have none
   const needH2H = needsEventH2H(base);
   useEffect(() => {
@@ -130,15 +142,19 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
       live = false;
     };
   }, [needH2H, h2h]);
-  const eventH2H = useMemo<MatchLine[] | undefined>(() => (needH2H && h2h !== undefined ? h2hFor(d.deck.name, h2h) : undefined), [needH2H, h2h, d.deck.name]);
-  const rec = eventH2H ? recordFor(d, eventH2H) : base;
+  const eventH2H = useMemo<MatchLine[] | undefined>(() => (needH2H && h2h !== undefined ? h2hFor(rd.deck.name, h2h) : undefined), [needH2H, h2h, rd.deck.name]);
+  const rec = eventH2H ? recordFor(rd, eventH2H) : base;
   const t = rec.tournament;
-  const sim = simTierFor(d.deck.name);
+  const sim = simTierOf(d);
+  const ys = yourStatsFor(useYourStats(), listOf(d.deck));
+  // a provisional rating only for a list with no recorded rating
+  const prov = t ? undefined : ys.prov;
+  const yours = ys.rec ? <YourTournaments rec={ys.rec} prov={prov} recorded={!!t} alone={!rec.hasAny} /> : null;
   return (
     <section className="rec flair" aria-labelledby={headingId}>
       <div className="rec-head">
         <h2 id={headingId} className="rec-title">
-          Recorded results
+          {!rec.hasAny && yours ? 'Your tournaments' : 'Recorded results'}
         </h2>
         {rec.hasAny && rec.historical && (
           <p className="rec-note">
@@ -146,11 +162,19 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
           </p>
         )}
       </div>
+      {twin && (
+        <p className="rec-note rec-twin">
+          Same list as <a href={profileHref(twin.file)}>{twin.deck.name}</a>
+          {rec.hasAny ? ': these are its recorded results.' : '.'}
+        </p>
+      )}
       {!rec.hasAny ? (
+        yours ?? (
         <p className="rec-empty">
           <b>No recorded games.</b> This deck has not played in a recorded event, season or report yet. Measure it in the <a href="#/arena">Matchup Lab</a> (the
           results stay in your browser).
         </p>
+        )
       ) : (
         <>
           <div className="rec-tiles">
@@ -268,8 +292,66 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
               </ul>
             </div>
           )}
+          {yours}
         </>
       )}
     </section>
+  );
+}
+
+const winLoss = (r: { wins: number; losses: number; ties: number }) => `${r.wins}–${r.losses}${r.ties ? `–${r.ties}` : ''}`;
+
+/**
+ * "Your tournaments" on a deck's page: the list's record in the tournaments run in this browser, by bots, and for a list
+ * with no recorded rating its provisional rating against the recorded field. `alone`: the deck has no recorded results,
+ * so this is the panel's only content (the panel's heading then says "Your tournaments").
+ */
+export function YourTournaments({ rec, prov, recorded, alone }: { rec: YourRecord; prov?: Provisional; recorded?: boolean; alone?: boolean }) {
+  const pt = prov?.tier ?? null;
+  const bots = rec.byBot.map((b) => `${BOT_LABEL[b.bot] ?? b.bot} ${winLoss(b.rec)}`).join(' · ');
+  return (
+    <div className={`rec-yours${alone ? ' is-alone' : ''}`}>
+      {!alone && <h3 className="rec-sub">Your tournaments</h3>}
+      <p className="rec-note">From the tournaments you ran in this browser only, kept apart from the recorded results.</p>
+      <div className="rec-tiles">
+        <Tile label="Your games" value={rec.games.toLocaleString()}>
+          in {rec.runs} of your tournaments
+          {rec.won > 0 ? `, won ${rec.won}` : ''} · {bots}
+        </Tile>
+        <Tile label="Your win rate" value={<Sampled text={pct(rec.wr)} n={rec.games} tone={wrTone(rec.wr)} />}>
+          {winLoss(rec)} ({rec.ties ? 'wins–losses–ties; a tie counts half' : 'wins–losses'}){small(rec.games)}
+        </Tile>
+        {prov && (
+          <Tile
+            label="Provisional rating"
+            value={
+              <>
+                <Sampled text={pct(prov.wr)} n={prov.games} tone={wrTone(prov.wr)} /> <YourTierBadge tier={pt} showUnrated />
+              </>
+            }
+          >
+            {prov.connected ? (
+              <>
+                expected vs the recorded field (90% range {pct(prov.lo)}–{pct(prov.hi)}) from {games(prov.games)} with All Hard bots{small(prov.games)} · would place{' '}
+                {ordinal(prov.place)} of {prov.of} in the <a href="#/ratings">Power ratings</a>
+                {pt?.letter ? '' : ` · a provisional tier needs ${SIM_TIER_MIN_GAMES} of these games`}
+              </>
+            ) : (
+              <>
+                from {games(prov.games)} with All Hard bots, none of them against a recorded deck: its place against the recorded field is only the prior's guess of an average deck, so
+                the range is wide ({pct(prov.lo)}–{pct(prov.hi)})
+              </>
+            )}
+          </Tile>
+        )}
+      </div>
+      {!prov && !recorded && (
+        <p className="rec-note">
+          {rec.byBot.some((b) => b.bot === 'hard')
+            ? 'Working out the provisional rating…'
+            : 'Only tournaments run with All Hard bots give a provisional rating, and this list has none of those games yet.'}
+        </p>
+      )}
+    </div>
   );
 }

@@ -48,6 +48,7 @@ file.
 | `features.profileSharing` | `true` | The Sharing & privacy tab and shared profiles (`#/u`). |
 | `features.deckLab` | `true` | The Deck Lab (`#/lab`) and links to it. |
 | `features.tournamentRunner` | `true` | Running a tournament in the browser (`#/run`) and links to it, including each recorded event's "Run this event again". |
+| `features.yourTournamentStats` | `true` | The tournaments a visitor finishes in their browser count toward their own deck stats: their record on deck tiles and deck pages, a provisional rating and tier for their lists with no recorded rating, the "Your decks" table on Power ratings, and the runner's line with Clear. Always labelled as theirs and kept apart from the recorded results. Off, none of it shows (finished runs are still noted in the browser, so turning it back on shows them). |
 | `features.tunedDecks` | `true` | The Tuned decks page (`#/tuned`) and links to it. |
 | `features.cardArtToggle` | `true` | The Art / Text button in the header (a visitor's saved choice stays). |
 | `features.multiplayer` | `true` | Play online against another person (Play → Host a game / Join a game, `#/play/online`, invite links `#/play/join/<code>`). Off: the choice is hidden and those addresses show the ordinary Play page. |

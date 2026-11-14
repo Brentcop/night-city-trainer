@@ -17,10 +17,15 @@ import { isHistorical } from '../src/lib/playedRecord';
 const RATED = 'meta-rrg-dexter-midrange.txt';
 // a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
 const RECORDED = 's1-01-mutant-rry.txt';
-// every library deck plays in the recorded events, so the unrecorded deck is one saved in this browser
+// every library deck plays in the recorded events, so the unrecorded deck is one saved in this browser, with a list no
+// library deck has (a saved copy of a library list shows that deck's recorded results: tests/your-stats-ui.test.tsx)
 const UNRECORDED_NAME = 'Unrecorded test deck';
 const UNRECORDED = `custom:${UNRECORDED_NAME}`;
-const saveUnrecorded = () => upsertCustom({ ...BUILTIN.find((d) => d.file === RATED)!.deck, name: UNRECORDED_NAME });
+const saveUnrecorded = () => {
+  const base = BUILTIN.find((d) => d.file === RATED)!.deck;
+  const other = BUILTIN.flatMap((d) => d.deck.main).find((id) => !base.main.includes(id))!;
+  return upsertCustom({ ...base, name: UNRECORDED_NAME, main: [other, ...base.main.slice(1)] });
+};
 
 function memoryStorage() {
   const m = new Map<string, string>();

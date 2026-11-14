@@ -51,6 +51,28 @@
 .rec-empty {
   margin: 0;
 }
+/* your tournaments (this browser only): set apart from the recorded results by a dashed rule and quieter tiles */
+.rec-yours {
+  display: grid;
+  gap: 8px;
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+.rec-yours.is-alone {
+  border-top: 0;
+  padding-top: 0;
+}
+.rec-sub {
+  margin: 0;
+  font-size: 1rem;
+  padding-left: 10px;
+}
+.rec-yours .rec-tile {
+  border-top: 2px dashed var(--muted);
+}
+.rec-yours .rec-tile-val {
+  color: var(--text);
+}
 .rec-tiles {
   display: grid;
   gap: 8px;

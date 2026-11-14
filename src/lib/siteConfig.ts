@@ -37,7 +37,7 @@ export const SITE_CONFIG_FILE = 'site-config.json';
 
 // ---------------------------------------------------------------- features
 
-export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search'] as const;
+export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'yourTournamentStats', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search'] as const;
 export type FeatureName = (typeof FEATURES)[number];
 export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; default: boolean }> = {
   coach: { label: 'Coach', help: 'The coach in Play: suggested moves, warnings and the move grades.', default: true },
@@ -47,6 +47,11 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
   profileSharing: { label: 'Profile sharing', help: 'Share links and files, and opening a shared profile (#/u).', default: true },
   deckLab: { label: 'Deck Lab', help: 'Tuning and breeding decks in the browser (#/lab).', default: true },
   tournamentRunner: { label: 'Tournament runner', help: 'Running a tournament in the browser (#/run).', default: true },
+  yourTournamentStats: {
+    label: 'Your tournament stats',
+    help: "The tournaments a visitor ran in their browser count toward their deck tiles, deck pages and Power ratings: a record per list and a provisional rating for lists with no recorded rating, labelled as theirs and kept apart from the recorded results. Off, none of it shows (runs are still noted in the browser).",
+    default: true,
+  },
   tunedDecks: { label: 'Tuned decks page', help: 'The list of decks tuned in the Lab (#/tuned).', default: true },
   cardArtToggle: { label: 'Card art switch', help: 'The Art / Text button in the header.', default: true },
   multiplayer: { label: 'Play online', help: 'Play another person online (Play → Play online): a direct browser-to-browser link set up with invite codes.', default: true },

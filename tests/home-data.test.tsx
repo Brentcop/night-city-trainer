@@ -79,6 +79,12 @@ describe('entry chunk', () => {
     for (const f of ['src/ui/pages/Tutorial.tsx', 'src/ui/pages/TutorialRules.tsx', 'src/lib/tutorial.ts', 'src/content/tutorial/lessons.ts']) expect(graph).not.toContain(f);
     expect([...staticGraph('src/ui/pages/Tutorial.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'))).toContain('src/lib/tutorial.ts');
   });
+  it('reaches your tournaments’ small ledger reader, but not the rating maths, the entry builder or their runtime (they load on demand)', () => {
+    for (const f of ['src/lib/runLedger.ts', 'src/ui/useYourStats.ts', 'src/lib/listTwin.ts']) expect(graph).toContain(f);
+    for (const f of ['src/lib/anchoredRating.ts', 'src/lib/ratingModel.ts', 'src/lib/yourStats.ts', 'src/lib/runLedgerEntry.ts', 'src/lib/ratingGames.ts', 'src/lib/eventFormats.ts', 'src/ui/yourStatsRuntime.ts'])
+      expect(graph).not.toContain(f);
+    expect([...staticGraph('src/ui/yourStatsRuntime.ts')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'))).toContain('src/lib/anchoredRating.ts');
+  });
   it('(control) the walker does see them from a page that imports them', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(profile).toContain(big);

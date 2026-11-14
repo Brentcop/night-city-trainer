@@ -59,6 +59,8 @@ import { download } from '../../lib/download';
 import { usePoolRun } from '../usePoolRun';
 import { draftLinkQuery, parseRunParams, parseRuns, toEvent } from '../runParams';
 import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
+import { recordRun } from '../../lib/runLedgerEntry';
+import { YourStatsLine } from '../components/YourStats';
 import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
 import { PageHead } from '../components/PageHead';
@@ -173,6 +175,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const [ended, setEnded] = useState<{ kind: 'stopped' | 'failed'; error?: string } | null>(null);
   const [fileMsg, setFileMsg] = useState('');
   const [linkMsg, setLinkMsg] = useState('');
+  /** the last finished run could not be added to your deck stats (storage refused) */
+  const [ledgerRefused, setLedgerRefused] = useState(false);
   const [pause, setPause] = useState<Pause | null>(null);
   const waiter = useRef<((x: RoundInput | void) => void) | null>(null);
   const poolRun = usePoolRun();
@@ -239,6 +243,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
       if (out.phase === 'stopped') setEnded({ kind: 'stopped' });
       saveRun(out);
       setRuns(loadRuns());
+      // a finished run counts toward your deck stats (src/lib/runLedger.ts); a stopped one does not
+      if (out.phase === 'done') setLedgerRefused(recordRun(out) === 'refused');
       const fresh = (out.progress?.games ?? 0) - play.reused();
       const secs = (Date.now() - started) / 1000;
       if (out.phase === 'done' && fresh >= 10 && secs > 1) saveRate(o.cfg.bot, fresh / secs / gp.size);
@@ -660,6 +666,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           {fileMsg && <span style={{ color: 'var(--red)' }}>{fileMsg}</span>}
         </div>
       )}
+      {!running && <YourStatsLine refused={ledgerRefused} />}
 
       {ev && (
         <>

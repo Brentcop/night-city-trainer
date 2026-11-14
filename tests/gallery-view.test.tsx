@@ -137,13 +137,23 @@ describe('gallery page', () => {
   });
   it('hidden decks leave the list and are counted; saved decks join it', () => {
     localStorage.setItem(HIDDEN_KEY, JSON.stringify([BUILTIN[0]!.file]));
-    upsertCustom({ name: 'My test deck', legends: BUILTIN[0]!.deck.legends, main: BUILTIN[0]!.deck.main, sideboard: [] });
+    // a list no library deck has (a saved copy of a library list reads that deck's recorded numbers: below)
+    const other = BUILTIN.flatMap((d) => d.deck.main).find((id) => !BUILTIN[0]!.deck.main.includes(id))!;
+    upsertCustom({ name: 'My test deck', legends: BUILTIN[0]!.deck.legends, main: [other, ...BUILTIN[0]!.deck.main.slice(1)], sideboard: [] });
     const html = renderToStaticMarkup(<DeckGallery onNew={() => undefined} />);
     expect(html).toContain(`${BUILTIN.length} decks (1 hidden)`);
     expect(html).toContain('Show hidden (1)');
     expect(html).toContain('My test deck');
     const f = deckFacts(allDecks(), new Set([BUILTIN[0]!.file]));
     expect(f.find((x) => x.name === 'My test deck')).toMatchObject({ source: 'mine', power: null, sim: null });
+  });
+  it('a saved copy of a library list sorts and filters by that deck’s recorded numbers (recorded only)', () => {
+    const lib = BUILTIN.find((d) => d.file === 'meta-rrg-dexter-midrange.txt')!;
+    upsertCustom({ name: 'My copy', legends: lib.deck.legends, main: lib.deck.main, sideboard: [] });
+    const f = deckFacts(allDecks(), new Set());
+    const own = f.find((x) => x.file === lib.file)!;
+    expect(own.sim).toBe('S');
+    expect(f.find((x) => x.name === 'My copy')).toMatchObject({ source: 'mine', power: own.power, sim: own.sim, games: own.games });
   });
   it('an empty result says so, with a way out', () => {
     const html = renderToStaticMarkup(<DeckGallery onNew={() => undefined} query="q=zzzz-no-such-deck" />);

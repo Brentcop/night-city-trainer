@@ -117,6 +117,18 @@ export function simTierText(t: SimTier): string {
   return t.straddle && t.loLetter && t.hiLetter ? `${head} Uncertain: the range reaches from tier ${t.loLetter} to tier ${t.hiLetter}.` : head;
 }
 
+/**
+ * The tooltip of a provisional tier (src/lib/yourStats.ts): the same rule on a provisional rating from the visitor's own
+ * tournaments in this browser, named as such, never as a recorded result.
+ */
+export function provisionalTierText(t: SimTier): string {
+  const src = 'Provisional tier from your tournaments in this browser (All Hard bots), not a recorded result';
+  if (!t.letter) return `${src}: none yet, too few games (${t.games} of the ${SIM_TIER_MIN_GAMES} needed).`;
+  const range = t.lo !== undefined && t.hi !== undefined ? ` (90% range ${pc1(t.lo)}–${pc1(t.hi)})` : '';
+  const head = `${src}: ${t.letter}${t.straddle ? '±' : ''}. Expected ${pc1(t.wr ?? 0)} vs the recorded field${range} over ${t.games} games; tier ${t.letter} is ${bandWords(t.letter)}.`;
+  return t.straddle && t.loLetter && t.hiLetter ? `${head} Uncertain: the range reaches from tier ${t.loLetter} to tier ${t.hiLetter}.` : head;
+}
+
 /** Every band in one line, for the explanations: "S 64% or more · A 55–64% · …". */
 export const bandsLine = (): string => SIM_TIER_LETTERS.map((l) => `${l} ${bandWords(l)}`).join(' · ');
 
