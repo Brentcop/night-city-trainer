@@ -10,7 +10,8 @@
 // Caveat: the oracle values positions with the bots' own evaluation, so it finds tactical slips, not new strategy.
 import { Game } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
-import type { Action, Agent, Decision, DeckList, PlayerId, Reaction } from '../engine/types';
+import type { Action, Agent, Decision, DeckList, GameState, PlayerId, Reaction } from '../engine/types';
+import { stateHash } from '../lib/stateHash';
 import { HeuristicAgent, hideInfo, isUnknownCall, standardError } from './heuristic';
 import { BEST_PROFILES } from './archetype';
 import { clampPlayOut, DECIDED_EVAL, DEFAULT_WEIGHTS, evaluate } from './eval';
@@ -331,6 +332,8 @@ export interface ReviewOptions {
    * candidate in the same worlds, so it is biased upward). Other decisions are measured exactly as without it.
    */
   confirm?: { worlds: number; flag: (d: DecisionReview) => boolean };
+  /** called with the game's final state once it is over (the strict replay checks the position: src/sim/practiceReview.ts) */
+  onEnd?: (s: GameState) => void;
 }
 
 /** Wraps a seat's agent: plays exactly as it would, and reviews its main-phase decisions on the side. */
@@ -588,6 +591,7 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
   const ra = [0, 1].map((p) => new ReviewAgent(spec.agents[p], p as PlayerId, seats.includes(p as PlayerId), opts, oracleSeed, shared)) as [ReviewAgent, ReviewAgent];
   const g = Game.create(spec.decks, ra, { seed: spec.seed, first: spec.first, log: false });
   const s = await g.run();
+  opts.onEnd?.(s);
   const timeline = [...ra[0].timeline, ...ra[1].timeline].sort((a, b) => a.turn - b.turn);
   const swings = timeline
     .slice(1)
@@ -648,9 +652,14 @@ export function legalAnswer(pick: unknown, d: Decision, g: Game, whose: string):
  * fallback (null: the Game review's strict replay) that is a ReplayDiverged too, since the game went on past the record.
  * `choosesPayment`, `choosesOrder` and `confirmsEndTurn` must match the recording (a practice replay's `payChoice`,
  * `orderChoice` and `endTurnClick`), or the choices won't line up. `whose` names the seat in a refusal ("your").
+ * `position` (a game the session ended off the board): the decision after `at` of these answers must be asked in the
+ * position whose stateHash is `hash` (checked before that answer is used, or before `fallback` ends the game), else a
+ * ReplayDiverged; `positionChecked` says whether the replay got there.
  */
 export class ScriptedAgent implements Agent {
   private k = 0;
+  /** the replay reached the decision `position.at` and its position matched */
+  positionChecked = false;
   constructor(
     public name: string,
     private choices: number[][],
@@ -659,12 +668,18 @@ export class ScriptedAgent implements Agent {
     public choosesOrder = false,
     public confirmsEndTurn = false,
     private whose = name === 'You' ? 'your' : `${name}'s`,
+    readonly position: { hash: string; at: number } | null = null,
   ) {}
   /** recorded answers not used (yet) */
   get left(): number {
     return this.choices.length - this.k;
   }
   async decide(g: Game, d: Decision): Promise<number[]> {
+    const p = this.position;
+    if (p && !this.positionChecked && this.k === p.at) {
+      if (stateHash(g.s) !== p.hash) throw new ReplayDiverged(divergedText(`at turn ${g.s.turn} it reaches a different position from the one recorded`));
+      this.positionChecked = true;
+    }
     if (this.k < this.choices.length) return legalAnswer(this.choices[this.k++], d, g, this.whose);
     if (!this.fallback) throw new ReplayDiverged(divergedText(`at turn ${g.s.turn}, ${this.whose} recorded moves ran out before the game ended`));
     return this.fallback.decide(g, d);

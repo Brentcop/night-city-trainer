@@ -416,6 +416,8 @@ export class PracticeSession {
     run.replay.undos = (run.replay.undos ?? 0) + 1;
     // undoing a concession takes it back: the game goes on, and is recorded again (same id) when it ends
     delete run.replay.conceded;
+    // the position recorded when the game ended (finished or conceded) belongs to that ending, not to the game going on
+    delete run.replay.position;
     const state = structuredClone(target.state);
     this.launch((agents) => new Game(state, agents), cloneBot(target.bot), run.replay, run.snaps, run.grades, run.match, true);
     return true;
@@ -440,6 +442,10 @@ export class PracticeSession {
     st.phase = 'over';
     g.log(null, `${CONCEDED_REASON}: ${g.P(1).name} wins`);
     run.replay.conceded = true;
+    // the Game review's replay must reach the last decision you were asked, as it was (none asked yet: not checked)
+    const at = run.stable;
+    if (at) run.replay.position = { hash: at.hash, at: at.at };
+    else delete run.replay.position;
     (this.opts.record ?? recordFinished)(run.replay, st);
     this.opts.onClosed?.(run, 'conceded');
     this.changed();
@@ -506,6 +512,8 @@ export class PracticeSession {
     run.done = (resumed ? g.resume() : g.run()).then(
       (st) => {
         if (run.cancelled || run.restoring) return;
+        // played to its end on the board: the Game review's replay must end in this very position
+        replay.position = { hash: stateHash(st) };
         (this.opts.record ?? recordFinished)(replay, st);
         this.opts.onClosed?.(run, 'finished');
         tick();

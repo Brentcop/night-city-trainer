@@ -15,6 +15,7 @@ import { BOT_GAMES_KEY, ongoingChanged } from './ongoingBadge';
 import type { MultiDayMark, PracticeGame } from './practiceLog';
 import type { PracticeReplay } from './practiceReplays';
 import { parseSavedGame, replayOf, staleLine, versionProblem, type SavedGame } from './savedGames';
+import { isStateHash } from './stateHash';
 
 export const DAY_MS = 86_400_000;
 export const BOT_MD_KIND = 'nct-multiday-bot';
@@ -106,7 +107,10 @@ export const TIMED_OUT_REASON = 'Time ran out (multi-day game)';
 export function timedOutRecords(e: BotMultiDay, now: number): { entry: PracticeGame; replay: PracticeReplay } {
   const s = e.save;
   const mark: MultiDayMark = { days: e.days, timedOut: true };
-  const replay: PracticeReplay = { ...replayOf(s), choices: s.choices.map((c) => [...c]), result: 'loss', conceded: true, multiDay: mark, simVersion: s.simVersion };
+  // the Game review's replay must reach the save's own check: the last decision you were asked, as it was (a hash that
+  // is not one, from a damaged import, is left out rather than making the record unreadable)
+  const position = isStateHash(s.check.hash) ? { position: { hash: s.check.hash, at: s.check.at } } : {};
+  const replay: PracticeReplay = { ...replayOf(s), choices: s.choices.map((c) => [...c]), result: 'loss', conceded: true, multiDay: mark, simVersion: s.simVersion, ...position };
   const entry: PracticeGame = {
     id: s.replayId,
     date: new Date(now).toISOString(),

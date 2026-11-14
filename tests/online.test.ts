@@ -9,8 +9,12 @@ import { loadLibrary } from '../scripts/lib-node';
 import { Chat, CHAT_MAX, CHAT_RATE, CHAT_WINDOW_MS, cleanChat } from '../src/net/chat';
 import { checkReveal, chosenSeat, commitOf, newNonce } from '../src/net/fair';
 import { defaultAnswer, HostGame, parseHostSave, type OnlineSetup } from '../src/net/hostGame';
-import { CAPS, encode, parseGuestMessage, parseHostMessage } from '../src/net/protocol';
-import type { OnlineOutcome, OnlineRecorder } from '../src/net/record';
+import { CAPS, encode, parseGuestMessage, parseHostMessage, readRecord, type DeckMsg } from '../src/net/protocol';
+import { replayOf as replayOfRecord, type OnlineOutcome, type OnlineRecorder } from '../src/net/record';
+import { Game } from '../src/engine/engine';
+import { stateHash } from '../src/lib/stateHash';
+import { practiceSpec } from '../src/lib/practiceReplays';
+import { checkReplayed, practiceAgents, replayedEnd } from '../src/sim/practiceReview';
 import { OnlineGuest, OnlineHost, REFUSALS_PER_SECOND, type OnlineSessionAny } from '../src/net/session';
 import { loopbackPair, type Transport } from '../src/net/transport';
 import { HIDDEN_BASE, redactLine, viewDecision, viewFor, ViewGame } from '../src/net/view';
@@ -23,6 +27,7 @@ const legal = LIB.map((d) => gameDeck(d.deck)).filter((d) => validateDeck(d).len
 const deckA: DeckList = legal[0]!;
 const deckB: DeckList = legal[Math.min(5, legal.length - 1)]!;
 const deckC: DeckList = legal[Math.min(11, legal.length - 1)]!;
+const deckMsgOf = (d: DeckList): DeckMsg => ({ name: d.name, legends: [...d.legends], main: [...d.main], sideboard: [...(d.sideboard ?? [])] });
 
 /** A small seeded random number generator for the players' "brains". */
 function rng(seed: number) {
@@ -85,6 +90,20 @@ describe('protocol', () => {
     ];
     for (const b of bad) expect(parseGuestMessage(b).ok, b.slice(0, 60)).toBe(false);
     expect(parseHostMessage(JSON.stringify({ v: 1, t: 'view', n: 1, state: {}, decision: null, timeLeft: null, waiting: null, end: null, error: null })).ok).toBe(false);
+  });
+  it('the game record’s final position: read strictly, accepted when absent (an older host), dropped by no one', () => {
+    const rec = { game: 'g1', seed: 4, first: 0 as PlayerId, decks: [deckMsgOf(deckA), deckMsgOf(deckB)] as [DeckMsg, DeckMsg], answers: [[[0]], [[1]]] as [number[][], number[][]] };
+    expect(readRecord(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
+    const withEnd = { ...rec, endHash: '0123456789abcdef' };
+    expect(readRecord(JSON.parse(JSON.stringify(withEnd)))).toEqual(withEnd);
+    expect(parseHostMessage(encode({ v: 1, t: 'record', record: withEnd }))).toEqual({ ok: true, msg: { v: 1, t: 'record', record: withEnd } });
+    for (const endHash of ['0123456789ABCDEF', '0123456789abcde', '0123456789abcdef0', 'g123456789abcdef', 12, null, ''])
+      expect(parseHostMessage(encode({ v: 1, t: 'record', record: { ...rec, endHash } as never })).ok, String(endHash)).toBe(false);
+    // the replay carries it only for a game played to its end
+    const o: OnlineOutcome = { id: 'x', date: '', result: 'win', reason: '', myDeck: 'A', rivalDeck: 'B', rival: 'Bo', first: true, turns: 9, gigs: [0, 0], conceded: false, rivalConceded: false, abandoned: false };
+    expect(replayOfRecord(o, withEnd, 1).position).toEqual({ hash: withEnd.endHash });
+    expect('position' in replayOfRecord(o, rec, 0)).toBe(false);
+    for (const off of [{ conceded: true }, { rivalConceded: true }, { abandoned: true }, { timedOut: true }, { rivalTimedOut: true }]) expect('position' in replayOfRecord({ ...o, ...off }, withEnd, 0)).toBe(false);
   });
   it('a host view of a real game survives the round trip', () => {
     const h = new HostGame(setup(3));
@@ -310,6 +329,16 @@ describe('a game between two sessions over the loopback link', () => {
     // both records are the same game: the host's answers are the guest's rival answers
     expect(gr.replays[0]!.pvp!.rivalChoices).toEqual(hr.replays[0]!.choices);
     expect(gr.replays[0]!.choices).toEqual(hr.replays[0]!.pvp!.rivalChoices);
+    // played to its end: both records carry the host's final position, and both seats' strict replays reach it
+    const end = stateHash(host.game!.g.s);
+    expect(guest.record()!.endHash).toBe(end);
+    for (const r of [hr.replays[0]!, gr.replays[0]!]) {
+      expect(r.position).toEqual({ hash: end });
+      const q = practiceSpec(r);
+      const agents = practiceAgents(q);
+      const st = await Game.create(q.decks, agents, { seed: q.seed, first: q.first, log: false }).run();
+      checkReplayed(q, agents, replayedEnd(st));
+    }
     // like the guest's decisions above, the number of messages depends on how long this run's game is (a short one
     // sent 49): ask only for enough to show that the address check below read a real game's traffic
     expect(log.length).toBeGreaterThan(10);
@@ -438,6 +467,10 @@ describe('a game between two sessions over the loopback link', () => {
     expect(gr.entries).toHaveLength(1);
     expect(gr.replays[0]!.conceded).toBe(true);
     expect(hr.replays[0]!.pvp!.rivalConceded).toBe(true);
+    // ended off the board: no position on either side (the record says so, and the replays carry none)
+    expect('endHash' in guest.record()!).toBe(false);
+    expect('position' in gr.replays[0]!).toBe(false);
+    expect('position' in hr.replays[0]!).toBe(false);
     // a mutual rematch starts a new roll
     host.offerRematch();
     guest.offerRematch();

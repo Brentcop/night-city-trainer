@@ -85,8 +85,14 @@ export function replayOf(o: OnlineOutcome, rec: GameRecordMsg, seat: PlayerId): 
       ...(o.timedOut ? { timedOut: seat } : o.rivalTimedOut ? { timedOut: rival } : {}),
     },
     ...(o.multiDay ? { multiDay: { ...o.multiDay } } : {}),
+    // a game played to its end on the board: the Game review's replay must end in the host's final position (an ending
+    // off the board carries none: both seats are scripted there, so no one seat's last decision stands for it)
+    ...(rec.endHash && !offBoard(o) ? { position: { hash: rec.endHash } } : {}),
   };
 }
+
+/** The session ended the game (a concession, abandoned, a clock), not the rules. */
+const offBoard = (o: OnlineOutcome) => o.conceded || o.rivalConceded || o.abandoned || !!o.timedOut || !!o.rivalTimedOut;
 
 /** Writes an online game to this browser's practice log and replays (the default; tests pass their own). */
 export interface OnlineRecorder {

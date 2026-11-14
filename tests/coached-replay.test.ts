@@ -10,7 +10,7 @@ import { advise, coachAdvises, gradeMove } from '../src/ai/coach';
 import { GIG_SWING } from '../src/ai/eval';
 import { buildCoachedReplay, coachedGrade, coachedReplayFileName, coachedReviewSpec, parseCoachedReplay, type CoachedGrade } from '../src/lib/coachedReplay';
 import { practiceAgents } from '../src/sim/practiceReview';
-import type { PracticeReplay } from '../src/lib/practiceReplays';
+import { asReplay, parseReplays, practiceSpec, type PracticeReplay } from '../src/lib/practiceReplays';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
 
 const deck = (f: string): DeckList => parseDeck(readFileSync(`data/decks/${f}`, 'utf8'), f).deck;
@@ -100,5 +100,41 @@ describe('coached replay export (src/lib/coachedReplay.ts)', () => {
     const g1 = coachedGrade(d, 1, advice, gradeMove(d, 1, advice, 3), 1);
     expect(buildCoachedReplay(replay, [g0, g1], 'x', GIG_SWING).decisions.map((r) => r.at)).toEqual([0]);
     expect(g1.record!.verdict).toBe('pending');
+  });
+
+  it('the recorded position: kept when well formed, through storage, the export and the review spec; a malformed one makes the record incomplete', () => {
+    const replay: PracticeReplay = { id: 'p1', date: '2026-11-12T10:00:00.000Z', decks, seed: 1, botLevel: 'easy', botSeed: 2, choices: [[0], [1], [0]], result: 'loss' };
+    const good = [{ hash: '0123456789abcdef' }, { hash: 'fedcba9876543210', at: 0 }, { hash: 'fedcba9876543210', at: 3 }];
+    for (const position of good) {
+      const r = { ...replay, position };
+      expect(asReplay(JSON.parse(JSON.stringify(r)))?.position).toEqual(position);
+      expect(parseReplays(JSON.stringify([r]))[0]!.position).toEqual(position);
+      const back = parseCoachedReplay(JSON.stringify(buildCoachedReplay(r, [], 'x', GIG_SWING)));
+      expect(back.ok && back.value.replay.position).toEqual(position);
+      expect(back.ok && coachedReviewSpec(back.value).position).toEqual(position);
+    }
+    // absent: as every older record
+    expect('position' in asReplay(replay)!).toBe(false);
+    expect('position' in practiceSpec(replay)).toBe(false);
+    const bad: unknown[] = [
+      null,
+      'x',
+      [],
+      {},
+      { hash: '0123456789ABCDEF' },
+      { hash: '0123456789abcde' },
+      { hash: '0123456789abcdef0' },
+      { hash: 12 },
+      { hash: '0123456789abcdef', at: -1 },
+      { hash: '0123456789abcdef', at: 4 }, // more answers than recorded
+      { hash: '0123456789abcdef', at: 1.5 },
+      { hash: '0123456789abcdef', at: '1' },
+    ];
+    for (const position of bad) {
+      const r = { ...replay, position };
+      expect(asReplay(r), JSON.stringify(position)).toBeNull();
+      expect(parseReplays(JSON.stringify([r]))).toEqual([]);
+      expect(parseCoachedReplay(JSON.stringify({ ...buildCoachedReplay(replay, [], 'x', GIG_SWING), replay: r })).ok).toBe(false);
+    }
   });
 });

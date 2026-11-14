@@ -30,9 +30,13 @@ import {
 } from '../src/lib/multiDay';
 import { ongoingWaiting } from '../src/lib/ongoingBadge';
 import { loadPractice, parsePractice, recordPractice } from '../src/lib/practiceLog';
-import { parseReplays, practiceSpec } from '../src/lib/practiceReplays';
+import { parseReplays, practiceSpec, type PracticeReplay } from '../src/lib/practiceReplays';
 import { PracticeSession, type MatchSetup, type Running } from '../src/lib/practiceSession';
 import { buildSave, loadAutosave, type SavedGame } from '../src/lib/savedGames';
+import { stateHash } from '../src/lib/stateHash';
+import { GameKeeper } from '../src/lib/gameKeeper';
+import { Game } from '../src/engine/engine';
+import { checkReplayed, practiceAgents, replayedEnd } from '../src/sim/practiceReview';
 import { setArtEnabled } from '../src/ui/art';
 import { OngoingGames, MULTI_DAY_NOTE } from '../src/ui/components/OngoingGames';
 import { PlaySetup } from '../src/ui/components/PlaySetup';
@@ -169,6 +173,45 @@ describe('a multi-day game against the bot', () => {
     removeBotGame(e.id);
     expect(loadBotGames()).toEqual([]);
   }, 60_000);
+
+  it('the Game review checks the position: the timed-out close at the save’s own check, a game finished late at its end', async () => {
+    const strict = async (r: PracticeReplay) => {
+      const q = practiceSpec(r);
+      const agents = practiceAgents(q);
+      const st = await Game.create(q.decks, agents, { seed: q.seed, first: q.first, log: false }).run();
+      checkReplayed(q, agents, replayedEnd(st));
+      return st;
+    };
+    const { save } = await keptGame();
+    const e = botEntry({ days: 3, created: T0, deadline: deadlineFrom(T0, 3), late: false }, save, T0 + HOUR);
+    const now = T0 + 3 * DAY_MS + HOUR;
+    // closed as a timed-out loss: your last decision's position, as the save checks it
+    const rec = timedOutRecords(e, now);
+    expect(rec.replay.position).toEqual({ hash: save.check.hash, at: save.check.at });
+    const back = parseReplays(JSON.stringify([rec.replay]))[0]!;
+    expect(back.position).toEqual(rec.replay.position);
+    expect((await strict(back)).winReason).toBe('You ran out of time');
+    await expect(strict({ ...back, position: { hash: '0123456789abcdef', at: save.check.at } })).rejects.toThrow(/it reaches a different position from the one recorded/);
+    // a damaged import's check that is not a hash leaves the record readable, unchecked
+    const damaged = timedOutRecords({ ...e, save: { ...save, check: { ...save.check, hash: 'nope' } } }, now).replay;
+    expect('position' in damaged).toBe(false);
+    expect(parseReplays(JSON.stringify([damaged]))).toHaveLength(1);
+    // finished late through the game keeper: recorded late, with the final position
+    const keeper = new GameKeeper({ coach: () => false, saves: () => true, now: () => now, onProblem: () => undefined });
+    keeper.md = { days: 3, created: T0, deadline: deadlineFrom(T0, 3), late: true, replayId: e.id };
+    const b = new PracticeSession({ record: (r, st) => keeper.record(r, st) });
+    drive(b, () => false);
+    expect((await b.restore(save)).ok).toBe(true);
+    let run = b.current!;
+    while (run.g.s.winner === null) {
+      await run.done;
+      run = b.current!;
+    }
+    const [r] = parseReplays(store.get('nct.practiceReplays.v1') ?? null);
+    expect(r!.multiDay).toEqual({ days: 3, late: true });
+    expect(r!.position).toEqual({ hash: stateHash(run.g.s) });
+    expect((await strict(r!)).turn).toBe(run.g.s.turn);
+  }, 120_000);
 });
 
 const item = (o: Partial<OngoingItem>): OngoingItem => ({

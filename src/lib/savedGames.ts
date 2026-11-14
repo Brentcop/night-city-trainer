@@ -12,9 +12,10 @@
 // it can still be read. Coach grades are kept as data. Pure apart from the storage helpers at the end (each wrapped,
 // so blocked storage only hides the feature).
 import { CARD_BY_ID } from '../engine/cards';
-import type { DeckList, GameState, LogEntry, PlayerId } from '../engine/types';
+import type { DeckList, LogEntry, PlayerId } from '../engine/types';
 import type { CoachedGrade } from './coachedReplay';
 import type { PracticeReplay } from './practiceReplays';
+import { stateHash } from './stateHash';
 import { SIM_VERSION } from './tournament';
 
 export const SAVED_GAME_KIND = 'nct-saved-game';
@@ -74,24 +75,8 @@ export interface SavedGame {
   log: LogEntry[];
 }
 
-/** FNV-1a 32 of a string, twice with different seeds: 16 hex digits. */
-function hash64(s: string): string {
-  let a = 0x811c9dc5;
-  let b = 0x01000193 ^ s.length;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    a = Math.imul(a ^ c, 0x01000193);
-    b = Math.imul(b ^ c, 0x5bd1e995);
-    b ^= b >>> 15;
-  }
-  return (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0');
-}
-
-/** The state a save checks: everything but the log and the trace. */
-export function stateHash(st: GameState): string {
-  const { log: _log, trace: _trace, ...rest } = st;
-  return hash64(JSON.stringify(rest));
-}
+// the position hash lives in its own small module (the review worker imports it too)
+export { stateHash };
 
 /** What the session knows about the game being saved (src/lib/practiceSession.ts Running). */
 export interface SaveSource {

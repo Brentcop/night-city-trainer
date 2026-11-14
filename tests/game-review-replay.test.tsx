@@ -10,7 +10,8 @@ import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { makeTierBot } from '../src/ai/tiers';
 import { ReplayDiverged, reviewGame, type ReviewOptions } from '../src/ai/reviewer';
 import type { Agent, Decision, DeckList, PlayerId } from '../src/engine/types';
-import { checkReplayed, practiceAgents, refuseOtherVersion, type PracticeReviewSpec } from '../src/sim/practiceReview';
+import { checkReplayed, practiceAgents, refuseOtherVersion, replayedEnd, type PracticeReviewSpec } from '../src/sim/practiceReview';
+import { stateHash } from '../src/lib/stateHash';
 import { runGameReview } from '../src/sim/gameReviewRun';
 import { practiceSpec, replayVersionProblem, type PracticeReplay } from '../src/lib/practiceReplays';
 import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
@@ -35,6 +36,8 @@ class Stop extends Error {}
 class Recorder implements Agent {
   name = 'rec';
   choices: number[][] = [];
+  /** the position (stateHash) at each decision this seat was asked, in order (the one the game was stopped at too) */
+  hashes: string[] = [];
   /** as a person's seat online (both seats choose payment and order: src/sim/practiceReview.ts) */
   readonly choosesPayment = true;
   readonly choosesOrder = true;
@@ -44,6 +47,7 @@ class Recorder implements Agent {
     private seat: PlayerId,
   ) {}
   async decide(g: Game, d: Decision) {
+    this.hashes.push(stateHash(g.s));
     if (this.shared.n++ >= this.shared.limit) {
       this.shared.stoppedBy = this.seat;
       throw new Stop();
@@ -55,11 +59,11 @@ class Recorder implements Agent {
 }
 
 /** A game of two Easy bots, both seats recorded, stopped after `limit` decisions (Infinity: played to the end). */
-async function recorded(limit = Infinity) {
+async function recorded(limit = Infinity, seed = 42) {
   const shared: { n: number; limit: number; stoppedBy?: PlayerId } = { n: 0, limit };
   const a = new Recorder(makeTierBot('easy', 5), shared, 0);
   const b = new Recorder(makeTierBot('easy', 9, 'Bot'), shared, 1);
-  const g = Game.create(decks, [a, b], { seed: 42, first: 0, log: false });
+  const g = Game.create(decks, [a, b], { seed, first: 0, log: false });
   let st = g.s;
   try {
     st = await g.run();
@@ -75,7 +79,7 @@ const botSpec = (choices: number[][], o: Partial<PracticeReviewSpec> = {}): Prac
 const replayWith = async (q: PracticeReviewSpec) => {
   const agents = practiceAgents(q);
   const st = await Game.create(q.decks, agents, { seed: q.seed, first: q.first, log: false }).run();
-  checkReplayed(q, agents, { winner: st.winner, turns: st.turn });
+  checkReplayed(q, agents, replayedEnd(st));
   return st;
 };
 
@@ -115,6 +119,58 @@ describe('the strict replay (REV-1)', () => {
     expect(st.winner).toBe(1);
     expect(st.winReason).toBe('You conceded');
   }, 60_000);
+});
+
+describe('the recorded position', () => {
+  const winnerOf = (st: { winner: PlayerId | 'tie' | null }) => (st.winner === 0 || st.winner === 1 ? st.winner : 'tie');
+  const DIFFERENT_END = "This game can't be reviewed: replaying its recorded moves with this version of the bots and rules engine gives a different game (it ends in a different position from the game that was played).";
+
+  it('a replay with the recorded winner and length that ends in another position is refused (the case the old check let through)', async () => {
+    const { a, st } = await recorded();
+    const other = await recorded(Infinity, 43);
+    expect(stateHash(other.st)).not.toBe(stateHash(st));
+    const base = botSpec(a.choices, { expect: winnerOf(st), turns: st.turn, simVersion: CURRENT_SIM_VERSION });
+    // without a position the replay passes, as every older record does; with its own final position too
+    expect(stateHash(await replayWith(base))).toBe(stateHash(st));
+    await replayWith({ ...base, position: { hash: stateHash(st) } });
+    // another game's final position: the winner and the length check out, the position does not
+    const wrong = { ...base, position: { hash: stateHash(other.st) } };
+    const e = await replayWith(wrong).catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(ReplayDiverged);
+    expect((e as Error).message).toBe(DIFFERENT_END);
+    // the Game review itself: its replay hands its final position to the check
+    const ok = await runGameReview({ id: 'x', spec: { ...base, position: { hash: stateHash(st) } }, coach: [], rollouts: 1, confirm: 0, made: 'm' });
+    expect(ok.turns).toBe(st.turn);
+    await expect(runGameReview({ id: 'x', spec: wrong, coach: [], rollouts: 1, confirm: 0, made: 'm' })).rejects.toThrow(DIFFERENT_END);
+    // the check needs the final position: a caller that leaves it out is a bug, not a refusal
+    const agents = practiceAgents(wrong);
+    await Game.create(decks, agents, { seed: 42, first: 0, log: false }).run();
+    expect(() => checkReplayed(wrong, agents, { winner: st.winner, turns: st.turn })).toThrow(/pass the replay’s final state hash/);
+  }, 120_000);
+
+  it('a game the session ended is checked at your last decision, never at its end', async () => {
+    const { a, turn } = await recorded(60);
+    const n = a.choices.length;
+    // a.hashes[k]: your decision after k answers (the one the game was stopped at is the last)
+    expect(a.hashes.length).toBeGreaterThanOrEqual(n);
+    const conceded = (position: PracticeReviewSpec['position']) => botSpec(a.choices, { conceded: true, expect: 1, turns: turn, position });
+    for (const at of [n - 1, a.hashes.length - 1]) expect((await replayWith(conceded({ hash: a.hashes[at]!, at }))).winReason).toBe('You conceded');
+    // the hash of another decision, or the right hash at another decision: refused where the replay parts from it
+    let k = n - 1;
+    while (k > 0 && a.hashes[k] === a.hashes[k - 1]) k--;
+    expect(k).toBeGreaterThan(0);
+    for (const bad of [{ hash: a.hashes[k - 1]!, at: k }, { hash: a.hashes[k]!, at: k - 1 }]) {
+      const e = await replayWith(conceded(bad)).catch((x: unknown) => x);
+      expect(e).toBeInstanceOf(ReplayDiverged);
+      expect((e as Error).message).toMatch(/^This game can't be reviewed: replaying its recorded moves with this version of the bots and rules engine gives a different game \(at turn \d+ it reaches a different position from the one recorded\)\.$/);
+    }
+    // a final position (no `at`) means nothing when the session ended the game: not checked
+    await replayWith(conceded({ hash: '0123456789abcdef' }));
+    // a record the replay plays to its end before the decision it names was ever asked
+    const full = await recorded();
+    const early = botSpec(full.a.choices, { conceded: true, position: { hash: full.a.hashes.at(-1)!, at: full.a.choices.length } });
+    await expect(replayWith(early)).rejects.toThrow(`(it ends at turn ${full.st.turn}, before reaching the position recorded).`);
+  }, 120_000);
 });
 
 describe('confirming flagged moves on fresh worlds (REV-4)', () => {

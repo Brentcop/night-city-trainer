@@ -50,7 +50,7 @@ import { replayRecord } from '../src/lib/gameRecord/replay';
 import { showAt } from '../src/lib/gameRecord/show';
 import type { LibraryDeck } from '../src/lib/library';
 import { parseReplays, type PracticeReplay } from '../src/lib/practiceReplays';
-import { checkReplayed, practiceAgents, refuseOtherVersion } from '../src/sim/practiceReview';
+import { checkReplayed, practiceAgents, refuseOtherVersion, replayedEnd } from '../src/sim/practiceReview';
 import { ArgError, bool, cli, Refusal, forEachGameOf, int, loadLibrary, readEvents, resolveDeck, runMain, str, TIER_BOTS, type RecordedGame } from './lib-node';
 
 const { values: V, positionals } = cli(
@@ -230,7 +230,7 @@ async function exportCmd() {
     date: r.date.slice(0, 10),
     source: `practice replay ${r.id}`,
   });
-  checkReplayed(spec, agents, { winner: ex.state.winner, turns: ex.state.turn });
+  checkReplayed(spec, agents, replayedEnd(ex.state));
   return writeOut(ex.text);
 }
 

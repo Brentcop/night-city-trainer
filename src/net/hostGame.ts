@@ -377,6 +377,16 @@ export class HostGame {
     this.g.onUpdate = null;
   }
 
+  /**
+   * The record's `endHash` (GameRecordMsg): the final state's stateHash when the rules ended the game on the board; none
+   * when the session ended it (conceded, a clock, abandoned), while it goes on, or after an error.
+   */
+  endHashPart(): { endHash?: string } {
+    const st = this.g.s;
+    if (st.winner === null || this.error || (this.ended && this.ended.why !== 'finished')) return {};
+    return { endHash: stateHash(st) };
+  }
+
   /** The save of the game in progress (null once it is over or failed). */
   save(saved = new Date().toISOString()): HostSave | null {
     if (this.ended || this.error || this.restoring) return null;

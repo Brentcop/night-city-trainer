@@ -2,10 +2,11 @@
 // grade both seats with the match reviewer's oracle, except your moves the coach already graded during play, and turn
 // the result into the stored record (src/lib/gameReview.ts). One function for the browser's review worker and the CLI
 // (scripts/review.ts), so both rate a game the same way. The replay is strict (src/sim/practiceReview.ts): a record from
-// another simulator version, or one that no longer replays as the game that was played, is a ReplayDiverged.
+// another simulator version, or one that no longer replays as the game that was played (or no longer reaches the
+// position recorded with it), is a ReplayDiverged.
 import { reviewGame } from '../ai/reviewer';
 import { buildReviewRecord, coachSkip, confirmFlag, GAME_REVIEW_CONFIRM, GAME_REVIEW_ROLLOUTS, type CoachRating, type GameReviewRecord, type ReviewMove } from '../lib/gameReview';
-import { checkReplayed, practiceAgents, refuseOtherVersion, type PracticeReviewSpec } from './practiceReview';
+import { checkReplayed, practiceAgents, refuseOtherVersion, replayedEnd, type PracticeReviewSpec, type ReplayedEnd } from './practiceReview';
 
 // The play-outs and confirmation worlds are part of how a review is measured: they live beside REVIEW_MEASURE in
 // src/lib/gameReview.ts (the store checks a stored review against them without loading the oracle).
@@ -48,6 +49,7 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
   const coachAt = coachSkip(job.coach, me);
   const kept = new Set((job.keep ?? []).filter((m) => m.p === me).map((m) => m.at));
   const confirm = job.confirm ?? GAME_REVIEW_CONFIRM;
+  let end = null as ReplayedEnd | null;
   const review = await reviewGame(
     { decks: q.decks, seed: q.seed, first: q.first, agents: [tracked[0]!, tracked[1]!], agentNames: names },
     {
@@ -58,8 +60,9 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
       ...(confirm > 0 ? { confirm: { worlds: confirm, flag: confirmFlag } } : {}),
       ...(job.oracleSeed !== undefined ? { oracleSeed: job.oracleSeed } : {}),
       onProgress: (n) => onProgress?.(n, turn),
+      onEnd: (s) => (end = replayedEnd(s)),
     },
   );
-  checkReplayed(q, agents, review);
+  checkReplayed(q, agents, end!);
   return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me, confirm }, job.keep);
 }

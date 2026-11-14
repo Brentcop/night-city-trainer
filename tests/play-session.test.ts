@@ -4,12 +4,14 @@ import { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import { makeTierBot } from '../src/ai/tiers';
 import { ReplayDiverged, reviewGame, ScriptedAgent } from '../src/ai/reviewer';
-import { practiceAgents } from '../src/sim/practiceReview';
+import { checkReplayed, practiceAgents, replayedEnd } from '../src/sim/practiceReview';
 import type { Agent, Decision, DeckList, GameState } from '../src/engine/types';
-import { canConcede, canUndo, CONCEDED_REASON, outcome, PracticeSession, type MatchSetup, type Running } from '../src/lib/practiceSession';
+import { canConcede, canUndo, CONCEDED_REASON, outcome, PracticeSession, rematchOf, type MatchSetup, type Running } from '../src/lib/practiceSession';
 import { HumanAgent } from '../src/ui/HumanAgent';
 import { loadPractice, parsePractice, recordPractice } from '../src/lib/practiceLog';
-import { loadReplays, parseReplays } from '../src/lib/practiceReplays';
+import { loadReplays, parseReplays, practiceSpec, type PracticeReplay } from '../src/lib/practiceReplays';
+import { buildSave, type SavedGame } from '../src/lib/savedGames';
+import { stateHash } from '../src/lib/stateHash';
 import { reorderHand, sortHand } from '../src/ui/components/board/handSort';
 import { captureFrames, lineInFinalLog, recordReplay } from '../src/ui/components/ReplayBoard';
 
@@ -393,6 +395,155 @@ describe('practice session: conceding', () => {
     expect(review.turns).toBe(run.g.s.turn);
     expect(review.decisions.length).toBeGreaterThan(0);
     for (const d of review.decisions) expect(d.turn).toBeLessThanOrEqual(run.g.s.turn);
+  }, 120_000);
+});
+
+describe('practice session: the recorded position', () => {
+  /** The Game review's strict replay of a stored record (practiceSpec → practiceAgents → checkReplayed). */
+  async function strict(r: PracticeReplay): Promise<GameState> {
+    const q = practiceSpec(r);
+    const agents = practiceAgents(q);
+    const st = await Game.create(q.decks, agents, { seed: q.seed, first: q.first, log: false }).run();
+    checkReplayed(q, agents, replayedEnd(st));
+    return st;
+  }
+  const flip = (h: string) => (h[0] === '0' ? '1' : '0') + h.slice(1);
+  const AT_WORDS = /\(at turn \d+ it reaches a different position from the one recorded\)\.$/;
+  const END_WORDS = /\(it ends in a different position from the game that was played\)\.$/;
+  const stored = () => {
+    const reps = loadReplays();
+    expect(reps).toHaveLength(1);
+    return reps[0]!;
+  };
+
+  it('a finished game records its final position, End turn clicked or not, and its strict replay reaches it', async () => {
+    for (const endTurnClick of [false, true]) {
+      store.clear();
+      const session = new PracticeSession();
+      drive(session);
+      session.start({ ...setup(11, 0), ...(endTurnClick ? { endTurnClick } : {}) });
+      const run = await finish(session);
+      const r = stored();
+      expect(!!r.endTurnClick).toBe(endTurnClick);
+      expect(r.position).toEqual({ hash: stateHash(run.g.s) });
+      expect((await strict(r)).winner).toBe(run.g.s.winner);
+      await expect(strict({ ...r, position: { hash: flip(r.position!.hash) } })).rejects.toThrow(END_WORDS);
+      // the final position named as one of your decisions' is refused there
+      await expect(strict({ ...r, position: { hash: r.position!.hash, at: 3 } })).rejects.toThrow(AT_WORDS);
+    }
+  }, 120_000);
+
+  it('a game with several Undos records the final line’s position, and its strict replay reaches it', async () => {
+    const session = new PracticeSession();
+    let n = 0;
+    drive(session, (_run, d) => d.kind === 'action' && [4, 10, 16].includes(++n) && session.undo());
+    session.start(setup(13, 0));
+    const run = await finish(session);
+    expect(run.replay.undos).toBe(3);
+    const r = stored();
+    expect(r.position).toEqual({ hash: stateHash(run.g.s) });
+    expect((await strict(r)).turn).toBe(run.g.s.turn);
+  }, 120_000);
+
+  it('a game conceded at a prompt records the position you conceded from; Undo takes it back and finishing records the end', async () => {
+    const session = new PracticeSession();
+    let seen = 0;
+    let at: { hash: string; at: number } | null = null;
+    drive(session, (run, d) => {
+      if (at || d.kind !== 'action' || ++seen < 6) return false;
+      at = { hash: stateHash(run.g.s), at: run.replay.choices.length };
+      expect(session.concede()).toBe(true);
+      return true;
+    });
+    session.start(setup(12, 0));
+    const conceded = await finish(session);
+    const r = stored();
+    expect(r.conceded).toBe(true);
+    expect(r.position).toEqual(at);
+    expect(r.position!.at).toBe(r.choices.length);
+    expect((await strict(r)).winReason).toBe(CONCEDED_REASON);
+    await expect(strict({ ...r, position: { ...r.position!, hash: flip(r.position!.hash) } })).rejects.toThrow(AT_WORDS);
+    await expect(strict({ ...r, position: { ...r.position!, at: r.position!.at! - 1 } })).rejects.toThrow(AT_WORDS);
+    // Undo takes the concession back, and its position with it; the game finished on records its final one
+    expect(session.undo()).toBe(true);
+    expect(session.current!.replay.position).toBeUndefined();
+    const done = await finish(session);
+    expect(done).not.toBe(conceded);
+    const again = stored();
+    expect(again.conceded).toBeUndefined();
+    expect(again.position).toEqual({ hash: stateHash(done.g.s) });
+    await strict(again);
+    // a rematch is a new game: no position until it ends
+    session.start(rematchOf(again, { endTurnClick: false, seed: 77, botSeed: 78 }));
+    expect(session.current!.replay.id).not.toBe(again.id);
+    expect(session.current!.replay.position).toBeUndefined();
+    session.quit();
+  }, 120_000);
+
+  it('a game conceded while the bot was moving records your last decision before it', async () => {
+    const session = new PracticeSession({ pace: () => 5 });
+    let stable: { hash: string; at: number } | null = null;
+    let armed = false;
+    drive(session, (run, d) => {
+      if (armed || d.kind !== 'action' || run.snaps.length < 3) return false;
+      const pass = d.options.findIndex((o) => (o.action as { type?: string } | undefined)?.type === 'pass');
+      if (pass < 0) return false;
+      armed = true;
+      stable = { hash: stateHash(run.g.s), at: run.replay.choices.length };
+      run.human.answer(d, pass);
+      const wait = () => {
+        if (run.g.s.active !== 1 || run.human.pending || run.g.s.winner !== null) return void setTimeout(wait, 1);
+        expect(session.concede()).toBe(true);
+      };
+      setTimeout(wait, 1);
+      return true;
+    });
+    session.start(setup(4, 0));
+    await finish(session);
+    const r = stored();
+    expect(r.position).toEqual(stable);
+    expect(r.choices.length).toBe(stable!.at + 1); // the End turn answered before the concession
+    expect((await strict(r)).winReason).toBe(CONCEDED_REASON);
+    await expect(strict({ ...r, position: { ...r.position!, hash: flip(r.position!.hash) } })).rejects.toThrow(AT_WORDS);
+  }, 60_000);
+
+  it('a game conceded at once is checked at your first decision', async () => {
+    const session = new PracticeSession();
+    session.start(setup(5, 0));
+    // the first decision (the opening hand) is asked as the game starts
+    expect(session.current!.stable?.at).toBe(0);
+    expect(session.concede()).toBe(true);
+    const r = stored();
+    expect(r.conceded).toBe(true);
+    expect(r.choices).toEqual([]);
+    expect(r.position).toEqual({ hash: session.current!.stable!.hash, at: 0 });
+    expect((await strict(r)).winReason).toBe(CONCEDED_REASON);
+    await expect(strict({ ...r, position: { hash: flip(r.position!.hash), at: 0 } })).rejects.toThrow(AT_WORDS);
+  });
+
+  it('a game saved, restored and finished records its final position, End turn clicked or not', async () => {
+    for (const endTurnClick of [false, true]) {
+      store.clear();
+      const a = new PracticeSession();
+      const save = await new Promise<SavedGame>((resolve) => {
+        drive(a, (run, d) => {
+          if (run.replay.choices.length < 14 || d.kind !== 'action') return false;
+          resolve(buildSave({ replay: run.replay, grades: [], stable: run.stable, log: run.g.s.log }, { id: 'auto', saved: '2026-11-14T10:00:00Z', coach: false })!);
+          return true;
+        });
+        a.start({ ...setup(17, 0), ...(endTurnClick ? { endTurnClick } : {}) });
+      });
+      a.quit();
+      expect(loadReplays()).toEqual([]);
+      const b = new PracticeSession();
+      drive(b);
+      expect((await b.restore(save)).ok).toBe(true);
+      const run = await finish(b);
+      const r = stored();
+      expect(!!r.endTurnClick).toBe(endTurnClick);
+      expect(r.position).toEqual({ hash: stateHash(run.g.s) });
+      expect((await strict(r)).turn).toBe(run.g.s.turn);
+    }
   }, 120_000);
 });
 

@@ -1,9 +1,10 @@
 // Replayable records of practice games (seeds + every human choice), so a finished game can be reviewed later.
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DeckList, PlayerId } from '../engine/types';
-import type { PracticeReviewSpec, PvpReplay, ReviewRequest } from '../sim/practiceReview';
+import type { PracticeReviewSpec, PvpReplay, ReplayPosition, ReviewRequest } from '../sim/practiceReview';
 import type { MultiDayMark } from './practiceLog';
 import { replayVersionProblem } from './practiceVerdict';
+import { isStateHash } from './stateHash';
 
 export { replayVersionProblem };
 
@@ -56,6 +57,13 @@ export interface PracticeReplay {
   simVersion?: number;
   /** how many turns the game lasted (checked by the Game review's replay); absent in older records */
   turns?: number;
+  /**
+   * The position the game reached, which the Game review's replay must reach too (src/sim/practiceReview.ts
+   * ReplayPosition): the final state of a game played to its end (no `at`), or, for a game the session ended (you
+   * conceded, a multi-day game closed on time), the state at your decision after `at` of your answers. Absent in older
+   * records, in online games that ended off the board, and when you conceded before being asked anything: not checked.
+   */
+  position?: ReplayPosition;
 }
 
 export const REPLAYS_KEY = 'nct.practiceReplays.v1';
@@ -83,6 +91,12 @@ const isDeck = (x: unknown): x is DeckList => {
   return !!d && typeof d === 'object' && typeof d.name === 'string' && isStrArr(d.legends) && isStrArr(d.main) && (d.sideboard === undefined || isStrArr(d.sideboard));
 };
 
+/** A recorded position: a state hash, and `at` (when present) one of the record's answer counts. */
+const isPosition = (x: unknown, answers: number): x is ReplayPosition => {
+  const p = x as ReplayPosition | null;
+  return !!p && typeof p === 'object' && !Array.isArray(p) && isStateHash(p.hash) && (p.at === undefined || (Number.isInteger(p.at) && p.at >= 0 && p.at <= answers));
+};
+
 /** True if a stored value has everything a review needs to re-simulate the game. */
 function isReplay(x: unknown): x is PracticeReplay {
   const r = x as PracticeReplay | null;
@@ -106,6 +120,7 @@ function isReplay(x: unknown): x is PracticeReplay {
     (r.conceded === undefined || typeof r.conceded === 'boolean') &&
     (r.simVersion === undefined || (typeof r.simVersion === 'number' && Number.isInteger(r.simVersion))) &&
     (r.turns === undefined || (typeof r.turns === 'number' && Number.isInteger(r.turns))) &&
+    (r.position === undefined || isPosition(r.position, r.choices.length)) &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
 }
@@ -199,6 +214,7 @@ export function practiceSpec(r: PracticeReplay, turns?: number): PracticeReviewS
     expect: reviewExpect(r),
     ...(t !== undefined && t > 0 ? { turns: t } : {}),
     ...(r.simVersion !== undefined ? { simVersion: r.simVersion } : {}),
+    ...(r.position ? { position: { hash: r.position.hash, ...(r.position.at !== undefined ? { at: r.position.at } : {}) } } : {}),
   };
 }
 

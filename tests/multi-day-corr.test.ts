@@ -18,7 +18,9 @@ import { WRONG_PHRASE } from '../src/net/codeLock';
 import { applyPatch, codeFromText, diffView, lockedPacketInfo, MAX_LINK_PACKET, openPacket, viewHash } from '../src/net/packet';
 import type { OnlineOutcome, OnlineRecorder } from '../src/net/record';
 import { viewFor } from '../src/net/view';
-import type { PracticeReplay } from '../src/lib/practiceReplays';
+import { practiceSpec, type PracticeReplay } from '../src/lib/practiceReplays';
+import { Game } from '../src/engine/engine';
+import { checkReplayed, practiceAgents, replayedEnd } from '../src/sim/practiceReview';
 import { expectNoAddresses, expectNoHiddenIds } from './netLeak';
 
 const LIB = loadLibrary();
@@ -210,6 +212,18 @@ describe('a multi-day game between two devices, by turn packets only', () => {
     expect(again.over?.result).toBe(guest.g.end!.result);
     expect(again.board!.s.winner).toBe(guest.board!.s.winner);
     expect(again.reviewReplay()?.id).toBe(gr.replays[0]!.id);
+    // played to its end: the host's record carries its final position in the last packet, the guest's replay has the
+    // same, it survives the guest's store, and both seats' strict replays reach it
+    const end = hr.replays[0]!.position;
+    expect(end).toEqual({ hash: expect.stringMatching(/^[0-9a-f]{16}$/) });
+    expect(gr.replays[0]!.position).toEqual(end);
+    expect(again.reviewReplay()!.position).toEqual(end);
+    for (const r of [hr.replays[0]!, gr.replays[0]!]) {
+      const q = practiceSpec(r);
+      const agents = practiceAgents(q);
+      const st = await Game.create(q.decks, agents, { seed: q.seed, first: q.first, log: false }).run();
+      checkReplayed(q, agents, replayedEnd(st));
+    }
   }, 120_000);
 
   it('the host reopening its page mid-game (a replay of its save) carries on with the same packets', async () => {
@@ -431,6 +445,9 @@ describe('the clock: a chess clock in days, kept by each device', () => {
     expect(hr.entries[0]!.multiDay).toEqual({ days: 4, timedOut: true });
     expect(gr.replays[0]!.multiDay).toEqual({ days: 4, timedOut: true });
     expect(gr.replays[0]!.pvp!.rivalChoices).toEqual(hr.replays[0]!.choices);
+    // ended on the clock, off the board: no position on either side
+    expect('position' in hr.replays[0]!).toBe(false);
+    expect('position' in gr.replays[0]!).toBe(false);
     // the extra time rode in the last packet: both devices agree
     expect(guest.g.clock.extra).toEqual(host.g.clock.extra);
   }, 60_000);

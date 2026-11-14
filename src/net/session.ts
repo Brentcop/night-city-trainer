@@ -777,6 +777,7 @@ export class OnlineHost extends OnlineSession {
       decks: [deckMsg(s.decks[0]), deckMsg(s.decks[1])],
       answers: [g.answers[0].map((a) => [...a]), g.answers[1].map((a) => [...a])],
       ...(s.endTurnClick ? { endTurnClick: [s.endTurnClick[0], s.endTurnClick[1]] as [boolean, boolean] } : {}),
+      ...g.endHashPart(),
     };
   }
 

@@ -743,7 +743,7 @@ export class CorrSession {
     const game = this.game;
     if (!game || !(game.ended || game.g.s.winner !== null)) return null;
     const s = game.setup;
-    return { game: s.game, seed: s.seed, first: s.first, decks: [deckMsg(s.decks[0]), deckMsg(s.decks[1])], answers: [game.answers[0].map((a) => [...a]), game.answers[1].map((a) => [...a])] };
+    return { game: s.game, seed: s.seed, first: s.first, decks: [deckMsg(s.decks[0]), deckMsg(s.decks[1])], answers: [game.answers[0].map((a) => [...a]), game.answers[1].map((a) => [...a])], ...game.endHashPart() };
   }
 
   /** The finished game as a replay for the Game review (null until the record is known). */

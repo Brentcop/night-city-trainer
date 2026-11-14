@@ -3,6 +3,7 @@
 // or null with the reason: a malformed message is dropped and logged, never acted on. Which messages are legal at a
 // given moment (an answer to the decision actually waiting, a reveal after a commit…) is the session's check.
 import type { CardInst, Decision, DecisionKind, GameState, LogEntry, PlayerId, Zone } from '../engine/types';
+import { isStateHash } from '../lib/stateHash';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -53,6 +54,12 @@ export interface GameRecordMsg {
   answers: [number[][], number[][]];
   /** per seat, it ended its turns with End turn even when nothing else was left (absent: both automatic) */
   endTurnClick?: [boolean, boolean];
+  /**
+   * the host's stateHash (src/lib/stateHash.ts) of the final state of a game played to its end on the board, which the
+   * Game review's replay must reach (absent: the game ended off the board, or a host made before it existed). Sent only
+   * with the rest of the record, after the game is over: it follows from the seed, decks and answers, so it tells nothing new.
+   */
+  endHash?: string;
 }
 
 export type GuestMsg =
@@ -391,6 +398,7 @@ export function readRecord(v: unknown): GameRecordMsg {
   if (decks.length !== 2 || answers.length !== 2) fail('record needs two decks and two answer lists');
   const click = r.endTurnClick === undefined ? null : list(r.endTurnClick, 'record.endTurnClick', 2, (x, i) => bool(x, `endTurnClick[${i}]`));
   if (click && click.length !== 2) fail('record.endTurnClick needs two seats');
+  if (r.endHash !== undefined && !isStateHash(r.endHash)) fail('record.endHash is not a position hash');
   return {
     game: str(r.game, 'record.game', CAPS.gameId),
     seed: int(r.seed, 'record.seed', 0, 2 ** 32),
@@ -398,6 +406,7 @@ export function readRecord(v: unknown): GameRecordMsg {
     decks: [decks[0]!, decks[1]!],
     answers: [answers[0]!, answers[1]!],
     ...(click && (click[0] || click[1]) ? { endTurnClick: [click[0]!, click[1]!] as [boolean, boolean] } : {}),
+    ...(r.endHash !== undefined ? { endHash: r.endHash as string } : {}),
   };
 }
 
