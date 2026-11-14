@@ -285,9 +285,14 @@ export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', '
  * are still scored, against the statistics of the other records, so adding them moves no other record's score. The
  * evidence cells (step 2.4) are many, long and full of the words every question uses ("games", "won", card names);
  * counted, they moved the earlier questions' rankings although they never appear unless asked for. The older measured
- * kinds stay counted: leaving them out too would be a ranking change, to be measured first (rule M9).
+ * kinds stay counted. Leaving them out too was tried (docs/RAG_PLAN.md step 4.8, 2026-11-14) and stopped on the `dev`
+ * questions, before any look at `test`: one more answerable question was refused and one fell out of the first five,
+ * with nothing gained, so the list stays as it is.
  */
 export const STATS_FREE_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
+
+/** The statistics kinds (step 2.4): what STAT_WORDS cues and rankStats orders. */
+export const STAT_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
 
 /**
  * Words that ask how something went in the bot's games (step 4.7b, SearchTuning.statsIntent), read from the plain mode
@@ -394,7 +399,7 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
   // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
   const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));
-  const statsCued = new Set(STATS_FREE_KINDS.filter((kind) => cued.has(kind)));
+  const statsCued = new Set(STAT_KINDS.filter((kind) => cued.has(kind)));
   const stats = t.statsIntent && statsCued.size && use.has('linked') ? rankStats(ix, exact, statsCued, plain) : [];
   // the best-matched statistics records stand for their kind in the exact list; their siblings (the same card on other
   // lists) are left to the linked and keyword lists

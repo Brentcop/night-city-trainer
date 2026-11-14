@@ -127,7 +127,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
 | 2.2 | Event, round, rating and matchup records from templates; movement around the cut and upsets | done in the pack; Gig margins and site files later | 2026-11-14 |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
-| 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; found only when asked for by name ("stats"), wider wording to be measured in 4.7b | 2026-11-14 |
+| 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; reached by everyday wording since 4.7b; site files later | 2026-11-14 |
 | 3.1 | Public pack, byte budgets, guards | waiting: D1, D2 | |
 | 3.2 | Search and dossiers on the site behind a feature flag | waiting: D1, D2, D3 | |
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
@@ -136,7 +136,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
 | 4.7b | Wordings that should reach the statistics records, and questions naming two decks | done: both kept, part of the default search | 2026-11-14 |
 | 4.7c | What is left of the paraphrase misses: things asked for by description, long questions, a guard for short names | later (needs fresh questions for the parts already looked at) | |
-| 4.8 | Records found only when asked for no longer shape the keyword scores of everything else | next | |
+| 4.8 | Records found only when asked for no longer shape the keyword scores of everything else | done: stopped on the tuning questions, not kept | 2026-11-14 |
 | 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | done | 2026-11-14 |
 | 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
 | 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
@@ -532,6 +532,23 @@ the decision (keep, drop, could not tell) and its cost.
   - Still open in 4.7b: packages asked for by description ("filling the trash with units"), outcome
     words outside the list ("any good"), a possessive after a deck name ("samurai's"), and the earlier
     items: described mechanics, decks by description, long questions.
+- 4.8 Tournament records out of the keyword ranker's word counts. Step 2.2's growth moved six questions,
+  five of which do not ask about tournaments at all: they moved only because the ranker counts the words
+  of round, event, rating and matchup records when it weighs every other record. Every new event will do
+  the same. The statistics records are already left out of those counts; the idea was to leave out
+  every kind that is found only when asked for.
+  - The rule was written first, and it was a "no measurable harm" rule, not the usual "measurable gain":
+    the benefit claimed is structural (growth could no longer move unrelated rankings) and a fixed
+    question set cannot show it, only harm.
+  - Result on the 160 answerable `dev` questions: first five −0.6 points [−1.9, 0]; MRR +0.001
+    [−0.002, +0.005]; one more answerable question refused (9 to 10), and one dev question out of the
+    first five. Number and statistics questions unchanged.
+  - Decision: not kept, and no look at `test` was taken. The rule said to stop when refusals get worse
+    on `dev`. The cost of growth stays what it was measured to be: small and within noise per step.
+  - Why it probably hurts: without the tournament records the counts change for every word, the "no
+    match" floor then sees a different best hit, and a question that was just above the floor falls
+    under it. Kept from the attempt: `STAT_KINDS`, a name for the two statistics kinds, with no change
+    in behaviour.
 
 ### Step 5. Exact reuse in game tools
 
@@ -641,8 +658,8 @@ headings, docs at levels one to four, and a deck links to the packages its list 
 and look alike, so they join the keyword and linked lists only when the question names their kind
 (`KIND_CUES`, `CUE_ONLY_KINDS` in `search.ts`); named exactly they are always found. The two statistics
 kinds are also left out of the keyword ranker's word counts (`STATS_FREE_KINDS`), so adding more of them
-cannot move the ranking of anything else. The four older kinds are still counted: changing that would be
-a ranking change, to be measured first. Since step 4.7b two more things count as asking: two decks named
+cannot move the ranking of anything else. The four older kinds are still counted: leaving them out too
+was tried in step 4.8 and not kept. Since step 4.7b two more things count as asking: two decks named
 together ask for their matchup (`deckPairMatchup`), and a card or package named beside an everyday word
 for how it went asks for its statistics (`STAT_WORDS`, `statKinds`, `rankStats`).
 
@@ -763,6 +780,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Paraphrased questions miss because players use other words than the records | A 41-entry synonym table expands the question for the keyword ranker and the "no match" floor | Recall at 5: +4.5 points [0.0, +10.6]; MRR +0.027 [+0.005, +0.058]; paraphrase recall at 5 32% to 45%, MRR +0.082 [+0.018, +0.159]; other types unchanged; refusals unchanged | Kept. One look, on questions written before the table by an agent that did not know of it |
 | 2026-11-13 | Word forms keep questions and records apart ("flipping" and "flip") | The Porter stemmer for the keyword ranker, in records and questions alike | Recall at 5: ±0.0 [−4.8, +4.8]; MRR −0.002 [−0.043, +0.041]; on `dev` it had been +3.2 points [0, +7.2] | Not kept: could not tell. One look, on the split refreshed with fifty blind questions |
 | 2026-11-14 | A question naming two decks wants their matchup, whatever words it uses (retest with more questions) | Decks found by the short names players use; two named decks with a matchup record count as asking for matchups | Recall at 5: +5.6 points [+1.9, +10.2]; MRR +0.066 [+0.025, +0.114]; number questions +31.6 points [+10.5, +52.6]; no type worse; wrongly refused 6 to 5 | Kept. One look, rule written before it, on questions written blind |
+| 2026-11-14 | Records found only when asked for should not shape the keyword scores of everything else | Round, event, rating and matchup records left out of the keyword ranker's word counts, like the statistics records | No `test` look. On `dev`: recall at 5 −0.6 points [−1.9, 0]; MRR +0.001 [−0.002, +0.005]; answerable questions wrongly refused 9 to 10 | Not kept: stopped on `dev` by the rule written beforehand (refusals worse) |
 | 2026-11-14 | A question naming a card or package and asking how it went wants its statistics record | Everyday words for frequency, outcome, stage, assembly and the coach cue the statistics kinds beside a named card or package; the record linked to most of what is named leads | Recall at 5: +9.3 points [+3.7, +15.7]; MRR +0.093 [+0.037, +0.157]; statistics questions 0 to 10 of 16; every other type and the "counting words, other answer" questions unchanged | Kept. One look, measured on top of the row above. The word list was chosen on `dev` (79% there, 62% held out) |
 
 ## 8. Decisions and stopgaps
@@ -782,6 +800,8 @@ The owner decides these. Until then the stopgap in the last column applies, and 
 | D9 | Archived and history decks in the pack? | Not yet; the 47 library decks only. |
 | D10 | A nickname table for cards ("Smasher")? | None; ambiguous mentions are counted, not guessed. |
 | D11 | If a dense ranker is kept later, how are its tools carried? As a dev dependency they add about 456 MB to every install and to CI. | A side folder, `.cache/kb-dense/`, outside `package.json`. |
+| D12 | Give the rating fit a starting assumption on its going-first term? Without one, tiny data where a deck wins every game from one seat makes the fit run away and every prediction 50%. A fix changes rating numbers slightly and needs a ratings rebuild. | Unchanged. Real data is clear of it today, and upsets are judged only from 18 earlier games a deck. |
+| D13 | The review screen rebuilds each move's board with the current engine, so a game played on an older sim version may show boards that do not match it. Hide the boards for such games, or keep them? | Unchanged (shown as before). |
 
 D6 in detail: `scripts/event-pool.ts` line 132 counts `i < 8`, even in 7-deck events that cut to four,
 while the tournament index and the finish chips use the real cut, so five decks show two different counts.
@@ -886,3 +906,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
   Found on the way, not fixed: the rating fit has no starting assumption on the going-first term, so on
   very small data where a deck wins every game from one seat it runs away and every prediction becomes
   50%. Real data is unaffected today. A fix changes rating numbers, so it is the owner's call.
+- 2026-11-14: experiment 4.8 ran and was not kept. Leaving tournament records out of the keyword
+  ranker's word counts was meant to stop new events from shifting unrelated results; on the tuning
+  questions it refused one more answerable question and gained nothing, so it stopped there, with no
+  look at the held-out questions.
