@@ -1,14 +1,16 @@
 # Game records
 
 A plain-text record of one game, line by line, that a person can type while watching a video of two people playing and
-that the engine can replay. This is ROADMAP2 §2 item 1, "Replay-and-compare first", first half: the notation, export
-from any game the engine plays, and an exact replay. Comparing each recorded decision with the coach and the bots, and
-replaying records where the camera could not see hands and draws, are the second half (see the end of this file).
+that the engine can replay, stopping at each decision to compare it with what the coach and the bots would do. This is
+ROADMAP2 §2 item 1, "Replay-and-compare first": the notation, export from any game the engine plays, an exact replay,
+and the comparison on full-information records. Replaying records where the camera could not see hands and draws, and a
+looser reader for records as people type them, are still to do (see the end of this file).
 
 Code: `src/lib/gameRecord/` (pure: no Node APIs, so a page can load it): `notation.ts` (model, parser, writer),
 `describe.ts` (what each option of an engine decision is, in record terms), `instrument.ts` (hooks on a running game,
-from outside the engine), `exporter.ts`, `replay.ts`, `compare.ts` (the round-trip check). Command line:
-`scripts/record.ts` (`npm run record`). Tests: `tests/game-record.test.ts`.
+from outside the engine), `exporter.ts`, `replay.ts`, `compare.ts` (the round-trip check), `coachCompare.ts` (the
+comparison with the coach and the bots), `show.ts` (the table before a line). Command line: `scripts/record.ts`
+(`npm run record`). Tests: `tests/game-record.test.ts`, `tests/game-record-compare.test.ts`.
 
 ## A first look
 
@@ -203,8 +205,8 @@ is not legal, a die where none is rolled or that isn't an option, a card the dec
 no X there (p1's deck list has none).`), a record that ends while the game goes on or goes on after the game ended,
 another result, a line that fits two cards that differ, and any `?`. It never guesses and never skips a line: the only
 answers it gives by itself are the ones the engine would decide by rule anyway (see Optional lines). At each decision it
-can call `onDecision` with the game, the decision and the line, with the hooks off: that is where the second half will
-compare the recorded move with the coach's.
+calls `onDecision` with the game, the decision and the line, with the hooks off (the comparison below asks the coach
+there); and, for each line, `beforeLine` when the engine first reaches the point where that line happens (`show`).
 
 ## Command line
 
@@ -214,6 +216,8 @@ npm run record -- export --event N (--match "<deck a> vs <deck b>" [--game G] | 
 npm run record -- export --replay <practice replay .json> [--id ID] [--out FILE] [--force]
 npm run record -- check <record file> [--seed N]
 npm run record -- roundtrip [--games N] [--bot easy] [--seed N]
+npm run record -- compare <record file> [--seat p1|p2|both] [--bots medium,hard|none] [--seeds N] [--seed N] [--bot-seed N] [--json] [--out FILE] [--force]
+npm run record -- show <record file> --line N [--seed N]
 ```
 
 `export` prints the record (nothing is written without `--out`, and an existing file is replaced only with `--force`).
@@ -221,7 +225,114 @@ A deck is named by its library file when a library file holds the same list unde
 written into the header. An event game is checked against the event's recorded result, and a practice replay against its
 recorded answers and length (the Game review's checks). `check` parses a record, replays it from `--seed` (default 1) and
 says that it replays to the end, with the result, or where it stops and why (exit 1). `roundtrip` plays games of the
-library decks and measures the round trip (below); it writes nothing. `--help`; exit 2 on a bad command line.
+library decks and measures the round trip (below); it writes nothing. `compare` and `show` are described below.
+`--help`; exit 2 on a bad command line.
+
+## Compare
+
+`compare` replays a full-information record and, at every decision of the seats asked for (`--seat`, default both),
+asks the coach and the bots what they would do, beside what the record's player did (`coachCompare.ts`):
+
+- **The coach, exactly as the Play page asks it**: a snapshot of the position (`coachRequest`), advice for it
+  (`adviseRequest`, the worker's call), the move made graded against it (`gradeMove`), and a move the coach did not value
+  scored in the worlds of its advice (`scoreMoveRequest`) and graded again. Decisions the coach does not advise on
+  (`coachWorthAsking`: a decision with one option, a payment, an effect order) are skipped and counted, and so is a
+  position the coach declines (effects still pending; the board shows no advice there either). Words and caps come from
+  `src/lib/coachWords.ts` (rating names, nothing above 3 Gigs, "End turn" / "No reaction"); agreeing with a choice the
+  coach makes by rule (a target, a mode, a Gig, the mulligan, the die to roll in) is "not measured". The package notes in
+  the coach's reasons read `public/data/lift.json` as the Play page does.
+- **The bots** (`--bots`, any of easy, medium, hard, or none; default medium,hard): each made with `makeBot` new for each
+  decision, seeded from `--bot-seed` (default 1) and the decision's place in the game, deciding on its own copy of the
+  position, so the replay is never disturbed. A bot in a real game carries a little from one decision to the next (its
+  random stream, the matchup read and Gig plan of its first decision, a planned Gig swap); a bot made new each time does
+  not, so its pick is what that bot would choose from this position alone.
+- **Several replay seeds** (`--seeds N`, 1 to 9, default 5; the seeds are `--seed`, `--seed` + 1, …, with `--seed`
+  default 1, so by default 1, 2, 3, 4, 5). Every seed replays the same game, but the seed sets the game's random state
+  and the order of the unseen cards in each deck that the replay starts from, and the coach's re-deals start from those:
+  it judges each move from 6 play-outs, so its pick and grade carry noise, and a different seed draws it differently.
+  On the worked example a single run listed 6 to 9 Mistakes and Blunders depending only on the seed, so one run cannot
+  be read as a list of mistakes. The record is therefore compared under each seed (`compareSeeds`) and the runs lined up
+  decision by decision (`aggregateSeeds`, pure). Medium's and Hard's picks depend on the seed too (they re-deal the same
+  way); Easy's do not. `--seeds 1` is one plain run, exactly the single-seed report.
+- **The report**: one line per compared decision: the record's line and timestamp, the turn, the seat, the kind of
+  decision, the move made, the coach's pick and grade, and each bot's pick ("same" when it is the move made). Under
+  several seeds a grade reads as how often it came up ("Best in 5 of 5", "Best in 3 of 5, Mistake in 2"), with the
+  median gap when any seed called it a Slip or worse, and a pick likewise when it changes. Then a summary: the decisions
+  compared and skipped and why; the scorecard per seat as the Play page counts it (`coachSummary`: the share of measured
+  moves that were Best or a Close call, and its letter) and agreement of the record's moves with the coach and each bot
+  (and of each bot with the coach), each as the range over the seeds; then the costly moves in two lists, each with its
+  line number and timestamp, largest median gap first: **settled**, a Mistake or worse under at least four fifths of the
+  seeds rounded up (`settledCount`: 4 of 5, 3 of 3), and **sometimes a Mistake, not settled** (at least one seed, fewer
+  than that), marked as uncertain; and how many other moves were a Slip under some seed. With one seed the costly list
+  is the coach's Mistakes and Blunders, then its Slips. `--json` gives the same as data (with several seeds: each
+  decision over the seeds, the settled and sometimes lists by decision number, and each seed's report). Timing goes to
+  stderr.
+- **What the figures are**: the coach's estimate from play-outs about a turn ahead, from what the deciding player could
+  see; not the truth about the game. Every play-out re-deals what that player can't see (`hideInfo`: both decks
+  shuffled, the rival's hand re-dealt from the rival's unseen cards, unknown face-down Legends permuted), so the replay
+  holding the true rival hand does not leak into the advice (checked below). The report's closing note says this, why
+  grades spread over seeds, and what the report depends on.
+- **Repeatable**: the same record gives the same report, byte for byte (tested). It depends on the record, the replay
+  seeds, the build (the coach and bots of the `SIM_VERSION` it prints; the coach's own fixed seed), the bot seed
+  (`--bot-seed`, default 1), and, for the wording of package notes only, `public/data/lift.json`.
+- **How much one run overstates** (2026-11-14, `--seeds 5`, both seats, four Medium-bot games):
+
+  | Game | Compared | Mistake or worse under all 5 seeds | Settled (4 of 5) | Under at least one seed | One run's list, seeds 1–5 |
+  |---|---|---|---|---|---|
+  | worked example (seed 162) | 69 | 6 | 6 | 9 | 7, 9, 8, 6, 8 |
+  | RRG vs YYB (seed 201) | 99 | 4 | 6 | 11 | 7, 6, 9, 8, 7 |
+  | YYB vs GRY (seed 305) | 101 | 15 | 16 | 19 | 16, 17, 17, 16, 18 |
+  | BBG vs RRG (seed 412) | 74 | 0 | 0 | 4 | 1, 0, 2, 2, 4 |
+
+  Over the four games 25 moves were a Mistake or worse under every seed and 43 under at least one; a single run's list
+  falls between those. On BBG vs RRG one run (seed 5) listed 4 Mistakes where none is settled.
+
+A record with a hidden card or value (`?`) on a compared seat's side, an unknown deck of a compared seat, or `first: ?`
+is refused with one sentence (exit 1). (A `?` on the other seat's side is still refused by the replay, which needs every
+card.)
+
+**Time** (one thread, 2026-11-14): the coach takes 45 to 90 ms a decision (about 5 to 9 s for a game of 70 to 100
+decisions, both seats); Easy and Medium about 1 ms a decision, Hard about 10 ms. A comparison with the default bots
+takes 4 to 10 s a game per replay seed, of which the bots under 1.5 s, so the bots are cheap and the default is Medium
+and Hard. Worked example (Medium bots, 69 compared decisions), one seed: coach alone 4.9 s, with Easy 4.9 s, Medium
+4.8 s, Hard 5.5 s, Medium and Hard 5.5 s, all three 5.5 s. With the default bots: 5.5 s for one seed, 14.7 s for three,
+23.7 s for five. The seeds cost one comparison each, so the default of five takes 15 to 45 s a game (coach alone, four
+Medium games: 14.6 to 41.1 s). Five was chosen over three because with three a move is settled only when all three
+agree, while five lets one seed disagree, and half a minute is fine for a command run once per typed record; `--seeds
+3` halves the time.
+
+**The coach sees only what the player could** — checked two ways. By reading: in a position the coach reads the
+rival's cards only through the lookahead copies, each re-dealt by `hideInfo` first, and otherwise only the deck list
+(its archetype read: the whole list, as from open decklists) and cards an effect has revealed. By measuring: at 171
+main-phase and reaction decisions of three replayed Medium games, the coach's pick stayed the same in 158 (92%) when
+only both decks' order was reshuffled (which carries no information) and in 158 (92%) when the position was re-dealt
+from the deciding player's view (the rival's hand changed in 167 of them): changing the rival's actual hand moves the
+coach no more than reshuffling the unseen order does.
+
+A first look (the worked example below, both seats, Medium and Hard, the default five seeds; a few lines and part of the
+summary):
+
+```
+line [time]    turn seat kind      played  →  coach: pick; grade  ·  Medium  ·  Hard
+  14           T0   p2   mulligan  Mulligan  →  coach: same; not measured in 5 of 5  ·  Medium: same  ·  Hard: same
+  21           T1   p2   main      Sell Chrome Reverie  →  coach: same; Best in 5 of 5  ·  Medium: same  ·  Hard: same
+  23           T1   p2   main      Play Trust No One (1 €$)  →  coach: End turn; Best in 4 of 5, Close call in 1  ·  Medium: End turn  ·  Hard: same in 4 of 5, End turn in 1
+...
+  Costliest moves, settled (a Mistake or worse under at least 4 of the 5 seeds), largest median gap first:
+    line 82, turn 7, p2: Play Towerfall (6 €$)  →  coach: Play Pyramid Song (3 €$); Blunder in 5 of 5; median −1.7 Gigs
+    line 54, turn 4, p1: Play The Heist (2 €$)  →  coach: End turn in 4 of 5, Play Detonate (1 €$) in 1; Blunder in 5 of 5; median −1.6 Gigs
+  Sometimes a Mistake, NOT settled (a Mistake or worse under at least one seed but fewer than 4; read these as uncertain), largest median gap first:
+    line 48, turn 4, p1: Attack with Meredith Stout: Stone Cold Corpo (7) → Gig area  →  coach: Call a Legend (face-down slot 1); Mistake in 2 of 5, Close call in 2, Blunder in 1; median −0.7 Gigs
+```
+
+## Show
+
+`show <file> --line N` prints the table as it stands just before line N: the turn and whose it is, an attack in
+progress, and for each side its Legends (face up or down, spent, Gear), field (power, spent, Gear), Gigs (with where
+each came from, and Street Cred), the dice left in the fixer area, Eddies (and how many are spent), the hand, and deck and
+trash counts. The record is replayed whole and the state copied when the engine first reaches the point where line N
+happens (`beforeLine`). A turn line is reached at that turn's first event, its draw, after the turn has begun; a line in
+the setup (Legends and opening hands) is refused; a line past the end shows the end of the game.
 
 ## The round trip, measured (2026-11-14)
 
@@ -247,20 +358,31 @@ that have a Quick Program or a quick ability played as a reaction (the bots seld
 A full-information record of a typical game (11 to 14 turns) is 150 to 230 lines and 4 to 6 KB, of which inline deck
 lists are about 40 lines and 1 KB when the decks are not named by file.
 
-## What the second half needs
+## Still to do
 
-- **Hidden cards.** A camera sees plays, attacks, sells (a sold card goes face down), Calls once flipped, and dice; not
-  hands, draws, the top of a deck only its player looks at, or Legends before they are called. A replay with `?` can no
-  longer be one game: either sample the unseen cards (deal them from what each deck list has left, consistent with every
-  later sighting, as the bots' `hideInfo` deals hidden worlds) and replay each sample, or replay only the public part and
-  treat each recorded decision as a question about what its player could know. `beforeRead` in `instrument.ts` is where
-  a sampled card would be placed.
-- **Comparing with the coach.** `onDecision` stops at each decision with the hooks off and the state plain (the coach
-  copies the state with `structuredClone`, which refuses a Proxy). The comparison must use the acting player's view, not
-  the full-information state the replay holds.
-- **Typed records.** People will leave out copy numbers, `no reaction` lines and forced choices, and may write a draw
-  after the play it came from. The replay already answers single-option choices and automatic payments by itself;
-  leaving out `no reaction` and reading lines out of order would need a looser matcher, kept apart from this strict one.
+- **Hidden cards.** A camera sees plays, attacks, Calls once flipped, and dice; not hands, draws, sold cards (a sold card
+  goes face down), the top of a deck only its player looks at, or Legends before they are called. A record with `?` is
+  no longer one game but a set of games consistent with what was seen. What it needs, from building the comparison:
+  - a pass over the whole record first, collecting for each seat every card seen later (played, discarded, revealed,
+    called), because a `?` draw must be dealt so that every later sighting is still possible: the engine needs real
+    cards in a hand to say what is legal, so a play of X from a hand that holds a `?` means X was among the `?` cards;
+  - a sampler with a fixed seed that deals each `?` (in `beforeRead`, where the replay already places recorded cards)
+    from what the deck list has left under those constraints, and a few samples per record, each replayed strictly; a
+    sample that turns out inconsistent stops like any replay and is dealt again;
+  - the comparison over the samples: the other seat's hidden cards only keep the replay going (the coach re-deals them
+    anyway, and changing them moved its picks no more than reshuffling did); a hidden card of the compared seat changes
+    the position the coach is asked about, so its pick and grade become a distribution over samples. That fits the
+    existing several-seed comparison: each sample would be one more report lined up by `aggregateSeeds`, and the settled
+    and sometimes lists would then cover both the coach's noise and the hidden cards. `hiddenRefusal` in
+    `coachCompare.ts` is where the refusal would become sampling.
+- **A looser reader** for records as people type them, kept apart from the strict replay: it would turn a typed record
+  into a canonical one plus a list of assumptions, and the strict replay and the comparison would then run on that. It
+  needs to keep each canonical line's original line number and timestamp (the report points people at the video by
+  them) and mark the lines it inserted as implied; to insert the `no reaction` lines people leave out (a reaction window
+  whose next line can't be a reaction); to pick a copy when a line fits copies that differ (today a stop: say whose,
+  where or which copy), by a stated rule; and to read a draw written after the play it enabled (look ahead within the
+  turn for the draw line when a played card is not in hand). Single-option choices, automatic payments and ends of turn
+  are already answered by the strict replay itself.
 
 ## Worked example
 

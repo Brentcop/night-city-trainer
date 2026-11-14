@@ -6,6 +6,8 @@
 //   npm run record -- export --replay <practice replay .json> [--id ID]
 //   npm run record -- check <record file> [--seed N]
 //   npm run record -- roundtrip [--games N] [--bot easy] [--seed N]
+//   npm run record -- compare <record file> [--seat p1|p2|both] [--bots medium,hard|none] [--seeds N] [--seed N] [--bot-seed N] [--json] [--out FILE] [--force]
+//   npm run record -- show <record file> --line N [--seed N]
 //
 // export   plays the game and prints its full-information record (or writes it to --out FILE; an existing file is
 //          replaced only with --force). A deck is named by its library file when the list and name match one, otherwise
@@ -19,6 +21,18 @@
 // roundtrip  plays N games of the library decks (every third with a seat that picks some moves at random and chooses
 //          its payments, effect order and ends of turn), exports, parses, writes and replays each from two other seeds,
 //          and compares every decision, the end state and the log. Prints how many round-trip exactly; writes nothing.
+// compare  replays a full-information record and, at every decision of --seat (default both), says what the coach would
+//          do (its pick, and the move made graded as the Play page grades it) and what each bot in --bots would choose
+//          (easy, medium, hard; default medium,hard; none for the coach alone), beside the record's move; then a summary
+//          (decisions compared and skipped, the scorecard, agreement, the costliest moves with their line numbers).
+//          The coach's grades carry noise, so the record is compared under --seeds N replay seeds (1 to 9, default 5:
+//          --seed, --seed + 1, …; --seed defaults to 1): each grade is given as how often it came up, the summary as
+//          ranges, and the costly moves split into settled (a Mistake or worse under at least four fifths of the seeds)
+//          and sometimes. --seeds 1 is one plain run. --json prints the report as JSON. The same record gives the same
+//          report (fixed replay, coach and bot seeds); timing goes to stderr. A record with a hidden card (?) on a
+//          compared seat is refused (exit 1).
+// show     prints the table as it stands just before line --line of the record: each side's Legends, field, Gigs,
+//          Eddies, hand, and deck and trash counts.
 // Exit 2 on a bad command line.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,10 +40,14 @@ import { makeTierBot } from '../src/ai/tiers';
 import { listFingerprint } from '../src/engine/deck';
 import type { Agent, Decision, DeckList, PlayerId } from '../src/engine/types';
 import type { Game } from '../src/engine/engine';
+import { readLiftSlice, seatLiftFromSlice, type LiftSlice } from '../src/ai/packageLift';
+import { CATALOGUE_VERSION } from '../src/content/synergies/index';
+import { COMPARE_BOTS, compareSeeds, DEFAULT_COMPARE_BOTS, DEFAULT_COMPARE_SEEDS, MAX_COMPARE_SEEDS, replaySeeds, seedsJson, seedsText, type CompareBot } from '../src/lib/gameRecord/coachCompare';
 import { compareGames } from '../src/lib/gameRecord/compare';
 import { exportGame, inlineDeck } from '../src/lib/gameRecord/exporter';
-import { parseRecord, writeRecord, type DeckRef } from '../src/lib/gameRecord/notation';
+import { parseRecord, writeRecord, type DeckRef, type GameRecord } from '../src/lib/gameRecord/notation';
 import { replayRecord } from '../src/lib/gameRecord/replay';
+import { showAt } from '../src/lib/gameRecord/show';
 import type { LibraryDeck } from '../src/lib/library';
 import { parseReplays, type PracticeReplay } from '../src/lib/practiceReplays';
 import { checkReplayed, practiceAgents, refuseOtherVersion } from '../src/sim/practiceReview';
@@ -52,6 +70,12 @@ const { values: V, positionals } = cli(
     games: int(undefined, { min: 1, max: 5000 }),
     out: str(),
     force: bool(),
+    seat: str(),
+    bots: str(),
+    'bot-seed': int(undefined, { min: 0, max: 2 ** 31 - 1 }),
+    seeds: int(undefined, { min: 1, max: MAX_COMPARE_SEEDS }),
+    json: bool(),
+    line: int(undefined, { min: 1 }),
   },
   { minPositionals: 1, maxPositionals: 2 },
 );
@@ -62,9 +86,10 @@ const usage = (msg: string): never => {
 };
 
 const cmd = positionals[0]!;
-if (!['export', 'check', 'roundtrip'].includes(cmd)) usage(`unknown command "${cmd}": export, check or roundtrip`);
-if (cmd !== 'check' && positionals.length > 1) usage(`${cmd} takes no file argument (use --out to write the record)`);
-if (cmd === 'check' && positionals.length !== 2) usage('check needs the record file: npm run record -- check <file>');
+const FILE_CMDS = ['check', 'compare', 'show'];
+if (!['export', 'roundtrip', ...FILE_CMDS].includes(cmd)) usage(`unknown command "${cmd}": export, check, roundtrip, compare or show`);
+if (!FILE_CMDS.includes(cmd) && positionals.length > 1) usage(`${cmd} takes no file argument (use --out to write the record)`);
+if (FILE_CMDS.includes(cmd) && positionals.length !== 2) usage(`${cmd} needs the record file: npm run record -- ${cmd} <file>`);
 const used = (keys: string[]) => keys.filter((k) => (V as Record<string, unknown>)[k] !== undefined && (V as Record<string, unknown>)[k] !== false);
 const allow = (keys: string[]) => {
   const extra = used(Object.keys(V)).filter((k) => !keys.includes(k));
@@ -209,8 +234,8 @@ async function exportCmd() {
   return writeOut(ex.text);
 }
 
-async function checkCmd() {
-  allow(['seed']);
+/** The record file named on the command line, parsed; prints the problems and exits 1 when it does not parse. */
+function readRecordFile(): { file: string; pr: ReturnType<typeof parseRecord> & { record: GameRecord } } {
   const file = positionals[1]!;
   let text: string;
   try {
@@ -224,6 +249,79 @@ async function checkCmd() {
     console.log(`${file} does not parse (${pr.errors.length} problem${pr.errors.length === 1 ? '' : 's'}).`);
     process.exit(1);
   }
+  return { file, pr: pr as ReturnType<typeof parseRecord> & { record: GameRecord } };
+}
+
+async function compareCmd() {
+  allow(['seat', 'bots', 'seed', 'seeds', 'bot-seed', 'json', 'out', 'force']);
+  const seat = (V.seat ?? 'both').toLowerCase();
+  if (!['p1', 'p2', 'both'].includes(seat)) usage('--seat must be p1, p2 or both');
+  const seats: PlayerId[] = seat === 'p1' ? [0] : seat === 'p2' ? [1] : [0, 1];
+  const botList = (V.bots ?? DEFAULT_COMPARE_BOTS.join(',')).toLowerCase();
+  const bots = botList === 'none' ? [] : botList.split(',').map((x) => x.trim());
+  for (const b of bots) if (!(COMPARE_BOTS as readonly string[]).includes(b)) usage(`--bots takes ${COMPARE_BOTS.join(', ')} (comma-separated) or none, got "${b}"`);
+  if (new Set(bots).size !== bots.length) usage('--bots names a bot twice');
+  const { file, pr } = readRecordFile();
+  // the coach's package notes read the lift slice as the Play page does (read only; absent = worded as unmeasured)
+  let slice: LiftSlice | null = null;
+  let current = false;
+  try {
+    slice = readLiftSlice(JSON.parse(fs.readFileSync('public/data/lift.json', 'utf8')));
+    current = slice?.catalogueVersion === CATALOGUE_VERSION;
+  } catch {
+    slice = null;
+  }
+  const t0 = Date.now();
+  const ms = { coach: [] as number[], bots: {} as Record<string, number[]> };
+  let compared = 0;
+  const seeds = replaySeeds(V.seed ?? 1, V.seeds ?? DEFAULT_COMPARE_SEEDS);
+  const reports = await compareSeeds(pr.record, {
+    botSeed: V['bot-seed'] ?? 1,
+    seats,
+    bots: bots as CompareBot[],
+    resolveDeck: resolveRef,
+    lift: (g, p) => seatLiftFromSlice(slice, g.P(p).listId, current),
+    onStep: (x) => {
+      if (!x.compared) return;
+      compared++;
+      ms.coach.push(x.ms.coach);
+      for (const [b, t] of Object.entries(x.ms.bots)) (ms.bots[b] ??= []).push(t);
+      if (compared % 20 === 0) process.stderr.write(`  ${compared} decisions compared (${((Date.now() - t0) / 1000).toFixed(1)} s)\n`);
+    },
+  }, seeds);
+  const r = reports[0]!;
+  if (r.refused) {
+    console.log(r.refused);
+    process.exit(1);
+  }
+  const total = (Date.now() - t0) / 1000;
+  const mean = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(0) : '—');
+  const sum = (xs: number[]) => (xs.reduce((a, b) => a + b, 0) / 1000).toFixed(1);
+  process.stderr.write(
+    `Compared ${r.compared.length} decisions under ${seeds.length} replay seed${seeds.length === 1 ? '' : 's'} (${seeds.join(', ')}) in ${total.toFixed(1)} s: coach ${sum(ms.coach)} s (${mean(ms.coach)} ms a decision)${Object.entries(ms.bots)
+      .map(([b, xs]) => `, ${b} ${sum(xs)} s (${mean(xs)} ms)`)
+      .join('')}.\n`,
+  );
+  const text = V.json ? `${JSON.stringify(seedsJson(reports), null, 2)}\n` : seedsText(reports, path.basename(file));
+  await writeOut(text);
+  if (reports.some((x) => !x.ok)) process.exit(1);
+}
+
+async function showCmd() {
+  allow(['line', 'seed']);
+  if (V.line === undefined) usage('show needs --line N');
+  const { pr } = readRecordFile();
+  const r = await showAt(pr.record, V.line!, { seed: V.seed ?? 1, resolveDeck: resolveRef });
+  if (!r.ok) {
+    console.log(r.message);
+    process.exit(1);
+  }
+  process.stdout.write(r.text);
+}
+
+async function checkCmd() {
+  allow(['seed']);
+  const { pr } = readRecordFile();
   const lines = pr.record.lines.filter((l) => l.ev.k !== 'note').length;
   if (pr.unknownLines.length) console.log(`Lines with hidden cards or values (?): ${pr.unknownLines.join(', ')}.`);
   const seed = V.seed ?? 1;
@@ -310,6 +408,8 @@ runMain(async () => {
   try {
     if (cmd === 'export') await exportCmd();
     else if (cmd === 'check') await checkCmd();
+    else if (cmd === 'compare') await compareCmd();
+    else if (cmd === 'show') await showCmd();
     else await roundtripCmd();
   } catch (e) {
     if (e instanceof ArgError) usage(e.message);

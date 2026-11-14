@@ -32,6 +32,13 @@ export interface ReplayOptions {
    * replay gave by rule (see the file header).
    */
   onDecision?(x: { game: Game; decision: Decision; line: RecordLine | null; answer: number }): void | Promise<void>;
+  /**
+   * Called once for each line of the game (not the setup's Legend and hand lines), in order, when the replay first looks
+   * at it: the engine has reached the point where that line happens next. Hooks are off, so the state may be copied
+   * (`npm run record -- show`). A turn line is reached at that turn's first event (its draw), after the turn has begun;
+   * a die rolled with no choice to make, at the first random number drawn for it.
+   */
+  beforeLine?(x: { game: Game; line: RecordLine }): void;
 }
 
 export interface ReplayStop {
@@ -127,7 +134,22 @@ export async function replayRecord(rec: GameRecord, o: ReplayOptions): Promise<R
   const passConsumed = new Set<number>();
   let traceSeen = 0;
   let inst: Instrument | null = null;
-  const peek = () => L[cur];
+  let announced = cur; // lines L[cur at the start..announced) were handed to beforeLine
+  const announce = (upTo: number) => {
+    if (!o.beforeLine || !game) return;
+    for (; announced <= upTo && announced < L.length; announced++) {
+      inst?.pause();
+      try {
+        o.beforeLine({ game, line: L[announced]! });
+      } finally {
+        inst?.resume();
+      }
+    }
+  };
+  const peek = () => {
+    announce(cur);
+    return L[cur];
+  };
   const advance = () => {
     cur++;
     used = 0;
@@ -282,6 +304,7 @@ export async function replayRecord(rec: GameRecord, o: ReplayOptions): Promise<R
       while (L[i] && (L[i]!.ev.k === 'turn' || L[i]!.ev.k === 'pass')) i++;
       const l = L[i];
       if (!l || l.ev.k !== 'roll' || l.ev.value === null) return state;
+      announce(i);
       const want = l.ev.value - 1;
       const sides = l.ev.sides;
       let pre = state;
