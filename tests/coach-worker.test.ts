@@ -1,12 +1,12 @@
 // The Play page's coach runs in a worker from a serialised position: it must give exactly the advice advise() gives on
 // the live game, and fall back to the main thread when the worker fails.
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Game } from '../src/engine/engine';
 import { parseDeck } from '../src/engine/deck';
 import { makeTierBot } from '../src/ai/tiers';
 import { advise, adviseRequest, coachAdvises, coachRequest, type Advice } from '../src/ai/coach';
-import { CoachClient } from '../src/ui/useCoach';
+import { clearCoachAnswers, CoachClient } from '../src/ui/useCoach';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
 
 const deck = (f: string): DeckList => parseDeck(readFileSync(`data/decks/${f}`, 'utf8'), f).deck;
@@ -46,6 +46,9 @@ async function sample(seed: number, at: number[]) {
 }
 
 describe('coach worker entry', () => {
+  // each test starts with no remembered answers (src/ui/useCoach.ts keeps them for the whole module)
+  beforeEach(() => clearCoachAnswers());
+
   it('gives exactly the advice advise() gives on the live game', async () => {
     const s = await sample(11, [0, 1, 3, 6, 10, 15, 21]);
     expect(s.pairs.length).toBeGreaterThanOrEqual(5);
@@ -73,7 +76,9 @@ describe('coach worker entry', () => {
     for (const r of s.reqs) expect(await outcome(noStart.advise(r.g, r.d))).toEqual(r.live);
     expect(noStart.broken).toBe(true);
 
-    // a worker that loads and then fails with an error event
+    // a worker that loads and then fails with an error event (the answers just computed are forgotten first: a known
+    // position would be answered from memory without starting the worker)
+    clearCoachAnswers();
     const fake = { onmessage: null, onerror: null as null | ((e: unknown) => void), onmessageerror: null, terminate() {}, postMessage() {
       setTimeout(() => fake.onerror?.({ preventDefault() {} }), 0);
     } };

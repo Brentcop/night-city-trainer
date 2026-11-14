@@ -135,7 +135,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
 | 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
 | 4.7b | The other paraphrase misses: described mechanics, decks by description, long questions | next | |
-| 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | next | |
+| 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | done | 2026-11-14 |
 | 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
 | 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
 
@@ -473,6 +473,18 @@ Stored knowledge saves almost nothing in bot play: positions do not repeat (two 
 an opening hand about once in 10,000 to 30,000) and approximate reuse changes how bots play.
 
 - 5.1 Cache coach answers by state hash, options and build: about 126 ms saved per Undo or resume.
+  - Landed 2026-11-14 in `src/ui/useCoach.ts`. A position the coach already answered in this tab is
+    answered from memory: 32 answers, least recently used out, never written to storage.
+  - Proved before it was built: Undo re-asks a byte-identical request (40 of 40 re-asked decisions over
+    3 games with 14 Undos), and so does a save restored in the same tab. Both are pinned by tests.
+  - The key is the exact text of the whole request (`src/lib/exactText.ts`), not a hash, so a hit is
+    provably the same request. `JSON.stringify` would not do: it drops undefined fields and merges −0
+    with 0.
+  - Measured in Node on 21 positions: a computed answer 73 ms (median), a remembered one 0.8 ms, making
+    the key 0.4 ms. In a scripted game with 5 Undos, 10 of 35 asks came from memory.
+  - Grades, records and the game are identical with the cache on and off (tested). The Play chunk grew
+    by 1.25 kB.
+  - Honest size of the gain: a tenth of a second per Undo on a desktop, more on a phone. Nothing else.
 - 5.2 Keep each review move's raw measurements, so a change of rating rules re-rates stored reviews in
   milliseconds instead of re-simulating 5 to 8 seconds each.
   - Landed 2026-11-14. Each stored move keeps what its rating read (`ReviewMove.ms`), and each record how
@@ -654,6 +666,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | The same with the new records scored but not counted | no question changed rank with all records; public only, one held-out question went from rank 4 to 5 (a new code header, not the statistics) | step 2.4 |
 | 2026-11-14 | Re-rating a stored game review from its kept measurements | 0.18 to 0.27 ms per review; a fresh review of the same six games took 7 to 22 s | step 5.2 |
 | 2026-11-14 | Bytes per stored game review with the measurements kept (six Medium-vs-Hard games) | median 11.8 KB to 16.3 KB (+41%), largest 12.4 KB to 17.0 KB; 25 at the cap about 0.29 MB to 0.41 MB | step 5.2 |
+| 2026-11-14 | Coach answer for a position already answered (Node, 21 positions) | computed 73 ms (median), remembered 0.8 ms; about 28 KB of memory per remembered answer, 32 kept | step 5.1 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -774,3 +787,5 @@ while the tournament index and the finish chips use the real cut, so five decks 
   be replayed. A measurement version keeps re-rating apart from re-measuring. Found on the way, not
   fixed: the review screen rebuilds each move's board with the current engine, so for a game played on
   an older sim version the boards shown may not match the game (true before this step as well).
+- 2026-11-14: step 5.1 landed. The coach remembers its answers within a tab, so Undo and a resume show
+  advice at once. It was built only after a test showed that Undo re-asks exactly the same request.

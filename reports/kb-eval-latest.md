@@ -12,7 +12,7 @@ Scopes: public 187, local 39. Splits: dev 136, test 90. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-3997 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+3999 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
@@ -22,15 +22,15 @@ Stale expectations: none.
 | exact | dev | 125 | 14.4 | 16.0 | 16.0 | 0.152 | 62 | 127 | 8 of 11 (72.7%) | 76 of 125 (60.8%) |
 | exact | test | 83 | 10.8 | 13.3 | 13.3 | 0.120 | 77 | 198 | 7 of 7 (100.0%) | 40 of 83 (48.2%) |
 | exact | all | 208 | 13.0 | 14.9 | 14.9 | 0.139 | 68 | 165 | 15 of 18 (83.3%) | 116 of 208 (55.8%) |
-| keyword | dev | 125 | 46.4 | 67.2 | 72.0 | 0.554 | 497 | 613 | 4 of 11 (36.4%) | 11 of 125 (8.8%) |
-| keyword | test | 83 | 31.3 | 56.6 | 66.3 | 0.427 | 502 | 621 | 1 of 7 (14.3%) | 8 of 83 (9.6%) |
-| keyword | all | 208 | 40.4 | 63.0 | 69.7 | 0.503 | 499 | 616 | 5 of 18 (27.8%) | 19 of 208 (9.1%) |
-| exact+keyword | dev | 125 | 40.0 | 70.4 | 74.4 | 0.528 | 502 | 605 | 3 of 11 (27.3%) | 9 of 125 (7.2%) |
-| exact+keyword | test | 83 | 25.3 | 61.4 | 72.3 | 0.413 | 508 | 608 | 1 of 7 (14.3%) | 5 of 83 (6.0%) |
+| keyword | dev | 125 | 46.4 | 67.2 | 72.0 | 0.552 | 497 | 613 | 4 of 11 (36.4%) | 11 of 125 (8.8%) |
+| keyword | test | 83 | 32.5 | 56.6 | 66.3 | 0.433 | 502 | 621 | 1 of 7 (14.3%) | 8 of 83 (9.6%) |
+| keyword | all | 208 | 40.9 | 63.0 | 69.7 | 0.505 | 499 | 616 | 5 of 18 (27.8%) | 19 of 208 (9.1%) |
+| exact+keyword | dev | 125 | 40.0 | 70.4 | 74.4 | 0.527 | 502 | 605 | 3 of 11 (27.3%) | 9 of 125 (7.2%) |
+| exact+keyword | test | 83 | 25.3 | 61.4 | 72.3 | 0.414 | 508 | 608 | 1 of 7 (14.3%) | 5 of 83 (6.0%) |
 | exact+keyword | all | 208 | 34.1 | 66.8 | 73.6 | 0.482 | 504 | 608 | 4 of 18 (22.2%) | 14 of 208 (6.7%) |
-| exact+linked+keyword | dev | 125 | 46.4 | 70.4 | 76.0 | 0.571 | 500 | 600 | 3 of 11 (27.3%) | 9 of 125 (7.2%) |
+| exact+linked+keyword | dev | 125 | 46.4 | 70.4 | 76.0 | 0.569 | 500 | 600 | 3 of 11 (27.3%) | 9 of 125 (7.2%) |
 | exact+linked+keyword | test | 83 | 33.7 | 65.1 | 72.3 | 0.474 | 507 | 608 | 1 of 7 (14.3%) | 5 of 83 (6.0%) |
-| exact+linked+keyword | all | 208 | 41.3 | 68.3 | 74.5 | 0.532 | 502 | 608 | 4 of 18 (22.2%) | 14 of 208 (6.7%) |
+| exact+linked+keyword | all | 208 | 41.3 | 68.3 | 74.5 | 0.531 | 502 | 608 | 4 of 18 (22.2%) | 14 of 208 (6.7%) |
 
 ### By question type
 
@@ -59,43 +59,43 @@ Stale expectations: none.
 | keyword | cross | dev | 14 | 50.0 | 78.6 | 85.7 | 0.633 | 0 |
 | keyword | number | dev | 19 | 47.4 | 52.6 | 57.9 | 0.508 | 1 |
 | keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.754 | 0 |
-| keyword | rules | dev | 23 | 30.4 | 56.5 | 60.9 | 0.415 | 2 |
+| keyword | rules | dev | 23 | 30.4 | 56.5 | 60.9 | 0.408 | 2 |
 | keyword | entity | test | 10 | 50.0 | 100.0 | 100.0 | 0.717 | 0 |
-| keyword | paraphrase | test | 25 | 16.0 | 48.0 | 48.0 | 0.281 | 6 |
+| keyword | paraphrase | test | 25 | 20.0 | 48.0 | 48.0 | 0.301 | 6 |
 | keyword | cross | test | 9 | 33.3 | 33.3 | 77.8 | 0.397 | 0 |
 | keyword | number | test | 13 | 30.8 | 38.5 | 53.8 | 0.343 | 0 |
 | keyword | dev | test | 11 | 54.5 | 81.8 | 90.9 | 0.670 | 0 |
 | keyword | rules | test | 15 | 26.7 | 53.3 | 60.0 | 0.389 | 2 |
 | keyword | entity | all | 24 | 79.2 | 100.0 | 100.0 | 0.882 | 0 |
-| keyword | paraphrase | all | 63 | 22.2 | 50.8 | 54.0 | 0.339 | 14 |
+| keyword | paraphrase | all | 63 | 23.8 | 50.8 | 54.0 | 0.347 | 14 |
 | keyword | cross | all | 23 | 43.5 | 60.9 | 82.6 | 0.541 | 0 |
 | keyword | number | all | 32 | 40.6 | 46.9 | 56.3 | 0.441 | 1 |
 | keyword | dev | all | 28 | 60.7 | 89.3 | 96.4 | 0.721 | 0 |
-| keyword | rules | all | 38 | 28.9 | 55.3 | 60.5 | 0.405 | 4 |
+| keyword | rules | all | 38 | 28.9 | 55.3 | 60.5 | 0.400 | 4 |
 | exact+keyword | entity | dev | 14 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
 | exact+keyword | paraphrase | dev | 38 | 21.1 | 55.3 | 60.5 | 0.356 | 7 |
 | exact+keyword | cross | dev | 14 | 14.3 | 78.6 | 85.7 | 0.442 | 0 |
 | exact+keyword | number | dev | 19 | 42.1 | 68.4 | 68.4 | 0.544 | 0 |
 | exact+keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.754 | 0 |
-| exact+keyword | rules | dev | 23 | 30.4 | 56.5 | 60.9 | 0.397 | 2 |
+| exact+keyword | rules | dev | 23 | 30.4 | 56.5 | 60.9 | 0.390 | 2 |
 | exact+keyword | entity | test | 10 | 60.0 | 100.0 | 100.0 | 0.758 | 0 |
-| exact+keyword | paraphrase | test | 25 | 12.0 | 52.0 | 60.0 | 0.271 | 3 |
+| exact+keyword | paraphrase | test | 25 | 12.0 | 52.0 | 60.0 | 0.273 | 3 |
 | exact+keyword | cross | test | 9 | 0.0 | 33.3 | 77.8 | 0.228 | 0 |
 | exact+keyword | number | test | 13 | 30.8 | 61.5 | 69.2 | 0.451 | 0 |
 | exact+keyword | dev | test | 11 | 54.5 | 81.8 | 90.9 | 0.670 | 0 |
 | exact+keyword | rules | test | 15 | 13.3 | 53.3 | 60.0 | 0.309 | 2 |
 | exact+keyword | entity | all | 24 | 83.3 | 100.0 | 100.0 | 0.899 | 0 |
-| exact+keyword | paraphrase | all | 63 | 17.5 | 54.0 | 60.3 | 0.322 | 10 |
+| exact+keyword | paraphrase | all | 63 | 17.5 | 54.0 | 60.3 | 0.323 | 10 |
 | exact+keyword | cross | all | 23 | 8.7 | 60.9 | 82.6 | 0.359 | 0 |
 | exact+keyword | number | all | 32 | 37.5 | 65.6 | 68.8 | 0.506 | 0 |
 | exact+keyword | dev | all | 28 | 60.7 | 89.3 | 96.4 | 0.721 | 0 |
-| exact+keyword | rules | all | 38 | 23.7 | 55.3 | 60.5 | 0.362 | 4 |
+| exact+keyword | rules | all | 38 | 23.7 | 55.3 | 60.5 | 0.358 | 4 |
 | exact+linked+keyword | entity | dev | 14 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
 | exact+linked+keyword | paraphrase | dev | 38 | 21.1 | 50.0 | 60.5 | 0.352 | 7 |
 | exact+linked+keyword | cross | dev | 14 | 71.4 | 100.0 | 100.0 | 0.839 | 0 |
 | exact+linked+keyword | number | dev | 19 | 42.1 | 68.4 | 68.4 | 0.553 | 0 |
 | exact+linked+keyword | dev | dev | 17 | 64.7 | 94.1 | 100.0 | 0.754 | 0 |
-| exact+linked+keyword | rules | dev | 23 | 30.4 | 52.2 | 60.9 | 0.388 | 2 |
+| exact+linked+keyword | rules | dev | 23 | 30.4 | 52.2 | 60.9 | 0.381 | 2 |
 | exact+linked+keyword | entity | test | 10 | 60.0 | 100.0 | 100.0 | 0.783 | 0 |
 | exact+linked+keyword | paraphrase | test | 25 | 12.0 | 44.0 | 52.0 | 0.241 | 3 |
 | exact+linked+keyword | cross | test | 9 | 66.7 | 88.9 | 100.0 | 0.796 | 0 |
@@ -107,7 +107,7 @@ Stale expectations: none.
 | exact+linked+keyword | cross | all | 23 | 69.6 | 95.7 | 100.0 | 0.822 | 0 |
 | exact+linked+keyword | number | all | 32 | 40.6 | 65.6 | 68.8 | 0.527 | 0 |
 | exact+linked+keyword | dev | all | 28 | 60.7 | 89.3 | 96.4 | 0.721 | 0 |
-| exact+linked+keyword | rules | all | 38 | 23.7 | 52.6 | 60.5 | 0.355 | 4 |
+| exact+linked+keyword | rules | all | 38 | 23.7 | 52.6 | 60.5 | 0.350 | 4 |
 
 ### Worst dev questions under exact+linked+keyword
 
@@ -141,7 +141,7 @@ Rank "–" means no expected record in the first 10; "refused" means the search 
 
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2973 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 39.
+2975 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 39.
 Stale expectations: none.
 
 ### By configuration and split
