@@ -3,12 +3,17 @@
 // on the same questions, and answer size in tokens. Pure: scripts/kb-eval.ts reads the files and prints the tables.
 // A question is found at k when any record it expects is among the first k results (each expected record answers it
 // on its own); an expectation ending in `*` accepts any passage of one doc section (`doc:<path>#<slug>` or `…~N`).
+// Questions of type `none` (step 1.6) have no answer in the pack: they are scored by refusal (the search says "no
+// match") and left out of recall and MRR; an answerable question the search refuses counts as wrongly refused.
 import { renderSearchText } from './render';
-import { search, type KbIndex, type Ranker } from './search';
+import { search, type KbIndex, type Ranker, type SearchTuning } from './search';
 import { estimateTokens, KB_KINDS, KIND_PREFIX, type KbKind } from './types';
 
-export const QUESTION_TYPES = ['entity', 'paraphrase', 'cross', 'number', 'dev', 'rules'] as const;
+export const QUESTION_TYPES = ['entity', 'paraphrase', 'cross', 'number', 'dev', 'rules', 'none'] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
+/** The types that have an answer in the pack (scored by recall and MRR). */
+export const ANSWERABLE_TYPES: readonly QuestionType[] = QUESTION_TYPES.filter((t) => t !== 'none');
+export const isAnswerable = (r: { type: QuestionType | string }): boolean => r.type !== 'none';
 export const QUESTION_SCOPES = ['public', 'local'] as const;
 export const QUESTION_SPLITS = ['dev', 'test'] as const;
 export type QuestionSplit = (typeof QUESTION_SPLITS)[number];
@@ -22,7 +27,7 @@ export interface KbQuestion {
   /** `local` when only a record from data/raw answers it */
   scope: 'public' | 'local';
   split: QuestionSplit;
-  /** every record that answers it on its own; `…*` = any passage of one doc section */
+  /** every record that answers it on its own; `…*` = any passage of one doc section; empty for type `none` */
   expect: string[];
 }
 
@@ -60,7 +65,10 @@ export function questionFileProblems(f: unknown): string[] {
     if (!(QUESTION_TYPES as readonly string[]).includes(q.type)) out.push(`${at}: unknown type ${JSON.stringify(q.type)}`);
     if (!(QUESTION_SCOPES as readonly string[]).includes(q.scope)) out.push(`${at}: unknown scope ${JSON.stringify(q.scope)}`);
     if (!(QUESTION_SPLITS as readonly string[]).includes(q.split)) out.push(`${at}: unknown split ${JSON.stringify(q.split)}`);
-    if (!Array.isArray(q.expect) || !q.expect.length || q.expect.some((e) => typeof e !== 'string' || !e)) out.push(`${at}: expect must be a non-empty list of ids`);
+    if (q.type === 'none') {
+      if (q.scope !== 'public') out.push(`${at}: a none question is public (it is asked of every pack)`);
+      if (!Array.isArray(q.expect) || q.expect.length) out.push(`${at}: a none question expects nothing (expect: [])`);
+    } else if (!Array.isArray(q.expect) || !q.expect.length || q.expect.some((e) => typeof e !== 'string' || !e)) out.push(`${at}: expect must be a non-empty list of ids`);
     else {
       for (const e of q.expect) if (!expectKind(e)) out.push(`${at}: "${e}" is not a record id`);
       if (new Set(q.expect).size !== q.expect.length) out.push(`${at}: an id is expected twice`);
@@ -199,6 +207,8 @@ export interface QuestionResult {
   top: string[];
   /** tokens of the plain-text answer at ANSWER_K results */
   tokens: number;
+  /** the search said "no match" (right for a `none` question, wrong for any other) */
+  refused: boolean;
 }
 
 export interface Availability {
@@ -213,6 +223,8 @@ export interface Availability {
  * local records; a local question is skipped then.
  */
 export function availability(q: KbQuestion, has: (id: string) => boolean, hasPrefix: (base: string) => boolean, localPresent: boolean): Availability {
+  // a none question expects nothing and is asked of every pack
+  if (q.type === 'none') return { stale: [], skip: false };
   const stale: string[] = [];
   let usable = 0;
   for (const e of q.expect) {
@@ -223,23 +235,72 @@ export function availability(q: KbQuestion, has: (id: string) => boolean, hasPre
   return { stale, skip: (q.scope === 'local' && !localPresent) || usable === 0 };
 }
 
-/** Run one configuration over questions (callers filter by split and scope first). */
-export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], config: EvalConfig): QuestionResult[] {
+/** Run one configuration over questions (callers filter by split and scope first). `tuning`: experiments only. */
+export function runQuestions(ix: KbIndex, questions: readonly KbQuestion[], config: EvalConfig, tuning?: Partial<SearchTuning>): QuestionResult[] {
   const rankers = EVAL_CONFIGS[config];
   return questions.map((q) => {
-    const deep = search(ix, q.q, { k: EVAL_DEPTH, rankers });
+    const deep = search(ix, q.q, { k: EVAL_DEPTH, rankers, ...(tuning ? { tuning } : {}) });
     const top = deep.hits.map((h) => h.record.id);
     const answer = deep.noMatch ? deep : { ...deep, hits: deep.hits.slice(0, ANSWER_K) };
-    return { id: q.id, type: q.type, split: q.split, rank: firstRank(top, q.expect), top, tokens: estimateTokens(renderSearchText(answer)) };
+    return { id: q.id, type: q.type, split: q.split, rank: firstRank(top, q.expect), top, tokens: estimateTokens(renderSearchText(answer)), refused: deep.noMatch };
   });
 }
 
+/** The settings `scripts/kb-eval.ts --tune` may vary, and how each value is read. */
+const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool'>> = { floor: 'share', floorHits: 'count', singleWordTermLinks: 'bool', deckPairMatchup: 'bool' };
+
+/**
+ * Parse `key=value,key=value` into search settings (floor: a share from 0 to 1; floorHits: a whole number from 1 to 100;
+ * singleWordTermLinks, deckPairMatchup: true or false). Returns the problem as a string when the text is not valid.
+ */
+export function parseTuning(text: string): Partial<SearchTuning> | string {
+  const out: Partial<Record<keyof SearchTuning, number | boolean>> = {};
+  for (const part of text.split(',').map((x) => x.trim())) {
+    const m = /^([A-Za-z]+)=(.+)$/.exec(part);
+    const key = m?.[1] as keyof SearchTuning | undefined;
+    const raw = m?.[2]?.trim() ?? '';
+    if (!key || !Object.prototype.hasOwnProperty.call(TUNE_KEYS, key)) return `give key=value pairs with keys ${Object.keys(TUNE_KEYS).join(', ')}, not "${part}"`;
+    if (key in out) return `${key} is given twice`;
+    const how = TUNE_KEYS[key];
+    if (how === 'bool') {
+      if (raw !== 'true' && raw !== 'false') return `${key} takes true or false, not "${raw}"`;
+      out[key] = raw === 'true';
+    } else {
+      const v = Number(raw);
+      if (!/^\d+(\.\d+)?$/.test(raw) || (how === 'share' ? v > 1 : !Number.isInteger(v) || v < 1 || v > 100)) return how === 'share' ? `${key} takes a share from 0 to 1, not "${raw}"` : `${key} takes a whole number from 1 to 100, not "${raw}"`;
+      out[key] = v;
+    }
+  }
+  return out as Partial<SearchTuning>;
+}
+
+/** Refusals among some questions: how many there were, how many the search refused, and the share. */
+export interface RefusalCount {
+  n: number;
+  refused: number;
+  rate: number;
+}
+
+export const refusals = (rs: readonly Pick<QuestionResult, 'refused'>[]): RefusalCount => {
+  const refused = rs.filter((r) => r.refused).length;
+  return { n: rs.length, refused, rate: rs.length ? refused / rs.length : 0 };
+};
+
+/**
+ * Recall, MRR and answer size over the answerable questions (`n` counts those only), the refusal of the `none`
+ * questions (right) and the refusal of the answerable ones (wrong).
+ */
 export interface Summary extends Metrics {
   tokens: SizeStats;
+  /** `none` questions: refused is right */
+  refusal: RefusalCount;
+  /** answerable questions refused (wrong) */
+  wrongRefusals: RefusalCount;
 }
 
 export function summarize(rs: readonly QuestionResult[]): Summary {
-  return { ...metrics(rs.map((r) => r.rank)), tokens: sizeStats(rs.map((r) => r.tokens)) };
+  const ans = rs.filter(isAnswerable);
+  return { ...metrics(ans.map((r) => r.rank)), tokens: sizeStats(ans.map((r) => r.tokens)), refusal: refusals(rs.filter((r) => !isAnswerable(r))), wrongRefusals: refusals(ans) };
 }
 
 /** Summaries grouped by a key, keys in the order given. Groups with no question are left out. */
@@ -250,11 +311,11 @@ export function groupBy<K extends string>(rs: readonly QuestionResult[], key: (r
 export type PairedMetric = 'r5' | 'mrr';
 
 /** Per-question values of a metric, for the paired bootstrap. */
-export const metricValues = (rs: readonly QuestionResult[], m: PairedMetric): number[] => rs.map((r) => (m === 'r5' ? hitAt(r.rank, 5) : reciprocal(r.rank)));
+export const metricValues = (rs: readonly Pick<QuestionResult, 'rank'>[], m: PairedMetric): number[] => rs.map((r) => (m === 'r5' ? hitAt(r.rank, 5) : reciprocal(r.rank)));
 
-/** Pair two runs on the questions both answered, in id order, and bootstrap b − a for a metric. */
-export function compareRuns(a: readonly QuestionResult[], b: readonly QuestionResult[], m: PairedMetric, o: { seed?: number; resamples?: number } = {}): PairedInterval {
-  const bById = new Map(b.map((r) => [r.id, r]));
-  const pairs = [...a].filter((r) => bById.has(r.id)).sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+/** Pair two runs on the answerable questions both hold, in id order, and bootstrap b − a for a metric. */
+export function compareRuns(a: readonly Pick<QuestionResult, 'id' | 'type' | 'rank'>[], b: readonly Pick<QuestionResult, 'id' | 'type' | 'rank'>[], m: PairedMetric, o: { seed?: number; resamples?: number } = {}): PairedInterval {
+  const bById = new Map(b.filter(isAnswerable).map((r) => [r.id, r]));
+  const pairs = a.filter((r) => isAnswerable(r) && bById.has(r.id)).sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
   return pairedBootstrap(metricValues(pairs, m), metricValues(pairs.map((r) => bById.get(r.id)!), m), o);
 }

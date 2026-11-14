@@ -1,6 +1,7 @@
 // Competitive facts by code (docs/RAG_PLAN.md rule M3, step 2.1): one documented function per number a person asks about a
-// recorded tournament, a round, a deck's results or a matchup, each returning plain data with what it was computed from
-// (sim version, bot, recorded date). Pure, Node and browser: every source is passed in, nothing is read, no clock.
+// recorded tournament, a round, a deck's results, the ratings table or a matchup, each returning plain data with what it
+// was computed from (sim version, bot, recorded date). Pure, Node and browser: every source is passed in, nothing is
+// read, no clock.
 //
 // The definitions, and the word each uses where the project has more than one (docs/RAG_PLAN.md §9):
 //   - Standings after round k are rebuilt from the stored matches by the recorder's own rules: 3 match points per match
@@ -508,6 +509,63 @@ export function deckCompetitive(deck: string, src: { ratings: RatingsInput; inde
     topCutAppearances: pooled.filter((f) => f.madeTopCut).length,
     swissTopEight: row?.top8 ?? 0,
     finishes,
+  };
+}
+
+// ---------------------------------------------------------------- the ratings table
+
+export interface RatingsTableRow {
+  /** place in the ratings file's order (by rating) */
+  position: number;
+  deck: string;
+  file: string;
+  rating: number;
+  /** expected win rate against the whole field and its 90% range */
+  wrField: number;
+  lo: number;
+  hi: number;
+  /** every pooled game the deck played (Swiss and top cut, standard and custom events) */
+  ratedGames: number;
+  tier: SimTier;
+}
+
+export interface RatingsTable extends Basis {
+  /** rated decks in the file */
+  of: number;
+  /** recorded events the ratings were fitted over (null when the file does not say) */
+  events: number | null;
+  /** the first `top` rows (every row without `top`), in the file's order */
+  rows: RatingsTableRow[];
+  /** positions (among the rows shown, the first excluded) whose 90% range overlaps the first row's range */
+  overlapFirst: number[];
+  /** neighbouring rows shown whose 90% ranges do not overlap: [upper position, lower position] */
+  separated: [number, number][];
+}
+
+/** Two 90% ranges overlap when neither lies wholly above the other. */
+export const rangesOverlap = (a: { lo: number; hi: number }, b: { lo: number; hi: number }): boolean => a.lo <= b.hi && b.lo <= a.hi;
+
+/**
+ * The ratings table: the first `top` rows of the ratings file in its own order (by rating), each with its expected win
+ * rate against the whole field, the 90% range, the rated games and the Sim tier now; and which of the shown ranges
+ * overlap (the first row's range with the others, and neighbour with neighbour).
+ */
+export function ratingsTable(ratings: RatingsInput, o: { top?: number } = {}): RatingsTable {
+  const shown = o.top === undefined ? ratings.decks : ratings.decks.slice(0, Math.max(0, o.top));
+  const rows: RatingsTableRow[] = shown.map((r, i) => ({ position: i + 1, deck: r.name, file: r.file, rating: r.rating, wrField: r.wrField, lo: r.wrFieldLo, hi: r.wrFieldHi, ratedGames: r.games, tier: simTier(r) }));
+  const first = rows[0];
+  const separated: [number, number][] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const [u, d] = [rows[i - 1]!, rows[i]!];
+    if (!rangesOverlap(u, d)) separated.push([u.position, d.position]);
+  }
+  return {
+    ...fileBasis(ratings),
+    of: ratings.decks.length,
+    events: typeof ratings.events === 'number' ? ratings.events : null,
+    rows,
+    overlapFirst: first ? rows.slice(1).filter((r) => rangesOverlap(first, r)).map((r) => r.position) : [],
+    separated,
   };
 }
 

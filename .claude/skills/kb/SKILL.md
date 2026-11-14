@@ -57,7 +57,8 @@ npm run kb -- fact rating "RRG Dexter Midrange"
 npm run kb -- fact matchup "RRG Dexter Midrange" vs "BBG Cunningham Econ"
 ```
 
-Also `fact round --event N --round K` (a round summary) and `fact finishes <deck>`. A deck is named by
+Also `fact round --event N --round K` (a round summary), `fact finishes <deck>` and
+`fact ratings --top 10` (the ratings table, which says when the ranges overlap). A deck is named by
 file, by name or by list fingerprint. Add `--json` for data.
 
 - `search` returns the best five records. Flags: `--k 8`, `--kind card,ruling`, `--scope public|local|all`,

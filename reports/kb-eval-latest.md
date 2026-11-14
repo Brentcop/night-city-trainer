@@ -3,228 +3,248 @@
 Written by `npm run kb:eval -- --out` (scripts/kb-eval.ts, docs/RAG_PLAN.md step 1.4). Ids and public titles only,
 never record text (a local-only record shows by its id). Recall at k: the share of questions with an expected
 record in the first k results. MRR at 10: the mean of 1 / rank of the first expected record (0 when it is not in
-the first 10). Tokens: the plain-text answer at 5 results, characters / 4.
+the first 10). Tokens: the plain-text answer at 5 results, characters / 4. These are over the answerable
+questions (`n`). None refused: the questions the pack cannot answer (type none) for which the search said "no
+match", which is right. Wrongly refused: answerable questions for which it said "no match".
 
-Question set: `data/kb/questions.json` (draft), 116 questions. Types: entity 20, paraphrase 25, cross 15, number 16, dev 20, rules 20.
-Scopes: public 95, local 21. Splits: dev 70, test 46. Shown here: split all.
+Question set: `data/kb/questions.json` (draft), 146 questions. Types: entity 20, paraphrase 25, cross 15, number 24, dev 20, rules 30, none 12.
+Scopes: public 115, local 31. Splits: dev 87, test 59. Shown here: split all.
 
 ## Scope: all records (the local pack, with data/raw when present)
 
-3537 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
+3543 records searched; local records present. Questions skipped (nothing they expect is in this pack): 0.
 Stale expectations: none.
 
 ### By configuration and split
 
-| configuration | split | n | R@1 % | R@5 % | R@10 % | MRR@10 | tokens mean | tokens p90 |
-|---|---|---:|---:|---:|---:|---:|---:|---:|
-| exact | dev | 70 | 21.4 | 24.3 | 24.3 | 0.229 | 68 | 123 |
-| exact | test | 46 | 15.2 | 17.4 | 17.4 | 0.163 | 78 | 183 |
-| exact | all | 116 | 19.0 | 21.6 | 21.6 | 0.203 | 72 | 134 |
-| keyword | dev | 70 | 57.1 | 77.1 | 82.9 | 0.655 | 505 | 600 |
-| keyword | test | 46 | 39.1 | 67.4 | 76.1 | 0.509 | 490 | 612 |
-| keyword | all | 116 | 50.0 | 73.3 | 80.2 | 0.597 | 499 | 605 |
-| exact+keyword | dev | 70 | 48.6 | 78.6 | 85.7 | 0.620 | 502 | 591 |
-| exact+keyword | test | 46 | 32.6 | 73.9 | 82.6 | 0.499 | 515 | 612 |
-| exact+keyword | all | 116 | 42.2 | 76.7 | 84.5 | 0.572 | 507 | 600 |
-| exact+linked+keyword | dev | 70 | 58.6 | 78.6 | 85.7 | 0.678 | 499 | 591 |
-| exact+linked+keyword | test | 46 | 43.5 | 80.4 | 84.8 | 0.589 | 521 | 612 |
-| exact+linked+keyword | all | 116 | 52.6 | 79.3 | 85.3 | 0.643 | 508 | 598 |
+| configuration | split | n | R@1 % | R@5 % | R@10 % | MRR@10 | tokens mean | tokens p90 | none refused | wrongly refused |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| exact | dev | 80 | 18.8 | 21.3 | 21.3 | 0.200 | 69 | 132 | 5 of 7 (71.4%) | 42 of 80 (52.5%) |
+| exact | test | 54 | 13.0 | 14.8 | 14.8 | 0.139 | 82 | 210 | 5 of 5 (100.0%) | 24 of 54 (44.4%) |
+| exact | all | 134 | 16.4 | 18.7 | 18.7 | 0.175 | 74 | 169 | 10 of 12 (83.3%) | 66 of 134 (49.3%) |
+| keyword | dev | 80 | 52.5 | 71.3 | 77.5 | 0.602 | 495 | 600 | 4 of 7 (57.1%) | 6 of 80 (7.5%) |
+| keyword | test | 54 | 33.3 | 59.3 | 70.4 | 0.445 | 490 | 612 | 1 of 5 (20.0%) | 6 of 54 (11.1%) |
+| keyword | all | 134 | 44.8 | 66.4 | 74.6 | 0.539 | 493 | 605 | 5 of 12 (41.7%) | 12 of 134 (9.0%) |
+| exact+keyword | dev | 80 | 45.0 | 72.5 | 80.0 | 0.571 | 499 | 591 | 3 of 7 (42.9%) | 5 of 80 (6.3%) |
+| exact+keyword | test | 54 | 27.8 | 64.8 | 75.9 | 0.435 | 508 | 612 | 1 of 5 (20.0%) | 3 of 54 (5.6%) |
+| exact+keyword | all | 134 | 38.1 | 69.4 | 78.4 | 0.516 | 503 | 600 | 4 of 12 (33.3%) | 8 of 134 (6.0%) |
+| exact+linked+keyword | dev | 80 | 53.8 | 73.8 | 81.3 | 0.626 | 496 | 591 | 3 of 7 (42.9%) | 5 of 80 (6.3%) |
+| exact+linked+keyword | test | 54 | 37.0 | 70.4 | 77.8 | 0.512 | 513 | 612 | 1 of 5 (20.0%) | 3 of 54 (5.6%) |
+| exact+linked+keyword | all | 134 | 47.0 | 72.4 | 79.9 | 0.580 | 503 | 598 | 4 of 12 (33.3%) | 8 of 134 (6.0%) |
 
 ### By question type
 
-| configuration | type | split | n | R@1 % | R@5 % | R@10 % | MRR@10 |
-|---|---|---|---:|---:|---:|---:|---:|
-| exact | entity | dev | 12 | 66.7 | 75.0 | 75.0 | 0.708 |
-| exact | paraphrase | dev | 15 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | cross | dev | 9 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | number | dev | 10 | 60.0 | 70.0 | 70.0 | 0.650 |
-| exact | dev | dev | 12 | 8.3 | 8.3 | 8.3 | 0.083 |
-| exact | rules | dev | 12 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | entity | test | 8 | 50.0 | 62.5 | 62.5 | 0.563 |
-| exact | paraphrase | test | 10 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | cross | test | 6 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | number | test | 6 | 50.0 | 50.0 | 50.0 | 0.500 |
-| exact | dev | test | 8 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | rules | test | 8 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | entity | all | 20 | 60.0 | 70.0 | 70.0 | 0.650 |
-| exact | paraphrase | all | 25 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | cross | all | 15 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | number | all | 16 | 56.3 | 62.5 | 62.5 | 0.594 |
-| exact | dev | all | 20 | 5.0 | 5.0 | 5.0 | 0.050 |
-| exact | rules | all | 20 | 0.0 | 0.0 | 0.0 | 0.000 |
-| keyword | entity | dev | 12 | 100.0 | 100.0 | 100.0 | 1.000 |
-| keyword | paraphrase | dev | 15 | 26.7 | 53.3 | 60.0 | 0.393 |
-| keyword | cross | dev | 9 | 55.6 | 77.8 | 88.9 | 0.651 |
-| keyword | number | dev | 10 | 70.0 | 80.0 | 80.0 | 0.750 |
-| keyword | dev | dev | 12 | 66.7 | 91.7 | 100.0 | 0.766 |
-| keyword | rules | dev | 12 | 33.3 | 66.7 | 75.0 | 0.449 |
-| keyword | entity | test | 8 | 50.0 | 100.0 | 100.0 | 0.729 |
-| keyword | paraphrase | test | 10 | 10.0 | 40.0 | 40.0 | 0.173 |
-| keyword | cross | test | 6 | 33.3 | 33.3 | 66.7 | 0.378 |
-| keyword | number | test | 6 | 50.0 | 66.7 | 83.3 | 0.558 |
-| keyword | dev | test | 8 | 62.5 | 87.5 | 100.0 | 0.737 |
-| keyword | rules | test | 8 | 37.5 | 75.0 | 75.0 | 0.542 |
-| keyword | entity | all | 20 | 80.0 | 100.0 | 100.0 | 0.892 |
-| keyword | paraphrase | all | 25 | 20.0 | 48.0 | 52.0 | 0.305 |
-| keyword | cross | all | 15 | 46.7 | 60.0 | 80.0 | 0.542 |
-| keyword | number | all | 16 | 62.5 | 75.0 | 81.3 | 0.678 |
-| keyword | dev | all | 20 | 65.0 | 90.0 | 100.0 | 0.754 |
-| keyword | rules | all | 20 | 35.0 | 70.0 | 75.0 | 0.486 |
-| exact+keyword | entity | dev | 12 | 100.0 | 100.0 | 100.0 | 1.000 |
-| exact+keyword | paraphrase | dev | 15 | 20.0 | 53.3 | 60.0 | 0.356 |
-| exact+keyword | cross | dev | 9 | 11.1 | 77.8 | 88.9 | 0.429 |
-| exact+keyword | number | dev | 10 | 60.0 | 100.0 | 100.0 | 0.783 |
-| exact+keyword | dev | dev | 12 | 66.7 | 91.7 | 100.0 | 0.766 |
-| exact+keyword | rules | dev | 12 | 33.3 | 58.3 | 75.0 | 0.428 |
-| exact+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.781 |
-| exact+keyword | paraphrase | test | 10 | 10.0 | 50.0 | 60.0 | 0.208 |
-| exact+keyword | cross | test | 6 | 0.0 | 33.3 | 66.7 | 0.211 |
-| exact+keyword | number | test | 6 | 50.0 | 100.0 | 100.0 | 0.708 |
-| exact+keyword | dev | test | 8 | 62.5 | 87.5 | 100.0 | 0.737 |
-| exact+keyword | rules | test | 8 | 12.5 | 75.0 | 75.0 | 0.400 |
-| exact+keyword | entity | all | 20 | 85.0 | 100.0 | 100.0 | 0.912 |
-| exact+keyword | paraphrase | all | 25 | 16.0 | 52.0 | 60.0 | 0.297 |
-| exact+keyword | cross | all | 15 | 6.7 | 60.0 | 80.0 | 0.342 |
-| exact+keyword | number | all | 16 | 56.3 | 100.0 | 100.0 | 0.755 |
-| exact+keyword | dev | all | 20 | 65.0 | 90.0 | 100.0 | 0.754 |
-| exact+keyword | rules | all | 20 | 25.0 | 65.0 | 75.0 | 0.417 |
-| exact+linked+keyword | entity | dev | 12 | 100.0 | 100.0 | 100.0 | 1.000 |
-| exact+linked+keyword | paraphrase | dev | 15 | 20.0 | 46.7 | 60.0 | 0.351 |
-| exact+linked+keyword | cross | dev | 9 | 77.8 | 100.0 | 100.0 | 0.861 |
-| exact+linked+keyword | number | dev | 10 | 70.0 | 100.0 | 100.0 | 0.850 |
-| exact+linked+keyword | dev | dev | 12 | 66.7 | 91.7 | 100.0 | 0.766 |
-| exact+linked+keyword | rules | dev | 12 | 33.3 | 50.0 | 66.7 | 0.395 |
-| exact+linked+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.813 |
-| exact+linked+keyword | paraphrase | test | 10 | 10.0 | 50.0 | 50.0 | 0.193 |
-| exact+linked+keyword | cross | test | 6 | 66.7 | 83.3 | 100.0 | 0.778 |
-| exact+linked+keyword | number | test | 6 | 66.7 | 100.0 | 100.0 | 0.833 |
-| exact+linked+keyword | dev | test | 8 | 62.5 | 87.5 | 100.0 | 0.737 |
-| exact+linked+keyword | rules | test | 8 | 12.5 | 75.0 | 75.0 | 0.385 |
-| exact+linked+keyword | entity | all | 20 | 85.0 | 100.0 | 100.0 | 0.925 |
-| exact+linked+keyword | paraphrase | all | 25 | 16.0 | 48.0 | 56.0 | 0.288 |
-| exact+linked+keyword | cross | all | 15 | 73.3 | 93.3 | 100.0 | 0.828 |
-| exact+linked+keyword | number | all | 16 | 68.8 | 100.0 | 100.0 | 0.844 |
-| exact+linked+keyword | dev | all | 20 | 65.0 | 90.0 | 100.0 | 0.754 |
-| exact+linked+keyword | rules | all | 20 | 25.0 | 60.0 | 70.0 | 0.391 |
+| configuration | type | split | n | R@1 % | R@5 % | R@10 % | MRR@10 | refused |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| exact | entity | dev | 12 | 66.7 | 75.0 | 75.0 | 0.708 | 3 |
+| exact | paraphrase | dev | 15 | 0.0 | 0.0 | 0.0 | 0.000 | 13 |
+| exact | cross | dev | 9 | 0.0 | 0.0 | 0.0 | 0.000 | 2 |
+| exact | number | dev | 14 | 42.9 | 50.0 | 50.0 | 0.464 | 1 |
+| exact | dev | dev | 12 | 8.3 | 8.3 | 8.3 | 0.083 | 11 |
+| exact | rules | dev | 18 | 0.0 | 0.0 | 0.0 | 0.000 | 12 |
+| exact | entity | test | 8 | 50.0 | 62.5 | 62.5 | 0.563 | 2 |
+| exact | paraphrase | test | 10 | 0.0 | 0.0 | 0.0 | 0.000 | 6 |
+| exact | cross | test | 6 | 0.0 | 0.0 | 0.0 | 0.000 | 0 |
+| exact | number | test | 10 | 30.0 | 30.0 | 30.0 | 0.300 | 2 |
+| exact | dev | test | 8 | 0.0 | 0.0 | 0.0 | 0.000 | 7 |
+| exact | rules | test | 12 | 0.0 | 0.0 | 0.0 | 0.000 | 7 |
+| exact | entity | all | 20 | 60.0 | 70.0 | 70.0 | 0.650 | 5 |
+| exact | paraphrase | all | 25 | 0.0 | 0.0 | 0.0 | 0.000 | 19 |
+| exact | cross | all | 15 | 0.0 | 0.0 | 0.0 | 0.000 | 2 |
+| exact | number | all | 24 | 37.5 | 41.7 | 41.7 | 0.396 | 3 |
+| exact | dev | all | 20 | 5.0 | 5.0 | 5.0 | 0.050 | 18 |
+| exact | rules | all | 30 | 0.0 | 0.0 | 0.0 | 0.000 | 19 |
+| keyword | entity | dev | 12 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
+| keyword | paraphrase | dev | 15 | 26.7 | 53.3 | 60.0 | 0.393 | 3 |
+| keyword | cross | dev | 9 | 55.6 | 77.8 | 88.9 | 0.651 | 0 |
+| keyword | number | dev | 14 | 57.1 | 64.3 | 64.3 | 0.607 | 1 |
+| keyword | dev | dev | 12 | 66.7 | 91.7 | 100.0 | 0.766 | 0 |
+| keyword | rules | dev | 18 | 27.8 | 55.6 | 66.7 | 0.374 | 2 |
+| keyword | entity | test | 8 | 50.0 | 100.0 | 100.0 | 0.729 | 0 |
+| keyword | paraphrase | test | 10 | 10.0 | 40.0 | 40.0 | 0.173 | 4 |
+| keyword | cross | test | 6 | 33.3 | 33.3 | 66.7 | 0.378 | 0 |
+| keyword | number | test | 10 | 30.0 | 40.0 | 60.0 | 0.346 | 0 |
+| keyword | dev | test | 8 | 62.5 | 87.5 | 100.0 | 0.737 | 0 |
+| keyword | rules | test | 12 | 25.0 | 58.3 | 66.7 | 0.403 | 2 |
+| keyword | entity | all | 20 | 80.0 | 100.0 | 100.0 | 0.892 | 0 |
+| keyword | paraphrase | all | 25 | 20.0 | 48.0 | 52.0 | 0.305 | 7 |
+| keyword | cross | all | 15 | 46.7 | 60.0 | 80.0 | 0.542 | 0 |
+| keyword | number | all | 24 | 45.8 | 54.2 | 62.5 | 0.498 | 1 |
+| keyword | dev | all | 20 | 65.0 | 90.0 | 100.0 | 0.754 | 0 |
+| keyword | rules | all | 30 | 26.7 | 56.7 | 66.7 | 0.386 | 4 |
+| exact+keyword | entity | dev | 12 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
+| exact+keyword | paraphrase | dev | 15 | 20.0 | 53.3 | 60.0 | 0.356 | 3 |
+| exact+keyword | cross | dev | 9 | 11.1 | 77.8 | 88.9 | 0.429 | 0 |
+| exact+keyword | number | dev | 14 | 50.0 | 78.6 | 78.6 | 0.631 | 0 |
+| exact+keyword | dev | dev | 12 | 66.7 | 91.7 | 100.0 | 0.766 | 0 |
+| exact+keyword | rules | dev | 18 | 27.8 | 50.0 | 66.7 | 0.360 | 2 |
+| exact+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.781 | 0 |
+| exact+keyword | paraphrase | test | 10 | 10.0 | 50.0 | 60.0 | 0.208 | 1 |
+| exact+keyword | cross | test | 6 | 0.0 | 33.3 | 66.7 | 0.211 | 0 |
+| exact+keyword | number | test | 10 | 30.0 | 60.0 | 70.0 | 0.436 | 0 |
+| exact+keyword | dev | test | 8 | 62.5 | 87.5 | 100.0 | 0.737 | 0 |
+| exact+keyword | rules | test | 12 | 8.3 | 58.3 | 66.7 | 0.303 | 2 |
+| exact+keyword | entity | all | 20 | 85.0 | 100.0 | 100.0 | 0.912 | 0 |
+| exact+keyword | paraphrase | all | 25 | 16.0 | 52.0 | 60.0 | 0.297 | 4 |
+| exact+keyword | cross | all | 15 | 6.7 | 60.0 | 80.0 | 0.342 | 0 |
+| exact+keyword | number | all | 24 | 41.7 | 70.8 | 75.0 | 0.550 | 0 |
+| exact+keyword | dev | all | 20 | 65.0 | 90.0 | 100.0 | 0.754 | 0 |
+| exact+keyword | rules | all | 30 | 20.0 | 53.3 | 66.7 | 0.337 | 4 |
+| exact+linked+keyword | entity | dev | 12 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
+| exact+linked+keyword | paraphrase | dev | 15 | 20.0 | 46.7 | 60.0 | 0.351 | 3 |
+| exact+linked+keyword | cross | dev | 9 | 77.8 | 100.0 | 100.0 | 0.861 | 0 |
+| exact+linked+keyword | number | dev | 14 | 57.1 | 78.6 | 78.6 | 0.679 | 0 |
+| exact+linked+keyword | dev | dev | 12 | 66.7 | 91.7 | 100.0 | 0.766 | 0 |
+| exact+linked+keyword | rules | dev | 18 | 27.8 | 50.0 | 66.7 | 0.352 | 2 |
+| exact+linked+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.813 | 0 |
+| exact+linked+keyword | paraphrase | test | 10 | 10.0 | 50.0 | 50.0 | 0.193 | 1 |
+| exact+linked+keyword | cross | test | 6 | 66.7 | 83.3 | 100.0 | 0.778 | 0 |
+| exact+linked+keyword | number | test | 10 | 40.0 | 60.0 | 70.0 | 0.511 | 0 |
+| exact+linked+keyword | dev | test | 8 | 62.5 | 87.5 | 100.0 | 0.737 | 0 |
+| exact+linked+keyword | rules | test | 12 | 8.3 | 58.3 | 66.7 | 0.297 | 2 |
+| exact+linked+keyword | entity | all | 20 | 85.0 | 100.0 | 100.0 | 0.925 | 0 |
+| exact+linked+keyword | paraphrase | all | 25 | 16.0 | 48.0 | 56.0 | 0.288 | 4 |
+| exact+linked+keyword | cross | all | 15 | 73.3 | 93.3 | 100.0 | 0.828 | 0 |
+| exact+linked+keyword | number | all | 24 | 50.0 | 70.8 | 75.0 | 0.609 | 0 |
+| exact+linked+keyword | dev | all | 20 | 65.0 | 90.0 | 100.0 | 0.754 | 0 |
+| exact+linked+keyword | rules | all | 30 | 20.0 | 53.3 | 66.7 | 0.330 | 4 |
 
 ### Worst dev questions under exact+linked+keyword
 
-Rank "–" means no expected record in the first 10. "Ranked above" lists up to three records before it.
+Rank "–" means no expected record in the first 10; "refused" means the search said "no match". "Ranked above" lists up to three records before it.
 
 | question | type | rank | asked | expected (first) | ranked above |
 |---|---|---:|---|---|---|
 | q021 | paraphrase | – | which card wipes every other unit off the board when it comes in | card:adam_smasher_metal_over_meat | pkg:relic-loop (The Relic loop (Metal Over Meat)); objective:YYY-ripbecca (Addin' Trash game plan); doc:CLAUDE.md#play-ui~3 (Play UI (part 3)) |
 | q026 | paraphrase | – | package about keeping my total dice score under the opponent's | pkg:low-cred | doc:docs/REVIEW_FINDINGS.md#3-refinement-backlog-input-for-the-next-round~2 (3. Refinement backlog (input for the next round) (part 2)); doc:docs/STRATEGY.md#season-2-8-new-decks-2026-11-12 (Season 2 (8 new decks, 2026-11-12)); doc:docs/BOT_TOOLKIT.md#3-evaluation-function-src-ai-eval-ts~3 (3. Evaluation function (src/ai/eval.ts) (part 3)) |
-| q031 | paraphrase | – | strategy where you destroy your own equipment to get something out of it | pkg:gear-sacrifice |  |
+| q031 | paraphrase | refused | strategy where you destroy your own equipment to get something out of it | pkg:gear-sacrifice |  |
 | q036 | paraphrase | – | which package pays off for flipping my legends early | pkg:legends-up | doc:docs/TUNING_STUDY_2026-11-13.md#what-would-make-them-effective-ranked-by-expected-benefit-for-cost~9 (What would make them effective (ranked by expected benefit for cost) (part 9)); doc:docs/ROADMAP2.md#1-synergy-packages-and-evidence-thresholds-requested-2026-11-11~29 (1. Synergy packages and evidence thresholds (requested 2026-11-11) (part 29)); rule:11.11.1 |
-| q041 | paraphrase | – | equipment that lets me peek at one of my own hidden legends when the unit attacks | card:kiroshi_optics |  |
-| q045 | paraphrase | – | unit whose entry effect taps both itself and an enemy unit | card:offduty_malfini |  |
+| q041 | paraphrase | refused | equipment that lets me peek at one of my own hidden legends when the unit attacks | card:kiroshi_optics |  |
+| q045 | paraphrase | refused | unit whose entry effect taps both itself and an enemy unit | card:offduty_malfini |  |
 | q081 | rules | – | what happens if both players reach seven gigs at the same moment | rule:1.13.1 | doc:docs/DECISION_TELEMETRY.md#hidden-information~2 (Hidden information (part 2)); rule:6.1.1; guide:fundamentals#how-games-are-actually-won (Fundamentals: How games are actually won) |
-| q085 | rules | – | one effect lets me do something and another forbids it, which one wins | rule:2.6 |  |
+| q085 | rules | refused | one effect lets me do something and another forbids it, which one wins | rule:2.6 |  |
 | q091 | rules | – | is there a cap on how many eddies I can have | rule:5.8.2.1 | term:eddies (Eddies (€$)); term:signal/eddies (eddies); rule:5.8 |
 | q098 | rules | – | are any cards banned or restricted in organized play | trule:B | term:condition/any (any); pkg:cost-match (Gig value matches a cost); trule:2.1 |
 
+### Dev questions the pack cannot answer, answered anyway under exact+linked+keyword
+
+| question | asked | first results |
+|---|---|---|
+| q117 | what does the card neon samurai overlord do | deck:RBY-samurai (Samurai); objective:RBY-samurai (Samurai game plan); card:kerry_eurodyne_the_last_rockerboy (Kerry Eurodyne: The Last Rockerboy) |
+| q121 | is there an iphone app I can download | doc:docs/IMPROVEMENT_BACKLOG.md#wp-c3-pages-accessibility-css-and-structure~2 (WP-C3 · Pages accessibility, CSS and structure (part 2)); doc:docs/REVIEW_2026-11-13.md#newer-features-app~5 (Newer features (APP) (part 5)); code:src/lib/download.ts (src/lib/download.ts) |
+| q124 | what is a foil johnny silverhand selling for on ebay | card:johnny_silverhand_never_stop_fighting (Johnny Silverhand: Never Stop Fighting); card:johnny_silverhand_rocking_renegade (Johnny Silverhand: Rocking Renegade); faq:e512816e |
+| q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~19 (Keys (part 19)); trule:E.2 |
+
 ## Scope: public records only (what a checkout without data/raw searches)
 
-2513 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 21.
+2519 records searched; local records absent. Questions skipped (nothing they expect is in this pack): 31.
 Stale expectations: none.
 
 ### By configuration and split
 
-| configuration | split | n | R@1 % | R@5 % | R@10 % | MRR@10 | tokens mean | tokens p90 |
-|---|---|---:|---:|---:|---:|---:|---:|---:|
-| exact | dev | 57 | 24.6 | 28.1 | 28.1 | 0.263 | 71 | 123 |
-| exact | test | 38 | 18.4 | 21.1 | 21.1 | 0.197 | 82 | 183 |
-| exact | all | 95 | 22.1 | 25.3 | 25.3 | 0.237 | 75 | 134 |
-| keyword | dev | 57 | 59.6 | 78.9 | 84.2 | 0.685 | 501 | 600 |
-| keyword | test | 38 | 36.8 | 63.2 | 73.7 | 0.496 | 489 | 612 |
-| keyword | all | 95 | 50.5 | 72.6 | 80.0 | 0.609 | 496 | 605 |
-| exact+keyword | dev | 57 | 49.1 | 82.5 | 86.0 | 0.643 | 500 | 600 |
-| exact+keyword | test | 38 | 36.8 | 71.1 | 84.2 | 0.533 | 522 | 612 |
-| exact+keyword | all | 95 | 44.2 | 77.9 | 85.3 | 0.599 | 509 | 605 |
-| exact+linked+keyword | dev | 57 | 61.4 | 86.0 | 87.7 | 0.723 | 498 | 595 |
-| exact+linked+keyword | test | 38 | 50.0 | 78.9 | 89.5 | 0.646 | 533 | 612 |
-| exact+linked+keyword | all | 95 | 56.8 | 83.2 | 88.4 | 0.692 | 512 | 605 |
+| configuration | split | n | R@1 % | R@5 % | R@10 % | MRR@10 | tokens mean | tokens p90 | none refused | wrongly refused |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| exact | dev | 61 | 23.0 | 26.2 | 26.2 | 0.246 | 74 | 123 | 5 of 7 (71.4%) | 30 of 61 (49.2%) |
+| exact | test | 42 | 16.7 | 19.0 | 19.0 | 0.179 | 86 | 210 | 5 of 5 (100.0%) | 17 of 42 (40.5%) |
+| exact | all | 103 | 20.4 | 23.3 | 23.3 | 0.218 | 79 | 183 | 10 of 12 (83.3%) | 47 of 103 (45.6%) |
+| keyword | dev | 61 | 57.4 | 75.4 | 80.3 | 0.656 | 494 | 593 | 4 of 7 (57.1%) | 5 of 61 (8.2%) |
+| keyword | test | 42 | 33.3 | 57.1 | 69.0 | 0.452 | 495 | 612 | 4 of 5 (80.0%) | 4 of 42 (9.5%) |
+| keyword | all | 103 | 47.6 | 68.0 | 75.7 | 0.573 | 494 | 605 | 8 of 12 (66.7%) | 9 of 103 (8.7%) |
+| exact+keyword | dev | 61 | 47.5 | 78.7 | 82.0 | 0.617 | 502 | 593 | 3 of 7 (42.9%) | 4 of 61 (6.6%) |
+| exact+keyword | test | 42 | 33.3 | 64.3 | 78.6 | 0.484 | 526 | 612 | 4 of 5 (80.0%) | 1 of 42 (2.4%) |
+| exact+keyword | all | 103 | 41.7 | 72.8 | 80.6 | 0.563 | 512 | 605 | 7 of 12 (58.3%) | 5 of 103 (4.9%) |
+| exact+linked+keyword | dev | 61 | 59.0 | 82.0 | 83.6 | 0.692 | 499 | 591 | 3 of 7 (42.9%) | 4 of 61 (6.6%) |
+| exact+linked+keyword | test | 42 | 45.2 | 71.4 | 83.3 | 0.587 | 536 | 612 | 4 of 5 (80.0%) | 1 of 42 (2.4%) |
+| exact+linked+keyword | all | 103 | 53.4 | 77.7 | 83.5 | 0.649 | 514 | 605 | 7 of 12 (58.3%) | 5 of 103 (4.9%) |
 
 ### By question type
 
-| configuration | type | split | n | R@1 % | R@5 % | R@10 % | MRR@10 |
-|---|---|---|---:|---:|---:|---:|---:|
-| exact | entity | dev | 11 | 63.6 | 72.7 | 72.7 | 0.682 |
-| exact | paraphrase | dev | 15 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | cross | dev | 9 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | number | dev | 10 | 60.0 | 70.0 | 70.0 | 0.650 |
-| exact | dev | dev | 12 | 8.3 | 8.3 | 8.3 | 0.083 |
-| exact | entity | test | 8 | 50.0 | 62.5 | 62.5 | 0.563 |
-| exact | paraphrase | test | 10 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | cross | test | 6 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | number | test | 6 | 50.0 | 50.0 | 50.0 | 0.500 |
-| exact | dev | test | 8 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | entity | all | 19 | 57.9 | 68.4 | 68.4 | 0.632 |
-| exact | paraphrase | all | 25 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | cross | all | 15 | 0.0 | 0.0 | 0.0 | 0.000 |
-| exact | number | all | 16 | 56.3 | 62.5 | 62.5 | 0.594 |
-| exact | dev | all | 20 | 5.0 | 5.0 | 5.0 | 0.050 |
-| keyword | entity | dev | 11 | 100.0 | 100.0 | 100.0 | 1.000 |
-| keyword | paraphrase | dev | 15 | 26.7 | 53.3 | 53.3 | 0.389 |
-| keyword | cross | dev | 9 | 55.6 | 77.8 | 88.9 | 0.653 |
-| keyword | number | dev | 10 | 70.0 | 80.0 | 90.0 | 0.762 |
-| keyword | dev | dev | 12 | 58.3 | 91.7 | 100.0 | 0.725 |
-| keyword | entity | test | 8 | 50.0 | 100.0 | 100.0 | 0.729 |
-| keyword | paraphrase | test | 10 | 20.0 | 30.0 | 40.0 | 0.250 |
-| keyword | cross | test | 6 | 33.3 | 33.3 | 66.7 | 0.380 |
-| keyword | number | test | 6 | 33.3 | 66.7 | 66.7 | 0.472 |
-| keyword | dev | test | 8 | 50.0 | 87.5 | 100.0 | 0.677 |
-| keyword | entity | all | 19 | 78.9 | 100.0 | 100.0 | 0.886 |
-| keyword | paraphrase | all | 25 | 24.0 | 44.0 | 48.0 | 0.333 |
-| keyword | cross | all | 15 | 46.7 | 60.0 | 80.0 | 0.544 |
-| keyword | number | all | 16 | 56.3 | 75.0 | 81.3 | 0.654 |
-| keyword | dev | all | 20 | 55.0 | 90.0 | 100.0 | 0.706 |
-| exact+keyword | entity | dev | 11 | 100.0 | 100.0 | 100.0 | 1.000 |
-| exact+keyword | paraphrase | dev | 15 | 20.0 | 53.3 | 53.3 | 0.350 |
-| exact+keyword | cross | dev | 9 | 11.1 | 77.8 | 88.9 | 0.431 |
-| exact+keyword | number | dev | 10 | 60.0 | 100.0 | 100.0 | 0.783 |
-| exact+keyword | dev | dev | 12 | 58.3 | 91.7 | 100.0 | 0.725 |
-| exact+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.781 |
-| exact+keyword | paraphrase | test | 10 | 20.0 | 40.0 | 60.0 | 0.296 |
-| exact+keyword | cross | test | 6 | 0.0 | 33.3 | 66.7 | 0.213 |
-| exact+keyword | number | test | 6 | 50.0 | 100.0 | 100.0 | 0.722 |
-| exact+keyword | dev | test | 8 | 50.0 | 87.5 | 100.0 | 0.677 |
-| exact+keyword | entity | all | 19 | 84.2 | 100.0 | 100.0 | 0.908 |
-| exact+keyword | paraphrase | all | 25 | 20.0 | 48.0 | 56.0 | 0.328 |
-| exact+keyword | cross | all | 15 | 6.7 | 60.0 | 80.0 | 0.344 |
-| exact+keyword | number | all | 16 | 56.3 | 100.0 | 100.0 | 0.760 |
-| exact+keyword | dev | all | 20 | 55.0 | 90.0 | 100.0 | 0.706 |
-| exact+linked+keyword | entity | dev | 11 | 100.0 | 100.0 | 100.0 | 1.000 |
-| exact+linked+keyword | paraphrase | dev | 15 | 20.0 | 53.3 | 53.3 | 0.350 |
-| exact+linked+keyword | cross | dev | 9 | 77.8 | 100.0 | 100.0 | 0.861 |
-| exact+linked+keyword | number | dev | 10 | 70.0 | 100.0 | 100.0 | 0.850 |
-| exact+linked+keyword | dev | dev | 12 | 58.3 | 91.7 | 100.0 | 0.725 |
-| exact+linked+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.813 |
-| exact+linked+keyword | paraphrase | test | 10 | 20.0 | 40.0 | 60.0 | 0.296 |
-| exact+linked+keyword | cross | test | 6 | 66.7 | 83.3 | 100.0 | 0.778 |
-| exact+linked+keyword | number | test | 6 | 66.7 | 100.0 | 100.0 | 0.833 |
-| exact+linked+keyword | dev | test | 8 | 50.0 | 87.5 | 100.0 | 0.677 |
-| exact+linked+keyword | entity | all | 19 | 84.2 | 100.0 | 100.0 | 0.921 |
-| exact+linked+keyword | paraphrase | all | 25 | 20.0 | 48.0 | 56.0 | 0.328 |
-| exact+linked+keyword | cross | all | 15 | 73.3 | 93.3 | 100.0 | 0.828 |
-| exact+linked+keyword | number | all | 16 | 68.8 | 100.0 | 100.0 | 0.844 |
-| exact+linked+keyword | dev | all | 20 | 55.0 | 90.0 | 100.0 | 0.706 |
+| configuration | type | split | n | R@1 % | R@5 % | R@10 % | MRR@10 | refused |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| exact | entity | dev | 11 | 63.6 | 72.7 | 72.7 | 0.682 | 3 |
+| exact | paraphrase | dev | 15 | 0.0 | 0.0 | 0.0 | 0.000 | 13 |
+| exact | cross | dev | 9 | 0.0 | 0.0 | 0.0 | 0.000 | 2 |
+| exact | number | dev | 14 | 42.9 | 50.0 | 50.0 | 0.464 | 1 |
+| exact | dev | dev | 12 | 8.3 | 8.3 | 8.3 | 0.083 | 11 |
+| exact | entity | test | 8 | 50.0 | 62.5 | 62.5 | 0.563 | 2 |
+| exact | paraphrase | test | 10 | 0.0 | 0.0 | 0.0 | 0.000 | 6 |
+| exact | cross | test | 6 | 0.0 | 0.0 | 0.0 | 0.000 | 0 |
+| exact | number | test | 10 | 30.0 | 30.0 | 30.0 | 0.300 | 2 |
+| exact | dev | test | 8 | 0.0 | 0.0 | 0.0 | 0.000 | 7 |
+| exact | entity | all | 19 | 57.9 | 68.4 | 68.4 | 0.632 | 5 |
+| exact | paraphrase | all | 25 | 0.0 | 0.0 | 0.0 | 0.000 | 19 |
+| exact | cross | all | 15 | 0.0 | 0.0 | 0.0 | 0.000 | 2 |
+| exact | number | all | 24 | 37.5 | 41.7 | 41.7 | 0.396 | 3 |
+| exact | dev | all | 20 | 5.0 | 5.0 | 5.0 | 0.050 | 18 |
+| keyword | entity | dev | 11 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
+| keyword | paraphrase | dev | 15 | 26.7 | 53.3 | 53.3 | 0.389 | 4 |
+| keyword | cross | dev | 9 | 55.6 | 77.8 | 88.9 | 0.653 | 0 |
+| keyword | number | dev | 14 | 57.1 | 64.3 | 71.4 | 0.616 | 1 |
+| keyword | dev | dev | 12 | 58.3 | 91.7 | 100.0 | 0.725 | 0 |
+| keyword | entity | test | 8 | 50.0 | 100.0 | 100.0 | 0.729 | 0 |
+| keyword | paraphrase | test | 10 | 20.0 | 30.0 | 40.0 | 0.250 | 4 |
+| keyword | cross | test | 6 | 33.3 | 33.3 | 66.7 | 0.380 | 0 |
+| keyword | number | test | 10 | 20.0 | 40.0 | 50.0 | 0.294 | 0 |
+| keyword | dev | test | 8 | 50.0 | 87.5 | 100.0 | 0.677 | 0 |
+| keyword | entity | all | 19 | 78.9 | 100.0 | 100.0 | 0.886 | 0 |
+| keyword | paraphrase | all | 25 | 24.0 | 44.0 | 48.0 | 0.333 | 8 |
+| keyword | cross | all | 15 | 46.7 | 60.0 | 80.0 | 0.544 | 0 |
+| keyword | number | all | 24 | 41.7 | 54.2 | 62.5 | 0.482 | 1 |
+| keyword | dev | all | 20 | 55.0 | 90.0 | 100.0 | 0.706 | 0 |
+| exact+keyword | entity | dev | 11 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
+| exact+keyword | paraphrase | dev | 15 | 20.0 | 53.3 | 53.3 | 0.350 | 4 |
+| exact+keyword | cross | dev | 9 | 11.1 | 77.8 | 88.9 | 0.431 | 0 |
+| exact+keyword | number | dev | 14 | 50.0 | 78.6 | 78.6 | 0.631 | 0 |
+| exact+keyword | dev | dev | 12 | 58.3 | 91.7 | 100.0 | 0.725 | 0 |
+| exact+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.781 | 0 |
+| exact+keyword | paraphrase | test | 10 | 20.0 | 40.0 | 60.0 | 0.296 | 1 |
+| exact+keyword | cross | test | 6 | 0.0 | 33.3 | 66.7 | 0.213 | 0 |
+| exact+keyword | number | test | 10 | 30.0 | 60.0 | 70.0 | 0.444 | 0 |
+| exact+keyword | dev | test | 8 | 50.0 | 87.5 | 100.0 | 0.677 | 0 |
+| exact+keyword | entity | all | 19 | 84.2 | 100.0 | 100.0 | 0.908 | 0 |
+| exact+keyword | paraphrase | all | 25 | 20.0 | 48.0 | 56.0 | 0.328 | 5 |
+| exact+keyword | cross | all | 15 | 6.7 | 60.0 | 80.0 | 0.344 | 0 |
+| exact+keyword | number | all | 24 | 41.7 | 70.8 | 75.0 | 0.553 | 0 |
+| exact+keyword | dev | all | 20 | 55.0 | 90.0 | 100.0 | 0.706 | 0 |
+| exact+linked+keyword | entity | dev | 11 | 100.0 | 100.0 | 100.0 | 1.000 | 0 |
+| exact+linked+keyword | paraphrase | dev | 15 | 20.0 | 53.3 | 53.3 | 0.350 | 4 |
+| exact+linked+keyword | cross | dev | 9 | 77.8 | 100.0 | 100.0 | 0.861 | 0 |
+| exact+linked+keyword | number | dev | 14 | 57.1 | 78.6 | 78.6 | 0.679 | 0 |
+| exact+linked+keyword | dev | dev | 12 | 58.3 | 91.7 | 100.0 | 0.725 | 0 |
+| exact+linked+keyword | entity | test | 8 | 62.5 | 100.0 | 100.0 | 0.813 | 0 |
+| exact+linked+keyword | paraphrase | test | 10 | 20.0 | 40.0 | 60.0 | 0.296 | 1 |
+| exact+linked+keyword | cross | test | 6 | 66.7 | 83.3 | 100.0 | 0.778 | 0 |
+| exact+linked+keyword | number | test | 10 | 40.0 | 60.0 | 70.0 | 0.511 | 0 |
+| exact+linked+keyword | dev | test | 8 | 50.0 | 87.5 | 100.0 | 0.677 | 0 |
+| exact+linked+keyword | entity | all | 19 | 84.2 | 100.0 | 100.0 | 0.921 | 0 |
+| exact+linked+keyword | paraphrase | all | 25 | 20.0 | 48.0 | 56.0 | 0.328 | 5 |
+| exact+linked+keyword | cross | all | 15 | 73.3 | 93.3 | 100.0 | 0.828 | 0 |
+| exact+linked+keyword | number | all | 24 | 50.0 | 70.8 | 75.0 | 0.609 | 0 |
+| exact+linked+keyword | dev | all | 20 | 55.0 | 90.0 | 100.0 | 0.706 | 0 |
 
 ### Worst dev questions under exact+linked+keyword
 
-Rank "–" means no expected record in the first 10. "Ranked above" lists up to three records before it.
+Rank "–" means no expected record in the first 10; "refused" means the search said "no match". "Ranked above" lists up to three records before it.
 
 | question | type | rank | asked | expected (first) | ranked above |
 |---|---|---:|---|---|---|
 | q021 | paraphrase | – | which card wipes every other unit off the board when it comes in | card:adam_smasher_metal_over_meat | pkg:relic-loop (The Relic loop (Metal Over Meat)); objective:YYY-ripbecca (Addin' Trash game plan); doc:CLAUDE.md#play-ui~3 (Play UI (part 3)) |
 | q026 | paraphrase | – | package about keeping my total dice score under the opponent's | pkg:low-cred | doc:docs/REVIEW_FINDINGS.md#3-refinement-backlog-input-for-the-next-round~2 (3. Refinement backlog (input for the next round) (part 2)); doc:docs/BOT_TOOLKIT.md#3-evaluation-function-src-ai-eval-ts~3 (3. Evaluation function (src/ai/eval.ts) (part 3)); doc:docs/STRATEGY.md#season-2-8-new-decks-2026-11-12 (Season 2 (8 new decks, 2026-11-12)) |
-| q031 | paraphrase | – | strategy where you destroy your own equipment to get something out of it | pkg:gear-sacrifice |  |
-| q036 | paraphrase | – | which package pays off for flipping my legends early | pkg:legends-up |  |
+| q031 | paraphrase | refused | strategy where you destroy your own equipment to get something out of it | pkg:gear-sacrifice |  |
+| q036 | paraphrase | refused | which package pays off for flipping my legends early | pkg:legends-up |  |
 | q041 | paraphrase | – | equipment that lets me peek at one of my own hidden legends when the unit attacks | card:kiroshi_optics | objective:RBY-samurai (Samurai game plan); card:sasha_yakovleva_won_t_let_you_down (Sasha Yakovleva: Won't Let You Down); objective:ladder-rrb-dexter-v-wakako (Ladder: Dexter / V / Wakako (RRB) game plan) |
-| q043 | paraphrase | – | how do triggered abilities wait while another effect is still resolving | term:pending-effects |  |
-| q045 | paraphrase | – | unit whose entry effect taps both itself and an enemy unit | card:offduty_malfini |  |
-| q076 | dev | 9 | where are the settings for the easy medium and hard bots defined | code:src/ai/tiers.ts | term:bot-difficulty-easy-medium-hard (Bot difficulty (Easy / Medium / Hard)); doc:docs/BOT_TOOLKIT.md#6-difficulty-tiers-and-strength-check-src-ai-tiers-ts~15 (6. Difficulty tiers and strength check (src/ai/tiers.ts) (part 15)); doc:docs/BOT_TOOLKIT.md#6-difficulty-tiers-and-strength-check-src-ai-tiers-ts~19 (6. Difficulty tiers and strength check (src/ai/tiers.ts) (part 19)) |
-| q023 | paraphrase | 4 | which green unit lets another of my units attack on the same turn it arrives | card:valentino_street_racer | term:attack (Attack); objective:RBY-samurai (Samurai game plan); guide:nc-02#why-it-should-compete (NC-02 Stormrider Stampede (GGR): Why it should compete) |
-| q055 | cross | 4 | how is nc-01 meant to be piloted | guide:nc-01#how-to-pilot | guide:nc-01#intro (NC-01 Rockerboy Express (RRY)); deck:nc-01-rockerboy-express-rry (NC-01 Rockerboy Express (RRY)); guide:nc-01#against-it (NC-01 Rockerboy Express (RRY): Against it) |
+| q043 | paraphrase | refused | how do triggered abilities wait while another effect is still resolving | term:pending-effects |  |
+| q045 | paraphrase | refused | unit whose entry effect taps both itself and an enemy unit | card:offduty_malfini |  |
+| q142 | number | – | does yyb rogue gear beat rry smasher aggro | matchup:meta-rry-smasher-aggro~meta-yyb-rogue-gear | deck:meta-yyb-rogue-gear (YYB Rogue Gear); deck:meta-rry-smasher-aggro (RRY Smasher Aggro); guide:yyb-rogue-gear#intro (YYB Rogue Gear) |
+| q143 | number | – | how good is rrb wakako midrange | rating:meta-rrb-wakako-midrange | deck:meta-rrb-wakako-midrange (RRB Wakako Midrange); guide:rrb-wakako-midrange#playing-against-it (RRB Wakako Midrange: Playing against it); guide:rrb-wakako-midrange#intro (RRB Wakako Midrange) |
+| q145 | number | – | how well does rainbow fixer stuff fare against the smasher river viktor ladder deck | matchup:ladder-ryy-smasher-river-viktor~meta-rainbow-fixer-stuff | deck:meta-rainbow-fixer-stuff (Rainbow Fixer Stuff); guide:rainbow-fixer-stuff#intro (Rainbow Fixer Stuff); guide:rainbow-fixer-stuff#playing-against-it (Rainbow Fixer Stuff: Playing against it) |
+
+### Dev questions the pack cannot answer, answered anyway under exact+linked+keyword
+
+| question | asked | first results |
+|---|---|---|
+| q117 | what does the card neon samurai overlord do | deck:RBY-samurai (Samurai); objective:RBY-samurai (Samurai game plan); card:kerry_eurodyne_the_last_rockerboy (Kerry Eurodyne: The Last Rockerboy) |
+| q121 | is there an iphone app I can download | doc:docs/IMPROVEMENT_BACKLOG.md#wp-c3-pages-accessibility-css-and-structure~2 (WP-C3 · Pages accessibility, CSS and structure (part 2)); doc:docs/REVIEW_2026-11-13.md#newer-features-app~5 (Newer features (APP) (part 5)); code:src/lib/download.ts (src/lib/download.ts) |
+| q124 | what is a foil johnny silverhand selling for on ebay | card:johnny_silverhand_never_stop_fighting (Johnny Silverhand: Never Stop Fighting); card:johnny_silverhand_rocking_renegade (Johnny Silverhand: Rocking Renegade); pkg:rocker (Rocker Units (Johnny Silverhand)) |
+| q126 | how do I connect my discord account to the site | doc:docs/RELAY_PROTOCOL.md#versioning (Versioning); doc:docs/SITE_CONFIG.md#keys~19 (Keys (part 19)); doc:docs/SITE_CONFIG.md#keys~18 (Keys (part 18)) |
 

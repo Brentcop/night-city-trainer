@@ -13,6 +13,8 @@
 //     fact round --event 6 --round 5             one round: matches, byes, sweeps, deciding games, leaders after it
 //                                                (--round final | semifinals | quarterfinals for a top-cut round)
 //     fact rating <deck>                         power rating, 90% range, Sim tier, Swiss record, titles, top cuts
+//     fact ratings [--top N]                     the ratings table in its own order: expected win rate, 90% range,
+//                                                rated games and Sim tier per deck, and which ranges overlap
 //     fact finishes <deck>                       every standard event the deck entered
 //     fact matchup "<deck a>" "<deck b>"         shrunk estimate, raw record and games (or: <deck a> vs <deck b>)
 //   A deck is named by file, by name or by list fingerprint; an unknown name exits 1 and lists the nearest.
@@ -22,6 +24,7 @@
 //                         event round rating matchup
 //   --event N             fact: the recorded event's id
 //   --round R             fact: a round number, or a top-cut round's name
+//   --top N               fact ratings: only the first N decks (default all)
 //   --scope S             public | local | all (default all)
 //   --rankers a,b         search rankers to run: exact, linked, keyword (default all three)
 //   --json                JSON output
@@ -63,6 +66,7 @@ export const KB_SPEC = {
   json: bool(),
   'max-tokens': int(2000, { min: 50, max: 1_000_000 }),
   event: int(undefined, { min: 1 }),
+  top: int(undefined, { min: 1, max: 1000 }),
   round: str(undefined, (v) => (/^\d+$/.test(v) ? (Number(v) >= 1 ? undefined : 'a round number from 1') : /^[a-z][a-z0-9 -]*$/i.test(v) ? undefined : 'a round number or a top-cut round name')),
 };
 
@@ -73,7 +77,7 @@ const FLAGS: Record<Command, readonly (keyof typeof KB_SPEC)[]> = {
   related: ['kind', 'scope', 'json', 'max-tokens'],
   stats: ['json'],
   build: ['json'],
-  fact: ['event', 'round', 'json'],
+  fact: ['event', 'round', 'top', 'json'],
 };
 
 export interface KbArgs {
@@ -99,6 +103,7 @@ function parseFact(words: readonly string[], values: Values<typeof KB_SPEC>): Fa
   if (need.round === 'required' && values.round === undefined) throw new ArgError(`fact ${fact} needs --round`);
   if (need.round === 'no' && values.round !== undefined) throw new ArgError(`--round does not apply to fact ${fact}`);
   if (fact === 'standings' && values.round !== undefined && !/^\d+$/.test(values.round)) throw new ArgError('fact standings takes a round number');
+  if (!need.top && values.top !== undefined) throw new ArgError(`--top does not apply to fact ${fact}`);
   let decks: string[] = [];
   if (need.decks === 1) decks = rest.length ? [rest.join(' ').trim()] : [];
   else if (need.decks === 2) {
@@ -108,7 +113,14 @@ function parseFact(words: readonly string[], values: Values<typeof KB_SPEC>): Fa
   } else if (rest.length) throw new ArgError(`fact ${fact} takes no deck, got "${rest.join(' ')}"`);
   if (decks.length !== need.decks || decks.some((d) => !d))
     throw new ArgError(need.decks === 2 ? `fact ${fact} needs two decks: "<deck a>" "<deck b>", or <deck a> vs <deck b>` : `fact ${fact} needs a deck (file, name or list fingerprint)`);
-  return { fact, ...(values.event !== undefined ? { event: values.event } : {}), ...(values.round !== undefined ? { round: values.round } : {}), decks, json: values.json };
+  return {
+    fact,
+    ...(values.event !== undefined ? { event: values.event } : {}),
+    ...(values.round !== undefined ? { round: values.round } : {}),
+    ...(values.top !== undefined ? { top: values.top } : {}),
+    decks,
+    json: values.json,
+  };
 }
 
 /** Parse a kb command line; throws ArgError on anything invalid. */

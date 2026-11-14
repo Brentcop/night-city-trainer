@@ -7,7 +7,7 @@
 // question asks for their kind (CUE_ONLY_KINDS): kept after the number questions showed it helps on held-out questions.
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
-import { buildNameIndex, findNames, lookupName, type NameIndex } from './names';
+import { buildNameIndex, findNameHits, lookupName, type NameHit, type NameIndex } from './names';
 import { tokenize } from './text';
 import { byString, type KbKind, type KbRecord, type KbRel, type KbScope } from './types';
 
@@ -24,6 +24,27 @@ export const MATCH_FLOOR = 0.5;
 export const RANK_DEPTH = 100;
 /** Kinds a part of a question may name (doc and code titles are headings and paths, not names people use). */
 export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term', 'rule', 'trule', 'objective', 'event', 'round', 'rating', 'matchup'];
+
+/**
+ * Settings of the ladder that the step 1.6 experiments vary (docs/RAG_PLAN.md rule M9). SEARCH_TUNING is the default
+ * search; `scripts/kb-eval.ts --tune` runs another setting over the question set. A setting is changed here only after
+ * it helped on the held-out questions. Measured in step 1.6 (held-out `test` split, paired bootstrap), none kept:
+ * floor 0.34 found no more answers and refused 1 of 5 unanswerable public questions instead of 4; no links from
+ * one-word term hits changed nothing for rules questions; the deck-pair matchup found 2 more number questions, none
+ * lost, but its interval reached zero (recall at 5 +3.7 points [0, +9.3]): could not tell.
+ */
+export interface SearchTuning {
+  /** the "no match" floor: without an exact hit, the share of the question's words a keyword hit must hold (MATCH_FLOOR) */
+  floor: number;
+  /** the floor is met by any of the first `floorHits` keyword hits (1: the best hit only) */
+  floorHits: number;
+  /** expand links from a glossary term named by a single word of the question (the hit still counts as exact) */
+  singleWordTermLinks: boolean;
+  /** when the question names two different decks, their matchup record (if there is one) joins the exact list */
+  deckPairMatchup: boolean;
+}
+
+export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false };
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -66,6 +87,8 @@ export interface SearchOptions {
   scope?: KbScope | 'all';
   /** which rankers run (default all) */
   rankers?: readonly Ranker[];
+  /** experiments only: settings other than SEARCH_TUNING */
+  tuning?: Partial<SearchTuning>;
 }
 
 export interface SearchHit {
@@ -104,7 +127,24 @@ export function fuse(lists: Partial<Record<Ranker, readonly string[]>>, weights:
 
 /** Records named in the question: ranker 1. */
 export function rankExact(ix: KbIndex, q: string): string[] {
-  return findNames(ix.names, q, (id) => PHRASE_KINDS.includes(ix.byId.get(id)!.kind));
+  return rankExactHits(ix, q).map((h) => h.id);
+}
+
+/** rankExact, with how many words of the question named each record. */
+export function rankExactHits(ix: KbIndex, q: string): NameHit[] {
+  return findNameHits(ix.names, q, (id) => PHRASE_KINDS.includes(ix.byId.get(id)!.kind));
+}
+
+/** The matchup records of every two different decks among `ids` (in the order the decks were named), when there is one. */
+export function deckPairMatchups(ix: KbIndex, ids: readonly string[]): string[] {
+  const decks = ids.filter((id) => ix.byId.get(id)?.kind === 'deck');
+  const out: string[] = [];
+  for (let i = 0; i < decks.length; i++)
+    for (let j = i + 1; j < decks.length; j++) {
+      const id = `matchup:${[decks[i]!, decks[j]!].map((d) => d.slice(d.indexOf(':') + 1)).sort(byString).join('~')}`;
+      if (ix.byId.has(id) && !out.includes(id)) out.push(id);
+    }
+  return out;
 }
 
 /**
@@ -142,6 +182,8 @@ export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
   rating: ['rating'],
   tier: ['rating'],
   strong: ['rating'],
+  // step 1.6: the superlative asks for the ratings table (the tokenizer strips only a plural "s")
+  strongest: ['rating'],
   rank: ['rating'],
   ranking: ['rating'],
   title: ['rating'],
@@ -165,14 +207,15 @@ export function cuedKinds(q: string): Set<KbKind> {
 
 /**
  * Records one link away from the exact hits, either direction: ranker 2. For each exact hit, its neighbours of a kind
- * the question asks for come first; then by keyword score, then by id.
+ * the question asks for come first; then by keyword score, then by id. `from` limits which exact hits are expanded
+ * (default all); every exact hit is still left out of the list.
  */
-export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: readonly Scored[], cued: ReadonlySet<KbKind> = new Set()): string[] {
+export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: readonly Scored[], cued: ReadonlySet<KbKind> = new Set(), from: readonly string[] = exact): string[] {
   const score = new Map(keyword.map((s) => [s.id, s.score]));
   const seen = new Set(exact);
   const out: string[] = [];
   const cue = (id: string) => (cued.has(ix.byId.get(id)!.kind) ? 1 : 0);
-  for (const id of exact) {
+  for (const id of from) {
     const near = [...new Set((ix.edges.get(id) ?? []).map((e) => e.other))].filter((o) => !seen.has(o));
     near.sort((a, b) => cue(b) - cue(a) || (score.get(b) ?? 0) - (score.get(a) ?? 0) || byString(a, b));
     for (const o of near) {
@@ -185,21 +228,25 @@ export function rankLinked(ix: KbIndex, exact: readonly string[], keyword: reado
 
 export function search(ix: KbIndex, query: string, o: SearchOptions = {}): SearchResult {
   const k = o.k ?? 5;
+  const t: SearchTuning = { ...SEARCH_TUNING, ...o.tuning };
   const use = new Set<Ranker>(o.rankers ?? RANKERS);
   const cued = cuedKinds(query);
   const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
   const keyword = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
-  const exact = use.has('exact') || use.has('linked') ? rankExact(ix, query) : [];
+  const exactHits = use.has('exact') || use.has('linked') ? rankExactHits(ix, query) : [];
+  const exact = exactHits.map((h) => h.id);
+  const from = t.singleWordTermLinks ? exact : exactHits.filter((h) => !(h.words === 1 && ix.byId.get(h.id)!.kind === 'term')).map((h) => h.id);
   const lists: Partial<Record<Ranker, string[]>> = {};
-  const linked = use.has('linked') ? rankLinked(ix, exact, keyword, cued).filter((id) => !gated(id)) : [];
+  const linked = use.has('linked') ? rankLinked(ix, exact, keyword, cued, from).filter((id) => !gated(id)) : [];
   // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
   // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
   const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));
-  if (use.has('exact')) lists.exact = [...exact, ...asked].slice(0, RANK_DEPTH);
+  const pairs = t.deckPairMatchup ? deckPairMatchups(ix, exact) : [];
+  if (use.has('exact')) lists.exact = [...exact, ...pairs, ...asked].slice(0, RANK_DEPTH);
   if (use.has('linked')) lists.linked = linked.slice(0, RANK_DEPTH);
   if (use.has('keyword')) lists.keyword = keyword.slice(0, RANK_DEPTH).map((s) => s.id);
-  const best = keyword[0];
-  const noMatch = !exact.length && (!best || coverage(ix.bm25, best.id, query) < MATCH_FLOOR);
+  const floorMet = keyword.slice(0, Math.max(1, t.floorHits)).some((s) => coverage(ix.bm25, s.id, query) >= t.floor);
+  const noMatch = !exact.length && !floorMet;
   if (noMatch) return { query, hits: [], noMatch: true, total: 0 };
   const scope = o.scope ?? 'all';
   const keep = (r: KbRecord) => (scope === 'all' || r.scope === scope) && (!o.kinds?.length || o.kinds.includes(r.kind));

@@ -5,9 +5,9 @@ import { fingerprintText } from '../src/engine/deck';
 import { bm25Search, buildBm25, coverage } from '../src/lib/kb/bm25';
 import { finishRecord, type RecordDraft } from '../src/lib/kb/build/record';
 import { dossier, neighbours } from '../src/lib/kb/dossier';
-import { buildNameIndex, findNames, lookupName } from '../src/lib/kb/names';
+import { buildNameIndex, findNameHits, findNames, lookupName } from '../src/lib/kb/names';
 import { capBlocks, LOCAL_LABEL, renderDossierText, renderRecordsJson, renderSearchJson, renderSearchText, snippet, SNIPPET_MAX } from '../src/lib/kb/render';
-import { buildIndex, cuedKinds, fuse, MATCH_FLOOR, RRF_K, search } from '../src/lib/kb/search';
+import { buildIndex, cuedKinds, deckPairMatchups, fuse, MATCH_FLOOR, RRF_K, search, SEARCH_TUNING } from '../src/lib/kb/search';
 import { slug, tokenize } from '../src/lib/kb/text';
 import { estimateTokens, hashText, kindOfId, recordHash, type KbLink, type KbRecord } from '../src/lib/kb/types';
 
@@ -91,6 +91,13 @@ describe('names', () => {
   it('returns every record that shares a name', () => {
     expect(lookupName(nx, 'Nova Vex')).toEqual(['card:nova_vex_a', 'card:nova_vex_b']);
   });
+  it('says how many words of the question named each record', () => {
+    expect(findNameHits(nx, 'Kilo Byte')).toEqual([{ id: 'card:kilo_byte', words: 2 }]);
+    expect(findNameHits(nx, 'does lag stop Nova Vex: Iron Choir')).toEqual([
+      { id: 'card:nova_vex_b', words: 4 },
+      { id: 'term:lag', words: 1 },
+    ]);
+  });
   it('finds names inside a question, longest first, within the allowed records', () => {
     expect(findNames(nx, 'How does Nova Vex: Iron Choir fight Kilo Byte?')).toEqual(['card:nova_vex_b', 'card:kilo_byte']);
     expect(findNames(nx, 'which method is used')).toEqual(['doc:notes.md#method']);
@@ -139,6 +146,49 @@ describe('search', () => {
     expect(MATCH_FLOOR).toBe(0.5);
     expect(search(IX, 'quasar pulsar nebula trash').noMatch).toBe(true);
     expect(search(IX, 'fills trash replays').noMatch).toBe(false);
+  });
+  it('keeps the step 1.6 settings at their defaults (none of the three experiments was kept)', () => {
+    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false });
+    expect([...cuedKinds('which decks are strongest')]).toEqual(['deck', 'rating']);
+  });
+  it('varies the floor and how many keyword hits may meet it, for experiments', () => {
+    // one word of four known: refused at the default floor, answered at a quarter
+    expect(search(IX, 'quasar pulsar nebula trash', { tuning: { floor: 0.25 } }).noMatch).toBe(false);
+    // "quasar nebula": the best hit (by BM25) holds one of the two words, the second hit both
+    const ix = buildIndex([
+      rec('doc:a.md#a', 'Alpha', 'quasar quasar quasar quasar'),
+      rec('doc:a.md#b', 'Beta', 'quasar nebula and many more filler words here to make this passage long'),
+      ...['c', 'd', 'e'].map((x) => rec(`doc:a.md#${x}`, `Filler ${x}`, 'nebula')),
+    ]);
+    expect(bm25Search(ix.bm25, 'quasar nebula').slice(0, 2).map((s) => s.id)).toEqual(['doc:a.md#a', 'doc:a.md#b']);
+    expect(search(ix, 'quasar nebula', { tuning: { floor: 1 } }).noMatch).toBe(true);
+    expect(search(ix, 'quasar nebula', { tuning: { floor: 1, floorHits: 3 } }).noMatch).toBe(false);
+  });
+  it('can stop expanding links from a glossary term named by one word, which still counts as an exact hit', () => {
+    const ix = buildIndex([
+      rec('term:trash', 'Trash', 'Trash: the pile of used cards.'),
+      rec('pkg:trash-fill', 'Filling the trash', 'A package that fills the pile.', { links: [{ rel: 'term', to: 'term:trash' }] }),
+      rec('doc:x.md#y', 'Unrelated', 'Words about something else entirely.'),
+    ]);
+    const on = search(ix, 'what goes in the trash');
+    expect(on.hits.find((h) => h.record.id === 'pkg:trash-fill')?.ranks.linked).toBe(1);
+    const off = search(ix, 'what goes in the trash', { tuning: { singleWordTermLinks: false } });
+    expect(off.noMatch).toBe(false);
+    expect(off.hits[0]!.record.id).toBe('term:trash');
+    expect(off.hits.find((h) => h.record.id === 'pkg:trash-fill')?.ranks.linked).toBeUndefined();
+  });
+  it('can add the matchup of two decks named in the question to the exact list', () => {
+    const ix = buildIndex([
+      rec('deck:alpha-list', 'Alpha List', 'An invented deck.'),
+      rec('deck:bravo-list', 'Bravo List', 'Another invented deck.'),
+      rec('matchup:alpha-list~bravo-list', 'Alpha List vs Bravo List', 'An invented head-to-head.', { links: [{ rel: 'deck', to: 'deck:alpha-list' }, { rel: 'deck', to: 'deck:bravo-list' }] }),
+    ]);
+    expect(deckPairMatchups(ix, ['deck:bravo-list', 'deck:alpha-list', 'card:x'])).toEqual(['matchup:alpha-list~bravo-list']);
+    expect(deckPairMatchups(ix, ['deck:alpha-list'])).toEqual([]);
+    const q = 'how does alpha list do against bravo list';
+    // matchups are cue-only: without "vs" or "matchup" the record is not found, unless the setting is on
+    expect(search(ix, q).hits.map((h) => h.record.id)).not.toContain('matchup:alpha-list~bravo-list');
+    expect(search(ix, q, { tuning: { deckPairMatchup: true } }).hits.find((h) => h.record.id === 'matchup:alpha-list~bravo-list')?.ranks.exact).toBe(3);
   });
 });
 

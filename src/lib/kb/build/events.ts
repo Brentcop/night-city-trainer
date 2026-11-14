@@ -1,6 +1,7 @@
 // Knowledge pack builders: measured competitive records (docs/RAG_PLAN.md step 2.2, rules M3 to M5). One `event` record per
-// recorded tournament, one `round` record per Swiss round and per bracket round, one `rating` record per rated deck and one
-// `matchup` record per pairing with at least MATCHUP_MIN_GAMES games. Every number comes from src/lib/eventFacts.ts and
+// recorded tournament, one `round` record per Swiss round and per bracket round, one `rating` record per rated deck, one
+// `rating:table` record listing the first RATINGS_TABLE_TOP rated decks (step 1.6), and one `matchup` record per pairing
+// with at least MATCHUP_MIN_GAMES games. Every number comes from src/lib/eventFacts.ts and
 // every sentence from a template here: the first says what the record is and names the bot and the sim version, a rate
 // shows its sample, a rating its 90% range, a matchup its shrunk estimate beside the raw record. Facts only: no ranking
 // words, no advice, no cause. Stamps carry the sim version, the bot and the recorded date the data holds (never the
@@ -9,6 +10,7 @@ import {
   deckCompetitive,
   eventSummary,
   matchupFact,
+  ratingsTable,
   roundSummary,
   standingsAfter,
   type Basis,
@@ -17,6 +19,8 @@ import {
   type FirstPlayerSplit,
   type H2HInput,
   type RatingsInput,
+  type RatingsTable,
+  type RatingsTableRow,
   type ReasonCount,
   type RecordedEvent,
   type RoundSummary,
@@ -263,6 +267,65 @@ function ratingRecord(file: string, d: DeckCompetitive, o: { events: number | nu
   });
 }
 
+// ---------------------------------------------------------------- the ratings table
+
+/** How many rows the `rating:table` record lists (`kb fact ratings` lists any number). */
+export const RATINGS_TABLE_TOP = 10;
+/** The table's id: no library deck file is called "table.txt". */
+export const RATINGS_TABLE_ID = 'rating:table';
+
+/** "2–5, 7": positions, runs of consecutive ones joined. */
+export function positionList(ps: readonly number[]): string {
+  const out: string[] = [];
+  for (let i = 0; i < ps.length; ) {
+    let j = i;
+    while (j + 1 < ps.length && ps[j + 1] === ps[j]! + 1) j++;
+    out.push(j > i ? `${ps[i]}–${ps[j]}` : String(ps[i]));
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+
+const tierNow = (t: RatingsTableRow['tier']) => (t.letter ? `${t.letter}${t.straddle ? '±' : ''}` : 'unrated');
+
+/** The table sentences (the record's text and `kb fact ratings`): what it is, one line per deck, which ranges overlap. */
+export function ratingsTableText(t: RatingsTable): string {
+  const n = t.rows.length;
+  const lines: string[] = [
+    `Power ratings table: the rated library decks in the order of their power rating, fitted over ${t.events === null ? 'the recorded events' : plural(t.events, 'recorded event')} played by ${playedBy(t)}, as of ${day(t.asOf)}. ${n < t.of ? `The first ${n} of ${t.of} rated decks now:` : `All ${t.of} rated decks now:`}`,
+    ...t.rows.map((r) => `${r.position}. ${r.deck}: expected win rate against the whole field ${pc1(r.wrField)} (90% range ${pc1(r.lo)}–${pc1(r.hi)}) over ${plural(r.ratedGames, 'rated game')}; Sim tier now ${tierNow(r.tier)}.`),
+  ];
+  const first = t.rows[0];
+  if (first && n > 1) {
+    lines.push(
+      t.overlapFirst.length === n - 1
+        ? `The 90% range of ${first.deck} overlaps the ranges of every other deck listed here: these games do not settle the order among them.`
+        : t.overlapFirst.length
+          ? `The 90% range of ${first.deck} overlaps the ranges of positions ${positionList(t.overlapFirst)}: these games do not settle the order among them.`
+          : `The 90% range of ${first.deck} overlaps no other range listed here.`,
+      t.separated.length ? `Neighbouring ranges that do not overlap: ${t.separated.map(([a, b]) => `${a} and ${b}`).join('; ')}; every other neighbouring pair overlaps.` : 'Every neighbouring pair of ranges in this list overlaps.',
+    );
+  }
+  return lines.join('\n');
+}
+
+function ratingsTableRecord(file: string, ratings: RatingsInput): KbRecord {
+  const t = ratingsTable(ratings, { top: RATINGS_TABLE_TOP });
+  return finishRecord({
+    id: RATINGS_TABLE_ID,
+    kind: 'rating',
+    title: 'Power ratings table',
+    aliases: ['ratings table', 'rating table', 'power ratings', 'deck ratings', 'strongest decks'],
+    text: ratingsTableText(t),
+    fields: { of: t.of, shown: t.rows.length, events: t.events, first: t.rows[0]?.deck ?? null, overlapFirst: t.overlapFirst.length, separatedPairs: t.separated.length, stale: isStale(t) },
+    links: [],
+    source: { file, at: '/decks' },
+    origin: 'measured',
+    scope: 'public',
+    stamps: stamps(t),
+  });
+}
+
 // ---------------------------------------------------------------- matchups
 
 function matchupRecord(file: string, h2h: H2HInput, a: string, b: string, o: { fileA: string; fileB: string; links: KbLink[]; pair: number }): KbRecord {
@@ -329,6 +392,7 @@ export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: st
       const d = deckCompetitive(row.name, { ratings: src.ratings.data, index: src.index.data, h2h: src.h2h?.data });
       out.push(ratingRecord(src.ratings.file, d, { events, deckLink: deckLink(row.name) }));
     }
+    if (src.ratings.data.decks.length) out.push(ratingsTableRecord(src.ratings.file, src.ratings.data));
   }
   if (src.h2h) {
     const h = src.h2h.data;

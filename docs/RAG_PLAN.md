@@ -117,7 +117,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.3 | `npm run kb` (search, get, related, stats, build) | done | 2026-11-13 |
 | 1.4 | Question set and `kb-eval` with first baselines | done | 2026-11-13 |
 | 1.5 | Agent skill and a `CLAUDE.md` pointer | done | 2026-11-13 |
-| 1.6 | Unanswerable questions; measure the "no match" floor and the rules misses | next | |
+| 1.6 | Unanswerable questions; the "no match" floor, the rules misses, two-deck questions | done: measured, no change kept | 2026-11-13 |
 | 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
 | 2.2 | Event, round, rating and matchup records from templates | done in the pack; upsets, Gig margins and site files later | 2026-11-13 |
 | 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
@@ -275,6 +275,20 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
   phrasing first, then test a cue that needs two deck names in the question.
 - Growth costs a little: each batch of new records moves a few older questions down a rank or two (see
   the scoreboard). Watch the earlier questions whenever a kind is added.
+- Landed: the question set grew to 146. Twelve are of a new type, `none`: plausible questions the pack
+  cannot answer, scored by how often the search refuses them, with answerable questions wrongly refused
+  counted beside it. Ten fresh rules questions and eight number questions in the phrasings the cue words
+  miss ("how does X do against Y", "which decks are strongest") joined too, so the baseline is harder
+  and more honest than the step 1.4 one. `npm run kb:eval -- --tune k=v` tries a variant without editing
+  code. `fact ratings [--top N]` and a `rating:table` record answer "which decks are strongest", and say
+  when the 90% ranges overlap.
+- Result: none of the three changes was kept (§7). A lower floor answered more real questions on `dev`
+  but gained nothing on `test` and refused fewer unanswerable ones. Dropping links from one-word terms
+  could not be told from no change. Adding the matchup when two decks are named found two more `test`
+  questions and lost none, but its interval reaches zero; it is the one worth retesting with more
+  questions in that phrasing.
+- Refusing is weak: with all records only 4 of the 12 unanswerable questions are refused, because the
+  rules and FAQ records always offer something. This and paraphrase are what embeddings must improve.
 
 ### Step 2. Measured and competitive records
 
@@ -458,6 +472,11 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Top 5 by question type, all 116 questions | entity 100%, number 100%, cross 93%, dev 90%, rules 60%, paraphrase 48% | step 2.2 |
 | 2026-11-13 | Answer size from `kb fact` | champion 82 tokens, matchup 67, finishes 145, rating 301, round 495, full standings 1,027 | step 2.1 |
 | 2026-11-13 | Cost of growth: the 40 earlier held-out questions after 228 records were added | top 5: −2.5 points [−7.5, 0] with all records, −6.3 [−15.6, 0] public only | step 2.2 |
+| 2026-11-13 | New baseline, 146 questions. Held-out answerable (54), all records: default search | top 1: 37%, top 5: 70%, top 10: 78%, MRR 0.51; keyword alone 59%, 0.45 | step 1.6 |
+| 2026-11-13 | Same baseline, top 5 by type on the held-out split | entity 100%, dev 88%, cross 83%, number 60%, rules 58%, paraphrase 50% | step 1.6 |
+| 2026-11-13 | How much these figures move when a doc is edited | one paraphrase question moved in and out of the first five between two edits of this file (40% and 50% of 10) | step 1.6 |
+| 2026-11-13 | Unanswerable questions refused (held-out, 5) | 1 of 5 with all records, 4 of 5 public only; answerable wrongly refused: 3 of 54 and 1 of 42 | step 1.6 |
+| 2026-11-13 | Cost of adding the ratings table record | top 5 on the held-out split: −1.9 points [−5.6, 0] | step 1.6 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -466,6 +485,9 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | A one-word term name inside a longer question takes the exact rank and pushes out the answer | Terms named inside a question only by names of two or more words | Recall at 5: −2.5 points [−7.5, 0]; MRR −0.006 [−0.019, 0] | Dropped: worse |
 | 2026-11-13 | A question names the kind of record it wants ("rulings on", "decks that play") | Neighbours of the asked-for kind sort first and join the exact list | Recall at 5: +5.0 points [0, +12.5]; MRR +0.080 [+0.013, +0.160]; cross-entity MRR 0.24 to 0.78 | Kept |
 | 2026-11-13 | Measured records should appear only when asked for ("who won", "rating", "round", "vs") | Names such as "event 6" are recognised; cue words for the four new kinds; measured records join the lists only when cued | Recall at 5: +8.7 points [+2.2, +17.4]; MRR +0.098 [+0.029, +0.174]; no type worse | Kept. Caveat: the cue words were chosen after a first run that showed `test` results |
+| 2026-11-13 | The "no match" floor throws away real answers | Best keyword hit must hold a third of the question's words, not half | Recall at 5 and MRR: no change [0, 0]; public: unanswerable refused 4 of 5 to 1 of 5 | Dropped |
+| 2026-11-13 | Neighbours of a one-word glossary term crowd out rule records | No link expansion from a term named by one word | Recall at 5: no change [0, 0]; MRR −0.000 [−0.008, +0.006] | Dropped: could not tell |
+| 2026-11-13 | A question naming two decks wants their matchup | The pair's matchup record joins the exact list | Recall at 5: +3.7 points [0, +9.3]; MRR +0.012 [0, +0.031]; number questions 60% to 80%; no type worse | Not kept: the interval reaches zero. Retest with more questions |
 
 ## 8. Decisions and stopgaps
 
@@ -539,3 +561,6 @@ while the tournament index and the finish chips use the real cut, so five decks 
   after any round, round summaries, a deck's competitive record and matchups; `npm run kb -- fact` prints
   them; 228 event, round, rating and matchup records answer questions such as "who won event 6". Sixteen
   number questions joined the question set (116 now), and one ranking change was kept (see §7).
+- 2026-11-13: step 1.6 landed. The question set is 146 with unanswerable questions and harder phrasings,
+  the evaluation reports refusals, and `fact ratings` with a ratings-table record was added. Three ranking
+  changes were measured and none was kept. This is the baseline the embeddings experiment starts from.

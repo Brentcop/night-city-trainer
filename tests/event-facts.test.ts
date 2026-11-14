@@ -10,6 +10,8 @@ import {
   deckCompetitive,
   eventSummary,
   matchupFact,
+  rangesOverlap,
+  ratingsTable,
   roundKey,
   roundSummary,
   standingsAfter,
@@ -133,6 +135,19 @@ describe('deck and matchup facts equal the files they read', () => {
     });
   });
 
+  it('the ratings table: the file\'s own order and fields, the tier now, and which ranges overlap', () => {
+    const all = ratingsTable(RATINGS);
+    expect(all.of).toBe(RATINGS.decks.length);
+    expect(all.rows.map((r) => [r.position, r.deck, r.file, r.rating, r.wrField, r.lo, r.hi, r.ratedGames])).toEqual(RATINGS.decks.map((d, i) => [i + 1, d.name, d.file, d.rating, d.wrField, d.wrFieldLo, d.wrFieldHi, d.games]));
+    all.rows.forEach((r, i) => expect(r.tier).toEqual(simTier(RATINGS.decks[i])));
+    expect([all.simVersion, all.bot, all.asOf, all.events]).toEqual([RATINGS.manifest?.simVersion, RATINGS.manifest?.bot?.level, RATINGS.manifest?.createdAt, RATINGS.events]);
+    const top = ratingsTable(RATINGS, { top: 10 });
+    expect(top.rows).toEqual(all.rows.slice(0, 10));
+    const [first, ...rest] = RATINGS.decks.slice(0, 10);
+    expect(top.overlapFirst).toEqual(rest.flatMap((d, i) => (d.wrFieldLo <= first!.wrFieldHi && first!.wrFieldLo <= d.wrFieldHi ? [i + 2] : [])));
+    expect(ratingsTable(RATINGS, { top: 0 }).rows).toEqual([]);
+  });
+
   it('every head-to-head pair: raw record, games and the shrunk estimate, from both sides', () => {
     H2H.pairs.forEach(([i, j, w, g], q) => {
       const a = H2H.decks[i]!;
@@ -225,6 +240,20 @@ describe('fixtures', () => {
     expect(r).toMatchObject({ stage: 'bracket', name: 'Round of 16', key: 'round-of-16', games: 4, sweeps: 0, deciders: 0, advancing: ['Bravo'] });
     expect(r.firstPlayer).toEqual({ won: 3, decided: 3, ties: 1 });
     expect(r.leaders).toEqual([]);
+  });
+
+  it('the ratings table says which shown ranges overlap the first and which neighbours separate', () => {
+    const row = (name: string, lo: number, hi: number, games = 100) => ({ name, file: `${name}.txt`, rating: 0, games, wrField: (lo + hi) / 2, wrFieldLo: lo, wrFieldHi: hi, wrMeta: null, events: 1, titles: 0, top8: 0, avgFinish: null, matches: '0-0' });
+    const ratings: RatingsInput = { events: 3, decks: [row('A', 0.6, 0.8), row('B', 0.55, 0.65), row('C', 0.4, 0.54), row('D', 0.45, 0.6), row('E', 0.1, 0.2)], manifest: { simVersion: 8, bot: { level: 'fixture-bot' }, createdAt: '2030-01-01T00:00:00.000Z' } };
+    const t = ratingsTable(ratings);
+    expect(t.overlapFirst).toEqual([2, 4]);
+    expect(t.separated).toEqual([
+      [2, 3],
+      [4, 5],
+    ]);
+    expect(ratingsTable(ratings, { top: 2 })).toMatchObject({ of: 5, overlapFirst: [2], separated: [] });
+    expect(rangesOverlap({ lo: 0.1, hi: 0.2 }, { lo: 0.2, hi: 0.3 })).toBe(true);
+    expect(rangesOverlap({ lo: 0.1, hi: 0.2 }, { lo: 0.21, hi: 0.3 })).toBe(false);
   });
 
   it('a custom event counts for neither titles nor finishes', () => {

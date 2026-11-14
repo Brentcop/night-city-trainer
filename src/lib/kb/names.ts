@@ -51,12 +51,23 @@ export const MIN_PHRASE_CHARS = 3;
  * "Method" should not match the word "method"); the whole query may name any record.
  */
 export function findNames(ix: NameIndex, q: string, inPhrase: (id: string) => boolean = () => true): string[] {
-  const out: string[] = [];
-  const push = (ids: readonly string[]) => {
-    for (const id of ids) if (!out.includes(id)) out.push(id);
+  return findNameHits(ix, q, inPhrase).map((h) => h.id);
+}
+
+/** A record named in a question, and how many words of the question named it (the whole query counts all its words). */
+export interface NameHit {
+  id: string;
+  words: number;
+}
+
+/** findNames, with the number of words each name took. */
+export function findNameHits(ix: NameIndex, q: string, inPhrase: (id: string) => boolean = () => true): NameHit[] {
+  const out: NameHit[] = [];
+  const push = (ids: readonly string[], words: number) => {
+    for (const id of ids) if (!out.some((h) => h.id === id)) out.push({ id, words });
   };
-  push(lookupName(ix, q));
   const words = nameKey(q.replace(/[?!,;()"“”]/g, ' ')).split(' ').filter(Boolean);
+  push(lookupName(ix, q), nameKey(q).split(' ').filter(Boolean).length);
   const taken: boolean[] = words.map(() => false);
   for (let n = Math.min(ix.maxWords, words.length); n >= 1; n--) {
     for (let i = 0; i + n <= words.length; i++) {
@@ -65,7 +76,7 @@ export function findNames(ix: NameIndex, q: string, inPhrase: (id: string) => bo
       const bare = phrase.replace(/[.:']+$/, '');
       const ids = (ix.byName.get(phrase) ?? ix.byName.get(bare) ?? []).filter(inPhrase);
       if (!ids.length || bare.length < MIN_PHRASE_CHARS) continue;
-      push(ids);
+      push(ids, n);
       for (let j = i; j < i + n; j++) taken[j] = true;
     }
   }

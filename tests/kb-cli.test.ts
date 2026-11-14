@@ -71,6 +71,8 @@ describe('fact', () => {
     expect(parseKbArgs(['fact', 'rating', 'smash', 'the', 'curve']).fact!.decks).toEqual(['smash the curve']);
     expect(parseKbArgs(['fact', 'matchup', 'S1-01 Mutant (RRY)', 'Samurai']).fact!.decks).toEqual(['S1-01 Mutant (RRY)', 'Samurai']);
     expect(parseKbArgs(['fact', 'matchup', 'smash', 'the', 'curve', 'vs', 'samurai']).fact!.decks).toEqual(['smash the curve', 'samurai']);
+    expect(parseKbArgs(['fact', 'ratings']).fact).toEqual({ fact: 'ratings', decks: [], json: false });
+    expect(parseKbArgs(['fact', 'ratings', '--top', '10']).fact).toEqual({ fact: 'ratings', top: 10, decks: [], json: false });
   });
   it('refuses an unknown fact, a missing or misplaced flag and the wrong number of decks (exit 2)', () => {
     const bad: string[][] = [
@@ -88,6 +90,12 @@ describe('fact', () => {
       ['fact', 'champion', '--event', '6', 'extra'],
       ['fact', 'champion', '--event', '6', '--k', '3'],
       ['search', 'x', '--event', '6'],
+      ['fact', 'ratings', '--top', '0'],
+      ['fact', 'ratings', '--top', 'ten'],
+      ['fact', 'ratings', 'samurai'],
+      ['fact', 'ratings', '--event', '6'],
+      ['fact', 'rating', 'samurai', '--top', '3'],
+      ['search', 'x', '--top', '3'],
     ];
     for (const argv of bad) expect(() => parseKbArgs(argv), argv.join(' ')).toThrow(ArgError);
   });
@@ -118,6 +126,21 @@ describe('fact', () => {
     const m = JSON.parse(fact(['matchup', 'S1-01 Mutant (RRY)', 'Samurai', '--json']).out);
     expect(m).toMatchObject({ fact: 'matchup', a: 'S1-01 Mutant (RRY)', b: 'Samurai', known: true, source: 'public/data/h2h.json' });
     expect(estimateTokens(champ.out)).toBeLessThan(200);
+  });
+
+  it.skipIf(!src.ratings)('prints the ratings table in the file\'s order, with ranges, games and the tier now', () => {
+    const rows = src.ratings!.data.decks;
+    const t = fact(['ratings', '--top', '3']);
+    expect(t.code).toBe(0);
+    const lines = t.out.trimEnd().split('\n');
+    expect(lines[0]).toMatch(/^Power ratings table: .* played by the \w+ bot on sim version \d+.*The first 3 of \d+ rated decks now:$/);
+    expect(lines.slice(1, 4).map((l) => l.slice(0, l.indexOf(':')))).toEqual(rows.slice(0, 3).map((r, i) => `${i + 1}. ${r.name}`));
+    expect(lines[1]).toMatch(/expected win rate against the whole field [\d.]+% \(90% range [\d.]+%–[\d.]+%\) over \d+ rated games; Sim tier now /);
+    expect(lines.at(-1)).toMatch(/^ {2}source: src\/data\/ratings\.json \(the \w+ bot on sim version \d+, recorded /);
+    expect(fact(['ratings']).out).toContain(`All ${rows.length} rated decks now:`);
+    const json = JSON.parse(fact(['ratings', '--top', '2', '--json']).out);
+    expect(json).toMatchObject({ fact: 'ratings', source: 'src/data/ratings.json', of: rows.length });
+    expect(json.rows.map((r: { deck: string }) => r.deck)).toEqual(rows.slice(0, 2).map((r) => r.name));
   });
 
   it('exits 1 on an unknown event, round or deck, saying what exists', () => {

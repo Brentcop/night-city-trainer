@@ -19,6 +19,7 @@ import {
   meets,
   metrics,
   pairedBootstrap,
+  parseTuning,
   QUESTION_SPLITS,
   QUESTION_TYPES,
   quantile,
@@ -26,6 +27,7 @@ import {
   runQuestions,
   seededRandom,
   sizeStats,
+  summarize,
   type KbQuestion,
   type QuestionResult,
 } from '../src/lib/kb/eval';
@@ -117,13 +119,45 @@ describe('paired bootstrap', () => {
     expect(seededRandom(1)()).toBe(xs[0]);
   });
   it('pairs two runs by question id', () => {
-    const run = (ranks: Record<string, number | null>): QuestionResult[] => Object.entries(ranks).map(([id, rank]) => ({ id, type: 'entity', split: 'dev', rank, top: [], tokens: 0 }));
+    const run = (ranks: Record<string, number | null>): QuestionResult[] => Object.entries(ranks).map(([id, rank]) => ({ id, type: 'entity', split: 'dev', rank, top: [], tokens: 0, refused: false }));
     const before = run({ q1: null, q2: 1, q3: 4 });
     const after = run({ q3: 1, q2: 1, q1: 2, q9: 1 });
     const c = compareRuns(before, after, 'mrr', { seed: 1 });
     expect(c.n).toBe(3);
     expect(c.diff).toBeCloseTo((1 / 2 + 0 + (1 - 1 / 4)) / 3);
     expect(compareRuns(before, after, 'r5').diff).toBeCloseTo(1 / 3);
+  });
+});
+
+describe('questions the pack cannot answer (type none)', () => {
+  const r = (id: string, type: QuestionResult['type'], rank: number | null, refused: boolean): QuestionResult => ({ id, type, split: 'dev', rank, top: [], tokens: 10, refused });
+  const rs = [r('q1', 'entity', 1, false), r('q2', 'rules', null, true), r('q3', 'none', null, true), r('q4', 'none', null, false), r('q5', 'none', null, true)];
+
+  it('leaves them out of recall and MRR, and counts refusals right and wrong', () => {
+    const s = summarize(rs);
+    expect([s.n, s.r1, s.mrr]).toEqual([2, 0.5, 0.5]);
+    expect(s.refusal).toEqual({ n: 3, refused: 2, rate: 2 / 3 });
+    expect(s.wrongRefusals).toEqual({ n: 2, refused: 1, rate: 0.5 });
+    expect(summarize([]).refusal).toEqual({ n: 0, refused: 0, rate: 0 });
+  });
+  it('pairs only answerable questions in a comparison', () => {
+    const after = rs.map((x) => ({ ...x, rank: x.type === 'none' ? 1 : x.rank }));
+    expect(compareRuns(rs, after, 'mrr')).toMatchObject({ n: 2, diff: 0 });
+  });
+  it('asks them of every pack: never skipped, never stale', () => {
+    expect(availability(q('q1', 'x', [], { type: 'none' }), () => false, () => false, false)).toEqual({ stale: [], skip: false });
+  });
+  it('scores a refusal on an index', () => {
+    const [none, kilo] = runQuestions(buildIndex(FIXTURE), [q('q001', 'xyzzy plugh', [], { type: 'none' }), q('q002', 'Kilo Byte', ['card:kilo_byte'])], 'exact+linked+keyword');
+    expect([none!.refused, kilo!.refused, kilo!.rank]).toEqual([true, false, 1]);
+  });
+});
+
+describe('search settings for experiments (--tune)', () => {
+  it('reads key=value pairs and refuses anything else', () => {
+    expect(parseTuning('floor=0.34,floorHits=3,singleWordTermLinks=false,deckPairMatchup=true')).toEqual({ floor: 0.34, floorHits: 3, singleWordTermLinks: false, deckPairMatchup: true });
+    expect(parseTuning('floor=1')).toEqual({ floor: 1 });
+    for (const bad of ['', 'floor', 'floor=1.5', 'floor=-1', 'floorHits=0', 'floorHits=2.5', 'singleWordTermLinks=yes', 'speed=3', 'floor=0.4,floor=0.3']) expect(typeof parseTuning(bad), bad).toBe('string');
   });
 });
 
@@ -157,7 +191,7 @@ describe('running questions', () => {
     expect(pub.records).toBe(FIXTURE.length - 1);
   });
   it('writes reports with ids and titles, not record text, and the same bytes twice', () => {
-    const qs = [q('q001', 'quasar rule', ['rule:9.9'], { scope: 'local', type: 'rules' }), q('q002', 'method quasar', ['card:kilo_byte'])];
+    const qs = [q('q001', 'quasar rule', ['rule:9.9'], { scope: 'local', type: 'rules' }), q('q002', 'method quasar', ['card:kilo_byte']), q('q003', 'xyzzy plugh', [], { type: 'none' }), q('q004', 'Kilo Byte price', [], { type: 'none' })];
     const file = { kind: 'nct-kb-questions' as const, schema: 1 as const, status: 'draft' as const, questions: qs };
     const make = () => {
       const scopes = [evaluateScope('all', FIXTURE, qs, ['keyword', 'exact+linked+keyword']), evaluateScope('public', FIXTURE, qs, ['exact+linked+keyword'])];
@@ -172,6 +206,11 @@ describe('running questions', () => {
     expect(out).not.toContain('Rule 9.9 (Invented)');
     expect(out).toMatch(/doc:notes\.md#method(~2)? \(Method/);
     for (const r of FIXTURE) expect(out).not.toContain(r.text);
+    // refusal beside recall: one of the two none questions refused, the other answered (and listed for dev)
+    expect(out).toMatch(/\| exact\+linked\+keyword \| dev \| 2 \|.*\| 1 of 2 \(50\.0%\) \| \d+ of 2 /);
+    expect(out).toContain('### Dev questions the pack cannot answer, answered anyway under exact+linked+keyword');
+    expect(out).toMatch(/\| q004 \| Kilo Byte price \| card:kilo_byte \(Kilo Byte\)/);
+    expect(out).toContain('"refusal":{"n":2,"refused":1,"rate":0.5}');
   });
 });
 
@@ -183,15 +222,25 @@ describe('the question set', () => {
     expect(questionFileProblems(file)).toEqual([]);
     expect(file.status).toBe('draft');
     expect(new Set(qs.map((x) => x.id)).size).toBe(qs.length);
-    expect(qs.length).toBeGreaterThanOrEqual(116);
-    // every type has questions; number questions (step 2.2) expect measured records only
-    for (const t of QUESTION_TYPES) expect(qs.filter((x) => x.type === t).length, t).toBeGreaterThanOrEqual(15);
+    expect(qs.length).toBeGreaterThanOrEqual(146);
+    // ids run q001, q002, … in file order (questions are only ever appended)
+    qs.forEach((x, i) => expect(x.id).toBe(`q${String(i + 1).padStart(3, '0')}`));
+    // every type has questions (step 1.6 added none 12, rules 10, number 8); number questions expect measured records only
+    const counts = Object.fromEntries(QUESTION_TYPES.map((t) => [t, qs.filter((x) => x.type === t).length]));
+    expect(counts).toEqual({ entity: 20, paraphrase: 25, cross: 15, number: 24, dev: 20, rules: 30, none: 12 });
     for (const x of qs.filter((y) => y.type === 'number')) for (const e of x.expect) expect(['event', 'round', 'rating', 'matchup'], `${x.id} ${e}`).toContain(expectKind(e));
+    // none questions: public, nothing expected
+    for (const x of qs.filter((y) => y.type === 'none')) expect([x.scope, x.expect], x.id).toEqual(['public', []]);
     for (const x of qs) {
       expect(QUESTION_TYPES).toContain(x.type);
       expect(QUESTION_SPLITS).toContain(x.split);
     }
     expect(questionFileProblems({ kind: 'x', schema: 2, status: 'draft', questions: [{ id: 'q1', q: '', type: 'nope', scope: 'x', split: 'y', expect: ['nope:1'] }] }).length).toBeGreaterThanOrEqual(7);
+    const one = (x: Partial<KbQuestion>) => questionFileProblems({ kind: 'nct-kb-questions', schema: 1, status: 'draft', questions: [{ id: 'q001', q: 'x', type: 'none', scope: 'public', split: 'dev', expect: [], ...x }] });
+    expect(one({})).toEqual([]);
+    expect(one({ expect: ['card:x'] })).toEqual(['question 1 (q001): a none question expects nothing (expect: [])']);
+    expect(one({ scope: 'local' })).toEqual(['question 1 (q001): a none question is public (it is asked of every pack)']);
+    expect(one({ type: 'entity' })).toEqual(['question 1 (q001): expect must be a non-empty list of ids']);
   });
 
   it('follows its split rule: within each type, position i is test when i mod 5 is 1 or 3 (40%)', () => {
@@ -204,7 +253,7 @@ describe('the question set', () => {
   });
 
   it('marks local exactly the questions that only data/raw records answer', () => {
-    for (const x of qs) {
+    for (const x of qs.filter((y) => y.type !== 'none')) {
       const onlyLocal = x.expect.every((e) => LOCAL_KINDS.includes(expectKind(e)!));
       expect(x.scope, x.id).toBe(onlyLocal ? 'local' : 'public');
     }
@@ -235,7 +284,8 @@ describe('the script', () => {
     expect(help.status).toBe(0);
     expect(help.stdout).toMatch(/^Knowledge pack evaluation/);
     expect(help.stdout).toContain('--compare a,b');
-    for (const bad of [['--bogus'], ['--split', 'train'], ['--scope', 'local'], ['--config', 'vector'], ['--compare', 'exact'], ['--seed', 'x'], ['--against', 'no/such/file.json']]) {
+    expect(help.stdout).toContain('--tune k=v');
+    for (const bad of [['--bogus'], ['--split', 'train'], ['--scope', 'local'], ['--config', 'vector'], ['--compare', 'exact'], ['--seed', 'x'], ['--against', 'no/such/file.json'], ['--tune', 'floor=2'], ['--tune', 'speed=1']]) {
       const r = run(...bad);
       expect(r.status, bad.join(' ')).toBe(2);
       expect(r.stderr).toMatch(/error: /);

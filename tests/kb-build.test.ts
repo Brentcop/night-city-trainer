@@ -277,7 +277,7 @@ describe('builders on fixtures', () => {
       },
       { deckId: (f) => (f === 'fx-mill.txt' || f === 'fx-burn.txt' ? `deck:${f.replace(/\.txt$/, '')}` : undefined), skipped },
     );
-    expect(rs.map((r) => r.id)).toEqual(['event:9', 'round:9/1', 'round:9/final', 'rating:fx-mill', 'rating:fx-burn', 'matchup:fx-burn~fx-mill']);
+    expect(rs.map((r) => r.id)).toEqual(['event:9', 'round:9/1', 'round:9/final', 'rating:fx-mill', 'rating:fx-burn', 'rating:table', 'matchup:fx-burn~fx-mill']);
     const byId = new Map(rs.map((r) => [r.id, r]));
     for (const r of rs) {
       expect([r.origin, r.scope]).toEqual(['measured', 'public']);
@@ -306,6 +306,18 @@ describe('builders on fixtures', () => {
     expect(rating.fields).toMatchObject({ titles: 1, topCutAppearances: 1, swissTopEight: 1 });
     expect(Object.keys(rating.fields ?? {})).not.toContain('top8');
     expect(byId.get('rating:fx-burn')!.text).toContain('Sim tier now: unrated.');
+    // the ratings table (step 1.6): the file's order, each deck with its range and games, the overlap said
+    const table = byId.get('rating:table')!;
+    expect(table.title).toBe('Power ratings table');
+    expect(table.links).toEqual([]);
+    expect(table.text.split('\n')).toEqual([
+      'Power ratings table: the rated library decks in the order of their power rating, fitted over 1 recorded event played by the fixture-bot bot on sim version 7 (stale: the current sim version is 8), as of 2030-05-06. All 2 rated decks now:',
+      '1. Fixture Mill: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 25 rated games; Sim tier now A.',
+      '2. Fixture Burn: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 2 rated games; Sim tier now unrated.',
+      'The 90% range of Fixture Mill overlaps the ranges of every other deck listed here: these games do not settle the order among them.',
+      'Every neighbouring pair of ranges in this list overlaps.',
+    ]);
+    expect(table.fields).toMatchObject({ of: 2, shown: 2, first: 'Fixture Mill', stale: true });
     // only pairings with at least MATCHUP_MIN_GAMES games; written from the side whose key sorts first
     expect(MATCHUP_MIN_GAMES).toBe(6);
     const m = byId.get('matchup:fx-burn~fx-mill')!;
@@ -462,7 +474,8 @@ describe('the real public sources', async () => {
     const src = loadCompetitive(ROOT);
     expect(count('event')).toBe(src.events.length);
     expect(count('round')).toBe(src.events.reduce((a, e) => a + e.event.rounds.length + e.event.bracket.length, 0));
-    expect(count('rating')).toBe(src.ratings!.data.decks.length);
+    // one per rated deck, and the table
+    expect(count('rating')).toBe(src.ratings!.data.decks.length + 1);
     expect(count('matchup')).toBe(src.h2h!.data.pairs.filter((p) => p[3] >= MATCHUP_MIN_GAMES).length);
     const measured = a.records.filter((x) => ['event', 'round', 'rating', 'matchup'].includes(x.kind));
     for (const x of measured) {
@@ -473,11 +486,13 @@ describe('the real public sources', async () => {
       // D6: "top 8" only inside a recorded format label ("+ top 8") or naming the ratings file's count
       expect(x.text, x.id).not.toMatch(/(?<!\+ )\btop 8\b(?!" count)/i);
     }
-    // links: a round to its event, an event to its champion's deck, a rating to its deck, a matchup to both decks
+    // links: a round to its event, an event to its champion's deck, a rating to its deck, a matchup to both decks; the
+    // ratings table to nothing (it is found by name or keyword, not as every listed deck's neighbour)
     for (const x of measured) {
       const rels = x.links.map((l) => `${l.rel} ${l.to.slice(0, l.to.indexOf(':'))}`);
       if (x.kind === 'round') expect(rels).toEqual(['parent event']);
-      if (x.kind === 'event' || x.kind === 'rating') expect(rels).toEqual(['deck deck']);
+      if (x.id === 'rating:table') expect(rels).toEqual([]);
+      else if (x.kind === 'event' || x.kind === 'rating') expect(rels).toEqual(['deck deck']);
       if (x.kind === 'matchup') expect(rels).toEqual(['deck deck', 'deck deck']);
     }
     const ev6 = a.records.find((x) => x.id === 'event:6');

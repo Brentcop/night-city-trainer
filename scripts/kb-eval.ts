@@ -1,6 +1,8 @@
 // Knowledge pack evaluation (docs/RAG_PLAN.md step 1.4, rule M9): runs ranker configurations over the question set
 // (data/kb/questions.json) and prints recall at 1, 5 and 10, MRR at 10 and the answer size in tokens (characters / 4,
-// at 5 results), by configuration, split and question type.
+// at 5 results), by configuration, split and question type, over the answerable questions; beside them the refusal
+// rate of the questions the pack cannot answer (type none: "no match" is right) and the answerable questions wrongly
+// refused (step 1.6).
 //   npm run kb:eval                          every configuration, both scopes, every split
 //   npm run kb:eval -- --split dev --config exact+keyword,exact+linked+keyword --compare exact+keyword,exact+linked+keyword
 //   npm run kb:eval -- --out                 also write reports/kb-eval-latest.md and .json (only when they change)
@@ -15,6 +17,9 @@
 //   --against FILE     paired bootstrap of this run minus an earlier JSON report (from --json or --out), for each
 //                      configuration and scope both hold: how a ranking change is judged
 //   --seed N           bootstrap seed (default 1; 2,000 resamples, 95% percentile interval)
+//   --tune k=v,…       experiments only: run the search with other settings than SEARCH_TUNING (src/lib/kb/search.ts):
+//                      floor=0.4 (the "no match" share), floorHits=3 (the floor is met by any of the first N keyword
+//                      hits), singleWordTermLinks=false, deckPairMatchup=true. The report records the setting.
 //   --questions FILE   the question set (default data/kb/questions.json)
 //   --json             JSON on stdout instead of tables
 //   --strict           exit 1 when an expected id is not in the pack (stale expectations are always listed)
@@ -26,14 +31,18 @@ import path from 'node:path';
 import { ArgError, bool, cli, int, oneOf, Refusal, runMain, str, writeIfChanged } from './lib-node';
 import { ensurePack, ROOT } from './kb';
 import {
+  ANSWERABLE_TYPES,
   availability,
   compareRuns,
   EVAL_CONFIG_NAMES,
   EVAL_DEPTH,
   groupBy,
+  isAnswerable,
+  parseTuning,
   QUESTION_SPLITS,
   QUESTION_TYPES,
   questionFileProblems,
+  refusals,
   runQuestions,
   summarize,
   type EvalConfig,
@@ -43,9 +52,10 @@ import {
   type PairedMetric,
   type QuestionResult,
   type QuestionSplit,
+  type RefusalCount,
   type Summary,
 } from '../src/lib/kb/eval';
-import { buildIndex, type KbIndex } from '../src/lib/kb/search';
+import { buildIndex, type KbIndex, type SearchTuning } from '../src/lib/kb/search';
 import { byString, type KbRecord } from '../src/lib/kb/types';
 
 const QUESTIONS_FILE = 'data/kb/questions.json';
@@ -68,6 +78,10 @@ export const EVAL_SPEC = {
   compare: str(undefined, (v) => configList(v) ?? (v.split(',').length !== 2 ? 'give exactly two configurations, a,b' : undefined)),
   against: str(),
   seed: int(1, { min: 0, max: 2 ** 31 - 1 }),
+  tune: str(undefined, (v) => {
+    const t = parseTuning(v);
+    return typeof t === 'string' ? t : undefined;
+  }),
   questions: str(QUESTIONS_FILE),
   json: bool(),
   out: bool(),
@@ -100,8 +114,27 @@ interface Comparison {
   scope: ScopeName;
   a: string;
   b: string;
+  /** answerable questions both runs hold */
   r5: PairedInterval;
   mrr: PairedInterval;
+  /** refusals of the none questions both runs hold, and of the answerable ones (null: a run did not record them) */
+  refusal: { a: RefusalCount; b: RefusalCount } | null;
+  wrongRefusals: { a: RefusalCount; b: RefusalCount } | null;
+}
+
+type Scored = Pick<QuestionResult, 'id' | 'type' | 'rank'> & { refused?: boolean };
+
+/** The refusal counts of two runs over the questions both hold (null when one of them did not record refusals). */
+function pairedRefusals(a: readonly Scored[], b: readonly Scored[], none: boolean): { a: RefusalCount; b: RefusalCount } | null {
+  const bById = new Map(b.map((r) => [r.id, r]));
+  const both = a.filter((r) => bById.has(r.id) && isAnswerable(r) !== none);
+  if (both.some((r) => r.refused === undefined || bById.get(r.id)!.refused === undefined)) return null;
+  return { a: refusals(both.map((r) => ({ refused: r.refused! }))), b: refusals(both.map((r) => ({ refused: bById.get(r.id)!.refused! }))) };
+}
+
+function comparison(scope: ScopeName, a: string, b: string, ra: readonly Scored[], rb: readonly Scored[], seed: number): Comparison {
+  const one = (m: PairedMetric) => compareRuns(ra, rb, m, { seed });
+  return { scope, a, b, r5: one('r5'), mrr: one('mrr'), refusal: pairedRefusals(ra, rb, true), wrongRefusals: pairedRefusals(ra, rb, false) };
 }
 
 export function readQuestions(file: string): KbQuestionFile {
@@ -114,7 +147,7 @@ export function readQuestions(file: string): KbQuestionFile {
 }
 
 /** Evaluate configurations over one scope's index. */
-export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], questions: readonly KbQuestion[], configs: readonly EvalConfig[]): ScopeRun {
+export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], questions: readonly KbQuestion[], configs: readonly EvalConfig[], tuning?: Partial<SearchTuning>): ScopeRun {
   const recs = scope === 'public' ? records.filter((r) => r.scope === 'public') : records;
   const ix: KbIndex = buildIndex(recs);
   const localPresent = recs.some((r) => r.scope === 'local');
@@ -129,7 +162,7 @@ export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], qu
     if (a.skip) skipped.push(q.id);
     else scored.push(q);
   }
-  return { scope, localPresent, records: recs.length, skipped, stale, runs: configs.map((config) => ({ config, results: runQuestions(ix, scored, config) })) };
+  return { scope, localPresent, records: recs.length, skipped, stale, runs: configs.map((config) => ({ config, results: runQuestions(ix, scored, config, tuning) })) };
 }
 
 const pct = (x: number) => (100 * x).toFixed(1);
@@ -143,7 +176,10 @@ function splitRows(rs: readonly QuestionResult[], splits: readonly (QuestionSpli
 const splitsOf = (split: string): (QuestionSplit | 'all')[] => (split === 'all' ? ['dev', 'test', 'all'] : [split as QuestionSplit]);
 
 /** Columns aligned right in the markdown tables. */
-const NUMERIC_HEADS = new Set(['n', 'rank', 'R@1 %', 'R@5 %', 'R@10 %', 'MRR@10', 'tokens mean', 'tokens p90', 'R@5 diff (pp)', 'MRR diff']);
+const NUMERIC_HEADS = new Set(['n', 'rank', 'R@1 %', 'R@5 %', 'R@10 %', 'MRR@10', 'tokens mean', 'tokens p90', 'R@5 diff (pp)', 'MRR diff', 'none refused', 'wrongly refused', 'refused']);
+
+/** "7 of 12 (58.3%)", or "–" when there is no such question. */
+const ofCell = (c: RefusalCount) => (c.n ? `${c.refused} of ${c.n} (${pct(c.rate)}%)` : '–');
 
 function table(head: string[], rows: string[][]): string[] {
   return [`| ${head.join(' | ')} |`, `|${head.map((h) => (NUMERIC_HEADS.has(h) ? '---:' : '---')).join('|')}|`, ...rows.map((r) => `| ${r.join(' | ')} |`)];
@@ -152,7 +188,7 @@ function table(head: string[], rows: string[][]): string[] {
 const metricCells = (s: Summary) => [String(s.n), pct(s.r1), pct(s.r5), pct(s.r10), num(s.mrr)];
 
 /** The markdown report (also the plain-text output: markdown tables read fine in a terminal). */
-export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; titles: Map<string, string>; questions: Map<string, KbQuestion>; comparisons: Comparison[]; against?: string }): string {
+export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; titles: Map<string, string>; questions: Map<string, KbQuestion>; comparisons: Comparison[]; against?: string; tuning?: Partial<SearchTuning> }): string {
   const qs = o.file.questions;
   const count = (pick: (q: KbQuestion) => string, keys: readonly string[]) => keys.map((k) => `${k} ${qs.filter((q) => pick(q) === k).length}`).join(', ');
   const L: string[] = [
@@ -161,10 +197,13 @@ export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string;
     'Written by `npm run kb:eval -- --out` (scripts/kb-eval.ts, docs/RAG_PLAN.md step 1.4). Ids and public titles only,',
     'never record text (a local-only record shows by its id). Recall at k: the share of questions with an expected',
     'record in the first k results. MRR at 10: the mean of 1 / rank of the first expected record (0 when it is not in',
-    'the first 10). Tokens: the plain-text answer at 5 results, characters / 4.',
+    'the first 10). Tokens: the plain-text answer at 5 results, characters / 4. These are over the answerable',
+    'questions (`n`). None refused: the questions the pack cannot answer (type none) for which the search said "no',
+    'match", which is right. Wrongly refused: answerable questions for which it said "no match".',
     '',
     `Question set: \`${o.questionsFile}\` (${o.file.status}), ${qs.length} questions. Types: ${count((q) => q.type, QUESTION_TYPES.filter((t) => qs.some((q) => q.type === t)))}.`,
     `Scopes: ${count((q) => q.scope, ['public', 'local'])}. Splits: ${count((q) => q.split, QUESTION_SPLITS)}. Shown here: split ${o.split}.`,
+    ...(o.tuning ? [`Search settings changed for an experiment (--tune): ${Object.entries(o.tuning).map(([k, x]) => `${k}=${String(x)}`).join(', ')}.`] : []),
     '',
   ];
   for (const sc of o.scopes) {
@@ -175,8 +214,8 @@ export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string;
     L.push('### By configuration and split', '');
     L.push(
       ...table(
-        ['configuration', 'split', 'n', 'R@1 %', 'R@5 %', 'R@10 %', 'MRR@10', 'tokens mean', 'tokens p90'],
-        sc.runs.flatMap((r) => splitRows(r.results, splitsOf(o.split)).map(({ split, s }) => [r.config, split, ...metricCells(s), s.tokens.mean.toFixed(0), String(s.tokens.p90)])),
+        ['configuration', 'split', 'n', 'R@1 %', 'R@5 %', 'R@10 %', 'MRR@10', 'tokens mean', 'tokens p90', 'none refused', 'wrongly refused'],
+        sc.runs.flatMap((r) => splitRows(r.results, splitsOf(o.split)).map(({ split, s }) => [r.config, split, ...metricCells(s), s.tokens.mean.toFixed(0), String(s.tokens.p90), ofCell(s.refusal), ofCell(s.wrongRefusals)])),
       ),
       '',
     );
@@ -184,37 +223,52 @@ export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string;
     const typeRows: string[][] = [];
     for (const r of sc.runs)
       for (const sp of splitsOf(o.split))
-        for (const g of groupBy(sp === 'all' ? r.results : r.results.filter((x) => x.split === sp), (x) => x.type, QUESTION_TYPES)) typeRows.push([r.config, g.key, sp, ...metricCells(g.summary)]);
-    L.push(...table(['configuration', 'type', 'split', 'n', 'R@1 %', 'R@5 %', 'R@10 %', 'MRR@10'], typeRows), '');
+        for (const g of groupBy(sp === 'all' ? r.results : r.results.filter((x) => x.split === sp), (x) => x.type, ANSWERABLE_TYPES)) typeRows.push([r.config, g.key, sp, ...metricCells(g.summary), String(g.summary.wrongRefusals.refused)]);
+    L.push(...table(['configuration', 'type', 'split', 'n', 'R@1 %', 'R@5 %', 'R@10 %', 'MRR@10', 'refused'], typeRows), '');
     const def = sc.runs.find((r) => r.config === DEFAULT_CONFIG) ?? sc.runs[sc.runs.length - 1];
     const dev = def ? def.results.filter((r) => r.split === 'dev') : [];
-    if (def && dev.length) {
-      const worst = [...dev].filter((r) => r.rank !== 1).sort((a, b) => (b.rank ?? EVAL_DEPTH + 1) - (a.rank ?? EVAL_DEPTH + 1) || byString(a.id, b.id)).slice(0, WORST);
+    const name = (id: string) => (o.titles.has(id) ? `${id} (${o.titles.get(id)!.replace(/\|/g, '/')})` : id);
+    if (def && dev.some(isAnswerable)) {
+      const worst = dev.filter((r) => isAnswerable(r) && r.rank !== 1).sort((a, b) => (b.rank ?? EVAL_DEPTH + 1) - (a.rank ?? EVAL_DEPTH + 1) || byString(a.id, b.id)).slice(0, WORST);
       L.push(`### Worst dev questions under ${def.config}`, '');
       if (!worst.length) L.push('Every dev question has an expected record first.', '');
       else {
-        L.push('Rank "–" means no expected record in the first 10. "Ranked above" lists up to three records before it.', '');
+        L.push('Rank "–" means no expected record in the first 10; "refused" means the search said "no match". "Ranked above" lists up to three records before it.', '');
         L.push(
           ...table(
             ['question', 'type', 'rank', 'asked', 'expected (first)', 'ranked above'],
             worst.map((r) => {
               const q = o.questions.get(r.id)!;
               const above = r.top.slice(0, Math.min(3, (r.rank ?? EVAL_DEPTH + 1) - 1));
-              const name = (id: string) => (o.titles.has(id) ? `${id} (${o.titles.get(id)!.replace(/\|/g, '/')})` : id);
-              return [r.id, r.type, r.rank === null ? '–' : String(r.rank), q.q.replace(/\|/g, '/'), q.expect[0]!, above.map(name).join('; ')];
+              return [r.id, r.type, r.refused ? 'refused' : r.rank === null ? '–' : String(r.rank), q.q.replace(/\|/g, '/'), q.expect[0]!, above.map(name).join('; ')];
             }),
           ),
           '',
         );
       }
     }
+    const answered = def ? dev.filter((r) => !isAnswerable(r) && !r.refused) : [];
+    if (def && dev.some((r) => !isAnswerable(r))) {
+      L.push(`### Dev questions the pack cannot answer, answered anyway under ${def.config}`, '');
+      if (!answered.length) L.push('Every dev none question was refused.', '');
+      else
+        L.push(
+          ...table(
+            ['question', 'asked', 'first results'],
+            answered.map((r) => [r.id, o.questions.get(r.id)!.q.replace(/\|/g, '/'), r.top.slice(0, 3).map(name).join('; ')]),
+          ),
+          '',
+        );
+    }
   }
   if (o.comparisons.length) {
     L.push(`## Paired comparisons (b minus a, ${o.against ? `this run minus ${o.against}` : 'configurations'}; seed ${o.seed}, 2,000 resamples, 95% interval)`, '');
+    L.push('Recall and MRR over the answerable questions both runs hold; refusals counted over the questions both runs hold.', '');
+    const pair = (p: { a: RefusalCount; b: RefusalCount } | null) => (p ? `${ofCell(p.a)} → ${ofCell(p.b)}` : 'not recorded');
     L.push(
       ...table(
-        ['scope', 'a', 'b', 'n', 'R@5 diff (pp)', 'R@5 95% interval', 'MRR diff', 'MRR 95% interval'],
-        o.comparisons.map((c) => [c.scope, c.a, c.b, String(c.r5.n), signed(c.r5.diff, pct), `${pct(c.r5.lo)} to ${pct(c.r5.hi)}`, signed(c.mrr.diff, num), `${num(c.mrr.lo)} to ${num(c.mrr.hi)}`]),
+        ['scope', 'a', 'b', 'n', 'R@5 diff (pp)', 'R@5 95% interval', 'MRR diff', 'MRR 95% interval', 'none refused (a → b)', 'wrongly refused (a → b)'],
+        o.comparisons.map((c) => [c.scope, c.a, c.b, String(c.r5.n), signed(c.r5.diff, pct), `${pct(c.r5.lo)} to ${pct(c.r5.hi)}`, signed(c.mrr.diff, num), `${num(c.mrr.lo)} to ${num(c.mrr.hi)}`, pair(c.refusal), pair(c.wrongRefusals)]),
       ),
       '',
     );
@@ -223,10 +277,22 @@ export function renderMarkdown(o: { file: KbQuestionFile; questionsFile: string;
 }
 
 const round = (x: number) => Math.round(x * 1e4) / 1e4;
-const summaryJson = (s: Summary) => ({ n: s.n, r1: round(s.r1), r5: round(s.r5), r10: round(s.r10), mrr: round(s.mrr), tokensMean: round(s.tokens.mean), tokensP90: s.tokens.p90 });
+const countJson = (c: RefusalCount) => ({ n: c.n, refused: c.refused, rate: round(c.rate) });
+const pairJson = (p: { a: RefusalCount; b: RefusalCount }) => ({ a: countJson(p.a), b: countJson(p.b) });
+const summaryJson = (s: Summary) => ({
+  n: s.n,
+  r1: round(s.r1),
+  r5: round(s.r5),
+  r10: round(s.r10),
+  mrr: round(s.mrr),
+  tokensMean: round(s.tokens.mean),
+  tokensP90: s.tokens.p90,
+  ...(s.refusal.n ? { refusal: countJson(s.refusal) } : {}),
+  wrongRefusals: countJson(s.wrongRefusals),
+});
 const intervalJson = (p: PairedInterval) => ({ n: p.n, diff: round(p.diff), lo: round(p.lo), hi: round(p.hi) });
 
-export function reportJson(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; comparisons: Comparison[]; against?: string }) {
+export function reportJson(o: { file: KbQuestionFile; questionsFile: string; split: string; seed: number; scopes: ScopeRun[]; comparisons: Comparison[]; against?: string; tuning?: Partial<SearchTuning> }) {
   return {
     kind: 'nct-kb-eval',
     schema: 1,
@@ -234,6 +300,7 @@ export function reportJson(o: { file: KbQuestionFile; questionsFile: string; spl
     status: o.file.status,
     split: o.split,
     seed: o.seed,
+    ...(o.tuning ? { tuning: o.tuning } : {}),
     scopes: o.scopes.map((sc) => ({
       scope: sc.scope,
       localPresent: sc.localPresent,
@@ -244,12 +311,17 @@ export function reportJson(o: { file: KbQuestionFile; questionsFile: string; spl
         config: r.config,
         splits: Object.fromEntries(splitRows(r.results, splitsOf(o.split)).map(({ split, s }) => [split, summaryJson(s)])),
         types: Object.fromEntries(
-          splitsOf(o.split).map((sp) => [sp, Object.fromEntries(groupBy(sp === 'all' ? r.results : r.results.filter((x) => x.split === sp), (x) => x.type, QUESTION_TYPES).map((g) => [g.key, summaryJson(g.summary)]))]),
+          splitsOf(o.split).map((sp) => [sp, Object.fromEntries(groupBy(sp === 'all' ? r.results : r.results.filter((x) => x.split === sp), (x) => x.type, ANSWERABLE_TYPES).map((g) => [g.key, summaryJson(g.summary)]))]),
         ),
-        results: r.results.map((x) => ({ id: x.id, type: x.type, split: x.split, rank: x.rank, tokens: x.tokens })),
+        results: r.results.map((x) => ({ id: x.id, type: x.type, split: x.split, rank: x.rank, refused: x.refused, tokens: x.tokens })),
       })),
     })),
-    ...(o.comparisons.length ? { comparisons: o.comparisons.map((c) => ({ scope: c.scope, a: c.a, b: c.b, r5: intervalJson(c.r5), mrr: intervalJson(c.mrr) })), ...(o.against ? { against: o.against } : {}) } : {}),
+    ...(o.comparisons.length
+      ? {
+          comparisons: o.comparisons.map((c) => ({ scope: c.scope, a: c.a, b: c.b, r5: intervalJson(c.r5), mrr: intervalJson(c.mrr), refusal: c.refusal && pairJson(c.refusal), wrongRefusals: c.wrongRefusals && pairJson(c.wrongRefusals) })),
+          ...(o.against ? { against: o.against } : {}),
+        }
+      : {}),
   };
 }
 
@@ -274,8 +346,7 @@ function compare(scopes: readonly ScopeRun[], a: string, b: string, seed: number
     const ra = sc.runs.find((r) => r.config === a);
     const rb = sc.runs.find((r) => r.config === b);
     if (!ra || !rb) return [];
-    const one = (m: PairedMetric) => compareRuns(ra.results, rb.results, m, { seed });
-    return [{ scope: sc.scope, a, b, r5: one('r5'), mrr: one('mrr') }];
+    return [comparison(sc.scope, a, b, ra.results, rb.results, seed)];
   });
 }
 
@@ -289,10 +360,11 @@ function compareAgainst(scopes: readonly ScopeRun[], earlier: ReportJson, file: 
       const prev = old.configs.find((c) => c.config === run.config);
       if (!prev) continue;
       const inSplit = (r: { split: string }) => split === 'all' || r.split === split;
-      const before: QuestionResult[] = prev.results.filter(inSplit).map((r) => ({ ...r, type: r.type as QuestionResult['type'], split: r.split as QuestionSplit, top: [] }));
-      const now = run.results.filter(inSplit);
-      const one = (m: PairedMetric) => compareRuns(before, now, m, { seed });
-      out.push({ scope: sc.scope, a: `${run.config} (${file})`, b: `${run.config} (now)`, r5: one('r5'), mrr: one('mrr') });
+      // an older report has no refused field: its refusals are "not recorded"
+      const before: Scored[] = (prev.results as { id: string; type: string; split: string; rank: number | null; refused?: boolean }[])
+        .filter(inSplit)
+        .map((r) => ({ id: r.id, type: r.type as QuestionResult['type'], rank: r.rank, ...(typeof r.refused === 'boolean' ? { refused: r.refused } : {}) }));
+      out.push(comparison(sc.scope, `${run.config} (${file})`, `${run.config} (now)`, before, run.results.filter(inSplit), seed));
     }
   }
   return out;
@@ -318,12 +390,14 @@ async function main() {
   const pack = await ensurePack();
   if (pack.rebuilt) console.error(`kb: pack rebuilt (inputs changed) in ${(pack.buildMs! / 1000).toFixed(1)} s`);
   const scopeNames: ScopeName[] = v.scope ? [v.scope] : ['all', 'public'];
-  const scopes = scopeNames.map((s) => evaluateScope(s, pack.records, questions, configList));
+  const tuned = v.tune === undefined ? undefined : parseTuning(v.tune);
+  const tuning = typeof tuned === 'object' ? tuned : undefined;
+  const scopes = scopeNames.map((s) => evaluateScope(s, pack.records, questions, configList, tuning));
   const comparisons = [...(pair ? compare(scopes, pair[0], pair[1], v.seed) : []), ...(earlier ? compareAgainst(scopes, earlier, v.against!, v.split, v.seed) : [])];
   // public titles only: a local title can hold the first words of official text (rule M6)
   const titles = new Map(pack.records.filter((r) => r.scope === 'public').map((r) => [r.id, r.title]));
   const qById = new Map(file.questions.map((q) => [q.id, q]));
-  const common = { file, questionsFile: v.questions, split: v.split, seed: v.seed, scopes, comparisons, against: v.against };
+  const common = { file, questionsFile: v.questions, split: v.split, seed: v.seed, scopes, comparisons, against: v.against, tuning };
   const md = renderMarkdown({ ...common, titles, questions: qById }) + '\n';
   const json = JSON.stringify(reportJson(common), null, 2) + '\n';
 
