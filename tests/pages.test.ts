@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import type { LibraryDeck } from '../src/lib/library';
 import { byName, customSaveName, deckByFile, isBuiltin, searchDeck } from '../src/ui/deckLookup';
-import { isEvent, parseEventId, parseRunParams, parseRuns, toEvent } from '../src/ui/runParams';
+import { draftLinkQuery, isEvent, parseEventId, parseRunParams, parseRuns, runParamsQuery, toEvent, type RunParams } from '../src/ui/runParams';
+import { DEFAULT_DRAFT, entrantsFromList, entrantsToList, type EventDraft } from '../src/lib/eventDraft';
 
 const deck = (file: string, name: string, kind: LibraryDeck['kind'] = 'meta'): LibraryDeck => ({ file, kind, deck: { name, legends: [], main: [], sideboard: [] }, prov: {} });
 // allDecks() order: built-ins first, then saved decks
@@ -46,6 +47,42 @@ describe('tournament inputs', () => {
     expect(parseRunParams(new URLSearchParams('fmt=round-robin&bo=5'), bots)).toMatchObject({ format: 'round-robin', bestOf: 5 });
     expect(parseRunParams(new URLSearchParams('fmt=knockout'), bots)).toMatchObject({ format: 'swiss' });
     expect(parseRunParams(new URLSearchParams('r=99&t=0'), bots)).toMatchObject({ rounds: 'auto', top: 0 });
+  });
+  it('the setup link builder is the inverse of the parser', () => {
+    const all = ['hard', 'mixed', 'medium', 'easy'];
+    const deckLists = [['a.txt'], ['a.txt', 'a.txt*2', 'b.txt'], ['meta-x.txt', 'custom:y', 'z.txt*16']];
+    let checked = 0;
+    for (const decks of deckLists)
+      for (const rounds of ['auto', 1, 4, 12] as const)
+        for (const top of [0, 4, 8, 16])
+          for (const bestOf of [1, 3, 5] as const)
+            for (const bot of [...all, null])
+              for (const seed of [1, 77, 123456, 2 ** 31 - 1, null])
+                for (const format of ['swiss', 'round-robin'] as const) {
+                  const p: RunParams = { field: 'custom', decks, rounds, top, bestOf, format, bot, seed };
+                  expect(parseRunParams(runParamsQuery(p), all)).toEqual(p);
+                  checked++;
+                }
+    expect(checked).toBe(3 * 4 * 4 * 3 * 5 * 5 * 2);
+    // the other fields, and no deck list at all
+    for (const field of ['meta', 'ladder', 'top16', 'original', 'guide', 'all'] as const) {
+      const p: RunParams = { field, decks: null, rounds: 'auto', top: 8, bestOf: 3, format: 'swiss', bot: null, seed: null };
+      expect(parseRunParams(runParamsQuery(p), all)).toEqual(p);
+      expect(runParamsQuery(p).toString()).toBe(`f=${field}&fmt=swiss&t=8&bo=3`);
+    }
+  });
+  it('the runner\'s "Copy setup link" query is unchanged', () => {
+    const draft: EventDraft = { ...DEFAULT_DRAFT, entrants: entrantsFromList(['meta-a.txt', 'meta-a.txt*2', 'b c.txt']), format: 'swiss', top: 4, bestOf: 1 };
+    // the inline code the runner used before the builder
+    const before = (d: EventDraft, bot: string, seed: number) => {
+      const p = new URLSearchParams({ f: 'custom', d: entrantsToList(d.entrants).join(','), fmt: d.format, t: String(d.top), bo: String(d.bestOf), bot, s: String(seed) });
+      if (d.rounds !== 'auto') p.set('r', String(d.rounds));
+      return p.toString();
+    };
+    const drafts: EventDraft[] = [draft, { ...draft, rounds: 6 }, { ...draft, entrants: [] }, { ...draft, format: 'matches', bestOf: 5 }];
+    for (const d of drafts)
+      for (const [bot, seed] of [['hard', 1], ['easy', 2 ** 31 - 1]] as const) expect(draftLinkQuery(d, bot, seed).toString()).toBe(before(d, bot, seed));
+    expect(draftLinkQuery(draft, 'hard', 42).toString()).toBe('f=custom&d=meta-a.txt%2Cmeta-a.txt*2%2Cb+c.txt&fmt=swiss&t=4&bo=1&bot=hard&s=42');
   });
   it('event ids must be recorded events', () => {
     expect(parseEventId('3', [1, 2, 3])).toBe(3);

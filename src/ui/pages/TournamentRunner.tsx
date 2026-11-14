@@ -44,12 +44,12 @@ import {
   draftSetup,
   entrantName,
   entrantsFromList,
-  entrantsToList,
   handSetNames,
   initialSeed,
   planText,
   randomSeed,
   reachedBefore,
+  runnerPool,
   seedAfterStart,
   type EventDraft,
   type SeedChoice,
@@ -57,7 +57,7 @@ import {
 import { defaultThreads, errorText, isStopped } from '../../sim/pool';
 import { download } from '../../lib/download';
 import { usePoolRun } from '../usePoolRun';
-import { parseRunParams, parseRuns, toEvent } from '../runParams';
+import { draftLinkQuery, parseRunParams, parseRuns, toEvent } from '../runParams';
 import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
 import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
@@ -74,18 +74,6 @@ const MAX_RUNS = 6;
 /** The largest seed a setup link carries (parseRunParams). */
 const SEED_LIMIT = 2 ** 31 - 1;
 
-/** Every distinct deck (tournament "-eor" builds share their base deck's main list, so they are skipped). */
-function distinct(lib: readonly LibraryDeck[]) {
-  const seen = new Set<string>();
-  return lib.filter((d) => {
-    if (/-eor\.txt$/.test(d.file)) return false;
-    const sig = [...d.deck.legends].sort().join(',') + '|' + [...d.deck.main].sort().join(',');
-    if (seen.has(sig) || seen.has(`n:${d.deck.name}`)) return false;
-    seen.add(sig);
-    seen.add(`n:${d.deck.name}`);
-    return true;
-  });
-}
 /** The setup link's field presets (f=…), kept so old links still open with their field. */
 function presetFiles(key: FieldKey, pool: readonly LibraryDeck[]): string[] {
   if (key === 'all') return pool.map((d) => d.file);
@@ -155,7 +143,7 @@ interface Pause {
 
 export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const lib = useLib();
-  const pool = useMemo(() => distinct(allDecks()), []);
+  const pool = useMemo(() => runnerPool(allDecks()), []);
   const byFile = useMemo(() => new Map(pool.map((d) => [d.file, d])), [pool]);
   // setup-link params are validated; anything malformed falls back to the defaults
   const params = useMemo(() => parseRunParams(q, BOTS.map((b) => b.key)), [q]);
@@ -310,9 +298,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   };
 
   const shareLink = () => {
-    const p = new URLSearchParams({ f: 'custom', d: entrantsToList(draft.entrants).join(','), fmt: draft.format, t: String(draft.top), bo: String(draft.bestOf), bot, s: String(seed) });
-    if (draft.rounds !== 'auto') p.set('r', String(draft.rounds));
-    const url = `${location.origin}${location.pathname}#/run?${p}`;
+    const url = `${location.origin}${location.pathname}#/run?${draftLinkQuery(draft, bot, seed)}`;
     navigator.clipboard?.writeText(url).catch(() => undefined);
     setLinkMsg('Setup link copied. It carries the entrants and options; pairings, brackets and match lists set by hand are saved with the run instead.');
   };

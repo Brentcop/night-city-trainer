@@ -1,6 +1,7 @@
 // Input checks for the tournament pages: setup-link params (#/run?f=…&r=…), event files opened from disk,
 // runs stored in localStorage, and the ?e= event id. Anything malformed falls back instead of crashing a page.
 import { isEventFormat, type EventFormat, type TourneyEvent } from '../lib/tournament';
+import { entrantsToList, type EventDraft } from '../lib/eventDraft';
 
 const RUN_FIELDS = ['meta', 'ladder', 'top16', 'original', 'guide', 'all', 'custom'] as const;
 export type RunField = (typeof RUN_FIELDS)[number];
@@ -44,6 +45,27 @@ export function parseRunParams(q: URLSearchParams, bots: readonly string[]): Run
     bot: bot && bots.includes(bot) ? bot : null,
     seed: int(q.get('s'), 1, 2 ** 31 - 1),
   };
+}
+
+/**
+ * Write a setup link's query from its parts: the inverse of parseRunParams (parsing the result gives the same parts
+ * back for any parts it can give). A part that is null or 'auto' is left out; an empty deck list is written as `d=`.
+ */
+export function runParamsQuery(p: RunParams): URLSearchParams {
+  const q = new URLSearchParams({ f: p.field });
+  if (p.decks) q.set('d', p.decks.join(','));
+  q.set('fmt', p.format);
+  q.set('t', String(p.top));
+  q.set('bo', String(p.bestOf));
+  if (p.bot !== null) q.set('bot', p.bot);
+  if (p.seed !== null) q.set('s', String(p.seed));
+  if (p.rounds !== 'auto') q.set('r', String(p.rounds));
+  return q;
+}
+
+/** The runner's "Copy setup link" query for a draft, its bot and seed. */
+export function draftLinkQuery(draft: Pick<EventDraft, 'entrants' | 'format' | 'rounds' | 'top' | 'bestOf'>, bot: string, seed: number): URLSearchParams {
+  return runParamsQuery({ field: 'custom', decks: entrantsToList(draft.entrants), format: draft.format, rounds: draft.rounds, top: draft.top, bestOf: draft.bestOf, bot, seed });
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);

@@ -78,6 +78,22 @@ export const DEFAULT_DRAFT: EventDraft = {
 
 // ---------------------------------------------------------------- entrants
 
+/**
+ * The decks the runner offers: every distinct deck in the library. Tournament "-eor" builds share their base deck's main
+ * list, so they are skipped, and of two decks with the same list or the same name only the first is kept.
+ */
+export function runnerPool(lib: readonly LibraryDeck[]): LibraryDeck[] {
+  const seen = new Set<string>();
+  return lib.filter((d) => {
+    if (/-eor\.txt$/.test(d.file)) return false;
+    const sig = [...d.deck.legends].sort().join(',') + '|' + [...d.deck.main].sort().join(',');
+    if (seen.has(sig) || seen.has(`n:${d.deck.name}`)) return false;
+    seen.add(sig);
+    seen.add(`n:${d.deck.name}`);
+    return true;
+  });
+}
+
 /** The event name of an entrant ("Name", "Name #2"); '' when its deck is missing. */
 export const entrantName = (d: Pick<LibraryDeck, 'deck'> | undefined, e: DraftEntrant) => (d ? (e.copy > 1 ? copyName(d.deck.name, e.copy) : d.deck.name) : '');
 

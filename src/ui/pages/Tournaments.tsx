@@ -1,7 +1,8 @@
 // Tournament history: every recorded event, with standings, round results and game replays. Most are Swiss Bo3 + a top-8
 // bracket; events in other formats or with pairings set by hand (src/lib/eventFormats.ts) are marked "custom" and shown
 // in their own shape (round-robin table, match list, bracket without Swiss). Titles here count standard events only.
-import { useEffect, useState } from 'react';
+// An event's header offers "Run this event again" (components/RerunEvent.tsx): the runner opened with its own setup.
+import { useEffect, useMemo, useState } from 'react';
 import index from '../../data/tournaments.json';
 import { arrangedNote, type EventSetup, type GameRec } from '../../lib/tournament';
 import { tierLabel } from '../../ai/tiers';
@@ -11,6 +12,9 @@ import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
 import { Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useLib, short, type MatchView } from '../components/TourneyViews';
 import { RecordedAt } from '../components/RecordedAt';
 import { IfPage } from '../components/SiteChrome';
+import { RerunEvent } from '../components/RerunEvent';
+import { allDecks } from '../../lib/browserLibrary';
+import type { RecordedEvent } from '../eventRerun';
 
 interface EventLite {
   id: number;
@@ -29,7 +33,7 @@ interface EventLite {
   bracket: { name: string; matches: MatchView[] }[];
   standings: { deck: string; mp: number; record: string; games: string; omw: number }[];
 }
-interface EventFull {
+interface EventFull extends RecordedEvent {
   id: number;
   bot: string;
   decks: Record<string, { file: string; legends: string[]; main: string[] }>;
@@ -43,6 +47,7 @@ const I = index as unknown as { updated: string; events: EventLite[] };
 
 export function TournamentsPage({ initial }: { initial?: string }) {
   const lib = useLib();
+  const library = useMemo(() => allDecks(), []);
   // ?e= must name a recorded event; anything else (missing, `abc`, unknown id) opens the latest one
   const [sel, setSel] = useState<number | undefined>(() => parseEventId(initial, I.events.map((e) => e.id)) ?? I.events[I.events.length - 1]?.id);
   const ev = I.events.find((e) => e.id === sel);
@@ -148,6 +153,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
                 <RecordedAt iso={ev.date} prefix=" · recorded " />
               </span>
             </div>
+            {full && <RerunEvent event={full} lib={library} />}
             {full?.setup && arrangedNote(full.setup) && <p className="small muted">{arrangedNote(full.setup)} Its games count for ratings; it is not counted for titles or top 8s.</p>}
             {ev.champion && (
               <Champion
