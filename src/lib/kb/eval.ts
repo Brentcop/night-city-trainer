@@ -277,6 +277,8 @@ const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' 
   floorHits: 'count',
   singleWordTermLinks: 'bool',
   deckPairMatchup: 'bool',
+  deckShortNames: 'bool',
+  statsIntent: 'bool',
   denseWeight: 'weight',
   denseFloor: 'share',
   synonymWeight: 'weight',
@@ -287,7 +289,7 @@ const TUNE_KEYS: Readonly<Record<keyof SearchTuning, 'share' | 'count' | 'bool' 
 /**
  * Parse `key=value,key=value` into search settings (floor, denseFloor: a share from 0 to 1; floorHits: a whole number
  * from 1 to 100; denseWeight, synonymWeight: a number from 0 to 10; singleWordTermLinks, deckPairMatchup,
- * synonymCoverage: true or false; stem: s, light or porter, which needs an index built in that mode). Returns the
+ * deckShortNames, statsIntent, synonymCoverage: true or false; stem: s, light or porter, which needs an index built in that mode). Returns the
  * problem as a string when the text is not valid.
  */
 export function parseTuning(text: string): Partial<SearchTuning> | string {

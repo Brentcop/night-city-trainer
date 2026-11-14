@@ -85,6 +85,8 @@ report them as what the bot did, with the games and interval shown, never as wha
 - `related` prints a record's neighbours grouped by link type (rulings, decks, packages, guides).
 - A question that names the kind of record it wants finds linked records: "rulings on Detonate",
   "decks that play Kiroshi Optics", "game plan for nc-01".
+- A question that names two decks ("static shock against addin' trash") finds their matchup record
+  first. Decks are found without their colour or set codes ("wakako midrange", "smasher aggro").
 
 Running the script directly is about twice as fast (0.8 s against 1.9 s through npm) and is the form to
 use in Windows PowerShell, where `npm run kb -- …` drops flags such as `--event`, `--k` and `--json`:
@@ -115,9 +117,12 @@ Each hit shows its id, title, `[kind · origin · scope · status]`, its version
 
 ## What it cannot answer yet
 
-- `search` shows the card and package statistics records only when the question says "stats",
-  "statistics" or "telemetry" (or names the record, such as `cardstat:<card id>`). "How often is X sold"
-  does not reach them yet: use `fact card` or `fact package`, which always do.
+- `search` reaches the card and package statistics records when a question names the card or package
+  and asks how often, how it went (win rate, chance, help, worth, better), when (early, late), whether it
+  came online or together, or whether the coach may name it; "stats" works too. A question that names
+  only a deck, or asks what a card does, does not reach them. With a list named the way players name it
+  ("wakako midrange") that list's record comes first; with none, the pooled record. About six in ten such
+  questions find their record, so `fact card` / `fact package` remain the exact route.
 - Take a number from `fact` or from a `measured` record, never from a doc passage: docs go stale. Every
   measured record names its bot and sim version; one marked stale was measured under an older version.
 - "Top 8" has two meanings here. `fact` reports real top-cut appearances and the ratings file's count of

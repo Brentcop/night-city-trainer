@@ -5,9 +5,9 @@ import { fingerprintText } from '../src/engine/deck';
 import { bm25Search, buildBm25, coverage } from '../src/lib/kb/bm25';
 import { finishRecord, type RecordDraft } from '../src/lib/kb/build/record';
 import { dossier, neighbours } from '../src/lib/kb/dossier';
-import { buildNameIndex, findNameHits, findNames, lookupName } from '../src/lib/kb/names';
+import { buildNameIndex, deckNameForms, findNameHits, findNames, lookupName, packageNameForms, shortNames } from '../src/lib/kb/names';
 import { capBlocks, LOCAL_LABEL, renderDossierText, renderRecordsJson, renderSearchJson, renderSearchText, snippet, SNIPPET_MAX } from '../src/lib/kb/render';
-import { buildIndex, cuedKinds, deckPairMatchups, fuse, MATCH_FLOOR, RRF_K, search, SEARCH_TUNING } from '../src/lib/kb/search';
+import { buildIndex, cuedKinds, deckPairMatchups, fuse, MATCH_FLOOR, rankExactHits, rankStats, RRF_K, search, SEARCH_TUNING, STAT_WORDS, statKinds } from '../src/lib/kb/search';
 import { slug, tokenize } from '../src/lib/kb/text';
 import { estimateTokens, hashText, kindOfId, recordHash, type KbLink, type KbRecord } from '../src/lib/kb/types';
 
@@ -147,10 +147,10 @@ describe('search', () => {
     expect(search(IX, 'quasar pulsar nebula trash').noMatch).toBe(true);
     expect(search(IX, 'fills trash replays').noMatch).toBe(false);
   });
-  it('keeps the step 1.6 settings at their defaults (none of the three experiments was kept)', () => {
+  it('keeps the measured settings: the step 1.6 ones at their defaults, the step 4.7b deck pair and statistics on', () => {
     // the dense settings (step 4.1) apply only when a search is given a dense index; the stem mode (step 4.7a) is the
-    // index's
-    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' });
+    // index's; deckPairMatchup, deckShortNames and statsIntent were kept after one look each at the held-out questions
+    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: true, deckShortNames: true, statsIntent: true, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' });
     expect([...cuedKinds('which decks are strongest')]).toEqual(['deck', 'rating']);
   });
   it('varies the floor and how many keyword hits may meet it, for experiments', () => {
@@ -179,18 +179,116 @@ describe('search', () => {
     expect(off.hits[0]!.record.id).toBe('term:trash');
     expect(off.hits.find((h) => h.record.id === 'pkg:trash-fill')?.ranks.linked).toBeUndefined();
   });
-  it('can add the matchup of two decks named in the question to the exact list', () => {
+  describe('two decks named together (step 4.7b, kept)', () => {
     const ix = buildIndex([
       rec('deck:alpha-list', 'Alpha List', 'An invented deck.'),
       rec('deck:bravo-list', 'Bravo List', 'Another invented deck.'),
+      rec('deck:charlie-list', 'Charlie List', 'A third invented deck, with no recorded games against the others.'),
       rec('matchup:alpha-list~bravo-list', 'Alpha List vs Bravo List', 'An invented head-to-head.', { links: [{ rel: 'deck', to: 'deck:alpha-list' }, { rel: 'deck', to: 'deck:bravo-list' }] }),
     ]);
-    expect(deckPairMatchups(ix, ['deck:bravo-list', 'deck:alpha-list', 'card:x'])).toEqual(['matchup:alpha-list~bravo-list']);
-    expect(deckPairMatchups(ix, ['deck:alpha-list'])).toEqual([]);
-    const q = 'how does alpha list do against bravo list';
-    // matchups are cue-only: without "vs" or "matchup" the record is not found, unless the setting is on
-    expect(search(ix, q).hits.map((h) => h.record.id)).not.toContain('matchup:alpha-list~bravo-list');
-    expect(search(ix, q, { tuning: { deckPairMatchup: true } }).hits.find((h) => h.record.id === 'matchup:alpha-list~bravo-list')?.ranks.exact).toBe(3);
+    const ids = (q: string, tuning = {}) => search(ix, q, { k: 10, tuning }).hits.map((h) => h.record.id);
+    it('finds the pair in the order named, only for two different decks with a record', () => {
+      expect(deckPairMatchups(ix, ['deck:bravo-list', 'deck:alpha-list', 'card:x'])).toEqual(['matchup:alpha-list~bravo-list']);
+      expect(deckPairMatchups(ix, ['deck:alpha-list'])).toEqual([]);
+      expect(deckPairMatchups(ix, ['deck:alpha-list', 'deck:charlie-list'])).toEqual([]);
+    });
+    it('puts their matchup first whatever the words, and asks for matchups as "vs" does', () => {
+      const q = 'how does alpha list do against bravo list';
+      const r = search(ix, q);
+      expect(r.hits[0]!.record.id).toBe('matchup:alpha-list~bravo-list');
+      expect(r.hits[0]!.ranks.exact).toBe(3);
+      expect(cuedKinds(q).has('matchup')).toBe(false);
+    });
+    it('does not fire for one deck, for two decks with no record, or with the setting off', () => {
+      // matchups are cue-only: without "vs" or "matchup" the record is not found
+      expect(ids('how does alpha list do')).not.toContain('matchup:alpha-list~bravo-list');
+      expect(ids('alpha list or charlie list')).not.toContain('matchup:alpha-list~bravo-list');
+      expect(ids('how does alpha list do against bravo list', { deckPairMatchup: false })).not.toContain('matchup:alpha-list~bravo-list');
+    });
+  });
+  describe('deck short names (step 4.7b, kept)', () => {
+    it("drops the colour code, the front code and a ladder's slashes; only forms of two words or more", () => {
+      expect(deckNameForms('NC-03 Static Shock (BBR)')).toEqual(['NC-03 Static Shock', 'Static Shock']);
+      expect(deckNameForms('RRB Wakako Midrange')).toEqual(['Wakako Midrange']);
+      expect(deckNameForms('Ladder: Smasher / River / Viktor (RYY)')).toEqual(['Ladder: Smasher / River / Viktor', 'Ladder: Smasher River Viktor', 'Smasher / River / Viktor', 'Smasher River Viktor']);
+      expect(deckNameForms('S1-01 Mutant (RRY)')).toEqual(['S1-01 Mutant']);
+      expect(deckNameForms('Samurai')).toEqual([]);
+      expect(deckNameForms("Gear'n'Go")).toEqual([]);
+    });
+    it('uses no form two decks share or another record already holds', () => {
+      const decks = [
+        { id: 'deck:a', title: 'S1-01 Mutant Push (RRY)' },
+        { id: 'deck:b', title: 'S1-02 Mutant Push (RYY)' },
+        { id: 'deck:c', title: 'GGB Iron Choir' },
+      ];
+      // "Mutant Push" names two decks and "Iron Choir" is taken: neither is used
+      expect(shortNames(decks, deckNameForms, (k) => k === 'iron choir')).toEqual([
+        { id: 'deck:a', name: 'S1-01 Mutant Push' },
+        { id: 'deck:b', name: 'S1-02 Mutant Push' },
+      ]);
+    });
+    it('finds a deck by its short name inside a question, and not with the setting off', () => {
+      const ix = buildIndex([...FIXTURE, rec('deck:meta-rrb-quiet-midrange', 'RRB Quiet Midrange', 'An invented deck.')]);
+      expect(rankExactHits(ix, 'is quiet midrange any good', { deckShortNames: true }).map((h) => h.id)).toEqual(['deck:meta-rrb-quiet-midrange']);
+      expect(rankExactHits(ix, 'is quiet midrange any good').map((h) => h.id)).toEqual([]);
+      expect(search(ix, 'is quiet midrange any good').hits[0]!.record.id).toBe('deck:meta-rrb-quiet-midrange');
+      // a card keeps its name: the deck "GGB Iron Choir" would be "Iron Choir", which an alias of a card already is
+      const both = buildIndex([...FIXTURE, rec('deck:ggb-iron-choir', 'GGB Iron Choir', 'An invented deck.')]);
+      expect(rankExactHits(both, 'what does iron choir do', { deckShortNames: true }).map((h) => h.id)).toEqual(['card:nova_vex_b']);
+    });
+  });
+  describe('statistics asked for in everyday words (step 4.7b, kept)', () => {
+    const ix = buildIndex([
+      ...FIXTURE,
+      rec('deck:meta-rrb-quiet-midrange', 'RRB Quiet Midrange', 'An invented deck.', { links: [{ rel: 'card', to: 'card:kilo_byte' }] }),
+      rec('pkg:echo-loop', 'The Echo loop (Kilo Byte)', 'An invented package.', { links: [{ rel: 'card', to: 'card:kilo_byte' }] }),
+      rec('pkg:wait-strike', 'Wait, then strike', 'Another invented package.'),
+      rec('cardstat:kilo_byte', 'Kilo Byte: statistics, lists pooled', 'Invented figures for one card over every list.', { origin: 'measured', links: [{ rel: 'card', to: 'card:kilo_byte' }] }),
+      rec('cardstat:fixture-mill/kilo_byte', 'Kilo Byte on Mirror Mill: statistics', 'Invented figures for one card on one list.', { origin: 'measured', links: [{ rel: 'card', to: 'card:kilo_byte' }, { rel: 'deck', to: 'deck:fixture-mill' }, { rel: 'parent', to: 'cardstat:kilo_byte' }] }),
+      rec('cardstat:meta-rrb-quiet-midrange/kilo_byte', 'Kilo Byte on RRB Quiet Midrange: statistics', 'Invented figures for one card on another list.', { origin: 'measured', links: [{ rel: 'card', to: 'card:kilo_byte' }, { rel: 'deck', to: 'deck:meta-rrb-quiet-midrange' }, { rel: 'parent', to: 'cardstat:kilo_byte' }] }),
+      rec('pkgstat:echo-loop', 'The Echo loop (Kilo Byte): statistics, lists pooled', 'Invented package figures.', { origin: 'measured', links: [{ rel: 'package', to: 'pkg:echo-loop' }] }),
+      rec('pkgstat:wait-strike', 'Wait, then strike: statistics, lists pooled', 'Invented package figures.', { origin: 'measured', links: [{ rel: 'package', to: 'pkg:wait-strike' }] }),
+    ]);
+    const exact = (q: string) => rankExactHits(ix, q, { deckShortNames: true, packageShortNames: true }).map((h) => h.id);
+    const first = (q: string, tuning = {}) => search(ix, q, { tuning }).hits[0]?.record.id;
+    const kinds = (q: string, tuning = {}) => search(ix, q, { k: 20, tuning }).hits.map((h) => h.record.kind);
+    it('finds a package by its title without the bracketed note, a leading "The" or commas', () => {
+      expect(packageNameForms('High Gigs (8+)')).toEqual(['High Gigs']);
+      expect(packageNameForms('The Echo loop (Kilo Byte)')).toEqual(['The Echo loop', 'Echo loop']);
+      expect(packageNameForms('Wait, then strike')).toEqual(['Wait then strike']);
+      expect(packageNameForms('Blockers (Goro Takemura)')).toEqual([]);
+      expect(exact('how often does the echo loop come online')).toEqual(['pkg:echo-loop']);
+      expect(exact('wait then strike: does it come together')).toEqual(['pkg:wait-strike']);
+      expect(rankExactHits(ix, 'wait then strike: does it come together').map((h) => h.id)).toEqual([]);
+    });
+    it('reads the words that ask how something went, never the action words', () => {
+      for (const w of ['often', 'win', 'rate', 'early', 'online', 'coach', 'bot']) expect(STAT_WORDS.has(w), w).toBe(true);
+      for (const w of ['play', 'played', 'attack', 'sell', 'turn', 'game', 'many', 'good']) expect(STAT_WORDS.has(w), w).toBe(false);
+    });
+    it('asks for the named card\'s or package\'s statistics kind only', () => {
+      expect(statKinds(ix, 'how often is kilo byte played', ['card:kilo_byte'])).toEqual(['cardstat']);
+      expect(statKinds(ix, 'how often does the echo loop come online', ['pkg:echo-loop'])).toEqual(['pkgstat']);
+    });
+    it('puts the record for everything named first: the card on the named list, else the pooled record', () => {
+      expect(first('how often is kilo byte played in quiet midrange')).toBe('cardstat:meta-rrb-quiet-midrange/kilo_byte');
+      expect(first('how often is kilo byte played in mirror mill')).toBe('cardstat:fixture-mill/kilo_byte');
+      expect(first('how often is kilo byte played')).toBe('cardstat:kilo_byte');
+      expect(first('how often does the echo loop come online')).toBe('pkgstat:echo-loop');
+      const named = ['card:kilo_byte', 'deck:meta-rrb-quiet-midrange'];
+      expect(rankStats(ix, named, new Set(['cardstat']), [])).toEqual(['cardstat:meta-rrb-quiet-midrange/kilo_byte']);
+      expect(rankStats(ix, ['card:kilo_byte'], new Set(['cardstat']), [])).toEqual(['cardstat:kilo_byte']);
+      // the explicit "stats" word orders them the same way
+      expect(first('kilo byte stats')).toBe('cardstat:kilo_byte');
+    });
+    it('does not fire without a word that asks how it went, for a deck alone, for a rules question, or with the setting off', () => {
+      const stats = (q: string, tuning = {}) => kinds(q, tuning).filter((k) => k === 'cardstat' || k === 'pkgstat');
+      expect(stats('what does kilo byte do')).toEqual([]);
+      expect(stats('can kilo byte attack the turn it is played')).toEqual([]);
+      expect(stats('how often does quiet midrange win')).toEqual([]);
+      expect(statKinds(ix, 'how often does quiet midrange win', ['deck:meta-rrb-quiet-midrange'])).toEqual([]);
+      expect(stats('how often is kilo byte played', { statsIntent: false })).toEqual([]);
+      expect(first('how often does the echo loop come online', { statsIntent: false })).not.toBe('pkgstat:echo-loop');
+    });
   });
 });
 

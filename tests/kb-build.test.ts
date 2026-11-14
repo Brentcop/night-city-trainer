@@ -561,10 +561,18 @@ describe('the real public sources', async () => {
   it('the evidence cells join a search only when it asks for statistics, and are always found by id and as neighbours', () => {
     const ix = buildIndex(a.records);
     const kinds = (q: string) => search(ix, q, { k: 20 }).hits.map((h) => h.record.kind);
-    for (const q of ['Jacked-In Voodoo Boy', 'how often is Jacked-In Voodoo Boy played and how did those games go', 'Rocker Units package win rate'])
-      expect(kinds(q).filter((k) => k === 'cardstat' || k === 'pkgstat'), q).toEqual([]);
+    const cells = (q: string) => kinds(q).filter((k) => k === 'cardstat' || k === 'pkgstat');
+    // not asked for: a name alone, a rules question about a card, a deck with counting words (its rating answers that)
+    for (const q of ['Jacked-In Voodoo Boy', 'can Jacked-In Voodoo Boy attack the turn it is played', 'how often does BBG Cunningham Econ win', 'how many events has GRY Trauma Team won'])
+      expect(cells(q), q).toEqual([]);
     for (const w of ['stat', 'stats', 'statistic', 'statistics', 'telemetry']) expect([...cuedKinds(`Jacked-In Voodoo Boy ${w}`)].sort(), w).toEqual(['cardstat', 'pkgstat']);
     expect(kinds('Jacked-In Voodoo Boy stats')).toContain('cardstat');
+    // asked for in everyday words beside a named card or package (step 4.7b): the record for everything named comes first
+    const top = (q: string) => search(ix, q).hits[0]?.record.id;
+    expect(top('how often is Jacked-In Voodoo Boy played and how did those games go')).toBe('cardstat:jacked_in_voodoo_boy');
+    expect(top('how often does the bot sell Jacked-In Voodoo Boy in Cunningham Econ')).toBe('cardstat:meta-bbg-cunningham-econ/jacked_in_voodoo_boy');
+    expect(top('Rocker Units package win rate')).toBe('pkgstat:rocker');
+    expect(cells('Rocker Units package win rate').every((k) => k === 'pkgstat')).toBe(true);
     expect(lookup(ix, 'cardstat:jacked_in_voodoo_boy').map((r) => r.id)).toEqual(['cardstat:jacked_in_voodoo_boy']);
     expect((ix.edges.get('card:jacked_in_voodoo_boy') ?? []).some((e) => e.other === 'cardstat:jacked_in_voodoo_boy')).toBe(true);
     // the cells are left out of the keyword statistics: the other records score as they would without them

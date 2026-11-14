@@ -5,8 +5,11 @@
 // after the step 1.4 question set showed it helps on held-out questions). Measured records (events, rounds, ratings,
 // matchups; step 2.2) are named inside a question like decks are, and join the keyword and linked lists only when the
 // question asks for their kind (CUE_ONLY_KINDS): kept after the number questions showed it helps on held-out questions.
-// The evidence cells (cardstat, pkgstat; step 2.4) are gated the same way, cued only by "stats", "statistics" and
-// "telemetry".
+// The evidence cells (cardstat, pkgstat; step 2.4) are gated the same way, cued by "stats", "statistics" and
+// "telemetry", and since step 4.7b also by a question that names a card or package and asks how often, how it went,
+// when, or whether the coach may name it (STAT_WORDS, statKinds); the best-matched of them join the exact list
+// (rankStats). Since step 4.7b decks are also found by their short names ("Wakako Midrange", "Static Shock") and
+// packages by theirs ("High Gigs", "Spend then punish"), and two decks named together ask for their matchup.
 // A question with no exact hit whose best keyword hit holds under half of its words is "no match", not the nearest noise.
 // Rung 4, `dense` (step 4.1, dense.ts), runs only when the caller passes a dense index and the question's vector; it is
 // gated like the keyword list and can only lift a "no match" when its best similarity reaches `denseFloor`.
@@ -15,7 +18,7 @@
 // exact names never use it.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
 import { rankDense, type DenseIndex } from './dense';
-import { buildNameIndex, findNameHits, lookupName, type NameHit, type NameIndex } from './names';
+import { buildNameIndex, deckNameForms, findNameHits, lookupName, packageNameForms, shortNames, type NameHit, type NameIndex } from './names';
 import { expandQuestion } from './synonyms';
 import { stem as stemWord, STEM_MODES, words, type StemMode } from './text';
 import { byString, type KbKind, type KbRecord, type KbRel, type KbScope } from './types';
@@ -54,6 +57,12 @@ export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term
  * (answerable questions, paired bootstrap): recall at 5 ±0 [−4.8, +4.8] points and MRR at 10 −0.002 [−0.043, +0.041]
  * with all records; public only +2.9 [0, +7.4] and −0.002 [−0.049, +0.047]. Could not tell: `stem` stays `s`, and
  * `light` and `porter` stay available for `--tune stem=…`.
+ * Step 4.7b (fresh blind questions q227–q286; one look at `test` each, answerable questions with all records, paired
+ * bootstrap). Deck pair: deckShortNames with deckPairMatchup (revised to also cue matchups) was kept: recall at 5
+ * +5.6 points [+1.9, +10.2], MRR at 10 +0.066 [+0.025, +0.114]; number questions +31.6 [+10.5, +52.6]; no type
+ * worse; wrongly refused 6 to 5. Statistics: statsIntent was kept, measured on top of the deck pair: recall at 5
+ * +9.3 [+3.7, +15.7], MRR +0.093 [+0.037, +0.157]; statistics questions 0 to 10 of 16 (each one first); every other
+ * type and the ten "counting words, other answer" questions unchanged; refusals unchanged.
  */
 export interface SearchTuning {
   /** the "no match" floor: without an exact hit, the share of the question's words a keyword hit must hold (MATCH_FLOOR) */
@@ -62,8 +71,20 @@ export interface SearchTuning {
   floorHits: number;
   /** expand links from a glossary term named by a single word of the question (the hit still counts as exact) */
   singleWordTermLinks: boolean;
-  /** when the question names two different decks, their matchup record (if there is one) joins the exact list */
+  /**
+   * when the question names two different decks that have a matchup record, that record joins the exact list and the
+   * question counts as asking for matchups (KIND_CUES 'vs'), so the matchup records join the keyword and linked lists
+   */
   deckPairMatchup: boolean;
+  /** decks are also found by the short names players use (names.ts deckNameForms: "Wakako Midrange", "Static Shock") */
+  deckShortNames: boolean;
+  /**
+   * statistics wanted without the word "stats" (step 4.7b): packages are also found by their short names
+   * (names.ts packageNameForms); a question that names a card or package and holds a word of STAT_WORDS cues that card's
+   * or package's statistics kind; and the statistics records linked to what the question names lead the exact list's
+   * cued records (rankStats)
+   */
+  statsIntent: boolean;
   /** the dense list's weight in the fusion (used only when a dense index is passed) */
   denseWeight: number;
   /** without an exact hit or a keyword hit over the floor, a best dense similarity at least this high still answers */
@@ -79,7 +100,7 @@ export interface SearchTuning {
   stem: StemMode;
 }
 
-export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: false, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' };
+export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: true, deckShortNames: true, statsIntent: true, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' };
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -92,6 +113,10 @@ export interface KbIndex {
   records: readonly KbRecord[];
   byId: Map<string, KbRecord>;
   names: NameIndex;
+  /** the decks' short names only (names.ts deckNameForms), for the phrase scan when SearchTuning.deckShortNames is on */
+  deckNames: NameIndex;
+  /** the packages' short names only (names.ts packageNameForms), for the phrase scan when SearchTuning.statsIntent is on */
+  packageNames: NameIndex;
   bm25: Bm25Index;
   edges: Map<string, Edge[]>;
 }
@@ -114,7 +139,10 @@ export function buildIndex(records: readonly KbRecord[], o: { stem?: StemMode } 
     }
   const kindOf = new Map(sorted.map((r) => [r.id, r.kind]));
   const inStats = (d: { id: string }) => !STATS_FREE_KINDS.includes(kindOf.get(d.id)!);
-  return { records: sorted, byId, names: buildNameIndex(sorted), bm25: buildBm25(sorted, mode, { inStats }), edges };
+  const names = buildNameIndex(sorted);
+  const taken = (key: string) => names.byName.has(key);
+  const extra = (kind: KbKind, forms: (title: string) => string[]) => buildNameIndex(shortNames(sorted.filter((r) => r.kind === kind), forms, taken).map((s) => ({ id: s.id, title: s.name })));
+  return { records: sorted, byId, names, deckNames: extra('deck', deckNameForms), packageNames: extra('package', packageNameForms), bm25: buildBm25(sorted, mode, { inStats }), edges };
 }
 
 /** The records named `q` exactly (id, title or alias). */
@@ -176,8 +204,9 @@ export function rankExact(ix: KbIndex, q: string): string[] {
 }
 
 /** rankExact, with how many words of the question named each record. */
-export function rankExactHits(ix: KbIndex, q: string): NameHit[] {
-  return findNameHits(ix.names, q, (id) => PHRASE_KINDS.includes(ix.byId.get(id)!.kind));
+export function rankExactHits(ix: KbIndex, q: string, o: { deckShortNames?: boolean; packageShortNames?: boolean } = {}): NameHit[] {
+  const sets = [ix.names, ...(o.deckShortNames ? [ix.deckNames] : []), ...(o.packageShortNames ? [ix.packageNames] : [])];
+  return findNameHits(sets, q, (id) => PHRASE_KINDS.includes(ix.byId.get(id)!.kind));
 }
 
 /** The matchup records of every two different decks among `ids` (in the order the decks were named), when there is one. */
@@ -238,8 +267,8 @@ export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
   versus: ['matchup'],
   head: ['matchup'],
   // step 2.4: the evidence cells, only by words that no earlier question uses for anything else ("stats" and
-  // "statistics" reach these keys with their plural stripped). Broader words ("played", "sold", "rate") would be a
-  // ranking change, to be measured on questions written blind.
+  // "statistics" reach these keys with their plural stripped). Broader words cue them only beside a named card or
+  // package (STAT_WORDS, statKinds; step 4.7b, measured on questions written blind).
   stat: ['cardstat', 'pkgstat'],
   statistic: ['cardstat', 'pkgstat'],
   telemetry: ['cardstat', 'pkgstat'],
@@ -259,6 +288,59 @@ export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', '
  * kinds stay counted: leaving them out too would be a ranking change, to be measured first (rule M9).
  */
 export const STATS_FREE_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
+
+/**
+ * Words that ask how something went in the bot's games (step 4.7b, SearchTuning.statsIntent), read from the plain mode
+ * `s` tokens. Grouped by what the statistics records measure: how often (frequency), how it went (outcome), when
+ * (stage), whether a package came together (assembly), whether the coach may name it (the coach's gate), and words
+ * that name the source (the bot's own games). Action words ("play", "attack", "sell", "turn") are left out: rules and
+ * card questions use them about what a card does.
+ */
+export const STAT_WORDS: ReadonlySet<string> = new Set([
+  // frequency
+  'often', 'usually', 'mostly', 'typically', 'frequently', 'rarely',
+  // outcome
+  'win', 'won', 'winning', 'rate', 'chance', 'result', 'lift', 'improve', 'help', 'worth', 'difference', 'better', 'worse', 'matter',
+  // stage
+  'early', 'late',
+  // assembly
+  'online', 'together', 'assembled',
+  // the coach's gate, the source, and the words that already cue these kinds
+  'coach', 'bot', 'stat', 'statistic', 'telemetry',
+]);
+
+/**
+ * The statistics kinds a question asks for without saying "stats" (SearchTuning.statsIntent): `cardstat` when it names
+ * a card and `pkgstat` when it names a package, and only when it also holds a word of STAT_WORDS. A question naming
+ * only decks, rules or terms never asks for them this way.
+ */
+export function statKinds(ix: KbIndex, query: string, exact: readonly string[]): KbKind[] {
+  if (!words(query).some((w) => STAT_WORDS.has(stemWord(w, 's')))) return [];
+  const named = new Set(exact.map((id) => ix.byId.get(id)!.kind));
+  return [...(named.has('card') ? (['cardstat'] as const) : []), ...(named.has('package') ? (['pkgstat'] as const) : [])];
+}
+
+/**
+ * The statistics records of the cued kinds that best match what the question names: among those linked to a card or
+ * package it names, the ones linked to the most of what it names (the card and the deck, the package and the deck);
+ * at equal count the pooled record (no deck) before a list's; ties of both are all returned, by keyword score, then id.
+ */
+export function rankStats(ix: KbIndex, exact: readonly string[], kinds: ReadonlySet<KbKind>, keyword: readonly Scored[]): string[] {
+  const score = new Map(keyword.map((s) => [s.id, s.score]));
+  const named = new Set(exact.filter((id) => ['card', 'package', 'deck'].includes(ix.byId.get(id)!.kind)));
+  const found = new Set<string>();
+  for (const id of named) {
+    const kind = ix.byId.get(id)!.kind;
+    if (kind === 'deck') continue;
+    for (const e of ix.edges.get(id) ?? []) if (kinds.has(ix.byId.get(e.other)!.kind)) found.add(e.other);
+  }
+  const links = (id: string) => ix.byId.get(id)!.links.map((l) => l.to);
+  const covers = (id: string) => links(id).filter((to) => named.has(to)).length;
+  const pooled = (id: string) => (links(id).some((to) => to.startsWith('deck:')) ? 0 : 1);
+  const sorted = [...found].sort((a, b) => covers(b) - covers(a) || pooled(b) - pooled(a) || (score.get(b) ?? 0) - (score.get(a) ?? 0) || byString(a, b));
+  const top = sorted[0];
+  return top === undefined ? [] : sorted.filter((id) => covers(id) === covers(top) && pooled(id) === pooled(top));
+}
 
 /** The kinds a question asks for by name (read from the plain, mode `s` tokens whatever the index's stem mode). */
 export function cuedKinds(q: string): Set<KbKind> {
@@ -291,7 +373,14 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   if (o.tuning?.stem !== undefined && o.tuning.stem !== ix.bm25.stem) throw new Error(`this index folds word forms with stem mode ${ix.bm25.stem}, not ${o.tuning.stem}: build one with buildIndex(records, { stem: '${o.tuning.stem}' })`);
   const t: SearchTuning = { ...SEARCH_TUNING, ...o.tuning, stem: ix.bm25.stem };
   const use = new Set<Ranker>(o.rankers ?? DEFAULT_RANKERS);
+  const exactHits = use.has('exact') || use.has('linked') ? rankExactHits(ix, query, { deckShortNames: t.deckShortNames, packageShortNames: t.statsIntent }) : [];
+  const exact = exactHits.map((h) => h.id);
+  const pairs = t.deckPairMatchup ? deckPairMatchups(ix, exact) : [];
   const cued = cuedKinds(query);
+  // two decks named together ask for their matchup, whatever the words (step 4.7b): as if the question said "vs"
+  if (pairs.length) cued.add('matchup');
+  // a question naming a card or package with a word of STAT_WORDS asks for its statistics (step 4.7b)
+  if (t.statsIntent) for (const kind of statKinds(ix, query, exact)) cued.add(kind);
   const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
   const plain = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
   // the synonym table (step 4.6): only the keyword list and the floor read it
@@ -299,16 +388,18 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   const raw = t.synonymWeight > 0 || t.synonymCoverage ? words(query) : [];
   const syn = t.synonymWeight > 0 || t.synonymCoverage ? expandQuestion(raw.map((w) => stemWord(w, 's')), t.stem, raw.map((w) => stemWord(w, t.stem))) : undefined;
   const keyword = use.has('keyword') && syn?.terms.length && t.synonymWeight > 0 ? bm25Search(ix.bm25, query, { terms: syn.terms, weight: t.synonymWeight }).filter((s) => !gated(s.id)) : plain;
-  const exactHits = use.has('exact') || use.has('linked') ? rankExactHits(ix, query) : [];
-  const exact = exactHits.map((h) => h.id);
   const from = t.singleWordTermLinks ? exact : exactHits.filter((h) => !(h.words === 1 && ix.byId.get(h.id)!.kind === 'term')).map((h) => h.id);
   const lists: Partial<Record<Ranker, string[]>> = {};
   const linked = use.has('linked') ? rankLinked(ix, exact, plain, cued, from).filter((id) => !gated(id)) : [];
   // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
   // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
   const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));
-  const pairs = t.deckPairMatchup ? deckPairMatchups(ix, exact) : [];
-  if (use.has('exact')) lists.exact = [...exact, ...pairs, ...asked].slice(0, RANK_DEPTH);
+  const statsCued = new Set(STATS_FREE_KINDS.filter((kind) => cued.has(kind)));
+  const stats = t.statsIntent && statsCued.size && use.has('linked') ? rankStats(ix, exact, statsCued, plain) : [];
+  // the best-matched statistics records stand for their kind in the exact list; their siblings (the same card on other
+  // lists) are left to the linked and keyword lists
+  const rest = stats.length ? asked.filter((id) => !statsCued.has(ix.byId.get(id)!.kind)) : asked;
+  if (use.has('exact')) lists.exact = [...new Set([...exact, ...pairs, ...stats, ...rest])].slice(0, RANK_DEPTH);
   if (use.has('linked')) lists.linked = linked.slice(0, RANK_DEPTH);
   if (use.has('keyword')) lists.keyword = keyword.slice(0, RANK_DEPTH).map((s) => s.id);
   // the dense list scans every vector; gated kinds are left out before the cut to RANK_DEPTH, as in the keyword list

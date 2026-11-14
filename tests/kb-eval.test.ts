@@ -157,6 +157,7 @@ describe('search settings for experiments (--tune)', () => {
   it('reads key=value pairs and refuses anything else', () => {
     expect(parseTuning('floor=0.34,floorHits=3,singleWordTermLinks=false,deckPairMatchup=true')).toEqual({ floor: 0.34, floorHits: 3, singleWordTermLinks: false, deckPairMatchup: true });
     expect(parseTuning('floor=1')).toEqual({ floor: 1 });
+    expect(parseTuning('deckShortNames=false,statsIntent=false')).toEqual({ deckShortNames: false, statsIntent: false });
     for (const bad of ['', 'floor', 'floor=1.5', 'floor=-1', 'floorHits=0', 'floorHits=2.5', 'singleWordTermLinks=yes', 'speed=3', 'floor=0.4,floor=0.3']) expect(typeof parseTuning(bad), bad).toBe('string');
   });
 });

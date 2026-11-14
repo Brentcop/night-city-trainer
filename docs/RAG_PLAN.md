@@ -134,7 +134,8 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.2–4.5 | Reranker, related lists, drafted notes, long-context baseline | waiting: D3, D4, and fresh held-out questions | |
 | 4.6 | A small domain synonym table applied to the question | done: kept, part of the default search | 2026-11-13 |
 | 4.7a | Folding word forms in the keyword ranker ("flipping", "triggered", "abilities") | done: could not tell, not kept; opt-in | 2026-11-13 |
-| 4.7b | Wordings that should reach the statistics records, and questions naming two decks; then described mechanics, decks by description, long questions | in progress: 60 blind questions written, experiment next | |
+| 4.7b | Wordings that should reach the statistics records, and questions naming two decks | done: both kept, part of the default search | 2026-11-14 |
+| 4.7c | What is left of the paraphrase misses: things asked for by description, long questions, a guard for short names | next (needs fresh questions for the parts already looked at) | |
 | 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | done | 2026-11-14 |
 | 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
 | 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
@@ -475,6 +476,36 @@ the decision (keep, drop, could not tell) and its cost.
     the first five, because the new two-deck questions are mostly missed.
   - Caveat: the writer's required reading (the agent skill and §6 here) said which words reach the
     statistics records today. It reports writing naturally without steering; one question says "stats".
+  - Experiment A, two decks (kept). Diagnosis on `dev`: players name decks without their codes ("static
+    shock", "wakako midrange", "smasher river viktor ladder deck"), so the deck was not recognised; and a
+    matchup that was found came fourth. Built: deck short names (`deckNameForms` in `names.ts`: the
+    colour code and the front code dropped, two words or more, never a form two decks share or one that
+    is already another record's name), and two named decks now count as asking for their matchup.
+    One look, held-out answerable (108): first five 52.8% to 58.3%, +5.6 points [+1.9, +10.2]; MRR
+    +0.066 [+0.025, +0.114]; number questions +31.6 points [+10.5, +52.6]; no type worse.
+  - Experiment B, statistics wording (kept, measured on top of A). Built: a question that names a card
+    or a package and holds an everyday word for how it went (`STAT_WORDS`: often, usually, win, rate,
+    chance, help, worth, better, early, late, online, together, coach, bot and a few more) asks for
+    that card's or package's statistics. Action words (play, attack, sell) are left out on purpose, and
+    a deck alone never fires it. The record linked to most of what the question names comes first: the
+    list's record when a list is named, else the pooled one. Packages are also found by short names
+    ("high gigs", "spend then punish"). One look: first five 58.3% to 67.6%, +9.3 points [+3.7, +15.7];
+    MRR +0.093 [+0.037, +0.157]; statistics questions 0 to 10 of 16, each found one in first place;
+    every other type and the ten "counting words, other answer" questions unchanged.
+  - Read the statistics result with care: the word list was chosen on 24 `dev` questions, where it
+    reaches 79%; held out it reaches 62%. The six held-out misses are not in the first ten at all.
+  - Known side effect of the short names: "Trauma Team" is now a deck's short name and also the start
+    of a card's name, so "what does trauma team operative do" gets the deck first and the card second.
+    It is the only one of the deck short names that begins another record's name. A guard ("a short
+    name that begins a card's name is not used") is a candidate for the next round; it was not added
+    after the look, because a change after the look is not a measured change.
+  - Found on the way: a name with a comma can never be found inside a question (the question's commas
+    are stripped, the name's are kept). Packages are covered by their comma-free short forms; cards,
+    terms and rule titles with a comma are not. Decks named by a file nickname ("ripbecca") are not
+    recognised either.
+  - Still open in 4.7b: packages asked for by description ("filling the trash with units"), outcome
+    words outside the list ("any good"), a possessive after a deck name ("samurai's"), and the earlier
+    items: described mechanics, decks by description, long questions.
 
 ### Step 5. Exact reuse in game tools
 
@@ -585,7 +616,14 @@ and look alike, so they join the keyword and linked lists only when the question
 (`KIND_CUES`, `CUE_ONLY_KINDS` in `search.ts`); named exactly they are always found. The two statistics
 kinds are also left out of the keyword ranker's word counts (`STATS_FREE_KINDS`), so adding more of them
 cannot move the ranking of anything else. The four older kinds are still counted: changing that would be
-a ranking change, to be measured first.
+a ranking change, to be measured first. Since step 4.7b two more things count as asking: two decks named
+together ask for their matchup (`deckPairMatchup`), and a card or package named beside an everyday word
+for how it went asks for its statistics (`STAT_WORDS`, `statKinds`, `rankStats`).
+
+**Short names (step 4.7b)**: a deck is also found by its title without the colour and set codes
+("Wakako Midrange" for "RRB Wakako Midrange"), and a package without its bracketed note, a leading "The"
+or commas ("High Gigs", "Spend then punish"). A short form needs two words, must belong to one record
+only, and is not used when it is already another record's name (`shortNames` in `names.ts`).
 
 **Local pack**: `.cache/kb/records.jsonl` (one record per line, sorted by id) and `.cache/kb/manifest.json`
 (`kind: 'nct-kb'`, schema 1, a builder number, counts by kind and scope, a hash per input file, the rules,
@@ -678,6 +716,9 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Coach answer for a position already answered (Node, 21 positions) | computed 73 ms (median), remembered 0.8 ms; about 28 KB of memory per remembered answer, 32 kept | step 5.1 |
 | 2026-11-14 | New baseline, 286 questions (60 new: statistics, counting words, two decks). Held-out answerable (108), all records: default search | top 1: 29%, top 5: 53%, top 10: 59%, MRR 0.39; 6 of 108 wrongly refused; 1 of 7 unanswerable refused | step 4.7b |
 | 2026-11-14 | Same baseline, top 5 by type on the held-out split | entity 100%, cross 90%, dev 82%, rules 50%, number 47%, paraphrase 46%, statistics 0% (of 16) | step 4.7b |
+| 2026-11-14 | Default search after both 4.7b experiments. Held-out answerable (108), all records | top 1: 45%, top 5: 68%, top 10: 74%, MRR 0.55; 5 of 108 wrongly refused; 1 of 7 unanswerable refused. Public only (92): top 5 71%, MRR 0.61 | step 4.7b |
+| 2026-11-14 | Same, top 5 by type on the held-out split | entity 100%, cross 90%, dev 82%, number 79%, statistics 62% (10 of 16), rules 50%, paraphrase 46% | step 4.7b |
+| 2026-11-14 | Cost of the two mechanisms | about 96 lines of code; search time per question unchanged (mean 2.3 ms in process); mean answer 506 to 526 tokens | step 4.7b |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -692,6 +733,8 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-13 | Embeddings find paraphrased questions that keywords miss, and help refuse the unanswerable | A dense ranker (bge-small-en-v1.5, quantized) fused at weight 0.5, with a similarity floor of 0.75 | Recall at 5: +5.6 points [−1.8, +14.8]; MRR +0.049 [−0.008, +0.108] on the planned look, +0.055 [+0.002, +0.113] on a second; paraphrase 50% to 40%; rules MRR +0.185 [+0.046, +0.333]; refusals unchanged | Not kept in the default. Two looks; the gain is in rules, not where it was predicted |
 | 2026-11-13 | Paraphrased questions miss because players use other words than the records | A 41-entry synonym table expands the question for the keyword ranker and the "no match" floor | Recall at 5: +4.5 points [0.0, +10.6]; MRR +0.027 [+0.005, +0.058]; paraphrase recall at 5 32% to 45%, MRR +0.082 [+0.018, +0.159]; other types unchanged; refusals unchanged | Kept. One look, on questions written before the table by an agent that did not know of it |
 | 2026-11-13 | Word forms keep questions and records apart ("flipping" and "flip") | The Porter stemmer for the keyword ranker, in records and questions alike | Recall at 5: ±0.0 [−4.8, +4.8]; MRR −0.002 [−0.043, +0.041]; on `dev` it had been +3.2 points [0, +7.2] | Not kept: could not tell. One look, on the split refreshed with fifty blind questions |
+| 2026-11-14 | A question naming two decks wants their matchup, whatever words it uses (retest with more questions) | Decks found by the short names players use; two named decks with a matchup record count as asking for matchups | Recall at 5: +5.6 points [+1.9, +10.2]; MRR +0.066 [+0.025, +0.114]; number questions +31.6 points [+10.5, +52.6]; no type worse; wrongly refused 6 to 5 | Kept. One look, rule written before it, on questions written blind |
+| 2026-11-14 | A question naming a card or package and asking how it went wants its statistics record | Everyday words for frequency, outcome, stage, assembly and the coach cue the statistics kinds beside a named card or package; the record linked to most of what is named leads | Recall at 5: +9.3 points [+3.7, +15.7]; MRR +0.093 [+0.037, +0.157]; statistics questions 0 to 10 of 16; every other type and the "counting words, other answer" questions unchanged | Kept. One look, measured on top of the row above. The word list was chosen on `dev` (79% there, 62% held out) |
 
 ## 8. Decisions and stopgaps
 
@@ -803,3 +846,7 @@ while the tournament index and the finish chips use the real cut, so five decks 
 - 2026-11-14: sixty questions joined the question set (286 now, 115 held out), written blind for the
   next experiment: statistics of cards and packages, counting words that mean something else, and two
   decks meeting. The search answers almost none of the statistics questions yet, which is the point.
+- 2026-11-14: step 4.7b ran two experiments, one look each, and both were kept. A question naming two
+  decks now finds their matchup first, and decks are found by the names players use. A question naming a
+  card or package and asking how it went now finds its statistics. Held-out questions in the first five
+  went from 53% to 68%. Three looks have now been taken on the split refreshed on 2026-11-13.

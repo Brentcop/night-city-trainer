@@ -26,7 +26,9 @@
 //   --seed N           bootstrap seed (default 1; 2,000 resamples, 95% percentile interval)
 //   --tune k=v,…       experiments only: run the search with other settings than SEARCH_TUNING (src/lib/kb/search.ts):
 //                      floor=0.4 (the "no match" share), floorHits=3 (the floor is met by any of the first N keyword
-//                      hits), singleWordTermLinks=false, deckPairMatchup=true, denseWeight=2 (the dense list's fusion
+//                      hits), singleWordTermLinks=false, deckPairMatchup=false and deckShortNames=false (two decks named
+//                      together ask for their matchup; decks found by short names; step 4.7b, on by default),
+//                      statsIntent=false (everyday words reach the statistics records; step 4.7b, on), denseWeight=2 (the dense list's fusion
 //                      weight), denseFloor=0.75 (the best dense similarity that still answers without an exact or keyword
 //                      hit over the floor), synonymWeight=1 (the weight of the synonym table's added terms, step 4.6),
 //                      synonymCoverage=true (the table's terms hold a question word for the floor), stem=light (how the
