@@ -29,6 +29,7 @@ import { pageOn } from '../../lib/siteConfig';
 import { useSiteConfig } from '../useSiteConfig';
 import { IfPage } from '../components/SiteChrome';
 import { CardMention, MentionText } from '../components/CardMention';
+import { DeckEvidencePanel } from '../components/evidence/DeckEvidencePanel';
 
 const S = SEASONS;
 
@@ -246,6 +247,13 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
               🔧 Tune in Deck Lab
             </a>
             </IfPage>
+            {!saved && (
+              <IfPage path="evidence">
+                <a className="btn" href={`#/evidence?d=${enc}`}>
+                  ⚖ Evidence
+                </a>
+              </IfPage>
+            )}
             <a className="btn" href={`#/decks?d=${enc}`}>
               ✎ Edit / Export
             </a>
@@ -268,6 +276,12 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
       </div>
 
       <GamePlanPanel d={d} lib={lib} />
+
+      {!saved && (
+        <IfPage path="evidence">
+          <DeckEvidencePanel file={d.file} />
+        </IfPage>
+      )}
 
       <DeckSynergies deck={d.deck} named={objectiveFor(d.file, d.deck)?.note.synergies} />
 

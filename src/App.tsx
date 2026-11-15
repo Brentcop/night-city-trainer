@@ -86,6 +86,7 @@ const DeckLabPage = lazy(() => import('./ui/pages/DeckLab').then((m) => ({ defau
 const ProfilePage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfilePage })));
 const ProfileViewPage = lazy(() => import('./ui/pages/Profile').then((m) => ({ default: m.ProfileViewPage })));
 const SearchPage = lazy(() => import('./ui/pages/Search').then((m) => ({ default: m.SearchPage })));
+const EvidencePage = lazy(() => import('./ui/pages/Evidence').then((m) => ({ default: m.EvidencePage })));
 const AdminPage = lazy(() => import('./ui/pages/Admin').then((m) => ({ default: m.AdminPage })));
 
 /** `sub` is the rest of the path after the route's own (`#/profile/history` → 'history'); most pages ignore it. */
@@ -95,6 +96,7 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'tuned', label: 'Tuned decks', el: () => <TunedDecksPage /> },
   { path: 'lab', label: 'Deck Lab', el: (q) => <DeckLabPage q={q} /> },
   { path: 'deck', label: 'Deck', el: (q) => <DeckProfilePage file={q.get('d') ?? undefined} /> },
+  { path: 'evidence', label: 'Evidence', el: (q, sub) => <EvidencePage sub={sub} q={q} /> },
   { path: 'play', label: 'Play vs Bot', el: (q, sub) => <PlayPage initialDeck={q.get('d') ?? undefined} initialOpp={q.get('o') ?? undefined} initialTier={q.get('tier') ?? undefined} sub={sub} mode={q.get('mode')} /> },
   { path: 'tournaments', label: 'Events', el: (q) => <TournamentsPage initial={q.get('e') ?? undefined} /> },
   { path: 'run', label: 'Run a tournament', el: (q) => <TournamentRunnerPage q={q} /> },
@@ -115,8 +117,8 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'admin', label: 'Site config', el: () => <AdminPage /> },
 ];
 
-/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`, `#/play/join/<invite>`, `#/tutorial/<lesson>`); every other route matches its path exactly. */
-const NESTED = new Set(['profile', 'u', 'play', 'tutorial']);
+/** Routes whose pages take a sub-path (`#/profile/history`, `#/u/<payload>`, `#/play/join/<invite>`, `#/tutorial/<lesson>`, `#/evidence/<list>`); every other route matches its path exactly. */
+const NESTED = new Set(['profile', 'u', 'play', 'tutorial', 'evidence']);
 
 /** The top tabs and their pages are in the site config (visibleNav in src/lib/siteConfig.ts). */
 

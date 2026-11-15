@@ -406,11 +406,13 @@ export const botName = (bot: string): string => BOT_NAMES[bot] ?? bot;
  * "[F:9f3a2c1d] −1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon adds to S2-05 Counter (RRG) (+1.2 pts
  * [−0.1, +2.5], 6,112 games, Medium v8)". The claim comes from src/lib/findingWords.ts (citeOf joins the two).
  */
-export function citeLine(f: Pick<Finding, 'short' | 'kind' | 'estimate' | 'lower' | 'upper' | 'games' | 'bot' | 'simVersion'>, claim: string): string {
+export function citeLine(f: Pick<Finding, 'short' | 'kind' | 'estimate' | 'lower' | 'upper' | 'games' | 'bot' | 'simVersion'> & { method?: Method }, claim: string): string {
   const u = unitOf(f.kind);
   const v = (x: number) => (u === 'rate' ? formatValue(x, u) : formatValue(x, u, { bare: true }));
   const est = formatValue(f.estimate, u);
-  return `[F:${f.short}] ${claim} (${est} [${v(f.lower)}, ${v(f.upper)}], ${thousands(f.games)} games, ${botName(f.bot)} v${f.simVersion})`;
+  // a ratings-based matchup rests on the ratings: its games are the direct ones, and the line says so
+  const games = f.kind === 'matchup' && f.method === 'shrunk' ? `from the ratings, ${thousands(f.games)} direct game${f.games === 1 ? '' : 's'}` : `${thousands(f.games)} games`;
+  return `[F:${f.short}] ${claim} (${est} [${v(f.lower)}, ${v(f.upper)}], ${games}, ${botName(f.bot)} v${f.simVersion})`;
 }
 
 // ---------------------------------------------------------------- the files (public/data/evidence/)
@@ -584,7 +586,8 @@ export interface EvidenceIndex {
   kind: typeof EVIDENCE_INDEX_KIND;
   schema: 1;
   simVersion: number;
-  decks: { file: string; deck: string; listId: string; path: string; findings: number; counts: Record<Strength, number>; stale: number; runs: number; runsPath: string | null }[];
+  /** `strength` is the deck's deck-strength finding (null when it has no rating), so the overview states it without the deck files */
+  decks: { file: string; deck: string; listId: string; path: string; findings: number; strength: FindingRef | null; counts: Record<Strength, number>; stale: number; runs: number; runsPath: string | null }[];
   top: TopList[];
   health: ToolHealth[];
   /** the rules the builder used, with their measured figures */

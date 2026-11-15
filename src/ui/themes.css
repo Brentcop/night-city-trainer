@@ -182,3 +182,31 @@
 .pb-gig-preview {
   background: var(--pb-gig-bg, var(--panel-2));
 }
+
+/* ===== Evidence page (src/ui/evidence.css): how strong a finding is, its nature, and the finding a link points at.
+   Derived from the theme tokens, so each theme gets its own; text on them is always --text or --muted (the colours
+   mark edges, meters and range bands, never the words, so nothing is told by colour alone). */
+:root {
+  --ev-strong: var(--cyan);
+  --ev-strong-bg: color-mix(in srgb, var(--cyan) 14%, var(--panel));
+  --ev-moderate: color-mix(in srgb, var(--cyan) 55%, var(--muted));
+  --ev-moderate-bg: color-mix(in srgb, var(--cyan) 6%, var(--panel));
+  --ev-weak: var(--muted);
+  --ev-faint: color-mix(in srgb, var(--muted) 45%, transparent);
+  --ev-result: var(--blue);
+  --ev-effect: var(--green);
+  --ev-assoc: var(--magenta);
+  --ev-above: var(--green);
+  --ev-below: var(--red);
+  --ev-target: var(--accent);
+  --ev-target-bg: color-mix(in srgb, var(--accent-bg) 16%, var(--panel));
+  --ev-stale-bg: color-mix(in srgb, var(--muted) 7%, var(--panel));
+  --ev-screen-bg: color-mix(in srgb, var(--muted) 10%, var(--panel));
+}
+:root[data-theme='dark'] {
+  --ev-strong-bg: color-mix(in srgb, var(--cyan) 20%, var(--panel));
+  --ev-moderate-bg: color-mix(in srgb, var(--cyan) 9%, var(--panel));
+  --ev-target-bg: color-mix(in srgb, var(--accent-bg) 10%, var(--panel));
+  --ev-stale-bg: color-mix(in srgb, var(--muted) 9%, var(--panel));
+  --ev-screen-bg: color-mix(in srgb, var(--muted) 12%, var(--panel));
+}

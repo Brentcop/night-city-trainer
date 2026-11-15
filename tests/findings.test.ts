@@ -213,6 +213,13 @@ describe('words', () => {
     );
     const whole = { ...f, id: '9f3a2c1d00000000', question: 'q', nature: 'effect', claim: 'c', subject, level: 0.95, baseline: 0, n: 6112, method: 'paired', field: 'f', sources: [], family: { key: 'k', size: 1, correction: 'none' }, corrected: true, strength: 'moderate', flags: [] } as Finding;
     expect(citeOf(whole)).toBe('[F:9f3a2c1d] c (+1.2 pts [−0.1, +2.5], 6,112 games, Medium v8)');
+    // a ratings-based matchup rests on the ratings: its games are the direct ones, and the line says so
+    expect(citeLine({ ...f, kind: 'matchup', method: 'shrunk', estimate: 0.489, lower: 0.344, upper: 0.637, games: 2, bot: 'hard', simVersion: 9 }, 'A against B: expected win rate')).toBe(
+      '[F:9f3a2c1d] A against B: expected win rate (48.9% [34.4%, 63.7%], from the ratings, 2 direct games, Hard v9)',
+    );
+    expect(citeLine({ ...f, kind: 'matchup', method: 'direct-games', estimate: 0.645, lower: 0.577, upper: 0.708, games: 200, bot: 'deep', simVersion: 9 }, 'A against B: win rate in their direct games')).toBe(
+      '[F:9f3a2c1d] A against B: win rate in their direct games (64.5% [57.7%, 70.8%], 200 games, Deep v9)',
+    );
     expect(sentenceOfFinding({ ...whole, strength: 'weak' })).toBe('Reads +1.2 pts (95% range −0.1 pts to +2.5 pts, 6,112 paired games); the interval still includes no difference.');
   });
 });

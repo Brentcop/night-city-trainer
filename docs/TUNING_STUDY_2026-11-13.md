@@ -466,6 +466,7 @@ The packages are ordered so that each one is useful on its own. P1–P3 change n
 - **Games:** optional adjusted impact for all 47 decks: `analyze --field all --bot hard --games 13 --impact-adjusted` ≈ 600 games per deck, ≈ 28k Hard games ≈ 1.8 h on 16 threads. The meta decks alone take ≈ 4 min.
 
 ### P3 — Evidence view UI.
+- **Status, 2026-11-15:** built (docs/EVIDENCE.md "The page"): `src/ui/pages/Evidence.tsx` with its parts in `src/ui/components/evidence/`, the loaders `src/ui/evidenceData.ts`, the view logic `src/lib/evidenceView.ts`, the page `evidence` in the Decks tab, and a link and a panel on the deck page. Where it departs from the plan below: the parts are `FindingRow`, `MatchupStrip`, `DeckView`, `Overview` and `RunView` (the strength chip and the range bar are in `parts.tsx`; tool health is a block of the overview); a run is under its deck (`#/evidence/<listId>/run/<token>`), because runs are stored per deck; the cards block is titled "Cards and packages", not "what carries it, and what is dead weight", since nothing in it is a measured effect; and the bot and version drift block is left out, because no file stores a rank-stability figure.
 - **Files:**
   - New `src/ui/pages/Evidence.tsx` (lazy; `#/evidence`, `#/evidence/<listId>`, `#/evidence/run/<runId>`).
   - Components `src/ui/components/evidence/{FindingRow,StrengthChip,MatchupStrip,RunTrials,ToolHealth}.tsx`.

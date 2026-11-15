@@ -77,7 +77,7 @@ export type SectionId = (typeof SECTION_IDS)[number];
  *  are pages reached by links that follow their tab (a deck's profile, a shared profile). */
 export const NAV_CATALOG: readonly { id: SectionId; label: string; icon: string; pages: readonly string[]; extra: readonly string[]; subnav: boolean }[] = [
   { id: 'home', label: 'Home', icon: '⌂', pages: ['home'], extra: [], subnav: false },
-  { id: 'decks', label: 'Decks', icon: '▤', pages: ['decks', 'tuned', 'lab'], extra: ['deck'], subnav: true },
+  { id: 'decks', label: 'Decks', icon: '▤', pages: ['decks', 'tuned', 'lab', 'evidence'], extra: ['deck'], subnav: true },
   { id: 'play', label: 'Play', icon: '▶', pages: ['play'], extra: [], subnav: false },
   { id: 'tournaments', label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], extra: [], subnav: true },
   { id: 'learn', label: 'Learn', icon: '♟', pages: ['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits', 'search'], extra: [], subnav: true },
@@ -90,6 +90,7 @@ export const PAGE_LABEL: Readonly<Record<string, string>> = {
   decks: 'All decks',
   tuned: 'Tuned decks',
   lab: 'Deck Lab',
+  evidence: 'Evidence',
   deck: 'Deck',
   play: 'Play vs Bot',
   tournaments: 'Events',

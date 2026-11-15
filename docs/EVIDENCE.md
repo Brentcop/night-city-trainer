@@ -1,6 +1,6 @@
 # Evidence: findings
 
-Every number the site reports about a deck is a **finding**: one plain-data record with an estimate, an interval and its level, the games behind it, a strength word given by a stated rule, a stable id, and its nature. This is package P2 of the tuning plan (docs/TUNING_STUDY_2026-11-13.md, "Proposed evidence view"). P3 builds the page that shows them.
+Every number the site reports about a deck is a **finding**: one plain-data record with an estimate, an interval and its level, the games behind it, a strength word given by a stated rule, a stable id, and its nature. This is package P2 of the tuning plan (docs/TUNING_STUDY_2026-11-13.md, "Proposed evidence view"). P3 is the page that shows them ("The page", below).
 
 - Model and rule: `src/lib/findings.ts` (pure; Node and browser).
 - Words (claims, chips, flags, why an association may mislead, gap notes): `src/lib/findingWords.ts`.
@@ -204,7 +204,7 @@ An association clears the bar for strong only with `--adjusted`: its adjusted es
 - `id` = a hash (`hash64`, `src/lib/stateHash.ts`) of kind, subject (list, card, package, opponent list, change key, ending), method, bot, simulator version and field. Never of the result: the same measurement with more games keeps its id.
 - `question` = the same hash without bot, simulator version and method, so a page can link "same question, older measurement". A change measured by the forge (v5), a re-measurement (v8) and the ledger is one question.
 - `short` = the id's first 8 hex digits. The builder stops on two ids with one short id; `check:data` checks both are unique.
-- Cite line (`citeLine`, `citeOf`): `[F:<short id>] <claim> (<estimate> [<lo>, <hi>], <games> games, <bot> v<sim>)`.
+- Cite line (`citeLine`, `citeOf`): `[F:<short id>] <claim> (<estimate> [<lo>, <hi>], <games> games, <bot> v<sim>)`. A ratings-based matchup rests on the ratings, so its line says "from the ratings, 2 direct games" in place of the games.
 - The short-id lookup `ids.json` (`kind: 'nct-evidence-ids'`, schema 1) maps each deck's list id to the short ids of its findings, concatenated, 8 hex digits each, in the deck file's order (about 23 kB).
   - A page fetches it only when someone pastes a cite id such as `F:9f3a2c1d`. `shortIdDeck` finds the deck, and the deck file then has the finding.
   - `--check` and `check:data` cover it: every short id in a deck file is in the lookup, in order, and the lookup names no other deck.
@@ -220,7 +220,7 @@ A finding measured under a simulator version other than the current `SIM_VERSION
 
 ## The index
 
-`index.json` holds the current simulator version; each deck (file, name, list id, the path of its file, counts by strength, stale count, the number of its runs and the path of its runs file); the overview's lists (`effects`: strong or moderate changes, each question named once by its best-supported measurement, with `others` counting its other current measurements; `results` and `patterns`: results and associations that pass BH over their whole pool, at most 5 of a kind, a matchup counted once from the favoured side; non-stale only; at most 15 each); tool health (per tool: nominees adopted, rejected and could not tell; mean screening minus held-out figure; mean held-out figure at adoption minus a later re-measurement; from the ledger, the share of repeated runs that nominated a change an earlier run had tested); the rules with their measured figures; the gaps; the inputs; and an aggregate manifest derived from the input events.
+`index.json` holds the current simulator version; each deck (file, name, list id, the path of its file, its deck-strength finding as `strength` so the overview can state it without the deck files, counts by strength, stale count, the number of its runs and the path of its runs file); the overview's lists (`effects`: strong or moderate changes, each question named once by its best-supported measurement, with `others` counting its other current measurements; `results` and `patterns`: results and associations that pass BH over their whole pool, at most 5 of a kind and 3 of one deck, a matchup counted once from the favoured side and an ending once from the side above the field's share; non-stale only; at most 15 each); tool health (per tool: nominees adopted, rejected and could not tell; mean screening minus held-out figure; mean held-out figure at adoption minus a later re-measurement; from the ledger, the share of repeated runs that nominated a change an earlier run had tested); the rules with their measured figures; the gaps; the inputs; and an aggregate manifest derived from the input events.
 
 ## Rebuilding and checks
 
@@ -233,6 +233,47 @@ A finding measured under a simulator version other than the current `SIM_VERSION
   - deck files: 47, from 44 to 78 kB each (median 48 kB), 2.4 MB in all. The largest are S2-05 and S2-08, which have ledger changes and re-measurements;
   - runs files: 16, from 1.6 to 19 kB (the two decks with ledger runs are the large ones);
   - the index: 42 kB; `ids.json`: 23 kB.
+
+## The page
+
+Decks → Evidence (`#/evidence`, page `evidence` in the site config, on by default). The page is `src/ui/pages/Evidence.tsx` (lazy, styles in `src/ui/evidence.css`, tokens in `src/ui/themes.css`), its parts are in `src/ui/components/evidence/`, the files are fetched by `src/ui/evidenceData.ts`, and the view logic (routes, list order, the at-a-glance facts, which list hides a finding, the bars' shared scale, card names in a change) is `src/lib/evidenceView.ts` (pure). Tests: `tests/evidence-ui.test.tsx`.
+
+**Routes.**
+
+| Route | What it shows |
+|---|---|
+| `#/evidence` | The overview. |
+| `#/evidence?f=<id>` | A cite id (`F:9f3a2c1d`, `[F:9f3a2c1d]`, the 8 or 16 hex digits, or a whole cite line) resolved through `ids.json`, then the finding on its deck's page. |
+| `#/evidence?d=<deck file>` | That deck's page, found through the index, so a page that knows only the file can link here. |
+| `#/evidence/<listId>` | One deck. `?f=<short id>` opens whatever hides the finding (the pairings past the clearest 6, the cards or packages past the first ones, the Details of the ending that holds the other), highlights the row, scrolls to it and moves focus to it. |
+| `#/evidence/<listId>/run/<token>` | One recorded run. The token is `runToken(run.id)`: the first 8 hex digits of a hash of the run's id, so it does not move when runs are added. |
+
+A finding's own link is `findingHref(listId, short)`; a run's is `runHref(listId, runId)`. An unknown list, finding, run or cite id, a missing file and a file of a newer schema each give one plain sentence (`EVIDENCE_PROBLEMS`).
+
+**Loading.** Nothing is fetched until a view needs it: the index on the overview and beside a deck's page (opponent names, the tools' record of how high screening reads, the number of runs); a deck's file on its page; its runs file only when "Show the recorded runs" is opened, or on a run's page; `ids.json` only for a cite id. Each file is one cached promise; a file whose `kind` is wrong is missing, and a `schema` above 1 is "made by a newer version of the site". If the index was built for another simulator version than the site plays, a banner says so.
+
+**The overview**, in order: what the page is and a key of the chips; "Open a finding"; the three lists of `index.top` apart (measured effects, results that stand out, patterns worth testing), each with its nature and the family line of its whole pool, opening with its first 5 and "Show all N", the patterns with the reason associations may mislead once above them; each row named by its short title (`shortTitleOf`: the change, "against X", the card or package, "Against the field") and its deck as a link; each tool's record (`index.health`) as sentences with their counts, a figure the record lacks left out; every deck on one line on a desktop (three short lines on a phone): its name, Sim tier, strength (`index.decks[].strength`: the chip, the value and its range) and its findings counted by strength word; the gaps, each with what would measure it; how to read the page (the strength rule, the family line, "older version", "Medium only", the matchup spread).
+
+**A deck's page**: a header (the deck's name linking to its deck page, the simulator version, a link back), an at-a-glance strip (`glanceOf`: the deck's strength, its clearest good and bad matchup, the best current change measured to add, the open questions; each a link to its row), then five blocks:
+1. How good is it, and how sure are we: the deck-strength finding and the Sim tier badge.
+2. Where does it win and lose: the matchup strip (one button per opponent, worst first, named by opponent, win rate and strength word, opening that pairing's row; whole on a desktop, the 6 worst and 6 best with "Show all" under 720 px), the pairings (the clearest 6 first, three from each side of even where it can, then "Show all"), a meta pairing's direct measurement beside its ratings-based one, then the seat, game length with its three groups, and the endings (a deck with exactly two endings shows the one above the field's share, with the other in its Details: they are one fact told twice).
+3. Cards and packages: the reasons associations may mislead, the family line, each card (a card mention by id) and package with its two win rates and games on its second line; each list opens with every row whose interval excludes no difference, at least 5 (`assocShown`), then "Show all N". A deck without card numbers shows its gap note.
+4. What changed it, and did it hold: once at the top, how much higher screening has read than held-out games, per tool (`screenCurseWords`, from `index.health`); then one group per `question`: the change with its cards, one status sentence (`changeStatusWords`: the change that made the list, tried on this list and not applied, or where an unsettled one stands for later tuning runs), the drift line (two or more measurements), then one row per measurement in date order, named by how it was measured (held-out games kept across runs, a forge confirmation, a re-measurement on fresh games), the tools' verdict on its second line, and its screening figure as one greyed line ("Screening read +5.4 pts over 224 games: not the result."). A change with `depends-on-opponent` shows its per-opponent figures in the row; others keep them in Details.
+5. Open questions: what each undecided change's games read so far and about how many more held-out games would settle it, or that it has only been screened.
+
+Then the runs (fetched when opened) and what is not measured for the list.
+
+**A run** shows its tool, date, bot and version (greyed when stale), its rule, games and what it could detect when recorded (one sentence when it recorded neither), and its trials as a table (stacked rows on a phone): the change, card or package, the screening figure (greyed, headed "not the result"), the held-out figure with its looks, the outcome, and, muted, all its games in every run, screening included (`TrialRecord.pooled`; a dash where there is none).
+
+**A row.** Every number is a finding row (`FindingRow`), two lines on a desktop and three or four on a phone, so the number is said once:
+- line 1: the strength chip (with a three-step meter that repeats the word), the nature chip where natures share a list, a short title, the number (`valueOf`: bold only when strong or moderate and current; muted when weak; "reads … so far", muted, for "not enough games"), the range bar (the interval as a band, the estimate as a mark, "no difference" as a tick, 120 px, one shared scale per list, labelled with the numbers), and Cite;
+- line 2, small and muted: the rest of the sentence (`restOf`, built from the same pieces as `sentenceOf`: the range, the games, and what the strength word needs said, such as "the interval still includes no difference" or "from the ratings; 4–1 in 5 direct games"), any words the row adds (an association's two win rates, a change's verdict), the bot and version once, the flags as short words, then a "Details" button;
+- Details: the sentence (`sentenceOf`), the stale line, the claim, method, family line, flags in words, sources, and the link to the row.
+A stale row is greyed. Cite copies `citeLine(f, f.claim)` (= `citeOf(f)`), carried in the button's `data-cite`; without the clipboard API it uses the copy command, and failing that shows the line selected to copy; a polite live region says what happened.
+
+**Words.** Every sentence the page shows is in `src/lib/findingWords.ts` (the page's section): `PAGE_INTRO`, `NATURE_HELP`, `METHOD_WORDS`, `measuredByWords`, `TITLE_WORDS`, `valueOf`, `restOf`, `rangeWords`, `botVersionWords`, `FLAG_SHORT`, `staleWords`, `staleBuildWords`, `VERDICT_WORDS`, `shortlistWords`, `RELATION_WORDS`, `NOT_APPLIED`, `changeStatusWords`, `driftWords`, `screenWords`, `screenCurseWords`, `openWords`, `healthWords`, `TOOL_WORDS`, `runDetectWords`, the trial words, `BLOCK_WORDS`, `GLANCE_WORDS`, `DECK_PAGE_WORDS`, `OVERVIEW_WORDS`, `RUN_WORDS`, `DECK_PANEL_WORDS`, `EVIDENCE_PROBLEMS` and the rest. `tests/evidence-ui.test.tsx` checks that no association row (on fixtures and on the real files) uses a causal word.
+
+**The deck profile** has an "Evidence" link among its hero links and a panel with the deck's findings counted by strength word (from the index, fetched when the profile opens), for library decks the index has, both only while the page is on.
 
 ## Approximations
 

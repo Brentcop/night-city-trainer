@@ -39,6 +39,11 @@
             "path": "lab",
             "label": "Deck Lab",
             "hidden": false
+          },
+          {
+            "path": "evidence",
+            "label": "Evidence",
+            "hidden": false
           }
         ]
       },

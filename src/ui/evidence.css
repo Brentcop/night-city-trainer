@@ -1,0 +1,818 @@
+/* #/evidence (src/ui/pages/Evidence.tsx) and the deck profile's evidence panel: the site's tokens only, with the
+   evidence tokens of themes.css for both themes. Rows stack and wrap at any width; the matchup strip is a wrapping
+   grid; the run's trials table becomes stacked rows on a phone. Nothing animates. */
+
+.ev-page {
+  min-width: 0;
+}
+.ev-block {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-h2 {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  margin: 0 0 4px;
+}
+.ev-h3 {
+  font-family: var(--display);
+  font-size: 1.08rem;
+  margin: 14px 0 4px;
+}
+.ev-h2:focus {
+  outline: none;
+}
+.ev-h2:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.ev-intro {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+.ev-banner {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--ev-target);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--ev-target-bg);
+}
+.ev-problem {
+  margin: 0;
+}
+
+/* ---- chips: words first; the meter and edges only repeat what the word says ---- */
+.ev-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-2) 60%, transparent);
+  color: var(--text);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.ev-meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+.ev-meter i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  border: 1px solid var(--ev-faint);
+  background: transparent;
+}
+.ev-meter i:nth-child(1) {
+  height: 6px;
+}
+.ev-meter i:nth-child(2) {
+  height: 8px;
+}
+.ev-meter i:nth-child(3) {
+  height: 10px;
+}
+.ev-meter i.on {
+  background: currentColor;
+  border-color: currentColor;
+}
+.ev-eq {
+  font-weight: 700;
+}
+.ev-s-strong {
+  border-color: var(--ev-strong);
+  background: var(--ev-strong-bg);
+}
+.ev-s-strong .ev-meter {
+  color: var(--ev-strong);
+}
+.ev-s-moderate {
+  border-color: var(--ev-moderate);
+  background: var(--ev-moderate-bg);
+}
+.ev-s-moderate .ev-meter {
+  color: var(--ev-moderate);
+}
+.ev-s-weak {
+  border-color: var(--ev-weak);
+}
+.ev-s-weak .ev-meter {
+  color: var(--ev-weak);
+}
+.ev-s-no-difference {
+  border-style: double;
+  border-width: 3px;
+  padding: 0 6px;
+}
+.ev-s-not-enough {
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ev-n-result {
+  border-color: var(--ev-result);
+  font-weight: 500;
+}
+.ev-n-effect {
+  border-color: var(--ev-effect);
+  font-weight: 500;
+}
+.ev-n-association {
+  border-color: var(--ev-assoc);
+  border-style: dotted;
+  border-width: 2px;
+  padding: 0 7px;
+  font-weight: 500;
+}
+.ev-flag {
+  font-weight: 500;
+  color: var(--muted);
+  white-space: normal;
+}
+.ev-flag-stale,
+.ev-flag-depends-on-opponent,
+.ev-flag-first-look {
+  border-color: var(--ev-target);
+  color: var(--text);
+}
+.ev-counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ev-count b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the key ---- */
+.ev-key-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.ev-key-natures {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+/* ---- range bars: the band is the interval, the mark the estimate, the tick "no difference" ---- */
+.ev-bar {
+  position: relative;
+  display: block;
+  flex: 0 0 120px;
+  width: 120px;
+  height: 18px;
+}
+.ev-bar-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border);
+}
+.ev-bar-ci {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  border-radius: 4px;
+  background: var(--ev-strong);
+}
+.ev-bs-moderate .ev-bar-ci {
+  background: var(--ev-moderate);
+}
+.ev-bs-weak .ev-bar-ci,
+.ev-bs-plain .ev-bar-ci {
+  background: transparent;
+  border: 1.5px solid var(--ev-weak);
+}
+.ev-bs-no-difference .ev-bar-ci {
+  background: var(--ev-faint);
+}
+.ev-bs-not-enough .ev-bar-ci,
+.ev-bar.is-stale .ev-bar-ci {
+  background: transparent;
+  border: 1.5px dashed var(--ev-faint);
+}
+.ev-bar-base {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--muted);
+}
+.ev-bar-est {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 4px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--text);
+}
+.ev-bar.is-stale .ev-bar-est,
+.ev-bs-not-enough .ev-bar-est {
+  background: var(--muted);
+}
+
+/* ---- finding rows: two lines on a desktop (chip, title, number, bar, Cite; then the small muted line), three or
+   four on a phone where the first line wraps ---- */
+.ev-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ev-row {
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+  scroll-margin-top: 90px;
+  scroll-margin-bottom: 40px;
+}
+.ev-rows > .ev-row:last-child {
+  border-bottom: 0;
+}
+.ev-row:focus {
+  outline: 2px solid var(--ev-target);
+  outline-offset: -2px;
+}
+.ev-row.is-target {
+  background: var(--ev-target-bg);
+  box-shadow: inset 4px 0 0 var(--ev-target);
+}
+.ev-row.is-stale {
+  background: var(--ev-stale-bg);
+  color: var(--muted);
+}
+.ev-line1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+}
+.ev-row-title {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ev-row.is-stale .ev-row-title {
+  font-weight: 500;
+}
+.ev-row-deck {
+  font-weight: 400;
+}
+.ev-row-num {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.ev-value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--muted);
+  min-width: 4.2em;
+  text-align: right;
+}
+.ev-value.is-em {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+.ev-line2 {
+  margin: 1px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.ev-details-btn {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cyan);
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+button.ev-details-btn:hover:not(:disabled) {
+  box-shadow: none;
+}
+.ev-note {
+  margin: 2px 0 0;
+}
+.ev-stale-note {
+  font-style: italic;
+}
+.ev-cite {
+  min-height: 26px;
+  padding: 1px 8px;
+}
+.ev-cite-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.ev-cite-text {
+  width: min(100%, 520px);
+  min-width: 0;
+}
+.ev-link {
+  display: inline-flex;
+  align-items: center;
+}
+.ev-details {
+  margin-top: 4px;
+}
+.ev-details > summary {
+  cursor: pointer;
+  color: var(--cyan);
+  max-width: 100%;
+  padding: 2px 0;
+}
+.ev-details-body {
+  padding: 4px 0 2px 12px;
+  border-left: 2px solid var(--border);
+  margin: 4px 0 0 4px;
+}
+.ev-details-body[hidden] {
+  display: none;
+}
+.ev-details-body p,
+.ev-details-body ul {
+  margin: 4px 0;
+}
+.ev-details-body code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ev-flag-words {
+  padding-left: 18px;
+}
+.ev-sub {
+  margin: 4px 0 0 12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--mat-edge);
+}
+.ev-sub > .ev-row {
+  margin: 0;
+}
+.ev-more {
+  margin-top: 6px;
+}
+
+/* screening figures: one greyed line, always named as screening */
+.ev-screen {
+  margin: 2px 0 0;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--ev-screen-bg);
+  color: var(--muted);
+}
+td.ev-screen {
+  margin: 0;
+  border-radius: 0;
+}
+
+/* ---- the matchup strip: a wrapping grid of buttons, worst first ---- */
+.ev-strip {
+  list-style: none;
+  margin: 6px 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 6px;
+}
+.ev-strip > li {
+  min-width: 0;
+  display: flex;
+}
+button.ev-cell {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1px;
+  padding: 6px 8px 6px 11px;
+  text-align: left;
+  white-space: normal;
+  font-size: 12px;
+  line-height: 1.25;
+  background: var(--panel-2);
+  box-shadow: inset 4px 0 0 var(--border);
+}
+button.ev-cell.is-above {
+  box-shadow: inset 4px 0 0 var(--ev-above);
+}
+button.ev-cell.is-below {
+  box-shadow: inset 4px 0 0 var(--ev-below);
+}
+button.ev-cell.is-even {
+  box-shadow: inset 4px 0 0 var(--ev-faint);
+}
+.ev-cell-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ev-cell-val {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.ev-cell-val.is-em {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+}
+.ev-cell-word {
+  color: var(--muted);
+  font-size: 11px;
+}
+.ev-cs-strong .ev-cell-word,
+.ev-cs-moderate .ev-cell-word {
+  color: var(--text);
+}
+
+.ev-strip-more {
+  display: none;
+  margin: -6px 0 10px;
+}
+@media (max-width: 720px) {
+  .ev-strip:not(.is-all) > .ev-cell-mid {
+    display: none;
+  }
+  .ev-strip-more {
+    display: inline-flex;
+  }
+}
+
+/* ---- at a glance ---- */
+.ev-glance ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+.ev-glance-item {
+  min-width: 0;
+  display: flex;
+}
+.ev-glance-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--mat-edge);
+  border-radius: var(--radius);
+  background: var(--mat-tile);
+  color: var(--text);
+  text-decoration: none;
+  text-align: left;
+  font: inherit;
+  white-space: normal;
+}
+a.ev-glance-link:hover,
+button.ev-glance-link:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.ev-glance-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.ev-glance-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ev-glance-val {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- cards and packages, changes, open questions ---- */
+.ev-mislead {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-left: 3px dotted var(--ev-assoc);
+  background: var(--mat-tile);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.ev-mislead p {
+  margin: 2px 0;
+}
+.ev-family {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+.ev-change {
+  padding: 4px 0 10px;
+  border-top: 1px solid var(--mat-edge);
+}
+.ev-change:first-of-type {
+  border-top: 0;
+}
+.ev-change-label {
+  overflow-wrap: anywhere;
+}
+.ev-drift {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  background: var(--mat-tile);
+  border-radius: var(--radius-sm);
+}
+.ev-split ul {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+.ev-split p {
+  margin: 4px 0 0;
+}
+.ev-thirds {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.ev-thirds li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.ev-thirds li > span:first-child {
+  flex: 1 1 220px;
+}
+.ev-settle {
+  margin: 1px 0 0;
+  font-weight: 600;
+}
+.ev-tier {
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.ev-runs > summary,
+.ev-gaps summary {
+  cursor: pointer;
+}
+.ev-run-list,
+.ev-gaps {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.ev-run-list li,
+.ev-gaps li {
+  margin: 4px 0;
+}
+.ev-run-list li.is-stale a {
+  color: var(--muted);
+}
+.ev-measure {
+  margin: 4px 0;
+}
+
+/* ---- the run's trials: a table, stacked rows on a phone ---- */
+.ev-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.ev-trials th[scope='row'] {
+  font-family: var(--font);
+  font-size: inherit;
+  color: var(--text);
+  font-weight: 600;
+  min-width: 15em;
+}
+.ev-trials .ev-col-kind,
+.ev-trials .ev-col-outcome {
+  white-space: nowrap;
+}
+.ev-trials td.ev-col-pooled {
+  color: var(--muted);
+}
+.ev-trials th.ev-col-pooled {
+  min-width: 11em;
+}
+@media (max-width: 720px) {
+  .ev-trials thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .ev-trials,
+  .ev-trials tbody,
+  .ev-trials tr,
+  .ev-trials td,
+  .ev-trials th[scope='row'] {
+    display: block;
+    width: 100%;
+  }
+  .ev-trials tr {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ev-trials td,
+  .ev-trials th[scope='row'] {
+    border: 0;
+    padding: 2px 0;
+  }
+  .ev-trials td[data-label]::before {
+    content: attr(data-label) ': ';
+    font-weight: 600;
+    color: var(--muted);
+  }
+  td.ev-screen {
+    padding: 2px 6px;
+  }
+  .ev-trials th[scope='row'] {
+    min-width: 0;
+  }
+  .ev-trials .ev-col-kind,
+  .ev-trials .ev-col-outcome {
+    white-space: normal;
+  }
+}
+
+/* ---- the overview ---- */
+.ev-open-form label {
+  font-weight: 600;
+}
+.ev-open-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+}
+.ev-open-row input {
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 420px;
+  font-size: 16px; /* no zoom on focus in phone browsers */
+}
+.ev-status {
+  margin: 0;
+  min-height: 1.4em;
+}
+.ev-health {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 6px 20px;
+}
+.ev-health ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.ev-health li li {
+  margin: 3px 0;
+}
+.ev-decks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* one line per deck on a desktop; on a phone the name and tier, then the strength, then the counts */
+.ev-deck {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'name tier' 'strength strength' 'more more';
+  align-items: center;
+  gap: 2px 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ev-deck:last-child {
+  border-bottom: 0;
+}
+.ev-deck-name {
+  grid-area: name;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-deck-tier {
+  grid-area: tier;
+}
+.ev-deck-strength {
+  grid-area: strength;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+.ev-deck-val {
+  font-variant-numeric: tabular-nums;
+}
+.ev-deck-more {
+  grid-area: more;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .ev-deck {
+    grid-template-columns: minmax(0, 15em) 4.5em minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: 'name tier strength more';
+    gap: 2px 12px;
+  }
+}
+.ev-rule {
+  margin: 4px 0 10px;
+  display: grid;
+  gap: 6px;
+}
+.ev-rule > div {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.ev-rule dd {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .ev-rule > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+.ev-row-deck {
+  font-weight: 400;
+}
+.ev-profile-panel .ev-intro {
+  color: var(--text);
+}
+.ev-profile-panel p {
+  margin: 6px 0 0;
+}
+
+/* ---- touch: every control at least 44px tall ---- */
+@media (pointer: coarse) {
+  .ev-page button,
+  .ev-page .btn,
+  .ev-page .ev-details > summary,
+  .ev-page .ev-runs > summary,
+  .ev-page .ev-open-row input,
+  .ev-profile-panel .btn {
+    min-height: 44px;
+  }
+  .ev-page .ev-details > summary,
+  .ev-page .ev-runs > summary {
+    display: list-item;
+    padding: 12px 0;
+  }
+  /* inline controls in a line of text keep the line's height and reach 44px with padding the line around them overlaps */
+  .ev-page .ev-details-btn,
+  .ev-page .ev-link,
+  .ev-page .ev-run-list a,
+  .ev-page .ev-deck-name a,
+  .ev-page .ev-row-deck a {
+    display: inline-block;
+    min-height: 0;
+    padding: 12px 4px;
+    margin: -12px -4px;
+  }
+}

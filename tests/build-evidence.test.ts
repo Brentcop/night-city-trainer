@@ -458,6 +458,24 @@ describe('on the real data, each finding is the number its defining function giv
     expect(s205.every((f) => f.subject.change!.relation === 'from-this-list')).toBe(true);
   });
 
+  it('the index carries each deck\'s strength finding, and its results and patterns lists are not filled by one deck or kind', () => {
+    for (const d of built.index.decks) {
+      const f = all.find((x) => x.kind === 'deck-strength' && x.subject.listId === d.listId);
+      expect(d.strength?.id ?? null).toBe(f?.id ?? null);
+      if (f) expect([d.strength!.estimate, d.strength!.lower, d.strength!.upper, d.strength!.strength]).toEqual([f.estimate, f.lower, f.upper, f.strength]);
+    }
+    for (const key of ['results', 'patterns'] as const) {
+      const items = built.index.top.find((t) => t.key === key)!.items;
+      const count = (of: (i: (typeof items)[number]) => string) => Math.max(0, ...Object.values(items.reduce<Record<string, number>>((a, i) => ({ ...a, [of(i)]: (a[of(i)] ?? 0) + 1 }), {})));
+      expect(count((i) => i.listId)).toBeLessThanOrEqual(3);
+      expect(count((i) => i.kind)).toBeLessThanOrEqual(5);
+    }
+    // an ending and its mirror are one fact: a deck's endings appear at most once in the results
+    const endings = built.index.top.find((t) => t.key === 'results')!.items.filter((i) => i.kind === 'ending');
+    expect(new Set(endings.map((i) => i.listId)).size).toBe(endings.length);
+    for (const i of endings) expect(i.estimate).toBeGreaterThanOrEqual(i.baseline);
+  });
+
   it('the effects list names each question once and counts its other measurements', () => {
     const effects = built.index.top.find((t) => t.key === 'effects')!;
     expect(effects.items.length).toBeGreaterThan(0);

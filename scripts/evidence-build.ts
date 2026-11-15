@@ -1360,12 +1360,44 @@ const STRENGTH_RANK: Readonly<Record<Strength, number>> = { strong: 0, moderate:
 const TOP_N = 15;
 /** At most this many of one kind in the results and patterns lists, so one kind (the matchups) cannot fill them. */
 const PER_KIND = 5;
+/** And at most this many of one deck, so the strongest deck cannot fill them either. */
+const PER_DECK = 3;
 
 /**
  * One of the overview's lists from its whole candidate pool (the pool is the family): effects whose strength is strong or
  * moderate (a change keeps its tool's own correction, so no second test is added), results and associations that pass
  * Benjamini–Hochberg over the pool; strongest first, then by |estimate − baseline| / standard error.
  */
+/** A finding as the index carries it: what a row and its sentence read, without the detail. */
+function refOf(f: Finding, listId: string, deck: string, poolCorrected: boolean, others: number): FindingRef {
+  return {
+    id: f.id,
+    short: f.short,
+    question: f.question,
+    kind: f.kind,
+    nature: f.nature,
+    claim: f.claim,
+    estimate: f.estimate,
+    lower: f.lower,
+    upper: f.upper,
+    level: f.level,
+    ...(f.sequential ? { sequential: f.sequential } : {}),
+    baseline: f.baseline,
+    games: f.games,
+    method: f.method,
+    corrected: f.corrected,
+    strength: f.strength,
+    bot: f.bot,
+    simVersion: f.simVersion,
+    flags: f.flags,
+    listId,
+    deck,
+    ...(f.detail?.raw ? { detail: { raw: f.detail.raw } } : {}),
+    poolCorrected,
+    others,
+  };
+}
+
 function topList(key: TopList['key'], pool: { f: Finding; listId: string; deck: string }[]): TopList {
   const pass = bhPass(pool.map((x) => pValueOf(x.f)));
   // every current measurement of a question in the pool: the effects list names a question once and counts the rest
@@ -1383,33 +1415,9 @@ function topList(key: TopList['key'], pool: { f: Finding; listId: string; deck: 
       return true;
     })
     .filter(({ x }, i, xs) => key === 'effects' || xs.slice(0, i).filter((y) => y.x.f.kind === x.f.kind).length < PER_KIND)
+    .filter(({ x }, i, xs) => key === 'effects' || xs.slice(0, i).filter((y) => y.x.listId === x.listId).length < PER_DECK)
     .slice(0, TOP_N)
-    .map(({ x, pass }) => ({
-      id: x.f.id,
-      short: x.f.short,
-      question: x.f.question,
-      kind: x.f.kind,
-      nature: x.f.nature,
-      claim: x.f.claim,
-      estimate: x.f.estimate,
-      lower: x.f.lower,
-      upper: x.f.upper,
-      level: x.f.level,
-      ...(x.f.sequential ? { sequential: x.f.sequential } : {}),
-      baseline: x.f.baseline,
-      games: x.f.games,
-      method: x.f.method,
-      corrected: x.f.corrected,
-      strength: x.f.strength,
-      bot: x.f.bot,
-      simVersion: x.f.simVersion,
-      flags: x.f.flags,
-      listId: x.listId,
-      deck: x.deck,
-      ...(x.f.detail?.raw ? { detail: { raw: x.f.detail.raw } } : {}),
-      poolCorrected: pass,
-      others: key === 'effects' ? (measured.get(x.f.question) ?? 1) - 1 : 0,
-    }));
+    .map(({ x, pass }) => refOf(x.f, x.listId, x.deck, pass, key === 'effects' ? (measured.get(x.f.question) ?? 1) - 1 : 0));
   return { key, family: { size: pool.length, correction: 'bh' }, items };
 }
 
@@ -1599,8 +1607,18 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
   const tagged = decks.flatMap((d) => d.findings.map((f) => ({ f, listId: d.listId, deck: d.deck })));
   const fresh = tagged.filter((x) => !x.f.flags.includes('stale'));
   // a matchup and its mirror are one fact: the pool keeps the side that is favoured (the first list id on an even one)
-  const oneSide = (f: Finding) => f.kind !== 'matchup' || f.estimate > 0.5 || (f.estimate === 0.5 && f.subject.listId < (f.subject.opponent?.listId ?? ''));
+  const oneSide = (f: Finding) => {
+    if (f.kind === 'matchup') return f.estimate > 0.5 || (f.estimate === 0.5 && f.subject.listId < (f.subject.opponent?.listId ?? ''));
+    // an ending and its complement are one fact: the pool keeps the one above the field's share
+    if (f.kind === 'ending') return f.estimate >= f.baseline;
+    return true;
+  };
   const top = [topList('effects', fresh.filter((x) => x.f.nature === 'effect')), topList('results', fresh.filter((x) => x.f.nature === 'result' && oneSide(x.f))), topList('patterns', fresh.filter((x) => x.f.nature === 'association'))];
+  // each deck's strength finding, so the overview can state it without fetching 47 deck files
+  const strengthRef = (d: DeckEvidence): FindingRef | null => {
+    const f = d.findings.find((x) => x.kind === 'deck-strength');
+    return f ? refOf(f, d.listId, d.deck, f.corrected, 0) : null;
+  };
   const counts = (fs: Finding[]) => Object.fromEntries(STRENGTHS.map((s) => [s, fs.filter((f) => f.strength === s).length])) as Record<Strength, number>;
   const thresholds = (k: 'min' | 'strong') => Object.fromEntries((Object.keys(GAME_THRESHOLDS) as MethodClass[]).map((c) => [c, GAME_THRESHOLDS[c][k]])) as Record<MethodClass, number>;
   const inputsList = [
@@ -1618,7 +1636,7 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     kind: EVIDENCE_INDEX_KIND,
     schema: 1 as const,
     simVersion: current,
-    decks: decks.map((d) => ({ file: d.file, deck: d.deck, listId: d.listId, path: `evidence/${d.listId}.json`, findings: d.findings.length, counts: counts(d.findings), stale: d.findings.filter((f) => f.flags.includes('stale')).length, runs: runCount.get(d.listId) ?? 0, runsPath: runCount.has(d.listId) ? `evidence/${d.listId}.runs.json` : null })),
+    decks: decks.map((d) => ({ file: d.file, deck: d.deck, listId: d.listId, path: `evidence/${d.listId}.json`, findings: d.findings.length, strength: strengthRef(d), counts: counts(d.findings), stale: d.findings.filter((f) => f.flags.includes('stale')).length, runs: runCount.get(d.listId) ?? 0, runsPath: runCount.has(d.listId) ? `evidence/${d.listId}.runs.json` : null })),
     top,
     health: health(decks, inputs.forge, inputs.ledger),
     rules: {

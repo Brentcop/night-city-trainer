@@ -290,7 +290,7 @@ describe('nav', () => {
   it('the defaults are today’s tabs and sub-menus', () => {
     const nav = visibleNav(defaultSiteConfig());
     expect(nav.map((s) => `${s.icon} ${s.label} → ${s.landing}`)).toEqual(['⌂ Home → home', '▤ Decks → decks', '▶ Play → play', '🏆 Tournaments → tournaments', '♟ Learn → tutorial', '◉ Profile → profile']);
-    expect(nav[1]!.pages.map((p) => p.label)).toEqual(['All decks', 'Tuned decks', 'Deck Lab']);
+    expect(nav[1]!.pages.map((p) => p.label)).toEqual(['All decks', 'Tuned decks', 'Deck Lab', 'Evidence']);
     // How to play (the tutorial) leads the Learn sub-menu
     expect(nav[4]!.pages.map((p) => p.path)).toEqual(['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits']);
     expect(nav[4]!.pages[0]!.label).toBe('How to play');
@@ -310,7 +310,10 @@ describe('nav', () => {
     expect(nav.map((s) => s.id)).toEqual(['home', 'decks', 'play', 'tournaments']);
     const decks = nav[1]!;
     expect(decks.landing).toBe('tuned');
-    expect(decks.pages).toEqual([{ path: 'tuned', label: 'My tuned' }]);
+    expect(decks.pages).toEqual([
+      { path: 'tuned', label: 'My tuned' },
+      { path: 'evidence', label: 'Evidence' },
+    ]);
     expect(pageOn(c, 'decks')).toBe(false);
     expect(pageOn(c, 'deck')).toBe(true); // a deck's profile follows its tab
     expect(pageOn(c, 'glossary')).toBe(false);
