@@ -24,7 +24,7 @@ import { listFingerprint, validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { changeKey, gameId, gamesToSettleSums, type LedgerEntry, type LedgerGame } from './changeLedger';
 import type { ChangeLedgerRun } from './changeLedgerRun';
-import { alwaysValidZ, guardedFromSums, judgeLook, pooledShare, type AdoptionRule, type PairedScores } from './evidence';
+import { alwaysValidZ, DEFAULT_REACH, guardedFromSums, judgeLook, pooledShare, type AdoptionRule, type PairedScores } from './evidence';
 import { canCut, checkChange, isEmptyPlan, type PackagePlan } from './deckPackages';
 
 export interface ShortlistOptions {
@@ -40,9 +40,10 @@ export interface ShortlistOptions {
  * The shipped defaults (chosen by scripts/shortlist-sim.ts; docs/SYNERGIES.md "A shortlist carried across runs"). The
  * reach is 10,000 held-out games: at 4,500 a real change whose first confirmation read low was dropped (seen on real
  * games, and worse for swaps with a per-game SD above 0.3, which need more games for the same gain), and in the
- * simulation a longer reach costs nothing without "until settled" and adds gain with it.
+ * simulation a longer reach costs nothing without "until settled" and adds gain with it. The reach is evidence.ts's
+ * DEFAULT_REACH, which "until settled" (confirmStaged) shares.
  */
-export const SHORTLIST_DEFAULTS: Readonly<ShortlistOptions> = Object.freeze({ carry: 2, dropSe: 0.5, reach: 10_000 });
+export const SHORTLIST_DEFAULTS: Readonly<ShortlistOptions> = Object.freeze({ carry: 2, dropSe: 0.5, reach: DEFAULT_REACH });
 
 export function shortlistOptions(o: Partial<ShortlistOptions> = {}): ShortlistOptions {
   return { carry: o.carry ?? SHORTLIST_DEFAULTS.carry, dropSe: o.dropSe ?? SHORTLIST_DEFAULTS.dropSe, reach: o.reach ?? SHORTLIST_DEFAULTS.reach };

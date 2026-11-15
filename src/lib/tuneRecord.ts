@@ -64,6 +64,11 @@ export interface GainRecord {
   z: number;
   /** pooled with earlier runs (earlier held-out games): this many of `games` came from them (absent otherwise) */
   priorGames?: number;
+  /**
+   * confirmed until settled (src/lib/evidence.ts SettleRecord, filled in by pooledTuneRecord): the further stages after
+   * the cap and why they ended; the figures are then the pooled interval over all its held-out games (absent otherwise)
+   */
+  settle?: { stages: number; ended: 'adopt' | 'reject' | 'out-of-reach' | 'futility' | 'limit' | 'stop'; toSettle?: number; reach: number };
 }
 
 /** Schema 1. Add optional fields only; anything else bumps `schema`. */

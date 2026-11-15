@@ -226,5 +226,11 @@ describe('a saved tuned deck records pooling', () => {
     expect(saveCustom([{ ...final, name: 'RRG (tuned)', sideboard: [], tuned: r }])).toBe(true);
     const html = renderToStaticMarkup(createElement(TunedDecksPage));
     expect(html).toMatch(/held-out .*\+3\.0 pts.*2016 games.*\(1,120 of them from earlier runs\)/);
+    expect(html).not.toContain('until settled');
+    // a change whose confirmation went on until settled says so on the page
+    const settled = pooledTuneRecord({ ...ARGS(true), logs: logs.map((l) => ({ ...l, adoptedSettle: { stages: 2, ended: 'adopt' as const, reach: 10_000 } })) });
+    expect(settled.changes[0]!.heldOut).toMatchObject({ priorGames: 1120, settle: { stages: 2, ended: 'adopt', reach: 10_000 } });
+    expect(saveCustom([{ ...final, name: 'RRG (tuned)', sideboard: [], tuned: settled }])).toBe(true);
+    expect(renderToStaticMarkup(createElement(TunedDecksPage))).toContain('confirmed until settled: 2 more stages');
   });
 });

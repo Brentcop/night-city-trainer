@@ -1,6 +1,7 @@
 // #/tuned: every deck tuned in the Deck Lab and saved in this browser, newest first, with its end result: the verdict
 // against the original in the Lab's words (the paired gain on the same held-out games), each adopted change with its
-// held-out figure (and, when it was pooled with earlier held-out games, how many came from earlier runs), the
+// held-out figure (when it was pooled with earlier held-out games, how many came from earlier runs; when its
+// confirmation went on until settled, for how many more stages), the
 // generations run and the run's field, bot and rule. Sort and filter by verdict, original and date;
 // Export all / Import move them between browsers (they live in this browser's storage). Tuned decks committed to the
 // repository by the CLI forge are library decks; their forge lines are listed read-only at the end.
@@ -38,6 +39,7 @@ import { MentionText } from '../components/CardMention';
 import { PageHead } from '../components/PageHead';
 import { RecordedAt } from '../components/RecordedAt';
 import { RunDetails } from '../components/RunDetails';
+import { settleWords } from '../../lib/evidence';
 import { PairedGain } from '../components/LabEvidence';
 import { Signed, Wr } from '../components/Num';
 import { profileHref } from '../components/DeckStats';
@@ -93,6 +95,7 @@ function ChangeRow({ c, onOpen }: { c: TunedEntry['record']['changes'][number]; 
           <>
             held-out <PairedGain g={c.heldOut} />
             {c.heldOut.priorGames ? <span className="muted"> ({c.heldOut.priorGames.toLocaleString('en-US')} of them from earlier runs)</span> : null}
+            {c.heldOut.settle?.stages ? <span className="muted"> · {settleWords(c.heldOut.settle, c.heldOut.games)}</span> : null}
           </>
         ) : (
           <span className="muted">held-out gain not recorded</span>

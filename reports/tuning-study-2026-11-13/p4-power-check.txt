@@ -1,0 +1,95 @@
+What a run can detect: the library's computation against a Monte-Carlo of a separate implementation of the rule (20,000 confirmations a point, win/loss games, the default rule).
+
+First confirmation, stages of 224 (Lab Standard, the season), one-card swap, SD 0.30
+  the gain adopted 8 times in 10, computed: +3.84 points
+  real gain +1.00: computed 2.5%   Monte-Carlo 2.3% ± 0.2   (762 held-out games on average)
+  real gain +3.13: computed 55.6%   Monte-Carlo 55.9% ± 0.7   (808 held-out games on average)
+  real gain +3.84: computed 80.1%   Monte-Carlo 81.0% ± 0.5   (737 held-out games on average)
+  real gain +4.80: computed 96.4%   Monte-Carlo 97.1% ± 0.2   (624 held-out games on average)
+
+First confirmation, stages of 224, one-card swap, SD 0.24
+  the gain adopted 8 times in 10, computed: +3.27 points
+  real gain +1.00: computed 2.5%   Monte-Carlo 2.3% ± 0.2   (788 held-out games on average)
+  real gain +2.70: computed 55.6%   Monte-Carlo 56.2% ± 0.7   (812 held-out games on average)
+  real gain +3.27: computed 80.1%   Monte-Carlo 81.8% ± 0.5   (739 held-out games on average)
+  real gain +4.09: computed 96.9%   Monte-Carlo 98.2% ± 0.2   (613 held-out games on average)
+
+First confirmation, stages of 112 (Lab Quick), one-card swap, SD 0.30
+  the gain adopted 8 times in 10, computed: +5.01 points
+  real gain +1.00: computed 2.5%   Monte-Carlo 2.5% ± 0.2   (361 held-out games on average)
+  real gain +4.01: computed 55.6%   Monte-Carlo 55.8% ± 0.7   (402 held-out games on average)
+  real gain +5.01: computed 80.0%   Monte-Carlo 81.2% ± 0.5   (370 held-out games on average)
+  real gain +6.27: computed 95.8%   Monte-Carlo 97.0% ± 0.2   (313 held-out games on average)
+
+First confirmation, stages of 280 (forge default), one-card swap, SD 0.30
+  the gain adopted 8 times in 10, computed: +3.54 points
+  real gain +1.00: computed 2.5%   Monte-Carlo 2.5% ± 0.2   (971 held-out games on average)
+  real gain +2.90: computed 55.6%   Monte-Carlo 55.7% ± 0.7   (1,009 held-out games on average)
+  real gain +3.54: computed 80.1%   Monte-Carlo 80.7% ± 0.5   (920 held-out games on average)
+  real gain +4.42: computed 96.6%   Monte-Carlo 97.0% ± 0.2   (772 held-out games on average)
+
+First confirmation, stages of 224, package move, SD 0.55
+  the gain adopted 8 times in 10, computed: +6.20 points
+  real gain +1.00: computed 2.5%   Monte-Carlo 2.4% ± 0.2   (713 held-out games on average)
+  real gain +4.90: computed 55.5%   Monte-Carlo 55.2% ± 0.7   (796 held-out games on average)
+  real gain +6.20: computed 80.0%   Monte-Carlo 79.5% ± 0.6   (735 held-out games on average)
+  real gain +7.75: computed 95.4%   Monte-Carlo 95.7% ± 0.3   (634 held-out games on average)
+
+First confirmation, stages of 224, 2 nominees, SD 0.30
+  the gain adopted 8 times in 10, computed: +4.11 points
+  real gain +1.00: computed 1.2%   Monte-Carlo 1.2% ± 0.2   (765 held-out games on average)
+  real gain +3.33: computed 52.8%   Monte-Carlo 53.2% ± 0.7   (826 held-out games on average)
+  real gain +4.11: computed 80.0%   Monte-Carlo 80.6% ± 0.5   (758 held-out games on average)
+  real gain +5.14: computed 96.9%   Monte-Carlo 97.5% ± 0.2   (638 held-out games on average)
+
+Until settled to 10,000, stages of 224, SD 0.30
+  the gain adopted 8 times in 10, computed: +3.04 points
+  real gain +1.00: computed 2.7%   Monte-Carlo 2.4% ± 0.2   (865 held-out games on average)
+  real gain +2.53: computed 56.8%   Monte-Carlo 57.0% ± 0.7   (1,472 held-out games on average)
+  real gain +3.04: computed 80.0%   Monte-Carlo 80.1% ± 0.6   (1,275 held-out games on average)
+  real gain +3.80: computed 95.8%   Monte-Carlo 96.0% ± 0.3   (918 held-out games on average)
+
+Until settled to 10,000, stages of 224, SD 0.24
+  the gain adopted 8 times in 10, computed: +2.63 points
+  real gain +1.00: computed 2.7%   Monte-Carlo 2.5% ± 0.2   (890 held-out games on average)
+  real gain +2.22: computed 56.8%   Monte-Carlo 56.5% ± 0.7   (1,498 held-out games on average)
+  real gain +2.63: computed 80.0%   Monte-Carlo 80.8% ± 0.5   (1,290 held-out games on average)
+  real gain +3.29: computed 96.4%   Monte-Carlo 96.9% ± 0.2   (880 held-out games on average)
+
+Until settled to 10,000, stages of 280 (forge default), SD 0.30
+  the gain adopted 8 times in 10, computed: +2.92 points
+  real gain +1.00: computed 2.7%   Monte-Carlo 2.7% ± 0.2   (1,063 held-out games on average)
+  real gain +2.44: computed 56.2%   Monte-Carlo 55.9% ± 0.7   (1,644 held-out games on average)
+  real gain +2.92: computed 80.1%   Monte-Carlo 80.9% ± 0.5   (1,468 held-out games on average)
+  real gain +3.64: computed 96.3%   Monte-Carlo 96.7% ± 0.2   (1,053 held-out games on average)
+
+Until settled to 10,000, stages of 224, package move, SD 0.55
+  the gain adopted 8 times in 10, computed: +4.76 points
+  real gain +1.00: computed 2.7%   Monte-Carlo 2.7% ± 0.2   (811 held-out games on average)
+  real gain +3.82: computed 57.0%   Monte-Carlo 56.7% ± 0.7   (1,426 held-out games on average)
+  real gain +4.76: computed 80.0%   Monte-Carlo 79.7% ± 0.6   (1,249 held-out games on average)
+  real gain +5.96: computed 94.4%   Monte-Carlo 94.3% ± 0.3   (945 held-out games on average)
+
+Until settled, Lab Quick (stages of 112), one run stops at 4,928 held-out games
+  the gain adopted 8 times in 10, computed: +3.54 points
+  real gain +1.00: computed 2.8%   Monte-Carlo 2.7% ± 0.2   (483 held-out games on average)
+  real gain +2.91: computed 59.6%   Monte-Carlo 58.6% ± 0.7   (982 held-out games on average)
+  real gain +3.54: computed 80.1%   Monte-Carlo 80.3% ± 0.6   (827 held-out games on average)
+  real gain +4.43: computed 94.2%   Monte-Carlo 94.7% ± 0.3   (579 held-out games on average)
+
+Until settled, Lab Standard (stages of 224), one run stops at 4,928 held-out games
+  the gain adopted 8 times in 10, computed: +3.04 points
+  real gain +1.00: computed 2.7%   Monte-Carlo 2.6% ± 0.2   (866 held-out games on average)
+  real gain +2.53: computed 56.8%   Monte-Carlo 56.0% ± 0.7   (1,460 held-out games on average)
+  real gain +3.04: computed 80.0%   Monte-Carlo 79.9% ± 0.6   (1,282 held-out games on average)
+  real gain +3.80: computed 95.8%   Monte-Carlo 96.2% ± 0.3   (913 held-out games on average)
+
+Until settled, Lab Thorough (stages of 336), one run stops at 4,704 held-out games
+  the gain adopted 8 times in 10, computed: +2.82 points
+  real gain +1.00: computed 2.6%   Monte-Carlo 2.5% ± 0.2   (1,264 held-out games on average)
+  real gain +2.37: computed 55.6%   Monte-Carlo 52.8% ± 0.7   (1,798 held-out games on average)
+  real gain +2.82: computed 80.1%   Monte-Carlo 79.0% ± 0.6   (1,611 held-out games on average)
+  real gain +3.53: computed 96.6%   Monte-Carlo 96.9% ± 0.2   (1,180 held-out games on average)
+
+Largest difference between the two: 2.8 percentage points of chance.
+gamesFor (held-out games to the cap for 8 in 10, one-card swap, SD 0.30): +5.0 points 452; +3.0 1,804; +2.0 7,204

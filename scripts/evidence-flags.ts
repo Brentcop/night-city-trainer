@@ -29,9 +29,15 @@
 //                               most promising one-card swaps of earlier runs into each generation, skip the ones earlier
 //                               games say are not worth it, nominate by the gain over all of a change's games
 //   --carry N                   changes carried into each generation (2)
-//   --reach N                   drop a change that would need more than N held-out games in all to be adopted (10000)
+//   --until-settled             (forge, optimizer; the season passes it on; not under --adopt any-gain) a nominee still
+//                               undecided at the cap goes on in further stages of the same size, each judged by the strict
+//                               pooled rule on all its held-out games, until adopted or rejected, out of reach, no gain,
+//                               or this run's seeds for it run out (docs/SYNERGIES.md "Until settled"); works with or
+//                               without --ledger
+//   --reach N                   the shortlist drops a change, and "until settled" stops one, that would need more than N
+//                               held-out games in all to be adopted (10000); needs --pooled-ranking or --until-settled
 import path from 'node:path';
-import { ADOPTION_BOUNDARIES, adoptionRule, ruleProblems, type AdoptionBoundary, type AdoptionRule } from '../src/lib/evidence';
+import { ADOPTION_BOUNDARIES, adoptionRule, DEFAULT_REACH, ruleProblems, type AdoptionBoundary, type AdoptionRule } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, DEPTH_DEFAULTS, type SearchDepth } from '../src/lib/deckSearch';
 import { ledgerBot } from '../src/lib/changeLedger';
 import { shortlistOptions, type ShortlistOptions } from '../src/lib/shortlist';
@@ -164,23 +170,69 @@ export function ledgerArgs(v: LedgerFlagValues): string[] {
   return ['--ledger', ...(v['ledger-dir'] !== undefined ? ['--ledger-dir', v['ledger-dir']] : [])];
 }
 
+/** The reach (the shortlist's and "until settled"'s, src/lib/evidence.ts DEFAULT_REACH). */
+export const reachFlag = () => ({ reach: int(undefined, { min: 1, max: 100_000_000 }) });
 /** The shortlist flags (forge, and the season for its forge step): src/lib/shortlist.ts. */
-export const shortlistFlags = () => ({ 'pooled-ranking': bool(), carry: int(undefined, { min: 0, max: 20 }), reach: int(undefined, { min: 1, max: 100_000_000 }) });
+export const shortlistFlags = () => ({ 'pooled-ranking': bool(), carry: int(undefined, { min: 0, max: 20 }), ...reachFlag() });
 export interface ShortlistFlagValues {
   'pooled-ranking'?: boolean;
   carry?: number;
   reach?: number;
+  /** "until settled" is on: then --reach is its reach too, and may be given without --pooled-ranking */
+  'until-settled'?: boolean;
 }
 
 /** Why the shortlist flags cannot be used as given (null when they can, or are off). */
 export function shortlistProblem(v: ShortlistFlagValues, o: { ledger: boolean; rule: Pick<AdoptionRule, 'kind'> }): string | null {
   if (!v['pooled-ranking']) {
-    const stray = (['carry', 'reach'] as const).filter((k) => v[k] !== undefined);
-    return stray.length ? `${stray.map((k) => `--${k}`).join(' and ')} need${stray.length === 1 ? 's' : ''} --pooled-ranking` : null;
+    const settle = !!v['until-settled'];
+    const stray = (['carry', 'reach'] as const).filter((k) => v[k] !== undefined && !(k === 'reach' && settle));
+    if (!stray.length) return null;
+    if (stray.includes('reach')) return `${stray.includes('carry') ? '--carry needs --pooled-ranking; ' : ''}--reach needs --pooled-ranking or --until-settled`;
+    return '--carry needs --pooled-ranking';
   }
   if (!o.ledger) return '--pooled-ranking needs --ledger: the shortlist is built from the games the change ledger keeps';
   if (o.rule.kind !== 'evidence') return '--pooled-ranking needs the evidence rule: under --adopt any-gain earlier games are never pooled';
   return null;
+}
+
+/** "Until settled" (forge, optimizer, and the season for its forge step): src/lib/evidence.ts confirmStaged's `settle`. */
+export const settleFlags = () => ({ 'until-settled': bool() });
+export interface SettleFlagValues {
+  'until-settled'?: boolean;
+  reach?: number;
+}
+
+/** Why --until-settled cannot be used as given (null when it can, or is off). */
+export function settleProblem(v: SettleFlagValues, o: { rule: Pick<AdoptionRule, 'kind'> }): string | null {
+  if (v['until-settled'] && o.rule.kind !== 'evidence') return '--until-settled needs the evidence rule: under --adopt any-gain there is one confirmation and nothing is pooled';
+  return null;
+}
+
+/** "Until settled"'s reach, or null when --until-settled is off. Exits 2 (a bad command line) on a problem. */
+export function settleFromFlags(v: SettleFlagValues, o: { rule: Pick<AdoptionRule, 'kind'> }): { reach: number } | null {
+  const p = settleProblem(v, o);
+  if (p) {
+    console.error(`error: ${p}\nRun with --help for usage.`);
+    process.exit(2);
+  }
+  return v['until-settled'] ? { reach: v.reach ?? DEFAULT_REACH } : null;
+}
+
+/**
+ * The command-line form of --until-settled (season.ts passes it on to the forge), with --reach when the shortlist's
+ * own arguments (shortlistArgs) do not already carry it.
+ */
+export function settleArgs(v: SettleFlagValues & { 'pooled-ranking'?: boolean }): string[] {
+  if (!v['until-settled']) return [];
+  return ['--until-settled', ...(v.reach !== undefined && !v['pooled-ranking'] ? ['--reach', String(v.reach)] : [])];
+}
+
+/** --reach without the shortlist or "until settled" (the optimizer, which has no shortlist): refused like a bad flag. */
+export function exitOnStrayReach(v: SettleFlagValues): void {
+  if (v.reach === undefined || v['until-settled']) return;
+  console.error('error: --reach needs --until-settled\nRun with --help for usage.');
+  process.exit(2);
 }
 
 /** The shortlist's settings, or null when --pooled-ranking is off. Exits 2 (a bad command line) on a problem. */
@@ -203,8 +255,10 @@ export function shortlistArgs(v: ShortlistFlagValues): string[] {
  * Print the run's game estimate and refuse (exit 2) when its most could exceed `budget` without --force.
  * `what` names the run ("forge of 2 decks").
  */
-export function checkBudget(what: string, est: { min: number; max: number }, budget: number, force: boolean): void {
-  console.log(`Game budget (${what}): ${est.min.toLocaleString('en-US')} to ${est.max.toLocaleString('en-US')} games per deck (budget ${budget.toLocaleString('en-US')}).`);
+export function checkBudget(what: string, est: { min: number; max: number }, budget: number, force: boolean, settleExtra?: number): void {
+  // "until settled" may add games on top; the budget is checked against the usual estimate only
+  const extra = settleExtra !== undefined ? ` "Until settled" may add up to ${settleExtra.toLocaleString('en-US')} more (not counted against the budget).` : '';
+  console.log(`Game budget (${what}): ${est.min.toLocaleString('en-US')} to ${est.max.toLocaleString('en-US')} games per deck (budget ${budget.toLocaleString('en-US')}).${extra}`);
   if (est.max <= budget || force) return;
   console.error(`error: this run may play ${est.max.toLocaleString('en-US')} games per deck, over the budget of ${budget.toLocaleString('en-US')}. Lower the depth (--cards-per-change, --packages-per-change, --nominees, --confirm-cap) or the games, raise --budget, or pass --force.`);
   process.exit(2);

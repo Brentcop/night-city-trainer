@@ -218,10 +218,18 @@ describe('Deck Lab result view', () => {
     const lib = BUILTIN.find((d) => d.kind === 'meta')!;
     const html = renderToStaticMarkup(<DeckLabPage q={new URLSearchParams(`d=${lib.file}`)} />);
     expect(html).toContain('<legend>Search depth</legend>');
-    // the vs-original comparison (the original once, each adopted list once, 4 × games each) is part of the estimate
-    const p = tunePlan({ games: 56, gens: 1, cands: 4, packageCands: 3, vsOriginal: vsOriginalGames(56) });
-    expect(p.vsMax).toBe(2 * 224);
-    expect(html).toContain(`This run plays ${p.estimate.min}–${p.estimate.max.toLocaleString('en-US')} games. That includes up to 448 games comparing the tuned list with your original on the same 224 held-out games each`);
+    // the default effort is Standard (since P4, 2026-11-15): 112 games a test, 2 generations, 5 swaps; the vs-original
+    // comparison (the original once, each adopted list once, 4 × games each) is part of the estimate
+    expect(html).toContain('<option value="standard" selected="">');
+    const p = tunePlan({ games: 112, gens: 2, cands: 5, packageCands: 3, vsOriginal: vsOriginalGames(112), untilSettled: {} });
+    expect(p.vsMax).toBe(3 * 448);
+    const k = (x: number) => x.toLocaleString('en-US');
+    expect(html).toContain(`This run plays ${k(p.estimate.min)}–${k(p.estimate.max)} games. That includes up to 1,344 games comparing the tuned list with your original on the same 448 held-out games each`);
+    // "until settled" is on by default and said apart from the usual range, with what the run can detect
+    expect(p.settle!.extra).toBe(2 * 18 * 224 * 2);
+    expect(html).toContain(`Apart from that, keeping confirmations going until settled may add up to ${k(p.settle!.extra)} games`);
+    expect(html).toMatch(/<input type="checkbox" checked=""\/><span><b>Keep confirming until settled<\/b> \(on by default\)/);
+    expect(html).toContain('A first confirmation here adopts a real gain of +3.8 points 8 times in 10 (+6.2 for a package move); with until settled, about +3.0');
     // partner-aware cuts are on by default, with a visible line saying so
     expect(html).toMatch(/<input type="checkbox" checked=""\/><span><b>Partner-aware cuts<\/b> \(on by default\)/);
   });

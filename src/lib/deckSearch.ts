@@ -2,13 +2,20 @@
 // nominees are confirmed per generation, and what a run will cost in games before it starts. Shared by scripts/forge.ts,
 // scripts/optimize.ts and the Deck Lab tuner (src/lib/deckLab.ts). Plain data, Node and browser.
 //
+// What a run can detect (docs/TUNING_STUDY_2026-11-13.md P4): adoptChance / detectable give the smallest real gain a first
+// confirmation adopts 8 times in 10 (and, with "until settled", within the reach), gamesFor the held-out games a gain
+// needs, perGameSd the per-game SD a run assumes (the ledger's, else the study's), detectWords the line a run prints.
+//
 // Candidates of more than one change are built from the best screened single changes (the top `combineFrom` that
 // screened above the current list), never from the full cross product: pairs (and triples at depth 3) of those, each a
 // legal list that respects the package plan like every other candidate.
 import { validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { checkChange, isEmptyPlan, type PackagePlan } from './deckPackages';
-import type { AdoptionRule } from './evidence';
+import { alwaysValidZ, futilityApplies, lookZs, pooledShare, type AdoptionRule } from './evidence';
+import { normalCdf } from './groupSequential';
+import { summarize, type LedgerEntry } from './changeLedger';
+import { swapOfKey } from './shortlist';
 
 export interface SearchDepth {
   /** one-card swaps combined in one candidate: 1 (today), 2 or 3 */
@@ -180,7 +187,275 @@ export function estimateGames(o: BudgetInput): { min: number; max: number; scree
   return { min: o.gens * screen, max: o.gens * (screen + combo + confirm), screen, combos, confirm };
 }
 
+/**
+ * What "until settled" may add to a run at most (never counted against the budget): every generation's nominees going on
+ * for `stages` further stages each (settleStages: the seeds left and the reach, whichever allow fewer), the current list
+ * playing each stage once beside them.
+ */
+export function settleExtra(o: { gens: number; firstStage: number; stages: number; nominees: number }): number {
+  return o.gens * o.stages * o.firstStage * (1 + o.nominees);
+}
+
 /** Default most games one forge or optimizer run may plan per deck without --force. */
 export const DEFAULT_GAME_BUDGET = 12_000;
 /** The Deck Lab asks before a run that may play more than this. */
 export const LAB_GAME_BUDGET = 12_000;
+
+// ---------------------------------------------------------------- what a run can detect (docs/TUNING_STUDY_2026-11-13.md P4)
+
+export interface PowerInput {
+  /** games in the first confirmation stage */
+  firstStage: number;
+  rule: AdoptionRule;
+  /** per-game SD of the paired difference (a one-card swap about 0.30, a package move about 0.55) */
+  sd: number;
+  /** nominees per decision (their share of α) */
+  nominees?: number;
+  /** the bar in points (default the card bar, rule.minGainPp) */
+  minGainPp?: number;
+  /** confirmation stages at most (default rule.capStages) */
+  capStages?: number;
+  /** "until settled" to this reach (held-out games in all; absent: a first confirmation alone) */
+  reach?: number;
+  /** grid points per look (odd, for Simpson's rule; default POWER_GRID) */
+  grid?: number;
+}
+
+/** Grid points per look (odd, for Simpson's rule): 121 agrees with 241 to 0.01 points on detectable(). */
+export const POWER_GRID = 121;
+const SQRT2PI = Math.sqrt(2 * Math.PI);
+const dnorm = (x: number) => Math.exp(-0.5 * x * x) / SQRT2PI;
+
+/**
+ * The chance that a confirmation adopts a change whose real gain is `gain` (a fraction: 0.03 = 3 points), under the
+ * normal model of the paired differences: each stage's sum is normal with mean firstStage·gain and variance
+ * firstStage·sd². Computed, not simulated: the density of the standardised running sum on the region that is still
+ * undecided is carried from look to look by a Gaussian convolution on a grid (as src/lib/groupSequential.ts does for the
+ * boundaries), so the exact rule is followed look by look: the staged z's (lookZs), the minimum games before any
+ * adoption, rejection when the upper bound is below the bar, and the futility stop. A test checks it against a seeded
+ * Monte-Carlo of confirmStaged (tests/detectable.test.ts).
+ *
+ * With `reach` ("until settled"), an undecided confirmation goes on past the cap in stages of the same size, each judged
+ * by the pooled always-valid boundary (alwaysValidZ), with the futility stop on the pooled mean and the out-of-reach stop
+ * before each further stage, until the reach. Approximations there: the spread is the true one (the rule uses the guarded
+ * estimate, two pseudo-games added, which differs by O(1/n)); "would need more than the reach" is read as "the mean
+ * gain over the bar is at most alwaysValidZ(reach)·sd/√reach", which is what gamesToSettle decides when the spread is
+ * the true one (z(k)/√k falls with k); and the limit of one run's seeds is ignored, as if the shortlist carried the
+ * change into the next run and its confirmation went on there with nothing else in between. The test checks it too.
+ */
+export function adoptChance(gain: number, o: PowerInput): number {
+  const rule = o.rule;
+  const m = o.firstStage;
+  const sd = o.sd;
+  if (!(m > 0) || !(sd > 0)) return 0;
+  if (rule.kind === 'any-gain') return normalCdf((gain * Math.sqrt(m)) / sd);
+  const nom = Math.max(1, o.nominees ?? 1);
+  const K = o.capStages ?? rule.capStages;
+  const zs = lookZs({ ...rule, capStages: K }, nom);
+  const a = pooledShare(rule.alpha, nom);
+  const bar = (o.minGainPp ?? rule.minGainPp) / 100;
+  // x = Σ(d − bar) / sd: each stage adds N(drift, m)
+  const drift = (m * (gain - bar)) / sd;
+  const sdi = Math.sqrt(m);
+  const futility = (rule.futilityMaxGainPp / 100 - bar) / sd;
+  const reachSlope = o.reach ? alwaysValidZ(o.reach, a) / Math.sqrt(o.reach) : 0;
+  const looks = o.reach ? K + Math.ceil(o.reach / m) + 1 : K;
+  let xs: Float64Array | null = null;
+  let f: Float64Array | null = null;
+  let w: Float64Array | null = null;
+  let adopt = 0;
+  const G = o.grid ?? POWER_GRID;
+  for (let k = 1; k <= looks; k++) {
+    const n = k * m;
+    const staged = k <= K;
+    const z = staged ? (zs[k - 1] ?? 1.96) : alwaysValidZ(n, a);
+    const up = n >= rule.minGames ? z * Math.sqrt(n) : Infinity;
+    // the previous look's density times its Simpson weights
+    const ws = w;
+    const wf = xs && f && ws ? f.map((v, j) => v * ws[j]!) : null;
+    const above = (b: number): number => {
+      if (!xs || !wf) return 1 - normalCdf((b - drift) / sdi);
+      let s = 0;
+      for (let j = 0; j < xs.length; j++) s += wf[j]! * (1 - normalCdf((b - xs[j]! - drift) / sdi));
+      return s;
+    };
+    if (up < Infinity) adopt += above(up);
+    // the region still undecided after this look: below the adoption bound, above the rejection bound and the stops
+    let lo = -z * Math.sqrt(n);
+    if (staged && k < K) {
+      if (futilityApplies(rule, k, K)) lo = Math.max(lo, futility * n);
+    } else if (o.reach) {
+      if (!staged && rule.futilityAfterStages > 0 && n >= rule.futilityAfterStages * m) lo = Math.max(lo, futility * n);
+      // out of reach, checked before the next stage
+      lo = Math.max(lo, reachSlope * n);
+    } else break;
+    const centre = k * drift;
+    const top = Math.min(up, centre + 8 * Math.sqrt(n));
+    const bottom = Math.max(lo, centre - 8 * Math.sqrt(n));
+    if (!(top > bottom)) break;
+    const h = (top - bottom) / (G - 1);
+    const nx = new Float64Array(G);
+    const nf = new Float64Array(G);
+    for (let i = 0; i < G; i++) nx[i] = bottom + i * h;
+    if (!xs || !wf) for (let i = 0; i < G; i++) nf[i] = dnorm((nx[i]! - drift) / sdi) / sdi;
+    else
+      for (let i = 0; i < G; i++) {
+        let s = 0;
+        for (let j = 0; j < xs.length; j++) s += wf[j]! * dnorm((nx[i]! - xs[j]! - drift) / sdi);
+        nf[i] = s / sdi;
+      }
+    const nw = new Float64Array(G);
+    for (let i = 0; i < G; i++) nw[i] = (i === 0 || i === G - 1 ? 1 : i % 2 ? 4 : 2) * (h / 3);
+    xs = nx;
+    f = nf;
+    w = nw;
+  }
+  return Math.min(1, Math.max(0, adopt));
+}
+
+/** The largest gain detectable() looks at: 60 points (beyond it a change is "not within reach of this run"). */
+const MAX_GAIN = 0.6;
+
+/**
+ * The smallest real gain (a fraction) that a first confirmation adopts with probability `power` (default 0.8, "8 times
+ * in 10"), for this stage size, cap, per-game SD, rule and number of nominees; with `reach`, the gain "until settled"
+ * adopts that often within the reach (adoptChance says how each is computed). Infinity when not even a 60-point gain is.
+ */
+export function detectable(o: PowerInput & { power?: number }): number {
+  const power = o.power ?? 0.8;
+  let lo = o.rule.kind === 'any-gain' ? 0 : (o.minGainPp ?? o.rule.minGainPp) / 100;
+  // bracket from 15 points above the bar, widened to 60 when needed
+  let hi = Math.min(MAX_GAIN, lo + 0.15);
+  while (adoptChance(hi, o) < power) {
+    if (hi >= MAX_GAIN) return Infinity;
+    lo = hi;
+    hi = Math.min(MAX_GAIN, hi * 2);
+  }
+  // to 0.005 points: the line shows one decimal
+  while (hi - lo > 5e-5) {
+    const mid = (lo + hi) / 2;
+    if (adoptChance(mid, o) >= power) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+/**
+ * The held-out games (all stages to the cap: capStages × the first stage) a first confirmation needs to adopt a change of
+ * real gain `gain` (a fraction) with probability `power` (default 0.8). Infinity when the gain is not above the bar.
+ */
+export function gamesFor(o: Omit<PowerInput, 'firstStage' | 'reach'> & { gain: number; power?: number }): number {
+  const power = o.power ?? 0.8;
+  const K = o.rule.kind === 'any-gain' ? 1 : (o.capStages ?? o.rule.capStages);
+  const bar = o.rule.kind === 'any-gain' ? 0 : (o.minGainPp ?? o.rule.minGainPp) / 100;
+  if (!(o.gain > bar)) return Infinity;
+  const ok = (m: number) => adoptChance(o.gain, { ...o, firstStage: m }) >= power;
+  let hi = 1;
+  while (!ok(hi)) {
+    hi *= 2;
+    if (hi > 1 << 24) return Infinity;
+  }
+  let lo = hi / 2;
+  if (hi === 1) return K;
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (ok(mid)) hi = mid;
+    else lo = mid;
+  }
+  return hi * K;
+}
+
+// ---------------------------------------------------------------- the per-game SD a run assumes
+
+/** The tuning study's per-game SDs of the paired difference when the ledger holds too little (E3: 0.24 to 0.46 for cards). */
+export const DEFAULT_SD: Readonly<{ card: number; package: number }> = Object.freeze({ card: 0.3, package: 0.55 });
+/** A change counts toward the ledger's SD with this many held-out games or more. */
+export const SD_MIN_HELDOUT = 200;
+/** The ledger's SD is used when it has at least this many such changes of the kind (one-card swaps, or larger changes). */
+export const SD_MIN_CHANGES = 3;
+
+/** Per-game SDs of the held-out differences of some changes: one-card swaps apart from larger changes. */
+export interface SdSamples {
+  swaps: number[];
+  larger: number[];
+}
+
+/** The SD of each change's held-out paired differences, for changes with SD_MIN_HELDOUT held-out games or more. */
+export function heldoutSdSamples(entries: readonly Pick<LedgerEntry, 'id' | 'heldout'>[]): SdSamples {
+  const out: SdSamples = { swaps: [], larger: [] };
+  for (const e of entries) {
+    if (e.heldout.length < SD_MIN_HELDOUT) continue;
+    const sd = summarize(e.heldout).sd;
+    (swapOfKey(e.id.change) ? out.swaps : out.larger).push(sd);
+  }
+  return out;
+}
+
+export interface PerGameSd {
+  card: number;
+  package: number;
+  /** how many of this list's changes the figure is the median of (0: the study's default) */
+  cardFrom: number;
+  packageFrom: number;
+}
+
+const median = (xs: readonly number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  const i = Math.floor(s.length / 2);
+  return s.length % 2 ? s[i]! : (s[i - 1]! + s[i]!) / 2;
+};
+
+/** The SDs a run assumes: the median of the ledger's changes of each kind when it holds SD_MIN_CHANGES or more, else DEFAULT_SD. */
+export function perGameSd(s?: SdSamples): PerGameSd {
+  const swaps = s?.swaps ?? [];
+  const larger = s?.larger ?? [];
+  const card = swaps.length >= SD_MIN_CHANGES;
+  const pkg = larger.length >= SD_MIN_CHANGES;
+  return { card: card ? median(swaps) : DEFAULT_SD.card, package: pkg ? median(larger) : DEFAULT_SD.package, cardFrom: card ? swaps.length : 0, packageFrom: pkg ? larger.length : 0 };
+}
+
+export interface Detect {
+  /** the gain (a fraction) a first confirmation adopts 8 times in 10: one-card swaps, package moves */
+  card: number;
+  package: number;
+  /** with "until settled" on: the gain adopted 8 times in 10 within the reach */
+  settled?: { card: number; package: number; reach: number };
+  sd: PerGameSd;
+  /** the legacy any-gain rule: it also adopts a change with no real gain about half the time, and the line says so */
+  anyGain?: true;
+}
+
+/** What a run can detect: detectable() for a one-card swap and a package move, and with "until settled" when it is on. */
+export function detect(o: { rule: AdoptionRule; firstStage: number; nominees: number; sd: PerGameSd; untilSettled?: { reach: number } }): Detect {
+  const one = (sd: number, minGainPp: number, reach?: number) => detectable({ firstStage: o.firstStage, rule: o.rule, sd, nominees: o.nominees, minGainPp, ...(reach ? { reach } : {}) });
+  const settle = o.untilSettled && o.rule.kind === 'evidence' ? o.untilSettled.reach : undefined;
+  return {
+    card: one(o.sd.card, o.rule.minGainPp),
+    package: one(o.sd.package, o.rule.packageMinGainPp),
+    ...(settle ? { settled: { card: one(o.sd.card, o.rule.minGainPp, settle), package: one(o.sd.package, o.rule.packageMinGainPp, settle), reach: settle } } : {}),
+    sd: o.sd,
+    ...(o.rule.kind === 'any-gain' ? { anyGain: true as const } : {}),
+  };
+}
+
+/**
+ * The line a run prints before it starts: "A first confirmation here adopts a real gain of +3.5 points 8 times in 10
+ * (+5.8 for a package move); with until settled, about +2.4 (+4.1 for a package move) within 10,000 held-out games. It
+ * assumes a per-game spread of 0.30 for a one-card swap and 0.55 for a package move (the tuning study's typical values)."
+ * A run too small to adopt anything says "does not adopt even a real gain of +60 points 8 times in 10"; under the legacy
+ * any-gain rule the line adds that a change with no real gain is adopted about half the time.
+ */
+export function detectWords(d: Detect): string {
+  // detectable() gives Infinity when not even a 60-point gain is adopted that often
+  const amount = (x: number) => (Number.isFinite(x) ? `+${(x * 100).toFixed(1)}` : 'not even +60');
+  const pkgOf = (x: number) => `${amount(x)} for a package move`;
+  const first = Number.isFinite(d.card)
+    ? `A first confirmation here adopts a real gain of ${amount(d.card)} points 8 times in 10 (${pkgOf(d.package)})`
+    : `A first confirmation here does not adopt even a real gain of +60 points 8 times in 10 (${pkgOf(d.package)})`;
+  const settled = d.settled ? `; with until settled, ${Number.isFinite(d.settled.card) ? 'about ' : ''}${amount(d.settled.card)} (${pkgOf(d.settled.package)}) within ${d.settled.reach.toLocaleString('en-US')} held-out games` : '';
+  const anyGain = d.anyGain ? ' Under the any-gain rule a change with no real gain at all is adopted about half the time too.' : '';
+  const from = (sd: number, k: number, what: string) => `${sd.toFixed(2)} for ${what}${k ? ` (the median of ${k} changes of this list with ${SD_MIN_HELDOUT} or more held-out games)` : ''}`;
+  const both = !d.sd.cardFrom && !d.sd.packageFrom;
+  const spread = `It assumes a per-game spread of ${from(d.sd.card, d.sd.cardFrom, 'a one-card swap')} and ${from(d.sd.package, d.sd.packageFrom, 'a package move')}${both ? " (the tuning study's typical values)" : !d.sd.cardFrom || !d.sd.packageFrom ? "; the other is the tuning study's typical value" : ''}.`;
+  return `${first}${settled}.${anyGain} ${spread}`;
+}

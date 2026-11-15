@@ -6,8 +6,11 @@
 // reject gets its own line (NotNominatedList, worded by pooledGainWords). With the shortlist (src/lib/shortlist.ts, on
 // with earlier held-out games) a generation also says which changes were tested again and which were skipped
 // (ShortlistNotes), and a change its earlier held-out games put out of reach gets its own "Not nominated" line.
+// "Until settled" (TuneOptions.untilSettled): SettleCheckbox in the setup, what it may add beside the game estimate and
+// what the run can detect (DepthControls), and a wrapping note under a nominee's held-out gain (SettleNote) saying how
+// many further stages it played and why it stopped.
 import { useId, type ReactNode } from 'react';
-import { formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type StopReason } from '../../lib/evidence';
+import { formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, settleWords, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type SettleRecord, type StopReason } from '../../lib/evidence';
 import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
 import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type NotNominated, type TuneLog } from '../../lib/deckLab';
 import { cutTableRows } from '../../lib/cutRanking';
@@ -99,12 +102,45 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label 
               ) : (
                 <span className="muted">—</span>
               )}
+              {n.settle && <SettleNote settle={n.settle} games={n.heldOut?.games ?? 0} />}
             </td>
             <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** What "until settled" did, as a sentence: "Confirmed until settled: 6 more stages." */
+export function settleNoteText(settle: Pick<SettleRecord, 'stages' | 'ended' | 'toSettle' | 'reach'>, games: number): string {
+  const w = settleWords(settle, games);
+  return `${w.charAt(0).toUpperCase()}${w.slice(1)}.`;
+}
+
+/** The "until settled" note under a held-out gain; it wraps, like the pooled note (a long unbreakable span widened the table). */
+export function SettleNote({ settle, games }: { settle: Pick<SettleRecord, 'stages' | 'ended' | 'toSettle' | 'reach'>; games: number }) {
+  return (
+    <div className="small muted" title="Keep confirming until settled: after the usual stages a still undecided change was tested on more fresh games, all its held-out games judged together">
+      {settleNoteText(settle, games)}
+    </div>
+  );
+}
+
+/** The sentence beside the "Keep confirming until settled" checkbox. */
+export function settleSentence(reach: number): string {
+  return `a change still undecided after the usual stages is tested on more fresh games, a stage at a time, until all its held-out games together adopt or reject it, until it would need more than ${reach.toLocaleString('en-US')} of them, or until this generation's games for it run out (the rest can be settled in a later run).`;
+}
+
+/** The tuner's "Keep confirming until settled" checkbox, with its one sentence (independent of "Use earlier held-out games"). */
+export function SettleCheckbox({ checked, onChange, disabled, reach }: { checked: boolean; onChange: (on: boolean) => void; disabled?: boolean; reach: number }) {
+  return (
+    <label className="row small">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
+      <span>
+        <b>Keep confirming until settled</b> (on by default): {settleSentence(reach)}
+      </span>
+    </label>
   );
 }
 
@@ -182,6 +218,8 @@ export function DepthControls({
   firstStage,
   disabled,
   vsOriginal,
+  settle,
+  detect,
 }: {
   cards: number;
   onCards: (n: number) => void;
@@ -196,8 +234,13 @@ export function DepthControls({
   disabled?: boolean;
   /** games the vs-original comparison may add (included in `estimate.max`) and its block size per list */
   vsOriginal?: { max: number; games: number };
+  /** "until settled" is on: what it may add at most (never part of `estimate` or the budget question) */
+  settle?: { extra: number; reach: number } | null;
+  /** what this run can detect, in one sentence (detectWords) */
+  detect?: string;
 }) {
   const headId = useId();
+  // the budget question counts the usual range only; "until settled" is said apart
   const over = estimate.max > budget;
   return (
     <fieldset className="lab-synergies" aria-describedby={headId} disabled={disabled}>
@@ -232,6 +275,16 @@ export function DepthControls({
         {vsOriginal && vsOriginal.max > 0 && ` That includes up to ${vsOriginal.max.toLocaleString('en-US')} games comparing the tuned list with your original on the same ${vsOriginal.games} held-out games each (only after a change is adopted).`}
         {over && ` ⚠ That is over the lab's budget of ${budget.toLocaleString('en-US')} games; you'll be asked to confirm.`}
       </p>
+      {settle && settle.extra > 0 && (
+        <p className="small muted" style={{ margin: 0 }}>
+          Apart from that, keeping confirmations going until settled may add up to {settle.extra.toLocaleString('en-US')} games (only for a change still undecided after the usual stages).
+        </p>
+      )}
+      {detect && (
+        <p className="small muted" style={{ margin: 0 }}>
+          {detect}
+        </p>
+      )}
     </fieldset>
   );
 }

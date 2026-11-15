@@ -23,11 +23,16 @@
 //                when pooled gain + dropSe standard errors < +2, when its held-out games are rejected, or when it would
 //                need more than `reach` held-out games to be adopted (gamesToSettleSums); nominee = the best pooled gain
 //                ≥ +2 that is neither rejected nor out of reach.
-//   P4 rows      not built yet ("until settled", docs/TUNING_STUDY_2026-11-13.md P4): a confirmation that ends undecided
-//                goes on in the same run while its held-out games stay within `reach` of settling, and (with the
-//                shortlist) each run first continues the open confirmation closest to settling.
-import { ADOPTION_DEFAULTS, type AdoptionRule } from '../src/lib/evidence';
-import { gamesToSettleSums } from '../src/lib/changeLedger';
+//   until settled  P4 as built (confirmStaged's `settle`, docs/SYNERGIES.md "Until settled"): a confirmation still
+//                undecided at the cap (not stopped for no gain) goes on in further stages of 224 in the same run; before
+//                each one it stops when out of reach (src/lib/shortlist.ts outOfReach: gamesToSettle over the reach), after
+//                each one when the strict pooled look (heldoutVerdict) adopts or rejects or the futility rule fires on the
+//                pooled mean, and at this run's limit: the forge's 50,000 confirmation seeds a generation and the reach
+//                (src/lib/evidence.ts settleStages). tests/until-settled.test.ts checks that it decides as confirmStaged does.
+//                The rows of 2026-11-14 ("P4, not built") also resumed the open confirmation closest to settling at the
+//                start of each run; the built shortlist does not (it carries the change, screens it again and nominates it
+//                by pooled gain).
+import { ADOPTION_DEFAULTS, settleStages, type AdoptionRule, type Outcome } from '../src/lib/evidence';
 import { heldoutVerdict, outOfReach, SHORTLIST_DEFAULTS, statusOfSums, type ShortlistRule } from '../src/lib/shortlist';
 import { rng, runOnce, stageDraw, type Sums } from './ledger-sim';
 
@@ -38,8 +43,8 @@ const STAGE = 224;
 let SD = 0.24;
 /** the nomination bar: 2 points */
 const NOMINATE = 0.02;
-/** stages a P4 "until settled" confirmation may add in one run, at most */
-const SETTLE_STAGES = 40;
+/** the forge's confirmation seeds a generation (scripts/forge.ts CONFIRM_GAP): "until settled" stays within them */
+const CONFIRM_SEEDS = 50_000;
 
 const ZERO: Sums = { n: 0, sum: 0, sq: 0 };
 const plus = (a: Sums, b: Sums): Sums => ({ n: a.n + b.n, sum: a.sum + b.sum, sq: a.sq + b.sq });
@@ -66,9 +71,8 @@ export interface Policy {
   ledger: boolean;
   /** the shortlist (null = none): carry, dropSe, reach */
   shortlist: { carry: number; dropSe: number; reach: number } | null;
-  /** P4 (not built): "until settled" with this reach (0 = off); `resume`: continue the open confirmation first */
+  /** "until settled" with this reach (0 = off) */
   settle: number;
-  resume: boolean;
 }
 
 const RULE: AdoptionRule = ADOPTION_DEFAULTS;
@@ -78,7 +82,6 @@ const ruleOf = (sl: NonNullable<Policy['shortlist']>): ShortlistRule => ({ ...JU
 
 /** The strict rule's look at held-out games alone (src/lib/shortlist.ts heldoutVerdict: judgePooled's look on sums). */
 const heldVerdict = (h: Sums) => heldoutVerdict(h, JUDGE);
-const toSettle = (h: Sums) => gamesToSettleSums(h.n, h.sum, h.sq, RULE);
 /** screening and held-out games never share a game here (fresh seeds), so the pooled games are their sum */
 const pooled = (c: Cand) => plus(c.screen, c.held);
 const meanOf = (s: Sums) => (s.n ? s.sum / s.n : 0);
@@ -93,31 +96,56 @@ interface Stats {
   wrong: number;
 }
 
-/** P4 (not built): go on after an undecided confirmation while it stays within reach of settling. */
-function settleOn(c: Cand, draw: () => Sums, reach: number, stats: Stats): 'adopt' | 'reject' | 'open' {
-  for (let k = 0; k < SETTLE_STAGES; k++) {
-    if (toSettle(c.held) > reach) return 'open';
-    const s = draw();
-    stats.games += 2 * s.n;
-    c.held = plus(c.held, s);
-    const v = heldVerdict(c.held);
-    if (v === 'adopt' || v === 'reject') return v;
-    if (c.held.n >= RULE.futilityAfterStages * STAGE && meanOf(c.held) <= RULE.futilityMaxGainPp / 100) return 'open';
+/** Why "until settled" ended (src/lib/evidence.ts SettleEnd). */
+export type SimSettleEnd = 'adopt' | 'reject' | 'out-of-reach' | 'futility' | 'limit';
+
+/**
+ * "Until settled" after an undecided cap, on held-out games kept as sums: the further stages confirmStaged plays, with its
+ * checks in its order: out of reach before each stage (outOfReach), then this run's limit, then a stage, the strict pooled
+ * look (heldoutVerdict) and the futility rule on the pooled mean. `held` is every held-out game so far; returns it with the
+ * new stages, and how many there were.
+ */
+export function settleOn(rule: AdoptionRule, firstStage: number, held: Sums, draw: () => Sums, o: { reach: number; maxStages: number }): { ended: SimSettleEnd; held: Sums; stages: number } {
+  const judge = { rule, nominees: 1, minGainPp: rule.minGainPp };
+  for (let k = 0; ; k++) {
+    if (outOfReach(held, { ...judge, reach: o.reach }).out) return { ended: 'out-of-reach', held, stages: k };
+    if (k >= o.maxStages) return { ended: 'limit', held, stages: k };
+    held = plus(held, draw());
+    const v = heldoutVerdict(held, judge);
+    if (v === 'adopt' || v === 'reject') return { ended: v, held, stages: k + 1 };
+    if (rule.futilityAfterStages > 0 && held.n >= rule.futilityAfterStages * firstStage && meanOf(held) <= rule.futilityMaxGainPp / 100) return { ended: 'futility', held, stages: k + 1 };
   }
-  return 'open';
 }
 
-/** Confirm a nominee: runOnce (the staged rule, or the strict pooled rule when it has held-out games), then P4 if on. */
-function confirm(r: () => number, c: Cand, p: Policy, stats: Stats): 'adopt' | 'reject' | 'open' {
+/**
+ * One confirmation as the builders run it with the ledger: runOnce (the staged rule, or the strict pooled rule when
+ * `prior` holds held-out games), then, with `settle`, "until settled" when it ended undecided at the cap. `played`: the
+ * new games.
+ */
+export function confirmOnce(rule: AdoptionRule, firstStage: number, prior: Sums, draw: () => Sums, settle?: { reach: number; maxStages: number }): { outcome: Outcome; played: Sums; settle?: { ended: SimSettleEnd; stages: number } } {
+  const o = runOnce(rule, firstStage, prior, draw, 'strict');
+  // undecided at the cap, not stopped for no gain: runOnce played every capped stage (the futility stop never ends the last)
+  if (!settle || o.outcome !== 'inconclusive' || o.looks < rule.capStages) return { outcome: o.outcome, played: o.played };
+  const s = settleOn(rule, firstStage, plus(prior, o.played), draw, settle);
+  const outcome: Outcome = s.ended === 'adopt' || s.ended === 'reject' ? s.ended : 'inconclusive';
+  return { outcome, played: { n: s.held.n - prior.n, sum: s.held.sum - prior.sum, sq: s.held.sq - prior.sq }, settle: { ended: s.ended, stages: s.stages } };
+}
+
+/** "Until settled"'s limit in one run: the forge's confirmation seeds a generation and the reach (settleStages). */
+const settleLimit = (reach: number) => ({ reach, maxStages: settleStages({ seedStages: Math.floor(CONFIRM_SEEDS / STAGE) - RULE.capStages, reach, firstStage: STAGE, capStages: RULE.capStages }) });
+
+/** Confirm a nominee as the builders do (confirmOnce); without the ledger every run starts from nothing. */
+function confirm(r: () => number, c: Cand, p: Policy, stats: Stats): Outcome {
   const draw = stageDraw(r, STAGE, c.mu, SD);
-  const o = runOnce(RULE, STAGE, p.ledger ? c.held : ZERO, draw, p.ledger ? 'strict' : 'no-ledger');
+  if (!p.ledger) {
+    const o = runOnce(RULE, STAGE, ZERO, draw, 'no-ledger');
+    stats.games += 2 * o.played.n;
+    return o.outcome;
+  }
+  const o = confirmOnce(RULE, STAGE, c.held, draw, p.settle ? settleLimit(p.settle) : undefined);
   stats.games += 2 * o.played.n;
-  if (p.ledger) c.held = plus(c.held, o.played);
-  if (o.outcome === 'adopt') return 'adopt';
-  if (o.outcome === 'reject') return 'reject';
-  // undecided at the cap (not stopped for futility): P4 goes on while within reach
-  if (p.settle && p.ledger && o.looks >= RULE.capStages) return settleOn(c, draw, p.settle, stats);
-  return 'open';
+  c.held = plus(c.held, o.played);
+  return o.outcome;
 }
 
 function life(r: () => number, p: Policy, o: { runs: number; pool: number }): Stats {
@@ -132,20 +160,6 @@ function life(r: () => number, p: Policy, o: { runs: number; pool: number }): St
   };
   const sl = p.shortlist;
   for (let run = 1; run <= o.runs; run++) {
-    // P4 (not built): continue the open confirmation closest to settling first
-    if (p.resume && sl) {
-      const open = pool
-        .filter((c) => c.held.n && status(c, sl) === 'live' && toSettle(c.held) <= p.settle)
-        .sort((a, b) => toSettle(a.held) - a.held.n - (toSettle(b.held) - b.held.n));
-      const c = open[0];
-      if (c) {
-        const out = settleOn(c, stageDraw(r, STAGE, c.mu, SD), p.settle, stats);
-        if (out === 'adopt') {
-          adopt(c);
-          continue;
-        }
-      }
-    }
     // this run's candidates: the carried ones, then random picks (the generator) skipping carried and dropped ones
     let cands: Cand[] = [];
     const rest = sl ? pool.filter((c) => status(c, sl) !== 'dropped') : [...pool];
@@ -196,14 +210,14 @@ const D = SHORTLIST_DEFAULTS;
 const reachWords = (n: number) => n.toLocaleString('en-US');
 /** The rows the docs quote, in order (the "as built" rows follow SHORTLIST_DEFAULTS). */
 export const ROWS: { name: string; p: Policy }[] = [
-  { name: 'today (new picks every run, nothing remembered)', p: { ledger: false, shortlist: null, settle: 0, resume: false } },
-  { name: 'the ledger alone (P1)', p: { ledger: true, shortlist: null, settle: 0, resume: false } },
-  { name: `carried shortlist as built (carry ${D.carry}, drop at ${D.dropSe} SE, reach ${reachWords(D.reach)})`, p: { ledger: true, shortlist: { ...D }, settle: 0, resume: false } },
-  { name: 'the same with a reach of 4,500', p: { ledger: true, shortlist: { ...D, reach: 4_500 }, settle: 0, resume: false } },
-  { name: 'fixed shortlist (carry 5, drop at 1.64 SE, reach 16,000)', p: { ledger: true, shortlist: { carry: 5, dropSe: 1.64, reach: 16_000 }, settle: 0, resume: false } },
-  { name: `P4, not built: the ledger + until settled (reach ${reachWords(D.reach)})`, p: { ledger: true, shortlist: null, settle: D.reach, resume: false } },
-  { name: 'P4, not built: carried shortlist + until settled, resumed first', p: { ledger: true, shortlist: { ...D }, settle: D.reach, resume: true } },
-  { name: 'P4, not built: the same with a reach of 4,500', p: { ledger: true, shortlist: { ...D, reach: 4_500 }, settle: 4_500, resume: true } },
+  { name: 'today (new picks every run, nothing remembered)', p: { ledger: false, shortlist: null, settle: 0 } },
+  { name: 'the ledger alone (P1)', p: { ledger: true, shortlist: null, settle: 0 } },
+  { name: `carried shortlist as built (carry ${D.carry}, drop at ${D.dropSe} SE, reach ${reachWords(D.reach)})`, p: { ledger: true, shortlist: { ...D }, settle: 0 } },
+  { name: 'the same with a reach of 4,500', p: { ledger: true, shortlist: { ...D, reach: 4_500 }, settle: 0 } },
+  { name: 'fixed shortlist (carry 5, drop at 1.64 SE, reach 16,000)', p: { ledger: true, shortlist: { carry: 5, dropSe: 1.64, reach: 16_000 }, settle: 0 } },
+  { name: `the ledger + until settled (P4 as built, reach ${reachWords(D.reach)})`, p: { ledger: true, shortlist: null, settle: D.reach } },
+  { name: 'carried shortlist + until settled (P4 and P5 as built)', p: { ledger: true, shortlist: { ...D }, settle: D.reach } },
+  { name: 'the same with a reach of 4,500 for both', p: { ledger: true, shortlist: { ...D, reach: 4_500 }, settle: 4_500 } },
 ];
 
 async function main() {

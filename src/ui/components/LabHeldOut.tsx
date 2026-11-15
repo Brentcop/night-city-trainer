@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState, type RefObject } from 'react';
 import { openLedgerStorage } from '../../lib/changeLedgerIdb';
 import { BrowserLedgerStore, clearLedgerWords, holdingLine, importLine, keptLine, type LedgerCounts, type ListHolding } from '../../lib/changeLedgerStore';
 import { download } from '../../lib/download';
+import type { SdSamples } from '../../lib/deckSearch';
 import { SIM_VERSION } from '../../lib/tournament';
 import { Modal } from './Modal';
 
@@ -71,6 +72,24 @@ export function useListHolding(store: BrowserLedgerStore | null, base: string, b
     };
   }, [store, base, bot, field, key]);
   return h && h.key === key ? h.holding : null;
+}
+
+/** The per-game SDs of this list's changes kept here for this bot and field (null while reading or without a store). */
+export function useListSds(store: BrowserLedgerStore | null, base: string, bot: string | null, field: string, version: number): SdSamples | null {
+  const [h, setH] = useState<{ key: string; sds: SdSamples } | null>(null);
+  const key = `${base}|${bot}|${field}|${version}`;
+  useEffect(() => {
+    if (!store || !base) return;
+    let live = true;
+    store.sdSamples(base, { simVersion: SIM_VERSION, bot, field }).then(
+      (sds) => live && setH({ key, sds }),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [store, base, bot, field, key]);
+  return h && h.key === key ? h.sds : null;
 }
 
 const LINE_ID = 'lab-heldout-line';

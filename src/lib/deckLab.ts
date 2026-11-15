@@ -17,10 +17,10 @@ import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
-import { adoptionRule, confirmStaged, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores } from './evidence';
+import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
 import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
-import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, type SearchDepth } from './deckSearch';
+import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, settleExtra, type SearchDepth } from './deckSearch';
 import { byPooledGain, outOfReach, pooledFigure, shortlistGeneration, shortlistOptions, type PooledFigure, type ShortlistNote, type ShortlistOptions } from './shortlist';
 import type { LibraryDeck } from './library';
 import { h2hFileLookup, type H2HFileLike, type H2HRecord } from './h2hModel';
@@ -272,6 +272,14 @@ export interface TuneOptions {
    * gain over every game of a change (TuneLog.shortlist, swaps[].pooled). Absent: every game and log is as before.
    */
   shortlist?: Partial<ShortlistOptions>;
+  /**
+   * "until settled" (confirmStaged's `settle`; the evidence rule only; `{}` = the default reach, DEFAULT_REACH): a nominee
+   * still undecided at the cap goes on in further stages of the same size, each judged by the strict pooled rule on all
+   * its held-out games, while within the reach and while this generation's 5,000 confirmation seeds last (about 4,900
+   * held-out games a confirmation; the rest is for a later run). Works with or without `ledger` (with it every further
+   * stage is recorded). Absent: every game and log is as before.
+   */
+  untilSettled?: { reach?: number };
 }
 
 /** A change-ledger store the tuner can use: loaded per base list before each generation, then read synchronously. */
@@ -351,6 +359,8 @@ export interface TuneLog {
   adoptedGain?: PairedInterval;
   /** the adopted change's gain was pooled with earlier runs: this many of its games came from them */
   adoptedPriorGames?: number;
+  /** the adopted change was confirmed until settled: its further stages (TuneOptions.untilSettled) */
+  adoptedSettle?: SettleRecord;
   /** partner-aware runs: every main-deck card's cut ranking, both scores, offered or not and why */
   cuts?: CutExplained[];
   /** runs with `vsOriginal`: the current list against the original after this generation */
@@ -374,24 +384,36 @@ export interface NotNominated {
   reach?: number;
 }
 
-/** The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). */
-export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal'>) {
+/** Seeds a generation's confirmation may use (generation g: seedBase + g·10,000 + 5,000 up to the next generation's first). */
+export const LAB_CONFIRM_SEEDS = 5_000;
+
+/**
+ * The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). With `untilSettled`,
+ * `settle` says what it may add at most (`extra` games, never part of `estimate`), its reach and the further stages each
+ * generation's seeds allow.
+ */
+export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal' | 'untilSettled'>) {
   const rule = adoptionRule(o.rule);
   const depth: SearchDepth = { ...DEPTH_DEFAULTS, ...o.depth };
   const pkN = o.packageCands ?? 3;
+  const firstStage = o.games * 2;
   const estimate = estimateGames({
     gens: o.gens,
     screenGames: o.games,
     singles: o.cands,
     packageMoves: (o.packageMoves ? pkN : 0) + (o.plan?.require?.length ? pkN : 0),
     depth,
-    firstStage: o.games * 2,
+    firstStage,
     rule,
   });
   // the vs-original block: the original once and each adopted list once (at most one adoption per generation)
   const vsGames = o.vsOriginal ?? 0;
   const vsMax = vsGames ? vsGames * (o.gens + 1) : 0;
-  return { rule, depth, estimate: { ...estimate, max: estimate.max + vsMax }, firstStage: o.games * 2, vsGames, vsMax };
+  const capStages = rule.kind === 'any-gain' ? 1 : rule.capStages;
+  const reach = o.untilSettled?.reach ?? DEFAULT_REACH;
+  const stages = o.untilSettled && rule.kind === 'evidence' ? settleStages({ seedStages: Math.floor(LAB_CONFIRM_SEEDS / firstStage) - capStages, reach, firstStage, capStages }) : 0;
+  const settle = o.untilSettled && rule.kind === 'evidence' ? { reach, stages, extra: settleExtra({ gens: o.gens, firstStage, stages, nominees: depth.nominees }) } : null;
+  return { rule, depth, estimate: { ...estimate, max: estimate.max + vsMax }, firstStage, vsGames, vsMax, settle };
 }
 export interface TuneProgress {
   done: number;
@@ -412,10 +434,14 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const logs: TuneLog[] = [];
   const plan = o.plan ?? {};
   const pkN = o.packageCands ?? 3;
-  const { rule, depth, estimate, firstStage } = tunePlan(o);
+  const { rule, depth, estimate, firstStage, settle } = tunePlan(o);
   const stages = rule.kind === 'any-gain' ? 1 : rule.capStages;
-  if (o.games > 5_000 || firstStage * stages > 5_000) throw new Error(`the confirmation would need ${firstStage * stages} seeds but each generation has 5,000; use fewer games or a lower cap`);
-  const total = estimate.max;
+  if (o.games > 5_000 || firstStage * stages > LAB_CONFIRM_SEEDS) throw new Error(`the confirmation would need ${firstStage * stages} seeds but each generation has 5,000; use fewer games or a lower cap`);
+  if (o.untilSettled && rule.kind !== 'evidence') throw new Error('"until settled" needs the evidence rule: under any-gain there is one confirmation and nothing is pooled');
+  /** "until settled": the further stages each generation's seeds and the reach allow (0 when off) */
+  const further = settle?.stages ?? 0;
+  // with "until settled" the most it may add is part of the progress total, so the bar never runs past the end
+  const total = estimate.max + (settle?.extra ?? 0);
   const perGen = total / Math.max(1, o.gens);
   const seedBase = o.seedBase ?? 500_000 + Math.floor(Math.random() * 9_000);
   const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck, seedBase, played: 0 };
@@ -528,7 +554,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         }
       }
       /** the ledger: the games a prior leaves out (every game this confirmation may play, and this generation's screening games) */
-      const leaveOut = pooling ? gameIds([...confirmationSlots(seed1, firstStage, stages, opponents), ...screenSlots]) : new Set<string>();
+      const leaveOut = pooling ? gameIds([...confirmationSlots(seed1, firstStage, stages + further, opponents), ...screenSlots]) : new Set<string>();
       const priorFor = (s: Swap): PairedScores | undefined => (pooling && ledger ? ledger.prior(deck, s.deck, leaveOut) : undefined);
       // screening only nominates: the best changes that beat the baseline by minGain on the shared games
       // with the shortlist, by pooled gain (a change with no earlier games keeps its own screening figure)
@@ -574,7 +600,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         continue;
       }
       const nomDecks = nominated.map((x) => swapOf(x.label));
-      p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''})`;
+      p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''}${settle ? ', then on until settled' : ''})`;
       onProgress({ ...p, logs: [...logs] });
       const conf = await confirmStaged(
         rule,
@@ -593,6 +619,8 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         },
         stop,
         pooling ? nomDecks.map(priorFor) : undefined,
+        // further stages start after the capped ones, at seed1 + stages·firstStage, and stay below the next generation's seeds
+        settle ? { reach: settle.reach, maxStages: further } : undefined,
       );
       const pick = pickAdopted(conf.results);
       log.nominees = nominated.map((x, i) => {
@@ -607,6 +635,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         log.adopted = nominated[pick]!.label;
         log.adoptedGain = shown.heldOut;
         if (shown.priorGames) log.adoptedPriorGames = shown.priorGames;
+        if (shown.settle) log.adoptedSettle = shown.settle;
         adoptedSoFar++;
       }
       p.deck = deck;
@@ -646,11 +675,20 @@ function ledgerRun(l: TuneLedger, bot: string, field: readonly DeckList[], seedB
  * games pooled with earlier runs, how many came from them (`heldOut.priorGames`). Here rather than in tuneRecord.ts, which
  * the entry chunk reaches, so that file's code does not grow; without pooled logs it is tunedRecord's record unchanged.
  */
-export function pooledTuneRecord(o: Parameters<typeof tunedRecord>[0]): TunedDeckRecord {
+export function pooledTuneRecord(o: Omit<Parameters<typeof tunedRecord>[0], 'logs'> & { logs: readonly (Parameters<typeof tunedRecord>[0]['logs'][number] & { adoptedSettle?: SettleRecord })[] }): TunedDeckRecord {
   const r = tunedRecord(o);
   const prior = new Map(o.logs.flatMap((l) => (l.adopted && l.adoptedPriorGames ? [[l.gen, l.adoptedPriorGames] as const] : [])));
-  if (!prior.size) return r;
-  return { ...r, changes: r.changes.map((c) => (c.heldOut && prior.has(c.gen) ? { ...c, heldOut: { ...c.heldOut, priorGames: prior.get(c.gen)! } } : c)) };
+  // "until settled": the adopted change's further stages and why they ended (absent without it: the record is unchanged)
+  const settled = new Map(o.logs.flatMap((l) => (l.adopted && l.adoptedSettle ? [[l.gen, l.adoptedSettle] as const] : [])));
+  if (!prior.size && !settled.size) return r;
+  return {
+    ...r,
+    changes: r.changes.map((c) =>
+      c.heldOut && (prior.has(c.gen) || settled.has(c.gen))
+        ? { ...c, heldOut: { ...c.heldOut, ...(prior.has(c.gen) ? { priorGames: prior.get(c.gen)! } : {}), ...(settled.has(c.gen) ? { settle: { ...settled.get(c.gen)! } } : {}) } }
+        : c,
+    ),
+  };
 }
 
 /**

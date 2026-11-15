@@ -410,7 +410,8 @@ describe('the forge’s flags', () => {
     expect(shortlistProblem({ 'pooled-ranking': true }, { ledger: false, rule: ev })).toMatch(/needs --ledger/);
     expect(shortlistProblem({ 'pooled-ranking': true }, { ledger: true, rule: { kind: 'any-gain' } })).toMatch(/evidence rule/);
     expect(shortlistProblem({ carry: 3 }, { ledger: true, rule: ev })).toBe('--carry needs --pooled-ranking');
-    expect(shortlistProblem({ carry: 3, reach: 9 }, { ledger: true, rule: ev })).toBe('--carry and --reach need --pooled-ranking');
+    // --reach is also "until settled"'s (P4), so it names both
+    expect(shortlistProblem({ carry: 3, reach: 9 }, { ledger: true, rule: ev })).toBe('--carry needs --pooled-ranking; --reach needs --pooled-ranking or --until-settled');
     expect(shortlistProblem({ 'pooled-ranking': true, carry: 3 }, { ledger: true, rule: ev })).toBeNull();
     expect(shortlistArgs({})).toEqual([]);
     expect(shortlistArgs({ 'pooled-ranking': true })).toEqual(['--pooled-ranking']);

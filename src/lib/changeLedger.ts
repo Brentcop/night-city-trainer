@@ -21,7 +21,7 @@
 //   game one that an earlier run screened the change on).
 import { fingerprintText, listFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
-import { alwaysValidZ, guardedVariance, judgePooled, pooledShare, type AdoptionRule, type PairedInterval, type PairedScores } from './evidence';
+import { judgePooled, settleGamesFromSums, type AdoptionRule, type PairedInterval, type PairedScores } from './evidence';
 
 export { POOL_RHO } from './evidence';
 
@@ -347,29 +347,8 @@ export function gamesToSettle(heldout: readonly LedgerGame[], rule: AdoptionRule
 
 /** gamesToSettle from the count, Σd and Σd² of the held-out paired differences (the shortlist and its simulation keep sums). */
 export function gamesToSettleSums(n: number, sum: number, sq: number, rule: AdoptionRule, o: VerdictOptions = {}): number {
-  if (!n) return Infinity;
-  const bar = (o.minGainPp ?? rule.minGainPp) / 100;
-  const a = pooledShare(rule.alpha, o.nominees ?? 1);
-  const mean = sum / n;
-  if (!(mean > bar)) return Infinity;
-  // the guarded SD at the current games, held fixed
-  const sd = Math.sqrt(guardedVariance(n, sum, sq));
-  const clears = (k: number) => k >= rule.minGames && mean - alwaysValidZ(k, a) * (sd / Math.sqrt(k)) > bar;
-  if (clears(n)) return n;
-  // z(k)/√k falls as k grows, so the first k that clears is found by doubling, then halving
-  let lo = n;
-  let hi = Math.max(n, 1) * 2;
-  while (!clears(hi)) {
-    lo = hi;
-    hi *= 2;
-    if (hi > 1e12) return Infinity;
-  }
-  while (hi - lo > 1) {
-    const mid = Math.floor((lo + hi) / 2);
-    if (clears(mid)) hi = mid;
-    else lo = mid;
-  }
-  return hi;
+  // the computation is evidence.ts's, which "until settled" (confirmStaged) shares
+  return settleGamesFromSums(n, sum, sq, { alpha: rule.alpha, nominees: o.nominees ?? 1, minGainPp: o.minGainPp ?? rule.minGainPp, minGames: rule.minGames });
 }
 
 // ---------------------------------------------------------------- the stored form

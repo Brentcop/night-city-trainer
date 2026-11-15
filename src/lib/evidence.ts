@@ -11,6 +11,10 @@
 // With the change ledger (src/lib/changeLedger.ts) a nominee may bring held-out games from earlier runs: confirmStaged
 // then judges it by the strict pooling rule (judgePooled: an always-valid boundary over the pooled games). Without
 // earlier games every result, line and record is the one before the ledger existed.
+//
+// "Until settled" (docs/TUNING_STUDY_2026-11-13.md P4): confirmStaged's optional `settle` lets a nominee still undecided at
+// the cap go on, judged by the same strict pooled rule, until settled, out of reach (DEFAULT_REACH) or out of seeds.
+// Without it nothing changes.
 import { equalFractions, obfBoundaries } from './groupSequential';
 
 // ---------------------------------------------------------------- paired summaries
@@ -355,6 +359,78 @@ export interface PairedScores {
   cand: readonly number[];
 }
 
+/**
+ * How many pooled held-out games the lower bound would need to clear the bar if the mean and the (guarded) spread of n
+ * paired differences with sum Σd and Σd² stayed as they are now: the total, not the games still to play (at least
+ * `minGames`). Infinity when the mean is not above the bar or there are no games. The change ledger's gamesToSettle
+ * (src/lib/changeLedger.ts) and "until settled" (confirmStaged) both use it.
+ */
+export function settleGamesFromSums(n: number, sum: number, sq: number, o: { alpha: number; nominees: number; minGainPp: number; minGames: number }): number {
+  if (!n) return Infinity;
+  const bar = o.minGainPp / 100;
+  const a = pooledShare(o.alpha, o.nominees);
+  const mean = sum / n;
+  if (!(mean > bar)) return Infinity;
+  // the guarded SD at the current games, held fixed
+  const sd = Math.sqrt(guardedVariance(n, sum, sq));
+  const clears = (k: number) => k >= o.minGames && mean - alwaysValidZ(k, a) * (sd / Math.sqrt(k)) > bar;
+  if (clears(n)) return n;
+  // z(k)/√k falls as k grows, so the first k that clears is found by doubling, then halving
+  let lo = n;
+  let hi = Math.max(n, 1) * 2;
+  while (!clears(hi)) {
+    lo = hi;
+    hi *= 2;
+    if (hi > 1e12) return Infinity;
+  }
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (clears(mid)) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+/**
+ * The reach (docs/SYNERGIES.md "A shortlist carried across runs" and "Until settled"): a change is worth confirming only
+ * while it would need at most this many held-out games in all to be adopted at its present mean and spread. One default
+ * for the shortlist (SHORTLIST_DEFAULTS.reach) and for "until settled".
+ */
+export const DEFAULT_REACH = 10_000;
+
+/**
+ * "Until settled" (docs/TUNING_STUDY_2026-11-13.md P4): a nominee still undecided when its confirmation reaches the cap
+ * goes on in further stages of the same size, each judged by the strict pooled rule on all its held-out games.
+ */
+export interface UntilSettled {
+  /** held-out games in all within which a change is still worth confirming (DEFAULT_REACH) */
+  reach: number;
+  /** further stages this run may play for one nominee, at most (the seeds the builder has left before its next generation) */
+  maxStages: number;
+}
+
+/** Why "until settled" ended: adopted, rejected, out of reach, stopped for no gain, this run's limit, or Stop. */
+export type SettleEnd = 'adopt' | 'reject' | 'out-of-reach' | 'futility' | 'limit' | 'stop';
+
+/** What "until settled" did for one nominee (absent when the option was off or the confirmation was decided by the cap). */
+export interface SettleRecord {
+  /** further stages played after the cap */
+  stages: number;
+  ended: SettleEnd;
+  /** out of reach or this run's limit: the held-out games it would need in all at its present mean and spread (absent: its gain is not above the bar) */
+  toSettle?: number;
+  /** the reach it was given */
+  reach: number;
+}
+
+/** The further stages "until settled" may play for one nominee: the seeds left (`seedStages`) and the reach, whichever is fewer. */
+export function settleStages(o: { seedStages: number; reach: number; firstStage: number; capStages: number }): number {
+  // a nominee goes on only while its held-out games are within the reach, so before further stage j it holds at least
+  // capStages·firstStage + j·firstStage games: j ≤ (reach − cap) / firstStage
+  const byReach = Math.floor((o.reach - o.capStages * o.firstStage) / o.firstStage) + 1;
+  return Math.max(0, Math.min(o.seedStages, byReach));
+}
+
 // ---------------------------------------------------------------- staged confirmation
 
 /** One stage's games: the current list's scores and each still-undecided nominee's, game by game on the same seeds. */
@@ -388,6 +464,12 @@ export interface Confirmation {
    * the new stages played (0 = decided by the earlier games alone) and the win rates are over the pooled games.
    */
   priorGames?: number;
+  /**
+   * "until settled" was on and the confirmation was still undecided at the cap: how many further stages it played and
+   * why it ended. With one or more further stages, `heldOut` is the pooled always-valid interval over all its held-out
+   * games (earlier runs, the stages to the cap and the further ones) and `looks` counts the further stages too.
+   */
+  settle?: SettleRecord;
 }
 
 /** Why a confirmation ended before it was decided: `true` = Stop (Deck Lab), 'futility' = the futility stop. */
@@ -414,6 +496,16 @@ export function futilityApplies(rule: Pick<AdoptionRule, 'kind' | 'futilityAfter
  * games), then after every new stage the earlier and new games pooled, each by the guarded interval at the always-valid
  * z (judgePooled), up to `rule.capStages` new stages; the futility stop applies after a new stage other than the last once
  * the pooled games reach `futilityAfterStages × firstStage`. Under 'any-gain' priors are ignored.
+ *
+ * `settle` ("until settled", optional; never under 'any-gain'): a nominee that is still undecided after its last capped
+ * stage (not stopped by the futility stop or by Stop) goes on in further stages of the same size, from seed offset
+ * capStages·firstStage on. Its staged test is over at the cap; from then on only the pooled rule looks: after each
+ * further stage all its held-out games (earlier runs, the capped stages and the further ones) are judged by judgePooled,
+ * as a later run would judge them. Before each further stage it ends as out of reach when the games it would need in all
+ * (settleGamesFromSums) are more than `settle.reach`; after one it ends on adopt or reject, or for no gain when the
+ * futility rule fires on the pooled mean (as on the pooled path); and it ends at `settle.maxStages` further stages, or on
+ * Stop. Each nominee goes on by itself: a further stage plays the current list once with the nominees still going.
+ * Without `settle` every game and result is the one before it existed.
  */
 export async function confirmStaged(
   rule: AdoptionRule,
@@ -422,6 +514,7 @@ export async function confirmStaged(
   playStage: PlayStage,
   stop: () => boolean = () => false,
   priors?: readonly (PairedScores | undefined)[],
+  settle?: UntilSettled,
 ): Promise<{ results: Confirmation[]; games: number }> {
   const n = nominees.length;
   const scores: number[][] = nominees.map(() => []);
@@ -491,7 +584,82 @@ export async function confirmStaged(
       else if (futilityApplies(rule, stage + 1, stages) && iv.mean <= rule.futilityMaxGainPp / 100) done[i] = conclude(i, 'inconclusive', stage + 1, 'futility');
     }
   }
+  if (settle && !legacy) games += await settleOn(settle);
   return { results: done.map((d, i) => d ?? conclude(i, 'inconclusive', 0, true)), games };
+
+  /** "until settled": the nominees still undecided at the cap go on, each judged by the pooled rule alone (see above) */
+  async function settleOn(s: UntilSettled): Promise<number> {
+    let played = 0;
+    const further = nominees.map(() => 0);
+    const toSettleOf = (i: number) => {
+      const c = scores[i] ?? [];
+      const b = baseFor[i] ?? [];
+      let sum = 0;
+      let sq = 0;
+      for (let g = 0; g < c.length; g++) {
+        const d = (c[g] ?? 0) - (b[g] ?? 0);
+        sum += d;
+        sq += d * d;
+      }
+      return settleGamesFromSums(c.length, sum, sq, { alpha: rule.alpha, nominees: n, minGainPp: nominees[i]?.minGainPp ?? rule.minGainPp, minGames: rule.minGames });
+    };
+    const end = (i: number, ended: SettleEnd, outcome: Outcome = 'inconclusive', toSettle?: number) => {
+      const before = done[i]!;
+      const k = further[i] ?? 0;
+      const stopped: StopReason | undefined = ended === 'futility' ? 'futility' : ended === 'stop' ? true : undefined;
+      const record: SettleRecord = { stages: k, ended, ...(toSettle !== undefined && Number.isFinite(toSettle) ? { toSettle } : {}), reach: s.reach };
+      if (!k) {
+        done[i] = { ...before, settle: record };
+        return;
+      }
+      // the staged test is over: the figure is the pooled one over every held-out game, as the next look of a later run
+      // (`before` was not stopped: only undecided, unstopped nominees go on)
+      done[i] = { ...before, outcome, heldOut: pooledLook(i, false).iv, baseWr: mean(baseFor[i] ?? []), candWr: mean(scores[i] ?? []), looks: stages + k, ...(stopped ? { stopped } : {}), settle: record };
+    };
+    // undecided at the cap, not stopped there (by the futility stop or by Stop)
+    let live = done.flatMap((d, i) => (d && d.outcome === 'inconclusive' && !d.stopped && d.looks === stages ? [i] : []));
+    for (let k = 0; live.length; k++) {
+      // out of reach is checked before each further stage: a change already out of reach at the cap plays nothing more
+      live = live.filter((i) => {
+        const t = toSettleOf(i);
+        if (t > s.reach && t > (scores[i]?.length ?? 0)) {
+          end(i, 'out-of-reach', 'inconclusive', t);
+          return false;
+        }
+        return true;
+      });
+      if (!live.length) break;
+      if (k >= s.maxStages) {
+        for (const i of live) end(i, 'limit', 'inconclusive', toSettleOf(i));
+        break;
+      }
+      if (stop()) {
+        for (const i of live) end(i, 'stop');
+        break;
+      }
+      const stage = stages + k;
+      const r = await playStage({ stage, offset: stage * firstStage, games: firstStage, active: live });
+      played += r.base.length * (1 + live.length);
+      live.forEach((i, j) => {
+        (scores[i] ??= []).push(...(r.nominees[j] ?? []));
+        (baseFor[i] ??= []).push(...r.base);
+        further[i] = k + 1;
+      });
+      live = live.filter((i) => {
+        const { iv, verdict } = pooledLook(i, false);
+        if (verdict === 'adopt' || verdict === 'reject') {
+          end(i, verdict, verdict);
+          return false;
+        }
+        if (rule.futilityAfterStages > 0 && iv.games >= rule.futilityAfterStages * firstStage && iv.mean <= rule.futilityMaxGainPp / 100) {
+          end(i, 'futility');
+          return false;
+        }
+        return true;
+      });
+    }
+    return played;
+  }
 }
 
 /** The adopted nominee to take (highest corrected lower bound; under any-gain, the highest mean), or -1. */
@@ -521,10 +689,43 @@ export function stoppedWords(stopped: StopReason | boolean | undefined, games: n
   return stopped ? 'stopped' : '';
 }
 
-/** The outcome as reports say it, with why it stopped early: "could not tell (stopped early: no gain after 448 games)". */
-export function confirmationWord(c: { outcome: Outcome; stopped?: StopReason | boolean; heldOut?: { games: number } }, futilityMaxGainPp = 0): string {
+/**
+ * The outcome as reports say it, with why it stopped early: "could not tell (stopped early: no gain after 448 games)";
+ * a confirmation that went on until settled says that instead: "adopted (confirmed until settled: 6 more stages)".
+ */
+export function confirmationWord(c: { outcome: Outcome; stopped?: StopReason | boolean; heldOut?: { games: number }; settle?: Pick<SettleRecord, 'stages' | 'ended' | 'toSettle' | 'reach'> }, futilityMaxGainPp = 0): string {
+  if (c.settle) return `${outcomeWord(c.outcome)} (${settleWords(c.settle, c.heldOut?.games ?? 0)})`;
   const why = stoppedWords(c.stopped, c.heldOut?.games ?? 0, futilityMaxGainPp);
   return `${outcomeWord(c.outcome)}${why ? ` (${why})` : ''}`;
+}
+
+/**
+ * What "until settled" did, in plain words (`games`: the held-out games it ended on): "confirmed until settled: 6 more
+ * stages"; "kept confirming for 2 more stages, then stopped: out of reach, it would need about 14,200 held-out games in all
+ * (the reach is 10,000)"; "kept confirming for 18 more stages, up to this run's limit: about 2,300 more held-out games may
+ * settle it"; "not continued: out of reach, its held-out gain is not above the bar". A need past ten times the reach is
+ * said as "more than 100,000" (a mean barely above the bar asks for hundreds of millions of games).
+ */
+export function settleWords(s: Pick<SettleRecord, 'stages' | 'ended' | 'toSettle' | 'reach'>, games: number): string {
+  const k = (x: number) => Math.round(x).toLocaleString('en-US');
+  const more = `${s.stages} more stage${s.stages === 1 ? '' : 's'}`;
+  const went = s.stages ? `kept confirming for ${more}` : 'not continued';
+  // a mean barely above the bar asks for millions of games: past ten times the reach the figure says nothing more
+  const far = 10 * s.reach;
+  const need = s.toSettle === undefined ? 'its held-out gain is not above the bar' : s.toSettle > far ? `it would need more than ${k(far)} held-out games in all` : `it would need about ${k(s.toSettle)} held-out games in all`;
+  switch (s.ended) {
+    case 'adopt':
+    case 'reject':
+      return `confirmed until settled: ${more}`;
+    case 'out-of-reach':
+      return `${went}${s.stages ? ', then stopped' : ''}: out of reach, ${need} (the reach is ${k(s.reach)})`;
+    case 'futility':
+      return `${went}, then stopped: no gain after ${k(games)} games`;
+    case 'limit':
+      return `${went}${s.stages ? ', up to' : ':'} this run's limit${s.toSettle !== undefined ? `; about ${k(Math.max(0, s.toSettle - games))} more held-out games may settle it` : `; ${need} yet`}`;
+    case 'stop':
+      return s.stages ? `${went}, then stopped` : 'not continued: the run was stopped';
+  }
 }
 
 /** "+4.8 pts [+0.2, +9.4], 560 games" — a paired gain with its interval and games. */
@@ -555,10 +756,17 @@ export function pooledNoteWords(c: Pick<Confirmation, 'heldOut' | 'looks' | 'pri
  * One line for reports: what the rule is, with its numbers. `ledger`: the change ledger is on, so the line also says how
  * a nominee with earlier held-out games is judged (without it the line is exactly the one before the ledger existed).
  */
-export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number; ledger?: boolean } = {}): string {
+export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number; ledger?: boolean; untilSettled?: { reach: number } } = {}): string {
   if (rule.kind === 'any-gain') return `any-gain (legacy): one confirmation${o.firstStage ? ` of ${o.firstStage} fresh games` : ''}; a change is adopted when it scores higher at all${o.ledger ? '; the change ledger records the games but never pools them under this rule' : ''}`;
   const base = describeStagedRule(rule, o);
-  return o.ledger ? `${base}${poolingClause(rule, o.nominees ?? 1)}` : base;
+  const pooled = o.ledger ? `${base}${poolingClause(rule, o.nominees ?? 1)}` : base;
+  return o.untilSettled ? `${pooled}${settleClause(rule, o.nominees ?? 1, o.untilSettled.reach)}` : pooled;
+}
+
+/** "; until settled: …" (the option in words, with the pooled boundary it is judged by). */
+function settleClause(rule: AdoptionRule, nominees: number, reach: number): string {
+  const a = pooledShare(rule.alpha, nominees);
+  return `; until settled: a nominee still undecided at the cap goes on in stages of the same size, each followed by a look at all its held-out games pooled by the always-valid boundary (z = ${alwaysValidZ(2240, a).toFixed(2)} at 2,240 games, ${alwaysValidZ(4480, a).toFixed(2)} at 4,480), until adopted or rejected, until it would need more than ${reach.toLocaleString('en-US')} held-out games in all${rule.futilityAfterStages > 0 ? `, until its pooled mean gain is at most ${rule.futilityMaxGainPp} point${rule.futilityMaxGainPp === 1 ? '' : 's'}` : ''}, or until the run's seeds for it run out`;
 }
 
 /** "; with the change ledger, a nominee with held-out games from earlier runs …" (the strict pooling rule in words). */
@@ -619,15 +827,22 @@ export interface AdoptionProvenance {
    * normal-mixture boundary with this ρ in games (src/lib/changeLedger.ts); never under any-gain
    */
   ledger?: { boundary: 'normal-mixture'; rho: number };
+  /**
+   * "until settled" was on (absent = off): a nominee undecided at the cap went on, judged by the pooled always-valid
+   * boundary, while within `reach` held-out games in all; never under any-gain
+   */
+  untilSettled?: { reach: number };
 }
 
 export function adoptionProvenance(
   rule: AdoptionRule,
   o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number },
   ledger = false,
+  untilSettled?: { reach: number },
 ): AdoptionProvenance {
   const p = plainProvenance(rule, o);
-  return ledger && rule.kind === 'evidence' ? { ...p, ledger: { boundary: 'normal-mixture', rho: POOL_RHO } } : p;
+  const l = ledger && rule.kind === 'evidence' ? { ...p, ledger: { boundary: 'normal-mixture' as const, rho: POOL_RHO } } : p;
+  return untilSettled && rule.kind === 'evidence' ? { ...l, untilSettled: { reach: untilSettled.reach } } : l;
 }
 
 function plainProvenance(rule: AdoptionRule, o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number }): AdoptionProvenance {
@@ -657,6 +872,8 @@ export interface NomineeRecord {
   outcome?: Outcome;
   /** the confirmation was cut short: `true` by Stop, 'futility' by the futility stop (heldOut is at that point) */
   stopped?: StopReason;
+  /** "until settled": further stages after the cap and why it ended (heldOut is then the pooled interval over all its games) */
+  settle?: SettleRecord;
 }
 
 const r4 = (x: number) => Math.round(x * 10_000) / 10_000;
@@ -670,6 +887,7 @@ export function nomineeRecord(label: string, screen: PairedInterval, c?: Confirm
           heldOut: { games: c.heldOut.games, mean: r4(c.heldOut.mean), lower: r4(c.heldOut.lower), upper: r4(c.heldOut.upper), z: r4(c.heldOut.z), looks: c.looks, baseWr: r4(c.baseWr), candWr: r4(c.candWr), ...(c.priorGames ? { priorGames: c.priorGames } : {}) },
           outcome: c.outcome,
           ...(c.stopped ? { stopped: c.stopped } : {}),
+          ...(c.settle ? { settle: { ...c.settle } } : {}),
         }
       : {}),
   };

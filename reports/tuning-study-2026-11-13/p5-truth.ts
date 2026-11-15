@@ -25,14 +25,21 @@ const lib = loadLibrary();
 const meta = lib.filter((d) => d.kind === 'meta').map((d) => d.deck);
 const base = resolveDeck(deckName, lib).deck;
 const analysis = JSON.parse(fs.readFileSync(path.join(OUT, 'analysis.json'), 'utf8'))[deckName] as Record<string, { nominees: string[] } | undefined>;
-const WAYS = ['today', 'shortlist', 'shortlist-reach4500'];
+const WAYS = ['today', 'shortlist', 'shortlist-reach4500', 'shortlist-settled'];
 // label -> change key, from the ledgers of the ways that kept one (every screened change is in them)
 const keyOf = new Map<string, string>();
-for (const way of ['ledger', 'shortlist', 'shortlist-reach4500'])
+for (const way of ['ledger', 'shortlist', 'shortlist-reach4500', 'shortlist-settled'])
   for (const f of readLedgerDir(path.join(OUT, deckName, way, 'ledger')).files) for (const b of f.batches) if (!keyOf.has(b.batch.label)) keyOf.set(b.batch.label, b.batch.entry.change);
-const labels = [...new Set(WAYS.flatMap((w) => analysis[w]?.nominees ?? []))];
+// a change measured before (truth-<deck>.json) is kept; only the new ones are played, on the same seeds
+const truthFile = path.join(OUT, `truth-${deckName}.json`);
+const known: { label: string; mean: number; lower: number; upper: number; games: number }[] = fs.existsSync(truthFile) ? JSON.parse(fs.readFileSync(truthFile, 'utf8')) : [];
+const labels = [...new Set(WAYS.flatMap((w) => analysis[w]?.nominees ?? []))].filter((l) => !known.some((k) => k.label === l && k.games === N));
 
 void (async () => {
+  if (!labels.length) {
+    console.log(`${deckName}: every nominated change is measured already`);
+    process.exit(0);
+  }
   const lists: { label: string; deck: DeckList }[] = [];
   for (const label of labels) {
     const key = keyOf.get(label);
@@ -49,7 +56,7 @@ void (async () => {
     const iv = pairedInterval(scores[i + 1]!, scores[0]!, 1.96);
     return { label: l.label, mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games };
   });
-  fs.writeFileSync(path.join(OUT, `truth-${deckName}.json`), JSON.stringify(out, null, 1));
-  console.log(`${deckName}: ${out.length} nominated changes measured on ${N} fresh paired games each`);
+  fs.writeFileSync(truthFile, JSON.stringify([...known.filter((k) => k.games === N), ...out], null, 1));
+  console.log(`${deckName}: ${out.length} nominated change${out.length === 1 ? '' : 's'} measured on ${N} fresh paired games each (${known.length} measured before)`);
   process.exit(0);
 })();

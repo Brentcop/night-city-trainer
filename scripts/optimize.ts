@@ -29,6 +29,12 @@
 // --ledger-dir DIR (default data/ledger; under --out DIR, DIR/ledger). Stage 1 and 2 always play the same seeds here, so
 // a repeated optimizer run with the same settings appends nothing and pools nothing new: the ledger pays off when the
 // forge, or an optimizer run with another --confirm or field, has measured the same change against the same field.
+// Until settled (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md "Until settled"): --until-settled lets each nominee
+// still undecided at the cap go on by itself in further stages of --confirm games (seeds after the capped stages, up to
+// 50,000 after 777777), judged after each by the strict pooled rule on all its held-out games, until adopted or rejected,
+// out of --reach N (10000) held-out games, no gain, or the seeds run out. Not under --adopt any-gain.
+// Before the run one line says what it can detect (the real gain a first confirmation adopts 8 times in 10, and with
+// --until-settled within the reach), from this list's changes in the ledger when it holds enough, else the study's SDs.
 import fs from 'node:fs';
 import path from 'node:path';
 import { exportOfficial, listFingerprint } from '../src/engine/deck';
@@ -36,14 +42,14 @@ import { cardValue } from '../src/ai/knowledge';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
 import { optimizeCandidates, packageCandidates, type Cand } from './builder-moves';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, exitOnStrayReach, ledgerFlags, ledgerFromFlags, reachFlag, ruleFromFlags, settleFlags, settleFromFlags } from './evidence-flags';
 import { describeChanges, describePlan, packageChanges, packageProvenance } from '../src/lib/deckPackages';
 import { gameRunManifest, manifestDeck } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, type Confirmation, type PairedScores } from '../src/lib/evidence';
+import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, settleStages, type Confirmation, type PairedScores } from '../src/lib/evidence';
 import { gameIds } from '../src/lib/changeLedger';
 import { blockSlots, RunLedger, scored } from './ledger-store';
-import { combinedCandidates, estimateGames, listKeyOf } from '../src/lib/deckSearch';
+import { combinedCandidates, detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
 import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
 
@@ -65,6 +71,8 @@ const { values: V, positionals } = cli(
     ...depthFlags(NOMINEES),
     ...budgetFlags(),
     ...ledgerFlags(),
+    ...settleFlags(),
+    ...reachFlag(),
   },
   { minPositionals: 1, maxPositionals: 1 },
 );
@@ -105,6 +113,14 @@ const LEDGER = LEDGER_AT
 const PKG_N = PACKAGES && !SIDEBOARD ? (V['package-moves'] ? V['package-cands'] : 0) + (V['require-packages'] ? V['package-cands'] : 0) : 0;
 // the optimizer screens the unmodified deck among its candidates; legacy confirms the top 6 plus the baseline once
 const ESTIMATE = estimateGames({ gens: 1, screenGames: SCREEN, singles: NCAND + 1, packageMoves: PKG_N, depth: LEGACY ? { ...DEPTH, nominees: 6 } : DEPTH, firstStage: CONFIRM, rule: RULE, baselineScreen: false });
+/** --until-settled: its reach (null when off); --reach without it is refused */
+exitOnStrayReach(V);
+const SETTLE = settleFromFlags(V, { rule: RULE });
+/** the stage-2 seeds "until settled" may use after CONFIRM_SEED (nothing else in this run plays them) */
+const SETTLE_SEEDS = 50_000;
+/** --until-settled: the further stages each nominee may play (the seeds left and the reach, whichever allow fewer) */
+const FURTHER = SETTLE ? settleStages({ seedStages: Math.floor(SETTLE_SEEDS / CONFIRM) - STAGES, reach: SETTLE.reach, firstStage: CONFIRM, capStages: STAGES }) : 0;
+const SETTLE_EXTRA = SETTLE ? settleExtra({ gens: 1, firstStage: CONFIRM, stages: FURTHER, nominees: DEPTH.nominees }) : undefined;
 
 function candidates(deck: (typeof base)['deck']): Cand[] {
   const out = optimizeCandidates(deck, SIDEBOARD, NCAND, PLAN, PARTNER);
@@ -136,8 +152,12 @@ async function main() {
   console.log(`Optimizing ${base.deck.name} vs ${field.length} meta decks (bot=${BOT})`);
   if (PACKAGES) console.log(`Packages: ${describePlan(PLAN)}${V['package-moves'] ? `; package moves on (${V['package-cands']})` : ''}`);
   if (PARTNER) console.log('Cut ranking: partner-aware (stranding cost and add credit; no telemetry, so no partner split)');
-  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: CONFIRM, nominees: DEPTH.nominees, ledger: !!LEDGER })}`);
-  checkBudget('optimizer', ESTIMATE, V.budget, V.force);
+  const settled = SETTLE ? { untilSettled: SETTLE } : {};
+  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: CONFIRM, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled })}`);
+  // what this run can detect, from this list's changes in the ledger when it holds enough, else the study's SDs
+  const detectLine = detectWords(detect({ rule: RULE, firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, sd: perGameSd(LEDGER ? heldoutSdSamples(LEDGER.entries(base.deck)) : undefined), ...settled }));
+  console.log(detectLine);
+  checkBudget('optimizer', ESTIMATE, V.budget, V.force, SETTLE_EXTRA);
   const cands: Cand[] = [{ label: '(unchanged)', deck: base.deck }, ...candidates(base.deck)];
   console.log(`Stage 1: ${cands.length} candidates × ${SCREEN} games`);
   const s1 = await measure(cands, SCREEN, SCREEN_SEED);
@@ -165,7 +185,7 @@ async function main() {
   // nominees: the stage-1 leaders (legacy: the top 6 whatever they scored; evidence: only those above the unmodified deck)
   const barOf = (c: Cand) => (c.pkg || c.combo?.packages ? RULE.packageMinGainPp : RULE.minGainPp);
   /** --ledger: the games a nominee's prior leaves out (every stage-2 game it may play, and the stage-1 games) */
-  const leaveOut = LEDGER ? gameIds([...Array.from({ length: STAGES }, (_, s) => blockSlots(CONFIRM_SEED + s * CONFIRM, CONFIRM, OPPONENTS)).flat(), ...screenSlots]) : new Set<string>();
+  const leaveOut = LEDGER ? gameIds([...Array.from({ length: STAGES + FURTHER }, (_, s) => blockSlots(CONFIRM_SEED + s * CONFIRM, CONFIRM, OPPONENTS)).flat(), ...screenSlots]) : new Set<string>();
   const priorFor = (c: Cand): PairedScores | undefined => (LEDGER && !LEGACY ? LEDGER.prior(base.deck, c.deck, leaveOut) : undefined);
   const eligible = ranked.filter((r) => r.c !== cands[0] && (LEGACY || r.wr > baseWr1));
   let nominees = eligible.slice(0, LEGACY ? 6 : DEPTH.nominees);
@@ -221,6 +241,7 @@ async function main() {
       },
       undefined,
       LEDGER ? nominees.map((n) => priorFor(n.c)) : undefined,
+      SETTLE ? { reach: SETTLE.reach, maxStages: FURTHER } : undefined,
     );
     confirmations = conf.results;
     // the stage-2 baseline of this run's own games (a pooled nominee's win rates include earlier runs)
@@ -228,7 +249,7 @@ async function main() {
     best = pickAdopted(confirmations);
   }
   const bestDeck = best >= 0 ? nominees[best].c.deck : base.deck;
-  const rule = describeRule(RULE, { firstStage: CONFIRM, nominees: nominees.length || DEPTH.nominees, ledger: !!LEDGER });
+  const rule = describeRule(RULE, { firstStage: CONFIRM, nominees: nominees.length || DEPTH.nominees, ledger: !!LEDGER, ...settled });
   const gainOf = (c: Confirmation) => (c.priorGames ? pooledGainWords(c) : formatGain(c.heldOut));
   const md = [
     `# Optimizer — ${base.deck.name}`,
@@ -236,6 +257,7 @@ async function main() {
     `Field: ${field.map((f) => f.deck.name).join(', ')}. Bot: ${BOT}. Stage 1 ${SCREEN} games/candidate (shared seeds; it only nominates), stage 2 from ${CONFIRM} fresh games per stage (the same seeds for the unmodified deck and every nominee).`,
     '',
     `Adoption rule: ${rule}.`,
+    detectLine,
     '',
     `Baseline win rate (stage 2): **${(baseWr * 100).toFixed(1)}%**`,
     '',
@@ -291,11 +313,12 @@ async function main() {
     rows: nominees.map((n, i) => {
       const c = confirmations[i];
       const kind = n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind;
-      return { change: n.c.label, s1: p1(n.wr), s2: c ? p1(c.candWr) : null, delta: c ? p1(c.heldOut.mean) : p1(n.iv.mean), ...(c && !LEGACY ? { outcome: c.outcome } : {}), ...(c?.stopped ? { stopped: c.stopped, heldOutGames: c.heldOut.games } : {}), ...(kind ? { package: kind } : {}) };
+      return { change: n.c.label, s1: p1(n.wr), s2: c ? p1(c.candWr) : null, delta: c ? p1(c.heldOut.mean) : p1(n.iv.mean), ...(c && !LEGACY ? { outcome: c.outcome } : {}), ...(c?.stopped ? { stopped: c.stopped, heldOutGames: c.heldOut.games } : {}), ...(c?.settle ? { settle: c.settle } : {}), ...(kind ? { package: kind } : {}) };
     }),
     nominees: nominees.map((n, i) => nomineeRecord(n.c.label, n.iv, confirmations[i], n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind)),
-    best: best >= 0 ? { change: nominees[best].c.label, heldOut: confirmations[best].heldOut, ...(confirmations[best].priorGames ? { priorGames: confirmations[best].priorGames } : {}) } : null,
+    best: best >= 0 ? { change: nominees[best].c.label, heldOut: confirmations[best].heldOut, ...(confirmations[best].priorGames ? { priorGames: confirmations[best].priorGames } : {}), ...(confirmations[best].settle ? { settle: confirmations[best].settle } : {}) } : null,
     adoption: { text: rule },
+    ...(SETTLE ? { untilSettled: { reach: SETTLE.reach, maxStages: FURTHER, maxExtraGames: SETTLE_EXTRA ?? 0 } } : {}),
     ...(PACKAGES ? { packages: { plan: PLAN, moves: V['package-moves'], best: packageChanges(base.deck, bestDeck) } } : {}),
     ...(LEDGER && LEDGER_AT ? { ledger: { dir: LEDGER_AT.dir, bot: LEDGER_AT.bot, field: LEDGER.field, screen: { ...LEDGER.totals.screen }, heldout: { ...LEDGER.totals.heldout }, notNominated } } : {}),
     // stage 1 plays seeds from 424242, stage 2 from 777777 (the same seeds for every candidate), further stages after it
@@ -312,7 +335,7 @@ async function main() {
       simVersion: SIM_VERSION,
       createdAt: startedAt,
       ...(PACKAGES ? { packages: packageProvenance(PLAN, { moves: allCands.filter((c) => c.pkg || c.combo?.packages).map((c) => c.label) }) } : {}),
-      adoption: adoptionProvenance(RULE, { firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, !!LEDGER),
+      adoption: adoptionProvenance(RULE, { firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, !!LEDGER, SETTLE ?? undefined),
     }),
   };
   fs.writeFileSync(OUT ? path.join(dir, `optimize-${slug}-latest.json`) : `reports/optimize-${slug}-latest.json`, JSON.stringify(json, null, 1));

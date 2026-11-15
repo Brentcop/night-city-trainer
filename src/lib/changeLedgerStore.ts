@@ -17,6 +17,7 @@ import { decodeBatch, encodeBatch, ledgerExport, mergeBatches, parseLedgerExport
 import { LedgerCache, type AppendResult } from './changeLedgerRun';
 import { alwaysValidZ, lookZ, pooledShare, type AdoptionRule } from './evidence';
 import type { TuneLedgerStore } from './deckLab';
+import { heldoutSdSamples, type SdSamples } from './deckSearch';
 
 /** Where the batches live: IndexedDB in the page, a Map in tests. Every batch is stored with its base list fingerprint. */
 export interface LedgerStorage {
@@ -231,6 +232,17 @@ export class BrowserLedgerStore implements TuneLedgerStore {
       usable: entries.filter((e) => e.id.bot === o.bot && e.id.field === o.field).reduce((s, e) => s + e.heldout.length, 0),
       older: batches.filter((b) => b.entry.simVersion !== o.simVersion).reduce((s, b) => s + b.games.length, 0),
     };
+  }
+
+  /**
+   * The per-game SDs of this list's changes a run with this bot and field can use (heldoutSdSamples: changes with 200 or
+   * more held-out games, one-card swaps apart from larger changes), for what the run can detect (src/lib/deckSearch.ts).
+   */
+  async sdSamples(base: string, o: { simVersion: number; bot: string | null; field: string }): Promise<SdSamples> {
+    await this.queue;
+    const { batches } = decodeAll(await this.storage.forBase(base));
+    const now = batches.filter((b) => b.entry.simVersion === o.simVersion && changeBase(b.entry.change) === base && b.entry.bot === o.bot && b.entry.field === o.field);
+    return heldoutSdSamples([...mergeBatches(now).values()]);
   }
 }
 
