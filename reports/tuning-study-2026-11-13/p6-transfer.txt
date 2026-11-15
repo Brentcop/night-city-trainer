@@ -34,8 +34,22 @@ Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms                       +1.9 
   -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy: Hard +3.5 [+2.3, +4.7] over 2800 games (clears the 1-point bar); Medium +4.7 [+3.6, +5.8] over 2800
     by opponent: BBG Cunningham +1.5±3.0 | GRY Trauma +6.0±3.4 | Rainbow Fixer +3.3±3.0 | RRB Wakako +4.5±2.9 | RRG Dexter +3.8±2.7 | RRY Smasher +3.3±2.9 | YYB Rogue +2.3±3.4
 
-5. Per-game spread of the paired difference (one-card swaps, median)
+5. Per-game spread of the paired difference, the same change with each bot
 
-  Hard 0.343 over 11 changes; Medium 0.349 over 5 changes
-  at that spread a plain 95% interval of ±1 point takes about 4,523 Hard paired games
-  share of games that came out the same with and without the change: Hard median 83%
+  -1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon                  Hard 0.287  Medium 0.258  ratio 1.11
+  -1 We Gotta Live Together → +1 Johnny Silverhand: Never Stop Fighting      Hard 0.293  Medium 0.248  ratio 1.18
+  -1 Mantis Blades → +1 Nadia: Fighting Through Grief                        Hard 0.319  Medium 0.242  ratio 1.32
+  -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy                        Hard 0.319  Medium 0.301  ratio 1.06
+  -1 Saul Bright: Stormrider → +1 Fool on the Hill                           Hard 0.293  Medium 0.253  ratio 1.16
+  -1 Dexter DeShawn: One Last Chance → +1 Zetatech Berserk                   Hard 0.343  Medium 0.266  ratio 1.29
+  S2-03 package swap Gear on Units -> Arasaka Units (8 cards)                Hard 0.622  Medium 0.602  ratio 1.03
+  S2-04 package swap Ahead -> Even Street Cred (2 cards)                     Hard 0.559  Medium 0.549  ratio 1.02
+  S2-06 -1 Shattered Memories +1 6th Street Recruits                         Hard 0.522  Medium 0.464  ratio 1.13
+  Ladder BBG -1 Peace Offering +1 MaxTac AV                                  Hard 0.459  Medium 0.401  ratio 1.15
+  Ladder RRB -1 Shattered Memories +1 Yorinobu: Steel Dragon                 Hard 0.459  Medium 0.338  ratio 1.36
+  Ladder RRG Padre -1 Field Operator +1 MaxTac AV                            Hard 0.444  Medium 0.349  ratio 1.27
+  Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms                       Hard 0.415  Medium 0.308  ratio 1.35
+
+  one-card swaps (11): median spread 0.343 with Hard, 0.301 with Medium; median ratio 1.18, so the same range takes about 1.4 times the games with Hard
+  at the Hard spread a plain 95% interval of ±1 point takes about 4,523 paired games
+  share of games that came out the same with and without the change, with Hard: median 88%

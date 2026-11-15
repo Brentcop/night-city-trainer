@@ -126,16 +126,24 @@ if (b.length) {
   }
 }
 
-const spread = (rows: Row[]) => rows.filter((r) => typeof r.sd === 'number').map((r) => r.sd!);
+// Section 5 was corrected after the first run (2026-11-15): as first written it compared the median spread with Hard over
+// 11 changes against the median with Medium over 5 other changes, and read them as equal. Below, each change's spread
+// with Hard is set against the spread of the same change with Medium (the Medium spread of a p5 row is its standard
+// error × √games).
 const med = (xs: number[]) => (xs.length ? [...xs].sort((x, y) => x - y)[Math.floor(xs.length / 2)]! : NaN);
-const hs = spread(a.filter((r) => !/package/.test(r.label)));
-const ms = spread(c.filter((r) => !/package/.test(r.label)));
-console.log('\n5. Per-game spread of the paired difference (one-card swaps, median)\n');
-console.log(`  Hard ${med(hs).toFixed(3)} over ${hs.length} changes${ms.length ? `; Medium ${med(ms).toFixed(3)} over ${ms.length} changes` : ''}`);
-if (hs.length) {
-  const sd = med(hs);
-  // games for a plain 95% interval of ±1 point, and for the staged rule's first look to see +3 points (z 4.33 at stage 1)
-  console.log(`  at that spread a plain 95% interval of ±1 point takes about ${Math.round(((1.96 * sd) / 0.01) ** 2).toLocaleString('en-US')} Hard paired games`);
-  const same = a.filter((r) => typeof r.same === 'number').map((r) => r.same!);
-  console.log(`  share of games that came out the same with and without the change: Hard median ${(100 * med(same)).toFixed(0)}%`);
+const sdOf = (r: Row) => (typeof r.sd === 'number' ? r.sd : r.se * Math.sqrt(r.games));
+console.log('\n5. Per-game spread of the paired difference, the same change with each bot\n');
+const both = a.flatMap((h) => {
+  const m = medium.get(key(h));
+  return m ? [{ label: h.label, pkg: /package/.test(h.label), h: sdOf(h), m: sdOf(m), same: h.same }] : [];
+});
+for (const x of both) console.log(`  ${x.label.slice(0, 73).padEnd(74)} Hard ${x.h.toFixed(3)}  Medium ${x.m.toFixed(3)}  ratio ${(x.h / x.m).toFixed(2)}`);
+const one = both.filter((x) => !x.pkg);
+if (one.length) {
+  const ratio = med(one.map((x) => x.h / x.m));
+  const sd = med(one.map((x) => x.h));
+  console.log(`\n  one-card swaps (${one.length}): median spread ${sd.toFixed(3)} with Hard, ${med(one.map((x) => x.m)).toFixed(3)} with Medium; median ratio ${ratio.toFixed(2)}, so the same range takes about ${(ratio * ratio).toFixed(1)} times the games with Hard`);
+  console.log(`  at the Hard spread a plain 95% interval of ±1 point takes about ${Math.round(((1.96 * sd) / 0.01) ** 2).toLocaleString('en-US')} paired games`);
+  const same = a.filter((r) => typeof r.same === 'number' && !/package/.test(r.label)).map((r) => r.same!);
+  console.log(`  share of games that came out the same with and without the change, with Hard: median ${(100 * med(same)).toFixed(0)}%`);
 }
