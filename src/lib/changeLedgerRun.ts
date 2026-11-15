@@ -11,7 +11,7 @@
 //
 // Reading is synchronous: a store loads a base list's batches before a run (or a generation) reads them. Writing is the
 // store's business: the Node store appends a line at once, the browser store queues an IndexedDB write.
-import { addBatch, changeBase, changeKey, entryKey, fieldFingerprint, gameId, priorOf, screenedBefore, type AddResult, type BatchKind, type EntryId, type LedgerBatch, type LedgerEntry, type LedgerGame } from './changeLedger';
+import { addBatch, changeBase, changeKey, entryKey, fieldFingerprint, gameId, priorGamesOf, priorOf, screenedBefore, type AddResult, type BatchKind, type EntryId, type LedgerBatch, type LedgerEntry, type LedgerGame } from './changeLedger';
 import type { PairedScores } from './evidence';
 import { listFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
@@ -197,6 +197,11 @@ export class ChangeLedgerRun {
   /** The held-out games of this change from earlier runs, leaving out the games in `leaveOut`. */
   prior(base: Lists, cand: Lists, leaveOut: ReadonlySet<string>): PairedScores {
     return priorOf(this.store.entry(this.entryId(base, cand)), leaveOut);
+  }
+
+  /** The games `prior` takes, in its order, with where each sat (seed, opponent, who went first). */
+  priorGames(base: Lists, cand: Lists, leaveOut: ReadonlySet<string>): LedgerGame[] {
+    return priorGamesOf(this.store.entry(this.entryId(base, cand)), leaveOut);
   }
 
   /** Append one change's games of one kind (nothing is written when they are all on record). */

@@ -1,0 +1,1979 @@
+{
+ "kind": "nct-remeasure",
+ "schema": 1,
+ "note": "Plan P6 of the tuning study (docs/TUNING_STUDY_2026-11-13.md; reports/tuning-study-2026-11-13/p6-hard.ts and p6-transfer.txt): do changes measured with the Medium bot hold with the Hard bot? Paired games on the forge layout, seeds from 5,000,000, the 7 meta decks, SIM_VERSION 9: thirteen changes with Hard (560 paired games each; the two that read highest with Medium on 2,800), and the seven recorded changes of experiment E2 again with Medium (2,800 each). mean is after minus before.",
+ "measurements": [
+  {
+   "id": "p6-hard-s2-05-wglt-johnny",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 We Gotta Live Together → +1 Johnny Silverhand: Never Stop Fighting",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "27d787432be865b2",
+   "cuts": [
+    "we_gotta_live_together"
+   ],
+   "adds": [
+    "johnny_silverhand_never_stop_fighting"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.014286,
+   "se": 0.012368,
+   "sd": 0.292683,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.027809
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.1,
+     "se": 0.033753
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0,
+     "se": 0.039778
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.033012
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.0375
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.021742
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": -0.025,
+     "se": 0.030683
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.010714,
+     "se": 0.017878
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.017857,
+     "se": 0.017125
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-05-mantis-nadia",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Mantis Blades → +1 Nadia: Fighting Through Grief",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "b51f731bc7d5bb7a",
+   "cuts": [
+    "mantis_blades"
+   ],
+   "adds": [
+    "nadia_fighting_through_grief"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.005357,
+   "se": 0.013492,
+   "sd": 0.319279,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.0375
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.033251
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0.025,
+     "se": 0.039678
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.033251
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0,
+     "se": 0.030812
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.033251
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.041505
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.003571,
+     "se": 0.019919
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.007143,
+     "se": 0.018238
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-08-saul-fool",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Saul Bright: Stormrider → +1 Fool on the Hill",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "79ca9110109915fd",
+   "cuts": [
+    "saul_bright_stormrider"
+   ],
+   "adds": [
+    "fool_on_the_hill"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.014286,
+   "se": 0.012368,
+   "sd": 0.292683,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0,
+     "se": 0.030812
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.033251
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.0375
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.0625,
+     "se": 0.041123
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": -0.025,
+     "se": 0.017565
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.028092
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": 0.025,
+     "se": 0.035467
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.032143,
+     "se": 0.019171
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": -0.003571,
+     "se": 0.015594
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-08-dexter-zetatech",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Dexter DeShawn: One Last Chance → +1 Zetatech Berserk",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "89d324382acfef70",
+   "cuts": [
+    "dexter_deshawn_one_last_chance"
+   ],
+   "adds": [
+    "zetatech_berserk"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": -0.017857,
+   "se": 0.014501,
+   "sd": 0.343145,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.0375
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": -0.0625,
+     "se": 0.048208
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0.025,
+     "se": 0.039678
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.027809
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.03771
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": -0.0625,
+     "se": 0.032529
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.041505
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.007143,
+     "se": 0.021463
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": -0.042857,
+     "se": 0.019428
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-03",
+   "deck": "s2-03-cross-rgy.txt",
+   "label": "S2-03 package swap Gear on Units -> Arasaka Units (8 cards)",
+   "baseListId": "9ace4c9da452818b",
+   "candListId": "37abde85ab86332b",
+   "cuts": [
+    "cyberpsychosis",
+    "cyberpsychosis",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "the_heist",
+    "the_heist"
+   ],
+   "adds": [
+    "field_operator",
+    "field_operator",
+    "field_operator",
+    "hanako_arasaka_in_a_gilded_cage",
+    "hanako_arasaka_in_a_gilded_cage",
+    "pepe_najarro_working_doubles",
+    "valentino_street_racer",
+    "valentino_street_racer"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.053571,
+   "se": 0.026292,
+   "sd": 0.622179,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0.275,
+     "se": 0.061559
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": -0.1375,
+     "se": 0.079044
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0.125,
+     "se": 0.069753
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.0625,
+     "se": 0.071917
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.057489
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.069909
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": 0.05,
+     "se": 0.068667
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.042857,
+     "se": 0.037437
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.064286,
+     "se": 0.036982
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-04",
+   "deck": "s2-04-cross-rrg.txt",
+   "label": "S2-04 package swap Ahead -> Even Street Cred (2 cards)",
+   "baseListId": "84a75f0dbb7d26b4",
+   "candListId": "5405cae11d7de95c",
+   "cuts": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy"
+   ],
+   "adds": [
+    "field_operator",
+    "pepe_najarro_working_doubles"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.008929,
+   "se": 0.023641,
+   "sd": 0.559445,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0.0625,
+     "se": 0.064982
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.067608
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.065347
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.054667
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": -0.025,
+     "se": 0.053293
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.067608
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": -0.075,
+     "se": 0.063582
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": -0.003571,
+     "se": 0.033371
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.021429,
+     "se": 0.033538
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-06",
+   "deck": "s2-06-counter-rgg.txt",
+   "label": "S2-06 -1 Shattered Memories +1 6th Street Recruits",
+   "baseListId": "40126420639663fe",
+   "candListId": "bbeb5b90ef8918e0",
+   "cuts": [
+    "shattered_memories"
+   ],
+   "adds": [
+    "6th_street_recruits"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.053571,
+   "se": 0.022064,
+   "sd": 0.522127,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0.125,
+     "se": 0.051481
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.065347
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": -0.0625,
+     "se": 0.057213
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0,
+     "se": 0.047066
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0.05,
+     "se": 0.055972
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": 0.1125,
+     "se": 0.061608
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": 0.1375,
+     "se": 0.065949
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.025,
+     "se": 0.03136
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.082143,
+     "se": 0.031008
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-lad-bbg",
+   "deck": "ladder-bbg-jackie-alt-hanako.txt",
+   "label": "Ladder BBG -1 Peace Offering +1 MaxTac AV",
+   "baseListId": "322dc7c6d97965fe",
+   "candListId": "e7b0b38e8ab5b225",
+   "cuts": [
+    "peace_offering"
+   ],
+   "adds": [
+    "maxtac_av"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0,
+   "se": 0.019415,
+   "sd": 0.459447,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.048535
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.0625,
+     "se": 0.044805
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0,
+     "se": 0.053368
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.025,
+     "se": 0.039678
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.048697
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.065347
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": -0.05,
+     "se": 0.055972
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.003571,
+     "se": 0.029285
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": -0.003571,
+     "se": 0.02555
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-lad-rrb",
+   "deck": "ladder-rrb-dexter-v-wakako.txt",
+   "label": "Ladder RRB -1 Shattered Memories +1 Yorinobu: Steel Dragon",
+   "baseListId": "e334a325d1782349",
+   "candListId": "b16b316cfec88abb",
+   "cuts": [
+    "shattered_memories"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.010714,
+   "se": 0.01941,
+   "sd": 0.459321,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0.125,
+     "se": 0.051481
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": -0.075,
+     "se": 0.052696
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.051692
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.05,
+     "se": 0.05307
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.03771
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.051692
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.057626
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.010714,
+     "se": 0.027936
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.010714,
+     "se": 0.027004
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-lad-padre",
+   "deck": "ladder-rrg-v-smasher-padre.txt",
+   "label": "Ladder RRG Padre -1 Field Operator +1 MaxTac AV",
+   "baseListId": "d5db41bfdf5ec740",
+   "candListId": "f375b2d8199f4566",
+   "cuts": [
+    "field_operator"
+   ],
+   "adds": [
+    "maxtac_av"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.0375,
+   "se": 0.018764,
+   "sd": 0.444027,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.054812
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.0375,
+     "se": 0.048535
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.045332
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.05,
+     "se": 0.05
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": 0.1125,
+     "se": 0.050296
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": 0.0125,
+     "se": 0.045332
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": 0.025,
+     "se": 0.053293
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.057143,
+     "se": 0.023485
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.017857,
+     "se": 0.029266
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-lad-ryy",
+   "deck": "ladder-ryy-smasher-river-viktor.txt",
+   "label": "Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms",
+   "baseListId": "1ee6a3224d0de263",
+   "candListId": "2ed4d4b9d64f948f",
+   "cuts": [
+    "alt_cunningham_mother_of_daemons"
+   ],
+   "adds": [
+    "gorilla_arms"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 560,
+   "mean": 0.030357,
+   "se": 0.017556,
+   "sd": 0.415453,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 80,
+     "mean": -0.0125,
+     "se": 0.03771
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 80,
+     "mean": 0.1625,
+     "se": 0.051692
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 80,
+     "mean": -0.05,
+     "se": 0.046728
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 80,
+     "mean": 0.075,
+     "se": 0.04275
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 80,
+     "mean": -0.0375,
+     "se": 0.0375
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 80,
+     "mean": -0.025,
+     "se": 0.046982
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 80,
+     "mean": 0.1,
+     "se": 0.055118
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 280,
+     "mean": 0.053571,
+     "se": 0.026339
+    },
+    {
+     "first": 1,
+     "games": 280,
+     "mean": 0.007143,
+     "se": 0.023183
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A change measured with the Medium bot, measured again with the Hard bot (560 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-05-gunpoint-yorinobu",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "d96de8d0e8691e82",
+   "cuts": [
+    "gunpoint_diplomacy"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.013571,
+   "se": 0.005574,
+   "sd": 0.29494,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.01,
+     "se": 0.014151
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.02,
+     "se": 0.014561
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.015,
+     "se": 0.015412
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.0175,
+     "se": 0.014783
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": 0.015,
+     "se": 0.01369
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0075,
+     "se": 0.015221
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.01,
+     "se": 0.015422
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.017857,
+     "se": 0.007845
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.009286,
+     "se": 0.007921
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "The change that read highest with the Medium bot on this list, measured with the Hard bot (2,800 paired games)"
+  },
+  {
+   "id": "p6-hard-s2-08-tbug-rockerboy",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "258f3aa5a1a4fb51",
+   "cuts": [
+    "t_bug_amateur_philosopher"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.035,
+   "se": 0.005919,
+   "sd": 0.313202,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.015,
+     "se": 0.015412
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.06,
+     "se": 0.017443
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.0325,
+     "se": 0.015547
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.045,
+     "se": 0.014849
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": 0.0375,
+     "se": 0.01381
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0325,
+     "se": 0.014719
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.0225,
+     "se": 0.017486
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.028571,
+     "se": 0.008359
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.041429,
+     "se": 0.008382
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "The change that read highest with the Medium bot on this list, measured with the Hard bot (2,800 paired games)"
+  },
+  {
+   "id": "p6-medium-s2-03",
+   "deck": "s2-03-cross-rgy.txt",
+   "label": "S2-03 package swap Gear on Units -> Arasaka Units (8 cards)",
+   "baseListId": "9ace4c9da452818b",
+   "candListId": "37abde85ab86332b",
+   "cuts": [
+    "cyberpsychosis",
+    "cyberpsychosis",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "the_heist",
+    "the_heist"
+   ],
+   "adds": [
+    "field_operator",
+    "field_operator",
+    "field_operator",
+    "hanako_arasaka_in_a_gilded_cage",
+    "hanako_arasaka_in_a_gilded_cage",
+    "pepe_najarro_working_doubles",
+    "valentino_street_racer",
+    "valentino_street_racer"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.0575,
+   "se": 0.011384,
+   "sd": 0.602407,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.1325,
+     "se": 0.031061
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.0175,
+     "se": 0.032336
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.105,
+     "se": 0.03041
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.045,
+     "se": 0.028007
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": -0.02,
+     "se": 0.02808
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0075,
+     "se": 0.029721
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.115,
+     "se": 0.030319
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.060714,
+     "se": 0.01654
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.054286,
+     "se": 0.015653
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  },
+  {
+   "id": "p6-medium-s2-04",
+   "deck": "s2-04-cross-rrg.txt",
+   "label": "S2-04 package swap Ahead -> Even Street Cred (2 cards)",
+   "baseListId": "84a75f0dbb7d26b4",
+   "candListId": "5405cae11d7de95c",
+   "cuts": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy"
+   ],
+   "adds": [
+    "field_operator",
+    "pepe_najarro_working_doubles"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.0475,
+   "se": 0.010382,
+   "sd": 0.549345,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.0725,
+     "se": 0.029073
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.08,
+     "se": 0.029345
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.0425,
+     "se": 0.026286
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.04,
+     "se": 0.025201
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": 0.0225,
+     "se": 0.02488
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0325,
+     "se": 0.028162
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.0425,
+     "se": 0.029006
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.062143,
+     "se": 0.014637
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.032857,
+     "se": 0.014722
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  },
+  {
+   "id": "p6-medium-s2-06",
+   "deck": "s2-06-counter-rgg.txt",
+   "label": "S2-06 -1 Shattered Memories +1 6th Street Recruits",
+   "baseListId": "40126420639663fe",
+   "candListId": "bbeb5b90ef8918e0",
+   "cuts": [
+    "shattered_memories"
+   ],
+   "adds": [
+    "6th_street_recruits"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.033929,
+   "se": 0.008763,
+   "sd": 0.463678,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.02,
+     "se": 0.022084
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.04,
+     "se": 0.024444
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.0325,
+     "se": 0.024599
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.0475,
+     "se": 0.020351
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": -0.005,
+     "se": 0.020941
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0425,
+     "se": 0.024561
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.06,
+     "se": 0.02485
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.02,
+     "se": 0.012156
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.047857,
+     "se": 0.012617
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  },
+  {
+   "id": "p6-medium-lad-bbg",
+   "deck": "ladder-bbg-jackie-alt-hanako.txt",
+   "label": "Ladder BBG -1 Peace Offering +1 MaxTac AV",
+   "baseListId": "322dc7c6d97965fe",
+   "candListId": "e7b0b38e8ab5b225",
+   "cuts": [
+    "peace_offering"
+   ],
+   "adds": [
+    "maxtac_av"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.017857,
+   "se": 0.00757,
+   "sd": 0.400565,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0,
+     "se": 0.020641
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.05,
+     "se": 0.019227
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.02,
+     "se": 0.020919
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.015,
+     "se": 0.018717
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": -0.02,
+     "se": 0.021216
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.06,
+     "se": 0.020112
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0,
+     "se": 0.019063
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.015,
+     "se": 0.011085
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.020714,
+     "se": 0.010315
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  },
+  {
+   "id": "p6-medium-lad-rrb",
+   "deck": "ladder-rrb-dexter-v-wakako.txt",
+   "label": "Ladder RRB -1 Shattered Memories +1 Yorinobu: Steel Dragon",
+   "baseListId": "e334a325d1782349",
+   "candListId": "b16b316cfec88abb",
+   "cuts": [
+    "shattered_memories"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.027143,
+   "se": 0.006389,
+   "sd": 0.338089,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.0325,
+     "se": 0.017446
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.0075,
+     "se": 0.016787
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.03,
+     "se": 0.017277
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.0375,
+     "se": 0.014689
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": 0.0325,
+     "se": 0.016333
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0125,
+     "se": 0.016016
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.0375,
+     "se": 0.01946
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.03,
+     "se": 0.009171
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.024286,
+     "se": 0.008901
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  },
+  {
+   "id": "p6-medium-lad-padre",
+   "deck": "ladder-rrg-v-smasher-padre.txt",
+   "label": "Ladder RRG Padre -1 Field Operator +1 MaxTac AV",
+   "baseListId": "d5db41bfdf5ec740",
+   "candListId": "f375b2d8199f4566",
+   "cuts": [
+    "field_operator"
+   ],
+   "adds": [
+    "maxtac_av"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.03,
+   "se": 0.006601,
+   "sd": 0.349286,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.0175,
+     "se": 0.016769
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.0375,
+     "se": 0.017058
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.02,
+     "se": 0.016948
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.045,
+     "se": 0.016827
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": 0.0225,
+     "se": 0.019518
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": 0.0425,
+     "se": 0.018098
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.025,
+     "se": 0.016931
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.027143,
+     "se": 0.008952
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.032857,
+     "se": 0.009705
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  },
+  {
+   "id": "p6-medium-lad-ryy",
+   "deck": "ladder-ryy-smasher-river-viktor.txt",
+   "label": "Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms",
+   "baseListId": "1ee6a3224d0de263",
+   "candListId": "2ed4d4b9d64f948f",
+   "cuts": [
+    "alt_cunningham_mother_of_daemons"
+   ],
+   "adds": [
+    "gorilla_arms"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.019286,
+   "se": 0.005814,
+   "sd": 0.307672,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 400,
+     "mean": 0.0425,
+     "se": 0.017392
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 400,
+     "mean": 0.0125,
+     "se": 0.01562
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 400,
+     "mean": 0.0175,
+     "se": 0.013451
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 400,
+     "mean": 0.02,
+     "se": 0.014124
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 400,
+     "mean": 0.03,
+     "se": 0.01408
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 400,
+     "mean": -0.0025,
+     "se": 0.015632
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 400,
+     "mean": 0.015,
+     "se": 0.01696
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 1400,
+     "mean": 0.027143,
+     "se": 0.008952
+    },
+    {
+     "first": 1,
+     "games": 1400,
+     "mean": 0.011429,
+     "se": 0.007419
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5000000,
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p6-hard.ts",
+   "record": "A recorded change measured again with the Medium bot under SIM_VERSION 9, to compare with its Hard figure"
+  }
+ ]
+}

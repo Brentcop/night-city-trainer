@@ -24,11 +24,13 @@ import {
   type Strength,
 } from '../src/lib/findings';
 import {
+  botsWords,
   CAUSAL_WORDS,
   citeOf,
   claimOf,
   driftWords,
   EVIDENCE_PROBLEMS,
+  GAP_WORDS,
   healthWords,
   matchupCellWords,
   MISLEAD,
@@ -984,6 +986,48 @@ describe('endings and words', () => {
     expect(VERDICT_WORDS.adopt).toBe('The tuning tools’ rule would adopt it.');
     expect(VERDICT_WORDS.reject).toBe('The tuning tools’ rule would reject it.');
     for (const t of [...Object.values(VERDICT_WORDS), shortlistWords({ status: 'live' })!]) expect(t).not.toMatch(/shortlist/);
+  });
+
+  it('a change measured with two bots names each bot, and says what Hard shows about Medium', () => {
+    // Medium (the fixture's three measurements) and a Hard re-measurement of the same question
+    const hardF = chg({ method: 'paired', bot: 'hard', flags: [], estimate: 0.014, lower: -0.002, upper: 0.03, games: 560, n: 560, strength: 'weak', corrected: false, detail: { date: '2026-11-16' } });
+    const deck2: DeckEvidence = { ...DECK, findings: [...DECK.findings, hardF] };
+    const html = renderToStaticMarkup(<DeckEvidenceView deck={deck2} index={INDEX} target={null} onReveal={() => {}} />);
+    const group = text(elementAt(html, html.indexOf('<article')));
+    expect(group).toContain(
+      'Measured 4 times, in points, in date order: +1.5 in a forge confirmation with Medium (896 games, version 5); +2.8 over held-out games kept across runs with Medium (2,240 games, version 9); +2.4 on fresh games with Medium (2,800 games, version 9); +1.4 on fresh games with Hard (560 games, version 9).',
+    );
+    expect(group).toContain('Hard’s range still includes no difference (+1.4 pts, 95% range −0.2 pts to +3.0 pts), so it neither confirms nor contradicts Medium’s +2.4 pts (95% range +1.4 pts to +3.4 pts).');
+    // one bot only: the line is as before, and no such sentence
+    expect(text(elementAt(deckHtml(), deckHtml().indexOf('<article')))).not.toMatch(/with Medium|Hard’s range|Hard agrees/);
+  });
+
+  it('the two-bot sentence follows the strength words and ranges, and never claims cause', () => {
+    const r = (bot: string, estimate: number, lower: number, upper: number, strength: Strength, games = 2800, simVersion = CUR) => ({ bot, estimate, lower, upper, strength, games, simVersion });
+    const M = r('medium', 0.029, 0.019, 0.039, 'strong');
+    const cases: [ReturnType<typeof r>[], string | null][] = [
+      [[M], null],
+      [[r('hard', 0.02, 0.01, 0.03, 'moderate')], null],
+      [[M, r('hard', 0.024, 0.012, 0.036, 'moderate', 560)], 'Hard agrees with Medium on the direction: both ranges exclude no difference (Medium +2.9 pts, Hard +2.4 pts), and the two ranges overlap, so they do not show a different size.'],
+      [[M, r('hard', 0.08, 0.06, 0.1, 'strong')], 'Hard agrees with Medium on the direction: both ranges exclude no difference (Medium +2.9 pts, Hard +8.0 pts). Hard reads it higher than Medium, and the two ranges do not overlap.'],
+      [[M, r('hard', -0.03, -0.05, -0.01, 'moderate')], 'Hard and Medium disagree on the direction: Medium reads +2.9 pts and Hard −3.0 pts, and each range excludes no difference.'],
+      [[M, r('hard', 0.002, -0.008, 0.012, 'no-difference')], 'Hard finds no difference of a point or more (+0.2 pts, 95% range −0.8 pts to +1.2 pts), so it does not confirm Medium’s +2.9 pts (95% range +1.9 pts to +3.9 pts). Hard reads it lower than Medium, and the two ranges do not overlap.'],
+      [[r('medium', 0.012, -0.004, 0.028, 'weak'), r('hard', 0.03, 0.01, 0.05, 'moderate')], 'Hard’s range excludes no difference (+3.0 pts, 95% range +1.0 pts to +5.0 pts), where Medium’s did not (+1.2 pts, 95% range −0.4 pts to +2.8 pts).'],
+      [[M, r('hard', 0.05, -0.1, 0.2, 'not-enough', 28)], 'With Hard there are not enough games yet to say whether it agrees with Medium (28 paired games with Hard, reading +5.0 pts).'],
+      [[r('medium', 0.029, 0.019, 0.039, 'moderate', 2800, CUR - 1), r('hard', 0.024, 0.012, 0.036, 'moderate', 560)], `Hard agrees with Medium on the direction: both ranges exclude no difference (Medium +2.9 pts, Hard +2.4 pts), and the two ranges overlap, so they do not show a different size. The two were measured under different simulator versions (${CUR - 1} and ${CUR}), so the bots are not the only difference.`],
+    ];
+    for (const [rs, want] of cases) {
+      const got = botsWords(rs);
+      expect(got).toBe(want);
+      if (got) expect(hasCausal(got)).toEqual([]);
+    }
+  });
+
+  it('the notes on what is not measured name the re-measurement command with real flags', () => {
+    expect(GAP_WORDS['no-hard-changes']!.measure).toBe('A Hard re-measurement of the change: npm run remeasure -- <deck> --change "<label>" --bot hard (1,120 paired games against the meta decks), then npm run evidence.');
+    expect(GAP_WORDS['no-changes']!.measure).toContain('npm run remeasure -- <deck> --cut <card> --add <card>');
+    expect(GAP_WORDS['season1-no-interval']!.measure).toContain('npm run remeasure -- <deck> --before data/decks/custom/history/<file>');
+    for (const g of Object.values(GAP_WORDS)) expect(g.measure).not.toMatch(/data\/evidence\/\)/);
   });
 
   it('a run that recorded neither its rule nor what it could detect says so once', () => {

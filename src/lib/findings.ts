@@ -100,6 +100,11 @@ export const Z95 = 1.96;
 export type FlagCode =
   | 'stale'
   | 'medium-only'
+  | 'hard-confirms'
+  | 'hard-decides'
+  | 'hard-unsettled'
+  | 'hard-no-difference'
+  | 'hard-opposite'
   | 'first-look'
   | 'stopped-futility'
   | 'few-direct-games'
@@ -108,7 +113,7 @@ export type FlagCode =
   | 'other-list'
   | 'model-uncertainty-missing'
   | 'spread-default';
-export const FLAG_CODES: readonly FlagCode[] = ['stale', 'medium-only', 'first-look', 'stopped-futility', 'few-direct-games', 'prediction-only', 'depends-on-opponent', 'other-list', 'model-uncertainty-missing', 'spread-default'];
+export const FLAG_CODES: readonly FlagCode[] = ['stale', 'medium-only', 'hard-confirms', 'hard-decides', 'hard-unsettled', 'hard-no-difference', 'hard-opposite', 'first-look', 'stopped-futility', 'few-direct-games', 'prediction-only', 'depends-on-opponent', 'other-list', 'model-uncertainty-missing', 'spread-default'];
 
 /** A sequentially corrected interval: which correction drew it. */
 export type SequentialKind = 'always-valid' | 'obrien-fleming' | 'bonferroni';

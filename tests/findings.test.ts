@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { bhPass, citeLine, findingIds, GAME_THRESHOLDS, idProblems, pValueOf, strengthOf, strengthStep, type AdjustedEstimate, type Finding, type MeasurementKey, type StrengthInput } from '../src/lib/findings';
-import { CAUSAL_WORDS, citeOf, claimOf, MISLEAD, sentenceOf as sentenceOfFinding } from '../src/lib/findingWords';
+import { botsWords, CAUSAL_WORDS, citeOf, claimOf, driftWords, GAP_WORDS, MISLEAD, sentenceOf as sentenceOfFinding } from '../src/lib/findingWords';
+import { FLAGS as REMEASURE_FLAGS } from '../scripts/remeasure-run';
 
 const CUR = 9;
 /** A paired finding that clears every bar for 'strong'; each row changes one thing. */
@@ -201,6 +202,48 @@ describe('words', () => {
         const t = sentenceOf({ ...assoc, estimate, lower: estimate - 0.02, upper: estimate + 0.02, strength });
         expect(hasCausal(t), t).toEqual([]);
       }
+  });
+
+  it('a change measured with two bots names each bot in its drift line; with one bot the line is as before', () => {
+    const items = [
+      { estimate: 0.029, games: 2800, simVersion: 9, method: 'paired' as const, bot: 'medium' },
+      { estimate: 0.014, games: 560, simVersion: 9, method: 'paired' as const, bot: 'hard' },
+    ];
+    expect(driftWords(items)).toBe('Measured 2 times, in points, in date order: +2.9 on fresh games with Medium (2,800 games, version 9); +1.4 on fresh games with Hard (560 games, version 9).');
+    expect(driftWords(items.map((x) => ({ ...x, bot: 'medium' })))).toBe('Measured 2 times, in points, in date order: +2.9 on fresh games (2,800 games, version 9); +1.4 on fresh games (560 games, version 9).');
+    expect(driftWords(items.map(({ bot: _bot, ...x }) => x))).toBe('Measured 2 times, in points, in date order: +2.9 on fresh games (2,800 games, version 9); +1.4 on fresh games (560 games, version 9).');
+    // what Hard says about Medium: never a causal word, and nothing without both bots
+    const read = (bot: string, estimate: number, lower: number, upper: number, strength: 'strong' | 'moderate' | 'weak' | 'no-difference' | 'not-enough') => ({ bot, estimate, lower, upper, strength, games: 1000, simVersion: 9 });
+    expect(botsWords([read('medium', 0.03, 0.02, 0.04, 'strong'), read('deep', 0.01, -0.01, 0.03, 'weak')])).toBeNull();
+    for (const h of [read('hard', 0.03, 0.02, 0.04, 'strong'), read('hard', -0.03, -0.04, -0.02, 'strong'), read('hard', 0.01, -0.01, 0.03, 'weak'), read('hard', 0.001, -0.009, 0.011, 'no-difference'), read('hard', 0.05, -0.2, 0.3, 'not-enough')])
+      for (const m of [read('medium', 0.03, 0.02, 0.04, 'strong'), read('medium', 0.01, -0.01, 0.03, 'weak')]) {
+        const t = botsWords([m, h])!;
+        expect(t).toMatch(/Hard/);
+        expect(hasCausal(t), t).toEqual([]);
+      }
+    // each bot is read by its best measurement: the newest simulator version, then the most games, wherever it sits
+    const big = { bot: 'medium', estimate: 0.029, lower: 0.019, upper: 0.038, strength: 'strong' as const, games: 2800, simVersion: 9 };
+    const pooled = { bot: 'medium', estimate: 0.036, lower: 0.018, upper: 0.054, strength: 'moderate' as const, games: 672, simVersion: 9 };
+    const older = { bot: 'medium', estimate: 0.08, lower: 0.06, upper: 0.1, strength: 'moderate' as const, games: 5000, simVersion: 8 };
+    const hard = { bot: 'hard', estimate: 0.014, lower: 0.003, upper: 0.024, strength: 'strong' as const, games: 2800, simVersion: 9 };
+    const hardSmall = { bot: 'hard', estimate: 0.004, lower: -0.02, upper: 0.027, strength: 'weak' as const, games: 560, simVersion: 9 };
+    const want = 'Hard agrees with Medium on the direction: both ranges exclude no difference (Medium +2.9 pts, Hard +1.4 pts), and the two ranges overlap, so they do not show a different size.';
+    for (const order of [
+      [older, big, hardSmall, hard, pooled],
+      [pooled, hard, hardSmall, older, big],
+    ])
+      expect(botsWords(order)).toBe(want);
+  });
+
+  it('the notes on what is not measured name npm run remeasure with flags it takes', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf8')) as { scripts: Record<string, string> };
+    expect(pkg.scripts.remeasure).toBe('tsx scripts/remeasure.ts');
+    const named = Object.entries(GAP_WORDS).filter(([, w]) => w.measure.includes('npm run remeasure'));
+    expect(named.map(([k]) => k).sort()).toEqual(['no-changes', 'no-hard-changes', 'season1-no-interval']);
+    for (const [, w] of named) {
+      const command = w.measure.slice(w.measure.indexOf('npm run remeasure')).split(/ \(|, then/)[0]!;
+      for (const flag of command.match(/ --[a-z-]+/g) ?? []) expect(Object.keys(REMEASURE_FLAGS), flag).toContain(flag.slice(3));
+    }
   });
 
   it('the cite line', () => {

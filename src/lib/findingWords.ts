@@ -54,6 +54,11 @@ export const STRENGTH_RULE: Readonly<Record<Strength, string>> = {
 export const FLAG_WORDS: Readonly<Record<FlagCode, string>> = {
   stale: 'Measured under an older simulator version; the bots have changed since, so it is not re-measured and never strong.',
   'medium-only': 'Measured with the Medium bot only; Hard not measured.',
+  'hard-confirms': 'Measured with the Hard bot too: Hard’s own range excludes no difference, in the same direction.',
+  'hard-decides': 'Measured with the Hard bot too: this measurement does not settle it, and Hard’s own range excludes no difference.',
+  'hard-unsettled': 'Measured with the Hard bot too, but its games do not settle it yet.',
+  'hard-no-difference': 'Measured with the Hard bot too: Hard finds no difference of a point or more.',
+  'hard-opposite': 'Measured with the Hard bot too: Hard reads the other direction, and its range excludes no difference.',
   'first-look': 'Stopped early at its first look: likely optimistic (a sequential stop inflates the estimate).',
   'stopped-futility': 'Stopped early: no gain after two stages.',
   'few-direct-games': 'Few games between these two decks: the estimate leans on the ratings.',
@@ -211,15 +216,15 @@ export const GAP_WORDS: Readonly<Record<string, { text: string; measure: string 
   },
   'no-changes': {
     text: 'No change to this list has been measured: no ledger games, forge report or re-measurement.',
-    measure: 'npx tsx scripts/forge.ts <deck> --ledger (Medium), or a re-measurement into data/evidence/.',
+    measure: 'npx tsx scripts/forge.ts <deck> --ledger (Medium), or a paired re-measurement on fresh games: npm run remeasure -- <deck> --cut <card> --add <card> (Hard by default), then npm run evidence.',
   },
   'season1-no-interval': {
     text: 'Season 1 forge confirmations recorded win rates only (the any-gain rule): no paired interval, so they are listed as runs, not findings.',
-    measure: 'Re-measure the adopted change paired (data/evidence/).',
+    measure: 'Re-measure the adopted change paired: npm run remeasure -- <deck> --before data/decks/custom/history/<file> (the list before it against the library list), then npm run evidence.',
   },
   'no-hard-changes': {
     text: 'Every change measured for this list was measured with the Medium bot; none with Hard.',
-    measure: 'A Hard re-measurement of the change (data/evidence/).',
+    measure: 'A Hard re-measurement of the change: npm run remeasure -- <deck> --change "<label>" --bot hard (1,120 paired games against the meta decks), then npm run evidence.',
   },
   'other-list-events': {
     text: 'Some recorded games were played with another list of this deck; results use them as the deck.',
@@ -336,6 +341,11 @@ export const gamesWords = (f: Pick<Finding, 'games' | 'kind' | 'method' | 'natur
 export const FLAG_SHORT: Readonly<Record<FlagCode, string>> = {
   stale: 'older version',
   'medium-only': 'Medium only',
+  'hard-confirms': 'Hard agrees',
+  'hard-decides': 'Hard decides',
+  'hard-unsettled': 'Hard not settled',
+  'hard-no-difference': 'Hard: no difference',
+  'hard-opposite': 'Hard disagrees',
   'first-look': 'stopped early',
   'stopped-futility': 'stopped: no gain',
   'few-direct-games': 'few direct games',
@@ -409,16 +419,68 @@ export interface DriftItem {
   simVersion: number;
   method: Method;
   verdict?: FindingDetail['verdict'];
+  /** the bot that played it (named in the line when the measurements do not all share one) */
+  bot?: string;
 }
 
-/** "+15.6 at adoption (224 games, version 5); +6.4 on fresh games (2,800 games, version 8)": a change's measurements in date order. */
+/**
+ * "+15.6 at adoption (224 games, version 5); +6.4 on fresh games (2,800 games, version 8)": a change's measurements in
+ * date order. When they were not all played by one bot, each names its bot: "+2.9 on fresh games with Medium (2,800
+ * games, version 9); +1.4 on fresh games with Hard (560 games, version 9)".
+ */
 export function driftWords(items: readonly DriftItem[]): string {
+  const bots = new Set(items.map((m) => m.bot ?? ''));
+  const named = bots.size > 1;
   const one = (m: DriftItem) => {
     const how =
       m.method === 'paired-staged' ? (m.verdict === 'adopt' ? 'at adoption' : 'in a forge confirmation') : m.method === 'paired-pooled' ? 'over held-out games kept across runs' : 'on fresh games';
-    return `${bare(m.estimate)} ${how} (${plural(m.games, 'game')}, version ${m.simVersion})`;
+    const by = named && m.bot ? ` with ${botName(m.bot)}` : '';
+    return `${bare(m.estimate)} ${how}${by} (${plural(m.games, 'game')}, version ${m.simVersion})`;
   };
   return `Measured ${items.length} times, in points, in date order: ${items.map(one).join('; ')}.`;
+}
+
+/** One bot's reading of a change, for botsWords: its estimate, plain 95% range, games, version and strength word. */
+export interface BotReading {
+  bot: string;
+  estimate: number;
+  /** the plain 95% range (plain95: `p95` when the finding stores one) */
+  lower: number;
+  upper: number;
+  games: number;
+  simVersion: number;
+  strength: Strength;
+}
+
+/**
+ * What the Hard measurement of a change says about the Medium one, in one sentence, from their strength words and plain
+ * 95% ranges (each bot's measurement with the most games under its newest simulator version; null unless the change has both). It never says more than the two ranges
+ * show: a direction only where a range excludes no difference, and a size only where the ranges do not overlap.
+ */
+export function botsWords(readings: readonly BotReading[]): string | null {
+  // each bot's best measurement: under the newest simulator version, the one with the most games
+  const best = (bot: string) => readings.filter((r) => r.bot === bot).sort((a, b) => b.simVersion - a.simVersion || b.games - a.games)[0];
+  const m = best('medium');
+  const h = best('hard');
+  if (!m || !h) return null;
+  const v = (r: BotReading) => pts(r.estimate);
+  const range = (r: BotReading) => `95% range ${pts(r.lower)} to ${pts(r.upper)}`;
+  const excludes = (r: BotReading) => r.lower > 0 || r.upper < 0;
+  const versions = m.simVersion !== h.simVersion ? ` The two were measured under different simulator versions (${m.simVersion} and ${h.simVersion}), so the bots are not the only difference.` : '';
+  // a size only where the two ranges do not overlap
+  const size = h.upper < m.lower ? ' Hard reads it lower than Medium, and the two ranges do not overlap.' : h.lower > m.upper ? ' Hard reads it higher than Medium, and the two ranges do not overlap.' : '';
+  let lead: string;
+  if (h.strength === 'not-enough') lead = `With Hard there are not enough games yet to say whether it agrees with Medium (${plural(h.games, 'paired game')} with Hard, reading ${v(h)}).`;
+  else if (h.strength === 'no-difference')
+    lead = `Hard finds no difference of a point or more (${v(h)}, ${range(h)})${excludes(m) ? `, so it does not confirm Medium’s ${v(m)} (${range(m)})` : `, and Medium’s range also includes no difference (${v(m)}, ${range(m)})`}.`;
+  else if (!excludes(h)) lead = `Hard’s range still includes no difference (${v(h)}, ${range(h)}), so it neither confirms nor contradicts Medium’s ${v(m)} (${range(m)}).`;
+  else if (!excludes(m)) lead = `Hard’s range excludes no difference (${v(h)}, ${range(h)}), where Medium’s did not (${v(m)}, ${range(m)}).`;
+  else if (Math.sign(h.estimate) === Math.sign(m.estimate))
+    lead = `Hard agrees with Medium on the direction: both ranges exclude no difference (Medium ${v(m)}, Hard ${v(h)})${size ? '.' : ', and the two ranges overlap, so they do not show a different size.'}`;
+  else lead = `Hard and Medium disagree on the direction: Medium reads ${v(m)} and Hard ${v(h)}, and each range excludes no difference.`;
+  // the overlap note only where the lead has not said it
+  const sizeNote = h.strength === 'not-enough' || lead.includes('do not show a different size') || lead.includes('disagree') ? '' : size;
+  return `${lead}${sizeNote}${versions}`;
 }
 
 /** The screening figure of a change, one short greyed line: "Screening read +5.4 pts over 224 games: not the result." */

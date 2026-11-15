@@ -4,9 +4,10 @@
 // finding row (FindingRow, two lines) or a number with its range and games. Long lists open short with "Show all".
 // Rendered from plain data, so tests render it directly.
 import { useEffect, useState } from 'react';
-import { botName, formatValue, type DeckEvidence, type EvidenceIndex, type Finding } from '../../../lib/findings';
+import { botName, formatValue, plain95, type DeckEvidence, type EvidenceIndex, type Finding } from '../../../lib/findings';
 import {
   BLOCK_WORDS,
+  botsWords,
   changeStatusWords,
   DECK_PAGE_WORDS,
   driftWords,
@@ -145,13 +146,19 @@ function ChangeGroupView({ g, listId, names, scale, target, byId }: { g: ChangeG
   const cur = CURRENT_SIM_VERSION;
   const pooled = g.items.find((f) => f.method === 'paired-pooled' && f.simVersion === cur);
   const status = changeStatusWords(g.change.relation, settledChange(g, cur), pooled?.detail ? shortlistWords(pooled.detail) : null);
+  // measured with more than one bot: what the Hard measurement says about the Medium one
+  const bots =
+    new Set(g.items.map((f) => f.bot)).size > 1
+      ? botsWords(g.items.map((f) => ({ bot: f.bot, estimate: f.estimate, lower: plain95(f)[0], upper: plain95(f)[1], games: f.games, simVersion: f.simVersion, strength: f.strength })))
+      : null;
   return (
     <article className="ev-change" aria-labelledby={`q-${g.question}`}>
       <h3 className="ev-h3" id={`q-${g.question}`}>
         <ChangeLabel change={g.change} names={names} />
       </h3>
       <p className="ev-note small">{status}</p>
-      {g.items.length > 1 && <p className="ev-drift small">{driftWords(g.items.map((f) => ({ estimate: f.estimate, games: f.games, simVersion: f.simVersion, method: f.method, verdict: f.detail?.verdict })))}</p>}
+      {g.items.length > 1 && <p className="ev-drift small">{driftWords(g.items.map((f) => ({ estimate: f.estimate, games: f.games, simVersion: f.simVersion, method: f.method, verdict: f.detail?.verdict, bot: f.bot })))}</p>}
+      {bots && <p className="ev-drift small">{bots}</p>}
       <ul className="ev-rows">
         {g.items.map((f) => {
           const d = f.detail;

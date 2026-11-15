@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARDS } from '../src/engine/cards';
 import type { DeckList } from '../src/engine/types';
+import { listFingerprint } from '../src/engine/deck';
 import { partialTune, tuneDeck, tunePlan, vsOriginalGames, type TuneLog, type TuneOptions } from '../src/lib/deckLab';
 import type { GameJob, PlayGame } from '../src/lib/tournament';
 import { ADOPTION_DEFAULTS, type NomineeRecord } from '../src/lib/evidence';
@@ -139,6 +140,32 @@ describe('Deck Lab tuner under the evidence rule', () => {
     expect(l.nominees![0]!.package).toBe('combo-cards');
     expect(l.adopted).toBe(l.nominees![0]!.label);
     expect(changes(end.deck)).toBe(2);
+  });
+
+  it('keeps each nominee’s held-out games by opponent beside the logs, and the table says when they depend on the opponent', async () => {
+    const two = [anyDeck('B', ['Blue']), anyDeck('C', ['Green'])];
+    expect(listFingerprint(two[0]!)).not.toBe(listFingerprint(two[1]!));
+    // the change gains a lot against B and loses against C
+    const byOpp: PlayGame = async (j: GameJob) => {
+      const p = 0.5 + (j.b.name === 'B' ? 0.3 : -0.2) * changes(j.a);
+      return { seed: j.seed, first: j.first, turns: 5, reason: 'test', winner: unit(`g:${j.seed}:${j.b.name}`) < p ? 0 : 1 };
+    };
+    const end = await tuneDeck(start, two, { ...OPTS, minGain: -1 }, byOpp, () => undefined, () => false);
+    const n = end.logs[0]!.nominees![0]!;
+    // the logs are as before: the split is kept beside them
+    expect(n).not.toHaveProperty('byOpp');
+    const split = end.splits!.find((x) => x.gen === 1)!;
+    expect(split.names).toEqual(Object.fromEntries(two.map((d) => [listFingerprint(d), d.name])));
+    const s = split.nominees[0]!;
+    expect(s.byOpp!.reduce((a, o) => a + o.games, 0)).toBe(n.heldOut!.games);
+    expect(s.bySeat!.reduce((a, o) => a + o.games, 0)).toBe(n.heldOut!.games);
+    expect(s.heterogeneity!.p).toBeLessThan(0.05);
+    const html = renderToStaticMarkup(<NomineeTable nominees={[n]} minGames={200} splits={split} />);
+    expect(html).toMatch(/Depends on the opponent: \+\d+\.\d against B, −\d+\.\d against C \(χ² /);
+    // not flagged: no line
+    const calm = { ...split, nominees: [{ ...s, heterogeneity: { ...s.heterogeneity!, p: 0.4 } }] };
+    expect(renderToStaticMarkup(<NomineeTable nominees={[n]} minGames={200} splits={calm} />)).not.toContain('Depends on the opponent');
+    expect(renderToStaticMarkup(<NomineeTable nominees={[n]} minGames={200} />)).not.toContain('Depends on the opponent');
   });
 
   it('the plan estimate grows with depth and the defaults stay under the budget', () => {

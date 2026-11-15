@@ -103,8 +103,9 @@ import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, ex
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import { byPooledGain, describeShortlist, outOfReach, pooledFigure, pooledWords, shortlistGeneration, skippedWords, type PooledFigure, type ShortlistNote } from '../src/lib/shortlist';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
-import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, settleStages, settleWords, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval, type PairedScores, type SettleRecord } from '../src/lib/evidence';
+import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, settleStages, settleWords, stoppedWords, type AdoptionProvenance, type Confirmation, type PairedInterval, type PairedScores, type SettleRecord } from '../src/lib/evidence';
 import { gameIds } from '../src/lib/changeLedger';
+import { dependsOnOpponentWords, HeldOutTracker, withSplit, type SplitNomineeRecord } from '../src/lib/pairedSplit';
 import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
 import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
 import { forgeSummaryMarkdown } from './forge-summary';
@@ -169,6 +170,9 @@ const SETTLE = settleFromFlags(V, { rule: RULE });
 const NOMINATE_BAR = 0.02;
 /** the field's list fingerprints, in the order the jobs use them (field[k % field.length]) */
 const OPPONENTS = field.map((f) => listFingerprint(f.deck));
+/** an opponent's name by its list fingerprint (the per-opponent line of a nominee) */
+const OPP_NAME = new Map(field.map((f) => [listFingerprint(f.deck), f.deck.name]));
+const oppName = (fp: string) => OPP_NAME.get(fp) ?? fp;
 const LEDGER_STORE = LEDGER ? new LedgerStore(LEDGER.dir) : null;
 const RUN_ID = `forge ${new Date().toISOString()} seed ${V.seed}`;
 /**
@@ -312,8 +316,8 @@ async function forge(target: (typeof lib)[number]) {
       cuts?: { card: string; plain: number; score: number; offered: boolean; plainOffered: boolean; why: string }[];
       /** partner-aware runs: the swaps the plain ranking would have screened from the same games */
       plainSwaps?: string[];
-      /** the nominees with their screening and held-out results */
-      nominees?: NomineeRecord[];
+      /** the nominees with their screening and held-out results (held-out games also by opponent and seat) */
+      nominees?: SplitNomineeRecord[];
       confirm?: string;
       verdict: 'adopted' | 'rejected' | 'inconclusive' | 'kept';
       /** held-out paired gain of the adopted change, points (`priorGames`: pooled, this many from earlier runs; `settle`: it was confirmed until settled) */
@@ -508,16 +512,17 @@ async function forge(target: (typeof lib)[number]) {
     }
     // confirm on fresh seeds (never used by this generation's screening), paired, in stages
     const priors = ledger ? nominated.map((r) => priorFor(r.m)) : undefined;
+    /** each nominee's held-out games with where they sat (the prior's games first, as confirmStaged takes them) */
+    const held = new HeldOutTracker(nominated.length, ledger && RULE.kind === 'evidence' ? nominated.map((r) => ledger.priorGames(deck, r.m.deck, leaveOut)) : undefined);
     const conf = await confirmStaged(
       RULE,
       nominated.map((r) => ({ minGainPp: barOf(r.m) })),
       FIRST_STAGE,
       async ({ offset, games, active }) => {
         const [b, ...ns] = await playMany([deck, ...active.map((i) => nominated[i]!.m.deck)], seed1 + offset, games);
-        if (ledger) {
-          const slots = blockSlots(seed1 + offset, games, OPPONENTS);
-          active.forEach((i, k) => ledger.record('heldout', deck, nominated[i]!.m.deck, nominated[i]!.m.label, scored(slots, b!, ns[k]!)));
-        }
+        const slots = blockSlots(seed1 + offset, games, OPPONENTS);
+        held.stage(active, slots, b!, ns);
+        if (ledger) active.forEach((i, k) => ledger.record('heldout', deck, nominated[i]!.m.deck, nominated[i]!.m.label, scored(slots, b!, ns[k]!)));
         return { base: b!, nominees: ns };
       },
       undefined,
@@ -525,7 +530,8 @@ async function forge(target: (typeof lib)[number]) {
       SETTLE ? { reach: SETTLE.reach, maxStages: further } : undefined,
     );
     const pick = pickAdopted(conf.results);
-    genRec.nominees = nominated.map((r, i) => nomineeRecord(r.m.label, r.iv, conf.results[i], mutKind(r.m)));
+    const noms = nominated.map((r, i) => withSplit(nomineeRecord(r.m.label, r.iv, conf.results[i], mutKind(r.m)), held.games(i)));
+    genRec.nominees = noms;
     nominated.forEach((r, i) => {
       const c = conf.results[i]!;
       const line = c.priorGames
@@ -534,6 +540,12 @@ async function forge(target: (typeof lib)[number]) {
       log.push(`Confirmation of ${r.m.label} (${c.priorGames ? 'held-out paired games pooled with earlier runs' : 'fresh paired games'}; screening ${formatGain(r.iv)}): ${line} → **${word(c)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
       const why = c.settle ? settleWords(c.settle, c.heldOut.games) : c.stopped ? stoppedWords(c.stopped, c.heldOut.games, RULE.futilityMaxGainPp) : '';
       console.log(`  confirm ${r.m.label}: ${line} → ${outcomeWord(c.outcome).toUpperCase()}${why ? ` (${why})` : ''}`);
+      // its held-out games by opponent: one line when the per-opponent figures differ by more than chance
+      const depends = noms[i] ? dependsOnOpponentWords(noms[i], oppName) : null;
+      if (depends) {
+        log.push(`${r.m.label}: ${depends}.`, '');
+        console.log(`  ${r.m.label}: ${depends}`);
+      }
     });
     const shown = pick >= 0 ? pick : 0;
     const sc = conf.results[shown]!;

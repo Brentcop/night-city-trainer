@@ -48,6 +48,11 @@ export interface Remeasurement {
    * with them a measurement shares its question with the ledger entries of the same change
    */
   opponents?: string[];
+  /**
+   * the first seed of the paired games (game k used seed + k), so the same measurement made again can be recognised
+   * (npm run remeasure refuses one without --force); optional, absent in rows made before it existed
+   */
+  seed?: number;
   /** YYYY-MM-DD */
   date: string;
   /** the script that produced it, from the repository root */
@@ -104,6 +109,7 @@ export function remeasureProblems(x: unknown, where: string): string[] {
   if (!(typeof x.date === 'string' && DATE.test(x.date))) out.push(`${where}.date must be YYYY-MM-DD`);
   if (!(str(x.script, 300) && !x.script.includes('..'))) out.push(`${where}.script must name the script that produced it`);
   if (x.record !== undefined && !str(x.record)) out.push(`${where}.record must be text`);
+  if (x.seed !== undefined && !(Number.isSafeInteger(x.seed) && (x.seed as number) >= 0)) out.push(`${where}.seed must be a whole number of 0 or more`);
   if (x.opponents !== undefined && !(Array.isArray(x.opponents) && x.opponents.length > 0 && x.opponents.length <= 1000 && x.opponents.every((o) => typeof o === 'string' && FP.test(o)))) out.push(`${where}.opponents must be a non-empty list of list fingerprints`);
   for (const [k, seat] of [['byOpp', false], ['bySeat', true]] as const) {
     const v = x[k];

@@ -49,6 +49,7 @@ import { SIM_VERSION } from '../src/lib/tournament';
 import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, settleStages, type Confirmation, type PairedScores } from '../src/lib/evidence';
 import { gameIds } from '../src/lib/changeLedger';
 import { blockSlots, RunLedger, scored } from './ledger-store';
+import { dependsOnOpponentWords, HeldOutTracker, withSplit } from '../src/lib/pairedSplit';
 import { combinedCandidates, detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
 import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
@@ -107,6 +108,8 @@ if (SCREEN_SEED + SCREEN > CONFIRM_SEED) {
 const LEDGER_AT = ledgerFromFlags(V, { bot: BOT, out: OUT });
 /** the field's list fingerprints, in the order the jobs use them (field[k % field.length]) */
 const OPPONENTS = field.map((f) => listFingerprint(f.deck));
+/** an opponent's name by its list fingerprint (the per-opponent line of a nominee) */
+const OPP_NAME = new Map(field.map((f) => [listFingerprint(f.deck), f.deck.name]));
 const LEDGER = LEDGER_AT
   ? new RunLedger({ dir: LEDGER_AT.dir, simVersion: SIM_VERSION, bot: LEDGER_AT.bot, opponents: OPPONENTS, run: `optimize ${new Date().toISOString()}`, date: new Date().toISOString().slice(0, 10) })
   : null;
@@ -209,16 +212,17 @@ async function main() {
     }
   }
   let confirmations: Confirmation[] = [];
+  /** each nominee's held-out games with where they sat (the prior's games first, as confirmStaged takes them) */
+  const held = new HeldOutTracker(nominees.length, LEDGER && !LEGACY ? nominees.map((n) => LEDGER.priorGames(base.deck, n.c.deck, leaveOut)) : undefined);
   let baseWr = baseWr1;
   let best = -1;
   if (LEGACY) {
     // the old stage 2: top 6 + baseline × CONFIRM on identical seeds, best list = best stage-2 win rate
     console.log(`Stage 2: confirming top ${nominees.length} + baseline × ${CONFIRM} games`);
     const s2 = await measure([cands[0], ...nominees.map((n) => n.c)], CONFIRM, CONFIRM_SEED);
-    if (LEDGER) {
-      const slots = blockSlots(CONFIRM_SEED, CONFIRM, OPPONENTS);
-      nominees.forEach((n, i) => LEDGER.record('heldout', base.deck, n.c.deck, n.c.label, scored(slots, s2[0], s2[i + 1])));
-    }
+    const slots = blockSlots(CONFIRM_SEED, CONFIRM, OPPONENTS);
+    held.stage(nominees.map((_, i) => i), slots, s2[0], s2.slice(1));
+    if (LEDGER) nominees.forEach((n, i) => LEDGER.record('heldout', base.deck, n.c.deck, n.c.label, scored(slots, s2[0], s2[i + 1])));
     confirmations = nominees.map((_, i) => {
       const iv = pairedInterval(s2[i + 1], s2[0]);
       return { outcome: iv.mean > 0 ? 'adopt' : 'reject', heldOut: iv, baseWr: avg(s2[0]), candWr: avg(s2[i + 1]), looks: 1, minGainPp: 0 };
@@ -233,10 +237,9 @@ async function main() {
       CONFIRM,
       async ({ offset, games, active }) => {
         const [b, ...ns] = await measure([cands[0], ...active.map((i) => nominees[i].c)], games, CONFIRM_SEED + offset);
-        if (LEDGER) {
-          const slots = blockSlots(CONFIRM_SEED + offset, games, OPPONENTS);
-          active.forEach((i, k) => LEDGER.record('heldout', base.deck, nominees[i].c.deck, nominees[i].c.label, scored(slots, b, ns[k])));
-        }
+        const slots = blockSlots(CONFIRM_SEED + offset, games, OPPONENTS);
+        held.stage(active, slots, b, ns);
+        if (LEDGER) active.forEach((i, k) => LEDGER.record('heldout', base.deck, nominees[i].c.deck, nominees[i].c.label, scored(slots, b, ns[k])));
         return { base: b, nominees: ns };
       },
       undefined,
@@ -251,6 +254,12 @@ async function main() {
   const bestDeck = best >= 0 ? nominees[best].c.deck : base.deck;
   const rule = describeRule(RULE, { firstStage: CONFIRM, nominees: nominees.length || DEPTH.nominees, ledger: !!LEDGER, ...settled });
   const gainOf = (c: Confirmation) => (c.priorGames ? pooledGainWords(c) : formatGain(c.heldOut));
+  const records = nominees.map((n, i) => withSplit(nomineeRecord(n.c.label, n.iv, confirmations[i], n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind), held.games(i)));
+  /** a nominee whose held-out figures differ by opponent by more than chance: one line each */
+  const depends = records.flatMap((r) => {
+    const w = dependsOnOpponentWords(r, (fp) => OPP_NAME.get(fp) ?? fp);
+    return w ? [`- ${r.label}: ${w}.`] : [];
+  });
   const md = [
     `# Optimizer — ${base.deck.name}`,
     '',
@@ -281,6 +290,7 @@ async function main() {
       const c = confirmations[i];
       return `| ${n.c.label} | ${(n.wr * 100).toFixed(1)}% | ${pts(n.iv.mean)} | ${c ? `${(c.candWr * 100).toFixed(1)}%` : '—'} | ${c ? gainOf(c) : '—'} | ${c ? (LEGACY ? (i === best ? 'best' : '—') : confirmationWord(c, RULE.futilityMaxGainPp)) : '—'} |`;
     }),
+    ...(depends.length ? ['', ...depends] : []),
     '',
     '## Stage 1 (all candidates)',
     '',
@@ -315,7 +325,7 @@ async function main() {
       const kind = n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind;
       return { change: n.c.label, s1: p1(n.wr), s2: c ? p1(c.candWr) : null, delta: c ? p1(c.heldOut.mean) : p1(n.iv.mean), ...(c && !LEGACY ? { outcome: c.outcome } : {}), ...(c?.stopped ? { stopped: c.stopped, heldOutGames: c.heldOut.games } : {}), ...(c?.settle ? { settle: c.settle } : {}), ...(kind ? { package: kind } : {}) };
     }),
-    nominees: nominees.map((n, i) => nomineeRecord(n.c.label, n.iv, confirmations[i], n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind)),
+    nominees: records,
     best: best >= 0 ? { change: nominees[best].c.label, heldOut: confirmations[best].heldOut, ...(confirmations[best].priorGames ? { priorGames: confirmations[best].priorGames } : {}), ...(confirmations[best].settle ? { settle: confirmations[best].settle } : {}) } : null,
     adoption: { text: rule },
     ...(SETTLE ? { untilSettled: { reach: SETTLE.reach, maxStages: FURTHER, maxExtraGames: SETTLE_EXTRA ?? 0 } } : {}),

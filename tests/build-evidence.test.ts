@@ -6,11 +6,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, matchupCheck, pairSpread, parseChangeLabel, type EvidenceInputs } from '../scripts/evidence-build';
+import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, heterogeneity as builderHeterogeneity, matchupCheck, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
 import { compareEvidence, evidenceTexts, loadEvidenceInputs, readStored, storedProblems, writeEvidence } from '../scripts/build-evidence';
 import type { RecordedEvent } from '../scripts/lib-node';
 import { listFingerprint } from '../src/engine/deck';
-import { changeKey, fieldFingerprint, gamesToSettle, type LedgerBatch, type LedgerGame } from '../src/lib/changeLedger';
+import { changeKey, fieldFingerprint, gamesToSettle, summarize, type LedgerBatch, type LedgerGame } from '../src/lib/changeLedger';
+import { heterogeneity } from '../src/lib/pairedSplit';
 import { ADOPTION_DEFAULTS, judgePooled, pairedInterval } from '../src/lib/evidence';
 import { fieldInterval, fitRatings } from '../src/lib/ratingModel';
 import { ratedGamesOf } from '../src/lib/ratingGames';
@@ -184,6 +185,64 @@ describe('building from fixtures', () => {
     expect(f.sources[0]!.file).toBe(`data/ledger/${listFingerprint(A)}.jsonl`);
   });
 
+  it('the heterogeneity test is the one in src/lib/pairedSplit.ts, read from the ledger games by opponent', () => {
+    expect(builderHeterogeneity).toBe(heterogeneity);
+    const built = buildEvidence(inputs({ ledger: LEDGER }));
+    const f = deckOf(built, 'Deck A').findings.find((x) => x.subject.change?.key === KEY1)!;
+    const held = LEDGER.filter((b) => b.entry.change === KEY1 && b.kind === 'heldout').flatMap((b) => b.games);
+    const het = heterogeneity(summarize(held).byOpp)!;
+    expect(f.detail?.heterogeneity).toEqual({ chi2: r6(het.chi2), df: het.df, p: r6(het.p) });
+    expect(f.flags.includes('depends-on-opponent')).toBe(het.p < 0.05);
+  });
+
+  it('a forge nominee with its held-out games by opponent and seat carries them, and the flag when they differ; an older report does not', () => {
+    const base = listFingerprint(A);
+    const opps = DECKS.slice(1).map(listFingerprint);
+    const nominee = (split: boolean) => ({
+      label: '-1 A3 → +1 New',
+      screen: { games: 112, mean: 0.06, lower: 0.01, upper: 0.11 },
+      heldOut: { games: 630, mean: 0.02, lower: -0.01, upper: 0.05, z: 2.01, looks: 2, baseWr: 0.5, candWr: 0.52 },
+      outcome: 'inconclusive' as const,
+      ...(split
+        ? {
+            byOpp: opps.map((opp, i) => ({ opp, games: 210, mean: [0.09, 0.0, -0.03][i]!, se: 0.02 })),
+            bySeat: [
+              { first: 0 as const, games: 315, mean: 0.03, se: 0.02 },
+              { first: 1 as const, games: 315, mean: 0.01, se: 0.02 },
+            ],
+            heterogeneity: { chi2: 21.0, df: 2, p: 0.0001 },
+          }
+        : {}),
+    });
+    const report = (split: boolean): ForgeReport =>
+      ({
+        deck: 'Deck A',
+        file: 'deck-a.txt',
+        date: '2026-11-15',
+        field: 'Deck B, Deck C, Deck D · bot lookahead · 140 games per test',
+        adoption: { rule: 'evidence', minGainPp: 1, packageMinGainPp: 1, alpha: 0.05, correction: 'obrien-fleming', capStages: 4, minGames: 200, firstStage: 280, nominees: 1, cardsPerChange: 1, packagesPerChange: 1, futilityAfterStages: 2, futilityMaxGainPp: 0 },
+        gens: [{ gen: 1, baseline: 50, swaps: [{ swap: '-1 A3 → +1 New', wr: 56, delta: 6 }], verdict: 'inconclusive', nominees: [nominee(split)] }],
+        manifest: { runId: 'forge r9', simVersion: 9, bot: { level: 'lookahead' }, decks: [{ id: base }], field: { deckIds: opps }, sample: { completedGames: 2000 } },
+      }) as unknown as ForgeReport;
+    const findingOf = (split: boolean) => {
+      const built = buildEvidence({ ...inputs(), forge: [{ file: 'reports/forge/deck-a.json', report: report(split) }] });
+      return deckOf(built, 'Deck A').findings.find((x) => x.method === 'paired-staged')!;
+    };
+    const withSplit = findingOf(true);
+    expect(withSplit.detail?.byOpp).toEqual(nominee(true).byOpp);
+    expect(withSplit.detail?.bySeat).toEqual(nominee(true).bySeat);
+    expect(withSplit.detail?.heterogeneity).toEqual({ chi2: 21, df: 2, p: 0.0001 });
+    expect(withSplit.flags).toContain('depends-on-opponent');
+    const older = findingOf(false);
+    expect(older.detail).not.toHaveProperty('byOpp');
+    expect(older.detail).not.toHaveProperty('heterogeneity');
+    expect(older.flags).not.toContain('depends-on-opponent');
+    // the rest of the finding is the same either way
+    const { detail: _a, flags: _b, ...rest } = withSplit;
+    const { detail: _c, flags: _d, ...restOlder } = older;
+    expect(rest).toEqual(restOlder);
+  });
+
   it('an undecided, live change is an open question with the games it would need', () => {
     const built = buildEvidence(inputs({ ledger: LEDGER }));
     const d = deckOf(built, 'Deck A');
@@ -351,6 +410,66 @@ describe('building from fixtures', () => {
     expect(both.map((f) => f.field)).toEqual([FIELD, FIELD]);
     expect(both[0]!.question).toBe(both[1]!.question);
     expect(both[0]!.id).not.toBe(both[1]!.id);
+  });
+
+  it('a Medium change is flagged by what the Hard measurement of the same question shows, and a strong Hard one names it in the effects list', () => {
+    const opponents = DECKS.slice(1).map(listFingerprint);
+    const row = (id: string, cut: string, add: string, bot: string, mean: number, se: number, games: number) => ({
+      id,
+      deck: 'deck-a.txt',
+      label: `-1 ${cut} → +1 ${add}`,
+      baseListId: listFingerprint(A),
+      candListId: listFingerprint(swapped(cut, add)),
+      cuts: [cut],
+      adds: [add],
+      bot,
+      simVersion: 9,
+      games,
+      mean,
+      se,
+      opponents,
+      date: '2026-11-15',
+      script: 'x.ts',
+    });
+    const measurements = [
+      // Hard's range excludes no difference in the same direction
+      row('m-agree', 'a_c1', 'z1', 'medium', 0.04, 0.006, 2800),
+      row('h-agree', 'a_c1', 'z1', 'hard', 0.03, 0.006, 2800),
+      // Hard measured, but its games do not settle it
+      row('m-unsettled', 'a_c2', 'z2', 'medium', 0.03, 0.006, 2800),
+      row('h-unsettled', 'a_c2', 'z2', 'hard', 0.012, 0.014, 560),
+      // Hard finds no difference of a point or more
+      row('m-none', 'a_c4', 'z4', 'medium', 0.03, 0.006, 2800),
+      row('h-none', 'a_c4', 'z4', 'hard', 0.002, 0.005, 2800),
+      // Hard reads the other direction
+      row('m-opposite', 'a_c6', 'z6', 'medium', 0.03, 0.006, 2800),
+      row('h-opposite', 'a_c6', 'z6', 'hard', -0.03, 0.006, 2800),
+      // the Medium measurement has no direction of its own, and Hard decides
+      row('m-open', 'a_c7', 'z7', 'medium', 0.006, 0.012, 560),
+      row('h-decides', 'a_c7', 'z7', 'hard', 0.03, 0.006, 2800),
+      // no Hard measurement at all
+      row('m-only', 'a_c8', 'z8', 'medium', 0.03, 0.006, 2800),
+    ];
+    const built = buildEvidence({ ...inputs(), remeasure: [{ file: 'data/evidence/bots.json', data: { kind: 'nct-remeasure', schema: 1, measurements } }] });
+    const fs = deckOf(built, 'Deck A').findings.filter((f) => f.kind === 'change');
+    const flagOf = (cut: string, bot: string) => fs.find((f) => f.subject.change!.cuts[0] === cut && f.bot === bot)!.flags.filter((x) => x === 'medium-only' || x.startsWith('hard-'));
+    expect(flagOf('a_c1', 'medium')).toEqual(['hard-confirms']);
+    expect(flagOf('a_c2', 'medium')).toEqual(['hard-unsettled']);
+    expect(flagOf('a_c4', 'medium')).toEqual(['hard-no-difference']);
+    expect(flagOf('a_c6', 'medium')).toEqual(['hard-opposite']);
+    expect(flagOf('a_c7', 'medium')).toEqual(['hard-decides']);
+    expect(flagOf('a_c8', 'medium')).toEqual(['medium-only']);
+    // a Hard finding carries none of them
+    for (const cut of ['a_c1', 'a_c2', 'a_c4', 'a_c6', 'a_c7']) expect(flagOf(cut, 'hard')).toEqual([]);
+    // the effects list names a question once: by its Hard measurement when that is strong or moderate, else by its best-supported one
+    const effects = built.index.top.find((t) => t.key === 'effects')!.items;
+    const named = (cut: string) => effects.filter((i) => i.claim.startsWith(`-1 ${cut} `));
+    expect(named('a_c1').map((i) => [i.bot, i.others])).toEqual([['hard', 1]]);
+    expect(named('a_c7').map((i) => i.bot)).toEqual(['hard']);
+    expect(named('a_c6').map((i) => i.bot)).toEqual(['hard']);
+    expect(named('a_c2').map((i) => i.bot)).toEqual(['medium']);
+    expect(named('a_c4').map((i) => i.bot)).toEqual(['medium']);
+    expect(named('a_c8').map((i) => i.bot)).toEqual(['medium']);
   });
 });
 

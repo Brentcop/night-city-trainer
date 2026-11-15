@@ -27,7 +27,8 @@
     "kb:eval": "tsx scripts/kb-eval.ts",
     "record": "tsx scripts/record.ts",
     "ledger": "tsx scripts/ledger.ts",
-    "evidence": "tsx scripts/build-evidence.ts"
+    "evidence": "tsx scripts/build-evidence.ts",
+    "remeasure": "tsx scripts/remeasure.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

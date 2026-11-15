@@ -138,9 +138,18 @@ export function clearestPairings(ps: readonly Pairing[], n: number): Set<string>
 export const associationOrder = (fs: readonly Finding[]): Finding[] => [...fs].sort((a, b) => STRENGTH_RANK[a.strength] - STRENGTH_RANK[b.strength] || b.estimate - a.estimate);
 
 const METHOD_ORDER: Readonly<Record<string, number>> = { 'paired-staged': 0, 'paired-pooled': 1, paired: 2 };
-/** A change's measurements in date order (on one date: a forge confirmation, the ledger, then a re-measurement). */
+const BOT_ORDER: Readonly<Record<string, number>> = { medium: 0, hard: 1 };
+/**
+ * A change's measurements in date order (on one date and simulator version: the Medium ones before the Hard ones, and for
+ * one bot a forge confirmation, the held-out games kept across runs, then a re-measurement, fewer games first).
+ */
 export const measurementOrder = (a: Finding, b: Finding): number =>
-  (a.detail?.date ?? '').localeCompare(b.detail?.date ?? '') || a.simVersion - b.simVersion || (METHOD_ORDER[a.method] ?? 9) - (METHOD_ORDER[b.method] ?? 9);
+  (a.detail?.date ?? '').localeCompare(b.detail?.date ?? '') ||
+  a.simVersion - b.simVersion ||
+  (BOT_ORDER[a.bot] ?? 9) - (BOT_ORDER[b.bot] ?? 9) ||
+  (METHOD_ORDER[a.method] ?? 9) - (METHOD_ORDER[b.method] ?? 9) ||
+  a.games - b.games ||
+  (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 /** One change and its measurements (one question). */
 export interface ChangeGroup {

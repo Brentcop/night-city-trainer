@@ -1,0 +1,41 @@
+P6: Medium against Hard, SIM_VERSION 9, the 7 meta decks, paired games on the same seeds (13 changes at 560 Hard games; 2 at 2800; 7 Medium re-measurements at 2800)
+
+1. Each change (points, plain 95% interval)
+
+change                                                                     Medium                     Hard                       games M / H
+-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon                  +2.9 [+1.9, +3.8]          +0.4 [−2.0, +2.7]          2800 / 560
+-1 We Gotta Live Together → +1 Johnny Silverhand: Never Stop Fighting      +2.7 [+1.8, +3.6]          +1.4 [−1.0, +3.9]          2800 / 560
+-1 Mantis Blades → +1 Nadia: Fighting Through Grief                        +1.7 [+0.8, +2.6]          +0.5 [−2.1, +3.2]          2800 / 560
+-1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy                        +4.7 [+3.6, +5.8]          +5.9 [+3.2, +8.5]          2800 / 560
+-1 Saul Bright: Stormrider → +1 Fool on the Hill                           +1.0 [+0.0, +1.9]          +1.4 [−1.0, +3.9]          2800 / 560
+-1 Dexter DeShawn: One Last Chance → +1 Zetatech Berserk                   +0.1 [−0.8, +1.1]          −1.8 [−4.6, +1.1]          2800 / 560
+S2-03 package swap Gear on Units -> Arasaka Units (8 cards)                +5.8 [+3.5, +8.0]          +5.4 [+0.2, +10.5]         2800 / 560
+S2-04 package swap Ahead -> Even Street Cred (2 cards)                     +4.8 [+2.7, +6.8]          +0.9 [−3.7, +5.5]          2800 / 560
+S2-06 -1 Shattered Memories +1 6th Street Recruits                         +3.4 [+1.7, +5.1]          +5.4 [+1.0, +9.7]          2800 / 560
+Ladder BBG -1 Peace Offering +1 MaxTac AV                                  +1.8 [+0.3, +3.3]          +0.0 [−3.8, +3.8]          2800 / 560
+Ladder RRB -1 Shattered Memories +1 Yorinobu: Steel Dragon                 +2.7 [+1.5, +4.0]          +1.1 [−2.7, +4.9]          2800 / 560
+Ladder RRG Padre -1 Field Operator +1 MaxTac AV                            +3.0 [+1.7, +4.3]          +3.8 [+0.1, +7.4]          2800 / 560
+Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms                       +1.9 [+0.8, +3.1]          +3.0 [−0.4, +6.5]          2800 / 560
+
+2. Transfer over these changes
+
+  mean gain: Medium +2.80 points, Hard +2.10 points over 13 changes
+  ratio of the summed gains (Hard / Medium): 0.75 ± 0.19 from the measurements' own errors; bootstrap over the changes, 95% from 0.40 to 1.07
+  slope of Hard on Medium through the origin: 0.81 ± 0.15; corrected for the error in the Medium figures: 0.85
+  same sign as Medium: 11 of 13; interval excludes zero: Hard 4 of 13, Medium 12 of 13
+
+3. Do the changes differ in how much transfers? χ² of the Hard figures around slope × Medium: 11.8 on 12 degrees of freedom (5% point about 20.1)
+  ratio for one-card swaps: 0.81 over 11; for package swaps: 0.60 over 2
+
+4. The two changes measured on 2,800 Hard games, against the 1-point bar the tools adopt at
+
+  -1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon: Hard +1.4 [+0.3, +2.4] over 2800 games (a gain, not shown to clear the 1-point bar); Medium +2.9 [+1.9, +3.8] over 2800
+    by opponent: BBG Cunningham +1.0±2.8 | GRY Trauma +2.0±2.9 | Rainbow Fixer +1.5±3.0 | RRB Wakako +1.8±2.9 | RRG Dexter +1.5±2.7 | RRY Smasher +0.8±3.0 | YYB Rogue +1.0±3.0
+  -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy: Hard +3.5 [+2.3, +4.7] over 2800 games (clears the 1-point bar); Medium +4.7 [+3.6, +5.8] over 2800
+    by opponent: BBG Cunningham +1.5±3.0 | GRY Trauma +6.0±3.4 | Rainbow Fixer +3.3±3.0 | RRB Wakako +4.5±2.9 | RRG Dexter +3.8±2.7 | RRY Smasher +3.3±2.9 | YYB Rogue +2.3±3.4
+
+5. Per-game spread of the paired difference (one-card swaps, median)
+
+  Hard 0.343 over 11 changes; Medium 0.349 over 5 changes
+  at that spread a plain 95% interval of ±1 point takes about 4,523 Hard paired games
+  share of games that came out the same with and without the change: Hard median 83%

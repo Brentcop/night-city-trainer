@@ -532,7 +532,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               {l.nominees && l.nominees.length > 0 ? (
                 <div className="small">
                   <div className="muted">Confirmation on fresh games, paired with the list (screening only nominates; the held-out gain is the one that counts):</div>
-                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} futilityMaxGainPp={runRule?.rule.futilityMaxGainPp ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} />
+                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} futilityMaxGainPp={runRule?.rule.futilityMaxGainPp ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} splits={prog.splits?.find((x) => x.gen === l.gen)} />
                   <NotNominatedList items={l.notNominated} />
                 </div>
               ) : l.notNominated?.length ? (

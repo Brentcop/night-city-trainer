@@ -20,6 +20,7 @@ import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
 import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
 import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
+import { HeldOutTracker, withSplit, type NomineeSplit } from './pairedSplit';
 import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, settleExtra, type SearchDepth } from './deckSearch';
 import { byPooledGain, outOfReach, pooledFigure, shortlistGeneration, shortlistOptions, type PooledFigure, type ShortlistNote, type ShortlistOptions } from './shortlist';
 import type { LibraryDeck } from './library';
@@ -427,6 +428,19 @@ export interface TuneProgress {
   played: number;
   /** runs with a ledger: what this run has recorded so far (games written, already held, conflicts, left out) */
   ledger?: Record<BatchKind, LedgerTotals>;
+  /**
+   * each generation's nominees' held-out games by opponent and seat, in the order of its log's `nominees` (null: none
+   * recorded). Kept beside the logs, not in them, so the logs stay exactly as before (tests/deck-lab-ledger.test.ts).
+   */
+  splits?: NomineeSplits[];
+}
+
+/** One generation's nominees split by opponent (list fingerprint) and seat, with the opponents' names. */
+export interface NomineeSplits {
+  gen: number;
+  /** list fingerprint → deck name */
+  names: Record<string, string>;
+  nominees: (NomineeSplit | null)[];
 }
 
 export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOptions, play: PlayGame, onProgress: (p: TuneProgress) => void, stop: () => boolean): Promise<TuneProgress> {
@@ -455,6 +469,9 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const short = o.shortlist && pooling && ledger ? shortlistOptions(o.shortlist) : null;
   /** the field's list fingerprints in the order playSet uses them (field[k % n]) */
   const opponents = ledger ? ledger.o.opponents : [];
+  /** the field's list fingerprints and names, for each nominee's held-out games by opponent */
+  const fieldIds = field.map((d) => listFingerprint(d));
+  const fieldNames = Object.fromEntries(field.map((d, i) => [fieldIds[i]!, d.name]));
   const tick = () => {
     p.done++;
     p.played++;
@@ -600,6 +617,8 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         continue;
       }
       const nomDecks = nominated.map((x) => swapOf(x.label));
+      /** each nominee's held-out games with where they sat (the prior's games first, as confirmStaged takes them) */
+      const held = new HeldOutTracker(nomDecks.length, pooling && ledger ? nomDecks.map((s) => ledger.priorGames(deck, s.deck, leaveOut)) : undefined);
       p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''}${settle ? ', then on until settled' : ''})`;
       onProgress({ ...p, logs: [...logs] });
       const conf = await confirmStaged(
@@ -609,6 +628,12 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         async ({ offset, games, active }) => {
           // the current list's games are started first, then each nominee's (the order the legacy confirmation used)
           const [b, ...ns] = await Promise.all([deck, ...active.map((i) => nomDecks[i]!.deck)].map((d) => playSet(d, field, seed1 + offset, games, o.bot, play, false, tick)));
+          held.stage(
+            active,
+            blockSlots(seed1 + offset, games, fieldIds),
+            b!.scores,
+            ns.map((r) => r.scores),
+          );
           // only whole stages reach here (Stop rejects the games in flight, so a cut-off stage throws above), and
           // confirmStaged counts every stage this returns: the ledger records exactly the games the decision used
           if (ledger) {
@@ -628,6 +653,18 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
         return nomineeRecord(x.label, { ...sg, z: 1.96 }, conf.results[i], s.combo ? `combo-${s.combo.packages ? 'packages' : 'cards'}` : s.pkg?.kind);
       });
+      // a new array each time: a progress report already handed out keeps the one it had
+      p.splits = [
+        ...(p.splits ?? []),
+        {
+          gen,
+          names: fieldNames,
+          nominees: log.nominees.map((r, i) => {
+            const w = withSplit(r, held.games(i));
+            return w.byOpp ? { byOpp: w.byOpp, ...(w.bySeat ? { bySeat: w.bySeat } : {}), ...(w.heterogeneity ? { heterogeneity: w.heterogeneity } : {}) } : null;
+          }),
+        },
+      ];
       const shown = conf.results[pick >= 0 ? pick : 0]!;
       log.confirm = { base: shown.baseWr, swap: shown.candWr, label: nominated[pick >= 0 ? pick : 0]!.label, outcome: shown.outcome, gain: shown.heldOut, looks: shown.looks, ...(shown.priorGames ? { priorGames: shown.priorGames } : {}) };
       if (pick >= 0) {

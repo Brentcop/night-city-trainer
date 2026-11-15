@@ -8,11 +8,13 @@
 // (ShortlistNotes), and a change its earlier held-out games put out of reach gets its own "Not nominated" line.
 // "Until settled" (TuneOptions.untilSettled): SettleCheckbox in the setup, what it may add beside the game estimate and
 // what the run can detect (DepthControls), and a wrapping note under a nominee's held-out gain (SettleNote) saying how
-// many further stages it played and why it stopped.
+// many further stages it played and why it stopped. A nominee whose held-out figures differ by opponent by more than
+// chance gets one more line under its gain (dependsOnOpponentWords, src/lib/pairedSplit.ts): the two extremes by name.
 import { useId, type ReactNode } from 'react';
 import { formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, settleWords, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type SettleRecord, type StopReason } from '../../lib/evidence';
 import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
-import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type NotNominated, type TuneLog } from '../../lib/deckLab';
+import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type NomineeSplits, type NotNominated, type TuneLog } from '../../lib/deckLab';
+import { dependsOnOpponentWords } from '../../lib/pairedSplit';
 import { cutTableRows } from '../../lib/cutRanking';
 import { pooledWords, SHORTLIST_DEFAULTS, skippedWords, type ShortlistNote } from '../../lib/shortlist';
 import { Signed, Wr, type Tone } from './Num';
@@ -60,8 +62,12 @@ export function PairedGain({ g, floor = 0 }: { g: { mean: number; lower: number;
   );
 }
 
-/** Each nominee of a generation: screening gain (shared games), held-out paired gain (fresh games) and the outcome. */
-export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label }: { nominees: readonly NomineeRecord[]; minGames: number; futilityMaxGainPp?: number; label?: (text: string) => ReactNode }) {
+/**
+ * Each nominee of a generation: screening gain (shared games), held-out paired gain (fresh games) and the outcome.
+ * `splits`: the generation's held-out games by opponent (TuneProgress.splits), for the line under a nominee whose
+ * figures depend on the opponent.
+ */
+export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label, splits }: { nominees: readonly NomineeRecord[]; minGames: number; futilityMaxGainPp?: number; label?: (text: string) => ReactNode; splits?: NomineeSplits }) {
   if (!nominees.length) return null;
   return (
     <table className="small">
@@ -74,7 +80,7 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label 
         </tr>
       </thead>
       <tbody>
-        {nominees.map((n) => (
+        {nominees.map((n, i) => (
           <tr key={n.label}>
             <td>{label ? label(n.label) : n.label}</td>
             <td>
@@ -103,12 +109,24 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label 
                 <span className="muted">—</span>
               )}
               {n.settle && <SettleNote settle={n.settle} games={n.heldOut?.games ?? 0} />}
+              <DependsNote split={splits?.nominees[i] ?? null} names={splits?.names ?? {}} />
             </td>
             <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** The line under a nominee whose held-out figures differ by opponent by more than chance; nothing otherwise. */
+export function DependsNote({ split, names }: { split: NomineeSplits['nominees'][number]; names: Readonly<Record<string, string>> }) {
+  const w = split ? dependsOnOpponentWords(split, (fp) => names[fp] ?? fp) : null;
+  if (!w) return null;
+  return (
+    <div className="small muted" title="Its held-out games split by opponent: the figures differ by more than chance, so the pooled gain is an average over matchups that differ">
+      {`${w.charAt(0).toUpperCase()}${w.slice(1)}.`}
+    </div>
   );
 }
 

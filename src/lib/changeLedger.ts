@@ -22,6 +22,7 @@
 import { fingerprintText, listFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { judgePooled, settleGamesFromSums, type AdoptionRule, type PairedInterval, type PairedScores } from './evidence';
+import { pairedGroup, splitPaired, type GroupSummary } from './pairedSplit';
 
 export { POOL_RHO } from './evidence';
 
@@ -254,24 +255,18 @@ export const gameIds = (games: Iterable<Pick<LedgerGame, 'seed' | 'opp' | 'first
  * games this confirmation may play, and those that screened the change), as paired scores for confirmStaged.
  */
 export function priorOf(entry: LedgerEntry | undefined, leaveOut: ReadonlySet<string> = new Set()): PairedScores {
-  const base: number[] = [];
-  const cand: number[] = [];
-  for (const g of entry?.heldout ?? []) {
-    if (leaveOut.has(gameId(g))) continue;
-    base.push(g.base);
-    cand.push(g.cand);
-  }
-  return { base, cand };
+  const games = priorGamesOf(entry, leaveOut);
+  return { base: games.map((g) => g.base), cand: games.map((g) => g.cand) };
+}
+
+/** The games priorOf takes, in its order, with where each sat (the builders' per-opponent figures of a pooled nominee). */
+export function priorGamesOf(entry: LedgerEntry | undefined, leaveOut: ReadonlySet<string> = new Set()): LedgerGame[] {
+  return (entry?.heldout ?? []).filter((g) => !leaveOut.has(gameId(g)));
 }
 
 // ---------------------------------------------------------------- summaries and verdicts
 
-export interface GroupSummary {
-  games: number;
-  mean: number;
-  /** standard error of the mean (plain sample SD / √n; 0 below 2 games) */
-  se: number;
-}
+export type { GroupSummary };
 export interface PooledSummary extends GroupSummary {
   /** plain sample SD of the per-game difference */
   sd: number;
@@ -281,31 +276,13 @@ export interface PooledSummary extends GroupSummary {
   bySeat: (GroupSummary & { first: 0 | 1 })[];
 }
 
-function group(ds: readonly number[]): GroupSummary & { sd: number } {
-  const n = ds.length;
-  const mean = n ? ds.reduce((s, x) => s + x, 0) / n : 0;
-  const sd = n > 1 ? Math.sqrt(ds.reduce((s, x) => s + (x - mean) ** 2, 0) / (n - 1)) : 0;
-  return { games: n, mean, sd, se: n > 1 ? sd / Math.sqrt(n) : 0 };
-}
-
-/** The pooled paired summary of some games: count, mean gain, SD, SE, per opponent and per seat (plain, no guard). */
+/**
+ * The pooled paired summary of some games: count, mean gain, SD, SE, per opponent and per seat (plain, no guard). The
+ * split is splitPaired's (src/lib/pairedSplit.ts), the one definition the builders' nominees use too.
+ */
 export function summarize(games: readonly LedgerGame[]): PooledSummary {
-  const all = group(games.map((g) => g.cand - g.base));
-  const opps = new Map<string, number[]>();
-  const seats: [number[], number[]] = [[], []];
-  for (const g of games) {
-    const d = g.cand - g.base;
-    const o = opps.get(g.opp) ?? [];
-    o.push(d);
-    opps.set(g.opp, o);
-    seats[g.first].push(d);
-  }
-  const strip = ({ games: n, mean, se }: GroupSummary) => ({ games: n, mean, se });
-  return {
-    ...all,
-    byOpp: [...opps.entries()].map(([opp, ds]) => ({ opp, ...strip(group(ds)) })).sort((a, b) => b.games - a.games || (a.opp < b.opp ? -1 : 1)),
-    bySeat: ([0, 1] as const).map((first) => ({ first, ...strip(group(seats[first])) })),
-  };
+  const all = pairedGroup(games.map((g) => g.cand - g.base));
+  return { ...all, ...splitPaired(games.map((g) => g.cand), games.map((g) => g.base), games) };
 }
 
 export type LedgerVerdict = 'adopt' | 'reject' | 'undecided';

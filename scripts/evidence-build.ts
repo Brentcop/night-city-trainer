@@ -22,9 +22,9 @@ import { wilson } from '../src/analysis/decisions';
 import type { AdjustedDeck } from '../src/analysis/impactAdjusted';
 import { entryKey, fieldFingerprint, gamesToSettle, ledgerBot, ledgerVerdict, mergeBatches, summarize, type LedgerBatch, type LedgerEntry, type LedgerGame } from '../src/lib/changeLedger';
 import { changeStatus, pooledGain, pooledGames, SHORTLIST_DEFAULTS, swapOfKey, type ShortlistRule } from '../src/lib/shortlist';
-import { ADOPTION_DEFAULTS, ANY_GAIN_RULE, adoptionRule, describeRule, pairedInterval, type AdoptionProvenance, type AdoptionRule, type NomineeRecord } from '../src/lib/evidence';
+import { ADOPTION_DEFAULTS, ANY_GAIN_RULE, adoptionRule, describeRule, pairedInterval, type AdoptionProvenance, type AdoptionRule } from '../src/lib/evidence';
 import { detect, perGameSd } from '../src/lib/deckSearch';
-import { normalCdf } from '../src/lib/groupSequential';
+import { heterogeneity, type SplitNomineeRecord } from '../src/lib/pairedSplit';
 import { aggregateManifest, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
 import {
   bhPass,
@@ -92,7 +92,8 @@ export interface ForgeReport {
     baseline?: number;
     swaps: { swap: string; wr: number; delta: number; package?: string }[];
     verdict: string;
-    nominees?: NomineeRecord[];
+    /** reports from 2026-11-15 on: each with its held-out games by opponent (list fingerprint) and seat */
+    nominees?: SplitNomineeRecord[];
     confirm?: string;
   }[];
   summary?: { gen: number; wr: number; change: string }[];
@@ -163,18 +164,8 @@ export const EVENTS_FIELD = 'recorded-events';
 /** The field label of a matchup: the opponent is the subject, so a matchup has no other field (both kinds share a question). */
 export const PAIRING_FIELD = 'pairing';
 
-/** χ² heterogeneity of group means around their weighted mean, with a Wilson–Hilferty p-value (groups of 20+ games). */
-export function heterogeneity(groups: readonly { games: number; mean: number; se: number }[]): { chi2: number; df: number; p: number } | null {
-  const gs = groups.filter((g) => g.games >= 20 && g.se > 0);
-  if (gs.length < 2) return null;
-  const w = gs.map((g) => 1 / g.se ** 2);
-  const sw = w.reduce((a, b) => a + b, 0);
-  const m = gs.reduce((a, g, i) => a + w[i]! * g.mean, 0) / sw;
-  const chi2 = gs.reduce((a, g) => a + ((g.mean - m) / g.se) ** 2, 0);
-  const df = gs.length - 1;
-  const z = (Math.cbrt(chi2 / df) - (1 - 2 / (9 * df))) / Math.sqrt(2 / (9 * df));
-  return { chi2, df, p: 1 - normalCdf(z) };
-}
+/** χ² heterogeneity of group means (src/lib/pairedSplit.ts, where the builders' nominees take it from too). */
+export { heterogeneity };
 
 // ---------------------------------------------------------------- change keys and labels
 
@@ -1165,6 +1156,9 @@ function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file
         const flags: FlagCode[] = [];
         if (h.looks === 1) flags.push('first-look');
         if (nom.stopped === 'futility') flags.push('stopped-futility');
+        // a report that kept its held-out games by opponent and seat (older reports did not)
+        const het = nom.heterogeneity;
+        if (het && het.p < 0.05) flags.push('depends-on-opponent');
         const seq: SequentialKind = a.correction === 'obrien-fleming' ? 'obrien-fleming' : 'bonferroni';
         const subject: ChangeSubject = parsed ? { ...changeSubject(key, nom.label, listId, ctx), relation: gi > 0 ? 'other-list' : relationOf(listId, base, parsed, ctx.lists) } : { key, base, cuts: [], adds: [], label: nom.label, relation: 'other-list' };
         out.push({
@@ -1187,7 +1181,15 @@ function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file
           sources: [{ file, path: `gens[${gi}].nominees[${ni}].heldOut` }],
           family: { key: `${listId}:forge:${report.manifest.runId}:gen${g.gen}`, size: noms.length, correction: seq },
           flags,
-          detail: { screen: { games: nom.screen.games, mean: nom.screen.mean, lower: nom.screen.lower, upper: nom.screen.upper, flag: 'screening' }, verdict: nom.outcome, looks: h.looks, date: report.date },
+          detail: {
+            screen: { games: nom.screen.games, mean: nom.screen.mean, lower: nom.screen.lower, upper: nom.screen.upper, flag: 'screening' },
+            verdict: nom.outcome,
+            looks: h.looks,
+            ...(nom.byOpp ? { byOpp: nom.byOpp.map((o) => ({ opp: o.opp, games: o.games, mean: o.mean, se: o.se })) } : {}),
+            ...(nom.bySeat ? { bySeat: nom.bySeat.map((o) => ({ first: o.first, games: o.games, mean: o.mean, se: o.se })) } : {}),
+            ...(het ? { heterogeneity: { chi2: het.chi2, df: het.df, p: het.p } } : {}),
+            date: report.date,
+          },
         });
       });
     });
@@ -1403,17 +1405,23 @@ function topList(key: TopList['key'], pool: { f: Finding; listId: string; deck: 
   // every current measurement of a question in the pool: the effects list names a question once and counts the rest
   const measured = new Map<string, number>();
   for (const x of pool) measured.set(x.f.question, (measured.get(x.f.question) ?? 0) + 1);
-  const named = new Set<string>();
-  const items: FindingRef[] = pool
+  type Entry = { x: (typeof pool)[number]; pass: boolean };
+  const order = (a: Entry, b: Entry) => STRENGTH_RANK[a.x.f.strength] - STRENGTH_RANK[b.x.f.strength] || zOf(b.x.f) - zOf(a.x.f) || byStr(a.x.f.id, b.x.f.id);
+  let listed: Entry[] = pool
     .map((x, i) => ({ x, pass: pass[i]! }))
     .filter(({ x, pass }) => (key === 'effects' ? x.f.strength === 'strong' || x.f.strength === 'moderate' : pass))
-    .sort((a, b) => STRENGTH_RANK[a.x.f.strength] - STRENGTH_RANK[b.x.f.strength] || zOf(b.x.f) - zOf(a.x.f) || byStr(a.x.f.id, b.x.f.id))
-    .filter(({ x }) => {
-      if (key !== 'effects') return true;
-      if (named.has(x.f.question)) return false;
-      named.add(x.f.question);
-      return true;
-    })
+    .sort(order);
+  if (key === 'effects') {
+    // one row per question: its Hard measurement when that is strong or moderate (the recorded events are played by
+    // Hard), else its best-supported one
+    const byQuestion = new Map<string, Entry>();
+    for (const e of listed) {
+      const cur = byQuestion.get(e.x.f.question);
+      if (!cur || (e.x.f.bot === 'hard' && cur.x.f.bot !== 'hard')) byQuestion.set(e.x.f.question, e);
+    }
+    listed = [...byQuestion.values()].sort(order);
+  }
+  const items: FindingRef[] = listed
     .filter(({ x }, i, xs) => key === 'effects' || xs.slice(0, i).filter((y) => y.x.f.kind === x.f.kind).length < PER_KIND)
     .filter(({ x }, i, xs) => key === 'effects' || xs.slice(0, i).filter((y) => y.x.listId === x.listId).length < PER_DECK)
     .slice(0, TOP_N)
@@ -1578,9 +1586,27 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
   }
 
   const all = finalize([...drafts.values()].flat(), current);
-  // "Medium only" until the same question has a Hard measurement
-  const hardQuestions = new Set(all.filter((f) => f.kind === 'change' && f.bot === 'hard').map((f) => f.question));
-  for (const f of all) if (f.kind === 'change' && f.bot === 'medium' && !hardQuestions.has(f.question)) f.flags = [...f.flags, 'medium-only' as const].sort((a, b) => FLAG_CODES.indexOf(a) - FLAG_CODES.indexOf(b));
+  // What Hard says about a change measured with Medium: "Medium only" until the same question has a Hard measurement
+  // under the current simulator version, then what that measurement (the one with the most games) shows on its own:
+  // it finds no difference of a point or more, or does not settle it yet, or its range excludes no difference: then it
+  // confirms the Medium finding's direction or reads the other way, or, where the Medium finding has no direction of its
+  // own (its plain range includes no difference), it decides the question
+  const hardOf = new Map<string, Finding>();
+  for (const f of all) {
+    if (f.kind !== 'change' || f.bot !== 'hard' || isStale(f.simVersion, current)) continue;
+    const cur = hardOf.get(f.question);
+    if (!cur || f.games > cur.games) hardOf.set(f.question, f);
+  }
+  const hardFlag = (f: Finding): FlagCode => {
+    const h = hardOf.get(f.question);
+    if (!h) return 'medium-only';
+    if (h.strength === 'no-difference') return 'hard-no-difference';
+    if (h.strength !== 'strong' && h.strength !== 'moderate') return 'hard-unsettled';
+    const [lo, hi] = plain95(f);
+    if (!(lo > f.baseline || hi < f.baseline)) return 'hard-decides';
+    return Math.sign(h.estimate - h.baseline) === Math.sign(f.estimate - f.baseline) ? 'hard-confirms' : 'hard-opposite';
+  };
+  for (const f of all) if (f.kind === 'change' && f.bot === 'medium') f.flags = [...f.flags, hardFlag(f)].sort((a, b) => FLAG_CODES.indexOf(a) - FLAG_CODES.indexOf(b));
 
   // a repeated id or two ids with one short id stop the build (the cite line and the links need both unique)
   const problems = idProblems(all);
