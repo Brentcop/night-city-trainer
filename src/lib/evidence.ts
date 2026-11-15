@@ -756,11 +756,33 @@ export function pooledNoteWords(c: Pick<Confirmation, 'heldOut' | 'looks' | 'pri
  * One line for reports: what the rule is, with its numbers. `ledger`: the change ledger is on, so the line also says how
  * a nominee with earlier held-out games is judged (without it the line is exactly the one before the ledger existed).
  */
-export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number; ledger?: boolean; untilSettled?: { reach: number } } = {}): string {
-  if (rule.kind === 'any-gain') return `any-gain (legacy): one confirmation${o.firstStage ? ` of ${o.firstStage} fresh games` : ''}; a change is adopted when it scores higher at all${o.ledger ? '; the change ledger records the games but never pools them under this rule' : ''}`;
+export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number; ledger?: boolean; untilSettled?: { reach: number }; confirmedWith?: ConfirmedWith } = {}): string {
+  const bots = o.confirmedWith ? confirmClause(o.confirmedWith) : '';
+  if (rule.kind === 'any-gain') return `any-gain (legacy): one confirmation${o.firstStage ? ` of ${o.firstStage} fresh games` : ''}; a change is adopted when it scores higher at all${o.ledger ? '; the change ledger records the games but never pools them under this rule' : ''}${bots}`;
   const base = describeStagedRule(rule, o);
   const pooled = o.ledger ? `${base}${poolingClause(rule, o.nominees ?? 1)}` : base;
-  return o.untilSettled ? `${pooled}${settleClause(rule, o.nominees ?? 1, o.untilSettled.reach)}` : pooled;
+  return `${o.untilSettled ? `${pooled}${settleClause(rule, o.nominees ?? 1, o.untilSettled.reach)}` : pooled}${bots}`;
+}
+
+/**
+ * The confirmation played by another bot than the screening (the forge's --confirm-bot, the Deck Lab's "Confirm with the
+ * Hard bot"): each generation's baseline and screening with `screen`, its confirmation stages with `confirm`. Absent when
+ * both are the same bot, and then nothing says so.
+ */
+export interface ConfirmedWith {
+  screen: string;
+  confirm: string;
+}
+
+/** A bot as the reports name it: "Medium" (lookahead and best build Medium's agent, fast Easy's). */
+export function botWord(bot: string): string {
+  const words: Readonly<Record<string, string>> = { easy: 'Easy', fast: 'Easy', medium: 'Medium', lookahead: 'Medium', best: 'Medium', hard: 'Hard', 'hard-v1': 'Hard (v1)', deep: 'Deep', mixed: 'Mixed', plain: 'Plain', random: 'Random' };
+  return words[bot] ?? bot;
+}
+
+/** "; screened with the Medium bot, confirmed with the Hard bot" */
+function confirmClause(c: ConfirmedWith): string {
+  return `; screened with the ${botWord(c.screen)} bot, confirmed with the ${botWord(c.confirm)} bot`;
 }
 
 /** "; until settled: …" (the option in words, with the pooled boundary it is judged by). */
@@ -832,6 +854,11 @@ export interface AdoptionProvenance {
    * boundary, while within `reach` held-out games in all; never under any-gain
    */
   untilSettled?: { reach: number };
+  /**
+   * the confirmation stages were played by this bot, not the run's own (the forge's --confirm-bot, the Deck Lab's "Confirm
+   * with the Hard bot"); absent = the screening bot confirmed (the bot the manifest names)
+   */
+  confirmBot?: string;
 }
 
 export function adoptionProvenance(
@@ -839,10 +866,12 @@ export function adoptionProvenance(
   o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number },
   ledger = false,
   untilSettled?: { reach: number },
+  confirmBot?: string,
 ): AdoptionProvenance {
   const p = plainProvenance(rule, o);
   const l = ledger && rule.kind === 'evidence' ? { ...p, ledger: { boundary: 'normal-mixture' as const, rho: POOL_RHO } } : p;
-  return untilSettled && rule.kind === 'evidence' ? { ...l, untilSettled: { reach: untilSettled.reach } } : l;
+  const u = untilSettled && rule.kind === 'evidence' ? { ...l, untilSettled: { reach: untilSettled.reach } } : l;
+  return confirmBot ? { ...u, confirmBot } : u;
 }
 
 function plainProvenance(rule: AdoptionRule, o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number }): AdoptionProvenance {

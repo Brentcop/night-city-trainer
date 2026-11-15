@@ -241,6 +241,68 @@ describe('building from fixtures', () => {
     const { detail: _a, flags: _b, ...rest } = withSplit;
     const { detail: _c, flags: _d, ...restOlder } = older;
     expect(rest).toEqual(restOlder);
+
+    // a report confirmed with another bot (--confirm-bot): the finding is the confirming bot's, the run says both
+    const hardReport = { ...report(false), adoption: { ...report(false).adoption!, confirmBot: 'hard' } } as ForgeReport;
+    const hardBuilt = buildEvidence({ ...inputs(), forge: [{ file: 'reports/forge/deck-a.json', report: hardReport }] });
+    const hardF = deckOf(hardBuilt, 'Deck A').findings.find((x) => x.method === 'paired-staged')!;
+    expect(hardF.bot).toBe('hard');
+    expect(hardF.flags).not.toContain('medium-only');
+    expect(older.bot).toBe('medium');
+    expect(hardF.question).toBe(older.question);
+    const run = hardBuilt.runs.find((r) => r.listId === listFingerprint(A))!.runs.find((r) => r.id === 'forge r9')!;
+    expect([run.bot, run.confirmBot]).toEqual(['medium', 'hard']);
+    const plainRun = buildEvidence({ ...inputs(), forge: [{ file: 'reports/forge/deck-a.json', report: report(false) }] }).runs.find((r) => r.listId === listFingerprint(A))!.runs[0]!;
+    expect(plainRun).not.toHaveProperty('confirmBot');
+  });
+
+  it('a ledger run whose held-out games another bot played says both bots', () => {
+    const hardHeld: LedgerBatch = { ...batch(KEY1, 'heldout', 'forge r1', ledgerGames(224, 7, 0.04, 60_000)), entry: { change: KEY1, simVersion: 9, bot: 'hard', field: FIELD } };
+    // the run also screened a second change, which no bot confirmed
+    const led = [LEDGER[0]!, hardHeld, batch(KEY2, 'screen', 'forge r1', ledgerGames(112, 4, 0.08, 30_000))];
+    const built = buildEvidence(inputs({ ledger: led }));
+    const run = built.runs.find((r) => r.listId === listFingerprint(A))!.runs.find((r) => r.id === 'forge r1')!;
+    expect([run.bot, run.confirmBot]).toEqual(['medium', 'hard']);
+    const d = deckOf(built, 'Deck A');
+    const f = d.findings.find((x) => x.subject.change?.key === KEY1 && x.method === 'paired-pooled')!;
+    expect(f.bot).toBe('hard');
+    expect(buildEvidence(inputs({ ledger: LEDGER })).runs[0]!.runs.every((r) => !('confirmBot' in r))).toBe(true);
+
+    // Games of two bots never pool. The one finding is Hard's 224 held-out games; its screening figure is the other
+    // bot's 112 games, named by that bot.
+    expect(d.findings.filter((x) => x.subject.change?.key === KEY1)).toHaveLength(1);
+    expect(f.games).toBe(224);
+    const scr = pairedInterval(LEDGER[0]!.games.map((g) => g.cand), LEDGER[0]!.games.map((g) => g.base), 1.959964);
+    expect(f.detail?.screen).toMatchObject({ games: 112, bot: 'medium', flag: 'screening' });
+    expect(r6(f.detail!.screen!.mean)).toBe(r6(scr.mean));
+    // The change is one open question at most, Hard's, never the screening bot's "only screened" one: it says who
+    // screened, and its figure is the held-out games alone.
+    const opens = d.open.filter((o) => o.change.key === KEY1);
+    expect(opens.every((o) => o.bot === 'hard')).toBe(true);
+    if (f.detail?.verdict === 'undecided') {
+      expect(opens).toHaveLength(1);
+      expect(opens[0]).toMatchObject({ finding: f.id, heldout: 224, screen: 112, screenBot: 'medium' });
+      expect(opens[0]!.pooled.games).toBe(224);
+      expect(r6(opens[0]!.pooled.mean)).toBe(r6(f.estimate));
+    } else expect(opens).toHaveLength(0);
+    // the run's trial gives each bot's figure and no "all its games" figure; a change only one bot played keeps its own
+    expect(run.trials).toHaveLength(2);
+    const t1 = run.trials.find((t) => t.key === KEY1)!;
+    expect(t1.screen?.games).toBe(112);
+    expect(t1.heldOut?.games).toBe(224);
+    expect(t1).not.toHaveProperty('pooled');
+    expect(run.trials.find((t) => t.key === KEY2)).toMatchObject({ heldOut: null, outcome: 'screened', pooled: { games: 112 } });
+
+    // one bot throughout: nothing names a screening bot, and the trial keeps its figure over all its games
+    const one = buildEvidence(inputs({ ledger: LEDGER }));
+    const f1 = deckOf(one, 'Deck A').findings.find((x) => x.subject.change?.key === KEY1)!;
+    expect(f1.detail?.screen).not.toHaveProperty('bot');
+    expect(deckOf(one, 'Deck A').open.every((o) => !('screenBot' in o))).toBe(true);
+    expect(one.runs[0]!.runs[0]!.trials[0]!.pooled?.games).toBe(112 + 896 + 896);
+
+    // a screening-only entry with no held-out games anywhere is still an open question of its own bot
+    const only = deckOf(buildEvidence(inputs({ ledger: [LEDGER[0]!] })), 'Deck A').open.filter((o) => o.change.key === KEY1);
+    expect(only.map((o) => [o.bot, o.heldout, o.screen, 'screenBot' in o])).toEqual([['medium', 0, 112, false]]);
   });
 
   it('an undecided, live change is an open question with the games it would need', () => {

@@ -195,7 +195,7 @@ export interface FindingDetail {
   assembled?: number;
   online?: number;
   /** change: the screening games' figure (plain 95%), always optimistic: shown greyed, never as the result */
-  screen?: { games: number; mean: number; lower: number; upper: number; flag: 'screening' };
+  screen?: { games: number; mean: number; lower: number; upper: number; flag: 'screening'; /** the bot that screened, when it is not the bot of the finding */ bot?: string };
   /** change: the verdict the tool's rule gives, the runs that tested it, and its status in the shortlist */
   verdict?: 'adopt' | 'reject' | 'undecided' | 'inconclusive';
   runs?: number;
@@ -433,6 +433,8 @@ export interface OpenQuestion {
   /** held-out and screening games in the ledger */
   heldout: number;
   screen: number;
+  /** the bot that played the screening games, when it is not `bot` (then `pooled` is the held-out games alone: games of two bots never pool) */
+  screenBot?: string;
   /** pooled gain over screening and held-out games (each game once), and its standard error */
   pooled: { games: number; mean: number; se: number };
   /** held-out games in all that would settle it at its present mean and spread (null: its held-out mean is not above the bar, or it has none) */
@@ -463,7 +465,10 @@ export interface RunRecord {
   id: string;
   tool: string;
   date: string;
+  /** the bot that screened (and confirmed, unless `confirmBot` says otherwise) */
   bot: string;
+  /** another bot played the confirmation stages (the forge's --confirm-bot); absent when `bot` did */
+  confirmBot?: string;
   simVersion: number;
   /** the adoption rule in words (describeRule), null when the run recorded none */
   rule: string | null;

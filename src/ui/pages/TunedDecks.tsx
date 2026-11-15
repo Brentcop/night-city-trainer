@@ -39,7 +39,7 @@ import { MentionText } from '../components/CardMention';
 import { PageHead } from '../components/PageHead';
 import { RecordedAt } from '../components/RecordedAt';
 import { RunDetails } from '../components/RunDetails';
-import { settleWords } from '../../lib/evidence';
+import { botWord, settleWords } from '../../lib/evidence';
 import { PairedGain } from '../components/LabEvidence';
 import { Signed, Wr } from '../components/Num';
 import { profileHref } from '../components/DeckStats';
@@ -153,7 +153,8 @@ export function TunedDeckCard({ e, lib, onDelete, onOpen }: { e: TunedEntry; lib
       {r.changes.length > 0 && <ul className="tuned-changes">{r.changes.map((c) => <ChangeRow key={`${c.gen}:${c.label}`} c={c} onOpen={onOpen} />)}</ul>}
       <RunDetails m={d.manifest}>
         <div>
-          Field: {fieldWords(r.field.mode)} ({r.field.deckIds.length} deck{r.field.deckIds.length === 1 ? '' : 's'}) · bot {r.bot} · partner-aware cuts {r.partnerAware ? 'on' : 'off'}
+          Field: {fieldWords(r.field.mode)} ({r.field.deckIds.length} deck{r.field.deckIds.length === 1 ? '' : 's'}) · bot {r.bot}
+          {r.confirmBot ? ` (confirmed, and compared with the original, by the ${botWord(r.confirmBot)} bot)` : ''} · partner-aware cuts {r.partnerAware ? 'on' : 'off'}
           {r.packages ? ' · package plan saved with the run' : ''}
         </div>
         <div>Rule: {ruleLine(r)}</div>

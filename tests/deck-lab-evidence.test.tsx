@@ -11,7 +11,8 @@ import { partialTune, tuneDeck, tunePlan, vsOriginalGames, type TuneLog, type Tu
 import type { GameJob, PlayGame } from '../src/lib/tournament';
 import { ADOPTION_DEFAULTS, type NomineeRecord } from '../src/lib/evidence';
 import { LAB_GAME_BUDGET } from '../src/lib/deckSearch';
-import { DepthControls, NomineeTable, OutcomeChip } from '../src/ui/components/LabEvidence';
+import { CONFIRM_HARD_SENTENCE, ConfirmHardCheckbox, confirmHardOffered, DepthControls, NomineeTable, OutcomeChip } from '../src/ui/components/LabEvidence';
+import { HeldOutCheckbox, NO_SHORTLIST_LINE, SHORTLIST_LINE } from '../src/ui/components/LabHeldOut';
 import { DeckLabPage, evidenceNote, GenerationSummary } from '../src/ui/pages/DeckLab';
 import { BUILTIN } from '../src/lib/browserLibrary';
 import { setArtEnabled } from '../src/ui/art';
@@ -239,6 +240,37 @@ describe('Deck Lab result view', () => {
     expect(html).not.toContain('budget');
     expect(html).toMatch(/<select disabled="">/); // packages per change needs package moves on
     expect(renderToStaticMarkup(<DepthControls {...props} estimate={{ min: 1000, max: 20_000 }} />)).toContain('over the lab&#x27;s budget of 12,000 games');
+  });
+
+  it('"Confirm with the Hard bot" is offered for a Medium run, off by default, and says what it does and costs', () => {
+    const lib = BUILTIN.find((d) => d.kind === 'meta')!;
+    const html = renderToStaticMarkup(<DeckLabPage q={new URLSearchParams(`d=${lib.file}`)} />);
+    expect(html).toContain('<input type="checkbox"/><span><b>Confirm with the Hard bot</b> (off by default): ');
+    expect(confirmHardOffered('medium')).toBe(true);
+    expect(confirmHardOffered('hard')).toBe(false);
+    expect(CONFIRM_HARD_SENTENCE).toBe(
+      'the changes the Medium bot picks are confirmed, and the tuned list compared with your original, on games the Hard bot plays. Hard is the bot the recorded events are played by, and a gain measured with Medium showed at about 0.75 of its size with Hard. A Hard game takes about 20 times as long as a Medium one.',
+    );
+    expect(renderToStaticMarkup(<ConfirmHardCheckbox checked onChange={() => undefined} />)).toContain('checked=""');
+    // off by default: the estimate says nothing about bots; on, it counts the Hard games
+    expect(html).not.toContain('played with the Hard bot');
+    const p = tunePlan({ games: 112, gens: 2, cands: 5, packageCands: 3, vsOriginal: vsOriginalGames(112), bot: 'medium', confirmBot: 'hard' });
+    const props = { cards: 1, onCards: () => undefined, packages: 1, onPackages: () => undefined, packagesOn: false, estimate: p.estimate, budget: LAB_GAME_BUDGET, rule: p.rule, firstStage: p.firstStage };
+    expect(renderToStaticMarkup(<DepthControls {...props} confirm={p.confirm} />)).toContain(
+      `Up to ${p.confirm!.games.toLocaleString('en-US')} of them are the confirmations and the comparison with your original, played with the Hard bot. A Hard game took about 20 times as long as a Medium one when measured.`,
+    );
+    expect(renderToStaticMarkup(<DepthControls {...props} />)).not.toContain('Hard bot');
+    // the further "until settled" games are the confirming bot's too, and the line says so
+    const ps = tunePlan({ games: 112, gens: 2, cands: 5, packageCands: 3, vsOriginal: vsOriginalGames(112), untilSettled: {}, bot: 'medium', confirmBot: 'hard' });
+    const extra = ps.settle!.extra.toLocaleString('en-US');
+    expect(renderToStaticMarkup(<DepthControls {...props} estimate={ps.estimate} settle={ps.settle} confirm={ps.confirm} />)).toContain(`may add up to ${extra} games, also played with the Hard bot (only for a change still undecided`);
+    expect(renderToStaticMarkup(<DepthControls {...props} estimate={ps.estimate} settle={ps.settle} />)).toContain(`may add up to ${extra} games (only for a change still undecided`);
+    // where the earlier games are described: no testing again first with the Hard bot confirming
+    const box = (confirmBot?: string) => renderToStaticMarkup(<HeldOutCheckbox checked onChange={() => undefined} state="ready" holding={null} noList {...(confirmBot ? { confirmBot } : {})} />);
+    expect(box()).toContain(SHORTLIST_LINE);
+    expect(box('hard')).toContain(NO_SHORTLIST_LINE);
+    expect(box('hard')).not.toContain(SHORTLIST_LINE);
+    for (const t of [NO_SHORTLIST_LINE, CONFIRM_HARD_SENTENCE]) expect(t).not.toMatch(/ledger|shortlist/i);
   });
 
   it('the Tune tab shows the depth control with the default estimate', () => {

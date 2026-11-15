@@ -69,6 +69,16 @@
 // (and, with --until-settled, within the reach), from the per-game SD of this list's changes in the ledger (with --ledger,
 // when it holds 3 or more with 200+ held-out games), else the tuning study's 0.30 (one-card swap) and 0.55 (package move).
 //
+// Confirming with another bot (opt-in; docs/SYNERGIES.md "Confirming with another bot"; without it nothing changes):
+//   --confirm-bot BOT   each generation's baseline, screening and telemetry stay with --bot; the confirmation stages (the
+//                       current list and the nominees, paired) and "until settled"'s are played by BOT. Seeds, layout,
+//                       rule and stage sizes are unchanged. With --ledger the held-out games go to BOT's entry and earlier
+//                       held-out games are pooled from it (a game that screened a change, with either bot, is never
+//                       held-out evidence for it). Not with --pooled-ranking (the shortlist pools screening and held-out
+//                       games, and two bots' games never pool). The rule line, reports, manifest and the deck file's
+//                       "// Adoption:" line say which bot confirmed; the detectability line uses BOT's per-game spread
+//                       (Hard: 0.34 for a one-card swap and 0.60 for a package move, measured 2026-11-15). Default --bot.
+//
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
 //   2. Cuts: the deck's lowest-IWD cards. Adds: +1 of its best card, and the format's highest-impact legal cards
@@ -99,12 +109,12 @@ import { cliGameCache } from './game-cache';
 import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import { byPooledGain, describeShortlist, outOfReach, pooledFigure, pooledWords, shortlistGeneration, skippedWords, type PooledFigure, type ShortlistNote } from '../src/lib/shortlist';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
 import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, settleStages, settleWords, stoppedWords, type AdoptionProvenance, type Confirmation, type PairedInterval, type PairedScores, type SettleRecord } from '../src/lib/evidence';
-import { gameIds } from '../src/lib/changeLedger';
+import { gameIds, ledgerBot } from '../src/lib/changeLedger';
 import { dependsOnOpponentWords, HeldOutTracker, withSplit, type SplitNomineeRecord } from '../src/lib/pairedSplit';
 import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
 import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
@@ -130,6 +140,7 @@ const { values: V, positionals } = cli(
     ...ledgerFlags(),
     ...shortlistFlags(),
     ...settleFlags(),
+    ...confirmBotFlag(),
   },
   { maxPositionals: Infinity },
 );
@@ -162,6 +173,10 @@ const lib = loadLibrary();
 const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
 /** --ledger: where the change ledger is kept and the bot's canonical name (null when off) */
 const LEDGER = ledgerFromFlags(V, { bot: BOT, out: OUT });
+/** --confirm-bot: the screening and confirming bots when another bot confirms (null when --bot confirms, as before) */
+const CONFIRM = confirmBotFromFlags(V, { bot: BOT });
+/** the bot the confirmation stages are played with */
+const CONFIRM_BOT = CONFIRM?.confirm ?? BOT;
 /** --pooled-ranking: the shortlist's settings (null when off) */
 const SHORT = shortlistFromFlags(V, { ledger: !!LEDGER, rule: RULE });
 /** --until-settled: its reach (null when off) */
@@ -234,8 +249,8 @@ const SETTLE_EXTRA = SETTLE ? settleExtra({ gens: GENS, firstStage: FIRST_STAGE,
 /** games played so far in this process (each forged deck's manifest counts its own) */
 let gamesPlayed = 0;
 
-const jobsFor = (deck: DeckList, seed0: number, games: number, trace: boolean): MatchJob[] =>
-  Array.from({ length: games }, (_, k) => ({ a: deck, b: field[k % field.length].deck, seed: seed0 + k, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot: BOT, trace }));
+const jobsFor = (deck: DeckList, seed0: number, games: number, trace: boolean, bot: string = BOT): MatchJob[] =>
+  Array.from({ length: games }, (_, k) => ({ a: deck, b: field[k % field.length].deck, seed: seed0 + k, first: (Math.floor(k / field.length) % 2) as 0 | 1, bot, trace }));
 
 /** The baseline with telemetry: win rate, summaries and per-game scores. */
 async function play(deck: DeckList, seed0: number, games: number, trace: boolean) {
@@ -246,9 +261,9 @@ async function play(deck: DeckList, seed0: number, games: number, trace: boolean
   return { wr: scores.reduce((a, b) => a + b, 0) / scores.length, sums, scores };
 }
 
-/** Several lists on the same games (one worker pool): per-game scores for each, in game order. */
-async function playMany(decks: DeckList[], seed0: number, games: number): Promise<number[][]> {
-  const res = await runJobs(decks.flatMap((d) => jobsFor(d, seed0, games, false)), { threads: THREADS, cache });
+/** Several lists on the same games (one worker pool): per-game scores for each, in game order. `bot`: the confirmation's. */
+async function playMany(decks: DeckList[], seed0: number, games: number, bot: string = BOT): Promise<number[][]> {
+  const res = await runJobs(decks.flatMap((d) => jobsFor(d, seed0, games, false, bot)), { threads: THREADS, cache });
   gamesPlayed += res.length;
   return decks.map((_, i) => res.slice(i * games, (i + 1) * games).map((r) => scoreOf(r.winner)));
 }
@@ -276,14 +291,18 @@ async function forge(target: (typeof lib)[number]) {
   let deck: DeckList = structuredClone(target.deck);
   const plan = planFor(target);
   const slug = target.file.replace(/\.txt$/, '');
-  const ruleLine = describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...(SETTLE ? { untilSettled: SETTLE } : {}) });
-  /** the change ledger for this deck's run (--ledger) */
+  const ruleLine = describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(CONFIRM ? { confirmedWith: CONFIRM } : {}) });
+  /** the change ledger for this deck's run (--ledger): its screening games */
   const ledger = LEDGER && LEDGER_STORE ? new RunLedger({ dir: LEDGER.dir, simVersion: SIM_VERSION, bot: LEDGER.bot, opponents: OPPONENTS, run: RUN_ID, date: new Date().toISOString().slice(0, 10), store: LEDGER_STORE }) : null;
-  // what this run can detect, from this list's changes in the ledger when it holds enough, else the study's SDs
-  const detectLine = detectWords(detect({ rule: RULE, firstStage: FIRST_STAGE, nominees: DEPTH.nominees, sd: perGameSd(ledger ? heldoutSdSamples(ledger.entries(deck)) : undefined), ...(SETTLE ? { untilSettled: SETTLE } : {}) }));
+  /** its held-out games: the confirming bot's entry (the same store, run and totals) when another bot confirms */
+  const heldLedger = ledger && CONFIRM ? new RunLedger({ ...ledger.o, bot: ledgerBot(CONFIRM.confirm).bot!, store: ledger.store, totals: ledger.totals }) : ledger;
+  // what this run can detect, from this list's changes in the ledger (the confirming bot's) when it holds enough, else the defaults
+  const detectLine = detectWords(
+    detect({ rule: RULE, firstStage: FIRST_STAGE, nominees: DEPTH.nominees, sd: perGameSd(heldLedger ? heldoutSdSamples(heldLedger.entries(deck)) : undefined, CONFIRM?.confirm), ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(CONFIRM ? { confirmedWith: CONFIRM } : {}) }),
+  );
   console.log(`[${deck.name}] ${detectLine}`);
   const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, '', `Adoption rule: ${ruleLine}.`, detectLine, ''];
-  if (ledger) log.push(`Change ledger: ${LEDGER!.dir} (bot ${LEDGER!.bot}, simulator version ${SIM_VERSION}, field ${ledger.field}).`, '');
+  if (ledger) log.push(`Change ledger: ${LEDGER!.dir} (bot ${LEDGER!.bot}${CONFIRM ? `, held-out games under bot ${heldLedger!.o.bot}` : ''}, simulator version ${SIM_VERSION}, field ${ledger.field}).`, '');
   if (SHORT) log.push(`Shortlist: ${describeShortlist(SHORT, NOMINATE_BAR)}.`, '');
   if (DEPTH.cardsPerChange > 1 || DEPTH.packagesPerChange > 1 || DEPTH.nominees > 1)
     log.push(`Search depth: up to ${DEPTH.cardsPerChange} card swap(s) and ${DEPTH.packagesPerChange} package move(s) per candidate (combined from the best ${DEPTH.combineFrom} screened), ${DEPTH.nominees} nominee(s) confirmed per generation.`, '');
@@ -296,7 +315,7 @@ async function forge(target: (typeof lib)[number]) {
   const p1 = (x: number) => +(x * 100).toFixed(1);
   const startedAt = new Date().toISOString();
   const playedBefore = gamesPlayed;
-  const adoption: AdoptionProvenance = adoptionProvenance(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, !!LEDGER, SETTLE ?? undefined);
+  const adoption: AdoptionProvenance = adoptionProvenance(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, !!LEDGER, SETTLE ?? undefined, CONFIRM?.confirm);
   const json: {
     deck: string;
     file: string;
@@ -328,8 +347,8 @@ async function forge(target: (typeof lib)[number]) {
     summary: { gen: number; wr: number; change: string }[];
     /** with package flags only: the plan, and the built-around packages kept, added and removed from start to end */
     packages?: { plan: PackagePlan; moves: boolean; changes: PackageChanges; adopted: string[] };
-    /** with --ledger only: where it is kept and what this run appended (games) */
-    ledger?: { dir: string; bot: string; field: string; screen: { written: number; duplicates: number; conflicts: number }; heldout: { written: number; duplicates: number; conflicts: number } };
+    /** with --ledger only: where it is kept and what this run appended (games); `heldoutBot` when another bot confirmed */
+    ledger?: { dir: string; bot: string; heldoutBot?: string; field: string; screen: { written: number; duplicates: number; conflicts: number }; heldout: { written: number; duplicates: number; conflicts: number } };
     /** with --pooled-ranking only: the shortlist's settings */
     shortlist?: { carry: number; dropSe: number; reach: number; nominateBarPp: number };
     /** with --until-settled only: its reach, the most further stages a generation may play, and what it may add at most */
@@ -474,7 +493,7 @@ async function forge(target: (typeof lib)[number]) {
     const barOf = (m: Mutation) => (isPackageChange(m) ? RULE.packageMinGainPp : RULE.minGainPp);
     /** --ledger: the games the prior leaves out (every game the confirmation may play, and the screening games) */
     const leaveOut = ledger ? gameIds([...confirmSlots(seed1, further), ...blockSlots(seed0, GAMES, OPPONENTS)]) : new Set<string>();
-    const priorFor = (m: Mutation): PairedScores | undefined => (ledger && RULE.kind === 'evidence' ? ledger.prior(deck, m.deck, leaveOut) : undefined);
+    const priorFor = (m: Mutation): PairedScores | undefined => (heldLedger && RULE.kind === 'evidence' ? heldLedger.prior(deck, m.deck, leaveOut) : undefined);
     // --pooled-ranking: nominees by pooled gain (a change with no earlier games keeps its own screening figure)
     const gainOf = (r: Screened) => figs.get(r)?.gain ?? r.wr - base.wr;
     const above2 = (SHORT ? byPooledGain(results, (r) => figs.get(r)!) : results).filter((r) => gainOf(r) >= NOMINATE_BAR);
@@ -513,16 +532,16 @@ async function forge(target: (typeof lib)[number]) {
     // confirm on fresh seeds (never used by this generation's screening), paired, in stages
     const priors = ledger ? nominated.map((r) => priorFor(r.m)) : undefined;
     /** each nominee's held-out games with where they sat (the prior's games first, as confirmStaged takes them) */
-    const held = new HeldOutTracker(nominated.length, ledger && RULE.kind === 'evidence' ? nominated.map((r) => ledger.priorGames(deck, r.m.deck, leaveOut)) : undefined);
+    const held = new HeldOutTracker(nominated.length, heldLedger && RULE.kind === 'evidence' ? nominated.map((r) => heldLedger.priorGames(deck, r.m.deck, leaveOut)) : undefined);
     const conf = await confirmStaged(
       RULE,
       nominated.map((r) => ({ minGainPp: barOf(r.m) })),
       FIRST_STAGE,
       async ({ offset, games, active }) => {
-        const [b, ...ns] = await playMany([deck, ...active.map((i) => nominated[i]!.m.deck)], seed1 + offset, games);
+        const [b, ...ns] = await playMany([deck, ...active.map((i) => nominated[i]!.m.deck)], seed1 + offset, games, CONFIRM_BOT);
         const slots = blockSlots(seed1 + offset, games, OPPONENTS);
         held.stage(active, slots, b!, ns);
-        if (ledger) active.forEach((i, k) => ledger.record('heldout', deck, nominated[i]!.m.deck, nominated[i]!.m.label, scored(slots, b!, ns[k]!)));
+        if (heldLedger) active.forEach((i, k) => heldLedger.record('heldout', deck, nominated[i]!.m.deck, nominated[i]!.m.label, scored(slots, b!, ns[k]!)));
         return { base: b!, nominees: ns };
       },
       undefined,
@@ -606,7 +625,7 @@ async function forge(target: (typeof lib)[number]) {
     const line = ledger.summary();
     log.push('', `Change ledger: ${line}.`);
     console.log(`  ledger: ${line}`);
-    json.ledger = { dir: LEDGER.dir, bot: LEDGER.bot, field: ledger.field, screen: { ...ledger.totals.screen }, heldout: { ...ledger.totals.heldout } };
+    json.ledger = { dir: LEDGER.dir, bot: LEDGER.bot, ...(CONFIRM && heldLedger ? { heldoutBot: heldLedger.o.bot } : {}), field: ledger.field, screen: { ...ledger.totals.screen }, heldout: { ...ledger.totals.heldout } };
   }
   log.push(
     '',
@@ -647,12 +666,13 @@ async function forge(target: (typeof lib)[number]) {
 async function main() {
   console.log(`Forging ${targets.length} deck(s) × ${GENS} generations vs ${field.length} field decks`);
   const settled = SETTLE ? { untilSettled: SETTLE } : {};
-  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled })}`);
-  checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force, SETTLE_EXTRA);
+  const bots = CONFIRM ? { confirmedWith: CONFIRM } : {};
+  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled, ...bots })}`);
+  checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force, SETTLE_EXTRA, CONFIRM ? { with: CONFIRM, games: GENS * ESTIMATE.confirm } : undefined);
   const all = [];
   for (const t of targets) all.push(await forge(t));
   // leads with the held-out paired result; per-generation win rates are that generation's own games (scripts/forge-summary.ts)
-  const md = forgeSummaryMarkdown(all, describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled }));
+  const md = forgeSummaryMarkdown(all, describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled, ...bots }));
   fs.mkdirSync(OUT ? path.join(OUT, 'forge') : 'reports/forge', { recursive: true });
   fs.writeFileSync(OUT ? path.join(OUT, 'forge', 'summary.md') : 'reports/forge/summary.md', md);
   console.log('\n' + md);

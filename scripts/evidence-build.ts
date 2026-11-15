@@ -1061,10 +1061,24 @@ function changeSubject(key: string, label: string, listId: string, ctx: Ctx, can
   };
 }
 
+/** The entries that hold games of the same change (same simulator version and field) under another bot: a change screened
+ *  by one bot and confirmed by another. Games of two bots never pool. */
+const otherBots = (entries: readonly LedgerEntry[], e: LedgerEntry) => entries.filter((x) => x !== e && x.id.change === e.id.change && x.id.simVersion === e.id.simVersion && x.id.field === e.id.field);
+/** A change's figure over all its games, screening included: only where one bot played them all. */
+const soleEntry = (entries: readonly LedgerEntry[], e: LedgerEntry | undefined) => (e && otherBots(entries, e).length === 0 ? e : undefined);
+
 function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: LedgerEntry[], file: string): { drafts: Draft[]; open: OpenQuestion[] } {
   const drafts: Draft[] = [];
   const open: OpenQuestion[] = [];
+  // A change screened by one bot and confirmed by another keeps its screening games in one entry and its held-out games
+  // in another (the same change, simulator version and field). Games of two bots never pool, so the held-out finding
+  // takes its screening figure from the other entry, named by its bot, and the screening-only entry raises no question
+  // of its own.
   for (const e of entries) {
+    const siblings = otherBots(entries, e);
+    const screenFrom = e.screen.length >= 2 ? e : siblings.filter((x) => x.screen.length >= 2).sort((a, b) => b.screen.length - a.screen.length || byStr(a.id.bot, b.id.bot))[0];
+    const screenBot = screenFrom && screenFrom !== e ? screenFrom.id.bot : undefined;
+    const heldElsewhere = e.heldout.length < 2 && siblings.some((x) => x.heldout.length >= 2);
     const bar = barOf(e.id.change);
     const status = changeStatus(e, shortlistRule(bar));
     const pooled = pooledGain(pooledGames(e));
@@ -1080,7 +1094,7 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
       const t = gamesToSettle(e.heldout, LEDGER_RULE, { nominees: 1, minGainPp: bar });
       toSettle = Number.isFinite(t) ? t : null;
       const sum = summarize(e.heldout);
-      const screen = e.screen.length >= 2 ? plainOf(e.screen) : null;
+      const screen = screenFrom ? plainOf(screenFrom.screen) : null;
       const het = heterogeneity(sum.byOpp);
       const draft: Draft = {
         test: { corrected: judged.iv.lower > 0 || judged.iv.upper < 0 },
@@ -1103,7 +1117,7 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
         family: { key: `${listId}:change:${entryKey(e.id)}`, size: 1, correction: 'always-valid' },
         flags: het && het.p < 0.05 ? ['depends-on-opponent'] : [],
         detail: {
-          ...(screen ? { screen: { games: screen.games, mean: screen.mean, lower: screen.lower, upper: screen.upper, flag: 'screening' as const } } : {}),
+          ...(screen ? { screen: { games: screen.games, mean: screen.mean, lower: screen.lower, upper: screen.upper, flag: 'screening' as const, ...(screenBot ? { bot: screenBot } : {}) } } : {}),
           verdict,
           runs: e.runs.length,
           status: status.kind,
@@ -1118,7 +1132,7 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
       drafts.push(draft);
       findingId = findingIds({ kind: 'change', subject: draft.subject, method: draft.method, bot: draft.bot, simVersion: draft.simVersion, field: draft.field }).id;
     }
-    if ((status.kind === 'live' || status.kind === 'untested') && verdict === 'undecided') {
+    if (!heldElsewhere && (status.kind === 'live' || status.kind === 'untested') && verdict === 'undecided') {
       open.push({
         ...(findingId ? { finding: findingId } : {}),
         change: subject,
@@ -1126,7 +1140,9 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
         bot: e.id.bot,
         field: e.id.field,
         heldout: e.heldout.length,
-        screen: e.screen.length,
+        // screened by another bot: its screening games are counted and named apart, never read together with these
+        screen: screenFrom ? screenFrom.screen.length : e.screen.length,
+        ...(screenBot ? { screenBot } : {}),
         pooled: { games: pooled.games, mean: pooled.mean, se: Number.isFinite(pooled.se) ? pooled.se : 0 },
         toSettle,
         more: toSettle === null ? null : Math.max(0, toSettle - e.heldout.length),
@@ -1144,7 +1160,8 @@ function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file
     if (!a) continue;
     const base = report.manifest.decks[0]?.id ?? '';
     const field = fieldFingerprint(report.manifest.field.deckIds);
-    const bot = canonicalBot(report.manifest.bot.level);
+    // the held-out figure is the confirmation's: its bot, when another bot than the run's confirmed (--confirm-bot)
+    const bot = canonicalBot(a.confirmBot ?? report.manifest.bot.level);
     report.gens.forEach((g, gi) => {
       const noms = g.nominees ?? [];
       noms.forEach((nom, ni) => {
@@ -1253,6 +1270,7 @@ function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], e
     const base = m.decks[0]?.id ?? '';
     const field = fieldFingerprint(m.field.deckIds);
     const bot = canonicalBot(m.bot.level);
+    const confirmBot = a?.confirmBot ? canonicalBot(a.confirmBot) : null;
     const trials: TrialRecord[] = [];
     for (const g of report.gens) {
       const noms = new Map((g.nominees ?? []).map((n) => [n.label, n]));
@@ -1262,7 +1280,8 @@ function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], e
         const parsed = parseChangeLabel(s.swap);
         const key = parsed ? changeKeyOf(base, parsed) : undefined;
         const nom = noms.get(s.swap);
-        const e = key ? byKey.get(`${key}#v${m.simVersion}#${bot}#${field}`) : undefined;
+        // every game of the change over all runs, screening included: none for a change another bot confirmed
+        const e = soleEntry(entries, key ? byKey.get(`${key}#v${m.simVersion}#${bot}#${field}`) : undefined);
         const pooled = e ? pooledGain(pooledGames(e)) : null;
         const confirmed = s1 && si === 0;
         trials.push({
@@ -1285,6 +1304,7 @@ function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], e
       tool: 'forge',
       date: report.date,
       bot,
+      ...(confirmBot && confirmBot !== bot ? { confirmBot } : {}),
       simVersion: m.simVersion,
       rule: a ? describeRule(rule, { firstStage: a.firstStage, nominees: a.nominees }) : describeRule(ANY_GAIN_RULE),
       games: m.sample.completedGames,
@@ -1310,6 +1330,9 @@ function ledgerRuns(ctx: Ctx, batches: LedgerBatch[], entries: LedgerEntry[], fi
   return [...runs.entries()]
     .map(([run, bs]): RunRecord => {
       const first = bs[0]!;
+      // a run whose confirmation another bot played keeps its screening under one bot and its held-out games under another
+      const screenBot = bs.find((b) => b.kind === 'screen')?.entry.bot ?? first.entry.bot;
+      const heldBot = bs.find((b) => b.kind === 'heldout')?.entry.bot;
       const changes = new Map<string, { screen?: LedgerGame[]; heldout?: LedgerGame[]; label: string; entry: string }>();
       for (const b of bs) {
         const c = changes.get(b.entry.change) ?? { label: b.label, entry: entryKey(b.entry) };
@@ -1321,7 +1344,8 @@ function ledgerRuns(ctx: Ctx, batches: LedgerBatch[], entries: LedgerEntry[], fi
         .map(([key, c]) => {
           const sc = c.screen && c.screen.length >= 2 ? plainOf(c.screen) : null;
           const ho = c.heldout && c.heldout.length >= 2 ? plainOf(c.heldout) : null;
-          const e = byKey.get(c.entry);
+          // every game of the change over all runs: none for a change whose held-out games another bot played
+          const e = soleEntry(entries, byKey.get(c.entry));
           const pooled = e ? pooledGain(pooledGames(e)) : null;
           return {
             label: c.label,
@@ -1337,7 +1361,8 @@ function ledgerRuns(ctx: Ctx, batches: LedgerBatch[], entries: LedgerEntry[], fi
         id: run,
         tool: run.split(' ')[0] ?? 'run',
         date: bs.map((b) => b.date).sort()[0] ?? first.date,
-        bot: first.entry.bot,
+        bot: screenBot,
+        ...(heldBot && heldBot !== screenBot ? { confirmBot: heldBot } : {}),
         simVersion: first.entry.simVersion,
         rule: null,
         games: bs.reduce((a, b) => a + b.games.length, 0),

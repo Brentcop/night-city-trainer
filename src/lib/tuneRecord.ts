@@ -92,6 +92,11 @@ export interface TunedDeckRecord {
   rule: AdoptionProvenance;
   field: { mode: string; deckIds: string[] };
   bot: string;
+  /**
+   * another bot played the confirmation stages and the comparison with the original (TuneOptions.confirmBot; filled in by
+   * pooledTuneRecord in src/lib/deckLab.ts); absent: `bot` did
+   */
+  confirmBot?: string;
   /** cuts and adds ranked partner-aware (src/lib/cutRanking.ts) */
   partnerAware: boolean;
   packages?: PackageProvenance;

@@ -2,8 +2,8 @@
 // version (greyed when stale), its rule in words, its games, what it could detect when it was recorded, and its trials
 // as a table: the change with its cards, card or package, the screening figure (greyed, named as screening), the
 // held-out figure with its looks, the outcome, and the figure over all runs when there is one.
-import { botName, type DeckEvidence, type RunRecord } from '../../../lib/findings';
-import { pooledWords, RUN_WORDS, runDetectWords, runTitleWords, staleWords, TRIAL_KIND_WORDS, TRIAL_OUTCOME_WORDS, trialHeldOutWords, trialScreenWords } from '../../../lib/findingWords';
+import { type DeckEvidence, type RunRecord } from '../../../lib/findings';
+import { pooledWords, RUN_WORDS, runBotWords, runDetectWords, runTitleWords, staleWords, TRIAL_KIND_WORDS, TRIAL_OUTCOME_WORDS, trialHeldOutWords, trialScreenWords } from '../../../lib/findingWords';
 import { cardNamesIn, deckEvidenceHref, overviewHref, parseChangeKey } from '../../../lib/evidenceView';
 import { CURRENT_SIM_VERSION } from '../../../lib/playedRecord';
 import { PageHead } from '../PageHead';
@@ -24,7 +24,7 @@ export function RunView({ deck, run }: { deck: Pick<DeckEvidence, 'listId' | 'de
           {RUN_WORDS.howTitle}
         </h2>
         <p>
-          {botName(run.bot)} bot, simulator version {run.simVersion}
+          {runBotWords(run)}, simulator version {run.simVersion}
           {run.games !== null ? ` · ${thousands(run.games)} games` : ''}
         </p>
         {run.stale && <p className="ev-note ev-stale-note small">{staleWords(run.simVersion, CURRENT_SIM_VERSION)}</p>}

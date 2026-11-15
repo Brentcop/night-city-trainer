@@ -4,7 +4,7 @@
 // finding row (FindingRow, two lines) or a number with its range and games. Long lists open short with "Show all".
 // Rendered from plain data, so tests render it directly.
 import { useEffect, useState } from 'react';
-import { botName, formatValue, plain95, type DeckEvidence, type EvidenceIndex, type Finding } from '../../../lib/findings';
+import { formatValue, plain95, type DeckEvidence, type EvidenceIndex, type Finding } from '../../../lib/findings';
 import {
   BLOCK_WORDS,
   botsWords,
@@ -20,6 +20,7 @@ import {
   measuredByWords,
   openWords,
   ratesWords,
+  runBotWords,
   runTitleWords,
   screenCurseWords,
   screenWords,
@@ -241,7 +242,7 @@ function RunsSection({ listId, count }: { listId: string; count: number | null }
             <li key={r.id} className={r.stale ? 'is-stale' : ''}>
               <a href={runHref(listId, r.id)}>{runTitleWords(r)}</a>{' '}
               <span className="small muted">
-                · {botName(r.bot)} bot, version {r.simVersion}
+                · {runBotWords(r)}, version {r.simVersion}
                 {r.stale ? ' (older version)' : ''} · {r.trials.length} trial{r.trials.length === 1 ? '' : 's'}
                 {r.games !== null ? ` · ${r.games.toLocaleString('en-US')} games` : ''}
               </span>

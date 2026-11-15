@@ -11,8 +11,8 @@
 // many further stages it played and why it stopped. A nominee whose held-out figures differ by opponent by more than
 // chance gets one more line under its gain (dependsOnOpponentWords, src/lib/pairedSplit.ts): the two extremes by name.
 import { useId, type ReactNode } from 'react';
-import { formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, settleWords, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type SettleRecord, type StopReason } from '../../lib/evidence';
-import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
+import { botWord, formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, settleWords, stoppedWords, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type SettleRecord, type StopReason } from '../../lib/evidence';
+import { confirmGamesWords, HARD_OF_MEDIUM, HARD_TIME_RATIO, MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
 import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type NomineeSplits, type NotNominated, type TuneLog } from '../../lib/deckLab';
 import { dependsOnOpponentWords } from '../../lib/pairedSplit';
 import { cutTableRows } from '../../lib/cutRanking';
@@ -162,6 +162,24 @@ export function SettleCheckbox({ checked, onChange, disabled, reach }: { checked
   );
 }
 
+/** The sentence beside the "Confirm with the Hard bot" checkbox: what it does and what it costs. */
+export const CONFIRM_HARD_SENTENCE = `the changes the Medium bot picks are confirmed, and the tuned list compared with your original, on games the Hard bot plays. Hard is the bot the recorded events are played by, and a gain measured with Medium showed at about ${HARD_OF_MEDIUM.ratio} of its size with Hard. A Hard game takes about ${HARD_TIME_RATIO} times as long as a Medium one.`;
+
+/** Whether the tuner offers "Confirm with the Hard bot": for a Medium run only (a Hard run confirms with Hard already). */
+export const confirmHardOffered = (bot: string): boolean => bot === 'medium';
+
+/** The tuner's "Confirm with the Hard bot" checkbox (shown for a Medium run only; off by default). */
+export function ConfirmHardCheckbox({ checked, onChange, disabled }: { checked: boolean; onChange: (on: boolean) => void; disabled?: boolean }) {
+  return (
+    <label className="row small">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
+      <span>
+        <b>Confirm with the Hard bot</b> (off by default): {CONFIRM_HARD_SENTENCE}
+      </span>
+    </label>
+  );
+}
+
 /** "Not nominated: X (screening …): its earlier held-out games already reject it, …" (the forge's log line, in the Lab). */
 export function notNominatedText(x: NotNominated): string {
   if (x.why === 'out-of-reach') {
@@ -238,6 +256,7 @@ export function DepthControls({
   vsOriginal,
   settle,
   detect,
+  confirm,
 }: {
   cards: number;
   onCards: (n: number) => void;
@@ -256,6 +275,8 @@ export function DepthControls({
   settle?: { extra: number; reach: number } | null;
   /** what this run can detect, in one sentence (detectWords) */
   detect?: string;
+  /** another bot confirms: its games at most (the confirmations and the comparison with the original), said beside the estimate */
+  confirm?: { with: ConfirmedWith; games: number } | null;
 }) {
   const headId = useId();
   // the budget question counts the usual range only; "until settled" is said apart
@@ -291,11 +312,12 @@ export function DepthControls({
       <p className="small" role="status" style={{ margin: 0, color: over ? 'var(--red)' : undefined }}>
         This run plays {estimate.min.toLocaleString('en-US')}–{estimate.max.toLocaleString('en-US')} games.
         {vsOriginal && vsOriginal.max > 0 && ` That includes up to ${vsOriginal.max.toLocaleString('en-US')} games comparing the tuned list with your original on the same ${vsOriginal.games} held-out games each (only after a change is adopted).`}
+        {confirm && ` ${confirmGamesWords(confirm.with, confirm.games, true)}`}
         {over && ` ⚠ That is over the lab's budget of ${budget.toLocaleString('en-US')} games; you'll be asked to confirm.`}
       </p>
       {settle && settle.extra > 0 && (
         <p className="small muted" style={{ margin: 0 }}>
-          Apart from that, keeping confirmations going until settled may add up to {settle.extra.toLocaleString('en-US')} games (only for a change still undecided after the usual stages).
+          Apart from that, keeping confirmations going until settled may add up to {settle.extra.toLocaleString('en-US')} games{confirm ? `, also played with the ${botWord(confirm.with.confirm)} bot` : ''} (only for a change still undecided after the usual stages).
         </p>
       )}
       {detect && (

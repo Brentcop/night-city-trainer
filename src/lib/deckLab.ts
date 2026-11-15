@@ -17,11 +17,11 @@ import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { RATINGS, SEASONS } from '../data/index';
 import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
-import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
+import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
 import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
 import { HeldOutTracker, withSplit, type NomineeSplit } from './pairedSplit';
-import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, settleExtra, type SearchDepth } from './deckSearch';
+import { combinedCandidates, confirmedWith, DEPTH_DEFAULTS, estimateGames, listKeyOf, settleExtra, type SearchDepth } from './deckSearch';
 import { byPooledGain, outOfReach, pooledFigure, shortlistGeneration, shortlistOptions, type PooledFigure, type ShortlistNote, type ShortlistOptions } from './shortlist';
 import type { LibraryDeck } from './library';
 import { h2hFileLookup, type H2HFileLike, type H2HRecord } from './h2hModel';
@@ -281,6 +281,13 @@ export interface TuneOptions {
    * stage is recorded). Absent: every game and log is as before.
    */
   untilSettled?: { reach?: number };
+  /**
+   * the bot that plays the confirmation stages, "until settled"'s and the comparison with the original list (screening
+   * and its telemetry stay with `bot`). Absent, or the same bot as `bot`: every game and log as before. Another bot: the
+   * held-out games go to its entry of the earlier games and are pooled from it, and the shortlist is off for the run (it
+   * ranks a change by its screening and held-out games together, and games of two bots are never pooled).
+   */
+  confirmBot?: string;
 }
 
 /** A change-ledger store the tuner can use: loaded per base list before each generation, then read synchronously. */
@@ -393,7 +400,7 @@ export const LAB_CONFIRM_SEEDS = 5_000;
  * `settle` says what it may add at most (`extra` games, never part of `estimate`), its reach and the further stages each
  * generation's seeds allow.
  */
-export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal' | 'untilSettled'>) {
+export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal' | 'untilSettled'> & Partial<Pick<TuneOptions, 'bot' | 'confirmBot'>>) {
   const rule = adoptionRule(o.rule);
   const depth: SearchDepth = { ...DEPTH_DEFAULTS, ...o.depth };
   const pkN = o.packageCands ?? 3;
@@ -414,7 +421,10 @@ export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'pack
   const reach = o.untilSettled?.reach ?? DEFAULT_REACH;
   const stages = o.untilSettled && rule.kind === 'evidence' ? settleStages({ seedStages: Math.floor(LAB_CONFIRM_SEEDS / firstStage) - capStages, reach, firstStage, capStages }) : 0;
   const settle = o.untilSettled && rule.kind === 'evidence' ? { reach, stages, extra: settleExtra({ gens: o.gens, firstStage, stages, nominees: depth.nominees }) } : null;
-  return { rule, depth, estimate: { ...estimate, max: estimate.max + vsMax }, firstStage, vsGames, vsMax, settle };
+  // another bot confirming: the confirmations and the comparison with the original are its games, at most
+  const bots = o.bot !== undefined ? confirmedWith(o.bot, o.confirmBot) : null;
+  const confirm = bots ? { with: bots, games: o.gens * estimate.confirm + vsMax } : null;
+  return { rule, depth, estimate: { ...estimate, max: estimate.max + vsMax }, firstStage, vsGames, vsMax, settle, confirm };
 }
 export interface TuneProgress {
   done: number;
@@ -459,14 +469,19 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const perGen = total / Math.max(1, o.gens);
   const seedBase = o.seedBase ?? 500_000 + Math.floor(Math.random() * 9_000);
   const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck, seedBase, played: 0 };
+  // another bot confirming (absent: the screening bot, every game as before)
+  const bots: ConfirmedWith | null = confirmedWith(o.bot, o.confirmBot);
+  const confirmBot = bots?.confirm ?? o.bot;
   // earlier held-out games (the change ledger): the run's entry context, and whether priors are pooled (never under any-gain)
   const ledger = o.ledger ? ledgerRun(o.ledger, o.bot, field, seedBase) : null;
+  /** the held-out games' entry: the confirming bot's (the same store, run and totals) when another bot confirms */
+  const heldLedger = ledger && bots ? confirmLedger(ledger, bots.confirm) : ledger;
   const pooling = !!ledger && rule.kind === 'evidence';
   if (ledger) p.ledger = ledger.totals;
-  // the shortlist from pooled evidence: built from the ledger's games, and only where they are pooled
+  // the shortlist from pooled evidence: built from the ledger's games, and only where they are pooled (and one bot plays)
   if (o.shortlist && !o.ledger) throw new Error('the shortlist needs earlier held-out games (TuneOptions.ledger)');
   if (o.shortlist && rule.kind !== 'evidence') throw new Error('the shortlist needs the evidence rule: under any-gain earlier games are never pooled');
-  const short = o.shortlist && pooling && ledger ? shortlistOptions(o.shortlist) : null;
+  const short = o.shortlist && pooling && ledger && !bots ? shortlistOptions(o.shortlist) : null;
   /** the field's list fingerprints in the order playSet uses them (field[k % n]) */
   const opponents = ledger ? ledger.o.opponents : [];
   /** the field's list fingerprints and names, for each nominee's held-out games by opponent */
@@ -494,8 +509,8 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     if (stop()) return;
     p.phase = `Generation ${log.gen}: comparing the list with the original on ${vsN} common held-out games`;
     onProgress({ ...p, logs: [...logs] });
-    if (!origScores) origScores = (await playSet(start, field, vsSeed, vsN, o.bot, play, false, tick)).scores;
-    const cur = await playSet(deck, field, vsSeed, vsN, o.bot, play, false, tick);
+    if (!origScores) origScores = (await playSet(start, field, vsSeed, vsN, confirmBot, play, false, tick)).scores;
+    const cur = await playSet(deck, field, vsSeed, vsN, confirmBot, play, false, tick);
     const orig = origScores;
     log.vsOriginal = { same: false, adopted: adoptedSoFar, gain: pairedInterval(cur.scores, orig), origWr: orig.reduce((a, x) => a + x, 0) / Math.max(1, orig.length), curWr: cur.wr, measured: true };
   };
@@ -572,7 +587,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       }
       /** the ledger: the games a prior leaves out (every game this confirmation may play, and this generation's screening games) */
       const leaveOut = pooling ? gameIds([...confirmationSlots(seed1, firstStage, stages + further, opponents), ...screenSlots]) : new Set<string>();
-      const priorFor = (s: Swap): PairedScores | undefined => (pooling && ledger ? ledger.prior(deck, s.deck, leaveOut) : undefined);
+      const priorFor = (s: Swap): PairedScores | undefined => (pooling && heldLedger ? heldLedger.prior(deck, s.deck, leaveOut) : undefined);
       // screening only nominates: the best changes that beat the baseline by minGain on the shared games
       // with the shortlist, by pooled gain (a change with no earlier games keeps its own screening figure)
       const gainOf = (x: TuneLog['swaps'][number]) => figs.get(x.label)?.gain ?? x.wr - base.wr;
@@ -618,7 +633,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       }
       const nomDecks = nominated.map((x) => swapOf(x.label));
       /** each nominee's held-out games with where they sat (the prior's games first, as confirmStaged takes them) */
-      const held = new HeldOutTracker(nomDecks.length, pooling && ledger ? nomDecks.map((s) => ledger.priorGames(deck, s.deck, leaveOut)) : undefined);
+      const held = new HeldOutTracker(nomDecks.length, pooling && heldLedger ? nomDecks.map((s) => heldLedger.priorGames(deck, s.deck, leaveOut)) : undefined);
       p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''}${settle ? ', then on until settled' : ''})`;
       onProgress({ ...p, logs: [...logs] });
       const conf = await confirmStaged(
@@ -627,7 +642,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         firstStage,
         async ({ offset, games, active }) => {
           // the current list's games are started first, then each nominee's (the order the legacy confirmation used)
-          const [b, ...ns] = await Promise.all([deck, ...active.map((i) => nomDecks[i]!.deck)].map((d) => playSet(d, field, seed1 + offset, games, o.bot, play, false, tick)));
+          const [b, ...ns] = await Promise.all([deck, ...active.map((i) => nomDecks[i]!.deck)].map((d) => playSet(d, field, seed1 + offset, games, confirmBot, play, false, tick)));
           held.stage(
             active,
             blockSlots(seed1 + offset, games, fieldIds),
@@ -636,9 +651,9 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
           );
           // only whole stages reach here (Stop rejects the games in flight, so a cut-off stage throws above), and
           // confirmStaged counts every stage this returns: the ledger records exactly the games the decision used
-          if (ledger) {
+          if (heldLedger) {
             const slots = blockSlots(seed1 + offset, games, opponents);
-            active.forEach((i, k) => ledger.record('heldout', deck, nomDecks[i]!.deck, nomDecks[i]!.label, scored(slots, b!.scores, ns[k]!.scores)));
+            active.forEach((i, k) => heldLedger.record('heldout', deck, nomDecks[i]!.deck, nomDecks[i]!.label, scored(slots, b!.scores, ns[k]!.scores)));
           }
           return { base: b!.scores, nominees: ns.map((r) => r.scores) };
         },
@@ -693,6 +708,13 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   return p;
 }
 
+/** The confirming bot's ledger context beside the screening one: the same store, field, run id, date and totals. */
+function confirmLedger(l: ChangeLedgerRun, bot: string): ChangeLedgerRun {
+  const b = ledgerBot(bot);
+  if (!b.bot) throw new Error(b.problem);
+  return new ChangeLedgerRun(l.store, { ...l.o, bot: b.bot, totals: l.totals });
+}
+
 /** The run's ledger context: the canonical bot (a bot the ledger cannot use is an error), the field, the run id and date. */
 function ledgerRun(l: TuneLedger, bot: string, field: readonly DeckList[], seedBase: number): ChangeLedgerRun {
   const b = ledgerBot(bot);
@@ -712,8 +734,12 @@ function ledgerRun(l: TuneLedger, bot: string, field: readonly DeckList[], seedB
  * games pooled with earlier runs, how many came from them (`heldOut.priorGames`). Here rather than in tuneRecord.ts, which
  * the entry chunk reaches, so that file's code does not grow; without pooled logs it is tunedRecord's record unchanged.
  */
-export function pooledTuneRecord(o: Omit<Parameters<typeof tunedRecord>[0], 'logs'> & { logs: readonly (Parameters<typeof tunedRecord>[0]['logs'][number] & { adoptedSettle?: SettleRecord })[] }): TunedDeckRecord {
-  const r = tunedRecord(o);
+export function pooledTuneRecord(
+  o: Omit<Parameters<typeof tunedRecord>[0], 'logs'> & { logs: readonly (Parameters<typeof tunedRecord>[0]['logs'][number] & { adoptedSettle?: SettleRecord })[]; confirmBot?: string },
+): TunedDeckRecord {
+  const plain = tunedRecord(o);
+  // another bot confirmed (TuneOptions.confirmBot): the record says which (absent otherwise: the record is unchanged)
+  const r = o.confirmBot ? { ...plain, confirmBot: o.confirmBot } : plain;
   const prior = new Map(o.logs.flatMap((l) => (l.adopted && l.adoptedPriorGames ? [[l.gen, l.adoptedPriorGames] as const] : [])));
   // "until settled": the adopted change's further stages and why they ended (absent without it: the record is unchanged)
   const settled = new Map(o.logs.flatMap((l) => (l.adopted && l.adoptedSettle ? [[l.gen, l.adoptedSettle] as const] : [])));

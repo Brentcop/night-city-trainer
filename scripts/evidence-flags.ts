@@ -36,12 +36,15 @@
 //                               without --ledger
 //   --reach N                   the shortlist drops a change, and "until settled" stops one, that would need more than N
 //                               held-out games in all to be adopted (10000); needs --pooled-ranking or --until-settled
+//   --confirm-bot BOT           (forge; the season passes it on) play the confirmation stages, and "until settled"'s, with
+//                               this bot instead of --bot (screening and its telemetry stay with --bot); default --bot.
+//                               With --ledger the held-out games go to this bot's entry; not with --pooled-ranking
 import path from 'node:path';
-import { ADOPTION_BOUNDARIES, adoptionRule, DEFAULT_REACH, ruleProblems, type AdoptionBoundary, type AdoptionRule } from '../src/lib/evidence';
-import { DEFAULT_GAME_BUDGET, DEPTH_DEFAULTS, type SearchDepth } from '../src/lib/deckSearch';
+import { ADOPTION_BOUNDARIES, adoptionRule, botWord, DEFAULT_REACH, ruleProblems, type AdoptionBoundary, type AdoptionRule, type ConfirmedWith } from '../src/lib/evidence';
+import { confirmedWith, confirmGamesWords, DEFAULT_GAME_BUDGET, DEPTH_DEFAULTS, type SearchDepth } from '../src/lib/deckSearch';
 import { ledgerBot } from '../src/lib/changeLedger';
 import { shortlistOptions, type ShortlistOptions } from '../src/lib/shortlist';
-import { bool, int, num, oneOf, str } from './lib-node';
+import { bool, int, num, oneOf, SIM_BOTS, str } from './lib-node';
 
 export const ADOPT_KINDS = ['evidence', 'any-gain'] as const;
 
@@ -251,14 +254,55 @@ export function shortlistArgs(v: ShortlistFlagValues): string[] {
   return ['--pooled-ranking', ...(v.carry !== undefined ? ['--carry', String(v.carry)] : []), ...(v.reach !== undefined ? ['--reach', String(v.reach)] : [])];
 }
 
+/** The confirmation bot (forge, season): src/lib/deckSearch.ts confirmedWith. */
+export const confirmBotFlag = () => ({ 'confirm-bot': oneOf(SIM_BOTS, undefined) });
+export interface ConfirmBotFlagValues {
+  'confirm-bot'?: string;
+  'pooled-ranking'?: boolean;
+  ledger?: boolean;
+}
+
+/** Why --confirm-bot cannot be used as given (null when it can, or is the screening bot). */
+export function confirmBotProblem(v: ConfirmBotFlagValues, o: { bot: string }): string | null {
+  const c = confirmedWith(o.bot, v['confirm-bot']);
+  if (!c) return null;
+  if (v['pooled-ranking'])
+    return `--pooled-ranking cannot be used with --confirm-bot ${c.confirm}: the shortlist ranks a change by its screening and held-out games together, and games of two bots are never pooled`;
+  if (v.ledger) {
+    const b = ledgerBot(c.confirm);
+    if (!b.bot) return `${b.problem}; pick another --confirm-bot or leave out --ledger`;
+  }
+  return null;
+}
+
+/**
+ * The bots of a run whose confirmation another bot plays, or null when --confirm-bot is absent or names the screening bot
+ * (lookahead and medium are one bot). Exits 2 (a bad command line) on a problem.
+ */
+export function confirmBotFromFlags(v: ConfirmBotFlagValues, o: { bot: string }): ConfirmedWith | null {
+  const p = confirmBotProblem(v, o);
+  if (p) {
+    console.error(`error: ${p}\nRun with --help for usage.`);
+    process.exit(2);
+  }
+  return confirmedWith(o.bot, v['confirm-bot']);
+}
+
+/** The command-line form of --confirm-bot (season.ts passes it on to the forge). */
+export function confirmBotArgs(v: ConfirmBotFlagValues): string[] {
+  return v['confirm-bot'] !== undefined ? ['--confirm-bot', v['confirm-bot']] : [];
+}
+
 /**
  * Print the run's game estimate and refuse (exit 2) when its most could exceed `budget` without --force.
- * `what` names the run ("forge of 2 decks").
+ * `what` names the run ("forge of 2 decks"). `confirm`: another bot plays the confirmation, at most `games` of them per
+ * deck (one more sentence, src/lib/deckSearch.ts confirmGamesWords).
  */
-export function checkBudget(what: string, est: { min: number; max: number }, budget: number, force: boolean, settleExtra?: number): void {
+export function checkBudget(what: string, est: { min: number; max: number }, budget: number, force: boolean, settleExtra?: number, confirm?: { with: ConfirmedWith; games: number }): void {
   // "until settled" may add games on top; the budget is checked against the usual estimate only
-  const extra = settleExtra !== undefined ? ` "Until settled" may add up to ${settleExtra.toLocaleString('en-US')} more (not counted against the budget).` : '';
-  console.log(`Game budget (${what}): ${est.min.toLocaleString('en-US')} to ${est.max.toLocaleString('en-US')} games per deck (budget ${budget.toLocaleString('en-US')}).${extra}`);
+  const extra = settleExtra !== undefined ? ` "Until settled" may add up to ${settleExtra.toLocaleString('en-US')} more${confirm ? `, also played with the ${botWord(confirm.with.confirm)} bot` : ''} (not counted against the budget).` : '';
+  const bots = confirm ? ` ${confirmGamesWords(confirm.with, confirm.games)}` : '';
+  console.log(`Game budget (${what}): ${est.min.toLocaleString('en-US')} to ${est.max.toLocaleString('en-US')} games per deck (budget ${budget.toLocaleString('en-US')}).${bots}${extra}`);
   if (est.max <= budget || force) return;
   console.error(`error: this run may play ${est.max.toLocaleString('en-US')} games per deck, over the budget of ${budget.toLocaleString('en-US')}. Lower the depth (--cards-per-change, --packages-per-change, --nominees, --confirm-cap) or the games, raise --budget, or pass --force.`);
   process.exit(2);

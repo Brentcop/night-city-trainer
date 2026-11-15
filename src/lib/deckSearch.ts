@@ -12,9 +12,9 @@
 import { validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { checkChange, isEmptyPlan, type PackagePlan } from './deckPackages';
-import { alwaysValidZ, futilityApplies, lookZs, pooledShare, type AdoptionRule } from './evidence';
+import { alwaysValidZ, botWord, futilityApplies, lookZs, pooledShare, type AdoptionRule, type ConfirmedWith } from './evidence';
 import { normalCdf } from './groupSequential';
-import { summarize, type LedgerEntry } from './changeLedger';
+import { ledgerBot, summarize, type LedgerEntry } from './changeLedger';
 import { swapOfKey } from './shortlist';
 
 export interface SearchDepth {
@@ -369,6 +369,42 @@ export function gamesFor(o: Omit<PowerInput, 'firstStage' | 'reach'> & { gain: n
 
 /** The tuning study's per-game SDs of the paired difference when the ledger holds too little (E3: 0.24 to 0.46 for cards). */
 export const DEFAULT_SD: Readonly<{ card: number; package: number }> = Object.freeze({ card: 0.3, package: 0.55 });
+/**
+ * The per-game SDs with the Hard bot, measured on 2026-11-15 (plan P6, reports/tuning-study-2026-11-13/p6-transfer.txt):
+ * the median of 11 one-card swaps (0.34; 0.30 with Medium on the same changes) and the two package swaps (0.56 and 0.62).
+ * Used for a run confirmed with Hard when its own ledger changes are too few.
+ */
+export const HARD_SD: Readonly<{ card: number; package: number; date: string; swaps: number; packages: number }> = Object.freeze({ card: 0.34, package: 0.6, date: '2026-11-15', swaps: 11, packages: 2 });
+/** What Hard showed of a gain measured with Medium, over 13 changes (2026-11-15): 0.75 of it, with a standard error of 0.19. */
+export const HARD_OF_MEDIUM: Readonly<{ ratio: number; se: number; changes: number }> = Object.freeze({ ratio: 0.75, se: 0.19, changes: 13 });
+/** A Hard game took about this many times as long as a Medium one when measured (2026-11-15). */
+export const HARD_TIME_RATIO = 20;
+
+/** A bot's canonical name (ledgerBot), or the name as given when the ledger does not know it. */
+const canonical = (bot: string): string => ledgerBot(bot).bot ?? bot;
+
+/**
+ * The confirmation's bots when they are not the same (by canonical name: lookahead is Medium), else null: a run confirmed
+ * with its own screening bot says nothing about bots.
+ */
+export function confirmedWith(screen: string, confirm: string | undefined): ConfirmedWith | null {
+  if (confirm === undefined || canonical(confirm) === canonical(screen)) return null;
+  return { screen, confirm };
+}
+
+/** Whether a confirmation is Hard after Medium (the pairing the 2026-11-15 measurements are of). */
+export const hardAfterMedium = (c: ConfirmedWith | null | undefined): boolean => !!c && canonical(c.confirm) === 'hard' && canonical(c.screen) === 'medium';
+
+/**
+ * One sentence beside a run's game estimate when another bot confirms: how many of the games at most are its
+ * confirmation games, and, for Hard after Medium, how much longer a Hard game took when measured.
+ */
+export function confirmGamesWords(c: ConfirmedWith, confirmGames: number, withOriginal = false): string {
+  const k = confirmGames.toLocaleString('en-US');
+  const slow = hardAfterMedium(c) ? ` A Hard game took about ${HARD_TIME_RATIO} times as long as a Medium one when measured.` : '';
+  const what = withOriginal ? 'are the confirmations and the comparison with your original' : 'are confirmation games';
+  return `Up to ${k} of them ${what}, played with the ${botWord(c.confirm)} bot.${slow}`;
+}
 /** A change counts toward the ledger's SD with this many held-out games or more. */
 export const SD_MIN_HELDOUT = 200;
 /** The ledger's SD is used when it has at least this many such changes of the kind (one-card swaps, or larger changes). */
@@ -397,6 +433,8 @@ export interface PerGameSd {
   /** how many of this list's changes the figure is the median of (0: the study's default) */
   cardFrom: number;
   packageFrom: number;
+  /** the defaults are the Hard bot's measured ones (HARD_SD), for a run confirmed with Hard; absent: the study's (DEFAULT_SD) */
+  hard?: true;
 }
 
 const median = (xs: readonly number[]) => {
@@ -405,13 +443,19 @@ const median = (xs: readonly number[]) => {
   return s.length % 2 ? s[i]! : (s[i - 1]! + s[i]!) / 2;
 };
 
-/** The SDs a run assumes: the median of the ledger's changes of each kind when it holds SD_MIN_CHANGES or more, else DEFAULT_SD. */
-export function perGameSd(s?: SdSamples): PerGameSd {
+/**
+ * The SDs a run assumes: the median of the ledger's changes of each kind when it holds SD_MIN_CHANGES or more, else the
+ * default. `confirmBot`: the bot that confirms when it is not the screening bot (the samples are then its entry's); for
+ * Hard the defaults are Hard's measured ones (HARD_SD). Without it, DEFAULT_SD as before.
+ */
+export function perGameSd(s?: SdSamples, confirmBot?: string): PerGameSd {
   const swaps = s?.swaps ?? [];
   const larger = s?.larger ?? [];
   const card = swaps.length >= SD_MIN_CHANGES;
   const pkg = larger.length >= SD_MIN_CHANGES;
-  return { card: card ? median(swaps) : DEFAULT_SD.card, package: pkg ? median(larger) : DEFAULT_SD.package, cardFrom: card ? swaps.length : 0, packageFrom: pkg ? larger.length : 0 };
+  const hard = confirmBot !== undefined && canonical(confirmBot) === 'hard';
+  const d = hard ? HARD_SD : DEFAULT_SD;
+  return { card: card ? median(swaps) : d.card, package: pkg ? median(larger) : d.package, cardFrom: card ? swaps.length : 0, packageFrom: pkg ? larger.length : 0, ...(hard ? { hard: true as const } : {}) };
 }
 
 export interface Detect {
@@ -423,10 +467,15 @@ export interface Detect {
   sd: PerGameSd;
   /** the legacy any-gain rule: it also adopts a change with no real gain about half the time, and the line says so */
   anyGain?: true;
+  /** another bot confirms than screens (the line names it) */
+  confirmedWith?: ConfirmedWith;
 }
 
-/** What a run can detect: detectable() for a one-card swap and a package move, and with "until settled" when it is on. */
-export function detect(o: { rule: AdoptionRule; firstStage: number; nominees: number; sd: PerGameSd; untilSettled?: { reach: number } }): Detect {
+/**
+ * What a run can detect: detectable() for a one-card swap and a package move, and with "until settled" when it is on.
+ * `confirmedWith`: another bot confirms (the SDs are then its own: perGameSd with its name).
+ */
+export function detect(o: { rule: AdoptionRule; firstStage: number; nominees: number; sd: PerGameSd; untilSettled?: { reach: number }; confirmedWith?: ConfirmedWith | null }): Detect {
   const one = (sd: number, minGainPp: number, reach?: number) => detectable({ firstStage: o.firstStage, rule: o.rule, sd, nominees: o.nominees, minGainPp, ...(reach ? { reach } : {}) });
   const settle = o.untilSettled && o.rule.kind === 'evidence' ? o.untilSettled.reach : undefined;
   return {
@@ -435,6 +484,7 @@ export function detect(o: { rule: AdoptionRule; firstStage: number; nominees: nu
     ...(settle ? { settled: { card: one(o.sd.card, o.rule.minGainPp, settle), package: one(o.sd.package, o.rule.packageMinGainPp, settle), reach: settle } } : {}),
     sd: o.sd,
     ...(o.rule.kind === 'any-gain' ? { anyGain: true as const } : {}),
+    ...(o.confirmedWith ? { confirmedWith: o.confirmedWith } : {}),
   };
 }
 
@@ -449,13 +499,26 @@ export function detectWords(d: Detect): string {
   // detectable() gives Infinity when not even a 60-point gain is adopted that often
   const amount = (x: number) => (Number.isFinite(x) ? `+${(x * 100).toFixed(1)}` : 'not even +60');
   const pkgOf = (x: number) => `${amount(x)} for a package move`;
-  const first = Number.isFinite(d.card)
-    ? `A first confirmation here adopts a real gain of ${amount(d.card)} points 8 times in 10 (${pkgOf(d.package)})`
-    : `A first confirmation here does not adopt even a real gain of +60 points 8 times in 10 (${pkgOf(d.package)})`;
+  const c = d.confirmedWith;
+  const here = c ? `A first confirmation with the ${botWord(c.confirm)} bot here` : 'A first confirmation here';
+  const first = Number.isFinite(d.card) ? `${here} adopts a real gain of ${amount(d.card)} points 8 times in 10 (${pkgOf(d.package)})` : `${here} does not adopt even a real gain of +60 points 8 times in 10 (${pkgOf(d.package)})`;
   const settled = d.settled ? `; with until settled, ${Number.isFinite(d.settled.card) ? 'about ' : ''}${amount(d.settled.card)} (${pkgOf(d.settled.package)}) within ${d.settled.reach.toLocaleString('en-US')} held-out games` : '';
   const anyGain = d.anyGain ? ' Under the any-gain rule a change with no real gain at all is adopted about half the time too.' : '';
   const from = (sd: number, k: number, what: string) => `${sd.toFixed(2)} for ${what}${k ? ` (the median of ${k} changes of this list with ${SD_MIN_HELDOUT} or more held-out games)` : ''}`;
   const both = !d.sd.cardFrom && !d.sd.packageFrom;
-  const spread = `It assumes a per-game spread of ${from(d.sd.card, d.sd.cardFrom, 'a one-card swap')} and ${from(d.sd.package, d.sd.packageFrom, 'a package move')}${both ? " (the tuning study's typical values)" : !d.sd.cardFrom || !d.sd.packageFrom ? "; the other is the tuning study's typical value" : ''}.`;
-  return `${first}${settled}.${anyGain} ${spread}`;
+  const some = !d.sd.cardFrom || !d.sd.packageFrom;
+  const typical = d.sd.hard
+    ? both
+      ? ` (measured with the Hard bot on ${HARD_SD.date}: ${HARD_SD.swaps} one-card swaps, ${HARD_SD.packages} package swaps)`
+      : some
+        ? `; the other is the Hard bot's value measured on ${HARD_SD.date}`
+        : ''
+    : both
+      ? " (the tuning study's typical values)"
+      : some
+        ? "; the other is the tuning study's typical value"
+        : '';
+  const spread = `It assumes a per-game spread of ${from(d.sd.card, d.sd.cardFrom, 'a one-card swap')} and ${from(d.sd.package, d.sd.packageFrom, 'a package move')}${typical}.`;
+  const transfer = hardAfterMedium(c) ? ` A gain measured with Medium showed at about ${HARD_OF_MEDIUM.ratio} of its size with Hard (± ${HARD_OF_MEDIUM.se}, ${HARD_OF_MEDIUM.changes} changes).` : '';
+  return `${first}${settled}.${anyGain} ${spread}${transfer}`;
 }

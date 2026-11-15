@@ -117,11 +117,14 @@ export class LedgerCache {
     const s = this.state(changeBase(b.entry.change));
     const set = this.writtenSet(s, b);
     const entry = s.entries.get(entryKey(b.entry));
+    // a game is its slot (seed, opponent, seat), whichever bot played it: one that screened this change with another bot
+    // (another entry of the same change, version and field) is never held-out evidence for it either
+    const others = b.kind === 'heldout' ? [...s.entries.values()].filter((e) => e !== entry && e.id.change === b.entry.change && e.id.simVersion === b.entry.simVersion && e.id.field === b.entry.field) : [];
     const fresh: LedgerGame[] = [];
     let duplicates = 0;
     let screened = 0;
     for (const g of b.games) {
-      if (b.kind === 'heldout' && entry && screenedBefore(entry, g)) {
+      if (b.kind === 'heldout' && ((entry && screenedBefore(entry, g)) || others.some((e) => screenedBefore(e, g)))) {
         screened++;
         continue;
       }
@@ -161,17 +164,23 @@ export interface ChangeLedgerRunOptions {
   run: string;
   /** YYYY-MM-DD */
   date: string;
+  /**
+   * running totals to add to (a run whose confirmation is played by another bot has one ChangeLedgerRun per bot, and they
+   * share one total); absent: its own
+   */
+  totals?: Record<BatchKind, LedgerTotals>;
 }
 
 /** The ledger as one builder run uses it: entry ids, priors and recording, over any store. */
 export class ChangeLedgerRun {
   readonly field: string;
-  readonly totals: Record<BatchKind, LedgerTotals> = emptyTotals();
+  readonly totals: Record<BatchKind, LedgerTotals>;
   constructor(
     readonly store: LedgerBackend,
     readonly o: ChangeLedgerRunOptions,
   ) {
     this.field = fieldFingerprint(o.opponents);
+    this.totals = o.totals ?? emptyTotals();
   }
 
   entryId(base: Lists, cand: Lists): EntryId {
@@ -196,12 +205,27 @@ export class ChangeLedgerRun {
 
   /** The held-out games of this change from earlier runs, leaving out the games in `leaveOut`. */
   prior(base: Lists, cand: Lists, leaveOut: ReadonlySet<string>): PairedScores {
-    return priorOf(this.store.entry(this.entryId(base, cand)), leaveOut);
+    const id = this.entryId(base, cand);
+    return priorOf(this.store.entry(id), this.withOtherScreens(id, leaveOut));
   }
 
   /** The games `prior` takes, in its order, with where each sat (seed, opponent, who went first). */
   priorGames(base: Lists, cand: Lists, leaveOut: ReadonlySet<string>): LedgerGame[] {
-    return priorGamesOf(this.store.entry(this.entryId(base, cand)), leaveOut);
+    const id = this.entryId(base, cand);
+    return priorGamesOf(this.store.entry(id), this.withOtherScreens(id, leaveOut));
+  }
+
+  /**
+   * `leaveOut` and every slot that screened this change under another bot (the same change, simulator version and field):
+   * a deal is the same deal whichever bot plays it, so one that picked a change never vouches for it. With one bot's
+   * entries only (every run before another bot confirmed one), this is `leaveOut` itself.
+   */
+  private withOtherScreens(id: EntryId, leaveOut: ReadonlySet<string>): ReadonlySet<string> {
+    const others = this.store.entriesOf(changeBase(id.change)).filter((e) => e.id.change === id.change && e.id.simVersion === id.simVersion && e.id.field === id.field && e.id.bot !== id.bot && e.screen.length);
+    if (!others.length) return leaveOut;
+    const out = new Set(leaveOut);
+    for (const e of others) for (const g of e.screen) out.add(gameId(g));
+    return out;
   }
 
   /** Append one change's games of one kind (nothing is written when they are all on record). */

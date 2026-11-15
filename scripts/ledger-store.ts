@@ -132,7 +132,7 @@ export class RunLedger extends ChangeLedgerRun {
   declare readonly store: LedgerStore;
   declare readonly o: ChangeLedgerRun['o'] & { dir: string };
   /** `store`: share one store between runs of one process (default: a new one on `dir`) */
-  constructor(o: { dir: string; simVersion: number; bot: string; opponents: readonly string[]; run: string; date: string; store?: LedgerStore }) {
+  constructor(o: { dir: string; simVersion: number; bot: string; opponents: readonly string[]; run: string; date: string; store?: LedgerStore; totals?: ChangeLedgerRun['totals'] }) {
     super(o.store ?? new LedgerStore(o.dir), o);
   }
 

@@ -33,6 +33,8 @@
 // --until-settled (the evidence rule only; --reach N is its reach too) turns "until settled" on for the forge step
 // (docs/SYNERGIES.md "Until settled"; off by default, and without it nothing changes); the forge-budget check counts the
 // usual estimate, and the printed estimate says what it may add at most.
+// --confirm-bot BOT has the forge step's confirmation stages played by BOT (its screening stays with lookahead, Medium;
+// docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes; not with --pooled-ranking).
 //
 // Outputs: data/decks/custom/s<N>-*.txt, reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
@@ -49,7 +51,7 @@ import { breederPackageFlags, exitOnPlanProblems, packagesOn, planArgs, planFrom
 import { describePlan, packageName, packageProvenance } from '../src/lib/deckPackages';
 import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
-import { adoptionArgs, adoptionFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleArgs, settleFlags, settleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
+import { adoptionArgs, adoptionFlags, checkBudget, confirmBotArgs, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleArgs, settleFlags, settleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { adoptionProvenance, describeRule, settleStages } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, estimateGames, settleExtra } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -72,6 +74,7 @@ const { values: V } = cli(import.meta.url, {
   ...ledgerFlags(),
   ...shortlistFlags(),
   ...settleFlags(),
+  ...confirmBotFlag(),
 });
 // checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
 const SEASON_LEDGER = ledgerFromFlags(V, { bot: 'lookahead' });
@@ -80,6 +83,8 @@ const PLAN = planFromFlags(V);
 exitOnPlanProblems(PLAN);
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
+// --confirm-bot goes to the forge step (whose --bot is lookahead); refused here as the forge would refuse it
+const FORGE_CONFIRM = confirmBotFromFlags(V, { bot: 'lookahead' });
 // --pooled-ranking (and --carry, --reach) go to the forge step; refused here as the forge would refuse them
 shortlistFromFlags(V, { ledger: !!SEASON_LEDGER, rule: RULE });
 // --until-settled goes to the forge step; refused here as the forge would refuse it
@@ -276,9 +281,9 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
 // ---------------------------------------------------------------- season
 async function main() {
   const startedAt = new Date().toISOString();
-  console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}) })}`);
+  console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}`);
   // refuse before anything is played or written: the forge step would refuse later, after the round robin
-  checkBudget(`season forge step, ${FORGE_GENS} generation${FORGE_GENS === 1 ? '' : 's'}`, FORGE_ESTIMATE, V['forge-budget'], false, FORGE_SETTLE_EXTRA);
+  checkBudget(`season forge step, ${FORGE_GENS} generation${FORGE_GENS === 1 ? '' : 's'}`, FORGE_ESTIMATE, V['forge-budget'], false, FORGE_SETTLE_EXTRA, FORGE_CONFIRM ? { with: FORGE_CONFIRM, games: FORGE_GENS * FORGE_ESTIMATE.confirm } : undefined);
   const lb = loadLB();
   // ---- refuse to count a season twice
   const counted = Object.values(lb).some((e) => e.seasons[String(SEASON)] !== undefined || e.contrib?.[String(SEASON)]);
@@ -349,7 +354,7 @@ async function main() {
     createdAt: startedAt,
     ...(PACKAGES ? { packages: packageProvenance(PLAN, { seeds: SEEDS }) } : {}),
     // the rule the forge step adopts changes by (the forge writes its own manifests too)
-    adoption: adoptionProvenance(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, V.ledger, SETTLE ?? undefined),
+    adoption: adoptionProvenance(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, V.ledger, SETTLE ?? undefined, FORGE_CONFIRM?.confirm),
   });
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   if (!rerun) {
@@ -379,7 +384,7 @@ async function main() {
   // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
   const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
   // the adoption rule and depth flags that were given, and the budget the season already checked
-  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V)].join(' ');
+  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
   execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
   // 4. finals vs meta for newcomers (post-forge) and any incumbent without finals
   const lib3 = loadLibrary();
@@ -413,7 +418,7 @@ async function main() {
     '',
     `${field.length} decks (7 meta, ${incumbents.length} incumbents, 8 new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. New decks were forged (${FORGE_GENS} gen) and then played the finals vs the meta (${FINALS} games per opponent).`,
     '',
-    `Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`,
+    `Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`,
     '',
     '## New decks',
     ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}${V['keep-built-around'] ? "; the forge kept each new deck's built-around packages" : ''}${V['package-moves'] ? '; the forge tried package moves' : ''}.`, ''] : []),

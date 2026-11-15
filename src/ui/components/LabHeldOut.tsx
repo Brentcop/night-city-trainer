@@ -95,7 +95,24 @@ export function useListSds(store: BrowserLedgerStore | null, base: string, bot: 
 const LINE_ID = 'lab-heldout-line';
 
 /** The tuner's checkbox, with one line on what this browser holds for this exact list (`noList`: no valid list yet). */
-export function HeldOutCheckbox({ checked, onChange, disabled, state, holding, noList }: { checked: boolean; onChange: (on: boolean) => void; disabled?: boolean; state: HeldOutState; holding: ListHolding | null; noList?: boolean }) {
+export function HeldOutCheckbox({
+  checked,
+  onChange,
+  disabled,
+  state,
+  holding,
+  noList,
+  confirmBot,
+}: {
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  disabled?: boolean;
+  state: HeldOutState;
+  holding: ListHolding | null;
+  noList?: boolean;
+  /** another bot confirms: the earlier games are its, and promising changes are not tested again first */
+  confirmBot?: string;
+}) {
   const unavailable = state === 'unavailable';
   return (
     <div className="grid" style={{ gap: 2 }}>
@@ -115,13 +132,16 @@ export function HeldOutCheckbox({ checked, onChange, disabled, state, holding, n
             ? 'Checking what this browser holds for this list…'
             : holdingLine(holding)}
       </div>
-      {!unavailable && <div className="small muted">{SHORTLIST_LINE}</div>}
+      {!unavailable && <div className="small muted">{confirmBot ? NO_SHORTLIST_LINE : SHORTLIST_LINE}</div>}
     </div>
   );
 }
 
 /** What the checkbox also turns on (the shortlist from pooled evidence, src/lib/shortlist.ts), in one plain sentence. */
 export const SHORTLIST_LINE = 'With it on, each generation also tests again the two most promising changes from earlier runs on this list, and skips changes that earlier games say are not worth testing.';
+/** The same place when the Hard bot confirms: the earlier games are Hard's, and nothing is tested again first. */
+export const NO_SHORTLIST_LINE =
+  'With the Hard bot confirming, the earlier games used are the ones Hard confirmed, and this run does not test the most promising earlier changes again first: that choice reads games of both bots together, and games of two bots are never put together.';
 
 export interface HeldOutPanelProps {
   state: HeldOutState;

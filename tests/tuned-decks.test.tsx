@@ -147,8 +147,16 @@ describe('tuned decks page', () => {
     expect(html).toContain('href="#/lab?d=custom%3ARRG%20Dexter%20Midrange%20(tuned)"');
     expect(html).toContain('Run details');
     expect(html).toContain('partner-aware cuts on');
+    expect(html).not.toContain('Hard bot');
     expect(html).toContain('🗑 Delete');
     expect(html).toMatch(/Shown better<\/div><div class="rec-tile-val">1</);
+  });
+  it('names the bot that confirmed when it was not the run’s own', () => {
+    const [d] = seed();
+    const withHard = { ...d!, name: 'RRG Dexter Midrange (tuned, Hard)', tuned: { ...d!.tuned!, confirmBot: 'hard' } };
+    expect(saveCustom([withHard])).toBe(true);
+    const html = renderToStaticMarkup(<TunedDecksPage />);
+    expect(html).toContain('bot medium (confirmed, and compared with the original, by the Hard bot)');
   });
   it('a deleted tuned deck leaves the page', () => {
     seed();

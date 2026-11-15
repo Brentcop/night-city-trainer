@@ -409,6 +409,9 @@ export function changeStatusWords(relation: ChangeSubject['relation'], settled: 
   return shortlist ?? RELATION_WORDS['from-this-list'];
 }
 
+/** A run's bots: "Medium bot", or "Medium bot screening, Hard bot confirming" when another bot played the confirmation. */
+export const runBotWords = (r: Pick<RunRecord, 'bot' | 'confirmBot'>): string => (r.confirmBot ? `${botName(r.bot)} bot screening, ${botName(r.confirmBot)} bot confirming` : `${botName(r.bot)} bot`);
+
 /** A row's second line after its sentence: the bot and the simulator version, once. */
 export const botVersionWords = (f: Pick<Finding, 'bot' | 'simVersion'>): string => `${botName(f.bot)} bot, version ${f.simVersion}`;
 
@@ -484,7 +487,7 @@ export function botsWords(readings: readonly BotReading[]): string | null {
 }
 
 /** The screening figure of a change, one short greyed line: "Screening read +5.4 pts over 224 games: not the result." */
-export const screenWords = (s: NonNullable<FindingDetail['screen']>): string => `Screening read ${pts(s.mean)} over ${plural(s.games, 'game')}: not the result.`;
+export const screenWords = (s: NonNullable<FindingDetail['screen']>): string => `Screening${s.bot ? ` with ${botName(s.bot)}` : ''} read ${pts(s.mean)} over ${plural(s.games, 'game')}: not the result.`;
 
 /**
  * Said once above a deck's changes: how much higher screening has read than the held-out games, by tool (the tools'
@@ -499,12 +502,15 @@ export function screenCurseWords(health: readonly ToolHealth[]): string {
 }
 
 /** An open question: what its games read so far, and how many more held-out games would settle it. */
-export function openWords(o: Pick<OpenQuestion, 'heldout' | 'screen' | 'pooled' | 'toSettle' | 'more' | 'runs'>): { reads: string; settle: string } {
+export function openWords(o: Pick<OpenQuestion, 'heldout' | 'screen' | 'pooled' | 'toSettle' | 'more' | 'runs' | 'bot' | 'screenBot'>): { reads: string; settle: string } {
   const range = seRange(o.pooled.mean, o.pooled.se);
   const reads =
-    o.heldout > 0
-      ? `${plural(o.heldout, 'held-out game')} and ${plural(o.screen, 'screening game')} over ${plural(o.runs, 'run')} read ${pts(o.pooled.mean)} together (${range}).`
-      : `Screened only: ${plural(o.screen, 'screening game')} over ${plural(o.runs, 'run')} read ${pts(o.pooled.mean)} (${range}), and screening reads high.`;
+    o.heldout > 0 && o.screenBot
+      ? // screened by another bot: the two bots' games are never read together
+        `${plural(o.heldout, 'held-out game')} with ${botName(o.bot)} over ${plural(o.runs, 'run')} read ${pts(o.pooled.mean)} (${range}); it was screened with ${botName(o.screenBot)} on ${plural(o.screen, 'game')}.`
+      : o.heldout > 0
+        ? `${plural(o.heldout, 'held-out game')} and ${plural(o.screen, 'screening game')} over ${plural(o.runs, 'run')} read ${pts(o.pooled.mean)} together (${range}).`
+        : `Screened only: ${plural(o.screen, 'screening game')} over ${plural(o.runs, 'run')} read ${pts(o.pooled.mean)} (${range}), and screening reads high.`;
   const settle =
     o.heldout === 0
       ? 'No held-out games yet: it has only been screened.'

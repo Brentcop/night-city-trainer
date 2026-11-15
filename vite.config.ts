@@ -160,5 +160,8 @@ export default defineConfig({
   // Vite's default 500 kB warning limit; no override.
   build: { outDir: 'dist' },
   // Agent worktrees under .claude/ hold full copies of the repo; never collect their tests.
-  test: { exclude: [...configDefaults.exclude, '.claude/**'] },
+  // testTimeout: the seeded-game tests assert the same game, not a speed. Alone they take about 2 s, but in a full run
+  // with every core busy (and tests that spawn the forge beside them) several sat at 4 to 5 s against the default 5 s
+  // and one tipped over. Tests that need longer still name their own timeout.
+  test: { exclude: [...configDefaults.exclude, '.claude/**'], testTimeout: 15_000 },
 });

@@ -38,6 +38,7 @@ import {
   openWords,
   restOf,
   runTitleWords,
+  screenWords,
   shortlistWords,
   valueOf,
   VERDICT_WORDS,
@@ -527,6 +528,25 @@ describe('a deck’s page', () => {
     expect(html).toContain('About 223 more held-out games would settle it (895 in all).');
     expect(html).toContain('No held-out games yet: it has only been screened.');
     expect(openWords({ ...open[0]!, more: null, toSettle: null }).settle).toBe('No estimate of the games that would settle it: its held-out reading is not above the bar.');
+  });
+
+  it('a change screened by one bot and confirmed by another never reads the two bots’ games together', () => {
+    // the open question: the confirming bot's held-out games alone, the screening bot and its games named apart
+    const two = openWords({ ...open[0]!, bot: 'hard', screenBot: 'medium', heldout: 224, screen: 28, pooled: { games: 224, mean: 0.018, se: 0.02 }, runs: 1 });
+    expect(two.reads).toBe('224 held-out games with Hard over 1 run read +1.8 pts (95% range −2.1 pts to +5.7 pts); it was screened with Medium on 28 games.');
+    expect(two.reads).not.toContain('together');
+    expect(two.settle).toBe(openWords(open[0]!).settle);
+    // one bot throughout: the sentence is the one it was
+    expect(openWords({ ...open[0]!, bot: 'hard' }).reads).toBe(openWords(open[0]!).reads);
+    // the screening figure on a finding names its bot only when it is another bot than the finding's
+    const scr = { games: 28, mean: 0.071, lower: -0.05, upper: 0.19, flag: 'screening' as const };
+    expect(screenWords(scr)).toBe('Screening read +7.1 pts over 28 games: not the result.');
+    expect(screenWords({ ...scr, bot: 'medium' })).toBe('Screening with Medium read +7.1 pts over 28 games: not the result.');
+    // and the page shows both
+    const hardF = chg({ method: 'paired-pooled', bot: 'hard', estimate: 0.018, lower: -0.03, upper: 0.066, games: 224, n: 224, detail: { date: '2026-11-15', verdict: 'undecided', screen: { ...scr, bot: 'medium' } } });
+    const html = text(renderToStaticMarkup(<DeckEvidenceView deck={{ ...DECK, findings: [...DECK.findings, hardF], open: [{ ...open[0]!, bot: 'hard', screenBot: 'medium', heldout: 224, screen: 28, pooled: { games: 224, mean: 0.018, se: 0.02 }, runs: 1 }] }} index={INDEX} target={null} onReveal={() => {}} />));
+    expect(html).toContain('Screening with Medium read +7.1 pts over 28 games: not the result.');
+    expect(html).toContain(two.reads);
   });
 
   it('a pairing with a direct measurement shows both; the game length shows its three groups', () => {
