@@ -28,6 +28,8 @@
 // the season refuses to start when the forge step could play more).
 // --ledger (and --ledger-dir DIR) turns the change ledger on for the forge step (docs/SYNERGIES.md "Pooling held-out
 // games across runs"; off by default, and without it nothing changes).
+// --pooled-ranking (with --ledger; and --carry N, --reach N) turns the shortlist from pooled evidence on for the forge
+// step (docs/SYNERGIES.md "A shortlist carried across runs"; off by default, and without it nothing changes).
 //
 // Outputs: data/decks/custom/s<N>-*.txt, reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
@@ -44,7 +46,7 @@ import { breederPackageFlags, exitOnPlanProblems, packagesOn, planArgs, planFrom
 import { describePlan, packageName, packageProvenance } from '../src/lib/deckPackages';
 import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
-import { adoptionArgs, adoptionFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags } from './evidence-flags';
+import { adoptionArgs, adoptionFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { adoptionProvenance, describeRule } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, estimateGames } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -65,14 +67,17 @@ const { values: V } = cli(import.meta.url, {
   ...depthFlags(1),
   'forge-budget': int(DEFAULT_GAME_BUDGET, { min: 1 }),
   ...ledgerFlags(),
+  ...shortlistFlags(),
 });
 // checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
-ledgerFromFlags(V, { bot: 'lookahead' });
+const SEASON_LEDGER = ledgerFromFlags(V, { bot: 'lookahead' });
 const PACKAGES = packagesOn(V);
 const PLAN = planFromFlags(V);
 exitOnPlanProblems(PLAN);
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
+// --pooled-ranking (and --carry, --reach) go to the forge step; refused here as the forge would refuse them
+shortlistFromFlags(V, { ledger: !!SEASON_LEDGER, rule: RULE });
 const DEPTH = depthFromFlags(V, 1);
 /** the forge step's cost per new deck (5 candidate swaps, package moves when on), checked before the season starts */
 const FORGE_ESTIMATE = estimateGames({
@@ -359,7 +364,7 @@ async function main() {
   // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
   const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
   // the adoption rule and depth flags that were given, and the budget the season already checked
-  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a)))].join(' ');
+  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V)].join(' ');
   execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
   // 4. finals vs meta for newcomers (post-forge) and any incumbent without finals
   const lib3 = loadLibrary();

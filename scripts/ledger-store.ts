@@ -105,6 +105,12 @@ export class LedgerStore implements LedgerBackend {
     return this.cache.entry(id);
   }
 
+  /** Every entry of one base list (read from its file the first time). */
+  entriesOf(base: string): LedgerEntry[] {
+    this.load(base);
+    return this.cache.entriesOf(base);
+  }
+
   /**
    * Append a batch: games already on record with the same scores are dropped, and an empty batch writes nothing. Returns
    * what was written: `added` (new games), `conflicts` (written, but the earlier scores are kept) and `duplicates` (dropped).

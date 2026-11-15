@@ -13,6 +13,7 @@
 // store's business: the Node store appends a line at once, the browser store queues an IndexedDB write.
 import { addBatch, changeBase, changeKey, entryKey, fieldFingerprint, gameId, priorOf, screenedBefore, type AddResult, type BatchKind, type EntryId, type LedgerBatch, type LedgerEntry, type LedgerGame } from './changeLedger';
 import type { PairedScores } from './evidence';
+import { listFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 
 /** A game's place in a builder's layout, before it is played. */
@@ -43,6 +44,8 @@ export type AppendResult = AddResult & { written: number };
 /** What a run reads and appends, synchronously (the base list's batches are loaded first). */
 export interface LedgerBackend {
   entry(id: EntryId): LedgerEntry | undefined;
+  /** every entry of one base list (its list fingerprint), every version, bot and field (the shortlist reads them) */
+  entriesOf(base: string): LedgerEntry[];
   append(b: LedgerBatch): AppendResult;
 }
 
@@ -172,7 +175,23 @@ export class ChangeLedgerRun {
   }
 
   entryId(base: Lists, cand: Lists): EntryId {
-    return { change: changeKey(base, cand), simVersion: this.o.simVersion, bot: this.o.bot, field: this.field };
+    return this.entryIdOf(changeKey(base, cand));
+  }
+
+  /** The entry id of a change key in this run's context (simulator version, bot, field). */
+  entryIdOf(change: string): EntryId {
+    return { change, simVersion: this.o.simVersion, bot: this.o.bot, field: this.field };
+  }
+
+  /** What the store holds for one change in this run's context. */
+  entryOf(change: string): LedgerEntry | undefined {
+    return this.store.entry(this.entryIdOf(change));
+  }
+
+  /** Every entry of this base list in this run's context: the same simulator version, bot and field (src/lib/shortlist.ts). */
+  entries(base: Lists): LedgerEntry[] {
+    const fp = listFingerprint(base);
+    return this.store.entriesOf(fp).filter((e) => e.id.simVersion === this.o.simVersion && e.id.bot === this.o.bot && e.id.field === this.field && changeBase(e.id.change) === fp);
   }
 
   /** The held-out games of this change from earlier runs, leaving out the games in `leaveOut`. */

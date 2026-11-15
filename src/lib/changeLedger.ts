@@ -335,8 +335,6 @@ export function ledgerVerdict(heldout: readonly LedgerGame[], rule: AdoptionRule
  * the bar or there are no games.
  */
 export function gamesToSettle(heldout: readonly LedgerGame[], rule: AdoptionRule, o: VerdictOptions = {}): number {
-  const n = heldout.length;
-  if (!n) return Infinity;
   let sum = 0;
   let sq = 0;
   for (const g of heldout) {
@@ -344,6 +342,12 @@ export function gamesToSettle(heldout: readonly LedgerGame[], rule: AdoptionRule
     sum += d;
     sq += d * d;
   }
+  return gamesToSettleSums(heldout.length, sum, sq, rule, o);
+}
+
+/** gamesToSettle from the count, Σd and Σd² of the held-out paired differences (the shortlist and its simulation keep sums). */
+export function gamesToSettleSums(n: number, sum: number, sq: number, rule: AdoptionRule, o: VerdictOptions = {}): number {
+  if (!n) return Infinity;
   const bar = (o.minGainPp ?? rule.minGainPp) / 100;
   const a = pooledShare(rule.alpha, o.nominees ?? 1);
   const mean = sum / n;

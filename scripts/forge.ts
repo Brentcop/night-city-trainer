@@ -43,6 +43,17 @@
 //                     repeat finds those too). Not with --bot hard-v1 (it reads card impact).
 //   --ledger-dir DIR  default data/ledger (one <base list fingerprint>.jsonl per list); under --out DIR, DIR/ledger
 //
+// Shortlist from pooled evidence (opt-in, needs --ledger and the evidence rule; src/lib/shortlist.ts; docs/SYNERGIES.md
+// "A shortlist carried across runs"; without it nothing changes):
+//   --pooled-ranking  each generation screens first the --carry most promising one-card swaps earlier runs left undecided
+//                     (best gain over all their screening and held-out games in the ledger, each game once), then the
+//                     swap generator's picks in its own order, skipping a change earlier games drop (pooled gain + 0.5
+//                     standard errors under the 2-point nomination bar, held-out games that reject it, or more than
+//                     --reach held-out games needed to adopt it), up to --cands. Nominees are ranked by pooled gain over
+//                     all their games, this generation's screening included, at the same 2-point bar; a change with no
+//                     earlier games is judged exactly as before. Package moves and combined changes are screened as before.
+//   --carry N (2)     --reach N (10000)
+//
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
 //   2. Cuts: the deck's lowest-IWD cards. Adds: +1 of its best card, and the format's highest-impact legal cards
@@ -73,7 +84,9 @@ import { cliGameCache } from './game-cache';
 import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
+import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
+import { byPooledGain, describeShortlist, outOfReach, pooledFigure, pooledWords, shortlistGeneration, skippedWords, type PooledFigure, type ShortlistNote } from '../src/lib/shortlist';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
 import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval, type PairedScores } from '../src/lib/evidence';
 import { gameIds } from '../src/lib/changeLedger';
@@ -99,6 +112,7 @@ const { values: V, positionals } = cli(
     ...depthFlags(1),
     ...budgetFlags(),
     ...ledgerFlags(),
+    ...shortlistFlags(),
   },
   { maxPositionals: Infinity },
 );
@@ -131,6 +145,10 @@ const lib = loadLibrary();
 const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
 /** --ledger: where the change ledger is kept and the bot's canonical name (null when off) */
 const LEDGER = ledgerFromFlags(V, { bot: BOT, out: OUT });
+/** --pooled-ranking: the shortlist's settings (null when off) */
+const SHORT = shortlistFromFlags(V, { ledger: !!LEDGER, rule: RULE });
+/** the nomination bar: a change must beat the list by this much (a fraction) */
+const NOMINATE_BAR = 0.02;
 /** the field's list fingerprints, in the order the jobs use them (field[k % field.length]) */
 const OPPONENTS = field.map((f) => listFingerprint(f.deck));
 const LEDGER_STORE = LEDGER ? new LedgerStore(LEDGER.dir) : null;
@@ -215,6 +233,7 @@ async function forge(target: (typeof lib)[number]) {
   /** the change ledger for this deck's run (--ledger) */
   const ledger = LEDGER && LEDGER_STORE ? new RunLedger({ dir: LEDGER.dir, simVersion: SIM_VERSION, bot: LEDGER.bot, opponents: OPPONENTS, run: RUN_ID, date: new Date().toISOString().slice(0, 10), store: LEDGER_STORE }) : null;
   if (ledger) log.push(`Change ledger: ${LEDGER!.dir} (bot ${LEDGER!.bot}, simulator version ${SIM_VERSION}, field ${ledger.field}).`, '');
+  if (SHORT) log.push(`Shortlist: ${describeShortlist(SHORT, NOMINATE_BAR)}.`, '');
   if (DEPTH.cardsPerChange > 1 || DEPTH.packagesPerChange > 1 || DEPTH.nominees > 1)
     log.push(`Search depth: up to ${DEPTH.cardsPerChange} card swap(s) and ${DEPTH.packagesPerChange} package move(s) per candidate (combined from the best ${DEPTH.combineFrom} screened), ${DEPTH.nominees} nominee(s) confirmed per generation.`, '');
   if (PACKAGES) log.push(`Packages: ${describePlan(plan)}${V['package-moves'] ? `; package moves on (${V['package-cands']} per generation)` : '; package moves off'}.`, '');
@@ -238,7 +257,10 @@ async function forge(target: (typeof lib)[number]) {
     gens: {
       gen: number;
       baseline: number;
-      swaps: { swap: string; wr: number; delta: number; package?: string }[];
+      /** `pooled` (--pooled-ranking, when the change has games from earlier runs): its gain in points over all its games */
+      swaps: { swap: string; wr: number; delta: number; package?: string; pooled?: { gain: number; games: number; earlier: number } }[];
+      /** --pooled-ranking: the changes carried from earlier runs, the generator's picks skipped and why (gains in points) */
+      shortlist?: ShortlistNote;
       /** partner-aware runs: the cut ranking (plain and partner-aware scores in points, offered or not and why) */
       cuts?: { card: string; plain: number; score: number; offered: boolean; plainOffered: boolean; why: string }[];
       /** partner-aware runs: the swaps the plain ranking would have screened from the same games */
@@ -255,6 +277,8 @@ async function forge(target: (typeof lib)[number]) {
     packages?: { plan: PackagePlan; moves: boolean; changes: PackageChanges; adopted: string[] };
     /** with --ledger only: where it is kept and what this run appended (games) */
     ledger?: { dir: string; bot: string; field: string; screen: { written: number; duplicates: number; conflicts: number }; heldout: { written: number; duplicates: number; conflicts: number } };
+    /** with --pooled-ranking only: the shortlist's settings */
+    shortlist?: { carry: number; dropSe: number; reach: number; nominateBarPp: number };
     manifest?: RunManifest;
   } = {
     deck: deck.name,
@@ -265,6 +289,7 @@ async function forge(target: (typeof lib)[number]) {
     adoption: { ...adoption, text: ruleLine },
     gens: [],
     summary: [],
+    ...(SHORT ? { shortlist: { ...SHORT, nominateBarPp: NOMINATE_BAR * 100 } } : {}),
   };
   const screen = async (muts: Mutation[], seed0: number, base: number[]): Promise<Screened[]> => {
     if (!muts.length) return [];
@@ -285,8 +310,33 @@ async function forge(target: (typeof lib)[number]) {
     console.log(`\n[${deck.name}] gen ${gen}: baseline ${pct(base.wr)}`);
     log.push(`## Generation ${gen} — baseline ${pct(base.wr)}`, '', ...rep.insights.slice(0, 4).map((s) => `- ${s}`), '');
     const partner = PARTNER ? { sums: base.sums } : undefined;
-    const explained = forgeSwapsExplained(deck, rep, GLOBAL_IMPACT, CANDS, plan, partner);
-    const muts: Mutation[] = explained.swaps;
+    // --pooled-ranking: the generator's whole order (its first CANDS are today's swaps), to fall back on past skipped picks
+    const explained = forgeSwapsExplained(deck, rep, GLOBAL_IMPACT, SHORT ? Infinity : CANDS, plan, partner);
+    let muts: Mutation[] = explained.swaps;
+    /** the swaps the forge screens without --pooled-ranking (the plan's comparison below is against these) */
+    const todays = SHORT ? explained.swaps.slice(0, CANDS) : muts;
+    let shortNote: ShortlistNote | undefined;
+    if (SHORT && ledger) {
+      const g = shortlistGeneration({
+        run: ledger,
+        base: deck,
+        plan,
+        rule: { rule: RULE, nominees: DEPTH.nominees, minGainPp: RULE.minGainPp, nominateBar: NOMINATE_BAR, shortlist: SHORT },
+        picks: explained.swaps,
+        cands: CANDS,
+        make: (cut, add, d) => ({ label: `-1 ${cardLabel(CARD_BY_ID[cut])} → +1 ${cardLabel(CARD_BY_ID[add])}`, deck: d, prior: 0 }),
+      });
+      muts = g.candidates;
+      shortNote = g.note;
+      const o = { nominateBar: NOMINATE_BAR, dropSe: SHORT.dropSe, reach: SHORT.reach };
+      const lines = [
+        ...shortNote.carried.map((c) => `- carried from earlier runs: ${c.label}, ${pooledWords(c.gain, c.games, c.heldout)}`),
+        ...shortNote.skipped.map((s) => `- skipped: ${s.label}: ${skippedWords(s, o)}`),
+        ...(shortNote.short ? [`- the swap generator ran out: ${CANDS - shortNote.short} one-card swap${CANDS - shortNote.short === 1 ? '' : 's'} screened instead of ${CANDS}`] : []),
+      ];
+      log.push('Shortlist (pooled across runs):', ...(lines.length ? lines : ['- nothing carried or skipped: no change offered here has games from earlier runs']), '');
+      for (const l of lines) console.log(`  shortlist ${l.slice(2)}`);
+    }
     const cutRows = explained.cuts ? cutTableRows(explained.cuts) : [];
     let genRecPlain: string[] | undefined;
     if (cutRows.length) {
@@ -300,7 +350,7 @@ async function forge(target: (typeof lib)[number]) {
     if (PACKAGES) {
       // what the plan changed: the swaps the forge would have tried without it, and why each was not played
       const free = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, {}, partner);
-      const dropped = free.filter((m) => !muts.some((x) => x.label === m.label));
+      const dropped = free.filter((m) => !todays.some((x) => x.label === m.label));
       if (dropped.length) {
         log.push(`The package plan kept ${dropped.length} swap${dropped.length === 1 ? '' : 's'} from being played:`, ...dropped.map((m) => `- ${m.label}: ${checkChange(deck, m.deck, plan).map((v) => v.text).join('; ') || 'replaced by a better allowed swap'}`), '');
         console.log(`  plan: ${dropped.length} swap(s) not played (${dropped.map((m) => m.label).join('; ')})`);
@@ -322,14 +372,42 @@ async function forge(target: (typeof lib)[number]) {
       screened.push(...(await screen(combos, seed0, base.scores)));
     }
     const results = [...screened].sort((a, b) => b.wr - a.wr);
-    log.push('| Swap | Win % | Δ vs baseline | Paired 95% (screening) |', '|---|---|---|---|', ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} | [${(r.iv.lower * 100).toFixed(1)}, ${(r.iv.upper * 100).toFixed(1)}] |`), '');
+    /** --pooled-ranking: each screened change's gain over all its games (this generation's screening included, each game once) */
+    const figs = new Map<Screened, PooledFigure>();
+    if (SHORT && ledger) {
+      const own = gameIds(blockSlots(seed0, GAMES, OPPONENTS));
+      for (const r of results) figs.set(r, pooledFigure(ledger.entryOf(ledger.entryId(deck, r.m.deck).change), { ids: own, gain: r.wr - base.wr, games: GAMES }));
+    }
+    const pooledCell = (r: Screened) => {
+      const f = figs.get(r);
+      return f?.earlier ? pooledWords(f.gain, f.games) : '—';
+    };
+    log.push(
+      `| Swap | Win % | Δ vs baseline | Paired 95% (screening) |${SHORT ? ' Pooled with earlier runs |' : ''}`,
+      `|---|---|---|---|${SHORT ? '---|' : ''}`,
+      ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} | [${(r.iv.lower * 100).toFixed(1)}, ${(r.iv.upper * 100).toFixed(1)}] |${SHORT ? ` ${pooledCell(r)} |` : ''}`),
+      '',
+    );
+    const pooledOf = (r: Screened) => {
+      const f = figs.get(r);
+      return f?.earlier ? { pooled: { gain: p1(f.gain), games: f.games, earlier: f.earlier } } : {};
+    };
     const genRec: (typeof json.gens)[number] = {
       gen,
       baseline: p1(base.wr),
-      swaps: results.slice(0, PACKAGES || combos.length ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(mutKind(r.m) ? { package: mutKind(r.m) } : {}) })),
+      swaps: results.slice(0, PACKAGES || combos.length ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(mutKind(r.m) ? { package: mutKind(r.m) } : {}), ...pooledOf(r) })),
       verdict: 'kept',
       ...(cutRows.length ? { cuts: cutRows.map((r) => ({ card: r.name, plain: p1(r.plain), score: p1(r.score), offered: r.offered, plainOffered: r.plainOffered, why: r.why })) } : {}),
       ...(genRecPlain ? { plainSwaps: genRecPlain } : {}),
+      ...(shortNote
+        ? {
+            shortlist: {
+              carried: shortNote.carried.map((c) => ({ ...c, gain: p1(c.gain) })),
+              skipped: shortNote.skipped.map((s) => ({ ...s, ...(s.gain !== undefined ? { gain: p1(s.gain) } : {}), ...(s.toSettle !== undefined ? (Number.isFinite(s.toSettle) ? { toSettle: Math.round(s.toSettle) } : { toSettle: undefined }) : {}) })),
+              short: shortNote.short,
+            },
+          }
+        : {}),
     };
     json.gens.push(genRec);
     // screening only nominates: the best changes that beat the baseline by 2+ points on the shared seeds
@@ -338,7 +416,9 @@ async function forge(target: (typeof lib)[number]) {
     /** --ledger: the games the prior leaves out (every game the confirmation may play, and the screening games) */
     const leaveOut = ledger ? gameIds([...confirmSlots(seed1), ...blockSlots(seed0, GAMES, OPPONENTS)]) : new Set<string>();
     const priorFor = (m: Mutation): PairedScores | undefined => (ledger && RULE.kind === 'evidence' ? ledger.prior(deck, m.deck, leaveOut) : undefined);
-    const above2 = results.filter((r) => r.wr - base.wr >= 0.02);
+    // --pooled-ranking: nominees by pooled gain (a change with no earlier games keeps its own screening figure)
+    const gainOf = (r: Screened) => figs.get(r)?.gain ?? r.wr - base.wr;
+    const above2 = (SHORT ? byPooledGain(results, (r) => figs.get(r)!) : results).filter((r) => gainOf(r) >= NOMINATE_BAR);
     let nominated = above2.slice(0, DEPTH.nominees);
     if (ledger && RULE.kind === 'evidence') {
       // a change whose earlier held-out games alone already reject it is not nominated: the next best takes its place
@@ -354,12 +434,20 @@ async function forge(target: (typeof lib)[number]) {
             console.log(`  ledger: ${r.m.label} not nominated, earlier games reject it: ${words}`);
             continue;
           }
+          // --pooled-ranking: nor a change its earlier held-out games put out of reach
+          const reach = SHORT ? outOfReach(p, { rule: RULE, nominees: DEPTH.nominees, minGainPp: barOf(r.m), reach: SHORT.reach }) : null;
+          if (SHORT && reach?.out) {
+            const why = skippedWords({ label: r.m.label, why: 'out-of-reach', gain: j.iv.mean, games: p.base.length, heldout: p.base.length, toSettle: reach.toSettle }, { nominateBar: NOMINATE_BAR, dropSe: SHORT.dropSe, reach: SHORT.reach });
+            log.push(`Not nominated: ${r.m.label} (screening ${formatGain(r.iv)}): ${why}.`, '');
+            console.log(`  shortlist: ${r.m.label} not nominated, ${why}`);
+            continue;
+          }
         }
         nominated.push(r);
       }
     }
     if (!nominated.length) {
-      log.push(`No swap beat the baseline by 2+ points — **list kept**.`, '');
+      log.push(SHORT ? `No change beat the baseline by 2+ points on its pooled games, or none could be nominated — **list kept**.` : `No swap beat the baseline by 2+ points — **list kept**.`, '');
       history.push({ gen, wr: base.wr, change: 'kept', baseline: base.wr, baselineGames: GAMES });
       continue;
     }

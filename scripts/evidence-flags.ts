@@ -24,10 +24,17 @@
 //                               simulator version, bot and field) by the strict rule (docs/SYNERGIES.md "Pooling held-out
 //                               games across runs"); off by default, and without it nothing changes
 //   --ledger-dir DIR            where the ledger is kept (default data/ledger; under --out DIR it is DIR/ledger)
+//   --pooled-ranking            (forge; needs --ledger and the evidence rule) a shortlist from pooled evidence
+//                               (src/lib/shortlist.ts, docs/SYNERGIES.md "A shortlist carried across runs"): carry the
+//                               most promising one-card swaps of earlier runs into each generation, skip the ones earlier
+//                               games say are not worth it, nominate by the gain over all of a change's games
+//   --carry N                   changes carried into each generation (2)
+//   --reach N                   drop a change that would need more than N held-out games in all to be adopted (10000)
 import path from 'node:path';
 import { ADOPTION_BOUNDARIES, adoptionRule, ruleProblems, type AdoptionBoundary, type AdoptionRule } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, DEPTH_DEFAULTS, type SearchDepth } from '../src/lib/deckSearch';
 import { ledgerBot } from '../src/lib/changeLedger';
+import { shortlistOptions, type ShortlistOptions } from '../src/lib/shortlist';
 import { bool, int, num, oneOf, str } from './lib-node';
 
 export const ADOPT_KINDS = ['evidence', 'any-gain'] as const;
@@ -155,6 +162,41 @@ export function ledgerFromFlags(v: LedgerFlagValues, o: { bot: string; out?: str
 export function ledgerArgs(v: LedgerFlagValues): string[] {
   if (!v.ledger) return [];
   return ['--ledger', ...(v['ledger-dir'] !== undefined ? ['--ledger-dir', v['ledger-dir']] : [])];
+}
+
+/** The shortlist flags (forge, and the season for its forge step): src/lib/shortlist.ts. */
+export const shortlistFlags = () => ({ 'pooled-ranking': bool(), carry: int(undefined, { min: 0, max: 20 }), reach: int(undefined, { min: 1, max: 100_000_000 }) });
+export interface ShortlistFlagValues {
+  'pooled-ranking'?: boolean;
+  carry?: number;
+  reach?: number;
+}
+
+/** Why the shortlist flags cannot be used as given (null when they can, or are off). */
+export function shortlistProblem(v: ShortlistFlagValues, o: { ledger: boolean; rule: Pick<AdoptionRule, 'kind'> }): string | null {
+  if (!v['pooled-ranking']) {
+    const stray = (['carry', 'reach'] as const).filter((k) => v[k] !== undefined);
+    return stray.length ? `${stray.map((k) => `--${k}`).join(' and ')} need${stray.length === 1 ? 's' : ''} --pooled-ranking` : null;
+  }
+  if (!o.ledger) return '--pooled-ranking needs --ledger: the shortlist is built from the games the change ledger keeps';
+  if (o.rule.kind !== 'evidence') return '--pooled-ranking needs the evidence rule: under --adopt any-gain earlier games are never pooled';
+  return null;
+}
+
+/** The shortlist's settings, or null when --pooled-ranking is off. Exits 2 (a bad command line) on a problem. */
+export function shortlistFromFlags(v: ShortlistFlagValues, o: { ledger: boolean; rule: Pick<AdoptionRule, 'kind'> }): ShortlistOptions | null {
+  const p = shortlistProblem(v, o);
+  if (p) {
+    console.error(`error: ${p}\nRun with --help for usage.`);
+    process.exit(2);
+  }
+  return v['pooled-ranking'] ? shortlistOptions({ ...(v.carry !== undefined ? { carry: v.carry } : {}), ...(v.reach !== undefined ? { reach: v.reach } : {}) }) : null;
+}
+
+/** The command-line form of the shortlist flags (season.ts passes them on to the forge). */
+export function shortlistArgs(v: ShortlistFlagValues): string[] {
+  if (!v['pooled-ranking']) return [];
+  return ['--pooled-ranking', ...(v.carry !== undefined ? ['--carry', String(v.carry)] : []), ...(v.reach !== undefined ? ['--reach', String(v.reach)] : [])];
 }
 
 /**

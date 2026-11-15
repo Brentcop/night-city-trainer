@@ -3,12 +3,15 @@
 // held-out paired gain of each nominee. The rule is in src/lib/evidence.ts, the depth and estimate in src/lib/deckSearch.ts.
 // With earlier held-out games (the change ledger), a pooled nominee's gain keeps its usual figure and gets a note under
 // it (pooledNoteWords: how many games came from earlier runs, and the stricter z), and a change its earlier games already
-// reject gets its own line (NotNominatedList, worded by pooledGainWords).
+// reject gets its own line (NotNominatedList, worded by pooledGainWords). With the shortlist (src/lib/shortlist.ts, on
+// with earlier held-out games) a generation also says which changes were tested again and which were skipped
+// (ShortlistNotes), and a change its earlier held-out games put out of reach gets its own "Not nominated" line.
 import { useId, type ReactNode } from 'react';
 import { formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type StopReason } from '../../lib/evidence';
 import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
 import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type NotNominated, type TuneLog } from '../../lib/deckLab';
 import { cutTableRows } from '../../lib/cutRanking';
+import { pooledWords, SHORTLIST_DEFAULTS, skippedWords, type ShortlistNote } from '../../lib/shortlist';
 import { Signed, Wr, type Tone } from './Num';
 import { CardMention, MentionText } from './CardMention';
 
@@ -107,7 +110,39 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label 
 
 /** "Not nominated: X (screening …): its earlier held-out games already reject it, …" (the forge's log line, in the Lab). */
 export function notNominatedText(x: NotNominated): string {
+  if (x.why === 'out-of-reach') {
+    const need = x.toSettle !== undefined ? `it would need about ${x.toSettle.toLocaleString('en-US')} held-out games in all to be adopted` : 'its held-out gain is not above the bar';
+    return `Not nominated: ${x.label} (screening ${formatGain(x.screen)}): its ${x.priorGames.toLocaleString('en-US')} earlier held-out games show ${pooledWords(x.heldOut.mean, x.priorGames)}, and at that gain ${need}${x.reach !== undefined ? `, more than the ${x.reach.toLocaleString('en-US')} a change is given` : ''}.`;
+  }
   return `Not nominated: ${x.label} (screening ${formatGain(x.screen)}): its earlier held-out games already reject it, ${pooledGainWords({ heldOut: x.heldOut, looks: 0, priorGames: x.priorGames })}.`;
+}
+
+/**
+ * The shortlist of a generation in plain words: the changes tested again because earlier runs found them promising, and
+ * the generator's picks skipped because earlier games say they are not worth it (src/lib/shortlist.ts).
+ */
+export function shortlistLines(note: ShortlistNote, o: { nominateBar: number; dropSe?: number; reach?: number; cands?: number }): string[] {
+  const w = { nominateBar: o.nominateBar, dropSe: o.dropSe ?? SHORTLIST_DEFAULTS.dropSe, reach: o.reach ?? SHORTLIST_DEFAULTS.reach };
+  return [
+    ...note.carried.map((c) => `Tested again from earlier runs: ${c.label}, ${pooledWords(c.gain, c.games, c.heldout)} so far.`),
+    ...note.skipped.map((s) => (s.why === 'carried' ? `${s.label} was already being tested again.` : `Skipped ${s.label}: ${skippedWords(s, w)}.`)),
+    ...(note.short ? [`The list offered fewer new changes than asked for, so ${note.short} fewer ${note.short === 1 ? 'was' : 'were'} tested${o.cands ? ` (${o.cands - note.short} of ${o.cands})` : ''}.`] : []),
+  ];
+}
+
+/** The generation's shortlist lines (nothing when nothing was carried or skipped). */
+export function ShortlistNotes({ note, nominateBar, cands }: { note: ShortlistNote | undefined; nominateBar: number; cands?: number }) {
+  const lines = note ? shortlistLines(note, { nominateBar, cands }) : [];
+  if (!lines.length) return null;
+  return (
+    <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }} aria-label="Changes tested again or skipped because of earlier runs">
+      {lines.map((t) => (
+        <li key={t}>
+          <MentionText text={t} />
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /** The changes a generation did not nominate because their earlier held-out games already reject them. */

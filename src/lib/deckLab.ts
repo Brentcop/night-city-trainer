@@ -21,6 +21,7 @@ import { adoptionRule, confirmStaged, formatGain, judgePooled, nomineeRecord, pa
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
 import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
 import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, type SearchDepth } from './deckSearch';
+import { byPooledGain, outOfReach, pooledFigure, shortlistGeneration, shortlistOptions, type PooledFigure, type ShortlistNote, type ShortlistOptions } from './shortlist';
 import type { LibraryDeck } from './library';
 import { h2hFileLookup, type H2HFileLike, type H2HRecord } from './h2hModel';
 import { finalVsOriginal, manifestTune, tunedRecord, vsOriginalVerdict, type TunedDeckRecord, type VsOriginal } from './tuneRecord';
@@ -264,6 +265,13 @@ export interface TuneOptions {
    * recorded but never pooled. Absent: every game and log is the one before the ledger existed.
    */
   ledger?: TuneLedger;
+  /**
+   * a shortlist from pooled evidence (src/lib/shortlist.ts; needs `ledger` and the evidence rule; empty object = the
+   * defaults): each generation screens first the most promising one-card swaps earlier runs left undecided, skips the
+   * generator's picks that earlier games drop, fills up to `cands` from the generator's order, and nominates by pooled
+   * gain over every game of a change (TuneLog.shortlist, swaps[].pooled). Absent: every game and log is as before.
+   */
+  shortlist?: Partial<ShortlistOptions>;
 }
 
 /** A change-ledger store the tuner can use: loaded per base list before each generation, then read synchronously. */
@@ -326,7 +334,9 @@ export interface TuneLog {
   baseline: number;
   report?: DeckReport;
   /** every candidate screened on the baseline's games, best first; `gain` is the paired screening gain (plain 95%) */
-  swaps: { label: string; wr: number; pkg?: Swap['pkg']; combo?: boolean; gain?: { mean: number; lower: number; upper: number; games: number } }[];
+  swaps: { label: string; wr: number; pkg?: Swap['pkg']; combo?: boolean; gain?: { mean: number; lower: number; upper: number; games: number }; pooled?: { mean: number; games: number; earlier: number } }[];
+  /** runs with a shortlist: the changes carried from earlier runs and the generator's picks skipped, with why */
+  shortlist?: ShortlistNote;
   /**
    * the first nominee's confirmation (the adopted one when there is one), for the one-line summary; `priorGames`: pooled
    * with earlier runs, this many of the held-out games came from them
@@ -356,6 +366,12 @@ export interface NotNominated {
   heldOut: PairedInterval;
   /** = heldOut.games: every one from earlier runs */
   priorGames: number;
+  /** runs with a shortlist: 'out-of-reach' when the earlier held-out games do not reject it but would need more than the reach (absent: they reject it) */
+  why?: 'out-of-reach';
+  /** with why 'out-of-reach': the held-out games it would need in all (absent when its held-out gain is not above the bar) */
+  toSettle?: number;
+  /** with why 'out-of-reach': the reach */
+  reach?: number;
 }
 
 /** The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). */
@@ -407,6 +423,10 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const ledger = o.ledger ? ledgerRun(o.ledger, o.bot, field, seedBase) : null;
   const pooling = !!ledger && rule.kind === 'evidence';
   if (ledger) p.ledger = ledger.totals;
+  // the shortlist from pooled evidence: built from the ledger's games, and only where they are pooled
+  if (o.shortlist && !o.ledger) throw new Error('the shortlist needs earlier held-out games (TuneOptions.ledger)');
+  if (o.shortlist && rule.kind !== 'evidence') throw new Error('the shortlist needs the evidence rule: under any-gain earlier games are never pooled');
+  const short = o.shortlist && pooling && ledger ? shortlistOptions(o.shortlist) : null;
   /** the field's list fingerprints in the order playSet uses them (field[k % n]) */
   const opponents = ledger ? ledger.o.opponents : [];
   const tick = () => {
@@ -448,8 +468,22 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       const report = analyzeDeck(deck.name, base.sums);
       const log: TuneLog = { gen, baseline: base.wr, report, swaps: [], adopted: null };
       logs.push(log);
-      const ranked = swapsAndCuts(deck, report, o.cands, plan, o.partnerAware ? { sums: base.sums } : undefined);
-      const swaps = ranked.swaps;
+      // with the shortlist the generator's whole order (its first `cands` are the swaps screened without it)
+      const ranked = swapsAndCuts(deck, report, short ? Infinity : o.cands, plan, o.partnerAware ? { sums: base.sums } : undefined);
+      let swaps = ranked.swaps;
+      if (short && ledger) {
+        const g = shortlistGeneration({
+          run: ledger,
+          base: deck,
+          plan,
+          rule: { rule, nominees: depth.nominees, minGainPp: rule.minGainPp, nominateBar: o.minGain, shortlist: short },
+          picks: ranked.swaps,
+          cands: o.cands,
+          make: (cut, add, d) => ({ label: `−1 ${labelOf(cut)} → +1 ${labelOf(add)}`, deck: d, prior: 0 }),
+        });
+        swaps = g.candidates;
+        log.shortlist = g.note;
+      }
       if (ranked.cuts) log.cuts = ranked.cuts;
       if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
       const screened: { s: Swap; wr: number }[] = [];
@@ -483,11 +517,23 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       log.swaps.sort((a, b) => b.wr - a.wr);
       const seed1 = seed0 + 5_000;
       const swapOf = (label: string) => all.find((s) => s.label === label)!;
+      /** the shortlist: each screened change's gain over all its games (this generation's screening included, each game once) */
+      const figs = new Map<string, PooledFigure>();
+      if (short && ledger) {
+        const own = gameIds(screenSlots);
+        for (const x of log.swaps) {
+          const f = pooledFigure(ledger.entryOf(ledger.entryId(deck, swapOf(x.label).deck).change), { ids: own, gain: x.wr - base.wr, games: o.games });
+          figs.set(x.label, f);
+          if (f.earlier) x.pooled = { mean: f.gain, games: f.games, earlier: f.earlier };
+        }
+      }
       /** the ledger: the games a prior leaves out (every game this confirmation may play, and this generation's screening games) */
       const leaveOut = pooling ? gameIds([...confirmationSlots(seed1, firstStage, stages, opponents), ...screenSlots]) : new Set<string>();
       const priorFor = (s: Swap): PairedScores | undefined => (pooling && ledger ? ledger.prior(deck, s.deck, leaveOut) : undefined);
       // screening only nominates: the best changes that beat the baseline by minGain on the shared games
-      const aboveBar = log.swaps.filter((x) => x.wr - base.wr >= o.minGain);
+      // with the shortlist, by pooled gain (a change with no earlier games keeps its own screening figure)
+      const gainOf = (x: TuneLog['swaps'][number]) => figs.get(x.label)?.gain ?? x.wr - base.wr;
+      const aboveBar = (short ? byPooledGain(log.swaps, (x) => figs.get(x.label)!) : log.swaps).filter((x) => gainOf(x) >= o.minGain);
       let nominated = aboveBar.slice(0, depth.nominees);
       if (pooling) {
         // a change whose earlier held-out games alone already reject it is not nominated: the next best takes its place
@@ -501,6 +547,21 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
             if (j.verdict === 'reject') {
               const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
               (log.notNominated ??= []).push({ label: x.label, screen: { games: sg.games, mean: sg.mean, lower: sg.lower, upper: sg.upper }, heldOut: j.iv, priorGames: prior.base.length });
+              continue;
+            }
+            // the shortlist: nor a change its earlier held-out games put out of reach
+            const reach = short ? outOfReach(prior, { rule, nominees: depth.nominees, minGainPp: isPkg(s) ? rule.packageMinGainPp : rule.minGainPp, reach: short.reach }) : null;
+            if (short && reach?.out) {
+              const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
+              (log.notNominated ??= []).push({
+                label: x.label,
+                screen: { games: sg.games, mean: sg.mean, lower: sg.lower, upper: sg.upper },
+                heldOut: j.iv,
+                priorGames: prior.base.length,
+                why: 'out-of-reach',
+                ...(Number.isFinite(reach.toSettle) ? { toSettle: Math.round(reach.toSettle) } : {}),
+                reach: short.reach,
+              });
               continue;
             }
           }

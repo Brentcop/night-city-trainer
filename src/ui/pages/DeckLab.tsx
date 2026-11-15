@@ -2,6 +2,7 @@
 // methods (forge swaps confirmed on fresh games; data-driven breeding). Results can be saved to "My decks".
 // The tuner can use earlier held-out games kept in this browser (the change ledger, components/LabHeldOut.tsx): on by
 // default, with a line on what is held for this list, and an "Evidence kept in this browser" block (export, import, clear).
+// The same checkbox turns on the shortlist from pooled evidence (TuneOptions.shortlist, src/lib/shortlist.ts).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IfPage } from '../components/SiteChrome';
 import { allDecks, upsertCustom } from '../../lib/browserLibrary';
@@ -30,7 +31,8 @@ import {
 } from '../../lib/deckLab';
 import { adoptionProvenance, describeRule, formatGain, stoppedWords, type AdoptionRule } from '../../lib/evidence';
 import { LAB_GAME_BUDGET } from '../../lib/deckSearch';
-import { CutTable, DepthControls, NomineeTable, NotNominatedList, OutcomeChip, PairedGain, TuneTrajectory } from '../components/LabEvidence';
+import { CutTable, DepthControls, NomineeTable, NotNominatedList, OutcomeChip, PairedGain, ShortlistNotes, TuneTrajectory } from '../components/LabEvidence';
+import { pooledWords } from '../../lib/shortlist';
 import { HeldOutCheckbox, heldOutActions, HeldOutPanel, useHeldOutStore, useListHolding } from '../components/LabHeldOut';
 import { earlierGamesRuleWords, runKeptLine } from '../../lib/changeLedgerStore';
 import { fieldFingerprint, ledgerBot } from '../../lib/changeLedger';
@@ -65,6 +67,8 @@ const QUICK_TEST_SEED = 77_000;
 const QUICK_TEST_GAMES = 56;
 /** package moves tried per generation when they are on */
 const PACKAGE_CANDS = 3;
+/** a change must beat the list by this much (a fraction) to be nominated */
+const LAB_MIN_GAIN = 0.02;
 const EFFORT = {
   // the game count, with the confirmation stages, is shown under Search depth
   quick: { label: 'Quick (1 generation)', games: 56, gens: 1, cands: 4 },
@@ -175,7 +179,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const e0 = EFFORT[effort];
   const planned = tunePlan({ games: e0.games, gens: e0.gens, cands: e0.cands, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, vsOriginal: vsOriginalGames(e0.games) });
   /** the rule the last run used, for its result panel */
-  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number; vsGames: number; gens: number; partnerAware: boolean; field: FieldKey; fieldDeckIds: string[]; bot: string; ledger: boolean } | null>(null);
+  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number; vsGames: number; gens: number; cands: number; partnerAware: boolean; field: FieldKey; fieldDeckIds: string[]; bot: string; ledger: boolean } | null>(null);
   // earlier held-out games kept in this browser (on by default when this browser can keep them)
   const heldOut = useHeldOutStore();
   const [useEarlier, setUseEarlier] = useState(true);
@@ -234,7 +238,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     setProg(null);
     setManifest(plan);
     setRunPlan(keep.length || pkgMoves ? { plan: packagePlan, moves: pkgMoves } : null);
-    setRunRule({ rule: planned.rule, firstStage: planned.firstStage, vsGames: planned.vsGames, gens: e.gens, partnerAware, field, fieldDeckIds: fieldList.map((d) => manifestDeck(d).id), bot, ledger: !!store });
+    setRunRule({ rule: planned.rule, firstStage: planned.firstStage, vsGames: planned.vsGames, gens: e.gens, cands: e.cands, partnerAware, field, fieldDeckIds: fieldList.map((d) => manifestDeck(d).id), bot, ledger: !!store });
     setKeptFailed(0);
     try {
       const onProgress = (p: TuneProgress) => {
@@ -244,7 +248,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       const p = await tuneDeck(
         deck,
         fieldList,
-        { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, partnerAware, vsOriginal: planned.vsGames, ...(store ? { ledger: { store } } : {}) },
+        { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: LAB_MIN_GAIN, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, partnerAware, vsOriginal: planned.vsGames, ...(store ? { ledger: { store }, shortlist: {} } : {}) },
         play,
         onProgress,
         () => stopRef.current,
@@ -472,6 +476,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 </div>
               )}
               {l.cuts && <CutTable cuts={l.cuts} label={(id, name) => (CARD_BY_ID[id] ? <CardNameButton def={CARD_BY_ID[id]} onOpen={openCard} /> : name)} />}
+              <ShortlistNotes note={l.shortlist} nominateBar={LAB_MIN_GAIN} cands={runRule?.cands} />
               {l.swaps.length > 0 && (
                 <table className="small lab-screening">
                   <caption className="muted">Screening: each change on this generation’s {l.swaps[0]?.gain?.games ?? ''} games, paired with the list. It only nominates; the best of several is biased high.</caption>
@@ -492,7 +497,14 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                         <td className="muted num" title={`Screening only, ${s.gain?.games ?? '?'} games: not the deck's win rate`}>
                           {Math.round(s.wr * 100)}%
                         </td>
-                        <td>{s.gain ? <PairedGain g={s.gain} /> : <Signed v={s.wr - l.baseline} unit=" pts" />}</td>
+                        <td>
+                          {s.gain ? <PairedGain g={s.gain} /> : <Signed v={s.wr - l.baseline} unit=" pts" />}
+                          {s.pooled && (
+                            <div className="small muted" title="This run's screening games and the games earlier runs played with this change, each game once">
+                              with earlier runs: {pooledWords(s.pooled.mean, s.pooled.games)}
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

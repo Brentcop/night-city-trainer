@@ -2,7 +2,8 @@
 // games across runs"): the tuner's "Use earlier held-out games" checkbox with its line on this exact list, and the
 // "Evidence kept in this browser" block (totals, Export, Import, Clear behind the shared confirm dialog). The store and
 // its words are src/lib/changeLedgerStore.ts, the IndexedDB adapter src/lib/changeLedgerIdb.ts; this file and the Deck
-// Lab page are the only UI that imports them, so none of it reaches the entry chunk.
+// Lab page are the only UI that imports them, so none of it reaches the entry chunk. The checkbox also turns on the
+// shortlist from pooled evidence (src/lib/shortlist.ts; SHORTLIST_LINE says so under its line), with no control of its own.
 //
 // HeldOutCheckbox and HeldOutPanel take everything as props and use no hooks (tests call them directly); the hooks
 // below open the store once per page load and read its counts.
@@ -95,9 +96,13 @@ export function HeldOutCheckbox({ checked, onChange, disabled, state, holding, n
             ? 'Checking what this browser holds for this list…'
             : holdingLine(holding)}
       </div>
+      {!unavailable && <div className="small muted">{SHORTLIST_LINE}</div>}
     </div>
   );
 }
+
+/** What the checkbox also turns on (the shortlist from pooled evidence, src/lib/shortlist.ts), in one plain sentence. */
+export const SHORTLIST_LINE = 'With it on, each generation also tests again the two most promising changes from earlier runs on this list, and skips changes that earlier games say are not worth testing.';
 
 export interface HeldOutPanelProps {
   state: HeldOutState;

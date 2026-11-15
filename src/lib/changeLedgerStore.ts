@@ -134,6 +134,11 @@ export class BrowserLedgerStore implements TuneLedgerStore {
     return this.cache.entry(id);
   }
 
+  /** Every entry of one base list (its batches must be loaded). */
+  entriesOf(base: string): LedgerEntry[] {
+    return this.cache.entriesOf(base);
+  }
+
   /** Take in a batch (its base list must be loaded): only what is new is queued for writing. */
   append(b: LedgerBatch): AppendResult {
     const { result, toWrite } = this.cache.append(b);
