@@ -70,52 +70,55 @@ export function PairedGain({ g, floor = 0 }: { g: { mean: number; lower: number;
 export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label, splits }: { nominees: readonly NomineeRecord[]; minGames: number; futilityMaxGainPp?: number; label?: (text: string) => ReactNode; splits?: NomineeSplits }) {
   if (!nominees.length) return null;
   return (
-    <table className="small">
-      <thead>
-        <tr>
-          <th>Nominee</th>
-          <th title="On the baseline's own games: it only nominates">Screening</th>
-          <th title="Fresh games the screening never used, paired with the current list">Held-out paired gain</th>
-          <th>Outcome</th>
-        </tr>
-      </thead>
-      <tbody>
-        {nominees.map((n, i) => (
-          <tr key={n.label}>
-            <td>{label ? label(n.label) : n.label}</td>
-            <td>
-              <PairedGain g={n.screen} />
-            </td>
-            <td>
-              {n.heldOut?.priorGames ? (
-                <>
-                  <PairedGain g={n.heldOut} floor={minGames} />{' '}
-                  <span className="muted">
-                    (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
-                  </span>
-                  {/* the note wraps: a figure and a sentence in one unbreakable span made the table wider than the page */}
-                  <div className="small muted" title="Held-out games kept in this browser from earlier runs, pooled with this run's">
-                    {pooledNoteWords({ heldOut: n.heldOut, looks: n.heldOut.looks, priorGames: n.heldOut.priorGames })}
-                  </div>
-                </>
-              ) : n.heldOut ? (
-                <>
-                  <PairedGain g={n.heldOut} floor={minGames} />{' '}
-                  <span className="muted">
-                    (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
-                  </span>
-                </>
-              ) : (
-                <span className="muted">—</span>
-              )}
-              {n.settle && <SettleNote settle={n.settle} games={n.heldOut?.games ?? 0} />}
-              <DependsNote split={splits?.nominees[i] ?? null} names={splits?.names ?? {}} />
-            </td>
-            <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
+    // .scroll-x: the figures do not wrap, so on a phone the table scrolls inside the panel instead of widening the page
+    <div className="scroll-x">
+      <table className="small lab-nominees">
+        <thead>
+          <tr>
+            <th>Nominee</th>
+            <th title="On the baseline's own games: it only nominates">Screening</th>
+            <th title="Fresh games the screening never used, paired with the current list">Held-out paired gain</th>
+            <th>Outcome</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {nominees.map((n, i) => (
+            <tr key={n.label}>
+              <td>{label ? label(n.label) : n.label}</td>
+              <td>
+                <PairedGain g={n.screen} />
+              </td>
+              <td>
+                {n.heldOut?.priorGames ? (
+                  <>
+                    <PairedGain g={n.heldOut} floor={minGames} />{' '}
+                    <span className="muted">
+                      (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
+                    </span>
+                    {/* the note wraps: a figure and a sentence in one unbreakable span made the table wider than the page */}
+                    <div className="small muted" title="Held-out games kept in this browser from earlier runs, pooled with this run's">
+                      {pooledNoteWords({ heldOut: n.heldOut, looks: n.heldOut.looks, priorGames: n.heldOut.priorGames })}
+                    </div>
+                  </>
+                ) : n.heldOut ? (
+                  <>
+                    <PairedGain g={n.heldOut} floor={minGames} />{' '}
+                    <span className="muted">
+                      (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
+                    </span>
+                  </>
+                ) : (
+                  <span className="muted">—</span>
+                )}
+                {n.settle && <SettleNote settle={n.settle} games={n.heldOut?.games ?? 0} />}
+                <DependsNote split={splits?.nominees[i] ?? null} names={splits?.names ?? {}} />
+              </td>
+              <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -374,30 +377,32 @@ export function CutTable({ cuts, label }: { cuts: readonly CutExplained[]; label
   return (
     <details className="small">
       <summary>Why these cuts (partner-aware ranking)</summary>
-      <table className="small">
-        <thead>
-          <tr>
-            <th>Card</th>
-            <th title="Win rate when drawn minus when not drawn, this generation's games">Plain</th>
-            <th title="Judged by its games with a partner piece, plus what cutting it costs the package's assembly odds">Partner-aware score</th>
-            <th>Cut?</th>
-            <th>Why</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td>{label ? label(r.id, r.name) : <CardMention id={r.id}>{r.name}</CardMention>}</td>
-              <td className="num">{pts1(r.plain)}</td>
-              <td className="num">{pts1(r.score)}</td>
-              <td>{r.offered ? 'offered' : 'no'}</td>
-              <td className="muted">
-                <MentionText text={r.why} />
-              </td>
+      <div className="scroll-x">
+        <table className="small">
+          <thead>
+            <tr>
+              <th>Card</th>
+              <th title="Win rate when drawn minus when not drawn, this generation's games">Plain</th>
+              <th title="Judged by its games with a partner piece, plus what cutting it costs the package's assembly odds">Partner-aware score</th>
+              <th>Cut?</th>
+              <th>Why</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{label ? label(r.id, r.name) : <CardMention id={r.id}>{r.name}</CardMention>}</td>
+                <td className="num">{pts1(r.plain)}</td>
+                <td className="num">{pts1(r.score)}</td>
+                <td>{r.offered ? 'offered' : 'no'}</td>
+                <td className="muted">
+                  <MentionText text={r.why} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </details>
   );
 }

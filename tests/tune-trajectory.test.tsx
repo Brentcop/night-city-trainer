@@ -176,6 +176,8 @@ describe('the Lab view and the saved record', () => {
     ];
     const html = renderToStaticMarkup(<CutTable cuts={cuts} />);
     expect(html).toContain('Why these cuts (partner-aware ranking)');
+    // the table scrolls inside its own box instead of widening a phone's page
+    expect(html).toContain('</summary><div class="scroll-x"><table class="small">');
     expect(html).toContain('not offered: the package view moved it up');
     expect(html).toMatch(/Card A<\/td><td class="num">−20\.0<\/td><td class="num">−18\.0<\/td><td>no<\/td>/);
   });

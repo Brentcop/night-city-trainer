@@ -497,7 +497,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       </div>
 
       {prog && (
-        <div className="panel grid flair">
+        <div className="panel grid flair lab-result">
           <div className="spread">
             <h3 style={{ margin: 0 }}>{running ? 'Tuning…' : outcome?.kind === 'failed' ? 'Tuning failed' : outcome?.kind === 'stopped' ? 'Stopped by you' : 'Tuning finished'}</h3>
             <span className="small muted">{prog.phase}</span>
@@ -537,37 +537,39 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               {l.cuts && <CutTable cuts={l.cuts} label={(id, name) => (CARD_BY_ID[id] ? <CardNameButton def={CARD_BY_ID[id]} onOpen={openCard} /> : name)} />}
               <ShortlistNotes note={l.shortlist} nominateBar={LAB_MIN_GAIN} cands={runRule?.cands} />
               {l.swaps.length > 0 && (
-                <table className="small lab-screening">
-                  <caption className="muted">Screening: each change on this generation’s {l.swaps[0]?.gain?.games ?? ''} games, paired with the list. It only nominates; the best of several is biased high.</caption>
-                  <thead>
-                    <tr>
-                      <th>Change</th>
-                      <th title="On this generation's screening games only: not the deck's win rate">Screening win %</th>
-                      <th>vs the list, same games</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {l.swaps.map((s) => (
-                      <tr key={s.label}>
-                        <td>
-                          {s.pkg && <span className="tag">package · {s.pkg.kind}</span>}
-                          {s.combo && <span className="tag">combined</span>} <SwapLabel label={s.label} onOpen={openCard} />
-                        </td>
-                        <td className="muted num" title={`Screening only, ${s.gain?.games ?? '?'} games: not the deck's win rate`}>
-                          {Math.round(s.wr * 100)}%
-                        </td>
-                        <td>
-                          {s.gain ? <PairedGain g={s.gain} /> : <Signed v={s.wr - l.baseline} unit=" pts" />}
-                          {s.pooled && (
-                            <div className="small muted" title="This run's screening games and the games earlier runs played with this change, each game once">
-                              with earlier runs: {pooledWords(s.pooled.mean, s.pooled.games)}
-                            </div>
-                          )}
-                        </td>
+                <div className="scroll-x">
+                  <table className="small lab-screening">
+                    <caption className="muted">Screening: each change on this generation’s {l.swaps[0]?.gain?.games ?? ''} games, paired with the list. It only nominates; the best of several is biased high.</caption>
+                    <thead>
+                      <tr>
+                        <th>Change</th>
+                        <th title="On this generation's screening games only: not the deck's win rate">Screening win %</th>
+                        <th>vs the list, same games</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {l.swaps.map((s) => (
+                        <tr key={s.label}>
+                          <td>
+                            {s.pkg && <span className="tag">package · {s.pkg.kind}</span>}
+                            {s.combo && <span className="tag">combined</span>} <SwapLabel label={s.label} onOpen={openCard} />
+                          </td>
+                          <td className="muted num" title={`Screening only, ${s.gain?.games ?? '?'} games: not the deck's win rate`}>
+                            {Math.round(s.wr * 100)}%
+                          </td>
+                          <td>
+                            {s.gain ? <PairedGain g={s.gain} /> : <Signed v={s.wr - l.baseline} unit=" pts" />}
+                            {s.pooled && (
+                              <div className="small muted" title="This run's screening games and the games earlier runs played with this change, each game once">
+                                with earlier runs: {pooledWords(s.pooled.mean, s.pooled.games)}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               {l.nominees && l.nominees.length > 0 ? (
                 <div className="small">

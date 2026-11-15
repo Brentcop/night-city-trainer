@@ -1206,6 +1206,17 @@ label.row > input[type='radio']:first-child {
   align-items: center;
   gap: 4px 6px;
 }
+/* The tuner's result panel: its tables hold figures that do not wrap, so each scrolls inside its own .scroll-x and
+   the panel's column is not widened by them (min-width: 0 on the grid's items; on a phone the page was 650 px wide). */
+.lab-result > * {
+  min-width: 0;
+}
+/* These two scroll sideways on a phone whatever the first column does, so the change keeps a readable width there
+   (it was squeezed to one word a line). */
+.lab-screening td:first-child,
+.lab-nominees td:first-child {
+  min-width: 9rem;
+}
 /* Deck Lab: synergy packages (keep toggles, the breeding picker, result chips) */
 .lab-synergies {
   border: 1px solid var(--border);

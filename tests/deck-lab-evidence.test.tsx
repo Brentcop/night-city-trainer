@@ -120,6 +120,8 @@ describe('Deck Lab tuner under the evidence rule', () => {
     expect(playedOff.length).toBe(played.length + 2 * 2 * 40);
     const html = renderToStaticMarkup(<NomineeTable nominees={[n]} minGames={200} />);
     expect(html).toContain('could not tell (stopped early: no gain after 80 games)');
+    // its figures do not wrap: the table scrolls inside its own box instead of widening a phone's page
+    expect(html.startsWith('<div class="scroll-x"><table class="small lab-nominees">')).toBe(true);
     expect(renderToStaticMarkup(<GenerationSummary log={{ gen: 1, baseline: 0.5, swaps: [], nominees: [n], adopted: null }} />)).toContain('stopped early: no gain after 80 games');
     expect(evidenceNote([{ gen: 1, baseline: 0.5, swaps: [], nominees: [n], adopted: null }])).toBe(`Could not tell (not adopted): ${n.label} (stopped early: no gain after 80 games).`);
   });
