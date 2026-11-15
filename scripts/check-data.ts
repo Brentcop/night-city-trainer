@@ -25,6 +25,12 @@
 //   - data/ledger/*.jsonl (the change ledger, src/lib/changeLedger.ts), when the folder exists: every line is a readable
 //     batch whose change starts from the file's list, no entry holds the same game twice (a game that came back with
 //     other scores is counted as information, not a failure), and no held-out game had already screened its change
+//   - public/data/evidence/ (the findings, docs/EVIDENCE.md) equals a rebuild from the tracked inputs (numbers within
+//     2e-6), so a forgotten rebuild after new events, ratings, analysis, synergies, forge reports, re-measurements or
+//     ledger games fails; on their own, the stored findings' ids and short ids are unique, every source exists, every
+//     effect is paired with a ledger, forge-report or re-measurement source, every strength word is what the rule
+//     gives, the short-id lookup (ids.json) matches the deck files, and the re-measurements (data/evidence/*.json)
+//     read. `npm run evidence` rebuilds them
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,6 +44,7 @@ import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/
 import type { SynergyReport } from '../src/analysis/synergies';
 import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
 import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
+import { evidenceCheck } from './build-evidence';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -79,6 +86,8 @@ export interface CheckInput {
   deckImpact?: unknown;
   /** data/ledger/*.jsonl, the change ledger's files with their text (null or absent when the folder does not exist) */
   ledger?: { file: string; text: string }[] | null;
+  /** the evidence check's result (evidenceCheck in scripts/build-evidence.ts; absent: not checked) */
+  evidence?: { failures: string[]; passed: string[] } | null;
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -411,6 +420,11 @@ export function checkData(input: CheckInput): CheckResult {
     if (!r.problems.length) passed.push(`data/ledger/ reads (${input.ledger.length} list file(s), ${r.batches} batches, ${r.games} games, each once per entry)`);
     if (r.conflicts) info.push(`data/ledger/: ${r.conflicts} game(s) came back with other scores (the earlier ones are kept; see npm run ledger -- stats)`);
   }
+  // ---- the evidence files are a rebuild of the tracked inputs
+  if (input.evidence) {
+    failures.push(...input.evidence.failures);
+    passed.push(...input.evidence.passed);
+  }
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -437,6 +451,7 @@ export function loadCheckInput(root = '.'): CheckInput {
           .sort()
           .map((file) => ({ file, text: fs.readFileSync(path.join(root, 'data/ledger', file), 'utf8') }))
       : null,
+    evidence: evidenceCheck(root),
     deckFiles: LIBRARY_DIRS.flatMap((d) => {
       const dir = path.join(root, 'data/decks', d);
       return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];

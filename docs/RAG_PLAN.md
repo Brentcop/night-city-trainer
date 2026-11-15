@@ -126,7 +126,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.6 | Unanswerable questions; the "no match" floor, the rules misses, two-deck questions | done: measured, no change kept | 2026-11-13 |
 | 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
 | 2.2 | Event, round, rating and matchup records from templates; movement around the cut and upsets | done in the pack; Gig margins and site files later | 2026-11-14 |
-| 2.3 | Findings as records | waiting: TUNING_STUDY P2 | |
+| 2.3 | Findings as records | next: no longer blocked (TUNING_STUDY P2 was built on 2026-11-15, docs/EVIDENCE.md); not started | |
 | 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; reached by everyday wording since 4.7b; site files later | 2026-11-14 |
 | 3.1 | Public pack, byte budgets, guards | done: shards built with the site, named by content hash, budgets checked by the build | 2026-11-14 |
 | 3.2 | Search and dossiers on the site behind a feature flag | done: the Search page behind the feature `search`, off until the owner turns it on; card-ruling dossiers wait on D2 | 2026-11-14 |

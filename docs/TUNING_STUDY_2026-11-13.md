@@ -449,6 +449,14 @@ The packages are ordered so that each one is useful on its own. P1–P3 change n
 - **Games:** none to build. Validation: re-run E1's S2-05 setting with the ledger on, 5 seeds (≈ 14k Medium games, 4 min). The Yorinobu swap (+2.3 measured) should be adopted once it has been nominated twice.
 
 ### P2 — Findings model and evidence data files. No games needed; one optional run.
+- **Status, 2026-11-15:** built (docs/EVIDENCE.md): `src/lib/findings.ts`, `src/lib/findingWords.ts`, `src/lib/remeasure.ts`, `scripts/evidence-build.ts`, `scripts/build-evidence.ts` (`npm run evidence`), `public/data/evidence/` (2,838 findings over the 47 decks), hooked into `npm run refresh`, every tournament run and `check:data`. Where it departs from the plan below:
+  - A finding has one of three natures (recorded result, measured effect, association), not a causal yes or no: a deck's strength, matchups, seat and game length are neither an effect nor an association.
+  - A fifth strength word, "no difference": measured, and no difference of a point or more. An effect's sentence says "adds" or "costs" only when its own corrected interval excludes no difference.
+  - A matchup's range adds the spread of pairings around the ratings' prediction, measured on the meta decks' 200-game pairings (about 6 points SD; the events cannot see it at about 5 games a pairing). The meta pairings also get a second, direct finding from those 200 games.
+  - The seat finding is the deck's result against the ratings' prediction, going first minus going second, because the loser of a game goes first in the next and a raw split is confounded by the opponent.
+  - Changes come from three sources side by side: the change ledger, the recorded forge reports, and re-measurements kept as a small tracked input (`data/evidence/*.json`). The ledger was started with the tuning validation runs' games for S2-05 and S2-08, and their 2,800-game measurements of every nominee are the first current-version re-measurements.
+  - `--write-adjusted` was not added to `sim analyze`: the builder takes the adjusted card estimates with `--adjusted FILE`, and the optional Hard run has not been played, so card numbers exist for the 7 meta decks only and none can be strong.
+  - Runs are in their own file per deck, and `ids.json` opens a finding from its cite id alone.
 - **Files:**
   - New `src/lib/findings.ts`: the `Finding` type, `strengthOf`, BH within families, stable ids, stale marking against `SIM_VERSION`.
   - New `scripts/build-evidence.ts`: reads ratings.json, h2h.json (shrunk), analysis.json, decisions.json, synergies.json, the event JSONs (seat, length and end reason for all 47 decks from recorded games), forge reports, the ledger, and an optional `--adjusted DIR`. Writes `public/data/evidence/<listId>.json` and `public/data/evidence/index.json` with an aggregate manifest.

@@ -1,0 +1,487 @@
+{
+ "kind": "nct-remeasure",
+ "schema": 1,
+ "note": "The measured worth of every change the P5 and P4 tuning validations nominated on S2-05 Counter (RRG) and S2-08 Explorer (GGY) (docs/SYNERGIES.md \"A shortlist carried across runs\" and \"Until settled, and what a run can detect\"): 2,800 fresh paired games each, Medium bot, SIM_VERSION 9, against the 7 meta decks, seeds from 5,000,000 that no tuning run used (reports/tuning-study-2026-11-13/p5-truth.ts). Measured on 2026-11-14 and 2026-11-15; the standard error is read back from the plain 95% interval the script kept. mean is after minus before.",
+ "measurements": [
+  {
+   "id": "p5-s2-05-01",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "fcfee70ff247266a",
+   "cuts": [
+    "mantis_blades"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.028214,
+   "se": 0.004908,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-02",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Peace Offering → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "921a753fae598f0c",
+   "cuts": [
+    "peace_offering"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.026071,
+   "se": 0.00504,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-03",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 We Gotta Live Together → +1 Johnny Silverhand: Never Stop Fighting",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "27d787432be865b2",
+   "cuts": [
+    "we_gotta_live_together"
+   ],
+   "adds": [
+    "johnny_silverhand_never_stop_fighting"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.027143,
+   "se": 0.004684,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-04",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Swordwise Huscle → +1 Johnny Silverhand: Never Stop Fighting",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "e7d5970bc34b6972",
+   "cuts": [
+    "swordwise_huscle"
+   ],
+   "adds": [
+    "johnny_silverhand_never_stop_fighting"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.018929,
+   "se": 0.004819,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-05",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Mantis Blades → +1 Nadia: Fighting Through Grief",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "b51f731bc7d5bb7a",
+   "cuts": [
+    "mantis_blades"
+   ],
+   "adds": [
+    "nadia_fighting_through_grief"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.016786,
+   "se": 0.004577,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-06",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "d96de8d0e8691e82",
+   "cuts": [
+    "gunpoint_diplomacy"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.028929,
+   "se": 0.00488,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-07",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 6th Street Recruits → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "514850136a87c608",
+   "cuts": [
+    "6th_street_recruits"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.005,
+   "se": 0.00567,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-05-08",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "de2140e4652193a1",
+   "cuts": [
+    "we_gotta_live_together"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.024286,
+   "se": 0.004607,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-01",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Cyberpsychosis → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "cb7c45fe1c955a71",
+   "cuts": [
+    "cyberpsychosis"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.033571,
+   "se": 0.005657,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-02",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Dexter DeShawn: One Last Chance → +1 Zetatech Berserk",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "89d324382acfef70",
+   "cuts": [
+    "dexter_deshawn_one_last_chance"
+   ],
+   "adds": [
+    "zetatech_berserk"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.001429,
+   "se": 0.005026,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-03",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Fool on the Hill → +1 Dexter DeShawn: One Last Chance",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "9bb52ed53b1be7ff",
+   "cuts": [
+    "fool_on_the_hill"
+   ],
+   "adds": [
+    "dexter_deshawn_one_last_chance"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.003214,
+   "se": 0.004805,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-04",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "258f3aa5a1a4fb51",
+   "cuts": [
+    "t_bug_amateur_philosopher"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.046786,
+   "se": 0.00568,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-05",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Saul Bright: Stormrider → +1 Fool on the Hill",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "79ca9110109915fd",
+   "cuts": [
+    "saul_bright_stormrider"
+   ],
+   "adds": [
+    "fool_on_the_hill"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.009643,
+   "se": 0.004776,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-06",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Nadia: Fighting Through Grief → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "0e794814869747bd",
+   "cuts": [
+    "nadia_fighting_through_grief"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.031786,
+   "se": 0.004577,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-07",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Zetatech Berserk → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "ca8e591f972b974f",
+   "cuts": [
+    "zetatech_berserk"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.0375,
+   "se": 0.005569,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  },
+  {
+   "id": "p5-s2-08-08",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Goro Takemura: Losing His Way → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "26277c95903b56ff",
+   "cuts": [
+    "goro_takemura_losing_his_way"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 2800,
+   "mean": 0.040357,
+   "se": 0.00563,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "date": "2026-11-15",
+   "script": "reports/tuning-study-2026-11-13/p5-truth.ts",
+   "record": "A change the tuning validation runs nominated; measured to check their verdicts"
+  }
+ ]
+}

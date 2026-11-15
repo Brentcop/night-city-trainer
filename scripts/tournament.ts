@@ -11,7 +11,7 @@
 //   --bo      1, 3 or 5 games per match
 //   --bot     hard | mixed | medium | easy   (older names fast | lookahead | deep | hard-v1 still work)
 //   --record  false to skip writing the site's event history (quick experiments)
-//   --out     write events, their index and head-to-heads to this directory instead of the site's data (experiments);
+//   --out     write events, their index, head-to-heads and evidence files to this directory instead of the site's data (experiments);
 //             event ids still start after the highest event recorded in either place
 //
 // Formats and hand-arranged events (src/lib/eventFormats.ts). Any of these makes a "custom" event: its games count for
@@ -38,6 +38,7 @@ import { cutSize, runTournament, type BestOf, type BotLevel, type EventFormat, t
 import type { MatchJob, MatchResult } from './worker';
 import type { LibraryDeck } from '../src/lib/library';
 import { buildH2H } from './build-h2h';
+import { rebuildEvidence } from './build-evidence';
 import { buildEvent, type BuiltEvent } from './tournament-setup';
 
 const { values: V } = cli(import.meta.url, {
@@ -206,9 +207,14 @@ function writeIndex() {
       standings: e.standings.map((s: any) => ({ deck: s.deck, mp: s.mp, record: `${s.mw}-${s.ml}`, games: `${s.gw}-${s.gl}`, omw: +s.omw.toFixed(3) })),
     }));
   writeJsonStamped(OUT ? path.join(OUT, 'tournaments.json') : 'src/data/tournaments.json', { updated: '', events });
-  // keep the Deck Lab's head-to-head data (counter breeding) in step with the events
-  if (OUT) buildH2H(OUT, path.join(OUT, 'h2h.json'));
-  else buildH2H();
+  // keep the Deck Lab's head-to-head data (counter breeding) and the evidence files (docs/EVIDENCE.md) in step with the events
+  if (OUT) {
+    buildH2H(OUT, path.join(OUT, 'h2h.json'));
+    console.log(rebuildEvidence({ out: path.join(OUT, 'evidence'), eventsDir: OUT, h2h: path.join(OUT, 'h2h.json') }));
+  } else {
+    buildH2H();
+    console.log(rebuildEvidence());
+  }
 }
 
 async function main() {
