@@ -7,6 +7,10 @@
 // A comparison is paired: the candidate list and the current list play the same games (same opponents, same seeds,
 // same seats), and the evidence is the per-game difference in score (win 1, tie ½, loss 0), never two win rates
 // measured apart.
+//
+// With the change ledger (src/lib/changeLedger.ts) a nominee may bring held-out games from earlier runs: confirmStaged
+// then judges it by the strict pooling rule (judgePooled: an always-valid boundary over the pooled games). Without
+// earlier games every result, line and record is the one before the ledger existed.
 import { equalFractions, obfBoundaries } from './groupSequential';
 
 // ---------------------------------------------------------------- paired summaries
@@ -272,6 +276,85 @@ export function judgeLook(iv: Pick<PairedInterval, 'games' | 'lower' | 'upper'>,
   return o.last ? 'inconclusive' : 'continue';
 }
 
+// ---------------------------------------------------------------- pooling across runs (the change ledger)
+
+/**
+ * ρ of the always-valid boundary, in games: the sample size at which the boundary is tightest relative to its long-run
+ * growth (src/lib/changeLedger.ts; docs/SYNERGIES.md "Pooling held-out games across runs"). Chosen by simulation
+ * (scripts/ledger-sim.ts): 250 to 1,000 games give the same error rate and almost the same power.
+ */
+export const POOL_RHO = 250;
+
+/**
+ * The one-sided normal-mixture boundary of Howard, Ramdas, McAuliffe and Sekhon (2021), "Time-uniform, nonparametric,
+ * nonasymptotic confidence sequences", in standard errors at `n` pooled games, for a one-sided error share `a`:
+ *   z(n) = sqrt( 2 · (1 + ρ/n) · ln( sqrt(1 + n/ρ) / (2a) + 1 ) )
+ * It holds at every n at once, so the pooled games may be looked at after every stage of every run. For a = 0.025:
+ * 3.77 at 224 games, 3.32 at 448, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584, 3.12 at 7,168.
+ */
+export function alwaysValidZ(n: number, a: number, rho: number = POOL_RHO): number {
+  if (!(n > 0)) return Infinity;
+  return Math.sqrt(2 * (1 + rho / n) * Math.log(Math.sqrt(1 + n / rho) / (2 * a) + 1));
+}
+
+/** Each nominee's one-sided share of α in a decision with `nominees` nominees: α / (2 · nominees), as the staged rule gives. */
+export const pooledShare = (alpha: number, nominees: number): number => alpha / (2 * Math.max(1, nominees));
+
+/**
+ * The pooled interval: the plain mean ± z standard errors, the spread estimated with two pseudo-games added (one +1, one
+ * −1), so a change that rarely alters a game never reads as having no spread at all. With n′ = n + 2 and m′ = Σd / n′:
+ * v = (Σd² + 2 − n′·m′²) / (n′ − 1), and the interval is Σd/n ± z·sqrt(v/n), clipped to [−1, 1] as pairedInterval is.
+ * Only pooled looks use it; the staged rule's interval (pairedInterval) is unchanged.
+ */
+export function guardedInterval(candidate: readonly number[], baseline: readonly number[], z: number): PairedInterval {
+  if (candidate.length !== baseline.length) throw new Error(`paired results must have the same length (got ${candidate.length} and ${baseline.length})`);
+  const n = candidate.length;
+  if (n === 0) return { games: 0, mean: 0, lower: -1, upper: 1, z };
+  let sum = 0;
+  let sq = 0;
+  for (let i = 0; i < n; i++) {
+    const d = (candidate[i] ?? NaN) - (baseline[i] ?? NaN);
+    sum += d;
+    sq += d * d;
+  }
+  return guardedFromSums(n, sum, sq, z);
+}
+
+/** The guarded per-game variance of n paired differences with sum Σd and Σd²: two pseudo-games, +1 and −1, added. */
+export function guardedVariance(n: number, sum: number, sq: number): number {
+  const n2 = n + 2;
+  const m2 = sum / n2;
+  return Math.max(0, (sq + 2 - n2 * m2 * m2) / (n2 - 1));
+}
+
+/** guardedInterval from the count, Σd and Σd² (the change ledger and the simulation keep sums). */
+export function guardedFromSums(n: number, sum: number, sq: number, z: number): PairedInterval {
+  if (n <= 0) return { games: 0, mean: 0, lower: -1, upper: 1, z };
+  const mean = sum / n;
+  const margin = z * Math.sqrt(guardedVariance(n, sum, sq) / n);
+  return { games: n, mean, lower: Math.max(-1, mean - margin), upper: Math.min(1, mean + margin), z };
+}
+
+/**
+ * One look at pooled held-out games under the strict pooling rule: the guarded interval at the always-valid z for this
+ * many games and this decision's nominees, judged as every look is (judgeLook). confirmStaged and the change ledger's
+ * verdicts both use it.
+ */
+export function judgePooled(
+  candidate: readonly number[],
+  baseline: readonly number[],
+  o: { alpha: number; nominees: number; minGainPp: number; minGames: number; last?: boolean },
+): { iv: PairedInterval; verdict: Outcome | 'continue' } {
+  const iv = guardedInterval(candidate, baseline, alwaysValidZ(candidate.length, pooledShare(o.alpha, o.nominees)));
+  return { iv, verdict: judgeLook(iv, { minGainPp: o.minGainPp, minGames: o.minGames, last: !!o.last }) };
+}
+
+/** Paired scores from earlier runs (the change ledger's held-out games for one nominee): `base[i]` and `cand[i]` are one game. */
+export interface PairedScores {
+  base: readonly number[];
+  cand: readonly number[];
+}
+
 // ---------------------------------------------------------------- staged confirmation
 
 /** One stage's games: the current list's scores and each still-undecided nominee's, game by game on the same seeds. */
@@ -299,6 +382,12 @@ export interface Confirmation {
    * gain after `rule.futilityAfterStages` stages; its games and interval are the ones at that point)
    */
   stopped?: StopReason;
+  /**
+   * pooled with earlier runs (the change ledger): how many of `heldOut.games` came from earlier runs. Present only for a
+   * pooled nominee; then `heldOut` is the pooled always-valid interval, its `z` the boundary at the final look, `looks`
+   * the new stages played (0 = decided by the earlier games alone) and the win rates are over the pooled games.
+   */
+  priorGames?: number;
 }
 
 /** Why a confirmation ended before it was decided: `true` = Stop (Deck Lab), 'futility' = the futility stop. */
@@ -318,6 +407,13 @@ export function futilityApplies(rule: Pick<AdoptionRule, 'kind' | 'futilityAfter
  * adopted nor rejected and whose held-out mean gain is at most rule.futilityMaxGainPp is "could not tell" with
  * `stopped: 'futility'`. Later stages are played only while a nominee is still live, so every game played is the same
  * game it was without the stop.
+ *
+ * `priors` (the change ledger, optional): per nominee, its held-out paired games from earlier runs, none of which this
+ * confirmation will play. A nominee without one (absent, undefined or empty) is confirmed exactly as above. A nominee
+ * with one is judged by the strict pooling rule: its earlier games alone are looked at first (adopt or reject with 0 new
+ * games), then after every new stage the earlier and new games pooled, each by the guarded interval at the always-valid
+ * z (judgePooled), up to `rule.capStages` new stages; the futility stop applies after a new stage other than the last once
+ * the pooled games reach `futilityAfterStages × firstStage`. Under 'any-gain' priors are ignored.
  */
 export async function confirmStaged(
   rule: AdoptionRule,
@@ -325,6 +421,7 @@ export async function confirmStaged(
   firstStage: number,
   playStage: PlayStage,
   stop: () => boolean = () => false,
+  priors?: readonly (PairedScores | undefined)[],
 ): Promise<{ results: Confirmation[]; games: number }> {
   const n = nominees.length;
   const scores: number[][] = nominees.map(() => []);
@@ -336,11 +433,32 @@ export async function confirmStaged(
   const zs = legacy ? [1.96] : lookZs(rule, n);
   /** z of look `looks` (1-based); a nominee concluded before any look reads the first */
   const zAt = (looks: number) => zs[Math.max(1, Math.min(zs.length, looks)) - 1] ?? 1.96;
+  /** each nominee's earlier games, or undefined (today's path); never under any-gain */
+  const prior: (PairedScores | undefined)[] = nominees.map((_, i) => {
+    const p = legacy ? undefined : priors?.[i];
+    if (!p || !p.base.length) return undefined;
+    if (p.base.length !== p.cand.length) throw new Error(`a prior needs as many base as candidate scores (got ${p.base.length} and ${p.cand.length})`);
+    return p;
+  });
+  prior.forEach((p, i) => {
+    if (!p) return;
+    scores[i] = [...p.cand];
+    baseFor[i] = [...p.base];
+  });
+  const pooledLook = (i: number, last: boolean) =>
+    judgePooled(scores[i] ?? [], baseFor[i] ?? [], { alpha: rule.alpha, nominees: n, minGainPp: nominees[i]?.minGainPp ?? rule.minGainPp, minGames: rule.minGames, last });
   let games = 0;
   const conclude = (i: number, outcome: Outcome, looks: number, stopped?: StopReason): Confirmation => {
-    const iv = pairedInterval(scores[i] ?? [], baseFor[i] ?? [], zAt(looks));
-    return { outcome, heldOut: iv, baseWr: mean(baseFor[i] ?? []), candWr: mean(scores[i] ?? []), looks, minGainPp: nominees[i]?.minGainPp ?? 0, ...(stopped ? { stopped } : {}) };
+    const p = prior[i];
+    const iv = p ? pooledLook(i, false).iv : pairedInterval(scores[i] ?? [], baseFor[i] ?? [], zAt(looks));
+    return { outcome, heldOut: iv, baseWr: mean(baseFor[i] ?? []), candWr: mean(scores[i] ?? []), looks, minGainPp: nominees[i]?.minGainPp ?? 0, ...(stopped ? { stopped } : {}), ...(p ? { priorGames: p.base.length } : {}) };
   };
+  // the earlier games alone are looked at first: a nominee they already decide plays no new game
+  prior.forEach((p, i) => {
+    if (!p) return;
+    const v = pooledLook(i, false).verdict;
+    if (v === 'adopt' || v === 'reject') done[i] = conclude(i, v, 0);
+  });
   for (let stage = 0; stage < stages; stage++) {
     const active = done.flatMap((d, i) => (d ? [] : [i]));
     if (!active.length) break;
@@ -355,6 +473,13 @@ export async function confirmStaged(
       (baseFor[i] ??= []).push(...r.base);
     });
     for (const i of active) {
+      if (prior[i]) {
+        const last = stage === stages - 1;
+        const { iv, verdict } = pooledLook(i, last);
+        if (verdict !== 'continue') done[i] = conclude(i, verdict, stage + 1);
+        else if (rule.futilityAfterStages > 0 && iv.games >= rule.futilityAfterStages * firstStage && iv.mean <= rule.futilityMaxGainPp / 100) done[i] = conclude(i, 'inconclusive', stage + 1, 'futility');
+        continue;
+      }
       if (legacy) {
         const m = mean(scores[i] ?? []) - mean(baseFor[i] ?? []);
         done[i] = conclude(i, m > 0 ? 'adopt' : 'reject', 1);
@@ -407,9 +532,35 @@ export function formatGain(iv: Pick<PairedInterval, 'mean' | 'lower' | 'upper' |
   return `${pts(iv.mean)} pts [${pts(iv.lower)}, ${pts(iv.upper)}], ${iv.games} games`;
 }
 
-/** One line for reports: what the rule is, with its numbers. */
-export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number } = {}): string {
-  if (rule.kind === 'any-gain') return `any-gain (legacy): one confirmation${o.firstStage ? ` of ${o.firstStage} fresh games` : ''}; a change is adopted when it scores higher at all`;
+/**
+ * A pooled nominee's held-out gain (the change ledger): "+2.1 pts [+1.1, +3.1], 2,016 games (1,120 from earlier runs;
+ * always-valid z 3.05, 2 new stages)"; "… decided by the earlier games alone" when it played no new game.
+ */
+export function pooledGainWords(c: Pick<Confirmation, 'heldOut' | 'looks' | 'priorGames'>): string {
+  const iv = c.heldOut;
+  const k = (x: number) => x.toLocaleString('en-US');
+  const how = c.looks === 0 ? 'decided by the earlier games alone' : `${c.looks} new stage${c.looks === 1 ? '' : 's'}`;
+  return `${pts(iv.mean)} pts [${pts(iv.lower)}, ${pts(iv.upper)}], ${k(iv.games)} games (${k(c.priorGames ?? 0)} from earlier runs; always-valid z ${iv.z.toFixed(2)}, ${how})`;
+}
+
+/**
+ * One line for reports: what the rule is, with its numbers. `ledger`: the change ledger is on, so the line also says how
+ * a nominee with earlier held-out games is judged (without it the line is exactly the one before the ledger existed).
+ */
+export function describeRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number; ledger?: boolean } = {}): string {
+  if (rule.kind === 'any-gain') return `any-gain (legacy): one confirmation${o.firstStage ? ` of ${o.firstStage} fresh games` : ''}; a change is adopted when it scores higher at all${o.ledger ? '; the change ledger records the games but never pools them under this rule' : ''}`;
+  const base = describeStagedRule(rule, o);
+  return o.ledger ? `${base}${poolingClause(rule, o.nominees ?? 1)}` : base;
+}
+
+/** "; with the change ledger, a nominee with held-out games from earlier runs …" (the strict pooling rule in words). */
+function poolingClause(rule: AdoptionRule, nominees: number): string {
+  const a = pooledShare(rule.alpha, nominees);
+  const z = (k: number) => alwaysValidZ(k, a).toFixed(2);
+  return `; change ledger on: a nominee with held-out games from earlier runs (same simulator version, bot and field) is judged on those games first, then on them and each new stage pooled, by an always-valid boundary (normal mixture, Howard et al. 2021, ρ = ${POOL_RHO} games, one-sided ${+a.toFixed(5)} each: z = ${z(448)} at 448 games, ${z(896)} at 896, ${z(1792)} at 1,792, ${z(3584)} at 3,584)`;
+}
+
+function describeStagedRule(rule: AdoptionRule, o: { firstStage?: number; nominees?: number }): string {
   const zs = lookZs(rule, o.nominees ?? 1);
   const stages = o.firstStage ? `stages of ${o.firstStage} fresh paired games up to ${rule.capStages * o.firstStage}` : `up to ${rule.capStages} stages of fresh paired games`;
   const pkg = rule.packageMinGainPp !== rule.minGainPp ? ` (package moves ${rule.packageMinGainPp} points)` : '';
@@ -455,9 +606,23 @@ export interface AdoptionProvenance {
   futilityAfterStages?: number;
   /** its threshold on the held-out paired mean gain, points */
   futilityMaxGainPp?: number;
+  /**
+   * the change ledger was on (absent = off): held-out games from earlier runs were pooled by the strict rule, the
+   * normal-mixture boundary with this ρ in games (src/lib/changeLedger.ts); never under any-gain
+   */
+  ledger?: { boundary: 'normal-mixture'; rho: number };
 }
 
-export function adoptionProvenance(rule: AdoptionRule, o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number }): AdoptionProvenance {
+export function adoptionProvenance(
+  rule: AdoptionRule,
+  o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number },
+  ledger = false,
+): AdoptionProvenance {
+  const p = plainProvenance(rule, o);
+  return ledger && rule.kind === 'evidence' ? { ...p, ledger: { boundary: 'normal-mixture', rho: POOL_RHO } } : p;
+}
+
+function plainProvenance(rule: AdoptionRule, o: { firstStage: number; nominees: number; cardsPerChange: number; packagesPerChange: number }): AdoptionProvenance {
   return {
     rule: rule.kind,
     minGainPp: rule.minGainPp,
@@ -479,7 +644,8 @@ export interface NomineeRecord {
   package?: string;
   /** screening: the shared-seed paired gain, plain 95% interval (it only nominates) */
   screen: { games: number; mean: number; lower: number; upper: number };
-  heldOut?: { games: number; mean: number; lower: number; upper: number; z: number; looks: number; baseWr: number; candWr: number };
+  /** `priorGames`: pooled with earlier runs (the change ledger), this many of `games` came from them (absent otherwise) */
+  heldOut?: { games: number; mean: number; lower: number; upper: number; z: number; looks: number; baseWr: number; candWr: number; priorGames?: number };
   outcome?: Outcome;
   /** the confirmation was cut short: `true` by Stop, 'futility' by the futility stop (heldOut is at that point) */
   stopped?: StopReason;
@@ -493,7 +659,7 @@ export function nomineeRecord(label: string, screen: PairedInterval, c?: Confirm
     screen: { games: screen.games, mean: r4(screen.mean), lower: r4(screen.lower), upper: r4(screen.upper) },
     ...(c
       ? {
-          heldOut: { games: c.heldOut.games, mean: r4(c.heldOut.mean), lower: r4(c.heldOut.lower), upper: r4(c.heldOut.upper), z: r4(c.heldOut.z), looks: c.looks, baseWr: r4(c.baseWr), candWr: r4(c.candWr) },
+          heldOut: { games: c.heldOut.games, mean: r4(c.heldOut.mean), lower: r4(c.heldOut.lower), upper: r4(c.heldOut.upper), z: r4(c.heldOut.z), looks: c.looks, baseWr: r4(c.baseWr), candWr: r4(c.candWr), ...(c.priorGames ? { priorGames: c.priorGames } : {}) },
           outcome: c.outcome,
           ...(c.stopped ? { stopped: c.stopped } : {}),
         }

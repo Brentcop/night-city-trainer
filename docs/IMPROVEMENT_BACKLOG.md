@@ -8,7 +8,7 @@ Eight parallel reviewers audited the project at commit `befda3e`. Baseline at th
 
 **Wave C so far** (branch `improvements/wave-c`): WP-C1's bundle work is done except for loading Home's data at runtime (entry script 1,341 → 820 kB, each worker ~485 → ~205 kB; LIB-1, LIB-2 lazy routes, LIB-12 partly). ENG-8 is done: the human player chooses which Eddies or Legends pay a cost, including for reactions; bots still pay automatically. WP-C2 is merged except PLAY-9, PLAY-19 and PLAY-20 parts 4–5 (coach worker, drag, phone prompts, keyboard access and the game log are done). WP-C3 is done (see its section). The rest of WP-C4 and WP-C5 are not started. Current status is kept in [ROADMAP.md](ROADMAP.md) §3.
 
-**Update 2026-11-11 (committed since):** Wave C is done, WP-C4 included (see its section). WP-C5: the workflow uses the official Pages actions and runs `check:data`; it waits on the owner's Pages setting (ROADMAP §2 has the checklist). WP-C1: Home's data loads at runtime (entry 823 → 427 kB, 169 → 102 kB gzip), plus LIB-3, APP-21, OPS-15 and the data half of APP-20; the chunk-size override is gone. WP-C2: PLAY-9, PLAY-19 and PLAY-20 parts 4–5. Left over: APP-7 and the lint warnings are fixed. Each section below has the details and the rows that no longer applied.
+**Update 2026-11-11 (committed since):** Wave C is done, WP-C4 included (see its section). WP-C5: the workflow uses the official Pages actions and runs `check:data`; it waited on the owner's Pages setting (ROADMAP §2 has the checklist), and has run on every push since the owner switched the source (seen 2026-11-14). WP-C1: Home's data loads at runtime (entry 823 → 427 kB, 169 → 102 kB gzip), plus LIB-3, APP-21, OPS-15 and the data half of APP-20; the chunk-size override is gone. WP-C2: PLAY-9, PLAY-19 and PLAY-20 parts 4–5. Left over: APP-7 and the lint warnings are fixed. Each section below has the details and the rows that no longer applied.
 
 What is left over from Waves A and B:
 
@@ -26,7 +26,7 @@ What is left over from Waves A and B:
 | Dependencies | `overrides` pins `minimatch` 11.0.1 under typescript-eslint. Checked 2026-11-11: the latest typescript-eslint (8.72.2) still asks for `minimatch` ^10.2.2, so the override stays; remove it when a release accepts 11. |
 | Lint | Done 2026-11-11: the 5 `react-hooks/exhaustive-deps` warnings are fixed without disable comments (`npm run lint` is clean). |
 | Browser checks | Checked by hand: Play start, moves, Undo, Quit mid-turn; Matchup Lab in workers; not-found routes; page loads. Not checked: deck-editor unsaved-changes prompts, a full browser tournament, Deck Lab tuning, the error banner, phone layout. |
-| CI | Replaced 2026-11-11 by the official Pages flow (WP-C5); it has not run on GitHub yet and needs the owner's Pages setting first (ROADMAP §2). |
+| CI | Replaced 2026-11-11 by the official Pages flow (WP-C5). Running: the owner switched the Pages source, and every push is checked and, on `main`, deployed (seen 2026-11-14: both green on `9553e4d`). |
 | Recorded data | Regenerated 2026-11-11 on SIM_VERSION 5 (the fresh baseline, [ROADMAP.md](ROADMAP.md) §1): meta-field analysis with decision telemetry (4,200 games), Season 1, events 1–4 (949 games), ratings, head-to-heads, deck reports and the plan. Bred and optimised decks from the old results are in `data/decks/archive/`; the old data is at the tag `archive/pre-season1-reset-2026-11-11`. |
 
 **How to read it**
@@ -318,7 +318,7 @@ Owns: `.github/workflows/**`. Needs one owner step in the repository settings. D
 | OPS-9c | M | Nothing checks that generated data is consistent at deploy time. | `check:data` step: event index matches event files; head-to-heads cover the recorded events. |
 | OPS-9d | L | Every push to main is a production release. | Decide between that and a manual or tagged release once the fresh baseline exists. |
 
-**Status 2026-11-11: OPS-9b and OPS-9c done in `.github/workflows/pages.yml`, not yet run on GitHub; OPS-9d still open (deploys stay on every push to `main`).** Owner steps, including the Pages source switch and retiring `gh-pages`: [ROADMAP.md](ROADMAP.md) §2.
+**Status 2026-11-11: OPS-9b and OPS-9c done in `.github/workflows/pages.yml`, not yet run on GitHub; OPS-9d still open (deploys stay on every push to `main`).** Since then the owner has switched the Pages source and the workflow runs on every push (seen 2026-11-14: `check` and `deploy` green on `9553e4d`). Owner steps, including the Pages source switch and retiring `gh-pages`: [ROADMAP.md](ROADMAP.md) §2.
 
 ---
 

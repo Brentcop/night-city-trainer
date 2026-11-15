@@ -1,0 +1,76 @@
+
+=== S2-05 -1 We Gotta Live Together +1 Yorinobu: Steel Dragon   (study, Medium v8: +2.3 [+1.4, +3.1] (2,800 games))
+    key d5bf540ca72f871a -main:we_gotta_live_together +main:yorinobu_arasaka_steel_dragon
+  run  1: strict could not tell               +1.6 [-0.1, +3.2] 896g z 2.01 looks 4 (first confirmation, staged rule)   | this run alone: could not tell (+1.6 [-0.1, +3.2] 896g)
+  run  2: strict could not tell               +1.6 [-0.2, +3.4] 1792g z 3.04 looks 4 prior 896 [my check: same]   | this run alone: could not tell (+1.7 [-0.0, +3.4] 896g)   | plan's rule pooled: +1.6 [+0.4, +2.8] 1792g
+  run  3: strict could not tell               +2.0 [+0.6, +3.5] 2688g z 3.05 looks 4 prior 1792 [my check: same]   | this run alone: ADOPT at look 3 (+3.1 [+1.1, +5.2] 672g)   | plan's rule pooled: +2.0 [+1.0, +3.0] 2464g
+  run  4: strict could not tell               +2.2 [+1.0, +3.4] 3584g z 3.06 looks 4 prior 2688 [my check: same]   | this run alone: ADOPT at look 4 (+2.6 [+1.0, +4.1] 896g)
+  run  5: strict ADOPT                        +2.3 [+1.1, +3.5] 3808g z 3.06 looks 1 prior 3584 [my check: same]   | this run alone: could not tell
+  -> strict: adopt in run 5 at 3808 pooled games (+2.3 [+1.1, +3.5] 3808g)
+  -> the plan's rule: adopt in run 3 at 2464 games (+2.0 [+1.0, +3.0] 2464g)   | no ledger: adopt in run 3 on its own 896 games
+  -> all 3808 paired games, plain 95%: +2.3 [+1.5, +3.0] 3808g   (ledger holds 3808, conflicts 0; games played 7616)
+
+=== Ladder RRG Padre -1 Field Operator +1 MaxTac AV   (study, Medium v8: +4.2 [+2.9, +5.5])
+    key d5db41bfdf5ec740 -main:field_operator +main:maxtac_av
+  run  1: strict could not tell               +1.6 [-0.8, +3.9] 896g z 2.01 looks 4 (first confirmation, staged rule)   | this run alone: could not tell (+1.6 [-0.8, +3.9] 896g)
+  run  2: strict could not tell               +1.6 [-0.9, +4.1] 1792g z 3.04 looks 4 prior 896 [my check: same]   | this run alone: could not tell (+1.7 [-0.7, +4.0] 896g)   | plan's rule pooled: +1.6 [-0.0, +3.3] 1792g
+  run  3: strict could not tell               +2.2 [+0.1, +4.2] 2688g z 3.05 looks 4 prior 1792 [my check: same]   | this run alone: could not tell (+3.2 [+0.9, +5.6] 896g)   | plan's rule pooled: +2.2 [+0.8, +3.5] 2688g
+  run  4: strict could not tell               +2.4 [+0.6, +4.2] 3584g z 3.06 looks 4 prior 2688 [my check: same]   | this run alone: could not tell (+3.2 [+0.8, +5.7] 896g)   | plan's rule pooled: +2.5 [+1.2, +3.8] 2912g
+  run  5: strict ADOPT                        +2.8 [+1.1, +4.5] 4256g z 3.07 looks 3 prior 3584 [my check: same]   | this run alone: ADOPT at look 3 (+4.8 [+1.4, +8.1] 672g)
+  -> strict: adopt in run 5 at 4256 pooled games (+2.8 [+1.1, +4.5] 4256g)
+  -> the plan's rule: adopt in run 4 at 2912 games (+2.5 [+1.2, +3.8] 2912g)   | no ledger: adopt in run 5 on its own 672 games
+  -> all 4256 paired games, plain 95%: +2.8 [+1.7, +3.9] 4256g   (ledger holds 4256, conflicts 0; games played 8512)
+
+=== Ladder BBG -1 Peace Offering +1 MaxTac AV   (study, Medium v8: +3.9 [+2.5, +5.4])
+    key 322dc7c6d97965fe -main:peace_offering +main:maxtac_av
+  run  1: strict could not tell               +0.2 [-2.4, +2.9] 896g z 2.01 looks 4 (first confirmation, staged rule)   | this run alone: could not tell (+0.2 [-2.4, +2.9] 896g)
+  run  2: strict could not tell               +1.7 [-1.2, +4.6] 1792g z 3.04 looks 4 prior 896 [my check: same]   | this run alone: could not tell (+3.2 [+0.4, +6.0] 896g)   | plan's rule pooled: +1.7 [-0.2, +3.7] 1792g
+  run  3: strict could not tell               +1.2 [-1.2, +3.5] 2688g z 3.05 looks 4 prior 1792 [my check: same]   | this run alone: could not tell (futility at look 2, -0.9 [-6.0, +4.2] 448g)   | plan's rule pooled: +1.2 [-0.4, +2.7] 2688g
+  run  4: strict could not tell               +1.8 [-0.2, +3.9] 3584g z 3.06 looks 4 prior 2688 [my check: same]   | this run alone: ADOPT at look 4 (+3.8 [+1.1, +6.5] 896g)   | plan's rule pooled: +1.8 [+0.5, +3.2] 3584g
+  run  5: strict could not tell               +1.3 [-0.5, +3.1] 4480g z 3.07 looks 4 prior 3584 [my check: same]   | this run alone: could not tell (futility at look 3, +0.0 [-3.4, +3.4] 672g)   | plan's rule pooled: +1.3 [+0.1, +2.5] 4480g
+  run  6: strict could not tell               +1.3 [-0.4, +2.9] 5376g z 3.09 looks 4 prior 4480 [my check: same]   | this run alone: could not tell (futility at look 2, -1.1 [-6.7, +4.5] 448g)   | plan's rule pooled: +1.3 [+0.2, +2.4] 5376g
+  run  7: strict could not tell               +1.1 [-0.4, +2.6] 6272g z 3.11 looks 4 prior 5376 [my check: same]   | this run alone: could not tell (futility at look 2, -3.1 [-8.0, +1.7] 448g)   | plan's rule pooled: +1.1 [+0.1, +2.1] 6272g
+  run  8: strict could not tell               +1.4 [-0.1, +2.8] 7168g z 3.12 looks 4 prior 6272 [my check: same]   | this run alone: could not tell (+3.1 [+0.4, +5.8] 896g)   | plan's rule pooled: +1.4 [+0.4, +2.3] 7168g
+  run  9: strict could not tell               +1.6 [+0.3, +3.0] 8064g z 3.13 looks 4 prior 7168 [my check: same]   | this run alone: ADOPT at look 4 (+4.0 [+1.0, +7.0] 896g)   | plan's rule pooled: +1.6 [+0.8, +2.5] 8064g
+  run 10: strict could not tell               +1.8 [+0.4, +3.1] 8960g z 3.14 looks 4 prior 8064 [my check: same]   | this run alone: could not tell (+2.8 [+0.1, +5.5] 896g)   | plan's rule pooled: +1.8 [+0.9, +2.6] 8960g
+  -> strict: undecided after 8960 pooled games
+  -> the plan's rule: undecided   | no ledger: adopt in run 4 on its own 896 games
+  -> all 8960 paired games, plain 95%: +1.8 [+0.9, +2.6] 8960g   (ledger holds 8960, conflicts 0; games played 17920)
+
+=== Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms   (study, Medium v8: +2.1 [+0.9, +3.3])
+    key 1ee6a3224d0de263 -main:alt_cunningham_mother_of_daemons +main:gorilla_arms
+  run  1: strict could not tell (futility)    -1.1 [-5.8, +3.6] 448g z 2.96 looks 2 (first confirmation, staged rule)   | this run alone: could not tell (futility at look 2, -1.1 [-5.8, +3.6] 448g)
+  run  2: strict could not tell               +1.0 [-1.7, +3.8] 1344g z 3.06 looks 4 prior 448 [my check: same]   | this run alone: could not tell (+2.1 [-0.0, +4.3] 896g)   | plan's rule pooled: +1.0 [-0.8, +2.8] 1344g
+  run  3: strict could not tell               +1.3 [-0.7, +3.3] 2240g z 3.04 looks 4 prior 1344 [my check: same]   | this run alone: could not tell (+1.7 [-0.3, +3.7] 896g)   | plan's rule pooled: +1.3 [-0.0, +2.6] 2240g
+  run  4: strict could not tell               +1.4 [-0.4, +3.1] 3136g z 3.05 looks 4 prior 2240 [my check: same]   | this run alone: could not tell (+1.6 [-0.6, +3.7] 896g)   | plan's rule pooled: +1.4 [+0.2, +2.5] 3136g
+  run  5: strict could not tell               +1.4 [-0.1, +2.9] 4032g z 3.07 looks 4 prior 3136 [my check: same]   | this run alone: could not tell (+1.6 [-0.5, +3.6] 896g)   | plan's rule pooled: +1.4 [+0.4, +2.4] 4032g
+  run  6: strict could not tell               +1.6 [+0.2, +3.0] 4928g z 3.08 looks 4 prior 4032 [my check: same]   | this run alone: could not tell (+2.5 [+0.4, +4.5] 896g)   | plan's rule pooled: +1.6 [+0.7, +2.5] 4928g
+  run  7: strict could not tell               +1.4 [+0.2, +2.7] 5824g z 3.10 looks 4 prior 4928 [my check: same]   | this run alone: could not tell (futility at look 3, +0.0 [-2.5, +2.5] 672g)   | plan's rule pooled: +1.4 [+0.6, +2.2] 5824g
+  run  8: strict could not tell               +1.6 [+0.5, +2.8] 6720g z 3.11 looks 4 prior 5824 [my check: same]   | this run alone: could not tell (+3.0 [+0.9, +5.2] 896g)   | plan's rule pooled: +1.6 [+0.9, +2.4] 6720g
+  run  9: strict could not tell               +1.8 [+0.7, +2.9] 7616g z 3.13 looks 4 prior 6720 [my check: same]   | this run alone: could not tell (+2.9 [+0.5, +5.3] 896g)   | plan's rule pooled: +1.8 [+1.1, +2.6] 7392g
+  run 10: strict could not tell               +1.9 [+0.8, +3.0] 8512g z 3.14 looks 4 prior 7616 [my check: same]   | this run alone: could not tell (+2.9 [+1.0, +4.9] 896g)
+  -> strict: undecided after 8512 pooled games
+  -> the plan's rule: adopt in run 9 at 7392 games (+1.8 [+1.1, +2.6] 7392g)   | no ledger: never adopted in a single run
+  -> all 8512 paired games, plain 95%: +1.9 [+1.2, +2.6] 8512g   (ledger holds 8512, conflicts 0; games played 17024)
+
+=== Ladder RRB -1 Shattered Memories +1 Yorinobu: Steel Dragon   (study, Medium v8: +1.7 [+0.4, +2.9])
+    key e334a325d1782349 -main:shattered_memories +main:yorinobu_arasaka_steel_dragon
+  run  1: strict could not tell               +2.6 [+0.6, +4.6] 896g z 2.01 looks 4 (first confirmation, staged rule)   | this run alone: could not tell (+2.6 [+0.6, +4.6] 896g)
+  run  2: strict could not tell               +2.3 [+0.0, +4.6] 1792g z 3.04 looks 4 prior 896 [my check: same]   | this run alone: could not tell (+2.0 [-0.2, +4.2] 896g)   | plan's rule pooled: +3.2 [+1.4, +5.1] 1120g
+  run  3: strict could not tell               +2.8 [+0.9, +4.6] 2688g z 3.05 looks 4 prior 1792 [my check: same]   | this run alone: ADOPT at look 4 (+3.7 [+1.5, +5.9] 896g)
+  run  4: strict could not tell               +2.6 [+0.9, +4.3] 3584g z 3.06 looks 4 prior 2688 [my check: same]   | this run alone: could not tell (+2.1 [-0.1, +4.4] 896g)
+  run  5: strict could not tell               +2.4 [+0.9, +3.9] 4480g z 3.07 looks 4 prior 3584 [my check: same]   | this run alone: could not tell (+1.5 [-0.8, +3.7] 896g)
+  run  6: strict could not tell               +2.2 [+0.8, +3.6] 5376g z 3.09 looks 4 prior 4480 [my check: same]   | this run alone: could not tell (+1.3 [-0.9, +3.6] 896g)
+  run  7: strict ADOPT                        +2.4 [+1.0, +3.7] 5824g z 3.10 looks 2 prior 5376 [my check: same]   | this run alone: could not tell
+  -> strict: adopt in run 7 at 5824 pooled games (+2.4 [+1.0, +3.7] 5824g)
+  -> the plan's rule: adopt in run 2 at 1120 games (+3.2 [+1.4, +5.1] 1120g)   | no ledger: adopt in run 3 on its own 896 games
+  -> all 5824 paired games, plain 95%: +2.4 [+1.5, +3.2] 5824g   (ledger holds 5824, conflicts 0; games played 11648)
+
+=== S2-06 -1 Shattered Memories +1 6th Street Recruits   (study, Medium v8: +1.9 [+0.2, +3.6])
+    key 40126420639663fe -main:shattered_memories +main:6th_street_recruits
+  run  1: strict could not tell               +0.1 [-2.8, +3.1] 896g z 2.01 looks 4 (first confirmation, staged rule)   | this run alone: could not tell (+0.1 [-2.8, +3.1] 896g)
+  run  2: strict could not tell               +2.6 [-0.6, +5.9] 1792g z 3.04 looks 4 prior 896 [my check: same]   | this run alone: ADOPT at look 4 (+5.1 [+2.1, +8.2] 896g)   | plan's rule pooled: +2.6 [+0.5, +4.8] 1792g
+  run  3: strict ADOPT                        +3.8 [+1.2, +6.4] 2688g z 3.05 looks 4 prior 1792 [my check: same]   | this run alone: ADOPT at look 3 (+6.1 [+1.9, +10.3] 672g)   | plan's rule pooled: +3.5 [+1.5, +5.5] 2016g
+  -> strict: adopt in run 3 at 2688 pooled games (+3.8 [+1.2, +6.4] 2688g)
+  -> the plan's rule: adopt in run 3 at 2016 games (+3.5 [+1.5, +5.5] 2016g)   | no ledger: adopt in run 2 on its own 896 games
+  -> all 2688 paired games, plain 95%: +3.8 [+2.1, +5.5] 2688g   (ledger holds 2688, conflicts 0; games played 5376)

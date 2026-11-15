@@ -25,7 +25,8 @@
     "check:data": "tsx scripts/check-data.ts",
     "kb": "tsx scripts/kb.ts",
     "kb:eval": "tsx scripts/kb-eval.ts",
-    "record": "tsx scripts/record.ts"
+    "record": "tsx scripts/record.ts",
+    "ledger": "tsx scripts/ledger.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

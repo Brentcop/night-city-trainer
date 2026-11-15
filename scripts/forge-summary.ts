@@ -14,6 +14,8 @@ export interface ForgeGenSummary {
   change: string;
   /** the adopted change's held-out paired gain (fresh games, paired with the list it replaced) */
   gain?: PairedInterval;
+  /** with the change ledger: how many of the gain's games came from earlier runs (absent when it was not pooled) */
+  priorGames?: number;
 }
 
 export interface ForgeDeckSummary {
@@ -29,7 +31,7 @@ const adoptedOf = (d: ForgeDeckSummary) => d.gens.filter((h) => !h.change.starts
 /** The held-out result in words: each adopted change with its paired gain, or "no change adopted" with why. */
 export function forgeResultText(d: ForgeDeckSummary): string {
   const adopted = adoptedOf(d);
-  if (adopted.length) return `adopted ${adopted.map((h) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)})` : ''}`).join('; ')}`;
+  if (adopted.length) return `adopted ${adopted.map((h) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)}${h.priorGames ? `, pooled: ${h.priorGames} from earlier runs` : ''})` : ''}`).join('; ')}`;
   const unsure = d.gens.filter((h) => h.change.startsWith('kept (could not tell')).map((h) => h.change.replace(/^kept \((.*)\)$/, '$1'));
   return `no change adopted${unsure.length ? ` (${unsure.join('; ')})` : ''}`;
 }

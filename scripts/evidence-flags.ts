@@ -19,9 +19,16 @@
 //   --nominees N                candidates confirmed per generation
 //   --combine-from N            how many of the best screened single changes are combined (4)
 //   --budget N                  refuse a run that may play more than N games per deck (12000) unless --force
+//   --ledger                    the change ledger (src/lib/changeLedger.ts, scripts/ledger-store.ts): keep every screening
+//                               and held-out paired game, and pool a nominee's held-out games from earlier runs (same
+//                               simulator version, bot and field) by the strict rule (docs/SYNERGIES.md "Pooling held-out
+//                               games across runs"); off by default, and without it nothing changes
+//   --ledger-dir DIR            where the ledger is kept (default data/ledger; under --out DIR it is DIR/ledger)
+import path from 'node:path';
 import { ADOPTION_BOUNDARIES, adoptionRule, ruleProblems, type AdoptionBoundary, type AdoptionRule } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, DEPTH_DEFAULTS, type SearchDepth } from '../src/lib/deckSearch';
-import { bool, int, num, oneOf } from './lib-node';
+import { ledgerBot } from '../src/lib/changeLedger';
+import { bool, int, num, oneOf, str } from './lib-node';
 
 export const ADOPT_KINDS = ['evidence', 'any-gain'] as const;
 
@@ -114,6 +121,40 @@ export function adoptionArgs(v: AdoptionFlagValues & DepthFlagValues): string[] 
   if (d.nominees !== DEPTH_DEFAULTS.nominees) out.push('--nominees', String(d.nominees));
   if (d.combineFrom !== DEPTH_DEFAULTS.combineFrom) out.push('--combine-from', String(d.combineFrom));
   return out;
+}
+
+/** The change-ledger flags (forge, optimizer, season). */
+export const ledgerFlags = () => ({ ledger: bool(), 'ledger-dir': str() });
+export interface LedgerFlagValues {
+  ledger?: boolean;
+  'ledger-dir'?: string;
+}
+/** The default ledger directory (committed). */
+export const LEDGER_DIR = 'data/ledger';
+
+/**
+ * The ledger's directory and canonical bot name, or null when --ledger is off. Exits 2 (a bad command line) on
+ * --ledger-dir without --ledger, or a bot the ledger refuses (hard-v1 reads src/data/impact.json). `out` is the run's
+ * --out directory: the ledger then goes to OUT/ledger, so a trial run never writes into the repository.
+ */
+export function ledgerFromFlags(v: LedgerFlagValues, o: { bot: string; out?: string }): { dir: string; bot: string } | null {
+  const fail = (msg: string): never => {
+    console.error(`error: ${msg}\nRun with --help for usage.`);
+    process.exit(2);
+  };
+  if (!v.ledger) {
+    if (v['ledger-dir'] !== undefined) fail('--ledger-dir needs --ledger');
+    return null;
+  }
+  const b = ledgerBot(o.bot);
+  if (!b.bot) return fail(`${b.problem}; pick another --bot or leave out --ledger`);
+  return { dir: v['ledger-dir'] ?? (o.out ? path.join(o.out, 'ledger') : LEDGER_DIR), bot: b.bot };
+}
+
+/** The command-line form of the ledger flags (season.ts passes them on to the forge). */
+export function ledgerArgs(v: LedgerFlagValues): string[] {
+  if (!v.ledger) return [];
+  return ['--ledger', ...(v['ledger-dir'] !== undefined ? ['--ledger-dir', v['ledger-dir']] : [])];
 }
 
 /**

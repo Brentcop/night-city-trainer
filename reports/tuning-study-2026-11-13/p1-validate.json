@@ -1,0 +1,704 @@
+[
+ {
+  "id": "s2-05",
+  "label": "S2-05 -1 We Gotta Live Together +1 Yorinobu: Steel Dragon",
+  "v8": "+2.3 [+1.4, +3.1] (2,800 games)",
+  "strict": "adopt in run 5 at 3808 pooled games (+2.3 [+1.1, +3.5] 3808g)",
+  "plan": "adopt in run 3 at 2464 games (+2.0 [+1.0, +3.0] 2464g)",
+  "noLedger": "adopt in run 3 on its own 896 games",
+  "all": {
+   "games": 3808,
+   "mean": 0.022584033613445378,
+   "lower": 0.014982487237998957,
+   "upper": 0.0301855799888918,
+   "z": 1.96
+  },
+  "rows": [
+   {
+    "run": 1,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 0,
+    "heldOut": {
+     "games": 896,
+     "mean": 0.015625,
+     "lower": -0.0008691076989668436,
+     "upper": 0.032119107698966844,
+     "z": 2.014090135797206
+    },
+    "own": "could not tell (+1.6 [-0.1, +3.2] 896g)"
+   },
+   {
+    "run": 2,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 896,
+    "heldOut": {
+     "games": 1792,
+     "mean": 0.016183035714285716,
+     "lower": -0.0019850892210220503,
+     "upper": 0.03435116064959348,
+     "z": 3.0430376161290296
+    },
+    "own": "could not tell (+1.7 [-0.0, +3.4] 896g)"
+   },
+   {
+    "run": 3,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 1792,
+    "heldOut": {
+     "games": 2688,
+     "mean": 0.020461309523809524,
+     "lower": 0.006229165085320577,
+     "upper": 0.03469345396229847,
+     "z": 3.045250723324107
+    },
+    "own": "ADOPT at look 3 (+3.1 [+1.1, +5.2] 672g)"
+   },
+   {
+    "run": 4,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 2688,
+    "heldOut": {
+     "games": 3584,
+     "mean": 0.021763392857142856,
+     "lower": 0.009506023898949277,
+     "upper": 0.034020761815336434,
+     "z": 3.0589518750304303
+    },
+    "own": "ADOPT at look 4 (+2.6 [+1.0, +4.1] 896g)"
+   },
+   {
+    "run": 5,
+    "outcome": "adopt",
+    "stopped": null,
+    "looks": 1,
+    "priorGames": 3584,
+    "heldOut": {
+     "games": 3808,
+     "mean": 0.022584033613445378,
+     "lower": 0.010654012904872463,
+     "upper": 0.03451405432201829,
+     "z": 3.062850441417706
+    },
+    "own": "could not tell"
+   }
+  ]
+ },
+ {
+  "id": "lad-padre",
+  "label": "Ladder RRG Padre -1 Field Operator +1 MaxTac AV",
+  "v8": "+4.2 [+2.9, +5.5]",
+  "strict": "adopt in run 5 at 4256 pooled games (+2.8 [+1.1, +4.5] 4256g)",
+  "plan": "adopt in run 4 at 2912 games (+2.5 [+1.2, +3.8] 2912g)",
+  "noLedger": "adopt in run 5 on its own 672 games",
+  "all": {
+   "games": 4256,
+   "mean": 0.027960526315789474,
+   "lower": 0.017280693076372866,
+   "upper": 0.03864035955520608,
+   "z": 1.96
+  },
+  "rows": [
+   {
+    "run": 1,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 0,
+    "heldOut": {
+     "games": 896,
+     "mean": 0.015625,
+     "lower": -0.007507242013935808,
+     "upper": 0.03875724201393581,
+     "z": 2.014090135797206
+    },
+    "own": "could not tell (+1.6 [-0.8, +3.9] 896g)"
+   },
+   {
+    "run": 2,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 896,
+    "heldOut": {
+     "games": 1792,
+     "mean": 0.016183035714285716,
+     "lower": -0.008912987866725123,
+     "upper": 0.04127905929529656,
+     "z": 3.0430376161290296
+    },
+    "own": "could not tell (+1.7 [-0.7, +4.0] 896g)"
+   },
+   {
+    "run": 3,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 1792,
+    "heldOut": {
+     "games": 2688,
+     "mean": 0.021577380952380952,
+     "lower": 0.0010399775310038564,
+     "upper": 0.04211478437375805,
+     "z": 3.045250723324107
+    },
+    "own": "could not tell (+3.2 [+0.9, +5.6] 896g)"
+   },
+   {
+    "run": 4,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 2688,
+    "heldOut": {
+     "games": 3584,
+     "mean": 0.024274553571428572,
+     "lower": 0.006234241824125221,
+     "upper": 0.04231486531873192,
+     "z": 3.0589518750304303
+    },
+    "own": "could not tell (+3.2 [+0.8, +5.7] 896g)"
+   },
+   {
+    "run": 5,
+    "outcome": "adopt",
+    "stopped": null,
+    "looks": 3,
+    "priorGames": 3584,
+    "heldOut": {
+     "games": 4256,
+     "mean": 0.027960526315789474,
+     "lower": 0.011200927202378988,
+     "upper": 0.04472012542919996,
+     "z": 3.070792056246774
+    },
+    "own": "ADOPT at look 3 (+4.8 [+1.4, +8.1] 672g)"
+   }
+  ]
+ },
+ {
+  "id": "lad-bbg",
+  "label": "Ladder BBG -1 Peace Offering +1 MaxTac AV",
+  "v8": "+3.9 [+2.5, +5.4]",
+  "strict": "",
+  "plan": "",
+  "noLedger": "adopt in run 4 on its own 896 games",
+  "all": {
+   "games": 8960,
+   "mean": 0.01763392857142857,
+   "lower": 0.009381013473613175,
+   "upper": 0.025886843669243965,
+   "z": 1.96
+  },
+  "rows": [
+   {
+    "run": 1,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 0,
+    "heldOut": {
+     "games": 896,
+     "mean": 0.002232142857142857,
+     "lower": -0.024188653177375074,
+     "upper": 0.028652938891660786,
+     "z": 2.014090135797206
+    },
+    "own": "could not tell (+0.2 [-2.4, +2.9] 896g)"
+   },
+   {
+    "run": 2,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 896,
+    "heldOut": {
+     "games": 1792,
+     "mean": 0.017299107142857144,
+     "lower": -0.011832504863383535,
+     "upper": 0.04643071914909783,
+     "z": 3.0430376161290296
+    },
+    "own": "could not tell (+3.2 [+0.4, +6.0] 896g)"
+   },
+   {
+    "run": 3,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 1792,
+    "heldOut": {
+     "games": 2688,
+     "mean": 0.011904761904761904,
+     "lower": -0.011518193228592374,
+     "upper": 0.035327717038116185,
+     "z": 3.045250723324107
+    },
+    "own": "could not tell (futility at look 2, -0.9 [-6.0, +4.2] 448g)"
+   },
+   {
+    "run": 4,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 2688,
+    "heldOut": {
+     "games": 3584,
+     "mean": 0.018415178571428572,
+     "lower": -0.0020087830996393385,
+     "upper": 0.03883914024249648,
+     "z": 3.0589518750304303
+    },
+    "own": "ADOPT at look 4 (+3.8 [+1.1, +6.5] 896g)"
+   },
+   {
+    "run": 5,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 3584,
+    "heldOut": {
+     "games": 4480,
+     "mean": 0.012946428571428572,
+     "lower": -0.005200488808634664,
+     "upper": 0.03109334595149181,
+     "z": 3.0747745419774835
+    },
+    "own": "could not tell (futility at look 3, +0.0 [-3.4, +3.4] 672g)"
+   },
+   {
+    "run": 6,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 4480,
+    "heldOut": {
+     "games": 5376,
+     "mean": 0.012834821428571428,
+     "lower": -0.003765891549760054,
+     "upper": 0.02943553440690291,
+     "z": 3.090391457137469
+    },
+    "own": "could not tell (futility at look 2, -1.1 [-6.7, +4.5] 448g)"
+   },
+   {
+    "run": 7,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 5376,
+    "heldOut": {
+     "games": 6272,
+     "mean": 0.011001275510204082,
+     "lower": -0.0043230277415346775,
+     "upper": 0.02632557876194284,
+     "z": 3.1051600988106727
+    },
+    "own": "could not tell (futility at look 2, -3.1 [-8.0, +1.7] 448g)"
+   },
+   {
+    "run": 8,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 6272,
+    "heldOut": {
+     "games": 7168,
+     "mean": 0.013532366071428572,
+     "lower": -0.0009220927838671702,
+     "upper": 0.027986824926724316,
+     "z": 3.1189399930345334
+    },
+    "own": "could not tell (+3.1 [+0.4, +5.8] 896g)"
+   },
+   {
+    "run": 9,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 7168,
+    "heldOut": {
+     "games": 8064,
+     "mean": 0.016493055555555556,
+     "lower": 0.0026059170788105736,
+     "upper": 0.030380194032300536,
+     "z": 3.1317545323787814
+    },
+    "own": "ADOPT at look 4 (+4.0 [+1.0, +7.0] 896g)"
+   },
+   {
+    "run": 10,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 8064,
+    "heldOut": {
+     "games": 8960,
+     "mean": 0.01763392857142857,
+     "lower": 0.004389108777630069,
+     "upper": 0.030878748365227075,
+     "z": 3.143678950243266
+    },
+    "own": "could not tell (+2.8 [+0.1, +5.5] 896g)"
+   }
+  ]
+ },
+ {
+  "id": "lad-ryy",
+  "label": "Ladder RYY -1 Alt: Mother of Daemons +1 Gorilla Arms",
+  "v8": "+2.1 [+0.9, +3.3]",
+  "strict": "",
+  "plan": "adopt in run 9 at 7392 games (+1.8 [+1.1, +2.6] 7392g)",
+  "noLedger": "",
+  "all": {
+   "games": 8512,
+   "mean": 0.019031954887218046,
+   "lower": 0.01237016213675489,
+   "upper": 0.025693747637681202,
+   "z": 1.96
+  },
+  "rows": [
+   {
+    "run": 1,
+    "outcome": "inconclusive",
+    "stopped": "futility",
+    "looks": 2,
+    "priorGames": 0,
+    "heldOut": {
+     "games": 448,
+     "mean": -0.011160714285714286,
+     "lower": -0.05842199925841463,
+     "upper": 0.03610057068698606,
+     "z": 2.963131571292958
+    },
+    "own": "could not tell (futility at look 2, -1.1 [-5.8, +3.6] 448g)"
+   },
+   {
+    "run": 2,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 448,
+    "heldOut": {
+     "games": 1344,
+     "mean": 0.010416666666666666,
+     "lower": -0.01704932913151725,
+     "upper": 0.037882662464850586,
+     "z": 3.057710630033216
+    },
+    "own": "could not tell (+2.1 [-0.0, +4.3] 896g)"
+   },
+   {
+    "run": 3,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 1344,
+    "heldOut": {
+     "games": 2240,
+     "mean": 0.012946428571428572,
+     "lower": -0.007398676479289408,
+     "upper": 0.033291533622146555,
+     "z": 3.041416773919535
+    },
+    "own": "could not tell (+1.7 [-0.3, +3.7] 896g)"
+   },
+   {
+    "run": 4,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 2240,
+    "heldOut": {
+     "games": 3136,
+     "mean": 0.01371173469387755,
+     "lower": -0.003594403902635013,
+     "upper": 0.031017873290390116,
+     "z": 3.0515453897036413
+    },
+    "own": "could not tell (+1.6 [-0.6, +3.7] 896g)"
+   },
+   {
+    "run": 5,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 3136,
+    "heldOut": {
+     "games": 4032,
+     "mean": 0.014136904761904762,
+     "lower": -0.001077253968221158,
+     "upper": 0.029351063492030684,
+     "z": 3.0668088354233625
+    },
+    "own": "could not tell (+1.6 [-0.5, +3.6] 896g)"
+   },
+   {
+    "run": 6,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 4032,
+    "heldOut": {
+     "games": 4928,
+     "mean": 0.016030844155844156,
+     "lower": 0.0022457028878391898,
+     "upper": 0.029815985423849122,
+     "z": 3.0826675676267152
+    },
+    "own": "could not tell (+2.5 [+0.4, +4.5] 896g)"
+   },
+   {
+    "run": 7,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 4928,
+    "heldOut": {
+     "games": 5824,
+     "mean": 0.014251373626373626,
+     "lower": 0.0017346221699499932,
+     "upper": 0.02676812508279726,
+     "z": 3.0978966333388724
+    },
+    "own": "could not tell (futility at look 3, +0.0 [-2.5, +2.5] 672g)"
+   },
+   {
+    "run": 8,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 5824,
+    "heldOut": {
+     "games": 6720,
+     "mean": 0.01636904761904762,
+     "lower": 0.004597169257218684,
+     "upper": 0.028140925980876558,
+     "z": 3.1121741656906248
+    },
+    "own": "could not tell (+3.0 [+0.9, +5.2] 896g)"
+   },
+   {
+    "run": 9,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 6720,
+    "heldOut": {
+     "games": 7616,
+     "mean": 0.017857142857142856,
+     "lower": 0.006517900385693951,
+     "upper": 0.029196385328591763,
+     "z": 3.1254637880215186
+    },
+    "own": "could not tell (+2.9 [+0.5, +5.3] 896g)"
+   },
+   {
+    "run": 10,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 7616,
+    "heldOut": {
+     "games": 8512,
+     "mean": 0.019031954887218046,
+     "lower": 0.008355405763622892,
+     "upper": 0.0297085040108132,
+     "z": 3.1378226060180654
+    },
+    "own": "could not tell (+2.9 [+1.0, +4.9] 896g)"
+   }
+  ]
+ },
+ {
+  "id": "lad-rrb",
+  "label": "Ladder RRB -1 Shattered Memories +1 Yorinobu: Steel Dragon",
+  "v8": "+1.7 [+0.4, +2.9]",
+  "strict": "adopt in run 7 at 5824 pooled games (+2.4 [+1.0, +3.7] 5824g)",
+  "plan": "adopt in run 2 at 1120 games (+3.2 [+1.4, +5.1] 1120g)",
+  "noLedger": "adopt in run 3 on its own 896 games",
+  "all": {
+   "games": 5824,
+   "mean": 0.023695054945054944,
+   "lower": 0.015296164505903934,
+   "upper": 0.03209394538420596,
+   "z": 1.96
+  },
+  "rows": [
+   {
+    "run": 1,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 0,
+    "heldOut": {
+     "games": 896,
+     "mean": 0.025669642857142856,
+     "lower": 0.0057538319482837545,
+     "upper": 0.045585453766001954,
+     "z": 2.014090135797206
+    },
+    "own": "could not tell (+2.6 [+0.6, +4.6] 896g)"
+   },
+   {
+    "run": 2,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 896,
+    "heldOut": {
+     "games": 1792,
+     "mean": 0.022879464285714284,
+     "lower": 0.00022598041285801923,
+     "upper": 0.04553294815857055,
+     "z": 3.0430376161290296
+    },
+    "own": "could not tell (+2.0 [-0.2, +4.2] 896g)"
+   },
+   {
+    "run": 3,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 1792,
+    "heldOut": {
+     "games": 2688,
+     "mean": 0.027529761904761904,
+     "lower": 0.00871323425114031,
+     "upper": 0.0463462895583835,
+     "z": 3.045250723324107
+    },
+    "own": "ADOPT at look 4 (+3.7 [+1.5, +5.9] 896g)"
+   },
+   {
+    "run": 4,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 2688,
+    "heldOut": {
+     "games": 3584,
+     "mean": 0.025948660714285716,
+     "lower": 0.009388010969411258,
+     "upper": 0.04250931045916018,
+     "z": 3.0589518750304303
+    },
+    "own": "could not tell (+2.1 [-0.1, +4.4] 896g)"
+   },
+   {
+    "run": 5,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 3584,
+    "heldOut": {
+     "games": 4480,
+     "mean": 0.023660714285714285,
+     "lower": 0.008727832833716353,
+     "upper": 0.03859359573771222,
+     "z": 3.0747745419774835
+    },
+    "own": "could not tell (+1.5 [-0.8, +3.7] 896g)"
+   },
+   {
+    "run": 6,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 4480,
+    "heldOut": {
+     "games": 5376,
+     "mean": 0.02194940476190476,
+     "lower": 0.008161353124967892,
+     "upper": 0.03573745639884163,
+     "z": 3.090391457137469
+    },
+    "own": "could not tell (+1.3 [-0.9, +3.6] 896g)"
+   },
+   {
+    "run": 7,
+    "outcome": "adopt",
+    "stopped": null,
+    "looks": 2,
+    "priorGames": 5376,
+    "heldOut": {
+     "games": 5824,
+     "mean": 0.023695054945054944,
+     "lower": 0.010401079437841392,
+     "upper": 0.03698903045226849,
+     "z": 3.0978966333388724
+    },
+    "own": "could not tell"
+   }
+  ]
+ },
+ {
+  "id": "s2-06",
+  "label": "S2-06 -1 Shattered Memories +1 6th Street Recruits",
+  "v8": "+1.9 [+0.2, +3.6]",
+  "strict": "adopt in run 3 at 2688 pooled games (+3.8 [+1.2, +6.4] 2688g)",
+  "plan": "adopt in run 3 at 2016 games (+3.5 [+1.5, +5.5] 2016g)",
+  "noLedger": "adopt in run 2 on its own 896 games",
+  "all": {
+   "games": 2688,
+   "mean": 0.03794642857142857,
+   "lower": 0.020965590848100225,
+   "upper": 0.054927266294756916,
+   "z": 1.96
+  },
+  "rows": [
+   {
+    "run": 1,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 0,
+    "heldOut": {
+     "games": 896,
+     "mean": 0.0011160714285714285,
+     "lower": -0.02829494392733953,
+     "upper": 0.030527086784482387,
+     "z": 2.014090135797206
+    },
+    "own": "could not tell (+0.1 [-2.8, +3.1] 896g)"
+   },
+   {
+    "run": 2,
+    "outcome": "inconclusive",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 896,
+    "heldOut": {
+     "games": 1792,
+     "mean": 0.026227678571428572,
+     "lower": -0.006061994812027054,
+     "upper": 0.058517351954884195,
+     "z": 3.0430376161290296
+    },
+    "own": "ADOPT at look 4 (+5.1 [+2.1, +8.2] 896g)"
+   },
+   {
+    "run": 3,
+    "outcome": "adopt",
+    "stopped": null,
+    "looks": 4,
+    "priorGames": 1792,
+    "heldOut": {
+     "games": 2688,
+     "mean": 0.03794642857142857,
+     "lower": 0.011524452689356663,
+     "upper": 0.06436840445350048,
+     "z": 3.045250723324107
+    },
+    "own": "ADOPT at look 3 (+6.1 [+1.9, +10.3] 672g)"
+   }
+  ]
+ }
+]

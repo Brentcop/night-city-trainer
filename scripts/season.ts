@@ -26,6 +26,8 @@
 // --futility-gain X (0), --cards-per-change N,
 // --packages-per-change N, --nominees N, --combine-from N, and --forge-budget N (games per forged deck, default 12000:
 // the season refuses to start when the forge step could play more).
+// --ledger (and --ledger-dir DIR) turns the change ledger on for the forge step (docs/SYNERGIES.md "Pooling held-out
+// games across runs"; off by default, and without it nothing changes).
 //
 // Outputs: data/decks/custom/s<N>-*.txt, reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
@@ -42,7 +44,7 @@ import { breederPackageFlags, exitOnPlanProblems, packagesOn, planArgs, planFrom
 import { describePlan, packageName, packageProvenance } from '../src/lib/deckPackages';
 import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
-import { adoptionArgs, adoptionFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
+import { adoptionArgs, adoptionFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags } from './evidence-flags';
 import { adoptionProvenance, describeRule } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, estimateGames } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -62,7 +64,10 @@ const { values: V } = cli(import.meta.url, {
   ...adoptionFlags(),
   ...depthFlags(1),
   'forge-budget': int(DEFAULT_GAME_BUDGET, { min: 1 }),
+  ...ledgerFlags(),
 });
+// checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
+ledgerFromFlags(V, { bot: 'lookahead' });
 const PACKAGES = packagesOn(V);
 const PLAN = planFromFlags(V);
 exitOnPlanProblems(PLAN);
@@ -251,7 +256,7 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
 // ---------------------------------------------------------------- season
 async function main() {
   const startedAt = new Date().toISOString();
-  console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees })}`);
+  console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger })}`);
   // refuse before anything is played or written: the forge step would refuse later, after the round robin
   checkBudget(`season forge step, ${FORGE_GENS} generation${FORGE_GENS === 1 ? '' : 's'}`, FORGE_ESTIMATE, V['forge-budget'], false);
   const lb = loadLB();
@@ -324,7 +329,7 @@ async function main() {
     createdAt: startedAt,
     ...(PACKAGES ? { packages: packageProvenance(PLAN, { seeds: SEEDS }) } : {}),
     // the rule the forge step adopts changes by (the forge writes its own manifests too)
-    adoption: adoptionProvenance(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }),
+    adoption: adoptionProvenance(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, V.ledger),
   });
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   if (!rerun) {
@@ -354,7 +359,7 @@ async function main() {
   // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
   const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
   // the adoption rule and depth flags that were given, and the budget the season already checked
-  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget'])].join(' ');
+  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a)))].join(' ');
   execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
   // 4. finals vs meta for newcomers (post-forge) and any incumbent without finals
   const lib3 = loadLibrary();
@@ -388,7 +393,7 @@ async function main() {
     '',
     `${field.length} decks (7 meta, ${incumbents.length} incumbents, 8 new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. New decks were forged (${FORGE_GENS} gen) and then played the finals vs the meta (${FINALS} games per opponent).`,
     '',
-    `Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`,
+    `Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`,
     '',
     '## New decks',
     ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}${V['keep-built-around'] ? "; the forge kept each new deck's built-around packages" : ''}${V['package-moves'] ? '; the forge tried package moves' : ''}.`, ''] : []),

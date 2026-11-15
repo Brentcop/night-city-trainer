@@ -252,3 +252,73 @@ A combined candidate is built only from screened changes, must be a legal list a
 **What it costs.** Before a run the forge and optimizer print the range of games it can play (screening only, up to every confirmation running to the cap) and refuse a run over `--budget` (12,000 games per deck) unless given `--force`; the season checks its forge step against `--forge-budget` before it starts. The Deck Lab shows the range under Search depth and asks before a run over 12,000 games. A default forge run (2 generations, 140 games per test, 6 swaps) plays 1,960 to 6,440 games per deck, against 1,960 to 3,080 before. The most is unchanged by the futility stop; a nominee whose true gain is near zero now stops after 2 stages about half the time (when its held-out mean is at or below zero) and otherwise still runs all 4, so expect somewhat less than the upper end when nothing much helps. The season's forge step (1 generation, 112 games, 5 swaps) is 672 to 2,464 games per new deck (was up to 1,120).
 
 **Where it is recorded.** Forge logs and JSON (`adoption`, each generation's `nominees` with screening and held-out results, `verdict` adopted / rejected / inconclusive / kept), the forged deck file (`// Forged …` lists each adopted change with its held-out gain, interval and games, and `// Adoption:` states the rule), the optimizer report and JSON (`nominees`, `best`), the season report, the Deck Lab result panel and saved notes, and every builder's run manifest (optional `adoption` field: rule, numbers, correction, first stage, nominees, depth, and the futility stop's `futilityAfterStages` / `futilityMaxGainPp`, absent in runs recorded before it existed; schema stays 1). A nominee stopped early carries `stopped: 'futility'` in the `nominees` records, and every report says "stopped early: no gain after N games" beside "could not tell".
+
+### Pooling held-out games across runs (`src/lib/changeLedger.ts`, `scripts/ledger-store.ts`)
+
+Until 2026-11-14 every forge, optimizer and season run started from nothing: a change that ended "could not tell" after 896 held-out games was forgotten, and the next run that nominated it measured it again from zero (the S2-05 swap −1 We Gotta Live Together → +1 Yorinobu was confirmed for 896 games in Season 2, screened again later, and is worth about +2 points on 2,800 games; docs/TUNING_STUDY_2026-11-13.md, cause 3). The change ledger keeps those games and pools them, so repeated runs converge on an answer. It is opt-in (`--ledger`); without it every line, report, file and manifest is exactly what it was.
+
+**What the ledger keeps.** Every screening game and every held-out game a builder plays, one by one: the seed, the opponent (its list fingerprint), who went first, and both lists' scores. A change is named by the lists themselves, not by its label: the base list's fingerprint plus the cards cut and added, with repeats, over main deck and Legends. So the same change found as a card swap or as a package move is one change, a renamed list keeps its changes, and card order does not matter. Games are kept per **entry**: change + simulator version + bot (by the agent it builds: `fast` is Easy, `lookahead` and `best` are Medium) + field (a fingerprint of the opponents' lists). Games of another version, bot or field are another entry and are never pooled; `hard-v1` is refused, because it reads `src/data/impact.json`, so its games depend on more than the simulator version. A game is the same game when its seed, opponent and first player are the same; it is kept once per entry, and a game that comes back with other scores (it can happen when the same list is played with its cards in another order, since the shuffle starts from the array order) keeps the earlier scores and is counted as a conflict. **Screening games are kept but never pooled**: the screening winner reads 2 to 4 points too high (the winner's curse), so only held-out games are evidence. The Node store is `data/ledger/<base list fingerprint>.jsonl` (committed), one batch per line, append-only; a repeated run appends nothing. A game costs about 13 bytes, plus a few hundred bytes of header per batch (19 bytes a game in all on a real run's 1,344 games, whose screening batches are small).
+
+**The rule, in plain words.**
+1. A nominee with no earlier held-out games is confirmed exactly as before: the same games, the same looks, the same outcome.
+2. A nominee with earlier held-out games is judged on them first, before any new game: if they already adopt or reject it under the current rule, it is decided with 0 new games. Otherwise it plays stages as before, and after each one the earlier and new games are pooled (each game once) and judged again, up to the usual 4 new stages, then "could not tell".
+3. A pooled look uses an interval that stays valid however often it is looked at: the one-sided normal-mixture boundary of Howard, Ramdas, McAuliffe and Sekhon (2021), "Time-uniform, nonparametric, nonasymptotic confidence sequences", used with an estimated variance: z(n) = √( 2 · (1 + ρ/n) · ln( √(1 + n/ρ) / (2a) + 1 ) ), with n the pooled games, ρ = 250 games (`POOL_RHO`) and a = α / (2 × nominees), the same one-sided share the staged rule gives each nominee. For one nominee (a = 0.025): z = 3.77 at 224 games, 3.32 at 448, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584, 3.12 at 7,168. Adopt when the pooled lower bound is above the bar with at least 200 pooled games; reject when the pooled upper bound is below it.
+4. The spread of a pooled look is estimated with two pseudo-games added, one +1 and one −1, so a swap that rarely changes a game never reads as having no spread at all: with n′ = n + 2 and m′ = Σd / n′, v = (Σd² + 2 − n′·m′²) / (n′ − 1), and the interval is the plain mean ± z(n) · √(v / n), clipped to [−1, 1]. The staged rule's own interval is unchanged.
+5. The futility stop works on the pooled games: after a new stage other than the last (never before the first), a nominee whose pooled games reach 2 stages' worth and whose pooled mean gain is 0 or less stops as "could not tell". The Deck Lab's Stop and `--adopt any-gain` behave as before; any-gain never pools.
+6. A screened change whose earlier held-out games alone already reject it is not nominated: the next best takes its place, and the log says so with the pooled figure.
+7. The earlier games handed to a confirmation leave out every game it may play (all stages to the cap) and the screening games that nominated the change, so no game is counted twice, the screening that picked a change never vouches for it, and an exact repeat of a run decides the same way.
+8. A game that has screened a change is never kept as held-out evidence for that change afterwards. Within one run screening and confirmation seeds never overlap, but two runs with different seeds can overlap, so a later run can play as a held-out game one that an earlier run screened the change on; the ledger does not store it as evidence, and the run's summary line counts the games left out. (In the run that plays it, such a game still counts once in that run's own decision. It needs two runs' seed ranges to overlap with the opponents in step, which is rare, and none has been seen.)
+
+**Why not the plan's "next look".** The study's plan judged a pooled look as the next look index, that is at the last staged z (2.01) every time. For a change worth exactly the 1-point bar that adopts it more often with every re-run, because each re-run is another chance at the same z: 2.4% after 1 run, 8.2% after 5, 13.5% after 20 (SD 0.24, below). The owner chose the strict rule (2026-11-14), knowing it needs about 1.9 times the pooled games.
+
+**What it guarantees and what it costs.** The first confirmation of a change can wrongly adopt it with probability at most α / 2 = 2.5% per decision, as before. All its pooled looks together, however many runs there are, add at most another α / 2, so a change's whole life stays under 5%; with the variance estimated that bound is approximate, and the simulation below measures it. Synthetic paired games (`npx tsx scripts/ledger-sim.ts --lives 20000 --seed 1`; 20,000 lives a cell; one change confirmed in every run, stages of 224 games, at most 4 a run, the default rule; each paired difference is −1, 0 or +1 with the SD given; every decision goes through the library's own functions, and `tests/change-ledger.test.ts` checks that the simulation decides each run as `confirmStaged` does):
+
+| The boundary alone, true gain exactly at the bar, a look after every stage to 200,000 games | Wrongly above the bar | Wrongly below |
+|---|---|---|
+| SD 0.12 (a swap that rarely changes a game) | 0.6% | 2.8% |
+| SD 0.24 (a typical card swap) | 1.3% | 1.7% |
+| SD 0.24, stages of 112 | 1.4% | 1.8% |
+| SD 0.35 | 1.6% | 1.4% |
+| SD 0.50 (a package move) | 1.3% | 1.3% |
+
+The bound is 2.5% a side. Without the guard (plain spread, looks to 60,000 games) the SD 0.12 case wrongly put the upper bound below the bar in 7.3% of lives; with it, 2.8%, a little over the bound, on the side that only ever rejects.
+
+| Adopted by the end of run … (true gain exactly at the bar, +1 point) | 1 | 2 | 5 | 20 |
+|---|---|---|---|---|
+| SD 0.24, no ledger (every run starts again) | 2.2% | 4.5% | 11.0% | 37.6% |
+| SD 0.24, the plan's last-look z 2.01 | 2.4% | 4.8% | 8.2% | 13.5% |
+| SD 0.24, strict (built) | 2.4% | 2.5% | 2.7% | 3.0% |
+| SD 0.35, strict | 2.6% | 2.7% | 3.0% | 3.4% |
+| SD 0.50, strict | 2.6% | 2.6% | 2.9% | 3.2% |
+
+A change with no gain at all was adopted within 20 runs in 0.0%, 0.2% and 0.6% of lives (SD 0.24, 0.35, 0.50) under the strict rule, against 1.3%, 5.0% and 10.2% with no ledger.
+
+| Adopted by the end of run … (SD 0.24) | 1 | 2 | 3 | 5 | 8 | Held-out games played by adoption |
+|---|---|---|---|---|---|---|
+| +2 points, strict | 23.0% | 25.8% | 33.3% | 52.1% | 75.5% | 4,894 |
+| +2 points, the plan's last look | 23.0% | 49.0% | 65.9% | 85.1% | 96.0% | 2,570 |
+| +2 points, no ledger | 22.8% | 41.0% | 54.9% | 73.3% | 87.5% | 3,591 |
+| +3 points, strict | 70.6% | 81.2% | 94.1% | 99.7% | 100% | 1,186 |
+| +1.5 points, strict | 8.8% | 9.3% | 10.5% | 13.8% | 19.8% | 8,595 |
+
+So the strict rule trades speed for a bounded error rate: z is about 3.1 against 2.0, a +2-point card change needs about 1.9 times the held-out games (4,894 against 2,570) and is adopted by run 5 in about half of lives and by run 8 in three quarters, and the error rate at the bar stays near 3% however many runs follow. The first run is the same under every rule.
+
+**On real games (2026-11-14, SIM_VERSION 9).** Six changes the study had measured as real were confirmed again and again, each run on fresh seeds (Medium, the 7 meta decks, the forge's layout, stages of 224 up to 896 a run, 10 runs at most), with the ledger pooling the held-out games; 68,096 games (`reports/tuning-study-2026-11-13/p1-validate.ts`, output `p1-validate.txt`). The same games were also judged by the plan's last-look rule and, run by run, with no ledger. Every one of the 34 pooled looks was cross-checked against a second, separate implementation of the rule and agreed.
+
+| Change | All its games (plain 95%) | Strict (built) | The plan's last look | Each run on its own (no ledger) |
+|---|---|---|---|---|
+| S2-05 −1 We Gotta Live Together → +1 Yorinobu: Steel Dragon | +2.3 [+1.5, +3.0], 3,808 games | adopted in run 5 at 3,808 pooled games, +2.3 [+1.1, +3.5] | run 3 at 2,464 | adopted in runs 3 and 4, claiming +3.1 and +2.6 |
+| Ladder RRG Padre −1 Field Operator → +1 MaxTac AV | +2.8 [+1.7, +3.9], 4,256 | run 5 at 4,256, +2.8 [+1.1, +4.5] | run 4 at 2,912 | run 5, claiming +4.8 |
+| Ladder RRB −1 Shattered Memories → +1 Yorinobu: Steel Dragon | +2.4 [+1.5, +3.2], 5,824 | run 7 at 5,824, +2.4 [+1.0, +3.7] | run 2 at 1,120, claiming +3.2 | run 3, claiming +3.7 |
+| S2-06 −1 Shattered Memories → +1 6th Street Recruits | +3.8 [+2.1, +5.5], 2,688 | run 3 at 2,688, +3.8 [+1.2, +6.4] | run 3 at 2,016 | runs 2 and 3, claiming +5.1 and +6.1 |
+| Ladder BBG −1 Peace Offering → +1 MaxTac AV | +1.8 [+0.9, +2.6], 8,960 | could not tell after 10 runs, +1.8 [+0.4, +3.1] | could not tell | adopted in runs 4 and 9, claiming +3.8 and +4.0 |
+| Ladder RYY −1 Alt: Mother of Daemons → +1 Gorilla Arms | +1.9 [+1.2, +2.6], 8,512 | could not tell after 10 runs, +1.9 [+0.8, +3.0] | run 9 at 7,392 | never; its first run stopped for futility at −1.1 after 448 games |
+
+Reading: the S2-05 swap that Season 2 could not settle in 896 games is adopted once five runs have pooled, at the gain all its games show. A run on its own that adopts claims +2.6 to +6.1 for changes whose games say +1.8 to +3.8, and it adopted the BBG change twice at about +4 while 8,960 games put it at +1.8. The strict rule's figure at adoption is the pooled one. Two changes worth just under +2 stay "could not tell" after nearly 9,000 games, as the simulation says they would (a +1.5 change is adopted within 20 runs in about half of lives).
+
+**Using it.**
+- `--ledger` on `scripts/forge.ts`, `scripts/optimize.ts` and `scripts/season.ts` (which passes it to its forge step); `--ledger-dir DIR` keeps it elsewhere. The default is `data/ledger/`; with `--out DIR` it is `DIR/ledger`, so a trial run never writes into the repository. With the ledger on, the rule line says so, the manifest's `adoption.ledger` records it (`{ boundary: 'normal-mixture', rho: 250 }`), the forge and optimizer JSON carry a `ledger` record (directory, bot, field, games appended), a pooled nominee's records carry `heldOut.priorGames`, and logs say what was pooled, for example "held-out paired gain +2.1 pts [+1.1, +3.1], 2,016 games (1,120 from earlier runs; always-valid z 3.05, 2 new stages)".
+- `npm run ledger -- stats [deck…] [--dir DIR] [--all-versions]` lists what the ledger holds: each change with its deck, bot, simulator version and field, its held-out games and pooled gain with the always-valid interval, the verdict the next run would start from under the default rule (for an undecided change, about how many more held-out games it needs if its mean and spread hold), its screening games and its conflicts.
+- `npm run check:data` reads every `data/ledger/*.jsonl` line and fails on an unreadable line or a game held twice in one entry.
+- The optimizer always plays the same seeds (stage 1 from 424242, stage 2 from 777777), so repeating an optimizer run with the same settings adds nothing; its games pool with the forge's when the bot and field match (for a deck that is not a meta deck both fields are the meta decks).
+- The browser half (the Deck Lab tuner, an IndexedDB store, export and import as `kind: 'nct-change-ledger'`, schema 1, which `parseLedgerExport` already reads) is not built yet.

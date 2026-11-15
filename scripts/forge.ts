@@ -31,6 +31,16 @@
 //   --cards-per-change N (1-3, default 1)   --packages-per-change N (1-2, default 1)   --nominees N (default 1)
 //   --combine-from N (4)   --budget N (12000 games per deck; the estimate is printed first)   --force (go over it)
 //
+// Change ledger (opt-in; docs/SYNERGIES.md "Pooling held-out games across runs"; without it nothing changes):
+//   --ledger          keep every screening and held-out paired game in the ledger (src/lib/changeLedger.ts), and judge a
+//                     nominee that already has held-out games from earlier runs (same simulator version, bot and field)
+//                     on them and the new games pooled, by the strict always-valid rule: its earlier games alone first
+//                     (adopted or rejected with 0 new games), then after each new stage. A screened change whose earlier
+//                     games alone already reject it is not nominated (the next best takes its place). The prior leaves
+//                     out every game this confirmation may play and the games that screened the change, so repeating a
+//                     run decides the same way and appends nothing. Not with --bot hard-v1 (it reads card impact).
+//   --ledger-dir DIR  default data/ledger (one <base list fingerprint>.jsonl per list); under --out DIR, DIR/ledger
+//
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
 //   2. Cuts: the deck's lowest-IWD cards. Adds: +1 of its best card, and the format's highest-impact legal cards
@@ -48,7 +58,7 @@
 // Seeds come from --seed, so a run can be repeated exactly.
 import fs from 'node:fs';
 import path from 'node:path';
-import { exportOfficial } from '../src/engine/deck';
+import { exportOfficial, listFingerprint } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
 import { analyzeDeck, type DeckReport } from '../src/analysis/analyze';
 import analysis from '../src/data/analysis.json';
@@ -61,9 +71,11 @@ import { cliGameCache } from './game-cache';
 import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags } from './evidence-flags';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
-import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, scoreOf, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval } from '../src/lib/evidence';
+import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, outcomeWord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, stoppedWords, type AdoptionProvenance, type Confirmation, type NomineeRecord, type PairedInterval, type PairedScores } from '../src/lib/evidence';
+import { gameIds } from '../src/lib/changeLedger';
+import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
 import { estimateGames, listKeyOf } from '../src/lib/deckSearch';
 import { forgeSummaryMarkdown } from './forge-summary';
 
@@ -84,6 +96,7 @@ const { values: V, positionals } = cli(
     ...adoptionFlags(),
     ...depthFlags(1),
     ...budgetFlags(),
+    ...ledgerFlags(),
   },
   { maxPositionals: Infinity },
 );
@@ -114,6 +127,14 @@ if (GAMES + 0 > CONFIRM_GAP || FIRST_STAGE * STAGES > CONFIRM_GAP) {
 }
 const lib = loadLibrary();
 const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
+/** --ledger: where the change ledger is kept and the bot's canonical name (null when off) */
+const LEDGER = ledgerFromFlags(V, { bot: BOT, out: OUT });
+/** the field's list fingerprints, in the order the jobs use them (field[k % field.length]) */
+const OPPONENTS = field.map((f) => listFingerprint(f.deck));
+const LEDGER_STORE = LEDGER ? new LedgerStore(LEDGER.dir) : null;
+const RUN_ID = `forge ${new Date().toISOString()} seed ${V.seed}`;
+/** every game a generation's confirmation may play (each stage up to the cap), from its first confirmation seed */
+const confirmSlots = (seed1: number): GameSlot[] => Array.from({ length: STAGES }, (_, s) => blockSlots(seed1 + s * FIRST_STAGE, FIRST_STAGE, OPPONENTS)).flat();
 
 const targets = V.nc ? lib.filter((d) => d.kind === 'original') : positionals.map((q) => resolveDeck(q, lib));
 if (!targets.length) {
@@ -187,20 +208,23 @@ async function forge(target: (typeof lib)[number]) {
   let deck: DeckList = structuredClone(target.deck);
   const plan = planFor(target);
   const slug = target.file.replace(/\.txt$/, '');
-  const ruleLine = describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees });
+  const ruleLine = describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER });
   const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, '', `Adoption rule: ${ruleLine}.`, ''];
+  /** the change ledger for this deck's run (--ledger) */
+  const ledger = LEDGER && LEDGER_STORE ? new RunLedger({ dir: LEDGER.dir, simVersion: SIM_VERSION, bot: LEDGER.bot, opponents: OPPONENTS, run: RUN_ID, date: new Date().toISOString().slice(0, 10), store: LEDGER_STORE }) : null;
+  if (ledger) log.push(`Change ledger: ${LEDGER!.dir} (bot ${LEDGER!.bot}, simulator version ${SIM_VERSION}, field ${ledger.field}).`, '');
   if (DEPTH.cardsPerChange > 1 || DEPTH.packagesPerChange > 1 || DEPTH.nominees > 1)
     log.push(`Search depth: up to ${DEPTH.cardsPerChange} card swap(s) and ${DEPTH.packagesPerChange} package move(s) per candidate (combined from the best ${DEPTH.combineFrom} screened), ${DEPTH.nominees} nominee(s) confirmed per generation.`, '');
   if (PACKAGES) log.push(`Packages: ${describePlan(plan)}${V['package-moves'] ? `; package moves on (${V['package-cands']} per generation)` : '; package moves off'}.`, '');
   if (PARTNER) log.push('Cut ranking: partner-aware (a package card is judged by its games with a partner piece; a cut that lowers a package’s assembly odds costs in proportion; an add that completes or deepens one earns the odds it adds).', '');
   /** package moves tried (labels), for the report and the manifest */
   const tried: string[] = [];
-  const history: { gen: number; wr: number; change: string; gain?: PairedInterval; baseline: number; baselineGames: number }[] = [];
+  const history: { gen: number; wr: number; change: string; gain?: PairedInterval; priorGames?: number; baseline: number; baselineGames: number }[] = [];
   // machine-readable twin of the log, for scripts/bundle-reports.ts (percentages and points, 1 decimal, as in the log)
   const p1 = (x: number) => +(x * 100).toFixed(1);
   const startedAt = new Date().toISOString();
   const playedBefore = gamesPlayed;
-  const adoption: AdoptionProvenance = adoptionProvenance(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange });
+  const adoption: AdoptionProvenance = adoptionProvenance(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, !!LEDGER);
   const json: {
     deck: string;
     file: string;
@@ -221,12 +245,14 @@ async function forge(target: (typeof lib)[number]) {
       nominees?: NomineeRecord[];
       confirm?: string;
       verdict: 'adopted' | 'rejected' | 'inconclusive' | 'kept';
-      /** held-out paired gain of the adopted change, points */
-      heldOutGain?: { mean: number; lower: number; upper: number; games: number };
+      /** held-out paired gain of the adopted change, points (`priorGames`: pooled, this many from earlier runs) */
+      heldOutGain?: { mean: number; lower: number; upper: number; games: number; priorGames?: number };
     }[];
     summary: { gen: number; wr: number; change: string }[];
     /** with package flags only: the plan, and the built-around packages kept, added and removed from start to end */
     packages?: { plan: PackagePlan; moves: boolean; changes: PackageChanges; adopted: string[] };
+    /** with --ledger only: where it is kept and what this run appended (games) */
+    ledger?: { dir: string; bot: string; field: string; screen: { written: number; duplicates: number; conflicts: number }; heldout: { written: number; duplicates: number; conflicts: number } };
     manifest?: RunManifest;
   } = {
     deck: deck.name,
@@ -241,8 +267,10 @@ async function forge(target: (typeof lib)[number]) {
   const screen = async (muts: Mutation[], seed0: number, base: number[]): Promise<Screened[]> => {
     if (!muts.length) return [];
     const all = await playMany(muts.map((m) => m.deck), seed0, GAMES);
+    const slots = blockSlots(seed0, GAMES, OPPONENTS);
     return muts.map((m, i) => {
       const s = all[i]!;
+      ledger?.record('screen', deck, m.deck, m.label, scored(slots, base, s));
       const r = { m, wr: s.reduce((a, b) => a + b, 0) / s.length, iv: pairedInterval(s, base) };
       console.log(`  ${pct(r.wr)} (${(r.iv.mean * 100).toFixed(1)})  ${m.label}`);
       return r;
@@ -303,46 +331,80 @@ async function forge(target: (typeof lib)[number]) {
     };
     json.gens.push(genRec);
     // screening only nominates: the best changes that beat the baseline by 2+ points on the shared seeds
-    const nominated = results.filter((r) => r.wr - base.wr >= 0.02).slice(0, DEPTH.nominees);
+    const seed1 = seed0 + CONFIRM_GAP;
+    const barOf = (m: Mutation) => (isPackageChange(m) ? RULE.packageMinGainPp : RULE.minGainPp);
+    /** --ledger: the games the prior leaves out (every game the confirmation may play, and the screening games) */
+    const leaveOut = ledger ? gameIds([...confirmSlots(seed1), ...blockSlots(seed0, GAMES, OPPONENTS)]) : new Set<string>();
+    const priorFor = (m: Mutation): PairedScores | undefined => (ledger && RULE.kind === 'evidence' ? ledger.prior(deck, m.deck, leaveOut) : undefined);
+    const above2 = results.filter((r) => r.wr - base.wr >= 0.02);
+    let nominated = above2.slice(0, DEPTH.nominees);
+    if (ledger && RULE.kind === 'evidence') {
+      // a change whose earlier held-out games alone already reject it is not nominated: the next best takes its place
+      nominated = [];
+      for (const r of above2) {
+        if (nominated.length >= DEPTH.nominees) break;
+        const p = priorFor(r.m);
+        if (p?.base.length) {
+          const j = judgePooled(p.cand, p.base, { alpha: RULE.alpha, nominees: DEPTH.nominees, minGainPp: barOf(r.m), minGames: RULE.minGames });
+          if (j.verdict === 'reject') {
+            const words = pooledGainWords({ heldOut: j.iv, looks: 0, priorGames: p.base.length });
+            log.push(`Not nominated: ${r.m.label} (screening ${formatGain(r.iv)}): its earlier held-out games already reject it, ${words}.`, '');
+            console.log(`  ledger: ${r.m.label} not nominated, earlier games reject it: ${words}`);
+            continue;
+          }
+        }
+        nominated.push(r);
+      }
+    }
     if (!nominated.length) {
       log.push(`No swap beat the baseline by 2+ points — **list kept**.`, '');
       history.push({ gen, wr: base.wr, change: 'kept', baseline: base.wr, baselineGames: GAMES });
       continue;
     }
     // confirm on fresh seeds (never used by this generation's screening), paired, in stages
-    const seed1 = seed0 + CONFIRM_GAP;
+    const priors = ledger ? nominated.map((r) => priorFor(r.m)) : undefined;
     const conf = await confirmStaged(
       RULE,
-      nominated.map((r) => ({ minGainPp: isPackageChange(r.m) ? RULE.packageMinGainPp : RULE.minGainPp })),
+      nominated.map((r) => ({ minGainPp: barOf(r.m) })),
       FIRST_STAGE,
       async ({ offset, games, active }) => {
         const [b, ...ns] = await playMany([deck, ...active.map((i) => nominated[i]!.m.deck)], seed1 + offset, games);
+        if (ledger) {
+          const slots = blockSlots(seed1 + offset, games, OPPONENTS);
+          active.forEach((i, k) => ledger.record('heldout', deck, nominated[i]!.m.deck, nominated[i]!.m.label, scored(slots, b!, ns[k]!)));
+        }
         return { base: b!, nominees: ns };
       },
+      undefined,
+      priors,
     );
     const pick = pickAdopted(conf.results);
     genRec.nominees = nominated.map((r, i) => nomineeRecord(r.m.label, r.iv, conf.results[i], mutKind(r.m)));
     nominated.forEach((r, i) => {
       const c = conf.results[i]!;
-      const line = `baseline ${pct(c.baseWr)} vs swap ${pct(c.candWr)}; held-out paired gain ${formatGain(c.heldOut)}${RULE.kind === 'evidence' ? ` (z ${c.heldOut.z.toFixed(2)}, ${c.looks} stage${c.looks === 1 ? '' : 's'})` : ''}`;
-      log.push(`Confirmation of ${r.m.label} (fresh paired games; screening ${formatGain(r.iv)}): ${line} → **${word(c)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
+      const line = c.priorGames
+        ? `baseline ${pct(c.baseWr)} vs swap ${pct(c.candWr)} (pooled); held-out paired gain ${pooledGainWords(c)}`
+        : `baseline ${pct(c.baseWr)} vs swap ${pct(c.candWr)}; held-out paired gain ${formatGain(c.heldOut)}${RULE.kind === 'evidence' ? ` (z ${c.heldOut.z.toFixed(2)}, ${c.looks} stage${c.looks === 1 ? '' : 's'})` : ''}`;
+      log.push(`Confirmation of ${r.m.label} (${c.priorGames ? 'held-out paired games pooled with earlier runs' : 'fresh paired games'}; screening ${formatGain(r.iv)}): ${line} → **${word(c)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
       console.log(`  confirm ${r.m.label}: ${line} → ${outcomeWord(c.outcome).toUpperCase()}${c.stopped ? ` (${stoppedWords(c.stopped, c.heldOut.games, RULE.futilityMaxGainPp)})` : ''}`);
     });
     const shown = pick >= 0 ? pick : 0;
     const sc = conf.results[shown]!;
-    genRec.confirm = `(${sc.heldOut.games} fresh paired games): baseline ${pct(sc.baseWr)} vs swap ${pct(sc.candWr)}; held-out gain ${formatGain(sc.heldOut)} → ${word(sc)}`;
+    genRec.confirm = sc.priorGames
+      ? `(${sc.heldOut.games} paired games, ${sc.priorGames} of them from earlier runs): baseline ${pct(sc.baseWr)} vs swap ${pct(sc.candWr)}; held-out gain ${pooledGainWords(sc)} → ${word(sc)}`
+      : `(${sc.heldOut.games} fresh paired games): baseline ${pct(sc.baseWr)} vs swap ${pct(sc.candWr)}; held-out gain ${formatGain(sc.heldOut)} → ${word(sc)}`;
     if (pick >= 0) {
       const won = nominated[pick]!;
       deck = won.m.deck;
       genRec.verdict = 'adopted';
-      genRec.heldOutGain = { mean: p1(sc.heldOut.mean), lower: p1(sc.heldOut.lower), upper: p1(sc.heldOut.upper), games: sc.heldOut.games };
-      history.push({ gen, wr: sc.candWr, change: won.m.label, gain: sc.heldOut, baseline: base.wr, baselineGames: GAMES });
+      genRec.heldOutGain = { mean: p1(sc.heldOut.mean), lower: p1(sc.heldOut.lower), upper: p1(sc.heldOut.upper), games: sc.heldOut.games, ...(sc.priorGames ? { priorGames: sc.priorGames } : {}) };
+      history.push({ gen, wr: sc.candWr, change: won.m.label, gain: sc.heldOut, ...(sc.priorGames ? { priorGames: sc.priorGames } : {}), baseline: base.wr, baselineGames: GAMES });
     } else if (conf.results.some((c) => c.outcome === 'inconclusive')) {
       genRec.verdict = 'inconclusive';
       const i = conf.results.findIndex((c) => c.outcome === 'inconclusive');
       const ci = conf.results[i]!;
       const why = stoppedWords(ci.stopped, ci.heldOut.games, RULE.futilityMaxGainPp);
-      history.push({ gen, wr: ci.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${formatGain(ci.heldOut)}${why ? `; ${why}` : ''})`, baseline: base.wr, baselineGames: GAMES });
+      history.push({ gen, wr: ci.baseWr, change: `kept (could not tell: ${nominated[i]!.m.label}, ${ci.priorGames ? pooledGainWords(ci) : formatGain(ci.heldOut)}${why ? `; ${why}` : ''})`, baseline: base.wr, baselineGames: GAMES });
     } else {
       genRec.verdict = 'rejected';
       history.push({ gen, wr: sc.baseWr, change: 'kept (swap failed confirmation)', baseline: base.wr, baselineGames: GAMES });
@@ -354,7 +416,7 @@ async function forge(target: (typeof lib)[number]) {
   const pkgChanges = packageChanges(target.deck, deck);
   const adoptedPkg = adoptedRows.filter((h) => tried.includes(h.change)).map((h) => h.change);
   const pkgLine = PACKAGES ? `\n// Packages: ${describePlan(plan)}; ${describeChanges(pkgChanges)}${adoptedPkg.length ? `; package moves adopted: ${adoptedPkg.join('; ')}` : ''}` : '';
-  const withGain = (h: (typeof history)[number]) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)})` : ''}`;
+  const withGain = (h: (typeof history)[number]) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)}${h.priorGames ? `, pooled: ${h.priorGames} from earlier runs` : ''})` : ''}`;
   if (changed) {
     const inCustom = target.kind === 'custom' || target.kind === 'original';
     // ladder decks are our own theorized lists: forge them in place and keep their full provenance header
@@ -380,6 +442,12 @@ async function forge(target: (typeof lib)[number]) {
   if (PACKAGES) {
     log.push('', `Packages (built around, start → end): ${describeChanges(pkgChanges)}.${adoptedPkg.length ? ` Package moves adopted: ${adoptedPkg.join('; ')}.` : ''}`);
     json.packages = { plan, moves: V['package-moves'], changes: pkgChanges, adopted: adoptedPkg };
+  }
+  if (ledger && LEDGER) {
+    const line = ledger.summary();
+    log.push('', `Change ledger: ${line}.`);
+    console.log(`  ledger: ${line}`);
+    json.ledger = { dir: LEDGER.dir, bot: LEDGER.bot, field: ledger.field, screen: { ...ledger.totals.screen }, heldout: { ...ledger.totals.heldout } };
   }
   log.push(
     '',
@@ -414,17 +482,17 @@ async function forge(target: (typeof lib)[number]) {
   fs.mkdirSync(reportDir, { recursive: true });
   fs.writeFileSync(path.join(reportDir, `${slug}.md`), log.join('\n'));
   fs.writeFileSync(path.join(reportDir, `${slug}.json`), JSON.stringify(json, null, 1));
-  return { name: deck.name, gens: history.map(({ gen, change, gain, baseline, baselineGames }) => ({ gen, change, gain, baseline, baselineGames })), games: gamesPlayed - playedBefore };
+  return { name: deck.name, gens: history.map(({ gen, change, gain, priorGames, baseline, baselineGames }) => ({ gen, change, gain, ...(priorGames ? { priorGames } : {}), baseline, baselineGames })), games: gamesPlayed - playedBefore };
 }
 
 async function main() {
   console.log(`Forging ${targets.length} deck(s) × ${GENS} generations vs ${field.length} field decks`);
-  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees })}`);
+  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER })}`);
   checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force);
   const all = [];
   for (const t of targets) all.push(await forge(t));
   // leads with the held-out paired result; per-generation win rates are that generation's own games (scripts/forge-summary.ts)
-  const md = forgeSummaryMarkdown(all, describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees }));
+  const md = forgeSummaryMarkdown(all, describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER }));
   fs.mkdirSync(OUT ? path.join(OUT, 'forge') : 'reports/forge', { recursive: true });
   fs.writeFileSync(OUT ? path.join(OUT, 'forge', 'summary.md') : 'reports/forge/summary.md', md);
   console.log('\n' + md);

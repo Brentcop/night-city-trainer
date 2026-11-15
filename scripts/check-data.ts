@@ -22,6 +22,9 @@
 //   - data/seasons/deck-impact.json (the season breeder's per-list card impact, src/lib/seasonDeckImpact.ts), when it
 //     exists, is keyed by list fingerprint: the old file keyed by deck name, or a malformed one, fails (the breeder
 //     refuses to read it); `npx tsx scripts/migrate-deck-impact.ts --write` re-keys an old one
+//   - data/ledger/*.jsonl (the change ledger, src/lib/changeLedger.ts), when the folder exists: every line is a readable
+//     batch whose change starts from the file's list, no entry holds the same game twice (a game that came back with
+//     other scores is counted as information, not a failure), and no held-out game had already screened its change
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -34,6 +37,7 @@ import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
 import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/ai/packageLift';
 import type { SynergyReport } from '../src/analysis/synergies';
 import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
+import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -73,6 +77,8 @@ export interface CheckInput {
   lift?: string | null;
   /** data/seasons/deck-impact.json, parsed (null when missing; not checked when absent) */
   deckImpact?: unknown;
+  /** data/ledger/*.jsonl, the change ledger's files with their text (null or absent when the folder does not exist) */
+  ledger?: { file: string; text: string }[] | null;
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -202,6 +208,54 @@ export function liftProblems(report: unknown, liftText: string | null): string[]
   if (changed.length) diff.push(`${changed.length} list(s) with other rows (${changed.slice(0, 3).join(', ')}${changed.length > 3 ? ', …' : ''})`);
   if (!diff.length) diff.push('same content, other bytes (key order or formatting)');
   return [`public/data/lift.json is stale against public/data/synergies.json: ${diff.join('; ')}; ${REBUILD_LIFT}`];
+}
+
+/**
+ * The change ledger's files (src/lib/changeLedger.ts): every line is a readable batch whose change starts from the
+ * file's list, and no entry holds the same game twice with the same scores (the store never writes that). A game that
+ * came back with other scores is written once more on purpose (the earlier scores are kept): counted, not a failure.
+ * A held-out game that an earlier line screened the same change on is a failure: the store never writes one, because
+ * the games that picked a change must not vouch for it.
+ */
+export function ledgerFileProblems(files: readonly { file: string; text: string }[]): { problems: string[]; batches: number; games: number; conflicts: number } {
+  const problems: string[] = [];
+  let batches = 0;
+  let games = 0;
+  let conflicts = 0;
+  for (const { file, text } of files) {
+    const where = `data/ledger/${file}`;
+    if (!/^[0-9a-f]{16}\.jsonl$/.test(file)) problems.push(`${where}: the file name is not a list fingerprint`);
+    const seen = new Map<string, Map<string, string>>();
+    text.split('\n').forEach((raw, i) => {
+      const line = raw.replace(/\r$/, '');
+      if (!line.trim()) return;
+      const r = parseBatchLine(line);
+      if (!r.batch) return void problems.push(`${where} line ${i + 1}: ${r.problem}`);
+      const b = r.batch;
+      if (changeBase(b.entry.change) !== file.slice(0, 16)) problems.push(`${where} line ${i + 1}: the change starts from another list (${changeBase(b.entry.change)})`);
+      batches++;
+      const k = `${entryKey(b.entry)}|${b.kind}`;
+      let held = seen.get(k);
+      if (!held) seen.set(k, (held = new Map()));
+      const screenedSoFar = b.kind === 'heldout' ? seen.get(`${entryKey(b.entry)}|screen`) : undefined;
+      for (const g of b.games) {
+        const id = gameId(g);
+        // the store never writes a held-out game that had screened the same change on an earlier line
+        if (screenedSoFar?.has(id)) {
+          problems.push(`${where} line ${i + 1}: the held-out game ${id} had already screened this change (such a game is never evidence for it)`);
+          continue;
+        }
+        const sc = `${g.base}/${g.cand}`;
+        const had = held.get(id);
+        if (had === undefined) {
+          held.set(id, sc);
+          games++;
+        } else if (had === sc) problems.push(`${where} line ${i + 1}: the game ${id} is already in this entry`);
+        else conflicts++;
+      }
+    });
+  }
+  return { problems, batches, games, conflicts };
 }
 
 export function checkData(input: CheckInput): CheckResult {
@@ -349,6 +403,14 @@ export function checkData(input: CheckInput): CheckResult {
       passed.push(`data/seasons/deck-impact.json is keyed by list fingerprint (${lists.length} lists${fromName ? `, ${fromName} migrated from names` : ''}${unmatched ? `; ${unmatched} old name(s) kept apart, unread` : ''})`);
     }
   }
+
+  // ---- the change ledger reads line by line, each game once per entry
+  if (input.ledger) {
+    const r = ledgerFileProblems(input.ledger);
+    failures.push(...r.problems);
+    if (!r.problems.length) passed.push(`data/ledger/ reads (${input.ledger.length} list file(s), ${r.batches} batches, ${r.games} games, each once per entry)`);
+    if (r.conflicts) info.push(`data/ledger/: ${r.conflicts} game(s) came back with other scores (the earlier ones are kept; see npm run ledger -- stats)`);
+  }
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -368,6 +430,13 @@ export function loadCheckInput(root = '.'): CheckInput {
     synergies: read('public/data/synergies.json'),
     lift: fs.existsSync(path.join(root, 'public/data/lift.json')) ? fs.readFileSync(path.join(root, 'public/data/lift.json'), 'utf8') : null,
     deckImpact: read('data/seasons/deck-impact.json'),
+    ledger: fs.existsSync(path.join(root, 'data/ledger'))
+      ? fs
+          .readdirSync(path.join(root, 'data/ledger'))
+          .filter((f) => f.endsWith('.jsonl'))
+          .sort()
+          .map((file) => ({ file, text: fs.readFileSync(path.join(root, 'data/ledger', file), 'utf8') }))
+      : null,
     deckFiles: LIBRARY_DIRS.flatMap((d) => {
       const dir = path.join(root, 'data/decks', d);
       return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];

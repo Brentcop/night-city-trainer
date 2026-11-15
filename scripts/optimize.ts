@@ -23,18 +23,26 @@
 // paired, in stages of --confirm games up to --confirm-cap stages. The best list is the adopted nominee with the
 // highest corrected lower bound; with none adopted the list is kept. Writes reports/optimize-<deck>[-vs-<opp>]-latest.md
 // and a .json twin (read by scripts/bundle-reports.ts).
+// Change ledger (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md "Pooling held-out games across runs"): --ledger keeps
+// every stage-1 and stage-2 paired game and pools a nominee's held-out games from earlier runs (same simulator version,
+// bot and field) by the strict always-valid rule; a candidate its earlier games alone reject is not nominated.
+// --ledger-dir DIR (default data/ledger; under --out DIR, DIR/ledger). Stage 1 and 2 always play the same seeds here, so
+// a repeated optimizer run with the same settings appends nothing and pools nothing new: the ledger pays off when the
+// forge, or an optimizer run with another --confirm or field, has measured the same change against the same field.
 import fs from 'node:fs';
 import path from 'node:path';
-import { exportOfficial } from '../src/engine/deck';
+import { exportOfficial, listFingerprint } from '../src/engine/deck';
 import { cardValue } from '../src/ai/knowledge';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
 import { optimizeCandidates, packageCandidates, type Cand } from './builder-moves';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ruleFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags } from './evidence-flags';
 import { describeChanges, describePlan, packageChanges, packageProvenance } from '../src/lib/deckPackages';
 import { gameRunManifest, manifestDeck } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type Confirmation } from '../src/lib/evidence';
+import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, pooledGainWords, scoreOf, type Confirmation, type PairedScores } from '../src/lib/evidence';
+import { gameIds } from '../src/lib/changeLedger';
+import { blockSlots, RunLedger, scored } from './ledger-store';
 import { combinedCandidates, estimateGames, listKeyOf } from '../src/lib/deckSearch';
 import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
@@ -56,6 +64,7 @@ const { values: V, positionals } = cli(
     ...adoptionFlags(),
     ...depthFlags(NOMINEES),
     ...budgetFlags(),
+    ...ledgerFlags(),
   },
   { minPositionals: 1, maxPositionals: 1 },
 );
@@ -86,6 +95,13 @@ if (SCREEN_SEED + SCREEN > CONFIRM_SEED) {
   console.error(`error: --screen ${SCREEN} would reach the confirmation seeds (${CONFIRM_SEED}).\nRun with --help for usage.`);
   process.exit(2);
 }
+/** --ledger: the change ledger (null when off) */
+const LEDGER_AT = ledgerFromFlags(V, { bot: BOT, out: OUT });
+/** the field's list fingerprints, in the order the jobs use them (field[k % field.length]) */
+const OPPONENTS = field.map((f) => listFingerprint(f.deck));
+const LEDGER = LEDGER_AT
+  ? new RunLedger({ dir: LEDGER_AT.dir, simVersion: SIM_VERSION, bot: LEDGER_AT.bot, opponents: OPPONENTS, run: `optimize ${new Date().toISOString()}`, date: new Date().toISOString().slice(0, 10) })
+  : null;
 const PKG_N = PACKAGES && !SIDEBOARD ? (V['package-moves'] ? V['package-cands'] : 0) + (V['require-packages'] ? V['package-cands'] : 0) : 0;
 // the optimizer screens the unmodified deck among its candidates; legacy confirms the top 6 plus the baseline once
 const ESTIMATE = estimateGames({ gens: 1, screenGames: SCREEN, singles: NCAND + 1, packageMoves: PKG_N, depth: LEGACY ? { ...DEPTH, nominees: 6 } : DEPTH, firstStage: CONFIRM, rule: RULE, baselineScreen: false });
@@ -120,12 +136,14 @@ async function main() {
   console.log(`Optimizing ${base.deck.name} vs ${field.length} meta decks (bot=${BOT})`);
   if (PACKAGES) console.log(`Packages: ${describePlan(PLAN)}${V['package-moves'] ? `; package moves on (${V['package-cands']})` : ''}`);
   if (PARTNER) console.log('Cut ranking: partner-aware (stranding cost and add credit; no telemetry, so no partner split)');
-  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: CONFIRM, nominees: DEPTH.nominees })}`);
+  console.log(`Adoption rule: ${describeRule(RULE, { firstStage: CONFIRM, nominees: DEPTH.nominees, ledger: !!LEDGER })}`);
   checkBudget('optimizer', ESTIMATE, V.budget, V.force);
   const cands: Cand[] = [{ label: '(unchanged)', deck: base.deck }, ...candidates(base.deck)];
   console.log(`Stage 1: ${cands.length} candidates × ${SCREEN} games`);
   const s1 = await measure(cands, SCREEN, SCREEN_SEED);
   const baseS1 = s1[0];
+  const screenSlots = blockSlots(SCREEN_SEED, SCREEN, OPPONENTS);
+  if (LEDGER) cands.forEach((c, i) => i > 0 && LEDGER.record('screen', base.deck, c.deck, c.label, scored(screenSlots, baseS1, s1[i])));
   let ranked = cands.map((c, i) => ({ c, wr: avg(s1[i]), iv: pairedInterval(s1[i], baseS1) })).sort((a, b) => b.wr - a.wr);
   // depth: combine the best screened single changes (those above the unmodified deck)
   const baseWr1 = avg(baseS1);
@@ -140,11 +158,36 @@ async function main() {
   if (combos.length) {
     console.log(`Stage 1b: ${combos.length} combined candidates × ${SCREEN} games`);
     const sc = await measure(combos, SCREEN, SCREEN_SEED);
+    if (LEDGER) combos.forEach((c, i) => LEDGER.record('screen', base.deck, c.deck, c.label, scored(screenSlots, baseS1, sc[i])));
     ranked = [...ranked, ...combos.map((c, i) => ({ c, wr: avg(sc[i]), iv: pairedInterval(sc[i], baseS1) }))].sort((a, b) => b.wr - a.wr);
   }
   const allCands = [...cands, ...combos];
   // nominees: the stage-1 leaders (legacy: the top 6 whatever they scored; evidence: only those above the unmodified deck)
-  const nominees = ranked.filter((r) => r.c !== cands[0] && (LEGACY || r.wr > baseWr1)).slice(0, LEGACY ? 6 : DEPTH.nominees);
+  const barOf = (c: Cand) => (c.pkg || c.combo?.packages ? RULE.packageMinGainPp : RULE.minGainPp);
+  /** --ledger: the games a nominee's prior leaves out (every stage-2 game it may play, and the stage-1 games) */
+  const leaveOut = LEDGER ? gameIds([...Array.from({ length: STAGES }, (_, s) => blockSlots(CONFIRM_SEED + s * CONFIRM, CONFIRM, OPPONENTS)).flat(), ...screenSlots]) : new Set<string>();
+  const priorFor = (c: Cand): PairedScores | undefined => (LEDGER && !LEGACY ? LEDGER.prior(base.deck, c.deck, leaveOut) : undefined);
+  const eligible = ranked.filter((r) => r.c !== cands[0] && (LEGACY || r.wr > baseWr1));
+  let nominees = eligible.slice(0, LEGACY ? 6 : DEPTH.nominees);
+  /** lines for the report: candidates not nominated because their earlier held-out games already reject them */
+  const notNominated: string[] = [];
+  if (LEDGER && !LEGACY) {
+    nominees = [];
+    for (const r of eligible) {
+      if (nominees.length >= DEPTH.nominees) break;
+      const p = priorFor(r.c);
+      if (p?.base.length) {
+        const j = judgePooled(p.cand, p.base, { alpha: RULE.alpha, nominees: DEPTH.nominees, minGainPp: barOf(r.c), minGames: RULE.minGames });
+        if (j.verdict === 'reject') {
+          const words = pooledGainWords({ heldOut: j.iv, looks: 0, priorGames: p.base.length });
+          notNominated.push(`- ${r.c.label}: its earlier held-out games already reject it, ${words}`);
+          console.log(`  ledger: ${r.c.label} not nominated, earlier games reject it: ${words}`);
+          continue;
+        }
+      }
+      nominees.push(r);
+    }
+  }
   let confirmations: Confirmation[] = [];
   let baseWr = baseWr1;
   let best = -1;
@@ -152,6 +195,10 @@ async function main() {
     // the old stage 2: top 6 + baseline × CONFIRM on identical seeds, best list = best stage-2 win rate
     console.log(`Stage 2: confirming top ${nominees.length} + baseline × ${CONFIRM} games`);
     const s2 = await measure([cands[0], ...nominees.map((n) => n.c)], CONFIRM, CONFIRM_SEED);
+    if (LEDGER) {
+      const slots = blockSlots(CONFIRM_SEED, CONFIRM, OPPONENTS);
+      nominees.forEach((n, i) => LEDGER.record('heldout', base.deck, n.c.deck, n.c.label, scored(slots, s2[0], s2[i + 1])));
+    }
     confirmations = nominees.map((_, i) => {
       const iv = pairedInterval(s2[i + 1], s2[0]);
       return { outcome: iv.mean > 0 ? 'adopt' : 'reject', heldOut: iv, baseWr: avg(s2[0]), candWr: avg(s2[i + 1]), looks: 1, minGainPp: 0 };
@@ -166,15 +213,23 @@ async function main() {
       CONFIRM,
       async ({ offset, games, active }) => {
         const [b, ...ns] = await measure([cands[0], ...active.map((i) => nominees[i].c)], games, CONFIRM_SEED + offset);
+        if (LEDGER) {
+          const slots = blockSlots(CONFIRM_SEED + offset, games, OPPONENTS);
+          active.forEach((i, k) => LEDGER.record('heldout', base.deck, nominees[i].c.deck, nominees[i].c.label, scored(slots, b, ns[k])));
+        }
         return { base: b, nominees: ns };
       },
+      undefined,
+      LEDGER ? nominees.map((n) => priorFor(n.c)) : undefined,
     );
     confirmations = conf.results;
-    baseWr = confirmations[0]?.baseWr ?? baseWr1;
+    // the stage-2 baseline of this run's own games (a pooled nominee's win rates include earlier runs)
+    baseWr = (confirmations.find((c) => !c.priorGames) ?? confirmations[0])?.baseWr ?? baseWr1;
     best = pickAdopted(confirmations);
   }
   const bestDeck = best >= 0 ? nominees[best].c.deck : base.deck;
-  const rule = describeRule(RULE, { firstStage: CONFIRM, nominees: nominees.length || DEPTH.nominees });
+  const rule = describeRule(RULE, { firstStage: CONFIRM, nominees: nominees.length || DEPTH.nominees, ledger: !!LEDGER });
+  const gainOf = (c: Confirmation) => (c.priorGames ? pooledGainWords(c) : formatGain(c.heldOut));
   const md = [
     `# Optimizer — ${base.deck.name}`,
     '',
@@ -189,16 +244,20 @@ async function main() {
       : []),
     ...(PARTNER ? ['Cut ranking: partner-aware (each cut adds its package stranding cost, each add its assembly-odds credit; no partner split without telemetry).', ''] : []),
     best >= 0
-      ? `**Best list: ${nominees[best].c.label}**, held-out paired gain ${formatGain(confirmations[best].heldOut)}.`
+      ? `**Best list: ${nominees[best].c.label}**, held-out paired gain ${gainOf(confirmations[best])}.`
       : nominees.length
         ? `**No change cleared the bar: the list is kept.**`
-        : `**No candidate screened above the unmodified deck: the list is kept.**`,
+        : notNominated.length
+          ? `**Every candidate that screened above the unmodified deck was already rejected by its earlier held-out games: the list is kept.**`
+          : `**No candidate screened above the unmodified deck: the list is kept.**`,
     '',
+    ...(notNominated.length ? ['Not nominated (change ledger):', ...notNominated, ''] : []),
+    ...(LEDGER ? [`Change ledger: ${LEDGER.summary()}.`, ''] : []),
     '| Change | Stage 1 | Screening gain | Stage 2 | Held-out paired gain | Outcome |',
     '|---|---|---|---|---|---|',
     ...nominees.map((n, i) => {
       const c = confirmations[i];
-      return `| ${n.c.label} | ${(n.wr * 100).toFixed(1)}% | ${pts(n.iv.mean)} | ${c ? `${(c.candWr * 100).toFixed(1)}%` : '—'} | ${c ? formatGain(c.heldOut) : '—'} | ${c ? (LEGACY ? (i === best ? 'best' : '—') : confirmationWord(c, RULE.futilityMaxGainPp)) : '—'} |`;
+      return `| ${n.c.label} | ${(n.wr * 100).toFixed(1)}% | ${pts(n.iv.mean)} | ${c ? `${(c.candWr * 100).toFixed(1)}%` : '—'} | ${c ? gainOf(c) : '—'} | ${c ? (LEGACY ? (i === best ? 'best' : '—') : confirmationWord(c, RULE.futilityMaxGainPp)) : '—'} |`;
     }),
     '',
     '## Stage 1 (all candidates)',
@@ -235,9 +294,10 @@ async function main() {
       return { change: n.c.label, s1: p1(n.wr), s2: c ? p1(c.candWr) : null, delta: c ? p1(c.heldOut.mean) : p1(n.iv.mean), ...(c && !LEGACY ? { outcome: c.outcome } : {}), ...(c?.stopped ? { stopped: c.stopped, heldOutGames: c.heldOut.games } : {}), ...(kind ? { package: kind } : {}) };
     }),
     nominees: nominees.map((n, i) => nomineeRecord(n.c.label, n.iv, confirmations[i], n.c.combo ? `combo-${n.c.combo.packages ? 'packages' : 'cards'}` : n.c.pkg?.kind)),
-    best: best >= 0 ? { change: nominees[best].c.label, heldOut: confirmations[best].heldOut } : null,
+    best: best >= 0 ? { change: nominees[best].c.label, heldOut: confirmations[best].heldOut, ...(confirmations[best].priorGames ? { priorGames: confirmations[best].priorGames } : {}) } : null,
     adoption: { text: rule },
     ...(PACKAGES ? { packages: { plan: PLAN, moves: V['package-moves'], best: packageChanges(base.deck, bestDeck) } } : {}),
+    ...(LEDGER && LEDGER_AT ? { ledger: { dir: LEDGER_AT.dir, bot: LEDGER_AT.bot, field: LEDGER.field, screen: { ...LEDGER.totals.screen }, heldout: { ...LEDGER.totals.heldout }, notNominated } } : {}),
     // stage 1 plays seeds from 424242, stage 2 from 777777 (the same seeds for every candidate), further stages after it
     manifest: gameRunManifest({
       purpose: 'optimize',
@@ -252,7 +312,7 @@ async function main() {
       simVersion: SIM_VERSION,
       createdAt: startedAt,
       ...(PACKAGES ? { packages: packageProvenance(PLAN, { moves: allCands.filter((c) => c.pkg || c.combo?.packages).map((c) => c.label) }) } : {}),
-      adoption: adoptionProvenance(RULE, { firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }),
+      adoption: adoptionProvenance(RULE, { firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, !!LEDGER),
     }),
   };
   fs.writeFileSync(OUT ? path.join(dir, `optimize-${slug}-latest.json`) : `reports/optimize-${slug}-latest.json`, JSON.stringify(json, null, 1));

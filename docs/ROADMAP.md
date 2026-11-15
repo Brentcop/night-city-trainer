@@ -54,7 +54,7 @@ Consistency: `check:data` now fails an event with no `simVersion` or manifest; t
   - WP-C2 (Play performance and accessibility): done. Every board overlay, dialog and menu takes focus, traps Tab (the full-board log drawer excepted, by design) and restores focus (`useFocusTrap` in `components/Modal.tsx`); dead and overridden rules removed from `board.css`; the setup screen and coach panel moved out of `Play.tsx`.
   - WP-C3 (pages accessibility and CSS): done 2026-11-11 (APP-13 to APP-17, APP-19, APP-20; see the backlog), committed.
   - WP-C4 (type hardening and engine structure): done 2026-11-11, committed. Split tsconfigs (app, worker, node, test; `npm run typecheck`), unused-code checks on, index-access checks for `src/lib` and `src/analysis`, `Mod` as a typed union, one worker pool core and one deck-path rule, one `playOut` helper with the evaluation's constants in the weights, and the `Game` class split into `src/engine/game/` modules behind the same methods. Results are unchanged: `SIM_VERSION` stays 5 and the golden replays still match. Payment choice (ENG-8) and the dev-dependency upgrade were done earlier.
-  - WP-C5 (production deploy): workflow rewritten to the official Pages flow (§2); waits on the owner's Pages setting, and has not run on GitHub yet.
+  - WP-C5 (production deploy): done. The workflow is the official Pages flow (§2), and it has run on every push since the owner switched the Pages source: `check` on both branches, `deploy` on `main` (seen 2026-11-14: both green on `9553e4d`).
 
 ## 4. Retire results and bred decks that fail the fairness bar
 
