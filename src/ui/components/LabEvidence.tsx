@@ -1,10 +1,13 @@
 // Deck Lab evidence controls and results (ROADMAP2 §1 step 5; docs/SYNERGIES.md "When a deck change is adopted"):
 // the "Search depth" fieldset with the game estimate, the outcome chip (adopted / rejected / could not tell) and the
 // held-out paired gain of each nominee. The rule is in src/lib/evidence.ts, the depth and estimate in src/lib/deckSearch.ts.
+// With earlier held-out games (the change ledger), a pooled nominee's gain keeps its usual figure and gets a note under
+// it (pooledNoteWords: how many games came from earlier runs, and the stricter z), and a change its earlier games already
+// reject gets its own line (NotNominatedList, worded by pooledGainWords).
 import { useId, type ReactNode } from 'react';
-import { futilityApplies, outcomeWord, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type StopReason } from '../../lib/evidence';
+import { formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, stoppedWords, type AdoptionRule, type NomineeRecord, type Outcome, type StopReason } from '../../lib/evidence';
 import { MAX_CARDS_PER_CHANGE, MAX_PACKAGES_PER_CHANGE } from '../../lib/deckSearch';
-import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type TuneLog } from '../../lib/deckLab';
+import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, type CutExplained, type NotNominated, type TuneLog } from '../../lib/deckLab';
 import { cutTableRows } from '../../lib/cutRanking';
 import { Signed, Wr, type Tone } from './Num';
 import { CardMention, MentionText } from './CardMention';
@@ -72,7 +75,18 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label 
               <PairedGain g={n.screen} />
             </td>
             <td>
-              {n.heldOut ? (
+              {n.heldOut?.priorGames ? (
+                <>
+                  <PairedGain g={n.heldOut} floor={minGames} />{' '}
+                  <span className="muted">
+                    (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
+                  </span>
+                  {/* the note wraps: a figure and a sentence in one unbreakable span made the table wider than the page */}
+                  <div className="small muted" title="Held-out games kept in this browser from earlier runs, pooled with this run's">
+                    {pooledNoteWords({ heldOut: n.heldOut, looks: n.heldOut.looks, priorGames: n.heldOut.priorGames })}
+                  </div>
+                </>
+              ) : n.heldOut ? (
                 <>
                   <PairedGain g={n.heldOut} floor={minGames} />{' '}
                   <span className="muted">
@@ -88,6 +102,25 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label 
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** "Not nominated: X (screening …): its earlier held-out games already reject it, …" (the forge's log line, in the Lab). */
+export function notNominatedText(x: NotNominated): string {
+  return `Not nominated: ${x.label} (screening ${formatGain(x.screen)}): its earlier held-out games already reject it, ${pooledGainWords({ heldOut: x.heldOut, looks: 0, priorGames: x.priorGames })}.`;
+}
+
+/** The changes a generation did not nominate because their earlier held-out games already reject them. */
+export function NotNominatedList({ items }: { items: readonly NotNominated[] | undefined }) {
+  if (!items?.length) return null;
+  return (
+    <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }} aria-label="Not nominated because of earlier held-out games">
+      {items.map((x) => (
+        <li key={x.label}>
+          <MentionText text={notNominatedText(x)} />
+        </li>
+      ))}
+    </ul>
   );
 }
 

@@ -1,7 +1,8 @@
 // The tuned decks page (#/tuned): every deck tuned in the Deck Lab and saved in this browser, with its end result
 // read from its tuning record (src/lib/tuneRecord.ts): the verdict against the original in the Lab's words, the paired
 // gain, each adopted change. Also the Export all / Import file that moves tuned decks between browsers, and the forge
-// lines of tuned decks committed to the repository. Pure: the page is src/ui/pages/TunedDecks.tsx.
+// lines of tuned decks committed to the repository. A change judged on held-out games pooled with earlier runs carries
+// how many came from them (GainRecord.priorGames). Pure: the page is src/ui/pages/TunedDecks.tsx.
 import { listFingerprint } from '../engine/deck';
 import { formatGain } from './evidence';
 import type { LibraryDeck } from './library';
@@ -93,7 +94,8 @@ export function ruleLine(r: TunedDeckRecord): string {
   const a = r.rule;
   if (a.rule === 'any-gain') return 'any-gain (legacy): adopted when a change scored higher at all on fresh games';
   const stop = a.futilityAfterStages ? `; stops early with ${a.futilityMaxGainPp ? `a gain of at most ${a.futilityMaxGainPp} pts` : 'no gain'} after ${a.futilityAfterStages} stage${a.futilityAfterStages === 1 ? '' : 's'}` : '';
-  return `evidence: adopt when the held-out paired gain's lower bound clears ${a.minGainPp} pt${a.minGainPp === 1 ? '' : 's'} with at least ${a.minGames} games; stages of ${a.firstStage} up to ${a.firstStage * a.capStages} games; α ${a.alpha} (${a.correction === 'obrien-fleming' ? "O'Brien–Fleming" : a.correction})${stop}`;
+  const pooled = a.ledger ? '; earlier held-out games kept in this browser were pooled (an interval that stays valid however often it is looked at)' : '';
+  return `evidence: adopt when the held-out paired gain's lower bound clears ${a.minGainPp} pt${a.minGainPp === 1 ? '' : 's'} with at least ${a.minGames} games; stages of ${a.firstStage} up to ${a.firstStage * a.capStages} games; α ${a.alpha} (${a.correction === 'obrien-fleming' ? "O'Brien–Fleming" : a.correction})${stop}${pooled}`;
 }
 
 // ---------------------------------------------------------------- export / import

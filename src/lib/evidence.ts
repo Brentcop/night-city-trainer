@@ -538,9 +538,17 @@ export function formatGain(iv: Pick<PairedInterval, 'mean' | 'lower' | 'upper' |
  */
 export function pooledGainWords(c: Pick<Confirmation, 'heldOut' | 'looks' | 'priorGames'>): string {
   const iv = c.heldOut;
+  return `${pts(iv.mean)} pts [${pts(iv.lower)}, ${pts(iv.upper)}], ${iv.games.toLocaleString('en-US')} games (${pooledNoteWords(c)})`;
+}
+
+/**
+ * The note of a pooled gain on its own, for a page that shows the figure itself in its usual place: "1,120 from earlier
+ * runs; always-valid z 3.05, 2 new stages" ("… decided by the earlier games alone" when it played no new game).
+ */
+export function pooledNoteWords(c: Pick<Confirmation, 'heldOut' | 'looks' | 'priorGames'>): string {
   const k = (x: number) => x.toLocaleString('en-US');
   const how = c.looks === 0 ? 'decided by the earlier games alone' : `${c.looks} new stage${c.looks === 1 ? '' : 's'}`;
-  return `${pts(iv.mean)} pts [${pts(iv.lower)}, ${pts(iv.upper)}], ${k(iv.games)} games (${k(c.priorGames ?? 0)} from earlier runs; always-valid z ${iv.z.toFixed(2)}, ${how})`;
+  return `${k(c.priorGames ?? 0)} from earlier runs; always-valid z ${c.heldOut.z.toFixed(2)}, ${how}`;
 }
 
 /**

@@ -38,7 +38,9 @@
 //                     (adopted or rejected with 0 new games), then after each new stage. A screened change whose earlier
 //                     games alone already reject it is not nominated (the next best takes its place). The prior leaves
 //                     out every game this confirmation may play and the games that screened the change, so repeating a
-//                     run decides the same way and appends nothing. Not with --bot hard-v1 (it reads card impact).
+//                     one-generation run decides the same way and appends nothing (with --gens 2 or more, a later
+//                     generation that nominates the same change again pools the earlier one's held-out games, and a
+//                     repeat finds those too). Not with --bot hard-v1 (it reads card impact).
 //   --ledger-dir DIR  default data/ledger (one <base list fingerprint>.jsonl per list); under --out DIR, DIR/ledger
 //
 // Each generation:

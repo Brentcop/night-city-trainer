@@ -1,5 +1,10 @@
 // Deck Lab core (browser): tune a submitted deck against a meta field, and breed new decks — the same methods as
 // scripts/forge.ts and scripts/season.ts, run on the in-browser worker pool.
+//
+// Earlier held-out games (TuneOptions.ledger; docs/SYNERGIES.md "Pooling held-out games across runs"): with a store of
+// the change ledger, the tuner records every screening and held-out paired game as the forge does and judges a nominee
+// that already has held-out games on them and the new games pooled (src/lib/changeLedgerRun.ts holds the logic both
+// share; the browser store is src/lib/changeLedgerStore.ts). Without it every log, game and result is the one before.
 import { CARDS, CARD_BY_ID, cardLabel } from '../engine/cards';
 import { counts, listFingerprint, ramLimits, validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
@@ -11,12 +16,15 @@ import { cutReason, partnerAwarePicks, type CutRow } from './cutRanking';
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import { RATINGS, SEASONS } from '../data/index';
-import { gameDeck, type PlayGame } from './tournament';
-import { adoptionRule, confirmStaged, formatGain, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval } from './evidence';
+import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
+import { adoptionRule, confirmStaged, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, type AdoptionRule, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores } from './evidence';
+import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
+import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
 import { combinedCandidates, DEPTH_DEFAULTS, estimateGames, listKeyOf, type SearchDepth } from './deckSearch';
 import type { LibraryDeck } from './library';
 import { h2hFileLookup, type H2HFileLike, type H2HRecord } from './h2hModel';
-import { finalVsOriginal, vsOriginalVerdict, type VsOriginal } from './tuneRecord';
+import { finalVsOriginal, manifestTune, tunedRecord, vsOriginalVerdict, type TunedDeckRecord, type VsOriginal } from './tuneRecord';
+import type { RunManifest } from './runManifest';
 
 export { finalVsOriginal, vsOriginalVerdict, type VsOriginal, type VsOriginalVerdict } from './tuneRecord';
 
@@ -248,6 +256,29 @@ export interface TuneOptions {
    * adopted list once.
    */
   vsOriginal?: number;
+  /**
+   * earlier held-out games (the change ledger): record every screening and held-out paired game in `store`, and judge a
+   * nominee with held-out games from earlier runs (same simulator version, bot and field) on them and the new games
+   * pooled, by the strict rule (confirmStaged's priors), as the forge does with --ledger. A screened change whose
+   * earlier games alone already reject it is not nominated (TuneLog.notNominated). Under the any-gain rule the games are
+   * recorded but never pooled. Absent: every game and log is the one before the ledger existed.
+   */
+  ledger?: TuneLedger;
+}
+
+/** A change-ledger store the tuner can use: loaded per base list before each generation, then read synchronously. */
+export interface TuneLedgerStore extends LedgerBackend {
+  /** load what is kept for this base list (its list fingerprint), after every write queued so far */
+  load(base: string): Promise<void>;
+  /** wait until everything appended so far is written (never rejects) */
+  flush(): Promise<unknown>;
+}
+export interface TuneLedger {
+  store: TuneLedgerStore;
+  /** this run's id in the ledger (default "deck-lab <time> seed <seed base>") */
+  run?: string;
+  /** YYYY-MM-DD (default today) */
+  date?: string;
 }
 
 /** Games per list on the vs-original block for `games` games per test: twice the first confirmation stage. */
@@ -296,17 +327,35 @@ export interface TuneLog {
   report?: DeckReport;
   /** every candidate screened on the baseline's games, best first; `gain` is the paired screening gain (plain 95%) */
   swaps: { label: string; wr: number; pkg?: Swap['pkg']; combo?: boolean; gain?: { mean: number; lower: number; upper: number; games: number } }[];
-  /** the first nominee's confirmation (the adopted one when there is one), for the one-line summary */
-  confirm?: { base: number; swap: number; label: string; outcome?: Outcome; gain?: PairedInterval; looks?: number };
+  /**
+   * the first nominee's confirmation (the adopted one when there is one), for the one-line summary; `priorGames`: pooled
+   * with earlier runs, this many of the held-out games came from them
+   */
+  confirm?: { base: number; swap: number; label: string; outcome?: Outcome; gain?: PairedInterval; looks?: number; priorGames?: number };
   /** each nominee: screening and held-out paired results and the outcome */
   nominees?: NomineeRecord[];
+  /** runs with a ledger: changes that screened well enough but were not nominated because their earlier held-out games alone reject them */
+  notNominated?: NotNominated[];
   adopted: string | null;
   /** the adopted change's held-out paired gain */
   adoptedGain?: PairedInterval;
+  /** the adopted change's gain was pooled with earlier runs: this many of its games came from them */
+  adoptedPriorGames?: number;
   /** partner-aware runs: every main-deck card's cut ranking, both scores, offered or not and why */
   cuts?: CutExplained[];
   /** runs with `vsOriginal`: the current list against the original after this generation */
   vsOriginal?: VsOriginal;
+}
+
+/** A change its earlier held-out games already reject, so it was not nominated: its screening and pooled figures. */
+export interface NotNominated {
+  label: string;
+  /** the screening gain on this generation's games (plain 95%) */
+  screen: { games: number; mean: number; lower: number; upper: number };
+  /** the earlier held-out games alone, judged by the strict pooling rule */
+  heldOut: PairedInterval;
+  /** = heldOut.games: every one from earlier runs */
+  priorGames: number;
 }
 
 /** The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). */
@@ -338,6 +387,8 @@ export interface TuneProgress {
   seedBase: number;
   /** games actually played (done also jumps ahead over skipped confirmations) */
   played: number;
+  /** runs with a ledger: what this run has recorded so far (games written, already held, conflicts, left out) */
+  ledger?: Record<BatchKind, LedgerTotals>;
 }
 
 export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOptions, play: PlayGame, onProgress: (p: TuneProgress) => void, stop: () => boolean): Promise<TuneProgress> {
@@ -352,6 +403,12 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const perGen = total / Math.max(1, o.gens);
   const seedBase = o.seedBase ?? 500_000 + Math.floor(Math.random() * 9_000);
   const p: TuneProgress = { done: 0, total, phase: 'Starting…', logs, deck, seedBase, played: 0 };
+  // earlier held-out games (the change ledger): the run's entry context, and whether priors are pooled (never under any-gain)
+  const ledger = o.ledger ? ledgerRun(o.ledger, o.bot, field, seedBase) : null;
+  const pooling = !!ledger && rule.kind === 'evidence';
+  if (ledger) p.ledger = ledger.totals;
+  /** the field's list fingerprints in the order playSet uses them (field[k % n]) */
+  const opponents = ledger ? ledger.o.opponents : [];
   const tick = () => {
     p.done++;
     p.played++;
@@ -380,92 +437,168 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
     log.vsOriginal = { same: false, adopted: adoptedSoFar, gain: pairedInterval(cur.scores, orig), origWr: orig.reduce((a, x) => a + x, 0) / Math.max(1, orig.length), curWr: cur.wr, measured: true };
   };
   for (let gen = 1; gen <= o.gens && !stop(); gen++) {
-    const seed0 = seedBase + gen * 10_000;
-    p.phase = `Generation ${gen}: measuring the deck (${o.games} games with telemetry)`;
-    onProgress({ ...p });
-    const base = await playSet(deck, field, seed0, o.games, o.bot, play, true, tick);
-    const report = analyzeDeck(deck.name, base.sums);
-    const log: TuneLog = { gen, baseline: base.wr, report, swaps: [], adopted: null };
-    logs.push(log);
-    const ranked = swapsAndCuts(deck, report, o.cands, plan, o.partnerAware ? { sums: base.sums } : undefined);
-    const swaps = ranked.swaps;
-    if (ranked.cuts) log.cuts = ranked.cuts;
-    if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
-    const screened: { s: Swap; wr: number }[] = [];
-    const screen = async (list: Swap[], what: (s: Swap) => string) => {
-      for (const [k, s] of list.entries()) {
-        if (stop()) break;
-        p.phase = `Generation ${gen}: testing ${what(s)} ${k + 1} of ${list.length} on the same games`;
-        onProgress({ ...p, logs: [...logs] });
-        const r = await playSet(s.deck, field, seed0, o.games, o.bot, play, false, tick);
-        const iv = pairedInterval(r.scores, base.scores);
-        screened.push({ s, wr: r.wr });
-        log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games } });
+    // the ledger: this generation's base list is loaded before any game (an adoption changed it), and everything it
+    // recorded is written before the next one starts, also when the run is stopped or a game fails
+    if (o.ledger) await o.ledger.store.load(listFingerprint(deck));
+    try {
+      const seed0 = seedBase + gen * 10_000;
+      p.phase = `Generation ${gen}: measuring the deck (${o.games} games with telemetry)`;
+      onProgress({ ...p });
+      const base = await playSet(deck, field, seed0, o.games, o.bot, play, true, tick);
+      const report = analyzeDeck(deck.name, base.sums);
+      const log: TuneLog = { gen, baseline: base.wr, report, swaps: [], adopted: null };
+      logs.push(log);
+      const ranked = swapsAndCuts(deck, report, o.cands, plan, o.partnerAware ? { sums: base.sums } : undefined);
+      const swaps = ranked.swaps;
+      if (ranked.cuts) log.cuts = ranked.cuts;
+      if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
+      const screened: { s: Swap; wr: number }[] = [];
+      /** the screening games' places, for the ledger */
+      const screenSlots = ledger ? blockSlots(seed0, o.games, opponents) : [];
+      const screen = async (list: Swap[], what: (s: Swap) => string) => {
+        for (const [k, s] of list.entries()) {
+          if (stop()) break;
+          p.phase = `Generation ${gen}: testing ${what(s)} ${k + 1} of ${list.length} on the same games`;
+          onProgress({ ...p, logs: [...logs] });
+          const r = await playSet(s.deck, field, seed0, o.games, o.bot, play, false, tick);
+          ledger?.record('screen', deck, s.deck, s.label, scored(screenSlots, base.scores, r.scores));
+          const iv = pairedInterval(r.scores, base.scores);
+          screened.push({ s, wr: r.wr });
+          log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games } });
+        }
+      };
+      await screen(swaps, (s) => (s.pkg ? 'package move' : 'swap'));
+      // depth: combine the best screened single changes (those above the baseline)
+      const seen = new Set([listKeyOf(deck), ...swaps.map((s) => listKeyOf(s.deck))]);
+      const above = (pkg: boolean) => [...screened].filter((x) => !!x.s.pkg === pkg && x.wr > base.wr).sort((a, b) => b.wr - a.wr).map((x) => x.s);
+      const make = (parts: Swap[], d: DeckList): Swap => ({ label: parts.map((x) => x.label).join(' + '), deck: d, prior: parts.reduce((t, x) => t + x.prior, 0), combo: { parts: parts.map((x) => x.label), packages: parts.some((x) => !!x.pkg) } });
+      const combos = stop()
+        ? []
+        : [
+            ...(depth.cardsPerChange > 1 ? combinedCandidates(deck, above(false), { maxParts: depth.cardsPerChange, from: depth.combineFrom, plan, seen }, make) : []),
+            ...(depth.packagesPerChange > 1 ? combinedCandidates(deck, above(true), { maxParts: depth.packagesPerChange, from: depth.combineFrom, plan, seen }, make) : []),
+          ];
+      await screen(combos, () => 'combined change');
+      const all = [...swaps, ...combos];
+      log.swaps.sort((a, b) => b.wr - a.wr);
+      const seed1 = seed0 + 5_000;
+      const swapOf = (label: string) => all.find((s) => s.label === label)!;
+      /** the ledger: the games a prior leaves out (every game this confirmation may play, and this generation's screening games) */
+      const leaveOut = pooling ? gameIds([...confirmationSlots(seed1, firstStage, stages, opponents), ...screenSlots]) : new Set<string>();
+      const priorFor = (s: Swap): PairedScores | undefined => (pooling && ledger ? ledger.prior(deck, s.deck, leaveOut) : undefined);
+      // screening only nominates: the best changes that beat the baseline by minGain on the shared games
+      const aboveBar = log.swaps.filter((x) => x.wr - base.wr >= o.minGain);
+      let nominated = aboveBar.slice(0, depth.nominees);
+      if (pooling) {
+        // a change whose earlier held-out games alone already reject it is not nominated: the next best takes its place
+        nominated = [];
+        for (const x of aboveBar) {
+          if (nominated.length >= depth.nominees) break;
+          const s = swapOf(x.label);
+          const prior = priorFor(s);
+          if (prior?.base.length) {
+            const j = judgePooled(prior.cand, prior.base, { alpha: rule.alpha, nominees: depth.nominees, minGainPp: isPkg(s) ? rule.packageMinGainPp : rule.minGainPp, minGames: rule.minGames });
+            if (j.verdict === 'reject') {
+              const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
+              (log.notNominated ??= []).push({ label: x.label, screen: { games: sg.games, mean: sg.mean, lower: sg.lower, upper: sg.upper }, heldOut: j.iv, priorGames: prior.base.length });
+              continue;
+            }
+          }
+          nominated.push(x);
+        }
       }
-    };
-    await screen(swaps, (s) => (s.pkg ? 'package move' : 'swap'));
-    // depth: combine the best screened single changes (those above the baseline)
-    const seen = new Set([listKeyOf(deck), ...swaps.map((s) => listKeyOf(s.deck))]);
-    const above = (pkg: boolean) => [...screened].filter((x) => !!x.s.pkg === pkg && x.wr > base.wr).sort((a, b) => b.wr - a.wr).map((x) => x.s);
-    const make = (parts: Swap[], d: DeckList): Swap => ({ label: parts.map((x) => x.label).join(' + '), deck: d, prior: parts.reduce((t, x) => t + x.prior, 0), combo: { parts: parts.map((x) => x.label), packages: parts.some((x) => !!x.pkg) } });
-    const combos = stop()
-      ? []
-      : [
-          ...(depth.cardsPerChange > 1 ? combinedCandidates(deck, above(false), { maxParts: depth.cardsPerChange, from: depth.combineFrom, plan, seen }, make) : []),
-          ...(depth.packagesPerChange > 1 ? combinedCandidates(deck, above(true), { maxParts: depth.packagesPerChange, from: depth.combineFrom, plan, seen }, make) : []),
-        ];
-    await screen(combos, () => 'combined change');
-    const all = [...swaps, ...combos];
-    log.swaps.sort((a, b) => b.wr - a.wr);
-    // screening only nominates: the best changes that beat the baseline by minGain on the shared games
-    const nominated = log.swaps.filter((x) => x.wr - base.wr >= o.minGain).slice(0, depth.nominees);
-    if (!nominated.length || stop()) {
-      if (!stop()) await track(log, false);
+      if (!nominated.length || stop()) {
+        if (!stop()) await track(log, false);
+        p.done = Math.max(p.done, Math.round(gen * perGen));
+        continue;
+      }
+      const nomDecks = nominated.map((x) => swapOf(x.label));
+      p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''})`;
+      onProgress({ ...p, logs: [...logs] });
+      const conf = await confirmStaged(
+        rule,
+        nomDecks.map((s) => ({ minGainPp: isPkg(s) ? rule.packageMinGainPp : rule.minGainPp })),
+        firstStage,
+        async ({ offset, games, active }) => {
+          // the current list's games are started first, then each nominee's (the order the legacy confirmation used)
+          const [b, ...ns] = await Promise.all([deck, ...active.map((i) => nomDecks[i]!.deck)].map((d) => playSet(d, field, seed1 + offset, games, o.bot, play, false, tick)));
+          // only whole stages reach here (Stop rejects the games in flight, so a cut-off stage throws above), and
+          // confirmStaged counts every stage this returns: the ledger records exactly the games the decision used
+          if (ledger) {
+            const slots = blockSlots(seed1 + offset, games, opponents);
+            active.forEach((i, k) => ledger.record('heldout', deck, nomDecks[i]!.deck, nomDecks[i]!.label, scored(slots, b!.scores, ns[k]!.scores)));
+          }
+          return { base: b!.scores, nominees: ns.map((r) => r.scores) };
+        },
+        stop,
+        pooling ? nomDecks.map(priorFor) : undefined,
+      );
+      const pick = pickAdopted(conf.results);
+      log.nominees = nominated.map((x, i) => {
+        const s = nomDecks[i]!;
+        const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
+        return nomineeRecord(x.label, { ...sg, z: 1.96 }, conf.results[i], s.combo ? `combo-${s.combo.packages ? 'packages' : 'cards'}` : s.pkg?.kind);
+      });
+      const shown = conf.results[pick >= 0 ? pick : 0]!;
+      log.confirm = { base: shown.baseWr, swap: shown.candWr, label: nominated[pick >= 0 ? pick : 0]!.label, outcome: shown.outcome, gain: shown.heldOut, looks: shown.looks, ...(shown.priorGames ? { priorGames: shown.priorGames } : {}) };
+      if (pick >= 0) {
+        deck = nomDecks[pick]!.deck;
+        log.adopted = nominated[pick]!.label;
+        log.adoptedGain = shown.heldOut;
+        if (shown.priorGames) log.adoptedPriorGames = shown.priorGames;
+        adoptedSoFar++;
+      }
+      p.deck = deck;
+      // report the adopted list before the vs-original games, so a run stopped during them can still save it
+      if (pick >= 0) onProgress({ ...p, logs: [...logs] });
+      if (!stop()) await track(log, pick >= 0);
       p.done = Math.max(p.done, Math.round(gen * perGen));
-      continue;
+      // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
+      onProgress({ ...p, logs: [...logs] });
+    } finally {
+      if (o.ledger) await o.ledger.store.flush();
     }
-    const nomDecks = nominated.map((x) => all.find((s) => s.label === x.label)!);
-    p.phase = `Generation ${gen}: confirming ${nominated.length === 1 ? 'the best change' : `the best ${nominated.length} changes`} on fresh paired games (stages of ${firstStage}${stages > 1 ? `, up to ${firstStage * stages}` : ''})`;
-    onProgress({ ...p, logs: [...logs] });
-    const seed1 = seed0 + 5_000;
-    const conf = await confirmStaged(
-      rule,
-      nomDecks.map((s) => ({ minGainPp: isPkg(s) ? rule.packageMinGainPp : rule.minGainPp })),
-      firstStage,
-      async ({ offset, games, active }) => {
-        // the current list's games are started first, then each nominee's (the order the legacy confirmation used)
-        const [b, ...ns] = await Promise.all([deck, ...active.map((i) => nomDecks[i]!.deck)].map((d) => playSet(d, field, seed1 + offset, games, o.bot, play, false, tick)));
-        return { base: b!.scores, nominees: ns.map((r) => r.scores) };
-      },
-      stop,
-    );
-    const pick = pickAdopted(conf.results);
-    log.nominees = nominated.map((x, i) => {
-      const s = nomDecks[i]!;
-      const sg = x.gain ?? { mean: 0, lower: -1, upper: 1, games: 0 };
-      return nomineeRecord(x.label, { ...sg, z: 1.96 }, conf.results[i], s.combo ? `combo-${s.combo.packages ? 'packages' : 'cards'}` : s.pkg?.kind);
-    });
-    const shown = conf.results[pick >= 0 ? pick : 0]!;
-    log.confirm = { base: shown.baseWr, swap: shown.candWr, label: nominated[pick >= 0 ? pick : 0]!.label, outcome: shown.outcome, gain: shown.heldOut, looks: shown.looks };
-    if (pick >= 0) {
-      deck = nomDecks[pick]!.deck;
-      log.adopted = nominated[pick]!.label;
-      log.adoptedGain = shown.heldOut;
-      adoptedSoFar++;
-    }
-    p.deck = deck;
-    // report the adopted list before the vs-original games, so a run stopped during them can still save it
-    if (pick >= 0) onProgress({ ...p, logs: [...logs] });
-    if (!stop()) await track(log, pick >= 0);
-    p.done = Math.max(p.done, Math.round(gen * perGen));
-    // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
-    onProgress({ ...p, logs: [...logs] });
   }
   p.phase = stop() ? 'Stopped' : 'Done';
   p.deck = deck;
   p.done = p.total;
   onProgress({ ...p, logs: [...logs] });
   return p;
+}
+
+/** The run's ledger context: the canonical bot (a bot the ledger cannot use is an error), the field, the run id and date. */
+function ledgerRun(l: TuneLedger, bot: string, field: readonly DeckList[], seedBase: number): ChangeLedgerRun {
+  const b = ledgerBot(bot);
+  if (!b.bot) throw new Error(b.problem);
+  const now = new Date();
+  return new ChangeLedgerRun(l.store, {
+    simVersion: SIM_VERSION,
+    bot: b.bot,
+    opponents: field.map((d) => listFingerprint(d)),
+    run: l.run ?? `deck-lab ${now.toISOString()} seed ${seedBase}`,
+    date: l.date ?? now.toISOString().slice(0, 10),
+  });
+}
+
+/**
+ * The saved list's tuning record (tunedRecord) with what earlier held-out games add: for each adopted change judged on
+ * games pooled with earlier runs, how many came from them (`heldOut.priorGames`). Here rather than in tuneRecord.ts, which
+ * the entry chunk reaches, so that file's code does not grow; without pooled logs it is tunedRecord's record unchanged.
+ */
+export function pooledTuneRecord(o: Parameters<typeof tunedRecord>[0]): TunedDeckRecord {
+  const r = tunedRecord(o);
+  const prior = new Map(o.logs.flatMap((l) => (l.adopted && l.adoptedPriorGames ? [[l.gen, l.adoptedPriorGames] as const] : [])));
+  if (!prior.size) return r;
+  return { ...r, changes: r.changes.map((c) => (c.heldOut && prior.has(c.gen) ? { ...c, heldOut: { ...c.heldOut, priorGames: prior.get(c.gen)! } } : c)) };
+}
+
+/**
+ * What the run manifest carries of a tuning record (manifestTune), with `pooled` when the run used earlier held-out games
+ * (`rule.ledger`): each adopted change and how many of its held-out games came from earlier runs (0 when none did).
+ */
+export function pooledManifestTune(r: TunedDeckRecord): NonNullable<RunManifest['tune']> {
+  const t = manifestTune(r);
+  return r.rule.ledger ? { ...t, pooled: r.changes.map((c) => ({ gen: c.gen, label: c.label, priorGames: c.heldOut?.priorGames ?? 0 })) } : t;
 }
 
 /**

@@ -2,6 +2,10 @@
 // page can list tuned decks with their end results without re-reading the run: which list it started from and ended
 // with, each adopted change with its held-out gain, the tuned list against the original on common held-out games, the
 // rule, field, bot and date, and the run manifest's id (the whole manifest is stored beside it). Plain data.
+// A run that used earlier held-out games (the change ledger) records it in the rule (`rule.ledger`) and, per adopted
+// change, how many of its held-out games came from earlier runs (`heldOut.priorGames`; RunManifest.tune.pooled). Those
+// two are filled in by pooledTuneRecord / pooledManifestTune in src/lib/deckLab.ts, the Lab's own chunk: this file is
+// also in the entry chunk's reach (browserLibrary reads isTunedRecord), so its code stays as it was.
 import { listFingerprint } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import type { AdoptionProvenance } from './evidence';
@@ -46,6 +50,8 @@ export interface TuneLogLike {
   gen: number;
   adopted: string | null;
   adoptedGain?: PairedInterval;
+  /** the adopted change was judged on held-out games pooled with earlier runs: this many came from them */
+  adoptedPriorGames?: number;
   swaps: readonly { label: string; pkg?: { kind: string } }[];
   vsOriginal?: VsOriginal;
 }
@@ -56,6 +62,8 @@ export interface GainRecord {
   upper: number;
   games: number;
   z: number;
+  /** pooled with earlier runs (earlier held-out games): this many of `games` came from them (absent otherwise) */
+  priorGames?: number;
 }
 
 /** Schema 1. Add optional fields only; anything else bumps `schema`. */

@@ -66,6 +66,8 @@ export interface RunManifest {
     finalListId: string;
     adopted: number;
     vsOriginal: { verdict: 'unchanged' | 'better' | 'unclear' | 'worse'; gain?: { mean: number; lower: number; upper: number; games: number; z: number }; origWr?: number; finalWr?: number; minGainPp: number } | null;
+    /** the run used earlier held-out games (adoption.ledger): each adopted change and how many of its held-out games came from earlier runs */
+    pooled?: { gen: number; label: string; priorGames: number }[];
   };
 }
 

@@ -2,9 +2,10 @@
 // paired games of every deck change a builder screened or confirmed, kept game by game so that later runs can pool the
 // held-out ones instead of starting from nothing.
 //
-// Plain data and plain functions only (no file system, no DOM), so it runs in Node and in the browser. The Node store is
-// scripts/ledger-store.ts; the strict pooling rule itself is in src/lib/evidence.ts (judgePooled, alwaysValidZ), which
-// confirmStaged and the verdicts here share.
+// Plain data and plain functions only (no file system, no DOM), so it runs in Node and in the browser. What one run does
+// with it, whatever keeps it, is src/lib/changeLedgerRun.ts; the Node store is scripts/ledger-store.ts and the Deck Lab's
+// store (IndexedDB) src/lib/changeLedgerStore.ts. The strict pooling rule itself is in src/lib/evidence.ts (judgePooled,
+// alwaysValidZ), which confirmStaged and the verdicts here share.
 //
 // - A change is named by the lists themselves: the base list's fingerprint plus the cards cut and added (with
 //   multiplicity) over main deck and Legends (changeKey). The same change found as a card swap or a package move has

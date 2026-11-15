@@ -1,5 +1,7 @@
 // Deck Lab: submit a deck to be tuned for the meta, or breed new decks — all in the browser, using the trainer's own
 // methods (forge swaps confirmed on fresh games; data-driven breeding). Results can be saved to "My decks".
+// The tuner can use earlier held-out games kept in this browser (the change ledger, components/LabHeldOut.tsx): on by
+// default, with a line on what is held for this list, and an "Evidence kept in this browser" block (export, import, clear).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IfPage } from '../components/SiteChrome';
 import { allDecks, upsertCustom } from '../../lib/browserLibrary';
@@ -13,6 +15,8 @@ import {
   loadH2H,
   partialTune,
   playSet,
+  pooledManifestTune,
+  pooledTuneRecord,
   recordedEventCount,
   tunedName,
   tuneDeck,
@@ -24,10 +28,12 @@ import {
   type TuneLog,
   type TuneProgress,
 } from '../../lib/deckLab';
-import { manifestTune, tunedRecord } from '../../lib/tuneRecord';
 import { adoptionProvenance, describeRule, formatGain, stoppedWords, type AdoptionRule } from '../../lib/evidence';
 import { LAB_GAME_BUDGET } from '../../lib/deckSearch';
-import { CutTable, DepthControls, NomineeTable, OutcomeChip, PairedGain, TuneTrajectory } from '../components/LabEvidence';
+import { CutTable, DepthControls, NomineeTable, NotNominatedList, OutcomeChip, PairedGain, TuneTrajectory } from '../components/LabEvidence';
+import { HeldOutCheckbox, heldOutActions, HeldOutPanel, useHeldOutStore, useListHolding } from '../components/LabHeldOut';
+import { earlierGamesRuleWords, runKeptLine } from '../../lib/changeLedgerStore';
+import { fieldFingerprint, ledgerBot } from '../../lib/changeLedger';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../../lib/runManifest';
 import { SIM_VERSION, type PlayGame } from '../../lib/tournament';
 import { RunDetails } from '../components/RunDetails';
@@ -169,7 +175,22 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const e0 = EFFORT[effort];
   const planned = tunePlan({ games: e0.games, gens: e0.gens, cands: e0.cands, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, vsOriginal: vsOriginalGames(e0.games) });
   /** the rule the last run used, for its result panel */
-  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number; vsGames: number; gens: number; partnerAware: boolean; field: FieldKey; fieldDeckIds: string[]; bot: string } | null>(null);
+  const [runRule, setRunRule] = useState<{ rule: AdoptionRule; firstStage: number; vsGames: number; gens: number; partnerAware: boolean; field: FieldKey; fieldDeckIds: string[]; bot: string; ledger: boolean } | null>(null);
+  // earlier held-out games kept in this browser (on by default when this browser can keep them)
+  const heldOut = useHeldOutStore();
+  const [useEarlier, setUseEarlier] = useState(true);
+  const ledgerOn = useEarlier && !!heldOut.store;
+  const fieldFp = useMemo(() => (parsed.deck ? fieldFingerprint(fieldDecks(field, lib, parsed.deck.name).map((d) => listFingerprint(d))) : ''), [parsed.deck, field, lib]);
+  const holding = useListHolding(heldOut.store, listId, ledgerBot(bot).bot ?? null, fieldFp, heldOut.version);
+  const [keptMsg, setKeptMsg] = useState('');
+  const [askClear, setAskClear] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
+  const keptActions = heldOutActions(heldOut.store, (m) => {
+    setKeptMsg(m);
+    heldOut.refresh();
+  });
+  /** writes that failed during the last run (storage full or blocked) */
+  const [keptFailed, setKeptFailed] = useState(0);
 
   const start = async () => {
     const deck = parsed.deck;
@@ -196,8 +217,10 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       trace: true,
       simVersion: SIM_VERSION,
       ...(keep.length || pkgMoves ? { packages: packageProvenance(packagePlan) } : {}),
-      adoption: adoptionProvenance(planned.rule, { firstStage: planned.firstStage, nominees: planned.depth.nominees, cardsPerChange: planned.depth.cardsPerChange, packagesPerChange: planned.depth.packagesPerChange }),
+      adoption: adoptionProvenance(planned.rule, { firstStage: planned.firstStage, nominees: planned.depth.nominees, cardsPerChange: planned.depth.cardsPerChange, packagesPerChange: planned.depth.packagesPerChange }, ledgerOn),
     });
+    const store = ledgerOn ? heldOut.store : null;
+    const failedBefore = store?.failed ?? 0;
     let completed = 0;
     const play: PlayGame = (j) =>
       pool.play(j).then((r) => {
@@ -211,7 +234,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     setProg(null);
     setManifest(plan);
     setRunPlan(keep.length || pkgMoves ? { plan: packagePlan, moves: pkgMoves } : null);
-    setRunRule({ rule: planned.rule, firstStage: planned.firstStage, vsGames: planned.vsGames, gens: e.gens, partnerAware, field, fieldDeckIds: fieldList.map((d) => manifestDeck(d).id), bot });
+    setRunRule({ rule: planned.rule, firstStage: planned.firstStage, vsGames: planned.vsGames, gens: e.gens, partnerAware, field, fieldDeckIds: fieldList.map((d) => manifestDeck(d).id), bot, ledger: !!store });
+    setKeptFailed(0);
     try {
       const onProgress = (p: TuneProgress) => {
         setProg(p);
@@ -220,7 +244,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       const p = await tuneDeck(
         deck,
         fieldList,
-        { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, partnerAware, vsOriginal: planned.vsGames },
+        { games: e.games, gens: e.gens, cands: e.cands, bot, minGain: 0.02, seedBase, plan: packagePlan, packageMoves: pkgMoves, packageCands: PACKAGE_CANDS, depth, partnerAware, vsOriginal: planned.vsGames, ...(store ? { ledger: { store } } : {}) },
         play,
         onProgress,
         () => stopRef.current,
@@ -234,6 +258,12 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     } finally {
       poolRun.close(pool);
       note();
+      // tuneDeck writes what it recorded at the end of each generation, also when stopped; wait for the last writes
+      if (store) {
+        const { failed } = await store.flush();
+        setKeptFailed(failed - failedBefore);
+        heldOut.refresh();
+      }
       setRunning(false);
     }
   };
@@ -266,13 +296,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
     ]
       .filter(Boolean)
       .join(' ');
-    const record = tunedRecord({
+    const record = pooledTuneRecord({
       original: { ...parsed.deck, ...(source === 'library' ? { file } : {}) },
       final: finalDeck,
       logs,
       partial: !!partial,
       gens: runRule?.gens ?? logs.length,
-      rule: manifest?.adoption ?? adoptionProvenance(planned.rule, { firstStage: planned.firstStage, nominees: planned.depth.nominees, cardsPerChange: planned.depth.cardsPerChange, packagesPerChange: planned.depth.packagesPerChange }),
+      rule: manifest?.adoption ?? adoptionProvenance(planned.rule, { firstStage: planned.firstStage, nominees: planned.depth.nominees, cardsPerChange: planned.depth.cardsPerChange, packagesPerChange: planned.depth.packagesPerChange }, !!runRule?.ledger),
       manifest,
       bot: runRule?.bot ?? bot,
       fieldMode: `deck-lab-tune:${runRule?.field ?? field}`,
@@ -280,7 +310,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       partnerAware: runRule?.partnerAware ?? partnerAware,
       ...(manifest?.packages ? { packages: manifest.packages } : {}),
     });
-    const m = manifest ? { ...manifest, tune: manifestTune(record) } : undefined;
+    const m = manifest ? { ...manifest, tune: pooledManifestTune(record) } : undefined;
     if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(m ? { manifest: m } : {}), tuned: record })) {
       window.alert(NOT_SAVED);
       return;
@@ -375,6 +405,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
             </select>
           </label>
         </div>
+        <HeldOutCheckbox checked={useEarlier} onChange={setUseEarlier} disabled={running} state={heldOut.state} holding={holding} noList={!parsed.deck || parsed.errors.length > 0} />
         <div className="row">
           {!running ? (
             <button className="primary" onClick={start} disabled={!parsed.deck || parsed.errors.length > 0}>
@@ -384,6 +415,22 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
             <button onClick={stop}>■ Stop</button>
           )}
         </div>
+        <HeldOutPanel
+          state={heldOut.state}
+          counts={heldOut.counts}
+          message={keptMsg}
+          asking={askClear}
+          disabled={running}
+          fileRef={importRef}
+          onExport={() => void keptActions.exportAll()}
+          onImportFile={(f) => void keptActions.importFile(f)}
+          onAskClear={() => setAskClear(true)}
+          onCancelClear={() => setAskClear(false)}
+          onConfirmClear={() => {
+            setAskClear(false);
+            void keptActions.clear();
+          }}
+        />
       </div>
 
       {prog && (
@@ -455,7 +502,10 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 <div className="small">
                   <div className="muted">Confirmation on fresh games, paired with the list (screening only nominates; the held-out gain is the one that counts):</div>
                   <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} futilityMaxGainPp={runRule?.rule.futilityMaxGainPp ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} />
+                  <NotNominatedList items={l.notNominated} />
                 </div>
+              ) : l.notNominated?.length ? (
+                <NotNominatedList items={l.notNominated} />
               ) : (
                 l.confirm && (
                   <div className="small">
@@ -465,7 +515,16 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
               )}
             </details>
           ))}
-          {runRule && <div className="small muted">Adoption rule: {describeRule(runRule.rule, { firstStage: runRule.firstStage })}.</div>}
+          {runRule && (
+            <div className="small muted">
+              Adoption rule: {describeRule(runRule.rule, { firstStage: runRule.firstStage })}.{runRule.ledger ? ` ${earlierGamesRuleWords(runRule.rule)}` : ''}
+            </div>
+          )}
+          {!running && prog.ledger && (
+            <div className="small muted" role="note">
+              {runKeptLine(prog.ledger, keptFailed)}
+            </div>
+          )}
           <RunDetails m={manifest} />
           {!running && finalDeck && (finished || partial) && (
             <div className="grid">
@@ -580,7 +639,8 @@ export function GenerationSummary({ log: l }: { log: TuneLog }) {
           {l.adoptedGain && (
             <>
               {' '}
-              (held-out <PairedGain g={l.adoptedGain} />)
+              (held-out <PairedGain g={l.adoptedGain} />
+              {l.adoptedPriorGames ? `, ${l.adoptedPriorGames.toLocaleString('en-US')} of them from earlier runs` : ''})
             </>
           )}
         </>
@@ -604,7 +664,8 @@ export function GenerationSummary({ log: l }: { log: TuneLog }) {
 
 /** The saved list's note on what was adopted, with held-out paired gains (and what the lab could not tell). */
 export function evidenceNote(logs: readonly TuneLog[]): string {
-  const adopted = logs.flatMap((l) => (l.adopted ? [`${l.adopted} (held-out ${l.adoptedGain ? formatGain(l.adoptedGain) : 'gain not recorded'})`] : []));
+  const earlier = (l: TuneLog) => (l.adoptedPriorGames ? `, ${l.adoptedPriorGames.toLocaleString('en-US')} of them from earlier runs` : '');
+  const adopted = logs.flatMap((l) => (l.adopted ? [`${l.adopted} (held-out ${l.adoptedGain ? formatGain(l.adoptedGain) : 'gain not recorded'}${earlier(l)})`] : []));
   const unsure = logs.flatMap((l) =>
     (l.nominees ?? [])
       .filter((n) => n.outcome === 'inconclusive')
