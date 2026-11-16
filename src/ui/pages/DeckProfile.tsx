@@ -6,6 +6,7 @@ import { deckColors } from '../../engine/deck';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct, statsName } from '../../lib/deckStats';
+import { finalsGamesWords } from '../../lib/playedRecord';
 import { SEASONS } from '../../data/index';
 import { classify } from '../../ai/archetype';
 import { findDeck } from '../components/DeckPicker';
@@ -351,7 +352,7 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
         {rep.finals && rep.finals.rows.length > 0 && (
           <Section
             title="Finals: matchup by matchup"
-            caption={`Win rate vs each meta archetype over ${rep.finals.games} deep-bot games; each pairing is played half on the play and half on the draw. The tick marks 50%.`}
+            caption={`Win rate vs each meta archetype over ${finalsGamesWords(rep.finals.games, rep.finals.bot)}; each pairing is played half on the play and half on the draw. The tick marks 50%.`}
           >
             <MatchRows rows={rep.finals.rows} />
           </Section>

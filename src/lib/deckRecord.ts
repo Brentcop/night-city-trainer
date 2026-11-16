@@ -1,7 +1,10 @@
 // A deck's recorded results in one summary: tournament games and win rate, seat split, record against the meta,
 // best and worst matchups, event finishes, power rank, and whether the numbers predate the current simulator.
 // Pure: every source is passed in, so the Home page, the gallery and the profile can each bind only the data they load.
+// The season leaderboard row is judged on its own seasons (staleLeaderRow, src/lib/parentStrength.ts), never on the
+// seasons file's minimum version: a row with only current seasons behind it is current.
 import { CURRENT_SIM_VERSION, isHistorical, parseWL, ratingsHistorical, type RatingsFile } from './playedRecord';
+import { staleLeaderRow } from './parentStrength';
 export * from './playedRecord';
 
 export interface EventLite {
@@ -50,10 +53,16 @@ export interface RecordSources {
   eventH2H?: MatchLine[];
   /** telemetry report (analysis.json) */
   telemetry?: { games: number; wr: number; wrFirst: number; wrSecond: number };
-  /** season leaderboard row with its rank */
-  leader?: { rank: number; of: number; rating: number; vsMeta: number; metaG: number; percentile: number };
-  /** simulator version of each non-event source, from its manifest; missing means it predates versioning (historical) */
-  versions?: { reports?: number; telemetry?: number; seasons?: number };
+  /**
+   * season leaderboard row with its rank; `seasons` are the row's per-season figures, whose keys say which seasons added
+   * to it (absent or empty: nothing says when it was played, so historical)
+   */
+  leader?: { rank: number; of: number; rating: number; vsMeta: number; metaG: number; percentile: number; seasons?: Readonly<Record<string, unknown>> | null };
+  /**
+   * simulator version of each non-event source, from its manifest; missing means it predates versioning (historical).
+   * `seasons` is each recorded season's own version (seasonVersions in src/lib/parentStrength.ts; null: none recorded).
+   */
+  versions?: { reports?: number; telemetry?: number; seasons?: Readonly<Record<string, number | null>> };
   simVersion?: number;
 }
 
@@ -207,7 +216,8 @@ export function deckRecord(src: RecordSources): DeckRecord {
   if (src.leader) {
     rec.leader = src.leader;
     if (!rec.vsMeta && ok(src.leader.vsMeta) && src.leader.metaG > 0) rec.vsMeta = { wr: src.leader.vsMeta, n: src.leader.metaG, source: 'seasons' };
-    used.push(isHistorical(v.seasons, current));
+    // historical exactly when the row is stale: some season that added to it did not run under the current version
+    used.push(staleLeaderRow(src.leader, v.seasons ?? {}, current));
   }
 
   const fromFinals = finals && extremes(finals.rows);

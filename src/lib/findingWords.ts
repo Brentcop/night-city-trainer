@@ -372,8 +372,33 @@ export const VERDICT_WORDS: Readonly<Record<NonNullable<FindingDetail['verdict']
   inconclusive: 'The forge could not tell.',
 };
 
-/** Where a change stands for later tuning runs (the shortlist, docs/SYNERGIES.md). */
-export function shortlistWords(d: Pick<FindingDetail, 'status' | 'dropped'>): string | null {
+/**
+ * A ledger change whose held-out games all come from one recorded forge run (`detail.confirmation`): what that run
+ * concluded by its own staged rule, the look it ended at, and its corrected range, then why the row's range is wider.
+ * "These held-out games all come from one forge run, which by its own staged rule could not tell at look 4 of 4 (its
+ * corrected range +0.0 pts to +3.8 pts). The range above is wider because it stays valid as later runs add games."
+ */
+export function confirmationWords(c: NonNullable<FindingDetail['confirmation']>): string {
+  const at = c.looks > c.cap ? `after ${plural(c.looks, 'look')} (${thousands(c.cap)} within its cap, then until settled)` : c.looks === 1 ? `at its first look of ${thousands(c.cap)}` : `at look ${thousands(c.looks)} of ${thousands(c.cap)}`;
+  const verb =
+    c.outcome === 'adopt'
+      ? `adopted it ${at}`
+      : c.outcome === 'reject'
+        ? `rejected it ${at}`
+        : c.stopped === 'futility'
+          ? `stopped ${at} with no gain, so could not tell`
+          : c.stopped === 'stop'
+            ? `was stopped ${at}, so could not tell`
+            : `could not tell ${at}`;
+  return `These held-out games all come from one forge run, which by its own staged rule ${verb} (its corrected range ${pts(c.lower)} to ${pts(c.upper)}). The range above is wider because it stays valid as later runs add games.`;
+}
+
+/**
+ * Where a change stands for later tuning runs (the shortlist, docs/SYNERGIES.md). With the finding's `toSettle` and its
+ * held-out games (`heldout`), a change set aside as out of reach says how many games adopting it would take, or that its
+ * held-out reading is not above the bar.
+ */
+export function shortlistWords(d: Pick<FindingDetail, 'status' | 'dropped' | 'toSettle'>, heldout?: number): string | null {
   if (d.status === 'live') return 'Still open: later tuning runs test it first.';
   if (d.status === 'untested') return 'Not tested on held-out games yet.';
   if (d.status !== 'dropped') return null;
@@ -383,6 +408,9 @@ export function shortlistWords(d: Pick<FindingDetail, 'status' | 'dropped'>): st
     case 'rejected':
       return 'Set aside: its held-out games reject it.';
     case 'out-of-reach':
+      if (d.toSettle === null) return 'Set aside: its held-out games do not read above the bar, so more of them are not expected to adopt it.';
+      if (typeof d.toSettle === 'number' && heldout !== undefined)
+        return `Set aside: at its present reading, adopting it would take about ${plural(Math.max(0, d.toSettle - heldout), 'more held-out game')} (${thousands(d.toSettle)} in all), more than later tuning runs give one change.`;
       return 'Set aside: settling it would take more held-out games than a run may spend.';
     default:
       return 'Set aside.';
@@ -489,16 +517,24 @@ export function botsWords(readings: readonly BotReading[]): string | null {
 /** The screening figure of a change, one short greyed line: "Screening read +5.4 pts over 224 games: not the result." */
 export const screenWords = (s: NonNullable<FindingDetail['screen']>): string => `Screening${s.bot ? ` with ${botName(s.bot)}` : ''} read ${pts(s.mean)} over ${plural(s.games, 'game')}: not the result.`;
 
+/** A tool record's bots: "Medium" or "Medium screening, Hard held-out" (a record names its context, docs/EVIDENCE.md "The index"). */
+const healthBots = (h: Pick<ToolHealth, 'bot' | 'confirmBot'>): string => (h.bot ? (h.confirmBot ? `${botName(h.bot)} screening, ${botName(h.confirmBot)} held-out` : botName(h.bot)) : '');
+
 /**
- * Said once above a deck's changes: how much higher screening has read than the held-out games, by tool (the tools'
- * record in the index), or why it reads high when the record is not loaded.
+ * Said once above a deck's changes: how much higher screening has read than the held-out games, per tool record (the
+ * index's records that match this deck's changes, `screenCurseRows`), or why it reads high when none is loaded. Each
+ * record is named by its simulator version and bots; a record where one bot screened and another played the held-out
+ * games is said to hold how the two bots differ too.
  */
 export function screenCurseWords(health: readonly ToolHealth[]): string {
-  const parts = health
-    .filter((h) => h.screenMinusHeldOut)
-    .map((h) => `${Math.abs(h.screenMinusHeldOut!.mean * 100).toFixed(1)} points ${h.screenMinusHeldOut!.mean >= 0 ? 'above' : 'below'} for ${lowerFirst(toolWords(h.tool))} (${plural(h.screenMinusHeldOut!.n, 'nominee')})`);
+  const rows = health.filter((h) => h.screenMinusHeldOut);
+  const parts = rows.map((h) => {
+    const ctx = [h.simVersion !== undefined ? `version ${h.simVersion}` : '', healthBots(h)].filter(Boolean).join(', ');
+    return `${Math.abs(h.screenMinusHeldOut!.mean * 100).toFixed(1)} points ${h.screenMinusHeldOut!.mean >= 0 ? 'above' : 'below'} for ${lowerFirst(toolWords(h.tool))} (${ctx ? `${ctx}; ` : ''}${plural(h.screenMinusHeldOut!.n, 'nominee')})`;
+  });
   const why = 'Screening figures are greyed and are not results: the best of many candidates is picked on those games, so they read high.';
-  return parts.length ? `${why} Against the held-out games, screening has read on average ${parts.join('; ')}.` : why;
+  const bots = rows.some((h) => h.confirmBot) ? ' Where one bot screened and another played the held-out games, that gap also holds how the two bots differ.' : '';
+  return parts.length ? `${why} Against the held-out games, screening has read on average ${parts.join('; ')}.${bots}` : why;
 }
 
 /** An open question: what its games read so far, and how many more held-out games would settle it. */
@@ -532,7 +568,21 @@ export const TOOL_WORDS: Readonly<Record<string, string>> = {
 };
 export const toolWords = (tool: string): string => TOOL_WORDS[tool] ?? capital(tool);
 
-/** One tool's record as plain sentences, each with its count; a figure the record lacks (null) is left out. */
+/**
+ * A tool record's heading: the tool, its simulator version (an older one said so) and its bots, e.g. "The forge,
+ * simulator version 9: Medium bot screening, Hard bot confirming". A record from a file built before records had a
+ * context is named by its tool alone.
+ */
+export function healthTitleWords(h: Pick<ToolHealth, 'tool' | 'simVersion' | 'bot' | 'confirmBot'>, current?: number): string {
+  const version = h.simVersion !== undefined ? `, simulator version ${h.simVersion}${current !== undefined && h.simVersion !== current ? ' (an older version)' : ''}` : '';
+  return `${toolWords(h.tool)}${version}${h.bot ? `: ${runBotWords({ bot: h.bot, confirmBot: h.confirmBot })}` : ''}`;
+}
+
+/**
+ * One tool record as plain sentences, each with its count; a figure the record lacks (null) is left out. Where one bot
+ * screened and another played the held-out games, the screening gap is said to hold how the bots differ as well as
+ * screening's optimism, so it measures neither alone.
+ */
 export function healthWords(h: ToolHealth): string[] {
   const out: string[] = [];
   const ends = [
@@ -542,9 +592,17 @@ export function healthWords(h: ToolHealth): string[] {
   ].filter((x): x is string => x !== null);
   out.push(`${plural(h.nominees, 'nominee')} confirmed on held-out games${ends.length ? `: ${ends.join(', ')}` : ''}.`);
   const higher = (x: number) => `${Math.abs(x * 100).toFixed(1)} points ${x >= 0 ? 'higher' : 'lower'}`;
-  if (h.screenMinusHeldOut) out.push(`Screening read ${higher(h.screenMinusHeldOut.mean)} than the held-out games, on average over ${plural(h.screenMinusHeldOut.n, 'nominee')}.`);
+  if (h.screenMinusHeldOut && h.confirmBot && h.bot)
+    out.push(
+      `Screening with ${botName(h.bot)} read ${higher(h.screenMinusHeldOut.mean)} than the held-out games with ${botName(h.confirmBot)}, on average over ${plural(h.screenMinusHeldOut.n, 'nominee')}. That gap holds screening’s optimism and how the two bots differ together, so it measures neither alone.`,
+    );
+  else if (h.screenMinusHeldOut) out.push(`Screening read ${higher(h.screenMinusHeldOut.mean)} than the held-out games, on average over ${plural(h.screenMinusHeldOut.n, 'nominee')}.`);
   if (h.adoptedMinusLater)
-    out.push(`The held-out figure at adoption read ${higher(h.adoptedMinusLater.mean)} than a later re-measurement on fresh games, on average over ${plural(h.adoptedMinusLater.n, 'adopted change')}.`);
+    out.push(
+      h.simVersion !== undefined
+        ? `The held-out figure at adoption read ${higher(h.adoptedMinusLater.mean)} than a later re-measurement on fresh games with the same bot under the current simulator version, on average over ${plural(h.adoptedMinusLater.n, 'adopted change')}.`
+        : `The held-out figure at adoption read ${higher(h.adoptedMinusLater.mean)} than a later re-measurement on fresh games, on average over ${plural(h.adoptedMinusLater.n, 'adopted change')}.`,
+    );
   if (h.repeatNominated) {
     const k = Math.round(h.repeatNominated.share * h.repeatNominated.runs);
     out.push(`${thousands(k)} of the ${plural(h.repeatNominated.runs, 'run')} after the first on a list nominated a change an earlier run had tested.`);
@@ -603,7 +661,8 @@ export const OVERVIEW_WORDS = {
   },
   others: (n: number) => `also measured ${plural(n, 'other time')}`,
   healthTitle: 'How the tuning tools have done',
-  healthIntro: 'Each tool’s nominees and how they ended, and how far its first readings sat from the later ones. A figure the record does not hold is left out.',
+  healthIntro:
+    'Each tool’s nominees and how they ended, and how far its first readings sat from the later ones: one record per simulator version and bots, because figures of different versions or bots are never averaged together, and each nominee counted once. A figure the record does not hold is left out.',
   decksTitle: 'All decks',
   decksIntro: 'Each deck’s expected win rate against the field with its range and strength word, beside its Sim tier from the same ratings, then its findings counted by strength word.',
   noStrength: 'no rating',
@@ -637,6 +696,7 @@ export const RUN_WORDS = {
   pooledHead: 'All its games, every run (screening included)',
   pooledLabel: 'All its games (screening included)',
   source: 'Recorded in',
+  keptAcross: 'Its games are also kept across runs, where a later run on the same list pools with them; they are not listed again as a run of their own.',
   trialsTitle: 'What it tried',
   trialsIntro:
     'Each change the run screened. The screening figure is greyed: the best of many candidates is picked on those games, so it reads high. The held-out figure is the one the run judged by.',

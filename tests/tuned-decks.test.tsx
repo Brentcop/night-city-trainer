@@ -147,7 +147,11 @@ describe('tuned decks page', () => {
     expect(html).toContain('href="#/lab?d=custom%3ARRG%20Dexter%20Midrange%20(tuned)"');
     expect(html).toContain('Run details');
     expect(html).toContain('partner-aware cuts on');
-    expect(html).not.toContain('Hard bot');
+    // the seeded decks were screened and confirmed by the run's own bot, so their tiles name no other bot (the library's
+    // "// Forged" lines further down the page may: Season 3's say they were confirmed with the Hard bot)
+    const tiles = html.match(/<article class="panel tuned-card"[\s\S]*?<\/article>/g) ?? [];
+    expect(tiles).toHaveLength(3);
+    for (const tile of tiles) expect(tile).not.toContain('Hard bot');
     expect(html).toContain('🗑 Delete');
     expect(html).toMatch(/Shown better<\/div><div class="rec-tile-val">1</);
   });
@@ -157,6 +161,9 @@ describe('tuned decks page', () => {
     expect(saveCustom([withHard])).toBe(true);
     const html = renderToStaticMarkup(<TunedDecksPage />);
     expect(html).toContain('bot medium (confirmed, and compared with the original, by the Hard bot)');
+    // in that deck's own tile (the scoping the test above relies on)
+    const tiles = html.match(/<article class="panel tuned-card"[\s\S]*?<\/article>/g) ?? [];
+    expect(tiles.filter((t) => t.includes('Hard bot')).map((t) => t.includes('RRG Dexter Midrange (tuned, Hard)'))).toEqual([true]);
   });
   it('a deleted tuned deck leaves the page', () => {
     seed();

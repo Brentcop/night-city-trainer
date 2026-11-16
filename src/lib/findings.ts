@@ -198,6 +198,22 @@ export interface FindingDetail {
   screen?: { games: number; mean: number; lower: number; upper: number; flag: 'screening'; /** the bot that screened, when it is not the bot of the finding */ bot?: string };
   /** change: the verdict the tool's rule gives, the runs that tested it, and its status in the shortlist */
   verdict?: 'adopt' | 'reject' | 'undecided' | 'inconclusive';
+  /**
+   * change from the ledger whose held-out games all come from one recorded forge run (docs/EVIDENCE.md "When a recorded
+   * run is also in the ledger"): that run's own verdict by its staged rule, the look it ended at of its cap, its corrected
+   * range, the correction, and the run's id (its RunRecord in the runs file); the report is among the finding's sources
+   */
+  confirmation?: {
+    outcome: 'adopt' | 'reject' | 'inconclusive';
+    looks: number;
+    cap: number;
+    /** cut short: by the futility stop, or by Stop */
+    stopped?: 'futility' | 'stop';
+    lower: number;
+    upper: number;
+    sequential: SequentialKind;
+    run: string;
+  };
   runs?: number;
   status?: 'live' | 'dropped' | 'untested';
   dropped?: 'below-bar' | 'rejected' | 'out-of-reach';
@@ -476,6 +492,11 @@ export interface RunRecord {
   /** what the run could detect at its stage sizes (detect() in src/lib/deckSearch.ts): gains (fractions) adopted 8 times in 10 */
   detect: { card: number | null; package: number | null; firstStage: number; nominees: number; sdCard: number; sdPackage: number } | null;
   source: Source;
+  /**
+   * a recorded forge report whose games the change ledger also keeps: the run label they carry there (docs/EVIDENCE.md
+   * "When a recorded run is also in the ledger"); that run is not listed again as a ledger run
+   */
+  ledgerRun?: string;
   stale: boolean;
   trials: TrialRecord[];
 }
@@ -548,9 +569,19 @@ export interface TopList {
   items: FindingRef[];
 }
 
-/** One tool's record of nominees and how they held. */
+/**
+ * One tool's record of nominees and how they held, under one simulator version and one pair of bots: figures of other
+ * versions, or of a run screened and confirmed by one bot and of one confirmed by another, are separate records and never
+ * averaged together. A nominee is counted in one record only (a recorded forge run whose games the ledger also keeps is
+ * the forge's). Files built before 2026-11-16 have neither `simVersion` nor `bot`.
+ */
 export interface ToolHealth {
   tool: string;
+  /** the simulator version of every nominee in the record */
+  simVersion?: number;
+  /** the bot that screened (canonical name), and the bot that played the held-out games when it is another one */
+  bot?: string;
+  confirmBot?: string;
   /** nominees confirmed; adopted, rejected and could-not-tell by the tool's own verdict (null: the record does not say) */
   nominees: number;
   adopted: number | null;
@@ -558,7 +589,7 @@ export interface ToolHealth {
   couldNotTell: number | null;
   /** mean screening figure minus held-out figure over nominees with both (points as a fraction), and how many */
   screenMinusHeldOut: { mean: number; n: number } | null;
-  /** mean held-out figure at adoption minus a later re-measurement of the same change, and how many */
+  /** mean held-out figure at adoption minus a later re-measurement of the same change with the same bot under the current simulator version (the one with the most games), and how many */
   adoptedMinusLater: { mean: number; n: number } | null;
   /** ledger: of the runs after the first on a list, the share that nominated a change an earlier run had tested */
   repeatNominated: { share: number; runs: number } | null;

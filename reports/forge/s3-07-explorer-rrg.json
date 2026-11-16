@@ -1,0 +1,369 @@
+{
+ "deck": "S3-07 Explorer (RRG)",
+ "file": "s3-07-explorer-rrg.txt",
+ "date": "2026-11-16",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "obrien-fleming",
+  "lookZ": [
+   4.3326,
+   2.9631,
+   2.359,
+   2.0141
+  ],
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "ledger": {
+   "boundary": "normal-mixture",
+   "rho": 250
+  },
+  "confirmBot": "hard",
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 spent over 4 looks (O'Brien–Fleming-type, z = 4.33 / 2.96 / 2.36 / 2.01); change ledger on: a nominee with held-out games from earlier runs (same simulator version, bot and field) is judged on those games first, then on them and each new stage pooled, by an always-valid boundary (normal mixture, Howard et al. 2021, ρ = 250 games, one-sided 0.025 each: z = 3.32 at 448 games, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584); screened with the Medium bot, confirmed with the Hard bot"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 55.4,
+   "swaps": [
+    {
+     "swap": "-1 Nadia: Fighting Through Grief → +1 Swordwise Huscle",
+     "wr": 58,
+     "delta": 2.7
+    },
+    {
+     "swap": "-1 Nadia: Fighting Through Grief → +1 Johnny Silverhand: Never Stop Fighting",
+     "wr": 57.1,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 Carnage at the Colosseum → +1 Yorinobu Arasaka: Steel Dragon",
+     "wr": 57.1,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 Nadia: Fighting Through Grief → +1 Yorinobu Arasaka: Steel Dragon",
+     "wr": 56.3,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 Carnage at the Colosseum → +1 Swordwise Huscle",
+     "wr": 54.5,
+     "delta": -0.9
+    }
+   ],
+   "verdict": "inconclusive",
+   "cuts": [
+    {
+     "card": "Nadia: Fighting Through Grief",
+     "plain": -25.9,
+     "score": -25.3,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −25.9 pts; piece for Behind on Gigs: 39% with a partner (36 games), 33% without (3); partner-aware −25.6 pts; cutting one drops Behind on Gigs assembly odds by turn 4 85% → 78%; score with the stranding cost −25.3 pts"
+    },
+    {
+     "card": "Carnage at the Colosseum",
+     "plain": -13.5,
+     "score": -12.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −13.5 pts; enabler for Braindance Programs: 54% with a partner (91 games), 33% without (3); partner-aware −12.9 pts; surplus piece: cutting one moves High Gigs (8+) assembly odds by turn 4 only 78% → 78%"
+    },
+    {
+     "card": "Valentino Street Racer",
+     "plain": -6.9,
+     "score": -6.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −6.9 pts"
+    },
+    {
+     "card": "Shattered Memories",
+     "plain": -4.5,
+     "score": -3.8,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −4.5 pts; enabler for Braindance Programs: 55% with a partner (66 games), 33% without (3); partner-aware −3.8 pts; surplus piece: cutting one moves Braindance Programs assembly odds by turn 4 only 98% → 98%"
+    },
+    {
+     "card": "Bonnie and Clyde",
+     "plain": -3.8,
+     "score": -6.9,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −3.8 pts; piece for Behind on Gigs: 50% with a partner (62 games), 65% without (26); partner-aware −7.2 pts; cutting one drops Behind on Gigs assembly odds by turn 4 85% → 78%; score with the stranding cost −6.9 pts"
+    },
+    {
+     "card": "6th Street Recruits",
+     "plain": -2.2,
+     "score": -1.8,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −2.2 pts; enabler for High Gigs (8+): 55% with a partner (91 games), never drawn without one; partner-aware −2.2 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 78% → 70%; score with the stranding cost −1.8 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Nadia: Fighting Through Grief → +1 Yorinobu Arasaka: Steel Dragon",
+    "-1 Nadia: Fighting Through Grief → +1 Swordwise Huscle",
+    "-1 Carnage at the Colosseum → +1 Yorinobu Arasaka: Steel Dragon",
+    "-1 Nadia: Fighting Through Grief → +1 Johnny Silverhand: Never Stop Fighting",
+    "-1 Carnage at the Colosseum → +1 Swordwise Huscle"
+   ],
+   "nominees": [
+    {
+     "label": "-1 Nadia: Fighting Through Grief → +1 Swordwise Huscle",
+     "screen": {
+      "games": 112,
+      "mean": 0.0268,
+      "lower": -0.0257,
+      "upper": 0.0793
+     },
+     "heldOut": {
+      "games": 448,
+      "mean": -0.0112,
+      "lower": -0.0525,
+      "upper": 0.0302,
+      "z": 2.9631,
+      "looks": 2,
+      "baseWr": 0.4732,
+      "candWr": 0.4621
+     },
+     "outcome": "inconclusive",
+     "stopped": "futility",
+     "byOpp": [
+      {
+       "opp": "06552ee884386887",
+       "games": 64,
+       "mean": 0.0313,
+       "se": 0.0384
+      },
+      {
+       "opp": "078ce02dba6dd2c0",
+       "games": 64,
+       "mean": -0.0156,
+       "se": 0.0352
+      },
+      {
+       "opp": "0b6272134a22585c",
+       "games": 64,
+       "mean": -0.0781,
+       "se": 0.0338
+      },
+      {
+       "opp": "189f8a3b59f1117f",
+       "games": 64,
+       "mean": 0.0156,
+       "se": 0.0272
+      },
+      {
+       "opp": "3d6b0327f672d914",
+       "games": 64,
+       "mean": -0.0156,
+       "se": 0.0472
+      },
+      {
+       "opp": "d615ca2a4ad09bf8",
+       "games": 64,
+       "mean": 0.0156,
+       "se": 0.0352
+      },
+      {
+       "opp": "ee779ed4dea87217",
+       "games": 64,
+       "mean": -0.0312,
+       "se": 0.0384
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 224,
+       "mean": -0.0179,
+       "se": 0.0236
+      },
+      {
+       "first": 1,
+       "games": 224,
+       "mean": -0.0045,
+       "se": 0.0148
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 6.979,
+      "df": 6,
+      "p": 0.3224
+     }
+    }
+   ],
+   "confirm": "(448 fresh paired games): baseline 47.3% vs swap 46.2%; held-out gain −1.1 pts [−5.2, +3.0], 448 games → could not tell (stopped early: no gain after 448 games)"
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 47.3,
+   "change": "kept (could not tell: -1 Nadia: Fighting Through Grief → +1 Swordwise Huscle, −1.1 pts [−5.2, +3.0], 448 games; stopped early: no gain after 448 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "high-gig",
+    "comeback",
+    "braindance"
+   ]
+  },
+  "moves": false,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "comeback",
+    "braindance"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "ledger": {
+  "dir": "data/ledger",
+  "bot": "medium",
+  "heldoutBot": "hard",
+  "field": "1fde7831c1fc4e59",
+  "screen": {
+   "written": 560,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  },
+  "heldout": {
+   "written": 448,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  }
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-16T05:29:19.920Z:1",
+  "createdAt": "2026-11-16T05:29:19.920Z",
+  "purpose": "forge",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "3c8b6e839d55e071",
+    "name": "S3-07 Explorer (RRG)",
+    "file": "s3-07-explorer-rrg.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2464,
+   "completedGames": 1568,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "high-gig",
+     "comeback",
+     "braindance"
+    ]
+   },
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "obrien-fleming",
+   "lookZ": [
+    4.3326,
+    2.9631,
+    2.359,
+    2.0141
+   ],
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0,
+   "ledger": {
+    "boundary": "normal-mixture",
+    "rho": 250
+   },
+   "confirmBot": "hard"
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

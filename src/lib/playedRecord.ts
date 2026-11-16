@@ -48,6 +48,18 @@ export function parseWL(s: string | undefined): [number, number] | null {
   return w !== undefined && l !== undefined ? [+w, +l] : null;
 }
 
+/** The bots a finals report names, as the site words them (lookahead is Medium's agent; deep is the pre-tier Deep bot). */
+const FINALS_BOT: Readonly<Record<string, string>> = { easy: 'Easy', fast: 'Easy', medium: 'Medium', lookahead: 'Medium', hard: 'Hard', deep: 'Deep' };
+/**
+ * "420 Hard-bot games": a finals report's games with the bot that played them. Seasons 1 and 2 played their finals with
+ * the Deep bot, Season 3 with Hard, so the caption reads the report; a report that names no bot (or one not listed) says
+ * only the games.
+ */
+export function finalsGamesWords(games: number, bot?: string | null): string {
+  const word = bot ? FINALS_BOT[bot] : undefined;
+  return word ? `${games} ${word}-bot games` : `${games} games`;
+}
+
 /** True when a version is missing or older than the current simulator. */
 export const isHistorical = (v: number | null | undefined, current = CURRENT_SIM_VERSION) => !ok(v) || v < current;
 

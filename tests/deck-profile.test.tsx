@@ -12,7 +12,8 @@ import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 import { SEASONS } from '../src/data/index';
-import { isHistorical } from '../src/lib/playedRecord';
+import { CURRENT_SIM_VERSION, isHistorical } from '../src/lib/playedRecord';
+import { seasonVersions, staleLeaderRow } from '../src/lib/parentStrength';
 
 const RATED = 'meta-rrg-dexter-midrange.txt';
 // a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
@@ -65,11 +66,32 @@ describe('deck profile: recorded results first', () => {
       expect(/(?<!1)[123]th\b/.test(s), s).toBe(wrong);
     expect(html).toMatch(/on the play \d+ games, on the draw \d+ games/);
     expect(html).toMatch(/Best matchup/);
-    // the events, ratings and reports were re-recorded on SIM_VERSION 6; the Season 1–2 records (finals vs the meta,
-    // the leaderboard) were not re-run and carry version 5, so this bred deck's record is marked historical while they
-    // are older than the simulator (tests/deck-record.test.ts covers the rule)
-    expect(html.includes('Historical:')).toBe(isHistorical(SEASONS.manifest?.simVersion));
+    // the events, ratings and reports were re-recorded on SIM_VERSION 6; this deck's Season 1 finals vs the meta were not
+    // re-run, and its leaderboard row holds Season 1 and 2 games (version 5), so its record is marked historical while
+    // those are older than the simulator (tests/deck-record.test.ts covers the rule)
+    const versions = seasonVersions(SEASONS.seasons);
+    const row = SEASONS.leaderboard.find((r) => r.file === RECORDED)!;
+    expect(Object.keys(row.seasons ?? {})).toContain('1');
+    expect(isHistorical(versions['1'])).toBe(true);
+    expect(staleLeaderRow(row, versions)).toBe(true);
+    expect(html).toContain('Historical:');
     expect(html).not.toContain('No recorded games');
+  });
+
+  it('a Season 3 deck: its leaderboard row and finals were all played on the current simulator, so no historical note', () => {
+    setArtEnabled(false);
+    const file = 's3-03-cross-rrr.txt';
+    const versions = seasonVersions(SEASONS.seasons);
+    const row = SEASONS.leaderboard.find((r) => r.file === file)!;
+    // the seasons file's own version is the oldest season's (5): the deck's row is judged on its own seasons instead
+    expect(isHistorical(SEASONS.manifest?.simVersion)).toBe(true);
+    expect(Object.keys(row.seasons ?? {})).toEqual(['3']);
+    expect(versions['3']).toBe(CURRENT_SIM_VERSION);
+    expect(staleLeaderRow(row, versions)).toBe(false);
+    const html = renderToStaticMarkup(<DeckProfilePage file={file} />);
+    expect(html).toContain('Recorded results');
+    expect(html).toMatch(/Finals vs the meta|Seasons vs the meta/);
+    expect(html).not.toContain('Historical:');
   });
 
   it('says plainly when a deck has no recorded games', () => {

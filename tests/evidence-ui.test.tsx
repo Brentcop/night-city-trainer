@@ -28,16 +28,20 @@ import {
   CAUSAL_WORDS,
   citeOf,
   claimOf,
+  confirmationWords,
   driftWords,
   EVIDENCE_PROBLEMS,
   GAP_WORDS,
+  healthTitleWords,
   healthWords,
   matchupCellWords,
   MISLEAD,
   changeStatusWords,
   openWords,
   restOf,
+  RUN_WORDS,
   runTitleWords,
+  screenCurseWords,
   screenWords,
   shortlistWords,
   valueOf,
@@ -55,9 +59,11 @@ import {
   parseChangeKey,
   parseCite,
   parseEvidenceRoute,
+  healthKey,
   rowId,
   runHref,
   runToken,
+  screenCurseRows,
   shortTitleOf,
   SHOWN_PAIRINGS,
   stripMiddle,
@@ -1054,5 +1060,120 @@ describe('endings and words', () => {
     const t = text(renderToStaticMarkup(<RunView deck={DECK} run={{ ...RUN, rule: null, detect: null, stale: false, simVersion: CUR }} />));
     expect(t).toContain('The run recorded neither its adoption rule nor what it could detect.');
     expect(t).not.toContain('The run recorded no adoption rule.');
+  });
+});
+
+// ---------------------------------------------------------------- a recorded run kept across runs; the tools' records
+
+describe('a forge run whose games are kept across runs, and the tools’ records by version and bots', () => {
+  const s3change = {
+    key: `${OTHER} -main:royce_don_t_call_me_simon +main:johnny_silverhand_never_stop_fighting`,
+    base: OTHER,
+    cuts: ['royce_don_t_call_me_simon'],
+    adds: ['johnny_silverhand_never_stop_fighting'],
+    label: "-1 Royce: Don't Call Me Simon → +1 Johnny Silverhand: Never Stop Fighting",
+    relation: 'from-this-list' as const,
+  };
+  const s3subject = { listId: OTHER, deck: 'S3 Deck', file: 's3-deck.txt' };
+  const confirmation = { outcome: 'inconclusive' as const, looks: 4, cap: 4, lower: 0.0001, upper: 0.0379, sequential: 'obrien-fleming' as const, run: 'forge:2026-11-16T05:32:01.059Z:1' };
+  // S3-08's one change finding as the builder writes it: the ledger's held-out games with the forge run's own verdict
+  const kept = F('change', {
+    subject: { ...s3subject, change: s3change },
+    question: 'qs3',
+    method: 'paired-pooled',
+    sequential: 'always-valid',
+    bot: 'hard',
+    field: 'f',
+    estimate: 0.019,
+    lower: -0.010573,
+    upper: 0.048466,
+    p95: [0.000115, 0.037885],
+    games: 896,
+    n: 896,
+    corrected: false,
+    strength: 'moderate',
+    flags: [],
+    detail: {
+      screen: { games: 112, mean: 0.053571, lower: -0.006502, upper: 0.113645, flag: 'screening', bot: 'medium' },
+      verdict: 'undecided',
+      confirmation,
+      runs: 1,
+      status: 'dropped',
+      dropped: 'out-of-reach',
+      toSettle: 10029,
+      date: '2026-11-16',
+    },
+  });
+  const S3: DeckEvidence = { kind: 'nct-evidence', schema: 1, simVersion: CUR, listId: OTHER, deck: 'S3 Deck', file: 's3-deck.txt', findings: [kept], open: [], gaps: [] };
+  const H_CROSS = { tool: 'forge', simVersion: CUR, bot: 'medium', confirmBot: 'hard', nominees: 5, adopted: 2, rejected: 0, couldNotTell: 3, screenMinusHeldOut: { mean: 0.04012, n: 5 }, adoptedMinusLater: null, repeatNominated: null };
+  const H_OLD = { tool: 'forge', simVersion: 5, bot: 'medium', nominees: 7, adopted: 3, rejected: 0, couldNotTell: 4, screenMinusHeldOut: { mean: 0.034571, n: 7 }, adoptedMinusLater: { mean: 0.050424, n: 3 }, repeatNominated: null };
+  const H_LEDGER = { tool: 'ledger runs', simVersion: CUR, bot: 'medium', nominees: 11, adopted: null, rejected: null, couldNotTell: null, screenMinusHeldOut: { mean: 0.032456, n: 11 }, adoptedMinusLater: null, repeatNominated: { share: 0.3, runs: 10 } };
+  const IX: EvidenceIndex = { ...INDEX, health: [H_CROSS, H_OLD, H_LEDGER] };
+
+  it('the run’s own verdict and look, and why the row’s range is wider', () => {
+    expect(confirmationWords(confirmation)).toBe(
+      'These held-out games all come from one forge run, which by its own staged rule could not tell at look 4 of 4 (its corrected range +0.0 pts to +3.8 pts). The range above is wider because it stays valid as later runs add games.',
+    );
+    expect(confirmationWords({ ...confirmation, looks: 2, stopped: 'futility', lower: -0.0439, upper: 0.0439 })).toBe(
+      'These held-out games all come from one forge run, which by its own staged rule stopped at look 2 of 4 with no gain, so could not tell (its corrected range −4.4 pts to +4.4 pts). The range above is wider because it stays valid as later runs add games.',
+    );
+    expect(confirmationWords({ ...confirmation, outcome: 'adopt', looks: 1, lower: 0.02, upper: 0.09 })).toContain('adopted it at its first look of 4 (its corrected range +2.0 pts to +9.0 pts)');
+    expect(confirmationWords({ ...confirmation, looks: 6 })).toContain('could not tell after 6 looks (4 within its cap, then until settled)');
+  });
+
+  it('a change set aside as out of reach says how many games adopting it would take, or that its reading is not above the bar', () => {
+    expect(shortlistWords({ status: 'dropped', dropped: 'out-of-reach', toSettle: 10029 }, 896)).toBe(
+      'Set aside: at its present reading, adopting it would take about 9,133 more held-out games (10,029 in all), more than later tuning runs give one change.',
+    );
+    expect(shortlistWords({ status: 'dropped', dropped: 'out-of-reach', toSettle: null }, 448)).toBe('Set aside: its held-out games do not read above the bar, so more of them are not expected to adopt it.');
+  });
+
+  it('the deck page shows the one finding: what was measured, by which bot, that screening was Medium’s, what the run concluded and how far it is from settled', () => {
+    const html = renderToStaticMarkup(<DeckEvidenceView deck={S3} index={IX} target={null} onReveal={() => {}} />);
+    const group = elementAt(html, html.indexOf('<article'));
+    expect(group.match(/<li id="f-/g)).toHaveLength(1);
+    const t = text(group);
+    expect(t).toContain('Held-out games kept across runs');
+    expect(t).toContain('+1.9 pts');
+    expect(t).toContain(`Hard bot, version ${CUR}`);
+    expect(t).toContain('Screening with Medium read +5.4 pts over 112 games: not the result.');
+    expect(t).toContain(`${VERDICT_WORDS.undecided} ${confirmationWords(confirmation)}`);
+    expect(t).toContain('adopting it would take about 9,133 more held-out games (10,029 in all)');
+    expect(t).not.toMatch(/ledger|shortlist/i);
+    // the screening line above the changes names the one record that speaks to it: this version, Medium screening, Hard held-out
+    expect(text(html)).toContain(
+      `Against the held-out games, screening has read on average 4.0 points above for the forge (version ${CUR}, Medium screening, Hard held-out; 5 nominees). Where one bot screened and another played the held-out games, that gap also holds how the two bots differ.`,
+    );
+  });
+
+  it('the screening line takes the records of the deck’s own contexts; an index without contexts gives them all', () => {
+    expect(screenCurseRows(IX.health, [kept])).toEqual([H_CROSS]);
+    // the fixture deck: a version-5 forge confirmation and Medium held-out games kept across runs
+    expect(screenCurseRows(IX.health, DECK.findings)).toEqual([H_OLD, H_LEDGER]);
+    expect(screenCurseRows(INDEX.health, [kept])).toEqual(INDEX.health);
+    expect(screenCurseWords([H_LEDGER])).toContain(`3.2 points above for forge runs with held-out games kept across runs (version ${CUR}, Medium; 11 nominees).`);
+    expect(screenCurseWords([H_LEDGER])).not.toContain('two bots');
+  });
+
+  it('each record is named by its version and bots, a cross-bot gap is said to mix the two, and the overview lists them apart', () => {
+    expect(healthTitleWords(H_CROSS, CUR)).toBe(`The forge, simulator version ${CUR}: Medium bot screening, Hard bot confirming`);
+    expect(healthTitleWords(H_OLD, CUR)).toBe('The forge, simulator version 5 (an older version): Medium bot');
+    expect(healthTitleWords({ tool: 'forge' }, CUR)).toBe('The forge');
+    expect(healthWords(H_CROSS)).toEqual([
+      '5 nominees confirmed on held-out games: 2 adopted, 0 rejected, 3 could not tell.',
+      'Screening with Medium read 4.0 points higher than the held-out games with Hard, on average over 5 nominees. That gap holds screening’s optimism and how the two bots differ together, so it measures neither alone.',
+    ]);
+    expect(healthWords(H_OLD)[2]).toBe('The held-out figure at adoption read 5.0 points higher than a later re-measurement on fresh games with the same bot under the current simulator version, on average over 3 adopted changes.');
+    expect(new Set(IX.health.map(healthKey)).size).toBe(3);
+    const html = text(renderToStaticMarkup(<EvidenceOverview index={IX} />));
+    for (const h of IX.health) {
+      expect(html).toContain(healthTitleWords(h, CUR));
+      for (const line of healthWords(h)) expect(html).toContain(line);
+    }
+  });
+
+  it('a recorded run kept across runs says so on its page', () => {
+    expect(text(renderToStaticMarkup(<RunView deck={S3} run={{ ...RUN, ledgerRun: 'forge 2026-11-16T05:19:02.886Z seed 1' }} />))).toContain(RUN_WORDS.keptAcross);
+    expect(text(renderToStaticMarkup(<RunView deck={S3} run={RUN} />))).not.toContain(RUN_WORDS.keptAcross);
   });
 });

@@ -11,7 +11,7 @@ import { useSiteConfig } from '../useSiteConfig';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct } from '../../lib/deckStats';
-import { ordinal } from '../../lib/playedRecord';
+import { finalsGamesWords, ordinal } from '../../lib/playedRecord';
 import { DeckTile, LegendStrip, OriginBadge, ColorPips } from '../components/DeckIdentity';
 import { Markdown } from '../components/Markdown';
 import { ok, profileHref, StatTile, WrBar } from '../components/DeckStats';
@@ -117,7 +117,7 @@ export function RecommendedHeroView({ d, backup, lib, rep, own }: { d: LibraryDe
               <div className="dp-tile-cap">&nbsp;</div>
             </div>
           ) : (
-            ok(finals) && <StatTile value={pct(finals)} label="Finals vs meta" caption={rep.finals ? `${rep.finals.games} deep-bot games vs the meta archetypes` : undefined} />
+            ok(finals) && <StatTile value={pct(finals)} label="Finals vs meta" caption={rep.finals ? `${finalsGamesWords(rep.finals.games, rep.finals.bot)} vs the meta archetypes` : undefined} />
           )}
           {st.leader && ok(st.leader.rating) && (
             <StatTile

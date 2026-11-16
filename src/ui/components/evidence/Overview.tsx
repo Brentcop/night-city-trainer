@@ -9,6 +9,7 @@ import {
   FAMILY_HELP,
   FLAG_WORDS,
   familyWords,
+  healthTitleWords,
   healthWords,
   MISLEAD,
   NATURE_HELP,
@@ -18,10 +19,9 @@ import {
   spreadWords,
   STRENGTH_RULE,
   TOP_LIST_TITLES,
-  toolWords,
   valueOf,
 } from '../../../lib/findingWords';
-import { deckEvidenceHref, findingHref, parseCite, scaleOf, shortTitleOf, SHOWN_SHORT } from '../../../lib/evidenceView';
+import { deckEvidenceHref, findingHref, healthKey, parseCite, scaleOf, shortTitleOf, SHOWN_SHORT } from '../../../lib/evidenceView';
 import { loadEvidenceIds } from '../../evidenceData';
 import { MentionText } from '../CardMention';
 import { PageHead } from '../PageHead';
@@ -171,8 +171,8 @@ export function EvidenceOverview({ index, problem }: { index: EvidenceIndex; pro
         <p className="ev-intro">{OVERVIEW_WORDS.healthIntro}</p>
         <ul className="ev-health">
           {index.health.map((h) => (
-            <li key={h.tool}>
-              <h3 className="ev-h3">{toolWords(h.tool)}</h3>
+            <li key={healthKey(h)}>
+              <h3 className="ev-h3">{healthTitleWords(h, index.simVersion)}</h3>
               <ul>
                 {healthWords(h).map((t) => (
                   <li key={t}>{t}</li>

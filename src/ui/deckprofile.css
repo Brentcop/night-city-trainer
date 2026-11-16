@@ -21,6 +21,9 @@
   display: grid;
   gap: 10px;
 }
+.dp-origin > * {
+  min-width: 0;
+}
 
 /* ---- recorded results (components/DeckRecord.tsx): a patch of the board's mat with stat tiles ---- */
 .rec {

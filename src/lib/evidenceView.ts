@@ -366,5 +366,21 @@ export function screenCurseOf(health: readonly ToolHealth[], method: Finding['me
   return h?.screenMinusHeldOut ?? null;
 }
 
+/** A tool record's key: its tool, simulator version and bots (one record each, docs/EVIDENCE.md "The index"). */
+export const healthKey = (h: Pick<ToolHealth, 'tool' | 'simVersion' | 'bot' | 'confirmBot'>): string => [h.tool, h.simVersion ?? '', h.bot ?? '', h.confirmBot ?? ''].join('\u0001');
+
+/**
+ * The tool records that speak to this deck's screening figures: those of the same simulator version, screening bot
+ * and held-out bot as a change finding of the deck that shows one (its `detail.screen`, whose `bot` is the screening
+ * bot when another bot played the held-out games). An index built before records had a context: every record with a
+ * figure.
+ */
+export function screenCurseRows(health: readonly ToolHealth[], findings: readonly Finding[]): ToolHealth[] {
+  const rows = health.filter((h) => h.screenMinusHeldOut);
+  if (!rows.some((h) => h.simVersion !== undefined)) return rows;
+  const ctx = new Set(findings.flatMap((f) => (f.kind === 'change' && f.detail?.screen ? [[f.simVersion, f.detail.screen.bot ?? f.bot, f.bot].join('\u0001')] : [])));
+  return rows.filter((h) => h.bot !== undefined && ctx.has([h.simVersion, h.bot, h.confirmBot ?? h.bot].join('\u0001')));
+}
+
 /** An opponent named by list id (per-opponent figures) as a deck name, through the index; the id itself otherwise. */
 export const oppName = (opp: string, byId: ReadonlyMap<string, { deck: string }>): string => byId.get(opp)?.deck ?? opp;

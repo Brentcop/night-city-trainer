@@ -1,7 +1,8 @@
 // Breeding seasons (#/seasons, lazy): the all-time leaderboard and each season's panel (new decks, standings, and
 // "Bred decks, then and now"). Rows of the leaderboard whose games come from an older simulator are marked
 // (staleLeaderRow, src/lib/parentStrength.ts), and the intro says the breeder no longer uses those numbers to choose
-// parents. "Then and now" puts each bred deck's win rate in its own season's round robin beside its power rating now and
+// parents. Which seasons are historical comes from each season's own version (seasonsSimWords; each panel's header
+// names its simulator), never from the seasons file's manifest, whose version is the oldest season's. "Then and now" puts each bred deck's win rate in its own season's round robin beside its power rating now and
 // its best parent's (today's parent strength), with the season's test of it when one was recorded; it computes no
 // difference between them (src/lib/bredDecks.ts). Decks a season's test did not let in are listed under the table.
 // `SeasonsView` takes the data as props (tests render it with fixtures); the page hands it the bundled files.
@@ -12,8 +13,9 @@ import { allDecks } from '../../lib/browserLibrary';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
 import { DeckTile, LegendStrip, OriginBadge } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
-import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
+import { CURRENT_SIM_VERSION } from '../../lib/playedRecord';
 import { rankLibraryParents, seasonVersions, staleLeaderRow } from '../../lib/parentStrength';
+import { botWord } from '../../lib/evidence';
 import {
   bredThenAndNow,
   countedSteps,
@@ -22,6 +24,9 @@ import {
   NOT_TESTED,
   notEntered,
   ratingNowWords,
+  SEASON_OLD_TITLE,
+  seasonSimNote,
+  seasonsSimWords,
   seasonTestWords,
   STALE_ROW_MARK,
   STALE_ROW_TITLE,
@@ -56,7 +61,9 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
   const stale = new Set(D.leaderboard.filter((r) => staleLeaderRow(r, versions, current)).map((r) => r.name));
   const ranked = useMemo(() => rankLibraryParents(lib, ratings.decks, D, current), [lib, ratings, D, current]);
   const rows = D.leaderboard.filter((r) => !filter || (r.name + r.origin + r.colors + r.arch).toLowerCase().includes(filter.toLowerCase()));
-  const staleWords = leaderboardStaleWords(stale.size);
+  const staleWords = leaderboardStaleWords(stale.size, D.leaderboard.length - stale.size);
+  // each season's own version, never the file's minimum (src/data/seasons.json manifest.simVersion is the oldest season's)
+  const simWords = seasonsSimWords(versions, current);
   if (!D.leaderboard.length)
     return (
       <div className="grid">
@@ -73,9 +80,10 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
         title="Seasons & all-time leaderboard"
         actions={<input aria-label="Filter the leaderboard" placeholder="Filter (name, origin, colours, archetype)…" value={filter} onChange={(e) => setFilter(e.target.value)} />}
       >
-        Each season the breeder makes 8 new decks from the data and tests them against the meta. <b>Season rating</b> = win rate vs the meta decks,
-        adjusted for sample size.
-        {isHistorical(D.manifest?.simVersion, current) && <> These results were recorded before the current simulator (v{current}), so they are historical.</>}
+        Each season the breeder makes 8 new decks from the data. A season may test each one before it enters (its panel says which entered
+        and which did not), and the ones that enter are measured against the meta. <b>Season rating</b> = win rate vs the meta decks, adjusted
+        for sample size.
+        {simWords && <> {simWords}</>}
         {staleWords && <> {staleWords}</>}
       </PageHead>
       <div className="panel scroll-x flair">
@@ -155,7 +163,10 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
       {[...D.seasons].reverse().map((s) => (
         <div className="panel" key={s.season}>
           <h2 className="rule-head" style={{ marginTop: 0 }}>
-            Season {s.season} <span className="muted small">({s.date.slice(0, 10)} · {s.games} games per pairing · {s.bot} bot)</span>
+            Season {s.season}{' '}
+            <span className="muted small">
+              ({s.date.slice(0, 10)} · {s.games} games per pairing · {botWord(s.bot)} bot · <SimNote v={versions[String(s.season)]} current={current} />)
+            </span>
           </h2>
           {/* one column on a phone: a 320 px minimum would be wider than the panel there */}
           <div className="grid cols-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))' }}>
@@ -199,6 +210,12 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
       ))}
     </div>
   );
+}
+
+/** A season panel's simulator version: "simulator v9", or "simulator v5, historical" with a tooltip saying why. */
+function SimNote({ v, current }: { v: number | null | undefined; current: number }) {
+  const n = seasonSimNote(v, current);
+  return n.historical ? <span title={SEASON_OLD_TITLE}>{n.text}</span> : <>{n.text}</>;
 }
 
 function RatingCell({ r }: { r: RatingNow | null }) {

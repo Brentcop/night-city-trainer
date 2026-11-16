@@ -1,0 +1,32 @@
+# S3-06 Counter (RBG)
+
+// Legends (3)
+1 Hanako Arasaka: Daughter of the Emperor
+1 Adam Smasher: Ender of Legends
+1 Jackie Welles: Pour One Out For Me
+
+// Units (13)
+3 Valentino Street Racer
+1 Pepe Najarro: Working Doubles
+3 Psycho Squad
+3 MaxTac AV
+3 Placide: Voodoo Sentinel
+
+// Gears (2)
+2 Satori: Sword of Saburo
+
+// Programs (25)
+2 Floor It
+2 Industrial Assembly
+1 Peace Offering
+2 Trust No One
+2 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories
+3 Unlikely Bond
+2 We Gotta Live Together
+
+// Idea: Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and BBG Cunningham Econ (42%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Peace Offering → +1 Placide: Voodoo Sentinel.
+// Author: Night City Trainer breeder (season 3, counter)

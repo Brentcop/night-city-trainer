@@ -53,6 +53,7 @@ import {
   type EvidenceIds,
   type EvidenceIndex,
   type Finding,
+  type FindingDetail,
   type FindingRef,
   type FlagCode,
   type GapNote,
@@ -97,6 +98,11 @@ export interface ForgeReport {
     confirm?: string;
   }[];
   summary?: { gen: number; wr: number; change: string }[];
+  /**
+   * forge --ledger only: where its games were kept, the bots and field, and (reports from 2026-11-16 on) the run label its
+   * batches carry there (`run`), by which the report is joined to them (joinReports)
+   */
+  ledger?: { dir: string; bot: string; heldoutBot?: string; field: string; run?: string };
   manifest: RunManifest;
 }
 
@@ -230,6 +236,82 @@ export function parseChangeLabel(label: string): { cuts: string[]; adds: string[
     for (let i = 0; i < Number(p[2]); i++) (p[1] === '-' ? cuts : adds).push(id);
   }
   return cuts.length || adds.length ? { cuts: cuts.sort(), adds: adds.sort() } : null;
+}
+
+// ---------------------------------------------------------------- a recorded run that is also in the ledger
+
+/**
+ * A recorded forge report joined to the run of the change ledger that holds its games (docs/EVIDENCE.md "When a recorded
+ * run is also in the ledger"): the same forge process, so its nominees and its run are shown once.
+ */
+export interface ReportJoin {
+  /** the report's file (reports/forge/<deck>.json) */
+  report: string;
+  /** the ledger file that holds the run's games on the report's starting list, and the run label its batches carry */
+  file: string;
+  run: string;
+  /** 'label': the report names the run (forge --ledger from 2026-11-16 on); 'content': matched by content */
+  how: 'label' | 'content';
+}
+
+/** A ledger directory as written in a report or given to the builder, in one spelling ("./data/ledger/" = "data/ledger"). */
+const normDir = (d: string) => d.replace(/\\/g, '/').replace(/^(\.\/)+/, '').replace(/\/+$/, '');
+
+/** The change keys of every change a report screened (its trials), on the report's starting list. */
+function trialKeys(report: ForgeReport, base: string): Set<string> {
+  const out = new Set<string>();
+  for (const g of report.gens)
+    for (const s of g.swaps) {
+      const parsed = parseChangeLabel(s.swap);
+      if (parsed) out.add(changeKeyOf(base, parsed));
+    }
+  return out;
+}
+
+/**
+ * Which ledger run holds a recorded report's games. A report takes part only when it has a `ledger` record whose
+ * directory is the builder's ledger directory; its candidates are the runs in the ledger file of its starting list
+ * (`manifest.decks[0].id`).
+ * - By label: the report's `ledger.run` names a run in that file.
+ * - By content (a report without the label): every batch of the run in that file has the report's date, simulator
+ *   version and ledger field, its screening batches the report's screening bot and its held-out batches the report's
+ *   held-out bot (`heldoutBot`, else the same bot), and every change it holds is one of the report's trials by change
+ *   key; the report must have exactly one such run.
+ * A (file, run) pair claimed by more than one report (by label or as a candidate) joins none of them: nothing is merged
+ * and nothing hidden.
+ */
+export function joinReports(forge: readonly { file: string; report: ForgeReport }[], ledger: EvidenceInputs['ledger'], ledgerDir: string): ReportJoin[] {
+  const pairKey = (file: string, run: string) => `${file}\u0001${run}`;
+  const claims = new Map<string, number>();
+  const claim = (k: string) => claims.set(k, (claims.get(k) ?? 0) + 1);
+  const wanted: { report: string; file: string; runs: string[]; how: ReportJoin['how'] }[] = [];
+  for (const { file: rf, report } of forge) {
+    const l = report.ledger;
+    if (!l || normDir(l.dir) !== normDir(ledgerDir)) continue;
+    const base = report.manifest.decks[0]?.id ?? '';
+    const lf = ledger.find((f) => f.file === `${base}.jsonl`);
+    if (!lf) continue;
+    const runs = new Map<string, LedgerBatch[]>();
+    for (const b of lf.batches) runs.set(b.run, [...(runs.get(b.run) ?? []), b]);
+    let found: string[];
+    let how: ReportJoin['how'];
+    if (l.run !== undefined) {
+      found = runs.has(l.run) ? [l.run] : [];
+      how = 'label';
+    } else {
+      const keys = trialKeys(report, base);
+      const screenBot = canonicalBot(l.bot);
+      const heldBot = canonicalBot(l.heldoutBot ?? l.bot);
+      found = [...runs.entries()]
+        .filter(([, bs]) => bs.every((b) => b.date === report.date && b.entry.simVersion === report.manifest.simVersion && b.entry.field === l.field && b.entry.bot === (b.kind === 'screen' ? screenBot : heldBot) && keys.has(b.entry.change)))
+        .map(([run]) => run)
+        .sort(byStr);
+      how = 'content';
+    }
+    for (const run of found) claim(pairKey(lf.file, run));
+    wanted.push({ report: rf, file: lf.file, runs: found, how });
+  }
+  return wanted.flatMap((w) => (w.runs.length === 1 && claims.get(pairKey(w.file, w.runs[0]!)) === 1 ? [{ report: w.report, file: w.file, run: w.runs[0]!, how: w.how }] : []));
 }
 
 /** Apply a change to a list (null when a cut is not in it). */
@@ -1067,7 +1149,69 @@ const otherBots = (entries: readonly LedgerEntry[], e: LedgerEntry) => entries.f
 /** A change's figure over all its games, screening included: only where one bot played them all. */
 const soleEntry = (entries: readonly LedgerEntry[], e: LedgerEntry | undefined) => (e && otherBots(entries, e).length === 0 ? e : undefined);
 
-function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: LedgerEntry[], file: string): { drafts: Draft[]; open: OpenQuestion[] } {
+/** What a joined report's nominee adds to the ledger finding of the same games: the run's own verdict, its flags and the report as a source. */
+interface FromReport {
+  confirmation?: NonNullable<FindingDetail['confirmation']>;
+  flags: FlagCode[];
+  source: Source;
+}
+
+/**
+ * The nominees of this deck's recorded reports that the ledger finding already shows: the report is joined to a ledger
+ * run in this deck's ledger file (joinReports), the nominee's change has an entry there in the nominee's context (its
+ * simulator version, held-out bot and field) with a finding (2 or more held-out games), and that run holds held-out
+ * games of it. Those nominees give no finding of their own (`skip`, by "<report>#<gen index>#<nominee index>"). When
+ * every held-out game of the entry comes from that run and they are exactly the nominee's games, the ledger finding also
+ * carries the run's own verdict, look and corrected range, and its `first-look` and `stopped-futility` flags (`onEntry`,
+ * by entry key); otherwise the run's verdict stays in its run record.
+ */
+function nomineesInLedger(listId: string, reports: readonly { file: string; report: ForgeReport }[], entries: readonly LedgerEntry[], batches: readonly LedgerBatch[], joins: readonly ReportJoin[]): { skip: Set<string>; onEntry: Map<string, FromReport> } {
+  const skip = new Set<string>();
+  const onEntry = new Map<string, FromReport>();
+  const byKey = new Map(entries.map((e) => [entryKey(e.id), e]));
+  for (const { file, report } of reports) {
+    const join = joins.find((j) => j.report === file && j.file === `${listId}.jsonl`);
+    const a = report.adoption;
+    if (!join || !a) continue;
+    const base = report.manifest.decks[0]?.id ?? '';
+    const field = fieldFingerprint(report.manifest.field.deckIds);
+    const bot = canonicalBot(a.confirmBot ?? report.manifest.bot.level);
+    report.gens.forEach((g, gi) =>
+      (g.nominees ?? []).forEach((nom, ni) => {
+        const h = nom.heldOut;
+        const parsed = parseChangeLabel(nom.label);
+        if (!h || !nom.outcome || !parsed) return;
+        const key = entryKey({ change: changeKeyOf(base, parsed), simVersion: report.manifest.simVersion, bot, field });
+        const e = byKey.get(key);
+        if (!e || e.heldout.length < 2) return;
+        const held = batches.filter((b) => b.kind === 'heldout' && entryKey(b.entry) === key);
+        if (!held.some((b) => b.run === join.run)) return;
+        skip.add(`${file}#${gi}#${ni}`);
+        if (!held.every((b) => b.run === join.run) || e.heldout.length !== h.games || onEntry.has(key)) return;
+        const flags: FlagCode[] = [];
+        if (h.looks === 1) flags.push('first-look');
+        if (nom.stopped === 'futility') flags.push('stopped-futility');
+        onEntry.set(key, {
+          confirmation: {
+            outcome: nom.outcome,
+            looks: h.looks,
+            cap: a.capStages,
+            ...(nom.stopped ? { stopped: nom.stopped === 'futility' ? 'futility' : 'stop' } : {}),
+            lower: h.lower,
+            upper: h.upper,
+            sequential: a.correction === 'obrien-fleming' ? 'obrien-fleming' : 'bonferroni',
+            run: report.manifest.runId,
+          },
+          flags,
+          source: { file, path: `gens[${gi}].nominees[${ni}].heldOut` },
+        });
+      }),
+    );
+  }
+  return { skip, onEntry };
+}
+
+function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: LedgerEntry[], file: string, fromReport: ReadonlyMap<string, FromReport> = new Map()): { drafts: Draft[]; open: OpenQuestion[] } {
   const drafts: Draft[] = [];
   const open: OpenQuestion[] = [];
   // A change screened by one bot and confirmed by another keeps its screening games in one entry and its held-out games
@@ -1096,6 +1240,8 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
       const sum = summarize(e.heldout);
       const screen = screenFrom ? plainOf(screenFrom.screen) : null;
       const het = heterogeneity(sum.byOpp);
+      // a recorded forge run whose held-out games these all are: its own verdict, look and flags (nomineesInLedger)
+      const rep = fromReport.get(entryKey(e.id));
       const draft: Draft = {
         test: { corrected: judged.iv.lower > 0 || judged.iv.upper < 0 },
         kind: 'change',
@@ -1113,12 +1259,13 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
         simVersion: e.id.simVersion,
         bot: e.id.bot,
         field: e.id.field,
-        sources: [{ file: `${ctx.inputs.paths.ledgerDir}/${file}`, path: `${where} heldout` }],
+        sources: [{ file: `${ctx.inputs.paths.ledgerDir}/${file}`, path: `${where} heldout` }, ...(rep ? [rep.source] : [])],
         family: { key: `${listId}:change:${entryKey(e.id)}`, size: 1, correction: 'always-valid' },
-        flags: het && het.p < 0.05 ? ['depends-on-opponent'] : [],
+        flags: [...(het && het.p < 0.05 ? (['depends-on-opponent'] as const) : []), ...(rep?.flags ?? [])],
         detail: {
           ...(screen ? { screen: { games: screen.games, mean: screen.mean, lower: screen.lower, upper: screen.upper, flag: 'screening' as const, ...(screenBot ? { bot: screenBot } : {}) } } : {}),
           verdict,
+          ...(rep?.confirmation ? { confirmation: rep.confirmation } : {}),
           runs: e.runs.length,
           status: status.kind,
           ...(status.kind === 'dropped' ? { dropped: status.why } : {}),
@@ -1153,7 +1300,8 @@ function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: Ledge
   return { drafts, open };
 }
 
-function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file: string; report: ForgeReport }[]): Draft[] {
+/** A recorded report's nominees as findings, except those the ledger's findings already show (`skip`, nomineesInLedger). */
+function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file: string; report: ForgeReport }[], skip: ReadonlySet<string> = new Set()): Draft[] {
   const out: Draft[] = [];
   for (const { file, report } of reports) {
     const a = report.adoption;
@@ -1162,11 +1310,13 @@ function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file
     const field = fieldFingerprint(report.manifest.field.deckIds);
     // the held-out figure is the confirmation's: its bot, when another bot than the run's confirmed (--confirm-bot)
     const bot = canonicalBot(a.confirmBot ?? report.manifest.bot.level);
+    // the screening figure is then the run's bot's, and named
+    const screenBot = canonicalBot(report.manifest.bot.level);
     report.gens.forEach((g, gi) => {
       const noms = g.nominees ?? [];
       noms.forEach((nom, ni) => {
         const h = nom.heldOut;
-        if (!h || !nom.outcome) return;
+        if (!h || !nom.outcome || skip.has(`${file}#${gi}#${ni}`)) return;
         const parsed = parseChangeLabel(nom.label);
         const key = parsed ? changeKeyOf(base, parsed) : `${base} ?${nom.label}`;
         const half = h.z > 0 ? (h.upper - h.lower) / 2 / h.z : 0;
@@ -1199,7 +1349,7 @@ function forgeChanges(ctx: Ctx, d: EvidenceDeck, listId: string, reports: { file
           family: { key: `${listId}:forge:${report.manifest.runId}:gen${g.gen}`, size: noms.length, correction: seq },
           flags,
           detail: {
-            screen: { games: nom.screen.games, mean: nom.screen.mean, lower: nom.screen.lower, upper: nom.screen.upper, flag: 'screening' },
+            screen: { games: nom.screen.games, mean: nom.screen.mean, lower: nom.screen.lower, upper: nom.screen.upper, flag: 'screening', ...(screenBot !== bot ? { bot: screenBot } : {}) },
             verdict: nom.outcome,
             looks: h.looks,
             ...(nom.byOpp ? { byOpp: nom.byOpp.map((o) => ({ opp: o.opp, games: o.games, mean: o.mean, se: o.se })) } : {}),
@@ -1259,9 +1409,10 @@ function remeasured(ctx: Ctx, d: EvidenceDeck, listId: string, idOf: ReadonlyMap
 
 const pct = (x: number) => x / 100;
 
-function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], entries: LedgerEntry[]): RunRecord[] {
+function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], entries: LedgerEntry[], joins: readonly ReportJoin[] = []): RunRecord[] {
   const byKey = new Map(entries.map((e) => [entryKey(e.id), e]));
   return reports.map(({ file, report }) => {
+    const join = joins.find((j) => j.report === file);
     const m = report.manifest;
     const a = report.adoption;
     const rule = a ? adoptionRule({ minGainPp: a.minGainPp, packageMinGainPp: a.packageMinGainPp, alpha: a.alpha, boundary: a.correction === 'obrien-fleming' ? 'obrien-fleming' : 'bonferroni', capStages: a.capStages, minGames: a.minGames, futilityAfterStages: a.futilityAfterStages ?? 0, futilityMaxGainPp: a.futilityMaxGainPp ?? 0 }) : ANY_GAIN_RULE;
@@ -1310,6 +1461,7 @@ function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], e
       games: m.sample.completedGames,
       detect: det && a ? { card: Number.isFinite(det.card) ? det.card : null, package: Number.isFinite(det.package) ? det.package : null, firstStage: a.firstStage, nominees: a.nominees, sdCard: det.sd.card, sdPackage: det.sd.package } : null,
       source: { file, path: 'gens' },
+      ...(join ? { ledgerRun: join.run } : {}),
       stale: isStale(m.simVersion, ctx.current),
       trials,
     };
@@ -1318,11 +1470,15 @@ function forgeRuns(ctx: Ctx, reports: { file: string; report: ForgeReport }[], e
 
 const outcomeText = (o: string) => (o === 'adopt' ? 'adopted' : o === 'reject' ? 'rejected' : 'could not tell');
 
-/** Runs the ledger holds games of for this list (grouped by run id), each change it screened or held out. */
-function ledgerRuns(ctx: Ctx, batches: LedgerBatch[], entries: LedgerEntry[], file: string): RunRecord[] {
+/**
+ * Runs the ledger holds games of for this list (grouped by run id), each change it screened or held out; a run joined
+ * to a recorded report (`joined`: its labels in this file) is that report's run and is not listed again.
+ */
+function ledgerRuns(ctx: Ctx, batches: LedgerBatch[], entries: LedgerEntry[], file: string, joined: ReadonlySet<string> = new Set()): RunRecord[] {
   const byKey = new Map(entries.map((e) => [entryKey(e.id), e]));
   const runs = new Map<string, LedgerBatch[]>();
   for (const b of batches) {
+    if (joined.has(b.run)) continue;
     const xs = runs.get(b.run) ?? [];
     xs.push(b);
     runs.set(b.run, xs);
@@ -1454,95 +1610,156 @@ function topList(key: TopList['key'], pool: { f: Finding; listId: string; deck: 
   return { key, family: { size: pool.length, correction: 'bh' }, items };
 }
 
-function health(decks: DeckEvidence[], forge: { file: string; report: ForgeReport }[], ledger: EvidenceInputs['ledger']): ToolHealth[] {
+/** A tool record's context: one simulator version, the screening bot and the held-out bot (sorting key and grouping key). */
+type HealthCtx = { simVersion: number; bot: string; heldBot: string };
+const ctxKeyOf = (c: HealthCtx) => `${c.simVersion}\u0001${c.bot}\u0001${c.heldBot}`;
+/** Records in a fixed order: the newest simulator version first, then by bot, a same-bot record before a cross-bot one. */
+const ctxOrder = (a: HealthCtx, b: HealthCtx) => b.simVersion - a.simVersion || byStr(a.bot, b.bot) || Number(a.heldBot !== a.bot) - Number(b.heldBot !== b.bot) || byStr(a.heldBot, b.heldBot);
+const ctxFields = (c: HealthCtx) => ({ simVersion: c.simVersion, bot: c.bot, ...(c.heldBot !== c.bot ? { confirmBot: c.heldBot } : {}) });
+function groupByCtx<T>(xs: readonly T[], ctxOf: (x: T) => HealthCtx): { ctx: HealthCtx; xs: T[] }[] {
+  const m = new Map<string, { ctx: HealthCtx; xs: T[] }>();
+  for (const x of xs) {
+    const c = ctxOf(x);
+    const g = m.get(ctxKeyOf(c)) ?? { ctx: c, xs: [] };
+    g.xs.push(x);
+    m.set(ctxKeyOf(c), g);
+  }
+  return [...m.values()].sort((a, b) => ctxOrder(a.ctx, b.ctx));
+}
+const meanOf = (xs: readonly number[]) => (xs.length ? { mean: xs.reduce((a, x) => a + x, 0) / xs.length, n: xs.length } : null);
+
+/**
+ * The tools' record (docs/EVIDENCE.md "The index"), one record per tool, simulator version and pair of bots (screening,
+ * held-out): figures of different versions, or of same-bot and cross-bot runs, are never averaged together. Each nominee
+ * is counted once: a ledger run joined to a recorded report (`joins`) is the report's, and its batches are left out of
+ * the ledger's record.
+ */
+function health(decks: DeckEvidence[], forge: { file: string; report: ForgeReport }[], ledger: EvidenceInputs['ledger'], joins: readonly ReportJoin[], current: number): ToolHealth[] {
   const out: ToolHealth[] = [];
-  // the forge (Season 2 reports: a staged rule with nominees)
-  const noms = forge.flatMap(({ report }) => (report.adoption ? report.gens.flatMap((g) => (g.nominees ?? []).map((n) => ({ n, base: report.manifest.decks[0]?.id ?? '' }))) : []));
-  if (noms.length) {
-    const withBoth = noms.filter((x) => x.n.heldOut);
-    const later = decks.flatMap((d) => d.findings.filter((f) => f.kind === 'change' && f.method === 'paired'));
+  // a later re-measurement of an adopted change: on fresh games with the same bot under the current simulator version,
+  // the one with the most games
+  const later = decks.flatMap((d) => d.findings.filter((f) => f.kind === 'change' && f.method === 'paired' && f.simVersion === current));
+  const laterOf = (key: string, bot: string) => later.filter((f) => f.subject.change?.key === key && f.bot === bot).sort((a, b) => b.games - a.games || byStr(a.id, b.id))[0];
+  // the forge (Season 2 on: a staged rule with nominees), screened by the run's bot and confirmed by it or by --confirm-bot
+  const noms = forge.flatMap(({ report }) => {
+    const a = report.adoption;
+    if (!a) return [];
+    const bot = canonicalBot(report.manifest.bot.level);
+    const ctx: HealthCtx = { simVersion: report.manifest.simVersion, bot, heldBot: canonicalBot(a.confirmBot ?? report.manifest.bot.level) };
+    return report.gens.flatMap((g) => (g.nominees ?? []).map((n) => ({ n, base: report.manifest.decks[0]?.id ?? '', ctx })));
+  });
+  for (const { ctx, xs } of groupByCtx(noms, (x) => x.ctx)) {
+    const withBoth = xs.filter((x) => x.n.heldOut);
     const diffs: number[] = [];
-    for (const { n, base } of noms) {
+    for (const { n, base } of xs) {
       if (n.outcome !== 'adopt' || !n.heldOut) continue;
       const parsed = parseChangeLabel(n.label);
       if (!parsed) continue;
-      const key = changeKeyOf(base, parsed);
-      const re = later.find((f) => f.subject.change?.key === key);
+      const re = laterOf(changeKeyOf(base, parsed), ctx.heldBot);
       if (re) diffs.push(n.heldOut.mean - re.estimate);
     }
     out.push({
       tool: 'forge',
-      nominees: noms.length,
-      adopted: noms.filter((x) => x.n.outcome === 'adopt').length,
-      rejected: noms.filter((x) => x.n.outcome === 'reject').length,
-      couldNotTell: noms.filter((x) => x.n.outcome === 'inconclusive').length,
-      screenMinusHeldOut: withBoth.length ? { mean: withBoth.reduce((a, x) => a + x.n.screen.mean - x.n.heldOut!.mean, 0) / withBoth.length, n: withBoth.length } : null,
-      adoptedMinusLater: diffs.length ? { mean: diffs.reduce((a, x) => a + x, 0) / diffs.length, n: diffs.length } : null,
+      ...ctxFields(ctx),
+      nominees: xs.length,
+      adopted: xs.filter((x) => x.n.outcome === 'adopt').length,
+      rejected: xs.filter((x) => x.n.outcome === 'reject').length,
+      couldNotTell: xs.filter((x) => x.n.outcome === 'inconclusive').length,
+      screenMinusHeldOut: meanOf(withBoth.map((x) => x.n.screen.mean - x.n.heldOut!.mean)),
+      adoptedMinusLater: meanOf(diffs),
       repeatNominated: null,
     });
   }
-  // the forge under the old any-gain rule (Season 1): confirmations without an interval
-  const s1 = forge.filter(({ report }) => !report.adoption).flatMap(({ report }) => report.gens.filter((g) => g.confirm));
-  if (s1.length) {
-    const gaps = s1.flatMap((g) => {
+  // the forge under the old any-gain rule (Season 1): confirmations without an interval, by the run's bot
+  const s1 = forge
+    .filter(({ report }) => !report.adoption)
+    .flatMap(({ report }) => {
+      const bot = canonicalBot(report.manifest.bot.level);
+      return report.gens.filter((g) => g.confirm).map((g) => ({ g, ctx: { simVersion: report.manifest.simVersion, bot, heldBot: bot } }));
+    });
+  for (const { ctx, xs } of groupByCtx(s1, (x) => x.ctx)) {
+    const gaps = xs.flatMap(({ g }) => {
       const c = /^\((\d+) fresh games\): baseline ([\d.]+)% vs swap ([\d.]+)%/.exec(g.confirm ?? '');
       const top = g.swaps[0];
       return c && top ? [pct(top.delta) - pct(Number(c[3]) - Number(c[2]))] : [];
     });
     out.push({
       tool: 'forge (any-gain)',
-      nominees: s1.length,
-      adopted: s1.filter((g) => g.verdict === 'adopted').length,
-      rejected: s1.filter((g) => g.verdict === 'rejected').length,
+      ...ctxFields(ctx),
+      nominees: xs.length,
+      adopted: xs.filter(({ g }) => g.verdict === 'adopted').length,
+      rejected: xs.filter(({ g }) => g.verdict === 'rejected').length,
       couldNotTell: 0,
-      screenMinusHeldOut: gaps.length ? { mean: gaps.reduce((a, x) => a + x, 0) / gaps.length, n: gaps.length } : null,
+      screenMinusHeldOut: meanOf(gaps),
       adoptedMinusLater: null,
       repeatNominated: null,
     });
   }
-  // the ledger's runs: nominated = held-out games in the run; repeat = a later run nominated a change an earlier run had tested
-  const batches = ledger.flatMap((f) => f.batches);
-  if (batches.length) {
-    const ctxKey = (b: LedgerBatch) => `${b.entry.change.slice(0, 16)}#${b.entry.simVersion}#${b.entry.bot}#${b.entry.field}`;
-    const groups = new Map<string, LedgerBatch[]>();
-    for (const b of batches) {
-      const xs = groups.get(ctxKey(b)) ?? [];
-      xs.push(b);
-      groups.set(ctxKey(b), xs);
+  // the ledger's runs, without those joined to a recorded report: a run on a list is its batches in one ledger file.
+  // nominated = held-out games in the run; repeat = a later run on the list (same simulator version, field and screening
+  // bot) nominated a change an earlier run had tested. A run is counted under its screening bot and the bot of its
+  // held-out games (a run with none: its screening bot).
+  const joined = new Set(joins.map((j) => `${j.file}\u0001${j.run}`));
+  const runsOn = new Map<string, { file: string; run: string; bs: LedgerBatch[] }>();
+  for (const f of ledger)
+    for (const b of f.batches) {
+      const k = `${f.file}\u0001${b.run}`;
+      if (joined.has(k)) continue;
+      const r = runsOn.get(k) ?? { file: f.file, run: b.run, bs: [] };
+      r.bs.push(b);
+      runsOn.set(k, r);
     }
-    let later = 0;
-    let repeat = 0;
-    const gaps: number[] = [];
-    let nominated = 0;
-    for (const bs of groups.values()) {
-      const runs = [...new Set(bs.map((b) => b.run))].sort((a, b) => byStr(bs.find((x) => x.run === a)!.date, bs.find((x) => x.run === b)!.date) || byStr(a, b));
+  if (runsOn.size) {
+    type Tally = { nominated: number; gaps: number[]; later: number; repeat: number };
+    const tallies = new Map<string, { ctx: HealthCtx; t: Tally }>();
+    const tallyOf = (ctx: HealthCtx) => {
+      const k = ctxKeyOf(ctx);
+      const x = tallies.get(k) ?? { ctx, t: { nominated: 0, gaps: [], later: 0, repeat: 0 } };
+      tallies.set(k, x);
+      return x.t;
+    };
+    const runs = [...runsOn.values()].map((r) => {
+      const first = r.bs[0]!;
+      const bot = r.bs.find((b) => b.kind === 'screen')?.entry.bot ?? first.entry.bot;
+      const heldBot = r.bs.find((b) => b.kind === 'heldout')?.entry.bot ?? bot;
+      return { ...r, ctx: { simVersion: first.entry.simVersion, bot, heldBot }, field: first.entry.field, date: first.date };
+    });
+    const lists = new Map<string, typeof runs>();
+    for (const r of runs) {
+      const k = `${r.file}\u0001${r.ctx.simVersion}\u0001${r.field}\u0001${r.ctx.bot}`;
+      lists.set(k, [...(lists.get(k) ?? []), r]);
+    }
+    for (const rs of lists.values()) {
+      rs.sort((a, b) => byStr(a.date, b.date) || byStr(a.run, b.run));
       const tested = new Set<string>();
-      runs.forEach((run, i) => {
-        const mine = bs.filter((b) => b.run === run);
-        const nom = [...new Set(mine.filter((b) => b.kind === 'heldout' && b.games.length).map((b) => b.entry.change))];
-        nominated += nom.length;
+      rs.forEach((r, i) => {
+        const t = tallyOf(r.ctx);
+        const nom = [...new Set(r.bs.filter((b) => b.kind === 'heldout' && b.games.length).map((b) => b.entry.change))];
+        t.nominated += nom.length;
         for (const c of nom) {
-          const sc = mine.filter((b) => b.kind === 'screen' && b.entry.change === c).flatMap((b) => b.games);
-          const ho = mine.filter((b) => b.kind === 'heldout' && b.entry.change === c).flatMap((b) => b.games);
-          if (sc.length >= 2 && ho.length >= 2) gaps.push(plainOf(sc).mean - plainOf(ho).mean);
+          const sc = r.bs.filter((b) => b.kind === 'screen' && b.entry.change === c).flatMap((b) => b.games);
+          const ho = r.bs.filter((b) => b.kind === 'heldout' && b.entry.change === c).flatMap((b) => b.games);
+          if (sc.length >= 2 && ho.length >= 2) t.gaps.push(plainOf(sc).mean - plainOf(ho).mean);
         }
         if (i > 0 && nom.length) {
-          later++;
-          if (nom.some((c) => tested.has(c))) repeat++;
+          t.later++;
+          if (nom.some((c) => tested.has(c))) t.repeat++;
         }
-        for (const b of mine) tested.add(b.entry.change);
+        for (const b of r.bs) tested.add(b.entry.change);
       });
     }
-    out.push({
-      tool: 'ledger runs',
-      nominees: nominated,
-      adopted: null,
-      rejected: null,
-      couldNotTell: null,
-      screenMinusHeldOut: gaps.length ? { mean: gaps.reduce((a, x) => a + x, 0) / gaps.length, n: gaps.length } : null,
-      adoptedMinusLater: null,
-      repeatNominated: later ? { share: repeat / later, runs: later } : null,
-    });
+    for (const { ctx, t } of [...tallies.values()].sort((a, b) => ctxOrder(a.ctx, b.ctx)))
+      out.push({
+        tool: 'ledger runs',
+        ...ctxFields(ctx),
+        nominees: t.nominated,
+        adopted: null,
+        rejected: null,
+        couldNotTell: null,
+        screenMinusHeldOut: meanOf(t.gaps),
+        adoptedMinusLater: null,
+        repeatNominated: t.later ? { share: t.repeat / t.later, runs: t.later } : null,
+      });
   }
   return out;
 }
@@ -1570,6 +1787,8 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     });
   }
   const ctx: Ctx = { inputs, current, pool, ratingRow, lists, lengthCut: lengthCuts(pool.all.map((g) => g.turns)), check, spread, fit, fitOk };
+  // recorded forge reports whose games the ledger also keeps: each nominee and each run is shown once
+  const joins = joinReports(inputs.forge, inputs.ledger, inputs.paths.ledgerDir);
 
   const drafts = new Map<string, Draft[]>();
   const extras = new Map<string, { open: OpenQuestion[]; runs: RunRecord[]; gaps: GapNote[] }>();
@@ -1596,12 +1815,15 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     const ledgerFile = inputs.ledger.find((f) => f.file === `${listId}.jsonl`);
     const batches = ledgerFile?.batches ?? [];
     const entries = [...mergeBatches(batches).values()].sort((a, b) => byStr(a.key, b.key));
-    const lc = ledgerChanges(ctx, d, listId, entries, ledgerFile?.file ?? `${listId}.jsonl`);
-    ds.push(...lc.drafts);
     const reports = inputs.forge.filter((f) => f.report.file === d.file).sort((a, b) => byStr(a.file, b.file));
-    ds.push(...forgeChanges(ctx, d, listId, reports));
+    const inLedger = nomineesInLedger(listId, reports, entries, batches, joins);
+    const lc = ledgerChanges(ctx, d, listId, entries, ledgerFile?.file ?? `${listId}.jsonl`, inLedger.onEntry);
+    ds.push(...lc.drafts);
+    ds.push(...forgeChanges(ctx, d, listId, reports, inLedger.skip));
     ds.push(...remeasured(ctx, d, listId, idOf));
-    const runs = [...forgeRuns(ctx, reports, entries), ...ledgerRuns(ctx, batches, entries, ledgerFile?.file ?? `${listId}.jsonl`)];
+    // a ledger run joined to one of this deck's reports is that report's run
+    const joinedRuns = new Set(joins.filter((j) => j.file === `${listId}.jsonl` && reports.some((r) => r.file === j.report)).map((j) => j.run));
+    const runs = [...forgeRuns(ctx, reports, entries, joins), ...ledgerRuns(ctx, batches, entries, ledgerFile?.file ?? `${listId}.jsonl`, joinedRuns)];
     if (reports.some((r) => !r.report.adoption)) gaps.push({ code: 'season1-no-interval' });
     const changes = ds.filter((x) => x.kind === 'change');
     if (!changes.length && !runs.length) gaps.push({ code: 'no-changes' });
@@ -1689,7 +1911,7 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     simVersion: current,
     decks: decks.map((d) => ({ file: d.file, deck: d.deck, listId: d.listId, path: `evidence/${d.listId}.json`, findings: d.findings.length, strength: strengthRef(d), counts: counts(d.findings), stale: d.findings.filter((f) => f.flags.includes('stale')).length, runs: runCount.get(d.listId) ?? 0, runsPath: runCount.has(d.listId) ? `evidence/${d.listId}.runs.json` : null })),
     top,
-    health: health(decks, inputs.forge, inputs.ledger),
+    health: health(decks, inputs.forge, inputs.ledger, joins, current),
     rules: {
       strength: { minimum: thresholds('min'), strong: thresholds('strong'), minEffect: MIN_EFFECT, noDifferenceHalfWidth: NO_DIFFERENCE_HALF_WIDTH, bhQ: BH_Q },
       length: ctx.lengthCut,

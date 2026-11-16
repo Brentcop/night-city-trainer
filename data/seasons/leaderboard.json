@@ -7,12 +7,13 @@
   "colors": "RRG",
   "arch": "aggro",
   "firstSeason": 0,
-  "metaW": 1056,
-  "metaG": 1488,
+  "metaW": 1152,
+  "metaG": 1632,
   "seasons": {
    "0": 0.7058333333333333,
    "1": 0.6458333333333334,
-   "2": 0.634469696969697
+   "2": 0.634469696969697,
+   "3": 0.6583333333333333
   },
   "contrib": {
    "1": {
@@ -21,6 +22,10 @@
    },
    "2": {
     "w": 106,
+    "g": 144
+   },
+   "3": {
+    "w": 96,
     "g": 144
    }
   }
@@ -33,12 +38,13 @@
   "colors": "BYY",
   "arch": "aggro",
   "firstSeason": 0,
-  "metaW": 870,
-  "metaG": 1488,
+  "metaW": 933,
+  "metaG": 1632,
   "seasons": {
    "0": 0.5833333333333334,
    "1": 0.5714285714285714,
-   "2": 0.4678030303030303
+   "2": 0.4678030303030303,
+   "3": 0.4375
   },
   "contrib": {
    "1": {
@@ -47,6 +53,10 @@
    },
    "2": {
     "w": 86,
+    "g": 144
+   },
+   "3": {
+    "w": 63,
     "g": 144
    }
   }
@@ -59,12 +69,13 @@
   "colors": "RBG",
   "arch": "aggro",
   "firstSeason": 0,
-  "metaW": 741,
-  "metaG": 1488,
+  "metaW": 805,
+  "metaG": 1632,
   "seasons": {
    "0": 0.5008333333333334,
    "1": 0.4732142857142857,
-   "2": 0.3560606060606061
+   "2": 0.3560606060606061,
+   "3": 0.38333333333333336
   },
   "contrib": {
    "1": {
@@ -73,6 +84,10 @@
    },
    "2": {
     "w": 67,
+    "g": 144
+   },
+   "3": {
+    "w": 64,
     "g": 144
    }
   }
@@ -85,12 +100,13 @@
   "colors": "RRY",
   "arch": "aggro",
   "firstSeason": 0,
-  "metaW": 748,
-  "metaG": 1488,
+  "metaW": 829,
+  "metaG": 1632,
   "seasons": {
    "0": 0.49833333333333335,
    "1": 0.4255952380952381,
-   "2": 0.3958333333333333
+   "2": 0.3958333333333333,
+   "3": 0.5270833333333333
   },
   "contrib": {
    "1": {
@@ -99,6 +115,10 @@
    },
    "2": {
     "w": 82,
+    "g": 144
+   },
+   "3": {
+    "w": 81,
     "g": 144
    }
   }
@@ -111,12 +131,13 @@
   "colors": "BBG",
   "arch": "control",
   "firstSeason": 0,
-  "metaW": 729,
-  "metaG": 1488,
+  "metaW": 809,
+  "metaG": 1632,
   "seasons": {
    "0": 0.485,
    "1": 0.5119047619047619,
-   "2": 0.44507575757575757
+   "2": 0.44507575757575757,
+   "3": 0.5583333333333333
   },
   "contrib": {
    "1": {
@@ -125,6 +146,10 @@
    },
    "2": {
     "w": 70,
+    "g": 144
+   },
+   "3": {
+    "w": 80,
     "g": 144
    }
   }
@@ -137,12 +162,13 @@
   "colors": "RRB",
   "arch": "midrange",
   "firstSeason": 0,
-  "metaW": 598,
-  "metaG": 1488,
+  "metaW": 661,
+  "metaG": 1632,
   "seasons": {
    "0": 0.4033333333333333,
    "1": 0.40476190476190477,
-   "2": 0.32386363636363635
+   "2": 0.32386363636363635,
+   "3": 0.3416666666666667
   },
   "contrib": {
    "1": {
@@ -151,6 +177,10 @@
    },
    "2": {
     "w": 54,
+    "g": 144
+   },
+   "3": {
+    "w": 63,
     "g": 144
    }
   }
@@ -163,12 +193,13 @@
   "colors": "RGY",
   "arch": "aggro",
   "firstSeason": 0,
-  "metaW": 466,
-  "metaG": 1488,
+  "metaW": 523,
+  "metaG": 1632,
   "seasons": {
    "0": 0.3233333333333333,
    "1": 0.25595238095238093,
-   "2": 0.1893939393939394
+   "2": 0.1893939393939394,
+   "3": 0.3625
   },
   "contrib": {
    "1": {
@@ -177,6 +208,10 @@
    },
    "2": {
     "w": 39,
+    "g": 144
+   },
+   "3": {
+    "w": 57,
     "g": 144
    }
   }
@@ -189,11 +224,12 @@
   "colors": "RRY",
   "arch": "midrange",
   "firstSeason": 1,
-  "metaW": 556,
-  "metaG": 756,
+  "metaW": 660,
+  "metaG": 924,
   "seasons": {
    "1": 0.7619047619047619,
-   "2": 0.6477272727272727
+   "2": 0.6477272727272727,
+   "3": 0.6125
   },
   "idea": "Mutant of RRG Dexter Midrange: Saburo Arasaka: Stubborn Patriarch → Dum Dum: Maelstrom Triggerman; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
   "contrib": {
@@ -204,6 +240,10 @@
    },
    "2": {
     "w": 127,
+    "g": 168
+   },
+   "3": {
+    "w": 104,
     "g": 168
    }
   },
@@ -411,10 +451,11 @@
   "colors": "RGG",
   "arch": "control",
   "firstSeason": 2,
-  "metaW": 433,
-  "metaG": 588,
+  "metaW": 536,
+  "metaG": 756,
   "seasons": {
-   "2": 0.6382575757575758
+   "2": 0.6382575757575758,
+   "3": 0.5166666666666667
   },
   "idea": "Mutant of RRG Dexter Midrange: Dexter DeShawn: Off the Grid → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
   "contrib": {
@@ -422,6 +463,10 @@
     "w": 433,
     "g": 588,
     "finals": true
+   },
+   "3": {
+    "w": 103,
+    "g": 168
    }
   },
   "finals": 0.7523809523809524
@@ -572,10 +617,11 @@
   "colors": "BBG",
   "arch": "control",
   "firstSeason": 2,
-  "metaW": 387,
-  "metaG": 588,
+  "metaW": 481,
+  "metaG": 756,
   "seasons": {
-   "2": 0.6136363636363636
+   "2": 0.6136363636363636,
+   "3": 0.54375
   },
   "idea": "control build for the Jackie Welles / Alt Cunningham / Hanako Arasaka trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.",
   "contrib": {
@@ -583,6 +629,10 @@
     "w": 387,
     "g": 588,
     "finals": true
+   },
+   "3": {
+    "w": 94,
+    "g": 168
    }
   },
   "finals": 0.6571428571428571
@@ -595,16 +645,21 @@
   "colors": "RRG",
   "arch": "midrange",
   "firstSeason": 2,
-  "metaW": 359,
-  "metaG": 588,
+  "metaW": 452,
+  "metaG": 756,
   "seasons": {
-   "2": 0.509469696969697
+   "2": 0.509469696969697,
+   "3": 0.58125
   },
   "contrib": {
    "2": {
     "w": 359,
     "g": 588,
     "finals": true
+   },
+   "3": {
+    "w": 93,
+    "g": 168
    }
   },
   "finals": 0.6166666666666667
@@ -617,10 +672,11 @@
   "colors": "RRG",
   "arch": "control",
   "firstSeason": 2,
-  "metaW": 414,
-  "metaG": 588,
+  "metaW": 522,
+  "metaG": 756,
   "seasons": {
-   "2": 0.6060606060606061
+   "2": 0.6060606060606061,
+   "3": 0.61875
   },
   "idea": "aggro build for the V / Adam Smasher / Saburo Arasaka trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.",
   "contrib": {
@@ -628,6 +684,10 @@
     "w": 414,
     "g": 588,
     "finals": true
+   },
+   "3": {
+    "w": 108,
+    "g": 168
    }
   },
   "finals": 0.6904761904761905
@@ -640,10 +700,11 @@
   "colors": "RRG",
   "arch": "aggro",
   "firstSeason": 2,
-  "metaW": 377,
-  "metaG": 588,
+  "metaW": 474,
+  "metaG": 756,
   "seasons": {
-   "2": 0.4981060606060606
+   "2": 0.4981060606060606,
+   "3": 0.55
   },
   "idea": "Three MERC Go Solo Legends (V, Adam Smasher, Jackie) + Pepe readying MERC Legends = extra mana and surprise 6-9 power attackers; Jackie also protects your best Unit from removal.",
   "contrib": {
@@ -651,6 +712,10 @@
     "w": 377,
     "g": 588,
     "finals": true
+   },
+   "3": {
+    "w": 97,
+    "g": 168
    }
   },
   "finals": 0.6428571428571429
@@ -676,5 +741,189 @@
    }
   },
   "finals": 0.5428571428571428
+ },
+ "S3-02 Mutant (RGY)": {
+  "name": "S3-02 Mutant (RGY)",
+  "file": "s3-02-mutant-rgy.txt",
+  "kind": "original",
+  "origin": "S3 mutant",
+  "colors": "RGY",
+  "arch": "midrange",
+  "firstSeason": 3,
+  "metaW": 309,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.44583333333333336
+  },
+  "idea": "Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+  "contrib": {
+   "3": {
+    "w": 309,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.5095238095238095
+ },
+ "S3-03 Cross (RRR)": {
+  "name": "S3-03 Cross (RRR)",
+  "file": "s3-03-cross-rrr.txt",
+  "kind": "original",
+  "origin": "S3 crossover",
+  "colors": "RRR",
+  "arch": "midrange",
+  "firstSeason": 3,
+  "metaW": 312,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.45
+  },
+  "idea": "Crossover of Ladder: V / Smasher / Padre (RRG) × NC-07 Braindance Burn (RRB) (midrange): strongest Legends of both, cards ranked by format-wide impact.",
+  "contrib": {
+   "3": {
+    "w": 312,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.5238095238095238
+ },
+ "S3-05 Counter (RRG)": {
+  "name": "S3-05 Counter (RRG)",
+  "file": "s3-05-counter-rrg.txt",
+  "kind": "original",
+  "origin": "S3 counter",
+  "colors": "RRG",
+  "arch": "control",
+  "firstSeason": 3,
+  "metaW": 283,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.48333333333333334
+  },
+  "idea": "Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and Ladder: Jackie / Alt / Hanako (BBG) (41%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Detonate → +1 Saul Bright: Stormrider.",
+  "contrib": {
+   "3": {
+    "w": 283,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.48095238095238096
+ },
+ "S3-06 Counter (RBG)": {
+  "name": "S3-06 Counter (RBG)",
+  "file": "s3-06-counter-rbg.txt",
+  "kind": "original",
+  "origin": "S3 counter",
+  "colors": "RBG",
+  "arch": "control",
+  "firstSeason": 3,
+  "metaW": 253,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.42916666666666664
+  },
+  "idea": "Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and BBG Cunningham Econ (42%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Peace Offering → +1 Placide: Voodoo Sentinel.",
+  "contrib": {
+   "3": {
+    "w": 253,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.430952380952381
+ },
+ "S3-07 Explorer (RRG)": {
+  "name": "S3-07 Explorer (RRG)",
+  "file": "s3-07-explorer-rrg.txt",
+  "kind": "original",
+  "origin": "S3 explorer",
+  "colors": "RRG",
+  "arch": "control",
+  "firstSeason": 3,
+  "metaW": 291,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.4125
+  },
+  "idea": "Explorer (midrange): untested Legends Hanako Arasaka / Johnny Silverhand / V, filled by role and curve templates from format-wide card impact.",
+  "contrib": {
+   "3": {
+    "w": 291,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.5285714285714286
+ },
+ "S3-08 Explorer (RRB)": {
+  "name": "S3-08 Explorer (RRB)",
+  "file": "s3-08-explorer-rrb.txt",
+  "kind": "original",
+  "origin": "S3 explorer",
+  "colors": "RRB",
+  "arch": "control",
+  "firstSeason": 3,
+  "metaW": 285,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.45208333333333334
+  },
+  "idea": "Explorer (aggro): untested Legends Adam Smasher / Sasha Yakovleva / Dexter DeShawn, filled by role and curve templates from format-wide card impact.",
+  "contrib": {
+   "3": {
+    "w": 285,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.4880952380952381
+ },
+ "Ladder: V / Smasher / Padre (RRG)": {
+  "name": "Ladder: V / Smasher / Padre (RRG)",
+  "file": "ladder-rrg-v-smasher-padre.txt",
+  "kind": "ladder",
+  "origin": "ladder",
+  "colors": "RRG",
+  "arch": "midrange",
+  "firstSeason": 3,
+  "metaW": 366,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.5833333333333334
+  },
+  "idea": "aggro build for the V / Adam Smasher / Padre trio. Cards seeded from our decks that share its Legends, weighted by how each card performed there, then filled by role and curve and tuned by the forge.",
+  "contrib": {
+   "3": {
+    "w": 366,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.6190476190476191
+ },
+ "NC-07 Braindance Burn (RRB)": {
+  "name": "NC-07 Braindance Burn (RRB)",
+  "file": "nc-07-braindance-burn-rrb.txt",
+  "kind": "original",
+  "origin": "NC original",
+  "colors": "RRB",
+  "arch": "aggro",
+  "firstSeason": 3,
+  "metaW": 311,
+  "metaG": 588,
+  "seasons": {
+   "3": 0.5520833333333334
+  },
+  "idea": "The RRG Dexter core with Judy instead of Saburo: Braindance Programs (Carnage, Bonnie, Industrial Assembly) pump attackers via Judy, Blue splash adds Psycho Squad + Voodoo Boy + Floor It.",
+  "contrib": {
+   "3": {
+    "w": 311,
+    "g": 588,
+    "finals": true
+   }
+  },
+  "finals": 0.5190476190476191
  }
 }

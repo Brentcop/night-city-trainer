@@ -42,6 +42,8 @@
 //                     generation that nominates the same change again pools the earlier one's held-out games, and a
 //                     repeat finds those too). Not with --bot hard-v1 (it reads card impact).
 //   --ledger-dir DIR  default data/ledger (one <base list fingerprint>.jsonl per list); under --out DIR, DIR/ledger
+//                     The report's `ledger` record names the run label the batches carry (`run`), so the evidence
+//                     builder shows the run and its nominees once (docs/EVIDENCE.md "When a recorded run is also in the ledger").
 //
 // Shortlist from pooled evidence (opt-in, needs --ledger and the evidence rule; src/lib/shortlist.ts; docs/SYNERGIES.md
 // "A shortlist carried across runs"; without it nothing changes):
@@ -347,8 +349,8 @@ async function forge(target: (typeof lib)[number]) {
     summary: { gen: number; wr: number; change: string }[];
     /** with package flags only: the plan, and the built-around packages kept, added and removed from start to end */
     packages?: { plan: PackagePlan; moves: boolean; changes: PackageChanges; adopted: string[] };
-    /** with --ledger only: where it is kept and what this run appended (games); `heldoutBot` when another bot confirmed */
-    ledger?: { dir: string; bot: string; heldoutBot?: string; field: string; screen: { written: number; duplicates: number; conflicts: number }; heldout: { written: number; duplicates: number; conflicts: number } };
+    /** with --ledger only: where it is kept, the run label its batches carry there (the evidence builder joins this report to them by it), and what this run appended (games); `heldoutBot` when another bot confirmed */
+    ledger?: { dir: string; bot: string; heldoutBot?: string; field: string; run: string; screen: { written: number; duplicates: number; conflicts: number }; heldout: { written: number; duplicates: number; conflicts: number } };
     /** with --pooled-ranking only: the shortlist's settings */
     shortlist?: { carry: number; dropSe: number; reach: number; nominateBarPp: number };
     /** with --until-settled only: its reach, the most further stages a generation may play, and what it may add at most */
@@ -625,7 +627,7 @@ async function forge(target: (typeof lib)[number]) {
     const line = ledger.summary();
     log.push('', `Change ledger: ${line}.`);
     console.log(`  ledger: ${line}`);
-    json.ledger = { dir: LEDGER.dir, bot: LEDGER.bot, ...(CONFIRM && heldLedger ? { heldoutBot: heldLedger.o.bot } : {}), field: ledger.field, screen: { ...ledger.totals.screen }, heldout: { ...ledger.totals.heldout } };
+    json.ledger = { dir: LEDGER.dir, bot: LEDGER.bot, ...(CONFIRM && heldLedger ? { heldoutBot: heldLedger.o.bot } : {}), field: ledger.field, run: RUN_ID, screen: { ...ledger.totals.screen }, heldout: { ...ledger.totals.heldout } };
   }
   log.push(
     '',

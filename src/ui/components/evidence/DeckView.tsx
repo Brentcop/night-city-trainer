@@ -9,6 +9,7 @@ import {
   BLOCK_WORDS,
   botsWords,
   changeStatusWords,
+  confirmationWords,
   DECK_PAGE_WORDS,
   driftWords,
   EVIDENCE_PROBLEMS,
@@ -48,6 +49,7 @@ import {
   pairingsOf,
   runHref,
   scaleOf,
+  screenCurseRows,
   settledChange,
   SHOWN_PAIRINGS,
   type ChangeGroup,
@@ -146,7 +148,7 @@ function Glance({ facts, listId, onReveal, onOpen }: { facts: readonly GlanceFac
 function ChangeGroupView({ g, listId, names, scale, target, byId }: { g: ChangeGroup; listId: string; names: ReadonlyMap<string, string>; scale: readonly [number, number]; target: string | null; byId: ReturnType<typeof decksById> }) {
   const cur = CURRENT_SIM_VERSION;
   const pooled = g.items.find((f) => f.method === 'paired-pooled' && f.simVersion === cur);
-  const status = changeStatusWords(g.change.relation, settledChange(g, cur), pooled?.detail ? shortlistWords(pooled.detail) : null);
+  const status = changeStatusWords(g.change.relation, settledChange(g, cur), pooled?.detail ? shortlistWords(pooled.detail, pooled.games) : null);
   // measured with more than one bot: what the Hard measurement says about the Medium one
   const bots =
     new Set(g.items.map((f) => f.bot)).size > 1
@@ -196,7 +198,7 @@ function ChangeGroupView({ g, listId, names, scale, target, byId }: { g: ChangeG
               title={measuredByWords(f)}
               scale={scale}
               target={target === f.short}
-              more={d?.verdict ? VERDICT_WORDS[d.verdict] : null}
+              more={d?.verdict ? (d.confirmation ? `${VERDICT_WORDS[d.verdict]} ${confirmationWords(d.confirmation)}` : VERDICT_WORDS[d.verdict]) : null}
               extra={
                 (d?.screen || dependsOnOpp) && (
                   <>
@@ -509,7 +511,7 @@ export function DeckEvidenceView({ deck, index, target, onReveal }: { deck: Deck
       <Block id="ev-changes" title="What changed it, and did it hold?" nature="effect" intro={BLOCK_WORDS.changes}>
         {groups.length ? (
           <>
-            {groups.some((g) => g.items.some((f) => f.detail?.screen)) && <p className="ev-screen small">{screenCurseWords(index?.health ?? [])}</p>}
+            {groups.some((g) => g.items.some((f) => f.detail?.screen)) && <p className="ev-screen small">{screenCurseWords(screenCurseRows(index?.health ?? [], deck.findings))}</p>}
             {groups.map((g) => (
               <ChangeGroupView key={g.question} g={g} listId={deck.listId} names={names} scale={changeScale} target={tShort} byId={byId} />
             ))}

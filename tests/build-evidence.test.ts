@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, heterogeneity as builderHeterogeneity, matchupCheck, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
+import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, heterogeneity as builderHeterogeneity, joinReports, matchupCheck, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
 import { compareEvidence, evidenceTexts, loadEvidenceInputs, readStored, storedProblems, writeEvidence } from '../scripts/build-evidence';
 import type { RecordedEvent } from '../scripts/lib-node';
 import { listFingerprint } from '../src/engine/deck';
@@ -248,6 +248,9 @@ describe('building from fixtures', () => {
     const hardF = deckOf(hardBuilt, 'Deck A').findings.find((x) => x.method === 'paired-staged')!;
     expect(hardF.bot).toBe('hard');
     expect(hardF.flags).not.toContain('medium-only');
+    // its screening figure is the run's bot's, and named; a one-bot run names none
+    expect(hardF.detail?.screen).toMatchObject({ games: 112, bot: 'medium', flag: 'screening' });
+    expect(older.detail?.screen).not.toHaveProperty('bot');
     expect(older.bot).toBe('medium');
     expect(hardF.question).toBe(older.question);
     const run = hardBuilt.runs.find((r) => r.listId === listFingerprint(A))!.runs.find((r) => r.id === 'forge r9')!;
@@ -535,6 +538,169 @@ describe('building from fixtures', () => {
   });
 });
 
+// ---------------------------------------------------------------- a recorded run that is also in the ledger
+
+describe('a recorded forge run whose games the ledger also keeps is shown once', () => {
+  // real card names, so the report's label reads as a change key (parseChangeLabel)
+  const LABEL = '-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon';
+  const BASE = listFingerprint(A);
+  const OPPS = DECKS.slice(1).map(listFingerprint);
+  const KEYR = changeKeyOf(BASE, { cuts: ['we_gotta_live_together'], adds: ['yorinobu_arasaka_steel_dragon'] });
+  const RUN_ID = 'forge:2026-11-16T05:32:01.059Z:1';
+  const rb = (kind: 'screen' | 'heldout', bot: string, run: string, games: LedgerGame[], o: { date?: string; change?: string } = {}): LedgerBatch => ({
+    entry: { change: o.change ?? KEYR, simVersion: 9, bot, field: FIELD },
+    kind,
+    label: LABEL,
+    run,
+    date: o.date ?? '2026-11-16',
+    games,
+  });
+  const SCREEN = ledgerGames(112, 21, 0.06, 70_000);
+  const HELD = ledgerGames(448, 22, 0.03, 80_000);
+  /** one forge process: screened with Medium, confirmed with Hard */
+  const processRun = (run: string, o: { date?: string } = {}) => [rb('screen', 'medium', run, SCREEN, o), rb('heldout', 'hard', run, HELD, o)];
+  const report = (o: { run?: string; dir?: string; noLedger?: boolean; confirmBot?: string | null } = {}): ForgeReport =>
+    ({
+      deck: 'Deck A',
+      file: 'deck-a.txt',
+      date: '2026-11-16',
+      field: 'Deck B, Deck C, Deck D · bot lookahead · 112 games per test',
+      adoption: {
+        rule: 'evidence',
+        minGainPp: 1,
+        packageMinGainPp: 1,
+        alpha: 0.05,
+        correction: 'obrien-fleming',
+        capStages: 4,
+        minGames: 200,
+        firstStage: 224,
+        nominees: 1,
+        cardsPerChange: 1,
+        packagesPerChange: 1,
+        futilityAfterStages: 2,
+        futilityMaxGainPp: 0,
+        ...(o.confirmBot === null ? {} : { confirmBot: o.confirmBot ?? 'hard' }),
+      },
+      gens: [
+        {
+          gen: 1,
+          swaps: [{ swap: LABEL, wr: 56, delta: 6 }],
+          verdict: 'inconclusive',
+          nominees: [{ label: LABEL, screen: { games: 112, mean: 0.06, lower: 0.01, upper: 0.11 }, heldOut: { games: 448, mean: 0.0, lower: -0.044, upper: 0.044, z: 2.9631, looks: 2, baseWr: 0.5, candWr: 0.5 }, outcome: 'inconclusive', stopped: 'futility' }],
+        },
+      ],
+      ...(o.noLedger ? {} : { ledger: { dir: o.dir ?? 'data/ledger', bot: 'medium', ...(o.confirmBot === null ? {} : { heldoutBot: 'hard' }), field: FIELD, ...(o.run ? { run: o.run } : {}) } }),
+      manifest: { runId: RUN_ID, simVersion: 9, bot: { level: 'lookahead' }, decks: [{ id: BASE }], field: { deckIds: OPPS }, sample: { completedGames: 1000 } },
+    }) as unknown as ForgeReport;
+  const FILE = 'reports/forge/deck-a.json';
+  const build = (led: LedgerBatch[], rep: ForgeReport | null) => buildEvidence({ ...inputs({ ledger: led }), forge: rep ? [{ file: FILE, report: rep }] : [] });
+  const changesOf = (b: ReturnType<typeof buildEvidence>) => deckOf(b, 'Deck A').findings.filter((f) => f.subject.change?.key === KEYR);
+  const runsOf = (b: ReturnType<typeof buildEvidence>) => b.runs.find((r) => r.listId === BASE)?.runs ?? [];
+  const ledgerFiles = (led: LedgerBatch[]) => [{ file: `${BASE}.jsonl`, batches: led }];
+
+  it('by the run label the report names: one finding (the ledger’s) with the run’s own verdict, look and flags, and one run', () => {
+    const led = processRun('forge P');
+    expect(joinReports([{ file: FILE, report: report({ run: 'forge P' }) }], ledgerFiles(led), 'data/ledger')).toEqual([{ report: FILE, file: `${BASE}.jsonl`, run: 'forge P', how: 'label' }]);
+    const built = build(led, report({ run: 'forge P' }));
+    const fs = changesOf(built);
+    expect(fs).toHaveLength(1);
+    const f = fs[0]!;
+    expect([f.method, f.bot, f.games, f.sequential]).toEqual(['paired-pooled', 'hard', 448, 'always-valid']);
+    expect(f.detail?.confirmation).toEqual({ outcome: 'inconclusive', looks: 2, cap: 4, stopped: 'futility', lower: -0.044, upper: 0.044, sequential: 'obrien-fleming', run: RUN_ID });
+    expect(f.flags).toContain('stopped-futility');
+    expect(f.sources.map((s) => s.file)).toEqual([`data/ledger/${BASE}.jsonl`, FILE]);
+    expect(f.sources[1]!.path).toBe('gens[0].nominees[0].heldOut');
+    expect(f.detail?.screen).toMatchObject({ games: 112, bot: 'medium' });
+    // the same numbers as the ledger's finding without the report: only the run's words and flags are added
+    const alone = changesOf(build(led, null))[0]!;
+    expect([f.id, f.estimate, f.lower, f.upper, f.p95, f.strength]).toEqual([alone.id, alone.estimate, alone.lower, alone.upper, alone.p95, alone.strength]);
+    expect(alone.detail).not.toHaveProperty('confirmation');
+    expect(alone.flags).not.toContain('stopped-futility');
+    // one run: the report's, which names the ledger's label; the ledger's run of the same process is not listed again
+    const runs = runsOf(built);
+    expect(runs.map((r) => [r.id, r.ledgerRun])).toEqual([[RUN_ID, 'forge P']]);
+    expect(built.index.decks.find((d) => d.listId === BASE)!.runs).toBe(1);
+    // the tools' record counts the nominee once, under the forge, in its own context
+    expect(built.index.health.map((h) => [h.tool, h.simVersion, h.bot, h.confirmBot, h.nominees])).toEqual([['forge', 9, 'medium', 'hard', 1]]);
+  });
+
+  it('by content when the report has no label: same list, date, bots and field, every change one of its trials, exactly one candidate', () => {
+    const led = processRun('forge P');
+    expect(joinReports([{ file: FILE, report: report() }], ledgerFiles(led), 'data/ledger')).toEqual([{ report: FILE, file: `${BASE}.jsonl`, run: 'forge P', how: 'content' }]);
+    expect(changesOf(build(led, report()))).toHaveLength(1);
+    // a run of another day, of another bot, or holding a change the report never tried is not a candidate
+    const otherDay = processRun('forge O', { date: '2026-11-15' });
+    const otherBot = [rb('screen', 'easy', 'forge E', SCREEN)];
+    const KEY_OTHER = changeKeyOf(BASE, { cuts: ['we_gotta_live_together'], adds: ['field_operator'] });
+    const untried = [rb('screen', 'medium', 'forge U', SCREEN, { change: KEY_OTHER })];
+    expect(joinReports([{ file: FILE, report: report() }], ledgerFiles([...otherDay, ...otherBot, ...untried, ...led]), 'data/ledger').map((j) => j.run)).toEqual(['forge P']);
+    // two candidates: nothing is joined, so nothing is merged or hidden
+    const twice = [...led, rb('screen', 'medium', 'forge Q', ledgerGames(112, 23, 0.05, 90_000))];
+    expect(joinReports([{ file: FILE, report: report() }], ledgerFiles(twice), 'data/ledger')).toEqual([]);
+    const built = build(twice, report());
+    expect(changesOf(built).map((f) => f.method).sort()).toEqual(['paired-pooled', 'paired-staged']);
+    expect(runsOf(built).map((r) => r.id).sort()).toEqual([RUN_ID, 'forge P', 'forge Q'].sort());
+    expect(runsOf(built).every((r) => !('ledgerRun' in r))).toBe(true);
+    // two reports claiming the one run: neither is joined
+    expect(joinReports([{ file: FILE, report: report() }, { file: 'reports/forge/deck-a-again.json', report: report() }], ledgerFiles(led), 'data/ledger')).toEqual([]);
+  });
+
+  it('no join without a ledger record, in another ledger directory, or for a label the ledger does not hold', () => {
+    const led = processRun('forge P');
+    for (const rep of [report({ noLedger: true }), report({ dir: 'scratch/ledger' }), report({ run: 'forge Z' })]) {
+      expect(joinReports([{ file: FILE, report: rep }], ledgerFiles(led), 'data/ledger')).toEqual([]);
+      const built = build(led, rep);
+      expect(changesOf(built)).toHaveLength(2);
+      expect(runsOf(built)).toHaveLength(2);
+    }
+    // the directory is compared in one spelling
+    expect(joinReports([{ file: FILE, report: report({ dir: './data/ledger/', run: 'forge P' }) }], ledgerFiles(led), 'data/ledger')).toHaveLength(1);
+  });
+
+  it('when the entry also holds an earlier run’s held-out games, the nominee is still shown once, and the run’s verdict stays in its run record', () => {
+    const earlier = [rb('heldout', 'hard', 'forge O', ledgerGames(224, 24, 0.03, 100_000), { date: '2026-11-15' })];
+    const built = build([...earlier, ...processRun('forge P')], report({ run: 'forge P' }));
+    const fs = changesOf(built);
+    expect(fs).toHaveLength(1);
+    expect(fs[0]!.games).toBe(448 + 224);
+    expect(fs[0]!.detail).not.toHaveProperty('confirmation');
+    expect(fs[0]!.flags).not.toContain('stopped-futility');
+    const runs = runsOf(built);
+    expect(runs.map((r) => r.id).sort()).toEqual([RUN_ID, 'forge O'].sort());
+    const trial = runs.find((r) => r.id === RUN_ID)!.trials[0]!;
+    expect([trial.outcome, trial.heldOut?.looks, trial.heldOut?.games]).toEqual(['could not tell', 2, 448]);
+  });
+
+  it('the tools’ record keeps simulator versions and same-bot and cross-bot runs apart, and counts each nominee once', () => {
+    const v5 = { ...report({ noLedger: true, confirmBot: null }), manifest: { ...report().manifest, runId: 'forge v5', simVersion: 5 } } as ForgeReport;
+    const v9same = { ...report({ noLedger: true, confirmBot: null }), manifest: { ...report().manifest, runId: 'forge v9' } } as ForgeReport;
+    const KEY2R = changeKeyOf(BASE, { cuts: ['we_gotta_live_together'], adds: ['field_operator'] });
+    // a same-bot ledger run with no report, and the cross-bot process joined to its report
+    const sameBot = [rb('screen', 'medium', 'forge M', ledgerGames(112, 25, 0.06, 110_000), { change: KEY2R, date: '2026-11-15' }), rb('heldout', 'medium', 'forge M', ledgerGames(224, 26, 0.02, 120_000), { change: KEY2R, date: '2026-11-15' })];
+    const built = buildEvidence({
+      ...inputs({ ledger: [...sameBot, ...processRun('forge P')] }),
+      forge: [
+        { file: 'reports/forge/a-v5.json', report: v5 },
+        { file: 'reports/forge/a-v9.json', report: v9same },
+        { file: FILE, report: report({ run: 'forge P' }) },
+      ],
+    });
+    const rows = built.index.health.map((h) => [h.tool, h.simVersion, h.bot, h.confirmBot ?? null, h.nominees]);
+    expect(rows).toEqual([
+      ['forge', 9, 'medium', null, 1],
+      ['forge', 9, 'medium', 'hard', 1],
+      ['forge', 5, 'medium', null, 1],
+      ['ledger runs', 9, 'medium', null, 1],
+    ]);
+    // each record's screening gap is over its own nominees only
+    for (const h of built.index.health.filter((x) => x.tool === 'forge')) expect(h.screenMinusHeldOut).toEqual({ mean: r6(0.06 - 0.0), n: 1 });
+    const scr = sameBot[0]!.games;
+    const held = sameBot[1]!.games;
+    const gap = pairedInterval(scr.map((g) => g.cand), scr.map((g) => g.base), 1.96).mean - pairedInterval(held.map((g) => g.cand), held.map((g) => g.base), 1.96).mean;
+    expect(built.index.health.find((h) => h.tool === 'ledger runs')!.screenMinusHeldOut).toEqual({ mean: r6(gap), n: 1 });
+  });
+});
+
 describe('change keys from labels', () => {
   it('changeKeyOf is changeKey of the lists', () => {
     const cand = { ...A, main: [...A.main.slice(2), 'x', 'y'], legends: [...A.legends.slice(1), 'l_new'] };
@@ -655,6 +821,35 @@ describe('on the real data, each finding is the number its defining function giv
     const endings = built.index.top.find((t) => t.key === 'results')!.items.filter((i) => i.kind === 'ending');
     expect(new Set(endings.map((i) => i.listId)).size).toBe(endings.length);
     for (const i of endings) expect(i.estimate).toBeGreaterThanOrEqual(i.baseline);
+  });
+
+  it('a recorded run whose games the ledger also keeps is one finding per change and context, one run, and counted once in the tools’ record', () => {
+    // one finding per change, simulator version, bot and field among the tools' own measurements (forge and ledger)
+    for (const d of built.decks) {
+      const seen = new Set<string>();
+      for (const f of d.findings.filter((x) => x.method === 'paired-pooled' || x.method === 'paired-staged')) {
+        const k = [f.question, f.simVersion, f.bot, f.field].join('|');
+        expect(seen.has(k), `${d.deck}: ${f.claim}`).toBe(false);
+        seen.add(k);
+      }
+    }
+    // every Season 3 report is joined (by content: they were recorded before the forge wrote the label)
+    const joins = joinReports(real.forge, real.ledger, real.paths.ledgerDir);
+    const s3 = real.forge.filter((f) => f.report.file.startsWith('s3-') && f.report.ledger);
+    expect(s3.length).toBeGreaterThan(0);
+    for (const f of s3) expect(joins.filter((j) => j.report === f.file).map((j) => j.how), f.file).toEqual(['content']);
+    // a joined run is listed once, as its report's run
+    for (const r of built.runs) {
+      const labels = new Set(r.runs.flatMap((x) => (x.ledgerRun ? [x.ledgerRun] : [])));
+      expect(r.runs.filter((x) => labels.has(x.id))).toEqual([]);
+    }
+    // the forge's records count every recorded nominee exactly once, and no record mixes versions or bots
+    const nominees = real.forge.filter((f) => f.report.adoption).reduce((a, f) => a + f.report.gens.reduce((b, g) => b + (g.nominees?.length ?? 0), 0), 0);
+    const forgeRows = built.index.health.filter((h) => h.tool === 'forge');
+    expect(forgeRows.reduce((a, h) => a + h.nominees, 0)).toBe(nominees);
+    const ctx = built.index.health.map((h) => [h.tool, h.simVersion, h.bot, h.confirmBot ?? ''].join('|'));
+    expect(new Set(ctx).size).toBe(ctx.length);
+    expect(built.index.health.every((h) => typeof h.simVersion === 'number' && typeof h.bot === 'string')).toBe(true);
   });
 
   it('the effects list names each question once and counts its other measurements', () => {

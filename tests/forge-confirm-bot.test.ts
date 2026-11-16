@@ -1,7 +1,8 @@
 // The forge's --confirm-bot on real games (scripts/forge.ts; docs/SYNERGIES.md "Confirming with another bot"): a small
 // run screened with Easy and confirmed with Medium (fast bots, about 100 games), into a temporary folder. Screening batches
 // land in the screening bot's ledger entry and held-out ones in the confirming bot's; the rule line, the JSON, the
-// manifest and the deck file's "// Adoption:" line name the confirming bot; --confirm-bot equal to --bot changes nothing;
+// manifest and the deck file's "// Adoption:" line name the confirming bot; the JSON's ledger record names the run label
+// its batches carry; --confirm-bot equal to --bot changes nothing;
 // --pooled-ranking with another confirming bot is refused in one sentence.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -49,6 +50,9 @@ describe('the forge with --confirm-bot', () => {
     expect(json.manifest.adoption.confirmBot).toBe('medium');
     expect(json.manifest.bot.level).toBe('easy');
     expect(json.ledger).toMatchObject({ bot: 'easy', heldoutBot: 'medium' });
+    // the report names the run label its ledger batches carry, which the evidence builder joins it by
+    expect(json.ledger.run).toMatch(/^forge \d{4}-\d{2}-\d{2}T[\d:.]+Z seed 2$/);
+    expect(new Set(batches.map((b) => b.run))).toEqual(new Set([json.ledger.run]));
     expect(read('split', 'forge/s2-08-explorer-ggy.md')).toContain(clause);
     expect(read('split', 'forge/summary.md')).toContain(clause);
     expect(read('split', 's2-08-explorer-ggy.txt')).toMatch(new RegExp(`^// Adoption: .*; ${clause}$`, 'm'));

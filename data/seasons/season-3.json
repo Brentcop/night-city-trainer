@@ -1,0 +1,1850 @@
+{
+ "season": 3,
+ "date": "2026-11-16T06:01:59.598Z",
+ "games": 24,
+ "bot": "hard",
+ "bred": [
+  {
+   "name": "S3-02 Mutant (RGY)",
+   "method": "mutant",
+   "parents": [
+    "S1-01 Mutant (RRY)"
+   ],
+   "idea": "Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers."
+  },
+  {
+   "name": "S3-03 Cross (RRR)",
+   "method": "crossover",
+   "parents": [
+    "Ladder: V / Smasher / Padre (RRG)",
+    "NC-07 Braindance Burn (RRB)"
+   ],
+   "idea": "Crossover of Ladder: V / Smasher / Padre (RRG) × NC-07 Braindance Burn (RRB) (midrange): strongest Legends of both, cards ranked by format-wide impact."
+  },
+  {
+   "name": "S3-05 Counter (RRG)",
+   "method": "counter",
+   "parents": [
+    "Ladder: V / Smasher / Saburo (RRG)",
+    "Ladder: Jackie / Alt / Hanako (BBG)"
+   ],
+   "idea": "Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and Ladder: Jackie / Alt / Hanako (BBG) (41%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Detonate → +1 Saul Bright: Stormrider."
+  },
+  {
+   "name": "S3-06 Counter (RBG)",
+   "method": "counter",
+   "parents": [
+    "Ladder: V / Smasher / Saburo (RRG)",
+    "BBG Cunningham Econ"
+   ],
+   "idea": "Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and BBG Cunningham Econ (42%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Peace Offering → +1 Placide: Voodoo Sentinel."
+  },
+  {
+   "name": "S3-07 Explorer (RRG)",
+   "method": "explorer",
+   "parents": [],
+   "idea": "Explorer (midrange): untested Legends Hanako Arasaka / Johnny Silverhand / V, filled by role and curve templates from format-wide card impact."
+  },
+  {
+   "name": "S3-08 Explorer (RRB)",
+   "method": "explorer",
+   "parents": [],
+   "idea": "Explorer (aggro): untested Legends Adam Smasher / Sasha Yakovleva / Dexter DeShawn, filled by role and curve templates from format-wide card impact."
+  }
+ ],
+ "gate": {
+  "bred": 8,
+  "entered": 6,
+  "simVersion": 9,
+  "settings": {
+   "bot": "medium",
+   "confirmBot": "hard",
+   "rounds": 20,
+   "stages": 5,
+   "confirmStages": 2,
+   "alpha": 0.05,
+   "seeds": {
+    "first": 3700000,
+    "confirm": 3800000
+   },
+   "reference": "middle"
+  },
+  "words": {
+   "rule": "each bred deck plays the middle meta deck by strength, the same fixed bar for every bred deck, on the same games against the other meta decks, in stages of 20 double rounds (280 games with 7 opponents, 240 with 6), up to 5 stages with the Medium bot (z 4.88, 3.36, 2.68, 2.29, 2.03); a deck the Medium bot did not show worse then plays up to 2 stages with the Hard bot on its own seeds (z 2.96, 1.97). After each stage the paired difference is judged with α 0.05 spent over the looks by an O'Brien–Fleming-type boundary: shown worse when its upper bound is below 0, shown better when its lower bound is above 0, could not tell at the cap. A deck enters unless a bot shows it worse; could not tell enters",
+   "guarantee": "A bred deck that is truly no worse than its reference is kept out about 2.5% of the time or less by each bot.",
+   "detect": "What it can detect: with 6 opponents (stages of 240 games) the Medium bot shows a deck worse 8 times in 10 when it is really 4.8 points worse, the Hard bot with its 2 stages when it is 7.7 points worse. It assumes a per-game spread of 0.59 with the Medium bot and 0.60 with the Hard bot for two different decks, measured on the recorded bred decks.",
+   "spread": "Spread seen: 0.62 per game with the Medium bot (median of 8 decks), 0.62 with the Hard bot (median of 7 decks)."
+  },
+  "spreadSeen": {
+   "first": 0.6224362667507496,
+   "firstDecks": 8,
+   "confirm": 0.6204549422971946,
+   "confirmDecks": 7
+  },
+  "decks": [
+   {
+    "method": "mutant",
+    "idea": "Mutant of Smash the Curve: V: Streetkid → Jackie Welles: Pour One Out For Me; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+    "name": "S3-01 Mutant (RBG)",
+    "listId": "93f81982a9067329",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "fixed-bar"
+    },
+    "parents": [
+     "Smash the Curve"
+    ],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "could-not-tell",
+     "looks": 5,
+     "judged": {
+      "games": 1200,
+      "mean": -0.016667,
+      "lower": -0.05344,
+      "upper": 0.020107,
+      "z": 2.031032,
+      "sd": 0.627203,
+      "deckWr": 0.45,
+      "refWr": 0.466667
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 200,
+       "mean": 0.18,
+       "se": 0.045257
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 200,
+       "mean": 0,
+       "se": 0.047553
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 200,
+       "mean": 0.02,
+       "se": 0.041914
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 200,
+       "mean": -0.01,
+       "se": 0.042527
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 200,
+       "mean": -0.155,
+       "se": 0.03889
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 200,
+       "mean": -0.135,
+       "se": 0.045764
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 600,
+       "mean": 0.06,
+       "se": 0.026366
+      },
+      {
+       "first": 1,
+       "games": 600,
+       "mean": -0.093333,
+       "se": 0.024446
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 39.009009,
+      "df": 5,
+      "p": 5.434e-7
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "shown-worse",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": -0.085417,
+      "lower": -0.141031,
+      "upper": -0.029803,
+      "z": 1.968596,
+      "sd": 0.618939,
+      "deckWr": 0.379167,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.0625,
+       "se": 0.07619
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": -0.0875,
+       "se": 0.069341
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": -0.1625,
+       "se": 0.067608
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": -0.05,
+       "se": 0.066323
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": -0.175,
+       "se": 0.075
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": -0.1,
+       "se": 0.057917
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": -0.0875,
+       "se": 0.041579
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": -0.083333,
+       "se": 0.038344
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 6.832652,
+      "df": 5,
+      "p": 0.2323
+     }
+    },
+    "entered": false,
+    "words": "kept out: shown worse than YYB Rogue Gear (the middle meta deck, this run’s fixed bar for every bred deck) with the Hard bot (Medium: could not tell, −1.7 points [−5.3, +2.0] over 1,200 paired games (look 5 of 5); Hard: shown worse, −8.5 points [−14.1, −3.0] over 480 paired games (look 2 of 2))",
+    "list": "# S3-01 Mutant (RBG)\n\n// Legends (3)\n1 Saburo Arasaka: Stubborn Patriarch\n1 Adam Smasher: Ender of Legends\n1 Jackie Welles: Pour One Out For Me\n\n// Units (16)\n1 Swordwise Huscle\n3 Valentino Street Racer\n3 6th Street Recruits\n3 Pepe Najarro: Working Doubles\n1 MaxTac AV\n3 Nadia: Fighting Through Grief\n2 Placide: Voodoo Sentinel\n\n// Gears (4)\n2 Mantis Blades\n2 Satori: Sword of Saburo\n\n// Programs (20)\n2 Industrial Assembly\n2 Peace Offering\n2 Synapse Burnout\n3 Nocturne OP55 N1\n3 Over the Edge\n2 Memory Relapse\n2 Shattered Memories\n3 Unlikely Bond\n1 We Gotta Live Together",
+    "legends": [
+     "saburo_arasaka_stubborn_patriarch",
+     "adam_smasher_ender_of_legends",
+     "jackie_welles_pour_one_out_for_me"
+    ]
+   },
+   {
+    "method": "mutant",
+    "idea": "Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.",
+    "name": "S3-02 Mutant (RGY)",
+    "listId": "62c5a3ea2d0c5007",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "fixed-bar"
+    },
+    "parents": [
+     "S1-01 Mutant (RRY)"
+    ],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "shown-better",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": 0.1125,
+      "lower": 0.017552,
+      "upper": 0.207448,
+      "z": 3.357012,
+      "sd": 0.619659,
+      "deckWr": 0.575,
+      "refWr": 0.4625
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.3,
+       "se": 0.062642
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": 0.175,
+       "se": 0.077081
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": 0.175,
+       "se": 0.066024
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": 0.025,
+       "se": 0.06884
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": -0.075,
+       "se": 0.068379
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": 0.075,
+       "se": 0.066024
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": 0.195833,
+       "se": 0.038675
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": 0.029167,
+       "se": 0.040653
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 19.947065,
+      "df": 5,
+      "p": 0.001393
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "could-not-tell",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": 0.05,
+      "lower": -0.005508,
+      "upper": 0.105508,
+      "z": 1.968596,
+      "sd": 0.617761,
+      "deckWr": 0.514583,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.225,
+       "se": 0.073293
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": 0.175,
+       "se": 0.075
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": -0.025,
+       "se": 0.066502
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": -0.0625,
+       "se": 0.057213
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": -0.075,
+       "se": 0.068379
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": 0.0625,
+       "se": 0.067373
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": 0.0125,
+       "se": 0.040258
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": 0.0875,
+       "se": 0.039426
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 16.677103,
+      "df": 5,
+      "p": 0.005315
+     }
+    },
+    "entered": true,
+    "words": "entered: not shown worse than YYB Rogue Gear (the middle meta deck, this run’s fixed bar for every bred deck) (Medium: shown better, +11.3 points [+1.8, +20.7] over 480 paired games (look 2 of 5); Hard: could not tell, +5.0 points [−0.6, +10.6] over 480 paired games (look 2 of 2))",
+    "list": "# S3-02 Mutant (RGY)\n\n// Legends (3)\n1 Dexter DeShawn: Off the Grid\n1 Dum Dum: Maelstrom Triggerman\n1 Jackie Welles: Mama's Favorite\n\n// Units (16)\n3 Dexter DeShawn: One Last Chance\n1 Maelstrom Goons\n3 6th Street Recruits\n3 Pepe Najarro: Working Doubles\n3 MaxTac Suppression Team\n1 Rockn' Rockerboy\n2 Saul Bright: Stormrider\n\n// Gears (4)\n2 Mantis Blades\n2 Satori: Sword of Saburo\n\n// Programs (20)\n2 Afterparty at Lizzie's\n2 All is Lost\n2 Detonate\n1 Industrial Assembly\n3 Corporate Surveillance\n3 Over the Edge\n3 Memory Relapse\n2 Shattered Memories\n2 We Gotta Live Together",
+    "legends": [
+     "dexter_deshawn_off_the_grid",
+     "dum_dum_maelstrom_triggerman",
+     "jackie_welles_mama_s_favorite"
+    ]
+   },
+   {
+    "method": "crossover",
+    "idea": "Crossover of Ladder: V / Smasher / Padre (RRG) × NC-07 Braindance Burn (RRB) (midrange): strongest Legends of both, cards ranked by format-wide impact.",
+    "name": "S3-03 Cross (RRR)",
+    "listId": "8d775d3797c1b394",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "fixed-bar"
+    },
+    "parents": [
+     "Ladder: V / Smasher / Padre (RRG)",
+     "NC-07 Braindance Burn (RRB)"
+    ],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "could-not-tell",
+     "looks": 5,
+     "judged": {
+      "games": 1200,
+      "mean": 0.034167,
+      "lower": -0.003069,
+      "upper": 0.071402,
+      "z": 2.031032,
+      "sd": 0.635087,
+      "deckWr": 0.500833,
+      "refWr": 0.466667
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 200,
+       "mean": 0.26,
+       "se": 0.04148
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 200,
+       "mean": 0.075,
+       "se": 0.044799
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 200,
+       "mean": 0.045,
+       "se": 0.045555
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 200,
+       "mean": 0.005,
+       "se": 0.044551
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 200,
+       "mean": -0.11,
+       "se": 0.041207
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 200,
+       "mean": -0.07,
+       "se": 0.047294
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 600,
+       "mean": 0.135,
+       "se": 0.026588
+      },
+      {
+       "first": 1,
+       "games": 600,
+       "mean": -0.066667,
+       "se": 0.024591
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 48.012198,
+      "df": 5,
+      "p": 1.432e-8
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "could-not-tell",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": 0.0375,
+      "lower": -0.01839,
+      "upper": 0.09339,
+      "z": 1.968596,
+      "sd": 0.622013,
+      "deckWr": 0.502083,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.2,
+       "se": 0.082293
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": -0.075,
+       "se": 0.068379
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": 0.0125,
+       "se": 0.067725
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": 0.0125,
+       "se": 0.065347
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": 0.025,
+       "se": 0.066502
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": 0.05,
+       "se": 0.063893
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": 0.045833,
+       "se": 0.043089
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": 0.029167,
+       "se": 0.037064
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 6.865823,
+      "df": 5,
+      "p": 0.2297
+     }
+    },
+    "entered": true,
+    "words": "entered: not shown worse than YYB Rogue Gear (the middle meta deck, this run’s fixed bar for every bred deck) (Medium: could not tell, +3.4 points [−0.3, +7.1] over 1,200 paired games (look 5 of 5); Hard: could not tell, +3.8 points [−1.8, +9.3] over 480 paired games (look 2 of 2))",
+    "list": "# S3-03 Cross (RRR)\n\n// Legends (3)\n1 Dexter DeShawn: Off the Grid\n1 V: Streetkid\n1 Adam Smasher: Ender of Legends\n\n// Units (16)\n2 Ruthless Lowlife\n2 Swordwise Huscle\n3 6th Street Recruits\n3 Meredith Stout: Stone Cold Corpo\n3 Animals Wrecker\n1 Johnny Silverhand: Never Stop Fighting\n2 Yorinobu Arasaka: Steel Dragon\n\n// Gears (6)\n2 Mantis Blades\n2 Arasaka Emergency Radioport\n2 Satori: Sword of Saburo\n\n// Programs (18)\n1 All is Lost\n2 Detonate\n2 Industrial Assembly\n3 Bonnie and Clyde\n3 Over the Edge\n2 Gunpoint Diplomacy\n2 Shattered Memories\n3 Carnage at the Colosseum",
+    "legends": [
+     "dexter_deshawn_off_the_grid",
+     "v_streetkid",
+     "adam_smasher_ender_of_legends"
+    ]
+   },
+   {
+    "method": "crossover",
+    "idea": "Crossover of BBG Cunningham Econ × NC-07 Braindance Burn (RRB) (aggro): strongest Legends of both, cards ranked by format-wide impact.",
+    "name": "S3-04 Cross (RBB)",
+    "listId": "6470e45c87b0809d",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "fixed-bar"
+    },
+    "parents": [
+     "BBG Cunningham Econ",
+     "NC-07 Braindance Burn (RRB)"
+    ],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "shown-worse",
+     "looks": 4,
+     "judged": {
+      "games": 960,
+      "mean": -0.065625,
+      "lower": -0.11183,
+      "upper": -0.01942,
+      "z": 2.289817,
+      "sd": 0.625214,
+      "deckWr": 0.402083,
+      "refWr": 0.467708
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 160,
+       "mean": 0.11875,
+       "se": 0.053474
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 160,
+       "mean": -0.05,
+       "se": 0.05
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 160,
+       "mean": 0.03125,
+       "se": 0.045576
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 160,
+       "mean": -0.05625,
+       "se": 0.04366
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 160,
+       "mean": -0.2625,
+       "se": 0.048148
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 160,
+       "mean": -0.175,
+       "se": 0.049803
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 480,
+       "mean": -0.035417,
+       "se": 0.030106
+      },
+      {
+       "first": 1,
+       "games": 480,
+       "mean": -0.095833,
+       "se": 0.026837
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 38.075549,
+      "df": 5,
+      "p": 7.95e-7
+     }
+    },
+    "confirm": null,
+    "confirmSkipped": "shown-worse",
+    "entered": false,
+    "words": "kept out: shown worse than YYB Rogue Gear (the middle meta deck, this run’s fixed bar for every bred deck) with the Medium bot (Medium: shown worse, −6.6 points [−11.2, −1.9] over 960 paired games (look 4 of 5))",
+    "list": "# S3-04 Cross (RBB)\n\n// Legends (3)\n1 Jackie Welles: Pour One Out For Me\n1 Adam Smasher: Ender of Legends\n1 Judy Álvarez: Braindance Maestro\n\n// Units (19)\n3 Jacked-In Voodoo Boy\n1 Swordwise Huscle\n3 6th Street Recruits\n1 Meredith Stout: Stone Cold Corpo\n3 Psycho Squad\n3 Maman Brigitte: Spirit of Death\n2 Johnny Silverhand: Never Stop Fighting\n3 Placide: Voodoo Sentinel\n\n// Gears (2)\n2 Satori: Sword of Saburo\n\n// Programs (19)\n2 Floor It\n2 Trust No One\n2 Three Mouths, One Desire\n2 Chrome Reverie\n2 Nocturne OP55 N1\n2 Pyramid Song\n2 Unlikely Bond\n3 Les Élémens\n2 Towerfall",
+    "legends": [
+     "jackie_welles_pour_one_out_for_me",
+     "adam_smasher_ender_of_legends",
+     "judy_alvarez_braindance_maestro"
+    ]
+   },
+   {
+    "method": "counter",
+    "idea": "Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and Ladder: Jackie / Alt / Hanako (BBG) (41%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Detonate → +1 Saul Bright: Stormrider.",
+    "name": "S3-05 Counter (RRG)",
+    "listId": "080a9497aa8697ce",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "fixed-bar"
+    },
+    "parents": [
+     "Ladder: V / Smasher / Saburo (RRG)",
+     "Ladder: Jackie / Alt / Hanako (BBG)"
+    ],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "shown-better",
+     "looks": 5,
+     "judged": {
+      "games": 1200,
+      "mean": 0.043333,
+      "lower": 0.006401,
+      "upper": 0.080265,
+      "z": 2.031032,
+      "sd": 0.62991,
+      "deckWr": 0.51,
+      "refWr": 0.466667
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 200,
+       "mean": 0.235,
+       "se": 0.04252
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 200,
+       "mean": 0.045,
+       "se": 0.047181
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 200,
+       "mean": 0.055,
+       "se": 0.040844
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 200,
+       "mean": 0.04,
+       "se": 0.043026
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 200,
+       "mean": -0.095,
+       "se": 0.046266
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 200,
+       "mean": -0.02,
+       "se": 0.044247
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 600,
+       "mean": 0.11,
+       "se": 0.026202
+      },
+      {
+       "first": 1,
+       "games": 600,
+       "mean": -0.023333,
+       "se": 0.024947
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 31.32498,
+      "df": 5,
+      "p": 0.00001267
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "could-not-tell",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": 0.035417,
+      "lower": -0.020333,
+      "upper": 0.091167,
+      "z": 1.968596,
+      "sd": 0.620455,
+      "deckWr": 0.5,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.075,
+       "se": 0.070655
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": 0.1125,
+       "se": 0.066546
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": -0.1125,
+       "se": 0.066546
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": 0.0125,
+       "se": 0.072246
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": 0.05,
+       "se": 0.075263
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": 0.075,
+       "se": 0.063582
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": 0.016667,
+       "se": 0.042155
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": 0.054167,
+       "se": 0.037878
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 7.122033,
+      "df": 5,
+      "p": 0.2106
+     }
+    },
+    "entered": true,
+    "words": "entered: not shown worse than YYB Rogue Gear (the middle meta deck, this run’s fixed bar for every bred deck) (Medium: shown better, +4.3 points [+0.6, +8.0] over 1,200 paired games (look 5 of 5); Hard: could not tell, +3.5 points [−2.0, +9.1] over 480 paired games (look 2 of 2))",
+    "list": "# S3-05 Counter (RRG)\n\n// Legends (3)\n1 V: Streetkid\n1 Hanako Arasaka: Daughter of the Emperor\n1 Adam Smasher: Ender of Legends\n\n// Units (13)\n3 Valentino Street Racer\n1 6th Street Recruits\n3 Pepe Najarro: Working Doubles\n3 Animals Wrecker\n2 Yorinobu Arasaka: Steel Dragon\n1 Saul Bright: Stormrider\n\n// Gears (3)\n3 Satori: Sword of Saburo\n\n// Programs (24)\n1 Detonate\n2 Industrial Assembly\n2 Peace Offering\n1 Corporate Surveillance\n3 Bonnie and Clyde\n3 Over the Edge\n2 Gunpoint Diplomacy\n3 Memory Relapse\n2 Shattered Memories\n2 We Gotta Live Together\n3 Carnage at the Colosseum",
+    "legends": [
+     "v_streetkid",
+     "hanako_arasaka_daughter_of_the_emperor",
+     "adam_smasher_ender_of_legends"
+    ]
+   },
+   {
+    "method": "counter",
+    "idea": "Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and BBG Cunningham Econ (42%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Peace Offering → +1 Placide: Voodoo Sentinel.",
+    "name": "S3-06 Counter (RBG)",
+    "listId": "87348c7e0bd76a1f",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "fixed-bar"
+    },
+    "parents": [
+     "Ladder: V / Smasher / Saburo (RRG)",
+     "BBG Cunningham Econ"
+    ],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "could-not-tell",
+     "looks": 5,
+     "judged": {
+      "games": 1200,
+      "mean": -0.028333,
+      "lower": -0.064054,
+      "upper": 0.007387,
+      "z": 2.031032,
+      "sd": 0.60924,
+      "deckWr": 0.438333,
+      "refWr": 0.466667
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 200,
+       "mean": 0.01,
+       "se": 0.036828
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 200,
+       "mean": 0.03,
+       "se": 0.045341
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 200,
+       "mean": -0.02,
+       "se": 0.040697
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 200,
+       "mean": 0.11,
+       "se": 0.04691
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 200,
+       "mean": -0.175,
+       "se": 0.042791
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 200,
+       "mean": -0.125,
+       "se": 0.042496
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 600,
+       "mean": 0.07,
+       "se": 0.026006
+      },
+      {
+       "first": 1,
+       "games": 600,
+       "mean": -0.126667,
+       "se": 0.023015
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 28.374857,
+      "df": 5,
+      "p": 0.00004279
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "could-not-tell",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": -0.025,
+      "lower": -0.077528,
+      "upper": 0.027528,
+      "z": 1.968596,
+      "sd": 0.584597,
+      "deckWr": 0.439583,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": -0.025,
+       "se": 0.061559
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": -0.05,
+       "se": 0.068667
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": -0.075,
+       "se": 0.068379
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": 0.125,
+       "se": 0.057299
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": -0.0375,
+       "se": 0.067608
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": -0.0875,
+       "se": 0.06702
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": 0.0625,
+       "se": 0.038735
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": -0.1125,
+       "se": 0.035909
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 8.305637,
+      "df": 5,
+      "p": 0.1389
+     }
+    },
+    "entered": true,
+    "words": "entered: not shown worse than YYB Rogue Gear (the middle meta deck, this run’s fixed bar for every bred deck) (Medium: could not tell, −2.8 points [−6.4, +0.7] over 1,200 paired games (look 5 of 5); Hard: could not tell, −2.5 points [−7.8, +2.8] over 480 paired games (look 2 of 2))",
+    "list": "# S3-06 Counter (RBG)\n\n// Legends (3)\n1 Hanako Arasaka: Daughter of the Emperor\n1 Adam Smasher: Ender of Legends\n1 Jackie Welles: Pour One Out For Me\n\n// Units (13)\n3 Valentino Street Racer\n1 Pepe Najarro: Working Doubles\n3 Psycho Squad\n3 MaxTac AV\n3 Placide: Voodoo Sentinel\n\n// Gears (2)\n2 Satori: Sword of Saburo\n\n// Programs (25)\n2 Floor It\n2 Industrial Assembly\n1 Peace Offering\n2 Trust No One\n2 Chrome Reverie\n3 Nocturne OP55 N1\n3 Over the Edge\n3 Memory Relapse\n2 Shattered Memories\n3 Unlikely Bond\n2 We Gotta Live Together",
+    "legends": [
+     "hanako_arasaka_daughter_of_the_emperor",
+     "adam_smasher_ender_of_legends",
+     "jackie_welles_pour_one_out_for_me"
+    ]
+   },
+   {
+    "method": "explorer",
+    "idea": "Explorer (midrange): untested Legends Hanako Arasaka / Johnny Silverhand / V, filled by role and curve templates from format-wide card impact.",
+    "name": "S3-07 Explorer (RRG)",
+    "listId": "3c8b6e839d55e071",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "explorer"
+    },
+    "parents": [],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "shown-better",
+     "looks": 4,
+     "judged": {
+      "games": 960,
+      "mean": 0.058333,
+      "lower": 0.013133,
+      "upper": 0.103534,
+      "z": 2.289817,
+      "sd": 0.611613,
+      "deckWr": 0.526042,
+      "refWr": 0.467708
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 160,
+       "mean": 0.29375,
+       "se": 0.048237
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 160,
+       "mean": 0.14375,
+       "se": 0.046789
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 160,
+       "mean": 0.125,
+       "se": 0.044993
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 160,
+       "mean": -0.05,
+       "se": 0.045901
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 160,
+       "mean": -0.1125,
+       "se": 0.042511
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 160,
+       "mean": -0.05,
+       "se": 0.053787
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 480,
+       "mean": 0.104167,
+       "se": 0.028503
+      },
+      {
+       "first": 1,
+       "games": 480,
+       "mean": 0.0125,
+       "se": 0.027186
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 55.084154,
+      "df": 5,
+      "p": 8.611e-10
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "could-not-tell",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": 0.010417,
+      "lower": -0.046017,
+      "upper": 0.06685,
+      "z": 1.968596,
+      "sd": 0.628063,
+      "deckWr": 0.475,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.2125,
+       "se": 0.078944
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": 0.05,
+       "se": 0.070934
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": -0.0625,
+       "se": 0.067373
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": -0.025,
+       "se": 0.058933
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": -0.0875,
+       "se": 0.073764
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": -0.025,
+       "se": 0.066502
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": -0.025,
+       "se": 0.042958
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": 0.045833,
+       "se": 0.037924
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 10.330071,
+      "df": 5,
+      "p": 0.06568
+     }
+    },
+    "entered": true,
+    "words": "entered: not shown worse than YYB Rogue Gear (explorer: the middle meta deck) (Medium: shown better, +5.8 points [+1.3, +10.4] over 960 paired games (look 4 of 5); Hard: could not tell, +1.0 points [−4.6, +6.7] over 480 paired games (look 2 of 2))",
+    "list": "# S3-07 Explorer (RRG)\n\n// Legends (3)\n1 Hanako Arasaka: Daughter of the Emperor\n1 Johnny Silverhand: Rocking Renegade\n1 V: Streetkid\n\n// Units (16)\n1 Swordwise Huscle\n3 Valentino Street Racer\n3 6th Street Recruits\n3 Pepe Najarro: Working Doubles\n3 Animals Wrecker\n1 Nadia: Fighting Through Grief\n2 Yorinobu Arasaka: Steel Dragon\n\n// Gears (5)\n2 Arasaka Emergency Radioport\n2 Satori: Sword of Saburo\n1 Deadman Transmitter\n\n// Programs (19)\n2 Industrial Assembly\n3 Bonnie and Clyde\n3 Over the Edge\n2 Gunpoint Diplomacy\n2 Memory Relapse\n2 Shattered Memories\n2 We Gotta Live Together\n3 Carnage at the Colosseum",
+    "legends": [
+     "hanako_arasaka_daughter_of_the_emperor",
+     "johnny_silverhand_rocking_renegade",
+     "v_streetkid"
+    ]
+   },
+   {
+    "method": "explorer",
+    "idea": "Explorer (aggro): untested Legends Adam Smasher / Sasha Yakovleva / Dexter DeShawn, filled by role and curve templates from format-wide card impact.",
+    "name": "S3-08 Explorer (RRB)",
+    "listId": "e0fad68dfe3df63f",
+    "reference": {
+     "name": "YYB Rogue Gear",
+     "listId": "078ce02dba6dd2c0",
+     "why": "explorer"
+    },
+    "parents": [],
+    "field": [
+     "BBG Cunningham Econ",
+     "GRY Trauma Team",
+     "Rainbow Fixer Stuff",
+     "RRB Wakako Midrange",
+     "RRG Dexter Midrange",
+     "RRY Smasher Aggro"
+    ],
+    "first": {
+     "bot": "medium",
+     "seed0": 3700000,
+     "stageGames": 240,
+     "capStages": 5,
+     "verdict": "shown-better",
+     "looks": 3,
+     "judged": {
+      "games": 720,
+      "mean": 0.066667,
+      "lower": 0.005365,
+      "upper": 0.127969,
+      "z": 2.68028,
+      "sd": 0.613705,
+      "deckWr": 0.530556,
+      "refWr": 0.463889
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 120,
+       "mean": 0.25,
+       "se": 0.057064
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 120,
+       "mean": 0.091667,
+       "se": 0.057972
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 120,
+       "mean": 0.15,
+       "se": 0.05246
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 120,
+       "mean": 0.025,
+       "se": 0.054827
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 120,
+       "mean": -0.075,
+       "se": 0.05314
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 120,
+       "mean": -0.041667,
+       "se": 0.056006
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 360,
+       "mean": 0.105556,
+       "se": 0.032676
+      },
+      {
+       "first": 1,
+       "games": 360,
+       "mean": 0.027778,
+       "se": 0.031925
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 24.44687,
+      "df": 5,
+      "p": 0.0002172
+     }
+    },
+    "confirm": {
+     "bot": "hard",
+     "seed0": 3800000,
+     "stageGames": 240,
+     "capStages": 2,
+     "verdict": "could-not-tell",
+     "looks": 2,
+     "judged": {
+      "games": 480,
+      "mean": 0.020833,
+      "lower": -0.036319,
+      "upper": 0.077986,
+      "z": 1.968596,
+      "sd": 0.636063,
+      "deckWr": 0.485417,
+      "refWr": 0.464583
+     },
+     "byOpp": [
+      {
+       "opp": "BBG Cunningham Econ",
+       "games": 80,
+       "mean": 0.275,
+       "se": 0.075421
+      },
+      {
+       "opp": "GRY Trauma Team",
+       "games": 80,
+       "mean": -0.0375,
+       "se": 0.067608
+      },
+      {
+       "opp": "RRB Wakako Midrange",
+       "games": 80,
+       "mean": -0.025,
+       "se": 0.073293
+      },
+      {
+       "opp": "RRG Dexter Midrange",
+       "games": 80,
+       "mean": 0,
+       "se": 0.061624
+      },
+      {
+       "opp": "RRY Smasher Aggro",
+       "games": 80,
+       "mean": -0.1125,
+       "se": 0.073333
+      },
+      {
+       "opp": "Rainbow Fixer Stuff",
+       "games": 80,
+       "mean": 0.025,
+       "se": 0.06884
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 240,
+       "mean": 0.025,
+       "se": 0.041722
+      },
+      {
+       "first": 1,
+       "games": 240,
+       "mean": 0.016667,
+       "se": 0.040467
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 15.886922,
+      "df": 5,
+      "p": 0.007326
+     }
+    },
+    "entered": true,
+    "words": "entered: not shown worse than YYB Rogue Gear (explorer: the middle meta deck) (Medium: shown better, +6.7 points [+0.5, +12.8] over 720 paired games (look 3 of 5); Hard: could not tell, +2.1 points [−3.6, +7.8] over 480 paired games (look 2 of 2))",
+    "list": "# S3-08 Explorer (RRB)\n\n// Legends (3)\n1 Adam Smasher: Ender of Legends\n1 Sasha Yakovleva: Won't Let You Down\n1 Dexter DeShawn: Off the Grid\n\n// Units (19)\n1 Ruthless Lowlife\n3 Swordwise Huscle\n3 6th Street Recruits\n1 Kerry Eurodyne: The Last Rockerboy\n3 Psycho Squad\n2 Royce: Don't Call Me Simon\n3 Animals Wrecker\n3 Yorinobu Arasaka: Steel Dragon\n\n// Gears (3)\n1 Arasaka Emergency Radioport\n2 Satori: Sword of Saburo\n\n// Programs (18)\n2 Industrial Assembly\n3 Bonnie and Clyde\n2 Nocturne OP55 N1\n2 Over the Edge\n2 Gunpoint Diplomacy\n2 Shattered Memories\n2 Unlikely Bond\n3 Carnage at the Colosseum",
+    "legends": [
+     "adam_smasher_ender_of_legends",
+     "sasha_yakovleva_won_t_let_you_down",
+     "dexter_deshawn_off_the_grid"
+    ]
+   }
+  ]
+ },
+ "standings": [
+  {
+   "name": "RRG Dexter Midrange",
+   "file": "meta-rrg-dexter-midrange.txt",
+   "kind": "meta",
+   "wr": 0.6583333333333333,
+   "isNew": false
+  },
+  {
+   "name": "Ladder: V / Smasher / Saburo (RRG)",
+   "file": "ladder-rrg-v-smasher-saburo.txt",
+   "kind": "ladder",
+   "wr": 0.61875,
+   "isNew": false
+  },
+  {
+   "name": "S1-01 Mutant (RRY)",
+   "file": "s1-01-mutant-rry.txt",
+   "kind": "original",
+   "wr": 0.6125,
+   "isNew": false
+  },
+  {
+   "name": "Ladder: V / Smasher / Padre (RRG)",
+   "file": "ladder-rrg-v-smasher-padre.txt",
+   "kind": "ladder",
+   "wr": 0.5833333333333334,
+   "isNew": false
+  },
+  {
+   "name": "Smash the Curve",
+   "file": "RRG-smash-the-curve.txt",
+   "kind": "guide",
+   "wr": 0.58125,
+   "isNew": false
+  },
+  {
+   "name": "BBG Cunningham Econ",
+   "file": "meta-bbg-cunningham-econ.txt",
+   "kind": "meta",
+   "wr": 0.5583333333333333,
+   "isNew": false
+  },
+  {
+   "name": "NC-07 Braindance Burn (RRB)",
+   "file": "nc-07-braindance-burn-rrb.txt",
+   "kind": "original",
+   "wr": 0.5520833333333334,
+   "isNew": false
+  },
+  {
+   "name": "NC-08 Merc Contract (RRG)",
+   "file": "nc-08-merc-contract-rrg.txt",
+   "kind": "original",
+   "wr": 0.55,
+   "isNew": false
+  },
+  {
+   "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+   "file": "ladder-bbg-jackie-alt-hanako.txt",
+   "kind": "ladder",
+   "wr": 0.54375,
+   "isNew": false
+  },
+  {
+   "name": "RRY Smasher Aggro",
+   "file": "meta-rry-smasher-aggro.txt",
+   "kind": "meta",
+   "wr": 0.5270833333333333,
+   "isNew": false
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "file": "s2-02-mutant-rgg.txt",
+   "kind": "original",
+   "wr": 0.5166666666666667,
+   "isNew": false
+  },
+  {
+   "name": "S3-05 Counter (RRG)",
+   "file": "s3-05-counter-rrg.txt",
+   "kind": "original",
+   "wr": 0.48333333333333334,
+   "isNew": true
+  },
+  {
+   "name": "S3-08 Explorer (RRB)",
+   "file": "s3-08-explorer-rrb.txt",
+   "kind": "original",
+   "wr": 0.45208333333333334,
+   "isNew": true
+  },
+  {
+   "name": "S3-03 Cross (RRR)",
+   "file": "s3-03-cross-rrr.txt",
+   "kind": "original",
+   "wr": 0.45,
+   "isNew": true
+  },
+  {
+   "name": "S3-02 Mutant (RGY)",
+   "file": "s3-02-mutant-rgy.txt",
+   "kind": "original",
+   "wr": 0.44583333333333336,
+   "isNew": true
+  },
+  {
+   "name": "YYB Rogue Gear",
+   "file": "meta-yyb-rogue-gear.txt",
+   "kind": "meta",
+   "wr": 0.4375,
+   "isNew": false
+  },
+  {
+   "name": "S3-06 Counter (RBG)",
+   "file": "s3-06-counter-rbg.txt",
+   "kind": "original",
+   "wr": 0.42916666666666664,
+   "isNew": true
+  },
+  {
+   "name": "S3-07 Explorer (RRG)",
+   "file": "s3-07-explorer-rrg.txt",
+   "kind": "original",
+   "wr": 0.4125,
+   "isNew": true
+  },
+  {
+   "name": "Rainbow Fixer Stuff",
+   "file": "meta-rainbow-fixer-stuff.txt",
+   "kind": "meta",
+   "wr": 0.38333333333333336,
+   "isNew": false
+  },
+  {
+   "name": "GRY Trauma Team",
+   "file": "meta-gry-trauma-team.txt",
+   "kind": "meta",
+   "wr": 0.3625,
+   "isNew": false
+  },
+  {
+   "name": "RRB Wakako Midrange",
+   "file": "meta-rrb-wakako-midrange.txt",
+   "kind": "meta",
+   "wr": 0.3416666666666667,
+   "isNew": false
+  }
+ ],
+ "leaderTop": [
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "vsMeta": 0.7465986394557823,
+   "percentile": 100
+  },
+  {
+   "name": "S2-03 Cross (RGY)",
+   "vsMeta": 0.7295918367346939,
+   "percentile": 97
+  },
+  {
+   "name": "S1-01 Mutant (RRY)",
+   "vsMeta": 0.7142857142857143,
+   "percentile": 94
+  },
+  {
+   "name": "RRG Dexter Midrange",
+   "vsMeta": 0.7058823529411765,
+   "percentile": 91
+  },
+  {
+   "name": "S2-05 Counter (RRG)",
+   "vsMeta": 0.717687074829932,
+   "percentile": 89
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "vsMeta": 0.708994708994709,
+   "percentile": 86
+  },
+  {
+   "name": "S1-03 Mutant (RBG)",
+   "vsMeta": 0.6997354497354498,
+   "percentile": 83
+  },
+  {
+   "name": "Ladder: V / Smasher / Saburo (RRG)",
+   "vsMeta": 0.6904761904761905,
+   "percentile": 80
+  },
+  {
+   "name": "S2-06 Counter (RGG)",
+   "vsMeta": 0.6802721088435374,
+   "percentile": 77
+  },
+  {
+   "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+   "vsMeta": 0.6362433862433863,
+   "percentile": 74
+  },
+  {
+   "name": "NC-08 Merc Contract (RRG)",
+   "vsMeta": 0.626984126984127,
+   "percentile": 71
+  },
+  {
+   "name": "Ladder: V / Smasher / Padre (RRG)",
+   "vsMeta": 0.6224489795918368,
+   "percentile": 69
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "season:2026-11-16T05:07:25.155Z:3000000",
+  "createdAt": "2026-11-16T05:07:25.155Z",
+  "purpose": "season",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "hard"
+  },
+  "decks": [
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   },
+   {
+    "id": "779315ff7aa233e2",
+    "name": "Ladder: V / Smasher / Saburo (RRG)",
+    "file": "ladder-rrg-v-smasher-saburo.txt"
+   },
+   {
+    "id": "6ec722391d7c9d82",
+    "name": "Smash the Curve",
+    "file": "RRG-smash-the-curve.txt"
+   },
+   {
+    "id": "52592f87a5675ab9",
+    "name": "S1-01 Mutant (RRY)",
+    "file": "s1-01-mutant-rry.txt"
+   },
+   {
+    "id": "e7b0b38e8ab5b225",
+    "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+    "file": "ladder-bbg-jackie-alt-hanako.txt"
+   },
+   {
+    "id": "f375b2d8199f4566",
+    "name": "Ladder: V / Smasher / Padre (RRG)",
+    "file": "ladder-rrg-v-smasher-padre.txt"
+   },
+   {
+    "id": "c2542795135c61d5",
+    "name": "NC-07 Braindance Burn (RRB)",
+    "file": "nc-07-braindance-burn-rrb.txt"
+   },
+   {
+    "id": "207834998dd33f94",
+    "name": "S2-02 Mutant (RGG)",
+    "file": "s2-02-mutant-rgg.txt"
+   },
+   {
+    "id": "c98b1332deca6e62",
+    "name": "NC-08 Merc Contract (RRG)",
+    "file": "nc-08-merc-contract-rrg.txt"
+   },
+   {
+    "id": "62c5a3ea2d0c5007",
+    "name": "S3-02 Mutant (RGY)",
+    "file": "s3-02-mutant-rgy.txt"
+   },
+   {
+    "id": "b9302aaa1c316aa8",
+    "name": "S3-03 Cross (RRR)",
+    "file": "s3-03-cross-rrr.txt"
+   },
+   {
+    "id": "080a9497aa8697ce",
+    "name": "S3-05 Counter (RRG)",
+    "file": "s3-05-counter-rrg.txt"
+   },
+   {
+    "id": "06eed193385abd58",
+    "name": "S3-06 Counter (RBG)",
+    "file": "s3-06-counter-rbg.txt"
+   },
+   {
+    "id": "3c8b6e839d55e071",
+    "name": "S3-07 Explorer (RRG)",
+    "file": "s3-07-explorer-rrg.txt"
+   },
+   {
+    "id": "e0fad68dfe3df63f",
+    "name": "S3-08 Explorer (RRB)",
+    "file": "s3-08-explorer-rrb.txt"
+   }
+  ],
+  "field": {
+   "mode": "season-3",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0",
+    "779315ff7aa233e2",
+    "6ec722391d7c9d82",
+    "52592f87a5675ab9",
+    "e7b0b38e8ab5b225",
+    "f375b2d8199f4566",
+    "c2542795135c61d5",
+    "207834998dd33f94",
+    "c98b1332deca6e62",
+    "62c5a3ea2d0c5007",
+    "b9302aaa1c316aa8",
+    "080a9497aa8697ce",
+    "06eed193385abd58",
+    "3c8b6e839d55e071",
+    "e0fad68dfe3df63f"
+   ]
+  },
+  "sample": {
+   "plannedGames": 5040,
+   "completedGames": 5040,
+   "gamesPerPair": 24
+  },
+  "seedBase": 3000000,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {},
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "obrien-fleming",
+   "lookZ": [
+    4.3326,
+    2.9631,
+    2.359,
+    2.0141
+   ],
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0,
+   "ledger": {
+    "boundary": "normal-mixture",
+    "rho": 250
+   },
+   "confirmBot": "hard"
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

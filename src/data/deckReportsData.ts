@@ -20,7 +20,8 @@ export interface MatchRec {
   simVersion?: number;
 }
 export interface DeckReports {
-  finals?: { overall: number; games: number; date?: string; simVersion?: number; rows: MatchRec[] };
+  /** `bot`: the bot that played the finals, as the report names it (absent in files bundled before 2026-11-16) */
+  finals?: { overall: number; games: number; date?: string; simVersion?: number; bot?: string; rows: MatchRec[] };
   h2h?: MatchRec[];
   forge?: {
     field?: string;

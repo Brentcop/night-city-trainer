@@ -1,0 +1,199 @@
+{
+ "deck": "NC-07 Braindance Burn (RRB)",
+ "date": "2026-11-16T06:01:59.422Z",
+ "games": 60,
+ "bot": "hard",
+ "seed": 27000,
+ "overall": 0.5190476190476191,
+ "rows": [
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "RRB Wakako Midrange",
+   "games": 60,
+   "aWins": 41,
+   "bWins": 19,
+   "ties": 0,
+   "aFirstWins": 25,
+   "aFirstGames": 30,
+   "aSecondWins": 16,
+   "aSecondGames": 30,
+   "bFirstWins": 14,
+   "bSecondWins": 5,
+   "turns": 790,
+   "overtime": 21
+  },
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "GRY Trauma Team",
+   "games": 60,
+   "aWins": 40,
+   "bWins": 20,
+   "ties": 0,
+   "aFirstWins": 19,
+   "aFirstGames": 30,
+   "aSecondWins": 21,
+   "aSecondGames": 30,
+   "bFirstWins": 9,
+   "bSecondWins": 11,
+   "turns": 788,
+   "overtime": 20
+  },
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "Rainbow Fixer Stuff",
+   "games": 60,
+   "aWins": 40,
+   "bWins": 20,
+   "ties": 0,
+   "aFirstWins": 22,
+   "aFirstGames": 30,
+   "aSecondWins": 18,
+   "aSecondGames": 30,
+   "bFirstWins": 12,
+   "bSecondWins": 8,
+   "turns": 810,
+   "overtime": 28
+  },
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "YYB Rogue Gear",
+   "games": 60,
+   "aWins": 30,
+   "bWins": 30,
+   "ties": 0,
+   "aFirstWins": 18,
+   "aFirstGames": 30,
+   "aSecondWins": 12,
+   "aSecondGames": 30,
+   "bFirstWins": 18,
+   "bSecondWins": 12,
+   "turns": 818,
+   "overtime": 33
+  },
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "RRY Smasher Aggro",
+   "games": 60,
+   "aWins": 28,
+   "bWins": 32,
+   "ties": 0,
+   "aFirstWins": 16,
+   "aFirstGames": 30,
+   "aSecondWins": 12,
+   "aSecondGames": 30,
+   "bFirstWins": 18,
+   "bSecondWins": 14,
+   "turns": 792,
+   "overtime": 18
+  },
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "BBG Cunningham Econ",
+   "games": 60,
+   "aWins": 22,
+   "bWins": 38,
+   "ties": 0,
+   "aFirstWins": 17,
+   "aFirstGames": 30,
+   "aSecondWins": 5,
+   "aSecondGames": 30,
+   "bFirstWins": 25,
+   "bSecondWins": 13,
+   "turns": 754,
+   "overtime": 15
+  },
+  {
+   "a": "NC-07 Braindance Burn (RRB)",
+   "b": "RRG Dexter Midrange",
+   "games": 60,
+   "aWins": 17,
+   "bWins": 43,
+   "ties": 0,
+   "aFirstWins": 9,
+   "aFirstGames": 30,
+   "aSecondWins": 8,
+   "aSecondGames": 30,
+   "bFirstWins": 22,
+   "bSecondWins": 21,
+   "turns": 796,
+   "overtime": 22
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "matchup:2026-11-16T06:01:59.408Z:27000",
+  "createdAt": "2026-11-16T06:01:59.408Z",
+  "purpose": "matchup",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "hard"
+  },
+  "decks": [
+   {
+    "id": "c2542795135c61d5",
+    "name": "NC-07 Braindance Burn (RRB)",
+    "file": "nc-07-braindance-burn-rrb.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "c2542795135c61d5",
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 420,
+   "completedGames": 420,
+   "gamesPerPair": 60
+  },
+  "seedBase": 27000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

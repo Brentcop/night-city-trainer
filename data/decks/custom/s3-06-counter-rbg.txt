@@ -1,0 +1,35 @@
+// S3-06 Counter (RBG)
+// Origin: Night City Trainer bred deck (season 3, counter)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: Ladder: V / Smasher / Saburo (RRG) × BBG Cunningham Econ
+// Added: 2026-11-16
+// Idea: Counter to the top decks (RRG Dexter Midrange, Ladder: V / Smasher / Saburo (RRG), Smash the Curve): merges Ladder: V / Smasher / Saburo (RRG) (49% vs them) and BBG Cunningham Econ (42%), keeping the cards that win games for each. Topped up from 12 to 13 Units: -1 Peace Offering → +1 Placide: Voodoo Sentinel.
+// Forged 2026-11-16: -1 Chrome Reverie → +1 Johnny Silverhand: Never Stop Fighting (held-out +3.1 pts [+1.1, +5.2], 896 games)
+// Adoption: evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 spent over 4 looks (O'Brien–Fleming-type, z = 4.33 / 2.96 / 2.36 / 2.01); change ledger on: a nominee with held-out games from earlier runs (same simulator version, bot and field) is judged on those games first, then on them and each new stage pooled, by an always-valid boundary (normal mixture, Howard et al. 2021, ρ = 250 games, one-sided 0.025 each: z = 3.32 at 448 games, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584); screened with the Medium bot, confirmed with the Hard bot
+// Packages: keep Lower, then swap, Spend, then punish; kept Lower, then swap, Spend, then punish
+// Format: Constructed
+
+// Legends
+1 Hanako Arasaka: Daughter of the Emperor
+1 Adam Smasher: Ender of Legends
+1 Jackie Welles: Pour One Out For Me
+
+// Main Deck
+3 Valentino Street Racer
+1 Pepe Najarro: Working Doubles
+3 Psycho Squad
+3 MaxTac AV
+1 Johnny Silverhand: Never Stop Fighting
+3 Placide: Voodoo Sentinel
+2 Satori: Sword of Saburo
+2 Floor It
+2 Industrial Assembly
+1 Peace Offering
+2 Trust No One
+1 Chrome Reverie
+3 Nocturne OP55 N1
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories
+3 Unlikely Bond
+2 We Gotta Live Together

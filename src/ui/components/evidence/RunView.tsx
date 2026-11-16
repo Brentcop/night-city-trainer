@@ -36,6 +36,7 @@ export function RunView({ deck, run }: { deck: Pick<DeckEvidence, 'listId' | 'de
             <p>{run.detect ? runDetectWords(run.detect) : RUN_WORDS.noDetect}</p>
           </>
         )}
+        {run.ledgerRun && <p className="small">{RUN_WORDS.keptAcross}</p>}
         <p className="small muted">
           {RUN_WORDS.source} <code>{run.source.file}</code> <code>{run.source.path}</code>
         </p>

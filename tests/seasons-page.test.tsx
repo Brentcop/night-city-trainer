@@ -3,15 +3,31 @@
 // parent's, with the test at entry or "not tested before entering"), the decks a season's test did not let in, and the
 // leaderboard's "older simulator" marks with the intro's sentence. Rendered with fixtures: a gated season (decks that
 // entered and one that did not, its tests made by the real rule on faked games) and an ungated one; a stale and a
-// current leaderboard row. Also the bundled data, where every row is stale and no season was tested.
+// current leaderboard row. Also the bundled data: Seasons 1 and 2 (simulator v5, untested) and Season 3 (2026-11-16, the
+// current simulator, the first tested at entry, two decks kept out); the intro and each panel say which is historical
+// from the season's own version.
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DeckList } from '../src/engine/types';
 import { RATINGS, SEASONS, type LeaderRow, type SeasonGate, type SeasonGateDeck, type SeasonRecord, type SeasonsData } from '../src/data/index';
 import { BUILTIN } from '../src/lib/browserLibrary';
 import { gateField, runGate, type GateEntry, type GatePlay, type ReferenceWhy } from '../src/lib/breedGate';
-import { bredThenAndNow, leaderboardStaleWords, NOT_TESTED, notEntered, ratingNowWords, seasonTestWords, stepFigureWords, thenAndNowIntro, verdictAgainst } from '../src/lib/bredDecks';
-import { rankLibraryParents } from '../src/lib/parentStrength';
+import {
+  bredThenAndNow,
+  leaderboardStaleWords,
+  NOT_TESTED,
+  notEntered,
+  ratingNowWords,
+  seasonListWords,
+  seasonSimNote,
+  seasonsSimWords,
+  seasonTestWords,
+  stepFigureWords,
+  thenAndNowIntro,
+  verdictAgainst,
+} from '../src/lib/bredDecks';
+import { rankLibraryParents, seasonVersions, staleLeaderRow } from '../src/lib/parentStrength';
+import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
 import { SeasonsView } from '../src/ui/pages/Seasons';
 import { setArtEnabled } from '../src/ui/art';
 
@@ -108,7 +124,20 @@ describe('then and now, as rows', () => {
     const by = (n: string) => gate.decks.find((d) => d.name === n)!;
     expect(seasonTestWords(by('S2-02 Mutant (RGG)'))).toBe('Entered: not shown worse than RRG Dexter Midrange (its best parent then)');
     expect(seasonTestWords(by('S3-02 Gone (RRB)'))).toBe('Entered: not shown worse than RRG Dexter Midrange (the middle meta deck, as none of its parents was ranked)');
-    expect(seasonTestWords(by('S2-07 Explorer (RRB)'))).toMatch(/^Entered: shown better than BBG Cunningham Econ \(the middle meta deck, as an explorer\) with the Medium bot( and the Hard bot)?$/);
+    // a bot that could not tell is named after the one that showed it better, never left out
+    const explorer = by('S2-07 Explorer (RRB)');
+    expect(explorer.first.verdict).toBe('shown-better');
+    expect(seasonTestWords(explorer)).toBe(
+      `Entered: shown better than BBG Cunningham Econ (the middle meta deck, as an explorer) with the Medium bot${explorer.confirm?.verdict === 'shown-better' ? ' and the Hard bot' : '; the Hard bot could not tell'}`,
+    );
+    const confirm = explorer.confirm!;
+    expect(seasonTestWords({ ...explorer, confirm: { ...confirm, verdict: 'could-not-tell' } })).toBe(
+      'Entered: shown better than BBG Cunningham Econ (the middle meta deck, as an explorer) with the Medium bot; the Hard bot could not tell',
+    );
+    expect(seasonTestWords({ ...explorer, confirm: { ...confirm, verdict: 'shown-better' } })).toBe('Entered: shown better than BBG Cunningham Econ (the middle meta deck, as an explorer) with the Medium bot and the Hard bot');
+    expect(seasonTestWords({ ...explorer, first: { ...explorer.first, verdict: 'could-not-tell' }, confirm: { ...confirm, verdict: 'shown-better' } })).toBe(
+      'Entered: shown better than BBG Cunningham Econ (the middle meta deck, as an explorer) with the Hard bot; the Medium bot could not tell',
+    );
     expect(seasonTestWords(by('S3-04 Kept (BBG)'))).toBe('Kept out: shown worse than RRG Dexter Midrange (its best parent then) with the Medium bot');
     // a season run with --gate-reference middle: a deck with parents tested against the fixed bar
     const mutant = by('S2-02 Mutant (RGG)');
@@ -117,11 +146,42 @@ describe('then and now, as rows', () => {
     expect(verdictAgainst('could-not-tell', 'X')).toBe('could not tell: not shown worse than X');
     expect(ratingNowWords(null)).toBe('not rated');
     expect(ratingNowWords({ wr: 0.623, lo: 0.581, hi: 0.66, games: 1238 })).toBe('62.3% (90% range 58.1%–66.0%), 1,238 games');
+    // it names only what differs: the field always, the bot and the simulator when they are not the same
     expect(thenAndNowIntro({ season: 3, seasonBot: 'deep', seasonSim: 9, ratingsBot: 'hard', ratingsSim: 9 })).toBe(
-      'The Season 3 number is each deck’s win rate in that season’s round robin (Deep bot, simulator v9); the rating now is its power rating from the recorded tournaments (Hard bot, simulator v9). They are different measures, with another field, bot and simulator, shown side by side to see how a deck that looked strong in its season rates today.',
+      'The Season 3 number is each deck’s win rate in that season’s round robin (Deep bot, simulator v9); the rating now is its power rating from the recorded tournaments (Hard bot, simulator v9). They are different measures, with another field and bot but the same simulator, shown side by side to see how a deck that looked strong in its season rates today.',
     );
+    expect(thenAndNowIntro({ season: 1, seasonBot: 'deep', seasonSim: 5, ratingsBot: 'hard', ratingsSim: 9 })).toContain('with another field, bot and simulator, shown side by side');
+    expect(thenAndNowIntro({ season: 3, seasonBot: 'hard', seasonSim: 9, ratingsBot: 'hard', ratingsSim: 9 })).toContain(
+      '(Hard bot, simulator v9); the rating now is its power rating from the recorded tournaments (Hard bot, simulator v9). They are different measures, with another field but the same bot and simulator, shown',
+    );
+    expect(thenAndNowIntro({ season: 2, seasonBot: 'hard', seasonSim: 5, ratingsBot: 'hard', ratingsSim: 9 })).toContain('with another field and simulator but the same bot, shown');
+    // unknown on either side is never called the same
+    expect(thenAndNowIntro({ season: 2, seasonBot: 'hard', seasonSim: null, ratingsBot: null, ratingsSim: null })).toContain('with another field, bot and simulator, shown');
+    // which seasons are historical, from each season's own version
+    expect(seasonListWords([3])).toBe('Season 3');
+    expect(seasonListWords([2, 1])).toBe('Seasons 1 and 2');
+    expect(seasonListWords([4, 1, 2])).toBe('Seasons 1, 2 and 4');
+    expect(seasonsSimWords({ '1': 5, '2': 5 }, 9)).toBe('Seasons 1 and 2 were played on an older simulator (v5), so their results are historical (the current simulator is v9).');
+    expect(seasonsSimWords({ '1': 5 }, 9)).toBe('Season 1 was played on an older simulator (v5), so its results are historical (the current simulator is v9).');
+    expect(seasonsSimWords({ '1': 5, '2': 5, '3': 9 }, 9)).toBe('Seasons 1 and 2 were played on an older simulator (v5), so their results are historical; Season 3 was played on the current simulator (v9).');
+    expect(seasonsSimWords({ '1': 4, '2': 5, '3': 9, '4': 9 }, 9)).toBe('Seasons 1 and 2 were played on an older simulator (v4 and v5), so their results are historical; Seasons 3 and 4 were played on the current simulator (v9).');
+    expect(seasonsSimWords({ '3': 9, '4': 9 }, 9)).toBeNull();
+    expect(seasonsSimWords({}, 9)).toBeNull();
+    expect(seasonsSimWords({ '1': null, '2': 5, '3': 9 }, 9)).toBe(
+      'Season 1 has no recorded simulator version and Season 2 was played on an older simulator (v5), so their results are historical; Season 3 was played on the current simulator (v9).',
+    );
+    expect(seasonsSimWords({ '1': null }, 9)).toBe('Season 1 has no recorded simulator version, so its results are historical (the current simulator is v9).');
+    expect(seasonSimNote(9, 9)).toEqual({ text: 'simulator v9', historical: false });
+    expect(seasonSimNote(5, 9)).toEqual({ text: 'simulator v5, historical', historical: true });
+    expect(seasonSimNote(null, 9)).toEqual({ text: 'no simulator version recorded, historical', historical: true });
+    expect(seasonSimNote(undefined, 9)).toEqual({ text: 'no simulator version recorded, historical', historical: true });
     expect(leaderboardStaleWords(0)).toBeNull();
     expect(leaderboardStaleWords(2)).toBe('The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings.');
+    // with rows of the current simulator beside the old ones, it says the breeder uses those too
+    expect(leaderboardStaleWords(2, 3)).toBe(
+      'The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings, together with the rows played on the current simulator.',
+    );
+    expect(leaderboardStaleWords(0, 3)).toBeNull();
   });
 });
 
@@ -166,18 +226,80 @@ describe('the page', () => {
     expect(count(html, '>older simulator</span>')).toBe(1); // S1-01's row only (season 1 ran under version 5)
     const s101 = html.slice(html.indexOf('S1-01 Mutant (RRY)</b>'), html.indexOf('S1-01 Mutant (RRY)</b>') + 2000);
     expect(s101).toContain('>older simulator</span>');
-    expect(t).toContain('These results were recorded before the current simulator (v9), so they are historical. The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings.');
-    // every row current: no mark, no sentence
+    // the intro names the historical season from its own version: the file's manifest (5, the oldest season's) is not read
+    expect(t).toContain(
+      'Season 1 was played on an older simulator (v5), so its results are historical; Season 3 was played on the current simulator (v9). The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings, together with the rows played on the current simulator.',
+    );
+    expect(text(renderToStaticMarkup(<SeasonsView data={{ ...D, manifest: { simVersion: 9 } }} ratings={RATINGS} lib={BUILTIN} current={9} />))).toContain('Season 1 was played on an older simulator (v5)');
+    // each season's panel names its simulator; the older one says it is historical
+    expect(t).toMatch(/Season 3 \(2026-11-20 · 24 games per pairing · Deep bot · simulator v9\)/);
+    expect(t).toMatch(/Season 1 \(2026-11-11 · \d+ games per pairing · Deep bot · simulator v5, historical \)/);
+    expect(count(html, `title="${'This season was not played on the current simulator, so its numbers are historical: new games may differ.'}"`)).toBe(1);
+    // every row and season current: no mark, no sentence
     const current = { ...D, leaderboard: [D.leaderboard[0]!], seasons: [D.seasons[1]!], manifest: { simVersion: 9 } };
     const h2 = renderToStaticMarkup(<SeasonsView data={current} ratings={RATINGS} lib={BUILTIN} current={9} />);
     expect(h2).not.toContain('older simulator');
     expect(h2).not.toContain('historical');
+    // every season older: the sentence says so, with the current version
+    const old = { ...D, seasons: [D.seasons[0]!] };
+    expect(text(renderToStaticMarkup(<SeasonsView data={old} ratings={RATINGS} lib={BUILTIN} current={9} />))).toContain(
+      'Season 1 was played on an older simulator (v5), so its results are historical (the current simulator is v9).',
+    );
   });
 
-  it('the bundled data: every leaderboard row is marked, and no recorded season was tested', () => {
+  it('the bundled data: Seasons 1 and 2 are historical and untested; Season 3 is current, tested at entry, with two decks kept out', () => {
     const html = renderToStaticMarkup(<SeasonsView data={SEASONS} ratings={RATINGS} lib={BUILTIN} />);
-    expect(count(html, '>older simulator</span>')).toBe(SEASONS.leaderboard.length);
-    expect(count(text(html), NOT_TESTED)).toBe(SEASONS.seasons.reduce((n, s) => n + s.bred.length, 0));
-    expect(html).not.toContain('Bred, but did not enter');
+    const t = text(html);
+    const versions = seasonVersions(SEASONS.seasons);
+    expect(versions).toEqual({ '1': 5, '2': 5, '3': CURRENT_SIM_VERSION });
+    // the intro, from each season's own version (the file's own version is the oldest season's)
+    expect(SEASONS.manifest?.simVersion).toBe(5);
+    expect(t).toContain(`Seasons 1 and 2 were played on an older simulator (v5), so their results are historical; Season 3 was played on the current simulator (v${CURRENT_SIM_VERSION}).`);
+    expect(t).not.toContain('These results were recorded before the current simulator');
+    // each panel names its bot and simulator
+    expect(t).toMatch(new RegExp(`Season 3 \\(2026-11-16 · 24 games per pairing · Hard bot · simulator v${CURRENT_SIM_VERSION}\\)`));
+    expect(t).toMatch(/Season 2 \(2026-11-12 · 24 games per pairing · Deep bot · simulator v5, historical \)/);
+    expect(t).toMatch(/Season 1 \(2026-11-11 · \d+ games per pairing · Deep bot · simulator v5, historical \)/);
+    // the leaderboard: 28 of 36 rows have a season before 3 behind them and are marked; the 8 with only Season 3 are not
+    expect(SEASONS.leaderboard).toHaveLength(36);
+    expect(SEASONS.leaderboard.filter((r) => staleLeaderRow(r, versions))).toHaveLength(28);
+    expect(count(html, '>older simulator</span>')).toBe(28);
+    for (const r of SEASONS.leaderboard.filter((x) => !staleLeaderRow(x, versions))) {
+      const at = html.indexOf(`${r.name.replace(/'/g, '&#x27;')}</b></a>`);
+      expect(at, r.name).toBeGreaterThan(0);
+      expect(html.slice(at, html.indexOf('</tr>', at)), r.name).not.toContain('older simulator');
+    }
+    // Seasons 1 and 2 were not tested at entry
+    const untested = SEASONS.seasons.filter((s) => s.season < 3).reduce((n, s) => n + s.bred.length, 0);
+    expect(untested).toBe(16);
+    expect(count(t, NOT_TESTED)).toBe(untested);
+    // Season 3: each entered deck with its test at entry in words (the fixed bar was YYB Rogue Gear)
+    const s3 = SEASONS.seasons.find((s) => s.season === 3)!;
+    expect(s3.bred.map((b) => b.name)).toEqual(['S3-02 Mutant (RGY)', 'S3-03 Cross (RRR)', 'S3-05 Counter (RRG)', 'S3-06 Counter (RBG)', 'S3-07 Explorer (RRG)', 'S3-08 Explorer (RRB)']);
+    const bar = 'YYB Rogue Gear (the middle meta deck, that season’s fixed bar for every bred deck)';
+    const asExplorer = 'YYB Rogue Gear (the middle meta deck, as an explorer)';
+    const entered: [string, string][] = [
+      ['S3-02 Mutant (RGY)', `Entered: shown better than ${bar} with the Medium bot; the Hard bot could not tell Medium bot: +11.3 points (range +1.8 to +20.7), 480 games each Hard bot: +5.0 points (range −0.6 to +10.6), 480 games each`],
+      ['S3-03 Cross (RRR)', `Entered: not shown worse than ${bar} Medium bot: +3.4 points (range −0.3 to +7.1), 1,200 games each Hard bot: +3.8 points (range −1.8 to +9.3), 480 games each`],
+      ['S3-05 Counter (RRG)', `Entered: shown better than ${bar} with the Medium bot; the Hard bot could not tell Medium bot: +4.3 points`],
+      ['S3-06 Counter (RBG)', `Entered: not shown worse than ${bar} Medium bot: −2.8 points (range −6.4 to +0.7), 1,200 games each Hard bot: −2.5 points (range −7.8 to +2.8), 480 games each`],
+      ['S3-07 Explorer (RRG)', `Entered: shown better than ${asExplorer} with the Medium bot; the Hard bot could not tell Medium bot: +5.8 points`],
+      ['S3-08 Explorer (RRB)', `Entered: shown better than ${asExplorer} with the Medium bot; the Hard bot could not tell Medium bot: +6.7 points`],
+    ];
+    for (const [name, words] of entered) expect(t, name).toContain(words);
+    // the new decks have no power rating yet: "not rated" beside their Season 3 round robin figure
+    const ranked = rankLibraryParents(BUILTIN, RATINGS.decks, SEASONS);
+    const rows = bredThenAndNow(s3, BUILTIN, RATINGS.decks, ranked);
+    expect(rows.map((r) => [r.name, r.now, r.test?.entered])).toEqual(s3.bred.map((b) => [b.name, null, true]));
+    expect(t).toContain('S3-03 Cross (RRR) crossover Ladder: V / Smasher / Padre (RRG) + NC-07 Braindance Burn (RRB) 45.0% not rated');
+    expect(t).toContain('S3-07 Explorer (RRG) explorer a new Legend trio 41.3% not rated none: an explorer');
+    // Season 3 compares like with like on bot and simulator, and says so
+    expect(t).toContain('with another field but the same bot and simulator');
+    // the two decks it kept out, with the bot that showed each worse
+    expect(count(t, 'Bred, but did not enter')).toBe(1);
+    expect(notEntered(s3.gate).map((d) => d.name)).toEqual(['S3-01 Mutant (RBG)', 'S3-04 Cross (RBB)']);
+    expect(t).toContain(`S3-01 Mutant (RBG) mutant Kept out: shown worse than ${bar} with the Hard bot Medium bot: −1.7 points (range −5.3 to +2.0), 1,200 games each Hard bot: −8.5 points (range −14.1 to −3.0), 480 games each`);
+    expect(t).toContain(`S3-04 Cross (RBB) crossover Kept out: shown worse than ${bar} with the Medium bot Medium bot: −6.6 points (range −11.2 to −1.9), 960 games each`);
+    expect(t).not.toMatch(/as good as/i);
   });
 });

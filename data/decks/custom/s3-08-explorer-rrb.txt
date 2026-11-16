@@ -1,0 +1,31 @@
+// S3-08 Explorer (RRB)
+// Origin: Night City Trainer bred deck (season 3, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-16
+// Idea: Explorer (aggro): untested Legends Adam Smasher / Sasha Yakovleva / Dexter DeShawn, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 Adam Smasher: Ender of Legends
+1 Sasha Yakovleva: Won't Let You Down
+1 Dexter DeShawn: Off the Grid
+
+// Main Deck
+1 Ruthless Lowlife
+3 Swordwise Huscle
+3 6th Street Recruits
+1 Kerry Eurodyne: The Last Rockerboy
+3 Psycho Squad
+2 Royce: Don't Call Me Simon
+3 Animals Wrecker
+3 Yorinobu Arasaka: Steel Dragon
+1 Arasaka Emergency Radioport
+2 Satori: Sword of Saburo
+2 Industrial Assembly
+3 Bonnie and Clyde
+2 Nocturne OP55 N1
+2 Over the Edge
+2 Gunpoint Diplomacy
+2 Shattered Memories
+2 Unlikely Bond
+3 Carnage at the Colosseum

@@ -1,0 +1,387 @@
+{
+ "deck": "S3-06 Counter (RBG)",
+ "file": "s3-06-counter-rbg.txt",
+ "date": "2026-11-16",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "obrien-fleming",
+  "lookZ": [
+   4.3326,
+   2.9631,
+   2.359,
+   2.0141
+  ],
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "ledger": {
+   "boundary": "normal-mixture",
+   "rho": 250
+  },
+  "confirmBot": "hard",
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 spent over 4 looks (O'Brien–Fleming-type, z = 4.33 / 2.96 / 2.36 / 2.01); change ledger on: a nominee with held-out games from earlier runs (same simulator version, bot and field) is judged on those games first, then on them and each new stage pooled, by an always-valid boundary (normal mixture, Howard et al. 2021, ρ = 250 games, one-sided 0.025 each: z = 3.32 at 448 games, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584); screened with the Medium bot, confirmed with the Hard bot"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 41.1,
+   "swaps": [
+    {
+     "swap": "-1 Chrome Reverie → +1 Johnny Silverhand: Never Stop Fighting",
+     "wr": 50.9,
+     "delta": 9.8
+    },
+    {
+     "swap": "-1 Chrome Reverie → +1 Pepe Najarro: Working Doubles",
+     "wr": 49.1,
+     "delta": 8
+    },
+    {
+     "swap": "-1 We Gotta Live Together → +1 Peace Offering",
+     "wr": 43.8,
+     "delta": 2.7
+    },
+    {
+     "swap": "-1 Shattered Memories → +1 Peace Offering",
+     "wr": 43.8,
+     "delta": 2.7
+    },
+    {
+     "swap": "-1 Chrome Reverie → +1 Peace Offering",
+     "wr": 40.2,
+     "delta": -0.9
+    }
+   ],
+   "verdict": "adopted",
+   "cuts": [
+    {
+     "card": "Chrome Reverie",
+     "plain": -23.7,
+     "score": -23.3,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −23.7 pts; payoff for Low Gigs (min Gig): 31% with a partner (70 games), 100% without (1); partner-aware −24.5 pts; cutting one drops Low Gigs (min Gig) assembly odds by turn 4 70% → 59%; score with the stranding cost −23.3 pts"
+    },
+    {
+     "card": "We Gotta Live Together",
+     "plain": -14.8,
+     "score": -13.8,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −14.8 pts; piece for Behind on Gigs: — with a partner (0 games), 37% without (79); partner-aware −14.8 pts; cutting one drops Behind on Gigs assembly odds by turn 4 44% → 25%; score with the stranding cost −13.8 pts"
+    },
+    {
+     "card": "Shattered Memories",
+     "plain": -11.3,
+     "score": -10,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −11.3 pts; enabler for Programs as fuel (Blue): 39% with a partner (64 games), 27% without (11); partner-aware −10.0 pts; surplus piece: cutting one moves Programs as fuel (Blue) assembly odds by turn 4 only 59% → 59%"
+    },
+    {
+     "card": "Trust No One",
+     "plain": -4.1,
+     "score": -4.4,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −4.1 pts; both for Low Gigs (min Gig): 38% with a partner (64 games), 100% without (2); partner-aware −5.5 pts; cutting one drops Low Gigs (min Gig) assembly odds by turn 4 70% → 59%; score with the stranding cost −4.4 pts"
+    },
+    {
+     "card": "Nocturne OP55 N1",
+     "plain": -3,
+     "score": -1.7,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −3.0 pts; enabler for Programs as fuel (Blue): 42% with a partner (76 games), 31% without (13); partner-aware −1.7 pts; surplus piece: cutting one moves Programs as fuel (Blue) assembly odds by turn 4 only 59% → 59%"
+    },
+    {
+     "card": "Over the Edge",
+     "plain": -2.4,
+     "score": -2.1,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −2.4 pts; payoff for High Gigs (8+): 40% with a partner (47 games), 41% without (37); partner-aware −2.4 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 28% → 22%; score with the stranding cost −2.1 pts"
+    },
+    {
+     "card": "Industrial Assembly",
+     "plain": 3.3,
+     "score": 2.6,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn +3.3 pts; both for High Gigs (8+): 40% with a partner (47 games), 47% without (19); partner-aware +1.9 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 28% → 14%; score with the stranding cost +2.6 pts"
+    },
+    {
+     "card": "Floor It",
+     "plain": 4.9,
+     "score": 7.4,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn +4.9 pts; enabler for Programs as fuel (Blue): 47% with a partner (49 games), 27% without (11); partner-aware +7.4 pts; surplus piece: cutting one moves Programs as fuel (Blue) assembly odds by turn 4 only 59% → 59%"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Chrome Reverie → +1 Peace Offering",
+    "-1 We Gotta Live Together → +1 Peace Offering",
+    "-1 Chrome Reverie → +1 Pepe Najarro: Working Doubles",
+    "-1 Shattered Memories → +1 Peace Offering",
+    "-1 Chrome Reverie → +1 Johnny Silverhand: Never Stop Fighting"
+   ],
+   "nominees": [
+    {
+     "label": "-1 Chrome Reverie → +1 Johnny Silverhand: Never Stop Fighting",
+     "screen": {
+      "games": 112,
+      "mean": 0.0982,
+      "lower": 0.0238,
+      "upper": 0.1726
+     },
+     "heldOut": {
+      "games": 896,
+      "mean": 0.0313,
+      "lower": 0.0107,
+      "upper": 0.0518,
+      "z": 2.0141,
+      "looks": 4,
+      "baseWr": 0.385,
+      "candWr": 0.4163
+     },
+     "outcome": "adopt",
+     "byOpp": [
+      {
+       "opp": "06552ee884386887",
+       "games": 128,
+       "mean": 0.0547,
+       "se": 0.023
+      },
+      {
+       "opp": "078ce02dba6dd2c0",
+       "games": 128,
+       "mean": 0,
+       "se": 0.0272
+      },
+      {
+       "opp": "0b6272134a22585c",
+       "games": 128,
+       "mean": 0.0313,
+       "se": 0.027
+      },
+      {
+       "opp": "189f8a3b59f1117f",
+       "games": 128,
+       "mean": 0.0547,
+       "se": 0.03
+      },
+      {
+       "opp": "3d6b0327f672d914",
+       "games": 128,
+       "mean": 0.0547,
+       "se": 0.0279
+      },
+      {
+       "opp": "d615ca2a4ad09bf8",
+       "games": 128,
+       "mean": 0,
+       "se": 0.0293
+      },
+      {
+       "opp": "ee779ed4dea87217",
+       "games": 128,
+       "mean": 0.0234,
+       "se": 0.0234
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 448,
+       "mean": 0.0246,
+       "se": 0.0149
+      },
+      {
+       "first": 1,
+       "games": 448,
+       "mean": 0.0379,
+       "se": 0.0138
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 4.917,
+      "df": 6,
+      "p": 0.5561
+     }
+    }
+   ],
+   "confirm": "(896 fresh paired games): baseline 38.5% vs swap 41.6%; held-out gain +3.1 pts [+1.1, +5.2], 896 games → adopted",
+   "heldOutGain": {
+    "mean": 3.1,
+    "lower": 1.1,
+    "upper": 5.2,
+    "games": 896
+   }
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 41.6,
+   "change": "-1 Chrome Reverie → +1 Johnny Silverhand: Never Stop Fighting (held-out +3.1 pts [+1.1, +5.2], 896 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "gig-swap",
+    "spend-punish"
+   ]
+  },
+  "moves": false,
+  "changes": {
+   "kept": [
+    "gig-swap",
+    "spend-punish"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "ledger": {
+  "dir": "data/ledger",
+  "bot": "medium",
+  "heldoutBot": "hard",
+  "field": "1fde7831c1fc4e59",
+  "screen": {
+   "written": 560,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  },
+  "heldout": {
+   "written": 896,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  }
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-16T05:25:31.392Z:1",
+  "createdAt": "2026-11-16T05:25:31.392Z",
+  "purpose": "forge",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "87348c7e0bd76a1f",
+    "name": "S3-06 Counter (RBG)",
+    "file": "s3-06-counter-rbg.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2464,
+   "completedGames": 2464,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "gig-swap",
+     "spend-punish"
+    ]
+   },
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "obrien-fleming",
+   "lookZ": [
+    4.3326,
+    2.9631,
+    2.359,
+    2.0141
+   ],
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0,
+   "ledger": {
+    "boundary": "normal-mixture",
+    "rho": 250
+   },
+   "confirmBot": "hard"
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

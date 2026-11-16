@@ -1,0 +1,373 @@
+{
+ "deck": "S3-08 Explorer (RRB)",
+ "file": "s3-08-explorer-rrb.txt",
+ "date": "2026-11-16",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "obrien-fleming",
+  "lookZ": [
+   4.3326,
+   2.9631,
+   2.359,
+   2.0141
+  ],
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "ledger": {
+   "boundary": "normal-mixture",
+   "rho": 250
+  },
+  "confirmBot": "hard",
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 spent over 4 looks (O'Brien–Fleming-type, z = 4.33 / 2.96 / 2.36 / 2.01); change ledger on: a nominee with held-out games from earlier runs (same simulator version, bot and field) is judged on those games first, then on them and each new stage pooled, by an always-valid boundary (normal mixture, Howard et al. 2021, ρ = 250 games, one-sided 0.025 each: z = 3.32 at 448 games, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584); screened with the Medium bot, confirmed with the Hard bot"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 52.7,
+   "swaps": [
+    {
+     "swap": "-1 Royce: Don't Call Me Simon → +1 Johnny Silverhand: Never Stop Fighting",
+     "wr": 58,
+     "delta": 5.4
+    },
+    {
+     "swap": "-1 Royce: Don't Call Me Simon → +1 Unlikely Bond",
+     "wr": 54.5,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 Royce: Don't Call Me Simon → +1 Gunpoint Diplomacy",
+     "wr": 53.6,
+     "delta": 0.9
+    },
+    {
+     "swap": "-1 Arasaka Emergency Radioport → +1 Unlikely Bond",
+     "wr": 51.8,
+     "delta": -0.9
+    },
+    {
+     "swap": "-1 Shattered Memories → +1 Unlikely Bond",
+     "wr": 50.9,
+     "delta": -1.8
+    }
+   ],
+   "verdict": "inconclusive",
+   "cuts": [
+    {
+     "card": "Royce: Don't Call Me Simon",
+     "plain": -24.5,
+     "score": -23.9,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −24.5 pts; payoff for Ahead on Street Cred: 42% with a partner (64 games), never drawn without one; partner-aware −24.5 pts; cutting one drops Ahead on Street Cred assembly odds by turn 4 70% → 59%; score with the stranding cost −23.9 pts"
+    },
+    {
+     "card": "Shattered Memories",
+     "plain": -16,
+     "score": -16,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −16.0 pts"
+    },
+    {
+     "card": "Arasaka Emergency Radioport",
+     "plain": -15.8,
+     "score": -15.8,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −15.8 pts"
+    },
+    {
+     "card": "6th Street Recruits",
+     "plain": -13.6,
+     "score": -13.1,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −13.6 pts; enabler for High Gigs (8+): 50% with a partner (84 games), 0% without (1); partner-aware −13.1 pts; surplus piece: cutting one moves High Gigs (8+) assembly odds by turn 4 only 92% → 92%"
+    },
+    {
+     "card": "Carnage at the Colosseum",
+     "plain": -5,
+     "score": -4.8,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −5.0 pts; payoff for High Gigs (8+): 51% with a partner (80 games), never drawn without one; partner-aware −5.0 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 92% → 89%; score with the stranding cost −4.8 pts"
+    },
+    {
+     "card": "Kerry Eurodyne: The Last Rockerboy",
+     "plain": -2.1,
+     "score": -2,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −2.1 pts; payoff for High Gigs (8+): 51% with a partner (39 games), never drawn without one; partner-aware −2.1 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 92% → 89%; score with the stranding cost −2.0 pts"
+    },
+    {
+     "card": "Over the Edge",
+     "plain": 0.9,
+     "score": 1,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn +0.9 pts; payoff for High Gigs (8+): 53% with a partner (66 games), never drawn without one; partner-aware +0.9 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 92% → 89%; score with the stranding cost +1.0 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 Royce: Don't Call Me Simon → +1 Unlikely Bond",
+    "-1 Royce: Don't Call Me Simon → +1 Gunpoint Diplomacy",
+    "-1 Shattered Memories → +1 Unlikely Bond",
+    "-1 Arasaka Emergency Radioport → +1 Unlikely Bond",
+    "-1 Royce: Don't Call Me Simon → +1 Johnny Silverhand: Never Stop Fighting"
+   ],
+   "nominees": [
+    {
+     "label": "-1 Royce: Don't Call Me Simon → +1 Johnny Silverhand: Never Stop Fighting",
+     "screen": {
+      "games": 112,
+      "mean": 0.0536,
+      "lower": -0.0065,
+      "upper": 0.1136
+     },
+     "heldOut": {
+      "games": 896,
+      "mean": 0.019,
+      "lower": 0.0001,
+      "upper": 0.0379,
+      "z": 2.0141,
+      "looks": 4,
+      "baseWr": 0.4922,
+      "candWr": 0.5112
+     },
+     "outcome": "inconclusive",
+     "byOpp": [
+      {
+       "opp": "06552ee884386887",
+       "games": 128,
+       "mean": 0.0391,
+       "se": 0.0258
+      },
+      {
+       "opp": "078ce02dba6dd2c0",
+       "games": 128,
+       "mean": -0.0078,
+       "se": 0.0323
+      },
+      {
+       "opp": "0b6272134a22585c",
+       "games": 128,
+       "mean": -0.0156,
+       "se": 0.0293
+      },
+      {
+       "opp": "189f8a3b59f1117f",
+       "games": 128,
+       "mean": 0.0234,
+       "se": 0.0234
+      },
+      {
+       "opp": "3d6b0327f672d914",
+       "games": 128,
+       "mean": 0.0625,
+       "se": 0.0242
+      },
+      {
+       "opp": "d615ca2a4ad09bf8",
+       "games": 128,
+       "mean": 0.0078,
+       "se": 0.0136
+      },
+      {
+       "opp": "ee779ed4dea87217",
+       "games": 128,
+       "mean": 0.0234,
+       "se": 0.0206
+      }
+     ],
+     "bySeat": [
+      {
+       "first": 0,
+       "games": 448,
+       "mean": 0.0179,
+       "se": 0.0148
+      },
+      {
+       "first": 1,
+       "games": 448,
+       "mean": 0.0201,
+       "se": 0.0116
+      }
+     ],
+     "heterogeneity": {
+      "chi2": 6.6876,
+      "df": 6,
+      "p": 0.3506
+     }
+    }
+   ],
+   "confirm": "(896 fresh paired games): baseline 49.2% vs swap 51.1%; held-out gain +1.9 pts [+0.0, +3.8], 896 games → could not tell"
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 49.2,
+   "change": "kept (could not tell: -1 Royce: Don't Call Me Simon → +1 Johnny Silverhand: Never Stop Fighting, +1.9 pts [+0.0, +3.8], 896 games)"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "high-gig",
+    "high-cred"
+   ]
+  },
+  "moves": false,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "high-cred"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "ledger": {
+  "dir": "data/ledger",
+  "bot": "medium",
+  "heldoutBot": "hard",
+  "field": "1fde7831c1fc4e59",
+  "screen": {
+   "written": 560,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  },
+  "heldout": {
+   "written": 896,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  }
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-16T05:32:01.059Z:1",
+  "createdAt": "2026-11-16T05:32:01.059Z",
+  "purpose": "forge",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "e0fad68dfe3df63f",
+    "name": "S3-08 Explorer (RRB)",
+    "file": "s3-08-explorer-rrb.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2464,
+   "completedGames": 2464,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "high-gig",
+     "high-cred"
+    ]
+   },
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "obrien-fleming",
+   "lookZ": [
+    4.3326,
+    2.9631,
+    2.359,
+    2.0141
+   ],
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0,
+   "ledger": {
+    "boundary": "normal-mixture",
+    "rho": 250
+   },
+   "confirmBot": "hard"
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

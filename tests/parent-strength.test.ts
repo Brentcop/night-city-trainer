@@ -14,7 +14,20 @@ import { rankedParents } from '../src/lib/deckLab';
 import type { LibraryDeck } from '../src/lib/library';
 import { conservativeRating, parentStrength, rankParents, seasonVersions, staleLeaderRow, type RatedDeck } from '../src/lib/parentStrength';
 import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
-import { keptOutTriples, leaderStrength, strengthOf } from '../scripts/breed-data';
+import { keptOutTriples, leaderStrength, seasonVersionsOnDisk, strengthOf } from '../scripts/breed-data';
+import { BUILTIN } from '../src/lib/browserLibrary';
+
+/** The leaderboard rows with only Season 3 behind them (2026-11-16): its six bred decks and two decks that joined then. */
+const SEASON_3_ONLY = [
+  'ladder-rrg-v-smasher-padre.txt',
+  'nc-07-braindance-burn-rrb.txt',
+  's3-02-mutant-rgy.txt',
+  's3-03-cross-rrr.txt',
+  's3-05-counter-rrg.txt',
+  's3-06-counter-rbg.txt',
+  's3-07-explorer-rrg.txt',
+  's3-08-explorer-rrb.txt',
+];
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nct-strength-'));
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -36,10 +49,21 @@ describe('stale leaderboard entries', () => {
     expect(seasonVersions([{ season: 1, manifest: { simVersion: 5 } }, { season: 2 }, { season: 3, manifest: { simVersion: 'x' } }])).toEqual({ '1': 5, '2': null, '3': null });
   });
 
-  it('today every recorded leaderboard row is stale (seasons 1 and 2 ran under version 5; the rest is the seed data)', () => {
+  it('on the bundled data: the rows with only Season 3 behind them are current, every other row is stale', () => {
+    // seasons 1 and 2 ran under version 5, Season 3 (2026-11-16) under the current one; the script reads the same
+    // versions from the season files on disk
     const versions = seasonVersions(SEASONS.seasons);
-    expect(SEASONS.leaderboard.length).toBeGreaterThan(10);
-    expect(SEASONS.leaderboard.every((r) => staleLeaderRow(r, versions))).toBe(true);
+    expect(versions).toEqual({ '1': 5, '2': 5, '3': CURRENT_SIM_VERSION });
+    expect(seasonVersionsOnDisk()).toEqual(versions);
+    expect(SEASONS.leaderboard).toHaveLength(36);
+    const current = SEASONS.leaderboard.filter((r) => !staleLeaderRow(r, versions));
+    // the six Season 3 decks and the two decks that joined the leaderboard in Season 3
+    expect(current.map((r) => r.file).sort()).toEqual(SEASON_3_ONLY);
+    for (const r of current) expect(Object.keys(r.seasons ?? {}), r.file).toEqual(['3']);
+    // every other row has the seed data (season 0) or Season 1 or 2 behind it
+    const stale = SEASONS.leaderboard.filter((r) => staleLeaderRow(r, versions));
+    expect(stale).toHaveLength(28);
+    for (const r of stale) expect(Object.keys(r.seasons ?? {}).some((k) => ['0', '1', '2'].includes(k)), r.file).toBe(true);
   });
 });
 
@@ -140,9 +164,40 @@ describe('the script and the Deck Lab rank parents alike', () => {
     ]);
   });
 
-  it('on the bundled data: today the leaderboard counts for nothing, the ratings alone rank', () => {
-    const fileLib: LibraryDeck[] = RATINGS.decks.map((d, i) => ({ file: d.file, deck: deck(d.name, 1000 + i), kind: 'custom', prov: {} }));
-    expect(rankedParents(fileLib).map((x) => [x.deck.name, x.wr])).toEqual(rankParents(parentStrength(RATINGS.decks, []), fileLib).map((x) => [x.deck.name, x.wr]));
+  it('on the bundled data: the two rated current rows blend at 35%, the six unrated ones stand alone, stale rows count for nothing', () => {
+    const versions = seasonVersions(SEASONS.seasons);
+    const lab = rankedParents(BUILTIN);
+    const strength = new Map(lab.map((x) => [x.deck.name, x.wr]));
+    const ratedRows = new Map(RATINGS.decks.filter((d) => d.games >= 20).map((d) => [d.name, d]));
+    const blended: string[] = [];
+    const alone: string[] = [];
+    for (const r of SEASONS.leaderboard) {
+      const name = BUILTIN.find((d) => d.file === r.file)?.deck.name;
+      expect(name, r.file).toBeDefined();
+      const rd = ratedRows.get(name!);
+      if (staleLeaderRow(r, versions)) {
+        // a stale row is neither blended nor used: a rated deck is its conservative rating alone, an unrated one has none
+        expect(strength.get(name!), name).toBe(rd ? conservativeRating(rd) : undefined);
+      } else if (rd) {
+        blended.push(name!);
+        expect(strength.get(name!)!, name).toBeCloseTo(0.65 * conservativeRating(rd) + 0.35 * r.rating, 12);
+      } else {
+        alone.push(name!);
+        expect(strength.get(name!), name).toBe(r.rating);
+      }
+    }
+    expect(blended.sort()).toEqual(['Ladder: V / Smasher / Padre (RRG)', 'NC-07 Braindance Burn (RRB)']);
+    expect(alone.sort()).toEqual(['S3-02 Mutant (RGY)', 'S3-03 Cross (RRR)', 'S3-05 Counter (RRG)', 'S3-06 Counter (RBG)', 'S3-07 Explorer (RRG)', 'S3-08 Explorer (RRB)']);
+    // the season script ranks the library the same way from data/seasons/leaderboard.json and the season files
+    const lb = JSON.parse(fs.readFileSync('data/seasons/leaderboard.json', 'utf8')) as Record<string, { name: string; metaW: number; metaG: number; seasons?: Record<string, number> }>;
+    const prior = 60;
+    const entries = Object.values(lb)
+      .filter((e) => e.metaG > 0)
+      .map((e) => leaderStrength(e, (e.metaW + 0.5 * prior) / (e.metaG + prior), seasonVersionsOnDisk(), CURRENT_SIM_VERSION));
+    expect(entries.filter((e) => !e.stale).map((e) => e.name).sort()).toEqual([...blended, ...alone].sort());
+    const script = rankParents(strengthOf(entries), BUILTIN);
+    expect(script.map((x) => x.deck.name)).toEqual(lab.map((x) => x.deck.name));
+    script.forEach((x, i) => expect(x.wr, x.deck.name).toBeCloseTo(lab[i]!.wr, 12));
   });
 });
 

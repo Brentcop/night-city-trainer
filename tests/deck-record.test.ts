@@ -6,6 +6,7 @@ import {
   deckRecord,
   eventFinishes,
   extremes,
+  finalsGamesWords,
   h2hFor,
   isHistorical,
   ordinal,
@@ -16,6 +17,7 @@ import {
   type EventLite,
   type RatingRow,
 } from '../src/lib/deckRecord';
+import { DECK_REPORTS } from '../src/data/deckReportsData';
 import { deckDiff, groupDeck, parseSwap } from '../src/lib/deckCards';
 import { CARDS, CARD_BY_ID, cardLabel } from '../src/engine/cards';
 
@@ -140,6 +142,32 @@ describe('deck record', () => {
     expect(r.historical).toBe(true);
   });
 
+  it('judges a season leaderboard row by its own seasons, not by the seasons file’s oldest version', () => {
+    // seasons 1 and 2 ran under an older simulator, season 3 under the current one (as recorded on 2026-11-16)
+    const seasons = { '1': CURRENT_SIM_VERSION - 4, '2': CURRENT_SIM_VERSION - 4, '3': CURRENT_SIM_VERSION, '4': null };
+    const leader = (rowSeasons?: Record<string, number>) => ({ rank: 20, of: 36, rating: 0.53, vsMeta: 0.53, metaG: 588, percentile: 43, seasons: rowSeasons });
+    const rec = (rowSeasons?: Record<string, number>, versions: Record<string, number | null> = seasons) =>
+      deckRecord({ name: 'S3-03 Cross (RRR)', leader: leader(rowSeasons), versions: { seasons: versions } });
+    // only season 3 behind the row: every game current, so no historical note
+    const fresh = rec({ '3': 0.45 });
+    expect(fresh.vsMeta).toEqual({ wr: 0.53, n: 588, source: 'seasons' });
+    expect(fresh.leader?.rank).toBe(20);
+    expect(fresh.historical).toBe(false);
+    // the same row is historical when season 3 is not on the current simulator
+    expect(rec({ '3': 0.45 }, { ...seasons, '3': CURRENT_SIM_VERSION - 1 }).historical).toBe(true);
+    // mixed: seasons 1 and 3 behind the row, so some of its games are older
+    expect(rec({ '1': 0.76, '3': 0.61 }).historical).toBe(true);
+    // old: season 2 only, or the seed data (season 0), or a season with no recorded version
+    expect(rec({ '2': 0.5 }).historical).toBe(true);
+    expect(rec({ '0': 0.7, '3': 0.66 }).historical).toBe(true);
+    expect(rec({ '4': 0.5 }).historical).toBe(true);
+    // a row with no seasons, or no season versions passed in at all: nothing says when it was played
+    expect(rec(undefined).historical).toBe(true);
+    expect(deckRecord({ name: 'X', leader: leader({ '3': 0.45 }) }).historical).toBe(true);
+    // a current row does not hide an older source beside it
+    expect(deckRecord({ name: 'X', leader: leader({ '3': 0.45 }), versions: { seasons, reports: CURRENT_SIM_VERSION - 1 }, finals: { overall: 0.5, games: 60, rows: [{ opp: 'M', g: 60, w: 0.5 }] } }).historical).toBe(true);
+  });
+
   it('takes exact seats and matchups from dedicated head-to-heads before telemetry', () => {
     const r = deckRecord({
       name: 'D',
@@ -178,6 +206,21 @@ describe('deck record', () => {
     expect(ratingsHistorical({ decks: [] }, [{ simVersion: CURRENT_SIM_VERSION }])).toBe(false);
     expect(ratingsHistorical({ decks: [] }, [{ simVersion: CURRENT_SIM_VERSION }, {}])).toBe(true);
     expect(ratingsHistorical(undefined)).toBe(true);
+  });
+
+  it('names the bot that played a deck’s finals, from the report, and only when the report says', () => {
+    expect(finalsGamesWords(420, 'hard')).toBe('420 Hard-bot games');
+    expect(finalsGamesWords(420, 'deep')).toBe('420 Deep-bot games');
+    expect(finalsGamesWords(420, 'lookahead')).toBe('420 Medium-bot games');
+    // no bot recorded, or a name the site has no word for: the games alone, never a guess
+    expect(finalsGamesWords(420)).toBe('420 games');
+    expect(finalsGamesWords(420, null)).toBe('420 games');
+    expect(finalsGamesWords(420, 'something-else')).toBe('420 games');
+    // the bundled reports: Seasons 1 and 2 played their finals with the Deep bot, Season 3 with Hard
+    const bots = (prefix: string) => new Set(Object.entries(DECK_REPORTS).filter(([f, r]) => f.startsWith(prefix) && r.finals).map(([, r]) => r.finals!.bot));
+    expect([...bots('s1-'), ...bots('s2-')]).toEqual(['deep', 'deep']);
+    expect([...bots('s3-')]).toEqual(['hard']);
+    expect(Object.values(DECK_REPORTS).filter((r) => r.finals).every((r) => typeof r.finals!.bot === 'string')).toBe(true);
   });
 
   it('gives tiles the Swiss game win rate and its sample', () => {

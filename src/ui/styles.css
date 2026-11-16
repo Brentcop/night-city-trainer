@@ -761,8 +761,12 @@ label.row > input[type='radio']:first-child {
 }
 .kv {
   display: grid;
-  grid-template-columns: auto 1fr;
+  /* minmax(0, …): a long value wraps inside the column instead of widening the grid past a phone's screen */
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 2px 12px;
+}
+.kv .tag {
+  white-space: normal;
 }
 .heat td {
   text-align: center;

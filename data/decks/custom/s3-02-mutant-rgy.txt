@@ -1,0 +1,32 @@
+// S3-02 Mutant (RGY)
+// Origin: Night City Trainer bred deck (season 3, mutant)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Parents: S1-01 Mutant (RRY)
+// Added: 2026-11-16
+// Idea: Mutant of S1-01 Mutant (RRY): Adam Smasher: Ender of Legends → Jackie Welles: Mama's Favorite; cards re-fitted to the new RAM limits, keeping the parent's best performers.
+// Format: Constructed
+
+// Legends
+1 Dexter DeShawn: Off the Grid
+1 Dum Dum: Maelstrom Triggerman
+1 Jackie Welles: Mama's Favorite
+
+// Main Deck
+3 Dexter DeShawn: One Last Chance
+1 Maelstrom Goons
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 MaxTac Suppression Team
+1 Rockn' Rockerboy
+2 Saul Bright: Stormrider
+2 Mantis Blades
+2 Satori: Sword of Saburo
+2 Afterparty at Lizzie's
+2 All is Lost
+2 Detonate
+1 Industrial Assembly
+3 Corporate Surveillance
+3 Over the Edge
+3 Memory Relapse
+2 Shattered Memories
+2 We Gotta Live Together

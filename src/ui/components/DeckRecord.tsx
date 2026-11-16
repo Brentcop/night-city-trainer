@@ -21,14 +21,16 @@ import { RecordedAt, formatRecorded } from './RecordedAt';
 import { recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
 import { bandWords, SIM_TIER_MIN_GAMES } from '../../lib/simTier';
 import { listOf } from '../../lib/listTwin';
+import { seasonVersions } from '../../lib/parentStrength';
 import { BOT_LABEL, type YourRecord } from '../../lib/runLedger';
 import type { Provisional } from '../../lib/yourStats';
 import { useYourStats, yourStatsFor } from '../useYourStats';
 
 const EVENTS = TOURNAMENT_INDEX.events;
 // every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
-// moves past what is recorded; deckReports.json carries each finals / head-to-head report's version (reportsSimVersion)
-const VERSIONS = { telemetry: ANALYSIS.manifest?.simVersion, seasons: SEASONS.manifest?.simVersion };
+// moves past what is recorded; deckReports.json carries each finals / head-to-head report's version (reportsSimVersion).
+// The season leaderboard is judged per row, from each season's own version (not the seasons file's minimum).
+const VERSIONS = { telemetry: ANALYSIS.manifest?.simVersion, seasons: seasonVersions(SEASONS.seasons) };
 
 // tournament head-to-heads (public/data/h2h.json): fetched once, only when a profile needs them
 let h2hFile: Promise<H2HFile | null> | null = null;
@@ -52,7 +54,7 @@ function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]
     h2h: rep.h2h,
     eventH2H,
     telemetry: telemetryReport(statsName(d.file)),
-    leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile },
+    leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile, seasons: st.leader.seasons },
     versions: { ...VERSIONS, reports: reportsSimVersion(rep) },
     simVersion: CURRENT_SIM_VERSION,
   });

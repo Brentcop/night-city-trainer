@@ -1,0 +1,282 @@
+{
+ "deck": "S3-02 Mutant (RGY)",
+ "file": "s3-02-mutant-rgy.txt",
+ "date": "2026-11-16",
+ "seed": 1,
+ "field": "BBG Cunningham Econ, GRY Trauma Team, Rainbow Fixer Stuff, RRB Wakako Midrange, RRG Dexter Midrange, RRY Smasher Aggro, YYB Rogue Gear · bot lookahead · 112 games per test",
+ "adoption": {
+  "rule": "evidence",
+  "minGainPp": 1,
+  "packageMinGainPp": 1,
+  "alpha": 0.05,
+  "correction": "obrien-fleming",
+  "lookZ": [
+   4.3326,
+   2.9631,
+   2.359,
+   2.0141
+  ],
+  "capStages": 4,
+  "minGames": 200,
+  "firstStage": 224,
+  "nominees": 1,
+  "cardsPerChange": 1,
+  "packagesPerChange": 1,
+  "futilityAfterStages": 2,
+  "futilityMaxGainPp": 0,
+  "ledger": {
+   "boundary": "normal-mixture",
+   "rho": 250
+  },
+  "confirmBot": "hard",
+  "text": "evidence: stages of 224 fresh paired games up to 896; adopt when the lower bound of the paired gain is above 1 point with at least 200 games, reject when the upper bound is below it, otherwise could not tell; a nominee with no gain after 2 stages (448 games) stops early as could not tell; α = 0.05 spent over 4 looks (O'Brien–Fleming-type, z = 4.33 / 2.96 / 2.36 / 2.01); change ledger on: a nominee with held-out games from earlier runs (same simulator version, bot and field) is judged on those games first, then on them and each new stage pooled, by an always-valid boundary (normal mixture, Howard et al. 2021, ρ = 250 games, one-sided 0.025 each: z = 3.32 at 448 games, 3.11 at 896, 3.04 at 1,792, 3.06 at 3,584); screened with the Medium bot, confirmed with the Hard bot"
+ },
+ "gens": [
+  {
+   "gen": 1,
+   "baseline": 57.1,
+   "swaps": [
+    {
+     "swap": "-1 MaxTac Suppression Team → +1 Rockn' Rockerboy",
+     "wr": 58.9,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 MaxTac Suppression Team → +1 Valentino Street Racer",
+     "wr": 58.9,
+     "delta": 1.8
+    },
+    {
+     "swap": "-1 MaxTac Suppression Team → +1 Johnny Silverhand: Never Stop Fighting",
+     "wr": 57.1,
+     "delta": 0
+    },
+    {
+     "swap": "-1 MaxTac Suppression Team → +1 Shattered Memories",
+     "wr": 56.3,
+     "delta": -0.9
+    },
+    {
+     "swap": "-1 MaxTac Suppression Team → +1 Industrial Assembly",
+     "wr": 56.3,
+     "delta": -0.9
+    }
+   ],
+   "verdict": "kept",
+   "cuts": [
+    {
+     "card": "MaxTac Suppression Team",
+     "plain": -17.6,
+     "score": -17.6,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −17.6 pts"
+    },
+    {
+     "card": "Mantis Blades",
+     "plain": -15.4,
+     "score": -13.2,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −15.4 pts; enabler for Gear on Units: 50% with a partner (54 games), 50% without (6); partner-aware −15.4 pts; cutting one drops Gear on Units assembly odds by turn 4 70% → 59%; cutting one drops Gear as fuel assembly odds by turn 4 70% → 59%; score with the stranding cost −13.2 pts"
+    },
+    {
+     "card": "We Gotta Live Together",
+     "plain": -14.4,
+     "score": -13.1,
+     "offered": true,
+     "plainOffered": true,
+     "why": "offered as a cut — Δ when drawn −14.4 pts; piece for Behind on Gigs: — with a partner (0 games), 51% without (68); partner-aware −14.4 pts; cutting one drops Behind on Gigs assembly odds by turn 4 44% → 25%; cutting one drops Units in the trash assembly odds by turn 4 18% → 10%; score with the stranding cost −13.1 pts"
+    },
+    {
+     "card": "6th Street Recruits",
+     "plain": -10.2,
+     "score": -9.7,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −10.2 pts; enabler for High Gigs (8+): 56% with a partner (79 games), 50% without (10); partner-aware −9.7 pts; surplus piece: cutting one moves High Gigs (8+) assembly odds by turn 4 only 70% → 70%"
+    },
+    {
+     "card": "Satori: Sword of Saburo",
+     "plain": -7.3,
+     "score": -5.4,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −7.3 pts; enabler for Gear on Units: 53% with a partner (58 games), 60% without (5); partner-aware −7.6 pts; cutting one drops Gear on Units assembly odds by turn 4 70% → 59%; cutting one drops Gear as fuel assembly odds by turn 4 70% → 59%; score with the stranding cost −5.4 pts"
+    },
+    {
+     "card": "Over the Edge",
+     "plain": -1.5,
+     "score": -1,
+     "offered": false,
+     "plainOffered": false,
+     "why": "not offered — Δ when drawn −1.5 pts; payoff for High Gigs (8+): 57% with a partner (88 games), never drawn without one; partner-aware −1.5 pts; cutting one drops High Gigs (8+) assembly odds by turn 4 70% → 59%; score with the stranding cost −1.0 pts"
+    }
+   ],
+   "plainSwaps": [
+    "-1 MaxTac Suppression Team → +1 Shattered Memories",
+    "-1 MaxTac Suppression Team → +1 All is Lost",
+    "-1 MaxTac Suppression Team → +1 Johnny Silverhand: Never Stop Fighting",
+    "-1 Mantis Blades → +1 Shattered Memories",
+    "-1 Mantis Blades → +1 All is Lost"
+   ]
+  }
+ ],
+ "summary": [
+  {
+   "gen": 1,
+   "wr": 57.1,
+   "change": "kept"
+  }
+ ],
+ "packages": {
+  "plan": {
+   "keep": [
+    "high-gig",
+    "value-pair",
+    "cred-even"
+   ]
+  },
+  "moves": false,
+  "changes": {
+   "kept": [
+    "high-gig",
+    "value-pair",
+    "cred-even"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "adopted": []
+ },
+ "ledger": {
+  "dir": "data/ledger",
+  "bot": "medium",
+  "heldoutBot": "hard",
+  "field": "1fde7831c1fc4e59",
+  "screen": {
+   "written": 560,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  },
+  "heldout": {
+   "written": 0,
+   "duplicates": 0,
+   "conflicts": 0,
+   "screened": 0
+  }
+ },
+ "manifest": {
+  "schema": 1,
+  "runId": "forge:2026-11-16T05:19:03.004Z:1",
+  "createdAt": "2026-11-16T05:19:03.004Z",
+  "purpose": "forge",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "lookahead"
+  },
+  "decks": [
+   {
+    "id": "62c5a3ea2d0c5007",
+    "name": "S3-02 Mutant (RGY)",
+    "file": "s3-02-mutant-rgy.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 2464,
+   "completedGames": 672,
+   "gamesPerPair": null
+  },
+  "seedBase": 1,
+  "seatPolicy": "alternate",
+  "trace": true,
+  "packages": {
+   "plan": {
+    "keep": [
+     "high-gig",
+     "value-pair",
+     "cred-even"
+    ]
+   },
+   "catalogue": "fnv1a64:06922d57a2142f8b"
+  },
+  "adoption": {
+   "rule": "evidence",
+   "minGainPp": 1,
+   "packageMinGainPp": 1,
+   "alpha": 0.05,
+   "correction": "obrien-fleming",
+   "lookZ": [
+    4.3326,
+    2.9631,
+    2.359,
+    2.0141
+   ],
+   "capStages": 4,
+   "minGames": 200,
+   "firstStage": 224,
+   "nominees": 1,
+   "cardsPerChange": 1,
+   "packagesPerChange": 1,
+   "futilityAfterStages": 2,
+   "futilityMaxGainPp": 0,
+   "ledger": {
+    "boundary": "normal-mixture",
+    "rho": 250
+   },
+   "confirmBot": "hard"
+  },
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

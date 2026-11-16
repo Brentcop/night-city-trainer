@@ -64,7 +64,8 @@ const SEASON_REF: Record<ReferenceWhy, string> = {
 
 /**
  * A season's test of one bred deck in words: "Entered: not shown worse than X (its best parent then)", "Entered: shown
- * better than X … with the Medium bot", "Kept out: shown worse than X … with the Hard bot", or stopped.
+ * better than X … with the Medium bot; the Hard bot could not tell", "Kept out: shown worse than X … with the Hard bot",
+ * or stopped.
  */
 export function seasonTestWords(d: Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped'>): string {
   const note = SEASON_REF[d.reference.why];
@@ -76,7 +77,10 @@ export function seasonTestWords(d: Pick<GateOutcome, 'reference' | 'first' | 'co
     return `Kept out: ${verdictAgainst('shown-worse', ref)} with the ${botWord(worse.bot)} bot`;
   }
   const better = steps.filter((s) => s.verdict === 'shown-better');
-  if (better.length) return `Entered: ${verdictAgainst('shown-better', ref)} with ${better.map((s) => `the ${botWord(s.bot)} bot`).join(' and ')}`;
+  // a bot that could not tell is said too, so "shown better" by one bot never reads as the whole test's verdict
+  const untold = steps.filter((s) => s.verdict !== 'shown-better' && !s.stopped);
+  const rest = better.length && untold.length ? `; ${untold.map((s) => `the ${botWord(s.bot)} bot`).join(' and ')} could not tell` : '';
+  if (better.length) return `Entered: ${verdictAgainst('shown-better', ref)} with ${better.map((s) => `the ${botWord(s.bot)} bot`).join(' and ')}${rest}`;
   return `Entered: not shown worse than ${ref}`;
 }
 
@@ -164,13 +168,22 @@ export function ratingNowWords(r: RatingNow | null): string {
   return r ? `${percent(r.wr)} (90% range ${percent(r.lo)}–${percent(r.hi)}), ${count(r.games)} games` : 'not rated';
 }
 
-/** The sentence above the table: the two numbers are different measures, side by side. */
+/**
+ * The sentence above the table: the two numbers are different measures, side by side. It names only what differs: the
+ * field always (a season's round robin against the recorded tournaments), the bot and the simulator only when they are
+ * not the same (or one of them is unknown).
+ */
 export function thenAndNowIntro(o: { season: number; seasonBot: string; seasonSim: number | null; ratingsBot: string | null; ratingsSim: number | null }): string {
   const then = `${botWord(o.seasonBot)} bot${o.seasonSim !== null ? `, simulator v${o.seasonSim}` : ''}`;
   const now = [o.ratingsBot ? `${botWord(o.ratingsBot)} bot` : null, o.ratingsSim !== null ? `simulator v${o.ratingsSim}` : null].filter(Boolean).join(', ');
+  const sameBot = o.ratingsBot !== null && botWord(o.ratingsBot) === botWord(o.seasonBot);
+  const sameSim = o.seasonSim !== null && o.ratingsSim !== null && o.seasonSim === o.ratingsSim;
+  const other = ['field', ...(sameBot ? [] : ['bot']), ...(sameSim ? [] : ['simulator'])];
+  const otherWords = other.length === 1 ? other[0] : `${other.slice(0, -1).join(', ')} and ${other[other.length - 1]}`;
+  const same = sameBot && sameSim ? ' but the same bot and simulator' : sameBot ? ' but the same bot' : sameSim ? ' but the same simulator' : '';
   return (
     `The Season ${o.season} number is each deck’s win rate in that season’s round robin (${then}); the rating now is its power rating from the recorded tournaments${now ? ` (${now})` : ''}. ` +
-    `They are different measures, with another field, bot and simulator, shown side by side to see how a deck that looked strong in its season rates today.`
+    `They are different measures, with another ${otherWords}${same}, shown side by side to see how a deck that looked strong in its season rates today.`
   );
 }
 
@@ -180,15 +193,63 @@ export const madeFromWords = (r: Pick<BredThenNow, 'parents' | 'explorer'>): str
 /** The not-tested note for a season that recorded no test. */
 export const NOT_TESTED = 'not tested before entering';
 
+// ---------------------------------------------------------------- simulator versions
+
+/** "Season 3", "Seasons 1 and 2", "Seasons 1, 2 and 4" (in number order). */
+export function seasonListWords(seasons: readonly number[]): string {
+  const s = [...seasons].sort((a, b) => a - b).map(String);
+  if (s.length <= 1) return `Season ${s[0] ?? ''}`.trim();
+  return `Seasons ${s.slice(0, -1).join(', ')} and ${s[s.length - 1]}`;
+}
+
+const versionList = (vs: readonly number[]) => [...new Set(vs)].sort((a, b) => a - b).map((v) => `v${v}`).join(' and ');
+
+/**
+ * The page intro's sentence about simulator versions, from each recorded season's own version (`seasonVersions` in
+ * src/lib/parentStrength.ts), never from the seasons file's minimum: which seasons are historical (another simulator, or
+ * no recorded version) and which were played on the current one. Null when every season was played on the current one.
+ * e.g. "Seasons 1 and 2 were played on an older simulator (v5), so their results are historical; Season 3 was played on
+ * the current simulator (v9)."
+ */
+export function seasonsSimWords(versions: Readonly<Record<string, number | null>>, current: number): string | null {
+  const entries = Object.entries(versions).map(([k, v]) => ({ season: Number(k), v }));
+  const now = entries.filter((e) => e.v === current).map((e) => e.season);
+  const none = entries.filter((e) => e.v === null).map((e) => e.season);
+  const older = entries.filter((e) => e.v !== null && e.v < current);
+  const newer = entries.filter((e) => e.v !== null && e.v > current);
+  const off = none.length + older.length + newer.length;
+  if (!off) return null;
+  const verb = (n: number, one: string, many: string) => (n === 1 ? one : many);
+  const parts = [
+    ...(none.length ? [`${seasonListWords(none)} ${verb(none.length, 'has', 'have')} no recorded simulator version`] : []),
+    ...(older.length ? [`${seasonListWords(older.map((e) => e.season))} ${verb(older.length, 'was', 'were')} played on an older simulator (${versionList(older.map((e) => e.v!))})`] : []),
+    ...(newer.length ? [`${seasonListWords(newer.map((e) => e.season))} ${verb(newer.length, 'was', 'were')} played on a newer simulator (${versionList(newer.map((e) => e.v!))})`] : []),
+  ];
+  const head = `${parts.slice(0, -1).join(', ')}${parts.length > 1 ? ' and ' : ''}${parts[parts.length - 1]}, so ${verb(off, 'its', 'their')} results are historical`;
+  if (!now.length) return `${head} (the current simulator is v${current}).`;
+  return `${head}; ${seasonListWords(now)} ${verb(now.length, 'was', 'were')} played on the current simulator (v${current}).`;
+}
+
+/** A season panel's simulator note: "simulator v9", or "simulator v5, historical", or "no simulator version recorded, historical". */
+export function seasonSimNote(v: number | null | undefined, current: number): { text: string; historical: boolean } {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return { text: 'no simulator version recorded, historical', historical: true };
+  if (v === current) return { text: `simulator v${v}`, historical: false };
+  return { text: `simulator v${v}, historical`, historical: true };
+}
+/** The tooltip of a historical season's note. */
+export const SEASON_OLD_TITLE = 'This season was not played on the current simulator, so its numbers are historical: new games may differ.';
+
 // ---------------------------------------------------------------- the leaderboard
 
 /**
  * The leaderboard's sentence about older numbers (it follows the page's "historical" sentence and says only what that
- * one does not: what the breeder does with them). Null when no row is from an older simulator.
+ * one does not: what the breeder does with them). Null when no row is from an older simulator. With rows of the
+ * current simulator beside them (`currentRows`), it says the breeder uses those too (src/lib/parentStrength.ts).
  */
-export function leaderboardStaleWords(staleRows: number): string | null {
+export function leaderboardStaleWords(staleRows: number, currentRows = 0): string | null {
   if (!staleRows) return null;
-  return 'The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings.';
+  const uses = currentRows > 0 ? 'it uses today’s power ratings, together with the rows played on the current simulator' : 'it uses today’s power ratings';
+  return `The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; ${uses}.`;
 }
 
 /** The "older simulator" mark and its tooltip. */

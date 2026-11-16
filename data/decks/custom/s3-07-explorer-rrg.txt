@@ -1,0 +1,31 @@
+// S3-07 Explorer (RRG)
+// Origin: Night City Trainer bred deck (season 3, explorer)
+// Author: Night City Trainer breeder (automated, data-driven)
+// Added: 2026-11-16
+// Idea: Explorer (midrange): untested Legends Hanako Arasaka / Johnny Silverhand / V, filled by role and curve templates from format-wide card impact.
+// Format: Constructed
+
+// Legends
+1 Hanako Arasaka: Daughter of the Emperor
+1 Johnny Silverhand: Rocking Renegade
+1 V: Streetkid
+
+// Main Deck
+1 Swordwise Huscle
+3 Valentino Street Racer
+3 6th Street Recruits
+3 Pepe Najarro: Working Doubles
+3 Animals Wrecker
+1 Nadia: Fighting Through Grief
+2 Yorinobu Arasaka: Steel Dragon
+2 Arasaka Emergency Radioport
+2 Satori: Sword of Saburo
+1 Deadman Transmitter
+2 Industrial Assembly
+3 Bonnie and Clyde
+3 Over the Edge
+2 Gunpoint Diplomacy
+2 Memory Relapse
+2 Shattered Memories
+2 We Gotta Live Together
+3 Carnage at the Colosseum
