@@ -108,7 +108,7 @@ p7-analyze.cjs. Nothing here was recorded as an event, a rating, a ledger batch 
    Which reference it should use is a choice for the owner. The parent rule (the plan's, and the default as built)
    would have entered 2 of the 16 recorded decks and kept out the breeder's five strongest. The fixed bar would have
    entered 9, among them those five, and kept out six of the seven rated under 48%. scripts/season.ts takes --gate-reference
-   parent|middle; the default stays the parent until the owner decides.
+   parent|middle. (Decided by the owner on 2026-11-15, after this check: the fixed bar is the default.)
    Whether Medium should go first is a second choice. It is cheap and agreed in sign with Hard for 13 or 14 of the 16,
    but it is the kinder bot to a bred deck and it differs from Hard deck by deck. Hard alone is
    --gate-bot hard --gate-confirm-bot none; with five stages that is at most 2,800 Hard games a deck (its reference

@@ -81,7 +81,8 @@ export const seasonGateFlags = () => ({
   'gate-rounds': int(GATE_DEFAULTS.rounds, { min: 1, max: 1000 }),
   'gate-stages': int(GATE_DEFAULTS.stages, { min: 1, max: 16 }),
   'gate-confirm-stages': int(GATE_DEFAULTS.confirmStages, { min: 1, max: 16 }),
-  'gate-reference': oneOf(REFERENCE_MODES, 'parent'),
+  // the owner's choice of 2026-11-15: a season tests against the fixed bar (planGate's own default stays 'parent')
+  'gate-reference': oneOf(REFERENCE_MODES, 'middle'),
   out: str(),
 });
 

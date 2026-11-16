@@ -2,9 +2,11 @@
 // against its parent"): before a bred deck takes a season slot it plays its reference on the same games, and it enters
 // unless a bot shows it worse. The rule was declared before any game was played:
 //
-// - Reference: the bred deck's best parent (the parent ranked highest by strength in the breeder's list). An explorer
-//   has no parent: its reference is the middle meta deck by strength (the 4th of 7, best first). A deck none of whose
-//   parents is in the ranked list is treated as an explorer, and the record says so.
+// - Reference, as declared: the bred deck's best parent (the parent ranked highest by strength in the breeder's list).
+//   An explorer has no parent: its reference is the middle meta deck by strength (the 4th of 7, best first). A deck none
+//   of whose parents is in the ranked list is treated as an explorer, and the record says so. That is the 'parent' mode,
+//   this module's default (the Deck Lab's test). A season tests every bred deck against the middle meta deck by default
+//   (the 'middle' mode, the owner's choice of 2026-11-15; scripts/season.ts --gate-reference).
 // - Field: the meta decks other than the reference (and other than the deck itself). Both lists play the same slots, the
 //   forge's layout (blockSlots, src/lib/changeLedgerRun.ts): game k plays field[k mod n] with seed seed0 + k, the list
 //   under test first when floor(k / n) is even. The measurement is the paired score difference per game, bred deck
@@ -100,8 +102,9 @@ export interface RankedDeck {
  */
 export type ReferenceWhy = 'best-parent' | 'explorer' | 'no-parent-available' | 'fixed-bar' | 'named';
 /**
- * Which reference a season's gate uses: 'parent' (the default, the rule as declared: the best parent, the middle meta
- * deck for an explorer) or 'middle' (every bred deck against the middle meta deck by strength, the bar explorers get).
+ * Which reference a gate uses: 'parent' (the rule as declared, and this module's default, which the Deck Lab relies on:
+ * the best parent, the middle meta deck for an explorer) or 'middle' (every bred deck against the middle meta deck by
+ * strength, one fixed bar; the season's default since 2026-11-15, scripts/season.ts --gate-reference).
  */
 export type ReferenceMode = 'parent' | 'middle';
 export const REFERENCE_MODES: readonly ReferenceMode[] = ['parent', 'middle'];
@@ -431,10 +434,13 @@ export function gateRuleWords(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'round
   const s7 = gateStageGames(o.rounds, 7);
   const s6 = gateStageGames(o.rounds, 6);
   const conf = c ? `; a deck the ${botWord(o.bot)} bot did not show worse then plays up to ${o.confirmStages} stage${o.confirmStages === 1 ? '' : 's'} with the ${botWord(c)} bot on its own seeds (z ${looksZ(o.confirmStages, alpha)})` : '';
+  // the season names its mode (middle by default since 2026-11-15); npm run gate has none: it names its reference
   const reference =
     o.reference === 'middle'
-      ? 'the middle meta deck by strength, the same fixed bar for every bred deck (the reference an explorer gets; this run does not test against the parents)'
-      : 'its reference (its best parent; an explorer, the middle meta deck by strength)';
+      ? 'the middle meta deck by strength, the same fixed bar for every bred deck,'
+      : o.reference === 'parent'
+        ? 'its best parent (an explorer, which has none, plays the middle meta deck by strength)'
+        : 'its reference';
   return (
     `each bred deck plays ${reference} on the same games against the other meta decks, ` +
     `in stages of ${o.rounds} double round${o.rounds === 1 ? '' : 's'} (${k(s7)} games with 7 opponents, ${k(s6)} with 6), up to ${o.stages} stage${o.stages === 1 ? '' : 's'} with the ${botWord(o.bot)} bot (z ${looksZ(o.stages, alpha)})${conf}. ` +

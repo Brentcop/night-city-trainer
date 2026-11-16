@@ -1,8 +1,8 @@
 // The season's gate on real games (scripts/season.ts --gate-only; docs/SYNERGIES.md "A bred deck's test against its
 // parent"): the next season is bred and gated with fast bots (Easy, then Random) and tiny stages, two threads, into a
 // temporary folder. Nothing in the repository changes; the JSON names every bred deck with its reference and verdict,
-// and a deck shown worse is listed as not entered. With --gate-reference middle every deck is tested against the middle
-// meta deck and the record says so. With --gate off it breeds and names no gate. Bad gate flags exit 2.
+// and a deck shown worse is listed as not entered. By default every deck is tested against the middle meta deck (the
+// fixed bar) and the record says so; with --gate-reference parent each is tested against its best parent. With --gate off it breeds and names no gate. Bad gate flags exit 2.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -46,9 +46,9 @@ function snapshot(): string[] {
 
 const GATE_OUT = path.join(tmp, 'gate');
 const OFF_OUT = path.join(tmp, 'off');
-const MIDDLE_OUT = path.join(tmp, 'middle');
+const PARENT_OUT = path.join(tmp, 'parent');
 let gateRun: ReturnType<typeof season> | null = null;
-let middleRun: ReturnType<typeof season> | null = null;
+let parentRun: ReturnType<typeof season> | null = null;
 let offRun: ReturnType<typeof season> | null = null;
 let before: string[] = [];
 
@@ -57,9 +57,9 @@ describe('the season with --gate-only', () => {
     before = snapshot();
     gateRun = season(['--gate-only', ...FAST, '--out', GATE_OUT]);
     offRun = season(['--gate-only', '--gate', 'off', '--out', OFF_OUT]);
-    middleRun = season(['--gate-only', ...FAST, '--gate-reference', 'middle', '--out', MIDDLE_OUT]);
+    parentRun = season(['--gate-only', ...FAST, '--gate-reference', 'parent', '--out', PARENT_OUT]);
     expect(gateRun.status, gateRun.stderr).toBe(0);
-    expect(middleRun.status, middleRun.stderr).toBe(0);
+    expect(parentRun.status, parentRun.stderr).toBe(0);
     expect(offRun.status, offRun.stderr).toBe(0);
     expect(snapshot()).toEqual(before);
   });
@@ -73,10 +73,11 @@ describe('the season with --gate-only', () => {
     const decks = doc.gate.decks as { name: string; entered: boolean; reference: { name: string; why: string }; first: { verdict: string; seed0: number; bot: string }; confirm: { verdict: string } | null; confirmSkipped?: string; list: string; legends: string[]; words: string }[];
     expect(decks).toHaveLength(8);
     expect(doc.gate.bred).toBe(8);
-    expect(doc.gate.settings).toMatchObject({ bot: 'easy', confirmBot: 'random', rounds: 1, stages: 2, confirmStages: 1, seeds: { first: doc.season * 1_000_000 + 700_000, confirm: doc.season * 1_000_000 + 800_000 } });
+    // the default reference is the fixed bar
+    expect(doc.gate.settings).toMatchObject({ bot: 'easy', confirmBot: 'random', rounds: 1, stages: 2, confirmStages: 1, reference: 'middle', seeds: { first: doc.season * 1_000_000 + 700_000, confirm: doc.season * 1_000_000 + 800_000 } });
     for (const d of decks) {
       expect(d.reference.name).toBeTruthy();
-      expect(['best-parent', 'explorer', 'no-parent-available']).toContain(d.reference.why);
+      expect(['fixed-bar', 'explorer']).toContain(d.reference.why);
       expect(['shown-worse', 'shown-better', 'could-not-tell']).toContain(d.first.verdict);
       expect(d.first.seed0).toBe(doc.season * 1_000_000 + 700_000);
       expect(d.list).toMatch(new RegExp(`^# ${d.name.replace(/[()]/g, '\\$&')}`));
@@ -103,16 +104,17 @@ describe('the season with --gate-only', () => {
     expect(/kept out: shown worse than/.test(md)).toBe(keptOut.length > 0);
   });
 
-  it('--gate-reference middle: every bred deck against the middle meta deck, and the record keeps the mode', () => {
+  it('the default is the fixed bar: every bred deck against the middle meta deck; --gate-reference parent tests each against its best parent', () => {
     const read = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, fs.readdirSync(dir).find((f) => f.endsWith('.json'))!), 'utf8'));
-    const parent = read(GATE_OUT);
-    const middle = read(MIDDLE_OUT);
-    expect(parent.gate.settings.reference).toBe('parent');
+    const middle = read(GATE_OUT);
+    const parent = read(PARENT_OUT);
     expect(middle.gate.settings.reference).toBe('middle');
-    const decks = middle.gate.decks as { name: string; parents: string[]; reference: { name: string; why: string }; field: string[] }[];
+    expect(parent.gate.settings.reference).toBe('parent');
+    type D = { name: string; parents: string[]; reference: { name: string; why: string }; field: string[] };
+    const decks = middle.gate.decks as D[];
     expect(decks).toHaveLength(8);
     // the same breeding: the same decks in the same order
-    expect(decks.map((d) => d.name)).toEqual(parent.gate.decks.map((d: { name: string }) => d.name));
+    expect(decks.map((d) => d.name)).toEqual((parent.gate.decks as D[]).map((d) => d.name));
     const bar = decks[0]!.reference.name;
     for (const d of decks) {
       expect(d.reference.name).toBe(bar);
@@ -120,10 +122,16 @@ describe('the season with --gate-only', () => {
       expect(d.field).not.toContain(bar);
       expect(d.field).toHaveLength(6);
     }
-    // the bar is the reference an explorer gets under the parent rule
-    for (const d of parent.gate.decks as { parents: string[]; reference: { name: string } }[]) if (!d.parents.length) expect(d.reference.name).toBe(bar);
-    expect(middleRun!.stdout).toContain('each bred deck plays the middle meta deck by strength, the same fixed bar for every bred deck');
-    expect(gateRun!.stdout).toContain('each bred deck plays its reference (its best parent; an explorer, the middle meta deck by strength)');
+    // the parent path: a ranked parent where there is one, else the bar, with the reason that says which
+    for (const d of parent.gate.decks as D[]) {
+      if (!d.parents.length) expect([d.reference.name, d.reference.why]).toEqual([bar, 'explorer']);
+      else if (d.reference.why === 'best-parent') expect(d.parents).toContain(d.reference.name);
+      else expect([d.reference.name, d.reference.why]).toEqual([bar, 'no-parent-available']);
+      expect(d.field).not.toContain(d.reference.name);
+    }
+    expect((parent.gate.decks as D[]).some((d) => d.reference.why === 'best-parent')).toBe(true);
+    expect(gateRun!.stdout).toContain('each bred deck plays the middle meta deck by strength, the same fixed bar for every bred deck, on the same games against the other meta decks');
+    expect(parentRun!.stdout).toContain('each bred deck plays its best parent (an explorer, which has none, plays the middle meta deck by strength) on the same games against the other meta decks');
   });
 
   it('the gate’s games replay from the recorded list: a bred deck is tested in the order its deck file reads back', { timeout: 120_000 }, async () => {
@@ -157,13 +165,14 @@ describe('the season with --gate-only', () => {
     expect(offRun!.stdout).not.toMatch(/gate rule|shown worse|What it can detect/i);
   });
 
-  it('bad gate flags exit 2 before anything is read or played', () => {
+  // six processes, each a few seconds to start: its own timeout, as every process-spawning test has
+  it('bad gate flags exit 2 before anything is read or played', { timeout: 120_000 }, () => {
     for (const [args, re] of [
       [['--gate', 'maybe'], /--gate must be one of on \| off/],
       [['--out', path.join(tmp, 'x')], /--out writes the --gate-only files/],
       [['--gate-only', '--gate-rounds', '0'], /--gate-rounds must be at least 1/],
       [['--gate-only', '--gate-confirm-bot', 'nobody'], /--gate-confirm-bot must be one of/],
-      [['--gate-only', '--gate-reference', 'grandparent'], /--gate-reference must be one of parent | middle/],
+      [['--gate-only', '--gate-reference', 'grandparent'], /--gate-reference must be one of parent \| middle/],
       [['--gate-only', '--gate-rounds', '1000', '--gate-stages', '16'], /seeds/],
     ] as [string[], RegExp][]) {
       const r = season(args);

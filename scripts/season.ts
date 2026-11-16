@@ -13,11 +13,12 @@
 //             The pooled card-impact files are not added to again on a re-run (the same seeds play the same games).
 //
 // The gate (docs/SYNERGIES.md "A bred deck's test against its parent"; src/lib/breedGate.ts): each bred deck plays its
-// reference (its best parent; an explorer, the middle meta deck by strength) on the same games against the other meta
-// decks, in stages, and enters unless a bot shows it worse ("could not tell" enters). A deck kept out gets no deck file;
-// its list, reference, figures and verdict are kept in data/seasons/season-<N>.json ("gate") and the season report, and
-// its Legend trio counts as seen when later seasons breed. Gate games count for no rating, leaderboard, card impact,
-// change ledger or evidence file; their seeds are N·1,000,000 + 700,000 (first bot) and + 800,000 (confirming bot).
+// reference (by default the middle meta deck by strength, one fixed bar for all; with --gate-reference parent its best
+// parent) on the same games against the other meta decks, in stages, and enters unless a bot shows it worse ("could not
+// tell" enters). A deck kept out gets no deck file; its list, reference, figures and verdict are kept in
+// data/seasons/season-<N>.json ("gate") and the season report, and its Legend trio counts as seen when later seasons
+// breed. Gate games count for no rating, leaderboard, card impact, change ledger or evidence file; their seeds are
+// N·1,000,000 + 700,000 (first bot) and + 800,000 (confirming bot).
 //   --gate on|off              default on; off enters every bred deck as before
 //   --gate-bot BOT             the first bot (default medium)
 //   --gate-confirm-bot BOT     the confirming bot, for decks the first bot did not show worse (default hard; none: no
@@ -25,10 +26,12 @@
 //   --gate-rounds N            double rounds per stage (default 20: 280 games with 7 opponents, 240 with 6)
 //   --gate-stages N            the first bot's stages at most (default 5)
 //   --gate-confirm-stages N    the confirming bot's stages at most (default 2)
-//   --gate-reference parent|middle   which reference (default parent: the best parent, the middle meta deck for an
-//                              explorer, the rule as declared); middle tests every bred deck against the middle meta
-//                              deck by strength, the fixed bar explorers get (with the parent as reference only 2 of
-//                              the 16 recorded bred decks would have entered; docs/SYNERGIES.md). Kept in the record.
+//   --gate-reference middle|parent   which reference (default middle): middle tests every bred deck against the middle
+//                              meta deck by strength, one fixed bar for all; parent tests each against its best parent
+//                              (an explorer, which has none, still plays the bar), the plan's original rule. The owner
+//                              chose the bar on 2026-11-15 after the check on the recorded bred decks: with the parent
+//                              as reference 2 of 16 would have entered and the five best-rated kept out; against the
+//                              bar 9 (docs/SYNERGIES.md). Kept in the record's settings.
 //   --gate-only                breed and gate, then stop: no deck file, leaderboard, impact file or report in the
 //                              repository changes (a recorded season may be gated again this way: it breeds as a --force
 //                              re-run would). With --gate off it breeds and stops.

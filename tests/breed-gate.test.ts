@@ -256,8 +256,10 @@ describe('the words', () => {
     expect(gateRuleWords(OPTS)).toContain('up to 5 stages with the Medium bot (z 4.88, 3.36, 2.68, 2.29, 2.03)');
     expect(gateRuleWords(OPTS)).toContain('up to 2 stages with the Hard bot on its own seeds (z 2.96, 1.97)');
     expect(gateRuleWords(OPTS)).toContain('could not tell enters');
-    expect(gateRuleWords(OPTS)).toContain('each bred deck plays its reference (its best parent; an explorer, the middle meta deck by strength) on the same games');
-    expect(gateRuleWords({ ...OPTS, reference: 'middle' })).toContain('each bred deck plays the middle meta deck by strength, the same fixed bar for every bred deck (the reference an explorer gets; this run does not test against the parents) on the same games');
+    // each mode says its reference, neither as the exception; without a mode (npm run gate names its own) it says "its reference"
+    expect(gateRuleWords({ ...OPTS, reference: 'parent' })).toContain('each bred deck plays its best parent (an explorer, which has none, plays the middle meta deck by strength) on the same games against the other meta decks,');
+    expect(gateRuleWords({ ...OPTS, reference: 'middle' })).toContain('each bred deck plays the middle meta deck by strength, the same fixed bar for every bred deck, on the same games against the other meta decks,');
+    expect(gateRuleWords(OPTS)).toMatch(/^each bred deck plays its reference on the same games against the other meta decks, /);
     expect(gateGuaranteeWords()).toBe('A bred deck that is truly no worse than its reference is kept out about 2.5% of the time or less by each bot.');
     const d = gateDetectWords({ ...OPTS, opponents: [7, 6, 7] });
     expect(d).toBe(
