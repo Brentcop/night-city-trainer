@@ -284,7 +284,7 @@ What remains, batched and ranked by value for its cost. Sizes: S under an hour o
 
 **A. Finish what Season 3 opened** (§10)
 1. Record one event with all 53 decks so the six Season 3 decks get power ratings and Sim tiers, then rebuild ratings, head-to-heads and evidence (M; about 10 minutes of games).
-2. Breeder: read card data of the current simulator only. Its card table pooled Seasons 1 and 2 (older simulator and bot) and had Johnny Silverhand: Never Stop Fighting 68th of 90, the card the forge then added to two decks for +3.1 and +4.6 points (S to M).
+2. Breeder: read card data of the current simulator only. Its card table pooled Seasons 1 and 2 (older simulator and bot) and had Johnny Silverhand: Never Stop Fighting 68th of 90, the card the forge then added to two decks for +3.1 and +4.6 points (S to M). **Done 2026-11-16** (§12, gain 2): both tables are kept by simulator version and bot and read through one function; with no numbers for the current pair the breeder reads the closest there are, with a warning.
 3. Forge: additions chosen per deck, and an addition's evidence carried across decks; today they come from one format-wide ranking, which is why one card was proposed for all six decks (M).
 4. Season forge step: "until settled" on by default with its Hard-game cost stated, and the carried shortlist made to work when another bot confirms (the season cannot have both today) (S and M).
 5. Breeder: refill the slots when few decks enter (M); Hard alone at the test (owner, below).
@@ -350,8 +350,8 @@ What remains, batched and ranked by value for its cost. Sizes: S under an hour o
 
 The owner asked for another review pass for potential performance gains on the bots, the coach and the deck tools. Done 2026-11-16: [REVIEW_2026-11-16.md](REVIEW_2026-11-16.md) (three reviewers with measurements; the claims the list rests on re-checked). Nothing was changed in the code by it. Its ten gains in order, and where they meet the next goal of §11:
 
-1. Bots: five speed-ups that change no decision. A Hard game takes about a third less time (270 games byte-identical with and without them). New; it makes every Hard run after it cheaper, so it goes first.
-2. Breeder: a card table measured on the current simulator. Season 3 bred again with it came out 4.4 points better on average over its 8 slots (Medium). This is §11 item 2, now measured.
+1. Bots: five speed-ups that change no decision. A Hard game takes about a third less time (270 games byte-identical with and without them). New; it makes every Hard run after it cheaper, so it goes first. **Done 2026-11-16:** landed with no decision changed; measured again on a quiet machine, a Hard game takes 35% less time, a Medium game a third less, an Easy game a quarter less. A corpus of 62 seeded games is now a test (`tests/game-corpus.test.ts`): a change meant to alter play bumps SIM_VERSION and rebuilds it, and after any other change a failure is a bug.
+2. Breeder: a card table measured on the current simulator. Season 3 bred again with it came out 4.4 points better on average over its 8 slots (Medium). This is §11 item 2, now measured. **Done 2026-11-16, with a different result than expected:** the finding holds with Hard for Season 3 (+5.4 points, 8 of 8 lists), but Season 4 gains nothing shown from reading only the current entry (+0.6 on Medium, +0.4 with Hard), because Season 3's own games were already in the pooled table. What the measurements did show is that no numbers at all is much worse (8.5 points on Medium, 5.5 with Hard), which is what the first season after a simulator change would have got under "current only". So the rule built is: the current pair when it has numbers, else the closest numbers with a warning, never a sum of two ([SYNERGIES.md](SYNERGIES.md), "The breeder's card impact").
 3. Game review: confirm the player's own coach-graded moves and the wide close calls. New.
 4. Coach: main-phase grades on the review's scale, rule sells not counted as agreed, one name for a small gap. New.
 5. Forge: more varied candidates, chosen and screened on separate games, by successive halving. Widens §11 item 3.
@@ -361,6 +361,6 @@ The owner asked for another review pass for potential performance gains on the b
 9. Coach: play-outs on 2 to 4 workers; a move made before the advice lands is graded (§11 item 15); reasons for Gig choices (§11 item 24).
 10. The evaluation re-fitted on SIM_VERSION 9: expected small, and a bump. With §11 batch E.
 
-Small defects it found are listed at the end of that document (among them: the season's default bot is still the old deep bot; the decision report's calibration is that bot playing itself, not Hard; the breeder's card table carries no simulator version).
+Small defects it found are listed at the end of that document (among them: the season's default bot is still the old deep bot; the decision report's calibration is that bot playing itself, not Hard; the breeder's card table carries no simulator version). The first and the third were fixed with gain 2; that document's "Done since" section says which are still open and lists what was found while landing the two gains.
 
-**Suggested order for the next goal:** gains 1 and 2 first; then §11 batch A (an event that rates the Season 3 decks, the rest of what the season opened) with gains 5 and 6; batch B's re-measurements with gain 8 (they are cheaper after gain 1); batch C's small fixes with gains 3, 4 and 7.
+**Suggested order for the next goal:** gains 1 and 2 first (done 2026-11-16); then §11 batch A (an event that rates the Season 3 decks, the rest of what the season opened) with gains 5 and 6; batch B's re-measurements with gain 8 (they are cheaper after gain 1); batch C's small fixes with gains 3, 4 and 7.

@@ -3,14 +3,24 @@
 // archetypes, with percentiles). The round robin comes after the forge, so the round robin, the finals and the
 // leaderboard all measure the forged lists.
 //
-//   npx tsx scripts/season.ts [--season N] [--games 16] [--bot deep] [--finals 42] [--forge-gens 1] [--forge-games 112] [--threads N] [--force]
+//   npx tsx scripts/season.ts [--season N] [--games 16] [--bot hard] [--finals 42] [--forge-gens 1] [--forge-games 112] [--threads N] [--force]
 //
 //   --season  defaults to the next season not yet recorded
+//   --bot     the bot of the round robin and the finals (default hard, the bot seasons are played with since Season 3;
+//             Seasons 1 and 2 used deep). data/seasons/impact.json and deck-impact.json keep each simulator version and
+//             bot apart, and the round robin's numbers are added to the entry of the current version and this bot only.
+//             The breeder reads one pair's numbers, never a sum of two (src/lib/breederImpact.ts): this version and bot;
+//             when they have none yet, with a warning, the closest there are (this version with another bot, else the
+//             highest other version); with none anywhere, card value alone, with a warning. Measured on Medium, numbers
+//             from an older version bred better lists than none (docs/SYNERGIES.md, "The breeder's card impact").
 //   --force   re-run a season that is already recorded. Its leaderboard totals (kept per season in leaderboard.json)
 //             are taken out first, so nothing is counted twice; its s<N>-*.txt decks are bred again and overwritten
 //             (a deck file of the earlier run whose deck does not enter this time is left in place, with a warning).
 //             Seasons recorded before per-season totals existed cannot be taken out: restore leaderboard.json first.
 //             The pooled card-impact files are not added to again on a re-run (the same seeds play the same games).
+//             The same holds, re-run or not, when both card-impact files already count the season (a run that stopped
+//             after writing them): the season says so at its start. When only one of the two counts it, the season
+//             refuses to start, naming which (npm run check:data shows it too).
 //
 // The gate (docs/SYNERGIES.md "A bred deck's test against its parent"; src/lib/breedGate.ts): each bred deck plays its
 // reference (by default the middle meta deck by strength, one fixed bar for all; with --gate-reference parent its best
@@ -68,19 +78,19 @@
 // docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes; not with --pooled-ranking).
 //
 // Outputs: data/decks/custom/s<N>-*.txt (the decks that entered), reports/season-<N>.md, data/seasons/season-<N>.json,
-//          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
+//          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json and deck-impact.json.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { breedSeason } from '../src/ai/breeder';
-import { keptOutTriples, leaderStrength, loadDeckImpact, loadH2H, recordDeckImpact, seasonVersionsOnDisk, strengthOf } from './breed-data';
+import { keptOutTriples, leaderStrength, loadH2H, loadImpactTables, recordSeasonImpact, SEASON_BOT, seasonImpactCount, seasonVersionsOnDisk, strengthOf } from './breed-data';
+import { impactTablesWords, seasonCountWords } from '../src/lib/breederImpact';
 import { rankParents } from '../src/lib/parentStrength';
 import { confirmBotOf, enteredWords, gateDetectWords, gateGuaranteeWords, gateRuleWords, gateSeeds, gateStageGames, gateWords, planGate, runGate, spreadSeen, spreadSeenWords, stepWords, type GateOptions, type GateOutcome } from '../src/lib/breedGate';
 import { asWritten, gateDeckRecord, gateFooterLines, gateHeaderLines, gatePlayOver, gateSettings, seasonGateFlags, seedProblem } from './gate-run';
 import type { DeckList } from '../src/engine/types';
 import { exportOfficial, deckColors, listFingerprint } from '../src/engine/deck';
-import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
-import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
+import { analyzeAll } from '../src/analysis/analyze';
 import { classify } from '../src/ai/archetype';
 import { bool, cli, existing, Refusal, int, loadLibrary, oneOf, runJobs, runMain, SIM_BOTS, slugify, threadsOpt, writeJsonStamped } from './lib-node';
 import { breederPackageFlags, exitOnPlanProblems, packagesOn, planArgs, planFromFlags, seedsFromFlags } from './package-flags';
@@ -95,7 +105,7 @@ import { SIM_VERSION } from '../src/lib/tournament';
 const { values: V } = cli(import.meta.url, {
   season: int(undefined, { min: 1 }),
   games: int(16, { min: 1 }),
-  bot: oneOf(SIM_BOTS, 'deep'),
+  bot: oneOf(SIM_BOTS, SEASON_BOT),
   finals: int(42, { min: 1 }),
   'forge-gens': int(1, { min: 1 }),
   'forge-games': int(112, { min: 1 }),
@@ -320,24 +330,6 @@ function saveLB(lb: Record<string, Entry>) {
   return rows;
 }
 
-// ---------------------------------------------------------------- card impact (pooled across runs)
-function impactMap(extra: DeckReport[] = [], write = true): Record<string, number> {
-  const IMPACT_FILE = 'data/seasons/impact.json';
-  const acc: Record<string, { s: number; n: number }> = fs.existsSync(IMPACT_FILE) ? JSON.parse(fs.readFileSync(IMPACT_FILE, 'utf8')) : {};
-  if (!fs.existsSync(IMPACT_FILE)) {
-    for (const r of JSON.parse(fs.readFileSync('src/data/analysis.json', 'utf8')).decks as DeckReport[]) extra.push(r);
-  }
-  for (const r of extra)
-    for (const c of r.cards) {
-      if (typeof c.iwd !== 'number' || !Number.isFinite(c.iwd)) continue;
-      acc[c.id] ??= { s: 0, n: 0 };
-      acc[c.id].s += c.iwd * c.seenGames;
-      acc[c.id].n += c.seenGames;
-    }
-  if (write) fs.writeFileSync(IMPACT_FILE, JSON.stringify(acc));
-  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
-}
-
 // ---------------------------------------------------------------- season
 async function main() {
   const startedAt = new Date().toISOString();
@@ -360,7 +352,19 @@ async function main() {
   }
   if (rerun && !GATE_ONLY) console.log(`--force: re-running season ${SEASON}; its previous leaderboard totals were taken out.`);
   if (rerun && Math.max(0, ...recordedSeasons()) > SEASON) console.log(`warning: later seasons (up to ${Math.max(...recordedSeasons())}) were bred from season ${SEASON}'s decks.`);
-  const impact = impactMap(undefined, !GATE_ONLY);
+  // ---- is this season's round robin already in the card-impact files? Decided now, before anything is played: a run
+  // that stopped after writing them (before the leaderboard and season file) is not a re-run, and must not fail at the
+  // end; one file without the other is refused here (the throw in addToCardImpact / addToDeckImpact is the last guard)
+  const impactCount = seasonImpactCount(SEASON);
+  const countWords = seasonCountWords(SEASON, impactCount);
+  if (countWords?.refuse && !GATE_ONLY) throw new Refusal(countWords.line);
+  // (--gate-only writes no impact file, so it only warns about files out of step)
+  if (countWords && (countWords.refuse || !GATE_ONLY)) console.log(countWords.refuse ? `warning: ${countWords.line}` : countWords.line);
+  const impactRecorded = impactCount.state !== 'neither';
+  // the card impact of one pair: this simulator version and the season's bot when they have numbers, else the closest
+  // pair with a warning (src/lib/breederImpact.ts); the other pairs are kept in the files, not read
+  const tables = loadImpactTables(BOT);
+  for (const l of impactTablesWords(tables)) console.log(l);
   // parents for breeding: every measured deck incl. meta archetypes, by strength (src/lib/parentStrength.ts: the
   // conservative power rating, blended with the shrunk vs-meta leaderboard rating only where that entry is current)
   const versions = seasonVersionsOnDisk();
@@ -375,7 +379,7 @@ async function main() {
   // each bred list in the order its deck file will read back (asWritten): the card order changes the games a seed deals,
   // so the gate plays the list as the forge, the round robin and anyone replaying the record will have it. The deck
   // files are the same either way (the export does not depend on the order).
-  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8).map((b) => ({ ...b, deck: asWritten(b.deck) }));
+  const bred = breedSeason(SEASON, { ranked, impact: tables.impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: tables.deckImpact, h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8).map((b) => ({ ...b, deck: asWritten(b.deck) }));
   const fileOf = (d: DeckList) => `${slugify(d.name)}.txt`;
   if (!GATE_ONLY) {
     const clash = existing(bred.map((b) => `data/decks/custom/${fileOf(b.deck)}`));
@@ -495,11 +499,12 @@ async function main() {
     adoption: adoptionProvenance(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, V.ledger, SETTLE ?? undefined, FORGE_CONFIRM?.confirm),
   });
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
-  if (!rerun) {
-    impactMap(reps);
-    // keyed by the list each deck played in this round robin (a new deck's list is the forged one: the forge ran first)
+  // not on a re-run, and not when an earlier run of this season already recorded it (the same seeds play the same games)
+  if (!rerun && !impactRecorded) {
+    // into the entry of this simulator version and BOT, per list keyed by the list each deck played in this round robin
+    // (a new deck's list is the forged one: the forge ran first)
     const played = new Map(field.map((d) => [d.deck.name, listFingerprint(d.deck)]));
-    const skipped = recordDeckImpact(reps, (name) => played.get(name));
+    const skipped = recordSeasonImpact(reps, { season: SEASON, runId: manifest.runId, simVersion: SIM_VERSION, bot: BOT }, (name) => played.get(name));
     if (skipped.length) console.log(`per-list card impact: no list known for ${skipped.join(', ')}; not recorded`);
   }
   // per-deck season win rate + pooled vs-meta record

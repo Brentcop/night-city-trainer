@@ -1,21 +1,26 @@
 // Preview the next season's breeding without playing any games: which decks would be parents, which would be the
 // "bosses" to counter, and the 8 decks the breeder would build from the current data. Writes nothing.
 //
-//   npx tsx scripts/breed-preview.ts [--season 6] [--lists]
+//   npx tsx scripts/breed-preview.ts [--season 6] [--lists] [--bot hard]
 //   --lists   also print each list and the synergy packages it holds (synergiesIn)
+//   --bot     the bot the season would play with (default hard, as scripts/season.ts): the breeder reads one pair's card
+//             impact, that bot and the current simulator version when they have numbers, else the closest pair with a
+//             warning, through the season's own reader (loadImpactTables in scripts/breed-data.ts), and the preview says
+//             which pair it read
 // The breeder's package flags work here too (scripts/season.ts --help; docs/SYNERGIES.md), e.g.
 //   npx tsx scripts/breed-preview.ts --seed-packages low-cred+program-fuel --lists
 import fs from 'node:fs';
 import { breedSeason } from '../src/ai/breeder';
-import { bool, cli, int, loadLibrary } from './lib-node';
-import { keptOutTriples, leaderStrength, loadDeckImpact, loadH2H, seasonVersionsOnDisk, strengthOf } from './breed-data';
+import { bool, cli, int, loadLibrary, oneOf, SIM_BOTS } from './lib-node';
+import { keptOutTriples, leaderStrength, loadH2H, loadImpactTables, SEASON_BOT, seasonVersionsOnDisk, strengthOf } from './breed-data';
+import { impactTablesWords } from '../src/lib/breederImpact';
 import { rankParents } from '../src/lib/parentStrength';
 import { breederPackageFlags, exitOnPlanProblems, packagesOn, planFromFlags, seedsFromFlags } from './package-flags';
 import { exportOfficial } from '../src/engine/deck';
 import { synergiesIn } from '../src/content/synergies';
 import { describePlan, packageCompatibility, packageName } from '../src/lib/deckPackages';
 
-const { values: V } = cli(import.meta.url, { season: int(0, { min: 0 }), lists: bool(), ...breederPackageFlags() });
+const { values: V } = cli(import.meta.url, { season: int(0, { min: 0 }), lists: bool(), bot: oneOf(SIM_BOTS, SEASON_BOT), ...breederPackageFlags() });
 const SEASON = V.season;
 const PACKAGES = packagesOn(V);
 const PLAN = planFromFlags(V);
@@ -29,14 +34,15 @@ const versions = seasonVersionsOnDisk();
 const strength = strengthOf(Object.values(lb).filter((e) => e.metaG > 0).map((e) => leaderStrength(e, (e.metaW + 0.5 * PRIOR) / (e.metaG + PRIOR), versions)));
 const ranked = rankParents(strength, lib);
 const h2h = loadH2H();
-const deckImpact = loadDeckImpact();
 const hasH2H = ranked.slice(0, 4).some((x) => ranked.some((y) => h2h(y.deck.name, x.deck.name).g > 0));
-const impactFile = 'data/seasons/impact.json';
-const pooled: Record<string, { s: number; n: number }> = fs.existsSync(impactFile) ? JSON.parse(fs.readFileSync(impactFile, 'utf8')) : {};
-const impact = Object.fromEntries(Object.entries(pooled).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
+// the season's own reader: one pair's card impact, this simulator version and the bot when they have numbers, else the
+// closest pair with a warning
+const tables = loadImpactTables(V.bot);
+const { impact, deckImpact } = tables;
 const season = SEASON || 1 + Math.max(0, ...lib.map((d) => +(d.file.match(/^s(\d+)-/)?.[1] ?? 0)));
 
 console.log(`Season ${season} preview`);
+for (const l of impactTablesWords(tables)) console.log(`  ${l}`);
 console.log(`  strongest parents: ${ranked.slice(0, 6).map((r) => `${r.deck.name} ${(r.wr * 100).toFixed(0)}%`).join(', ')}`);
 console.log(`  per-deck card impact for ${Object.keys(deckImpact).length} decks; head-to-heads ${hasH2H ? 'available (counters on)' : 'not available yet (counters off)'}`);
 if (PACKAGES) {

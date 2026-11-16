@@ -2,24 +2,39 @@
 //   strength   — per-deck strength: power rating (tournament series), discounted by uncertainty, blended with the season
 //                leaderboard only where its entry is current (src/lib/parentStrength.ts)
 //   seasons    — the recorded season files, their simulator versions, and the Legend trios the gate kept out
-//   deckImpact — per-list card impact ("Δ when drawn"), pooled from the review telemetry and every season round robin,
-//                keyed by list fingerprint (data/seasons/deck-impact.json; src/lib/seasonDeckImpact.ts)
-//   h2h        — head-to-head game records from every recorded tournament event
+//   impact     — card impact ("Δ when drawn"), pooled by card (data/seasons/impact.json; src/lib/seasonImpact.ts) and per
+//                list, keyed by list fingerprint (data/seasons/deck-impact.json; src/lib/seasonDeckImpact.ts): both kept
+//                by simulator version and bot; the breeder reads one pair's numbers, the current simulator version and
+//                the season's bot when it has any, else the closest pair with a warning (src/lib/breederImpact.ts); the
+//                review telemetry counts as the pair its manifest names
+//   h2h       — head-to-head game records from every recorded tournament event
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
 import path from 'node:path';
-import type { DeckReport } from '../src/analysis/analyze';
 import { parentStrength, seasonVersions, staleLeaderRow, type LeaderStrength, type RatedDeck } from '../src/lib/parentStrength';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { IMPACT_MIN_DECK_GAMES } from '../src/analysis/impactData';
 import { readEvents } from './lib-node';
 import { poolEvents, selectEvents } from './event-pool';
 import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
-import { addCards, breederDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
+import { addToDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
+import { addToCardImpact, emptyCardImpact, impactKey, parseCardImpact, type CardImpactFile, type ImpactCardStat, type ImpactKey } from '../src/lib/seasonImpact';
+import { readImpactTables, seasonCountIn, type AnalysisLike, type ImpactTables, type SeasonCount } from '../src/lib/breederImpact';
 
+export const CARD_IMPACT_FILE = 'data/seasons/impact.json';
 export const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
+export const ANALYSIS_FILE = 'src/data/analysis.json';
+/** The bot seasons are played with since Season 3 (scripts/season.ts --bot), and so the table the breeder reads by default. */
+export const SEASON_BOT = 'hard';
 
-/** The pooled per-list impact file (keyed by list fingerprint), or an empty one; the old name-keyed file is refused. */
+/** The pooled card-impact file (entries by simulator version and bot), or an empty one; an old shape is refused. */
+export function readCardImpactFile(file = CARD_IMPACT_FILE): CardImpactFile {
+  if (!fs.existsSync(file)) return emptyCardImpact();
+  const r = parseCardImpact(JSON.parse(fs.readFileSync(file, 'utf8')));
+  if (!r.file) throw new Error(`${file} ${r.problem}`);
+  return r.file;
+}
+
+/** The per-list impact file (entries by simulator version and bot, lists by fingerprint), or an empty one; an old shape is refused. */
 export function readDeckImpactFile(file = DECK_IMPACT_FILE): DeckImpactFile {
   if (!fs.existsSync(file)) return emptyDeckImpact();
   const r = parseDeckImpact(JSON.parse(fs.readFileSync(file, 'utf8')));
@@ -28,31 +43,47 @@ export function readDeckImpactFile(file = DECK_IMPACT_FILE): DeckImpactFile {
 }
 
 /**
- * Add season telemetry to the pooled per-list card impact. `fingerprintOf` gives the listFingerprint of the list each
- * report's deck played (the round robin's field); a report whose list it does not know is not recorded (returned).
+ * Add a season round robin's telemetry to both impact files, in the entry of the simulator version and bot that played
+ * it, with the season as the source. `fingerprintOf` gives the listFingerprint of the list each report's deck played
+ * (the round robin's field); a report whose list it does not know is not recorded in the per-list file (returned).
+ * Both files are read and added to before either is written, and a season already counted is refused.
  */
-export function recordDeckImpact(reps: DeckReport[], fingerprintOf: (deckName: string) => string | undefined): string[] {
-  const acc = readDeckImpactFile();
-  const skipped: string[] = [];
-  for (const r of reps) {
-    const fp = fingerprintOf(r.deck);
-    if (fp) addCards(acc, fp, r.deck, r.cards);
-    else skipped.push(r.deck);
-  }
-  fs.writeFileSync(DECK_IMPACT_FILE, JSON.stringify(acc));
+export function recordSeasonImpact(
+  reps: readonly { deck: string; cards: readonly ImpactCardStat[] }[],
+  run: { season: number; runId?: string; simVersion?: number; bot: string },
+  fingerprintOf: (deckName: string) => string | undefined,
+): string[] {
+  const key = impactKey(run.simVersion ?? SIM_VERSION, run.bot);
+  const source = { kind: 'season' as const, season: run.season, ...(run.runId ? { runId: run.runId } : {}) };
+  const card = readCardImpactFile();
+  const deck = readDeckImpactFile();
+  addToCardImpact(card, key, source, reps);
+  const skipped = addToDeckImpact(deck, key, source, reps, fingerprintOf);
+  // both written in full to temporary names first, then renamed one after the other: a stop can leave the two out of
+  // step only between the two renames (seasonImpactCount then refuses the next run at its start)
+  const tmpCard = `${CARD_IMPACT_FILE}.tmp`;
+  const tmpDeck = `${DECK_IMPACT_FILE}.tmp`;
+  fs.writeFileSync(tmpCard, JSON.stringify(card));
+  fs.writeFileSync(tmpDeck, JSON.stringify(deck));
+  fs.renameSync(tmpCard, CARD_IMPACT_FILE);
+  fs.renameSync(tmpDeck, DECK_IMPACT_FILE);
   return skipped;
 }
 
+/** Whether `season` is already counted in the impact files (both, one only, or neither): checked before a season plays. */
+export const seasonImpactCount = (season: number): SeasonCount => seasonCountIn(readCardImpactFile(), readDeckImpactFile(), season);
+
 /**
- * Per-list card impact (list fingerprint → card id → Δ when drawn), needing at least `min` games where the card was
- * drawn. The original review telemetry (src/data/analysis.json) counts too, matched by each report's fingerprint
- * (`id`); a report without one is left out.
+ * What the breeder reads (src/lib/breederImpact.ts readImpactTables): the pooled and per-list card impact of one pair,
+ * the current simulator version and `bot` when they have numbers, else the closest pair (with a warning), never a sum of
+ * two; src/data/analysis.json counts as the pair its manifest names. The one reader of the season (also --gate-only),
+ * the preview and scripts/theorize-ladder.ts; `impactTablesWords` says what it read.
  */
-export function loadDeckImpact(min = IMPACT_MIN_DECK_GAMES): Record<string, Record<string, number>> {
-  const acc = readDeckImpactFile();
-  if (fs.existsSync('src/data/analysis.json'))
-    for (const r of JSON.parse(fs.readFileSync('src/data/analysis.json', 'utf8')).decks as DeckReport[]) if (r.id) addCards(acc, r.id, r.deck, r.cards);
-  return breederDeckImpact(acc, min);
+export function loadImpactTables(bot: string = SEASON_BOT, o: { simVersion?: number; cardFile?: string; deckFile?: string; analysisFile?: string | null } = {}): ImpactTables {
+  const key: ImpactKey = { simVersion: o.simVersion ?? SIM_VERSION, bot };
+  const af = o.analysisFile === undefined ? ANALYSIS_FILE : o.analysisFile;
+  const analysis = af && fs.existsSync(af) ? (JSON.parse(fs.readFileSync(af, 'utf8')) as AnalysisLike) : null;
+  return readImpactTables({ cardFile: readCardImpactFile(o.cardFile), deckFile: readDeckImpactFile(o.deckFile), analysis, key });
 }
 
 export type H2H = (a: string, b: string) => H2HRecord;

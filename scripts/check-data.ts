@@ -19,9 +19,12 @@
 //     event it names exist
 //   - public/data/lift.json (the Play page's lift slice) is exactly the slice derived from public/data/synergies.json
 //     (`liftSliceText` in src/ai/packageLift.ts) whenever the report exists; `npx tsx scripts/build-lift.ts` rebuilds it
-//   - data/seasons/deck-impact.json (the season breeder's per-list card impact, src/lib/seasonDeckImpact.ts), when it
-//     exists, is keyed by list fingerprint: the old file keyed by deck name, or a malformed one, fails (the breeder
-//     refuses to read it); `npx tsx scripts/migrate-deck-impact.ts --write` re-keys an old one
+//   - data/seasons/impact.json and deck-impact.json (the season breeder's pooled and per-list card impact,
+//     src/lib/seasonImpact.ts and src/lib/seasonDeckImpact.ts), when they exist, are kept by simulator version and bot:
+//     their kinds and schemas, one entry per simulator version and canonical bot name, finite sums, well-formed list
+//     fingerprints and sources, each season counted once and under the same pair in both files, and under the pair its
+//     season file's manifest names. An old shape (no simulator version or bot, or keyed by deck name) fails, as the
+//     breeder refuses to read it; the failure names the migration
 //   - data/ledger/*.jsonl (the change ledger, src/lib/changeLedger.ts), when the folder exists: every line is a readable
 //     batch whose change starts from the file's list, no entry holds the same game twice (a game that came back with
 //     other scores is counted as information, not a failure), and no held-out game had already screened its change
@@ -43,6 +46,8 @@ import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
 import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/ai/packageLift';
 import type { SynergyReport } from '../src/analysis/synergies';
 import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
+import { parseCardImpact, cardTotals } from '../src/lib/seasonImpact';
+import { analysisKey, impactFileWords, impactFilesProblems, type AnalysisLike, type SeasonPair } from '../src/lib/breederImpact';
 import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
 import { evidenceCheck } from './build-evidence';
 
@@ -84,6 +89,10 @@ export interface CheckInput {
   lift?: string | null;
   /** data/seasons/deck-impact.json, parsed (null when missing; not checked when absent) */
   deckImpact?: unknown;
+  /** data/seasons/impact.json, parsed (null when missing; not checked when absent) */
+  cardImpact?: unknown;
+  /** each recorded season's round robin pair, from data/seasons/season-N.json (absent: not checked) */
+  seasons?: SeasonPair[];
   /** data/ledger/*.jsonl, the change ledger's files with their text (null or absent when the folder does not exist) */
   ledger?: { file: string; text: string }[] | null;
   /** the evidence check's result (evidenceCheck in scripts/build-evidence.ts; absent: not checked) */
@@ -401,16 +410,27 @@ export function checkData(input: CheckInput): CheckResult {
     }
   } else if (input.synergies === null && typeof input.lift === 'string') info.push('public/data/lift.json has no synergy report beside it to be checked against');
 
-  // ---- the season breeder's per-list card impact is keyed by list fingerprint
-  if (input.deckImpact !== undefined && input.deckImpact !== null) {
-    const r = parseDeckImpact(input.deckImpact);
-    if (!r.file) failures.push(`data/seasons/deck-impact.json ${r.problem}`);
-    else {
-      const lists = Object.values(r.file.lists);
-      const fromName = lists.filter((e) => e.keyedFrom === 'name').length;
-      const unmatched = Object.keys(r.file.unmatched ?? {}).length;
-      passed.push(`data/seasons/deck-impact.json is keyed by list fingerprint (${lists.length} lists${fromName ? `, ${fromName} migrated from names` : ''}${unmatched ? `; ${unmatched} old name(s) kept apart, unread` : ''})`);
-    }
+  // ---- the season breeder's card impact: pooled and per list, each kept by simulator version and bot
+  const cardFile = input.cardImpact !== undefined && input.cardImpact !== null ? parseCardImpact(input.cardImpact) : null;
+  if (cardFile && !cardFile.file) failures.push(`data/seasons/impact.json ${cardFile.problem}`);
+  else if (cardFile?.file) {
+    const f = cardFile.file;
+    passed.push(`data/seasons/impact.json is kept by simulator version and bot (${impactFileWords(f, (i) => `${cardTotals(f.entries[i]!.cards).cards} cards`)})`);
+  }
+  const deckFile = input.deckImpact !== undefined && input.deckImpact !== null ? parseDeckImpact(input.deckImpact) : null;
+  if (deckFile && !deckFile.file) failures.push(`data/seasons/deck-impact.json ${deckFile.problem}`);
+  else if (deckFile?.file) {
+    const f = deckFile.file;
+    const fromName = f.entries.reduce((k, e) => k + Object.values(e.lists).filter((l) => l.keyedFrom === 'name').length, 0);
+    const unmatched = f.entries.reduce((k, e) => k + Object.keys(e.unmatched ?? {}).length, 0);
+    passed.push(
+      `data/seasons/deck-impact.json is keyed by list fingerprint and kept by simulator version and bot (${impactFileWords(f, (i) => `${Object.keys(f.entries[i]!.lists).length} lists`)}${fromName ? `; ${fromName} lists migrated from names` : ''}${unmatched ? `; ${unmatched} old name(s) kept apart, unread` : ''})`,
+    );
+  }
+  if (cardFile?.file && deckFile?.file) {
+    const p = impactFilesProblems(cardFile.file, deckFile.file, input.seasons ?? []);
+    failures.push(...p.map((x) => `data/seasons impact files: ${x}`));
+    if (!p.length) passed.push(`data/seasons/impact.json and deck-impact.json count each season once, under the same simulator version and bot, and the one its season file names`);
   }
 
   // ---- the change ledger reads line by line, each game once per entry
@@ -444,6 +464,18 @@ export function loadCheckInput(root = '.'): CheckInput {
     synergies: read('public/data/synergies.json'),
     lift: fs.existsSync(path.join(root, 'public/data/lift.json')) ? fs.readFileSync(path.join(root, 'public/data/lift.json'), 'utf8') : null,
     deckImpact: read('data/seasons/deck-impact.json'),
+    cardImpact: read('data/seasons/impact.json'),
+    seasons: fs.existsSync(path.join(root, 'data/seasons'))
+      ? fs
+          .readdirSync(path.join(root, 'data/seasons'))
+          .flatMap((f) => {
+            const m = /^season-(\d+)\.json$/.exec(f);
+            if (!m) return [];
+            const s = read(`data/seasons/${f}`) as Pick<AnalysisLike, 'manifest'> | null;
+            return [{ season: Number(m[1]), key: analysisKey({ manifest: s?.manifest ?? null }) }];
+          })
+          .sort((a, b) => a.season - b.season)
+      : [],
     ledger: fs.existsSync(path.join(root, 'data/ledger'))
       ? fs
           .readdirSync(path.join(root, 'data/ledger'))

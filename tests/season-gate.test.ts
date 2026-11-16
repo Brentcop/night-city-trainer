@@ -96,6 +96,8 @@ describe('the season with --gate-only', () => {
     expect(doc.bred.map((b: { name: string }) => b.name)).toEqual(decks.filter((d) => d.entered).map((d) => d.name));
     expect(gateRun!.stdout).toContain(`Season ${doc.season}: 8 bred, ${doc.gate.entered} entered`);
     expect(gateRun!.stdout).toContain('What it can detect:');
+    // the breeder says which card-impact table it read (the current simulator version and the season's bot, hard by default)
+    expect(gateRun!.stdout).toMatch(/(Card impact read for|no card-impact numbers for) simulator version \d+, hard bot/);
     expect(gateRun!.stdout).toContain('kept out about 2.5% of the time or less by each bot');
     const md = fs.readFileSync(path.join(GATE_OUT, json.replace(/\.json$/, '.md')), 'utf8');
     expect(md).toContain(`8 bred, ${doc.gate.entered} entered. Nothing was written to the repository.`);

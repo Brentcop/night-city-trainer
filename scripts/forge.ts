@@ -228,7 +228,10 @@ const nextSeedOffset = () => (seedState = (seedState * 1664525 + 1013904223) >>>
 /** the offset nextSeedOffset will give next, without taking it (--until-settled keeps clear of the next generation's seeds) */
 const peekSeedOffset = () => ((seedState * 1664525 + 1013904223) >>> 0) % 90_000;
 
-/** Format-wide card impact: IWD averaged across all analysed decks, weighted by sample size. */
+/**
+ * Card impact for the additions' ranking: IWD averaged over the decks in src/data/analysis.json (the 7 meta decks, so
+ * only their cards), weighted by sample size. Not format-wide: a card none of those decks plays has no number here.
+ */
 const GLOBAL_IMPACT: Record<string, number> = (() => {
   const acc: Record<string, { s: number; n: number }> = {};
   for (const r of (analysis as any).decks as DeckReport[]) {

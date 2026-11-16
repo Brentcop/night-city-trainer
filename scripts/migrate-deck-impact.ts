@@ -8,10 +8,12 @@
 // list another name already took goes to the file's `unmatched` section with the reason: kept, never read, never
 // given a guessed fingerprint. Numbers and order are kept exactly, so the breeder computes what it computed before.
 // Without --write it only prints what it would do. A file already keyed by fingerprint is left alone.
+// It writes schema 1 (one pool of every season); since 2026-11-16 the file is kept by simulator version and bot
+// (schema 2), and scripts/migrate-season-impact.ts split the committed schema 1 file. Kept for the record.
 import fs from 'node:fs';
 import { bool, cli, loadLibrary, str } from './lib-node';
 import { listFingerprint } from '../src/engine/deck';
-import { isLegacyDeckImpact, migrateDeckImpact, parseDeckImpact } from '../src/lib/seasonDeckImpact';
+import { isLegacyDeckImpact, migrateDeckImpact, parseDeckImpact, parseDeckImpactV1 } from '../src/lib/seasonDeckImpact';
 
 const { values: V } = cli(import.meta.url, { write: bool(), file: str('data/seasons/deck-impact.json') });
 if (!fs.existsSync(V.file)) {
@@ -20,10 +22,11 @@ if (!fs.existsSync(V.file)) {
 }
 const raw: unknown = JSON.parse(fs.readFileSync(V.file, 'utf8'));
 if (!isLegacyDeckImpact(raw)) {
+  const v1 = parseDeckImpactV1(raw);
   const r = parseDeckImpact(raw);
-  if (r.file) console.log(`${V.file} is already keyed by list fingerprint (${Object.keys(r.file.lists).length} lists); nothing to do`);
+  if (v1.file || r.file) console.log(`${V.file} is already keyed by list fingerprint; nothing to do`);
   else console.error(`error: ${V.file} ${r.problem}`);
-  process.exit(r.file ? 0 : 1);
+  process.exit(v1.file || r.file ? 0 : 1);
 }
 const lists = loadLibrary().map((d) => ({ name: d.deck.name, fingerprint: listFingerprint(d.deck), file: d.file }));
 const m = migrateDeckImpact(raw, lists);

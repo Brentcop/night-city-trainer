@@ -47,8 +47,9 @@ export interface PartnerAware {
 }
 
 /**
- * The forge's candidates: cut the list's lowest-impact cards (its own "Δ when drawn", else format-wide impact), add +1
- * of its best card or the best legal cards format-wide, best prior first, `cands` of them. Under a plan, cuts the plan
+ * The forge's candidates: cut the list's lowest-impact cards (its own "Δ when drawn", else the impact pooled over the
+ * decks in src/data/analysis.json, the 7 meta decks), add +1 of its best card or the best legal cards by that pooled
+ * impact (only cards those decks play have a number), best prior first, `cands` of them. Under a plan, cuts the plan
  * protects are skipped and swaps that break it are dropped. With `partner` (--partner-aware) cuts and adds are ranked
  * partner-aware; without it the candidates are exactly the pinned ones (tests/deck-packages-defaults.test.ts).
  */
@@ -93,7 +94,8 @@ export function forgeSwapsExplained(
     const was = new Set(plainCuts.map((c) => c.id));
     rows = picks.rows.map((r) => ({ ...r, plainOffered: was.has(r.id), why: cutReason(r, was.has(r.id)) }));
   } else {
-    // adds: +1 of the deck's own best card, plus the best legal format-wide cards
+    // adds: +1 of the deck's own best card, plus the best legal cards by the impact of the decks in src/data/analysis.json
+    // (the 7 meta decks' cards only; a card none of them plays is never offered here)
     const own = [...cs.entries()].filter(([, n]) => n < 3).map(([id]) => ({ id, v: iwd.get(id) ?? 0 })).sort((a, b) => b.v - a.v).slice(0, 2);
     const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && globalImpact[c.id] !== undefined)
       .map((c) => ({ id: c.id, v: globalImpact[c.id] }))
@@ -115,7 +117,7 @@ export function forgeSwapsExplained(
   return { swaps: out.sort((a, b) => b.prior - a.prior).slice(0, cands), ...(rows ? { cuts: rows } : {}) };
 }
 
-/** The forge's card score for package moves: the list's own "Δ when drawn", else format-wide impact. */
+/** The forge's card score for package moves: the list's own "Δ when drawn", else the impact pooled over the 7 meta decks of src/data/analysis.json. */
 export function forgeScore(rep: DeckReport, globalImpact: Record<string, number>): (id: string) => number {
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
   return (id) => iwd.get(id) ?? globalImpact[id] ?? 0;

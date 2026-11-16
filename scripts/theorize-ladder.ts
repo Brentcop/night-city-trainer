@@ -11,7 +11,8 @@ import { exportOfficial, validateDeck } from '../src/engine/deck';
 import { fill, seedsOf } from '../src/ai/breeder';
 import { classify, type Archetype } from '../src/ai/archetype';
 import { bool, cli, existing, loadLibrary } from './lib-node';
-import { loadDeckImpact } from './breed-data';
+import { loadImpactTables } from './breed-data';
+import { impactTablesWords } from '../src/lib/breederImpact';
 
 interface Trio {
   slug: string;
@@ -60,9 +61,11 @@ if (clash.length && !V.force) {
   process.exit(1);
 }
 const lib = loadLibrary().filter((d) => !d.file.startsWith('ladder-'));
-const deckImpact = loadDeckImpact();
-const pooled: Record<string, { s: number; n: number }> = fs.existsSync('data/seasons/impact.json') ? JSON.parse(fs.readFileSync('data/seasons/impact.json', 'utf8')) : {};
-const impact = Object.fromEntries(Object.entries(pooled).filter(([, v]) => v.n >= 40).map(([k, v]) => [k, v.s / v.n]));
+// the season breeder's reader (scripts/breed-data.ts): one pair's card impact, this simulator version and the season's
+// bot when they have numbers, else the closest pair with a warning
+const tables = loadImpactTables();
+for (const l of impactTablesWords(tables)) console.log(l);
+const { impact, deckImpact } = tables;
 const lb: Record<string, { name: string; metaW: number; metaG: number }> = fs.existsSync('data/seasons/leaderboard.json') ? JSON.parse(fs.readFileSync('data/seasons/leaderboard.json', 'utf8')) : {};
 const strength = (name: string) => {
   const e = Object.values(lb).find((x) => x.name === name);
