@@ -5,6 +5,7 @@
 // seasons file's minimum version: a row with only current seasons behind it is current.
 import { CURRENT_SIM_VERSION, isHistorical, parseWL, ratingsHistorical, type RatingsFile } from './playedRecord';
 import { staleLeaderRow } from './parentStrength';
+import { entrantDeckName } from './entrants';
 export * from './playedRecord';
 
 export interface EventLite {
@@ -64,6 +65,8 @@ export interface RecordSources {
    */
   versions?: { reports?: number; telemetry?: number; seasons?: Readonly<Record<string, number | null>> };
   simVersion?: number;
+  /** whether a name is a library deck's: lets a finish of the deck's second entry ("X #2") count (eventFinishes) */
+  isDeck?: (name: string) => boolean;
 }
 
 export interface Finish {
@@ -106,15 +109,20 @@ export interface DeckRecord {
 const ok = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 
 
-/** Every standard recorded event the deck entered, newest first (custom events are not finishes: see EventLite.custom). */
-export function eventFinishes(name: string, events: EventLite[]): Finish[] {
+/**
+ * Every standard recorded event the deck entered, newest first (custom events are not finishes: see EventLite.custom).
+ * With `isDeck` (whether a name is a library deck's), an entry "X #2" of the deck counts as the deck too (the narrow
+ * rule of src/lib/entrants.ts `entrantDeckName`: the events index keeps no setup); its best entry is its finish.
+ */
+export function eventFinishes(name: string, events: EventLite[], isDeck?: (name: string) => boolean): Finish[] {
   const out: Finish[] = [];
+  const plays = (entrant: string | null) => entrant !== null && (entrant === name || (!!isDeck && entrantDeckName(null, entrant, isDeck) === name));
   for (const e of events) {
     if (e.custom) continue;
-    const i = e.standings.findIndex((s) => s.deck === name);
+    const i = e.standings.findIndex((s) => plays(s.deck));
     const s = e.standings[i];
     if (!s) continue;
-    out.push({ id: e.id, date: e.date, place: i + 1, of: e.standings.length, record: s.record, games: s.games, top8: i < e.top8.length, champion: e.champion === name });
+    out.push({ id: e.id, date: e.date, place: i + 1, of: e.standings.length, record: s.record, games: s.games, top8: i < e.top8.length, champion: plays(e.champion) });
   }
   return out.sort((a, b) => b.id - a.id);
 }
@@ -171,7 +179,7 @@ export function deckRecord(src: RecordSources): DeckRecord {
   const rows = src.ratings?.decks ?? [];
   const ri = rows.findIndex((r) => r.name === src.name);
   const row = ri >= 0 ? rows[ri] : undefined;
-  const rec: DeckRecord = { hasAny: false, finishes: eventFinishes(src.name, events), historical: false };
+  const rec: DeckRecord = { hasAny: false, finishes: eventFinishes(src.name, events, src.isDeck), historical: false };
   const used: boolean[] = []; // historical flag of every source that contributed
 
   if (row && row.games > 0) {

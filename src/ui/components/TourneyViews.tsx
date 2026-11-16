@@ -1,12 +1,17 @@
 // Shared tournament views: bracket (with TBD slots while an event runs), standings, round lists and the match modal with replay playback.
+// Every view finds an entrant's deck through one resolver (`useEventLib`, src/ui/deckLookup.ts `eventLib`): a deck entered
+// twice keeps its own label ("X #2") but links to X's page and shows X's colours, tier and list. An event with such copies
+// also gets a "By deck" summary (src/lib/eventByDeck.ts), with games between two entries of one deck counted apart.
 import { useId, useMemo, useState } from 'react';
 import { allDecks } from '../../lib/browserLibrary';
-import type { LibraryDeck } from '../../lib/library';
 import { LegendStrip, OriginBadge } from './DeckIdentity';
 import { gameDeck, type GameRec, type StandingRow } from '../../lib/tournament';
 import { errorText } from '../../sim/pool';
 import { useReplayWorker } from '../useReplayWorker';
-import { byName } from '../deckLookup';
+import { byName, eventLib, type EventLib } from '../deckLookup';
+import type { EntrantName } from '../../lib/entrants';
+import { byDeck, recordText, type ByDeckEvent, type BestFinish } from '../../lib/eventByDeck';
+import { ordinal } from '../../lib/playedRecord';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewPanel } from './ReviewPanel';
 import { ReplayBoard, type ReplayData } from './ReplayBoard';
@@ -16,9 +21,26 @@ import { DeckListCompact } from './DeckCards';
 import { SimTierBadge, simTierFor } from './TierBadges';
 import '../tourney.css';
 
-export type Lib = Map<string, LibraryDeck>;
-/** Name → deck for event views; a built-in deck wins over a saved deck with the same name. */
-export const useLib = () => useMemo(() => byName(allDecks()), []);
+export type Lib = EventLib;
+/**
+ * An event's decks for its views: entrant name → the deck it plays (a built-in deck wins over a saved deck with the same
+ * name). `setup` is the event's recorded setup when it has one (its copies decide); without it only the narrow
+ * "X #k" fallback applies (src/lib/entrants.ts `entrantDeckName`).
+ */
+export function useEventLib(setup?: { entrants?: readonly EntrantName[] } | null): Lib {
+  const names = useMemo(() => byName(allDecks()), []);
+  return useMemo(() => eventLib(names, setup), [names, setup]);
+}
+/** What a hover title says about an entrant: its full name, and for a copy which entry of which deck it is. */
+export function entrantTitle(lib: Lib, name: string): string {
+  const copy = lib.copyText(name);
+  return copy ? `${name}: ${copy}` : name;
+}
+/** A copy's words for a screen reader, after its visible name (nothing for an original entry). */
+function CopyNote({ name, lib }: { name: string; lib: Lib }) {
+  const copy = lib.copyText(name);
+  return copy ? <span className="sr-only"> ({copy})</span> : null;
+}
 export const short = (s: string, n = 26) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 /**
  * A long name shortened in the middle, keeping its start and its end: deck names that share a start ("Ladder: V /
@@ -55,19 +77,24 @@ function MatchMarks({ m }: { m: MatchView }) {
 }
 
 function DeckName({ name, lib, label }: { name: string; lib: Lib; label?: string }) {
-  const d = lib.get(name);
+  const d = lib.deck(name);
+  const copy = lib.copyText(name) !== null;
   return d ? (
-    <a href={`#/deck?d=${encodeURIComponent(d.file)}`} title={name}>
+    <a href={`#/deck?d=${encodeURIComponent(d.file)}`} title={entrantTitle(lib, name)}>
       {label ?? name}
+      <CopyNote name={name} lib={lib} />
     </a>
   ) : (
-    <span title={label && label !== name ? name : undefined}>{label ?? name}</span>
+    <span title={copy ? entrantTitle(lib, name) : label && label !== name ? name : undefined}>
+      {label ?? name}
+      <CopyNote name={name} lib={lib} />
+    </span>
   );
 }
 
 /** The event's champion. `list` is the list it played (from the event file), shown with card images on request. */
 export function Champion({ name, lib, note, list }: { name: string; lib: Lib; note?: string; list?: { legends: string[]; main: string[] } }) {
-  const d = lib.get(name);
+  const d = lib.deck(name);
   return (
     <div className="champion">
       {d && (
@@ -134,8 +161,9 @@ export function Bracket({
                   ) : (
                     <div key={si} className={`bracket-side ${!m.winner ? '' : m.winner === side ? 'win' : 'lose'}`}>
                       <span className="seed">{seedOf(side) || ''}</span>
-                      <span className="bname" title={side}>
+                      <span className="bname" title={entrantTitle(lib, side)}>
                         {midShort(side)}
+                        <CopyNote name={side} lib={lib} />
                       </span>
                       <b>{m.b === null || (!m.games?.length && !m.winner && !m.live) ? '' : m.score[si]}</b>
                     </div>
@@ -211,7 +239,7 @@ export function StandingsTable({ rows, cut, lib, full, tiers }: { rows: (Standin
                 {tiers && (
                   <>
                     {' '}
-                    <SimTierBadge tier={simTierFor(s.deck)} />
+                    <SimTierBadge tier={simTierFor(lib.base(s.deck))} />
                   </>
                 )}
               </td>
@@ -247,7 +275,23 @@ const matches = (n: number) => `${n} match${n === 1 ? '' : 'es'}`;
  * Rounds and their matches, newest last. `openLast` opens the latest round, `openFirst` the first (a plan before play);
  * `upcoming` labels rounds with no game played yet as planned. Hand-set pairings are marked "set by you".
  */
-export function RoundList({ rounds, onOpen, openLast, openFirst }: { rounds: { round: number; matches: MatchView[] }[]; onOpen: (m: MatchView) => void; openLast?: boolean; openFirst?: boolean }) {
+export function RoundList({
+  rounds,
+  onOpen,
+  openLast,
+  openFirst,
+  lib,
+}: {
+  rounds: { round: number; matches: MatchView[] }[];
+  onOpen: (m: MatchView) => void;
+  openLast?: boolean;
+  openFirst?: boolean;
+  /** the event's decks: a copy's name gets a title and screen-reader words saying which entry it is */
+  lib?: Lib;
+}) {
+  // only a copy gets a title here, so an event without copies renders as before
+  const title = (name: string) => (lib?.copyText(name) ? entrantTitle(lib, name) : undefined);
+  const note = (name: string) => lib && <CopyNote name={name} lib={lib} />;
   return (
     <>
       {rounds.map((r, ri) => {
@@ -263,10 +307,14 @@ export function RoundList({ rounds, onOpen, openLast, openFirst }: { rounds: { r
             <div className="round-list">
               {r.matches.map((m, k) => (
                 <button key={k} className={`match-row ${m.live ? 'live' : ''}`} onClick={() => onOpen(m)} disabled={!m.b || !m.games?.length}>
-                  <span className={m.winner && m.b && m.games?.length && m.winner === m.a ? 'win' : ''}>{short(m.a)}</span>
+                  <span className={m.winner && m.b && m.games?.length && m.winner === m.a ? 'win' : ''} title={title(m.a)}>
+                    {short(m.a)}
+                    {note(m.a)}
+                  </span>
                   <b>{m.b ? (m.games?.length || m.winner ? `${m.score[0]}–${m.score[1]}` : 'vs') : 'bye'}</b>
-                  <span className={m.winner && m.winner === m.b ? 'win' : ''}>
+                  <span className={m.winner && m.winner === m.b ? 'win' : ''} title={m.b ? title(m.b) : undefined}>
                     {m.b ? short(m.b) : ''}
+                    {m.b && note(m.b)}
                     {(m.set || m.bestOf) && (
                       <span className="match-marks">
                         <MatchMarks m={m} />
@@ -345,6 +393,11 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
         {m.score[0]} – {m.score[1]}
         {m.winner ? ` · ${m.winner} wins` : ' · in progress'}
       </div>
+      {m.b && lib.base(m.a) === lib.base(m.b) && (
+        <p className="small muted" style={{ margin: '4px 0 0' }}>
+          A mirror match: both entries play {lib.base(m.a)}, so its games say nothing about the deck’s strength. Records and ratings by deck leave them out.
+        </p>
+      )}
       <table className="small" style={{ marginTop: 8 }}>
         <thead>
           <tr>
@@ -410,5 +463,71 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
         </>
       )}
     </Modal>
+  );
+}
+
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : w.endsWith('ch') ? 'es' : 's'}`;
+
+function finishWords(b: BestFinish | null): string {
+  if (!b) return '—';
+  if (b.kind === 'champion') return 'Won the event';
+  if (b.kind === 'bracket') return `Reached the ${b.round.toLowerCase()}`;
+  return `${ordinal(b.place)} of ${b.of}`;
+}
+
+/**
+ * "By deck": for an event where a deck was entered more than once, each such deck's entries with their results put
+ * together (every finished match, bracket included), the mirror games between its own entries counted apart, and its
+ * best finish. Nothing for an event without copies.
+ */
+export function ByDeckSummary({ ev, lib }: { ev: ByDeckEvent; lib: Lib }) {
+  const titleId = useId();
+  if (!lib.hasCopies) return null;
+  const rows = byDeck(ev, lib.base);
+  if (!rows.length) return null;
+  return (
+    <section className="by-deck" aria-labelledby={titleId}>
+      <h4 id={titleId} className="dp-section-title" style={{ margin: '12px 0 4px' }}>
+        By deck
+      </h4>
+      <p className="small muted" style={{ margin: '0 0 4px' }}>
+        Decks entered more than once, with the results of their entries put together (bracket matches included). Games between two entries of the same deck are
+        mirror games: they are counted apart, because they say nothing about the deck’s strength.
+      </p>
+      <div className="scroll-x">
+        <table className="small">
+          <thead>
+            <tr>
+              <th>Deck</th>
+              <th>Entries</th>
+              <th title="Matches won and lost against other decks">Matches</th>
+              <th title="Games won and lost (and tied) against other decks">Games</th>
+              <th title="Games between two entries of this deck, not counted in its record">Mirror games</th>
+              <th>Best finish</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.deck}>
+                <td>
+                  <DeckName name={r.deck} lib={lib} />
+                </td>
+                <td title={r.entries.join(', ')}>{r.entries.length}</td>
+                <td>
+                  {recordText(r.matches.won, r.matches.lost)}
+                  {r.byes > 0 && <span className="muted"> (+{plural(r.byes, 'bye')})</span>}
+                </td>
+                <td>{recordText(r.games.won, r.games.lost, r.games.tied)}</td>
+                <td>{r.mirror.matches ? `${plural(r.mirror.games, 'game')} in ${plural(r.mirror.matches, 'match')}` : 'none'}</td>
+                <td>
+                  {finishWords(r.best)}
+                  {r.best && <span className="muted"> ({r.best.entry})</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

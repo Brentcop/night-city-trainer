@@ -65,7 +65,7 @@ import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
 import { PageHead } from '../components/PageHead';
 import { RecordedAt } from '../components/RecordedAt';
-import { Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useLib, type MatchView } from '../components/TourneyViews';
+import { ByDeckSummary, Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useEventLib, type Lib, type MatchView } from '../components/TourneyViews';
 import { BracketBoEditor, BracketSlotsEditor, EntrantPicker, MatchListEditor, PairingEditor, SeedOrderEditor } from '../components/EventSetup';
 
 type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'all' | 'custom';
@@ -144,7 +144,6 @@ interface Pause {
 }
 
 export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
-  const lib = useLib();
   const pool = useMemo(() => runnerPool(allDecks()), []);
   const byFile = useMemo(() => new Map(pool.map((d) => [d.file, d])), [pool]);
   // setup-link params are validated; anything malformed falls back to the defaults
@@ -166,6 +165,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const [threads, setThreads] = useState(defaultThreads());
 
   const [ev, setEv] = useState<TourneyEvent | null>(null);
+  // the shown event's decks: its setup says which entrants are copies of a deck ("X #2" plays X)
+  const lib = useEventLib(ev?.setup);
   const [running, setRunning] = useState(false);
   const [t0, setT0] = useState(0);
   const [, tick] = useState(0);
@@ -196,6 +197,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const cut = draft.format === 'swiss' ? cutSize(draft.top, n) : 0;
   const bp = bracketPlan(plan.setup, n);
   const canStart = !running && plan.problems.length === 0 && n >= 2;
+  const planLib = useEventLib(plan.setup);
 
   /** Play an event: a new one, or a saved one resumed (its finished games are reused, the rest played). */
   const launch = async (o: { decks: (TourneyEvent['decks'][string] & { name: string })[]; cfg: TourneyConfig; setup?: EventSetup; id: TourneyEvent['id']; saved?: TourneyEvent }) => {
@@ -592,7 +594,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
 
           <fieldset className="ev-step">
             <legend>4 · The plan</legend>
-            {n >= 2 && plan.problems.length === 0 ? <PlanPreview setup={plan.setup} seed={seed} lib={lib} /> : <p className="muted small">The pairings or bracket show here once the event can run.</p>}
+            {n >= 2 && plan.problems.length === 0 ? <PlanPreview setup={plan.setup} seed={seed} lib={planLib} /> : <p className="muted small">The pairings or bracket show here once the event can run.</p>}
             <div className="row small">
               <span className="muted">Run</span>
               <div className="seg" role="group" aria-label="Run control">
@@ -744,10 +746,11 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
                 )}
               </div>
               {ev.groups ? <GroupTables groups={ev.groups} rows={ev.standings} advance={ev.setup?.advance ?? 0} lib={lib} /> : <StandingsTable rows={ev.standings} cut={kind === 'swiss' ? evSlots : 0} lib={lib} full />}
+              <ByDeckSummary ev={{ ...ev, entrants: ev.setup?.entrants.map((e) => e.name) ?? Object.keys(ev.decks) }} lib={lib} />
             </div>
             <div className="panel">
               <h3 style={{ marginTop: 0 }}>Rounds</h3>
-              {ev.rounds.length ? <RoundList rounds={ev.rounds} onOpen={open} openLast={running} /> : <p className="muted small">{kind === 'single-elim' ? 'A bracket only: every match is in the bracket above.' : 'No rounds yet.'}</p>}
+              {ev.rounds.length ? <RoundList rounds={ev.rounds} onOpen={open} openLast={running} lib={lib} /> : <p className="muted small">{kind === 'single-elim' ? 'A bracket only: every match is in the bracket above.' : 'No rounds yet.'}</p>}
             </div>
           </div>
         </>
@@ -811,7 +814,7 @@ function PausePanel({ pause, ev, onChange, onGo }: { pause: Pause; ev: TourneyEv
 }
 
 /** The event as planned before a game is played: round 1 (Swiss), the bracket, the round-robin schedule or the match list. */
-function PlanPreview({ setup, seed, lib }: { setup: EventSetup; seed: number; lib: ReturnType<typeof useLib> }) {
+function PlanPreview({ setup, seed, lib }: { setup: EventSetup; seed: number; lib: Lib }) {
   const names = setup.entrants.map((e) => e.name);
   const none = () => undefined;
   const view = (a: string, b: string | null, extra: Partial<MatchView> = {}): MatchView => ({ a, b, score: [0, 0], winner: b ? '' : a, ...extra });
@@ -820,7 +823,7 @@ function PlanPreview({ setup, seed, lib }: { setup: EventSetup; seed: number; li
     const c = setup.cutSeeds?.length || cutSize(setup.top ?? 0, names.length);
     return (
       <div className="grid">
-        <RoundList rounds={[{ round: 1, matches: r1.map((m) => view(m.a, m.b, m.set ? { set: true } : {})) }]} onOpen={none} openFirst />
+        <RoundList rounds={[{ round: 1, matches: r1.map((m) => view(m.a, m.b, m.set ? { set: true } : {})) }]} onOpen={none} openFirst lib={lib} />
         <p className="small muted" style={{ margin: 0 }}>
           Round 1 exactly as it will be paired with seed {seed}. Rounds 2–{setup.rounds} are paired by record as results come in{c ? `, then the top ${c} play a bracket` : ''}.
         </p>
@@ -856,12 +859,12 @@ function PlanPreview({ setup, seed, lib }: { setup: EventSetup; seed: number; li
             ))}
           </ul>
         )}
-        <RoundList rounds={rounds} onOpen={none} openFirst />
+        <RoundList rounds={rounds} onOpen={none} openFirst lib={lib} />
       </div>
     );
   }
   const rounds = expandMatchList(setup.matches ?? [], setup.bestOf).map((r) => ({ round: r.round, matches: r.matches.map((m) => view(m.a, m.b, m.bestOf !== setup.bestOf ? { bestOf: m.bestOf } : {})) }));
-  return <RoundList rounds={rounds} onOpen={none} openFirst />;
+  return <RoundList rounds={rounds} onOpen={none} openFirst lib={lib} />;
 }
 
 /** End-of-event numbers: games, first-player edge, upsets, best and worst records. */

@@ -121,6 +121,36 @@ describe('ledger entry of a run', () => {
     expect(run.champion).toBe(0);
   });
 
+  it('a finished run with copies: every copy’s games count under the deck’s list, the mirror games for nothing', () => {
+    // A and two copies; B once. A vs A #2 and A #2 vs A #3 are mirrors (5 games); the rest are 6 games against B.
+    const setup = { format: 'round-robin', bestOf: 3, entrants: [{ name: 'A' }, { name: 'A #2', copyOf: 'A' }, { name: 'A #3', copyOf: 'A' }, { name: 'B' }] };
+    const ev = event({
+      decks: { A: D0, 'A #2': D0, 'A #3': D0, B: D1 },
+      matches: [
+        ['A', 'A #2', [[0, 0], [1, 1], [0, 0]]],
+        ['A #2', 'A #3', [[0, 1], [1, 'tie']]],
+        ['A', 'B', [[0, 0], [1, 0]]],
+        ['B', 'A #2', [[0, 0], [1, 1]]],
+        ['A #3', 'B', [[0, 'tie'], [1, 1]]],
+      ],
+      champion: 'A #3',
+      setup,
+    });
+    expect(recordRun(ev)).toBe('saved');
+    const ledger = loadLedger();
+    // stored: the deck once (its name, not an entrant's), only the six games against B
+    expect(ledger.runs[0]!.decks.map((d) => d.name)).toEqual(['A', 'B']);
+    expect(ledger.runs[0]!.games).toHaveLength(6);
+    const a = yourRecords(ledger).get(fp(D0))!;
+    // A: won 2 (A vs B), 1-1 (A #2 vs B, from A #2's side: B won game 1, A #2 won game 2), a tie and a loss (A #3 vs B)
+    expect([a.games, a.wins, a.losses, a.ties]).toEqual([6, 3, 2, 1]);
+    expect(a.runs).toBe(1); // one tournament, though entered three times
+    expect(a.won).toBe(1); // the copy's title is the deck's
+    const b = yourRecords(ledger).get(fp(D1))!;
+    expect([b.games, b.wins, b.losses, b.ties]).toEqual([6, 2, 3, 1]);
+    expect(ledgerSummary(ledger).games).toBe(6);
+  });
+
   it('two entrants with the same list under different names: their games count for neither', () => {
     const run = ledgerRunOf(event({ decks: { A: D0, 'Renamed A': { ...D0, name: 'Renamed A' }, B: D1 }, matches: [['A', 'Renamed A', [[0, 0]]], ['Renamed A', 'B', [[1, 1]]]] }))!;
     expect(run.games).toEqual([[1, 2, 1, 0]]);

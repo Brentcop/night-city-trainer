@@ -21,12 +21,16 @@ import { RecordedAt, formatRecorded } from './RecordedAt';
 import { recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
 import { bandWords, SIM_TIER_MIN_GAMES } from '../../lib/simTier';
 import { listOf } from '../../lib/listTwin';
+import { BUILTIN } from '../../lib/browserLibrary';
 import { seasonVersions } from '../../lib/parentStrength';
 import { BOT_LABEL, type YourRecord } from '../../lib/runLedger';
 import type { Provisional } from '../../lib/yourStats';
 import { useYourStats, yourStatsFor } from '../useYourStats';
 
 const EVENTS = TOURNAMENT_INDEX.events;
+// the recorded events enter library decks: a finish of "X #2" (the deck's second entry) is X's when X is one of them
+const BUILTIN_NAMES = new Set(BUILTIN.map((d) => d.deck.name));
+const isBuiltinName = (name: string) => BUILTIN_NAMES.has(name);
 // every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
 // moves past what is recorded; deckReports.json carries each finals / head-to-head report's version (reportsSimVersion).
 // The season leaderboard is judged per row, from each season's own version (not the seasons file's minimum).
@@ -57,6 +61,7 @@ function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]
     leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile, seasons: st.leader.seasons },
     versions: { ...VERSIONS, reports: reportsSimVersion(rep) },
     simVersion: CURRENT_SIM_VERSION,
+    isDeck: isBuiltinName,
   });
 }
 

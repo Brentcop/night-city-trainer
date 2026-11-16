@@ -9,7 +9,7 @@ import { tierLabel } from '../../ai/tiers';
 import { parseEventId } from '../runParams';
 import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, isHistorical } from '../../lib/playedRecord';
-import { Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useLib, short, type MatchView } from '../components/TourneyViews';
+import { ByDeckSummary, Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useEventLib, short, type MatchView } from '../components/TourneyViews';
 import { RecordedAt } from '../components/RecordedAt';
 import { IfPage } from '../components/SiteChrome';
 import { RerunEvent } from '../components/RerunEvent';
@@ -46,7 +46,6 @@ interface EventFull extends RecordedEvent {
 const I = index as unknown as { updated: string; events: EventLite[] };
 
 export function TournamentsPage({ initial }: { initial?: string }) {
-  const lib = useLib();
   const library = useMemo(() => allDecks(), []);
   // ?e= must name a recorded event; anything else (missing, `abc`, unknown id) opens the latest one
   const [sel, setSel] = useState<number | undefined>(() => parseEventId(initial, I.events.map((e) => e.id)) ?? I.events[I.events.length - 1]?.id);
@@ -55,6 +54,8 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   const [loaded, setLoaded] = useState<{ id: number; full: EventFull | null; error?: string } | null>(null);
   const full = loaded && loaded.id === sel ? loaded.full : null;
   const loadError = loaded && loaded.id === sel ? loaded.error : undefined;
+  // the event's decks: its setup (once loaded) says which entrants are copies of a deck ("X #2" plays X)
+  const lib = useEventLib(full?.setup);
   const [match, setMatch] = useState<(MatchView & { games: GameRec[] }) | null>(null);
   useEffect(() => {
     setMatch(null);
@@ -97,7 +98,8 @@ export function TournamentsPage({ initial }: { initial?: string }) {
   const historical = I.events.filter((e) => isHistorical(e.simVersion)).length;
   // titles count standard events only: a custom event's winner played a format or pairings set by hand
   const titles = new Map<string, number>();
-  for (const e of I.events) if (!e.custom && e.champion) titles.set(e.champion, (titles.get(e.champion) ?? 0) + 1);
+  // a title won by a copy ("X #2") is X's title
+  for (const e of I.events) if (!e.custom && e.champion) titles.set(lib.base(e.champion), (titles.get(lib.base(e.champion)) ?? 0) + 1);
   const customCount = I.events.filter((e) => e.custom).length;
   const openMatch = (m: MatchView) => {
     if (!full) return;
@@ -159,7 +161,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
               <Champion
                 name={ev.champion}
                 lib={lib}
-                note={ev.custom ? 'custom event: not counted as a title' : `${titles.get(ev.champion) ?? 1} title${(titles.get(ev.champion) ?? 1) > 1 ? 's' : ''} across standard events`}
+                note={ev.custom ? 'custom event: not counted as a title' : `${titles.get(lib.base(ev.champion)) ?? 1} title${(titles.get(lib.base(ev.champion)) ?? 1) > 1 ? 's' : ''} across standard events`}
                 list={full?.decks[ev.champion]}
               />
             )}
@@ -176,6 +178,12 @@ export function TournamentsPage({ initial }: { initial?: string }) {
               ) : (
                 <StandingsTable rows={ev.standings} cut={ev.kind ? 0 : ev.top8.length} lib={lib} tiers />
               )}
+              {full && (
+                <ByDeckSummary
+                  ev={{ rounds: full.rounds, bracket: full.bracket, standings: ev.standings, champion: ev.champion, entrants: full.setup?.entrants.map((e) => e.name) ?? Object.keys(full.decks) }}
+                  lib={lib}
+                />
+              )}
               <p className="small muted" style={{ marginBottom: 0 }}>
                 Sim: each deck’s tier now, from every recorded event (not only this one). <a href="#/ratings">How tiers work</a>
               </p>
@@ -184,7 +192,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
               <h3 style={{ marginTop: 0 }}>Rounds</h3>
               {!full && !loadError && <p className="muted small">Loading round details…</p>}
               {loadError && <p className="small" style={{ color: 'var(--red)' }}>Couldn't load this event's round details ({loadError}). Standings and bracket above are still correct.</p>}
-              {full && (full.rounds.length ? <RoundList rounds={full.rounds} onOpen={(m) => m.games && setMatch(m as MatchView & { games: GameRec[] })} /> : <p className="muted small">A bracket only: every match is in the bracket above.</p>)}
+              {full && (full.rounds.length ? <RoundList rounds={full.rounds} lib={lib} onOpen={(m) => m.games && setMatch(m as MatchView & { games: GameRec[] })} /> : <p className="muted small">A bracket only: every match is in the bracket above.</p>)}
             </div>
           </div>
         </>

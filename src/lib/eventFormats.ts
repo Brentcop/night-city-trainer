@@ -107,8 +107,9 @@ export interface EventSetup {
   matches?: MatchSpec[];
 }
 
-/** The name of an explicit duplicate entrant: "Deck #2", "Deck #3"… */
-export const copyName = (base: string, k: number) => `${base} #${k}`;
+// The entrant name rules (copyName, entrantBase, entrantDeckName) live in the small src/lib/entrants.ts, so the light
+// views can read them without this module.
+export { copyName, entrantBase } from './entrants';
 
 // ---------------------------------------------------------------- small helpers
 
@@ -670,9 +671,4 @@ export function arrangedNote(s: EventSetup | null | undefined): string {
   if (s.format === 'round-robin') out.push((s.groups ?? 1) > 1 ? 'the groups' : 'the round-robin field');
   if (s.format === 'matches') out.push('every match');
   return out.length ? `Set by you: ${out.join('; ')}.` : '';
-}
-
-/** The library deck name an event entrant plays (an explicit copy "X #2" plays X). */
-export function entrantBase(setup: Pick<EventSetup, 'entrants'> | null | undefined, name: string): string {
-  return setup?.entrants.find((e) => e.name === name)?.copyOf ?? name;
 }
