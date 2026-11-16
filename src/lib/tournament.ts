@@ -30,6 +30,7 @@ import {
   groupSplit,
   hashBit,
   isPlainSetup,
+  isPlayedSetup,
   isStandardSetup,
   matchSeedBase,
   pairingRng,
@@ -122,6 +123,14 @@ export interface GameRec {
   reason: string;
   /** telemetry for deck A (only when the job asked for it) */
   summary?: import('../analysis/summarize').PlayerSummary;
+  /**
+   * A played event's game that no bot simulated (src/lib/playedEvent.ts): 'you' = played on this device's board against
+   * the bot (`replay` is its practice replay's id), 'hand' = its result recorded by hand (no replay, no turns). Absent
+   * on every simulated game.
+   */
+  by?: 'you' | 'hand';
+  /** the practice replay of a game you played (`by: 'you'`) */
+  replay?: string;
 }
 export interface MatchRec {
   a: string;
@@ -193,6 +202,18 @@ export interface TourneyEvent {
   custom?: true;
   /** round-robin groups (format round-robin with groups) */
   groups?: { name: string; decks: string[] }[];
+  /**
+   * A played event's own settings as the runner saves it (src/lib/playedEvent.ts): the coach during your games, and
+   * your game in progress with its save (src/lib/savedGames.ts), so Resume continues it. Never set by runTournament.
+   */
+  played?: PlayedRunState;
+}
+/** What a saved played event carries besides its results (TourneyEvent.played). */
+export interface PlayedRunState {
+  /** "Coach during my matches" (off by default; the board's own Coach setting is not read or changed) */
+  coach?: boolean;
+  /** your game being played: its game id (playedEvent.ts gameId) and its save, read back as untrusted */
+  current?: { game: string; save: unknown };
 }
 export interface GameJob {
   a: DeckList;
@@ -267,6 +288,8 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
   const problems = setupProblems({ ...setup, entrants: names.map((n) => setup.entrants.find((e) => e.name === n) ?? { name: n }) });
   if (problems.length) throw new Error(`this event can't run: ${problems.join('; ')}`);
   const plain = isPlainSetup(setup);
+  // a played event seeds every match by its key, Swiss rounds and top cut too (eventFormats.ts, "Seeds")
+  const allKeyed = isPlayedSetup(setup);
   const fmt = setup.format;
   const r = pairingRng(cfg.seed);
   const byName = new Map(decks.map((d) => [d.name, gameDeck(d)]));
@@ -363,8 +386,11 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       ev.manifest!.sample.completedGames++;
       if (g.winner === 0) m.score[0]++;
       else if (g.winner === 1) m.score[1]++;
-      tally(m.a, g.first === 0, g.winner === 0, g.turns);
-      tally(m.b!, g.first === 1, g.winner === 1, g.turns);
+      // a result recorded by hand has no turns and no known seat: it counts in the score, not in the game stats
+      if (g.by !== 'hand') {
+        tally(m.a, g.first === 0, g.winner === 0, g.turns);
+        tally(m.b!, g.first === 1, g.winner === 1, g.turns);
+      }
       ev.progress!.games++;
       emit();
     }
@@ -475,7 +501,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
       emit();
       // a round with hand-set pairings seeds every match by its key (table order means nothing there); others by table
       const base = cfg.seed * 1_000_000 + round * 10_000;
-      await Promise.all(matches.map((m, k) => (m.b ? playMatch(m, forced.length ? keyed(`swiss:${round}:${m.a}|${m.b}`) : base + k * 10, bestOf, k) : Promise.resolve())));
+      await Promise.all(matches.map((m, k) => (m.b ? playMatch(m, forced.length || allKeyed ? keyed(`swiss:${round}:${m.a}|${m.b}`) : base + k * 10, bestOf, k) : Promise.resolve())));
       if (stopped()) break;
       record(matches, true);
       ev.standings = computeStandings(st);
@@ -502,7 +528,7 @@ export async function runTournament(decks: (DeckList & { file?: string })[], cfg
         // cut is a power of two no larger than the field (cutSize), so every bracket slot has a seed
         const champ = await runBracket(
           bracketOrder(seeds.length).flatMap((i) => seeds[i] ?? []),
-          { table: !manual, prefix: 'top', results: false, pauseFirst: false },
+          { table: !manual && !allKeyed, prefix: 'top', results: false, pauseFirst: false },
         );
         if (!stopped()) ev.champion = champ;
       }

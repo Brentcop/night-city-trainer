@@ -5,9 +5,11 @@
 // The games are the ones the recorded ratings read (`eventRatedGames`, src/lib/ratingGames.ts): every played game of
 // every round and bracket match; a copy "X #2" plays as X and its games against X are left out; a tie is half a win.
 // Then each deck is its list fingerprint, and a game between two entrants with the same list (a renamed copy against
-// the original) counts for neither. Not in the entry chunk: deck tiles read the ledger, they never build entries.
+// the original) counts for neither. A played event (some entrant run by a person) gives no entry at all: it is
+// remembered as taken in and never read again. Not in the entry chunk: deck tiles read the ledger, they never build
+// entries.
 import { listFingerprint } from '../engine/deck';
-import { entrantBase } from './eventFormats';
+import { entrantBase, isPlayedSetup } from './eventFormats';
 import { eventRatedGames, type GamesEvent } from './ratingGames';
 import { addRun, loadLedger, saveLedger, type Ledger, type LedgerGame, type LedgerRun } from './runLedger';
 
@@ -37,6 +39,8 @@ function cleanParts(x: unknown): GamesEvent['rounds'] {
  */
 export function ledgerRunOf(ev: unknown): LedgerRun | null {
   if (!isObj(ev) || ev.phase !== 'done') return null;
+  // a played event (some entrant run by a person, src/lib/playedEvent.ts) never counts, its bot games included
+  if (isPlayedSetup(ev.setup)) return null;
   if ((typeof ev.id !== 'string' && typeof ev.id !== 'number') || typeof ev.date !== 'string' || Number.isNaN(Date.parse(ev.date)) || !isObj(ev.decks)) return null;
   const setupEntrants = isObj(ev.setup) && Array.isArray(ev.setup.entrants) ? ev.setup.entrants.filter(isObj) : [];
   const entrants = setupEntrants

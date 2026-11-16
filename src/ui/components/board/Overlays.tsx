@@ -30,6 +30,7 @@ export function LeaveDialog({
   onKeep,
   online,
   note,
+  concedeNote,
 }: {
   kind: 'concede' | 'exit';
   onConfirm: () => void;
@@ -37,6 +38,8 @@ export function LeaveDialog({
   onKeep?: () => void;
   online?: boolean;
   note?: string;
+  /** what conceding does, when it is not the practice game's usual (a tournament game: no undo afterwards) */
+  concedeNote?: string;
 }) {
   const id = useId();
   const concede = kind === 'concede';
@@ -49,6 +52,8 @@ export function LeaveDialog({
       <p className="muted">
         {note && !concede
           ? note
+          : concede && concedeNote
+          ? concedeNote
           : online
           ? concede
             ? 'The game ends now as a loss for you and a win for the other player, recorded as conceded.'
@@ -248,9 +253,12 @@ export function GameOverOverlay({
   rematchLabel = 'Rematch',
   rematchDisabled = false,
   newLabel = 'New game',
+  hideNew = false,
 }: {
   g: Game;
   conceded?: boolean;
+  /** no second button (a tournament game whose first button already goes back to the event) */
+  hideNew?: boolean;
   onRematch: () => void;
   rematchLabel?: string;
   rematchDisabled?: boolean;
@@ -299,9 +307,11 @@ export function GameOverOverlay({
           <button className="primary pb-big" onClick={onRematch} disabled={rematchDisabled}>
             {rematchLabel}
           </button>
-          <button className="pb-big" onClick={onNew}>
-            {newLabel}
-          </button>
+          {!hideNew && (
+            <button className="pb-big" onClick={onNew}>
+              {newLabel}
+            </button>
+          )}
           {onUndo && (
             <button className="ghost" onClick={onUndo} title={conceded ? 'Take back the concession: back to before your last decision' : 'Back to before your last decision'}>
               ↶ Undo

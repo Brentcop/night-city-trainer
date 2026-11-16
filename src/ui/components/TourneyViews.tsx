@@ -12,6 +12,7 @@ import { byName, eventLib, type EventLib } from '../deckLookup';
 import type { EntrantName } from '../../lib/entrants';
 import { byDeck, recordText, type ByDeckEvent, type BestFinish } from '../../lib/eventByDeck';
 import { ordinal } from '../../lib/playedRecord';
+import { byHand } from '../../lib/playedEvent';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewPanel } from './ReviewPanel';
 import type { ReplayData } from './ReplayBoard';
@@ -64,7 +65,7 @@ export interface MatchView {
   bestOf?: number;
 }
 
-/** "set by you" and "Bo5" marks for a match. */
+/** "set by you", "Bo5" and "by hand" marks for a match. */
 function MatchMarks({ m }: { m: MatchView }) {
   return (
     <>
@@ -74,9 +75,19 @@ function MatchMarks({ m }: { m: MatchView }) {
         </span>
       )}
       {m.bestOf && <span className="tag">Bo{m.bestOf}</span>}
+      <HandMark m={m} />
     </>
   );
 }
+/** A played event's match whose result was recorded by hand (src/lib/playedEvent.ts): no games to watch. */
+function HandMark({ m }: { m: MatchView }) {
+  return byHand(m) ? (
+    <span className="tag ev-hand" title={HAND_TITLE}>
+      by hand
+    </span>
+  ) : null;
+}
+const HAND_TITLE = 'Result recorded by hand: played away from this device, or not played (a forfeit)';
 
 function DeckName({ name, lib, label }: { name: string; lib: Lib; label?: string }) {
   const d = lib.deck(name);
@@ -172,6 +183,11 @@ export function Bracket({
                   ),
                 )}
                 {m.bestOf && <span className="bracket-bo muted">Bo{m.bestOf}</span>}
+                {byHand(m) && (
+                  <span className="bracket-bo muted" title={HAND_TITLE}>
+                    by hand
+                  </span>
+                )}
               </button>
             ) : (
               <div key={k} className="bracket-match tbd">
@@ -317,7 +333,7 @@ export function RoundList({
                   <span className={m.winner && m.winner === m.b ? 'win' : ''} title={m.b ? title(m.b) : undefined}>
                     {m.b ? short(m.b) : ''}
                     {m.b && note(m.b)}
-                    {(m.set || m.bestOf) && (
+                    {(m.set || m.bestOf || byHand(m)) && (
                       <span className="match-marks">
                         <MatchMarks m={m} />
                       </span>
@@ -371,6 +387,7 @@ export function MatchModal({
   onClose,
   simVersion,
   bestOf,
+  person,
 }: {
   m: MatchView & { games: GameRec[] };
   decks: EvDecks;
@@ -380,11 +397,15 @@ export function MatchModal({
   /** the event's simulator version and best-of (Watch: a game of another version is refused) */
   simVersion?: number;
   bestOf?: number;
+  /** a person plays or records this match (a played event): there is no bot game to watch, even before a game is in */
+  person?: boolean;
 }) {
   // "Watch": the match (or one game of it) as a spectator, played again in a worker and shown move by move
   const [watch, setWatch] = useState<WatchTarget | null>(null);
+  // Watch plays an event game again with the event's bots, so it is never offered for a match a person decides
+  const personMatch = !!person || m.games.some((g) => g.by);
   const watchTarget = (only?: number): WatchTarget | null =>
-    m.b && decks[m.a] && decks[m.b]
+    !personMatch && m.b && decks[m.a] && decks[m.b]
       ? {
           kind: 'match',
           names: [m.a, m.b],
@@ -457,9 +478,13 @@ export function MatchModal({
               <td>
                 <b>{g.winner === 'tie' ? 'Draw' : g.winner === 0 ? m.a : m.b}</b>
               </td>
-              <td>{g.turns}</td>
+              <td>{g.by === 'hand' ? '—' : g.turns}</td>
               <td className="muted">{g.reason}</td>
               <td>
+                {g.by ? (
+                  // a person's game: no bot re-simulation (yours is in your practice history, with its Game review)
+                  <span className="tag ev-hand">{g.by === 'hand' ? 'by hand' : 'played by you'}</span>
+                ) : (
                 <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
                   <WatchButton onWatch={() => setWatch(watchTarget(i))} ariaLabel={`Watch game ${i + 1} as a spectator`} />
                   <button onClick={() => (setReview(null), play(i))} disabled={replay?.busy} title="Replay this game with its whole log: click any line to see the board then">
@@ -469,6 +494,7 @@ export function MatchModal({
                     🔍 Review
                   </button>
                 </div>
+                )}
               </td>
             </tr>
           ))}

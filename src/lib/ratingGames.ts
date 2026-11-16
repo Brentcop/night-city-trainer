@@ -6,7 +6,9 @@
 //     method (custom events too); a bye has no game.
 //   - A deck entered twice ("X #2", src/lib/eventFormats.ts) plays as X, and its games against its own copy are left out.
 //   - Events in the order given, then rounds, then the bracket, then matches and games as stored.
-import { entrantBase, type EventSetup } from './eventFormats';
+//   - A played event (some entrant run by a person: `setup.seats`, src/lib/playedEvent.ts) gives no games at all, its
+//     bot-against-bot matches included: people's games say nothing about the bots or the lists under them.
+import { entrantBase, isPlayedSetup, type EventSetup } from './eventFormats';
 import type { RatedGame } from './ratingModel';
 
 interface GamesMatch {
@@ -17,8 +19,8 @@ interface GamesMatch {
 
 /** The parts of a recorded event the games are read from. */
 export interface GamesEvent {
-  /** a recorded setup always lists its entrants; read here only for the copies ("X #2") */
-  setup?: Partial<Pick<EventSetup, 'entrants'>>;
+  /** a recorded setup always lists its entrants; read here for the copies ("X #2") and who played (`seats`) */
+  setup?: Partial<Pick<EventSetup, 'entrants' | 'seats'>>;
   rounds: readonly { matches: readonly GamesMatch[] }[];
   bracket: readonly { matches: readonly GamesMatch[] }[];
 }
@@ -26,6 +28,7 @@ export interface GamesEvent {
 /** The rated games of one event's matches (`ratedGamesOf` for several events). */
 export function eventRatedGames(e: GamesEvent): RatedGame[] {
   const out: RatedGame[] = [];
+  if (isPlayedSetup(e.setup)) return out;
   const entrants = e.setup?.entrants;
   const base = (name: string) => entrantBase(entrants ? { entrants } : null, name);
   for (const part of [...e.rounds, ...e.bracket])

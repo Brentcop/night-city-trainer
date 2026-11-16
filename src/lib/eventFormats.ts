@@ -20,7 +20,9 @@
 //   keyed scheme  every other match: a hash of the event seed and a stable match key (stage, round, the two decks in
 //                 seat order, and the repeat number), so a match's games do not depend on the table it lands on or on
 //                 which other matches were arranged. Keys: swiss:<round>:<A>|<B>, top:<i>:<A>|<B>, ko:<i>:<A>|<B>,
-//                 rr:<A>|<B>#<repeat>, m:<round>:<A>|<B>#<occurrence>.
+//                 rr:<A>|<B>#<repeat>, m:<round>:<A>|<B>#<occurrence>. A played event (`seats`: some entrant run by
+//                 a person) uses it for every match, its Swiss rounds and top cut too, so a match's games are the same
+//                 whatever the results that paired it.
 
 export type BestOf = 1 | 3 | 5;
 export const BEST_OF: readonly BestOf[] = [1, 3, 5];
@@ -105,6 +107,24 @@ export interface EventSetup {
   advance?: number;
   /** matches: the match list */
   matches?: MatchSpec[];
+  /**
+   * Who runs each entrant when it is not a bot (src/lib/playedEvent.ts): 'you' plays its matches on this device's
+   * board, 'player' is a person elsewhere whose results are recorded by hand. Absent (every entrant a bot) on every
+   * bot event, so a bot event's setup is exactly what it was. An event with any of these is a played event: it is
+   * seeded by match keys throughout and counts for no rating, record or bot statistic.
+   */
+  seats?: Record<string, 'you' | 'player'>;
+}
+
+/**
+ * A played event: some entrant is run by a person (`seats`). Reads its argument defensively (stored runs and files are
+ * untrusted), so any object with a non-empty `seats` record of 'you' / 'player' counts.
+ */
+export function isPlayedSetup(s: unknown): boolean {
+  if (!s || typeof s !== 'object') return false;
+  const seats = (s as { seats?: unknown }).seats;
+  if (!seats || typeof seats !== 'object' || Array.isArray(seats)) return false;
+  return Object.values(seats as Record<string, unknown>).some((v) => v === 'you' || v === 'player');
 }
 
 // The entrant name rules (copyName, entrantBase, entrantDeckName) live in the small src/lib/entrants.ts, so the light
@@ -466,7 +486,8 @@ export function isPlainSetup(s: EventSetup | null | undefined): boolean {
     (s.game1 ?? 'coin') === 'coin' &&
     (s.next ?? 'loser') === 'loser' &&
     (s.bracketBestOf ?? []).every((b) => b === s.bestOf) &&
-    !s.entrants.some((e) => e.copyOf)
+    !s.entrants.some((e) => e.copyOf) &&
+    !isPlayedSetup(s)
   );
 }
 
@@ -553,6 +574,14 @@ export function setupProblems(s: EventSetup): string[] {
   if (dup.length) out.push(`entrant names must be unique (${[...new Set(dup)].join(', ')}); add a copy as "#2"`);
   if (!BEST_OF.includes(s.bestOf)) out.push('best-of must be 1, 3 or 5');
   for (const b of s.bracketBestOf ?? []) if (!BEST_OF.includes(b)) out.push('bracket best-of must be 1, 3 or 5');
+  if (s.seats) {
+    const seated = Object.entries(s.seats);
+    for (const [name, seat] of seated) {
+      if (!names.includes(name)) out.push(`${name} is not an entrant (who plays it)`);
+      if (seat !== 'you' && seat !== 'player') out.push(`${name}: an entrant is played by a bot, you or another player`);
+    }
+    if (seated.filter(([, seat]) => seat === 'you').length > 1) out.push('you can play one entrant (set the others to another player or a bot)');
+  }
   const n = names.length;
   switch (s.format) {
     case 'swiss': {
@@ -657,6 +686,7 @@ export function fieldMode(s: EventSetup | null | undefined): string {
   if (anyPairings(s)) parts.push('custom-pairings');
   if (s.cutSeeds?.length) parts.push('manual-seeds');
   if (s.format === 'single-elim' && s.bracket) parts.push('custom-bracket');
+  if (isPlayedSetup(s)) parts.push('played');
   return parts.join('+');
 }
 

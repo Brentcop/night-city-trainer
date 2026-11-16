@@ -272,6 +272,7 @@ function practiceEntry(replay: PracticeReplay, st: GameState): PracticeGame {
     gigs: [st.players[0].gigs.length, st.players[1].gigs.length],
     ...(replay.conceded ? { conceded: true } : {}),
     ...(replay.multiDay ? { multiDay: { ...replay.multiDay } } : {}),
+    ...(replay.tourney ? { tourney: { ...replay.tourney } } : {}),
   };
 }
 

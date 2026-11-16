@@ -155,6 +155,7 @@
     "profileSharing": true,
     "deckLab": true,
     "tournamentRunner": true,
+    "playedTournaments": true,
     "yourTournamentStats": true,
     "watchMatches": true,
     "tunedDecks": true,

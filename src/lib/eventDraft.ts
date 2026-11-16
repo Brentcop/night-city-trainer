@@ -7,6 +7,7 @@ import type { LibraryDeck } from './library';
 import { deckSource } from './deckSource';
 import { distinctLists, leftOutLine } from './distinctLists';
 import { listOf } from './listTwin';
+import { setupSeats, type EntrantSeat } from './playedEvent';
 import {
   autoRounds,
   bracketPlan,
@@ -61,6 +62,14 @@ export interface EventDraft {
    * refused when added by hand, and copies are off. Off: anything goes, and same-list entrants are marked.
    */
   oneList: boolean;
+  /**
+   * Who runs each entrant (src/lib/playedEvent.ts): an explicit seat per row by entrantKey, and the seat of every other
+   * row (`seatDefault`). Every entrant a bot (the default) is a bot event, exactly as before.
+   */
+  seats: Readonly<Record<string, EntrantSeat>>;
+  seatDefault: 'bot' | 'player';
+  /** "Coach during my matches": the coach in your games of a played event (off by default) */
+  coach: boolean;
 }
 
 export const DEFAULT_DRAFT: EventDraft = {
@@ -82,6 +91,9 @@ export const DEFAULT_DRAFT: EventDraft = {
   advance: 2,
   matches: [],
   oneList: true,
+  seats: {},
+  seatDefault: 'bot',
+  coach: false,
 };
 
 // ---------------------------------------------------------------- entrants
@@ -376,7 +388,7 @@ export function draftSetup(draft: EventDraft, byFile: ReadonlyMap<string, Librar
     if (!d) return [];
     const name = entrantName(d, e);
     const ref: EntrantRef = { name, file: d.file, ...(e.copy > 1 ? { copyOf: d.deck.name } : {}) };
-    return [{ ref, deck: { ...d.deck, name, sideboard: [...(d.deck.sideboard ?? [])], file: d.file } }];
+    return [{ ref, key: entrantKey(e), deck: { ...d.deck, name, sideboard: [...(d.deck.sideboard ?? [])], file: d.file } }];
   });
   let used = all;
   const unused: string[] = [];
@@ -414,6 +426,12 @@ export function draftSetup(draft: EventDraft, byFile: ReadonlyMap<string, Librar
   const br = plan(setup).slots >= 2 ? bracketRounds(plan(setup).slots) : 0;
   const bos = Array.from({ length: br }, (_, i) => draft.bracketBo[i] ?? draft.bestOf);
   if (bos.some((b) => b !== draft.bestOf)) setup.bracketBestOf = bos;
+  // the people in the event, if any (none: no `seats`, so a bot event's setup is exactly as before)
+  const seats = setupSeats(
+    used.map((x) => ({ key: x.key, name: x.ref.name })),
+    { seats: draft.seats ?? {}, seatDefault: draft.seatDefault ?? 'bot' },
+  );
+  if (seats) setup.seats = seats;
   const problems = setupProblems(setup);
   if (draft.format === 'swiss' && draft.cutSeeding === 'manual' && !o.roundByRound) {
     const c = cutSize(draft.top, n);

@@ -120,9 +120,9 @@ describe('Coach switch: the setup screen and Settings edit one setting', () => {
       expect(src, f).toMatch(/coach=\{false\}/);
       expect(src, f).not.toMatch(/hasCoach/);
     }
-    // the Play board offers the switch only for a game against the bot
+    // the Play board offers the switch only for a game against the bot (not a tournament game: its event decides)
     const play = readFileSync('src/ui/pages/Play.tsx', 'utf8');
-    expect(play).toContain('hasCoach={coachHere && !online && !tutorial}');
+    expect(play).toContain('hasCoach={coachHere && !online && !tutorial && !tourney}');
   });
 });
 
@@ -352,7 +352,8 @@ describe('Coach switch: resuming a save never changes the setting', () => {
     expect(play).not.toMatch(/useState\(true\);\s*\n\s*const coach = /);
     expect(play).toContain('const [coachSetting, setCoach] = useCoachSetting();');
     expect(play).toContain('const coach = coachOn && coachSetting;');
-    // the board reads the setting itself, so a change applies mid-game
-    expect(play).toContain('const coach = coachHere && settings.coach;');
+    // the board reads the setting itself, so a change applies mid-game; a tournament game follows its event's own
+    // "Coach during my matches" instead (src/ui/components/tourney/TourneyGame.tsx), and never changes the setting
+    expect(play).toContain('const coach = coachHere && (tourney ? tourney.coach : settings.coach);');
   });
 });

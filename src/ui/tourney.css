@@ -246,3 +246,84 @@
   gap: 4px;
   align-items: stretch;
 }
+/* Played events (#/run, src/lib/playedEvent.ts): who runs each entrant, the matches waiting for a person, the "Record
+   the result" dialog and the "by hand" mark. */
+.ev-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 4px 12px;
+}
+.ev-seats li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.ev-seat-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev-waiting {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+  margin: 8px 0;
+  display: grid;
+  gap: 6px;
+  background: var(--panel);
+  min-width: 0;
+}
+.ev-waiting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.ev-waiting-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-waiting-list .tag {
+  margin-left: 6px;
+}
+.ev-hand {
+  border-style: dashed;
+}
+.ev-record-games {
+  margin: 8px 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.ev-record-games li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ev-record .seg button {
+  max-width: 16em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ev-game-problem {
+  position: fixed;
+  inset: 20vh 16px auto;
+  max-width: 560px;
+  margin: 0 auto;
+  z-index: 1000;
+}

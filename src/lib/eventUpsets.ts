@@ -32,7 +32,10 @@
 //     only when its chance per game was 30% or less (40 of the 642 judged matches on version 9; 30 of 641 on version 8).
 import { fitRatings, predictPair, type RatingFit } from './ratingModel';
 import { eventRatedGames, type GamesEvent } from './ratingGames';
-import { entrantBase } from './eventFormats';
+import { entrantBase, isPlayedSetup } from './eventFormats';
+
+/** Why no match of a played event (src/lib/playedEvent.ts) is judged. Its games are not in any yardstick either (ratingGames.ts). */
+export const PLAYED_NOT_JUDGED = 'a played event: people ran some entrants, so its results say nothing about the bots’ predictions';
 
 /** A deck needs at least this many games in the earlier events for a match it plays to be judged. */
 export const MIN_EARLIER_GAMES = 18;
@@ -146,6 +149,8 @@ export function judgeMatches(ev: UpsetEvent, y: Yardstick): JudgedMatch[] {
   };
   const base = (name: string) => entrantBase(ev.setup?.entrants ? { entrants: ev.setup.entrants } : null, name);
   const noEarlier = `no earlier recorded event on sim version ${y.simVersion ?? 'none'} with the ${y.bot} bot`;
+  // a played event (people ran some entrants) is never judged: its games say nothing about the bots' predictions
+  const played = isPlayedSetup(ev.setup);
   const out: JudgedMatch[] = [];
   const parts = [...ev.rounds.map((r) => ({ stage: 'rounds' as const, name: `Round ${r.round}`, key: String(r.round), matches: r.matches })), ...ev.bracket.map((b) => ({ stage: 'bracket' as const, name: b.name, key: roundKeyOf(b.name), matches: b.matches }))];
   for (const p of parts)
@@ -157,7 +162,9 @@ export function judgeMatches(ev: UpsetEvent, y: Yardstick): JudgedMatch[] {
       const [w, l] = [base(winner), base(loser)];
       const earlierGames = { winner: earlier(w), loser: earlier(l) };
       const few = [[winner, earlierGames.winner], [loser, earlierGames.loser]].filter(([, g]) => (g as number) < MIN_EARLIER_GAMES);
-      const reason = !fit
+      const reason = played
+        ? PLAYED_NOT_JUDGED
+        : !fit
         ? noEarlier
         : w === l
           ? 'a deck against its own copy (not in the ratings)'

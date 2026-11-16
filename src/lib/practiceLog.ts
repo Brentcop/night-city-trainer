@@ -23,6 +23,40 @@ export interface PracticeGame {
   review?: ReviewSummary;
   /** a multi-day game (src/lib/multiDay.ts, src/net/corr.ts) */
   multiDay?: MultiDayMark;
+  /** a game you played in a tournament (src/lib/playedEvent.ts): which event, match and game */
+  tourney?: TourneyMark;
+}
+
+/**
+ * A game you played in a tournament run in this browser (#/run, src/lib/playedEvent.ts): the run's id and name, the
+ * round, the match (its decks in seat order) and the game's number in it. The event keeps the game's replay id too.
+ */
+export interface TourneyMark {
+  /** the run's id (the runner's saved runs, nct.runs.v1) */
+  event: string;
+  /** the event's name when the game was played */
+  name?: string;
+  /** "Round 2", "Final" */
+  round: string;
+  /** the match's decks in seat order (one of them is yours) */
+  a: string;
+  b: string;
+  /** 1 for the match's first game */
+  game: number;
+}
+
+const short = (x: unknown, n: number) => (typeof x === 'string' ? x.slice(0, n) : null);
+/** A stored tournament mark, or null when it is not one (its strings capped). */
+export function toTourneyMark(x: unknown): TourneyMark | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  const event = short(o.event, 80);
+  const round = short(o.round, 60);
+  const a = short(o.a, 120);
+  const b = short(o.b, 120);
+  if (!event || round === null || a === null || b === null || typeof o.game !== 'number' || !Number.isInteger(o.game) || o.game < 1 || o.game > 9) return null;
+  const name = short(o.name, 120);
+  return { event, ...(name ? { name } : {}), round, a, b, game: o.game };
 }
 
 /** How a multi-day game was played: its length, and whether it was finished after its deadline or closed on time. */
@@ -113,6 +147,7 @@ function toEntry(x: unknown): PracticeGame | null {
     ...(toCoach(o.coach) ? { coach: toCoach(o.coach)! } : {}),
     ...(toReview(o.review) ? { review: toReview(o.review)! } : {}),
     ...(toMultiDay(o.multiDay) ? { multiDay: toMultiDay(o.multiDay)! } : {}),
+    ...(toTourneyMark(o.tourney) ? { tourney: toTourneyMark(o.tourney)! } : {}),
   };
 }
 

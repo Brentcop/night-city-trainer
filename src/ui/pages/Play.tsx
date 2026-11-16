@@ -580,6 +580,21 @@ export interface TutorialBoard {
   hintKey: number;
 }
 
+/**
+ * A game of yours in a tournament (src/ui/components/tourney/TourneyGame.tsx): no Undo and no Save (the event keeps the
+ * game), Concede loses the game for the event, the coach follows the event's own setting (the board's Coach setting is
+ * neither read nor shown), and the result dialog goes on to the match's next game or back to the event.
+ */
+export interface TourneyBoard {
+  /** the event's "Coach during my matches" */
+  coach: boolean;
+  /** the result dialog's first button: "Next game" while the match goes on, else back to the event */
+  nextLabel: string;
+  onNext: () => void;
+}
+/** The words a tournament game uses where a practice game offers a new game. */
+export const TOURNEY_BACK = 'Back to the event';
+
 export function Board({
   session,
   game,
@@ -599,6 +614,7 @@ export function Board({
   banner,
   exitNote,
   tutorial,
+  tourney,
 }: {
   session: TickSource;
   game: BoardRun;
@@ -631,6 +647,8 @@ export function Board({
   exitNote?: string;
   /** a tutorial lesson (nothing is recorded, saved or graded) */
   tutorial?: TutorialBoard;
+  /** a game of yours in a tournament */
+  tourney?: TourneyBoard;
 }) {
   // bumps on every engine update (and on a concede): memoised panels re-render on it, not on drag/menu/hover changes
   const version = useGameTick(session);
@@ -638,7 +656,7 @@ export function Board({
   const s = g.s;
   const pend = human.pending?.d ?? null;
   // a practice game is a Running; an online game has no Undo and its own concede rule
-  const undoable = online || tutorial ? false : canUndo(game as Running);
+  const undoable = online || tutorial || tourney ? false : canUndo(game as Running);
   const concedable = tutorial ? false : online ? online.canConcede : canConcede(game as Running);
   const conceded = game.conceded;
   // the single layout switch: the full board, or the phone board (portrait or landscape) sized from the viewport
@@ -673,7 +691,8 @@ export function Board({
   const [showSettings, setShowSettings] = useState(false);
   // the coach is on: this board has one and the Coach setting is on. Turned off, its mark, box, panel, warnings and toast
   // go at once and no advice is asked; turned on, advice is asked for the decision waiting. The game never reads it.
-  const coach = coachHere && settings.coach;
+  // a tournament game follows the event's own setting instead (the board's setting is not read)
+  const coach = coachHere && (tourney ? tourney.coach : settings.coach);
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
   // the seats' names (deck names, chosen by players) are never read as card names in the log
   const seatA = s.players[0].name;
@@ -1164,7 +1183,7 @@ export function Board({
                 {unread > 0 && <span className="pb-unread-dot" aria-hidden="true" />}
               </button>
             )}
-            {!online && !tutorial && (
+            {!online && !tutorial && !tourney && (
               <button type="button" className="pb-icon" onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Undo: back to before your last action">
                 ↶
               </button>
@@ -1225,7 +1244,7 @@ export function Board({
               Save
             </button>
           )}
-          {!online && !tutorial && (
+          {!online && !tutorial && !tourney && (
             <button onClick={onUndo} disabled={!undoable} aria-label="Undo" title="Go back to before your last action (also undoes the bot's moves since)">
               ↶<span className="pb-strip-text"> Undo</span>
             </button>
@@ -1241,9 +1260,14 @@ export function Board({
               Exit<span className="pb-strip-text"> lesson</span>
             </button>
           ) : (
-          <button className="pb-exit" onClick={over ? onQuit : () => openLeave('exit')} aria-label={over ? undefined : 'Exit game'} title={over ? 'Back to the game setup' : online ? 'Leave this game: it ends as abandoned (a draw)' : 'Leave this game without recording a result'}>
+          <button
+            className="pb-exit"
+            onClick={over ? onQuit : () => openLeave('exit')}
+            aria-label={over ? undefined : 'Exit game'}
+            title={over ? (tourney ? 'Back to the event' : 'Back to the game setup') : online ? 'Leave this game: it ends as abandoned (a draw)' : tourney ? 'Leave this game for now: the event keeps it' : 'Leave this game without recording a result'}
+          >
             {over ? (
-              'New game'
+              tourney ? TOURNEY_BACK : 'New game'
             ) : (
               <>
                 Exit<span className="pb-strip-text"> game</span>
@@ -1327,7 +1351,12 @@ export function Board({
       {navOpen && (
         <div className="pb-nav-backdrop" onClick={() => setNavOpen(false)}>
           <p className="pb-nav-note">
-            {over ? 'Opening another page ends this game.' : 'Opening another page leaves this game without recording it; it stays saved, and Resume game on the Play page brings it back.'} Click here or press Escape to go back to it.
+            {over
+              ? 'Opening another page ends this game.'
+              : tourney
+                ? 'Opening another page leaves this game and stops the event; both are kept, and Resume on the tournament page brings them back.'
+                : 'Opening another page leaves this game without recording it; it stays saved, and Resume game on the Play page brings it back.'}{' '}
+            Click here or press Escape to go back to it.
           </p>
         </div>
       )}
@@ -1355,7 +1384,7 @@ export function Board({
               onSort={() => setSortMode(nextSort(sortMode))}
               onSite={() => setNavOpen(true)}
               onExit={tutorial || over ? onQuit : () => openLeave('exit')}
-              exitLabel={tutorial ? 'Exit lesson' : over ? 'New game' : 'Exit game'}
+              exitLabel={tutorial ? 'Exit lesson' : over ? (tourney ? TOURNEY_BACK : 'New game') : 'Exit game'}
               onExport={over && !tutorial ? exportGame : undefined}
               onSave={savable ? openSave : undefined}
               onSettings={() => setShowSettings(true)}
@@ -1392,7 +1421,7 @@ export function Board({
               speed={speed}
               setSpeed={online ? undefined : setSpeed}
               panels={{ logOpen, setLogOpen, allOpen, setAllOpen }}
-              hasCoach={coachHere && !online && !tutorial}
+              hasCoach={coachHere && !online && !tutorial && !tourney}
               onClose={() => setShowSettings(false)}
             />
           )}
@@ -1430,6 +1459,7 @@ export function Board({
         <LeaveDialog
           online={!!online}
           note={exitNote ?? online?.exitNote}
+          concedeNote={tourney ? 'The game ends now as a loss for you. The event takes it as a lost game, and it is recorded in your practice log and replays as conceded.' : undefined}
           kind={leave}
           onCancel={() => setLeave(null)}
           onKeep={
@@ -1468,10 +1498,11 @@ export function Board({
         <GameOverOverlay
           g={g}
           conceded={conceded}
-          onRematch={onRematch}
-          rematchLabel={online?.rematchLabel ?? rematchLabel}
+          onRematch={tourney ? tourney.onNext : onRematch}
+          rematchLabel={tourney ? tourney.nextLabel : (online?.rematchLabel ?? rematchLabel)}
           rematchDisabled={online?.rematchDisabled}
-          newLabel={online ? 'Leave' : undefined}
+          newLabel={online ? 'Leave' : tourney && tourney.nextLabel !== TOURNEY_BACK ? TOURNEY_BACK : undefined}
+          hideNew={tourney ? tourney.nextLabel === TOURNEY_BACK : undefined}
           onNew={onQuit}
           onHide={() => setHideOver(true)}
           onUndo={undoable ? onUndo : undefined}

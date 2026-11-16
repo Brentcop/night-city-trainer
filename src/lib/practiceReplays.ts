@@ -2,7 +2,7 @@
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DeckList, PlayerId } from '../engine/types';
 import type { PracticeReviewSpec, PvpReplay, ReplayPosition, ReviewRequest } from '../sim/practiceReview';
-import type { MultiDayMark } from './practiceLog';
+import { toTourneyMark, type MultiDayMark, type TourneyMark } from './practiceLog';
 import { replayVersionProblem } from './practiceVerdict';
 import { isStateHash } from './stateHash';
 
@@ -50,6 +50,8 @@ export interface PracticeReplay {
   pvp?: PvpReplay;
   /** a multi-day game (src/lib/multiDay.ts, src/net/corr.ts): its length, finished late or ended on time */
   multiDay?: MultiDayMark;
+  /** a game you played in a tournament (src/lib/playedEvent.ts): which event, match and game */
+  tourney?: TourneyMark;
   /**
    * The bots' and rules engine's version the game was played with (SIM_VERSION): the Game review refuses to replay a
    * game from another version. Absent in records made before it: replayed strictly, refused if it no longer fits.
@@ -121,6 +123,7 @@ function isReplay(x: unknown): x is PracticeReplay {
     (r.simVersion === undefined || (typeof r.simVersion === 'number' && Number.isInteger(r.simVersion))) &&
     (r.turns === undefined || (typeof r.turns === 'number' && Number.isInteger(r.turns))) &&
     (r.position === undefined || isPosition(r.position, r.choices.length)) &&
+    (r.tourney === undefined || toTourneyMark(r.tourney) !== null) &&
     (r.result === 'win' || r.result === 'loss' || r.result === 'draw')
   );
 }

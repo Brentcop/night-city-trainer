@@ -3,7 +3,10 @@
 // pairings, seeds, bracket or matches set by hand, the series rules and bots; the plan before play; then run it all at
 // once or round by round (pause, read the standings, set the next round's pairings). Stopped runs are saved here and can
 // be resumed. Same engine, bots and rules as scripts/tournament.ts (src/lib/tournament.ts, src/lib/eventFormats.ts).
-import { useEffect, useMemo, useRef, useState } from 'react';
+// A played event (feature `playedTournaments`, src/lib/playedEvent.ts) has people in it: "Who plays" sets them, your
+// matches open on the game board (loaded only then), other players' results are recorded here, and the run is saved
+// as it goes so Resume carries on.
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { RATINGS } from '../../data/index';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
@@ -55,8 +58,18 @@ import {
   seedAfterStart,
   type EventDraft,
   type SeedChoice,
+  entrantKey,
 } from '../../lib/eventDraft';
-import { defaultThreads, errorText, isStopped } from '../../sim/pool';
+import { defaultThreads, errorText, isStopped, PoolStoppedError } from '../../sim/pool';
+import { draftSeatsFromLink, isPlayedSetup, keepRuns, matchKind, NO_SEATS, personGames, PlayedGames, waitingMatch, type WaitingGame } from '../../lib/playedEvent';
+import type { PlayedRunState } from '../../lib/tournament';
+import type { SavedGame } from '../../lib/savedGames';
+import { useFeature } from '../useSiteConfig';
+import { SeatPicker } from '../components/tourney/SeatPicker';
+import { WaitingMatches } from '../components/tourney/WaitingMatches';
+import { RecordResultDialog } from '../components/tourney/RecordResult';
+// the game board and the practice session: loaded when "Play your match" is pressed, never with this page
+const TourneyGame = lazy(() => import('../components/tourney/TourneyGame'));
 import { download } from '../../lib/download';
 import { usePoolRun } from '../usePoolRun';
 import { draftLinkQuery, parseRunParams, parseRuns, toEvent } from '../runParams';
@@ -105,12 +118,17 @@ const settled = (ev: TourneyEvent): TourneyEvent => {
   const off = <T extends { matches: { live?: boolean }[] }>(r: T): T => ({ ...r, matches: r.matches.map((m) => ({ ...m, live: false })) });
   return JSON.parse(JSON.stringify({ ...ev, rounds: ev.rounds.map(off), bracket: ev.bracket.map(off) })) as TourneyEvent;
 };
-function saveRun(ev: TourneyEvent) {
+/**
+ * Keep a run (MAX_RUNS in all, newest first; an unfinished played event is dropped only for a newer one: keepRuns).
+ * False when storage refused it: the run is still on screen and can be downloaded.
+ */
+function saveRun(ev: TourneyEvent): boolean {
   try {
-    const runs = [settled(ev), ...loadRuns().filter((r) => r.id !== ev.id)].slice(0, MAX_RUNS);
+    const runs = keepRuns(settled(ev), loadRuns(), MAX_RUNS);
     localStorage.setItem(SAVE_KEY, JSON.stringify(runs));
+    return true;
   } catch {
-    /* storage full or blocked: the run is still on screen and can be downloaded */
+    return false;
   }
 }
 function forgetRun(id: TourneyEvent['id']) {
@@ -155,6 +173,11 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   // a link's deck list is taken as it is; a preset field enters one deck per list unless the link turns that off. A
   // list that already shares lists (a link from before "One entry per list") starts with the setting off.
   const [firstPick] = useState(() => (params.decks ? { list: entrantsFromList(params.decks), note: '' } : pickEntrants(presetFiles(params.field, pool), params.oneList !== false, byFile)));
+  // played events (feature playedTournaments): off, the runner is a bot runner exactly as before and a link's seats are ignored
+  const playOn = useFeature('playedTournaments');
+  const coachFeature = useFeature('coach');
+  // a link's seats: one letter per entrant of its list; its "you" is whoever opens it
+  const [linkSeats] = useState(() => (playOn && params.seats ? draftSeatsFromLink(firstPick.list.map(entrantKey), params.seats) : null));
   const [draft, setDraft] = useState<EventDraft>(() => ({
     ...DEFAULT_DRAFT,
     entrants: firstPick.list,
@@ -163,6 +186,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     rounds: params.rounds,
     top: params.top,
     bestOf: params.bestOf,
+    ...(linkSeats ? { ...linkSeats, coach: !!params.coach } : {}),
   }));
   const set = <K extends keyof EventDraft>(k: K, v: EventDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const [runMode, setRunMode] = useState<'all' | 'rounds'>('all');
@@ -199,6 +223,30 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   evNow.current = ev;
   const runningNow = useRef(false);
   runningNow.current = running;
+  // a played event while it runs: the games waiting for a person, its own settings and your game in progress
+  const [played, setPlayed] = useState<PlayedGames | null>(null);
+  const playedRef = useRef<PlayedGames | null>(null);
+  const [playedState, setPlayedState] = useState<PlayedRunState | null>(null);
+  const playedStateRef = useRef<PlayedRunState | null>(null);
+  const lastRef = useRef<TourneyEvent | null>(null);
+  const [, setWaitTick] = useState(0);
+  const [playing, setPlaying] = useState<{ pg: PlayedGames; w: WaitingGame } | null>(null);
+  const [recording, setRecording] = useState<WaitingGame | null>(null);
+  /** this browser refused to save the played event as it went (closing the page now would lose progress) */
+  const [saveRefused, setSaveRefused] = useState(false);
+  /** Save the played event as it stands (it can be resumed from here). */
+  const persistPlayed = () => {
+    const e = lastRef.current;
+    const st = playedStateRef.current;
+    // only while the event runs: once it has ended, its final save stands
+    if (!e || !st || !playedRef.current) return;
+    setSaveRefused(!saveRun({ ...e, played: st, phase: 'stopped' }));
+    setRuns(loadRuns());
+  };
+  const persistRef = useRef(persistPlayed);
+  persistRef.current = persistPlayed;
+  // leaving the page stops a played event's waiting games, so the run settles as stopped and is saved for Resume
+  useEffect(() => () => playedRef.current?.stop(new PoolStoppedError()), []);
   useEffect(() => {
     if (!running || pause) return;
     const t = setInterval(() => tick((x) => x + 1), 1000);
@@ -206,7 +254,13 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   }, [running, pause]);
 
   const roundByRound = runMode === 'rounds';
-  const plan = draftSetup(draft, byFile, { roundByRound });
+  const plan = draftSetup(playOn ? draft : { ...draft, ...NO_SEATS }, byFile, { roundByRound });
+  const seatRows = draft.entrants.flatMap((e) => {
+    const name = entrantName(byFile.get(e.file), e);
+    return name ? [{ key: entrantKey(e), name }] : [];
+  });
+  const linkYou = linkSeats ? (seatRows.find((r) => linkSeats.seats[r.key] === 'you')?.name ?? null) : null;
+  const linkNote = linkSeats ? `This setup link says who runs each entrant${linkYou ? `, and that you, opening it, play ${linkYou}` : ''}. The same seed and setup give you the same bot games.` : undefined;
   const allNames = draft.entrants.map((e) => entrantName(byFile.get(e.file), e)).filter(Boolean);
   const n = plan.setup.entrants.length;
   const usedNames = plan.setup.entrants.map((e) => e.name);
@@ -216,7 +270,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const planLib = useEventLib(plan.setup);
 
   /** Play an event: a new one, or a saved one resumed (its finished games are reused, the rest played). */
-  const launch = async (o: { decks: (TourneyEvent['decks'][string] & { name: string })[]; cfg: TourneyConfig; setup?: EventSetup; id: TourneyEvent['id']; saved?: TourneyEvent }) => {
+  const launch = async (o: { decks: (TourneyEvent['decks'][string] & { name: string })[]; cfg: TourneyConfig; setup?: EventSetup; id: TourneyEvent['id']; saved?: TourneyEvent; coach?: boolean }) => {
     const gp = poolRun.open(threads);
     stopRef.current = false;
     setRunning(true);
@@ -226,13 +280,41 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     setEnded(null);
     setPause(null);
     dealt.current.clear();
-    const play = dealt.current.wrap(resumePlay(gp.play, o.saved));
+    // a played event: bot matches go to the pool, the rest wait for a person (src/lib/playedEvent.ts)
+    const pg = playOn && isPlayedSetup(o.setup) ? new PlayedGames(o.setup, gp.play) : null;
+    const pState: PlayedRunState | null = pg ? { coach: o.saved ? o.saved.played?.coach === true : !!o.coach, ...(o.saved?.played?.current ? { current: o.saved.played.current } : {}) } : null;
+    playedRef.current = pg;
+    playedStateRef.current = pState;
+    setPlayed(pg);
+    setPlayedState(pState);
+    setSaveRefused(false);
+    lastRef.current = null;
+    const play = dealt.current.wrap(resumePlay(pg ? pg.play : gp.play, o.saved));
     let last: TourneyEvent | null = null;
+    // a played event is saved as it goes: at once when a person's game is decided, else at most every 2 seconds
+    let personsSaved = -1;
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = pg?.subscribe(() => {
+      setWaitTick((x) => x + 1);
+      persistRef.current();
+    });
     const show = (e: TourneyEvent) => {
       last = e;
+      lastRef.current = e;
       cancelAnimationFrame(frame.current);
       frame.current = requestAnimationFrame(() => setEv({ ...e }));
+      if (!pg) return;
+      const n = personGames(e);
+      if (n !== personsSaved) {
+        personsSaved = n;
+        persistRef.current();
+      } else if (!saveTimer)
+        saveTimer = setTimeout(() => {
+          saveTimer = null;
+          persistRef.current();
+        }, 2000);
     };
+    const withPlayed = (e: TourneyEvent): TourneyEvent => (playedStateRef.current && pg ? { ...e, played: playedStateRef.current } : e);
     const byRound = roundByRound;
     const beforeRound = (step: RoundStep): Promise<RoundInput | void> | RoundInput | void => {
       // a resumed run goes straight through the points the saved run had passed, with its choices
@@ -241,7 +323,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
       const playedAny = [...step.event.rounds, ...step.event.bracket].some((r) => r.matches.some((m) => m.games.length > 0));
       if (!playedAny && step.stage !== 'cut') return undefined; // the first round: Start was the go
       // progress is saved at every pause, so closing the page here loses nothing
-      saveRun({ ...step.event, phase: 'stopped' });
+      saveRun(withPlayed({ ...step.event, phase: 'stopped' }));
       setRuns(loadRuns());
       cancelAnimationFrame(frame.current);
       setEv({ ...step.event });
@@ -258,15 +340,19 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
         { onUpdate: show, shouldStop: () => stopRef.current, id: o.id, setup: o.setup, beforeRound },
       );
       cancelAnimationFrame(frame.current);
-      setEv(out);
+      // a finished played event keeps its coach setting; your game in progress is gone with the event's end
+      if (pg && playedStateRef.current && out.phase === 'done') playedStateRef.current = { coach: playedStateRef.current.coach };
+      const kept = withPlayed(out);
+      setEv(kept);
       if (out.phase === 'stopped') setEnded({ kind: 'stopped' });
-      saveRun(out);
+      saveRun(kept);
       setRuns(loadRuns());
-      // a finished run counts toward your deck stats (src/lib/runLedger.ts); a stopped one does not
+      // a finished run counts toward your deck stats (src/lib/runLedger.ts); a stopped one does not, nor a played event
       if (out.phase === 'done') setLedgerRefused(recordRun(out) === 'refused');
       const fresh = (out.progress?.games ?? 0) - play.reused();
       const secs = (Date.now() - started) / 1000;
-      if (out.phase === 'done' && fresh >= 10 && secs > 1) saveRate(o.cfg.bot, fresh / secs / gp.size);
+      // a played event's pace is people's, not the bots'
+      if (!pg && out.phase === 'done' && fresh >= 10 && secs > 1) saveRate(o.cfg.bot, fresh / secs / gp.size);
     } catch (err) {
       cancelAnimationFrame(frame.current);
       // Stop terminates the pool (games reject as stopped); anything else means a game threw — never count it as a tie.
@@ -274,24 +360,39 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
       setEnded(stopped ? { kind: 'stopped' } : { kind: 'failed', error: errorText(err) });
       const snap = last as TourneyEvent | null;
       if (snap) {
-        const st = settled({ ...snap, phase: 'stopped' });
+        const st = settled(withPlayed({ ...snap, phase: 'stopped' }));
         setEv(st);
         saveRun(st);
         setRuns(loadRuns());
       }
     } finally {
+      if (saveTimer) clearTimeout(saveTimer);
+      unsubscribe?.();
+      playedRef.current = null;
+      setPlayed(null);
+      // the board stays open on its result (the event's last game), until you go back to the event
+      setRecording(null);
       poolRun.close(gp);
       waiter.current = null;
       setPause(null);
       setRunning(false);
     }
   };
+  /** Your game's latest save (null once it has ended), kept with the event and saved with it at once. */
+  const onGameSave = (game: string, save: SavedGame | null) => {
+    const st = playedStateRef.current;
+    if (!st) return;
+    const next: PlayedRunState = save ? { ...st, current: { game, save } } : st.current?.game === game ? { ...(st.coach !== undefined ? { coach: st.coach } : {}) } : st;
+    playedStateRef.current = next;
+    setPlayedState(next);
+    persistRef.current();
+  };
 
   const start = () => {
     if (!canStart) return;
     const s = plan.setup;
     const cfg: TourneyConfig = { name: `${EVENT_FORMATS.find((f) => f.key === s.format)?.label} · ${n} decks`, rounds: s.rounds ?? 0, top: s.top ?? 0, bestOf: s.bestOf, bot, seed };
-    void launch({ decks: plan.decks, cfg, setup: isPlainSetup(s) ? undefined : s, id: `run-${Date.now().toString(36)}` });
+    void launch({ decks: plan.decks, cfg, setup: isPlainSetup(s) ? undefined : s, id: `run-${Date.now().toString(36)}`, ...(isPlayedSetup(s) ? { coach: draft.coach } : {}) });
     // the event keeps its seed (in its config); the form moves on to a new one unless the seed is kept on purpose
     setSeedChoice((c) => seedAfterStart(c));
   };
@@ -316,6 +417,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const stop = () => {
     stopRef.current = true;
     poolRun.stop();
+    playedRef.current?.stop(new PoolStoppedError());
     const w = waiter.current;
     waiter.current = null;
     setPause(null);
@@ -323,9 +425,12 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   };
 
   const shareLink = () => {
-    const url = `${location.origin}${location.pathname}#/run?${draftLinkQuery(draft, bot, seed)}`;
+    const played = playOn && !!plan.setup.seats;
+    const url = `${location.origin}${location.pathname}#/run?${draftLinkQuery(playOn ? draft : { ...draft, ...NO_SEATS }, bot, seed)}`;
     navigator.clipboard?.writeText(url).catch(() => undefined);
-    setLinkMsg('Setup link copied. It carries the entrants and options; pairings, brackets and match lists set by hand are saved with the run instead.');
+    setLinkMsg(
+      `Setup link copied. It carries the entrants and options${played ? ', and who runs each entrant: whoever opens it plays the entrant marked You' : ''}; pairings, brackets and match lists set by hand are saved with the run instead.`,
+    );
   };
   const downloadEvent = () => ev && download(`tournament-${ev.id}.json`, JSON.stringify(ev), 'application/json');
   const load = (file: File) =>
@@ -357,6 +462,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     const e = ev;
     const b = m.b;
     if (!e || !b || !e.decks[m.a] || !e.decks[b]) return null;
+    // a match a person plays or records is no bot game: there is nothing to play back
+    if (matchKind(e.setup, m.a, b) !== 'bots') return null;
     const pairGames = () => [...(evNow.current?.rounds ?? []), ...(evNow.current?.bracket ?? [])].flatMap((r) => r.matches).filter((x) => x.a === m.a && x.b === b).flatMap((x) => x.games);
     const bestOf = m.bestOf ?? e.config?.bestOf;
     return {
@@ -399,6 +506,17 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
       {!running && (
         <div className="panel grid ev-setup">
           <h2 style={{ margin: 0 }}>Set up the event</h2>
+          {playOn && (
+            <SeatPicker
+              rows={seatRows}
+              value={{ seats: draft.seats, seatDefault: draft.seatDefault }}
+              onChange={(d) => setDraft((x) => ({ ...x, seats: d.seats, seatDefault: d.seatDefault }))}
+              coach={draft.coach}
+              onCoach={(on) => set('coach', on)}
+              coachOffered={coachFeature}
+              linkNote={linkNote}
+            />
+          )}
           <fieldset className="ev-step">
             <legend>1 · Entrants</legend>
             <EntrantPicker
@@ -677,10 +795,11 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
                 <span>
                   {r.name ?? r.format}
                   {r.custom ? ' · custom' : ''}
+                  {isPlayedSetup(r.setup) ? ' · played event' : ''}
                 </span>
                 <RecordedAt iso={r.date} className="muted" />
               </button>
-              {r.phase !== 'done' && r.config && (
+              {r.phase !== 'done' && r.config && (playOn || !isPlayedSetup(r.setup)) && (
                 <button className="small" onClick={() => resume(r)} disabled={running} title="Carry on from where it stopped (finished games are kept)">
                   ▶ Resume
                 </button>
@@ -715,7 +834,12 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           <div className="panel flair">
             <div className="spread">
               <h2 style={{ margin: 0 }}>
-                {ev.name ?? `Event ${ev.id}`} {ev.custom && <span className="tag ev-set">custom</span>}
+                {ev.name ?? `Event ${ev.id}`} {ev.custom && <span className="tag ev-set">custom</span>}{' '}
+                {isPlayedSetup(ev.setup) && (
+                  <span className="tag ev-hand" title="People played in this event: it counts toward no rating, deck record or bot statistic">
+                    played event
+                  </span>
+                )}
               </h2>
               <span className="muted small">
                 {ev.format} · {tierLabel(ev.bot)} bots{ev.config ? ` · seed ${ev.config.seed}` : ''}
@@ -740,6 +864,22 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               </div>
             )}
             {pause && <PausePanel pause={pause} ev={ev} onChange={setPause} onGo={go} />}
+            {played && (
+              <WaitingMatches
+                waiting={played.waiting}
+                ev={ev}
+                inProgress={playedState?.current?.game ?? null}
+                canPlay={!playing}
+                onPlay={(w) => setPlaying({ pg: played, w })}
+                onRecord={setRecording}
+              />
+            )}
+            {saveRefused && running && (
+              <p className="small" role="alert" style={{ color: 'var(--red)' }}>
+                ⚠ This browser refused to save the event as it goes (its storage is full or blocked). Keep this page open, or free some space: closing it now loses the
+                results since the last save.
+              </p>
+            )}
             {ev.phase === 'stopped' &&
               !running &&
               (ended?.kind === 'failed' ? (
@@ -798,8 +938,30 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           </div>
         </>
       )}
-      {match && ev && <MatchModal m={match} decks={ev.decks} bot={ev.bot} lib={lib} onClose={() => setMatch(null)} simVersion={ev.simVersion} bestOf={ev.config?.bestOf} />}
+      {match && ev && <MatchModal m={match} decks={ev.decks} bot={ev.bot} lib={lib} onClose={() => setMatch(null)} simVersion={ev.simVersion} bestOf={ev.config?.bestOf} person={!!match.b && matchKind(ev.setup, match.a, match.b) !== 'bots'} />}
       {watch && <WatchHost target={watch} onClose={() => setWatch(null)} />}
+      {recording && played && (
+        <RecordResultDialog
+          w={recording}
+          bestOf={waitingMatch(ev, recording)?.bestOf ?? ev?.config?.bestOf ?? 3}
+          round={waitingMatch(ev, recording)?.round ?? ''}
+          onSave={(r) => played.record(recording.id, r, waitingMatch(ev, recording)?.bestOf ?? ev?.config?.bestOf ?? 3)}
+          onClose={() => setRecording(null)}
+        />
+      )}
+      {playing && ev && (
+        <Suspense fallback={<p className="muted">Loading the game board…</p>}>
+          <TourneyGame
+            played={playing.pg}
+            first={playing.w}
+            ev={ev}
+            coach={playedState?.coach === true}
+            current={playedState?.current ?? null}
+            onSave={onGameSave}
+            onClose={() => setPlaying(null)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
@@ -915,13 +1077,15 @@ function PlanPreview({ setup, seed, lib }: { setup: EventSetup; seed: number; li
 function EventSummary({ ev }: { ev: TourneyEvent }) {
   const all = [...ev.rounds.flatMap((r) => r.matches), ...ev.bracket.flatMap((r) => r.matches)].filter((m) => m.b);
   const games = all.flatMap((m) => m.games);
-  const firstWins = games.filter((g) => g.winner !== 'tie' && g.winner === g.first).length;
-  const decided = games.filter((g) => g.winner !== 'tie').length;
+  // a result recorded by hand has no seat or turns: it is left out of the seat and length figures
+  const timed = games.filter((g) => g.by !== 'hand');
+  const firstWins = timed.filter((g) => g.winner !== 'tie' && g.winner === g.first).length;
+  const decided = timed.filter((g) => g.winner !== 'tie').length;
   const seeds = ev.seeds ?? [];
   const upsets = ev.bracket.flatMap((r) => r.matches).filter((m) => m.b && seeds.indexOf(m.winner) > seeds.indexOf(m.winner === m.a ? m.b : m.a)).length;
   const series = all.filter((m) => (m.bestOf ?? ev.config?.bestOf ?? 3) > 1);
   const sweep = series.filter((m) => m.games.length > 1 && Math.min(...m.score) === 0 && m.games.every((g) => g.winner !== 'tie')).length;
-  const avgTurns = games.length ? games.reduce((a, g) => a + g.turns, 0) / games.length : 0;
+  const avgTurns = timed.length ? timed.reduce((a, g) => a + g.turns, 0) / timed.length : 0;
   const best = [...ev.standings].sort((a, b) => b.playW + b.drawW - (a.playW + a.drawW) || a.games - b.games)[0];
   return (
     <div className="dp-tiles">

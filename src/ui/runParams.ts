@@ -1,7 +1,8 @@
 // Input checks for the tournament pages: setup-link params (#/run?f=…&r=…), event files opened from disk,
 // runs stored in localStorage, and the ?e= event id. Anything malformed falls back instead of crashing a page.
 import { isEventFormat, type EventFormat, type TourneyEvent } from '../lib/tournament';
-import { entrantsToList, type EventDraft } from '../lib/eventDraft';
+import { entrantKey, entrantsToList, type EventDraft } from '../lib/eventDraft';
+import { seatFor, seatsFromLink, seatsToLink, type DraftSeats, type EntrantSeat } from '../lib/playedEvent';
 
 const RUN_FIELDS = ['meta', 'ladder', 'top16', 'original', 'guide', 'all', 'custom'] as const;
 export type RunField = (typeof RUN_FIELDS)[number];
@@ -21,6 +22,13 @@ export interface RunParams {
   seed: number | null;
   /** "One entry per list" switched off (`one=0`); absent = on, as every link from before the setting */
   oneList?: false;
+  /**
+   * Who runs each entrant of the link's deck list (`seat=`, one letter per entrant: b a bot, y you, p another player;
+   * src/lib/playedEvent.ts). Absent = every entrant a bot. In a link, "you" is the person who opens it.
+   */
+  seats?: EntrantSeat[];
+  /** "Coach during my matches" on (`coach=1`) */
+  coach?: true;
 }
 
 const int = (s: string | null, min: number, max: number): number | null => {
@@ -37,6 +45,7 @@ export function parseRunParams(q: URLSearchParams, bots: readonly string[]): Run
   const decks = d ? d.split(',').map((x) => x.trim()).filter(Boolean) : null;
   const top = int(q.get('t'), 0, 16);
   const bot = q.get('bot');
+  const seats = decks ? seatsFromLink(q.get('seat')) : null;
   return {
     field,
     decks: decks && decks.length ? decks : null,
@@ -47,6 +56,8 @@ export function parseRunParams(q: URLSearchParams, bots: readonly string[]): Run
     bot: bot && bots.includes(bot) ? bot : null,
     seed: int(q.get('s'), 1, 2 ** 31 - 1),
     ...(q.get('one') === '0' ? { oneList: false as const } : {}),
+    ...(seats ? { seats } : {}),
+    ...(seats && q.get('coach') === '1' ? { coach: true as const } : {}),
   };
 }
 
@@ -64,12 +75,37 @@ export function runParamsQuery(p: RunParams): URLSearchParams {
   if (p.seed !== null) q.set('s', String(p.seed));
   if (p.rounds !== 'auto') q.set('r', String(p.rounds));
   if (p.oneList === false) q.set('one', '0');
+  const seats = p.seats ? seatsToLink(p.seats) : null;
+  if (seats) q.set('seat', seats);
+  if (seats && p.coach) q.set('coach', '1');
   return q;
 }
 
-/** The runner's "Copy setup link" query for a draft, its bot and seed. */
-export function draftLinkQuery(draft: Pick<EventDraft, 'entrants' | 'format' | 'rounds' | 'top' | 'bestOf'> & Partial<Pick<EventDraft, 'oneList'>>, bot: string, seed: number): URLSearchParams {
-  return runParamsQuery({ field: 'custom', decks: entrantsToList(draft.entrants), format: draft.format, rounds: draft.rounds, top: draft.top, bestOf: draft.bestOf, bot, seed, ...(draft.oneList === false ? { oneList: false as const } : {}) });
+/**
+ * The runner's "Copy setup link" query for a draft, its bot and seed. A played event's link carries who runs each
+ * entrant (`seat=`) and the coach setting; a bot event's link is what it always was.
+ */
+export function draftLinkQuery(
+  draft: Pick<EventDraft, 'entrants' | 'format' | 'rounds' | 'top' | 'bestOf'> & Partial<Pick<EventDraft, 'oneList' | 'seats' | 'seatDefault' | 'coach'>>,
+  bot: string,
+  seed: number,
+): URLSearchParams {
+  const d: DraftSeats = { seats: draft.seats ?? {}, seatDefault: draft.seatDefault ?? 'bot' };
+  const seats = draft.entrants.map((e) => seatFor(d, entrantKey(e)));
+  const played = seats.some((s) => s !== 'bot');
+  return runParamsQuery({
+    field: 'custom',
+    decks: entrantsToList(draft.entrants),
+    format: draft.format,
+    rounds: draft.rounds,
+    top: draft.top,
+    bestOf: draft.bestOf,
+    bot,
+    seed,
+    ...(draft.oneList === false ? { oneList: false as const } : {}),
+    ...(played ? { seats } : {}),
+    ...(played && draft.coach ? { coach: true as const } : {}),
+  });
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);

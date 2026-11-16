@@ -280,6 +280,20 @@ describe('Watch controls and the switch', () => {
   const modal = () => renderToStaticMarkup(<MatchModal m={m} decks={ev.decks} bot={ev.bot} lib={eventLib(new Map())} onClose={() => undefined} simVersion={ev.simVersion} bestOf={ev.config.bestOf} />);
   const row: HistoryRow = { key: 'k', date: '2026-11-16T00:00:00.000Z', deck: 'A', opp: 'B', tier: 'easy', result: 'win', turns: 9, first: true, gigs: null, conceded: false, grade: null, watch: () => undefined };
 
+  it('is not offered for a match a person plays or records: there is no bot game to play back', () => {
+    const base = { decks: ev.decks, bot: ev.bot, lib: eventLib(new Map()), onClose: () => undefined, simVersion: ev.simVersion, bestOf: ev.config.bestOf };
+    // a bot match offers the match and each game
+    expect(renderToStaticMarkup(<MatchModal m={m} {...base} />)).toContain('Watch the match');
+    // a match of a played event with a person in it does not, even before any game is in
+    expect(renderToStaticMarkup(<MatchModal m={m} {...base} person />)).not.toContain('Watch the match');
+    expect(renderToStaticMarkup(<MatchModal m={{ ...m, games: [], live: true }} {...base} person />)).not.toContain('Watch');
+    // nor does a match in which a person decided a game (played on the board here, or recorded by hand)
+    for (const by of ['you', 'hand'] as const) {
+      const decided = { ...m, games: m.games.map((g, i) => (i === 0 ? { ...g, by } : g)) };
+      expect(renderToStaticMarkup(<MatchModal m={decided} {...base} />), by).not.toContain('Watch the match');
+    }
+  });
+
   it('is on by default, and listed for the owner', () => {
     expect(FEATURES).toContain('watchMatches');
     expect(FEATURE_INFO.watchMatches.default).toBe(true);
