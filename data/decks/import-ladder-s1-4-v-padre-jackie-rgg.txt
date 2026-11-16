@@ -1,0 +1,35 @@
+// Ladder S1 #4: V / Padre / Jackie (RGG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed Season-1 power ranking #4)
+// Author: anonymous: the most common list of 16 players
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-jackie-welles-mama-s-favorite:1,cb-padre-man-of-the-cross:1,cb-v-streetkid:1,cb-corpo-security:1,cb-don-t-fear-the-reaper:3,cb-fool-on-the-hill:1,cb-johnny-silverhand-never-stop-fighting:3,cb-la-llorona-ghost-of-the-past:2,cb-mantis-blades:3,cb-maxtac-av:3,cb-maxtac-squadron:3,cb-memory-relapse:3,cb-meredith-stout-stone-cold-corpo:3,cb-overwatch-panam-s-gift:2,cb-peace-offering:3,cb-riot-shield:2,cb-sandevistan:3,cb-satori-sword-of-saburo:2,cb-wild-in-the-streets:3&sideboard=cb-corpo-security:2,cb-fool-on-the-hill:2,cb-take-control:3&type=cyberpunk&name=Jackie%20Welles%3A%20Mama%27s%20Favorite%20%2F%20Padre%20%2F%20V%3A%20Streetkid%20(Seaso
+// Via: Cyberpunk TCG Season-1 Meta Report: Top 10 Decks & Tier List https://cyberpunk-tcg-sim.online/meta/season-1 (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Mama's Favorite
+1 Padre: Man of the Cross
+1 V: Streetkid
+
+// Main Deck
+1 Corpo Security
+3 (Don't Fear) The Reaper
+1 Fool on the Hill
+3 Johnny Silverhand: Never Stop Fighting
+2 La Llorona: Ghost of the Past
+3 Mantis Blades
+3 MaxTac AV
+3 MaxTac Squadron
+3 Memory Relapse
+3 Meredith Stout: Stone Cold Corpo
+2 Overwatch: Panam's Gift
+3 Peace Offering
+2 Riot Shield
+3 Sandevistan
+2 Satori: Sword of Saburo
+3 Wild in the Streets
+
+// Sideboard
+2 Corpo Security
+2 Fool on the Hill
+3 Take Control

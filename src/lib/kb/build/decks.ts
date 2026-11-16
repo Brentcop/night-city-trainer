@@ -33,12 +33,13 @@ const KIND_WORDS: Record<string, string> = {
   meta: 'a choom.gg meta archetype',
   guide: 'a choom.gg community guide list',
   ladder: 'a sim-ladder list',
+  shared: 'a list a player shared, imported by link',
   original: 'a Night City Trainer original',
   custom: 'a custom list',
 };
 
 function deckOrigin(d: DeckInput): KbOrigin {
-  if (d.kind === 'meta' || d.kind === 'guide' || d.kind === 'ladder') return 'imported';
+  if (d.kind === 'meta' || d.kind === 'guide' || d.kind === 'ladder' || d.kind === 'shared') return 'imported';
   return /bred|optimizer|tournament/i.test(d.prov.origin ?? '') ? 'generated' : 'authored';
 }
 

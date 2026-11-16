@@ -1,5 +1,7 @@
 // The breeder's Unit floor (MIN_BRED_UNITS, src/ai/breeder.ts): no bred list comes out with fewer Units than any
-// hand-built library list. ROADMAP2 §4: "the breeder can produce a deck with 12 Units" (the 'control' template aims at 12).
+// hand-built list of the trainer's own sources. ROADMAP2 §4: "the breeder can produce a deck with 12 Units" (the
+// 'control' template aims at 12). Lists imported from players (kind `shared`) are not counted: real tournament lists go
+// down to 10 Units, and the floor was kept at 13 on 2026-11-16 (lowering it is the owner's call).
 import { describe, expect, it } from 'vitest';
 import { CARD_BY_ID } from '../src/engine/cards';
 import { validateDeck } from '../src/engine/deck';
@@ -12,10 +14,12 @@ import { synthBreedInput, synthDecks, SYNTH_IMPACT } from './builder-fixtures';
 const score = (id: string) => cardValue(id) + 100 * (SYNTH_IMPACT[id] ?? 0);
 
 describe('bred lists keep a workable number of Units', () => {
-  it('the floor is the fewest Units of any hand-built library list (meta, guides, sim ladder, Trainer originals)', () => {
+  it('the floor is the fewest Units of any hand-built list of the trainer’s own sources (meta, guides, sim ladder, Trainer originals; not lists imported from players)', () => {
+    // the sources the floor was set from, named one by one: lists imported from players (kind `shared`, down to 10
+    // Units in real tournament top cuts) are left out on purpose, and the floor was kept (src/ai/breeder.ts)
     const hand = loadLibrary().filter((d) => d.kind === 'meta' || d.kind === 'guide' || d.kind === 'ladder' || (d.kind === 'original' && /^nc-/.test(d.file)));
     expect(hand.length).toBeGreaterThanOrEqual(30);
-    // if a hand-built list with fewer Units joins the library, revisit MIN_BRED_UNITS (the reasoning is at the constant)
+    // if a hand-built list of these sources with fewer Units joins the library, revisit MIN_BRED_UNITS (the reasoning is at the constant)
     expect(Math.min(...hand.map((d) => unitCount(d.deck)))).toBe(MIN_BRED_UNITS);
   });
 

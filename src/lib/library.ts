@@ -2,6 +2,9 @@
 import { deckFingerprint, parseDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import type { RunManifest } from './runManifest';
+import { IMPORT_NO_AUTHOR, importedSite, isImportedOrigin } from './importedOrigin';
+
+export { IMPORT_NO_AUTHOR, IMPORT_ORIGIN, importedSite, isImportedOrigin } from './importedOrigin';
 
 /** Where a list came from and who made it (see scripts/tag-provenance.ts). */
 export interface Provenance {
@@ -23,7 +26,13 @@ export interface LibraryDeck {
   source?: string;
   author?: string;
   tier?: string;
-  kind: 'meta' | 'ladder' | 'guide' | 'original' | 'custom';
+  /**
+   * meta: choom.gg's meta lists (`meta-`); ladder: the owner's sim-ladder lists (`ladder-`); original: Trainer originals
+   * and bred decks (`nc-`, `s<N>-`); shared: lists players shared, imported by link (Origin "Imported from …",
+   * isImportedOrigin); custom: data/decks/custom/ and decks saved in the browser; guide: every other top-level file
+   * (the choom.gg community guide lists).
+   */
+  kind: 'meta' | 'ladder' | 'guide' | 'original' | 'shared' | 'custom';
   idea?: string;
   prov: Provenance;
   /** browser custom decks saved from a Deck Lab run: what that run measured (src/lib/runManifest.ts) */
@@ -54,6 +63,18 @@ export function libraryDeck(rel: string, text: string): LibraryDeck | null {
 
 const field = (text: string, key: string) => text.match(new RegExp(`^// ${key}: (.+)$`, 'm'))?.[1]?.trim();
 
+/**
+ * The library kind of a deck file (see LibraryDeck.kind): Trainer originals and bred decks by their prefix first, then
+ * the folder's kind (`custom` for data/decks/custom/), then a deck imported from a shared link by its Origin (not by the
+ * file name: the import step's prefix can be changed), then `meta-` and `ladder-`, else a guide list.
+ */
+function kindOf(file: string, origin: string | undefined, folderKind: LibraryDeck['kind'] | undefined): LibraryDeck['kind'] {
+  if (/^(nc|s\d+)-/.test(file) && !/-eor\.txt$/.test(file)) return 'original';
+  if (folderKind) return folderKind;
+  if (isImportedOrigin(origin)) return 'shared';
+  return file.startsWith('meta-') ? 'meta' : file.startsWith('ladder-') ? 'ladder' : 'guide';
+}
+
 export function deckFromText(file: string, text: string, kind?: LibraryDeck['kind']): LibraryDeck {
   const { deck } = parseDeck(text, file.replace(/\.txt$/, ''));
   const prov: Provenance = {
@@ -78,15 +99,17 @@ export function deckFromText(file: string, text: string, kind?: LibraryDeck['kin
     tier,
     idea,
     prov,
-    kind: /^(nc|s\d+)-/.test(file) && !/-eor\.txt$/.test(file) ? 'original' : kind ?? (file.startsWith('meta-') ? 'meta' : file.startsWith('ladder-') ? 'ladder' : 'guide'),
+    kind: kindOf(file, prov.origin, kind),
   };
 }
 
-/** Short one-line credit, e.g. "choom.gg guide · Cacheira" or "NC bred S2 explorer". */
+/** Short one-line credit, e.g. "choom.gg guide · Cacheira", "cyberpunk-tcg-sim.online · TrueDuelist" or "NC bred S2 explorer". */
 export function shortCredit(d: Pick<LibraryDeck, 'prov' | 'kind'>): string {
   const p = d.prov;
   const author = (p.author ?? '').replace(/ \(.*\)$/, '').replace(/ — "The Cyberpunk Primer".*$/, ' (Cyberpunk Primer)');
   const o = p.origin ?? '';
+  // a list a player shared: the site it came from and its author (the site alone when it names none)
+  if (isImportedOrigin(o)) return [importedSite(o), p.author === IMPORT_NO_AUTHOR ? '' : author].filter(Boolean).join(' · ') || 'Player list';
   if (o.startsWith('choom.gg meta')) return `choom.gg meta · ${author}`;
   if (o.startsWith('choom.gg community')) return `choom.gg guide · ${author}`;
   if (o.startsWith('Night City Trainer bred')) return `NC bred ${o.match(/season (\d+), (\w+)/)?.slice(1).join(' ') ?? ''}`.replace(/^NC bred (\d+)/, 'NC bred S$1');

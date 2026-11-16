@@ -69,7 +69,7 @@ const COPY = /^(.*\S) #(\d+)$/;
 // ---------------------------------------------------------------- the automatic fields (--field)
 
 /** The --field presets; anything else is a comma list of deck files or names. */
-export const FIELD_KEYS = ['all', 'meta', 'ladder', 'original', 'guide', 'top16'] as const;
+export const FIELD_KEYS = ['all', 'meta', 'ladder', 'original', 'guide', 'shared', 'top16'] as const;
 
 /**
  * The decks the automatic fields are picked from, in library order: every library deck except tournament "-eor" builds
@@ -93,7 +93,7 @@ export function fieldPool(lib: readonly LibraryDeck[]): LibraryDeck[] {
  */
 export function pickField(field: string, pool: readonly LibraryDeck[], find: (ref: string) => LibraryDeck, rated: readonly { name: string }[], o: { allowSameLists?: boolean } = {}): LibraryDeck[] {
   if (field === 'all') return [...pool];
-  if (['meta', 'ladder', 'original', 'guide'].includes(field)) return pool.filter((d) => d.kind === field);
+  if (['meta', 'ladder', 'original', 'guide', 'shared'].includes(field)) return pool.filter((d) => d.kind === field);
   if (field === 'top16') {
     const ranked = rated.map((r) => pool.find((d) => d.deck.name === r.name)).filter((d): d is LibraryDeck => !!d);
     if (o.allowSameLists) return ranked.slice(0, 16);

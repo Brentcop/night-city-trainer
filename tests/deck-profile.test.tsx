@@ -18,8 +18,8 @@ import { seasonVersions, staleLeaderRow } from '../src/lib/parentStrength';
 const RATED = 'meta-rrg-dexter-midrange.txt';
 // a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
 const RECORDED = 's1-01-mutant-rry.txt';
-// every library deck plays in the recorded events, so the unrecorded deck is one saved in this browser, with a list no
-// library deck has (a saved copy of a library list shows that deck's recorded results: tests/your-stats-ui.test.tsx)
+// an unrecorded deck saved in this browser, with a list no library deck has (a saved copy of a library list shows that
+// deck's recorded results: tests/your-stats-ui.test.tsx); the library's own unrecorded decks are the player lists below
 const UNRECORDED_NAME = 'Unrecorded test deck';
 const UNRECORDED = `custom:${UNRECORDED_NAME}`;
 const saveUnrecorded = () => {
@@ -102,6 +102,19 @@ describe('deck profile: recorded results first', () => {
     expect(html).toContain('No recorded games.');
     expect(html).not.toContain('Historical:');
     expect(html).not.toContain('Games played');
+  });
+
+  it('a player list (imported by link) with no recorded games: its profile says so, credits its player and waits for the owner’s note', () => {
+    setArtEnabled(false);
+    const d = BUILTIN.find((x) => x.kind === 'shared' && x.prov.author && !x.prov.author.startsWith('anonymous'))!;
+    const html = renderToStaticMarkup(<DeckProfilePage file={d.file} />);
+    expect(html).toContain('No recorded games.');
+    expect(html).not.toContain('Games played');
+    expect(html).toContain('origin-badge origin-shared');
+    expect(html).toContain('Player list');
+    expect(html).not.toContain('choom.gg guide');
+    const plan = html.slice(html.indexOf('>Game plan<'), html.indexOf('>Origin<'));
+    expect(plan).toContain('Needs the owner’s notes');
   });
 
   it('gallery tiles lead with the tournament record, or say there is none', () => {
@@ -194,7 +207,8 @@ describe('deck profile: game plan', () => {
     const draft = plan(renderToStaticMarkup(<DeckProfilePage file={file} />));
     expect(draft).toContain('Draft from the list');
     expect(draft).not.toContain('Placeholder read off the list');
-    // no library deck is a placeholder today; the mechanism stays, so turn one note into a placeholder for the check
+    // the sim-ladder notes are drafts, not placeholders, so turn one into a placeholder for the check (the player lists'
+    // placeholders are checked above)
     const note = DECK_OBJECTIVES[file];
     const saved = { ...note };
     Object.assign(note, { status: 'needs-owner', placeholder: true, objective: `Placeholder: ${note.objective}` });

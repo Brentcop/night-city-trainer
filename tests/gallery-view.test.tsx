@@ -46,6 +46,10 @@ describe('deck sources', () => {
     expect(by('bred').length).toBeGreaterThan(0);
     expect(by('bred').every((f) => /^s\d+-/.test(f))).toBe(true);
     expect(by('nc').every((f) => f.startsWith('nc-'))).toBe(true);
+    // lists players shared, imported by link: their own source (never the guides), known by the Origin the import writes
+    expect(by('shared').length).toBeGreaterThan(0);
+    expect(BUILTIN.filter((d) => deckSource(d) === 'shared').every((d) => d.kind === 'shared' && d.prov.origin!.startsWith('Imported from '))).toBe(true);
+    expect(BUILTIN.filter((d) => deckSource(d) === 'guide').some((d) => (d.prov.origin ?? '').startsWith('Imported from '))).toBe(false);
     expect(BUILTIN.every((d) => !SOURCES.find((s) => s.key === deckSource(d))!.browser)).toBe(true);
   });
   it('decks saved in this browser are mine, tuned (record or name) or Lab-bred', () => {
@@ -80,6 +84,8 @@ describe('gallery view in the URL', () => {
     localStorage.setItem(VIEW_PREF, 'src=guide');
     expect(initialView('').sources).toEqual(['guide']);
     expect(initialView('src=ladder&sort=newest')).toMatchObject({ sources: ['ladder'], sort: 'newest' });
+    expect(viewQuery({ ...DEFAULT_VIEW, sources: ['shared'] })).toBe('src=shared');
+    expect(initialView('src=shared,guide').sources).toEqual(['shared', 'guide']);
   });
   it('counts filters, and clearing keeps sort, grouping and show-hidden', () => {
     const v = { ...DEFAULT_VIEW, sources: ['meta' as const], q: 'x', recorded: true, sort: 'name' as const, group: true, hidden: true };
@@ -138,6 +144,16 @@ describe('gallery page', () => {
     expect((html.match(/class="deck-tile /g) ?? []).length).toBe(meta + ladder);
     expect((html.match(/class="gal-group"/g) ?? []).length).toBe(2);
     expect(html).toContain(`${meta + ladder} of ${BUILTIN.length} decks`);
+  });
+  it('the player lists are a group of their own, with their badge and credit', () => {
+    const html = renderToStaticMarkup(<DeckGallery onNew={() => undefined} query="src=shared&group=1" />);
+    const shared = BUILTIN.filter((d) => d.kind === 'shared');
+    expect((html.match(/class="deck-tile /g) ?? []).length).toBe(shared.length);
+    expect((html.match(/class="gal-group"/g) ?? []).length).toBe(1);
+    expect(html).toContain('Player lists');
+    expect(html).toContain('origin-badge origin-shared');
+    expect(html).not.toContain('origin-choom-guide');
+    expect(html).toContain('cyberpunk-tcg-sim.online · ');
   });
   it('hidden decks leave the list and are counted; saved decks join it', () => {
     localStorage.setItem(HIDDEN_KEY, JSON.stringify([BUILTIN[0]!.file]));

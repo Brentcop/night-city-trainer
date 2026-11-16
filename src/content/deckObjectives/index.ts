@@ -4,6 +4,7 @@
 // stays in the profile's lazy chunk.
 import { listFingerprint } from '../../engine/deck';
 import type { DeckList } from '../../engine/types';
+import { isImportedOrigin } from '../../lib/importedOrigin';
 import { CHOOM_GUIDE_OBJECTIVES } from './choomGuides';
 import { STRATEGY_PAGE_OBJECTIVES } from './strategyPage';
 import { LADDER_OBJECTIVES } from './ladder';
@@ -33,8 +34,7 @@ export const DECK_OBJECTIVES: ObjectiveTable = {
  * scripts/import-links.ts, ./imported.ts). Decks saved in the browser ("My decks") have no entry at all.
  */
 export function isOwnerImport(prov: { origin?: string }): boolean {
-  const o = prov.origin ?? '';
-  return o.startsWith('cyberpunk-tcg-sim.online') || o.startsWith('Imported from ');
+  return (prov.origin ?? '').startsWith('cyberpunk-tcg-sim.online') || isImportedOrigin(prov.origin);
 }
 
 export interface ObjectiveLookup {

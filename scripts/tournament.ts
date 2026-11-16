@@ -5,7 +5,7 @@
 //
 //   --start   id of the first event (default: one past the highest recorded event). The event id is also its seed.
 //   --force   allow overwriting events that are already recorded (otherwise the run refuses before playing anything)
-//   --field   all | meta | ladder | original | guide | top16 | a comma list of deck files/names (e.g. meta-rry-smasher-aggro,s2-08-explorer-rrg)
+//   --field   all | meta | ladder | original | guide | shared | top16 | a comma list of deck files/names (e.g. meta-rry-smasher-aggro,s2-08-explorer-rrg)
 //   --allow-same-lists   enter decks whose lists are the same (see "One entry per list" below)
 //   --rounds  number of Swiss rounds, or auto (log2 of the field, plus a few)
 //   --top     top-cut size (0 = none; rounded down to a power of two that fits the field)

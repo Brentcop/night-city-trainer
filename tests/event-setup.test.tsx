@@ -154,11 +154,15 @@ describe('entrants', () => {
     expect(entrantsToList(list)).toEqual([a, `${a}*2`, b]);
     expect(entrantsFromList(entrantsToList(list))).toEqual(list);
   });
-  it('quick sets: meta, guides, ladder, originals, each bred season, top rated, everything', () => {
+  it('quick sets: meta, guides, player lists, ladder, originals, each bred season, top rated, everything', () => {
     const sets = quickSets(BUILTIN, BUILTIN.map((d) => ({ name: d.deck.name })));
     const keys = sets.map((s) => s.key);
-    expect(keys).toEqual(expect.arrayContaining(['meta', 'guide', 'ladder', 'nc', 'top8', 'top16', 'all']));
+    expect(keys).toEqual(expect.arrayContaining(['meta', 'guide', 'shared', 'ladder', 'nc', 'top8', 'top16', 'all']));
     expect(sets.find((s) => s.key === 'meta')!.files.sort()).toEqual(meta.map((d) => d.file).sort());
+    // the player lists are their own set, never among the guides
+    const shared = BUILTIN.filter((d) => d.kind === 'shared').map((d) => d.file);
+    expect(sets.find((s) => s.key === 'shared')!.files.sort()).toEqual(shared.sort());
+    expect(sets.find((s) => s.key === 'guide')!.files.some((f) => shared.includes(f))).toBe(false);
     const seasons = [...new Set(BUILTIN.map(seasonOf).filter((s): s is number => s !== null))];
     for (const s of seasons) expect(sets.find((x) => x.key === `season-${s}`)!.files.length).toBeGreaterThan(0);
     expect(sets.find((s) => s.key === 'top8')!.files).toHaveLength(8);

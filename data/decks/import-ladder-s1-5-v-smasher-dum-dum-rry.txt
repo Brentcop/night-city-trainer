@@ -1,0 +1,28 @@
+// Ladder S1 #5: V / Smasher / Dum Dum (RRY)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed Season-1 power ranking #5)
+// Author: anonymous: the shared core of 29 players' lists
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-adam-smasher-ender-of-legends:1,cb-dum-dum-maelstrom-triggerman:1,cb-v-streetkid:1,cb-all-is-lost:3,cb-bonnie-and-clyde:3,cb-carnage-at-the-colosseum:3,cb-industrial-assembly:3,cb-mantis-blades:3,cb-satori-sword-of-saburo:3,cb-zetatech-faceplate:3,cb-yorinobu-arasaka-steel-dragon:3,cb-6th-street-recruits:3,cb-animals-wrecker:3,cb-over-the-edge:3,cb-rockn-rockerboy:3,cb-augmented-negotiators:3,cb-appetite-for-destruction:1&type=cyberpunk&name=Adam%20Smasher%20%2F%20Dum%20Dum%20%2F%20V%3A%20Streetkid%20(Season-1%20%235)
+// Via: Cyberpunk TCG Season-1 Meta Report: Top 10 Decks & Tier List https://cyberpunk-tcg-sim.online/meta/season-1 (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Adam Smasher: Ender of Legends
+1 Dum Dum: Maelstrom Triggerman
+1 V: Streetkid
+
+// Main Deck
+3 All is Lost
+3 Bonnie and Clyde
+3 Carnage at the Colosseum
+3 Industrial Assembly
+3 Mantis Blades
+3 Satori: Sword of Saburo
+3 Zetatech Faceplate
+3 Yorinobu Arasaka: Steel Dragon
+3 6th Street Recruits
+3 Animals Wrecker
+3 Over the Edge
+3 Rockn' Rockerboy
+3 Augmented Negotiators
+1 Appetite for Destruction

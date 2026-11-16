@@ -89,22 +89,39 @@ npx tsx scripts/import-links.ts deck-import.json --write      # writes them
 ```
 
 With `--write` it writes `data/decks/import-<name>.txt` (`--dir`, `--prefix`) with the header the other decks carry
-(`Origin: Imported from <site>`, `Author`, `Source` (the deck's link), `Via` (the page it was found on), `Added`), and
-adds a `needs-owner` placeholder note for each to `src/content/deckObjectives/imported.ts`. It never writes over a file
-without `--force`, never a list the library already has, never a deck with an unmatched card or an illegal list. Then:
+(`Origin: Imported from <site>`, `Author`, `Source` (the deck's link), `Via` (the page it was found on, with the page's
+own date when it gave one: "(published 2026-11-15, collected 2026-11-16)"), `Added` (the day it was collected, `--date`:
+the day the deck joins the library, which the gallery's "newest" sorts by)), and adds a `needs-owner` placeholder note
+for each to `src/content/deckObjectives/imported.ts`: one line, `'<file>': importedPlaceholder('<listId>', [<the three
+Legends>]),`, just above the marker line. The placeholder's words are written once, in `importedPlaceholder` in that
+file, because every game worker carries the note table: a placeholder costs one line, not a whole note. It never writes
+over a file without `--force`, never a list the library already has, never a deck with an unmatched card or an illegal
+list, and never adds a second note for a file that has one (a full note or a placeholder line). Then:
 
-1. Write each deck's note in `src/content/deckObjectives/imported.ts` and set `status: 'owner'` (the placeholder is
-   enough for the tests).
+1. Write each deck's note: in `src/content/deckObjectives/imported.ts`, replace its `importedPlaceholder(...)` call with
+   a full note object (the fields in `vocabulary.ts`, as in the other note tables) and set `status: 'owner'` (the
+   placeholder is enough for the tests).
 2. `npm run evidence` (every library deck has an evidence file), then `npm run check:data`.
 3. `npm run typecheck`, `npx vitest run tests/deck-objectives.test.ts`, then the whole suite before committing.
-4. A deck with fewer than 13 Units (the step names it) fails `tests/breeder-units.test.ts`: that test holds the bred
-   decks' floor (`MIN_BRED_UNITS` in `src/ai/breeder.ts`) at the fewest Units of any hand-built library list. Lowering
-   the floor changes what the breeder makes, so it is your call (two of the Discord 5k top-8 lists have 10 Units, and
-   the Season-1 #2 list has 12).
-5. The deck has no rating until an event that includes it is recorded.
+4. The deck has no rating until an event that includes it is recorded.
 
-Checked on 2026-11-16 by writing six of the example decks into a scratch copy of the library: with the placeholder notes
-and `npm run evidence`, `check:data` passed and the whole suite failed only on the Units floor above.
+For a list with fewer Units than the bred decks' floor the step prints a note ("10 Units; the bred decks' floor is 13"),
+for information only. `tests/breeder-units.test.ts` holds that floor (`MIN_BRED_UNITS` in `src/ai/breeder.ts`) against
+the trainer's own sources (meta, guides, sim ladder, Trainer originals) and does not count lists imported from players,
+which go down to 10 Units in real tournament top cuts. The floor was kept at 13 on 2026-11-16; lowering it changes what
+the breeder makes, so it is the owner's call.
 
-In the gallery an imported deck at the top of `data/decks/` is grouped with the choom.gg guides (the library's kind for a
-file that is not `meta-`, `ladder-` or a Trainer original), and its badge reads "Other".
+## In the library
+
+A file at the top of `data/decks/` whose Origin starts "Imported from" is a library deck of its own kind, `shared`
+(`src/lib/library.ts`; decided by the Origin, so `--prefix` does not change it; a file in `data/decks/custom/` stays a
+custom deck). The gallery shows these as "Player lists" (a source of their own for the filter and "Group by source"),
+each with the badge "Player list" and the credit "site · author" (the site alone when the page named no author); the
+deck editor's list has a "Player lists" section, the tournament runner a quick set "All player lists" (and the setup
+link `f=shared`), and `npm run tournament -- --field shared` enters them all. They are never grouped with the choom.gg
+guides, and `scripts/tag-provenance.ts` leaves their header as the import step wrote it.
+
+On 2026-11-16 the owner added 18 lists this way: the Discord 5k Celebration Tournament's top 8 ("Discord 5k #1: …",
+each credited to its player) and the ten lists of cyberpunk-tcg-sim.online's Season-1 ranked report ("Ladder S1 #1: …",
+anonymous lists the site built for each Legend trio). Two of the top-8 lists have 10 Units and the Season-1 #2 list has
+12.

@@ -1,6 +1,19 @@
 import type { Provenance } from '../../lib/library';
 import { safeHref } from './Markdown';
 
+/** The longest link text shown in full; a longer address is cut (the link itself stays whole). */
+export const LINK_TEXT_MAX = 72;
+
+/**
+ * A link's visible text: the address without its scheme, cut with "…" when it is long. A deck-builder link of
+ * cyberpunk-tcg-sim.online carries a whole list in its address (700 characters and more), which no screen should
+ * have to show; the link's href and its title keep the full address.
+ */
+export function linkText(url: string, max = LINK_TEXT_MAX): string {
+  const t = url.replace(/^https?:\/\//, '');
+  return [...t].length > max ? `${[...t].slice(0, max - 1).join('')}…` : t;
+}
+
 /** Full provenance block: origin, author, source link, credits, parents, date. */
 export function ProvenanceBlock({ prov }: { prov: Provenance }) {
   if (!prov.origin && !prov.author) return null;
@@ -27,8 +40,9 @@ export function ProvenanceBlock({ prov }: { prov: Provenance }) {
           <span className="muted">Source</span>
           <span>
             {safeHref(prov.source) ? (
-              <a href={safeHref(prov.source)!} target="_blank" rel="noreferrer">
-                {prov.source.replace(/^https?:\/\//, '')}
+              // the title gives the whole address only when the text was cut
+              <a href={safeHref(prov.source)!} target="_blank" rel="noreferrer" title={linkText(prov.source) === linkText(prov.source, Infinity) ? undefined : prov.source}>
+                {linkText(prov.source)}
               </a>
             ) : (
               prov.source

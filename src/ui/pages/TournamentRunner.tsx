@@ -85,7 +85,7 @@ import { BracketBoEditor, BracketSlotsEditor, EntrantPicker, MatchListEditor, Pa
 import { WatchButton, WatchHost } from '../components/watch/WatchEntry';
 import { DealtGames, type WatchTarget } from '../../lib/watchMatch';
 
-type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'all' | 'custom';
+type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'shared' | 'all' | 'custom';
 const BOTS = TOURNEY_BOTS;
 const SAVE_KEY = 'nct.runs.v1';
 const RATE_KEY = 'nct.runRate.v1';

@@ -5,8 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS, CARD_BY_ID } from '../src/engine/cards';
 import { listFingerprint } from '../src/engine/deck';
-import { libraryDeck } from '../src/lib/library';
+import { libraryDeck, shortCredit } from '../src/lib/library';
 import { isOwnerImport, SIGNAL_TERMS } from '../src/content/deckObjectives';
+import { importedPlaceholder } from '../src/content/deckObjectives/imported';
 import {
   buildDeck,
   deckFileName,
@@ -319,14 +320,43 @@ describe('library deck files', () => {
     expect(back.prov.author).toBe('Player One');
     expect(back.prov.source).toBe(d.raw.source.link);
     expect(isOwnerImport(back.prov)).toBe(true);
+    // a library deck of its own kind, credited to the site and its author
+    expect(back.kind).toBe('shared');
+    expect(shortCredit(back)).toBe('cyberpunk-tcg-sim.online · Player One');
+  });
+  it('makes Added the day the deck was collected, and says the page’s own date in the Via line', () => {
+    const dated = buildDeck(
+      rawJson({ source: { ...d.raw.source, page: 'Made Up Cup Results', pageLink: 'https://cyberpunk-tcg-sim.online/meta/made-up-cup', date: '2026-08-01T09:14:32.253Z' } }),
+    );
+    const lines = deckFileText(dated, '2026-11-16').split('\n');
+    expect(lines).toContain('// Via: Made Up Cup Results https://cyberpunk-tcg-sim.online/meta/made-up-cup (published 2026-08-01, collected 2026-11-16)');
+    expect(lines).toContain('// Added: 2026-11-16');
+    expect(libraryDeck('import-x.txt', lines.join('\n'))!.prov.added).toBe('2026-11-16');
+  });
+  it('gives the kind by the Origin, not the file name: any prefix, never in custom/, never over a Trainer original', () => {
+    const text = deckFileText(d, '2026-11-16');
+    expect(libraryDeck('x-player-one.txt', text)!.kind).toBe('shared');
+    expect(libraryDeck('custom/import-player-one.txt', text)!.kind).toBe('custom');
+    expect(libraryDeck('nc-99-player-one.txt', text)!.kind).toBe('original');
+    // a file without that Origin is what it was before
+    const plain = text.replace(/^\/\/ Origin: .*\n/m, '');
+    expect(libraryDeck('import-player-one.txt', plain)!.kind).toBe('guide');
+    expect(libraryDeck('meta-player-one.txt', plain)!.kind).toBe('meta');
+    // no author on the page: the site alone
+    const anon = buildDeck(rawJson({ author: '' }));
+    expect(shortCredit(libraryDeck('import-anon.txt', deckFileText(anon, '2026-11-16'))!)).toBe('cyberpunk-tcg-sim.online');
   });
   it('says when a name does not survive the file format', () => {
     const odd = buildDeck(rawJson({ name: 'Origin: somewhere' }));
     expect(deckFileProblem('import-x.txt', deckFileText(odd, '2026-11-16'), odd)).toMatch(/does not survive the file format/);
   });
-  it('writes a placeholder note that passes the deck-note rules', () => {
+  it('writes a placeholder note that passes the deck-note rules, as one line calling the one definition of its words', () => {
     const src = placeholderNote('import-x.txt', d);
-    const note = new Function(`return ({${src}})`)()['import-x.txt'];
+    expect(src).toBe(`  'import-x.txt': importedPlaceholder('${d.listId}', [${d.deck.legends.map((id) => `'${id}'`).join(', ')}]),`);
+    // the placeholder's words live only in importedPlaceholder (src/content/deckObjectives/imported.ts)
+    expect(src).not.toContain('Placeholder:');
+    expect(src).not.toContain('to be written');
+    const note = new Function('importedPlaceholder', `return ({${src}})`)(importedPlaceholder)['import-x.txt'];
     expect(note.listId).toBe(d.listId);
     expect(note.objective).toMatch(/^Placeholder/);
     expect(note.status).toBe('needs-owner');

@@ -1,0 +1,35 @@
+// Discord 5k #4: Jackie / Alt / Hanako (BBG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed 4th)
+// Author: ♡ Ashlynn Nael ♡
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-jackie-welles-pour-one-out-for-me:1,cb-alt-cunningham-soulkiller-architect:1,cb-hanako-arasaka-daughter-of-the-emperor:1,cb-chrome-reverie:2,cb-dying-night-v-s-pistol:1,cb-floor-it:2,cb-jacked-in-voodoo-boy:3,cb-les-elemens:3,cb-maman-brigitte-spirit-of-death:3,cb-nocturne-op55-n1:3,cb-peace-offering:3,cb-pepe-najarro-working-doubles:3,cb-pyramid-song:3,cb-riot-shield:2,cb-take-control:2,cb-three-mouths-one-desire:3,cb-towerfall:3,cb-trust-no-one:3,cb-valentino-street-racer:1&sideboard=cb-delamain-rideshare-ai:3,cb-modded-kusanagi:1,cb-mox-inciters:3&type=cyberpunk&name=%E2%99%A1%20Ashlynn%20Nael%20%E2%99%A1%20-%20Discord%205k%20Celebration%20Tournament%20(4th)
+// Via: Discord 5k Celebration Tournament Results & Top 8 Decklists | Cyberpunk TCG https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Jackie Welles: Pour One Out For Me
+1 Alt Cunningham: Soulkiller Architect
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+2 Chrome Reverie
+1 Dying Night: V's Pistol
+2 Floor It
+3 Jacked-In Voodoo Boy
+3 Les Élémens
+3 Maman Brigitte: Spirit of Death
+3 Nocturne OP55 N1
+3 Peace Offering
+3 Pepe Najarro: Working Doubles
+3 Pyramid Song
+2 Riot Shield
+2 Take Control
+3 Three Mouths, One Desire
+3 Towerfall
+3 Trust No One
+1 Valentino Street Racer
+
+// Sideboard
+3 Delamain: Rideshare AI
+1 Modded Kusanagi
+3 Mox Inciters

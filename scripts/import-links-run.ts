@@ -12,9 +12,9 @@ import {
   deckFileName,
   deckFileProblem,
   deckFileText,
+  hasNoteFor,
   holderWords,
   NOTE_MARKER,
-  noteString,
   placeholderNote,
   readImport,
   sameListHolders,
@@ -113,7 +113,8 @@ function run(argv: string[], io: ImportLinksIO): number {
     for (const u of d.unmatched) io.out(`   not matched: ${u}`);
     for (const p of d.illegal) io.out(`   not legal: ${p}`);
     for (const n of d.raw.notes) io.out(`   note: ${n}`);
-    if (!skip && unitCount(d.deck) < MIN_BRED_UNITS) io.out(`   note: ${unitCount(d.deck)} Units, fewer than any hand-built library list (${MIN_BRED_UNITS}); see the last steps below`);
+    // information only: the bred decks' floor (MIN_BRED_UNITS) is held against the trainer's own sources, not imported lists
+    if (!skip && unitCount(d.deck) < MIN_BRED_UNITS) io.out(`   note: ${unitCount(d.deck)} Units; the bred decks' floor is ${MIN_BRED_UNITS}`);
     io.out(skip ? `   skipped: ${skip}` : `   ${V.write ? 'writes' : 'would write'} ${path.join(V.dir, file)}`);
   });
 
@@ -139,9 +140,10 @@ function run(argv: string[], io: ImportLinksIO): number {
     fs.writeFileSync(path.join(V.dir, file), deckFileText(d, date));
     io.out(`Wrote ${path.join(V.dir, file)}.`);
     const entry = placeholderNote(file, d);
-    if (notes !== null && notes.includes(`${noteString(file)}: {`)) io.out(`  ${V.notes} has a note for ${file} already: check that its listId is '${d.listId}'.`);
+    // a note there already (the owner's, or a placeholder): never a second entry, never a change to it
+    if (notes !== null && hasNoteFor(notes, file)) io.out(`  ${V.notes} has a note for ${file} already: check that its listId is '${d.listId}'.`);
     else if (notes !== null && notes.includes(NOTE_MARKER)) {
-      notes = notes.replace(NOTE_MARKER, `${entry}\n\n${NOTE_MARKER}`);
+      notes = notes.replace(NOTE_MARKER, `${entry}\n${NOTE_MARKER}`);
       io.out(`  Added a placeholder note for it to ${V.notes}.`);
     } else noteLater.push(entry);
   }
@@ -154,11 +156,6 @@ function run(argv: string[], io: ImportLinksIO): number {
     for (const e of noteLater) io.out(e);
   }
   io.out(`- Write each deck's note: replace its placeholder in ${V.notes} and set status: 'owner' (the placeholder is enough for the tests).`);
-  const fewUnits = ready.filter(({ d }) => unitCount(d.deck) < MIN_BRED_UNITS);
-  if (fewUnits.length)
-    io.out(
-      `- ${fewUnits.map(({ file }) => file).join(', ')} ${fewUnits.length === 1 ? 'has' : 'have'} fewer than ${MIN_BRED_UNITS} Units, the fewest any hand-built library list has: tests/breeder-units.test.ts fails until MIN_BRED_UNITS in src/ai/breeder.ts (the bred decks' floor, with its reasoning) is revisited. That is the owner's call: it changes what the breeder makes.`,
-    );
   io.out('- Run npm run evidence (every library deck has an evidence file), then npm run check:data.');
   io.out('- Run npm run typecheck and npx vitest run tests/deck-objectives.test.ts, then the whole suite before committing.');
   io.out('- The deck plays in tournaments and gets a rating once an event that includes it is recorded.');

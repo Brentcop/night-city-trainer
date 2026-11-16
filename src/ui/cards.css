@@ -386,6 +386,10 @@
   border-color: #02d7f2;
   color: var(--cyan);
 }
+.origin-shared {
+  border-color: var(--magenta);
+  color: var(--magenta);
+}
 .origin-nc-original {
   border-color: #b388ff;
   color: color-mix(in srgb, #b388ff 62%, var(--text)); /* readable on both themes */

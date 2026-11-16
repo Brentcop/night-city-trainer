@@ -19,7 +19,7 @@ On top of that it adds a **matchup lab** that runs thousands of bot-vs-bot games
 | Card scripts | `src/engine/scripts/{red,blue,green,yellow}.ts` | All 150 legal cards. A handful are approximated; they are flagged `partial` and shown as "sim: approximated" on the Cards page. |
 | Bots | `src/ai/` | The lookahead bot clones the game, plays each candidate action out, and scores the result. Reactions are scored by playing the attack out in the clone. Sub-choices (targets, dice, discards, modes) use a card-knowledge base and each deck's "Gig plan". |
 | Deck formats | `src/engine/deck.ts` | Imports choom.gg text, the "Official" format (cyberpunktcg.com / ChoomBattler / the Sim), Sim deck JSON, and loose lists. Exports all three. Validates RAM limits, copies, size and sideboard. |
-| Deck library | `data/decks/` | Choom.gg meta archetypes (`meta-*.txt`), choom.gg guide lists, and your own decks in `data/decks/custom/`. |
+| Deck library | `data/decks/` | Choom.gg meta archetypes (`meta-*.txt`), choom.gg guide lists, the owner's sim-ladder lists (`ladder-*.txt`), lists players shared on choom.gg or cyberpunk-tcg-sim.online (`import-*.txt`, "Player lists" on the site; docs/DECK_IMPORT.md), and your own decks in `data/decks/custom/`. |
 | Web app | `src/ui/`, `src/App.tsx` | The pages are listed under [Pages](#pages). |
 | Matchup scripts | `scripts/simulate.ts` | Multi-threaded deck testing from the CLI (see below). |
 | Research | `data/raw/`, `docs/` | `data/raw/` holds saved copies of the rules, errata, tournament rules, card catalog, and choom.gg meta pages and guides. It is gitignored: it stays on your machine and is not shipped with the site or the repository. `docs/` holds the research notes. |
@@ -132,6 +132,7 @@ Every result file carries a run manifest (`src/lib/runManifest.ts`): deck lists 
 
 - **In the browser:** go to Decks → Import, paste a list, then Save to My decks. Decks are stored in your browser's localStorage.
 - **For the CLI and the bundled site:** run `npm run sim -- add file.txt`, or drop a `.txt` file into `data/decks/custom/`. Any supported format works.
+- **From links players shared** on choom.gg or cyberpunk-tcg-sim.online: the admin page's "Import decks" and `scripts/import-links.ts` (docs/DECK_IMPORT.md). Such a deck is a "Player list" on the site, credited to its author.
 - **Refreshing the choom.gg data:** re-download the pages into your local `data/raw/`, then run `npx tsx scripts/import-meta.ts --force` and `npx tsx scripts/import-guides.ts --force`. Without `--force` they refuse to replace decks that already exist; with it, each deck's provenance header is kept and only the list (and the meta Tier line) is refreshed.
 
 ## Deploying to GitHub Pages

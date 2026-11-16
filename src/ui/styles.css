@@ -765,6 +765,10 @@ label.row > input[type='radio']:first-child {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 2px 12px;
 }
+.kv > * {
+  /* a value with no place to break (a link, a long name) breaks anywhere instead of running off the screen */
+  overflow-wrap: anywhere;
+}
 .kv .tag {
   white-space: normal;
 }

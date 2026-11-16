@@ -112,8 +112,11 @@ describe('scripts/import-links.ts', () => {
     const back = libraryDeck('import-player-one-made-up-cup-1st.txt', text)!;
     expect(back.deck.main.length).toBe(40);
     const notes = fs.readFileSync(s.notes, 'utf8');
-    expect(notes).toContain(`'import-player-one-made-up-cup-1st.txt': {\n    listId: '${buildDeck(good).listId}',`);
-    expect(notes).toContain(`'import-player-two-made-up-cup-2nd.txt': {`);
+    const one = buildDeck(good);
+    expect(notes).toContain(`  'import-player-one-made-up-cup-1st.txt': importedPlaceholder('${one.listId}', [${one.deck.legends.map((id) => `'${id}'`).join(', ')}]),\n`);
+    expect(notes).toContain(`  'import-player-two-made-up-cup-2nd.txt': importedPlaceholder('${buildDeck(second).listId}', [`);
+    // one line each, just above the marker
+    expect(notes).toMatch(/importedPlaceholder\([^\n]*\),\n {2}'import-player-two-made-up-cup-2nd.txt': importedPlaceholder\([^\n]*\),\n {2}\/\/ new imported decks are added above this line/);
     expect(notes).toContain(NOTE_MARKER);
     expect(r.out).toContain('Still to do before these are library decks:');
     expect(r.out).toContain('npm run evidence');
@@ -127,7 +130,15 @@ describe('scripts/import-links.ts', () => {
     const forced = cmd([s.file, '--dir', s.decksDir, '--notes', s.notes, '--write', '--force']);
     expect(forced.code).toBe(0);
     expect(forced.out).toContain('has a note for import-player-one-made-up-cup-1st.txt already');
-    expect(fs.readFileSync(s.notes, 'utf8').split("'import-player-one-made-up-cup-1st.txt': {").length).toBe(2);
+    expect(fs.readFileSync(s.notes, 'utf8').split("'import-player-one-made-up-cup-1st.txt':").length).toBe(2);
+    expect(fs.readFileSync(s.notes, 'utf8')).toBe(notes);
+    // a note the owner has written (a full object) is recognised too, and left as it is
+    const owned = notes.replace(/ {2}'import-player-one-made-up-cup-1st.txt': importedPlaceholder\([^\n]*\),/, "  'import-player-one-made-up-cup-1st.txt': {\n    listId: 'x',\n    status: 'owner',\n  },");
+    expect(owned).not.toBe(notes);
+    fs.writeFileSync(s.notes, owned);
+    const ownedRun = cmd([s.file, '--dir', s.decksDir, '--notes', s.notes, '--write', '--force']);
+    expect(ownedRun.out).toContain('has a note for import-player-one-made-up-cup-1st.txt already');
+    expect(fs.readFileSync(s.notes, 'utf8')).toBe(owned);
   });
 
   it('never writes a list the library already has', () => {
@@ -139,7 +150,7 @@ describe('scripts/import-links.ts', () => {
     expect(fs.readdirSync(s.decksDir)).toEqual([]);
   });
 
-  it('warns about a list with fewer Units than any hand-built library list (the breeder’s floor)', () => {
+  it('notes a list with fewer Units than the bred decks’ floor, as information only (imported lists are not held to it)', () => {
     const few = fewUnits(MIN_BRED_UNITS - 3);
     const built = buildDeck(few);
     expect(validateDeck(built.deck)).toEqual([]);
@@ -147,10 +158,12 @@ describe('scripts/import-links.ts', () => {
     const s = setup('units', [few]);
     const r = cmd([s.file, '--dir', s.decksDir, '--notes', s.notes, '--write']);
     expect(r.code).toBe(0);
-    expect(r.out).toContain(`note: ${MIN_BRED_UNITS - 3} Units, fewer than any hand-built library list (${MIN_BRED_UNITS})`);
-    expect(r.out).toContain('import-few-units.txt has fewer than 13 Units, the fewest any hand-built library list has: tests/breeder-units.test.ts fails until MIN_BRED_UNITS');
+    expect(r.out).toContain(`note: ${MIN_BRED_UNITS - 3} Units; the bred decks' floor is ${MIN_BRED_UNITS}`);
+    // no instruction to revisit the floor: the floor test does not count imported lists (tests/breeder-units.test.ts)
+    expect(r.out).not.toContain('breeder-units');
+    expect(r.out).not.toContain('MIN_BRED_UNITS');
     // the made-up list at the floor gets no such line
-    expect(cmd([setup('units-ok', [good]).file, '--dir', s.decksDir]).out).not.toContain('Units, fewer than');
+    expect(cmd([setup('units-ok', [good]).file, '--dir', s.decksDir]).out).not.toContain("the bred decks' floor");
   });
 
   it('prints the notes to add when the note table has no marker line', () => {
@@ -160,7 +173,7 @@ describe('scripts/import-links.ts', () => {
     expect(r.code).toBe(0);
     expect(fs.readdirSync(s.decksDir)).toEqual(['x-player-one-made-up-cup-1st.txt']);
     expect(r.out).toContain('Add these entries to the deck-note table');
-    expect(r.out).toContain("'x-player-one-made-up-cup-1st.txt': {");
+    expect(r.out).toContain(`  'x-player-one-made-up-cup-1st.txt': importedPlaceholder('${buildDeck(good).listId}', [`);
     expect(fs.readFileSync(s.notes, 'utf8')).toBe('export const IMPORTED_OBJECTIVES = {};\n');
   });
 });

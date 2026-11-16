@@ -65,7 +65,7 @@ describe('tournament inputs', () => {
                 }
     expect(checked).toBe(3 * 4 * 4 * 3 * 5 * 5 * 2);
     // the other fields, and no deck list at all
-    for (const field of ['meta', 'ladder', 'top16', 'original', 'guide', 'all'] as const) {
+    for (const field of ['meta', 'ladder', 'top16', 'original', 'guide', 'shared', 'all'] as const) {
       const p: RunParams = { field, decks: null, rounds: 'auto', top: 8, bestOf: 3, format: 'swiss', bot: null, seed: null };
       expect(parseRunParams(runParamsQuery(p), all)).toEqual(p);
       expect(runParamsQuery(p).toString()).toBe(`f=${field}&fmt=swiss&t=8&bo=3`);

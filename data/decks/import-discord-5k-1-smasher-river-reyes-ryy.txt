@@ -1,0 +1,37 @@
+// Discord 5k #1: Smasher / River / Reyes (RYY)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed 1st)
+// Author: TrueDuelist
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-river-ward-detective-on-the-hunt:1,cb-adam-smasher-ender-of-legends:1,cb-muamar-reyes-el-capitan:1,cb-adrenaline-converter:3,cb-bootleg-black-sapphire-show:3,cb-dexter-deshawn-one-last-chance:2,cb-gorilla-arms:1,cb-johnny-silverhand-never-stop-fighting:3,cb-live-with-the-aftermath:3,cb-mandibular-upgrade:2,cb-mantis-blades:3,cb-meredith-stout-stone-cold-corpo:3,cb-rockn-rockerboy:1,cb-royce-don-t-call-me-simon:2,cb-safety-override:3,cb-satori-sword-of-saburo:3,cb-secondhand-bombus:3,cb-sketchy-ripper:2,cb-zetatech-faceplate:3&sideboard=cb-detonate:1,cb-heywood-ripperdoc:1,cb-offduty-malfini:2,cb-rockn-rockerboy:2,cb-royce-don-t-call-me-simon:1&type=cyberpunk&name=TrueDuelist%20-%20Discord%205k%20Celebration%20Tournament%20(1st)
+// Via: Discord 5k Celebration Tournament Results & Top 8 Decklists | Cyberpunk TCG https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 River Ward: Detective on the Hunt
+1 Adam Smasher: Ender of Legends
+1 Muamar Reyes: El Capitán
+
+// Main Deck
+3 Adrenaline Converter
+3 Bootleg Black Sapphire Show
+2 Dexter DeShawn: One Last Chance
+1 Gorilla Arms
+3 Johnny Silverhand: Never Stop Fighting
+3 Live with the Aftermath
+2 Mandibular Upgrade
+3 Mantis Blades
+3 Meredith Stout: Stone Cold Corpo
+1 Rockn' Rockerboy
+2 Royce: Don't Call Me Simon
+3 Safety Override
+3 Satori: Sword of Saburo
+3 Secondhand Bombus
+2 Sketchy Ripper
+3 Zetatech Faceplate
+
+// Sideboard
+1 Detonate
+1 Heywood Ripperdoc
+2 Offduty Malfini
+2 Rockn' Rockerboy
+1 Royce: Don't Call Me Simon

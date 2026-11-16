@@ -2,7 +2,9 @@
 //   npx tsx scripts/tag-provenance.ts            # every deck file in data/decks and data/decks/custom
 //   npx tsx scripts/tag-provenance.ts s2-        # only the files whose names start with one of these prefixes
 //
-// The sim-ladder lists (ladder-*.txt) are never rewritten: their hand-written header and layout are the owner's.
+// The sim-ladder lists (ladder-*.txt) are never rewritten: their hand-written header and layout are the owner's. Nor
+// are the lists imported from shared links (Origin "Imported from …", the library's kind `shared`): their header is the
+// import step's (scripts/import-links.ts), crediting the player and the link, and must not become a guide's.
 // The forge's lines are kept as they are: "// Forged <date>: …" (with its date), "// Adoption: …" and "// Packages: …"
 // (bred decks carry the breeder's "// Packages:" line until a forge adopts a change).
 //
@@ -19,6 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { exportChoom, parseDeck } from '../src/engine/deck';
 import { cli } from './lib-node';
+import { isImportedOrigin } from '../src/lib/library';
 
 const { positionals: ONLY } = cli(import.meta.url, {}, { maxPositionals: Infinity });
 
@@ -69,6 +72,10 @@ for (const file of files) {
   }
   const text = fs.readFileSync(file, 'utf8');
   const old = header(text);
+  if (isImportedOrigin(old.Origin)) {
+    console.log(`${base.padEnd(52)} kept as it is (imported from a shared link: the import step's header)`);
+    continue;
+  }
   const { deck } = parseDeck(text, base);
   const p: Record<string, string> = {};
   if (base.startsWith('meta-')) {

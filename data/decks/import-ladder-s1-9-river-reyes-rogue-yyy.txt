@@ -1,0 +1,33 @@
+// Ladder S1 #9: River / Reyes / Rogue (YYY)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed Season-1 power ranking #9)
+// Author: anonymous: the shared core of 27 players' lists
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-muamar-reyes-el-capitan:1,cb-river-ward-detective-on-the-hunt:1,cb-rogue-amendiares-preem-solo:1,cb-adam-smasher-metal-over-meat:2,cb-adrenaline-converter:3,cb-bootleg-black-sapphire-show:3,cb-gorilla-arms:3,cb-live-with-the-aftermath:3,cb-zetatech-faceplate:3,cb-mandibular-upgrade:3,cb-the-heist:3,cb-safety-override:3,cb-maxtac-suppression-team:3,cb-the-relic-experimental-biochip:3,cb-dexter-deshawn-one-last-chance:3,cb-augmented-negotiators:3,cb-jackie-welles-ride-or-die-choom:2&sideboard=cb-heywood-ripperdoc:2,cb-caliber-totentanz-s-top-dog:3,cb-offduty-malfini:2&type=cyberpunk&name=Muamar%20Reyes%20%2F%20River%20Ward%20%2F%20Rogue%20Amendiares%20(Season-1%20%239)
+// Via: Cyberpunk TCG Season-1 Meta Report: Top 10 Decks & Tier List https://cyberpunk-tcg-sim.online/meta/season-1 (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Muamar Reyes: El Capitán
+1 River Ward: Detective on the Hunt
+1 Rogue Amendiares: Preem Solo
+
+// Main Deck
+2 Adam Smasher: Metal Over Meat
+3 Adrenaline Converter
+3 Bootleg Black Sapphire Show
+3 Gorilla Arms
+3 Live with the Aftermath
+3 Zetatech Faceplate
+3 Mandibular Upgrade
+3 The Heist
+3 Safety Override
+3 MaxTac Suppression Team
+3 The Relic: Experimental Biochip
+3 Dexter DeShawn: One Last Chance
+3 Augmented Negotiators
+2 Jackie Welles: Ride or Die Choom
+
+// Sideboard
+2 Heywood Ripperdoc
+3 Caliber: Totentanz's Top Dog
+2 Offduty Malfini

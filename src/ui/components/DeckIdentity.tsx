@@ -2,7 +2,7 @@
 import { CARD_BY_ID } from '../../engine/cards';
 import { deckColors } from '../../engine/deck';
 import type { LibraryDeck, Provenance } from '../../lib/library';
-import { shortCredit } from '../../lib/library';
+import { isImportedOrigin, shortCredit } from '../../lib/library';
 import { deckStats, pct } from '../../lib/deckStats';
 import { artEnabled, useArt } from '../art';
 import { typeSplit } from '../../lib/deckTypes';
@@ -12,13 +12,15 @@ import { TypeSplitBar } from './TypeSplit';
 import { ChoomTierBadge, recordedRow, recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
 import { useYourStats, yourStatsFor } from '../useYourStats';
 
-export type OriginKind = 'choom-meta' | 'sim-ladder' | 'choom-guide' | 'nc-original' | 'nc-bred' | 'nc-variant' | 'nc-build' | 'mine' | 'other';
+export type OriginKind = 'choom-meta' | 'sim-ladder' | 'choom-guide' | 'shared' | 'nc-original' | 'nc-bred' | 'nc-variant' | 'nc-build' | 'mine' | 'other';
 
 export function originKind(p: Provenance | undefined, kind?: string): OriginKind {
   const o = p?.origin ?? '';
   if (o.startsWith('choom.gg meta')) return 'choom-meta';
   if (o.startsWith('choom.gg community')) return 'choom-guide';
   if (o.startsWith('cyberpunk-tcg-sim.online')) return 'sim-ladder';
+  // a list a player shared, imported by link (the library's kind `shared`; also a copy saved in this browser)
+  if (isImportedOrigin(o)) return 'shared';
   if (o.startsWith('Night City Trainer original')) return 'nc-original';
   if (o.startsWith('Night City Trainer bred')) return 'nc-bred';
   if (o.startsWith('Night City Trainer optimizer')) return 'nc-variant';
@@ -31,6 +33,7 @@ const ORIGIN_META: Record<OriginKind, { icon: string; label: string }> = {
   'choom-meta': { icon: '◆', label: 'choom.gg meta' },
   'choom-guide': { icon: '✎', label: 'choom.gg guide' },
   'sim-ladder': { icon: '▲', label: 'Sim ladder' },
+  shared: { icon: '⇄', label: 'Player list' },
   'nc-original': { icon: '⚙', label: 'NC original' },
   'nc-bred': { icon: '🧬', label: 'Bred' },
   'nc-variant': { icon: '⟲', label: 'Optimizer variant' },

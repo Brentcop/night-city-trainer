@@ -11,7 +11,7 @@ import { CARDS, CARD_BY_ID, cardLabel } from '../engine/cards';
 import { exportChoom, listFingerprint, validateDeck } from '../engine/deck';
 import type { CardDef, DeckList } from '../engine/types';
 import { distinctLists, type Listed } from './distinctLists';
-import { libraryDeck } from './library';
+import { IMPORT_NO_AUTHOR, IMPORT_ORIGIN, libraryDeck } from './library';
 import { cleanText } from './cleanText';
 
 export const IMPORT_KIND = 'nct-deck-import';
@@ -550,24 +550,28 @@ export function deckFileName(name: string, prefix = 'import-'): string {
   return `${prefix}${slug || 'deck'}.txt`;
 }
 
-/** The deck's Origin header line: always starts "Imported from" (src/content/deckObjectives isOwnerImport reads it). */
-export const importOrigin = (raw: RawDeck) => `Imported from ${raw.source.site || 'a shared link'}${raw.source.placement ? ` (placed ${raw.source.placement})` : ''}`;
+/**
+ * The deck's Origin header line: always starts "Imported from" (IMPORT_ORIGIN; isImportedOrigin in src/lib/library.ts
+ * reads it, which makes the file a library deck of kind `shared`).
+ */
+export const importOrigin = (raw: RawDeck) => `${IMPORT_ORIGIN}${raw.source.site || 'a shared link'}${raw.source.placement ? ` (placed ${raw.source.placement})` : ''}`;
 
 /**
  * The deck as a library file: the provenance header scripts/tag-provenance.ts writes (Origin, Author, Source, Via,
  * Added), crediting the author and the source link, then the list in choom.gg text format. `date` is the day it was
- * collected (YYYY-MM-DD).
+ * collected (YYYY-MM-DD) and is the deck's Added date (the day it joined the library: the gallery's "newest" sorts by
+ * it); the page's own publication date, when it gave one, is said in the Via line.
  */
 export function deckFileText(d: Pick<ImportedDeck, 'raw' | 'deck'>, date: string): string {
   const s = d.raw.source;
   const via = s.pageLink && s.pageLink !== s.link ? `${s.page ? `${s.page} ` : ''}${s.pageLink}` : s.site || 'a shared link';
-  const added = (s.date && !Number.isNaN(Date.parse(s.date)) ? s.date : date).slice(0, 10);
+  const published = s.date && !Number.isNaN(Date.parse(s.date)) ? s.date.slice(0, 10) : '';
   const p: [string, string][] = [
     ['Origin', importOrigin(d.raw)],
-    ['Author', d.raw.author || 'unknown (the page names no author)'],
+    ['Author', d.raw.author || IMPORT_NO_AUTHOR],
     ['Source', s.link],
-    ['Via', `${via} (collected ${date})`],
-    ['Added', added],
+    ['Via', `${via} (${published ? `published ${published}, ` : ''}collected ${date})`],
+    ['Added', date],
   ];
   const body = exportChoom(d.deck).split('\n');
   // exportChoom starts with "// Name", "// Format: Constructed"
@@ -584,35 +588,24 @@ export function deckFileProblem(file: string, textOf: string, d: Pick<ImportedDe
 }
 
 /**
- * The deck note (src/content/deckObjectives) a new library deck needs before the test suite passes: a `needs-owner`
- * placeholder tied to the list, naming the three Legends as its key cards, for the owner to replace. TypeScript source
- * for one entry of the IMPORTED_OBJECTIVES table.
+ * The deck note (src/content/deckObjectives) a new library deck needs before the test suite passes: one line of the
+ * IMPORTED_OBJECTIVES table (src/content/deckObjectives/imported.ts), a call to importedPlaceholder there (the one
+ * definition of the placeholder's words), tied to the list and naming the Legends, for the owner to replace with a full
+ * note. TypeScript source, without a line break.
  */
 export function placeholderNote(file: string, d: Pick<ImportedDeck, 'deck' | 'listId'>): string {
-  const q = noteString;
   const legends = [...new Set(d.deck.legends)];
-  return [
-    `  ${q(file)}: {`,
-    `    listId: ${q(d.listId)},`,
-    `    objective: ${q('Placeholder: an imported deck; the owner writes its note.')},`,
-    '    plan: [',
-    `      { phase: 'early', text: ${q('Placeholder: to be written by the owner.')} },`,
-    `      { phase: 'closing', text: ${q('Placeholder: to be written by the owner.')} },`,
-    '    ],',
-    '    keyCards: [',
-    ...legends.map((id) => `      { id: ${q(id)}, role: ${q('Legend.')} },`),
-    '    ],',
-    '    signals: [',
-    `      { text: ${q('A Unit on curve by round 2')}, terms: ['unit-on-curve', 'round'] },`,
-    `      { text: ${q('The first Gig stolen by round 4')}, terms: ['first-steal', 'round'] },`,
-    '    ],',
-    '    risks: [],',
-    "    source: 'list',",
-    "    status: 'needs-owner',",
-    '    placeholder: true,',
-    '  },',
-  ].join('\n');
+  return `  ${noteString(file)}: ${PLACEHOLDER_CALL}(${noteString(d.listId)}, [${legends.map(noteString).join(', ')}]),`;
 }
+
+/** The helper a placeholder line calls (src/content/deckObjectives/imported.ts importedPlaceholder). */
+export const PLACEHOLDER_CALL = 'importedPlaceholder';
+
+/**
+ * Whether the deck-note table's source has an entry for this file already: a full note (the owner's, or an older
+ * placeholder written out in full) or a placeholder line.
+ */
+export const hasNoteFor = (notes: string, file: string): boolean => notes.includes(`${noteString(file)}: {`) || notes.includes(`${noteString(file)}: ${PLACEHOLDER_CALL}(`);
 
 /** A string in the deck-note table's source: single quotes, as the tables are written. */
 export const noteString = (s: string) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n\u2028\u2029]/g, ' ')}'`;

@@ -1,0 +1,34 @@
+// Discord 5k #5: V / Smasher / Padre (RRG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed 5th)
+// Author: ThatGuyEdd
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-v-streetkid:1,cb-adam-smasher-ender-of-legends:1,cb-padre-man-of-the-cross:1,cb-6th-street-recruits:3,cb-animals-wrecker:2,cb-bonnie-and-clyde:3,cb-carnage-at-the-colosseum:3,cb-industrial-assembly:3,cb-johnny-silverhand-never-stop-fighting:1,cb-mantis-blades:3,cb-memory-relapse:3,cb-meredith-stout-stone-cold-corpo:3,cb-peace-offering:3,cb-pepe-najarro-working-doubles:3,cb-satori-sword-of-saburo:3,cb-synapse-burnout:3,cb-valentino-street-racer:2,cb-yorinobu-arasaka-steel-dragon:2&sideboard=cb-detonate:2,cb-nadia-fighting-through-grief:3,cb-riot-shield:2&type=cyberpunk&name=ThatGuyEdd%20-%20Discord%205k%20Celebration%20Tournament%20(5th)
+// Via: Discord 5k Celebration Tournament Results & Top 8 Decklists | Cyberpunk TCG https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 V: Streetkid
+1 Adam Smasher: Ender of Legends
+1 Padre: Man of the Cross
+
+// Main Deck
+3 6th Street Recruits
+2 Animals Wrecker
+3 Bonnie and Clyde
+3 Carnage at the Colosseum
+3 Industrial Assembly
+1 Johnny Silverhand: Never Stop Fighting
+3 Mantis Blades
+3 Memory Relapse
+3 Meredith Stout: Stone Cold Corpo
+3 Peace Offering
+3 Pepe Najarro: Working Doubles
+3 Satori: Sword of Saburo
+3 Synapse Burnout
+2 Valentino Street Racer
+2 Yorinobu Arasaka: Steel Dragon
+
+// Sideboard
+2 Detonate
+3 Nadia: Fighting Through Grief
+2 Riot Shield

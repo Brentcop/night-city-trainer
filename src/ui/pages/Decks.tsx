@@ -193,13 +193,13 @@ function DeckWorkbench({ initial, onGallery }: { initial?: string; onGallery: ()
           + New empty deck
         </button>
         <input aria-label="Filter decks" placeholder="Filter decks…" value={listQ} onChange={(e) => setListQ(e.target.value)} style={{ marginTop: 8, width: '100%' }} />
-        {(['meta', 'ladder', 'original', 'guide', 'custom'] as const).map((k) => {
+        {(['meta', 'ladder', 'shared', 'original', 'guide', 'custom'] as const).map((k) => {
           const inKind = decks.filter((d) => d.kind === k && (!listQ || `${d.deck.name} ${deckColors(d.deck)} ${shortCredit(d)}`.toLowerCase().includes(listQ.toLowerCase())));
           if (!inKind.length) return null;
           return (
           <details key={k} open={!!listQ || k === 'meta' || inKind.some((d) => d.file === sel) || undefined}>
             <summary className="zone-label" style={{ marginTop: 12 }}>
-              {k === 'meta' ? 'Meta archetypes' : k === 'ladder' ? 'Sim ladder (Master)' : k === 'original' ? 'Trainer originals (NC)' : k === 'guide' ? 'Guide lists' : 'Custom & tournament builds'} ({inKind.length})
+              {k === 'meta' ? 'Meta archetypes' : k === 'ladder' ? 'Sim ladder (Master)' : k === 'shared' ? 'Player lists' : k === 'original' ? 'Trainer originals (NC)' : k === 'guide' ? 'Guide lists' : 'Custom & tournament builds'} ({inKind.length})
             </summary>
             {inKind
               .map((d) => (

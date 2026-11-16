@@ -1,0 +1,35 @@
+// Ladder S1 #2: V / Smasher / Saburo (RRG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed Season-1 power ranking #2)
+// Author: anonymous: the shared core of 79 players' lists
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-adam-smasher-ender-of-legends:1,cb-saburo-arasaka-stubborn-patriarch:1,cb-v-streetkid:1,cb-carnage-at-the-colosseum:3,cb-yorinobu-arasaka-steel-dragon:3,cb-bonnie-and-clyde:3,cb-pepe-najarro-working-doubles:3,cb-mantis-blades:3,cb-meredith-stout-stone-cold-corpo:2,cb-animals-wrecker:3,cb-industrial-assembly:3,cb-satori-sword-of-saburo:3,cb-memory-relapse:3,cb-peace-offering:3,cb-synapse-burnout:3,cb-detonate:2,cb-riot-shield:2,cb-maxtac-av:1&sideboard=cb-royce-don-t-call-me-simon:3,cb-detonate:1,cb-riot-shield:1,cb-nadia-fighting-through-grief:2&type=cyberpunk&name=Adam%20Smasher%20%2F%20Saburo%20Arasaka%20%2F%20V%3A%20Streetkid%20(Season-1%20%232)
+// Via: Cyberpunk TCG Season-1 Meta Report: Top 10 Decks & Tier List https://cyberpunk-tcg-sim.online/meta/season-1 (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Adam Smasher: Ender of Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 V: Streetkid
+
+// Main Deck
+3 Carnage at the Colosseum
+3 Yorinobu Arasaka: Steel Dragon
+3 Bonnie and Clyde
+3 Pepe Najarro: Working Doubles
+3 Mantis Blades
+2 Meredith Stout: Stone Cold Corpo
+3 Animals Wrecker
+3 Industrial Assembly
+3 Satori: Sword of Saburo
+3 Memory Relapse
+3 Peace Offering
+3 Synapse Burnout
+2 Detonate
+2 Riot Shield
+1 MaxTac AV
+
+// Sideboard
+3 Royce: Don't Call Me Simon
+1 Detonate
+1 Riot Shield
+2 Nadia: Fighting Through Grief

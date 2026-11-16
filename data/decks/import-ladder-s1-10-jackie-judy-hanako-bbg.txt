@@ -1,0 +1,29 @@
+// Ladder S1 #10: Jackie / Judy / Hanako (BBG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed Season-1 power ranking #10)
+// Author: anonymous: the shared core of 47 players' lists
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-hanako-arasaka-daughter-of-the-emperor:1,cb-jackie-welles-pour-one-out-for-me:1,cb-judy-alvarez-braindance-maestro:1,cb-trust-no-one:3,cb-les-elemens:3,cb-lizzy-wizzy-delicate-weapon:3,cb-peace-offering:3,cb-pyramid-song:3,cb-three-mouths-one-desire:3,cb-chrome-reverie:3,cb-jacked-in-voodoo-boy:3,cb-delamain-rideshare-ai:3,cb-nocturne-op55-n1:3,cb-towerfall:3,cb-maman-brigitte-spirit-of-death:2,cb-memory-relapse:2,cb-placide-voodoo-sentinel:2,cb-floor-it:1&type=cyberpunk&name=Hanako%20Arasaka%20%2F%20Jackie%20Welles%3A%20Pour%20One%20Out%20For%20Me%20%2F%20Judy%20%C3%81
+// Via: Cyberpunk TCG Season-1 Meta Report: Top 10 Decks & Tier List https://cyberpunk-tcg-sim.online/meta/season-1 (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Hanako Arasaka: Daughter of the Emperor
+1 Jackie Welles: Pour One Out For Me
+1 Judy Álvarez: Braindance Maestro
+
+// Main Deck
+3 Trust No One
+3 Les Élémens
+3 Lizzy Wizzy: Delicate Weapon
+3 Peace Offering
+3 Pyramid Song
+3 Three Mouths, One Desire
+3 Chrome Reverie
+3 Jacked-In Voodoo Boy
+3 Delamain: Rideshare AI
+3 Nocturne OP55 N1
+3 Towerfall
+2 Maman Brigitte: Spirit of Death
+2 Memory Relapse
+2 Placide: Voodoo Sentinel
+1 Floor It

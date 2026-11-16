@@ -97,7 +97,9 @@ function isDraw(id: string) {
  * S1-06 Cross 20%). The 'control' template below aims at 12, under every hand-built list, and fitting a list to a
  * package plan can cut Units too; the 44 archived bred lists had 11–20 (25 of them 11–13). In those older simulator
  * eras the 9 lists with 11–12 Units scored about as well against the meta as the 16 with 13 (64.2% vs 63.5%), so
- * this is a floor at the edge of what hand-built lists do, not a measured gain.
+ * this is a floor at the edge of what hand-built lists do, not a measured gain. On 2026-11-16 real tournament lists
+ * imported from players (the library's kind `shared`) ran as few as 10 Units; the floor was kept at 13, and lowering
+ * it is the owner's call.
  */
 export const MIN_BRED_UNITS = 13;
 

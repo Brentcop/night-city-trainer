@@ -1,0 +1,35 @@
+// Discord 5k #8: V / Smasher / Saburo (RRG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed 8th)
+// Author: Silas
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-saburo-arasaka-stubborn-patriarch:1,cb-adam-smasher-ender-of-legends:1,cb-v-streetkid:1,cb-all-is-lost:2,cb-animals-wrecker:2,cb-arasaka-emergency-radioport:3,cb-bonnie-and-clyde:3,cb-carnage-at-the-colosseum:3,cb-detonate:3,cb-industrial-assembly:3,cb-maelstrom-zealots:2,cb-mantis-blades:3,cb-maxtac-av:2,cb-memory-relapse:2,cb-meredith-stout-stone-cold-corpo:2,cb-peace-offering:3,cb-pepe-najarro-working-doubles:3,cb-saul-bright-stormrider:1,cb-yorinobu-arasaka-steel-dragon:3&sideboard=cb-6th-street-recruits:1,cb-corpo-security:3,cb-riot-shield:3&type=cyberpunk&name=Silas%20-%20Discord%205k%20Celebration%20Tournament%20(8th)
+// Via: Discord 5k Celebration Tournament Results & Top 8 Decklists | Cyberpunk TCG https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Saburo Arasaka: Stubborn Patriarch
+1 Adam Smasher: Ender of Legends
+1 V: Streetkid
+
+// Main Deck
+2 All is Lost
+2 Animals Wrecker
+3 Arasaka Emergency Radioport
+3 Bonnie and Clyde
+3 Carnage at the Colosseum
+3 Detonate
+3 Industrial Assembly
+2 Maelstrom Zealots
+3 Mantis Blades
+2 MaxTac AV
+2 Memory Relapse
+2 Meredith Stout: Stone Cold Corpo
+3 Peace Offering
+3 Pepe Najarro: Working Doubles
+1 Saul Bright: Stormrider
+3 Yorinobu Arasaka: Steel Dragon
+
+// Sideboard
+1 6th Street Recruits
+3 Corpo Security
+3 Riot Shield

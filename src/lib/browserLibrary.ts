@@ -9,7 +9,7 @@ import { isTunedRecord, type TunedDeckRecord } from './tuneRecord';
 const DECKS_DIR = '../../data/decks/';
 const files = import.meta.glob(['../../data/decks/*.txt', '../../data/decks/custom/*.txt'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
-const KIND_ORDER = ['meta', 'ladder', 'original', 'guide', 'custom'];
+const KIND_ORDER: readonly LibraryDeck['kind'][] = ['meta', 'ladder', 'shared', 'original', 'guide', 'custom'];
 export const BUILTIN: LibraryDeck[] = Object.entries(files)
   .flatMap(([path, text]) => libraryDeck(path.slice(DECKS_DIR.length), text) ?? [])
   .sort((a, b) => (a.kind === b.kind ? a.deck.name.localeCompare(b.deck.name) : KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind)));

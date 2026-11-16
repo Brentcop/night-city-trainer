@@ -1,0 +1,35 @@
+// Ladder S1 #3: Smasher / Dexter / Saburo (RRG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed Season-1 power ranking #3)
+// Author: anonymous: the most common list of 7 players
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-adam-smasher-ender-of-legends:1,cb-dexter-deshawn-off-the-grid:1,cb-saburo-arasaka-stubborn-patriarch:1,cb-6th-street-recruits:2,cb-animals-wrecker:3,cb-bonnie-and-clyde:3,cb-carnage-at-the-colosseum:3,cb-detonate:2,cb-maelstrom-zealots:2,cb-mantis-blades:3,cb-memory-relapse:3,cb-meredith-stout-stone-cold-corpo:2,cb-minotaur:1,cb-peace-offering:3,cb-pepe-najarro-working-doubles:3,cb-riot-shield:2,cb-satori-sword-of-saburo:3,cb-synapse-burnout:2,cb-yorinobu-arasaka-steel-dragon:3&sideboard=cb-gunpoint-diplomacy:2,cb-royce-don-t-call-me-simon:3,cb-valentino-guerrera:2&type=cyberpunk&name=Adam%20Smasher%20%2F%20Dexter%20DeShawn%20%2F%20Saburo%20Arasaka%20(Season-1%20%233)
+// Via: Cyberpunk TCG Season-1 Meta Report: Top 10 Decks & Tier List https://cyberpunk-tcg-sim.online/meta/season-1 (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Adam Smasher: Ender of Legends
+1 Dexter DeShawn: Off the Grid
+1 Saburo Arasaka: Stubborn Patriarch
+
+// Main Deck
+2 6th Street Recruits
+3 Animals Wrecker
+3 Bonnie and Clyde
+3 Carnage at the Colosseum
+2 Detonate
+2 Maelstrom Zealots
+3 Mantis Blades
+3 Memory Relapse
+2 Meredith Stout: Stone Cold Corpo
+1 Minotaur
+3 Peace Offering
+3 Pepe Najarro: Working Doubles
+2 Riot Shield
+3 Satori: Sword of Saburo
+2 Synapse Burnout
+3 Yorinobu Arasaka: Steel Dragon
+
+// Sideboard
+2 Gunpoint Diplomacy
+3 Royce: Don't Call Me Simon
+2 Valentino Guerrera

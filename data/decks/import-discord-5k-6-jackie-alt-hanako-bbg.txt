@@ -1,0 +1,40 @@
+// Discord 5k #6: Jackie / Alt / Hanako (BBG)
+// Origin: Imported from cyberpunk-tcg-sim.online (placed 6th)
+// Author: VoteOn7
+// Source: https://cyberpunk-tcg-sim.online/deck-builder/?deck=cb-alt-cunningham-soulkiller-architect:1,cb-jackie-welles-pour-one-out-for-me:1,cb-hanako-arasaka-daughter-of-the-emperor:1,cb-chrome-reverie:2,cb-floor-it:1,cb-jacked-in-voodoo-boy:3,cb-les-elemens:3,cb-lizzy-wizzy-delicate-weapon:1,cb-maman-brigitte-spirit-of-death:2,cb-modded-kusanagi:1,cb-mox-inciters:1,cb-nocturne-op55-n1:3,cb-peace-offering:3,cb-pepe-najarro-working-doubles:3,cb-pyramid-song:3,cb-riot-shield:1,cb-take-control:2,cb-three-mouths-one-desire:3,cb-towerfall:3,cb-trust-no-one:3,cb-valentino-street-racer:2&sideboard=cb-chrome-reverie:1,cb-modded-kusanagi:1,cb-mt0d12-flathead:2,cb-riot-shield:1,cb-tetratronic-rippler:1,cb-valentino-street-racer:1&type=cyberpunk&name=VoteOn7%20-%20Discord%205k%20Celebration%20Tournament%20(6th)
+// Via: Discord 5k Celebration Tournament Results & Top 8 Decklists | Cyberpunk TCG https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament (published 2026-11-15, collected 2026-11-16)
+// Added: 2026-11-16
+// Format: Constructed
+
+// Legends
+1 Alt Cunningham: Soulkiller Architect
+1 Jackie Welles: Pour One Out For Me
+1 Hanako Arasaka: Daughter of the Emperor
+
+// Main Deck
+2 Chrome Reverie
+1 Floor It
+3 Jacked-In Voodoo Boy
+3 Les Élémens
+1 Lizzy Wizzy: Delicate Weapon
+2 Maman Brigitte: Spirit of Death
+1 Modded Kusanagi
+1 Mox Inciters
+3 Nocturne OP55 N1
+3 Peace Offering
+3 Pepe Najarro: Working Doubles
+3 Pyramid Song
+1 Riot Shield
+2 Take Control
+3 Three Mouths, One Desire
+3 Towerfall
+3 Trust No One
+2 Valentino Street Racer
+
+// Sideboard
+1 Chrome Reverie
+1 Modded Kusanagi
+2 MT0D12 Flathead
+1 Riot Shield
+1 Tetratronic Rippler
+1 Valentino Street Racer

@@ -342,7 +342,7 @@ export interface QuickSet {
 }
 /**
  * Ready-made entrant lists from the deck pool (runnerPool; picked through pickEntrants, which applies "One entry per
- * list"): every choom.gg meta deck, every guide list, the
+ * list"): every choom.gg meta deck, every guide list, every player list imported by link, the
  * owner's sim-ladder imports, the Trainer originals, each bred season, decks saved here, the top 8 and top 16 by our
  * rating (when that many are rated), everything. `rated` is the ratings table in rating order.
  */
@@ -355,6 +355,7 @@ export function quickSets(pool: readonly LibraryDeck[], rated: readonly { name: 
   const sets: QuickSet[] = [
     { key: 'meta', label: 'All meta', hint: 'Every choom.gg meta archetype', files: files((d) => deckSource(d) === 'meta') },
     { key: 'guide', label: 'All guides', hint: 'Every list from the choom.gg guides', files: files((d) => deckSource(d) === 'guide') },
+    { key: 'shared', label: 'All player lists', hint: 'Every list players shared, imported by link', files: files((d) => deckSource(d) === 'shared') },
     { key: 'ladder', label: 'Sim ladder', hint: 'The owner’s imports from the sim ladder', files: files((d) => deckSource(d) === 'ladder') },
     { key: 'nc', label: 'Trainer originals', hint: 'The hand-built NC decks', files: files((d) => deckSource(d) === 'nc') },
     ...seasons.map((s) => ({ key: `season-${s}`, label: `Bred season ${s}`, hint: `Every deck bred in season ${s}`, files: files((d) => seasonOf(d) === s) })),

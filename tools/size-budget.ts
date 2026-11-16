@@ -44,9 +44,12 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // Decided 2026-11-16: `events` raised once more, from 84 to 90, for event 15 (all 53 decks: 84.4 kB), which gives the
 // Season 3 decks their first ratings. That is room for this one event only: the split is the next step (docs/ROADMAP2.md
 // §11 item 19), and the next recorded event fails here until it is done.
+// Decided 2026-11-16: `core` raised from 88 to 93 when 18 lists imported from players joined the library (kind
+// `shared`: each a deck record and a placeholder note; the shard went from 84.2 to 90.9 kB). It grows by about 0.37 kB
+// for each library deck with its note.
 
 /** gzip kB per knowledge-pack shard, by shard name. */
-export const KB_SHARD_BUDGET_KB: Readonly<Record<string, number>> = { core: 88, events: 90, cardstat: 90, pkgstat: 96 };
+export const KB_SHARD_BUDGET_KB: Readonly<Record<string, number>> = { core: 93, events: 90, cardstat: 90, pkgstat: 96 };
 /** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core). */
 export const SEARCH_CHUNK_BUDGET_KB = 13;
 

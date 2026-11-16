@@ -92,7 +92,7 @@ cyberpunk-tcg-sim.online (paste links, run `tools/import_decks.py` for the pages
 | (rule) | | A visitor's own saved board settings always win over `play.board`. |
 | (rule) | | Motion is not set here: each visitor's Motion setting follows their device's reduced-motion choice until they change it. The board settings' look presets (Settings dialog) are fixed in `src/lib/boardSettings.ts`. |
 | `decks.hidden` | `[]` | Built-in deck files hidden for everyone by default. A visitor can still show them ("Show hidden") and unhide one for themselves; that choice is kept in their browser. Hidden decks stay reachable by link and in events. |
-| `decks.sources` | all eight | The deck sources the gallery shows: `meta`, `guide`, `nc`, `ladder`, `bred`, `mine`, `tuned`, `lab`. At least one. |
+| `decks.sources` | all nine | The deck sources the gallery shows: `meta`, `guide`, `nc`, `ladder`, `shared` (lists players shared, imported by link), `bred`, `mine`, `tuned`, `lab`. At least one. |
 | `decks.defaultSort` | `"rating"` | The gallery's sort on a first visit: `rating`, `name`, `newest`, `games`, `choom`, `meta`, `cost`. |
 | `maintenance.on` | `false` | Every page shows only the maintenance notice (`#/admin` stays open). |
 | `maintenance.message` | "The site is down for maintenance. Please check back soon." | The notice. Line breaks are kept. Max 1000. |

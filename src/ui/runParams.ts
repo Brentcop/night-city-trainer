@@ -4,7 +4,7 @@ import { isEventFormat, type EventFormat, type TourneyEvent } from '../lib/tourn
 import { entrantKey, entrantsToList, type EventDraft } from '../lib/eventDraft';
 import { seatFor, seatsFromLink, seatsToLink, type DraftSeats, type EntrantSeat } from '../lib/playedEvent';
 
-const RUN_FIELDS = ['meta', 'ladder', 'top16', 'original', 'guide', 'all', 'custom'] as const;
+const RUN_FIELDS = ['meta', 'ladder', 'top16', 'original', 'guide', 'shared', 'all', 'custom'] as const;
 export type RunField = (typeof RUN_FIELDS)[number];
 
 export interface RunParams {

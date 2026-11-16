@@ -1,9 +1,9 @@
 // Where a library deck comes from, as one key per deck: the gallery's source filter and its "Group by source" view.
-// Built from LibraryDeck.kind (meta / guide / ladder / original / custom) and, where one kind covers two sources, the
+// Built from LibraryDeck.kind (meta / guide / ladder / shared / original / custom) and, where one kind covers two sources, the
 // provenance header (Trainer originals vs bred season decks) or the browser record (tuned / Lab-bred / my decks).
 import type { LibraryDeck } from './library';
 
-export type SourceKey = 'meta' | 'guide' | 'nc' | 'ladder' | 'bred' | 'mine' | 'tuned' | 'lab';
+export type SourceKey = 'meta' | 'guide' | 'nc' | 'ladder' | 'shared' | 'bred' | 'mine' | 'tuned' | 'lab';
 
 export interface SourceInfo {
   key: SourceKey;
@@ -26,6 +26,13 @@ export const SOURCES: readonly SourceInfo[] = [
     label: 'Sim ladder (owner imports)',
     icon: '▲',
     help: 'Legend trios seen at Master rank on cyberpunk-tcg-sim.online, imported by the owner. Only the Legends are public, so the main decks are theorized from our data, then forged.',
+    browser: false,
+  },
+  {
+    key: 'shared',
+    label: 'Player lists',
+    icon: '⇄',
+    help: 'Lists players shared on choom.gg or cyberpunk-tcg-sim.online (tournament top cuts and the sim ladder’s season lists among them), imported by link and credited to their authors.',
     browser: false,
   },
   { key: 'bred', label: 'Bred (seasons)', icon: '🧬', help: 'Bred by the automated breeding seasons and kept for doing well.', browser: false },
@@ -52,6 +59,8 @@ export function deckSource(d: Pick<LibraryDeck, 'kind' | 'prov' | 'deck' | 'tune
       return 'guide';
     case 'ladder':
       return 'ladder';
+    case 'shared':
+      return 'shared';
     case 'original':
       return (d.prov.origin ?? '').startsWith('Night City Trainer bred') ? 'bred' : 'nc';
     default:
