@@ -364,3 +364,41 @@ The owner asked for another review pass for potential performance gains on the b
 Small defects it found are listed at the end of that document (among them: the season's default bot is still the old deep bot; the decision report's calibration is that bot playing itself, not Hard; the breeder's card table carries no simulator version). The first and the third were fixed with gain 2; that document's "Done since" section says which are still open and lists what was found while landing the two gains.
 
 **Suggested order for the next goal:** gains 1 and 2 first (done 2026-11-16); then §11 batch A (an event that rates the Season 3 decks, the rest of what the season opened) with gains 5 and 6; batch B's re-measurements with gain 8 (they are cheaper after gain 1); batch C's small fixes with gains 3, 4 and 7.
+
+## 13. Goals added by the owner (2026-11-16)
+
+Added by the owner while event 15 and the tournament changes were being built. They join the next goal of §11 and §12; none is started unless it says so.
+
+**The direction.** Gather more decks, import them with less handwork, and run smarter and more methodical tournaments, so that the results are closer to what the upcoming regionals will look like. The owner names two outside sources as trusted: [choom.gg/meta](https://choom.gg/meta) and [cyberpunk-tcg-sim.online/meta/season-1](https://cyberpunk-tcg-sim.online/meta/season-1), "two of the best sims out today".
+
+**Settled the same day** (built; see the commits of 2026-11-16):
+- "All decks" means the active library. The archived lists stay out.
+- A field holds each list once: two decks with the same cards under different names are one deck (`src/lib/distinctLists.ts`; on by default in the CLI, in seasons and in the runner).
+- A deck entered twice on purpose links to its deck's page and is summed up per deck in the event views.
+- A match can be watched as a spectator, both hands face up, also while a tournament is running.
+- Tournaments that people can play in (bots only, play in it, players only): in progress.
+
+**New goals**
+
+1. **Tuning or breeding a deck ends with a clear choice: overwrite, or save as a copy.** Today the Deck Lab offers one "Save to My decks". Wanted: "Overwrite" (the saved deck takes the tuned or bred list and keeps its place, with the list it replaces kept so it can be put back) and "Save as a copy" (a new saved deck beside the original). A deck that ships with the site cannot be overwritten in a browser, so for those only the copy is offered, and the screen says why. The tuned record and the deck's history go with whichever is chosen. (S to M)
+
+2. **Colour breakdowns.** Show how the colours are spread, wherever a set of decks or one deck is shown:
+   - the tournament's entry screen (the field being set up) and its results screen: how many entrants play each colour and each colour combination, and how each colour did;
+   - the top 8 view of an event: the colours of the top cut beside the colours of the whole field;
+   - the deck's home screen: the deck's own split by colour (Legends and cards).
+   "The deck home screen" is read here as the deck's own page and the tiles of the Decks page; confirm with the owner if the Home page's deck panel was meant. One small pure function gives the breakdown of a deck and of a list of decks, and every view uses it. (M)
+
+3. **Import a deck, or a list of decks, from a shared link, from the admin screen.** The owner would like a simple Python script that gathers the data, working on pages such as: a choom.gg deck page (`https://choom.gg/decks/<id>`), the choom.gg deck list (`https://choom.gg/decks`), a cyberpunk-tcg-sim.online deck-builder link (`https://cyberpunk-tcg-sim.online/deck-builder/?deck=saved-<id>&d=<list>`, which carries the whole list in its `d=` part), and a cyberpunk-tcg-sim.online tournament page (`https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament`).
+   - What shapes this: the site is static and has no server (the owner's decision), so the admin screen cannot run a script itself. The natural shape is a small script the owner runs on their own machine (`python tools/import_decks.py <link> [<link>…]`), which writes deck files with provenance headers in the form the library already reads, and an admin screen that (a) takes pasted links and shows the exact command to run, (b) reads the script's output file to preview the decks (names, lists, which are already in the library by list, which cards it could not match) before they are added, and (c) decodes on the spot, with no script at all, any link that carries its whole list in the address.
+   - It builds on what exists: `scripts/import-meta.ts` and `scripts/import-guides.ts` import choom.gg pages saved by hand, `sim add` adds one list, and a deck is never overwritten without `--force`. The new part is fetching by link, the second site, and lists of decks.
+   - To settle before building: each site's terms and robots rules (fetch politely, a deck at a time, with the owner's own machine and identity; credit both on the Credits page); how card names and the second site's card codes map onto `src/data/cards.json`; and that an imported list goes through "one entry per list", so a deck already in the library under another name is reported, not added twice. (M to L)
+
+4. **Use the two sites' meta pages as trusted outside information.** choom.gg's tier already stands beside our Sim tier on every deck (`ChoomTierBadge`). Wanted in the same spirit: the second site's season data (its tiers, win rates and tournament results) beside ours, always labelled with its source and date and never mixed into our own numbers; and both sites' picture of the real field (which decks are played, and how much) as an input to how our tournaments are set up. Refreshed by the import of goal 3. (M)
+
+5. **More methodical tournaments, aimed at the regionals.** With more decks coming in by themselves, the events should answer "what will the regionals look like" rather than "who wins a round of everything":
+   - a field that mirrors the real one: every list once (the rule above), with how often a deck is met following how much it is played (pairings or match counts weighted by the outside meta shares, not duplicate entries);
+   - a series with a stated stopping rule in place of single events: keep playing events until every deck's rating range is under a chosen width, and say how many games that took (event 15 gave the Season 3 decks ranges of about 14 points either side on 20 to 24 games each, where the older decks have about 4);
+   - new decks rated on arrival: an imported or bred deck gets a short, targeted run against the field before it joins the standard events;
+   - a regionals forecast page: the expected field, each deck's chance to make a top cut of a given size, and the matchups that decide it, each number with its range and its source. (L)
+
+**Where these sit.** Goals 1 and 2 are small and stand alone. Goals 3 and 4 come before 5, which needs the decks and the outside picture they bring. The site search's events file must be split before any of the events of goal 5 (§11 item 19).
