@@ -1,11 +1,12 @@
 // Tournament series from the CLI. Same rules, bots and seeds as the in-browser runner (src/lib/tournament.ts),
 // so events recorded here replay exactly on the site while the code is at the same SIM_VERSION.
 //
-//   npx tsx scripts/tournament.ts [--events 12] [--start N] [--field all] [--rounds auto] [--top 8] [--bo 3] [--bot deep] [--threads N] [--force]
+//   npx tsx scripts/tournament.ts [--events 12] [--start N] [--field all] [--rounds auto] [--top 8] [--bo 3] [--bot hard] [--threads N] [--force]
 //
 //   --start   id of the first event (default: one past the highest recorded event). The event id is also its seed.
 //   --force   allow overwriting events that are already recorded (otherwise the run refuses before playing anything)
 //   --field   all | meta | ladder | original | guide | top16 | a comma list of deck files/names (e.g. meta-rry-smasher-aggro,s2-08-explorer-rrg)
+//   --allow-same-lists   enter decks whose lists are the same (see "One entry per list" below)
 //   --rounds  number of Swiss rounds, or auto (log2 of the field, plus a few)
 //   --top     top-cut size (0 = none; rounded down to a power of two that fits the field)
 //   --bo      1, 3 or 5 games per match
@@ -28,6 +29,12 @@
 //   --game1        who goes first in game 1: coin | a | b | alternate (default coin, from the match seed)
 //   --next         games 2+: loser | alternate (default loser: the loser of a game goes first next game)
 //
+// One entry per list (the guideline for every tournament and season field): a field holds each list once. Two decks are
+// the same list when their Legends and main deck are the same, whatever their names, card order or sideboards. --field
+// leaves out a deck whose list is already in the field (the first in library order stays) and says which, before
+// anything is played; --entrants, --matches and --bracket refuse two different decks with the same list. To enter a list
+// twice on purpose, name one deck twice in --entrants (it plays as "Name #2", a custom event), or pass --allow-same-lists.
+//
 // A game that throws aborts the event (nothing is recorded for it) and the run exits 1; it is never scored as a tie.
 // Bad flags or an event that can't run (unknown deck, a deck paired twice, a bad bracket) exit 2 before anything is played.
 // Outputs: public/tournaments/event-<n>.json (the one copy: the site fetches it and the scripts read it) and the index src/data/tournaments.json.
@@ -36,10 +43,10 @@ import path from 'node:path';
 import { ArgError, bool, cli, EVENTS_DIR, existing, int, loadLibrary, many, maxEventId, oneOf, readEvents, resolveDeck, str, threadsOpt, TIER_BOTS, workerPool, writeJsonStamped } from './lib-node';
 import { cutSize, runTournament, type BestOf, type BotLevel, type EventFormat, type Game1Rule, type NextRule, type PlayGame, type TourneyEvent } from '../src/lib/tournament';
 import type { MatchJob, MatchResult } from './worker';
-import type { LibraryDeck } from '../src/lib/library';
 import { buildH2H } from './build-h2h';
 import { rebuildEvidence } from './build-evidence';
-import { buildEvent, type BuiltEvent } from './tournament-setup';
+import { buildEvent, fieldPool, pickField, type BuiltEvent } from './tournament-setup';
+import { leftOutLine } from '../src/lib/distinctLists';
 
 const { values: V } = cli(import.meta.url, {
   events: int(12, { min: 1 }),
@@ -66,6 +73,7 @@ const { values: V } = cli(import.meta.url, {
   advance: int(0, { min: 0, max: 16 }),
   game1: oneOf(['coin', 'a', 'b', 'alternate'], 'coin'),
   next: oneOf(['loser', 'alternate'], 'loser'),
+  'allow-same-lists': bool(),
 });
 const OUT = V.out;
 const EV_DIR = OUT ?? EVENTS_DIR;
@@ -90,32 +98,11 @@ if (RECORD) {
 }
 
 // ---------------------------------------------------------------- field
-function distinct(lib: LibraryDeck[]) {
-  const seen = new Set<string>();
-  return lib.filter((d) => {
-    if (/-eor\.txt$/.test(d.file)) return false; // tournament builds share the base list's main deck
-    const sig = [...d.deck.legends].sort().join(',') + '|' + [...d.deck.main].sort().join(',');
-    if (seen.has(sig) || seen.has(`n:${d.deck.name}`)) return false;
-    seen.add(sig);
-    seen.add(`n:${d.deck.name}`);
-    return true;
-  });
-}
+// The automatic fields hold each list once (src/lib/distinctLists.ts; buildEvent leaves the rest out and names them)
 const LIB = loadLibrary();
-const ALL = distinct(LIB);
+const ALL = fieldPool(LIB);
 const find = (x: string) => ALL.find((y) => y.file === x || y.file === `${x}.txt` || y.deck.name === x) ?? resolveDeck(x, LIB);
-function pickField(): LibraryDeck[] {
-  if (FIELD === 'all') return ALL;
-  if (['meta', 'ladder', 'original', 'guide'].includes(FIELD)) return ALL.filter((d) => d.kind === FIELD);
-  if (FIELD === 'top16') {
-    const R = fs.existsSync('src/data/ratings.json') ? JSON.parse(fs.readFileSync('src/data/ratings.json', 'utf8')) : { decks: [] };
-    return (R.decks as { name: string }[])
-      .map((r) => ALL.find((d) => d.deck.name === r.name))
-      .filter((d): d is LibraryDeck => !!d)
-      .slice(0, 16);
-  }
-  return FIELD.split(',').map(find);
-}
+const rated = (): { name: string }[] => (fs.existsSync('src/data/ratings.json') ? JSON.parse(fs.readFileSync('src/data/ratings.json', 'utf8')).decks : []);
 const readJson = (flag: string, file: string | undefined) => {
   if (file === undefined) return undefined;
   try {
@@ -144,10 +131,11 @@ try {
       game1: V.game1 as Game1Rule,
       next: V.next as NextRule,
       cutSeeds: V['cut-seeds'],
+      allowSameLists: V['allow-same-lists'],
     },
     () => {
       try {
-        return pickField();
+        return pickField(FIELD, ALL, find, FIELD === 'top16' ? rated() : [], { allowSameLists: V['allow-same-lists'] });
       } catch (e) {
         throw new ArgError(`--field: ${(e as Error).message}`);
       }
@@ -164,6 +152,8 @@ if (built.decks.length < 2) {
   process.exit(2);
 }
 const ROUNDS = built.rounds;
+// said before anything is played: the decks the field left out because their list was already in it
+if (built.sameList.length) console.log(`${leftOutLine(built.sameList)} (Pass --allow-same-lists to enter ${built.sameList.length === 1 ? 'it' : 'them'} too.)`);
 
 // ---------------------------------------------------------------- games: the shared worker pool, one game per message
 class GameError extends Error {}

@@ -5,6 +5,8 @@
 import type { DeckList } from '../engine/types';
 import type { LibraryDeck } from './library';
 import { deckSource } from './deckSource';
+import { distinctLists, leftOutLine } from './distinctLists';
+import { listOf } from './listTwin';
 import {
   autoRounds,
   bracketPlan,
@@ -54,6 +56,11 @@ export interface EventDraft {
   advance: number;
   /** match list */
   matches: MatchSpec[];
+  /**
+   * "One entry per list" (src/lib/distinctLists.ts): a deck whose list is already entered is left out of a bulk pick and
+   * refused when added by hand, and copies are off. Off: anything goes, and same-list entrants are marked.
+   */
+  oneList: boolean;
 }
 
 export const DEFAULT_DRAFT: EventDraft = {
@@ -74,25 +81,97 @@ export const DEFAULT_DRAFT: EventDraft = {
   groups: 1,
   advance: 2,
   matches: [],
+  oneList: true,
 };
 
 // ---------------------------------------------------------------- entrants
 
 /**
- * The decks the runner offers: every distinct deck in the library. Tournament "-eor" builds share their base deck's main
- * list, so they are skipped, and of two decks with the same list or the same name only the first is kept.
+ * The decks the runner offers: every deck in the library and saved here. Tournament "-eor" builds share their base deck's
+ * main list, so they are skipped, and of two decks with the same name only the first is kept (an event names its
+ * decks). Decks with the same list under different names are all offered: "One entry per list" decides what is entered.
  */
 export function runnerPool(lib: readonly LibraryDeck[]): LibraryDeck[] {
   const seen = new Set<string>();
   return lib.filter((d) => {
-    if (/-eor\.txt$/.test(d.file)) return false;
-    const sig = [...d.deck.legends].sort().join(',') + '|' + [...d.deck.main].sort().join(',');
-    if (seen.has(sig) || seen.has(`n:${d.deck.name}`)) return false;
-    seen.add(sig);
-    seen.add(`n:${d.deck.name}`);
+    if (/-eor\.txt$/.test(d.file) || seen.has(d.deck.name)) return false;
+    seen.add(d.deck.name);
     return true;
   });
 }
+
+// ---------------------------------------------------------------- one entry per list
+
+type ByFile = ReadonlyMap<string, LibraryDeck>;
+/**
+ * The entrant rows as decks the rule reads, named as the event names them ("X #2"); rows whose deck is gone are left
+ * aside (the setup drops them anyway).
+ */
+const listedRows = (list: readonly DraftEntrant[], byFile: ByFile) =>
+  list.flatMap((e) => {
+    const d = byFile.get(e.file);
+    return d ? [{ file: d.file, deck: { ...d.deck, name: entrantName(d, e) }, entrant: e }] : [];
+  });
+
+/** Whether two entrants are the same list: a copy ("#2") or two decks with the same cards under different names. */
+export const entrantsShareLists = (list: readonly DraftEntrant[], byFile: ByFile) => distinctLists(listedRows(list, byFile)).left.length > 0;
+
+/**
+ * The entrants a bulk pick (a quick set, a link's preset field) enters: every deck once, and with "One entry per list"
+ * one deck per list, the rest left out (a deck bundled with the site before one saved here, else the first). `note` is
+ * the one line that names what was left out, '' when nothing was.
+ */
+export function pickEntrants(files: readonly string[], oneList: boolean, byFile: ByFile): { list: DraftEntrant[]; note: string } {
+  const list = [...new Set(files)].map((file) => ({ file, copy: 1 }));
+  if (!oneList) return { list, note: '' };
+  const r = distinctLists(listedRows(list, byFile));
+  const out = new Set(r.left.map((x) => x.deck.entrant));
+  return { list: list.filter((e) => !out.has(e)), note: leftOutLine(r.left) };
+}
+
+/**
+ * Add a deck by hand. With "One entry per list", a deck whose list is already entered (under another name) is refused,
+ * with the reason; otherwise as addEntrant.
+ */
+export function addChecked(list: readonly DraftEntrant[], file: string, oneList: boolean, byFile: ByFile): EntrantEdit {
+  const d = byFile.get(file);
+  if (oneList && d && !list.some((e) => e.file === file)) {
+    const twin = listedRows(list, byFile).find((x) => listOf(x.deck) === listOf(d.deck));
+    if (twin) return refuse(list, `${d.deck.name} has the same list as ${twin.deck.name}, which is already entered (to enter both, turn off “One entry per list”)`);
+  }
+  return { list: addEntrant(list, file), problem: null };
+}
+
+/**
+ * Turn "One entry per list" on or off. On, entrants that are the same list as an earlier one (copies, and decks with
+ * the same cards under another name) are taken out, and `note` names them; off changes no entrant.
+ */
+export function setOneList(list: readonly DraftEntrant[], on: boolean, byFile: ByFile): { list: DraftEntrant[]; note: string } {
+  if (!on) return { list: [...list], note: '' };
+  const r = distinctLists(listedRows(list, byFile));
+  const out = new Set(r.left.map((x) => x.deck.entrant));
+  return { list: list.filter((e) => !out.has(e)), note: leftOutLine(r.left) };
+}
+
+/** Why the copy actions are unavailable while "One entry per list" is on. */
+export const COPIES_OFF_NOTE = 'To enter a deck more than once, turn off “One entry per list”.';
+
+/**
+ * With "One entry per list" off, what each same-list entrant duplicates, by entrantKey: "copy of X" for an explicit copy,
+ * "same list as X" for a deck with the same cards under another name. The entrant the rule would keep is not marked.
+ */
+export function sameListMarks(list: readonly DraftEntrant[], byFile: ByFile): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const { deck, sameAs } of distinctLists(listedRows(list, byFile)).left)
+    out.set(entrantKey(deck.entrant), deck.file === sameAs.file ? `copy of ${sameAs.deck.name}` : `same list as ${sameAs.deck.name}`);
+  return out;
+}
+
+/**
+ * Whether "One entry per list" starts on: as the setup link says (on unless it says off), but off for entrants that
+ * already share a list (a draft or link from before the setting), so nobody's entrants are dropped without a word.
+ */
+export const initialOneList = (list: readonly DraftEntrant[], linkSays: boolean, byFile: ByFile) => linkSays && !entrantsShareLists(list, byFile);
 
 /** The event name of an entrant ("Name", "Name #2"); '' when its deck is missing. */
 export const entrantName = (d: Pick<LibraryDeck, 'deck'> | undefined, e: DraftEntrant) => (d ? (e.copy > 1 ? copyName(d.deck.name, e.copy) : d.deck.name) : '');
@@ -250,7 +329,8 @@ export interface QuickSet {
   files: string[];
 }
 /**
- * Ready-made entrant lists from the deck pool (already de-duplicated): every choom.gg meta deck, every guide list, the
+ * Ready-made entrant lists from the deck pool (runnerPool; picked through pickEntrants, which applies "One entry per
+ * list"): every choom.gg meta deck, every guide list, the
  * owner's sim-ladder imports, the Trainer originals, each bred season, decks saved here, the top 8 and top 16 by our
  * rating (when that many are rated), everything. `rated` is the ratings table in rating order.
  */
@@ -269,7 +349,7 @@ export function quickSets(pool: readonly LibraryDeck[], rated: readonly { name: 
     { key: 'mine', label: 'My decks', hint: 'Decks saved in this browser', files: files((d) => ['mine', 'tuned', 'lab'].includes(deckSource(d))) },
     top(8),
     top(16),
-    { key: 'all', label: 'Everything', hint: 'Every distinct deck in the library', files: pool.map((d) => d.file) },
+    { key: 'all', label: 'Everything', hint: 'Every deck in the library and saved here', files: pool.map((d) => d.file) },
   ];
   return sets.filter((s) => s.files.length > 0);
 }

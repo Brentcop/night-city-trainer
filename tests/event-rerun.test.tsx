@@ -91,13 +91,17 @@ describe('what a re-run would be', () => {
     const ev = recorded();
     expect(eventRerun({ ...ev, manifest: { decks: [...ev.manifest!.decks!, { file: 'a.txt', name: 'Alpha #2' }] }, decks: { ...ev.decks, 'Alpha #2': ev.decks.Alpha! } }, LIB, NOW)).toEqual({ open: false, why: 'settings' });
   });
-  it("the runner's own pool decides what is in the library: a tournament -eor build or a duplicate list is not", () => {
+  it("the runner's own pool decides what is in the library: a tournament -eor build or a second deck of one name is not", () => {
     const eor = deck('a-eor.txt', 'Alpha EOR', ['x', 'y', 'e']);
     const ev = recorded({ decks: { Alpha: { file: 'a-eor.txt', legends: ['L1', 'L2', 'L3'], main: ['x', 'y', 'e'] }, Bravo: recorded().decks.Bravo! }, manifest: undefined });
     expect(eventRerun(ev, [eor, ...LIB], NOW)).toEqual({ open: false, why: 'missing-deck' });
+    const sameName = deck('a2.txt', 'Alpha', ['z']);
+    const ev3 = recorded({ decks: { Alpha: { file: 'a2.txt', legends: ['L1', 'L2', 'L3'], main: ['z'] }, Bravo: recorded().decks.Bravo! }, manifest: undefined });
+    expect(eventRerun(ev3, [...LIB, sameName], NOW)).toEqual({ open: false, why: 'missing-deck' });
+    // a deck with the same list as another under its own name is in the pool ("One entry per list" decides what enters)
     const dup = deck('d.txt', 'Delta', ['y', 'x']); // the same list as Alpha, which comes first
     const ev2 = recorded({ decks: { Delta: { file: 'd.txt', legends: ['L1', 'L2', 'L3'], main: ['y', 'x'] }, Bravo: recorded().decks.Bravo! }, manifest: undefined });
-    expect(eventRerun(ev2, [...LIB, dup], NOW)).toEqual({ open: false, why: 'missing-deck' });
+    expect(eventRerun(ev2, [...LIB, dup], NOW)).toMatchObject({ open: true, same: true, query: expect.stringContaining('d=d.txt%2Cb.txt') });
   });
 });
 

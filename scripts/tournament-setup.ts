@@ -2,9 +2,13 @@
 // decks a match list or bracket file names), the format, pairings set by hand and the other options. Pure apart from
 // the deck resolver and file reader it is given, so the flags are tested without running an event (tests/tournament-cli.test.ts).
 // Bad input throws ArgError: the CLI prints it and exits 2 before anything is played or written.
+// A field holds each list once (src/lib/distinctLists.ts): an automatic field leaves out a deck whose list is already in
+// it and says so, and decks named by hand that are the same list under two names are refused, unless allowSameLists.
 import { ArgError } from './lib-node';
 import type { LibraryDeck } from '../src/lib/library';
 import type { DeckList } from '../src/engine/types';
+import { distinctLists, type SameList } from '../src/lib/distinctLists';
+import { listOf } from '../src/lib/listTwin';
 import {
   autoRounds,
   BEST_OF,
@@ -45,9 +49,13 @@ export interface SetupFlags {
   next: NextRule;
   /** comma list: the top-cut seeds in order, set by hand */
   cutSeeds?: string;
+  /** --allow-same-lists: enter decks whose lists are the same (otherwise a field holds each list once) */
+  allowSameLists?: boolean;
 }
 export interface BuiltEvent {
   decks: (DeckList & { file?: string })[];
+  /** decks the automatic field left out because their list was already in it (empty with allowSameLists) */
+  sameList: SameList<LibraryDeck>[];
   /** undefined for a plain Swiss event (recorded exactly as events always were) */
   setup: EventSetup | undefined;
   rounds: number;
@@ -57,6 +65,68 @@ export interface BuiltEvent {
 
 const list = (s: string | undefined) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const COPY = /^(.*\S) #(\d+)$/;
+
+// ---------------------------------------------------------------- the automatic fields (--field)
+
+/** The --field presets; anything else is a comma list of deck files or names. */
+export const FIELD_KEYS = ['all', 'meta', 'ladder', 'original', 'guide', 'top16'] as const;
+
+/**
+ * The decks the automatic fields are picked from, in library order: every library deck except tournament "-eor" builds
+ * (they share their base deck's main list) and a second deck with a name already taken (an event names its decks).
+ * Decks with the same list stay in; the field leaves them out (buildEvent), so it can say which and why.
+ */
+export function fieldPool(lib: readonly LibraryDeck[]): LibraryDeck[] {
+  const names = new Set<string>();
+  return lib.filter((d) => {
+    if (/-eor\.txt$/.test(d.file) || names.has(d.deck.name)) return false;
+    names.add(d.deck.name);
+    return true;
+  });
+}
+
+/**
+ * The decks a --field value names, in order: a preset (`all`, a library kind, `top16` from the ratings table in rating
+ * order) or a comma list resolved by `find`. Before the one-entry-per-list rule, which buildEvent applies: `top16` reads
+ * down the ratings until it has 16 different lists (a deck with a list already taken is kept here, for buildEvent to
+ * leave out and name), so the field still holds 16 decks; with allowSameLists it is the first 16 rated decks.
+ */
+export function pickField(field: string, pool: readonly LibraryDeck[], find: (ref: string) => LibraryDeck, rated: readonly { name: string }[], o: { allowSameLists?: boolean } = {}): LibraryDeck[] {
+  if (field === 'all') return [...pool];
+  if (['meta', 'ladder', 'original', 'guide'].includes(field)) return pool.filter((d) => d.kind === field);
+  if (field === 'top16') {
+    const ranked = rated.map((r) => pool.find((d) => d.deck.name === r.name)).filter((d): d is LibraryDeck => !!d);
+    if (o.allowSameLists) return ranked.slice(0, 16);
+    const lists = new Set<string>();
+    const out: LibraryDeck[] = [];
+    for (const d of ranked) {
+      const fp = listOf(d.deck);
+      if (!lists.has(fp)) {
+        if (lists.size === 16) break;
+        lists.add(fp);
+      }
+      out.push(d);
+    }
+    return out;
+  }
+  return field.split(',').map((x) => find(x.trim()));
+}
+
+/**
+ * Decks named by hand (--entrants, a match list, a bracket) must not be the same list under two names: that enters one
+ * deck twice without saying so. Naming one deck twice is an explicit copy and stays allowed.
+ */
+function sameListProblem(decks: readonly (DeckList & { file?: string })[]): string | null {
+  const first = new Map<string, DeckList & { file?: string }>();
+  for (const d of decks) {
+    const fp = listOf(d);
+    const f = first.get(fp);
+    if (!f) first.set(fp, d);
+    else if (f.file !== d.file)
+      return `"${f.name}" and "${d.name}" are the same list (the same Legends and main deck under two names), and a field holds each list once. To enter that list twice on purpose, name one of them twice (it plays as "${f.name} #2"), or pass --allow-same-lists.`;
+  }
+  return null;
+}
 
 /** Entrants from deck references in order: a reference repeated (or written "X #2") becomes an explicit copy. */
 class Entrants {
@@ -153,8 +223,17 @@ export function buildEvent(f: SetupFlags, field: () => LibraryDeck[], resolve: (
     });
   } else if (f.entrants) {
     for (const ref of list(f.entrants)) E.enter(ref);
-  } else {
-    for (const d of field()) E.enter(d.file);
+  }
+  let sameList: SameList<LibraryDeck>[] = [];
+  const auto = format !== 'matches' && !(format === 'single-elim' && f.bracket !== undefined) && !f.entrants;
+  if (auto) {
+    // an automatic field holds each list once unless asked otherwise; the run prints what was left out and why
+    const r = f.allowSameLists ? { kept: field(), left: [] } : distinctLists(field());
+    sameList = r.left;
+    for (const d of r.kept) E.enter(d.file);
+  } else if (!f.allowSameLists) {
+    const p = sameListProblem(E.decks);
+    if (p) throw new ArgError(p);
   }
 
   const n = E.refs.length;
@@ -192,5 +271,5 @@ export function buildEvent(f: SetupFlags, field: () => LibraryDeck[], resolve: (
   };
   const problems = setupProblems(setup);
   if (problems.length) throw new ArgError(problems.join('; '));
-  return { decks: E.decks, setup: isPlainSetup(setup) ? undefined : setup, rounds, top: f.top, bestOf: f.bo };
+  return { decks: E.decks, sameList, setup: isPlainSetup(setup) ? undefined : setup, rounds, top: f.top, bestOf: f.bo };
 }

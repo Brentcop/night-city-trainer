@@ -19,6 +19,8 @@ export interface RunParams {
   bot: string | null;
   /** null = not given (pick a random seed) */
   seed: number | null;
+  /** "One entry per list" switched off (`one=0`); absent = on, as every link from before the setting */
+  oneList?: false;
 }
 
 const int = (s: string | null, min: number, max: number): number | null => {
@@ -44,6 +46,7 @@ export function parseRunParams(q: URLSearchParams, bots: readonly string[]): Run
     format: isEventFormat(q.get('fmt') ?? '') ? (q.get('fmt') as EventFormat) : 'swiss',
     bot: bot && bots.includes(bot) ? bot : null,
     seed: int(q.get('s'), 1, 2 ** 31 - 1),
+    ...(q.get('one') === '0' ? { oneList: false as const } : {}),
   };
 }
 
@@ -60,12 +63,13 @@ export function runParamsQuery(p: RunParams): URLSearchParams {
   if (p.bot !== null) q.set('bot', p.bot);
   if (p.seed !== null) q.set('s', String(p.seed));
   if (p.rounds !== 'auto') q.set('r', String(p.rounds));
+  if (p.oneList === false) q.set('one', '0');
   return q;
 }
 
 /** The runner's "Copy setup link" query for a draft, its bot and seed. */
-export function draftLinkQuery(draft: Pick<EventDraft, 'entrants' | 'format' | 'rounds' | 'top' | 'bestOf'>, bot: string, seed: number): URLSearchParams {
-  return runParamsQuery({ field: 'custom', decks: entrantsToList(draft.entrants), format: draft.format, rounds: draft.rounds, top: draft.top, bestOf: draft.bestOf, bot, seed });
+export function draftLinkQuery(draft: Pick<EventDraft, 'entrants' | 'format' | 'rounds' | 'top' | 'bestOf'> & Partial<Pick<EventDraft, 'oneList'>>, bot: string, seed: number): URLSearchParams {
+  return runParamsQuery({ field: 'custom', decks: entrantsToList(draft.entrants), format: draft.format, rounds: draft.rounds, top: draft.top, bestOf: draft.bestOf, bot, seed, ...(draft.oneList === false ? { oneList: false as const } : {}) });
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);

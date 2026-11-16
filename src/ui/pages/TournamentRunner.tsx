@@ -45,7 +45,9 @@ import {
   entrantName,
   entrantsFromList,
   handSetNames,
+  initialOneList,
   initialSeed,
+  pickEntrants,
   planText,
   randomSeed,
   reachedBefore,
@@ -148,9 +150,13 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const byFile = useMemo(() => new Map(pool.map((d) => [d.file, d])), [pool]);
   // setup-link params are validated; anything malformed falls back to the defaults
   const params = useMemo(() => parseRunParams(q, BOTS.map((b) => b.key)), [q]);
+  // a link's deck list is taken as it is; a preset field enters one deck per list unless the link turns that off. A
+  // list that already shares lists (a link from before "One entry per list") starts with the setting off.
+  const [firstPick] = useState(() => (params.decks ? { list: entrantsFromList(params.decks), note: '' } : pickEntrants(presetFiles(params.field, pool), params.oneList !== false, byFile)));
   const [draft, setDraft] = useState<EventDraft>(() => ({
     ...DEFAULT_DRAFT,
-    entrants: entrantsFromList(params.decks ?? presetFiles(params.field, pool)),
+    entrants: firstPick.list,
+    oneList: initialOneList(firstPick.list, params.oneList !== false, byFile),
     format: params.format,
     rounds: params.rounds,
     top: params.top,
@@ -368,6 +374,9 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               pool={pool}
               entrants={draft.entrants}
               onChange={(e) => set('entrants', e)}
+              oneList={draft.oneList}
+              onOneList={(on, entrants) => setDraft((d) => ({ ...d, oneList: on, entrants }))}
+              initialNote={firstPick.note}
               handSet={handSetNames(draft)}
               placesByHand={draft.format === 'single-elim' && draft.slots ? 'bracket' : draft.format === 'matches' ? 'matches' : null}
             />

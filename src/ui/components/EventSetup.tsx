@@ -8,7 +8,8 @@ import { applyView, DEFAULT_VIEW, sourceCounts, type GalleryView } from '../../l
 import { SOURCES, deckSource, sourceInfo } from '../../lib/deckSource';
 import { RATINGS } from '../../data/index';
 import {
-  addEntrant,
+  addChecked,
+  COPIES_OFF_NOTE,
   copyCount,
   duplicateAll,
   duplicateDecks,
@@ -18,10 +19,13 @@ import {
   MAX_COPIES,
   moveEntrant,
   oneCopyEach,
+  pickEntrants,
   quickSets,
   removeEntrant,
   removeKeys,
+  sameListMarks,
   setCopies,
+  setOneList,
   type DraftEntrant,
   type EntrantEdit,
 } from '../../lib/eventDraft';
@@ -29,6 +33,7 @@ import { BEST_OF, bracketSize, roundName, seededSlots, type BestOf, type ForcedP
 import { Chip, deckFacts } from './DeckGallery';
 import { ColorPips } from './DeckIdentity';
 import { ChoomTierBadge, SimTierBadge, simTierFor } from './TierBadges';
+import { listOf } from '../../lib/listTwin';
 
 /** A polite live region for what an editor just did. */
 function Said({ text }: { text: string }) {
@@ -47,6 +52,10 @@ function Said({ text }: { text: string }) {
  * keeps one copy of each. A bulk action that would pass a limit (MAX_COPIES, MAX_ENTRANTS) changes nothing and says why.
  * `handSet` is the names the setup's hand-set parts use and `placesByHand` says new entrants must be placed by hand
  * (a slot-by-slot bracket or a match list): bulk changes never rewrite those, they only say so.
+ * "One entry per list" (`oneList`, src/lib/distinctLists.ts): on, a quick set enters one deck per list and says which it
+ * left out, a deck whose list is already entered is refused with the reason, and the copy actions are unavailable; off,
+ * entrants that are the same list are marked. `onOneList` gets the setting and the entrants it leaves (switching it on
+ * takes out the same-list entrants and says which); `initialNote` is the line for the entrants the page started with.
  */
 export function EntrantPicker({
   pool,
@@ -55,6 +64,9 @@ export function EntrantPicker({
   disabled,
   handSet = [],
   placesByHand = null,
+  oneList = false,
+  onOneList,
+  initialNote = '',
 }: {
   pool: readonly LibraryDeck[];
   entrants: DraftEntrant[];
@@ -62,6 +74,9 @@ export function EntrantPicker({
   disabled?: boolean;
   handSet?: readonly string[];
   placesByHand?: 'bracket' | 'matches' | null;
+  oneList?: boolean;
+  onOneList?: (on: boolean, entrants: DraftEntrant[]) => void;
+  initialNote?: string;
 }) {
   const hiddenKey = [...loadHidden()].join('|');
   const hidden = useMemo(() => new Set(hiddenKey.split('|').filter(Boolean)), [hiddenKey]);
@@ -73,16 +88,19 @@ export function EntrantPicker({
   const [said, setSaid] = useState('');
   /** why the last bulk action changed nothing (shown until the next change) */
   const [problem, setProblem] = useState('');
+  /** what the last pick left out under "One entry per list" (shown until the next change) */
+  const [note, setNote] = useState(initialNote);
   /** ticked rows, by entrantKey (keys of rows that are gone are ignored) */
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const shown = applyView(facts, view);
   const counts = sourceCounts(facts, view);
   const inSet = new Set(entrants.map((e) => e.file));
   const listId = useId();
-  const change = (next: DraftEntrant[], msg: string) => {
+  const change = (next: DraftEntrant[], msg: string, leftOut = '') => {
     onChange(next);
     setProblem('');
-    setSaid(msg);
+    setNote(leftOut);
+    setSaid(leftOut ? `${msg}. ${leftOut}` : msg);
     // rows that are gone leave the selection (so a deck entered again later does not come back ticked)
     setTicked((t) => new Set([...t].filter((k) => next.some((e) => entrantKey(e) === k))));
   };
@@ -90,9 +108,31 @@ export function EntrantPicker({
   const deckName = (file: string) => byFile.get(file)?.deck.name ?? file;
   const toggle = (file: string) => {
     const d = byFile.get(file);
-    if (inSet.has(file)) change(entrants.filter((e) => e.file !== file), `Removed ${d?.deck.name ?? file}`);
-    else change(addEntrant(entrants, file), `Added ${d?.deck.name ?? file}`);
+    if (inSet.has(file)) return change(entrants.filter((e) => e.file !== file), `Removed ${d?.deck.name ?? file}`);
+    const edit = addChecked(entrants, file, oneList, byFile);
+    if (edit.problem) {
+      setProblem(edit.problem);
+      setSaid(edit.problem);
+    } else change(edit.list, `Added ${d?.deck.name ?? file}`);
   };
+  const switchOneList = (on: boolean) => {
+    const r = setOneList(entrants, on, byFile);
+    onOneList?.(on, r.list);
+    setProblem('');
+    setNote(r.note);
+    setSaid(`One entry per list ${on ? 'on' : 'off'}.${r.note ? ` ${r.note}` : ''}`);
+    setTicked((t) => new Set([...t].filter((k) => r.list.some((e) => entrantKey(e) === k))));
+  };
+  /** the copy actions are unavailable while one entry per list is on */
+  const noCopies = oneList;
+  const marks = oneList ? new Map<string, string>() : sameListMarks(entrants, byFile);
+  /** with one entry per list on: each entered list and the entrant that holds it (the add list marks decks with one) */
+  const enteredLists = new Map<string, string>();
+  if (oneList)
+    for (const e of entrants) {
+      const d = byFile.get(e.file);
+      if (d && !enteredLists.has(listOf(d.deck))) enteredLists.set(listOf(d.deck), nameOf(e));
+    }
   /** Apply a bulk edit: refused (with the reason, shown and announced) or done (with what changed, announced). */
   const apply = (edit: EntrantEdit, what: string) => {
     if (edit.problem) {
@@ -127,10 +167,23 @@ export function EntrantPicker({
   return (
     <div className="ev-entrants">
       <Said text={said} />
+      {onOneList && (
+        <label className="small">
+          <input type="checkbox" checked={oneList} disabled={disabled} onChange={(ev) => switchOneList(ev.target.checked)} /> <b>One entry per list</b>{' '}
+          <span className="muted">
+            {oneList
+              ? 'A deck with the same cards as an entered deck (only the name differs) is the same deck, so it is entered once.'
+              : 'Off: a list can be entered more than once; entrants with the same list are marked.'}
+          </span>
+        </label>
+      )}
       <div className="gal-filters" role="group" aria-label="Quick entrant sets">
         <span className="small muted">Quick sets</span>
         {sets.map((s) => (
-          <button key={s.key} type="button" className="chip-btn" title={`${s.hint} (replaces the list)`} disabled={disabled} onClick={() => change(s.files.map((file) => ({ file, copy: 1 })), `${s.label}: ${s.files.length} entrants`)}>
+          <button key={s.key} type="button" className="chip-btn" title={`${s.hint} (replaces the list)`} disabled={disabled} onClick={() => {
+              const p = pickEntrants(s.files, oneList, byFile);
+              change(p.list, `${s.label}: ${p.list.length} entrants`, p.note);
+            }}>
             {s.label} <span className="muted">({s.files.length})</span>
           </button>
         ))}
@@ -168,7 +221,7 @@ export function EntrantPicker({
               <button
                 type="button"
                 className="small"
-                disabled={disabled || !selected.length}
+                disabled={disabled || noCopies || !selected.length}
                 title="Enter each selected deck once more (its next copy goes after its last one)"
                 onClick={() => apply(duplicateDecks(entrants, selected.map((e) => e.file), deckName), 'Entered the selected decks again')}
               >
@@ -186,13 +239,19 @@ export function EntrantPicker({
                 ✕ Remove selected
               </button>
               <span className="ev-bulk-sep" aria-hidden="true" />
-              <button type="button" className="small" disabled={disabled} title="Enter every deck in the field once more (each gets its next copy)" onClick={() => apply(duplicateAll(entrants, deckName), 'Entered every deck again')}>
+              <button type="button" className="small" disabled={disabled || noCopies} title="Enter every deck in the field once more (each gets its next copy)" onClick={() => apply(duplicateAll(entrants, deckName), 'Entered every deck again')}>
                 ⧉ Every deck again
               </button>
               <button type="button" className="small" disabled={disabled || !hasExtras} title="Drop the extra copies: every deck once" onClick={() => apply({ list: oneCopyEach(entrants), problem: null }, 'One copy of each deck')}>
                 One of each
               </button>
+              {noCopies && <span className="muted">{COPIES_OFF_NOTE}</span>}
             </div>
+          )}
+          {note && (
+            <p className="small muted" style={{ margin: 0 }}>
+              {note}
+            </p>
           )}
           {problem && (
             <p className="small ev-warn" style={{ margin: 0 }}>
@@ -218,15 +277,16 @@ export function EntrantPicker({
                     {d && <span title={sourceInfo(deckSource(d)).label} aria-hidden="true">{sourceInfo(deckSource(d)).icon}</span>}
                     {d && <SimTierBadge tier={simTierFor(d.deck.name)} />}
                     {hidden.has(e.file) && <span className="tag">hidden</span>}
+                    {marks.has(entrantKey(e)) && <span className="tag">{marks.get(entrantKey(e))}</span>}
                     <span className="ev-row-actions">
                       {!(d && firstRow.get(e.file) === i) && <span className="ev-copies-gap" aria-hidden="true" />}
                       {d && firstRow.get(e.file) === i && (
                         <select
                           className="ev-copies"
                           aria-label={`Times ${d.deck.name} is entered`}
-                          title="How many times this deck is entered (copies play as #2, #3…)"
+                          title={noCopies ? COPIES_OFF_NOTE : 'How many times this deck is entered (copies play as #2, #3…)'}
                           value={copies}
-                          disabled={disabled}
+                          disabled={disabled || noCopies}
                           onChange={(ev) => apply(setCopies(entrants, e.file, +ev.target.value, deckName), `${d.deck.name} ×${ev.target.value}`)}
                         >
                           {Array.from({ length: Math.max(MAX_COPIES, copies) }, (_, k) => k + 1).map((k) => (
@@ -242,7 +302,7 @@ export function EntrantPicker({
                       <button type="button" className="ghost small" aria-label={`Move ${name} down`} disabled={disabled || i === entrants.length - 1} onClick={() => change(moveEntrant(entrants, i, 1), `${name} is seed ${i + 2}`)}>
                         ↓
                       </button>
-                      <button type="button" className="ghost small" aria-label={`Enter ${d?.deck.name ?? name} again`} title="Enter this deck again (as #2, #3…)" disabled={disabled || !d} onClick={() => apply(duplicateDecks(entrants, [e.file], deckName), `Entered ${d?.deck.name} again`)}>
+                      <button type="button" className="ghost small" aria-label={`Enter ${d?.deck.name ?? name} again`} title={noCopies ? COPIES_OFF_NOTE : 'Enter this deck again (as #2, #3…)'} disabled={disabled || noCopies || !d} onClick={() => apply(duplicateDecks(entrants, [e.file], deckName), `Entered ${d?.deck.name} again`)}>
                         ⧉
                       </button>
                       <button type="button" className="ghost small" aria-label={`Remove ${name}`} disabled={disabled} onClick={() => change(removeEntrant(entrants, i), `Removed ${name}`)}>
@@ -279,6 +339,7 @@ export function EntrantPicker({
                   <ChoomTierBadge tier={d.tier} />
                   <SimTierBadge tier={simTierFor(d.deck.name)} />
                   {f.hidden && <span className="tag">hidden</span>}
+                  {!inSet.has(f.file) && enteredLists.has(listOf(d.deck)) && <span className="tag">same list as {enteredLists.get(listOf(d.deck))}</span>}
                 </label>
               );
             })}

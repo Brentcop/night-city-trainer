@@ -84,6 +84,20 @@ describe('tournament inputs', () => {
       for (const [bot, seed] of [['hard', 1], ['easy', 2 ** 31 - 1]] as const) expect(draftLinkQuery(d, bot, seed).toString()).toBe(before(d, bot, seed));
     expect(draftLinkQuery(draft, 'hard', 42).toString()).toBe('f=custom&d=meta-a.txt%2Cmeta-a.txt*2%2Cb+c.txt&fmt=swiss&t=4&bo=1&bot=hard&s=42');
   });
+  it('"One entry per list" in the setup link: written only when off (one=0); a link without it means on', () => {
+    const all = ['hard'];
+    const p: RunParams = { field: 'custom', decks: ['a.txt', 'b.txt'], rounds: 'auto', top: 8, bestOf: 3, format: 'swiss', bot: 'hard', seed: 9, oneList: false };
+    expect(runParamsQuery(p).toString()).toBe('f=custom&d=a.txt%2Cb.txt&fmt=swiss&t=8&bo=3&bot=hard&s=9&one=0');
+    expect(parseRunParams(runParamsQuery(p), all)).toEqual(p);
+    const { oneList: _off, ...on } = p;
+    expect(runParamsQuery(on).toString()).toBe('f=custom&d=a.txt%2Cb.txt&fmt=swiss&t=8&bo=3&bot=hard&s=9');
+    expect(parseRunParams(runParamsQuery(on), all)).toEqual(on);
+    expect(parseRunParams(new URLSearchParams('one=1'), all).oneList).toBeUndefined();
+    expect(parseRunParams(new URLSearchParams('one=x'), all).oneList).toBeUndefined();
+    const draft: EventDraft = { ...DEFAULT_DRAFT, entrants: entrantsFromList(['a.txt', 'a.txt*2']) };
+    expect(draftLinkQuery({ ...draft, oneList: false }, 'hard', 1).toString()).toBe('f=custom&d=a.txt%2Ca.txt*2&fmt=swiss&t=8&bo=3&bot=hard&s=1&one=0');
+    expect(draftLinkQuery(draft, 'hard', 1).toString()).toBe('f=custom&d=a.txt%2Ca.txt*2&fmt=swiss&t=8&bo=3&bot=hard&s=1');
+  });
   it('event ids must be recorded events', () => {
     expect(parseEventId('3', [1, 2, 3])).toBe(3);
     expect(parseEventId('abc', [1, 2, 3])).toBeUndefined();

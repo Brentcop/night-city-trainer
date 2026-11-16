@@ -3,7 +3,7 @@
 // the interactions are the pure functions tested above them).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { BUILTIN } from '../src/lib/browserLibrary';
+import { BUILTIN, CUSTOM_KEY } from '../src/lib/browserLibrary';
 import type { LibraryDeck } from '../src/lib/library';
 import { HIDDEN_KEY } from '../src/lib/hiddenDecks';
 import {
@@ -38,6 +38,14 @@ import {
   reachedBefore,
   removeEntrant,
   seasonOf,
+  addChecked,
+  COPIES_OFF_NOTE,
+  entrantsShareLists,
+  initialOneList,
+  pickEntrants,
+  runnerPool,
+  sameListMarks,
+  setOneList,
   type EventDraft,
 } from '../src/lib/eventDraft';
 import { BracketBoEditor, BracketSlotsEditor, EntrantPicker, MatchListEditor, PairingEditor, SeedOrderEditor } from '../src/ui/components/EventSetup';
@@ -157,6 +165,68 @@ describe('entrants', () => {
     expect(quickSets(BUILTIN, []).some((s) => s.key.startsWith('top'))).toBe(false);
     expect(seasonOf({ prov: { origin: 'Night City Trainer bred deck (season 2, mutant)' } })).toBe(2);
     expect(seasonOf({ prov: { origin: 'choom.gg' } })).toBeNull();
+  });
+});
+
+describe('one entry per list', () => {
+  // a deck saved in this browser that is a copy of the first meta deck under another name
+  const twin: LibraryDeck = { file: 'custom:My Copy', deck: { ...meta[0]!.deck, name: 'My Copy', main: [...meta[0]!.deck.main].reverse() }, kind: 'custom', prov: {} };
+  const pool = runnerPool([...BUILTIN, twin]);
+  const by = new Map(pool.map((d) => [d.file, d]));
+  const [a, b] = meta.map((d) => d.file);
+  it('the pool offers decks with the same list under different names (not a second deck of one name)', () => {
+    expect(pool.some((d) => d.file === twin.file)).toBe(true);
+    expect(runnerPool([...BUILTIN, { ...twin, deck: { ...twin.deck, name: meta[0]!.deck.name } }])).toHaveLength(BUILTIN.length);
+    expect(DEFAULT_DRAFT.oneList).toBe(true);
+  });
+  it('a bulk pick enters one deck per list and says which it left out; off, it enters them all', () => {
+    const files = [twin.file, a!, b!];
+    const on = pickEntrants(files, true, by);
+    expect(on.list).toEqual([{ file: a, copy: 1 }, { file: b, copy: 1 }]);
+    expect(on.note).toBe(`Left out one deck whose list is already in the field: My Copy (same list as ${meta[0]!.deck.name}).`);
+    expect(pickEntrants(files, false, by)).toEqual({ list: files.map((file) => ({ file, copy: 1 })), note: '' });
+    // the whole library and every quick set: nothing shares a list today, so nothing is left out
+    for (const s of quickSets(runnerPool(BUILTIN), [])) expect(pickEntrants(s.files, true, byFile).note, s.key).toBe('');
+  });
+  it('adding a deck whose list is already entered is refused with the reason', () => {
+    const list = [{ file: a!, copy: 1 }];
+    expect(addChecked(list, twin.file, true, by)).toEqual({ list, problem: `Nothing changed: My Copy has the same list as ${meta[0]!.deck.name}, which is already entered (to enter both, turn off “One entry per list”).` });
+    expect(addChecked(list, b!, true, by)).toEqual({ list: [...list, { file: b, copy: 1 }], problem: null });
+    expect(addChecked(list, twin.file, false, by)).toEqual({ list: [...list, { file: twin.file, copy: 1 }], problem: null });
+  });
+  it('switching it on takes out copies and twins and names them; off changes nothing; off marks them', () => {
+    const list = [{ file: twin.file, copy: 1 }, { file: a!, copy: 1 }, { file: b!, copy: 1 }, { file: b!, copy: 2 }];
+    const n0 = meta[0]!.deck.name;
+    const n1 = meta[1]!.deck.name;
+    expect(setOneList(list, false, by)).toEqual({ list, note: '' });
+    const on = setOneList(list, true, by);
+    expect(on.list).toEqual([{ file: a, copy: 1 }, { file: b, copy: 1 }]);
+    expect(on.note).toBe(`Left out 2 decks whose list is already in the field: My Copy (same list as ${n0}), ${n1} #2 (same list as ${n1}).`);
+    expect([...sameListMarks(list, by)]).toEqual([
+      [`${twin.file}#1`, `same list as ${n0}`],
+      [`${b}#2`, `copy of ${n1}`],
+    ]);
+    expect(entrantsShareLists(list, by)).toBe(true);
+    expect(entrantsShareLists(on.list, by)).toBe(false);
+  });
+  it('a draft or link from before the setting that already has copies or twins starts with it off', () => {
+    expect(initialOneList([{ file: a!, copy: 1 }, { file: b!, copy: 1 }], true, by)).toBe(true);
+    expect(initialOneList([{ file: a!, copy: 1 }, { file: a!, copy: 2 }], true, by)).toBe(false);
+    expect(initialOneList([{ file: a!, copy: 1 }, { file: twin.file, copy: 1 }], true, by)).toBe(false);
+    expect(initialOneList([{ file: a!, copy: 1 }], false, by)).toBe(false);
+  });
+  it('the picker: on, the copy actions are unavailable with a note; off, same-list entrants are marked', () => {
+    const on = renderToStaticMarkup(<EntrantPicker pool={pool} entrants={[{ file: a!, copy: 1 }, { file: b!, copy: 1 }]} onChange={() => undefined} oneList onOneList={() => undefined} initialNote="Left out one deck." />);
+    expect(on).toMatch(/<input type="checkbox" checked=""\/> <b>One entry per list<\/b>/);
+    expect(on).toContain(COPIES_OFF_NOTE);
+    expect(on).toMatch(/<button[^>]*disabled=""[^>]*>⧉ Every deck again<\/button>/);
+    expect(on).toContain(`aria-label="Times ${meta[0]!.deck.name} is entered" title="${COPIES_OFF_NOTE}"`);
+    expect(on).toContain('Left out one deck.');
+    expect(on).toContain(`same list as ${meta[0]!.deck.name}`); // the twin in the add list
+    const off = renderToStaticMarkup(<EntrantPicker pool={pool} entrants={[{ file: a!, copy: 1 }, { file: twin.file, copy: 1 }]} onChange={() => undefined} oneList={false} onOneList={() => undefined} />);
+    expect(off).toMatch(/<input type="checkbox"\/> <b>One entry per list<\/b>/);
+    expect(off).not.toContain(COPIES_OFF_NOTE);
+    expect(off).toContain(`<span class="tag">same list as ${meta[0]!.deck.name}</span>`);
   });
 });
 
@@ -304,6 +374,21 @@ describe('the runner page', () => {
     expect(html).toMatch(/<input type="checkbox" checked=""\/> Keep this seed/);
     expect(html).toContain('Seed 77 is kept');
     expect(html).toContain('New seed');
+    // a link from before "One entry per list" with a copy in it: the setting starts off and the copy is marked
+    expect(html).toMatch(/<input type="checkbox"\/> <b>One entry per list<\/b>/);
+    expect(html).toContain(`<span class="tag">copy of ${meta[0]!.deck.name}</span>`);
+  });
+  it('one entry per list from a link: a preset field leaves a saved copy out and says so; one=0 enters it, marked', () => {
+    const m = meta[0]!.deck;
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify([{ name: 'My Copy', legends: m.legends, main: m.main, sideboard: [] }]));
+    const on = renderToStaticMarkup(<TournamentRunnerPage q={new URLSearchParams('f=all&s=5')} />);
+    expect(on).toMatch(/<input type="checkbox" checked=""\/> <b>One entry per list<\/b>/);
+    expect(on).toContain(`Entrants in seed order (${runnerPool(BUILTIN).length})`);
+    expect(on).toContain(`Left out one deck whose list is already in the field: My Copy (same list as ${m.name}).`);
+    const off = renderToStaticMarkup(<TournamentRunnerPage q={new URLSearchParams('f=all&s=5&one=0')} />);
+    expect(off).toMatch(/<input type="checkbox"\/> <b>One entry per list<\/b>/);
+    expect(off).toContain(`Entrants in seed order (${runnerPool(BUILTIN).length + 1})`);
+    expect(off).toContain(`<span class="tag">same list as ${m.name}</span>`);
   });
   it('a plain visit starts with a new random seed, not kept, every time', () => {
     const seedIn = (html: string) => Number(html.match(/<input type="number" min="1" max="2147483647"[^>]*value="(\d+)"/)?.[1]);

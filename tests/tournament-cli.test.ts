@@ -5,8 +5,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ArgError, many, parseArgs, str } from '../scripts/lib-node';
-import { buildEvent, parsePair, type SetupFlags } from '../scripts/tournament-setup';
+import { ArgError, loadLibrary, many, parseArgs, str } from '../scripts/lib-node';
+import { buildEvent, FIELD_KEYS, fieldPool, parsePair, pickField, type SetupFlags } from '../scripts/tournament-setup';
+import { distinctLists, leftOutLine } from '../src/lib/distinctLists';
 import { poolEvents, type PoolEvent } from '../scripts/event-pool';
 import { buildH2H } from '../scripts/build-h2h';
 import type { LibraryDeck } from '../src/lib/library';
@@ -92,6 +93,85 @@ describe('tournament CLI flags', () => {
     const spec = { pair: many(), out: str() };
     expect(parseArgs(spec, ['--pair', 'A vs B', '--pair=C vs D']).values.pair).toEqual(['A vs B', 'C vs D']);
     expect(parseArgs(spec, []).values.pair).toEqual([]);
+  });
+});
+
+describe('one entry per list (--field, --entrants, --allow-same-lists)', () => {
+  // Alpha's list under another name: a planted same-list deck (no deck file is added to the repository)
+  const fox: LibraryDeck = { file: 'foxtrot.txt', deck: { name: 'Foxtrot', legends: ['l0'], main: ['c0'], sideboard: ['s9'] }, kind: 'meta', prov: {} };
+  const lib2 = [...lib, fox];
+  const resolve2 = (ref: string) => lib2.find((x) => x.file === ref || x.file === `${ref}.txt` || x.deck.name === ref) ?? resolve(ref);
+  const build2 = (o: Partial<SetupFlags> = {}) => buildEvent(flags(o), () => lib2, resolve2);
+  it('an automatic field leaves out a deck whose list is already in it, and says which', () => {
+    const b = build2();
+    expect(b.decks.map((d) => d.name)).toEqual(['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo']);
+    expect(b.setup).toBeUndefined();
+    expect(b.sameList.map((s) => [s.deck.deck.name, s.sameAs.deck.name])).toEqual([['Foxtrot', 'Alpha']]);
+    expect(leftOutLine(b.sameList)).toBe('Left out one deck whose list is already in the field: Foxtrot (same list as Alpha).');
+    // the same for every format with an automatic field
+    expect(build2({ format: 'round-robin' }).decks.map((d) => d.name)).not.toContain('Foxtrot');
+    expect(build2({ format: 'single-elim' }).sameList).toHaveLength(1);
+  });
+  it('--allow-same-lists enters it too', () => {
+    const b = build2({ allowSameLists: true });
+    expect(b.decks.map((d) => d.name)).toEqual(['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot']);
+    expect(b.sameList).toEqual([]);
+  });
+  it('--entrants: one deck named twice is an explicit copy; two decks with one list are refused, unless allowed', () => {
+    const copy = build2({ entrants: 'alpha,bravo,alpha' });
+    expect(copy.decks.map((d) => d.name)).toEqual(['Alpha', 'Bravo', 'Alpha #2']);
+    expect(copy.setup?.entrants[2]).toEqual({ name: 'Alpha #2', file: 'alpha.txt', copyOf: 'Alpha' });
+    expect(() => build2({ entrants: 'alpha,bravo,foxtrot' })).toThrow(ArgError);
+    expect(() => build2({ entrants: 'alpha,bravo,foxtrot' })).toThrow('"Alpha" and "Foxtrot" are the same list (the same Legends and main deck under two names), and a field holds each list once. To enter that list twice on purpose, name one of them twice (it plays as "Alpha #2"), or pass --allow-same-lists.');
+    expect(build2({ entrants: 'alpha,bravo,foxtrot', allowSameLists: true }).decks.map((d) => d.name)).toEqual(['Alpha', 'Bravo', 'Foxtrot']);
+    // a match list and a bracket name their decks by hand too
+    expect(() => build2({ matches: [{ a: 'alpha', b: 'foxtrot' }] })).toThrow(/same list/);
+    expect(() => build2({ bracket: ['alpha', 'foxtrot'] })).toThrow(/same list/);
+    expect(build2({ matches: [{ a: 'alpha', b: 'alpha #2' }] }).decks.map((d) => d.name)).toEqual(['Alpha', 'Alpha #2']);
+  });
+  it('--field top16 reads down the ratings until it has 16 different lists', () => {
+    const many: LibraryDeck[] = Array.from({ length: 18 }, (_, i) => ({ file: `d${i}.txt`, deck: { name: `D${i}`, legends: [`L${i}`], main: ['m'], sideboard: [] }, kind: 'guide', prov: {} }));
+    many[3] = { ...many[3]!, deck: { ...many[3]!.deck, legends: ['L0'] } }; // D3 is D0's list
+    const rated = many.map((d) => ({ name: d.deck.name }));
+    const find = (x: string) => many.find((d) => d.file === x)!;
+    const picked = pickField('top16', many, find, rated);
+    expect(picked).toHaveLength(17);
+    const b = buildEvent(flags(), () => picked, find);
+    expect(b.decks).toHaveLength(16);
+    expect(b.sameList.map((s) => s.deck.deck.name)).toEqual(['D3']);
+    expect(pickField('top16', many, find, rated, { allowSameLists: true }).map((d) => d.deck.name)).toEqual(many.slice(0, 16).map((d) => d.deck.name));
+  });
+  it('with the library as it is, every automatic field is the one the runs before the rule played', () => {
+    const LIB = loadLibrary();
+    expect(LIB.length).toBeGreaterThan(40);
+    // the field rule before this change (scripts/tournament.ts distinct(), kept here as the reference)
+    const before = (() => {
+      const seen = new Set<string>();
+      return LIB.filter((d) => {
+        if (/-eor\.txt$/.test(d.file)) return false;
+        const sig = [...d.deck.legends].sort().join(',') + '|' + [...d.deck.main].sort().join(',');
+        if (seen.has(sig) || seen.has(`n:${d.deck.name}`)) return false;
+        seen.add(sig);
+        seen.add(`n:${d.deck.name}`);
+        return true;
+      });
+    })();
+    const rated: { name: string }[] = JSON.parse(fs.readFileSync('src/data/ratings.json', 'utf8')).decks;
+    const oldPick = (field: string) =>
+      field === 'all'
+        ? before
+        : field === 'top16'
+          ? rated.map((r) => before.find((d) => d.deck.name === r.name)).filter((d): d is LibraryDeck => !!d).slice(0, 16)
+          : before.filter((d) => d.kind === field);
+    const pool = fieldPool(LIB);
+    const find = (x: string) => pool.find((d) => d.file === x || d.file === `${x}.txt` || d.deck.name === x)!;
+    for (const field of FIELD_KEYS) {
+      const b = buildEvent(flags(), () => pickField(field, pool, find, rated), find);
+      expect(b.sameList, field).toEqual([]);
+      expect(b.decks.map((d) => d.file), field).toEqual(oldPick(field).map((d) => d.file));
+    }
+    // no two decks in the library share a list today
+    expect(distinctLists(LIB).left).toEqual([]);
   });
 });
 

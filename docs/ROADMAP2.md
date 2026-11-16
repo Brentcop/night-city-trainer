@@ -181,7 +181,7 @@ All done and deployed the same day; the details are in the files named.
 - **Your tournaments** (feature `yourTournamentStats`): finished runs of the browser's tournament runner count toward a list's record in that browser, and a list with no recorded rating gets a provisional one from its All Hard games (`src/lib/runLedger.ts`, `anchoredRating.ts`, `yourStats.ts`). Held out on 329 cases, the 90% range covered 90.3%.
 
 Noticed, not fixed:
-- Deck pickers other than the gallery and the deck page still look a deck up by name, so a saved copy of a library list shows no recorded results there; `runnerPool` leaves out saved exact copies of library lists.
+- Deck pickers other than the gallery and the deck page still look a deck up by name, so a saved copy of a library list shows no recorded results there; `runnerPool` leaves out saved exact copies of library lists (until 2026-11-16: since the "One entry per list" setting it offers them, and the setting decides whether they enter).
 - Removing one saved run from the runner does not take it out of "your" stats (Clear does).
 - The events shard of the site search is at 77 of its 84 kB budget and grows about 6 kB with every all-deck event: split it before raising the budget again.
 - A question naming two decks that never met gets no answer from the search where the rating records could give one.

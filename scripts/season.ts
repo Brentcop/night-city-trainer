@@ -47,6 +47,14 @@
 //                              re-run would). With --gate off it breeds and stops.
 //   --out DIR                  with --gate-only: write season-<N>-gate.json and season-<N>-gate.md into DIR
 //
+// One entry per list (src/lib/distinctLists.ts; scripts/season-field.ts): the round robin's field holds each list once.
+// Two decks are the same list when their Legends and main deck are the same, whatever their names. An incumbent whose
+// list is already in the field is passed over for the next one by strength, and the season prints which. A bred deck
+// cannot be the same list as a library deck (it never gets a library deck's Legend trio); if one ever were, it would take
+// no slot, and the season would say so before the gate.
+//   --allow-same-lists         the field as before the rule (the first 8 incumbents whatever their lists), and bred decks
+//                              are not checked
+//
 // Parents are ranked by strength (src/lib/parentStrength.ts): the conservative power rating, blended with the season
 // leaderboard only where its entry is current (every season behind it ran under this simulator version).
 //
@@ -101,6 +109,8 @@ import { adoptionArgs, adoptionFlags, checkBudget, confirmBotArgs, confirmBotFla
 import { adoptionProvenance, describeRule, settleStages } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, estimateGames, settleExtra } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
+import { leftOutLine } from '../src/lib/distinctLists';
+import { sameListBred, seasonField } from './season-field';
 
 const { values: V } = cli(import.meta.url, {
   season: int(undefined, { min: 1 }),
@@ -122,6 +132,7 @@ const { values: V } = cli(import.meta.url, {
   ...settleFlags(),
   ...confirmBotFlag(),
   ...seasonGateFlags(),
+  'allow-same-lists': bool(),
 });
 // checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
 const SEASON_LEDGER = ledgerFromFlags(V, { bot: 'lookahead' });
@@ -191,6 +202,7 @@ const FORGE_GENS = V['forge-gens'];
 const FORGE_GAMES = V['forge-games'];
 const FORCE = V.force;
 const THREADS = Math.min(V.threads, 16);
+const ALLOW_SAME_LISTS = V['allow-same-lists'];
 const SEASON_FILE = `data/seasons/season-${SEASON}.json`;
 
 // ---------------------------------------------------------------- leaderboard
@@ -379,8 +391,13 @@ async function main() {
   // each bred list in the order its deck file will read back (asWritten): the card order changes the games a seed deals,
   // so the gate plays the list as the forge, the round robin and anyone replaying the record will have it. The deck
   // files are the same either way (the export does not depend on the order).
-  const bred = breedSeason(SEASON, { ranked, impact: tables.impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: tables.deckImpact, h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8).map((b) => ({ ...b, deck: asWritten(b.deck) }));
+  const bredAll = breedSeason(SEASON, { ranked, impact: tables.impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: tables.deckImpact, h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8).map((b) => ({ ...b, deck: asWritten(b.deck) }));
   const fileOf = (d: DeckList) => `${slugify(d.name)}.txt`;
+  // one entry per list: a bred deck with a library deck's list (or an earlier bred deck's) takes no slot. It cannot
+  // happen (see scripts/season-field.ts), so this is a guard; this season's own earlier decks don't count on a re-run.
+  const sameBred = ALLOW_SAME_LISTS ? { kept: bredAll, left: [] } : sameListBred(bredAll, lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))), fileOf);
+  if (sameBred.left.length) console.log(`warning: ${leftOutLine(sameBred.left)} They take no season slot.`);
+  const bred = sameBred.kept;
   if (!GATE_ONLY) {
     const clash = existing(bred.map((b) => `data/decks/custom/${fileOf(b.deck)}`));
     if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
@@ -463,9 +480,17 @@ async function main() {
 
   // 5. round robin: meta + top 8 incumbents + the new decks as forged
   const lib2 = loadLibrary();
-  const incumbents = ranked.filter((r) => !metaNames.has(r.deck.name)).slice(0, 8).map((r) => lib2.find((d) => d.deck.name === r.deck.name)!).filter(Boolean);
-  const newcomers = newFiles.map((f) => lib2.find((d) => d.file === f)!);
-  const field = [...lib2.filter((d) => d.kind === 'meta'), ...incumbents, ...newcomers];
+  // (one entry per list: an incumbent whose list is already in the field is passed over for the next by strength)
+  const rr = seasonField({
+    meta: lib2.filter((d) => d.kind === 'meta'),
+    ranked: ranked.filter((r) => !metaNames.has(r.deck.name)).map((r) => lib2.find((d) => d.deck.name === r.deck.name)),
+    newcomers: newFiles.map((f) => lib2.find((d) => d.file === f)!),
+    slots: 8,
+    allowSameLists: ALLOW_SAME_LISTS,
+  });
+  const { incumbents, field } = rr;
+  const newcomers = field.filter((d) => newFiles.includes(d.file));
+  if (rr.left.length) console.log(`${leftOutLine(rr.left)} (Pass --allow-same-lists to enter ${rr.left.length === 1 ? 'it' : 'them'} too.)`);
   for (const d of newcomers) lb[d.deck.name] = mkEntry(d, SEASON, `S${SEASON} ${bred.find((b) => b.deck.name === d.deck.name)!.method}`);
   // an incumbent chosen by its power rating that is not on the leaderboard yet (a guide, Trainer original or sim-ladder
   // list) joins it from this season on, so its round-robin games vs the meta and its finals count like every incumbent's
