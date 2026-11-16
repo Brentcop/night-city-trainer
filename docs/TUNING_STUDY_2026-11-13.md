@@ -306,7 +306,7 @@ Not recommended: a lower adoption bar or the any-gain rule. The intervals are ho
 | 17 | Rank stability Medium vs Hard | `scripts/rank-stability.ts`, `src/lib/rankStability.ts` | `--out` only; numbers in docs/BOT_TOOLKIT.md §11 | Spearman ρ | bootstrap 95% | v5 (meta ρ 0.36), v6 (all ρ 0.867) | not shown |
 | 18 | Tempo, game length, overtime, win reasons, Gig-diff curve | `analyze.ts` | `analysis.json → decks[].tempo[], avgTurns, overtimeRate, overtimeWr, winReasons, diffCurve, matchups[].{wr,avgTurns,topCards}` | win %; turns | n only | 7 meta decks; v8 | Insights page, guides |
 | 19 | Package scoring (bot weights) | `scripts/package-scoring.ts` | `reports/package-scoring-2026-11-11.md` | points | paired interval | v5 | not shown |
-| 20 | Season card impact | `scripts/breed-data.ts` | `data/seasons/impact.json`, `deck-impact.json` (keyed by deck name) | points | none | v5 | breeder input only |
+| 20 | Season card impact | `scripts/breed-data.ts` | `data/seasons/impact.json`, `deck-impact.json` (keyed by deck name when this was written; by list fingerprint since 2026-11-14) | points | none | v5 | breeder input only |
 | 21 | Game review / coach scorecard | `src/lib/gameReview.ts`, `src/ai/coach.ts` | browser (`nct.gameReviews.v1`, practice log) | rating per move; Gigs | paired SE | per user game | Profile, Game review |
 
 **Gaps that matter for "why":**

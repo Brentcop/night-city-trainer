@@ -345,3 +345,22 @@ What remains, batched and ranked by value for its cost. Sizes: S under an hour o
 - Three items of the first roadmap that were never carried here: a grade for a whole turn, a tuning loop for the coach, an independent reviewer. Carry or drop.
 - Old agent worktrees under `.claude/worktrees` (about 640 MB; one holds 4 unmerged commits of archetype experiments).
 - Checks on real devices: phone prompts, motion, a two-device online game; and the visual checks of §3, never recorded as done.
+
+## 12. Review pass for gains: bots, coach, deck tools (requested 2026-11-16)
+
+The owner asked for another review pass for potential performance gains on the bots, the coach and the deck tools. Done 2026-11-16: [REVIEW_2026-11-16.md](REVIEW_2026-11-16.md) (three reviewers with measurements; the claims the list rests on re-checked). Nothing was changed in the code by it. Its ten gains in order, and where they meet the next goal of §11:
+
+1. Bots: five speed-ups that change no decision. A Hard game takes about a third less time (270 games byte-identical with and without them). New; it makes every Hard run after it cheaper, so it goes first.
+2. Breeder: a card table measured on the current simulator. Season 3 bred again with it came out 4.4 points better on average over its 8 slots (Medium). This is §11 item 2, now measured.
+3. Game review: confirm the player's own coach-graded moves and the wide close calls. New.
+4. Coach: main-phase grades on the review's scale, rule sells not counted as agreed, one name for a small gap. New.
+5. Forge: more varied candidates, chosen and screened on separate games, by successive halving. Widens §11 item 3.
+6. Breeder: breed many, screen with Medium, test the best 8. With §11 item 5.
+7. Deck Lab: no replay of the comparison with the original after the first adoption. This is §11 item 29.
+8. Bots: three ablations to see where Hard's edge comes from. New; with §11 batch B.
+9. Coach: play-outs on 2 to 4 workers; a move made before the advice lands is graded (§11 item 15); reasons for Gig choices (§11 item 24).
+10. The evaluation re-fitted on SIM_VERSION 9: expected small, and a bump. With §11 batch E.
+
+Small defects it found are listed at the end of that document (among them: the season's default bot is still the old deep bot; the decision report's calibration is that bot playing itself, not Hard; the breeder's card table carries no simulator version).
+
+**Suggested order for the next goal:** gains 1 and 2 first; then §11 batch A (an event that rates the Season 3 decks, the rest of what the season opened) with gains 5 and 6; batch B's re-measurements with gain 8 (they are cheaper after gain 1); batch C's small fixes with gains 3, 4 and 7.
