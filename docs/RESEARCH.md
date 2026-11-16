@@ -76,4 +76,4 @@ All three formats import and export in this trainer (`src/engine/deck.ts`, teste
 ## Open questions and caveats
 - **Overtime timing.** The Comprehensive Rules say overtime begins after two consecutive turns that start with an empty fixer, and anyone at 7+ Gigs wins at once. Read literally, the player going second gets the last turn before overtime. Choom.gg's human data (57% going-first wins) suggests either that the first player's tempo usually decides games before then, or that other simulators time overtime differently. The engine follows the CR text.
 - **Selling via card effects.** The CR contradicts itself (5.8.2.3 vs 11.12.2.2) on whether an effect-driven sell uses up the once-per-turn Sell. No current card sells from hand via an effect, so this doesn't matter yet.
-- **Approximated cards.** Five cards are approximated; they are flagged on the Cards page.
+- **Approximated cards.** Five cards were approximated when this was written; on 2026-11-16 one is (Synapse Burnout: its bonus counts face-up Legends when the fight starts), flagged in the card dialog (`partial` in `src/engine/scripts/green.ts`).

@@ -1,6 +1,6 @@
 # Tournament plan — EOR Chicago
 
-> Generated 2026-11-14 from 7 decks × 200 games per pairing (deep bot) plus telemetry.
+> Generated 2026-11-16 from 7 decks × 200 games per pairing (deep bot) plus telemetry.
 
 ## Register: [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt)
 - **Full stats:** [RRG Dexter Midrange deck profile](#/deck?d=meta-rrg-dexter-midrange.txt) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
@@ -69,8 +69,8 @@ The optimizer found no single-card change that clearly beats the stock list, so 
 - Swiss rounds are 50 minutes for a Bo3. When time is called, each player gets one more turn, then the player with 7+ Gigs wins; otherwise the game is a draw. Average sim game length for this deck is 13.2 turns, so play at a steady pace.
 - The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab.
 
-## Practice schedule (27 days to Chicago)
-1. **This week:** 10+ games a day in **Play vs Bot** with RRG Dexter Midrange on Deep, Coach on. Read every Coach line where you disagreed with it.
+## Practice schedule (25 days to Chicago)
+1. **This week:** 10+ games a day in **Play vs Bot** with RRG Dexter Midrange on Hard, Coach on. Read every Coach line where you disagreed with it.
 2. **Next week:** play the three worst matchups from the table above on both seats, and log the results (the Play page keeps a practice log).
 3. **Final week:** best-of-3 sets against the top two meta decks; finalise the 7-card sideboard; refresh the meta data (choom.gg) and re-run the sims.
 

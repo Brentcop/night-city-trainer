@@ -66,7 +66,7 @@ For each player in each game, the summary records:
 - **Plan text:** `PLAN_TEXT` gives a short plain-language plan per pairing. It appears in the Insights matchup tables and in Play vs Bot ("Matchup read").
 
 ## Current data
-The bundled `analysis.json`, `impact.json` and `review.json` come from the 2026-11-11 baseline: `npm run sim -- analyze --field meta --bot deep --decisions --games 200 --seed 1` (the 7 meta archetypes, 21 pairings × 200 games = 4,200 games, SIM_VERSION 5). Every deck report carries the fingerprint of the list it measured. The Hard bot and the coach read `impact.json`, so re-running analyze changes Hard games: record new events only after it, and bump `SIM_VERSION` if events were already recorded with the old table.
+The bundled `analysis.json`, `impact.json` and `review.json` come from the 2026-11-11 baseline: `npm run sim -- analyze --field meta --bot deep --decisions --games 200 --seed 1` (the 7 meta archetypes, 21 pairings × 200 games = 4,200 games, SIM_VERSION 5). They have been redone on later versions (the same field, bot and game count); on 2026-11-16 `analysis.json` is from SIM_VERSION 9 (2026-11-14). Every deck report carries the fingerprint of the list it measured. Since SIM_VERSION 6 the Hard bot reads no card impact, so re-running analyze no longer changes recorded games; the coach, the legacy `hard-v1` bot and the deck builders still read `impact.json`.
 
 ## Commands
 ```bash

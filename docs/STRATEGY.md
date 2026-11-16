@@ -1,5 +1,7 @@
 # Strategy report — finding the deck for EOR Chicago (Dec 11–13, 2026)
 
+> **Note, 2026-11-16: this page is out of date.** Its numbers come from SIM_VERSION 5: the 2026-11-11 baseline run, Seasons 1 and 2 and events 1–7. The recorded data has moved on since: the bots changed four times (SIM_VERSION 6 to 9), every event was re-recorded on each version, and 14 events are now recorded on SIM_VERSION 9 (6,014 games). The pick below is not what the current data says. For current figures see the Power ratings page (`src/data/ratings.json`) and the generated tournament plan (`docs/TOURNAMENT_PLAN.md`, on the site as the guide "Tournament plan (EOR Chicago)"), which `npm run refresh` rewrites from the recorded data.
+
 > **Fresh baseline, 2026-11-11; Season 2 and events 5–7 added 2026-11-12.** Every number below was measured on the current simulator (SIM_VERSION 5: the review fixes and the FAQ conformance pass) after all earlier results were wiped (`docs/ROADMAP.md` §1). The previous report (S2-08 Explorer, RRG Dexter Midrange's 65% finals, five breeding seasons) described the old simulator; it and its data are at the tag `archive/pre-season1-reset-2026-11-11`. The samples here are one baseline run, two seasons and seven events: read the ranges, not just the point estimates.
 
 ## Bottom line (provisional)
@@ -84,4 +86,4 @@ The power ratings (Tournaments → Power ratings) fit all 2,221 games; each of t
 ## Keeping it current
 1. Refresh choom.gg data with `npx tsx scripts/import-meta.ts --force` and `npx tsx scripts/import-guides.ts --force`, then add any new lists with `npm run sim -- add`.
 2. Run more seasons (`npx tsx scripts/season.ts`), more events (`npm run tournament`), then `npx tsx scripts/ratings.ts` and `npm run refresh`.
-3. Re-running `npm run sim -- analyze` rewrites `src/data/impact.json`, which the Hard bot reads: do it before recording events, or bump `SIM_VERSION` (see `docs/ANALYSIS.md`).
+3. Re-running `npm run sim -- analyze` rewrites `src/data/impact.json`. Since SIM_VERSION 6 the Hard bot does not read it, so recorded games do not move; the coach, the legacy `hard-v1` bot and the deck builders still read it (see `docs/ANALYSIS.md`).

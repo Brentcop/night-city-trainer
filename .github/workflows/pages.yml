@@ -7,7 +7,7 @@ name: Check and deploy to GitHub Pages
 # Pages actions. It runs no repository code, and it alone holds `pages: write` and `id-token: write`.
 #
 # Needs the repository's Pages source set to "GitHub Actions" (Settings → Pages → Build and deployment → Source);
-# see docs/ROADMAP.md §2. Every push to main is a release for now; a manual or tagged release is still an open decision.
+# see docs/ROADMAP.md §2. Every push to main is a release; the owner settled that on 2026-11-11 (docs/ROADMAP.md §2).
 #
 # Actions are pinned to the full commit SHA of the tag named in the trailing comment.
 on:

@@ -18,7 +18,7 @@ npm run sim -- analyze --decisions [--decision-samples N] [--out DIR] [--force] 
 
 In code: `g.telemetry = new DecisionRecorder()` on a game before `run()`, then `recorder.finish(g)` for the records; `aggregateGame` / `mergeAggregates` / `decisionReport` / `decisionMarkdown` in `src/analysis/decisions.ts` turn them into the report.
 
-**The first full report** is from the fresh baseline (2026-11-11, `docs/ROADMAP.md` §1): `npm run sim -- analyze --field meta --bot deep --decisions --games 200 --seed 1`, 4,200 deep-bot games of the 7 meta decks, SIM_VERSION 5. It recorded 374,430 decisions (89 per game; 53.5 KB raw vs 12.1 KB aggregated per game, a 141 KB merged aggregate) in 939 s on 12 threads, and is what the Card stats page shows (`public/data/decisions.json`, with `reports/decisions-latest.{json,md}`).
+**The first full report** is from the fresh baseline (2026-11-11, `docs/ROADMAP.md` §1): `npm run sim -- analyze --field meta --bot deep --decisions --games 200 --seed 1`, 4,200 deep-bot games of the 7 meta decks, SIM_VERSION 5. It recorded 374,430 decisions (89 per game; 53.5 KB raw vs 12.1 KB aggregated per game, a 141 KB merged aggregate) in 939 s on 12 threads, and is what the Card stats page shows (`public/data/decisions.json`, with `reports/decisions-latest.{json,md}`). Since then the report has been redone with the bots (docs/BOT_TOOLKIT.md §6); the one shipped on 2026-11-16 is SIM_VERSION 9 (2026-11-14): 4,200 deep-bot games of the meta decks, 399,542 decisions.
 
 Measured on 126 lookahead-bot games of the 7 meta decks (2026-11-11): about 107 records per game, about 70 KB of raw records per game against 12.5 KB aggregated, 112 KB for the merged aggregate of the whole run; the run took about 3% longer with telemetry on, and every game ended exactly as with it off.
 
@@ -125,8 +125,8 @@ The fix changes how reactions are chosen, not how often the four behaviours occu
 
 ## Deliberately left out
 
-- Counterfactual decision value, regret and turn grades (ROADMAP §5 steps 3 and 5, and "How the Coach should judge a turn"): the next work. The records carry what that needs (the legal options, the choice, the position), and the stable decision index lets a rollout tool find the same decision again from the same seed.
+- Counterfactual decision value, regret and turn grades (ROADMAP §5 steps 3 and 5, and "How the Coach should judge a turn"): the next work. (Still not built on 2026-11-16. Nearby since then: the Game review rates moves by play-outs, docs/BOT_TOOLKIT.md §8, and the position benchmark labels options by play-outs to the end, §10; neither is decision value from telemetry.) The records carry what that needs (the legal options, the choice, the position), and the stable decision index lets a rollout tool find the same decision again from the same seed.
 - Raw records for every game: only per-game counts leave the workers; raw records are dumped for `--decision-samples N` games.
-- Opponent strategy and the deck's declared objective as slices (§5 step 4 lists them): the report is keyed by list, and decks have no declared objective yet.
+- Opponent strategy and the deck's declared objective as slices (§5 step 4 lists them): the report is keyed by list, and decks have no declared objective yet. (Since 2026-11-11 every library deck has a draft objective, `src/content/deckObjectives/`; the report does not slice by it or by opponent strategy yet, as of 2026-11-16.)
 - Effect lineage (which later effects a play caused) and resolving effects as their own records: only decisions are recorded. Bots never get `pay` or `order` decisions, so those windows only fill from human-seat play, which is not recorded yet.
 - Any change to bots, evaluation weights, the IWD numbers or `impact.json`.

@@ -1,6 +1,6 @@
 # Match reviewer: validation and findings (2026-11-10)
 
-> **Note (2026-11-10, updated 2026-11-11):** the figures in this document were measured before the bot and engine fixes listed in `docs/IMPROVEMENT_BACKLOG.md` (Wave B) and have not been re-measured; treat them as history. The 200 "series games" of the backfill were the events recorded then, which were wiped at the fresh baseline of 2026-11-11 (`docs/ROADMAP.md` §1; they are kept at the tag `archive/pre-season1-reset-2026-11-11`). The reports cited below are kept in `reports/` as that history. Re-measuring on the new events (`review.ts --from events`) is pending.
+> **Note (2026-11-10, updated 2026-11-11):** the figures in this document were measured before the bot and engine fixes listed in `docs/IMPROVEMENT_BACKLOG.md` (Wave B) and have not been re-measured; treat them as history. The 200 "series games" of the backfill were the events recorded then, which were wiped at the fresh baseline of 2026-11-11 (`docs/ROADMAP.md` §1; they are kept at the tag `archive/pre-season1-reset-2026-11-11`). The reports cited below are kept in `reports/` as that history. Re-measuring on the new events (`review.ts --from events`) is pending (still pending 2026-11-16: the newest backfill report is from 2026-11-10; the coach's blunder rate alone was re-measured, on SIM_VERSION 9, docs/ROADMAP2.md §3).
 
 The match reviewer (`src/ai/reviewer.ts`) replays a finished game exactly and scores every main-phase decision against an **oracle**. The oracle plays each candidate move out 8 times: the rest of the turn plus the rival's whole reply, with hidden cards re-dealt. Every candidate shares the same 8 random worlds, so only the move differs between them. Reports:
 
@@ -61,12 +61,12 @@ Ordered by expected value. Each item names how to measure it.
 
 **Status** (checked against the code after round 1, see §3b):
 
-1. Implemented, then switched off. `HeuristicAgent` has a `deepAttacks` option, but Hard runs with `HARD_DEEP_ATTACKS = 0` (`src/ai/tiers.ts`) because attack rollouts measured no gain.
+1. Implemented, then switched off. `HeuristicAgent` has a `deepAttacks` option, but Hard runs with `deepAttacks: 0` (`TIER_SETTINGS.hard` in `src/ai/tiers.ts`; the constant was once `HARD_DEEP_ATTACKS`) because attack rollouts measured no gain.
 2. Done. The coach decides sells with `sellLookahead: 3` (`COACH_CONFIG` in `src/ai/coach.ts`).
 3. Partly done. Reactions (blocks, reaction-time calls and programs, and letting the attack through) are now graded. Mulligans and Gig dice are not.
 4. Open. `review.ts` has a calibration section, but it still uses the short horizon.
 5. Open.
-6. Open. `forge.ts --bot hard` works, but the forge logs in `reports/` were all made with the `lookahead` or `medium` bot.
+6. Open. `forge.ts --bot hard` works, but the forge logs in `reports/` were all made with the `lookahead` or `medium` bot. (2026-11-16: Season 3's forge screened with Medium and confirmed with Hard, `--confirm-bot hard`; the misplayed decks named in §2 have not been forged.)
 
 ## 3b. Refinement round 1: what happened
 

@@ -223,7 +223,7 @@ ${problemLines.length ? `## Problem matchups\n${problemLines.join('\n')}` : ''}
 - The sideboard is exactly 7 cards. Build it for your worst matchups first. Then test the post-board list in the Matchup Lab.
 
 ## Practice schedule (${days} days to Chicago)
-1. **This week:** 10+ games a day in **Play vs Bot** with ${pick.name} on Deep, Coach on. Read every Coach line where you disagreed with it.
+1. **This week:** 10+ games a day in **Play vs Bot** with ${pick.name} on Hard, Coach on. Read every Coach line where you disagreed with it.
 2. **Next week:** play the three worst matchups from the table above on both seats, and log the results (the Play page keeps a practice log).
 3. **Final week:** best-of-3 sets against the top two meta decks; finalise the 7-card sideboard; refresh the meta data (choom.gg) and re-run the sims.
 

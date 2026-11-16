@@ -45,7 +45,7 @@ const FAQ_ENTRIES_DIR = 'tests/faq/entries';
 const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
 /**
- * Not read: the tutorial content (being written), generated modules, unmaintained one-off scripts, and the pack's own
+ * Not read: the tutorial content (it landed while the pack was built and has not been indexed yet), generated modules, unmaintained one-off scripts, and the pack's own
  * code (rule M12; the site pack's build tool and manifest type since step 3). The `insights`
  * arrays of src/data/analysis.json are not read either (they come with the measured cells, plan step 2.4), and neither
  * are archived decks (D9).

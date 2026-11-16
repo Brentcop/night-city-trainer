@@ -125,9 +125,9 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 1.5 | Agent skill and a `CLAUDE.md` pointer | done | 2026-11-13 |
 | 1.6 | Unanswerable questions; the "no match" floor, the rules misses, two-deck questions | done: measured, no change kept | 2026-11-13 |
 | 2.1 | Numbers by code: `src/lib/eventFacts.ts` and `npm run kb -- fact` | done | 2026-11-13 |
-| 2.2 | Event, round, rating and matchup records from templates; movement around the cut and upsets | done in the pack; Gig margins and site files later | 2026-11-14 |
+| 2.2 | Event, round, rating and matchup records from templates; movement around the cut and upsets | done in the pack and on the site (the site pack's `events` shard, step 3.2); Gig margins later | 2026-11-14 |
 | 2.3 | Findings as records | next: no longer blocked (TUNING_STUDY P2 was built on 2026-11-15, docs/EVIDENCE.md); not started | |
-| 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack; reached by everyday wording since 4.7b; site files later | 2026-11-14 |
+| 2.4 | Card and package play statistics as exact facts and keyed records | done in the pack and on the site (the late `cardstat` and `pkgstat` shards, step 3.2); reached by everyday wording since 4.7b | 2026-11-14 |
 | 3.1 | Public pack, byte budgets, guards | done: shards built with the site, named by content hash, budgets checked by the build | 2026-11-14 |
 | 3.2 | Search and dossiers on the site behind a feature flag | done: the Search page behind the feature `search`, off until the owner turns it on; card-ruling dossiers wait on D2 | 2026-11-14 |
 | 4.1 | Embeddings as a fourth ranker | done: measured, not kept in the default; opt-in | 2026-11-13 |
@@ -315,7 +315,8 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
 - Exposed as `npm run kb -- fact <name> ...` and to templates.
 - Landed: `src/lib/eventFacts.ts` (`eventSummary`, `standingsAfter`, `roundSummary`, `deckCompetitive`,
   `matchupFact`), each result carrying its bot, sim version and recorded date. Rebuilt standings equal the
-  stored standings on all 7 recorded events (`tests/event-facts.test.ts`). The commands are
+  stored standings on all 7 recorded events (`tests/event-facts.test.ts`; it checks every recorded event,
+  14 on 2026-11-16). The commands are
   `fact champion --event N`, `fact standings --event N [--round K]`, `fact round --event N --round K`,
   `fact rating <deck>`, `fact finishes <deck>` and `fact matchup <a> vs <b>`.
 - "Top 8" comes back as two named numbers (D6): real top-cut appearances, and the ratings file's count of
@@ -353,6 +354,7 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
 - A richer round summary needs per-game Gig counts, which the tournament worker computes and the event
   writer drops (`scripts/worker.ts` lines 73 to 74 and 276 to 277); keeping them is about 15 bytes a game.
 - Landed in the pack: 7 event, 71 round (52 Swiss and 19 bracket), 47 rating and 103 matchup records
+  (on 2026-11-16, `npm run kb -- stats`: 14 event, 155 round, 48 rating and 460 matchup records)
   (pairings with at least 6 games; the rest are answered by `fact matchup`). Each is `measured`, names
   its bot and sim version in its first sentence, shows every rate with its sample, and is marked stale when
   its sim version is not the current one. They are rebuilt with the pack from the event files, the index,
@@ -802,6 +804,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Events 8 to 14 recorded (14 events, 6,014 games). By the rule in the question file five two-deck questions expect their matchup record again (q107, q113, q145, q198, q281; six still have fewer than 6 games) and q141 / q146 the new leader, RRG Dexter Midrange | held-out answerable (108), all records: top 1 44%, top 5 67%, top 10 72%, MRR 0.54 (was 42%, 64%, 71%, 0.52); public only (92): top 5 70%, MRR 0.58 (was 65%, 0.57); number questions over both splits (47): top 5 68% (was 55%) | events 8–14 |
 | 2026-11-14 | Search quality on exactly the site pack (73 questions skipped: they expect a ruling, doc, code or local record) | held-out answerable (80): top 1 50%, top 5 68%, top 10 74%, MRR 0.59; 5 of 80 wrongly refused; 7 of 7 unanswerable refused | step 3 |
 | 2026-11-14 | Cost of growth: round and event records with movement and upsets (286 questions) | 6 questions changed rank (3 up, 3 down); all records: top 5 −0.4 points [−1.1, 0], MRR −0.002 [−0.007, +0.001]; public: top 5 −0.9 [−2.2, 0]. Held-out answerable (108): top 5 67.6% to 66.7%, MRR 0.552 to 0.548 | step 2.2 |
+| 2026-11-16 | Cost of growth: Season 3 landed (six new decks with their notes: 53 decks) and the documents corrected by the roadmap review; 5,069 records, 4,045 public | held-out answerable (108), all records: top 1 43.5%, top 5 67.6%, top 10 72.2%, MRR 0.538; 4 of 108 wrongly refused. All 268 answerable: top 5 69.8%, MRR 0.569. Public pack, held-out (92): top 5 69.6%, MRR 0.588 | reports/kb-eval-latest.md |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -840,7 +843,7 @@ The owner decides these. Until then the stopgap in the last column applies, and 
 | D12 | Give the rating fit a starting assumption on its going-first term? Without one, tiny data where a deck wins every game from one seat makes the fit run away and every prediction 50%. A fix changes rating numbers slightly and needs a ratings rebuild. | Unchanged. Real data is clear of it today, and upsets are judged only from 18 earlier games a deck. |
 | D13 | The review screen rebuilds each move's board with the current engine, so a game played on an older sim version may show boards that do not match it. Hide the boards for such games, or keep them? | Unchanged (shown as before). |
 
-D6 in detail: `scripts/event-pool.ts` line 132 counts `i < 8`, even in 7-deck events that cut to four,
+D6 in detail: `scripts/event-pool.ts` line 134 (2026-11-16) counts `i < 8`, even in 7-deck events that cut to four,
 while the tournament index and the finish chips use the real cut, so five decks show two different counts.
 
 ## 9. Risks and guards
@@ -857,7 +860,8 @@ while the tournament index and the finish chips use the real cut, so five decks 
   reads these files; a step that edits them says so first.
 - **Self-consistency.** Coach grades, review ratings and bot statistics all rest on the bots' own
   evaluation. "How to play a card" from that data describes what the bots do, as association.
-- **Drafts read as fact.** None of the 91 deck notes or 26 packages is owner-confirmed. Guard: status is
+- **Drafts read as fact.** None of the 91 deck notes or 26 packages is owner-confirmed (2026-11-16: 97
+  deck notes with Season 3's six, and the 26 packages, all still `draft`). Guard: status is
   shown with every such record.
 - **Same word, different meaning.** "Stage" has two definitions (`src/analysis/decisions.ts` and
   `src/ai/benchmark.ts`), "games" means different things in event standings, the index and ratings, and
