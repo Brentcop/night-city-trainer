@@ -6,14 +6,13 @@ import type { CoachedGrade } from '../../lib/coachedReplay';
 import type { PracticeReplay } from '../../lib/practiceReplays';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
-import { annotatePractice, coachSummary } from '../../lib/practiceLog';
+import { keepFinishedGrades, keepsCoachGrades } from '../../lib/coachKeep';
 import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
 import { download } from '../../lib/download';
 import { GIG_SWING } from '../../ai/eval';
 import { canConcede, canUndo, rematchOf, type Running } from '../../lib/practiceSession';
 import { GameReviewModal, type GameReviewSource } from '../components/GameReview';
 import { coachRatingsFrom } from '../../lib/gameReview';
-import { saveCoachRatings } from '../../lib/gameReviewStore';
 import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
 import { useLiftSlice } from '../synergyReport';
@@ -22,6 +21,7 @@ import { boardWarnings, coachWorthAsking, gradeMove, scorable, matchupTips, type
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, onlyEndTurn, promptZones, type Targeting } from '../components/board/interaction';
+import { adviceWanted, gradeWanted } from '../components/board/coachGate';
 import type { BoardCtx } from '../components/board/BoardCard';
 import { BoardFx, MyHand, PlayerSide } from '../components/board/Zones';
 import { ActionMenu, GameOverOverlay, LeaveDialog, MulliganScreen, TrashModal, type MenuState } from '../components/board/Overlays';
@@ -30,7 +30,7 @@ import { DRAWER_ID, LogDrawer, LogTab } from '../components/board/LogDrawer';
 import { ALL_ACTIONS_KEY, BOT_SPEEDS, DEFAULT_BOT_SPEED, LOG_OPEN_KEY, loadBotSpeed, normalizeBotSpeed, saveBotSpeed, useSessionFlag } from '../components/board/prefs';
 import { SettingsDialog } from '../components/board/SettingsDialog';
 import { PayPrompt, PaySelector } from '../components/board/PayParts';
-import { useBoardSettings } from '../useBoardSettings';
+import { useBoardSettings, useCoachSetting } from '../useBoardSettings';
 import {
   addEddie,
   automaticSelection,
@@ -134,8 +134,11 @@ function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initia
   // the site config sets the default bot tier and can turn the coach, saved games and game review off
   const site = useSiteConfig();
   const coachOn = site.features.coach;
-  const [coachPick, setCoach] = useState(true);
-  const coach = coachPick && coachOn;
+  // board settings (src/lib/boardSettings.ts), the Coach switch among them: one setting for the setup screen's box and
+  // Settings' switch, remembered in this browser; a save never changes it (the current setting decides)
+  const [settings, updateSettings, resetSettings] = useBoardSettings();
+  const [coachSetting, setCoach] = useCoachSetting();
+  const coach = coachOn && coachSetting;
   const [levelPick, setLevel] = useState<Tier>(() => (site.play.tiers as readonly string[]).includes(initialTier ?? '') ? (initialTier as Tier) : site.play.defaultTier);
   const level: Tier = site.play.tiers.includes(levelPick) ? levelPick : site.play.defaultTier;
   // the bot's pace is remembered in this browser (an old stored "fast" of 250 ms maps to today's fast)
@@ -158,7 +161,6 @@ function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initia
     Date.now,
     () => savesRef.current,
   );
-  const [settings, updateSettings, resetSettings] = useBoardSettings();
   const [showSettings, setShowSettings] = useState(false);
   const dA = useMemo(() => findDeck(mine), [mine]);
   const dB = useMemo(() => findDeck(opp), [opp]);
@@ -242,10 +244,10 @@ function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initia
       return;
     }
     setMdBusy(true);
+    // the save's `coach` is only a record: the Coach setting in force now decides whether the coach is on
     void resumeMultiDay(e, late).then((r) => {
       setMdBusy(false);
-      if (r.ok) setCoach(e.save.coach);
-      else if (r.mismatch) setProblem({ save: e.save, why: r.why, from: 'md', id: e.id });
+      if (!r.ok && r.mismatch) setProblem({ save: e.save, why: r.why, from: 'md', id: e.id });
     });
   };
   const botOf = (it: OngoingItem) => botGames.find((x) => x.id === it.id);
@@ -313,10 +315,10 @@ function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initia
       return;
     }
     setRestoring(true);
+    // the save's `coach` is only a record: the Coach setting in force now decides whether the coach is on
     void resume(s).then((r) => {
       setRestoring(false);
-      if (r.ok) setCoach(s.coach);
-      else if (r.mismatch) setProblem({ save: s, why: r.why, from, id: s.id });
+      if (!r.ok && r.mismatch) setProblem({ save: s, why: r.why, from, id: s.id });
     });
   };
   // a named or imported save asks first when resuming it would replace another unfinished game's autosave (APP-1), or
@@ -467,6 +469,7 @@ function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initia
               }}
               speed={speed}
               setSpeed={setSpeed}
+              hasCoach={coachOn}
               onClose={() => setShowSettings(false)}
             />,
             document.body,
@@ -481,7 +484,8 @@ function PracticePlay({ initialDeck, initialOpp, initialTier, online }: { initia
         key={game.match}
         session={session}
         game={game}
-        coach={coach}
+        // a coach exists in a game against the bot (site feature); the board reads the Coach setting itself, live
+        coach={coachOn}
         speed={speed}
         setSpeed={setSpeed}
         onQuit={quit}
@@ -579,7 +583,7 @@ export interface TutorialBoard {
 export function Board({
   session,
   game,
-  coach,
+  coach: coachHere,
   speed,
   setSpeed,
   onQuit,
@@ -598,6 +602,11 @@ export function Board({
 }: {
   session: TickSource;
   game: BoardRun;
+  /**
+   * a coach exists on this board (a game against the bot with the site's coach feature on); false online, in multi-day
+   * games against a person and in tutorial lessons. Whether it is on is the board setting `coach` (Settings' Coach switch,
+   * read here, so a change applies at once, mid-game too).
+   */
   coach: boolean;
   speed: number;
   setSpeed: (n: number) => void;
@@ -659,6 +668,12 @@ export function Board({
     const t = setTimeout(() => setToast(null), 4500);
     return () => clearTimeout(t);
   }, [toast]);
+  // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds, and the Coach switch
+  const [settings, updateSettings, resetSettings] = useBoardSettings();
+  const [showSettings, setShowSettings] = useState(false);
+  // the coach is on: this board has one and the Coach setting is on. Turned off, its mark, box, panel, warnings and toast
+  // go at once and no advice is asked; turned on, advice is asked for the decision waiting. The game never reads it.
+  const coach = coachHere && settings.coach;
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
   // the seats' names (deck names, chosen by players) are never read as card names in the log
   const seatA = s.players[0].name;
@@ -698,9 +713,6 @@ export function Board({
   useEffect(() => {
     if (storageNote) setNotice(storageNote.text, 9000);
   }, [storageNote, setNotice]);
-  // board settings (src/lib/boardSettings.ts): paying costs, the side panel, colours and backgrounds
-  const [settings, updateSettings, resetSettings] = useBoardSettings();
-  const [showSettings, setShowSettings] = useState(false);
   // a tutorial lesson pays automatically (the stored setting is not changed)
   const payMode = online?.autoPay || tutorial ? 'auto' : settings.payMode;
   const panelSet = settings.panel;
@@ -726,7 +738,7 @@ export function Board({
   // coach: ask the advisor bot what it would do in this spot
   useEffect(() => {
     // nothing to advise for a one-option decision (ending the turn when nothing else is left: forced, not graded either)
-    if (!pend || !coach || !coachWorthAsking(pend) || onlyEndTurn(pend) || autoPayAnswer(pend, payMode) !== null) return;
+    if (!adviceWanted(pend, coach, payMode)) return;
     let alive = true;
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
     advise(g, pend, lift0)
@@ -819,7 +831,7 @@ export function Board({
         setNotice('That move was made before the coach had finished thinking, so it is not graded. A move is graded once the coach’s pick shows.');
       }
       // grade the move against the coach by value (only when the advice for this exact spot is ready)
-      if (coach && activeHint && activeHint.d === d && coachWorthAsking(d)) {
+      if (activeHint && gradeWanted(d, coach, activeHint.d)) {
         const advice = activeHint.advice;
         // this answer's place among the recorded choices (the recorder adds it once the answer settles)
         const at = game.replay.choices.length;
@@ -935,14 +947,15 @@ export function Board({
 
   const over = s.winner !== null;
   const failed = game.error;
+  // the coach was on at some point of this game (a board is one game; Undo keeps it): its grades are kept at the end
+  // whatever the switch says then, and a game finished again after Undo replaces what the first finish kept
+  const [coachUsed, setCoachUsed] = useState(coach);
+  if (coach && !coachUsed) setCoachUsed(true);
   // the scorecard goes into the practice log with the game (the profile's coach averages read it)
   useEffect(() => {
-    if (!over || !coach) return;
-    const sum = coachSummary(grades);
-    if (sum && sum.measured > 0) annotatePractice(game.replay.id, sum);
-    // the coach's grades go with the game, so a Game review run later (from the Profile) keeps them
-    saveCoachRatings(game.replay.id, coachRatingsFrom(grades.map((x) => x.record), game.replay.choices.length, GIG_SWING), game.replay.choices);
-  }, [over, coach, grades, grades.length, gradeTick, game.replay.id, game.replay.choices]);
+    if (!over || !keepsCoachGrades(coachUsed, grades.length)) return;
+    keepFinishedGrades(game.replay.id, grades, game.replay.choices, GIG_SWING);
+  }, [over, coachUsed, grades, grades.length, gradeTick, game.replay.id, game.replay.choices]);
   const onlineReview = online && over ? online.review() : null;
   const openReview = () => {
     setHideOver(true);
@@ -1265,7 +1278,7 @@ export function Board({
             <span className="pb-midline-text">
               <MentionText text={head.text} />
             </span>
-            {toast && <MoveToast key={grades.length} gr={toast} />}
+            {coach && toast && <MoveToast key={grades.length} gr={toast} />}
             {/* phones: the turn button sits in the banner, in the middle of the screen */}
             {narrow && handAction && <span className="pb-midline-action">{handAction}</span>}
           </div>
@@ -1379,6 +1392,7 @@ export function Board({
               speed={speed}
               setSpeed={online ? undefined : setSpeed}
               panels={{ logOpen, setLogOpen, allOpen, setAllOpen }}
+              hasCoach={coachHere && !online && !tutorial}
               onClose={() => setShowSettings(false)}
             />
           )}
@@ -1463,7 +1477,8 @@ export function Board({
           onUndo={undoable ? onUndo : undefined}
           review={
             <>
-              {coach && <Scorecard grades={grades} />}
+              {/* every move graded while the coach was on, even if it is off now; none graded, no scorecard */}
+              <Scorecard grades={grades} />
               {online?.overNote}
               <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
                 {canReview && (!online || onlineReview) && (

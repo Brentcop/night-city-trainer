@@ -8,6 +8,8 @@ import {
   applyPatch,
   BOARD_BACKGROUNDS,
   CARD_BACKS,
+  COACH_HELP,
+  COACH_LABEL,
   CONFIRM_ACTIONS_HELP,
   CONFIRM_ACTIONS_LABEL,
   defaultBoardSettings,
@@ -183,6 +185,44 @@ describe('settings dialog', () => {
     check!.onChange(false);
     check!.onChange(true);
     expect(patches).toEqual([{ confirmActions: false }, { confirmActions: true }]);
+  });
+
+  it('Coach: a checkbox first in the Game group where a coach exists, ticked by default, with its help, and it changes the setting', () => {
+    const withCoach = (s = defaultBoardSettings()) =>
+      renderToStaticMarkup(<SettingsDialog settings={s} onChange={noop} onReset={noop} speed={1200} setSpeed={noop} hasCoach onClose={noop} />);
+    // not shown unless the caller says this board has a coach (online play, games against a person, tutorial lessons)
+    expect(render()).not.toContain('<legend>Coach</legend>');
+    expect(render()).not.toContain(COACH_HELP);
+    const html = withCoach();
+    const box = new RegExp(`<label class="pb-set-row"><span>${COACH_LABEL}</span><input type="checkbox"( checked="")?/>`);
+    const at = html.search(box);
+    expect(html).toContain('<legend>Coach</legend>');
+    expect(at).toBeGreaterThan(html.indexOf('>Game</h4>'));
+    expect(at).toBeLessThan(html.indexOf('<legend>Paying costs</legend>'));
+    expect(html.match(box)?.[1]).toBe(' checked=""');
+    expect(html).toContain(COACH_HELP);
+    expect(withCoach(applyPatch(defaultBoardSettings(), { coach: false })).match(box)?.[1]).toBeUndefined();
+    // the box's onChange sends the patch
+    const patches: BoardSettingsPatch[] = [];
+    let el: unknown = null;
+    function Probe() {
+      el = SettingsDialog({ settings: defaultBoardSettings(), onChange: (p) => patches.push(p), onReset: noop, speed: 1200, setSpeed: noop, hasCoach: true, onClose: noop });
+      return null;
+    }
+    renderToStaticMarkup(<Probe />);
+    let check: { onChange: (on: boolean) => void } | null = null;
+    const walk = (n: unknown): void => {
+      if (!n || typeof n !== 'object') return;
+      if (Array.isArray(n)) return n.forEach(walk);
+      const props = (n as { props?: Record<string, unknown> }).props ?? {};
+      if (props.label === COACH_LABEL && typeof props.onChange === 'function') check = props as never;
+      walk(props.children);
+    };
+    walk(el);
+    expect(check).not.toBeNull();
+    check!.onChange(false);
+    check!.onChange(true);
+    expect(patches).toEqual([{ coach: false }, { coach: true }]);
   });
 
   it('every select has a label pointing at it, showing the current value', () => {

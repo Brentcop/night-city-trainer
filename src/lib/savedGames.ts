@@ -63,7 +63,10 @@ export interface SavedGame {
   /** every answer you gave, in order (may run past `check.at` when you saved while the bot was moving) */
   choices: number[][];
   undos?: number;
-  /** coach mode was on */
+  /**
+   * the coach was on when the game was saved (the Coach setting then). A record only: resuming never changes the board
+   * setting `coach`; the setting in force when it is resumed decides. Kept so the schema and older saves stay as they are.
+   */
   coach: boolean;
   /** coach grades so far (with the export record of each) */
   grades: CoachedGrade[];

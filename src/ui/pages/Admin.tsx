@@ -551,6 +551,13 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
           help="a card dropped on the board asks before it acts; off, a drop that can mean only one thing happens at once"
         />
         <Errs issues={issues} path="play.board.confirmActions" />
+        <Check
+          label="Coach starts on"
+          checked={draft.play.board.coach}
+          onChange={(v) => up((c) => void (c.play.board.coach = v))}
+          help="the Coach switch in Settings and on the Play setup screen, for games against the bot; each visitor can turn it off or on (with the Coach feature off there is no coach at all)"
+        />
+        <Errs issues={issues} path="play.board.coach" />
         <Select label="Side panel position" value={draft.play.board.panelPosition} options={PANEL_POSITIONS} labels={POSITION_LABEL} onChange={(v) => up((c) => void (c.play.board.panelPosition = v))} />
       </fieldset>
 

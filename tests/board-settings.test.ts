@@ -8,6 +8,8 @@ import {
   BOARD_BACKGROUNDS,
   BOARD_SETTINGS_KEY,
   CARD_BACKS,
+  COACH_HELP,
+  COACH_LABEL,
   DEFAULT_BOARD_SETTINGS,
   defaultBoardSettings,
   FRAMES,
@@ -40,6 +42,7 @@ describe('board settings store', () => {
       endTurn: 'click',
       panel: { position: 'right', density: 'detailed', textSize: 'medium', order: 'newest-last', turnMarkers: true, autoOpenRivalTurn: false },
       confirmActions: true,
+      coach: true,
       accent: 'yellow',
       boardBg: 'grid',
       gigBg: 'panel',
@@ -94,7 +97,7 @@ describe('board settings store', () => {
       gigBg: 'stripes',
     };
     store.setItem(BOARD_SETTINGS_KEY, JSON.stringify(old));
-    expect(loadBoardSettings(store)).toEqual({ ...old, confirmActions: true, cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', motion: 'system' });
+    expect(loadBoardSettings(store)).toEqual({ ...old, confirmActions: true, coach: true, cardBack: 'stripes', glow: 'soft', frame: 'hud', numerals: 'readout', motion: 'system' });
     try {
       setSiteBoardDefaults({ glow: 'off', frame: 'plain', cardBack: 'scan' });
       const t = loadBoardSettings(store);
@@ -121,6 +124,48 @@ describe('board settings store', () => {
     // a saved choice round-trips
     saveBoardSettings(applyPatch(defaultBoardSettings(), { confirmActions: false }), store);
     expect(loadBoardSettings(store).confirmActions).toBe(false);
+  });
+
+  it('Coach: a boolean, on by default; a stored choice wins, junk falls back to on, older saved settings take the site default', () => {
+    expect(defaultBoardSettings().coach).toBe(true);
+    expect(DEFAULT_BOARD_SETTINGS.coach).toBe(true);
+    expect(parseBoardSettings({ coach: false }).coach).toBe(false);
+    expect(parseBoardSettings({ coach: true }).coach).toBe(true);
+    for (const junk of ['off', 0, 1, null, {}, []]) expect(parseBoardSettings({ coach: junk }).coach).toBe(true);
+    expect(applyPatch(defaultBoardSettings(), { coach: false }).coach).toBe(false);
+    // the patch changes the coach alone
+    expect(applyPatch(defaultBoardSettings(), { coach: false })).toEqual({ ...defaultBoardSettings(), coach: false });
+    const store = memStore();
+    // a stored choice round-trips
+    saveBoardSettings(applyPatch(defaultBoardSettings(), { coach: false }), store);
+    expect(loadBoardSettings(store).coach).toBe(false);
+    expect(JSON.parse(store.getItem(BOARD_SETTINGS_KEY)!).coach).toBe(false);
+    // an invalid stored value: on
+    store.setItem(BOARD_SETTINGS_KEY, JSON.stringify({ ...defaultBoardSettings(), coach: 'no' }));
+    expect(loadBoardSettings(store).coach).toBe(true);
+    // what the version before this choice wrote: every field but coach
+    const { coach: _drop, ...before } = defaultBoardSettings();
+    void _drop;
+    store.setItem(BOARD_SETTINGS_KEY, JSON.stringify({ ...before, accent: 'cyan' }));
+    expect(loadBoardSettings(store)).toEqual({ ...defaultBoardSettings(), accent: 'cyan' });
+    try {
+      // the site owner starts it off: new visitors and settings saved before the choice take that; a saved choice wins
+      setSiteBoardDefaults({ coach: false });
+      expect(defaultBoardSettings().coach).toBe(false);
+      expect(loadBoardSettings(memStore()).coach).toBe(false);
+      expect(loadBoardSettings(store).coach).toBe(false);
+      expect(loadBoardSettings(store).accent).toBe('cyan');
+      store.setItem(BOARD_SETTINGS_KEY, JSON.stringify({ ...before, coach: true }));
+      expect(loadBoardSettings(store).coach).toBe(true);
+    } finally {
+      setSiteBoardDefaults({});
+    }
+    expect(COACH_LABEL).toBe('Coach');
+    // the help says what the coach does and when a change applies, in plain words
+    expect(COACH_HELP).toMatch(/marks the move/);
+    expect(COACH_HELP).toMatch(/grades/);
+    expect(COACH_HELP).toMatch(/at once/);
+    expect(COACH_HELP).not.toMatch(/`|lookahead|worker|play-out/);
   });
 
   it('presets: valid settings, all different, the defaults are one of them and the old look is another', () => {

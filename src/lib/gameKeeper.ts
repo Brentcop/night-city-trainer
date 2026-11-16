@@ -28,7 +28,7 @@ export const RECORD_REFUSED = 'This browser refused to record the result (its st
 export const RECORD_REFUSED_MD = 'This browser refused to record the result (its storage is full or blocked), so the game is not in your history yet. It stays in Ongoing games: free some space and finish it again.';
 
 export interface KeeperOptions {
-  /** coach mode is on (kept in the save) */
+  /** coach mode is on (kept in the save as a record; resuming does not change the Coach setting) */
   coach: () => boolean;
   /** saved games are on (site config): off, no autosave is written (a multi-day game still is: it lives in its own list) */
   saves: () => boolean;

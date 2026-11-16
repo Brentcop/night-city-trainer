@@ -420,6 +420,31 @@ describe('decks and board defaults', () => {
     st.setItem('nct.boardSettings.v1', JSON.stringify({ v: 1, accent: 'green' }));
     expect(loadBoardSettings(st).confirmActions).toBe(true);
   });
+  it('Coach: on by default, the owner can start it off for visitors, and a saved choice wins', () => {
+    setSiteBoardDefaults({});
+    expect(defaultSiteConfig().play.board.coach).toBe(true);
+    expect(parseSiteConfigText(fs.readFileSync(path.join(ROOT, 'public/site-config.json'), 'utf8')).config.play.board.coach).toBe(true);
+    const off = parseSiteConfig({ kind: 'nct-site-config', schema: 1, play: { board: { coach: false } } });
+    expect(off.errors).toEqual([]);
+    expect(off.config.play.board.coach).toBe(false);
+    // the site feature is a separate switch: the board default does not touch it
+    expect(off.config.features.coach).toBe(true);
+    const bad = parseSiteConfig({ kind: 'nct-site-config', schema: 1, play: { board: { coach: 'off' } } });
+    expect(bad.errors.map((e) => e.path)).toEqual(['play.board.coach']);
+    expect(bad.config.play.board.coach).toBe(true);
+    const st = memoryStorage();
+    expect(loadBoardSettings(st).coach).toBe(true);
+    setSiteBoardDefaults(off.config.play.board);
+    expect(loadBoardSettings(st).coach).toBe(false);
+    // settings saved before the choice existed take the site's default; a saved choice wins
+    st.setItem('nct.boardSettings.v1', JSON.stringify({ v: 1, accent: 'green', confirmActions: true }));
+    expect(loadBoardSettings(st).coach).toBe(false);
+    st.setItem('nct.boardSettings.v1', JSON.stringify({ v: 1, coach: true }));
+    expect(loadBoardSettings(st).coach).toBe(true);
+    setSiteBoardDefaults({});
+    st.setItem('nct.boardSettings.v1', JSON.stringify({ v: 1, accent: 'green' }));
+    expect(loadBoardSettings(st).coach).toBe(true);
+  });
 });
 
 describe('the editor (#/admin)', () => {
@@ -444,7 +469,7 @@ describe('the editor (#/admin)', () => {
       c.nav.sections[0]!.pages = moveItem(c.nav.sections[0]!.pages, 2, -1);
       c.home.sections = moveItem(c.home.sections, 4, -1);
       c.home.featuredDeck = 'meta-rrg-dexter-midrange.txt';
-      c.play = { defaultTier: 'medium', tiers: ['easy', 'medium'], board: { accent: 'amber', boardBg: 'neon', gigBg: 'glow', cardBack: 'hex', glow: 'strong', frame: 'plain', numerals: 'standard', payMode: 'after', endTurn: 'auto', confirmActions: false, panelPosition: 'bottom' } };
+      c.play = { defaultTier: 'medium', tiers: ['easy', 'medium'], board: { accent: 'amber', boardBg: 'neon', gigBg: 'glow', cardBack: 'hex', glow: 'strong', frame: 'plain', numerals: 'standard', payMode: 'after', endTurn: 'auto', confirmActions: false, coach: false, panelPosition: 'bottom' } };
       c.decks = { hidden: ['meta-a.txt'], sources: ['meta', 'nc'], defaultSort: 'name' };
       c.features.chat = true;
       c.maintenance = { on: true, message: 'Two\nlines', allowPlay: false };

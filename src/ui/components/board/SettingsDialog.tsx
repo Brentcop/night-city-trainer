@@ -1,5 +1,6 @@
 // The Play board's settings dialog (gear on the full board's strip, "Settings" in the phone ☰ menu, and a button on
-// the setup screen), in two groups. Game: paying costs, ending your turn, confirming before acting, the side panel
+// the setup screen), in two groups. Game: the coach (where there is one), paying costs, ending your turn, confirming
+// before acting, the side panel
 // (game log and coach notes), the bot's pace and the panels kept open for the session (board/prefs.ts). Look: a live mini-board showing the current
 // choices, one-click presets (or Custom), colours, board and Gig area backgrounds, card backs, and the effects (glow,
 // frames, numbers, motion). Every change applies at once (End of turn from the next game) and is saved in this browser
@@ -12,6 +13,8 @@ import {
   BOARD_BG_LABEL,
   CARD_BACK_LABEL,
   CARD_BACKS,
+  COACH_HELP,
+  COACH_LABEL,
   CONFIRM_ACTIONS_HELP,
   CONFIRM_ACTIONS_LABEL,
   END_TURN_HELP,
@@ -158,6 +161,7 @@ export function SettingsDialog({
   speed,
   setSpeed,
   panels,
+  hasCoach = false,
   onClose,
 }: {
   settings: BoardSettings;
@@ -169,6 +173,11 @@ export function SettingsDialog({
   setSpeed?: (ms: number) => void;
   /** during a game: the panels kept open for the session */
   panels?: SessionPanels;
+  /**
+   * a coach exists here (the setup screen and games against the bot, with the site's coach feature on): the Coach switch
+   * is shown. Absent or false (online play, multi-day games against a person, tutorial lessons): no switch.
+   */
+  hasCoach?: boolean;
   onClose: () => void;
 }) {
   const id = useId();
@@ -182,6 +191,14 @@ export function SettingsDialog({
       <p className="small muted pb-set-note">Changes apply at once and are saved in this browser.</p>
 
       <h4 className="pb-set-group">Game</h4>
+      {hasCoach && (
+        <fieldset>
+          <legend>Coach</legend>
+          <Check label={COACH_LABEL} checked={settings.coach} onChange={(on) => onChange({ coach: on })} />
+          <p className="small muted pb-set-note">{COACH_HELP}</p>
+        </fieldset>
+      )}
+
       <fieldset>
         <legend>Paying costs</legend>
         <div className="pb-set-choices" role="radiogroup" aria-label="Paying costs">

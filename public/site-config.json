@@ -221,6 +221,7 @@
       "payMode": "auto",
       "endTurn": "click",
       "confirmActions": true,
+      "coach": true,
       "panelPosition": "right"
     }
   },

@@ -106,3 +106,13 @@ export function useBoardSettings(): [BoardSettings, (patch: BoardSettingsPatch) 
   const reset = useCallback(() => set(defaultBoardSettings()), []);
   return [s, update, reset];
 }
+
+/**
+ * The Coach switch (board setting `coach`) and a way to set it: the Play setup screen's box uses this, and Settings'
+ * Coach switch sends the same patch, so the two always agree. A save never sets it (the setting in force decides).
+ */
+export function useCoachSetting(): [boolean, (on: boolean) => void] {
+  const [s, update] = useBoardSettings();
+  const set = useCallback((on: boolean) => update({ coach: on }), [update]);
+  return [s.coach, set];
+}

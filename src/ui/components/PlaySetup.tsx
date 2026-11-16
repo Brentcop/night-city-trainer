@@ -60,7 +60,10 @@ export function PlaySetup({
   seat: Seat;
   setSeat: (s: Seat) => void;
   coach: boolean;
-  /** absent when the coach is turned off (site config): the coach switch is not shown */
+  /**
+   * the board setting `coach` (src/lib/boardSettings.ts), the same one Settings' Coach switch edits, so the two always
+   * agree; absent when the coach is turned off (site config): the coach switch is not shown
+   */
   setCoach?: (on: boolean) => void;
   level: Tier;
   setLevel: (t: Tier) => void;
@@ -110,7 +113,7 @@ export function PlaySetup({
         {setCoach && (
           <label className="row">
             <input type="checkbox" checked={coach} onChange={(e) => setCoach(e.target.checked)} />
-            <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats</span>
+            <span>Coach mode — the deep advisor suggests a move, explains why, and flags threats (you can also turn it off or on in Settings, during a game too)</span>
           </label>
         )}
         {multiDay && (
