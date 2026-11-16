@@ -22,6 +22,7 @@ import { RatingsPage } from '../src/ui/pages/Ratings';
 import { clearWords, YourStatsLine, yourStatsLineText } from '../src/ui/components/YourStats';
 import { YourTierBadge } from '../src/ui/components/TierBadges';
 import { simTier } from '../src/lib/simTier';
+import { RATINGS } from '../src/data/index';
 
 const ROOT = path.resolve(__dirname, '..');
 const RATED = BUILTIN.find((d) => d.file === 'meta-rrg-dexter-midrange.txt')!;
@@ -149,7 +150,10 @@ describe('a provisional rating (Hard-bot games against recorded decks)', () => {
     expect(tile).not.toContain('tierb-sim');
     const page = renderToStaticMarkup(<DeckRecordPanel d={d} headingId="h" />);
     expect(page).toContain('Provisional rating');
-    expect(page).toMatch(/expected vs the recorded field \(90% range \d+%–\d+%\) from 24 games with All Hard bots · would place \d+(st|nd|rd|th) of 48 in the <a href="#\/ratings">Power ratings<\/a>/);
+    // one place more than the recorded decks (53 of them since event 15 rated the Season 3 decks)
+    const places = RATINGS.decks.length + 1;
+    const placed = page.match(/expected vs the recorded field \(90% range \d+%–\d+%\) from 24 games with All Hard bots · would place \d+(?:st|nd|rd|th) of (\d+) in the <a href="#\/ratings">Power ratings<\/a>/);
+    expect(placed?.[1]).toBe(String(places));
     expect(page).toContain('in 2 of your tournaments, won 2 · All Hard 16–8 · All Medium 0–4');
     expect(page).toContain('16–12 (wins–losses)');
     expect(page).not.toContain('Only tournaments run with All Hard bots');
@@ -159,7 +163,7 @@ describe('a provisional rating (Hard-bot games against recorded decks)', () => {
     expect(yours).toBeGreaterThan(ratings.indexOf('</table>'));
     expect(ratings.slice(yours)).toContain('My own list');
     expect(ratings.slice(yours)).toContain('Expected win % vs the recorded field (90% range)');
-    expect(ratings.slice(yours)).toMatch(/\d+(st|nd|rd|th) of 48/);
+    expect(ratings.slice(yours).match(/\d+(?:st|nd|rd|th) of (\d+)/)?.[1]).toBe(String(places));
     expect(ratings.slice(0, yours)).not.toContain('My own list');
     // the runner's line counts it
     expect(renderToStaticMarkup(<YourStatsLine />)).toContain('Your deck stats count 2 of your tournaments (28 games), in this browser only. Only All Hard runs give a provisional rating comparable with the recorded ones (1 of yours).');

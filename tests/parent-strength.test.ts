@@ -164,7 +164,7 @@ describe('the script and the Deck Lab rank parents alike', () => {
     ]);
   });
 
-  it('on the bundled data: the two rated current rows blend at 35%, the six unrated ones stand alone, stale rows count for nothing', () => {
+  it('on the bundled data: the eight current rows blend at 35% (all are rated since event 15), stale rows count for nothing', () => {
     const versions = seasonVersions(SEASONS.seasons);
     const lab = rankedParents(BUILTIN);
     const strength = new Map(lab.map((x) => [x.deck.name, x.wr]));
@@ -186,8 +186,10 @@ describe('the script and the Deck Lab rank parents alike', () => {
         expect(strength.get(name!), name).toBe(r.rating);
       }
     }
-    expect(blended.sort()).toEqual(['Ladder: V / Smasher / Padre (RRG)', 'NC-07 Braindance Burn (RRB)']);
-    expect(alone.sort()).toEqual(['S3-02 Mutant (RGY)', 'S3-03 Cross (RRR)', 'S3-05 Counter (RRG)', 'S3-06 Counter (RBG)', 'S3-07 Explorer (RRG)', 'S3-08 Explorer (RRB)']);
+    // the rows with only Season 3 behind them. Until event 15 (2026-11-16) the six Season 3 decks had no rating and stood on
+    // their row alone; that event rated them, so all eight blend (a row standing alone is covered by the cases above)
+    expect(blended.sort()).toEqual(['Ladder: V / Smasher / Padre (RRG)', 'NC-07 Braindance Burn (RRB)', 'S3-02 Mutant (RGY)', 'S3-03 Cross (RRR)', 'S3-05 Counter (RRG)', 'S3-06 Counter (RBG)', 'S3-07 Explorer (RRG)', 'S3-08 Explorer (RRB)']);
+    expect(alone).toEqual([]);
     // the season script ranks the library the same way from data/seasons/leaderboard.json and the season files
     const lb = JSON.parse(fs.readFileSync('data/seasons/leaderboard.json', 'utf8')) as Record<string, { name: string; metaW: number; metaG: number; seasons?: Record<string, number> }>;
     const prior = 60;

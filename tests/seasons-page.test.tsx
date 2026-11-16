@@ -287,12 +287,20 @@ describe('the page', () => {
       ['S3-08 Explorer (RRB)', `Entered: shown better than ${asExplorer} with the Medium bot; the Hard bot could not tell Medium bot: +6.7 points`],
     ];
     for (const [name, words] of entered) expect(t, name).toContain(words);
-    // the new decks have no power rating yet: "not rated" beside their Season 3 round robin figure
+    // since event 15 (2026-11-16) the new decks have a power rating: it stands, with its range and games, beside their
+    // Season 3 round robin figure (a deck without one reads "not rated": the synthetic cases above)
     const ranked = rankLibraryParents(BUILTIN, RATINGS.decks, SEASONS);
     const rows = bredThenAndNow(s3, BUILTIN, RATINGS.decks, ranked);
-    expect(rows.map((r) => [r.name, r.now, r.test?.entered])).toEqual(s3.bred.map((b) => [b.name, null, true]));
-    expect(t).toContain('S3-03 Cross (RRR) crossover Ladder: V / Smasher / Padre (RRG) + NC-07 Braindance Burn (RRB) 45.0% not rated');
-    expect(t).toContain('S3-07 Explorer (RRG) explorer a new Legend trio 41.3% not rated none: an explorer');
+    const rated = new Map(RATINGS.decks.map((d) => [d.name, d]));
+    expect(rows.map((r) => [r.name, r.now, r.test?.entered])).toEqual(
+      s3.bred.map((b) => {
+        const d = rated.get(b.name)!;
+        return [b.name, { wr: d.wrField, lo: d.wrFieldLo, hi: d.wrFieldHi, games: d.games }, true];
+      }),
+    );
+    for (const r of rows) expect(r.now!.games, r.name).toBeGreaterThanOrEqual(20);
+    expect(t).toMatch(/S3-03 Cross \(RRR\) crossover Ladder: V \/ Smasher \/ Padre \(RRG\) \+ NC-07 Braindance Burn \(RRB\) 45\.0% \d+\.\d% 90% range \d+\.\d–\d+\.\d% \d+ games/);
+    expect(t).toMatch(/S3-07 Explorer \(RRG\) explorer a new Legend trio 41\.3% \d+\.\d% 90% range \d+\.\d–\d+\.\d% \d+ games none: an explorer/);
     // Season 3 compares like with like on bot and simulator, and says so
     expect(t).toContain('with another field but the same bot and simulator');
     // the two decks it kept out, with the bot that showed each worse

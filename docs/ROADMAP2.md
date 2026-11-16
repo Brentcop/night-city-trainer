@@ -283,7 +283,7 @@ The owner asked for every roadmap item to be reviewed and confirmed as good enou
 What remains, batched and ranked by value for its cost. Sizes: S under an hour of an agent, M a few hours, L a day or more or long simulations.
 
 **A. Finish what Season 3 opened** (§10)
-1. Record one event with all 53 decks so the six Season 3 decks get power ratings and Sim tiers, then rebuild ratings, head-to-heads and evidence (M; about 10 minutes of games).
+1. Record one event with all 53 decks so the six Season 3 decks get power ratings and Sim tiers, then rebuild ratings, head-to-heads and evidence (M; about 10 minutes of games). **Done 2026-11-16: event 15** (53 decks, Swiss 9 rounds Bo3 + top 8, Hard, 613 games in a minute and a half; champion Ladder: V / Smasher / Saburo). The six decks are rated, each on its 20 to 24 games of this one event, so their ranges are about 14 points either side where the other decks' are about 4: S3-08 Explorer 63% (49 to 76), S3-07 Explorer 57% (42 to 72), S3-03 Cross 52% (37 to 67), S3-02 Mutant 41% (28 to 56), S3-06 Counter 31% (19 to 47), S3-05 Counter 30% (18 to 45). More events narrow them. The owner settled the same day that "all decks" means the active library (the archived lists stay out) and that a field holds each list once.
 2. Breeder: read card data of the current simulator only. Its card table pooled Seasons 1 and 2 (older simulator and bot) and had Johnny Silverhand: Never Stop Fighting 68th of 90, the card the forge then added to two decks for +3.1 and +4.6 points (S to M). **Done 2026-11-16** (§12, gain 2): both tables are kept by simulator version and bot and read through one function; with no numbers for the current pair the breeder reads the closest there are, with a warning.
 3. Forge: additions chosen per deck, and an addition's evidence carried across decks; today they come from one format-wide ranking, which is why one card was proposed for all six decks (M).
 4. Season forge step: "until settled" on by default with its Hard-game cost stated, and the carried shortlist made to work when another bot confirms (the season cannot have both today) (S and M).
@@ -305,7 +305,7 @@ What remains, batched and ranked by value for its cost. Sizes: S under an hour o
 16. Tests for `uncountSeason` (a forced season re-run) and for the two card scripts no test references: Hanako Arasaka: In a Gilded Cage and Rockn' Rockerboy.
 17. Housekeeping: `scripts/replay-check.ts` (replaced by tests), `tools/html2text.py` (unused), and a note that Prettier was dropped.
 18. The knowledge pack indexes the tutorial lessons.
-19. The site search's events shard: measure it against its 84 kB budget and split it before the next events.
+19. The site search's events shard: measure it against its 84 kB budget and split it before the next events. Event 15 took it to 84.4 kB; the budget was raised to 90 for that one event (2026-11-16), so the split has to come before event 16.
 20. Whether the bot can ever decline Maman Brigitte's discard (yes 566 times of 566 in the decision report).
 21. The phone screen-reader label of the rival's hand tile.
 22. The game cache's code hash follows the deck notes and type-only imports, so a new deck note or an edit to `src/lib/evidence.ts` discards every cached game: hash only what a game can execute.
