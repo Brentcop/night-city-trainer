@@ -20,3 +20,8 @@ data/reviews/
 
 # Third-party source copies (choom.gg pages, rules text, card catalogs) stay local; the app ships derived data only.
 data/raw/
+
+# The deck-import script's output and the admin page's download for the command line (docs/DECK_IMPORT.md).
+/deck-import.json
+/deck-import-chosen.json
+__pycache__/

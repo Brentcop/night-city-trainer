@@ -2,7 +2,7 @@
 // and is not a security boundary: anyone can open it, and all it does is build a file. The owner downloads the file,
 // replaces public/site-config.json in the repository, commits and pushes to main. The draft is kept in this browser,
 // and "Preview this draft" shows the whole site with it, in this browser only.
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   BANNER_LEVELS,
   bannerActive,
@@ -58,6 +58,9 @@ import { DRAFT_KEY, previewDraft, useSiteConfigState } from '../useSiteConfig';
 import { SiteBanner } from '../components/SiteChrome';
 import { Modal } from '../components/Modal';
 import { PageHead } from '../components/PageHead';
+
+// the deck import needs the card data and the import code: its own chunk, loaded with the section
+const AdminDeckImport = lazy(() => import('../components/AdminDeckImport').then((m) => ({ default: m.AdminDeckImport })));
 
 export const TURN_PUBLIC_WARNING =
   'These TURN credentials are public: site-config.json is a public file, so anyone can read them and use your relay, at your cost. Use short-lived credentials from an endpoint (below) when you can.';
@@ -682,6 +685,13 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
         <Check label="Maintenance mode" help="every page shows only the message below (this editor stays open)" checked={draft.maintenance.on} onChange={(v) => up((c) => void (c.maintenance.on = v))} />
         <Text label="Message" area value={draft.maintenance.message} onChange={(v) => up((c) => void (c.maintenance.message = v))} max={LIMITS.maintenance} issues={issues} path="maintenance.message" />
         <Check label="Play against the bot stays open" checked={draft.maintenance.allowPlay} onChange={(v) => up((c) => void (c.maintenance.allowPlay = v))} />
+      </fieldset>
+
+      <fieldset className="deck-import-section">
+        <legend>Import decks</legend>
+        <Suspense fallback={<p className="small muted">Loading the deck import…</p>}>
+          <AdminDeckImport />
+        </Suspense>
       </fieldset>
 
       {ask === 'load' && (

@@ -8,6 +8,7 @@ import { CHOOM_GUIDE_OBJECTIVES } from './choomGuides';
 import { STRATEGY_PAGE_OBJECTIVES } from './strategyPage';
 import { LADDER_OBJECTIVES } from './ladder';
 import { SEASON_OBJECTIVES } from './seasons';
+import { IMPORTED_OBJECTIVES } from './imported';
 import type { DeckObjective, ObjectiveTable } from './vocabulary';
 
 export * from './vocabulary';
@@ -21,16 +22,19 @@ export const DECK_OBJECTIVES: ObjectiveTable = {
   ...STRATEGY_PAGE_OBJECTIVES,
   ...SEASON_OBJECTIVES,
   ...LADDER_OBJECTIVES,
+  ...IMPORTED_OBJECTIVES,
 };
 
 /**
  * The library decks the owner brought in, whose notes the owner writes: the sim-ladder decks (Legend trios from the
  * owner's Master-ladder screenshot; origin "cyberpunk-tcg-sim.online …", gallery group "Sim ladder"). An entry is a
  * `needs-owner` placeholder, a `draft` read off the list, or the owner's note (the five current ones are agent-written
- * drafts the owner asked for). Decks saved in the browser ("My decks") have no entry at all.
+ * drafts the owner asked for), and the decks imported from shared links (origin "Imported from …",
+ * scripts/import-links.ts, ./imported.ts). Decks saved in the browser ("My decks") have no entry at all.
  */
 export function isOwnerImport(prov: { origin?: string }): boolean {
-  return (prov.origin ?? '').startsWith('cyberpunk-tcg-sim.online');
+  const o = prov.origin ?? '';
+  return o.startsWith('cyberpunk-tcg-sim.online') || o.startsWith('Imported from ');
 }
 
 export interface ObjectiveLookup {

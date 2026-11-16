@@ -10,6 +10,11 @@ const SOURCES: [string, string, string][] = [
   ['Archetype decklists (4)', 'Troy Yamaguchi (Plus Two) — "The Cyberpunk Primer", via choom.gg', 'https://choom.gg/meta'],
   ['Archetype reference lists (3)', 'UltPotatoe, Armbarred, MMantanza — public decks on choom.gg', 'https://choom.gg/decks'],
   ['Community guide lists (11)', 'choom.gg guide authors, credited on each deck', 'https://choom.gg/guides'],
+  [
+    'Decks imported from shared links',
+    'Players who shared their lists on choom.gg or cyberpunk-tcg-sim.online (including its tournament and season reports); each imported deck names its author and links back',
+    'https://cyberpunk-tcg-sim.online/',
+  ],
   ['Choom Table statistics', 'choom.gg simulator data (snapshot 9 Nov 2026)', 'https://choom.gg/meta'],
   ['Typefaces', 'Inter (The Inter Project Authors) and Rajdhani (Indian Type Foundry), SIL Open Font License 1.1, served from this site', 'https://openfontlicense.org/'],
   ['Community stats & event info', 'gamertagmythras.com, tcgcontender.com (referenced by choom.gg), cyberpunktcg.com/eor', 'https://cyberpunktcg.com/eor'],

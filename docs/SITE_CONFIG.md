@@ -17,6 +17,10 @@ login and no server: visitors cannot change it.
 You can also edit the file by hand. `#/admin` is not a security boundary: anyone can open it, and all it does is build a
 file.
 
+The admin page's last section, **Import decks**, is not part of the config: it brings in decks shared on choom.gg and
+cyberpunk-tcg-sim.online (paste links, run `tools/import_decks.py` for the pages that need it, load its output). See
+[DECK_IMPORT.md](DECK_IMPORT.md).
+
 ## How the site reads it
 
 - The build puts the file into `index.html` (the Vite plugin in `vite.config.ts`), so the first paint already has the

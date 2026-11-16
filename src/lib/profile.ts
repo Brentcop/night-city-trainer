@@ -3,6 +3,7 @@
 // stats are never stored here: src/lib/profileStats.ts derives them from the recorded practice games at read time.
 // The stored value is one plain, versioned JSON document, so a server could later keep the same document unchanged.
 // Pure apart from loadProfile / saveProfile / deleteProfile.
+import { cleanText } from './cleanText';
 
 export const PROFILE_KEY = 'nct.profile.v1';
 export const PROFILE_SCHEMA = 1;
@@ -62,12 +63,8 @@ export const emptyProfile = (): ProfileDoc => ({ kind: 'nct-profile-settings', s
 /** Card ids are lower-case words joined by underscores (src/data/cards.json). */
 export const CARD_ID = /^[a-z0-9_]{1,80}$/;
 
-/** Text a player typed or a payload carried: control characters removed, spaces collapsed, trimmed, capped. */
-export function cleanText(v: unknown, max: number): string {
-  if (typeof v !== 'string') return '';
-  const s = v.replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩]/g, ' ').replace(/\s+/g, ' ').trim();
-  return [...s].slice(0, max).join('');
-}
+/** Text a player typed or a payload carried: see ./cleanText.ts. */
+export { cleanText };
 
 /**
  * A stored or imported settings document, validated: unknown fields are dropped, bad ones fall back to their default,
