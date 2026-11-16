@@ -1,11 +1,16 @@
 // Everything the deck breeder learns from past test runs, gathered in one place:
-//   strength   — per-deck strength: power rating (tournament series) blended with the season leaderboard, discounted by uncertainty
+//   strength   — per-deck strength: power rating (tournament series), discounted by uncertainty, blended with the season
+//                leaderboard only where its entry is current (src/lib/parentStrength.ts)
+//   seasons    — the recorded season files, their simulator versions, and the Legend trios the gate kept out
 //   deckImpact — per-list card impact ("Δ when drawn"), pooled from the review telemetry and every season round robin,
 //                keyed by list fingerprint (data/seasons/deck-impact.json; src/lib/seasonDeckImpact.ts)
 //   h2h        — head-to-head game records from every recorded tournament event
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
+import path from 'node:path';
 import type { DeckReport } from '../src/analysis/analyze';
+import { parentStrength, seasonVersions, staleLeaderRow, type LeaderStrength, type RatedDeck } from '../src/lib/parentStrength';
+import { SIM_VERSION } from '../src/lib/tournament';
 import { IMPACT_MIN_DECK_GAMES } from '../src/analysis/impactData';
 import { readEvents } from './lib-node';
 import { poolEvents, selectEvents } from './event-pool';
@@ -65,18 +70,59 @@ export function loadH2H(): H2H {
 }
 
 /**
- * Deck strength for parent selection. Power ratings (every deck vs every deck, Bradley–Terry) are the best signal when
- * a deck has enough tournament games; the season leaderboard (vs the meta) fills in the rest. Uncertain decks are
- * pulled toward 50% so a lucky small sample doesn't breed the next generation.
+ * Deck strength for parent selection (src/lib/parentStrength.ts, the rule the Deck Lab uses too). Power ratings (every
+ * deck vs every deck, Bradley–Terry) count at their conservative value, halfway down to the lower bound; a season
+ * leaderboard entry (vs the meta) is blended in at 35%, or used alone for an unrated deck, only when it is current:
+ * every season that added to it ran under the current simulator version. A stale entry is not used, so a deck with only
+ * a stale entry has no strength (it is no parent candidate).
  */
-export function strengthOf(leaderboard: Record<string, number>): Record<string, number> {
-  const R = fs.existsSync('src/data/ratings.json') ? JSON.parse(fs.readFileSync('src/data/ratings.json', 'utf8')) : { decks: [] };
-  const out: Record<string, number> = { ...leaderboard };
-  for (const d of R.decks as { name: string; wrField: number; wrFieldLo: number; wrFieldHi: number; games: number }[]) {
-    if (!(d.games >= 20) || !Number.isFinite(d.wrField)) continue;
-    const half = Math.max(0, (d.wrFieldHi - d.wrFieldLo) / 2);
-    const rated = d.wrField - 0.5 * half; // conservative: half-way to the lower bound
-    out[d.name] = d.name in leaderboard ? 0.65 * rated + 0.35 * leaderboard[d.name] : rated;
+export function strengthOf(leaderboard: readonly LeaderStrength[], ratingsFile = 'src/data/ratings.json'): Record<string, number> {
+  const R = fs.existsSync(ratingsFile) ? JSON.parse(fs.readFileSync(ratingsFile, 'utf8')) : { decks: [] };
+  return parentStrength(R.decks as RatedDeck[], leaderboard);
+}
+
+export const SEASONS_DIR = 'data/seasons';
+const SEASON_FILE_RE = /^season-(\d+)\.json$/;
+
+/** The recorded season files (data/seasons/season-N.json), parsed, by season number; unreadable files are skipped. */
+export function readSeasonFiles(dir = SEASONS_DIR): { season: number; data: Record<string, unknown> }[] {
+  if (!fs.existsSync(dir)) return [];
+  const out: { season: number; data: Record<string, unknown> }[] = [];
+  for (const f of fs.readdirSync(dir)) {
+    const m = SEASON_FILE_RE.exec(f);
+    if (!m) continue;
+    try {
+      out.push({ season: +m[1]!, data: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) as Record<string, unknown> });
+    } catch {
+      /* not a season record */
+    }
+  }
+  return out.sort((a, b) => a.season - b.season);
+}
+
+/** Each recorded season's simulator version (from its manifest; null when it has none). */
+export const seasonVersionsOnDisk = (dir = SEASONS_DIR): Record<string, number | null> =>
+  seasonVersions(readSeasonFiles(dir).map((s) => ({ season: s.season, manifest: s.data.manifest as { simVersion?: unknown } | undefined })));
+
+/** A leaderboard entry (data/seasons/leaderboard.json) as parent strength reads it. */
+export function leaderStrength(e: { name: string; seasons?: Record<string, unknown> }, rating: number, versions: Readonly<Record<string, number | null>>, current = SIM_VERSION): LeaderStrength {
+  return { name: e.name, rating, stale: staleLeaderRow(e, versions, current) };
+}
+
+/**
+ * The Legend trios (sorted, joined by "|") of the bred decks that earlier seasons kept out at the gate (their season
+ * file's gate.decks with entered false), so the breeder counts them as seen. `except`: a season to leave out (the one
+ * being re-run).
+ */
+export function keptOutTriples(dir = SEASONS_DIR, except?: number): string[] {
+  const out: string[] = [];
+  for (const s of readSeasonFiles(dir)) {
+    if (s.season === except) continue;
+    const gate = s.data.gate as { decks?: { entered?: unknown; legends?: unknown }[] } | undefined;
+    for (const d of gate?.decks ?? []) {
+      if (d.entered !== false || !Array.isArray(d.legends)) continue;
+      out.push([...(d.legends as string[])].map(String).sort().join('|'));
+    }
   }
   return out;
 }

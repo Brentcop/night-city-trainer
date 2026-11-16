@@ -8,6 +8,10 @@
 // The default effort is Standard (since 2026-11-15, P4: Quick adopts only gains of about +4 points 8 times in 10).
 // "Confirm with the Hard bot" (TuneOptions.confirmBot; shown for a Medium run, off by default) has the confirmations and the
 // comparison with the original played by Hard; earlier changes are then not tested again first (one plain sentence says so).
+// Breed tab: each bred deck is tested against its reference (its best parent; an explorer, or a deck none of whose parents
+// is ranked, the middle meta deck) with the season's rule at the Lab's sizes (src/lib/breedGate.ts LAB_TEST, runLabTest;
+// the view is components/LabBreedTest.tsx). A reference's games are kept in the panel (refStore) and reused by every deck
+// and press that shares it; Stop stops every running test; a saved deck keeps the manifest of its test.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IfPage } from '../components/SiteChrome';
 import { allDecks, upsertCustom } from '../../lib/browserLibrary';
@@ -18,11 +22,12 @@ import type { CardDef, DeckList } from '../../engine/types';
 import {
   breedInBrowser,
   finalVsOriginal,
+  labGatePlay,
   loadH2H,
   partialTune,
-  playSet,
   pooledManifestTune,
   pooledTuneRecord,
+  rankedParents,
   recordedEventCount,
   tunedName,
   tuneDeck,
@@ -47,6 +52,8 @@ import { RunDetails } from '../components/RunDetails';
 import type { Bred } from '../../ai/breeder';
 import { errorText, isStopped } from '../../sim/pool';
 import { usePoolRun } from '../usePoolRun';
+import { LAB_TEST, labReferenceKept, labTestEntry, runLabTest, type GateEntry, type ReferenceStore } from '../../lib/breedGate';
+import { BreedTestView, type BreedTestState } from '../components/LabBreedTest';
 import { customSaveName } from '../deckLookup';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { DeckTile } from '../components/DeckIdentity';
@@ -66,10 +73,7 @@ const FIELDS: { key: FieldKey; label: string; hint: string }[] = [
   { key: 'meta+ladder', label: 'Meta + sim ladder', hint: 'Adds the Master-ladder Legend trios' },
   { key: 'top8', label: 'Top 8 rated', hint: 'The 8 strongest decks by tournament power rating' },
 ];
-/** Bred decks' quick test: every deck plays the same games, so the numbers compare. */
 const NOT_SAVED = 'Not saved: this browser’s storage is full or blocked.';
-const QUICK_TEST_SEED = 77_000;
-const QUICK_TEST_GAMES = 56;
 /** package moves tried per generation when they are on */
 const PACKAGE_CANDS = 3;
 /** a change must beat the list by this much (a fraction) to be nominated */
@@ -790,12 +794,17 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   const [picked, setPicked] = useState<string[]>([]);
   const [fitAll, setFitAll] = useState(true);
   const [bredFor, setBredFor] = useState<string[]>([]);
-  // quick-test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
-  const [tests, setTests] = useState<Record<string, { wr: number; manifest: RunManifest } | 'running' | { error: string }>>({});
+  // test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
+  const [tests, setTests] = useState<Record<string, BreedTestState>>({});
   const [savedAs, setSavedAs] = useState<Record<string, string>>({});
   const poolRun = usePoolRun();
-  const live = useRef(0); // quick tests in flight; the pool is closed when the last one ends
-  const anyRunning = Object.values(tests).includes('running');
+  const live = useRef(0); // tests in flight; the pool is closed when the last one ends
+  const stopRef = useRef(false);
+  // a reference's games are played once per panel and reused by every deck tested against it, press after press
+  const refStore = useRef<ReferenceStore>(new Map());
+  const metaLib = useMemo(() => lib.filter((d) => d.kind === 'meta'), [lib]);
+  const ranked = useMemo(() => rankedParents(lib), [lib]);
+  const anyRunning = Object.values(tests).some((t) => t.kind === 'running');
   useEffect(() => onBusy(anyRunning), [anyRunning, onBusy]);
   // head-to-heads for counter decks: loaded only when this tab opens
   const [h2h, setH2H] = useState<H2HInfo | null | 'loading'>('loading');
@@ -820,44 +829,56 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
     setBred(breedInBrowser(lib, { n, seed, parents, h2h: h2hReady?.lookup, ...(packages ? { packages } : {}) }));
     setBredFor(picked);
   };
+  /** The deck's test plan: its reference (best parent, else the middle meta deck) and field; null without meta decks. */
+  const planOf = (b: Bred): GateEntry | null => (metaLib.length ? labTestEntry(b, ranked, metaLib.map((d) => d.deck)) : null);
   const test = async (b: Bred) => {
     const key = b.deck.name;
-    setTests((t) => ({ ...t, [key]: 'running' }));
+    const entry = planOf(b);
+    if (!entry) return;
+    stopRef.current = false;
+    setTests((t) => ({ ...t, [key]: { kind: 'running', games: 0 } }));
     const pool = poolRun.shared();
     live.current++;
-    const fieldLib = lib.filter((d) => d.kind === 'meta');
-    const field = fieldLib.map((d) => d.deck);
+    const onGame = () => setTests((t) => (t[key]?.kind === 'running' ? { ...t, [key]: { kind: 'running', games: t[key].games + 1 } } : t));
     try {
-      // every bred deck plays the same seeds, so their quick-test numbers are comparable
-      const r = await playSet(b.deck, field, QUICK_TEST_SEED, QUICK_TEST_GAMES, 'medium', pool.play, false);
+      // every block is the forge's layout from the Lab's fixed seed, so every deck and reference play the same games
+      const outcome = await runLabTest(entry, labGatePlay(pool.play, onGame), refStore.current, () => stopRef.current);
+      if (outcome.first.stopped) {
+        setTests((t) => ({ ...t, [key]: { kind: 'stopped' } }));
+        return;
+      }
+      const libOf = (d: DeckList) => lib.find((x) => x.deck === d) ?? d;
+      const stageGames = outcome.first.stageGames;
       const manifest = gameRunManifest({
         purpose: 'browser',
-        decks: [b.deck, ...fieldLib],
-        fieldMode: 'deck-lab-quick-test:meta',
-        fieldDeckIds: fieldLib.map((d) => manifestDeck(d).id),
-        bot: 'medium',
-        seedBase: QUICK_TEST_SEED,
+        decks: [b.deck, libOf(entry.reference), ...entry.field.map(libOf)],
+        fieldMode: 'deck-lab-breed-test:meta',
+        fieldDeckIds: entry.field.map((d) => manifestDeck(libOf(d)).id),
+        bot: LAB_TEST.bot,
+        seedBase: LAB_TEST.seed,
         seatPolicy: 'alternate',
-        plannedGames: QUICK_TEST_GAMES,
-        completedGames: r.games,
+        // the deck's games and the reference's, on the same deals
+        plannedGames: 2 * stageGames * LAB_TEST.stages,
+        completedGames: 2 * (outcome.first.played ?? outcome.first.judged).games,
         gamesPerPair: null,
         simVersion: SIM_VERSION,
       });
-      setTests((t) => ({ ...t, [key]: { wr: r.wr, manifest } }));
+      setTests((t) => ({ ...t, [key]: { kind: 'done', outcome, manifest } }));
     } catch (e) {
-      setTests((t) => {
-        const { [key]: _, ...rest } = t;
-        return isStopped(e) ? rest : { ...rest, [key]: { error: errorText(e) } };
-      });
+      setTests((t) => ({ ...t, [key]: isStopped(e) ? { kind: 'stopped' } : { kind: 'failed', error: errorText(e) } }));
     } finally {
       if (--live.current === 0) poolRun.close(pool);
     }
   };
+  const stopTests = () => {
+    stopRef.current = true;
+    poolRun.stop();
+  };
   const save = (b: Bred) => {
     const name = customSaveName(b.deck.name, lib) ?? b.deck.name;
     const t = tests[b.deck.name];
-    // a quick-tested deck keeps the manifest of its test
-    const manifest = t && typeof t === 'object' && 'wr' in t ? t.manifest : undefined;
+    // a tested deck keeps the manifest of its test
+    const manifest = t?.kind === 'done' ? t.manifest : undefined;
     if (!upsertCustom({ ...b.deck, name, sideboard: [], ...(manifest ? { manifest } : {}) })) {
       window.alert(NOT_SAVED);
       return;
@@ -959,8 +980,9 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
           {bred.map((b) => {
             const t = tests[b.deck.name];
             const saved = savedAs[b.deck.name];
+            const entry = planOf(b);
             return (
-            <div key={b.deck.name} className="panel grid" style={{ padding: 10 }}>
+            <div key={b.deck.name} className="panel grid" style={{ padding: 10, minWidth: 0 }}>
               <DeckTile d={asLib(b)} />
               <div className="small">
                 <span className="tag">{b.method}</span>{' '}
@@ -985,23 +1007,22 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
                 <summary className="small">Decklist</summary>
                 <DeckListCompact deck={b.deck} />
               </details>
-              <div className="row small">
-                <button onClick={() => test(b)} disabled={t === 'running'}>
-                  {t === 'running' ? 'Testing…' : '▶ Quick test vs meta'}
-                </button>
-                {t && typeof t === 'object' && 'wr' in t && (
-                  <span>
-                    <Wr v={t.wr} n={QUICK_TEST_GAMES} strong /> vs meta
-                  </span>
-                )}
-                {t && typeof t === 'object' && 'error' in t && <span style={{ color: 'var(--red)' }}>⚠ Test failed: {t.error}</span>}
-              </div>
-              {t && typeof t === 'object' && 'wr' in t && <RunDetails m={t.manifest} />}
+              {entry && (
+                <BreedTestView
+                  reference={entry.reference.name}
+                  why={entry.referenceWhy}
+                  opponents={entry.field.length}
+                  referenceKept={labReferenceKept(refStore.current, entry)}
+                  state={t}
+                  onTest={() => test(b)}
+                  onStop={stopTests}
+                />
+              )}
               <div className="row small">
                 <button onClick={() => save(b)} disabled={!!saved} title={saved && saved !== b.deck.name ? `Saved as “${saved}” (the name belongs to a built-in deck)` : undefined}>
                   {saved ? (saved === b.deck.name ? '✓ Saved' : `✓ Saved as “${saved}”`) : '💾 Save'}
                 </button>
-                <button onClick={() => onTune(b.deck)} disabled={anyRunning} title={anyRunning ? 'Wait for the quick tests to finish' : undefined}>
+                <button onClick={() => onTune(b.deck)} disabled={anyRunning} title={anyRunning ? 'Wait for the tests to finish' : undefined}>
                   🔧 Tune it
                 </button>
               </div>

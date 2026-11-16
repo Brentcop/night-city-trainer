@@ -8,7 +8,8 @@
 import fs from 'node:fs';
 import { breedSeason } from '../src/ai/breeder';
 import { bool, cli, int, loadLibrary } from './lib-node';
-import { loadDeckImpact, loadH2H, strengthOf } from './breed-data';
+import { keptOutTriples, leaderStrength, loadDeckImpact, loadH2H, seasonVersionsOnDisk, strengthOf } from './breed-data';
+import { rankParents } from '../src/lib/parentStrength';
 import { breederPackageFlags, exitOnPlanProblems, packagesOn, planFromFlags, seedsFromFlags } from './package-flags';
 import { exportOfficial } from '../src/engine/deck';
 import { synergiesIn } from '../src/content/synergies';
@@ -22,12 +23,11 @@ exitOnPlanProblems(PLAN);
 const SEEDS = seedsFromFlags(V);
 const PRIOR = 60;
 const lib = loadLibrary();
-const lb: Record<string, { name: string; metaW: number; metaG: number }> = fs.existsSync('data/seasons/leaderboard.json') ? JSON.parse(fs.readFileSync('data/seasons/leaderboard.json', 'utf8')) : {};
-const strength = strengthOf(Object.fromEntries(Object.values(lb).filter((e) => e.metaG > 0).map((e) => [e.name, (e.metaW + 0.5 * PRIOR) / (e.metaG + PRIOR)])));
-const ranked = Object.entries(strength)
-  .filter(([n]) => lib.find((d) => d.deck.name === n))
-  .sort((a, b) => b[1] - a[1])
-  .map(([n, wr]) => ({ deck: lib.find((d) => d.deck.name === n)!.deck, wr }));
+const lb: Record<string, { name: string; metaW: number; metaG: number; seasons?: Record<string, number> }> = fs.existsSync('data/seasons/leaderboard.json') ? JSON.parse(fs.readFileSync('data/seasons/leaderboard.json', 'utf8')) : {};
+// a leaderboard entry counts only when every season behind it ran under the current simulator version (src/lib/parentStrength.ts)
+const versions = seasonVersionsOnDisk();
+const strength = strengthOf(Object.values(lb).filter((e) => e.metaG > 0).map((e) => leaderStrength(e, (e.metaW + 0.5 * PRIOR) / (e.metaG + PRIOR), versions)));
+const ranked = rankParents(strength, lib);
 const h2h = loadH2H();
 const deckImpact = loadDeckImpact();
 const hasH2H = ranked.slice(0, 4).some((x) => ranked.some((y) => h2h(y.deck.name, x.deck.name).g > 0));
@@ -46,7 +46,8 @@ if (PACKAGES) {
     if (k.ok) console.log(`    ${c.map(packageName).join(' + ')}: ${k.triples} legal Legend trios can hold ${c.length > 1 ? 'both' : 'it'}${k.warning ? `. Note: ${k.warning}` : ''}`);
   }
 }
-const seen = new Set(lib.map((d) => [...d.deck.legends].sort().join('|')));
+// the Legend trios of decks the gate kept out in earlier seasons count as seen too
+const seen = new Set([...lib.map((d) => [...d.deck.legends].sort().join('|')), ...keptOutTriples()]);
 for (const b of breedSeason(season, { ranked, impact, seenTriples: seen, seed: 1000 + season * 77, deckImpact, h2h: hasH2H ? h2h : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8)) {
   console.log(`\n  ${b.deck.name} [${b.method}]\n    ${b.idea}`);
   if (b.packages) console.log(`    packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.changes.length ? `; changes: ${b.packages.changes.join('; ')}` : ''}`);

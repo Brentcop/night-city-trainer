@@ -1,13 +1,41 @@
-// Season runner: breed 8 new decks → tournament (telemetry round robin) → forge the new decks → finals vs meta →
-// update the all-time leaderboard (pooled win rate vs the meta archetypes, with percentiles).
+// Season runner: breed 8 new decks → gate each against its parent → write the decks that enter → forge them →
+// tournament (telemetry round robin) → finals vs meta → update the all-time leaderboard (pooled win rate vs the meta
+// archetypes, with percentiles). The round robin comes after the forge, so the round robin, the finals and the
+// leaderboard all measure the forged lists.
 //
 //   npx tsx scripts/season.ts [--season N] [--games 16] [--bot deep] [--finals 42] [--forge-gens 1] [--forge-games 112] [--threads N] [--force]
 //
 //   --season  defaults to the next season not yet recorded
 //   --force   re-run a season that is already recorded. Its leaderboard totals (kept per season in leaderboard.json)
-//             are taken out first, so nothing is counted twice; its s<N>-*.txt decks are bred again and overwritten.
+//             are taken out first, so nothing is counted twice; its s<N>-*.txt decks are bred again and overwritten
+//             (a deck file of the earlier run whose deck does not enter this time is left in place, with a warning).
 //             Seasons recorded before per-season totals existed cannot be taken out: restore leaderboard.json first.
 //             The pooled card-impact files are not added to again on a re-run (the same seeds play the same games).
+//
+// The gate (docs/SYNERGIES.md "A bred deck's test against its parent"; src/lib/breedGate.ts): each bred deck plays its
+// reference (its best parent; an explorer, the middle meta deck by strength) on the same games against the other meta
+// decks, in stages, and enters unless a bot shows it worse ("could not tell" enters). A deck kept out gets no deck file;
+// its list, reference, figures and verdict are kept in data/seasons/season-<N>.json ("gate") and the season report, and
+// its Legend trio counts as seen when later seasons breed. Gate games count for no rating, leaderboard, card impact,
+// change ledger or evidence file; their seeds are N·1,000,000 + 700,000 (first bot) and + 800,000 (confirming bot).
+//   --gate on|off              default on; off enters every bred deck as before
+//   --gate-bot BOT             the first bot (default medium)
+//   --gate-confirm-bot BOT     the confirming bot, for decks the first bot did not show worse (default hard; none: no
+//                              confirming bot; the first bot under another name plays nothing more)
+//   --gate-rounds N            double rounds per stage (default 20: 280 games with 7 opponents, 240 with 6)
+//   --gate-stages N            the first bot's stages at most (default 5)
+//   --gate-confirm-stages N    the confirming bot's stages at most (default 2)
+//   --gate-reference parent|middle   which reference (default parent: the best parent, the middle meta deck for an
+//                              explorer, the rule as declared); middle tests every bred deck against the middle meta
+//                              deck by strength, the fixed bar explorers get (with the parent as reference only 2 of
+//                              the 16 recorded bred decks would have entered; docs/SYNERGIES.md). Kept in the record.
+//   --gate-only                breed and gate, then stop: no deck file, leaderboard, impact file or report in the
+//                              repository changes (a recorded season may be gated again this way: it breeds as a --force
+//                              re-run would). With --gate off it breeds and stops.
+//   --out DIR                  with --gate-only: write season-<N>-gate.json and season-<N>-gate.md into DIR
+//
+// Parents are ranked by strength (src/lib/parentStrength.ts): the conservative power rating, blended with the season
+// leaderboard only where its entry is current (every season behind it ran under this simulator version).
 //
 // Synergy packages (opt-in; docs/SYNERGIES.md "Using packages when building"; without these flags the season breeds,
 // forges and reports exactly as before):
@@ -36,12 +64,17 @@
 // --confirm-bot BOT has the forge step's confirmation stages played by BOT (its screening stays with lookahead, Medium;
 // docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes; not with --pooled-ranking).
 //
-// Outputs: data/decks/custom/s<N>-*.txt, reports/season-<N>.md, data/seasons/season-<N>.json,
+// Outputs: data/decks/custom/s<N>-*.txt (the decks that entered), reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json.
 import fs from 'node:fs';
+import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { breedSeason } from '../src/ai/breeder';
-import { loadDeckImpact, loadH2H, recordDeckImpact, strengthOf } from './breed-data';
+import { keptOutTriples, leaderStrength, loadDeckImpact, loadH2H, recordDeckImpact, seasonVersionsOnDisk, strengthOf } from './breed-data';
+import { rankParents } from '../src/lib/parentStrength';
+import { confirmBotOf, enteredWords, gateDetectWords, gateGuaranteeWords, gateRuleWords, gateSeeds, gateStageGames, gateWords, planGate, runGate, spreadSeen, spreadSeenWords, stepWords, type GateOptions, type GateOutcome } from '../src/lib/breedGate';
+import { asWritten, gateDeckRecord, gateFooterLines, gateHeaderLines, gatePlayOver, gateSettings, seasonGateFlags, seedProblem } from './gate-run';
+import type { DeckList } from '../src/engine/types';
 import { exportOfficial, deckColors, listFingerprint } from '../src/engine/deck';
 import { analyzeAll, type DeckReport } from '../src/analysis/analyze';
 import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
@@ -75,6 +108,7 @@ const { values: V } = cli(import.meta.url, {
   ...shortlistFlags(),
   ...settleFlags(),
   ...confirmBotFlag(),
+  ...seasonGateFlags(),
 });
 // checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
 const SEASON_LEDGER = ledgerFromFlags(V, { bot: 'lookahead' });
@@ -114,6 +148,29 @@ const NL = String.fromCharCode(10);
 const SEASON_RE = /^season-(\d+)\.json$/;
 const recordedSeasons = () => (fs.existsSync('data/seasons') ? fs.readdirSync('data/seasons').filter((f) => SEASON_RE.test(f)).map((f) => +f.match(SEASON_RE)![1]) : []);
 const SEASON = V.season ?? Math.max(0, ...recordedSeasons()) + 1;
+// ---- the gate's settings, refused (exit 2) before anything is read or played
+const GATE_ON = V.gate === 'on';
+const GATE_ONLY = V['gate-only'];
+const GATE: GateOptions = {
+  bot: V['gate-bot'],
+  confirmBot: V['gate-confirm-bot'] === 'none' ? null : V['gate-confirm-bot'],
+  rounds: V['gate-rounds'],
+  stages: V['gate-stages'],
+  confirmStages: V['gate-confirm-stages'],
+  reference: V['gate-reference'],
+  seeds: gateSeeds(SEASON),
+};
+function flagError(message: string): never {
+  console.error(`error: ${message}${NL}Run with --help for usage.`);
+  process.exit(2);
+}
+if (V.out !== undefined && !GATE_ONLY) flagError('--out writes the --gate-only files; a full season writes to the repository');
+if (V.out !== undefined && fs.existsSync(V.out) && !fs.statSync(V.out).isDirectory()) flagError(`--out ${V.out} is a file, not a folder`);
+if (GATE_ON) {
+  const most = gateStageGames(GATE.rounds, 7);
+  const sp = seedProblem({ first: GATE.seeds.first, confirm: GATE.seeds.confirm, firstGames: most * GATE.stages, confirmGames: confirmBotOf(GATE.bot, GATE.confirmBot) ? most * GATE.confirmStages : 0, limit: (SEASON + 1) * 1_000_000 });
+  if (sp) flagError(sp);
+}
 const GAMES = V.games;
 const BOT = V.bot;
 const FINALS = V.finals;
@@ -261,7 +318,7 @@ function saveLB(lb: Record<string, Entry>) {
 }
 
 // ---------------------------------------------------------------- card impact (pooled across runs)
-function impactMap(extra: DeckReport[] = []): Record<string, number> {
+function impactMap(extra: DeckReport[] = [], write = true): Record<string, number> {
   const IMPACT_FILE = 'data/seasons/impact.json';
   const acc: Record<string, { s: number; n: number }> = fs.existsSync(IMPACT_FILE) ? JSON.parse(fs.readFileSync(IMPACT_FILE, 'utf8')) : {};
   if (!fs.existsSync(IMPACT_FILE)) {
@@ -274,53 +331,131 @@ function impactMap(extra: DeckReport[] = []): Record<string, number> {
       acc[c.id].s += c.iwd * c.seenGames;
       acc[c.id].n += c.seenGames;
     }
-  fs.writeFileSync(IMPACT_FILE, JSON.stringify(acc));
+  if (write) fs.writeFileSync(IMPACT_FILE, JSON.stringify(acc));
   return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
 }
 
 // ---------------------------------------------------------------- season
 async function main() {
   const startedAt = new Date().toISOString();
-  console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}`);
-  // refuse before anything is played or written: the forge step would refuse later, after the round robin
-  checkBudget(`season forge step, ${FORGE_GENS} generation${FORGE_GENS === 1 ? '' : 's'}`, FORGE_ESTIMATE, V['forge-budget'], false, FORGE_SETTLE_EXTRA, FORGE_CONFIRM ? { with: FORGE_CONFIRM, games: FORGE_GENS * FORGE_ESTIMATE.confirm } : undefined);
+  if (!GATE_ONLY) {
+    console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}`);
+    // refuse before anything is played or written: the forge step would refuse later, after the gate
+    checkBudget(`season forge step, ${FORGE_GENS} generation${FORGE_GENS === 1 ? '' : 's'}`, FORGE_ESTIMATE, V['forge-budget'], false, FORGE_SETTLE_EXTRA, FORGE_CONFIRM ? { with: FORGE_CONFIRM, games: FORGE_GENS * FORGE_ESTIMATE.confirm } : undefined);
+  }
   const lb = loadLB();
-  // ---- refuse to count a season twice
+  // ---- refuse to count a season twice (--gate-only writes nothing, so it may look at a recorded season again)
   const counted = Object.values(lb).some((e) => e.seasons[String(SEASON)] !== undefined || e.contrib?.[String(SEASON)]);
   const rerun = counted || fs.existsSync(SEASON_FILE);
-  if (rerun && !FORCE) {
+  if (rerun && !FORCE && !GATE_ONLY) {
     throw new Refusal(`season ${SEASON} is already recorded (${fs.existsSync(SEASON_FILE) ? SEASON_FILE : 'in data/seasons/leaderboard.json'}). Leave out --season to run season ${Math.max(SEASON, ...recordedSeasons()) + 1}, or pass --force to re-run it.`);
   }
+  // (in memory until the leaderboard is saved; --gate-only never saves it)
   if (counted && !uncountSeason(lb, SEASON)) {
-    throw new Refusal(`season ${SEASON} was counted into data/seasons/leaderboard.json before per-season totals were kept, so re-running it would count its games twice. Restore leaderboard.json to its state before season ${SEASON} (git history) or run a new season.`);
+    if (!GATE_ONLY) throw new Refusal(`season ${SEASON} was counted into data/seasons/leaderboard.json before per-season totals were kept, so re-running it would count its games twice. Restore leaderboard.json to its state before season ${SEASON} (git history) or run a new season.`);
+    console.log(`warning: season ${SEASON} was counted before per-season totals were kept; its games stay in the leaderboard numbers this run reads.`);
   }
-  if (rerun) console.log(`--force: re-running season ${SEASON}; its previous leaderboard totals were taken out.`);
+  if (rerun && !GATE_ONLY) console.log(`--force: re-running season ${SEASON}; its previous leaderboard totals were taken out.`);
   if (rerun && Math.max(0, ...recordedSeasons()) > SEASON) console.log(`warning: later seasons (up to ${Math.max(...recordedSeasons())}) were bred from season ${SEASON}'s decks.`);
-  const impact = impactMap();
-  // parents for breeding: every measured deck incl. meta archetypes, by strength
-  // (power rating from the tournament series where available, blended with the shrunk vs-meta leaderboard rating)
-  const strength = strengthOf(Object.fromEntries(Object.values(lb).filter((e) => e.metaG > 0).map((e) => [e.name, rating(e)])));
-  const ranked = Object.entries(strength)
-    .filter(([name]) => lib.find((d) => d.deck.name === name))
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, wr]) => ({ deck: lib.find((d) => d.deck.name === name)!.deck, wr }));
+  const impact = impactMap(undefined, !GATE_ONLY);
+  // parents for breeding: every measured deck incl. meta archetypes, by strength (src/lib/parentStrength.ts: the
+  // conservative power rating, blended with the shrunk vs-meta leaderboard rating only where that entry is current)
+  const versions = seasonVersionsOnDisk();
+  const strength = strengthOf(Object.values(lb).filter((e) => e.metaG > 0).map((e) => leaderStrength(e, rating(e), versions, SIM_VERSION)));
+  const ranked = rankParents(strength, lib);
   const h2hAll = loadH2H();
   const hasH2H = ranked.slice(0, 4).some((x) => ranked.some((y) => h2hAll(y.deck.name, x.deck.name).g > 0));
   // 1. breed
-  // (on a re-run, this season's own earlier decks don't count as seen, so the breeder makes the same choices)
-  const seen = new Set(lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))).map((d) => [...d.deck.legends].sort().join('|')));
-  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8);
-  const newFiles = bred.map((b) => `${slugify(b.deck.name)}.txt`);
-  const clash = existing(newFiles.map((f) => `data/decks/custom/${f}`));
-  if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
-  for (const [i, b] of bred.entries()) {
-    const file = newFiles[i];
-    const pkgLine = b.packages ? `// Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.seeded ? `; seeded from ${b.packages.seeded.map(packageName).join(' + ')}` : ''}; plan: ${describePlan(PLAN)}${b.packages.changes.length ? `; changes: ${b.packages.changes.join('; ')}` : ''}${NL}` : '';
-    fs.writeFileSync(`data/decks/custom/${file}`, `${exportOfficial(b.deck)}${NL}${NL}// Idea: ${b.idea}${NL}// Author: Night City Trainer breeder (season ${SEASON}, ${b.method})${NL}${pkgLine}`);
+  // (on a re-run, this season's own earlier decks don't count as seen, so the breeder makes the same choices; the Legend
+  // trios that earlier seasons' gates kept out count as seen, so the same trio is not built again)
+  const seen = new Set([...lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))).map((d) => [...d.deck.legends].sort().join('|')), ...keptOutTriples(undefined, rerun ? SEASON : undefined)]);
+  // each bred list in the order its deck file will read back (asWritten): the card order changes the games a seed deals,
+  // so the gate plays the list as the forge, the round robin and anyone replaying the record will have it. The deck
+  // files are the same either way (the export does not depend on the order).
+  const bred = breedSeason(SEASON, { ranked, impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: loadDeckImpact(), h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8).map((b) => ({ ...b, deck: asWritten(b.deck) }));
+  const fileOf = (d: DeckList) => `${slugify(d.name)}.txt`;
+  if (!GATE_ONLY) {
+    const clash = existing(bred.map((b) => `data/decks/custom/${fileOf(b.deck)}`));
+    if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
   }
   console.log(`Season ${SEASON}: bred ${bred.map((b) => b.deck.name).join(', ')}`);
+
+  // 2. the gate: each bred deck against its reference, before it takes a slot
+  let outcomes: GateOutcome[] | null = null;
+  let gateLines: string[] = [];
+  if (GATE_ON) {
+    const plan = planGate(bred, ranked, metaDecks.map((d) => d.deck), GATE.reference);
+    const header = gateHeaderLines(GATE, plan.map((p) => p.field.length));
+    for (const l of header) console.log(l);
+    outcomes = await runGate(plan, { ...GATE, onStep: ({ name, step, which }) => console.log(`  ${name}${which === 'confirm' ? ' (confirming)' : ''}: ${stepWords(step)}`) }, gatePlayOver(runJobs, { threads: THREADS }));
+    const footer = gateFooterLines(outcomes);
+    gateLines = [...header, '', ...outcomes.map((r) => `- **${r.name}**: ${gateWords(r)}`), '', ...footer];
+    for (const r of outcomes) console.log(`${r.name}: ${gateWords(r)}`);
+    for (const l of footer) console.log(l);
+  }
+  const enters = bred.map((_, i) => !outcomes || outcomes[i]!.entered);
+  const entered = bred.filter((_, i) => enters[i]);
+  console.log(`Season ${SEASON}: ${enteredWords(bred.length, entered.length)}`);
+  const bredRecord = (b: (typeof bred)[number]) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea, ...(b.packages ? { packages: b.packages } : {}) });
+  const gateRecord = outcomes
+    ? {
+        bred: bred.length,
+        entered: entered.length,
+        simVersion: SIM_VERSION,
+        settings: gateSettings(GATE),
+        words: { rule: gateRuleWords(GATE), guarantee: gateGuaranteeWords(GATE), detect: gateDetectWords({ ...GATE, opponents: outcomes.map((r) => r.field.length) }), spread: spreadSeenWords(outcomes) },
+        spreadSeen: spreadSeen(outcomes),
+        decks: outcomes.map((r, i) => gateDeckRecord(r, bred[i]!.deck, { method: bred[i]!.method, idea: bred[i]!.idea })),
+      }
+    : null;
+  if (GATE_ONLY) {
+    const doc = {
+      kind: 'nct-season-gate',
+      schema: 1,
+      season: SEASON,
+      date: new Date().toISOString(),
+      simVersion: SIM_VERSION,
+      bred: entered.map(bredRecord),
+      ...(outcomes ? {} : { lists: bred.map((b) => ({ name: b.deck.name, list: exportOfficial(b.deck), legends: [...b.deck.legends] })) }),
+      ...(gateRecord ? { gate: gateRecord } : {}),
+    };
+    const md = [
+      `# Season ${SEASON}: ${outcomes ? 'bred and tested' : 'bred'}, nothing recorded`,
+      '',
+      `${enteredWords(bred.length, entered.length)}. Nothing was written to the repository.`,
+      '',
+      ...(outcomes ? gateLines : bred.map((b) => `- **${b.deck.name}** (${b.method}): ${b.idea}`)),
+    ].join(NL);
+    if (V.out !== undefined) {
+      fs.mkdirSync(V.out, { recursive: true });
+      fs.writeFileSync(path.join(V.out, `season-${SEASON}-gate.json`), `${JSON.stringify(doc, null, 1)}${NL}`);
+      fs.writeFileSync(path.join(V.out, `season-${SEASON}-gate.md`), `${md}${NL}`);
+      console.log(`Written: ${path.join(V.out, `season-${SEASON}-gate.json`)} and .md`);
+    }
+    return;
+  }
+
+  // 3. write the deck files of the decks that entered
+  const newFiles = entered.map((b) => fileOf(b.deck));
+  for (const b of entered) {
+    const pkgLine = b.packages ? `// Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.seeded ? `; seeded from ${b.packages.seeded.map(packageName).join(' + ')}` : ''}; plan: ${describePlan(PLAN)}${b.packages.changes.length ? `; changes: ${b.packages.changes.join('; ')}` : ''}${NL}` : '';
+    fs.writeFileSync(`data/decks/custom/${fileOf(b.deck)}`, `${exportOfficial(b.deck)}${NL}${NL}// Idea: ${b.idea}${NL}// Author: Night City Trainer breeder (season ${SEASON}, ${b.method})${NL}${pkgLine}`);
+  }
+  const leftOver = existing(bred.filter((_, i) => !enters[i]).map((b) => `data/decks/custom/${fileOf(b.deck)}`));
+  if (leftOver.length) console.log(`warning: ${leftOver.join(', ')} ${leftOver.length === 1 ? 'is' : 'are'} from an earlier run of season ${SEASON}, and ${leftOver.length === 1 ? 'its deck' : 'their decks'} did not enter this time; left in place.`);
+
+  // 4. forge the newcomers, before the round robin, so everything after it measures the forged lists
+  if (newFiles.length) {
+    console.log('Forging newcomers…');
+    // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
+    const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
+    // the adoption rule and depth flags that were given, and the budget the season already checked
+    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
+    execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
+  } else console.log('No bred deck entered: nothing to forge.');
+
+  // 5. round robin: meta + top 8 incumbents + the new decks as forged
   const lib2 = loadLibrary();
-  // 2. field = meta + top 8 incumbents + the 8 new decks
   const incumbents = ranked.filter((r) => !metaNames.has(r.deck.name)).slice(0, 8).map((r) => lib2.find((d) => d.deck.name === r.deck.name)!).filter(Boolean);
   const newcomers = newFiles.map((f) => lib2.find((d) => d.file === f)!);
   const field = [...lib2.filter((d) => d.kind === 'meta'), ...incumbents, ...newcomers];
@@ -338,7 +473,7 @@ async function main() {
     for (let j = i + 1; j < field.length; j++)
       for (let k = 0; k < GAMES; k++) jobs.push({ a: field[i].deck, b: field[j].deck, seed: seed++, first: (k % 2) as 0 | 1, bot: BOT, trace: true });
   const res: MatchResult[] = await runJobs(jobs, { threads: THREADS });
-  // the round robin's manifest; the forge and finals steps below run as their own processes and write their own reports
+  // the round robin's manifest; the forge and finals steps run as their own processes and write their own reports
   const manifest = gameRunManifest({
     purpose: 'season',
     decks: field,
@@ -359,8 +494,7 @@ async function main() {
   const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
   if (!rerun) {
     impactMap(reps);
-    // keyed by the list each deck played in this round robin (the forge below may change a list: its new fingerprint
-    // starts without per-list impact)
+    // keyed by the list each deck played in this round robin (a new deck's list is the forged one: the forge ran first)
     const played = new Map(field.map((d) => [d.deck.name, listFingerprint(d.deck)]));
     const skipped = recordDeckImpact(reps, (name) => played.get(name));
     if (skipped.length) console.log(`per-list card impact: no list known for ${skipped.join(', ')}; not recorded`);
@@ -379,14 +513,7 @@ async function main() {
   }
   for (const [name, t] of Object.entries(tot)) if (lb[name]) lb[name].seasons[String(SEASON)] = t.w / t.g;
   saveLB(lb);
-  // 3. forge the newcomers
-  console.log('Forging newcomers…');
-  // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
-  const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
-  // the adoption rule and depth flags that were given, and the budget the season already checked
-  const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
-  execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
-  // 4. finals vs meta for newcomers (post-forge) and any incumbent without finals
+  // 6. finals vs meta for newcomers (as forged) and any incumbent without finals
   const lib3 = loadLibrary();
   const finalists = [...newFiles.map((f) => lib3.find((d) => d.file === f)!), ...incumbents.filter((d) => lb[d.deck.name] && lb[d.deck.name].finals === undefined)];
   for (const d of finalists) {
@@ -396,7 +523,7 @@ async function main() {
     if (fs.existsSync(f) && lb[d.deck.name]) addFinals(lb[d.deck.name], JSON.parse(fs.readFileSync(f, 'utf8')), SEASON);
   }
   const board = saveLB(lb);
-  // 5. season report
+  // 7. season report
   const seasonRows = field
     .map((d) => ({ name: d.deck.name, file: d.file, kind: d.kind, wr: tot[d.deck.name] ? tot[d.deck.name].w / tot[d.deck.name].g : 0, isNew: newFiles.includes(d.file) }))
     .sort((a, b) => b.wr - a.wr);
@@ -406,7 +533,9 @@ async function main() {
     date: new Date().toISOString(),
     games: GAMES,
     bot: BOT,
-    bred: bred.map((b) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea, ...(b.packages ? { packages: b.packages } : {}) })),
+    // the decks that entered (every bred deck with --gate off); `gate` is the test of every bred deck
+    bred: entered.map(bredRecord),
+    ...(gateRecord ? { gate: gateRecord } : {}),
     standings: seasonRows,
     leaderTop: board.slice(0, 12).map((e) => ({ name: e.name, vsMeta: e.vsMeta, percentile: e.percentile })),
     manifest,
@@ -416,13 +545,14 @@ async function main() {
   const md = [
     `# Season ${SEASON}`,
     '',
-    `${field.length} decks (7 meta, ${incumbents.length} incumbents, 8 new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. New decks were forged (${FORGE_GENS} gen) and then played the finals vs the meta (${FINALS} games per opponent).`,
+    `${enteredWords(bred.length, entered.length)}. ${field.length} decks (7 meta, ${incumbents.length} incumbents, ${entered.length} new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. ${entered.length ? `The new decks were forged (${FORGE_GENS} gen) before the round robin, so the round robin, the finals vs the meta (${FINALS} games per opponent) and the leaderboard all measure the forged lists.` : 'No bred deck entered, so nothing was forged.'}`,
     '',
-    `Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`,
-    '',
+    ...(entered.length ? [`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`, ''] : []),
+    ...(outcomes ? [`## Gate: ${enteredWords(bred.length, entered.length)}`, '', ...gateLines, ''] : []),
     '## New decks',
     ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}${V['keep-built-around'] ? "; the forge kept each new deck's built-around packages" : ''}${V['package-moves'] ? '; the forge tried package moves' : ''}.`, ''] : []),
-    ...bred.map(
+    ...(entered.length ? [] : ['None entered.']),
+    ...entered.map(
       (b) =>
         `- **${b.deck.name}** (${b.method}) — ${b.idea}${b.packages ? ` Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.changes.length ? `; package changes: ${b.packages.changes.join('; ')}` : ''}.` : ''}`,
     ),
@@ -443,5 +573,5 @@ async function main() {
   fs.writeFileSync(`reports/season-${SEASON}.md`, md);
   console.log(NL + md);
 }
-fs.mkdirSync('data/seasons', { recursive: true });
+if (!GATE_ONLY) fs.mkdirSync('data/seasons', { recursive: true });
 runMain(main);

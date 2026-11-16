@@ -1,0 +1,283 @@
+{
+ "note": "The 16 recorded bred decks, the reference the gate gives each today, and the Hard power ratings (simulator version 9, 14 events) read on 2026-11-15, before any gate game.",
+ "bar": {
+  "name": "YYB Rogue Gear",
+  "file": "meta-yyb-rogue-gear.txt",
+  "rating": 0.531032,
+  "ratingLo": 0.48496,
+  "ratingHi": 0.57672
+ },
+ "pairs": [
+  {
+   "name": "S1-01 Mutant (RRY)",
+   "file": "s1-01-mutant-rry.txt",
+   "method": "mutant",
+   "parents": [
+    "RRG Dexter Midrange"
+   ],
+   "reference": "RRG Dexter Midrange",
+   "referenceFile": "meta-rrg-dexter-midrange.txt",
+   "rating": 0.695953,
+   "ratingLo": 0.652996,
+   "ratingHi": 0.735946,
+   "ratingGames": 283,
+   "referenceRating": 0.734598,
+   "referenceLo": 0.696378,
+   "referenceHi": 0.769772
+  },
+  {
+   "name": "S1-02 Mutant (RYY)",
+   "file": "s1-02-mutant-ryy.txt",
+   "method": "mutant",
+   "parents": [
+    "YYB Rogue Gear"
+   ],
+   "reference": "YYB Rogue Gear",
+   "referenceFile": "meta-yyb-rogue-gear.txt",
+   "rating": 0.330212,
+   "ratingLo": 0.285246,
+   "ratingHi": 0.378439,
+   "ratingGames": 235,
+   "referenceRating": 0.531032,
+   "referenceLo": 0.48496,
+   "referenceHi": 0.57672
+  },
+  {
+   "name": "S1-03 Mutant (RBG)",
+   "file": "s1-03-mutant-rbg.txt",
+   "method": "mutant",
+   "parents": [
+    "Rainbow Fixer Stuff"
+   ],
+   "reference": "Rainbow Fixer Stuff",
+   "referenceFile": "meta-rainbow-fixer-stuff.txt",
+   "rating": 0.477341,
+   "ratingLo": 0.427562,
+   "ratingHi": 0.527687,
+   "ratingGames": 248,
+   "referenceRating": 0.458146,
+   "referenceLo": 0.413079,
+   "referenceHi": 0.503985
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "file": "s1-04-cross-rbg.txt",
+   "method": "crossover",
+   "parents": [
+    "Rainbow Fixer Stuff",
+    "RRG Dexter Midrange"
+   ],
+   "reference": "RRG Dexter Midrange",
+   "referenceFile": "meta-rrg-dexter-midrange.txt",
+   "rating": 0.400414,
+   "ratingLo": 0.351728,
+   "ratingHi": 0.451172,
+   "ratingGames": 236,
+   "referenceRating": 0.734598,
+   "referenceLo": 0.696378,
+   "referenceHi": 0.769772
+  },
+  {
+   "name": "S1-05 Cross (RBB)",
+   "file": "s1-05-cross-rbb.txt",
+   "method": "crossover",
+   "parents": [
+    "GRY Trauma Team",
+    "BBG Cunningham Econ"
+   ],
+   "reference": "BBG Cunningham Econ",
+   "referenceFile": "meta-bbg-cunningham-econ.txt",
+   "rating": 0.541794,
+   "ratingLo": 0.491852,
+   "ratingHi": 0.591082,
+   "ratingGames": 250,
+   "referenceRating": 0.639347,
+   "referenceLo": 0.596321,
+   "referenceHi": 0.680425
+  },
+  {
+   "name": "S1-06 Cross (BGY)",
+   "file": "s1-06-cross-bgy.txt",
+   "method": "crossover",
+   "parents": [
+    "BBG Cunningham Econ",
+    "GRY Trauma Team"
+   ],
+   "reference": "BBG Cunningham Econ",
+   "referenceFile": "meta-bbg-cunningham-econ.txt",
+   "rating": 0.267464,
+   "ratingLo": 0.22458,
+   "ratingHi": 0.315034,
+   "ratingGames": 218,
+   "referenceRating": 0.639347,
+   "referenceLo": 0.596321,
+   "referenceHi": 0.680425
+  },
+  {
+   "name": "S1-07 Explorer (RYY)",
+   "file": "s1-07-explorer-ryy.txt",
+   "method": "explorer",
+   "parents": [],
+   "reference": "YYB Rogue Gear",
+   "referenceFile": "meta-yyb-rogue-gear.txt",
+   "rating": 0.345538,
+   "ratingLo": 0.299653,
+   "ratingHi": 0.39444,
+   "ratingGames": 240,
+   "referenceRating": 0.531032,
+   "referenceLo": 0.48496,
+   "referenceHi": 0.57672
+  },
+  {
+   "name": "S1-08 Explorer (BGG)",
+   "file": "s1-08-explorer-bgg.txt",
+   "method": "explorer",
+   "parents": [],
+   "reference": "YYB Rogue Gear",
+   "referenceFile": "meta-yyb-rogue-gear.txt",
+   "rating": 0.479151,
+   "ratingLo": 0.430396,
+   "ratingHi": 0.528418,
+   "ratingGames": 258,
+   "referenceRating": 0.531032,
+   "referenceLo": 0.48496,
+   "referenceHi": 0.57672
+  },
+  {
+   "name": "S2-01 Mutant (RYY)",
+   "file": "s2-01-mutant-ryy.txt",
+   "method": "mutant",
+   "parents": [
+    "S1-01 Mutant (RRY)"
+   ],
+   "reference": "S1-01 Mutant (RRY)",
+   "referenceFile": "s1-01-mutant-rry.txt",
+   "rating": 0.450124,
+   "ratingLo": 0.397911,
+   "ratingHi": 0.503552,
+   "ratingGames": 219,
+   "referenceRating": 0.695953,
+   "referenceLo": 0.652996,
+   "referenceHi": 0.735946
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "file": "s2-02-mutant-rgg.txt",
+   "method": "mutant",
+   "parents": [
+    "RRG Dexter Midrange"
+   ],
+   "reference": "RRG Dexter Midrange",
+   "referenceFile": "meta-rrg-dexter-midrange.txt",
+   "rating": 0.613978,
+   "ratingLo": 0.562966,
+   "ratingHi": 0.662836,
+   "ratingGames": 226,
+   "referenceRating": 0.734598,
+   "referenceLo": 0.696378,
+   "referenceHi": 0.769772
+  },
+  {
+   "name": "S2-03 Cross (RGY)",
+   "file": "s2-03-cross-rgy.txt",
+   "method": "crossover",
+   "parents": [
+    "Smash the Curve",
+    "S1-07 Explorer (RYY)"
+   ],
+   "reference": "Smash the Curve",
+   "referenceFile": "RRG-smash-the-curve.txt",
+   "rating": 0.49674,
+   "ratingLo": 0.445447,
+   "ratingHi": 0.548243,
+   "ratingGames": 229,
+   "referenceRating": 0.705725,
+   "referenceLo": 0.662966,
+   "referenceHi": 0.745348
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "file": "s2-04-cross-rrg.txt",
+   "method": "crossover",
+   "parents": [
+    "S1-01 Mutant (RRY)",
+    "Ladder: V / Smasher / Saburo (RRG)"
+   ],
+   "reference": "Ladder: V / Smasher / Saburo (RRG)",
+   "referenceFile": "ladder-rrg-v-smasher-saburo.txt",
+   "rating": 0.555836,
+   "ratingLo": 0.504579,
+   "ratingHi": 0.606125,
+   "ratingGames": 231,
+   "referenceRating": 0.706027,
+   "referenceLo": 0.665912,
+   "referenceHi": 0.743365
+  },
+  {
+   "name": "S2-05 Counter (RRG)",
+   "file": "s2-05-counter-rrg.txt",
+   "method": "counter",
+   "parents": [
+    "S1-01 Mutant (RRY)",
+    "BBG Cunningham Econ"
+   ],
+   "reference": "S1-01 Mutant (RRY)",
+   "referenceFile": "s1-01-mutant-rry.txt",
+   "rating": 0.574861,
+   "ratingLo": 0.524177,
+   "ratingHi": 0.624221,
+   "ratingGames": 238,
+   "referenceRating": 0.695953,
+   "referenceLo": 0.652996,
+   "referenceHi": 0.735946
+  },
+  {
+   "name": "S2-06 Counter (RGG)",
+   "file": "s2-06-counter-rgg.txt",
+   "method": "counter",
+   "parents": [
+    "Ladder: V / Smasher / Saburo (RRG)",
+    "BBG Cunningham Econ"
+   ],
+   "reference": "Ladder: V / Smasher / Saburo (RRG)",
+   "referenceFile": "ladder-rrg-v-smasher-saburo.txt",
+   "rating": 0.5673,
+   "ratingLo": 0.51681,
+   "ratingHi": 0.616625,
+   "ratingGames": 239,
+   "referenceRating": 0.706027,
+   "referenceLo": 0.665912,
+   "referenceHi": 0.743365
+  },
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "file": "s2-07-explorer-rrb.txt",
+   "method": "explorer",
+   "parents": [],
+   "reference": "YYB Rogue Gear",
+   "referenceFile": "meta-yyb-rogue-gear.txt",
+   "rating": 0.516113,
+   "ratingLo": 0.464466,
+   "ratingHi": 0.567578,
+   "ratingGames": 233,
+   "referenceRating": 0.531032,
+   "referenceLo": 0.48496,
+   "referenceHi": 0.57672
+  },
+  {
+   "name": "S2-08 Explorer (GGY)",
+   "file": "s2-08-explorer-ggy.txt",
+   "method": "explorer",
+   "parents": [],
+   "reference": "YYB Rogue Gear",
+   "referenceFile": "meta-yyb-rogue-gear.txt",
+   "rating": 0.536496,
+   "ratingLo": 0.484669,
+   "ratingHi": 0.587727,
+   "ratingGames": 231,
+   "referenceRating": 0.531032,
+   "referenceLo": 0.48496,
+   "referenceHi": 0.57672
+  }
+ ]
+}

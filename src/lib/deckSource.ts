@@ -56,7 +56,8 @@ export function deckSource(d: Pick<LibraryDeck, 'kind' | 'prov' | 'deck' | 'tune
       return (d.prov.origin ?? '').startsWith('Night City Trainer bred') ? 'bred' : 'nc';
     default:
       if (d.tuned || TUNED_NAME.test(d.deck.name)) return 'tuned';
-      if (LAB_BRED_NAME.test(d.deck.name) || (d.manifest?.field.mode ?? '').startsWith('deck-lab-quick-test')) return 'lab';
+      // a Lab-bred deck saved under another name keeps the manifest of its test: the old quick test's, or the test against its reference
+      if (LAB_BRED_NAME.test(d.deck.name) || /^deck-lab-(quick|breed)-test/.test(d.manifest?.field.mode ?? '')) return 'lab';
       return 'mine';
   }
 }

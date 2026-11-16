@@ -1,0 +1,51 @@
+P7 check of the breeder's gate on the recorded bred decks: plan and analysis, written 2026-11-15 before any gate game was played.
+
+What is tested
+  The 16 decks bred in Seasons 1 and 2, as they are in the library today (their forged lists), each against the deck
+  the gate would test it against today: its best parent by today's strength (the Hard power rating halfway to its
+  lower bound), or for an explorer the middle meta deck by strength (YYB Rogue Gear).
+
+  S1-01 Mutant (RRY)    vs RRG Dexter Midrange              ratings now: -3.9
+  S1-02 Mutant (RYY)    vs YYB Rogue Gear                   -20.1
+  S1-03 Mutant (RBG)    vs Rainbow Fixer Stuff              +1.9
+  S1-04 Cross (RBG)     vs RRG Dexter Midrange              -33.4
+  S1-05 Cross (RBB)     vs BBG Cunningham Econ              -9.8
+  S1-06 Cross (BGY)     vs BBG Cunningham Econ              -37.2
+  S1-07 Explorer (RYY)  vs YYB Rogue Gear (explorer)        -18.5
+  S1-08 Explorer (BGG)  vs YYB Rogue Gear (explorer)        -5.2
+  S2-01 Mutant (RYY)    vs S1-01 Mutant (RRY)               -24.6
+  S2-02 Mutant (RGG)    vs RRG Dexter Midrange              -12.1
+  S2-03 Cross (RGY)     vs Smash the Curve                  -20.9
+  S2-04 Cross (RRG)     vs Ladder: V / Smasher / Saburo     -15.0
+  S2-05 Counter (RRG)   vs S1-01 Mutant (RRY)               -12.1
+  S2-06 Counter (RGG)   vs Ladder: V / Smasher / Saburo     -13.9
+  S2-07 Explorer (RRB)  vs YYB Rogue Gear (explorer)        -1.5
+  S2-08 Explorer (GGY)  vs YYB Rogue Gear (explorer)        +0.5
+  ("ratings now": the bred deck's power rating against the field of 47 decks minus its reference's, Hard, simulator
+  version 9, 14 events; each rating's 90% range is about +/- 5 points. A different yardstick from the gate's, which is
+  the paired difference against the meta decks.)
+
+What is played
+  Medium: five stages (1,400 paired games with 7 opponents, 1,200 with 6), no early stop, seed 7,000,000.
+  Hard: two stages (560 or 480 paired games), no early stop, seed 7,100,000, for every pair (also the ones Medium
+  shows worse, so the two bots can be compared).
+  Simulator version 9. Nothing is recorded as an event, a rating, a ledger batch or an evidence row.
+
+Questions, fixed in advance
+  Q1  How many of the 16 would the gate keep out: by Medium, and by Hard among the rest.
+  Q2  Does the gate agree with the ratings: sign agreement and rank correlation of the gate's difference with the
+      rating difference; is every deck rated 10 or more points below its reference kept out; is any deck rated within
+      5 points of its reference kept out.
+  Q3  Do Medium and Hard agree for whole decks: sign agreement, the slope of the Hard difference on the Medium one,
+      and any deck Medium shows worse whose Hard range lies entirely above zero.
+  Q4  The per-game spread of the paired difference with each bot, against the 0.70 the tool assumes.
+  Q5  The games the staged looks save against playing every stage.
+
+Decisions, fixed in advance
+  D1  If any deck is shown worse by Medium while its plain 95% range with Hard lies entirely above zero, or if Medium
+      and Hard agree in sign for fewer than 12 of the 16, the default becomes Hard only (its cost stated); otherwise
+      Medium first and Hard second stays.
+  D2  If the median spread differs from 0.70 by more than 0.05 with either bot, the assumed spread becomes the measured
+      median for that bot.
+  D3  Whatever the numbers, the rule itself (bar at 0, enter unless shown worse, five looks and two looks) is not changed
+      after seeing them. If it looks wrong, that is reported as a finding for the owner.

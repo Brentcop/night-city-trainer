@@ -1,0 +1,133 @@
+P7: the breeder's gate checked on the 16 recorded bred decks. Played 2026-11-15 (local time; the records' UTC stamps read the 16th), simulator version 9.
+The plan and its decision rules are in p7-plan.txt, written before any of these games. The games are replayed by
+p7-validate.sh (npm run gate with every stage played, from the game cache when it holds them) and read by
+p7-analyze.cjs. Nothing here was recorded as an event, a rating, a ledger batch or an evidence row.
+
+1. What was played
+   16 pairs, every stage (no early stop). Medium: 5 stages (1,400 paired games with 7 opponents, 1,200 with 6), seed
+   7,000,000. Hard: 2 stages (560 or 480), seed 7,100,000, for every pair, also the ones Medium shows worse.
+   20,200 paired games with Medium and 8,080 with Hard; a reference several decks share played once. About 54 minutes
+   on 8 threads, nearly all of it Hard.
+   First, one cross-check of the tool: the gate's first stage for S2-05 against S1-01 is exactly the 560 games
+   npm run remeasure plays for the same lists, seeds and bot (all 560 found in the game cache), with the same figure by
+   opponent and by seat.
+
+2. Each deck against the reference the rule gives it (its best parent; an explorer, the middle meta deck)
+   Paired difference in points, bred deck minus reference, with the plain 95% range over every stage played; the verdict
+   is where the staged rule would have stopped. "ratings": the deck's Hard power rating against all 47 decks minus its
+   reference's, a different yardstick (each rating's 90% range is about +/- 5 points).
+
+   deck                  reference                 ratings  Medium                 staged verdict        Hard                   staged verdict        the gate
+   S1-01 Mutant (RRY)    RRG Dexter Midrange        -3.9    +2.1 [-1.0, +5.2]      could not tell        -10.2 [-15.5, -4.9]    shown worse, look 2   kept out by Hard
+   S1-02 Mutant (RYY)    YYB Rogue Gear            -20.1    -13.8 [-17.2, -10.5]   shown worse, look 2   -15.8 [-21.4, -10.3]   shown worse, look 1   kept out by Medium
+   S1-03 Mutant (RBG)    Rainbow Fixer Stuff        +1.9    +8.7 [+5.4, +11.9]     shown better, look 2  -2.5 [-7.7, +2.7]      could not tell        enters
+   S1-04 Cross (RBG)     RRG Dexter Midrange       -33.4    -23.6 [-26.8, -20.3]   shown worse, look 1   -32.9 [-38.5, -27.4]   shown worse, look 1   kept out by Medium
+   S1-05 Cross (RBB)     BBG Cunningham Econ        -9.8    +3.4 [-0.0, +6.9]      could not tell        -7.9 [-13.8, -2.1]     shown worse, look 1   kept out by Hard
+   S1-06 Cross (BGY)     BBG Cunningham Econ       -37.2    -22.7 [-25.9, -19.5]   shown worse, look 1   -35.0 [-40.3, -29.7]   shown worse, look 1   kept out by Medium
+   S1-07 Explorer (RYY)  YYB Rogue Gear            -18.5    -12.3 [-15.7, -8.9]    shown worse, look 2   -7.9 [-13.3, -2.5]     shown worse, look 2   kept out by Medium
+   S1-08 Explorer (BGG)  YYB Rogue Gear             -5.2    -1.2 [-4.7, +2.4]      could not tell        -7.9 [-13.3, -2.6]     shown worse, look 2   kept out by Hard
+   S2-01 Mutant (RYY)    S1-01 Mutant (RRY)        -24.6    -22.9 [-26.0, -19.9]   shown worse, look 1   -18.6 [-23.5, -13.6]   shown worse, look 1   kept out by Medium
+   S2-02 Mutant (RGG)    RRG Dexter Midrange       -12.1    -10.9 [-14.1, -7.7]    shown worse, look 2   -15.0 [-20.5, -9.5]    shown worse, look 1   kept out by Medium
+   S2-03 Cross (RGY)     Smash the Curve           -20.9    -15.9 [-19.0, -12.7]   shown worse, look 1   -15.7 [-21.1, -10.3]   shown worse, look 1   kept out by Medium
+   S2-04 Cross (RRG)     Ladder: V/Smasher/Saburo  -15.0    -19.1 [-22.1, -16.0]   shown worse, look 1   -9.5 [-14.4, -4.5]     shown worse, look 2   kept out by Medium
+   S2-05 Counter (RRG)   S1-01 Mutant (RRY)        -12.1    -7.9 [-10.8, -4.9]     shown worse, look 4   -4.5 [-9.3, +0.4]      could not tell        kept out by Medium
+   S2-06 Counter (RGG)   Ladder: V/Smasher/Saburo  -13.9    -19.4 [-22.5, -16.2]   shown worse, look 1   -6.8 [-11.9, -1.7]     shown worse, look 2   kept out by Medium
+   S2-07 Explorer (RRB)  YYB Rogue Gear             -1.5    +12.9 [+9.4, +16.4]    shown better, look 2  +1.9 [-3.8, +7.5]      could not tell        enters
+   S2-08 Explorer (GGY)  YYB Rogue Gear             +0.5    -5.4 [-9.0, -1.9]      shown worse, look 5   -4.6 [-9.9, +0.7]      could not tell        kept out by Medium
+
+3. The plan's questions
+   Q1  Medium keeps out 11 of the 16. Hard keeps out 3 of the other 5 (S1-01, S1-05, S1-08). Two enter: S1-03 Mutant
+       and S2-07 Explorer. Medium shows those two better than their reference; Hard shows no deck better.
+   Q2  Against the ratings. Medium: same sign 12 of 16, Spearman 0.90, Pearson 0.85. Hard: same sign 13 of 16,
+       Spearman 0.81, Pearson 0.90. All 10 decks rated 10 or more points below their reference are kept out. Of the 4
+       rated within 5 points (S1-01, S1-03, S2-07, S2-08), two are kept out: S1-01 by Hard and S2-08 by Medium.
+   Q3  Medium against Hard. Same sign 13 of 16; Pearson 0.72, Spearman 0.74; Hard = -6.2 + 0.63 x Medium; the mean
+       difference is -9.2 with Medium and -12.1 with Hard. No deck Medium shows worse has a Hard range entirely above
+       zero, and no pair of plain ranges lies on opposite sides of zero. Shown worse by both bots: 9 decks; by Medium
+       only: S2-05 and S2-08; by Hard only: S1-01, S1-05 and S1-08.
+   Q4  Per-game spread of the paired difference: Medium median 0.59 (0.55 to 0.63), Hard median 0.60 (0.58 to 0.65).
+       The tool assumed 0.70.
+   Q5  The staged looks: 9,920 paired Medium games against 20,200 at full size (49%). Hard: 2,160 for the 5 decks
+       Medium did not show worse, against 8,080 if every deck played Hard in full.
+
+4. The plan's decisions
+   D1  Neither condition is met (no deck shown worse by Medium has a Hard range entirely above zero; the signs agree
+       for 13 of 16), so Medium first and Hard second stays the default.
+   D2  The spread differs from 0.70 by more than 0.05 with both bots: the tool now assumes 0.59 with Medium and 0.60
+       with Hard. At the default sizes that is a deficit of about 4.5 points shown worse 8 times in 10 by Medium and
+       about 7 by Hard, where the 0.70 gave 5.3 and 8.3.
+   D3  The rule was not changed.
+
+5. Two findings the plan did not ask about
+   F1  The parent rule keeps out the strong bred decks. S1-01 Mutant is rated 69.6%, fourth of the 47 decks, and Hard
+       shows it 10.2 points worse than its parent, RRG Dexter Midrange, the top deck. S2-02 (61.4%, 8th), S2-05
+       (57.5%, 14th), S2-06 (56.7%, 16th) and S2-04 (55.6%, 19th) are kept out the same way: each has a reference
+       rated 69.6% or more. The two that enter, S1-03 (47.7%, 30th) and S2-07 (51.6%, 27th), have weak references. The rule
+       asks whether a child matches its best parent, and the stronger the parent the harder that is; it does not ask
+       whether the child is a strong deck.
+   F2  The two bots disagree about individual decks. Hard minus Medium, deck by deck: mean -2.8 points (standard
+       error 2.0), standard deviation 8.2, where game noise alone would give 3.2. So beyond noise the two bots differ
+       by about 7.5 points from deck to deck, and on average Medium is the kinder one to a bred deck. D1's conditions
+       did not look for this. Three of the five decks Medium let through are shown worse by Hard, and the two decks
+       Medium showed better are "could not tell" with Hard.
+
+6. A second comparison, decided after F1 (not in the plan): the same 16 decks against a fixed bar
+   Every deck against the middle meta deck by strength, YYB Rogue Gear (rated 53.1%, 24th of 47: also the middle deck
+   of the whole library). The four explorers and S1-02 already had it as their reference; the other eleven were
+   played the same way (the second loop of p7-validate.sh): the same seeds, every stage, both bots.
+
+   deck                  rating now (vs the bar)   Medium                 staged verdict        Hard                   staged verdict        the gate
+   S1-01 Mutant (RRY)    69.6% (+16.5)             +21.1 [+17.7, +24.5]   shown better, look 1  +10.6 [+5.0, +16.3]    shown better, look 1  enters
+   S1-02 Mutant (RYY)    33.0% (-20.1)             -13.8 [-17.2, -10.5]   shown worse, look 2   -15.8 [-21.4, -10.3]   shown worse, look 1   kept out by Medium
+   S1-03 Mutant (RBG)    47.7% (-5.4)              +3.8 [+0.3, +7.4]      shown better, look 5  -4.4 [-9.7, +0.9]      could not tell        enters
+   S1-04 Cross (RBG)     40.0% (-13.1)             -5.6 [-9.1, -2.1]      shown worse, look 4   -12.7 [-17.8, -7.6]    shown worse, look 2   kept out by Medium
+   S1-05 Cross (RBB)     54.2% (+1.1)              +2.7 [-0.9, +6.2]      could not tell        +1.3 [-4.5, +7.0]      could not tell        enters
+   S1-06 Cross (BGY)     26.7% (-26.4)             -24.4 [-27.6, -21.2]   shown worse, look 1   -25.8 [-30.9, -20.7]   shown worse, look 1   kept out by Medium
+   S1-07 Explorer (RYY)  34.6% (-18.5)             -12.3 [-15.7, -8.9]    shown worse, look 2   -7.9 [-13.3, -2.5]     shown worse, look 2   kept out by Medium
+   S1-08 Explorer (BGG)  47.9% (-5.2)              -1.2 [-4.7, +2.4]      could not tell        -7.9 [-13.3, -2.6]     shown worse, look 2   kept out by Hard
+   S2-01 Mutant (RYY)    45.0% (-8.1)              -4.4 [-7.8, -1.0]      shown worse, look 5   -8.8 [-14.2, -3.3]     shown worse, look 2   kept out by Medium
+   S2-02 Mutant (RGG)    61.4% (+8.3)              +7.2 [+3.8, +10.7]     shown better, look 3  +5.6 [+0.2, +11.0]     shown better, look 2  enters
+   S2-03 Cross (RGY)     49.7% (-3.4)              +4.2 [+0.6, +7.8]      shown better, look 5  +0.0 [-5.5, +5.5]      could not tell        enters
+   S2-04 Cross (RRG)     55.6% (+2.5)              +5.8 [+2.3, +9.3]      shown better, look 3  +3.5 [-2.2, +9.2]      could not tell        enters
+   S2-05 Counter (RRG)   57.5% (+4.4)              +10.6 [+7.1, +14.0]    shown better, look 2  +9.8 [+4.4, +15.2]     shown better, look 2  enters
+   S2-06 Counter (RGG)   56.7% (+3.6)              +5.8 [+2.3, +9.2]      shown better, look 4  +9.4 [+3.8, +14.9]     shown better, look 2  enters
+   S2-07 Explorer (RRB)  51.6% (-1.5)              +12.9 [+9.4, +16.4]    shown better, look 2  +1.9 [-3.8, +7.5]      could not tell        enters
+   S2-08 Explorer (GGY)  53.6% (+0.5)              -5.4 [-9.0, -1.9]      shown worse, look 5   -4.6 [-9.9, +0.7]      could not tell        kept out by Medium
+
+   Nine of the 16 enter, against two under the parent rule. Kept out: S1-06, S1-02, S1-07, S1-04, S2-01 and S1-08
+   (rated 26.7% to 47.9%) and S2-08.
+   Of the 7 decks rated at or above the bar, 6 enter; the seventh, S2-08 (53.6%), is kept out by Medium while Hard
+   cannot tell. Of the 7 rated 5 or more points below it, one enters: S1-03 (47.7%), which Medium shows better and Hard
+   cannot tell. Against one common reference the two bots agree better than against the parents: same sign 14 of 16,
+   Hard minus Medium -3.3 on average with a standard deviation of 4.5 where noise alone gives 3.3. Hard by itself, with
+   its two stages, would let in the same nine and S2-08.
+
+7. What this says
+   The gate does what it was built to do: it agrees with the ratings (rank correlation 0.8 to 0.9), it keeps out every
+   deck the ratings put 10 or more points below its reference, and the staged looks halve the Medium games.
+   Which reference it should use is a choice for the owner. The parent rule (the plan's, and the default as built)
+   would have entered 2 of the 16 recorded decks and kept out the breeder's five strongest. The fixed bar would have
+   entered 9, among them those five, and kept out six of the seven rated under 48%. scripts/season.ts takes --gate-reference
+   parent|middle; the default stays the parent until the owner decides.
+   Whether Medium should go first is a second choice. It is cheap and agreed in sign with Hard for 13 or 14 of the 16,
+   but it is the kinder bot to a bred deck and it differs from Hard deck by deck. Hard alone is
+   --gate-bot hard --gate-confirm-bot none; with five stages that is at most 2,800 Hard games a deck (its reference
+   included), about 22,400 for a season of eight, before the staged looks and shared references cut it.
+
+8. A trial of Season 3 (the season step at its real sizes; nothing recorded)
+   npx tsx scripts/season.ts --gate-only --out DIR breeds the next season's 8 decks and gates them, and writes nothing
+   into the repository. Run once under each reference, 12 threads:
+   - its best parent (the default): 8 bred, 2 entered, about 7 minutes. The two that enter are the explorers, which
+     play the middle meta deck under either rule (Medium shows both better, +5.8 and +6.7; Hard cannot tell, +1.0 and
+     +2.1). Five of the six decks with parents are shown worse by Medium (by 11.8 to 21.6 points); the sixth, S3-04
+     Cross, by Hard (-13.3 [-26.2, -0.5] at its first look) after Medium could not tell (-1.6).
+   - the fixed bar (--gate-reference middle): 8 bred, 6 entered, about 12 minutes. Kept out: S3-01 Mutant by Hard
+     (-8.5 [-14.1, -3.0]) and S3-04 Cross by Medium (-6.6 [-11.2, -1.9]).
+   The first run of this trial showed a flaw. Replayed from the lists in its record, the references' games came out
+   the same and the bred decks' did not (S3-07: 51.67% recorded, 52.60% replayed over the same 960 seeds). The order of
+   a list's cards changes the games a seed deals it, and the season gated each bred list in the breeder's order while
+   the record and the deck file hold it regrouped by type and cost. The verdicts were sound (either order is a fair
+   deal), but the games could not be replayed. The season now gates each bred list in the order its deck file reads
+   back (asWritten, scripts/gate-run.ts). The figures above are from the run after that change, and two of its decks
+   replay exactly from the record (S3-07: 52.60% against 46.77%, +5.83; S3-04: 43.17% against 44.75%, -1.58, over
+   1,200 games). tests/season-gate.test.ts replays two decks from a small record and fails without the change.

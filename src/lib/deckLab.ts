@@ -5,6 +5,9 @@
 // the change ledger, the tuner records every screening and held-out paired game as the forge does and judges a nominee
 // that already has held-out games on them and the new games pooled (src/lib/changeLedgerRun.ts holds the logic both
 // share; the browser store is src/lib/changeLedgerStore.ts). Without it every log, game and result is the one before.
+//
+// Breeding: parents are ranked by src/lib/parentStrength.ts (rankedParents hands it the bundled ratings and seasons), and
+// a bred deck's test against its reference (src/lib/breedGate.ts runLabTest) plays its blocks through labGatePlay.
 import { CARDS, CARD_BY_ID, cardLabel } from '../engine/cards';
 import { counts, listFingerprint, ramLimits, validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
@@ -15,7 +18,8 @@ import { canCut, checkChange, isEmptyPlan, packageName, tunerPackageMoves, type 
 import { cutReason, partnerAwarePicks, type CutRow } from './cutRanking';
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
-import { RATINGS, SEASONS } from '../data/index';
+import { RATINGS, SEASONS, type SeasonsData } from '../data/index';
+import { rankLibraryParents, type RatedDeck } from './parentStrength';
 import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
 import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
@@ -27,6 +31,7 @@ import type { LibraryDeck } from './library';
 import { h2hFileLookup, type H2HFileLike, type H2HRecord } from './h2hModel';
 import { finalVsOriginal, manifestTune, tunedRecord, vsOriginalVerdict, type TunedDeckRecord, type VsOriginal } from './tuneRecord';
 import type { RunManifest } from './runManifest';
+import type { GatePlay } from './breedGate';
 
 export { finalVsOriginal, vsOriginalVerdict, type VsOriginal, type VsOriginalVerdict } from './tuneRecord';
 
@@ -78,6 +83,14 @@ export async function playSet(deck: DeckList, field: DeckList[], seed0: number, 
   const scores = res.map((r) => scoreOf(r.winner));
   const w = scores.reduce((a, s) => a + s, 0);
   return { wr: w / res.length, games: res.length, sums: res.flatMap((r) => (r.summary ? [r.summary] : [])), scores };
+}
+
+/**
+ * A bred deck's test (src/lib/breedGate.ts runLabTest) over a game pool: each block is a playSet from its seed, which is
+ * the gate's layout (game k plays field[k mod n] with seed seed0 + k, the deck first when floor(k / n) is even).
+ */
+export function labGatePlay(play: PlayGame, onGame?: () => void): GatePlay {
+  return async (r) => (await playSet(r.deck, [...r.field], r.seed0, r.games, r.bot, play, false, onGame)).scores;
 }
 
 // ---------------------------------------------------------------- tuning (forge)
@@ -785,21 +798,14 @@ export function tunedName(name: string, partial = false, notShownBetter = false)
 }
 
 // ---------------------------------------------------------------- breeding
-/** Parent strength: tournament power rating where available, else the season leaderboard rating vs the meta. */
-function rankedParents(lib: readonly LibraryDeck[]): { deck: DeckList; wr: number }[] {
-  const R = RATINGS;
-  const S = SEASONS;
-  const strength = new Map<string, number>();
-  for (const r of S.leaderboard) {
-    const d = lib.find((x) => x.file === r.file);
-    if (d && Number.isFinite(r.rating)) strength.set(d.deck.name, r.rating);
-  }
-  for (const r of R.decks) if (r.games >= 20 && Number.isFinite(r.wrField)) strength.set(r.name, strength.has(r.name) ? 0.65 * r.wrField + 0.35 * strength.get(r.name)! : r.wrField);
-  return [...strength.entries()]
-    .map(([name, wr]) => ({ d: lib.find((x) => x.deck.name === name), wr }))
-    .filter((x): x is { d: LibraryDeck; wr: number } => !!x.d)
-    .sort((a, b) => b.wr - a.wr)
-    .map((x) => ({ deck: x.d.deck, wr: x.wr }));
+/**
+ * Parent strength, strongest first: the season breeder's rule (src/lib/parentStrength.ts; scripts/breed-data.ts
+ * strengthOf): the conservative power rating, blended with the season leaderboard only where its entry is current (every
+ * season behind it ran under this simulator version). The leaderboard's rows are matched to library decks by file.
+ * `ratings` and `seasons` default to the bundled files (tests hand in their own).
+ */
+export function rankedParents(lib: readonly LibraryDeck[], ratings: readonly RatedDeck[] = RATINGS.decks, seasons: Pick<SeasonsData, 'leaderboard' | 'seasons'> = SEASONS, current: number = SIM_VERSION): { deck: DeckList; wr: number }[] {
+  return rankLibraryParents(lib, ratings, seasons, current);
 }
 
 export interface BreedOptions {

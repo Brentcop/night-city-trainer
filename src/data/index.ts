@@ -8,6 +8,8 @@
 import type { DeckReport } from '../analysis/analyze';
 import type { RatingRow, RatingsFile } from '../lib/playedRecord';
 import type { EventLite } from '../lib/deckRecord';
+// type only: this file is in the entry chunk, and the gate's code is not (tests/breed-gate.test.ts)
+import type { GateOutcome } from '../lib/breedGate';
 import ratingsJson from './ratings.json';
 import seasonsJson from './seasons.json';
 import reviewJson from './review.json';
@@ -54,13 +56,37 @@ export interface BredRecord {
   parents: string[];
   idea: string;
 }
-export interface SeasonRecord {
+/** One bred deck's test in a season's gate record: the outcome (breedGate.ts), how it was made, its words and its list. */
+export interface SeasonGateDeck extends GateOutcome {
+  method: string;
+  idea: string;
+  /** the outcome in words (breedGate.ts gateWords) */
+  words: string;
+  /** the list as official export text */
+  list: string;
+  legends: string[];
+}
+/** A gated season's test of its bred decks (scripts/season.ts; docs/SYNERGIES.md "A bred deck's test against its parent"). */
+export interface SeasonGate {
+  bred: number;
+  entered: number;
+  simVersion: number;
+  settings: { bot: string; confirmBot: string | null; rounds: number; stages: number; confirmStages: number; alpha: number; seeds: { first: number; confirm: number }; reference?: 'parent' | 'middle'; fullStages?: true };
+  words: { rule: string; guarantee: string; detect: string; spread: string };
+  spreadSeen: { first: number | null; firstDecks: number; confirm: number | null; confirmDecks: number };
+  /** every bred deck, those that entered and those that did not */
+  decks: SeasonGateDeck[];
+}
+export interface SeasonRecord extends Versioned {
   season: number;
   date: string;
   games: number;
   bot: string;
+  /** the decks that took a slot (with a gate, only those that entered) */
   bred: BredRecord[];
   standings: { name: string; file: string; kind: string; wr: number; isNew: boolean }[];
+  /** the test of every bred deck, for a season run with the gate (seasons 1 and 2 were not) */
+  gate?: SeasonGate;
 }
 export interface SeasonsData extends Versioned {
   updated: string;

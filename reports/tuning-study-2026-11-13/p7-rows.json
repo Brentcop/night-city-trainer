@@ -1,0 +1,854 @@
+{
+ "reference": [
+  {
+   "name": "S1-01 Mutant (RRY)",
+   "reference": "RRG Dexter Midrange",
+   "opponents": 6,
+   "ratings": -0.038645,
+   "medium": {
+    "verdict": "could-not-tell",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": 0.020833,
+    "lo": -0.010018,
+    "hi": 0.051684,
+    "sd": 0.545265,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.102083,
+    "lo": -0.154747,
+    "hi": -0.049419,
+    "sd": 0.588686,
+    "games": 480
+   },
+   "gate": "kept out by Hard"
+  },
+  {
+   "name": "S1-02 Mutant (RYY)",
+   "reference": "YYB Rogue Gear",
+   "opponents": 6,
+   "ratings": -0.20082,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.138333,
+    "lo": -0.17202,
+    "hi": -0.104646,
+    "sd": 0.595393,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.158333,
+    "lo": -0.213774,
+    "hi": -0.102892,
+    "sd": 0.619729,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-03 Mutant (RBG)",
+   "reference": "Rainbow Fixer Stuff",
+   "opponents": 6,
+   "ratings": 0.019195,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.086667,
+    "lo": 0.054358,
+    "hi": 0.118976,
+    "sd": 0.571046,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.025,
+    "lo": -0.076977,
+    "hi": 0.026977,
+    "sd": 0.581015,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "reference": "RRG Dexter Midrange",
+   "opponents": 6,
+   "ratings": -0.334184,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.235833,
+    "lo": -0.268195,
+    "hi": -0.203471,
+    "sd": 0.571975,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.329167,
+    "lo": -0.384612,
+    "hi": -0.273722,
+    "sd": 0.619771,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-05 Cross (RBB)",
+   "reference": "BBG Cunningham Econ",
+   "opponents": 6,
+   "ratings": -0.097553,
+   "medium": {
+    "verdict": "could-not-tell",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": 0.034167,
+    "lo": -0.000325,
+    "hi": 0.068659,
+    "sd": 0.609625,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.079167,
+    "lo": -0.13769,
+    "hi": -0.020644,
+    "sd": 0.654185,
+    "games": 480
+   },
+   "gate": "kept out by Hard"
+  },
+  {
+   "name": "S1-06 Cross (BGY)",
+   "reference": "BBG Cunningham Econ",
+   "opponents": 6,
+   "ratings": -0.371883,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.226667,
+    "lo": -0.258534,
+    "hi": -0.1948,
+    "sd": 0.563223,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.35,
+    "lo": -0.402854,
+    "hi": -0.297146,
+    "sd": 0.590813,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-07 Explorer (RYY)",
+   "reference": "YYB Rogue Gear",
+   "opponents": 6,
+   "ratings": -0.185494,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.123333,
+    "lo": -0.157206,
+    "hi": -0.08946,
+    "sd": 0.598683,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.079167,
+    "lo": -0.132929,
+    "hi": -0.025405,
+    "sd": 0.600959,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-08 Explorer (BGG)",
+   "reference": "YYB Rogue Gear",
+   "opponents": 6,
+   "ratings": -0.051881,
+   "medium": {
+    "verdict": "could-not-tell",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": -0.011667,
+    "lo": -0.047385,
+    "hi": 0.024051,
+    "sd": 0.631292,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.079167,
+    "lo": -0.132617,
+    "hi": -0.025717,
+    "sd": 0.597475,
+    "games": 480
+   },
+   "gate": "kept out by Hard"
+  },
+  {
+   "name": "S2-01 Mutant (RYY)",
+   "reference": "S1-01 Mutant (RRY)",
+   "opponents": 7,
+   "ratings": -0.245829,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 280,
+    "mean": -0.229286,
+    "lo": -0.259821,
+    "hi": -0.198751,
+    "sd": 0.582935,
+    "games": 1400
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 280,
+    "mean": -0.185714,
+    "lo": -0.235092,
+    "hi": -0.136336,
+    "sd": 0.59618,
+    "games": 560
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "reference": "RRG Dexter Midrange",
+   "opponents": 6,
+   "ratings": -0.12062,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.109167,
+    "lo": -0.140881,
+    "hi": -0.077453,
+    "sd": 0.560516,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.15,
+    "lo": -0.205022,
+    "hi": -0.094978,
+    "sd": 0.615051,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-03 Cross (RGY)",
+   "reference": "Smash the Curve",
+   "opponents": 7,
+   "ratings": -0.208985,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 280,
+    "mean": -0.158571,
+    "lo": -0.190347,
+    "hi": -0.126795,
+    "sd": 0.606609,
+    "games": 1400
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 280,
+    "mean": -0.157143,
+    "lo": -0.210978,
+    "hi": -0.103308,
+    "sd": 0.649992,
+    "games": 560
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "reference": "Ladder: V / Smasher / Saburo (RRG)",
+   "opponents": 7,
+   "ratings": -0.150191,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 280,
+    "mean": -0.190714,
+    "lo": -0.221078,
+    "hi": -0.16035,
+    "sd": 0.579664,
+    "games": 1400
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 560,
+    "mean": -0.094643,
+    "lo": -0.144182,
+    "hi": -0.045104,
+    "sd": 0.598125,
+    "games": 560
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-05 Counter (RRG)",
+   "reference": "S1-01 Mutant (RRY)",
+   "opponents": 7,
+   "ratings": -0.121092,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 4,
+    "judgedGames": 1120,
+    "mean": -0.078571,
+    "lo": -0.10839,
+    "hi": -0.048752,
+    "sd": 0.569261,
+    "games": 1400
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 560,
+    "mean": -0.044643,
+    "lo": -0.09342,
+    "hi": 0.004134,
+    "sd": 0.588932,
+    "games": 560
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-06 Counter (RGG)",
+   "reference": "Ladder: V / Smasher / Saburo (RRG)",
+   "opponents": 7,
+   "ratings": -0.138727,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 280,
+    "mean": -0.193571,
+    "lo": -0.224778,
+    "hi": -0.162364,
+    "sd": 0.595757,
+    "games": 1400
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 560,
+    "mean": -0.067857,
+    "lo": -0.119033,
+    "hi": -0.016681,
+    "sd": 0.617893,
+    "games": 560
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "reference": "YYB Rogue Gear",
+   "opponents": 6,
+   "ratings": -0.014919,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.129167,
+    "lo": 0.094467,
+    "hi": 0.163867,
+    "sd": 0.613294,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.01875,
+    "lo": -0.037716,
+    "hi": 0.075216,
+    "sd": 0.631185,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-08 Explorer (GGY)",
+   "reference": "YYB Rogue Gear",
+   "opponents": 6,
+   "ratings": 0.005464,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": -0.054167,
+    "lo": -0.089647,
+    "hi": -0.018687,
+    "sd": 0.627078,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.045833,
+    "lo": -0.098969,
+    "hi": 0.007303,
+    "sd": 0.593971,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  }
+ ],
+ "bar": [
+  {
+   "name": "S1-01 Mutant (RRY)",
+   "rating": 0.695953,
+   "vsBar": 0.164921,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": 0.210833,
+    "lo": 0.176572,
+    "hi": 0.245094,
+    "sd": 0.605548,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-better",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": 0.10625,
+    "lo": 0.049673,
+    "hi": 0.162827,
+    "sd": 0.632425,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S1-02 Mutant (RYY)",
+   "rating": 0.330212,
+   "vsBar": -0.20082,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.138333,
+    "lo": -0.17202,
+    "hi": -0.104646,
+    "sd": 0.595393,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.158333,
+    "lo": -0.213774,
+    "hi": -0.102892,
+    "sd": 0.619729,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-03 Mutant (RBG)",
+   "rating": 0.477341,
+   "vsBar": -0.053691,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": 0.038333,
+    "lo": 0.002675,
+    "hi": 0.073991,
+    "sd": 0.630234,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.04375,
+    "lo": -0.096743,
+    "hi": 0.009243,
+    "sd": 0.592368,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S1-04 Cross (RBG)",
+   "rating": 0.400414,
+   "vsBar": -0.130618,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 4,
+    "judgedGames": 960,
+    "mean": -0.055833,
+    "lo": -0.091153,
+    "hi": -0.020513,
+    "sd": 0.624265,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.127083,
+    "lo": -0.17834,
+    "hi": -0.075826,
+    "sd": 0.572961,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-05 Cross (RBB)",
+   "rating": 0.541794,
+   "vsBar": 0.010762,
+   "medium": {
+    "verdict": "could-not-tell",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": 0.026667,
+    "lo": -0.00895,
+    "hi": 0.062284,
+    "sd": 0.629512,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.0125,
+    "lo": -0.044714,
+    "hi": 0.069714,
+    "sd": 0.639554,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S1-06 Cross (BGY)",
+   "rating": 0.267464,
+   "vsBar": -0.263568,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.244167,
+    "lo": -0.275913,
+    "hi": -0.212421,
+    "sd": 0.561081,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 1,
+    "judgedGames": 240,
+    "mean": -0.258333,
+    "lo": -0.309381,
+    "hi": -0.207285,
+    "sd": 0.570622,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-07 Explorer (RYY)",
+   "rating": 0.345538,
+   "vsBar": -0.185494,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.123333,
+    "lo": -0.157206,
+    "hi": -0.08946,
+    "sd": 0.598683,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.079167,
+    "lo": -0.132929,
+    "hi": -0.025405,
+    "sd": 0.600959,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S1-08 Explorer (BGG)",
+   "rating": 0.479151,
+   "vsBar": -0.051881,
+   "medium": {
+    "verdict": "could-not-tell",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": -0.011667,
+    "lo": -0.047385,
+    "hi": 0.024051,
+    "sd": 0.631292,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.079167,
+    "lo": -0.132617,
+    "hi": -0.025717,
+    "sd": 0.597475,
+    "games": 480
+   },
+   "gate": "kept out by Hard"
+  },
+  {
+   "name": "S2-01 Mutant (RYY)",
+   "rating": 0.450124,
+   "vsBar": -0.080908,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": -0.044167,
+    "lo": -0.077997,
+    "hi": -0.010337,
+    "sd": 0.597925,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-worse",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.0875,
+    "lo": -0.142389,
+    "hi": -0.032611,
+    "sd": 0.613564,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  },
+  {
+   "name": "S2-02 Mutant (RGG)",
+   "rating": 0.613978,
+   "vsBar": 0.082946,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 3,
+    "judgedGames": 720,
+    "mean": 0.0725,
+    "lo": 0.038433,
+    "hi": 0.106567,
+    "sd": 0.602118,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.05625,
+    "lo": 0.002103,
+    "hi": 0.110397,
+    "sd": 0.605268,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-03 Cross (RGY)",
+   "rating": 0.49674,
+   "vsBar": -0.034292,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": 0.041667,
+    "lo": 0.0055,
+    "hi": 0.077834,
+    "sd": 0.639222,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0,
+    "lo": -0.055446,
+    "hi": 0.055446,
+    "sd": 0.619785,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-04 Cross (RRG)",
+   "rating": 0.555836,
+   "vsBar": 0.024804,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 3,
+    "judgedGames": 720,
+    "mean": 0.058333,
+    "lo": 0.023367,
+    "hi": 0.093299,
+    "sd": 0.617993,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.035417,
+    "lo": -0.021574,
+    "hi": 0.092408,
+    "sd": 0.637057,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-05 Counter (RRG)",
+   "rating": 0.574861,
+   "vsBar": 0.043829,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.105833,
+    "lo": 0.071188,
+    "hi": 0.140478,
+    "sd": 0.612328,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.097917,
+    "lo": 0.043937,
+    "hi": 0.151897,
+    "sd": 0.603397,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-06 Counter (RGG)",
+   "rating": 0.5673,
+   "vsBar": 0.036268,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 4,
+    "judgedGames": 960,
+    "mean": 0.0575,
+    "lo": 0.023107,
+    "hi": 0.091893,
+    "sd": 0.607866,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.09375,
+    "lo": 0.038187,
+    "hi": 0.149313,
+    "sd": 0.6211,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-07 Explorer (RRB)",
+   "rating": 0.516113,
+   "vsBar": -0.014919,
+   "medium": {
+    "verdict": "shown-better",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.129167,
+    "lo": 0.094467,
+    "hi": 0.163867,
+    "sd": 0.613294,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": 0.01875,
+    "lo": -0.037716,
+    "hi": 0.075216,
+    "sd": 0.631185,
+    "games": 480
+   },
+   "gate": "enters"
+  },
+  {
+   "name": "S2-08 Explorer (GGY)",
+   "rating": 0.536496,
+   "vsBar": 0.005464,
+   "medium": {
+    "verdict": "shown-worse",
+    "look": 5,
+    "judgedGames": 1200,
+    "mean": -0.054167,
+    "lo": -0.089647,
+    "hi": -0.018687,
+    "sd": 0.627078,
+    "games": 1200
+   },
+   "hard": {
+    "verdict": "could-not-tell",
+    "look": 2,
+    "judgedGames": 480,
+    "mean": -0.045833,
+    "lo": -0.098969,
+    "hi": 0.007303,
+    "sd": 0.593971,
+    "games": 480
+   },
+   "gate": "kept out by Medium"
+  }
+ ]
+}

@@ -53,6 +53,10 @@ describe('deck sources', () => {
     expect(deckSource(base)).toBe('mine');
     expect(deckSource({ ...base, deck: { ...base.deck, name: 'X (tuned, partial)' } })).toBe('tuned');
     expect(deckSource({ ...base, deck: { ...base.deck, name: 'Lab-123-04 Mutant (RRY)' } })).toBe('lab');
+    // a Lab-bred deck saved under another name is known by the manifest of its test, the old quick test's or today's
+    const tested = (mode: string) => ({ ...base, manifest: { field: { mode, deckIds: [] } } }) as unknown as Parameters<typeof deckSource>[0];
+    expect(deckSource(tested('deck-lab-quick-test:meta'))).toBe('lab');
+    expect(deckSource(tested('deck-lab-breed-test:meta'))).toBe('lab');
   });
 });
 
