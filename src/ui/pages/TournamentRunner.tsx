@@ -69,6 +69,8 @@ import { PageHead } from '../components/PageHead';
 import { RecordedAt } from '../components/RecordedAt';
 import { ByDeckSummary, Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useEventLib, type Lib, type MatchView } from '../components/TourneyViews';
 import { BracketBoEditor, BracketSlotsEditor, EntrantPicker, MatchListEditor, PairingEditor, SeedOrderEditor } from '../components/EventSetup';
+import { WatchButton, WatchHost } from '../components/watch/WatchEntry';
+import { DealtGames, type WatchTarget } from '../../lib/watchMatch';
 
 type FieldKey = 'meta' | 'ladder' | 'top16' | 'original' | 'guide' | 'all' | 'custom';
 const BOTS = TOURNEY_BOTS;
@@ -189,6 +191,14 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const poolRun = usePoolRun();
   const stopRef = useRef(false);
   const frame = useRef(0);
+  // "Watch": the games the run has dealt (so a match can be watched as soon as it is paired), the latest event and
+  // whether the run goes on, read by the spectator's view, which never holds the run up
+  const dealt = useRef(new DealtGames());
+  const [watch, setWatch] = useState<WatchTarget | null>(null);
+  const evNow = useRef<TourneyEvent | null>(null);
+  evNow.current = ev;
+  const runningNow = useRef(false);
+  runningNow.current = running;
   useEffect(() => {
     if (!running || pause) return;
     const t = setInterval(() => tick((x) => x + 1), 1000);
@@ -215,7 +225,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
     setMatch(null);
     setEnded(null);
     setPause(null);
-    const play = resumePlay(gp.play, o.saved);
+    dealt.current.clear();
+    const play = dealt.current.wrap(resumePlay(gp.play, o.saved));
     let last: TourneyEvent | null = null;
     const show = (e: TourneyEvent) => {
       last = e;
@@ -341,6 +352,26 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const evSlots = ev ? (ev.bracket[0] ? ev.bracket[0].matches.length * 2 : ev.setup ? bracketPlan(ev.setup, evN).slots : cutSize(ev.config?.top ?? 0, evN)) : 0;
   const liveMatches = ev ? [...(ev.bracket[ev.bracket.length - 1]?.matches ?? []), ...(ev.phase === 'swiss' || ev.phase === 'rounds' ? ev.rounds.flatMap((r) => r.matches) : [])].filter((m) => m.live) : [];
   const open = (m: MatchView) => m.games?.length && setMatch(m as MatchView & { games: GameRec[] });
+  /** A match of the running event to watch, read live (its games so far, the game the run has dealt, whether it runs). */
+  const watchLive = (m: MatchView & { games: GameRec[] }): WatchTarget | null => {
+    const e = ev;
+    const b = m.b;
+    if (!e || !b || !e.decks[m.a] || !e.decks[b]) return null;
+    const pairGames = () => [...(evNow.current?.rounds ?? []), ...(evNow.current?.bracket ?? [])].flatMap((r) => r.matches).filter((x) => x.a === m.a && x.b === b).flatMap((x) => x.games);
+    const bestOf = m.bestOf ?? e.config?.bestOf;
+    return {
+      kind: 'match',
+      names: [m.a, b],
+      lists: [e.decks[m.a]!, e.decks[b]!],
+      bot: e.bot,
+      ...(e.simVersion !== undefined ? { simVersion: e.simVersion } : {}),
+      ...(bestOf ? { bestOf } : {}),
+      recorded: () => m.games,
+      complete: () => !m.live && !!m.winner,
+      live: () => runningNow.current,
+      dealt: (i) => dealt.current.find(m.a, b, m.games, i, (seed) => pairGames().some((g) => g.seed === seed)),
+    };
+  };
   const stageText = (e: TourneyEvent) => {
     if (e.phase === 'swiss') return `Swiss round ${e.rounds.length} of ${e.config?.rounds}`;
     if (e.phase === 'rounds') return `Round ${Math.min(e.rounds.length, e.rounds.filter((r) => r.matches.some((m) => m.games.length)).length || 1)} of ${e.rounds.length}`;
@@ -724,13 +755,16 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
                 <div className="pb-label">Now playing</div>
                 <div className="round-list">
                   {liveMatches.map((m, k) => (
-                    <button key={k} className="match-row live" onClick={() => open(m)} disabled={!m.games.length}>
-                      <span>{m.a}</span>
-                      <b>
-                        {m.score[0]}–{m.score[1]}
-                      </b>
-                      <span>{m.b}</span>
-                    </button>
+                    <div key={k} className="watch-live-row">
+                      <button className="match-row live" onClick={() => open(m)} disabled={!m.games.length}>
+                        <span>{m.a}</span>
+                        <b>
+                          {m.score[0]}–{m.score[1]}
+                        </b>
+                        <span>{m.b}</span>
+                      </button>
+                      {watchLive(m) && <WatchButton onWatch={() => setWatch(watchLive(m))} ariaLabel={`Watch ${m.a} vs ${m.b} as a spectator`} />}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -764,7 +798,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           </div>
         </>
       )}
-      {match && ev && <MatchModal m={match} decks={ev.decks} bot={ev.bot} lib={lib} onClose={() => setMatch(null)} />}
+      {match && ev && <MatchModal m={match} decks={ev.decks} bot={ev.bot} lib={lib} onClose={() => setMatch(null)} simVersion={ev.simVersion} bestOf={ev.config?.bestOf} />}
+      {watch && <WatchHost target={watch} onClose={() => setWatch(null)} />}
     </div>
   );
 }

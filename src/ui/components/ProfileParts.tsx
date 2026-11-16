@@ -219,11 +219,11 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
   );
 }
 
-/** A history row with, for the player's own games, the review button. */
-export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void; ratings?: string; multiDay?: { days: number; late?: boolean; timedOut?: boolean } };
+/** A history row with, for the player's own games, the review button and Watch (the game played again, both hands face up). */
+export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void; watch?: () => void; ratings?: string; multiDay?: { days: number; late?: boolean; timedOut?: boolean } };
 
 export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; caption: string }) {
-  const showReview = rows.some((r) => r.review);
+  const showReview = rows.some((r) => r.review || r.watch);
   return (
     <div className="table-scroll">
       <table className="small profile-table">
@@ -267,16 +267,20 @@ export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; c
               <td>{g.grade ?? '—'}</td>
               {showReview && (
                 <td>
-                  {g.review ? (
+                  {g.review && (
                     <button type="button" className="ghost" onClick={g.review} aria-label={`Review the game ${g.deck} vs ${g.opp}`}>
                       Review
                     </button>
-                  ) : (
-                    !g.ratings && (
-                      <span className="muted" title="Only the last 25 games keep a replay">
-                        —
-                      </span>
-                    )
+                  )}
+                  {g.watch && (
+                    <button type="button" className="ghost" onClick={g.watch} aria-label={`Watch the game ${g.deck} vs ${g.opp} with both hands face up`} title="Watch it play out again, both hands face up">
+                      Watch
+                    </button>
+                  )}
+                  {!g.review && !g.watch && !g.ratings && (
+                    <span className="muted" title="Only the last 25 games keep a replay">
+                      —
+                    </span>
                   )}
                   {g.ratings && <div className="muted nowrap">{g.ratings}</div>}
                 </td>

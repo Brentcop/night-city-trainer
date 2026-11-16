@@ -46,6 +46,11 @@ export interface BoardCtx {
   rivalName?: string;
   /** the chip on the marked pick: "Coach" (default), or "Tutor" in a tutorial lesson */
   markLabel?: string;
+  /**
+   * A spectator's board of a finished or replayed game ("Watch", components/watch/): both hands face up and every
+   * face-down Legend shown (still marked face-down). Never set on a board a player plays on.
+   */
+  spectator?: boolean;
 }
 
 /** How long a touch must stay put to read a card instead of tapping it (ms). */
@@ -98,7 +103,7 @@ export function BoardCard({ uid, size, ctx, faceDown }: { uid: number; size: Car
   const { g, ix, targeting, coach } = ctx;
   const c = g.s.cards[uid];
   if (!c) return null;
-  const hidden = faceDown ?? (c.zone === 'legends' && !c.faceUp && !(c.controller === 0 && c.known));
+  const hidden = faceDown ?? (!ctx.spectator && c.zone === 'legends' && !c.faceUp && !(c.controller === 0 && c.known));
 
   let onClick: (() => void) | undefined;
   let targetable = false;

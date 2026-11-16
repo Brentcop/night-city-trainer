@@ -2,7 +2,7 @@
 // Every view finds an entrant's deck through one resolver (`useEventLib`, src/ui/deckLookup.ts `eventLib`): a deck entered
 // twice keeps its own label ("X #2") but links to X's page and shows X's colours, tier and list. An event with such copies
 // also gets a "By deck" summary (src/lib/eventByDeck.ts), with games between two entries of one deck counted apart.
-import { useId, useMemo, useState } from 'react';
+import { lazy, Suspense, useId, useMemo, useState } from 'react';
 import { allDecks } from '../../lib/browserLibrary';
 import { LegendStrip, OriginBadge } from './DeckIdentity';
 import { gameDeck, type GameRec, type StandingRow } from '../../lib/tournament';
@@ -14,7 +14,9 @@ import { byDeck, recordText, type ByDeckEvent, type BestFinish } from '../../lib
 import { ordinal } from '../../lib/playedRecord';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewPanel } from './ReviewPanel';
-import { ReplayBoard, type ReplayData } from './ReplayBoard';
+import type { ReplayData } from './ReplayBoard';
+import { WatchButton, WatchHost } from './watch/WatchEntry';
+import type { WatchTarget } from '../../lib/watchMatch';
 import { Wr } from './Num';
 import { Modal } from './Modal';
 import { DeckListCompact } from './DeckCards';
@@ -357,8 +359,45 @@ export function standingsTitle(kind: string | undefined, done: boolean): string 
 
 type EvDecks = Record<string, { legends: string[]; main: string[] }>;
 
+// the visual replay (the board and the engine around a frame) loads when a game is replayed, not with the page
+const ReplayBoard = lazy(() => import('./ReplayBoard').then((x) => ({ default: x.ReplayBoard })));
+
 /** Match details: every game, with an exact re-simulation and turn-by-turn playback. */
-export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { games: GameRec[] }; decks: EvDecks; bot: string; lib: Lib; onClose: () => void }) {
+export function MatchModal({
+  m,
+  decks,
+  bot,
+  lib,
+  onClose,
+  simVersion,
+  bestOf,
+}: {
+  m: MatchView & { games: GameRec[] };
+  decks: EvDecks;
+  bot: string;
+  lib: Lib;
+  onClose: () => void;
+  /** the event's simulator version and best-of (Watch: a game of another version is refused) */
+  simVersion?: number;
+  bestOf?: number;
+}) {
+  // "Watch": the match (or one game of it) as a spectator, played again in a worker and shown move by move
+  const [watch, setWatch] = useState<WatchTarget | null>(null);
+  const watchTarget = (only?: number): WatchTarget | null =>
+    m.b && decks[m.a] && decks[m.b]
+      ? {
+          kind: 'match',
+          names: [m.a, m.b],
+          lists: [decks[m.a]!, decks[m.b]!],
+          bot,
+          ...(simVersion !== undefined ? { simVersion } : {}),
+          ...((m.bestOf ?? bestOf) ? { bestOf: m.bestOf ?? bestOf } : {}),
+          recorded: () => m.games,
+          complete: () => !m.live && !!m.winner,
+          live: () => !!m.live,
+          ...(only !== undefined ? { only } : {}),
+        }
+      : null;
   const [replay, setReplay] = useState<{ i: number; data?: ReplayData; busy?: boolean; error?: string } | null>(null);
   const [review, setReview] = useState<{ i: number; req: ReviewRequest } | null>(null);
   const reviewGameAt = (i: number) => {
@@ -398,6 +437,7 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
           A mirror match: both entries play {lib.base(m.a)}, so its games say nothing about the deck’s strength. Records and ratings by deck leave them out.
         </p>
       )}
+      {watchTarget() && <WatchButton label="👁 Watch the match" onWatch={() => setWatch(watchTarget())} title="Watch every game of the match play out as a spectator, both hands face up; the result shows only when the game reaches it" />}
       <table className="small" style={{ marginTop: 8 }}>
         <thead>
           <tr>
@@ -421,8 +461,9 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
               <td className="muted">{g.reason}</td>
               <td>
                 <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
-                  <button onClick={() => (setReview(null), play(i))} disabled={replay?.busy}>
-                    ▶ Watch
+                  <WatchButton onWatch={() => setWatch(watchTarget(i))} ariaLabel={`Watch game ${i + 1} as a spectator`} />
+                  <button onClick={() => (setReview(null), play(i))} disabled={replay?.busy} title="Replay this game with its whole log: click any line to see the board then">
+                    ▶ Replay
                   </button>
                   <button className="ghost" onClick={() => reviewGameAt(i)} title="Score every decision both bots made">
                     🔍 Review
@@ -459,9 +500,12 @@ export function MatchModal({ m, decks, bot, lib, onClose }: { m: MatchView & { g
             Game {replay.i + 1}{' '}
             <span className="muted small">({same ? 'replay matches the recorded result' : 'replay differs from the record: bot settings changed since'}) · click any line of the log to see the board at that moment</span>
           </h3>
-          <ReplayBoard data={replay.data} names={[m.a, m.b!]} />
+          <Suspense fallback={<p className="muted small">Loading the board…</p>}>
+            <ReplayBoard data={replay.data} names={[m.a, m.b!]} />
+          </Suspense>
         </>
       )}
+      {watch && <WatchHost target={watch} onClose={() => setWatch(null)} />}
     </Modal>
   );
 }

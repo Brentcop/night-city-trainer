@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Game } from '../../engine/engine';
 import { EMPTY_IX } from './board/interaction';
 import type { BoardCtx } from './board/BoardCard';
-import { PlayerSide } from './board/Zones';
+import { OpenHand, PlayerSide } from './board/Zones';
 import { BoardCard } from './board/BoardCard';
 import { useNarrow } from './board/useNarrow';
 import type { ReplayData } from '../../lib/replayFrames';
@@ -40,9 +40,27 @@ type ReplayMode = 'turn' | 'fast' | 'step';
  * The playmat for one recorded board state (a replay frame): both sides, the line it follows, and the viewer's hand at
  * the bottom. `viewer` (default 0) is the seat the board is drawn for: seat 1 (the guest of an online game) sees the
  * state turned round and masked as that seat could see it (src/net/view.ts viewFor), so its own hand is shown, never
- * the rival's.
+ * the rival's. `spectator` ("Watch", components/watch/): a spectator's board of a game shown as it plays out, seat 0 at
+ * the bottom, with both hands face up and the face-down Legends shown (BoardCtx.spectator); never with `viewer` 1.
  */
-export function FrameBoard({ state, line: seatLine, names: seatNames, narrow, at, viewer = 0 }: { state: GameState; line?: LogEntry; names: [string, string]; narrow: boolean; at: number; viewer?: PlayerId }) {
+export function FrameBoard({
+  state,
+  line: seatLine,
+  names: seatNames,
+  narrow,
+  at,
+  viewer: asked = 0,
+  spectator = false,
+}: {
+  state: GameState;
+  line?: LogEntry;
+  names: [string, string];
+  narrow: boolean;
+  at: number;
+  viewer?: PlayerId;
+  spectator?: boolean;
+}) {
+  const viewer: PlayerId = spectator ? 0 : asked;
   // a game around the frame's own copy of the state (the board components read a Game); seat 0 is always the viewer
   const g = useMemo(
     () => (viewer === 1 ? new ViewGame(viewFor(state, 1)) : new Game(structuredClone(state), [{ name: 'a', decide: async () => [0] }, { name: 'b', decide: async () => [0] }])),
@@ -67,11 +85,12 @@ export function FrameBoard({ state, line: seatLine, names: seatNames, narrow, at
     cancelTargeting: noop,
     openTrash: noop,
     seatLabels: names,
+    ...(spectator ? { spectator: true } : {}),
   };
   const s = g.s;
   const handSize = narrow ? 'xs' : 'sm';
   return (
-    <div className="pb pb-replay">
+    <div className={spectator ? 'pb pb-replay pb-watch-board' : 'pb pb-replay'}>
       <div className="pb-topbar">
         <div className="pb-turn">
           <span className="pb-turn-no">TURN {s.turn}</span>
@@ -94,15 +113,19 @@ export function FrameBoard({ state, line: seatLine, names: seatNames, narrow, at
           </span>
         </div>
         <PlayerSide p={0} ctx={ctx} />
-        <div className="replay-hand">
-          <span className="pb-label">{names[0] === 'you' ? 'Your' : `${names[0]}'s`} hand</span>
-          <div className="pb-cards">
-            {s.players[0].hand.map((u) => (
-              <BoardCard key={u} uid={u} size={handSize} ctx={ctx} />
-            ))}
-            {!s.players[0].hand.length && <span className="muted small">empty</span>}
+        {spectator ? (
+          <OpenHand p={0} ctx={ctx} />
+        ) : (
+          <div className="replay-hand">
+            <span className="pb-label">{names[0] === 'you' ? 'Your' : `${names[0]}'s`} hand</span>
+            <div className="pb-cards">
+              {s.players[0].hand.map((u) => (
+                <BoardCard key={u} uid={u} size={handSize} ctx={ctx} />
+              ))}
+              {!s.players[0].hand.length && <span className="muted small">empty</span>}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

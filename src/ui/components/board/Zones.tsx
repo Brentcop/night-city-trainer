@@ -292,6 +292,28 @@ function RivalHand({ ctx }: { ctx: BoardCtx }) {
   );
 }
 
+/**
+ * A hand face up in a row, for a spectator (`ctx.spectator`, "Watch"): either seat's cards, named and counted. Only a
+ * spectator's board shows the rival's hand this way; a board someone plays on shows its backs (RivalHand).
+ */
+export function OpenHand({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
+  const hand = ctx.g.P(p).hand;
+  const owner = ctx.seatLabels?.[p] ?? (p === 0 ? 'You' : 'Rival');
+  return (
+    <div className={`replay-hand pb-open-hand pb-open-hand-${p === 0 ? 'me' : 'rival'}`}>
+      <span className="pb-label">
+        {owner}'s hand · {cardCount(hand.length)}
+      </span>
+      <div className="pb-cards">
+        {hand.map((u) => (
+          <BoardCard key={u} uid={u} size={ctx.narrow ? 'xs' : 'sm'} ctx={ctx} />
+        ))}
+        {!hand.length && <span className="muted small">empty</span>}
+      </div>
+    </div>
+  );
+}
+
 export function MyHand({ ctx }: { ctx: BoardCtx }) {
   const hand = ctx.handOrder ?? ctx.g.P(0).hand;
   const n = hand.length;
@@ -376,7 +398,7 @@ export function PlayerSide({ p, ctx }: { p: PlayerId; ctx: BoardCtx }) {
         </>
       ) : (
         <>
-          <RivalHand ctx={ctx} />
+          {ctx.spectator ? <OpenHand p={1} ctx={ctx} /> : <RivalHand ctx={ctx} />}
           {backRow}
           {field}
         </>

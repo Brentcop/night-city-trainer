@@ -156,6 +156,7 @@
     "deckLab": true,
     "tournamentRunner": true,
     "yourTournamentStats": true,
+    "watchMatches": true,
     "tunedDecks": true,
     "cardArtToggle": true,
     "multiplayer": true,

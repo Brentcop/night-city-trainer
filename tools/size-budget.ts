@@ -2,9 +2,11 @@
 // Game review, the Matchup Lab and the tournament runner), so its size is a first-load cost on phones. The budgets sit
 // just above the sizes when they were set (2026-11-13: game 337 kB, coach 346 kB, review 351 kB), so growth fails the
 // build (vite.config.ts) and becomes a decision: trim the bundle, or raise the number here on purpose.
+// Added 2026-11-16: the watch worker ("Watch", src/sim/watch.worker.ts: a game played out for a spectator), 355.9 kB
+// when added (the engine, the bots and the Game review's strict replay), with the same headroom as the others.
 
 /** kB (1000 bytes, as Vite prints them) per worker, by the name before ".worker". */
-export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 370, coach: 380, review: 385 };
+export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 370, coach: 380, review: 385, watch: 375 };
 
 /** "game.worker-CqcC5VWM.js" → "game"; null for a file that is not a worker bundle. */
 export function workerName(file: string): string | null {

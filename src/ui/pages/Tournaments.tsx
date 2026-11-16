@@ -197,7 +197,7 @@ export function TournamentsPage({ initial }: { initial?: string }) {
           </div>
         </>
       )}
-      {match && full && <MatchModal m={match} decks={full.decks} bot={full.bot} lib={lib} onClose={() => setMatch(null)} />}
+      {match && full && <MatchModal m={match} decks={full.decks} bot={full.bot} lib={lib} onClose={() => setMatch(null)} simVersion={full.simVersion} bestOf={full.config?.bestOf} />}
     </div>
   );
 }

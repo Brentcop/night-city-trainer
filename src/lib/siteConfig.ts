@@ -37,7 +37,7 @@ export const SITE_CONFIG_FILE = 'site-config.json';
 
 // ---------------------------------------------------------------- features
 
-export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'yourTournamentStats', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search'] as const;
+export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'yourTournamentStats', 'watchMatches', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search'] as const;
 export type FeatureName = (typeof FEATURES)[number];
 export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; default: boolean }> = {
   coach: { label: 'Coach', help: 'The coach in Play: suggested moves, warnings and the move grades.', default: true },
@@ -50,6 +50,11 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
   yourTournamentStats: {
     label: 'Your tournament stats',
     help: "The tournaments a visitor ran in their browser count toward their deck tiles, deck pages and Power ratings: a record per list and a provisional rating for lists with no recorded rating, labelled as theirs and kept apart from the recorded results. Off, none of it shows (runs are still noted in the browser).",
+    default: true,
+  },
+  watchMatches: {
+    label: 'Watch matches',
+    help: 'Watch a match play out as a spectator, both hands face up: tournament games while the runner plays them (#/run), recorded events (#/tournaments) and your own finished games (Profile). Off, no Watch control shows.',
     default: true,
   },
   tunedDecks: { label: 'Tuned decks page', help: 'The list of decks tuned in the Lab (#/tuned).', default: true },

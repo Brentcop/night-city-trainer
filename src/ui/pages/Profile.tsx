@@ -16,6 +16,7 @@ import { costlyText } from '../../lib/gameReview';
 import { coachedReviewSource, OpenGameFile } from '../components/GameReviewOpen';
 import { deleteProfile, loadProfile, NAME_MAX, PROFILE_CHANGED, PROFILE_KEY, PROFILE_SECTIONS, profileFromNewerVersion, saveProfile, SECTION_HELP, SECTION_LABEL, type ProfileDoc } from '../../lib/profile';
 import {
+  BOT_TIER_LABEL,
   botTier,
   deckStatRows,
   filterHistory,
@@ -38,6 +39,9 @@ import { profileHref } from '../components/DeckStats';
 import { ColorPips, LegendStrip, OriginBadge, TierPair } from '../components/DeckIdentity';
 import { Avatar, DeckStatsTable, HeadlineTiles, HistoryTable, PicturePicker, SharedProfileView, Tabs, type HistoryRow } from '../components/ProfileParts';
 import { useFeature } from '../useSiteConfig';
+import { useWatchOn, WatchHost } from '../components/watch/WatchEntry';
+import type { WatchTarget } from '../../lib/watchMatch';
+import { recordTarget } from '../../lib/watchRecord';
 import '../profile.css';
 import { CardMention } from '../components/CardMention';
 
@@ -284,6 +288,9 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
   const [page, setPage] = useState(1);
   const [review, setReview] = useState<{ src: GameReviewSource; title: string } | null>(null);
   const reviews = useFeature('gameReview');
+  // "Watch": a finished game of yours played again from its record, both hands face up
+  const watchOn = useWatchOn();
+  const [watch, setWatch] = useState<WatchTarget | null>(null);
   const [confirm, setConfirm] = useState(false);
   const decks = useMemo(() => [...new Set(games.map((g) => g.deck))].sort((a, b) => a.localeCompare(b)), [games]);
   const list = useMemo(() => filterHistory(games, f), [games, f]);
@@ -303,6 +310,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
       conceded: !!g.conceded,
       ...(g.multiDay ? { multiDay: g.multiDay } : {}),
       grade: g.coach?.grade ?? null,
+      watch: r && watchOn ? () => setWatch(recordTarget(r, { turns: g.turns || undefined, botLabel: BOT_TIER_LABEL[botTier(r.botLevel)] })) : undefined,
       review: r && reviews ? () => setReview({ src: { replay: r, coach: [], persist: true, turns: g.turns || undefined }, title: [`${r.decks[0].name} vs ${r.decks[1].name}`, formatRecorded(r.date)].filter(Boolean).join(' — ') }) : undefined,
       ...(g.review ? { ratings: [g.review.acc === null ? '' : `accuracy ${g.review.acc}`, costlyText(g.review.n) || 'no slips'].filter(Boolean).join(' · ') } : {}),
     };
@@ -375,6 +383,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
         costly moves once you have opened its Game review. Open a game file exported from Play (⤓ Export game) to review it here.
       </p>
       {review && <GameReviewModal src={review.src} title={review.title} onClose={() => setReview(null)} />}
+      {watch && <WatchHost target={watch} onClose={() => setWatch(null)} />}
       {confirm && (
         <ConfirmDialog
           title="Clear your game history?"

@@ -1,0 +1,109 @@
+/* "Watch": the spectator's view of a match (src/ui/components/watch/WatchOverlay.tsx). The board inside is the visual
+   replay's (board.css .pb-replay); here only the dialog around it. Nothing animates beyond what board.css already does
+   under the motion setting, and the last move's mark is an outline, which changes no box size. */
+.modal.watch-modal {
+  max-width: min(1440px, 100%);
+  width: 100%;
+  max-height: calc(100dvh - 24px);
+  padding: 12px 14px;
+}
+/* opaque: the page behind (a running event's live scores, a match dialog's results) must not show through */
+.modal-backdrop.watch-backdrop {
+  padding: 8px;
+  background: var(--bg);
+  backdrop-filter: none;
+}
+.watch-head {
+  margin: 0 36px 4px 0;
+}
+.watch-title {
+  margin: 0;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+.watch-score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+.watch-tally {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.watch-tally .num {
+  font-size: 1.25rem;
+}
+.watch-side {
+  overflow-wrap: anywhere;
+}
+.watch-controls {
+  position: sticky;
+  top: -12px;
+  z-index: 3;
+  background: var(--panel);
+  padding: 4px 0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.watch-close {
+  margin-left: auto;
+}
+.watch-status {
+  margin: 4px 0 6px;
+}
+.watch-refused {
+  color: var(--red);
+}
+.watch-result b {
+  color: var(--text);
+}
+.watch-next {
+  margin-left: 6px;
+}
+.watch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 10px;
+  align-items: start;
+}
+.watch-board {
+  min-width: 0;
+}
+.watch-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 1px;
+}
+/* the rival's hand, face up, above their side (OpenHand in board/Zones.tsx) */
+.pb-open-hand-rival {
+  margin: 0 0 6px;
+}
+@media (max-width: 900px) {
+  .watch-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .watch-log {
+    max-height: 30vh;
+  }
+}
+@media (max-width: 720px) {
+  .modal-backdrop.watch-backdrop {
+    padding: 0;
+  }
+  .modal.watch-modal {
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+    padding: 8px;
+  }
+}
