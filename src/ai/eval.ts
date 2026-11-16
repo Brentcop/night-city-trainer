@@ -130,48 +130,97 @@ export function ownedCards(g: Game, p: PlayerId): string[] {
   return ids;
 }
 
-/** Each seat's own plan per state copy (keyed on its cards record). */
-const ownPlans = new WeakMap<object, (GigPlan | undefined)[]>();
+/**
+ * Each seat's own-list plan and archetype, per lineage (Game.lineage(): a game's state and every copy clone() and
+ * probeCopy() made of it share one), so a lookahead clone reads its parent's instead of recomputing the whole list.
+ * Every member of a lineage has the same value, because both depend only on the multiset of cards each seat owns
+ * (gigPlanOf and classify count cards with whole-number sums, so the order ownedCards lists them in does not matter),
+ * and that multiset is the same for a game and its copies at every moment: cards are made only by Game.create and, before
+ * any decision, by the tutorial's buildPosition; no card is removed from the cards record or changes owner; and the only
+ * change to a card's identity after setup, hideInfo's re-deal of face-down Legends in a lookahead copy, permutes the
+ * identities among one seat's own Legends. tests/gig-plan-consistency.test.ts checks the cached values against a fresh
+ * computation on live games and on copies, before and after hideInfo.
+ */
+const listFacts = new WeakMap<object, { plans: (GigPlan | undefined)[]; archetypes: (Archetype | undefined)[] }>();
+
+function listFactsOf(g: Game) {
+  const k = g.lineage();
+  let f = listFacts.get(k);
+  if (!f) listFacts.set(k, (f = { plans: [], archetypes: [] }));
+  return f;
+}
 
 /**
  * Player p's Gig plan as `viewer` sees it.
  *  - Its own (viewer === p): the plan of its whole list, every card it owns wherever the card is (ownedCards). It never
  *    changes in play, so the live game, every copy (lookahead clones, Undo, the coach's snapshot) and every option of one
  *    decision are scored by the same plan, and a game continued from a copy plays out as the game continued in place
- *    (tests/gig-plan-consistency.test.ts). Cached per state copy, which changes nothing: every copy has the same value.
+ *    (tests/gig-plan-consistency.test.ts). Cached per lineage (a game and its copies), which changes nothing: every copy
+ *    has the same value.
  *  - The rival's: the cards the viewer can see (field, trash, face-up Legends), recomputed on every call.
  */
 export function planFor(g: Game, p: PlayerId, viewer: PlayerId): GigPlan {
   if (viewer !== p) return gigPlanOf(knownCards(g, p, viewer));
-  let m = ownPlans.get(g.s.cards);
-  if (!m) ownPlans.set(g.s.cards, (m = []));
+  const m = listFactsOf(g).plans;
   return (m[p] ??= gigPlanOf(ownedCards(g, p)));
 }
-
-/** Each seat's archetype per state copy (keyed on its cards record). */
-const listArchetypes = new WeakMap<object, (Archetype | undefined)[]>();
 
 /**
  * Seat p's archetype, as the bots (both seats' reads: their own and the rival's, "scouted" as from open decklists), the
  * coach's tips and the calibration's profiled weights read it: the archetype of its whole list (ownedCards), so it never
  * changes in play and the live bot, its rollout agents, the coach and the reviewer all apply the same matchup profile
- * (tests/gig-plan-consistency.test.ts). Cached per state copy, which changes nothing: every copy has the same value.
+ * (tests/gig-plan-consistency.test.ts). Cached per lineage (a game and its copies), which changes nothing: every copy has
+ * the same value.
  */
 export function seatArchetype(g: Game, p: PlayerId): Archetype {
-  let m = listArchetypes.get(g.s.cards);
-  if (!m) listArchetypes.set(g.s.cards, (m = []));
+  const m = listFactsOf(g).archetypes;
   return (m[p] ??= classify(ownedCards(g, p)).arch);
+}
+
+/** Gig values counted in planScore's quick path: a reused array, all zero between calls. */
+const VALUE_COUNTS = new Int32Array(64);
+
+/**
+ * The value pairs (two Gigs of one value make a pair; three, one; four, two) and the distinct values among `gigs`, by
+ * a record keyed on the value. The general rule: planScore uses it for any value its quick path does not count.
+ */
+function gigValueCounts(gigs: readonly Gig[]): { pairs: number; distinct: number } {
+  const counts: Record<number, number> = {};
+  for (const x of gigs) counts[x.value] = (counts[x.value] ?? 0) + 1;
+  return { pairs: Object.values(counts).reduce((a, n) => a + Math.floor(n / 2), 0), distinct: Object.keys(counts).length };
 }
 
 /** How good a set of gigs is for a plan (independent of gig count). */
 export function planScore(gigs: Gig[], plan: GigPlan): number {
   let s = 0;
-  const counts: Record<number, number> = {};
-  for (const x of gigs) counts[x.value] = (counts[x.value] ?? 0) + 1;
-  const pairs = Object.values(counts).reduce((a, n) => a + Math.floor(n / 2), 0);
-  const distinct = Object.keys(counts).length;
-  const hasEven = gigs.some((x) => x.value % 2 === 0);
-  const hasOdd = gigs.some((x) => x.value % 2 === 1);
+  // Pairs and distinct values exactly as gigValueCounts gives them. The engine's Gig values are whole numbers from 1 to
+  // the die's sides (at most 20: rolled 1 + randInt(sides), set only within 1..sides by setGigValue), so they are
+  // counted in a reused array without building a record; any other value (a hand-built position) takes the general rule.
+  let pairs = 0;
+  let distinct = 0;
+  let quick = true;
+  for (const x of gigs) {
+    const v = x.value;
+    if (!(Number.isInteger(v) && v >= 0 && v < 64)) {
+      quick = false;
+      break;
+    }
+  }
+  if (quick) {
+    const counts = VALUE_COUNTS;
+    for (const x of gigs) {
+      const n = ++counts[x.value];
+      if (n === 1) distinct++;
+      else if ((n & 1) === 0) pairs++;
+    }
+    for (const x of gigs) counts[x.value] = 0;
+  } else ({ pairs, distinct } = gigValueCounts(gigs));
+  let hasEven = false;
+  let hasOdd = false;
+  for (const x of gigs) {
+    if (x.value % 2 === 0) hasEven = true;
+    if (x.value % 2 === 1) hasOdd = true;
+  }
   for (const x of gigs) {
     if (x.value >= 8) s += 3 * plan.high;
     if (x.value === 1) s += 3 * plan.low;

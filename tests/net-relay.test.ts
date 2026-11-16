@@ -318,6 +318,10 @@ describe('a game between two sessions through the relay', () => {
     const r1 = rng(6);
     let checked = 0;
     for (let k = 0; k < 20_000 && !(host.over && guest.over); k++) {
+      // a move takes time. With the relay's clock standing still a connection has its burst of 200 frames for the whole
+      // game and nothing is refilled: of 120 games played this way the longest sent 182 from one connection, and a
+      // longer one (about 1 run in 100) drew a 'rate' refusal, which the frame check below then failed on
+      relay.now += 100;
       await flush();
       const hp = host.seat.pending;
       if (hp) host.seat.answer(hp.d, pick(hp.d, r0));

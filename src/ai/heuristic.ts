@@ -132,6 +132,13 @@ export interface HeuristicOptions {
    */
   easyGuard?: boolean;
   seed?: number;
+  /**
+   * Skip the explanations of a main-phase or reaction decision (lastThought, lastAlternatives, lastScores), which only
+   * readers outside play use: telemetry, the coach, the reviewer, the Play page. Set on the bots a deep rollout or deep
+   * reaction makes for its play-out clones (rolloutMove, reactionWorld), which nothing reads; building the strings and
+   * lists draws no random number and changes nothing, so the choices are the same. false (default) = build them.
+   */
+  quiet?: boolean;
 }
 
 /** One entry of HeuristicAgent.lastAlternatives. */
@@ -237,6 +244,7 @@ export class HeuristicAgent implements Agent {
       mulligan: opts.mulligan ?? 'rule',
       easyGuard: opts.easyGuard ?? false,
       seed: opts.seed ?? 7,
+      quiet: opts.quiet ?? false,
     };
     this.name = this.opts.name;
     this.rng = this.opts.seed;
@@ -545,6 +553,7 @@ export class HeuristicAgent implements Agent {
       }
     }
     if (bestI < 0) bestI = 0;
+    if (this.opts.quiet) return bestI;
     // Alternatives on the scale the decision was actually made on (deep rollouts when used), relative to passing.
     const pool = deepScored ?? scored;
     const passV = pool.find((x) => x.i === passIdx)?.v ?? base;
@@ -639,7 +648,7 @@ export class HeuristicAgent implements Agent {
   /** One deep-reaction play-out: resume the attack with reaction r in world w, play p's turn, score it. */
   private async reactionWorld(g: Game, p: PlayerId, r: Reaction, w: World): Promise<number> {
     const attacker = g.s.attack!.attacker;
-    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
+    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
     cg.s.rng = w.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { reaction: r, attacker });
@@ -721,8 +730,8 @@ export class HeuristicAgent implements Agent {
       this.cloneAgents(p, (weights, seat) => {
         const noSellTurn = seat === p ? noSell : undefined;
         return world
-          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn })
-          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, weights, profiles: this.opts.profiles, noSellTurn });
+          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn })
+          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn });
       }),
     );
     if (world) cg.s.rng = world.rng;
@@ -859,6 +868,7 @@ export class HeuristicAgent implements Agent {
     };
     const baseV = await resolved(null);
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, resolved);
+    if (this.opts.quiet) return bestI;
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
     // "no reaction" is valued as the attack resolving untouched (baseV)
     this.lastScores = { kind: 'reaction', scale: '1ply', opts: reactionScores(g, rx, (r) => (r.type === 'endReact' ? [baseV] : (seen.get(r) ?? null))).map(({ i, v }) => ({ i, v })), chosen: bestI, d };

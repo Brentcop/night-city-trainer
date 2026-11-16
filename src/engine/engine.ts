@@ -6,7 +6,7 @@
 // zones, gigs, choices, pending, history, actions, combat), which takes the game as its first argument.
 import { CARD_BY_ID } from './cards';
 import { listFingerprint } from './deck';
-import { copyState } from './copyState';
+import { copyGameState } from './copyState';
 import { nextRandom, randInt, shuffleInPlace } from './rng';
 import { SCRIPTS } from './scripts';
 import type { DecisionRecorder } from './telemetry';
@@ -51,6 +51,9 @@ import type {
 
 const DICE = [4, 6, 8, 10, 12, 20];
 const EMPTY_SCRIPT: CardScript = {};
+
+/** Each state's lineage token (Game.lineage): kept beside the state, never in it. */
+const LINEAGE = new WeakMap<GameState, object>();
 
 /** Thrown by the probe copy's agents: the probed effect asks a question, so it would do something. */
 class ProbeAsked extends Error {}
@@ -182,15 +185,30 @@ export class Game {
     this.s.log = [];
     this.s.trace = undefined;
     try {
-      st = copyState(this.s);
+      st = copyGameState(this.s);
     } finally {
       this.s.log = log;
       this.s.trace = trace;
     }
     if (opts.keepLog) st.log = log.map((e) => ({ ...e }));
+    LINEAGE.set(st, this.lineage());
     const g = new Game(st, agents);
     g.logEnabled = false;
     return g;
+  }
+
+  /**
+   * A token shared by this game's state and every copy clone() and probeCopy() make of it (and of those copies), for
+   * caches of values that cannot differ between them: the AI's own-list Gig plan and archetype (src/ai/eval.ts), which
+   * depend only on the cards each seat owns. No card is made, destroyed or changes owner once play starts, and a copy
+   * starts with the same cards. The token lives beside the state, keyed on the state object, never in it (stateHash and
+   * copies don't see it): a state built any other way (Game.create, a tutorial position, a restored save, a structured
+   * clone, a view of the game for online play) has its own, and so does a Game given another state object.
+   */
+  lineage(): object {
+    let t = LINEAGE.get(this.s);
+    if (!t) LINEAGE.set(this.s, (t = {}));
+    return t;
   }
 
   /**
@@ -203,11 +221,12 @@ export class Game {
     this.s.log = [];
     this.s.trace = undefined;
     try {
-      st = copyState(this.s);
+      st = copyGameState(this.s);
     } finally {
       this.s.log = log;
       this.s.trace = trace;
     }
+    LINEAGE.set(st, this.lineage());
     const cg = new Game(st, [PROBE_AGENT, PROBE_AGENT]);
     cg.logEnabled = false;
     return cg;
@@ -480,17 +499,35 @@ export class Game {
   /** All (self, host) pairs whose text is currently active, for a player or both. */
   sources(p?: PlayerId): { self: CardInst; host: CardInst; controller: PlayerId }[] {
     const out: { self: CardInst; host: CardInst; controller: PlayerId }[] = [];
-    const ps = p === undefined ? ([0, 1] as PlayerId[]) : [p];
-    for (const pl of ps) {
-      const P = this.P(pl);
-      for (const uid of [...P.field, ...P.legends]) {
-        const c = this.s.cards[uid];
-        if (c.zone === 'legends' && !c.faceUp) continue;
-        out.push({ self: c, host: c, controller: pl });
-        for (const gu of c.gear) out.push({ self: this.s.cards[gu], host: c, controller: pl });
+    this.eachSource((self, host, controller) => {
+      out.push({ self, host, controller });
+    }, p);
+    return out;
+  }
+
+  /**
+   * The one definition of which cards' text is active and in what order (sources() is built on it): for each player
+   * (both, 0 first, or only p), each card on the field and then each in the Legends area, skipping a face-down card in
+   * the Legends area; a card first, then each Gear attached to it in order. `visit` is called with (self, host,
+   * controller) for each without building a list (power and keyword lookups, game/mods.ts); it must not change the
+   * zones it walks. The walk stops at the first `visit` that returns true, and then eachSource returns true.
+   */
+  eachSource(visit: (self: CardInst, host: CardInst, controller: PlayerId) => boolean | void, p?: PlayerId): boolean {
+    const cards = this.s.cards;
+    for (let pl = p ?? 0; pl <= (p ?? 1); pl++) {
+      const P = this.s.players[pl];
+      for (let z = 0; z < 2; z++) {
+        const list = z === 0 ? P.field : P.legends;
+        for (let i = 0; i < list.length; i++) {
+          const c = cards[list[i]];
+          if (c.zone === 'legends' && !c.faceUp) continue;
+          if (visit(c, c, pl as PlayerId) === true) return true;
+          const gear = c.gear;
+          for (let j = 0; j < gear.length; j++) if (visit(cards[gear[j]], c, pl as PlayerId) === true) return true;
+        }
       }
     }
-    return out;
+    return false;
   }
 
   // ------------------------------------------------------------------ modifiers

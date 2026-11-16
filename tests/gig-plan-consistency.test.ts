@@ -10,10 +10,10 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
 import type { Agent, Decision, DeckList, GameState, PlayerId } from '../src/engine/types';
-import { planFor, seatArchetype } from '../src/ai/eval';
+import { ownedCards, planFor, seatArchetype } from '../src/ai/eval';
 import { gigPlanOf } from '../src/ai/knowledge';
 import { CARDS } from '../src/engine/cards';
-import { HeuristicAgent } from '../src/ai/heuristic';
+import { HeuristicAgent, hideInfo } from '../src/ai/heuristic';
 import { BEST_PROFILES, classify } from '../src/ai/archetype';
 import { makeCoach } from '../src/ai/coach';
 import { makeBot } from '../src/lib/tournament';
@@ -141,6 +141,75 @@ describe('Gig plan: the plan of the seat’s whole list', () => {
       }
     }
     expect(compared).toBeGreaterThanOrEqual(12);
+  }, 60_000);
+});
+
+describe('the cache shared by a game and its copies (Game.lineage)', () => {
+  const fresh = (g: Game, p: PlayerId) => ({ plan: gigPlanOf(ownedCards(g, p)), arch: classify(ownedCards(g, p)).arch });
+  let checked = 0;
+  let permuted = 0;
+  /** The cached own plan and archetype of both seats equal a fresh computation from g's own state. */
+  const same = (g: Game, what: string) => {
+    for (const p of [0, 1] as PlayerId[]) {
+      const f = fresh(g, p);
+      expect(planFor(g, p, p), `${what}, seat ${p}`).toEqual(f.plan);
+      expect(seatArchetype(g, p), `${what}, seat ${p}`).toBe(f.arch);
+      checked++;
+    }
+  };
+  /** At a decision of the live game: the game itself, a lookahead copy before and after hideInfo, a copy of that, a probe copy. */
+  const atDecision = (g: Game, d: Decision) => {
+    const where = `turn ${g.s.turn}, ${d.kind}/${d.tag ?? ''}`;
+    same(g, `live game, ${where}`);
+    const probe = g.probeCopy();
+    expect(probe.lineage()).toBe(g.lineage());
+    same(probe, `probe copy, ${where}`);
+    if (g.pending.length) return;
+    const copy = g.clone([noAgent, noAgent]);
+    expect(copy.lineage()).toBe(g.lineage());
+    same(copy, `copy, ${where}`);
+    const before = copy.P(d.player === 0 ? 1 : 0).legends.map((u) => copy.c(u).defId).join();
+    hideInfo(copy, d.player);
+    if (copy.P(d.player === 0 ? 1 : 0).legends.map((u) => copy.c(u).defId).join() !== before) permuted++;
+    same(copy, `copy after hideInfo, ${where}`);
+    same(copy.clone([noAgent, noAgent]), `copy of the copy, ${where}`);
+  };
+  class Check implements Agent {
+    name: string;
+    constructor(
+      private bot: Agent,
+      private live: () => Game,
+    ) {
+      this.name = bot.name;
+    }
+    async decide(g: Game, d: Decision): Promise<number[]> {
+      if (g === this.live()) atDecision(g, d);
+      return this.bot.decide(g, d);
+    }
+  }
+  const play = async (tier: string, a: DeckList, b: DeckList, seed: number, first: PlayerId) => {
+    let g: Game | null = null;
+    const live = () => g!;
+    g = Game.create([a, b], [new Check(makeBot(tier, seed), live), new Check(makeBot(tier, seed + 7777), live)], { seed, first, log: false });
+    await g.run();
+    same(g, 'final state');
+    // a state structured-cloned (Undo, the coach) or a Game over another state object has its own lineage
+    const restored = new Game(structuredClone(g.s), [noAgent, noAgent]);
+    expect(restored.lineage()).not.toBe(g.lineage());
+    same(restored, 'restored copy');
+  };
+
+  it('Easy and Medium: at every decision, on the game and on its copies', async () => {
+    await play('easy', RRY, YYB, 4101, 0);
+    await play('easy', NC06, deck('meta-rrb-wakako-midrange.txt'), 4102, 1);
+    await play('medium', YYB, NC06, 4103, 1);
+    await play('medium', deck('nc-04-chrome-rockers-yyr.txt'), RRY, 4104, 0);
+  }, 60_000);
+
+  it('Hard: at every decision, on the game and on its copies', async () => {
+    await play('hard', deck('meta-rrb-wakako-midrange.txt'), YYB, 4105, 0);
+    expect(checked).toBeGreaterThan(1000);
+    expect(permuted).toBeGreaterThan(0); // hideInfo did re-deal face-down Legends in some copies
   }, 60_000);
 });
 

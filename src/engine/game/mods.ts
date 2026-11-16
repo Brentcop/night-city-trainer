@@ -53,10 +53,11 @@ export function rawPower(game: Game, x: number | CardInst): number {
   for (const gu of c.gear) p += game.def(gu).power ?? 0;
   for (const m of game.s.mods) if (m.kind === 'power' && m.target === c.uid) p += m.amount ?? 0;
   if (c.zone === 'field' || c.zone === 'legends') {
-    for (const src of game.sources()) {
-      const fn = game.script(src.self).power;
-      if (fn) p += fn(game, src.self, src.host, c);
-    }
+    // every active source in sources()'s order, without building the list (most cards have no power hook)
+    game.eachSource((self, host) => {
+      const fn = game.script(self).power;
+      if (fn) p += fn(game, self, host, c);
+    });
   }
   return p;
 }
@@ -70,9 +71,8 @@ export function hasKw(game: Game, x: number | CardInst, kw: Keyword): boolean {
   if (game.def(c).keywords.includes(kw)) return true;
   for (const gu of c.gear) if (game.def(gu).keywords.includes(kw)) return true;
   if (game.s.mods.some((m) => m.kind === 'keyword' && m.target === c.uid && m.value === kw)) return true;
-  for (const src of game.sources()) {
-    const fn = game.script(src.self).keywords;
-    if (fn && fn(game, src.self, src.host, c).includes(kw)) return true;
-  }
-  return false;
+  return game.eachSource((self, host) => {
+    const fn = game.script(self).keywords;
+    return !!fn && fn(game, self, host, c).includes(kw);
+  });
 }
