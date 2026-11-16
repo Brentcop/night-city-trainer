@@ -376,7 +376,7 @@ Added by the owner while event 15 and the tournament changes were being built. T
 - A field holds each list once: two decks with the same cards under different names are one deck (`src/lib/distinctLists.ts`; on by default in the CLI, in seasons and in the runner).
 - A deck entered twice on purpose links to its deck's page and is summed up per deck in the event views.
 - A match can be watched as a spectator, both hands face up, also while a tournament is running.
-- Tournaments that people can play in (bots only, play in it, players only): in progress.
+- Tournaments that people can play in: three presets in the runner (Bots only, Play in it, Players only), or entrant by entrant. Your matches are played on the board, other players' results are recorded by hand, and a played event counts for no bot statistic. Left for later: other devices do not see the event update (no server), a hand-recorded result cannot be edited, there is no read-only standings link, and your own tournament game is watched from Profile, History, not yet from the match dialog.
 
 **New goals**
 
