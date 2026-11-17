@@ -173,7 +173,7 @@ describe('tuned decks page', () => {
   it('explains how to get a deck here when there are none', () => {
     const html = renderToStaticMarkup(<TunedDecksPage />);
     expect(html).toContain('No tuned decks in this browser yet');
-    expect(html).toContain('Save to My decks');
+    expect(html).toContain('Save as a copy');
   });
 });
 
