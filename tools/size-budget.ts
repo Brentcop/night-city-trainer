@@ -82,7 +82,7 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 export const KB_FILE_CAP_KB = 90;
 /** gzip kB: every part that loads with the first search, together. */
 export const KB_FIRST_SEARCH_BUDGET_KB = 300;
-/** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core). */
+/** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core; 12.26 kB since RAG_PLAN step 4.9). */
 export const SEARCH_CHUNK_BUDGET_KB = 13;
 
 /** "kb-events-2-0123abcd.json" → { group: 'events', part: 2 }; null for any other name (an older shard name too). */

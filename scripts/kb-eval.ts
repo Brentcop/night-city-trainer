@@ -36,7 +36,9 @@
 //                      weight), denseFloor=0.75 (the best dense similarity that still answers without an exact or keyword
 //                      hit over the floor), synonymWeight=1 (the weight of the synonym table's added terms, step 4.6),
 //                      synonymCoverage=true (the table's terms hold a question word for the floor), stem=light (how the
-//                      keyword ranker folds word forms: s, light or porter, step 4.7a; the index is built in that mode).
+//                      keyword ranker folds word forms: s, light or porter, step 4.7a; the index is built in that mode),
+//                      deckTextOnCue=false (a deck's note and guide sections join the keyword and linked lists only
+//                      when the question is about a deck; step 4.9, on).
 //                      The report records the setting.
 //   --questions FILE   the question set (default data/kb/questions.json)
 //   --json             JSON on stdout instead of tables

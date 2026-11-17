@@ -15,7 +15,9 @@
 // gated like the keyword list and can only lift a "no match" when its best similarity reaches `denseFloor`.
 // The synonym table (step 4.6, synonyms.ts) adds this game's terms to the keyword list's question at `synonymWeight`
 // (0: off) and, with `synonymCoverage`, lets them hold a question word for the floor; the linked list's order and the
-// exact names never use it.
+// exact names never use it. A deck's own text (its note, its guide's sections; step 4.9, `deckTextOnCue`) joins the
+// keyword and linked lists only when the question is about a deck (deckAsked), so notes that restate a card's effect
+// do not rank above the card.
 import { bm25Search, buildBm25, coverage, type Bm25Index, type Scored } from './bm25';
 import { rankDense, type DenseIndex } from './dense';
 import { buildNameIndex, deckNameForms, findNameHits, lookupName, packageNameForms, shortNames, type NameHit, type NameIndex } from './names';
@@ -63,6 +65,34 @@ export const PHRASE_KINDS: readonly KbKind[] = ['card', 'deck', 'package', 'term
  * worse; wrongly refused 6 to 5. Statistics: statsIntent was kept, measured on top of the deck pair: recall at 5
  * +9.3 [+3.7, +15.7], MRR +0.093 [+0.037, +0.157]; statistics questions 0 to 10 of 16 (each one first); every other
  * type and the ten "counting words, other answer" questions unchanged; refusals unchanged.
+ * Step 4.9 (a deck's own text, deckTextOnCue). Hypothesis: a game-plan note restates what its cards do, and the notes
+ * of like decks restate the same cards, so a question that describes a card without naming it found notes before the
+ * card, and every note added made it worse (the 18 drafted notes of 2026-11-16 cost the site scope 2.6 points of
+ * recall at 5). Notes and deck guide sections answer questions about a deck; held back from the keyword and linked
+ * lists until a question is about one, their number can no longer move a card question. Tried on `dev` only (210
+ * questions: 171 earlier and 39 fresh paraphrases written blind; paired bootstrap against the setting off, all records
+ * / public / site): holding notes alone, recall at 5 +3.5 [+1.0, +6.0] / +4.6 / +7.8 points, MRR at 10 +0.022 / +0.029
+ * / +0.038; notes and deck guide sections (chosen) +5.5 [+2.5, +8.5] / +6.3 [+2.9, +10.3] / +10.4 [+5.8, +15.6], MRR
+ * +0.030 [+0.015, +0.048] / +0.041 [+0.022, +0.064] / +0.053 [+0.031, +0.081], both halves up (earlier +2.5 / +2.9 /
+ * +7.8 points, fresh +17.9 on every scope), only paraphrase questions moved, none of them down, refusals unchanged. Every
+ * guide held back instead did no better (the general guides answer questions without a deck cue). Dropped: notes'
+ * keyword scores halved or quartered (the same as holding them here, but still a crowd once there are more notes); at
+ * most one or two notes in the keyword list before everything else (+2.5 / +2.0 points, all records); more cue words
+ * (build, strategy, idea, archetype: no gain); the floor on the list after notes are held back (4 to 6 more answerable
+ * questions refused); the cards that the best-matching notes link to as a fused list (rules −0.085, cross −0.179,
+ * statistics −0.087 MRR, all significant); a card-only keyword list when the question holds a card type (paraphrase
+ * +0.139 but rules −0.179, significant), and the same at weight 0.5 only when a card type is followed by that, which,
+ * who, whose or where (on top of the chosen setting, all records: +3.5 points [+1.0, +6.0], MRR +0.026 [+0.005,
+ * +0.048], cross −0.048 on one question; a second mechanism, left for its own experiment). Project docs crowd card questions too in the local pack, but holding them
+ * without a cue of their own costs every dev question (−76 points), so they would need their own cue words.
+ * Kept after one look at `test` (2026-11-16; 142 held-out questions, 27 of them from the fresh blind set; answerable
+ * questions, paired bootstrap against the search without it; the rule was written before the look): with all records
+ * recall at 5 +5.2 points [+1.5, +8.9] and MRR at 10 +0.027 [+0.013, +0.044]; paraphrase questions +13.2 [+3.8, +22.6]
+ * and +0.067 [+0.033, +0.105]; no type worse (rules MRR +0.006 [0, +0.019], the others unmoved); refusals unchanged
+ * (1 of 7 unanswerable refused, 6 of 135 answerable wrongly refused). Public only: +6.7 [+2.5, +11.8] and +0.041
+ * [+0.021, +0.064]; the site's pack: +10.3 [+4.7, +15.9] and +0.066 [+0.036, +0.100]. With it the 18 notes no longer
+ * cost the held-out questions anything (all records: recall at 5 −0.7 [−3.0, +1.5], MRR ±0.000 [−0.003, +0.005];
+ * without it they had cost −3.0 [−6.7, 0] and −0.014 [−0.029, −0.002]).
  */
 export interface SearchTuning {
   /** the "no match" floor: without an exact hit, the share of the question's words a keyword hit must hold (MATCH_FLOOR) */
@@ -98,9 +128,15 @@ export interface SearchTuning {
    * search whose tuning names another mode than its index's is refused.
    */
   stem: StemMode;
+  /**
+   * a deck's own text (isDeckText: its note, its guide's sections) joins the keyword, linked and dense lists only when
+   * the question is about a deck (deckAsked); named exactly it is always found, and the "no match" floors read the lists
+   * before it is held back (step 4.9)
+   */
+  deckTextOnCue: boolean;
 }
 
-export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: true, deckShortNames: true, statsIntent: true, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' };
+export const SEARCH_TUNING: Readonly<SearchTuning> = { floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: true, deckShortNames: true, statsIntent: true, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's', deckTextOnCue: true };
 
 /** A link as the index sees it: both directions. `dir: 'in'` means `other` links to this record. */
 export interface Edge {
@@ -295,6 +331,23 @@ export const STATS_FREE_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
 export const STAT_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
 
 /**
+ * A deck's own text (step 4.9, SearchTuning.deckTextOnCue): its game-plan note and the sections of its guide, the
+ * records of these kinds that link to a deck. They restate what the deck's cards do, and the notes of like decks restate
+ * the same cards, so a question that describes a card without naming it found several notes before the card. The
+ * general guides (fundamentals, the deck forge) link to no deck and are not a deck's text.
+ */
+export const DECK_TEXT_KINDS: readonly KbKind[] = ['objective', 'guide'];
+export const isDeckText = (r: KbRecord): boolean => DECK_TEXT_KINDS.includes(r.kind) && r.links.some((l) => l.rel === 'deck');
+
+/**
+ * Whether a question is about a deck: it asks for a deck, a plan or a guide by the existing cue words (KIND_CUES: deck,
+ * list, plan, note, guide, pilot), or it names a deck or a deck's note (an exact hit, short names included).
+ */
+export function deckAsked(ix: KbIndex, exact: readonly string[], cued: ReadonlySet<KbKind>): boolean {
+  return (['deck', ...DECK_TEXT_KINDS] as const).some((k) => cued.has(k)) || exact.some((id) => ['deck', 'objective'].includes(ix.byId.get(id)!.kind));
+}
+
+/**
  * Words that ask how something went in the bot's games (step 4.7b, SearchTuning.statsIntent), read from the plain mode
  * `s` tokens. Grouped by what the statistics records measure: how often (frequency), how it went (outcome), when
  * (stage), whether a package came together (assembly), whether the coach may name it (the coach's gate), and words
@@ -387,15 +440,20 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   // a question naming a card or package with a word of STAT_WORDS asks for its statistics (step 4.7b)
   if (t.statsIntent) for (const kind of statKinds(ix, query, exact)) cued.add(kind);
   const gated = (id: string) => CUE_ONLY_KINDS.includes(ix.byId.get(id)!.kind) && !cued.has(ix.byId.get(id)!.kind);
+  // a deck's own text waits for a question about a deck (step 4.9, SearchTuning.deckTextOnCue); the floors below read
+  // the lists before it is held back, so whether a question is answered does not change
+  const holdDeckText = t.deckTextOnCue && !deckAsked(ix, exact, cued);
+  const held = (id: string) => holdDeckText && isDeckText(ix.byId.get(id)!);
   const plain = use.has('keyword') || use.has('linked') ? bm25Search(ix.bm25, query).filter((s) => !gated(s.id)) : [];
   // the synonym table (step 4.6): only the keyword list and the floor read it
   // phrases are matched on the plain tokens; the terms and the words they hold are in the index's stem mode
   const raw = t.synonymWeight > 0 || t.synonymCoverage ? words(query) : [];
   const syn = t.synonymWeight > 0 || t.synonymCoverage ? expandQuestion(raw.map((w) => stemWord(w, 's')), t.stem, raw.map((w) => stemWord(w, t.stem))) : undefined;
-  const keyword = use.has('keyword') && syn?.terms.length && t.synonymWeight > 0 ? bm25Search(ix.bm25, query, { terms: syn.terms, weight: t.synonymWeight }).filter((s) => !gated(s.id)) : plain;
+  const scored = use.has('keyword') && syn?.terms.length && t.synonymWeight > 0 ? bm25Search(ix.bm25, query, { terms: syn.terms, weight: t.synonymWeight }).filter((s) => !gated(s.id)) : plain;
+  const keyword = holdDeckText ? scored.filter((s) => !held(s.id)) : scored;
   const from = t.singleWordTermLinks ? exact : exactHits.filter((h) => !(h.words === 1 && ix.byId.get(h.id)!.kind === 'term')).map((h) => h.id);
   const lists: Partial<Record<Ranker, string[]>> = {};
-  const linked = use.has('linked') ? rankLinked(ix, exact, plain, cued, from).filter((id) => !gated(id)) : [];
+  const linked = use.has('linked') ? rankLinked(ix, exact, plain, cued, from).filter((id) => !gated(id) && !held(id)) : [];
   // a neighbour of a kind the question asks for ("rulings on X") is named by the question too: it joins the exact list
   // after the exact hits (with the linked ranker only). Measured in docs/RAG_PLAN.md step 1.4: test MRR at 10 +0.08.
   const asked = linked.filter((id) => cued.has(ix.byId.get(id)!.kind));
@@ -408,10 +466,11 @@ export function search(ix: KbIndex, query: string, o: SearchOptions = {}): Searc
   if (use.has('linked')) lists.linked = linked.slice(0, RANK_DEPTH);
   if (use.has('keyword')) lists.keyword = keyword.slice(0, RANK_DEPTH).map((s) => s.id);
   // the dense list scans every vector; gated kinds are left out before the cut to RANK_DEPTH, as in the keyword list
-  const dense = use.has('dense') && o.dense ? rankDense(o.dense.index, o.dense.query, Infinity).filter((s) => ix.byId.has(s.id) && !gated(s.id)).slice(0, RANK_DEPTH) : [];
-  if (dense.length) lists.dense = dense.map((s) => s.id);
-  const held = t.synonymCoverage ? syn?.held : undefined;
-  const floorMet = keyword.slice(0, Math.max(1, t.floorHits)).some((s) => coverage(ix.bm25, s.id, query, held) >= t.floor);
+  const dense = use.has('dense') && o.dense ? rankDense(o.dense.index, o.dense.query, Infinity).filter((s) => ix.byId.has(s.id) && !gated(s.id)) : [];
+  const denseList = dense.filter((s) => !held(s.id)).slice(0, RANK_DEPTH);
+  if (denseList.length) lists.dense = denseList.map((s) => s.id);
+  const alt = t.synonymCoverage ? syn?.held : undefined;
+  const floorMet = scored.slice(0, Math.max(1, t.floorHits)).some((s) => coverage(ix.bm25, s.id, query, alt) >= t.floor);
   const denseMet = (dense[0]?.score ?? -Infinity) >= t.denseFloor;
   const noMatch = !exact.length && !floorMet && !denseMet;
   if (noMatch) return { query, hits: [], noMatch: true, total: 0 };

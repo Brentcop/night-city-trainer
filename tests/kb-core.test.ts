@@ -7,7 +7,7 @@ import { finishRecord, type RecordDraft } from '../src/lib/kb/build/record';
 import { dossier, neighbours } from '../src/lib/kb/dossier';
 import { buildNameIndex, deckNameForms, findNameHits, findNames, lookupName, packageNameForms, shortNames } from '../src/lib/kb/names';
 import { capBlocks, LOCAL_LABEL, renderDossierText, renderRecordsJson, renderSearchJson, renderSearchText, snippet, SNIPPET_MAX } from '../src/lib/kb/render';
-import { buildIndex, cuedKinds, deckPairMatchups, fuse, MATCH_FLOOR, rankExactHits, rankStats, RRF_K, search, SEARCH_TUNING, STAT_WORDS, statKinds } from '../src/lib/kb/search';
+import { buildIndex, cuedKinds, deckAsked, deckPairMatchups, fuse, isDeckText, MATCH_FLOOR, rankExactHits, rankStats, RRF_K, search, SEARCH_TUNING, STAT_WORDS, statKinds, type SearchTuning } from '../src/lib/kb/search';
 import { slug, tokenize } from '../src/lib/kb/text';
 import { estimateTokens, hashText, kindOfId, recordHash, type KbLink, type KbRecord } from '../src/lib/kb/types';
 
@@ -147,10 +147,11 @@ describe('search', () => {
     expect(search(IX, 'quasar pulsar nebula trash').noMatch).toBe(true);
     expect(search(IX, 'fills trash replays').noMatch).toBe(false);
   });
-  it('keeps the measured settings: the step 1.6 ones at their defaults, the step 4.7b deck pair and statistics on', () => {
+  it('keeps the measured settings: the step 1.6 ones at their defaults, the step 4.7b deck pair and statistics on, the step 4.9 deck text held back', () => {
     // the dense settings (step 4.1) apply only when a search is given a dense index; the stem mode (step 4.7a) is the
-    // index's; deckPairMatchup, deckShortNames and statsIntent were kept after one look each at the held-out questions
-    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: true, deckShortNames: true, statsIntent: true, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's' });
+    // index's; deckPairMatchup, deckShortNames, statsIntent and deckTextOnCue were kept after one look each at the
+    // held-out questions (deckTextOnCue on 2026-11-16: recall at 5 +5.2 points [+1.5, +8.9] with all records)
+    expect(SEARCH_TUNING).toEqual({ floor: MATCH_FLOOR, floorHits: 1, singleWordTermLinks: true, deckPairMatchup: true, deckShortNames: true, statsIntent: true, denseWeight: 0.5, denseFloor: 0.75, synonymWeight: 1, synonymCoverage: true, stem: 's', deckTextOnCue: true });
     expect([...cuedKinds('which decks are strongest')]).toEqual(['deck', 'rating']);
   });
   it('varies the floor and how many keyword hits may meet it, for experiments', () => {
@@ -288,6 +289,58 @@ describe('search', () => {
       expect(statKinds(ix, 'how often does quiet midrange win', ['deck:meta-rrb-quiet-midrange'])).toEqual([]);
       expect(stats('how often is kilo byte played', { statsIntent: false })).toEqual([]);
       expect(first('how often does the echo loop come online', { statsIntent: false })).not.toBe('pkgstat:echo-loop');
+    });
+  });
+  describe("a deck's own text waits for a question about a deck (step 4.9)", () => {
+    // two notes and a deck guide section restate what Quiet Blade does, with more of the question's words than the card
+    const plan = 'Quiet Blade enters and spends a rival Unit; then the Green Units attack the spent rival Unit. Quiet Blade again: spend, then attack.';
+    const ix = buildIndex([
+      rec('card:quiet_blade', 'Quiet Blade', 'Quiet Blade: a Green Unit. When it enters, spend a rival Unit.'),
+      rec('card:loud_hammer', 'Loud Hammer', 'Loud Hammer: a Red Program that defeats a Unit.'),
+      rec('deck:alpha-list', 'Alpha List', 'An invented deck.', { links: [{ rel: 'card', to: 'card:quiet_blade' }] }),
+      rec('deck:bravo-list', 'Bravo List', 'Another invented deck.', { links: [{ rel: 'card', to: 'card:quiet_blade' }] }),
+      rec('objective:alpha-list', 'Alpha List game plan', `Game plan: ${plan} Quokka zebra.`, { links: [{ rel: 'deck', to: 'deck:alpha-list' }, { rel: 'mentions', to: 'card:quiet_blade' }] }),
+      rec('objective:bravo-list', 'Bravo List game plan', `Game plan: ${plan}`, { links: [{ rel: 'deck', to: 'deck:bravo-list' }, { rel: 'mentions', to: 'card:quiet_blade' }] }),
+      rec('guide:alpha#how-to-pilot', 'Alpha: How to pilot', plan, { links: [{ rel: 'deck', to: 'deck:alpha-list' }] }),
+      rec('guide:basics#combat', 'Basics: Combat', 'A spent Unit cannot block; a Green Unit that enters can attack a spent rival Unit later.'),
+    ]);
+    const ids = (q: string, tuning: Partial<SearchTuning> = {}) => search(ix, q, { k: 10, tuning }).hits.map((h) => h.record.id);
+    const on = { deckTextOnCue: true };
+    const off = { deckTextOnCue: false };
+    it("is a note or a guide section that links to a deck; a general guide is not a deck's text", () => {
+      const of = (id: string) => isDeckText(ix.byId.get(id)!);
+      expect(['objective:alpha-list', 'guide:alpha#how-to-pilot'].map(of)).toEqual([true, true]);
+      expect(['guide:basics#combat', 'card:quiet_blade', 'deck:alpha-list'].map(of)).toEqual([false, false, false]);
+    });
+    it('reads a question as about a deck by the deck, plan and guide cue words, or by a deck or note it names', () => {
+      const asked = (q: string, exact: string[] = []) => deckAsked(ix, exact, cuedKinds(q));
+      expect(['which deck spends rival units', 'what is the plan', 'the list that spends', 'guide to spending'].map((q) => asked(q))).toEqual([true, true, true, true]);
+      expect(asked('green unit that spends a rival unit when it enters')).toBe(false);
+      expect(asked('how does it attack', ['deck:alpha-list'])).toBe(true);
+      expect(asked('how does it attack', ['card:quiet_blade'])).toBe(false);
+    });
+    it('finds the card a question describes before the notes that restate it; off, the notes come first', () => {
+      const q = 'green unit that spends a rival unit when it enters, then attacks';
+      expect(ids(q, off)[0]).toMatch(/^(objective|guide:alpha)/);
+      const held = ids(q, on);
+      expect(held[0]).toBe('card:quiet_blade');
+      expect(held.filter((id) => isDeckText(ix.byId.get(id)!))).toEqual([]);
+      // the general guide is not held
+      expect(held).toContain('guide:basics#combat');
+    });
+    it('keeps every deck text for a question about a deck, and a note named exactly', () => {
+      expect(ids('which deck spends a rival unit then attacks it', on)).toEqual(ids('which deck spends a rival unit then attacks it', off));
+      expect(ids('which deck spends a rival unit then attacks it', on)).toEqual(expect.arrayContaining(['objective:alpha-list', 'objective:bravo-list', 'guide:alpha#how-to-pilot']));
+      expect(ids('alpha list game plan', on).slice(0, 2).sort()).toEqual(['deck:alpha-list', 'objective:alpha-list']);
+    });
+    it('answers the same questions: the floor reads the keyword list before deck text is held back', () => {
+      // only the note holds "quokka" and "zebra": the floor is met through it, and the card is what is shown
+      const q = 'quokka zebra blade';
+      expect(search(ix, q, { tuning: off }).hits[0]!.record.id).toBe('objective:alpha-list');
+      const r = search(ix, q, { tuning: on });
+      expect(r.noMatch).toBe(false);
+      expect(r.hits.map((h) => h.record.id)).toEqual(['card:quiet_blade']);
+      expect(search(ix, 'quokka zebra unknown words here', { tuning: on }).noMatch).toBe(search(ix, 'quokka zebra unknown words here', { tuning: off }).noMatch);
     });
   });
 });

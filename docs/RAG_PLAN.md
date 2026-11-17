@@ -137,6 +137,7 @@ Status is one of: done, in progress, next, blocked (with the reason), waiting (o
 | 4.7b | Wordings that should reach the statistics records, and questions naming two decks | done: both kept, part of the default search | 2026-11-14 |
 | 4.7c | What is left of the paraphrase misses: things asked for by description, long questions, a guard for short names | later (needs fresh questions for the parts already looked at) | |
 | 4.8 | Records found only when asked for no longer shape the keyword scores of everything else | done: stopped on the tuning questions, not kept | 2026-11-14 |
+| 4.9 | A deck's own text (notes, deck guide sections) waits for a question about a deck | done: kept, part of the default search | 2026-11-16 |
 | 5.1 | Coach answers reused for a position already answered (Undo, resume in the same tab) | done | 2026-11-14 |
 | 5.2 | Stored game reviews keep their measurements and are re-rated without play-outs | done | 2026-11-14 |
 | 5.3 | A probe of how often positions repeat | waiting: it would edit a file the game cache depends on | |
@@ -597,6 +598,70 @@ the decision (keep, drop, could not tell) and its cost.
     match" floor then sees a different best hit, and a question that was just above the floor falls
     under it. Kept from the attempt: `STAT_KINDS`, a name for the two statistics kinds, with no change
     in behaviour.
+- 4.9 A deck's own text waits for a question about a deck. When the 18 player lists' placeholder notes became
+  drafted game plans (2026-11-16), the default search lost 2.6 points of recall at 5 on the site scope [−5.1,
+  −0.5], all of it on paraphrase questions: a note restates what its cards do, the notes of like decks restate the
+  same cards, so a question that describes a card without naming it found several notes before the card. Every note
+  added would do it again, and the owner's direction is many more decks.
+  - The rule is the one 4.6 and 4.7b used, written before the look and applied by the dispatcher to the held-out
+    split: kept only if recall at 5 or MRR at 10 is better with an interval that excludes zero, no type is worse with
+    one, and refusals are no worse either way.
+  - Questions: the 171 earlier `dev` questions and 39 fresh paraphrase questions (24 cards, 5 deck notes, 5 glossary
+    terms, 3 packages, 2 guide sections) written that day from a seeded draw of records by an agent that did not
+    know of the experiment; both halves are reported. The builder never read the held-out wording.
+  - Built: `deckTextOnCue` in `SearchTuning`. A deck's own text (`isDeckText`: a note, or a guide section, that
+    links to a deck) joins the keyword, linked and dense lists only when the question is about a deck (`deckAsked`:
+    the existing cue words deck, list, plan, note, guide, pilot, or a deck or note named exactly). Named exactly it
+    is always found. The general guides (fundamentals, the deck forge) link to no deck and are not held back. The
+    "no match" floors read the lists before deck text is held back, so the same questions are answered and refused.
+  - Result on `dev` (paired bootstrap against the setting off; 199 answerable questions with all records, 175
+    public, 154 site): recall at 5 +5.5 points [+2.5, +8.5] / +6.3 [+2.9, +10.3] / +10.4 [+5.8, +15.6]; MRR at
+    10 +0.030 [+0.015, +0.048] / +0.041 [+0.022, +0.064] / +0.053 [+0.031, +0.081]. Earlier half: +2.5 [+0.6,
+    +5.0] / +2.9 [+0.7, +5.9] / +7.8 [+3.5, +13.0] points. Fresh half: +17.9 [+7.7, +30.8] points on every
+    scope (top 5 17.9% to 35.9%). Only paraphrase questions moved (site: 25 up, none down); entity, cross, number,
+    dev, rules and statistics questions kept every rank; refusals unchanged on every scope.
+  - Robustness to the notes (dev, answerable; top 5 and MRR, before the 18 notes and with them). Site: off 58.4%
+    0.492 to 56.5% 0.481 (−1.9 points [−5.2, +0.6], MRR −0.011 [−0.021, 0.000]); on 65.6% 0.537 to 66.9% 0.534
+    (+1.3 [0, +3.2], −0.003 [−0.013, +0.008]). Public: off 61.1% 0.502 to 58.9% 0.496; on 64.6% 0.536 to 65.1%
+    0.537. What the setting still loses to the notes: questions about a deck, where the notes of like decks still
+    outrank the one meant (three dev questions), and small moves of card questions through the keyword ranker's word
+    counts, which still count the notes.
+  - Tried on `dev` and dropped: notes' keyword scores halved or quartered (on these questions the same as holding
+    notes back, but still a crowd as notes are added); at most one or two notes in the keyword list before everything
+    else (+2.5 and +2.0 points, all records); notes alone without the deck guides (+3.5 points, all records); every
+    guide held back, general ones too (no better); more cue words (build, strategy, idea, archetype: nothing); the
+    floor read after deck text is held back (4 to 6 more answerable questions refused); the cards the best-matching
+    notes link to, as a fused list (cross −0.179, statistics −0.087, rules −0.085 MRR, all with intervals below
+    zero); a card-only keyword list whenever a question holds a card type (paraphrase MRR +0.139, rules −0.179).
+  - Not built, for a later experiment: the card-only list at weight 0.5 only when a card type is followed by that,
+    which, who, whose or where ("a unit that…", "legend whose…"). On top of `deckTextOnCue`, all records: +3.5
+    points [+1.0, +6.0], MRR +0.026 [+0.005, +0.048], both halves up, cross −0.048 on one question. It is a second
+    mechanism and its rules risk needs rules questions phrased that way.
+  - Project docs also crowd card questions in the local pack (the most frequent kind above the expected record once
+    notes are held back), but holding them back with no cue costs every dev question (−76 points): they would need
+    their own cue words, a separate experiment.
+  - Cost: about 20 lines of code; the site's search chunk 12.15 to 12.26 kB gzip (budget 13).
+  - Held-out look (one, by the dispatcher, 2026-11-16, by the rule above). The split's 142 questions, 27 of them
+    from the fresh set (66 questions, q287 to q352; nobody but their writer had read the held-out 27, and their order
+    in the file, which decides the split, was drawn with a seed). Baseline: the search as committed before the
+    change, which the new code with the setting off reproduces rank for rank on all 352 questions and every scope.
+    Answerable questions with all records (135): recall at 5 59.3% to 64.4%, +5.2 points [+1.5, +8.9]; MRR at 10
+    0.478 to 0.505, +0.027 [+0.013, +0.044]. Paraphrase questions (53): +13.2 points [+3.8, +22.6], MRR +0.067
+    [+0.033, +0.105]. Rules MRR +0.006 [0, +0.019]; entity, cross, number, dev and statistics questions kept every
+    rank. Refusals unchanged: 1 of 7 unanswerable refused, 6 of 135 answerable wrongly refused. Public only (119):
+    62.2% to 68.9%, +6.7 [+2.5, +11.8], MRR +0.041 [+0.021, +0.064]. The site's pack (107): 58.9% to 69.2%, +10.3
+    [+4.7, +15.9], MRR +0.066 [+0.036, +0.100]; its paraphrase questions +20.8 points [+11.3, +32.1].
+  - Decision: kept, part of the default search.
+  - What the 18 notes cost afterwards (held-out questions, before the notes and with them, for description only).
+    With all records: old ranking, recall at 5 −3.0 points [−6.7, 0] and MRR −0.014 [−0.029, −0.002]; new ranking,
+    −0.7 [−3.0, +1.5] and ±0.000 [−0.003, +0.005]. On the site's pack the notes now add: old ranking −2.8 points
+    [−7.5, +1.9] (5 questions out of the first five, 2 in); new ranking +3.7 [+0.9, +7.5] (none out, 4 in, the
+    questions about the new decks' plans among them).
+  - Known limit: a card effect that says "deck" ("to the bottom of their deck") reads as a question about a deck, so
+    such a question is answered as before the change, no worse and no better.
+  - Corrected on the way: q064 no longer expects `code:src/engine/copyState.ts`. That file opens with an import since
+    its rewrite for speed on 2026-11-16, so it has no header comment and no code record; the `CLAUDE.md` passage the
+    question also expects still answers.
 
 ### Step 5. Exact reuse in game tools
 
@@ -825,6 +890,13 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Search quality on exactly the site pack (73 questions skipped: they expect a ruling, doc, code or local record) | held-out answerable (80): top 1 50%, top 5 68%, top 10 74%, MRR 0.59; 5 of 80 wrongly refused; 7 of 7 unanswerable refused | step 3 |
 | 2026-11-14 | Cost of growth: round and event records with movement and upsets (286 questions) | 6 questions changed rank (3 up, 3 down); all records: top 5 −0.4 points [−1.1, 0], MRR −0.002 [−0.007, +0.001]; public: top 5 −0.9 [−2.2, 0]. Held-out answerable (108): top 5 67.6% to 66.7%, MRR 0.552 to 0.548 | step 2.2 |
 | 2026-11-16 | Cost of growth: Season 3 landed (six new decks with their notes: 53 decks) and the documents corrected and added by the two reviews of that day; 5,109 records, 4,085 public | held-out answerable (108), all records: top 1 43.5%, top 5 67.6%, top 10 72.2%, MRR 0.536; 4 of 108 wrongly refused. All 268 answerable: top 5 69.8%, MRR 0.569. Public pack, held-out (92): top 5 69.6%, MRR 0.586 | reports/kb-eval-latest.md |
+| 2026-11-16 | Tuning questions for step 4.9 (210 `dev`: 171 earlier, 39 fresh paraphrases written blind), default search before the change | answerable, all records (199): top 5 58.8%, MRR 0.488; public (175): 58.9%, 0.496; site (154): 56.5%, 0.481. Fresh half alone (39): top 5 17.9% on every scope. Wrongly refused 14 / 13 / 10; unanswerable refused 2 / 2 / 5 of 11 | step 4.9 |
+| 2026-11-16 | Same questions with `deckTextOnCue` | all records: top 5 64.3%, MRR 0.518; public 65.1%, 0.537; site 66.9%, 0.534. Fresh half: 35.9% on every scope. Paraphrase questions (79), site: top 5 +20.3 points [+11.4, +29.1]; every other type and every refusal unchanged | step 4.9 |
+| 2026-11-16 | What the 18 drafted notes cost on those questions (paired, before the notes and with them) | site, setting off: top 5 −1.9 points [−5.2, +0.6], MRR −0.011 [−0.021, 0.000]; setting on: +1.3 [0, +3.2], −0.003 [−0.013, +0.008]. Public, off: 61.1% to 58.9%; on: 64.6% to 65.1% | step 4.9 |
+| 2026-11-16 | Site search chunk with `deckTextOnCue` | 12.15 to 12.26 kB gzip (budget 13) | step 4.9 |
+| 2026-11-16 | Held-out look for step 4.9 (142 questions, 27 fresh; answerable, paired against the search before the change) | all records (135): top 5 59.3% to 64.4% (+5.2 points [+1.5, +8.9]), MRR 0.478 to 0.505 (+0.027 [+0.013, +0.044]); public (119): 62.2% to 68.9%, 0.511 to 0.552; site (107): 58.9% to 69.2% (+10.3 [+4.7, +15.9]), 0.473 to 0.539. Paraphrase (53): +13.2 [+3.8, +22.6] all records, +20.8 [+11.3, +32.1] site. No type worse; refusals unchanged | step 4.9 |
+| 2026-11-16 | What the 18 drafted notes cost the held-out questions, old ranking and new (paired, before the notes and with them) | all records: old −3.0 points [−6.7, 0], MRR −0.014 [−0.029, −0.002]; new −0.7 [−3.0, +1.5], ±0.000 [−0.003, +0.005]. Site: old −2.8 [−7.5, +1.9]; new +3.7 [+0.9, +7.5] | step 4.9 |
+| 2026-11-16 | Question set after step 4.9 | 352 questions, 142 held out; paraphrase 132 (53 held out) with the 66 fresh ones, q287 to q352 | step 4.9 |
 
 **Experiments.** Judged on the `test` split by a paired bootstrap (2,000 resamples, 95% interval).
 
@@ -842,6 +914,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | A question naming two decks wants their matchup, whatever words it uses (retest with more questions) | Decks found by the short names players use; two named decks with a matchup record count as asking for matchups | Recall at 5: +5.6 points [+1.9, +10.2]; MRR +0.066 [+0.025, +0.114]; number questions +31.6 points [+10.5, +52.6]; no type worse; wrongly refused 6 to 5 | Kept. One look, rule written before it, on questions written blind |
 | 2026-11-14 | Records found only when asked for should not shape the keyword scores of everything else | Round, event, rating and matchup records left out of the keyword ranker's word counts, like the statistics records | No `test` look. On `dev`: recall at 5 −0.6 points [−1.9, 0]; MRR +0.001 [−0.002, +0.005]; answerable questions wrongly refused 9 to 10 | Not kept: stopped on `dev` by the rule written beforehand (refusals worse) |
 | 2026-11-14 | A question naming a card or package and asking how it went wants its statistics record | Everyday words for frequency, outcome, stage, assembly and the coach cue the statistics kinds beside a named card or package; the record linked to most of what is named leads | Recall at 5: +9.3 points [+3.7, +15.7]; MRR +0.093 [+0.037, +0.157]; statistics questions 0 to 10 of 16; every other type and the "counting words, other answer" questions unchanged | Kept. One look, measured on top of the row above. The word list was chosen on `dev` (79% there, 62% held out) |
+| 2026-11-16 | Game-plan notes and deck guides restate their cards' effects, so they outrank a card described without its name, and more so with every deck added | A deck's own text (its note, its guide's sections) joins the keyword and linked lists only when the question is about a deck; the floors read the lists before it is held back | Recall at 5: +5.2 points [+1.5, +8.9]; MRR +0.027 [+0.013, +0.044]; paraphrase questions +13.2 points [+3.8, +22.6]; no type worse; refusals unchanged; on the site's pack +10.3 points [+4.7, +15.9]. On `dev` it had been +5.5 [+2.5, +8.5] and +10.4 [+5.8, +15.6] | Kept. One look, rule written before it, on a split with 27 fresh questions written blind |
 
 ## 8. Decisions and stopgaps
 
@@ -975,3 +1048,16 @@ while the tournament index and the finish chips use the real cut, so five decks 
   visitor's browser from a pack built with the site; nothing is fetched until they type and nothing they
   type leaves the browser. The Glossary page's own search, which matched JSON field names ("def",
   "term"), was fixed on the way.
+- 2026-11-16: the 18 decks imported from players got drafted game plans, and the search paid for them. A note
+  restates what its cards do, so for a question that describes a card without naming it several notes ranked
+  above the card: the site's pack lost 2.6 points of recall at 5 over all its questions, all of it on
+  paraphrase questions.
+- 2026-11-16: sixty-six paraphrase questions joined the question set (352 now, 142 held out), written blind
+  from a seeded random draw of records no question expected: 40 cards, 8 deck notes, 8 terms, 6 packages and
+  4 guide sections. Their order in the file was drawn with a seed too, so nobody chose which 27 are held out.
+- 2026-11-16: step 4.9 ran, one look, and was kept. A deck's note and its guide's sections now wait for a
+  question about a deck. On the held-out questions the right record is in the first five for 64.4% with all
+  records, up from 59.3%, and for 69.2% on the site's pack, up from 58.9%; no other kind of question moved, and
+  the notes no longer cost the search anything. Five looks have now been taken on the split refreshed on
+  2026-11-13: the three before, the measurement of what the notes cost (it read the held-out totals), and
+  this one.
