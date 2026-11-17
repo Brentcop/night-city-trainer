@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DeckProfilePage } from '../src/ui/pages/DeckProfile';
 import { DeckTile } from '../src/ui/components/DeckIdentity';
+import { colorCountText, deckColorSplit } from '../src/lib/colorSplit';
 import { needsEventH2H } from '../src/ui/components/DeckRecord';
 import type { DeckRecord } from '../src/lib/deckRecord';
 import { BUILTIN, loadCustom, upsertCustom } from '../src/lib/browserLibrary';
@@ -131,6 +132,16 @@ describe('deck profile: recorded results first', () => {
     saveUnrecorded();
     const none = renderToStaticMarkup(<DeckTile d={loadCustom().find((d) => d.file === UNRECORDED)!} />);
     expect(none).toContain('No recorded games');
+  });
+
+  it('the deck page and its tile give the deck’s own split by colour, Legends and cards, in words', () => {
+    const d = BUILTIN.find((x) => x.file === RATED)!;
+    const s = deckColorSplit(d.deck);
+    const line = `Legends ${colorCountText(s.legends)} · Main deck ${colorCountText(s.cards)}`;
+    const page = renderToStaticMarkup(<DeckProfilePage file={RATED} />);
+    expect(page).toContain(`Colours: </span>${line}`);
+    expect(page.indexOf(line)).toBeGreaterThan(page.indexOf('Legends:'));
+    expect(renderToStaticMarkup(<DeckTile d={d} />)).toContain(`<div class="small color-line">${line}</div>`);
   });
 });
 

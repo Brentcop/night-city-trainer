@@ -9,6 +9,8 @@ import { typeSplit } from '../../lib/deckTypes';
 import { ordinal, SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
 import { listOf } from '../../lib/listTwin';
 import { TypeSplitBar } from './TypeSplit';
+import { deckColorSplit } from '../../lib/colorSplit';
+import { DeckColorLine } from './ColorBreakdown';
 import { ChoomTierBadge, recordedRow, recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
 import { useYourStats, yourStatsFor } from '../useYourStats';
 
@@ -155,6 +157,7 @@ export function DeckTile({ d, selected, href }: { d: LibraryDeck; selected?: boo
           )}
         </div>
         <TypeSplitBar split={typeSplit(d.deck.main)} mini />
+        <DeckColorLine split={deckColorSplit(d.deck)} label={false} />
       </div>
     </>
   );

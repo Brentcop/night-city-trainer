@@ -78,6 +78,9 @@ import { recordRun } from '../../lib/runLedgerEntry';
 import { YourStatsLine } from '../components/YourStats';
 import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
+import { EventColorsPanel, FieldColors } from '../components/ColorBreakdown';
+import { fieldColorSplit } from '../../lib/colorSplit';
+import { eventColors } from '../../lib/eventFacts';
 import { PageHead } from '../components/PageHead';
 import { RecordedAt } from '../components/RecordedAt';
 import { ByDeckSummary, Bracket, Champion, GroupTables, MatchModal, RoundList, StandingsTable, standingsTitle, useEventLib, type Lib, type MatchView } from '../components/TourneyViews';
@@ -533,6 +536,7 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               {fieldNote(plan.setup)}
               {plan.unused.length > 0 && <span className="muted"> Not in any match (left out): {plan.unused.join(', ')}.</span>}
             </p>
+            <FieldColors split={fieldColorSplit(plan.setup.entrants.flatMap((e) => (e.file && byFile.get(e.file) ? [byFile.get(e.file)!.deck] : [])))} />
           </fieldset>
 
           <fieldset className="ev-step">
@@ -917,6 +921,11 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
           </div>
 
           {ev.phase === 'done' && <EventSummary ev={ev} />}
+          {ev.phase === 'done' && (
+            <div className="panel">
+              <EventColorsPanel facts={eventColors(ev)} />
+            </div>
+          )}
 
           <div className="grid cols-2">
             <div className="panel scroll-x">

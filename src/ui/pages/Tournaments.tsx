@@ -15,6 +15,8 @@ import { IfPage } from '../components/SiteChrome';
 import { RerunEvent } from '../components/RerunEvent';
 import { allDecks } from '../../lib/browserLibrary';
 import type { RecordedEvent } from '../eventRerun';
+import { eventColors } from '../../lib/eventFacts';
+import { EventColorsPanel } from '../components/ColorBreakdown';
 
 interface EventLite {
   id: number;
@@ -169,6 +171,12 @@ export function TournamentsPage({ initial }: { initial?: string }) {
               <Bracket rounds={ev.bracket} size={2 ** ev.bracket.length} seeds={ev.kind ? [] : ev.top8.map((t) => t.deck)} champion={ev.champion} lib={lib} onOpen={openMatch} />
             )}
           </div>
+
+          {full && (
+            <div className="panel">
+              <EventColorsPanel facts={eventColors(full)} />
+            </div>
+          )}
 
           <div className="grid cols-2">
             <div className="panel scroll-x">

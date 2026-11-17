@@ -2613,3 +2613,19 @@ ol.costly {
   margin: 8px 0 0;
   font-size: 1rem;
 }
+
+/* ---- colour breakdowns (components/ColorBreakdown.tsx): the word always beside its dot ---- */
+.color-name {
+  white-space: nowrap;
+}
+.color-line,
+.color-field {
+  overflow-wrap: anywhere;
+}
+.color-table {
+  margin-top: 8px;
+}
+.color-table td,
+.color-table th {
+  white-space: nowrap;
+}

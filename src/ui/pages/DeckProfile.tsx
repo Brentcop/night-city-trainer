@@ -3,6 +3,8 @@ import { useId, useState } from 'react';
 import '../deckprofile.css';
 import { CARD_BY_ID, cardLabel } from '../../engine/cards';
 import { deckColors } from '../../engine/deck';
+import { deckColorSplit } from '../../lib/colorSplit';
+import { DeckColorLine } from '../components/ColorBreakdown';
 import { allDecks } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { bredInfo, deckStats, pct, statsName } from '../../lib/deckStats';
@@ -229,6 +231,7 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
               </span>
             ))}
           </div>
+          <DeckColorLine split={deckColorSplit(d.deck)} />
           <div className="row">
             <IfPage path="play">
             <a className="btn primary" href={`#/play?d=${enc}`}>
