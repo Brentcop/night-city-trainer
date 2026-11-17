@@ -104,7 +104,7 @@ describe('deck profile: recorded results first', () => {
     expect(html).not.toContain('Games played');
   });
 
-  it('a player list (imported by link): its profile shows its recorded games, credits its player and waits for the owner’s note', () => {
+  it('a player list (imported by link): its profile shows its recorded games, credits its player and shows its drafted note', () => {
     setArtEnabled(false);
     const d = BUILTIN.find((x) => x.kind === 'shared' && x.prov.author && !x.prov.author.startsWith('anonymous'))!;
     const html = renderToStaticMarkup(<DeckProfilePage file={d.file} />);
@@ -118,8 +118,11 @@ describe('deck profile: recorded results first', () => {
     expect(html).toContain('origin-badge origin-shared');
     expect(html).toContain('Player list');
     expect(html).not.toContain('choom.gg guide');
+    // the 18 player lists' notes are agent-written drafts read off the list (2026-11-16), no longer placeholders
     const plan = html.slice(html.indexOf('>Game plan<'), html.indexOf('>Origin<'));
-    expect(plan).toContain('Needs the owner’s notes');
+    expect(plan).toContain('Draft from the list');
+    expect(plan).not.toContain('Needs the owner’s notes');
+    expect(plan).not.toContain('Placeholder read off the list');
   });
 
   it('gallery tiles lead with the tournament record, or say there is none', () => {
@@ -212,8 +215,8 @@ describe('deck profile: game plan', () => {
     const draft = plan(renderToStaticMarkup(<DeckProfilePage file={file} />));
     expect(draft).toContain('Draft from the list');
     expect(draft).not.toContain('Placeholder read off the list');
-    // the sim-ladder notes are drafts, not placeholders, so turn one into a placeholder for the check (the player lists'
-    // placeholders are checked above)
+    // the sim-ladder notes are drafts, not placeholders (and since 2026-11-16 so are the player lists'), so turn one
+    // into a placeholder for the check
     const note = DECK_OBJECTIVES[file];
     const saved = { ...note };
     Object.assign(note, { status: 'needs-owner', placeholder: true, objective: `Placeholder: ${note.objective}` });

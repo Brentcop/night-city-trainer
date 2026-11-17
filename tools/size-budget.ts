@@ -4,9 +4,16 @@
 // build (vite.config.ts) and becomes a decision: trim the bundle, or raise the number here on purpose.
 // Added 2026-11-16: the watch worker ("Watch", src/sim/watch.worker.ts: a game played out for a spectator), 355.9 kB
 // when added (the engine, the bots and the Game review's strict replay), with the same headroom as the others.
+// Lowered 2026-11-16: every worker carried the deck notes' text (src/content/deckObjectives, about 95 kB of it), because
+// src/ai/packages.ts imported the whole note table to read the packages each list is built around. It now reads the
+// generated slim table (src/content/deckObjectives/noteSynergies.ts, scripts/note-synergies.ts), and the workers went
+// from game 356.1, coach 365.0, review 372.9 and watch 359.4 kB to 261.2, 270.2, 278.0 and 264.5 kB. The budgets are
+// set about 15 kB above those sizes again (rounded to 5), so the room the notes took is not quietly used up.
+// The slim table is all a note still costs a worker: when the 18 player lists' notes were drafted the same day and
+// named their packages (19 to 37 lists in the table), each worker grew by 1.0 kB (262.3, 271.2, 279.0, 265.5 kB).
 
 /** kB (1000 bytes, as Vite prints them) per worker, by the name before ".worker". */
-export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 370, coach: 380, review: 385, watch: 375 };
+export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 275, coach: 285, review: 295, watch: 280 };
 
 /** "game.worker-CqcC5VWM.js" → "game"; null for a file that is not a worker bundle. */
 export function workerName(file: string): string | null {
@@ -66,6 +73,10 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // events (551 to 720 of the 2,485 possible; one is written once a pairing has 6 games, MATCHUP_MIN_GAMES in
 // src/lib/kb/build/events.ts). So 300 kB is room for about 11 more full-field events at that rate, not 15 to 20,
 // and the ratings group keeps growing until most pairings have their record.
+// Measured again 2026-11-16 when the 18 player lists' placeholder notes became drafted notes (each 3,200 to 3,700
+// characters, longer than the older notes' 1,800 to 3,000): the decks group went from 46.8 to 59.3 kB and the sum
+// from 209.9 to 222.3 kB, 0.69 kB a note. A library deck with a note of that length adds about 1.1 kB, and the room
+// left is about 9 full-field events.
 
 /** gzip kB: the most one knowledge-pack part file may weigh (the packing in src/lib/kb/site.ts cuts to it). */
 export const KB_FILE_CAP_KB = 90;

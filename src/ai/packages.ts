@@ -14,7 +14,7 @@ import { CARD_BY_ID } from '../engine/cards';
 import { listFingerprint } from '../engine/deck';
 import type { Gig, PlayerId } from '../engine/types';
 import { covers, memberName, roleMap, SYNERGY_BY_ID, synergiesIn, zeroRoles, type PieceCount, type RoleCounts, type Synergy, type SynergyCondition, type SynergyRole } from '../content/synergies/index';
-import { DECK_OBJECTIVES } from '../content/deckObjectives/index';
+import { NOTE_SYNERGIES } from '../content/deckObjectives/noteSynergies';
 
 /** A quantity the deck's own choices can move toward a package's condition (which Gig to roll in, take or adjust). */
 export type SteerKind = 'cred-low' | 'cred-high' | 'cred-20' | 'cred-even' | 'min-gig' | 'high-gig' | 'value-pair' | 'gig-spread';
@@ -79,13 +79,14 @@ function toSeat(s: Synergy, source: SeatPackage['source']): SeatPackage {
   return { id: s.id, name: s.name, family: s.family, bond: s.bond, needs: s.needs, roles: roleMap(s), steer: steerOf(s.online), source };
 }
 
-/** Objective-named packages per list fingerprint (only notes written for that exact list). */
-let objectiveByList: Map<string, string[]> | null = null;
-function objectivePackages(listId: string): string[] | undefined {
-  if (!objectiveByList) {
-    objectiveByList = new Map();
-    for (const note of Object.values(DECK_OBJECTIVES)) if (note.synergies?.length) objectiveByList.set(note.listId, note.synergies);
-  }
+/**
+ * Objective-named packages per list fingerprint (only notes written for that exact list), from the generated slim table
+ * (src/content/deckObjectives/noteSynergies.ts, written by scripts/note-synergies.ts), so the workers do not carry the
+ * notes' text.
+ */
+let objectiveByList: Map<string, readonly string[]> | null = null;
+function objectivePackages(listId: string): readonly string[] | undefined {
+  if (!objectiveByList) objectiveByList = new Map(Object.entries(NOTE_SYNERGIES));
   return objectiveByList.get(listId);
 }
 

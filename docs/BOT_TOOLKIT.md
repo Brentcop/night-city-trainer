@@ -62,7 +62,7 @@ The evaluation scores a position from one player's view: ours minus the rival's.
 
 ### Package terms (`src/ai/packages.ts`, docs/SYNERGIES.md "How scoring uses packages")
 
-Four more weights credit the synergy packages the player's **own** list is built around (the deck objective's `synergies` when named for that exact list, else every package `synergiesIn` marks built-around; computed once per list fingerprint and cached outside the state). They are **0 by default**: with all four at 0 the bots play exactly as before (the golden replays, and `tests/package-scoring.test.ts`). They are not in `TUNED_WEIGHTS`; `scripts/package-scoring.ts` measures them.
+Four more weights credit the synergy packages the player's **own** list is built around (the deck objective's `synergies` when named for that exact list, read from the generated slim table `src/content/deckObjectives/noteSynergies.ts` that `npx tsx scripts/note-synergies.ts` writes from the notes, else every package `synergiesIn` marks built-around; computed once per list fingerprint and cached outside the state). They are **0 by default**: with all four at 0 the bots play exactly as before (the golden replays, and `tests/package-scoring.test.ts`). They are not in `TUNED_WEIGHTS`; `scripts/package-scoring.ts` measures them.
 
 | Weight | Where it counts | What it credits |
 |---|---|---|

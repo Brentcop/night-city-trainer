@@ -35,7 +35,7 @@ export const ARCHIVED_BUILD_OBJECTIVES: ObjectiveTable = {
     objective: 'The RRG Dexter Midrange curve with V: Streetkid in Adam Smasher’s Legend slot: a cheaper Go Solo and Braindance recursion instead of the 9-cost finisher.',
     plan: [
       { phase: 'early', text: 'A 4/6 every turn from turn 2, as in the parent.' },
-      { phase: 'mid', text: 'Call V to trash 3 and return a Braindance Program (Bonnie and Clyde, Carnage); win fights with removal and Dexter’s +2.' },
+      { phase: 'mid', text: 'V’s Call trashes 3 and returns a Braindance Program (Bonnie and Clyde, Carnage); win fights with removal and Dexter’s +2.' },
       { phase: 'closing', text: 'Close with Animals Wrecker and Saburo-boosted Yorinobu at 10 power; V can go solo for 5 as an extra attacker.' },
     ],
     keyCards: [
@@ -60,7 +60,7 @@ export const ARCHIVED_BUILD_OBJECTIVES: ObjectiveTable = {
     objective: 'The RRG Dexter Midrange curve with V: Streetkid in Dexter’s slot, keeping Adam Smasher as the closer and trading Dexter’s combat trick for Braindance recursion.',
     plan: [
       { phase: 'early', text: 'A 4/6 every turn from turn 2, as in the parent.' },
-      { phase: 'mid', text: 'Call V to trash 3 and return Bonnie and Clyde or Carnage; Gigs go up with Industrial Assembly rather than Dexter.' },
+      { phase: 'mid', text: 'V’s Call trashes 3 and returns Bonnie and Clyde or Carnage; Gigs go up with Industrial Assembly rather than Dexter.' },
       { phase: 'closing', text: 'Saburo-boosted Yorinobu and Adam Smasher at 10, plus Animals Wrecker; V can also go solo for 5.' },
     ],
     keyCards: [

@@ -6,44 +6,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ANY_IMPORT, filesUnder, rel, resolveSpec, ROOT, staticGraph } from './importGraph';
 
-const ROOT = path.resolve(__dirname, '..');
 const KB_DIR = path.join(ROOT, 'src', 'lib', 'kb') + path.sep;
-const rel = (f: string) => path.relative(ROOT, f).split(path.sep).join('/');
-
-function filesUnder(dir: string): string[] {
-  const abs = path.join(ROOT, dir);
-  if (!fs.existsSync(abs)) return [];
-  return fs.readdirSync(abs, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? filesUnder(`${dir}/${e.name}`) : /\.tsx?$/.test(e.name) ? [path.join(abs, e.name)] : []));
-}
-
-const EXTS = ['', '.ts', '.tsx', '/index.ts', '/index.tsx'];
-function resolveSpec(from: string, spec: string): string | null {
-  if (!spec.startsWith('.')) return null;
-  const base = path.resolve(path.dirname(from), spec.replace(/\?.*$/, ''));
-  return EXTS.map((e) => base + e).find((p) => fs.existsSync(p) && fs.statSync(p).isFile()) ?? null;
-}
-
-/** `import x from '…'`, `import '…'`, `export … from '…'`, not `import type` / `export type`. */
-const STATIC_IMPORT = /^\s*(?:import|export)\s+(?!type\b)(?:[^'";]*?\sfrom\s+)?['"]([^'"]+)['"]/gm;
-/** Any import, static or dynamic, type or not. */
-const ANY_IMPORT = /(?:\bfrom\s+|\bimport\s*\(\s*|^\s*import\s+)['"]([^'"]+)['"]/gm;
-
-/** Every module reachable from `entries` through static imports. */
-function staticGraph(entries: readonly string[]): Set<string> {
-  const seen = new Set<string>();
-  const walk = (file: string) => {
-    if (seen.has(file)) return;
-    seen.add(file);
-    if (!/\.tsx?$/.test(file)) return;
-    for (const m of fs.readFileSync(file, 'utf8').matchAll(STATIC_IMPORT)) {
-      const hit = resolveSpec(file, m[1]!);
-      if (hit) walk(hit);
-    }
-  };
-  for (const e of entries) walk(e);
-  return seen;
-}
 
 const inKb = (f: string) => f.startsWith(KB_DIR);
 

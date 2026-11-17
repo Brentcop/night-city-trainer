@@ -94,13 +94,15 @@ own date when it gave one: "(published 2026-11-15, collected 2026-11-16)"), `Add
 the day the deck joins the library, which the gallery's "newest" sorts by)), and adds a `needs-owner` placeholder note
 for each to `src/content/deckObjectives/imported.ts`: one line, `'<file>': importedPlaceholder('<listId>', [<the three
 Legends>]),`, just above the marker line. The placeholder's words are written once, in `importedPlaceholder` in that
-file, because every game worker carries the note table: a placeholder costs one line, not a whole note. It never writes
+file, so a placeholder costs one line, not a whole note. It never writes
 over a file without `--force`, never a list the library already has, never a deck with an unmatched card or an illegal
 list, and never adds a second note for a file that has one (a full note or a placeholder line). Then:
 
 1. Write each deck's note: in `src/content/deckObjectives/imported.ts`, replace its `importedPlaceholder(...)` call with
    a full note object (the fields in `vocabulary.ts`, as in the other note tables) and set `status: 'owner'` (the
-   placeholder is enough for the tests).
+   placeholder is enough for the tests). The first 18 imported decks have agent-written drafts instead (`status:
+   'draft'`, `source: 'list'`, 2026-11-16): read off each list and the cards' texts, not checked by the owner. If the
+   note names `synergies`, run `npx tsx scripts/note-synergies.ts` and commit the regenerated table.
 2. `npm run evidence` (every library deck has an evidence file), then `npm run check:data`.
 3. `npm run typecheck`, `npx vitest run tests/deck-objectives.test.ts`, then the whole suite before committing.
 4. The deck has no rating until an event that includes it is recorded.

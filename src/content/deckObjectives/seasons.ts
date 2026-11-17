@@ -9,7 +9,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     listId: '52592f87a5675ab9',
     objective: 'RRG Dexter Midrange’s 4/6 curve and Red removal with Dum Dum in Saburo’s seat: card draw from Gear instead of the Arasaka attack bonus.',
     plan: [
-      { phase: 'early', text: 'Play 6th Street Recruits or Kerry: The Last Rockerboy on curve; Call Dum Dum to draw.' },
+      { phase: 'early', text: 'Play 6th Street Recruits or Kerry: The Last Rockerboy on curve; Dum Dum’s Call draws.' },
       { phase: 'mid', text: 'Trade Bonnie and Clyde, Over the Edge and Carnage for blockers; Dexter’s Spend raises Gigs toward 8+.' },
       { phase: 'closing', text: 'Animals Wrecker at 10 power steals two; Yorinobu: Steel Dragon replays a 4-drop; Adam Smasher goes solo to defeat a Unit.' },
     ],
@@ -33,7 +33,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     listId: 'eb4d7d725ffe407d',
     objective: 'YYB Rogue Gear’s cheap Gear and big Yellow bodies with Dexter: Off the Grid in V’s seat, raising Gigs and pumping attackers.',
     plan: [
-      { phase: 'early', text: 'Call Viktor to find two cheap Gear; River Ward plays a 2-cost Gear for free.' },
+      { phase: 'early', text: 'Viktor’s Call finds two cheap Gear; River Ward plays a 2-cost Gear for free.' },
       { phase: 'mid', text: 'Gorilla Arms on an 8-power Rockn’ Rockerboy or Heywood steals an extra Gig; Dexter adds +2 power or a card.' },
       { phase: 'closing', text: 'Minotaur clears a small blocker on arrival; The Relic brings a defeated Unit back.' },
     ],
@@ -202,7 +202,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     listId: '6d567c9ca1c838d9',
     objective: 'S1-01 Mutant’s Dexter and Dum Dum engine with Rogue: Preem Solo in Adam Smasher’s seat, re-fitted to Yellow: Gig adjusters and cost-matched finds instead of Red removal.',
     plan: [
-      { phase: 'early', text: 'Dexter: One Last Chance nudges a Gig on play and attack; Call Dum Dum to draw, trading a spare Gear for two cards.' },
+      { phase: 'early', text: 'Dexter: One Last Chance nudges a Gig on play and attack; Dum Dum’s Call draws, trading a spare Gear for two cards.' },
       { phase: 'mid', text: 'Rockn’ Rockerboy and 6th Street Recruits attack with Gorilla Arms or Mantis Blades; Dexter: Off the Grid’s Spend lifts a Gig toward 8+.' },
       { phase: 'closing', text: 'Rogue goes solo; each Gig a Legend steals draws a card or makes the rival discard, and Over the Edge clears a blocker.' },
     ],
@@ -279,7 +279,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     listId: '5405cae11d7de95c',
     objective: 'S1-01 Mutant’s Dexter and Red removal with the sim-ladder V / Smasher / Saburo list’s V: Streetkid and Saburo: Braindance recursion and Arasaka attackers.',
     plan: [
-      { phase: 'early', text: 'Valentino Street Racer and 6th Street Recruits on curve; Call V to trash 3 and take back a Braindance Program.' },
+      { phase: 'early', text: 'Valentino Street Racer and 6th Street Recruits on curve; V’s Call trashes 3 and takes back a Braindance Program.' },
       { phase: 'mid', text: 'Memory Relapse and Bonnie and Clyde clear blockers; Dexter’s Spend raises a Gig toward 8+ for Carnage at the Colosseum.' },
       { phase: 'closing', text: 'Animals Wrecker at 10 power steals two; Yorinobu: Steel Dragon replays a 4-drop from hand or trash.' },
     ],
@@ -405,7 +405,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     listId: '62c5a3ea2d0c5007',
     objective: 'S1-01 Mutant’s Dexter and Dum Dum engine with Jackie Welles: Mama’s Favorite in Adam Smasher’s seat, re-fitted to Green: value-pairs for Pepe, spend effects and Saul Bright instead of the Red top end.',
     plan: [
-      { phase: 'early', text: 'Dexter: One Last Chance and Afterparty at Lizzie’s nudge a Gig toward a value-pair; Call Dum Dum to draw, two by defeating a spare Gear.' },
+      { phase: 'early', text: 'Dexter: One Last Chance and Afterparty at Lizzie’s nudge a Gig toward a value-pair; Dum Dum’s Call draws, two by defeating a spare Gear.' },
       { phase: 'mid', text: 'Pepe Najarro attacks with a value-pair to ready Jackie to pay again; Corporate Surveillance or Memory Relapse spends a blocker so it can be attacked; MaxTac Suppression Team stops the rival’s same-turn attacks.' },
       { phase: 'closing', text: 'Saul Bright gives the other attackers +2 and readies three Units at the end of the turn; Jackie goes solo at 8 power or takes a defeat for a friendly Unit; Over the Edge clears a blocker once your d20 is in.' },
     ],

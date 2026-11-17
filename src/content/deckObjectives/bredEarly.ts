@@ -39,7 +39,7 @@ export const BRED_EARLY_OBJECTIVES: ObjectiveTable = {
     listId: 'cb9875960769cd78',
     objective: 'A YYB Rogue Gear offshoot that trades River Ward for Saburo: Gig-adjusting value cards and Blue tempo into big Jackie Welles and Placide attacks.',
     plan: [
-      { phase: 'early', text: 'Call Viktor to pull two cheap Gear; land Dexter: One Last Chance and adjust Gigs with him, Afterparty and Faceplate.' },
+      { phase: 'early', text: 'Viktor’s Call pulls two cheap Gear; land Dexter: One Last Chance and adjust Gigs with him, Afterparty and Faceplate.' },
       { phase: 'mid', text: 'Hold rival attackers off with Chrome Reverie, Nocturne and Memory Relapse while Pepe and Psycho Squad take Gigs; a value-pair lets Pepe ready V for mana.' },
       { phase: 'closing', text: 'Jackie Welles: Ride or Die gains +2 per even Gig; Placide bottom-decks a blocker on play and attack.' },
     ],

@@ -34,6 +34,8 @@
 //     effect is paired with a ledger, forge-report or re-measurement source, every strength word is what the rule
 //     gives, the short-id lookup (ids.json) matches the deck files, and the re-measurements (data/evidence/*.json)
 //     read. `npm run evidence` rebuilds them
+//   - src/content/deckObjectives/noteSynergies.ts (the slim table of the deck notes' synergies the bots read) is what
+//     the notes say, byte for byte; `npx tsx scripts/note-synergies.ts` rewrites it
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,6 +52,7 @@ import { parseCardImpact, cardTotals } from '../src/lib/seasonImpact';
 import { analysisKey, impactFileWords, impactFilesProblems, type AnalysisLike, type SeasonPair } from '../src/lib/breederImpact';
 import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
 import { evidenceCheck } from './build-evidence';
+import { noteSynergiesCheck } from './note-synergies';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -97,6 +100,8 @@ export interface CheckInput {
   ledger?: { file: string; text: string }[] | null;
   /** the evidence check's result (evidenceCheck in scripts/build-evidence.ts; absent: not checked) */
   evidence?: { failures: string[]; passed: string[] } | null;
+  /** the slim table of the notes' synergies against the notes (noteSynergiesCheck in scripts/note-synergies.ts; absent: not checked) */
+  noteSynergies?: { failures: string[]; passed: string[] } | null;
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -445,6 +450,11 @@ export function checkData(input: CheckInput): CheckResult {
     failures.push(...input.evidence.failures);
     passed.push(...input.evidence.passed);
   }
+  // ---- the bots' slim table of the notes' synergies is what the notes say
+  if (input.noteSynergies) {
+    failures.push(...input.noteSynergies.failures);
+    passed.push(...input.noteSynergies.passed);
+  }
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -484,6 +494,7 @@ export function loadCheckInput(root = '.'): CheckInput {
           .map((file) => ({ file, text: fs.readFileSync(path.join(root, 'data/ledger', file), 'utf8') }))
       : null,
     evidence: evidenceCheck(root),
+    noteSynergies: noteSynergiesCheck(root),
     deckFiles: LIBRARY_DIRS.flatMap((d) => {
       const dir = path.join(root, 'data/decks', d);
       return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];
