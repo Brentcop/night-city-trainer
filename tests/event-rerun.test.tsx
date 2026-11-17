@@ -28,7 +28,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('each recorded event opens with its own setup', () => {
   const files = fs.readdirSync(path.join(ROOT, 'public/tournaments')).filter((f) => /^event-\d+\.json$/.test(f));
-  it('there are recorded events to check', () => expect(files.length).toBeGreaterThanOrEqual(7));
+  it('there are recorded events to check', () => expect(files.length).toBeGreaterThanOrEqual(5));
   for (const f of files)
     it(f, () => {
       const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments', f), 'utf8')) as RecordedEvent & { manifest: { decks: { file: string }[] }; config: NonNullable<RecordedEvent['config']> };

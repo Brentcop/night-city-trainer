@@ -3,7 +3,8 @@
 //
 //   npx tsx scripts/tournament.ts [--events 12] [--start N] [--field all] [--rounds auto] [--top 8] [--bo 3] [--bot hard] [--threads N] [--force]
 //
-//   --start   id of the first event (default: one past the highest recorded event). The event id is also its seed.
+//   --start   id of the first event (default: one past the highest event recorded or archived in data/events/archive/,
+//             so an archived id is never reused). The event id is also its seed.
 //   --force   allow overwriting events that are already recorded (otherwise the run refuses before playing anything)
 //   --field   all | meta | ladder | original | guide | shared | top16 | a comma list of deck files/names (e.g. meta-rry-smasher-aggro,s2-08-explorer-rrg)
 //   --allow-same-lists   enter decks whose lists are the same (see "One entry per list" below)
@@ -40,7 +41,7 @@
 // Outputs: public/tournaments/event-<n>.json (the one copy: the site fetches it and the scripts read it) and the index src/data/tournaments.json.
 import fs from 'node:fs';
 import path from 'node:path';
-import { ArgError, bool, cli, EVENTS_DIR, existing, int, loadLibrary, many, maxEventId, oneOf, readEvents, resolveDeck, str, threadsOpt, TIER_BOTS, workerPool, writeJsonStamped } from './lib-node';
+import { ARCHIVED_EVENTS_DIR, ArgError, bool, cli, EVENTS_DIR, existing, int, loadLibrary, many, maxEventId, oneOf, readEvents, resolveDeck, str, threadsOpt, TIER_BOTS, workerPool, writeJsonStamped } from './lib-node';
 import { cutSize, runTournament, type BestOf, type BotLevel, type EventFormat, type Game1Rule, type NextRule, type PlayGame, type TourneyEvent } from '../src/lib/tournament';
 import type { MatchJob, MatchResult } from './worker';
 import { buildH2H } from './build-h2h';
@@ -78,7 +79,7 @@ const { values: V } = cli(import.meta.url, {
 const OUT = V.out;
 const EV_DIR = OUT ?? EVENTS_DIR;
 const EVENTS = V.events;
-const START = V.start ?? Math.max(maxEventId(EVENTS_DIR), OUT ? maxEventId(OUT) : 0) + 1;
+const START = V.start ?? Math.max(maxEventId(EVENTS_DIR, ARCHIVED_EVENTS_DIR), OUT ? maxEventId(OUT) : 0) + 1;
 const TOP = V.top;
 const BO = Number(V.bo) as BestOf;
 const BOT = V.bot as BotLevel;
@@ -91,7 +92,7 @@ const planned = Array.from({ length: EVENTS }, (_, k) => START + k);
 if (RECORD) {
   const clash = existing(planned.map((n) => `${EV_DIR}/event-${n}.json`));
   if (clash.length && !V.force) {
-    console.error(`error: these events are already recorded: ${clash.join(', ')}.\nLeave out --start to continue after event ${maxEventId(EV_DIR)}, or pass --force to overwrite them.`);
+    console.error(`error: these events are already recorded: ${clash.join(', ')}.\nLeave out --start to continue after event ${maxEventId(EV_DIR, ARCHIVED_EVENTS_DIR)}, or pass --force to overwrite them.`);
     process.exit(1);
   }
   if (clash.length) console.log(`--force: overwriting ${clash.length} recorded event file(s)`);

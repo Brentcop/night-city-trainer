@@ -402,6 +402,9 @@ export function runMain(main: () => Promise<unknown>) {
 
 /** Recorded events live in one place: the site fetches them from here and the scripts read them from here. */
 export const EVENTS_DIR = 'public/tournaments';
+/** Events moved out of the active set (not served, not pooled by any reader). Their ids stay taken: a new event's
+ *  default id continues after the highest event here too (archive tag archive/events-1-19-pre-reset-2026-11-17). */
+export const ARCHIVED_EVENTS_DIR = 'data/events/archive';
 const EVENT_RE = /^event-(\d+)\.json$/;
 
 /** event-N.json file names in a directory, in numeric order. */

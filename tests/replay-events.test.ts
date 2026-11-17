@@ -1,5 +1,5 @@
-// Golden replays from the recorded events (docs/ROADMAP.md §4 step 4): a few games from public/tournaments/, replayed
-// with makeBot() on their recorded seed and seat, must end exactly as recorded (winner and turn count). Each pins the
+// Golden replays from the recorded events (docs/ROADMAP.md §4 step 4): a few games of events 1 to 7, replayed
+// (archived since 2026-11-17 in data/events/archive/, byte for byte as recorded on SIM_VERSION 9) with makeBot() on their recorded seed and seat, must end exactly as recorded (winner and turn count). Each pins the
 // engine and the bots to what recorded the events (since SIM_VERSION 6 Hard reads no card impact, so src/data/impact.json
 // no longer moves them; since SIM_VERSION 7 Hard also picks its sell by rollout; SIM_VERSION 8 is the bot review's fixes;
 // SIM_VERSION 9 reads the Gig plan and archetypes from the whole list).
@@ -30,7 +30,7 @@ const GOLDEN: { event: number; a: string; b: string; game: number; winner: 0 | 1
 
 const events = new Map<number, TourneyEvent>();
 const eventOf = (id: number) => {
-  if (!events.has(id)) events.set(id, JSON.parse(readFileSync(`public/tournaments/event-${id}.json`, 'utf8')) as TourneyEvent);
+  if (!events.has(id)) events.set(id, JSON.parse(readFileSync(`data/events/archive/event-${id}.json`, 'utf8')) as TourneyEvent);
   return events.get(id)!;
 };
 

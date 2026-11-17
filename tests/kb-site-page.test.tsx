@@ -168,7 +168,7 @@ describe('a result of each kind', () => {
   });
 
   it('measured records say what they rest on; statistics keep their association wording; drafts and stale records are marked', () => {
-    const ev = hitHtml(rec('event:7'));
+    const ev = hitHtml(rec('event:20'));
     expect(ev).toMatch(/Measured from the \w+ bot&#x27;s games on sim version \d+, recorded \d{4}-\d{2}-\d{2}\./);
     const stat = hitHtml(first((r) => r.kind === 'cardstat'));
     expect(stat).toMatch(/associations, not the value of the card and not advice\./);

@@ -20,7 +20,7 @@ import { gameDeck, runTournament, type GameJob, type GameRec, type PlayGame } fr
 const ROOT = path.resolve(__dirname, '..');
 
 /** A recorded event and one short game of it (two decks of event 1, seed 1020010: 11 turns, about a third of a second). */
-const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments/event-1.json'), 'utf8')) as {
+const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/events/archive/event-1.json'), 'utf8')) as {
   bot: string;
   simVersion: number;
   decks: Record<string, { legends: string[]; main: string[] }>;

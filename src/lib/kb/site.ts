@@ -273,7 +273,7 @@ export function lateShardsFor(ix: KbIndex, query: string): string[] {
 // ---------------------------------------------------------------- what a result shows
 
 /** Questions the page offers on an empty box and after "no match" (each answered by the pack: tests/kb-site.test.ts). */
-export const SITE_EXAMPLES: readonly string[] = ['What does Blocker do?', 'Which decks play Detonate?', 'Who won event 7?'];
+export const SITE_EXAMPLES: readonly string[] = ['What does Blocker do?', 'Which decks play Detonate?', 'Who won event 20?'];
 
 /** What each kind is, in a plain word. */
 export const KIND_LABEL: Readonly<Partial<Record<KbKind, string>>> = {

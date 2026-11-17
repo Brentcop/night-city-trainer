@@ -67,7 +67,7 @@ describe('rendered', () => {
   });
 
   it('an event: field and top cut side by side, by colour and by pill, in scrolling tables', () => {
-    const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments/event-19.json'), 'utf8')) as RecordedEvent;
+    const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments/event-24.json'), 'utf8')) as RecordedEvent;
     const facts = eventColors(ev);
     const html = renderToStaticMarkup(<EventColorsPanel facts={facts} />);
     expect(html).toContain('<h3 style="margin-top:0">Colours</h3>');

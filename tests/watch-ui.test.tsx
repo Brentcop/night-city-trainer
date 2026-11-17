@@ -58,7 +58,7 @@ const watchOff = () => {
 
 // ---------------------------------------------------------------- a real game of event 1, played again
 
-const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments/event-1.json'), 'utf8')) as {
+const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/events/archive/event-1.json'), 'utf8')) as {
   bot: string;
   simVersion: number;
   config: { bestOf: number };

@@ -314,7 +314,7 @@ describe('searching what is loaded', () => {
     const titles = groupRecords(FIRST)
       .filter((_, i) => i % 4 === 0)
       .map((r) => r.title);
-    const questions = [...titles, ...SITE_EXAMPLES, 'which decks win by filling the trash', 'cards that steal a gig', 'rockerboy deck plan', 'event 6 final', 'ratings of red decks', 'nothing about xyzzy'];
+    const questions = [...titles, ...SITE_EXAMPLES, 'which decks win by filling the trash', 'cards that steal a gig', 'rockerboy deck plan', 'event 21 final', 'ratings of red decks', 'nothing about xyzzy'];
     let compared = 0;
     for (const q of questions) {
       if (lateShardsFor(first, q).length) continue;
@@ -326,7 +326,7 @@ describe('searching what is loaded', () => {
 
   it('asks for a statistics shard only when the question asks for statistics', () => {
     expect(lateShardsFor(first, 'Which decks play Detonate?')).toEqual([]);
-    expect(lateShardsFor(first, 'Who won event 7?')).toEqual([]);
+    expect(lateShardsFor(first, 'Who won event 20?')).toEqual([]);
     expect(lateShardsFor(first, 'Detonate stats')).toEqual(['cardstat', 'pkgstat']);
     expect(lateShardsFor(first, 'how often does the bot play Detonate')).toEqual(['cardstat']);
     const pkg = groupRecords(['core']).find((r) => r.kind === 'package')!;
@@ -339,7 +339,7 @@ describe('searching what is loaded', () => {
       expect(r.noMatch, q).toBe(false);
       expect(r.hits.length, q).toBeGreaterThan(0);
     }
-    expect(search(first, 'Who won event 7?').hits[0]!.record.id).toBe('event:7');
+    expect(search(first, 'Who won event 20?').hits[0]!.record.id).toBe('event:20');
   });
 });
 
@@ -532,7 +532,7 @@ describe('what a result shows', () => {
   });
 
   it('says what a measured record rests on, keeps the association wording, and nothing for authored records', () => {
-    const ev = shipped.find((r) => r.id === 'event:7')!;
+    const ev = shipped.find((r) => r.id === 'event:20')!;
     expect(basisLine(ev)).toMatch(/^Measured from the \w+ bot's games on sim version \d+, recorded \d{4}-\d{2}-\d{2}\.$/);
     for (const r of shipped.filter((x) => x.kind === 'cardstat' || x.kind === 'pkgstat')) {
       expect(basisLine(r), r.id).toContain('sim version');

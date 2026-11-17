@@ -40,7 +40,7 @@ const TALLY_FIELDS = ['games', 'turns', 'playW', 'playG', 'drawW', 'drawG'] as c
 
 describe('every recorded event', () => {
   it('has events to check', () => {
-    expect(EVENTS.length).toBeGreaterThanOrEqual(7);
+    expect(EVENTS.length).toBeGreaterThanOrEqual(5);
   });
 
   for (const ev of EVENTS) {
