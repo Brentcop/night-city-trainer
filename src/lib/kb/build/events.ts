@@ -79,11 +79,14 @@ export const ratingId = (file: string) => `rating:${deckStem(file)}`;
 /** matchup:<deck a>~<deck b>, the two deck keys in code-unit order. */
 export const matchupId = (fileA: string, fileB: string) => `matchup:${[deckStem(fileA), deckStem(fileB)].sort(byString).join('~')}`;
 
+/** `archived: true` on an archived event's records (the site serves no page for it, src/lib/kb/site.ts siteLink); absent otherwise. */
+const archivedField = (archived: boolean) => (archived ? { archived: true } : {});
+
 const stamps = (b: Basis) => ({ simVersion: b.simVersion ?? undefined, bot: b.bot ?? undefined, asOf: b.asOf ?? undefined });
 
 // ---------------------------------------------------------------- events and rounds
 
-function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | null | undefined) => KbLink[], upsets: UpsetsFact): KbRecord {
+function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | null | undefined) => KbLink[], upsets: UpsetsFact, archived: boolean): KbRecord {
   const s = eventSummary(ev);
   const cut = s.format.topCut;
   const shape = `${plural(s.entrants, 'entrant')}; ${plural(s.format.rounds, s.format.stage === 'swiss' ? 'Swiss round' : 'round')}${cut ? `, then a top cut of ${cut}` : ''}; best of ${s.format.bestOf}.`;
@@ -141,6 +144,7 @@ function eventRecord(file: string, ev: RecordedEvent, deckLink: (name: string | 
       stale: isStale(s),
       ...reasonFields(s.endReasons),
       ...upsetFields(upsets),
+      ...archivedField(archived),
     },
     links: deckLink(s.champion),
     source: { file },
@@ -273,7 +277,7 @@ const upsetFields = (u: UpsetsFact) => ({
   upsetYardstickGames: u.yardstick.games,
 });
 
-function roundRecord(file: string, ev: RecordedEvent, round: number | string, upsets: UpsetsFact): KbRecord {
+function roundRecord(file: string, ev: RecordedEvent, round: number | string, upsets: UpsetsFact, archived: boolean): KbRecord {
   const r = roundSummary(ev, round);
   const mv = r.movement && !r.movement.notApplicable ? r.movement : null;
   const tag = r.stage === 'bracket' ? r.name.toLowerCase() : `round ${r.round}`;
@@ -310,6 +314,7 @@ function roundRecord(file: string, ev: RecordedEvent, round: number | string, up
       decksOnTop: r.stage === 'bracket' ? undefined : r.atTop,
       stale: isStale(r),
       ...reasonFields(r.endReasons),
+      ...archivedField(archived),
     },
     links: [{ rel: 'parent', to: eventId(ev.id) }],
     source: { file, at: r.stage === 'bracket' ? `/bracket/${r.round - 1}` : `/rounds/${r.round - 1}` },
@@ -485,9 +490,11 @@ function matchupRecord(file: string, h2h: H2HInput, a: string, b: string, o: { f
 
 /**
  * Event, round, rating and matchup records. `deckId(file)` gives the pack id of a library deck (undefined when the deck
- * is not in the library: the link is left out and counted in `skipped`).
+ * is not in the library: the link is left out and counted in `skipped`). `archived`: the sources are archived events
+ * (data/events/archive, RAG_PLAN D9): their event and round records carry the field `archived: true`, text unchanged.
  */
-export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: string) => string | undefined; skipped: Record<string, number> }): KbRecord[] {
+export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: string) => string | undefined; skipped: Record<string, number>; archived?: boolean }): KbRecord[] {
+  const archived = o.archived === true;
   const skip = (why: string) => (o.skipped[why] = (o.skipped[why] ?? 0) + 1);
   // deck name → file: the ratings rows, then each event's own list
   const fileOf = new Map<string, string>();
@@ -503,9 +510,9 @@ export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: st
   const all = src.events.map((e) => e.event);
   for (const { file, event } of src.events) {
     const up = eventUpsetFacts(all, event);
-    out.push(eventRecord(file, event, deckLink, up.event));
-    for (let k = 1; k <= event.rounds.length; k++) out.push(roundRecord(file, event, k, up.round(k)));
-    for (const b of event.bracket) out.push(roundRecord(file, event, b.name, up.round(b.name)));
+    out.push(eventRecord(file, event, deckLink, up.event, archived));
+    for (let k = 1; k <= event.rounds.length; k++) out.push(roundRecord(file, event, k, up.round(k), archived));
+    for (const b of event.bracket) out.push(roundRecord(file, event, b.name, up.round(b.name), archived));
   }
   if (src.ratings) {
     const events = typeof src.ratings.data.events === 'number' ? src.ratings.data.events : null;

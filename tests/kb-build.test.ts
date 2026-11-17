@@ -23,7 +23,7 @@ import { buildRulings } from '../src/lib/kb/build/rulings';
 import { wordCount } from '../src/lib/kb/text';
 import { buildIndex, cuedKinds, lookup, search, STATS_FREE_KINDS } from '../src/lib/kb/search';
 import { recordHash } from '../src/lib/kb/types';
-import { buildFromSources, loadCompetitive, RAW_FILES } from '../scripts/kb-sources';
+import { buildFromSources, loadArchived, loadCompetitive, RAW_FILES } from '../scripts/kb-sources';
 import { FAQ_MATRIX } from './faq/matrix';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -483,11 +483,21 @@ describe('the real public sources', async () => {
 
   it('builds the measured records from the recorded events, ratings and head-to-heads', () => {
     const src = loadCompetitive(ROOT);
-    expect(count('event')).toBe(src.events.length);
-    expect(count('round')).toBe(src.events.reduce((a, e) => a + e.event.rounds.length + e.event.bracket.length, 0));
+    // the archived events (data/events/archive, RAG_PLAN D9) are built too, from their own head-to-heads; an archived
+    // pairing that the active head-to-heads also record is the active record
+    const arc = loadArchived(ROOT);
+    const evs = [...src.events, ...arc.events];
+    expect(count('event')).toBe(evs.length);
+    expect(count('round')).toBe(evs.reduce((a, e) => a + e.event.rounds.length + e.event.bracket.length, 0));
     // one per rated deck, and the table
     expect(count('rating')).toBe(src.ratings!.data.decks.length + 1);
-    expect(count('matchup')).toBe(src.h2h!.data.pairs.filter((p) => p[3] >= MATCHUP_MIN_GAMES).length);
+    const pairKeys = (h: NonNullable<typeof src.h2h>['data'] | undefined) =>
+      (h?.pairs ?? []).filter((p) => p[3] >= MATCHUP_MIN_GAMES).map(([i, j]) => [h!.decks[i], h!.decks[j]].sort().join('~'));
+    expect(count('matchup')).toBe(new Set([...pairKeys(src.h2h!.data), ...pairKeys(arc.h2h?.data)]).size);
+    // archived event and round records say so in a field; active ones do not
+    const archivedIds = new Set(arc.events.map((e) => String(e.event.id)));
+    for (const x of a.records.filter((r) => r.kind === 'event' || r.kind === 'round'))
+      expect(x.fields?.archived === true, x.id).toBe(archivedIds.has(String(x.fields?.event)));
     const measured = a.records.filter((x) => ['event', 'round', 'rating', 'matchup'].includes(x.kind));
     for (const x of measured) {
       expect([x.origin, x.scope], x.id).toEqual(['measured', 'public']);
@@ -507,7 +517,7 @@ describe('the real public sources', async () => {
       if (x.kind === 'matchup') expect(rels).toEqual(['deck deck', 'deck deck']);
     }
     const ev6 = a.records.find((x) => x.id === 'event:6');
-    if (ev6) expect(ev6.stamps?.asOf).toBe(src.events.find((e) => e.event.id === 6)!.event.date);
+    if (ev6) expect(ev6.stamps?.asOf).toBe(evs.find((e) => e.event.id === 6)!.event.date);
   });
 
   it('builds the evidence cells from the measured reports (step 2.4): one per card or package on a library list, and pooled', () => {

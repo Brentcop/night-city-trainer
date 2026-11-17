@@ -142,8 +142,8 @@ describe('a result of each kind', () => {
     ['Synergy package', (r) => r.kind === 'package', 'Card stats: Synergies', /href="#\/insights\?v=synergies"/],
     ['Glossary', (r) => r.kind === 'term' && !r.fields?.vocabulary, 'Glossary', /href="#\/glossary\?q=[^"]+"/],
     ['Guide', (r) => r.kind === 'guide', 'Strategy guide', /href="#\/guides\?g=[^"]+"/],
-    ['Event', (r) => r.kind === 'event', 'Event page', /href="#\/tournaments\?e=\d+"/],
-    ['Round', (r) => r.kind === 'round', 'Event page', /href="#\/tournaments\?e=\d+"/],
+    ['Event', (r) => r.kind === 'event' && r.fields?.archived !== true, 'Event page', /href="#\/tournaments\?e=\d+"/],
+    ['Round', (r) => r.kind === 'round' && r.fields?.archived !== true, 'Event page', /href="#\/tournaments\?e=\d+"/],
     ['Rating', (r) => r.kind === 'rating', 'Power ratings', /href="#\/ratings"/],
     ['Matchup', (r) => r.kind === 'matchup', 'Matchups on the deck profile', /href="#\/deck\?d=[^"]+\.txt"/],
     ['Card statistics', (r) => r.kind === 'cardstat' && r.id.includes('/'), 'Card stats: Decisions', /href="#\/insights\?d=[^"&]+&amp;v=decisions"/],
@@ -159,6 +159,14 @@ describe('a result of each kind', () => {
       expect(h).toMatch(href);
       expect(h).toContain(`On the site: ${where}.`);
     });
+
+  it('an archived event and its rounds (data/events/archive) have no page on the site and say so', () => {
+    for (const kind of ['event', 'round']) {
+      const h = hitHtml(first((r) => r.kind === kind && r.fields?.archived === true));
+      expect(h).toContain('Not on a page of its own on this site.');
+      expect(h).not.toContain('<a href');
+    }
+  });
 
   it('a signal or condition term has no page of its own and says so', () => {
     const h = hitHtml(first((r) => r.kind === 'term' && !!r.fields?.vocabulary));

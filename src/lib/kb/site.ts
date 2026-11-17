@@ -49,10 +49,10 @@ export const SITE_KINDS: readonly KbKind[] = SITE_GROUPS.flatMap((s) => s.kinds)
 export const SITE_LEFT_OUT: readonly KbKind[] = KB_KINDS.filter((k) => !SITE_KINDS.includes(k));
 
 /**
- * The fields a shard keeps: the ones a result's link and its stale mark need. The rest are exact numbers for the
+ * The fields a shard keeps: the ones a result's link and its stale mark need (`archived`: an archived event has no page). The rest are exact numbers for the
  * command line (`npm run kb -- fact`); the text already says them in words.
  */
-export const SITE_FIELDS: readonly string[] = ['deck', 'deckFile', 'event', 'file', 'guide', 'stale', 'vocabulary'];
+export const SITE_FIELDS: readonly string[] = ['archived', 'deck', 'deckFile', 'event', 'file', 'guide', 'stale', 'vocabulary'];
 
 /** A record as a shard holds it: no source path, scope or hash; only SITE_FIELDS; links only to shipped records. */
 export type SiteRecord = Pick<KbRecord, 'id' | 'kind' | 'title' | 'aliases' | 'text' | 'fields' | 'links' | 'origin' | 'status' | 'stamps'>;
@@ -324,6 +324,8 @@ export function siteLink(r: KbRecord): SiteLink {
     }
     case 'event':
     case 'round': {
+      // an archived event (data/events/archive) has no page on the site
+      if (r.fields?.archived === true) return null;
       const e = field(r, 'event');
       return e ? { to: 'page', href: `#/tournaments?${q('e', e)}`, label: 'Event page' } : null;
     }

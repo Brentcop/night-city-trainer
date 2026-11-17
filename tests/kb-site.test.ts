@@ -35,7 +35,7 @@ import {
   type SiteSizing,
 } from '../src/lib/kb/site';
 import { SITE_RESULTS, SiteSearch } from '../src/lib/kb/siteSearch';
-import { buildFromSources, deckFiles, rawPresent } from '../scripts/kb-sources';
+import { archivedEventFiles, buildFromSources, deckFiles, rawPresent } from '../scripts/kb-sources';
 import { EVAL_SPEC, evaluateScope } from '../scripts/kb-eval';
 import type { KbQuestion } from '../src/lib/kb/eval';
 import type { KbRecord } from '../src/lib/kb/types';
@@ -153,7 +153,8 @@ describe('groups, parts and manifest', () => {
         const e = Number(r.fields!.event);
         where.set(e, (where.get(e) ?? new Set()).add(f.name));
       }
-    expect(where.size).toBe(TOURNAMENT_INDEX.events.length);
+    // the active events and the archived ones (data/events/archive, RAG_PLAN D9)
+    expect(where.size).toBe(TOURNAMENT_INDEX.events.length + archivedEventFiles(ROOT).length);
     for (const [e, parts] of where) expect(parts.size, `event ${e}`).toBe(1);
     // and in event order: the parts' events run 1, 2, 3, … across the files
     const order = small.filter((x) => x.group === 'events').flatMap((f) => [...new Set(parseShard(f.json, { name: f.name }).map((r) => Number(r.fields!.event)))].sort((a, b) => a - b));
@@ -499,6 +500,12 @@ describe('what a result shows', () => {
           break;
         case 'event':
         case 'round':
+          // an archived event has no page on the site
+          if (r.fields?.archived === true) {
+            expect(l, where).toBeNull();
+            expect(events.has(String(r.fields.event)), where).toBe(false);
+            break;
+          }
           expect(l?.to === 'page' && l.href.startsWith('#/tournaments?e='), where).toBe(true);
           if (l?.to === 'page' && !events.has(param(l.href, 'e')!)) missing.push(where);
           break;

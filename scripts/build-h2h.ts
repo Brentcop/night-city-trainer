@@ -13,9 +13,9 @@
 // --loeo prints a leave-one-event-out check of the pair predictors (raw rate, the Lab's old 50% shrink, the ratings'
 // prediction, the shrunk estimate) and writes nothing.
 import fs from 'node:fs';
-import { bool, cli, EVENTS_DIR, forEachGameOf, readEvents, str, writeJsonStamped } from './lib-node';
+import { bool, cli, EVENTS_DIR, forEachGameOf, readEvents, str, writeJsonStamped, type RecordedEvent } from './lib-node';
 import { aggregateManifest, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
-import { checkSimVersionFlag, parsePoolFilter, poolEvents, poolRecord, selectEvents, type PoolFilter, type PoolRecord } from './event-pool';
+import { checkSimVersionFlag, parsePoolFilter, poolEvents, poolRecord, selectEvents, type PoolFilter, type PoolRecord, type PoolSelection } from './event-pool';
 import { h2hModelFields, leaveOneEventOut, LOEO_PREDICTORS, type H2HModelBlock } from '../src/lib/h2hModel';
 
 export interface H2HFile {
@@ -40,6 +40,15 @@ export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json', filter:
   if (!fs.existsSync(dir)) return null;
   const selection = selectEvents(readEvents(dir), filter);
   for (const w of selection.warnings) console.log(w);
+  writeJsonStamped(out, h2hOf(selection) as unknown as Record<string, unknown>);
+  return JSON.parse(fs.readFileSync(out, 'utf8')) as H2HFile;
+}
+
+/**
+ * The head-to-head file's content for a selection of events, without writing it (`updated` left empty: the writer
+ * stamps it). The knowledge pack also builds the archived events' head-to-heads with it, in memory (scripts/kb-sources.ts).
+ */
+export function h2hOf(selection: PoolSelection<RecordedEvent>): H2HFile {
   const events = selection.kept;
   const idx = new Map<string, number>();
   const id = (n: string) => (idx.has(n) ? idx.get(n)! : (idx.set(n, idx.size), idx.size - 1));
@@ -78,8 +87,7 @@ export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json', filter:
     ...(pool ? { pool } : {}),
     manifest: aggregateManifest('h2h', events as unknown as RecordedEventInput[], { games }),
   };
-  writeJsonStamped(out, data as unknown as Record<string, unknown>);
-  return JSON.parse(fs.readFileSync(out, 'utf8')) as H2HFile;
+  return data;
 }
 
 if (process.argv[1]?.endsWith('build-h2h.ts')) {

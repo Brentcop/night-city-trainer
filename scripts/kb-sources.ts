@@ -5,10 +5,18 @@
 // Measured records (plan step 2.2) come from the recorded events, the event index, the ratings and the head-to-heads;
 // `loadCompetitive` also feeds `npm run kb -- fact`. The evidence cells (plan step 2.4: cardstat, pkgstat) come from the
 // decision, synergy, deck-analysis and impact reports (`loadStats`, which also feeds `fact card` and `fact package`).
+// The archived events (data/events/archive, ARCHIVED_EVENTS_DIR: events 1 to 19 since 2026-11-17) stay searchable
+// (RAG_PLAN D9, option 1): `loadArchived` reads them and their head-to-heads are pooled in memory exactly as
+// scripts/build-h2h.ts pooled them while they were active, so their event, round and matchup records keep the ids and
+// text they had (their event and round records add the field `archived: true`, so the site links them to no page). They are judged on their own (upsets against earlier archived events only) and never reach the
+// active ratings or head-to-heads; an archived pairing that the active head-to-heads also record keeps the active record.
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { LIBRARY_DIRS, libraryDeck } from '../src/lib/library';
+import { h2hOf } from './build-h2h';
+import { selectEvents } from './event-pool';
+import { ARCHIVED_EVENTS_DIR, type RecordedEvent } from './lib-node';
 import { buildCards, cardDataVersion, type CardInput } from '../src/lib/kb/build/cards';
 import { buildDecks, buildObjectives, deckRecordId, type DeckInput, type ObjectiveDeck } from '../src/lib/kb/build/decks';
 import { buildCompetitive, type CompetitiveSources } from '../src/lib/kb/build/events';
@@ -96,9 +104,35 @@ export function eventFiles(root: string): string[] {
   return listDir(root, EVENTS_DIR, '.json').filter((f) => /\/event-[^/]+\.json$/.test(f));
 }
 
-/** The competitive inputs that exist: the event files, the index, the ratings and the head-to-heads. */
+/** The archived event files (data/events/archive/event-*.json), as paths from the root. */
+export function archivedEventFiles(root: string): string[] {
+  return listDir(root, ARCHIVED_EVENTS_DIR, '.json').filter((f) => /\/event-[^/]+\.json$/.test(f));
+}
+
+/** The competitive inputs that exist: the event files (active and archived), the index, the ratings and the head-to-heads. */
 export function competitiveFiles(root: string): string[] {
-  return [...eventFiles(root), ...[INDEX_FILE, RATINGS_FILE, H2H_FILE].filter((f) => fs.existsSync(path.join(root, f)))];
+  return [...eventFiles(root), ...archivedEventFiles(root), ...[INDEX_FILE, RATINGS_FILE, H2H_FILE].filter((f) => fs.existsSync(path.join(root, f)))];
+}
+
+const byEventId = (a: { event: { id: unknown } }, b: { event: { id: unknown } }) =>
+  typeof a.event.id === 'number' && typeof b.event.id === 'number' ? a.event.id - b.event.id : String(a.event.id) < String(b.event.id) ? -1 : 1;
+
+/**
+ * The archived events, with the head-to-heads pooled from them in memory (scripts/build-h2h.ts `h2hOf`, the default
+ * pool: the newest archived event's sim version and bot), as the competitive sources of their own build. No ratings:
+ * the archive feeds no rating. The h2h `file` names the archive folder, since no such file is written.
+ */
+export function loadArchived(root: string): CompetitiveSources {
+  const events = archivedEventFiles(root)
+    .map((file) => ({ file, event: JSON.parse(fs.readFileSync(path.join(root, file), 'utf8')) as CompetitiveSources['events'][number]['event'] }))
+    .sort(byEventId);
+  const h2h = events.length ? h2hOf(selectEvents(events.map((e) => e.event as unknown as RecordedEvent))) : null;
+  return {
+    events,
+    index: { file: INDEX_FILE, data: { events: [] } },
+    ratings: null,
+    h2h: h2h ? { file: ARCHIVED_EVENTS_DIR, data: h2h } : null,
+  };
 }
 
 /** Read the recorded tournaments and the files pooled from them (missing pooled files are null). */
@@ -107,7 +141,7 @@ export function loadCompetitive(root: string): CompetitiveSources {
   const maybe = <T,>(f: string): { file: string; data: T } | null => (fs.existsSync(path.join(root, f)) ? { file: f, data: json<T>(f) } : null);
   const events = eventFiles(root)
     .map((file) => ({ file, event: json<CompetitiveSources['events'][number]['event']>(file) }))
-    .sort((a, b) => (typeof a.event.id === 'number' && typeof b.event.id === 'number' ? a.event.id - b.event.id : String(a.event.id) < String(b.event.id) ? -1 : 1));
+    .sort(byEventId);
   return {
     events,
     index: maybe<CompetitiveSources['index']['data']>(INDEX_FILE) ?? { file: INDEX_FILE, data: { events: [] } },
@@ -248,7 +282,12 @@ export async function buildFromSources(root: string, o: { raw?: boolean } = {}):
 
   // measured: recorded events and their rounds, power ratings, head-to-heads (numbers from src/lib/eventFacts.ts)
   const deckIds = new Set(decks.map((d) => deckRecordId(d.file)));
-  records.push(...buildCompetitive(loadCompetitive(root), { deckId: (file) => (deckIds.has(deckRecordId(file)) ? deckRecordId(file) : undefined), skipped }));
+  const deckId = (file: string) => (deckIds.has(deckRecordId(file)) ? deckRecordId(file) : undefined);
+  const active = buildCompetitive(loadCompetitive(root), { deckId, skipped });
+  records.push(...active);
+  // the archived events (D9, option 1): their own build; a pairing the active head-to-heads hold keeps the active record
+  const activeIds = new Set(active.map((r) => r.id));
+  records.push(...buildCompetitive(loadArchived(root), { deckId, skipped, archived: true }).filter((r) => !activeIds.has(r.id)));
 
   // measured: the evidence cells (numbers from src/lib/cardFacts.ts), for library lists matched by fingerprint
   const deckByList = new Map(decks.map((d) => [d.listId, { file: d.file, name: d.name }]));
