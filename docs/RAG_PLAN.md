@@ -444,8 +444,9 @@ Each step lists its goal, how to build it, the files it owns, and when it counts
     a group, and a group counts for a search only when all its parts are in, so every search result is
     what it was (the site evaluation's numbers are identical before and after, on events 1 to 15 and with
     event 16). The budgets are now two numbers: the per-file cap and 300 kB gzip for every part that loads
-    with the first search (175.9 kB with events 1 to 15, 185.2 kB with event 16; about 5 to 7 kB more per
-    full-field event, about 0.56 kB per library deck). Loading older events only when asked would need the
+    with the first search (175.9 kB with events 1 to 15, 185.2 kB with event 16, 209.9 kB after events 17
+    to 19: 8.2 kB more per full-field event, of which 4.4 for the event and its rounds and 3.8 for the
+    pairings that reached the 6 games a matchup record needs; about 0.56 kB per library deck). Loading older events only when asked would need the
     ranker's word counts shipped apart from the records: a later, larger piece of work.
   - With the flag off the site is unchanged apart from 577 bytes in the entry chunk (the route and the
     flag's text). `#/search` then says the page is turned off.
@@ -812,6 +813,7 @@ Numbers over time. A row is added when a step lands or an experiment ends; old r
 | 2026-11-14 | Answer size from `kb fact upsets` and the richer `kb fact round` | upsets of one event 534 to 619 tokens, of one round 285; a round summary 714 to 847 | step 2.2 |
 | 2026-11-14 | Site pack, gzip | core 450 records 79.4 kB, events 229 records 33.0 kB, card statistics 205 records 81.9 kB, package statistics 342 records 86.9 kB; first search 112.4 kB; page chunk 11.8 kB | step 3 |
 | 2026-11-14 | Site index build (Node, as a stand-in for a browser) | first two shards 45 to 60 ms, all four about 160 ms; one question 1 to 3 ms | step 3 |
+| 2026-11-16 | Site pack after events 17 to 19 (71 decks each), gzip | events-1 59.3 kB (4.4 kB an event); ratings-1 58.7 kB (3.8 kB an event: 551 to 720 matchup records); core-1, decks-1, cardstat-1 and pkgstat-1 unchanged, byte for byte; first search 209.9 kB of 300, so room for about 11 more full-field events | step 3 |
 | 2026-11-16 | Site pack cut into part files, gzip (events 1 to 15 / with event 16) | core-1 45.0 kB; decks-1 46.8 kB; events-1 41.4 / 46.0 kB; ratings-1 42.6 / 47.3 kB; cardstat-1 81.9 kB; pkgstat-1 87.3 kB (late); first search 175.9 / 185.2 kB (the two old shards together: 175.3 / 184.7 kB); page chunk 11.8 to 12.0 kB; the site evaluation identical before and after | step 3 |
 | 2026-11-14 | Do earlier ratings name a match winner? Events re-recorded on SIM_VERSION 9, 642 judged matches, events 3 to 7 | favourite given 50 to 60% a game won 130 of 253 (51%); 60 to 70%: 130 of 211 (62%); 70% or more: 138 of 178 (78%); 40 upsets | step 2.1 |
 | 2026-11-14 | Evaluation re-run on the SIM_VERSION 9 data | the 11 two-deck questions whose pairing has fewer than 6 games on version 9 (q107, q113, q145, q198, q280-q286; 4 held out) expected a matchup record no longer in the pack; on the other 257 answerable questions no rank moved (default search: top 5 ±0.0, MRR +0.000) | SIM_VERSION 9 |

@@ -60,6 +60,12 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // 0.15 kB plus its matchups. So 300 kB is room for about 15 to 20 more full-field events. Raising it is a decision: the
 // alternative, loading older events only when asked, needs the keyword ranker's word counts shipped apart from the
 // records (every first-search kind counts in them, search.ts STATS_FREE_KINDS), which is a larger change.
+// Measured again 2026-11-16 on events 17 to 19 (71 decks each): the sum went from 185.2 to 209.9 kB, 8.2 kB an event
+// and more than the 5 to 7 estimated above. The events group took 4.4 kB an event as expected (46.0 to 59.3 kB); the
+// ratings group took 3.8 kB an event (47.3 to 58.7 kB), because 169 more pairings got a matchup record in those three
+// events (551 to 720 of the 2,485 possible; one is written once a pairing has 6 games, MATCHUP_MIN_GAMES in
+// src/lib/kb/build/events.ts). So 300 kB is room for about 11 more full-field events at that rate, not 15 to 20,
+// and the ratings group keeps growing until most pairings have their record.
 
 /** gzip kB: the most one knowledge-pack part file may weigh (the packing in src/lib/kb/site.ts cuts to it). */
 export const KB_FILE_CAP_KB = 90;

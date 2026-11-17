@@ -124,5 +124,5 @@ guides, and `scripts/tag-provenance.ts` leaves their header as the import step w
 On 2026-11-16 the owner added 18 lists this way: the Discord 5k Celebration Tournament's top 8 ("Discord 5k #1: …",
 each credited to its player) and the ten lists of cyberpunk-tcg-sim.online's Season-1 ranked report ("Ladder S1 #1: …",
 anonymous lists the site built for each Legend trio). Two of the top-8 lists have 10 Units and the Season-1 #2 list has
-12. Event 16, with all 71 library decks, gave the 18 their first ratings the same day: 21 to 33 games each, so ranges of
-12 to 16 points either side.
+12. Events 16 to 19, each with all 71 library decks, rated the 18 the same day: 86 to 106 games each, so ranges of 7 to
+8 points either side (after event 16 alone: 21 to 33 games, and 12 to 16 points).
