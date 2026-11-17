@@ -8,6 +8,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   deckCompetitive,
+  eventColors,
   eventSummary,
   matchupFact,
   rangesOverlap,
@@ -284,5 +285,79 @@ describe('fixtures', () => {
     expect(bravo).toMatchObject({ rating: null, swiss: null, titles: 0, topCutAppearances: 1, swissTopEight: 0 });
     // the custom event itself still summarises, flagged
     expect(eventSummary(fixture({ custom: true })).custom).toBe(true);
+  });
+});
+
+// ROADMAP2 §13 goal 2: colours in an event, by src/lib/colorSplit.ts's words (a deck plays a colour when one of its
+// Legends is that colour; its combination is its colour pill), results against decks without it, mirrors apart.
+describe('colours in an event', () => {
+  const R = ['dexter_deshawn_off_the_grid', 'johnny_silverhand_rocking_renegade'];
+  const B = ['alt_cunningham_soulkiller_architect'];
+  const G = ['goro_takemura_vengeful_bodyguard', 'hanako_arasaka_daughter_of_the_emperor'];
+  const Y = ['dum_dum_maelstrom_triggerman'];
+  const m = (a: string, b: string | null, score: [number, number], winner: string) => ({ a, b, score, winner });
+  const ev = {
+    id: 'c1',
+    date: '2030-01-01T00:00:00.000Z',
+    bot: 'fixture-bot',
+    simVersion: 8,
+    decks: {
+      Alpha: { legends: [R[0]!, B[0]!, R[1]!] }, // RRB
+      Bravo: { legends: [G[0]!, G[1]!, G[0]!] }, // GGG
+      Charlie: { legends: [R[0]!, R[1]!, R[0]!] }, // RRR
+      Delta: { legends: [Y[0]!, G[0]!, G[1]!] }, // GGY
+      Echo: {}, // no list in the file: not counted
+    },
+    rounds: [
+      { matches: [m('Alpha', 'Bravo', [2, 1], 'Alpha'), m('Charlie', 'Delta', [2, 0], 'Charlie'), m('Echo', null, [0, 0], 'Echo')] },
+      { matches: [m('Alpha', 'Charlie', [2, 0], 'Alpha'), m('Bravo', 'Delta', [1, 2], 'Delta'), m('Echo', 'Charlie', [2, 0], 'Echo')] },
+    ],
+    bracket: [{ matches: [m('Alpha', 'Charlie', [1, 2], 'Charlie')] }],
+  };
+
+  it('counts entrants, the top cut, and matches and games against the other colours, mirrors apart', () => {
+    const c = eventColors(ev);
+    expect([c.entrants, c.topCut, c.noList]).toEqual([4, 2, ['Echo']]);
+    expect([c.simVersion, c.bot, c.asOf]).toEqual([8, 'fixture-bot', '2030-01-01T00:00:00.000Z']);
+    const row = (r: (typeof c.byColor)[number] | (typeof c.byCombo)[number]) => [r.entrants, r.topCut, r.won, r.lost, r.mirrors, r.gamesWon, r.gamesLost];
+    expect(Object.fromEntries(c.byColor.map((r) => [r.color, row(r)]))).toEqual({
+      R: [2, 2, 2, 0, 2, 4, 1],
+      B: [1, 1, 2, 1, 0, 5, 3],
+      G: [2, 0, 0, 2, 1, 1, 4],
+      Y: [1, 0, 1, 1, 0, 2, 3],
+    });
+    expect(c.byCombo.map((r) => [r.combo, ...row(r)])).toEqual([
+      ['GGG', 1, 0, 0, 2, 0, 2, 4],
+      ['GGY', 1, 0, 1, 1, 0, 2, 3],
+      ['RRB', 1, 1, 2, 1, 0, 5, 3],
+      ['RRR', 1, 1, 2, 1, 0, 4, 3],
+    ]);
+  });
+
+  it('a colour no entrant plays is still listed, with nothing; an event with no bracket has no top cut', () => {
+    const c = eventColors({ ...ev, decks: { Alpha: ev.decks.Alpha, Bravo: ev.decks.Bravo }, rounds: [{ matches: [m('Alpha', 'Bravo', [2, 1], 'Alpha')] }], bracket: [] });
+    expect(c.topCut).toBe(0);
+    expect(c.byColor.map((r) => r.color)).toEqual(['R', 'B', 'G', 'Y']);
+    expect(c.byColor.find((r) => r.color === 'Y')).toMatchObject({ entrants: 0, won: 0, lost: 0, mirrors: 0 });
+  });
+
+  it('on every recorded event: every entrant counted once by combination, the cut is the bracket, wins equal losses', () => {
+    for (const e of EVENTS) {
+      const c = eventColors(e);
+      const sum = (rows: { entrants: number; topCut: number; won: number; lost: number; mirrors: number }[], k: 'entrants' | 'topCut' | 'won' | 'lost' | 'mirrors') => rows.reduce((a, r) => a + r[k], 0);
+      expect(c.noList).toEqual([]);
+      expect(c.entrants).toBe(Object.keys(e.decks).length);
+      expect(sum(c.byCombo, 'entrants')).toBe(c.entrants);
+      expect(c.topCut).toBe(new Set(e.bracket[0]?.matches.flatMap((x) => (x.b ? [x.a, x.b] : [x.a])) ?? []).size);
+      expect(sum(c.byCombo, 'topCut')).toBe(c.topCut);
+      const played = [...e.rounds, ...e.bracket].flatMap((r) => r.matches).filter((x) => x.b).length;
+      expect(sum(c.byCombo, 'won')).toBe(sum(c.byCombo, 'lost'));
+      expect(sum(c.byCombo, 'won') + sum(c.byCombo, 'mirrors')).toBe(played);
+      for (const r of c.byColor) {
+        expect(r.topCut).toBeLessThanOrEqual(r.entrants);
+        expect(r.won + r.lost + r.mirrors).toBeLessThanOrEqual(played);
+      }
+      expect(sum(c.byColor, 'entrants')).toBeGreaterThanOrEqual(c.entrants);
+    }
   });
 });

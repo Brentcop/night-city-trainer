@@ -51,6 +51,7 @@ import {
 import { BracketBoEditor, BracketSlotsEditor, EntrantPicker, MatchListEditor, PairingEditor, SeedOrderEditor } from '../src/ui/components/EventSetup';
 import { RoundList } from '../src/ui/components/TourneyViews';
 import { TournamentRunnerPage } from '../src/ui/pages/TournamentRunner';
+import { COLOR_NAMES, fieldColorSplit } from '../src/lib/colorSplit';
 import { setArtEnabled } from '../src/ui/art';
 
 function memoryStorage() {
@@ -381,6 +382,15 @@ describe('the runner page', () => {
     // a link from before "One entry per list" with a copy in it: the setting starts off and the copy is marked
     expect(html).toMatch(/<input type="checkbox"\/> <b>One entry per list<\/b>/);
     expect(html).toContain(`<span class="tag">copy of ${meta[0]!.deck.name}</span>`);
+  });
+  it('the entrants step shows the field’s colours: each colour in words and each pill, a copy counted as an entrant', () => {
+    const files = meta.slice(0, 3).map((d) => d.file);
+    const html = renderToStaticMarkup(<TournamentRunnerPage q={new URLSearchParams(`f=custom&d=${files[0]},${files[0]}*2,${files[1]},${files[2]}&fmt=round-robin&bo=1&s=77`)} />);
+    const field = fieldColorSplit([meta[0]!.deck, meta[0]!.deck, meta[1]!.deck, meta[2]!.deck]);
+    const step = html.slice(html.indexOf('1 · Entrants'), html.indexOf('2 · Format'));
+    expect(step).toContain('aria-label="Colours of the entrants"');
+    for (const c of field.byColor.filter((x) => x.decks > 0)) expect(step).toContain(`${COLOR_NAMES[c.color]}</span> ${c.decks}`);
+    for (const c of field.byCombo) expect(step).toContain(`<span class="tag">${c.combo}</span> ${c.decks}`);
   });
   it('one entry per list from a link: a preset field leaves a saved copy out and says so; one=0 enters it, marked', () => {
     const m = meta[0]!.deck;

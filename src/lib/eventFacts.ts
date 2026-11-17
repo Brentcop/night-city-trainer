@@ -19,8 +19,11 @@
 //   - Movement (`roundMovement`) is about the event's own top-cut places, Swiss rounds of standard events only: who
 //     moved into or out of them in a round, the biggest climb and drop in places, and after the last Swiss round who
 //     made the cut and who missed it on tiebreakers.
+//   - Colours (`eventColors`) use src/lib/colorSplit.ts's words: a deck plays a colour when one of its Legends is that
+//     colour, its combination is its colour pill; results are against decks without it, mirrors counted apart.
 // Upsets judged against ratings fitted on earlier events are in src/lib/eventUpsets.ts. Not here yet: per-game Gig
 // counts, findings, decision and synergy cells.
+import { COLOR_KEYS, colorsPlayed, comboOf, type ColorKey } from './colorSplit';
 import { eventFinishes, type EventLite } from './deckRecord';
 import type { EventSetup } from './eventFormats';
 import { h2hFileLookup, type H2HModelBlock } from './h2hModel';
@@ -39,7 +42,7 @@ export interface RecordedEvent {
   /** the format label, e.g. "Swiss 9 rounds (Bo3) + top 8" */
   format: string;
   config?: { rounds: number; top: number; bestOf: number };
-  decks: Record<string, { file?: string }>;
+  decks: Record<string, { file?: string; legends?: readonly string[] }>;
   rounds: { round: number; matches: MatchRec[] }[];
   bracket: { name: string; matches: MatchRec[] }[];
   standings: StandingRow[];
@@ -514,6 +517,115 @@ export function roundMovement(ev: RecordedEvent, round: number): RoundMovement {
     };
   }
   return base;
+}
+
+// ---------------------------------------------------------------- colours (ROADMAP2 §13 goal 2)
+
+/** Matches and games won and lost by the decks of one colour (or one pill) against decks without it. */
+export interface ColorRecord {
+  /** matches won and lost against decks that do not share it (byes out) */
+  won: number;
+  lost: number;
+  /** matches where both decks share it: a win and a loss for it, so left out of won-lost */
+  mirrors: number;
+  /** games won and lost in those matches (ties out) */
+  gamesWon: number;
+  gamesLost: number;
+}
+
+export interface ColorRow extends ColorRecord {
+  /** entrants playing it */
+  entrants: number;
+  /** of those, entrants in the first round of the event's bracket */
+  topCut: number;
+}
+
+export interface EventColors extends Basis {
+  event: number | string;
+  /** entrants whose list the event file holds (the ones counted) */
+  entrants: number;
+  /** entrants in the first round of the bracket (0: no bracket) */
+  topCut: number;
+  /** entrants the file has no Legends for (not counted) */
+  noList: string[];
+  /** by colour played (at least one Legend of it), all four in pill order: a two-colour deck counts under both */
+  byColor: (ColorRow & { color: ColorKey })[];
+  /** by colour pill ("RRG"), most entrants first, then by pill */
+  byCombo: (ColorRow & { combo: string })[];
+}
+
+/**
+ * How the colours did in one recorded event, from the lists the event file holds (each entrant's own Legends, so a
+ * copy "X #2" counts as an entrant like X). Colours and pills by src/lib/colorSplit.ts: a deck plays a colour when at
+ * least one Legend is that colour; its pill is `deckColors`. Every match played counts (numbered rounds and the
+ * bracket), byes do not; a match between two decks that both play the colour (or share the pill) is a mirror, counted
+ * apart, never in won-lost. The top cut is the decks in the bracket's first round, whatever its size; an event with no
+ * bracket has a top cut of 0.
+ */
+type ColorMatch = Pick<MatchRec, 'a' | 'b' | 'winner' | 'score'>;
+export function eventColors(
+  ev: Pick<RecordedEvent, 'id' | 'bot' | 'decks' | 'simVersion'> & { date?: string; rounds: { matches: readonly ColorMatch[] }[]; bracket: { matches: readonly ColorMatch[] }[] },
+): EventColors {
+  const lists = new Map<string, { colors: ColorKey[]; combo: string }>();
+  const noList: string[] = [];
+  for (const [name, d] of Object.entries(ev.decks)) {
+    if (!d.legends?.length) noList.push(name);
+    else lists.set(name, { colors: colorsPlayed(d.legends), combo: comboOf(d.legends) });
+  }
+  const cut = new Set<string>();
+  for (const m of ev.bracket[0]?.matches ?? []) for (const d of [m.a, m.b]) if (d && lists.has(d)) cut.add(d);
+  const blank = (): ColorRow => ({ entrants: 0, topCut: 0, won: 0, lost: 0, mirrors: 0, gamesWon: 0, gamesLost: 0 });
+  const color = new Map<ColorKey, ColorRow>(COLOR_KEYS.map((k) => [k, blank()]));
+  const combo = new Map<string, ColorRow>();
+  const comboRow = (c: string) => combo.get(c) ?? (combo.set(c, blank()), combo.get(c)!);
+  for (const [name, l] of lists) {
+    const inCut = cut.has(name);
+    for (const k of l.colors) {
+      const r = color.get(k)!;
+      r.entrants++;
+      if (inCut) r.topCut++;
+    }
+    const r = comboRow(l.combo);
+    r.entrants++;
+    if (inCut) r.topCut++;
+  }
+  const score = (r: ColorRow, won: boolean, gw: number, gl: number) => {
+    if (won) r.won++;
+    else r.lost++;
+    r.gamesWon += gw;
+    r.gamesLost += gl;
+  };
+  for (const m of [...ev.rounds.flatMap((r) => r.matches), ...ev.bracket.flatMap((r) => r.matches)]) {
+    if (!m.b) continue;
+    const A = lists.get(m.a);
+    const B = lists.get(m.b);
+    if (!A || !B) continue;
+    const aWon = m.winner === m.a;
+    for (const k of COLOR_KEYS) {
+      const a = A.colors.includes(k);
+      const b = B.colors.includes(k);
+      const r = color.get(k)!;
+      if (a && b) r.mirrors++;
+      else if (a) score(r, aWon, m.score[0], m.score[1]);
+      else if (b) score(r, !aWon, m.score[1], m.score[0]);
+    }
+    if (A.combo === B.combo) comboRow(A.combo).mirrors++;
+    else {
+      score(comboRow(A.combo), aWon, m.score[0], m.score[1]);
+      score(comboRow(B.combo), !aWon, m.score[1], m.score[0]);
+    }
+  }
+  return {
+    event: ev.id,
+    simVersion: typeof ev.simVersion === 'number' ? ev.simVersion : null,
+    bot: ev.bot ?? null,
+    asOf: ev.date ?? null,
+    entrants: lists.size,
+    topCut: cut.size,
+    noList,
+    byColor: COLOR_KEYS.map((k) => ({ color: k, ...color.get(k)! })),
+    byCombo: [...combo].map(([c, r]) => ({ combo: c, ...r })).sort((a, b) => b.entrants - a.entrants || byStr(a.combo, b.combo)),
+  };
 }
 
 // ---------------------------------------------------------------- one deck
