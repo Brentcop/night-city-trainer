@@ -19,7 +19,7 @@
 //   --scope S          public | all | site (default all and public, one after the other). `all` searches the whole
 //                      local pack; `public` searches the public records only, as a checkout without data/raw does, and
 //                      skips the questions only a data/raw record answers (counted as skipped); `site` searches exactly
-//                      what the site's search page ships (src/lib/kb/site.ts: the shard files, read back as the page
+//                      what the site's search page ships (src/lib/kb/site.ts: the part files, read back as the page
 //                      reads them, all loaded) and skips the questions whose expected records are all left out of it
 //                      (rulings, docs, code, local records; counted as skipped). Never in the default list, so the
 //                      tracked reports keep their two scopes.
@@ -76,8 +76,9 @@ import {
   type Summary,
 } from '../src/lib/kb/eval';
 import { buildIndex, SEARCH_TUNING, type KbIndex, type SearchTuning } from '../src/lib/kb/search';
-import { parseShard, SITE_LEFT_OUT, siteShardFiles } from '../src/lib/kb/site';
+import { parseShard, SITE_LEFT_OUT } from '../src/lib/kb/site';
 import { byString, kindOfId, type KbRecord } from '../src/lib/kb/types';
+import { sitePartFiles } from '../tools/kb-site';
 
 const QUESTIONS_FILE = 'data/kb/questions.json';
 const REPORT_MD = 'reports/kb-eval-latest.md';
@@ -192,9 +193,10 @@ export interface DenseNote {
 
 /** Evaluate configurations over one scope's index. `dense`: the whole pack's vectors and one vector per question id. */
 export function evaluateScope(scope: ScopeName, records: readonly KbRecord[], questions: readonly KbQuestion[], configs: readonly EvalConfig[], tuning?: Partial<SearchTuning>, dense?: { index: DenseIndex; queries: ReadonlyMap<string, Float32Array> }): ScopeRun {
-  // the site scope reads the shard files back as the search page does (every shard loaded: a question that asks for
-  // statistics loads theirs, and one that does not ranks the same with or without them; tests/kb-site.test.ts)
-  const recs = scope === 'site' ? siteShardFiles(records).flatMap((f) => parseShard(f.json, { name: f.name })) : scope === 'public' ? records.filter((r) => r.scope === 'public') : records;
+  // the site scope reads the build's part files back as the search page does (every part of every group loaded: a
+  // question that asks for statistics loads theirs, and one that does not ranks the same with or without them;
+  // tests/kb-site.test.ts)
+  const recs = scope === 'site' ? sitePartFiles(records).flatMap((f) => parseShard(f.json, { name: f.name })) : scope === 'public' ? records.filter((r) => r.scope === 'public') : records;
   // the stem mode belongs to the index: one is built per mode a run needs (step 4.7a)
   const ix: KbIndex = buildIndex(recs, { stem: tuning?.stem ?? SEARCH_TUNING.stem });
   const localPresent = recs.some((r) => r.scope === 'local');

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { configDefaults, defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import { budgetProblems, isSearchChunk, kbShardName, searchBudgetProblems } from './tools/size-budget.ts';
+import { budgetProblems, isKbFile, isSearchChunk, kbPartName, searchBudgetProblems } from './tools/size-budget.ts';
 
 /**
  * Puts the owner's site config (public/site-config.json, src/lib/siteConfig.ts) into index.html as a JSON script and
@@ -35,7 +35,7 @@ function siteConfigInline(): Plugin {
   };
 }
 
-/** Fails the build when a Web Worker bundle (APP-14) or the site search's files grow past their budgets (tools/size-budget.ts). */
+/** Fails the build when a Web Worker bundle (APP-14) grows past its budget (tools/size-budget.ts). */
 function workerBudget(): Plugin {
   let outDir = 'dist';
   return {
@@ -50,22 +50,20 @@ function workerBudget(): Plugin {
       const files = fs.readdirSync(dir).map((name) => ({ name, bytes: fs.statSync(`${dir}/${name}`).size }));
       const problems = budgetProblems(files);
       if (problems.length) throw new Error(['Worker size budget:', ...problems].join('\n'));
-      // the site search's shards and page chunk, by gzip size
-      const search = files.filter((f) => kbShardName(f.name) || isSearchChunk(f.name)).map((f) => ({ name: f.name, gzipBytes: gzipSync(fs.readFileSync(`${dir}/${f.name}`), { level: 9 }).length }));
-      const over = searchBudgetProblems(search);
-      if (over.length) throw new Error(['Search size budget:', ...over].join('\n'));
     },
   };
 }
 
 /**
  * The site's knowledge pack (docs/RAG_PLAN.md step 3, tools/kb-site.ts, src/lib/kb/site.ts). The search page imports
- * `virtual:nct-kb-site`, the manifest of the shard files. Building, the shards are emitted as
- * assets/kb-<shard>-<content hash>.json and the manifest (inside the page's own hashed chunk) names them, so a deploy
- * never mixes versions. In the dev server the same files are served from memory and rebuilt when an input file
- * changes. The pack is built from the repository at build time (never from data/raw, never committed), so a content
- * edit can never leave a stale pack behind. tools/kb-site.ts is loaded through tsx only when the manifest is first
- * asked for, so the config itself stays light (Vitest loads it too).
+ * `virtual:nct-kb-site`, the manifest of the part files. Building, the parts are emitted as
+ * assets/kb-<group>-<part>-<content hash>.json and the manifest (inside the page's own hashed chunk) names them, so a
+ * deploy never mixes versions; once written, the build fails when a part passes the per-file cap, the first-search parts
+ * together pass their budget, a planned group built no part, a kb file is not one the plan knows, or the page chunk
+ * passes its budget (tools/size-budget.ts). In the dev server the same files are served from memory and rebuilt when an
+ * input file changes. The pack is built from the repository at build time (never from data/raw, never committed), so
+ * a content edit can never leave a stale pack behind. tools/kb-site.ts is loaded through tsx only when the manifest is
+ * first asked for, so the config itself stays light (Vitest loads it too).
  */
 function kbSitePack(): Plugin {
   const VIRTUAL = 'virtual:nct-kb-site';
@@ -75,6 +73,7 @@ function kbSitePack(): Plugin {
   let site: Promise<{ m: KbSite; pack: Awaited<ReturnType<KbSite['buildSitePack']>> }> | null = null;
   let inputs = new Set<string>();
   let command: 'build' | 'serve' = 'serve';
+  let outDir = 'dist';
   const load = () =>
     (site ??= (async () => {
       const { tsImport } = await import('tsx/esm/api');
@@ -88,6 +87,7 @@ function kbSitePack(): Plugin {
     name: 'nct-kb-site',
     configResolved(c) {
       command = c.command;
+      outDir = c.build.outDir;
     },
     resolveId(id) {
       return id === VIRTUAL ? RESOLVED : null;
@@ -98,15 +98,39 @@ function kbSitePack(): Plugin {
       if (command === 'build') for (const f of pack.files) this.emitFile({ type: 'asset', fileName: url(m, f), source: f.json });
       return `export default ${JSON.stringify(m.siteManifest(pack.files, (f) => url(m, f)))};`;
     },
+    async closeBundle() {
+      if (command !== 'build') return;
+      const dir = `${outDir}/assets`;
+      if (!fs.existsSync(dir)) return;
+      const { m } = await load();
+      // the site search's part files and page chunk, by gzip size
+      const files = fs
+        .readdirSync(dir)
+        .filter((name) => isKbFile(name) || isSearchChunk(name))
+        .sort()
+        .map((name) => ({ name, gzipBytes: gzipSync(fs.readFileSync(`${dir}/${name}`), { level: 9 }).length }));
+      const late = new Map(m.SITE_GROUPS.map((g) => [g.name, g.late]));
+      let first = 0;
+      for (const f of files) {
+        const g = kbPartName(f.name)?.group;
+        const when = g === undefined ? '' : late.get(g) ? ' late' : ' first search';
+        if (g !== undefined && late.get(g) === false) first += f.gzipBytes;
+        console.log(`search ${f.name} ${(f.gzipBytes / 1000).toFixed(1)} kB gzip${when}`);
+      }
+      console.log(`search first-search parts ${(first / 1000).toFixed(1)} kB gzip together`);
+      const over = searchBudgetProblems(files, m.SITE_GROUPS);
+      if (over.length) throw new Error(['Search size budget:', ...over].join('\n'));
+    },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const name = /^\/assets\/(kb-[a-z]+-[0-9a-f]+\.json)(?:\?.*)?$/.exec(req.url ?? '')?.[1];
+        // any knowledge-pack file name: a part this pack has is served, any other (an older name) is a 404
+        const name = /^\/assets\/(kb-[\w-]+\.json)(?:\?.*)?$/.exec(req.url ?? '')?.[1];
         if (!name) return next();
         load().then(
           ({ m, pack }) => {
             const f = pack.files.find((x) => m.shardFileName(x) === name);
             if (!f) {
-              // an older shard name (the pack was rebuilt since the page loaded): gone, as after a deploy
+              // an older part or shard name (the pack was rebuilt since the page loaded): gone, as after a deploy
               res.statusCode = 404;
               res.end();
               return;

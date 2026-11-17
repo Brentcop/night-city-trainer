@@ -1,59 +1,77 @@
-# Power ratings (15 events, 6627 games)
+# Power ratings (16 events, 7437 games)
 
-Bradley–Terry fit over every pooled tournament game (sim v9, hard bot; 90% ranges from the full covariance). Going first adds 7.1 points of win probability.
+Bradley–Terry fit over every pooled tournament game (sim v9, hard bot; 90% ranges from the full covariance). Going first adds 6.8 points of win probability.
 
 | # | Deck | Exp. win % vs field (90% CI) | vs meta | Titles | Top 8 | Avg finish | Matches | Games |
 |---|---|---|---|---|---|---|---|---|
-| 1 | RRG Dexter Midrange | 73.6% (69.9%–76.9%) | 71.4% | 2 | 11/15 | 84th pct | 96-28 | 357 |
-| 2 | Ladder: V / Smasher / Saburo (RRG) | 71.7% (67.9%–75.3%) | 66.4% | 3 | 8/13 | 82nd pct | 79-37 | 345 |
-| 3 | Smash the Curve | 71.5% (67.4%–75.2%) | 66.1% | 4 | 8/12 | 86th pct | 78-30 | 315 |
-| 4 | S1-01 Mutant (RRY) | 69.5% (65.4%–73.4%) | 64.0% | 2 | 9/12 | 86th pct | 75-33 | 309 |
-| 5 | Ladder: Jackie / Alt / Hanako (BBG) | 63.8% (59.5%–67.9%) | 57.9% | 0 | 6/13 | 75th pct | 75-41 | 318 |
-| 6 | BBG Cunningham Econ | 63.3% (59.1%–67.3%) | 58.6% | 2 | 5/15 | 68th pct | 74-50 | 334 |
-| 7 | S3-08 Explorer (RRB) | 63.1% (48.5%–75.7%) | 57.1% | 0 | 0/1 | 60th pct | 5-4 | 24 |
-| 8 | Ladder: V / Smasher / Padre (RRG) | 62.5% (58.0%–66.7%) | 56.5% | 0 | 3/13 | 73rd pct | 72-44 | 304 |
-| 9 | NC-08 Merc Contract (RRG) | 61.9% (57.3%–66.2%) | 55.9% | 0 | 7/12 | 75th pct | 68-40 | 295 |
-| 10 | S2-02 Mutant (RGG) | 61.6% (56.7%–66.3%) | 55.6% | 0 | 2/11 | 66th pct | 57-41 | 247 |
-| 11 | NC-07 Braindance Burn (RRB) | 61.4% (56.9%–65.8%) | 55.4% | 1 | 5/12 | 71st pct | 67-41 | 300 |
-| 12 | NC-02 Stormrider Stampede (GGR) | 59.9% (55.3%–64.4%) | 53.8% | 0 | 2/12 | 65th pct | 63-45 | 286 |
-| 13 | NC-01 Rockerboy Express (RRY) | 59.8% (55.1%–64.3%) | 53.7% | 0 | 2/12 | 65th pct | 63-45 | 280 |
-| 14 | S2-05 Counter (RRG) | 59.2% (54.4%–63.9%) | 53.1% | 0 | 2/11 | 64th pct | 55-43 | 262 |
-| 15 | RRY Smasher Aggro | 58.9% (54.6%–63.1%) | 53.2% | 0 | 5/15 | 67th pct | 75-49 | 332 |
-| 16 | BBG Draw and Wipe | 58.4% (53.7%–63.0%) | 52.2% | 0 | 2/12 | 64th pct | 63-45 | 281 |
-| 17 | S3-07 Explorer (RRG) | 57.2% (41.8%–71.5%) | 51.0% | 0 | 0/1 | 58th pct | 5-4 | 23 |
-| 18 | YYY Adam v1 - Ready for Brawl | 57.0% (52.2%–61.7%) | 50.8% | 1 | 1/12 | 64th pct | 62-46 | 274 |
-| 19 | S2-06 Counter (RGG) | 56.3% (51.4%–61.1%) | 50.0% | 0 | 3/11 | 59th pct | 55-43 | 260 |
-| 20 | Ladder: Dexter / V / Wakako (RRB) | 55.7% (51.2%–60.2%) | 49.5% | 0 | 4/13 | 62nd pct | 66-50 | 301 |
-| 21 | NC-05 Emperor's Guard (GGB) | 55.6% (50.9%–60.3%) | 49.3% | 0 | 4/12 | 65th pct | 62-46 | 281 |
-| 22 | S2-04 Cross (RRG) | 54.7% (49.8%–59.6%) | 48.4% | 0 | 2/11 | 52nd pct | 50-48 | 255 |
-| 23 | YYB Rogue Gear | 53.5% (49.0%–58.0%) | 46.7% | 0 | 4/15 | 53rd pct | 65-59 | 313 |
-| 24 | Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board. | 53.4% (48.6%–58.1%) | 47.1% | 0 | 2/12 | 58th pct | 60-48 | 280 |
-| 25 | NC-04 Chrome Rockers (YYR) | 53.4% (48.7%–58.1%) | 47.1% | 0 | 3/12 | 53rd pct | 56-52 | 280 |
-| 26 | S1-05 Cross (RBB) | 53.4% (48.5%–58.2%) | 47.0% | 0 | 0/12 | 53rd pct | 56-52 | 269 |
-| 27 | S2-08 Explorer (GGY) | 53.1% (48.1%–58.1%) | 46.8% | 0 | 2/11 | 54th pct | 51-47 | 253 |
-| 28 | GRY Trauma Team | 53.1% (48.6%–57.6%) | 46.2% | 0 | 4/15 | 52nd pct | 63-61 | 307 |
-| 29 | S2-07 Explorer (RRB) | 52.5% (47.5%–57.4%) | 46.2% | 0 | 1/11 | 57th pct | 54-44 | 256 |
-| 30 | S3-03 Cross (RRR) | 52.1% (37.3%–66.6%) | 45.7% | 0 | 0/1 | 37th pct | 4-5 | 23 |
-| 31 | S2-03 Cross (RGY) | 49.9% (44.9%–54.8%) | 43.5% | 0 | 2/11 | 46th pct | 50-48 | 253 |
-| 32 | S1-03 Mutant (RBG) | 48.5% (43.7%–53.4%) | 42.1% | 0 | 0/12 | 46th pct | 53-55 | 271 |
-| 33 | S1-08 Explorer (BGG) | 48.4% (43.7%–53.2%) | 42.1% | 0 | 2/12 | 51st pct | 53-55 | 280 |
-| 34 | Ladder: Smasher / River / Viktor (RYY) | 47.6% (42.9%–52.3%) | 41.3% | 0 | 2/13 | 48th pct | 59-57 | 286 |
-| 35 | Alt + V + Del | 46.4% (41.5%–51.3%) | 40.0% | 0 | 0/12 | 36th pct | 49-59 | 265 |
-| 36 | Rainbow Fixer Stuff | 45.8% (41.3%–50.3%) | 37.7% | 0 | 3/15 | 37th pct | 56-68 | 316 |
-| 37 | S2-01 Mutant (RYY) | 44.5% (39.5%–49.6%) | 38.2% | 0 | 0/11 | 28th pct | 40-58 | 243 |
-| 38 | RRB Wakako Midrange | 44.4% (40.0%–48.9%) | 36.2% | 0 | 2/15 | 36th pct | 55-69 | 315 |
-| 39 | Samurai | 44.0% (39.1%–48.9%) | 37.7% | 0 | 0/12 | 38th pct | 48-60 | 260 |
-| 40 | S3-02 Mutant (RGY) | 41.3% (27.9%–56.2%) | 35.1% | 0 | 0/1 | 25th pct | 4-5 | 24 |
-| 41 | S1-04 Cross (RBG) | 40.7% (36.0%–45.6%) | 34.6% | 0 | 0/12 | 32nd pct | 48-60 | 259 |
-| 42 | The Red Chrome - Aggro | 38.9% (34.2%–43.8%) | 32.8% | 0 | 0/12 | 20th pct | 39-69 | 259 |
-| 43 | NC-06 Metal Over Meat (YYY) | 36.8% (32.2%–41.6%) | 30.8% | 0 | 0/12 | 29th pct | 44-64 | 259 |
-| 44 | S1-07 Explorer (RYY) | 35.4% (30.9%–40.2%) | 29.6% | 0 | 0/12 | 24th pct | 41-67 | 264 |
-| 45 | NC-03 Static Shock (BBR) | 35.3% (30.6%–40.2%) | 29.4% | 0 | 0/12 | 28th pct | 44-64 | 244 |
-| 46 | Gear'n'Go | 34.0% (29.5%–38.8%) | 28.2% | 0 | 0/12 | 20th pct | 40-68 | 248 |
-| 47 | S1-02 Mutant (RYY) | 33.0% (28.6%–37.7%) | 27.3% | 0 | 0/12 | 17th pct | 39-69 | 253 |
-| 48 | S3-06 Counter (RBG) | 31.1% (18.7%–46.8%) | 25.6% | 0 | 0/1 | 6th pct | 3-6 | 20 |
-| 49 | S3-05 Counter (RRG) | 30.0% (18.2%–45.2%) | 24.6% | 0 | 0/1 | 10th pct | 3-6 | 21 |
-| 50 | S1-06 Cross (BGY) | 27.1% (22.9%–31.7%) | 21.9% | 0 | 0/12 | 11th pct | 32-76 | 239 |
-| 51 | Keep 'Em Guessing | 25.4% (21.4%–29.8%) | 20.5% | 0 | 0/12 | 9th pct | 31-77 | 244 |
-| 52 | Addin' Trash | 24.1% (20.2%–28.5%) | 19.3% | 0 | 0/12 | 10th pct | 31-77 | 237 |
-| 53 | Running and Dancing | 16.4% (13.2%–20.1%) | 12.9% | 0 | 0/12 | 2nd pct | 23-85 | 230 |
+| 1 | RRG Dexter Midrange | 73.2% (69.5%–76.7%) | 72.1% | 2 | 12/16 | 85th pct | 105-28 | 381 |
+| 2 | Smash the Curve | 69.8% (65.6%–73.7%) | 65.3% | 4 | 8/13 | 86th pct | 84-33 | 337 |
+| 3 | Ladder: V / Smasher / Saburo (RRG) | 69.4% (65.5%–73.2%) | 64.9% | 3 | 8/14 | 81st pct | 84-41 | 368 |
+| 4 | S1-01 Mutant (RRY) | 68.1% (63.8%–72.0%) | 63.5% | 2 | 9/13 | 85th pct | 80-37 | 333 |
+| 5 | Discord 5k #5: V / Smasher / Padre (RRG) | 67.0% (52.5%–78.9%) | 62.3% | 0 | 1/1 | 93rd pct | 7-2 | 26 |
+| 6 | Ladder S1 #3: Smasher / Dexter / Saburo (RRG) | 66.9% (51.8%–79.3%) | 62.3% | 0 | 0/1 | 83rd pct | 6-3 | 23 |
+| 7 | Discord 5k #8: V / Smasher / Saburo (RRG) | 66.1% (51.2%–78.6%) | 61.4% | 0 | 0/1 | 87th pct | 6-3 | 24 |
+| 8 | Ladder: Jackie / Alt / Hanako (BBG) | 63.4% (59.1%–67.5%) | 58.5% | 0 | 7/14 | 77th pct | 82-43 | 344 |
+| 9 | Ladder S1 #2: V / Smasher / Saburo (RRG) | 62.6% (49.6%–74.1%) | 57.8% | 0 | 1/1 | 99th pct | 7-2 | 33 |
+| 10 | BBG Cunningham Econ | 62.2% (58.0%–66.3%) | 58.6% | 2 | 6/16 | 70th pct | 81-52 | 360 |
+| 11 | Ladder: V / Smasher / Padre (RRG) | 61.0% (56.5%–65.3%) | 56.1% | 0 | 3/14 | 74th pct | 78-47 | 326 |
+| 12 | Ladder S1 #5: V / Smasher / Dum Dum (RRY) | 60.7% (45.0%–74.6%) | 55.8% | 0 | 0/1 | 73rd pct | 5-4 | 22 |
+| 13 | Ladder S1 #6: Dexter / V / Reyes (RRY) | 60.3% (44.7%–74.2%) | 55.4% | 0 | 0/1 | 79th pct | 6-3 | 22 |
+| 14 | NC-08 Merc Contract (RRG) | 60.3% (55.7%–64.7%) | 55.3% | 0 | 7/13 | 75th pct | 74-43 | 317 |
+| 15 | NC-02 Stormrider Stampede (GGR) | 59.4% (54.8%–63.9%) | 54.5% | 1 | 3/13 | 67th pct | 70-47 | 318 |
+| 16 | NC-07 Braindance Burn (RRB) | 59.3% (54.8%–63.8%) | 54.4% | 1 | 5/13 | 70th pct | 72-45 | 322 |
+| 17 | Ladder S1 #7: Dexter / V / Padre (RRG) | 59.3% (43.7%–73.4%) | 54.4% | 0 | 0/1 | 77th pct | 6-3 | 23 |
+| 18 | S2-02 Mutant (RGG) | 58.9% (54.0%–63.7%) | 54.0% | 0 | 2/12 | 64th pct | 61-46 | 269 |
+| 19 | S2-05 Counter (RRG) | 58.0% (53.2%–62.7%) | 53.0% | 0 | 2/12 | 65th pct | 61-46 | 287 |
+| 20 | NC-01 Rockerboy Express (RRY) | 58.0% (53.3%–62.6%) | 53.0% | 0 | 2/13 | 64th pct | 68-49 | 304 |
+| 21 | Ladder S1 #1: V / Smasher / Padre (RRG) | 57.6% (42.3%–71.7%) | 52.6% | 0 | 0/1 | 63rd pct | 5-4 | 23 |
+| 22 | RRY Smasher Aggro | 57.4% (53.0%–61.7%) | 52.8% | 0 | 5/16 | 67th pct | 80-53 | 355 |
+| 23 | BBG Draw and Wipe | 57.3% (52.6%–61.9%) | 52.3% | 0 | 2/13 | 65th pct | 69-48 | 304 |
+| 24 | Ladder S1 #4: V / Padre / Jackie (RGG) | 56.3% (41.6%–70.1%) | 51.3% | 0 | 0/1 | 70th pct | 5-4 | 26 |
+| 25 | Discord 5k #2: Jackie / Alt / Hanako (BBG) | 55.8% (40.4%–70.2%) | 50.7% | 0 | 0/1 | 59th pct | 5-4 | 22 |
+| 26 | Ladder S1 #8: Smasher / River / Viktor (RYY) | 55.4% (39.3%–70.5%) | 50.4% | 0 | 0/1 | 61st pct | 5-4 | 21 |
+| 27 | S2-06 Counter (RGG) | 54.7% (49.8%–59.5%) | 49.7% | 0 | 3/12 | 60th pct | 60-47 | 282 |
+| 28 | YYY Adam v1 - Ready for Brawl | 54.7% (49.9%–59.4%) | 49.6% | 1 | 1/13 | 61st pct | 66-51 | 298 |
+| 29 | NC-05 Emperor's Guard (GGB) | 54.4% (49.7%–59.1%) | 49.4% | 0 | 4/13 | 64th pct | 67-50 | 302 |
+| 30 | Ladder: Dexter / V / Wakako (RRB) | 53.2% (48.6%–57.8%) | 48.1% | 0 | 4/14 | 60th pct | 70-55 | 323 |
+| 31 | Discord 5k #3: Smasher / River / Viktor (RYY) | 53.0% (37.3%–68.2%) | 47.9% | 0 | 0/1 | 50th pct | 5-4 | 24 |
+| 32 | YYB Rogue Gear | 52.5% (48.0%–57.0%) | 47.1% | 0 | 4/16 | 55th pct | 71-62 | 336 |
+| 33 | S3-07 Explorer (RRG) | 52.3% (40.9%–63.6%) | 47.3% | 0 | 0/2 | 57th pct | 10-8 | 45 |
+| 34 | S2-04 Cross (RRG) | 51.9% (47.0%–56.8%) | 46.8% | 0 | 2/12 | 51st pct | 54-53 | 275 |
+| 35 | NC-04 Chrome Rockers (YYR) | 51.7% (47.0%–56.4%) | 46.6% | 0 | 3/13 | 54th pct | 61-56 | 304 |
+| 36 | S2-07 Explorer (RRB) | 51.5% (46.6%–56.4%) | 46.5% | 0 | 1/12 | 58th pct | 59-48 | 280 |
+| 37 | GRY Trauma Team | 51.2% (46.7%–55.7%) | 45.5% | 0 | 4/16 | 51st pct | 67-66 | 328 |
+| 38 | Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board. | 51.2% (46.4%–55.9%) | 46.1% | 0 | 2/13 | 57th pct | 64-53 | 303 |
+| 39 | S2-08 Explorer (GGY) | 50.4% (45.4%–55.3%) | 45.3% | 0 | 2/12 | 53rd pct | 55-52 | 275 |
+| 40 | Discord 5k #7: Smasher / River / Viktor (RYY) | 50.2% (35.1%–65.4%) | 45.1% | 0 | 0/1 | 49th pct | 4-5 | 23 |
+| 41 | S1-05 Cross (RBB) | 49.8% (44.9%–54.6%) | 44.7% | 0 | 0/13 | 50th pct | 59-58 | 291 |
+| 42 | S3-08 Explorer (RRB) | 49.1% (37.9%–60.4%) | 44.0% | 0 | 0/2 | 33rd pct | 8-10 | 45 |
+| 43 | S2-03 Cross (RGY) | 48.8% (44.0%–53.7%) | 43.8% | 0 | 2/12 | 46th pct | 54-53 | 277 |
+| 44 | Ladder S1 #10: Jackie / Judy / Hanako (BBG) | 48.0% (33.5%–63.0%) | 43.0% | 0 | 0/1 | 29th pct | 4-5 | 24 |
+| 45 | S1-08 Explorer (BGG) | 46.8% (42.1%–51.5%) | 41.7% | 0 | 2/13 | 49th pct | 56-61 | 305 |
+| 46 | Discord 5k #1: Smasher / River / Reyes (RYY) | 46.7% (31.8%–62.3%) | 41.7% | 0 | 0/1 | 26th pct | 4-5 | 22 |
+| 47 | S3-03 Cross (RRR) | 46.4% (35.6%–57.7%) | 41.4% | 0 | 0/2 | 30th pct | 7-11 | 46 |
+| 48 | Discord 5k #4: Jackie / Alt / Hanako (BBG) | 46.4% (31.2%–62.3%) | 41.3% | 0 | 0/1 | 46th pct | 4-5 | 21 |
+| 49 | Ladder: Smasher / River / Viktor (RYY) | 45.9% (41.2%–50.5%) | 40.8% | 0 | 2/14 | 47th pct | 63-62 | 310 |
+| 50 | Rainbow Fixer Stuff | 45.3% (40.9%–49.8%) | 38.7% | 0 | 4/16 | 40th pct | 62-71 | 341 |
+| 51 | S1-03 Mutant (RBG) | 45.2% (40.5%–50.1%) | 40.2% | 0 | 0/13 | 43rd pct | 55-62 | 292 |
+| 52 | Alt + V + Del | 44.5% (39.7%–49.4%) | 39.5% | 0 | 0/13 | 36th pct | 53-64 | 283 |
+| 53 | S2-01 Mutant (RYY) | 43.7% (38.8%–48.8%) | 38.7% | 0 | 0/12 | 29th pct | 44-63 | 266 |
+| 54 | RRB Wakako Midrange | 42.3% (37.9%–46.8%) | 35.2% | 0 | 2/16 | 35th pct | 58-75 | 339 |
+| 55 | S3-06 Counter (RBG) | 42.2% (31.4%–53.7%) | 37.2% | 0 | 1/2 | 49th pct | 10-8 | 46 |
+| 56 | Samurai | 41.3% (36.7%–46.2%) | 36.4% | 0 | 0/13 | 35th pct | 50-67 | 284 |
+| 57 | Discord 5k #6: Jackie / Alt / Hanako (BBG) | 41.1% (27.0%–56.8%) | 36.2% | 0 | 0/1 | 24th pct | 4-5 | 22 |
+| 58 | S1-04 Cross (RBG) | 39.0% (34.4%–43.9%) | 34.2% | 0 | 0/13 | 31st pct | 51-66 | 282 |
+| 59 | S3-05 Counter (RRG) | 37.1% (26.8%–48.6%) | 32.4% | 0 | 0/2 | 32nd pct | 8-10 | 43 |
+| 60 | The Red Chrome - Aggro | 36.9% (32.4%–41.6%) | 32.2% | 0 | 0/13 | 20th pct | 42-75 | 278 |
+| 61 | S3-02 Mutant (RGY) | 36.7% (27.0%–47.7%) | 32.0% | 0 | 0/2 | 18th pct | 7-11 | 47 |
+| 62 | S1-07 Explorer (RYY) | 34.9% (30.6%–39.5%) | 30.3% | 0 | 0/13 | 25th pct | 45-72 | 290 |
+| 63 | NC-06 Metal Over Meat (YYY) | 34.6% (30.1%–39.3%) | 30.0% | 0 | 0/13 | 28th pct | 47-70 | 278 |
+| 64 | Gear'n'Go | 34.5% (30.0%–39.2%) | 29.9% | 0 | 0/13 | 24th pct | 45-72 | 269 |
+| 65 | NC-03 Static Shock (BBR) | 33.7% (29.2%–38.5%) | 29.1% | 0 | 0/13 | 26th pct | 47-70 | 266 |
+| 66 | Ladder S1 #9: River / Reyes / Rogue (YYY) | 33.2% (20.6%–48.8%) | 28.7% | 0 | 0/1 | 14th pct | 3-6 | 21 |
+| 67 | S1-02 Mutant (RYY) | 30.1% (25.9%–34.6%) | 25.8% | 0 | 0/13 | 16th pct | 41-76 | 271 |
+| 68 | S1-06 Cross (BGY) | 27.2% (23.1%–31.7%) | 23.1% | 0 | 0/13 | 13th pct | 36-81 | 260 |
+| 69 | Keep 'Em Guessing | 23.6% (19.8%–27.8%) | 19.9% | 0 | 0/13 | 8th pct | 33-84 | 261 |
+| 70 | Addin' Trash | 23.3% (19.6%–27.5%) | 19.6% | 0 | 0/13 | 11th pct | 34-83 | 258 |
+| 71 | Running and Dancing | 14.9% (12.0%–18.4%) | 12.4% | 0 | 0/13 | 2nd pct | 24-93 | 248 |

@@ -10,17 +10,18 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { GLOSSARY } from '../src/content/glossary';
 import { defaultSiteConfig, FEATURE_INFO, NAV_CATALOG, PAGE_FEATURES, pageOn, parseSiteConfig, siteConfigText, visibleNav } from '../src/lib/siteConfig';
 import { buildIndex, search, type SearchResult } from '../src/lib/kb/search';
-import { parseShard, SITE_EXAMPLES, SITE_SHARDS, siteShardFiles } from '../src/lib/kb/site';
+import { parseShard, SITE_EXAMPLES, SITE_GROUPS } from '../src/lib/kb/site';
 import type { KbRecord } from '../src/lib/kb/types';
 import { buildFromSources } from '../scripts/kb-sources';
+import { sitePartFiles } from '../tools/kb-site';
 import { SearchHit, SearchScreen, statusText, type SearchView } from '../src/ui/pages/Search';
 import { termMatches } from '../src/ui/pages/Glossary';
 import { InsightsPage } from '../src/ui/pages/Insights';
 
-vi.mock('virtual:nct-kb-site', () => ({ default: { kind: 'nct-kb-site', schema: 1, pack: 'test', shards: [] } }));
+vi.mock('virtual:nct-kb-site', () => ({ default: { kind: 'nct-kb-site', schema: 1, pack: 'test', parts: [] } }));
 
 const ROOT = path.resolve(__dirname, '..');
-const files = siteShardFiles((await buildFromSources(ROOT, { raw: false })).records);
+const files = sitePartFiles((await buildFromSources(ROOT, { raw: false })).records);
 const records = files.flatMap((f) => parseShard(f.json, { name: f.name }));
 const ix = buildIndex(records);
 const rec = (id: string) => records.find((r) => r.id === id)!;
@@ -207,7 +208,7 @@ describe('two small changes on the way', () => {
   });
 });
 
-// the shards every first search needs are the ones named in the plan
-it('the plan of shards matches what the page loads first', () => {
-  expect(SITE_SHARDS.filter((s) => !s.late).map((s) => s.name)).toEqual(['core', 'events']);
+// the groups every first search needs are the ones named in the plan
+it('the plan of groups matches what the page loads first', () => {
+  expect(SITE_GROUPS.filter((s) => !s.late).map((s) => s.name)).toEqual(['core', 'decks', 'events', 'ratings']);
 });

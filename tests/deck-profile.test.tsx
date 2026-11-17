@@ -11,7 +11,7 @@ import { BUILTIN, loadCustom, upsertCustom } from '../src/lib/browserLibrary';
 import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
-import { SEASONS } from '../src/data/index';
+import { RATINGS, SEASONS } from '../src/data/index';
 import { CURRENT_SIM_VERSION, isHistorical } from '../src/lib/playedRecord';
 import { seasonVersions, staleLeaderRow } from '../src/lib/parentStrength';
 
@@ -19,7 +19,7 @@ const RATED = 'meta-rrg-dexter-midrange.txt';
 // a deck with finals (seat samples, best and worst matchups) and tournament games: a Season 1 bred deck
 const RECORDED = 's1-01-mutant-rry.txt';
 // an unrecorded deck saved in this browser, with a list no library deck has (a saved copy of a library list shows that
-// deck's recorded results: tests/your-stats-ui.test.tsx); the library's own unrecorded decks are the player lists below
+// deck's recorded results: tests/your-stats-ui.test.tsx); every library deck has recorded games since event 16
 const UNRECORDED_NAME = 'Unrecorded test deck';
 const UNRECORDED = `custom:${UNRECORDED_NAME}`;
 const saveUnrecorded = () => {
@@ -104,12 +104,17 @@ describe('deck profile: recorded results first', () => {
     expect(html).not.toContain('Games played');
   });
 
-  it('a player list (imported by link) with no recorded games: its profile says so, credits its player and waits for the owner’s note', () => {
+  it('a player list (imported by link): its profile shows its recorded games, credits its player and waits for the owner’s note', () => {
     setArtEnabled(false);
     const d = BUILTIN.find((x) => x.kind === 'shared' && x.prov.author && !x.prov.author.startsWith('anonymous'))!;
     const html = renderToStaticMarkup(<DeckProfilePage file={d.file} />);
-    expect(html).toContain('No recorded games.');
-    expect(html).not.toContain('Games played');
+    // the 18 imported lists have played in the recorded events since event 16 (before it: "No recorded games.")
+    expect(RATINGS.decks.some((r) => r.name === d.deck.name)).toBe(true);
+    expect(html).toContain('Recorded results');
+    expect(html).not.toContain('No recorded games');
+    expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
+    // it was never in a season, so nothing of it is historical
+    expect(html).not.toContain('Historical:');
     expect(html).toContain('origin-badge origin-shared');
     expect(html).toContain('Player list');
     expect(html).not.toContain('choom.gg guide');

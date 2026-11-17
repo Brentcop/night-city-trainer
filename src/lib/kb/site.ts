@@ -1,14 +1,18 @@
-// Knowledge pack on the site (docs/RAG_PLAN.md step 3): which records the site ships, how they are cut into shards, and
+// Knowledge pack on the site (docs/RAG_PLAN.md step 3): which records the site ships, how they are cut into files, and
 // what the search page shows for each. Pure, like the rest of the core (rule M7): the build side (tools/kb-site.ts,
 // run by the Vite plugin in vite.config.ts) and the browser (siteSearch.ts, the Search page) share it.
 // What ships: the public records of twelve kinds. Left out on purpose: the FAQ paraphrases (`ruling`, decision D2 is
 // still open), the contributors' docs and code headers (`doc`, `code`), and every local record (data/raw, rule M6).
 // No text is written by a model: every record is a template sentence or the site's own content (decision D3).
-// Shards: the six authored kinds and the four tournament kinds load with the first search (the keyword ranker counts
+// Groups: the six authored kinds and the four tournament kinds load with the first search (the keyword ranker counts
 // the tournament kinds' words, so the ranking needs them from the start); each statistics kind loads only when a
 // question asks for it (`lateShardsFor`). The statistics kinds are left out of the keyword ranker's word counts
 // (search.ts STATS_FREE_KINDS) and are found only when asked for, so a search without them ranks every other record
 // exactly as the full pack does (tests/kb-site.test.ts checks it).
+// Parts: each group is cut into one or more part files (shards), each at most a per-file cap as the build measures
+// it (gzip; the measure and the cap are handed in, so this module never imports zlib). The files grow in number, not
+// in size. The events group is packed whole events at a time in event order, so a full part never changes when later
+// events are recorded and a returning visitor's browser keeps it cached; the other groups are packed in record id order.
 import { snippet } from './render';
 import { cuedKinds, rankExactHits, SEARCH_TUNING, STAT_KINDS, statKinds, type KbIndex } from './search';
 import { byString, hashText, KB_KINDS, type KbFieldValue, type KbKind, type KbLink, type KbRecord } from './types';
@@ -17,22 +21,30 @@ export const SITE_SHARD_KIND = 'nct-kb-shard';
 export const SITE_MANIFEST_KIND = 'nct-kb-site';
 export const SITE_SCHEMA = 1;
 
-export interface SiteShardPlan {
+export interface SiteGroupPlan {
   name: string;
   kinds: readonly KbKind[];
   /** loaded only when a question asks for its kinds (false: with the first search) */
   late: boolean;
+  /** 'event': packed whole events at a time, in event order (the records' `event` field); else one record at a time, in id order */
+  unit?: 'event';
 }
 
-export const SITE_SHARDS: readonly SiteShardPlan[] = [
-  { name: 'core', kinds: ['card', 'deck', 'objective', 'package', 'term', 'guide'], late: false },
-  { name: 'events', kinds: ['event', 'round', 'rating', 'matchup'], late: false },
+export const SITE_GROUPS: readonly SiteGroupPlan[] = [
+  // the site's own content: cards, guides, packages and the glossary
+  { name: 'core', kinds: ['card', 'guide', 'package', 'term'], late: false },
+  // grows with the library: a deck and its note
+  { name: 'decks', kinds: ['deck', 'objective'], late: false },
+  // grows with every recorded event: an event and its rounds stay in one file
+  { name: 'events', kinds: ['event', 'round'], late: false, unit: 'event' },
+  // refitted after every event
+  { name: 'ratings', kinds: ['rating', 'matchup'], late: false },
   { name: 'cardstat', kinds: ['cardstat'], late: true },
   { name: 'pkgstat', kinds: ['pkgstat'], late: true },
 ];
 
 /** Every kind the site ships. */
-export const SITE_KINDS: readonly KbKind[] = SITE_SHARDS.flatMap((s) => s.kinds);
+export const SITE_KINDS: readonly KbKind[] = SITE_GROUPS.flatMap((s) => s.kinds);
 /** The kinds never shipped: the FAQ paraphrases (D2), docs and code (for contributors), and the local kinds. */
 export const SITE_LEFT_OUT: readonly KbKind[] = KB_KINDS.filter((k) => !SITE_KINDS.includes(k));
 
@@ -52,10 +64,13 @@ export interface SiteShard {
   records: SiteRecord[];
 }
 
-/** A shard file as the build writes it (the manifest names it by content hash). */
+/** A part file as the build writes it (the manifest names it by content hash). */
 export interface SiteShardFile {
+  /** the part's name, `<group>-<part>` (`events-1`); the file carries it */
   name: string;
-  kinds: readonly KbKind[];
+  group: string;
+  /** from 1, in packing order */
+  part: number;
   late: boolean;
   records: number;
   /** hashText of `json`: the file name carries it, so a deploy never mixes versions */
@@ -63,13 +78,20 @@ export interface SiteShardFile {
   json: string;
 }
 
-/** What the page needs to fetch the shards (the Vite plugin's virtual module `virtual:nct-kb-site`). */
+/** What the page needs to fetch the parts (the Vite plugin's virtual module `virtual:nct-kb-site`). */
 export interface SiteManifest {
   kind: typeof SITE_MANIFEST_KIND;
   schema: typeof SITE_SCHEMA;
-  /** hashText over the shard hashes, in order */
+  /** hashText over the part hashes, in order */
   pack: string;
-  shards: { name: string; kinds: readonly KbKind[]; late: boolean; records: number; bytes: number; hash: string; url: string }[];
+  /** every part file, group by group in plan order, each group's parts in order */
+  parts: { name: string; group: string; late: boolean; records: number; bytes: number; hash: string; url: string }[];
+}
+
+/** How the build weighs a file (gzip bytes in the build, any measure in a test) and the most one file may weigh. */
+export interface SiteSizing {
+  size: (json: string) => number;
+  cap: number;
 }
 
 /** The records the site ships, from a built pack: public, of SITE_KINDS, never from data/raw. */
@@ -95,27 +117,125 @@ function slim(r: KbRecord, shipped: ReadonlySet<string>): SiteRecord {
   };
 }
 
-/** The shard files for a built pack (same records, same bytes: rule M8). */
-export function siteShardFiles(records: readonly KbRecord[]): SiteShardFile[] {
+/** One part as the packing made it: the units it holds and its file's text. */
+export interface PackedPart<T> {
+  units: (readonly T[])[];
+  json: string;
+}
+
+/**
+ * Cut `units` (each a list of items that stay in one file) into parts, in order: each part takes the most whole units
+ * from where the last one stopped whose file (`render(items, part number)`) weighs at most `cap` by `size`. A part is
+ * closed when the next unit does not fit, so every part but the last depends only on its own units and the one after
+ * it: adding units at the end never changes a closed part (as long as a file grows when a unit is added to it, which
+ * gzip does in practice). The boundary is found with few measurements: the whole rest first, then doubling and halving
+ * (about 2 log2(n) for a part of n units), never one after every unit. A unit too large for a part of its own is an
+ * error that names it (`label`). Deterministic for a given `size` (rule M8).
+ */
+export function packParts<T>(units: readonly (readonly T[])[], render: (items: readonly T[], part: number) => string, sizing: SiteSizing, label: (unit: readonly T[]) => string): PackedPart<T>[] {
+  const out: PackedPart<T>[] = [];
+  let start = 0;
+  while (start < units.length) {
+    const part = out.length + 1;
+    const rest = units.length - start;
+    const tried = new Map<number, string | null>();
+    const fits = (n: number): boolean => {
+      if (!tried.has(n)) {
+        const json = render(units.slice(start, start + n).flat(), part);
+        tried.set(n, sizing.size(json) <= sizing.cap ? json : null);
+      }
+      return tried.get(n) !== null;
+    };
+    if (!fits(1)) {
+      const json = render(units[start]!, part);
+      throw new Error(`${label(units[start]!)} weighs ${sizing.size(json)} bytes on its own, over the per-file cap of ${sizing.cap}: it cannot go in any part file. Raise the cap on purpose, or make it smaller.`);
+    }
+    let lo = 1;
+    if (rest > 1 && !fits(rest)) {
+      // lo fits, hi does not: double from 1 until a count does not fit, then halve the gap
+      let hi = rest;
+      for (let n = 2; n < rest; n *= 2) {
+        if (!fits(n)) {
+          hi = n;
+          break;
+        }
+        lo = n;
+      }
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+    } else lo = rest;
+    out.push({ units: units.slice(start, start + lo), json: tried.get(lo)! });
+    start += lo;
+  }
+  return out;
+}
+
+/** The event number a record of the events group belongs to (its `event` field). */
+function eventOf(r: KbRecord): number {
+  const e = r.fields?.event;
+  if (typeof e !== 'number' || !Number.isFinite(e)) throw new Error(`${r.id} has no event number: an event or round record must name its event`);
+  return e;
+}
+
+/** A group's records cut into units: one per event (in event order) for the events group, else one per record (id order). */
+function unitsOf(plan: SiteGroupPlan, recs: readonly SiteRecord[], source: ReadonlyMap<string, KbRecord>): SiteRecord[][] {
+  if (plan.unit !== 'event') return recs.map((r) => [r]);
+  const byEvent = new Map<number, SiteRecord[]>();
+  for (const r of recs) {
+    const e = eventOf(source.get(r.id)!);
+    const list = byEvent.get(e) ?? [];
+    list.push(r);
+    byEvent.set(e, list);
+  }
+  return [...byEvent.keys()].sort((a, b) => a - b).map((e) => byEvent.get(e)!);
+}
+
+const partJson = (group: string, part: number, records: readonly SiteRecord[]): string => {
+  const shard: SiteShard = { kind: SITE_SHARD_KIND, schema: SITE_SCHEMA, name: `${group}-${part}`, records: [...records].sort((a, b) => byString(a.id, b.id)) };
+  return JSON.stringify(shard);
+};
+
+/**
+ * The part files for a built pack, group by group in plan order (same records, same bytes for the same measure: rule
+ * M8). Every file weighs at most `sizing.cap` by `sizing.size`; a group with no records has no part. Records in a file
+ * are in id order.
+ */
+export function siteShardFiles(records: readonly KbRecord[], sizing: SiteSizing): SiteShardFile[] {
   const recs = siteRecords(records);
   const shipped = new Set(recs.map((r) => r.id));
-  return SITE_SHARDS.map((plan) => {
-    const shard: SiteShard = { kind: SITE_SHARD_KIND, schema: SITE_SCHEMA, name: plan.name, records: recs.filter((r) => plan.kinds.includes(r.kind)).map((r) => slim(r, shipped)) };
-    const json = JSON.stringify(shard);
-    return { name: plan.name, kinds: plan.kinds, late: plan.late, records: shard.records.length, hash: hashText(json), json };
+  const source = new Map(recs.map((r) => [r.id, r]));
+  return SITE_GROUPS.flatMap((plan) => {
+    const units = unitsOf(
+      plan,
+      recs.filter((r) => plan.kinds.includes(r.kind)).map((r) => slim(r, shipped)),
+      source,
+    );
+    const label = (u: readonly SiteRecord[]) => (plan.unit === 'event' ? `Event ${eventOf(source.get(u[0]!.id)!)} with its rounds (${u.length} records)` : `The record ${u[0]!.id}`);
+    return packParts(units, (items, part) => partJson(plan.name, part, items), sizing, label).map((p, i) => ({
+      name: `${plan.name}-${i + 1}`,
+      group: plan.name,
+      part: i + 1,
+      late: plan.late,
+      records: p.units.reduce((n, u) => n + u.length, 0),
+      hash: hashText(p.json),
+      json: p.json,
+    }));
   });
 }
 
-/** A shard's file name: `kb-<name>-<hash>.json`. */
+/** A part's file name: `kb-<group>-<part>-<hash>.json`. */
 export const shardFileName = (f: Pick<SiteShardFile, 'name' | 'hash'>): string => `kb-${f.name}-${f.hash}.json`;
 
-/** The manifest for shard files; `url(file)` says where each is served from (relative to the site's base). */
+/** The manifest for part files; `url(file)` says where each is served from (relative to the site's base). */
 export function siteManifest(files: readonly SiteShardFile[], url: (f: SiteShardFile) => string): SiteManifest {
   return {
     kind: SITE_MANIFEST_KIND,
     schema: SITE_SCHEMA,
     pack: hashText(files.map((f) => f.hash).join(' ')),
-    shards: files.map((f) => ({ name: f.name, kinds: f.kinds, late: f.late, records: f.records, bytes: utf8Bytes(f.json), hash: f.hash, url: url(f) })),
+    parts: files.map((f) => ({ name: f.name, group: f.group, late: f.late, records: f.records, bytes: utf8Bytes(f.json), hash: f.hash, url: url(f) })),
   };
 }
 
@@ -137,16 +257,17 @@ export function parseShard(text: string, expect?: { name: string }): KbRecord[] 
 }
 
 /**
- * The late shards a question needs, read the way the search reads it: a statistics kind it asks for by a cue word
- * ("stats", "statistics", "telemetry"), or by naming a card or package beside a word of STAT_WORDS (statsIntent).
- * `ix` may be built without the late shards: the names it looks for are cards and packages.
+ * The late groups a question needs (their names; every part of each is loaded), read the way the search reads it: a
+ * statistics kind it asks for by a cue word ("stats", "statistics", "telemetry"), or by naming a card or package beside
+ * a word of STAT_WORDS (statsIntent). `ix` may be built without the late groups: the names it looks for are cards and
+ * packages.
  */
 export function lateShardsFor(ix: KbIndex, query: string): string[] {
   const exact = rankExactHits(ix, query, { deckShortNames: SEARCH_TUNING.deckShortNames, packageShortNames: SEARCH_TUNING.statsIntent }).map((h) => h.id);
   const cued = cuedKinds(query);
   if (SEARCH_TUNING.statsIntent) for (const k of statKinds(ix, query, exact)) cued.add(k);
   const kinds = STAT_KINDS.filter((k) => cued.has(k));
-  return SITE_SHARDS.filter((s) => s.late && s.kinds.some((k) => kinds.includes(k))).map((s) => s.name);
+  return SITE_GROUPS.filter((s) => s.late && s.kinds.some((k) => kinds.includes(k))).map((s) => s.name);
 }
 
 // ---------------------------------------------------------------- what a result shows

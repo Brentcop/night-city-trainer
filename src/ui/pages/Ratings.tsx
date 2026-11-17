@@ -14,10 +14,14 @@ import { YourDecks } from '../components/YourStats';
 const R = RATINGS;
 const pct = (x: number | null | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
 
-const GROUPS: [string, string][] = [
+/** The table's group filters: an origin kind (components/DeckIdentity originKind) and its label; '' is every deck. */
+export const RATING_GROUPS: [string, string][] = [
   ['', 'All decks'],
   ['choom-meta', 'choom.gg meta'],
   ['choom-guide', 'choom.gg guides'],
+  // lists from outside the trainer: the owner's sim-ladder imports, and the lists players shared (rated since event 16)
+  ['sim-ladder', 'Sim ladder'],
+  ['shared', 'Player lists'],
   ['nc-original', 'NC originals'],
   ['nc-bred', 'Bred'],
   ['nc-variant', 'Variants'],
@@ -33,7 +37,10 @@ export function RatingsPage() {
         <div className="empty-state">No recorded tournament games yet, so there is nothing to rate.</div>
       </div>
     );
-  const rows = R.decks.filter((r) => !group || originKind(lib.get(r.name)?.prov, lib.get(r.name)?.kind) === group);
+  const kindOf = (name: string) => originKind(lib.get(name)?.prov, lib.get(name)?.kind);
+  // only the groups that have a rated deck are offered: a filter never opens an empty table
+  const groups = RATING_GROUPS.filter(([k]) => !k || R.decks.some((r) => kindOf(r.name) === k));
+  const rows = R.decks.filter((r) => !group || kindOf(r.name) === group);
   const lo = 0.2;
   const hi = 0.85;
   const x = (v: number) => `${((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * 100}%`;
@@ -49,7 +56,7 @@ export function RatingsPage() {
       </PageHead>
       <SimTierNote />
       <div className="seg" style={{ alignSelf: 'flex-start' }}>
-        {GROUPS.map(([k, label]) => (
+        {groups.map(([k, label]) => (
           <button key={k} className={group === k ? 'on' : ''} aria-pressed={group === k} onClick={() => setGroup(k)}>
             {label}
           </button>

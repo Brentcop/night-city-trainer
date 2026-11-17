@@ -34,8 +34,8 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
   return out;
 }
 
-// Size budget for the site search (docs/RAG_PLAN.md step 3). The knowledge-pack shards (assets/kb-<shard>-<hash>.json,
-// tools/kb-site.ts) and the search page's chunk load only when a visitor opens #/search and types, so their gzip size
+// Size budget for the site search (docs/RAG_PLAN.md step 3). The knowledge-pack files (now part files,
+// assets/kb-<group>-<part>-<hash>.json, tools/kb-site.ts) and the search page's chunk load only when a visitor opens #/search and types, so their gzip size
 // is what a search costs. Set 2026-11-14 a little above the sizes then (gzip, level 9: core 79.4 kB, events 33.0 kB,
 // cardstat 81.9 kB, pkgstat 86.9 kB; the page chunk 11.8 kB): growth fails the build and becomes a decision.
 // Decided 2026-11-14: `events` raised from 37 to 84 when events 8 to 14 were recorded (seven more, each with all 47
@@ -47,44 +47,78 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // Decided 2026-11-16: `core` raised from 88 to 93 when 18 lists imported from players joined the library (kind
 // `shared`: each a deck record and a placeholder note; the shard went from 84.2 to 90.9 kB). It grows by about 0.37 kB
 // for each library deck with its note.
+// Decided 2026-11-16 (docs/ROADMAP2.md §11 item 19): the files now grow in number, not in size. The pack is a plan of
+// groups (src/lib/kb/site.ts SITE_GROUPS), each cut into part files under one per-file cap, and the per-shard budgets
+// above are replaced by two numbers: that cap, which the packing keeps to (checked again here as a guard), and a
+// budget for everything that loads with the first search (every part of the core, decks, events and ratings groups).
+// The first-search sum is 175.9 kB with events 1 to 15 and 185.2 kB with event 16 (71 decks), each group in one part.
+// Measured on that data by taking records away: one more event with the whole library adds about 4.6 kB to the events
+// group (event 15, 53 decks: 3.1 kB), and the refitted ratings about 0.05 kB for each matchup record that reaches its
+// games (event 16 added 37 of them, and first ratings for 18 decks at about 0.15 kB each): about 5 to 7 kB an event.
+// One more library deck with its note adds about 0.56 kB (0.23 to 1.15, over every deck and its note; the 0.37 kB
+// above was for lists with placeholder notes) to the decks group, and once rated about
+// 0.15 kB plus its matchups. So 300 kB is room for about 15 to 20 more full-field events. Raising it is a decision: the
+// alternative, loading older events only when asked, needs the keyword ranker's word counts shipped apart from the
+// records (every first-search kind counts in them, search.ts STATS_FREE_KINDS), which is a larger change.
 
-/** gzip kB per knowledge-pack shard, by shard name. */
-export const KB_SHARD_BUDGET_KB: Readonly<Record<string, number>> = { core: 93, events: 90, cardstat: 90, pkgstat: 96 };
+/** gzip kB: the most one knowledge-pack part file may weigh (the packing in src/lib/kb/site.ts cuts to it). */
+export const KB_FILE_CAP_KB = 90;
+/** gzip kB: every part that loads with the first search, together. */
+export const KB_FIRST_SEARCH_BUDGET_KB = 300;
 /** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core). */
 export const SEARCH_CHUNK_BUDGET_KB = 13;
 
-/** "kb-core-0123abcd.json" → "core"; null for a file that is not a shard. */
-export function kbShardName(file: string): string | null {
-  const m = /(?:^|[\/])kb-([a-z]+)-[0-9a-f]+\.json$/.exec(file);
-  return m ? m[1]! : null;
+/** "kb-events-2-0123abcd.json" → { group: 'events', part: 2 }; null for any other name (an older shard name too). */
+export function kbPartName(file: string): { group: string; part: number } | null {
+  const m = /(?:^|[\\/])kb-([a-z]+)-([1-9]\d*)-[0-9a-f]+\.json$/.exec(file);
+  return m ? { group: m[1]!, part: Number(m[2]) } : null;
 }
 
+/** Whether a file is the knowledge pack's (assets/kb-*.json), whatever its name says after that. */
+export const isKbFile = (file: string): boolean => /(?:^|[\\/])kb-[^\\/]*\.json$/.test(file);
+
 /** "Search-CqcC5VWM.js" → true: the search page's chunk. */
-export const isSearchChunk = (file: string): boolean => /(?:^|[\/])Search-[\w-]+\.js$/.test(file);
+export const isSearchChunk = (file: string): boolean => /(?:^|[\\/])Search-[\w-]+\.js$/.test(file);
+
+export interface SearchBudget {
+  fileCapKb: number;
+  firstSearchKb: number;
+  chunkKb: number;
+}
+export const SEARCH_BUDGET: SearchBudget = { fileCapKb: KB_FILE_CAP_KB, firstSearchKb: KB_FIRST_SEARCH_BUDGET_KB, chunkKb: SEARCH_CHUNK_BUDGET_KB };
 
 /**
- * What is wrong with the search's files, by gzip size: a shard or the page chunk over its budget, a shard with no
- * budget, a budgeted shard or the page chunk not built. Empty when all is well.
+ * What is wrong with the search's files, by gzip size, against the plan of groups (`groups`: name and whether it loads
+ * late): a part file over the per-file cap, the first-search parts together over their budget, a knowledge-pack file
+ * the plan does not know, a planned group with no part, the page chunk over its budget or not built. Empty when all is
+ * well.
  */
-export function searchBudgetProblems(files: readonly { name: string; gzipBytes: number }[], budget: Readonly<Record<string, number>> = KB_SHARD_BUDGET_KB, chunkKb = SEARCH_CHUNK_BUDGET_KB): string[] {
+export function searchBudgetProblems(files: readonly { name: string; gzipBytes: number }[], groups: readonly { name: string; late: boolean }[], budget: SearchBudget = SEARCH_BUDGET): string[] {
   const out: string[] = [];
-  const seen = new Set<string>();
+  const late = new Map(groups.map((g) => [g.name, g.late]));
+  const built = new Set<string>();
+  let first = 0;
   let chunk = false;
   for (const f of files) {
     const kb = f.gzipBytes / 1000;
     if (isSearchChunk(f.name)) {
       chunk = true;
-      if (kb > chunkKb) out.push(`${f.name}: ${kb.toFixed(1)} kB gzip is over the search page's budget of ${chunkKb} kB (tools/size-budget.ts): trim it, or raise the budget on purpose`);
+      if (kb > budget.chunkKb) out.push(`${f.name}: ${kb.toFixed(1)} kB gzip is over the search page's budget of ${budget.chunkKb} kB (tools/size-budget.ts): trim it, or raise the budget on purpose`);
       continue;
     }
-    const s = kbShardName(f.name);
-    if (!s) continue;
-    seen.add(s);
-    const max = budget[s];
-    if (max === undefined) out.push(`${f.name}: a knowledge-pack shard with no size budget (${kb.toFixed(1)} kB gzip); add it to KB_SHARD_BUDGET_KB in tools/size-budget.ts`);
-    else if (kb > max) out.push(`${f.name}: ${kb.toFixed(1)} kB gzip is over its budget of ${max} kB (tools/size-budget.ts): trim the pack, or raise the budget on purpose`);
+    if (!isKbFile(f.name)) continue;
+    const p = kbPartName(f.name);
+    if (!p || !late.has(p.group)) {
+      out.push(`${f.name}: a knowledge-pack file that is not a part of any group in the plan (SITE_GROUPS in src/lib/kb/site.ts)`);
+      continue;
+    }
+    built.add(p.group);
+    if (kb > budget.fileCapKb) out.push(`${f.name}: ${kb.toFixed(1)} kB gzip is over the per-file cap of ${budget.fileCapKb} kB (tools/size-budget.ts); the packing in src/lib/kb/site.ts should have cut it smaller`);
+    if (!late.get(p.group)) first += f.gzipBytes;
   }
-  for (const s of Object.keys(budget)) if (!seen.has(s)) out.push(`the ${s} knowledge-pack shard was not built; update KB_SHARD_BUDGET_KB in tools/size-budget.ts`);
+  for (const g of groups) if (!built.has(g.name)) out.push(`the ${g.name} group of the knowledge pack built no part file`);
+  if (first / 1000 > budget.firstSearchKb)
+    out.push(`the parts that load with the first search weigh ${(first / 1000).toFixed(1)} kB gzip together, over the first-search budget of ${budget.firstSearchKb} kB (tools/size-budget.ts): trim the pack, or raise the budget on purpose`);
   if (!chunk) out.push('the search page chunk (Search-*.js) was not built; update SEARCH_CHUNK_BUDGET_KB in tools/size-budget.ts');
   return out;
 }

@@ -104,7 +104,7 @@ describe('M10: the pack is kept away from play', () => {
 
 describe('M7 and M8: a pure core and deterministic builds', () => {
   const core = filesUnder('src/lib/kb');
-  const kbScripts = ['scripts/kb.ts', 'scripts/kb-sources.ts', 'scripts/kb-eval.ts', 'scripts/kb-dense.ts'].map((f) => path.join(ROOT, f));
+  const kbScripts = ['scripts/kb.ts', 'scripts/kb-sources.ts', 'scripts/kb-eval.ts', 'scripts/kb-dense.ts', 'tools/kb-site.ts'].map((f) => path.join(ROOT, f));
 
   it('the dense core (step 4.1) is in src/lib/kb, and its Node side loads the embedding library only from the side folder', () => {
     expect(core.map(rel)).toContain('src/lib/kb/dense.ts');

@@ -1,11 +1,11 @@
 # Tournament plan — EOR Chicago
 
-> Generated 2026-11-16 from 7 decks × 200 games per pairing (deep bot) plus telemetry.
+> Generated 2026-11-17 from 7 decks × 200 games per pairing (deep bot) plus telemetry.
 
 ## Register: [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt)
 - **Full stats:** [RRG Dexter Midrange deck profile](#/deck?d=meta-rrg-dexter-midrange.txt) — lineage, finals per opponent, head-to-heads, forge history and the visual decklist.
-- **Power rating: 74% expected against the whole tournament field**, and 71% expected against the choom.gg meta decks (the same model); worst meta matchup: 62%.
-- **Why this one:** Highest power rating from 15 tournament events (6,627 games; its 90% range against the whole field is 70%–77%); 2 event titles, top 8 in 11 of 15.
+- **Power rating: 73% expected against the whole tournament field**, and 72% expected against the choom.gg meta decks (the same model); worst meta matchup: 63%.
+- **Why this one:** Highest power rating from 16 tournament events (7,437 games; its 90% range against the whole field is 69%–77%); 2 event titles, top 8 in 12 of 16.
 - **Why (from 1200 telemetry games):**
   - **Seat:** in 1200 games, this list won 83% on the play and 66% on the draw.
   - **Cards most associated with wins:** Yorinobu Arasaka: Steel Dragon (+16 points, drawn in 859 games), Animals Wrecker (+14 points, drawn in 885 games), Pepe Najarro: Working Doubles (+8 points, drawn in 901 games), Mantis Blades (+7 points, drawn in 851 games). Games where each was drawn were won that many points more often than games where it was not, over 1200 games. This is an association, not proof of value: cards are drawn more in long games, and the bot sells what looks weak.
@@ -18,23 +18,23 @@
   - **Reactive Calls:** the bot made 21% of its Legend Calls during the rival's attack, over 1200 games.
   - **Best matchup:** Rainbow Fixer Stuff (84% over 200 games). **Worst:** BBG Cunningham Econ (61% over 200 games).
 - **Ready-to-register list:** the list on the Decks page.
-- **Backup / sideboard partner:** [Ladder: V / Smasher / Saburo (RRG)](#/deck?d=ladder-rrg-v-smasher-saburo.txt) (control, expected 66% against the meta decks). Practise it second, in case the room skews hard against aggro decks.
+- **Backup / sideboard partner:** [Smash the Curve](#/deck?d=RRG-smash-the-curve.txt) (midrange, expected 65% against the meta decks). Practise it second, in case the room skews hard against aggro decks.
 
-## Power ratings (all decks, 15 tournament events)
+## Power ratings (all decks, 16 tournament events)
 Expected win rate against the whole field, from a Bradley–Terry fit over every tournament game. Overlapping ranges are not meaningfully different. The full table is on Tournaments → Power ratings.
 
 | # | Deck | vs field (90% range) | vs meta | Titles | Top 8 |
 |---|---|---|---|---|---|
-| 1 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | **74%** (70%–77%) | 71% | 2 | 11/15 |
-| 2 | [Ladder: V / Smasher / Saburo (RRG)](#/deck?d=ladder-rrg-v-smasher-saburo.txt) | **72%** (68%–75%) | 66% | 3 | 8/13 |
-| 3 | [Smash the Curve](#/deck?d=RRG-smash-the-curve.txt) | **71%** (67%–75%) | 66% | 4 | 8/12 |
-| 4 | [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) | **70%** (65%–73%) | 64% | 2 | 9/12 |
-| 5 | [Ladder: Jackie / Alt / Hanako (BBG)](#/deck?d=ladder-bbg-jackie-alt-hanako.txt) | **64%** (60%–68%) | 58% | 0 | 6/13 |
-| 6 | [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) | **63%** (59%–67%) | 59% | 2 | 5/15 |
-| 7 | [S3-08 Explorer (RRB)](#/deck?d=s3-08-explorer-rrb.txt) | **63%** (49%–76%) | 57% | 0 | 0/1 |
-| 8 | [Ladder: V / Smasher / Padre (RRG)](#/deck?d=ladder-rrg-v-smasher-padre.txt) | **62%** (58%–67%) | 56% | 0 | 3/13 |
-| 9 | [NC-08 Merc Contract (RRG)](#/deck?d=nc-08-merc-contract-rrg.txt) | **62%** (57%–66%) | 56% | 0 | 7/12 |
-| 10 | [S2-02 Mutant (RGG)](#/deck?d=s2-02-mutant-rgg.txt) | **62%** (57%–66%) | 56% | 0 | 2/11 |
+| 1 | [RRG Dexter Midrange](#/deck?d=meta-rrg-dexter-midrange.txt) | **73%** (69%–77%) | 72% | 2 | 12/16 |
+| 2 | [Smash the Curve](#/deck?d=RRG-smash-the-curve.txt) | **70%** (66%–74%) | 65% | 4 | 8/13 |
+| 3 | [Ladder: V / Smasher / Saburo (RRG)](#/deck?d=ladder-rrg-v-smasher-saburo.txt) | **69%** (65%–73%) | 65% | 3 | 8/14 |
+| 4 | [S1-01 Mutant (RRY)](#/deck?d=s1-01-mutant-rry.txt) | **68%** (64%–72%) | 63% | 2 | 9/13 |
+| 5 | [Discord 5k #5: V / Smasher / Padre (RRG)](#/deck?d=import-discord-5k-5-v-smasher-padre-rrg.txt) | **67%** (53%–79%) | 62% | 0 | 1/1 |
+| 6 | [Ladder S1 #3: Smasher / Dexter / Saburo (RRG)](#/deck?d=import-ladder-s1-3-smasher-dexter-saburo-rrg.txt) | **67%** (52%–79%) | 62% | 0 | 0/1 |
+| 7 | [Discord 5k #8: V / Smasher / Saburo (RRG)](#/deck?d=import-discord-5k-8-v-smasher-saburo-rrg.txt) | **66%** (51%–79%) | 61% | 0 | 0/1 |
+| 8 | [Ladder: Jackie / Alt / Hanako (BBG)](#/deck?d=ladder-bbg-jackie-alt-hanako.txt) | **63%** (59%–67%) | 59% | 0 | 7/14 |
+| 9 | [Ladder S1 #2: V / Smasher / Saburo (RRG)](#/deck?d=import-ladder-s1-2-v-smasher-saburo-rrg.txt) | **63%** (50%–74%) | 58% | 0 | 1/1 |
+| 10 | [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) | **62%** (58%–66%) | 59% | 2 | 6/16 |
 
 ## Ranking against the meta decks (finals and round robin)
 | # | Deck | Archetype | Finals vs meta (games) | Round-robin vs meta field | Overall | Worst meta matchup |
@@ -52,11 +52,11 @@ Expected win rate against the whole field, from a Bradley–Terry fit over every
 ## Matchup plan with RRG Dexter Midrange
 | Opponent | Sim win % | Seat | Key cards | Plan |
 |---|---|---|---|---|
-| [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) (control) | **62%** | go first | Pepe Najarro: Working Doubles, Gunpoint Diplomacy | Race. Commit Units every turn and push Gigs before sweepers and card advantage take over. |
-| [GRY Trauma Team](#/deck?d=meta-gry-trauma-team.txt) (aggro) | **72%** | either | 6th Street Recruits, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
+| [BBG Cunningham Econ](#/deck?d=meta-bbg-cunningham-econ.txt) (control) | **63%** | go first | Pepe Najarro: Working Doubles, Gunpoint Diplomacy | Race. Commit Units every turn and push Gigs before sweepers and card advantage take over. |
+| [GRY Trauma Team](#/deck?d=meta-gry-trauma-team.txt) (aggro) | **73%** | either | 6th Street Recruits, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
 | [Rainbow Fixer Stuff](#/deck?d=meta-rainbow-fixer-stuff.txt) (aggro) | **78%** | go first | Yorinobu Arasaka: Steel Dragon, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
-| [RRB Wakako Midrange](#/deck?d=meta-rrb-wakako-midrange.txt) (midrange) | **79%** | go first | Animals Wrecker, Yorinobu Arasaka: Steel Dragon | Be the beatdown before their bigger Units land; remove their first blocker. |
-| [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) (aggro) | **67%** | go first | Yorinobu Arasaka: Steel Dragon, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
+| [RRB Wakako Midrange](#/deck?d=meta-rrb-wakako-midrange.txt) (midrange) | **80%** | go first | Animals Wrecker, Yorinobu Arasaka: Steel Dragon | Be the beatdown before their bigger Units land; remove their first blocker. |
+| [RRY Smasher Aggro](#/deck?d=meta-rry-smasher-aggro.txt) (aggro) | **68%** | go first | Yorinobu Arasaka: Steel Dragon, Animals Wrecker | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
 | [YYB Rogue Gear](#/deck?d=meta-yyb-rogue-gear.txt) (aggro) | **72%** | go first | Animals Wrecker, Peace Offering | Mirror race: trade early, keep one blocker back once you are ahead on Gigs. |
 
 ## List tuning

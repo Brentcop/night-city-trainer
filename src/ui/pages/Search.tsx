@@ -1,8 +1,8 @@
 /// <reference path="../kbSite.d.ts" />
 // #/search (feature `search`, off by default; docs/SITE_CONFIG.md): answers a question from the site's knowledge pack,
 // entirely in this browser (docs/RAG_PLAN.md step 3; src/lib/kb/site.ts, siteSearch.ts). Nothing is fetched until the
-// visitor types: then the two shards every search needs, and a statistics shard only for a question that asks for
-// statistics (the results are searched again when it arrives). Results as you type (debounced), up to eight, each with
+// visitor types: then every part file of the groups every search needs, and a statistics group's parts only for a
+// question that asks for statistics (the results are searched again when they arrive). Results as you type (debounced), up to eight, each with
 // what it is, its title linking to where it lives on the site, a short excerpt, and for measured records what they rest
 // on, their "association, not value" sentence and a stale mark. No question is sent anywhere or stored.
 // This is the one file under src/ui that imports src/lib/kb (tests/kb-guards.test.ts); it is a lazy page of its own.
@@ -24,14 +24,14 @@ async function fetchShard(url: string): Promise<string> {
   return r.text();
 }
 
-// one search per page load: coming back to the page keeps the shards already fetched
+// one search per page load: coming back to the page keeps the part files already fetched
 let shared: SiteSearch | null = null;
 const searcher = () => (shared ??= new SiteSearch(manifest, fetchShard, () => performance.now()));
 
 /** Let the browser paint the "Loading" line before the index is built (a long task of tens of milliseconds). */
 const paint = () => new Promise<void>((done) => setTimeout(done, 0));
 
-/** What the page shows: nothing asked yet, the first shards loading, results (maybe with statistics on the way), or a failed load. */
+/** What the page shows: nothing asked yet, the first-search files loading, results (maybe with statistics on the way), or a failed load. */
 export type SearchView =
   | { status: 'idle' }
   | { status: 'loading'; query: string }
