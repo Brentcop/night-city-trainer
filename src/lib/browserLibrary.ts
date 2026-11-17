@@ -33,7 +33,25 @@ export type StoredDeck = DeckList & {
   added?: string;
   /** how a deck saved from the deck editor began: pasted in as an import, or built here (unknown for older saves) */
   origin?: 'imported' | 'created';
+  /**
+   * the lists a Deck Lab "Overwrite" replaced, newest first (at most HISTORY_KEEP), each with its notes, manifest and
+   * tuning record, so the last one can be put back (putBackCustom); absent until the deck is first overwritten
+   */
+  history?: DeckVersion[];
 };
+
+/** A list a Deck Lab "Overwrite" replaced: the deck as it was (without its own history), when, and by what. */
+export type DeckVersion = Omit<StoredDeck, 'history' | 'added' | 'origin'> & { replaced: string; by: 'tune' | 'breed' };
+/** How many replaced lists a saved deck keeps (the oldest is dropped first). */
+export const HISTORY_KEEP = 5;
+
+function toVersion(v: unknown): DeckVersion | null {
+  const d = toDeck(v);
+  const o = v as Record<string, unknown>;
+  if (!d || typeof o.replaced !== 'string' || Number.isNaN(Date.parse(o.replaced)) || (o.by !== 'tune' && o.by !== 'breed')) return null;
+  const { history: _h, added: _a, origin: _o, ...list } = d;
+  return { ...list, replaced: o.replaced, by: o.by };
+}
 
 /** A stored entry as a DeckList, or null if its shape is wrong. A missing sideboard (older saves) counts as empty. */
 export function toDeck(v: unknown): StoredDeck | null {
@@ -48,6 +66,10 @@ export function toDeck(v: unknown): StoredDeck | null {
   if (isTunedRecord(o.tuned)) deck.tuned = o.tuned;
   if (typeof o.added === 'string' && !Number.isNaN(Date.parse(o.added))) deck.added = o.added;
   if (o.origin === 'imported' || o.origin === 'created') deck.origin = o.origin;
+  if (Array.isArray(o.history)) {
+    const history = o.history.map(toVersion).filter((x): x is DeckVersion => x !== null);
+    if (history.length) deck.history = history.slice(0, HISTORY_KEEP);
+  }
   return deck;
 }
 
@@ -79,7 +101,7 @@ function readStored(): StoredDeck[] {
 }
 
 export function loadCustom(): LibraryDeck[] {
-  return readStored().map(({ manifest, tuned, added, origin, ...deck }) => ({
+  return readStored().map(({ manifest, tuned, added, origin, history: _history, ...deck }) => ({
     file: `custom:${deck.name}`,
     deck,
     kind: 'custom' as const,
@@ -127,8 +149,44 @@ export function upsertCustom(deck: StoredDeck): boolean {
   // a deck saved again keeps when it was first added and how it began
   const added = deck.added ?? prev?.added ?? new Date().toISOString();
   const origin = deck.origin ?? prev?.origin;
-  all.push({ ...deck, added, ...(origin ? { origin } : {}) });
+  const history = deck.history ?? prev?.history;
+  all.push({ ...deck, added, ...(origin ? { origin } : {}), ...(history?.length ? { history } : {}) });
   return saveCustom(all);
+}
+
+/**
+ * Deck Lab "Overwrite": the saved deck `name` takes `next` (its list, notes, manifest and tuning record; `next.name` is
+ * ignored) and keeps its name, its place in the list, when it was added and how it began; the list it replaces goes to
+ * the front of its history (at most HISTORY_KEEP kept), so putBackCustom can restore it. 'missing' when no deck of that
+ * name is saved here (nothing written), 'failed' when the browser refused the write (nothing changed).
+ */
+export function overwriteCustom(name: string, next: StoredDeck, by: DeckVersion['by'], now = new Date()): 'ok' | 'missing' | 'failed' {
+  const all = readStored();
+  const i = all.findIndex((d) => d.name === name);
+  const prev = all[i];
+  if (!prev) return 'missing';
+  const { history: before, added, origin, ...was } = prev;
+  const { history: _ignored, added: _a, origin: _o, ...list } = next;
+  const history = [{ ...was, replaced: now.toISOString(), by }, ...(before ?? [])].slice(0, HISTORY_KEEP);
+  all[i] = { ...list, name, ...(added ? { added } : {}), ...(origin ? { origin } : {}), history };
+  return saveCustom(all) ? 'ok' : 'failed';
+}
+
+/**
+ * Put back the list the last "Overwrite" replaced: the saved deck `name` becomes its newest history entry again (list,
+ * notes, manifest and tuning record), and the list it had is dropped. Same answers as overwriteCustom, with 'missing'
+ * also when the deck has no earlier list.
+ */
+export function putBackCustom(name: string): 'ok' | 'missing' | 'failed' {
+  const all = readStored();
+  const i = all.findIndex((d) => d.name === name);
+  const cur = all[i];
+  const last = cur?.history?.[0];
+  if (!cur || !last) return 'missing';
+  const { replaced: _r, by: _b, ...list } = last;
+  const rest = cur.history?.slice(1) ?? [];
+  all[i] = { ...list, name, ...(cur.added ? { added: cur.added } : {}), ...(cur.origin ? { origin: cur.origin } : {}), ...(rest.length ? { history: rest } : {}) };
+  return saveCustom(all) ? 'ok' : 'failed';
 }
 
 /** Delete a custom deck by name. Returns false if the change could not be saved. */

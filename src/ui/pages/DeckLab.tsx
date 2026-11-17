@@ -12,9 +12,12 @@
 // is ranked, the middle meta deck) with the season's rule at the Lab's sizes (src/lib/breedGate.ts LAB_TEST, runLabTest;
 // the view is components/LabBreedTest.tsx). A reference's games are kept in the panel (refStore) and reused by every deck
 // and press that shares it; Stop stops every running test; a saved deck keeps the manifest of its test.
+// Both tabs end with two ways to keep a list (src/lib/labSave.ts, components/LabSaveChoice.tsx): "Overwrite" a deck saved
+// in this browser (the tuned deck's source, a bred deck's saved parent; the replaced list is kept and can be put back) or
+// "Save as a copy"; a built-in or pasted source gets only the copy, with the reason.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IfPage } from '../components/SiteChrome';
-import { allDecks, upsertCustom } from '../../lib/browserLibrary';
+import { allDecks, overwriteCustom, putBackCustom, upsertCustom, type StoredDeck } from '../../lib/browserLibrary';
 import type { LibraryDeck } from '../../lib/library';
 import { exportOfficial, listFingerprint, parseDeck, validateDeck } from '../../engine/deck';
 import { CARD_BY_ID } from '../../engine/cards';
@@ -54,7 +57,9 @@ import { errorText, isStopped } from '../../sim/pool';
 import { usePoolRun } from '../usePoolRun';
 import { LAB_TEST, labReferenceKept, labTestEntry, runLabTest, type GateEntry, type ReferenceStore } from '../../lib/breedGate';
 import { BreedTestView, type BreedTestState } from '../components/LabBreedTest';
-import { customSaveName } from '../deckLookup';
+import { isBuiltin } from '../deckLookup';
+import { bredTargets, copyName, overwriteWhy, tuneSource, type SaveSource } from '../../lib/labSave';
+import { LabSaveChoice, LabSavedLine, type LabSaved } from '../components/LabSaveChoice';
 import { DeckPicker, findDeck } from '../components/DeckPicker';
 import { DeckTile } from '../components/DeckIdentity';
 import { Signed, Wr } from '../components/Num';
@@ -146,7 +151,9 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const [bot, setBot] = useState<'medium' | 'hard'>('medium');
   const [prog, setProg] = useState<TuneProgress | null>(null);
   const [running, setRunning] = useState(false);
-  const [saved, setSaved] = useState('');
+  const [saved, setSaved] = useState<LabSaved | null>(null);
+  /** the list the last run started from and its file (a picked deck), so the result and Overwrite follow the run, not the picker */
+  const [runFrom, setRunFrom] = useState<{ deck: DeckList; file?: string } | null>(null);
   /** how the last run ended: finished, stopped by you, or failed (with the game's error) */
   const [outcome, setOutcome] = useState<{ kind: 'done' | 'stopped' | 'failed'; error?: string } | null>(null);
   const [manifest, setManifest] = useState<RunManifest | null>(null);
@@ -271,7 +278,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       });
     const note = () => setManifest({ ...plan, sample: { ...plan.sample, completedGames: completed } });
     setRunning(true);
-    setSaved('');
+    setSaved(null);
+    setRunFrom({ deck, ...(source === 'library' ? { file } : {}) });
     setOutcome(null);
     setProg(null);
     setManifest(plan);
@@ -334,19 +342,23 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   // A stopped or failed run can still save the swaps it confirmed before it ended, labelled as partial.
   const partial = !running && outcome && !finished ? partialTune(prog) : null;
   const finalDeck = finished ? prog?.deck : partial?.deck;
-  const changes = finalDeck && parsed.deck ? deckDiff(parsed.deck, finalDeck).filter((c) => CARD_BY_ID[c.id]) : [];
+  // the run's own starting list (the picker may have moved since)
+  const origDeck = runFrom?.deck ?? parsed.deck;
+  const changes = finalDeck && origDeck ? deckDiff(origDeck, finalDeck).filter((c) => CARD_BY_ID[c.id]) : [];
+  // Overwrite only for a deck saved in this browser; a built-in or pasted source gets only the copy, and the reason
+  const fromFile = runFrom ? runFrom.file : source === 'library' ? file : undefined;
+  const saveFrom = tuneSource(fromFile, allDecks());
   const { open: openCard, dialog: cardDialog } = useCardDialog();
   const minGainPp = runRule?.rule.minGainPp ?? planned.rule.minGainPp;
   // the tuned list against the original: only a list shown better is offered as the result
   const verdict = vsOriginalVerdict(finalVsOriginal(prog?.logs ?? []), minGainPp);
   const shownBetter = verdict === 'better';
-  const save = () => {
-    if (!finalDeck || !parsed.deck) return;
-    const want = tunedName(finalDeck.name, !!partial, !shownBetter);
-    const name = customSaveName(want, lib) ?? want;
+  /** The tuned list as it is stored, with its notes, manifest and tuning record (both ways of keeping it store this). */
+  const tunedStored = (): StoredDeck | null => {
+    if (!finalDeck || !origDeck) return null;
     const done = manifest?.sample.completedGames ?? prog?.played ?? 0;
     const logs = prog?.logs ?? [];
-    const pkgNote = runPlan ? `Packages: ${describePlan(runPlan.plan)}${runPlan.moves ? ', package moves on' : ''}; ${describeChanges(packageChanges(parsed.deck, finalDeck))}.` : '';
+    const pkgNote = runPlan ? `Packages: ${describePlan(runPlan.plan)}${runPlan.moves ? ', package moves on' : ''}; ${describeChanges(packageChanges(origDeck, finalDeck))}.` : '';
     const notes = [
       partial ? `Partial Deck Lab tune: stopped after ${done} of ${manifest?.sample.plannedGames ?? prog?.total ?? '?'} planned games. Confirmed swaps: ${partial.adopted.join('; ')}.` : finalDeck.notes,
       tuneSummaryText(logs, { minGainPp, partial: !!partial }),
@@ -356,7 +368,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       .filter(Boolean)
       .join(' ');
     const record = pooledTuneRecord({
-      original: { ...parsed.deck, ...(source === 'library' ? { file } : {}) },
+      original: { ...origDeck, ...(fromFile ? { file: fromFile } : {}) },
       final: finalDeck,
       logs,
       partial: !!partial,
@@ -373,11 +385,38 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
       ...(manifest?.packages ? { packages: manifest.packages } : {}),
     });
     const m = manifest ? { ...manifest, tune: pooledManifestTune(record) } : undefined;
-    if (!upsertCustom({ ...finalDeck, name, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(m ? { manifest: m } : {}), tuned: record })) {
+    return { ...finalDeck, sideboard: finalDeck.sideboard ?? [], ...(notes ? { notes } : {}), ...(m ? { manifest: m } : {}), tuned: record };
+  };
+  /** Save as a copy: a new saved deck beside the original, under a name no deck has. */
+  const saveCopy = () => {
+    const d = tunedStored();
+    if (!d) return;
+    const name = copyName(tunedName(d.name, !!partial, !shownBetter), allDecks());
+    if (!upsertCustom({ ...d, name })) {
       window.alert(NOT_SAVED);
       return;
     }
-    setSaved(name);
+    setSaved({ name, how: 'copy' });
+  };
+  /** Overwrite: the saved deck takes the tuned list and keeps its place; the list it replaces is kept to put back. */
+  const overwrite = (name: string) => {
+    const d = tunedStored();
+    if (!d) return;
+    const r = overwriteCustom(name, d, 'tune');
+    if (r !== 'ok') {
+      window.alert(r === 'missing' ? `Not saved: “${name}” is no longer saved in this browser. Save the tuned list as a copy instead.` : NOT_SAVED);
+      return;
+    }
+    setSaved({ name, how: 'overwrite' });
+  };
+  const putBack = () => {
+    if (!saved) return;
+    const r = putBackCustom(saved.name);
+    if (r !== 'ok') {
+      window.alert(r === 'missing' ? `Nothing to put back: “${saved.name}” has no earlier list saved.` : NOT_SAVED);
+      return;
+    }
+    setSaved({ ...saved, putBack: true });
   };
 
   return (
@@ -614,9 +653,9 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   Partial result: {partial.adopted.length} confirmed swap{partial.adopted.length === 1 ? '' : 's'}, {manifest?.sample.completedGames ?? prog?.played ?? 0} of {manifest?.sample.plannedGames ?? prog?.total} planned games played
                 </div>
               )}
-              {runPlan && parsed.deck && (
+              {runPlan && origDeck && (
                 <div className="small" role="note">
-                  <PackageChips deck={finalDeck} before={parsed.deck} />
+                  <PackageChips deck={finalDeck} before={origDeck} />
                   <div className="muted">
                     Packages: <MentionText text={describePlan(runPlan.plan)} />
                     {runPlan.moves ? '; package moves on' : '; package moves off'}.
@@ -644,10 +683,10 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                     ))}
                   </ul>
                   <div className="lab-before-after">
-                    {parsed.deck && (
+                    {origDeck && (
                       <details>
                         <summary className="small">Original list</summary>
-                        <DeckListCompact deck={parsed.deck} />
+                        <DeckListCompact deck={origDeck} />
                       </details>
                     )}
                     <details>
@@ -667,18 +706,27 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                 </div>
               )}
               <div className="row">
-                {changes.length > 0 && !shownBetter && parsed.deck && (
-                  <button className="primary" onClick={() => navigator.clipboard?.writeText(exportOfficial(parsed.deck!))}>
+                {changes.length > 0 && !shownBetter && origDeck && (
+                  <button className="primary" onClick={() => navigator.clipboard?.writeText(exportOfficial(origDeck))}>
                     Keep your original list (copy it)
                   </button>
                 )}
-                <button className={shownBetter || !changes.length ? 'primary' : ''} onClick={save} disabled={!changes.length}>
-                  {shownBetter || !changes.length ? (partial ? '💾 Save partial result to My decks' : '💾 Save to My decks') : '💾 Save the tuned list anyway (not shown to be better)'}
-                </button>
+                <LabSaveChoice
+                  targets={saveFrom.kind === 'saved' ? [saveFrom.name] : []}
+                  why={overwriteWhy(saveFrom, 'tuned')}
+                  what="tuned"
+                  overwriteLabel={(n) => `💾 Overwrite “${n}”${partial ? ' with the partial result' : ''}${shownBetter || !changes.length ? '' : ' anyway'}`}
+                  copyLabel={shownBetter || !changes.length ? (partial ? '💾 Save partial result as a copy' : '💾 Save as a copy') : '💾 Save as a copy anyway (not shown to be better)'}
+                  primary={shownBetter || !changes.length ? 'copy' : 'none'}
+                  disabled={!changes.length || (!!saved && !saved.putBack)}
+                  onOverwrite={overwrite}
+                  onCopy={saveCopy}
+                />
                 <button onClick={() => navigator.clipboard?.writeText(exportOfficial(finalDeck))}>{changes.length ? 'Copy tuned list' : 'Copy list'}</button>
-                {saved && (
-                  <a className="btn" href={`#/play?d=${encodeURIComponent(`custom:${saved}`)}`}>
-                    ▶ Practice with “{saved}”
+                {saved && <LabSavedLine saved={saved} onPutBack={putBack} />}
+                {saved && !saved.putBack && (
+                  <a className="btn" href={`#/play?d=${encodeURIComponent(`custom:${saved.name}`)}`}>
+                    ▶ Practice with “{saved.name}”
                   </a>
                 )}
                 {saved && (
@@ -796,7 +844,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
   const [bredFor, setBredFor] = useState<string[]>([]);
   // test results and saves are keyed by deck name, so a test that finishes after re-breeding can't land on another deck
   const [tests, setTests] = useState<Record<string, BreedTestState>>({});
-  const [savedAs, setSavedAs] = useState<Record<string, string>>({});
+  const [savedAs, setSavedAs] = useState<Record<string, LabSaved>>({});
   const poolRun = usePoolRun();
   const live = useRef(0); // tests in flight; the pool is closed when the last one ends
   const stopRef = useRef(false);
@@ -874,16 +922,44 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
     stopRef.current = true;
     poolRun.stop();
   };
-  const save = (b: Bred) => {
-    const name = customSaveName(b.deck.name, lib) ?? b.deck.name;
+  /** The bred list as it is stored; a tested deck keeps the manifest of its test. */
+  const bredStored = (b: Bred): StoredDeck => {
     const t = tests[b.deck.name];
-    // a tested deck keeps the manifest of its test
     const manifest = t?.kind === 'done' ? t.manifest : undefined;
-    if (!upsertCustom({ ...b.deck, name, sideboard: [], ...(manifest ? { manifest } : {}) })) {
+    return { ...b.deck, sideboard: [], ...(manifest ? { manifest } : {}) };
+  };
+  /** Save as a copy: a new saved deck, under a name no deck has. */
+  const save = (b: Bred) => {
+    const name = copyName(b.deck.name, allDecks());
+    if (!upsertCustom({ ...bredStored(b), name })) {
       window.alert(NOT_SAVED);
       return;
     }
-    setSavedAs((s) => ({ ...s, [b.deck.name]: name }));
+    setSavedAs((s) => ({ ...s, [b.deck.name]: { name, how: 'copy' } }));
+  };
+  /** Overwrite a parent saved in this browser: it takes the bred list and keeps its place; its list is kept to put back. */
+  const overwriteWith = (b: Bred, parent: string) => {
+    const r = overwriteCustom(parent, bredStored(b), 'breed');
+    if (r !== 'ok') {
+      window.alert(r === 'missing' ? `Not saved: “${parent}” is no longer saved in this browser. Save the bred deck as a copy instead.` : NOT_SAVED);
+      return;
+    }
+    setSavedAs((s) => ({ ...s, [b.deck.name]: { name: parent, how: 'overwrite' } }));
+  };
+  const putBack = (b: Bred) => {
+    const s = savedAs[b.deck.name];
+    if (!s) return;
+    const r = putBackCustom(s.name);
+    if (r !== 'ok') {
+      window.alert(r === 'missing' ? `Nothing to put back: “${s.name}” has no earlier list saved.` : NOT_SAVED);
+      return;
+    }
+    setSavedAs((all) => ({ ...all, [b.deck.name]: { ...s, putBack: true } }));
+  };
+  /** What a bred deck came from, for the reason only the copy is offered: a built-in parent, else none. */
+  const breedSource = (b: Bred): SaveSource => {
+    const builtin = b.parents.find((p) => lib.some((d) => d.deck.name === p && isBuiltin(d)));
+    return builtin ? { kind: 'builtin', name: builtin } : { kind: 'none' };
   };
   const asLib = (b: Bred): LibraryDeck => ({ file: `lab:${b.deck.name}`, deck: b.deck, kind: 'custom', prov: { origin: 'Night City Trainer bred deck (Deck Lab)' } });
 
@@ -1019,9 +1095,23 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
                 />
               )}
               <div className="row small">
-                <button onClick={() => save(b)} disabled={!!saved} title={saved && saved !== b.deck.name ? `Saved as “${saved}” (the name belongs to a built-in deck)` : undefined}>
-                  {saved ? (saved === b.deck.name ? '✓ Saved' : `✓ Saved as “${saved}”`) : '💾 Save'}
-                </button>
+                {(() => {
+                  const targets = bredTargets(b.parents, allDecks());
+                  return (
+                    <LabSaveChoice
+                      targets={targets}
+                      why={targets.length ? null : overwriteWhy(breedSource(b), 'bred')}
+                      what="bred"
+                      overwriteLabel={(p) => `💾 Overwrite parent “${p}”`}
+                      copyLabel="💾 Save as a copy"
+                      primary="none"
+                      disabled={!!saved && !saved.putBack}
+                      onOverwrite={(p) => overwriteWith(b, p)}
+                      onCopy={() => save(b)}
+                    />
+                  );
+                })()}
+                {saved && <LabSavedLine saved={saved} onPutBack={() => putBack(b)} />}
                 <button onClick={() => onTune(b.deck)} disabled={anyRunning} title={anyRunning ? 'Wait for the tests to finish' : undefined}>
                   🔧 Tune it
                 </button>

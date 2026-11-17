@@ -283,7 +283,7 @@ export function TunedDecksPage() {
         <div className="empty-state">
           <h2>No tuned decks in this browser yet</h2>
           <p>
-            Open the <a href="#/lab">Deck Lab</a>, pick a deck and press <b>Tune</b>. When the run finishes, <b>Save to My decks</b> keeps the tuned list with its result, and it shows up here. A tuned deck
+            Open the <a href="#/lab">Deck Lab</a>, pick a deck and press <b>Tune</b>. When the run finishes, <b>Overwrite</b> (a deck you saved here) or <b>Save as a copy</b> keeps the tuned list with its result, and it shows up here. A tuned deck
             saved in another browser can be brought here with that browser’s <b>Export all</b> and <b>Import</b> on this page.
           </p>
         </div>
