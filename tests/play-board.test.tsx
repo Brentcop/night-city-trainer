@@ -12,7 +12,7 @@ import { boardMarks, buildInteraction, EMPTY_IX, NO_MARKS, type Targeting } from
 import { PHONE_FIXED } from '../src/ui/components/board/layout';
 import { AllActions } from '../src/ui/components/board/PromptPanel';
 import { ALL_ACTIONS_KEY, BOT_SPEEDS, DEFAULT_BOT_SPEED, loadBotSpeed, normalizeBotSpeed, readFlag, saveBotSpeed, writeFlag } from '../src/ui/components/board/prefs';
-import { HAND_BACKS_MAX, handPulse, PlayerSide, RivalHandCount, rivalHandOwner } from '../src/ui/components/board/Zones';
+import { HAND_BACKS_MAX, handPulse, PlayerSide, RivalHandCount, rivalHandLabel, rivalHandOwner } from '../src/ui/components/board/Zones';
 import { DEFAULT_REPLAY_SPEED, REPLAY_SPEEDS } from '../src/ui/components/ReplayBoard';
 import { placeZoom } from '../src/ui/components/TcgCard';
 import { lessMotion } from '../src/ui/useBoardSettings';
@@ -200,7 +200,7 @@ describe("the rival's hand size (RivalHandCount)", () => {
       [12, 7, '12 cards'],
     ] as const) {
       const html = renderToStaticMarkup(<RivalHandCount n={n} owner="Rival" backs />);
-      expect(html, `${n}`).toContain(`<span class="pb-rh-word">Hand</span><b class="pb-rh-n">${n}</b>`);
+      expect(html, `${n}`).toContain(`<span class="pb-rh-word" aria-hidden="true">Hand</span><b class="pb-rh-n" aria-hidden="true">${n}</b>`);
       expect(backsIn(html), `${n}`).toBe(shown);
       expect(html).toContain(`role="img" aria-label="${esc(`Rival's hand: ${words}`)}" title="${esc(`Rival's hand: ${words}`)}"`);
       // an empty hand shows no backs at all; nothing in it is focusable or a button
@@ -239,15 +239,37 @@ describe("the rival's hand size (RivalHandCount)", () => {
     expect(html).toMatch(new RegExp(`<div class="pb-side-name">.*<div class="pb-rh pb-name-hand" role="img" aria-label="${label}"`));
     expect(backsIn(html.slice(html.indexOf('pb-name-hand'), html.indexOf('pb-rh-word', html.indexOf('pb-name-hand'))))).toBe(5);
     // phones: a tile in the piles column (no backs: the column is 60px wide)
-    expect(html).toContain(`<div class="pb-pile pb-pile-hand"><div class="pb-rh pb-rh-tile" role="img" aria-label="${label}" title="${label}"><span class="pb-rh-word">Hand</span><b class="pb-rh-n">5</b></div></div>`);
+    expect(html).toContain(`<div class="pb-pile pb-pile-hand"><div class="pb-rh pb-rh-tile" role="img" aria-label="${label}" title="${label}"><span class="pb-rh-word" aria-hidden="true">Hand</span><b class="pb-rh-n" aria-hidden="true">5</b></div></div>`);
     // other layouts (the replay and review boards): beside the row of backs
     expect(html).toMatch(new RegExp(`<div class="pb-rival-hand">(<div class="pb-rival-hand-card" aria-hidden="true">.*?</div></div></div></div>){5}<div class="pb-rh" role="img" aria-label="${label}"`));
-    expect(html.match(/<span class="pb-rh-word">Hand<\/span><b class="pb-rh-n">5<\/b>/g)).toHaveLength(3);
+    expect(html.match(/<span class="pb-rh-word" aria-hidden="true">Hand<\/span><b class="pb-rh-n" aria-hidden="true">5<\/b>/g)).toHaveLength(3);
     // the old muted wording is gone
     expect(html).not.toContain('in hand');
     expect(html).not.toContain('Rival hand:');
     // your own side has none
     expect(renderToStaticMarkup(<PlayerSide p={0} ctx={ctx} />)).not.toContain('pb-rh');
+  });
+
+  it('a screen reader hears what it is and the number once, on every layout, the phone tile included (ROADMAP2 §11 item 21)', () => {
+    // the name: singular, plural and zero
+    expect(rivalHandLabel('Rival', 5)).toBe("Rival's hand: 5 cards");
+    expect(rivalHandLabel('Rival', 1)).toBe("Rival's hand: 1 card");
+    expect(rivalHandLabel('Ana', 0)).toBe("Ana's hand: 0 cards");
+    // an image with that name whose drawn word and number are hidden from the reader (never read twice)
+    for (const html of [renderToStaticMarkup(<RivalHandCount n={1} owner="Rival" tile />), renderToStaticMarkup(<RivalHandCount n={1} owner="Rival" backs />)]) {
+      expect(html).toContain(`role="img" aria-label="${esc("Rival's hand: 1 card")}"`);
+      expect(html).not.toMatch(/<span class="pb-rh-word">|<b class="pb-rh-n">/);
+    }
+    // phones: the piles column is one button (open the trash), whose name would hide the tile inside it; its name says
+    // the hand size too, for the rival only
+    const { ctx, g } = sideCtx({ narrow: true, inspect: () => undefined });
+    const rival = renderToStaticMarkup(<PlayerSide p={1} ctx={ctx} />);
+    const button = rival.match(/<div class="pb-piles pb-piles-tap" role="button" tabindex="0" aria-label="([^"]*)"/)?.[1];
+    expect(button).toBe(esc(`The rival's piles: open the trash (${g.P(1).trash.length} cards). Rival's hand: 5 cards`));
+    const mine = renderToStaticMarkup(<PlayerSide p={0} ctx={ctx} />).match(/<div class="pb-piles pb-piles-tap" role="button" tabindex="0" aria-label="([^"]*)"/)?.[1];
+    expect(mine).toBe(esc(`Your piles: open the trash (${g.P(0).trash.length} cards)`));
+    // without the one-button column (desktop, or while paying) the tile is its own named image, as on the other layouts
+    expect(renderToStaticMarkup(<PlayerSide p={1} ctx={sideCtx().ctx} />)).toContain(`<div class="pb-pile pb-pile-hand"><div class="pb-rh pb-rh-tile" role="img" aria-label="${esc("Rival's hand: 5 cards")}"`);
   });
 
   it('pulses once when the number changes: never on the first render, never with motion reduced or off', () => {

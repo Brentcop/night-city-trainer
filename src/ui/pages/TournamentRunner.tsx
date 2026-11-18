@@ -74,7 +74,8 @@ import { download } from '../../lib/download';
 import { usePoolRun } from '../usePoolRun';
 import { draftLinkQuery, parseRunParams, parseRuns, toEvent } from '../runParams';
 import { TOURNEY_BOTS, tierLabel } from '../../ai/tiers';
-import { recordRun } from '../../lib/runLedgerEntry';
+import { countedInLedger, forgetRunTitle, forgotRunText, recordRun } from '../../lib/runLedgerEntry';
+import { loadLedger } from '../../lib/runLedger';
 import { YourStatsLine } from '../components/YourStats';
 import '../deckprofile.css';
 import { StatTile } from '../components/DeckStats';
@@ -213,6 +214,8 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
   const [linkMsg, setLinkMsg] = useState('');
   /** the last finished run could not be added to your deck stats (storage refused) */
   const [ledgerRefused, setLedgerRefused] = useState(false);
+  /** what removing a saved run just did (its results stay in your deck stats until you clear them there) */
+  const [forgotMsg, setForgotMsg] = useState('');
   const [pause, setPause] = useState<Pause | null>(null);
   const waiter = useRef<((x: RoundInput | void) => void) | null>(null);
   const poolRun = usePoolRun();
@@ -811,11 +814,13 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
               <button
                 className="ghost small"
                 aria-label={`Forget the run ${r.name ?? r.id}`}
-                title="Remove from this browser"
+                title={forgetRunTitle(r.phase === 'done' && !isPlayedSetup(r.setup))}
                 disabled={running}
                 onClick={() => {
+                  const counted = countedInLedger(loadLedger(), r.id);
                   forgetRun(r.id);
                   setRuns(loadRuns());
+                  setForgotMsg(forgotRunText(r.name ?? r.format, counted));
                   if (ev?.id === r.id) setEv(null);
                 }}
               >
@@ -829,6 +834,9 @@ export function TournamentRunnerPage({ q }: { q: URLSearchParams }) {
             📂 Open event file
           </label>
           {fileMsg && <span style={{ color: 'var(--red)' }}>{fileMsg}</span>}
+          <span className="muted" role="status" aria-live="polite">
+            {forgotMsg}
+          </span>
         </div>
       )}
       {!running && <YourStatsLine refused={ledgerRefused} />}

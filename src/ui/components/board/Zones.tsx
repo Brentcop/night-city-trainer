@@ -191,15 +191,20 @@ export function handPulse(prev: { n: number; k: number }, n: number, less: boole
 /** Whose hand it is, as the rest of the rival's side names the seat. */
 export const rivalHandOwner = (ctx: BoardCtx) => ctx.seatLabels?.[1] ?? ctx.rivalName ?? 'Rival';
 
+/** What a screen reader hears for the rival's hand size: "Rival's hand: 5 cards" (1 card, 0 cards). */
+export const rivalHandLabel = (owner: string, n: number) => `${owner}'s hand: ${cardCount(n)}`;
+
 /**
  * The rival's hand size, said the same way on every layout: a few small card backs (`backs`; the board's own back, at
  * most HAND_BACKS_MAX, none for an empty hand), the word "Hand" and the number in bold read-out numerals. The desktop
  * board shows it in the rival's name row, phones as a tile in the rival's piles column (`tile`, no backs: the column is
  * 60px wide), and the replay boards beside their row of backs. Not focusable and no click of its own; it pulses once
- * when the number changes (handPulse).
+ * when the number changes (handPulse). It is one image to a screen reader, named by rivalHandLabel; the word and the
+ * number it draws are hidden from the reader, so the count is never read twice. On phones the piles column it sits in is
+ * one button (open the trash), whose name would hide it, so that button's name carries the same words (Piles).
  */
 export function RivalHandCount({ n, owner, backs, tile, className }: { n: number; owner: string; backs?: boolean; tile?: boolean; className?: string }) {
-  const label = `${owner}'s hand: ${cardCount(n)}`;
+  const label = rivalHandLabel(owner, n);
   const [pulse, setPulse] = useState(() => ({ n, k: 0 }));
   // a render-phase update (React's "state from the previous render" pattern): the pulse starts with the render that
   // shows the new number
@@ -214,8 +219,10 @@ export function RivalHandCount({ n, owner, backs, tile, className }: { n: number
           ))}
         </div>
       )}
-      <span className="pb-rh-word">Hand</span>
-      <b key={pulse.k} className={pulse.k ? 'pb-rh-n pb-rh-pulse' : 'pb-rh-n'}>
+      <span className="pb-rh-word" aria-hidden="true">
+        Hand
+      </span>
+      <b key={pulse.k} className={pulse.k ? 'pb-rh-n pb-rh-pulse' : 'pb-rh-n'} aria-hidden="true">
         {n}
       </b>
     </div>
@@ -234,11 +241,13 @@ function Piles({ p, ctx, byLegends }: { p: PlayerId; ctx: BoardCtx; byLegends?: 
   // phones: the piles are a column of counts, and the whole column is one tap target for the trash (unless paying,
   // when your €$ count spends or selects an Eddie)
   const columnOpens = !!ctx.inspect && !onPile;
+  // the column's button name replaces everything in it for a screen reader: the rival's hand size goes in with it
+  const columnLabel = `${p === 0 ? 'Your' : "The rival's"} piles: open the trash (${cardCount(P.trash.length)})${p === 1 ? `. ${rivalHandLabel(rivalHandOwner(ctx), P.hand.length)}` : ''}`;
   return (
     <div
       className={`pb-piles ${columnOpens ? 'pb-piles-tap' : ''}`}
       onClick={columnOpens ? () => ctx.openTrash(p) : undefined}
-      {...pressable(columnOpens ? () => ctx.openTrash(p) : undefined, `${p === 0 ? 'Your' : "The rival's"} piles: open the trash (${cardCount(P.trash.length)})`)}
+      {...pressable(columnOpens ? () => ctx.openTrash(p) : undefined, columnLabel)}
     >
       {!byLegends && <EddiePile p={p} ctx={ctx} />}
       <div className="pb-pile" title={`Deck: ${cardCount(P.deck.length)}`}>

@@ -149,3 +149,25 @@ export function recordRun(ev: unknown): 'saved' | 'skipped' | 'refused' {
   const folded = foldSavedRuns(loadLedger(), savedRunsText()).ledger;
   return saveLedger(addRun(folded, run)) ? 'saved' : 'refused';
 }
+
+// ---------------------------------------------------------------- removing a saved run
+// Removing a run from the runner's saved runs leaves its ledger entry alone, by design: the runner keeps only its last
+// few runs (older ones drop off by themselves) while the ledger keeps up to LEDGER_MAX_RUNS, so the ledger is meant to
+// outlive the saved runs, and only "Clear your tournament stats" empties it. The words say so where a run is removed.
+
+/** Whether a run is counted in your deck stats ("Your tournaments"). */
+export const countedInLedger = (l: Ledger, id: string | number): boolean => l.runs.some((r) => r.id === String(id));
+
+/** The remove button's tooltip for a saved run. */
+export function forgetRunTitle(counted: boolean): string {
+  return counted
+    ? 'Remove from this browser’s recent runs. Its results stay in your deck stats (Your tournaments) until you clear your tournament stats.'
+    : 'Remove from this browser';
+}
+
+/** What the runner says after removing a saved run. */
+export function forgotRunText(name: string, counted: boolean): string {
+  return counted
+    ? `Removed “${name}” from your recent runs. Its results still count in your deck stats (Your tournaments) until you clear your tournament stats.`
+    : `Removed “${name}” from your recent runs.`;
+}

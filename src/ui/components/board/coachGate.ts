@@ -18,8 +18,9 @@ export function adviceWanted(d: Decision | null, coach: boolean, payMode: PayMod
 }
 
 /**
- * Grade your answer to decision `d`: the coach is on and its advice for this exact decision is showing (`advisedFor`,
- * the decision the advice on screen was made for). A move made before the advice arrived, or with the coach off, is not.
+ * Grade your answer to decision `d` now: the coach is on and its advice for this exact decision is showing (`advisedFor`,
+ * the decision the advice on screen was made for). A move made with the coach off is not graded; one made with the coach
+ * on before its advice arrived is graded when the advice for `d` lands (src/lib/coachGrading.ts gradeWhenAdvised).
  */
 export function gradeWanted(d: Decision, coach: boolean, advisedFor: Decision | null): boolean {
   return coach && advisedFor === d && coachWorthAsking(d);

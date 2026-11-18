@@ -31,7 +31,8 @@ import { sessionEnding } from '../../lib/practiceVerdict';
 import { reviewFrames, type ReviewFrames } from '../../lib/reviewFrames';
 import { explain, FOLLOW_TEXT, gapTag, RERATED_TEXT, REVIEW_BASIS, staleText } from '../../lib/reviewWords';
 import { shownLabel } from '../../lib/coachWords';
-import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
+import type { ReviewRequest } from '../../sim/review.worker';
+import { ReviewWorkerHost, useReviewHost, WAITING_TEXT } from '../reviewWorkerHost';
 import { Modal } from './Modal';
 import { MentionText } from './CardMention';
 import { RatingPill } from './RatingPill';
@@ -52,7 +53,8 @@ export interface GameReviewSource {
 }
 
 type RunState =
-  | { status: 'running'; decisions: number; turn: number }
+  /** `waiting`: queued behind the other tab's review on the shared worker */
+  | { status: 'running'; decisions: number; turn: number; waiting?: boolean }
   | { status: 'stopped' }
   | { status: 'error'; error: string }
   /** the game can't be replayed as it was played: `why` is a plain sentence; `stale`, a review kept from older rules */
@@ -65,7 +67,8 @@ type RunState =
  * with its counts by the effect below: the load runs during render and only reads); otherwise it is run again, and if
  * the game can't be replayed any more, it is shown as it was, with the refusal.
  */
-function useGameReview(src: GameReviewSource): { st: RunState; stop: () => void; start: () => void } {
+function useGameReview(src: GameReviewSource, shared?: ReviewWorkerHost): { st: RunState; stop: () => void; start: () => void } {
+  const host = useReviewHost(shared);
   const stored = useMemo(() => (src.persist ? loadGameReview(src.replay.id, src.replay.choices) : null), [src]);
   // a review rated again from storage: keep it under the current rules, and the practice log's counts with it
   useEffect(() => {
@@ -80,7 +83,7 @@ function useGameReview(src: GameReviewSource): { st: RunState; stop: () => void;
         ? { status: 'refused', why: versionWhy, ...(stored?.stale ? { stale: stored.stale } : {}) }
         : { status: 'running', decisions: 0, turn: 0 },
   );
-  const worker = useRef<Worker | null>(null);
+  const cancel = useRef<(() => void) | null>(null);
   const [runs, setRuns] = useState(stored?.review || versionWhy ? 0 : 1);
   useEffect(() => {
     if (!runs) return;
@@ -94,45 +97,28 @@ function useGameReview(src: GameReviewSource): { st: RunState; stop: () => void;
     const coach = src.coach.length ? src.coach : (stored?.coach ?? []);
     const keep = !coach.length && stale ? stale.moves.filter((m) => m.src === 'coach' && m.p === stale.me) : [];
     const q: ReviewRequest = { kind: 'game', job: { id: src.replay.id, spec: practiceSpec(src.replay, src.turns), coach, ...(keep.length ? { keep } : {}), made: new Date().toISOString() } };
-    setSt({ status: 'running', decisions: 0, turn: 0 });
-    let w: Worker;
-    try {
-      w = new Worker(new URL('../../sim/review.worker.ts', import.meta.url), { type: 'module' });
-    } catch (e) {
-      setSt({ status: 'error', error: String((e as Error)?.message ?? e) });
-      return;
-    }
-    worker.current = w;
-    w.onmessage = (e: MessageEvent<ReviewReply>) => {
-      const m = e.data;
-      if ('progress' in m) setSt({ status: 'running', decisions: m.progress, turn: m.turn ?? 0 });
-      else if ('game' in m) {
-        if (src.persist) keepReview(m.game, coach);
-        setSt({ status: 'done', rec: m.game });
-        w.terminate();
-      } else if ('refused' in m) {
-        setSt({ status: 'refused', why: m.refused, ...(stale ? { stale } : {}) });
-        w.terminate();
-      } else if ('error' in m) {
-        setSt({ status: 'error', error: m.error });
-        w.terminate();
-      }
+    setSt({ status: 'running', decisions: 0, turn: 0, ...(host.busy ? { waiting: true } : {}) });
+    const off = host.run(q, {
+      start: () => setSt({ status: 'running', decisions: 0, turn: 0 }),
+      reply: (m) => {
+        if ('progress' in m) setSt({ status: 'running', decisions: m.progress, turn: m.turn ?? 0 });
+        else if ('game' in m) {
+          if (src.persist) keepReview(m.game, coach);
+          setSt({ status: 'done', rec: m.game });
+        } else if ('refused' in m) setSt({ status: 'refused', why: m.refused, ...(stale ? { stale } : {}) });
+        else if ('error' in m) setSt({ status: 'error', error: m.error });
+      },
+      fail: (error) => setSt({ status: 'error', error }),
+    });
+    cancel.current = off;
+    return () => {
+      off();
+      if (cancel.current === off) cancel.current = null;
     };
-    w.onerror = (e: ErrorEvent) => {
-      e.preventDefault();
-      setSt({ status: 'error', error: e.message || 'the review worker failed to start' });
-      w.terminate();
-    };
-    w.onmessageerror = () => {
-      setSt({ status: 'error', error: 'the review worker sent an unreadable reply' });
-      w.terminate();
-    };
-    w.postMessage(q);
-    return () => w.terminate();
-  }, [runs, src, stored, versionWhy]);
+  }, [runs, src, stored, versionWhy, host]);
   const stop = useCallback(() => {
-    worker.current?.terminate();
-    worker.current = null;
+    cancel.current?.();
+    cancel.current = null;
     setSt({ status: 'stopped' });
   }, []);
   const start = useCallback(() => setRuns((n) => n + 1), []);
@@ -144,6 +130,9 @@ const gigs = (x: number) => x.toFixed(2);
 export function GameReviewModal({ src: given, title, onClose, backdropClassName }: { src: GameReviewSource; title: string; onClose: () => void; backdropClassName?: string }) {
   // the game reviewed is the one the dialog opened with (a parent re-rendering must not restart the review)
   const [src] = useState(given);
+  // one review worker for both tabs, stopped when the dialog closes
+  const [host] = useState(() => new ReviewWorkerHost());
+  useEffect(() => () => host.dispose(), [host]);
   const fullReq = useMemo(() => practiceRequest(src.replay, src.turns), [src]);
   const [tab, setTab] = useState<'game' | 'full'>('game');
   const [fullSeen, setFullSeen] = useState(false);
@@ -184,10 +173,10 @@ export function GameReviewModal({ src: given, title, onClose, backdropClassName 
         ))}
       </div>
       <div role="tabpanel" id="gr-panel-game" aria-labelledby="gr-tab-game" hidden={tab !== 'game'}>
-        <GameReviewView src={src} active={tab === 'game'} />
+        <GameReviewView src={src} active={tab === 'game'} host={host} />
       </div>
       <div role="tabpanel" id="gr-panel-full" aria-labelledby="gr-tab-full" hidden={tab !== 'full'}>
-        {fullSeen && <ReviewPanel req={fullReq} mySeat={mySeat(src.replay)} expect={reviewExpect(src.replay)} checked />}
+        {fullSeen && <ReviewPanel req={fullReq} mySeat={mySeat(src.replay)} expect={reviewExpect(src.replay)} checked host={host} />}
       </div>
     </Modal>
   );
@@ -197,8 +186,8 @@ export function GameReviewModal({ src: given, title, onClose, backdropClassName 
 }
 
 /** The Game review itself: running, stopped, failed, or the summary and move list. */
-export function GameReviewView({ src, active = true }: { src: GameReviewSource; active?: boolean }) {
-  const { st, stop, start } = useGameReview(src);
+export function GameReviewView({ src, active = true, host }: { src: GameReviewSource; active?: boolean; host?: ReviewWorkerHost }) {
+  const { st, stop, start } = useGameReview(src, host);
   if (st.status === 'error') return <p className="small" style={{ color: 'var(--red)' }}>The review failed: {st.error.slice(0, 200)}</p>;
   if (st.status === 'refused')
     return (
@@ -229,7 +218,7 @@ export function GameReviewView({ src, active = true }: { src: GameReviewSource; 
     return (
       <div className="review-busy" aria-live="polite">
         <span>
-          <span className="spinner" /> Reviewing… {st.decisions} decisions rated{st.turn ? `, turn ${st.turn}${src.turns ? ` of ${src.turns}` : ''}` : ''}
+          <span className="spinner" /> {st.waiting ? WAITING_TEXT : <>Reviewing… {st.decisions} decisions rated{st.turn ? `, turn ${st.turn}${src.turns ? ` of ${src.turns}` : ''}` : ''}</>}
         </span>
         {src.turns ? <progress max={src.turns} value={Math.min(st.turn, src.turns)} aria-label="Review progress by turn" /> : null}
         <div className="small muted">Every move of both sides is compared with the alternatives by playing each out for about a turn. Your moves the coach graded during play keep the coach's grade.</div>

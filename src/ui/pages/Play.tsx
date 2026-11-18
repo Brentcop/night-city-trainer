@@ -7,7 +7,8 @@ import type { PracticeReplay } from '../../lib/practiceReplays';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
 import { gameDeck } from '../../lib/tournament';
 import { keepFinishedGrades, keepsCoachGrades } from '../../lib/coachKeep';
-import { buildCoachedReplay, coachedGrade, coachedReplayFileName } from '../../lib/coachedReplay';
+import { buildCoachedReplay, coachedReplayFileName } from '../../lib/coachedReplay';
+import { EARLY_MOVE_NOTE, gradeWhenAdvised, gradeWithAdvice, type GradeContext } from '../../lib/coachGrading';
 import { download } from '../../lib/download';
 import { GIG_SWING } from '../../ai/eval';
 import { canConcede, canUndo, rematchOf, type Running } from '../../lib/practiceSession';
@@ -17,7 +18,7 @@ import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
 import { useLiftSlice } from '../synergyReport';
 import { seatLiftFromSlice } from '../../ai/packageLift';
-import { boardWarnings, coachWorthAsking, gradeMove, scorable, matchupTips, type Advice, type GradedOption, type MoveGrade } from '../../ai/coach';
+import { boardWarnings, coachWorthAsking, scorable, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
 import { boardMarks, buildInteraction, coachMark, onlyEndTurn, promptZones, type Targeting } from '../components/board/interaction';
@@ -844,32 +845,31 @@ export function Board({
       setMenu(null);
       setTargeting(null);
       if (!d || !human.answer(d, i)) return false;
-      // a move made before the advice arrived can't be graded: say so once a game, plainly, instead of nothing
-      if (coach && coachWorthAsking(d) && scorable(d) && !(activeHint && activeHint.d === d) && adviceFailed !== d && !earlyNoted.current.has(game.replay.id)) {
-        earlyNoted.current.add(game.replay.id);
-        setNotice('That move was made before the coach had finished thinking, so it is not graded. A move is graded once the coach’s pick shows.');
-      }
-      // grade the move against the coach by value (only when the advice for this exact spot is ready)
-      if (activeHint && gradeWanted(d, coach, activeHint.d)) {
-        const advice = activeHint.advice;
-        // this answer's place among the recorded choices (the recorder adds it once the answer settles)
-        const at = game.replay.choices.length;
-        const gr = coachedGrade(d, i, advice, gradeMove(d, i, advice, g.s.turn), at);
-        grades.push(gr);
-        setToast(gr);
-        if (gr.verdict === 'pending') {
-          // a move the coach did not value: scored in its worlds off the board's thread; play goes on meanwhile. Undo
-          // truncates `grades`, so a score that arrives for an undone move finds its placeholder gone and is dropped.
-          const settle = (extra: GradedOption[]) => {
-            const k = grades.indexOf(gr);
-            if (k < 0) return;
-            const done = coachedGrade(d, i, advice, gradeMove(d, i, advice, gr.turn, extra), at, extra);
-            grades[k] = done;
-            setToast((t) => (t === gr ? done : t));
-            // the game-over effect (practice log, stored coach grades) and the scorecard must see the finished grade
-            setGradeTick((x) => x + 1);
-          };
-          coachApi.score(d, i, advice).then(settle, () => settle([]));
+      // grade the move against the coach by value (src/lib/coachGrading.ts): at once when the advice for this exact spot
+      // is showing; for a move made before it arrived, when the advice for this decision lands
+      const ctx: GradeContext = {
+        grades,
+        score: coachApi.score,
+        onGrade: (gr, replaced) => {
+          // the toast is for the move just made, or the finished score of the one it shows; a late grade has no toast
+          if (!replaced) setToast(gr);
+          else setToast((t) => (t === replaced ? gr : t));
+          // the game-over effect (practice log, stored coach grades) and the scorecard must see a finished or late grade
+          if (replaced) setGradeTick((x) => x + 1);
+        },
+      };
+      // this answer's place among the recorded choices (the recorder adds it once the answer settles)
+      const at = game.replay.choices.length;
+      if (activeHint && gradeWanted(d, coach, activeHint.d)) gradeWithAdvice(ctx, d, i, activeHint.advice, at, g.s.turn);
+      else if (coach && coachWorthAsking(d) && adviceFailed !== d) {
+        const advice = coachApi.adviceFor(d);
+        if (advice) {
+          gradeWhenAdvised(ctx, d, i, advice, at, g.s.turn);
+          // say so once a game, plainly
+          if (scorable(d) && !earlyNoted.current.has(game.replay.id)) {
+            earlyNoted.current.add(game.replay.id);
+            setNotice(EARLY_MOVE_NOTE);
+          }
         }
       }
       return true;

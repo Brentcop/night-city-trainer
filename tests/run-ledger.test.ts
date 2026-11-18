@@ -24,7 +24,7 @@ import {
   yourRecords,
   type LedgerRun,
 } from '../src/lib/runLedger';
-import { foldSavedRuns, ledgerRunOf, migrateSavedRuns, recordRun, SAVED_RUNS_KEY } from '../src/lib/runLedgerEntry';
+import { countedInLedger, foldSavedRuns, forgetRunTitle, forgotRunText, ledgerRunOf, migrateSavedRuns, recordRun, SAVED_RUNS_KEY } from '../src/lib/runLedgerEntry';
 
 const [D0, D1, D2] = BUILTIN.map((d) => d.deck) as [DeckList, DeckList, DeckList];
 const fp = (d: DeckList) => listFingerprint(d);
@@ -330,5 +330,21 @@ describe('an edited list starts afresh, a renamed one keeps its record', () => {
     expect(r.get(fp(D0))!.games).toBe(1);
     expect(r.get(fp(EDITED))!.games).toBe(1);
     expect(fp(EDITED)).not.toBe(fp(D0));
+  });
+});
+
+describe('removing a saved run in the runner says its results stay (ROADMAP2 §11 item 13)', () => {
+  it('a run counted in the ledger is found by its id, whatever its type', () => {
+    const l = addRun(emptyLedger(), run('run-x'));
+    expect(countedInLedger(l, 'run-x')).toBe(true);
+    expect(countedInLedger(l, 'run-y')).toBe(false);
+    // folded but not counted (a played event, an unreadable run, or a cleared ledger) is not "counted"
+    expect(countedInLedger(clearedLedger(l), 'run-x')).toBe(false);
+  });
+  it('the words say plainly that the results stay until the stats are cleared, and only when they do', () => {
+    expect(forgotRunText('Friday cup', true)).toBe('Removed “Friday cup” from your recent runs. Its results still count in your deck stats (Your tournaments) until you clear your tournament stats.');
+    expect(forgotRunText('Friday cup', false)).toBe('Removed “Friday cup” from your recent runs.');
+    expect(forgetRunTitle(true)).toMatch(/stay in your deck stats \(Your tournaments\) until you clear your tournament stats/);
+    expect(forgetRunTitle(false)).toBe('Remove from this browser');
   });
 });

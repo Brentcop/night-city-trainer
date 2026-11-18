@@ -2,47 +2,40 @@
 // reviewer in a worker and shows each seat's moves in the Game review's own rating names (src/lib/gameReview.ts
 // rateOracle: the same noise test, never a second grade or "accuracy" of its own), the moves its play-outs liked least,
 // decision types and momentum. A recorded game that no longer replays is refused in a plain sentence.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DecisionReview, GameReview, SeatReview } from '../../ai/reviewer';
 import { DECIDED_EVAL, GIG_SWING } from '../../ai/eval';
 import { counts, lossOf, RATINGS, rateOracle, type Rating } from '../../lib/gameReview';
 import { behindText, gapFigure, gapSize, shownLabel } from '../../lib/coachWords';
-import type { ReviewReply, ReviewRequest } from '../../sim/review.worker';
+import type { ReviewRequest } from '../../sim/review.worker';
+import { useReviewHost, WAITING_TEXT, type ReviewWorkerHost } from '../reviewWorkerHost';
 import { RatingPill } from './RatingPill';
 import { Wr } from './Num';
 import { MentionText } from './CardMention';
 
 const gigs = (pts: number) => pts / GIG_SWING;
 
-/** Run a review in a background worker. */
-function useReview(req: ReviewRequest | null) {
-  const [state, setState] = useState<{ progress: number; review?: GameReview; error?: string; refused?: string; busy: boolean }>({ progress: 0, busy: false });
-  const w = useRef<Worker | null>(null);
+/**
+ * Run a review in a background worker: the Game review dialog's shared one (`shared`, src/ui/reviewWorkerHost.ts), else
+ * one of its own. A worker that fails to load or crashes ends the review with an error, so the spinner stops.
+ */
+function useReview(req: ReviewRequest | null, shared?: ReviewWorkerHost) {
+  const host = useReviewHost(shared);
+  const [state, setState] = useState<{ progress: number; review?: GameReview; error?: string; refused?: string; busy: boolean; waiting?: boolean }>({ progress: 0, busy: false });
   useEffect(() => {
     if (!req) return;
-    setState({ progress: 0, busy: true });
-    const worker = new Worker(new URL('../../sim/review.worker.ts', import.meta.url), { type: 'module' });
-    w.current = worker;
-    worker.onmessage = (e: MessageEvent<ReviewReply>) => {
-      const m = e.data;
-      if ('progress' in m) setState((s) => ({ ...s, progress: m.progress }));
-      else if ('review' in m) setState({ progress: m.review.decisions.length, review: m.review, busy: false }), worker.terminate();
-      else if ('refused' in m) setState({ progress: 0, refused: m.refused, busy: false }), worker.terminate();
-      else if ('error' in m) setState({ progress: 0, error: m.error, busy: false }), worker.terminate();
-    };
-    // a worker that fails to load or crashes reports here (not via onmessage), so stop the spinner
-    worker.onerror = (e: ErrorEvent) => {
-      e.preventDefault();
-      setState({ progress: 0, error: e.message || 'the review worker failed to start', busy: false });
-      worker.terminate();
-    };
-    worker.onmessageerror = () => {
-      setState({ progress: 0, error: 'the review worker sent an unreadable reply', busy: false });
-      worker.terminate();
-    };
-    worker.postMessage(req);
-    return () => worker.terminate();
-  }, [req]);
+    setState({ progress: 0, busy: true, ...(host.busy ? { waiting: true } : {}) });
+    return host.run(req, {
+      start: () => setState({ progress: 0, busy: true }),
+      reply: (m) => {
+        if ('progress' in m) setState((s) => ({ ...s, progress: m.progress }));
+        else if ('review' in m) setState({ progress: m.review.decisions.length, review: m.review, busy: false });
+        else if ('refused' in m) setState({ progress: 0, refused: m.refused, busy: false });
+        else if ('error' in m) setState({ progress: 0, error: m.error, busy: false });
+      },
+      fail: (error) => setState({ progress: 0, error, busy: false }),
+    });
+  }, [req, host]);
   return state;
 }
 
@@ -62,8 +55,8 @@ const rate = (d: DecisionReview): Rated => {
  * `checked`: a recorded practice game, whose replay the worker checked move by move (strict); otherwise (a tournament
  * game re-played by its bots) only the result is compared with `expect`.
  */
-export function ReviewPanel({ req, title, mySeat, expect, checked }: { req: ReviewRequest; title?: string; mySeat?: 0 | 1; expect?: 0 | 1 | 'tie'; checked?: boolean }) {
-  const st = useReview(req);
+export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req: ReviewRequest; title?: string; mySeat?: 0 | 1; expect?: 0 | 1 | 'tie'; checked?: boolean; host?: ReviewWorkerHost }) {
+  const st = useReview(req, host);
   if (st.refused)
     return (
       <p className="small gr-refused" role="status">
@@ -74,7 +67,7 @@ export function ReviewPanel({ req, title, mySeat, expect, checked }: { req: Revi
   if (!st.review)
     return (
       <div className="review-busy">
-        <span className="spinner" /> Reviewing… {st.progress} decisions scored
+        <span className="spinner" /> {st.waiting ? WAITING_TEXT : `Reviewing… ${st.progress} decisions scored`}
         <div className="small muted">Each move is compared with the alternatives by playing them out for about a turn.</div>
       </div>
     );

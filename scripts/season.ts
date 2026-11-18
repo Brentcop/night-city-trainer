@@ -111,6 +111,7 @@ import { DEFAULT_GAME_BUDGET, estimateGames, settleExtra } from '../src/lib/deck
 import { SIM_VERSION } from '../src/lib/tournament';
 import { leftOutLine } from '../src/lib/distinctLists';
 import { sameListBred, seasonField } from './season-field';
+import { uncountSeason, type Entry } from './season-leaderboard';
 
 const { values: V } = cli(import.meta.url, {
   season: int(undefined, { min: 1 }),
@@ -206,22 +207,6 @@ const ALLOW_SAME_LISTS = V['allow-same-lists'];
 const SEASON_FILE = `data/seasons/season-${SEASON}.json`;
 
 // ---------------------------------------------------------------- leaderboard
-interface Entry {
-  name: string;
-  file: string;
-  kind: string;
-  origin: string; // meta / guide / NC original / S<n> mutant|crossover|explorer / variant
-  colors: string;
-  arch: string;
-  firstSeason: number;
-  metaW: number; // wins (ties = 0.5) vs meta archetypes, pooled across seasons + finals
-  metaG: number;
-  seasons: Record<string, number>; // season -> round-robin win rate in that season
-  finals?: number; // latest finals win rate vs meta
-  idea?: string;
-  /** what each season added to metaW/metaG (so a forced re-run can take it out again); finals: that season set `finals` */
-  contrib?: Record<string, { w: number; g: number; finals?: boolean }>;
-}
 const LB_FILE = 'data/seasons/leaderboard.json';
 const lib = loadLibrary();
 const metaDecks = lib.filter((d) => d.kind === 'meta');
@@ -291,28 +276,6 @@ function addFinals(e: Entry, t: { overall: number; rows: { b: string; aWins: num
     e.finals = w / g;
     if (season) e.contrib![String(season)].finals = true;
   }
-}
-/**
- * Before a forced re-run: take season N's games back out of the leaderboard. Returns false (changing nothing) when the
- * season was counted before per-season totals were kept.
- */
-function uncountSeason(lb: Record<string, Entry>, season: number): boolean {
-  const k = String(season);
-  const legacy = Object.values(lb).filter((e) => e.seasons[k] !== undefined && !e.contrib?.[k]);
-  if (legacy.length) return false;
-  for (const e of Object.values(lb)) {
-    const c = e.contrib?.[k];
-    if (c) {
-      e.metaW -= c.w;
-      e.metaG -= c.g;
-      if (Math.abs(e.metaW) < 1e-9) e.metaW = 0;
-      if (c.finals) delete e.finals;
-      delete e.contrib![k];
-    }
-    delete e.seasons[k];
-    if (e.firstSeason === season) delete lb[e.name];
-  }
-  return true;
 }
 const vsMeta = (e: Entry) => (e.metaG ? e.metaW / e.metaG : 0);
 /** Ranking score: win rate vs meta shrunk toward 50% by a 60-game prior (small samples can't top the board). */

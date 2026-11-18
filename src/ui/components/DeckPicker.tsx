@@ -3,17 +3,20 @@ import { deckColors } from '../../engine/deck';
 import { shortCredit, type LibraryDeck } from '../../lib/library';
 import { deckByFile } from '../deckLookup';
 import { SMALL_SAMPLE, tileRecord } from '../../lib/playedRecord';
-import { RATINGS } from '../../data/index';
 import { deckSource, SOURCES } from '../../lib/deckSource';
 import { loadHidden } from '../../lib/hiddenDecks';
 import { useLibraryVersion } from '../useLibrary';
-import { simTierFor, tierOptionText } from './TierBadges';
+import { recordedRow, simTierOf, tierOptionText } from './TierBadges';
 
-const RATED = new Map(RATINGS.decks.map((r) => [r.name, r]));
-/** " · 68% in 485 games" from the deck's tournament record (an option can't be styled, so a small sample says so). */
-function playedLabel(name: string) {
-  const r = tileRecord(RATED.get(name));
-  return r ? ` · ${Math.round(r.wr * 100)}% in ${r.n} games${r.n < SMALL_SAMPLE ? ' (small sample)' : ''}` : '';
+/**
+ * The end of a deck's option text: " [choom S] [Sim A] · 68% in 485 games" (an option can't be styled, so a small sample
+ * says so). Recorded results are found as the tiles find them (recordedRow / simTierOf in TierBadges.tsx): a library deck
+ * by its own name, a deck saved in this browser through the library deck with the same list, or none.
+ */
+export function deckOptionTail(d: Pick<LibraryDeck, 'file' | 'deck' | 'tier'>): string {
+  const r = tileRecord(recordedRow(d));
+  const played = r ? ` · ${Math.round(r.wr * 100)}% in ${r.n} games${r.n < SMALL_SAMPLE ? ' (small sample)' : ''}` : '';
+  return `${tierOptionText(d.tier, simTierOf(d))}${played}`;
 }
 
 /**
@@ -41,8 +44,7 @@ export function DeckPicker({ value, onChange, label }: { value: string; onChange
               {ds.map((d) => (
                 <option key={d.file} value={d.file}>
                   {deckColors(d.deck)} · {d.deck.name.slice(0, 44)} — {shortCredit(d)}
-                  {tierOptionText(d.tier, simTierFor(d.deck.name))}
-                  {playedLabel(d.deck.name)}
+                  {deckOptionTail(d)}
                   {hidden.has(d.file) ? ' (hidden)' : ''}
                 </option>
               ))}

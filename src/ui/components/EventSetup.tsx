@@ -32,7 +32,7 @@ import {
 import { BEST_OF, bracketSize, roundName, seededSlots, type BestOf, type ForcedPair, type MatchSpec } from '../../lib/eventFormats';
 import { Chip, deckFacts } from './DeckGallery';
 import { ColorPips } from './DeckIdentity';
-import { ChoomTierBadge, SimTierBadge, simTierFor } from './TierBadges';
+import { ChoomTierBadge, SimTierBadge, simTierOf } from './TierBadges';
 import { listOf } from '../../lib/listTwin';
 
 /** A polite live region for what an editor just did. */
@@ -275,7 +275,7 @@ export function EntrantPicker({
                       {name}
                     </span>
                     {d && <span title={sourceInfo(deckSource(d)).label} aria-hidden="true">{sourceInfo(deckSource(d)).icon}</span>}
-                    {d && <SimTierBadge tier={simTierFor(d.deck.name)} />}
+                    {d && <SimTierBadge tier={simTierOf(d)} />}
                     {hidden.has(e.file) && <span className="tag">hidden</span>}
                     {marks.has(entrantKey(e)) && <span className="tag">{marks.get(entrantKey(e))}</span>}
                     <span className="ev-row-actions">
@@ -337,7 +337,7 @@ export function EntrantPicker({
                   <ColorPips legends={d.deck.legends} />
                   <span title={d.deck.name}>{d.deck.name}</span>
                   <ChoomTierBadge tier={d.tier} />
-                  <SimTierBadge tier={simTierFor(d.deck.name)} />
+                  <SimTierBadge tier={simTierOf(d)} />
                   {f.hidden && <span className="tag">hidden</span>}
                   {!inSet.has(f.file) && enteredLists.has(listOf(d.deck)) && <span className="tag">same list as {enteredLists.get(listOf(d.deck))}</span>}
                 </label>

@@ -144,7 +144,7 @@ Owns: `.github/**`, `package.json`, `package-lock.json`, `.gitignore`, `README.m
 | OPS-17 | L | Tracked leftovers: `reports/tune-profiles.out`, `review-final.json`, three versions each of several write-ups. | Ignore `*.out`; keep current versions; say which report files are build inputs. |
 | OPS-11b | M | `data/reviews/*.json` (7.6 MB) unused by the app. | Ignore or keep only the one the docs cite. |
 | OPS-18 | L | No LICENSE or third-party notice. | Per D2. |
-| OPS-19, LIB-19 | L | No ESLint/Prettier, no Node pin; `build:data` needs an undocumented Python. | `engines` + `.nvmrc`; ESLint flat config with `react-hooks`; Prettier check; port `tools/build_data.py` (56 lines) to tsx or document Python 3. **Done 2026-11-10 except Prettier:** `engines` and `.nvmrc`, an ESLint flat config (react-hooks rules; `npm run lint` runs in CI), `build:data` ported to `tools/build-data.ts`. Still open (2026-11-16): no Prettier check, and `tools/html2text.py` (a leftover Python helper) is referenced nowhere. |
+| OPS-19, LIB-19 | L | No ESLint/Prettier, no Node pin; `build:data` needs an undocumented Python. | `engines` + `.nvmrc`; ESLint flat config with `react-hooks`; Prettier check; port `tools/build_data.py` (56 lines) to tsx or document Python 3. **Done 2026-11-10 except Prettier:** `engines` and `.nvmrc`, an ESLint flat config (react-hooks rules; `npm run lint` runs in CI), `build:data` ported to `tools/build-data.ts`. Closed 2026-11-18: Prettier was dropped (no formatter check; ESLint's react-hooks rules and the typecheck are the checks), and the unused `tools/html2text.py` was deleted. |
 | OPS-16b | M | No coverage reporting. | `@vitest/coverage-v8` and a `test:cov` script. |
 | LIB-18a | L | `noFallthroughCasesInSwitch` and `noImplicitReturns` cost 0 errors. | Enable both in `tsconfig.json`. |
 
@@ -459,4 +459,4 @@ Order that pays for itself: SIM-1 and SIM-2 first (faster games and a sharper ya
 | new-decks.ts, variants.ts, tournament-build.ts | stale deck writers that would overwrite forged lists | archive |
 | bbg-plan.sh, pick-followup.sh, refine-measure.sh, final.sh, followup.sh, nc-chain.sh, series.sh, seasons-45.sh | stale one-offs | archive |
 | diag.ts | duplicate of quick.ts | delete |
-| replay-check.ts | stale bot factory | replace with `tests/replay.test.ts`, then delete. Replaced (`tests/replay.test.ts`, and recorded games in `tests/replay-events.test.ts`); the script is still there, marked stale in its header, not deleted (2026-11-16). |
+| replay-check.ts | stale bot factory | replace with `tests/replay.test.ts`, then delete. Replaced (`tests/replay.test.ts`, and recorded games in `tests/replay-events.test.ts`); the script was deleted on 2026-11-18. |

@@ -197,7 +197,6 @@ Everything in `scripts/` runs with `npx tsx scripts/<file>` (or `bash` for the `
 | `classify.ts` | Prints the archetype read of every library deck. |
 | `quick.ts`, `showlog.ts` | Quick checks: a few games between two decks, or one game's log. |
 | `theorize-ladder.ts`, `eor-build.ts` | One-time deck writers: decks for ladder Legend trios, and a sideboarded list from optimizer reports. |
-| `replay-check.ts` | Stale (knows only the old bots); replaced by the replay tests `tests/replay.test.ts` and `tests/replay-events.test.ts`, but the script is still here. |
 | `scripts/archive/` | Unmaintained one-offs kept for history: `new-decks.ts`, `variants.ts`, `tournament-build.ts`, `diag.ts`, `bbg-plan.sh`, `pick-followup.sh`, `refine-measure.sh`, `final.sh`, `followup.sh`, `nc-chain.sh`, `series.sh`, `seasons-45.sh`, `seasons.sh`. Don't run them: several overwrite forged decks or re-run past seasons. |
 
 `tools/build-data.ts` (`npm run build:data`) normalises the card catalog into `src/data/cards.json`.

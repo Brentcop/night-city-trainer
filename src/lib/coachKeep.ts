@@ -1,6 +1,7 @@
 // What a finished practice game keeps of the coach (src/ui/pages/Play.tsx, the board's game-over effect). The coach can be
-// turned off and on during a game (board setting `coach`, src/lib/boardSettings.ts), and a move is graded only while its
-// advice shows, so a game's grades are exactly the moves graded while the coach was on. They are kept whatever the
+// turned off and on during a game (board setting `coach`, src/lib/boardSettings.ts), and a move is graded only when made
+// while the coach is on (at once when its advice shows, else when that advice lands: src/lib/coachGrading.ts), so a
+// game's grades are exactly the moves made while the coach was on. They are kept whatever the
 // switch says when the game ends: the scorecard in the practice log (the Profile's coach averages) and the coach's
 // ratings for a Game review run later. The exported coached replay (src/lib/coachedReplay.ts) and the end-of-game
 // scorecard read the same grades and never the switch.

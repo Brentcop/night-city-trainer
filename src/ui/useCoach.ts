@@ -2,8 +2,9 @@
 // thinks. Only the latest position matters: an advice request that is still queued when a newer one arrives is dropped.
 // After you move, a move the coach did not value is scored in the worlds of its advice (`score`, INFO-1): those jobs
 // queue behind advice (advice first, so the next position's advice is never kept waiting by a grade) and are never
-// dropped. If the worker can't start or crashes, the coach falls back to the main thread (slower, but the game stays
-// playable). A position the coach already answered in this tab (Undo goes back to one; a game resumed here replays to
+// dropped, and neither is the advice for a decision you answered before it arrived (`adviceFor`: that move is graded when
+// it lands, src/lib/coachGrading.ts). If the worker can't start or crashes, the coach falls back to the main thread
+// (slower, but the game stays playable). A position the coach already answered in this tab (Undo goes back to one; a game resumed here replays to
 // one) is answered from memory, not computed again: see `answers`.
 import { useEffect, useMemo, useRef } from 'react';
 import type { Game } from '../engine/engine';
@@ -22,6 +23,8 @@ interface Job {
   key?: string | null;
   resolve: (r: Advice | GradedOption[]) => void;
   reject: (e: Error) => void;
+  /** a move was made before this advice arrived: never superseded, it runs (after any newer advice) and is graded */
+  keep?: boolean;
 }
 
 /**
@@ -74,6 +77,8 @@ export class CoachClient {
   private scores: Job[] = [];
   /** the snapshot each advice was made from, by decision (a later score of the move made there needs it) */
   private reqs = new WeakMap<Decision, CoachRequest>();
+  /** the advice asked for each decision, and its job while it has not run (adviceFor) */
+  private asked = new WeakMap<Decision, { p: Promise<Advice>; job: Job | null }>();
 
   constructor(private make: () => Worker = startWorker) {}
 
@@ -87,14 +92,37 @@ export class CoachClient {
     this.reqs.set(d, req);
     const key = exactText(req);
     const known = key === null ? undefined : recall(key);
-    // a newer request supersedes a queued one either way
-    this.next?.reject(new Error('superseded'));
+    // a newer request supersedes a queued one either way, except advice a move already made waits for: that one goes on
+    // after the newer advice, like a score (you are waiting for the newer one)
+    const queued = this.next;
     this.next = null;
-    if (known) return Promise.resolve(known);
-    return new Promise<Advice>((resolve, reject) => {
-      this.next = { id: ++this.seq, payload: { req }, key, resolve: resolve as Job['resolve'], reject };
-      this.pump();
+    if (queued?.keep) this.scores.unshift(queued);
+    else queued?.reject(new Error('superseded'));
+    if (known) {
+      const p = Promise.resolve(known);
+      this.asked.set(d, { p, job: null });
+      return p;
+    }
+    let job: Job | null = null;
+    const p = new Promise<Advice>((resolve, reject) => {
+      job = { id: ++this.seq, payload: { req }, key, resolve: resolve as Job['resolve'], reject };
+      this.next = job;
     });
+    this.asked.set(d, { p, job });
+    this.pump();
+    return p;
+  }
+
+  /**
+   * The advice asked for decision `d` (by advise), for a move made there before it arrived: from now on that request is
+   * kept when a newer one comes, so the move is graded when the advice for THAT decision lands. Null when no advice was
+   * asked for `d` (the coach was off, or nothing to ask).
+   */
+  adviceFor(d: Decision): Promise<Advice> | null {
+    const a = this.asked.get(d);
+    if (!a) return null;
+    if (a.job) a.job.keep = true;
+    return a.p;
   }
 
   /** Your move `chosen` at decision `d`, scored in the worlds of advice `a` (gradeMove's `extra`). Needs advise(g, d) first. */
@@ -188,6 +216,8 @@ export class CoachClient {
 export interface CoachApi {
   advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice>;
   score(d: Decision, chosen: number, a: Advice): Promise<GradedOption[]>;
+  /** the advice asked for decision `d`, kept for grading a move made before it arrived (null: none was asked) */
+  adviceFor(d: Decision): Promise<Advice> | null;
 }
 
 /** A coach for one board: `advise(g, d)` and `score(d, chosen, advice)`; the worker is started on first use and stopped on unmount. */
@@ -202,6 +232,6 @@ export function useCoach(): CoachApi {
   );
   return useMemo(() => {
     const client = () => (ref.current ??= new CoachClient());
-    return { advise: (g, d, lift) => client().advise(g, d, lift), score: (d, chosen, a) => client().score(d, chosen, a) };
+    return { advise: (g, d, lift) => client().advise(g, d, lift), score: (d, chosen, a) => client().score(d, chosen, a), adviceFor: (d) => ref.current?.adviceFor(d) ?? null };
   }, []);
 }
