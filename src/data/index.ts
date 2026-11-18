@@ -26,6 +26,8 @@ export interface RatingsRow extends RatingRow {
 export interface RatingsData extends RatingsFile {
   updated: string;
   events: number;
+  /** rating runs pooled beside the events (data/series, docs/SERIES.md); absent when none */
+  runs?: number;
   games: number;
   firstPlayerEdge: number;
   decks: RatingsRow[];

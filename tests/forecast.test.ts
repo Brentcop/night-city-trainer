@@ -1,6 +1,7 @@
 // The regionals forecast's engine (src/lib/forecast.ts; docs/FORECAST.md): the Swiss pairing and standings port against
-// the events' own rules (tournament.ts / eventFormats.ts) and against the recorded events 20 to 24 round by round; the
-// match maths; the model built from h2h.json against the model fitted from the games; and the forecast's limits (an
+// the events' own rules (tournament.ts / eventFormats.ts) and against every recorded standard Swiss event round by round;
+// the match maths; the model built from h2h.json against the model fitted from the games it pooled (the events and rating
+// runs its manifest names, on the library's current lists, as scripts/build-h2h.ts pools them); and the forecast's limits (an
 // even field converts K/N, every cut seat is counted once, a stronger deck converts more, the seed reproduces the run).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,9 +26,21 @@ import {
 import { computeStandings, pairingRng, swissPairings, type StandingRow } from '../src/lib/tournament';
 import { ratedGamesOf } from '../src/lib/ratingGames';
 import { seededRandom } from '../src/lib/ratingModel';
+import { currentListGate } from '../scripts/event-pool';
+import { loadLibrary, SERIES_DIR } from '../scripts/lib-node';
 
 const ROOT = path.resolve(__dirname, '..');
-const EVENT_IDS = [20, 21, 22, 23, 24];
+// every recorded standard Swiss event (a custom event or a rating run is not paired by the Swiss rules), whatever is recorded
+const EVENT_IDS = fs
+  .readdirSync(path.join(ROOT, 'public/tournaments'))
+  .map((f) => /^event-(\d+)\.json$/.exec(f)?.[1])
+  .filter((x): x is string => !!x)
+  .map(Number)
+  .sort((a, b) => a - b)
+  .filter((id) => {
+    const e = JSON.parse(fs.readFileSync(path.join(ROOT, `public/tournaments/event-${id}.json`), 'utf8'));
+    return !e.custom && !e.setup && !!e.config;
+  });
 type Ev = {
   id: number;
   config: { seed: number; rounds: number; top: number; bestOf: number };
@@ -230,11 +243,19 @@ describe('match maths', () => {
 });
 
 describe('the model from h2h.json', () => {
-  const games = ratedGamesOf(events as never);
+  // what the file pooled, as its manifest names it: recorded events (numbers) and rating runs ("run-N")
+  const pooledIds: (number | string)[] = h2h.manifest.inputs.events.map((e: { id: number | string }) => e.id);
+  const pooled = pooledIds.map((id) =>
+    JSON.parse(fs.readFileSync(path.join(ROOT, typeof id === 'number' ? `public/tournaments/event-${id}.json` : `${SERIES_DIR}/${id}.json`), 'utf8')),
+  );
+  const games = ratedGamesOf(pooled as never, currentListGate(loadLibrary(path.join(ROOT, 'data/decks'))));
+  const simVersion: number = h2h.manifest.simVersion;
+  const bot: string = h2h.manifest.bot.level;
   const fromFile = modelFromH2HFile(h2h);
-  const fromGames = modelFromGames(games, { events: EVENT_IDS, simVersion: 9, bot: 'hard' }, { names: h2h.decks });
+  const fromGames = modelFromGames(games, { events: pooledIds, simVersion, bot }, { names: h2h.decks });
   it('names its source: the events, the simulator version and the bot', () => {
-    expect(fromFile.source).toMatchObject({ events: EVENT_IDS, simVersion: 9, bot: 'hard', from: 'h2h-file', games: h2h.games });
+    expect(pooledIds.length).toBeGreaterThan(0);
+    expect(fromFile.source).toMatchObject({ events: pooledIds, simVersion, bot, from: 'h2h-file', games: h2h.games });
   });
   it('has the fitted ratings, and per-pair estimates within 0.001 of the file and of the games fit', () => {
     fromFile.r.forEach((x, k) => expect(Math.abs(x - fromGames.r[k]!)).toBeLessThan(1e-4));

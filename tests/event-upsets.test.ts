@@ -1,6 +1,7 @@
 // Movement around the top-cut places (src/lib/eventFacts.ts `roundMovement`) and upsets judged by ratings fitted on
 // earlier events only (src/lib/eventUpsets.ts). On the recorded data: "the same games as the ratings" is pinned (a fit on
-// every pooled event reproduces src/data/ratings.json, and the shared extraction equals the ratings script's pool), and one
+// every pooled event and rating run, on the library's current lists, reproduces src/data/ratings.json, and the shared
+// extraction equals the ratings script's pool), and one
 // real round's movement is checked against its results by hand. On invented fixtures: a small Swiss event whose movement
 // and cut line are known by construction, the formats where movement does not apply, and upsets where a strong and a weak
 // deck met often enough earlier that the answer is known (the first event, a deck below the minimum, another bot).
@@ -12,7 +13,8 @@ import { earlierEvents, eventUpsets, judgeMatches, MIN_EARLIER_GAMES, UPSET_MAX_
 import { ratedGamesOf } from '../src/lib/ratingGames';
 import { fitRatings } from '../src/lib/ratingModel';
 import type { GameRec, MatchRec } from '../src/lib/tournament';
-import { poolEvents, selectEvents, type PoolEvent } from '../scripts/event-pool';
+import { currentListGate, poolEvents, selectEvents, type PoolEvent } from '../scripts/event-pool';
+import { isRun, loadLibrary, readRuns, SERIES_DIR } from '../scripts/lib-node';
 
 const ROOT = path.resolve(__dirname, '..');
 const json = <T,>(f: string): T => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')) as T;
@@ -21,19 +23,23 @@ const EVENTS = fs
   .filter((f) => /^event-\d+\.json$/.test(f))
   .map((f) => json<RecordedEvent>(`public/tournaments/${f}`))
   .sort((a, b) => Number(a.id) - Number(b.id));
-const RATINGS = json<RatingsInput & { games: number }>('src/data/ratings.json');
+const RATINGS = json<RatingsInput & { games: number; runs?: number }>('src/data/ratings.json');
+// the rating runs (docs/SERIES.md) the ratings pool beside the events, whatever is recorded
+const RUNS = readRuns(path.join(ROOT, SERIES_DIR)) as unknown as RecordedEvent[];
 
 describe('the yardstick takes the same games as the ratings', () => {
-  const pooled = selectEvents(EVENTS).kept;
+  const pooled = selectEvents([...EVENTS, ...RUNS]).kept;
+  const gate = currentListGate(loadLibrary(path.join(ROOT, 'data/decks')));
 
   it('the shared extraction is the ratings script\'s pool, game for game', () => {
-    expect(ratedGamesOf(pooled)).toEqual(poolEvents(pooled as unknown as PoolEvent[]).games);
+    expect(ratedGamesOf(pooled, gate)).toEqual(poolEvents(pooled as unknown as PoolEvent[], gate).games);
   });
 
-  it('a fit on every pooled event reproduces src/data/ratings.json', () => {
-    const games = ratedGamesOf(pooled);
+  it('a fit on every pooled event and rating run reproduces src/data/ratings.json', () => {
+    const games = ratedGamesOf(pooled, gate);
     expect(games.length).toBe(RATINGS.games);
-    expect(pooled.length).toBe(RATINGS.events);
+    expect(pooled.filter((e) => !isRun(e)).length).toBe(RATINGS.events);
+    expect(pooled.filter((e) => isRun(e)).length).toBe(RATINGS.runs ?? 0);
     const fit = fitRatings(games);
     const at = new Map(fit.names.map((n, i) => [n, i]));
     expect(fit.names.length).toBe(RATINGS.decks.length);

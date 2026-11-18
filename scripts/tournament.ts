@@ -179,7 +179,7 @@ function writeEvent(ev: TourneyEvent) {
 function writeIndex() {
   const count = (parts: { matches: { games: unknown[] }[] }[]) => parts.reduce((a, r) => a + r.matches.reduce((b, m) => b + m.games.length, 0), 0);
   const events = readEvents(EV_DIR)
-    .sort((a, b) => a.id - b.id)
+    .sort((a, b) => (a.id as number) - (b.id as number))
     .map((e: any) => ({
       id: e.id,
       date: e.date,

@@ -13,8 +13,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parentStrength, seasonVersions, staleLeaderRow, type LeaderStrength, type RatedDeck } from '../src/lib/parentStrength';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { readEvents } from './lib-node';
-import { poolEvents, selectEvents } from './event-pool';
+import { loadLibrary, readPooled } from './lib-node';
+import { currentListGate, poolEvents, selectEvents } from './event-pool';
 import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
 import { addToDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
 import { addToCardImpact, emptyCardImpact, impactKey, parseCardImpact, type CardImpactFile, type ImpactCardStat, type ImpactKey } from '../src/lib/seasonImpact';
@@ -88,14 +88,14 @@ export function loadImpactTables(bot: string = SEASON_BOT, o: { simVersion?: num
 
 export type H2H = (a: string, b: string) => H2HRecord;
 /**
- * Head-to-head records from the pooled tournament events (ties count half; the default pool of scripts/event-pool.ts:
- * the newest event's sim version and bot), each with its estimate shrunk toward the power ratings (src/lib/h2hModel.ts),
+ * Head-to-head records from the pooled tournament events and rating runs (ties count half; the default pool of
+ * scripts/event-pool.ts: the newest sim version and bot, games on the library's current lists only), each with its estimate shrunk toward the power ratings (src/lib/h2hModel.ts),
  * which the breeder's counter ranking prefers. A pair that never met has g = 0 and the ratings' prediction.
  */
 export function loadH2H(): H2H {
-  const sel = selectEvents(readEvents());
+  const sel = selectEvents(readPooled());
   for (const w of sel.warnings) console.log(w);
-  const games = poolEvents(sel.kept).games;
+  const games = poolEvents(sel.kept, currentListGate(loadLibrary())).games;
   if (!games.length) return () => ({ w: 0, g: 0 });
   return h2hEstimator(games).lookup;
 }

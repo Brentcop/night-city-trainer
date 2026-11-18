@@ -326,11 +326,15 @@ function roundRecord(file: string, ev: RecordedEvent, round: number | string, up
 
 // ---------------------------------------------------------------- ratings
 
+/** What a rating or head-to-head was pooled from: "5 recorded events", and " and 2 rating runs" when there are runs. */
+export const pooledFrom = (events: number | null, runs?: number): string =>
+  `${events === null ? 'the recorded events' : plural(events, 'recorded event')}${runs ? ` and ${plural(runs, 'rating run')}` : ''}`;
+
 /** The rating sentences: what it is, the expected win rate with its range and games, the tier now, the results. */
-export function ratingText(d: DeckCompetitive, o: { events: number | null }): string {
+export function ratingText(d: DeckCompetitive, o: { events: number | null; runs?: number }): string {
   const r = d.rating;
   const lines: (string | null)[] = [
-    `${d.deck} rating: the power rating of a library deck, fitted over ${o.events === null ? 'the recorded events' : `${plural(o.events, 'recorded event')}`} played by ${playedBy(d)}, as of ${day(d.asOf)}.`,
+    `${d.deck} rating: the power rating of a library deck, fitted over ${pooledFrom(o.events, o.runs)} played by ${playedBy(d)}, as of ${day(d.asOf)}.`,
   ];
   if (r) {
     lines.push(
@@ -352,7 +356,7 @@ export function ratingText(d: DeckCompetitive, o: { events: number | null }): st
   return lines.filter(Boolean).join('\n');
 }
 
-function ratingRecord(file: string, d: DeckCompetitive, o: { events: number | null; deckLink: KbLink[] }): KbRecord {
+function ratingRecord(file: string, d: DeckCompetitive, o: { events: number | null; runs?: number; deckLink: KbLink[] }): KbRecord {
   const r = d.rating!;
   return finishRecord({
     id: ratingId(d.file!),
@@ -416,7 +420,7 @@ const tierNow = (t: RatingsTableRow['tier']) => (t.letter ? `${t.letter}${t.stra
 export function ratingsTableText(t: RatingsTable): string {
   const n = t.rows.length;
   const lines: string[] = [
-    `Power ratings table: the rated library decks in the order of their power rating, fitted over ${t.events === null ? 'the recorded events' : plural(t.events, 'recorded event')} played by ${playedBy(t)}, as of ${day(t.asOf)}. ${n < t.of ? `The first ${n} of ${t.of} rated decks now:` : `All ${t.of} rated decks now:`}`,
+    `Power ratings table: the rated library decks in the order of their power rating, fitted over ${pooledFrom(t.events, t.runs)} played by ${playedBy(t)}, as of ${day(t.asOf)}. ${n < t.of ? `The first ${n} of ${t.of} rated decks now:` : `All ${t.of} rated decks now:`}`,
     ...t.rows.map((r) => `${r.position}. ${r.deck}: expected win rate against the whole field ${pc1(r.wrField)} (90% range ${pc1(r.lo)}–${pc1(r.hi)}) over ${plural(r.ratedGames, 'rated game')}; Sim tier now ${tierNow(r.tier)}.`),
   ];
   const first = t.rows[0];
@@ -473,7 +477,7 @@ function matchupRecord(file: string, h2h: H2HInput, a: string, b: string, o: { f
     title: `${a} vs ${b}`,
     aliases: [`${b} vs ${a}`, `${a} against ${b}`, `${b} against ${a}`],
     text: [
-      `${a} vs ${b}: a tournament head-to-head pooled from ${m.events === null ? 'the recorded events' : plural(m.events, 'recorded event')}, played by ${playedBy(m)}, as of ${day(m.asOf)}.`,
+      `${a} vs ${b}: a tournament head-to-head pooled from ${pooledFrom(m.events, m.runs)}, played by ${playedBy(m)}, as of ${day(m.asOf)}.`,
       `Raw record: ${a} won ${share(m.winsA, m.games)} games (ties count half); ${b} won ${m.games - m.winsA}.`,
       est,
     ].join('\n'),
@@ -516,9 +520,10 @@ export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: st
   }
   if (src.ratings) {
     const events = typeof src.ratings.data.events === 'number' ? src.ratings.data.events : null;
+    const runs = typeof src.ratings.data.runs === 'number' ? src.ratings.data.runs : undefined;
     for (const row of src.ratings.data.decks) {
       const d = deckCompetitive(row.name, { ratings: src.ratings.data, index: src.index.data, h2h: src.h2h?.data });
-      out.push(ratingRecord(src.ratings.file, d, { events, deckLink: deckLink(row.name) }));
+      out.push(ratingRecord(src.ratings.file, d, { events, runs, deckLink: deckLink(row.name) }));
     }
     if (src.ratings.data.decks.length) out.push(ratingsTableRecord(src.ratings.file, src.ratings.data));
   }

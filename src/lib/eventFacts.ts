@@ -84,6 +84,8 @@ export interface RatingsRowInput {
 /** src/data/ratings.json. */
 export interface RatingsInput {
   events?: number;
+  /** rating runs pooled beside the events (docs/SERIES.md); absent when none */
+  runs?: number;
   games?: number;
   intervals?: string;
   decks: RatingsRowInput[];
@@ -93,6 +95,8 @@ export interface RatingsInput {
 /** public/data/h2h.json. */
 export interface H2HInput {
   events?: number;
+  /** rating runs pooled beside the events (docs/SERIES.md); absent when none */
+  runs?: number;
   games?: number;
   decks: string[];
   pairs: [number, number, number, number][];
@@ -756,6 +760,8 @@ export interface RatingsTable extends Basis {
   of: number;
   /** recorded events the ratings were fitted over (null when the file does not say) */
   events: number | null;
+  /** rating runs fitted over beside them (absent when none) */
+  runs?: number;
   /** the first `top` rows (every row without `top`), in the file's order */
   rows: RatingsTableRow[];
   /** positions (among the rows shown, the first excluded) whose 90% range overlaps the first row's range */
@@ -785,6 +791,7 @@ export function ratingsTable(ratings: RatingsInput, o: { top?: number } = {}): R
     ...fileBasis(ratings),
     of: ratings.decks.length,
     events: typeof ratings.events === 'number' ? ratings.events : null,
+    ...(typeof ratings.runs === 'number' && ratings.runs > 0 ? { runs: ratings.runs } : {}),
     rows,
     overlapFirst: first ? rows.slice(1).filter((r) => rangesOverlap(first, r)).map((r) => r.position) : [],
     separated,
@@ -809,6 +816,8 @@ export interface MatchupFact extends Basis {
   priorGames: number | null;
   /** events pooled in the file */
   events: number | null;
+  /** rating runs pooled beside them (absent when none) */
+  runs?: number;
 }
 
 /** The head-to-head of a against b (h2hFileLookup in src/lib/h2hModel.ts): shrunk estimate, raw record and games. */
@@ -825,5 +834,6 @@ export function matchupFact(a: string, b: string, h2h: H2HInput): MatchupFact {
     estimate: rec.p ?? null,
     priorGames: h2h.model?.priorGames ?? null,
     events: typeof h2h.events === 'number' ? h2h.events : null,
+    ...(typeof h2h.runs === 'number' && h2h.runs > 0 ? { runs: h2h.runs } : {}),
   };
 }

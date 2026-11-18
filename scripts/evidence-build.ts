@@ -12,7 +12,7 @@ import type { DeckList } from '../src/engine/types';
 import type { RatingsInput, H2HInput } from '../src/lib/eventFacts';
 import { endReasons, firstPlayerSplit } from '../src/lib/eventFacts';
 import type { MatchRec } from '../src/lib/tournament';
-import { eventRatedGames, ratedGamesOf, type GamesEvent } from '../src/lib/ratingGames';
+import { eventRatedGames, ratedGamesOf, type GamesEvent, type ListGate } from '../src/lib/ratingGames';
 import { fitLogistic } from '../src/lib/logistic';
 import { fitRatings, predictPair, type RatedGame, type RatingFit } from '../src/lib/ratingModel';
 import { h2hEstimator, h2hFileLookup } from '../src/lib/h2hModel';
@@ -70,8 +70,8 @@ import {
 } from '../src/lib/findings';
 import { claimOf } from '../src/lib/findingWords';
 import type { RemeasureFile } from '../src/lib/remeasure';
-import { selectEvents } from './event-pool';
-import { forEachGameOf, type RecordedEvent } from './lib-node';
+import { currentListGate, selectEvents } from './event-pool';
+import { forEachGameOf, isRun, type RecordedEvent } from './lib-node';
 
 // ---------------------------------------------------------------- inputs
 
@@ -118,6 +118,8 @@ export interface EvidenceInputs {
   history: Pick<DeckList, 'legends' | 'main'>[];
   /** every recorded event, in id order (the pool is chosen here, as the ratings choose it) */
   events: RecordedEvent[];
+  /** every rating run (data/series, docs/SERIES.md), pooled beside the events; absent or empty when there are none */
+  runs?: RecordedEvent[];
   ratings: (RatingsInput & { firstPlayerEdge?: number }) | null;
   h2h: H2HInput | null;
   analysis: AnalysisInput | null;
@@ -130,7 +132,7 @@ export interface EvidenceInputs {
   remeasure: { file: string; data: RemeasureFile }[];
   adjusted: { file: string; data: AdjustedFile } | null;
   /** where each input lives, for the findings' sources */
-  paths: { ratings: string; h2h: string; analysis: string; synergies: string; events: string; ledgerDir: string };
+  paths: { ratings: string; h2h: string; analysis: string; synergies: string; events: string; ledgerDir: string; series?: string };
   simVersion: number;
 }
 
@@ -430,7 +432,10 @@ interface DeckGame {
 }
 
 interface EventPool {
+  /** the pooled events (not the rating runs) */
   events: RecordedEvent[];
+  /** the pooled rating runs */
+  runs: RecordedEvent[];
   simVersion: number;
   bot: string;
   games: RatedGame[];
@@ -442,8 +447,8 @@ interface EventPool {
   lists: Map<string, Set<string>>;
 }
 
-function eventPool(events: RecordedEvent[]): EventPool {
-  const sel = selectEvents(events);
+function eventPool(events: RecordedEvent[], runs: readonly RecordedEvent[], gate: ListGate): EventPool {
+  const sel = selectEvents([...events, ...runs]);
   const kept = sel.kept;
   const byDeck = new Map<string, DeckGame[]>();
   const all: EventPool['all'] = [];
@@ -452,7 +457,8 @@ function eventPool(events: RecordedEvent[]): EventPool {
     xs.push(g);
     byDeck.set(d, xs);
   };
-  // the pooled-records iteration (forEachGameOf, as scripts/build-h2h.ts): copies play as their deck, mirrors skipped
+  // the pooled-records iteration (forEachGameOf, as scripts/build-h2h.ts): copies play as their deck, mirrors skipped,
+  // and a game counts only on the library's current lists (the gate, as ratings.ts and build-h2h.ts pool them)
   forEachGameOf(kept, ({ game: g, decks: [a, b] }) => {
     if (a === b) return;
     const reason = g.reason ?? '';
@@ -460,9 +466,10 @@ function eventPool(events: RecordedEvent[]): EventPool {
     const sa = g.winner === 'tie' ? 0.5 : g.winner === 0 ? 1 : 0;
     push(a, { opp: b, first: g.first === 0, s: sa, turns: g.turns, reason, winner: g.winner === 'tie' ? 'tie' : g.winner === 0 ? 0 : 1 });
     push(b, { opp: a, first: g.first === 1, s: 1 - sa, turns: g.turns, reason, winner: g.winner === 'tie' ? 'tie' : g.winner === 1 ? 0 : 1 });
-  });
-  const games = ratedGamesOf(kept);
+  }, gate);
+  const games = ratedGamesOf(kept, gate);
   if (games.length !== all.length) throw new Error(`the rated games (${games.length}) and the pooled games (${all.length}) disagree`);
+  // the lists each deck name was recorded with, games counted or not (a list that differs from the current one is a gap)
   const lists = new Map<string, Set<string>>();
   for (const e of kept)
     for (const [name, d] of Object.entries(e.decks)) {
@@ -471,7 +478,7 @@ function eventPool(events: RecordedEvent[]): EventPool {
       lists.set(name, s);
     }
   const newest = kept[kept.length - 1];
-  return { events: kept, simVersion: typeof sel.simVersion === 'number' ? sel.simVersion : (newest?.simVersion as number | undefined) ?? 0, bot: sel.bot === 'all' ? 'all' : sel.bot, games, byDeck, all, lists };
+  return { events: kept.filter((e) => !isRun(e)), runs: kept.filter(isRun), simVersion: typeof sel.simVersion === 'number' ? sel.simVersion : (newest?.simVersion as number | undefined) ?? 0, bot: sel.bot === 'all' ? 'all' : sel.bot, games, byDeck, all, lists };
 }
 
 /** A deck's games as one-game matches with the deck as seat A, for eventFacts' tallies. */
@@ -625,8 +632,8 @@ export interface MatchupCheck {
 }
 
 /** One event's matches, each as its rated games (eventRatedGames over the one match: copies play as their deck). */
-export function eventMatches(e: GamesEvent): RatedGame[][] {
-  return [...e.rounds, ...e.bracket].flatMap((part) => part.matches.map((m) => eventRatedGames({ ...(e.setup ? { setup: e.setup } : {}), rounds: [{ matches: [m] }], bracket: [] }))).filter((gs) => gs.length > 0);
+export function eventMatches(e: GamesEvent, gate?: ListGate): RatedGame[][] {
+  return [...e.rounds, ...e.bracket].flatMap((part) => part.matches.map((m) => eventRatedGames({ ...(e.setup ? { setup: e.setup } : {}), ...(e.decks ? { decks: e.decks } : {}), rounds: [{ matches: [m] }], bracket: [] }, gate))).filter((gs) => gs.length > 0);
 }
 
 /**
@@ -716,7 +723,10 @@ interface Ctx {
   fitOk: boolean;
 }
 
-const eventsSource = (ctx: Ctx, path: string): Source => ({ file: ctx.inputs.paths.events, path: `event-${ctx.pool.events[0]?.id ?? 1}.json … event-${ctx.pool.events[ctx.pool.events.length - 1]?.id ?? 1}.json: ${path}` });
+const eventsSource = (ctx: Ctx, path: string): Source => ({
+  file: ctx.inputs.paths.events,
+  path: `event-${ctx.pool.events[0]?.id ?? 1}.json … event-${ctx.pool.events[ctx.pool.events.length - 1]?.id ?? 1}.json${ctx.pool.runs.length ? ` and ${ctx.inputs.paths.series ?? 'data/series'}/${ctx.pool.runs[0]!.id}.json … ${ctx.pool.runs[ctx.pool.runs.length - 1]!.id}.json` : ''}: ${path}`,
+});
 
 function deckStrength(ctx: Ctx, d: EvidenceDeck, listId: string, flags: FlagCode[]): Draft | null {
   const r = ctx.inputs.ratings;
@@ -1767,14 +1777,15 @@ function health(decks: DeckEvidence[], forge: { file: string; report: ForgeRepor
 /** Build every deck's evidence and the index from the inputs. */
 export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
   const current = inputs.simVersion;
-  const pool = eventPool(inputs.events);
+  const gate = currentListGate(inputs.library);
+  const pool = eventPool(inputs.events, inputs.runs ?? [], gate);
   const ratingRow = new Map((inputs.ratings?.decks ?? []).map((row, i) => [row.name, { i, row }]));
   const lists = new Map<string, Pick<DeckList, 'legends' | 'main'>>();
   for (const l of inputs.history) lists.set(listFingerprint(l), l);
   for (const d of inputs.library) lists.set(listFingerprint(d.deck), d.deck);
   const idOf = new Map(inputs.library.map((d) => [d.deck.name, listFingerprint(d.deck)]));
   const spread = pairSpread(inputs.analysis);
-  const check = matchupCheck(pool.events.map(eventMatches), spread.tau2);
+  const check = matchupCheck(pool.events.map((e) => eventMatches(e, gate)), spread.tau2);
   // the h2h file's fit, rebuilt from the same games (as scripts/build-h2h.ts fits it) for its covariance
   let fit: RatingFit | null = null;
   let fitOk = false;
@@ -1797,8 +1808,10 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     const gaps: GapNote[] = [];
     const played = pool.lists.get(d.deck.name);
     const other = !!played && [...played].some((x) => x !== listId);
+    // games recorded with another list of this deck are left out of the pool (the gate), so the findings are this list's
+    // alone; the gap says that games were left out
     if (other) gaps.push({ code: 'other-list-events' });
-    const evFlags: FlagCode[] = other ? ['other-list'] : [];
+    const evFlags: FlagCode[] = [];
     const ds: Draft[] = [];
     const strength = deckStrength(ctx, d, listId, evFlags);
     if (strength) ds.push(strength);
@@ -1900,6 +1913,7 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     { file: inputs.paths.analysis, runId: inputs.analysis?.manifest?.runId ?? null },
     { file: inputs.paths.synergies, runId: inputs.synergies?.manifest?.runId ?? null },
     ...pool.events.map((e) => ({ file: `${inputs.paths.events}/event-${e.id}.json`, runId: (e.manifest as RunManifest | undefined)?.runId ?? null })),
+    ...pool.runs.map((e) => ({ file: `${inputs.paths.series ?? 'data/series'}/${e.id}.json`, runId: (e.manifest as RunManifest | undefined)?.runId ?? null })),
     ...inputs.forge.map((f) => ({ file: f.file, runId: f.report.manifest.runId })),
     ...inputs.remeasure.map((f) => ({ file: f.file, runId: null })),
     ...inputs.ledger.map((f) => ({ file: `${inputs.paths.ledgerDir}/${f.file}`, runId: null })),
@@ -1936,7 +1950,7 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     },
     gaps: [{ code: 'no-bot-transfer' }, { code: 'no-rank-stability' }, { code: 'no-ablations' }],
     inputs: inputsList,
-    manifest: aggregateManifest('evidence', pool.events as unknown as RecordedEventInput[], { games: pool.all.length }),
+    manifest: aggregateManifest('evidence', [...pool.events, ...pool.runs] as unknown as RecordedEventInput[], { games: pool.all.length }),
   });
   return { decks, runs, ids, index, problems };
 }

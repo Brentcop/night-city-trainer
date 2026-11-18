@@ -129,7 +129,7 @@ export function earlierEvents<E extends UpsetEvent>(events: readonly E[], ev: Up
 /** The ratings fitted on the earlier events' games (the same games the ratings take). */
 export function upsetYardstick(events: readonly UpsetEvent[], ev: UpsetEvent): Yardstick {
   const earlier = earlierEvents(events, ev);
-  const games = earlier.flatMap(eventRatedGames);
+  const games = earlier.flatMap((e) => eventRatedGames(e));
   return { simVersion: versionOf(ev), bot: ev.bot, events: earlier.map((e) => e.id), games: games.length, fit: games.length ? fitRatings(games) : null };
 }
 

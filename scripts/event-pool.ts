@@ -6,11 +6,19 @@
 //     src/lib/ratingGames.ts, which the upset yardstick (src/lib/eventUpsets.ts) also reads.
 //   - Results: an event flagged `custom` (another format, or pairings or seeds set by hand) is skipped, so titles, top-8
 //     counts, finishes and Swiss records come only from standard Swiss events.
+//   - Rating runs (data/series/run-N.json, docs/SERIES.md) are pooled beside the events: their games count, they have
+//     no results. With runs in the pool, "the newest" (whose sim version and bot are pooled) is the newest by date.
+//   - Pooled by list (`currentListGate`): a game counts only when both seats played the library's current list of their
+//     deck (or a deck no longer in the library), so an edited list starts unrated.
 import { entrantBase, type EventSetup } from '../src/lib/eventFormats';
-import { eventRatedGames } from '../src/lib/ratingGames';
+import { eventRatedGames, type ListGate, type StoredList } from '../src/lib/ratingGames';
+import { listFingerprint } from '../src/engine/deck';
 
 /** The parts of a recorded event the pool reads. */
 export interface PoolEvent {
+  /** a rating run's kind (scripts/lib-node.ts RATING_RUN_KIND); absent on events */
+  kind?: unknown;
+  decks?: Readonly<Record<string, StoredList>>;
   champion: string | null;
   custom?: boolean;
   setup?: Pick<EventSetup, 'entrants'>;
@@ -43,6 +51,9 @@ export interface PoolKeyEvent {
   id: number | string;
   simVersion?: number;
   bot?: string;
+  /** read only when the pool holds a rating run (`kind`): the newest is then the newest by date */
+  date?: string;
+  kind?: unknown;
 }
 /** Which events to pool: a sim version and a bot, each 'latest' (the newest event's), 'all', or a value. */
 export interface PoolFilter {
@@ -65,6 +76,9 @@ export interface PoolSelection<E> {
 const keyVersion = (e: PoolKeyEvent) => (typeof e.simVersion === 'number' ? e.simVersion : null);
 const keyBot = (e: PoolKeyEvent) => e.bot ?? '?';
 const byId = (a: PoolKeyEvent, b: PoolKeyEvent) => (typeof a.id === 'number' && typeof b.id === 'number' ? a.id - b.id : String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+const RUN_KIND = 'nct-rating-run';
+/** By recorded date, then id (events before runs on the same date): used only when the pool holds a rating run. */
+const byDate = (a: PoolKeyEvent, b: PoolKeyEvent) => (a.date ?? '').localeCompare(b.date ?? '') || (a.kind === RUN_KIND ? 1 : 0) - (b.kind === RUN_KIND ? 1 : 0) || byId(a, b);
 const groupName = (v: number | null, bot: string) => `sim v${v ?? '?'} ${bot}`;
 
 /**
@@ -73,20 +87,22 @@ const groupName = (v: number | null, bot: string) => `sim v${v ?? '?'} ${bot}`;
  * with a warning line. Events keep their order.
  */
 export function selectEvents<E extends PoolKeyEvent>(events: readonly E[], f: PoolFilter = {}): PoolSelection<E> {
-  const newest = [...events].sort(byId).at(-1);
+  const runs = events.some((e) => e.kind === RUN_KIND);
+  const order = runs ? byDate : byId;
+  const newest = [...events].sort(order).at(-1);
   const fv = f.simVersion ?? 'latest';
   const fb = f.bot ?? 'latest';
   const wantV: number | null | 'all' = fv === 'latest' ? (newest ? keyVersion(newest) : null) : fv;
   const wantB: string = fb === 'latest' ? (newest ? keyBot(newest) : '?') : fb;
   const counts = new Map<string, { simVersion: number | null; bot: string; events: number; last: E }>();
-  for (const e of [...events].sort(byId)) {
+  for (const e of [...events].sort(order)) {
     const k = `${keyVersion(e)}\u0000${keyBot(e)}`;
     const g = counts.get(k) ?? { simVersion: keyVersion(e), bot: keyBot(e), events: 0, last: e };
     g.events++;
     g.last = e;
     counts.set(k, g);
   }
-  const groups = [...counts.values()].sort((a, b) => byId(b.last, a.last)).map(({ simVersion, bot, events: n }) => ({ simVersion, bot, events: n }));
+  const groups = [...counts.values()].sort((a, b) => order(b.last, a.last)).map(({ simVersion, bot, events: n }) => ({ simVersion, bot, events: n }));
   const kept: E[] = [];
   const excluded: PoolSelection<E>['excluded'] = [];
   for (const e of events) {
@@ -118,14 +134,16 @@ export interface PoolRecord {
 }
 export const poolRecord = (s: PoolSelection<unknown>): PoolRecord | undefined => (s.excluded.length ? { simVersion: s.simVersion, bot: s.bot, excluded: s.excluded } : undefined);
 
-export function poolEvents(events: readonly PoolEvent[]): { games: PooledGame[]; results: Record<string, DeckResults>; customEvents: number } {
+export function poolEvents(events: readonly PoolEvent[], gate?: ListGate): { games: PooledGame[]; results: Record<string, DeckResults>; customEvents: number; runs: number } {
   const games: PooledGame[] = [];
   const results: Record<string, DeckResults> = {};
   let customEvents = 0;
+  let runs = 0;
   for (const e of events) {
     const n = e.standings.length;
     const base = (name: string) => entrantBase(e.setup, name);
-    if (e.custom) customEvents++;
+    if (e.kind === RUN_KIND) runs++;
+    else if (e.custom) customEvents++;
     else {
       e.standings.forEach((s, i) => {
         const r = (results[base(s.deck)] ??= { events: 0, titles: 0, top8: 0, finishes: [], mw: 0, ml: 0, gw: 0, gl: 0 });
@@ -141,7 +159,35 @@ export function poolEvents(events: readonly PoolEvent[]): { games: PooledGame[];
       if (champ) champ.titles++;
     }
     // the fit's games: one definition, shared with the upset yardstick (src/lib/ratingGames.ts)
-    games.push(...eventRatedGames(e));
+    games.push(...eventRatedGames(e, gate));
   }
-  return { games, results, customEvents };
+  return { games, results, customEvents, runs };
+}
+
+/** A library deck as the gate reads it. */
+export interface GateDeck {
+  deck: { name: string; legends: readonly string[]; main: readonly string[] };
+}
+/**
+ * The pools' list rule: a seat's game counts when its deck is not in the library (a retired list keeps its games) or
+ * the list the event or run stored for it is the library's current list of that deck (listFingerprint: Legends and
+ * main deck, whatever the order or sideboard). A stored list that is missing counts, as before.
+ */
+export function currentListGate(library: readonly GateDeck[]): ListGate {
+  const current = new Map<string, Set<string>>();
+  for (const d of library) {
+    const s = current.get(d.deck.name) ?? new Set<string>();
+    s.add(listFingerprint({ legends: [...d.deck.legends], main: [...d.deck.main] }));
+    current.set(d.deck.name, s);
+  }
+  const memo = new WeakMap<object, string>();
+  const fp = (l: Required<StoredList>) => {
+    let x = memo.get(l);
+    if (x === undefined) memo.set(l, (x = listFingerprint({ legends: [...l.legends], main: [...l.main] })));
+    return x;
+  };
+  return (deck, list) => {
+    const want = current.get(deck);
+    return !want || !list?.legends || !list.main || want.has(fp(list as Required<StoredList>));
+  };
 }

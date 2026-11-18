@@ -16,12 +16,16 @@
 // top 8s, finishes, match records) come only from standard events: an event flagged `custom` (another format, or
 // pairings or seeds set by hand: src/lib/eventFormats.ts) is skipped there. A deck entered twice ("X #2") plays as X,
 // and its games against its own copy are left out of the fit.
+// Rating runs (data/series/run-N.json, the rating series of docs/SERIES.md) are pooled beside the events: their games
+// count, they have no titles or finishes; the file's `runs` field counts them (absent when there are none).
+// Pooled by list: a game counts only when both seats played the library's current list of their deck
+// (scripts/event-pool.ts currentListGate), so a deck whose list was edited is unrated until it plays again.
 // Output: src/data/ratings.json (site) and reports/ratings-latest.md. ratings.json carries a manifest naming the input
 // events, their sim versions and run ids (src/lib/runManifest.ts aggregateManifest).
 import fs from 'node:fs';
-import { bool, cli, loadLibrary, readEvents, str, writeJsonStamped } from './lib-node';
+import { bool, cli, loadLibrary, readPooled, str, writeJsonStamped } from './lib-node';
 import { aggregateManifest, type RecordedEventInput } from '../src/lib/runManifest';
-import { checkSimVersionFlag, parsePoolFilter, poolEvents, poolRecord, selectEvents } from './event-pool';
+import { checkSimVersionFlag, currentListGate, parsePoolFilter, poolEvents, poolRecord, selectEvents } from './event-pool';
 import { fieldInterval, fitRatings } from '../src/lib/ratingModel';
 import { ordinal } from '../src/lib/playedRecord';
 
@@ -31,11 +35,11 @@ const σ = (x: number) => 1 / (1 + Math.exp(-x));
 const lib = loadLibrary();
 const metaNames = new Set(lib.filter((d) => d.kind === 'meta').map((d) => d.deck.name));
 
-const recorded = readEvents();
+const recorded = readPooled();
 const selection = selectEvents(recorded, parsePoolFilter(V));
 for (const w of selection.warnings) console.log(w);
 const events = selection.kept;
-const { games, results, customEvents } = poolEvents(events);
+const { games, results, customEvents, runs } = poolEvents(events, currentListGate(lib));
 if (customEvents) console.log(`note: ${customEvents} custom event(s) (another format, or pairings set by hand): their games count, their titles and finishes don't`);
 if (!games.length) {
   console.log('No tournament games yet (run scripts/tournament.ts).');
@@ -79,11 +83,12 @@ const manifest = aggregateManifest('ratings', events as unknown as RecordedEvent
 if (manifest.inputs?.mixedSimVersions) console.log(`note: these events span sim versions ${manifest.inputs.simVersions.map((v) => v ?? 'none').join(', ')} (see manifest.inputs)`);
 const pool = poolRecord(selection);
 // `intervals` says how the 90% ranges were drawn ('full-covariance' since SIM-6; files without it used the diagonal)
-const out = { updated: '', events: events.length, games: games.length, firstPlayerEdge: σ(h) - 0.5, intervals: V.diagonal ? 'diagonal' : 'full-covariance', decks: rows, ...(pool ? { pool } : {}), manifest };
+const nEvents = events.length - runs;
+const out = { updated: '', events: nEvents, ...(runs ? { runs } : {}), games: games.length, firstPlayerEdge: σ(h) - 0.5, intervals: V.diagonal ? 'diagonal' : 'full-covariance', decks: rows, ...(pool ? { pool } : {}), manifest };
 if (!V.diagonal) writeJsonStamped('src/data/ratings.json', out, { indent: 1 });
 const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`);
 const md = [
-  `# Power ratings (${events.length} events, ${games.length} games)`,
+  `# Power ratings (${nEvents} events${runs ? ` and ${runs} rating run${runs === 1 ? '' : 's'}` : ''}, ${games.length} games)`,
   '',
   `Bradley–Terry fit over every pooled tournament game (sim v${selection.simVersion === 'all' ? 'all' : (selection.simVersion ?? '?')}, ${selection.bot} bot; 90% ranges from the ${V.diagonal ? 'diagonal information' : 'full covariance'}). Going first adds ${(100 * (σ(h) - 0.5)).toFixed(1)} points of win probability.`,
   '',

@@ -10,6 +10,7 @@ import { parseDeck } from '../src/engine/deck';
 import type { MatchJob, MatchResult } from './worker';
 import { WorkPool, type PooledWorker, type WorkerLink } from '../src/lib/workPool';
 import { entrantBase, type EventSetup } from '../src/lib/eventFormats';
+import type { ListGate } from '../src/lib/ratingGames';
 import type { GameCache } from './game-cache';
 
 // ================================================================ deck library
@@ -422,9 +423,14 @@ export function maxEventId(...dirs: string[]): number {
   return m;
 }
 
-/** Loosely typed recorded event (public/tournaments/event-N.json). */
+/**
+ * Loosely typed recorded event (public/tournaments/event-N.json), or a rating run (data/series/run-N.json, id
+ * "run-N", `kind` RATING_RUN_KIND): a run has an event's shape and is pooled for ratings, head-to-heads and evidence
+ * beside the events, but it is not an event (no index row, no page, no knowledge-pack event record).
+ */
 export interface RecordedEvent {
-  id: number;
+  id: number | string;
+  kind?: string;
   date: string;
   bot: string;
   format?: unknown;
@@ -457,6 +463,52 @@ export function readEvents(dir = EVENTS_DIR): RecordedEvent[] {
   return eventFiles(dir).map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) as RecordedEvent);
 }
 
+// ---------------------------------------------------------------- rating runs (docs/SERIES.md)
+
+/**
+ * Rating runs live here: games the rating series played (docs/SERIES.md), one file per run, tracked and never served.
+ * Ratings, head-to-heads and the evidence pool them beside the events; nothing that lists events reads them.
+ */
+export const SERIES_DIR = 'data/series';
+/** The `kind` a run file carries (an event file carries none). */
+export const RATING_RUN_KIND = 'nct-rating-run';
+const RUN_RE = /^run-(\d+)\.json$/;
+
+/** run-N.json file names in a directory, in numeric order. */
+export function runFiles(dir = SERIES_DIR): string[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => RUN_RE.test(f))
+    .sort((a, b) => +a.match(RUN_RE)![1] - +b.match(RUN_RE)![1]);
+}
+/** Highest run number (0 if none). */
+export function maxRunId(dir = SERIES_DIR): number {
+  return runFiles(dir).reduce((m, f) => Math.max(m, +f.match(RUN_RE)![1]), 0);
+}
+/** Every rating run, parsed, in run order. */
+export function readRuns(dir = SERIES_DIR): RecordedEvent[] {
+  return runFiles(dir).map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) as RecordedEvent);
+}
+/**
+ * A played match-list event (runTournament with a `matches` setup) as rating run number `n`: the same record, with the
+ * run's id, kind and schema in front. The run's own fields (rule, why, before/after) come with the series (docs/SERIES.md).
+ */
+export function toRatingRun<E extends { id: number | string }>(event: E, n: number): Omit<E, 'id'> & { kind: string; schema: 1; id: string } {
+  const { id: _id, ...rest } = event;
+  void _id;
+  return { kind: RATING_RUN_KIND, schema: 1, id: `run-${n}`, ...rest };
+}
+/** A pooled source that is a rating run, not an event. */
+export const isRun = (e: object): boolean => (e as { kind?: unknown }).kind === RATING_RUN_KIND;
+/**
+ * What ratings, head-to-heads and the evidence pool: the recorded events, then the rating runs (none when `seriesDir`
+ * is null, as for an experiment writing events to its own directory).
+ */
+export function readPooled(eventsDir = EVENTS_DIR, seriesDir: string | null = SERIES_DIR): RecordedEvent[] {
+  return [...readEvents(eventsDir), ...(seriesDir ? readRuns(seriesDir) : [])];
+}
+
 export interface RecordedGame {
   event: RecordedEvent;
   match: RecordedMatch & { b: string };
@@ -473,13 +525,17 @@ export interface RecordedGame {
 export function forEachRecordedGame(cb: (g: RecordedGame) => void, dir = EVENTS_DIR) {
   forEachGameOf(readEvents(dir), cb);
 }
-/** forEachRecordedGame over events already read (and perhaps filtered: scripts/event-pool.ts selectEvents). */
-export function forEachGameOf(events: readonly RecordedEvent[], cb: (g: RecordedGame) => void) {
+/**
+ * forEachRecordedGame over events already read (and perhaps filtered: scripts/event-pool.ts selectEvents). With a
+ * `gate` (scripts/event-pool.ts currentListGate), a game is visited only when both seats' stored lists pass it.
+ */
+export function forEachGameOf(events: readonly RecordedEvent[], cb: (g: RecordedGame) => void, gate?: ListGate) {
   for (const event of events)
     for (const [pi, part] of [...event.rounds, ...event.bracket].entries())
       for (const match of part.matches) {
         if (!match.b) continue;
         const decks: [string, string] = [entrantBase(event.setup, match.a), entrantBase(event.setup, match.b)];
+        if (gate && !(gate(decks[0], event.decks[match.a]) && gate(decks[1], event.decks[match.b]))) continue;
         for (const game of match.games) cb({ event, match: match as RecordedMatch & { b: string }, game, stage: pi < event.rounds.length ? 'swiss' : 'top', decks });
       }
 }

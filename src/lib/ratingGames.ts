@@ -8,6 +8,10 @@
 //   - Events in the order given, then rounds, then the bracket, then matches and games as stored.
 //   - A played event (some entrant run by a person: `setup.seats`, src/lib/playedEvent.ts) gives no games at all, its
 //     bot-against-bot matches included: people's games say nothing about the bots or the lists under them.
+//   - With a gate (`ListGate`; the pools pass scripts/event-pool.ts `currentListGate`), a game counts only when both
+//     seats' stored lists pass it: for a library deck, the list the event or rating run recorded must be its current
+//     list, so a deck whose list was edited is unrated until it plays again; a deck no longer in the library keeps
+//     its games. Without a gate every game counts, as before.
 import { entrantBase, isPlayedSetup, type EventSetup } from './eventFormats';
 import type { RatedGame } from './ratingModel';
 
@@ -17,8 +21,18 @@ interface GamesMatch {
   games: readonly { first: 0 | 1; winner: 0 | 1 | 'tie' }[];
 }
 
+/** A stored deck list, as an event or run records it (loosely typed: a part that is missing makes the game count). */
+export interface StoredList {
+  legends?: readonly string[];
+  main?: readonly string[];
+}
+/** Whether a seat's game counts: `deck` is the library deck it plays as, `list` the list the event stored for it. */
+export type ListGate = (deck: string, list: StoredList | undefined) => boolean;
+
 /** The parts of a recorded event the games are read from. */
 export interface GamesEvent {
+  /** the lists the event stored, by entrant name (read only with a gate) */
+  decks?: Readonly<Record<string, StoredList>>;
   /** a recorded setup always lists its entrants; read here for the copies ("X #2") and who played (`seats`) */
   setup?: Partial<Pick<EventSetup, 'entrants' | 'seats'>>;
   rounds: readonly { matches: readonly GamesMatch[] }[];
@@ -26,7 +40,7 @@ export interface GamesEvent {
 }
 
 /** The rated games of one event's matches (`ratedGamesOf` for several events). */
-export function eventRatedGames(e: GamesEvent): RatedGame[] {
+export function eventRatedGames(e: GamesEvent, gate?: ListGate): RatedGame[] {
   const out: RatedGame[] = [];
   if (isPlayedSetup(e.setup)) return out;
   const entrants = e.setup?.entrants;
@@ -37,12 +51,13 @@ export function eventRatedGames(e: GamesEvent): RatedGame[] {
       const a = base(m.a);
       const b = base(m.b);
       if (a === b) continue;
+      if (gate && !(gate(a, e.decks?.[m.a]) && gate(b, e.decks?.[m.b]))) continue;
       for (const g of m.games) out.push({ a, b, first: g.first, s: g.winner === 0 ? 1 : g.winner === 1 ? 0 : 0.5 });
     }
   return out;
 }
 
 /** Every rated game of these events, in their order: a's score is 1, ½ (a tie) or 0. */
-export function ratedGamesOf(events: readonly GamesEvent[]): RatedGame[] {
-  return events.flatMap(eventRatedGames);
+export function ratedGamesOf(events: readonly GamesEvent[], gate?: ListGate): RatedGame[] {
+  return events.flatMap((e) => eventRatedGames(e, gate));
 }

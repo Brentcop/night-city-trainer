@@ -10,18 +10,23 @@
 // Besides the raw counts, the file carries the estimates the readers prefer (SIM-4, src/lib/h2hModel.ts): `model` (the
 // power ratings fitted to the same games, the going-first term and the fitted shrinkage weight) and `shrunk` (each met
 // pair's estimate: the ratings' prediction plus its own residual, shrunk). A pairing that never met gets the prediction.
+// Rating runs (data/series/run-N.json, docs/SERIES.md) are pooled beside the events (`runs` counts them, absent when
+// none), and games count only on the library's current lists (scripts/event-pool.ts currentListGate), as in ratings.ts.
 // --loeo prints a leave-one-event-out check of the pair predictors (raw rate, the Lab's old 50% shrink, the ratings'
 // prediction, the shrunk estimate) and writes nothing.
 import fs from 'node:fs';
-import { bool, cli, EVENTS_DIR, forEachGameOf, readEvents, str, writeJsonStamped, type RecordedEvent } from './lib-node';
+import { bool, cli, EVENTS_DIR, forEachGameOf, isRun, loadLibrary, readPooled, SERIES_DIR, str, writeJsonStamped, type RecordedEvent } from './lib-node';
 import { aggregateManifest, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
-import { checkSimVersionFlag, parsePoolFilter, poolEvents, poolRecord, selectEvents, type PoolFilter, type PoolRecord, type PoolSelection } from './event-pool';
+import { checkSimVersionFlag, currentListGate, parsePoolFilter, poolEvents, poolRecord, selectEvents, type PoolFilter, type PoolRecord, type PoolSelection } from './event-pool';
+import type { ListGate } from '../src/lib/ratingGames';
 import { h2hModelFields, leaveOneEventOut, LOEO_PREDICTORS, type H2HModelBlock } from '../src/lib/h2hModel';
 
 export interface H2HFile {
   updated: string;
-  /** events pooled (recorded events minus any listed in `pool.excluded`) */
+  /** events pooled (recorded events minus any listed in `pool.excluded`; rating runs not counted) */
   events: number;
+  /** rating runs pooled (data/series, docs/SERIES.md); absent when there are none */
+  runs?: number;
   games: number;
   decks: string[];
   /** [i, j, wins of i vs j (ties = 0.5), games] for every pair that has met, i < j */
@@ -36,11 +41,13 @@ export interface H2HFile {
   manifest?: RunManifest;
 }
 
-export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json', filter: PoolFilter = {}): H2HFile | null {
+export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json', filter: PoolFilter = {}, o: { seriesDir?: string | null; libraryDir?: string } = {}): H2HFile | null {
   if (!fs.existsSync(dir)) return null;
-  const selection = selectEvents(readEvents(dir), filter);
+  // the site's own events pool the rating runs too; an experiment's directory (tournament.ts --out) pools its events alone
+  const seriesDir = o.seriesDir !== undefined ? o.seriesDir : dir === EVENTS_DIR ? SERIES_DIR : null;
+  const selection = selectEvents(readPooled(dir, seriesDir), filter);
   for (const w of selection.warnings) console.log(w);
-  writeJsonStamped(out, h2hOf(selection) as unknown as Record<string, unknown>);
+  writeJsonStamped(out, h2hOf(selection, currentListGate(loadLibrary(o.libraryDir))) as unknown as Record<string, unknown>);
   return JSON.parse(fs.readFileSync(out, 'utf8')) as H2HFile;
 }
 
@@ -48,8 +55,9 @@ export function buildH2H(dir = EVENTS_DIR, out = 'public/data/h2h.json', filter:
  * The head-to-head file's content for a selection of events, without writing it (`updated` left empty: the writer
  * stamps it). The knowledge pack also builds the archived events' head-to-heads with it, in memory (scripts/kb-sources.ts).
  */
-export function h2hOf(selection: PoolSelection<RecordedEvent>): H2HFile {
+export function h2hOf(selection: PoolSelection<RecordedEvent>, gate?: ListGate): H2HFile {
   const events = selection.kept;
+  const runs = events.filter(isRun).length;
   const idx = new Map<string, number>();
   const id = (n: string) => (idx.has(n) ? idx.get(n)! : (idx.set(n, idx.size), idx.size - 1));
   const acc = new Map<string, { w: number; g: number }>();
@@ -69,17 +77,18 @@ export function h2hOf(selection: PoolSelection<RecordedEvent>): H2HFile {
     r.w += w;
     r.g++;
     acc.set(k, r);
-  });
+  }, gate);
   const decks = [...idx.keys()];
   const pairs = [...acc.entries()].map(([k, r]) => {
     const [i, j] = k.split('|').map(Number);
     return [i, j, r.w, r.g] as [number, number, number, number];
   });
-  const fitted = pairs.length ? h2hModelFields(decks, pairs, poolEvents(events).games) : null;
+  const fitted = pairs.length ? h2hModelFields(decks, pairs, poolEvents(events, gate).games) : null;
   const pool = poolRecord(selection);
   const data: H2HFile = {
     updated: '',
-    events: events.length,
+    events: events.length - runs,
+    ...(runs ? { runs } : {}),
     games,
     decks,
     pairs,
@@ -94,9 +103,10 @@ if (process.argv[1]?.endsWith('build-h2h.ts')) {
   const { values: V } = cli(import.meta.url, { 'sim-version': str('latest', checkSimVersionFlag), bot: str('latest'), loeo: bool() });
   const filter = parsePoolFilter(V);
   if (V.loeo) {
-    const selection = selectEvents(readEvents(), filter);
+    const selection = selectEvents(readPooled(), filter);
     for (const w of selection.warnings) console.log(w);
-    const per = selection.kept.map((e) => poolEvents([e]).games);
+    const gate = currentListGate(loadLibrary());
+    const per = selection.kept.map((e) => poolEvents([e], gate).games);
     const r = leaveOneEventOut(per, { thinMax: 3 });
     const row = (name: string, x: typeof r.all) =>
       `  ${name.padEnd(30)} ${String(x.games).padStart(5)} games  Brier ${LOEO_PREDICTORS.map((p) => `${p} ${x.brier[p].toFixed(4)}`).join(' · ')}\n${''.padEnd(45)}log loss ${LOEO_PREDICTORS.map((p) => `${p} ${x.logLoss[p].toFixed(4)}`).join(' · ')}`;
@@ -109,7 +119,7 @@ if (process.argv[1]?.endsWith('build-h2h.ts')) {
     const d = buildH2H(EVENTS_DIR, 'public/data/h2h.json', filter);
     console.log(
       d
-        ? `h2h: ${d.decks.length} decks, ${d.pairs.length} pairings, ${d.games} games from ${d.events} events${d.model ? `; shrinkage weight ${d.model.priorGames} games (rho ${d.model.rho})` : ''} → public/data/h2h.json`
+        ? `h2h: ${d.decks.length} decks, ${d.pairs.length} pairings, ${d.games} games from ${d.events} events${d.runs ? ` and ${d.runs} rating run${d.runs === 1 ? '' : 's'}` : ''}${d.model ? `; shrinkage weight ${d.model.priorGames} games (rho ${d.model.rho})` : ''} → public/data/h2h.json`
         : `no tournament data (${EVENTS_DIR}) yet`,
     );
   }

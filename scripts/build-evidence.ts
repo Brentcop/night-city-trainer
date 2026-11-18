@@ -12,7 +12,7 @@
 //   --matchup-check    write nothing: print the leave-one-event-out check of the matchup interval
 //
 // Reads tracked files only: src/data/ratings.json, public/data/h2h.json, src/data/analysis.json, public/data/synergies.json,
-// the recorded events (public/tournaments), the forge reports (reports/forge/*.json), the re-measurements
+// the recorded events (public/tournaments) and the rating runs (data/series, docs/SERIES.md), the forge reports (reports/forge/*.json), the re-measurements
 // (data/evidence/*.json), the change ledger, the library (data/decks) and its older lists (data/decks/custom/history).
 // A derived-data builder like scripts/build-h2h.ts: it overwrites its own output, and an unchanged rebuild leaves every
 // file byte-identical (no build time is written; the manifest is derived from the input events). Run by
@@ -20,10 +20,10 @@
 // from a rebuild. Exits 1 when a check fails or an input is unreadable, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
-import { bool, cli, EVENTS_DIR, loadLibrary, readEvents, str, writeIfChanged } from './lib-node';
+import { bool, cli, EVENTS_DIR, isRun, loadLibrary, readEvents, readPooled, readRuns, SERIES_DIR, str, writeIfChanged } from './lib-node';
 import { readLedgerDir } from './ledger-store';
 import { buildEvidence, eventMatches, matchupCheck, pairSpread, PAIRED_METHODS, type AdjustedFile, type BuiltEvidence, type EvidenceInputs, type ForgeReport } from './evidence-build';
-import { selectEvents } from './event-pool';
+import { currentListGate, selectEvents } from './event-pool';
 import { parseDeck } from '../src/engine/deck';
 import { CATALOGUE_VERSION } from '../src/content/synergies';
 import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
@@ -47,7 +47,7 @@ function shown(root: string, p: string): string {
 const readJson = (file: string): unknown => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
 
 /** Every input the builder reads, from a checkout (`root`), with any problem that stops a build. */
-export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted?: string | null; eventsDir?: string; h2h?: string } = {}): { inputs: EvidenceInputs; problems: string[] } {
+export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted?: string | null; eventsDir?: string; h2h?: string; seriesDir?: string | null } = {}): { inputs: EvidenceInputs; problems: string[] } {
   const at = (p: string) => path.join(root, p);
   const problems: string[] = [];
   const ledgerDir = o.ledgerDir ?? LEDGER_DIR;
@@ -89,10 +89,13 @@ export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted
     if (!data || data.kind !== 'impact-adjusted' || !Array.isArray(data.decks)) problems.push(`${o.adjusted}: not an adjusted card impact file (kind "impact-adjusted")`);
     else adjusted = { file: shown(root, o.adjusted), data };
   }
+  const seriesDir = o.seriesDir !== undefined ? o.seriesDir : o.eventsDir === undefined ? SERIES_DIR : null;
   const inputs: EvidenceInputs = {
     library: loadLibrary(at('data/decks')).map((d) => ({ file: d.file, deck: d.deck })),
     history,
     events: readEvents(at(o.eventsDir ?? EVENTS_DIR)),
+    // the site's rating runs; an experiment that writes its events elsewhere (eventsDir) pools its events alone
+    runs: seriesDir ? readRuns(at(seriesDir)) : [],
     ratings: readJson(at('src/data/ratings.json')) as EvidenceInputs['ratings'],
     h2h: readJson(at(o.h2h ?? 'public/data/h2h.json')) as EvidenceInputs['h2h'],
     analysis: readJson(at('src/data/analysis.json')) as EvidenceInputs['analysis'],
@@ -102,7 +105,7 @@ export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted
     forge,
     remeasure,
     adjusted,
-    paths: { ratings: 'src/data/ratings.json', h2h: shown(root, o.h2h ?? 'public/data/h2h.json'), analysis: 'src/data/analysis.json', synergies: 'public/data/synergies.json', events: shown(root, o.eventsDir ?? EVENTS_DIR), ledgerDir: shown(root, ledgerDir) },
+    paths: { ratings: 'src/data/ratings.json', h2h: shown(root, o.h2h ?? 'public/data/h2h.json'), analysis: 'src/data/analysis.json', synergies: 'public/data/synergies.json', events: shown(root, o.eventsDir ?? EVENTS_DIR), ledgerDir: shown(root, ledgerDir), ...(seriesDir ? { series: shown(root, seriesDir) } : {}) },
     simVersion: CURRENT_SIM_VERSION,
   };
   return { inputs, problems };
@@ -299,15 +302,18 @@ export function rebuildEvidence(o: { out?: string; eventsDir?: string; h2h?: str
 if (process.argv[1]?.endsWith('build-evidence.ts')) {
   const { values: V } = cli(import.meta.url, { out: str(), 'ledger-dir': str(LEDGER_DIR), adjusted: str(), check: bool(), 'matchup-check': bool() });
   if (V['matchup-check']) {
-    const sel = selectEvents(readEvents());
-    const sp = pairSpread(loadEvidenceInputs('.').inputs.analysis);
-    const c = matchupCheck(sel.kept.map(eventMatches), sp.tau2);
+    const sel = selectEvents(readPooled());
+    const loaded = loadEvidenceInputs('.').inputs;
+    const sp = pairSpread(loaded.analysis);
+    const gate = currentListGate(loaded.library);
+    const kept = sel.kept.filter((e) => !isRun(e));
+    const c = matchupCheck(kept.map((e) => eventMatches(e, gate)), sp.tau2);
     const pt = (x: number) => (100 * x).toFixed(1);
     const sdOf = (v: number) => pt(Math.sqrt(Math.max(0, v)));
     console.log(sp.measured
       ? `Pair spread: a pairing's true win rate sits about ${pt(sp.sd)} points (SD) from the ratings' prediction, measured on ${sp.pairings} pairings of the analysis table (${sp.games} games); the fit misses those records by χ² = ${sp.chi2!.toFixed(1)} on ${sp.df} degrees of freedom.`
       : `Pair spread: the default of ${pt(sp.sd)} points (SD); the analysis table was missing or too small to measure it.`);
-    console.log(`Leave one event out over ${sel.kept.length} events (${c.matches} held-out matches, ${c.games} games), each game's chance the training fit's for its seat plus the pairing's shrunk residual:`);
+    console.log(`Leave one event out over ${kept.length} events (${c.matches} held-out matches, ${c.games} games), each game's chance the training fit's for its seat plus the pairing's shrunk residual:`);
     console.log(`  Calibration: the logistic slope of the result on the logit of the chance is ${c.slope.toFixed(3)} ± ${c.slopeSe.toFixed(3)} (1 is calibrated; below 1, the chances are too far from even). The favoured deck scored ${c.favouredWins.toFixed(1)} against ${c.favouredExpected.toFixed(1)} expected.`);
     console.log(`  Distance of the truth from the estimate: the product of games 1 and 2's residuals averages ${c.squaredDistance.toFixed(4)} ± ${c.squaredDistanceSe.toFixed(4)} (SD about ${sdOf(c.squaredDistance)} points; 95% up to ${sdOf(c.squaredDistance + 1.96 * c.squaredDistanceSe)}).`);
     console.log(`  The interval claims ${c.claimedVariance.toFixed(4)} on average (SD ${sdOf(c.claimedVariance)} points) with the pair spread, ${c.claimedWithoutSpread.toFixed(4)} (SD ${sdOf(c.claimedWithoutSpread)} points) without it.`);

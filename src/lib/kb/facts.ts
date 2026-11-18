@@ -159,7 +159,7 @@ export function runFact(req: FactRequest, src: CompetitiveSources, resolve: Deck
         const files = `${src.ratings.file}, ${src.index.file}`;
         if (req.fact === 'rating') {
           if (!d.rating) return fail(`"${names[0]}" has no row in ${src.ratings.file}`);
-          return out(`${ratingText(d, { events: typeof src.ratings.data.events === 'number' ? src.ratings.data.events : null })}\n  ${sourceLine(files, d)}`, { fact: 'rating', source: files, ...d });
+          return out(`${ratingText(d, { events: typeof src.ratings.data.events === 'number' ? src.ratings.data.events : null, runs: typeof src.ratings.data.runs === 'number' ? src.ratings.data.runs : undefined })}\n  ${sourceLine(files, d)}`, { fact: 'rating', source: files, ...d });
         }
         const lines = [
           `${d.deck} finishes in standard events (newest first): ${d.finishes.length}`,

@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { defaultSiteConfig, FEATURE_INFO, PAGE_FEATURES, pageOn, parseSiteConfig, siteConfigText, visibleNav } from '../src/lib/siteConfig';
 import { modelFromH2HFile, runForecast, tournamentOf } from '../src/lib/forecast';
 import { uniformField, userField } from '../src/lib/forecastField';
-import { FORECAST_WORDS } from '../src/lib/forecastWords';
+import { FORECAST_WORDS, sourceWords } from '../src/lib/forecastWords';
 import { ForecastPage, ForecastResults } from '../src/ui/pages/Forecast';
 import { importGraph, rel, ROOT } from './importGraph';
 
@@ -57,6 +57,17 @@ describe('where the code goes', () => {
   });
 });
 
+describe('the source line', () => {
+  const src = (events: (number | string)[]) => ({ events, games: 4084, simVersion: 9, bot: 'hard', from: 'h2h-file' as const });
+  it('names the events as a range, a list or one event, and rating runs apart', () => {
+    expect(sourceWords(src([20, 21, 22, 23, 24]))).toBe('power ratings and head-to-heads of events 20 to 24 (4,084 games), simulator v9, the Hard bot');
+    expect(sourceWords(src([20, 22]))).toContain('of events 20, 22 (');
+    expect(sourceWords(src([20]))).toContain('of event 20 (');
+    expect(sourceWords(src([20, 21, 22, 'run-1', 'run-2', 'run-3']))).toContain('of events 20 to 22 and rating runs 1 to 3 (');
+    expect(sourceWords(src([20, 21, 22, 'run-4']))).toContain('of events 20 to 22 and rating run 4 (');
+  });
+});
+
 describe('the page', () => {
   it('says what it is before anything loads', () => {
     const html = renderToStaticMarkup(<ForecastPage />);
@@ -70,8 +81,9 @@ describe('the page', () => {
     const res = runForecast(model, { weights: field.weights }, tournamentOf({ players: 32, top: 8 }), { draws: 3, trials: 10, seed: 1 });
     const html = renderToStaticMarkup(<ForecastResults result={res} field={field} names={model.names} />);
     expect(html).toContain('32 players, 5 Swiss rounds best of 3, top 8 played as single elimination');
-    expect(html).toContain('power ratings and head-to-heads of events 20 to 24');
-    expect(html).toContain('simulator v9, the Hard bot');
+    // the source line names what h2h.json pooled (sourceWords' own wording is pinned on fixtures below)
+    expect(html).toContain(sourceWords(model.source));
+    expect(html).toContain(`simulator v${h2h.manifest.simVersion}, the ${h2h.manifest.bot.level === 'hard' ? 'Hard' : h2h.manifest.bot.level} bot`);
     expect(html).toContain('assumed (no information about what people play)');
     expect(html).toContain('3 parameter draws × 10 tournaments each');
     expect(html).toContain('<caption class="sr-only">');

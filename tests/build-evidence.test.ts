@@ -432,7 +432,7 @@ describe('building from fixtures', () => {
   });
 
   it('the matchup check scores every held-out match, game by game', () => {
-    const c = matchupCheck(events(5).map(eventMatches), 0.0036);
+    const c = matchupCheck(events(5).map((e) => eventMatches(e)), 0.0036);
     expect(c.matches).toBe(5 * 6);
     expect(c.games).toBe(5 * 18);
     expect(Number.isFinite(c.slope) && c.slopeSe > 0).toBe(true);

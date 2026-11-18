@@ -227,8 +227,8 @@ export const GAP_WORDS: Readonly<Record<string, { text: string; measure: string 
     measure: 'A Hard re-measurement of the change: npm run remeasure -- <deck> --change "<label>" --bot hard (1,120 paired games against the meta decks), then npm run evidence.',
   },
   'other-list-events': {
-    text: 'Some recorded games were played with another list of this deck; results use them as the deck.',
-    measure: 'Record new events with the current list.',
+    text: 'Some recorded games were played with another list of this deck; they are left out, so its results come from its current list alone.',
+    measure: 'Games with the current list: the rating series plays a deck whose list changed (docs/SERIES.md), or record new events with it.',
   },
   'no-bot-transfer': {
     text: 'No per-deck Medium-against-Hard measurement is stored, so no finding says how far Medium’s view of a deck is from Hard’s.',

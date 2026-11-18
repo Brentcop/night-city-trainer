@@ -15,8 +15,8 @@
 //   full covariance against the old diagonal one) and exit. Writes nothing.
 import fs from 'node:fs';
 import path from 'node:path';
-import { bool, cli, int, loadLibrary, oneOf, readEvents, Refusal, runJobsDetailed, runMain, str, threadsOpt, TIER_BOTS } from './lib-node';
-import { checkSimVersionFlag, parsePoolFilter, poolEvents, selectEvents } from './event-pool';
+import { bool, cli, int, loadLibrary, oneOf, readPooled, Refusal, runJobsDetailed, runMain, str, threadsOpt, TIER_BOTS } from './lib-node';
+import { checkSimVersionFlag, currentListGate, parsePoolFilter, poolEvents, selectEvents } from './event-pool';
 import { fieldInterval, fitRatings, planExtraGames, simulateCoverage, type RatedGame } from '../src/lib/ratingModel';
 import { bandOf } from '../src/lib/simTier';
 import { scoreOf } from '../src/lib/evidence';
@@ -48,11 +48,11 @@ runMain(async () => {
     }
     return;
   }
-  const sel = selectEvents(readEvents(), parsePoolFilter(V));
+  const sel = selectEvents(readPooled(), parsePoolFilter(V));
   for (const w of sel.warnings) console.log(w);
-  const games = poolEvents(sel.kept).games;
-  if (!games.length) throw new Refusal('no pooled tournament games to plan from');
   const lib = loadLibrary();
+  const games = poolEvents(sel.kept, currentListGate(lib)).games;
+  if (!games.length) throw new Refusal('no pooled tournament games to plan from');
   const fit = fitRatings(games);
   const all = fit.names.map((_, k) => k);
   const eligible = all.filter((k) => lib.some((d) => d.deck.name === fit.names[k]));

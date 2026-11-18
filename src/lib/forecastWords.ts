@@ -15,14 +15,22 @@ export const FORECAST_WORDS = {
   decides: `What decides it: the opponents whose share of the field moves the deck’s chance to make the cut most, with its chance to win a match against each. The change is a first-order estimate for ${100 * SENSITIVITY_SHARE} more points of that opponent’s share (from how often the deck meets it in the Swiss rounds and the value of a match win), not a re-run.`,
 } as const;
 
-/** "Ratings of events 20–24 (4,084 games), simulator v9, Hard bot, from h2h.json" */
+/** "1 to 5", "3", "2, 4, 7": a list of numbers, as a range when it runs without a gap. */
+function numberList(nums: readonly number[]): string {
+  const consecutive = nums.length > 2 && nums.every((x, i) => i === 0 || x === nums[i - 1]! + 1);
+  return nums.length === 1 ? String(nums[0]) : consecutive ? `${nums[0]} to ${nums.at(-1)}` : nums.join(', ');
+}
+
+/** "Ratings of events 20–24 (4,084 games), simulator v9, Hard bot, from h2h.json"; rating runs ("run-3") are named apart. */
 export function sourceWords(s: ForecastSource): string {
-  const ids = s.events.map(String);
-  const nums = s.events.every((e) => typeof e === 'number') ? (s.events as number[]) : null;
-  const consecutive = nums && nums.length > 2 && nums.every((x, i) => i === 0 || x === nums[i - 1]! + 1);
-  const evs = !ids.length ? 'no events' : ids.length === 1 ? `event ${ids[0]}` : consecutive ? `events ${ids[0]} to ${ids.at(-1)}` : `events ${ids.join(', ')}`;
+  const run = /^run-(\d+)$/;
+  const runs = s.events.filter((e) => typeof e === 'string' && run.test(e)).map((e) => Number(run.exec(String(e))![1]));
+  const events = s.events.filter((e) => !(typeof e === 'string' && run.test(e)));
+  const nums = events.every((e) => typeof e === 'number') ? (events as number[]) : null;
+  const evs = !events.length ? 'no events' : events.length === 1 ? `event ${events[0]}` : nums ? `events ${numberList(nums)}` : `events ${events.join(', ')}`;
+  const rs = runs.length ? ` and rating run${runs.length === 1 ? '' : 's'} ${numberList(runs)}` : '';
   const bot = s.bot === 'hard' ? 'the Hard bot' : `the ${s.bot} bot`;
-  return `power ratings and head-to-heads of ${evs} (${s.games.toLocaleString('en-US')} games), simulator v${s.simVersion ?? '?'}, ${bot}`;
+  return `power ratings and head-to-heads of ${evs}${rs} (${s.games.toLocaleString('en-US')} games), simulator v${s.simVersion ?? '?'}, ${bot}`;
 }
 
 export function tournamentWords(t: ForecastTournament): string {

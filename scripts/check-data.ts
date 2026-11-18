@@ -39,14 +39,22 @@
 //     most 100 together), and every trio's ids Legend cards of src/data/cards.json or kept as text and listed unmatched
 //   - src/content/deckObjectives/noteSynergies.ts (the slim table of the deck notes' synergies the bots read) is what
 //     the notes say, byte for byte; `npx tsx scripts/note-synergies.ts` rewrites it
+//   - data/series/run-N.json (rating runs, docs/SERIES.md), when the folder exists: each file's id is "run-N" and unique,
+//     its kind and schema, simVersion, bot and manifest (deck ids are the fingerprints of the stored lists, as for
+//     events), a setup that is a bots-only match list with no byes or bracket, readable games; a stored list that is not
+//     the library's current list of that deck (its games are left out of the pool) or a deck no longer in the library is
+//     information. h2h.json and ratings.json count the pooled runs (`runs`), list them in their manifests, and count
+//     only the games on the library's current lists (scripts/event-pool.ts currentListGate)
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
-import { cli, EVENTS_DIR, eventFiles } from './lib-node';
+import { cli, EVENTS_DIR, eventFiles, loadLibrary, RATING_RUN_KIND, runFiles, SERIES_DIR } from './lib-node';
+import { currentListGate, type GateDeck } from './event-pool';
+import type { ListGate } from '../src/lib/ratingGames';
 import { KNOWN_MANIFEST_SCHEMAS, storedDeckId, type RecordedEventInput, type RunManifest } from '../src/lib/runManifest';
-import { deckFingerprint } from '../src/engine/deck';
+import { deckFingerprint, listFingerprint } from '../src/engine/deck';
 import { LIBRARY_DIRS } from '../src/lib/library';
-import { isStandardSetup, setupProblems, type EventSetup } from '../src/lib/eventFormats';
+import { entrantBase, isPlayedSetup, isStandardSetup, setupProblems, type EventSetup } from '../src/lib/eventFormats';
 import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
 import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/ai/packageLift';
 import type { SynergyReport } from '../src/analysis/synergies';
@@ -61,6 +69,7 @@ import { CARD_BY_ID } from '../src/engine/cards';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
+  a?: string;
   b: string | null;
   games: unknown[];
 }
@@ -77,6 +86,9 @@ export interface CheckEvent {
   /** how a non-plain event was arranged; absent on plain Swiss events */
   setup?: EventSetup;
   custom?: boolean;
+  /** a rating run's kind and schema (absent on events) */
+  kind?: unknown;
+  schema?: unknown;
 }
 export interface CheckInput {
   /** src/data/tournaments.json (null when missing) */
@@ -84,9 +96,13 @@ export interface CheckInput {
   /** public/tournaments/event-N.json, parsed, with their file names */
   events: { file: string; event: CheckEvent }[];
   /** public/data/h2h.json (null when missing) */
-  h2h: { events: number; games: number; manifest?: unknown; pool?: PoolRecordLike } | null;
-  /** src/data/ratings.json (null when missing): only its manifest and pool are checked */
-  ratings?: { manifest?: unknown; pool?: PoolRecordLike } | null;
+  h2h: { events: number; runs?: number; games: number; manifest?: unknown; pool?: PoolRecordLike } | null;
+  /** src/data/ratings.json (null when missing): only its manifest, pool and run count are checked */
+  ratings?: { manifest?: unknown; pool?: PoolRecordLike; runs?: number } | null;
+  /** data/series/run-N.json (rating runs, docs/SERIES.md), parsed, with their file names (absent: none) */
+  runs?: { file: string; event: CheckEvent }[];
+  /** the library's decks, for the pools' list rule (absent: every game counts, as before the rule) */
+  library?: readonly GateDeck[];
   /** public/site-config.json's text (null when missing; not checked when absent) */
   siteConfig?: string | null;
   /** the library's deck files (data/decks), for the decks the site config names */
@@ -127,7 +143,17 @@ export interface CheckResult {
 }
 
 const EVENT_FILE_RE = /^event-(\d+)\.json$/;
+const RUN_FILE_RE = /^run-(\d+)\.json$/;
 const gamesOf = (e: CheckEvent) => [...e.rounds, ...e.bracket].reduce((a, r) => a + r.matches.reduce((b, m) => b + (m.b ? m.games.length : 0), 0), 0);
+/** The games the pools count (scripts/lib-node.ts forEachGameOf with the list gate): byes out, both seats' lists current. */
+const pooledGamesOf = (e: CheckEvent, gate: ListGate | null) =>
+  gate
+    ? [...e.rounds, ...e.bracket].reduce(
+        (a, r) => a + r.matches.reduce((b, m) => b + (m.b && gate(entrantBase(e.setup, m.a ?? ''), e.decks[m.a ?? '']) && gate(entrantBase(e.setup, m.b), e.decks[m.b]) ? m.games.length : 0), 0),
+        0,
+      )
+    : gamesOf(e);
+const isRunEvent = (e: CheckEvent) => e.kind === RATING_RUN_KIND;
 const listId = (d: StoredDeck) => deckFingerprint({ legends: d.legends, main: d.main, sideboard: d.sideboard ?? [] });
 
 /** Shape and schema problems of one manifest (empty when it is readable). */
@@ -288,6 +314,86 @@ export function ledgerFileProblems(files: readonly { file: string; text: string 
   return { problems, batches, games, conflicts };
 }
 
+/** A recorded file's stored deck ids and run manifest (events and rating runs alike): the failures, and whether a manifest was read. */
+function recordedManifestProblems(file: string, event: CheckEvent): { failures: string[]; manifest: boolean } {
+  const failures: string[] = [];
+  for (const [name, d] of Object.entries(event.decks))
+    if (d.id !== undefined && d.id !== listId(d)) failures.push(`${file}: deck "${name}" has id ${d.id}, its stored list fingerprints as ${listId(d)}`);
+  if (typeof event.simVersion !== 'number') failures.push(`${file}: no simVersion (every event since the 2026-11-11 baseline records one)`);
+  if (event.manifest === undefined) {
+    failures.push(`${file}: no run manifest (every event since the 2026-11-11 baseline records one)`);
+    return { failures, manifest: false };
+  }
+  const p = manifestProblems(event.manifest, file);
+  if (p.length) return { failures: [...failures, ...p], manifest: true };
+  const m = event.manifest as RunManifest;
+  if (typeof event.simVersion === 'number' && m.simVersion !== event.simVersion) failures.push(`${file}: manifest sim version ${m.simVersion}, the event says ${event.simVersion}`);
+  const named = new Set(m.decks.map((d) => d.name));
+  for (const rec of m.decks) {
+    const stored = event.decks[rec.name];
+    if (!stored) failures.push(`${file}: manifest deck "${rec.name}" has no stored list`);
+    else if (listId(stored) !== rec.id) failures.push(`${file}: manifest deck "${rec.name}" has id ${rec.id}, its stored list fingerprints as ${listId(stored)}`);
+  }
+  for (const name of Object.keys(event.decks)) if (!named.has(name)) failures.push(`${file}: deck "${name}" is not in the manifest`);
+  const ids = new Set(m.decks.map((d) => d.id));
+  for (const id of m.field.deckIds) if (!ids.has(id)) failures.push(`${file}: manifest field deck ${id} is not one of its decks`);
+  return { failures, manifest: true };
+}
+
+/**
+ * The rating runs (data/series, docs/SERIES.md): ids, kind, schema, version, bot, manifest, a bots-only match list,
+ * readable games; lists that are no longer the library's are information (their games are left out of the pools).
+ */
+export function runFileProblems(runs: readonly { file: string; event: CheckEvent }[], library: readonly GateDeck[] | undefined): { failures: string[]; info: string[]; manifests: number } {
+  const failures: string[] = [];
+  const info: string[] = [];
+  let manifests = 0;
+  const seen = new Set<string>();
+  const current = new Map<string, Set<string>>();
+  const lf = (d: { legends: readonly string[]; main: readonly string[] }) => listFingerprint({ legends: [...d.legends], main: [...d.main] });
+  for (const d of library ?? []) current.set(d.deck.name, (current.get(d.deck.name) ?? new Set<string>()).add(lf(d.deck)));
+  for (const { file, event: e } of runs) {
+    const where = `${SERIES_DIR}/${file}`;
+    const n = file.match(RUN_FILE_RE)?.[1];
+    if (n === undefined) failures.push(`${where}: not a run file name (run-N.json)`);
+    else if (e.id !== `run-${n}`) failures.push(`${where}: its id is ${JSON.stringify(e.id)}, the file name says "run-${n}"`);
+    if (seen.has(String(e.id))) failures.push(`${where}: run id ${JSON.stringify(e.id)} is recorded twice`);
+    seen.add(String(e.id));
+    if (e.kind !== RATING_RUN_KIND) failures.push(`${where}: kind ${JSON.stringify(e.kind)}, a rating run's is "${RATING_RUN_KIND}"`);
+    if (e.schema !== 1) failures.push(`${where}: schema ${JSON.stringify(e.schema)} is not one this code reads (1)`);
+    if (typeof e.bot !== 'string' || !e.bot) failures.push(`${where}: no bot`);
+    const m = recordedManifestProblems(where, e);
+    failures.push(...m.failures);
+    if (m.manifest) manifests++;
+    if (!e.setup || e.setup.format !== 'matches' || !Array.isArray(e.setup.entrants)) failures.push(`${where}: a run's setup must be a match list (format "matches")`);
+    else {
+      if (isPlayedSetup(e.setup)) failures.push(`${where}: a run is played by bots only (its setup names seats run by people)`);
+      const names = e.setup.entrants.map((x) => x.name).sort();
+      if (names.join('\u0000') !== Object.keys(e.decks).sort().join('\u0000')) failures.push(`${where}: setup entrants are not the stored decks`);
+    }
+    if (!Array.isArray(e.rounds) || !Array.isArray(e.bracket)) failures.push(`${where}: no rounds or bracket arrays`);
+    else {
+      if (e.bracket.length) failures.push(`${where}: a run has no bracket`);
+      let bad = 0;
+      for (const r of e.rounds)
+        for (const mm of r.matches) {
+          if (!mm.b || !mm.a || !e.decks[mm.a] || !e.decks[mm.b]) bad++;
+          for (const g of mm.games as { seed?: unknown; first?: unknown; winner?: unknown; turns?: unknown }[])
+            if (!Number.isInteger(g.seed) || (g.first !== 0 && g.first !== 1) || (g.winner !== 0 && g.winner !== 1 && g.winner !== 'tie') || !Number.isInteger(g.turns)) bad++;
+        }
+      if (bad) failures.push(`${where}: ${bad} match(es) or game(s) unreadable (a bye, a deck with no stored list, or a game without seed, first, winner and turns)`);
+    }
+    if (library)
+      for (const [name, d] of Object.entries(e.decks)) {
+        const base = entrantBase(e.setup, name);
+        const want = current.get(base);
+        if (!want) info.push(`${where}: "${base}" is not a library deck (a retired list: its games still count)`);
+        else if (!want.has(lf(d))) info.push(`${where}: "${base}" was played with a list that is no longer its current one: those games are left out of ratings and head-to-heads`);
+      }
+  }
+  return { failures, info, manifests };
+}
+
 export function checkData(input: CheckInput): CheckResult {
   const failures: string[] = [];
   const passed: string[] = [];
@@ -325,28 +431,45 @@ export function checkData(input: CheckInput): CheckResult {
     if (!noFile.length && !notIndexed.length && !dupIndex.length && !mismatched) passed.push(`index matches the event files (${indexIds.length} events)`);
   }
 
-  // ---- head-to-heads cover the recorded events
+  // ---- rating runs (docs/SERIES.md)
+  const runs = (input.runs ?? []).map((x) => x.event);
+  if (input.runs?.length) {
+    const r = runFileProblems(input.runs, input.library);
+    failures.push(...r.failures);
+    info.push(...r.info);
+    manifestsChecked += r.manifests;
+    if (!r.failures.length) passed.push(`${SERIES_DIR}/ reads (${input.runs.length} rating run(s), ${runs.reduce((a, e) => a + gamesOf(e), 0)} games)`);
+  }
+  const sources = [...events, ...runs];
+  const gate = input.library ? currentListGate(input.library) : null;
+
+  // ---- head-to-heads cover the recorded events and rating runs
   if (!input.h2h) failures.push('public/data/h2h.json is missing (build it with npm run build-h2h)');
   else {
     const before = failures.length;
-    const pooled = pooledEvents(input.h2h.pool, 'h2h.json', events, failures);
-    const games = pooled.reduce((a, e) => a + gamesOf(e), 0);
-    const left = events.length - pooled.length;
-    if (left) info.push(`h2h.json leaves out ${left} event(s) of another sim version or bot (its pool: sim v${input.h2h.pool?.simVersion} ${input.h2h.pool?.bot})`);
+    const pooledAll = pooledEvents(input.h2h.pool, 'h2h.json', sources, failures);
+    const pooled = pooledAll.filter((e) => !isRunEvent(e));
+    const pooledRuns = pooledAll.length - pooled.length;
+    const games = pooledAll.reduce((a, e) => a + pooledGamesOf(e, gate), 0);
+    const left = sources.length - pooledAll.length;
+    if (left) info.push(`h2h.json leaves out ${left} event(s) or run(s) of another sim version or bot (its pool: sim v${input.h2h.pool?.simVersion} ${input.h2h.pool?.bot})`);
     if (input.h2h.events !== pooled.length) failures.push(`h2h.json counts ${input.h2h.events} events, ${pooled.length} are recorded${left ? ' in its pool' : ''}${input.h2h.events < pooled.length ? ' (the Deck Lab shows it as stale)' : ''}`);
-    if (input.h2h.games !== games) failures.push(`h2h.json counts ${input.h2h.games} games, the ${left ? 'pooled' : 'recorded'} events have ${games}`);
+    if ((input.h2h.runs ?? 0) !== pooledRuns) failures.push(`h2h.json counts ${input.h2h.runs ?? 0} rating runs, ${pooledRuns} are recorded${left ? ' in its pool' : ''}`);
+    if (input.h2h.games !== games) failures.push(`h2h.json counts ${input.h2h.games} games, the ${left ? 'pooled' : 'recorded'} events${runs.length ? ' and runs' : ''} have ${games}${gate ? ' on the current lists' : ''}`);
     if (input.h2h.manifest !== undefined) {
       const p = manifestProblems(input.h2h.manifest, 'h2h.json');
       manifestsChecked++;
-      failures.push(...(p.length ? p : inputProblems(input.h2h.manifest as RunManifest, 'h2h.json', pooled)));
+      failures.push(...(p.length ? p : inputProblems(input.h2h.manifest as RunManifest, 'h2h.json', pooledAll)));
     } else info.push('h2h.json has no manifest (built before manifests)');
-    if (failures.length === before) passed.push(`h2h.json covers the recorded events (${pooled.length} events, ${games} games${left ? `; ${left} left out` : ''})`);
+    if (failures.length === before) passed.push(`h2h.json covers the recorded events (${pooled.length} events, ${pooledRuns ? `${pooledRuns} rating run${pooledRuns === 1 ? '' : 's'}, ` : ''}${games} games${left ? `; ${left} left out` : ''})`);
   }
   if (input.ratings?.manifest !== undefined) {
     const p = manifestProblems(input.ratings.manifest, 'ratings.json');
     manifestsChecked++;
-    const pooled = pooledEvents(input.ratings.pool, 'ratings.json', events, failures);
-    if (pooled.length < events.length) info.push(`ratings.json leaves out ${events.length - pooled.length} event(s) of another sim version or bot`);
+    const pooled = pooledEvents(input.ratings.pool, 'ratings.json', sources, failures);
+    if (pooled.length < sources.length) info.push(`ratings.json leaves out ${sources.length - pooled.length} event(s) or run(s) of another sim version or bot`);
+    const pooledRuns = pooled.filter(isRunEvent).length;
+    if ((input.ratings.runs ?? 0) !== pooledRuns) failures.push(`ratings.json counts ${input.ratings.runs ?? 0} rating runs, ${pooledRuns} are recorded in its pool`);
     failures.push(...(p.length ? p : inputProblems(input.ratings.manifest as RunManifest, 'ratings.json', pooled)));
   } else if (input.ratings) info.push('ratings.json has no manifest (built before manifests)');
 
@@ -375,32 +498,11 @@ export function checkData(input: CheckInput): CheckResult {
   // ---- event manifests and stored deck ids
   const beforeEvents = failures.length;
   for (const { file, event } of input.events) {
-    for (const [name, d] of Object.entries(event.decks))
-      if (d.id !== undefined && d.id !== listId(d)) failures.push(`${file}: deck "${name}" has id ${d.id}, its stored list fingerprints as ${listId(d)}`);
     // since the fresh baseline (2026-11-11, ROADMAP §1) every recorded event carries both; one without is a failure
-    if (typeof event.simVersion !== 'number') failures.push(`${file}: no simVersion (every event since the 2026-11-11 baseline records one)`);
-    if (event.manifest === undefined) {
-      legacyEvents++;
-      failures.push(`${file}: no run manifest (every event since the 2026-11-11 baseline records one)`);
-      continue;
-    }
-    manifestsChecked++;
-    const p = manifestProblems(event.manifest, file);
-    if (p.length) {
-      failures.push(...p);
-      continue;
-    }
-    const m = event.manifest as RunManifest;
-    if (typeof event.simVersion === 'number' && m.simVersion !== event.simVersion) failures.push(`${file}: manifest sim version ${m.simVersion}, the event says ${event.simVersion}`);
-    const named = new Set(m.decks.map((d) => d.name));
-    for (const rec of m.decks) {
-      const stored = event.decks[rec.name];
-      if (!stored) failures.push(`${file}: manifest deck "${rec.name}" has no stored list`);
-      else if (listId(stored) !== rec.id) failures.push(`${file}: manifest deck "${rec.name}" has id ${rec.id}, its stored list fingerprints as ${listId(stored)}`);
-    }
-    for (const name of Object.keys(event.decks)) if (!named.has(name)) failures.push(`${file}: deck "${name}" is not in the manifest`);
-    const ids = new Set(m.decks.map((d) => d.id));
-    for (const id of m.field.deckIds) if (!ids.has(id)) failures.push(`${file}: manifest field deck ${id} is not one of its decks`);
+    const m = recordedManifestProblems(file, event);
+    failures.push(...m.failures);
+    if (m.manifest) manifestsChecked++;
+    else legacyEvents++;
   }
   if (failures.length === beforeEvents) passed.push(`event manifests and stored deck ids (${manifestsChecked} manifest(s) checked in all files)`);
 
@@ -486,6 +588,8 @@ export function loadCheckInput(root = '.'): CheckInput {
   return {
     index: read('src/data/tournaments.json'),
     events: eventFiles(dir).map((file) => ({ file, event: JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')) as CheckEvent })),
+    runs: runFiles(path.join(root, SERIES_DIR)).map((file) => ({ file, event: JSON.parse(fs.readFileSync(path.join(root, SERIES_DIR, file), 'utf8')) as CheckEvent })),
+    library: loadLibrary(path.join(root, 'data/decks')),
     h2h: read('public/data/h2h.json'),
     ratings: read('src/data/ratings.json'),
     siteConfig: fs.existsSync(path.join(root, 'public/site-config.json')) ? fs.readFileSync(path.join(root, 'public/site-config.json'), 'utf8') : null,

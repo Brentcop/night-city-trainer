@@ -49,7 +49,7 @@ export function RatingsPage() {
     <div className="grid">
       <PageHead kicker="Tournaments" title="Power ratings">
         <b>
-          {R.events} events · {R.games.toLocaleString()} games · going first is worth {(R.firstPlayerEdge * 100).toFixed(1)} pts.
+          {R.events} events{R.runs ? ` and ${R.runs} rating run${R.runs === 1 ? '' : 's'}` : ''} · {R.games.toLocaleString()} games · going first is worth {(R.firstPlayerEdge * 100).toFixed(1)} pts.
         </b>{' '}
         One model fitted to every tournament game every deck has played: each deck's <b>expected win rate against the whole field</b>, with a bar
         for the 90% confidence range. Ranges that overlap are not meaningfully different.

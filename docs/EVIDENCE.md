@@ -58,7 +58,7 @@ Numbers are fractions: 0.01 is one point. Stored numbers are rounded to 6 decima
 
 Every number comes from the function that already defines it: `src/lib/eventFacts.ts` (`firstPlayerSplit`, `endReasons`, `ratingsTable`), `src/lib/ratingGames.ts`, `src/lib/ratingModel.ts` (`predictPair`, `fitRatings`), `src/lib/h2hModel.ts`, `src/lib/cardFacts.ts`, `src/ai/packageLift.ts`, `src/lib/changeLedger.ts`, `src/lib/shortlist.ts`, `src/lib/evidence.ts`, `src/lib/deckSearch.ts`. `tests/build-evidence.test.ts` checks on the real data that each finding equals the number its function gives.
 
-The recorded games are the pooled events, chosen as the ratings choose them (`selectEvents`: the simulator version and bot of the newest event). A deck entered twice plays as itself; mirror games are left out.
+The recorded games are the pooled events and rating runs (`data/series/run-N.json`, the rating series of [SERIES.md](SERIES.md): games the series played, pooled beside the events and never listed as events), chosen as the ratings choose them (`selectEvents`: the simulator version and bot of the newest event, or with runs in the pool the newest by date). A deck entered twice plays as itself; mirror games are left out. A game counts only when both seats played the library's current list of their deck (`currentListGate` in `scripts/event-pool.ts`; a deck no longer in the library keeps its games): games of an earlier list of a deck are left out, and the deck shows the gap "other-list-events" instead of findings measured on them. The leave-one-event-out matchup check folds the events only.
 
 ### The matchup interval
 
