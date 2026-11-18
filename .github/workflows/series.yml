@@ -1,0 +1,393 @@
+name: Rating series
+
+# Plays Hard-bot games, the decks with the widest rating ranges first, until every library deck's 90% range is at most
+# the owner's width, and commits the run with the ratings rebuilt (docs/SERIES.md, "Running by itself"). No AI
+# assistant takes part: GitHub runs the repository's scripts on its own schedule.
+#
+# `decide` (read-only) asks scripts/series.ts status whether anything is needed (the switches in public/site-config.json,
+#   the widest range, unrated decks); nothing needed is a green run that says why, and nothing else runs.
+# `play` (read-only) checks that the code still plays the recorded games (the game corpus and golden replays), plays the
+#   games (exit 3: stopped at its budget, the next run carries on; exit 4: a recorded game no longer replays, red),
+#   uploads the run file at once, then rebuilds and checks that tree so a bad run fails early. A dry run plays a few
+#   hundred games, says what it would write, and stops green.
+# `finalize-N` (read-only) prepares the commit on the main it will be pushed onto (main moves during hours of play):
+#   scripts/series-finalize.ts places the run file, verifies it against that code, rebuilds, runs every check of
+#   pages.yml's check job, refuses any path outside the list, commits as github-actions[bot] and hands over a bundle.
+# `push-N` (contents: write, actions: write) runs no repository dependency (Node alone, no npm install, git with no
+#   global or system config and no hooks): scripts/series-push.mjs pushes the commit only if main is still its parent,
+#   then starts pages.yml (a push made with GITHUB_TOKEN starts no workflow; a dispatch does). Main moved or the push
+#   was refused: the next finalize prepares it again on the new main; after the third, red. The write token exists
+#   only in the push step's environment, in a job that installed nothing.
+#
+# Actions are pinned to the full commit SHA of the tag named in the trailing comment (the same pins as
+# outside-meta.yml). Values from github.* and inputs never go into a run: line; they pass through env.
+on:
+  schedule:
+    # every day at 03:17 UTC
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: play a few hundred games, say what would be written, commit nothing'
+        type: boolean
+        default: false
+      max_games:
+        description: 'Most games to play (empty: the site config, automation.maxGamesPerRun; a dry run: 600)'
+        type: number
+        required: false
+      minutes:
+        description: 'Minutes of play before the run stops at its budget'
+        type: number
+        default: 240
+
+permissions:
+  contents: read
+
+# one series run at a time; a second one waits for the first
+concurrency:
+  group: series
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      needed: ${{ steps.status.outputs.needed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # the owner's switches, the widest range, the unrated decks, the games and minutes the rule expects
+      - id: status
+        name: Is a run needed?
+        run: npx tsx scripts/series.ts status --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+
+  play:
+    needs: decide
+    if: ${{ !github.event.repository.fork && needs.decide.outputs.needed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    outputs:
+      written: ${{ steps.run.outputs.written }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # the code and SIM_VERSION still agree: the seeded game corpus and the golden replays, before any game is played
+      - name: The code still plays the recorded games
+        run: npx vitest run tests/game-corpus.test.ts tests/replay-events.test.ts
+      - id: run
+        name: Play the games
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          MAX_GAMES: ${{ inputs.max_games }}
+          MINUTES: ${{ inputs.minutes }}
+        run: |
+          set +e
+          threads="$(nproc)"
+          minutes="${MINUTES:-240}"
+          if [ "$DRY_RUN" = "true" ]; then
+            npx tsx scripts/series.ts run --dry-run --max-games "${MAX_GAMES:-600}" --minutes "$minutes" --threads "$threads" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+          else
+            npx tsx scripts/series.ts run --minutes "$minutes" --threads "$threads" ${MAX_GAMES:+--max-games "$MAX_GAMES"} --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+          fi
+          code=$?
+          case "$code" in
+            0) ;;
+            3) echo "Stopped at its budget: the run is kept and committed, and the next scheduled run carries on." >> "$GITHUB_STEP_SUMMARY" ;;
+            4) echo "::error::A recorded game no longer replays with this code (the summary names it): nothing was played or written."; exit 4 ;;
+            *) echo "::error::scripts/series.ts run exited $code."; exit "$code" ;;
+          esac
+      # the run file alone, kept 14 days whatever the steps below do (a failed check leaves the games recoverable)
+      - name: Keep the run file
+        if: ${{ always() && steps.run.outputs.written == 'true' && inputs.dry_run != true }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: series-run
+          path: ${{ steps.run.outputs.file }}
+          if-no-files-found: error
+          retention-days: 14
+      # fail early, before the finalize: the run rebuilds and checks on this tree
+      - name: Rebuild ratings, head-to-heads and evidence, and check them
+        if: ${{ steps.run.outputs.written == 'true' && inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          npx tsx scripts/ratings.ts > /dev/null
+          npx tsx scripts/build-h2h.ts
+          npx tsx scripts/build-evidence.ts
+          npm run check:data
+          npx tsx scripts/build-evidence.ts --check
+
+  finalize-1:
+    needs: play
+    if: ${{ !github.event.repository.fork && needs.play.outputs.written == 'true' && inputs.dry_run != true && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      # the whole history: the commit is handed over as a bundle on top of main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # no install scripts: nothing a dependency ships runs at install time (the checks need none)
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: series-run
+          path: ${{ runner.temp }}/series-run
+      - name: Prepare the commit on main (verify, rebuild, every check, the list of paths)
+        env:
+          RUN_DIR: ${{ runner.temp }}/series-run
+          OUT: ${{ runner.temp }}/series-commit
+        run: |
+          set -euo pipefail
+          files="$(find "$RUN_DIR" -type f)"
+          if [ "$(printf '%s\n' "$files" | wc -l)" != "1" ] || ! printf '%s' "$files" | grep -Eq '/run-[0-9]+\.json$'; then
+            echo "::error::The artifact must hold exactly one run file, run-N.json."
+            exit 1
+          fi
+          npx tsx scripts/series-finalize.ts --remote origin --run-file "$files" --out "$OUT" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: series-commit-1
+          path: ${{ runner.temp }}/series-commit
+          if-no-files-found: error
+          retention-days: 1
+
+  push-1:
+    needs: finalize-1
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    outputs:
+      refused: ${{ steps.push.outputs.refused }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      # Node alone: no npm install in this job
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: series-commit-1
+          path: ${{ runner.temp }}/series-commit
+      - id: push
+        name: Push to main and start the deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BUNDLE: ${{ runner.temp }}/series-commit
+          WORK: ${{ runner.temp }}/series-push
+        run: |
+          set +e
+          export SERIES_PUSH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          node scripts/series-push.mjs --remote "https://github.com/${REPO}.git" --bundle-dir "$BUNDLE" --work "$WORK" --push-url-env SERIES_PUSH_URL >> "$GITHUB_STEP_SUMMARY"
+          code=$?
+          if [ "$code" = "5" ]; then
+            echo "refused=true" >> "$GITHUB_OUTPUT"
+            echo "Not pushed (attempt 1 of 3): main moved; the commit is prepared again on the new main." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$code" != "0" ]; then
+            echo "::error::The push step refused the commit (exit $code; the summary says why)."
+            exit "$code"
+          fi
+          gh workflow run pages.yml --ref main --repo "$REPO"
+
+  finalize-2:
+    needs: push-1
+    if: ${{ !github.event.repository.fork && needs.push-1.outputs.refused == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: series-run
+          path: ${{ runner.temp }}/series-run
+      - name: Prepare the commit on main (verify, rebuild, every check, the list of paths)
+        env:
+          RUN_DIR: ${{ runner.temp }}/series-run
+          OUT: ${{ runner.temp }}/series-commit
+        run: |
+          set -euo pipefail
+          files="$(find "$RUN_DIR" -type f)"
+          if [ "$(printf '%s\n' "$files" | wc -l)" != "1" ] || ! printf '%s' "$files" | grep -Eq '/run-[0-9]+\.json$'; then
+            echo "::error::The artifact must hold exactly one run file, run-N.json."
+            exit 1
+          fi
+          npx tsx scripts/series-finalize.ts --remote origin --run-file "$files" --out "$OUT" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: series-commit-2
+          path: ${{ runner.temp }}/series-commit
+          if-no-files-found: error
+          retention-days: 1
+
+  push-2:
+    needs: finalize-2
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    outputs:
+      refused: ${{ steps.push.outputs.refused }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: series-commit-2
+          path: ${{ runner.temp }}/series-commit
+      - id: push
+        name: Push to main and start the deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BUNDLE: ${{ runner.temp }}/series-commit
+          WORK: ${{ runner.temp }}/series-push
+        run: |
+          set +e
+          export SERIES_PUSH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          node scripts/series-push.mjs --remote "https://github.com/${REPO}.git" --bundle-dir "$BUNDLE" --work "$WORK" --push-url-env SERIES_PUSH_URL >> "$GITHUB_STEP_SUMMARY"
+          code=$?
+          if [ "$code" = "5" ]; then
+            echo "refused=true" >> "$GITHUB_OUTPUT"
+            echo "Not pushed (attempt 2 of 3): main moved; the commit is prepared again on the new main." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$code" != "0" ]; then
+            echo "::error::The push step refused the commit (exit $code; the summary says why)."
+            exit "$code"
+          fi
+          gh workflow run pages.yml --ref main --repo "$REPO"
+
+  finalize-3:
+    needs: push-2
+    if: ${{ !github.event.repository.fork && needs.push-2.outputs.refused == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: series-run
+          path: ${{ runner.temp }}/series-run
+      - name: Prepare the commit on main (verify, rebuild, every check, the list of paths)
+        env:
+          RUN_DIR: ${{ runner.temp }}/series-run
+          OUT: ${{ runner.temp }}/series-commit
+        run: |
+          set -euo pipefail
+          files="$(find "$RUN_DIR" -type f)"
+          if [ "$(printf '%s\n' "$files" | wc -l)" != "1" ] || ! printf '%s' "$files" | grep -Eq '/run-[0-9]+\.json$'; then
+            echo "::error::The artifact must hold exactly one run file, run-N.json."
+            exit 1
+          fi
+          npx tsx scripts/series-finalize.ts --remote origin --run-file "$files" --out "$OUT" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: series-commit-3
+          path: ${{ runner.temp }}/series-commit
+          if-no-files-found: error
+          retention-days: 1
+
+  push-3:
+    needs: finalize-3
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: series-commit-3
+          path: ${{ runner.temp }}/series-commit
+      - id: push
+        name: Push to main and start the deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BUNDLE: ${{ runner.temp }}/series-commit
+          WORK: ${{ runner.temp }}/series-push
+        run: |
+          set +e
+          export SERIES_PUSH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          node scripts/series-push.mjs --remote "https://github.com/${REPO}.git" --bundle-dir "$BUNDLE" --work "$WORK" --push-url-env SERIES_PUSH_URL >> "$GITHUB_STEP_SUMMARY"
+          code=$?
+          if [ "$code" = "5" ]; then
+            echo "::error::Not pushed after 3 attempts: main kept moving. The run file is kept as the artifact series-run (14 days); the next scheduled run plays again from the new main."
+            exit 1
+          fi
+          if [ "$code" != "0" ]; then
+            echo "::error::The push step refused the commit (exit $code; the summary says why)."
+            exit "$code"
+          fi
+          gh workflow run pages.yml --ref main --repo "$REPO"

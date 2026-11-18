@@ -5,6 +5,7 @@
 //
 //   npx tsx scripts/series.ts status [--json] [--config FILE]
 //   npx tsx scripts/series.ts run [--minutes 240] [--max-games N] [--threads 4] [--dry-run] [--replay 4] [--out DIR] [--config FILE]
+//   npx tsx scripts/series.ts verify RUN-FILE [--replay 4]
 //
 // status   whether a run is needed and why, the widest range and the target, the unrated decks (no game on their
 //          current list), the games the rule expects and the minutes at the last recorded rate (1.5 games a second
@@ -17,12 +18,18 @@
 //          data/series/ (or --out DIR) and nothing else. Rebuilding ratings.json, h2h.json and the evidence is the next
 //          step: npx tsx scripts/ratings.ts, npx tsx scripts/build-h2h.ts, npx tsx scripts/build-evidence.ts.
 //          --dry-run plays for real and prints what it would write, writing nothing.
+// verify   the run file was played by this code: refuses (exit 4, naming the game) when its simulator version is not
+//          the code's or one of its own games (--replay N, default 4: the first, the last and between) no longer
+//          replays as recorded; the scheduled workflow runs it on the main it commits onto (docs/SERIES.md).
 //   --config FILE   the site config to read (default public/site-config.json)
+//   --github-output FILE   (status, run) append needed=… / written=…, file=…, stopped=… to FILE (GitHub's $GITHUB_OUTPUT)
+//   --summary FILE         (status, run) append what happened, in sentences, to FILE (GitHub's $GITHUB_STEP_SUMMARY)
 //   --threads N     game threads (default 4, a GitHub-hosted runner's vCPUs)
 //
 // Exit codes: 0 done (the rule holds, nothing was needed, or both switches are off); 3 stopped at its budget (the run
 // file says "budget"; the next run carries on); 4 refused because a recorded game no longer replays (nothing played or
-// written); 1 an error (the config is missing or broken, a game threw); 2 a bad command line.
+// written; for verify: the run's version or one of its games does not match this code); 1 an error (the config is
+// missing or broken, a game threw, the run file is unreadable); 2 a bad command line.
 import fs from 'node:fs';
 import path from 'node:path';
 import { workerPool } from './lib-node';
@@ -40,6 +47,7 @@ const io: SeriesIO = {
     fs.mkdirSync(path.dirname(f), { recursive: true });
     fs.writeFileSync(f, t);
   },
+  append: (f, t) => fs.appendFileSync(f, t),
   now: () => Date.now(),
   play: async (jobs, threads) => {
     pool ??= workerPool<MatchJob, MatchResult>(new URL('./worker-boot.mjs', import.meta.url), threads);

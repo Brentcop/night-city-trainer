@@ -29,6 +29,8 @@ export interface SeriesIO {
   /** a file's text, or null when it does not exist */
   read: (file: string) => string | null;
   write: (file: string, text: string) => void;
+  /** append to a file (GitHub's $GITHUB_OUTPUT and $GITHUB_STEP_SUMMARY) */
+  append: (file: string, text: string) => void;
   /** milliseconds, for the time budget and the rate */
   now: () => number;
   /** play games (the worker pool, or a stub in the tests) */
@@ -243,7 +245,67 @@ const FLAGS = {
   'dry-run': bool(),
   replay: int(REPLAY_SAMPLE, { min: 0, max: 50 }),
   out: str(),
+  'github-output': str(),
+  summary: str(),
 };
+
+/** A run's own games to play again (verify): the first, the last and some between, at most `n`. */
+export function runSample(run: RecordedEvent, n: number): ReplayGame[] {
+  const games = [...run.rounds, ...run.bracket].flatMap((p) => p.matches.filter((m) => m.b).flatMap((m) => m.games.map((g) => ({ m, g }))));
+  if (!games.length || n <= 0) return [];
+  const picks = n === 1 ? [games.length - 1] : [...new Set(Array.from({ length: Math.min(n, games.length) }, (_, i) => Math.round((i * (games.length - 1)) / Math.max(1, Math.min(n, games.length) - 1))))];
+  return picks.flatMap((q) => {
+    const { m, g } = games[q]!;
+    const da = run.decks[m.a];
+    const db = run.decks[m.b!];
+    if (!da || !db) return [];
+    return [
+      {
+        label: `rating run ${run.id}, ${m.a} vs ${m.b}, seed ${g.seed}, ${g.first === 0 ? m.a : m.b} first`,
+        decks: [gameDeck({ name: m.a, legends: da.legends, main: da.main }), gameDeck({ name: m.b!, legends: db.legends, main: db.main })] as [DeckList, DeckList],
+        seed: g.seed,
+        first: g.first,
+        bot: run.bot,
+        simVersion: typeof run.simVersion === 'number' ? run.simVersion : undefined,
+        expect: { winner: g.winner, turns: g.turns },
+      },
+    ];
+  });
+}
+
+/**
+ * `verify <run file>`: the run was played by this code. Refuses (exit 4, naming the game) when its simulator version is
+ * not the code's, or when one of its own games, played again through Watch's replay, ends differently (the code changed
+ * play while the run was playing). Exit 1 when the file cannot be read as a rating run.
+ */
+async function verifyRun(file: string, replay: number, io: SeriesIO): Promise<number> {
+  const text = io.read(file);
+  let run: RecordedEvent;
+  try {
+    if (text === null) throw new Error('it does not exist');
+    run = JSON.parse(text) as RecordedEvent;
+    if (run.kind !== RATING_RUN_KIND || !Array.isArray(run.rounds) || !run.decks) throw new Error(`it is not a rating run (kind ${JSON.stringify(run.kind)})`);
+  } catch (e) {
+    io.err(`error: ${file} cannot be read as a rating run: ${(e as Error).message}.`);
+    return EXIT.error;
+  }
+  if (run.simVersion !== SIM_VERSION) {
+    io.err(`refused: ${file} was played on simulator version ${JSON.stringify(run.simVersion)}, and this code is version ${SIM_VERSION}; its games would be pooled with games of another version. Nothing to commit.`);
+    return EXIT.replayRefused;
+  }
+  const sample = runSample(run, replay);
+  if (sample.length) {
+    const problem = await io.replay(sample);
+    if (problem) {
+      io.err(`refused: ${problem} This code does not play the run's games as they were played: the code changed while the run was playing, without a SIM_VERSION bump. Nothing to commit.`);
+      return EXIT.replayRefused;
+    }
+  }
+  io.out(`${file}: simulator version ${SIM_VERSION}${sample.length ? `, and ${sample.length} of its games replay as recorded` : ''}.`);
+  return EXIT.done;
+}
+
+const md = (t: string) => t.replace(/[<>]/g, '');
 
 /** The command: `status [--json]` or `run [...]`. Returns the exit code. */
 export async function seriesCommand(argv: string[], io: SeriesIO): Promise<number> {
@@ -254,11 +316,13 @@ export async function seriesCommand(argv: string[], io: SeriesIO): Promise<numbe
   let V: ReturnType<typeof parseArgs<typeof FLAGS>>['values'];
   let cmd: string;
   try {
-    const p = parseArgs(FLAGS, argv, { minPositionals: 1, maxPositionals: 1 });
+    const p = parseArgs(FLAGS, argv, { minPositionals: 1, maxPositionals: 2 });
     V = p.values;
     cmd = p.positionals[0]!;
-    if (cmd !== 'status' && cmd !== 'run') throw new ArgError(`unknown command "${cmd}" (status or run)`);
-    if (cmd === 'status' && (V['dry-run'] || V.out || V['max-games'] !== undefined)) throw new ArgError('status takes --json and --config only');
+    if (cmd !== 'status' && cmd !== 'run' && cmd !== 'verify') throw new ArgError(`unknown command "${cmd}" (status, run or verify)`);
+    if (cmd === 'verify' ? p.positionals.length !== 2 : p.positionals.length !== 1) throw new ArgError(cmd === 'verify' ? 'verify takes one run file' : `${cmd} takes no file`);
+    if (cmd === 'status' && (V['dry-run'] || V.out || V['max-games'] !== undefined)) throw new ArgError('status takes --json, --config, --github-output and --summary only');
+    if (cmd === 'verify') return await verifyRun(p.positionals[1]!, V.replay, io);
   } catch (e) {
     if (!(e instanceof ArgError)) throw e;
     io.err(`error: ${e.message}\nRun with --help for usage.`);
@@ -274,6 +338,15 @@ export async function seriesCommand(argv: string[], io: SeriesIO): Promise<numbe
   }
   if (cmd === 'status') {
     const s = seriesStatus(data);
+    if (V['github-output']) io.append(V['github-output'], `needed=${s.needed}\n`);
+    if (V.summary)
+      io.append(
+        V.summary,
+        `### Rating series: ${s.needed ? 'a run is needed' : 'nothing to play'}\n\n${s.why.map((w) => `- ${md(w)}`).join('\n')}\n\n` +
+          `Simulator version ${s.simVersion}, the ${s.bot} bot: ${s.games} pooled games, ${s.decks} decks; widest range ${s.widest ? `±${s.widest.hw} (${md(s.widest.deck)})` : 'none'}, target ±${s.target}, ${s.over} deck(s) over it.` +
+          (s.needed ? ` The rule expects about ${s.expectedGames} games: ${s.minutes.estimate} minutes at ${s.minutes.gamesPerSecond} games a second (${s.minutes.from === 'default' ? 'an assumed rate' : `the rate of ${s.minutes.from}`}). The next run is ${s.nextRun}.` : '') +
+          '\n\n',
+      );
     if (V.json) io.out(JSON.stringify(s, null, 1));
     else {
       io.out(`${s.needed ? 'A run is needed' : 'Nothing to play'} (sim v${s.simVersion}, ${s.bot} bot, ${s.games} pooled games, ${s.decks} decks; widest ${s.widest ? `${s.widest.deck} ±${s.widest.hw}` : 'none'}, target ±${s.target}).`);
@@ -285,8 +358,15 @@ export async function seriesCommand(argv: string[], io: SeriesIO): Promise<numbe
 
   // ---- run
   const d = data;
+  const report = (written: string | null, stopped: string, lines: string[]) => {
+    if (V['github-output']) io.append(V['github-output'], `written=${written !== null}\nfile=${written ?? ''}\nstopped=${stopped}\n`);
+    if (V.summary) io.append(V.summary, `### Rating series run${V['dry-run'] ? ' (dry run)' : ''}\n\n${lines.map((l) => `- ${md(l)}`).join('\n')}\n\n`);
+  };
   for (const w of d.decision.why) io.out(w);
-  if (!d.decision.needed) return EXIT.done;
+  if (!d.decision.needed) {
+    report(null, 'nothing-needed', d.decision.why);
+    return EXIT.done;
+  }
   if (seriesSeed(d.nextRun, RUN_SEED_SPAN - 1) >= 2 ** 31) {
     io.err(`error: run ${d.nextRun} would play seeds at or past 2^31 (docs/SERIES.md "Seeds"); nothing runs.`);
     return EXIT.error;
@@ -297,7 +377,9 @@ export async function seriesCommand(argv: string[], io: SeriesIO): Promise<numbe
       io.out(`Playing ${sample.length} recorded game(s) again first (the code must still play them as recorded)…`);
       const problem = await io.replay(sample);
       if (problem) {
-        io.err(`refused: ${problem} The code plays differently from the recorded games of simulator version ${SIM_VERSION}: bump SIM_VERSION if that was meant (src/lib/tournament.ts), or find the change. Nothing was played or written.`);
+        const why = `refused: ${problem} The code plays differently from the recorded games of simulator version ${SIM_VERSION}: bump SIM_VERSION if that was meant (src/lib/tournament.ts), or find the change. Nothing was played or written.`;
+        io.err(why);
+        report(null, 'replay-refused', [why]);
         return EXIT.replayRefused;
       }
     } else io.out(`No recorded game on simulator version ${SIM_VERSION} to play again (a fresh version): the game corpus test is the check.`);
@@ -323,20 +405,25 @@ export async function seriesCommand(argv: string[], io: SeriesIO): Promise<numbe
     },
     chunk: SERIES_CHUNK,
   });
-  if (outcome.stopped === 'nothing-needed') return EXIT.done;
+  if (outcome.stopped === 'nothing-needed') {
+    report(null, 'nothing-needed', outcome.before.why);
+    return EXIT.done;
+  }
   const seconds = (io.now() - t0) / 1000;
   const date = new Date(io.now()).toISOString();
   const file = runFile({ run: d.nextRun, date, field: d.field, games: outcome.games, before: outcome.before, after: outcome.after, stopped: outcome.stopped, switches: d.switches, seconds, threads: V.threads });
   const text = JSON.stringify(file);
   const target = path.join(V.out ?? io.dirs?.series ?? SERIES_DIR, `run-${d.nextRun}.json`);
   const w = outcome.after.widest;
-  io.out(
-    `Run ${d.nextRun}: ${outcome.games.length} games in ${seconds.toFixed(0)} s (${seconds > 0 ? (outcome.games.length / seconds).toFixed(2) : '?'} games a second, ${V.threads} threads); widest ${outcome.before.widest ? `±${outcome.before.widest.hw.toFixed(2)}` : '?'} → ${w ? `±${w.hw.toFixed(2)} (${w.deck})` : '?'}; ${outcome.stopped === 'reached' ? 'the rule holds' : 'stopped at its budget: the next run carries on'}.`,
-  );
-  if (V['dry-run']) io.out(`--dry-run: would write ${target} (${text.length} bytes); nothing written.`);
-  else {
+  const line = `Run ${d.nextRun}: ${outcome.games.length} games in ${seconds.toFixed(0)} s (${seconds > 0 ? (outcome.games.length / seconds).toFixed(2) : '?'} games a second, ${V.threads} threads); widest ${outcome.before.widest ? `±${outcome.before.widest.hw.toFixed(2)}` : '?'} → ${w ? `±${w.hw.toFixed(2)} (${w.deck})` : '?'}; ${outcome.stopped === 'reached' ? 'the rule holds' : 'stopped at its budget: the next run carries on'}.`;
+  io.out(line);
+  if (V['dry-run']) {
+    io.out(`--dry-run: would write ${target} (${text.length} bytes); nothing written.`);
+    report(null, outcome.stopped, [...outcome.before.why, line, `Dry run: would write ${target} (${text.length} bytes); nothing written.`]);
+  } else {
     io.write(target, text);
     io.out(`wrote ${target}; now rebuild: npx tsx scripts/ratings.ts, npx tsx scripts/build-h2h.ts, npx tsx scripts/build-evidence.ts, then the checks.`);
+    report(target.split(path.sep).join('/'), outcome.stopped, [...outcome.before.why, line, `Wrote ${target.split(path.sep).join('/')}.`]);
   }
   return outcome.stopped === 'reached' ? EXIT.done : EXIT.budget;
 }

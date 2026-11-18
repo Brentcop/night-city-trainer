@@ -8,8 +8,8 @@ ones marked *estimate* were not measured. The commands that reproduce each table
 say how, and what changed from the plan): run files are read beside the events, games count only on the library's
 current lists, `check:data` validates run files, and the test suite no longer pins recorded figures (checked with a
 10,000-game run added in a scratch checkout). Stages 2 and 3 are built (the same day, the second chunk: "The command"
-and "The owner's switches" under The design, with "What the workflow needs from it"). The workflow (stage 4) is not
-built yet; the owner's decisions of 2026-11-18 (relayed by the dispatcher): width ±4,
+and "The owner's switches" under The design, with "What the workflow needs from it"). Stage 4, the scheduled workflow,
+is built ("Running by itself", the third chunk) and has not yet run on GitHub; the owner's decisions of 2026-11-18 (relayed by the dispatcher): width ±4,
 switches on by default once they exist, pool by list. The real-field column and the runner's weighted match list
 (stages 5 and 6) are not in this build.
 
@@ -473,6 +473,7 @@ module is loaded by the game worker: `scripts/game-cache.ts codeHash` read `430a
 | --- | --- | --- | --- |
 | Decide | `npx tsx scripts/series.ts status --json` | `public/site-config.json`, `data/decks`, `public/tournaments`, `data/series` | one JSON object: `needed`, `why` (sentences for the summary), `switches`, `simVersion`, `bot`, `games`, `decks`, `widest` {deck, hw}, `target`, `over`, `unrated`, `expectedGames`, `minutes` {estimate, gamesPerSecond, from}, `nextRun`; exit 0, 1 when the config is missing or broken (run nothing, go red), 2 on a bad command line |
 | Play | `npx tsx scripts/series.ts run --minutes 240 --threads 4` | the same | one new file `data/series/run-N.json`; exit **0** the rule holds (or nothing was needed, or both switches are off: then no file), **3** stopped at its budget (a file is written with `stopped: "budget"`; commit it, the next run carries on), **4** a recorded game no longer replays (no file; go red: the code changed play without a `SIM_VERSION` bump), **1** an error (a game threw, the config broke; no file), **2** a bad command line |
+| Verify (finalize) | `npx tsx scripts/series.ts verify data/series/run-N.json [--replay 4]` | the run file | exit 0: its simulator version is the code's and its first, last and two middle games replay as recorded; **4**: refused, naming the version or the game; 1: not a rating run |
 | Rebuild | `npx tsx scripts/ratings.ts`, `npx tsx scripts/build-h2h.ts`, `npx tsx scripts/build-evidence.ts`, in that order | the new run file | `src/data/ratings.json`, `reports/ratings-latest.md`, `public/data/h2h.json`, `public/data/evidence/*` |
 | Check | typecheck, the whole suite, the Python tests, lint, `check:data`, `npx vite build` | the candidate tree | nothing is committed unless all pass |
 | Switch alone | `npx tsx scripts/automation-switch.ts automation.series` (or `--json`) | the config | "on"/"off" (a number for `automation.width` and `automation.maxGamesPerRun`); `--github-output FILE` appends `on=…` / `value=…` / `automation={…}`; exit 1 / 2 as for the features |
@@ -480,31 +481,65 @@ module is loaded by the game worker: `scripts/game-cache.ts codeHash` read `430a
 The files a run commit touches: the new run file, `src/data/ratings.json`, `reports/ratings-latest.md`,
 `public/data/h2h.json` and the evidence files; never the events index, an event file or anything under `src/`.
 
-### The scheduled workflow (`.github/workflows/series.yml`)
+### Running by itself (`.github/workflows/series.yml`, built 2026-11-18, chunk 3)
 
-    on: schedule (daily, 03:17 UTC) and workflow_dispatch (inputs: dry_run, minutes)
-    concurrency: { group: series, cancel-in-progress: false }
-    permissions: contents: write (push), actions: write (start pages.yml)
-    job decide (timeout 10 min): checkout, setup-node (pinned SHAs as pages.yml), npm ci,
-        npx tsx scripts/series.ts status --json  → output `needed`; nothing needed = a green run that says so
-    job play (needs decide, if needed; timeout 330 min):
-        checkout (persist-credentials only for the push step), npm ci
-        npx vitest run tests/game-corpus.test.ts tests/replay-events.test.ts   (code and SIM_VERSION agree, else stop red)
-        npx tsx scripts/series.ts run --minutes 240 --threads 4
-        npx tsx scripts/ratings.ts && npx tsx scripts/build-h2h.ts && npx tsx scripts/build-evidence.ts
-        npm run typecheck && npx vitest run && python3 -m unittest … && npm run lint && npm run check:data && npx vite build
-        upload the run file and the logs as an artifact (kept 14 days) whatever happens
-        commit "Series run <n>: <games> games, widest ±a → ±b (<stopped>)"; push;
-          if refused: fetch, reset to origin/main, put back only the run file, rebuild the derived files, run the
-          checks again, push (three tries); refuse the run instead if origin/main changed SIM_VERSION or a list the
-          run played
-        gh workflow run pages.yml --ref main   (a push made with GITHUB_TOKEN starts no workflow; a dispatch does)
+The workflow "Rating series" runs every day at **03:17 UTC**, and on demand. No AI assistant takes part: GitHub runs
+the repository's scripts. Every job is skipped in a fork. One run at a time (concurrency group `series`).
 
-Nothing is committed unless every check passes on the candidate tree. On a failure the owner sees a red run (GitHub
-mails the person who last edited the schedule), the run summary (decision, games, widths before and after, games a
-second), and the artifact with the games played, which can be committed by hand. Derived files are always rebuilt,
-never merged. The decision is recomputed from `main` every time, so a run that stopped at its budget is continued by
-the next one, and a new deck pushed by anyone is found the next day.
+| Job | Permissions | What it does |
+| --- | --- | --- |
+| `decide` (15 min) | read | `npx tsx scripts/series.ts status`: the switches, the widest range, the unrated decks, the games and minutes the rule expects, written to the job summary. Nothing needed (both switches off, or every range within the width): a green run that says why, and nothing else runs. A broken site config: red. |
+| `play` (up to 5 h) | read | First the guard tests (`tests/game-corpus.test.ts`, `tests/replay-events.test.ts`: the code and `SIM_VERSION` still agree), then `series.ts run --minutes 240 --threads $(nproc)` (it replays the newest recorded games first). Exit 3 (stopped at its budget) is fine: the run is kept and committed and the next day's run carries on. Exit 4 (a recorded game no longer replays): red, with the sentence naming the game. The run file is uploaded at once as the artifact `series-run` (kept 14 days), then ratings, head-to-heads and evidence are rebuilt on that tree and `check:data` and `evidence --check` run, so a bad run fails here rather than after the finalize. |
+| `finalize-1` (90 min) | read | On the main it will be pushed onto (main moves during hours of play): `npm ci --ignore-scripts`, then `scripts/series-finalize.ts` fetches main, places the run file (it must be run N+1 on that main), runs `series.ts verify` (the run's simulator version is the code's and 4 of its own games replay), rebuilds, runs every check of pages.yml's `check` job plus `evidence --check`, refuses any changed path outside the list (the run file, `src/data/ratings.json`, `public/data/h2h.json`, `reports/ratings-latest.md`, `public/data/evidence/*.json`), commits as github-actions[bot] and hands the commit over as a bundle (artifact `series-commit-1`, kept a day). |
+| `push-1` (15 min) | contents: write, actions: write | Node alone (no npm install): `scripts/series-push.mjs` reads main into a fresh repository with git's global and system configuration ignored and no hooks, and pushes the commit only if main is still its parent and it touches only the listed paths; then `gh workflow run pages.yml --ref main` (a push made with GITHUB_TOKEN starts no workflow; a dispatch does). The token is in the environment of that one step only. |
+| `finalize-2`, `push-2`, `finalize-3`, `push-3` | as above | Only when the previous push found main moved or was refused: the commit is prepared again on the new main. After the third: red, nothing pushed; the run file stays in the artifact for 14 days and the next day's run plays again from the new main. |
+
+**Changed from the plan (and why).** The plan had one finalize job that both ran the checks and pushed with the
+token in its last step's environment. A dependency installed in that job (npm runs code from a hundred packages in the
+checks) could still reach the token at push time without a hook: by writing `url.<…>.insteadOf` or a credential helper
+into git's global configuration, or, with the runner's passwordless sudo, by replacing `git` itself. So the commit is
+prepared in a job that holds no write permission, and pushed by a separate job on a fresh machine that installs
+nothing and reads no configuration but its own; the retry loop is unrolled into three prepare-and-push pairs, each
+attempt on the fresh main. `npm ci --ignore-scripts` works for every check: the only install scripts in the tree are
+esbuild's (it checks its platform binary, which npm installs as an optional dependency anyway) and fsevents' (macOS
+only); in a clean checkout installed that way, `tsx`, typecheck, lint, the series tests, the production build and 30
+real Hard games through the worker pool all ran (Windows; the runner is Linux).
+
+**Run it now:** GitHub → Actions → Rating series → Run workflow. `dry_run` plays 600 games (or `max_games`), says in
+the summary what it would write, and stops green with nothing uploaded or committed; `max_games` caps the games
+(empty: `automation.maxGamesPerRun` from the site config); `minutes` is the play budget (default 240).
+
+**Switch it off:** untick "Rating series" and "Rate new decks on arrival" in `#/admin` (Automatic jobs) and commit the
+file: the next run's `decide` stops green. Or disable the workflow in GitHub (Actions → Rating series → ⋯ → Disable
+workflow). GitHub also disables scheduled workflows of a public repository after 60 days without a commit.
+
+**When it fails** the run is red; GitHub mails the account that last changed the workflow's schedule; the summary of
+each job says what happened in sentences (the decision, the run, the finalize's refusal and why, the push); the run
+file is kept 14 days as the artifact `series-run` (it can be committed by hand: put it in `data/series/`, run the three
+rebuilds and the checks). Nothing reaches main unless every check passed on the exact main it was pushed onto.
+
+**A successful commit** reads "Series run N: G games, widest ±a to ±b (reached|budget)" by github-actions[bot], and
+touches `data/series/run-N.json`, `src/data/ratings.json`, `public/data/h2h.json`, `reports/ratings-latest.md` and
+`public/data/evidence/*.json`, nothing else; pages.yml then checks and deploys main.
+
+**How long** (*estimates*, the runner was not measured): `decide` 2 to 3 minutes; `play` up to the 240-minute budget
+plus 5 to 10 minutes (install, guard tests, rebuild and checks): from today's ratings about 9,600 games, 46 to 107
+minutes at 1.5 to 3.5 games a second; each `finalize` 15 to 25 minutes (install, verify, rebuild, the whole suite, the
+build); each `push` under 2 minutes. The first run that finds every range within ±4 ends at `decide`.
+
+**Not tested on GitHub** (neither the dispatcher nor this agent can run Actions): the runner's speed and the worker pool
+on Linux with `$(nproc)` threads; the hand-over of the two artifacts between jobs; the anonymous `git fetch` of the
+public repository with `persist-credentials: false`; the push with the token in the URL; `gh workflow run pages.yml`
+with `actions: write`; `npm ci --ignore-scripts` on Linux; the job summaries' rendering. What was tested: the finalize
+and push scripts against a local bare repository (a clean run, a push race won on the second attempt, three refused
+pushes, a run of another simulator version, a path outside the list, a failed check, a run number already taken, a
+commit tampered with between the jobs: `tests/series-finalize.test.ts`), `series.ts verify` and the outputs the
+workflow reads (`tests/series-cli.test.ts`), and the workflow file read as text (`tests/series-workflow.test.ts`).
+End to end on this machine (2026-11-18, a clean checkout installed with `npm ci --ignore-scripts`): `series.ts run`
+played 300 Hard games (9.4 a second on 8 threads) into a scratch folder; `series-finalize.ts` with its real verify (4
+of the run's games replayed) and rebuild and the checks as pages.yml runs them (the whole suite, 215 files, on the
+candidate tree) prepared the commit in 169 s, "Series run 1: 300 games, widest ±7.44 to ±7.10 (budget)", 76 files;
+`series-push.mjs` without a push address accepted it (the run file and 75 derived files on its parent).
 
 ### The owner's switches (built 2026-11-18, chunk 2)
 
@@ -532,7 +567,7 @@ section for the workflow (a name without a dot is still a feature, exactly as th
 | 1 | Run files read beside events, and pooled by list (**built** 2026-11-18) | `scripts/lib-node.ts` (`SERIES_DIR`, `readRuns`, `maxRunId`), `scripts/event-pool.ts`, `scripts/ratings.ts`, `scripts/build-h2h.ts`, `scripts/evidence-build.ts`, `scripts/build-evidence.ts`, `src/lib/runManifest.ts`, `scripts/check-data.ts` (schema, version, manifest, deck ids, coverage counts), `src/lib/forecast.ts` and `src/ui/pages/Forecast.tsx` (source line), `src/lib/kb/build/events.ts` (rating record wording), `scripts/kb-sources.ts` (inputs), `src/ui/pages/Ratings.tsx` (source line) | new `tests/rating-runs.test.ts`; `tests/check-data.test.ts`, `tests/ratings-page.test.tsx`, `tests/event-pool-filter.test.ts`, `tests/kb-build.test.ts` | a hand-made run file in a clone: ratings, h2h, evidence and `check:data` agree; the Tournaments page and the search's events group unchanged | 1.5–2 days |
 | 2 | The rule and the CLI (**built** 2026-11-18, chunk 2) | new `src/lib/seriesPlan.ts` (pure: needs-rating, widest first, the stop rule, the expected games), new `scripts/series.ts` (`status`, `run`) | new `tests/series-plan.test.ts` (the rule; a seeded simulation pinning coverage near 90% and the games of E1 within a tolerance), `tests/series-cli.test.ts` (a tiny run with a stub player) | `series.ts run --max-games 600 --threads 4` in a clone, then the stage-1 checks | 2 days |
 | 3 | Switches (**built** 2026-11-18, chunk 2) | `src/lib/siteConfig.ts` (`automation`), `src/ui/pages/Admin.tsx`, `docs/SITE_CONFIG.md`, `scripts/check-data.ts` | `tests/site-config.test.tsx` | the admin editor round-trips the section; `series.ts status` reads it | 1 day |
-| 4 | The workflow | `.github/workflows/series.yml` | the workflow's own dry run | `workflow_dispatch` with `dry_run: true` (plays 600 games, runs every check, pushes nothing), then one real run watched | 1 day + one supervised run (about 2 h) |
+| 4 | The workflow (**built** 2026-11-18, chunk 3; not yet run on GitHub) | `.github/workflows/series.yml` | the workflow's own dry run | `workflow_dispatch` with `dry_run: true` (plays 600 games, runs every check, pushes nothing), then one real run watched | 1 day + one supervised run (about 2 h) |
 | 5 | The real field | `src/lib/ratingModel.ts` (`weightedFieldInterval`, pair-spread term), `scripts/ratings.ts` (optional `wrReal*` fields when `outsideMeta.json` exists), `src/ui/pages/Ratings.tsx` and the deck page (a column, no letter) | `tests/rating-model.test.ts`, `tests/ratings-page.test.tsx` | invented shares in a test; real ones when the file exists | 1–1.5 days |
 | 6 (optional) | Runner pairing by shares | `src/lib/eventDraft.ts`, `src/lib/eventFormats.ts` (a match list drawn by shares), the runner form | `tests/event-formats.test.ts` | a weighted match list replays from its seed | 1 day |
 

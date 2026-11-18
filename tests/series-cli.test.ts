@@ -29,6 +29,7 @@ function harness(o: { config?: string | null; replay?: string | null; secondsPer
   const out: string[] = [];
   const err: string[] = [];
   const written = new Map<string, string>();
+  const appended = new Map<string, string>();
   let clock = Date.parse('2026-11-19T03:17:00.000Z');
   let playedJobs = 0;
   const io: SeriesIO = {
@@ -36,6 +37,7 @@ function harness(o: { config?: string | null; replay?: string | null; secondsPer
     err: (l) => err.push(l),
     read: (f) => (f === CONFIG ? (o.config === undefined ? configWith({ width: 3 }) : o.config) : fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null),
     write: (f, t) => void written.set(f, t),
+    append: (f, t) => void appended.set(f, (appended.get(f) ?? '') + t),
     now: () => clock,
     play: async (jobs) => {
       playedJobs += jobs.length;
@@ -46,7 +48,7 @@ function harness(o: { config?: string | null; replay?: string | null; secondsPer
     replay: async (games) => (o.replay === undefined ? null : o.replay === null ? null : `${games[0]?.label ?? 'a game'}: ${o.replay}`),
   };
   const run = (argv: string[]) => seriesCommand([...argv, '--config', CONFIG], io);
-  return { io, out, err, written, run, played: () => playedJobs };
+  return { io, out, err, written, appended, run, played: () => playedJobs };
 }
 
 const FIELD = distinctLists(fieldPool(loadLibrary())).kept;
@@ -153,5 +155,67 @@ describe('run (a tiny budget, a stub player)', () => {
     expect(await h.run(['run', '--out', 'v'])).toBe(EXIT.done);
     expect(h.played()).toBe(0);
     expect(h.written.size).toBe(0);
+  });
+});
+
+describe('verify (the workflow runs it on the main it commits onto)', () => {
+  /** a small run written by the command itself, with the stub player */
+  const makeRun = async () => {
+    const h = harness();
+    const code = await h.run(['run', '--max-games', '30', '--out', 'v']);
+    return code === EXIT.budget ? JSON.parse([...h.written.values()][0]!) : null;
+  };
+  const verify = async (run: unknown, replay: string | null = null, extra: string[] = []) => {
+    const h = harness({ replay });
+    const files: Record<string, string> = { 'v/run.json': JSON.stringify(run) };
+    h.io.read = (f) => files[f] ?? null;
+    let asked = 0;
+    const inner = h.io.replay;
+    h.io.replay = async (g) => {
+      asked = g.length;
+      return inner(g);
+    };
+    const code = await seriesCommand(['verify', 'v/run.json', ...extra], h.io);
+    return { code, err: h.err.join('\n'), out: h.out.join('\n'), asked };
+  };
+  it('passes a run of this simulator version whose games replay, replaying the first, the last and some between', async () => {
+    const run = await makeRun();
+    if (!run) return;
+    const r = await verify(run);
+    expect(r.code).toBe(EXIT.done);
+    expect(r.asked).toBe(4);
+    expect((await verify(run, null, ['--replay', '2'])).asked).toBe(2);
+  });
+  it('refuses (exit 4) a run of another simulator version, or one whose game no longer replays, naming it', async () => {
+    const run = await makeRun();
+    if (!run) return;
+    const other = await verify({ ...run, simVersion: SIM_VERSION + 1 });
+    expect(other.code).toBe(EXIT.replayRefused);
+    expect(other.err).toContain(`simulator version ${SIM_VERSION + 1}`);
+    const moved = await verify(run, 'it lasts 13 turns, not 12 as recorded');
+    expect(moved.code).toBe(EXIT.replayRefused);
+    expect(moved.err).toMatch(/refused: rating run run-\d+, .+ vs .+, seed \d+/);
+  });
+  it('exit 1 for a file that is not a rating run, exit 2 without a file', async () => {
+    expect((await verify({ kind: 'event' })).code).toBe(EXIT.error);
+    expect(await harness().run(['verify'])).toBe(EXIT.usage);
+  });
+});
+
+describe('what the workflow reads (--github-output, --summary)', () => {
+  it('status writes needed= and a summary; run writes written=, file=, stopped=', async () => {
+    const h = harness();
+    expect(await h.run(['status', '--github-output', 'o', '--summary', 's'])).toBe(EXIT.done);
+    expect(h.appended.get('o')).toMatch(/^needed=(true|false)\n$/);
+    expect(h.appended.get('s')).toContain('### Rating series:');
+    const r = harness();
+    const code = await r.run(['run', '--max-games', '30', '--out', 'v', '--github-output', 'o', '--summary', 's']);
+    if (code === EXIT.budget) {
+      expect(r.appended.get('o')).toMatch(/^written=true\nfile=v\/run-\d+\.json\nstopped=budget\n$/);
+      expect(r.appended.get('s')).toContain('stopped at its budget');
+    } else expect(r.appended.get('o')).toBe('written=false\nfile=\nstopped=nothing-needed\n');
+    const off = harness({ config: configWith({ series: false, arrivals: false }) });
+    await off.run(['run', '--github-output', 'o']);
+    expect(off.appended.get('o')).toBe('written=false\nfile=\nstopped=nothing-needed\n');
   });
 });
