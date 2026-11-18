@@ -8,10 +8,14 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { commitMessage, FINALIZE_EXIT, prepareSeriesCommit, SERIES_COMMIT_PATHS as PREPARE_PATHS } from '../scripts/series-finalize';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { commitMessage, FINALIZE_EXIT, irregularEntries as prepareIrregular, prepareSeriesCommit, SERIES_COMMIT_PATHS as PREPARE_PATHS } from '../scripts/series-finalize';
 // @ts-expect-error: a plain Node module with no types (it runs with Node alone in the workflow's push jobs)
-import { PUSH_EXIT, pushSeriesCommit, SERIES_COMMIT_PATHS as PUSH_PATHS } from '../scripts/series-push.mjs';
+import { irregularEntries as pushIrregular, PUSH_EXIT, pushSeriesCommit, SERIES_COMMIT_PATHS as PUSH_PATHS } from '../scripts/series-push.mjs';
+
+// Every test here starts many git processes (a bare repository, clones, bundles, pushes): on a loaded machine or a small runner
+// one can pass the default 15 s, and the scheduled workflow runs this file inside its checks, where a timeout would cost the night's commit.
+vi.setConfig({ testTimeout: 120_000 });
 
 const ID = ['-c', 'user.name=Someone', '-c', 'user.email=someone@example.com', '-c', 'core.hooksPath=/dev/null', '-c', 'init.defaultBranch=main'];
 const git = (cwd: string, ...args: string[]) => execFileSync('git', [...ID, ...args], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -183,6 +187,37 @@ describe('the commit of a rating run (local bare repository)', () => {
     delete process.env.SERIES_TEST_PUSH_URL;
     expect(r.join('\n')).toContain('src/planted.ts');
     expect(t.main()).toBe(before);
+  });
+
+  it('a link, an executable or a submodule named like a data file is refused: the push job (exit 7) and the rule both scripts share', () => {
+    const t = toy();
+    const before = t.main();
+    const out = path.join(t.root, 'commit');
+    expect(prepareSeriesCommit({ remote: t.remote, runFile: t.runFile(1), out, work: t.work, ...STAND_INS, log: () => {} })).toBe(FINALIZE_EXIT.prepared);
+    // a symlink entry (no operating-system link needed) amended into the commit, with a fresh bundle and commit.json
+    const blob = execFileSync('git', [...ID, 'hash-object', '-w', '--stdin'], { cwd: t.work, input: '/etc/hosts', encoding: 'utf8' }).trim();
+    git(t.work, 'update-index', '--add', '--cacheinfo', `120000,${blob},public/data/evidence/link.json`);
+    git(t.work, 'commit', '-q', '--amend', '--no-edit');
+    const commit = git(t.work, 'rev-parse', 'HEAD');
+    git(t.work, 'bundle', 'create', path.join(out, 'series.bundle'), 'HEAD', `^${before}`);
+    const meta = JSON.parse(fs.readFileSync(path.join(out, 'commit.json'), 'utf8'));
+    fs.writeFileSync(path.join(out, 'commit.json'), JSON.stringify({ ...meta, commit }));
+    process.env.SERIES_TEST_PUSH_URL = t.remote;
+    const r: string[] = [];
+    expect(pushSeriesCommit(['--remote', t.remote, '--bundle-dir', out, '--work', path.join(t.root, 'link'), '--push-url-env', 'SERIES_TEST_PUSH_URL'], (l: string) => r.push(l))).toBe(PUSH_EXIT.refused);
+    delete process.env.SERIES_TEST_PUSH_URL;
+    expect(r.join('\n')).toContain('other than regular files: public/data/evidence/link.json');
+    expect(t.main()).toBe(before);
+    // the rule itself, the same in both scripts: added or modified files of mode 100644 and deletions pass; anything else does not
+    const sha = 'a'.repeat(40);
+    const raw = (was: string, now: string, status: string, file = 'src/data/ratings.json') => `:${was} ${now} ${sha} ${sha} ${status}\t${file}`;
+    const ok = [raw('000000', '100644', 'A'), raw('100644', '100644', 'M'), raw('100644', '000000', 'D'), raw('120000', '000000', 'D')];
+    const bad = [raw('000000', '120000', 'A'), raw('100644', '120000', 'M'), raw('100644', '100755', 'M'), raw('000000', '100755', 'A'), raw('000000', '160000', 'A'), raw('100644', '120000', 'T')];
+    for (const fn of [prepareIrregular, pushIrregular as (l: string[]) => string[]]) {
+      expect(fn(ok)).toEqual([]);
+      expect(fn(bad)).toEqual(bad);
+      expect(fn(['not a raw line'])).toEqual(['not a raw line']);
+    }
   });
 
   it('both scripts hold the same list of paths, and the message reads the run file', () => {

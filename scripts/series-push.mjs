@@ -24,6 +24,21 @@ import { fileURLToPath } from 'node:url';
 export const SERIES_COMMIT_PATHS = [/^data\/series\/run-\d+\.json$/, /^src\/data\/ratings\.json$/, /^public\/data\/h2h\.json$/, /^reports\/ratings-latest\.md$/, /^public\/data\/evidence\/[^/]+\.json$/];
 export const PUSH_EXIT = { pushed: 0, error: 1, usage: 2, retry: 5, refused: 7 };
 
+/**
+ * The entries of `git diff --raw --no-renames` that are not plain regular files: a symlink, a submodule, an executable
+ * or a type change named like a data file would pass a path list (the deploy's build copies public/ and would follow a
+ * link out of the checkout). Only an added or modified file of mode 100644, or a deleted file, is acceptable.
+ * (scripts/series-finalize.ts holds the same rule; the tests compare them.)
+ */
+export function irregularEntries(rawLines) {
+  return rawLines.filter((l) => {
+    const m = /^:(\d{6}) (\d{6}) \S+ \S+ ([AMD])\t/.exec(l);
+    if (!m) return true;
+    const [, was, now, status] = m;
+    return status === 'D' ? now !== '000000' : now !== '100644' || (was !== '000000' && was !== '100644');
+  });
+}
+
 class Stop extends Error {
   constructor(code, message) {
     super(message);
@@ -95,6 +110,8 @@ export function pushSeriesCommit(argv, log = (l) => console.log(l)) {
     if (outside.length) throw new Stop(PUSH_EXIT.refused, `the commit touches paths a series commit may not: ${outside.map((c) => c.file).join(', ')}`);
     const runs = changes.filter((c) => c.file.startsWith('data/series/'));
     if (runs.length !== 1 || runs[0].file !== runFile || runs[0].status !== 'A') throw new Stop(PUSH_EXIT.refused, `the commit must add ${runFile} and no other run file (it has ${runs.map((c) => `${c.status} ${c.file}`).join(', ') || 'none'})`);
+    const irregular = irregularEntries(git(work, ['diff', '--raw', '--no-renames', meta.base, commit]).split('\n').filter(Boolean));
+    if (irregular.length) throw new Stop(PUSH_EXIT.refused, `the commit holds something other than regular files: ${irregular.map((l) => l.split('\t')[1] ?? l).join(', ')}`);
     log(`The commit ${commit.slice(0, 7)} adds ${runFile} and changes ${changes.length - 1} derived file(s) on main ${main.slice(0, 7)}.`);
     if (!v['push-url-env']) {
       log('No --push-url-env: checked only, nothing pushed.');

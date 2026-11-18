@@ -29,6 +29,21 @@ import path from 'node:path';
 export const SERIES_COMMIT_PATHS = [/^data\/series\/run-\d+\.json$/, /^src\/data\/ratings\.json$/, /^public\/data\/h2h\.json$/, /^reports\/ratings-latest\.md$/, /^public\/data\/evidence\/[^/]+\.json$/];
 export const FINALIZE_EXIT = { prepared: 0, failed: 1, usage: 2, verify: 4, taken: 6, outside: 7 } as const;
 
+/**
+ * The entries of `git diff --raw --no-renames` that are not plain regular files: a symlink, a submodule, an executable
+ * or a type change named like a data file would pass a path list (the deploy's build copies public/ and would follow a
+ * link out of the checkout). Only an added or modified file of mode 100644, or a deleted file, is acceptable.
+ * (scripts/series-push.mjs holds the same rule; the tests compare them.)
+ */
+export function irregularEntries(rawLines: readonly string[]): string[] {
+  return rawLines.filter((l) => {
+    const m = /^:(\d{6}) (\d{6}) \S+ \S+ ([AMD])\t/.exec(l);
+    if (!m) return true;
+    const [, was, now, status] = m;
+    return status === 'D' ? now !== '000000' : now !== '100644' || (was !== '000000' && was !== '100644');
+  });
+}
+
 export const DEFAULT_VERIFY = 'npx tsx scripts/series.ts verify';
 export const DEFAULT_REBUILD = 'npx tsx scripts/ratings.ts && npx tsx scripts/build-h2h.ts && npx tsx scripts/build-evidence.ts';
 export const DEFAULT_CHECKS = [
@@ -139,6 +154,8 @@ export function prepareSeriesCommit(o: FinalizeOptions): number {
     // 6. commit, and hand the commit over
     const message = commitMessage(JSON.parse(text));
     git(work, ['add', '-A', '--', ...status.map((s) => s.file)]);
+    const irregular = irregularEntries(git(work, ['diff', '--cached', '--raw', '--no-renames']).split('\n').filter(Boolean));
+    if (irregular.length) throw new Stop(FINALIZE_EXIT.outside, `the commit would hold something other than regular files: ${irregular.map((l) => l.split('\t')[1] ?? l).join(', ')}; nothing is committed`);
     git(work, ['-c', `user.name=${BOT_NAME}`, '-c', `user.email=${BOT_EMAIL}`, 'commit', '-q', '--no-verify', '-m', message]);
     const commit = git(work, ['rev-parse', 'HEAD']);
     fs.mkdirSync(o.out, { recursive: true });
