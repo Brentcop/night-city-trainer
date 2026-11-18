@@ -153,6 +153,11 @@ class Links(unittest.TestCase):
             ("https://choom.gg/decks/%2e%2e/api/decks", "stay out of /api/"),
             ("https://evil.example\\@choom.gg.evil.example/decks", "reads only choom.gg"),
             ("https://choom.gg@evil.example/decks", "reads only choom.gg"),
+            # the sim's own robots rules (read 2026-11-18)
+            ("https://cyberpunk-tcg-sim.online/api/decks", "stay out of /api/, /dashboard"),
+            ("https://cyberpunk-tcg-sim.online/%41PI", "stay out of /api/, /dashboard"),
+            ("https://cyberpunk-tcg-sim.online/dashboard", "stay out of /api/, /dashboard"),
+            ("https://cyberpunk-tcg-sim.online/meta/../metrics", "stay out of /api/, /dashboard"),
         ]:
             with self.assertRaises(imp.Refused, msg=link) as e:
                 imp.site_of(link)

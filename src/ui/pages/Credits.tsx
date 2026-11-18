@@ -2,6 +2,7 @@ import { allDecks } from '../../lib/browserLibrary';
 import { deckColors } from '../../engine/deck';
 import { safeHref } from '../components/Markdown';
 import { PageHead } from '../components/PageHead';
+import { outsideCreditRow } from '../components/OutsidePicture';
 
 const SOURCES: [string, string, string][] = [
   ['Card data (all 150 cards)', 'cyberpunk-tcg-sim.online public card catalog (sourced from netdeck.gg / the official card database)', 'https://cyberpunk-tcg-sim.online/'],
@@ -15,6 +16,7 @@ const SOURCES: [string, string, string][] = [
     'Players who shared their lists on choom.gg or cyberpunk-tcg-sim.online (including its tournament and season reports); each imported deck names its author and links back',
     'https://cyberpunk-tcg-sim.online/',
   ],
+  ...(outsideCreditRow() ? [outsideCreditRow()!] : []),
   ['Choom Table statistics', 'choom.gg simulator data (snapshot 9 Nov 2026)', 'https://choom.gg/meta'],
   ['Typefaces', 'Inter (The Inter Project Authors) and Rajdhani (Indian Type Foundry), SIL Open Font License 1.1, served from this site', 'https://openfontlicense.org/'],
   ['Community stats & event info', 'gamertagmythras.com, tcgcontender.com (referenced by choom.gg), cyberpunktcg.com/eor', 'https://cyberpunktcg.com/eor'],

@@ -13,6 +13,7 @@ import type { CardDef, DeckList } from '../engine/types';
 import { distinctLists, type Listed } from './distinctLists';
 import { IMPORT_NO_AUTHOR, IMPORT_ORIGIN, libraryDeck } from './library';
 import { cleanText } from './cleanText';
+import { nameKey } from './cardNameKey';
 
 export const IMPORT_KIND = 'nct-deck-import';
 export const IMPORT_SCHEMA = 1;
@@ -198,14 +199,24 @@ export const SITES_WORDS = 'This tool reads only choom.gg and cyberpunk-tcg-sim.
  * steps). The same rule as site_of in tools/import_decks.py, which is the one that decides what is requested.
  */
 export function keptOut(pathname: string): boolean {
+  const p = serverPath(pathname);
+  return p === '/api' || p.startsWith('/api/') || p.startsWith('/admin');
+}
+
+/** The same for cyberpunk-tcg-sim.online, whose robots rules (read 2026-11-18) keep every reader out of /api/, /dashboard and /metrics. */
+export function simKeptOut(pathname: string): boolean {
+  const p = serverPath(pathname);
+  return p === '/api' || p.startsWith('/api/') || p.startsWith('/dashboard') || p.startsWith('/metrics');
+}
+
+function serverPath(pathname: string): string {
   let p = pathname;
   try {
     p = decodeURIComponent(p);
   } catch {
     // a malformed escape: compared as written
   }
-  p = p.replace(/\/+/g, '/').toLowerCase();
-  return p === '/api' || p.startsWith('/api/') || p.startsWith('/admin');
+  return p.replace(/\/+/g, '/').toLowerCase();
 }
 
 /** One pasted link: decoded here and now, needs the script (a page on one of the two sites), or refused, with why. */
@@ -223,6 +234,8 @@ export function sortLink(text: string): SortedLink {
   const path = u.pathname;
   if (site === 'choom.gg' && keptOut(path))
     return { link: u.href, kind: 'refused', why: 'choom.gg asks automated readers to stay out of /api/ and /admin, so neither this page nor the script reads them.' };
+  if (site === 'cyberpunk-tcg-sim.online' && simKeptOut(path))
+    return { link: u.href, kind: 'refused', why: 'cyberpunk-tcg-sim.online asks automated readers to stay out of /api/, /dashboard and /metrics, so neither this page nor the script reads them.' };
   if (isDeckBuilder(u)) {
     const r = decodeDeckBuilder(u);
     if ('why' in r) return { link: u.href, kind: 'refused', why: r.why };
@@ -359,16 +372,7 @@ export const importDocument = (decks: readonly RawDeck[], ran: string): ImportDo
 
 // ---------------------------------------------------------------- matching card references
 
-/** A card name for matching: accents, case, apostrophes and the separator between name and subname set aside. */
-export function nameKey(s: string): string {
-  return s
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[’‘`´']/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
+export { nameKey };
 
 interface Index {
   eid: Map<string, CardDef>;

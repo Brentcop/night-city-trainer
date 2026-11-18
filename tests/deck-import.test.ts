@@ -185,6 +185,10 @@ describe('sorting pasted links', () => {
       ['https://choom.gg/API/decks', /stay out of/],
       ['https://choom.gg/decks/../admin', /stay out of/],
       ['https://choom.gg/decks/%2e%2e/api/decks', /stay out of/],
+      // the sim's own robots rules for every reader (read 2026-11-18)
+      ['https://cyberpunk-tcg-sim.online/api/decks', /stay out of \/api\/, \/dashboard and \/metrics/],
+      ['https://cyberpunk-tcg-sim.online/%44ashboard', /stay out of/],
+      ['https://cyberpunk-tcg-sim.online/meta/../metrics', /stay out of/],
       ['ftp://choom.gg/decks', /not a web link/],
       ['javascript:alert(1)', /not a web link/],
       ['https://cyberpunk-tcg-sim.online/deck-builder/?deck=saved-1', /carries no list/],

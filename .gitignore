@@ -25,3 +25,5 @@ data/raw/
 /deck-import.json
 /deck-import-chosen.json
 __pycache__/
+# The outside-meta script's raw output (docs/DECK_IMPORT.md "The outside meta"); its tracked result is src/data/outsideMeta.json.
+/outside-meta-import.json

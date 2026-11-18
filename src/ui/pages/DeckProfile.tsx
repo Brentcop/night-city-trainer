@@ -33,6 +33,7 @@ import { useSiteConfig } from '../useSiteConfig';
 import { IfPage } from '../components/SiteChrome';
 import { CardMention, MentionText } from '../components/CardMention';
 import { DeckEvidencePanel } from '../components/evidence/DeckEvidencePanel';
+import { DeckOutsidePanel } from '../components/OutsidePicture';
 
 const S = SEASONS;
 
@@ -286,6 +287,8 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
           <DeckEvidencePanel file={d.file} />
         </IfPage>
       )}
+
+      <DeckOutsidePanel d={d} lib={lib} />
 
       <DeckSynergies deck={d.deck} named={objectiveFor(d.file, d.deck)?.note.synergies} />
 

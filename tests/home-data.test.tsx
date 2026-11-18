@@ -66,6 +66,11 @@ describe('entry chunk', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
     expect(profile).toContain('src/content/synergies/index.ts');
   });
+  it('does not reach the outside picture statically (it loads with the deck profile, Power ratings and Credits)', () => {
+    for (const f of ['src/data/outsideMetaData.ts', 'src/data/outsideMeta.json', 'src/ui/components/OutsidePicture.tsx', 'src/lib/outsideMeta.ts']) expect(graph).not.toContain(f);
+    const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
+    expect(profile).toContain('src/data/outsideMetaData.ts');
+  });
   it('reaches the card-mention component, but not its name index or preview (they load with the first mention shown)', () => {
     expect(graph).toContain('src/ui/components/CardMention.tsx');
     for (const f of ['src/ui/components/mentionRuntime.tsx', 'src/lib/cardMentions.ts', 'src/ui/components/CardModal.tsx']) expect(graph).not.toContain(f);

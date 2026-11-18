@@ -94,6 +94,9 @@ def site_of(url):
     path = posixpath.normpath(re.sub(r"/+", "/", "/" + urllib.parse.unquote(parts.path))).lower()
     if site == CHOOM and (path == "/api" or path.startswith("/api/") or path.startswith("/admin")):
         raise Refused("choom.gg asks automated readers to stay out of /api/ and /admin, so this script never reads them.")
+    # cyberpunk-tcg-sim.online's robots rules for every reader, as read on 2026-11-18
+    if site == SIM and (path == "/api" or path.startswith("/api/") or path.startswith("/dashboard") or path.startswith("/metrics")):
+        raise Refused("cyberpunk-tcg-sim.online asks automated readers to stay out of /api/, /dashboard and /metrics, so this script never reads them.")
     return site
 
 

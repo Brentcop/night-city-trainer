@@ -56,13 +56,21 @@ shaped like the main deck's), and the sim's codes for cards whose print number c
 
 - Only `choom.gg` and `cyberpunk-tcg-sim.online` (and their `www.` forms); any other link is refused, and a redirect off
   the two sites is not followed.
-- Never `/api/` or `/admin` on choom.gg (its robots rules), however the path is written (percent-escapes, doubled
-  slashes, `..` steps and letter case are undone before the comparison). These are the two sites' robots rules as they
-  stood on 2026-11-16: the script does not re-read them, so if a site changes its rules, change `site_of` in the script
-  (and `keptOut` in `src/lib/deckImport.ts`, which sorts the pasted links the same way).
+- Never `/api/` or `/admin` on choom.gg, and never `/api/`, `/dashboard` or `/metrics` on cyberpunk-tcg-sim.online
+  (their robots rules for every reader), however the path is written (percent-escapes, doubled slashes, `..` steps and
+  letter case are undone before the comparison). These are the robots rules as read on 2026-11-18 (the sim's three paths
+  were added to the script that day): the script does not re-read them, so if a site changes its rules, change
+  `site_of` in the script (and `keptOut` / `simKeptOut` in `src/lib/deckImport.ts`, which sort the pasted links the
+  same way).
 - Both sites' robots rules also keep the bulk AI-training crawlers out by name. This script is not one: it reads the few
   pages you point it at, to get decks to play against. Keep it that small: do not raise the limits to sweep a site, and
-  if either site asks you to stop, stop. Neither site's terms of use were read beyond its robots rules.
+  if either site asks you to stop, stop.
+- What else the sites say (read 2026-11-18). cyberpunk-tcg-sim.online's robots file also keeps out, by name, the
+  fetchers AI assistants use on a person's behalf (`Claude-User`, `ChatGPT-User`, `Perplexity-User` and others), and
+  states content signals (`search=yes, ai-train=no, use=reference`) as a condition of reading the site; it links no
+  terms-of-use page. So the scripts are for you to run yourself: an AI agent working in this repository must not run
+  them against that site, nor fetch its pages any other way. choom.gg allows those assistant fetchers; its terms
+  (updated 2026-11-11) forbid scraping "abusively" and set no rule on reusing its ratings or statistics.
 - One request at a time, at least `--delay` seconds apart (2 by default, never under 1), a 30-second timeout, one retry,
   at most 60 pages in one run, at most `--limit` decks from one page. A 403 or 429 stops the run at once.
 - A plain User-Agent (`deck-import-script/1.0`) that says nothing about you or your machine.
@@ -128,3 +136,52 @@ each credited to its player) and the ten lists of cyberpunk-tcg-sim.online's Sea
 anonymous lists the site built for each Legend trio). Two of the top-8 lists have 10 Units and the Season-1 #2 list has
 12. Events 16 to 19, each with all 71 library decks, rated the 18 the same day: 86 to 106 games each, so ranges of 7 to
 8 points either side (after event 16 alone: 21 to 33 games, and 12 to 16 points).
+
+## The outside meta (ROADMAP2 §13 goal 4)
+
+What the two sites say about the decks people really play, shown beside the trainer's own numbers and never mixed into
+them. choom.gg's hand ratings (tier, power, complexity of seven archetypes) already ship in `src/data/meta.json` (from
+`scripts/import-meta.ts`); cyberpunk-tcg-sim.online's meta reports are collected by a sibling script that shares the
+deck import's fetcher and rules:
+
+```
+python tools/import_outside_meta.py                       # the two default reports; writes outside-meta-import.json
+npx tsx scripts/import-outside-meta.ts outside-meta-import.json            # writes src/data/outsideMeta.json
+npx tsx scripts/import-outside-meta.ts outside-meta-import.json --force    # replaces it, after printing what changed
+npm run check:data
+```
+
+The script reads `https://cyberpunk-tcg-sim.online/meta/season-1` and
+`https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament` by default, or the report links you give it
+(only `/meta/<report>` pages on the sim site; at most 12 a run). `--saved PAGE.html --collected YYYY-MM-DD` reads pages
+saved earlier, with no request (each page's own address is taken from inside it). It keeps facts only: Legend names as
+the site wrote them and the numbers beside them; no player names, no page text, no decklists (those come through the
+deck import).
+
+What `src/data/outsideMeta.json` (`kind: 'nct-outside-meta'`, schema 1; types and rules in `src/lib/outsideMeta.ts`)
+holds per report: the site, the report's title and own address, the day it was collected and published, and
+
+- a season report: its period, its totals (series, games, players, trios, the high-rank series, games and decks), its
+  power rankings (rank, trio, the site's tier, game win rate with wins and losses, share of high-rank decks, players),
+  its field (the legend map's whole trios with their share and win rate, plus any ranked trio the map folded into
+  "Other") and its matchup table (cells with a win rate; the site leaves cells under 20 games blank);
+- a tournament report: its day, its totals (players, registered, rounds, top cut, games, trios), its field table (players
+  who brought each trio, their share of the players paired in the event, game record, top-cut places, best finish) and
+  its top cut place by place (trios only).
+
+A trio is three Legends, order ignored. Each name is matched to this trainer's Legend cards by the deck import's rule,
+among Legends only (`legendMatcher`: the full name, else the name alone when one Legend has it; "Adam Smasher" is the
+Legend, not the Unit); a name that matches none stays as text and is listed under `unmatched`. Shares are percents of the
+report's own field (`shareOf`): the season's high-rank decks (two per game, both players in Division III or Master), or
+the tournament's players.
+
+Where it shows: a deck page's block **What other sites say** (each source's row for the deck's Legend trio, with
+choom.gg's archetype when one has the same Legends; "Same Legends; the list may differ"), and a section **The outside
+picture** at the end of Power ratings (each report's field with the library decks of each trio, our Sim tier and our
+expected win rate in a column of their own, and how much of the field the library covers). Every row names its site,
+links to the report and gives the day it was collected. The Credits page lists the reports when the file is there.
+Without the file the site builds and shows choom.gg's ratings only. `outsideFieldShares(library, source)` turns a report's
+field into a weight per library deck for goal 5 (a trio's share split equally among the library decks that play it).
+
+Never read by the ratings, head-to-heads, evidence, card impact, bots, breeder or knowledge pack. Tests:
+`tests/outside-meta.test.ts`, `tests/outside-meta-ui.test.tsx`, `tools/test_import_outside_meta.py` (made-up pages).

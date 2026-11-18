@@ -2,7 +2,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { Wr } from '../components/Num';
 import { RATINGS } from '../../data/index';
-import { allDecks } from '../../lib/browserLibrary';
+import { allDecks, BUILTIN } from '../../lib/browserLibrary';
 import { byName } from '../deckLookup';
 import { LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
@@ -10,6 +10,7 @@ import { CURRENT_SIM_VERSION, ordinal, ratingsHistorical } from '../../lib/playe
 import { bandOf, bandWords, SIM_TIER_LETTERS, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS, simTier } from '../../lib/simTier';
 import { SimTierBadge } from '../components/TierBadges';
 import { YourDecks } from '../components/YourStats';
+import { OutsidePictureSection } from '../components/OutsidePicture';
 
 const R = RATINGS;
 const pct = (x: number | null | undefined) => (typeof x === 'number' && Number.isFinite(x) ? `${(x * 100).toFixed(1)}%` : '—');
@@ -138,6 +139,7 @@ export function RatingsPage() {
         </table>
       </div>
       <YourDecks />
+      <OutsidePictureSection lib={BUILTIN} />
     </div>
   );
 }

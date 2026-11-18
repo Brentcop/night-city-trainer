@@ -34,6 +34,9 @@
 //     effect is paired with a ledger, forge-report or re-measurement source, every strength word is what the rule
 //     gives, the short-id lookup (ids.json) matches the deck files, and the re-measurements (data/evidence/*.json)
 //     read. `npm run evidence` rebuilds them
+//   - src/data/outsideMeta.json (the outside picture, src/lib/outsideMeta.ts), when it exists: its kind and schema, every
+//     day a YYYY-MM-DD date, links on the two sites only, shares and win rates between 0 and 100 (a field's shares at
+//     most 100 together), and every trio's ids Legend cards of src/data/cards.json or kept as text and listed unmatched
 //   - src/content/deckObjectives/noteSynergies.ts (the slim table of the deck notes' synergies the bots read) is what
 //     the notes say, byte for byte; `npx tsx scripts/note-synergies.ts` rewrites it
 // Exits 1 when a check fails, 2 on a bad flag.
@@ -53,6 +56,8 @@ import { analysisKey, impactFileWords, impactFilesProblems, type AnalysisLike, t
 import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
 import { evidenceCheck } from './build-evidence';
 import { noteSynergiesCheck } from './note-synergies';
+import { outsideMetaProblems } from '../src/lib/outsideMeta';
+import { CARD_BY_ID } from '../src/engine/cards';
 
 type StoredDeck = RecordedEventInput['decks'][string];
 interface EventMatch {
@@ -102,6 +107,8 @@ export interface CheckInput {
   evidence?: { failures: string[]; passed: string[] } | null;
   /** the slim table of the notes' synergies against the notes (noteSynergiesCheck in scripts/note-synergies.ts; absent: not checked) */
   noteSynergies?: { failures: string[]; passed: string[] } | null;
+  /** src/data/outsideMeta.json, parsed (null or absent when the file does not exist: not checked) */
+  outsideMeta?: unknown;
 }
 /** An aggregate file's `pool` field (scripts/event-pool.ts PoolRecord): the events it left out and why. */
 interface PoolRecordLike {
@@ -455,6 +462,17 @@ export function checkData(input: CheckInput): CheckResult {
     failures.push(...input.noteSynergies.failures);
     passed.push(...input.noteSynergies.passed);
   }
+  // ---- the outside picture (another site's figures, kept apart from ours)
+  if (input.outsideMeta !== undefined && input.outsideMeta !== null) {
+    const isLegend = (id: string) => Object.prototype.hasOwnProperty.call(CARD_BY_ID, id) && CARD_BY_ID[id]!.type === 'Legend';
+    const p = outsideMetaProblems(input.outsideMeta, isLegend);
+    failures.push(...p.map((x) => `src/data/outsideMeta.json: ${x}`));
+    if (!p.length) {
+      const o = input.outsideMeta as { sources: unknown[]; updated: string; unmatched: string[] };
+      passed.push(`src/data/outsideMeta.json reads (${o.sources.length} report(s), collected up to ${o.updated})`);
+      if (o.unmatched.length) info.push(`src/data/outsideMeta.json: ${o.unmatched.length} Legend name(s) kept as text, matching no card: ${o.unmatched.join(', ')}`);
+    }
+  } else if (input.outsideMeta === null) info.push('src/data/outsideMeta.json is not in this checkout: the outside picture shows choom.gg only (docs/DECK_IMPORT.md "The outside meta")');
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
@@ -495,6 +513,7 @@ export function loadCheckInput(root = '.'): CheckInput {
       : null,
     evidence: evidenceCheck(root),
     noteSynergies: noteSynergiesCheck(root),
+    outsideMeta: read('src/data/outsideMeta.json'),
     deckFiles: LIBRARY_DIRS.flatMap((d) => {
       const dir = path.join(root, 'data/decks', d);
       return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.txt')) : [];
