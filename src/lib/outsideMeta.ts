@@ -1,8 +1,9 @@
 // The outside picture (ROADMAP2 §13 goal 4; docs/DECK_IMPORT.md "The outside meta"): what two other sites say about the
 // decks people really play, kept apart from this trainer's own numbers. cyberpunk-tcg-sim.online's meta reports (a
 // ranked season's tier list, win rates and shares of play; a tournament's field and top cut) are collected by
-// tools/import_outside_meta.py into a raw file, read here as untrusted input, and written by
-// scripts/import-outside-meta.ts to src/data/outsideMeta.json (`kind: 'nct-outside-meta'`, schema 1). choom.gg's hand
+// tools/import_outside_meta.py into a raw file, read here as untrusted input, carried forward onto the previous file
+// (`mergeOutside`) and written by scripts/import-outside-meta.ts to src/data/outsideMeta.json (`kind:
+// 'nct-outside-meta'`, schema 1); the scheduled workflow .github/workflows/outside-meta.yml runs both. choom.gg's hand
 // ratings ship in src/data/meta.json already; this module only labels them the same way (`choomArchetypes`).
 //
 // Never mixed into our numbers: nothing in the ratings, head-to-heads, evidence, card impact, bots, breeder or knowledge
@@ -429,6 +430,119 @@ export function outsideMetaProblems(v: unknown, isLegend: (id: string) => boolea
   });
   if (sources.length && newest && v.updated !== newest) out.push(`updated is ${String(v.updated)}, but the newest source was collected ${newest}`);
   return out;
+}
+
+// ---------------------------------------------------------------- carrying the previous file forward (the unattended refresh)
+
+/** The most sources the tracked file keeps: the newest by published day (else collected day). */
+export const OUTSIDE_MAX_SOURCES = 8;
+
+/** JSON with every object's keys sorted, so two readings compare by content whatever order their keys were written in. */
+function stableText(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableText).join(',')}]`;
+  if (isObj(v))
+    return `{${Object.keys(v)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableText(v[k])}`)
+      .join(',')}}`;
+  return JSON.stringify(v) ?? 'null';
+}
+
+/** Whether two readings of one report hold the same figures (everything but the day collected). */
+export function sameFigures(a: OutsideSource, b: OutsideSource): boolean {
+  return stableText({ ...a, collected: '' }) === stableText({ ...b, collected: '' });
+}
+
+/** The rows a reading has, by part: a season's ranked decks and field, a tournament's field and top cut. */
+function rowCounts(s: OutsideSource): [string, number][] {
+  return s.kind === 'season'
+    ? [
+        ['ranked decks', s.tiers.length],
+        ['field trios', s.field.length],
+      ]
+    : [
+        ['field trios', s.field.length],
+        ['top-cut places', s.topCut.length],
+      ];
+}
+
+/**
+ * Why a new reading looks hollow next to the previous one of the same report (null when it does not): it has under
+ * half the previous ranked decks, field trios or top-cut places, or it changed kind. A page whose layout changed reads
+ * like that, and its previous entry is worth more than a hollow one.
+ */
+export function shrinkWhy(previous: OutsideSource, next: OutsideSource): string | null {
+  if (previous.kind !== next.kind) return `it read as a ${next.kind} report, not the ${previous.kind} report it was`;
+  const before = new Map(rowCounts(previous));
+  for (const [part, n] of rowCounts(next)) {
+    const was = before.get(part) ?? 0;
+    if (was > 0 && n < was / 2) return `it read with ${n} ${part}, under half the ${was} it had`;
+  }
+  return null;
+}
+
+/** The day a source is ordered by: its published day, else the day it was collected. */
+const sourceDay = (s: OutsideSource): string => s.published || s.collected;
+
+export interface OutsideMerge {
+  file: OutsideMetaFile;
+  /** one line per source kept from the previous file, replaced, left unchanged or dropped, saying why */
+  notes: string[];
+}
+
+/**
+ * The tracked file after a run: each report read this run replaces its previous entry, except that
+ *  - a report not read this run (it failed, or was not among the run's links) keeps its previous entry, older day and all;
+ *  - a reading older than the previous entry, or a hollow one (`shrinkWhy`), keeps the previous entry;
+ *  - a reading with the same figures keeps the previous entry, collected day included, so a run that finds nothing new
+ *    writes a file byte for byte the same.
+ * Then at most OUTSIDE_MAX_SOURCES sources are kept, newest first by published day (else collected day), ties by id;
+ * the others are dropped and said. `unmatched` and `updated` are worked out again from the sources kept. `whyNotRead`
+ * gives, by source id, why a report was not read this run (the raw file's link notes), for the notes.
+ */
+export function mergeOutside(previous: OutsideMetaFile | null, read: OutsideMetaFile, whyNotRead: ReadonlyMap<string, string> = new Map()): OutsideMerge {
+  const notes: string[] = [];
+  const prev = new Map((previous?.sources ?? []).map((s) => [s.id, s]));
+  const out: OutsideSource[] = [];
+  for (const s of read.sources) {
+    const p = prev.get(s.id);
+    prev.delete(s.id);
+    if (!p) {
+      out.push(s);
+      continue;
+    }
+    const hollow = shrinkWhy(p, s);
+    if (s.collected < p.collected) {
+      notes.push(`${p.title}: kept as collected ${p.collected}; this reading (collected ${s.collected}) is older.`);
+      out.push(p);
+    } else if (hollow) {
+      notes.push(`${p.title}: kept as collected ${p.collected}, because ${hollow} (the page’s layout may have changed).`);
+      out.push(p);
+    } else if (sameFigures(p, s)) out.push(p);
+    else out.push(s);
+  }
+  for (const p of prev.values()) {
+    const why = whyNotRead.get(p.id);
+    notes.push(`${p.title}: kept as collected ${p.collected}; ${why ? `not read this run (${why})` : 'not among this run’s reports'}.`);
+    out.push(p);
+  }
+  out.sort((a, b) => (sourceDay(a) === sourceDay(b) ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : sourceDay(a) < sourceDay(b) ? 1 : -1));
+  const kept = out.slice(0, OUTSIDE_MAX_SOURCES);
+  for (const s of out.slice(OUTSIDE_MAX_SOURCES)) notes.push(`${s.title}: dropped; the file keeps the ${OUTSIDE_MAX_SOURCES} newest reports (this one is from ${sourceDay(s)}).`);
+  const unmatched = new Set<string>();
+  const note = (t: OutsideTrio) => t.names.forEach((n, i) => t.ids[i] === null && unmatched.add(n));
+  for (const s of kept) {
+    for (const r of s.field) note(r.trio);
+    if (s.kind === 'season') {
+      for (const r of s.tiers) note(r.trio);
+      for (const r of s.matchups) {
+        note(r.trio);
+        note(r.vs);
+      }
+    } else for (const r of s.topCut) note(r.trio);
+  }
+  const updated = kept.map((s) => s.collected).sort().pop() ?? '';
+  return { file: { kind: OUTSIDE_KIND, schema: OUTSIDE_SCHEMA, updated, sources: kept, unmatched: [...unmatched].sort() }, notes };
 }
 
 // ---------------------------------------------------------------- what changed (the CLI's report)

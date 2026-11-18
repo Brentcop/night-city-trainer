@@ -261,8 +261,158 @@ class Run(unittest.TestCase):
                         sys.stderr = old
 
     def test_default_links_are_the_two_reports(self):
-        _, links = om.parse_args([])
+        args, links = om.parse_args(["--previous", os.path.join(os.path.dirname(__file__), "no-such-file.json")])
         self.assertEqual(links, om.DEFAULT_LINKS)
+        self.assertTrue(args.discover)
+        args, _ = om.parse_args([SEASON_URL])
+        self.assertFalse(args.discover)
+
+    def test_previous_file_adds_its_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prev = os.path.join(tmp, "outsideMeta.json")
+            with open(prev, "w", encoding="utf-8") as f:
+                json.dump({"kind": "nct-outside-meta", "sources": [{"link": CUP_URL + "/"}, {"link": om.DEFAULT_LINKS[0]}, {"link": "https://example.com/meta/x"}, {"link": "https://cyberpunk-tcg-sim.online/api/x"}]}, f)
+            args, links = om.parse_args(["--previous", prev])
+            self.assertEqual(links, om.DEFAULT_LINKS + [CUP_URL])
+            self.assertEqual(args.found, {om.DEFAULT_LINKS[0]: "default", om.DEFAULT_LINKS[1]: "default", CUP_URL: "known"})
+            with open(prev, "w", encoding="utf-8") as f:
+                f.write("not json")
+            with self.assertRaises(SystemExit), open(os.devnull, "w") as devnull:
+                old, sys.stderr = sys.stderr, devnull
+                try:
+                    om.parse_args(["--previous", prev])
+                finally:
+                    sys.stderr = old
+
+
+SIM_ROBOTS_URL = "https://cyberpunk-tcg-sim.online/robots.txt"
+INDEX_URL = "https://cyberpunk-tcg-sim.online/meta"
+NEW_URL = "https://cyberpunk-tcg-sim.online/meta/new-cup"
+ODD_URL = "https://cyberpunk-tcg-sim.online/meta/odd-page"
+# the season report with the breadcrumb every report carries, to the reports' index
+SEASON_LINKED = SEASON.replace("<main>", '<main><nav class="report-breadcrumb"><a href="/meta">Meta reports</a><span>/</span></nav>', 1)
+INDEX = (
+    "<html><head><title>Meta reports</title></head><body><h1>Meta reports</h1>"
+    '<a href="/meta/made-up-season">Season</a><a href="/meta/made-up-cup/">Cup</a><a href="https://cyberpunk-tcg-sim.online/meta/new-cup">New</a>'
+    '<a href="/meta/odd-page">Odd</a><a href="/meta/a/b">Nested</a><a href="https://example.com/meta/x">Elsewhere</a><a href="/leaderboard">Board</a>'
+    "</body></html>"
+)
+NEW_CUP = CUP.replace(CUP_URL, NEW_URL).replace("Made-up Cup", "New Cup")
+ODD = "<html><head><title>Something</title></head><body><p class=\"eyebrow\">A page about something else</p></body></html>"
+
+
+class Discovery(unittest.TestCase):
+    def run_pages(self, pages, links=None, errors=None, discover=True):
+        fetcher, web, _ = fetcher_for(pages, errors=errors, max_pages=om.MAX_PAGES)
+        links = links or [SEASON_URL, CUP_URL]
+        doc, stopped = om.read_pages(links, fetcher, {"ran": "2026-11-18T09:00:00Z", "day": "2026-11-18"}, discover=discover, found={l: "default" for l in links})
+        return doc, stopped, web, fetcher
+
+    def test_follows_the_breadcrumb_to_the_index_and_reads_new_reports(self):
+        doc, stopped, web, _ = self.run_pages({SEASON_URL: SEASON_LINKED, CUP_URL: CUP, INDEX_URL: INDEX, NEW_URL: NEW_CUP, ODD_URL: ODD})
+        self.assertIsNone(stopped)
+        self.assertEqual([u for u, _ in web.requests], [SEASON_URL, CUP_URL, INDEX_URL, NEW_URL, ODD_URL])
+        self.assertEqual([(l["found"], l["status"]) for l in doc["links"]], [("default", "fetched"), ("default", "fetched"), ("index", "not a report"), ("found", "fetched"), ("found", "not a report")])
+        self.assertEqual([p["link"] for p in doc["pages"]], [SEASON_URL, CUP_URL, NEW_URL])
+        self.assertEqual(doc["discovery"]["new"], 2)
+
+    def test_no_discovery_when_off_and_no_links_on_the_pages(self):
+        doc, _, web, _ = self.run_pages({SEASON_URL: SEASON_LINKED, CUP_URL: CUP, INDEX_URL: INDEX}, discover=False)
+        self.assertEqual([u for u, _ in web.requests], [SEASON_URL, CUP_URL])
+        doc, _, web, _ = self.run_pages({SEASON_URL: SEASON, CUP_URL: CUP})
+        self.assertEqual([u for u, _ in web.requests], [SEASON_URL, CUP_URL])
+        self.assertEqual(doc["discovery"]["new"], 0)
+
+    def test_at_most_six_new_reports_and_the_page_cap(self):
+        many = "".join('<a href="/meta/extra-' + str(i) + '">x</a>' for i in range(12))
+        pages = {SEASON_URL: SEASON_LINKED, CUP_URL: CUP, INDEX_URL: "<html><body>" + many + "</body></html>"}
+        for i in range(12):
+            pages["https://cyberpunk-tcg-sim.online/meta/extra-" + str(i)] = ODD
+        doc, _, web, _ = self.run_pages(pages)
+        self.assertEqual(doc["discovery"]["new"], 6)
+        self.assertEqual(len(web.requests), 9)
+        self.assertEqual(len(doc["discovery"]["leftOut"]), 6)
+        self.assertIn("more than 6 new reports", doc["discovery"]["leftOut"][0]["why"])
+        # with ten known reports the page cap (12) is reached first
+        known = ["https://cyberpunk-tcg-sim.online/meta/known-" + str(i) for i in range(10)]
+        for k in known:
+            pages[k] = ODD
+        doc, _, web, _ = self.run_pages(pages, links=[SEASON_URL] + known)
+        self.assertEqual(len(web.requests), 12)
+        self.assertTrue(any("page cap" in x["why"] for x in doc["discovery"]["leftOut"]))
+
+    def test_a_link_the_robots_rules_keep_out_is_not_read(self):
+        from test_import_decks import SIM_ROBOTS
+
+        robots = SIM_ROBOTS + "Disallow: /meta/new-\n"
+        doc, _, web, _ = self.run_pages({SIM_ROBOTS_URL: robots, SEASON_URL: SEASON_LINKED, CUP_URL: CUP, INDEX_URL: INDEX, NEW_URL: NEW_CUP, ODD_URL: ODD})
+        self.assertNotIn(NEW_URL, [u for u, _ in web.requests])
+        self.assertIn({"link": NEW_URL, "why": "the robots rules keep this script out of it"}, doc["discovery"]["leftOut"])
+
+
+class RobotsTripwire(unittest.TestCase):
+    """The site's robots file is read at the start of every run; anything but what a person accepted stops the run
+    before any page is read, with exit code 3, and nothing is written."""
+
+    def run_main(self, pages, robots_answer=None, errors=None):
+        from test_import_decks import SIM_ROBOTS
+
+        pages = dict(pages)
+        if robots_answer is not None:
+            pages[SIM_ROBOTS_URL] = robots_answer
+        fetcher, web, _ = fetcher_for(pages, errors=errors, max_pages=om.MAX_PAGES)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = os.path.join(tmp, "raw.json")
+            summary = os.path.join(tmp, "summary.md")
+            out = io.StringIO()
+            code = om.main([SEASON_URL, CUP_URL, "--out", target, "--summary", summary], fetcher=fetcher, out=out, now="2026-11-18T09:00:00Z")
+            written = load(target) if os.path.exists(target) else None
+            with open(summary, encoding="utf-8") as f:
+                text = f.read()
+        return code, written, text, web, SIM_ROBOTS
+
+    def test_the_accepted_file_lets_the_run_read_and_records_what_it_saw(self):
+        code, doc, summary, web, robots = self.run_main({SEASON_URL: SEASON, CUP_URL: CUP})
+        self.assertEqual(code, 0)
+        facts = doc["robots"][0]
+        self.assertEqual(facts["status"], 200)
+        self.assertEqual(facts["genericSignals"], {"search": "yes", "ai-train": "no", "use": "reference"})
+        self.assertEqual(facts["verdict"], "kept to")
+        self.assertEqual(facts["checked"], "2026-11-18")
+        self.assertIn("Disallow: /api/", facts["rules"])
+        self.assertIn(facts["sha256"], summary)
+        self.assertIn("search=yes", summary)
+        self.assertIn("/meta/made-up-season", summary)
+
+    def test_every_change_stops_before_any_page(self):
+        changed = lambda a, b: self.run_main({SEASON_URL: SEASON, CUP_URL: CUP}, robots_answer=__import__("test_import_decks").SIM_ROBOTS.replace(a, b))
+        for code, doc, summary, web, _ in (
+            changed("use=reference", "use=none"),
+            changed(",use=reference", ""),
+            changed("use=reference", "use=reference,ai-input=yes"),
+            changed("Allow: /\n", "Disallow: /meta/\n"),
+        ):
+            self.assertEqual(code, 3)
+            self.assertEqual(web.requests, [])
+            # the output holds no page, only what was seen and why the run stopped
+            self.assertEqual(doc["pages"], [])
+            self.assertEqual(doc["robots"][0]["verdict"], doc["stopped"])
+            self.assertEqual(len(doc["robots"][0]["sha256"]), 64)
+            self.assertIn("Stopped by the site's robots rules (exit 3)", summary)
+        # missing, unreachable, or a challenge in its place
+        for answer, errors in (((404, ""), None), (None, {SIM_ROBOTS_URL: [503, 503]}), (None, {SIM_ROBOTS_URL: ["timeout", "timeout"]}), ("<html><title>Just a moment...</title></html>", None)):
+            code, doc, summary, web, _ = self.run_main({SEASON_URL: SEASON, CUP_URL: CUP}, robots_answer=answer, errors=errors)
+            self.assertEqual(code, 3, answer)
+            self.assertEqual(doc["pages"], [])
+            self.assertEqual(web.requests, [])
+            self.assertIn("could not be read", summary)
+
+    def test_a_403_on_a_report_stops_with_exit_1(self):
+        code, doc, summary, web, _ = self.run_main({CUP_URL: CUP}, errors={SEASON_URL: 403})
+        self.assertEqual(code, 1)
+        self.assertEqual(len(web.requests), 1)
+        self.assertEqual([l["status"] for l in doc["links"]], ["stopped", "not read"])
+        self.assertIn("**Stopped:**", summary)
 
 
 if __name__ == "__main__":

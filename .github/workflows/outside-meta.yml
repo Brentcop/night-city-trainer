@@ -1,0 +1,163 @@
+name: Refresh outside meta
+
+# Refreshes src/data/outsideMeta.json, cyberpunk-tcg-sim.online's meta-report figures shown beside ours (docs/DECK_IMPORT.md,
+# "Running by itself"). No AI assistant takes part: GitHub runs the repository's scripts on its own schedule.
+#
+# `refresh` (read-only) asks the site config whether "Figures from other sites" (features.outsideMeta) is on, and stops
+# green without any request when it is off. Then tools/import_outside_meta.py reads the site's robots file (it stops
+# with exit 3 when the file is not what a person accepted, tools/robots.py) and the reports, the converter carries the
+# previous file forward, every check of pages.yml's `check` job runs on that tree, and the data file alone is uploaded
+# when it changed.
+# `commit` runs only after all of that passed, on main, with a change, and not as a dry run. It runs no repository code
+# (no npm, no node): it checks the artifact is that one file, commits it as github-actions[bot], pushes to main, then
+# starts pages.yml by workflow_dispatch (a push made with GITHUB_TOKEN starts no push-triggered workflow).
+#
+# Actions are pinned to the full commit SHA of the tag named in the trailing comment. Values from github.* and from the
+# fetched pages never go into a run: line; they pass through env.
+on:
+  schedule:
+    # Mondays at 04:37 UTC
+    - cron: '37 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: read and check only, commit nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# one refresh at a time; a second one waits for the first
+concurrency:
+  group: outside-meta
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: ${{ !github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # the owner's switch (#/admin, "Figures from other sites"): off, the job stops here, before any request to the site
+      - id: switch
+        name: Is "Figures from other sites" on?
+        run: npx tsx scripts/automation-switch.ts outsideMeta --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+      # exit 3: stopped by the site's robots rules (the summary says why); exit 1: a 403, 429 or bot check
+      - name: Read the site's robots file and its reports
+        if: steps.switch.outputs.on == 'true'
+        run: python3 tools/import_outside_meta.py --previous src/data/outsideMeta.json --out "$RUNNER_TEMP/outside-meta-import.json" --summary "$GITHUB_STEP_SUMMARY"
+      - name: Carry the previous file forward and write the data file
+        if: steps.switch.outputs.on == 'true'
+        run: npx tsx scripts/import-outside-meta.ts "$RUNNER_TEMP/outside-meta-import.json" --merge --summary "$GITHUB_STEP_SUMMARY"
+      # the same checks as pages.yml's `check` job, on the tree with the new file
+      - if: steps.switch.outputs.on == 'true'
+        run: npm run typecheck
+      - if: steps.switch.outputs.on == 'true'
+        run: npx vitest run
+      - if: steps.switch.outputs.on == 'true'
+        run: python3 -m unittest discover -s tools -p "test_*.py"
+      - if: steps.switch.outputs.on == 'true'
+        run: npm run lint
+      - if: steps.switch.outputs.on == 'true'
+        run: npm run check:data
+      - if: steps.switch.outputs.on == 'true'
+        run: npx vite build
+      - id: diff
+        name: Did the data file change?
+        if: steps.switch.outputs.on == 'true'
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: npx tsx scripts/outside-meta-diff.ts --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: outside-meta
+          path: src/data/outsideMeta.json
+          if-no-files-found: error
+          retention-days: 7
+
+  commit:
+    needs: refresh
+    if: ${{ !github.event.repository.fork && needs.refresh.outputs.changed == 'true' && inputs.dry_run != true && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: outside-meta
+          path: ${{ runner.temp }}/outside-meta
+      - id: commit
+        name: Commit the data file, and nothing else
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}/outside-meta
+        run: |
+          set -euo pipefail
+          target=src/data/outsideMeta.json
+          if [ "$(find "$ARTIFACT_DIR" -type f | wc -l)" != "1" ] || [ ! -f "$ARTIFACT_DIR/outsideMeta.json" ]; then
+            echo "::error::The artifact must hold exactly one file, outsideMeta.json."
+            exit 1
+          fi
+          if [ "$(stat -c %s "$ARTIFACT_DIR/outsideMeta.json")" -gt 1000000 ]; then
+            echo "::error::The data file is larger than 1 MB."
+            exit 1
+          fi
+          jq -e '.kind == "nct-outside-meta" and .schema == 1 and (.sources | type == "array")' "$ARTIFACT_DIR/outsideMeta.json" > /dev/null
+          cp "$ARTIFACT_DIR/outsideMeta.json" "$target"
+          changed="$(git status --porcelain --untracked-files=all)"
+          if [ -z "$changed" ]; then
+            echo "main already holds these figures; nothing to commit." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$changed" != " M $target" ] && [ "$changed" != "?? $target" ]; then
+            echo "::error::Only $target may differ from main."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$target"
+          git commit -m "Outside meta: refreshed automatically, collected $(date -u +%F)"
+          if [ "$(git diff --name-only HEAD~1 HEAD)" != "$target" ]; then
+            echo "::error::The commit must change $target alone."
+            exit 1
+          fi
+          pushed=no
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              pushed=yes
+              break
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          if [ "$pushed" != yes ]; then
+            echo "::error::Could not push to main after 3 attempts."
+            exit 1
+          fi
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+          echo "Committed $target to main: $(git rev-parse --short HEAD)." >> "$GITHUB_STEP_SUMMARY"
+      # a push made with GITHUB_TOKEN starts no workflow; a dispatch does, and pages.yml checks and deploys main on it
+      - name: Deploy the site
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run pages.yml --ref main --repo "$REPO"

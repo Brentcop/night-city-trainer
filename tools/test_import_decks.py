@@ -85,6 +85,34 @@ SIM_PAGE = (
 )
 
 
+# Invented robots files with the two sites' shapes (never their text). The sim site's is Cloudflare-managed: a notice,
+# the content signals in a first "*" group, groups that keep named crawlers out, then a second "*" group with paths.
+SIM_ROBOTS = (
+    "# A made-up notice: reading this site means agreeing to the content signals below.\n"
+    "# search = may be shown in search results; ai-train = may train models; use = how answers may use it.\n"
+    "\n"
+    "User-agent: *\n"
+    "Content-Signal: search=yes,ai-train=no,use=reference\n"
+    "Allow: /\n"
+    "\n"
+    "User-agent: MadeUpTrainingBot\n"
+    "Disallow: /\n"
+    "\n"
+    "User-agent: Made-Up-Assistant-User\n"
+    "User-agent: Another-Assistant-Fetcher\n"
+    "Disallow: /\n"
+    "\n"
+    "# the site's own paths\n"
+    "User-agent: *\n"
+    "Disallow: /api/\n"
+    "Disallow: /dashboard\n"
+    "Disallow: /metrics\n"
+)
+# choom.gg's shape: a blank line inside its one group
+CHOOM_ROBOTS = "User-agent: *\nAllow: /\n\nDisallow: /admin\nDisallow: /api/\n"
+ROBOTS = {"https://cyberpunk-tcg-sim.online/robots.txt": SIM_ROBOTS, "https://choom.gg/robots.txt": CHOOM_ROBOTS}
+
+
 class FakeClock:
     def __init__(self):
         self.t = 100.0
@@ -99,31 +127,37 @@ class FakeClock:
 
 
 class FakeWeb:
-    """Pages by address; every request is recorded with the clock's time."""
+    """Pages by address; every request is recorded with the clock's time (robots files apart, in `robots_requests`).
+    The two sites' invented robots files are served unless `pages` names another answer for them."""
 
-    def __init__(self, pages, clock, errors=None):
-        self.pages = pages
+    def __init__(self, pages, clock, errors=None, robots=True):
+        self.pages = dict(ROBOTS, **pages) if robots else dict(pages)
         self.clock = clock
         self.errors = errors or {}
         self.requests = []
+        self.robots_requests = []
+        self.all = []
 
     def __call__(self, url):
-        self.requests.append((url, self.clock.t))
+        (self.robots_requests if url.endswith("/robots.txt") else self.requests).append((url, self.clock.t))
+        self.all.append((url, self.clock.t))
         self.clock.t += 0.2  # a request takes a little time
-        if url in self.errors:
+        if url in self.errors and self.errors[url] != []:
+            # a list of answers is used up one by one, then the page is served
             code = self.errors[url].pop(0) if isinstance(self.errors[url], list) else self.errors[url]
             if code == "timeout":
                 raise urllib.error.URLError("timed out")
             raise urllib.error.HTTPError(url, code, "error", {}, None)
         if url not in self.pages:
             raise urllib.error.HTTPError(url, 404, "not found", {}, None)
-        return 200, self.pages[url]
+        page = self.pages[url]
+        return page if isinstance(page, tuple) else (200, page)
 
 
-def fetcher_for(pages, delay=2, errors=None, max_pages=imp.MAX_PAGES):
+def fetcher_for(pages, delay=2, errors=None, max_pages=imp.MAX_PAGES, robots=True):
     clock = FakeClock()
-    web = FakeWeb(pages, clock, errors)
-    return imp.Fetcher(delay=delay, opener=web, clock=clock.clock, sleep=clock.sleep, max_pages=max_pages), web, clock
+    web = FakeWeb(pages, clock, errors, robots=robots)
+    return imp.Fetcher(delay=delay, opener=web, clock=clock.clock, sleep=clock.sleep, max_pages=max_pages, day="2026-11-18"), web, clock
 
 
 def refs(section):
@@ -282,7 +316,10 @@ class Runs(unittest.TestCase):
         self.assertEqual(len(times), 3)
         for a, b in zip(times, times[1:]):
             self.assertGreaterEqual(round(b - a, 6), 3)
-        self.assertEqual(clock.slept, [2.8, 2.8])
+        # the robots file is read first, paced like a page
+        self.assertEqual([u for u, _ in web.robots_requests], ["https://choom.gg/robots.txt"])
+        self.assertGreaterEqual(round(web.requests[0][1] - web.robots_requests[0][1], 6), 3)
+        self.assertEqual(clock.slept, [2.8, 2.8, 2.8])
 
     def test_delay_never_under_one_second(self):
         f, _, _ = fetcher_for({}, delay=0.1)
@@ -302,6 +339,8 @@ class Runs(unittest.TestCase):
         calls = {"n": 0}
 
         def flaky(url):
+            if url.endswith("/robots.txt"):
+                return 200, ROBOTS[url]
             calls["n"] += 1
             if calls["n"] == 1:
                 raise urllib.error.URLError("timed out")
@@ -313,6 +352,8 @@ class Runs(unittest.TestCase):
         self.assertEqual(doc["links"][0]["status"], "fetched")
 
         def broken(url):
+            if url.endswith("/robots.txt"):
+                return 200, ROBOTS[url]
             calls["n"] += 1
             raise urllib.error.URLError("timed out")
 
@@ -331,6 +372,110 @@ class Runs(unittest.TestCase):
 
     def test_user_agent_names_only_the_script(self):
         self.assertEqual(imp.USER_AGENT, "deck-import-script/1.0")
+
+
+class RobotsGate(unittest.TestCase):
+    """The fetcher reads each host's robots file before its first request there, in every run, and keeps to it."""
+
+    def test_read_once_per_host_before_the_first_page_and_not_counted(self):
+        f, web, _ = fetcher_for({CHOOM_DECK: CHOOM_PAGE, "https://choom.gg/decks": CHOOM_LIST}, max_pages=2)
+        f.get(CHOOM_DECK)
+        f.get("https://choom.gg/decks")
+        self.assertEqual([u for u, _ in web.all], ["https://choom.gg/robots.txt", CHOOM_DECK, "https://choom.gg/decks"])
+        self.assertEqual(f.pages, 2)
+        self.assertEqual(f.robots_facts[0]["verdict"], "kept to")
+        self.assertEqual(f.robots_facts[0]["rules"], ["Allow: /", "Disallow: /admin", "Disallow: /api/"])
+
+    def test_a_path_the_rules_disallow_is_refused_without_a_request(self):
+        robots = "User-agent: *\nDisallow: /decks/" + DECK_ID[:8] + "\n"
+        f, web, _ = fetcher_for({"https://choom.gg/robots.txt": robots, CHOOM_DECK: CHOOM_PAGE})
+        with self.assertRaises(imp.Refused) as e:
+            f.get(CHOOM_DECK)
+        self.assertIn("robots rules keep deck-import-script out of /decks/", str(e.exception))
+        self.assertEqual(web.requests, [])
+        # through a run it is one refused link, not a stop
+        doc, stopped = imp.read_links([CHOOM_DECK], f, 20, "t")
+        self.assertIsNone(stopped)
+        self.assertEqual(doc["links"][0]["status"], "refused")
+
+    def test_crawl_delay_is_honoured(self):
+        robots = "User-agent: *\nCrawl-delay: 5\nAllow: /\n"
+        f, web, _ = fetcher_for({"https://choom.gg/robots.txt": robots, CHOOM_DECK: CHOOM_PAGE, "https://choom.gg/decks": CHOOM_LIST, "https://choom.gg/decks/" + OTHER_ID: CHOOM_VISIBLE})
+        imp.read_links(["https://choom.gg/decks"], f, 20, "t")
+        times = [t for _, t in web.requests]
+        self.assertEqual(len(times), 3)
+        for a, b in zip(times, times[1:]):
+            self.assertGreaterEqual(round(b - a, 6), 5)
+        self.assertEqual(f.delay, 5.0)
+
+    def test_a_crawl_delay_over_a_minute_stops_the_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f, web, _ = fetcher_for({"https://choom.gg/robots.txt": "User-agent: *\nCrawl-delay: 61\n", CHOOM_DECK: CHOOM_PAGE})
+            out = io.StringIO()
+            self.assertEqual(imp.main([CHOOM_DECK, "--out", os.path.join(tmp, "o.json")], fetcher=f, out=out), 3)
+            self.assertEqual(web.requests, [])
+            self.assertIn("Crawl-delay", out.getvalue())
+
+    def test_no_rules_on_404_but_a_stop_when_unreachable(self):
+        f, web, _ = fetcher_for({CHOOM_DECK: CHOOM_PAGE}, robots=False)
+        f.get(CHOOM_DECK)  # choom.gg answers 404 for its robots file here: no rules
+        self.assertEqual(f.robots_facts[0]["verdict"], "no rules")
+        for answer in ([500, 500], ["timeout", "timeout"], [403], [429]):
+            f, web, _ = fetcher_for({CHOOM_DECK: CHOOM_PAGE}, errors={"https://choom.gg/robots.txt": list(answer)})
+            with self.assertRaises(imp.RulesStop, msg=str(answer)):
+                f.get(CHOOM_DECK)
+            self.assertEqual(web.requests, [], answer)
+            # the run stays stopped: no other host is asked either
+            with self.assertRaises(imp.RulesStop):
+                f.get("https://cyberpunk-tcg-sim.online/meta/x")
+            self.assertEqual(web.robots_requests[-1][0], "https://choom.gg/robots.txt")
+        # one 5xx is retried once
+        f, web, _ = fetcher_for({CHOOM_DECK: CHOOM_PAGE}, errors={"https://choom.gg/robots.txt": [503]})
+        self.assertEqual(len(web.robots_requests), 0)
+        f.get(CHOOM_DECK)
+        self.assertEqual(len(web.robots_requests), 2)
+
+    def test_an_oversized_or_html_robots_file_or_a_redirect_off_the_site_stops(self):
+        for body in ("User-agent: *\n" + "# filler\n" * 60000, "<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>"):
+            f, web, _ = fetcher_for({"https://choom.gg/robots.txt": body, CHOOM_DECK: CHOOM_PAGE})
+            with self.assertRaises(imp.RulesStop):
+                f.get(CHOOM_DECK)
+            self.assertEqual(web.requests, [])
+
+        def redirected(url):
+            raise imp.FetchFailed("the site redirected to an address this script does not read")
+
+        f, _, _ = fetcher_for({})
+        f.opener = redirected
+        with self.assertRaises(imp.RulesStop) as e:
+            f.get(CHOOM_DECK)
+        self.assertIn("redirected", str(e.exception))
+
+    def test_the_sim_site_tripwire_applies_to_the_deck_import_too(self):
+        changed = SIM_ROBOTS.replace("ai-train=no", "ai-train=yes")
+        with tempfile.TemporaryDirectory() as tmp:
+            target = os.path.join(tmp, "o.json")
+            page = "https://cyberpunk-tcg-sim.online/meta/made-up-cup"
+            f, web, _ = fetcher_for({"https://cyberpunk-tcg-sim.online/robots.txt": changed, page: SIM_PAGE})
+            out = io.StringIO()
+            self.assertEqual(imp.main([page, "--out", target], fetcher=f, out=out), 3)
+            self.assertEqual(web.requests, [])
+            self.assertIn("content signals", out.getvalue())
+            # the same run with the accepted file reads the page, and records what it saw
+            f, web, _ = fetcher_for({page: SIM_PAGE})
+            self.assertEqual(imp.main([page, "--out", target, "--force"], fetcher=f, out=io.StringIO()), 0)
+            with open(target, encoding="utf-8") as fh:
+                doc = json.load(fh)
+            self.assertEqual(doc["robots"][0]["genericSignals"], {"search": "yes", "ai-train": "no", "use": "reference"})
+            self.assertEqual(doc["robots"][0]["verdict"], "kept to")
+
+    def test_a_bot_check_stops_the_run(self):
+        challenge = '<html><head><title>Just a moment...</title></head><body><script>window._cf_chl_opt={}</script></body></html>'
+        f, web, _ = fetcher_for({CHOOM_DECK: challenge, "https://choom.gg/decks/" + OTHER_ID: CHOOM_PAGE})
+        doc, stopped = imp.read_links([CHOOM_DECK, "https://choom.gg/decks/" + OTHER_ID], f, 20, "t")
+        self.assertIn("bot check", stopped)
+        self.assertEqual(len(web.requests), 1)
+        self.assertEqual([x["status"] for x in doc["links"]], ["stopped", "not read"])
 
 
 class CommandLine(unittest.TestCase):

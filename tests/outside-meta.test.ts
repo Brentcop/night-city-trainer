@@ -343,7 +343,7 @@ describe('scripts/import-outside-meta.ts', () => {
     expect(fs.existsSync(out)).toBe(false);
   });
 
-  it('writes the tracked file, which passes the check; never over it without --force; says when nothing changed', () => {
+  it('writes the tracked file, which passes the check; never over it without --force; writes nothing when only the day changed', () => {
     const first = cmd([input, '--out', out]);
     expect(first.code).toBe(0);
     expect(first.out).toContain('new: Made-up season report');
@@ -353,13 +353,20 @@ describe('scripts/import-outside-meta.ts', () => {
     expect(outsideMetaProblems(written, legend)).toEqual([]);
     expect(written.unmatched).toEqual(['Dex: Dee', 'V', 'Zed']);
     expect(cmd([input, '--out', out]).out).toContain('already holds these figures; nothing to write');
+    // read again later with the same figures: the entry keeps the day it was first collected, and nothing is written
     const later = JSON.parse(JSON.stringify(real));
     later.pages[0].collected = '2026-11-20';
+    fs.writeFileSync(input, JSON.stringify(later));
+    const text = fs.readFileSync(out, 'utf8');
+    expect(cmd([input, '--out', out]).out).toContain('already holds these figures; nothing to write');
+    expect(fs.readFileSync(out, 'utf8')).toBe(text);
+    // a figure moved: refused without --force (or --merge), then written with the new day
+    later.pages[0].field[1].share = 31;
     fs.writeFileSync(input, JSON.stringify(later));
     const refused = cmd([input, '--out', out]);
     expect(refused.code).toBe(2);
     expect(refused.out).toContain('collected 2026-11-18 → 2026-11-20');
-    expect(refused.err).toContain('pass --force');
+    expect(refused.err).toContain('pass --merge');
     expect(cmd([input, '--out', out, '--force']).code).toBe(0);
     expect((JSON.parse(fs.readFileSync(out, 'utf8')) as OutsideMetaFile).updated).toBe('2026-11-20');
   });

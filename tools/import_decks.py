@@ -11,11 +11,17 @@ It reads public pages on two sites only, choom.gg and cyberpunk-tcg-sim.online:
   - any other page on the two sites is fetched and searched for deck links, which are then read in page order,
     without repeats, up to --limit decks per page.
 
-It is polite on purpose: one request at a time, at least --delay seconds apart (2 by default, never under 1), a
-30-second timeout, one retry, at most 60 pages in one run, and it stops at once if a site answers 403 or 429. It never
-asks for the paths choom.gg's robots rules keep out (/api/ and /admin), follows no link off the two sites, runs nothing
-it downloads, and writes nothing but the output file (deck-import.json by default; an existing file is replaced only
-with --force).
+It is polite on purpose: one request at a time, at least --delay seconds apart (2 by default, never under 1, never
+faster than a site's Crawl-delay), a 30-second timeout, one retry, at most 60 pages in one run, and it stops at once if
+a site answers 403 or 429 or with a bot check. Before its first request to a host in a run it reads that host's
+robots.txt (tools/robots.py, RFC 9309) and never asks for an address the rules keep it out of; a robots file it cannot
+read, or one for cyberpunk-tcg-sim.online that is not what a person accepted, stops the run before any page is read
+(exit code 3). It also never asks for the paths the two sites' robots rules kept out when they were read on 2026-11-18
+(a second belt), follows no link off the two sites, runs nothing it downloads, and writes nothing but the output file
+(deck-import.json by default; an existing file is replaced only with --force).
+
+Exit codes: 0 read, 1 stopped by a 403, 429 or bot check, or nothing read, 2 a bad command line or an existing output
+file, 3 stopped by a site's robots rules.
 
 Load the output on the site's admin page (#/admin, "Import decks"), or write library deck files from it with
   npx tsx scripts/import-links.ts deck-import.json
@@ -36,6 +42,9 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import robots as robots_rules  # noqa: E402  (tools/robots.py, beside this file)
+
 KIND = "nct-deck-import"
 SCHEMA = 1
 
@@ -54,6 +63,8 @@ MAX_PAGES = 60
 TIMEOUT = 30
 MAX_BYTES = 5_000_000
 MAX_COUNT = 50
+# signs of a bot check served instead of a page (a Cloudflare interstitial); such a page stops the run
+CHALLENGE_MARKS = ("_cf_chl_opt", "cf-browser-verification", "/cdn-cgi/challenge-platform/h/", "<title>Just a moment...</title>", "<title>Attention Required! | Cloudflare</title>")
 
 DECK_PAGE = re.compile(r"^/decks/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/?$")
 # a compact card code: the set's first letter, the print number in base 36, and a letter suffix such as "-a" (005a)
@@ -68,6 +79,11 @@ class Refused(Exception):
 
 class Stop(Exception):
     """The site asked us to stop (403 or 429): the run ends here."""
+
+
+class RulesStop(Stop):
+    """The host's robots file stops the run before any page is read there (exit code 3): it could not be read, it is
+    not what a person accepted (tools/robots.py, ACCEPTED), or it asks for more than this script does."""
 
 
 class FetchFailed(Exception):
@@ -329,20 +345,24 @@ def choom_deck_from_page(page, url):
 
 
 class SameSiteRedirects(urllib.request.HTTPRedirectHandler):
-    """Follow a redirect only to an address this script may read."""
+    """Follow a redirect only to an address this script may read (a robots file only on its own host)."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         try:
             site_of(newurl)
         except Refused as e:
             raise FetchFailed("the site redirected to an address this script does not read (" + str(e) + ")")
+        old, new = urllib.parse.urlsplit(req.full_url), urllib.parse.urlsplit(newurl)
+        if old.path == "/robots.txt" and (old.hostname or "").lower() != (new.hostname or "").lower():
+            raise FetchFailed("the robots file redirected to another host")
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def urllib_open(url):
     """GET a page: (status, text). Raises urllib's errors."""
     opener = urllib.request.build_opener(SameSiteRedirects())
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
+    accept = "text/plain" if urllib.parse.urlsplit(url).path == "/robots.txt" else "text/html"
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept})
     with opener.open(request, timeout=TIMEOUT) as response:
         body = response.read(MAX_BYTES + 1)
         if len(body) > MAX_BYTES:
@@ -351,10 +371,17 @@ def urllib_open(url):
         return response.status, body.decode(charset, errors="replace")
 
 
-class Fetcher:
-    """One request at a time, at least `delay` seconds apart, at most `max_pages` in a run, one retry."""
+def looks_like_a_challenge(text):
+    """A page that is a bot check (a Cloudflare interstitial) rather than the page asked for."""
+    head = text[:20000]
+    return any(mark in head for mark in CHALLENGE_MARKS)
 
-    def __init__(self, delay=DEFAULT_DELAY, opener=urllib_open, clock=time.monotonic, sleep=time.sleep, max_pages=MAX_PAGES):
+
+class Fetcher:
+    """One request at a time, at least `delay` seconds apart, at most `max_pages` in a run, one retry; before its first
+    request to a host it reads the host's robots file (tools/robots.py) and keeps to it."""
+
+    def __init__(self, delay=DEFAULT_DELAY, opener=urllib_open, clock=time.monotonic, sleep=time.sleep, max_pages=MAX_PAGES, day=None):
         self.delay = max(MIN_DELAY, float(delay))
         self.opener = opener
         self.clock = clock
@@ -362,6 +389,11 @@ class Fetcher:
         self.max_pages = max_pages
         self.pages = 0
         self.last = None
+        self.day = day or datetime.now(timezone.utc).date().isoformat()
+        # robots files read in this run, by origin; what was seen of each; why the rules stopped the run, if they did
+        self.robots = {}
+        self.robots_facts = []
+        self.rules_stop = None
 
     def _wait(self):
         if self.last is not None:
@@ -370,8 +402,62 @@ class Fetcher:
                 self.sleep(self.delay - gap)
         self.last = self.clock()
 
+    def _read_robots(self, url):
+        """The robots file fetched (paced like a page, not counted in the page cap) and judged on the safe side."""
+        for attempt in range(2):
+            self._wait()
+            try:
+                status, text = self.opener(url)
+            except urllib.error.HTTPError as e:
+                if e.code >= 500 and attempt == 0:
+                    continue
+                return robots_rules.judge(status=e.code)
+            except FetchFailed as e:
+                return robots_rules.judge(problem=str(e))
+            except (urllib.error.URLError, TimeoutError, OSError) as e:
+                if attempt == 0:
+                    continue
+                return robots_rules.judge(problem="the robots file could not be reached (" + str(getattr(e, "reason", e))[:80] + ")")
+            if status >= 500 and attempt == 0:
+                continue
+            return robots_rules.judge(status=status, text=text)
+        return robots_rules.judge(problem="the robots file could not be read")
+
+    def robots_for(self, url):
+        """The judged robots file of the url's host, read once a run; raises RulesStop when the rules stop the run."""
+        if self.rules_stop:
+            raise RulesStop(self.rules_stop)
+        parts = urllib.parse.urlsplit(url)
+        host = (parts.hostname or "").lower()
+        origin = parts.scheme.lower() + "://" + host + (":" + str(parts.port) if parts.port else "")
+        if origin in self.robots:
+            return self.robots[origin]
+        outcome = self._read_robots(origin + "/robots.txt")
+        self.robots[origin] = outcome
+        site = HOSTS.get(host, host)
+        seen = robots_rules.facts(site, origin + "/robots.txt", outcome, self.day)
+        self.robots_facts.append(seen)
+        reason = None
+        if outcome.kind == "unreachable":
+            reason = host + "'s robots file could not be read (" + outcome.reason + "), so the run stopped before reading any page there."
+        reason = reason or robots_rules.tripwire(site, outcome)
+        if not reason and outcome.kind == "rules":
+            wait = outcome.robots.crawl_delay()
+            if wait is not None and wait > robots_rules.MAX_CRAWL_DELAY:
+                reason = host + " asks for " + ("an unreadable" if wait == float("inf") else str(wait) + " seconds of") + " Crawl-delay, more than the " + str(robots_rules.MAX_CRAWL_DELAY) + " this script waits; the run stopped."
+            elif wait is not None:
+                self.delay = max(self.delay, float(wait))
+        seen["verdict"] = reason or ("no rules" if outcome.kind == "none" else "kept to")
+        if reason:
+            self.rules_stop = reason
+            raise RulesStop(reason)
+        return outcome
+
     def get(self, url):
         site_of(url)  # never request an address the rules above refuse
+        parts = urllib.parse.urlsplit(url)
+        if not self.robots_for(url).allowed(parts.path, parts.query):
+            raise Refused((parts.hostname or "") + "'s robots rules keep " + robots_rules.AGENT + " out of " + (parts.path or "/") + ", so this script does not read it.")
         if self.pages >= self.max_pages:
             raise FetchFailed("this run has read " + str(self.max_pages) + " pages, the most one run reads")
         self.pages += 1
@@ -394,6 +480,8 @@ class Fetcher:
                 continue
             if status in (403, 429):
                 raise Stop(urllib.parse.urlsplit(url).hostname + " answered " + str(status) + ", so the run stopped there")
+            if looks_like_a_challenge(text):
+                raise Stop(urllib.parse.urlsplit(url).hostname + " answered with a bot check instead of the page, so the run stopped there (it is never answered or retried)")
             return text
         raise FetchFailed(problem or "the page could not be read")
 
@@ -514,6 +602,7 @@ def main(argv=None, fetcher=None, out=sys.stdout, now=None):
     say("Reading " + str(len(links)) + " link" + ("" if len(links) == 1 else "s") + " (one request every " + str(fetcher.delay) + " s at most):")
     stamp = now or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     doc, stopped = read_links(links, fetcher, args.limit, stamp, say)
+    doc["robots"] = fetcher.robots_facts
     with open(args.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(doc, f, ensure_ascii=False, indent=2)
         f.write("\n")
@@ -523,6 +612,9 @@ def main(argv=None, fetcher=None, out=sys.stdout, now=None):
         cards = sum(r["count"] for r in deck["main"])
         side = sum(r["count"] for r in deck["sideboard"])
         say("  - " + (deck["name"] or "(no name)")[:70] + (" by " + deck["author"] if deck["author"] else "") + ": " + str(cards) + " cards" + (", sideboard " + str(side) if side else ""))
+    if fetcher.rules_stop:
+        say("Stopped by the robots rules: " + fetcher.rules_stop)
+        return 3
     if stopped:
         say("Stopped early: " + stopped + ". Try again later.")
     say("Next: load it on the admin page (#/admin, Import decks), or run: npx tsx scripts/import-links.ts " + args.out)
