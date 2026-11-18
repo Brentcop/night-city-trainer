@@ -1,4 +1,4 @@
-// Regionals forecast (#/forecast, Tournaments → Regionals forecast; feature `forecast`, off by default; docs/FORECAST.md):
+// Regionals forecast (#/forecast, Tournaments → Regionals forecast; feature `forecast`, on by default since 2026-11-18; docs/FORECAST.md):
 // each deck's chance to make a top cut of a Swiss tournament of N players drawn from a field you choose, with 90%
 // ranges from the ratings' uncertainty, and the opponents that decide it. The engine is src/lib/forecast.ts (pure); it
 // runs here in slices of a few tens of milliseconds between paints, so the page stays responsive and can be stopped.

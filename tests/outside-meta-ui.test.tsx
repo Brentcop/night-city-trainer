@@ -9,6 +9,8 @@ import { coverageWords, DeckOutsidePanel, OutsidePictureSection, outsideCreditRo
 import type { OutsideMetaFile, OutsideTrio } from '../src/lib/outsideMeta';
 import { CARD_BY_ID } from '../src/engine/cards';
 import { setArtEnabled } from '../src/ui/art';
+import { defaultSiteConfig, siteConfigText } from '../src/lib/siteConfig';
+import { previewDraft } from '../src/ui/useSiteConfig';
 
 function memoryStorage() {
   const m = new Map<string, string>();
@@ -122,5 +124,28 @@ describe('Power ratings: The outside picture', () => {
     expect(html).not.toContain('cyberpunk-tcg-sim.online says');
     expect(outsideCreditRow(null)).toBeNull();
     expect(outsideCreditRow(DATA)?.[1]).toContain('never mixed into them; collected 2026-11-18');
+  });
+});
+
+describe('the owner’s switch, features.outsideMeta', () => {
+  const draftOff = () => {
+    const o = JSON.parse(siteConfigText(defaultSiteConfig()));
+    o.features.outsideMeta = false;
+    return JSON.stringify(o);
+  };
+  afterEach(() => previewDraft(null));
+  it('is on by default, and on it shows the sim site’s rows on a deck page and on Power ratings', () => {
+    expect(defaultSiteConfig().features.outsideMeta).toBe(true);
+    expect(renderToStaticMarkup(<DeckOutsidePanel d={deck} lib={BUILTIN} data={DATA} />)).toContain('cyberpunk-tcg-sim.online');
+    expect(renderToStaticMarkup(<OutsidePictureSection lib={BUILTIN} data={DATA} />)).toContain('cyberpunk-tcg-sim.online says');
+  });
+  it('off, those rows are gone as if the build had no data file, and choom.gg’s own rows stay', () => {
+    previewDraft(draftOff());
+    const section = renderToStaticMarkup(<OutsidePictureSection lib={BUILTIN} data={DATA} />);
+    expect(section).not.toContain('cyberpunk-tcg-sim.online says');
+    expect(section).not.toContain('Made-up season report');
+    expect(section).toContain('choom.gg’s Night City Meta');
+    const panel = renderToStaticMarkup(<DeckOutsidePanel d={deck} lib={BUILTIN} data={DATA} />);
+    expect(panel).not.toContain('Made-up season report');
   });
 });

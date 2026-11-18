@@ -3,7 +3,7 @@
 ROADMAP2 §13 goal 5, last bullet: "the expected field, each deck's chance to make a top cut of a given size, and the matchups that decide it, each number with its range and its source". Built 2026-11-18.
 
 - Engine: `src/lib/forecast.ts` (pure, seeded; no engine, bot or sim code). Field input: `src/lib/forecastField.ts`. Sentences: `src/lib/forecastWords.ts`.
-- Page: `#/forecast`, Tournaments → Regionals forecast (`src/ui/pages/Forecast.tsx`, lazy), behind the feature `forecast`, **off by default** (docs/SITE_CONFIG.md).
+- Page: `#/forecast`, Tournaments → Regionals forecast (`src/ui/pages/Forecast.tsx`, lazy), behind the feature `forecast`, **on by default since 2026-11-18** at the owner's word (untick it in `#/admin` to hide the page; docs/SITE_CONFIG.md).
 - Command line: `npx tsx scripts/forecast.ts [--players 128] [--rounds N] [--best-of 3] [--top 8] [--field uniform|outside[:id]|FILE] [--trials 300] [--draws 100] [--seed 1] [--json]`. It writes nothing.
 - Backtest: `npx tsx scripts/forecast-backtest.ts [--out FILE]`; the run of 2026-11-18 is `reports/forecast-backtest-2026-11-18.md`.
 - Tests: `tests/forecast.test.ts` (the Swiss port, the match maths, the model, the limits), `tests/forecast-field.test.ts`, `tests/forecast-ui.test.tsx`.

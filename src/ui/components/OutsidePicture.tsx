@@ -30,7 +30,14 @@ import {
   type OutsideTrio,
 } from '../../lib/outsideMeta';
 import { simTier } from '../../lib/simTier';
+import { useFeature } from '../useSiteConfig';
 import { ChoomTierBadge, SimTierBadge } from './TierBadges';
+
+/** The sim site's figures, or null while the owner has `features.outsideMeta` off (the same as no data file in the build). */
+export function useOutsideMeta(data: OutsideMetaFile | null): OutsideMetaFile | null {
+  const on = useFeature('outsideMeta');
+  return on ? data : null;
+}
 
 const RATED = new Map(RATINGS.decks.map((r) => [r.name, r]));
 const pct1 = (x: number) => `${x.toFixed(1)}%`;
@@ -60,7 +67,8 @@ export const choomRows = (lib: readonly LibraryDeck[]) => choomArchetypes(meta, 
 /** The block on a deck's page; nothing when no source has the deck's Legend trio. `data` is for tests. */
 export function DeckOutsidePanel({ d, lib, data = OUTSIDE_META }: { d: Pick<LibraryDeck, 'deck'>; lib: readonly LibraryDeck[]; data?: OutsideMetaFile | null }) {
   const head = useId();
-  const sim = outsideForLegends(d.deck.legends, data);
+  const shown = useOutsideMeta(data);
+  const sim = outsideForLegends(d.deck.legends, shown);
   const choom = choomForLegends(d.deck.legends, choomRows(lib));
   if (!sim.length && !choom.length) return null;
   return (
@@ -282,7 +290,8 @@ function ChoomTable({ rows, lib }: { rows: ChoomRow[]; lib: readonly LibraryDeck
 export function OutsidePictureSection({ lib, data = OUTSIDE_META }: { lib: readonly LibraryDeck[]; data?: OutsideMetaFile | null }) {
   const head = useId();
   const choom = choomRows(lib);
-  const sources = data?.sources ?? [];
+  const shown = useOutsideMeta(data);
+  const sources = shown?.sources ?? [];
   if (!choom.length && !sources.length) return null;
   const collected = choom.map((r) => r.collected).filter(Boolean).sort()[0] ?? '';
   return (
@@ -324,4 +333,9 @@ export function outsideCreditRow(data: OutsideMetaFile | null = OUTSIDE_META): [
     `cyberpunk-tcg-sim.online meta reports (${data.sources.map((s) => s.title).join('; ')}): tiers, win rates and shares of play by Legend trio, shown beside our numbers and never mixed into them; collected ${data.updated}`,
     data.sources[0]!.link,
   ];
+}
+
+/** The Credits page's line while the sim site's figures are on (`features.outsideMeta`) and in this build, else null. */
+export function useOutsideCreditRow(): [string, string, string] | null {
+  return outsideCreditRow(useOutsideMeta(OUTSIDE_META));
 }

@@ -37,7 +37,7 @@ export const SITE_CONFIG_FILE = 'site-config.json';
 
 // ---------------------------------------------------------------- features
 
-export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'playedTournaments', 'yourTournamentStats', 'watchMatches', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search', 'forecast'] as const;
+export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'playedTournaments', 'yourTournamentStats', 'watchMatches', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search', 'forecast', 'outsideMeta'] as const;
 export type FeatureName = (typeof FEATURES)[number];
 export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; default: boolean }> = {
   coach: { label: 'Coach', help: 'The coach in Play: suggested moves, warnings and the move grades.', default: true },
@@ -78,8 +78,13 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
   },
   forecast: {
     label: 'Regionals forecast',
-    help: 'The Regionals forecast page (Tournaments → Regionals forecast, #/forecast): each deck’s chance to make a top cut of a Swiss tournament of a size and field the visitor sets, with 90% ranges from the power ratings’ uncertainty and the opponents that decide it. A forecast from our simulated ratings under the Hard bot, not a prediction of human results. Off until the owner turns it on.',
-    default: false,
+    help: 'The Regionals forecast page (Tournaments → Regionals forecast, #/forecast): each deck’s chance to make a top cut of a Swiss tournament of a size and field the visitor sets, with 90% ranges from the power ratings’ uncertainty and the opponents that decide it. A forecast from our simulated ratings under the Hard bot, not a prediction of human results. On since 2026-11-18 at the owner’s word; untick it to hide the page and its nav entry.',
+    default: true,
+  },
+  outsideMeta: {
+    label: 'Figures from other sites',
+    help: 'cyberpunk-tcg-sim.online’s season and tournament figures beside ours: Power ratings → The outside picture, a deck page’s “What other sites say”, and the Credits line. A scheduled job (GitHub Actions, .github/workflows/outside-meta.yml) refreshes them from that site’s public report pages; unticking this hides them and makes the job stop reading that site at its next run. choom.gg’s own tier stays. On by default.',
+    default: true,
   },
 };
 

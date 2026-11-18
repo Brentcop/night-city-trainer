@@ -58,11 +58,21 @@ const parseObj = (fn: (o: Record<string, unknown> & SiteConfig) => void) => {
 };
 
 describe('the committed file', () => {
-  it('public/site-config.json parses to exactly the defaults, with no problem', () => {
+  it('public/site-config.json reads with no problem and no warning (it is the owner’s switchboard, so it may differ from the defaults)', () => {
     const p = parseSiteConfigText(fs.readFileSync(path.join(ROOT, 'public/site-config.json'), 'utf8'));
     expect(p.errors).toEqual([]);
     expect(p.warnings).toEqual([]);
-    expect(p.config).toEqual(defaultSiteConfig());
+  });
+  it('the owner can switch the forecast and the outside figures off in the editor and commit that: the file still reads cleanly and keeps them off', () => {
+    const o = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/site-config.json'), 'utf8'));
+    o.features.forecast = false;
+    o.features.outsideMeta = false;
+    const p = parseSiteConfig(o);
+    expect(p.errors).toEqual([]);
+    expect(p.warnings).toEqual([]);
+    expect(p.config.features.forecast).toBe(false);
+    expect(p.config.features.outsideMeta).toBe(false);
+    expect(p.config.features.coach).toBe(true);
   });
   it('is LF and the defaults keep the next event of src/content/event.ts', () => {
     expect(fs.readFileSync(path.join(ROOT, 'public/site-config.json'), 'utf8')).not.toMatch(/\r/);
@@ -185,10 +195,10 @@ describe('parser', () => {
 });
 
 describe('features and pages', () => {
-  it('every feature has a default, and every one is on but the site search and the regionals forecast, which ship switched off', () => {
+  it('every feature has a default, and every one is on but the site search, which ships switched off (the regionals forecast and the outside figures are on)', () => {
     const d = defaultSiteConfig();
     expect(Object.keys(d.features).sort()).toEqual([...FEATURES].sort());
-    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['search', 'forecast']);
+    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['search']);
   });
   it('multi-day games: whole days within bounds, min ≤ default ≤ max, and a cap on ongoing games', () => {
     expect(defaultSiteConfig().multiDay).toEqual({ minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 });
