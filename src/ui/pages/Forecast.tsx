@@ -14,6 +14,7 @@ import { FieldError, fieldText, outsideField, uniformField, userField, type Fore
 import { decidesWords, FORECAST_WORDS, pct, rangeText, runWords, sourceWords, tournamentWords, widthWords } from '../../lib/forecastWords';
 import { OUTSIDE_META } from '../../data/outsideMetaData';
 import { sourceTitle } from '../../lib/outsideMeta';
+import { useFeature } from '../useSiteConfig';
 
 /** How many parameter draws and tournaments a run takes. Standard is the command line's default. */
 export const PRECISION = {
@@ -85,7 +86,8 @@ function ForecastTool({ model }: { model: ForecastModel }) {
   const [top, setTop] = useState(8);
   const [kind, setKind] = useState<'uniform' | 'user' | 'outside'>('uniform');
   const [text, setText] = useState('');
-  const sources = OUTSIDE_META?.sources ?? [];
+  const outsideOn = useFeature('outsideMeta'); // the owner's switch for the other sites' figures hides their field here too
+  const sources = outsideOn ? OUTSIDE_META?.sources ?? [] : [];
   const [sourceId, setSourceId] = useState(sources[0]?.id ?? '');
   const [precision, setPrecision] = useState<Precision>('standard');
   const [seed, setSeed] = useState(String(FORECAST_DEFAULTS.seed));
