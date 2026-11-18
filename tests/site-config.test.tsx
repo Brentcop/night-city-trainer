@@ -168,7 +168,7 @@ describe('parser', () => {
     });
     expect(p.config.nav.sections.map((s) => s.id)).toEqual(['play', 'home', 'tournaments', 'decks', 'learn', 'profile']);
     expect(p.config.nav.sections[1]!.label).toBe('Start');
-    expect(p.config.nav.sections[2]!.pages.map((x) => x.path)).toEqual(['ratings', 'tournaments', 'run', 'seasons', 'meta', 'arena']);
+    expect(p.config.nav.sections[2]!.pages.map((x) => x.path)).toEqual(['ratings', 'tournaments', 'run', 'forecast', 'seasons', 'meta', 'arena']);
     expect(p.errors.map((e) => e.path)).toEqual(['nav.sections[2].id', 'nav.sections[3].id', 'nav.sections[4].pages[1].path']);
   });
   it('Home and Play cannot both be hidden (Play comes back)', () => {
@@ -185,10 +185,10 @@ describe('parser', () => {
 });
 
 describe('features and pages', () => {
-  it('every feature has a default, and every one is on but the site search, which ships switched off', () => {
+  it('every feature has a default, and every one is on but the site search and the regionals forecast, which ship switched off', () => {
     const d = defaultSiteConfig();
     expect(Object.keys(d.features).sort()).toEqual([...FEATURES].sort());
-    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['search']);
+    expect(FEATURES.filter((f) => !d.features[f])).toEqual(['search', 'forecast']);
   });
   it('multi-day games: whole days within bounds, min ≤ default ≤ max, and a cap on ongoing games', () => {
     expect(defaultSiteConfig().multiDay).toEqual({ minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 });

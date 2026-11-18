@@ -9,6 +9,10 @@ reports/*-20*.md
 !reports/tune-profiles-1-2026-11-11T21-18-27-022Z.json
 # ...and the held-out measurement of package scoring (docs/ROADMAP2.md §1 step 4)
 !reports/package-scoring-2026-11-11.md
+# ...and the bots re-measured on SIM_VERSION 9 (docs/ROADMAP2.md §11 batch B)
+!reports/remeasure-2026-11-18.md
+# ...and the regionals forecast's backtest (docs/FORECAST.md "Backtest")
+!reports/forecast-backtest-2026-11-18.md
 reports-run*.log
 reports/*.out
 coverage/

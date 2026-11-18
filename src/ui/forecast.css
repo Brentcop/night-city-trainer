@@ -1,0 +1,112 @@
+/* #/forecast (src/ui/pages/Forecast.tsx): the site's tokens only, so both themes follow. The form wraps at any width;
+   the results table scrolls inside its panel (.scroll-x), never the page. Nothing animates. */
+
+.forecast-page {
+  min-width: 0;
+}
+.forecast-form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.forecast-form fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  min-width: 0;
+}
+.forecast-form legend {
+  font-family: var(--display);
+  font-weight: 700;
+  padding: 0 4px;
+}
+.forecast-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.forecast-fields label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.forecast-fields input {
+  width: 9em;
+  max-width: 100%;
+}
+.forecast-fields select {
+  max-width: 100%;
+  min-width: 0;
+}
+.forecast-choices {
+  display: grid;
+  gap: 6px;
+}
+.forecast-user {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.forecast-user textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 13px;
+}
+.forecast-user .btn {
+  justify-self: start;
+}
+.forecast-problem {
+  color: var(--red);
+  margin: 4px 0 0;
+}
+.forecast-sources dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0 0 8px;
+}
+.forecast-sources dt {
+  font-weight: 700;
+}
+.forecast-sources dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.forecast-table th.forecast-deck {
+  text-align: left;
+  font-weight: 600;
+  min-width: 190px;
+}
+.forecast-table .forecast-conv {
+  min-width: 170px;
+}
+.forecast-table .forecast-decides {
+  min-width: 260px;
+  max-width: 420px;
+  white-space: normal;
+}
+.forecast-page .th-sort {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.forecast-page .th-sort:focus-visible {
+  outline: 2px solid var(--cyan);
+}
+@media (max-width: 520px) {
+  .forecast-sources dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .forecast-sources dt {
+    margin-top: 4px;
+  }
+}

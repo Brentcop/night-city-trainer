@@ -80,6 +80,7 @@ const CreditsPage = lazy(() => import('./ui/pages/Credits').then((m) => ({ defau
 const DeckProfilePage = lazy(() => import('./ui/pages/DeckProfile').then((m) => ({ default: m.DeckProfilePage })));
 const TournamentsPage = lazy(() => import('./ui/pages/Tournaments').then((m) => ({ default: m.TournamentsPage })));
 const RatingsPage = lazy(() => import('./ui/pages/Ratings').then((m) => ({ default: m.RatingsPage })));
+const ForecastPage = lazy(() => import('./ui/pages/Forecast').then((m) => ({ default: m.ForecastPage })));
 const TournamentRunnerPage = lazy(() => import('./ui/pages/TournamentRunner').then((m) => ({ default: m.TournamentRunnerPage })));
 const TunedDecksPage = lazy(() => import('./ui/pages/TunedDecks').then((m) => ({ default: m.TunedDecksPage })));
 const DeckLabPage = lazy(() => import('./ui/pages/DeckLab').then((m) => ({ default: m.DeckLabPage })));
@@ -101,6 +102,7 @@ const ROUTES: { path: string; label: string; el: (q: URLSearchParams, sub: strin
   { path: 'tournaments', label: 'Events', el: (q) => <TournamentsPage initial={q.get('e') ?? undefined} /> },
   { path: 'run', label: 'Run a tournament', el: (q) => <TournamentRunnerPage q={q} /> },
   { path: 'ratings', label: 'Power ratings', el: () => <RatingsPage /> },
+  { path: 'forecast', label: 'Regionals forecast', el: () => <ForecastPage /> },
   { path: 'seasons', label: 'Breeding seasons', el: () => <SeasonsPage /> },
   { path: 'meta', label: 'choom.gg meta', el: () => <MetaPage /> },
   { path: 'arena', label: 'Matchup Lab', el: (q) => <ArenaPage q={q} /> },

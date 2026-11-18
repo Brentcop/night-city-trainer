@@ -80,6 +80,11 @@
             "hidden": false
           },
           {
+            "path": "forecast",
+            "label": "Regionals forecast",
+            "hidden": false
+          },
+          {
             "path": "seasons",
             "label": "Breeding seasons",
             "hidden": false

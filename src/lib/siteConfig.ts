@@ -37,7 +37,7 @@ export const SITE_CONFIG_FILE = 'site-config.json';
 
 // ---------------------------------------------------------------- features
 
-export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'playedTournaments', 'yourTournamentStats', 'watchMatches', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search'] as const;
+export const FEATURES = ['coach', 'gameReview', 'savedGames', 'profile', 'profileSharing', 'deckLab', 'tournamentRunner', 'playedTournaments', 'yourTournamentStats', 'watchMatches', 'tunedDecks', 'cardArtToggle', 'multiplayer', 'multiDayGames', 'chat', 'search', 'forecast'] as const;
 export type FeatureName = (typeof FEATURES)[number];
 export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; default: boolean }> = {
   coach: { label: 'Coach', help: 'The coach in Play: suggested moves, warnings and the move grades.', default: true },
@@ -76,6 +76,11 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
     help: 'The Search page (Learn → Search, #/search): answers questions about cards, decks, game plans, packages, the glossary, guides, events, ratings and play statistics in the browser. Off until the owner turns it on.',
     default: false,
   },
+  forecast: {
+    label: 'Regionals forecast',
+    help: 'The Regionals forecast page (Tournaments → Regionals forecast, #/forecast): each deck’s chance to make a top cut of a Swiss tournament of a size and field the visitor sets, with 90% ranges from the power ratings’ uncertainty and the opponents that decide it. A forecast from our simulated ratings under the Hard bot, not a prediction of human results. Off until the owner turns it on.',
+    default: false,
+  },
 };
 
 // ---------------------------------------------------------------- navigation catalogue
@@ -89,7 +94,7 @@ export const NAV_CATALOG: readonly { id: SectionId; label: string; icon: string;
   { id: 'home', label: 'Home', icon: '⌂', pages: ['home'], extra: [], subnav: false },
   { id: 'decks', label: 'Decks', icon: '▤', pages: ['decks', 'tuned', 'lab', 'evidence'], extra: ['deck'], subnav: true },
   { id: 'play', label: 'Play', icon: '▶', pages: ['play'], extra: [], subnav: false },
-  { id: 'tournaments', label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'seasons', 'meta', 'arena'], extra: [], subnav: true },
+  { id: 'tournaments', label: 'Tournaments', icon: '🏆', pages: ['tournaments', 'run', 'ratings', 'forecast', 'seasons', 'meta', 'arena'], extra: [], subnav: true },
   { id: 'learn', label: 'Learn', icon: '♟', pages: ['tutorial', 'guides', 'cards', 'glossary', 'insights', 'credits', 'search'], extra: [], subnav: true },
   { id: 'profile', label: 'Profile', icon: '◉', pages: ['profile'], extra: ['u'], subnav: false },
 ];
@@ -106,6 +111,7 @@ export const PAGE_LABEL: Readonly<Record<string, string>> = {
   tournaments: 'Events',
   run: 'Run a tournament',
   ratings: 'Power ratings',
+  forecast: 'Regionals forecast',
   seasons: 'Breeding seasons',
   meta: 'choom.gg meta',
   arena: 'Matchup Lab',
@@ -126,6 +132,7 @@ export const PAGE_FEATURES: Readonly<Record<string, readonly FeatureName[]>> = {
   run: ['tournamentRunner'],
   tuned: ['tunedDecks'],
   search: ['search'],
+  forecast: ['forecast'],
   profile: ['profile'],
   u: ['profile', 'profileSharing'],
 };
