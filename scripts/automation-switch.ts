@@ -2,16 +2,23 @@
 // (public/site-config.json) the way the site reads it. The scheduled workflow .github/workflows/outside-meta.yml asks it
 // before any request to another site (feature outsideMeta, "Figures from other sites").
 //
-//   npx tsx scripts/automation-switch.ts FEATURE [--config FILE] [--github-output FILE] [--summary FILE]
+// The rating series (docs/SERIES.md) reads its switches from the same file's `automation` section.
 //
-// Prints "on" or "off". A feature the file does not name takes its default (outsideMeta: on).
+//   npx tsx scripts/automation-switch.ts NAME [--config FILE] [--github-output FILE] [--summary FILE]
+//   npx tsx scripts/automation-switch.ts --json [--config FILE] [--github-output FILE]
+//
+// NAME without a dot is a feature (outsideMeta): prints "on" or "off". automation.series and automation.arrivals print
+// "on" or "off" the same way; automation.width and automation.maxGamesPerRun print their value. --json prints the whole
+// automation section as one JSON object. A key the file does not name takes its default (outsideMeta: on; the
+// automation section: series on, arrivals on, width 4, maxGamesPerRun 12000).
 //
 //   --config FILE         the site config to read (default public/site-config.json)
-//   --github-output FILE  also append on=true or on=false to FILE (GitHub's $GITHUB_OUTPUT)
-//   --summary FILE        when off, append a notice to FILE (GitHub's $GITHUB_STEP_SUMMARY)
+//   --github-output FILE  also append on=true or on=false (a switch), value=N (a number) or automation={…} (--json) to
+//                         FILE (GitHub's $GITHUB_OUTPUT)
+//   --summary FILE        when a switch is off, append a notice to FILE (GitHub's $GITHUB_STEP_SUMMARY)
 //
 // Exits 0 with the answer; 1 when the config file is missing or has an error (nothing should run until a person looks);
-// 2 on a bad command line or an unknown feature.
+// 2 on a bad command line or an unknown feature or setting.
 import fs from 'node:fs';
 import { automationSwitch } from './automation-switch-run';
 

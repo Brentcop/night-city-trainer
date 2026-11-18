@@ -11,7 +11,7 @@ import { eventRatedGames, ratedGamesOf } from '../src/lib/ratingGames';
 import { currentListGate, poolEvents, selectEvents, type PoolEvent } from '../scripts/event-pool';
 import { eventFiles, isRun, loadLibrary, maxRunId, RATING_RUN_KIND, readEvents, readPooled, readRuns, runFiles, toRatingRun, type RecordedEvent } from '../scripts/lib-node';
 import { h2hOf } from '../scripts/build-h2h';
-import { checkData, runFileProblems, type CheckEvent } from '../scripts/check-data';
+import { checkData, duplicateGames, runFileProblems, type CheckEvent } from '../scripts/check-data';
 import { competitiveFiles, loadCompetitive } from '../scripts/kb-sources';
 import { buildCompetitive } from '../src/lib/kb/build/events';
 
@@ -195,5 +195,24 @@ describe('a run is not an event: the events index, the Tournaments page and the 
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('check:data: no game recorded twice', () => {
+  const asCheck = (e: RecordedEvent) => e as unknown as CheckEvent;
+  it('an event and a run with their own seeds pass; a game recorded again (same lists, seed and first player) fails, naming both', async () => {
+    const ev = await swissEvent(30, '2026-11-20T00:00:00.000Z');
+    const run = await ratingRun(1, '2026-11-21T00:00:00.000Z');
+    expect(duplicateGames([asCheck(ev), asCheck(run)])).toEqual([]);
+    const again = { ...JSON.parse(JSON.stringify(ev)), id: 31 } as RecordedEvent;
+    const d = duplicateGames([asCheck(ev), asCheck(again)]);
+    expect(d.length).toBeGreaterThan(0);
+    expect(d[0]).toMatch(/event 30 .*event 31/);
+    // the same seed with the seats the other way round, or another simulator version, is another game
+    const swapped = JSON.parse(JSON.stringify(ev)) as RecordedEvent;
+    swapped.id = 32;
+    for (const r of swapped.rounds) for (const m of r.matches) if (m.b) [m.a, m.b] = [m.b, m.a];
+    expect(duplicateGames([asCheck(ev), asCheck(swapped)])).toEqual([]);
+    expect(duplicateGames([asCheck(ev), asCheck({ ...again, simVersion: 10 } as RecordedEvent)])).toEqual([]);
   });
 });

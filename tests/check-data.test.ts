@@ -40,7 +40,9 @@ describe('check-data', () => {
     expect(r.failures).toEqual([]);
     expect(r.manifestsChecked).toBe(3);
     expect(r.legacyEvents).toBe(0);
-    expect(r.passed).toHaveLength(3);
+    // the index, h2h.json's coverage, no game recorded twice, the manifests
+    expect(r.passed).toHaveLength(4);
+    expect(r.passed.some((p) => p.startsWith('no game is recorded twice'))).toBe(true);
     expect(events[0].decks.D0.sideboard).toEqual(['s1']);
   });
 

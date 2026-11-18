@@ -21,6 +21,8 @@ import {
   TIER_KEYS,
   TURN_TIMERS,
   MULTI_DAY_BOUNDS,
+  AUTOMATION_BOUNDS,
+  AUTOMATION_INFO,
   visibleNav,
   type ConfigIssue,
   type SiteConfig,
@@ -209,6 +211,21 @@ function Text({
       <Errs issues={issues} path={path} />
     </div>
   );
+}
+
+/** The widths offered (half points from AUTOMATION_BOUNDS), with the file's own value when it is between them. */
+function automationWidths(current: number): string[] {
+  const [lo, hi] = AUTOMATION_BOUNDS.width;
+  const out = Array.from({ length: (hi - lo) * 2 + 1 }, (_, i) => lo + i / 2);
+  if (!out.includes(current)) out.push(current);
+  return out.sort((a, b) => a - b).map(String);
+}
+/** The game caps offered, with the file's own value when it is not one of them. */
+function automationGameCaps(current: number): string[] {
+  const [lo, hi] = AUTOMATION_BOUNDS.maxGamesPerRun;
+  const out: number[] = [lo, 1_000, 3_000, 6_000, 12_000, 20_000, 30_000, hi];
+  if (!out.includes(current)) out.push(current);
+  return out.sort((a, b) => a - b).map(String);
 }
 
 function Check({ label, checked, onChange, help }: { label: string; checked: boolean; onChange: (v: boolean) => void; help?: string }) {
@@ -643,6 +660,36 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
             <Errs issues={issues} path={`multiDay.${k}`} />
           </div>
         ))}
+      </fieldset>
+
+      <fieldset>
+        <legend>Automatic jobs (GitHub Actions)</legend>
+        <p className="small muted">
+          Jobs that run on a schedule in the site’s GitHub repository, on GitHub’s free minutes for public repositories, and commit what they find. Each reads this file as it is committed: a change here
+          takes effect at the next scheduled run after you commit it, not from a preview. The rating series and its arrivals are described in docs/SERIES.md.
+        </p>
+        <Check label={AUTOMATION_INFO.series.label} help={AUTOMATION_INFO.series.help} checked={draft.automation.series} onChange={(v) => up((c) => void (c.automation.series = v))} />
+        <Errs issues={issues} path="automation.series" />
+        <Check label={AUTOMATION_INFO.arrivals.label} help={AUTOMATION_INFO.arrivals.help} checked={draft.automation.arrivals} onChange={(v) => up((c) => void (c.automation.arrivals = v))} />
+        <Errs issues={issues} path="automation.arrivals" />
+        <Select
+          label={AUTOMATION_INFO.width.label}
+          value={String(draft.automation.width)}
+          options={automationWidths(draft.automation.width)}
+          labels={Object.fromEntries(automationWidths(draft.automation.width).map((w) => [w, `±${w} points${w === '4' ? ' (the default)' : Number(w) < 4 ? ' (breaks the search budget)' : ''}`]))}
+          onChange={(v) => up((c) => void (c.automation.width = Number(v)))}
+        />
+        <p className="small muted">{AUTOMATION_INFO.width.help}</p>
+        <Errs issues={issues} path="automation.width" />
+        <Select
+          label={AUTOMATION_INFO.maxGamesPerRun.label}
+          value={String(draft.automation.maxGamesPerRun)}
+          options={automationGameCaps(draft.automation.maxGamesPerRun)}
+          labels={Object.fromEntries(automationGameCaps(draft.automation.maxGamesPerRun).map((g) => [g, `${Number(g).toLocaleString('en-US')} games${g === '12000' ? ' (the default)' : ''}`]))}
+          onChange={(v) => up((c) => void (c.automation.maxGamesPerRun = Number(v)))}
+        />
+        <p className="small muted">{AUTOMATION_INFO.maxGamesPerRun.help}</p>
+        <Errs issues={issues} path="automation.maxGamesPerRun" />
       </fieldset>
 
       <fieldset>

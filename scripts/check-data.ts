@@ -154,6 +154,38 @@ const pooledGamesOf = (e: CheckEvent, gate: ListGate | null) =>
       )
     : gamesOf(e);
 const isRunEvent = (e: CheckEvent) => e.kind === RATING_RUN_KIND;
+
+/**
+ * Games recorded twice: two games with the same identity (simulator version, bot, both seats' list fingerprints in seat
+ * order, the seed and who went first) are the same game, and a pool would count it twice. Events and rating runs together.
+ */
+export function duplicateGames(sources: readonly CheckEvent[]): string[] {
+  const seen = new Map<string, string>();
+  const out: string[] = [];
+  const fp = new Map<object, string>();
+  const lf = (d: StoredDeck) => {
+    let x = fp.get(d);
+    if (x === undefined) fp.set(d, (x = listFingerprint({ legends: [...d.legends], main: [...d.main] })));
+    return x;
+  };
+  for (const e of sources)
+    for (const part of [...e.rounds, ...e.bracket])
+      for (const m of part.matches) {
+        if (!m.b || !m.a) continue;
+        const da = e.decks[m.a];
+        const db = e.decks[m.b];
+        if (!da || !db) continue;
+        for (const g of m.games as { seed?: unknown; first?: unknown }[]) {
+          const key = `${e.simVersion ?? '?'}|${e.bot ?? '?'}|${lf(da)}|${lf(db)}|${String(g.seed)}|${String(g.first)}`;
+          const where = `${isRunEvent(e) ? 'rating run' : 'event'} ${e.id} (${m.a} vs ${m.b}, seed ${String(g.seed)})`;
+          const prev = seen.get(key);
+          if (prev) {
+            if (out.length < 20) out.push(`the same game is recorded twice, in ${prev} and ${where}: a pool would count it twice`);
+          } else seen.set(key, where);
+        }
+      }
+  return out;
+}
 const listId = (d: StoredDeck) => deckFingerprint({ legends: d.legends, main: d.main, sideboard: d.sideboard ?? [] });
 
 /** Shape and schema problems of one manifest (empty when it is readable). */
@@ -441,6 +473,9 @@ export function checkData(input: CheckInput): CheckResult {
     if (!r.failures.length) passed.push(`${SERIES_DIR}/ reads (${input.runs.length} rating run(s), ${runs.reduce((a, e) => a + gamesOf(e), 0)} games)`);
   }
   const sources = [...events, ...runs];
+  const dups = duplicateGames(sources);
+  failures.push(...dups);
+  if (!dups.length) passed.push(`no game is recorded twice (${sources.length} event(s) and run(s): same lists in seat order, seed and first player)`);
   const gate = input.library ? currentListGate(input.library) : null;
 
   // ---- head-to-heads cover the recorded events and rating runs

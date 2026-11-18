@@ -109,6 +109,14 @@ cyberpunk-tcg-sim.online (paste links, run `tools/import_decks.py` for the pages
 | `multiDay.maxDays` | `20` | The longest, in whole days (1–60). Shorter than `minDays`: both fall back to the defaults. |
 | `multiDay.defaultDays` | `7` | The length picked at first. Outside `minDays`–`maxDays`: the nearest allowed value. |
 | `multiDay.maxOngoing` | `8` | How many ongoing multi-day games (bot and person together) one browser keeps (1–20). A new one is refused at the cap. |
+| `automation.series` | `true` | The rating series ([SERIES.md](SERIES.md)): a scheduled GitHub Actions job plays Hard-bot games, the decks with the widest rating ranges first, until every library deck's 90% range is at most `automation.width`, and commits the ratings. Read by the job from the committed file at its next scheduled run (a preview changes nothing); it runs on GitHub's free minutes for a public repository. |
+| `automation.arrivals` | `true` | With the series off: a deck with no game on its current list (new, or edited) is played until its range is as narrow as the widest of the other decks. With the series on it is part of the series. |
+| `automation.width` | `4` | The half-width, in points, the series stops at (3–8, at most one decimal; the editor offers half points). 4: a Sim-tier letter is then right or one band off. Below 4 the site search outgrows its first-search budget (286.2 of 300 kB measured at ±3.83, about 329 kB estimated at ±3), so the build fails until that budget is raised. |
+| `automation.maxGamesPerRun` | `12000` | A run stops at this many games, or at its time budget, and the next run carries on (300–50,000: one chunk of games at least; above 50,000 the run's 4 hours on a 4 vCPU runner bind first). |
+
+The committed file need not name the `automation` section: a missing key takes its default. The scheduled job reads it
+with `npx tsx scripts/automation-switch.ts automation.series` (or `--json` for the whole section) and
+`npx tsx scripts/series.ts status --json`.
 
 `npm run check:data` also fails when `home.featuredDeck` or a `decks.hidden` entry is not a library deck, or
 `home.featuredEvent` is not a recorded event.

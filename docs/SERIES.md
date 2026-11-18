@@ -7,8 +7,9 @@ ones marked *estimate* were not measured. The commands that reproduce each table
 **Status.** Stages 0 and 1 are built (2026-11-18, the first chunk; "Run files" and "Pooled by list" under The design
 say how, and what changed from the plan): run files are read beside the events, games count only on the library's
 current lists, `check:data` validates run files, and the test suite no longer pins recorded figures (checked with a
-10,000-game run added in a scratch checkout). The rule and its command (stage 2), the switches (stage 3) and the
-workflow (stage 4) are not built yet; the owner's decisions of 2026-11-18 (relayed by the dispatcher): width ±4,
+10,000-game run added in a scratch checkout). Stages 2 and 3 are built (the same day, the second chunk: "The command"
+and "The owner's switches" under The design, with "What the workflow needs from it"). The workflow (stage 4) is not
+built yet; the owner's decisions of 2026-11-18 (relayed by the dispatcher): width ±4,
 switches on by default once they exist, pool by list. The real-field column and the runner's weighted match list
 (stages 5 and 6) are not in this build.
 
@@ -374,7 +375,7 @@ under 10⁹ while event ids stay under 1,000; keyed-scheme matches (match lists,
 the forge and optimizer from their `--seed` (default 1) in blocks of 50,000 a generation, the optimizer 424,242 and
 777,777, re-measurements from 5,000,000, the game corpus 7,200,000, the runner's random event seeds 100,000 to 999,999.
 `1,000,000,000 + run × 100,000 + k` collides with none of them, stays below 2³¹ (signed, so the recorded seed is the
-engine's state exactly) up to run 11,474, and allows 100,000 games a run. **A catch for chunk 2:** a run played through
+engine's state exactly) up to run 11,473, and allows 100,000 games a run. **A catch for chunk 2:** a run played through
 `runTournament` with a `matches` setup gets keyed seeds from `matchSeedBase(eventSeed, key)`, not the planned range,
 because that scheme hashes the event seed into 10 to 999,999,900. Those seeds can coincide with another event's (a hash
 of 10⁸ bases), which is harmless for ratings (a coinciding seed with other decks is another game) but means the series
@@ -422,17 +423,62 @@ In scratch checkouts, never committed:
 The forecast tests (stage 0) now read what `h2h.json` pooled from its manifest and replay every recorded standard Swiss
 event, so they follow the data; `tests/rating-runs.test.ts` builds its own events and runs.
 
-### The job's two commands (`scripts/series.ts`)
+### The command (`scripts/series.ts`, built 2026-11-18, chunk 2)
 
-- `status [--json]`: reads the committed site config, the library field (`fieldPool` + `distinctLists`, as
-  `--field all`), events and run files; prints whether a run is needed and why (series on and widest > W; arrivals on
-  and a deck with no game on the current version and bot; no game at all on the code's `SIM_VERSION`), the expected
-  games to the target (the rule's own expectation, nothing played) and the minutes at the last measured rate.
-- `run [--minutes 240] [--max-games 12000] [--threads N] [--dry-run]`: replays a sample of the newest pooled games and
-  refuses if any ends differently (the code changed play without a `SIM_VERSION` bump), then plays chunks of 300
-  games by the rule through `workerPool` (`scripts/lib-node.ts`), refitting between chunks, until the rule holds or
-  the budget is spent; writes one run file with `stopped`. The pure part (the rule, the allocation, "needs rating")
-  goes in `src/lib/seriesPlan.ts`, beside `src/lib/ratingModel.ts`.
+The rule is `src/lib/seriesPlan.ts` (pure: `decide`, `planPicks`, `expectedGames`, `runSeries` with the player handed
+in, `seriesSeed`); the command's logic is `scripts/series-run.ts` (`seriesCommand` with its I/O handed in: the tests
+run it on the repository's data with a stub player); `scripts/series.ts` wires the worker pool and the replay. Neither
+module is loaded by the game worker: `scripts/game-cache.ts codeHash` read `430adf86…c9bd` before and after.
+
+- **The pool it works in:** every event and rating run of this code's `SIM_VERSION` and the Hard bot (a version bump
+  starts afresh: every deck is then unrated), games on the library's current lists only; the field is the library,
+  each list once (`fieldPool` + `distinctLists`, the decks `--field all` enters).
+- **`status [--json] [--config FILE]`:** whether a run is needed and why, the widest range and the target, how many
+  decks are over it, the unrated decks (no game on their current list: new, or edited), the games the rule expects
+  (`expectedGames`: the picks the run would make with the covariance updated by each pick's expected information,
+  nothing played, no refit) and the minutes at the last recorded run's rate (else 1.5 games a second, the low end of
+  the runner estimate), and the switches as the committed config reads them (a key it does not name takes its
+  default). On the data of 2026-11-18 it expects 9,600 games to ±4, the number the study simulated.
+- **`run [--minutes 240] [--max-games N] [--threads 4] [--dry-run] [--replay 4] [--out DIR] [--config FILE]`:**
+  1. both switches off, or nothing needed: says why, plays nothing, exits 0;
+  2. plays the newest recorded games of this version again (`--replay N`, default 4: the last games of the newest run
+     and of the newest event) through Watch's own replay (`playWatchGame` in `src/lib/watchGame.ts`), and refuses
+     with exit 4, naming the game, when one ends differently;
+  3. plays chunks of 300 games by the rule through the worker pool, refitting between chunks, until every deck it
+     plays for is at its target, or the budget is spent: `--max-games` (at most `automation.maxGamesPerRun`) or
+     `--minutes`, checked before each chunk (a chunk already started finishes: about 2 to 3 minutes on the runner);
+  4. writes ONE file, `data/series/run-N.json` (or into `--out DIR`), and nothing else; `--dry-run` plays for real
+     and prints what it would write. Rebuilding is the next step: `npx tsx scripts/ratings.ts`,
+     `npx tsx scripts/build-h2h.ts`, `npx tsx scripts/build-evidence.ts`, then the checks.
+- **Seeds (changed from chunk 1's catch):** the series plays its own seeds, `seriesSeed(n, k) = 1,000,000,000 +
+  n × 100,000 + k` for game k of run n, never `runTournament`'s keyed seeds; a run never plays more than 100,000 games,
+  and the command refuses a run whose last seed would reach 2³¹ (run 11,474 and later; "up to run 11,474" in chunk 1's
+  text was one too many). `check:data` now fails when two pooled games share an identity (simulator version, bot,
+  both seats' list fingerprints in seat order, seed, first player), because a pool would count such a game twice.
+- **The run file** is a match list of best-of-one games (one match a game, one line of the setup a pick), with
+  `rule` (target, width, level, the switches), `why`, `before` and `after` (widest, its deck, decks over target,
+  unrated decks), `stopped` ("reached" or "budget") and `rate` (games, seconds, threads). Its manifest has purpose
+  `analysis`, field mode `rating-series` and run id `series:run-N:<date>`. About 0.43 kB a game (130 kB for 300).
+- **Measured 2026-11-18:** `npx tsx scripts/series.ts run --dry-run --max-games 300 --threads 8` replayed 4 recorded
+  games of event 24, then played 300 Hard games in 37 s (8.16 games a second on this machine, shared with other work),
+  moved the widest range from ±7.44 to ±7.10 and exited 3 (stopped at its budget), writing nothing. In a scratch
+  checkout, `run --max-games 600 --threads 8` played 600 Hard games in 57 s (10.6 games a second), wrote `run-1.json`
+  (230 kB) and exited 3; after `ratings.ts`, `build-h2h.ts` and `build-evidence.ts`, `check:data`, `evidence --check`,
+  the production build (first search 250.3 kB) and the whole suite passed (after one test of chunk 2's own new
+  check:data line was corrected), and `status` then expected 8,700 more games, 14 minutes at that run's rate.
+
+### What the workflow needs from it (chunk 3)
+
+| Step | Command | Reads | Gives |
+| --- | --- | --- | --- |
+| Decide | `npx tsx scripts/series.ts status --json` | `public/site-config.json`, `data/decks`, `public/tournaments`, `data/series` | one JSON object: `needed`, `why` (sentences for the summary), `switches`, `simVersion`, `bot`, `games`, `decks`, `widest` {deck, hw}, `target`, `over`, `unrated`, `expectedGames`, `minutes` {estimate, gamesPerSecond, from}, `nextRun`; exit 0, 1 when the config is missing or broken (run nothing, go red), 2 on a bad command line |
+| Play | `npx tsx scripts/series.ts run --minutes 240 --threads 4` | the same | one new file `data/series/run-N.json`; exit **0** the rule holds (or nothing was needed, or both switches are off: then no file), **3** stopped at its budget (a file is written with `stopped: "budget"`; commit it, the next run carries on), **4** a recorded game no longer replays (no file; go red: the code changed play without a `SIM_VERSION` bump), **1** an error (a game threw, the config broke; no file), **2** a bad command line |
+| Rebuild | `npx tsx scripts/ratings.ts`, `npx tsx scripts/build-h2h.ts`, `npx tsx scripts/build-evidence.ts`, in that order | the new run file | `src/data/ratings.json`, `reports/ratings-latest.md`, `public/data/h2h.json`, `public/data/evidence/*` |
+| Check | typecheck, the whole suite, the Python tests, lint, `check:data`, `npx vite build` | the candidate tree | nothing is committed unless all pass |
+| Switch alone | `npx tsx scripts/automation-switch.ts automation.series` (or `--json`) | the config | "on"/"off" (a number for `automation.width` and `automation.maxGamesPerRun`); `--github-output FILE` appends `on=…` / `value=…` / `automation={…}`; exit 1 / 2 as for the features |
+
+The files a run commit touches: the new run file, `src/data/ratings.json`, `reports/ratings-latest.md`,
+`public/data/h2h.json` and the evidence files; never the events index, an event file or anything under `src/`.
 
 ### The scheduled workflow (`.github/workflows/series.yml`)
 
@@ -460,22 +506,23 @@ second), and the artifact with the games played, which can be committed by hand.
 never merged. The decision is recomputed from `main` every time, so a run that stopped at its budget is continued by
 the next one, and a new deck pushed by anyone is found the next day.
 
-### The owner's switches
+### The owner's switches (built 2026-11-18, chunk 2)
 
-A new section of `public/site-config.json`, edited in `#/admin` like the rest, defaults all off:
+The section `automation` of `public/site-config.json` (`src/lib/siteConfig.ts`: `AUTOMATION_KEYS`, `AUTOMATION_INFO`,
+`AUTOMATION_BOUNDS`), edited in `#/admin` under "Automatic jobs (GitHub Actions)"; the committed file need not name it
+(a missing key takes its default). Defaults are **on**, by the owner's decision of 2026-11-18 ("build it and turn it
+on for now, as a setting in admin mode to toggle"):
 
 | Key | Default | What it does |
 | --- | --- | --- |
-| `automation.series` | `false` | The daily job plays rating games until every deck's range is at most ±`width`. |
-| `automation.arrivals` | `false` | With the series off: a deck with no game on the current version is played to the field's widest range. (With the series on it is part of it.) |
-| `automation.width` | `4` | The target half-width in points (3 to 8). Below 4 the search budget breaks (Q4). |
-| `automation.maxGamesPerRun` | `12000` | A run stops here or at its time budget, whichever is first, and says so. |
-| `automation.realField` | `false` | Show the "against the real field" figure (needs `src/data/outsideMeta.json`). |
+| `automation.series` | `true` | The scheduled job plays until every deck's range is at most ±`width`. |
+| `automation.arrivals` | `true` | With the series off: a deck with no game on its current list is played to the widest range of the other decks. |
+| `automation.width` | `4` | ± points, 3 to 8 (one decimal at most). 3 breaks the search budget (measured 286.2 of 300 kB at ±3.83). |
+| `automation.maxGamesPerRun` | `12000` | 300 (one chunk) to 50,000 (about the most a 4 vCPU runner plays in a run's 4 hours at its fastest, so a higher cap would never bind). |
 
-The job reads the committed file, not a visitor's preview. Turning a switch off stops the next run at its decision;
-a run in progress finishes. **Today the owner cannot commit any non-default config**: `tests/site-config.test.tsx`
-requires the committed file to parse to exactly the defaults, so switching on `search` or `forecast` would fail the
-check too. That test has to change first (stage 0).
+The job reads the committed file at its next scheduled run; a change in a preview does nothing. Turning both
+switches off stops the next run at its decision; a run in progress finishes. `scripts/automation-switch.ts` reads the
+section for the workflow (a name without a dot is still a feature, exactly as the outside-meta workflow calls it).
 
 ## Staged build plan
 
@@ -483,8 +530,8 @@ check too. That test has to change first (stage 0).
 | --- | --- | --- | --- | --- | --- |
 | 0 | Prerequisites (**built** 2026-11-18; the site-config test had already changed on main) | `tests/forecast.test.ts`, `tests/forecast-ui.test.tsx` (event ids from `h2h.json`); `tests/site-config.test.tsx` (the committed file parses without a problem; the defaults pinned on `defaultSiteConfig()`); `docs/SITE_CONFIG.md` | the same files | record a scratch event in a clone: the suite passes | 0.5 day |
 | 1 | Run files read beside events, and pooled by list (**built** 2026-11-18) | `scripts/lib-node.ts` (`SERIES_DIR`, `readRuns`, `maxRunId`), `scripts/event-pool.ts`, `scripts/ratings.ts`, `scripts/build-h2h.ts`, `scripts/evidence-build.ts`, `scripts/build-evidence.ts`, `src/lib/runManifest.ts`, `scripts/check-data.ts` (schema, version, manifest, deck ids, coverage counts), `src/lib/forecast.ts` and `src/ui/pages/Forecast.tsx` (source line), `src/lib/kb/build/events.ts` (rating record wording), `scripts/kb-sources.ts` (inputs), `src/ui/pages/Ratings.tsx` (source line) | new `tests/rating-runs.test.ts`; `tests/check-data.test.ts`, `tests/ratings-page.test.tsx`, `tests/event-pool-filter.test.ts`, `tests/kb-build.test.ts` | a hand-made run file in a clone: ratings, h2h, evidence and `check:data` agree; the Tournaments page and the search's events group unchanged | 1.5–2 days |
-| 2 | The rule and the CLI | new `src/lib/seriesPlan.ts` (pure: needs-rating, widest first, the stop rule, the expected games), new `scripts/series.ts` (`status`, `run`) | new `tests/series-plan.test.ts` (the rule; a seeded simulation pinning coverage near 90% and the games of E1 within a tolerance), `tests/series-cli.test.ts` (a tiny run with a stub player) | `series.ts run --max-games 600 --threads 4` in a clone, then the stage-1 checks | 2 days |
-| 3 | Switches | `src/lib/siteConfig.ts` (`automation`), `src/ui/pages/Admin.tsx`, `docs/SITE_CONFIG.md`, `scripts/check-data.ts` | `tests/site-config.test.tsx` | the admin editor round-trips the section; `series.ts status` reads it | 1 day |
+| 2 | The rule and the CLI (**built** 2026-11-18, chunk 2) | new `src/lib/seriesPlan.ts` (pure: needs-rating, widest first, the stop rule, the expected games), new `scripts/series.ts` (`status`, `run`) | new `tests/series-plan.test.ts` (the rule; a seeded simulation pinning coverage near 90% and the games of E1 within a tolerance), `tests/series-cli.test.ts` (a tiny run with a stub player) | `series.ts run --max-games 600 --threads 4` in a clone, then the stage-1 checks | 2 days |
+| 3 | Switches (**built** 2026-11-18, chunk 2) | `src/lib/siteConfig.ts` (`automation`), `src/ui/pages/Admin.tsx`, `docs/SITE_CONFIG.md`, `scripts/check-data.ts` | `tests/site-config.test.tsx` | the admin editor round-trips the section; `series.ts status` reads it | 1 day |
 | 4 | The workflow | `.github/workflows/series.yml` | the workflow's own dry run | `workflow_dispatch` with `dry_run: true` (plays 600 games, runs every check, pushes nothing), then one real run watched | 1 day + one supervised run (about 2 h) |
 | 5 | The real field | `src/lib/ratingModel.ts` (`weightedFieldInterval`, pair-spread term), `scripts/ratings.ts` (optional `wrReal*` fields when `outsideMeta.json` exists), `src/ui/pages/Ratings.tsx` and the deck page (a column, no letter) | `tests/rating-model.test.ts`, `tests/ratings-page.test.tsx` | invented shares in a test; real ones when the file exists | 1–1.5 days |
 | 6 (optional) | Runner pairing by shares | `src/lib/eventDraft.ts`, `src/lib/eventFormats.ts` (a match list drawn by shares), the runner form | `tests/event-formats.test.ts` | a weighted match list replays from its seed | 1 day |
@@ -508,7 +555,7 @@ check too. That test has to change first (stage 0).
 ## Open decisions for the owner
 
 Decided 2026-11-18 (relayed by the dispatcher for the owner, who asked for the best approach, built and switchable):
-the width is ±4 (configurable 3 to 8 once the switches exist); the switches start on; games are pooled by list (built,
+the width is ±4 (configurable 3 to 8 in the editor, built); the switches start on (built); games are pooled by list (built,
 see "Pooled by list"); the committed site config may differ from the defaults (changed on main the same day). Left:
 
 1. **±3 or narrower.** Needs 20,100 games from today and a search decision (raise the budget, raise the 6-game

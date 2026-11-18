@@ -88,6 +88,37 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
   },
 };
 
+// ---------------------------------------------------------------- automatic jobs (GitHub Actions)
+
+/**
+ * The rating series (docs/SERIES.md): the scheduled job reads these from the committed file at its next run. `width` is
+ * the half-width of a deck's 90% range, in points of win rate; 3 to 8 (below 4 the site search outgrows its first-search
+ * budget: 286.2 of 300 kB measured at ±3.83, about 329 kB estimated at ±3). `maxGamesPerRun`: 300 (one chunk of games
+ * between refits) to 50,000 (about what a 4 vCPU runner can play in the 4 hours a run is given at its fastest, so a
+ * higher cap would never bind).
+ */
+export const AUTOMATION_BOUNDS = { width: [3, 8], maxGamesPerRun: [300, 50_000] } as const;
+export const AUTOMATION_KEYS = ['series', 'arrivals', 'width', 'maxGamesPerRun'] as const;
+export type AutomationKey = (typeof AUTOMATION_KEYS)[number];
+export const AUTOMATION_INFO: Record<AutomationKey, { label: string; help: string }> = {
+  series: {
+    label: 'Rating series',
+    help: 'A scheduled job (GitHub Actions) plays Hard-bot games, the decks with the widest rating ranges first, until every library deck’s 90% range on its win rate against the field is at most the width below, then rebuilds the ratings and commits them. It takes effect at the next scheduled run after this file is committed, and runs on GitHub’s free minutes for public repositories. On by default.',
+  },
+  arrivals: {
+    label: 'Rate new decks on arrival',
+    help: 'With the series off: a library deck whose current list has no rated game (a new or edited deck) is played until its range is as narrow as the widest of the other decks. With the series on, the series does this as part of its work. Takes effect at the next scheduled run after this file is committed. On by default.',
+  },
+  width: {
+    label: 'Width of a rating range (± points)',
+    help: 'The series stops when every deck’s 90% range is at most this many points either side. 4: a deck’s Sim-tier letter is then right or one band off (the bands are 9 and 10 points wide); about 9,600 games from the ratings of 2026-11-18. 3: about 20,100 games, and the site search would outgrow its first-search budget (measured 286.2 of 300 kB at ±3.83, about 329 kB at ±3), so the build would fail until that budget is raised. 5 and above: fewer games, letters less certain.',
+  },
+  maxGamesPerRun: {
+    label: 'Most games in one run',
+    help: 'A run stops at this many games (or at its time budget) and says so; the next run carries on. 12,000 is about one to two hours on a 4 vCPU GitHub runner (an estimate: 1.5 to 3.5 Hard games a second).',
+  },
+};
+
 // ---------------------------------------------------------------- navigation catalogue
 
 export const SECTION_IDS = ['home', 'decks', 'play', 'tournaments', 'learn', 'profile'] as const;
@@ -360,6 +391,14 @@ export interface SiteConfig {
     /** ongoing multi-day games (bot and person together) kept in one browser */
     maxOngoing: number;
   };
+  /** the scheduled jobs that read this file (AUTOMATION_INFO; docs/SERIES.md) */
+  automation: {
+    series: boolean;
+    arrivals: boolean;
+    /** ± points of a deck's 90% range the series stops at (AUTOMATION_BOUNDS.width) */
+    width: number;
+    maxGamesPerRun: number;
+  };
 }
 
 const DEFAULT_FOOTER =
@@ -389,6 +428,7 @@ export function defaultSiteConfig(): SiteConfig {
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
     multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true, turnServers: [], turnCredentialsUrl: '', relayUrl: '' },
     multiDay: { minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 },
+    automation: { series: true, arrivals: true, width: 4, maxGamesPerRun: 12_000 },
   };
 }
 
@@ -552,7 +592,7 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
   if (raw.kind !== SITE_CONFIG_KIND) return { config: d, errors: [{ path: 'kind', message: `must be "${SITE_CONFIG_KIND}"; this is not a site config file, so the defaults are used` }], warnings };
   if (raw.schema !== SITE_CONFIG_SCHEMA)
     return { config: d, errors: [{ path: 'schema', message: `must be ${SITE_CONFIG_SCHEMA} (this site reads schema ${SITE_CONFIG_SCHEMA} only); the defaults are used` }], warnings };
-  const o = r.obj(raw, '', ['kind', 'schema', 'site', 'nav', 'features', 'banner', 'home', 'play', 'decks', 'maintenance', 'multiplayer', 'multiDay']);
+  const o = r.obj(raw, '', ['kind', 'schema', 'site', 'nav', 'features', 'banner', 'home', 'play', 'decks', 'maintenance', 'multiplayer', 'multiDay', 'automation']);
 
   const site = r.obj(o.site, 'site', ['title', 'tagline', 'footer']);
   const cfgSite = {
@@ -741,7 +781,21 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
   const maxOngoing = whole(md.maxOngoing, 'multiDay.maxOngoing', d.multiDay.maxOngoing, MULTI_DAY_BOUNDS.ongoing[0], MULTI_DAY_BOUNDS.ongoing[1]);
   const multiDay = { minDays, maxDays, defaultDays, maxOngoing };
 
-  const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance, multiplayer, multiDay };
+  const au = r.obj(o.automation, 'automation', AUTOMATION_KEYS);
+  const [wLo, wHi] = AUTOMATION_BOUNDS.width;
+  let width = d.automation.width;
+  if (au.width !== undefined) {
+    if (typeof au.width === 'number' && Number.isFinite(au.width) && au.width >= wLo && au.width <= wHi && Math.abs(au.width * 10 - Math.round(au.width * 10)) < 1e-9) width = au.width;
+    else r.err('automation.width', `must be a number of points from ${wLo} to ${wHi} (at most one decimal); the default (${d.automation.width}) is used`);
+  }
+  const automation = {
+    series: r.bool(au.series, 'automation.series', d.automation.series),
+    arrivals: r.bool(au.arrivals, 'automation.arrivals', d.automation.arrivals),
+    width,
+    maxGamesPerRun: whole(au.maxGamesPerRun, 'automation.maxGamesPerRun', d.automation.maxGamesPerRun, AUTOMATION_BOUNDS.maxGamesPerRun[0], AUTOMATION_BOUNDS.maxGamesPerRun[1]),
+  };
+
+  const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance, multiplayer, multiDay, automation };
   // Home and Play cannot both be off: a visitor would land on nothing useful
   if (!pageOn(config, 'home') && !pageOn(config, 'play')) {
     r.err('nav', 'Home and Play cannot both be hidden; Play is shown');
