@@ -266,8 +266,6 @@ export interface ConfirmBotFlagValues {
 export function confirmBotProblem(v: ConfirmBotFlagValues, o: { bot: string }): string | null {
   const c = confirmedWith(o.bot, v['confirm-bot']);
   if (!c) return null;
-  if (v['pooled-ranking'])
-    return `--pooled-ranking cannot be used with --confirm-bot ${c.confirm}: the shortlist ranks a change by its screening and held-out games together, and games of two bots are never pooled`;
   if (v.ledger) {
     const b = ledgerBot(c.confirm);
     if (!b.bot) return `${b.problem}; pick another --confirm-bot or leave out --ledger`;

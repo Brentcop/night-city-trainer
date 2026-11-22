@@ -79,11 +79,10 @@
 // games across runs"; off by default, and without it nothing changes).
 // --pooled-ranking (with --ledger; and --carry N, --reach N) turns the shortlist from pooled evidence on for the forge
 // step (docs/SYNERGIES.md "A shortlist carried across runs"; off by default, and without it nothing changes).
-// --until-settled (the evidence rule only; --reach N is its reach too) turns "until settled" on for the forge step
-// (docs/SYNERGIES.md "Until settled"; off by default, and without it nothing changes); the forge-budget check counts the
-// usual estimate, and the printed estimate says what it may add at most.
+// --until-settled is on by default (the evidence rule only; --reach N is its reach too); --no-until-settled turns it off.
+// The forge-budget check counts the usual estimate, and the printed estimate says what it may add at most.
 // --confirm-bot BOT has the forge step's confirmation stages played by BOT (its screening stays with lookahead, Medium;
-// docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes; not with --pooled-ranking).
+// docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes).
 //
 // Outputs: data/decks/custom/s<N>-*.txt (the decks that entered), reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json and deck-impact.json.
@@ -107,7 +106,7 @@ import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
 import { adoptionArgs, adoptionFlags, checkBudget, confirmBotArgs, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleArgs, settleFlags, settleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { adoptionProvenance, describeRule, settleStages } from '../src/lib/evidence';
-import { DEFAULT_GAME_BUDGET, estimateGames, settleExtra } from '../src/lib/deckSearch';
+import { DEFAULT_GAME_BUDGET, detect, detectWords, estimateGames, perGameSd, settleExtra } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { leftOutLine } from '../src/lib/distinctLists';
 import { sameListBred, seasonField } from './season-field';
@@ -131,6 +130,7 @@ const { values: V } = cli(import.meta.url, {
   ...ledgerFlags(),
   ...shortlistFlags(),
   ...settleFlags(),
+  'no-until-settled': bool(),
   ...confirmBotFlag(),
   ...seasonGateFlags(),
   'allow-same-lists': bool(),
@@ -146,8 +146,9 @@ exitOnRuleProblems(RULE);
 const FORGE_CONFIRM = confirmBotFromFlags(V, { bot: 'lookahead' });
 // --pooled-ranking (and --carry, --reach) go to the forge step; refused here as the forge would refuse them
 shortlistFromFlags(V, { ledger: !!SEASON_LEDGER, rule: RULE });
-// --until-settled goes to the forge step; refused here as the forge would refuse it
-const SETTLE = settleFromFlags(V, { rule: RULE });
+// --until-settled is on by default for the season; --no-until-settled turns it off. The forge still takes the flag.
+const SEASON_SETTLE_ON = !V['no-until-settled'] && (V['until-settled'] || RULE.kind === 'evidence');
+const SETTLE = settleFromFlags({ ...V, 'until-settled': SEASON_SETTLE_ON }, { rule: RULE });
 const DEPTH = depthFromFlags(V, 1);
 /** the forge step's cost per new deck (5 candidate swaps, package moves when on), checked before the season starts */
 const FORGE_ESTIMATE = estimateGames({
@@ -310,6 +311,9 @@ async function main() {
   const startedAt = new Date().toISOString();
   if (!GATE_ONLY) {
     console.log(`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}`);
+    // what a first confirmation adopts: default spreads (the forge will refine per deck from the ledger)
+    const detectLine = detectWords(detect({ rule: RULE, firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, sd: perGameSd(undefined, FORGE_CONFIRM?.confirm), ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) }));
+    console.log(detectLine);
     // refuse before anything is played or written: the forge step would refuse later, after the gate
     checkBudget(`season forge step, ${FORGE_GENS} generation${FORGE_GENS === 1 ? '' : 's'}`, FORGE_ESTIMATE, V['forge-budget'], false, FORGE_SETTLE_EXTRA, FORGE_CONFIRM ? { with: FORGE_CONFIRM, games: FORGE_GENS * FORGE_ESTIMATE.confirm } : undefined);
   }
@@ -437,7 +441,8 @@ async function main() {
     // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
     const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
     // the adoption rule and depth flags that were given, and the budget the season already checked
-    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
+    const settleV = { ...V, 'until-settled': SEASON_SETTLE_ON };
+    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(settleV), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
     execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
   } else console.log('No bred deck entered: nothing to forge.');
 
