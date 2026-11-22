@@ -823,6 +823,8 @@ export interface BreedOptions {
   h2h?: H2H;
   /** synergy packages to build around (BreedInput.packages): seeds for the explorers, a plan for every deck */
   packages?: BreedPackages;
+  /** breed this many candidates (> n) for screening; the caller screens and picks the best n with pickScreened */
+  breedCount?: number;
 }
 
 /** a's record against b (wins w of g games) and, when h2h.json has a model, the shrunk estimate p (src/lib/h2hModel.ts) */
@@ -884,7 +886,8 @@ export function breedInBrowser(lib: readonly LibraryDeck[], o: BreedOptions): Br
     const m = deckImpactOf(r.deck);
     if (m) deckImpact[listFingerprint(r.deck)] = m;
   }
-  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined, ...(o.packages ? { packages: o.packages } : {}) }, o.n);
+  const bc = o.breedCount && o.breedCount > o.n ? o.breedCount : undefined;
+  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined, ...(o.packages ? { packages: o.packages } : {}) }, o.n, bc);
   return out.map((b, i) => {
     const name = b.deck.name.replace(/^S0-\d+/, `Lab-${String(o.seed % 1000).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`);
     return { ...b, deck: { ...b.deck, name } };

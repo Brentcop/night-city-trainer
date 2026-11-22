@@ -90,7 +90,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import { breedSeason } from '../src/ai/breeder';
+import { breedSeason, pickScreened, screenSeeds, type Bred, type ScreenedBreed } from '../src/ai/breeder';
 import { keptOutTriples, leaderStrength, loadH2H, loadImpactTables, recordSeasonImpact, SEASON_BOT, seasonImpactCount, seasonVersionsOnDisk, strengthOf } from './breed-data';
 import { impactTablesWords, seasonCountWords } from '../src/lib/breederImpact';
 import { rankParents } from '../src/lib/parentStrength';
@@ -106,7 +106,7 @@ import { describePlan, packageName, packageProvenance } from '../src/lib/deckPac
 import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
 import { adoptionArgs, adoptionFlags, checkBudget, confirmBotArgs, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleArgs, settleFlags, settleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
-import { adoptionProvenance, describeRule, settleStages } from '../src/lib/evidence';
+import { adoptionProvenance, describeRule, scoreOf, settleStages } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, estimateGames, settleExtra } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { leftOutLine } from '../src/lib/distinctLists';
@@ -134,6 +134,8 @@ const { values: V } = cli(import.meta.url, {
   ...confirmBotFlag(),
   ...seasonGateFlags(),
   'allow-same-lists': bool(),
+  'breed-count': int(0, { min: 0 }),
+  'screen-games': int(70, { min: 1 }),
 });
 // checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
 const SEASON_LEDGER = ledgerFromFlags(V, { bot: 'lookahead' });
@@ -204,6 +206,8 @@ const FORGE_GAMES = V['forge-games'];
 const FORCE = V.force;
 const THREADS = Math.min(V.threads, 16);
 const ALLOW_SAME_LISTS = V['allow-same-lists'];
+const BREED_COUNT = V['breed-count'] || 0; // 0 = breed exactly 8 (no screening)
+const SCREEN_GAMES = V['screen-games'];
 const SEASON_FILE = `data/seasons/season-${SEASON}.json`;
 
 // ---------------------------------------------------------------- leaderboard
@@ -354,18 +358,46 @@ async function main() {
   // each bred list in the order its deck file will read back (asWritten): the card order changes the games a seed deals,
   // so the gate plays the list as the forge, the round robin and anyone replaying the record will have it. The deck
   // files are the same either way (the export does not depend on the order).
-  const bredAll = breedSeason(SEASON, { ranked, impact: tables.impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: tables.deckImpact, h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8).map((b) => ({ ...b, deck: asWritten(b.deck) }));
+  const screening = BREED_COUNT > 8;
+  const bredRaw = breedSeason(SEASON, { ranked, impact: tables.impact, seenTriples: seen, seed: 1000 + SEASON * 77, deckImpact: tables.deckImpact, h2h: hasH2H ? h2hAll : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8, screening ? BREED_COUNT : undefined).map((b) => ({ ...b, deck: asWritten(b.deck) }));
   const fileOf = (d: DeckList) => `${slugify(d.name)}.txt`;
   // one entry per list: a bred deck with a library deck's list (or an earlier bred deck's) takes no slot. It cannot
   // happen (see scripts/season-field.ts), so this is a guard; this season's own earlier decks don't count on a re-run.
-  const sameBred = ALLOW_SAME_LISTS ? { kept: bredAll, left: [] } : sameListBred(bredAll, lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))), fileOf);
+  const sameBred = ALLOW_SAME_LISTS ? { kept: bredRaw, left: [] } : sameListBred(bredRaw, lib.filter((d) => !(rerun && d.file.startsWith(`s${SEASON}-`))), fileOf);
   if (sameBred.left.length) console.log(`warning: ${leftOutLine(sameBred.left)} They take no season slot.`);
-  const bred = sameBred.kept;
+  let bred: Bred[] = sameBred.kept;
+  console.log(`Season ${SEASON}: bred ${bred.length} candidates (${bred.map((b) => b.deck.name).join(', ')})`);
+
+  // 1b. screen: when breeding more than 8, play each a short block of Medium games and pick the best 8
+  let screenRecord: { breedCount: number; screenGames: number; screened: { name: string; method: string; wr: number; games: number }[] } | null = null;
+  let runners: ScreenedBreed[] = [];
+  if (screening && bred.length > 8) {
+    const screenField = metaDecks.map((d) => d.deck);
+    const screenSeed = screenSeeds(SEASON);
+    console.log(`Screening ${bred.length} candidates: ${SCREEN_GAMES} Medium games each against ${screenField.length} meta decks…`);
+    const screenJobs: MatchJob[] = [];
+    for (const b of bred) {
+      const nf = screenField.length;
+      for (let k = 0; k < SCREEN_GAMES; k++) screenJobs.push({ a: b.deck, b: screenField[k % nf]!, seed: screenSeed + screenJobs.length, first: (Math.floor(k / nf) % 2) as 0 | 1, bot: 'medium' });
+    }
+    const screenRes: MatchResult[] = await runJobs(screenJobs, { threads: THREADS });
+    const screened: ScreenedBreed[] = bred.map((b, i) => {
+      const myRes = screenRes.slice(i * SCREEN_GAMES, (i + 1) * SCREEN_GAMES);
+      const w = myRes.reduce((s, r) => s + scoreOf(r.winner), 0);
+      return { ...b, screenWr: w / myRes.length, screenGames: myRes.length };
+    });
+    for (const s of screened) console.log(`  ${s.deck.name}: ${(s.screenWr * 100).toFixed(1)}% (${s.screenGames} games)`);
+    const { picked, runners: rest } = pickScreened(screened, 8);
+    runners = rest;
+    bred = picked;
+    screenRecord = { breedCount: BREED_COUNT, screenGames: SCREEN_GAMES, screened: screened.map((s) => ({ name: s.deck.name, method: s.method, wr: s.screenWr, games: s.screenGames })).sort((a, b) => b.wr - a.wr) };
+    console.log(`Screening: picked ${bred.map((b) => b.deck.name).join(', ')}`);
+  }
+
   if (!GATE_ONLY) {
     const clash = existing(bred.map((b) => `data/decks/custom/${fileOf(b.deck)}`));
     if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
   }
-  console.log(`Season ${SEASON}: bred ${bred.map((b) => b.deck.name).join(', ')}`);
 
   // 2. the gate: each bred deck against its reference, before it takes a slot
   let outcomes: GateOutcome[] | null = null;
@@ -380,8 +412,17 @@ async function main() {
     for (const r of outcomes) console.log(`${r.name}: ${gateWords(r)}`);
     for (const l of footer) console.log(l);
   }
-  const enters = bred.map((_, i) => !outcomes || outcomes[i]!.entered);
-  const entered = bred.filter((_, i) => enters[i]);
+  // when the gate keeps out some decks and screening produced runners-up, fill the gaps
+  let enters = bred.map((_, i) => !outcomes || outcomes[i]!.entered);
+  let entered = bred.filter((_, i) => enters[i]);
+  if (outcomes && runners.length > 0) {
+    const gaps = 8 - entered.length;
+    if (gaps > 0) {
+      const fillers = runners.slice(0, gaps);
+      console.log(`Refilling ${gaps} slot${gaps === 1 ? '' : 's'} from screening runners-up: ${fillers.map((f) => f.deck.name).join(', ')}`);
+      entered = [...entered, ...fillers];
+    }
+  }
   console.log(`Season ${SEASON}: ${enteredWords(bred.length, entered.length)}`);
   const bredRecord = (b: (typeof bred)[number]) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea, ...(b.packages ? { packages: b.packages } : {}) });
   const gateRecord = outcomes
@@ -405,12 +446,14 @@ async function main() {
       bred: entered.map(bredRecord),
       ...(outcomes ? {} : { lists: bred.map((b) => ({ name: b.deck.name, list: exportOfficial(b.deck), legends: [...b.deck.legends] })) }),
       ...(gateRecord ? { gate: gateRecord } : {}),
+      ...(screenRecord ? { screen: screenRecord } : {}),
     };
     const md = [
       `# Season ${SEASON}: ${outcomes ? 'bred and tested' : 'bred'}, nothing recorded`,
       '',
       `${enteredWords(bred.length, entered.length)}. Nothing was written to the repository.`,
       '',
+      ...(screenRecord ? [`Screened ${screenRecord.breedCount} candidates (${screenRecord.screenGames} Medium games each), picked the best 8.`, ''] : []),
       ...(outcomes ? gateLines : bred.map((b) => `- **${b.deck.name}** (${b.method}): ${b.idea}`)),
     ].join(NL);
     if (V.out !== undefined) {
@@ -532,6 +575,7 @@ async function main() {
     // the decks that entered (every bred deck with --gate off); `gate` is the test of every bred deck
     bred: entered.map(bredRecord),
     ...(gateRecord ? { gate: gateRecord } : {}),
+    ...(screenRecord ? { screen: screenRecord } : {}),
     standings: seasonRows,
     leaderTop: board.slice(0, 12).map((e) => ({ name: e.name, vsMeta: e.vsMeta, percentile: e.percentile })),
     manifest,
@@ -544,6 +588,7 @@ async function main() {
     `${enteredWords(bred.length, entered.length)}. ${field.length} decks (7 meta, ${incumbents.length} incumbents, ${entered.length} new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. ${entered.length ? `The new decks were forged (${FORGE_GENS} gen) before the round robin, so the round robin, the finals vs the meta (${FINALS} games per opponent) and the leaderboard all measure the forged lists.` : 'No bred deck entered, so nothing was forged.'}`,
     '',
     ...(entered.length ? [`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`, ''] : []),
+    ...(screenRecord ? [`## Screening: ${screenRecord.breedCount} candidates, ${screenRecord.screenGames} Medium games each`, '', ...screenRecord.screened.map((s) => `- ${s.name} (${s.method}): ${(s.wr * 100).toFixed(1)}%`), ''] : []),
     ...(outcomes ? [`## Gate: ${enteredWords(bred.length, entered.length)}`, '', ...gateLines, ''] : []),
     '## New decks',
     ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}${V['keep-built-around'] ? "; the forge kept each new deck's built-around packages" : ''}${V['package-moves'] ? '; the forge tried package moves' : ''}.`, ''] : []),

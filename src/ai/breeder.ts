@@ -247,7 +247,8 @@ function legendScores(ranked: BreedInput['ranked']) {
   return (id: string) => (acc[id] ? (acc[id].s + 0.5 * K) / (acc[id].n + K) : 0.5);
 }
 
-export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
+export function breedSeason(season: number, input: BreedInput, n = 8, breedCount?: number): Bred[] {
+  const total = breedCount ?? n;
   const r = rng(input.seed);
   const out: Bred[] = [];
   const used = new Set(input.seenTriples);
@@ -281,11 +282,13 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   const di = input.deckImpact ?? {};
   const h2h = input.h2h;
   // counters need head-to-head data; without it their slots go to mutants and crossovers
-  const nCounter = h2h ? 2 : 0;
-  const nMutant = h2h ? 2 : 3;
-  const nCross = h2h ? 2 : 3;
+  // scale per-style targets proportionally to total (3× when breeding 24 for 8 slots)
+  const scale = total / n;
+  const nCounter = h2h ? Math.round(2 * scale) : 0;
+  const nMutant = h2h ? Math.round(2 * scale) : Math.round(3 * scale);
+  const nCross = h2h ? Math.round(2 * scale) : Math.round(3 * scale);
   // mutants: best decks with one Legend swapped for a strong Legend whose colour fits
-  for (let k = 0, tries = 0; out.filter((o) => o.method === 'mutant').length < nMutant && tries < 200; tries++) {
+  for (let k = 0, tries = 0; out.filter((o) => o.method === 'mutant').length < nMutant && tries < 200 * scale; tries++) {
     const parent = top[k++ % Math.min(top.length, 4)].deck;
     const slot = Math.floor(r() * 3);
     const cands = jitterSort(LEGENDS.filter((l) => !parent.legends.includes(l.id)), (l) => lscore(l.id), 0.08, r);
@@ -297,7 +300,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
     push({ deck: d, method: 'mutant', parents: [parent.name], idea: `Mutant of ${parent.name}: ${cardLabel(CARD_BY_ID[parent.legends[slot]])} → ${cardLabel(pick)}; cards re-fitted to the new RAM limits, keeping the parent's best performers.` });
   }
   // crossovers: two strong decks
-  for (let tries = 0; out.filter((o) => o.method === 'crossover').length < nCross && tries < 200; tries++) {
+  for (let tries = 0; out.filter((o) => o.method === 'crossover').length < nCross && tries < 200 * scale; tries++) {
     const a = top[Math.floor(r() * top.length)].deck;
     const b = top[Math.floor(r() * top.length)].deck;
     if (a === b) continue;
@@ -336,7 +339,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
       .filter((x) => x.g >= 4)
       .sort((x, y) => y.score - x.score)
       .slice(0, 6);
-    for (let tries = 0; out.filter((o) => o.method === 'counter').length < nCounter && tries < 200 && vsBosses.length >= 2; tries++) {
+    for (let tries = 0; out.filter((o) => o.method === 'counter').length < nCounter && tries < 200 * scale && vsBosses.length >= 2; tries++) {
       const a = vsBosses[Math.floor(r() * Math.min(3, vsBosses.length))];
       const b = vsBosses[Math.floor(r() * vsBosses.length)];
       if (a === b) continue;
@@ -359,7 +362,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   // with seed packages: explorers built around each combination in turn, on a trio that can hold it
   if (pk?.seeds?.length) {
     const trios = new Map<string, TripleOption[]>();
-    for (let tries = 0, k = 0; out.length < n && tries < 500; tries++) {
+    for (let tries = 0, k = 0; out.length < total && tries < 500 * scale; tries++) {
       const combo = pk.seeds[k++ % pk.seeds.length]!;
       const key = combo.join('+');
       if (!trios.has(key)) trios.set(key, packageTriples(combo, { strength: lscore }));
@@ -380,7 +383,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
     }
   }
   // (with seed packages the explorer slots are theirs: a combination that can't be built leaves its slot empty)
-  for (let tries = 0; !pk?.seeds?.length && out.length < n && tries < 500; tries++) {
+  for (let tries = 0; !pk?.seeds?.length && out.length < total && tries < 500 * scale; tries++) {
     const legends: string[] = [];
     const weighted = jitterSort(LEGENDS, (l) => lscore(l.id), 0.25, r);
     for (const l of weighted) {
@@ -398,6 +401,20 @@ export function breedSeason(season: number, input: BreedInput, n = 8): Bred[] {
   }
   return out;
 }
+
+export interface ScreenedBreed extends Bred {
+  screenWr: number;
+  screenGames: number;
+}
+
+/** Pick the best `n` candidates by screening win rate, preserving order among ties. */
+export function pickScreened(candidates: readonly ScreenedBreed[], n: number): { picked: ScreenedBreed[]; runners: ScreenedBreed[] } {
+  const sorted = [...candidates].sort((a, b) => b.screenWr - a.screenWr);
+  return { picked: sorted.slice(0, n), runners: sorted.slice(n) };
+}
+
+/** Screening seeds for a season: S·1,000,000 + 600,000, with room for up to 100,000 screening games before the gate seeds at + 700,000. */
+export const screenSeeds = (season: number): number => season * 1_000_000 + 600_000;
 
 /** A bred list fitted to the package plan (BreedInput.packages), with what was changed; null when it can't be. */
 function fitBred(b: Bred, pk: BreedPackages, input: BreedInput, score: (id: string) => number): Bred | null {
