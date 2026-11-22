@@ -21,7 +21,7 @@ import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type Im
 import { RATINGS, SEASONS, type SeasonsData } from '../data/index';
 import { rankLibraryParents, type RatedDeck } from './parentStrength';
 import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
-import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
+import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type Confirmation, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
 import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
 import { HeldOutTracker, withSplit, type NomineeSplit } from './pairedSplit';
@@ -427,9 +427,10 @@ export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'pack
     firstStage,
     rule,
   });
-  // the vs-original block: the original once and each adopted list once (at most one adoption per generation)
+  // the vs-original block: the first adoption is derived from its confirmation (gain 7), so the block plays at most
+  // gens − 1 adoptions + the original once on the second adoption = gens × vsGames; with one generation it is always 0
   const vsGames = o.vsOriginal ?? 0;
-  const vsMax = vsGames ? vsGames * (o.gens + 1) : 0;
+  const vsMax = vsGames && o.gens >= 2 ? vsGames * o.gens : 0;
   const capStages = rule.kind === 'any-gain' ? 1 : rule.capStages;
   const reach = o.untilSettled?.reach ?? DEFAULT_REACH;
   const stages = o.untilSettled && rule.kind === 'evidence' ? settleStages({ seedStages: Math.floor(LAB_CONFIRM_SEEDS / firstStage) - capStages, reach, firstStage, capStages }) : 0;
@@ -512,7 +513,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   let origScores: number[] | null = null;
   let adoptedSoFar = 0;
   /** after each generation: the current list against the original (measured only when this generation adopted) */
-  const track = async (log: TuneLog, adoptedNow: boolean) => {
+  const track = async (log: TuneLog, adoptedNow: boolean, confResult?: Pick<Confirmation, 'heldOut' | 'baseWr' | 'candWr'>) => {
     if (!vsN) return;
     const prev = finalVsOriginal(logs.slice(0, -1));
     if (!adoptedNow) {
@@ -520,6 +521,11 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       return;
     }
     if (stop()) return;
+    // the first adoption's confirmation already compared the adopted list against the original (gain 7)
+    if (adoptedSoFar === 1 && confResult) {
+      log.vsOriginal = { same: false, adopted: adoptedSoFar, gain: confResult.heldOut, origWr: confResult.baseWr, curWr: confResult.candWr, measured: true };
+      return;
+    }
     p.phase = `Generation ${log.gen}: comparing the list with the original on ${vsN} common held-out games`;
     onProgress({ ...p, logs: [...logs] });
     if (!origScores) origScores = (await playSet(start, field, vsSeed, vsN, confirmBot, play, false, tick)).scores;
@@ -706,7 +712,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       p.deck = deck;
       // report the adopted list before the vs-original games, so a run stopped during them can still save it
       if (pick >= 0) onProgress({ ...p, logs: [...logs] });
-      if (!stop()) await track(log, pick >= 0);
+      if (!stop()) await track(log, pick >= 0, pick >= 0 ? shown : undefined);
       p.done = Math.max(p.done, Math.round(gen * perGen));
       // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
       onProgress({ ...p, logs: [...logs] });
