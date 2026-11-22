@@ -7,10 +7,10 @@ import { HeuristicAgent, standardError, worldValue, type DecisionScores } from '
 import { makeWorlds, type World } from './playOut';
 import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, PLAN_TEXT, type ProfileKey } from './archetype';
-import { DECIDED_EVAL, GIG_SWING, seatArchetype } from './eval';
+import { clampPlayOut, DECIDED_EVAL, GIG_SWING, seatArchetype } from './eval';
 import { handFeatures } from './mulligan';
 import { behindText, gapFigure, gapSize, optionName } from '../lib/coachWords';
-import { fixedTerms, withinNoise } from '../lib/gameReview';
+import { BEST_GIGS, fixedTerms, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
@@ -91,10 +91,14 @@ export interface Advice {
   grade?: GradeBasis;
 }
 
-/** The coach's scores as plain data (each world's value with its constant terms). */
+/** The coach's scores as plain data (each world's value with its constant terms, clamped so grades use one scale). */
 function basisOf(s: DecisionScores | null): GradeBasis | undefined {
   if (!s || !s.opts.length) return undefined;
-  const opts = s.opts.map((o): GradedOption => (o.w ? { i: o.i, v: o.v, w: o.w.map((_, k) => worldValue(o, k)) } : { i: o.i, v: o.v }));
+  const opts = s.opts.map((o): GradedOption => {
+    if (!o.w) return { i: o.i, v: o.v };
+    const w = o.w.map((_, k) => clampPlayOut(worldValue(o, k)));
+    return { i: o.i, v: w.reduce((a, x) => a + x, 0) / w.length, w };
+  });
   return { kind: s.kind, opts, ...(s.worlds ? { worlds: s.worlds } : {}) };
 }
 
@@ -479,8 +483,8 @@ export const MISTAKE_GIGS = BLUNDER / GIG_SWING;
 /**
  * How a move compares with the coach's pick, by value:
  *   agree       the coach's own pick (or a move with the same name: another copy of the same card), in a decision the
- *               coach values by play-outs (main phase, reactions, or a sell it compared)
- *   best        another move the coach values at least as high
+ *               coach scored (main phase, reactions, or a sell it compared)
+ *   best        another move within BEST_GIGS (0.1) of the coach's pick, or valued at least as high
  *   close       a close call: under CLOSE_GIGS behind, or within 2 paired standard errors (counts as fine)
  *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS
  *   mistake     behind by MISTAKE_GIGS or more, outside the noise
@@ -508,22 +512,22 @@ export const FINE_VERDICTS: readonly MoveVerdict[] = ['agree', 'best', 'close'];
  * Grade a human decision against the coach's advice for the same spot, by value: the move's own score in the coach's
  * worlds (from the advice, or `extra` from scoreMoveRequest), not its place in the shortlist. A move the coach did not
  * value in a decision it can score is 'pending' until scored (`extra` undefined); once scoring has run (`extra` given,
- * empty if it failed) a move still without a value is 'unscored'. Agreeing with a choice the coach made by rule (no
- * scores) measures nothing, so it is 'unscored' too, never 'agree'. `chose` and `coach` are the names the board shows
+ * empty if it failed) a move still without a value is 'unscored'. Agreeing with a choice the coach had no scores for
+ * measures nothing, so it is 'unscored' too, never 'agree'. `chose` and `coach` are the names the board shows
  * (src/lib/coachWords.ts optionName: End turn, No reaction, Keep hand / Mulligan).
  */
 export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number, extra?: readonly GradedOption[]): MoveGrade {
   const chose = optionName(d, chosen);
   const coach = optionName(d, a.index);
   const same = chosen === a.index || (d.options[chosen] !== undefined && d.options[chosen].label === d.options[a.index]?.label);
-  if (same) return !scorable(d) && !a.grade ? { turn, chose, coach, gap: null, verdict: 'unscored' } : { turn, chose, coach, gap: 0, verdict: 'agree' };
+  if (same) return !a.grade ? { turn, chose, coach, gap: null, verdict: 'unscored' } : { turn, chose, coach, gap: 0, verdict: 'agree' };
   // scored together (extra) when the advice had no worlds to score in
   const find = (i: number) => extra?.find((o) => o.i === i) ?? a.grade?.opts.find((o) => o.i === i);
   const best = find(a.index);
   const mine = find(chosen);
   if (!best || !mine) return { turn, chose, coach, gap: null, verdict: scorable(d) && extra === undefined ? 'pending' : 'unscored' };
   const { gap, se } = gapOf(best, mine);
-  const verdict: MoveVerdict = gap <= 0 ? 'best' : isClose(gap, se) ? 'close' : gap >= MISTAKE_GIGS ? 'mistake' : 'inaccuracy';
+  const verdict: MoveVerdict = gap <= BEST_GIGS ? 'best' : isClose(gap, se) ? 'close' : gap >= MISTAKE_GIGS ? 'mistake' : 'inaccuracy';
   return { turn, chose, coach, gap, ...(se !== undefined ? { se } : {}), verdict };
 }
 
@@ -559,7 +563,10 @@ export async function scoreMoveRequest(q: ScoreRequest): Promise<GradedOption[]>
     d.kind === 'reaction'
       ? await coach.valueReaction(g, p, d.options.map((o) => o.action as Reaction), idx, worlds)
       : await coach.valueMain(g, p, d.options.map((o) => o.action as Action), idx, worlds);
-  return vals.map((o) => ({ i: o.i, v: o.v, w: o.w!.map((_, k) => worldValue(o, k)) }));
+  return vals.map((o) => {
+    const w = o.w!.map((_, k) => clampPlayOut(worldValue(o, k)));
+    return { i: o.i, v: w.reduce((a, x) => a + x, 0) / w.length, w };
+  });
 }
 
 /** Static matchup plan + deck tips for the human player (p = 0). */
