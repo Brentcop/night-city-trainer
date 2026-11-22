@@ -9,6 +9,7 @@ import { PracticeSession, type MatchSetup, type Running } from '../lib/practiceS
 import type { SavedGame } from '../lib/savedGames';
 import type { BotMultiDay } from '../lib/multiDay';
 import { GameKeeper } from '../lib/gameKeeper';
+import { BotClient } from '../lib/botClient';
 
 export { saveOfRun, type MultiDayRun } from '../lib/gameKeeper';
 
@@ -33,6 +34,8 @@ export function usePracticeGame(pace: () => number, coach: () => boolean = () =>
       onProblem: (text) => setStorageNote((x) => ({ text, n: (x?.n ?? 0) + 1 })),
     });
   const keeper = keeperRef.current;
+  const botRef = useRef<BotClient | null>(null);
+  if (!botRef.current) botRef.current = new BotClient();
   const ref = useRef<PracticeSession | null>(null);
   if (!ref.current)
     ref.current = new PracticeSession({
@@ -40,6 +43,7 @@ export function usePracticeGame(pace: () => number, coach: () => boolean = () =>
       record: (replay, st) => keeper.record(replay, st),
       onStable: (run) => void keeper.store(run),
       onClosed: (run, why) => keeper.closed(run, why),
+      botClient: botRef.current,
     });
   const session = ref.current;
   const game: Running | null = useSyncExternalStore(session.subscribeGame, () => session.current);
@@ -57,6 +61,7 @@ export function usePracticeGame(pace: () => number, coach: () => boolean = () =>
       // leaving the page stops the game (its bot stops and its result is never recorded) but keeps it saved
       flush();
       session.quit({ keepSave: true });
+      botRef.current?.dispose();
     };
   }, [session, keeper]);
   const start = useCallback(

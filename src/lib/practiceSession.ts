@@ -1,6 +1,7 @@
 // A practice game against a bot, without React: the paced bot, the recording human seat, Undo snapshots,
 // cancellation, error capture, and recording the result once. The Play page drives it through usePracticeGame().
 import { Game } from '../engine/engine';
+import { DecisionRecorder } from '../engine/telemetry';
 import type { Agent, Decision, DecisionKind, DeckList, GameState, PlayerId } from '../engine/types';
 import type { HeuristicAgent } from '../ai/heuristic';
 import type { CoachedGrade } from './coachedReplay';
@@ -11,6 +12,7 @@ import { recordPractice, type PracticeGame } from './practiceLog';
 import { CONCEDED_REASON } from './practiceVerdict';
 import { MISMATCH_WHY, replayOf, restoredGrades, stateHash, versionProblem, type SaveCheck, type SavedGame } from './savedGames';
 import { SIM_VERSION } from './tournament';
+import type { BotClient } from './botClient';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -29,15 +31,23 @@ export interface Cancellable {
 class PacedAgent implements Agent {
   name: string;
   constructor(
-    public inner: Agent,
+    public inner: HeuristicAgent,
     public ms: () => number,
     private run: Cancellable = { cancelled: false },
+    private workerClient?: BotClient,
+    private level?: string,
+    private botSeed?: number,
   ) {
     this.name = inner.name;
   }
   async decide(g: Game, d: Decision) {
     if (this.run.cancelled) throw new GameCancelled();
-    const r = await this.inner.decide(g, d);
+    let r: number[];
+    if (this.workerClient && this.level !== undefined && this.botSeed !== undefined) {
+      r = await this.workerClient.decide(g, this.inner, d, this.level, this.botSeed);
+    } else {
+      r = await this.inner.decide(g, d);
+    }
     if (d.kind === 'action' || d.kind === 'reaction') await delay(this.ms());
     if (this.run.cancelled) throw new GameCancelled();
     return r;
@@ -305,6 +315,8 @@ export interface SessionOptions {
    * (quit with keepSave) doesn't call it.
    */
   onClosed?: (run: Running, why: 'finished' | 'conceded' | 'quit') => void;
+  /** run the bot's decisions in a web worker (src/sim/bot.worker.ts) so the UI stays responsive */
+  botClient?: BotClient;
 }
 
 /** What restore() gives back: the resumed game, or why it can't be resumed (`mismatch`: other code; offer the log). */
@@ -354,7 +366,7 @@ export class PracticeSession {
     this.restoreSeq++;
     const replay = newPracticeReplay(m);
     const bot = makeTierBot(m.level, m.botSeed, 'Bot') as HeuristicAgent;
-    return this.launch((agents) => Game.create(m.decks, agents, { first: m.first, seed: m.seed }), bot, replay, [], [], ++this.matchSeq, false);
+    return this.launch((agents) => Game.create(m.decks, agents, { first: m.first, seed: m.seed }), bot, replay, [], [], ++this.matchSeq, false, undefined, { level: m.level, seed: m.botSeed });
   }
 
   /**
@@ -379,7 +391,7 @@ export class PracticeSession {
     let run: Running;
     try {
       const bot = makeTierBot(save.botLevel, save.botSeed, 'Bot') as HeuristicAgent;
-      run = this.launch((agents) => Game.create(save.decks, agents, { first: save.first, seed: save.seed }), bot, replay, [], [], ++this.matchSeq, false, feed);
+      run = this.launch((agents) => Game.create(save.decks, agents, { first: save.first, seed: save.seed }), bot, replay, [], [], ++this.matchSeq, false, feed, { level: save.botLevel, seed: save.botSeed });
     } catch (e) {
       return { ok: false, why: `${MISMATCH_WHY} (${errorText(e)})`, mismatch: true };
     }
@@ -420,7 +432,7 @@ export class PracticeSession {
     // the position recorded when the game ended (finished or conceded) belongs to that ending, not to the game going on
     delete run.replay.position;
     const state = structuredClone(target.state);
-    this.launch((agents) => new Game(state, agents), cloneBot(target.bot), run.replay, run.snaps, run.grades, run.match, true);
+    this.launch((agents) => new Game(state, agents), cloneBot(target.bot), run.replay, run.snaps, run.grades, run.match, true, undefined, { level: run.replay.botLevel, seed: run.replay.botSeed });
     return true;
   }
 
@@ -443,6 +455,7 @@ export class PracticeSession {
     st.phase = 'over';
     g.log(null, `${CONCEDED_REASON}: ${g.P(1).name} wins`);
     run.replay.conceded = true;
+    if (g.telemetry) run.replay.decisions = g.telemetry.finish(g);
     // the Game review's replay must reach the last decision you were asked, as it was (none asked yet: not checked)
     const at = run.stable;
     if (at) run.replay.position = { hash: at.hash, at: at.at };
@@ -484,7 +497,7 @@ export class PracticeSession {
    * Wire up and run a game: a fresh one (run), one restored from a snapshot (resume), or one replayed from a save
    * (`feed`: unpaced and not the current game until restore() shows it).
    */
-  private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: CoachedGrade[], match: number, resumed: boolean, feed?: Feed): Running {
+  private launch(make: (agents: [Agent, Agent]) => Game, bot: HeuristicAgent, replay: PracticeReplay, snaps: Snapshot[], grades: CoachedGrade[], match: number, resumed: boolean, feed?: Feed, botMeta?: { level: string; seed: number }): Running {
     if (this.current && !feed) this.cancel(this.current);
     // the game's End turn mode comes from its record, so Undo and a restore play it the same way
     const human = new HumanAgent({ confirmsEndTurn: !!replay.endTurnClick });
@@ -492,7 +505,10 @@ export class PracticeSession {
     const seat: Agent = feed ? new FeedAgent(human, feed, grades) : human;
     const recorder = new RecordingAgent(seat, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, grades.length)), run);
     const pace = this.opts.pace ?? (() => 0);
-    const g = make([recorder, new PacedAgent(bot, () => (run.restoring ? 0 : pace()), run)]);
+    const client = this.opts.botClient;
+    const g = make([recorder, new PacedAgent(bot, () => (run.restoring ? 0 : pace()), run, client, botMeta?.level, botMeta?.seed)]);
+    const telemetry = new DecisionRecorder();
+    g.telemetry = telemetry;
     run.g = g;
     const tick = () => {
       if (!run.cancelled && this.current === run) this.changed();
@@ -515,6 +531,7 @@ export class PracticeSession {
         if (run.cancelled || run.restoring) return;
         // played to its end on the board: the Game review's replay must end in this very position
         replay.position = { hash: stateHash(st) };
+        replay.decisions = telemetry.finish(g);
         (this.opts.record ?? recordFinished)(replay, st);
         this.opts.onClosed?.(run, 'finished');
         tick();
