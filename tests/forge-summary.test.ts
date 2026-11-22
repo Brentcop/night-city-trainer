@@ -21,7 +21,7 @@ const quiet: ForgeDeckSummary = { name: 'Quiet deck', games: 672, gens: [{ gen: 
 
 describe('forge summary', () => {
   it('leads with the held-out paired gain of each adopted change', () => {
-    expect(forgeResultText(adopted)).toBe('adopted -1 Modded Kusanagi → +1 Placide (held-out +6.7 pts [+3.4, +10.0], 448 games)');
+    expect(forgeResultText(adopted)).toBe('adopted -1 Modded Kusanagi → +1 Placide (moderate; held-out +6.7 pts [+3.4, +10.0], 448 games)');
   });
 
   it('says "no change adopted" when nothing was, with the changes it could not tell about', () => {

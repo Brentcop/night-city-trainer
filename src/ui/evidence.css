@@ -789,6 +789,23 @@ button.ev-glance-link:hover:not(:disabled) {
   margin: 6px 0 0;
 }
 
+/* ---- phone (375px): finding rows, matchup strip, at-a-glance and health columns ---- */
+@media (max-width: 480px) {
+  .ev-bar {
+    flex: 0 0 90px;
+    width: 90px;
+  }
+  .ev-strip {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+  .ev-glance ul {
+    grid-template-columns: 1fr;
+  }
+  .ev-health {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- touch: every control at least 44px tall ---- */
 @media (pointer: coarse) {
   .ev-page button,

@@ -17,10 +17,29 @@ import { finalVsOriginal, trajectoryLine, tuneSummaryText, vsOriginalVerdict, ty
 import { dependsOnOpponentWords } from '../../lib/pairedSplit';
 import { cutTableRows } from '../../lib/cutRanking';
 import { pooledWords, SHORTLIST_DEFAULTS, skippedWords, type ShortlistNote } from '../../lib/shortlist';
+import { type Method, type Strength, strengthOf } from '../../lib/findings';
+import { SIM_VERSION } from '../../lib/tournament';
 import { Signed, Wr, type Tone } from './Num';
 import { CardMention, MentionText } from './CardMention';
+import { RangeBar, StrengthChip, type BarInput } from './evidence/parts';
 
 const toneOf = (o: Outcome): Tone => (o === 'adopt' ? 'pos' : o === 'reject' ? 'neg' : 'neu');
+
+/** The strength word for a nominee's held-out paired gain (an effect measured by staged paired games). */
+function nomineeStrength(g: { mean: number; lower: number; upper: number; games: number }, method: Method = 'paired-staged'): Strength {
+  return strengthOf({ estimate: g.mean, lower: g.lower, upper: g.upper, baseline: 0, n: g.games, method, nature: 'effect', corrected: false, simVersion: SIM_VERSION }, SIM_VERSION);
+}
+
+/** A shared scale for the range bars of a generation's nominees (symmetric around 0, wide enough for every interval). */
+function nomineeScale(nominees: readonly NomineeRecord[]): readonly [number, number] {
+  let max = 0.01;
+  for (const n of nominees) {
+    if (!n.heldOut) continue;
+    max = Math.max(max, Math.abs(n.heldOut.lower), Math.abs(n.heldOut.upper), Math.abs(n.heldOut.mean));
+  }
+  const pad = max * 0.15;
+  return [-(max + pad), max + pad];
+}
 
 /**
  * adopted / rejected / could not tell, as a verdict chip; a nominee stopped early says why: "(stopped)" by Stop,
@@ -69,6 +88,7 @@ export function PairedGain({ g, floor = 0 }: { g: { mean: number; lower: number;
  */
 export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label, splits }: { nominees: readonly NomineeRecord[]; minGames: number; futilityMaxGainPp?: number; label?: (text: string) => ReactNode; splits?: NomineeSplits }) {
   if (!nominees.length) return null;
+  const scale = nomineeScale(nominees);
   return (
     // .scroll-x: the figures do not wrap, so on a phone the table scrolls inside the panel instead of widening the page
     <div className="scroll-x">
@@ -82,40 +102,48 @@ export function NomineeTable({ nominees, minGames, futilityMaxGainPp = 0, label,
           </tr>
         </thead>
         <tbody>
-          {nominees.map((n, i) => (
-            <tr key={n.label}>
-              <td>{label ? label(n.label) : n.label}</td>
-              <td>
-                <PairedGain g={n.screen} />
-              </td>
-              <td>
-                {n.heldOut?.priorGames ? (
-                  <>
-                    <PairedGain g={n.heldOut} floor={minGames} />{' '}
-                    <span className="muted">
-                      (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
-                    </span>
-                    {/* the note wraps: a figure and a sentence in one unbreakable span made the table wider than the page */}
-                    <div className="small muted" title="Held-out games kept in this browser from earlier runs, pooled with this run's">
-                      {pooledNoteWords({ heldOut: n.heldOut, looks: n.heldOut.looks, priorGames: n.heldOut.priorGames })}
-                    </div>
-                  </>
-                ) : n.heldOut ? (
-                  <>
-                    <PairedGain g={n.heldOut} floor={minGames} />{' '}
-                    <span className="muted">
-                      (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
-                    </span>
-                  </>
-                ) : (
-                  <span className="muted">—</span>
-                )}
-                {n.settle && <SettleNote settle={n.settle} games={n.heldOut?.games ?? 0} />}
-                <DependsNote split={splits?.nominees[i] ?? null} names={splits?.names ?? {}} />
-              </td>
-              <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
-            </tr>
-          ))}
+          {nominees.map((n, i) => {
+            const s = n.heldOut ? nomineeStrength(n.heldOut, n.heldOut.priorGames ? 'paired-pooled' : 'paired-staged') : undefined;
+            const bar: BarInput | undefined = n.heldOut ? { estimate: n.heldOut.mean, lower: n.heldOut.lower, upper: n.heldOut.upper, baseline: 0 } : undefined;
+            return (
+              <tr key={n.label}>
+                <td>{label ? label(n.label) : n.label}</td>
+                <td>
+                  <PairedGain g={n.screen} />
+                </td>
+                <td>
+                  {n.heldOut?.priorGames ? (
+                    <>
+                      {s && <StrengthChip s={s} />}{' '}
+                      <PairedGain g={n.heldOut} floor={minGames} />{' '}
+                      <span className="muted">
+                        (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
+                      </span>
+                      {bar && s && <RangeBar x={bar} kind="change" strength={s} scale={scale} />}
+                      {/* the note wraps: a figure and a sentence in one unbreakable span made the table wider than the page */}
+                      <div className="small muted" title="Held-out games kept in this browser from earlier runs, pooled with this run's">
+                        {pooledNoteWords({ heldOut: n.heldOut, looks: n.heldOut.looks, priorGames: n.heldOut.priorGames })}
+                      </div>
+                    </>
+                  ) : n.heldOut ? (
+                    <>
+                      {s && <StrengthChip s={s} />}{' '}
+                      <PairedGain g={n.heldOut} floor={minGames} />{' '}
+                      <span className="muted">
+                        (<Wr v={n.heldOut.baseWr} n={n.heldOut.games} /> → <Wr v={n.heldOut.candWr} n={n.heldOut.games} />)
+                      </span>
+                      {bar && s && <RangeBar x={bar} kind="change" strength={s} scale={scale} />}
+                    </>
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                  {n.settle && <SettleNote settle={n.settle} games={n.heldOut?.games ?? 0} />}
+                  <DependsNote split={splits?.nominees[i] ?? null} names={splits?.names ?? {}} />
+                </td>
+                <td>{n.outcome ? <OutcomeChip outcome={n.outcome} stopped={n.stopped} games={n.heldOut?.games} futilityMaxGainPp={futilityMaxGainPp} /> : <span className="muted">—</span>}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
