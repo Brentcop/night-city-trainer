@@ -39,17 +39,19 @@ export const FIXED_GAP_SE_GIGS = 0.25;
 /**
  * The rules the stored ratings were made with. Bump it whenever a rating rule changes, so stored reviews are re-rated
  * instead of showing the old ratings (src/lib/gameReviewStore.ts). 2: noise tested on the raw gap, fixed-term gaps not
- * measured, Sharp needs every option clearly worse, passing at most Sharp (2026-11-13).
+ * measured, Sharp needs every option clearly worse, passing at most Sharp (2026-11-13). 3: wide close calls (gap ≥
+ * MISTAKE_GIGS within noise) confirmed on fresh worlds, costly coach grades oracle-graded (2026-11-22).
  */
-export const REVIEW_RULES = 2;
+export const REVIEW_RULES = 3;
 /**
  * How a review is measured, kept apart from how it is rated (REVIEW_RULES): the oracle (src/ai/reviewer.ts: its
  * play-outs, worlds, quick screen, candidates and confirmation stream), the play-outs per option (GAME_REVIEW_ROLLOUTS)
  * and the confirmation worlds (GAME_REVIEW_CONFIRM). Bump it whenever the measurement changes: a stored review measured
  * another way is never re-rated from its kept measurements (that would pass old numbers off as new ones), it is run again
- * (src/lib/gameReviewStore.ts). Records stored before it count as this version. 1: 2026-11-14.
+ * (src/lib/gameReviewStore.ts). Records stored before it count as this version. 1: 2026-11-14. 2: costly coach grades
+ * and wide close calls go to the oracle (2026-11-22).
  */
-export const REVIEW_MEASURE = 1;
+export const REVIEW_MEASURE = 2;
 /**
  * Play-outs per candidate in the Game review: 8, as the match reviewer. Chosen 2026-11-12 by re-running 20 Medium-vs-Hard
  * reviews with another oracle seed: see docs/BOT_TOOLKIT.md §8 (ratings within one step of each other on re-run). Part
@@ -214,9 +216,13 @@ export const rateOracle = (d: DecisionReview): Rating => rateMeasured(oracleMeas
 const COSTLY: ReadonlySet<Rating> = new Set(['slip', 'mistake', 'blunder']);
 /**
  * The decisions the Game review confirms on fresh worlds (ReviewOptions.confirm.flag): those its screening play-outs rate
- * Slip or worse. A rule of the ratings, so which moves get confirmed moves with REVIEW_RULES (rerateRecord reads it too).
+ * Slip or worse, or close calls with a gap at least as wide as a Mistake.
  */
-export const confirmFlag = (d: DecisionReview): boolean => COSTLY.has(rateOracle(d));
+export const confirmFlag = (d: DecisionReview): boolean => {
+  const r = rateOracle(d);
+  if (COSTLY.has(r)) return true;
+  return r === 'close' && gigs(d.raw ?? d.regret) >= MISTAKE_GIGS;
+};
 
 // ---------------------------------------------------------------------------------------------------- coach grades
 
@@ -601,9 +607,15 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
   };
 }
 
-/** Which already-graded decisions the review skips: your moves the coach measured during play. */
+/** Whether a coach grade is left to the coach (non-costly, not a wide close call): the oracle skips it. */
+const coachKept = (c: CoachRating): boolean => {
+  const r = rateCoach(c);
+  return !COSTLY.has(r) && !(r === 'close' && c.gap >= MISTAKE_GIGS);
+};
+
+/** Which already-graded decisions the review skips: coach-measured moves that are not costly and not wide close calls. */
 export const coachSkip = (coach: readonly CoachRating[], me: PlayerId = 0) => {
-  const at = new Set(coach.map((c) => c.at));
+  const at = new Set(coach.filter(coachKept).map((c) => c.at));
   return (seat: PlayerId, a: number) => seat === me && at.has(a);
 };
 
@@ -665,12 +677,14 @@ export function rerateRecord(rec: GameReviewRecord, coach?: readonly CoachRating
       if (!byAt.size) return m;
       const c = byAt.get(m.at);
       if (!c) return (coachOff.push(m.seq), m);
+      // a costly or wide coach grade now goes to the oracle: can't re-rate from coach measurements
+      if (!coachKept(c)) return (coachOff.push(m.seq), m);
       if (!m.ms) return (missing.push(m.seq), m);
       const s = m.ms.s;
       return coachMove(c, { seq: m.seq, turn: m.turn, ...(s ? { screenTop: s[0]!, chosenRank: s[1]! } : {}) }, m.p);
     }
-    // a coach grade for a move the oracle graded: a fresh run would hand it to the coach
-    if (m.p === me && byAt.has(m.at)) return (coachOff.push(m.seq), m);
+    // a coach grade for a move the oracle graded: a fresh run would hand non-costly ones to the coach
+    if (m.p === me && byAt.has(m.at) && coachKept(byAt.get(m.at)!)) return (coachOff.push(m.seq), m);
     const first = m.ms ? passFrom(m.ms, m.cat, false) : null;
     if (!first) return (missing.push(m.seq), m);
     const flagged = confirming && !first.decided && !first.top && confirmFlag(first as DecisionReview);

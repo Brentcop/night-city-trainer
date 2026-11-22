@@ -407,18 +407,18 @@ describe('a seeded game, reviewed as the browser and the CLI review it', () => {
       expect(m.gap).toBeGreaterThanOrEqual(0);
       expect(a.answers![m.p].choices[m.at]).toBeDefined();
     }
-    // the coach graded two of your moves during play: the review keeps its grades for them and does not play them out;
-    // with another oracle seed, the same decisions are rated again (one run checks both)
+    // the coach graded two of your moves during play: a non-costly one (agree) is kept as the coach's grade, a costly one
+    // (mistake) goes to the oracle; with another oracle seed, the same decisions are rated again (one run checks both)
     const mine = a.moves.filter((m) => m.p === 0).slice(0, 2);
     const coach: CoachRating[] = mine.map((m, k) => ({ at: m.at, turn: m.turn, chose: 0, coach: k, chosen: 'Mine', best: 'Coach pick', why: 'Reason.', verdict: k ? 'mistake' : 'agree', gap: k ? 0.5 : 0, se: 0.1, alts: [[1, 0.05, 0.02]] }));
     const withCoach = await runGameReview({ id: 'g', spec, coach, rollouts: 2, confirm: 2, made: 'm', oracleSeed: 7 });
     expect(withCoach.oracleSeed).toBe(7);
     expect(withCoach.moves.map((m) => `${m.p}:${m.at}`)).toEqual(a.moves.map((m) => `${m.p}:${m.at}`));
-    for (const [k, m] of mine.entries()) {
-      const r = withCoach.moves.find((x) => x.p === 0 && x.at === m.at)!;
-      expect(r).toMatchObject({ src: 'coach', chosen: 'Mine', best: 'Coach pick', why: 'Reason.', r: k ? 'mistake' : 'unclear' });
-    }
-    expect(withCoach.moves.filter((m) => m.src === 'coach')).toHaveLength(2);
+    const kept = withCoach.moves.find((x) => x.p === 0 && x.at === mine[0]!.at)!;
+    expect(kept).toMatchObject({ src: 'coach', chosen: 'Mine', best: 'Coach pick', why: 'Reason.', r: 'unclear' });
+    const costly = withCoach.moves.find((x) => x.p === 0 && x.at === mine[1]!.at)!;
+    expect(costly.src).toBe('oracle');
+    expect(withCoach.moves.filter((m) => m.src === 'coach')).toHaveLength(1);
 
     // the board at each decision: replayed from the stored answers, every answer tied to a frame
     const f = await reviewFrames({ decks, seed: 42, first: 0 }, a.answers!);

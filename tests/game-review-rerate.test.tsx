@@ -104,7 +104,7 @@ describe('re-rating a real stored review from its kept measurements is exact', (
     // coach moves rated with the review's screen of them kept (an upgrade for the coach's pick reads it)
     expect(all.some((m) => m.src === 'coach' && m.ms?.s)).toBe(true);
     expect(all.some((m) => m.src === 'coach' && m.r === 'unclear')).toBe(true);
-    expect(all.some((m) => m.src === 'coach' && m.r === 'blunder')).toBe(true);
+    expect(all.some((m) => m.src === 'oracle' && m.r === 'blunder')).toBe(true);
     // a confirmed move rated from its confirmation: a move whose screening pass alone would rate it otherwise
     expect(all.some((m) => m.ms?.c && m.ms.f![0] !== m.ms.c[0])).toBe(true);
   });
@@ -185,7 +185,7 @@ const CHOICES = [[0], [1]];
 
 describe('the two awkward cases of confirmation', () => {
   // screening: 4.5 ± 1 points (0.11 Gigs, a Close call); confirmed: 30 ± 2 points (0.75 Gigs, a Mistake). Under the
-  // current rules a Close call is never confirmed, so a record like this is one made under rules that flagged it.
+  // current rules a narrow close call (gap < MISTAKE_GIGS) is not confirmed, so a record like this is one made under rules that flagged it.
   const confirmedNotFlagged = decision({ regret: 30, raw: 30, se: 2, others: [[4.5, 1], [60, 3]], confirmed: 16, first: { regret: 4.5, raw: 4.5, se: 1, gameLosing: false } });
   // screening: a clear 30 ± 2 points, a Mistake, which the current rules confirm; recorded with no confirmation
   const flaggedNotConfirmed = decision({ regret: 30, raw: 30, se: 2, others: [[30, 2]] });
@@ -241,7 +241,7 @@ describe('the loader, with a real stored review', () => {
     expect(RUN_ROLLOUTS).toBe(GAME_REVIEW_ROLLOUTS);
     expect(RUN_CONFIRM).toBe(GAME_REVIEW_CONFIRM);
     // changing either changes how a review is measured: bump REVIEW_MEASURE with it (this pin is the reminder)
-    expect([REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS, GAME_REVIEW_CONFIRM]).toEqual([1, 8, 16]);
+    expect([REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS, GAME_REVIEW_CONFIRM]).toEqual([2, 8, 16]);
   });
 
   it('other rules: the ratings come back as rated from the measurements, saved under the current rules with the log’s counts', () => {
