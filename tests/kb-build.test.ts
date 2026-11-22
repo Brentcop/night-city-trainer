@@ -592,8 +592,8 @@ describe('the real public sources', async () => {
       expect(search(ix, q, { k: 10 }).hits.map((h) => [h.record.id, h.score]), q).toEqual(search(without, q, { k: 10 }).hits.map((h) => [h.record.id, h.score]));
   });
 
-  it('reads no generated, tutorial or archived source', () => {
-    for (const x of a.records) expect(x.source.file).not.toMatch(/^src\/content\/tutorial\/|tournamentPlan\.ts$|recommendation\.ts$|^scripts\/archive\/|^data\/decks\/archive\/|^data\/decks\/custom\/history\//);
+  it('reads no generated, tutorial helper or archived source', () => {
+    for (const x of a.records) expect(x.source.file).not.toMatch(/^src\/content\/tutorial\/(?!lessons\.ts$)|tournamentPlan\.ts$|recommendation\.ts$|^scripts\/archive\/|^data\/decks\/archive\/|^data\/decks\/custom\/history\//);
     expect(ids.has('guide:tournament-plan#intro')).toBe(false);
   });
 

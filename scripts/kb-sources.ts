@@ -23,6 +23,7 @@ import { buildCompetitive, type CompetitiveSources } from '../src/lib/kb/build/e
 import { buildErrata, buildFaq, buildRules, buildTournamentRules, type FaqItemInput } from '../src/lib/kb/build/local';
 import { mentionLinker } from '../src/lib/kb/build/mentions';
 import { assemblePack } from '../src/lib/kb/build/pack';
+import { buildLessons, type LessonInput } from '../src/lib/kb/build/lessons';
 import { buildGlossary, buildPackages, buildVocabulary, termId } from '../src/lib/kb/build/packages';
 import { buildCodeHeader, buildDocPassages, buildGuides } from '../src/lib/kb/build/prose';
 import { buildRulings, rulingId, type RulingInput } from '../src/lib/kb/build/rulings';
@@ -53,7 +54,7 @@ const FAQ_ENTRIES_DIR = 'tests/faq/entries';
 const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
 /**
- * Not read: the tutorial content (it landed while the pack was built and has not been indexed yet), generated modules, unmaintained one-off scripts, and the pack's own
+ * Not read as code headers: the tutorial helpers (the lessons themselves are indexed by buildLessons), generated modules, unmaintained one-off scripts, and the pack's own
  * code (rule M12; the site pack's build tool and manifest type since step 3). The `insights`
  * arrays of src/data/analysis.json are not read either (they come with the measured cells, plan step 2.4), and neither
  * are archived decks (D9).
@@ -169,7 +170,8 @@ export function loadStats(root: string, catalogueVersion: string): StatsSources 
 
 /** Every file a build reads, sorted: what the manifest hashes to know when the pack is stale. */
 export function inputFiles(root: string, o: { raw: boolean }): string[] {
-  const files = new Set<string>([CARDS_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...statsFiles(root)]);
+  const TUTORIAL_FILE = 'src/content/tutorial/lessons.ts';
+  const files = new Set<string>([CARDS_FILE, TUTORIAL_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...statsFiles(root)]);
   if (o.raw) for (const f of Object.values(RAW_FILES)) if (fs.existsSync(path.join(root, f))) files.add(f);
   return [...files].sort();
 }
@@ -279,6 +281,21 @@ export async function buildFromSources(root: string, o: { raw?: boolean } = {}):
   const guideDecks = new Map(decks.map((d) => [d.file, { id: deckRecordId(d.file), cards: [...d.legends, ...d.main, ...d.sideboard] }]));
   const guides = GUIDES.filter((g) => !GUIDE_SKIP.has(g.slug)).map((g) => ({ ...g, file: guideFile(g.slug) }));
   records.push(...buildGuides(guides, { decks: guideDecks, linker, skipped }));
+
+  // tutorial lessons (LessonText = string | function; only strings go into the pack)
+  const { LESSONS } = await import('../src/content/tutorial/lessons');
+  const str = (t: unknown): string | undefined => (typeof t === 'string' ? t : undefined);
+  const strs = (ts: unknown): string[] | undefined => (Array.isArray(ts) ? (ts.map(str).filter(Boolean) as string[]) : undefined);
+  const lessonInputs: LessonInput[] = LESSONS.map((l) => ({
+    id: l.id,
+    title: l.title,
+    teaches: l.teaches,
+    goal: l.goal,
+    minutes: l.minutes,
+    steps: l.steps.map((s) => ({ read: strs(s.read), do: str(s.do) ?? '', after: str(s.after), hint: s.hint })),
+    done: typeof l.done === 'string' ? l.done : '',
+  }));
+  records.push(...buildLessons(lessonInputs, { linker, file: 'src/content/tutorial/lessons.ts' }));
 
   // measured: recorded events and their rounds, power ratings, head-to-heads (numbers from src/lib/eventFacts.ts)
   const deckIds = new Set(decks.map((d) => deckRecordId(d.file)));

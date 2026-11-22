@@ -32,7 +32,7 @@ export interface SiteGroupPlan {
 
 export const SITE_GROUPS: readonly SiteGroupPlan[] = [
   // the site's own content: cards, guides, packages and the glossary
-  { name: 'core', kinds: ['card', 'guide', 'package', 'term'], late: false },
+  { name: 'core', kinds: ['card', 'guide', 'lesson', 'package', 'term'], late: false },
   // grows with the library: a deck and its note
   { name: 'decks', kinds: ['deck', 'objective'], late: false },
   // grows with every recorded event: an event and its rounds stay in one file
@@ -283,6 +283,7 @@ export const KIND_LABEL: Readonly<Partial<Record<KbKind, string>>> = {
   package: 'Synergy package',
   term: 'Glossary',
   guide: 'Guide',
+  lesson: 'Tutorial lesson',
   event: 'Event',
   round: 'Round',
   rating: 'Rating',
@@ -336,6 +337,8 @@ export function siteLink(r: KbRecord): SiteLink {
       const d = r.links.find((l) => l.rel === 'deck');
       return d ? { to: 'page', href: `#/deck?${q('d', `${key(d.to)}.txt`)}`, label: 'Matchups on the deck profile' } : null;
     }
+    case 'lesson':
+      return { to: 'page', href: `#/tutorial`, label: 'Tutorial' };
     case 'cardstat': {
       // Card stats → Decisions, opened on the list (by its name, as the page's `?d=` takes it); pooled: no list
       const deck = field(r, 'deck');

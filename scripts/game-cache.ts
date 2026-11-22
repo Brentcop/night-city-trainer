@@ -39,7 +39,9 @@ export function canonicalJson(v: unknown): string {
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`).join(',')}}`;
 }
 
-const IMPORT_RE = /(?:^|[\s;}])(?:import|export)\s+(?:type\s+)?[^'"`;]*?from\s*['"]([^'"]+)['"]|(?:^|[\s;}(=])import\s*\(\s*['"]([^'"]+)['"]\s*\)|(?:^|[\s;])import\s+['"]([^'"]+)['"]/g;
+// Type-only imports (import type / export type) are erased at compile time and load no code at runtime, so the cache
+// must not follow them (C22). Inline type annotations (import { type X, Y } from) are value imports and ARE followed.
+const IMPORT_RE = /(?:^|[\s;}])(?:import|export)\s+(?!type\s)[^'"`;]*?from\s*['"]([^'"]+)['"]|(?:^|[\s;}(=])import\s*\(\s*['"]([^'"]+)['"]\s*\)|(?:^|[\s;])import\s+['"]([^'"]+)['"]/g;
 const EXTS = ['', '.ts', '.tsx', '.mts', '.js', '.mjs', '.json', '/index.ts', '/index.tsx', '/index.js'];
 
 function resolveImport(fromFile: string, spec: string): string | null {

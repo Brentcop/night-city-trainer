@@ -57,8 +57,8 @@ const SMALL: SiteSizing = { size: (json) => json.length, cap: 150_000 };
 const small = siteShardFiles(built.records, SMALL);
 
 describe('what the site ships', () => {
-  it('holds every one of the twelve site kinds and nothing else', () => {
-    expect([...SITE_KINDS].sort()).toEqual(['card', 'cardstat', 'deck', 'event', 'guide', 'matchup', 'objective', 'package', 'pkgstat', 'rating', 'round', 'term']);
+  it('holds every one of the thirteen site kinds and nothing else', () => {
+    expect([...SITE_KINDS].sort()).toEqual(['card', 'cardstat', 'deck', 'event', 'guide', 'lesson', 'matchup', 'objective', 'package', 'pkgstat', 'rating', 'round', 'term']);
     const kinds = new Set(shipped.map((r) => r.kind));
     expect([...kinds].sort()).toEqual([...SITE_KINDS].sort());
     for (const k of SITE_KINDS) expect(shipped.filter((r) => r.kind === k).length, k).toBeGreaterThan(0);
@@ -530,6 +530,9 @@ describe('what a result shows', () => {
             expect(l?.to === 'page' && l.href.startsWith('#/deck?d='), where).toBe(true);
             if (l?.to === 'page' && !lib.has(param(l.href, 'd')!)) missing.push(where);
           } else expect(l, where).toEqual({ to: 'page', href: '#/insights?v=synergies', label: 'Card stats: Synergies' });
+          break;
+        case 'lesson':
+          expect(l, where).toEqual({ to: 'page', href: '#/tutorial', label: 'Tutorial' });
           break;
         default:
           throw new Error(`unexpected kind ${r.kind}`);

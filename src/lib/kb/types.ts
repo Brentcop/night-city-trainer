@@ -8,7 +8,7 @@
  * `cardstat` and `pkgstat` are measured too: the evidence cells of the decision, synergy and deck-analysis reports, by
  * src/lib/cardFacts.ts (step 2.4).
  */
-export const KB_KINDS = ['card', 'ruling', 'faq', 'rule', 'trule', 'errata', 'deck', 'objective', 'package', 'term', 'guide', 'doc', 'code', 'event', 'round', 'rating', 'matchup', 'cardstat', 'pkgstat'] as const;
+export const KB_KINDS = ['card', 'ruling', 'faq', 'rule', 'trule', 'errata', 'deck', 'objective', 'package', 'term', 'guide', 'lesson', 'doc', 'code', 'event', 'round', 'rating', 'matchup', 'cardstat', 'pkgstat'] as const;
 export type KbKind = (typeof KB_KINDS)[number];
 
 /** The id prefix of each kind: ids are '<prefix>:<stable key>'. */
@@ -24,6 +24,7 @@ export const KIND_PREFIX: Readonly<Record<KbKind, string>> = {
   package: 'pkg',
   term: 'term',
   guide: 'guide',
+  lesson: 'lesson',
   doc: 'doc',
   code: 'code',
   event: 'event',
