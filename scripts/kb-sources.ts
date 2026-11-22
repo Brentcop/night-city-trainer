@@ -28,6 +28,7 @@ import { buildGlossary, buildPackages, buildVocabulary, termId } from '../src/li
 import { buildCodeHeader, buildDocPassages, buildGuides } from '../src/lib/kb/build/prose';
 import { buildRulings, rulingId, type RulingInput } from '../src/lib/kb/build/rulings';
 import { buildStats, type StatsSources } from '../src/lib/kb/build/stats';
+import { buildFindings, type DeckEvidenceInput } from '../src/lib/kb/build/findings';
 import type { KbBuildReport, KbRecord } from '../src/lib/kb/types';
 
 export const RAW_FILES = {
@@ -50,6 +51,9 @@ export const STATS_FILES = {
   analysis: 'src/data/analysis.json',
   impact: 'src/data/impact.json',
 } as const;
+/** Evidence findings (ROADMAP2 §11 D27). */
+export const EVIDENCE_DIR = 'public/data/evidence';
+export const EVIDENCE_INDEX_FILE = 'public/data/evidence/index.json';
 const FAQ_ENTRIES_DIR = 'tests/faq/entries';
 const OBJECTIVES_DIR = 'src/content/deckObjectives';
 const CODE_DIRS = ['src', 'scripts', 'tools'];
@@ -156,6 +160,27 @@ export function statsFiles(root: string): string[] {
   return Object.values(STATS_FILES).filter((f) => fs.existsSync(path.join(root, f)));
 }
 
+/** The evidence files that exist (the index plus each deck file). */
+export function evidenceFiles(root: string): string[] {
+  const dir = path.join(root, EVIDENCE_DIR);
+  if (!fs.existsSync(dir)) return [];
+  return [EVIDENCE_INDEX_FILE, ...fs.readdirSync(dir).filter((f) => /^[0-9a-f]{16}\.json$/.test(f)).sort().map((f) => `${EVIDENCE_DIR}/${f}`)];
+}
+
+/** Read the evidence index and return a function that reads each deck's evidence file on demand. */
+export function loadEvidence(root: string): { index: import('../src/lib/findings').EvidenceIndex; readDeck: (listId: string) => DeckEvidenceInput | null } | null {
+  const idxPath = path.join(root, EVIDENCE_INDEX_FILE);
+  if (!fs.existsSync(idxPath)) return null;
+  const index = JSON.parse(fs.readFileSync(idxPath, 'utf8')) as import('../src/lib/findings').EvidenceIndex;
+  const readDeck = (listId: string): DeckEvidenceInput | null => {
+    const f = path.join(root, EVIDENCE_DIR, `${listId}.json`);
+    if (!fs.existsSync(f)) return null;
+    const data = JSON.parse(fs.readFileSync(f, 'utf8')) as { listId: string; deck: string; file: string; findings: import('../src/lib/findings').Finding[] };
+    return { listId: data.listId, deck: data.deck, file: data.file, findings: data.findings };
+  };
+  return { index, readDeck };
+}
+
 /** Read the measured reports (a missing one is null). `catalogueVersion`: the current package catalogue's. */
 export function loadStats(root: string, catalogueVersion: string): StatsSources {
   const maybe = <T,>(f: string): { file: string; data: T } | null => (fs.existsSync(path.join(root, f)) ? { file: f, data: JSON.parse(fs.readFileSync(path.join(root, f), 'utf8')) as T } : null);
@@ -171,7 +196,7 @@ export function loadStats(root: string, catalogueVersion: string): StatsSources 
 /** Every file a build reads, sorted: what the manifest hashes to know when the pack is stale. */
 export function inputFiles(root: string, o: { raw: boolean }): string[] {
   const TUTORIAL_FILE = 'src/content/tutorial/lessons.ts';
-  const files = new Set<string>([CARDS_FILE, TUTORIAL_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...statsFiles(root)]);
+  const files = new Set<string>([CARDS_FILE, TUTORIAL_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...statsFiles(root), ...evidenceFiles(root)]);
   if (o.raw) for (const f of Object.values(RAW_FILES)) if (fs.existsSync(path.join(root, f))) files.add(f);
   return [...files].sort();
 }
@@ -317,6 +342,21 @@ export async function buildFromSources(root: string, o: { raw?: boolean } = {}):
       skipped,
     }),
   );
+
+  // measured: evidence findings (ROADMAP2 §11 D27), from public/data/evidence/
+  const evidence = loadEvidence(root);
+  if (evidence) {
+    const listToFile = new Map(decks.map((d) => [d.listId, d.file]));
+    records.push(
+      ...buildFindings(evidence.index, evidence.readDeck, {
+        hasDeck: (file) => deckIds.has(deckRecordId(file)),
+        hasCard: (id) => cardById.has(id),
+        hasPackage: (id) => packageName.has(id),
+        skipped,
+        opponentFile: (listId) => listToFile.get(listId),
+      }),
+    );
+  }
 
   // docs and code headers
   for (const f of docFiles(root)) records.push(...buildDocPassages(f, read(f), { linker, bulletLeads: f === 'CLAUDE.md' }));

@@ -14,7 +14,7 @@
 // in size. The events group is packed whole events at a time in event order, so a full part never changes when later
 // events are recorded and a returning visitor's browser keeps it cached; the other groups are packed in record id order.
 import { snippet } from './render';
-import { cuedKinds, rankExactHits, SEARCH_TUNING, STAT_KINDS, statKinds, type KbIndex } from './search';
+import { cuedKinds, rankExactHits, SEARCH_TUNING, statKinds, type KbIndex } from './search';
 import { byString, hashText, KB_KINDS, type KbFieldValue, type KbKind, type KbLink, type KbRecord } from './types';
 
 export const SITE_SHARD_KIND = 'nct-kb-shard';
@@ -41,6 +41,7 @@ export const SITE_GROUPS: readonly SiteGroupPlan[] = [
   { name: 'ratings', kinds: ['rating', 'matchup'], late: false },
   { name: 'cardstat', kinds: ['cardstat'], late: true },
   { name: 'pkgstat', kinds: ['pkgstat'], late: true },
+  { name: 'finding', kinds: ['finding'], late: true },
 ];
 
 /** Every kind the site ships. */
@@ -52,7 +53,7 @@ export const SITE_LEFT_OUT: readonly KbKind[] = KB_KINDS.filter((k) => !SITE_KIN
  * The fields a shard keeps: the ones a result's link and its stale mark need (`archived`: an archived event has no page). The rest are exact numbers for the
  * command line (`npm run kb -- fact`); the text already says them in words.
  */
-export const SITE_FIELDS: readonly string[] = ['archived', 'deck', 'deckFile', 'event', 'file', 'guide', 'stale', 'vocabulary'];
+export const SITE_FIELDS: readonly string[] = ['archived', 'deck', 'deckFile', 'event', 'file', 'findingKind', 'guide', 'listId', 'nature', 'stale', 'strength', 'vocabulary'];
 
 /** A record as a shard holds it: no source path, scope or hash; only SITE_FIELDS; links only to shipped records. */
 export type SiteRecord = Pick<KbRecord, 'id' | 'kind' | 'title' | 'aliases' | 'text' | 'fields' | 'links' | 'origin' | 'status' | 'stamps'>;
@@ -266,8 +267,7 @@ export function lateShardsFor(ix: KbIndex, query: string): string[] {
   const exact = rankExactHits(ix, query, { deckShortNames: SEARCH_TUNING.deckShortNames, packageShortNames: SEARCH_TUNING.statsIntent }).map((h) => h.id);
   const cued = cuedKinds(query);
   if (SEARCH_TUNING.statsIntent) for (const k of statKinds(ix, query, exact)) cued.add(k);
-  const kinds = STAT_KINDS.filter((k) => cued.has(k));
-  return SITE_GROUPS.filter((s) => s.late && s.kinds.some((k) => kinds.includes(k))).map((s) => s.name);
+  return SITE_GROUPS.filter((s) => s.late && s.kinds.some((k) => cued.has(k))).map((s) => s.name);
 }
 
 // ---------------------------------------------------------------- what a result shows
@@ -290,6 +290,7 @@ export const KIND_LABEL: Readonly<Partial<Record<KbKind, string>>> = {
   matchup: 'Matchup',
   cardstat: 'Card statistics',
   pkgstat: 'Package statistics',
+  finding: 'Evidence',
 };
 
 /** Where a result leads: the card dialog, a page of the site, or nowhere (the thing has no page of its own). */
@@ -349,6 +350,11 @@ export function siteLink(r: KbRecord): SiteLink {
       // pooled over lists: Card stats → Synergies
       const l = deckPage(field(r, 'file'));
       return l ? { ...l, label: 'Synergies on the deck profile' } : { to: 'page', href: '#/insights?v=synergies', label: 'Card stats: Synergies' };
+    }
+    case 'finding': {
+      const listId = field(r, 'listId');
+      const short = key(r.id);
+      return listId ? { to: 'page', href: `#/evidence/${listId}?f=${short}`, label: 'Evidence' } : null;
     }
     default:
       return null;
