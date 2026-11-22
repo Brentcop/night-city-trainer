@@ -334,8 +334,8 @@ What remains, batched and ranked by value for its cost. Sizes: S under an hour o
 27. Findings as records in the knowledge pack and the site search (RAG_PLAN 2.3).
 28. Decision telemetry for the human seat.
 29. Deck Lab: the 448-game "against your original" block can contradict an adoption made on more games.
-30. One recorded custom event (round robin or groups), then the wording for its formats in the knowledge pack.
-31. [STRATEGY.md](STRATEGY.md) rewritten on current data, or retired in favour of the generated tournament plan.
+30. ~~One recorded custom event (round robin or groups), then the wording for its formats in the knowledge pack.~~ Done 2026-11-22: event 25, a round robin ×2 mirrored (Bo3) of the 7 meta decks (Hard bot, 106 games, `custom: true`). The kb already describes the format.
+31. ~~[STRATEGY.md](STRATEGY.md) rewritten on current data, or retired in favour of the generated tournament plan.~~ Done 2026-11-22: retired. The file said it was out of date (SIM_VERSION 5); `docs/TOURNAMENT_PLAN.md`, the Power ratings page and the forecast page cover everything it had. References in README.md and ROADMAP.md updated.
 32. Evidence: the Lab's result panel and the forge's report use the finding rows; shorter pages on a phone.
 33. Knowledge pack name handling (short names, descriptions, possessives) on fresh blind questions.
 

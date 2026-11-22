@@ -82,12 +82,14 @@ describe('every recorded event', () => {
         const ix = INDEX.events.find((e) => e.id === ev.id)!;
         expect(s.champion).toBe(ev.champion);
         expect(s.champion).toBe(ix.champion);
-        expect(s.final?.winner).toBe(ev.champion);
-        expect(s.finalists[0]).toBe(ev.champion);
+        if (ev.bracket.length) {
+          expect(s.final?.winner).toBe(ev.champion);
+          expect(s.finalists[0]).toBe(ev.champion);
+        }
         expect(s.entrants).toBe(ix.entrants);
         expect(s.games.total).toBe(ix.games);
         expect(s.format.label).toBe(ix.format);
-        expect(s.format.topCut).toBe(ix.top8.length);
+        if (ev.bracket.length) expect(s.format.topCut).toBe(ix.top8.length);
         expect([s.simVersion, s.bot, s.asOf]).toEqual([ev.simVersion, ev.bot, ev.date]);
         expect(s.firstPlayer.decided + s.firstPlayer.ties).toBe(s.games.total);
         expect(s.endReasons.reduce((a, r) => a + r.games, 0)).toBe(s.games.total);
@@ -105,7 +107,9 @@ describe('every recorded event', () => {
         // the leaders after the last Swiss round are the top of the stored standings
         const lastRound = rounds[ev.rounds.length - 1]!;
         expect(lastRound.leaders[0]?.deck).toBe(ev.standings[0]?.deck);
-        expect(roundSummary(ev, ev.bracket.at(-1)!.name).advancing).toEqual([ev.champion]);
+        if (ev.bracket.length) {
+          expect(roundSummary(ev, ev.bracket.at(-1)!.name).advancing).toEqual([ev.champion]);
+        }
       });
 
       it('refuses rounds the event did not play', () => {

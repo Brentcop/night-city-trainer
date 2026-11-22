@@ -31,8 +31,12 @@ describe('each recorded event opens with its own setup', () => {
   it('there are recorded events to check', () => expect(files.length).toBeGreaterThanOrEqual(5));
   for (const f of files)
     it(f, () => {
-      const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments', f), 'utf8')) as RecordedEvent & { manifest: { decks: { file: string }[] }; config: NonNullable<RecordedEvent['config']> };
+      const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/tournaments', f), 'utf8')) as RecordedEvent & { manifest: { decks: { file: string }[] }; config: NonNullable<RecordedEvent['config']>; setup?: unknown };
       const r = eventRerun(ev, BUILTIN, NOW);
+      if (ev.setup) {
+        expect(r.open).toBe(false);
+        return;
+      }
       if (!r.open) throw new Error(`${f} cannot be opened: ${r.why}`);
       const p = parseRunParams(new URLSearchParams(r.query), BOTS);
       expect(p.decks).toEqual(ev.manifest.decks.map((d) => d.file));
