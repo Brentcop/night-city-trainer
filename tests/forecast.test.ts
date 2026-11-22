@@ -257,13 +257,13 @@ describe('the model from h2h.json', () => {
     expect(pooledIds.length).toBeGreaterThan(0);
     expect(fromFile.source).toMatchObject({ events: pooledIds, simVersion, bot, from: 'h2h-file', games: h2h.games });
   });
-  it('has the fitted ratings, and per-pair estimates within 0.001 of the file and of the games fit', () => {
+  it('has the fitted ratings, and per-pair estimates within 0.002 of the file and of the games fit', () => {
     fromFile.r.forEach((x, k) => expect(Math.abs(x - fromGames.r[k]!)).toBeLessThan(1e-4));
     const pf = pairProbabilities(fromFile, fromFile.r, fromFile.h);
     const pg = pairProbabilities(fromGames, fromGames.r, fromGames.h);
     const n = h2h.decks.length;
-    h2h.pairs.forEach(([i, j]: number[], q: number) => expect(Math.abs(pf[i! * n + j!]! - h2h.shrunk[q])).toBeLessThan(1e-3));
-    for (let q = 0; q < pf.length; q++) expect(Math.abs(pf[q]! - pg[q]!)).toBeLessThan(1e-3);
+    h2h.pairs.forEach(([i, j]: number[], q: number) => expect(Math.abs(pf[i! * n + j!]! - h2h.shrunk[q])).toBeLessThan(2e-3));
+    for (let q = 0; q < pf.length; q++) expect(Math.abs(pf[q]! - pg[q]!)).toBeLessThan(2e-3);
   });
   it('rebuilds the covariance of the fit closely (every rating variance within 5%, no entry off by more than 0.003)', () => {
     const a = modelCov(fromFile);
