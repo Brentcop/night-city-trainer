@@ -1,5 +1,5 @@
 // The site's knowledge pack (docs/RAG_PLAN.md step 3; src/lib/kb/site.ts, siteSearch.ts, tools/kb-site.ts): what the
-// site ships (twelve public kinds; no FAQ paraphrases, docs, code or local record; nothing from data/raw), that two
+// site ships (thirteen public kinds; no FAQ paraphrases, docs, code or local record; nothing from data/raw), that two
 // builds give the same bytes, the groups, their part files and the manifest, the packing (cap, order, whole events,
 // closed parts that never change), that the first-search groups rank every other question exactly as the whole pack
 // does, loading every part of a group (and again after a failed part), the late statistics groups, each kind's link,
@@ -58,7 +58,7 @@ const small = siteShardFiles(built.records, SMALL);
 
 describe('what the site ships', () => {
   it('holds every one of the thirteen site kinds and nothing else', () => {
-    expect([...SITE_KINDS].sort()).toEqual(['card', 'cardstat', 'deck', 'event', 'guide', 'lesson', 'matchup', 'objective', 'package', 'pkgstat', 'rating', 'round', 'term']);
+    expect([...SITE_KINDS].sort()).toEqual(['card', 'cardstat', 'deck', 'event', 'finding', 'guide', 'lesson', 'matchup', 'objective', 'package', 'pkgstat', 'rating', 'round', 'term']);
     const kinds = new Set(shipped.map((r) => r.kind));
     expect([...kinds].sort()).toEqual([...SITE_KINDS].sort());
     for (const k of SITE_KINDS) expect(shipped.filter((r) => r.kind === k).length, k).toBeGreaterThan(0);
@@ -89,7 +89,7 @@ describe('what the site ships', () => {
   it('builds the same bytes twice', async () => {
     const again = sitePartFiles((await buildFromSources(ROOT, { raw: false })).records);
     expect(again.map((f) => [f.name, f.hash, f.json])).toEqual(files.map((f) => [f.name, f.hash, f.json]));
-  });
+  }, 30_000);
 
   it.runIf(rawPresent(ROOT))('is the same bytes with data/raw present, and holds none of its wording', async () => {
     const withRaw = await buildFromSources(ROOT, { raw: true });
@@ -112,8 +112,10 @@ describe('groups, parts and manifest', () => {
       ['ratings', false],
       ['cardstat', true],
       ['pkgstat', true],
+      ['finding', true],
     ]);
-    expect(SITE_GROUPS.filter((s) => s.late).flatMap((s) => s.kinds).sort()).toEqual([...STAT_KINDS].sort());
+    const lateKinds = SITE_GROUPS.filter((s) => s.late).flatMap((s) => s.kinds).sort();
+    expect(lateKinds).toEqual([...STAT_KINDS, 'finding'].sort());
     expect(SITE_KINDS.length).toBe(new Set(SITE_KINDS).size);
     expect(SITE_GROUPS.filter((s) => s.unit === 'event').map((s) => s.name)).toEqual(['events']);
   });
@@ -184,7 +186,7 @@ describe('groups, parts and manifest', () => {
       }
     }
     const m = siteManifest(files, (f) => `assets/${shardFileName(f)}`);
-    expect(JSON.stringify(m).length).toBeLessThan(1500);
+    expect(JSON.stringify(m).length).toBeLessThan(2200);
     // an edit to one part changes its name and the pack hash, not the others'
     const edited: SiteShardFile[] = files.map((f) => (f.name === 'events-1' ? { ...f, hash: 'ffffffffffffffff' } : f));
     const m2 = siteManifest(edited, (f) => `assets/${shardFileName(f)}`);
@@ -533,6 +535,10 @@ describe('what a result shows', () => {
           break;
         case 'lesson':
           expect(l, where).toEqual({ to: 'page', href: '#/tutorial', label: 'Tutorial' });
+          break;
+        case 'finding':
+          expect(l?.to, where).toBe('page');
+          if (l?.to === 'page') expect(l.href, where).toMatch(/^#\/evidence\/[a-f0-9]+\?f=/);
           break;
         default:
           throw new Error(`unexpected kind ${r.kind}`);

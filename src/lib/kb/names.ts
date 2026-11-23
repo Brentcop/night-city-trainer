@@ -92,6 +92,13 @@ export function shortNames(records: readonly NamedRecord[], forms: (title: strin
 /** Deck short names (deckNameForms) safe to look for inside a question; see shortNames. */
 export const deckShortNames = (decks: readonly NamedRecord[], taken: (key: string) => boolean) => shortNames(decks, deckNameForms, taken);
 
+/** Strip a trailing possessive ('s or lone ') from a name-key phrase: "smasher's" → "smasher". */
+function stripPossessive(s: string): string {
+  if (s.endsWith("'s")) return s.slice(0, -2);
+  if (s.endsWith("'")) return s.slice(0, -1);
+  return s;
+}
+
 /** Names shorter than this are found only when they are the whole query (a phrase scan would hit the Legend "V"). */
 export const MIN_PHRASE_CHARS = 3;
 
@@ -124,15 +131,18 @@ export function findNameHits(given: NameIndex | readonly NameIndex[], q: string,
   const push = (ids: readonly string[], words: number) => {
     for (const id of ids) if (!out.some((h) => h.id === id)) out.push({ id, words });
   };
-  const words = nameKey(q.replace(/[?!,;()"“”]/g, ' ')).split(' ').filter(Boolean);
-  push(named(nameKey(q)) ?? [], nameKey(q).split(' ').filter(Boolean).length);
+  const words = nameKey(q.replace(/[?!,;()”””]/g, ' ')).split(' ').filter(Boolean);
+  const qKey = nameKey(q);
+  const qPoss = stripPossessive(qKey);
+  push(named(qKey) ?? (qPoss !== qKey ? named(qPoss) : undefined) ?? [], qKey.split(' ').filter(Boolean).length);
   const taken: boolean[] = words.map(() => false);
   for (let n = Math.min(maxWords, words.length); n >= 1; n--) {
     for (let i = 0; i + n <= words.length; i++) {
       if (taken.slice(i, i + n).some(Boolean)) continue;
       const phrase = words.slice(i, i + n).join(' ');
       const bare = phrase.replace(/[.:']+$/, '');
-      const ids = (named(phrase) ?? named(bare) ?? []).filter(inPhrase);
+      const poss = stripPossessive(bare);
+      const ids = (named(phrase) ?? named(bare) ?? (poss !== bare ? named(poss) : undefined) ?? []).filter(inPhrase);
       if (!ids.length || bare.length < MIN_PHRASE_CHARS) continue;
       push(ids, n);
       for (let j = i; j < i + n; j++) taken[j] = true;

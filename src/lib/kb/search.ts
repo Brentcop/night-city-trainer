@@ -308,13 +308,21 @@ export const KIND_CUES: Readonly<Record<string, readonly KbKind[]>> = {
   stat: ['cardstat', 'pkgstat'],
   statistic: ['cardstat', 'pkgstat'],
   telemetry: ['cardstat', 'pkgstat'],
+  // evidence findings (ROADMAP2 §11 D27)
+  finding: ['finding'],
+  evidence: ['finding'],
+  change: ['finding'],
+  effect: ['finding'],
+  gain: ['finding'],
+  cost: ['finding'],
+  association: ['finding'],
 };
 
 /**
  * Measured kinds that are many and look alike (a matchup or round record per pairing or round): they join the keyword
  * and linked lists only when the question asks for their kind (KIND_CUES); named exactly, they are always found.
  */
-export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', 'rating', 'cardstat', 'pkgstat'];
+export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', 'rating', 'cardstat', 'pkgstat', 'finding'];
 
 /**
  * Kinds left out of the keyword ranker's corpus statistics (document count, document frequencies, mean length): they
@@ -325,7 +333,7 @@ export const CUE_ONLY_KINDS: readonly KbKind[] = ['round', 'matchup', 'event', '
  * questions, before any look at `test`: one more answerable question was refused and one fell out of the first five,
  * with nothing gained, so the list stays as it is.
  */
-export const STATS_FREE_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
+export const STATS_FREE_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat', 'finding'];
 
 /** The statistics kinds (step 2.4): what STAT_WORDS cues and rankStats orders. */
 export const STAT_KINDS: readonly KbKind[] = ['cardstat', 'pkgstat'];
