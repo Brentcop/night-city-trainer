@@ -120,7 +120,7 @@ import { gameIds, ledgerBot } from '../src/lib/changeLedger';
 import { dependsOnOpponentWords, HeldOutTracker, withSplit, type SplitNomineeRecord } from '../src/lib/pairedSplit';
 import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
 import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
-import { forgeSummaryMarkdown } from './forge-summary';
+import { forgeStrengthWord, forgeSummaryMarkdown } from './forge-summary';
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -563,7 +563,8 @@ async function forge(target: (typeof lib)[number]) {
         : `baseline ${pct(c.baseWr)} vs swap ${pct(c.candWr)}; held-out paired gain ${formatGain(c.heldOut)}${RULE.kind === 'evidence' ? ` (${c.settle?.stages ? 'always-valid ' : ''}z ${c.heldOut.z.toFixed(2)}, ${c.looks} stage${c.looks === 1 ? '' : 's'})` : ''}`;
       log.push(`Confirmation of ${r.m.label} (${c.priorGames ? 'held-out paired games pooled with earlier runs' : 'fresh paired games'}; screening ${formatGain(r.iv)}): ${line} → **${word(c)}**${c.outcome === 'adopt' && i !== pick ? ' (another nominee had the higher lower bound)' : ''}`, '');
       const why = c.settle ? settleWords(c.settle, c.heldOut.games) : c.stopped ? stoppedWords(c.stopped, c.heldOut.games, RULE.futilityMaxGainPp) : '';
-      console.log(`  confirm ${r.m.label}: ${line} → ${outcomeWord(c.outcome).toUpperCase()}${why ? ` (${why})` : ''}`);
+      const strength = c.heldOut.games >= 20 ? ` [${forgeStrengthWord(c.heldOut, !!c.priorGames)}]` : '';
+      console.log(`  confirm ${r.m.label}: ${line}${strength} → ${outcomeWord(c.outcome).toUpperCase()}${why ? ` (${why})` : ''}`);
       // its held-out games by opponent: one line when the per-opponent figures differ by more than chance
       const depends = noms[i] ? dependsOnOpponentWords(noms[i], oppName) : null;
       if (depends) {
@@ -599,7 +600,7 @@ async function forge(target: (typeof lib)[number]) {
   const pkgChanges = packageChanges(target.deck, deck);
   const adoptedPkg = adoptedRows.filter((h) => tried.includes(h.change)).map((h) => h.change);
   const pkgLine = PACKAGES ? `\n// Packages: ${describePlan(plan)}; ${describeChanges(pkgChanges)}${adoptedPkg.length ? `; package moves adopted: ${adoptedPkg.join('; ')}` : ''}` : '';
-  const withGain = (h: (typeof history)[number]) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)}${h.priorGames ? `, pooled: ${h.priorGames} from earlier runs` : ''})` : ''}`;
+  const withGain = (h: (typeof history)[number]) => `${h.change}${h.gain ? ` (${forgeStrengthWord(h.gain, !!h.priorGames)}; held-out ${formatGain(h.gain)}${h.priorGames ? `, pooled: ${h.priorGames} from earlier runs` : ''})` : ''}`;
   if (changed) {
     const inCustom = target.kind === 'custom' || target.kind === 'original';
     // ladder decks are our own theorized lists: forge them in place and keep their full provenance header

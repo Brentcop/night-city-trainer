@@ -3,6 +3,9 @@
 // per-generation win rates as what they are: each generation's own new screening games, not a trend
 // (docs/SYNERGIES.md "The tuner's result against the original"; the Deck Lab says it the same way).
 import { formatGain, type PairedInterval } from '../src/lib/evidence';
+import { type Method, strengthOf } from '../src/lib/findings';
+import { STRENGTH_WORDS } from '../src/lib/findingWords';
+import { SIM_VERSION } from '../src/lib/tournament';
 
 export interface ForgeGenSummary {
   gen: number;
@@ -28,10 +31,17 @@ export interface ForgeDeckSummary {
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 const adoptedOf = (d: ForgeDeckSummary) => d.gens.filter((h) => !h.change.startsWith('kept'));
 
-/** The held-out result in words: each adopted change with its paired gain, or "no change adopted" with why. */
+/** The strength word for a held-out paired gain interval. */
+export function forgeStrengthWord(g: PairedInterval, pooled?: boolean): string {
+  const method: Method = pooled ? 'paired-pooled' : 'paired-staged';
+  const s = strengthOf({ estimate: g.mean, lower: g.lower, upper: g.upper, baseline: 0, n: g.games, method, nature: 'effect', corrected: false, simVersion: SIM_VERSION }, SIM_VERSION);
+  return STRENGTH_WORDS[s];
+}
+
+/** The held-out result in words: each adopted change with its paired gain and strength, or "no change adopted" with why. */
 export function forgeResultText(d: ForgeDeckSummary): string {
   const adopted = adoptedOf(d);
-  if (adopted.length) return `adopted ${adopted.map((h) => `${h.change}${h.gain ? ` (held-out ${formatGain(h.gain)}${h.priorGames ? `, pooled: ${h.priorGames} from earlier runs` : ''})` : ''}`).join('; ')}`;
+  if (adopted.length) return `adopted ${adopted.map((h) => `${h.change}${h.gain ? ` (${forgeStrengthWord(h.gain, !!h.priorGames)}; held-out ${formatGain(h.gain)}${h.priorGames ? `, pooled: ${h.priorGames} from earlier runs` : ''})` : ''}`).join('; ')}`;
   const unsure = d.gens.filter((h) => h.change.startsWith('kept (could not tell')).map((h) => h.change.replace(/^kept \((.*)\)$/, '$1'));
   return `no change adopted${unsure.length ? ` (${unsure.join('; ')})` : ''}`;
 }
