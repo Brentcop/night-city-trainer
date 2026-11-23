@@ -7,9 +7,11 @@ import { HeuristicAgent, standardError, worldValue, type DecisionScores } from '
 import { makeWorlds, type World } from './playOut';
 import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, PLAN_TEXT, type ProfileKey } from './archetype';
-import { clampPlayOut, DECIDED_EVAL, GIG_SWING, seatArchetype } from './eval';
+import { clampPlayOut, DECIDED_EVAL, GIG_SWING, planFor, seatArchetype } from './eval';
 import { handFeatures } from './mulligan';
 import { behindText, gapFigure, gapSize, optionName } from '../lib/coachWords';
+import type { GigPlan } from './knowledge';
+import { CARD_TAG_POLICY } from './heuristic';
 import { BEST_GIGS, fixedTerms, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
@@ -39,8 +41,8 @@ export const COACH_SELL_KEEP_GIGS = 0.05;
 /** The coach before the review-driven refinement (kept for comparisons). */
 export const COACH_CONFIG_V1 = { profiles: BEST_PROFILES, impact: 40, deep: 12 };
 
-export function makeCoach() {
-  return new HeuristicAgent({ name: 'Coach', ...COACH_CONFIG, sellKeepScarce: COACH_SELL_KEEP_GIGS * GIG_SWING });
+export function makeCoach(rolloutPool?: import('./playoutPool').RolloutPool) {
+  return new HeuristicAgent({ name: 'Coach', ...COACH_CONFIG, sellKeepScarce: COACH_SELL_KEEP_GIGS * GIG_SWING, rolloutPool });
 }
 
 /** Evaluation points → "Gig swing". */
@@ -234,12 +236,119 @@ export function mulliganWhy(g: Game, p: PlayerId, mulligan: boolean): string {
   return `Mulligan: this hand has ${missing.join(', ')}. ${rule}`;
 }
 
+/** The dominant Gig plan trait in plain words, for a reason sentence. */
+function planWant(plan: GigPlan): string {
+  const entries: [string, number][] = [
+    ['high Gig values', plan.high],
+    ['low Gig values', plan.low],
+    ['Gig value pairs', plan.pairs],
+    ['diverse Gig values', plan.diverse],
+    ['even-or-odd Gig parity', plan.parity],
+    ['a d20', plan.d20],
+  ];
+  entries.sort((a, b) => b[1] - a[1]);
+  if (entries[0][1] < 0.1) return 'a balanced Gig spread';
+  return entries[0][0];
+}
+
+function gigWhy(g: Game, d: Decision, index: number): string {
+  const p = d.player;
+  const opt = d.options[index];
+  if (!opt || opt.gig === undefined) return '';
+  const name = opt.label;
+  const myPlan = planFor(g, p, p);
+  if (d.tag === 'rollIn') {
+    const x = g.gig(opt.gig);
+    const wantSmall = myPlan.low > myPlan.high + 0.2;
+    return `Roll in the d${x.sides}: your deck wants ${wantSmall ? 'low Gig values, so a smaller die gives better odds' : 'high Gig values, so a bigger die reaches higher'}.`;
+  }
+  if (d.tag === 'steal') {
+    const x = g.gig(opt.gig);
+    return `Steal the d${x.sides} (value ${x.value}): taking it improves your Gig plan the most.`;
+  }
+  if (d.tag === 'swapGive') return `Give up ${name}: swapping this Gig produces the best plan improvement.`;
+  if (d.tag === 'swapTake') return `Take ${name}: this is the best Gig to receive in the swap.`;
+  if (d.intent === 'harm') return `${name}: disrupts the rival's Gig plan the most.`;
+  return `${name}: best fit for your deck's Gig plan (wants ${planWant(myPlan)}).`;
+}
+
+function gigValueWhy(g: Game, d: Decision, index: number): string {
+  const p = d.player;
+  const opt = d.options[index];
+  if (!opt) return '';
+  if (opt.gig !== undefined && opt.n !== undefined) {
+    const myPlan = planFor(g, p, p);
+    return `Set the Gig to ${opt.n}: best fit for your deck's plan (wants ${planWant(myPlan)}).`;
+  }
+  if (opt.key === 'none') return 'Leave the Gig as it is: changing it would not improve the plan.';
+  return '';
+}
+
+function unitWhy(g: Game, d: Decision, index: number): string {
+  const p = d.player;
+  const opt = d.options[index];
+  if (!opt) return '';
+  if (opt.uid === undefined) {
+    if (opt.key === 'none') return 'Skip: no good target here.';
+    return '';
+  }
+  const c = g.c(opt.uid);
+  const name = g.name(opt.uid);
+  const mine = c.controller === p;
+  if (d.tag === 'equip') return `Equip ${name}: ${c.lag ? 'it just entered and can use the boost' : c.spent ? 'it is spent and least at risk' : 'it is ready and can use the boost in combat'}.`;
+  if (d.tag === 'call') return c.known ? `Call ${name}: it is the most valuable face-down Legend you know.` : `Call ${name}: a blind pick among your face-down Legends.`;
+  if (d.tag === 'adrenaline' || d.tag === 'lagAttack') return `Choose ${name}: a lagging Unit with ${g.power(c)} power that could not otherwise attack this turn.`;
+  if (d.tag === 'bottomdeckOwn') return `Give up ${name}: it is the least valuable of your Units.`;
+  if (d.intent === 'harm' || (!mine && d.intent !== 'help')) return `Target ${name}: ${!mine ? `the rival's most threatening Unit (${g.power(c)} power${!c.spent ? ', ready' : ''})` : 'the least valuable of your own Units'}.`;
+  const att = g.s.attack;
+  if (att && (att.attacker === opt.uid || att.targetUnit === opt.uid)) return `Choose ${name}: it is in the current fight.`;
+  return `Choose ${name}: your ${c.spent ? 'spent' : 'ready'} Unit with ${g.power(c)} power.`;
+}
+
+function cardWhy(g: Game, d: Decision, index: number): string {
+  const opt = d.options[index];
+  if (!opt) return '';
+  if (opt.uid === undefined) {
+    if (opt.key === 'none') return 'Skip: none of the choices are worth it.';
+    return '';
+  }
+  const c = g.c(opt.uid);
+  const name = g.name(opt.uid);
+  const policy = CARD_TAG_POLICY[d.tag ?? ''] ?? (d.intent === 'harm' ? 'target' : 'take');
+  if (policy === 'blind') return `${name}: a blind pick.`;
+  if (policy === 'take') return `Take ${name}: it is the highest-value card among the choices.`;
+  if (policy === 'giveUp') return `Give up ${name}: it is the lowest-value card you can spare.`;
+  const mine = c.controller === d.player;
+  if (!mine) return `Target ${name}: the rival's most valuable card among the choices.`;
+  return `${name}: the best available choice by card value.`;
+}
+
+function modeWhy(g: Game, d: Decision, index: number): string {
+  const p = d.player;
+  const opt = d.options[index];
+  if (!opt) return '';
+  const label = opt.label;
+  if (d.tag === 'cardType') return `Name "${label}": it is the most common card type left in your deck.`;
+  if (d.tag === 'foolOnTheHill') {
+    return /^Trash/.test(label)
+      ? `Trash: the revealed cards are worth more than average draws, so denying them hurts the rival.`
+      : `Add to hand: the revealed cards are not worth more than average draws.`;
+  }
+  if (d.tag === 'rivalChoice') return `${label}: the weakest effect for the rival's purposes.`;
+  const rivalUnits = g.units(other(p));
+  if (/defeat|bottom-deck/i.test(label) && rivalUnits.length) return `${label}: removes a rival Unit from the board.`;
+  if (/Draw \d/i.test(label)) return `${label}: card advantage is the priority here.`;
+  if (/can't attack/i.test(label) && rivalUnits.some((u) => !u.spent)) return `${label}: shuts down ready rival Units.`;
+  if (/can't be defeated/i.test(label) && g.s.attack) return `${label}: protects your Unit in the current fight.`;
+  return `${label}: the strongest effect for the board right now.`;
+}
+
 /**
  * `lift`: the measured lift of the deciding seat's packages (packageLift.ts seatLift; undefined or null = no synergy
  * report, so package notes are worded as unmeasured ideas).
  */
-export async function advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice> {
-  const coach = makeCoach();
+export async function advise(g: Game, d: Decision, lift?: SeatLift, rolloutPool?: import('./playoutPool').RolloutPool): Promise<Advice> {
+  const coach = makeCoach(rolloutPool);
   const [index] = await coach.decide(g, d);
   const grade = basisOf(coach.lastScores);
   let why = coach.lastThought;
@@ -256,6 +365,16 @@ export async function advise(g: Game, d: Decision, lift?: SeatLift): Promise<Adv
     if (said) why = said;
   } else if (d.kind === 'yesno' && d.tag === 'mulligan') {
     why = mulliganWhy(g, d.player, d.options[index]?.key === 'yes');
+  } else if (d.kind === 'gig') {
+    why = gigWhy(g, d, index);
+  } else if (d.kind === 'gigValue') {
+    why = gigValueWhy(g, d, index);
+  } else if (d.kind === 'unit') {
+    why = unitWhy(g, d, index);
+  } else if (d.kind === 'card') {
+    why = cardWhy(g, d, index);
+  } else if (d.kind === 'mode') {
+    why = modeWhy(g, d, index);
   }
   // anything still in the bot's raw form (scored without the values above): plain words
   const m = why.match(/^(.*?) \((?:eval|projected) (-?[\d.]+) vs (?:pass )?(-?[\d.]+)\)$/);
@@ -471,8 +590,8 @@ function rebuild(q: CoachRequest): Game {
 }
 
 /** advise() for a serialised position: rebuilds the game and asks the same coach. */
-export function adviseRequest(q: CoachRequest): Promise<Advice> {
-  return advise(rebuild(q), q.decision, q.lift);
+export function adviseRequest(q: CoachRequest, rolloutPool?: import('./playoutPool').RolloutPool): Promise<Advice> {
+  return advise(rebuild(q), q.decision, q.lift, rolloutPool);
 }
 
 /** A gap under this many Gigs is a close call whatever its spread (the scorecard's threshold before INFO-1). */
@@ -548,11 +667,11 @@ export interface ScoreRequest {
  * pick (it sold by rule, or had one option to roll out), both moves are scored in COACH_WORLDS fresh shared worlds.
  * Returns the scored options (yours, and the coach's when it was rescored).
  */
-export async function scoreMoveRequest(q: ScoreRequest): Promise<GradedOption[]> {
+export async function scoreMoveRequest(q: ScoreRequest, rolloutPool?: import('./playoutPool').RolloutPool): Promise<GradedOption[]> {
   const g = rebuild(q.req);
   const d = q.req.decision;
   if (!scorable(d)) return [];
-  const coach = makeCoach();
+  const coach = makeCoach(rolloutPool);
   const p = d.player;
   const pick = q.grade?.opts.find((o) => o.i === q.coach);
   const reuse = q.grade?.worlds && pick?.w && pick.w.length === q.grade.worlds.length;
