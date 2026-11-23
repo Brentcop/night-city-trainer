@@ -52,9 +52,12 @@ export interface PartnerAware {
  * impact (only cards those decks play have a number), best prior first, `cands` of them. Under a plan, cuts the plan
  * protects are skipped and swaps that break it are dropped. With `partner` (--partner-aware) cuts and adds are ranked
  * partner-aware; without it the candidates are exactly the pinned ones (tests/deck-packages-defaults.test.ts).
+ *
+ * With `deckImpact` (--per-deck-adds) additions are ranked by per-deck impact when available (cards the deck itself
+ * played), falling back to global impact; the pool of outsider adds includes cards with a number in either table.
  */
-export function forgeSwaps(deck: DeckList, rep: DeckReport, globalImpact: Record<string, number>, cands: number, plan: PackagePlan = {}, partner?: PartnerAware): Mutation[] {
-  return forgeSwapsExplained(deck, rep, globalImpact, cands, plan, partner).swaps;
+export function forgeSwaps(deck: DeckList, rep: DeckReport, globalImpact: Record<string, number>, cands: number, plan: PackagePlan = {}, partner?: PartnerAware, deckImpact?: Record<string, number>): Mutation[] {
+  return forgeSwapsExplained(deck, rep, globalImpact, cands, plan, partner, deckImpact).swaps;
 }
 
 /** forgeSwaps, with every main-deck card's cut ranking (both scores, offered or not, and why) when partner-aware. */
@@ -65,15 +68,20 @@ export function forgeSwapsExplained(
   cands: number,
   plan: PackagePlan = {},
   partner?: PartnerAware,
+  deckImpact?: Record<string, number>,
 ): { swaps: Mutation[]; cuts?: (CutRow & { offered: boolean; plainOffered: boolean; why: string })[] } {
   const planned = !isEmptyPlan(plan);
   const cs = counts(deck.main);
   const lim = ramLimits(deck);
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
+  // per-deck additions: when deckImpact is provided, rank outsiders by per-deck numbers when available, global otherwise;
+  // the pool of outsider adds includes cards with a number in either table
+  const addImpact = (id: string): number | undefined => (deckImpact ? (deckImpact[id] ?? globalImpact[id]) : globalImpact[id]);
+  const hasAddImpact = (id: string): boolean => (deckImpact ? (deckImpact[id] !== undefined || globalImpact[id] !== undefined) : globalImpact[id] !== undefined);
   // cuts: lowest IWD in this deck (cards never/rarely seen fall back to global impact)
   const plainCuts = [...cs.keys()]
     .filter((id) => !planned || canCut(deck, id, plan))
-    .map((id) => ({ id, v: iwd.get(id) ?? globalImpact[id] ?? 0 }))
+    .map((id) => ({ id, v: iwd.get(id) ?? addImpact(id) ?? 0 }))
     .sort((a, b) => a.v - b.v)
     .slice(0, 3);
   let cuts = plainCuts;
@@ -81,12 +89,13 @@ export function forgeSwapsExplained(
   let rows: (CutRow & { offered: boolean; plainOffered: boolean; why: string })[] | undefined;
   if (partner) {
     const legal = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3).map((c) => c.id);
+    const mergedImpact = deckImpact ? { ...globalImpact, ...deckImpact } : globalImpact;
     const picks = partnerAwarePicks(deck, {
-      plain: (id) => iwd.get(id) ?? globalImpact[id] ?? 0,
+      plain: (id) => iwd.get(id) ?? addImpact(id) ?? 0,
       sums: partner.sums,
       lockedWhy: (id) => (planned && !canCut(deck, id, plan) ? 'the package plan protects it' : undefined),
       own: (id) => iwd.get(id) ?? 0,
-      globalImpact,
+      globalImpact: mergedImpact,
       outside: legal,
     });
     cuts = picks.cuts;
@@ -94,11 +103,10 @@ export function forgeSwapsExplained(
     const was = new Set(plainCuts.map((c) => c.id));
     rows = picks.rows.map((r) => ({ ...r, plainOffered: was.has(r.id), why: cutReason(r, was.has(r.id)) }));
   } else {
-    // adds: +1 of the deck's own best card, plus the best legal cards by the impact of the decks in src/data/analysis.json
-    // (the 7 meta decks' cards only; a card none of them plays is never offered here)
+    // adds: +1 of the deck's own best card, plus the best legal cards by impact (per-deck when available, else format-wide)
     const own = [...cs.entries()].filter(([, n]) => n < 3).map(([id]) => ({ id, v: iwd.get(id) ?? 0 })).sort((a, b) => b.v - a.v).slice(0, 2);
-    const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && globalImpact[c.id] !== undefined)
-      .map((c) => ({ id: c.id, v: globalImpact[c.id] }))
+    const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && hasAddImpact(c.id))
+      .map((c) => ({ id: c.id, v: addImpact(c.id)! }))
       .sort((a, b) => b.v - a.v)
       .slice(0, 4);
     adds = [...own, ...outside.filter((o) => !own.some((x) => x.id === o.id))];
@@ -117,10 +125,10 @@ export function forgeSwapsExplained(
   return { swaps: out.sort((a, b) => b.prior - a.prior).slice(0, cands), ...(rows ? { cuts: rows } : {}) };
 }
 
-/** The forge's card score for package moves: the list's own "Δ when drawn", else the impact pooled over the 7 meta decks of src/data/analysis.json. */
-export function forgeScore(rep: DeckReport, globalImpact: Record<string, number>): (id: string) => number {
+/** The forge's card score for package moves: the list's own "Δ when drawn", else per-deck impact, else format-wide. */
+export function forgeScore(rep: DeckReport, globalImpact: Record<string, number>, deckImpact?: Record<string, number>): (id: string) => number {
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
-  return (id) => iwd.get(id) ?? globalImpact[id] ?? 0;
+  return (id) => iwd.get(id) ?? deckImpact?.[id] ?? globalImpact[id] ?? 0;
 }
 
 /** Package moves for a tuner round (tunerPackageMoves) as tuner candidates. */

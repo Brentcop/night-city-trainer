@@ -107,10 +107,10 @@ const labelOf = (id: string) => {
   const c = CARD_BY_ID[id];
   return c ? cardLabel(c) : id;
 };
-/** The tuner's plain card score: the list's own "Δ when drawn", else format-wide impact, else 0. */
-const plainScore = (rep: DeckReport) => {
+/** The tuner's plain card score: the list's own "Δ when drawn", else per-deck impact, else format-wide impact, else 0. */
+const plainScore = (rep: DeckReport, deckImpact?: Record<string, number>) => {
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
-  return (id: string) => iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0;
+  return (id: string) => iwd.get(id) ?? (deckImpact ? (deckImpact[id] ?? GLOBAL_IMPACT[id]) : GLOBAL_IMPACT[id]) ?? 0;
 };
 
 /** Partner-aware ranking input for candidateSwaps (src/lib/cutRanking.ts): the baseline's own summaries. */
@@ -123,37 +123,43 @@ export interface PartnerAwareInput {
  * format-wide. Under a package plan, cuts the plan protects are skipped and swaps that break it are dropped.
  * With `partner` the cuts and adds are ranked partner-aware (src/lib/cutRanking.ts) and `rows` explains every cut;
  * without it the candidates are exactly the ones before that ranking existed (tests/deck-packages-defaults.test.ts).
+ *
+ * With `deckImpact` (per-deck additions) outsiders are ranked by per-deck numbers when available, falling back to
+ * format-wide impact; the pool of outsider adds includes cards with a number in either table.
  */
-export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}, partner?: PartnerAwareInput): Swap[] {
-  return swapsAndCuts(deck, rep, n, plan, partner).swaps;
+export function candidateSwaps(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}, partner?: PartnerAwareInput, deckImpact?: Record<string, number>): Swap[] {
+  return swapsAndCuts(deck, rep, n, plan, partner, deckImpact).swaps;
 }
 
 /** candidateSwaps with the partner-aware cut ranking (rows: every main-deck card, both scores, offered or not and why). */
-export function swapsAndCuts(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}, partner?: PartnerAwareInput): { swaps: Swap[]; cuts?: CutExplained[] } {
+export function swapsAndCuts(deck: DeckList, rep: DeckReport, n = 6, plan: PackagePlan = {}, partner?: PartnerAwareInput, deckImpact?: Record<string, number>): { swaps: Swap[]; cuts?: CutExplained[] } {
   const planned = !isEmptyPlan(plan);
   const cs = counts(deck.main);
   const lim = ramLimits(deck);
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
+  const addImpact = (id: string): number | undefined => (deckImpact ? (deckImpact[id] ?? GLOBAL_IMPACT[id]) : GLOBAL_IMPACT[id]);
+  const hasAddImpact = (id: string): boolean => (deckImpact ? (deckImpact[id] !== undefined || GLOBAL_IMPACT[id] !== undefined) : GLOBAL_IMPACT[id] !== undefined);
   let cuts: { id: string; v: number }[];
   let adds: { id: string; v: number }[];
   let rows: CutExplained[] | undefined;
   if (partner) {
     const legal = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3).map((c) => c.id);
+    const mergedImpact = deckImpact ? { ...GLOBAL_IMPACT, ...deckImpact } : GLOBAL_IMPACT;
     const picks = partnerAwarePicks(deck, {
-      plain: plainScore(rep),
+      plain: (id) => iwd.get(id) ?? addImpact(id) ?? 0,
       sums: partner.sums,
       lockedWhy: (id) => (planned ? cutBlock(deck, id, plan) : undefined),
       own: (id) => iwd.get(id) ?? 0,
-      globalImpact: GLOBAL_IMPACT,
+      globalImpact: mergedImpact,
       outside: legal,
     });
     cuts = picks.cuts;
     adds = picks.adds;
-    rows = explainCuts(deck, rep, plan, picks.rows);
+    rows = explainCuts(deck, rep, plan, picks.rows, deckImpact);
   } else {
     cuts = [...cs.keys()]
       .filter((id) => !planned || canCut(deck, id, plan))
-      .map((id) => ({ id, v: iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }))
+      .map((id) => ({ id, v: iwd.get(id) ?? addImpact(id) ?? 0 }))
       .sort((a, b) => a.v - b.v)
       .slice(0, 3);
     const own = [...cs.entries()]
@@ -161,11 +167,8 @@ export function swapsAndCuts(deck: DeckList, rep: DeckReport, n = 6, plan: Packa
       .map(([id]) => ({ id, v: iwd.get(id) ?? 0 }))
       .sort((a, b) => b.v - a.v)
       .slice(0, 2);
-    const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3)
-      .flatMap((c) => {
-        const v = GLOBAL_IMPACT[c.id];
-        return v === undefined ? [] : [{ id: c.id, v }];
-      })
+    const outside = CARDS.filter((c) => c.type !== 'Legend' && c.ram <= lim[c.color] && (cs.get(c.id) ?? 0) < 3 && hasAddImpact(c.id))
+      .map((c) => ({ id: c.id, v: addImpact(c.id)! }))
       .sort((a, b) => b.v - a.v)
       .slice(0, 4);
     adds = [...own, ...outside.filter((o) => !own.some((x) => x.id === o.id))];
@@ -210,9 +213,9 @@ export interface CutExplained {
   why: string;
 }
 
-function explainCuts(deck: DeckList, rep: DeckReport, plan: PackagePlan, rows: (CutRow & { offered: boolean })[]): CutExplained[] {
+function explainCuts(deck: DeckList, rep: DeckReport, plan: PackagePlan, rows: (CutRow & { offered: boolean })[], deckImpact?: Record<string, number>): CutExplained[] {
   const planned = !isEmptyPlan(plan);
-  const plain = plainScore(rep);
+  const plain = plainScore(rep, deckImpact);
   const plainCuts = new Set(
     [...counts(deck.main).keys()]
       .filter((id) => !planned || canCut(deck, id, plan))
@@ -235,10 +238,10 @@ function explainCuts(deck: DeckList, rep: DeckReport, plan: PackagePlan, rows: (
   }));
 }
 
-/** Package moves for a tuning round, scored like the swaps (the list's own impact, else format-wide). */
-export function candidatePackageMoves(deck: DeckList, rep: DeckReport, plan: PackagePlan, o: { moves: boolean; n: number }): Swap[] {
+/** Package moves for a tuning round, scored like the swaps (the list's own impact, else per-deck, else format-wide). */
+export function candidatePackageMoves(deck: DeckList, rep: DeckReport, plan: PackagePlan, o: { moves: boolean; n: number; deckImpact?: Record<string, number> }): Swap[] {
   const iwd = new Map(rep.cards.filter((c) => Number.isFinite(c.iwd)).map((c) => [c.id, c.iwd]));
-  return tunerPackageMoves(deck, plan, { ...o, score: (id) => iwd.get(id) ?? GLOBAL_IMPACT[id] ?? 0 }).map((m) => ({ label: m.label, deck: m.deck, prior: m.prior, pkg: { kind: m.kind, added: m.added, removed: m.removed } }));
+  return tunerPackageMoves(deck, plan, { ...o, score: (id) => iwd.get(id) ?? o.deckImpact?.[id] ?? GLOBAL_IMPACT[id] ?? 0 }).map((m) => ({ label: m.label, deck: m.deck, prior: m.prior, pkg: { kind: m.kind, added: m.added, removed: m.removed } }));
 }
 
 export interface TuneOptions {
@@ -301,6 +304,12 @@ export interface TuneOptions {
    * ranks a change by its screening and held-out games together, and games of two bots are never pooled).
    */
   confirmBot?: string;
+  /** successive halving: screen in multiple rounds, halving the pool each time (1 = no halving, the default) */
+  screenRounds?: number;
+  /** how many swap candidates to start halving from (defaults to `cands` when no halving) */
+  initialCands?: number;
+  /** rank additions by per-deck impact when available (cards the deck itself played), falling back to global */
+  perDeckAdds?: boolean;
 }
 
 /** A change-ledger store the tuner can use: loaded per base list before each generation, then read synchronously. */
@@ -413,11 +422,13 @@ export const LAB_CONFIRM_SEEDS = 5_000;
  * `settle` says what it may add at most (`extra` games, never part of `estimate`), its reach and the further stages each
  * generation's seeds allow.
  */
-export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal' | 'untilSettled'> & Partial<Pick<TuneOptions, 'bot' | 'confirmBot'>>) {
+export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal' | 'untilSettled' | 'screenRounds' | 'initialCands'> & Partial<Pick<TuneOptions, 'bot' | 'confirmBot'>>) {
   const rule = adoptionRule(o.rule);
   const depth: SearchDepth = { ...DEPTH_DEFAULTS, ...o.depth };
   const pkN = o.packageCands ?? 3;
   const firstStage = o.games * 2;
+  const rounds = o.screenRounds ?? 1;
+  const initCands = o.initialCands ?? (rounds > 1 ? Math.max(o.cands, 20) : o.cands);
   const estimate = estimateGames({
     gens: o.gens,
     screenGames: o.games,
@@ -426,6 +437,8 @@ export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'pack
     depth,
     firstStage,
     rule,
+    screenRounds: rounds,
+    initialCands: initCands,
   });
   // the vs-original block: the first adoption is derived from its confirmation (gain 7), so the block plays at most
   // gens − 1 adoptions + the original once on the second adoption = gens × vsGames; with one generation it is always 0
@@ -545,8 +558,12 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       const report = analyzeDeck(deck.name, base.sums);
       const log: TuneLog = { gen, baseline: base.wr, report, swaps: [], adopted: null };
       logs.push(log);
-      // with the shortlist the generator's whole order (its first `cands` are the swaps screened without it)
-      const ranked = swapsAndCuts(deck, report, short ? Infinity : o.cands, plan, o.partnerAware ? { sums: base.sums } : undefined);
+      // per-deck impact for addition ranking (--per-deck-adds equivalent in the Lab)
+      const deckImp = o.perDeckAdds ? deckImpactOf(deck) : undefined;
+      const rounds = o.screenRounds ?? 1;
+      const initCands = o.initialCands ?? (rounds > 1 ? Math.max(o.cands, 20) : o.cands);
+      // with the shortlist the generator's whole order (its first `initCands` are the swaps screened without it)
+      const ranked = swapsAndCuts(deck, report, short ? Infinity : initCands, plan, o.partnerAware ? { sums: base.sums } : undefined, deckImp);
       let swaps = ranked.swaps;
       if (short && ledger) {
         const g = shortlistGeneration({
@@ -562,23 +579,56 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
         log.shortlist = g.note;
       }
       if (ranked.cuts) log.cuts = ranked.cuts;
-      if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN }));
+      if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN, deckImpact: deckImp }));
       const screened: { s: Swap; wr: number }[] = [];
       /** the screening games' places, for the ledger */
       const screenSlots = ledger ? blockSlots(seed0, o.games, opponents) : [];
-      const screen = async (list: Swap[], what: (s: Swap) => string) => {
-        for (const [k, s] of list.entries()) {
-          if (stop()) break;
-          p.phase = `Generation ${gen}: testing ${what(s)} ${k + 1} of ${list.length} on the same games`;
-          onProgress({ ...p, logs: [...logs] });
-          const r = await playSet(s.deck, field, seed0, o.games, o.bot, play, false, tick);
-          ledger?.record('screen', deck, s.deck, s.label, scored(screenSlots, base.scores, r.scores));
-          const iv = pairedInterval(r.scores, base.scores);
-          screened.push({ s, wr: r.wr });
-          log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games } });
-        }
+      const screenOne = async (s: Swap, screenSeed: number, screenGames: number, baseScores: number[], what: string, k: number, total: number) => {
+        if (stop()) return;
+        p.phase = `Generation ${gen}: testing ${what} ${k + 1} of ${total} on the same games`;
+        onProgress({ ...p, logs: [...logs] });
+        const r = await playSet(s.deck, field, screenSeed, screenGames, o.bot, play, false, tick);
+        const slots = ledger ? blockSlots(screenSeed, screenGames, opponents) : [];
+        if (ledger) ledger.record('screen', deck, s.deck, s.label, scored(slots, baseScores, r.scores));
+        const iv = pairedInterval(r.scores, baseScores);
+        screened.push({ s, wr: r.wr });
+        log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games } });
       };
-      await screen(swaps, (s) => (s.pkg ? 'package move' : 'swap'));
+      // successive halving: when rounds > 1, screen in rounds, halving the pool each time
+      if (rounds <= 1) {
+        for (const [k, s] of swaps.entries()) await screenOne(s, seed0, o.games, base.scores, s.pkg ? 'package move' : 'swap', k, swaps.length);
+      } else {
+        const gpr = Math.ceil(o.games / rounds);
+        const swapMuts = swaps.filter((s) => !s.pkg);
+        const pkgMuts = swaps.filter((s) => !!s.pkg);
+        let pool = swapMuts;
+        for (let r = 0; r < rounds && !stop(); r++) {
+          const isLast = r === rounds - 1;
+          const roundGames = isLast ? o.games - r * gpr : gpr;
+          const roundSeed = seed0 + r * gpr;
+          let roundBase: number[];
+          if (r === 0) {
+            roundBase = base.scores.slice(0, roundGames);
+          } else {
+            p.phase = `Generation ${gen}: measuring baseline for halving round ${r + 1}`;
+            onProgress({ ...p, logs: [...logs] });
+            const rb = await playSet(deck, field, roundSeed, roundGames, o.bot, play, false, tick);
+            roundBase = rb.scores;
+          }
+          const roundMuts = isLast ? [...pool, ...pkgMuts] : pool;
+          // clear screened for this round's data
+          const roundScreened: { s: Swap; wr: number }[] = [];
+          for (const [k, s] of roundMuts.entries()) {
+            await screenOne(s, roundSeed, roundGames, roundBase, s.pkg ? 'package move' : 'swap', k, roundMuts.length);
+            if (screened.length > roundScreened.length) roundScreened.push(screened[screened.length - 1]!);
+          }
+          if (!isLast) {
+            const keep = Math.max(o.cands, Math.ceil(pool.length / 2));
+            const survived = new Set(roundScreened.sort((a, b) => b.wr - a.wr).slice(0, keep).map((x) => x.s));
+            pool = pool.filter((s) => survived.has(s));
+          }
+        }
+      }
       // depth: combine the best screened single changes (those above the baseline)
       const seen = new Set([listKeyOf(deck), ...swaps.map((s) => listKeyOf(s.deck))]);
       const above = (pkg: boolean) => [...screened].filter((x) => !!x.s.pkg === pkg && x.wr > base.wr).sort((a, b) => b.wr - a.wr).map((x) => x.s);
@@ -589,7 +639,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
             ...(depth.cardsPerChange > 1 ? combinedCandidates(deck, above(false), { maxParts: depth.cardsPerChange, from: depth.combineFrom, plan, seen }, make) : []),
             ...(depth.packagesPerChange > 1 ? combinedCandidates(deck, above(true), { maxParts: depth.packagesPerChange, from: depth.combineFrom, plan, seen }, make) : []),
           ];
-      await screen(combos, () => 'combined change');
+      for (const [k, s] of combos.entries()) await screenOne(s, seed0, o.games, base.scores, 'combined change', k, combos.length);
       const all = [...swaps, ...combos];
       log.swaps.sort((a, b) => b.wr - a.wr);
       const seed1 = seed0 + 5_000;

@@ -168,6 +168,10 @@ export interface BudgetInput {
   rule: AdoptionRule;
   /** the baseline plays its own screening (forge, Lab); the optimizer counts it among the singles */
   baselineScreen?: boolean;
+  /** successive halving rounds (default 1 = no halving; each round halves the pool of single-swap candidates) */
+  screenRounds?: number;
+  /** initial candidates to start halving from (default = singles; must be >= singles when screenRounds > 1) */
+  initialCands?: number;
 }
 
 /**
@@ -175,13 +179,33 @@ export interface BudgetInput {
  * candidate is built. Per generation: screening (baseline + singles + package moves + combinations), then the
  * confirmation (the current list and each nominee, every stage). The futility stop (src/lib/evidence.ts) only ever
  * ends confirmations sooner, so it lowers what a run plays but never the most it may play.
+ *
+ * With `screenRounds > 1` (successive halving), the swap candidates start at `initialCands` and are halved each round
+ * on `ceil(screenGames / screenRounds)` games; package moves are added in the final round. Each round after the first
+ * plays its own baseline (the first round reuses the telemetry baseline).
  */
 export function estimateGames(o: BudgetInput): { min: number; max: number; screen: number; combos: number; confirm: number } {
   const legacy = o.rule.kind === 'any-gain';
   const combos =
     (o.depth.cardsPerChange > 1 ? maxCombined(Math.min(o.depth.combineFrom, o.singles), o.depth.cardsPerChange) : 0) +
     (o.depth.packagesPerChange > 1 ? maxCombined(Math.min(o.depth.combineFrom, o.packageMoves), o.depth.packagesPerChange) : 0);
-  const screen = o.screenGames * ((o.baselineScreen === false ? 0 : 1) + o.singles + o.packageMoves);
+  const rounds = o.screenRounds ?? 1;
+  let screen: number;
+  if (rounds <= 1) {
+    screen = o.screenGames * ((o.baselineScreen === false ? 0 : 1) + o.singles + o.packageMoves);
+  } else {
+    const gpr = Math.ceil(o.screenGames / rounds);
+    let pool = o.initialCands ?? o.singles;
+    screen = 0;
+    for (let r = 0; r < rounds; r++) {
+      const rGames = r === rounds - 1 ? o.screenGames - r * gpr : gpr;
+      const isLast = r === rounds - 1;
+      const cands = pool + (isLast ? o.packageMoves : 0);
+      const baseCost = r === 0 ? (o.baselineScreen === false ? 0 : 1) : 1;
+      screen += rGames * (baseCost + cands);
+      pool = Math.max(o.singles, Math.ceil(pool / 2));
+    }
+  }
   const combo = o.screenGames * combos;
   const confirm = o.firstStage * (legacy ? 1 : o.rule.capStages) * (1 + o.depth.nominees);
   return { min: o.gens * screen, max: o.gens * (screen + combo + confirm), screen, combos, confirm };

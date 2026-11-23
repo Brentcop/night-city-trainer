@@ -111,7 +111,7 @@ import { cliGameCache } from './game-cache';
 import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, halvingFlags, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import { byPooledGain, describeShortlist, outOfReach, pooledFigure, pooledWords, shortlistGeneration, skippedWords, type PooledFigure, type ShortlistNote } from '../src/lib/shortlist';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
@@ -121,6 +121,7 @@ import { dependsOnOpponentWords, HeldOutTracker, withSplit, type SplitNomineeRec
 import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
 import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
 import { forgeSummaryMarkdown } from './forge-summary';
+import { loadImpactTables } from './breed-data';
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -143,6 +144,7 @@ const { values: V, positionals } = cli(
     ...shortlistFlags(),
     ...settleFlags(),
     ...confirmBotFlag(),
+    ...halvingFlags(),
   },
   { maxPositionals: Infinity },
 );
@@ -159,6 +161,14 @@ const OUT = V.out;
 const PACKAGES = packagesOn(V);
 /** partner-aware cut and add ranking (--partner-aware, or any package flag; --plain-ranking turns it off) */
 const PARTNER = partnerAwareOn(V);
+/** --screen-rounds: successive halving rounds (1 = no halving, the default) */
+const SCREEN_ROUNDS = V['screen-rounds'] ?? 1;
+/** --initial-cands: how many swap candidates to start halving from (defaults to --cands when no halving) */
+const INITIAL_CANDS = V['initial-cands'] ?? (SCREEN_ROUNDS > 1 ? Math.max(CANDS, 20) : CANDS);
+/** --per-deck-adds: rank additions by per-deck impact when available */
+const PER_DECK = !!V['per-deck-adds'];
+/** per-deck impact tables (--per-deck-adds): per-list card Δ-when-drawn from data/seasons/deck-impact.json */
+const DECK_IMPACT_TABLES = PER_DECK ? loadImpactTables(BOT) : null;
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
 const DEPTH = depthFromFlags(V, 1);
@@ -247,7 +257,7 @@ const GLOBAL_IMPACT: Record<string, number> = (() => {
 
 /** package moves screened per generation, at most (for the estimate) */
 const PKG_N = PACKAGES ? (V['package-moves'] ? V['package-cands'] : 0) + (V['require-packages'] ? V['package-cands'] : 0) : 0;
-const ESTIMATE = estimateGames({ gens: GENS, screenGames: GAMES, singles: CANDS, packageMoves: PKG_N, depth: DEPTH, firstStage: FIRST_STAGE, rule: RULE });
+const ESTIMATE = estimateGames({ gens: GENS, screenGames: GAMES, singles: CANDS, packageMoves: PKG_N, depth: DEPTH, firstStage: FIRST_STAGE, rule: RULE, screenRounds: SCREEN_ROUNDS, initialCands: INITIAL_CANDS });
 /** --until-settled: what it may add at most per deck (not counted against --budget) */
 const SETTLE_EXTRA = SETTLE ? settleExtra({ gens: GENS, firstStage: FIRST_STAGE, stages: SETTLE_MAX_STAGES, nominees: DEPTH.nominees }) : undefined;
 
@@ -371,10 +381,10 @@ async function forge(target: (typeof lib)[number]) {
     ...(SHORT ? { shortlist: { ...SHORT, nominateBarPp: NOMINATE_BAR * 100 } } : {}),
     ...(SETTLE ? { untilSettled: { reach: SETTLE.reach, maxStages: SETTLE_MAX_STAGES, maxExtraGames: SETTLE_EXTRA ?? 0 } } : {}),
   };
-  const screen = async (muts: Mutation[], seed0: number, base: number[]): Promise<Screened[]> => {
+  const screen = async (muts: Mutation[], seed0: number, base: number[], games = GAMES): Promise<Screened[]> => {
     if (!muts.length) return [];
-    const all = await playMany(muts.map((m) => m.deck), seed0, GAMES);
-    const slots = blockSlots(seed0, GAMES, OPPONENTS);
+    const all = await playMany(muts.map((m) => m.deck), seed0, games);
+    const slots = blockSlots(seed0, games, OPPONENTS);
     return muts.map((m, i) => {
       const s = all[i]!;
       ledger?.record('screen', deck, m.deck, m.label, scored(slots, base, s));
@@ -390,11 +400,12 @@ async function forge(target: (typeof lib)[number]) {
     console.log(`\n[${deck.name}] gen ${gen}: baseline ${pct(base.wr)}`);
     log.push(`## Generation ${gen} — baseline ${pct(base.wr)}`, '', ...rep.insights.slice(0, 4).map((s) => `- ${s}`), '');
     const partner = PARTNER ? { sums: base.sums } : undefined;
-    // --pooled-ranking: the generator's whole order (its first CANDS are today's swaps), to fall back on past skipped picks
-    const explained = forgeSwapsExplained(deck, rep, GLOBAL_IMPACT, SHORT ? Infinity : CANDS, plan, partner);
+    const deckImp = DECK_IMPACT_TABLES ? DECK_IMPACT_TABLES.deckImpact[listFingerprint(deck)] : undefined;
+    // --pooled-ranking: the generator's whole order (its first INITIAL_CANDS are today's swaps), to fall back on past skipped picks
+    const explained = forgeSwapsExplained(deck, rep, GLOBAL_IMPACT, SHORT ? Infinity : INITIAL_CANDS, plan, partner, deckImp);
     let muts: Mutation[] = explained.swaps;
     /** the swaps the forge screens without --pooled-ranking (the plan's comparison below is against these) */
-    const todays = SHORT ? explained.swaps.slice(0, CANDS) : muts;
+    const todays = SHORT ? explained.swaps.slice(0, INITIAL_CANDS) : muts;
     let shortNote: ShortlistNote | undefined;
     if (SHORT && ledger) {
       const g = shortlistGeneration({
@@ -403,7 +414,7 @@ async function forge(target: (typeof lib)[number]) {
         plan,
         rule: { rule: RULE, nominees: DEPTH.nominees, minGainPp: RULE.minGainPp, nominateBar: NOMINATE_BAR, shortlist: SHORT },
         picks: explained.swaps,
-        cands: CANDS,
+        cands: INITIAL_CANDS,
         make: (cut, add, d) => ({ label: `-1 ${cardLabel(CARD_BY_ID[cut])} → +1 ${cardLabel(CARD_BY_ID[add])}`, deck: d, prior: 0 }),
       });
       muts = g.candidates;
@@ -423,22 +434,59 @@ async function forge(target: (typeof lib)[number]) {
       log.push('Cut ranking (partner-aware; plain = "Δ when drawn", lower is cut first):', '', '| Card | Plain | Partner-aware score | Offered | Why |', '|---|---|---|---|---|', ...cutRows.map((r) => `| ${r.name} | ${((r.plain) * 100).toFixed(1)} | ${(r.score * 100).toFixed(1)} | ${r.offered ? 'yes' : 'no'} | ${r.why} |`), '');
       console.log(`  cuts (partner-aware): ${cutRows.filter((r) => r.offered).map((r) => r.name).join(', ')}${cutRows.some((r) => r.plainOffered !== r.offered) ? ` (plain ranking: ${cutRows.filter((r) => r.plainOffered).map((r) => r.name).join(', ')})` : ''}`);
       // the candidates the plain ranking would have screened from the same games, for comparison
-      const plainMuts = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, plan);
+      const plainMuts = forgeSwaps(deck, rep, GLOBAL_IMPACT, INITIAL_CANDS, plan, undefined, deckImp);
       log.push('Screened (partner-aware):', ...muts.map((m) => `- ${m.label}`), '', 'The plain ranking would have screened:', ...plainMuts.map((m) => `- ${m.label}`), '');
       genRecPlain = plainMuts.map((m) => m.label);
     }
     if (PACKAGES) {
       // what the plan changed: the swaps the forge would have tried without it, and why each was not played
-      const free = forgeSwaps(deck, rep, GLOBAL_IMPACT, CANDS, {}, partner);
+      const free = forgeSwaps(deck, rep, GLOBAL_IMPACT, INITIAL_CANDS, {}, partner, deckImp);
       const dropped = free.filter((m) => !todays.some((x) => x.label === m.label));
       if (dropped.length) {
         log.push(`The package plan kept ${dropped.length} swap${dropped.length === 1 ? '' : 's'} from being played:`, ...dropped.map((m) => `- ${m.label}: ${checkChange(deck, m.deck, plan).map((v) => v.text).join('; ') || 'replaced by a better allowed swap'}`), '');
         console.log(`  plan: ${dropped.length} swap(s) not played (${dropped.map((m) => m.label).join('; ')})`);
       }
-      muts.push(...packageCandidates(deck, plan, { moves: V['package-moves'], n: V['package-cands'], score: forgeScore(rep, GLOBAL_IMPACT) }));
+      muts.push(...packageCandidates(deck, plan, { moves: V['package-moves'], n: V['package-cands'], score: forgeScore(rep, GLOBAL_IMPACT, deckImp) }));
     }
     tried.push(...muts.filter((m) => m.pkg).map((m) => m.label));
-    const screened = await screen(muts, seed0, base.scores);
+    // successive halving: when SCREEN_ROUNDS > 1, screen in rounds, halving the pool each time
+    let screened: Screened[];
+    if (SCREEN_ROUNDS <= 1) {
+      screened = await screen(muts, seed0, base.scores);
+    } else {
+      const gpr = Math.ceil(GAMES / SCREEN_ROUNDS);
+      // separate one-card swaps from package moves: only swaps are halved
+      const swapMuts = muts.filter((m) => !m.pkg);
+      const pkgMuts = muts.filter((m) => !!m.pkg);
+      let pool = swapMuts;
+      let allScreened: Screened[] = [];
+      for (let r = 0; r < SCREEN_ROUNDS; r++) {
+        const isLast = r === SCREEN_ROUNDS - 1;
+        const roundGames = isLast ? GAMES - r * gpr : gpr;
+        const roundSeed = seed0 + r * gpr;
+        // round 0 reuses the baseline's first gpr scores (k indices align); later rounds need their own baseline
+        let roundBase: number[];
+        if (r === 0) {
+          roundBase = base.scores.slice(0, roundGames);
+        } else {
+          const rb = await play(deck, roundSeed, roundGames, false);
+          roundBase = rb.scores;
+        }
+        // in the last round, add package moves back
+        const roundMuts = isLast ? [...pool, ...pkgMuts] : pool;
+        if (roundMuts.length) {
+          console.log(`  halving round ${r + 1}/${SCREEN_ROUNDS}: ${roundMuts.length} candidates, ${roundGames} games`);
+          allScreened = await screen(roundMuts, roundSeed, roundBase, roundGames);
+        }
+        if (!isLast) {
+          // keep the best half, at least CANDS (the final target count)
+          const keep = Math.max(CANDS, Math.ceil(pool.length / 2));
+          const survived = new Set(allScreened.sort((a, b) => b.wr - a.wr).slice(0, keep).map((s) => s.m));
+          pool = pool.filter((m) => survived.has(m));
+        }
+      }
+      screened = allScreened;
+    }
     // depth: combine the best screened single changes (only those that screened above the baseline)
     const seen = new Set([listKeyOf(deck), ...muts.map((m) => listKeyOf(m.deck))]);
     const above = (pkg: boolean) => screened.filter((r) => !!r.m.pkg === pkg && r.wr > base.wr).sort((a, b) => b.wr - a.wr).map((r) => r.m);
