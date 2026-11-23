@@ -59,10 +59,8 @@ describe('the words and defaults', () => {
     expect(easyMedium).not.toContain('0.75');
   });
 
-  it('the flag: refused with the shortlist, and with a bot the ledger cannot use; passed on by the season', () => {
-    expect(confirmBotProblem({ 'confirm-bot': 'hard', 'pooled-ranking': true, ledger: true }, { bot: 'lookahead' })).toBe(
-      '--pooled-ranking cannot be used with --confirm-bot hard: the shortlist ranks a change by its screening and held-out games together, and games of two bots are never pooled',
-    );
+  it('the flag: refused with a bot the ledger cannot use; passed on by the season', () => {
+    expect(confirmBotProblem({ 'confirm-bot': 'hard', 'pooled-ranking': true, ledger: true }, { bot: 'lookahead' })).toBeNull();
     expect(confirmBotProblem({ 'confirm-bot': 'medium', 'pooled-ranking': true, ledger: true }, { bot: 'lookahead' })).toBeNull();
     expect(confirmBotProblem({ 'confirm-bot': 'hard-v1', ledger: true }, { bot: 'lookahead' })).toMatch(/hard-v1.*; pick another --confirm-bot or leave out --ledger$/);
     expect(confirmBotProblem({ 'confirm-bot': 'hard-v1' }, { bot: 'lookahead' })).toBeNull();

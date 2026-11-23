@@ -76,8 +76,8 @@
 //                       current list and the nominees, paired) and "until settled"'s are played by BOT. Seeds, layout,
 //                       rule and stage sizes are unchanged. With --ledger the held-out games go to BOT's entry and earlier
 //                       held-out games are pooled from it (a game that screened a change, with either bot, is never
-//                       held-out evidence for it). Not with --pooled-ranking (the shortlist pools screening and held-out
-//                       games, and two bots' games never pool). The rule line, reports, manifest and the deck file's
+//                       held-out evidence for it). With --pooled-ranking the shortlist ranks by BOT's held-out games
+//                       only (screening games stay with --bot; two bots' games never pool). The rule line, reports, manifest and the deck file's
 //                       "// Adoption:" line say which bot confirmed; the detectability line uses BOT's per-game spread
 //                       (Hard: 0.34 for a one-card swap and 0.60 for a package move, measured 2026-11-15). Default --bot.
 //
@@ -397,8 +397,10 @@ async function forge(target: (typeof lib)[number]) {
     const todays = SHORT ? explained.swaps.slice(0, CANDS) : muts;
     let shortNote: ShortlistNote | undefined;
     if (SHORT && ledger) {
+      // with --confirm-bot the shortlist ranks by the confirming bot's held-out games only (games of two bots never pool)
+      const shortRun = heldLedger ?? ledger;
       const g = shortlistGeneration({
-        run: ledger,
+        run: shortRun,
         base: deck,
         plan,
         rule: { rule: RULE, nominees: DEPTH.nominees, minGainPp: RULE.minGainPp, nominateBar: NOMINATE_BAR, shortlist: SHORT },
@@ -455,8 +457,10 @@ async function forge(target: (typeof lib)[number]) {
     /** --pooled-ranking: each screened change's gain over all its games (this generation's screening included, each game once) */
     const figs = new Map<Screened, PooledFigure>();
     if (SHORT && ledger) {
+      // with --confirm-bot: rank by the confirming bot's held-out games only (games of two bots never pool)
+      const shortRun = heldLedger ?? ledger;
       const own = gameIds(blockSlots(seed0, GAMES, OPPONENTS));
-      for (const r of results) figs.set(r, pooledFigure(ledger.entryOf(ledger.entryId(deck, r.m.deck).change), { ids: own, gain: r.wr - base.wr, games: GAMES }));
+      for (const r of results) figs.set(r, pooledFigure(shortRun.entryOf(shortRun.entryId(deck, r.m.deck).change), { ids: own, gain: r.wr - base.wr, games: GAMES }));
     }
     const pooledCell = (r: Screened) => {
       const f = figs.get(r);
