@@ -20,7 +20,7 @@ import { exportOfficial } from '../src/engine/deck';
 import { synergiesIn } from '../src/content/synergies';
 import { describePlan, packageCompatibility, packageName } from '../src/lib/deckPackages';
 
-const { values: V } = cli(import.meta.url, { season: int(0, { min: 0 }), lists: bool(), bot: oneOf(SIM_BOTS, SEASON_BOT), ...breederPackageFlags() });
+const { values: V } = cli(import.meta.url, { season: int(0, { min: 0 }), lists: bool(), bot: oneOf(SIM_BOTS, SEASON_BOT), 'breed-count': int(0, { min: 0 }), ...breederPackageFlags() });
 const SEASON = V.season;
 const PACKAGES = packagesOn(V);
 const PLAN = planFromFlags(V);
@@ -54,7 +54,8 @@ if (PACKAGES) {
 }
 // the Legend trios of decks the gate kept out in earlier seasons count as seen too
 const seen = new Set([...lib.map((d) => [...d.deck.legends].sort().join('|')), ...keptOutTriples()]);
-for (const b of breedSeason(season, { ranked, impact, seenTriples: seen, seed: 1000 + season * 77, deckImpact, h2h: hasH2H ? h2h : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8)) {
+const BREED_COUNT = V['breed-count'] || 0;
+for (const b of breedSeason(season, { ranked, impact, seenTriples: seen, seed: 1000 + season * 77, deckImpact, h2h: hasH2H ? h2h : undefined, ...(PACKAGES ? { packages: { plan: PLAN, seeds: SEEDS } } : {}) }, 8, BREED_COUNT > 8 ? BREED_COUNT : undefined)) {
   console.log(`\n  ${b.deck.name} [${b.method}]\n    ${b.idea}`);
   if (b.packages) console.log(`    packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.changes.length ? `; changes: ${b.packages.changes.join('; ')}` : ''}`);
   if (V.lists) {
