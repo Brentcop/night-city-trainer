@@ -104,7 +104,7 @@ import { breederPackageFlags, exitOnPlanProblems, packagesOn, planArgs, planFrom
 import { describePlan, packageName, packageProvenance } from '../src/lib/deckPackages';
 import type { MatchJob, MatchResult } from './worker';
 import { gameRunManifest } from '../src/lib/runManifest';
-import { adoptionArgs, adoptionFlags, checkBudget, confirmBotArgs, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleArgs, settleFlags, settleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
+import { adoptionArgs, adoptionFlags, checkBudget, confirmBotArgs, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, halvingArgs, halvingFlags, ledgerArgs, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleArgs, settleFlags, settleFromFlags, shortlistArgs, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { adoptionProvenance, describeRule, scoreOf, settleStages } from '../src/lib/evidence';
 import { DEFAULT_GAME_BUDGET, detect, detectWords, estimateGames, perGameSd, settleExtra } from '../src/lib/deckSearch';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -132,6 +132,7 @@ const { values: V } = cli(import.meta.url, {
   ...settleFlags(),
   'no-until-settled': bool(),
   ...confirmBotFlag(),
+  ...halvingFlags(),
   ...seasonGateFlags(),
   'allow-same-lists': bool(),
   'breed-count': int(0, { min: 0 }),
@@ -484,8 +485,12 @@ async function main() {
     // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
     const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
     // the adoption rule and depth flags that were given, and the budget the season already checked
+<<<<<<< HEAD
     const settleV = { ...V, 'until-settled': SEASON_SETTLE_ON };
     const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(settleV), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
+=======
+    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V), ...(FORGE_CONFIRM ? confirmBotArgs(V) : []), ...halvingArgs(V)].join(' ');
+>>>>>>> refs/heads/claude/mystifying-zhukovsky-16234e
     execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
   } else console.log('No bred deck entered: nothing to forge.');
 

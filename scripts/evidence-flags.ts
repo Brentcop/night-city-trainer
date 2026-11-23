@@ -70,6 +70,26 @@ export const depthFlags = (nominees: number) => ({
 /** The game budget (forge, optimizer). */
 export const budgetFlags = () => ({ budget: int(DEFAULT_GAME_BUDGET, { min: 1 }), force: bool() });
 
+/** Successive halving and per-deck additions flags (forge, Lab, season). */
+export const halvingFlags = () => ({
+  'screen-rounds': int(1, { min: 1, max: 8 }),
+  'initial-cands': int(undefined, { min: 1, max: 60 }),
+  'per-deck-adds': bool(),
+});
+export interface HalvingFlagValues {
+  'screen-rounds'?: number;
+  'initial-cands'?: number;
+  'per-deck-adds'?: boolean;
+}
+/** The command-line form of the halving flags (season.ts passes them on to the forge). */
+export function halvingArgs(v: HalvingFlagValues): string[] {
+  const out: string[] = [];
+  if (v['screen-rounds'] !== undefined && v['screen-rounds'] !== 1) out.push('--screen-rounds', String(v['screen-rounds']));
+  if (v['initial-cands'] !== undefined) out.push('--initial-cands', String(v['initial-cands']));
+  if (v['per-deck-adds']) out.push('--per-deck-adds');
+  return out;
+}
+
 export interface AdoptionFlagValues {
   adopt?: (typeof ADOPT_KINDS)[number];
   'min-gain'?: number;
