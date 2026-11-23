@@ -88,7 +88,7 @@ async function played(seed: number, level: string, withCoach: boolean): Promise<
 
 const games: Played[] = [];
 beforeAll(async () => {
-  games.push(await played(42, 'easy', false), await played(43, 'medium', true), await played(46, 'hard', true));
+  games.push(await played(42, 'easy', false), await played(43, 'medium', true), await played(45, 'hard', true));
 }, 180_000);
 
 const ratingsOf = (rec: GameReviewRecord) => rec.moves.map((m) => `${m.seq}:${m.r}`);
