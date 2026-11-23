@@ -1,0 +1,4948 @@
+{
+ "kind": "nct-outside-meta",
+ "schema": 1,
+ "updated": "2026-11-23",
+ "sources": [
+  {
+   "id": "sim:collector-s-campus-online-friendly-brawl",
+   "site": "cyberpunk-tcg-sim.online",
+   "title": "Collector’s Campus Online Friendly Brawl meta report",
+   "link": "https://cyberpunk-tcg-sim.online/meta/collector-s-campus-online-friendly-brawl",
+   "collected": "2026-11-23",
+   "published": "2026-11-23",
+   "kind": "tournament",
+   "shareOf": "players in the event",
+   "date": "2026-11-23",
+   "totals": {
+    "players": 37,
+    "registered": 79,
+    "rounds": 4,
+    "topCut": 8,
+    "topCutBestOf": 1,
+    "games": 133,
+    "trios": 23
+   },
+   "field": [
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "share": 13.5,
+     "players": 5,
+     "winRate": 46.4,
+     "wins": 13,
+     "losses": 15,
+     "top8": 0,
+     "best": 10
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "share": 10.8,
+     "players": 4,
+     "winRate": 48.4,
+     "wins": 15,
+     "losses": 16,
+     "top8": 1,
+     "best": 3
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "share": 8.1,
+     "players": 3,
+     "winRate": 62.9,
+     "wins": 22,
+     "losses": 13,
+     "top8": 2,
+     "best": 2
+    },
+    {
+     "trio": {
+      "names": [
+       "Jackie Welles: Mama's Favorite",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "jackie_welles_mama_s_favorite",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "share": 8.1,
+     "players": 3,
+     "winRate": 52.2,
+     "wins": 12,
+     "losses": 11,
+     "top8": 2,
+     "best": 5
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "share": 5.4,
+     "players": 2,
+     "winRate": 55.6,
+     "wins": 10,
+     "losses": 8,
+     "top8": 0,
+     "best": 11
+    },
+    {
+     "trio": {
+      "names": [
+       "Kerry Eurodyne",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "kerry_eurodyne_axe_attitude_audience",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "share": 5.4,
+     "players": 2,
+     "winRate": 50,
+     "wins": 10,
+     "losses": 10,
+     "top8": 0,
+     "best": 12
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "share": 5.4,
+     "players": 2,
+     "winRate": 20,
+     "wins": 3,
+     "losses": 12,
+     "top8": 0,
+     "best": 25
+    },
+    {
+     "trio": {
+      "names": [
+       "Rogue Amendiares",
+       "V: Corporate Exile",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 91.7,
+     "wins": 11,
+     "losses": 1,
+     "top8": 1,
+     "best": 1
+    },
+    {
+     "trio": {
+      "names": [
+       "Jackie Welles: Pour One Out For Me",
+       "River Ward",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "jackie_welles_pour_one_out_for_me",
+       "river_ward_detective_on_the_hunt",
+       "v_corporate_exile"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 63.6,
+     "wins": 7,
+     "losses": 4,
+     "top8": 1,
+     "best": 4
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Hanako Arasaka",
+       "Padre"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "padre_man_of_the_cross"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 66.7,
+     "wins": 6,
+     "losses": 3,
+     "top8": 1,
+     "best": 7
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 66.7,
+     "wins": 4,
+     "losses": 2,
+     "top8": 0,
+     "best": 15
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Mama's Favorite",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_mama_s_favorite",
+       "v_streetkid"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 60,
+     "wins": 6,
+     "losses": 4,
+     "top8": 0,
+     "best": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Goro Takemura: Vengeful Bodyguard",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "goro_takemura_vengeful_bodyguard",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 0,
+     "wins": 0,
+     "losses": 2,
+     "top8": 0,
+     "best": 19
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Royce"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "royce_psycho_on_the_edge"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 14.3,
+     "wins": 1,
+     "losses": 6,
+     "top8": 0,
+     "best": 20
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Goro Takemura: Vengeful Bodyguard",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "goro_takemura_vengeful_bodyguard",
+       "v_streetkid"
+      ]
+     },
+     "share": 2.7,
+     "players": 1,
+     "winRate": 20,
+     "wins": 1,
+     "losses": 4,
+     "top8": 0,
+     "best": 22
+    }
+   ],
+   "topCut": [
+    {
+     "place": 1,
+     "trio": {
+      "names": [
+       "Rogue Amendiares",
+       "V: Corporate Exile",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile",
+       "wakako_okada_peace_and_harmony"
+      ]
+     }
+    },
+    {
+     "place": 2,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     }
+    },
+    {
+     "place": 3,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     }
+    },
+    {
+     "place": 4,
+     "trio": {
+      "names": [
+       "Jackie Welles: Pour One Out For Me",
+       "River Ward",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "jackie_welles_pour_one_out_for_me",
+       "river_ward_detective_on_the_hunt",
+       "v_corporate_exile"
+      ]
+     }
+    },
+    {
+     "place": 5,
+     "trio": {
+      "names": [
+       "Jackie Welles: Mama's Favorite",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "jackie_welles_mama_s_favorite",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     }
+    },
+    {
+     "place": 6,
+     "trio": {
+      "names": [
+       "Jackie Welles: Mama's Favorite",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "jackie_welles_mama_s_favorite",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     }
+    },
+    {
+     "place": 7,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Hanako Arasaka",
+       "Padre"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "padre_man_of_the_cross"
+      ]
+     }
+    },
+    {
+     "place": 8,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "sim:discord-5k-celebration-tournament",
+   "site": "cyberpunk-tcg-sim.online",
+   "title": "Discord 5k Celebration Tournament meta report",
+   "link": "https://cyberpunk-tcg-sim.online/meta/discord-5k-celebration-tournament",
+   "collected": "2026-11-23",
+   "published": "2026-11-15",
+   "kind": "tournament",
+   "shareOf": "players in the event",
+   "date": "2026-11-07",
+   "totals": {
+    "players": 86,
+    "registered": 260,
+    "rounds": 7,
+    "topCut": 8,
+    "topCutBestOf": 3,
+    "games": 264,
+    "trios": 44
+   },
+   "field": [
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "share": 20.9,
+     "players": 18,
+     "winRate": 46.6,
+     "wins": 48,
+     "losses": 55,
+     "top8": 3,
+     "best": 2
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "share": 17.4,
+     "players": 15,
+     "winRate": 47.1,
+     "wins": 40,
+     "losses": 45,
+     "top8": 2,
+     "best": 3
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "share": 5.8,
+     "players": 5,
+     "winRate": 73.8,
+     "wins": 31,
+     "losses": 11,
+     "top8": 1,
+     "best": 1
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "share": 3.5,
+     "players": 3,
+     "winRate": 66.7,
+     "wins": 16,
+     "losses": 8,
+     "top8": 1,
+     "best": 5
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "share": 2.3,
+     "players": 2,
+     "winRate": 50,
+     "wins": 8,
+     "losses": 8,
+     "top8": 1,
+     "best": 8
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "share": 2.3,
+     "players": 2,
+     "winRate": 50,
+     "wins": 7,
+     "losses": 7,
+     "top8": 0,
+     "best": 29
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "share": 2.3,
+     "players": 2,
+     "winRate": 50,
+     "wins": 7,
+     "losses": 7,
+     "top8": 0,
+     "best": 30
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Judy Álvarez",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "judy_alvarez_braindance_maestro",
+       "v_streetkid"
+      ]
+     },
+     "share": 2.3,
+     "players": 2,
+     "winRate": 57.1,
+     "wins": 8,
+     "losses": 6,
+     "top8": 0,
+     "best": 31
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "share": 2.3,
+     "players": 2,
+     "winRate": 27.3,
+     "wins": 3,
+     "losses": 8,
+     "top8": 0,
+     "best": 41
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "v_corporate_exile"
+      ]
+     },
+     "share": 1.2,
+     "players": 1,
+     "winRate": 85.7,
+     "wins": 6,
+     "losses": 1,
+     "top8": 0,
+     "best": 9
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "share": 1.2,
+     "players": 1,
+     "winRate": 71.4,
+     "wins": 5,
+     "losses": 2,
+     "top8": 0,
+     "best": 13
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dexter DeShawn",
+       "Saburo Arasaka"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dexter_deshawn_off_the_grid",
+       "saburo_arasaka_stubborn_patriarch"
+      ]
+     },
+     "share": 1.2,
+     "players": 1,
+     "winRate": 71.4,
+     "wins": 5,
+     "losses": 2,
+     "top8": 0,
+     "best": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Kerry Eurodyne",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "kerry_eurodyne_axe_attitude_audience",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "share": 1.2,
+     "players": 1,
+     "winRate": 57.1,
+     "wins": 4,
+     "losses": 3,
+     "top8": 0,
+     "best": 19
+    },
+    {
+     "trio": {
+      "names": [
+       "Rogue Amendiares",
+       "V: Corporate Exile",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "share": 1.2,
+     "players": 1,
+     "winRate": 57.1,
+     "wins": 4,
+     "losses": 3,
+     "top8": 0,
+     "best": 20
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "share": 1.2,
+     "players": 1,
+     "winRate": 57.1,
+     "wins": 4,
+     "losses": 3,
+     "top8": 0,
+     "best": 24
+    }
+   ],
+   "topCut": [
+    {
+     "place": 1,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     }
+    },
+    {
+     "place": 2,
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     }
+    },
+    {
+     "place": 3,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     }
+    },
+    {
+     "place": 4,
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     }
+    },
+    {
+     "place": 5,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     }
+    },
+    {
+     "place": 6,
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     }
+    },
+    {
+     "place": 7,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     }
+    },
+    {
+     "place": 8,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "sim:season-1",
+   "site": "cyberpunk-tcg-sim.online",
+   "title": "Season-1 meta report",
+   "link": "https://cyberpunk-tcg-sim.online/meta/season-1",
+   "collected": "2026-11-23",
+   "published": "2026-11-15",
+   "kind": "season",
+   "shareOf": "high-rank decks (both players in Division III or Master)",
+   "period": {
+    "from": "2026-09-05",
+    "to": "2026-11-15"
+   },
+   "totals": {
+    "series": 35662,
+    "games": 77147,
+    "players": 4059,
+    "qualified": 749,
+    "trios": 1012,
+    "highRankSeries": 8458,
+    "highRankGames": 20232,
+    "highRankDecks": 40464
+   },
+   "field": [
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Alt Cunningham"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "alt_cunningham_soulkiller_architect"
+      ]
+     },
+     "share": 17.3,
+     "winRate": 50.4
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "share": 14.6,
+     "winRate": 51,
+     "wins": 3025,
+     "losses": 2903,
+     "players": 192
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "V: Streetkid",
+       "Saburo Arasaka"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "v_streetkid",
+       "saburo_arasaka_stubborn_patriarch"
+      ]
+     },
+     "share": 4.9,
+     "winRate": 54.1,
+     "wins": 1063,
+     "losses": 903,
+     "players": 79
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "V: Streetkid",
+       "Padre"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "v_streetkid",
+       "padre_man_of_the_cross"
+      ]
+     },
+     "share": 4.3,
+     "winRate": 54.2,
+     "wins": 931,
+     "losses": 787,
+     "players": 99
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Muamar Reyes"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "muamar_reyes_el_capitan"
+      ]
+     },
+     "share": 4.2,
+     "winRate": 47.8
+    },
+    {
+     "trio": {
+      "names": [
+       "V: Streetkid",
+       "Dexter DeShawn",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "v_streetkid",
+       "dexter_deshawn_off_the_grid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "share": 3.7,
+     "winRate": 49.1
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "V: Streetkid",
+       "Dum Dum"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "v_streetkid",
+       "dum_dum_maelstrom_triggerman"
+      ]
+     },
+     "share": 3.4,
+     "winRate": 52.5,
+     "wins": 717,
+     "losses": 648,
+     "players": 29
+    },
+    {
+     "trio": {
+      "names": [
+       "V: Streetkid",
+       "Dexter DeShawn",
+       "Muamar Reyes"
+      ],
+      "ids": [
+       "v_streetkid",
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan"
+      ]
+     },
+     "share": 3.2,
+     "winRate": 51.7,
+     "wins": 671,
+     "losses": 628,
+     "players": 53
+    },
+    {
+     "trio": {
+      "names": [
+       "V: Streetkid",
+       "Dexter DeShawn",
+       "Padre"
+      ],
+      "ids": [
+       "v_streetkid",
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross"
+      ]
+     },
+     "share": 3.1,
+     "winRate": 51.5,
+     "wins": 648,
+     "losses": 611,
+     "players": 58
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "V: Corporate Exile",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "v_corporate_exile",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "share": 2.6,
+     "winRate": 49.4
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "share": 1.9,
+     "winRate": 50.8,
+     "wins": 400,
+     "losses": 387,
+     "players": 47
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Muamar Reyes",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "muamar_reyes_el_capitan",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "share": 1.4,
+     "winRate": 50.9,
+     "wins": 281,
+     "losses": 271,
+     "players": 27
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "share": 1.2,
+     "winRate": 48.6
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dexter DeShawn",
+       "Saburo Arasaka"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dexter_deshawn_off_the_grid",
+       "saburo_arasaka_stubborn_patriarch"
+      ]
+     },
+     "share": 1.1,
+     "winRate": 53.1,
+     "wins": 237,
+     "losses": 209,
+     "players": 41
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Muamar Reyes",
+       "Kerry Eurodyne"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "muamar_reyes_el_capitan",
+       "kerry_eurodyne_axe_attitude_audience"
+      ]
+     },
+     "share": 1.1,
+     "winRate": 52.3
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Muamar Reyes",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "muamar_reyes_el_capitan",
+       "v_corporate_exile"
+      ]
+     },
+     "share": 1.1,
+     "winRate": 57.4
+    },
+    {
+     "trio": {
+      "names": [
+       "Jackie Welles: Mama's Favorite",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "jackie_welles_mama_s_favorite",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "share": 0.9,
+     "winRate": 52.7,
+     "wins": 194,
+     "losses": 174,
+     "players": 41
+    }
+   ],
+   "tiers": [
+    {
+     "rank": 1,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "tier": 1,
+     "winRate": 54.2,
+     "wins": 931,
+     "losses": 787,
+     "share": 4.3,
+     "players": 99
+    },
+    {
+     "rank": 2,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "tier": 1,
+     "winRate": 54.1,
+     "wins": 1063,
+     "losses": 903,
+     "share": 4.9,
+     "players": 79
+    },
+    {
+     "rank": 3,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dexter DeShawn",
+       "Saburo Arasaka"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dexter_deshawn_off_the_grid",
+       "saburo_arasaka_stubborn_patriarch"
+      ]
+     },
+     "tier": 2,
+     "winRate": 53.1,
+     "wins": 237,
+     "losses": 209,
+     "share": 1.1,
+     "players": 41
+    },
+    {
+     "rank": 4,
+     "trio": {
+      "names": [
+       "Jackie Welles: Mama's Favorite",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "jackie_welles_mama_s_favorite",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "tier": 2,
+     "winRate": 52.7,
+     "wins": 194,
+     "losses": 174,
+     "share": 0.9,
+     "players": 41
+    },
+    {
+     "rank": 5,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "tier": 2,
+     "winRate": 52.5,
+     "wins": 717,
+     "losses": 648,
+     "share": 3.4,
+     "players": 29
+    },
+    {
+     "rank": 6,
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "tier": 2,
+     "winRate": 51.7,
+     "wins": 671,
+     "losses": 628,
+     "share": 3.2,
+     "players": 53
+    },
+    {
+     "rank": 7,
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "tier": 2,
+     "winRate": 51.5,
+     "wins": 648,
+     "losses": 611,
+     "share": 3.1,
+     "players": 58
+    },
+    {
+     "rank": 8,
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "tier": 2,
+     "winRate": 51,
+     "wins": 3025,
+     "losses": 2903,
+     "share": 14.6,
+     "players": 192
+    },
+    {
+     "rank": 9,
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "tier": 3,
+     "winRate": 50.9,
+     "wins": 281,
+     "losses": 271,
+     "share": 1.4,
+     "players": 27
+    },
+    {
+     "rank": 10,
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "tier": 3,
+     "winRate": 50.8,
+     "wins": 400,
+     "losses": 387,
+     "share": 1.9,
+     "players": 47
+    }
+   ],
+   "matchups": [
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 48.3,
+     "wins": 551,
+     "losses": 589
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 50.4,
+     "wins": 185,
+     "losses": 182
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 41,
+     "wins": 132,
+     "losses": 190
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 48.9,
+     "wins": 156,
+     "losses": 163
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 49.8,
+     "wins": 121,
+     "losses": 122
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48.3,
+     "wins": 115,
+     "losses": 123
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 52.7,
+     "wins": 117,
+     "losses": 105
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 40.4,
+     "wins": 80,
+     "losses": 118
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 48.9,
+     "wins": 68,
+     "losses": 71
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 49.5,
+     "wins": 55,
+     "losses": 56
+    },
+    {
+     "trio": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 45.6,
+     "wins": 36,
+     "losses": 43
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 51.7,
+     "wins": 589,
+     "losses": 551
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 42.5,
+     "wins": 150,
+     "losses": 203
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48.1,
+     "wins": 142,
+     "losses": 153
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 54.5,
+     "wins": 139,
+     "losses": 116
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 56.2,
+     "wins": 91,
+     "losses": 71
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 52,
+     "wins": 118,
+     "losses": 109
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 54,
+     "wins": 74,
+     "losses": 63
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 59.7,
+     "wins": 108,
+     "losses": 73
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 55.2,
+     "wins": 96,
+     "losses": 78
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 50.9,
+     "wins": 29,
+     "losses": 28
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 44.9,
+     "wins": 40,
+     "losses": 49
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 49.6,
+     "wins": 182,
+     "losses": 185
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 57.5,
+     "wins": 203,
+     "losses": 150
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 46.5,
+     "wins": 46,
+     "losses": 53
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 60,
+     "wins": 48,
+     "losses": 32
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 66.7,
+     "wins": 26,
+     "losses": 13
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 45.5,
+     "wins": 35,
+     "losses": 42
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48.6,
+     "wins": 17,
+     "losses": 18
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 46.2,
+     "wins": 24,
+     "losses": 28
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 52,
+     "wins": 26,
+     "losses": 24
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 51.8,
+     "wins": 14,
+     "losses": 13
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 59,
+     "wins": 190,
+     "losses": 132
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 51.9,
+     "wins": 153,
+     "losses": 142
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 53.5,
+     "wins": 53,
+     "losses": 46
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 54.2,
+     "wins": 45,
+     "losses": 38
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 46.6,
+     "wins": 27,
+     "losses": 31
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 55.4,
+     "wins": 41,
+     "losses": 33
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 59.5,
+     "wins": 22,
+     "losses": 15
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 39.1,
+     "wins": 9,
+     "losses": 14
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 53.6,
+     "wins": 15,
+     "losses": 13
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 56.5,
+     "wins": 13,
+     "losses": 10
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 60,
+     "wins": 18,
+     "losses": 12
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 51.1,
+     "wins": 163,
+     "losses": 156
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 45.5,
+     "wins": 116,
+     "losses": 139
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 40,
+     "wins": 32,
+     "losses": 48
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 45.8,
+     "wins": 38,
+     "losses": 45
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 49.1,
+     "wins": 26,
+     "losses": 27
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 46,
+     "wins": 29,
+     "losses": 34
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 40,
+     "wins": 16,
+     "losses": 24
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 50,
+     "wins": 16,
+     "losses": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 44.6,
+     "wins": 33,
+     "losses": 41
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 52.4,
+     "wins": 11,
+     "losses": 10
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 44.4,
+     "wins": 16,
+     "losses": 20
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 50.2,
+     "wins": 122,
+     "losses": 121
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 43.8,
+     "wins": 71,
+     "losses": 91
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 33.3,
+     "wins": 13,
+     "losses": 26
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 53.4,
+     "wins": 31,
+     "losses": 27
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 50.9,
+     "wins": 27,
+     "losses": 26
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48.1,
+     "wins": 25,
+     "losses": 27
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 46.4,
+     "wins": 39,
+     "losses": 45
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 49.3,
+     "wins": 33,
+     "losses": 34
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 52.4,
+     "wins": 11,
+     "losses": 10
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 41.2,
+     "wins": 14,
+     "losses": 20
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 51.7,
+     "wins": 123,
+     "losses": 115
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 48,
+     "wins": 109,
+     "losses": 118
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 54.5,
+     "wins": 42,
+     "losses": 35
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 44.6,
+     "wins": 33,
+     "losses": 41
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 54,
+     "wins": 34,
+     "losses": 29
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 51.9,
+     "wins": 27,
+     "losses": 25
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 53.8,
+     "wins": 28,
+     "losses": 24
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 49,
+     "wins": 24,
+     "losses": 25
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 52.2,
+     "wins": 12,
+     "losses": 11
+    },
+    {
+     "trio": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 57.9,
+     "wins": 22,
+     "losses": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 47.3,
+     "wins": 105,
+     "losses": 117
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 46,
+     "wins": 63,
+     "losses": 74
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 51.4,
+     "wins": 18,
+     "losses": 17
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 40.5,
+     "wins": 15,
+     "losses": 22
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 60,
+     "wins": 24,
+     "losses": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 53.6,
+     "wins": 45,
+     "losses": 39
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 46.2,
+     "wins": 24,
+     "losses": 28
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 57.6,
+     "wins": 19,
+     "losses": 14
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 57.6,
+     "wins": 34,
+     "losses": 25
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 46.5,
+     "wins": 20,
+     "losses": 23
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 51.6,
+     "wins": 16,
+     "losses": 15
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 59.6,
+     "wins": 118,
+     "losses": 80
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 40.3,
+     "wins": 73,
+     "losses": 108
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 53.8,
+     "wins": 28,
+     "losses": 24
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 60.9,
+     "wins": 14,
+     "losses": 9
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 50,
+     "wins": 16,
+     "losses": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 50.7,
+     "wins": 34,
+     "losses": 33
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 51,
+     "wins": 25,
+     "losses": 24
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 42.4,
+     "wins": 14,
+     "losses": 19
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 31.8,
+     "wins": 14,
+     "losses": 30
+    },
+    {
+     "trio": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "winRate": 62,
+     "wins": 31,
+     "losses": 19
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 51.1,
+     "wins": 71,
+     "losses": 68
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 44.8,
+     "wins": 78,
+     "losses": 96
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48,
+     "wins": 24,
+     "losses": 26
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 46.4,
+     "wins": 13,
+     "losses": 15
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 55.4,
+     "wins": 41,
+     "losses": 33
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 47.6,
+     "wins": 10,
+     "losses": 11
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 42.4,
+     "wins": 25,
+     "losses": 34
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 68.2,
+     "wins": 30,
+     "losses": 14
+    },
+    {
+     "trio": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "winRate": 50,
+     "wins": 13,
+     "losses": 13
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 50.4,
+     "wins": 56,
+     "losses": 55
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 49.1,
+     "wins": 28,
+     "losses": 29
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 43.5,
+     "wins": 10,
+     "losses": 13
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 47.6,
+     "wins": 10,
+     "losses": 11
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "V: Streetkid",
+       "Wakako Okada"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "v_streetkid",
+       "wakako_okada_peace_and_harmony"
+      ]
+     },
+     "winRate": 58.8,
+     "wins": 20,
+     "losses": 14
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 47.8,
+     "wins": 11,
+     "losses": 12
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 53.5,
+     "wins": 23,
+     "losses": 20
+    },
+    {
+     "trio": {
+      "names": [
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me",
+       "Judy Álvarez"
+      ],
+      "ids": [
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me",
+       "judy_alvarez_braindance_maestro"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 38,
+     "wins": 19,
+     "losses": 31
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Alt Cunningham",
+       "Hanako Arasaka",
+       "Jackie Welles: Pour One Out For Me"
+      ],
+      "ids": [
+       "alt_cunningham_soulkiller_architect",
+       "hanako_arasaka_daughter_of_the_emperor",
+       "jackie_welles_pour_one_out_for_me"
+      ]
+     },
+     "winRate": 54.4,
+     "wins": 43,
+     "losses": 36
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "River Ward",
+       "Viktor Vektor"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "river_ward_detective_on_the_hunt",
+       "viktor_vektor_sit_down_and_relax"
+      ]
+     },
+     "winRate": 55.1,
+     "wins": 49,
+     "losses": 40
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Saburo Arasaka",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "saburo_arasaka_stubborn_patriarch",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48.1,
+     "wins": 13,
+     "losses": 14
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Padre",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "padre_man_of_the_cross",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 40,
+     "wins": 12,
+     "losses": 18
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Muamar Reyes",
+       "River Ward"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt"
+      ]
+     },
+     "winRate": 55.6,
+     "wins": 20,
+     "losses": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Adam Smasher",
+       "Dum Dum",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "adam_smasher_ender_of_legends",
+       "dum_dum_maelstrom_triggerman",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 42.1,
+     "wins": 16,
+     "losses": 22
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "Dexter DeShawn",
+       "Muamar Reyes",
+       "V: Streetkid"
+      ],
+      "ids": [
+       "dexter_deshawn_off_the_grid",
+       "muamar_reyes_el_capitan",
+       "v_streetkid"
+      ]
+     },
+     "winRate": 48.4,
+     "wins": 15,
+     "losses": 16
+    },
+    {
+     "trio": {
+      "names": [
+       "Muamar Reyes",
+       "River Ward",
+       "Rogue Amendiares"
+      ],
+      "ids": [
+       "muamar_reyes_el_capitan",
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo"
+      ]
+     },
+     "vs": {
+      "names": [
+       "River Ward",
+       "Rogue Amendiares",
+       "V: Corporate Exile"
+      ],
+      "ids": [
+       "river_ward_detective_on_the_hunt",
+       "rogue_amendiares_preem_solo",
+       "v_corporate_exile"
+      ]
+     },
+     "winRate": 50,
+     "wins": 13,
+     "losses": 13
+    }
+   ]
+  }
+ ],
+ "unmatched": []
+}
