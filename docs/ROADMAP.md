@@ -24,7 +24,7 @@ Planned work that is decided in principle but not scheduled. The item-level back
 5. Golden replays: four recorded games in `tests/replay-events.test.ts`. The Hard goldens in `tests/replay.test.ts` were re-pinned: Hard reads `impact.json`, which step 1 regenerated (no code change).
 6. Draft notes for the Season 1 decks (`src/content/deckObjectives/seasons.ts`).
 
-Consistency: `check:data` now fails an event with no `simVersion` or manifest; the event index, `seasons.json` and each finals or head-to-head report carry their sim version, so the "historical" notes are hidden on this data and come back by themselves once `SIM_VERSION` moves past it. Numbers and samples are in `docs/STRATEGY.md`.
+Consistency: `check:data` now fails an event with no `simVersion` or manifest; the event index, `seasons.json` and each finals or head-to-head report carry their sim version, so the "historical" notes are hidden on this data and come back by themselves once `SIM_VERSION` moves past it. Numbers and samples are in `docs/TOURNAMENT_PLAN.md` and the Power ratings page.
 
 **What remains.** More seasons: **Season 2 done 2026-11-12** (parents from every rated deck, including the owner's sim-ladder lists; events 5–7 recorded after it; see [ROADMAP2.md](ROADMAP2.md) "Season 2"); **Season 3 run 2026-11-16** (8 bred, 6 entered through the test against the fixed bar, YYB Rogue Gear; forge screened with Medium and confirmed with Hard; `reports/season-3.md`; its decks are unrated until an event includes them); a re-evaluation of the archived bred decks against the new baseline, to decide whether any return (§4 step 3); and §5 steps 3 and 5 (counterfactual decision value, one value contract). (`data/seasons/deck-impact.json` is keyed by list fingerprint since 2026-11-14.)
 
