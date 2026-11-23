@@ -139,6 +139,12 @@ export interface HeuristicOptions {
    * lists draws no random number and changes nothing, so the choices are the same. false (default) = build them.
    */
   quiet?: boolean;
+  /**
+   * Gain 9. A pool of Web Workers that runs rollout tasks in parallel (the coach in the browser).
+   * When set, deep rollouts, sell comparison and deep reactions distribute their world evaluations
+   * across the pool instead of running them one by one. Never set on Node or on clone agents.
+   */
+  rolloutPool?: import('./playoutPool').RolloutPool | undefined;
 }
 
 /** One entry of HeuristicAgent.lastAlternatives. */
@@ -199,9 +205,11 @@ export function sellTieBreak(sell: number, vals: readonly { uid: number; v: numb
   return near[0] ?? null;
 }
 
+type ResolvedOptions = Omit<Required<HeuristicOptions>, 'rolloutPool'> & { rolloutPool: import('./playoutPool').RolloutPool | undefined };
+
 export class HeuristicAgent implements Agent {
   name: string;
-  opts: Required<HeuristicOptions>;
+  opts: ResolvedOptions;
   private rng: number;
   /** last decision explanation (for UI "why did the bot do that") */
   lastThought = '';
@@ -253,6 +261,7 @@ export class HeuristicAgent implements Agent {
       easyGuard: opts.easyGuard ?? false,
       seed: opts.seed ?? 7,
       quiet: opts.quiet ?? false,
+      rolloutPool: opts.rolloutPool ?? undefined,
     };
     this.name = this.opts.name;
     this.rng = this.opts.seed;
@@ -532,32 +541,48 @@ export class HeuristicAgent implements Agent {
       // deepWorlds > 1: every candidate in the same worlds (common random numbers), as deepReaction does
       const worlds = this.opts.deepWorlds > 1 ? makeWorlds(this.opts.deepWorlds, () => this.rand()) : null;
       deepWorldList = worlds;
-      for (const t of top) {
-        // an unknown Call stands for every unknown slot: average the rollouts over them
-        const group = isUnknownCall(g, actions[t.i]) ? unknownCalls.map((x) => x.a) : [actions[t.i]];
+      // build groups once
+      const groups = top.map((t) => ({ i: t.i, ply: t.v, group: isUnknownCall(g, actions[t.i]) ? unknownCalls.map((x) => x.a) : [actions[t.i]] }));
+      // Gain 9: when a pool is available and worlds are shared, batch ALL rollout tasks across workers
+      if (worlds && this.opts.rolloutPool) {
+        const tasks: import('./playoutPool').MainTask[] = [];
+        for (const c of groups) for (const w of worlds) for (const a of c.group) tasks.push({ kind: 'main', action: a, world: w });
+        const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+        let idx = 0;
+        for (const c of groups) {
+          const vals: number[] = [];
+          for (const _w of worlds) {
+            let sum = 0;
+            for (const _ of c.group) sum += values[idx++];
+            vals.push(sum / c.group.length);
+          }
+          perWorld.set(c.i, vals);
+          const rv = vals.reduce((x, y) => x + y, 0) / vals.length;
+          const dv = rv + c.ply * 0.05;
+          deepScored.push({ i: c.i, v: dv });
+          plyOf.set(c.i, c.ply);
+          if (dv > bestDeep) { bestDeep = dv; bestI = c.i; bestV = dv; }
+        }
+      } else for (const c of groups) {
         let rv: number;
         if (worlds) {
           const vals: number[] = [];
           for (const w of worlds) {
             let sum = 0;
-            for (const a of group) sum += await this.rollout(g, p, a, w);
-            vals.push(sum / group.length);
+            for (const a of c.group) sum += await this.rollout(g, p, a, w);
+            vals.push(sum / c.group.length);
           }
-          perWorld.set(t.i, vals);
+          perWorld.set(c.i, vals);
           rv = vals.reduce((x, y) => x + y, 0) / vals.length;
         } else {
           let sum = 0;
-          for (const a of group) sum += await this.rollout(g, p, a);
-          rv = sum / group.length;
+          for (const a of c.group) sum += await this.rollout(g, p, a);
+          rv = sum / c.group.length;
         }
-        const dv = rv + t.v * 0.05;
-        deepScored.push({ i: t.i, v: dv });
-        plyOf.set(t.i, t.v);
-        if (dv > bestDeep) {
-          bestDeep = dv;
-          bestI = t.i;
-          bestV = dv;
-        }
+        const dv = rv + c.ply * 0.05;
+        deepScored.push({ i: c.i, v: dv });
+        plyOf.set(c.i, c.ply);
+        if (dv > bestDeep) { bestDeep = dv; bestI = c.i; bestV = dv; }
       }
     }
     if (bestI < 0) bestI = 0;
@@ -608,6 +633,8 @@ export class HeuristicAgent implements Agent {
   async valueMain(g: Game, p: PlayerId, actions: Action[], idx: number[], worlds: World[]): Promise<ScoredOption[]> {
     const unknownCalls = actions.filter((a) => isUnknownCall(g, a));
     const out: ScoredOption[] = [];
+    // 1-ply values and groups (always sequential)
+    const entries: { i: number; group: Action[]; ply: number }[] = [];
     for (const i of idx) {
       const a = actions[i];
       const group = isUnknownCall(g, a) ? unknownCalls : [a];
@@ -619,14 +646,34 @@ export class HeuristicAgent implements Agent {
         ply = s / group.length;
         if (a.type === 'call') ply -= 1.5;
       }
-      const w: number[] = [];
-      for (const world of worlds) {
-        let s = 0;
-        for (const x of group) s += await this.rollout(g, p, x, world);
-        w.push(s / group.length);
+      entries.push({ i, group, ply });
+    }
+    if (this.opts.rolloutPool) {
+      const tasks: import('./playoutPool').MainTask[] = [];
+      for (const e of entries) for (const world of worlds) for (const x of e.group) tasks.push({ kind: 'main', action: x, world });
+      const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      let vi = 0;
+      for (const e of entries) {
+        const w: number[] = [];
+        for (const _world of worlds) {
+          let s = 0;
+          for (const _ of e.group) s += values[vi++];
+          w.push(s / e.group.length);
+        }
+        const off = e.ply * 0.05;
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off });
       }
-      const off = ply * 0.05;
-      out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply, w, off });
+    } else {
+      for (const e of entries) {
+        const w: number[] = [];
+        for (const world of worlds) {
+          let s = 0;
+          for (const x of e.group) s += await this.rollout(g, p, x, world);
+          w.push(s / e.group.length);
+        }
+        const off = e.ply * 0.05;
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off });
+      }
     }
     return out;
   }
@@ -638,17 +685,35 @@ export class HeuristicAgent implements Agent {
   async valueReaction(g: Game, p: PlayerId, rx: Reaction[], idx: number[], worlds: World[]): Promise<ScoredOption[]> {
     const unknown = rx.filter((r) => isUnknownCall(g, r));
     const out: ScoredOption[] = [];
-    for (const i of idx) {
-      const r = rx[i];
-      const group = isUnknownCall(g, r) ? unknown : [r];
-      const w: number[] = [];
-      for (const world of worlds) {
-        let s = 0;
-        for (const x of group) s += await this.reactionWorld(g, p, x, world);
-        w.push(s / group.length);
+    if (this.opts.rolloutPool && g.s.attack) {
+      const attacker = g.s.attack.attacker;
+      const entries = idx.map((i) => ({ i, group: isUnknownCall(g, rx[i]) ? unknown : [rx[i]], off: rx[i].type === 'call' ? 0.5 : 0 }));
+      const tasks: import('./playoutPool').ReactionTask[] = [];
+      for (const e of entries) for (const world of worlds) for (const x of e.group) tasks.push({ kind: 'reaction', reaction: x, attacker, world });
+      const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      let vi = 0;
+      for (const e of entries) {
+        const w: number[] = [];
+        for (const _world of worlds) {
+          let s = 0;
+          for (const _ of e.group) s += values[vi++];
+          w.push(s / e.group.length);
+        }
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + e.off, w, off: e.off });
       }
-      const off = r.type === 'call' ? 0.5 : 0;
-      out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off });
+    } else {
+      for (const i of idx) {
+        const r = rx[i];
+        const group = isUnknownCall(g, r) ? unknown : [r];
+        const w: number[] = [];
+        for (const world of worlds) {
+          let s = 0;
+          for (const x of group) s += await this.reactionWorld(g, p, x, world);
+          w.push(s / group.length);
+        }
+        const off = r.type === 'call' ? 0.5 : 0;
+        out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off });
+      }
     }
     return out;
   }
@@ -723,6 +788,11 @@ export class HeuristicAgent implements Agent {
     return new Map(cands.map((x, k) => [x.i, 0.95 * r.values[k] + 0.05 * r.own[k]]));
   }
 
+  /** Config for the playout pool: the serialisable subset of this agent's state a sub-worker needs. */
+  private playoutConfig(g: Game, p: PlayerId): import('./playoutPool').PlayoutConfig {
+    return { rawWeights: this.opts.weights, profiles: this.opts.profiles, evalWeights: this.w(g, p), rolloutWins: this.opts.rolloutWins };
+  }
+
   /**
    * Play the action, finish our turn with a 1-ply bot, then let a 1-ply rival take its full turn; evaluate. Without a
    * world the clone keeps the game's random state and the play-out bots their default seed (as before deepWorlds).
@@ -756,16 +826,36 @@ export class HeuristicAgent implements Agent {
   private async searchSell(g: Game, p: PlayerId, actions: Action[]): Promise<number | null> {
     const sells = this.sellRanking(g, p, actions).slice(0, 2);
     const worlds = this.opts.deepWorlds > 1 ? makeWorlds(this.opts.deepWorlds, () => this.rand()) : null;
+    // the sold Eddie at its stage value instead of the weights' (sellEddieByStage); 0 when unset
+    const st = this.opts.sellEddieByStage;
+    const turn = g.s.turn;
+    const eddieAdj = st ? st[turn <= 4 ? 0 : turn <= 9 ? 1 : 2] - this.w(g, p).eddie : 0;
+    if (worlds && this.opts.rolloutPool) {
+      const opts: (Action | null)[] = [...sells.map((uid) => ({ type: 'sell' as const, uid })), null];
+      const tasks: import('./playoutPool').MainTask[] = [];
+      for (const a of opts) for (const w of worlds) tasks.push({ kind: 'main', action: a, world: w });
+      const vals = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      let vi = 0;
+      const scores: number[] = [];
+      for (const _a of opts) {
+        let sum = 0;
+        for (const _w of worlds) sum += vals[vi++];
+        scores.push(sum / worlds.length);
+      }
+      let best: number | null = sells[0] ?? null;
+      let bestV = -Infinity;
+      for (let i = 0; i < sells.length; i++) {
+        const v = scores[i] + eddieAdj;
+        if (v > bestV + 0.01) { bestV = v; best = sells[i]; }
+      }
+      return scores[scores.length - 1] > bestV + 0.01 ? null : best;
+    }
     const value = async (a: Action | null) => {
       if (!worlds) return this.rolloutMove(g, p, a);
       let sum = 0;
       for (const w of worlds) sum += await this.rolloutMove(g, p, a, w);
       return sum / worlds.length;
     };
-    // the sold Eddie at its stage value instead of the weights' (sellEddieByStage); 0 when unset
-    const st = this.opts.sellEddieByStage;
-    const turn = g.s.turn;
-    const eddieAdj = st ? st[turn <= 4 ? 0 : turn <= 9 ? 1 : 2] - this.w(g, p).eddie : 0;
     let best: number | null = sells[0] ?? null;
     let bestV = -Infinity;
     for (const uid of sells) {
@@ -890,17 +980,38 @@ export class HeuristicAgent implements Agent {
     const worlds = makeWorlds(this.opts.deepReactions, () => this.rand());
     /** each valued reaction's per-world values (observe-only, for lastScores) */
     const seen = new Map<Reaction, number[]>();
-    const value = async (r: Reaction) => {
-      let sum = 0;
-      const vals: number[] = [];
-      for (const w of worlds) {
-        const v = await this.reactionWorld(g, p, r, w);
-        vals.push(v);
-        sum += v;
+    let value: (r: Reaction) => Promise<number>;
+    if (this.opts.rolloutPool && g.s.attack) {
+      const attacker = g.s.attack.attacker;
+      const tasks: import('./playoutPool').ReactionTask[] = [];
+      for (const r of rx) for (const w of worlds) tasks.push({ kind: 'reaction', reaction: r, attacker, world: w });
+      const vals = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const precomputed = new Map<number, number[]>();
+      let vi = 0;
+      for (let i = 0; i < rx.length; i++) {
+        const wv: number[] = [];
+        for (const _w of worlds) wv.push(vals[vi++]);
+        precomputed.set(i, wv);
       }
-      seen.set(r, vals);
-      return sum / worlds.length;
-    };
+      value = async (r: Reaction) => {
+        const i = rx.indexOf(r);
+        const wv = precomputed.get(i)!;
+        seen.set(r, wv);
+        return wv.reduce((x, y) => x + y, 0) / wv.length;
+      };
+    } else {
+      value = async (r: Reaction) => {
+        let sum = 0;
+        const vals: number[] = [];
+        for (const w of worlds) {
+          const v = await this.reactionWorld(g, p, r, w);
+          vals.push(v);
+          sum += v;
+        }
+        seen.set(r, vals);
+        return sum / worlds.length;
+      };
+    }
     const baseV = endIdx >= 0 ? await value(rx[endIdx]) : -Infinity;
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;

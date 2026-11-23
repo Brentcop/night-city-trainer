@@ -13,7 +13,7 @@
 // named their packages (19 to 37 lists in the table), each worker grew by 1.0 kB (262.3, 271.2, 279.0, 265.5 kB).
 
 /** kB (1000 bytes, as Vite prints them) per worker, by the name before ".worker". */
-export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 275, coach: 285, review: 295, watch: 280, bot: 275 };
+export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 275, coach: 285, review: 295, watch: 280, bot: 275, playout: 275 };
 
 /** "game.worker-CqcC5VWM.js" → "game"; null for a file that is not a worker bundle. */
 export function workerName(file: string): string | null {

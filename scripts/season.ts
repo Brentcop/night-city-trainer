@@ -485,12 +485,8 @@ async function main() {
     // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
     const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
     // the adoption rule and depth flags that were given, and the budget the season already checked
-<<<<<<< HEAD
     const settleV = { ...V, 'until-settled': SEASON_SETTLE_ON };
-    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(settleV), ...(FORGE_CONFIRM ? confirmBotArgs(V) : [])].join(' ');
-=======
-    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(V), ...(FORGE_CONFIRM ? confirmBotArgs(V) : []), ...halvingArgs(V)].join(' ');
->>>>>>> refs/heads/claude/mystifying-zhukovsky-16234e
+    const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(settleV), ...(FORGE_CONFIRM ? confirmBotArgs(V) : []), ...halvingArgs(V)].join(' ');
     execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });
   } else console.log('No bred deck entered: nothing to forge.');
 
