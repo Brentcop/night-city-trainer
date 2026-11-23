@@ -8,8 +8,10 @@
 //
 // Shared by scripts/review.ts (batches, backfill) and the browser (Play, Tournaments → match → Review).
 // Caveat: the oracle values positions with the bots' own evaluation, so it finds tactical slips, not new strategy.
-import { Game } from '../engine/engine';
+import { Game, GameOverSignal } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
+import { other } from '../engine/game/common';
+import { shuffleInPlace } from '../engine/rng';
 import type { Action, Agent, Decision, DeckList, GameState, PlayerId, Reaction } from '../engine/types';
 import { stateHash } from '../lib/stateHash';
 import { HeuristicAgent, hideInfo, isUnknownCall, standardError } from './heuristic';
@@ -46,7 +48,9 @@ export type Category =
   | 'no reaction'
   | 'react: call'
   | 'react: program'
-  | 'react: ability';
+  | 'react: ability'
+  | 'mulligan'
+  | 'gig dice';
 
 export interface DecisionReview {
   i: number; // decision number in the game
@@ -258,6 +262,81 @@ async function gradeAll<T extends Action | Reaction>(g: Game, cand: number[], op
   return { vals, loss, per };
 }
 
+/**
+ * Oracle values of candidate option indices for mulligan (whole-game play-out) and gig dice (rest-of-turn play-out).
+ * For mulligans: clone from the game's start, wrap the deciding seat with a one-shot agent that answers with the
+ * chosen option, then run the full game. For gig dice: clone, apply the gig value change, then playOut rest.
+ */
+async function gradeAllChoice(g: Game, p: PlayerId, cand: number[], worlds: World[], wins: boolean, mode: 'mulligan' | 'gigChoice', d?: Decision) {
+  const vals = new Map<number, number>();
+  const loss = new Map<number, number>();
+  const per = new Map<number, number[]>();
+  for (const i of cand) {
+    const detail = mode === 'mulligan' ? await oracleMulligan(g, p, i, worlds, wins) : await oracleGigChoice(g, p, i, d!, worlds, wins);
+    vals.set(i, detail.v);
+    loss.set(i, detail.lossRate);
+    per.set(i, detail.w);
+  }
+  return { vals, loss, per };
+}
+
+/** Mulligan oracle: apply the choice, handle the other player's mulligan if still pending, then play the game to its end. */
+async function oracleMulligan(g: Game, p: PlayerId, optionIndex: number, worlds: World[], wins: boolean): Promise<Detail> {
+  let sum = 0;
+  let losses = 0;
+  const per: number[] = [];
+  for (const w of worlds) {
+    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+    const cg = g.clone([mk(w.a), mk(w.b)]);
+    cg.s.rng = w.rng;
+    hideInfo(cg, p);
+    if (optionIndex === 0) applyMulligan(cg, p);
+    if (p === g.s.first) {
+      const r = other(p);
+      const ok = await cg.yesNo(r, 'Mulligan your opening hand (shuffle it back and draw 6)?', 'mulligan');
+      if (ok) applyMulligan(cg, r);
+    }
+    try { while (cg.s.winner === null) await cg.playTurn(); } catch (e) { if (!(e instanceof GameOverSignal)) throw e; }
+    const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
+    if (e < LOST) losses++;
+    const c = clampPlayOut(e);
+    per.push(c);
+    sum += c;
+  }
+  return { v: sum / worlds.length, lossRate: losses / worlds.length, w: per };
+}
+
+function applyMulligan(cg: Game, p: PlayerId) {
+  const ps = cg.P(p);
+  for (const uid of ps.hand) cg.s.cards[uid].zone = 'deck';
+  ps.deck.push(...ps.hand);
+  ps.hand = [];
+  shuffleInPlace(cg.s, ps.deck);
+  for (let i = 0; i < 6; i++) cg.drawRaw(p);
+}
+
+/** Gig dice oracle: clone, apply the gig value change (or leave unchanged), then play out from here. */
+async function oracleGigChoice(g: Game, p: PlayerId, optionIndex: number, d: Decision, worlds: World[], wins: boolean): Promise<Detail> {
+  let sum = 0;
+  let losses = 0;
+  const per: number[] = [];
+  for (const w of worlds) {
+    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+    const cg = g.clone([mk(w.a), mk(w.b)]);
+    cg.s.rng = w.rng;
+    hideInfo(cg, p);
+    const opt = d.options[optionIndex];
+    if (opt.gig !== undefined && opt.n !== undefined) cg.setGigValue(opt.gig, opt.n, p, 'adjust');
+    await playOut(cg, p, { rest: true });
+    const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
+    if (e < LOST) losses++;
+    const c = clampPlayOut(e);
+    per.push(c);
+    sum += c;
+  }
+  return { v: sum / worlds.length, lossRate: losses / worlds.length, w: per };
+}
+
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
 /** The raw measurements behind a grade (DecisionReview's optional fields), from the oracle's values in each world. */
@@ -386,9 +465,13 @@ class ReviewAgent implements Agent {
       this.timeline.push({ turn: g.s.turn, v: evaluate(g, 0) });
     }
     if (this.opts.shouldStop?.()) return this.play(g, d);
-    const gradable = (d.kind === 'action' || (d.kind === 'reaction' && !!g.s.attack)) && d.options.length >= 2;
+    const isMulligan = d.kind === 'yesno' && d.tag === 'mulligan';
+    const isGigDice = d.kind === 'gigValue';
+    const gradable = (d.kind === 'action' || (d.kind === 'reaction' && !!g.s.attack) || isMulligan || isGigDice) && d.options.length >= 2;
     if (this.review && (d.kind === 'action' || d.kind === 'reaction') && d.options.length === 1) this.forced++;
     if (this.review && gradable && this.opts.skip?.(this.seat, at)) return this.skipOne(g, d, at);
+    if (this.review && isMulligan) return this.reviewMulligan(g, d, at);
+    if (this.review && isGigDice && d.options.length >= 2 && g.pending.length === 0) return this.reviewGigChoice(g, d, at);
     if (this.review && d.kind === 'reaction' && d.options.length >= 2 && g.s.attack) return this.reviewReaction(g, d, at);
     if (!this.review || d.kind !== 'action' || d.options.length < 2) return this.play(g, d);
     // the move actually made (decide first: oracle play-outs are clones and never touch the real game)
@@ -468,7 +551,7 @@ class ReviewAgent implements Agent {
     const pick = await this.play(g, d);
     const seq = this.shared.seq++;
     const entry: SkippedDecision = { player: this.seat, at, seq, turn: g.s.turn };
-    if (d.kind === 'action') {
+    if (d.kind === 'action' || d.kind === 'gigValue' || (d.kind === 'yesno' && d.tag === 'mulligan')) {
       const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
       await screen.decide(g, d);
       const order = screen.lastAlternatives.map((x) => x.index);
@@ -500,6 +583,56 @@ class ReviewAgent implements Agent {
     this.shared.n++;
     this.opts.onProgress?.(this.shared.n);
     return pick;
+  }
+
+  /** Mulligan (keep or mulligan), graded by playing the entire game out from the opening in shared worlds. */
+  private async reviewMulligan(g: Game, d: Decision, at: number): Promise<number[]> {
+    const pick = await this.play(g, d);
+    const seq = this.shared.seq++;
+    const chosen = pick[0];
+    const cand = d.options.map((_, i) => i);
+    let coachI: number | undefined;
+    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
+    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+    const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, 'mulligan');
+    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, 'mulligan', at, seq);
+    await this.confirmLastChoice(g, chosen, bestI, decided, 'mulligan');
+    this.shared.n++;
+    this.opts.onProgress?.(this.shared.n);
+    return pick;
+  }
+
+  /** Gig dice choice (adjust, set or no change), graded like a reaction: each option played out from here. */
+  private async reviewGigChoice(g: Game, d: Decision, at: number): Promise<number[]> {
+    const pick = await this.play(g, d);
+    const seq = this.shared.seq++;
+    const chosen = pick[0];
+    const cand = d.options.map((_, i) => i);
+    let coachI: number | undefined;
+    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
+    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+    const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, 'gigChoice', d);
+    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, 'gig dice', at, seq);
+    await this.confirmLastChoice(g, chosen, bestI, decided, 'gigChoice', d);
+    this.shared.n++;
+    this.opts.onProgress?.(this.shared.n);
+    return pick;
+  }
+
+  /** Confirm a mulligan or gig dice decision on fresh worlds (same approach as confirmLast but for choice-based oracles). */
+  private async confirmLastChoice(g: Game, chosen: number, bestI: number, decided: boolean, mode: 'mulligan' | 'gigChoice', d?: Decision) {
+    const c = this.opts.confirm;
+    const rec = this.out[this.out.length - 1];
+    if (!c || !rec || decided || chosen === bestI || !c.flag(rec)) return;
+    const worlds = makeWorlds(c.worlds, this.confirmRnd);
+    const { vals, loss, per } = await gradeAllChoice(g, this.seat, [bestI, chosen], worlds, this.opts.rolloutWins ?? false, mode, d);
+    const raw = vals.get(bestI)! - vals.get(chosen)!;
+    rec.first = { regret: rec.regret, raw: rec.raw, se: rec.se, gameLosing: rec.gameLosing };
+    rec.regret = Math.min(CAP, Math.max(0, raw));
+    rec.raw = round2(Math.max(0, raw));
+    rec.se = round2(standardError(per.get(bestI)!.map((x, k) => x - per.get(chosen)![k])));
+    rec.gameLosing = loss.get(chosen)! - loss.get(bestI)! >= 0.25;
+    rec.confirmed = c.worlds;
   }
 
   /**

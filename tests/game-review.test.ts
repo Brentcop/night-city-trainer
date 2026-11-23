@@ -6,7 +6,7 @@ import { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import { makeTierBot } from '../src/ai/tiers';
 import { GIG_SWING } from '../src/ai/eval';
-import { CAP, NOISE } from '../src/ai/reviewer';
+import { CAP, NOISE, reviewGame } from '../src/ai/reviewer';
 import { CLOSE_GIGS as COACH_CLOSE, isClose, MISTAKE_GIGS as COACH_MISTAKE } from '../src/ai/coach';
 import type { DecisionReview, GameReview } from '../src/ai/reviewer';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
@@ -426,5 +426,53 @@ describe('a seeded game, reviewed as the browser and the CLI review it', () => {
     expect(f.at[0]).toHaveLength(me.choices.length);
     for (const m of a.moves) expect(f.at[m.p][m.at]).toBeGreaterThanOrEqual(-1);
     expect(f.at[0][f.at[0].length - 1]).toBeLessThan(f.data.frames.length);
+  }, 120_000);
+});
+
+// ------------------------------------------------------------------------------------------------ D25: mulligan grading
+describe('D25: the reviewer grades mulligans and gig dice choices', () => {
+  it('grades both players mulligan decisions with category mulligan', async () => {
+    const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
+    const review = await reviewGame(
+      { decks, seed: 100, first: 0, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)], agentNames: ['easy', 'easy'] },
+      { rollouts: 2, seats: [0, 1] },
+    );
+    const mulligans = review.decisions.filter((d) => d.category === 'mulligan');
+    expect(mulligans.length).toBe(2);
+    expect(mulligans[0].player).not.toBe(mulligans[1].player);
+    for (const m of mulligans) {
+      expect(m.options).toBe(2);
+      expect(m.regret).toBeGreaterThanOrEqual(0);
+      expect(m.at).toBe(0);
+      expect(['Yes', 'No']).toContain(m.chosen);
+      expect(['Yes', 'No']).toContain(m.best);
+    }
+  }, 120_000);
+
+  it('mulligan grading is deterministic (same seed → same grades)', async () => {
+    const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
+    const opts = { rollouts: 2, seats: [0, 1] as (0 | 1)[] };
+    const spec = { decks, seed: 100, first: 0 as const, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)] as [Agent, Agent], agentNames: ['easy', 'easy'] as [string, string] };
+    const a = await reviewGame(spec, opts);
+    const b = await reviewGame({ ...spec, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)] }, opts);
+    const am = a.decisions.filter((d) => d.category === 'mulligan');
+    const bm = b.decisions.filter((d) => d.category === 'mulligan');
+    expect(am.map((d) => ({ regret: d.regret, chosen: d.chosen, best: d.best }))).toEqual(
+      bm.map((d) => ({ regret: d.regret, chosen: d.chosen, best: d.best })),
+    );
+  }, 120_000);
+
+  it('the full Game review (runGameReview) includes mulligan grades in the record', async () => {
+    const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
+    const me = new Recorder(makeTierBot('easy', 5));
+    await Game.create(decks, [me, makeTierBot('easy', 9, 'Bot')], { seed: 42, first: 0, log: false }).run();
+    const spec: PracticeReviewSpec = { decks, seed: 42, first: 0, botLevel: 'easy', botSeed: 9, choices: me.choices };
+    const rec = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, made: 'm' });
+    const mulligans = rec.moves.filter((m) => m.cat === 'mulligan');
+    expect(mulligans.length).toBeGreaterThanOrEqual(1);
+    for (const m of mulligans) {
+      expect(m.src).toBe('oracle');
+      expect(m.gap).toBeGreaterThanOrEqual(0);
+    }
   }, 120_000);
 });
