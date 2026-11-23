@@ -1,5 +1,6 @@
 // Replayable records of practice games (seeds + every human choice), so a finished game can be reviewed later.
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
+import type { DecisionRecord } from '../engine/telemetry';
 import type { DeckList, PlayerId } from '../engine/types';
 import type { PracticeReviewSpec, PvpReplay, ReplayPosition, ReviewRequest } from '../sim/practiceReview';
 import { toTourneyMark, type MultiDayMark, type TourneyMark } from './practiceLog';
@@ -66,6 +67,8 @@ export interface PracticeReplay {
    * records, in online games that ended off the board, and when you conceded before being asked anything: not checked.
    */
   position?: ReplayPosition;
+  /** Decision telemetry for the human seat (D28): every decision recorded during the game, for analysis. Never on pvp games (privacy). */
+  decisions?: DecisionRecord[];
 }
 
 export const REPLAYS_KEY = 'nct.practiceReplays.v1';
@@ -158,7 +161,8 @@ export function loadReplays(): PracticeReplay[] {
 export function saveReplay(r: PracticeReplay): boolean {
   try {
     const all = loadReplays().filter((x) => x.id !== r.id);
-    all.push(r);
+    const { decisions: _, ...stored } = r;
+    all.push(stored as PracticeReplay);
     localStorage.setItem(KEY, JSON.stringify(all.slice(-MAX)));
     return true;
   } catch {

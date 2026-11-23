@@ -216,6 +216,14 @@ export class HeuristicAgent implements Agent {
   /** sellSearch chose not to sell on this turn of this game state: no further sell that turn */
   private noSellAt: { s: object; turn: number } | null = null;
 
+  /** The bot's random state: read and written by the practice bot worker to keep decisions deterministic across threads. */
+  get botRng(): number {
+    return this.rng;
+  }
+  set botRng(v: number) {
+    this.rng = v;
+  }
+
   constructor(opts: HeuristicOptions = {}) {
     this.opts = {
       name: opts.name ?? (opts.lookahead === false ? 'Fast bot' : opts.deep ? 'Deep bot' : 'Lookahead bot'),
