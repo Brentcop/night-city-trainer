@@ -125,6 +125,7 @@ import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
 import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, PER_DECK_MISSING, perDeckAddsWords, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
+import { parentListLine } from '../src/lib/listPackages';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
 import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnHalvingProblems, exitOnRuleProblems, halvingFlags, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
@@ -353,7 +354,7 @@ async function playMany(decks: DeckList[], seed0: number, games: number, bot: st
 
 /** The list's plan: the flags, with the deck objective's packages as the default keep (only when package flags are on). */
 function planFor(target: (typeof lib)[number]): PackagePlan {
-  const plan = planFromFlags(V, objectivePackages(target.file), target.deck);
+  const plan = planFromFlags(V, objectivePackages(target.file, target.deck), target.deck);
   exitOnPlanProblems(plan);
   return plan;
 }
@@ -769,9 +770,12 @@ async function forge(target: (typeof lib)[number]) {
       target.kind === 'ladder'
         ? (prev.match(/^\/\/ (Origin|Author|Source|Via|Credits|Parents|Added|Idea): .+$/gm) ?? []).join('\n')
         : (prev.match(/^\/\/ Idea: .+$/m)?.[0] ?? '');
+    // the lists this one was made from, nearest first: scripts/note-synergies.ts gives a forged list its parent note's
+    // packages through it (src/lib/listPackages.ts)
+    const parentLine = `\n${parentListLine(listFingerprint(target.deck), prev)}`;
     fs.writeFileSync(
       outFile,
-      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${adoptedRows.map(withGain).join('; ')}\n// Adoption: ${ruleLine}${pkgLine}\n`,
+      `${exportOfficial(inPlace ? deck : { ...deck, name: `${deck.name} (forged)` })}\n\n${idea}\n// Forged ${new Date().toISOString().slice(0, 10)}: ${adoptedRows.map(withGain).join('; ')}\n// Adoption: ${ruleLine}${pkgLine}${parentLine}\n`,
     );
     log.push(OUT ? `Saved ${outFile} (--out: the library was not changed).` : `Saved ${outFile} (previous version archived in data/decks/custom/history/).`);
   }

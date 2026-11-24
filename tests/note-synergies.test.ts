@@ -14,25 +14,30 @@ import { NOTE_SYNERGIES } from '../src/content/deckObjectives/noteSynergies';
 import { packagesForList } from '../src/ai/packages';
 import { SYNERGY_BY_ID } from '../src/content/synergies/index';
 import { codeFiles } from '../scripts/game-cache';
-import { NOTE_SYNERGIES_COMMAND, NOTE_SYNERGIES_FILE, noteSynergiesOf, noteSynergiesProblem, noteSynergiesText } from '../scripts/note-synergies';
+import { libraryLists, NOTE_SYNERGIES_COMMAND, NOTE_SYNERGIES_FILE, noteSynergiesOf, noteSynergiesProblem, noteSynergiesText, type LibraryList } from '../scripts/note-synergies';
+import { parentListLine, parentListsOf } from '../src/lib/listPackages';
 import { filesUnder, importGraph, rel, ROOT, staticGraph } from './importGraph';
 
 const stored = () => fs.readFileSync(path.join(ROOT, NOTE_SYNERGIES_FILE), 'utf8');
+const LISTS = libraryLists(path.join(ROOT, 'data/decks'));
 const withNote = (file: string, change: Partial<ObjectiveTable[string]>): ObjectiveTable => ({ ...DECK_OBJECTIVES, [file]: { ...DECK_OBJECTIVES[file]!, ...change } });
 const named = Object.entries(DECK_OBJECTIVES).filter(([, n]) => n.synergies?.length);
 
 describe('the slim table is what the notes say', () => {
-  it('the stored module is the text the command writes from the notes, byte for byte', () => {
-    const problem = noteSynergiesProblem(DECK_OBJECTIVES, stored());
+  it('the stored module is the text the command writes from the notes and the deck files, byte for byte', () => {
+    const problem = noteSynergiesProblem(DECK_OBJECTIVES, stored(), LISTS);
     expect(problem, problem ?? '').toBeNull();
-    expect(NOTE_SYNERGIES).toEqual(noteSynergiesOf(DECK_OBJECTIVES));
+    expect(NOTE_SYNERGIES).toEqual(noteSynergiesOf(DECK_OBJECTIVES, LISTS));
     expect(Object.keys(NOTE_SYNERGIES).length).toBeGreaterThan(10);
   });
 
-  it('holds one row per list whose note names synergies, sorted by fingerprint, as plain data with no imports', () => {
+  it('holds a row per list whose note names synergies (and per list derived from one), sorted by fingerprint, as plain data with no imports', () => {
     expect(Object.keys(NOTE_SYNERGIES)).toEqual(Object.keys(NOTE_SYNERGIES).slice().sort());
-    expect(new Set(Object.keys(NOTE_SYNERGIES))).toEqual(new Set(named.map(([, n]) => n.listId)));
     for (const [, n] of named) expect(NOTE_SYNERGIES[n.listId]).toEqual(n.synergies);
+    // every other row is a library file's current list: its note's file edited in place, or a file with a parent line
+    const noteIds = new Set(named.map(([, n]) => n.listId));
+    const fileIds = new Set(LISTS.map((l) => l.listId));
+    for (const id of Object.keys(NOTE_SYNERGIES)) expect(noteIds.has(id) || fileIds.has(id), id).toBe(true);
     const text = stored();
     expect(text).not.toMatch(/^\s*import\b/m);
     expect(text).not.toContain('\r');
@@ -81,6 +86,48 @@ describe('the check fails with one sentence that names the command', () => {
   });
 });
 
+describe('a list edited in place or forged from a noted list keeps the note’s packages (2026-11-24, S3)', () => {
+  const [file, note] = named[0]!;
+  const edited = 'aaaaaaaaaaaaaaaa';
+  const forged = 'bbbbbbbbbbbbbbbb';
+  const grandchild = 'cccccccccccccccc';
+  const others = LISTS.filter((l) => l.file !== file);
+  const lists: LibraryList[] = [...others, { file, listId: edited, parents: [] }];
+
+  it("the note's file edited in place: its current list gets a row beside the note's own", () => {
+    const map = noteSynergiesOf(DECK_OBJECTIVES, lists);
+    expect(map[edited]).toEqual(note.synergies);
+    expect(map[note.listId]).toEqual(note.synergies);
+    // without the files: the notes alone, as before
+    expect(noteSynergiesOf(DECK_OBJECTIVES)[edited]).toBeUndefined();
+    // the stored table then differs, and the check names the new list
+    expect(noteSynergiesProblem(DECK_OBJECTIVES, stored(), lists)).toContain(edited);
+  });
+
+  it('a forged copy with a parent line, and a copy of that copy, get the parent note’s packages', () => {
+    const withCopies: LibraryList[] = [...lists, { file: 'zz-forged-again.txt', listId: grandchild, parents: [forged, note.listId] }, { file: 'zz-forged.txt', listId: forged, parents: [note.listId] }];
+    const map = noteSynergiesOf(DECK_OBJECTIVES, withCopies);
+    expect(map[forged]).toEqual(note.synergies);
+    expect(map[grandchild]).toEqual(note.synergies);
+    // a parent line naming a list with no row adds nothing
+    expect(noteSynergiesOf(DECK_OBJECTIVES, [{ file: 'zz.txt', listId: forged, parents: ['0000000000000000'] }])[forged]).toBeUndefined();
+  });
+
+  it("the forge's parent line reads back, nearest first, each list once, at most 8", () => {
+    expect(parentListsOf('// Name\n// Parent list: 1111111111111111, 2222222222222222\n1 x')).toEqual(['1111111111111111', '2222222222222222']);
+    expect(parentListsOf('no line')).toEqual([]);
+    const line = parentListLine('3333333333333333', '// Parent list: 1111111111111111, 3333333333333333\n');
+    expect(line).toBe('// Parent list: 3333333333333333, 1111111111111111');
+    expect(parentListsOf(`${line}\n`)).toEqual(['3333333333333333', '1111111111111111']);
+    const long = `// Parent list: ${Array.from({ length: 10 }, (_, i) => String(i).repeat(16)).join(', ')}`;
+    expect(parentListsOf(parentListLine('ffffffffffffffff', long))).toHaveLength(8);
+  });
+
+  it('scripts/tag-provenance.ts keeps the parent line with the forge’s lines', () => {
+    expect(fs.readFileSync(path.join(ROOT, 'scripts', 'tag-provenance.ts'), 'utf8')).toContain('(Adoption|Packages|Parent list)');
+  });
+});
+
 describe('the game workers do not reach the notes', () => {
   const DIR = 'src/content/deckObjectives/';
   /** The slim table and the vocabulary's types and terms are not notes; every other file in the folder is a note table. */
@@ -118,7 +165,7 @@ describe('the command', () => {
     const before = stored();
     const r = run(['--check']);
     expect(r.status, r.stderr).toBe(0);
-    expect(r.stdout.trim()).toBe(`${NOTE_SYNERGIES_FILE} is what the deck notes say (${Object.keys(NOTE_SYNERGIES).length} lists with synergies).`);
+    expect(r.stdout.trim()).toBe(`${NOTE_SYNERGIES_FILE} is what the deck notes and deck files say (${Object.keys(NOTE_SYNERGIES).length} lists with synergies).`);
     expect(stored()).toBe(before);
   });
 

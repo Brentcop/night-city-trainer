@@ -1,8 +1,8 @@
 // Package context for the bots and the coach (docs/ROADMAP2.md §1 step 4, docs/SYNERGIES.md "How scoring uses packages").
 //
-// For one seat: the synergy packages its own list is built around (the deck objective's `synergies` when the owner named
-// them for this exact list, else `synergiesIn(list)` with `builtAround`), and per-state facts about each one from that
-// player's own view: pieces in hand, in play, among the Legends, in the trash and still in the deck, whether a partner of a
+// For one seat: the synergy packages its own list is built around (src/lib/listPackages.ts, the one answer every layer
+// asks: the deck note's `synergies` for this list, else `synergiesIn(list)` with `builtAround`), and per-state facts
+// about each one from that player's own view: pieces in hand, in play, among the Legends, in the trash and still in the deck, whether a partner of a
 // piece can still be had, and, for the Gig-value and Street Cred packages, how close the Gigs are to what the package
 // wants. A bot only ever asks about its own seat: never the rival's list or hidden cards.
 //
@@ -13,8 +13,8 @@ import type { Game } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
 import { listFingerprint } from '../engine/deck';
 import type { Gig, PlayerId } from '../engine/types';
-import { covers, memberName, roleMap, SYNERGY_BY_ID, synergiesIn, zeroRoles, type PieceCount, type RoleCounts, type Synergy, type SynergyCondition, type SynergyRole } from '../content/synergies/index';
-import { NOTE_SYNERGIES } from '../content/deckObjectives/noteSynergies';
+import { covers, memberName, partnerRolesOf, roleMap, SYNERGY_BY_ID, zeroRoles, type PieceCount, type RoleCounts, type Synergy, type SynergyCondition, type SynergyRole } from '../content/synergies/index';
+import { listPackages } from '../lib/listPackages';
 
 /** A quantity the deck's own choices can move toward a package's condition (which Gig to roll in, take or adjust). */
 export type SteerKind = 'cred-low' | 'cred-high' | 'cred-20' | 'cred-even' | 'min-gig' | 'high-gig' | 'value-pair' | 'gig-spread';
@@ -79,26 +79,19 @@ function toSeat(s: Synergy, source: SeatPackage['source']): SeatPackage {
   return { id: s.id, name: s.name, family: s.family, bond: s.bond, needs: s.needs, roles: roleMap(s), steer: steerOf(s.online), source };
 }
 
-/**
- * Objective-named packages per list fingerprint (only notes written for that exact list), from the generated slim table
- * (src/content/deckObjectives/noteSynergies.ts, written by scripts/note-synergies.ts), so the workers do not carry the
- * notes' text.
- */
-let objectiveByList: Map<string, readonly string[]> | null = null;
-function objectivePackages(listId: string): readonly string[] | undefined {
-  if (!objectiveByList) objectiveByList = new Map(Object.entries(NOTE_SYNERGIES));
-  return objectiveByList.get(listId);
-}
-
 const BY_LIST = new Map<string, readonly SeatPackage[]>();
 
-/** The packages a list is built around: the objective's `synergies` when named for this list, else the built-around ones. */
+/**
+ * The packages a list is built around: the one answer of src/lib/listPackages.ts (the note's `synergies` for this list,
+ * by fingerprint through the generated slim table, so the workers do not carry the notes' text; else the built-around
+ * ones). Cached by list fingerprint.
+ */
 export function packagesForList(deck: { legends: readonly string[]; main: readonly string[] }, listId = listFingerprint(deck as { legends: string[]; main: string[] })): readonly SeatPackage[] {
   let out = BY_LIST.get(listId);
   if (out) return out;
-  const named = objectivePackages(listId);
-  if (named) out = named.filter((id) => SYNERGY_BY_ID[id]).map((id) => toSeat(SYNERGY_BY_ID[id], 'objective'));
-  else out = synergiesIn({ legends: [...deck.legends], main: [...deck.main] }).filter((x) => x.builtAround).map((x) => toSeat(x.synergy, 'built-around'));
+  const found = listPackages(deck, { listId });
+  const source: SeatPackage['source'] = found.source === 'built-around' ? 'built-around' : 'objective';
+  out = found.ids.map((id) => toSeat(SYNERGY_BY_ID[id]!, source));
   BY_LIST.set(listId, out);
   return out;
 }
@@ -190,9 +183,7 @@ export const obtainableOf = (f: PackageFacts) => add(availableOf(f), f.deck);
 
 /** The roles that complete a piece of `role` (a `both` or `piece` card is completed by any other member). */
 export function partnerRoles(role: SynergyRole, pkg: SeatPackage): SynergyRole[] {
-  const split = (pkg.needs.enabler ?? 0) > 0 || (pkg.needs.payoff ?? 0) > 0;
-  if (!split || role === 'piece' || role === 'both') return ['enabler', 'payoff', 'both', 'piece'];
-  return role === 'enabler' ? ['payoff', 'both'] : ['enabler', 'both'];
+  return partnerRolesOf(role, pkg.needs);
 }
 
 const countRoles = (r: RoleCounts, roles: readonly SynergyRole[]) => roles.reduce((a, k) => a + r[k], 0);

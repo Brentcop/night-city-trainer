@@ -184,7 +184,12 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   // synergy packages: keep defaults to the list's objective packages or the packages it is built around, and resets
   // when the list changes; package moves are off unless turned on
   const listId = parsed.deck ? listFingerprint(parsed.deck) : '';
-  const keepDefault = useMemo(() => (parsed.deck ? labDefaultKeep(parsed.deck, source === 'library' ? file : undefined) : { keep: [] as string[], from: 'built-around' as const }), [parsed.deck, source, file]);
+  // a tuned deck saved here keeps the packages of the list it was tuned from (its fingerprint changed)
+  const keepDefault = useMemo(() => {
+    if (!parsed.deck) return { keep: [] as string[], from: 'built-around' as const };
+    const tunedFrom = source === 'library' ? findDeck(file)?.tuned?.original.listId : undefined;
+    return labDefaultKeep(parsed.deck, source === 'library' ? file : undefined, tunedFrom ? [tunedFrom] : undefined);
+  }, [parsed.deck, source, file]);
   const [keepSel, setKeepSel] = useState<{ listId: string; keep: string[] } | null>(null);
   const keep = keepSel && keepSel.listId === listId ? keepSel.keep : keepDefault.keep;
   const [pkgMoves, setPkgMoves] = useState(false);

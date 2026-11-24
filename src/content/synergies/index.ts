@@ -75,6 +75,20 @@ export function roleMatches(role: SynergyRole, filter?: readonly SynergyRole[]):
   return filter.includes(role) || (role === 'both' && (filter.includes('enabler') || filter.includes('payoff')));
 }
 
+/**
+ * The roles that partner a piece of `role` in a package that needs `needs`: in a package split into enablers and payoffs,
+ * an enabler is partnered by a payoff (or a card that is both) and a payoff by an enabler (or both); a `both` or `piece`
+ * card, or any card of a package that names no sides, by any other member. One rule for the bots' and coach's package
+ * facts (src/ai/packages.ts) and the tuners' partner split (src/lib/cutRanking.ts). The synergy report
+ * (src/analysis/synergies.ts) still writes its own copy, which does not read `needs`: the two agree on every catalogue
+ * package (tests/presence.test.ts), since the one package with no sides (comeback) has only `piece` members.
+ */
+export function partnerRolesOf(role: SynergyRole, needs: PieceCount): SynergyRole[] {
+  const split = (needs.enabler ?? 0) > 0 || (needs.payoff ?? 0) > 0;
+  if (!split || role === 'piece' || role === 'both') return ['enabler', 'payoff', 'both', 'piece'];
+  return role === 'enabler' ? ['payoff', 'both'] : ['enabler', 'both'];
+}
+
 export type RoleCounts = Record<SynergyRole, number>;
 export const zeroRoles = (): RoleCounts => ({ enabler: 0, payoff: 0, both: 0, piece: 0 });
 

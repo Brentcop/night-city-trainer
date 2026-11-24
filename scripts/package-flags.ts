@@ -17,6 +17,7 @@
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 import type { DeckList } from '../src/engine/types';
 import { compactPlan, defaultKeep, isEmptyPlan, parseLockCards, parsePackageList, parseSeedCombos, planProblems, type PackagePlan } from '../src/lib/deckPackages';
+import { notePackages } from '../src/lib/listPackages';
 import { bool, int, str } from './lib-node';
 
 const listCheck = (v: string) => parsePackageList(v).error;
@@ -96,8 +97,12 @@ Run with --help for usage.`);
 export const seedsFromFlags = (v: PackageFlagValues) => (v['seed-packages'] ? parseSeedCombos(v['seed-packages']).combos : []);
 
 /** The packages a library deck's objective names (the default keep). A note written for an earlier list still counts. */
-export function objectivePackages(file: string): string[] {
-  return [...(DECK_OBJECTIVES[file]?.synergies ?? [])];
+export function objectivePackages(file: string, deck?: Pick<DeckList, 'legends' | 'main'>): string[] {
+  const note = DECK_OBJECTIVES[file]?.synergies;
+  // with the list: the one answer (src/lib/listPackages.ts), so a list whose own note names none still gets the
+  // packages its slim-table row names (an edited or forged list of a note that does); the note's ids as written first
+  if (!deck || note?.length) return [...(note ?? [])];
+  return notePackages(deck);
 }
 
 /** The command-line form of a plan (season.ts passes it on to the forge). */

@@ -1,9 +1,14 @@
 // Write the slim table of the deck notes' synergies (src/content/deckObjectives/noteSynergies.ts) from the notes
-// (DECK_OBJECTIVES in src/content/deckObjectives/index.ts): for every note that names at least one synergy package, its
-// list fingerprint (`listId`) and those package ids, sorted by fingerprint. The bots read that table (src/ai/packages.ts)
-// instead of the notes, so the game workers do not carry the notes' text. Run it after a note's `synergies` or `listId`
-// changes (a new note that names synergies too); npm run check:data and tests/note-synergies.test.ts fail until it is.
-// Deterministic: the same notes give the same bytes (LF line endings), and an unchanged file is not rewritten.
+// (DECK_OBJECTIVES in src/content/deckObjectives/index.ts): for every note that names at least one synergy package, a row
+// from its list fingerprint (`listId`) to those package ids; since 2026-11-24 also a row for the current list of the
+// note's deck file when that differs (a list edited in place: a forge, or a re-measured change applied by hand), and one
+// for every library deck file whose "// Parent list:" line (the forge writes it) names a list that has a row, so a forged
+// list keeps its note's packages (src/lib/listPackages.ts; REVIEW_2026-11-24 S3). Sorted by fingerprint. The bots read
+// that table (src/ai/packages.ts) instead of the notes, so the game workers do not carry the notes' text. Run it after a
+// note's `synergies` or `listId` changes, a new note that names synergies, or a noted deck file's list changes;
+// npm run check:data and tests/note-synergies.test.ts fail until it is.
+// Deterministic: the same notes and deck files give the same bytes (LF line endings), and an unchanged file is not
+// rewritten.
 //
 //   npx tsx scripts/note-synergies.ts           write the table
 //   npx tsx scripts/note-synergies.ts --check   write nothing; exit 1 when the stored table differs from the notes
@@ -12,6 +17,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DECK_OBJECTIVES, type ObjectiveTable } from '../src/content/deckObjectives/index';
+import { listFingerprint } from '../src/engine/deck';
+import { LIBRARY_DIRS, libraryDeck } from '../src/lib/library';
+import { parentListsOf } from '../src/lib/listPackages';
 import { bool, cli, writeIfChanged } from './lib-node';
 
 /** The generated module, relative to the repository root. */
@@ -19,14 +27,55 @@ export const NOTE_SYNERGIES_FILE = 'src/content/deckObjectives/noteSynergies.ts'
 /** The command that writes it. */
 export const NOTE_SYNERGIES_COMMAND = 'npx tsx scripts/note-synergies.ts';
 
+/** A library deck file as the table reads it: its file name (as the notes are keyed), current list, and parent lists. */
+export interface LibraryList {
+  file: string;
+  listId: string;
+  /** the fingerprints its "// Parent list:" line names, nearest first */
+  parents: readonly string[];
+}
+
+/** The library's deck files (data/decks and data/decks/custom, LIBRARY_DIRS), sorted by folder and file. */
+export function libraryLists(dir = 'data/decks'): LibraryList[] {
+  const out: LibraryList[] = [];
+  for (const sub of LIBRARY_DIRS) {
+    const d = path.join(dir, sub);
+    if (!fs.existsSync(d)) continue;
+    for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.txt')).sort()) {
+      const text = fs.readFileSync(path.join(d, f), 'utf8');
+      const deck = libraryDeck(sub ? `${sub}/${f}` : f, text);
+      if (deck) out.push({ file: deck.file, listId: listFingerprint(deck.deck), parents: parentListsOf(text) });
+    }
+  }
+  return out;
+}
+
 /**
- * The map the bots read: list fingerprint to the note's `synergies`, for every note that names at least one, sorted by
+ * The map the bots read: list fingerprint to a note's `synergies`, for every note that names at least one, sorted by
  * fingerprint. Notes are read in the table's order and a later note for the same list replaces an earlier one, as
- * src/ai/packages.ts did when it read the notes itself.
+ * src/ai/packages.ts did when it read the notes itself. With the library's deck files (`lists`): a row for the current
+ * list of each such note's file, when no note has that list, then, until nothing changes, a row for each file whose
+ * nearest parent list with a row names one (the files in their order). Without `lists`, the notes alone.
  */
-export function noteSynergiesOf(table: ObjectiveTable): Record<string, readonly string[]> {
+export function noteSynergiesOf(table: ObjectiveTable, lists: readonly LibraryList[] = []): Record<string, readonly string[]> {
   const byList = new Map<string, readonly string[]>();
   for (const note of Object.values(table)) if (note.synergies?.length) byList.set(note.listId, note.synergies);
+  const fileOf = new Map(lists.map((l) => [l.file, l]));
+  for (const [file, note] of Object.entries(table).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    const cur = fileOf.get(file)?.listId;
+    if (note.synergies?.length && cur && !byList.has(cur)) byList.set(cur, note.synergies);
+  }
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const l of lists) {
+      if (byList.has(l.listId)) continue;
+      const parent = l.parents.find((p) => byList.has(p));
+      if (parent) {
+        byList.set(l.listId, byList.get(parent)!);
+        changed = true;
+      }
+    }
+  }
   const out: Record<string, readonly string[]> = {};
   for (const id of [...byList.keys()].sort()) out[id] = byList.get(id)!;
   return out;
@@ -40,13 +89,14 @@ const HEADER = [
   '// tests/note-synergies.test.ts fail until the two agree.',
   '//',
   '// The synergy packages (src/content/synergies) each library list is built around, as its note names them: list',
-  '// fingerprint to package ids, for every note that names at least one, sorted by fingerprint. The bots read this table',
-  '// (src/ai/packages.ts) instead of the notes, so the game workers do not carry the notes’ text. Plain data, no imports.',
+  '// fingerprint to package ids, for every note that names at least one (and for the current list of its deck file, and',
+  '// for a deck file forged from a list here), sorted by fingerprint. The bots read this table through',
+  '// src/lib/listPackages.ts instead of the notes, so the game workers do not carry the notes’ text. Plain data, no imports.',
 ];
 
 /** The module's text for a table of notes. */
-export function noteSynergiesText(table: ObjectiveTable): string {
-  const map = noteSynergiesOf(table);
+export function noteSynergiesText(table: ObjectiveTable, lists: readonly LibraryList[] = []): string {
+  const map = noteSynergiesOf(table, lists);
   const rows = Object.entries(map).map(([id, pkgs]) => `  ${quote(id)}: [${pkgs.map(quote).join(', ')}],`);
   return [...HEADER, 'export const NOTE_SYNERGIES: Readonly<Record<string, readonly string[]>> = {', ...rows, '};', ''].join('\n');
 }
@@ -69,9 +119,9 @@ function readRows(text: string): Map<string, string> | null {
  * Whether the stored module (its text, or null when the file is missing) is what the notes give, byte for byte: null
  * when it is, else one sentence that says how it differs and names the command.
  */
-export function noteSynergiesProblem(table: ObjectiveTable, stored: string | null): string | null {
+export function noteSynergiesProblem(table: ObjectiveTable, stored: string | null, lists: readonly LibraryList[] = []): string | null {
   if (stored === null) return `${NOTE_SYNERGIES_FILE} is missing; write it with ${NOTE_SYNERGIES_COMMAND}.`;
-  const want = noteSynergiesText(table);
+  const want = noteSynergiesText(table, lists);
   if (stored === want) return null;
   const got = readRows(stored);
   const exp = readRows(want)!;
@@ -86,23 +136,25 @@ export function noteSynergiesProblem(table: ObjectiveTable, stored: string | nul
 /** For npm run check:data: the stored module in a checkout against the notes this code has. */
 export function noteSynergiesCheck(root = '.'): { failures: string[]; passed: string[] } {
   const file = path.join(root, NOTE_SYNERGIES_FILE);
-  const problem = noteSynergiesProblem(DECK_OBJECTIVES, fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null);
+  const lists = libraryLists(path.join(root, 'data/decks'));
+  const problem = noteSynergiesProblem(DECK_OBJECTIVES, fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null, lists);
   if (problem) return { failures: [problem], passed: [] };
-  return { failures: [], passed: [`${NOTE_SYNERGIES_FILE} is what the deck notes say (${Object.keys(noteSynergiesOf(DECK_OBJECTIVES)).length} lists with synergies)`] };
+  return { failures: [], passed: [`${NOTE_SYNERGIES_FILE} is what the deck notes and deck files say (${Object.keys(noteSynergiesOf(DECK_OBJECTIVES, lists)).length} lists with synergies)`] };
 }
 
 if (process.argv[1]?.replace(/\\/g, '/').endsWith('scripts/note-synergies.ts')) {
   const { values } = cli(import.meta.url, { check: bool() });
-  const lists = Object.keys(noteSynergiesOf(DECK_OBJECTIVES)).length;
+  const files = libraryLists();
+  const lists = Object.keys(noteSynergiesOf(DECK_OBJECTIVES, files)).length;
   if (values.check) {
-    const problem = noteSynergiesProblem(DECK_OBJECTIVES, fs.existsSync(NOTE_SYNERGIES_FILE) ? fs.readFileSync(NOTE_SYNERGIES_FILE, 'utf8') : null);
+    const problem = noteSynergiesProblem(DECK_OBJECTIVES, fs.existsSync(NOTE_SYNERGIES_FILE) ? fs.readFileSync(NOTE_SYNERGIES_FILE, 'utf8') : null, files);
     if (problem) {
       console.error(problem);
       process.exit(1);
     }
-    console.log(`${NOTE_SYNERGIES_FILE} is what the deck notes say (${lists} lists with synergies).`);
+    console.log(`${NOTE_SYNERGIES_FILE} is what the deck notes and deck files say (${lists} lists with synergies).`);
   } else {
-    const changed = writeIfChanged(NOTE_SYNERGIES_FILE, noteSynergiesText(DECK_OBJECTIVES));
+    const changed = writeIfChanged(NOTE_SYNERGIES_FILE, noteSynergiesText(DECK_OBJECTIVES, files));
     console.log(`${changed ? 'Wrote' : 'Unchanged:'} ${NOTE_SYNERGIES_FILE} (${lists} lists with synergies)`);
   }
 }
