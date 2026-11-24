@@ -99,7 +99,8 @@
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
 //   2. Cuts: the deck's lowest-IWD cards. Adds: +1 of its best card, and the format's highest-impact legal cards
-//      (from src/data/analysis.json, averaged across decks).
+//      (the format-wide card impact the season breeder reads, the current simulator version and Hard since 2026-11-24:
+//      loadImpactTables in scripts/breed-data.ts; the run prints which table it read).
 //   3. Screen each cut→add swap on the SAME seeds as the baseline (paired). With --cards-per-change 2 or 3 (or
 //      --packages-per-change 2) the best screened single changes are also combined and screened. Screening only
 //      nominates: the best --nominees changes that beat the baseline by 2+ points.
@@ -115,15 +116,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { exportOfficial, listFingerprint } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
-import { analyzeDeck, type DeckReport } from '../src/analysis/analyze';
-import analysis from '../src/data/analysis.json';
-import { IMPACT_MIN_POOLED_GAMES } from '../src/analysis/impactData';
+import { analyzeDeck } from '../src/analysis/analyze';
 import { bool, cli, int, loadLibrary, oneOf, resolveDeck, runJobs, runMain, SIM_BOTS, str, threadsOpt } from './lib-node';
 import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
-import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, PER_DECK_MISSING, perDeckAddsWords, type Mutation } from './builder-moves';
+import { forgeAddsWords, forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, PER_DECK_MISSING, perDeckAddsWords, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
 import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnHalvingProblems, exitOnRuleProblems, halvingFlags, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
@@ -299,21 +298,12 @@ const nextSeedOffset = () => (seedState = (seedState * 1664525 + 1013904223) >>>
 const peekSeedOffset = () => ((seedState * 1664525 + 1013904223) >>> 0) % 90_000;
 
 /**
- * Card impact for the additions' ranking: IWD averaged over the decks in src/data/analysis.json (the 7 meta decks, so
- * only their cards), weighted by sample size. Not format-wide: a card none of those decks plays has no number here.
+ * Card impact for the additions' ranking (and the cuts of cards the list's own games did not measure): the format-wide
+ * table the season breeder reads (REVIEW_2026-11-24 B.2), the current simulator version and the season's bot (Hard),
+ * or the closest pair with a "Warning:" line (forgeAddsWords). A card none of the table's lists plays has no number.
  */
-const GLOBAL_IMPACT: Record<string, number> = (() => {
-  const acc: Record<string, { s: number; n: number }> = {};
-  for (const r of (analysis as any).decks as DeckReport[]) {
-    for (const c of r.cards) {
-      if (typeof c.iwd !== 'number' || !Number.isFinite(c.iwd)) continue;
-      acc[c.id] ??= { s: 0, n: 0 };
-      acc[c.id].s += c.iwd * c.seenGames;
-      acc[c.id].n += c.seenGames;
-    }
-  }
-  return Object.fromEntries(Object.entries(acc).filter(([, v]) => v.n >= IMPACT_MIN_POOLED_GAMES).map(([k, v]) => [k, v.s / v.n]));
-})();
+const ADD_TABLES = loadImpactTables(SEASON_BOT);
+const GLOBAL_IMPACT: Record<string, number> = ADD_TABLES.impact;
 
 /** package moves screened per generation, at most (for the estimate) */
 const PKG_N = PACKAGES ? (V['package-moves'] ? V['package-cands'] : 0) + (V['require-packages'] ? V['package-cands'] : 0) : 0;
@@ -412,6 +402,7 @@ async function forge(target: (typeof lib)[number]) {
       `Successive halving: ${INITIAL_CANDS} one-card swaps screened in ${SCREEN_ROUNDS} rounds on a block of ${GAMES} seeds of their own (not the baseline's, which chose the cuts); each round plays its own baseline on its seeds and keeps the best half (at least ${CANDS}); package moves join the last round; Δ is against the round's own baseline, and only the last round nominates.`,
       '',
     );
+  log.push(...forgeAddsWords(ADD_TABLES), '');
   if (DECK_IMPACT_TABLES) log.push(...perDeckAddsWords(DECK_IMPACT_TABLES), '');
   /** package moves tried (labels), for the report and the manifest */
   const tried: string[] = [];
@@ -828,6 +819,8 @@ async function main() {
   console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled, ...bots })}`);
   checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force, SETTLE_EXTRA !== undefined ? { games: SETTLE_EXTRA, capped: SETTLE_MAX_STAGES < SETTLE_SEED_STAGES } : undefined, CONFIRM ? { with: CONFIRM, games: GENS * ESTIMATE.confirm } : undefined);
   // --per-deck-adds: which card-impact table it read (a "Warning:" line when not the pair wanted)
+  // which card-impact table the additions read, and --per-deck-adds' (a "Warning:" line when not the pair wanted)
+  for (const l of forgeAddsWords(ADD_TABLES)) console.log(l);
   if (DECK_IMPACT_TABLES) for (const l of perDeckAddsWords(DECK_IMPACT_TABLES)) console.log(l);
   const all = [];
   for (const t of targets) all.push(await forge(t));

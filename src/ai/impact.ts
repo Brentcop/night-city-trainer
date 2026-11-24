@@ -1,6 +1,8 @@
 // Statistical card knowledge for the coach: how much each card swings games, per deck and format-wide,
-// from bot-match telemetry ("Δ when drawn" = IWD). Reads src/data/impact.json, the slim id/IWD/seenGames copy of
-// src/data/analysis.json that is written alongside it (see src/analysis/impactData.ts).
+// from bot-match telemetry ("Δ when drawn" = IWD). Reads src/data/impact.json: since 2026-11-24 the per-list table of the
+// pair the season breeder reads (the current simulator version and Hard: Season 3's round robin and the whole-library
+// review telemetry, impactDataOf in src/lib/breederImpact.ts, scripts/build-impact.ts), so the coach, the Deck Lab, the
+// forge and the breeder read one table; until then a slim copy of src/data/analysis.json alone (the `deep` bot).
 // Per-deck numbers belong to the list they were measured on: a deck is matched by its list fingerprint (PlayerState.listId),
 // never by name alone (findImpactDeck).
 import impact from '../data/impact.json';

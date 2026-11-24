@@ -1,6 +1,8 @@
-// Slim copy of the per-card impact numbers in src/data/analysis.json, for the bots (src/ai/impact.ts) and the
-// Deck Lab. analysis.json is ~330 KB; they only need, per deck report, each card's id, IWD and seenGames.
-// `npm run sim -- analyze` writes both files together so they cannot drift (tests/impact.test.ts checks it).
+// The shape of src/data/impact.json, the card table of the bots that read impact (src/ai/impact.ts: the coach,
+// hard-v1) and the Deck Lab: per list, each card's id, IWD and seenGames. Until 2026-11-24 a slim copy of
+// src/data/analysis.json written with it; since then the lists of the pair the season breeder reads
+// (impactDataOf in src/lib/breederImpact.ts, written by scripts/build-impact.ts and `sim analyze`; check:data and
+// tests/impact.test.ts check it), so every reader has one table.
 //
 // Impact is measured on one list, so it is looked up by list fingerprint (listFingerprint in src/engine/deck.ts), not by
 // deck name (backlog AI-11): a renamed list keeps its numbers, and another list that reuses the name gets none.
@@ -23,13 +25,6 @@ export interface ImpactDeck {
 }
 export interface ImpactData {
   decks: ImpactDeck[];
-}
-
-/** Build impact.json from analysis.json's deck reports, keeping deck and card order (and each report's list id). */
-export function toImpactData(
-  decks: readonly { deck: string; id?: string; cards: readonly { id: string; iwd?: number | null; seenGames: number }[] }[],
-): ImpactData {
-  return { decks: decks.map((r) => ({ deck: r.deck, ...(r.id ? { id: r.id } : {}), cards: r.cards.map((c): ImpactCard => [c.id, c.iwd ?? null, c.seenGames]) })) };
 }
 
 /** The deck asking for impact numbers: its name and the listFingerprint of the list it plays. */

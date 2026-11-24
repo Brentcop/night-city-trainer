@@ -18,7 +18,7 @@ import { currentListGate, poolEvents, selectEvents } from './event-pool';
 import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
 import { addToDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
 import { addToCardImpact, emptyCardImpact, impactKey, parseCardImpact, type CardImpactFile, type ImpactCardStat, type ImpactKey } from '../src/lib/seasonImpact';
-import { readImpactTables, seasonCountIn, type AnalysisLike, type ImpactTables, type SeasonCount } from '../src/lib/breederImpact';
+import { impactDataOf, impactDataText, readImpactTables, seasonCountIn, type AnalysisLike, type ImpactDataFile, type ImpactTables, type SeasonCount } from '../src/lib/breederImpact';
 
 export const CARD_IMPACT_FILE = 'data/seasons/impact.json';
 export const DECK_IMPACT_FILE = 'data/seasons/deck-impact.json';
@@ -84,6 +84,24 @@ export function loadImpactTables(bot: string = SEASON_BOT, o: { simVersion?: num
   const af = o.analysisFile === undefined ? ANALYSIS_FILE : o.analysisFile;
   const analysis = af && fs.existsSync(af) ? (JSON.parse(fs.readFileSync(af, 'utf8')) as AnalysisLike) : null;
   return readImpactTables({ cardFile: readCardImpactFile(o.cardFile), deckFile: readDeckImpactFile(o.deckFile), analysis, key });
+}
+
+/** The coach's and the Deck Lab's card table (src/lib/breederImpact.ts impactDataOf), bundled with the site and every game worker. */
+export const IMPACT_DATA_FILE = 'src/data/impact.json';
+
+/**
+ * src/data/impact.json as it should be: the lists of the pair `loadImpactTables` reads (the same arguments), so the
+ * coach, the Deck Lab, the forge and the breeder read one table (REVIEW_2026-11-24 B.2). `tables` is what the breeder
+ * reads from the same files, for the printed line. Writes nothing: scripts/build-impact.ts and `sim analyze` write it,
+ * check:data compares it.
+ */
+export function buildImpactData(bot: string = SEASON_BOT, o: { simVersion?: number; cardFile?: string; deckFile?: string; analysisFile?: string | null } = {}): { data: ImpactDataFile; text: string; tables: ImpactTables } {
+  const key: ImpactKey = { simVersion: o.simVersion ?? SIM_VERSION, bot };
+  const af = o.analysisFile === undefined ? ANALYSIS_FILE : o.analysisFile;
+  const analysis = af && fs.existsSync(af) ? (JSON.parse(fs.readFileSync(af, 'utf8')) as AnalysisLike) : null;
+  const input = { cardFile: readCardImpactFile(o.cardFile), deckFile: readDeckImpactFile(o.deckFile), analysis, key };
+  const data = impactDataOf(input);
+  return { data, text: impactDataText(data), tables: readImpactTables(input) };
 }
 
 export type H2H = (a: string, b: string) => H2HRecord;

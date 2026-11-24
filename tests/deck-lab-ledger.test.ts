@@ -64,12 +64,15 @@ const newStore = () => new BrowserLedgerStore(memoryLedgerStorage());
 const entryOf = (cand: DeckList, bot = 'easy') => ({ change: changeKey(start, cand), simVersion: SIM_VERSION, bot, field: fieldFingerprint(OPP) });
 
 describe('without a ledger the tuner is unchanged', () => {
-  // hashes taken from src/lib/deckLab.ts before the ledger existed (the same fake games and options)
+  // hashes taken from src/lib/deckLab.ts before the ledger existed (the same fake games and options). Re-taken on 2026-11-24
+  // when src/data/impact.json became the breeder's (9, hard) table (REVIEW_2026-11-24 B.2): the tuner's candidates read it, and
+  // the same code with the old table still gave the old hashes (702275e885a067ca, 6fd09f3881e93bfe, 117279e0cb5559bb,
+  // eb15cc612a9459b7), so the move is the table's
   const CASES: [string, TuneOptions, PlayGame, string][] = [
-    ['adopt', { games: 56, gens: 2, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_000, vsOriginal: 224, partnerAware: true }, fake(0.08), '702275e885a067ca'],
-    ['noisy', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_100 }, fake(0, 0.9), '6fd09f3881e93bfe'],
-    ['any-gain', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_200, rule: { kind: 'any-gain' } }, fake(0.01, 0.9), '117279e0cb5559bb'],
-    ['depth', { games: 56, gens: 1, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_300, depth: { cardsPerChange: 2, nominees: 2 } }, fake(0.06), 'eb15cc612a9459b7'],
+    ['adopt', { games: 56, gens: 2, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_000, vsOriginal: 224, partnerAware: true }, fake(0.08), 'bb93eeac290dff64'],
+    ['noisy', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_100 }, fake(0, 0.9), '26f0f0788f459a62'],
+    ['any-gain', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_200, rule: { kind: 'any-gain' } }, fake(0.01, 0.9), '308087519ae0b479'],
+    ['depth', { games: 56, gens: 1, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_300, depth: { cardsPerChange: 2, nominees: 2 } }, fake(0.06), '574f03ebd48bce66'],
   ];
   for (const [name, o, play, h] of CASES)
     it(`${name}: the same games and logs as before`, async () => {

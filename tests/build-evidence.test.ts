@@ -791,20 +791,16 @@ describe('on the real data, each finding is the number its defining function giv
     }
   });
 
-  it('the pair spread is measured on the meta pairings, and each meta pairing has a direct matchup sharing its question', () => {
-    expect(built.index.rules.matchup).toMatchObject({ spreadMeasured: true, spreadPairings: 21, spreadGames: 4200, df: 14 });
-    expect(built.index.rules.matchup.spreadSd).toBeGreaterThan(0.04);
-    const direct = all.filter((f) => f.method === 'direct-games');
-    expect(direct.length).toBe(7 * 6);
-    for (const f of direct) {
-      const deck = real.analysis!.decks.find((d) => d.id === f.subject.listId)!;
-      const m = deck.matchups.find((x) => x.opp === f.subject.opponent!.deck)!;
-      expect([f.estimate, f.games]).toEqual([r6(m.wr), m.games]);
-      expect(f.family.key).toBe(`${f.subject.listId}:direct-matchups`);
-      const shrunk = all.find((x) => x.method === 'shrunk' && x.subject.listId === f.subject.listId && x.subject.opponent!.listId === f.subject.opponent!.listId)!;
-      expect(shrunk.question).toBe(f.question);
-      expect(f.flags).not.toContain('medium-only');
-    }
+  it('the pair spread: the default when the analysis has no pairing of 100+ games, and no direct matchup is made from it', () => {
+    // since 2026-11-24 (REVIEW_2026-11-24 B.2) the analysis is the Hard bot on all 71 lists at 8 games a pairing, and its site
+    // copy keeps no matchup row under 10 games: no pairing measures the spread (it was 6.4 points on the deep bot's 21 meta
+    // pairings of 200 games), so every matchup interval uses the default 6 points and says so
+    expect(built.index.rules.matchup).toMatchObject({ spreadMeasured: false, spreadSd: DEFAULT_PAIR_SD, spreadPairings: 0 });
+    expect(pairSpread(real.analysis)).toMatchObject({ measured: false });
+    expect(all.filter((f) => f.method === 'direct-games')).toEqual([]);
+    const shrunk = all.filter((f) => f.method === 'shrunk');
+    expect(shrunk.length).toBeGreaterThan(0);
+    for (const f of shrunk) expect(f.flags).toContain('spread-default');
   });
 
   it('the short-id lookup finds every finding', () => {
@@ -898,13 +894,13 @@ describe('on the real data, each finding is the number its defining function giv
     expect(s306![1].lower).toBeGreaterThan(0);
   });
 
-  it('the telemetry tables are marked when their bot is not the reference one: every deep-bot finding carries other-bot and none is strong', () => {
-    const deep = all.filter((f) => f.bot === 'deep');
-    expect(deep.length).toBeGreaterThan(0);
-    for (const f of deep) {
-      expect(f.flags).toContain('other-bot');
-      expect(f.strength).not.toBe('strong');
-    }
-    for (const f of all.filter((x) => x.bot === 'hard' || x.bot === 'medium')) expect(f.flags).not.toContain('other-bot');
+  it('the telemetry tables are the Hard bot’s since 2026-11-24, so no finding read from them is marked other-bot', () => {
+    // until then analysis.json and synergies.json were the deep bot's, and every finding from them carried other-bot
+    // (isOtherBot in src/lib/findings.ts, tested on its own); REVIEW_2026-11-24 B.2 measured them again with Hard
+    expect(all.filter((f) => f.bot === 'deep')).toEqual([]);
+    const telemetry = all.filter((f) => f.sources.some((x) => /analysis\.json|synergies\.json/.test(x.file)));
+    expect(telemetry.length).toBeGreaterThan(0);
+    for (const f of telemetry) expect(f.bot).toBe('hard');
+    for (const f of all) expect(f.flags).not.toContain('other-bot');
   });
 });

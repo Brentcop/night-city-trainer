@@ -22,7 +22,7 @@
 // `readImpactTables` is the one reader the season (scripts/season.ts, also --gate-only), the preview
 // (scripts/breed-preview.ts) and scripts/theorize-ladder.ts use, through `loadImpactTables` in scripts/breed-data.ts.
 // `splitImpactFiles` is the one-off split of the pooled files of 2026-11-16 (scripts/migrate-season-impact.ts). Pure.
-import { IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES } from '../analysis/impactData';
+import { IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactCard, type ImpactData, type ImpactDeck } from '../analysis/impactData';
 import { addStats, cardMeans, cardTotals, CARD_IMPACT_KIND, CARD_IMPACT_SCHEMA, impactKey, keyWords, sameKey, sameSource, seasonCounted, sourceWords, type CardAcc, type CardImpactFile, type ImpactCardStat, type ImpactKey, type ImpactSource } from './seasonImpact';
 import { addCards, breederDeckImpact, DECK_IMPACT_KIND, DECK_IMPACT_SCHEMA, type DeckImpactFile, type DeckImpactFileV1, type DeckImpactList } from './seasonDeckImpact';
 
@@ -136,18 +136,24 @@ export function choosePair(wanted: ImpactKey, candidates: readonly PairCandidate
 
 const uniqueSources = (xs: readonly ImpactSource[]): ImpactSource[] => xs.filter((s, i) => xs.findIndex((t) => sameSource(s, t)) === i);
 
-/** The breeder's two tables: one pair's numbers only (see the header for which). Does not change the files. */
-export function readImpactTables(input: ReadImpactInput): ImpactTables {
+/** The pair `readImpactTables` reads for `input` (and so `impactDataOf`), with its numbers; never another pair's. */
+function chosenPair(input: ReadImpactInput): { wanted: ImpactKey; chosen: { key: ImpactKey; match: ImpactMatch } | null; got: PairNumbers | undefined } {
   const wanted = impactKey(input.key.simVersion, input.key.bot);
-  const minPooled = input.minPooled ?? IMPACT_MIN_POOLED_GAMES;
-  const minDeck = input.minDeck ?? IMPACT_MIN_DECK_GAMES;
   // every pair the files or the review telemetry hold, each with its own numbers (never another pair's)
   const pairs: ImpactKey[] = [];
   const ak = analysisKey(input.analysis);
   for (const k of [...input.cardFile.entries, ...input.deckFile.entries, ...(input.analysis && ak ? [ak] : [])]) if (!pairs.some((p) => sameKey(p, k))) pairs.push({ simVersion: k.simVersion, bot: k.bot });
   const numbers = pairs.map((k) => pairNumbers(input, k));
   const chosen = choosePair(wanted, numbers);
-  const got = chosen ? numbers.find((n) => sameKey(n.key, chosen.key)) : undefined;
+  return { wanted, chosen, got: chosen ? numbers.find((n) => sameKey(n.key, chosen.key)) : undefined };
+}
+
+/** The breeder's two tables: one pair's numbers only (see the header for which). Does not change the files. */
+export function readImpactTables(input: ReadImpactInput): ImpactTables {
+  const minPooled = input.minPooled ?? IMPACT_MIN_POOLED_GAMES;
+  const minDeck = input.minDeck ?? IMPACT_MIN_DECK_GAMES;
+  const { wanted, chosen, got } = chosenPair(input);
+  const ak = analysisKey(input.analysis);
   const impact = got ? cardMeans(got.cards, minPooled) : {};
   const deckImpact = got ? breederDeckImpact(got.lists, minDeck) : {};
   const analysis: ImpactTables['analysis'] = !input.analysis
@@ -200,6 +206,94 @@ export function impactTablesWords(t: ImpactTables): string[] {
   else first = `Warning: no card-impact numbers for ${keyWords(t.wanted)} or any other simulator version or bot, so the breeder ranks cards by their card value alone, which bred clearly weaker lists when it was measured. ${remedy} ${kept}`;
   const out = [first];
   if (t.analysis.state === 'other') out.push(`src/data/analysis.json is not added: ${t.analysis.key ? `it was measured on ${keyWords(t.analysis.key)}` : 'its manifest names no simulator version and bot'}.`);
+  return out;
+}
+
+// ---------------------------------------------------------------- the coach's and the Deck Lab's copy (src/data/impact.json)
+
+/**
+ * Decimals a mean "Δ when drawn" keeps in src/data/impact.json: 0.0001 is a hundredth of a win-rate point, far below the
+ * table's noise (about 3.5 points a card), and the file is in every game worker, so its size counts.
+ */
+export const IMPACT_DATA_DECIMALS = 4;
+
+/**
+ * src/data/impact.json since 2026-11-24 (REVIEW_2026-11-24 B.2): the per-list sums of the pair the breeder reads
+ * (`readImpactTables`: the season entry of the current simulator version and the season's bot, plus the review
+ * telemetry src/data/analysis.json when its manifest names that pair), one entry per list with each card's mean and
+ * drawn-games. The coach (src/ai/impact.ts) and the Deck Lab (src/lib/deckLab.ts) pool the lists into the format-wide
+ * figure and use a list's own figure from IMPACT_MIN_DECK_GAMES on, so they read the breeder's numbers (to
+ * IMPACT_DATA_DECIMALS): one table, not three. Until then the file was a slim copy of analysis.json alone.
+ */
+export interface ImpactDataFile extends ImpactData {
+  /** the pair read (null when there were no numbers) */
+  simVersion: number | null;
+  bot: string | null;
+  match: ImpactMatch;
+  /** the runs behind the numbers, in words (`sourceWords`, and the review telemetry by its run id) */
+  sources: string[];
+}
+
+const roundTo = (x: number, d: number) => {
+  const f = 10 ** d;
+  const r = Math.round(x * f) / f;
+  return r === 0 ? 0 : r;
+};
+
+/**
+ * The coach's and the Deck Lab's card table: every list of the pair `readImpactTables` reads for `input`, the review
+ * telemetry's lists first in its order (under its deck names), then the others by fingerprint; each list's cards by mean,
+ * best first. Pure.
+ */
+export function impactDataOf(input: ReadImpactInput): ImpactDataFile {
+  const { chosen, got } = chosenPair(input);
+  const lists = got?.lists ?? {};
+  const names = new Map<string, string>();
+  const order: string[] = [];
+  if (got?.analysisAdded)
+    for (const r of input.analysis?.decks ?? [])
+      if (r.id && lists[r.id] && !names.has(r.id)) {
+        names.set(r.id, r.deck);
+        order.push(r.id);
+      }
+  for (const fp of Object.keys(lists).sort()) if (!names.has(fp)) order.push(fp);
+  const decks: ImpactDeck[] = order.map((fp) => {
+    const l = lists[fp]!;
+    const cards = Object.entries(l.cards)
+      .filter(([, v]) => v.n > 0)
+      .map(([id, v]): ImpactCard => [id, roundTo(v.s / v.n, IMPACT_DATA_DECIMALS), v.n])
+      .sort((a, b) => (b[1] as number) - (a[1] as number) || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+    return { deck: names.get(fp) ?? l.name, id: fp, cards };
+  });
+  const sources = got ? [...new Set(uniqueSources([...got.cardSources, ...got.listSources]).map(sourceWords))] : [];
+  if (got?.analysisAdded) sources.push(`review telemetry (${typeof input.analysis?.manifest?.runId === 'string' ? input.analysis.manifest.runId : 'src/data/analysis.json'})`);
+  return { simVersion: got?.key.simVersion ?? null, bot: got?.key.bot ?? null, match: chosen?.match ?? 'none', sources, decks };
+}
+
+/** The file's text, as committed (one line, as `sim analyze` always wrote it). */
+export const impactDataText = (f: ImpactDataFile): string => JSON.stringify(f);
+
+/**
+ * Drawn-games in the pair's pooled sums that no list carries (0 when the lists add up to the pooled table, as every
+ * season's do): the coach's format-wide figure, pooled from the lists, then equals the breeder's.
+ */
+export function pooledOutsideLists(t: Pick<ImpactTables, 'pooled'>, f: ImpactData): number {
+  let n = 0;
+  for (const d of f.decks) for (const c of d.cards) n += c[2];
+  return t.pooled.drawnGames - n;
+}
+
+/** What src/data/impact.json holds, in plain lines (scripts/build-impact.ts, `sim analyze`); "Warning:" when it is not the pair wanted. */
+export function impactDataWords(t: ImpactTables, f: ImpactDataFile): string[] {
+  let n = 0;
+  for (const d of f.decks) for (const c of d.cards) n += c[2];
+  const what = `${plural(f.decks.length, 'list')}, ${plural(n, 'drawn-game')}; from ${f.sources.join(', ') || 'no recorded run'}`;
+  const out: string[] = [];
+  if (t.match === 'exact' && t.read) out.push(`Card table for the coach and the Deck Lab (src/data/impact.json): ${keyWords(t.read)}, the pair the breeder reads: ${what}.`);
+  else if (t.read) out.push(`Warning: no card-impact numbers for ${keyWords(t.wanted)}, so the coach and the Deck Lab read those of ${keyWords(t.read)}, as the breeder does: ${what}.`);
+  else out.push(`Warning: no card-impact numbers for ${keyWords(t.wanted)} or any other simulator version or bot, so the coach and the Deck Lab get no card figures.`);
+  const outside = pooledOutsideLists(t, f);
+  if (outside !== 0) out.push(`Note: ${plural(outside, 'drawn-game')} of the pooled table are in no list, so the coach's format-wide figure leaves them out and differs from the breeder's.`);
   return out;
 }
 

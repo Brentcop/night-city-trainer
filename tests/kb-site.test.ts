@@ -186,7 +186,9 @@ describe('groups, parts and manifest', () => {
       }
     }
     const m = siteManifest(files, (f) => `assets/${shardFileName(f)}`);
-    expect(JSON.stringify(m).length).toBeLessThan(2200);
+    // 20 parts since 2026-11-24 (3.2 kB): the card and package statistics became the Hard bot's on all 71 lists (REVIEW_2026-11-24
+    // B.2), and those late groups went from 2 parts to 9; a part adds about 160 characters
+    expect(JSON.stringify(m).length).toBeLessThan(4000);
     // an edit to one part changes its name and the pack hash, not the others'
     const edited: SiteShardFile[] = files.map((f) => (f.name === 'events-1' ? { ...f, hash: 'ffffffffffffffff' } : f));
     const m2 = siteManifest(edited, (f) => `assets/${shardFileName(f)}`);

@@ -37,7 +37,7 @@ export { finalVsOriginal, vsOriginalVerdict, type VsOriginal, type VsOriginalVer
 
 const A = impact as unknown as ImpactData;
 
-/** Format-wide card impact ("Δ when drawn"), pooled across every analysed deck. */
+/** Format-wide card impact ("Δ when drawn"), pooled across every list of src/data/impact.json (the breeder's table since 2026-11-24). */
 export const GLOBAL_IMPACT: Record<string, number> = (() => {
   const acc: Record<string, { s: number; n: number }> = {};
   for (const r of A.decks)

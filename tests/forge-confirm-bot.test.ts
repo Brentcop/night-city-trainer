@@ -14,8 +14,12 @@ import { parseBatchLine } from '../src/lib/changeLedger';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nct-forge-confirm-'));
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
-/** seed 2 nominates and (under any-gain) adopts a change on this deck: the deck file is written */
-const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--seed', '2', '--threads', '2', '--ledger'];
+/**
+ * seed 1 nominates and (under any-gain) adopts a change on this deck: the deck file is written. (Seed 2 until 2026-11-24,
+ * when the forge's additions began to read the breeder's (9, hard) card table, REVIEW_2026-11-24 B.2: its candidates
+ * changed and seed 2 no longer nominates.)
+ */
+const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--seed', '1', '--threads', '2', '--ledger'];
 const forge = (out: string, extra: string[] = []) => spawnSync(process.execPath, ['--import', 'tsx', 'scripts/forge.ts', ...ARGS, ...extra, '--out', path.join(tmp, out)], { encoding: 'utf8' });
 const read = (out: string, f: string) => fs.readFileSync(path.join(tmp, out, f), 'utf8');
 const ledgerBatches = (out: string) => {
@@ -51,7 +55,7 @@ describe('the forge with --confirm-bot', () => {
     expect(json.manifest.bot.level).toBe('easy');
     expect(json.ledger).toMatchObject({ bot: 'easy', heldoutBot: 'medium' });
     // the report names the run label its ledger batches carry, which the evidence builder joins it by
-    expect(json.ledger.run).toMatch(/^forge \d{4}-\d{2}-\d{2}T[\d:.]+Z seed 2$/);
+    expect(json.ledger.run).toMatch(/^forge \d{4}-\d{2}-\d{2}T[\d:.]+Z seed 1$/);
     expect(new Set(batches.map((b) => b.run))).toEqual(new Set([json.ledger.run]));
     expect(read('split', 'forge/s2-08-explorer-ggy.md')).toContain(clause);
     expect(read('split', 'forge/summary.md')).toContain(clause);
