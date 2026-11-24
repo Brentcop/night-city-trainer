@@ -594,7 +594,7 @@ export function enteredWords(bred: number, entered: number, refills?: { tested: 
   const base = `${bred} bred, ${entered} entered`;
   if (!refills?.tested) return base;
   if (!refills.entered) return `${base}; ${refills.tested === 1 ? '1 runner-up of the screen was tested for the slot of a deck kept out and did not enter' : `${refills.tested} runners-up of the screen were tested for the slots of decks kept out, and none entered`}`;
-  const of =refills.entered === 1 ? '1 of them a runner-up' : `${refills.entered} of them runners-up`;
+  const of = refills.entered === 1 ? '1 of them a runner-up' : `${refills.entered} of them runners-up`;
   const tested = refills.tested === 1 ? '1 runner-up tested for the slot of a deck kept out' : `${refills.tested} runners-up tested for the slots of decks kept out`;
   return `${base}, ${of} of the screen (${tested})`;
 }
