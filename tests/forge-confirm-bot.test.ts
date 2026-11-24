@@ -19,9 +19,15 @@ const LIB = loadLibrary();
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nct-forge-confirm-'));
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
-/** seed 2 nominates and (under any-gain) adopts a change on this deck: the deck file is written */
-const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--seed', '2', '--threads', '2', '--ledger'];
-const forge = (out: string, extra: string[] = []) => spawnSync(process.execPath, ['--import', 'tsx', 'scripts/forge.ts', ...ARGS, ...extra, '--out', path.join(tmp, out)], { encoding: 'utf8' });
+/**
+ * Seeds that nominate and (under any-gain) adopt a change on this deck, so the deck file is written: 5 when Medium
+ * confirms, 6 when the screening bot does. Until S2-08's list changed on 2026-11-24 (REVIEW_2026-11-24 B.1) seed 2 did
+ * both; on the new list no seed from 1 to 20 does both (5 adopts only with Medium; 6, 7, 8 and 10 only without).
+ */
+const SEED_MEDIUM = '5';
+const SEED_PLAIN = '6';
+const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--threads', '2', '--ledger'];
+const forge = (out: string, extra: string[] = [], seed = SEED_PLAIN) => spawnSync(process.execPath, ['--import', 'tsx', 'scripts/forge.ts', ...ARGS, '--seed', seed, ...extra, '--out', path.join(tmp, out)], { encoding: 'utf8' });
 const read = (out: string, f: string) => fs.readFileSync(path.join(tmp, out, f), 'utf8');
 const ledgerBatches = (out: string) => {
   const dir = path.join(tmp, out, 'ledger');
@@ -38,7 +44,7 @@ const masked = (out: string, f: string) =>
 
 describe('the forge with --confirm-bot', () => {
   it('screens with --bot and confirms with --confirm-bot, and says so', { timeout: 180_000 }, () => {
-    const r = forge('split', ['--confirm-bot', 'medium']);
+    const r = forge('split', ['--confirm-bot', 'medium'], SEED_MEDIUM);
     expect(r.status).toBe(0);
     const clause = 'screened with the Easy bot, confirmed with the Medium bot';
     expect(r.stdout).toContain(`Adoption rule: any-gain (legacy): one confirmation of 28 fresh games; a change is adopted when it scores higher at all; the change ledger records the games but never pools them under this rule; ${clause}`);
@@ -56,7 +62,7 @@ describe('the forge with --confirm-bot', () => {
     expect(json.manifest.bot.level).toBe('easy');
     expect(json.ledger).toMatchObject({ bot: 'easy', heldoutBot: 'medium' });
     // the report names the run label its ledger batches carry, which the evidence builder joins it by
-    expect(json.ledger.run).toMatch(/^forge \d{4}-\d{2}-\d{2}T[\d:.]+Z seed 2$/);
+    expect(json.ledger.run).toMatch(new RegExp(`^forge \\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z seed ${SEED_MEDIUM}$`));
     expect(new Set(batches.map((b) => b.run))).toEqual(new Set([json.ledger.run]));
     expect(read('split', 'forge/s2-08-explorer-ggy.md')).toContain(clause);
     expect(read('split', 'forge/summary.md')).toContain(clause);

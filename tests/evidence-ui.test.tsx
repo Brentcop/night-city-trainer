@@ -868,12 +868,15 @@ describe('the real evidence files', () => {
     expect(index.simVersion).toBe(CUR);
     const html = renderToStaticMarkup(<EvidenceOverview index={index} />);
     for (const d of index.decks) expect(html).toContain(`href="#/evidence/${d.listId}"`);
-    for (const file of ['s2-05-counter-rrg.txt', 'meta-bbg-cunningham-econ.txt']) {
+    // S2-05 has the most changes but, since its list changed on 2026-11-24 (REVIEW_2026-11-24 B.1), no card or package
+    // numbers yet: S2-06 is the deck with changes, runs and associations
+    for (const file of ['s2-05-counter-rrg.txt', 's2-06-counter-rgg.txt', 'meta-bbg-cunningham-econ.txt']) {
       const entry = index.decks.find((d) => d.file === file)!;
       const deck = read<DeckEvidence>(`${entry.listId}.json`);
       const page = renderToStaticMarkup(<DeckEvidenceView deck={deck} index={index} target={null} onReveal={() => {}} />);
       const shown = (x: Finding) => page.includes(`id="${rowId(x.short)}"`);
-      expect(deck.findings.filter((x) => x.nature === 'association' && shown(x)).length).toBeGreaterThan(0);
+      if (file !== 's2-05-counter-rrg.txt') expect(deck.findings.filter((x) => x.nature === 'association' && shown(x)).length).toBeGreaterThan(0);
+      else expect(deck.findings.filter((x) => x.kind === 'change' && shown(x)).length).toBeGreaterThan(0);
       for (const f of deck.findings.filter((x) => x.nature === 'association' && shown(x))) expect(hasCausal(text(rowHtml(page, f.short))), f.claim).toEqual([]);
       for (const f of deck.findings.filter((x) => x.strength === 'not-enough' && shown(x))) expect(rowHtml(page, f.short)).not.toMatch(/is-em|<strong/);
     }

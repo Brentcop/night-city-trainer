@@ -1,0 +1,492 @@
+{
+ "kind": "nct-remeasure",
+ "schema": 1,
+ "note": "REVIEW_2026-11-24 B.1 (docs/REVIEW_2026-11-24.md, row 2 and finding T1): the five changes to S2-05 Counter (RRG) and S2-08 Explorer (GGY) that were adopted on the held-out games pooled across the tuning validation runs of 2026-11-15 (all Medium), re-measured with the Hard bot on 1,120 fresh paired games each, SIM_VERSION 9, against the 7 meta decks, seeds 5,003,000 to 5,004,119 (after the P5 and P6 re-measurements' 5,000,000 to 5,002,799; the changes of one deck share the base list's games). mean is after minus before.",
+ "measurements": [
+  {
+   "id": "b1-hard-s2-08-cyberpsychosis-rockerboy",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Cyberpsychosis → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "cb7c45fe1c955a71",
+   "cuts": [
+    "cyberpsychosis"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 1120,
+   "mean": 0.025893,
+   "se": 0.011022,
+   "sd": 0.368861,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 160,
+     "mean": 0.03125,
+     "se": 0.028624
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 160,
+     "mean": 0.0375,
+     "se": 0.03183
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 160,
+     "mean": 0.05625,
+     "se": 0.032271
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 160,
+     "mean": 0,
+     "se": 0.031969
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 160,
+     "mean": 0.0375,
+     "se": 0.026433
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 160,
+     "mean": 0,
+     "se": 0.025078
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 160,
+     "mean": 0.01875,
+     "se": 0.027288
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 560,
+     "mean": 0.023214,
+     "se": 0.015856
+    },
+    {
+     "first": 1,
+     "games": 560,
+     "mean": 0.028571,
+     "se": 0.015327
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5003000,
+   "date": "2026-11-24",
+   "script": "scripts/remeasure.ts",
+   "record": "Adopted with the Medium bot on the held-out games of four tuning validation runs pooled (2026-11-15): +3.0 points [+1.2, +4.8] on 2,464 games, always-valid rule"
+  },
+  {
+   "id": "b1-hard-s2-08-goro-rockerboy",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 Goro Takemura: Losing His Way → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "26277c95903b56ff",
+   "cuts": [
+    "goro_takemura_losing_his_way"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 1120,
+   "mean": 0.032143,
+   "se": 0.009319,
+   "sd": 0.311878,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 160,
+     "mean": 0.05625,
+     "se": 0.028383
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 160,
+     "mean": 0.0375,
+     "se": 0.02327
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 160,
+     "mean": 0.0625,
+     "se": 0.027597
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 160,
+     "mean": 0.0125,
+     "se": 0.025059
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 160,
+     "mean": 0.0125,
+     "se": 0.015325
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 160,
+     "mean": 0.03125,
+     "se": 0.024155
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 160,
+     "mean": 0.0125,
+     "se": 0.026581
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 560,
+     "mean": 0.030357,
+     "se": 0.013433
+    },
+    {
+     "first": 1,
+     "games": 560,
+     "mean": 0.033929,
+     "se": 0.012932
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5003000,
+   "date": "2026-11-24",
+   "script": "scripts/remeasure.ts",
+   "record": "Adopted with the Medium bot on the held-out games of five tuning validation runs pooled (2026-11-15): +3.9 points [+1.4, +6.5] on 1,344 games, always-valid rule"
+  },
+  {
+   "id": "b1-hard-s2-08-tbug-rockerboy",
+   "deck": "s2-08-explorer-ggy.txt",
+   "label": "-1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy",
+   "baseListId": "957336d0f03542ad",
+   "candListId": "258f3aa5a1a4fb51",
+   "cuts": [
+    "t_bug_amateur_philosopher"
+   ],
+   "adds": [
+    "rockn_rockerboy"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 1120,
+   "mean": 0.033929,
+   "se": 0.009732,
+   "sd": 0.325709,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 160,
+     "mean": 0.03125,
+     "se": 0.022469
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 160,
+     "mean": 0.05625,
+     "se": 0.028383
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 160,
+     "mean": 0.05,
+     "se": 0.027757
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 160,
+     "mean": 0.025,
+     "se": 0.025
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 160,
+     "mean": 0.025,
+     "se": 0.023375
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 160,
+     "mean": 0.03125,
+     "se": 0.024155
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 160,
+     "mean": 0.01875,
+     "se": 0.028693
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 560,
+     "mean": 0.042857,
+     "se": 0.013956
+    },
+    {
+     "first": 1,
+     "games": 560,
+     "mean": 0.025,
+     "se": 0.013571
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5003000,
+   "date": "2026-11-24",
+   "script": "scripts/remeasure.ts",
+   "record": "Adopted with the Medium bot on the held-out games of four tuning validation runs pooled (2026-11-15): +4.8 points [+1.3, +8.2] on 672 games, always-valid rule"
+  },
+  {
+   "id": "b1-hard-s2-05-wglt-yorinobu",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 We Gotta Live Together → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "de2140e4652193a1",
+   "cuts": [
+    "we_gotta_live_together"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 1120,
+   "mean": 0.008929,
+   "se": 0.007985,
+   "sd": 0.267231,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 160,
+     "mean": 0.01875,
+     "se": 0.01875
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 160,
+     "mean": 0.01875,
+     "se": 0.022556
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 160,
+     "mean": 0.0375,
+     "se": 0.021514
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 160,
+     "mean": 0.01875,
+     "se": 0.020741
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 160,
+     "mean": 0.0125,
+     "se": 0.017705
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 160,
+     "mean": -0.03125,
+     "se": 0.020646
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 160,
+     "mean": -0.0125,
+     "se": 0.025059
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 560,
+     "mean": 0.023214,
+     "se": 0.011402
+    },
+    {
+     "first": 1,
+     "games": 560,
+     "mean": -0.005357,
+     "se": 0.011159
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5003000,
+   "date": "2026-11-24",
+   "script": "scripts/remeasure.ts",
+   "record": "Adopted with the Medium bot on the held-out games of five tuning validation runs pooled (2026-11-15): +2.8 points [+1.2, +4.3] on 2,240 games, always-valid rule"
+  },
+  {
+   "id": "b1-hard-s2-05-mantis-yorinobu",
+   "deck": "s2-05-counter-rrg.txt",
+   "label": "-1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon",
+   "baseListId": "d5bf540ca72f871a",
+   "candListId": "fcfee70ff247266a",
+   "cuts": [
+    "mantis_blades"
+   ],
+   "adds": [
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "hard",
+   "simVersion": 9,
+   "games": 1120,
+   "mean": 0.019643,
+   "se": 0.008454,
+   "sd": 0.282918,
+   "byOpp": [
+    {
+     "opp": "BBG Cunningham Econ",
+     "oppListId": "0b6272134a22585c",
+     "games": 160,
+     "mean": 0.0125,
+     "se": 0.019801
+    },
+    {
+     "opp": "GRY Trauma Team",
+     "oppListId": "3d6b0327f672d914",
+     "games": 160,
+     "mean": 0.025,
+     "se": 0.019727
+    },
+    {
+     "opp": "Rainbow Fixer Stuff",
+     "oppListId": "189f8a3b59f1117f",
+     "games": 160,
+     "mean": 0.04375,
+     "se": 0.027108
+    },
+    {
+     "opp": "RRB Wakako Midrange",
+     "oppListId": "06552ee884386887",
+     "games": 160,
+     "mean": 0,
+     "se": 0.021719
+    },
+    {
+     "opp": "RRG Dexter Midrange",
+     "oppListId": "d615ca2a4ad09bf8",
+     "games": 160,
+     "mean": 0.0125,
+     "se": 0.019801
+    },
+    {
+     "opp": "RRY Smasher Aggro",
+     "oppListId": "ee779ed4dea87217",
+     "games": 160,
+     "mean": 0,
+     "se": 0.019826
+    },
+    {
+     "opp": "YYB Rogue Gear",
+     "oppListId": "078ce02dba6dd2c0",
+     "games": 160,
+     "mean": 0.04375,
+     "se": 0.027108
+    }
+   ],
+   "bySeat": [
+    {
+     "first": 0,
+     "games": 560,
+     "mean": 0.025,
+     "se": 0.012076
+    },
+    {
+     "first": 1,
+     "games": 560,
+     "mean": 0.014286,
+     "se": 0.01184
+    }
+   ],
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "seed": 5003000,
+   "date": "2026-11-24",
+   "script": "scripts/remeasure.ts",
+   "record": "Adopted with the Medium bot on the held-out games of five tuning validation runs pooled (2026-11-15): +3.2 points [+1.3, +5.0] on 1,792 games, always-valid rule"
+  }
+ ]
+}

@@ -70,20 +70,20 @@ describe('the change, three ways', () => {
   it('--cut and --add, by id or by exact name: replaced in place, as the forge swaps a card', async () => {
     const dir = fresh();
     const out = path.join(dir, 'r.json');
-    const r = await cmd(['s2-05-counter-rrg', '--cut', 'Gunpoint Diplomacy', '--add', 'yorinobu_arasaka_steel_dragon', '--bot', 'medium', '--games', '28', '--out', out, '--note', 'test rows']);
+    const r = await cmd(['s2-05-counter-rrg', '--cut', 'Gunpoint Diplomacy', '--add', 'johnny_silverhand_never_stop_fighting', '--bot', 'medium', '--games', '28', '--out', out, '--note', 'test rows']);
     expect(r.err).toEqual([]);
     expect(r.code).toBe(0);
     const main = [...S205.deck.main];
-    main[main.indexOf('gunpoint_diplomacy')] = 'yorinobu_arasaka_steel_dragon';
+    main[main.indexOf('gunpoint_diplomacy')] = 'johnny_silverhand_never_stop_fighting';
     const cand: DeckList = { ...S205.deck, main };
     const [row] = readRows(out);
     expect(row).toMatchObject({
       deck: 's2-05-counter-rrg.txt',
-      label: '-1 Gunpoint Diplomacy → +1 Yorinobu Arasaka: Steel Dragon',
+      label: '-1 Gunpoint Diplomacy → +1 Johnny Silverhand: Never Stop Fighting',
       baseListId: listFingerprint(S205.deck),
       candListId: listFingerprint(cand),
       cuts: ['gunpoint_diplomacy'],
-      adds: ['yorinobu_arasaka_steel_dragon'],
+      adds: ['johnny_silverhand_never_stop_fighting'],
       bot: 'medium',
       simVersion: SIM_VERSION,
       games: 28,

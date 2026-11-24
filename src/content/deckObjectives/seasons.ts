@@ -301,7 +301,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     synergies: ['high-gig', 'braindance'],
   },
   's2-05-counter-rrg.txt': {
-    listId: 'd5bf540ca72f871a',
+    listId: 'fcfee70ff247266a',
     objective: 'A counter to the top decks: S1-01 Mutant’s Red curve and removal under Adam Smasher, Dexter and Hanako: Daughter of the Emperor, who swaps Gigs and draws for value-pairs.',
     plan: [
       { phase: 'early', text: 'Valentino Street Racer, 6th Street Recruits and Pepe on curve; Dexter’s Call for a card or +2 power.' },
@@ -375,7 +375,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
     synergies: ['rocker', 'high-gig'],
   },
   's2-08-explorer-ggy.txt': {
-    listId: '957336d0f03542ad',
+    listId: '258f3aa5a1a4fb51',
     objective: 'Value-pairs around Goro Takemura: Vengeful Bodyguard, Muamar Reyes and Padre, who set and adjust Gigs, with Green spend-then-defeat removal.',
     plan: [
       { phase: 'early', text: 'Padre’s Spend copies a Gig value, or Muamar adjusts one, to make a value-pair; Valentino Street Racer and Pepe on curve.' },
@@ -393,7 +393,7 @@ export const SEASON_OBJECTIVES: ObjectiveTable = {
       { text: 'A ready blocker on the rival’s turn', terms: ['ready-blocker'] },
       { text: 'All three Legends face-up by round 5', terms: ['legend-face-up', 'round'] },
     ],
-    risks: ['Last of the eight new decks in its finals against the meta (47.9% over 420 games).'],
+    risks: ['Last of the eight new decks in its finals against the meta (47.9% over 420 games), with the list before its third Rockn’ Rockerboy replaced a T-Bug (2026-11-24).'],
     source: 'list',
     status: 'draft',
     synergies: ['value-pair'],

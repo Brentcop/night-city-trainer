@@ -5,6 +5,8 @@
 // Added: 2026-11-12
 // Idea: Counter to the top decks (S1-01 Mutant (RRY), RRG Dexter Midrange, Ladder: Jackie / Alt / Hanako (BBG)): merges S1-01 Mutant (RRY) (52% vs them) and BBG Cunningham Econ (40%), keeping the cards that win games for each.
 // Packages: built around High Gigs (8+), Value-pairs, Behind on Gigs; plan: no package plan
+// Forged 2026-11-24: -1 Mantis Blades → +1 Yorinobu Arasaka: Steel Dragon (held-out +2.0 pts [+0.3, +3.6], 1120 games)
+// Adoption: re-measured with the Hard bot (REVIEW_2026-11-24 B.1): 1,120 fresh paired games against the 7 meta decks, seeds 5,003,000 to 5,004,119, data/evidence/remeasure-2026-11-24-b1.json row b1-hard-s2-05-mantis-yorinobu; the change was adopted with the Medium bot on held-out games pooled across five tuning validation runs of 2026-11-15 (+3.2 pts [+1.3, +5.0], 1,792 games, always-valid rule); chosen over the other Yorinobu cut so adopted (We Gotta Live Together, +0.9 [-0.7, +2.5] with Hard) as the larger Hard gain whose 95% interval, Bonferroni-corrected over the two, is above 0 ([+0.1, +3.9]); that lower bound clears 0 but not the adoption rule's +1-point minimum gain
 // Format: Constructed
 
 // Legends
@@ -19,8 +21,8 @@
 3 Pepe Najarro: Working Doubles
 3 Animals Wrecker
 1 Nadia: Fighting Through Grief
-2 Yorinobu Arasaka: Steel Dragon
-2 Mantis Blades
+3 Yorinobu Arasaka: Steel Dragon
+1 Mantis Blades
 2 Satori: Sword of Saburo
 2 Peace Offering
 2 Appetite for Destruction

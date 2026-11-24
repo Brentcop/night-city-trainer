@@ -4,6 +4,8 @@
 // Added: 2026-11-12
 // Idea: Explorer (aggro) built around Value-pairs: Legends Goro Takemura / Muamar Reyes / Padre chosen to hold the package, filled by role and curve templates, then topped up to each package's built-around minimum.
 // Packages: built around Value-pairs, Even Street Cred, Behind on Gigs, Spend, then punish, Face-up Legends; seeded from Value-pairs; plan: no package plan
+// Forged 2026-11-24: -1 T-Bug: Amateur Philosopher → +1 Rockn' Rockerboy (held-out +3.4 pts [+1.5, +5.3], 1120 games)
+// Adoption: re-measured with the Hard bot (REVIEW_2026-11-24 B.1): 1,120 fresh paired games against the 7 meta decks, seeds 5,003,000 to 5,004,119, data/evidence/remeasure-2026-11-24-b1.json row b1-hard-s2-08-tbug-rockerboy; the change was adopted with the Medium bot on held-out games pooled across four tuning validation runs of 2026-11-15 (+4.8 pts [+1.3, +8.2], 672 games, always-valid rule); chosen among the three Rockn' Rockerboy cuts so adopted (Cyberpsychosis +2.6, Goro Takemura: Losing His Way +3.2, T-Bug +3.4 with Hard) as the largest Hard gain whose 95% interval, Bonferroni-corrected over the three, is above 0 ([+1.1, +5.7])
 // Format: Constructed
 
 // Legends
@@ -16,8 +18,8 @@
 3 Valentino Street Racer
 2 Goro Takemura: Losing His Way
 3 Pepe Najarro: Working Doubles
-2 T-Bug: Amateur Philosopher
-2 Rockn' Rockerboy
+1 T-Bug: Amateur Philosopher
+3 Rockn' Rockerboy
 3 Nadia: Fighting Through Grief
 3 Saul Bright: Stormrider
 2 Sandevistan
