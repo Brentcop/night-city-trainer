@@ -410,6 +410,38 @@ On 2026-11-18 every list the five recorded events stored is the library's curren
 `ratings.json`, `h2h.json`, `reports/ratings-latest.md` and the 72 evidence files with the rule in place left every
 byte unchanged.
 
+### Seasons as rating runs (built 2026-11-24; docs/REVIEW_2026-11-24.md B.4)
+
+A breeding season's round robin (`scripts/season.ts`, step 5) is already a Hard, bots-only match list on the current
+simulator version: every pairing of its field (the 7 meta decks, 8 incumbents and the new decks) played `--games` times
+(16 by default), seats alternating, on the season's own seeds (S·1,000,000 onward). Until 2026-11-24 those games (about
+4,000 to 5,000 a season) reached the leaderboard and the card-impact tables but never the ratings that rank the next
+season's parents.
+
+Now, after the round robin, the season writes them as the next `data/series/run-N.json` (`scripts/season-run.ts`):
+
+- **The same format** as a series run (`seasonRatingRun`, after `runFile` in `scripts/series-run.ts`): `kind`, `schema: 1`,
+  `id: 'run-N'`, `simVersion`, `bot`, a manifest (`purpose: 'season'`, field mode `season-S`), the stored lists, a
+  match-list setup, one best-of-one match per game, no bracket; plus `season: S`. It has no `rate` (the round robin runs
+  with telemetry on, so its pace would mislead the series' time estimate). `check:data` validates it like any run.
+- **Counted once.** The season file and the leaderboard do not feed the ratings, so this file is the only way the
+  season's games reach them. Before writing, every game is checked against all recorded events and runs with
+  `check:data`'s own `duplicateGames`; a game recorded already refuses the write. A `--force` re-run of the season
+  replaces its own file (the same number, `seasonRunNumber`), and a season whose run file exists counts as recorded
+  (the season refuses to run it again without `--force`).
+- **Only with the series' bot** (`SERIES_BOT`, hard; the season's default since Season 3). A run with another bot would
+  become the newest source and switch the ratings' pool to that bot, so a season with `--bot` other than hard says so
+  and writes no run. `--rating-run off` skips it.
+- **Then rebuild**, as after a series run: `npx tsx scripts/ratings.ts`, `npx tsx scripts/build-h2h.ts`,
+  `npm run evidence`, then `npm run check:data` (it fails until the ratings and head-to-heads count the run). The
+  season prints the commands. Pooled by list as above, so a newcomer's games count on its forged list.
+- **The series and a season share the run numbers.** A season's run takes the next free number, and the series' next run
+  the one after; the series' seeds come from its own run number (1,000,000,000 + run × 100,000 + k), far from a season's
+  (S·1,000,000 + k), so the two never deal the same game. The series' first step replays the newest run's last games
+  (`replaySample`), which may then be a season's: they are played by the same worker and bot (`makeTierBot`, seat B on
+  seed + 7777) and replay as recorded (`tests/season-run.test.ts`).
+- **Past seasons cannot be added.** Seasons 1 to 3 kept standings only, not their games, so this starts with Season 4.
+
 ### Checked when chunk 1 was built (2026-11-18)
 
 In scratch checkouts, never committed:

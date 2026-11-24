@@ -36,6 +36,7 @@ function snapshot(): string[] {
   };
   walk('data/decks', true);
   walk('data/seasons', true);
+  walk('data/series', false);
   walk('reports', false);
   for (const f of ['src/data/seasons.json', 'src/data/ratings.json']) {
     const st = fs.statSync(f);
@@ -82,12 +83,14 @@ describe('the season with --gate-only', () => {
       expect(d.first.seed0).toBe(doc.season * 1_000_000 + 700_000);
       expect(d.list).toMatch(new RegExp(`^# ${d.name.replace(/[()]/g, '\\$&')}`));
       expect(d.legends).toHaveLength(3);
-      const worse = d.first.verdict === 'shown-worse' || (!d.confirmSkipped && d.confirm?.verdict === 'shown-worse');
+      // since 2026-11-24 (keepOut 'confirming', the default) every deck plays the confirming bot, which alone keeps it out
+      expect(d.confirm).not.toBeNull();
+      expect(d.confirmSkipped).toBeUndefined();
+      const worse = d.confirm?.verdict === 'shown-worse';
       expect(d.entered).toBe(!worse);
       expect(d.words.startsWith(worse ? 'kept out: shown worse than' : 'entered: not shown worse than')).toBe(true);
-      // a deck shown worse by the first bot is not played by the confirming bot
-      if (d.first.verdict === 'shown-worse') expect(d.confirm).toBeNull();
     }
+    expect(doc.gate.settings.keepOut).toBe('confirming');
     // Which decks are shown worse depends on the recorded data the breeder reads (ratings, library) and on a handful
     // of games, so nothing here needs one to be: the loop above ties every verdict to its entry, and the rule itself is
     // tested with planted differences in tests/breed-gate.test.ts.
@@ -98,7 +101,11 @@ describe('the season with --gate-only', () => {
     expect(gateRun!.stdout).toContain('What it can detect:');
     // the breeder says which card-impact table it read (the current simulator version and the season's bot, hard by default)
     expect(gateRun!.stdout).toMatch(/(Card impact read for|no card-impact numbers for) simulator version \d+, hard bot/);
-    expect(gateRun!.stdout).toContain('kept out about 2.5% of the time or less by each bot');
+    expect(gateRun!.stdout).toContain('kept out about 2.5% of the time or less: only the Random bot can keep it out');
+    // what the whole gate may cost, before it plays
+    expect(gateRun!.stdout).toMatch(/At most [\d,]+ Easy and [\d,]+ Random games for these 8 decks \(one reference, its games played once\)/);
+    // parents by the ratings alone, and the field named
+    expect(gateRun!.stdout).toContain('Tuning field: the 7 meta decks.');
     const md = fs.readFileSync(path.join(GATE_OUT, json.replace(/\.json$/, '.md')), 'utf8');
     expect(md).toContain(`8 bred, ${doc.gate.entered} entered. Nothing was written to the repository.`);
     // every deck is listed with its words; a deck kept out is named so, and only then
@@ -167,6 +174,14 @@ describe('the season with --gate-only', () => {
     expect(offRun!.stdout).not.toMatch(/gate rule|shown worse|What it can detect/i);
   });
 
+  it('--field-top N names the wider field (the meta decks and the library’s top lists, one entry per list) and still writes nothing', { timeout: 60_000 }, () => {
+    const pre = snapshot();
+    const r = season(['--gate-only', '--gate', 'off', '--field-top', '3', '--out', path.join(tmp, 'top')]);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/Tuning field: the 7 meta decks and the library's top 3 lists by rating \(one entry per list\) \(.+\)\./);
+    expect(snapshot()).toEqual(pre);
+  });
+
   // six processes, each a few seconds to start: its own timeout, as every process-spawning test has
   it('bad gate flags exit 2 before anything is read or played', { timeout: 120_000 }, () => {
     for (const [args, re] of [
@@ -174,7 +189,8 @@ describe('the season with --gate-only', () => {
       [['--out', path.join(tmp, 'x')], /--out writes the --gate-only files/],
       [['--gate-only', '--gate-rounds', '0'], /--gate-rounds must be at least 1/],
       [['--gate-only', '--gate-confirm-bot', 'nobody'], /--gate-confirm-bot must be one of/],
-      [['--gate-only', '--gate-reference', 'grandparent'], /--gate-reference must be one of parent \| middle/],
+      [['--gate-only', '--gate-reference', 'grandparent'], /--gate-reference must be one of parent \| middle \| median/],
+      [['--gate-only', '--gate-keep-out', 'both'], /--gate-keep-out must be one of confirming \| either/],
       [['--gate-only', '--gate-rounds', '1000', '--gate-stages', '16'], /seeds/],
     ] as [string[], RegExp][]) {
       const r = season(args);

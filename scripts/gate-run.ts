@@ -18,6 +18,7 @@ import {
   gateWords,
   GATE_CLI_SEEDS,
   GATE_DEFAULTS,
+  KEEP_OUT_RULES,
   REFERENCE_MODES,
   runGate,
   spreadSeen,
@@ -31,6 +32,7 @@ import {
   type GatePlayRequest,
   type ReferenceMode,
   type GateStep,
+  type KeepOutRule,
 } from '../src/lib/breedGate';
 import type { LibraryDeck } from '../src/lib/library';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -83,6 +85,8 @@ export const seasonGateFlags = () => ({
   'gate-confirm-stages': int(GATE_DEFAULTS.confirmStages, { min: 1, max: 16 }),
   // the owner's choice of 2026-11-15: a season tests against the fixed bar (planGate's own default stays 'parent')
   'gate-reference': oneOf(REFERENCE_MODES, 'middle'),
+  // since 2026-11-24: only the confirming bot can keep a deck out (GATE_DEFAULTS.keepOut); 'either' is the rule of 2026-11-15
+  'gate-keep-out': oneOf(KEEP_OUT_RULES, GATE_DEFAULTS.keepOut),
   out: str(),
 });
 
@@ -126,11 +130,15 @@ export interface GateSettings {
   seeds: { first: number; confirm: number };
   /** a season's reference mode (absent for npm run gate, which names its reference) */
   reference?: ReferenceMode;
+  /** which bot could keep a deck out (since 2026-11-24; a record without it ran 'either') */
+  keepOut: KeepOutRule;
+  /** the field: the meta decks, or the meta decks and the library's top N lists (`fieldTop`, a season's --field-top) */
+  fieldTop?: number;
   /** every stage was played (no early stop) */
   fullStages?: true;
 }
 
-export const gateSettings = (o: GateOptions): GateSettings => ({
+export const gateSettings = (o: GateOptions, extra: { fieldTop?: number } = {}): GateSettings => ({
   bot: o.bot,
   confirmBot: confirmBotOf(o.bot, o.confirmBot),
   rounds: o.rounds,
@@ -139,6 +147,8 @@ export const gateSettings = (o: GateOptions): GateSettings => ({
   alpha: o.alpha ?? GATE_DEFAULTS.alpha,
   seeds: { ...o.seeds },
   ...(o.reference ? { reference: o.reference } : {}),
+  keepOut: o.keepOut ?? GATE_DEFAULTS.keepOut,
+  ...(extra.fieldTop ? { fieldTop: extra.fieldTop } : {}),
   ...(o.fullStages ? { fullStages: true as const } : {}),
 });
 
@@ -168,7 +178,7 @@ export function gateHeaderLines(o: GateOptions, opponents: readonly number[]): s
   const cost = gateCost(o, most);
   const same = o.confirmBot && o.confirmBot !== 'none' && !c ? [`The confirming bot ${o.confirmBot} is the ${botWord(o.bot)} bot under another name, so it plays nothing more.`] : [];
   return [
-    `Gate rule: ${gateRuleWords(o)}.`,
+    `Gate rule: ${gateRuleWords({ ...o, opponents })}.`,
     ...same,
     gateGuaranteeWords(o),
     gateDetectWords({ ...o, opponents }),
@@ -206,6 +216,7 @@ export const GATE_FLAGS = {
   'confirm-stages': int(GATE_DEFAULTS.confirmStages, { min: 1, max: 16 }),
   seed: int(GATE_CLI_SEEDS.first, { min: 0 }),
   'confirm-seed': int(GATE_CLI_SEEDS.confirm, { min: 0 }),
+  'keep-out': oneOf(KEEP_OUT_RULES, GATE_DEFAULTS.keepOut),
   'no-early-stop': bool(),
   threads: threadsOpt(),
   cache: bool(),
@@ -269,6 +280,7 @@ async function run(argv: string[], io: GateIO): Promise<number> {
     stages: V.stages,
     confirmStages: V['confirm-stages'],
     seeds: { first: V.seed, confirm: V['confirm-seed'] },
+    keepOut: V['keep-out'],
     ...(V['no-early-stop'] ? { fullStages: true } : {}),
   };
   const games = gateStageGames(o.rounds, field.length);
@@ -305,7 +317,7 @@ async function run(argv: string[], io: GateIO): Promise<number> {
     date: (io.now ?? (() => new Date()))().toISOString(),
     simVersion: SIM_VERSION,
     settings: gateSettings(o),
-    words: { rule: gateRuleWords(o), guarantee: gateGuaranteeWords(o), detect: gateDetectWords({ ...o, opponents: [field.length] }), spread: spreadSeenWords([outcome]) },
+    words: { rule: gateRuleWords({ ...o, opponents: [field.length] }), guarantee: gateGuaranteeWords(o), detect: gateDetectWords({ ...o, opponents: [field.length] }), spread: spreadSeenWords([outcome]) },
     spreadSeen: spreadSeen([outcome]),
     decks: [gateDeckRecord(outcome, target.deck, { file: target.file, referenceFile: ref.file })],
   };

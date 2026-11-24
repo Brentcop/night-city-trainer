@@ -1,7 +1,11 @@
 // Deck forge: telemetry-guided, multi-generation deck iteration against the meta field.
 //
-//   npx tsx scripts/forge.ts <deck...> [--gens 2] [--games 140] [--cands 6] [--bot lookahead] [--field meta|all] [--seed 1] [--threads N]
+//   npx tsx scripts/forge.ts <deck...> [--gens 2] [--games 140] [--cands 6] [--bot lookahead] [--field meta|all] [--field-top N] [--seed 1] [--threads N]
 //   npx tsx scripts/forge.ts --nc          # all data/decks/custom/nc-*.txt
+//   --field-top N  (with --field meta) the field is the meta decks and the library's top N lists by rating, one entry
+//               per list (src/lib/tuningField.ts; "by rating" is parent strength's order). Default 0: the meta decks
+//               alone. The change ledger keys its entries on the field's lists, so a run with another field starts new
+//               ledger entries: its games never pool with games against the 7 meta decks. The season passes it on.
 //   --out DIR   write the forged list and the reports to DIR (DIR/<file>, DIR/forge/) instead of the repository
 //   --cache     read games already played with the same code, decks, seeds and bot from .cache/games and store new
 //               ones (scripts/game-cache.ts); prints how many games were hits
@@ -136,7 +140,9 @@ import { dependsOnOpponentWords, HeldOutTracker, withSplit, type SplitNomineeRec
 import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
 import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra, settleStagesWithin } from '../src/lib/deckSearch';
 import { forgeStrengthWord, forgeSummaryMarkdown } from './forge-summary';
-import { loadImpactTables, SEASON_BOT } from './breed-data';
+import { loadImpactTables, readRatedDecks, SEASON_BOT } from './breed-data';
+import { DEFAULT_FIELD_TOP, tuningField } from '../src/lib/tuningField';
+import { parentStrength, rankParents } from '../src/lib/parentStrength';
 import { cardSellShare, sellBasis, type SellReport, type SellShare } from '../src/lib/sellShare';
 
 const { values: V, positionals } = cli(
@@ -147,6 +153,7 @@ const { values: V, positionals } = cli(
     cands: int(6, { min: 1 }),
     bot: oneOf(SIM_BOTS, 'lookahead'),
     field: oneOf(['meta', 'all'], 'meta'),
+    'field-top': int(DEFAULT_FIELD_TOP, { min: 0, max: 64 }),
     nc: bool(),
     seed: int(1, { min: 0 }),
     threads: threadsOpt(),
@@ -169,6 +176,7 @@ const GAMES = V.games;
 const CANDS = V.cands;
 const BOT = V.bot;
 const FIELD = V.field;
+const FIELD_TOP = V['field-top'];
 const THREADS = Math.min(V.threads, 16);
 /** --cache: games already played with the same code are read from .cache/games (scripts/game-cache.ts) */
 const cache = cliGameCache(V.cache);
@@ -242,7 +250,15 @@ if (GAMES > CONFIRM_GAP || FIRST_STAGE * STAGES > CONFIRM_GAP) {
   process.exit(2);
 }
 const lib = loadLibrary();
-const field = lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
+if (FIELD_TOP > 0 && FIELD === 'all') {
+  console.error('error: --field-top adds the library\'s top lists to the meta field; it does not go with --field all.\nRun with --help for usage.');
+  process.exit(2);
+}
+/** --field-top N: the meta decks and the library's top N lists by rating, one entry per list (src/lib/tuningField.ts) */
+const TOP_FIELD = FIELD_TOP > 0 ? tuningField(lib, rankParents(parentStrength(readRatedDecks()?.decks ?? []), lib), FIELD_TOP) : null;
+const field = TOP_FIELD ? TOP_FIELD.field : lib.filter((d) => (FIELD === 'all' ? d.kind !== 'custom' : d.kind === 'meta'));
+/** the manifest's field mode: meta, all, or meta+top<N> */
+const FIELD_MODE = TOP_FIELD ? `meta+top${TOP_FIELD.added.length}` : FIELD;
 /** --ledger: where the change ledger is kept and the bot's canonical name (null when off) */
 const LEDGER = ledgerFromFlags(V, { bot: BOT, out: OUT });
 /** --confirm-bot: the screening and confirming bots when another bot confirms (null when --bot confirms, as before) */
@@ -799,7 +815,7 @@ async function forge(target: (typeof lib)[number]) {
   json.manifest = gameRunManifest({
     purpose: 'forge',
     decks: [target, ...field],
-    fieldMode: FIELD,
+    fieldMode: FIELD_MODE,
     fieldDeckIds: field.map((f) => manifestDeck(f).id),
     bot: BOT,
     seedBase: V.seed,

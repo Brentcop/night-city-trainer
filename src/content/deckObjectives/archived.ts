@@ -10,8 +10,22 @@ import { ARCHIVED_BUILD_OBJECTIVES } from './archivedBuilds';
 
 export const ARCHIVED_DIR = 'data/decks/archive';
 
+/** The line a retirement inserts its notes above (scripts/season-retire.ts); keep it as the table's last line. */
+export const RETIRED_MARKER = '// retired notes go above this line (scripts/season-retire.ts)';
+
+/**
+ * Notes of the bred decks a season retired (scripts/season.ts --retire-below-meta-median, opt-in since 2026-11-24): a
+ * bred deck rated below the meta decks' median win rate against the library is moved to data/decks/archive/ as
+ * `<file stem>-v<simulator version>.txt` (an earlier season may have used its file name), and its note is moved here
+ * from ./seasons.ts, keyed by the archived file, with one comment line saying when and why. None so far.
+ */
+export const RETIRED_OBJECTIVES: ObjectiveTable = {
+  // retired notes go above this line (scripts/season-retire.ts)
+};
+
 export const ARCHIVED_DECK_OBJECTIVES: ObjectiveTable = {
   ...BRED_EARLY_OBJECTIVES,
   ...BRED_LATE_OBJECTIVES,
   ...ARCHIVED_BUILD_OBJECTIVES,
+  ...RETIRED_OBJECTIVES,
 };

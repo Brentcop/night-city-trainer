@@ -9,9 +9,12 @@
 // The rule: in stages of --rounds double rounds (each field deck, each seat, that many times: 280 games with 7 opponents,
 // 240 with 6), the deck and the reference play the same games; after each stage the paired difference (deck minus
 // reference) is judged with α 0.05 spent over the looks by an O'Brien–Fleming-type boundary: shown worse when its upper
-// bound is below 0, shown better when its lower bound is above 0, could not tell at the cap. A deck the first bot did not
-// show worse goes on to the confirming bot. It "enters" unless a bot shows it worse.
+// bound is below 0, shown better when its lower bound is above 0, could not tell at the cap. Since 2026-11-24 every deck
+// then plays the confirming bot's stages and "enters" unless the confirming bot shows it worse (the first bot's verdict
+// is kept as information); with --keep-out either, the rule of 2026-11-15: a deck the first bot shows worse is kept out
+// and only a deck it did not show worse goes on to the confirming bot.
 //
+//   --keep-out confirming|either   which bot can keep the deck out (default confirming)
 //   --bot NAME             the first bot (default medium)
 //   --confirm-bot NAME     the confirming bot (default hard; none for no confirming bot; the same bot as --bot under
 //                          another name, e.g. lookahead and medium, plays nothing more)
@@ -21,7 +24,7 @@
 //   --seed N               the first bot's seeds (default 7000000): stage k plays seeds N + k·(stage games) onward,
 //                          game j of a stage the field deck j mod n, the deck first when floor(j / n) is even
 //   --confirm-seed N       the confirming bot's seeds (default 7100000); the two blocks may not overlap
-//   --no-early-stop        play every stage of both bots (also the confirming bot's for a deck shown worse) and still
+//   --no-early-stop        play every stage of both bots (also, under --keep-out either, the confirming bot's for a deck shown worse) and still
 //                          report where the staged rule would have stopped and with which verdict, beside the figure
 //                          over every game played
 //   --threads N            worker threads (default: all cores but one)

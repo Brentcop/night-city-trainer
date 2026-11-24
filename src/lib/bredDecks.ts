@@ -77,36 +77,47 @@ const SEASON_REF: Record<ReferenceWhy, string> = {
   explorer: 'the middle meta deck, as an explorer',
   'no-parent-available': 'the middle meta deck, as none of its parents was ranked',
   'fixed-bar': 'the middle meta deck, that season’s fixed bar for every bred deck',
+  'median-bar': 'the library’s median deck by rating, that season’s fixed bar for every bred deck',
   named: '',
 };
+
+type TestInput = Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped' | 'keepOut'>;
 
 /**
  * A season's test of one bred deck in words: "Entered: not shown worse than X (its best parent then)", "Entered: shown
  * better than X … with the Medium bot; the Hard bot could not tell", "Kept out: shown worse than X … with the Hard bot",
- * or stopped.
+ * or stopped. Under the rule of 2026-11-24 (keepOut 'confirming': only the confirming bot can keep a deck out) a deck the
+ * first bot showed worse that entered says so: "Entered: not shown worse than X with the Hard bot; the Medium bot showed
+ * it worse".
  */
-export function seasonTestWords(d: Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped'> & { refill?: number }): string {
+export function seasonTestWords(d: TestInput & { refill?: number }): string {
   const words = testWords(d);
   return d.refill ? `${words}. ${REFILL_NOTE}` : words;
 }
 /** A runner-up of the screen gated for a slot of a deck kept out (a season run with --breed-count). */
 export const REFILL_NOTE = 'Tested as a runner-up of the screen, for a slot a deck kept out left open';
 
-function testWords(d: Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped'>): string {
+function testWords(d: TestInput): string {
   const note = SEASON_REF[d.reference.why];
   const ref = note ? `${d.reference.name} (${note})` : d.reference.name;
   if (d.stopped) return `Not entered: stopped before the test against ${ref} was decided`;
   const steps = countedSteps(d);
+  // only the confirming bot could keep the deck out (a record without keepOut ran the older rule, 'either')
+  const confirming = d.keepOut === 'confirming' && !!d.confirm && !d.confirmSkipped;
   if (!d.entered) {
-    const worse = steps.find((s) => s.verdict === 'shown-worse') ?? d.first;
+    const worse = (confirming ? d.confirm : steps.find((s) => s.verdict === 'shown-worse')) ?? d.first;
     return `Kept out: ${verdictAgainst('shown-worse', ref)} with the ${botWord(worse.bot)} bot`;
   }
-  const better = steps.filter((s) => s.verdict === 'shown-better');
+  // the first bot's "shown worse" under that rule is information: said after the deciding bot's verdict
+  const overruled = confirming && d.first.verdict === 'shown-worse' ? d.first : null;
+  const judged = overruled ? steps.filter((s) => s !== overruled) : steps;
+  const tail = overruled ? `; the ${botWord(overruled.bot)} bot showed it worse, but only the ${botWord(d.confirm!.bot)} bot can keep a deck out` : '';
+  const better = judged.filter((s) => s.verdict === 'shown-better');
   // a bot that could not tell is said too, so "shown better" by one bot never reads as the whole test's verdict
-  const untold = steps.filter((s) => s.verdict !== 'shown-better' && !s.stopped);
+  const untold = judged.filter((s) => s.verdict !== 'shown-better' && !s.stopped);
   const rest = better.length && untold.length ? `; ${untold.map((s) => `the ${botWord(s.bot)} bot`).join(' and ')} could not tell` : '';
-  if (better.length) return `Entered: ${verdictAgainst('shown-better', ref)} with ${better.map((s) => `the ${botWord(s.bot)} bot`).join(' and ')}${rest}`;
-  return `Entered: not shown worse than ${ref}`;
+  if (better.length) return `Entered: ${verdictAgainst('shown-better', ref)} with ${better.map((s) => `the ${botWord(s.bot)} bot`).join(' and ')}${rest}${tail}`;
+  return `Entered: not shown worse than ${ref}${overruled ? ` with the ${botWord(d.confirm!.bot)} bot` : ''}${tail}`;
 }
 
 // ---------------------------------------------------------------- then and now
@@ -268,15 +279,15 @@ export const SEASON_OLD_TITLE = 'This season was not played on the current simul
 
 /**
  * The leaderboard's sentence about older numbers (it follows the page's "historical" sentence and says only what that
- * one does not: what the breeder does with them). Null when no row is from an older simulator. With rows of the
- * current simulator beside them (`currentRows`), it says the breeder uses those too (src/lib/parentStrength.ts).
+ * one does not). Null when no row is from an older simulator. Since 2026-11-24 the breeder chooses parents by today's
+ * power ratings alone (src/lib/parentStrength.ts), so no leaderboard row, older or current, is used for that; the
+ * second argument is kept for the callers and changes nothing.
  */
-export function leaderboardStaleWords(staleRows: number, currentRows = 0): string | null {
+export function leaderboardStaleWords(staleRows: number, _currentRows = 0): string | null {
   if (!staleRows) return null;
-  const uses = currentRows > 0 ? 'it uses today’s power ratings, together with the rows played on the current simulator' : 'it uses today’s power ratings';
-  return `The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; ${uses}.`;
+  return 'Rows marked “older simulator” include games of an older simulator. The breeder does not use the leaderboard to choose parents: it uses today’s power ratings.';
 }
 
 /** The "older simulator" mark and its tooltip. */
 export const STALE_ROW_MARK = 'older simulator';
-export const STALE_ROW_TITLE = 'Some of this row’s games were played under an older simulator, so the breeder does not use this row to choose parents.';
+export const STALE_ROW_TITLE = 'Some of this row’s games were played under an older simulator.';
