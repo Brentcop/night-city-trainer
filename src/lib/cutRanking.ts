@@ -20,7 +20,7 @@ import { CARD_BY_ID, cardLabel } from '../engine/cards';
 import { counts } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import type { PlayerSummary } from '../analysis/summarize';
-import { cardsSeenBy, holdOdds, roleMap, roleMatches, SYNERGIES, synergiesIn, zeroRoles, type RoleCounts, type Synergy, type SynergyRole } from '../content/synergies';
+import { cardsSeenBy, holdOdds, partnerRolesOf, roleMap, SYNERGIES, synergiesIn, zeroRoles, type RoleCounts, type Synergy, type SynergyRole } from '../content/synergies';
 
 /** Pseudo-games of the plain score mixed into the partner-present score (it moves halfway at 20 partner-present games). */
 export const PARTNER_SHRINK_GAMES = 20;
@@ -45,11 +45,10 @@ const label = (id: string) => {
   return c ? cardLabel(c) : id;
 };
 
-/** The roles that partner a piece of `role` in package `s` (the synergy observer's rule, src/analysis/synergies.ts). */
-function partners(role: SynergyRole): (r: SynergyRole) => boolean {
-  if (role === 'enabler') return (r) => roleMatches(r, ['payoff']);
-  if (role === 'payoff') return (r) => roleMatches(r, ['enabler']);
-  return () => true;
+/** Whether a member of role `r` partners a piece of `role` in package `s` (partnerRolesOf: the bots' and coach's rule too). */
+function partners(role: SynergyRole, s: Synergy): (r: SynergyRole) => boolean {
+  const ok = partnerRolesOf(role, s.needs);
+  return (r) => ok.includes(r);
 }
 
 // ---------------------------------------------------------------- the partner split (from the list's own telemetry)
@@ -87,7 +86,7 @@ export function partnerSplits(deck: Pick<DeckList, 'name' | 'legends' | 'main'>,
     const roles = new Map(ls.cards.map((c) => [c.id, c.role]));
     for (const [id, role] of roles) {
       if (!inMain.has(id)) continue;
-      const isPartner = partners(role);
+      const isPartner = partners(role, s);
       const sp: PartnerSplit = { pkg: s.id, role, with: cell(), without: cell(), notSeen: cell() };
       for (const g of games) {
         const seen = new Set(g.seen);

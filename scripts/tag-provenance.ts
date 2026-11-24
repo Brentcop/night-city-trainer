@@ -5,8 +5,9 @@
 // The sim-ladder lists (ladder-*.txt) are never rewritten: their hand-written header and layout are the owner's. Nor
 // are the lists imported from shared links (Origin "Imported from …", the library's kind `shared`): their header is the
 // import step's (scripts/import-links.ts), crediting the player and the link, and must not become a guide's.
-// The forge's lines are kept as they are: "// Forged <date>: …" (with its date), "// Adoption: …" and "// Packages: …"
-// (bred decks carry the breeder's "// Packages:" line until a forge adopts a change).
+// The forge's lines are kept as they are: "// Forged <date>: …" (with its date), "// Adoption: …", "// Packages: …"
+// (bred decks carry the breeder's "// Packages:" line until a forge adopts a change) and "// Parent list: …" (the lists
+// a forged list was made from, which scripts/note-synergies.ts reads; since 2026-11-24).
 //
 // Header keys (all "// Key: value" lines, parsed by src/lib/library.ts):
 //   Origin   – category (choom.gg meta archetype, choom.gg community guide, Night City Trainer original/bred/variant/build)
@@ -46,8 +47,8 @@ function header(text: string): Record<string, string> {
   }
   return h;
 }
-/** The forge's and breeder's lines, verbatim and in order: "// Forged <date>: …", "// Adoption: …", "// Packages: …". */
-const forgeLines = (text: string) => text.split(/\r?\n/).filter((l) => /^\/\/ Forged \d{4}-\d{2}-\d{2}: /.test(l) || /^\/\/ (Adoption|Packages): /.test(l));
+/** The forge's and breeder's lines, verbatim and in order: "// Forged <date>: …", "// Adoption: …", "// Packages: …", "// Parent list: …". */
+const forgeLines = (text: string) => text.split(/\r?\n/).filter((l) => /^\/\/ Forged \d{4}-\d{2}-\d{2}: /.test(l) || /^\/\/ (Adoption|Packages|Parent list): /.test(l));
 
 // season breeding records → parents per deck name
 const parents: Record<string, { season: number; method: string; parents: string[]; date: string }> = {};

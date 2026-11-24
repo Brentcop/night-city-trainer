@@ -114,3 +114,25 @@ export function coachTablesWords(bot: string | null | undefined, simVersion: num
   const other = bot === RATINGS_BOT ? '' : `, not the Hard bot the site's ratings use`;
   return `Card figures in these tips come from the ${name} bot's games${version}${other}: they say what that bot did with a card, not how good the card is.`;
 }
+
+/** The run the coach's card tables (src/data/analysis.json and impact.json) come from, as plain data for a coach request. */
+export interface CoachTables {
+  bot: string;
+  simVersion?: number;
+}
+
+/** The coach's tables from the analysis run's bot and manifest version, or undefined when the run names no bot. */
+export const coachTablesOf = (bot: string | null | undefined, simVersion: number | null | undefined): CoachTables | undefined =>
+  bot ? { bot, ...(typeof simVersion === 'number' ? { simVersion } : {}) } : undefined;
+
+/**
+ * Where a sell's card values come from, for the coach's reason (src/ai/coach.ts sellWhy): "the Deep bot's games,
+ * simulator version 9, not the Hard bot the site's ratings use". Null without tables.
+ */
+export function tablesSourceWords(t: CoachTables | null | undefined): string | null {
+  if (!t?.bot) return null;
+  const name = `${t.bot.charAt(0).toUpperCase()}${t.bot.slice(1)}`;
+  const version = typeof t.simVersion === 'number' ? `, simulator version ${t.simVersion}` : '';
+  const other = t.bot === RATINGS_BOT ? '' : `, not the Hard bot the site's ratings use`;
+  return `the ${name} bot's games${version}${other}`;
+}

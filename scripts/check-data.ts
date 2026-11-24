@@ -17,6 +17,8 @@
 //     decks as entrants, is flagged `custom` exactly when it is not a standard event, and the index carries the same flag
 //   - public/site-config.json (the owner's site config, src/lib/siteConfig.ts) reads without a problem, and the decks and
 //     event it names exist
+//   - public/data/package-effects.json (the paired package measurements the coach reads, src/ai/packageEffect.ts),
+//     when it exists, reads as one (`packageEffectsProblems`)
 //   - public/data/lift.json (the Play page's lift slice) is exactly the slice derived from public/data/synergies.json
 //     (`liftSliceText` in src/ai/packageLift.ts) whenever the report exists; `npx tsx scripts/build-lift.ts` rebuilds it
 //   - data/seasons/impact.json and deck-impact.json (the season breeder's pooled and per-list card impact,
@@ -57,6 +59,7 @@ import { LIBRARY_DIRS } from '../src/lib/library';
 import { entrantBase, isPlayedSetup, isStandardSetup, setupProblems, type EventSetup } from '../src/lib/eventFormats';
 import { issueLine, parseSiteConfigText } from '../src/lib/siteConfig';
 import { liftSlice, liftSliceText, readLiftSlice, type LiftSlice } from '../src/ai/packageLift';
+import { packageEffectsProblems, type PackageEffectFile } from '../src/ai/packageEffect';
 import type { SynergyReport } from '../src/analysis/synergies';
 import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
 import { parseCardImpact, cardTotals } from '../src/lib/seasonImpact';
@@ -111,6 +114,8 @@ export interface CheckInput {
   synergies?: unknown;
   /** public/data/lift.json's text (null when missing) */
   lift?: string | null;
+  /** public/data/package-effects.json, parsed (null or absent when the file does not exist: not checked) */
+  packageEffects?: unknown;
   /** data/seasons/deck-impact.json, parsed (null when missing; not checked when absent) */
   deckImpact?: unknown;
   /** data/seasons/impact.json, parsed (null when missing; not checked when absent) */
@@ -559,6 +564,13 @@ export function checkData(input: CheckInput): CheckResult {
     }
   } else if (input.synergies === null && typeof input.lift === 'string') info.push('public/data/lift.json has no synergy report beside it to be checked against');
 
+  // ---- the paired package measurements the coach reads (scripts/package-effects.ts)
+  if (input.packageEffects !== undefined && input.packageEffects !== null) {
+    const p = packageEffectsProblems(input.packageEffects, 'public/data/package-effects.json');
+    failures.push(...p);
+    if (!p.length) passed.push(`public/data/package-effects.json reads (${(input.packageEffects as PackageEffectFile).rows.length} packages measured, ${(input.packageEffects as PackageEffectFile).skipped.length} not measurable)`);
+  }
+
   // ---- the season breeder's card impact: pooled and per list, each kept by simulator version and bot
   const cardFile = input.cardImpact !== undefined && input.cardImpact !== null ? parseCardImpact(input.cardImpact) : null;
   if (cardFile && !cardFile.file) failures.push(`data/seasons/impact.json ${cardFile.problem}`);
@@ -630,6 +642,7 @@ export function loadCheckInput(root = '.'): CheckInput {
     siteConfig: fs.existsSync(path.join(root, 'public/site-config.json')) ? fs.readFileSync(path.join(root, 'public/site-config.json'), 'utf8') : null,
     synergies: read('public/data/synergies.json'),
     lift: fs.existsSync(path.join(root, 'public/data/lift.json')) ? fs.readFileSync(path.join(root, 'public/data/lift.json'), 'utf8') : null,
+    packageEffects: read('public/data/package-effects.json'),
     deckImpact: read('data/seasons/deck-impact.json'),
     cardImpact: read('data/seasons/impact.json'),
     seasons: fs.existsSync(path.join(root, 'data/seasons'))

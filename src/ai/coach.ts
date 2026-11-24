@@ -9,14 +9,17 @@ import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, PLAN_TEXT, type ProfileKey } from './archetype';
 import { clampPlayOut, DECIDED_EVAL, GIG_SWING, planFor, seatArchetype } from './eval';
 import { handFeatures } from './mulligan';
-import { behindText, gapFigure, gapSize, optionName } from '../lib/coachWords';
+import { behindText, coachTablesOf, gapFigure, gapSize, optionName, tablesSourceWords, type CoachTables } from '../lib/coachWords';
 import type { GigPlan } from './knowledge';
 import { CARD_TAG_POLICY } from './heuristic';
 import { BEST_GIGS, fixedTerms, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
+import { effectGate, effectLabel, type SeatEffects } from './packageEffect';
 import analysis from '../data/analysis.json';
+// the run's bot and manifest by name, so the workers bundle those two keys and not the deck reports (about 85 kB)
+import { bot as analysisBot, manifest as analysisManifest } from '../data/analysis.json';
 import type { DeckReport } from '../analysis/analyze';
 
 /**
@@ -122,18 +125,26 @@ export function isClose(gap: number, se?: number): boolean {
 }
 
 /**
- * The coach's reason for a sell it chose by rule. The card values include bot-match card impact: say where it comes from
- * (this list's own games, or pooled from other decks when the list has none), and claim no data when there is none.
+ * The run the coach's card tables come from: src/data/impact.json is written with analysis.json from one `sim analyze`
+ * run (tests/impact.test.ts), so the analysis file's bot and simulator version name both (REVIEW_2026-11-24 A.11).
  */
-export function sellWhy(picked: string, basis: 'own' | 'pooled' | 'none'): string {
+export const COACH_TABLES: CoachTables | undefined = coachTablesOf(analysisBot, (analysisManifest as { simVersion?: number } | undefined)?.simVersion);
+
+/**
+ * The coach's reason for a sell it chose by rule. The card values include bot-match card impact: say where it comes from
+ * (this list's own games, or pooled from other decks when the list has none, and which bot's games under which simulator
+ * version), and claim no data when there is none.
+ */
+export function sellWhy(picked: string, basis: 'own' | 'pooled' | 'none', tables: CoachTables | null | undefined = COACH_TABLES): string {
   const base = `${picked}: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck`;
-  return `${base}${valueSource(basis)}.`;
+  return `${base}${valueSource(basis, tables)}.`;
 }
 
 /** Where the card values come from, as a parenthesis (empty when there is no bot-match data). */
-function valueSource(basis: 'own' | 'pooled' | 'none'): string {
-  if (basis === 'own') return ' (by bot-match telemetry on this list)';
-  if (basis === 'pooled') return ' (card values pooled from bot matches of other decks; this list has none of its own)';
+function valueSource(basis: 'own' | 'pooled' | 'none', tables: CoachTables | null | undefined): string {
+  const src = tablesSourceWords(tables);
+  if (basis === 'own') return src ? ` (by bot-match telemetry on this list: ${src})` : ' (by bot-match telemetry on this list)';
+  if (basis === 'pooled') return ` (card values pooled from bot matches of other decks${src ? `, ${src}` : ''}; this list has none of its own)`;
   return '';
 }
 
@@ -141,8 +152,8 @@ function valueSource(basis: 'own' | 'pooled' | 'none'): string {
  * The reason for a sell the coach chose by playing out the few cards it can best spare (sellLookahead): how it was
  * actually chosen, not "the least valuable card".
  */
-export function sellPlayedOutWhy(picked: string, basis: 'own' | 'pooled' | 'none', compared: number): string {
-  return `${picked}: one sell a turn is your mana growth. Of the ${compared} cards in hand you can best spare by card value${valueSource(basis)}, selling this one came out best when the coach played each out.`;
+export function sellPlayedOutWhy(picked: string, basis: 'own' | 'pooled' | 'none', compared: number, tables: CoachTables | null | undefined = COACH_TABLES): string {
+  return `${picked}: one sell a turn is your mana growth. Of the ${compared} cards in hand you can best spare by card value${valueSource(basis, tables)}, selling this one came out best when the coach played each out.`;
 }
 
 /** How a game-deciding difference reads, from the values (points) of the better move and of the other one. */
@@ -345,9 +356,10 @@ function modeWhy(g: Game, d: Decision, index: number): string {
 
 /**
  * `lift`: the measured lift of the deciding seat's packages (packageLift.ts seatLift; undefined or null = no synergy
- * report, so package notes are worded as unmeasured ideas).
+ * report, so package notes are worded as unmeasured ideas). `effects`: the seat's paired package measurements
+ * (packageEffect.ts seatEffects); when given (null = no file), they gate the package notes instead of the lift.
  */
-export async function advise(g: Game, d: Decision, lift?: SeatLift, rolloutPool?: import('./playoutPool').RolloutPool): Promise<Advice> {
+export async function advise(g: Game, d: Decision, lift?: SeatLift, rolloutPool?: import('./playoutPool').RolloutPool, effects?: SeatEffects): Promise<Advice> {
   const coach = makeCoach(rolloutPool);
   const [index] = await coach.decide(g, d);
   const grade = basisOf(coach.lastScores);
@@ -384,7 +396,7 @@ export async function advise(g: Game, d: Decision, lift?: SeatLift, rolloutPool?
     why = `${label} — ${Math.abs(diff) < 0.05 ? 'about as good as doing nothing' : diff > 0 ? `saves ${gapSize(diff) === 'figure' ? 'about ' : ''}${gapFigure(diff)} compared with doing nothing` : 'the least bad option here'}.`;
   }
   const alternatives = alternativesOf(d, index, grade);
-  const notes = packageNotes(g, d, index, lift);
+  const notes = packageNotes(g, d, index, lift, effects);
   const tie = coach.lastSellKeep;
   if (tie) notes.unshift(sellTieNote(g, d.player, tie));
   if (notes.length) why = [why, ...notes].filter(Boolean).join(' ');
@@ -447,21 +459,30 @@ function awayText(k: SteerKind, after: { mine: Gig[]; theirs: Gig[] }): string {
 }
 
 /**
- * The player's own packages the coach may name (INFO-8, packageLift.ts): with a synergy report, only those whose
- * measured lift has an interval above 0; without one, all of them (each note then says it is unmeasured).
+ * How the coach may speak of the player's packages: by the paired measurement of each package in this list when the
+ * request carries one (`effects`, packageEffect.ts; REVIEW_2026-11-24 S1), else by the synergy report's lift (INFO-8,
+ * packageLift.ts). Either way: 'measured' (named, with what was measured), 'unmeasured' (named as an idea), 'hidden'.
  */
-function speakablePackages(g: Game, p: PlayerId, lift: SeatLift | undefined) {
-  return seatPackages(g, p).filter((x) => liftGate(lift, x.id) !== 'hidden');
+function packageGate(lift: SeatLift | undefined, effects: SeatEffects | undefined) {
+  if (effects !== undefined) return { gate: (id: string) => effectGate(effects, id), label: (pkgs: readonly { id: string; name: string }[]) => effectLabel(effects, pkgs) };
+  return { gate: (id: string) => liftGate(lift, id), label: (pkgs: readonly { id: string; name: string }[]) => liftLabel(lift, pkgs) };
+}
+
+/**
+ * The player's own packages the coach may name: those the gate does not hide (with a paired measurement, those whose
+ * corrected interval is above 0 and those this list has no row for; with the lift, those whose lift interval is above
+ * 0, or all of them without a report).
+ */
+function speakablePackages(g: Game, p: PlayerId, lift: SeatLift | undefined, effects?: SeatEffects) {
+  const { gate } = packageGate(lift, effects);
+  return seatPackages(g, p).filter((x) => gate(x.id) !== 'hidden');
 }
 
 /** Labels for the packages a note names, each package's label once per advice. */
-function labeller(lift: SeatLift | undefined) {
+function labeller(lift: SeatLift | undefined, effects?: SeatEffects) {
   const done = new Set<string>();
-  return (pkgs: readonly { id: string; name: string }[]) =>
-    liftLabel(
-      lift,
-      pkgs.filter((x) => !done.has(x.id) && done.add(x.id)),
-    );
+  const { label } = packageGate(lift, effects);
+  return (pkgs: readonly { id: string; name: string }[]) => label(pkgs.filter((x) => !done.has(x.id) && done.add(x.id)));
 }
 const withLabel = (note: string, label: string) => (label ? `${note} ${label}` : note);
 
@@ -472,12 +493,12 @@ const withLabel = (note: string, label: string) => (label ? `${note} ${label}` :
  * (INFO-8): only packages with a measured lift above 0, labelled as an association; with no report, every package,
  * labelled as unmeasured.
  */
-export function packageNotes(g: Game, d: Decision, index: number, lift?: SeatLift): string[] {
+export function packageNotes(g: Game, d: Decision, index: number, lift?: SeatLift, effects?: SeatEffects): string[] {
   const p = d.player;
-  const pkgs = speakablePackages(g, p, lift);
+  const pkgs = speakablePackages(g, p, lift, effects);
   if (!pkgs.length) return [];
   const facts = packageFacts(g, p, pkgs);
-  const label = labeller(lift);
+  const label = labeller(lift, effects);
   const out: string[] = [];
   const opt = d.options[index];
   if (!opt) return out;
@@ -531,14 +552,14 @@ export function packageNotes(g: Game, d: Decision, index: number, lift?: SeatLif
  * Live warnings for a Street Cred package the player's list is built around, while a payoff is in hand or in play.
  * Gated and labelled by `lift` as packageNotes are (INFO-8).
  */
-export function packageWarnings(g: Game, p: PlayerId, lift?: SeatLift): string[] {
-  const pkgs = speakablePackages(g, p, lift);
+export function packageWarnings(g: Game, p: PlayerId, lift?: SeatLift, effects?: SeatEffects): string[] {
+  const pkgs = speakablePackages(g, p, lift, effects);
   if (!pkgs.length) return [];
   const facts = packageFacts(g, p, pkgs);
   const kinds = activeSteer(facts);
   const mine = g.streetCred(p) ?? 0;
   const theirs = g.streetCred(other(p)) ?? 0;
-  const label = labeller(lift);
+  const label = labeller(lift, effects);
   const named = (k: SteerKind) => pkgs.filter((x) => x.steer.includes(k));
   const names = (k: SteerKind) => named(k).map((x) => x.name).join(', ');
   const out: string[] = [];
@@ -560,9 +581,11 @@ export interface CoachRequest {
   pending: { player: PlayerId; label: string }[];
   /** the deciding seat's package lift (INFO-8; packageLift.ts), absent when no synergy report is loaded */
   lift?: SeatLift;
+  /** the deciding seat's paired package measurements (packageEffect.ts seatEffects); present, they gate instead of `lift` */
+  effects?: SeatEffects;
 }
 
-export function coachRequest(g: Game, d: Decision, lift?: SeatLift): CoachRequest {
+export function coachRequest(g: Game, d: Decision, lift?: SeatLift, effects?: SeatEffects): CoachRequest {
   const { log, trace } = g.s;
   g.s.log = [];
   g.s.trace = undefined;
@@ -570,7 +593,7 @@ export function coachRequest(g: Game, d: Decision, lift?: SeatLift): CoachReques
     // a snapshot: the live game moves on after the human answers
     const state = structuredClone(g.s);
     if (trace) state.trace = [];
-    return { state, decision: structuredClone(d), pending: g.pending.map((x) => ({ player: x.player, label: x.label })), ...(lift ? { lift } : {}) };
+    return { state, decision: structuredClone(d), pending: g.pending.map((x) => ({ player: x.player, label: x.label })), ...(lift ? { lift } : {}), ...(effects !== undefined ? { effects } : {}) };
   } finally {
     g.s.log = log;
     g.s.trace = trace;
@@ -591,7 +614,7 @@ function rebuild(q: CoachRequest): Game {
 
 /** advise() for a serialised position: rebuilds the game and asks the same coach. */
 export function adviseRequest(q: CoachRequest, rolloutPool?: import('./playoutPool').RolloutPool): Promise<Advice> {
-  return advise(rebuild(q), q.decision, q.lift, rolloutPool);
+  return advise(rebuild(q), q.decision, q.lift, rolloutPool, q.effects);
 }
 
 /** A gap under this many Gigs is a close call whatever its spread (the scorecard's threshold before INFO-1). */
@@ -708,8 +731,8 @@ export function matchupTips(g: Game, p: PlayerId = 0): string[] {
   return tips;
 }
 
-/** Live warnings about the board (cheap; recomputed each decision). `lift` gates the package warnings (INFO-8). */
-export function boardWarnings(g: Game, p: PlayerId = 0, lift?: SeatLift): string[] {
+/** Live warnings about the board (cheap; recomputed each decision). `lift` or `effects` gates the package warnings. */
+export function boardWarnings(g: Game, p: PlayerId = 0, lift?: SeatLift, effects?: SeatEffects): string[] {
   const r = other(p);
   const out: string[] = [];
   const rivalUnits = g.units(r);
@@ -723,6 +746,6 @@ export function boardWarnings(g: Game, p: PlayerId = 0, lift?: SeatLift): string
   if (theirs >= 6) out.push(`Rival is at ${theirs} Gigs — one steal from winning at the start of their turn.`);
   else if (mine >= 6) out.push(`You are at ${mine} Gigs — keep them safe to win at the start of your turn.`);
   if (g.s.overtime) out.push('Overtime: 7 Gigs wins immediately.');
-  out.push(...packageWarnings(g, p, lift));
+  out.push(...packageWarnings(g, p, lift, effects));
   return out;
 }

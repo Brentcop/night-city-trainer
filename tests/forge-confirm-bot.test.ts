@@ -10,6 +10,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { parseBatchLine } from '../src/lib/changeLedger';
+import { listFingerprint } from '../src/engine/deck';
+import { parentListsOf } from '../src/lib/listPackages';
+import { loadLibrary } from '../scripts/lib-node';
+
+const LIB = loadLibrary();
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nct-forge-confirm-'));
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -56,6 +61,9 @@ describe('the forge with --confirm-bot', () => {
     expect(read('split', 'forge/s2-08-explorer-ggy.md')).toContain(clause);
     expect(read('split', 'forge/summary.md')).toContain(clause);
     expect(read('split', 's2-08-explorer-ggy.txt')).toMatch(new RegExp(`^// Adoption: .*; ${clause}$`, 'm'));
+    // the list it started from, so scripts/note-synergies.ts gives the forged list its note's packages (2026-11-24)
+    const before = LIB.find((d) => d.file === 's2-08-explorer-ggy.txt')!;
+    expect(parentListsOf(read('split', 's2-08-explorer-ggy.txt'))[0]).toBe(listFingerprint(before.deck));
   });
 
   it('without it, or with the screening bot, every output is the same and names no bot', { timeout: 180_000 }, () => {

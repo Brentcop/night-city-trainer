@@ -6,6 +6,7 @@ import type { DeckList } from '../../engine/types';
 import { ACTIVE_SYNERGIES, SYNERGIES, synergiesIn } from '../../content/synergies';
 import { DECK_OBJECTIVES } from '../../content/deckObjectives';
 import { builtAroundIds, defaultKeep, packageChanges, packageCompatibility, packageName } from '../../lib/deckPackages';
+import { notePackages } from '../../lib/listPackages';
 import { roleText } from './SynergyStats';
 import { MentionText } from './CardMention';
 
@@ -14,10 +15,14 @@ export const toggleId = (list: readonly string[], id: string): string[] => (list
 /** Pick a package for breeding: at most `max`, the oldest pick dropped when a new one would exceed it. */
 export const pickPackage = (list: readonly string[], id: string, max = 2): string[] => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id].slice(-max));
 
-/** The Lab's default keep for a list: the packages its deck objective names (a library deck), else those it is built around. */
-export function labDefaultKeep(deck: Pick<DeckList, 'legends' | 'main'>, file?: string): { keep: string[]; from: 'objective' | 'built-around' } {
-  const named = file ? DECK_OBJECTIVES[file]?.synergies : undefined;
-  return { keep: defaultKeep(deck, named), from: named?.length ? 'objective' : 'built-around' };
+/**
+ * The Lab's default keep for a list: the packages its deck note names (src/lib/listPackages.ts: the note of `file`, else
+ * the note of this list or, for a tuned deck, of the list it was tuned from, `lineage`), else those it is built around
+ * (in catalogue order, as before).
+ */
+export function labDefaultKeep(deck: Pick<DeckList, 'legends' | 'main'>, file?: string, lineage?: readonly string[]): { keep: string[]; from: 'objective' | 'built-around' } {
+  const named = notePackages(deck, { note: file ? DECK_OBJECTIVES[file]?.synergies : undefined, lineage });
+  return { keep: defaultKeep(deck, named), from: named.length ? 'objective' : 'built-around' };
 }
 
 /** Tune tab: which of the list's packages to keep, and whether to try whole-package moves. */

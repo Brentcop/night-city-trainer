@@ -3,8 +3,9 @@
 // tests/note-synergies.test.ts fail until the two agree.
 //
 // The synergy packages (src/content/synergies) each library list is built around, as its note names them: list
-// fingerprint to package ids, for every note that names at least one, sorted by fingerprint. The bots read this table
-// (src/ai/packages.ts) instead of the notes, so the game workers do not carry the notes’ text. Plain data, no imports.
+// fingerprint to package ids, for every note that names at least one (and for the current list of its deck file, and
+// for a deck file forged from a list here), sorted by fingerprint. The bots read this table through
+// src/lib/listPackages.ts instead of the notes, so the game workers do not carry the notes’ text. Plain data, no imports.
 export const NOTE_SYNERGIES: Readonly<Record<string, readonly string[]>> = {
   '06eed193385abd58': ['gig-swap', 'spend-punish'],
   '080a9497aa8697ce': ['value-pair', 'braindance', 'high-gig', 'comeback'],

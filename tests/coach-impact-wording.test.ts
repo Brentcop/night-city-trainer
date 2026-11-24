@@ -5,8 +5,9 @@ import { readFileSync } from 'node:fs';
 import { parseDeck, listFingerprint } from '../src/engine/deck';
 import { Game } from '../src/engine/engine';
 import { impactBasis, topImpactCards } from '../src/ai/impact';
-import { matchupTips, sellWhy } from '../src/ai/coach';
+import { COACH_TABLES, matchupTips, sellPlayedOutWhy, sellWhy } from '../src/ai/coach';
 import type { Agent } from '../src/engine/types';
+import analysisJson from '../src/data/analysis.json';
 
 const deck = (f: string) => parseDeck(readFileSync(`data/decks/${f}`, 'utf8'), f).deck;
 const ref = (f: string) => {
@@ -32,6 +33,22 @@ describe('coach wording about card impact', () => {
     const why = sellWhy('Sell X', 'pooled');
     expect(why).toMatch(/pooled from bot matches of other decks/);
     expect(why).not.toMatch(/telemetry/);
+  });
+
+  it("a sell's reason names the bot and simulator version its card values come from (2026-11-24)", () => {
+    const run = analysisJson as unknown as { bot: string; manifest: { simVersion: number } };
+    expect(COACH_TABLES).toEqual({ bot: run.bot, simVersion: run.manifest.simVersion });
+    expect(sellWhy('Sell X', 'own', { bot: 'deep', simVersion: 9 })).toBe(
+      "Sell X: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck (by bot-match telemetry on this list: the Deep bot's games, simulator version 9, not the Hard bot the site's ratings use).",
+    );
+    expect(sellWhy('Sell X', 'pooled', { bot: 'hard', simVersion: 9 })).toBe(
+      "Sell X: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck (card values pooled from bot matches of other decks, the Hard bot's games, simulator version 9; this list has none of its own).",
+    );
+    expect(sellPlayedOutWhy('Sell X', 'own', 3, { bot: 'deep', simVersion: 9 })).toContain("card value (by bot-match telemetry on this list: the Deep bot's games, simulator version 9, not the Hard bot the site's ratings use), selling this one");
+    // by default the bundled analysis run's bot is named; without tables the old words
+    expect(sellWhy('Sell X', 'own')).toBe(sellWhy('Sell X', 'own', COACH_TABLES));
+    expect(sellWhy('Sell X', 'own', null)).toBe('Sell X: one sell a turn is your mana growth, and this is the least valuable card in hand for your deck (by bot-match telemetry on this list).');
+    expect(sellWhy('Sell X', 'none', { bot: 'deep', simVersion: 9 })).toBe(sellWhy('Sell X', 'none', null));
   });
 
   it('no data: no claim', () => {

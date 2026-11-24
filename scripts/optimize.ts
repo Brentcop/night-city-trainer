@@ -92,7 +92,7 @@ const field = VS ? [resolveDeck(VS)] : loadLibrary().filter((d) => d.kind === 'm
 const OUT = V.out;
 const PACKAGES = packagesOn(V);
 const PARTNER = partnerAwareOn(V);
-const PLAN = planFromFlags(V, objectivePackages(base.file), base.deck);
+const PLAN = planFromFlags(V, objectivePackages(base.file, base.deck), base.deck);
 exitOnPlanProblems(PLAN);
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
