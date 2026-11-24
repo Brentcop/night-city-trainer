@@ -776,7 +776,7 @@ export interface ConfirmedWith {
 
 /** A bot as the reports name it: "Medium" (lookahead and best build Medium's agent, fast Easy's). */
 export function botWord(bot: string): string {
-  const words: Readonly<Record<string, string>> = { easy: 'Easy', fast: 'Easy', medium: 'Medium', lookahead: 'Medium', best: 'Medium', hard: 'Hard', 'hard-v1': 'Hard (v1)', deep: 'Deep', mixed: 'Mixed', plain: 'Plain', random: 'Random' };
+  const words: Readonly<Record<string, string>> = { easy: 'Easy', fast: 'Easy', medium: 'Medium', lookahead: 'Medium', best: 'Medium', hard: 'Hard', 'hard-v1': 'Hard (v1)', 'hard-main': 'Hard (main-phase rollouts only)', deep: 'Deep', mixed: 'Mixed', plain: 'Plain', random: 'Random' };
   return words[bot] ?? bot;
 }
 

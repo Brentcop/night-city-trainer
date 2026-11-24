@@ -40,6 +40,21 @@ export const TIER_SETTINGS: Readonly<Record<Tier, Readonly<TierSettings>>> = {
   hard: { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: 'best' },
 };
 
+/**
+ * Named bots that are not tiers: never offered in Play or the runner, built by makeTierBot by name and by the scripts
+ * (`--bot hard-main`, or the spec in scripts/agent-spec.ts). Plain settings like TIER_SETTINGS.
+ *  - hard-main, "Hard (main-phase rollouts only)": Hard without its reaction rollouts and its sell lookahead (reactions
+ *    one step ahead and the sold card by rule, as Medium; the same weights, profiles, noise and plain mulligan). A
+ *    candidate screening bot (docs/REVIEW_2026-11-24.md row 14, §10 B.7): main-phase rollouts are nearly all of Hard's
+ *    edge over Medium, the other two cost about 40% of Hard's time each for about 2.5 points each.
+ */
+export const VARIANT_SETTINGS = {
+  'hard-main': { ...TIER_SETTINGS.hard, deepReactions: 0, sellLookahead: 0 },
+} as const satisfies Readonly<Record<string, Readonly<TierSettings>>>;
+export type Variant = keyof typeof VARIANT_SETTINGS;
+export const VARIANT_LABELS: Readonly<Record<Variant, string>> = { 'hard-main': 'Hard (main-phase rollouts only)' };
+const isVariant = (level: string): level is Variant => Object.prototype.hasOwnProperty.call(VARIANT_SETTINGS, level);
+
 export type BotChoice = Tier | 'mixed';
 
 export const TIERS: Record<Tier, { label: string; blurb: string; speed: string }> = {
@@ -59,12 +74,13 @@ export const TOURNEY_BOTS: { key: BotChoice; label: string; blurb: string }[] = 
 const LEGACY: Record<string, Tier> = { fast: 'easy', lookahead: 'medium', deep: 'hard', 'hard-v1': 'hard' };
 export const tierOf = (level: string): Tier | 'mixed' => (level in LEGACY ? LEGACY[level] : (level as Tier | 'mixed'));
 export const tierLabel = (level: string) => {
+  if (isVariant(level)) return VARIANT_LABELS[level];
   const t = tierOf(level);
   return t === 'mixed' ? 'Hard + Medium' : (TIERS[t as Tier]?.label ?? level);
 };
 
-function tierAgent(t: Tier, seed: number, name?: string) {
-  const { profiles, ...rest } = TIER_SETTINGS[t];
+function tierAgent(t: Tier | Variant, seed: number, name?: string) {
+  const { profiles, ...rest }: Readonly<TierSettings> = isVariant(t) ? VARIANT_SETTINGS[t] : TIER_SETTINGS[t];
   return new HeuristicAgent({ ...rest, name, seed, profiles: profiles === 'best' ? BEST_PROFILES : null });
 }
 
@@ -82,6 +98,7 @@ function tierBot(level: string, seed: number, name?: string) {
   if (level === 'deep') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, profiles: BEST_PROFILES });
   // Hard as first released (before attack rollouts), kept for comparisons and for the label on older recorded events
   if (level === 'hard-v1') return new HeuristicAgent({ name, seed, noise: 0.15, deep: 3, impact: 40, profiles: BEST_PROFILES });
+  if (isVariant(level)) return tierAgent(level, seed, name);
   const t = tierOf(level);
   if (t === 'mixed') return tierAgent((Math.imul(seed, 2654435761) >>> 15) & 1 ? 'hard' : 'medium', seed, name);
   return tierAgent(t, seed, name);

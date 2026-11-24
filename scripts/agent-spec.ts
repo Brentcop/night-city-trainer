@@ -5,7 +5,7 @@ import { DEFAULT_WEIGHTS, type EvalWeights } from '../src/ai/eval';
 import { weightSet } from '../src/ai/weightSets';
 import { BEST_PROFILES, DEFAULT_PROFILES } from '../src/ai/archetype';
 import type { MulliganRule } from '../src/ai/mulligan';
-import { TIER_SETTINGS, type Tier } from '../src/ai/tiers';
+import { TIER_SETTINGS, VARIANT_SETTINGS, type Tier, type Variant } from '../src/ai/tiers';
 
 export interface AgentSpec {
   lookahead?: boolean;
@@ -45,6 +45,11 @@ export interface AgentSpec {
 export const TIER_SPECS: Readonly<Record<Tier, AgentSpec>> = TIER_SETTINGS;
 /** Hard's settings as a spec (deep 3, reaction rollouts 3, sell lookahead 3, the plain mulligan, the tuned profiles, no card impact). */
 export const HARD_SPEC: AgentSpec = TIER_SPECS.hard;
+
+/** The named bots that are not tiers as specs: VARIANT_SETTINGS (src/ai/tiers.ts), which makeTierBot builds from too. */
+export const VARIANT_SPECS: Readonly<Record<Variant, AgentSpec>> = VARIANT_SETTINGS;
+/** "Hard (main-phase rollouts only)": Hard's spec with no reaction rollouts and no sell lookahead (bot name `hard-main`). */
+export const HARD_MAIN_SPEC: AgentSpec = VARIANT_SPECS['hard-main'];
 
 /** The weights a spec names (undefined = the bot's default, DEFAULT_WEIGHTS). */
 export function specWeights(spec: AgentSpec): EvalWeights | undefined {

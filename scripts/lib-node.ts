@@ -220,9 +220,9 @@ export const defaultThreads = () => Math.max(1, Math.min(os.cpus().length - 1, 1
 export const threadsOpt = () => int(defaultThreads(), { min: 1, max: 64 });
 
 /** Bot names the game worker understands (scripts/worker.ts). */
-export const SIM_BOTS = ['easy', 'medium', 'hard', 'hard-v1', 'mixed', 'fast', 'lookahead', 'deep', 'random', 'plain', 'best'] as const;
+export const SIM_BOTS = ['easy', 'medium', 'hard', 'hard-v1', 'hard-main', 'mixed', 'fast', 'lookahead', 'deep', 'random', 'plain', 'best'] as const;
 /** Bot names for tournaments and reviews (src/ai/tiers.ts makeTierBot). */
-export const TIER_BOTS = ['easy', 'medium', 'hard', 'hard-v1', 'mixed', 'fast', 'lookahead', 'deep'] as const;
+export const TIER_BOTS = ['easy', 'medium', 'hard', 'hard-v1', 'hard-main', 'mixed', 'fast', 'lookahead', 'deep'] as const;
 
 // ================================================================ worker pool
 

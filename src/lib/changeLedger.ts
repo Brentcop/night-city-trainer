@@ -88,8 +88,9 @@ const sameEntry = (a: EntryId, b: EntryId) => entryKey(a) === entryKey(b);
  * The bot names the game worker takes (scripts/worker.ts mkAgent), mapped to the agent they build: `fast` is Easy and
  * `lookahead` is Medium (src/ai/tiers.ts), and `best` builds exactly Medium's agent (noise 0.15, the best profiles; the
  * equality is checked in tests/change-ledger.test.ts). `hard-v1` reads src/data/impact.json, so its games are not a
- * function of the simulator version alone: it is refused. `deep` (the pre-tier Deep bot), `mixed`, `plain` and
- * `random` each build an agent of their own and keep their name.
+ * function of the simulator version alone: it is refused. `deep` (the pre-tier Deep bot), `hard-main` (Hard's main-phase
+ * rollouts only, src/ai/tiers.ts VARIANT_SETTINGS), `mixed`, `plain` and `random` each build an agent of their own and
+ * keep their name.
  */
 const BOT_NAMES: Readonly<Record<string, string | null>> = {
   easy: 'easy',
@@ -98,6 +99,7 @@ const BOT_NAMES: Readonly<Record<string, string | null>> = {
   lookahead: 'medium',
   best: 'medium',
   hard: 'hard',
+  'hard-main': 'hard-main',
   deep: 'deep',
   mixed: 'mixed',
   plain: 'plain',

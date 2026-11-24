@@ -200,7 +200,7 @@ class ObservedAgent implements Agent {
 
 function mkAgent(kind: string, seed: number): Agent {
   if (kind === 'random') return new RandomAgent(seed);
-  if (['easy', 'medium', 'hard', 'hard-v1', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
+  if (['easy', 'medium', 'hard', 'hard-v1', 'hard-main', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
   if (kind === 'plain') return new HeuristicAgent({ seed, noise: 0.15 });
   return new HeuristicAgent({ seed, noise: 0.15, profiles: BEST_PROFILES });
 }
