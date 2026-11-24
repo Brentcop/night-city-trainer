@@ -821,9 +821,24 @@ export interface MatchupFact extends Basis {
   runs?: number;
 }
 
+/**
+ * The lookup of one head-to-head file, built once per file: a caller that asks for every pair (the knowledge pack's
+ * matchup records, the tests) would otherwise rebuild the whole table for each one, which grows as the square of the
+ * pairings (about 2,200 since the rating series). Reused only while the file's decks, pairs, shrunk estimates and model
+ * are the same objects, so a file changed in place is looked up afresh.
+ */
+const lookups = new WeakMap<H2HInput, { decks: unknown; pairs: unknown; shrunk: unknown; model: unknown; get: ReturnType<typeof h2hFileLookup> }>();
+function lookupOf(h2h: H2HInput): ReturnType<typeof h2hFileLookup> {
+  const c = lookups.get(h2h);
+  if (c && c.decks === h2h.decks && c.pairs === h2h.pairs && c.shrunk === h2h.shrunk && c.model === h2h.model) return c.get;
+  const get = h2hFileLookup(h2h);
+  lookups.set(h2h, { decks: h2h.decks, pairs: h2h.pairs, shrunk: h2h.shrunk, model: h2h.model, get });
+  return get;
+}
+
 /** The head-to-head of a against b (h2hFileLookup in src/lib/h2hModel.ts): shrunk estimate, raw record and games. */
 export function matchupFact(a: string, b: string, h2h: H2HInput): MatchupFact {
-  const rec = h2hFileLookup(h2h)(a, b);
+  const rec = lookupOf(h2h)(a, b);
   return {
     a,
     b,
