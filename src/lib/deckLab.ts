@@ -21,7 +21,7 @@ import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type Im
 import { RATINGS, SEASONS, type SeasonsData } from '../data/index';
 import { rankLibraryParents, type RatedDeck } from './parentStrength';
 import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
-import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type Confirmation, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
+import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
 import { gameIds, ledgerBot, type BatchKind } from './changeLedger';
 import { blockSlots, ChangeLedgerRun, confirmationSlots, scored, type LedgerBackend, type LedgerTotals } from './changeLedgerRun';
 import { HeldOutTracker, withSplit, type NomineeSplit } from './pairedSplit';
@@ -304,7 +304,12 @@ export interface TuneOptions {
    * ranks a change by its screening and held-out games together, and games of two bots are never pooled).
    */
   confirmBot?: string;
-  /** successive halving: screen in multiple rounds, halving the pool each time (1 = no halving, the default) */
+  /**
+   * successive halving: screen the one-card swaps in this many rounds (1 = no halving, the default; no Lab control sets
+   * it). As the forge since 2026-11-24: the rounds play on a block of seeds of their own after the telemetry baseline's,
+   * each with its own baseline on its seeds; a swap's figure is its paired gain against its round's baseline, the best
+   * half (at least `cands`) go on, package moves join the last round, and only the last round nominates (and is combined).
+   */
   screenRounds?: number;
   /** how many swap candidates to start halving from (defaults to `cands` when no halving) */
   initialCands?: number;
@@ -371,8 +376,14 @@ export interface TuneLog {
   gen: number;
   baseline: number;
   report?: DeckReport;
-  /** every candidate screened on the baseline's games, best first; `gain` is the paired screening gain (plain 95%) */
-  swaps: { label: string; wr: number; pkg?: Swap['pkg']; combo?: boolean; gain?: { mean: number; lower: number; upper: number; games: number }; pooled?: { mean: number; games: number; earlier: number } }[];
+  /**
+   * every candidate screened on the baseline's games, best first; `gain` is the paired screening gain (plain 95%). Under
+   * successive halving (`halving`) one entry per candidate, its last round's (`round`, 1-based): its win rate and gain on
+   * that round's games against that round's own baseline; only the last round's entries nominate.
+   */
+  swaps: { label: string; wr: number; pkg?: Swap['pkg']; combo?: boolean; gain?: { mean: number; lower: number; upper: number; games: number }; pooled?: { mean: number; games: number; earlier: number }; round?: number }[];
+  /** runs with successive halving (TuneOptions.screenRounds > 1): the rounds, and the telemetry baseline's games (`baseline`) */
+  halving?: { rounds: number; baselineGames: number };
   /** runs with a shortlist: the changes carried from earlier runs and the generator's picks skipped, with why */
   shortlist?: ShortlistNote;
   /**
@@ -418,9 +429,20 @@ export interface NotNominated {
 export const LAB_CONFIRM_SEEDS = 5_000;
 
 /**
+ * Successive halving's rounds: each one's first seed and games, on a block of their own right after the telemetry
+ * baseline's (seed0 … seed0 + games − 1), so the cuts that baseline chose are screened on other games (the forge's layout).
+ */
+export function halvingRounds(seed0: number, games: number, rounds: number): { seed: number; games: number }[] {
+  const gpr = Math.ceil(games / rounds);
+  return Array.from({ length: rounds }, (_, r) => ({ seed: seed0 + games + r * gpr, games: r === rounds - 1 ? games - r * gpr : gpr }));
+}
+
+/**
  * The rule, depth and game estimate of a tuning run (the Lab shows the estimate before it starts). With `untilSettled`,
  * `settle` says what it may add at most (`extra` games, never part of `estimate`), its reach and the further stages each
- * generation's seeds allow.
+ * generation's seeds allow. The Deck Lab shows `extra` inside the range it states (since 2026-11-24, REVIEW_2026-11-24
+ * §10 A.6) and does not cap it to its budget: capped as the forge caps it (settleStagesWithin), Standard would keep 6 of
+ * its 18 further stages and detect about +3.4 points, what it detects without until settled at all.
  */
 export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'packageMoves' | 'packageCands' | 'rule' | 'depth' | 'plan' | 'vsOriginal' | 'untilSettled' | 'screenRounds' | 'initialCands'> & Partial<Pick<TuneOptions, 'bot' | 'confirmBot'>>) {
   const rule = adoptionRule(o.rule);
@@ -439,11 +461,15 @@ export function tunePlan(o: Pick<TuneOptions, 'games' | 'gens' | 'cands' | 'pack
     rule,
     screenRounds: rounds,
     initialCands: initCands,
+    // halving plays its rounds on a block of their own, each with its own baseline (halvingRounds)
+    ...(rounds > 1 ? { ownHalvingBlock: true } : {}),
   });
-  // the vs-original block: the first adoption is derived from its confirmation (gain 7), so the block plays at most
-  // gens − 1 adoptions + the original once on the second adoption = gens × vsGames; with one generation it is always 0
+  // the vs-original block: the original once and each adopted list once (at most one adoption per generation). The first
+  // adoption plays it too (since 2026-11-24, REVIEW_2026-11-24 T4): its confirmation's figure is conditioned on having
+  // crossed the boundary, so it reads high (about 1.7 times a true gain of +2), and with earlier held-out games it is not
+  // on the common block at all; 2026-11-22 to 11-24 it was reused, saving 2 × vsGames (896 games on Standard)
   const vsGames = o.vsOriginal ?? 0;
-  const vsMax = vsGames && o.gens >= 2 ? vsGames * o.gens : 0;
+  const vsMax = vsGames ? vsGames * (o.gens + 1) : 0;
   const capStages = rule.kind === 'any-gain' ? 1 : rule.capStages;
   const reach = o.untilSettled?.reach ?? DEFAULT_REACH;
   const stages = o.untilSettled && rule.kind === 'evidence' ? settleStages({ seedStages: Math.floor(LAB_CONFIRM_SEEDS / firstStage) - capStages, reach, firstStage, capStages }) : 0;
@@ -489,6 +515,12 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   const stages = rule.kind === 'any-gain' ? 1 : rule.capStages;
   if (o.games > 5_000 || firstStage * stages > LAB_CONFIRM_SEEDS) throw new Error(`the confirmation would need ${firstStage * stages} seeds but each generation has 5,000; use fewer games or a lower cap`);
   if (o.untilSettled && rule.kind !== 'evidence') throw new Error('"until settled" needs the evidence rule: under any-gain there is one confirmation and nothing is pooled');
+  if ((o.screenRounds ?? 1) > 1) {
+    const hr = halvingRounds(0, o.games, o.screenRounds!);
+    if (hr.some((r) => r.games < 1)) throw new Error(`successive halving needs at least one game a round: ${o.games} games cannot make ${o.screenRounds} rounds`);
+    // (the rounds' block, games … 2·games − 1 after the first seed, stays below the confirmation's seeds: the check above
+    // keeps 2·games ≤ firstStage ≤ LAB_CONFIRM_SEEDS)
+  }
   /** "until settled": the further stages each generation's seeds and the reach allow (0 when off) */
   const further = settle?.stages ?? 0;
   // with "until settled" the most it may add is part of the progress total, so the bar never runs past the end
@@ -526,7 +558,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
   let origScores: number[] | null = null;
   let adoptedSoFar = 0;
   /** after each generation: the current list against the original (measured only when this generation adopted) */
-  const track = async (log: TuneLog, adoptedNow: boolean, confResult?: Pick<Confirmation, 'heldOut' | 'baseWr' | 'candWr'>) => {
+  const track = async (log: TuneLog, adoptedNow: boolean) => {
     if (!vsN) return;
     const prev = finalVsOriginal(logs.slice(0, -1));
     if (!adoptedNow) {
@@ -534,11 +566,8 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       return;
     }
     if (stop()) return;
-    // the first adoption's confirmation already compared the adopted list against the original (gain 7)
-    if (adoptedSoFar === 1 && confResult) {
-      log.vsOriginal = { same: false, adopted: adoptedSoFar, gain: confResult.heldOut, origWr: confResult.baseWr, curWr: confResult.candWr, measured: true };
-      return;
-    }
+    // every adoption, the first too, is compared on the common block: never the adopting confirmation's own figure,
+    // which is conditioned on having been adopted (and may pool earlier runs' games)
     p.phase = `Generation ${log.gen}: comparing the list with the original on ${vsN} common held-out games`;
     onProgress({ ...p, logs: [...logs] });
     if (!origScores) origScores = (await playSet(start, field, vsSeed, vsN, confirmBot, play, false, tick)).scores;
@@ -580,58 +609,85 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       }
       if (ranked.cuts) log.cuts = ranked.cuts;
       if (o.packageMoves || plan.require?.length) swaps.push(...candidatePackageMoves(deck, report, plan, { moves: !!o.packageMoves, n: pkN, deckImpact: deckImp }));
-      const screened: { s: Swap; wr: number }[] = [];
-      /** the screening games' places, for the ledger */
-      const screenSlots = ledger ? blockSlots(seed0, o.games, opponents) : [];
-      const screenOne = async (s: Swap, screenSeed: number, screenGames: number, baseScores: number[], what: string, k: number, total: number) => {
-        if (stop()) return;
-        p.phase = `Generation ${gen}: testing ${what} ${k + 1} of ${total} on the same games`;
+      /** the changes whose figures nominate: every screened one, or under halving the last round's (and the combinations) */
+      let screened: { s: Swap; wr: number; gain: number }[] = [];
+      /** under halving: the rounds' seeds and games (on a block of their own after the baseline's) */
+      const halving = rounds > 1 ? halvingRounds(seed0, o.games, rounds) : null;
+      /** the screening games' places, for the ledger: the baseline's block, and under halving the rounds' blocks too */
+      const screenSlots = ledger ? [...blockSlots(seed0, o.games, opponents), ...(halving ?? []).flatMap((r) => blockSlots(r.seed, r.games, opponents))] : [];
+      /** under halving: each candidate's one entry in log.swaps (its last round's) and that round's baseline win rate */
+      const entryAt = new Map<string, number>();
+      const roundBaseWr = new Map<string, number>();
+      /**
+       * Screen one change paired with `baseScores` on the same seeds; null when stopped first. Without halving its entry
+       * is appended to the log as before; under halving it replaces the candidate's entry from an earlier round.
+       */
+      const screenOne = async (s: Swap, screenSeed: number, screenGames: number, baseScores: number[], what: string, k: number, total: number, round?: number) => {
+        if (stop()) return null;
+        p.phase = `Generation ${gen}: testing ${what} ${k + 1} of ${total} on the same games${round ? ` (halving round ${round} of ${rounds})` : ''}`;
         onProgress({ ...p, logs: [...logs] });
         const r = await playSet(s.deck, field, screenSeed, screenGames, o.bot, play, false, tick);
         const slots = ledger ? blockSlots(screenSeed, screenGames, opponents) : [];
         if (ledger) ledger.record('screen', deck, s.deck, s.label, scored(slots, baseScores, r.scores));
         const iv = pairedInterval(r.scores, baseScores);
-        screened.push({ s, wr: r.wr });
-        log.swaps.push({ label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games } });
+        // the gain as the baseline's win rate is computed (so without halving it is r.wr − base.wr exactly)
+        const baseWr = baseScores.reduce((a, x) => a + x, 0) / baseScores.length;
+        const entry = { label: s.label, wr: r.wr, ...(s.pkg ? { pkg: s.pkg } : {}), ...(s.combo ? { combo: true } : {}), gain: { mean: iv.mean, lower: iv.lower, upper: iv.upper, games: iv.games }, ...(round ? { round } : {}) };
+        if (round === undefined) log.swaps.push(entry);
+        else {
+          const at = entryAt.get(s.label);
+          if (at === undefined) {
+            entryAt.set(s.label, log.swaps.length);
+            log.swaps.push(entry);
+          } else log.swaps[at] = entry;
+          roundBaseWr.set(s.label, baseWr);
+        }
+        return { s, wr: r.wr, gain: r.wr - baseWr };
       };
-      // successive halving: when rounds > 1, screen in rounds, halving the pool each time
-      if (rounds <= 1) {
-        for (const [k, s] of swaps.entries()) await screenOne(s, seed0, o.games, base.scores, s.pkg ? 'package move' : 'swap', k, swaps.length);
+      /** the games the nominating figures are on: the baseline's block, or under halving the last round's */
+      let final = { seed: seed0, games: o.games, base: base.scores, round: undefined as number | undefined };
+      // successive halving: when rounds > 1, screen in rounds on their own block, halving the pool each time
+      if (!halving) {
+        for (const [k, s] of swaps.entries()) {
+          const x = await screenOne(s, seed0, o.games, base.scores, s.pkg ? 'package move' : 'swap', k, swaps.length);
+          if (x) screened.push(x);
+        }
       } else {
-        const gpr = Math.ceil(o.games / rounds);
+        log.halving = { rounds, baselineGames: o.games };
         const swapMuts = swaps.filter((s) => !s.pkg);
         const pkgMuts = swaps.filter((s) => !!s.pkg);
         let pool = swapMuts;
         for (let r = 0; r < rounds && !stop(); r++) {
           const isLast = r === rounds - 1;
-          const roundGames = isLast ? o.games - r * gpr : gpr;
-          const roundSeed = seed0 + r * gpr;
-          let roundBase: number[];
-          if (r === 0) {
-            roundBase = base.scores.slice(0, roundGames);
-          } else {
-            p.phase = `Generation ${gen}: measuring baseline for halving round ${r + 1}`;
-            onProgress({ ...p, logs: [...logs] });
-            const rb = await playSet(deck, field, roundSeed, roundGames, o.bot, play, false, tick);
-            roundBase = rb.scores;
-          }
+          const { seed: roundSeed, games: roundGames } = halving[r]!;
           const roundMuts = isLast ? [...pool, ...pkgMuts] : pool;
-          // clear screened for this round's data
-          const roundScreened: { s: Swap; wr: number }[] = [];
+          if (!roundMuts.length) continue;
+          // every round, the first too, plays its own baseline on its own seeds (the telemetry baseline's games chose the
+          // cuts, so they are not reused), and each candidate is paired with it
+          p.phase = `Generation ${gen}: measuring the list for halving round ${r + 1} of ${rounds}`;
+          onProgress({ ...p, logs: [...logs] });
+          const roundBase = (await playSet(deck, field, roundSeed, roundGames, o.bot, play, false, tick)).scores;
+          const roundScreened: { s: Swap; wr: number; gain: number }[] = [];
           for (const [k, s] of roundMuts.entries()) {
-            await screenOne(s, roundSeed, roundGames, roundBase, s.pkg ? 'package move' : 'swap', k, roundMuts.length);
-            if (screened.length > roundScreened.length) roundScreened.push(screened[screened.length - 1]!);
+            const x = await screenOne(s, roundSeed, roundGames, roundBase, s.pkg ? 'package move' : 'swap', k, roundMuts.length, r + 1);
+            if (x) roundScreened.push(x);
           }
-          if (!isLast) {
+          if (stop()) break;
+          if (isLast) {
+            // only the last round's figures nominate: earlier rounds' are on other games and chose the survivors
+            screened = roundScreened;
+            final = { seed: roundSeed, games: roundGames, base: roundBase, round: r + 1 };
+          } else {
+            // keep the best half by paired gain against this round's baseline, at least `cands`
             const keep = Math.max(o.cands, Math.ceil(pool.length / 2));
-            const survived = new Set(roundScreened.sort((a, b) => b.wr - a.wr).slice(0, keep).map((x) => x.s));
+            const survived = new Set([...roundScreened].sort((a, b) => b.gain - a.gain).slice(0, keep).map((x) => x.s));
             pool = pool.filter((s) => survived.has(s));
           }
         }
       }
       // depth: combine the best screened single changes (those above the baseline)
       const seen = new Set([listKeyOf(deck), ...swaps.map((s) => listKeyOf(s.deck))]);
-      const above = (pkg: boolean) => [...screened].filter((x) => !!x.s.pkg === pkg && x.wr > base.wr).sort((a, b) => b.wr - a.wr).map((x) => x.s);
+      const above = (pkg: boolean) => [...screened].filter((x) => !!x.s.pkg === pkg && x.gain > 0).sort((a, b) => b.wr - a.wr).map((x) => x.s);
       const make = (parts: Swap[], d: DeckList): Swap => ({ label: parts.map((x) => x.label).join(' + '), deck: d, prior: parts.reduce((t, x) => t + x.prior, 0), combo: { parts: parts.map((x) => x.label), packages: parts.some((x) => !!x.pkg) } });
       const combos = stop()
         ? []
@@ -639,17 +695,28 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
             ...(depth.cardsPerChange > 1 ? combinedCandidates(deck, above(false), { maxParts: depth.cardsPerChange, from: depth.combineFrom, plan, seen }, make) : []),
             ...(depth.packagesPerChange > 1 ? combinedCandidates(deck, above(true), { maxParts: depth.packagesPerChange, from: depth.combineFrom, plan, seen }, make) : []),
           ];
-      for (const [k, s] of combos.entries()) await screenOne(s, seed0, o.games, base.scores, 'combined change', k, combos.length);
+      // on the games the singles they combine were last screened on, paired with the same baseline
+      for (const [k, s] of combos.entries()) {
+        const x = await screenOne(s, final.seed, final.games, final.base, 'combined change', k, combos.length, final.round);
+        if (x && halving) screened.push(x);
+      }
       const all = [...swaps, ...combos];
-      log.swaps.sort((a, b) => b.wr - a.wr);
+      if (!halving) log.swaps.sort((a, b) => b.wr - a.wr);
+      // under halving: the last round's entries first, by win rate (one baseline and the same games), then those out
+      // earlier, latest round first, by their gain against their own round's baseline
+      else log.swaps.sort((a, b) => (b.round ?? 0) - (a.round ?? 0) || (a.round === final.round ? b.wr - a.wr : (b.gain?.mean ?? 0) - (a.gain?.mean ?? 0)));
+      /** the changes that may be nominated: every screened one, or under halving the last round's (combinations included) */
+      const eligible = halving ? log.swaps.filter((x) => final.round !== undefined && x.round === final.round) : log.swaps;
       const seed1 = seed0 + 5_000;
       const swapOf = (label: string) => all.find((s) => s.label === label)!;
       /** the shortlist: each screened change's gain over all its games (this generation's screening included, each game once) */
       const figs = new Map<string, PooledFigure>();
+      /** a change's screening gain: its win rate less its baseline's on the same games (its halving round's under halving) */
+      const screenGain = (x: TuneLog['swaps'][number]) => x.wr - (roundBaseWr.get(x.label) ?? base.wr);
       if (short && ledger) {
         const own = gameIds(screenSlots);
-        for (const x of log.swaps) {
-          const f = pooledFigure(ledger.entryOf(ledger.entryId(deck, swapOf(x.label).deck).change), { ids: own, gain: x.wr - base.wr, games: o.games });
+        for (const x of eligible) {
+          const f = pooledFigure(ledger.entryOf(ledger.entryId(deck, swapOf(x.label).deck).change), { ids: own, gain: screenGain(x), games: halving ? (x.gain?.games ?? o.games) : o.games });
           figs.set(x.label, f);
           if (f.earlier) x.pooled = { mean: f.gain, games: f.games, earlier: f.earlier };
         }
@@ -659,8 +726,8 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       const priorFor = (s: Swap): PairedScores | undefined => (pooling && heldLedger ? heldLedger.prior(deck, s.deck, leaveOut) : undefined);
       // screening only nominates: the best changes that beat the baseline by minGain on the shared games
       // with the shortlist, by pooled gain (a change with no earlier games keeps its own screening figure)
-      const gainOf = (x: TuneLog['swaps'][number]) => figs.get(x.label)?.gain ?? x.wr - base.wr;
-      const aboveBar = (short ? byPooledGain(log.swaps, (x) => figs.get(x.label)!) : log.swaps).filter((x) => gainOf(x) >= o.minGain);
+      const gainOf = (x: TuneLog['swaps'][number]) => figs.get(x.label)?.gain ?? screenGain(x);
+      const aboveBar = (short ? byPooledGain(eligible, (x) => figs.get(x.label)!) : eligible).filter((x) => gainOf(x) >= o.minGain);
       let nominated = aboveBar.slice(0, depth.nominees);
       if (pooling) {
         // a change whose earlier held-out games alone already reject it is not nominated: the next best takes its place
@@ -762,7 +829,7 @@ export async function tuneDeck(start: DeckList, field: DeckList[], o: TuneOption
       p.deck = deck;
       // report the adopted list before the vs-original games, so a run stopped during them can still save it
       if (pick >= 0) onProgress({ ...p, logs: [...logs] });
-      if (!stop()) await track(log, pick >= 0, pick >= 0 ? shown : undefined);
+      if (!stop()) await track(log, pick >= 0);
       p.done = Math.max(p.done, Math.round(gen * perGen));
       // report the confirmed list at once, so a run stopped from here on can still save it (partialTune)
       onProgress({ ...p, logs: [...logs] });

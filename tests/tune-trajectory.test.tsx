@@ -105,12 +105,11 @@ describe('the vs-original comparison', () => {
     expect(adoptions).toBeGreaterThan(0);
     const vsSeed = OPTS.seedBase! + (OPTS.gens + 1) * 10_000;
     const block = played.filter((x) => x.seed >= vsSeed);
-    // the first adoption derives its figure from the confirmation (gain 7); subsequent ones play the block
-    expect(block.length).toBe(adoptions >= 2 ? 160 * adoptions : 0);
-    if (adoptions >= 2) {
-      expect(new Set(block.map((x) => x.seed)).size).toBe(160);
-      expect(block.slice(0, 160).every((x) => x.list === listFingerprint(start))).toBe(true);
-    }
+    // the original once, then one block per adoption, all on the same seeds: the first adoption too (REVIEW_2026-11-24
+    // T4: its confirmation's own figure is conditioned on its having been adopted, so it is never reused)
+    expect(block.length).toBe(160 * (1 + adoptions));
+    expect(new Set(block.map((x) => x.seed)).size).toBe(160);
+    expect(block.slice(0, 160).every((x) => x.list === listFingerprint(start))).toBe(true);
     // never a seed a generation used
     const gens = played.filter((x) => x.seed < vsSeed);
     expect(Math.max(...gens.map((x) => x.seed))).toBeLessThan(vsSeed);
@@ -140,11 +139,11 @@ describe('the vs-original comparison', () => {
     );
     expect(trajectoryLine(logs[1]!, 1)).toBe('After generation 2: 1 change adopted (none this generation); +2.1 pts [−0.4, +4.6], 448 games against your original list (the same games for both) — could not tell.');
     expect(tuneSummaryText([{ gen: 1, adopted: 'x' }], { minGainPp: 1, partial: true })).toContain('the run ended before the tuned list was compared with your original list, so it is not shown to be better');
-    // the estimate: the first adoption is free (gain 7), so at most gens blocks (the original + gens − 1 adopted lists)
+    // the estimate: the original once plus one block per generation at most
     const p = tunePlan({ games: 56, gens: 3, cands: 4, vsOriginal: vsOriginalGames(56) });
     expect(p.vsGames).toBe(224);
-    expect(p.vsMax).toBe(224 * 3);
-    expect(p.estimate.max - tunePlan({ games: 56, gens: 3, cands: 4 }).estimate.max).toBe(224 * 3);
+    expect(p.vsMax).toBe(224 * 4);
+    expect(p.estimate.max - tunePlan({ games: 56, gens: 3, cands: 4 }).estimate.max).toBe(224 * 4);
     expect(p.estimate.min).toBe(tunePlan({ games: 56, gens: 3, cands: 4 }).estimate.min);
   });
 });

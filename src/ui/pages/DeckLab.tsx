@@ -4,7 +4,10 @@
 // default, with a line on what is held for this list, and an "Evidence kept in this browser" block (export, import, clear).
 // The same checkbox turns on the shortlist from pooled evidence (TuneOptions.shortlist, src/lib/shortlist.ts).
 // "Keep confirming until settled" (TuneOptions.untilSettled; on by default, independent of the held-out games) lets a
-// still undecided confirmation go on; Search depth says what it may add and what the run can detect (deckSearch.ts detect).
+// still undecided confirmation go on; Search depth counts what it may add in the range it shows (since 2026-11-24; not in
+// the budget question, and not capped to the budget as the forge's is: that would leave Standard 6 of its 18 further
+// stages and no more power than without it) and says what the run can detect (deckSearch.ts detect).
+// Each cut in the result tables carries "the bot sells this" when the decision telemetry says so (components/LabSells.tsx).
 // The default effort is Standard (since 2026-11-15, P4: Quick adopts only gains of about +4 points 8 times in 10).
 // "Confirm with the Hard bot" (TuneOptions.confirmBot; shown for a Medium run, off by default) has the confirmations and the
 // comparison with the original played by Hard; earlier changes are then not tested again first (one plain sentence says so).
@@ -44,6 +47,7 @@ import {
 } from '../../lib/deckLab';
 import { adoptionProvenance, botWord, DEFAULT_REACH, describeRule, formatGain, settleWords, stoppedWords, type AdoptionRule } from '../../lib/evidence';
 import { confirmedWith, detect, detectWords, LAB_GAME_BUDGET, perGameSd } from '../../lib/deckSearch';
+import { SellsTag, useLabSells, type SellLookup } from '../components/LabSells';
 import { ConfirmHardCheckbox, confirmHardOffered, CutTable, DepthControls, NomineeTable, NotNominatedList, OutcomeChip, PairedGain, SettleCheckbox, ShortlistNotes, TuneTrajectory } from '../components/LabEvidence';
 import { pooledWords } from '../../lib/shortlist';
 import { HeldOutCheckbox, heldOutActions, HeldOutPanel, useHeldOutStore, useListHolding, useListSds } from '../components/LabHeldOut';
@@ -242,7 +246,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const start = async () => {
     const deck = parsed.deck;
     if (!deck || parsed.errors.length) return;
-    // the usual range only; what "until settled" may add is said apart
+    // the budget question counts the usual range; what "until settled" may add is in the range shown and said here too
     const extra = planned.settle?.extra ? ` Keeping confirmations going until settled may add up to ${planned.settle.extra.toLocaleString('en-US')} more.` : '';
     if (planned.estimate.max > LAB_GAME_BUDGET && !window.confirm(`This run may play up to ${planned.estimate.max.toLocaleString('en-US')} games, over the lab's budget of ${LAB_GAME_BUDGET.toLocaleString('en-US')}.${extra} Run it anyway?`)) return;
     const fieldList = fieldDecks(field, lib, deck.name);
@@ -349,6 +353,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
   const fromFile = runFrom ? runFrom.file : source === 'library' ? file : undefined;
   const saveFrom = tuneSource(fromFile, allDecks());
   const { open: openCard, dialog: cardDialog } = useCardDialog();
+  // "the bot sells this" beside each cut: the decision telemetry, fetched once a result is shown (the list the run started from)
+  const sells = useLabSells(!!prog && prog.logs.length > 0, runFrom ? listFingerprint(runFrom.deck) : null);
   const minGainPp = runRule?.rule.minGainPp ?? planned.rule.minGainPp;
   // the tuned list against the original: only a list shown better is offered as the result
   const verdict = vsOriginalVerdict(finalVsOriginal(prog?.logs ?? []), minGainPp);
@@ -577,12 +583,16 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   <Markdown text={l.report.insights.slice(0, 3).map((s) => `- ${s}`).join(String.fromCharCode(10))} />
                 </div>
               )}
-              {l.cuts && <CutTable cuts={l.cuts} label={(id, name) => (CARD_BY_ID[id] ? <CardNameButton def={CARD_BY_ID[id]} onOpen={openCard} /> : name)} />}
+              {l.cuts && <CutTable cuts={l.cuts} label={(id, name) => (CARD_BY_ID[id] ? <CardNameButton def={CARD_BY_ID[id]} onOpen={openCard} /> : name)} sells={sells} />}
               <ShortlistNotes note={l.shortlist} nominateBar={LAB_MIN_GAIN} cands={runRule?.cands} />
               {l.swaps.length > 0 && (
                 <div className="scroll-x">
                   <table className="small lab-screening">
-                    <caption className="muted">Screening: each change on this generation’s {l.swaps[0]?.gain?.games ?? ''} games, paired with the list. It only nominates; the best of several is biased high.</caption>
+                    <caption className="muted">
+                      {l.halving
+                        ? `Screening in ${l.halving.rounds} halving rounds, each on games of its own, paired with the list on the same games: each change shows its last round, and only the last round’s changes can be nominated. It only nominates; the best of several is biased high.`
+                        : `Screening: each change on this generation’s ${l.swaps[0]?.gain?.games ?? ''} games, paired with the list. It only nominates; the best of several is biased high.`}
+                    </caption>
                     <thead>
                       <tr>
                         <th>Change</th>
@@ -595,7 +605,13 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                         <tr key={s.label}>
                           <td>
                             {s.pkg && <span className="tag">package · {s.pkg.kind}</span>}
-                            {s.combo && <span className="tag">combined</span>} <SwapLabel label={s.label} onOpen={openCard} />
+                            {s.combo && <span className="tag">combined</span>}
+                            {l.halving && s.round !== undefined && s.round < l.halving.rounds && (
+                              <span className="tag" title="Not among the best half in this round, so it was not screened further and cannot be nominated">
+                                out in round {s.round}
+                              </span>
+                            )}{' '}
+                            <SwapLabel label={s.label} onOpen={openCard} sells={sells} />
                           </td>
                           <td className="muted num" title={`Screening only, ${s.gain?.games ?? '?'} games: not the deck's win rate`}>
                             {Math.round(s.wr * 100)}%
@@ -619,7 +635,7 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
                   <div className="muted">
                     Confirmation on fresh games, paired with the list{runRule?.confirmBot ? `, played by the ${botWord(runRule.confirmBot)} bot` : ''} (screening only nominates; the held-out gain is the one that counts):
                   </div>
-                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} futilityMaxGainPp={runRule?.rule.futilityMaxGainPp ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} />} splits={prog.splits?.find((x) => x.gen === l.gen)} />
+                  <NomineeTable nominees={l.nominees} minGames={runRule?.rule.minGames ?? 0} futilityMaxGainPp={runRule?.rule.futilityMaxGainPp ?? 0} label={(t) => <SwapLabel label={t} onOpen={openCard} sells={sells} />} splits={prog.splits?.find((x) => x.gen === l.gen)} />
                   <NotNominatedList items={l.notNominated} />
                 </div>
               ) : l.notNominated?.length ? (
@@ -753,7 +769,8 @@ function TunePanel({ initialFile, handoff, onBusy }: { initialFile?: string; han
  */
 export function GenerationSummary({ log: l }: { log: TuneLog }) {
   const unsure = l.nominees?.find((n) => n.outcome === 'inconclusive');
-  const n = l.swaps[0]?.gain?.games;
+  // the telemetry baseline's games (under halving the changes' own figures are on the rounds' games)
+  const n = l.halving ? l.halving.baselineGames : l.swaps[0]?.gain?.games;
   return (
     <>
       Generation {l.gen}
@@ -811,7 +828,7 @@ export function evidenceNote(logs: readonly TuneLog[]): string {
 }
 
 /** A swap label ("−1 A → +1 B") with the two cards' thumbnails; plain text when a name isn't a known card. */
-function SwapLabel({ label, onOpen }: { label: string; onOpen: (d: CardDef) => void }) {
+function SwapLabel({ label, onOpen, sells }: { label: string; onOpen: (d: CardDef) => void; sells?: SellLookup | null }) {
   const sw = parseSwap(label);
   if (!sw.out || !sw.in) return <MentionText text={label} />;
   return (
@@ -819,6 +836,7 @@ function SwapLabel({ label, onOpen }: { label: string; onOpen: (d: CardDef) => v
       <CardThumb def={CARD_BY_ID[sw.out]} onOpen={onOpen} />
       <span>
         −1 <CardNameButton def={CARD_BY_ID[sw.out]} onOpen={onOpen} />
+        <SellsTag note={sells?.(sw.out)} />
       </span>
       <span aria-hidden="true">→</span>
       <span className="sr-only">replaced by</span>

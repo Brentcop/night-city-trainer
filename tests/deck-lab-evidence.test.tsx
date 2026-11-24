@@ -265,8 +265,8 @@ describe('Deck Lab result view', () => {
     // the further "until settled" games are the confirming bot's too, and the line says so
     const ps = tunePlan({ games: 112, gens: 2, cands: 5, packageCands: 3, vsOriginal: vsOriginalGames(112), untilSettled: {}, bot: 'medium', confirmBot: 'hard' });
     const extra = ps.settle!.extra.toLocaleString('en-US');
-    expect(renderToStaticMarkup(<DepthControls {...props} estimate={ps.estimate} settle={ps.settle} confirm={ps.confirm} />)).toContain(`may add up to ${extra} games, also played with the Hard bot (only for a change still undecided`);
-    expect(renderToStaticMarkup(<DepthControls {...props} estimate={ps.estimate} settle={ps.settle} />)).toContain(`may add up to ${extra} games (only for a change still undecided`);
+    expect(renderToStaticMarkup(<DepthControls {...props} estimate={ps.estimate} settle={ps.settle} confirm={ps.confirm} />)).toContain(`That includes up to ${extra} games keeping confirmations going until settled, also played with the Hard bot, played only for a change still undecided`);
+    expect(renderToStaticMarkup(<DepthControls {...props} estimate={ps.estimate} settle={ps.settle} />)).toContain(`That includes up to ${extra} games keeping confirmations going until settled, played only for a change still undecided`);
     // where the earlier games are described: no testing again first with the Hard bot confirming
     const box = (confirmBot?: string) => renderToStaticMarkup(<HeldOutCheckbox checked onChange={() => undefined} state="ready" holding={null} noList {...(confirmBot ? { confirmBot } : {})} />);
     expect(box()).toContain(SHORTLIST_LINE);
@@ -283,12 +283,18 @@ describe('Deck Lab result view', () => {
     // comparison (the original once, each adopted list once, 4 × games each) is part of the estimate
     expect(html).toContain('<option value="standard" selected="">');
     const p = tunePlan({ games: 112, gens: 2, cands: 5, packageCands: 3, vsOriginal: vsOriginalGames(112), untilSettled: {} });
-    expect(p.vsMax).toBe(2 * 448);
+    // the original once and each adopted list once, the first adoption too (REVIEW_2026-11-24 T4)
+    expect(p.vsMax).toBe(3 * 448);
     const k = (x: number) => x.toLocaleString('en-US');
-    expect(html).toContain(`This run plays ${k(p.estimate.min)}–${k(p.estimate.max)} games. That includes up to 896 games comparing the tuned list with your original on the same 448 held-out games each`);
-    // "until settled" is on by default and said apart from the usual range, with what the run can detect
+    // "until settled" is on by default; what it may add is counted in the range shown (REVIEW_2026-11-24 §10 A.6), not
+    // in the budget question, and not capped to the budget
     expect(p.settle!.extra).toBe(2 * 18 * 224 * 2);
-    expect(html).toContain(`Apart from that, keeping confirmations going until settled may add up to ${k(p.settle!.extra)} games`);
+    expect(p.estimate.max).toBeLessThanOrEqual(LAB_GAME_BUDGET);
+    expect(html).toContain(
+      `This run plays ${k(p.estimate.min)}–${k(p.estimate.max + p.settle!.extra)} games. That includes up to 1,344 games comparing the tuned list with your original on the same 448 held-out games each (only after a change is adopted). That includes up to 16,128 games keeping confirmations going until settled, played only for a change still undecided after the usual stages; the lab&#x27;s budget of 12,000 games counts the rest.`,
+    );
+    expect(html).not.toContain('Apart from that');
+    expect(html).not.toContain('over the lab');
     expect(html).toMatch(/<input type="checkbox" checked=""\/><span><b>Keep confirming until settled<\/b> \(on by default\)/);
     expect(html).toContain('A first confirmation here adopts a real gain of +3.4 points 8 times in 10 (+6.2 for a package move); with until settled, about +2.7');
     // partner-aware cuts are on by default, with a visible line saying so
