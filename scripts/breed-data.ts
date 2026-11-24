@@ -11,7 +11,7 @@
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
 import path from 'node:path';
-import { parentStrength, seasonVersions, staleLeaderRow, type LeaderStrength, type RatedDeck } from '../src/lib/parentStrength';
+import { parentStrength, ratingsVersionWarning, seasonVersions, staleLeaderRow, type LeaderStrength, type RatedDeck } from '../src/lib/parentStrength';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { loadLibrary, readPooled } from './lib-node';
 import { currentListGate, poolEvents, selectEvents } from './event-pool';
@@ -109,6 +109,9 @@ export function loadH2H(): H2H {
  */
 export function strengthOf(leaderboard: readonly LeaderStrength[], ratingsFile = 'src/data/ratings.json'): Record<string, number> {
   const R = fs.existsSync(ratingsFile) ? JSON.parse(fs.readFileSync(ratingsFile, 'utf8')) : { decks: [] };
+  // ratings fitted on another simulator version still rank the parents, but say so (REVIEW_2026-11-24 A.11)
+  const stale = fs.existsSync(ratingsFile) ? ratingsVersionWarning(R, ratingsFile) : null;
+  if (stale) console.warn(stale);
   return parentStrength(R.decks as RatedDeck[], leaderboard);
 }
 
