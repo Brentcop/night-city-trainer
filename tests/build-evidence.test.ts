@@ -824,11 +824,16 @@ describe('on the real data, each finding is the number its defining function giv
     const s203 = all.filter((f) => f.kind === 'change' && f.subject.deck === 'S2-03 Cross (RGY)');
     expect(new Set(s203.map((f) => f.question)).size).toBe(1);
     expect(s203.every((f) => f.subject.change!.relation === 'to-this-list')).toBe(true);
-    // one change of S2-05, measured by the forge (v5), re-measured (v8 and v9) and held in the ledger: one question
+    // one change of S2-05's earlier list, measured by the forge (v5) and re-measured (v8 and v9): one question. Since
+    // 2026-11-24 (REVIEW_2026-11-24 B.1) the library list is that list with −Mantis Blades +Yorinobu, so the change is
+    // one to an earlier list, and its pooled held-out games stay with the earlier list's ledger file
     const s205 = all.filter((f) => f.kind === 'change' && f.subject.deck === 'S2-05 Counter (RRG)' && f.subject.change!.cuts.join() === 'we_gotta_live_together' && f.subject.change!.adds.join() === 'yorinobu_arasaka_steel_dragon');
-    expect(new Set(s205.map((f) => f.method))).toEqual(new Set(['paired', 'paired-pooled', 'paired-staged']));
+    expect(new Set(s205.map((f) => f.method))).toEqual(new Set(['paired', 'paired-staged']));
     expect(new Set(s205.map((f) => f.question)).size).toBe(1);
-    expect(s205.every((f) => f.subject.change!.relation === 'from-this-list')).toBe(true);
+    expect(s205.every((f) => f.subject.change!.relation === 'other-list')).toBe(true);
+    const made = all.filter((f) => f.kind === 'change' && f.subject.deck === 'S2-05 Counter (RRG)' && f.subject.change!.cuts.join() === 'mantis_blades' && f.subject.change!.adds.join() === 'yorinobu_arasaka_steel_dragon');
+    expect(made.map((f) => f.bot).sort()).toEqual(['hard', 'medium']);
+    expect(made.every((f) => f.subject.change!.relation === 'to-this-list')).toBe(true);
   });
 
   it('the index carries each deck\'s strength finding, and its results and patterns lists are not filled by one deck or kind', () => {

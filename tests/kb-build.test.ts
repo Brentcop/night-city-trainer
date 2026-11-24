@@ -531,7 +531,11 @@ describe('the real public sources', async () => {
     // every report list matches a library deck today; a list that matched none would be skipped and counted
     const decLists = dec.decks.filter((d) => libLists.has(d.listId));
     expect(decLists).toHaveLength(dec.decks.length);
-    expect(Object.keys(a.report.skipped).filter((k) => k.startsWith('stats:'))).toEqual([]);
+    // the synergy report's lists of S2-05 and S2-08 are the ones before their 2026-11-24 swaps (REVIEW_2026-11-24 B.1):
+    // skipped and counted until the report is measured again
+    const synOff = syn.decks.filter((d) => !libLists.has(d.listId)).length;
+    expect(synOff).toBe(2);
+    expect(Object.fromEntries(Object.entries(a.report.skipped).filter(([k]) => k.startsWith('stats:')))).toEqual({ 'stats: list not in the library (packages)': synOff });
     expect(count('pkgstat')).toBe(syn.decks.filter((d) => libLists.has(d.listId)).reduce((n, d) => n + d.synergies.length, 0) + syn.pooled.length);
     expect(a.records.filter((x) => x.id.startsWith('cardstat:') && x.id.includes('/')).length).toBeGreaterThanOrEqual(decLists.reduce((n, d) => n + d.cards.length, 0));
     for (const x of cells) {
