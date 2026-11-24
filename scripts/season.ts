@@ -657,8 +657,19 @@ async function main() {
     // the rule the forge step adopts changes by (the forge writes its own manifests too)
     adoption: adoptionProvenance(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, cardsPerChange: DEPTH.cardsPerChange, packagesPerChange: DEPTH.packagesPerChange }, V.ledger, SETTLE ?? undefined, FORGE_CONFIRM?.confirm),
   });
+  const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
+  // not on a re-run, and not when an earlier run of this season already recorded it (the same seeds play the same games)
+  if (!rerun && !impactRecorded) {
+    // into the entry of this simulator version and BOT, per list keyed by the list each deck played in this round robin
+    // (a new deck's list is the forged one: the forge ran first)
+    const played = new Map(field.map((d) => [d.deck.name, listFingerprint(d.deck)]));
+    const skipped = recordSeasonImpact(reps, { season: SEASON, runId: manifest.runId, simVersion: SIM_VERSION, bot: BOT }, (name) => played.get(name));
+    if (skipped.length) console.log(`per-list card impact: no list known for ${skipped.join(', ')}; not recorded`);
+  }
   // the round robin as a rating run (scripts/season-run.ts): the only way its games reach the ratings, once (a re-run
-  // replaces its own file); only with the series' bot, so the ratings' pool keeps its bot
+  // replaces its own file); only with the series' bot, so the ratings' pool keeps its bot. Written after the card-impact
+  // files, so a run file of this season means they count it too (a run stopped in between is run again as before: the
+  // impact files say they count the season and are left as they are, and the run file is written then)
   let ratingRun: { id: string; file: string } | null = null;
   const skipRun = ratingRunSkipWords(BOT);
   if (V['rating-run'] === 'off') console.log('The round robin is not recorded as a rating run (--rating-run off).');
@@ -670,15 +681,6 @@ async function main() {
     ratingRun = { id: run.id, file: file.split(path.sep).join('/') };
     console.log(`Recorded the round robin as rating run ${run.id} (${file.split(path.sep).join('/')}${replaces ? `, replacing this season's earlier ${replaces}` : ''}): ${res.length} Hard games on the current lists.`);
     console.log(SEASON_RUN_NEXT);
-  }
-  const reps = analyzeAll(res.flatMap((r) => r.summaries ?? []));
-  // not on a re-run, and not when an earlier run of this season already recorded it (the same seeds play the same games)
-  if (!rerun && !impactRecorded) {
-    // into the entry of this simulator version and BOT, per list keyed by the list each deck played in this round robin
-    // (a new deck's list is the forged one: the forge ran first)
-    const played = new Map(field.map((d) => [d.deck.name, listFingerprint(d.deck)]));
-    const skipped = recordSeasonImpact(reps, { season: SEASON, runId: manifest.runId, simVersion: SIM_VERSION, bot: BOT }, (name) => played.get(name));
-    if (skipped.length) console.log(`per-list card impact: no list known for ${skipped.join(', ')}; not recorded`);
   }
   // per-deck season win rate + pooled vs-meta record
   const tot: Record<string, { w: number; g: number }> = {};
