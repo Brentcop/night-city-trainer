@@ -251,7 +251,7 @@ describe('Deck Lab result view', () => {
     expect(confirmHardOffered('medium')).toBe(true);
     expect(confirmHardOffered('hard')).toBe(false);
     expect(CONFIRM_HARD_SENTENCE).toBe(
-      'the changes the Medium bot picks are confirmed, and the tuned list compared with your original, on games the Hard bot plays. Hard is the bot the recorded events are played by, and a gain measured with Medium showed at about 0.75 of its size with Hard. A Hard game takes about 20 times as long as a Medium one.',
+      'the changes the Medium bot picks are confirmed, and the tuned list compared with your original, on games the Hard bot plays. Hard is the bot the recorded events are played by, and a gain measured with Medium showed at about 0.75 of its size with Hard. A Hard game takes about 25 times as long as a Medium one.',
     );
     expect(renderToStaticMarkup(<ConfirmHardCheckbox checked onChange={() => undefined} />)).toContain('checked=""');
     // off by default: the estimate says nothing about bots; on, it counts the Hard games
@@ -259,7 +259,7 @@ describe('Deck Lab result view', () => {
     const p = tunePlan({ games: 112, gens: 2, cands: 5, packageCands: 3, vsOriginal: vsOriginalGames(112), bot: 'medium', confirmBot: 'hard' });
     const props = { cards: 1, onCards: () => undefined, packages: 1, onPackages: () => undefined, packagesOn: false, estimate: p.estimate, budget: LAB_GAME_BUDGET, rule: p.rule, firstStage: p.firstStage };
     expect(renderToStaticMarkup(<DepthControls {...props} confirm={p.confirm} />)).toContain(
-      `Up to ${p.confirm!.games.toLocaleString('en-US')} of them are the confirmations and the comparison with your original, played with the Hard bot. A Hard game took about 20 times as long as a Medium one when measured.`,
+      `Up to ${p.confirm!.games.toLocaleString('en-US')} of them are the confirmations and the comparison with your original, played with the Hard bot. A Hard game takes about 25 times as long as a Medium one (measured 2026-11-24).`,
     );
     expect(renderToStaticMarkup(<DepthControls {...props} />)).not.toContain('Hard bot');
     // the further "until settled" games are the confirming bot's too, and the line says so
@@ -290,7 +290,7 @@ describe('Deck Lab result view', () => {
     expect(p.settle!.extra).toBe(2 * 18 * 224 * 2);
     expect(html).toContain(`Apart from that, keeping confirmations going until settled may add up to ${k(p.settle!.extra)} games`);
     expect(html).toMatch(/<input type="checkbox" checked=""\/><span><b>Keep confirming until settled<\/b> \(on by default\)/);
-    expect(html).toContain('A first confirmation here adopts a real gain of +3.8 points 8 times in 10 (+6.2 for a package move); with until settled, about +3.0');
+    expect(html).toContain('A first confirmation here adopts a real gain of +3.4 points 8 times in 10 (+6.2 for a package move); with until settled, about +2.7');
     // partner-aware cuts are on by default, with a visible line saying so
     expect(html).toMatch(/<input type="checkbox" checked=""\/><span><b>Partner-aware cuts<\/b> \(on by default\)/);
   });

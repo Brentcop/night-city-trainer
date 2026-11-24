@@ -141,13 +141,21 @@ describe('the per-game SD a run assumes, and the line it prints', () => {
 
   it('says the gain in plain words, the package move beside it, "until settled" when on, and which SD it used', () => {
     const plain = detectWords(detect({ rule: ADOPTION_DEFAULTS, firstStage: 224, nominees: 1, sd: perGameSd() }));
-    expect(plain).toMatch(/^A first confirmation here adopts a real gain of \+3\.8 points 8 times in 10 \(\+6\.2 for a package move\)\. /);
-    expect(plain).toMatch(/0\.30 for a one-card swap and 0\.55 for a package move \(the tuning study's typical values\)\.$/);
+    // DEFAULT_SD: 0.256 for a one-card swap (the ledger's Medium swaps, 2026-11-24; 0.30, +3.8, before), 0.55 for a package move
+    expect(plain).toMatch(/^A first confirmation here adopts a real gain of \+3\.4 points 8 times in 10 \(\+6\.2 for a package move\)\. /);
+    expect(plain).toMatch(
+      /0\.256 for a one-card swap and 0\.55 for a package move \(one-card swap: the median of 9 Medium one-card swaps with 200 or more held-out games, measured 2026-11-24; package move: the tuning study's typical value\)\.$/,
+    );
     expect(plain).not.toMatch(/until settled/);
     const settled = detectWords(detect({ rule: ADOPTION_DEFAULTS, firstStage: 224, nominees: 1, sd: perGameSd(), untilSettled: { reach: 10_000 } }));
-    expect(settled).toMatch(/; with until settled, about \+3\.0 \(\+4\.8 for a package move\) within 10,000 held-out games\./);
+    expect(settled).toMatch(/; with until settled, about \+2\.7 \(\+4\.8 for a package move\) within 10,000 held-out games\./);
     const fromLedger = detectWords(detect({ rule: ADOPTION_DEFAULTS, firstStage: 224, nominees: 1, sd: { card: 0.22, package: 0.55, cardFrom: 4, packageFrom: 0 } }));
     expect(fromLedger).toMatch(/0\.22 for a one-card swap \(the median of 4 changes of this list with 200 or more held-out games\) and 0\.55 for a package move; the other is the tuning study's typical value\.$/);
+    // the other way round: the package move from the list's own changes, the one-card swap the measured default
+    const pkgFromLedger = detectWords(detect({ rule: ADOPTION_DEFAULTS, firstStage: 224, nominees: 1, sd: { card: DEFAULT_SD.card, package: 0.41, cardFrom: 0, packageFrom: 3 } }));
+    expect(pkgFromLedger).toMatch(/0\.256 for a one-card swap and 0\.41 for a package move \(the median of 3 changes of this list with 200 or more held-out games\); the other is the median of 9 Medium one-card swaps with 200 or more held-out games, measured 2026-11-24\.$/);
+    // a ledger SD is still written to two decimals, a measured default as written (0.256)
+    expect(DEFAULT_SD).toMatchObject({ card: 0.256, package: 0.55, date: '2026-11-24', swaps: 9 });
     // no jargon in the Lab's line
     expect(settled).not.toMatch(/power|alpha|α|ledger/i);
     // a run too small to adopt anything (its cap is under the rule's minimum games) still reads as a sentence

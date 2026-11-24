@@ -14,6 +14,8 @@ import { canCut, checkChange, isEmptyPlan, tunerPackageMoves, type PackageMove, 
 import { combinedCandidates } from '../src/lib/deckSearch';
 import { addScore, cutReason, partnerAwarePicks, strandCosts, type CutRow } from '../src/lib/cutRanking';
 import type { PlayerSummary } from '../src/analysis/summarize';
+import type { ImpactTables } from '../src/lib/breederImpact';
+import { keyWords, sourceWords } from '../src/lib/seasonImpact';
 
 export interface Mutation {
   label: string;
@@ -124,6 +126,28 @@ export function forgeSwapsExplained(
     }
   return { swaps: out.sort((a, b) => b.prior - a.prior).slice(0, cands), ...(rows ? { cuts: rows } : {}) };
 }
+
+/**
+ * What --per-deck-adds read (src/lib/breederImpact.ts readImpactTables, through scripts/breed-data.ts loadImpactTables),
+ * in the words the season uses for its breeder (impactTablesWords): which simulator version and bot, and a line that
+ * starts "Warning:" when it is not the pair wanted or there is nothing to read. Per-list numbers only: a list without an
+ * entry keeps the forge's format-wide additions (src/data/analysis.json).
+ */
+export function perDeckAddsWords(t: Pick<ImpactTables, 'wanted' | 'read' | 'match' | 'perList'>): string[] {
+  const n = t.perList.withNumbers;
+  const srcs = [...new Set(t.perList.sources.map(sourceWords))];
+  const what = `per-list numbers for ${n.toLocaleString('en-US')} list${n === 1 ? '' : 's'}${srcs.length ? ` (from ${srcs.join(', ')})` : ''}`;
+  const remedy = `A season's round robin on ${keyWords(t.wanted)} records them for the lists it plays.`;
+  if (t.match === 'exact' && t.read) return [`Per-deck additions read card impact for ${keyWords(t.read)}: ${what}.`];
+  if (t.read)
+    return [
+      `Warning: no card-impact numbers for ${keyWords(t.wanted)}, so --per-deck-adds reads those of ${keyWords(t.read)} instead: ${what}. Numbers measured on another ${t.match === 'other-bot' ? 'bot' : 'simulator version'} can mislead. ${remedy}`,
+    ];
+  return [`Warning: no card-impact numbers for ${keyWords(t.wanted)} or any other simulator version or bot, so --per-deck-adds changes nothing: the additions are ranked as without it. ${remedy}`];
+}
+
+/** The per-generation line when --per-deck-adds finds no entry for the list (its additions are then the plain ones). */
+export const PER_DECK_MISSING = 'per-deck additions: no per-list numbers for this list, so its additions are ranked as without --per-deck-adds';
 
 /** The forge's card score for package moves: the list's own "Δ when drawn", else per-deck impact, else format-wide. */
 export function forgeScore(rep: DeckReport, globalImpact: Record<string, number>, deckImpact?: Record<string, number>): (id: string) => number {

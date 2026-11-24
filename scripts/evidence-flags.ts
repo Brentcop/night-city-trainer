@@ -70,16 +70,40 @@ export const depthFlags = (nominees: number) => ({
 /** The game budget (forge, optimizer). */
 export const budgetFlags = () => ({ budget: int(DEFAULT_GAME_BUDGET, { min: 1 }), force: bool() });
 
-/** Successive halving and per-deck additions flags (forge, Lab, season). */
+/**
+ * Successive halving and per-deck additions flags (forge, season):
+ *   --screen-rounds N   screen in N rounds (1 = no halving, the default), halving the one-card swaps each round on their
+ *                       share of --games; in the forge the rounds play on a block of seeds of their own, each round paired
+ *                       with its own baseline, and only the last round nominates
+ *   --initial-cands N   the swaps the first round starts from (default --cands, or max(--cands, 20) with halving)
+ *   --per-deck-adds     rank additions by the list's own per-list card impact (data/seasons/deck-impact.json) when it has one
+ *   --per-deck-bot BOT  whose per-list numbers --per-deck-adds reads (default hard, the season's bot); needs --per-deck-adds
+ */
 export const halvingFlags = () => ({
   'screen-rounds': int(1, { min: 1, max: 8 }),
   'initial-cands': int(undefined, { min: 1, max: 60 }),
   'per-deck-adds': bool(),
+  'per-deck-bot': oneOf(SIM_BOTS, undefined),
 });
 export interface HalvingFlagValues {
   'screen-rounds'?: number;
   'initial-cands'?: number;
   'per-deck-adds'?: boolean;
+  'per-deck-bot'?: string;
+}
+/** Why the halving flags cannot be used as given with `games` screening games a generation (null when they can). */
+export function halvingProblem(v: HalvingFlagValues, games: number): string | null {
+  if (v['per-deck-bot'] !== undefined && !v['per-deck-adds']) return '--per-deck-bot needs --per-deck-adds';
+  const rounds = v['screen-rounds'] ?? 1;
+  if (rounds > 1 && games - (rounds - 1) * Math.ceil(games / rounds) < 1) return `--screen-rounds ${rounds} leaves the last round no games of ${games}; raise --games or lower --screen-rounds`;
+  return null;
+}
+/** Refuse halving flags that cannot be used (exit 2, a bad command line). */
+export function exitOnHalvingProblems(v: HalvingFlagValues, games: number): void {
+  const p = halvingProblem(v, games);
+  if (!p) return;
+  console.error(`error: ${p}\nRun with --help for usage.`);
+  process.exit(2);
 }
 /** The command-line form of the halving flags (season.ts passes them on to the forge). */
 export function halvingArgs(v: HalvingFlagValues): string[] {
@@ -87,6 +111,7 @@ export function halvingArgs(v: HalvingFlagValues): string[] {
   if (v['screen-rounds'] !== undefined && v['screen-rounds'] !== 1) out.push('--screen-rounds', String(v['screen-rounds']));
   if (v['initial-cands'] !== undefined) out.push('--initial-cands', String(v['initial-cands']));
   if (v['per-deck-adds']) out.push('--per-deck-adds');
+  if (v['per-deck-bot'] !== undefined) out.push('--per-deck-bot', v['per-deck-bot']);
   return out;
 }
 
@@ -286,6 +311,10 @@ export interface ConfirmBotFlagValues {
 export function confirmBotProblem(v: ConfirmBotFlagValues, o: { bot: string }): string | null {
   const c = confirmedWith(o.bot, v['confirm-bot']);
   if (!c) return null;
+  // refused again since 2026-11-24 (allowed 2026-11-22 to 11-24): the shortlist would rank a change with earlier held-out
+  // games of the confirming bot by those, and one without by this run's screening with --bot, in one sorted list
+  if (v['pooled-ranking'])
+    return `--pooled-ranking cannot be used with --confirm-bot ${c.confirm}: the shortlist would rank some changes by the ${botWord(c.confirm)} bot's held-out games and others by the ${botWord(c.screen)} bot's screening games in one list, and two bots' figures are never compared`;
   if (v.ledger) {
     const b = ledgerBot(c.confirm);
     if (!b.bot) return `${b.problem}; pick another --confirm-bot or leave out --ledger`;
@@ -312,13 +341,25 @@ export function confirmBotArgs(v: ConfirmBotFlagValues): string[] {
 }
 
 /**
+ * What "until settled" may add within the budget: since 2026-11-24 its further stages are capped so the run's most stays
+ * within `budget` (src/lib/deckSearch.ts settleStagesWithin, which the forge and the optimizer apply); --force lifts the
+ * budget and the cap with it. `extra` is its most before the cap (the seeds and the reach).
+ */
+export const settleExtraWithin = (extra: number, est: { max: number }, budget: number, force: boolean): number => (force ? extra : Math.min(extra, Math.max(0, budget - est.max)));
+
+/**
  * Print the run's game estimate and refuse (exit 2) when its most could exceed `budget` without --force.
  * `what` names the run ("forge of 2 decks"). `confirm`: another bot plays the confirmation, at most `games` of them per
- * deck (one more sentence, src/lib/deckSearch.ts confirmGamesWords).
+ * deck (one more sentence, src/lib/deckSearch.ts confirmGamesWords). `settleExtra`: what "until settled" may add, either
+ * before the budget's cap (a number: the line gives it within the budget, settleExtraWithin) or as the run already capped
+ * it (`games`, and whether the cap lowered it).
  */
-export function checkBudget(what: string, est: { min: number; max: number }, budget: number, force: boolean, settleExtra?: number, confirm?: { with: ConfirmedWith; games: number }): void {
-  // "until settled" may add games on top; the budget is checked against the usual estimate only
-  const extra = settleExtra !== undefined ? ` "Until settled" may add up to ${settleExtra.toLocaleString('en-US')} more${confirm ? `, also played with the ${botWord(confirm.with.confirm)} bot` : ''} (not counted against the budget).` : '';
+export function checkBudget(what: string, est: { min: number; max: number }, budget: number, force: boolean, settleExtra?: number | { games: number; capped: boolean }, confirm?: { with: ConfirmedWith; games: number }): void {
+  // "until settled" may add games on top, within what the budget leaves after the usual estimate's most (unless --force)
+  const within = settleExtra === undefined ? 0 : typeof settleExtra === 'number' ? settleExtraWithin(settleExtra, est, budget, force) : settleExtra.games;
+  const capped = settleExtra !== undefined && (typeof settleExtra === 'number' ? within < settleExtra : settleExtra.capped);
+  const counted = force ? 'not capped: --force lifts the budget' : capped ? 'capped so the run stays within the budget' : 'within the budget';
+  const extra = settleExtra !== undefined ? ` "Until settled" may add up to ${within.toLocaleString('en-US')} more${confirm ? `, also played with the ${botWord(confirm.with.confirm)} bot` : ''} (${counted}).` : '';
   const bots = confirm ? ` ${confirmGamesWords(confirm.with, confirm.games)}` : '';
   console.log(`Game budget (${what}): ${est.min.toLocaleString('en-US')} to ${est.max.toLocaleString('en-US')} games per deck (budget ${budget.toLocaleString('en-US')}).${bots}${extra}`);
   if (est.max <= budget || force) return;

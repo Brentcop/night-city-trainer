@@ -69,4 +69,12 @@ describe('the forge with --confirm-bot', () => {
     expect(ledgerBatches('cb-plain').every((b) => b.entry.bot === 'easy')).toBe(true);
   });
 
+  it('refuses --pooled-ranking with another confirming bot, in one sentence, before anything is played or written', () => {
+    const r = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/forge.ts', 's2-08-explorer-ggy', '--ledger', '--pooled-ranking', '--confirm-bot', 'hard', '--out', path.join(tmp, 'refused')], { encoding: 'utf8' });
+    expect(r.status).toBe(2);
+    expect(r.stderr).toBe(
+      "error: --pooled-ranking cannot be used with --confirm-bot hard: the shortlist would rank some changes by the Hard bot's held-out games and others by the Medium bot's screening games in one list, and two bots' figures are never compared\nRun with --help for usage.\n",
+    );
+    expect(fs.existsSync(path.join(tmp, 'refused'))).toBe(false);
+  });
 });

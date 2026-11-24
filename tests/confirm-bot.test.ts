@@ -39,28 +39,34 @@ describe('the words and defaults', () => {
   it('the detectability line uses the confirming bot’s spread and words; without it, today’s line', () => {
     const today = detectWords(detect({ rule: RULE, firstStage: 280, nominees: 1, sd: perGameSd() }));
     expect(perGameSd()).toEqual({ card: DEFAULT_SD.card, package: DEFAULT_SD.package, cardFrom: 0, packageFrom: 0 });
-    expect(today).toMatch(/^A first confirmation here adopts a real gain of \+\d+\.\d points 8 times in 10 \(\+\d+\.\d for a package move\)\. It assumes a per-game spread of 0\.30 for a one-card swap and 0\.55 for a package move \(the tuning study's typical values\)\.$/);
+    expect(today).toMatch(/^A first confirmation here adopts a real gain of \+\d+\.\d points 8 times in 10 \(\+\d+\.\d for a package move\)\. It assumes a per-game spread of 0\.256 for a one-card swap and 0\.55 for a package move \(one-card swap: the median of 9 Medium one-card swaps with 200 or more held-out games, measured 2026-11-24; package move: the tuning study's typical value\)\.$/);
     const sd = perGameSd(undefined, 'hard');
     expect(sd).toEqual({ card: HARD_SD.card, package: HARD_SD.package, cardFrom: 0, packageFrom: 0, hard: true });
     const bots = { screen: 'lookahead', confirm: 'hard' };
     const hard = detectWords(detect({ rule: RULE, firstStage: 280, nominees: 1, sd, confirmedWith: bots }));
     expect(hard).toMatch(/^A first confirmation with the Hard bot here adopts a real gain of /);
-    expect(hard).toContain('It assumes a per-game spread of 0.34 for a one-card swap and 0.60 for a package move (measured with the Hard bot on 2026-11-15: 11 one-card swaps, 2 package swaps).');
+    expect(hard).toContain(
+      "It assumes a per-game spread of 0.295 for a one-card swap and 0.60 for a package move (one-card swap: the median of 5 Hard one-card swaps with 200 or more held-out games, measured 2026-11-24; package move: the Hard bot's value from 2 package swaps, measured 2026-11-15).",
+    );
     expect(hard).toMatch(/ A gain measured with Medium showed at about 0\.75 of its size with Hard \(± 0\.19, 13 changes\)\.$/);
     // a larger spread needs a larger gain to be adopted as often
     expect(detect({ rule: RULE, firstStage: 280, nominees: 1, sd }).card).toBeGreaterThan(detect({ rule: RULE, firstStage: 280, nominees: 1, sd: perGameSd() }).card);
     // from this list's own changes when there are enough, and the other kind from Hard's measurement
     const own = perGameSd({ swaps: [0.31, 0.33, 0.35], larger: [] }, 'hard');
-    expect(detectWords(detect({ rule: RULE, firstStage: 280, nominees: 1, sd: own, confirmedWith: bots }))).toContain("0.33 for a one-card swap (the median of 3 changes of this list with 200 or more held-out games) and 0.60 for a package move; the other is the Hard bot's value measured on 2026-11-15.");
+    expect(detectWords(detect({ rule: RULE, firstStage: 280, nominees: 1, sd: own, confirmedWith: bots }))).toContain("0.33 for a one-card swap (the median of 3 changes of this list with 200 or more held-out games) and 0.60 for a package move; the other is the Hard bot's value from 2 package swaps, measured 2026-11-15.");
     // another confirming bot than Hard keeps the study's defaults and has no transfer clause
     const easyMedium = detectWords(detect({ rule: RULE, firstStage: 280, nominees: 1, sd: perGameSd(undefined, 'medium'), confirmedWith: { screen: 'easy', confirm: 'medium' } }));
     expect(easyMedium).toMatch(/^A first confirmation with the Medium bot here/);
-    expect(easyMedium).toContain("(the tuning study's typical values).");
+    expect(easyMedium).toContain("package move: the tuning study's typical value).");
     expect(easyMedium).not.toContain('0.75');
   });
 
-  it('the flag: refused with a bot the ledger cannot use; passed on by the season', () => {
-    expect(confirmBotProblem({ 'confirm-bot': 'hard', 'pooled-ranking': true, ledger: true }, { bot: 'lookahead' })).toBeNull();
+  it('the flag: refused with the shortlist and with a bot the ledger cannot use; passed on by the season', () => {
+    // refused again since 2026-11-24: the shortlist would rank two bots' figures in one list
+    expect(confirmBotProblem({ 'confirm-bot': 'hard', 'pooled-ranking': true, ledger: true }, { bot: 'lookahead' })).toBe(
+      "--pooled-ranking cannot be used with --confirm-bot hard: the shortlist would rank some changes by the Hard bot's held-out games and others by the Medium bot's screening games in one list, and two bots' figures are never compared",
+    );
+    // the screening bot under another name is no other bot
     expect(confirmBotProblem({ 'confirm-bot': 'medium', 'pooled-ranking': true, ledger: true }, { bot: 'lookahead' })).toBeNull();
     expect(confirmBotProblem({ 'confirm-bot': 'hard-v1', ledger: true }, { bot: 'lookahead' })).toMatch(/hard-v1.*; pick another --confirm-bot or leave out --ledger$/);
     expect(confirmBotProblem({ 'confirm-bot': 'hard-v1' }, { bot: 'lookahead' })).toBeNull();
@@ -74,7 +80,7 @@ describe('the words and defaults', () => {
   });
 
   it('the estimate’s sentence counts the confirming bot’s games and says what a Hard game costs', () => {
-    expect(confirmGamesWords({ screen: 'lookahead', confirm: 'hard' }, 4480)).toBe('Up to 4,480 of them are confirmation games, played with the Hard bot. A Hard game took about 20 times as long as a Medium one when measured.');
+    expect(confirmGamesWords({ screen: 'lookahead', confirm: 'hard' }, 4480)).toBe('Up to 4,480 of them are confirmation games, played with the Hard bot. A Hard game takes about 25 times as long as a Medium one (measured 2026-11-24).');
     expect(confirmGamesWords({ screen: 'easy', confirm: 'medium' }, 100)).toBe('Up to 100 of them are confirmation games, played with the Medium bot.');
     expect(confirmGamesWords({ screen: 'medium', confirm: 'hard' }, 7, true)).toMatch(/^Up to 7 of them are the confirmations and the comparison with your original, played with the Hard bot\./);
   });
