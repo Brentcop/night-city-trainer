@@ -1,4 +1,5 @@
-// Season runner: breed 8 new decks → gate each against its parent → write the decks that enter → forge them →
+// Season runner: breed 8 new decks (or more with --breed-count, screened, the best 8 taken) → gate each against its
+// reference (open slots refilled from the screen's runners-up, each gated too) → write the decks that enter → forge them →
 // tournament (telemetry round robin) → finals vs meta → update the all-time leaderboard (pooled win rate vs the meta
 // archetypes, with percentiles). The round robin comes after the forge, so the round robin, the finals and the
 // leaderboard all measure the forged lists.
@@ -94,9 +95,15 @@
 // --pooled-ranking (with --ledger; and --carry N, --reach N) turns the shortlist from pooled evidence on for the forge
 // step (docs/SYNERGIES.md "A shortlist carried across runs"; off by default, and without it nothing changes).
 // --until-settled is on by default (the evidence rule only; --reach N is its reach too); --no-until-settled turns it off.
-// The forge-budget check counts the usual estimate, and the printed estimate says what it may add at most.
+// The forge-budget check refuses on the usual estimate. The season passes --forge-budget to the forge as --budget, and
+// since 2026-11-24 the forge caps until settled's further stages so the run stays within it (settleStagesWithin; the
+// season never passes --force), so the printed line gives what they may add within the budget (settleExtraWithin).
+// The season's estimate does not count the own seed block of --screen-rounds (the forge's estimate does), so with
+// halving the forge may still refuse a run the season's check let through.
 // --confirm-bot BOT has the forge step's confirmation stages played by BOT (its screening stays with lookahead, Medium;
 // docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes).
+// --screen-rounds N, --initial-cands N, --per-deck-adds and --per-deck-bot BOT go to the forge step (successive halving
+// and per-deck additions, scripts/forge.ts; off by default, and without them nothing changes).
 //
 // Outputs: data/decks/custom/s<N>-*.txt (the decks that entered), reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json and deck-impact.json.
@@ -178,7 +185,7 @@ const FORGE_ESTIMATE = estimateGames({
   firstStage: V['forge-games'] * 2,
   rule: RULE,
 });
-/** --until-settled: what it may add at most per new deck (the forge's 50,000 confirmation seeds a generation, and the reach) */
+/** --until-settled: what it may add per new deck before the budget's cap (the forge's 50,000 confirmation seeds a generation, and the reach); checkBudget prints it within --forge-budget */
 const FORGE_SETTLE_EXTRA = SETTLE
   ? settleExtra({
       gens: V['forge-gens'],
@@ -514,7 +521,8 @@ async function main() {
     console.log('Forging newcomers…');
     // with package flags, the forge keeps the seeded packages too (a kept package a deck doesn't hold changes nothing)
     const forgeArgs = PACKAGES ? ` ${planArgs({ ...V, 'keep-packages': [...new Set([...(PLAN.keep ?? []), ...SEEDS.flat()])].join(',') || 'none' }).join(' ')}` : '';
-    // the adoption rule and depth flags that were given, and the budget the season already checked
+    // the adoption rule and depth flags that were given, and the budget the season already checked (the forge caps until
+    // settled's further stages within it)
     const settleV = { ...V, 'until-settled': SEASON_SETTLE_ON };
     const ruleArgs = [...adoptionArgs(V), '--budget', String(V['forge-budget']), ...ledgerArgs(V).map((a) => (a.startsWith('--') ? a : JSON.stringify(a))), ...shortlistArgs(V), ...settleArgs(settleV), ...(FORGE_CONFIRM ? confirmBotArgs(V) : []), ...halvingArgs(V)].join(' ');
     execSync(`npx tsx scripts/forge.ts ${newFiles.map((f) => f.replace(/\.txt$/, '')).join(' ')} --gens ${FORGE_GENS} --games ${FORGE_GAMES} --cands 5 --bot lookahead --threads ${THREADS}${forgeArgs} ${ruleArgs}`, { stdio: 'inherit' });

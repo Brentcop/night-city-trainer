@@ -7,8 +7,12 @@
 //            out each block / reaction; the plain mulligan rule and no card impact since SIM_VERSION 6; picks the card
 //            to sell by rollout among its 3 most sellable (sellLookahead 3) since SIM_VERSION 7.
 // Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6 (goSolo 0 since 8).
-// Paired botcheck, meta decks --per 10, on SIM_VERSION 8 (2026-11-13): Hard vs Medium 67.0% [64.6, 69.5]; Medium vs Easy
-// 79.8% [77.1, 82.4]. Bot time per game (one thread, meta decks): Easy 0.004 s, Medium 0.04 s, Hard 1.0 s.
+// Paired botcheck on SIM_VERSION 9 (2026-11-18, reports/remeasure-2026-11-18.md): on all 71 library decks Hard vs Medium
+// 61.8% [61.1, 62.5] and Medium vs Easy 72.2% [71.7, 72.8]; on the 7 meta decks (--per 10) 68.0% and 77.4%, so the
+// meta-deck figures overstate the gaps for the library (on SIM_VERSION 8, 2026-11-13, meta: 67.0% and 79.8%).
+// Bot time per game (one thread, meta decks, SIM_VERSION 8, 2026-11-13): Easy 0.004 s, Medium 0.04 s, Hard 1.0 s; the
+// speed-ups of 2026-11-16 (no decision changed) made Hard about 35% faster, Medium a third and Easy a quarter. A Hard game
+// takes about as long as 25 to 30 Medium games (docs/REVIEW_2026-11-24.md §3 and §7; HARD_TIME_RATIO in src/lib/deckSearch.ts).
 // Tournaments can also mix Hard and Medium: each seat of each game is Hard or Medium, decided by the game seed,
 // so a replay rebuilds exactly the same bots.
 // Bot fixes change play for every tier and the legacy names alike (the owner chose to fix forward, 2026-11-10): events
