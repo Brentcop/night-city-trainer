@@ -93,6 +93,7 @@ describe('what the site ships', () => {
     expect(again.map((f) => [f.name, f.hash, f.json])).toEqual(files.map((f) => [f.name, f.hash, f.json]));
   }, 90_000);
 
+  // a whole pack built twice: about 12 s alone on 2026-11-24 (15 s was too close in a full run); see the test above
   it.runIf(rawPresent(ROOT))('is the same bytes with data/raw present, and holds none of its wording', async () => {
     const withRaw = await buildFromSources(ROOT, { raw: true });
     expect(withRaw.local).toBe(true);
@@ -102,7 +103,7 @@ describe('what the site ships', () => {
     const sentences = withRaw.records.filter((r) => r.scope === 'local').flatMap((r) => r.text.split(/(?<=[.!?])\s+|\n/).map((x) => x.trim()).filter((x) => x.length >= 60));
     expect(sentences.length).toBeGreaterThan(100);
     expect(sentences.filter((x) => all.includes(x))).toEqual([]);
-  });
+  }, 90_000);
 });
 
 describe('groups, parts and manifest', () => {
@@ -567,6 +568,7 @@ describe('what a result shows', () => {
 });
 
 describe('kb-eval --scope site', () => {
+  // a whole-pack evaluation: about 8 s alone on 2026-11-24 and growing with the recorded data (as the build above)
   it('searches exactly the shipped records and skips (counts) the questions only a left-out record answers', () => {
     const qs: KbQuestion[] = [
       { id: 'q1', q: 'Detonate', type: 'entity', scope: 'public', split: 'dev', expect: ['card:detonate'] },
@@ -585,7 +587,7 @@ describe('kb-eval --scope site', () => {
     expect(res[0]!.rank).toBe(1);
     expect(res[2]!.refused).toBe(true);
     expect(EVAL_SPEC.scope).toBeDefined();
-  });
+  }, 90_000);
 });
 
 describe('budgets', () => {
