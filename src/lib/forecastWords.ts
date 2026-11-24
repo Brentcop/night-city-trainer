@@ -1,6 +1,7 @@
 // The regionals forecast's sentences (src/lib/forecast.ts), one place for the page (#/forecast) and the command line
 // (scripts/forecast.ts), so both say the same thing about what the numbers are and are not.
 import { SENSITIVITY_SHARE, type DeckForecast, type ForecastResult, type ForecastSource, type ForecastTournament, type Range } from './forecast';
+import { CURRENT_SIM_VERSION } from './playedRecord';
 
 export const pct = (x: number, digits = 1) => (Number.isFinite(x) ? `${(100 * x).toFixed(digits)}%` : '—');
 const pts = (x: number, digits = 1) => (Math.abs(100 * x) < 0.05 ? 'under 0.1' : `${x >= 0 ? '+' : '−'}${Math.abs(100 * x).toFixed(digits)}`);
@@ -31,6 +32,16 @@ export function sourceWords(s: ForecastSource): string {
   const rs = runs.length ? ` and rating run${runs.length === 1 ? '' : 's'} ${numberList(runs)}` : '';
   const bot = s.bot === 'hard' ? 'the Hard bot' : `the ${s.bot} bot`;
   return `power ratings and head-to-heads of ${evs}${rs} (${s.games.toLocaleString('en-US')} games), simulator v${s.simVersion ?? '?'}, ${bot}`;
+}
+
+/**
+ * The note for a model fitted on another simulator version than the current one (null when they match, so nothing is
+ * added then); a file that names no version counts as another one. The page shows it above the form and with the
+ * results, the command line prints it as a warning line.
+ */
+export function forecastVersionNote(s: Pick<ForecastSource, 'simVersion'>, current: number = CURRENT_SIM_VERSION): string | null {
+  if (s.simVersion === current) return null;
+  return `The ratings behind this forecast were fitted on ${s.simVersion === null ? 'an unversioned simulator' : `simulator v${s.simVersion}`}, not the current v${current}, so the forecast is historical.`;
 }
 
 export function tournamentWords(t: ForecastTournament): string {

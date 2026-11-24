@@ -728,7 +728,8 @@ export function deckCompetitive(deck: string, src: { ratings: RatingsInput; inde
       ? { value: row.rating, se: typeof row.se === 'number' ? row.se : null, position: ri + 1, of: rows.length, ratedGames: row.games, wrField: row.wrField, lo: row.wrFieldLo, hi: row.wrFieldHi, wrMeta: row.wrMeta, avgFinish: row.avgFinish }
       : null,
     tier,
-    tierText: simTierText(tier),
+    // the field is named; the version is the record's own basis (kb playedBy says when it is stale)
+    tierText: simTierText(tier, { field: rows.length }),
     swiss: row && m ? { matchRecord: row.matches, gameRecord: row.gamesRecord || null, matchesWon: m[0], matchesLost: m[1], gamesWon: g ? g[0] : null, gamesLost: g ? g[1] : null } : null,
     events: row?.events ?? finishes.length,
     titles: pooled.filter((f) => f.champion).length,

@@ -32,7 +32,7 @@ import {
   type TiebreakStep,
   type TurnTally,
 } from '../../eventFacts';
-import { eventUpsets, judgeMatches, upsetYardstick, type JudgedMatch, type UpsetsFact } from '../../eventUpsets';
+import { eventUpsets, judgeMatches, upsetYardstick, type JudgedMatch, type UpsetPool, type UpsetsFact } from '../../eventUpsets';
 import { CURRENT_SIM_VERSION } from '../../playedRecord';
 import { byString, type KbFieldValue, type KbLink, type KbRecord } from '../types';
 import { deckStem } from './decks';
@@ -47,6 +47,11 @@ export interface CompetitiveSources {
   index: { file: string; data: EventIndex };
   ratings: { file: string; data: RatingsInput } | null;
   h2h: { file: string; data: H2HInput } | null;
+  /**
+   * What the upset yardstick pools beside the events, as the ratings do (src/lib/eventUpsets.ts UpsetPool: the rating
+   * runs and the list gate); absent: the events alone, every game (the archived events' own build).
+   */
+  upsetPool?: UpsetPool;
 }
 
 // ---------------------------------------------------------------- wording helpers (no locale, no clock)
@@ -197,7 +202,18 @@ export function eventList(ids: readonly (number | string)[]): string {
 }
 
 /** "the ratings fitted on events 1 to 5 (1234 games)". */
-export const yardstickPhrase = (u: UpsetsFact): string => `the ratings fitted on ${eventList(u.yardstick.events)} (${plural(u.yardstick.games, 'game')})`;
+export const yardstickPhrase = (u: UpsetsFact): string => `the ratings fitted on ${yardstickSources(u)} (${plural(u.yardstick.games, 'game')})`;
+
+/** Whether the yardstick had anything earlier to fit on (events or rating runs). */
+export const hasYardstick = (u: UpsetsFact): boolean => u.yardstick.events.length + (u.yardstick.runs?.length ?? 0) > 0;
+
+/** "events 20 to 24 and rating run 1": what the yardstick was fitted on. */
+export function yardstickSources(u: UpsetsFact): string {
+  const runs = u.yardstick.runs ?? [];
+  const r = runs.length ? `rating run${runs.length === 1 ? '' : 's'} ${runs.map((x) => String(x).replace(/^run-/, '')).join(', ')}` : '';
+  const e = u.yardstick.events.length ? eventList(u.yardstick.events) : '';
+  return e && r ? `${e} and ${r}` : e || r;
+}
 
 const noYardstick = (u: UpsetsFact) => `no earlier recorded event on sim version ${u.simVersion ?? 'none'} with the ${u.bot} bot`;
 
@@ -213,7 +229,7 @@ const notJudgedWhy = (u: UpsetsFact) => {
 
 /** The upset sentences of a round or event record (`scope` names what the counts cover). */
 export function upsetLines(u: UpsetsFact, scope: 'round' | 'event'): string[] {
-  if (!u.yardstick.events.length) return [`Upsets: not judged, ${noYardstick(u)} to fit ratings on.`];
+  if (!hasYardstick(u)) return [`Upsets: not judged, ${noYardstick(u)} to fit ratings on.`];
   if (!u.played) return [];
   const rule = `the winner's chance per game ${pc1(u.yardstick.upsetMaxChance)} or less`;
   const notJ = u.notJudged ? `; ${u.notJudged} of ${u.played} played matches not judged (${notJudgedWhy(u)})` : '';
@@ -228,7 +244,7 @@ export function upsetLines(u: UpsetsFact, scope: 'round' | 'event'): string[] {
 /** The `kb fact upsets` sentences: the definition, the counts, every upset, and the decks below the minimum. */
 export function upsetsText(u: UpsetsFact): string {
   const what = `${u.eventName}${u.round ? `, ${u.round}` : ''} upsets`;
-  if (!u.yardstick.events.length) return `${what}: not judged, ${noYardstick(u)} to fit ratings on (played by ${playedBy(u)}, recorded ${day(u.asOf)}).`;
+  if (!hasYardstick(u)) return `${what}: not judged, ${noYardstick(u)} to fit ratings on (played by ${playedBy(u)}, recorded ${day(u.asOf)}).`;
   const lines = [
     `${what}: judged by ${yardstickPhrase(u)}, never by ratings that include this event; played by ${playedBy(u)}, recorded ${day(u.asOf)}.`,
     `An upset is a judged match won by the deck whose chance per game was ${pc1(u.yardstick.upsetMaxChance)} or less (the fit's prediction averaged over going first and second). A match is judged when both decks had ${u.yardstick.minEarlierGames} or more earlier games. An upset is about the prediction, not about a deck's worth.`,
@@ -241,8 +257,8 @@ export function upsetsText(u: UpsetsFact): string {
 }
 
 /** The upsets of every round of an event and of the whole event, from one yardstick fit. */
-export function eventUpsetFacts(events: readonly RecordedEvent[], ev: RecordedEvent): { event: UpsetsFact; round: (round: number | string) => UpsetsFact } {
-  const yardstick = upsetYardstick(events, ev);
+export function eventUpsetFacts(events: readonly RecordedEvent[], ev: RecordedEvent, pool?: UpsetPool): { event: UpsetsFact; round: (round: number | string) => UpsetsFact } {
+  const yardstick = upsetYardstick(events, ev, pool);
   const judged = judgeMatches(ev, yardstick);
   return { event: eventUpsets(events, ev, { yardstick, judged }), round: (round) => eventUpsets(events, ev, { round, yardstick, judged }) };
 }
@@ -270,10 +286,10 @@ export function roundText(r: RoundSummary, upsets?: UpsetsFact): string {
 }
 
 const upsetFields = (u: UpsetsFact) => ({
-  upsets: u.yardstick.events.length ? u.upsets.length : null,
+  upsets: hasYardstick(u) ? u.upsets.length : null,
   judgedMatches: u.judged,
   notJudgedMatches: u.notJudged,
-  upsetYardstick: u.yardstick.events.length ? eventList(u.yardstick.events) : null,
+  upsetYardstick: hasYardstick(u) ? yardstickSources(u) : null,
   upsetYardstickGames: u.yardstick.games,
 });
 
@@ -513,7 +529,7 @@ export function buildCompetitive(src: CompetitiveSources, o: { deckId: (file: st
   const out: KbRecord[] = [];
   const all = src.events.map((e) => e.event);
   for (const { file, event } of src.events) {
-    const up = eventUpsetFacts(all, event);
+    const up = eventUpsetFacts(all, event, src.upsetPool);
     out.push(eventRecord(file, event, deckLink, up.event, archived));
     for (let k = 1; k <= event.rounds.length; k++) out.push(roundRecord(file, event, k, up.round(k), archived));
     for (const b of event.bracket) out.push(roundRecord(file, event, b.name, up.round(b.name), archived));

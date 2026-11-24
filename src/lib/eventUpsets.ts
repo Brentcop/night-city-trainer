@@ -2,10 +2,14 @@
 // against ratings that include the event itself. Pure, Node and browser: every source is passed in, nothing is read, no
 // clock.
 //
-// The yardstick for event E is one power-rating fit (src/lib/ratingModel.ts `fitRatings`, prior sd 1) on the games of the
-// earlier recorded events only: the events before E in recorded order (by id) with E's sim version and bot, their games
-// taken exactly as the ratings take them (src/lib/ratingGames.ts, shared with scripts/event-pool.ts; a fit on every pooled
-// event reproduces src/data/ratings.json, tests/event-upsets.test.ts). Event 1 has no earlier event: nothing is judged.
+// The yardstick for event E is one power-rating fit (src/lib/ratingModel.ts `fitRatings`, prior sd 1) on the games the
+// ratings pool (scripts/event-pool.ts) that were recorded before E: the events before E in recorded order (by id) and
+// the rating runs (data/series, `UpsetPool.runs`) dated before E, each with E's sim version and bot, their games taken
+// exactly as the ratings take them (src/lib/ratingGames.ts, shared with scripts/event-pool.ts: a played event gives no
+// game and is not named; with `UpsetPool.gate`, scripts/event-pool.ts currentListGate, a game counts only on the
+// library's current lists). A fit on every pooled event and run with the gate reproduces src/data/ratings.json
+// (tests/event-upsets.test.ts). An event with nothing earlier is not judged. Without a pool (no runs, no gate) the
+// yardstick is the events-only fit used until 2026-11-24.
 //
 // A match (Swiss or bracket; a bye is no match) is judged only when both decks have at least MIN_EARLIER_GAMES earlier
 // games. The winner's chance per game is the fit's own prediction averaged over both seats, `predictPair`:
@@ -31,8 +35,24 @@
 //     difference of about 0.85 (σ⁻¹(0.7)), about two of its own standard errors. So an underdog's win counts as an upset
 //     only when its chance per game was 30% or less (40 of the 642 judged matches on version 9; 30 of 641 on version 8).
 import { fitRatings, predictPair, type RatingFit } from './ratingModel';
-import { eventRatedGames, type GamesEvent } from './ratingGames';
+import { eventRatedGames, type GamesEvent, type ListGate } from './ratingGames';
 import { entrantBase, isPlayedSetup } from './eventFormats';
+
+/** A rating run (data/series/run-N.json) as the yardstick reads it: its games, date, sim version and bot. */
+export interface UpsetRun extends GamesEvent {
+  id: number | string;
+  date: string;
+  bot: string;
+  simVersion?: number;
+}
+
+/** What the yardstick pools beside the recorded events, as the ratings do (scripts/event-pool.ts). */
+export interface UpsetPool {
+  /** rating runs; one counts for event E when dated before E, with E's sim version and bot */
+  runs?: readonly UpsetRun[];
+  /** a game counts only when both seats' stored lists pass it (scripts/event-pool.ts currentListGate) */
+  gate?: ListGate;
+}
 
 /** Why no match of a played event (src/lib/playedEvent.ts) is judged. Its games are not in any yardstick either (ratingGames.ts). */
 export const PLAYED_NOT_JUDGED = 'a played event: people ran some entrants, so its results say nothing about the bots’ predictions';
@@ -64,8 +84,10 @@ export interface UpsetEvent extends GamesEvent {
 export interface Yardstick {
   simVersion: number | null;
   bot: string;
-  /** the earlier events fitted, in recorded order (empty: nothing can be judged) */
+  /** the earlier events fitted, in recorded order (empty with no run: nothing can be judged) */
   events: (number | string)[];
+  /** the rating runs fitted (dated before the event), by date */
+  runs: (number | string)[];
   /** games in the fit */
   games: number;
   /** the fit (null without earlier games); not for printing */
@@ -103,7 +125,7 @@ export interface UpsetsFact {
   asOf: string;
   /** null: the whole event; else the round asked for ("Round 5", "Final") */
   round: string | null;
-  yardstick: { events: (number | string)[]; games: number; minEarlierGames: number; upsetMaxChance: number };
+  yardstick: { events: (number | string)[]; runs: (number | string)[]; games: number; minEarlierGames: number; upsetMaxChance: number };
   /** played matches (byes left out), judged and not */
   played: number;
   judged: number;
@@ -121,16 +143,22 @@ const versionOf = (e: { simVersion?: number }) => (typeof e.simVersion === 'numb
 /** Recorded order: numeric ids by number, others by code units (no locale). */
 const recordedOrder = (a: { id: number | string }, b: { id: number | string }) => (typeof a.id === 'number' && typeof b.id === 'number' ? a.id - b.id : byStr(String(a.id), String(b.id)));
 
-/** The events before `ev` in recorded order with its sim version and bot. */
+/** The events before `ev` in recorded order with its sim version and bot; played events (no rated games) left out. */
 export function earlierEvents<E extends UpsetEvent>(events: readonly E[], ev: UpsetEvent): E[] {
-  return [...events].sort(recordedOrder).filter((e) => recordedOrder(e, ev) < 0 && versionOf(e) === versionOf(ev) && e.bot === ev.bot);
+  return [...events].sort(recordedOrder).filter((e) => recordedOrder(e, ev) < 0 && versionOf(e) === versionOf(ev) && e.bot === ev.bot && !isPlayedSetup(e.setup));
 }
 
-/** The ratings fitted on the earlier events' games (the same games the ratings take). */
-export function upsetYardstick(events: readonly UpsetEvent[], ev: UpsetEvent): Yardstick {
+/** The rating runs dated before `ev` with its sim version and bot, oldest first. */
+export function earlierRuns<R extends UpsetRun>(runs: readonly R[], ev: UpsetEvent): R[] {
+  return [...runs].filter((r) => r.date < ev.date && versionOf(r) === versionOf(ev) && r.bot === ev.bot).sort((a, b) => byStr(a.date, b.date) || recordedOrder(a, b));
+}
+
+/** The ratings fitted on the games recorded before the event (the same games the ratings take: `UpsetPool`). */
+export function upsetYardstick(events: readonly UpsetEvent[], ev: UpsetEvent, pool: UpsetPool = {}): Yardstick {
   const earlier = earlierEvents(events, ev);
-  const games = earlier.flatMap((e) => eventRatedGames(e));
-  return { simVersion: versionOf(ev), bot: ev.bot, events: earlier.map((e) => e.id), games: games.length, fit: games.length ? fitRatings(games) : null };
+  const runs = earlierRuns(pool.runs ?? [], ev);
+  const games = [...earlier, ...runs].flatMap((e) => eventRatedGames(e, pool.gate));
+  return { simVersion: versionOf(ev), bot: ev.bot, events: earlier.map((e) => e.id), runs: runs.map((r) => r.id), games: games.length, fit: games.length ? fitRatings(games) : null };
 }
 
 const roundKeyOf = (name: string): string =>
@@ -181,8 +209,8 @@ export function judgeMatches(ev: UpsetEvent, y: Yardstick): JudgedMatch[] {
  * The upsets of one event, or of one of its rounds (a round number, or a bracket round's name or key). Throws a
  * RangeError for a round the event did not play.
  */
-export function eventUpsets(events: readonly UpsetEvent[], ev: UpsetEvent, o: { round?: number | string; yardstick?: Yardstick; judged?: JudgedMatch[] } = {}): UpsetsFact {
-  const y = o.yardstick ?? upsetYardstick(events, ev);
+export function eventUpsets(events: readonly UpsetEvent[], ev: UpsetEvent, o: { round?: number | string; yardstick?: Yardstick; judged?: JudgedMatch[]; pool?: UpsetPool } = {}): UpsetsFact {
+  const y = o.yardstick ?? upsetYardstick(events, ev, o.pool);
   const all = o.judged ?? judgeMatches(ev, y);
   let round: string | null = null;
   let matches = all;
@@ -210,7 +238,7 @@ export function eventUpsets(events: readonly UpsetEvent[], ev: UpsetEvent, o: { 
     bot: ev.bot,
     asOf: ev.date,
     round,
-    yardstick: { events: y.events, games: y.games, minEarlierGames: MIN_EARLIER_GAMES, upsetMaxChance: UPSET_MAX_CHANCE },
+    yardstick: { events: y.events, runs: y.runs, games: y.games, minEarlierGames: MIN_EARLIER_GAMES, upsetMaxChance: UPSET_MAX_CHANCE },
     played: matches.length,
     judged: judged.length,
     notJudged: matches.length - judged.length,
@@ -233,12 +261,12 @@ export interface CalibrationBand {
  * that chance, over every judged match of every event that has earlier events. The last band includes its top. The
  * evidence for UPSET_MAX_CHANCE: if the bands were flat the ratings would not name match winners better than a coin.
  */
-export function upsetCalibration(events: readonly UpsetEvent[], bands: readonly (readonly [number, number])[] = CALIBRATION_BANDS): { events: (number | string)[]; judged: number; bands: CalibrationBand[] } {
+export function upsetCalibration(events: readonly UpsetEvent[], bands: readonly (readonly [number, number])[] = CALIBRATION_BANDS, pool: UpsetPool = {}): { events: (number | string)[]; judged: number; bands: CalibrationBand[] } {
   const rows: CalibrationBand[] = bands.map(([lo, hi]) => ({ lo, hi, matches: 0, favouriteWon: 0 }));
   const used: (number | string)[] = [];
   let judged = 0;
   for (const ev of [...events].sort(recordedOrder)) {
-    const y = upsetYardstick(events, ev);
+    const y = upsetYardstick(events, ev, pool);
     if (!y.fit) continue;
     used.push(ev.id);
     for (const m of judgeMatches(ev, y)) {

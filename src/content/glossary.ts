@@ -306,7 +306,7 @@ export const GLOSSARY: Term[] = [
   {
     term: 'Sim tier (S / A / B / C / D)',
     group: 'Strategy',
-    def: `This trainer's own tier letter for a deck, from its power rating: the band its expected win rate against the whole field falls in (${bandsLine()}). The bands are fixed, so a letter means the same thing as the field changes, and it follows the ratings whenever new events are recorded. A deck needs ${SIM_TIER_MIN_GAMES} recorded games for a letter; with fewer it is unrated (–). A letter marked ± (striped) has a 90% range reaching ${SIM_TIER_STRADDLE_BANDS} or more bands away, so it could be off by two tiers. It is shown beside choom.gg's tier, never instead of it.`,
+    def: `This trainer's own tier letter for a deck, from its power rating: the band its expected win rate against the whole field falls in (${bandsLine()}). The field is the library (every deck with a game on its current list), whose average is 50% by construction, so the bands are fixed but a letter is relative to the library as it stands: adding or dropping decks moves letters even when the order stays; it follows the ratings whenever they are rebuilt. A deck needs ${SIM_TIER_MIN_GAMES} recorded games for a letter; with fewer it is unrated (–). A letter marked ± (striped) has a 90% range reaching ${SIM_TIER_STRADDLE_BANDS === 1 ? 'across a band edge' : `${SIM_TIER_STRADDLE_BANDS} or more bands away`}, so the deck could belong to the neighbouring tier. It is shown beside choom.gg's tier, never instead of it.`,
     engine: 'src/lib/simTier.ts (the bands and thresholds), read from src/data/ratings.json (scripts/ratings.ts).',
   },
   {

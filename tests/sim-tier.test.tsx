@@ -1,12 +1,13 @@
 // The Sim tier (src/lib/simTier.ts): a letter from our own tournament results, from fixed bands on the power rating's
-// expected win rate vs the field; unrated below the small-sample threshold; marked ± when the 90% range reaches two
-// bands away. The badges name their source so the Sim tier and choom.gg's tier are never confused.
+// expected win rate vs the field (the library, named beside the letter); unrated below the small-sample threshold;
+// marked ± when the 90% range crosses a band edge. The badges name their source so the Sim tier and choom.gg's tier are never confused.
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RATINGS } from '../src/data/index';
-import { bandOf, bandRange, bandsLine, bandWords, SIM_TIER_BANDS, SIM_TIER_MIN_GAMES, simTier, simTierShort, simTierText } from '../src/lib/simTier';
-import { SMALL_SAMPLE } from '../src/lib/playedRecord';
-import { ChoomTierBadge, SimTierBadge, simTierFor, tierOptionText } from '../src/ui/components/TierBadges';
+import { bandIndex, bandOf, bandRange, bandsLine, bandWords, SIM_TIER_BANDS, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS, simTier, simTierFieldWords, simTierShort, simTierText, simTierVersionNote } from '../src/lib/simTier';
+import { TIER_BOUNDARIES } from '../src/lib/ratingModel';
+import { CURRENT_SIM_VERSION, SMALL_SAMPLE } from '../src/lib/playedRecord';
+import { ChoomTierBadge, RATED_FIELD, RATINGS_VERSION_NOTE, SimTierBadge, simTierFor, tierOptionText } from '../src/ui/components/TierBadges';
 
 const row = (wrField: number, lo: number, hi: number, games = 50) => ({ wrField, wrFieldLo: lo, wrFieldHi: hi, games });
 
@@ -30,13 +31,26 @@ describe('Sim tier bands', () => {
     expect(bandRange('A')).toEqual({ min: 0.55, max: 0.64 });
     expect(bandsLine()).toBe('S 64% or more · A 55%–64% · B 45%–55% · C 36%–45% · D under 36%');
   });
+  it('the second copy of the band edges (ratingModel TIER_BOUNDARIES, read by the rating plan) agrees', () => {
+    const edges = SIM_TIER_BANDS.map((b) => b.min)
+      .filter((m) => Number.isFinite(m))
+      .sort((a, b) => a - b);
+    expect([...TIER_BOUNDARIES]).toEqual(edges);
+  });
 });
 
 describe('Sim tier of a ratings row', () => {
-  it('a firm letter when the range stays within a neighbouring band', () => {
-    const t = simTier(row(0.7, 0.6, 0.8));
-    expect(t).toMatchObject({ letter: 'S', straddle: false, loLetter: 'A', hiLetter: 'S', games: 50 });
+  it('a firm letter when the range stays inside its band', () => {
+    const t = simTier(row(0.7, 0.66, 0.8));
+    expect(t).toMatchObject({ letter: 'S', straddle: false, loLetter: 'S', hiLetter: 'S', games: 50 });
     expect(simTierShort(t)).toBe('S');
+  });
+  it('± when the 90% range crosses one band edge', () => {
+    expect(SIM_TIER_STRADDLE_BANDS).toBe(1);
+    const t = simTier(row(0.7, 0.6, 0.8));
+    expect(t).toMatchObject({ letter: 'S', straddle: true, loLetter: 'A', hiLetter: 'S', games: 50 });
+    expect(simTierShort(t)).toBe('S±');
+    expect(simTierText(t)).toMatch(/Uncertain: the range reaches from tier A to tier S/);
   });
   it('± when the 90% range reaches two bands away', () => {
     const t = simTier(row(0.52, 0.41, 0.645));
@@ -55,9 +69,30 @@ describe('Sim tier of a ratings row', () => {
     expect(simTier(row(0.7, 0.6, 0.8, SIM_TIER_MIN_GAMES)).letter).toBe('S');
   });
   it('the tooltip says where it comes from, the number, range and games', () => {
-    expect(simTierText(simTier(row(0.583, 0.481, 0.679, 52)))).toBe(
-      "Sim tier, from this trainer's recorded tournaments (power rating): A. Expected 58.3% vs the field (90% range 48.1%–67.9%) over 52 games; tier A is 55%–64%.",
+    expect(simTierText(simTier(row(0.583, 0.56, 0.62, 52)))).toBe(
+      "Sim tier, from this trainer's recorded tournaments (power rating): A. Expected 58.3% vs the field (90% range 56.0%–62.0%) over 52 games; tier A is 55%–64%.",
     );
+    expect(simTierText(simTier(row(0.583, 0.481, 0.679, 52)), { field: 71 })).toBe(
+      "Sim tier, from this trainer's recorded tournaments (power rating): A±. Expected 58.3% against the library, 71 decks (90% range 48.1%–67.9%) over 52 games; tier A is 55%–64%. Uncertain: the range reaches from tier B to tier S.",
+    );
+  });
+  it('names the field, and flags ratings fitted on another simulator version', () => {
+    expect(simTierFieldWords(71)).toBe('against the library, 71 decks');
+    expect(RATED_FIELD).toBe(RATINGS.decks.length);
+    expect(simTierVersionNote({ simVersion: CURRENT_SIM_VERSION })).toBeNull();
+    expect(simTierVersionNote({ simVersion: CURRENT_SIM_VERSION - 1 })).toBe(`These letters come from ratings fitted on simulator v${CURRENT_SIM_VERSION - 1}, not the current v${CURRENT_SIM_VERSION}.`);
+    expect(simTierVersionNote(undefined)).toMatch(/unversioned simulator/);
+    expect(simTierText(simTier(row(0.7, 0.66, 0.8)), { note: 'Old.' })).toMatch(/tier S is 64% or more\. Old\.$/);
+    // the bundled ratings are on the current version today: no note, so no wording changes
+    expect(RATINGS_VERSION_NOTE).toBe(simTierVersionNote(RATINGS.manifest));
+    if (RATINGS.manifest?.simVersion === CURRENT_SIM_VERSION) expect(RATINGS_VERSION_NOTE).toBeNull();
+  });
+  it('every bundled letter whose range crosses a band edge is marked ±', () => {
+    for (const r of RATINGS.decks) {
+      if (r.games < SIM_TIER_MIN_GAMES) continue;
+      const crosses = bandIndex(r.wrFieldLo) !== bandIndex(r.wrField) || bandIndex(r.wrFieldHi) !== bandIndex(r.wrField);
+      expect(simTierFor(r.name).straddle).toBe(crosses);
+    }
   });
   it('is read from the bundled ratings, so every rated deck with enough games gets the letter of its band', () => {
     for (const r of RATINGS.decks) {
@@ -95,7 +130,8 @@ describe('tier badges', () => {
     expect(renderToStaticMarkup(<ChoomTierBadge tier={undefined} />)).toBe('');
   });
   it('picker options spell out both sources', () => {
-    expect(tierOptionText('S', simTier(row(0.58, 0.5, 0.66)))).toBe(' [choom S] [Sim A]');
+    expect(tierOptionText('S', simTier(row(0.58, 0.56, 0.63)))).toBe(' [choom S] [Sim A]');
+    expect(tierOptionText('S', simTier(row(0.58, 0.5, 0.66)))).toBe(' [choom S] [Sim A±]');
     expect(tierOptionText(undefined, simTier(undefined))).toBe('');
   });
 });

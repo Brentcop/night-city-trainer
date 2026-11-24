@@ -29,14 +29,14 @@ import {
   type GalleryView,
   type SimFilter,
 } from '../../lib/galleryView';
-import { SIM_TIER_LETTERS, bandWords } from '../../lib/simTier';
+import { SIM_TIER_LETTERS, bandWords, simTierFieldWords } from '../../lib/simTier';
 import { DeckTile } from './DeckIdentity';
 import { profileHref } from './DeckStats';
 import { TypeLegend } from './TypeSplit';
 import { loadPref, savePref } from '../prefs';
 import { PageHead } from './PageHead';
 import { CURRENT_SIM_VERSION, ratingsHistorical } from '../../lib/playedRecord';
-import { recordedRow, simTierOf } from './TierBadges';
+import { RATED_FIELD, recordedRow, simTierOf } from './TierBadges';
 import { isBuiltin } from '../deckLookup';
 import { useLibraryVersion } from '../useLibrary';
 import { useDeckActions } from './DeckActions';
@@ -297,7 +297,7 @@ export function DeckGallery({ onNew, query = '' }: { onNew: () => void; query?: 
               Sim tier
             </span>
             {SIM_TIER_LETTERS.map((t) => (
-              <Chip key={t} on={view.sim.includes(t)} onClick={() => flip('sim', t)} title={`Expected ${bandWords(t)} vs the field`}>
+              <Chip key={t} on={view.sim.includes(t)} onClick={() => flip('sim', t)} title={`Expected ${bandWords(t)} ${simTierFieldWords(RATED_FIELD)}`}>
                 {t}
               </Chip>
             ))}

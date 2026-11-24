@@ -313,7 +313,9 @@ describe('builders on fixtures', () => {
     expect(rating.title).toBe('Fixture Mill rating');
     expect(rating.links).toEqual([{ rel: 'deck', to: 'deck:fx-mill' }]);
     expect(rating.text).toContain('55.0% (90% range 45.0%–65.0%) over 25 rated games');
-    expect(rating.text).toContain('Sim tier now: A.');
+    // 45–65% crosses the B/A and A/S edges: marked uncertain; the field is named
+    expect(rating.text).toContain('Sim tier now: A±.');
+    expect(rating.text).toContain('Expected 55.0% against the library, 2 decks (90% range');
     expect(rating.fields).toMatchObject({ titles: 1, topCutAppearances: 1, swissTopEight: 1 });
     expect(Object.keys(rating.fields ?? {})).not.toContain('top8');
     expect(byId.get('rating:fx-burn')!.text).toContain('Sim tier now: unrated.');
@@ -323,7 +325,7 @@ describe('builders on fixtures', () => {
     expect(table.links).toEqual([]);
     expect(table.text.split('\n')).toEqual([
       'Power ratings table: the rated library decks in the order of their power rating, fitted over 1 recorded event played by the fixture-bot bot on sim version 7 (stale: the current sim version is 9), as of 2030-05-06. All 2 rated decks now:',
-      '1. Fixture Mill: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 25 rated games; Sim tier now A.',
+      '1. Fixture Mill: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 25 rated games; Sim tier now A±.',
       '2. Fixture Burn: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 2 rated games; Sim tier now unrated.',
       'The 90% range of Fixture Mill overlaps the ranges of every other deck listed here: these games do not settle the order among them.',
       'Every neighbouring pair of ranges in this list overlaps.',
