@@ -643,7 +643,7 @@ ratings' prediction; 14 Sim-tier letters changed, mostly the "±" going as the t
 The top 16 by rating moved (two decks in, two out), so `status` then asked for 2,736 more block games.
 **The site search's first-search budget fails** with it: 303.4 kB gzip against 300 (298.8 kB on the same code with the
 data before run 2; the ratings group grew 4.7 kB with the matchup records), so `npx vite build`, `tests/kb-site.test.ts`
-and so the scheduled finalize fail until the pack is trimmed or the budget is raised (an owner decision).
+and so the scheduled finalize fail until the pack is trimmed or the budget is raised (an owner decision). **Settled the same day:** the owner raised the budget to 330 kB (`tools/size-budget.ts`); on the merged code of group B (the fitted prior and corrected spread, S2-05 and S2-08 unrated after their swaps) the sum was 298.9 kB.
 
 ### The card table (built 2026-11-24, docs/REVIEW_2026-11-24.md B.2 and R3)
 

@@ -84,11 +84,16 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // characters, longer than the older notes' 1,800 to 3,000): the decks group went from 46.8 to 59.3 kB and the sum
 // from 209.9 to 222.3 kB, 0.69 kB a note. A library deck with a note of that length adds about 1.1 kB, and the room
 // left is about 9 full-field events.
+// Decided by the owner on 2026-11-24 (REVIEW_2026-11-24 B.9): raised from 300 to 330 kB. The rating series' matchup
+// block (every pair among the top 16 at 100 games) gives pairs their matchup records: run 2 took the sum from 298.8 to
+// 303.4 kB (4.7 kB, all in the ratings group), and the next runs add records for pairs that join the top 16. On the
+// merged data of that day it was 298.9 kB; 330 leaves room for about six more such refreshes. Site search is off by
+// default (feature `search`); the per-file cap is unchanged.
 
 /** gzip kB: the most one knowledge-pack part file may weigh (the packing in src/lib/kb/site.ts cuts to it). */
 export const KB_FILE_CAP_KB = 90;
 /** gzip kB: every part that loads with the first search, together. */
-export const KB_FIRST_SEARCH_BUDGET_KB = 300;
+export const KB_FIRST_SEARCH_BUDGET_KB = 330;
 /** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core; 12.26 kB since RAG_PLAN step 4.9). */
 export const SEARCH_CHUNK_BUDGET_KB = 13;
 
