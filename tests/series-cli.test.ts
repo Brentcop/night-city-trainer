@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { EXIT, seriesCommand, type SeriesIO, type SeriesStatus } from '../scripts/series-run';
+import { EXIT, runsWithImpact, seriesCommand, type SeriesIO, type SeriesStatus } from '../scripts/series-run';
 import { loadLibrary, readEvents, readRuns, type RecordedEvent } from '../scripts/lib-node';
 import { currentListGate, selectEvents } from '../scripts/event-pool';
 import { fieldPool } from '../scripts/tournament-setup';
@@ -284,6 +284,8 @@ describe('the matchup block and the traced card impact (2026-11-24)', () => {
     try {
       fs.mkdirSync(path.join(tmp, 'series'));
       fs.mkdirSync(path.join(tmp, 'seasons'));
+      // the recorded runs (the committed tables count the traced ones) and the new one
+      for (const f of fs.readdirSync('data/series')) fs.copyFileSync(path.join('data/series', f), path.join(tmp, 'series', f));
       fs.writeFileSync(path.join(tmp, 'series', `${run.id}.json`), text);
       for (const f of ['impact.json', 'deck-impact.json']) fs.copyFileSync(path.join('data/seasons', f), path.join(tmp, 'seasons', f));
       const io = harness().io;
@@ -299,7 +301,7 @@ describe('the matchup block and the traced card impact (2026-11-24)', () => {
       const deck = parseDeckImpact(JSON.parse(files.get(path.join(tmp, 'seasons', 'deck-impact.json'))!)).file!;
       const hard = card.entries.find((e) => e.simVersion === SIM_VERSION && e.bot === 'hard')!;
       expect(hard.sources).toContainEqual({ kind: 'series', run: run.id, runId: run.manifest.runId });
-      expect(seriesImpactProblems(card, deck, [{ id: run.id, runId: run.manifest.runId, simVersion: run.simVersion, bot: run.bot, impact: run.impact }])).toEqual([]);
+      expect(seriesImpactProblems(card, deck, runsWithImpact(io, path.join(tmp, 'series')))).toEqual([]);
       // a second pass reads what the first wrote and adds nothing
       out.length = 0;
       const before = new Map(files);

@@ -15,6 +15,7 @@ import { seedsOf } from '../src/ai/breeder';
 import { listFingerprint } from '../src/engine/deck';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { checkData } from '../scripts/check-data';
+import { runFiles, SERIES_DIR } from '../scripts/lib-node';
 import { loadImpactTables, SEASON_BOT } from '../scripts/breed-data';
 import { synthDecks } from './builder-fixtures';
 
@@ -407,7 +408,9 @@ describe('check:data', () => {
     const cardImpact = JSON.parse(fs.readFileSync('data/seasons/impact.json', 'utf8'));
     const deckImpact = JSON.parse(fs.readFileSync('data/seasons/deck-impact.json', 'utf8'));
     const seasons = [1, 2, 3].map((s) => ({ season: s, key: s < 3 ? { simVersion: 5, bot: 'deep' } : { simVersion: 9, bot: 'hard' } }));
-    const r = checkData({ ...base, cardImpact, deckImpact, seasons });
+    // the recorded rating runs: a table counts the traced ones (src/lib/seriesImpact.ts), and check:data reads them beside it
+    const runs = runFiles().map((file) => ({ file, event: JSON.parse(fs.readFileSync(`${SERIES_DIR}/${file}`, 'utf8')) }));
+    const r = checkData({ ...base, cardImpact, deckImpact, seasons, runs });
     expect(r.failures.filter((x) => x.includes('impact'))).toEqual([]);
     expect(r.passed.some((x) => x.startsWith('data/seasons/deck-impact.json is keyed by list fingerprint and kept by simulator version and bot'))).toBe(true);
     expect(r.passed.some((x) => x.startsWith('data/seasons/impact.json is kept by simulator version and bot (2 entries'))).toBe(true);

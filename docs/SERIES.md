@@ -602,8 +602,15 @@ under the default cap of 12,000, or one local run. `status` says what the block 
 games to go); `run --dry-run` prints each chunk's pairings. The run file records `block` (its decks, target, pairs, and
 the pairs at the target and games to go before and after) and the switches in `rule`.
 
-**Not verified.** The block's games add matchup records to the site search (pairs reaching 6 games); the build's
-first-search budget check (in the finalize's `npx vite build`) is the guard.
+**Played 2026-11-24 (run 2, locally, 9 threads):** the 4 recorded games replayed as recorded; 11,412 Hard games in
+1,662 s (6.87 a second, the machine shared), all 120 pairs at 100 games, seats 50/50 in every pair; card impact traced
+for the 16 decks (250 card figures). After the rebuild (before the shrinkage change of B.3): h2h ρ 0.0049, prior weight
+203 games (308 before); among the top 16, Pearson X² 179.5 on 120 pairs and 15 pairs whose 90% range excludes the
+ratings' prediction; 14 Sim-tier letters changed, mostly the "±" going as the top ranges narrowed from about ±4 to ±1.8.
+The top 16 by rating moved (two decks in, two out), so `status` then asked for 2,736 more block games.
+**The site search's first-search budget fails** with it: 303.4 kB gzip against 300 (298.8 kB on the same code with the
+data before run 2; the ratings group grew 4.7 kB with the matchup records), so `npx vite build`, `tests/kb-site.test.ts`
+and so the scheduled finalize fail until the pack is trimmed or the budget is raised (an owner decision).
 
 ### The card table (built 2026-11-24, docs/REVIEW_2026-11-24.md B.2 and R3)
 
