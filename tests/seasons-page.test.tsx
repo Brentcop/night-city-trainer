@@ -216,8 +216,9 @@ describe('the page', () => {
     expect(t).toContain('none: an explorer');
     expect(t).toContain('none of its parents is rated now');
     expect(t).toContain('not rated');
+    // the rating as RATINGS holds it today (every rating series run moves it): the cell's figures, the games with a comma
     const dexter = RATINGS.decks.find((d) => d.name === 'RRG Dexter Midrange')!;
-    expect(t).toContain(`RRG Dexter Midrange ${(dexter.wrField * 100).toFixed(1)}% 90% range ${(dexter.wrFieldLo * 100).toFixed(1)}–${(dexter.wrFieldHi * 100).toFixed(1)}% ${dexter.games} games`);
+    expect(t).toContain(`RRG Dexter Midrange ${(dexter.wrField * 100).toFixed(1)}% 90% range ${(dexter.wrFieldLo * 100).toFixed(1)}–${(dexter.wrFieldHi * 100).toFixed(1)}% ${dexter.games.toLocaleString('en-US')} games`);
     expect(t).toContain('Entered: not shown worse than RRG Dexter Midrange (its best parent then)');
     // the ungated season: every row says it was not tested
     expect(count(t, NOT_TESTED)).toBe(SEASONS.seasons[0]!.bred.length);

@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { EVAL_SPEC, LEXICAL_CONFIGS, runEval, type ReportPair } from '../scripts/kb-eval';
 import { denseFor, DENSE_DIR, densePaths, denseStatus, DENSE_MODEL, embedQueries, loadEmbedder, missingText, QUERY_PREFIX, readVectors, refreshVectors, textHash, vectorState, type Embed } from '../scripts/kb-dense';
 import { denseStatsText, parseKbArgs } from '../scripts/kb';
@@ -292,7 +292,15 @@ describe('the tracked evaluation reports (kb:eval --out)', () => {
 
   // the second half needs the real tools and model (skipped without them, as in CI)
   const realDir = process.env.KB_DENSE_DIR || DENSE_DIR;
-  it.skipIf(!denseStatus(densePaths(ROOT, realDir)).ready)('are byte-identical with the dense tools present, with or without --dense', async () => {
+  const denseReady = denseStatus(densePaths(ROOT, realDir)).ready;
+  // Bring the pack and the dense vectors up to date first, outside the timed test: every rating series run, rebuild or
+  // recorded event changes the text of many records (ratings, matchups, card and package statistics), and the vectors of
+  // each changed record are embedded again on the next --dense run, about 6 minutes on this machine after a series run.
+  // The test below then measures what it is about, the reports, on a warm cache. Only with the real tools (as the test).
+  beforeAll(async () => {
+    if (denseReady) await withDenseDir(realDir, () => runEval(flags('--dense', '--config', 'dense')));
+  }, 30 * 60_000);
+  it.skipIf(!denseReady)('are byte-identical with the dense tools present, with or without --dense', async () => {
     const dir = emptyDir();
     try {
       const without = await withDenseDir(dir, () => runEval(flags()));

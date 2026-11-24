@@ -86,10 +86,12 @@ describe('what the site ships', () => {
     for (const f of files) expect(f.json).not.toMatch(/"source":|"hash":|"scope":/);
   });
 
+  // a whole pack build: about 14 s alone on 2026-11-24 and growing with the recorded data (every rating series run adds
+  // records), so 30 s was too close in a full run with every core busy; the test is about the bytes, not the speed
   it('builds the same bytes twice', async () => {
     const again = sitePartFiles((await buildFromSources(ROOT, { raw: false })).records);
     expect(again.map((f) => [f.name, f.hash, f.json])).toEqual(files.map((f) => [f.name, f.hash, f.json]));
-  }, 30_000);
+  }, 90_000);
 
   it.runIf(rawPresent(ROOT))('is the same bytes with data/raw present, and holds none of its wording', async () => {
     const withRaw = await buildFromSources(ROOT, { raw: true });

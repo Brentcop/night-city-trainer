@@ -110,21 +110,27 @@ describe('on the real reports', () => {
     // since 2026-11-24 (REVIEW_2026-11-24 B.2) the coach's table is the breeder's pair, simulator version 9 and Hard: per list,
     // the season round robin's sums plus the analysis' own, means to 4 decimals (impactDataOf in src/lib/breederImpact.ts)
     const season = DECK_IMP!.entries.find((e) => e.simVersion === 9 && e.bot === 'hard')!.lists;
+    // a list the analysis does not hold (one edited after it was measured, or one only the season tables and the rating
+    // series have played since) stands on the season's sums alone; every list holds at least one of the two
     let both = 0;
+    let fromAnalysis = 0;
     for (const d of IMP!.decks) {
-      const a = ANA!.decks.find((x) => x.id === d.id)!;
+      const a = ANA!.decks.find((x) => x.id === d.id);
       const s = season[d.id!]?.cards ?? {};
       if (season[d.id!]) both++;
-      const ids = new Set([...a.cards.filter((c) => c.seenGames > 0).map((c) => c.id), ...Object.keys(s)]);
+      if (a) fromAnalysis++;
+      expect(a || season[d.id!]).toBeTruthy();
+      const ids = new Set([...(a?.cards ?? []).filter((c) => c.seenGames > 0).map((c) => c.id), ...Object.keys(s)]);
       expect(new Set(d.cards.map((c) => c[0]))).toEqual(ids);
       for (const [id, iwd, n] of d.cards) {
-        const c = a.cards.find((x) => x.id === id);
+        const c = a?.cards.find((x) => x.id === id);
         const sn = c ? c.seenGames : 0;
         expect(n).toBe(sn + (s[id]?.n ?? 0));
         expect(Math.abs(iwd! - ((c ? c.iwd * sn : 0) + (s[id]?.s ?? 0)) / n)).toBeLessThanOrEqual(1e-4);
       }
     }
     expect(both).toBe(Object.keys(season).length);
+    expect(fromAnalysis).toBeGreaterThan(0);
     const id = IMP!.decks[0]!.cards[0]![0];
     const rows = IMP!.decks.flatMap((d) => d.cards.filter((c) => c[0] === id));
     const n = rows.reduce((s, r) => s + r[2], 0);

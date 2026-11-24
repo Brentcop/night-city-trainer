@@ -159,7 +159,11 @@ describe('the run', () => {
 });
 
 describe('a seeded simulation of the rule (docs/SERIES.md E1, E2)', () => {
-  it('when the rule stops, the 90% ranges hold the true win rate about 90% of the time, in the games the rule needs', async () => {
+  // 60 seeded series of about 1,500 games each, every one refitted after each chunk: 5 to 6 s alone (2026-11-24), so the
+  // default 15 s timed out in a full run with every core busy. The figures are deterministic (the same code gives the same
+  // coverage, 0.899 on these seeds with the fitted prior sd of B.3; the matchup block is off here, SW has no `matchups`), so
+  // the time it takes is not what the test is about
+  it('when the rule stops, the 90% ranges hold the true win rate about 90% of the time, in the games the rule needs', { timeout: 90_000 }, async () => {
     let hit = 0;
     let cells = 0;
     const games: number[] = [];
@@ -180,7 +184,7 @@ describe('a seeded simulation of the rule (docs/SERIES.md E1, E2)', () => {
         cells++;
       });
     }
-    // 1,200 deck-ranges: measured 0.897 on these seeds; a rule that read its own noise would fall below 0.86
+    // 1,200 deck-ranges: measured 0.897 on these seeds (0.899 with the fitted prior sd, 2026-11-24); a rule that read its own noise would fall below 0.86
     expect(hit / cells).toBeGreaterThan(0.86);
     expect(hit / cells).toBeLessThan(0.95);
     // 20 decks from 20 games each to ±6: 1,500 to 1,800 games on these seeds

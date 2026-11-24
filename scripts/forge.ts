@@ -9,6 +9,11 @@
 //   --out DIR   write the forged list and the reports to DIR (DIR/<file>, DIR/forge/) instead of the repository
 //   --cache     read games already played with the same code, decks, seeds and bot from .cache/games and store new
 //               ones (scripts/game-cache.ts); prints how many games were hits
+//   --impact-dir DIR  read the card-impact tables the additions rank by (and --per-deck-adds') from DIR/impact.json and
+//               DIR/deck-impact.json (a file that is missing is an empty table) instead of data/seasons/, with no review
+//               telemetry (src/data/analysis.json) unless DIR/analysis.json exists. Every scheduled rating series run adds
+//               its games to data/seasons/ (REVIEW_2026-11-24 B.9), so a test that needs a run's outcome, or a person who
+//               repeats a run on the tables it read, points the forge at a frozen copy (tests/forge-confirm-bot.test.ts)
 //
 // Synergy packages (opt-in; docs/SYNERGIES.md "Using packages when building"; without these flags nothing changes):
 //   --keep-packages a,b      never cut these packages' pieces below their working minimum. When any package flag is
@@ -159,6 +164,7 @@ const { values: V, positionals } = cli(
     threads: threadsOpt(),
     out: str(),
     cache: bool(),
+    'impact-dir': str(undefined, (v) => (fs.existsSync(v) && fs.statSync(v).isDirectory() ? undefined : `${v} is not a folder`)),
     ...tunerPackageFlags(),
     ...adoptionFlags(),
     ...depthFlags(1),
@@ -182,6 +188,14 @@ const THREADS = Math.min(V.threads, 16);
 const cache = cliGameCache(V.cache);
 /** where the forged list and reports go: the repository (default) or --out DIR */
 const OUT = V.out;
+/** --impact-dir: the card-impact tables to read instead of data/seasons/ and src/data/analysis.json (absent: those) */
+const IMPACT_FILES = V['impact-dir']
+  ? (() => {
+      const dir = V['impact-dir'];
+      const analysis = path.join(dir, 'analysis.json');
+      return { cardFile: path.join(dir, 'impact.json'), deckFile: path.join(dir, 'deck-impact.json'), analysisFile: fs.existsSync(analysis) ? analysis : null };
+    })()
+  : {};
 const PACKAGES = packagesOn(V);
 /** partner-aware cut and add ranking (--partner-aware, or any package flag; --plain-ranking turns it off) */
 const PARTNER = partnerAwareOn(V);
@@ -227,7 +241,7 @@ const PER_DECK_BOT = V['per-deck-bot'] ?? SEASON_BOT;
  * per-deck impact tables (--per-deck-adds): per-list card Δ-when-drawn from data/seasons/deck-impact.json, of one
  * simulator version and bot (the closest pair, with a warning, when the wanted one has no numbers)
  */
-const DECK_IMPACT_TABLES = PER_DECK ? loadImpactTables(PER_DECK_BOT) : null;
+const DECK_IMPACT_TABLES = PER_DECK ? loadImpactTables(PER_DECK_BOT, IMPACT_FILES) : null;
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
 const DEPTH = depthFromFlags(V, 1);
@@ -319,7 +333,7 @@ const peekSeedOffset = () => ((seedState * 1664525 + 1013904223) >>> 0) % 90_000
  * table the season breeder reads (REVIEW_2026-11-24 B.2), the current simulator version and the season's bot (Hard),
  * or the closest pair with a "Warning:" line (forgeAddsWords). A card none of the table's lists plays has no number.
  */
-const ADD_TABLES = loadImpactTables(SEASON_BOT);
+const ADD_TABLES = loadImpactTables(SEASON_BOT, IMPACT_FILES);
 const GLOBAL_IMPACT: Record<string, number> = ADD_TABLES.impact;
 
 /** package moves screened per generation, at most (for the estimate) */

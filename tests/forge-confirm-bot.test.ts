@@ -23,10 +23,14 @@ afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
  * Seeds that nominate and (under any-gain) adopt a change on this deck, so the deck file is written, when Medium confirms
  * and when the screening bot does. Seed 2 did both until 2026-11-24; S2-08's list changed that day (REVIEW_2026-11-24 B.1)
  * and the forge's additions began to read the breeder's Hard card table (B.2): on both, seed 1 does both (1 to 12 tried).
+ * That table grows with every scheduled rating series run (B.9), and the additions it ranks decide which change is
+ * screened, so the run reads a frozen copy (--impact-dir): tests/fixtures/forge-impact/impact.json is the (9, hard) card
+ * table of 2026-11-24 (Season 3, series runs 2 and 3, and the review telemetry of src/data/analysis.json folded in), whose
+ * card means equal what loadImpactTables read that day. Only an edit to S2-08's list or to the forge's code moves the seeds.
  */
 const SEED_MEDIUM = '1';
 const SEED_PLAIN = '1';
-const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--threads', '2', '--ledger'];
+const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--threads', '2', '--ledger', '--impact-dir', 'tests/fixtures/forge-impact'];
 const forge = (out: string, extra: string[] = [], seed = SEED_PLAIN) => spawnSync(process.execPath, ['--import', 'tsx', 'scripts/forge.ts', ...ARGS, '--seed', seed, ...extra, '--out', path.join(tmp, out)], { encoding: 'utf8' });
 const read = (out: string, f: string) => fs.readFileSync(path.join(tmp, out, f), 'utf8');
 const ledgerBatches = (out: string) => {

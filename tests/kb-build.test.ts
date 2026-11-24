@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARDS, cardLabel } from '../src/engine/cards';
+import { listFingerprint, parseDeck } from '../src/engine/deck';
 import { createRunManifest } from '../src/lib/runManifest';
 import { RULES_VERSIONS } from '../src/lib/rulesVersions';
 import { buildCards, cardDataVersion, type CardInput } from '../src/lib/kb/build/cards';
@@ -528,14 +529,23 @@ describe('the real public sources', async () => {
     const libLists = new Set(a.records.filter((x) => x.kind === 'deck').map((x) => x.stamps!.listId));
     const cells = a.records.filter((x) => x.kind === 'cardstat' || x.kind === 'pkgstat');
     const names = [...NAME_LIST, ...a.records.filter((x) => x.kind === 'deck' || x.kind === 'package').map((x) => x.title)].sort((p, q) => q.length - p.length);
-    // every report list matches a library deck today; a list that matched none would be skipped and counted
+    // a report list that matches no library deck is skipped and counted: a list edited after the report was measured (S2-05
+    // and S2-08 since their 2026-11-24 swaps, REVIEW_2026-11-24 B.1) until the report is measured again. So the test
+    // counts them rather than pinning how many there are, and checks that each one is an earlier version of a library
+    // deck (a list kept in data/decks/custom/history/), never a list from nowhere
+    const ana = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/data/analysis.json'), 'utf8')) as { decks: { id?: string }[] };
+    const HIST = path.join(ROOT, 'data/decks/custom/history');
+    const earlier = new Set(fs.readdirSync(HIST).map((f) => listFingerprint(parseDeck(fs.readFileSync(path.join(HIST, f), 'utf8')).deck)));
     const decLists = dec.decks.filter((d) => libLists.has(d.listId));
-    expect(decLists).toHaveLength(dec.decks.length);
-    // the synergy report's lists of S2-05 and S2-08 are the ones before their 2026-11-24 swaps (REVIEW_2026-11-24 B.1):
-    // skipped and counted until the report is measured again
-    const synOff = syn.decks.filter((d) => !libLists.has(d.listId)).length;
-    expect(synOff).toBe(2);
-    expect(Object.fromEntries(Object.entries(a.report.skipped).filter(([k]) => k.startsWith('stats:')))).toEqual({ 'stats: list not in the library (packages)': synOff });
+    const cardOff = new Set([...dec.decks.map((d) => d.listId), ...ana.decks.flatMap((d) => (d.id ? [d.id] : []))].filter((id) => !libLists.has(id)));
+    const synOffLists = syn.decks.filter((d) => !libLists.has(d.listId)).map((d) => d.listId);
+    const synOff = synOffLists.length;
+    for (const id of [...cardOff, ...synOffLists]) expect(earlier.has(id), id).toBe(true);
+    expect(decLists.length).toBeGreaterThan(dec.decks.length / 2);
+    expect(Object.fromEntries(Object.entries(a.report.skipped).filter(([k]) => k.startsWith('stats:')))).toEqual({
+      ...(cardOff.size ? { 'stats: list not in the library (cards)': cardOff.size } : {}),
+      ...(synOff ? { 'stats: list not in the library (packages)': synOff } : {}),
+    });
     expect(count('pkgstat')).toBe(syn.decks.filter((d) => libLists.has(d.listId)).reduce((n, d) => n + d.synergies.length, 0) + syn.pooled.length);
     expect(a.records.filter((x) => x.id.startsWith('cardstat:') && x.id.includes('/')).length).toBeGreaterThanOrEqual(decLists.reduce((n, d) => n + d.cards.length, 0));
     for (const x of cells) {

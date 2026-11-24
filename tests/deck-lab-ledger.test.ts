@@ -4,7 +4,7 @@
 // pools under any-gain, records only whole confirmation stages, and without a ledger plays and logs exactly as before
 // (pinned on hashes taken from the code before the ledger existed).
 import { createHash } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CARDS } from '../src/engine/cards';
 import { listFingerprint } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
@@ -14,6 +14,15 @@ import { SIM_VERSION, type GameJob, type PlayGame } from '../src/lib/tournament'
 import { changeKey, fieldFingerprint } from '../src/lib/changeLedger';
 import { ChangeLedgerRun } from '../src/lib/changeLedgerRun';
 import { BrowserLedgerStore, memoryLedgerStorage } from '../src/lib/changeLedgerStore';
+
+// The Deck Lab reads src/data/impact.json, which every scheduled series run rebuilds (REVIEW_2026-11-24 B.9), so the pins
+// read a frozen copy: the table as B.2 first wrote it (commit 2ae69a6), the one they were taken on. The test then guards
+// the code, not the data: a change to the tuner moves the pins, a series run does not.
+vi.mock('../src/data/impact.json', async () => {
+  const { readFileSync } = await import('node:fs');
+  const t = JSON.parse(readFileSync(new URL('./fixtures/impact-2026-11-24-b2.json', import.meta.url), 'utf8'));
+  return { default: t, ...t };
+});
 
 function anyDeck(name: string, colors: string[]): DeckList {
   const legends = CARDS.filter((c) => c.type === 'Legend' && colors.includes(c.color)).slice(0, 3).map((c) => c.id);
@@ -67,7 +76,8 @@ describe('without a ledger the tuner is unchanged', () => {
   // hashes taken from src/lib/deckLab.ts before the ledger existed (the same fake games and options). Re-taken on 2026-11-24
   // when src/data/impact.json became the breeder's (9, hard) table (REVIEW_2026-11-24 B.2): the tuner's candidates read it, and
   // the same code with the old table still gave the old hashes (702275e885a067ca, 6fd09f3881e93bfe, 117279e0cb5559bb,
-  // eb15cc612a9459b7), so the move is the table's
+  // eb15cc612a9459b7), so the move is the table's. The table they read is that one frozen (the vi.mock at the top), so
+  // the scheduled rating series, which rebuilds src/data/impact.json, does not move them
   const CASES: [string, TuneOptions, PlayGame, string][] = [
     ['adopt', { games: 56, gens: 2, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_000, vsOriginal: 224, partnerAware: true }, fake(0.08), 'bb93eeac290dff64'],
     ['noisy', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_100 }, fake(0, 0.9), '26f0f0788f459a62'],

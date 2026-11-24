@@ -23,13 +23,16 @@
 // Regenerated again on 2026-11-24 (REVIEW_2026-11-24 B.2): impact.json became the breeder's (9, hard) table, Season 3's
 // round robin plus the Hard bot on all 71 library lists, instead of the deep bot on the 7 meta decks. The new code with
 // the old table still gave the old pins (5325241c62e34ae3, a8b38f24196ebfed, 30991c32c0a8f32d; checked before the
-// table was replaced), so the three were re-taken from the new table.
+// table was replaced), so the three were re-taken from the new table. Since that day the rating series adds every run to
+// the table (B.9), so the test reads that table frozen, tests/fixtures/impact-2026-11-24-b2.json (src/data/impact.json as
+// commit 2ae69a6 wrote it, injected with vi.mock below): a series run no longer moves the pins, and a change to the
+// Lab's code still does. Never re-take them on the live table.
 // The two breeder pins were re-taken on 2026-11-14 when the breeder got its Unit floor (MIN_BRED_UNITS, src/ai/breeder.ts):
 // the old outputs were themselves under it (7 of the 8 lists without head-to-heads and 6 of 8 with them had 12 Units,
 // from the 'control' template), and each such list is now topped up to 13 by one swap. Checked against the code before
 // the floor (HEAD 6ef3b93): every list that was not under the floor comes out byte-identical, in the same slot, and every
 // repaired one keeps its slot, method, parents and Legends. The old pins were b96b4ff77120e8bb and 6fd1450b99bc7b5f.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CARDS } from '../src/engine/cards';
 import { ramLimits } from '../src/engine/deck';
 import type { DeckList } from '../src/engine/types';
@@ -37,6 +40,15 @@ import { breedSeason } from '../src/ai/breeder';
 import { candidateSwaps, tuneDeck, type TuneOptions } from '../src/lib/deckLab';
 import { forgeSwaps, optimizeCandidates } from '../scripts/builder-moves';
 import { listKey, pin, synthBreedInput, synthDecks, synthReport, SYNTH_IMPACT } from './builder-fixtures';
+
+// The Deck Lab reads src/data/impact.json, which every scheduled series run rebuilds (REVIEW_2026-11-24 B.9), so the pins
+// read a frozen copy: the table as B.2 first wrote it (commit 2ae69a6), the one they were taken on. The test then guards
+// the code, not the data: a change to the tuner moves the pins, a series run does not.
+vi.mock('../src/data/impact.json', async () => {
+  const { readFileSync } = await import('node:fs');
+  const t = JSON.parse(readFileSync(new URL('./fixtures/impact-2026-11-24-b2.json', import.meta.url), 'utf8'));
+  return { default: t, ...t };
+});
 
 const PINNED = {
   decks: 'a0f0088bdb8876e4',
