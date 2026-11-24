@@ -5,7 +5,8 @@
 // names its simulator), never from the seasons file's manifest, whose version is the oldest season's. "Then and now" puts each bred deck's win rate in its own season's round robin beside its power rating now and
 // its best parent's (today's parent strength), with the season's test of it when one was recorded; it computes no
 // difference between them (src/lib/bredDecks.ts). Decks a season's test did not let in are listed under the table.
-// `SeasonsView` takes the data as props (tests render it with fixtures); the page hands it the bundled files.
+// A method tag's tooltip and the intro's counter sentence are bredDecks.ts's (a counter is in effect a crossover of the
+// top decks). `SeasonsView` takes the data as props (tests render it with fixtures); the page hands it the bundled files.
 import { useMemo, useState } from 'react';
 import { Wr } from '../components/Num';
 import { RATINGS, SEASONS, type RatingsData, type SeasonRecord, type SeasonsData } from '../../data/index';
@@ -17,7 +18,9 @@ import { CURRENT_SIM_VERSION } from '../../lib/playedRecord';
 import { rankLibraryParents, seasonVersions, staleLeaderRow } from '../../lib/parentStrength';
 import { botWord } from '../../lib/evidence';
 import {
+  bredMethodWords,
   bredThenAndNow,
+  COUNTER_NOTE,
   countedSteps,
   leaderboardStaleWords,
   madeFromWords,
@@ -64,6 +67,7 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
   const staleWords = leaderboardStaleWords(stale.size, D.leaderboard.length - stale.size);
   // each season's own version, never the file's minimum (src/data/seasons.json manifest.simVersion is the oldest season's)
   const simWords = seasonsSimWords(versions, current);
+  const hasCounter = D.seasons.some((s) => s.bred.some((b) => b.method === 'counter') || s.gate?.decks.some((d) => d.method === 'counter'));
   if (!D.leaderboard.length)
     return (
       <div className="grid">
@@ -83,6 +87,7 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
         Each season the breeder makes 8 new decks from the data. A season may test each one before it enters (its panel says which entered
         and which did not), and the ones that enter are measured against the meta. <b>Season rating</b> = win rate vs the meta decks, adjusted
         for sample size.
+        {hasCounter && <> {COUNTER_NOTE}</>}
         {simWords && <> {simWords}</>}
         {staleWords && <> {staleWords}</>}
       </PageHead>
@@ -179,7 +184,7 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
                     <DeckTile key={b.name} d={d} href={deckHref(d.file)} />
                   ) : (
                     <div key={b.name} className="small">
-                      <b>{b.name}</b> <span className="tag">{b.method}</span>
+                      <b>{b.name}</b> <MethodTag method={b.method} />
                     </div>
                   );
                 })}
@@ -209,6 +214,15 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
         </div>
       ))}
     </div>
+  );
+}
+
+/** How a deck was bred, with the method's words as its tooltip (a counter's say it is in effect a crossover of the top decks). */
+function MethodTag({ method }: { method: string }) {
+  return (
+    <span className="tag" title={bredMethodWords(method)}>
+      {method}
+    </span>
   );
 }
 
@@ -279,7 +293,7 @@ function BredThenAndNow({ season: s, rows, ratings }: { season: SeasonRecord; ro
                 <td style={{ minWidth: 150 }}>
                   <DeckName name={r.name} file={r.file} />
                   <div>
-                    <span className="tag">{r.method}</span>
+                    <MethodTag method={r.method} />
                   </div>
                 </td>
                 <td style={{ minWidth: 150 }}>{madeFromWords(r)}</td>
@@ -321,7 +335,7 @@ function NotEntered({ season: s, lib }: { season: SeasonRecord; lib: readonly Li
       <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
         {out.map((d) => (
           <li key={d.name}>
-            <DeckName name={d.name} file={lib.find((x) => x.deck.name === d.name)?.file ?? null} /> <span className="tag">{d.method}</span> {seasonTestWords(d)}
+            <DeckName name={d.name} file={lib.find((x) => x.deck.name === d.name)?.file ?? null} /> <MethodTag method={d.method} /> {seasonTestWords(d)}
             {countedSteps(d).map((st, i) => (
               <div key={i} className="muted">
                 {stepFigureWords(st)}

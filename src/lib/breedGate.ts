@@ -391,6 +391,44 @@ export async function runGate(entries: readonly GateEntry[], o: GateOptions, pla
   return Promise.all(entries.map(one));
 }
 
+/** One deck a season tested for a slot: the bred deck, its outcome, and for a runner-up of the screen its refill round (1, 2, …). */
+export interface SlotTest<B> {
+  bred: B;
+  outcome: GateOutcome;
+  refill?: number;
+}
+
+/**
+ * A season's slots when the breeder bred more than it has slots and screened them (scripts/season.ts --breed-count): the
+ * best by the screen are gated; when the gate keeps some out, the next runners-up by the screen, as many as there are
+ * open slots, are gated in their place (refill round 1), and so on until the slots are full or the runners-up run out.
+ * Every deck that takes a slot has passed the same gate. `gate` gates one batch (results in batch order); a season plays
+ * every batch on the same seeds, so a reference block is shared across rounds when the play function keeps it
+ * (keepReferences). Entered: the first batch's decks that entered, in order, then the runners-up that entered, in the
+ * screen's order. With no runners-up this is one gate call, exactly as before refills were gated.
+ */
+export async function gateSlots<B>(picked: readonly B[], runners: readonly B[], slots: number, gate: (batch: readonly B[], refill: number) => Promise<GateOutcome[]>): Promise<{ tested: SlotTest<B>[]; entered: B[] }> {
+  const tested: SlotTest<B>[] = [];
+  let batch: readonly B[] = picked;
+  let next = 0;
+  for (let round = 0; batch.length; round++) {
+    const outs = await gate(batch, round);
+    if (outs.length !== batch.length) throw new Error(`the gate tested ${batch.length} decks and gave ${outs.length} results`);
+    batch.forEach((bred, i) => tested.push({ bred, outcome: outs[i]!, ...(round ? { refill: round } : {}) }));
+    const open = slots - tested.filter((t) => t.outcome.entered).length;
+    if (open <= 0 || next >= runners.length) break;
+    batch = runners.slice(next, next + open);
+    next += batch.length;
+  }
+  return { tested, entered: tested.filter((t) => t.outcome.entered).map((t) => t.bred) };
+}
+
+/** "Refill 1: S4-11 …, S4-12 … (the next runners-up of the screen) are tested for slots left by decks kept out, on the same games." */
+export function refillRoundWords(round: number, names: readonly string[]): string {
+  const one = names.length === 1;
+  return `Refill ${round}: ${names.join(', ')} (${one ? 'the next runner-up' : 'the next runners-up'} of the screen) ${one ? 'is' : 'are'} tested for ${one ? 'a slot' : 'slots'} left by decks kept out, on the same games.`;
+}
+
 // ---------------------------------------------------------------- what it detects and guarantees
 
 /**
@@ -547,10 +585,25 @@ export function gateWords(r: GateOutcome): string {
   return `entered: not shown worse than ${ref} (${parts.join('; ')})`;
 }
 
-/** "8 bred, 5 entered" (and "every bred deck entered" / "none entered" said plainly). */
-export function enteredWords(bred: number, entered: number): string {
-  return `${bred} bred, ${entered} entered`;
+/**
+ * "8 bred, 5 entered". With refills (runners-up of the screen gated for the slots of decks kept out): "8 bred, 7
+ * entered, 2 of them runners-up of the screen (3 runners-up tested for the slots of decks kept out)"; the entered count
+ * includes them.
+ */
+export function enteredWords(bred: number, entered: number, refills?: { tested: number; entered: number }): string {
+  const base = `${bred} bred, ${entered} entered`;
+  if (!refills?.tested) return base;
+  if (!refills.entered) return `${base}; ${refills.tested === 1 ? '1 runner-up of the screen was tested for the slot of a deck kept out and did not enter' : `${refills.tested} runners-up of the screen were tested for the slots of decks kept out, and none entered`}`;
+  const of =refills.entered === 1 ? '1 of them a runner-up' : `${refills.entered} of them runners-up`;
+  const tested = refills.tested === 1 ? '1 runner-up tested for the slot of a deck kept out' : `${refills.tested} runners-up tested for the slots of decks kept out`;
+  return `${base}, ${of} of the screen (${tested})`;
 }
+
+/** The refill counts of a season's tests (for enteredWords): runners-up tested, and how many of them entered. */
+export const refillCounts = (tested: readonly Pick<SlotTest<unknown>, 'outcome' | 'refill'>[]): { tested: number; entered: number } => {
+  const r = tested.filter((t) => t.refill);
+  return { tested: r.length, entered: r.filter((t) => t.outcome.entered).length };
+};
 
 // ---------------------------------------------------------------- the Deck Lab's test (Breed tab)
 

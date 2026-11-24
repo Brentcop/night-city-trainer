@@ -28,7 +28,7 @@ This is the process used for the eight **NC** decks. Reuse it for any idea.
    - **Legend strength:** the average strength of decks using the Legend, pulled toward 50% when few decks have tried it.
    - **2 mutants:** a top deck with one Legend swapped, cards re-fitted to the new RAM limits;
    - **2 crossovers:** two strong decks merged;
-   - **2 counters:** the decks with the best tournament head-to-heads against the current top 4, merged to target them;
+   - **2 counters:** the decks with the best tournament head-to-head estimates against the current top 4, merged to target them (the estimates today follow the power ratings, so a counter is in effect a crossover of the top decks);
    - **2 explorers:** untested two-colour Legend combinations built from role and curve templates.
    (Before any tournament data exists, the counter slots go to mutants and crossovers. On the website, **Decks → Deck Lab → Breed** uses the same methods, counters included. It reads the head-to-heads from \`public/data/h2h.json\`, which every tournament run rebuilds; \`npm run build-h2h\` rebuilds it by hand.)
 2. **Tournament:** a telemetry round robin of the meta archetypes, the 8 best incumbents and the newcomers.

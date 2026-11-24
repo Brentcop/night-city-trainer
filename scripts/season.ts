@@ -47,6 +47,20 @@
 //                              re-run would). With --gate off it breeds and stops.
 //   --out DIR                  with --gate-only: write season-<N>-gate.json and season-<N>-gate.md into DIR
 //
+// Breeding more than the slots (off by default):
+//   --breed-count N            breed N candidates (more than 8) and screen them, then gate the best 8 (default 0: breed
+//                              exactly 8, no screen)
+//   --screen-games N           Medium games per candidate in the screen, against the meta decks (default 70)
+//   When the gate keeps decks out, their slots go to the next runners-up by the screen, as many as there are open slots,
+//   each gated the same way on the same games before it takes a slot; again until the slots are full or the runners-up
+//   run out. A runner-up the gate keeps out is handled like any deck kept out. The season file's gate record lists every
+//   deck tested, a runner-up with `refill` (its round), and `refills` (how many were tested).
+//
+// The four ways of breeding (src/ai/breeder.ts): mutants and crossovers of the top decks, counters and explorers (new
+// Legend trios). A counter is bred from the decks with the best head-to-head estimates against the top 4; those
+// estimates are shrunk toward the power ratings and today follow them almost exactly, so a counter is in effect a
+// crossover of the top decks (on 2026-11-24 the counter score's rank correlation with the rating order was 0.995 to 0.999).
+//
 // One entry per list (src/lib/distinctLists.ts; scripts/season-field.ts): the round robin's field holds each list once.
 // Two decks are the same list when their Legends and main deck are the same, whatever their names. An incumbent whose
 // list is already in the field is passed over for the next one by strength, and the season prints which. A bred deck
@@ -92,8 +106,9 @@ import { execSync } from 'node:child_process';
 import { breedSeason, pickScreened, screenSeeds, type Bred, type ScreenedBreed } from '../src/ai/breeder';
 import { keptOutTriples, leaderStrength, loadH2H, loadImpactTables, recordSeasonImpact, SEASON_BOT, seasonImpactCount, seasonVersionsOnDisk, strengthOf } from './breed-data';
 import { impactTablesWords, seasonCountWords } from '../src/lib/breederImpact';
+import { COUNTER_NOTE } from '../src/lib/bredDecks';
 import { rankParents } from '../src/lib/parentStrength';
-import { confirmBotOf, enteredWords, gateDetectWords, gateGuaranteeWords, gateRuleWords, gateSeeds, gateStageGames, gateWords, planGate, runGate, spreadSeen, spreadSeenWords, stepWords, type GateOptions, type GateOutcome } from '../src/lib/breedGate';
+import { confirmBotOf, enteredWords, gateDetectWords, gateGuaranteeWords, gateRuleWords, gateSeeds, gateSlots, gateStageGames, gateWords, keepReferences, planGate, refillCounts, refillRoundWords, runGate, spreadSeen, spreadSeenWords, stepWords, type GateOptions, type SlotTest } from '../src/lib/breedGate';
 import { asWritten, gateDeckRecord, gateFooterLines, gateHeaderLines, gatePlayOver, gateSettings, seasonGateFlags, seedProblem } from './gate-run';
 import type { DeckList } from '../src/engine/types';
 import { exportOfficial, deckColors, listFingerprint } from '../src/engine/deck';
@@ -372,6 +387,7 @@ async function main() {
   if (sameBred.left.length) console.log(`warning: ${leftOutLine(sameBred.left)} They take no season slot.`);
   let bred: Bred[] = sameBred.kept;
   console.log(`Season ${SEASON}: bred ${bred.length} candidates (${bred.map((b) => b.deck.name).join(', ')})`);
+  if (bred.some((b) => b.method === 'counter')) console.log(COUNTER_NOTE);
 
   // 1b. screen: when breeding more than 8, play each a short block of Medium games and pick the best 8
   let screenRecord: { breedCount: number; screenGames: number; screened: { name: string; method: string; wr: number; games: number }[] } | null = null;
@@ -400,37 +416,49 @@ async function main() {
   }
 
   if (!GATE_ONLY) {
-    const clash = existing(bred.map((b) => `data/decks/custom/${fileOf(b.deck)}`));
+    // (a runner-up of the screen may take a slot when the gate keeps a deck out, so its file counts too)
+    const clash = existing([...bred, ...(GATE_ON ? runners : [])].map((b) => `data/decks/custom/${fileOf(b.deck)}`));
     if (clash.length && !FORCE) throw new Refusal(`bred deck files already exist: ${clash.join(', ')}. Pass --force to overwrite them.`);
   }
 
-  // 2. the gate: each bred deck against its reference, before it takes a slot
-  let outcomes: GateOutcome[] | null = null;
+  // 2. the gate: each bred deck against its reference, before it takes a slot. With screening runners-up (--breed-count),
+  // the slots of decks the gate keeps out go to the next runners-up by the screen, each gated the same way on the same
+  // games before it takes a slot (gateSlots), and the reference's blocks are played once across the rounds.
+  let tested: SlotTest<Bred>[] | null = null;
   let gateLines: string[] = [];
+  let entered: Bred[] = bred;
   if (GATE_ON) {
-    const plan = planGate(bred, ranked, metaDecks.map((d) => d.deck), GATE.reference);
-    const header = gateHeaderLines(GATE, plan.map((p) => p.field.length));
-    for (const l of header) console.log(l);
-    outcomes = await runGate(plan, { ...GATE, onStep: ({ name, step, which }) => console.log(`  ${name}${which === 'confirm' ? ' (confirming)' : ''}: ${stepWords(step)}`) }, gatePlayOver(runJobs, { threads: THREADS }));
+    const overRuns = gatePlayOver(runJobs, { threads: THREADS });
+    const gatePlay = runners.length ? keepReferences(overRuns, new Map()) : overRuns;
+    const roundLines: string[] = [];
+    let header: string[] = [];
+    const slots = await gateSlots<Bred>(bred, runners, 8, async (batch, refill) => {
+      const plan = planGate(batch, ranked, metaDecks.map((d) => d.deck), GATE.reference);
+      if (!refill) {
+        header = gateHeaderLines(GATE, plan.map((p) => p.field.length));
+        for (const l of header) console.log(l);
+      } else {
+        const line = refillRoundWords(refill, batch.map((b) => b.deck.name));
+        roundLines.push(line);
+        console.log(line);
+      }
+      return runGate(plan, { ...GATE, onStep: ({ name, step, which }) => console.log(`  ${name}${which === 'confirm' ? ' (confirming)' : ''}: ${stepWords(step)}`) }, gatePlay);
+    });
+    tested = slots.tested;
+    entered = slots.entered;
+    const outcomes = tested.map((t) => t.outcome);
     const footer = gateFooterLines(outcomes);
-    gateLines = [...header, '', ...outcomes.map((r) => `- **${r.name}**: ${gateWords(r)}`), '', ...footer];
-    for (const r of outcomes) console.log(`${r.name}: ${gateWords(r)}`);
+    const deckLine = (t: SlotTest<Bred>) => `${t.outcome.name}${t.refill ? ` (runner-up of the screen, refill ${t.refill})` : ''}: ${gateWords(t.outcome)}`;
+    gateLines = [...header, '', ...tested.map((t) => `- **${t.outcome.name}**${t.refill ? ` (runner-up of the screen, refill ${t.refill})` : ''}: ${gateWords(t.outcome)}`), ...(roundLines.length ? ['', ...roundLines] : []), '', ...footer];
+    for (const t of tested) console.log(deckLine(t));
     for (const l of footer) console.log(l);
   }
-  // when the gate keeps out some decks and screening produced runners-up, fill the gaps
-  let enters = bred.map((_, i) => !outcomes || outcomes[i]!.entered);
-  let entered = bred.filter((_, i) => enters[i]);
-  if (outcomes && runners.length > 0) {
-    const gaps = 8 - entered.length;
-    if (gaps > 0) {
-      const fillers = runners.slice(0, gaps);
-      console.log(`Refilling ${gaps} slot${gaps === 1 ? '' : 's'} from screening runners-up: ${fillers.map((f) => f.deck.name).join(', ')}`);
-      entered = [...entered, ...fillers];
-    }
-  }
-  console.log(`Season ${SEASON}: ${enteredWords(bred.length, entered.length)}`);
+  const refills = tested ? refillCounts(tested) : undefined;
+  const seasonWords = enteredWords(bred.length, entered.length, refills);
+  console.log(`Season ${SEASON}: ${seasonWords}`);
   const bredRecord = (b: (typeof bred)[number]) => ({ name: b.deck.name, method: b.method, parents: b.parents, idea: b.idea, ...(b.packages ? { packages: b.packages } : {}) });
-  const gateRecord = outcomes
+  const outcomes = tested?.map((t) => t.outcome) ?? null;
+  const gateRecord = tested && outcomes
     ? {
         bred: bred.length,
         entered: entered.length,
@@ -438,7 +466,9 @@ async function main() {
         settings: gateSettings(GATE),
         words: { rule: gateRuleWords(GATE), guarantee: gateGuaranteeWords(GATE), detect: gateDetectWords({ ...GATE, opponents: outcomes.map((r) => r.field.length) }), spread: spreadSeenWords(outcomes) },
         spreadSeen: spreadSeen(outcomes),
-        decks: outcomes.map((r, i) => gateDeckRecord(r, bred[i]!.deck, { method: bred[i]!.method, idea: bred[i]!.idea })),
+        // every deck tested for a slot: the bred decks, then the runners-up of the screen gated for the slots of decks kept out
+        decks: tested.map((t) => gateDeckRecord(t.outcome, t.bred.deck, { method: t.bred.method, idea: t.bred.idea, ...(t.refill ? { refill: t.refill } : {}) })),
+        ...(refills?.tested ? { refills: refills.tested } : {}),
       }
     : null;
   if (GATE_ONLY) {
@@ -456,7 +486,7 @@ async function main() {
     const md = [
       `# Season ${SEASON}: ${outcomes ? 'bred and tested' : 'bred'}, nothing recorded`,
       '',
-      `${enteredWords(bred.length, entered.length)}. Nothing was written to the repository.`,
+      `${seasonWords}. Nothing was written to the repository.`,
       '',
       ...(screenRecord ? [`Screened ${screenRecord.breedCount} candidates (${screenRecord.screenGames} Medium games each), picked the best 8.`, ''] : []),
       ...(outcomes ? gateLines : bred.map((b) => `- **${b.deck.name}** (${b.method}): ${b.idea}`)),
@@ -476,7 +506,7 @@ async function main() {
     const pkgLine = b.packages ? `// Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.seeded ? `; seeded from ${b.packages.seeded.map(packageName).join(' + ')}` : ''}; plan: ${describePlan(PLAN)}${b.packages.changes.length ? `; changes: ${b.packages.changes.join('; ')}` : ''}${NL}` : '';
     fs.writeFileSync(`data/decks/custom/${fileOf(b.deck)}`, `${exportOfficial(b.deck)}${NL}${NL}// Idea: ${b.idea}${NL}// Author: Night City Trainer breeder (season ${SEASON}, ${b.method})${NL}${pkgLine}`);
   }
-  const leftOver = existing(bred.filter((_, i) => !enters[i]).map((b) => `data/decks/custom/${fileOf(b.deck)}`));
+  const leftOver = existing((tested ?? []).filter((t) => !t.outcome.entered).map((t) => `data/decks/custom/${fileOf(t.bred.deck)}`));
   if (leftOver.length) console.log(`warning: ${leftOver.join(', ')} ${leftOver.length === 1 ? 'is' : 'are'} from an earlier run of season ${SEASON}, and ${leftOver.length === 1 ? 'its deck' : 'their decks'} did not enter this time; left in place.`);
 
   // 4. forge the newcomers, before the round robin, so everything after it measures the forged lists
@@ -503,7 +533,7 @@ async function main() {
   const { incumbents, field } = rr;
   const newcomers = field.filter((d) => newFiles.includes(d.file));
   if (rr.left.length) console.log(`${leftOutLine(rr.left)} (Pass --allow-same-lists to enter ${rr.left.length === 1 ? 'it' : 'them'} too.)`);
-  for (const d of newcomers) lb[d.deck.name] = mkEntry(d, SEASON, `S${SEASON} ${bred.find((b) => b.deck.name === d.deck.name)!.method}`);
+  for (const d of newcomers) lb[d.deck.name] = mkEntry(d, SEASON, `S${SEASON} ${entered.find((b) => b.deck.name === d.deck.name)!.method}`);
   // an incumbent chosen by its power rating that is not on the leaderboard yet (a guide, Trainer original or sim-ladder
   // list) joins it from this season on, so its round-robin games vs the meta and its finals count like every incumbent's
   // (a forced re-run takes it out again: its firstSeason is this season)
@@ -591,14 +621,15 @@ async function main() {
   const md = [
     `# Season ${SEASON}`,
     '',
-    `${enteredWords(bred.length, entered.length)}. ${field.length} decks (7 meta, ${incumbents.length} incumbents, ${entered.length} new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. ${entered.length ? `The new decks were forged (${FORGE_GENS} gen) before the round robin, so the round robin, the finals vs the meta (${FINALS} games per opponent) and the leaderboard all measure the forged lists.` : 'No bred deck entered, so nothing was forged.'}`,
+    `${seasonWords}. ${field.length} decks (7 meta, ${incumbents.length} incumbents, ${entered.length} new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. ${entered.length ? `The new decks were forged (${FORGE_GENS} gen) before the round robin, so the round robin, the finals vs the meta (${FINALS} games per opponent) and the leaderboard all measure the forged lists.` : 'No bred deck entered, so nothing was forged.'}`,
     '',
     ...(entered.length ? [`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`, ''] : []),
     ...(screenRecord ? [`## Screening: ${screenRecord.breedCount} candidates, ${screenRecord.screenGames} Medium games each`, '', ...screenRecord.screened.map((s) => `- ${s.name} (${s.method}): ${(s.wr * 100).toFixed(1)}%`), ''] : []),
-    ...(outcomes ? [`## Gate: ${enteredWords(bred.length, entered.length)}`, '', ...gateLines, ''] : []),
+    ...(outcomes ? [`## Gate: ${seasonWords}`, '', ...gateLines, ''] : []),
     '## New decks',
     ...(PACKAGES ? [`Package plan: ${describePlan(PLAN)}${SEEDS.length ? `; explorers seeded from ${SEEDS.map((c) => c.map(packageName).join(' + ')).join(', ')}` : ''}${V['keep-built-around'] ? "; the forge kept each new deck's built-around packages" : ''}${V['package-moves'] ? '; the forge tried package moves' : ''}.`, ''] : []),
     ...(entered.length ? [] : ['None entered.']),
+    ...(entered.some((b) => b.method === 'counter') ? [COUNTER_NOTE, ''] : []),
     ...entered.map(
       (b) =>
         `- **${b.deck.name}** (${b.method}) — ${b.idea}${b.packages ? ` Packages: built around ${b.packages.builtAround.map(packageName).join(', ') || 'none'}${b.packages.changes.length ? `; package changes: ${b.packages.changes.join('; ')}` : ''}.` : ''}`,

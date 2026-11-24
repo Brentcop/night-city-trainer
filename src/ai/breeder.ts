@@ -1,7 +1,9 @@
 // Data-driven deck breeder: builds new legal decks from what the statistics say works.
 //   mutant    — a top deck with one Legend swapped (cards re-fitted to the new RAM limits)
 //   crossover — two strong decks merged: Legends and cards drawn from both
-//   counter   — built to beat the current top decks ("bosses"): merges the decks with the best head-to-head records vs them
+//   counter   — aimed at the current top decks ("bosses"): merges the decks with the best head-to-head estimates vs them.
+//               The estimates are shrunk toward the power ratings and, with a few games a pairing, follow them (rank
+//               correlation 0.995 to 0.999 on 2026-11-24), so a counter is in effect a crossover of the top decks
 //   explorer  — an untested Legend combination, filled by role/curve templates
 // Card choice score = format-wide impact (IWD) + static card value + seed-deck weight + archetype fit.
 // Seed-deck weight uses the parent's own card impact: proven performers in that deck are kept, cards that lose games
@@ -312,7 +314,8 @@ export function breedSeason(season: number, input: BreedInput, n = 8, breedCount
     const d = fill(legends, seedsOf([a, b], di), input.impact, style, name(out.length + 1, 'Cross', legends));
     push({ deck: d, method: 'crossover', parents: [a.name, b.name], idea: `Crossover of ${a.name} × ${b.name} (${style}): strongest Legends of both, cards ranked by format-wide impact.` });
   }
-  // counters: the decks that beat the bosses most often (tournament head-to-heads), merged
+  // counters: the decks with the best head-to-head estimates against the bosses, merged (in effect a crossover of the
+  // top decks while the estimates follow the ratings: see the header)
   if (h2h && nCounter) {
     const bosses = input.ranked.slice(0, 4).map((x) => x.deck.name);
     const vsBosses = input.ranked
