@@ -98,8 +98,8 @@
 // The forge-budget check refuses on the usual estimate. The season passes --forge-budget to the forge as --budget, and
 // since 2026-11-24 the forge caps until settled's further stages so the run stays within it (settleStagesWithin; the
 // season never passes --force), so the printed line gives what they may add within the budget (settleExtraWithin).
-// The season's estimate does not count the own seed block of --screen-rounds (the forge's estimate does), so with
-// halving the forge may still refuse a run the season's check let through.
+// With --screen-rounds the season's estimate counts the rounds' own seed block as the forge's does, so the forge does not
+// refuse a run the season's check let through.
 // --confirm-bot BOT has the forge step's confirmation stages played by BOT (its screening stays with lookahead, Medium;
 // docs/SYNERGIES.md "Confirming with another bot"; default lookahead, and then nothing changes).
 // --screen-rounds N, --initial-cands N, --per-deck-adds and --per-deck-bot BOT go to the forge step (successive halving
@@ -175,7 +175,8 @@ shortlistFromFlags(V, { ledger: !!SEASON_LEDGER, rule: RULE });
 const SEASON_SETTLE_ON = !V['no-until-settled'] && (V['until-settled'] || RULE.kind === 'evidence');
 const SETTLE = settleFromFlags({ ...V, 'until-settled': SEASON_SETTLE_ON }, { rule: RULE });
 const DEPTH = depthFromFlags(V, 1);
-/** the forge step's cost per new deck (5 candidate swaps, package moves when on), checked before the season starts */
+const FORGE_SCREEN_ROUNDS = V['screen-rounds'] ?? 1;
+/** the forge step's cost per new deck (5 candidate swaps, package moves when on, halving's own block when on), checked before the season starts */
 const FORGE_ESTIMATE = estimateGames({
   gens: V['forge-gens'],
   screenGames: V['forge-games'],
@@ -184,6 +185,8 @@ const FORGE_ESTIMATE = estimateGames({
   depth: DEPTH,
   firstStage: V['forge-games'] * 2,
   rule: RULE,
+  // the forge's own estimate for the halving flags passed on (--cands 5): its rounds play a seed block of their own
+  ...(FORGE_SCREEN_ROUNDS > 1 ? { screenRounds: FORGE_SCREEN_ROUNDS, initialCands: V['initial-cands'] ?? 20 /* the forge's max(--cands 5, 20) */, ownHalvingBlock: true } : {}),
 });
 /** --until-settled: what it may add per new deck before the budget's cap (the forge's 50,000 confirmation seeds a generation, and the reach); checkBudget prints it within --forge-budget */
 const FORGE_SETTLE_EXTRA = SETTLE
