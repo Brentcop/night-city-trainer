@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { DeckList } from '../src/engine/types';
-import { enteredWords, gateField, gateSeeds, gateSlots, keepReferences, planGate, refillCounts, refillRoundWords, runGate, type GateOptions, type GateOutcome, type GatePlay, type GatePlayRequest } from '../src/lib/breedGate';
+import { enteredWords, gateField, gateSeeds, gateSlots, keepReferences, planGate, refillCounts, refillRoundWords, runGate, type GateOptions, type GatePlay, type GatePlayRequest } from '../src/lib/breedGate';
 import { BRED_METHOD_WORDS, bredMethodWords, COUNTER_NOTE, notEntered, seasonTestWords } from '../src/lib/bredDecks';
 import { keptOutTriples } from '../scripts/breed-data';
 
@@ -142,9 +142,11 @@ describe('the words', () => {
 
   it('a season’s test of a runner-up says it was one', async () => {
     const r = await gateSlots([bred('Weak A', 10)], [bred('Even R1', 20)], 1, seasonGate(fakePlay()));
-    const [a, r1] = r.tested as [{ outcome: GateOutcome }, { outcome: GateOutcome; refill: number }];
+    const a = r.tested[0]!;
+    const r1 = r.tested[1]!;
+    expect(r.tested).toHaveLength(2);
     expect(seasonTestWords(a.outcome)).toMatch(/^Kept out: shown worse than Meta 5 /);
-    expect(seasonTestWords({ ...r1.outcome, refill: r1.refill })).toMatch(/^Entered: .*\. Tested as a runner-up of the screen, for a slot a deck kept out left open$/);
+    expect(seasonTestWords({ ...r1.outcome, refill: r1.refill! })).toMatch(/^Entered: .*\. Tested as a runner-up of the screen, for a slot a deck kept out left open$/);
   });
 
   it('a counter is labelled for what it is today: in effect a crossover of the top decks', () => {
