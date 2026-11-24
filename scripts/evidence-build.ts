@@ -18,7 +18,8 @@ import { fitRatings, predictPair, type RatedGame, type RatingFit } from '../src/
 import { h2hEstimator, h2hFileLookup } from '../src/lib/h2hModel';
 import { cardAnalysis, gapOf, packageFact, winRateOf, type AnalysisInput } from '../src/lib/cardFacts';
 import type { SynergyReport } from '../src/analysis/synergies';
-import { wilson } from '../src/analysis/decisions';
+import { wilson, type DecisionReport } from '../src/analysis/decisions';
+import { cardSellShare } from '../src/lib/sellShare';
 import type { AdjustedDeck } from '../src/analysis/impactAdjusted';
 import { entryKey, fieldFingerprint, gamesToSettle, ledgerBot, ledgerVerdict, mergeBatches, summarize, type LedgerBatch, type LedgerEntry, type LedgerGame } from '../src/lib/changeLedger';
 import { changeStatus, pooledGain, pooledGames, SHORTLIST_DEFAULTS, swapOfKey, type ShortlistRule } from '../src/lib/shortlist';
@@ -42,6 +43,7 @@ import {
   NO_DIFFERENCE_HALF_WIDTH,
   plain95,
   pValueOf,
+  isOtherBot,
   isStale,
   strengthOf,
   STRENGTHS,
@@ -124,6 +126,8 @@ export interface EvidenceInputs {
   h2h: H2HInput | null;
   analysis: AnalysisInput | null;
   synergies: SynergyReport | null;
+  /** the decision telemetry report (public/data/decisions.json): each card's sells out of its uses from hand (src/lib/sellShare.ts); absent or null, card rows carry none */
+  decisions?: DecisionReport | null;
   /** the current synergy catalogue version (CATALOGUE_VERSION) */
   catalogueVersion: string;
   /** the change ledger, file by file (readLedgerDir) */
@@ -132,7 +136,7 @@ export interface EvidenceInputs {
   remeasure: { file: string; data: RemeasureFile }[];
   adjusted: { file: string; data: AdjustedFile } | null;
   /** where each input lives, for the findings' sources */
-  paths: { ratings: string; h2h: string; analysis: string; synergies: string; events: string; ledgerDir: string; series?: string };
+  paths: { ratings: string; h2h: string; analysis: string; synergies: string; events: string; ledgerDir: string; series?: string; decisions?: string };
   simVersion: number;
 }
 
@@ -369,7 +373,7 @@ function finalize(drafts: Draft[], current: number): Finding[] {
   return rounded.map((d) => {
     const { test: _test, ...rest } = d;
     const ids = findingIds({ kind: d.kind, subject: d.subject, method: d.method, bot: d.bot, simVersion: d.simVersion, field: d.field });
-    const flags = [...new Set<FlagCode>([...(isStale(d.simVersion, current) ? (['stale'] as const) : []), ...d.flags])].sort((a, b) => FLAG_CODES.indexOf(a) - FLAG_CODES.indexOf(b));
+    const flags = [...new Set<FlagCode>([...(isStale(d.simVersion, current) ? (['stale'] as const) : []), ...(isOtherBot(d.bot, NATURE_OF[d.kind]) ? (['other-bot'] as const) : []), ...d.flags])].sort((a, b) => FLAG_CODES.indexOf(a) - FLAG_CODES.indexOf(b));
     const f: Finding = {
       ...ids,
       nature: NATURE_OF[d.kind],
@@ -1026,6 +1030,9 @@ function adjustedOf(ctx: Ctx, listId: string, deckName: string, cardId: string):
   };
 }
 
+/** Each card's type, for the sell share (a Program cast in a reaction window is a use from hand). */
+const CARD_TYPE = new Map(CARDS.map((c) => [c.id, c.type]));
+
 function cards(ctx: Ctx, d: EvidenceDeck, listId: string, gaps: GapNote[]): Draft[] {
   const an = ctx.inputs.analysis;
   const di = an ? an.decks.findIndex((x) => x.id === listId) : -1;
@@ -1036,6 +1043,9 @@ function cards(ctx: Ctx, d: EvidenceDeck, listId: string, gaps: GapNote[]): Draf
   }
   if (!ctx.inputs.adjusted) gaps.push({ code: 'no-adjusted' });
   const p = ctx.inputs.paths.analysis;
+  const dec = ctx.inputs.decisions ?? null;
+  const dp = ctx.inputs.paths.decisions ?? 'public/data/decisions.json';
+  const ddi = dec ? dec.decks.findIndex((x) => x.listId === listId) : -1;
   const out: Draft[] = [];
   let thin = 0;
   deck.cards.forEach((c, ci) => {
@@ -1045,6 +1055,10 @@ function cards(ctx: Ctx, d: EvidenceDeck, listId: string, gaps: GapNote[]): Draf
       return;
     }
     const adjusted = adjustedOf(ctx, listId, deck.deck, c.id);
+    // how often the bot sold it, from the decision telemetry of this list (a Program's reactions are uses from hand too)
+    const sold = dec && ddi >= 0 ? cardSellShare(dec, c.id, { listId, reactFromHand: CARD_TYPE.get(c.id) === 'Program' }) : null;
+    const dci = sold ? dec!.decks[ddi]!.cards.findIndex((x) => x.id === c.id) : -1;
+    const dm = dec?.manifest;
     out.push({
       test: 'bh',
       kind: 'card-assoc',
@@ -1065,11 +1079,15 @@ function cards(ctx: Ctx, d: EvidenceDeck, listId: string, gaps: GapNote[]): Draf
         { file: p, path: `decks[${di}].cards[${ci}].wrNotSeen` },
         { file: p, path: `decks[${di}].cards[${ci}].seenGames` },
         { file: p, path: `decks[${di}].games` },
+        ...(sold ? [{ file: dp, path: `decks[${ddi}].cards[${dci}].modes` }] : []),
       ],
       family: { key: `${listId}:cards`, size: 0, correction: 'bh' },
       flags: [],
       ...(adjusted ? { adjusted } : {}),
-      detail: { rates: { a: fact.wonDrawn.rate, aGames: fact.wonDrawn.games, b: fact.wonNotDrawn.rate, bGames: fact.wonNotDrawn.games, aLabel: 'drawn', bLabel: 'not drawn' } },
+      detail: {
+        rates: { a: fact.wonDrawn.rate, aGames: fact.wonDrawn.games, b: fact.wonNotDrawn.rate, bGames: fact.wonNotDrawn.games, aLabel: 'drawn', bLabel: 'not drawn' },
+        ...(sold ? { sold: { n: sold.sold, of: sold.uses, bot: dm?.bot?.level ?? '?', simVersion: typeof dm?.simVersion === 'number' ? dm.simVersion : 0, run: dm?.runId ?? null, date: dm?.createdAt ?? null } } : {}),
+      },
     });
   });
   if (thin) gaps.push({ code: 'thin-cards', n: thin });
@@ -1219,6 +1237,24 @@ function nomineesInLedger(listId: string, reports: readonly { file: string; repo
     );
   }
   return { skip, onEntry };
+}
+
+/**
+ * For `npm run ledger -- stats`: each ledger entry whose held-out games all come from one recorded forge run (the same
+ * join and the same test as the evidence pages', nomineesInLedger, on the ledger file of the entry's base list), that
+ * run's own verdict by its staged rule, by entry key. The ledger's pooled always-valid verdict on the same games may
+ * differ; both are right under their own rules.
+ */
+export function stagedVerdicts(forge: readonly { file: string; report: ForgeReport }[], ledger: EvidenceInputs['ledger'], ledgerDir: string): Map<string, NonNullable<FindingDetail['confirmation']>> {
+  const joins = joinReports(forge, ledger, ledgerDir);
+  const out = new Map<string, NonNullable<FindingDetail['confirmation']>>();
+  for (const f of ledger) {
+    const base = f.file.replace(/\.jsonl$/, '');
+    const entries = [...mergeBatches(f.batches).values()];
+    const reports = forge.filter((r) => (r.report.manifest.decks[0]?.id ?? '') === base);
+    for (const [key, rep] of nomineesInLedger(base, reports, entries, f.batches, joins).onEntry) if (rep.confirmation) out.set(key, rep.confirmation);
+  }
+  return out;
 }
 
 function ledgerChanges(ctx: Ctx, d: EvidenceDeck, listId: string, entries: LedgerEntry[], file: string, fromReport: ReadonlyMap<string, FromReport> = new Map()): { drafts: Draft[]; open: OpenQuestion[] } {
@@ -1912,6 +1948,7 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     { file: inputs.paths.h2h, runId: (inputs.h2h?.manifest as RunManifest | undefined)?.runId ?? null },
     { file: inputs.paths.analysis, runId: inputs.analysis?.manifest?.runId ?? null },
     { file: inputs.paths.synergies, runId: inputs.synergies?.manifest?.runId ?? null },
+    ...(inputs.decisions ? [{ file: inputs.paths.decisions ?? 'public/data/decisions.json', runId: inputs.decisions.manifest?.runId ?? null }] : []),
     ...pool.events.map((e) => ({ file: `${inputs.paths.events}/event-${e.id}.json`, runId: (e.manifest as RunManifest | undefined)?.runId ?? null })),
     ...pool.runs.map((e) => ({ file: `${inputs.paths.series ?? 'data/series'}/${e.id}.json`, runId: (e.manifest as RunManifest | undefined)?.runId ?? null })),
     ...inputs.forge.map((f) => ({ file: f.file, runId: f.report.manifest.runId })),

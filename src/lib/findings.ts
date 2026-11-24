@@ -11,8 +11,9 @@
 //     (games where a card was drawn or a package was online).
 //   - The strength rule (`strengthOf`) is a table: games under a minimum are 'not-enough'; a plain 95% interval that
 //     excludes the baseline is 'moderate', or 'strong' when the family test passes too, the effect is at least a point,
-//     the games reach the strong threshold, it is current and it is not an association (unless an adjusted estimate also
-//     clears the bar); an interval that includes the baseline is 'weak' (effect a point or more), 'no-difference' (under
+//     the games reach the strong threshold, it is current, it was measured with a bot its nature expects (`isOtherBot`:
+//     results and associations Hard, effects Medium or Hard; a finding with no recorded bot is not checked) and it is
+//     not an association (unless an adjusted estimate also clears the bar); an interval that includes the baseline is 'weak' (effect a point or more), 'no-difference' (under
 //     a point, half-width at most 2 points) or 'not-enough'.
 //   - Families: a deck's matchups, cards, packages and endings are each tested together by Benjamini–Hochberg at
 //     q = 0.10 (`bhPass`); a change keeps the correction its tool applied.
@@ -99,6 +100,7 @@ export const Z95 = 1.96;
 /** Codes a page turns into words (src/lib/findingWords.ts FLAG_WORDS). */
 export type FlagCode =
   | 'stale'
+  | 'other-bot'
   | 'medium-only'
   | 'hard-confirms'
   | 'hard-decides'
@@ -113,7 +115,7 @@ export type FlagCode =
   | 'other-list'
   | 'model-uncertainty-missing'
   | 'spread-default';
-export const FLAG_CODES: readonly FlagCode[] = ['stale', 'medium-only', 'hard-confirms', 'hard-decides', 'hard-unsettled', 'hard-no-difference', 'hard-opposite', 'first-look', 'stopped-futility', 'few-direct-games', 'prediction-only', 'depends-on-opponent', 'other-list', 'model-uncertainty-missing', 'spread-default'];
+export const FLAG_CODES: readonly FlagCode[] = ['stale', 'other-bot', 'medium-only', 'hard-confirms', 'hard-decides', 'hard-unsettled', 'hard-no-difference', 'hard-opposite', 'first-look', 'stopped-futility', 'few-direct-games', 'prediction-only', 'depends-on-opponent', 'other-list', 'model-uncertainty-missing', 'spread-default'];
 
 /** A sequentially corrected interval: which correction drew it. */
 export type SequentialKind = 'always-valid' | 'obrien-fleming' | 'bonferroni';
@@ -196,6 +198,11 @@ export interface FindingDetail {
   online?: number;
   /** change: the screening games' figure (plain 95%), always optimistic: shown greyed, never as the result */
   screen?: { games: number; mean: number; lower: number; upper: number; flag: 'screening'; /** the bot that screened, when it is not the bot of the finding */ bot?: string };
+  /**
+   * card-assoc: the card's sells out of its uses from hand in the decision telemetry (src/lib/sellShare.ts), with the
+   * run they come from (its bot, simulator version, run id and date as the report's manifest records them)
+   */
+  sold?: { n: number; of: number; bot: string; simVersion: number; run: string | null; date: string | null };
   /** change: the verdict the tool's rule gives, the runs that tested it, and its status in the shortlist */
   verdict?: 'adopt' | 'reject' | 'undecided' | 'inconclusive';
   /**
@@ -286,6 +293,27 @@ export const plain95 = (f: Pick<Finding, 'lower' | 'upper' | 'p95'>): [number, n
 /** Measured under another simulator version than the current one. */
 export const isStale = (simVersion: number, current: number = CURRENT_SIM_VERSION): boolean => simVersion !== current;
 
+/**
+ * The bots each nature's findings are expected from (docs/EVIDENCE.md "The bot a finding was measured with"): the site's
+ * recorded results, ratings and matchups are the Hard bot's, so a result or an association measured with another bot
+ * (the `deep` bot's analysis, decision and synergy tables) does not describe the games the site rates; a change may be
+ * screened and confirmed with Medium (its Hard reading is flagged apart: 'medium-only', 'hard-confirms', …) or Hard.
+ */
+export const REFERENCE_BOT = 'hard';
+export const EXPECTED_BOTS: Readonly<Record<Nature, readonly string[]>> = { result: [REFERENCE_BOT], association: [REFERENCE_BOT], effect: ['medium', REFERENCE_BOT] };
+/** The older worker names of the bots, as the ledger canonicalises them. */
+const BOT_ALIASES: Readonly<Record<string, string>> = { lookahead: 'medium', best: 'medium', fast: 'easy' };
+export const canonicalBotName = (bot: string): string => BOT_ALIASES[bot] ?? bot;
+/** No bot recorded: the source named none ('', '?'). Such a finding is never marked for its bot. */
+export const unknownBot = (bot: string | null | undefined): boolean => !bot || bot === '?';
+
+/**
+ * Measured with a bot that is not one its nature is expected from (EXPECTED_BOTS): e.g. a card table played by the `deep`
+ * bot read where Hard is the reference. A finding whose source records no bot is never marked.
+ */
+export const isOtherBot = (bot: string | null | undefined, nature: Nature, expected: Readonly<Record<Nature, readonly string[]>> = EXPECTED_BOTS): boolean =>
+  !unknownBot(bot) && !expected[nature].includes(canonicalBotName(bot!));
+
 /** An adjusted estimate clears the bar: its shrunk posterior interval excludes 0 and the shrunk value is a point or more. */
 export function adjustedClears(a: AdjustedEstimate | undefined, sign: number): boolean {
   if (!a) return false;
@@ -293,7 +321,10 @@ export function adjustedClears(a: AdjustedEstimate | undefined, sign: number): b
   return excludes && Math.abs(a.shrunk) >= MIN_EFFECT && Math.sign(a.shrunk) === sign;
 }
 
-export type StrengthInput = Pick<Finding, 'estimate' | 'lower' | 'upper' | 'p95' | 'baseline' | 'n' | 'method' | 'nature' | 'corrected' | 'simVersion' | 'adjusted'>;
+export type StrengthInput = Pick<Finding, 'estimate' | 'lower' | 'upper' | 'p95' | 'baseline' | 'n' | 'method' | 'nature' | 'corrected' | 'simVersion' | 'adjusted'> & {
+  /** the bot it was measured with; absent or unknown ('?'), the bot is not checked */
+  bot?: string;
+};
 
 /** Why a finding got its strength word, step by step (for the doc's table and a page's "why"). */
 export type StrengthStep = 'under-minimum' | 'excludes-strong' | 'excludes-moderate' | 'includes-weak' | 'includes-no-difference' | 'includes-not-enough';
@@ -310,7 +341,7 @@ export function strengthStep(f: StrengthInput, current: number = CURRENT_SIM_VER
   const big = Math.abs(effect) >= MIN_EFFECT - 1e-12;
   if (excludes) {
     const assocOk = f.nature !== 'association' || adjustedClears(f.adjusted, Math.sign(effect));
-    const strong = f.corrected && big && f.n >= t.strong && !isStale(f.simVersion, current) && assocOk;
+    const strong = f.corrected && big && f.n >= t.strong && !isStale(f.simVersion, current) && !isOtherBot(f.bot, f.nature) && assocOk;
     return strong ? 'excludes-strong' : 'excludes-moderate';
   }
   if (big) return 'includes-weak';

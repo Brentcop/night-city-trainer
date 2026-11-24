@@ -6,6 +6,9 @@
 // the wording says so. With no report (not loaded, missing, or made with another catalogue) every package is
 // "unmeasured" and the notes say they are an idea from the catalogue; with a report, a package without a lift above 0
 // is left out. Plain data throughout: the Play page builds a seat's table and the coach worker gets it in the request.
+// Each row carries the bot and simulator version the report's manifest records (`bot`, `simVersion`), and the label
+// names them ("In the Deep bot's games, simulator version 9, …"): the report is played by the `deep` bot, not the Hard
+// bot the site's ratings use. The gate itself reads neither.
 import type { SynergyReport, SynergyRow } from '../analysis/synergies';
 
 /** One package's measured lift on a list (or pooled over every list that holds it). Rates and bounds are 0–1. */
@@ -21,7 +24,19 @@ export interface PackageLift {
   /** Newcombe's 95% interval for the difference, from the two Wilson intervals */
   low95: number;
   high95: number;
+  /** the bot and simulator version the report's manifest records (absent: the report named none) */
+  bot?: string;
+  simVersion?: number;
 }
+
+/** The bot and simulator version a report's (or slice's) rows were measured with, when it records them. */
+type LiftSource = { bot?: string; simVersion?: number };
+const sourceOf = (m: { bot?: { level?: string }; simVersion?: number } | undefined): LiftSource => ({
+  ...(typeof m?.bot?.level === 'string' ? { bot: m.bot.level } : {}),
+  ...(typeof m?.simVersion === 'number' ? { simVersion: m.simVersion } : {}),
+});
+const stamp = (rows: Record<string, PackageLift>, src: LiftSource): Record<string, PackageLift> =>
+  src.bot === undefined && src.simVersion === undefined ? rows : Object.fromEntries(Object.entries(rows).map(([k, r]) => [k, { ...r, ...src }]));
 
 /**
  * What the coach knows about one seat's packages: null when there is no usable report (every package unmeasured), else
@@ -58,7 +73,7 @@ export function seatLift(report: SynergyReport | null | undefined, listId: strin
     const l = liftOf(r, 'list');
     if (l) out[r.id] = l;
   }
-  return out;
+  return stamp(out, sourceOf(report.manifest));
 }
 
 /**
@@ -70,6 +85,9 @@ export interface LiftSlice {
   kind: 'nct-lift';
   schema: 1;
   catalogueVersion: string;
+  /** the report's bot and simulator version, from its manifest (absent when it has none); stamped on each row a seat reads */
+  bot?: string;
+  simVersion?: number;
   pooled: Record<string, PackageLift>;
   lists: Record<string, Record<string, PackageLift>>;
 }
@@ -97,7 +115,7 @@ export function liftSlice(report: SynergyReport): LiftSlice {
     const t = table(d.synergies, 'list');
     if (Object.keys(t).length) lists[d.listId] = t;
   }
-  return { kind: 'nct-lift', schema: 1, catalogueVersion: report.catalogueVersion, pooled: table(report.pooled, 'pooled'), lists: sorted(lists) };
+  return { kind: 'nct-lift', schema: 1, catalogueVersion: report.catalogueVersion, ...sourceOf(report.manifest), pooled: table(report.pooled, 'pooled'), lists: sorted(lists) };
 }
 
 /** lift.json's text for a report: minified, keys in a fixed order, so the same report gives the same bytes. */
@@ -106,7 +124,8 @@ export const liftSliceText = (report: SynergyReport): string => JSON.stringify(l
 /** A seat's table from the slice, as `seatLift` gives it from the whole report. */
 export function seatLiftFromSlice(slice: LiftSlice | null | undefined, listId: string | undefined, current = true): SeatLift {
   if (!slice || !current) return null;
-  return { ...slice.pooled, ...(listId && has(slice.lists, listId) ? slice.lists[listId] : {}) };
+  const src: LiftSource = { ...(slice.bot !== undefined ? { bot: slice.bot } : {}), ...(slice.simVersion !== undefined ? { simVersion: slice.simVersion } : {}) };
+  return stamp({ ...slice.pooled, ...(listId && has(slice.lists, listId) ? slice.lists[listId] : {}) }, src);
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -116,6 +135,7 @@ const rowsOk = (t: unknown) => isObj(t) && Object.values(t).every((r) => isObj(r
 export function readLiftSlice(value: unknown): LiftSlice | null {
   const v = value as Partial<LiftSlice> | null;
   if (!isObj(v) || v.kind !== 'nct-lift' || v.schema !== 1 || typeof v.catalogueVersion !== 'string' || !rowsOk(v.pooled) || !isObj(v.lists) || !Object.values(v.lists).every(rowsOk)) return null;
+  if ((v.bot !== undefined && typeof v.bot !== 'string') || (v.simVersion !== undefined && typeof v.simVersion !== 'number')) return null;
   return v as LiftSlice;
 }
 
@@ -127,6 +147,13 @@ export function liftGate(lift: SeatLift | undefined, id: string): 'measured' | '
 }
 
 const pc = (x: number) => `${Math.round(x * 100)}%`;
+
+/** "the Deep bot's games, simulator version 9," when the row names its bot, else "bot games" as before. */
+function botGames(l: PackageLift): string {
+  if (!l.bot) return 'bot games';
+  const name = l.bot.charAt(0).toUpperCase() + l.bot.slice(1);
+  return `the ${name} bot's games${l.simVersion !== undefined ? `, simulator version ${l.simVersion},` : ''}`;
+}
 
 const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
@@ -142,7 +169,7 @@ export function liftLabel(lift: SeatLift | undefined, pkgs: readonly { id: strin
     if (liftGate(lift, x.id) !== 'measured') continue;
     const l = lift![x.id]!;
     const where = l.basis === 'list' ? 'on this list' : 'pooled over every list that holds it';
-    out.push(`(In bot games ${where}, games where ${x.name} came online were won ${pc(l.online)} of the time, against ${pc(l.never)} when it never did: an association, not proof that it wins games.)`);
+    out.push(`(In ${botGames(l)} ${where}, games where ${x.name} came online were won ${pc(l.online)} of the time, against ${pc(l.never)} when it never did: an association, not proof that it wins games.)`);
   }
   return out.join(' ');
 }

@@ -8,7 +8,11 @@
 //         bot, simulator version, field, held-out games, the pooled gain with its always-valid interval, the verdict the
 //         next run would start from under the default rule (ADOPTION_DEFAULTS, one nominee; for an undecided change,
 //         roughly how many more held-out games it needs if its mean and spread stay as they are), screening games, and
-//         games that came back with other scores (conflicts). Writes nothing.
+//         games that came back with other scores (conflicts). Each verdict names its rule: the ledger's is "by the pooled
+//         always-valid rule"; when every held-out game of a change comes from one recorded forge run (reports/forge, the
+//         evidence pages' join, stagedVerdicts in scripts/evidence-build.ts), the line after it gives that run's own
+//         verdict "by the run's staged rule", which may differ on the same games (both are right under their rules).
+//         Writes nothing.
 // export  writes the ledger's batches (for the named decks' lists, else every list) as one export document,
 //         `kind: 'nct-change-ledger'`, schema 1, to FILE: the Deck Lab's "Evidence kept in this browser" imports it, and
 //         its games pool there when the simulator version, bot and field match the Lab's run. Lines that cannot be read
@@ -22,11 +26,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { listFingerprint } from '../src/engine/deck';
 import { ADOPTION_DEFAULTS, formatGain } from '../src/lib/evidence';
-import { fieldFingerprint, gamesToSettle, ledgerVerdict, mergeBatches, type LedgerEntry } from '../src/lib/changeLedger';
+import { entryKey, fieldFingerprint, gamesToSettle, ledgerVerdict, mergeBatches, type LedgerEntry } from '../src/lib/changeLedger';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { bool, cli, loadLibrary, resolveDeck, str } from './lib-node';
 import { LEDGER_DIR } from './evidence-flags';
 import { exportLedgerDir, readLedgerDir } from './ledger-store';
+import { readForgeReports } from './build-evidence';
+import { stagedVerdicts } from './evidence-build';
+import type { FindingDetail } from '../src/lib/findings';
 
 const { values: V, positionals } = cli(import.meta.url, { dir: str(LEDGER_DIR), 'all-versions': bool(), out: str(), force: bool() }, { minPositionals: 1, maxPositionals: Infinity });
 const [command, ...decks] = positionals;
@@ -62,6 +69,8 @@ if (!files.length) {
   console.log(`The change ledger at ${V.dir} is empty (no .jsonl files).`);
   process.exit(0);
 }
+// the recorded forge runs whose held-out games a ledger entry holds alone: their own staged verdicts, by entry key
+const staged = stagedVerdicts(readForgeReports('.'), files.map((f) => ({ file: f.file, batches: f.batches.map((b) => b.batch) })), V.dir);
 let shown = 0;
 let otherVersions = 0;
 for (const f of files) {
@@ -78,6 +87,8 @@ for (const f of files) {
     console.log(`  ${e.label}`);
     console.log(`    bot ${e.id.bot}, simulator v${e.id.simVersion}, field ${fieldName(e.id.field, base)}; ${k(e.runs.length)} run${e.runs.length === 1 ? '' : 's'}, ${e.firstDate}${e.lastDate !== e.firstDate ? ` to ${e.lastDate}` : ''}`);
     console.log(`    ${heldOutLine(e)}`);
+    const run = staged.get(entryKey(e.id));
+    if (run) console.log(`    ${stagedLine(run, e.heldout.length ? ledgerVerdict(e.heldout, ADOPTION_DEFAULTS).verdict : 'undecided')}`);
     const conflicts = e.conflicts.heldout + e.conflicts.screen;
     console.log(`    screening: ${k(e.screen.length)} games (never pooled)${conflicts ? `; ${k(conflicts)} game${conflicts === 1 ? '' : 's'} came back with other scores (the earlier kept)` : ''}`);
   }
@@ -90,10 +101,19 @@ function heldOutLine(e: LedgerEntry): string {
   if (!n) return 'held-out: none yet';
   const { iv, verdict } = ledgerVerdict(e.heldout, ADOPTION_DEFAULTS);
   const at = `held-out: ${formatGain(iv).replace(/, (\d+) games$/, (_m, g: string) => `, ${k(+g)} games`)} (always-valid z ${iv.z.toFixed(2)})`;
-  if (verdict === 'adopt') return `${at}: adopted by the pooled games`;
-  if (verdict === 'reject') return `${at}: rejected by the pooled games`;
+  if (verdict === 'adopt') return `${at}: adopted by the pooled always-valid rule`;
+  if (verdict === 'reject') return `${at}: rejected by the pooled always-valid rule`;
   const settle = gamesToSettle(e.heldout, ADOPTION_DEFAULTS);
-  return `${at}: undecided; ${Number.isFinite(settle) ? `about ${k(Math.max(0, settle - n))} more held-out games at this rate` : 'the mean is not above the bar, so more games at this rate would not adopt it'}`;
+  return `${at}: undecided by the pooled always-valid rule; ${Number.isFinite(settle) ? `about ${k(Math.max(0, settle - n))} more held-out games at this rate` : 'the mean is not above the bar, so more games at this rate would not adopt it'}`;
+}
+
+/** The recorded forge run's own verdict on the same held-out games, by its staged rule. */
+function stagedLine(c: NonNullable<FindingDetail['confirmation']>, pooled: 'adopt' | 'reject' | 'undecided'): string {
+  const differ = (c.outcome === 'inconclusive' ? 'undecided' : c.outcome) !== pooled;
+  const pts = (x: number) => `${x < 0 ? '−' : '+'}${Math.abs(x * 100).toFixed(1)}`;
+  const what = c.outcome === 'adopt' ? 'adopted' : c.outcome === 'reject' ? 'rejected' : c.stopped === 'futility' ? 'could not tell (stopped early: no gain)' : c.stopped === 'stop' ? 'could not tell (stopped)' : 'could not tell';
+  const at = c.looks > c.cap ? `after ${c.looks} looks (${c.cap} within its cap, then until settled)` : `at look ${c.looks} of ${c.cap}`;
+  return `the run's staged rule (${c.run}): ${what} ${at}, corrected range [${pts(c.lower)}, ${pts(c.upper)}] (${c.sequential === 'obrien-fleming' ? "O'Brien–Fleming" : 'Bonferroni'})${differ ? '; the two rules read the same games differently, and both are right under their own rules' : ''}`;
 }
 
 /** export: the document for the wanted lists to `file`, never over an existing file without --force. */

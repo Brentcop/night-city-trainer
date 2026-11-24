@@ -23,6 +23,7 @@ import {
   type ToolHealth,
   type TrialRecord,
 } from './findings';
+import { MIN_SELL_USES, SELLS_SHARE } from './sellShare';
 
 /** The strength chip. */
 export const STRENGTH_WORDS: Readonly<Record<Strength, string>> = {
@@ -43,7 +44,7 @@ export const NATURE_WORDS: Readonly<Record<Nature, string>> = {
 /** The strength rule in one sentence per word. */
 export const STRENGTH_RULE: Readonly<Record<Strength, string>> = {
   strong:
-    'The plain 95% interval excludes "no difference", the family test passes, the effect is at least a point, there are enough games (1,000 paired, 200 rated or split), it was measured under the current simulator, and it is not an association.',
+    'The plain 95% interval excludes "no difference", the family test passes, the effect is at least a point, there are enough games (1,000 paired, 200 rated or split), it was measured under the current simulator with a bot its kind expects (Hard for results and associations, Medium or Hard for changes), and it is not an association.',
   moderate: 'The plain 95% interval excludes "no difference", but one of the conditions for strong is missing.',
   weak: 'The estimate is a point or more from "no difference", but the 95% interval still includes it.',
   'no-difference': 'Measured, and the 95% interval keeps it within two points of "no difference": no difference of a point or more.',
@@ -53,6 +54,7 @@ export const STRENGTH_RULE: Readonly<Record<Strength, string>> = {
 /** Words for each flag code. */
 export const FLAG_WORDS: Readonly<Record<FlagCode, string>> = {
   stale: 'Measured under an older simulator version; the bots have changed since, so it is not re-measured and never strong.',
+  'other-bot': 'Measured with another bot than the Hard bot the site’s ratings and recorded results use, so it describes that bot’s games, not the rated ones, and is never strong.',
   'medium-only': 'Measured with the Medium bot only; Hard not measured.',
   'hard-confirms': 'Measured with the Hard bot too: Hard’s own range excludes no difference, in the same direction.',
   'hard-decides': 'Measured with the Hard bot too: this measurement does not settle it, and Hard’s own range excludes no difference.',
@@ -340,6 +342,7 @@ export const gamesWords = (f: Pick<Finding, 'games' | 'kind' | 'method' | 'natur
 /** Short flag words for a chip (the full words are FLAG_WORDS). */
 export const FLAG_SHORT: Readonly<Record<FlagCode, string>> = {
   stale: 'older version',
+  'other-bot': 'not the Hard bot',
   'medium-only': 'Medium only',
   'hard-confirms': 'Hard agrees',
   'hard-decides': 'Hard decides',
@@ -373,6 +376,54 @@ export const VERDICT_WORDS: Readonly<Record<NonNullable<FindingDetail['verdict']
 };
 
 /**
+ * Which rule gave a change's verdict, by how it was measured (docs/EVIDENCE.md "Two rules, two verdicts"): a forge
+ * confirmation is judged by the run's staged rule (a fixed number of looks, its range corrected for them); held-out games
+ * kept across runs by the pooled always-valid rule, whose range stays valid however many runs add games, so it is wider
+ * and can call undecided what one run's staged rule adopted. Both are right under their own rules.
+ */
+export const RULE_OF: Readonly<Partial<Record<Method, string>>> = {
+  'paired-staged': 'the run’s staged rule',
+  'paired-pooled': 'the pooled always-valid rule',
+  paired: 'the re-measurement’s fixed-size rule',
+};
+
+/**
+ * A change's verdict with the rule that gave it: "Adopted by the run’s staged rule.", "Undecided by the pooled
+ * always-valid rule: its held-out games do not settle it yet." (VERDICT_WORDS when the method names no rule).
+ */
+export function verdictWords(method: Method, verdict: NonNullable<FindingDetail['verdict']>): string {
+  const rule = RULE_OF[method];
+  if (!rule) return VERDICT_WORDS[verdict];
+  switch (verdict) {
+    case 'adopt':
+      return `Adopted by ${rule}.`;
+    case 'reject':
+      return `Rejected by ${rule}.`;
+    case 'undecided':
+      return `Undecided by ${rule}: its held-out games do not settle it yet.`;
+    case 'inconclusive':
+      return `${capital(rule)} could not tell.`;
+  }
+}
+
+/** The run's staged outcome in the words of a pooled verdict, to tell when the two rules read the same games apart. */
+const STAGED_AS: Readonly<Record<NonNullable<FindingDetail['confirmation']>['outcome'], NonNullable<FindingDetail['verdict']>>> = { adopt: 'adopt', reject: 'reject', inconclusive: 'undecided' };
+
+/**
+ * A change's verdict line on the page: the verdict by its rule, and, for held-out games that all come from one forge run
+ * (`confirmation`), what that run's staged rule concluded; when the two differ, a sentence that both are right under
+ * their own rules.
+ */
+export function changeVerdictWords(f: Pick<Finding, 'method'> & { detail?: Pick<FindingDetail, 'verdict' | 'confirmation'> }): string | null {
+  const d = f.detail;
+  if (!d?.verdict) return null;
+  const head = verdictWords(f.method, d.verdict);
+  if (!d.confirmation) return head;
+  const differ = STAGED_AS[d.confirmation.outcome] !== d.verdict;
+  return `${head} ${confirmationWords(d.confirmation)}${differ ? ` The two verdicts differ on the same games and both are right under their own rules: ${RULE_OF['paired-staged']} judges one run’s looks, ${RULE_OF['paired-pooled']} stays valid as later runs add games and so needs a clearer gain.` : ''}`;
+}
+
+/**
  * A ledger change whose held-out games all come from one recorded forge run (`detail.confirmation`): what that run
  * concluded by its own staged rule, the look it ended at, and its corrected range, then why the row's range is wider.
  * "These held-out games all come from one forge run, which by its own staged rule could not tell at look 4 of 4 (its
@@ -390,7 +441,7 @@ export function confirmationWords(c: NonNullable<FindingDetail['confirmation']>)
           : c.stopped === 'stop'
             ? `was stopped ${at}, so could not tell`
             : `could not tell ${at}`;
-  return `These held-out games all come from one forge run, which by its own staged rule ${verb} (its corrected range ${pts(c.lower)} to ${pts(c.upper)}). The range above is wider because it stays valid as later runs add games.`;
+  return `These held-out games all come from one forge run, which by the run’s staged rule ${verb} (its corrected range ${pts(c.lower)} to ${pts(c.upper)}). The range above is the pooled always-valid rule’s, wider because it stays valid as later runs add games.`;
 }
 
 /**
@@ -699,7 +750,7 @@ export const RUN_WORDS = {
   keptAcross: 'Its games are also kept across runs, where a later run on the same list pools with them; they are not listed again as a run of their own.',
   trialsTitle: 'What it tried',
   trialsIntro:
-    'Each change the run screened. The screening figure is greyed: the best of many candidates is picked on those games, so it reads high. The held-out figure is the one the run judged by.',
+    'Each change the run screened. The screening figure is greyed: the best of many candidates is picked on those games, so it reads high. The held-out figure is the one the run judged by, and the outcome is the run’s staged rule’s; the pooled always-valid rule, which stays valid as later runs add games, can call the same games undecided.',
   none: '—',
   notConfirmed: 'not confirmed on held-out games',
 } as const;
@@ -788,6 +839,25 @@ export function seatDetailWords(d: Pick<FindingDetail, 'first' | 'second' | 'res
 
 /** An association's two win rates: "drawn 52.1% (943 games) · not drawn 53.3% (257 games)". */
 export const ratesWords = (r: NonNullable<FindingDetail['rates']>): string => `${r.aLabel} ${pct(r.a)} (${plural(r.aGames, 'game')}) · ${r.bLabel} ${pct(r.b)} (${plural(r.bGames, 'game')})`;
+
+/** The words a card row shows from SELLS_SHARE on (src/lib/sellShare.ts). */
+export const SELLS_THIS = 'the bot sells this';
+
+/**
+ * A card's sells beside its association (the second line): "sold in 97% of 748 uses from hand: the bot sells this", or
+ * "sold in 41% of 520 uses from hand"; under MIN_SELL_USES uses the count alone, never flagged.
+ */
+export function soldWords(s: NonNullable<FindingDetail['sold']>): string {
+  if (s.of < MIN_SELL_USES) return `sold ${s.n} of ${plural(s.of, 'use')} from hand`;
+  const share = s.n / s.of;
+  return `sold in ${pct(share)} of ${plural(s.of, 'use')} from hand${share >= SELLS_SHARE ? `: ${SELLS_THIS}` : ''}`;
+}
+
+/** Where a card's sells come from and what they say (its Details). */
+export function soldSourceWords(s: NonNullable<FindingDetail['sold']>): string {
+  const run = `the ${botName(s.bot)} bot’s run${s.date ? ` of ${s.date.slice(0, 10)}` : ''} (simulator version ${s.simVersion})`;
+  return `Sells: from the decision telemetry of ${run}, the share of its uses from hand (plays, sells, and a Program’s reactions) that were sells. From ${Math.round(SELLS_SHARE * 100)}% on the row says “${SELLS_THIS}”: no bot keeps Eddies ready for the rival’s turn, so for such a card the figures above say how the bot plays it, not how good the card is.`;
+}
 
 /** The matchup spread the ranges allow for. */
 export const spreadWords = (sd: number, measured: boolean): string =>

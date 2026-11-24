@@ -10,9 +10,9 @@ import { makeTierBot } from '../src/ai/tiers';
 import { DECIDED_EVAL, GIG_SWING } from '../src/ai/eval';
 import { plainRuleMulligan } from '../src/ai/mulligan';
 import { adviseRequest, COACH_CONFIG, coachRequest, coachWorthAsking, gradeMove, makeCoach, mulliganWhy, scoreMoveRequest, type Advice, type MoveGrade } from '../src/ai/coach';
-import { behindText, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
+import { behindText, coachTablesWords, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
 import { CAP_GIGS, coachRatingOf, RATING_INFO } from '../src/lib/gameReview';
-import { CoachBox, MoveToast, Scorecard, verdictText } from '../src/ui/components/board/CoachPanel';
+import { CoachBox, CoachPanel, MoveToast, Scorecard, verdictText } from '../src/ui/components/board/CoachPanel';
 import { restoredGrades, type SavedGame } from '../src/lib/savedGames';
 import type { CoachedGrade } from '../src/lib/coachedReplay';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
@@ -197,4 +197,20 @@ describe('what the coach prints over whole games', () => {
     expect(all.some((t) => /^(Keep|Mulligan): this hand has/.test(t.why))).toBe(true);
     expect(all.some((t) => [t.why, ...t.alts].some((x) => /more than 3 Gigs|in the (coach's )?play-outs/.test(x)))).toBe(true);
   }, 180_000);
+});
+
+describe('where the coach’s card figures come from (A.11)', () => {
+  it('names the bot and simulator version, and says when it is not the Hard bot', () => {
+    expect(coachTablesWords('deep', 9)).toBe(
+      "Card figures in these tips come from the Deep bot's games (simulator version 9), not the Hard bot the site's ratings use: they say what that bot did with a card, not how good the card is.",
+    );
+    expect(coachTablesWords('hard', 9)).toBe("Card figures in these tips come from the Hard bot's games (simulator version 9): they say what that bot did with a card, not how good the card is.");
+    expect(coachTablesWords(null, 9)).toBeNull();
+  });
+
+  it('the panel shows it under the tips, and Play passes the analysis run’s bot', () => {
+    const html = renderToStaticMarkup(<CoachPanel g={null as never} v={0} alts={[]} tips={['a tip']} warnings={[]} source="SOURCE LINE" />);
+    expect(html).toContain('SOURCE LINE');
+    expect(readFileSync('src/ui/pages/Play.tsx', 'utf8')).toContain('coachTablesWords(ANALYSIS.bot, ANALYSIS.manifest?.simVersion)');
+  });
 });

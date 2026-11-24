@@ -219,7 +219,7 @@ export function CoachBox({
  * warnings, and the matchup plan for your deck. The game state changes in place, so `v` (the game's update counter)
  * tells the memo when to re-render.
  */
-export const CoachPanel = memo(function CoachPanel({ alts, tips, warnings }: { g: Game; v: number; alts: Advice['alternatives']; tips: string[]; warnings: string[] }) {
+export const CoachPanel = memo(function CoachPanel({ alts, tips, warnings, source }: { g: Game; v: number; alts: Advice['alternatives']; tips: string[]; warnings: string[]; /** where the tips' card figures come from (coachTablesWords) */ source?: string | null }) {
   return (
     <div className="coach-panel">
       {alts.length > 0 && (
@@ -250,6 +250,7 @@ export const CoachPanel = memo(function CoachPanel({ alts, tips, warnings }: { g
         <details>
           <summary className="small">Matchup plan &amp; deck tips</summary>
           <Markdown text={tips.map((t) => `- ${t}`).join(String.fromCharCode(10))} />
+          {source && <div className="small muted coach-source">{source}</div>}
         </details>
       )}
     </div>

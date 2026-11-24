@@ -15,6 +15,7 @@ import {
   packageFact,
   packageLists,
   pooledImpact,
+  REFERENCE_STAT_BOT,
   reportBasis,
   STAGE_KEYS,
   STANDING_KEYS,
@@ -29,6 +30,7 @@ import {
   type UseModeFact,
   type WinRate,
 } from '../../cardFacts';
+import { SELLS_SHARE } from '../../sellShare';
 import type { DecisionReport, UseMode } from '../../../analysis/decisions';
 import type { ImpactData } from '../../../analysis/impactData';
 import type { SynergyReport } from '../../../analysis/synergies';
@@ -115,7 +117,16 @@ function modeLines(m: UseModeFact, deckGames: number | null): string[] {
 }
 
 const sameRun = (a: StatBasis, b: StatBasis) => a.runId !== null && a.runId === b.runId;
-const basisText = (b: StatBasis) => `${playedBy(b)} (${day(b.asOf)}${b.games === null ? '' : `, ${b.games} games in the run`})`;
+const basisText = (b: StatBasis) => `${playedBy(b)}${b.otherBot ? ` (not the ${REFERENCE_STAT_BOT} bot the site's ratings and recorded results use)` : ''} (${day(b.asOf)}${b.games === null ? '' : `, ${b.games} games in the run`})`;
+
+/** A card's sells out of its uses from hand, one sentence (src/lib/sellShare.ts), or nothing when it had none. */
+function soldLine(u: CardUseFact): string[] {
+  const s = u.sold;
+  if (!s || s.share === null) return [];
+  return [
+    `Sold in ${s.sold} of its ${plural(s.uses, 'use')} from hand (plays, sells and, for a Program, reactions).${s.sells ? ` That is at least ${Math.round(SELLS_SHARE * 100)} in 100, the line from which the evidence page says the bot sells this: the figures here say how the bot plays it more than how good the card is.` : ''}`,
+  ];
+}
 
 function analysisLines(a: CardAnalysisFact, use: StatBasis | null): string[] {
   const run = use && sameRun(use, a.basis) ? `the same run's game traces` : `the game traces of a run by ${basisText(a.basis)}`;
@@ -139,6 +150,7 @@ export function cardStatText(o: { card: string; deck: string; use: CardUseFact |
   if (o.use) {
     lines.push(`From the decision report (${o.use.basis.file}): ${STAGE_DEF(o.use)}`);
     for (const m of o.use.modes) lines.push(...modeLines(m, o.use.deckGames));
+    lines.push(...soldLine(o.use));
   } else lines.push('The decision report has no row for this card on this list.');
   if (o.analysis) lines.push(...analysisLines(o.analysis, o.use?.basis ?? null));
   return lines.join('\n');
@@ -164,6 +176,7 @@ export function cardPooledText(o: {
       `From the decision report (${o.use.basis.file}): ${STAGE_DEF(o.use)}`,
     );
     for (const m of o.use.modes) lines.push(...modeLines(m, null));
+    lines.push(...soldLine(o.use));
   } else lines.push(`${o.card}: statistics of how the bot used one card, from the per-deck analysis only, measured by ${basisText(main)}. ${ASSOCIATION_NOTE}`);
   if (o.analyses.length) {
     const a0 = o.analyses[0]!;

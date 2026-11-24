@@ -9,7 +9,7 @@ import {
   BLOCK_WORDS,
   botsWords,
   changeStatusWords,
-  confirmationWords,
+  changeVerdictWords,
   DECK_PAGE_WORDS,
   driftWords,
   EVIDENCE_PROBLEMS,
@@ -27,10 +27,11 @@ import {
   screenWords,
   seatDetailWords,
   shortlistWords,
+  soldSourceWords,
+  soldWords,
   splitWords,
   thirdWords,
   TITLE_WORDS,
-  VERDICT_WORDS,
 } from '../../../lib/findingWords';
 import {
   associationOrder,
@@ -198,7 +199,7 @@ function ChangeGroupView({ g, listId, names, scale, target, byId }: { g: ChangeG
               title={measuredByWords(f)}
               scale={scale}
               target={target === f.short}
-              more={d?.verdict ? (d.confirmation ? `${VERDICT_WORDS[d.verdict]} ${confirmationWords(d.confirmation)}` : VERDICT_WORDS[d.verdict]) : null}
+              more={changeVerdictWords(f)}
               extra={
                 (d?.screen || dependsOnOpp) && (
                   <>
@@ -309,7 +310,8 @@ function AssocList({
             scale={scale}
             target={target === f.short}
             title={f.subject.card ? <CardMention id={f.subject.card.id}>{f.subject.card.name}</CardMention> : (f.subject.package?.name ?? f.claim)}
-            more={f.detail?.rates ? ratesWords(f.detail.rates) : null}
+            more={[f.detail?.rates ? ratesWords(f.detail.rates) : null, f.detail?.sold ? soldWords(f.detail.sold) : null].filter(Boolean).join(' · ') || null}
+            details={f.detail?.sold ? <p>{soldSourceWords(f.detail.sold)}</p> : undefined}
           />
         ))}
       </ul>

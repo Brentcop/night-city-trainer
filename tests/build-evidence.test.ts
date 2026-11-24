@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, heterogeneity as builderHeterogeneity, joinReports, matchupCheck, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
-import { compareEvidence, evidenceTexts, loadEvidenceInputs, readStored, storedProblems, writeEvidence } from '../scripts/build-evidence';
+import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, heterogeneity as builderHeterogeneity, joinReports, matchupCheck, stagedVerdicts, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
+import { compareEvidence, evidenceTexts, loadEvidenceInputs, readForgeReports, readStored, storedProblems, writeEvidence } from '../scripts/build-evidence';
 import type { RecordedEvent } from '../scripts/lib-node';
 import { listFingerprint } from '../src/engine/deck';
 import { changeKey, fieldFingerprint, gamesToSettle, summarize, type LedgerBatch, type LedgerGame } from '../src/lib/changeLedger';
@@ -408,10 +408,11 @@ describe('building from fixtures', () => {
     }
   });
 
-  it('a card association is strong only with an adjusted, shrunk estimate that clears the bar (--adjusted)', () => {
+  it('a card association is strong only with an adjusted, shrunk estimate that clears the bar (--adjusted), and only when measured with the Hard bot', () => {
     const listId = listFingerprint(A);
     const card = { id: 'a_c1', name: 'A1', seenGames: 600, wrSeen: 0.7, wrNotSeen: 0.5, iwd: 0.2, playedGames: 500, wrPlayed: 0.7, avgPlayTurn: 3, soldRate: 0, openingGames: 200, steals: 0 };
-    const analysis = { manifest: { simVersion: 9, bot: { level: 'deep' }, field: { mode: 'meta', deckIds: [] } }, decks: [{ id: listId, deck: 'Deck A', games: 1200, cards: [card] }] } as unknown as EvidenceInputs['analysis'];
+    const analysisBy = (bot: string) => ({ manifest: { simVersion: 9, bot: { level: bot }, field: { mode: 'meta', deckIds: [] } }, decks: [{ id: listId, deck: 'Deck A', games: 1200, cards: [card] }] }) as unknown as EvidenceInputs['analysis'];
+    const analysis = analysisBy('hard');
     const adjusted = (adj: number, shrunk: number) => ({
       file: 'scratch/impact-adjusted-latest.json',
       data: { kind: 'impact-adjusted' as const, manifest: { simVersion: 9, bot: { level: 'hard' } } as never, decks: [{ deck: 'Deck A', id: listId, games: 1200, tau: 0.1, rhoOldAdj: 1, rhoOldShrunk: 1, cards: [{ id: 'a_c1', name: 'A1', iwd: 0.2, seenGames: 600, adj, se: 0.03, lo: adj - 0.0588, hi: adj + 0.0588, shrunk, n1: 600, n0: 600, byT: [] }] }] },
@@ -429,6 +430,31 @@ describe('building from fixtures', () => {
     // an adjusted estimate that does not clear the bar (or points the other way) leaves it moderate
     expect(cardOf(buildEvidence({ ...inputs(), analysis, adjusted: adjusted(0.02, 0.008) })).strength).toBe('moderate');
     expect(cardOf(buildEvidence({ ...inputs(), analysis, adjusted: adjusted(-0.15, -0.12) })).strength).toBe('moderate');
+    // the same table played by the deep bot: flagged, and never strong, whatever the adjusted estimate says
+    const deep = cardOf(buildEvidence({ ...inputs(), analysis: analysisBy('deep'), adjusted: adjusted(0.15, 0.12) }));
+    expect(deep.flags).toContain('other-bot');
+    expect(deep.strength).toBe('moderate');
+    expect(withAdj.flags).not.toContain('other-bot');
+  });
+
+  it('a card association carries its sells from the decision telemetry, with the run they come from', () => {
+    const listId = listFingerprint(A);
+    const card = { id: 'a_c1', name: 'A1', seenGames: 600, wrSeen: 0.7, wrNotSeen: 0.5, iwd: 0.2, playedGames: 500, wrPlayed: 0.7, avgPlayTurn: 3, soldRate: 0, openingGames: 200, steals: 0 };
+    const analysis = { manifest: { simVersion: 9, bot: { level: 'deep' }, field: { mode: 'meta', deckIds: [] } }, decks: [{ id: listId, deck: 'Deck A', games: 1200, cards: [card] }] } as unknown as EvidenceInputs['analysis'];
+    const mode = (m: string, uses: number) => ({ mode: m, all: { uses } });
+    const decisions = {
+      games: 1200,
+      manifest: { simVersion: 9, bot: { level: 'deep' }, runId: 'analysis:run-1', createdAt: '2026-11-14T15:47:12.017Z' },
+      decks: [{ listId, name: 'Deck A', cards: [{ id: 'a_c1', name: 'A1', modes: [mode('play', 10), mode('sell', 90), mode('attack', 400)] }] }],
+      pooled: [],
+    } as unknown as NonNullable<EvidenceInputs['decisions']>;
+    const f = deckOf(buildEvidence({ ...inputs(), analysis, decisions }), 'Deck A').findings.find((x) => x.kind === 'card-assoc')!;
+    // attacks are not uses from hand: 90 sells of 100 plays and sells
+    expect(f.detail?.sold).toEqual({ n: 90, of: 100, bot: 'deep', simVersion: 9, run: 'analysis:run-1', date: '2026-11-14T15:47:12.017Z' });
+    expect(f.sources.at(-1)).toEqual({ file: 'public/data/decisions.json', path: 'decks[0].cards[0].modes' });
+    // without the report, no sells and no source for them
+    const without = deckOf(buildEvidence({ ...inputs(), analysis }), 'Deck A').findings.find((x) => x.kind === 'card-assoc')!;
+    expect(without.detail?.sold).toBeUndefined();
   });
 
   it('the matchup check scores every held-out match, game by game', () => {
@@ -861,5 +887,24 @@ describe('on the real data, each finding is the number its defining function giv
       expect(i.others).toBe(same.length - 1);
       expect(i.flags).not.toContain('stale');
     }
+  });
+
+  it('the ledger stats read each recorded run’s staged verdict on the same games: S3-06 adopted by the staged rule, undecided by the pooled one (T5)', () => {
+    const { inputs } = loadEvidenceInputs('.');
+    const staged = stagedVerdicts(readForgeReports('.'), inputs.ledger, inputs.paths.ledgerDir);
+    const s306 = [...staged.entries()].find(([k]) => k.includes('87348c7e0bd76a1f -main:chrome_reverie +main:johnny_silverhand_never_stop_fighting'));
+    expect(s306).toBeDefined();
+    expect(s306![1]).toMatchObject({ outcome: 'adopt', looks: 4, cap: 4, sequential: 'obrien-fleming' });
+    expect(s306![1].lower).toBeGreaterThan(0);
+  });
+
+  it('the telemetry tables are marked when their bot is not the reference one: every deep-bot finding carries other-bot and none is strong', () => {
+    const deep = all.filter((f) => f.bot === 'deep');
+    expect(deep.length).toBeGreaterThan(0);
+    for (const f of deep) {
+      expect(f.flags).toContain('other-bot');
+      expect(f.strength).not.toBe('strong');
+    }
+    for (const f of all.filter((x) => x.bot === 'hard' || x.bot === 'medium')) expect(f.flags).not.toContain('other-bot');
   });
 });

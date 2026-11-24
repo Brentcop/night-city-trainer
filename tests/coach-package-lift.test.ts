@@ -144,3 +144,27 @@ describe('coach package notes, gated by measured lift', () => {
     }).toMatchSnapshot();
   });
 });
+
+describe('the lift label names the bot its report was played with (A.11)', () => {
+  const row: PackageLift = { basis: 'list', online: 0.62, never: 0.48, onlineGames: 300, neverGames: 300, lift: 0.14, low95: 0.06, high95: 0.22 };
+  it('names the bot and simulator version a row carries, and keeps the older words without them', () => {
+    expect(liftLabel({ a: { ...row, bot: 'deep', simVersion: 9 } }, [{ id: 'a', name: 'A' }])).toBe(
+      "(In the Deep bot's games, simulator version 9, on this list, games where A came online were won 62% of the time, against 48% when it never did: an association, not proof that it wins games.)",
+    );
+    expect(liftLabel({ a: row }, [{ id: 'a', name: 'A' }])).toContain('(In bot games on this list, games where A');
+  });
+
+  it('the report and its slice stamp each row with the report manifest’s bot and version; the gate reads neither', () => {
+    const real = JSON.parse(readFileSync('public/data/synergies.json', 'utf8')) as SynergyReport;
+    const table = seatLift(real, real.decks[0]!.listId)!;
+    const rows = Object.values(table);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) expect([r.bot, r.simVersion]).toEqual([real.manifest!.bot.level, real.manifest!.simVersion]);
+    const slice = readLiftSlice(JSON.parse(readFileSync('public/data/lift.json', 'utf8')))!;
+    expect([slice.bot, slice.simVersion]).toEqual([real.manifest!.bot.level, real.manifest!.simVersion]);
+    const bare = Object.fromEntries(Object.entries(table).map(([k, v]) => [k, { ...v, bot: undefined, simVersion: undefined }]));
+    for (const id of Object.keys(table)) expect(liftGate(table, id)).toBe(liftGate(bare, id));
+    // a slice whose bot is not a string is refused
+    expect(readLiftSlice({ ...slice, bot: 3 })).toBeNull();
+  });
+});

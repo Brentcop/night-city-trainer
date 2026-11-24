@@ -1,7 +1,10 @@
 // Card and package facts by code (docs/RAG_PLAN.md rules M3 to M5, step 2.4): one documented function per number a
 // person asks about how the bot used a card or how a synergy package did, read from the measured reports and returned
 // as plain data with what it was measured on (sim version, bot, the report's date and games, all from the report's own
-// run manifest). Pure, Node and browser: every report is passed in, nothing is read, no clock, no locale.
+// run manifest), and whether that bot is the reference one (`otherBot`: not REFERENCE_STAT_BOT, the Hard bot the site's
+// ratings use; the reports of 2026-11-14 are the `deep` bot's). A card's sells out of its uses from hand come from
+// src/lib/sellShare.ts (`CardUseFact.sold`). Pure, Node and browser: every report is passed in, nothing is read, no
+// clock, no locale.
 //
 // Everything here is ASSOCIATION, as in the reports themselves (src/analysis/decisions.ts, synergies.ts, analyze.ts):
 // the win rate of the games where a card was used, drawn or a package came online is not what the card or package is
@@ -23,8 +26,10 @@ import { MIN_SLICE_GAMES, wilson, type CardReport, type DecisionReport, type Mod
 import { IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
 import type { RateWithInterval, SynergyReport, SynergyRow } from '../analysis/synergies';
 import { liftGate, newcombeDiff, seatLift } from '../ai/packageLift';
+import { CARD_BY_ID } from '../engine/cards';
 import { CURRENT_SIM_VERSION } from './playedRecord';
 import type { RunManifest } from './runManifest';
+import { sellShareOf, type SellShare } from './sellShare';
 
 export { IWD_CAVEAT } from '../analysis/analyze';
 
@@ -52,20 +57,30 @@ export interface StatBasis {
   games: number | null;
   /** measured under an older sim version than the current one, or an unversioned one (decision D5) */
   stale: boolean;
+  /**
+   * played by another bot than the reference one (REFERENCE_STAT_BOT, the Hard bot the site's ratings and recorded results
+   * use): the figures describe that bot's games. False when the report names no bot (nothing to compare).
+   */
+  otherBot: boolean;
 }
 
+/** The bot the site's ratings, recorded events and confirmations are measured with: a report by another bot says so. */
+export const REFERENCE_STAT_BOT = 'hard';
+
 /** The basis of a report: its file, and the sim version, bot, date and games its manifest records. */
-export function reportBasis(file: string, report: { manifest?: RunManifest } | null | undefined, current = CURRENT_SIM_VERSION): StatBasis {
+export function reportBasis(file: string, report: { manifest?: RunManifest } | null | undefined, current = CURRENT_SIM_VERSION, reference = REFERENCE_STAT_BOT): StatBasis {
   const m = report?.manifest;
   const simVersion = typeof m?.simVersion === 'number' ? m.simVersion : null;
+  const bot = m?.bot?.level ?? null;
   return {
     file,
     simVersion,
-    bot: m?.bot?.level ?? null,
+    bot,
     asOf: m?.createdAt ?? null,
     runId: m?.runId ?? null,
     games: typeof m?.sample?.completedGames === 'number' ? m.sample.completedGames : null,
     stale: simVersion === null || simVersion < current,
+    otherBot: bot !== null && bot !== reference,
   };
 }
 
@@ -163,6 +178,8 @@ export interface CardUseFact {
   /** the report's own words for the stages ("turns 1–4" …), from `stageOf` in src/analysis/decisions.ts */
   stages: Record<Stage, string>;
   modes: UseModeFact[];
+  /** its sells out of its uses from hand (src/lib/sellShare.ts: a Program's reactions count as uses from hand), null with none */
+  sold: SellShare | null;
 }
 
 function modeFact(m: ModeReport, min: number): UseModeFact {
@@ -180,6 +197,12 @@ function modeFact(m: ModeReport, min: number): UseModeFact {
     selfPaid: m.selfPaid ?? 0,
     stolen: finite(m.stolen) ? m.stolen : null,
   };
+}
+
+/** A card row's sells out of its uses from hand; a Program cast in a reaction window counts that use as from hand. */
+function soldOf(row: CardReport): SellShare | null {
+  const s = sellShareOf(row.id, row.name, row.modes, { reactFromHand: CARD_BY_ID[row.id]?.type === 'Program' });
+  return s.uses > 0 ? s : null;
 }
 
 /** The lists (fingerprints) whose rows in the decision report hold this card, in the report's order. */
@@ -214,6 +237,7 @@ export function cardUse(report: DecisionReport, file: string, cardId: string, o:
     minSliceGames: min,
     stages: report.stages,
     modes: row.modes.map((m) => modeFact(m, min)),
+    sold: soldOf(row),
   };
 }
 
