@@ -65,7 +65,18 @@ export function staleLeaderRow(row: { seasons?: Readonly<Record<string, unknown>
   return keys.some((k) => k === '0' || versions[k] !== current);
 }
 
-/** A rated deck's conservative strength: its expected win rate vs the field, halfway down to its lower bound. */
+/**
+ * The warning line for parent strength read from a ratings file fitted on another simulator version (null when the
+ * manifest names `current`, so nothing is printed and no number changes). A file without a manifest version counts as
+ * another version. The ratings are still used (a stale rating beats none for choosing parents), but a run says so.
+ */
+export function ratingsVersionWarning(ratings: { manifest?: { simVersion?: unknown } | null } | null | undefined, file = 'src/data/ratings.json', current: number = CURRENT_SIM_VERSION): string | null {
+  const v = ratings?.manifest?.simVersion;
+  if (typeof v === 'number' && v === current) return null;
+  return `Warning: parent strength reads ${file}, fitted on ${typeof v === 'number' ? `simulator v${v}` : 'an unversioned simulator'}, not the current v${current}; the parents are ranked on old ratings until the series re-rates the library.`;
+}
+
+/** A rated deck's conservative strength:its expected win rate vs the field, halfway down to its lower bound. */
 export const conservativeRating = (d: RatedDeck): number => d.wrField - 0.5 * Math.max(0, (d.wrFieldHi - d.wrFieldLo) / 2);
 
 /**

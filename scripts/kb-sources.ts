@@ -15,8 +15,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { LIBRARY_DIRS, libraryDeck } from '../src/lib/library';
 import { h2hOf } from './build-h2h';
-import { selectEvents } from './event-pool';
-import { ARCHIVED_EVENTS_DIR, type RecordedEvent } from './lib-node';
+import { currentListGate, selectEvents, type GateDeck } from './event-pool';
+import { ARCHIVED_EVENTS_DIR, runFiles, SERIES_DIR, type RecordedEvent } from './lib-node';
+import type { UpsetRun } from '../src/lib/eventUpsets';
 import { buildCards, cardDataVersion, type CardInput } from '../src/lib/kb/build/cards';
 import { buildDecks, buildObjectives, deckRecordId, type DeckInput, type ObjectiveDeck } from '../src/lib/kb/build/decks';
 import { buildCompetitive, type CompetitiveSources } from '../src/lib/kb/build/events';
@@ -140,7 +141,23 @@ export function loadArchived(root: string): CompetitiveSources {
   };
 }
 
-/** Read the recorded tournaments and the files pooled from them (missing pooled files are null). */
+/** The rating run files (data/series/run-N.json), as paths from the root: read only into the upset yardstick's pool. */
+export function seriesFiles(root: string): string[] {
+  return runFiles(path.join(root, SERIES_DIR)).map((f) => `${SERIES_DIR}/${f}`);
+}
+
+/** The library's decks as the list gate reads them (scripts/event-pool.ts currentListGate). */
+function libraryGateDecks(root: string): GateDeck[] {
+  return deckFiles(root).flatMap((rel) => {
+    const d = libraryDeck(rel.slice('data/decks/'.length), fs.readFileSync(path.join(root, rel), 'utf8'));
+    return d ? [d] : [];
+  });
+}
+
+/**
+ * Read the recorded tournaments and the files pooled from them (missing pooled files are null). The upset yardstick
+ * pools as the ratings do (`upsetPool`): the rating runs dated before an event, and games on the library's current lists.
+ */
 export function loadCompetitive(root: string): CompetitiveSources {
   const json = <T,>(f: string): T => JSON.parse(fs.readFileSync(path.join(root, f), 'utf8')) as T;
   const maybe = <T,>(f: string): { file: string; data: T } | null => (fs.existsSync(path.join(root, f)) ? { file: f, data: json<T>(f) } : null);
@@ -152,6 +169,7 @@ export function loadCompetitive(root: string): CompetitiveSources {
     index: maybe<CompetitiveSources['index']['data']>(INDEX_FILE) ?? { file: INDEX_FILE, data: { events: [] } },
     ratings: maybe(RATINGS_FILE),
     h2h: maybe(H2H_FILE),
+    upsetPool: { runs: seriesFiles(root).map((f) => json<UpsetRun>(f)), gate: currentListGate(libraryGateDecks(root)) },
   };
 }
 
@@ -196,7 +214,7 @@ export function loadStats(root: string, catalogueVersion: string): StatsSources 
 /** Every file a build reads, sorted: what the manifest hashes to know when the pack is stale. */
 export function inputFiles(root: string, o: { raw: boolean }): string[] {
   const TUTORIAL_FILE = 'src/content/tutorial/lessons.ts';
-  const files = new Set<string>([CARDS_FILE, TUTORIAL_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...statsFiles(root), ...evidenceFiles(root)]);
+  const files = new Set<string>([CARDS_FILE, TUTORIAL_FILE, 'tests/faq/matrix.ts', ...listDir(root, FAQ_ENTRIES_DIR, '.ts'), ...deckFiles(root), ...docFiles(root), ...codeFiles(root), ...competitiveFiles(root), ...seriesFiles(root), ...statsFiles(root), ...evidenceFiles(root)]);
   if (o.raw) for (const f of Object.values(RAW_FILES)) if (fs.existsSync(path.join(root, f))) files.add(f);
   return [...files].sort();
 }

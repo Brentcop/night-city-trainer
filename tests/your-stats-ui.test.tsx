@@ -145,7 +145,7 @@ describe('a provisional rating (Hard-bot games against recorded decks)', () => {
     expect(tile).toContain('tierb tierb-yours');
     expect(tile).toContain('Your provisional tier');
     expect(tile).toContain('from your tournaments in this browser');
-    expect(tile).toMatch(/title="Provisional tier from your tournaments in this browser \(All Hard bots\), not a recorded result: [SABCD]±?\. Expected [\d.]+% vs the recorded field \(90% range/);
+    expect(tile).toMatch(/title="Provisional tier from your tournaments in this browser \(All Hard bots\), not a recorded result: [SABCD]±?\. Expected [\d.]+% vs the recorded field, the library of \d+ decks, \(90% range/);
     // never drawn as the recorded Sim badge
     expect(tile).not.toContain('tierb-sim');
     const page = renderToStaticMarkup(<DeckRecordPanel d={d} headingId="h" />);
@@ -252,10 +252,12 @@ describe('wording', () => {
     });
   });
   it('the provisional badge says "Yours" and names its source; a recorded word never labels it', () => {
-    const t = simTier({ wrField: 0.52, wrFieldLo: 0.4, wrFieldHi: 0.63, games: 30 });
+    const t = simTier({ wrField: 0.52, wrFieldLo: 0.46, wrFieldHi: 0.54, games: 30 });
     const html = renderToStaticMarkup(<YourTierBadge tier={t} />);
     expect(html).toContain('>Yours<');
     expect(html).toContain('<span class="sr-only">Your provisional tier B, from your tournaments in this browser</span>');
+    // a range across a band edge is marked uncertain
+    expect(renderToStaticMarkup(<YourTierBadge tier={simTier({ wrField: 0.52, wrFieldLo: 0.4, wrFieldHi: 0.63, games: 30 })} />)).toContain('Your provisional tier B, uncertain,');
     expect(html).not.toMatch(/Sim tier|recorded tournaments/);
     expect(renderToStaticMarkup(<YourTierBadge tier={{ ...t, letter: null, unrated: 'few-games', games: 8 }} showUnrated />)).toContain('none yet, too few games (8 of the 20 needed)');
   });

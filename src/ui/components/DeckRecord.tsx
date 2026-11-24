@@ -18,8 +18,8 @@ import { CURRENT_SIM_VERSION, SMALL_SAMPLE, deckRecord, h2hFor, ordinal, type De
 import { profileHref } from './DeckStats';
 import { wrTone } from './Num';
 import { RecordedAt, formatRecorded } from './RecordedAt';
-import { recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
-import { bandWords, SIM_TIER_MIN_GAMES } from '../../lib/simTier';
+import { RATED_FIELD, RATINGS_VERSION_NOTE, recordedSource, SimTierBadge, simTierOf, YourTierBadge } from './TierBadges';
+import { bandWords, SIM_TIER_MIN_GAMES, simTierFieldWords } from '../../lib/simTier';
 import { listOf } from '../../lib/listTwin';
 import { BUILTIN } from '../../lib/browserLibrary';
 import { seasonVersions } from '../../lib/parentStrength';
@@ -246,8 +246,9 @@ export function DeckRecordPanel({ d, headingId }: { d: Pick<LibraryDeck, 'file' 
               <Tile label="Sim tier" value={<SimTierBadge tier={sim} showUnrated />}>
                 {sim.letter ? (
                   <>
-                    our tier from the power rating: tier {sim.letter} is {bandWords(sim.letter)} expected vs the field
+                    our tier from the power rating: tier {sim.letter} is {bandWords(sim.letter)} expected {simTierFieldWords(RATED_FIELD)}
                     {sim.straddle && sim.loLetter && sim.hiLetter ? ` · uncertain: its 90% range reaches from ${sim.loLetter} to ${sim.hiLetter}` : ''}
+                    {RATINGS_VERSION_NOTE ? ` · ${RATINGS_VERSION_NOTE}` : ''}
                   </>
                 ) : (
                   `unrated: ${sim.games} of the ${SIM_TIER_MIN_GAMES} games a tier needs`

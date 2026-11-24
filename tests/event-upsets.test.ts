@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { roundMovement, roundSummary, standingsAfter, type RatingsInput, type RecordedEvent } from '../src/lib/eventFacts';
-import { earlierEvents, eventUpsets, judgeMatches, MIN_EARLIER_GAMES, UPSET_MAX_CHANCE, upsetCalibration, upsetYardstick } from '../src/lib/eventUpsets';
+import { earlierEvents, eventUpsets, judgeMatches, MIN_EARLIER_GAMES, UPSET_MAX_CHANCE, upsetCalibration, upsetYardstick, type UpsetRun } from '../src/lib/eventUpsets';
 import { ratedGamesOf } from '../src/lib/ratingGames';
 import { fitRatings } from '../src/lib/ratingModel';
 import type { GameRec, MatchRec } from '../src/lib/tournament';
@@ -57,7 +57,21 @@ describe('the yardstick takes the same games as the ratings', () => {
     expect(y.events).toEqual(earlierEvents(EVENTS, last).map((e) => e.id));
     expect(y.events).not.toContain(last.id);
     expect(y.games).toBe(ratedGamesOf(earlierEvents(EVENTS, last)).length);
-    expect(upsetYardstick(EVENTS, EVENTS[0]!)).toMatchObject({ events: [], games: 0, fit: null });
+    expect(upsetYardstick(EVENTS, EVENTS[0]!)).toMatchObject({ events: [], runs: [], games: 0, fit: null });
+  });
+
+  it('with the ratings\' pool, the yardstick adds the rating runs dated before the event and applies the list gate', () => {
+    const pool = { runs: RUNS as unknown as UpsetRun[], gate };
+    for (const ev of EVENTS) {
+      const y = upsetYardstick(EVENTS, ev, pool);
+      const runs = RUNS.filter((r) => r.date < ev.date && r.simVersion === ev.simVersion && r.bot === ev.bot);
+      expect(y.runs).toEqual(runs.map((r) => r.id));
+      expect(y.events).toEqual(earlierEvents(EVENTS, ev).map((e) => e.id));
+      expect(y.games).toBe(ratedGamesOf([...earlierEvents(EVENTS, ev), ...runs], gate).length);
+    }
+    // the last event's yardstick with every earlier game pooled is the ratings' fit minus the event's own games
+    const last = EVENTS.at(-1)!;
+    if (RUNS.every((r) => r.date < last.date)) expect(upsetYardstick(EVENTS, last, pool).games).toBe(RATINGS.games - ratedGamesOf([last], gate).length);
   });
 });
 
@@ -223,7 +237,7 @@ describe('upsets on fixtures (known by construction)', () => {
 
   it('the weak deck beating the strong one is an upset; the favourite winning and a coin-flip pairing are not', () => {
     const u = eventUpsets(all, e2);
-    expect(u.yardstick).toEqual({ events: [1], games: 54, minEarlierGames: MIN_EARLIER_GAMES, upsetMaxChance: UPSET_MAX_CHANCE });
+    expect(u.yardstick).toEqual({ events: [1], runs: [], games: 54, minEarlierGames: MIN_EARLIER_GAMES, upsetMaxChance: UPSET_MAX_CHANCE });
     expect(u.played).toBe(4); // the bye is no match
     const [weakWin, evenWin, fresh, final] = u.matches;
     expect(weakWin).toMatchObject({ winner: 'Weak', loser: 'Strong', score: [2, 1], judged: true, upset: true, earlierGames: { winner: 24, loser: 24 } });
@@ -253,6 +267,24 @@ describe('upsets on fixtures (known by construction)', () => {
     const copies = event({ id: 6, decks: ['Strong', 'Strong #2'], rounds: [[match('Strong', 'Strong #2', [0, 0])]], setup: { format: 'swiss', entrants: [{ name: 'Strong' }, { name: 'Strong #2', copyOf: 'Strong' }] } as RecordedEvent['setup'] });
     const j = judgeMatches(copies, upsetYardstick([...all, copies], copies));
     expect(j[0]).toMatchObject({ judged: false, reason: 'a deck against its own copy (not in the ratings)' });
+  });
+
+  it('pools as the ratings do: rating runs dated before the event, the list gate, and no played event', () => {
+    // a run of the same version and bot dated between events 1 and 2, one dated after event 2, one of another bot
+    const run = (id: string, date: string, bot = 'fixture-bot'): UpsetRun => ({ ...event({ id: 0, decks: ['Strong', 'Weak'], rounds: [[weak20()]] }), id, date, bot });
+    const before = run('run-1', '2030-01-01T12:00:00.000Z');
+    const after = run('run-2', '2030-01-03T00:00:00.000Z');
+    const otherBot = run('run-3', '2030-01-01T12:00:00.000Z', 'other-bot');
+    const y = upsetYardstick(all, e2, { runs: [after, otherBot, before] });
+    expect(y).toMatchObject({ events: [1], runs: ['run-1'], games: 54 + 2 });
+    // the gate leaves out a game whose stored list fails it (here: every game Weak plays)
+    const gated = upsetYardstick(all, e2, { runs: [before], gate: (deck) => deck !== 'Weak' });
+    expect(gated.games).toBe(54 - 24);
+    // a played event (people ran some entrants) gives no game and is not named as a yardstick event
+    const played = { ...e1, setup: { format: 'swiss', entrants: [{ name: 'Strong' }, { name: 'Weak' }], seats: { Strong: 'you' } } } as unknown as RecordedEvent;
+    expect(upsetYardstick([played, e2], e2)).toMatchObject({ events: [], runs: [], games: 0, fit: null });
+    // without a pool, the events-only yardstick as before
+    expect(upsetYardstick(all, e2)).toMatchObject({ events: [1], runs: [], games: 54 });
   });
 
   it('the calibration counts the favourite\'s wins by band over every judged match', () => {

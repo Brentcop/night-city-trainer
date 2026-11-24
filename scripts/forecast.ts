@@ -22,7 +22,7 @@ import path from 'node:path';
 import { bool, cli, int, loadLibrary, Refusal, runMain, str } from './lib-node';
 import { FORECAST_DEFAULTS, modelFromH2HFile, runForecast, tournamentOf } from '../src/lib/forecast';
 import { FieldError, jsonField, outsideField, uniformField, userField, type ForecastFieldInput } from '../src/lib/forecastField';
-import { decidesWords, FORECAST_WORDS, pct, rangeText, runWords, sourceWords, tournamentWords, widthWords } from '../src/lib/forecastWords';
+import { decidesWords, FORECAST_WORDS, forecastVersionNote, pct, rangeText, runWords, sourceWords, tournamentWords, widthWords } from '../src/lib/forecastWords';
 import type { OutsideMetaFile } from '../src/lib/outsideMeta';
 
 const { values: V } = cli(import.meta.url, {
@@ -62,6 +62,9 @@ function fieldOf(names: string[]): ForecastFieldInput {
 runMain(async () => {
   if (![1, 3, 5].includes(V['best-of'])) throw new Refusal('--best-of must be 1, 3 or 5');
   const model = modelFromH2HFile(JSON.parse(fs.readFileSync('public/data/h2h.json', 'utf8')));
+  const versionNote = forecastVersionNote(model.source);
+  // with --json on stderr, so the output stays one document (the table prints it beside the model)
+  if (versionNote && V.json) console.error(`Warning: ${versionNote}`);
   let field: ForecastFieldInput;
   try {
     field = fieldOf(model.names);
@@ -81,7 +84,7 @@ runMain(async () => {
   const out = [
     `Regionals forecast: ${tournamentWords(res.tournament)}.`,
     FORECAST_WORDS.what,
-    `Model: ${sourceWords(res.source)}.`,
+    `Model: ${sourceWords(res.source)}.${versionNote ? ` Warning: ${versionNote}` : ''}`,
     `Field: ${field.label}. Source: ${field.source}.${field.leftOutShare > 0 ? ` Left out: ${pct(field.leftOutShare)} of it (${field.leftOut.slice(0, 4).map((x) => `${x.name}: ${x.why}`).join('; ')}${field.leftOut.length > 4 ? '; …' : ''}).` : ''}`,
     ...field.problems.map((p) => `  note: ${p}`),
     `Run: ${runWords(res)}; ${secs.toFixed(1)} s.`,

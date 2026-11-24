@@ -12,7 +12,7 @@ import type { DeckList } from '../src/engine/types';
 import { RATINGS, SEASONS } from '../src/data/index';
 import { rankedParents } from '../src/lib/deckLab';
 import type { LibraryDeck } from '../src/lib/library';
-import { conservativeRating, parentStrength, rankParents, seasonVersions, staleLeaderRow, type RatedDeck } from '../src/lib/parentStrength';
+import { conservativeRating, parentStrength, rankParents, ratingsVersionWarning, seasonVersions, staleLeaderRow, type RatedDeck } from '../src/lib/parentStrength';
 import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
 import { keptOutTriples, leaderStrength, seasonVersionsOnDisk, strengthOf } from '../scripts/breed-data';
 import { BUILTIN } from '../src/lib/browserLibrary';
@@ -128,6 +128,17 @@ describe('parent strength', () => {
     const before = oldLab(rows, decks);
     expect(now.map((x) => x.name)).toEqual(before.map((x) => x.name));
     now.forEach((x, i) => expect(x.wr).toBeCloseTo(before[i]!.wr, 12));
+  });
+});
+
+describe('ratings fitted on another simulator version are flagged', () => {
+  it('a warning line for another or no version, nothing for the current one (so no number or output changes)', () => {
+    expect(ratingsVersionWarning({ manifest: { simVersion: CURRENT_SIM_VERSION } })).toBeNull();
+    if (RATINGS.manifest?.simVersion === CURRENT_SIM_VERSION) expect(ratingsVersionWarning(RATINGS)).toBeNull();
+    expect(ratingsVersionWarning({ manifest: { simVersion: CURRENT_SIM_VERSION - 1 } })).toBe(
+      `Warning: parent strength reads src/data/ratings.json, fitted on simulator v${CURRENT_SIM_VERSION - 1}, not the current v${CURRENT_SIM_VERSION}; the parents are ranked on old ratings until the series re-rates the library.`,
+    );
+    expect(ratingsVersionWarning({}, 'x.json')).toMatch(/^Warning: parent strength reads x\.json, fitted on an unversioned simulator/);
   });
 });
 

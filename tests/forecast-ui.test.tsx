@@ -8,7 +8,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { defaultSiteConfig, FEATURE_INFO, PAGE_FEATURES, pageOn, parseSiteConfig, siteConfigText, visibleNav } from '../src/lib/siteConfig';
 import { modelFromH2HFile, runForecast, tournamentOf } from '../src/lib/forecast';
 import { uniformField, userField } from '../src/lib/forecastField';
-import { FORECAST_WORDS, sourceWords } from '../src/lib/forecastWords';
+import { FORECAST_WORDS, forecastVersionNote, sourceWords } from '../src/lib/forecastWords';
+import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
 import { ForecastPage, ForecastResults } from '../src/ui/pages/Forecast';
 import { importGraph, rel, ROOT } from './importGraph';
 
@@ -90,6 +91,17 @@ describe('the page', () => {
     expect(html).toContain('aria-sort="descending"');
     expect(html.match(/<th scope="row"/g)).toHaveLength(model.names.length);
     expect(html).toContain('href="#/deck?d=');
+  });
+  it('a model fitted on another simulator version is flagged; the current one adds nothing', () => {
+    expect(forecastVersionNote({ simVersion: CURRENT_SIM_VERSION })).toBeNull();
+    expect(forecastVersionNote({ simVersion: CURRENT_SIM_VERSION - 1 })).toBe(`The ratings behind this forecast were fitted on simulator v${CURRENT_SIM_VERSION - 1}, not the current v${CURRENT_SIM_VERSION}, so the forecast is historical.`);
+    expect(forecastVersionNote({ simVersion: null })).toMatch(/an unversioned simulator/);
+    const field = uniformField(model.names);
+    const res = runForecast(model, { weights: field.weights }, tournamentOf({ players: 16, top: 4 }), { draws: 2, trials: 5, seed: 1 });
+    const html = renderToStaticMarkup(<ForecastResults result={res} field={field} names={model.names} />);
+    if (h2h.manifest.simVersion === CURRENT_SIM_VERSION) expect(html).not.toContain('so the forecast is historical');
+    const old = { ...res, source: { ...res.source, simVersion: CURRENT_SIM_VERSION - 1 } };
+    expect(renderToStaticMarkup(<ForecastResults result={old} field={field} names={model.names} />)).toContain(`fitted on simulator v${CURRENT_SIM_VERSION - 1}, not the current`);
   });
   it('a field with names it cannot place says how much was left out', () => {
     const field = userField(model.names, `${model.names[0]}: 3\nA deck we never rated: 1`);

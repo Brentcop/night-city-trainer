@@ -7,7 +7,7 @@ import { byName } from '../deckLookup';
 import { LegendStrip, OriginBadge, originKind } from '../components/DeckIdentity';
 import { PageHead } from '../components/PageHead';
 import { CURRENT_SIM_VERSION, ordinal, ratingsHistorical } from '../../lib/playedRecord';
-import { bandOf, bandWords, SIM_TIER_LETTERS, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS, simTier } from '../../lib/simTier';
+import { bandOf, bandWords, SIM_TIER_LETTERS, SIM_TIER_MIN_GAMES, SIM_TIER_STRADDLE_BANDS, simTier, simTierFieldWords, simTierVersionNote } from '../../lib/simTier';
 import { SimTierBadge } from '../components/TierBadges';
 import { YourDecks } from '../components/YourStats';
 import { OutsidePictureSection } from '../components/OutsidePicture';
@@ -68,7 +68,7 @@ export function RatingsPage() {
           <thead>
             <tr>
               <th>#</th>
-              <th title="Our tier from this table: the band the expected win rate falls in">Sim tier</th>
+              <th title={`Our tier from this table: the band the expected win rate ${simTierFieldWords(R.decks.length)} falls in`}>Sim tier</th>
               <th>Deck</th>
               <th style={{ minWidth: 220 }}>Expected win % vs field (90% range)</th>
               <th title="The same model's expected win rate against the choom.gg meta decks only">Expected vs meta decks</th>
@@ -88,7 +88,7 @@ export function RatingsPage() {
                   {(!prev || bandOf(prev.wrField) !== band) && (
                     <tr className="tier-divider">
                       <th colSpan={9} scope="rowgroup">
-                        Sim tier {band} · {bandWords(band)} expected vs the field
+                        Sim tier {band} · {bandWords(band)} expected {simTierFieldWords(R.decks.length)}
                       </th>
                     </tr>
                   )}
@@ -150,14 +150,18 @@ function SimTierNote() {
   const count = (l: string) => tiers.filter((t) => t.letter === l).length;
   const unsure = tiers.filter((t) => t.straddle).length;
   const unrated = tiers.filter((t) => !t.letter).length;
+  const rated = tiers.length - unrated;
+  const versionNote = simTierVersionNote(R.manifest);
   return (
     <details className="panel small sim-tier-note">
       <summary>
         <b>Sim tiers</b>: our letter for each deck from this table, beside choom.gg’s editorial tier (the <span className="tierb tierb-choom t-S"><span className="tierb-src">choom</span><span className="tierb-l">S</span></span> badge), never in place of it.
       </summary>
       <p>
-        The letter is the band the deck’s <b>expected win rate against the whole field</b> falls in. The bands are fixed, so a tier means the same thing as the field changes, and the
-        letters follow this table whenever the ratings are rebuilt from new events.
+        The letter is the band the deck’s <b>expected win rate against the whole field</b> falls in: the field is {simTierFieldWords(R.decks.length)} (every deck with a game on its
+        current list, each counted once). The bands are fixed, but the field’s average is 50% by construction, so a letter is relative to the library as it stands: adding strong decks
+        lowers the other letters and dropping weak ones raises them, while the order barely moves. The letters follow this table whenever the ratings are rebuilt.
+        {versionNote && <b> {versionNote}</b>}
       </p>
       <ul className="sim-tier-bands">
         {SIM_TIER_LETTERS.map((l) => (
@@ -171,9 +175,9 @@ function SimTierNote() {
         ))}
       </ul>
       <p>
-        A deck needs {SIM_TIER_MIN_GAMES} recorded games for a letter; with fewer it shows <b>–</b> (unrated{unrated ? `: ${unrated} now` : ''}). When its 90% range reaches {SIM_TIER_STRADDLE_BANDS} or more
-        bands away from its letter, the letter is marked <b>±</b> and striped: it could be off by two tiers ({unsure} deck{unsure === 1 ? '' : 's'} now). At today’s sample sizes every range spans
-        more than one band, so read neighbouring letters as overlapping.
+        A deck needs {SIM_TIER_MIN_GAMES} recorded games for a letter; with fewer it shows <b>–</b> (unrated{unrated ? `: ${unrated} now` : ''}). When its 90% range crosses a band edge
+        {SIM_TIER_STRADDLE_BANDS > 1 ? ` (reaches ${SIM_TIER_STRADDLE_BANDS} or more bands away)` : ''}, the letter is marked <b>±</b> and striped: its range reaches a neighbouring tier ({unsure} of{' '}
+        {rated} rated deck{rated === 1 ? '' : 's'} now). The letter is the band of the estimate; read a ± letter and its neighbour as overlapping.
       </p>
     </details>
   );

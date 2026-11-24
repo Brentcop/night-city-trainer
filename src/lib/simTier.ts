@@ -3,9 +3,13 @@
 // scripts/ratings.ts: a Bradley–Terry model over every recorded tournament game, giving each deck an expected win rate
 // against the whole field with a 90% range), at read time, so it follows ratings.json whenever that is rebuilt.
 //
-// Fixed bands, not rank quantiles: a letter means the same expected win rate however the field changes. The numbers
-// below are the whole rule; change them here.
-import { SMALL_SAMPLE } from './playedRecord';
+// Fixed bands on the expected win rate, not rank quantiles. The win rate is against the field the ratings were fitted on
+// (every deck with a game on its current list: the library), whose average is 50% by construction, so a letter is
+// relative to the library as it stands: adding strong decks lowers the other decks' letters and pruning weak ones raises
+// them, while the order barely moves (docs/REVIEW_2026-11-24.md L3). Name the field beside a letter
+// (`simTierFieldWords`). The numbers below are the whole rule; change them here (src/lib/ratingModel.ts
+// TIER_BOUNDARIES is a second copy of the edges, held equal by tests/sim-tier.test.tsx).
+import { CURRENT_SIM_VERSION, SMALL_SAMPLE } from './playedRecord';
 
 export type SimTierLetter = 'S' | 'A' | 'B' | 'C' | 'D';
 
@@ -27,12 +31,14 @@ export const SIM_TIER_BANDS: readonly { letter: SimTierLetter; min: number }[] =
 export const SIM_TIER_MIN_GAMES = SMALL_SAMPLE;
 
 /**
- * How many bands away from the letter's own band the 90% range must reach before the letter is marked uncertain (±).
- * With one band ("the range spans more than one band") every deck in the current data would be marked, since each
- * range is wider than any band, and the marker would say nothing; at two it marks the letters that could be off by
- * two tiers or more.
+ * How many bands away from the letter's own band the 90% range must reach before the letter is marked uncertain (±):
+ * one, so a letter is marked whenever its range crosses a band edge. Two, the rule until 2026-11-24, was set when the
+ * ranges were 15–24 points wide; at the rating series' ±4 points no range can reach two bands of 9–10 points, so no
+ * letter was marked while 54 of 71 ranges crossed an edge (docs/REVIEW_2026-11-24.md L2). A ± letter is the band of
+ * the point estimate; the range's ends are `loLetter` and `hiLetter`. (src/lib/rankStability.ts reads the bands only,
+ * never this mark.)
  */
-export const SIM_TIER_STRADDLE_BANDS = 2;
+export const SIM_TIER_STRADDLE_BANDS = 1;
 
 export const SIM_TIER_LETTERS: readonly SimTierLetter[] = SIM_TIER_BANDS.map((b) => b.letter);
 
@@ -49,7 +55,7 @@ export interface SimTier {
   letter: SimTierLetter | null;
   /** why it is unrated */
   unrated?: 'no-games' | 'few-games';
-  /** the 90% range reaches SIM_TIER_STRADDLE_BANDS or more bands away from the letter's band */
+  /** the 90% range reaches SIM_TIER_STRADDLE_BANDS or more bands away from the letter's band (it crosses a band edge) */
   straddle: boolean;
   /** expected win rate vs the field, its 90% range and the games behind it (absent with no recorded games) */
   wr?: number;
@@ -107,26 +113,54 @@ export function bandWords(letter: SimTierLetter): string {
 /** The letter as shown: "B", "B±" (uncertain), or "–" (unrated). */
 export const simTierShort = (t: SimTier): string => (t.letter ? `${t.letter}${t.straddle ? '±' : ''}` : '–');
 
+/**
+ * The field a letter is measured against, in words: "against the library, 71 decks" (`decks`: the rated decks in
+ * ratings.json, every deck with a game on its current list). Shown beside every letter, since the letter moves with it.
+ */
+export const simTierFieldWords = (decks: number): string => `against the library, ${decks} deck${decks === 1 ? '' : 's'}`;
+
+/** What the tier texts may add: the size of the rated field, and a note (the ratings' simulator version). */
+export interface SimTierTextOptions {
+  /** rated decks in the field (`simTierFieldWords`); absent: "vs the field" */
+  field?: number;
+  /** a sentence appended to the text (`simTierVersionNote`) */
+  note?: string | null;
+}
+
 /** The tooltip / screen-reader text: where the letter comes from, the number, its range and games. */
-export function simTierText(t: SimTier): string {
+export function simTierText(t: SimTier, o: SimTierTextOptions = {}): string {
   const src = "Sim tier, from this trainer's recorded tournaments (power rating)";
-  if (t.unrated === 'no-games') return `${src}: unrated, no recorded tournament games.`;
-  if (t.unrated === 'few-games') return `${src}: unrated, too few games (${t.games} of the ${SIM_TIER_MIN_GAMES} needed).`;
+  const tail = o.note ? ` ${o.note}` : '';
+  if (t.unrated === 'no-games') return `${src}: unrated, no recorded tournament games.${tail}`;
+  if (t.unrated === 'few-games') return `${src}: unrated, too few games (${t.games} of the ${SIM_TIER_MIN_GAMES} needed).${tail}`;
   const range = t.lo !== undefined && t.hi !== undefined ? ` (90% range ${pc1(t.lo)}–${pc1(t.hi)})` : '';
-  const head = `${src}: ${t.letter}${t.straddle ? '±' : ''}. Expected ${pc1(t.wr ?? 0)} vs the field${range} over ${t.games} games; tier ${t.letter} is ${bandWords(t.letter ?? 'D')}.`;
-  return t.straddle && t.loLetter && t.hiLetter ? `${head} Uncertain: the range reaches from tier ${t.loLetter} to tier ${t.hiLetter}.` : head;
+  const field = o.field !== undefined ? simTierFieldWords(o.field) : 'vs the field';
+  const head = `${src}: ${t.letter}${t.straddle ? '±' : ''}. Expected ${pc1(t.wr ?? 0)} ${field}${range} over ${t.games} games; tier ${t.letter} is ${bandWords(t.letter ?? 'D')}.`;
+  return `${t.straddle && t.loLetter && t.hiLetter ? `${head} Uncertain: the range reaches from tier ${t.loLetter} to tier ${t.hiLetter}.` : head}${tail}`;
+}
+
+/**
+ * The note for letters read from ratings fitted on another simulator version: null when the file's manifest names the
+ * current one (so nothing changes then); a file without a manifest version counts as another version.
+ */
+export function simTierVersionNote(manifest: { simVersion?: unknown } | null | undefined, current: number = CURRENT_SIM_VERSION): string | null {
+  const v = manifest?.simVersion;
+  if (typeof v === 'number' && v === current) return null;
+  return `These letters come from ratings fitted on ${typeof v === 'number' ? `simulator v${v}` : 'an unversioned simulator'}, not the current v${current}.`;
 }
 
 /**
  * The tooltip of a provisional tier (src/lib/yourStats.ts): the same rule on a provisional rating from the visitor's own
  * tournaments in this browser, named as such, never as a recorded result.
  */
-export function provisionalTierText(t: SimTier): string {
+export function provisionalTierText(t: SimTier, o: SimTierTextOptions = {}): string {
   const src = 'Provisional tier from your tournaments in this browser (All Hard bots), not a recorded result';
-  if (!t.letter) return `${src}: none yet, too few games (${t.games} of the ${SIM_TIER_MIN_GAMES} needed).`;
+  const tail = o.note ? ` ${o.note}` : '';
+  if (!t.letter) return `${src}: none yet, too few games (${t.games} of the ${SIM_TIER_MIN_GAMES} needed).${tail}`;
   const range = t.lo !== undefined && t.hi !== undefined ? ` (90% range ${pc1(t.lo)}–${pc1(t.hi)})` : '';
-  const head = `${src}: ${t.letter}${t.straddle ? '±' : ''}. Expected ${pc1(t.wr ?? 0)} vs the recorded field${range} over ${t.games} games; tier ${t.letter} is ${bandWords(t.letter)}.`;
-  return t.straddle && t.loLetter && t.hiLetter ? `${head} Uncertain: the range reaches from tier ${t.loLetter} to tier ${t.hiLetter}.` : head;
+  const field = o.field !== undefined ? `vs the recorded field, the library of ${o.field} deck${o.field === 1 ? '' : 's'},` : 'vs the recorded field';
+  const head = `${src}: ${t.letter}${t.straddle ? '±' : ''}. Expected ${pc1(t.wr ?? 0)} ${field}${range} over ${t.games} games; tier ${t.letter} is ${bandWords(t.letter)}.`;
+  return `${t.straddle && t.loLetter && t.hiLetter ? `${head} Uncertain: the range reaches from tier ${t.loLetter} to tier ${t.hiLetter}.` : head}${tail}`;
 }
 
 /** Every band in one line, for the explanations: "S 64% or more · A 55–64% · …". */

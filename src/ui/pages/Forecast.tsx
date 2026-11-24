@@ -11,7 +11,7 @@ import { BUILTIN } from '../../lib/browserLibrary';
 import { CURRENT_SIM_VERSION } from '../../lib/playedRecord';
 import { defaultRounds, FORECAST_DEFAULTS, ForecastRun, modelFromH2HFile, tournamentOf, type DeckForecast, type ForecastModel, type ForecastResult, type H2HForecastFile } from '../../lib/forecast';
 import { FieldError, fieldText, outsideField, uniformField, userField, type ForecastFieldInput } from '../../lib/forecastField';
-import { decidesWords, FORECAST_WORDS, pct, rangeText, runWords, sourceWords, tournamentWords, widthWords } from '../../lib/forecastWords';
+import { decidesWords, FORECAST_WORDS, forecastVersionNote, pct, rangeText, runWords, sourceWords, tournamentWords, widthWords } from '../../lib/forecastWords';
 import { OUTSIDE_META } from '../../data/outsideMetaData';
 import { sourceTitle } from '../../lib/outsideMeta';
 import { useFeature } from '../useSiteConfig';
@@ -150,10 +150,11 @@ function ForecastTool({ model }: { model: ForecastModel }) {
   };
 
   const fillUniform = () => setText(fieldText(model.names, uniformField(model.names).weights));
-  const historical = model.source.simVersion !== null && model.source.simVersion !== CURRENT_SIM_VERSION;
+  const versionNote = forecastVersionNote(model.source, CURRENT_SIM_VERSION);
 
   return (
     <>
+      {versionNote && <p className="panel forecast-problem forecast-version">{versionNote}</p>}
       <form
         className="panel forecast-form"
         onSubmit={(e) => {
@@ -296,7 +297,7 @@ function ForecastTool({ model }: { model: ForecastModel }) {
         </div>
       )}
       {(state.status === 'done' || state.status === 'stopped') && state.result && (
-        <ForecastResults result={state.result} field={state.field} names={model.names} historical={historical} />
+        <ForecastResults result={state.result} field={state.field} names={model.names} versionNote={versionNote} />
       )}
       {(state.status === 'done' || state.status === 'stopped') && state.field.problems.length > 0 && (
         <div className="panel small">
@@ -318,7 +319,7 @@ const value = (d: DeckForecast, k: SortKey): number | string =>
   k === 'deck' ? d.name : k === 'share' ? d.weight : k === 'conversion' ? d.conversion.mean : k === 'any' ? d.anyInCut.mean : k === 'seats' ? d.cutShare.mean : (d.title?.mean ?? 0);
 
 /** The sources, the field and the table of one finished (or stopped) run. */
-export function ForecastResults({ result, field, names, historical = false }: { result: ForecastResult; field: ForecastFieldInput; names: readonly string[]; historical?: boolean }) {
+export function ForecastResults({ result, field, names, versionNote = forecastVersionNote(result.source) }: { result: ForecastResult; field: ForecastFieldInput; names: readonly string[]; versionNote?: string | null }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'conversion', dir: 'desc' });
   const files = useMemo(() => new Map(BUILTIN.map((d) => [d.deck.name, d.file])), []);
   const rows = useMemo(() => {
@@ -352,7 +353,7 @@ export function ForecastResults({ result, field, names, historical = false }: { 
           <dd>{tournamentWords(result.tournament)}.</dd>
           <dt>Ratings</dt>
           <dd>
-            {sourceWords(result.source)}.{historical && ' These games were recorded before the current simulator, so the forecast is historical.'}
+            {sourceWords(result.source)}.{versionNote && <b> {versionNote}</b>}
           </dd>
           <dt>Field</dt>
           <dd>
