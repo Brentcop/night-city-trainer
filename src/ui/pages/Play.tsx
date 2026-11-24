@@ -71,7 +71,8 @@ import {
 } from '../../lib/savedGames';
 import { ConfirmDialog, ResumeConfirm, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard, type CoachNote } from '../components/board/CoachPanel';
-import { shownLabel } from '../../lib/coachWords';
+import { coachTablesWords, shownLabel } from '../../lib/coachWords';
+import { ANALYSIS } from '../../data/analysisData';
 import { MentionText } from '../components/CardMention';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
 import { OngoingGames } from '../components/OngoingGames';
@@ -695,6 +696,8 @@ export function Board({
   // a tournament game follows the event's own setting instead (the board's setting is not read)
   const coach = coachHere && (tourney ? tourney.coach : settings.coach);
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
+  // the tips' card figures are the bot-match analysis run's (src/data/analysis.json, impact.json): name its bot
+  const tipsSource = useMemo(() => coachTablesWords(ANALYSIS.bot, ANALYSIS.manifest?.simVersion), []);
   // the seats' names (deck names, chosen by players) are never read as card names in the log
   const seatA = s.players[0].name;
   const seatB = s.players[1].name;
@@ -1114,7 +1117,7 @@ export function Board({
     </button>
   );
   const allActions = <AllActions pend={pend} coachI={ctx.coach?.i ?? null} answer={answer} open={allOpen} onToggle={setAllOpen} />;
-  const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} /> : null;
+  const coachPanel = coach ? <CoachPanel g={g} v={version} alts={activeHint?.alts ?? NO_ALTS} tips={tips} warnings={warnings} source={tipsSource} /> : null;
   const lastMove = bot?.lastThought ? <div className="small muted pb-lastmove">
       Bot's last move: <MentionText text={shownLabel(bot.lastThought.replace(/ \((?:eval|projected)[^)]*\)$/, ''))} />
     </div> : null;

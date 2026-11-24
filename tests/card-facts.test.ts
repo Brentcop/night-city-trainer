@@ -47,6 +47,7 @@ describe('on the real reports', () => {
       runId: DEC!.manifest!.runId,
       games: DEC!.manifest!.sample.completedGames,
       stale: DEC!.manifest!.simVersion < CURRENT_SIM_VERSION,
+      otherBot: DEC!.manifest!.bot.level !== 'hard',
     });
     // analysis.json's top-level `games` is games per pairing: the basis takes the run's games from the manifest
     if (ANA?.manifest) expect(reportBasis(ANA_FILE, ANA).games).toBe(ANA.manifest.sample.completedGames);
@@ -301,12 +302,13 @@ describe('on fixtures', () => {
     ]);
     expect(rs.find((r) => r.id === 'pkgstat:deck-a/dead')!.links.map((l) => l.rel)).toEqual(['deck', 'parent']);
     expect(a.stamps).toEqual({ asOf: '2026-01-02T03:04:05.000Z', bot: 'fixture', listId: 'LIST_A', simVersion: 9 });
-    expect(a.text.split('\n')[0]).toContain('measured by the fixture bot on sim version 9 (2026-01-02, 100 games in the run)');
+    // the fixture bot is not the reference (Hard) bot, and the record says so
+    expect(a.text.split('\n')[0]).toContain("measured by the fixture bot on sim version 9 (not the hard bot the site's ratings and recorded results use) (2026-01-02, 100 games in the run)");
     // no report at all: nothing built, each missing report counted
     const none: Record<string, number> = {};
     expect(buildStats({ decisions: null, synergies: null, analysis: null, impact: null, catalogueVersion: 'CAT' }, { deckOf: () => undefined, cardName: () => undefined, hasCard: () => false, hasPackage: () => false, skipped: none })).toEqual([]);
     expect(Object.keys(none).sort()).toEqual(['stats: decision report missing', 'stats: deck analysis missing', 'stats: impact table missing', 'stats: synergy report missing']);
-    expect(reportBasis('gone.json', null)).toEqual({ file: 'gone.json', simVersion: null, bot: null, asOf: null, runId: null, games: null, stale: true });
+    expect(reportBasis('gone.json', null)).toEqual({ file: 'gone.json', simVersion: null, bot: null, asOf: null, runId: null, games: null, stale: true, otherBot: false });
   });
 
   it('a report from an older sim version is stale and says so', () => {

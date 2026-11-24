@@ -12,6 +12,7 @@
 //   --matchup-check    write nothing: print the leave-one-event-out check of the matchup interval
 //
 // Reads tracked files only: src/data/ratings.json, public/data/h2h.json, src/data/analysis.json, public/data/synergies.json,
+// public/data/decisions.json (each card's sells, src/lib/sellShare.ts),
 // the recorded events (public/tournaments) and the rating runs (data/series, docs/SERIES.md), the forge reports (reports/forge/*.json), the re-measurements
 // (data/evidence/*.json), the change ledger, the library (data/decks) and its older lists (data/decks/custom/history).
 // A derived-data builder like scripts/build-h2h.ts: it overwrites its own output, and an unchanged rebuild leaves every
@@ -46,6 +47,19 @@ function shown(root: string, p: string): string {
 
 const readJson = (file: string): unknown => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null);
 
+/** The recorded forge reports (reports/forge/*.json) of a checkout, in file order: the ones with generations and a manifest. */
+export function readForgeReports(root = '.'): { file: string; report: ForgeReport }[] {
+  const dir = path.join(root, FORGE_DIR);
+  return fs.existsSync(dir)
+    ? fs
+        .readdirSync(dir)
+        .filter((x) => x.endsWith('.json'))
+        .sort()
+        .map((f) => ({ file: `${FORGE_DIR}/${f}`, report: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) as ForgeReport }))
+        .filter((x) => x.report && Array.isArray(x.report.gens) && x.report.manifest)
+    : [];
+}
+
 /** Every input the builder reads, from a checkout (`root`), with any problem that stops a build. */
 export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted?: string | null; eventsDir?: string; h2h?: string; seriesDir?: string | null } = {}): { inputs: EvidenceInputs; problems: string[] } {
   const at = (p: string) => path.join(root, p);
@@ -68,14 +82,7 @@ export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted
       if (r.file) remeasure.push({ file, data: r.file });
       else problems.push(...r.problems);
     }
-  const forge = fs.existsSync(at(FORGE_DIR))
-    ? fs
-        .readdirSync(at(FORGE_DIR))
-        .filter((x) => x.endsWith('.json'))
-        .sort()
-        .map((f) => ({ file: `${FORGE_DIR}/${f}`, report: JSON.parse(fs.readFileSync(at(`${FORGE_DIR}/${f}`), 'utf8')) as ForgeReport }))
-        .filter((x) => x.report && Array.isArray(x.report.gens) && x.report.manifest)
-    : [];
+  const forge = readForgeReports(root);
   const history = fs.existsSync(at(HISTORY_DIR))
     ? fs
         .readdirSync(at(HISTORY_DIR))
@@ -100,12 +107,13 @@ export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted
     h2h: readJson(at(o.h2h ?? 'public/data/h2h.json')) as EvidenceInputs['h2h'],
     analysis: readJson(at('src/data/analysis.json')) as EvidenceInputs['analysis'],
     synergies: readJson(at('public/data/synergies.json')) as EvidenceInputs['synergies'],
+    decisions: readJson(at('public/data/decisions.json')) as EvidenceInputs['decisions'],
     catalogueVersion: CATALOGUE_VERSION,
     ledger: ledger.files.map((f) => ({ file: f.file, batches: f.batches.map((b) => b.batch) })),
     forge,
     remeasure,
     adjusted,
-    paths: { ratings: 'src/data/ratings.json', h2h: shown(root, o.h2h ?? 'public/data/h2h.json'), analysis: 'src/data/analysis.json', synergies: 'public/data/synergies.json', events: shown(root, o.eventsDir ?? EVENTS_DIR), ledgerDir: shown(root, ledgerDir), ...(seriesDir ? { series: shown(root, seriesDir) } : {}) },
+    paths: { ratings: 'src/data/ratings.json', h2h: shown(root, o.h2h ?? 'public/data/h2h.json'), analysis: 'src/data/analysis.json', synergies: 'public/data/synergies.json', decisions: 'public/data/decisions.json', events: shown(root, o.eventsDir ?? EVENTS_DIR), ledgerDir: shown(root, ledgerDir), ...(seriesDir ? { series: shown(root, seriesDir) } : {}) },
     simVersion: CURRENT_SIM_VERSION,
   };
   return { inputs, problems };

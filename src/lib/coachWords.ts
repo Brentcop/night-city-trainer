@@ -96,3 +96,21 @@ export function verdictName(verdict: MoveVerdict | string, gap: number | null | 
   const r = verdictRating(verdict, gap);
   return r ? RATING_INFO[r].label : null;
 }
+
+/** The bot the site's ratings and recorded results are measured with: the coach's tables name theirs when it is another. */
+export const RATINGS_BOT = 'hard';
+
+/**
+ * Where the coach's card figures come from (the tips' "Cards most associated with wins", the sells it explains by card
+ * value): the bot-match analysis run that src/data/analysis.json and src/data/impact.json were built from, named by its
+ * bot and simulator version. "Card figures in these tips come from the Deep bot's games (simulator version 9), not the
+ * Hard bot the site's ratings use: they say what that bot did with a card, not how good the card is." Null when the run
+ * names no bot.
+ */
+export function coachTablesWords(bot: string | null | undefined, simVersion: number | null | undefined): string | null {
+  if (!bot) return null;
+  const name = `${bot.charAt(0).toUpperCase()}${bot.slice(1)}`;
+  const version = typeof simVersion === 'number' ? ` (simulator version ${simVersion})` : '';
+  const other = bot === RATINGS_BOT ? '' : `, not the Hard bot the site's ratings use`;
+  return `Card figures in these tips come from the ${name} bot's games${version}${other}: they say what that bot did with a card, not how good the card is.`;
+}

@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bhPass, citeLine, findingIds, GAME_THRESHOLDS, idProblems, pValueOf, strengthOf, strengthStep, type AdjustedEstimate, type Finding, type MeasurementKey, type StrengthInput } from '../src/lib/findings';
+import { bhPass, citeLine, findingIds, GAME_THRESHOLDS, idProblems, isOtherBot, pValueOf, strengthOf, strengthStep, type AdjustedEstimate, type Finding, type MeasurementKey, type StrengthInput } from '../src/lib/findings';
 import { botsWords, CAUSAL_WORDS, citeOf, claimOf, driftWords, GAP_WORDS, MISLEAD, sentenceOf as sentenceOfFinding } from '../src/lib/findingWords';
 import { FLAGS as REMEASURE_FLAGS } from '../scripts/remeasure-run';
 
@@ -53,6 +53,29 @@ describe('the strength rule', () => {
     expect(s({ simVersion: 10 })).toBe('moderate');
     expect(strengthOf({ ...base, simVersion: 8 }, 8)).toBe('strong');
     expect(s({ simVersion: 5, n: 100_000, estimate: 0.2, lower: 0.19, upper: 0.21 })).toBe('moderate');
+  });
+
+  it('a finding measured with a bot its nature does not expect is never strong; one with no bot is not checked (A.11)', () => {
+    const result = { method: 'shrunk' as const, nature: 'result' as const, n: 400 };
+    // results and associations expect Hard: a deep-bot table is marked and never strong
+    expect(s({ ...result, bot: 'hard' })).toBe('strong');
+    expect(s({ ...result, bot: 'deep' })).toBe('moderate');
+    expect(s({ ...result, bot: 'medium' })).toBe('moderate');
+    expect(s({ method: 'association', nature: 'association', n: 400, bot: 'deep', adjusted: adj() })).toBe('moderate');
+    expect(s({ method: 'association', nature: 'association', n: 400, bot: 'hard', adjusted: adj() })).toBe('strong');
+    // effects may be Medium's or Hard's (Medium's are flagged apart by what Hard shows), the older worker names included
+    expect(s({ bot: 'medium' })).toBe('strong');
+    expect(s({ bot: 'lookahead' })).toBe('strong');
+    expect(s({ bot: 'hard' })).toBe('strong');
+    expect(s({ bot: 'deep' })).toBe('moderate');
+    // no bot recorded: unchanged
+    expect(s({ ...result })).toBe('strong');
+    expect(s({ ...result, bot: '?' })).toBe('strong');
+    expect(isOtherBot(undefined, 'result')).toBe(false);
+    expect(isOtherBot('', 'association')).toBe(false);
+    expect(isOtherBot('deep', 'association')).toBe(true);
+    expect(isOtherBot('best', 'effect')).toBe(false);
+    expect(isOtherBot('easy', 'effect')).toBe(true);
   });
 
   it('an association is never strong without an adjusted estimate that clears the bar too', () => {
@@ -300,7 +323,7 @@ describe('the model stays light', () => {
     const graph = [...staticGraph(MODEL)].map(rel).sort();
     expect(graph.filter((f) => /^(src\/(engine|ai|sim|analysis|data)\/|src\/lib\/kb\/|scripts\/|tools\/)/.test(f))).toEqual([]);
     // exactly these small, pure modules
-    expect(graph).toEqual(['src/lib/evidence.ts', 'src/lib/findingWords.ts', 'src/lib/findings.ts', 'src/lib/groupSequential.ts', 'src/lib/playedRecord.ts', 'src/lib/stateHash.ts']);
+    expect(graph).toEqual(['src/lib/evidence.ts', 'src/lib/findingWords.ts', 'src/lib/findings.ts', 'src/lib/groupSequential.ts', 'src/lib/playedRecord.ts', 'src/lib/sellShare.ts', 'src/lib/stateHash.ts']);
     const dynamic = MODEL.flatMap((f) => [...fs.readFileSync(f, 'utf8').matchAll(DYNAMIC)].map((m) => m[1]));
     expect(dynamic).toEqual([]);
     for (const f of MODEL) expect(fs.readFileSync(f, 'utf8')).not.toMatch(/from ['"]node:/);

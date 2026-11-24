@@ -37,6 +37,10 @@ import {
   matchupCellWords,
   MISLEAD,
   changeStatusWords,
+  changeVerdictWords,
+  soldSourceWords,
+  soldWords,
+  verdictWords,
   openWords,
   restOf,
   RUN_WORDS,
@@ -196,7 +200,10 @@ const card = F('card-assoc', {
   strength: 'moderate',
   bot: 'deep',
   family: { key: `${LIST}:cards`, size: 34, correction: 'bh' },
-  detail: { rates: { a: 0.6, aGames: 400, b: 0.52, bGames: 300, aLabel: 'drawn', bLabel: 'not drawn' } },
+  detail: {
+    rates: { a: 0.6, aGames: 400, b: 0.52, bGames: 300, aLabel: 'drawn', bLabel: 'not drawn' },
+    sold: { n: 960, of: 1000, bot: 'deep', simVersion: 9, run: 'analysis:2026-11-14T15:47:12.017Z:1', date: '2026-11-14T15:47:12.017Z' },
+  },
 });
 const thinCard = F('card-assoc', {
   subject: { ...subject, card: { id: 'thin_card', name: 'Thin Card' } },
@@ -479,6 +486,22 @@ describe('a deck’s page', () => {
     expect(text(rowHtml(html, card.short))).toContain('drawn 60.0% (400 games) · not drawn 52.0% (300 games)');
   });
 
+  it('a card row shows how often the bot sold it, and from 85% on says the bot sells this, naming the bot and run (A.12)', () => {
+    const html = deckHtml();
+    const row = text(rowHtml(html, card.short));
+    expect(row).toContain('drawn 60.0% (400 games) · not drawn 52.0% (300 games) · sold in 96.0% of 1,000 uses from hand: the bot sells this');
+    expect(row).toContain('Sells: from the decision telemetry of the Deep bot’s run of 2026-11-14 (simulator version 9)');
+    // a card with no sells recorded says nothing about them
+    expect(text(rowHtml(html, thinCard.short))).not.toContain('uses from hand');
+    const sold = (n: number, of: number) => ({ n, of, bot: 'deep', simVersion: 9, run: null, date: null });
+    expect(soldWords(sold(84, 100))).toBe('sold in 84.0% of 100 uses from hand');
+    expect(soldWords(sold(85, 100))).toBe('sold in 85.0% of 100 uses from hand: the bot sells this');
+    // under the minimum uses: the count alone, never flagged
+    expect(soldWords(sold(19, 19))).toBe('sold 19 of 19 uses from hand');
+    expect(soldSourceWords(sold(1, 2))).toContain('the Deep bot’s run (simulator version 9)');
+    expect(hasCausal(soldSourceWords(sold(1, 2)))).toEqual([]);
+  });
+
   it('a "not enough games" row shows the chip first and no emphasised number; strong rows are emphasised', () => {
     const html = deckHtml();
     const thin = rowHtml(html, thinCard.short);
@@ -516,8 +539,9 @@ describe('a deck’s page', () => {
     );
     expect(text(art)).toContain('Tried on this list and not applied: the list on this site does not contain it.');
     expect(text(art)).not.toContain('A change to this list.');
-    expect(text(art)).toContain('The tuning tools’ rule would adopt it.');
-    expect(text(art)).toContain('The forge could not tell.');
+    // each verdict names the rule that gave it (docs/EVIDENCE.md "Two rules, two verdicts")
+    expect(text(art)).toContain('Adopted by the pooled always-valid rule.');
+    expect(text(art)).toContain('The run’s staged rule could not tell.');
     // each row names how it was measured; its bot and version once, on its second line
     const re = rowHtml(art, remeasured.short);
     expect(text(re)).toContain('A re-measurement on fresh games');
@@ -904,7 +928,7 @@ describe('a row is two lines: the number said once', () => {
       expect(rowHtml(html, f.short)).toContain('Link to this finding');
       expect(row).toMatch(/aria-expanded="false"[^>]*>Details/);
     }
-    expect(text(visible(rowHtml(html, card.short)))).toContain('drawn 60.0% (400 games) · not drawn 52.0% (300 games) · Deep bot, version 9');
+    expect(text(visible(rowHtml(html, card.short)))).toContain('drawn 60.0% (400 games) · not drawn 52.0% (300 games) · sold in 96.0% of 1,000 uses from hand: the bot sells this · Deep bot, version 9');
   });
 });
 
@@ -1112,13 +1136,30 @@ describe('a forge run whose games are kept across runs, and the tools’ records
 
   it('the run’s own verdict and look, and why the row’s range is wider', () => {
     expect(confirmationWords(confirmation)).toBe(
-      'These held-out games all come from one forge run, which by its own staged rule could not tell at look 4 of 4 (its corrected range +0.0 pts to +3.8 pts). The range above is wider because it stays valid as later runs add games.',
+      'These held-out games all come from one forge run, which by the run’s staged rule could not tell at look 4 of 4 (its corrected range +0.0 pts to +3.8 pts). The range above is the pooled always-valid rule’s, wider because it stays valid as later runs add games.',
     );
     expect(confirmationWords({ ...confirmation, looks: 2, stopped: 'futility', lower: -0.0439, upper: 0.0439 })).toBe(
-      'These held-out games all come from one forge run, which by its own staged rule stopped at look 2 of 4 with no gain, so could not tell (its corrected range −4.4 pts to +4.4 pts). The range above is wider because it stays valid as later runs add games.',
+      'These held-out games all come from one forge run, which by the run’s staged rule stopped at look 2 of 4 with no gain, so could not tell (its corrected range −4.4 pts to +4.4 pts). The range above is the pooled always-valid rule’s, wider because it stays valid as later runs add games.',
     );
     expect(confirmationWords({ ...confirmation, outcome: 'adopt', looks: 1, lower: 0.02, upper: 0.09 })).toContain('adopted it at its first look of 4 (its corrected range +2.0 pts to +9.0 pts)');
     expect(confirmationWords({ ...confirmation, looks: 6 })).toContain('could not tell after 6 looks (4 within its cap, then until settled)');
+  });
+
+  it('each verdict names its rule, and the same games adopted by the staged rule and undecided by the pooled one say both are right (T5)', () => {
+    expect(verdictWords('paired-staged', 'adopt')).toBe('Adopted by the run’s staged rule.');
+    expect(verdictWords('paired-pooled', 'undecided')).toBe('Undecided by the pooled always-valid rule: its held-out games do not settle it yet.');
+    expect(verdictWords('paired-pooled', 'reject')).toBe('Rejected by the pooled always-valid rule.');
+    expect(verdictWords('paired-staged', 'inconclusive')).toBe('The run’s staged rule could not tell.');
+    // a method that names no rule keeps the older words
+    expect(verdictWords('association', 'adopt')).toBe(VERDICT_WORDS.adopt);
+    expect(changeVerdictWords({ method: 'paired-pooled' })).toBeNull();
+    // S3-06: adopted at +3.1 [+1.1, +5.2] by the run's staged rule on 896 Hard games, undecided by the pooled rule
+    const s306 = { ...confirmation, outcome: 'adopt' as const, lower: 0.0107, upper: 0.0518 };
+    const t = changeVerdictWords({ method: 'paired-pooled', detail: { verdict: 'undecided', confirmation: s306 } })!;
+    expect(t).toContain('Undecided by the pooled always-valid rule');
+    expect(t).toContain('which by the run’s staged rule adopted it at look 4 of 4 (its corrected range +1.1 pts to +5.2 pts)');
+    expect(t).toContain('The two verdicts differ on the same games and both are right under their own rules');
+    for (const w of [t, verdictWords('paired-pooled', 'adopt'), RUN_WORDS.trialsIntro]) expect(w).not.toMatch(/ledger|shortlist/i);
   });
 
   it('a change set aside as out of reach says how many games adopting it would take, or that its reading is not above the bar', () => {
@@ -1137,7 +1178,9 @@ describe('a forge run whose games are kept across runs, and the tools’ records
     expect(t).toContain('+1.9 pts');
     expect(t).toContain(`Hard bot, version ${CUR}`);
     expect(t).toContain('Screening with Medium read +5.4 pts over 112 games: not the result.');
-    expect(t).toContain(`${VERDICT_WORDS.undecided} ${confirmationWords(confirmation)}`);
+    expect(t).toContain(`${verdictWords('paired-pooled', 'undecided')} ${confirmationWords(confirmation)}`);
+    // the run could not tell and the pooled games are undecided: the two rules agree, so no "both are right" sentence
+    expect(t).not.toContain('both are right');
     expect(t).toContain('adopting it would take about 9,133 more held-out games (10,029 in all)');
     expect(t).not.toMatch(/ledger|shortlist/i);
     // the screening line above the changes names the one record that speaks to it: this version, Medium screening, Hard held-out
