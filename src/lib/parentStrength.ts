@@ -9,7 +9,7 @@
 //   games 3 to 6 points below an equal deck on 400, and among ranks 2 to 10 the order it gave was largely a coin flip.
 // - A deck needs PARENT_MIN_GAMES (100) games on its current list to be a parent. Below that it is left out (and the
 //   season prints which). Why not a lineage prior for a forged list: since 2026-11-24 a season records its round robin as
-//   a rating run (scripts/season-run.ts), so a newly bred and forged list has 300 or more games on its own list as soon
+//   a rating run (scripts/season-run.ts), so a newly bred and forged list has 240 or more games on its own list as soon
 //   as the ratings are rebuilt, and the rating series plays every unrated list first (arrivals); a list stays under 100
 //   games only between an edit and the next series run. A prior from the parent list would carry over a rating the
 //   forge's change was measured against with Medium (Hard shows about 0.75 of a Medium gain), so it would mix two
