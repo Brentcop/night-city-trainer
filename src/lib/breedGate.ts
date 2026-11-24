@@ -5,8 +5,8 @@
 // - Reference, as declared: the bred deck's best parent (the parent ranked highest by strength in the breeder's list).
 //   An explorer has no parent: its reference is the middle meta deck by strength (the 4th of 7, best first). A deck none
 //   of whose parents is in the ranked list is treated as an explorer, and the record says so. That is the 'parent' mode,
-//   this module's default (the Deck Lab's test). A season tests every bred deck against the middle meta deck by default
-//   (the 'middle' mode, the owner's choice of 2026-11-15; scripts/season.ts --gate-reference).
+//   this module's default (the Deck Lab's test), and since 2026-11-24 the season's again (the owner's choice "Parent, with
+//   Hard"; scripts/season.ts --gate-reference). From 2026-11-15 to 2026-11-24 a season used the 'middle' mode.
 // - Field: the meta decks other than the reference (and other than the deck itself). Both lists play the same slots, the
 //   forge's layout (blockSlots, src/lib/changeLedgerRun.ts): game k plays field[k mod n] with seed seed0 + k, the list
 //   under test first when floor(k / n) is even. The measurement is the paired score difference per game, bred deck
@@ -22,7 +22,7 @@
 //   bot, the first bot decides). The rule of 2026-11-15 ('either', a deck the first bot shows worse is kept out without
 //   the confirming bot playing) stays selectable (scripts/season.ts --gate-keep-out either). "Could not tell" enters;
 //   the words never say an entered deck is as good as its reference, only that it was not shown worse.
-// - References (ReferenceMode): 'parent', 'middle' (the season's default) or, since 2026-11-24, 'median' (the library deck
+// - References (ReferenceMode): 'parent', 'middle' (the season's default 2026-11-15 to 11-24) or, since 2026-11-24, 'median' (the library deck
 //   at the median by rating). Field: the meta decks, or with a wider tuning field (src/lib/tuningField.ts) the meta decks
 //   and the library's top lists, one entry per list; always without the reference and the deck under test.
 // - Each bred deck is its own decision (one nominee per confirmStaged call, so α is not split between siblings). A
@@ -125,7 +125,7 @@ export type ReferenceWhy = 'best-parent' | 'explorer' | 'no-parent-available' | 
 /**
  * Which reference a gate uses: 'parent' (the rule as declared, and this module's default, which the Deck Lab relies on:
  * the best parent, the middle meta deck for an explorer), 'middle' (every bred deck against the middle meta deck by
- * strength, one fixed bar; the season's default since 2026-11-15, scripts/season.ts --gate-reference) or 'median'
+ * strength, one fixed bar; the season's default from 2026-11-15 to 2026-11-24, scripts/season.ts --gate-reference) or 'median'
  * (every bred deck against the library deck at the median by rating, one fixed bar on the library's own scale; added
  * 2026-11-24, docs/REVIEW_2026-11-24.md B.6: 3 of the 7 meta decks now rank 53rd to 55th of 71).
  */

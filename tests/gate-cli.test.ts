@@ -8,7 +8,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listFingerprint } from '../src/engine/deck';
 import { loadLibrary } from '../scripts/lib-node';
-import { gateCommand, gateJobs, seedProblem, type GateIO } from '../scripts/gate-run';
+import { gateCommand, gateJobs, seasonGateRounds, SEASON_STAGE_GAMES, seedProblem, type GateIO } from '../scripts/gate-run';
 import type { MatchJob } from '../scripts/worker';
 
 const LIB = loadLibrary();
@@ -161,5 +161,15 @@ describe('npm run gate on real games', () => {
     const doc = JSON.parse(fs.readFileSync(path.join(out, `gate-${DECK}-vs-${REF}.json`), 'utf8'));
     expect(doc.decks[0].first.played ?? doc.decks[0].first.judged).toMatchObject({ games: 24 });
     expect(['shown-worse', 'shown-better', 'could-not-tell']).toContain(doc.decks[0].first.verdict);
+  });
+});
+
+describe("the season's default stage size", () => {
+  it('keeps a stage near 280 games whatever the field: 20 rounds on the 7 meta decks, 10 on the default 14 decks', () => {
+    expect(SEASON_STAGE_GAMES).toBe(280);
+    expect(seasonGateRounds(7)).toBe(20);
+    expect(seasonGateRounds(14)).toBe(10);
+    expect(seasonGateRounds(10)).toBe(14);
+    expect(seasonGateRounds(400)).toBe(1);
   });
 });

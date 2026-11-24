@@ -14,7 +14,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parentStrength, ratingsVersionWarning, seasonVersions, tooFewGames, tooFewGamesWords, type RatedDeck } from '../src/lib/parentStrength';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { loadLibrary, readPooled } from './lib-node';
+import { loadLibrary, readPooled, type RecordedEvent } from './lib-node';
+import { expectedVs, fieldInterval, fitRatings } from '../src/lib/ratingModel';
 import { currentListGate, poolEvents, selectEvents } from './event-pool';
 import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
 import { addToDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
@@ -101,6 +102,25 @@ export function loadH2H(): H2H {
   return h2hEstimator(games).lookup;
 }
 
+/**
+ * The ratings rows as scripts/ratings.ts would write them now, from the recorded events and runs on disk: the same pool
+ * (selectEvents' default: the newest simulator version and bot; currentListGate: games on the library's current lists),
+ * the same fit (fitRatings) and the same three numbers per deck (expectedVs against every fitted deck, and fieldInterval
+ * with the full covariance at 90%). The season judges its own decks on it at its end, once its round robin's rating run is
+ * written (scripts/season-retire.ts), without rebuilding src/data/ratings.json. Empty when nothing is pooled.
+ */
+export function fitPooledRatings(sources: readonly RecordedEvent[] = readPooled(), lib = loadLibrary()): RatedDeck[] {
+  const sel = selectEvents(sources);
+  const games = poolEvents(sel.kept, currentListGate(lib)).games;
+  if (!games.length) return [];
+  const fit = fitRatings(games);
+  const all = fit.names.map((_, k) => k);
+  return fit.names.map((name, k) => {
+    const iv = fieldInterval(fit, k, all, { mode: 'full' });
+    return { name, games: fit.played[k]!, wrField: expectedVs(fit.r, k, fit.r[k]!, all), wrFieldLo: iv.lo, wrFieldHi: iv.hi };
+  });
+}
+
 /** The ratings rows (src/data/ratings.json decks[]), or none when the file is missing. */
 export function readRatedDecks(ratingsFile = 'src/data/ratings.json'): { decks: RatedDeck[]; manifest?: { simVersion?: unknown } } | null {
   return fs.existsSync(ratingsFile) ? (JSON.parse(fs.readFileSync(ratingsFile, 'utf8')) as { decks: RatedDeck[]; manifest?: { simVersion?: unknown } }) : null;
@@ -156,7 +176,7 @@ export function seasonFileVersion(data: Record<string, unknown>): number | null 
 /**
  * The Legend trios (sorted, joined by "|") that earlier seasons of the current simulator version closed: the bred decks
  * their gate kept out (gate.decks with entered false) and the decks they retired (`retired`, scripts/season.ts
- * --retire-below-meta-median), so the breeder counts them as seen. Since 2026-11-24 a trio closed under another
+ * --retire, --retire-earlier), so the breeder counts them as seen. Since 2026-11-24 a trio closed under another
  * simulator version (or a season file with no version) is open again: one 40-card fill's result on one version is no
  * reason to ban a trio for good (docs/REVIEW_2026-11-24.md R7). `except`: a season to leave out (the one being re-run).
  */

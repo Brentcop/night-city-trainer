@@ -1,6 +1,6 @@
 // The field a season tests and tunes bred decks against (docs/REVIEW_2026-11-24.md B.6, finding R1 and row 13): the 7 meta
-// decks (every season until 2026-11-24, and still the default) or the meta decks plus the library's top N lists by
-// rating, one entry per list (src/lib/distinctLists.ts's rule: two decks with the same Legends and main deck are one).
+// decks (every season until 2026-11-24, and the forge's own default) or the meta decks plus the library's top N lists by
+// rating (the season's default since 2026-11-24: the top 7, SEASON_FIELD_TOP), one entry per list (src/lib/distinctLists.ts's rule: two decks with the same Legends and main deck are one).
 // "By rating" is parent strength's order (src/lib/parentStrength.ts: the power rating's estimate, decks with 100 or more
 // games on their current list), so the field's top lists and the breeder's parents are ranked by one definition.
 //
@@ -12,8 +12,14 @@ import type { DeckList } from '../engine/types';
 import type { SameList } from './distinctLists';
 import { listOf } from './listTwin';
 
-/** The default: the meta decks alone (top 0). */
+/** The forge's own default: the meta decks alone (top 0). */
 export const DEFAULT_FIELD_TOP = 0;
+/**
+ * The season's default since 2026-11-24, the owner's choice ("Meta 7 + top 7"): the screen, the gate and the season's
+ * forge step play the 7 meta decks and the library's top 7 lists. The gate's stages keep their size (about 280 games:
+ * scripts/gate-run.ts seasonGateRounds halves the rounds), so the gate's cost and power stay near the 7-deck field's.
+ */
+export const SEASON_FIELD_TOP = 7;
 
 export interface TuningField<L> {
   /** the meta decks (library order), then the top lists in rating order */

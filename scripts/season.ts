@@ -24,15 +24,17 @@
 //             refuses to start, naming which (npm run check:data shows it too).
 //
 // The gate (docs/SYNERGIES.md "A bred deck's test against its parent"; src/lib/breedGate.ts): each bred deck plays its
-// reference (by default the middle meta deck by strength, one fixed bar for all; with --gate-reference parent its best
-// parent, with median the library's median deck by rating) on the same games against the other decks of the field, in
-// stages, first with Medium, then with Hard for every deck, and enters unless Hard shows it worse ("could not tell"
-// enters; since 2026-11-24, --gate-keep-out). A deck kept out gets no deck file; its list, reference, figures and
-// verdict are kept in data/seasons/season-<N>.json ("gate") and the season report, and its Legend trio counts as seen
-// when later seasons of the same simulator version breed. Gate games count for no rating, leaderboard, card impact,
-// change ledger or evidence file; their seeds are N·1,000,000 + 700,000 (first bot) and + 800,000 (confirming bot).
-// Before it plays, the gate prints what it may cost in all (at most 10,800 Medium and 4,320 Hard games for 8 decks
-// against one fixed bar on the 6 other meta decks; more with --field-top).
+// reference (by default since 2026-11-24 its best parent, the owner's choice "Parent, with Hard"; an explorer, which has
+// no parent, plays the middle meta deck by strength; --gate-reference middle is the fixed bar of 2026-11-15, median the
+// library's median deck by rating) on the same games against the other decks of the field (by default the 7 meta decks
+// and the library's top 7 lists: --field-top), in stages, first with Medium, then with Hard for every deck, and enters
+// unless Hard shows it worse ("could not tell" enters; --gate-keep-out). A deck kept out gets no deck file; its list,
+// reference, figures and verdict are kept in data/seasons/season-<N>.json ("gate") and the season report, and its Legend
+// trio counts as seen when later seasons of the same simulator version breed. Gate games count for no rating,
+// leaderboard, card impact, change ledger or evidence file; their seeds are N·1,000,000 + 700,000 (first bot) and
+// + 800,000 (confirming bot). Before it plays, the gate prints what it may cost in all: with the defaults and Season 4's
+// bred decks (6 references), at most 18,200 Medium and 7,280 Hard games; with 3 references 14,300 and 5,720 (against one
+// fixed bar on the 6 other meta decks it was 10,800 and 4,320).
 //   --gate on|off              default on; off enters every bred deck as before
 //   --gate-bot BOT             the first bot (default medium)
 //   --gate-confirm-bot BOT     the confirming bot (default hard; none: no confirming bot, and the first bot decides; the
@@ -41,17 +43,19 @@
 //                              plays the confirming bot's stages and is kept out only when the confirming bot shows it
 //                              worse (the first bot's verdict is kept as information); either: the rule of 2026-11-15, a
 //                              deck the first bot shows worse is kept out without the confirming bot playing
-//   --gate-rounds N            double rounds per stage (default 20: 280 games with 7 opponents, 240 with 6)
+//   --gate-rounds N            double rounds per stage (default: the rounds that keep a stage near 280 games on the field,
+//                              seasonGateRounds in scripts/gate-run.ts: 10 on the default 14 decks, 260 games with 13
+//                              opponents and 280 with 14; 20 on the 7 meta decks alone, 280 with 7 and 240 with 6)
 //   --gate-stages N            the first bot's stages at most (default 5)
 //   --gate-confirm-stages N    the confirming bot's stages at most (default 2)
-//   --gate-reference middle|parent|median   which reference (default middle): middle tests every bred deck against the
-//                              middle meta deck by strength, one fixed bar for all; parent tests each against its best
-//                              parent (an explorer, which has none, still plays the bar), the plan's original rule;
-//                              median (since 2026-11-24) tests every bred deck against the library deck at the median by
-//                              rating, one fixed bar on the library's scale. The owner chose the middle bar on 2026-11-15
-//                              after the check on the recorded bred decks: with the parent as reference 2 of 16 would
-//                              have entered and the five best-rated kept out; against the bar 9 (docs/SYNERGIES.md).
-//                              Kept in the record's settings.
+//   --gate-reference parent|middle|median   which reference (default parent since 2026-11-24, the owner's choice "Parent,
+//                              with Hard": a bred deck must not be shown worse than its stronger parent by Hard): parent
+//                              tests each against its best parent, and an explorer, which has none, against the middle
+//                              meta deck by strength; middle tests every bred deck against the middle meta deck, one fixed
+//                              bar for all (the default from 2026-11-15 to 2026-11-24: with the parent as reference and
+//                              Medium alone deciding, 2 of the 16 recorded bred decks would have entered); median tests
+//                              every bred deck against the library deck at the median by rating. Kept in the record's
+//                              settings.
 //   --gate-only                breed and gate, then stop: no deck file, leaderboard, impact file or report in the
 //                              repository changes (a recorded season may be gated again this way: it breeds as a --force
 //                              re-run would). With --gate off it breeds and stops.
@@ -87,11 +91,14 @@
 //
 // The tuning field (since 2026-11-24; src/lib/tuningField.ts):
 //   --field-top N              the screen, the gate and the forge step play the 7 meta decks and the library's top N
-//                              lists by rating, one entry per list (default 0: the meta decks alone, as every season
-//                              before). Passed to the forge as --field-top N. The change ledger keys its entries on the
-//                              field's lists, so with another field the forge's ledger entries start afresh (games against
-//                              the meta decks alone never pool with games against the wider field). The gate's stages
-//                              grow with the field (2 × rounds × opponents games a stage).
+//                              lists by rating, one entry per list (default 7 since 2026-11-24, the owner's choice "Meta 7
+//                              + top 7"; 0: the meta decks alone, as every season before). Passed to the forge as
+//                              --field-top N. The change ledger keys its entries on the field's lists, so with this field
+//                              the forge's ledger entries start afresh (games against the meta decks alone never pool with
+//                              games against the wider field). A gate stage holds 2 × rounds × opponents games; the
+//                              default rounds halve with 14 decks, so a stage stays near 280 games. The forge's games per
+//                              test and its --forge-budget check do not depend on the field (its games spread over more
+//                              opponents), and neither do until settled's cap nor the screen's games per candidate.
 //
 // The round robin as a rating run (since 2026-11-24; scripts/season-run.ts, docs/SERIES.md):
 //   --rating-run on|off        default on: after the round robin, its games are written as data/series/run-N.json (the
@@ -100,11 +107,19 @@
 //                              the rebuild commands). Only with --bot hard (the series' bot): a run with another bot would
 //                              switch the ratings' pool. Past seasons' games were not stored, so this starts with Season 4.
 //
-// Retirement (opt-in, since 2026-11-24; scripts/season-retire.ts):
-//   --retire-below-meta-median before breeding, every earlier season's bred deck rated below the meta decks' median
-//                              (power rating estimate, 100 or more games) moves to data/decks/archive/<stem>-v<version>.txt
-//                              with its note moved to src/content/deckObjectives/archived.ts; recorded in the season file
-//                              (`retired`), its trio counted as seen. With --gate-only it only says which would retire.
+// Retirement (since 2026-11-24, the owner's choice "From next season on"; scripts/season-retire.ts): a deck is retired
+// when its 90% range on the win rate against the library lies wholly below the meta decks' median (shown below the bar);
+// a deck that could be at the bar stays, as "could not tell" does everywhere else. A retired deck moves to
+// data/decks/archive/<stem>-v<version>.txt, its note (a placeholder when it has none) to RETIRED_OBJECTIVES in
+// src/content/deckObjectives/archived.ts; the season file lists it (`retired`) and its trio counts as seen.
+//   --retire on|off            default on: at the season's end, the decks this season bred and entered are judged on a fit
+//                              that pools the season's round robin (its rating run) as the ratings will
+//                              (scripts/breed-data.ts fitPooledRatings), and those shown below the bar are retired. Never
+//                              an earlier season's deck. Without the rating run (--rating-run off, or a bot other than
+//                              hard) the new decks have no games on that fit, and nothing is judged.
+//   --retire-earlier           opt-in: before breeding, earlier seasons' bred decks shown below the bar on
+//                              src/data/ratings.json are retired too (on 2026-11-24 that would be 9 of the 22). With
+//                              --gate-only it only says which would retire.
 //
 // Synergy packages (opt-in; docs/SYNERGIES.md "Using packages when building"; without these flags the season breeds,
 // forges and reports exactly as before):
@@ -140,21 +155,21 @@
 //
 // Outputs: data/decks/custom/s<N>-*.txt (the decks that entered), reports/season-<N>.md, data/seasons/season-<N>.json,
 //          data/seasons/leaderboard.json, src/data/seasons.json (site), data/seasons/impact.json and deck-impact.json,
-//          data/series/run-<M>.json (the round robin as a rating run), and with --retire-below-meta-median the moved
+//          data/series/run-<M>.json (the round robin as a rating run), and the retired decks' moved
 //          deck files and notes.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { BREED_POLICY, breedSeason, pickScreened, screenSeeds, type Bred, type ScreenedBreed } from '../src/ai/breeder';
-import { expiredTriples, keptOutTriples, loadH2H, loadImpactTables, readRatedDecks, recordSeasonImpact, SEASON_BOT, seasonImpactCount, strengthOf } from './breed-data';
+import { expiredTriples, fitPooledRatings, keptOutTriples, loadH2H, loadImpactTables, readRatedDecks, recordSeasonImpact, SEASON_BOT, seasonImpactCount, strengthOf } from './breed-data';
 import { impactTablesWords, seasonCountWords } from '../src/lib/breederImpact';
 import { COUNTER_NOTE } from '../src/lib/bredDecks';
 import { rankParents } from '../src/lib/parentStrength';
 import { confirmBotOf, enteredWords, gateDetectWords, gateGuaranteeWords, gatePlanCostWords, gateRuleWords, gateSeeds, gateSlots, gateStageGames, gateWords, keepReferences, planGate, refillCounts, refillRoundWords, runGate, spreadSeen, spreadSeenWords, stepWords, type GateOptions, type SlotTest } from '../src/lib/breedGate';
-import { DEFAULT_FIELD_TOP, tuningField, tuningFieldWords } from '../src/lib/tuningField';
+import { SEASON_FIELD_TOP, tuningField, tuningFieldWords } from '../src/lib/tuningField';
 import { ratingRunSkipWords, recordsRatingRun, SEASON_RUN_NEXT, seasonRatingRun, seasonRunFile, seasonRunNumber, writeSeasonRun } from './season-run';
-import { RETIRE_NEXT, retireBelowMetaMedian, retirementWords, retireDecks, type Retired } from './season-retire';
-import { asWritten, gateDeckRecord, gateFooterLines, gateHeaderLines, gatePlayOver, gateSettings, seasonGateFlags, seedProblem } from './gate-run';
+import { RETIRE_NEXT, retireEarlier, retirementWords, retireDecks, retireOwn, type Retired } from './season-retire';
+import { asWritten, gateDeckRecord, gateFooterLines, gateHeaderLines, gatePlayOver, gateSettings, seasonGateFlags, seasonGateRounds, seedProblem } from './gate-run';
 import type { DeckList } from '../src/engine/types';
 import { exportOfficial, deckColors, listFingerprint } from '../src/engine/deck';
 import { analyzeAll } from '../src/analysis/analyze';
@@ -197,9 +212,10 @@ const { values: V } = cli(import.meta.url, {
   'allow-same-lists': bool(),
   'breed-count': int(0, { min: 0 }),
   'screen-games': int(70, { min: 1 }),
-  'field-top': int(DEFAULT_FIELD_TOP, { min: 0, max: 64 }),
+  'field-top': int(SEASON_FIELD_TOP, { min: 0, max: 64 }),
   'rating-run': oneOf(['on', 'off'] as const, 'on'),
-  'retire-below-meta-median': bool(),
+  retire: oneOf(['on', 'off'] as const, 'on'),
+  'retire-earlier': bool(),
 });
 // checked here so a bad --ledger-dir use stops the season before it starts (the forge step runs with --bot lookahead)
 const SEASON_LEDGER = ledgerFromFlags(V, { bot: 'lookahead' });
@@ -246,18 +262,19 @@ const SEASON = V.season ?? Math.max(0, ...recordedSeasons()) + 1;
 // ---- the gate's settings, refused (exit 2) before anything is read or played
 const GATE_ON = V.gate === 'on';
 const GATE_ONLY = V['gate-only'];
+/** --field-top N: the screen, the gate and the forge step play the meta decks and the library's top N lists (0: the meta decks; 7 by default since 2026-11-24) */
+const FIELD_TOP = V['field-top'];
 const GATE: GateOptions = {
   bot: V['gate-bot'],
   confirmBot: V['gate-confirm-bot'] === 'none' ? null : V['gate-confirm-bot'],
-  rounds: V['gate-rounds'],
+  // by default the rounds that keep a stage near 280 games on this field (10 on the meta decks and the top 7)
+  rounds: V['gate-rounds'] ?? seasonGateRounds(7 + FIELD_TOP),
   stages: V['gate-stages'],
   confirmStages: V['gate-confirm-stages'],
   reference: V['gate-reference'],
   keepOut: V['gate-keep-out'],
   seeds: gateSeeds(SEASON),
 };
-/** --field-top N: the screen, the gate and the forge step play the meta decks and the library's top N lists (0: the meta decks) */
-const FIELD_TOP = V['field-top'];
 function flagError(message: string): never {
   console.error(`error: ${message}${NL}Run with --help for usage.`);
   process.exit(2);
@@ -421,11 +438,12 @@ async function main() {
   // pair with a warning (src/lib/breederImpact.ts); the other pairs are kept in the files, not read
   const tables = loadImpactTables(BOT);
   for (const l of impactTablesWords(tables)) console.log(l);
-  // 0. retirement (opt-in, --retire-below-meta-median): earlier seasons' bred decks rated below the meta decks' median
-  // leave the library before anything is bred; the files move at step 3, with the other writes (scripts/season-retire.ts)
+  // 0. retiring earlier seasons' decks (opt-in, --retire-earlier): those shown below the meta decks' median on the ratings
+  // leave the library before anything is bred; the files move at step 3, with the other writes (scripts/season-retire.ts).
+  // (The default retirement is the season's own decks, at its end: step 7.)
   const ratingsRows = readRatedDecks()?.decks ?? [];
-  const retirement = V['retire-below-meta-median'] ? retireBelowMetaMedian(lib, ratingsRows, SEASON, SIM_VERSION) : null;
-  if (retirement) for (const l of retirementWords(retirement, GATE_ONLY ? 'would retire' : 'retired')) console.log(l);
+  const retirement = V['retire-earlier'] ? retireEarlier(lib, ratingsRows, SEASON, SIM_VERSION) : null;
+  if (retirement) for (const l of retirementWords(retirement, GATE_ONLY ? 'would retire' : 'retired', "earlier season's bred deck")) console.log(l);
   const retiredFiles = new Set((retirement?.retired ?? []).map((r) => r.file));
   /** the library this season breeds from: without the decks it retires */
   const active = lib.filter((d) => !retiredFiles.has(d.file));
@@ -569,7 +587,7 @@ async function main() {
       '',
       `${seasonWords}. Nothing was written to the repository.`,
       '',
-      ...(retirement ? [...retirementWords(retirement, 'would retire'), ''] : []),
+      ...(retirement ? [...retirementWords(retirement, 'would retire', "earlier season's bred deck"), ''] : []),
       ...(screenRecord ? [`Screened ${screenRecord.breedCount} candidates (${screenRecord.screenGames} Medium games each), picked the best 8.`, ''] : []),
       ...(outcomes ? gateLines : bred.map((b) => `- **${b.deck.name}** (${b.method}): ${b.idea}`)),
     ].join(NL);
@@ -582,7 +600,7 @@ async function main() {
     return;
   }
 
-  // 3. retire (with --retire-below-meta-median), then write the deck files of the decks that entered
+  // 3. retire earlier seasons' decks (with --retire-earlier), then write the deck files of the decks that entered
   const retired: Retired[] = retirement?.retired ?? [];
   if (retired.length) {
     for (const f of retireDecks(retired, { date: startedAt, season: SEASON })) console.log(`Written: ${f}`);
@@ -706,7 +724,23 @@ async function main() {
     if (fs.existsSync(f) && lb[d.deck.name]) addFinals(lb[d.deck.name], JSON.parse(fs.readFileSync(f, 'utf8')), SEASON);
   }
   const board = saveLB(lb);
-  // 7. season report
+  // 7. retire the season's own decks shown below the bar (default, --retire on; the owner's choice of 2026-11-24): judged
+  // on a fit that pools the season's round robin (its rating run, written above) as the ratings will, so only with that
+  // run; never an earlier season's deck (that is --retire-earlier, before breeding)
+  let ownRetirement: ReturnType<typeof retireOwn> | null = null;
+  if (V.retire === 'off') console.log('Retirement of this season\'s own decks is off (--retire off).');
+  else if (!newFiles.length) console.log('Retirement: no new deck to judge.');
+  else if (!ratingRun) console.log('Retirement: not judged, because the round robin is not recorded as a rating run, so the new decks have no games on the ratings\' fit.');
+  else {
+    ownRetirement = retireOwn(loadLibrary(), fitPooledRatings(), newFiles, SIM_VERSION);
+    for (const l of retirementWords(ownRetirement, 'retired', 'new deck')) console.log(l);
+    if (ownRetirement.retired.length) {
+      for (const f of retireDecks(ownRetirement.retired, { date: new Date().toISOString(), season: SEASON })) console.log(`Written: ${f}`);
+      console.log(RETIRE_NEXT);
+    }
+  }
+  const allRetired: Retired[] = [...retiredRecord.filter((r) => !(ownRetirement?.retired ?? []).some((x) => x.file === r.file)), ...(ownRetirement?.retired ?? [])];
+  // 8. season report
   const seasonRows = field
     .map((d) => ({ name: d.deck.name, file: d.file, kind: d.kind, wr: tot[d.deck.name] ? tot[d.deck.name].w / tot[d.deck.name].g : 0, isNew: newFiles.includes(d.file) }))
     .sort((a, b) => b.wr - a.wr);
@@ -722,9 +756,10 @@ async function main() {
     ...(screenRecord ? { screen: screenRecord } : {}),
     standings: seasonRows,
     leaderTop: board.slice(0, 12).map((e) => ({ name: e.name, vsMeta: e.vsMeta, percentile: e.percentile })),
-    // the rating run the round robin was recorded as (data/series/run-N.json), and the decks retired before it bred
+    // the rating run the round robin was recorded as (data/series/run-N.json), and the decks the season retired: its own
+    // at its end, and with --retire-earlier earlier seasons' before it bred
     ...(ratingRun ? { ratingRun: ratingRun.id } : {}),
-    ...(retiredRecord.length ? { retired: retiredRecord } : {}),
+    ...(allRetired.length ? { retired: allRetired } : {}),
     ...(tField.added.length ? { tuningField: tField.field.map((d) => d.deck.name) } : {}),
     manifest,
   };
@@ -736,7 +771,8 @@ async function main() {
     `${seasonWords}. ${field.length} decks (7 meta, ${incumbents.length} incumbents, ${entered.length} new) × ${GAMES} games per pairing, ${BOT} bot, with telemetry. ${entered.length ? `The new decks were forged (${FORGE_GENS} gen) before the round robin, so the round robin, the finals vs the meta (${FINALS} games per opponent) and the leaderboard all measure the forged lists.` : 'No bred deck entered, so nothing was forged.'}`,
     '',
     ...(ratingRun ? [`The round robin is recorded as rating run ${ratingRun.id} (${ratingRun.file}): its games count for the power ratings, head-to-heads and evidence once those are rebuilt.`, ''] : []),
-    ...(retirement && retired.length ? [...retirementWords(retirement, 'retired'), ''] : []),
+    ...(retirement && retired.length ? [...retirementWords(retirement, 'retired', "earlier season's bred deck"), ''] : []),
+    ...(ownRetirement ? [...retirementWords(ownRetirement, 'retired', 'new deck'), ''] : []),
     ...(tField.added.length ? [`Tuning field (screen, gate and forge): ${tuningFieldWords(tField)}: ${tField.field.map((d) => d.deck.name).join(', ')}.`, ''] : []),
     ...(entered.length ? [`Forge adoption rule: ${describeRule(RULE, { firstStage: FORGE_GAMES * 2, nominees: DEPTH.nominees, ledger: V.ledger, ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(FORGE_CONFIRM ? { confirmedWith: FORGE_CONFIRM } : {}) })}. Each change it adopted, with its held-out paired gain, is in reports/forge/ and on the deck file's "// Forged" line; "could not tell" changes were not adopted.`, ''] : []),
     ...(screenRecord ? [`## Screening: ${screenRecord.breedCount} candidates, ${screenRecord.screenGames} Medium games each`, '', ...screenRecord.screened.map((s) => `- ${s.name} (${s.method}): ${(s.wr * 100).toFixed(1)}%`), ''] : []),

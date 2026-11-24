@@ -11,6 +11,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { closeGamePool, loadLibrary, readPooled, runJobs, type RecordedEvent } from '../scripts/lib-node';
 import { duplicateGames, runFileProblems, type CheckEvent } from '../scripts/check-data';
 import { currentListGate, poolEvents, selectEvents } from '../scripts/event-pool';
+import { fitPooledRatings } from '../scripts/breed-data';
 import { ratingRunSkipWords, recordsRatingRun, seasonRatingRun, seasonRunDuplicates, seasonRunFile, seasonRunNumber, writeSeasonRun, type SeasonGame } from '../scripts/season-run';
 import { replaySample } from '../scripts/series-run';
 import { playWatchGame } from '../src/lib/watchGame';
@@ -67,7 +68,11 @@ describe('the run file', () => {
     const after = poolEvents(sel.kept, currentListGate(LIB));
     expect(after.games.length - before).toBe(12);
     expect(after.runs).toBe(pooled.filter((e) => e.kind === 'nct-rating-run').length + 1);
-  });
+    // the fit the season judges its own decks on at its end (scripts/breed-data.ts fitPooledRatings) counts them
+    const fitBefore = new Map(fitPooledRatings(pooled).map((x) => [x.name, x.games]));
+    const fitAfter = new Map(fitPooledRatings([...pooled, r]).map((x) => [x.name, x.games]));
+    for (const d of FIELD) expect(fitAfter.get(d.deck.name)! - fitBefore.get(d.deck.name)!, d.deck.name).toBe(6);
+  }, 60_000);
 
   it('numbers after the highest run, replaces its own on a re-run, and is refused when a game is recorded already', () => {
     const series = path.join(tmp, 'series');
