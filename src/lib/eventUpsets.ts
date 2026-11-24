@@ -2,7 +2,8 @@
 // against ratings that include the event itself. Pure, Node and browser: every source is passed in, nothing is read, no
 // clock.
 //
-// The yardstick for event E is one power-rating fit (src/lib/ratingModel.ts `fitRatings`, prior sd 1) on the games the
+// The yardstick for event E is one power-rating fit (src/lib/ratingModel.ts `fitRatings`, its prior sd fitted to the
+// same games by empirical Bayes since 2026-11-24; 1 before) on the games the
 // ratings pool (scripts/event-pool.ts) that were recorded before E: the events before E in recorded order (by id) and
 // the rating runs (data/series, `UpsetPool.runs`) dated before E, each with E's sim version and bot, their games taken
 // exactly as the ratings take them (src/lib/ratingGames.ts, shared with scripts/event-pool.ts: a played event gives no
@@ -34,6 +35,24 @@
 //     83.3%.) The mean sd of the rating difference in those matches is 0.44 (both versions), and a 70% chance is a
 //     difference of about 0.85 (σ⁻¹(0.7)), about two of its own standard errors. So an underdog's win counts as an upset
 //     only when its chance per game was 30% or less (40 of the 642 judged matches on version 9; 30 of 641 on version 8).
+//
+// Re-run on 2026-11-24 when the prior's sd became fitted (REVIEW_2026-11-24 L6 / B.3; events 21 to 25 with rating run 1
+// pooled where dated before, the list gate on; each yardstick fits its own sd: 0.59, 0.58, 0.55, 0.54, 0.51). The
+// constants were kept; neither was re-tuned:
+//   - Upsets: 45 of the 1,321 judged matches, against 93 with the prior at 1, every one of them among the 93 (event 21: 8
+//     of 33; 22: 13 of 24; 23: 13 of 22; 24: 10 of 13; 25: 1 of 1). The other 48 were matches the old yardstick called
+//     at 30% or less because the prior at 1 spread the earlier ratings too far apart.
+//   - Calibration (`upsetCalibration`): the favourite won 210 of 372 (56.5%) at a chance per game of 50 to 55%, 189 of
+//     312 (60.6%) at 55 to 60%, 294 of 435 (67.6%) at 60 to 70% and 157 of 202 (77.7%) at 70% or more, against 200.0,
+//     190.5, 309.3 and 171.1 expected (each match's chance per game turned into a best-of-3 chance, p²(3 − 2p)). So the
+//     fitted yardstick is close to calibrated below 70% and still over-confident above it: 45 underdog wins where it
+//     expected 31. With the prior at 1 the top band held 374 matches and the favourite won only 281 (75.1%).
+//     UPSET_MAX_CHANCE = 0.30 still marks a match the yardstick gave the winner at most about a 22% chance (best of 3).
+//   - MIN_EARLIER_GAMES = 18: its reason above (an sd under half the prior's) no longer holds as worded. With the fitted
+//     prior the mean sd is 0.36 at 18 to 25 earlier games, 0.33 at 26 to 40 and 0.26 at 41 to 80, against a prior sd of
+//     about 0.55: at 18 games the games hold about 60% of the information, not 75%. It keeps 9 matches from being judged (1,321
+//     are) in the current data. Because the shrinkage is now fitted, a thin deck's chance sits nearer even and rarely
+//     reaches 30%, so the minimum matters less than it did; changing it is the owner's call.
 import { fitRatings, predictPair, type RatingFit } from './ratingModel';
 import { eventRatedGames, type GamesEvent, type ListGate } from './ratingGames';
 import { entrantBase, isPlayedSetup } from './eventFormats';

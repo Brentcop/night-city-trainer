@@ -36,7 +36,9 @@ function world(seed: number, n = 20, start = 20) {
 const SW: SeriesSwitches = { series: true, arrivals: true, width: 6 };
 
 describe('the decision', () => {
-  const w = world(1);
+  // 40 decks: the fit's prior sd is fitted to the games (2026-11-24), and with 20 decks of 20 games it can collapse toward
+  // 0 (3 of 40 invented worlds, this seed's among them: 0.07), which would make every range narrow before any game
+  const w = world(1, 40);
   it('series on: needed while any deck is wider than the width, every deck eligible at that width; why says so', () => {
     const d = decide({ games: w.games, field: w.names, switches: SW });
     expect(d.needed).toBe(true);

@@ -30,6 +30,8 @@ export interface RatingsData extends RatingsFile {
   runs?: number;
   games: number;
   firstPlayerEdge: number;
+  /** the ratings' prior sd, fitted to the same games (src/lib/ratingModel.ts; absent before 2026-11-24, when it was 1) */
+  priorSd?: number;
   decks: RatingsRow[];
 }
 export const RATINGS = ratingsJson as unknown as RatingsData;

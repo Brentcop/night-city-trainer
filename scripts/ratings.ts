@@ -3,7 +3,8 @@
 //   npx tsx scripts/ratings.ts [--sim-version latest|all|N] [--bot latest|all|NAME] [--diagonal]
 //
 // P(A beats B | A on the play) = σ(rA − rB + h·[A first] − h·[B first]); ties count half a win for each side.
-// A weak Gaussian prior (sd 1) keeps decks with few games near average. The model and its maths are in
+// A Gaussian prior keeps decks with few games near average; its sd is fitted to the pooled games by empirical Bayes
+// (since 2026-11-24; it was 1) and stored as `priorSd`, which the anchored "Your decks" ratings read. The model and its maths are in
 // src/lib/ratingModel.ts. 90% intervals on the expected win rate come from the full covariance of the fit (the inverse of
 // the whole Hessian, so the opponents' own uncertainty counts; SIM-6, 2026-11-12); --diagonal draws them the old way
 // (the deck's own diagonal information only, every other rating fixed) and only prints, for comparison (writes nothing). Each deck also gets:
@@ -84,13 +85,13 @@ if (manifest.inputs?.mixedSimVersions) console.log(`note: these events span sim 
 const pool = poolRecord(selection);
 // `intervals` says how the 90% ranges were drawn ('full-covariance' since SIM-6; files without it used the diagonal)
 const nEvents = events.length - runs;
-const out = { updated: '', events: nEvents, ...(runs ? { runs } : {}), games: games.length, firstPlayerEdge: σ(h) - 0.5, intervals: V.diagonal ? 'diagonal' : 'full-covariance', decks: rows, ...(pool ? { pool } : {}), manifest };
+const out = { updated: '', events: nEvents, ...(runs ? { runs } : {}), games: games.length, firstPlayerEdge: σ(h) - 0.5, priorSd: fit.prior, intervals: V.diagonal ? 'diagonal' : 'full-covariance', decks: rows, ...(pool ? { pool } : {}), manifest };
 if (!V.diagonal) writeJsonStamped('src/data/ratings.json', out, { indent: 1 });
 const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`);
 const md = [
   `# Power ratings (${nEvents} events${runs ? ` and ${runs} rating run${runs === 1 ? '' : 's'}` : ''}, ${games.length} games)`,
   '',
-  `Bradley–Terry fit over every pooled tournament game (sim v${selection.simVersion === 'all' ? 'all' : (selection.simVersion ?? '?')}, ${selection.bot} bot; 90% ranges from the ${V.diagonal ? 'diagonal information' : 'full covariance'}). Going first adds ${(100 * (σ(h) - 0.5)).toFixed(1)} points of win probability.`,
+  `Bradley–Terry fit over every pooled tournament game (sim v${selection.simVersion === 'all' ? 'all' : (selection.simVersion ?? '?')}, ${selection.bot} bot; 90% ranges from the ${V.diagonal ? 'diagonal information' : 'full covariance'}). Going first adds ${(100 * (σ(h) - 0.5)).toFixed(1)} points of win probability. The ratings' prior sd, fitted to the same games (empirical Bayes): ${fit.prior.toFixed(3)}.`,
   '',
   '| # | Deck | Exp. win % vs field (90% CI) | vs meta | Titles | Top 8 | Avg finish | Matches | Games |',
   '|---|---|---|---|---|---|---|---|---|',

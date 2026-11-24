@@ -26,6 +26,6 @@ export function recordedDecks(): RecordedDeck[] {
 let memo: { raw: string | null; value: Map<string, Provisional> } | null = null;
 /** The provisional ratings for the ledger's stored text (remembered for the last text). */
 export function provisionalFor(raw: string | null): Map<string, Provisional> {
-  if (!memo || memo.raw !== raw) memo = { raw, value: provisionalRatings(parseLedger(raw), { recorded: recordedDecks(), firstPlayerEdge: RATINGS.firstPlayerEdge }) };
+  if (!memo || memo.raw !== raw) memo = { raw, value: provisionalRatings(parseLedger(raw), { recorded: recordedDecks(), firstPlayerEdge: RATINGS.firstPlayerEdge, ...(RATINGS.priorSd !== undefined ? { priorSd: RATINGS.priorSd } : {}) }) };
   return memo.value;
 }

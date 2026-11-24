@@ -1,7 +1,7 @@
 // SIM-6: the power-rating model with its full covariance (src/lib/ratingModel.ts), the coverage of its intervals on
 // simulated ratings, and the extra-games planner.
 import { describe, expect, it } from 'vitest';
-import { expectedVs, fieldInterval, fitRatings, invertSpd, planExtraGames, seededRandom, simulateCoverage, type RatedGame } from '../src/lib/ratingModel';
+import { expectedVs, fieldInterval, fitRatings, invertSpd, planExtraGames, PRIOR_SD_START, priorSdStep, seededRandom, simulateCoverage, type RatedGame } from '../src/lib/ratingModel';
 
 const σ = (x: number) => 1 / (1 + Math.exp(-x));
 
@@ -19,6 +19,39 @@ function synthGames(truth: number[], games: number, seed: number): RatedGame[] {
   }
   return out;
 }
+
+// REVIEW_2026-11-24 L6 / B.3: the prior's sd is fitted to the games (empirical Bayes, EM) unless one is given.
+describe('the prior sd fitted to the games', () => {
+  const gauss = (r: () => number) => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+  /** 60 decks with ratings of sd `sd`, about `per` games each */
+  const worldOf = (sd: number, per: number, seed: number) => {
+    const r = seededRandom(seed);
+    const truth = Array.from({ length: 60 }, () => gauss(r) * sd);
+    return synthGames(truth, (60 * per) / 2, seed + 1);
+  };
+  it('recovers the spread of the true ratings, thin or thick', () => {
+    for (const [sd, per] of [[0.5, 40], [0.5, 400], [1, 60]] as const) {
+      const fits = [1, 2, 3, 4, 5].map((s) => fitRatings(worldOf(sd, per, 100 * s)).prior);
+      const mean = fits.reduce((a, x) => a + x, 0) / fits.length;
+      expect(mean, `sd ${sd}, ${per} games`).toBeGreaterThan(sd * 0.8);
+      expect(mean, `sd ${sd}, ${per} games`).toBeLessThan(sd * 1.2);
+    }
+  });
+  it('is a fixed point of its EM step, marked fitted; a given sd is used as given', () => {
+    const games = worldOf(0.5, 60, 7);
+    const fit = fitRatings(games);
+    expect(fit.priorFitted).toBe(true);
+    expect(priorSdStep(fit)).toBeCloseTo(fit.prior, 5);
+    const fixed = fitRatings(games, { prior: 1 });
+    expect(fixed.prior).toBe(1);
+    expect(fixed.priorFitted).toBeUndefined();
+    // the same games give the same fit, to the last bit (ratings.json and the upset yardstick rely on it)
+    expect(fitRatings(games).r).toEqual(fit.r);
+  });
+  it('with no games the sd stays where the iteration starts', () => {
+    expect(fitRatings([], { names: ['x', 'y'] }).prior).toBe(PRIOR_SD_START);
+  });
+});
 
 describe('the rating fit', () => {
   it('inverts a positive-definite matrix', () => {

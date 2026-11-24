@@ -3,8 +3,17 @@
 // planner that picks extra pairings by how much they would narrow the intervals that matter (SIM-6). Pure and seeded.
 //
 // P(A beats B | A on the play) = σ(rA − rB + h·[A first] − h·[B first]); ties count half a win for each side. A Gaussian
-// prior (sd `prior`, default 1) on every rating keeps decks with few games near average and fixes the scale's origin
-// (the likelihood ignores a common shift, so the fitted ratings sum to zero). h has no prior.
+// prior N(0, s²) on every rating keeps decks with few games near average and fixes the scale's origin (the likelihood
+// ignores a common shift, so the fitted ratings sum to zero). h has no prior.
+//
+// The prior's sd s (2026-11-24, REVIEW_2026-11-24 L6 / B.3) is fitted to the games by empirical Bayes unless a number is
+// given (`prior`): the fit is the posterior mode at s, and s is re-estimated by EM on the Laplace approximation,
+// s² ← (Σ r̂ₖ² + Σ Var(rₖ)) / n with Var(rₖ) the diagonal of the inverse Hessian (`priorSdStep`), until it settles. Every
+// fit that reads games (the ratings, the head-to-heads, the upset yardstick, the forecast's folds, rating-plan, the
+// series) fits its own s on its own games by this one rule, so a fit on every pooled game reproduces ratings.json and a
+// yardstick on earlier games never borrows the later games' spread. Until 2026-11-24 s was fixed at 1, about twice the
+// spread the library's ratings show (0.51 by the same EM on the pool of 2026-11-22): harmless at 400 games a deck, but
+// it spread the ratings of decks with 20 to 60 games about 1.5 times too far.
 //
 // Intervals (2026-11-12, SIM-6): the expected win rate of deck k against a field is a function of every rating, so its
 // variance is gᵀΣg with g its gradient and Σ the inverse of the full Hessian of the log posterior at the optimum (ratings
@@ -25,7 +34,10 @@ export interface RatingFit {
   r: number[];
   /** going-first term (logit scale) */
   h: number;
+  /** the prior's sd on every rating (fitted to the games unless one was given) */
   prior: number;
+  /** true when `prior` was fitted to the games (empirical Bayes); absent when it was given */
+  priorFitted?: true;
   /** games played per deck */
   played: number[];
   /** inverse of the full Hessian of the negative log posterior: (n + 1) × (n + 1), the last row and column are h */
@@ -36,19 +48,40 @@ export interface RatingFit {
 
 const σ = (x: number) => 1 / (1 + Math.exp(-x));
 
+/** The prior's sd: a number fixes it; 'fit' (the default since 2026-11-24) fits it to the games by empirical Bayes. */
+export type PriorChoice = number | 'fit';
+/** Where the empirical-Bayes iteration starts: the fixed sd used until 2026-11-24. */
+export const PRIOR_SD_START = 1;
 /**
- * Fit the model. The iteration is the one scripts/ratings.ts always used (a diagonal Newton step per rating, a Newton
- * step for h, re-centred, up to 400 rounds), so the ratings are the same numbers as before; the covariance is computed
- * once at the optimum. `names` fixes the order (default: first appearance in `games`).
+ * The fitted sd stays inside these bounds: below, a fit whose decks show no spread at all would only creep toward 0 by
+ * very many slow EM steps; above, a handful of games could not hold the ratings.
  */
-export function fitRatings(games: readonly RatedGame[], o: { prior?: number; names?: readonly string[] } = {}): RatingFit {
-  const PRIOR = o.prior ?? 1;
-  const names = o.names ? [...o.names] : [...new Set(games.flatMap((g) => [g.a, g.b]))];
+export const PRIOR_SD_BOUNDS = [0.05, 4] as const;
+/** The EM stops when the sd moves less than this, or after PRIOR_FIT_MAX_STEPS steps. */
+const PRIOR_SD_TOL = 1e-6;
+const PRIOR_FIT_MAX_STEPS = 500;
+
+interface Indexed {
+  names: string[];
+  n: number;
+  pairs: (readonly [number, number])[];
+}
+
+function indexGames(games: readonly RatedGame[], given?: readonly string[]): Indexed {
+  const names = given ? [...given] : [...new Set(games.flatMap((g) => [g.a, g.b]))];
   const idx = new Map(names.map((n, i) => [n, i]));
-  const n = names.length;
-  const r = new Float64Array(n);
-  let h = 0;
-  const pairs = games.map((g) => [idx.get(g.a)!, idx.get(g.b)!] as const);
+  return { names, n: names.length, pairs: games.map((g) => [idx.get(g.a)!, idx.get(g.b)!] as const) };
+}
+
+/**
+ * The posterior mode at prior sd `prior`, moving `r` in place from where it is and returning h (started at `h0`). The
+ * iteration is the one scripts/ratings.ts always used: a diagonal Newton step per rating, a Newton step for h,
+ * re-centred, up to 400 rounds.
+ */
+function solveMode(games: readonly RatedGame[], ix: Indexed, prior: number, r: Float64Array, h0: number): number {
+  const { n, pairs } = ix;
+  const P2 = 1 / prior ** 2;
+  let h = h0;
   for (let it = 0; it < 400; it++) {
     const grad = new Float64Array(n);
     const hess = new Float64Array(n);
@@ -69,7 +102,7 @@ export function fitRatings(games: readonly RatedGame[], o: { prior?: number; nam
     });
     let maxStep = 0;
     for (let k = 0; k < n; k++) {
-      const step = (grad[k]! - r[k]! / PRIOR ** 2) / (hess[k]! + 1 / PRIOR ** 2);
+      const step = (grad[k]! - r[k]! * P2) / (hess[k]! + P2);
       r[k]! += step;
       maxStep = Math.max(maxStep, Math.abs(step));
     }
@@ -78,9 +111,15 @@ export function fitRatings(games: readonly RatedGame[], o: { prior?: number; nam
     for (let k = 0; k < n; k++) r[k]! -= mean;
     if (maxStep < 1e-7) break;
   }
-  // the full Hessian at the optimum, and the old diagonal information
-  const H: number[][] = Array.from({ length: n + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === j && i < n ? 1 / PRIOR ** 2 : 0)));
-  const info = new Float64Array(n).fill(1 / PRIOR ** 2);
+  return h;
+}
+
+/** The fit at the mode (r, h): the inverse of the full Hessian, the old diagonal information, games per deck. */
+function fitAt(games: readonly RatedGame[], ix: Indexed, prior: number, r: Float64Array, h: number): RatingFit {
+  const { names, n, pairs } = ix;
+  const P2 = 1 / prior ** 2;
+  const H: number[][] = Array.from({ length: n + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === j && i < n ? P2 : 0)));
+  const info = new Float64Array(n).fill(P2);
   const played = new Array<number>(n).fill(0);
   games.forEach((g, q) => {
     const [i, j] = pairs[q]!;
@@ -103,7 +142,40 @@ export function fitRatings(games: readonly RatedGame[], o: { prior?: number; nam
     played[j]!++;
   });
   if (H[n]![n]! <= 0) H[n]![n]! = 1; // no games: h is unidentified, give it unit variance
-  return { names, r: [...r], h, prior: PRIOR, played, cov: invertSpd(H), diagSe: [...info].map((x) => Math.sqrt(1 / x)) };
+  return { names, r: [...r], h, prior, played, cov: invertSpd(H), diagSe: [...info].map((x) => Math.sqrt(1 / x)) };
+}
+
+/** One EM step for the prior's sd from a fit at the mode: √((Σ r̂ₖ² + Σ Var(rₖ)) / n), kept inside PRIOR_SD_BOUNDS. */
+export function priorSdStep(fit: Pick<RatingFit, 'r' | 'cov'>): number {
+  const n = fit.r.length;
+  if (!n) return PRIOR_SD_START;
+  let s = 0;
+  for (let k = 0; k < n; k++) s += fit.r[k]! ** 2 + fit.cov[k]![k]!;
+  return Math.min(PRIOR_SD_BOUNDS[1], Math.max(PRIOR_SD_BOUNDS[0], Math.sqrt(s / n)));
+}
+
+/**
+ * Fit the model. `prior`: the prior's sd, or 'fit' (the default) to fit it to the games by empirical Bayes: EM from
+ * PRIOR_SD_START, each step the posterior mode at the current sd (warm-started) and then `priorSdStep`, until the sd moves
+ * less than 1e-6. The covariance is computed at the final mode. `names` fixes the order (default: first appearance in
+ * `games`). With no games, or one deck, the sd stays at PRIOR_SD_START.
+ */
+export function fitRatings(games: readonly RatedGame[], o: { prior?: PriorChoice; names?: readonly string[] } = {}): RatingFit {
+  const ix = indexGames(games, o.names);
+  const r = new Float64Array(ix.n);
+  const choice = o.prior ?? 'fit';
+  if (choice !== 'fit') return fitAt(games, ix, choice, r, solveMode(games, ix, choice, r, 0));
+  let s = PRIOR_SD_START;
+  let h = solveMode(games, ix, s, r, 0);
+  if (games.length && ix.n > 1)
+    for (let step = 0; step < PRIOR_FIT_MAX_STEPS; step++) {
+      const next = priorSdStep(fitAt(games, ix, s, r, h));
+      const moved = Math.abs(next - s);
+      s = next;
+      h = solveMode(games, ix, s, r, h);
+      if (moved < PRIOR_SD_TOL) break;
+    }
+  return { ...fitAt(games, ix, s, r, h), priorFitted: true };
 }
 
 /** Inverse of a symmetric positive-definite matrix (Cholesky). */

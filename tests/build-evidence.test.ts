@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildEvidence, changeKeyOf, DEFAULT_PAIR_SD, eventMatches, heterogeneity as builderHeterogeneity, joinReports, matchupCheck, stagedVerdicts, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
+import { buildEvidence, changeKeyOf, eventMatches, heterogeneity as builderHeterogeneity, joinReports, matchupCheck, stagedVerdicts, pairSpread, parseChangeLabel, type EvidenceInputs, type ForgeReport } from '../scripts/evidence-build';
 import { compareEvidence, evidenceTexts, loadEvidenceInputs, readForgeReports, readStored, storedProblems, writeEvidence } from '../scripts/build-evidence';
 import type { RecordedEvent } from '../scripts/lib-node';
 import { listFingerprint } from '../src/engine/deck';
@@ -15,7 +15,7 @@ import { heterogeneity } from '../src/lib/pairedSplit';
 import { ADOPTION_DEFAULTS, judgePooled, pairedInterval } from '../src/lib/evidence';
 import { fieldInterval, fitRatings } from '../src/lib/ratingModel';
 import { ratedGamesOf } from '../src/lib/ratingGames';
-import { h2hFileLookup, h2hModelFields } from '../src/lib/h2hModel';
+import { h2hFileLookup, h2hModelFields, MAX_PRIOR_GAMES, pairSpreadSd, pairSpreadVar } from '../src/lib/h2hModel';
 import { ratingsTable } from '../src/lib/eventFacts';
 import { cardAnalysis, packageFact } from '../src/lib/cardFacts';
 import { CATALOGUE_VERSION } from '../src/content/synergies';
@@ -369,10 +369,19 @@ describe('building from fixtures', () => {
     // seat and length are tested across decks
     expect(seat.family).toEqual({ key: 'all:seat', size: 4, correction: 'bh' });
     expect(d.findings.find((f) => f.kind === 'length')!.family).toEqual({ key: 'all:length', size: 4, correction: 'bh' });
-    // without a pairing table the matchup interval uses the default pair spread, and says so
+    // the matchup interval's pair spread is the head-to-head file's (one estimate): at each pairing's rate, p(1−p)/(M + 1)
+    const h2h = inputs().h2h!;
+    const m = h2h.model!.priorGames;
+    const measured = h2h.model!.rhoRaw! > 1 / (MAX_PRIOR_GAMES + 1);
     const mu = d.findings.filter((f) => f.kind === 'matchup');
-    expect(mu.every((f) => f.flags.includes('spread-default') && f.detail?.pairSd === DEFAULT_PAIR_SD)).toBe(true);
-    expect(built.index.rules.matchup).toMatchObject({ spreadSd: DEFAULT_PAIR_SD, spreadMeasured: false, spreadPairings: 0 });
+    expect(mu.length).toBeGreaterThan(0);
+    for (const f of mu) {
+      expect(f.detail?.priorGames).toBe(m);
+      expect(f.detail?.pairSd).toBeCloseTo(Math.sqrt(pairSpreadVar(f.estimate, m)), 5);
+      expect(f.flags.includes('spread-default')).toBe(!measured);
+    }
+    expect(built.index.rules.matchup).toMatchObject({ spreadMeasured: measured, spreadPairings: h2h.pairs.length, spreadGames: h2h.games });
+    expect(built.index.rules.matchup.spreadSd).toBeCloseTo(pairSpreadSd(m), 5);
     expect(built.index.rules.length.shortMax).toBeLessThan(built.index.rules.length.longMin);
   });
 
@@ -458,7 +467,7 @@ describe('building from fixtures', () => {
   });
 
   it('the matchup check scores every held-out match, game by game', () => {
-    const c = matchupCheck(events(5).map((e) => eventMatches(e)), 0.0036);
+    const c = matchupCheck(events(5).map((e) => eventMatches(e)));
     expect(c.matches).toBe(5 * 6);
     expect(c.games).toBe(5 * 18);
     expect(Number.isFinite(c.slope) && c.slopeSe > 0).toBe(true);
@@ -466,30 +475,20 @@ describe('building from fixtures', () => {
     expect(c.claimedVariance).toBeGreaterThan(c.claimedWithoutSpread);
   });
 
-  it('the pair spread is measured on a pairing table, or is the default when the table cannot be read', () => {
-    const names = ['P', 'Q', 'R', 'S', 'T', 'U'];
-    const strength = [0.6, 0.3, 0, -0.1, -0.3, -0.5];
-    const r = rng(11);
-    const decks = names.map((deck, i) => ({
-      deck,
-      matchups: names.flatMap((opp, j) => {
-        if (i === j) return [];
-        const p = 1 / (1 + Math.exp(-(strength[i]! - strength[j]!)));
-        const wf = Array.from({ length: 100 }, () => (r() < p + 0.06 ? 1 : 0)).reduce((a: number, x) => a + x, 0) / 100;
-        const ws = Array.from({ length: 100 }, () => (r() < p - 0.06 ? 1 : 0)).reduce((a: number, x) => a + x, 0) / 100;
-        return [{ opp, games: 200, wr: (wf + ws) / 2, wrFirst: wf, wrSecond: ws }];
-      }),
-    }));
-    const sp = pairSpread({ decks } as unknown as EvidenceInputs['analysis']);
-    expect(sp).toMatchObject({ measured: true, pairings: 15, games: 3000, df: 9 });
-    expect(sp.tau2).toBeGreaterThanOrEqual(0);
+  it('the pair spread is the head-to-head file’s own, at its floor when the pairings show none beyond chance', () => {
+    const pairs: [number, number, number, number][] = [[0, 1, 3, 6], [0, 2, 2, 4], [1, 2, 5, 8]];
+    const model = { kind: 'bradley-terry-shrunk' as const, ratings: [0.2, 0, -0.2], firstPlayer: 0.3, rho: 0.0078, priorGames: 127.2, rhoRaw: 0.0078, chi2: 3.1, df: 2.4 };
+    const sp = pairSpread({ model, pairs, games: 18 });
+    expect(sp).toMatchObject({ measured: true, priorGames: 127.2, pairings: 3, games: 18, chi2: 3.1, df: 2.4 });
+    expect(sp.tau2).toBeCloseTo(0.25 / 128.2, 12);
     expect(sp.sd).toBeCloseTo(Math.sqrt(sp.tau2), 12);
-    // half a game won on a seat (a tie) is not a whole number of wins: the table is refused
-    const odd = decks.map((d, i) => (i ? d : { ...d, matchups: d.matchups.map((m, j) => (j ? m : { ...m, wrFirst: m.wrFirst + 0.005 })) }));
-    expect(pairSpread({ decks: odd } as unknown as EvidenceInputs['analysis'])).toMatchObject({ measured: false, sd: DEFAULT_PAIR_SD });
-    // too few pairings
-    expect(pairSpread({ decks: decks.slice(0, 5) } as unknown as EvidenceInputs['analysis'])).toMatchObject({ measured: false, sd: DEFAULT_PAIR_SD });
-    expect(pairSpread(null).measured).toBe(false);
+    // no spread beyond chance: the prior weight sits at its cap and the spread is the floor, not a measurement
+    const none = pairSpread({ model: { ...model, rho: 1 / (MAX_PRIOR_GAMES + 1), rhoRaw: -0.004, priorGames: MAX_PRIOR_GAMES }, pairs, games: 18 });
+    expect(none).toMatchObject({ measured: false, priorGames: MAX_PRIOR_GAMES });
+    expect(none.sd).toBeCloseTo(pairSpreadSd(MAX_PRIOR_GAMES), 12);
+    // an older file without the raw estimate or χ²: read from ρ, no χ²
+    expect(pairSpread({ model: { kind: 'bradley-terry-shrunk', ratings: [0, 0, 0], firstPlayer: 0, rho: 0.0032, priorGames: 308 }, pairs })).toMatchObject({ measured: true, games: 18, chi2: null, df: null });
+    expect(pairSpread(null)).toMatchObject({ measured: false, pairings: 0 });
   });
 
   it('a re-measurement with its field listed shares its question with the ledger entry of the same change', () => {
@@ -791,9 +790,9 @@ describe('on the real data, each finding is the number its defining function giv
     }
   });
 
-  it('the pair spread is measured on the meta pairings, and each meta pairing has a direct matchup sharing its question', () => {
-    expect(built.index.rules.matchup).toMatchObject({ spreadMeasured: true, spreadPairings: 21, spreadGames: 4200, df: 14 });
-    expect(built.index.rules.matchup.spreadSd).toBeGreaterThan(0.04);
+  it('the pair spread is the head-to-head file’s, and each meta pairing has a direct matchup sharing its question', () => {
+    expect(built.index.rules.matchup).toMatchObject({ spreadMeasured: true, spreadPairings: real.h2h!.pairs.length, spreadGames: real.h2h!.games });
+    expect(built.index.rules.matchup.spreadSd).toBeCloseTo(pairSpreadSd(real.h2h!.model!.priorGames), 5);
     const direct = all.filter((f) => f.method === 'direct-games');
     expect(direct.length).toBe(7 * 6);
     for (const f of direct) {

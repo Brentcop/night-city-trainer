@@ -48,13 +48,15 @@ export function ratedGamesByList(l: Ledger, simVersion = CURRENT_SIM_VERSION, bo
 }
 
 /** Every unrated list's provisional rating from your Hard-bot games, by list fingerprint. */
-export function provisionalRatings(l: Ledger, o: { recorded: readonly RecordedDeck[]; firstPlayerEdge: number; simVersion?: number }): Map<string, Provisional> {
+export function provisionalRatings(l: Ledger, o: { recorded: readonly RecordedDeck[]; firstPlayerEdge: number; priorSd?: number; simVersion?: number }): Map<string, Provisional> {
   const anchors = new Map<string, RecordedDeck>();
   for (const d of o.recorded) if (!anchors.has(d.list)) anchors.set(d.list, d);
   const rows = fitAnchored({
     anchors: [...anchors.values()].map((d) => ({ key: d.list, rating: d.rating })),
     h: hFromEdge(o.firstPlayerEdge),
     games: ratedGamesByList(l, o.simVersion ?? CURRENT_SIM_VERSION),
+    // the recorded fit's prior sd (ratings.json `priorSd`, fitted to its games), so a provisional rating is shrunk as a recorded one is
+    ...(o.priorSd !== undefined ? { prior: o.priorSd } : {}),
   });
   const of = o.recorded.length + 1;
   const out = new Map<string, Provisional>();

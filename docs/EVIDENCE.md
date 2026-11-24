@@ -67,21 +67,20 @@ The recorded games are the pooled events and rating runs (`data/series/run-N.jso
     Var = (M / (M + g))² · (Var(p₀) + τ²)  +  g · p̂(1 − p̂) / (M + g)²
 
 - **Var(p₀)** is the prediction's own uncertainty: the delta method on the full covariance of the rating fit, rebuilt from the same games as `scripts/build-h2h.ts` fits them. If the rebuilt ratings do not match the file's to 2·10⁻⁴, the term is left out and the finding is flagged `model-uncertainty-missing`.
-- **τ²** is the pair spread: how far a pairing's true win rate sits from the ratings' prediction. The event records cannot measure it. The pairings have about 5 games each, too few to resolve it, which is why the h2h file's prior weight sits at its 1,000-game cap. So it is measured on the per-deck analysis' pairing table (`src/data/analysis.json`), where every pairing of the 7 meta decks has 200 games, 100 on each seat (`pairSpread`):
-  - each pairing is taken once and expanded into games seat by seat; the table is refused when a seat's wins are not a whole number;
-  - a Bradley–Terry fit with a going-first term (`fitRatings`) gives each game's expected score with its seat;
-  - per pairing, w wins, e expected wins, v = Σp(1−p) and g games;
-  - τ² = max(0, (P/(P − K)·Σ(w − e)² − Σv) / Σg(g − 1)), with P pairings and K decks.
-  - It needs at least 15 pairings of 100+ games. Otherwise the default SD of 6 points is used, and every matchup finding is flagged `spread-default`.
+- **τ²** is the pair spread: how far a pairing's true win rate sits from the ratings' prediction. Since 2026-11-24 it is the head-to-head file's own estimate, one number for the file's shrinkage and this interval (`pairSpread` reads it from `h2h.json`'s model block): a pairing at rate p has τ² = p(1 − p)/(M + 1) (`pairSpreadVar` in `src/lib/h2hModel.ts`), so the interval assumes exactly the spread the stored estimate was shrunk with.
+  - M comes from `fitShrinkage` (`src/lib/h2hModel.ts`): a moment estimate of the intra-pair correlation ρ over every met pairing of the pooled games, m = 1/ρ − 1, capped at 1,000 games. The fit's own share of each pairing's residual is added back (aᵀCa + aᵀCΛCa, with C the fit's covariance and Λ the prior's precision), because the residuals are taken from ratings fitted to the same games; without it the estimate read below zero when there was no spread at all (docs/REVIEW_2026-11-24.md L1), and the file sat at its cap.
+  - When the corrected estimate is at or below the floor (M at its cap), the spread is the floor's, not a measurement, and every matchup finding is flagged `spread-default`.
+  - Until 2026-11-24 τ² was measured apart, on the per-deck analysis' pairing table (the deep bot's 21 meta pairings of 200 games: τ = 6.4 points, χ² = 65.6 on 14 degrees of freedom), while the file's own estimate, biased toward zero, sat at 308 games: two numbers for one quantity.
 - The second term is binomial noise in the direct games. When τ² = p(1−p)/(M + 1) the formula is the beta posterior of a prior worth M games.
 - The 95% interval is drawn on the logit scale, so it stays inside 0–1. There is no widening factor.
 
-**Measured on 2026-11-15:**
+**Measured on 2026-11-24** (the pool of 2026-11-22: events 20 to 25 and rating run 1, 14,090 games; the ratings' prior sd fitted to the same games, 0.51):
 
-- **The spread.** On 21 meta pairings (4,200 games), the fit misses the records by χ² = 65.6 on 14 degrees of freedom. τ = 6.4 points.
-  - It is measured with the Deep bot on the meta pairings only, and assumed for every other pairing.
-  - Its own uncertainty is large: 21 pairings.
-  - The h2h file's prior weight is unchanged, so the estimate itself is still the head-to-head file's.
+- **The spread.** On 2,206 pairings, ρ = 0.0078, a prior worth 127 games: an even pairing's true win rate sits about 4.4 points (SD) from the ratings' prediction. The fit misses the records by χ² = 2,346 on 2,136 degrees of freedom (the pairings less the fit's share). On games simulated from the fit with no pair effect the corrected estimate's median is +0.0006 (30 simulations; the uncorrected one −0.0049), and with pair effects of logit SD 0.2 it is 0.0077 against 0.0091 drawn: the observed 0.0078 matches pair effects of about that size.
+- **The check, re-run 2026-11-24** (the folds of the events alone, each fold's own prior sd; their pairings are too thin to show spread, so each fold's weight sits at its cap, and the claim uses the file's spread): calibration slope 0.932 ± 0.054 (it was 0.792 ± 0.046 with the prior sd at 1 on the same folds), the favoured deck scored 2,591 against 2,605 expected; the squared distance −0.0009 ± 0.0056; the interval claims 0.0059 (SD 7.7 points), 0.0041 (SD 6.4 points) without τ².
+
+**Measured on 2026-11-15** (before the correction, with τ from the meta pairings):
+
 - **The check (leave one event out).** For each recorded event, the ratings and the shrinkage are fitted on the other events (`h2hEstimator`). Each held-out game's chance is the training fit's prediction for its seat plus the pairing's shrunk residual. Scored over 2,399 held-out matches and 6,014 games:
   - **Calibration.** The logistic slope of the result on the logit of the chance is 0.916 ± 0.041. 1 is calibrated; below 1 the estimates are mildly over-confident, too far from even for lopsided pairings. The favoured deck scored 3,753 against 3,812 expected.
   - **Distance of the truth from the estimate.** Given the pairing's true rate, the residuals of games 1 and 2 of a match are independent, and both games are always played. So the mean of their product estimates the squared distance with no binomial correction. It is 0.0072 ± 0.0047: an SD of about 8.5 points, 95% from 0 to 12.8.
@@ -253,7 +252,7 @@ An association clears the bar for strong only with `--adjusted`: its adjusted es
 A finding measured under a simulator version other than the current `SIM_VERSION` is `stale`: flagged, never strong, and left out of the overview's lists. Today that is the Season 2 forge reports (v5) and the E2 re-measurements (v8): 15 findings. A change measured with Medium carries `medium-only` or one of the `hard-…` flags (see "Changes"), and is not stale for that. Other flags:
 - `few-direct-games`: a matchup with 1 to 5 direct games.
 - `prediction-only`: a matchup with none.
-- `spread-default`: the matchup interval's pair spread is the default, not measured.
+- `spread-default`: the matchup interval's pair spread is the floor (the recorded pairings showed none beyond chance, the head-to-head file's prior weight at its 1,000-game cap), not measured.
 - `depends-on-opponent`: χ² of the per-opponent means around the pooled mean, Wilson–Hilferty p < 0.05, groups of 20+ games.
 - `first-look`, `stopped-futility`, `other-list`, `model-uncertainty-missing`.
 

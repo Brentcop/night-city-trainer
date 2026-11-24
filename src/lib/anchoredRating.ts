@@ -3,7 +3,10 @@
 // "provisional" on deck tiles, deck pages and the Power ratings page). Pure.
 //
 // The model is the recorded one (src/lib/ratingModel.ts): P(A beats B | A on the play) = σ(rA − rB + h), ties half a win,
-// a Gaussian prior with sd `prior` (1) on every rating. Here the recorded decks' ratings and h are held fixed at their
+// a Gaussian prior with sd `prior` on every rating: the recorded fit's own, fitted to its games (ratings.json `priorSd`,
+// since 2026-11-24; 1 before, and the default here when none is given). The coverage measured below was measured with
+// the prior at 1; with the fitted sd (about 0.5) a deck with ~20 games is pulled further toward average and its range is
+// narrower, which was not re-measured. Here the recorded decks' ratings and h are held fixed at their
 // recorded values, and only the unrated decks' ratings are fitted, jointly, by maximum a posteriori (Newton steps on the
 // full Hessian over the unrated decks, so unrated decks that met each other are fitted together). A game counts when at
 // least one side is unrated; a game between two recorded decks says nothing about the unrated ones and is left out.
@@ -44,7 +47,7 @@ export interface AnchoredInput {
   games: readonly RatedGame[];
   /** unrated keys to rate even when they have no game (they get the prior) */
   unrated?: readonly string[];
-  /** prior sd on every rating (the recorded fit's: 1) */
+  /** prior sd on every rating (the recorded fit's, ratings.json `priorSd`; default 1, the value before 2026-11-24) */
   prior?: number;
   /** a two-sided range of this many standard errors (default 1.645: 90%) */
   z?: number;
