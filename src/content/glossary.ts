@@ -328,7 +328,7 @@ export const GLOSSARY: Term[] = [
   {
     term: 'Counter deck (breeding)',
     group: 'Strategy',
-    def: 'A bred deck built to beat the current top decks: the breeder finds the decks with the best tournament head-to-head records against the top 4 and merges them, keeping the cards that win games for each.',
+    def: 'A bred deck aimed at the current top decks: the breeder finds the decks with the best tournament head-to-head estimates against the top 4 and merges them, keeping the cards that win games for each. The estimates today follow the power ratings, so a counter is in effect a crossover of the top decks.',
     engine: 'src/ai/breeder.ts (counter method), data from scripts/breed-data.ts.',
   },
   {

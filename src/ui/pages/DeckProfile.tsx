@@ -55,7 +55,7 @@ function decksNamedIn(text: string | undefined, lib: readonly LibraryDeck[], sel
 const METHOD_TEXT: Record<string, string> = {
   mutant: 'a mutant — one Legend of its parent swapped out, the rest re-fitted to the new RAM limits',
   crossover: 'a crossover — two parent decks combined, keeping the best performers of each',
-  counter: 'a counter — built from the decks with the best head-to-head records against the current top decks',
+  counter: 'a counter — built from the decks with the best head-to-head estimates against the current top decks; those estimates today follow the power ratings, so it is in effect a crossover of the top decks',
   explorer: 'an explorer — an untested Legend trio, filled with cards chosen from format-wide card impact (no parent deck)',
 };
 

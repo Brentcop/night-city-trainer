@@ -41,6 +41,24 @@ export function differenceWords(f: Pick<GateFigure, 'mean' | 'lower' | 'upper'>)
 /** The first letter in capitals. */
 export const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
+// ---------------------------------------------------------------- how a deck was bred
+
+/**
+ * The four ways of breeding (src/ai/breeder.ts), in a few words each. A counter is chosen by head-to-head estimates that
+ * are shrunk toward the power ratings, and with a few games a pairing they follow the ratings almost exactly (rank
+ * correlation 0.995 to 0.999 on 2026-11-24), so the words say it is in effect a crossover of the top decks.
+ */
+export const BRED_METHOD_WORDS: Readonly<Record<string, string>> = Object.freeze({
+  mutant: 'a top deck with one Legend swapped, its cards re-fitted',
+  crossover: 'two strong decks merged',
+  counter: 'bred by head-to-head estimates against the top 4 decks, which today follow the power ratings: in effect a crossover of the top decks',
+  explorer: 'an untested Legend trio, with no parent deck',
+});
+/** A method's words, or the method itself when it has none. */
+export const bredMethodWords = (method: string): string => BRED_METHOD_WORDS[method] ?? method;
+/** The sentence a page or a season report shows when a counter is among the decks. */
+export const COUNTER_NOTE = 'A counter is bred from the decks with the best head-to-head estimates against the top 4 decks; those estimates today follow the power ratings almost exactly, so a counter is in effect a crossover of the top decks.';
+
 // ---------------------------------------------------------------- a season's recorded test
 
 /** "Medium bot: +1.2 points (range −3.0 to +5.4), 560 games each" (or "stopped before it was decided"). */
@@ -67,7 +85,14 @@ const SEASON_REF: Record<ReferenceWhy, string> = {
  * better than X … with the Medium bot; the Hard bot could not tell", "Kept out: shown worse than X … with the Hard bot",
  * or stopped.
  */
-export function seasonTestWords(d: Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped'>): string {
+export function seasonTestWords(d: Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped'> & { refill?: number }): string {
+  const words = testWords(d);
+  return d.refill ? `${words}. ${REFILL_NOTE}` : words;
+}
+/** A runner-up of the screen gated for a slot of a deck kept out (a season run with --breed-count). */
+export const REFILL_NOTE = 'Tested as a runner-up of the screen, for a slot a deck kept out left open';
+
+function testWords(d: Pick<GateOutcome, 'reference' | 'first' | 'confirm' | 'confirmSkipped' | 'entered' | 'stopped'>): string {
   const note = SEASON_REF[d.reference.why];
   const ref = note ? `${d.reference.name} (${note})` : d.reference.name;
   if (d.stopped) return `Not entered: stopped before the test against ${ref} was decided`;
@@ -106,7 +131,7 @@ export interface RatingInput {
 export interface SeasonInput {
   bred: readonly { name: string; method: string; parents: readonly string[] }[];
   standings: readonly { name: string; wr: number }[];
-  gate?: { decks: readonly (GateOutcome & { method?: string })[] } | null;
+  gate?: { decks: readonly (GateOutcome & { method?: string; refill?: number })[] } | null;
 }
 
 export interface BredThenNow {
@@ -124,7 +149,7 @@ export interface BredThenNow {
   /** its best parent by today's parent strength (null for an explorer, or when none of its parents is ranked) */
   parent: { name: string; file: string | null; now: RatingNow | null } | null;
   /** the season's test of it (null: the season recorded none) */
-  test: (GateOutcome & { method?: string }) | null;
+  test: (GateOutcome & { method?: string; refill?: number }) | null;
 }
 
 function ratingOf(ratings: readonly RatingInput[], name: string, file: string | null): RatingNow | null {

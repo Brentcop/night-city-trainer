@@ -67,6 +67,8 @@ export interface SeasonGateDeck extends GateOutcome {
   /** the list as official export text */
   list: string;
   legends: string[];
+  /** a runner-up of the screen (--breed-count) tested for a slot a deck kept out left open: its refill round (1, 2, …) */
+  refill?: number;
 }
 /** A gated season's test of its bred decks (scripts/season.ts; docs/SYNERGIES.md "A bred deck's test against its parent"). */
 export interface SeasonGate {
@@ -76,8 +78,10 @@ export interface SeasonGate {
   settings: { bot: string; confirmBot: string | null; rounds: number; stages: number; confirmStages: number; alpha: number; seeds: { first: number; confirm: number }; reference?: 'parent' | 'middle'; fullStages?: true };
   words: { rule: string; guarantee: string; detect: string; spread: string };
   spreadSeen: { first: number | null; firstDecks: number; confirm: number | null; confirmDecks: number };
-  /** every bred deck, those that entered and those that did not */
+  /** every deck tested for a slot, those that entered and those that did not (runners-up of the screen last, with `refill`) */
   decks: SeasonGateDeck[];
+  /** how many runners-up of the screen were tested for the slots of decks kept out (absent: none) */
+  refills?: number;
 }
 export interface SeasonRecord extends Versioned {
   season: number;

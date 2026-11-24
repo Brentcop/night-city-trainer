@@ -1028,7 +1028,7 @@ function BreedPanel({ onTune, onBusy }: { onTune: (d: DeckList) => void; onBusy:
             ) : h2hReady ? (
               <>
                 <b>Counter decks on</b>: built against the current top decks from {h2hReady.games.toLocaleString()} head-to-head games ({h2hReady.events} events)
-                {h2hReady.shrunk ? ', each matchup estimated from the power ratings plus its own record, so a 2–1 is not read as a 67% matchup' : ''}.
+                {h2hReady.shrunk ? ', each matchup estimated from the power ratings plus its own record, so a 2–1 is not read as a 67% matchup; with a few games a pairing those estimates follow the ratings, so a counter is in effect a crossover of the top decks' : ''}.
                 {h2hReady.excluded > 0 && ` ${h2hReady.excluded} event(s) from another simulator version or bot are left out.`}
                 {stale && (
                   <span style={{ color: 'var(--accent)' }}>
