@@ -5,7 +5,7 @@ import type { Decision, DeckList, PlayerId } from '../../engine/types';
 import type { CoachedGrade } from '../../lib/coachedReplay';
 import type { PracticeReplay } from '../../lib/practiceReplays';
 import { ConfirmPrompt, useCardDrag, type PendingConfirm } from '../components/board/drag';
-import { gameDeck } from '../../lib/tournament';
+import { gameDeck, SIM_VERSION } from '../../lib/tournament';
 import { keepFinishedGrades, keepsCoachGrades } from '../../lib/coachKeep';
 import { buildCoachedReplay, coachedReplayFileName } from '../../lib/coachedReplay';
 import { EARLY_MOVE_NOTE, gradeWhenAdvised, gradeWithAdvice, type GradeContext } from '../../lib/coachGrading';
@@ -16,8 +16,9 @@ import { GameReviewModal, type GameReviewSource } from '../components/GameReview
 import { coachRatingsFrom } from '../../lib/gameReview';
 import type { Tier } from '../../ai/tiers';
 import { useCoach } from '../useCoach';
-import { useLiftSlice } from '../synergyReport';
-import { seatLiftFromSlice } from '../../ai/packageLift';
+import { usePackageEffects } from '../synergyReport';
+import { seatEffects } from '../../ai/packageEffect';
+import { CATALOGUE_VERSION } from '../../content/synergies';
 import { boardWarnings, coachWorthAsking, scorable, matchupTips, type Advice, type MoveGrade } from '../../ai/coach';
 import { useFocusTrap } from '../components/Modal';
 import { findDeck, firstVisibleDeck } from '../components/DeckPicker';
@@ -71,7 +72,7 @@ import {
 } from '../../lib/savedGames';
 import { ConfirmDialog, ResumeConfirm, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard, type CoachNote } from '../components/board/CoachPanel';
-import { coachTablesWords, shownLabel } from '../../lib/coachWords';
+import { coachTablesWords, RATINGS_BOT, shownLabel } from '../../lib/coachWords';
 import { ANALYSIS_SUMMARY } from '../../data/analysisData';
 import { MentionText } from '../components/CardMention';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
@@ -702,12 +703,16 @@ export function Board({
   const seatA = s.players[0].name;
   const seatB = s.players[1].name;
   const logSkip = useMemo(() => [seatA, seatB], [seatA, seatB]);
-  // INFO-8: the coach names a package only when the synergy report measured a lift above 0 for it (unmeasured wording
-  // while the lift slice, public/data/lift.json, is loading or missing); fetched only once the coach is on
-  const liftData = useLiftSlice(coach);
-  const lift0 = useMemo(() => (liftData.state === 'ready' ? seatLiftFromSlice(liftData.slice, g.P(0).listId, liftData.current) : null), [liftData, g]);
+  // the coach names a package only when its paired measurement in this list is above 0 (2026-11-24, in place of the
+  // INFO-8 lift: public/data/package-effects.json, src/ai/packageEffect.ts; the Hard bot's rows first); a package with no
+  // current row, or while the file is loading or missing, is worded as an unmeasured idea; fetched only once the coach is on
+  const effectsData = usePackageEffects(coach);
+  const effects0 = useMemo(
+    () => (effectsData.state === 'ready' ? seatEffects(effectsData.file, g.P(0).listId, { simVersion: SIM_VERSION, catalogueVersion: CATALOGUE_VERSION, preferBot: RATINGS_BOT }) : null),
+    [effectsData, g],
+  );
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the game state changes in place; `version` says when
-  const warnings = useMemo(() => (coach && s.winner === null ? boardWarnings(g, 0, lift0) : NO_WARNINGS), [g, coach, version, s.winner, lift0]);
+  const warnings = useMemo(() => (coach && s.winner === null ? boardWarnings(g, 0, undefined, effects0) : NO_WARNINGS), [g, coach, version, s.winner, effects0]);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [targeting, setTargeting] = useState<Targeting | null>(null);
   const [trashOf, setTrashOf] = useState<PlayerId | null>(null);
@@ -764,7 +769,7 @@ export function Board({
     if (!adviceWanted(pend, coach, payMode)) return;
     let alive = true;
     // in a worker: a result for a decision that has since changed is dropped (alive, and activeHint checks hint.d)
-    advise(g, pend, lift0)
+    advise(g, pend, undefined, effects0)
       .then((a) => {
         if (alive) setHint({ d: pend, i: a.index, why: a.why, alts: a.alternatives, advice: a });
       })
@@ -775,7 +780,7 @@ export function Board({
     return () => {
       alive = false;
     };
-  }, [pend, coach, g, advise, lift0, payMode]);
+  }, [pend, coach, g, advise, effects0, payMode]);
 
   // a new decision closes any open menu / target mode
   useEffect(() => {

@@ -12,6 +12,7 @@ import type { Decision } from '../engine/types';
 import { adviseRequest, coachRequest, scoreMoveRequest, type Advice, type CoachRequest, type GradedOption, type ScoreRequest } from '../ai/coach';
 import type { CoachJob, CoachReply } from '../sim/coach.worker';
 import type { SeatLift } from '../ai/packageLift';
+import type { SeatEffects } from '../ai/packageEffect';
 import { exactText } from '../lib/exactText';
 
 type Payload = { req: CoachRequest } | { score: ScoreRequest };
@@ -85,10 +86,12 @@ export class CoachClient {
   /**
    * Advice for decision `d` in the game's current position (snapshotted now, so the game may move on). `lift`: the
    * deciding seat's measured package lift (INFO-8), sent with the position; absent = package notes worded as unmeasured.
+   * `effects`: the seat's paired package measurements (src/ai/packageEffect.ts); when given (null = none loaded), they
+   * gate the package notes instead of the lift.
    */
-  advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice> {
+  advise(g: Game, d: Decision, lift?: SeatLift, effects?: SeatEffects): Promise<Advice> {
     if (this.disposed) return Promise.reject(new Error('coach closed'));
-    const req = coachRequest(g, d, lift);
+    const req = coachRequest(g, d, lift, effects);
     this.reqs.set(d, req);
     const key = exactText(req);
     const known = key === null ? undefined : recall(key);
@@ -214,7 +217,7 @@ export class CoachClient {
 }
 
 export interface CoachApi {
-  advise(g: Game, d: Decision, lift?: SeatLift): Promise<Advice>;
+  advise(g: Game, d: Decision, lift?: SeatLift, effects?: SeatEffects): Promise<Advice>;
   score(d: Decision, chosen: number, a: Advice): Promise<GradedOption[]>;
   /** the advice asked for decision `d`, kept for grading a move made before it arrived (null: none was asked) */
   adviceFor(d: Decision): Promise<Advice> | null;
@@ -232,6 +235,6 @@ export function useCoach(): CoachApi {
   );
   return useMemo(() => {
     const client = () => (ref.current ??= new CoachClient());
-    return { advise: (g, d, lift) => client().advise(g, d, lift), score: (d, chosen, a) => client().score(d, chosen, a), adviceFor: (d) => ref.current?.adviceFor(d) ?? null };
+    return { advise: (g, d, lift, effects) => client().advise(g, d, lift, effects), score: (d, chosen, a) => client().score(d, chosen, a), adviceFor: (d) => ref.current?.adviceFor(d) ?? null };
   }, []);
 }
