@@ -523,7 +523,7 @@ describe('the real public sources', async () => {
   });
 
   it('builds the evidence cells from the measured reports (step 2.4): one per card or package on a library list, and pooled', () => {
-    const dec = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/decisions.json'), 'utf8')) as { decks: { listId: string; cards: { id: string }[] }[]; manifest: { simVersion: number; bot: { level: string } } };
+    const dec = JSON.parse(fs.readFileSync(path.join(ROOT, 'reports/decisions-latest.json'), 'utf8')) as { decks: { listId: string; cards: { id: string }[] }[]; manifest: { simVersion: number; bot: { level: string } } };
     const syn = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/synergies.json'), 'utf8')) as { decks: { listId: string; synergies: { id: string }[] }[]; pooled: { id: string }[] };
     const libLists = new Set(a.records.filter((x) => x.kind === 'deck').map((x) => x.stamps!.listId));
     const cells = a.records.filter((x) => x.kind === 'cardstat' || x.kind === 'pkgstat');
@@ -599,8 +599,10 @@ describe('the real public sources', async () => {
     expect(ids.has('guide:tournament-plan#intro')).toBe(false);
   });
 
+  // its own evaluation reports (reports/kb-eval-*) are about itself; the decision report (reports/decisions-latest.json, the
+  // full report since 2026-11-24, when the site's copy was cut into slices) is a source like any other
   it('indexes nothing about itself (rule M12): not its plan, not its own code headers, but still the CLAUDE.md bullet', () => {
-    for (const x of a.records) expect(x.source.file).not.toMatch(/^docs\/RAG_PLAN\.md$|^src\/lib\/kb\/|^scripts\/kb(-[a-z]+)?\.ts$|^data\/kb\/|^reports\//);
+    for (const x of a.records) expect(x.source.file).not.toMatch(/^docs\/RAG_PLAN\.md$|^src\/lib\/kb\/|^scripts\/kb(-[a-z]+)?\.ts$|^data\/kb\/|^reports\/kb-/);
     expect(ids.has('doc:CLAUDE.md#knowledge-pack-kb')).toBe(true);
   });
 

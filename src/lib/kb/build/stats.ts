@@ -1,6 +1,6 @@
 // Knowledge pack builders: measured evidence cells (docs/RAG_PLAN.md step 2.4, rules M3 to M5). One `cardstat` record
 // per card on a library list and one per card pooled over the lists of the report, from the decision report
-// (public/data/decisions.json) and the per-deck analysis (src/data/analysis.json, with the coach's pooled impact figure
+// (reports/decisions-latest.json, the full report) and the per-deck analysis (src/data/analysis.json, with the coach's pooled impact figure
 // from src/data/impact.json); one `pkgstat` record per synergy package on a list and one pooled, from the synergy report
 // (public/data/synergies.json). Every number comes from src/lib/cardFacts.ts and every sentence from a template here:
 // the first says what the record is and names the bot and the sim version; every count has its denominator, every rate

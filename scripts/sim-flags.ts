@@ -79,7 +79,7 @@ export interface AnalyzeOutputs {
   impact?: string;
   decisionsJson?: string;
   decisionsMd?: string;
-  /** the copy the site's Card stats page fetches (whole-field runs only) */
+  /** the index the site's Card stats page fetches, with its per-deck parts and the sells slice (whole-field runs only; cut from decisionsJson, src/lib/telemetrySlices.ts) */
   decisionsSite?: string;
   decisionSamples?: string;
   synergiesJson?: string;

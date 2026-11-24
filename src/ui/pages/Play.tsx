@@ -72,7 +72,7 @@ import {
 import { ConfirmDialog, ResumeConfirm, SaveGameDialog, saveSummary, UnresumableDialog, type SavesProps } from '../components/SavedGames';
 import { CoachPanel, MoveToast, NO_ALTS, Scorecard, type CoachNote } from '../components/board/CoachPanel';
 import { coachTablesWords, shownLabel } from '../../lib/coachWords';
-import { ANALYSIS } from '../../data/analysisData';
+import { ANALYSIS_SUMMARY } from '../../data/analysisData';
 import { MentionText } from '../components/CardMention';
 import { PlaySetup, type Seat } from '../components/PlaySetup';
 import { OngoingGames } from '../components/OngoingGames';
@@ -697,7 +697,7 @@ export function Board({
   const coach = coachHere && (tourney ? tourney.coach : settings.coach);
   const tips = useMemo(() => (coach ? matchupTips(g, 0) : []), [g, coach]);
   // the tips' card figures are the bot-match analysis run's (src/data/analysis.json, impact.json): name its bot
-  const tipsSource = useMemo(() => coachTablesWords(ANALYSIS.bot, ANALYSIS.manifest?.simVersion), []);
+  const tipsSource = useMemo(() => coachTablesWords(ANALYSIS_SUMMARY.bot, ANALYSIS_SUMMARY.manifest?.simVersion), []);
   // the seats' names (deck names, chosen by players) are never read as card names in the log
   const seatA = s.players[0].name;
   const seatB = s.players[1].name;

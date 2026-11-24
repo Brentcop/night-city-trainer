@@ -1,15 +1,17 @@
 // "The bot sells this" beside a cut in the Deck Lab's result tables (REVIEW_2026-11-24 §10 A.12; src/lib/sellShare.ts):
 // no bot keeps Eddies ready for the rival's turn, so it sells some cards (Quick Programs above all) in most of their uses,
 // and a low impact figure for such a card says how the bot plays it, not how good the card is. The figures are the
-// decision telemetry's (public/data/decisions.json, written by `npm run sim -- analyze --decisions`): the row of the
+// decision telemetry's, read from its sells slice (public/data/sells.json, cut from the report `npm run sim -- analyze
+// --decisions` writes, src/lib/telemetrySlices.ts; since 2026-11-24, when the whole report grew to 900 kB gzip): the row of the
 // tuned list as it started when the report has it, else the report's rows pooled over its decks. The tag's title names
-// the run, its bot and simulator version, and which rows. The report is fetched once, only when the Lab shows a result
+// the run, its bot and simulator version, and which rows. The slice is fetched once, only when the Lab shows a result
 // (useLabSells), never by the entry chunk; without it, or with a report of another telemetry schema, nothing is shown.
 import { useEffect, useMemo, useState } from 'react';
 import { CARD_BY_ID } from '../../engine/cards';
 import { DECISION_TELEMETRY_SCHEMA } from '../../engine/telemetry';
 import { botWord } from '../../lib/evidence';
 import { sellBasis, sellShareOf, SELLS_SHARE, type SellBasis, type SellReport, type SellShare } from '../../lib/sellShare';
+import { readSellSlice, sellReportOf } from '../../lib/telemetrySlices';
 import { SIM_VERSION } from '../../lib/tournament';
 
 /** One card flagged "the bot sells this": its share, the run it comes from, and which rows. */
@@ -76,12 +78,13 @@ export function SellsTag({ note }: { note: SellNote | null | undefined }) {
 }
 
 let file: Promise<SellReport | null> | null = null;
-/** The decision telemetry report, fetched once per page load (null when missing or unreadable). */
+/** The decision telemetry's sells slice, read as a report the sell share reads, fetched once per page load (null when missing or unreadable). */
 function loadSellReport(): Promise<SellReport | null> {
   file ??= (async () => {
     try {
-      const r = await fetch(`${import.meta.env.BASE_URL}data/decisions.json`);
-      return r.ok ? readSellReport(await r.json()) : null;
+      const r = await fetch(`${import.meta.env.BASE_URL}data/sells.json`);
+      const slice = r.ok ? readSellSlice(await r.json(), DECISION_TELEMETRY_SCHEMA) : null;
+      return slice ? sellReportOf(slice) : null;
     } catch {
       return null;
     }

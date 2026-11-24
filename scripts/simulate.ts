@@ -427,7 +427,7 @@ async function main() {
         const dmd = decisionMarkdown(report);
         write(out.decisionsJson!, JSON.stringify(report, null, 1));
         write(out.decisionsMd!, dmd);
-        if (out.decisionsSite) write(out.decisionsSite, JSON.stringify(report));
+        // the site's copy is cut into slices (public/data/decisions.json and decisions/, sells.json) below, from the full report
         if (out.decisionSamples) write(out.decisionSamples, JSON.stringify({ telemetrySchema: DECISION_TELEMETRY_SCHEMA, manifest, games: sampleGames }, null, 1));
         console.log(
           `Decision telemetry: ${size.records} records over ${size.games} games (${measurements.recordsPerGame.toFixed(0)}/game); ` +
@@ -471,6 +471,13 @@ async function main() {
         write(out.impact!, imp.text);
         const { impactDataWords } = await import('../src/lib/breederImpact');
         for (const l of impactDataWords(imp.tables, imp.data)) console.log(l);
+      }
+      if (!focus && !V.out) {
+        // the slices of the reports the site loads, cut from reports/decisions-latest.json and src/data/analysis.json
+        // (src/lib/telemetrySlices.ts; scripts/build-telemetry-slices.ts rebuilds them, check:data compares them)
+        const { writeTelemetrySlices } = await import('./build-telemetry-slices');
+        const sl = writeTelemetrySlices('.');
+        console.log(`Telemetry slices: ${sl.files} files (${sl.written} written, ${sl.removed} removed)`);
       }
       console.log(md.split(NL).slice(0, 60).join(NL));
       console.log(`${NL}Saved ${out.analysisMd}`);

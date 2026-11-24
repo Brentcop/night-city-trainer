@@ -451,7 +451,7 @@ describe('building from fixtures', () => {
     const f = deckOf(buildEvidence({ ...inputs(), analysis, decisions }), 'Deck A').findings.find((x) => x.kind === 'card-assoc')!;
     // attacks are not uses from hand: 90 sells of 100 plays and sells
     expect(f.detail?.sold).toEqual({ n: 90, of: 100, bot: 'deep', simVersion: 9, run: 'analysis:run-1', date: '2026-11-14T15:47:12.017Z' });
-    expect(f.sources.at(-1)).toEqual({ file: 'public/data/decisions.json', path: 'decks[0].cards[0].modes' });
+    expect(f.sources.at(-1)).toEqual({ file: 'reports/decisions-latest.json', path: 'decks[0].cards[0].modes' });
     // without the report, no sells and no source for them
     const without = deckOf(buildEvidence({ ...inputs(), analysis }), 'Deck A').findings.find((x) => x.kind === 'card-assoc')!;
     expect(without.detail?.sold).toBeUndefined();

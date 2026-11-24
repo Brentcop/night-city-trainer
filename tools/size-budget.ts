@@ -13,7 +13,8 @@
 // named their packages (19 to 37 lists in the table), each worker grew by 1.0 kB (262.3, 271.2, 279.0, 265.5 kB).
 
 /** kB (1000 bytes, as Vite prints them) per worker, by the name before ".worker". */
-// Raised 2026-11-24 on purpose (REVIEW_2026-11-24 B.2): src/data/impact.json, the card table src/ai/impact.ts reads and
+// Raised 2026-11-24 on purpose, a deliberate cost accepted the same day (REVIEW_2026-11-24 B.2; about +9 kB gzip per
+// worker): src/data/impact.json, the card table src/ai/impact.ts reads and
 // so every worker carries, went from the deep bot's 7 meta lists (5.8 kB, 2.7 kB gzip) to the breeder's table of all 71
 // library lists (46.7 kB, 11.5 kB gzip), so the coach covers every library list instead of pooling for 64 of them.
 // Each worker grew by about 40 kB (game 265.1 → 304.6, coach 279.3 → 318.7, review 285.1 → 324.5, watch 268.3 → 307.8,

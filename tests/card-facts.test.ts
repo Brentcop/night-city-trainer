@@ -27,7 +27,7 @@ import { buildStats, cardStatText, packageStatText } from '../src/lib/kb/build/s
 
 const ROOT = path.resolve(__dirname, '..');
 const read = <T,>(f: string): T | null => (fs.existsSync(path.join(ROOT, f)) ? (JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')) as T) : null);
-const DEC_FILE = 'public/data/decisions.json';
+const DEC_FILE = 'reports/decisions-latest.json';
 const SYN_FILE = 'public/data/synergies.json';
 const ANA_FILE = 'src/data/analysis.json';
 const IMP_FILE = 'src/data/impact.json';

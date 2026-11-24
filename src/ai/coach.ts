@@ -16,8 +16,8 @@ import { BEST_GIGS, fixedTerms, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
-import analysis from '../data/analysis.json';
-import type { DeckReport } from '../analysis/analyze';
+import analysisSummary from '../data/analysis/summary.json';
+import type { AnalysisSummary } from '../lib/telemetrySlices';
 
 /**
  * Shared worlds the coach scores every candidate in (HeuristicOptions.deepWorlds; also the worlds of its sell comparison,
@@ -698,8 +698,8 @@ export function matchupTips(g: Game, p: PlayerId = 0): string[] {
   if (top.length) tips.push(`**Cards most associated with wins** (bot games with this list; an association, not proof that they win): ${top.map((c) => `${CARD_BY_ID[c.id]?.displayName} (+${Math.round(c.iwd * 100)} win-rate points when drawn)`).join(', ')}.`);
   // analysis reports describe one list each: only use the one measured on this list (and on the rival's list)
   const name = impactDeckName(g.P(p));
-  const rep = name === null ? undefined : (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === name);
-  const t4 = rep?.tempo?.[3];
+  const rep = name === null ? undefined : (analysisSummary as unknown as AnalysisSummary).decks.find((r) => r.deck === name);
+  const t4 = rep?.tempo4;
   if (t4 && t4.leadN >= 20 && t4.behindN >= 20 && Number.isFinite(t4.leadWr) && Number.isFinite(t4.behindWr))
     tips.push(`**Tempo:** this deck wins ${Math.round(t4.leadWr * 100)}% when ahead on Gigs after its 4th turn and ${Math.round(t4.behindWr * 100)}% when behind.`);
   const oppName = impactDeckName(g.P(other(p)));

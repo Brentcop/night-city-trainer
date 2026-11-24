@@ -177,13 +177,13 @@ const PACKAGES = packagesOn(V);
 /** partner-aware cut and add ranking (--partner-aware, or any package flag; --plain-ranking turns it off) */
 const PARTNER = partnerAwareOn(V);
 /**
- * partner-aware runs: the decision telemetry (public/data/decisions.json), to mark a cut the bot sells in most of its uses
+ * partner-aware runs: the decision telemetry (reports/decisions-latest.json, the full report), to mark a cut the bot sells in most of its uses
  * from hand (src/lib/sellShare.ts, SELLS_SHARE): its low "Δ when drawn" then says how the bot plays it, not its worth
  */
 const SELLS: SellReport | null = (() => {
   if (!PARTNER) return null;
   try {
-    const j = JSON.parse(fs.readFileSync('public/data/decisions.json', 'utf8')) as SellReport & { kind?: unknown };
+    const j = JSON.parse(fs.readFileSync('reports/decisions-latest.json', 'utf8')) as SellReport & { kind?: unknown };
     return j && j.kind === 'decision-telemetry' && Array.isArray(j.decks) && Array.isArray(j.pooled) ? j : null;
   } catch {
     return null;

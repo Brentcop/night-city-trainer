@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { TIERS, tierLabel, type Tier } from '../../ai/tiers';
 import { classify, PLAN_TEXT, type ProfileKey } from '../../ai/archetype';
-import { telemetryReport } from '../../data/analysisData';
+import { telemetrySummary } from '../../data/analysisData';
 import type { LibraryDeck } from '../../lib/library';
 import { clearPractice, loadPractice } from '../../lib/practiceLog';
 import { loadReplays, type PracticeReplay } from '../../lib/practiceReplays';
@@ -293,7 +293,7 @@ function MatchupRead({ A, B }: { A?: LibraryDeck; B?: LibraryDeck }) {
   if (!A || !B) return null;
   const a = classify(A.deck.main).arch;
   const b = classify(B.deck.main).arch;
-  const mu = telemetryReport(A.deck.name)?.matchups.find((m) => m.opp === B.deck.name);
+  const mu = telemetrySummary(A.deck.name)?.matchups.find((m) => m.opp === B.deck.name);
   return (
     <div className="panel small">
       {mu && mu.games >= 10 && (

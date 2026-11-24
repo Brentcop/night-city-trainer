@@ -126,7 +126,7 @@ export interface EvidenceInputs {
   h2h: H2HInput | null;
   analysis: AnalysisInput | null;
   synergies: SynergyReport | null;
-  /** the decision telemetry report (public/data/decisions.json): each card's sells out of its uses from hand (src/lib/sellShare.ts); absent or null, card rows carry none */
+  /** the decision telemetry report (reports/decisions-latest.json, the full report): each card's sells out of its uses from hand (src/lib/sellShare.ts); absent or null, card rows carry none */
   decisions?: DecisionReport | null;
   /** the current synergy catalogue version (CATALOGUE_VERSION) */
   catalogueVersion: string;
@@ -1044,7 +1044,7 @@ function cards(ctx: Ctx, d: EvidenceDeck, listId: string, gaps: GapNote[]): Draf
   if (!ctx.inputs.adjusted) gaps.push({ code: 'no-adjusted' });
   const p = ctx.inputs.paths.analysis;
   const dec = ctx.inputs.decisions ?? null;
-  const dp = ctx.inputs.paths.decisions ?? 'public/data/decisions.json';
+  const dp = ctx.inputs.paths.decisions ?? 'reports/decisions-latest.json';
   const ddi = dec ? dec.decks.findIndex((x) => x.listId === listId) : -1;
   const out: Draft[] = [];
   let thin = 0;
@@ -1948,7 +1948,7 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
     { file: inputs.paths.h2h, runId: (inputs.h2h?.manifest as RunManifest | undefined)?.runId ?? null },
     { file: inputs.paths.analysis, runId: inputs.analysis?.manifest?.runId ?? null },
     { file: inputs.paths.synergies, runId: inputs.synergies?.manifest?.runId ?? null },
-    ...(inputs.decisions ? [{ file: inputs.paths.decisions ?? 'public/data/decisions.json', runId: inputs.decisions.manifest?.runId ?? null }] : []),
+    ...(inputs.decisions ? [{ file: inputs.paths.decisions ?? 'reports/decisions-latest.json', runId: inputs.decisions.manifest?.runId ?? null }] : []),
     ...pool.events.map((e) => ({ file: `${inputs.paths.events}/event-${e.id}.json`, runId: (e.manifest as RunManifest | undefined)?.runId ?? null })),
     ...pool.runs.map((e) => ({ file: `${inputs.paths.series ?? 'data/series'}/${e.id}.json`, runId: (e.manifest as RunManifest | undefined)?.runId ?? null })),
     ...inputs.forge.map((f) => ({ file: f.file, runId: f.report.manifest.runId })),

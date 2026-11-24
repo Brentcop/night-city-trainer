@@ -51,7 +51,7 @@ describe('sellShareOf', () => {
   });
 });
 
-const DEC_FILE = 'public/data/decisions.json';
+const DEC_FILE = 'reports/decisions-latest.json';
 const DEC = fs.existsSync(DEC_FILE) ? (JSON.parse(fs.readFileSync(DEC_FILE, 'utf8')) as DecisionReport) : null;
 
 describe('on the recorded decision report', () => {

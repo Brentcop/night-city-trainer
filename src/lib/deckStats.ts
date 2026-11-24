@@ -1,5 +1,5 @@
 // One place to look up a deck's season and round-robin statistics (by file or name). Small enough for the Home page's
-// entry chunk; the telemetry report (analysis.json, ~330 KB) is separate: telemetryReport() in src/data/analysisData.ts.
+// entry chunk; the telemetry report is separate: its slices load through src/data/analysisData.ts (2026-11-24).
 import { REVIEW, SEASONS, type LeaderRow } from '../data/index';
 
 export type { LeaderRow } from '../data/index';

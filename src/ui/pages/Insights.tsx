@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
-import { ANALYSIS } from '../../data/analysisData';
+import { ANALYSIS_SUMMARY } from '../../data/analysisData';
+import { useTelemetryReport } from '../useTelemetryReport';
 import { DeckInsights } from '../components/DeckInsights';
 import { allDecks } from '../../lib/browserLibrary';
 import { LegendStrip, OriginBadge } from '../components/DeckIdentity';
@@ -29,10 +30,11 @@ function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => voi
 
 /** `initial`: a deck name (`?d=`); `view`: the view to open (`?v=decisions` or `synergies`, the site search's links). */
 export function InsightsPage({ initial, view: initialView }: { initial?: string; view?: string }) {
-  const A = ANALYSIS;
+  const A = ANALYSIS_SUMMARY;
   const [sel, setSel] = useState(A.decks.find((d) => d.deck === initial)?.deck ?? A.decks[0]?.deck);
   const [view, setView] = useState<View>(VIEWS.find((v) => v === initialView) ?? 'draws');
   const r = A.decks.find((d) => d.deck === sel);
+  const full = useTelemetryReport(r?.deck);
   if (!A.decks.length)
     return (
       <div className="grid">
@@ -113,7 +115,7 @@ export function InsightsPage({ initial, view: initialView }: { initial?: string;
               was not (like 17lands' IWD). It shows how much a card matters, not just how good it looks. Small samples are noisy, so trust
               numbers with 100+ games behind them.
             </p>
-            {r && <DeckInsights r={r} />}
+            {full ? <DeckInsights r={full} /> : r ? <p className="muted">Loading {r.deck}…</p> : null}
           </>
         )}
       </div>
