@@ -30,6 +30,8 @@ export const SERIES_COMMIT_PATHS = [
   // the season breeder's card tables, which `series.ts impact` adds the run's traced games to (since 2026-11-24)
   /^data\/seasons\/impact\.json$/,
   /^data\/seasons\/deck-impact\.json$/,
+  // the coach's and the Deck Lab's cut of those tables (scripts/build-impact.ts; check:data fails when it is stale)
+  /^src\/data\/impact\.json$/,
 ];
 export const PUSH_EXIT = { pushed: 0, error: 1, usage: 2, retry: 5, refused: 7 };
 

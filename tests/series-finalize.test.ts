@@ -123,6 +123,10 @@ describe('the commit of a rating run (local bare repository)', () => {
     expect(at('scripts/build-h2h.ts')).toBeGreaterThan(at('scripts/ratings.ts'));
     expect(at('scripts/series.ts impact')).toBeGreaterThan(at('scripts/build-h2h.ts'));
     expect(at('scripts/build-evidence.ts')).toBeGreaterThan(at('scripts/series.ts impact'));
+    // the coach's cut of the card tables (src/data/impact.json) follows them, or check:data fails on the next run
+    expect(at('scripts/build-impact.ts')).toBeGreaterThan(at('scripts/series.ts impact'));
+    expect(at('scripts/build-evidence.ts')).toBeGreaterThan(at('scripts/build-impact.ts'));
+    expect(PREPARE_PATHS.some((re) => re.test('src/data/impact.json'))).toBe(true);
   });
 
   it('a push race: another commit lands between the checks and the push; the second attempt succeeds on the fresh main', () => {

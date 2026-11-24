@@ -132,6 +132,7 @@ jobs:
           npx tsx scripts/ratings.ts > /dev/null
           npx tsx scripts/build-h2h.ts
           npx tsx scripts/series.ts impact
+          npx tsx scripts/build-impact.ts
           npx tsx scripts/build-evidence.ts
           npm run check:data
           npx tsx scripts/build-evidence.ts --check
