@@ -32,8 +32,9 @@
 //   --until-settled             (forge, optimizer; the season passes it on; not under --adopt any-gain) a nominee still
 //                               undecided at the cap goes on in further stages of the same size, each judged by the strict
 //                               pooled rule on all its held-out games, until adopted or rejected, out of reach, no gain,
-//                               or this run's seeds for it run out (docs/SYNERGIES.md "Until settled"); works with or
-//                               without --ledger
+//                               this run's seeds for it run out, or the further stages the budget leaves are played
+//                               (settleStagesWithin; --force lifts that cap) (docs/SYNERGIES.md "Until settled"); works
+//                               with or without --ledger
 //   --reach N                   the shortlist drops a change, and "until settled" stops one, that would need more than N
 //                               held-out games in all to be adopted (10000); needs --pooled-ranking or --until-settled
 //   --confirm-bot BOT           (forge; the season passes it on) play the confirmation stages, and "until settled"'s, with
