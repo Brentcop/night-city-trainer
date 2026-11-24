@@ -1,0 +1,8097 @@
+{
+ "kind": "nct-package-effects",
+ "schema": 1,
+ "catalogueVersion": "fnv1a64:06922d57a2142f8b",
+ "rows": [
+  {
+   "listId": "06552ee884386887",
+   "deck": "meta-rrb-wakako-midrange.txt",
+   "pkg": "high-gig",
+   "withoutListId": "fc2d4e880588498d",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "industrial_assembly",
+    "industrial_assembly"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.025,
+   "se": 0.017397,
+   "sd": 0.582206,
+   "family": 1,
+   "low": -0.009097,
+   "high": 0.059097,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "06eed193385abd58",
+   "deck": "s3-06-counter-rbg.txt",
+   "pkg": "gig-swap",
+   "withoutListId": "3f1f7f02d85c495e",
+   "cardsOut": [
+    "maxtac_av",
+    "maxtac_av",
+    "maxtac_av",
+    "trust_no_one",
+    "trust_no_one"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.191964,
+   "se": 0.017176,
+   "sd": 0.574812,
+   "family": 2,
+   "low": 0.153466,
+   "high": 0.230462,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "06eed193385abd58",
+   "deck": "s3-06-counter-rbg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "20a25d85d7fbcfe0",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "unlikely_bond",
+    "unlikely_bond",
+    "unlikely_bond"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.019643,
+   "se": 0.015042,
+   "sd": 0.5034,
+   "family": 2,
+   "low": -0.053358,
+   "high": 0.014072,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "078ce02dba6dd2c0",
+   "deck": "meta-yyb-rogue-gear.txt",
+   "pkg": "block-punish",
+   "withoutListId": "cb0543c35b06b74d",
+   "cardsOut": [
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "safety_override",
+    "safety_override",
+    "secondhand_bombus",
+    "secondhand_bombus"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.091964,
+   "se": 0.01877,
+   "sd": 0.628151,
+   "family": 4,
+   "low": 0.045083,
+   "high": 0.138845,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "078ce02dba6dd2c0",
+   "deck": "meta-yyb-rogue-gear.txt",
+   "pkg": "cyberware",
+   "withoutListId": "20d8ae2d0aa0e93e",
+   "cardsOut": [
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "viktor_vektor_you_might_feel_a_little_pinch"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.071429,
+   "se": 0.016478,
+   "sd": 0.551451,
+   "family": 4,
+   "low": 0.030272,
+   "high": 0.112585,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "078ce02dba6dd2c0",
+   "deck": "meta-yyb-rogue-gear.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "d8b41a97cfa6e371",
+   "cardsOut": [
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.044643,
+   "se": 0.017084,
+   "sd": 0.571726,
+   "family": 4,
+   "low": 0.001973,
+   "high": 0.087313,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "078ce02dba6dd2c0",
+   "deck": "meta-yyb-rogue-gear.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "2bef4c33849709a2",
+   "cardsOut": [
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.007143,
+   "se": 0.016372,
+   "sd": 0.547921,
+   "family": 4,
+   "low": -0.03375,
+   "high": 0.048036,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "080a9497aa8697ce",
+   "deck": "s3-05-counter-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "2ecff7bc4df5a6ea",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.019643,
+   "se": 0.012363,
+   "sd": 0.413758,
+   "family": 4,
+   "low": -0.011237,
+   "high": 0.050523,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "080a9497aa8697ce",
+   "deck": "s3-05-counter-rrg.txt",
+   "pkg": "comeback",
+   "withoutListId": "2953223c37c4caaf",
+   "cardsOut": [
+    "we_gotta_live_together",
+    "we_gotta_live_together"
+   ],
+   "cardsIn": [
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.014286,
+   "se": 0.009011,
+   "sd": 0.301577,
+   "family": 4,
+   "low": -0.008222,
+   "high": 0.036793,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "080a9497aa8697ce",
+   "deck": "s3-05-counter-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "eae5076fa2bdd94c",
+   "cardsOut": [
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.05625,
+   "se": 0.015663,
+   "sd": 0.524175,
+   "family": 4,
+   "low": 0.017129,
+   "high": 0.095371,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "080a9497aa8697ce",
+   "deck": "s3-05-counter-rrg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "33827f1799a9b0aa",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.18125,
+   "se": 0.017047,
+   "sd": 0.570504,
+   "family": 4,
+   "low": 0.138671,
+   "high": 0.223829,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "0b6272134a22585c",
+   "deck": "meta-bbg-cunningham-econ.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "76b5518c109b5bc7",
+   "cardsOut": [
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "modded_kusanagi",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.195536,
+   "se": 0.017463,
+   "sd": 0.58441,
+   "family": 2,
+   "low": 0.156395,
+   "high": 0.234676,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "0b6272134a22585c",
+   "deck": "meta-bbg-cunningham-econ.txt",
+   "pkg": "value-pair",
+   "withoutListId": "8abf6e6e31474fe4",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.01875,
+   "se": 0.018665,
+   "sd": 0.62464,
+   "family": 2,
+   "low": -0.023085,
+   "high": 0.060585,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "0b75f6c9c57007f3",
+   "deck": "RRR-the-red-chrome-aggro.txt",
+   "pkg": "high-cred",
+   "withoutListId": "25c93cf8d80f0ea8",
+   "cardsOut": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "minotaur",
+    "minotaur",
+    "valentino_guerrera",
+    "valentino_guerrera",
+    "valentino_guerrera"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "meredith_stout_stone_cold_corpo",
+    "octant",
+    "octant",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.010714,
+   "se": 0.017456,
+   "sd": 0.584176,
+   "family": 2,
+   "low": -0.049839,
+   "high": 0.028411,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "0b75f6c9c57007f3",
+   "deck": "RRR-the-red-chrome-aggro.txt",
+   "pkg": "high-gig",
+   "withoutListId": "3a8f4cf5e3435618",
+   "cardsOut": [
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "chrome_fang",
+    "chrome_fang",
+    "chrome_fang",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "gunpoint_diplomacy",
+    "johnny_silverhand_never_stop_fighting",
+    "meredith_stout_stone_cold_corpo",
+    "minotaur",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.075893,
+   "se": 0.017195,
+   "sd": 0.57545,
+   "family": 2,
+   "low": 0.037352,
+   "high": 0.114433,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "16141b3be2bf22c2",
+   "deck": "import-ladder-s1-2-v-smasher-saburo-rrg.txt",
+   "pkg": "arasaka",
+   "withoutListId": "4c08b5c80b987cb0",
+   "cardsOut": [
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "cardsIn": [
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.066964,
+   "se": 0.018131,
+   "sd": 0.606767,
+   "family": 2,
+   "low": 0.026326,
+   "high": 0.107602,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "16141b3be2bf22c2",
+   "deck": "import-ladder-s1-2-v-smasher-saburo-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "00cb5422a36fd497",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.103571,
+   "se": 0.018949,
+   "sd": 0.634139,
+   "family": 2,
+   "low": 0.0611,
+   "high": 0.146043,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "17a9e81ff46eba40",
+   "deck": "s2-07-explorer-rrb.txt",
+   "pkg": "high-gig",
+   "withoutListId": "bc58c87c99ebfa67",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "industrial_assembly",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "minotaur",
+    "minotaur",
+    "modded_kusanagi",
+    "modded_kusanagi",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "royce_don_t_call_me_simon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.233036,
+   "se": 0.01628,
+   "sd": 0.544841,
+   "family": 2,
+   "low": 0.196545,
+   "high": 0.269526,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "17a9e81ff46eba40",
+   "deck": "s2-07-explorer-rrb.txt",
+   "pkg": "rocker",
+   "withoutListId": "87d04793fd4bff14",
+   "cardsOut": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.076786,
+   "se": 0.014387,
+   "sd": 0.481467,
+   "family": 2,
+   "low": 0.04454,
+   "high": 0.109032,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "189f8a3b59f1117f",
+   "deck": "meta-rainbow-fixer-stuff.txt",
+   "pkg": "cred-even",
+   "withoutListId": "f8399d783e8f94ca",
+   "cardsOut": [
+    "field_operator",
+    "field_operator",
+    "field_operator",
+    "memory_relapse",
+    "memory_relapse"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.025893,
+   "se": 0.016428,
+   "sd": 0.549798,
+   "family": 2,
+   "low": -0.01093,
+   "high": 0.062715,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "189f8a3b59f1117f",
+   "deck": "meta-rainbow-fixer-stuff.txt",
+   "pkg": "legends-up",
+   "withoutListId": "6dc80ddaed58363c",
+   "cardsOut": [
+    "chrome_reverie",
+    "chrome_reverie",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "synapse_burnout",
+    "synapse_burnout",
+    "synapse_burnout"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.141071,
+   "se": 0.015099,
+   "sd": 0.505299,
+   "family": 2,
+   "low": 0.107229,
+   "high": 0.174914,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "1abcf0f14da08881",
+   "deck": "s1-03-mutant-rbg.txt",
+   "pkg": "comeback",
+   "withoutListId": "5ac9c20b09079428",
+   "cardsOut": [
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "we_gotta_live_together",
+    "we_gotta_live_together"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.10625,
+   "se": 0.015325,
+   "sd": 0.512887,
+   "family": 3,
+   "low": 0.069561,
+   "high": 0.142939,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "1abcf0f14da08881",
+   "deck": "s1-03-mutant-rbg.txt",
+   "pkg": "legends-up",
+   "withoutListId": "07f9a3e398f69598",
+   "cardsOut": [
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "synapse_burnout",
+    "synapse_burnout",
+    "zetatech_berserk",
+    "zetatech_berserk"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.141964,
+   "se": 0.015012,
+   "sd": 0.502387,
+   "family": 3,
+   "low": 0.106027,
+   "high": 0.177902,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "1abcf0f14da08881",
+   "deck": "s1-03-mutant-rbg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "74435a9ef886b2e4",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "unlikely_bond",
+    "unlikely_bond",
+    "unlikely_bond"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.085714,
+   "se": 0.014341,
+   "sd": 0.479957,
+   "family": 3,
+   "low": 0.051381,
+   "high": 0.120047,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "1f877a91f82bb1bb",
+   "deck": "import-discord-5k-6-jackie-alt-hanako-bbg.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "3e6b7aba8eef4105",
+   "cardsOut": [
+    "lizzy_wizzy_delicate_weapon",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death"
+   ],
+   "cardsIn": [
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.11875,
+   "se": 0.017349,
+   "sd": 0.580596,
+   "family": 1,
+   "low": 0.084747,
+   "high": 0.152753,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "207834998dd33f94",
+   "deck": "s2-02-mutant-rgg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "544345cc89204182",
+   "cardsOut": [
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "wild_in_the_streets",
+    "wild_in_the_streets",
+    "wild_in_the_streets"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "maxtac_av",
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "minotaur",
+    "minotaur",
+    "panam_palmer_strength_through_family",
+    "panam_palmer_strength_through_family"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.151786,
+   "se": 0.016476,
+   "sd": 0.551379,
+   "family": 2,
+   "low": 0.114857,
+   "high": 0.188714,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "207834998dd33f94",
+   "deck": "s2-02-mutant-rgg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "be5f193d85b27a5e",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.03125,
+   "se": 0.017638,
+   "sd": 0.590289,
+   "family": 2,
+   "low": -0.008284,
+   "high": 0.070784,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "258f3aa5a1a4fb51",
+   "deck": "s2-08-explorer-ggy.txt",
+   "pkg": "value-pair",
+   "withoutListId": "78f1b45763e9223b",
+   "cardsOut": [
+    "dexter_deshawn_one_last_chance",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.021429,
+   "se": 0.017538,
+   "sd": 0.586934,
+   "family": 1,
+   "low": -0.012945,
+   "high": 0.055802,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "2ed4d4b9d64f948f",
+   "deck": "ladder-ryy-smasher-river-viktor.txt",
+   "pkg": "cyberware",
+   "withoutListId": "2e8b396803c5cbce",
+   "cardsOut": [
+    "viktor_vektor_you_might_feel_a_little_pinch"
+   ],
+   "cardsIn": [
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.010714,
+   "se": 0.015926,
+   "sd": 0.53298,
+   "family": 3,
+   "low": -0.027412,
+   "high": 0.04884,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "2ed4d4b9d64f948f",
+   "deck": "ladder-ryy-smasher-river-viktor.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "efad21f889643e65",
+   "cardsOut": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "the_heist",
+    "the_heist"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.00625,
+   "se": 0.015237,
+   "sd": 0.509916,
+   "family": 3,
+   "low": -0.030226,
+   "high": 0.042726,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "2ed4d4b9d64f948f",
+   "deck": "ladder-ryy-smasher-river-viktor.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "d1c818d0c76ab864",
+   "cardsOut": [
+    "afterparty_at_lizzie_s",
+    "afterparty_at_lizzie_s",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.070536,
+   "se": 0.018511,
+   "sd": 0.619484,
+   "family": 3,
+   "low": 0.026222,
+   "high": 0.11485,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3066980fc1c3c3a2",
+   "deck": "s1-07-explorer-ryy.txt",
+   "pkg": "cost-match",
+   "withoutListId": "4d67385c3106c3df",
+   "cardsOut": [
+    "heywood_ripperdoc"
+   ],
+   "cardsIn": [
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.03125,
+   "se": 0.012942,
+   "sd": 0.433109,
+   "family": 6,
+   "low": -0.002893,
+   "high": 0.065393,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3066980fc1c3c3a2",
+   "deck": "s1-07-explorer-ryy.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "daaa55ee7eea6583",
+   "cardsOut": [
+    "cyberpsychosis",
+    "cyberpsychosis"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.015179,
+   "se": 0.012401,
+   "sd": 0.415024,
+   "family": 6,
+   "low": -0.017539,
+   "high": 0.047896,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3066980fc1c3c3a2",
+   "deck": "s1-07-explorer-ryy.txt",
+   "pkg": "gear-sacrifice",
+   "withoutListId": "b46d0cba39c141ad",
+   "cardsOut": [
+    "gilded_maton",
+    "gilded_maton",
+    "gilded_maton"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.036607,
+   "se": 0.01641,
+   "sd": 0.549188,
+   "family": 6,
+   "low": -0.006687,
+   "high": 0.079901,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3066980fc1c3c3a2",
+   "deck": "s1-07-explorer-ryy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "6f56da502fd05d2f",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.011607,
+   "se": 0.008228,
+   "sd": 0.275365,
+   "family": 6,
+   "low": -0.010101,
+   "high": 0.033315,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3066980fc1c3c3a2",
+   "deck": "s1-07-explorer-ryy.txt",
+   "pkg": "high-gig",
+   "withoutListId": "07e5dd4281e15351",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "industrial_assembly",
+    "industrial_assembly",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.033929,
+   "se": 0.017881,
+   "sd": 0.598412,
+   "family": 6,
+   "low": -0.013246,
+   "high": 0.081103,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3066980fc1c3c3a2",
+   "deck": "s1-07-explorer-ryy.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "494bda61e8edcce4",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.023214,
+   "se": 0.014163,
+   "sd": 0.473985,
+   "family": 6,
+   "low": -0.014151,
+   "high": 0.06058,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3750a5b13c344cae",
+   "deck": "import-ladder-s1-8-smasher-river-viktor-ryy.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "14cfe4e051c17e30",
+   "cardsOut": [
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "sketchy_ripper"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.002679,
+   "se": 0.018153,
+   "sd": 0.607513,
+   "family": 2,
+   "low": -0.043367,
+   "high": 0.038009,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3750a5b13c344cae",
+   "deck": "import-ladder-s1-8-smasher-river-viktor-ryy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "8bdbf8e729d98635",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0,
+   "se": 0.017999,
+   "sd": 0.602349,
+   "family": 2,
+   "low": -0.040342,
+   "high": 0.040342,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "37abde85ab86332b",
+   "deck": "s2-03-cross-rgy.txt",
+   "pkg": "arasaka",
+   "withoutListId": "70e23f9a9d52f96b",
+   "cardsOut": [
+    "field_operator",
+    "field_operator",
+    "field_operator",
+    "hanako_arasaka_in_a_gilded_cage",
+    "hanako_arasaka_in_a_gilded_cage"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.079464,
+   "se": 0.017365,
+   "sd": 0.581151,
+   "family": 2,
+   "low": -0.118387,
+   "high": -0.040542,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "37abde85ab86332b",
+   "deck": "s2-03-cross-rgy.txt",
+   "pkg": "high-gig",
+   "withoutListId": "03353d88bbb72d27",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "industrial_assembly",
+    "industrial_assembly",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.1125,
+   "se": 0.018215,
+   "sd": 0.609593,
+   "family": 2,
+   "low": 0.071673,
+   "high": 0.153327,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3c8b6e839d55e071",
+   "deck": "s3-07-explorer-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "b718b0e0914fd500",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.025,
+   "se": 0.013288,
+   "sd": 0.444709,
+   "family": 3,
+   "low": -0.006812,
+   "high": 0.056812,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3c8b6e839d55e071",
+   "deck": "s3-07-explorer-rrg.txt",
+   "pkg": "comeback",
+   "withoutListId": "1e44dc6497f4f278",
+   "cardsOut": [
+    "nadia_fighting_through_grief",
+    "we_gotta_live_together",
+    "we_gotta_live_together"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.038393,
+   "se": 0.013992,
+   "sd": 0.468249,
+   "family": 3,
+   "low": 0.004897,
+   "high": 0.071889,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3c8b6e839d55e071",
+   "deck": "s3-07-explorer-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "12bf4b6c1dbfacd0",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.079464,
+   "se": 0.017319,
+   "sd": 0.579612,
+   "family": 3,
+   "low": 0.038002,
+   "high": 0.120926,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3c962618a3babce7",
+   "deck": "import-ladder-s1-3-smasher-dexter-saburo-rrg.txt",
+   "pkg": "arasaka",
+   "withoutListId": "c0d071f40750c2e3",
+   "cardsOut": [
+    "minotaur",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "cardsIn": [
+    "octant",
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.148214,
+   "se": 0.014661,
+   "sd": 0.49066,
+   "family": 2,
+   "low": 0.115352,
+   "high": 0.181076,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3c962618a3babce7",
+   "deck": "import-ladder-s1-3-smasher-dexter-saburo-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "6179654d4fc1de26",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.104464,
+   "se": 0.017971,
+   "sd": 0.601441,
+   "family": 2,
+   "low": 0.064183,
+   "high": 0.144746,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3d6b0327f672d914",
+   "deck": "meta-gry-trauma-team.txt",
+   "pkg": "braindance",
+   "withoutListId": "5c03dda9367c8902",
+   "cardsOut": [
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.016071,
+   "se": 0.009184,
+   "sd": 0.307358,
+   "family": 3,
+   "low": -0.038058,
+   "high": 0.005915,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3d6b0327f672d914",
+   "deck": "meta-gry-trauma-team.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "8857614bf6cea47c",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "all_is_lost",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.041071,
+   "se": 0.015526,
+   "sd": 0.519599,
+   "family": 3,
+   "low": 0.003903,
+   "high": 0.07824,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "3d6b0327f672d914",
+   "deck": "meta-gry-trauma-team.txt",
+   "pkg": "value-pair",
+   "withoutListId": "1ea3044712eec451",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.042857,
+   "se": 0.016372,
+   "sd": 0.547921,
+   "family": 3,
+   "low": 0.003662,
+   "high": 0.082052,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "51a1196a3827dcb4",
+   "deck": "import-ladder-s1-4-v-padre-jackie-rgg.txt",
+   "pkg": "braindance",
+   "withoutListId": "7ab75431716ff60b",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "peace_offering"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.023214,
+   "se": 0.012677,
+   "sd": 0.424239,
+   "family": 2,
+   "low": -0.005199,
+   "high": 0.051628,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "51a1196a3827dcb4",
+   "deck": "import-ladder-s1-4-v-padre-jackie-rgg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "93362c96fddd331e",
+   "cardsOut": [
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "overwatch_panam_s_gift",
+    "overwatch_panam_s_gift",
+    "wild_in_the_streets",
+    "wild_in_the_streets",
+    "wild_in_the_streets"
+   ],
+   "cardsIn": [
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "minotaur",
+    "minotaur",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.084821,
+   "se": 0.018064,
+   "sd": 0.604527,
+   "family": 2,
+   "low": 0.044333,
+   "high": 0.125309,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "52592f87a5675ab9",
+   "deck": "s1-01-mutant-rry.txt",
+   "pkg": "high-cred",
+   "withoutListId": "d3af4ec283e096f3",
+   "cardsOut": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "valentino_guerrera"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.044643,
+   "se": 0.015153,
+   "sd": 0.507115,
+   "family": 2,
+   "low": 0.010679,
+   "high": 0.078607,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "52592f87a5675ab9",
+   "deck": "s1-01-mutant-rry.txt",
+   "pkg": "high-gig",
+   "withoutListId": "afce7463eaed0249",
+   "cardsOut": [
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.078571,
+   "se": 0.017755,
+   "sd": 0.594197,
+   "family": 2,
+   "low": 0.038775,
+   "high": 0.118368,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "5331325a1a4e3b1e",
+   "deck": "YYY-yyy-adam-ready-for-brawl.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "6513e39c04204ed5",
+   "cardsOut": [
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "maelstrom_goons",
+    "maelstrom_goons",
+    "maelstrom_goons"
+   ],
+   "cardsIn": [
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.040179,
+   "se": 0.018201,
+   "sd": 0.609129,
+   "family": 3,
+   "low": -0.083752,
+   "high": 0.003395,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "5331325a1a4e3b1e",
+   "deck": "YYY-yyy-adam-ready-for-brawl.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "d87429e6e759112a",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.003571,
+   "se": 0.017865,
+   "sd": 0.597871,
+   "family": 3,
+   "low": -0.046339,
+   "high": 0.039197,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "5331325a1a4e3b1e",
+   "deck": "YYY-yyy-adam-ready-for-brawl.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "2a5258435c174ef3",
+   "cardsOut": [
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.001786,
+   "se": 0.016519,
+   "sd": 0.552835,
+   "family": 3,
+   "low": -0.037761,
+   "high": 0.041332,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "5405cae11d7de95c",
+   "deck": "s2-04-cross-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "1d75fe43accb9973",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.064286,
+   "se": 0.016839,
+   "sd": 0.563542,
+   "family": 2,
+   "low": 0.026543,
+   "high": 0.102029,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "5405cae11d7de95c",
+   "deck": "s2-04-cross-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "e3570fcbf62f8ad3",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.100893,
+   "se": 0.017901,
+   "sd": 0.599075,
+   "family": 2,
+   "low": 0.06077,
+   "high": 0.141016,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "550cfc2b7b685094",
+   "deck": "import-ladder-s1-5-v-smasher-dum-dum-rry.txt",
+   "pkg": "braindance",
+   "withoutListId": "b92a80c9abda45a5",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.029464,
+   "se": 0.016664,
+   "sd": 0.557689,
+   "family": 3,
+   "low": -0.010429,
+   "high": 0.069358,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "550cfc2b7b685094",
+   "deck": "import-ladder-s1-5-v-smasher-dum-dum-rry.txt",
+   "pkg": "high-gig",
+   "withoutListId": "40ce2ca18988a3e3",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.1875,
+   "se": 0.018012,
+   "sd": 0.602812,
+   "family": 3,
+   "low": 0.144379,
+   "high": 0.230621,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "550cfc2b7b685094",
+   "deck": "import-ladder-s1-5-v-smasher-dum-dum-rry.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "3778cf4cdcbce8ee",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "all_is_lost",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.108036,
+   "se": 0.017411,
+   "sd": 0.582687,
+   "family": 3,
+   "low": 0.066354,
+   "high": 0.149718,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "59dc83d3008d81b9",
+   "deck": "import-ladder-s1-7-dexter-v-padre-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "af06098fdf4a55fe",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.0625,
+   "se": 0.017857,
+   "sd": 0.597601,
+   "family": 3,
+   "low": 0.019751,
+   "high": 0.105249,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "59dc83d3008d81b9",
+   "deck": "import-ladder-s1-7-dexter-v-padre-rrg.txt",
+   "pkg": "cred-even",
+   "withoutListId": "814b7afdd2457eae",
+   "cardsOut": [
+    "field_operator",
+    "field_operator"
+   ],
+   "cardsIn": [
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.026786,
+   "se": 0.013757,
+   "sd": 0.460404,
+   "family": 3,
+   "low": -0.006149,
+   "high": 0.05972,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "59dc83d3008d81b9",
+   "deck": "import-ladder-s1-7-dexter-v-padre-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "cd584f2f5d2d7214",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.139286,
+   "se": 0.018658,
+   "sd": 0.624401,
+   "family": 3,
+   "low": 0.09462,
+   "high": 0.183951,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "62c5a3ea2d0c5007",
+   "deck": "s3-02-mutant-rgy.txt",
+   "pkg": "cred-even",
+   "withoutListId": "7ed0e3265e8f096a",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.041071,
+   "se": 0.011921,
+   "sd": 0.398961,
+   "family": 3,
+   "low": 0.012532,
+   "high": 0.069611,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "62c5a3ea2d0c5007",
+   "deck": "s3-02-mutant-rgy.txt",
+   "pkg": "high-gig",
+   "withoutListId": "d073c8fa5e74a06f",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "industrial_assembly",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.009821,
+   "se": 0.016001,
+   "sd": 0.535506,
+   "family": 3,
+   "low": -0.048128,
+   "high": 0.028485,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "62c5a3ea2d0c5007",
+   "deck": "s3-02-mutant-rgy.txt",
+   "pkg": "value-pair",
+   "withoutListId": "46553a8fc2f77fdd",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.017857,
+   "se": 0.015411,
+   "sd": 0.515742,
+   "family": 3,
+   "low": -0.019036,
+   "high": 0.05475,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "693057e28a588ff7",
+   "deck": "s1-08-explorer-bgg.txt",
+   "pkg": "comeback",
+   "withoutListId": "d5eb80a978f510e6",
+   "cardsOut": [
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief"
+   ],
+   "cardsIn": [
+    "maxtac_heavy",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.090179,
+   "se": 0.016322,
+   "sd": 0.546246,
+   "family": 3,
+   "low": 0.051104,
+   "high": 0.129254,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "693057e28a588ff7",
+   "deck": "s1-08-explorer-bgg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "15e9733569fa3024",
+   "cardsOut": [
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "memory_relapse",
+    "memory_relapse"
+   ],
+   "cardsIn": [
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "modded_kusanagi",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.125,
+   "se": 0.01425,
+   "sd": 0.476902,
+   "family": 3,
+   "low": 0.090885,
+   "high": 0.159115,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "693057e28a588ff7",
+   "deck": "s1-08-explorer-bgg.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "c5712a4aadfdff87",
+   "cardsOut": [
+    "fool_on_the_hill",
+    "fool_on_the_hill"
+   ],
+   "cardsIn": [
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.026786,
+   "se": 0.012607,
+   "sd": 0.421916,
+   "family": 3,
+   "low": -0.003396,
+   "high": 0.056967,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "6d239fa5c8c77c0b",
+   "deck": "nc-04-chrome-rockers-yyr.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "32ffb89a92f03ae6",
+   "cardsOut": [
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.1,
+   "se": 0.014915,
+   "sd": 0.49915,
+   "family": 3,
+   "low": 0.064294,
+   "high": 0.135706,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "6d239fa5c8c77c0b",
+   "deck": "nc-04-chrome-rockers-yyr.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "7ccc106c171799ab",
+   "cardsOut": [
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.054464,
+   "se": 0.015151,
+   "sd": 0.507035,
+   "family": 3,
+   "low": 0.018194,
+   "high": 0.090734,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "6d239fa5c8c77c0b",
+   "deck": "nc-04-chrome-rockers-yyr.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "154b2d846a87ed0b",
+   "cardsOut": [
+    "live_with_the_aftermath",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.01875,
+   "se": 0.015122,
+   "sd": 0.50609,
+   "family": 3,
+   "low": -0.017453,
+   "high": 0.054953,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "6d567c9ca1c838d9",
+   "deck": "s2-01-mutant-ryy.txt",
+   "pkg": "cost-match",
+   "withoutListId": "01182d59510d98fe",
+   "cardsOut": [
+    "afterparty_at_lizzie_s",
+    "afterparty_at_lizzie_s",
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "heywood_ripperdoc"
+   ],
+   "cardsIn": [
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.05625,
+   "se": 0.018251,
+   "sd": 0.610788,
+   "family": 2,
+   "low": -0.097157,
+   "high": -0.015343,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "6d567c9ca1c838d9",
+   "deck": "s2-01-mutant-ryy.txt",
+   "pkg": "high-gig",
+   "withoutListId": "b373198c1c2ced1d",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "industrial_assembly",
+    "industrial_assembly",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.075893,
+   "se": 0.018492,
+   "sd": 0.61885,
+   "family": 2,
+   "low": 0.034446,
+   "high": 0.11734,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "6f61514716df8e46",
+   "deck": "nc-02-stormrider-stampede-ggr.txt",
+   "pkg": "value-pair",
+   "withoutListId": "f2fa8167039cbb4e",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian"
+   ],
+   "cardsIn": [
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "maxtac_heavy",
+    "minotaur",
+    "minotaur",
+    "nadia_fighting_through_grief",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.009821,
+   "se": 0.017156,
+   "sd": 0.574162,
+   "family": 1,
+   "low": -0.023804,
+   "high": 0.043447,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "block-punish",
+   "withoutListId": "47b48911dd850563",
+   "cardsOut": [
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "secondhand_bombus"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.002679,
+   "se": 0.014705,
+   "sd": 0.492111,
+   "family": 4,
+   "low": -0.039406,
+   "high": 0.034049,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "cyberware",
+   "withoutListId": "d523db998fb2d44f",
+   "cardsOut": [
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "viktor_vektor_you_might_feel_a_little_pinch"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.044643,
+   "se": 0.014173,
+   "sd": 0.474335,
+   "family": 4,
+   "low": 0.009242,
+   "high": 0.080044,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "b77c052e666328b4",
+   "cardsOut": [
+    "cyberpsychosis",
+    "cyberpsychosis",
+    "cyberpsychosis"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.05625,
+   "se": 0.014554,
+   "sd": 0.487059,
+   "family": 4,
+   "low": -0.092601,
+   "high": -0.019899,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "17d34f0fb25a265d",
+   "cardsOut": [
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.007143,
+   "se": 0.01521,
+   "sd": 0.509027,
+   "family": 4,
+   "low": -0.045133,
+   "high": 0.030848,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "70b7814bee9f69bc",
+   "deck": "GGY-gear-n-go.txt",
+   "pkg": "block-punish",
+   "withoutListId": "e214122fefc9f8b1",
+   "cardsOut": [
+    "corpo_security",
+    "corpo_security",
+    "corpo_security",
+    "maelstrom_zealots",
+    "maelstrom_zealots",
+    "maelstrom_zealots"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.094643,
+   "se": 0.017503,
+   "sd": 0.585777,
+   "family": 5,
+   "low": -0.139729,
+   "high": -0.049557,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "70b7814bee9f69bc",
+   "deck": "GGY-gear-n-go.txt",
+   "pkg": "cost-match",
+   "withoutListId": "ef2c3cc8d237c303",
+   "cardsOut": [
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog"
+   ],
+   "cardsIn": [
+    "jackie_welles_ride_or_die_choom",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.014286,
+   "se": 0.015414,
+   "sd": 0.515854,
+   "family": 5,
+   "low": -0.05399,
+   "high": 0.025418,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "70b7814bee9f69bc",
+   "deck": "GGY-gear-n-go.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "a27bc4b2e99cde57",
+   "cardsOut": [
+    "sandevistan",
+    "sandevistan",
+    "sandevistan"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.025,
+   "se": 0.013408,
+   "sd": 0.44871,
+   "family": 5,
+   "low": -0.059536,
+   "high": 0.009536,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "70b7814bee9f69bc",
+   "deck": "GGY-gear-n-go.txt",
+   "pkg": "legends-up",
+   "withoutListId": "f9bd97cce788c6ee",
+   "cardsOut": [
+    "goro_takemura_losing_his_way",
+    "goro_takemura_losing_his_way",
+    "goro_takemura_losing_his_way",
+    "maxtac_squadron",
+    "maxtac_squadron"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.032143,
+   "se": 0.017794,
+   "sd": 0.595517,
+   "family": 5,
+   "low": -0.077978,
+   "high": 0.013693,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "70b7814bee9f69bc",
+   "deck": "GGY-gear-n-go.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "91257c772322827c",
+   "cardsOut": [
+    "corporate_surveillance",
+    "corporate_surveillance",
+    "corporate_surveillance",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.0625,
+   "se": 0.015096,
+   "sd": 0.505223,
+   "family": 5,
+   "low": -0.101386,
+   "high": -0.023614,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "779315ff7aa233e2",
+   "deck": "ladder-rrg-v-smasher-saburo.txt",
+   "pkg": "arasaka",
+   "withoutListId": "2576528e285c9a1e",
+   "cardsOut": [
+    "field_operator",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "cardsIn": [
+    "octant",
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.119643,
+   "se": 0.015727,
+   "sd": 0.526312,
+   "family": 3,
+   "low": 0.081994,
+   "high": 0.157292,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "779315ff7aa233e2",
+   "deck": "ladder-rrg-v-smasher-saburo.txt",
+   "pkg": "braindance",
+   "withoutListId": "194a2d899289fb71",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.303571,
+   "se": 0.016098,
+   "sd": 0.538745,
+   "family": 3,
+   "low": 0.265033,
+   "high": 0.34211,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "779315ff7aa233e2",
+   "deck": "ladder-rrg-v-smasher-saburo.txt",
+   "pkg": "high-gig",
+   "withoutListId": "f4229ca6b616c425",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "kerry_eurodyne_the_last_rockerboy",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.124107,
+   "se": 0.017453,
+   "sd": 0.584082,
+   "family": 3,
+   "low": 0.082326,
+   "high": 0.165889,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "7cd8fe59c2bc6286",
+   "deck": "import-ladder-s1-10-jackie-judy-hanako-bbg.txt",
+   "pkg": "braindance",
+   "withoutListId": "828c718c40a42386",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.111607,
+   "se": 0.017437,
+   "sd": 0.583546,
+   "family": 1,
+   "low": 0.077432,
+   "high": 0.145783,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "7d4d4fa3bc95f94d",
+   "deck": "import-discord-5k-3-smasher-river-viktor-ryy.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "82769a46701e7528",
+   "cardsOut": [
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "sketchy_ripper",
+    "sketchy_ripper"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.032143,
+   "se": 0.01605,
+   "sd": 0.537131,
+   "family": 2,
+   "low": -0.003831,
+   "high": 0.068117,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "7d4d4fa3bc95f94d",
+   "deck": "import-discord-5k-3-smasher-river-viktor-ryy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "5a9136011f53c74d",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "dexter_deshawn_one_last_chance"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.054464,
+   "se": 0.017947,
+   "sd": 0.600624,
+   "family": 2,
+   "low": 0.014238,
+   "high": 0.094691,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "7ebcd99ce021aac1",
+   "deck": "nc-01-rockerboy-express-rry.txt",
+   "pkg": "high-gig",
+   "withoutListId": "91b003c789199772",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.039286,
+   "se": 0.016813,
+   "sd": 0.562669,
+   "family": 1,
+   "low": 0.006333,
+   "high": 0.072238,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8ae99326b1f93b7d",
+   "deck": "import-ladder-s1-1-v-smasher-padre-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "bce03cdef5d7eecd",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.082143,
+   "se": 0.017006,
+   "sd": 0.569121,
+   "family": 3,
+   "low": 0.041431,
+   "high": 0.122854,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8ae99326b1f93b7d",
+   "deck": "import-ladder-s1-1-v-smasher-padre-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "02de00f6a8f54b95",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.083929,
+   "se": 0.018045,
+   "sd": 0.603912,
+   "family": 3,
+   "low": 0.040728,
+   "high": 0.127129,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8ae99326b1f93b7d",
+   "deck": "import-ladder-s1-1-v-smasher-padre-rrg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "133e4a48c7b19806",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.072321,
+   "se": 0.01545,
+   "sd": 0.517039,
+   "family": 3,
+   "low": 0.035336,
+   "high": 0.109307,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8de1592a4eb2eda2",
+   "deck": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "pkg": "braindance",
+   "withoutListId": "d4386c6f443effe0",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "shattered_memories",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "minotaur",
+    "minotaur",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.116071,
+   "se": 0.018063,
+   "sd": 0.604504,
+   "family": 6,
+   "low": 0.068417,
+   "high": 0.163726,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8de1592a4eb2eda2",
+   "deck": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "pkg": "cost-match",
+   "withoutListId": "7c50e96fc69ec4c8",
+   "cardsOut": [
+    "hanako_arasaka_in_a_gilded_cage",
+    "hanako_arasaka_in_a_gilded_cage",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.015179,
+   "se": 0.016537,
+   "sd": 0.553438,
+   "family": 6,
+   "low": -0.028451,
+   "high": 0.058808,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8de1592a4eb2eda2",
+   "deck": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "fb57094bc248b3ce",
+   "cardsOut": [
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.083036,
+   "se": 0.016209,
+   "sd": 0.542458,
+   "family": 6,
+   "low": 0.040272,
+   "high": 0.125799,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8de1592a4eb2eda2",
+   "deck": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "pkg": "high-gig",
+   "withoutListId": "7a5d61b3b3d1d09a",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "la_llorona_ghost_of_the_past",
+    "la_llorona_ghost_of_the_past"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.134821,
+   "se": 0.018057,
+   "sd": 0.604305,
+   "family": 6,
+   "low": 0.087182,
+   "high": 0.182461,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8de1592a4eb2eda2",
+   "deck": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "pkg": "rocker",
+   "withoutListId": "a54c11a5da56a393",
+   "cardsOut": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "minotaur",
+    "minotaur",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.150893,
+   "se": 0.01812,
+   "sd": 0.606414,
+   "family": 6,
+   "low": 0.103087,
+   "high": 0.198698,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8de1592a4eb2eda2",
+   "deck": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "9a1703965b4c243c",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "all_is_lost",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "carnage_at_the_colosseum",
+    "heywood_ripperdoc",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.08125,
+   "se": 0.018034,
+   "sd": 0.603539,
+   "family": 6,
+   "low": 0.033671,
+   "high": 0.128829,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "8f9412a543230da8",
+   "deck": "import-discord-5k-8-v-smasher-saburo-rrg.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "d00628dcf082e27a",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost"
+   ],
+   "cardsIn": [
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.035714,
+   "se": 0.018449,
+   "sd": 0.61742,
+   "family": 1,
+   "low": -0.000445,
+   "high": 0.071874,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "95e79a39a67668bb",
+   "deck": "import-discord-5k-7-smasher-river-viktor-ryy.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "403614e0f3bf22cf",
+   "cardsOut": [
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "sketchy_ripper",
+    "sketchy_ripper"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.059821,
+   "se": 0.015753,
+   "sd": 0.527181,
+   "family": 2,
+   "low": 0.024514,
+   "high": 0.095129,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "95e79a39a67668bb",
+   "deck": "import-discord-5k-7-smasher-river-viktor-ryy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "cc788cca8d718516",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.009821,
+   "se": 0.017524,
+   "sd": 0.586482,
+   "family": 2,
+   "low": -0.029458,
+   "high": 0.049101,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "98fac3c03fa4bae8",
+   "deck": "BBB-running-and-dancing.txt",
+   "pkg": "forced-attacks",
+   "withoutListId": "cfcde72473821d72",
+   "cardsOut": [
+    "mox_inciters",
+    "mox_inciters",
+    "mox_inciters",
+    "rita_wheeler_no_stupid_questions",
+    "rita_wheeler_no_stupid_questions",
+    "rita_wheeler_no_stupid_questions"
+   ],
+   "cardsIn": [
+    "judy_alvarez_nothing_to_doubt",
+    "judy_alvarez_nothing_to_doubt",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "towerfall",
+    "towerfall"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.013393,
+   "se": 0.011605,
+   "sd": 0.388392,
+   "family": 3,
+   "low": -0.01439,
+   "high": 0.041176,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "98fac3c03fa4bae8",
+   "deck": "BBB-running-and-dancing.txt",
+   "pkg": "low-cred",
+   "withoutListId": "b7d2d2a7d4697538",
+   "cardsOut": [
+    "evelyn_parker_scheming_siren",
+    "evelyn_parker_scheming_siren",
+    "evelyn_parker_scheming_siren",
+    "mt0d12_flathead",
+    "mt0d12_flathead",
+    "mt0d12_flathead"
+   ],
+   "cardsIn": [
+    "judy_alvarez_nothing_to_doubt",
+    "judy_alvarez_nothing_to_doubt",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.029464,
+   "se": 0.010868,
+   "sd": 0.363711,
+   "family": 3,
+   "low": 0.003447,
+   "high": 0.055482,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "98fac3c03fa4bae8",
+   "deck": "BBB-running-and-dancing.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "42245bfc4bbbd41f",
+   "cardsOut": [
+    "floor_it",
+    "floor_it",
+    "floor_it",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "judy_alvarez_nothing_to_doubt",
+    "judy_alvarez_nothing_to_doubt",
+    "modded_muramasa",
+    "modded_muramasa",
+    "rogue_amendiares_queen_of_the_afterlife",
+    "westbrook_netrunner",
+    "westbrook_netrunner"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.010714,
+   "se": 0.011223,
+   "sd": 0.37561,
+   "family": 3,
+   "low": -0.016155,
+   "high": 0.037583,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "9f01127eb8f41dda",
+   "deck": "s1-05-cross-rbb.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "5555b5beacccde90",
+   "cardsOut": [
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "meredith_stout_stone_cold_corpo",
+    "minotaur",
+    "minotaur",
+    "modded_kusanagi",
+    "modded_kusanagi"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.092857,
+   "se": 0.018006,
+   "sd": 0.602603,
+   "family": 1,
+   "low": 0.057566,
+   "high": 0.128149,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b16b316cfec88abb",
+   "deck": "ladder-rrb-dexter-v-wakako.txt",
+   "pkg": "braindance",
+   "withoutListId": "20c7556e68d0845b",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "chrome_reverie",
+    "chrome_reverie",
+    "shattered_memories",
+    "trust_no_one"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.140179,
+   "se": 0.015446,
+   "sd": 0.51691,
+   "family": 2,
+   "low": 0.105559,
+   "high": 0.174798,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b16b316cfec88abb",
+   "deck": "ladder-rrb-dexter-v-wakako.txt",
+   "pkg": "high-gig",
+   "withoutListId": "ddb88d2a69c1d868",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.086607,
+   "se": 0.017009,
+   "sd": 0.569244,
+   "family": 2,
+   "low": 0.048482,
+   "high": 0.124732,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b304c27396a06e82",
+   "deck": "import-discord-5k-1-smasher-river-reyes-ryy.txt",
+   "pkg": "block-punish",
+   "withoutListId": "72e311cdbb08ab8f",
+   "cardsOut": [
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "secondhand_bombus"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.136607,
+   "se": 0.018177,
+   "sd": 0.608327,
+   "family": 2,
+   "low": 0.095865,
+   "high": 0.17735,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b304c27396a06e82",
+   "deck": "import-discord-5k-1-smasher-river-reyes-ryy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "9cf1a9f1743926f3",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.1,
+   "se": 0.018839,
+   "sd": 0.630474,
+   "family": 2,
+   "low": 0.057774,
+   "high": 0.142226,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b52e36b761c5cc0c",
+   "deck": "RBY-samurai.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "a185d660e67b1f1f",
+   "cardsOut": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.028571,
+   "se": 0.017483,
+   "sd": 0.585104,
+   "family": 2,
+   "low": -0.010616,
+   "high": 0.067759,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b52e36b761c5cc0c",
+   "deck": "RBY-samurai.txt",
+   "pkg": "rocker",
+   "withoutListId": "9ef8becf3e93a5a9",
+   "cardsOut": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.200893,
+   "se": 0.016706,
+   "sd": 0.559106,
+   "family": 2,
+   "low": 0.163447,
+   "high": 0.238339,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b9302aaa1c316aa8",
+   "deck": "s3-03-cross-rrr.txt",
+   "pkg": "braindance",
+   "withoutListId": "957f3aaab536be8b",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.057143,
+   "se": 0.013963,
+   "sd": 0.467288,
+   "family": 2,
+   "low": 0.025846,
+   "high": 0.088439,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "b9302aaa1c316aa8",
+   "deck": "s3-03-cross-rrr.txt",
+   "pkg": "high-gig",
+   "withoutListId": "490eaaa9f7b28ea7",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.133929,
+   "se": 0.017818,
+   "sd": 0.596318,
+   "family": 2,
+   "low": 0.09399,
+   "high": 0.173867,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "bbeb5b90ef8918e0",
+   "deck": "s2-06-counter-rgg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "da52ea6d5779b81e",
+   "cardsOut": [
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "overwatch_panam_s_gift",
+    "overwatch_panam_s_gift",
+    "wild_in_the_streets",
+    "wild_in_the_streets",
+    "wild_in_the_streets"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "maxtac_av",
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.015179,
+   "se": 0.017971,
+   "sd": 0.601415,
+   "family": 2,
+   "low": -0.025101,
+   "high": 0.055458,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "bbeb5b90ef8918e0",
+   "deck": "s2-06-counter-rgg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "34cfa3e4e9e9afa1",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.100893,
+   "se": 0.018428,
+   "sd": 0.616716,
+   "family": 2,
+   "low": 0.059588,
+   "high": 0.142197,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "c2542795135c61d5",
+   "deck": "nc-07-braindance-burn-rrb.txt",
+   "pkg": "braindance",
+   "withoutListId": "219f8d25413e40b0",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.047321,
+   "se": 0.012648,
+   "sd": 0.423286,
+   "family": 2,
+   "low": 0.018972,
+   "high": 0.075671,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "c2542795135c61d5",
+   "deck": "nc-07-braindance-burn-rrb.txt",
+   "pkg": "high-gig",
+   "withoutListId": "baefe87686633e99",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.064286,
+   "se": 0.017671,
+   "sd": 0.591398,
+   "family": 2,
+   "low": 0.024677,
+   "high": 0.103894,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "c98b1332deca6e62",
+   "deck": "nc-08-merc-contract-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "e95b63c73452f75f",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.061607,
+   "se": 0.011876,
+   "sd": 0.397433,
+   "family": 3,
+   "low": 0.033177,
+   "high": 0.090037,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "c98b1332deca6e62",
+   "deck": "nc-08-merc-contract-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "a8f2b41cd061ac66",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.051786,
+   "se": 0.017708,
+   "sd": 0.592624,
+   "family": 3,
+   "low": 0.009393,
+   "high": 0.094178,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "c98b1332deca6e62",
+   "deck": "nc-08-merc-contract-rrg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "6363d6331d814933",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.069643,
+   "se": 0.016192,
+   "sd": 0.541873,
+   "family": 3,
+   "low": 0.030881,
+   "high": 0.108405,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ca4bd3219b88e638",
+   "deck": "BBG-bbg-draw-and-wipe.txt",
+   "pkg": "gig-swap",
+   "withoutListId": "b466d6039f0de1cb",
+   "cardsOut": [
+    "maxtac_av"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.045536,
+   "se": 0.009894,
+   "sd": 0.331107,
+   "family": 2,
+   "low": 0.02336,
+   "high": 0.067711,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ca4bd3219b88e638",
+   "deck": "BBG-bbg-draw-and-wipe.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "a18d0c2577fd4cf5",
+   "cardsOut": [
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1"
+   ],
+   "cardsIn": [
+    "modded_kusanagi",
+    "modded_kusanagi",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.242857,
+   "se": 0.016027,
+   "sd": 0.536382,
+   "family": 2,
+   "low": 0.206933,
+   "high": 0.278781,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "caf8464ea0341531",
+   "deck": "nc-03-static-shock-bbr.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "7d7b1ec7567d995c",
+   "cardsOut": [
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "modded_kusanagi"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.069643,
+   "se": 0.017426,
+   "sd": 0.583178,
+   "family": 1,
+   "low": -0.103797,
+   "high": -0.035489,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ce2f062981fe76d2",
+   "deck": "import-discord-5k-4-jackie-alt-hanako-bbg.txt",
+   "pkg": "low-cred",
+   "withoutListId": "956dad2f851c769d",
+   "cardsOut": [
+    "towerfall",
+    "towerfall",
+    "towerfall"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.029464,
+   "se": 0.015317,
+   "sd": 0.512601,
+   "family": 3,
+   "low": -0.066133,
+   "high": 0.007204,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ce2f062981fe76d2",
+   "deck": "import-discord-5k-4-jackie-alt-hanako-bbg.txt",
+   "pkg": "min-gig",
+   "withoutListId": "6af60e314ac1bc55",
+   "cardsOut": [
+    "chrome_reverie",
+    "chrome_reverie",
+    "pyramid_song",
+    "pyramid_song",
+    "pyramid_song",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire"
+   ],
+   "cardsIn": [
+    "modded_kusanagi",
+    "modded_kusanagi",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.140179,
+   "se": 0.017435,
+   "sd": 0.583503,
+   "family": 3,
+   "low": 0.098438,
+   "high": 0.181919,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ce2f062981fe76d2",
+   "deck": "import-discord-5k-4-jackie-alt-hanako-bbg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "4b5113790773fc64",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "modded_kusanagi",
+    "modded_kusanagi",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.13125,
+   "se": 0.017497,
+   "sd": 0.585578,
+   "family": 3,
+   "low": 0.089361,
+   "high": 0.173139,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "d4c58ffe5fbbc984",
+   "deck": "import-ladder-s1-9-river-reyes-rogue-yyy.txt",
+   "pkg": "block-punish",
+   "withoutListId": "6e8706ad1ea40ad7",
+   "cardsOut": [
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "safety_override",
+    "safety_override",
+    "safety_override"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "rockn_rockerboy"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.026786,
+   "se": 0.018462,
+   "sd": 0.617872,
+   "family": 3,
+   "low": -0.017413,
+   "high": 0.070984,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "d4c58ffe5fbbc984",
+   "deck": "import-ladder-s1-9-river-reyes-rogue-yyy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "4d8fdc0db132ee00",
+   "cardsOut": [
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.069643,
+   "se": 0.017967,
+   "sd": 0.601285,
+   "family": 3,
+   "low": 0.026631,
+   "high": 0.112655,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "d4c58ffe5fbbc984",
+   "deck": "import-ladder-s1-9-river-reyes-rogue-yyy.txt",
+   "pkg": "relic-loop",
+   "withoutListId": "39a1f339a50b68f1",
+   "cardsOut": [
+    "adam_smasher_metal_over_meat",
+    "adam_smasher_metal_over_meat",
+    "the_relic_experimental_biochip",
+    "the_relic_experimental_biochip",
+    "the_relic_experimental_biochip"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.025893,
+   "se": 0.018442,
+   "sd": 0.617187,
+   "family": 3,
+   "low": -0.070043,
+   "high": 0.018257,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "d615ca2a4ad09bf8",
+   "deck": "meta-rrg-dexter-midrange.txt",
+   "pkg": "high-gig",
+   "withoutListId": "e77a5e674fc3b0ef",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "industrial_assembly"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.071429,
+   "se": 0.017002,
+   "sd": 0.568998,
+   "family": 2,
+   "low": 0.03332,
+   "high": 0.109537,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "d615ca2a4ad09bf8",
+   "deck": "meta-rrg-dexter-midrange.txt",
+   "pkg": "value-pair",
+   "withoutListId": "4e680d7aaf897653",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.091964,
+   "se": 0.01689,
+   "sd": 0.565249,
+   "family": 2,
+   "low": 0.054107,
+   "high": 0.129822,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "dc379bb349a94491",
+   "deck": "import-ladder-s1-6-dexter-v-reyes-rry.txt",
+   "pkg": "braindance",
+   "withoutListId": "24982ebf95c1072a",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.044643,
+   "se": 0.018258,
+   "sd": 0.611016,
+   "family": 3,
+   "low": 0.000935,
+   "high": 0.088351,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "dc379bb349a94491",
+   "deck": "import-ladder-s1-6-dexter-v-reyes-rry.txt",
+   "pkg": "high-gig",
+   "withoutListId": "43c8e2b0d6e07678",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.132143,
+   "se": 0.018141,
+   "sd": 0.607109,
+   "family": 3,
+   "low": 0.088714,
+   "high": 0.175572,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "dc379bb349a94491",
+   "deck": "import-ladder-s1-6-dexter-v-reyes-rry.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "642d583890f033ad",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.088393,
+   "se": 0.017601,
+   "sd": 0.589034,
+   "family": 3,
+   "low": 0.046257,
+   "high": 0.130529,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e0fad68dfe3df63f",
+   "deck": "s3-08-explorer-rrb.txt",
+   "pkg": "high-cred",
+   "withoutListId": "4cfa800d5a784f43",
+   "cardsOut": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon"
+   ],
+   "cardsIn": [
+    "octant",
+    "octant",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.026786,
+   "se": 0.0165,
+   "sd": 0.552188,
+   "family": 2,
+   "low": -0.010197,
+   "high": 0.063768,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e0fad68dfe3df63f",
+   "deck": "s3-08-explorer-rrb.txt",
+   "pkg": "high-gig",
+   "withoutListId": "85fdb354ccd49599",
+   "cardsOut": [
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "kerry_eurodyne_the_last_rockerboy",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.073214,
+   "se": 0.016227,
+   "sd": 0.54305,
+   "family": 2,
+   "low": 0.036844,
+   "high": 0.109585,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e52b6c067e61d51b",
+   "deck": "RRG-smash-the-curve.txt",
+   "pkg": "braindance",
+   "withoutListId": "4e9f48e353cb1101",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.067857,
+   "se": 0.014204,
+   "sd": 0.475347,
+   "family": 3,
+   "low": 0.033854,
+   "high": 0.10186,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e52b6c067e61d51b",
+   "deck": "RRG-smash-the-curve.txt",
+   "pkg": "high-gig",
+   "withoutListId": "475458da4ac2e167",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "v_roamer_of_the_badlands"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.120536,
+   "se": 0.016633,
+   "sd": 0.556646,
+   "family": 3,
+   "low": 0.080717,
+   "high": 0.160355,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e52b6c067e61d51b",
+   "deck": "RRG-smash-the-curve.txt",
+   "pkg": "value-pair",
+   "withoutListId": "0f68c42a2f4213ea",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.080357,
+   "se": 0.015179,
+   "sd": 0.507995,
+   "family": 3,
+   "low": 0.044018,
+   "high": 0.116696,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e6ed5549e55a6bf2",
+   "deck": "nc-05-emperor-s-guard-ggb.txt",
+   "pkg": "blockers",
+   "withoutListId": "54012a79ae457d62",
+   "cardsOut": [
+    "corpo_security",
+    "corpo_security",
+    "corpo_security",
+    "riot_shield",
+    "riot_shield",
+    "riot_shield"
+   ],
+   "cardsIn": [
+    "don_t_fear_the_reaper",
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.028571,
+   "se": 0.017114,
+   "sd": 0.572755,
+   "family": 5,
+   "low": -0.015512,
+   "high": 0.072655,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e6ed5549e55a6bf2",
+   "deck": "nc-05-emperor-s-guard-ggb.txt",
+   "pkg": "cred-even",
+   "withoutListId": "e1e2701fb6fa23df",
+   "cardsOut": [
+    "field_operator",
+    "field_operator"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.00625,
+   "se": 0.016446,
+   "sd": 0.550373,
+   "family": 5,
+   "low": -0.036111,
+   "high": 0.048611,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e6ed5549e55a6bf2",
+   "deck": "nc-05-emperor-s-guard-ggb.txt",
+   "pkg": "gig-swap",
+   "withoutListId": "7bfe2ee31c8cf4b3",
+   "cardsOut": [
+    "maxtac_av",
+    "maxtac_av",
+    "maxtac_av",
+    "trust_no_one",
+    "trust_no_one"
+   ],
+   "cardsIn": [
+    "don_t_fear_the_reaper",
+    "maxtac_heavy",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.125893,
+   "se": 0.017025,
+   "sd": 0.569754,
+   "family": 5,
+   "low": 0.08204,
+   "high": 0.169745,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e6ed5549e55a6bf2",
+   "deck": "nc-05-emperor-s-guard-ggb.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "ad1d25e83a5f0dd6",
+   "cardsOut": [
+    "corporate_surveillance",
+    "corporate_surveillance",
+    "corporate_surveillance",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "wild_in_the_streets",
+    "wild_in_the_streets"
+   ],
+   "cardsIn": [
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "modded_kusanagi",
+    "modded_kusanagi",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.129464,
+   "se": 0.014629,
+   "sd": 0.489595,
+   "family": 5,
+   "low": 0.091781,
+   "high": 0.167147,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e6ed5549e55a6bf2",
+   "deck": "nc-05-emperor-s-guard-ggb.txt",
+   "pkg": "value-pair",
+   "withoutListId": "fcf4c005beb3f010",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "don_t_fear_the_reaper",
+    "maxtac_heavy",
+    "maxtac_heavy",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.032143,
+   "se": 0.017202,
+   "sd": 0.575678,
+   "family": 5,
+   "low": -0.012166,
+   "high": 0.076451,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e719f7000704df41",
+   "deck": "GYY-keep-em-guessing.txt",
+   "pkg": "block-punish",
+   "withoutListId": "789dfcec8d1582f8",
+   "cardsOut": [
+    "maelstrom_zealots",
+    "maelstrom_zealots",
+    "maelstrom_zealots"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.057143,
+   "se": 0.013848,
+   "sd": 0.463448,
+   "family": 5,
+   "low": -0.092813,
+   "high": -0.021472,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e719f7000704df41",
+   "deck": "GYY-keep-em-guessing.txt",
+   "pkg": "cyberware",
+   "withoutListId": "9a87ef1edf4c918f",
+   "cardsOut": [
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "viktor_vektor_you_might_feel_a_little_pinch"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.051786,
+   "se": 0.015394,
+   "sd": 0.515182,
+   "family": 5,
+   "low": -0.091438,
+   "high": -0.012133,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e719f7000704df41",
+   "deck": "GYY-keep-em-guessing.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "f6819188fde053d3",
+   "cardsOut": [
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "sketchy_ripper"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.046429,
+   "se": 0.012808,
+   "sd": 0.428629,
+   "family": 5,
+   "low": -0.079419,
+   "high": -0.013438,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e719f7000704df41",
+   "deck": "GYY-keep-em-guessing.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "9ec21cc52f4898ef",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.002679,
+   "se": 0.017019,
+   "sd": 0.569552,
+   "family": 5,
+   "low": -0.046516,
+   "high": 0.041158,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e719f7000704df41",
+   "deck": "GYY-keep-em-guessing.txt",
+   "pkg": "value-pair",
+   "withoutListId": "7a6a30b06d684d5a",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "peace_offering"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.029464,
+   "se": 0.017136,
+   "sd": 0.573489,
+   "family": 5,
+   "low": -0.073604,
+   "high": 0.014676,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e7b0b38e8ab5b225",
+   "deck": "ladder-bbg-jackie-alt-hanako.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "9ad407c38565ba5a",
+   "cardsOut": [
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "modded_kusanagi",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.267857,
+   "se": 0.018079,
+   "sd": 0.605045,
+   "family": 1,
+   "low": 0.232423,
+   "high": 0.303292,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e8ce90dd0976dfb8",
+   "deck": "nc-06-metal-over-meat-yyy.txt",
+   "pkg": "block-punish",
+   "withoutListId": "c0653d3a13c111c5",
+   "cardsOut": [
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "secondhand_bombus"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "gilded_maton",
+    "gilded_maton",
+    "heywood_ripperdoc",
+    "trauma_team_operatives",
+    "viktor_vektor_drop_your_illusions",
+    "viktor_vektor_drop_your_illusions"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.195536,
+   "se": 0.017325,
+   "sd": 0.579804,
+   "family": 4,
+   "low": 0.152263,
+   "high": 0.238808,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e8ce90dd0976dfb8",
+   "deck": "nc-06-metal-over-meat-yyy.txt",
+   "pkg": "cost-match",
+   "withoutListId": "c20e25870c35b67f",
+   "cardsOut": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "gilded_maton",
+    "gilded_maton",
+    "trauma_team_operatives",
+    "viktor_vektor_drop_your_illusions",
+    "viktor_vektor_drop_your_illusions"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.01875,
+   "se": 0.017472,
+   "sd": 0.584738,
+   "family": 4,
+   "low": -0.062391,
+   "high": 0.024891,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e8ce90dd0976dfb8",
+   "deck": "nc-06-metal-over-meat-yyy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "506414313de18f45",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "gorilla_arms",
+    "gorilla_arms",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "cardsIn": [
+    "adam_smasher_metal_over_meat",
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "gilded_maton",
+    "gilded_maton",
+    "heywood_ripperdoc",
+    "trauma_team_operatives"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.14375,
+   "se": 0.015925,
+   "sd": 0.532967,
+   "family": 4,
+   "low": 0.103973,
+   "high": 0.183527,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "e8ce90dd0976dfb8",
+   "deck": "nc-06-metal-over-meat-yyy.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "8c116ee55666bbfd",
+   "cardsOut": [
+    "adam_smasher_metal_over_meat",
+    "adam_smasher_metal_over_meat",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "trauma_team_operatives",
+    "trauma_team_operatives"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "caliber_totentanz_s_top_dog",
+    "gilded_maton",
+    "gilded_maton",
+    "heywood_ripperdoc",
+    "viktor_vektor_drop_your_illusions",
+    "viktor_vektor_drop_your_illusions"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.0375,
+   "se": 0.017377,
+   "sd": 0.581534,
+   "family": 4,
+   "low": -0.005902,
+   "high": 0.080902,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ea9c3ecbf1a7f9de",
+   "deck": "import-discord-5k-2-jackie-alt-hanako-bbg.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "75e4537c39e0b6ca",
+   "cardsOut": [
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death"
+   ],
+   "cardsIn": [
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.14375,
+   "se": 0.017086,
+   "sd": 0.571795,
+   "family": 1,
+   "low": 0.110263,
+   "high": 0.177237,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "cost-match",
+   "withoutListId": "121c555ab6dfea00",
+   "cardsOut": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ],
+   "cardsIn": [
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.05,
+   "se": 0.014979,
+   "sd": 0.501294,
+   "family": 8,
+   "low": -0.090958,
+   "high": -0.009042,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "cyberware",
+   "withoutListId": "fe28b8ad170b5f21",
+   "cardsOut": [
+    "viktor_vektor_you_might_feel_a_little_pinch"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.015179,
+   "se": 0.013917,
+   "sd": 0.465755,
+   "family": 8,
+   "low": -0.022876,
+   "high": 0.053233,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "gear-equipped",
+   "withoutListId": "33ba6738859fd8b6",
+   "cardsOut": [
+    "cyberpsychosis",
+    "cyberpsychosis"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.025,
+   "se": 0.011415,
+   "sd": 0.382013,
+   "family": 8,
+   "low": -0.056212,
+   "high": 0.006212,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "gear-sacrifice",
+   "withoutListId": "47fed03fa99c2020",
+   "cardsOut": [
+    "gilded_maton",
+    "gilded_maton",
+    "gilded_maton"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.008929,
+   "se": 0.016613,
+   "sd": 0.55599,
+   "family": 8,
+   "low": -0.036499,
+   "high": 0.054356,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "gig-spread",
+   "withoutListId": "c71ea16b0958ea76",
+   "cardsOut": [
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.014286,
+   "se": 0.009528,
+   "sd": 0.318861,
+   "family": 8,
+   "low": -0.011767,
+   "high": 0.040338,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "high-cred",
+   "withoutListId": "3a47909f7564e376",
+   "cardsOut": [
+    "minotaur",
+    "minotaur",
+    "minotaur"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.001786,
+   "se": 0.014124,
+   "sd": 0.472663,
+   "family": 8,
+   "low": -0.036833,
+   "high": 0.040405,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "high-gig",
+   "withoutListId": "7e3d3bb7f515cb95",
+   "cardsOut": [
+    "kerry_eurodyne_the_last_rockerboy",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.016071,
+   "se": 0.014284,
+   "sd": 0.478035,
+   "family": 8,
+   "low": -0.022986,
+   "high": 0.055129,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "eb4d7d725ffe407d",
+   "deck": "s1-02-mutant-ryy.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "827633a3041850a5",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath"
+   ],
+   "cardsIn": [
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.022321,
+   "se": 0.014136,
+   "sd": 0.473084,
+   "family": 8,
+   "low": -0.060975,
+   "high": 0.016332,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ed49b03d1aaca128",
+   "deck": "import-discord-5k-5-v-smasher-padre-rrg.txt",
+   "pkg": "braindance",
+   "withoutListId": "4f820b1bb523ae78",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.051786,
+   "se": 0.017618,
+   "sd": 0.5896,
+   "family": 3,
+   "low": 0.009609,
+   "high": 0.093962,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ed49b03d1aaca128",
+   "deck": "import-discord-5k-5-v-smasher-padre-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "665e234fcdde5780",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.066071,
+   "se": 0.018504,
+   "sd": 0.619255,
+   "family": 3,
+   "low": 0.021774,
+   "high": 0.110369,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ed49b03d1aaca128",
+   "deck": "import-discord-5k-5-v-smasher-padre-rrg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "2a6acfcd821fc223",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.064286,
+   "se": 0.015558,
+   "sd": 0.520682,
+   "family": 3,
+   "low": 0.027039,
+   "high": 0.101532,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ee779ed4dea87217",
+   "deck": "meta-rry-smasher-aggro.txt",
+   "pkg": "braindance",
+   "withoutListId": "819b51ad2c4c7578",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.014286,
+   "se": 0.015206,
+   "sd": 0.508877,
+   "family": 4,
+   "low": -0.023693,
+   "high": 0.052265,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ee779ed4dea87217",
+   "deck": "meta-rry-smasher-aggro.txt",
+   "pkg": "high-cred",
+   "withoutListId": "bf3fd530d729e364",
+   "cardsOut": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.053571,
+   "se": 0.013861,
+   "sd": 0.463874,
+   "family": 4,
+   "low": -0.088192,
+   "high": -0.018951,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ee779ed4dea87217",
+   "deck": "meta-rry-smasher-aggro.txt",
+   "pkg": "high-gig",
+   "withoutListId": "b44669226b8453fa",
+   "cardsOut": [
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.022321,
+   "se": 0.013851,
+   "sd": 0.463543,
+   "family": 4,
+   "low": -0.012274,
+   "high": 0.056917,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "ee779ed4dea87217",
+   "deck": "meta-rry-smasher-aggro.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "06e6b21441ad9c48",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "minotaur",
+    "minotaur"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.050893,
+   "se": 0.016229,
+   "sd": 0.543134,
+   "family": 4,
+   "low": 0.010357,
+   "high": 0.091429,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f375b2d8199f4566",
+   "deck": "ladder-rrg-v-smasher-padre.txt",
+   "pkg": "braindance",
+   "withoutListId": "e583b90eaab6ba13",
+   "cardsOut": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "octant",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.232143,
+   "se": 0.015514,
+   "sd": 0.519196,
+   "family": 3,
+   "low": 0.195003,
+   "high": 0.269283,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f375b2d8199f4566",
+   "deck": "ladder-rrg-v-smasher-padre.txt",
+   "pkg": "high-gig",
+   "withoutListId": "9e385a059e34b28a",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "kerry_eurodyne_the_last_rockerboy",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.111607,
+   "se": 0.016496,
+   "sd": 0.552069,
+   "family": 3,
+   "low": 0.072116,
+   "high": 0.151099,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f375b2d8199f4566",
+   "deck": "ladder-rrg-v-smasher-padre.txt",
+   "pkg": "value-pair",
+   "withoutListId": "cb2e947832eb0b33",
+   "cardsOut": [
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.065179,
+   "se": 0.015322,
+   "sd": 0.512787,
+   "family": 3,
+   "low": 0.028497,
+   "high": 0.10186,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f399d36fac78a13b",
+   "deck": "s1-04-cross-rbg.txt",
+   "pkg": "comeback",
+   "withoutListId": "94e590dfccbc9f64",
+   "cardsOut": [
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "we_gotta_live_together",
+    "we_gotta_live_together"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.058036,
+   "se": 0.014326,
+   "sd": 0.479451,
+   "family": 3,
+   "low": 0.023739,
+   "high": 0.092333,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f399d36fac78a13b",
+   "deck": "s1-04-cross-rbg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "7e1a40c4e4a156a2",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.001786,
+   "se": 0.017458,
+   "sd": 0.584271,
+   "family": 3,
+   "low": -0.040009,
+   "high": 0.043581,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f399d36fac78a13b",
+   "deck": "s1-04-cross-rbg.txt",
+   "pkg": "spend-punish",
+   "withoutListId": "46880f59a36bcf18",
+   "cardsOut": [
+    "memory_relapse",
+    "memory_relapse",
+    "unlikely_bond",
+    "unlikely_bond",
+    "unlikely_bond"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": -0.021429,
+   "se": 0.014166,
+   "sd": 0.474069,
+   "family": 3,
+   "low": -0.055341,
+   "high": 0.012483,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f6bd56f9c63a5b11",
+   "deck": "s1-06-cross-bgy.txt",
+   "pkg": "program-fuel",
+   "withoutListId": "83f00aa8fe210406",
+   "cardsOut": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "cardsIn": [
+    "heywood_ripperdoc",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.069643,
+   "se": 0.012069,
+   "sd": 0.403922,
+   "family": 2,
+   "low": 0.04259,
+   "high": 0.096695,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "f6bd56f9c63a5b11",
+   "deck": "s1-06-cross-bgy.txt",
+   "pkg": "value-pair",
+   "withoutListId": "1bf2fbec7499970a",
+   "cardsOut": [
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.051786,
+   "se": 0.011543,
+   "sd": 0.386312,
+   "family": 2,
+   "low": 0.025913,
+   "high": 0.077659,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "fad186051ca958b7",
+   "deck": "RRB-alt-v-del.txt",
+   "pkg": "braindance",
+   "withoutListId": "d5a551bba4b069ad",
+   "cardsOut": [
+    "shattered_memories",
+    "shattered_memories"
+   ],
+   "cardsIn": [
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.015179,
+   "se": 0.010522,
+   "sd": 0.352119,
+   "family": 4,
+   "low": -0.011101,
+   "high": 0.041458,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "fad186051ca958b7",
+   "deck": "RRB-alt-v-del.txt",
+   "pkg": "high-gig",
+   "withoutListId": "7a709c0e0ddbdf64",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "over_the_edge",
+    "over_the_edge",
+    "v_roamer_of_the_badlands",
+    "v_roamer_of_the_badlands"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.041964,
+   "se": 0.017933,
+   "sd": 0.60014,
+   "family": 4,
+   "low": -0.002826,
+   "high": 0.086755,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "fad186051ca958b7",
+   "deck": "RRB-alt-v-del.txt",
+   "pkg": "rocker",
+   "withoutListId": "c2c149c1062bd8d7",
+   "cardsOut": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.078571,
+   "se": 0.016974,
+   "sd": 0.568055,
+   "family": 4,
+   "low": 0.036176,
+   "high": 0.120967,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "fad186051ca958b7",
+   "deck": "RRB-alt-v-del.txt",
+   "pkg": "units-in-trash",
+   "withoutListId": "505ccbf772664aa3",
+   "cardsOut": [
+    "all_is_lost",
+    "all_is_lost",
+    "all_is_lost",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "cardsIn": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "minotaur",
+    "minotaur",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.080357,
+   "se": 0.017476,
+   "sd": 0.584861,
+   "family": 4,
+   "low": 0.036707,
+   "high": 0.124007,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "fcfee70ff247266a",
+   "deck": "s2-05-counter-rrg.txt",
+   "pkg": "high-gig",
+   "withoutListId": "7cfe350abb8b9949",
+   "cardsOut": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge"
+   ],
+   "cardsIn": [
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "minotaur",
+    "minotaur",
+    "nadia_fighting_through_grief",
+    "sandayu_oda_hanako_s_guardian",
+    "sandayu_oda_hanako_s_guardian",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.110714,
+   "se": 0.01796,
+   "sd": 0.601065,
+   "family": 2,
+   "low": 0.070458,
+   "high": 0.15097,
+   "date": "2026-11-24"
+  },
+  {
+   "listId": "fcfee70ff247266a",
+   "deck": "s2-05-counter-rrg.txt",
+   "pkg": "value-pair",
+   "withoutListId": "4434d7efd3ce15e9",
+   "cardsOut": [
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles"
+   ],
+   "cardsIn": [
+    "minotaur",
+    "minotaur",
+    "octant",
+    "saul_bright_stormrider",
+    "saul_bright_stormrider"
+   ],
+   "bot": "medium",
+   "simVersion": 9,
+   "games": 1120,
+   "seed": 9000000,
+   "opponents": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ],
+   "mean": 0.074107,
+   "se": 0.017248,
+   "sd": 0.577233,
+   "family": 2,
+   "low": 0.035447,
+   "high": 0.112767,
+   "date": "2026-11-24"
+  }
+ ],
+ "skipped": [
+  {
+   "listId": "078ce02dba6dd2c0",
+   "deck": "meta-yyb-rogue-gear.txt",
+   "pkg": "cost-match",
+   "why": "no legal list without Gig value matches a cost keeps the list's other packages (Cyberware toolbox (Viktor Vektor), Mixed Gig values, Units in the trash, Block, then punish)"
+  },
+  {
+   "listId": "0b6272134a22585c",
+   "deck": "meta-bbg-cunningham-econ.txt",
+   "pkg": "gig-swap",
+   "why": "no legal list without Lower, then swap keeps the list's other packages (Programs as fuel (Blue), Low Gigs (min Gig), Behind on Street Cred, Value-pairs)"
+  },
+  {
+   "listId": "0b6272134a22585c",
+   "deck": "meta-bbg-cunningham-econ.txt",
+   "pkg": "low-cred",
+   "why": "no legal list without Behind on Street Cred keeps the list's other packages (Programs as fuel (Blue), Low Gigs (min Gig), Value-pairs, Lower, then swap)"
+  },
+  {
+   "listId": "0b6272134a22585c",
+   "deck": "meta-bbg-cunningham-econ.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Behind on Street Cred, Value-pairs, Lower, then swap)"
+  },
+  {
+   "listId": "16141b3be2bf22c2",
+   "deck": "import-ladder-s1-2-v-smasher-saburo-rrg.txt",
+   "pkg": "high-gig",
+   "why": "no legal list without High Gigs (8+) keeps the list's other packages (Braindance Programs, Arasaka Units)"
+  },
+  {
+   "listId": "1f877a91f82bb1bb",
+   "deck": "import-discord-5k-6-jackie-alt-hanako-bbg.txt",
+   "pkg": "low-cred",
+   "why": "no legal list without Behind on Street Cred keeps the list's other packages (Low Gigs (min Gig), Programs as fuel (Blue))"
+  },
+  {
+   "listId": "1f877a91f82bb1bb",
+   "deck": "import-discord-5k-6-jackie-alt-hanako-bbg.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Behind on Street Cred)"
+  },
+  {
+   "listId": "3750a5b13c344cae",
+   "deck": "import-ladder-s1-8-smasher-river-viktor-ryy.txt",
+   "pkg": "cyberware",
+   "why": "no legal list without Cyberware toolbox (Viktor Vektor) keeps the list's other packages (Gear on Units, Mixed Gig values)"
+  },
+  {
+   "listId": "3d6b0327f672d914",
+   "deck": "meta-gry-trauma-team.txt",
+   "pkg": "cost-match",
+   "why": "no legal list without Gig value matches a cost keeps the list's other packages (Value-pairs, Braindance Programs, Units in the trash, Even Street Cred, Mixed Gig values)"
+  },
+  {
+   "listId": "3d6b0327f672d914",
+   "deck": "meta-gry-trauma-team.txt",
+   "pkg": "cred-even",
+   "why": "no legal list without Even Street Cred keeps the list's other packages (Value-pairs, Braindance Programs, Units in the trash, Gig value matches a cost, Mixed Gig values)"
+  },
+  {
+   "listId": "3d6b0327f672d914",
+   "deck": "meta-gry-trauma-team.txt",
+   "pkg": "gig-spread",
+   "why": "no legal list without Mixed Gig values keeps the list's other packages (Value-pairs, Braindance Programs, Units in the trash, Gig value matches a cost, Even Street Cred)"
+  },
+  {
+   "listId": "5331325a1a4e3b1e",
+   "deck": "YYY-yyy-adam-ready-for-brawl.txt",
+   "pkg": "cost-match",
+   "why": "no legal list without Gig value matches a cost keeps the list's other packages (Gear on Units, Mixed Gig values, Units in the trash, The Relic loop (Metal Over Meat))"
+  },
+  {
+   "listId": "5331325a1a4e3b1e",
+   "deck": "YYY-yyy-adam-ready-for-brawl.txt",
+   "pkg": "relic-loop",
+   "why": "no legal list without The Relic loop (Metal Over Meat) keeps the list's other packages (Gear on Units, Mixed Gig values, Units in the trash, Gig value matches a cost)"
+  },
+  {
+   "listId": "6d239fa5c8c77c0b",
+   "deck": "nc-04-chrome-rockers-yyr.txt",
+   "pkg": "cost-match",
+   "why": "no legal list without Gig value matches a cost keeps the list's other packages (Gear on Units, Mixed Gig values, Units in the trash)"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "cost-match",
+   "why": "no legal list without Gig value matches a cost keeps the list's other packages (Gear on Units, Cyberware toolbox (Viktor Vektor), Block, then punish, Units in the trash, Mixed Gig values, The Relic loop (Metal Over Meat))"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "gig-spread",
+   "why": "no legal list without Mixed Gig values keeps the list's other packages (Gear on Units, Cyberware toolbox (Viktor Vektor), Block, then punish, Units in the trash, Gig value matches a cost, The Relic loop (Metal Over Meat))"
+  },
+  {
+   "listId": "709d7542b010cc30",
+   "deck": "YYY-ripbecca.txt",
+   "pkg": "relic-loop",
+   "why": "no legal list without The Relic loop (Metal Over Meat) keeps the list's other packages (Gear on Units, Cyberware toolbox (Viktor Vektor), Block, then punish, Units in the trash, Gig value matches a cost, Mixed Gig values)"
+  },
+  {
+   "listId": "70b7814bee9f69bc",
+   "deck": "GGY-gear-n-go.txt",
+   "pkg": "gig-spread",
+   "why": "no legal list without Mixed Gig values keeps the list's other packages (Gear on Units, Block, then punish, Gig value matches a cost, Spend, then punish, Face-up Legends)"
+  },
+  {
+   "listId": "7cd8fe59c2bc6286",
+   "deck": "import-ladder-s1-10-jackie-judy-hanako-bbg.txt",
+   "pkg": "low-cred",
+   "why": "no legal list without Behind on Street Cred keeps the list's other packages (Low Gigs (min Gig), Braindance Programs)"
+  },
+  {
+   "listId": "7cd8fe59c2bc6286",
+   "deck": "import-ladder-s1-10-jackie-judy-hanako-bbg.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Braindance Programs, Behind on Street Cred)"
+  },
+  {
+   "listId": "7d4d4fa3bc95f94d",
+   "deck": "import-discord-5k-3-smasher-river-viktor-ryy.txt",
+   "pkg": "cyberware",
+   "why": "no legal list without Cyberware toolbox (Viktor Vektor) keeps the list's other packages (Gear on Units, Mixed Gig values)"
+  },
+  {
+   "listId": "8f9412a543230da8",
+   "deck": "import-discord-5k-8-v-smasher-saburo-rrg.txt",
+   "pkg": "arasaka",
+   "why": "no legal list without Arasaka Units keeps the list's other packages (Braindance Programs, Units in the trash)"
+  },
+  {
+   "listId": "8f9412a543230da8",
+   "deck": "import-discord-5k-8-v-smasher-saburo-rrg.txt",
+   "pkg": "braindance",
+   "why": "no legal list without Braindance Programs keeps the list's other packages (Arasaka Units, Units in the trash)"
+  },
+  {
+   "listId": "95e79a39a67668bb",
+   "deck": "import-discord-5k-7-smasher-river-viktor-ryy.txt",
+   "pkg": "cyberware",
+   "why": "no legal list without Cyberware toolbox (Viktor Vektor) keeps the list's other packages (Gear on Units, Mixed Gig values)"
+  },
+  {
+   "listId": "98fac3c03fa4bae8",
+   "deck": "BBB-running-and-dancing.txt",
+   "pkg": "braindance",
+   "why": "no legal list without Braindance Programs keeps the list's other packages (Programs as fuel (Blue), Behind on Street Cred, Low Gigs (min Gig), Forced attacks into Blockers)"
+  },
+  {
+   "listId": "98fac3c03fa4bae8",
+   "deck": "BBB-running-and-dancing.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Behind on Street Cred, Forced attacks into Blockers, Braindance Programs)"
+  },
+  {
+   "listId": "9f01127eb8f41dda",
+   "deck": "s1-05-cross-rbb.txt",
+   "pkg": "braindance",
+   "why": "no legal list without Braindance Programs keeps the list's other packages (Programs as fuel (Blue), Low Gigs (min Gig))"
+  },
+  {
+   "listId": "9f01127eb8f41dda",
+   "deck": "s1-05-cross-rbb.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Braindance Programs)"
+  },
+  {
+   "listId": "b304c27396a06e82",
+   "deck": "import-discord-5k-1-smasher-river-reyes-ryy.txt",
+   "pkg": "gear-equipped",
+   "why": "no legal list without Gear on Units keeps the list's other packages (Block, then punish, Mixed Gig values)"
+  },
+  {
+   "listId": "b52e36b761c5cc0c",
+   "deck": "RBY-samurai.txt",
+   "pkg": "high-gig",
+   "why": "no legal list without High Gigs (8+) keeps the list's other packages (Programs as fuel (Blue), Rocker Units (Johnny Silverhand))"
+  },
+  {
+   "listId": "ca4bd3219b88e638",
+   "deck": "BBG-bbg-draw-and-wipe.txt",
+   "pkg": "braindance",
+   "why": "no legal list without Braindance Programs keeps the list's other packages (Programs as fuel (Blue), Low Gigs (min Gig), Lower, then swap)"
+  },
+  {
+   "listId": "ca4bd3219b88e638",
+   "deck": "BBG-bbg-draw-and-wipe.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Braindance Programs, Lower, then swap)"
+  },
+  {
+   "listId": "caf8464ea0341531",
+   "deck": "nc-03-static-shock-bbr.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue))"
+  },
+  {
+   "listId": "e719f7000704df41",
+   "deck": "GYY-keep-em-guessing.txt",
+   "pkg": "blockers",
+   "why": "no legal list without Blockers (Goro Takemura) keeps the list's other packages (Gear on Units, Cyberware toolbox (Viktor Vektor), Block, then punish, Mixed Gig values, Value-pairs)"
+  },
+  {
+   "listId": "e7b0b38e8ab5b225",
+   "deck": "ladder-bbg-jackie-alt-hanako.txt",
+   "pkg": "low-cred",
+   "why": "no legal list without Behind on Street Cred keeps the list's other packages (Low Gigs (min Gig), Programs as fuel (Blue))"
+  },
+  {
+   "listId": "e7b0b38e8ab5b225",
+   "deck": "ladder-bbg-jackie-alt-hanako.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Behind on Street Cred)"
+  },
+  {
+   "listId": "ea9c3ecbf1a7f9de",
+   "deck": "import-discord-5k-2-jackie-alt-hanako-bbg.txt",
+   "pkg": "low-cred",
+   "why": "no legal list without Behind on Street Cred keeps the list's other packages (Low Gigs (min Gig), Programs as fuel (Blue))"
+  },
+  {
+   "listId": "ea9c3ecbf1a7f9de",
+   "deck": "import-discord-5k-2-jackie-alt-hanako-bbg.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Behind on Street Cred)"
+  },
+  {
+   "listId": "f6bd56f9c63a5b11",
+   "deck": "s1-06-cross-bgy.txt",
+   "pkg": "cred-even",
+   "why": "no legal list without Even Street Cred keeps the list's other packages (Programs as fuel (Blue), Value-pairs, Low Gigs (min Gig), Spend, then punish)"
+  },
+  {
+   "listId": "f6bd56f9c63a5b11",
+   "deck": "s1-06-cross-bgy.txt",
+   "pkg": "min-gig",
+   "why": "no legal list without Low Gigs (min Gig) keeps the list's other packages (Programs as fuel (Blue), Value-pairs, Even Street Cred, Spend, then punish)"
+  },
+  {
+   "listId": "f6bd56f9c63a5b11",
+   "deck": "s1-06-cross-bgy.txt",
+   "pkg": "spend-punish",
+   "why": "no legal list without Spend, then punish keeps the list's other packages (Programs as fuel (Blue), Value-pairs, Even Street Cred, Low Gigs (min Gig))"
+  }
+ ],
+ "manifest": {
+  "schema": 1,
+  "runId": "package-effects:2026-11-24:9000000:medium",
+  "createdAt": "2026-11-24T00:00:00.000Z",
+  "purpose": "analysis",
+  "simVersion": 9,
+  "rulesVersion": "2026-10-29",
+  "faqVersion": "2026-11-09T15:28:32.570Z",
+  "errataVersion": null,
+  "bot": {
+   "level": "medium"
+  },
+  "decks": [
+   {
+    "id": "49b88bec8044bce2",
+    "name": "Running and Dancing",
+    "file": "BBB-running-and-dancing.txt"
+   },
+   {
+    "id": "ca4bd3219b88e638",
+    "name": "BBG Draw and Wipe",
+    "file": "BBG-bbg-draw-and-wipe.txt"
+   },
+   {
+    "id": "70b7814bee9f69bc",
+    "name": "Gear'n'Go",
+    "file": "GGY-gear-n-go.txt"
+   },
+   {
+    "id": "e719f7000704df41",
+    "name": "Keep 'Em Guessing",
+    "file": "GYY-keep-em-guessing.txt"
+   },
+   {
+    "id": "b52e36b761c5cc0c",
+    "name": "Samurai",
+    "file": "RBY-samurai.txt"
+   },
+   {
+    "id": "fad186051ca958b7",
+    "name": "Alt + V + Del",
+    "file": "RRB-alt-v-del.txt"
+   },
+   {
+    "id": "6ec722391d7c9d82",
+    "name": "Smash the Curve",
+    "file": "RRG-smash-the-curve.txt"
+   },
+   {
+    "id": "0b75f6c9c57007f3",
+    "name": "The Red Chrome - Aggro",
+    "file": "RRR-the-red-chrome-aggro.txt"
+   },
+   {
+    "id": "8de1592a4eb2eda2",
+    "name": "Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board.",
+    "file": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt"
+   },
+   {
+    "id": "709d7542b010cc30",
+    "name": "Addin' Trash",
+    "file": "YYY-ripbecca.txt"
+   },
+   {
+    "id": "721f3fcbb0102b1b",
+    "name": "YYY Adam v1 - Ready for Brawl",
+    "file": "YYY-yyy-adam-ready-for-brawl.txt"
+   },
+   {
+    "id": "63077be354fda520",
+    "name": "Discord 5k #1: Smasher / River / Reyes (RYY)",
+    "file": "import-discord-5k-1-smasher-river-reyes-ryy.txt"
+   },
+   {
+    "id": "9d557c379c4cfea8",
+    "name": "Discord 5k #2: Jackie / Alt / Hanako (BBG)",
+    "file": "import-discord-5k-2-jackie-alt-hanako-bbg.txt"
+   },
+   {
+    "id": "74eb3414f21e505e",
+    "name": "Discord 5k #3: Smasher / River / Viktor (RYY)",
+    "file": "import-discord-5k-3-smasher-river-viktor-ryy.txt"
+   },
+   {
+    "id": "67d021fb2f50fe25",
+    "name": "Discord 5k #4: Jackie / Alt / Hanako (BBG)",
+    "file": "import-discord-5k-4-jackie-alt-hanako-bbg.txt"
+   },
+   {
+    "id": "3437994f8f1fa726",
+    "name": "Discord 5k #5: V / Smasher / Padre (RRG)",
+    "file": "import-discord-5k-5-v-smasher-padre-rrg.txt"
+   },
+   {
+    "id": "48908c164e96d548",
+    "name": "Discord 5k #6: Jackie / Alt / Hanako (BBG)",
+    "file": "import-discord-5k-6-jackie-alt-hanako-bbg.txt"
+   },
+   {
+    "id": "b87aac1500901632",
+    "name": "Discord 5k #7: Smasher / River / Viktor (RYY)",
+    "file": "import-discord-5k-7-smasher-river-viktor-ryy.txt"
+   },
+   {
+    "id": "394e85a529a3651a",
+    "name": "Discord 5k #8: V / Smasher / Saburo (RRG)",
+    "file": "import-discord-5k-8-v-smasher-saburo-rrg.txt"
+   },
+   {
+    "id": "94e473d639adfac5",
+    "name": "Ladder S1 #1: V / Smasher / Padre (RRG)",
+    "file": "import-ladder-s1-1-v-smasher-padre-rrg.txt"
+   },
+   {
+    "id": "7cd8fe59c2bc6286",
+    "name": "Ladder S1 #10: Jackie / Judy / Hanako (BBG)",
+    "file": "import-ladder-s1-10-jackie-judy-hanako-bbg.txt"
+   },
+   {
+    "id": "5b672914194605a3",
+    "name": "Ladder S1 #2: V / Smasher / Saburo (RRG)",
+    "file": "import-ladder-s1-2-v-smasher-saburo-rrg.txt"
+   },
+   {
+    "id": "14317c50c6ff7a60",
+    "name": "Ladder S1 #3: Smasher / Dexter / Saburo (RRG)",
+    "file": "import-ladder-s1-3-smasher-dexter-saburo-rrg.txt"
+   },
+   {
+    "id": "3bb20c8187922721",
+    "name": "Ladder S1 #4: V / Padre / Jackie (RGG)",
+    "file": "import-ladder-s1-4-v-padre-jackie-rgg.txt"
+   },
+   {
+    "id": "550cfc2b7b685094",
+    "name": "Ladder S1 #5: V / Smasher / Dum Dum (RRY)",
+    "file": "import-ladder-s1-5-v-smasher-dum-dum-rry.txt"
+   },
+   {
+    "id": "72deff6df5fb4e7d",
+    "name": "Ladder S1 #6: Dexter / V / Reyes (RRY)",
+    "file": "import-ladder-s1-6-dexter-v-reyes-rry.txt"
+   },
+   {
+    "id": "92148ad8bb680025",
+    "name": "Ladder S1 #7: Dexter / V / Padre (RRG)",
+    "file": "import-ladder-s1-7-dexter-v-padre-rrg.txt"
+   },
+   {
+    "id": "969d60d43b5ee66e",
+    "name": "Ladder S1 #8: Smasher / River / Viktor (RYY)",
+    "file": "import-ladder-s1-8-smasher-river-viktor-ryy.txt"
+   },
+   {
+    "id": "15f524a6514611c7",
+    "name": "Ladder S1 #9: River / Reyes / Rogue (YYY)",
+    "file": "import-ladder-s1-9-river-reyes-rogue-yyy.txt"
+   },
+   {
+    "id": "e7b0b38e8ab5b225",
+    "name": "Ladder: Jackie / Alt / Hanako (BBG)",
+    "file": "ladder-bbg-jackie-alt-hanako.txt"
+   },
+   {
+    "id": "b16b316cfec88abb",
+    "name": "Ladder: Dexter / V / Wakako (RRB)",
+    "file": "ladder-rrb-dexter-v-wakako.txt"
+   },
+   {
+    "id": "f375b2d8199f4566",
+    "name": "Ladder: V / Smasher / Padre (RRG)",
+    "file": "ladder-rrg-v-smasher-padre.txt"
+   },
+   {
+    "id": "779315ff7aa233e2",
+    "name": "Ladder: V / Smasher / Saburo (RRG)",
+    "file": "ladder-rrg-v-smasher-saburo.txt"
+   },
+   {
+    "id": "2ed4d4b9d64f948f",
+    "name": "Ladder: Smasher / River / Viktor (RYY)",
+    "file": "ladder-ryy-smasher-river-viktor.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   },
+   {
+    "id": "7ebcd99ce021aac1",
+    "name": "NC-01 Rockerboy Express (RRY)",
+    "file": "nc-01-rockerboy-express-rry.txt"
+   },
+   {
+    "id": "6f61514716df8e46",
+    "name": "NC-02 Stormrider Stampede (GGR)",
+    "file": "nc-02-stormrider-stampede-ggr.txt"
+   },
+   {
+    "id": "caf8464ea0341531",
+    "name": "NC-03 Static Shock (BBR)",
+    "file": "nc-03-static-shock-bbr.txt"
+   },
+   {
+    "id": "6d239fa5c8c77c0b",
+    "name": "NC-04 Chrome Rockers (YYR)",
+    "file": "nc-04-chrome-rockers-yyr.txt"
+   },
+   {
+    "id": "e6ed5549e55a6bf2",
+    "name": "NC-05 Emperor's Guard (GGB)",
+    "file": "nc-05-emperor-s-guard-ggb.txt"
+   },
+   {
+    "id": "e8ce90dd0976dfb8",
+    "name": "NC-06 Metal Over Meat (YYY)",
+    "file": "nc-06-metal-over-meat-yyy.txt"
+   },
+   {
+    "id": "c2542795135c61d5",
+    "name": "NC-07 Braindance Burn (RRB)",
+    "file": "nc-07-braindance-burn-rrb.txt"
+   },
+   {
+    "id": "c98b1332deca6e62",
+    "name": "NC-08 Merc Contract (RRG)",
+    "file": "nc-08-merc-contract-rrg.txt"
+   },
+   {
+    "id": "52592f87a5675ab9",
+    "name": "S1-01 Mutant (RRY)",
+    "file": "s1-01-mutant-rry.txt"
+   },
+   {
+    "id": "eb4d7d725ffe407d",
+    "name": "S1-02 Mutant (RYY)",
+    "file": "s1-02-mutant-ryy.txt"
+   },
+   {
+    "id": "1abcf0f14da08881",
+    "name": "S1-03 Mutant (RBG)",
+    "file": "s1-03-mutant-rbg.txt"
+   },
+   {
+    "id": "f399d36fac78a13b",
+    "name": "S1-04 Cross (RBG)",
+    "file": "s1-04-cross-rbg.txt"
+   },
+   {
+    "id": "9f01127eb8f41dda",
+    "name": "S1-05 Cross (RBB)",
+    "file": "s1-05-cross-rbb.txt"
+   },
+   {
+    "id": "f6bd56f9c63a5b11",
+    "name": "S1-06 Cross (BGY)",
+    "file": "s1-06-cross-bgy.txt"
+   },
+   {
+    "id": "3066980fc1c3c3a2",
+    "name": "S1-07 Explorer (RYY)",
+    "file": "s1-07-explorer-ryy.txt"
+   },
+   {
+    "id": "693057e28a588ff7",
+    "name": "S1-08 Explorer (BGG)",
+    "file": "s1-08-explorer-bgg.txt"
+   },
+   {
+    "id": "6d567c9ca1c838d9",
+    "name": "S2-01 Mutant (RYY)",
+    "file": "s2-01-mutant-ryy.txt"
+   },
+   {
+    "id": "207834998dd33f94",
+    "name": "S2-02 Mutant (RGG)",
+    "file": "s2-02-mutant-rgg.txt"
+   },
+   {
+    "id": "37abde85ab86332b",
+    "name": "S2-03 Cross (RGY)",
+    "file": "s2-03-cross-rgy.txt"
+   },
+   {
+    "id": "5405cae11d7de95c",
+    "name": "S2-04 Cross (RRG)",
+    "file": "s2-04-cross-rrg.txt"
+   },
+   {
+    "id": "fcfee70ff247266a",
+    "name": "S2-05 Counter (RRG)",
+    "file": "s2-05-counter-rrg.txt"
+   },
+   {
+    "id": "bbeb5b90ef8918e0",
+    "name": "S2-06 Counter (RGG)",
+    "file": "s2-06-counter-rgg.txt"
+   },
+   {
+    "id": "17a9e81ff46eba40",
+    "name": "S2-07 Explorer (RRB)",
+    "file": "s2-07-explorer-rrb.txt"
+   },
+   {
+    "id": "258f3aa5a1a4fb51",
+    "name": "S2-08 Explorer (GGY)",
+    "file": "s2-08-explorer-ggy.txt"
+   },
+   {
+    "id": "62c5a3ea2d0c5007",
+    "name": "S3-02 Mutant (RGY)",
+    "file": "s3-02-mutant-rgy.txt"
+   },
+   {
+    "id": "b9302aaa1c316aa8",
+    "name": "S3-03 Cross (RRR)",
+    "file": "s3-03-cross-rrr.txt"
+   },
+   {
+    "id": "080a9497aa8697ce",
+    "name": "S3-05 Counter (RRG)",
+    "file": "s3-05-counter-rrg.txt"
+   },
+   {
+    "id": "06eed193385abd58",
+    "name": "S3-06 Counter (RBG)",
+    "file": "s3-06-counter-rbg.txt"
+   },
+   {
+    "id": "3c8b6e839d55e071",
+    "name": "S3-07 Explorer (RRG)",
+    "file": "s3-07-explorer-rrg.txt"
+   },
+   {
+    "id": "e0fad68dfe3df63f",
+    "name": "S3-08 Explorer (RRB)",
+    "file": "s3-08-explorer-rrb.txt"
+   },
+   {
+    "id": "0b6272134a22585c",
+    "name": "BBG Cunningham Econ",
+    "file": "meta-bbg-cunningham-econ.txt"
+   },
+   {
+    "id": "3d6b0327f672d914",
+    "name": "GRY Trauma Team",
+    "file": "meta-gry-trauma-team.txt"
+   },
+   {
+    "id": "189f8a3b59f1117f",
+    "name": "Rainbow Fixer Stuff",
+    "file": "meta-rainbow-fixer-stuff.txt"
+   },
+   {
+    "id": "06552ee884386887",
+    "name": "RRB Wakako Midrange",
+    "file": "meta-rrb-wakako-midrange.txt"
+   },
+   {
+    "id": "d615ca2a4ad09bf8",
+    "name": "RRG Dexter Midrange",
+    "file": "meta-rrg-dexter-midrange.txt"
+   },
+   {
+    "id": "ee779ed4dea87217",
+    "name": "RRY Smasher Aggro",
+    "file": "meta-rry-smasher-aggro.txt"
+   },
+   {
+    "id": "078ce02dba6dd2c0",
+    "name": "YYB Rogue Gear",
+    "file": "meta-yyb-rogue-gear.txt"
+   }
+  ],
+  "field": {
+   "mode": "meta",
+   "deckIds": [
+    "0b6272134a22585c",
+    "3d6b0327f672d914",
+    "189f8a3b59f1117f",
+    "06552ee884386887",
+    "d615ca2a4ad09bf8",
+    "ee779ed4dea87217",
+    "078ce02dba6dd2c0"
+   ]
+  },
+  "sample": {
+   "plannedGames": 288960,
+   "completedGames": 288960,
+   "gamesPerPair": null
+  },
+  "seedBase": 9000000,
+  "seatPolicy": "alternate",
+  "trace": false,
+  "cardDataVersion": "fnv1a64:93e933351cc80262"
+ }
+}

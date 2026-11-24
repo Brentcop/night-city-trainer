@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { CATALOGUE_VERSION } from '../content/synergies';
 import type { SynergyReport } from '../analysis/synergies';
 import { readLiftSlice, type LiftSlice } from '../ai/packageLift';
+import { PACKAGE_EFFECTS_PATH, readPackageEffects, type PackageEffectFile } from '../ai/packageEffect';
 
 /**
  * - missing: no usable report
@@ -67,6 +68,39 @@ export function useLiftSlice(enabled: boolean): LiftLoaded {
     if (!enabled) return;
     let live = true;
     void loadLiftSlice().then((x) => live && setLoaded(x));
+    return () => {
+      live = false;
+    };
+  }, [enabled]);
+  return loaded;
+}
+
+/**
+ * The paired package measurements (public/data/package-effects.json, scripts/package-effects.ts): what the coach's
+ * package wording reads since 2026-11-24 in place of the lift slice (src/ai/packageEffect.ts). Missing = every package
+ * worded as an unmeasured idea.
+ */
+export type EffectsLoaded = { state: 'loading' } | { state: 'missing' } | { state: 'ready'; file: PackageEffectFile };
+
+let effectsFile: Promise<EffectsLoaded> | null = null;
+export function loadPackageEffects(): Promise<EffectsLoaded> {
+  effectsFile ??= fetch(`${import.meta.env.BASE_URL}${PACKAGE_EFFECTS_PATH}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j): EffectsLoaded => {
+      const file = readPackageEffects(j);
+      return file ? { state: 'ready', file } : { state: 'missing' };
+    })
+    .catch((): EffectsLoaded => ({ state: 'missing' }));
+  return effectsFile;
+}
+
+/** The measurements, fetched the first time `enabled` is true (the coach is on); no request before that. */
+export function usePackageEffects(enabled: boolean): EffectsLoaded {
+  const [loaded, setLoaded] = useState<EffectsLoaded>({ state: 'loading' });
+  useEffect(() => {
+    if (!enabled) return;
+    let live = true;
+    void loadPackageEffects().then((x) => live && setLoaded(x));
     return () => {
       live = false;
     };

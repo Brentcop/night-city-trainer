@@ -148,6 +148,25 @@ describe('the coach, gated by the paired measurement', () => {
   }, 30_000);
 });
 
+describe('the published file and the Play page', () => {
+  it('public/data/package-effects.json reads, names its bot on every row, and gives a library list its rows', () => {
+    const f = readPackageEffects(JSON.parse(readFileSync('public/data/package-effects.json', 'utf8')))!;
+    expect(f).not.toBeNull();
+    expect(f.catalogueVersion).toBe(CATALOGUE_VERSION);
+    expect(f.rows.length).toBeGreaterThan(100);
+    expect(f.rows.every((r) => r.bot && r.simVersion === SIM_VERSION)).toBe(true);
+    const own = seatEffects(f, BBG_ID, NOW)!;
+    expect(Object.keys(own).length).toBeGreaterThan(0);
+  });
+
+  it('Play fetches it only while the coach is on and sends the seat’s rows in place of the lift', () => {
+    const play = readFileSync('src/ui/pages/Play.tsx', 'utf8');
+    expect(play).toContain('usePackageEffects(coach)');
+    expect(play).toContain('advise(g, pend, undefined, effects0)');
+    expect(play).not.toContain('useLiftSlice');
+  });
+});
+
 // ---------------------------------------------------------------- the command
 
 const LIB = loadLibrary();

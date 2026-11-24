@@ -152,9 +152,30 @@ describe('Play loads the slice only while the coach is on', () => {
     expect(await loadLiftSlice()).toEqual({ state: 'missing' });
   });
 
-  it('Play.tsx no longer reads the whole report', () => {
+  it('Play.tsx no longer reads the whole report; since 2026-11-24 it reads the paired package measurements, not the slice', () => {
     const src = readFileSync('src/ui/pages/Play.tsx', 'utf8');
     expect(src).not.toMatch(/useSynergyReport|synergies\.json/);
-    expect(src).toContain('useLiftSlice(coach)');
+    expect(src).toContain('usePackageEffects(coach)');
+    expect(src).not.toContain('useLiftSlice');
+  });
+
+  it('usePackageEffects(false) makes no request; usePackageEffects(true) requests data/package-effects.json once', async () => {
+    const effects = JSON.parse(readFileSync('public/data/package-effects.json', 'utf8'));
+    fetch.mockImplementation(async () => ({ ok: true, json: async () => effects }));
+    const { usePackageEffects } = await import('../src/ui/synergyReport');
+    expect(usePackageEffects(false)).toEqual({ state: 'loading' });
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
+    usePackageEffects(true);
+    usePackageEffects(true);
+    await vi.waitFor(() => expect(hook.values).toHaveLength(2));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(String(fetch.mock.calls[0]![0])).toMatch(/(^|\/)data\/package-effects\.json$/);
+    expect(hook.values[0]).toMatchObject({ state: 'ready', file: { kind: 'nct-package-effects' } });
+    // a file that is not one reads as missing
+    vi.resetModules();
+    fetch.mockImplementation(async () => ({ ok: true, json: async () => ({ kind: 'nct-lift' }) }));
+    const again = await import('../src/ui/synergyReport');
+    expect(await again.loadPackageEffects()).toEqual({ state: 'missing' });
   });
 });
