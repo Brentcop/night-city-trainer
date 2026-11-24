@@ -10,8 +10,8 @@ import { automationSwitch } from '../scripts/automation-switch-run';
 const parse = (automation: unknown) => parseSiteConfig({ kind: 'nct-site-config', schema: 1, automation });
 
 describe('the automation section', () => {
-  it('defaults: the series and arrivals on, width 4, at most 12,000 games a run; a file that does not name it reads them', () => {
-    expect(defaultSiteConfig().automation).toEqual({ series: true, arrivals: true, width: 4, maxGamesPerRun: 12_000 });
+  it('defaults: the series and arrivals on, width 4, at most 12,000 games a run, the matchup block on (16 decks, 100 games a pair); a file that does not name it reads them', () => {
+    expect(defaultSiteConfig().automation).toEqual({ series: true, arrivals: true, width: 4, maxGamesPerRun: 12_000, matchups: true, matchupDecks: 16, matchupGames: 100 });
     const bare = parseSiteConfig({ kind: 'nct-site-config', schema: 1 });
     expect(bare.errors).toEqual([]);
     expect(bare.config.automation).toEqual(defaultSiteConfig().automation);
@@ -20,9 +20,9 @@ describe('the automation section', () => {
     expect(Object.keys(committed.config.automation).sort()).toEqual([...AUTOMATION_KEYS].sort());
   });
   it('reads what the owner set, and round-trips through the editor\'s text', () => {
-    const p = parse({ series: false, arrivals: true, width: 5.5, maxGamesPerRun: 3000 });
+    const p = parse({ series: false, arrivals: true, width: 5.5, maxGamesPerRun: 3000, matchups: false, matchupDecks: 12, matchupGames: 60 });
     expect(p.errors).toEqual([]);
-    expect(p.config.automation).toEqual({ series: false, arrivals: true, width: 5.5, maxGamesPerRun: 3000 });
+    expect(p.config.automation).toEqual({ series: false, arrivals: true, width: 5.5, maxGamesPerRun: 3000, matchups: false, matchupDecks: 12, matchupGames: 60 });
     expect(parseSiteConfigText(siteConfigText(p.config)).config.automation).toEqual(p.config.automation);
   });
   it('refuses, field by field, a value out of bounds or of the wrong kind (the default is used, check:data fails)', () => {
@@ -34,6 +34,15 @@ describe('the automation section', () => {
       expect(p.config.automation.width).toBe(4);
     }
     for (const maxGamesPerRun of [gLo - 1, gHi + 1, 1000.5, '12000']) expect(parse({ maxGamesPerRun }).errors.map((e) => e.path)).toEqual(['automation.maxGamesPerRun']);
+    for (const k of ['matchupDecks', 'matchupGames'] as const) {
+      const [lo, hi] = AUTOMATION_BOUNDS[k];
+      for (const v of [lo - 1, hi + 1, lo + 0.5, String(lo)]) {
+        const p = parse({ [k]: v });
+        expect(p.errors.map((e) => e.path)).toEqual([`automation.${k}`]);
+        expect(p.config.automation[k]).toBe(defaultSiteConfig().automation[k]);
+      }
+    }
+    expect(parse({ matchups: 1 }).errors.map((e) => e.path)).toEqual(['automation.matchups']);
     expect(parse({ series: 'yes' }).errors.map((e) => e.path)).toEqual(['automation.series']);
     expect(parse({ unknownJob: true }).warnings.map((e) => e.path)).toEqual(['automation.unknownJob']);
     expect(parse('on').errors.map((e) => e.path)).toEqual(['automation']);
@@ -74,6 +83,9 @@ describe('scripts/automation-switch.ts reads the section', () => {
     const w = run(['automation.width', '--config', 'c.json', '--github-output', 'o'], file({ width: 6 }));
     expect(w).toMatchObject({ code: 0, out: '6', appended: { o: 'value=6\n' } });
     expect(run(['automation.maxGamesPerRun', '--config', 'c.json'], file(undefined)).out).toBe('12000');
+    expect(run(['automation.matchups', '--config', 'c.json'], file({ matchups: false })).out).toBe('off');
+    expect(run(['automation.matchupDecks', '--config', 'c.json'], file(undefined)).out).toBe('16');
+    expect(run(['automation.matchupGames', '--config', 'c.json', '--github-output', 'o'], file({ matchupGames: 50 }))).toMatchObject({ code: 0, out: '50', appended: { o: 'value=50\n' } });
     expect(JSON.parse(run(['--json', '--config', 'c.json'], file({ series: false })).out)).toEqual({ ...defaultSiteConfig().automation, series: false });
   });
   it('keeps the exit codes: 1 for a missing or broken file, 2 for an unknown setting or a bad command line; features as before', () => {

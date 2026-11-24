@@ -4,6 +4,7 @@
 // Whatever the recorded data holds, the tests hold: they read what is needed from it (with a width of 3 the series
 // still has work; if it ever has none, the run is checked to do nothing).
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EXIT, seriesCommand, type SeriesIO, type SeriesStatus } from '../scripts/series-run';
@@ -16,6 +17,9 @@ import { distinctLists } from '../src/lib/distinctLists';
 import { defaultSiteConfig, siteConfigText } from '../src/lib/siteConfig';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { RUN_SEED_SPAN, seriesSeed } from '../src/lib/seriesPlan';
+import { seriesImpactProblems } from '../src/lib/seriesImpact';
+import { parseCardImpact } from '../src/lib/seasonImpact';
+import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
 
 const CONFIG = 'virtual/site-config.json';
 const configWith = (automation: Partial<ReturnType<typeof defaultSiteConfig>['automation']>) => {
@@ -25,7 +29,7 @@ const configWith = (automation: Partial<ReturnType<typeof defaultSiteConfig>['au
 };
 
 /** The command on the repository's data, with a stub player and replay, a fake clock and writes kept in memory. */
-function harness(o: { config?: string | null; replay?: string | null; secondsPerGame?: number } = {}) {
+function harness(o: { config?: string | null; replay?: string | null; secondsPerGame?: number; summaries?: boolean } = {}) {
   const out: string[] = [];
   const err: string[] = [];
   const written = new Map<string, string>();
@@ -43,7 +47,13 @@ function harness(o: { config?: string | null; replay?: string | null; secondsPer
       playedJobs += jobs.length;
       clock += jobs.length * 1000 * (o.secondsPerGame ?? 0.5);
       // a stub game: the winner follows the seed, so the same run gives the same file
-      return jobs.map((j) => ({ winner: (Math.imul(j.seed, 2654435761) >>> 16) & 1 ? (0 as const) : (1 as const), turns: 10 + (j.seed % 4), reason: 'stub' }));
+      return jobs.map((j) => {
+        const winner = (Math.imul(j.seed, 2654435761) >>> 16) & 1 ? (0 as const) : (1 as const);
+        // with summaries: each seat "draws" the cards of its main deck the seed picks (traced only when the job asks)
+        const seen = (d: { main: string[] }, salt: number) => [...new Set(d.main.filter((_, k) => (Math.imul(j.seed + salt, 40503 + k) >>> 13) & 1))];
+        const summaries = o.summaries && j.trace ? [{ deck: j.a, result: winner === 0 ? 1 : 0, seen: seen(j.decks[0], 1) }, { deck: j.b, result: winner === 1 ? 1 : 0, seen: seen(j.decks[1], 2) }] : undefined;
+        return { winner, turns: 10 + (j.seed % 4), reason: 'stub', ...(summaries ? { summaries } : {}) };
+      });
     },
     replay: async (games) => (o.replay === undefined ? null : o.replay === null ? null : `${games[0]?.label ?? 'a game'}: ${o.replay}`),
   };
@@ -61,8 +71,12 @@ const statusOf = async (config?: string) => {
 describe('status --json (the workflow\'s decision step)', () => {
   it('says everything the decision needs, with the switches as the config reads them', async () => {
     const s = await statusOf(configWith({ width: 3 }));
-    expect(Object.keys(s).sort()).toEqual(['bot', 'decks', 'expectedGames', 'games', 'minutes', 'needed', 'nextRun', 'over', 'simVersion', 'switches', 'target', 'unrated', 'why', 'widest'].sort());
-    expect(s).toMatchObject({ simVersion: SIM_VERSION, bot: 'hard', decks: FIELD.length, switches: { series: true, arrivals: true, width: 3, maxGamesPerRun: 12_000 } });
+    expect(Object.keys(s).sort()).toEqual(['block', 'bot', 'decks', 'expectedGames', 'games', 'minutes', 'needed', 'nextRun', 'over', 'simVersion', 'switches', 'target', 'unrated', 'why', 'widest'].sort());
+    expect(s).toMatchObject({ simVersion: SIM_VERSION, bot: 'hard', decks: FIELD.length, switches: { series: true, arrivals: true, width: 3, maxGamesPerRun: 12_000, matchups: true, matchupDecks: 16, matchupGames: 100 } });
+    // the matchup block: the 16 best-rated decks, 120 pairs; its games to go are counted in the expectation
+    expect(s.block).toMatchObject({ target: 100, pairs: 120 });
+    expect(s.block!.decks).toHaveLength(16);
+    expect(s.expectedGames).toBeGreaterThanOrEqual(s.block!.games);
     expect(s.why.length).toBeGreaterThan(0);
     expect(s.nextRun).toMatch(/^run-\d+$/);
     expect(s.minutes.gamesPerSecond).toBeGreaterThan(0);
@@ -217,5 +231,88 @@ describe('what the workflow reads (--github-output, --summary)', () => {
     const off = harness({ config: configWith({ series: false, arrivals: false }) });
     await off.run(['run', '--github-output', 'o']);
     expect(off.appended.get('o')).toBe('written=false\nfile=\nstopped=nothing-needed\n');
+  });
+});
+
+describe('the matchup block and the traced card impact (2026-11-24)', () => {
+  // a width the recorded data meets, so the run goes to the block (if the data ever misses it, the width comes first)
+  const WIDE = configWith({ width: 8 });
+  it('a run with the width met plays the block\'s pairs, seats balanced, and its file carries the block and the card impact', async () => {
+    const s = await statusOf(WIDE);
+    expect(s.block).not.toBeNull();
+    const h = harness({ config: WIDE, summaries: true });
+    const code = await h.run(['run', '--max-games', '60', '--out', 'v']);
+    if (!s.needed) return void expect(code).toBe(EXIT.done);
+    expect(code).toBe(EXIT.budget);
+    const run = JSON.parse([...h.written.values()][0]!);
+    const games = run.rounds[0].matches.flatMap((m: { a: string; b: string; games: { first: number }[] }) => m.games.map((g) => ({ a: m.a, b: m.b, first: g.first })));
+    expect(games).toHaveLength(60);
+    if (s.over === 0) {
+      // every game a pair of the block's decks, as the status named them
+      expect(games.every((g: { a: string; b: string }) => s.block!.decks.includes(g.a) && s.block!.decks.includes(g.b))).toBe(true);
+      expect(run.block).toMatchObject({ decks: s.block!.decks, target: 100, pairs: 120, before: { games: s.block!.games }, after: { games: s.block!.games - 60 } });
+      expect(run.rule).toMatchObject({ matchups: true, matchupDecks: 16, matchupGames: 100 });
+    }
+    expect(run.impact).toMatchObject({ kind: 'nct-run-card-impact', schema: 1, games: 60 });
+    expect(run.impact.decks.length).toBeGreaterThan(0);
+    expect(h.out.join('\n')).toMatch(/Card impact traced: \d+ decks/);
+    // check:data reads the run with its block and impact
+    expect(runFileProblems([{ file: `${s.nextRun}.json`, event: run as CheckEvent }], loadLibrary())).toMatchObject({ failures: [] });
+    const bad = { ...run, impact: { ...run.impact, games: 59 } };
+    expect(runFileProblems([{ file: `${s.nextRun}.json`, event: bad as CheckEvent }], loadLibrary()).failures.join('\n')).toContain('its card impact traces 59 games, the run has 60');
+    // --no-trace: the same games, no card impact
+    const plain = harness({ config: WIDE, summaries: true });
+    await plain.run(['run', '--max-games', '60', '--out', 'v', '--no-trace']);
+    const p = JSON.parse([...plain.written.values()][0]!);
+    expect(p.impact).toBeUndefined();
+    expect(p.rounds).toEqual(run.rounds);
+  });
+  it('--dry-run prints the pairings it plays', async () => {
+    const h = harness({ config: WIDE });
+    const code = await h.run(['run', '--max-games', '30', '--dry-run']);
+    if (code === EXIT.done) return;
+    expect(h.out.join('\n')).toMatch(/ {2}pairs: .+ vs .+ ×\d+/);
+    expect(h.written.size).toBe(0);
+  });
+  it('impact adds a traced run to the committed card tables once, in the (version, hard) entry; a second pass adds nothing', async () => {
+    const h = harness({ config: WIDE, summaries: true });
+    const code = await h.run(['run', '--max-games', '60', '--out', 'v']);
+    if (code === EXIT.done) return;
+    const text = [...h.written.values()][0]!;
+    const run = JSON.parse(text);
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'series-impact-'));
+    try {
+      fs.mkdirSync(path.join(tmp, 'series'));
+      fs.mkdirSync(path.join(tmp, 'seasons'));
+      fs.writeFileSync(path.join(tmp, 'series', `${run.id}.json`), text);
+      for (const f of ['impact.json', 'deck-impact.json']) fs.copyFileSync(path.join('data/seasons', f), path.join(tmp, 'seasons', f));
+      const io = harness().io;
+      const files = new Map<string, string>();
+      io.read = (f) => files.get(f) ?? (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null);
+      io.write = (f, t) => void files.set(f, t);
+      const out: string[] = [];
+      io.out = (l) => out.push(l);
+      io.dirs = { series: path.join(tmp, 'series'), seasons: path.join(tmp, 'seasons') };
+      expect(await seriesCommand(['impact'], io)).toBe(EXIT.done);
+      expect(out.join('\n')).toContain(`rating ${run.id} (60 games`);
+      const card = parseCardImpact(JSON.parse(files.get(path.join(tmp, 'seasons', 'impact.json'))!)).file!;
+      const deck = parseDeckImpact(JSON.parse(files.get(path.join(tmp, 'seasons', 'deck-impact.json'))!)).file!;
+      const hard = card.entries.find((e) => e.simVersion === SIM_VERSION && e.bot === 'hard')!;
+      expect(hard.sources).toContainEqual({ kind: 'series', run: run.id, runId: run.manifest.runId });
+      expect(seriesImpactProblems(card, deck, [{ id: run.id, runId: run.manifest.runId, simVersion: run.simVersion, bot: run.bot, impact: run.impact }])).toEqual([]);
+      // a second pass reads what the first wrote and adds nothing
+      out.length = 0;
+      const before = new Map(files);
+      expect(await seriesCommand(['impact'], io)).toBe(EXIT.done);
+      expect(out.join('\n')).toContain('Nothing to add');
+      expect(files).toEqual(before);
+      // --dry-run on the committed tables writes nothing
+      files.clear();
+      expect(await seriesCommand(['impact', '--dry-run'], io)).toBe(EXIT.done);
+      expect(files.size).toBe(0);
+      expect(await seriesCommand(['impact', '--json'], io)).toBe(EXIT.usage);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

@@ -21,7 +21,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** The paths a series commit may touch (scripts/series-finalize.ts holds the same list; tests/series-finalize.test.ts compares them). */
-export const SERIES_COMMIT_PATHS = [/^data\/series\/run-\d+\.json$/, /^src\/data\/ratings\.json$/, /^public\/data\/h2h\.json$/, /^reports\/ratings-latest\.md$/, /^public\/data\/evidence\/[^/]+\.json$/];
+export const SERIES_COMMIT_PATHS = [
+  /^data\/series\/run-\d+\.json$/,
+  /^src\/data\/ratings\.json$/,
+  /^public\/data\/h2h\.json$/,
+  /^reports\/ratings-latest\.md$/,
+  /^public\/data\/evidence\/[^/]+\.json$/,
+  // the season breeder's card tables, which `series.ts impact` adds the run's traced games to (since 2026-11-24)
+  /^data\/seasons\/impact\.json$/,
+  /^data\/seasons\/deck-impact\.json$/,
+];
 export const PUSH_EXIT = { pushed: 0, error: 1, usage: 2, retry: 5, refused: 7 };
 
 /**

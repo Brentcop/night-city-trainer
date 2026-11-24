@@ -10,11 +10,13 @@
 //      else's run is in: exit 6), and its id run-N;
 //   3. place it, then --verify (default: npx tsx scripts/series.ts verify FILE: the run's simulator version is the
 //      code's, and its own games replay; a refusal is exit 4);
-//   4. --rebuild (default: ratings, head-to-heads, evidence) and --checks (default: what pages.yml's check job runs, and
-//      the evidence check); a failure is exit 1, and nothing is committed;
+//   4. --rebuild (default: ratings, head-to-heads, the card tables (series.ts impact: the run's traced card impact into
+//      data/seasons, once), evidence) and --checks (default: what pages.yml's check job runs, and the evidence check;
+//      check:data includes that every traced run is counted in the card tables exactly once); a failure is exit 1, and
+//      nothing is committed;
 //   5. only the run file and the files the rebuild writes may differ from main (data/series/run-N.json added,
-//      src/data/ratings.json, public/data/h2h.json, reports/ratings-latest.md, public/data/evidence/*.json): anything
-//      else is exit 7;
+//      src/data/ratings.json, public/data/h2h.json, reports/ratings-latest.md, public/data/evidence/*.json,
+//      data/seasons/impact.json, data/seasons/deck-impact.json): anything else is exit 7;
 //   6. commit as github-actions[bot], hooks off, with the message "Series run N: G games, widest ±a to ±b (stopped)",
 //      and write DIR/series.bundle (main..commit) and DIR/commit.json (base, commit, run, message) for the push job.
 //
@@ -26,7 +28,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /** The paths a series commit may touch (scripts/series-push.mjs holds the same list; the tests compare them). */
-export const SERIES_COMMIT_PATHS = [/^data\/series\/run-\d+\.json$/, /^src\/data\/ratings\.json$/, /^public\/data\/h2h\.json$/, /^reports\/ratings-latest\.md$/, /^public\/data\/evidence\/[^/]+\.json$/];
+export const SERIES_COMMIT_PATHS = [
+  /^data\/series\/run-\d+\.json$/,
+  /^src\/data\/ratings\.json$/,
+  /^public\/data\/h2h\.json$/,
+  /^reports\/ratings-latest\.md$/,
+  /^public\/data\/evidence\/[^/]+\.json$/,
+  // the season breeder's card tables, which `series.ts impact` adds the run's traced games to (since 2026-11-24)
+  /^data\/seasons\/impact\.json$/,
+  /^data\/seasons\/deck-impact\.json$/,
+];
 export const FINALIZE_EXIT = { prepared: 0, failed: 1, usage: 2, verify: 4, taken: 6, outside: 7 } as const;
 
 /**
@@ -45,7 +56,7 @@ export function irregularEntries(rawLines: readonly string[]): string[] {
 }
 
 export const DEFAULT_VERIFY = 'npx tsx scripts/series.ts verify';
-export const DEFAULT_REBUILD = 'npx tsx scripts/ratings.ts && npx tsx scripts/build-h2h.ts && npx tsx scripts/build-evidence.ts';
+export const DEFAULT_REBUILD = 'npx tsx scripts/ratings.ts && npx tsx scripts/build-h2h.ts && npx tsx scripts/series.ts impact && npx tsx scripts/build-evidence.ts';
 export const DEFAULT_CHECKS = [
   'npm run typecheck',
   'npx vitest run',

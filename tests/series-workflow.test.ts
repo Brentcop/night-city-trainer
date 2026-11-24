@@ -132,7 +132,7 @@ describe('the workflow file (.github/workflows/series.yml)', () => {
     expect(s[upload]).toMatch(/if: \$\{\{ always\(\) && steps\.run\.outputs\.written == 'true' && inputs\.dry_run != true \}\}/);
     expect(s[upload]).toMatch(/name: series-run\n {10}path: \$\{\{ steps\.run\.outputs\.file \}\}\n {10}if-no-files-found: error\n {10}retention-days: 14/);
     // then the early rebuild and checks
-    expect(s[upload + 1]).toMatch(/scripts\/ratings\.ts[\s\S]*build-h2h\.ts[\s\S]*build-evidence\.ts[\s\S]*check:data[\s\S]*build-evidence\.ts --check/);
+    expect(s[upload + 1]).toMatch(/scripts\/ratings\.ts[\s\S]*build-h2h\.ts[\s\S]*scripts\/series\.ts impact[\s\S]*build-evidence\.ts[\s\S]*check:data[\s\S]*build-evidence\.ts --check/);
     expect(p).toMatch(/timeout-minutes: 300/);
   });
 

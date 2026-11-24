@@ -113,6 +113,9 @@ cyberpunk-tcg-sim.online (paste links, run `tools/import_decks.py` for the pages
 | `automation.arrivals` | `true` | With the series off: a deck with no game on its current list (new, or edited) is played until its range is as narrow as the widest of the other decks. With the series on it is part of the series. |
 | `automation.width` | `4` | The half-width, in points, the series stops at (3–8, at most one decimal; the editor offers half points). 4: a Sim-tier letter is then right or one band off. Below 4 the site search outgrows its first-search budget (286.2 of 300 kB measured at ±3.83, about 329 kB estimated at ±3), so the build fails until that budget is raised. |
 | `automation.maxGamesPerRun` | `12000` | A run stops at this many games, or at its time budget, and the next run carries on (300–50,000: one chunk of games at least; above 50,000 the run's 4 hours on a 4 vCPU runner bind first). |
+| `automation.matchups` | `true` | The matchup block (since 2026-11-24; [SERIES.md](SERIES.md) "The matchup block"): with the series on, once every range is within the width, the series goes on with the pairs among the `matchupDecks` best-rated decks until each pair has `matchupGames` games, the two decks going first equally often. The decks are chosen by rating from recorded games only. From the ratings of 2026-11-24 the first block is about 11,400 games: one run at the default cap. |
+| `automation.matchupDecks` | `16` | The block's decks: the top this many by rating (4–24; 16 decks are 120 pairs). |
+| `automation.matchupGames` | `100` | Games a pair of the block (20–200). At 100 a pair's own record has a standard error of 5 points, about the size of the matchup effects the review of 2026-11-24 measured (4.4 to 4.8 points). |
 
 The committed file need not name the `automation` section: a missing key takes its default. The scheduled job reads it
 with `npx tsx scripts/automation-switch.ts automation.series` (or `--json` for the whole section) and

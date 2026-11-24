@@ -11,7 +11,9 @@ current lists, `check:data` validates run files, and the test suite no longer pi
 and "The owner's switches" under The design, with "What the workflow needs from it"). Stage 4, the scheduled workflow,
 is built ("Running by itself", the third chunk) and has not yet run on GitHub; the owner's decisions of 2026-11-18 (relayed by the dispatcher): width ±4,
 switches on by default once they exist, pool by list. The real-field column and the runner's weighted match list
-(stages 5 and 6) are not in this build.
+(stages 5 and 6) are not in this build. **2026-11-24** (docs/REVIEW_2026-11-24.md B.9 and B.2): the series' objective
+now goes on past the width with a matchup block among the best-rated decks ("The matchup block"), and a run traces its
+games and carries their card impact into the season breeder's tables ("The card table").
 
 ## The recommendation
 
@@ -471,15 +473,16 @@ module is loaded by the game worker: `scripts/game-cache.ts codeHash` read `430a
 
 | Step | Command | Reads | Gives |
 | --- | --- | --- | --- |
-| Decide | `npx tsx scripts/series.ts status --json` | `public/site-config.json`, `data/decks`, `public/tournaments`, `data/series` | one JSON object: `needed`, `why` (sentences for the summary), `switches`, `simVersion`, `bot`, `games`, `decks`, `widest` {deck, hw}, `target`, `over`, `unrated`, `expectedGames`, `minutes` {estimate, gamesPerSecond, from}, `nextRun`; exit 0, 1 when the config is missing or broken (run nothing, go red), 2 on a bad command line |
+| Decide | `npx tsx scripts/series.ts status --json` | `public/site-config.json`, `data/decks`, `public/tournaments`, `data/series` | one JSON object: `needed`, `why` (sentences for the summary), `switches`, `simVersion`, `bot`, `games`, `decks`, `widest` {deck, hw}, `target`, `over`, `unrated`, `block` (the matchup block: decks, target, pairs, done, games to go, least; null when off), `expectedGames` (the width rule's plus the block's), `minutes` {estimate, gamesPerSecond, from}, `nextRun`; exit 0, 1 when the config is missing or broken (run nothing, go red), 2 on a bad command line |
 | Play | `npx tsx scripts/series.ts run --minutes 240 --threads 4` | the same | one new file `data/series/run-N.json`; exit **0** the rule holds (or nothing was needed, or both switches are off: then no file), **3** stopped at its budget (a file is written with `stopped: "budget"`; commit it, the next run carries on), **4** a recorded game no longer replays (no file; go red: the code changed play without a `SIM_VERSION` bump), **1** an error (a game threw, the config broke; no file), **2** a bad command line |
 | Verify (finalize) | `npx tsx scripts/series.ts verify data/series/run-N.json [--replay 4]` | the run file | exit 0: its simulator version is the code's and its first, last and two middle games replay as recorded; **4**: refused, naming the version or the game; 1: not a rating run |
-| Rebuild | `npx tsx scripts/ratings.ts`, `npx tsx scripts/build-h2h.ts`, `npx tsx scripts/build-evidence.ts`, in that order | the new run file | `src/data/ratings.json`, `reports/ratings-latest.md`, `public/data/h2h.json`, `public/data/evidence/*` |
+| Rebuild | `npx tsx scripts/ratings.ts`, `npx tsx scripts/build-h2h.ts`, `npx tsx scripts/series.ts impact`, `npx tsx scripts/build-evidence.ts`, in that order | the new run file | `src/data/ratings.json`, `reports/ratings-latest.md`, `public/data/h2h.json`, `data/seasons/impact.json`, `data/seasons/deck-impact.json`, `public/data/evidence/*` |
 | Check | typecheck, the whole suite, the Python tests, lint, `check:data`, `npx vite build` | the candidate tree | nothing is committed unless all pass |
-| Switch alone | `npx tsx scripts/automation-switch.ts automation.series` (or `--json`) | the config | "on"/"off" (a number for `automation.width` and `automation.maxGamesPerRun`); `--github-output FILE` appends `on=…` / `value=…` / `automation={…}`; exit 1 / 2 as for the features |
+| Switch alone | `npx tsx scripts/automation-switch.ts automation.series` (or `--json`) | the config | "on"/"off" (a number for `automation.width`, `automation.maxGamesPerRun`, `automation.matchupDecks` and `automation.matchupGames`); `--github-output FILE` appends `on=…` / `value=…` / `automation={…}`; exit 1 / 2 as for the features |
 
 The files a run commit touches: the new run file, `src/data/ratings.json`, `reports/ratings-latest.md`,
-`public/data/h2h.json` and the evidence files; never the events index, an event file or anything under `src/`.
+`public/data/h2h.json`, the evidence files and (since 2026-11-24) `data/seasons/impact.json` and
+`data/seasons/deck-impact.json`; never the events index, an event file or anything else under `src/` or `data/`.
 
 ### Running by itself (`.github/workflows/series.yml`, built 2026-11-18, chunk 3)
 
@@ -519,8 +522,9 @@ file is kept 14 days as the artifact `series-run` (it can be committed by hand: 
 rebuilds and the checks). Nothing reaches main unless every check passed on the exact main it was pushed onto.
 
 **A successful commit** reads "Series run N: G games, widest ±a to ±b (reached|budget)" by github-actions[bot], and
-touches `data/series/run-N.json`, `src/data/ratings.json`, `public/data/h2h.json`, `reports/ratings-latest.md` and
-`public/data/evidence/*.json`, nothing else; pages.yml then checks and deploys main.
+touches `data/series/run-N.json`, `src/data/ratings.json`, `public/data/h2h.json`, `reports/ratings-latest.md`,
+`public/data/evidence/*.json`, `data/seasons/impact.json` and `data/seasons/deck-impact.json` (the last two since
+2026-11-24, when the run carries card impact), nothing else; pages.yml then checks and deploys main.
 
 **How long** (*estimates*, the runner was not measured): `decide` 2 to 3 minutes; `play` up to the 240-minute budget
 plus 5 to 10 minutes (install, guard tests, rebuild and checks): from today's ratings about 9,600 games, 46 to 107
@@ -554,10 +558,83 @@ on for now, as a setting in admin mode to toggle"):
 | `automation.arrivals` | `true` | With the series off: a deck with no game on its current list is played to the widest range of the other decks. |
 | `automation.width` | `4` | ± points, 3 to 8 (one decimal at most). 3 breaks the search budget (measured 286.2 of 300 kB at ±3.83). |
 | `automation.maxGamesPerRun` | `12000` | 300 (one chunk) to 50,000 (about the most a 4 vCPU runner plays in a run's 4 hours at its fastest, so a higher cap would never bind). |
+| `automation.matchups` | `true` | (2026-11-24) With the series on: after the width, the matchup block. |
+| `automation.matchupDecks` | `16` | The block's decks, the top this many by rating, 4 to 24 (16: 120 pairs). |
+| `automation.matchupGames` | `100` | Games a pair of the block, 20 to 200. |
 
 The job reads the committed file at its next scheduled run; a change in a preview does nothing. Turning both
 switches off stops the next run at its decision; a run in progress finishes. `scripts/automation-switch.ts` reads the
 section for the workflow (a name without a dot is still a feature, exactly as the outside-meta workflow calls it).
+
+### The matchup block (built 2026-11-24, docs/REVIEW_2026-11-24.md B.9)
+
+**Why.** The width rule is chosen for letters: ±4 everywhere leaves the order among the strong decks unresolved, and the
+rule's own pairing (the least-met opponent) spreads games thin, a median of 6 a pair, so matchup effects cannot be told
+from the ratings (review §5 L1, L9). The review measured about 4.4 to 4.8 points of real matchup spread, which matters in
+a narrow field or a top cut, for counter breeding and for the forecast's "what decides it". So the series' objective now
+has a second part, after the width: every pair among the best-rated decks to a number of games.
+
+**The rule** (`src/lib/seriesPlan.ts`: `blockOn`, `blockDecks`, `blockPairs`, `blockState`, `planBlockPicks`,
+`firstsOf`; `runSeries`). With `automation.series` and `automation.matchups` on, once every deck's range is within the
+width (at the start of a run, or as soon as the run's own width games reach it), the run takes the top
+`automation.matchupDecks` decks of the series field by fitted rating (rated decks only, ties by name) and fixes them for
+the rest of the run. It then plays their pairs until each has `automation.matchupGames` games on current lists (games
+already recorded count): the pair with the fewest games first, ties by the run's seeded draw, 10 games a pick and never
+past the target, each game's first player the deck of the pair that has gone first less often (counting the recorded
+games), so a pair's seats come out equal. The arrivals and width games still come first: an unrated deck is the widest
+and is played before any block game. Seeds stay the series' own, `seriesSeed(n, k)`, below 2³¹.
+
+**Why the likelihood stays valid.** Which decks and pairs get games depends only on the recorded results (the fit at the
+block's start), never on the outcome of a game not yet played: the same argument as Swiss pairing and the width rule
+(review §5 L10). The decks are fixed when the block starts so the block does not chase rank changes within a run; a
+later run reads the ratings afresh, and a deck that has entered the top 16 by then adds its 15 pairs (about 1,500 games).
+
+**Why a count, not `planExtraGames`' weighted variance.** A pair's matchup effect is learned only from that pair's own
+games; the ratings' variance (what `planExtraGames` minimises, weighted or not) is already the width rule's job. At 100
+games a pair's own record has a standard error of 5 points, about the size of the effects measured, so it counts about
+as much as the model's prediction for the pair under a prior weight of about 100 games (review L1); the count does not
+depend on the shrinkage model, which is being changed separately (B.3).
+
+**Size and time.** On the data of 2026-11-24 (run 1, events 20 to 25): the top 16 are RRG Dexter Midrange, the ladder
+lists, Smash the Curve, S1-01 Mutant, two Discord 5k lists and NC-08 Merc Contract; 0 of 120 pairs have 100 games and
+some have none; **11,412 games** to go, about 24 minutes at run 1's rate on GitHub (8.1 games a second), so one daily run
+under the default cap of 12,000, or one local run. `status` says what the block needs (its decks, pairs at the target,
+games to go); `run --dry-run` prints each chunk's pairings. The run file records `block` (its decks, target, pairs, and
+the pairs at the target and games to go before and after) and the switches in `rule`.
+
+**Not verified.** The block's games add matchup records to the site search (pairs reaching 6 games); the build's
+first-search budget check (in the finalize's `npx vite build`) is the guard.
+
+### The card table (built 2026-11-24, docs/REVIEW_2026-11-24.md B.2 and R3)
+
+**Why.** The season breeder's card table (`data/seasons/impact.json` and `deck-impact.json`, entry simulator version 9
+and Hard) holds one season's games and is mostly noise (reliability about 0.58, review R3). The series plays about twice
+a season's Hard games a run on the same simulator version and bot, and its games were thrown away for this purpose.
+
+**Measured first** (2026-11-24, this machine shared with other agents' games, 3 threads, 150 Hard games of the top 16 on
+the same seeds, alternating): without tracing 76.9 s and 71.7 s, with tracing 72.6 s and 70.1 s: no measurable cost
+(the trace's summaries are about 3.6 kB a game), and the results were identical with and without (winner and turns of
+every game), as the worker's `trace` is observe-only.
+
+**How.** `series.ts run` asks the worker for each game's trace summaries and folds them into counts as they arrive
+(`ImpactCounter`, `src/lib/seriesImpact.ts`: per deck and card, games drawn and won when drawn; the results are 0, ½ or
+1, so the sums are exact and the figures equal `analyzeAll`'s, the season's definition: a card drawn in at least 8 games
+and missing from at least 8, Legends left out; `tests/series-impact.test.ts` compares them). The run file carries them
+as `impact` (`kind: 'nct-run-card-impact'`, schema 1: games traced, then per deck its name, list fingerprint, games and
+each card's iwd and drawn games; about 130 kB a run). `--no-trace` leaves it out. Nothing else in the run changes.
+
+**Into the tables, once.** `npx tsx scripts/series.ts impact [--dry-run]` adds every recorded run that carries card
+impact to both tables, in the entry of the run's simulator version and bot, with the source
+`{ kind: 'series', run: 'run-N', runId: 'series:run-N:<date>' }` (`ImpactSource` in `src/lib/seasonImpact.ts`). Each
+file is added to only where it does not count that run yet, so a second pass adds nothing and a step stopped between the
+two writes is finished by the next one; a file that counts the run under another manifest run id (a run file replaced
+after it was counted) is refused, exit 1, nothing written. It is a rebuild step, run after `build-h2h.ts`: by the play
+job's early rebuild and by `series-finalize.ts` on the fresh main (`DEFAULT_REBUILD`), so the tables are always rebuilt
+from the committed run files, and a refused run is never counted. `SERIES_COMMIT_PATHS` (finalize and push, the same
+list) now allow the two table files. `check:data` fails when a run's block is malformed or traces another number of
+games than the run has, when a run that carries card impact is not counted in both tables under its own pair and run id,
+or when a table counts a series run that is not recorded with card impact (`seriesImpactProblems`). Another agent's Hard
+telemetry may go into the same (9, hard) entry as its own `analysis` source; the sources list keeps every run apart.
 
 ## Staged build plan
 

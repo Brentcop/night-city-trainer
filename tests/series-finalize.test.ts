@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { commitMessage, FINALIZE_EXIT, irregularEntries as prepareIrregular, prepareSeriesCommit, SERIES_COMMIT_PATHS as PREPARE_PATHS } from '../scripts/series-finalize';
+import { commitMessage, DEFAULT_REBUILD, FINALIZE_EXIT, irregularEntries as prepareIrregular, prepareSeriesCommit, SERIES_COMMIT_PATHS as PREPARE_PATHS } from '../scripts/series-finalize';
 // @ts-expect-error: a plain Node module with no types (it runs with Node alone in the workflow's push jobs)
 import { irregularEntries as pushIrregular, PUSH_EXIT, pushSeriesCommit, SERIES_COMMIT_PATHS as PUSH_PATHS } from '../scripts/series-push.mjs';
 
@@ -41,6 +41,9 @@ function toy(o: { runsOnMain?: number } = {}) {
   put(seed, 'public/data/h2h.json', '{"runs":0}\n');
   put(seed, 'public/data/evidence/index.json', '{"runs":0}\n');
   put(seed, 'reports/ratings-latest.md', 'runs 0\n');
+  put(seed, 'data/seasons/impact.json', '{"runs":0}\n');
+  put(seed, 'data/seasons/deck-impact.json', '{"runs":0}\n');
+  put(seed, 'data/seasons/season-3.json', '{"season":3}\n');
   for (let k = 1; k <= (o.runsOnMain ?? 0); k++) put(seed, `data/series/run-${k}.json`, JSON.stringify({ id: `run-${k}`, simVersion: 9 }));
   // the stand-ins: verify refuses another simulator version (exit 4, as series.ts verify does); the rebuild rewrites the
   // derived files from the run files, and writes EXTRA (a path outside the list) when asked
@@ -48,7 +51,7 @@ function toy(o: { runsOnMain?: number } = {}) {
   put(
     seed,
     'rebuild.cjs',
-    "const fs = require('fs');\nconst n = fs.readdirSync('data/series').length;\nfor (const f of ['src/data/ratings.json', 'public/data/h2h.json', 'public/data/evidence/index.json']) fs.writeFileSync(f, JSON.stringify({ runs: n }) + '\\n');\nfs.writeFileSync('public/data/evidence/abcdef0123456789.json', JSON.stringify({ runs: n }) + '\\n');\nfs.writeFileSync('reports/ratings-latest.md', 'runs ' + n + '\\n');\nif (process.env.EXTRA) fs.writeFileSync(process.env.EXTRA, 'x');\n",
+    "const fs = require('fs');\nconst n = fs.readdirSync('data/series').length;\nfor (const f of ['src/data/ratings.json', 'public/data/h2h.json', 'public/data/evidence/index.json', 'data/seasons/impact.json', 'data/seasons/deck-impact.json']) fs.writeFileSync(f, JSON.stringify({ runs: n }) + '\\n');\nfs.writeFileSync('public/data/evidence/abcdef0123456789.json', JSON.stringify({ runs: n }) + '\\n');\nfs.writeFileSync('reports/ratings-latest.md', 'runs ' + n + '\\n');\nif (process.env.EXTRA) fs.writeFileSync(process.env.EXTRA, 'x');\n",
   );
   git(seed, 'add', '-A');
   git(seed, 'commit', '-q', '-m', 'toy');
@@ -110,7 +113,16 @@ describe('the commit of a rating run (local bare repository)', () => {
     expect(top).toBe('github-actions[bot]|Series run 1: 600 games, widest ±7.44 to ±6.91 (budget)');
     expect(prev).toBe('Someone|toy');
     const files = git(t.root, '--git-dir', t.remote, 'diff', '--name-status', before, 'main').split('\n').sort();
-    expect(files).toEqual(['A\tdata/series/run-1.json', 'A\tpublic/data/evidence/abcdef0123456789.json', 'M\tpublic/data/evidence/index.json', 'M\tpublic/data/h2h.json', 'M\treports/ratings-latest.md', 'M\tsrc/data/ratings.json'].sort());
+    expect(files).toEqual(
+      ['A\tdata/series/run-1.json', 'A\tpublic/data/evidence/abcdef0123456789.json', 'M\tpublic/data/evidence/index.json', 'M\tpublic/data/h2h.json', 'M\treports/ratings-latest.md', 'M\tsrc/data/ratings.json', 'M\tdata/seasons/impact.json', 'M\tdata/seasons/deck-impact.json'].sort(),
+    );
+  });
+
+  it('the default rebuild adds the run\'s traced card impact to the season tables after the head-to-heads and before the evidence', () => {
+    const at = (s: string) => DEFAULT_REBUILD.indexOf(s);
+    expect(at('scripts/build-h2h.ts')).toBeGreaterThan(at('scripts/ratings.ts'));
+    expect(at('scripts/series.ts impact')).toBeGreaterThan(at('scripts/build-h2h.ts'));
+    expect(at('scripts/build-evidence.ts')).toBeGreaterThan(at('scripts/series.ts impact'));
   });
 
   it('a push race: another commit lands between the checks and the push; the second attempt succeeds on the fresh main', () => {
@@ -143,6 +155,11 @@ describe('the commit of a rating run (local bare repository)', () => {
     const r = finalize(t, t.runFile(1), { env: { EXTRA: 'src/planted.ts' } });
     expect(r).toMatchObject({ stage: 'prepare', code: FINALIZE_EXIT.outside });
     expect(r.lines.join('\n')).toContain('src/planted.ts');
+    expect(t.main()).toBe(before);
+    // the card tables are in the list; another file beside them is not
+    const s = finalize(t, t.runFile(1), { env: { EXTRA: 'data/seasons/season-3.json' } });
+    expect(s).toMatchObject({ stage: 'prepare', code: FINALIZE_EXIT.outside });
+    expect(s.lines.join('\n')).toContain('data/seasons/season-3.json');
     expect(t.main()).toBe(before);
   });
 

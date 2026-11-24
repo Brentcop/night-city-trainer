@@ -1,8 +1,9 @@
 name: Rating series
 
 # Plays Hard-bot games, the decks with the widest rating ranges first, until every library deck's 90% range is at most
-# the owner's width, and commits the run with the ratings rebuilt (docs/SERIES.md, "Running by itself"). No AI
-# assistant takes part: GitHub runs the repository's scripts on its own schedule.
+# the owner's width, then the pairs among the best-rated decks until each has its games (the matchup block), and commits
+# the run with the ratings rebuilt and its traced card impact added to the season breeder's tables (docs/SERIES.md,
+# "Running by itself"). No AI assistant takes part: GitHub runs the repository's scripts on its own schedule.
 #
 # `decide` (read-only) asks scripts/series.ts status whether anything is needed (the switches in public/site-config.json,
 #   the widest range, unrated decks); nothing needed is a green run that says why, and nothing else runs.
@@ -124,12 +125,13 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       # fail early, before the finalize: the run rebuilds and checks on this tree
-      - name: Rebuild ratings, head-to-heads and evidence, and check them
+      - name: Rebuild ratings, head-to-heads, the card tables and evidence, and check them
         if: ${{ steps.run.outputs.written == 'true' && inputs.dry_run != true }}
         run: |
           set -euo pipefail
           npx tsx scripts/ratings.ts > /dev/null
           npx tsx scripts/build-h2h.ts
+          npx tsx scripts/series.ts impact
           npx tsx scripts/build-evidence.ts
           npm run check:data
           npx tsx scripts/build-evidence.ts --check

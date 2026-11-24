@@ -97,8 +97,8 @@ export const FEATURE_INFO: Record<FeatureName, { label: string; help: string; de
  * between refits) to 50,000 (about what a 4 vCPU runner can play in the 4 hours a run is given at its fastest, so a
  * higher cap would never bind).
  */
-export const AUTOMATION_BOUNDS = { width: [3, 8], maxGamesPerRun: [300, 50_000] } as const;
-export const AUTOMATION_KEYS = ['series', 'arrivals', 'width', 'maxGamesPerRun'] as const;
+export const AUTOMATION_BOUNDS = { width: [3, 8], maxGamesPerRun: [300, 50_000], matchupDecks: [4, 24], matchupGames: [20, 200] } as const;
+export const AUTOMATION_KEYS = ['series', 'arrivals', 'width', 'maxGamesPerRun', 'matchups', 'matchupDecks', 'matchupGames'] as const;
 export type AutomationKey = (typeof AUTOMATION_KEYS)[number];
 export const AUTOMATION_INFO: Record<AutomationKey, { label: string; help: string }> = {
   series: {
@@ -115,7 +115,19 @@ export const AUTOMATION_INFO: Record<AutomationKey, { label: string; help: strin
   },
   maxGamesPerRun: {
     label: 'Most games in one run',
-    help: 'A run stops at this many games (or at its time budget) and says so; the next run carries on. 12,000 is about one to two hours on a 4 vCPU GitHub runner (an estimate: 1.5 to 3.5 Hard games a second).',
+    help: 'A run stops at this many games (or at its time budget) and says so; the next run carries on. 12,000 is about one to two hours on a 4 vCPU GitHub runner (an estimate: 1.5 to 3.5 Hard games a second; run 1 played 9,900 in 24 minutes there).',
+  },
+  matchups: {
+    label: 'Matchup block among the top decks',
+    help: 'With the rating series on: once every deck’s range is within the width, the series goes on with the pairs among the best-rated decks (the number below) until each pair has the games below, so matchups among strong decks can be told apart from the ratings (breeding counters, deck-page matchups, the forecast). The decks are chosen by rating, from recorded games only. The first block from the ratings of 2026-11-24 is about 11,400 games (16 decks, 100 games a pair): one run at the default cap, about 25 minutes on GitHub at run 1’s pace; a deck that enters the top later adds up to about 1,500. On by default.',
+  },
+  matchupDecks: {
+    label: 'Decks in the matchup block',
+    help: 'The block is every pair among this many best-rated decks: 16 decks are 120 pairs, 24 are 276. 4 to 24.',
+  },
+  matchupGames: {
+    label: 'Games a pair in the matchup block',
+    help: 'Each pair of the block is played to this many games, the two decks going first equally often. At 100 games a pair’s own record has a standard error of 5 points, about the size of the matchup effects the review of 2026-11-24 found (4.4 to 4.8 points), so the record then counts about as much as the ratings’ prediction for the pair. 20 to 200.',
   },
 };
 
@@ -398,6 +410,12 @@ export interface SiteConfig {
     /** ± points of a deck's 90% range the series stops at (AUTOMATION_BOUNDS.width) */
     width: number;
     maxGamesPerRun: number;
+    /** the matchup block, with the series on (src/lib/seriesPlan.ts) */
+    matchups: boolean;
+    /** the block's decks: the top this many by rating (AUTOMATION_BOUNDS.matchupDecks) */
+    matchupDecks: number;
+    /** games a pair (AUTOMATION_BOUNDS.matchupGames) */
+    matchupGames: number;
   };
 }
 
@@ -428,7 +446,7 @@ export function defaultSiteConfig(): SiteConfig {
     maintenance: { on: false, message: 'The site is down for maintenance. Please check back soon.', allowPlay: true },
     multiplayer: { iceServers: [...DEFAULT_ICE_SERVERS], turnTimer: 0, lockCodes: true, turnServers: [], turnCredentialsUrl: '', relayUrl: '' },
     multiDay: { minDays: 3, maxDays: 20, defaultDays: 7, maxOngoing: 8 },
-    automation: { series: true, arrivals: true, width: 4, maxGamesPerRun: 12_000 },
+    automation: { series: true, arrivals: true, width: 4, maxGamesPerRun: 12_000, matchups: true, matchupDecks: 16, matchupGames: 100 },
   };
 }
 
@@ -793,6 +811,9 @@ export function parseSiteConfig(raw: unknown): ParsedSiteConfig {
     arrivals: r.bool(au.arrivals, 'automation.arrivals', d.automation.arrivals),
     width,
     maxGamesPerRun: whole(au.maxGamesPerRun, 'automation.maxGamesPerRun', d.automation.maxGamesPerRun, AUTOMATION_BOUNDS.maxGamesPerRun[0], AUTOMATION_BOUNDS.maxGamesPerRun[1]),
+    matchups: r.bool(au.matchups, 'automation.matchups', d.automation.matchups),
+    matchupDecks: whole(au.matchupDecks, 'automation.matchupDecks', d.automation.matchupDecks, AUTOMATION_BOUNDS.matchupDecks[0], AUTOMATION_BOUNDS.matchupDecks[1]),
+    matchupGames: whole(au.matchupGames, 'automation.matchupGames', d.automation.matchupGames, AUTOMATION_BOUNDS.matchupGames[0], AUTOMATION_BOUNDS.matchupGames[1]),
   };
 
   const config: SiteConfig = { kind: SITE_CONFIG_KIND, schema: SITE_CONFIG_SCHEMA, site: cfgSite, nav, features, banner, home, play, decks, maintenance, multiplayer, multiDay, automation };

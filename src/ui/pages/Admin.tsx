@@ -220,6 +220,13 @@ function automationWidths(current: number): string[] {
   if (!out.includes(current)) out.push(current);
   return out.sort((a, b) => a - b).map(String);
 }
+/** The matchup block's deck counts and games a pair offered, with the file's own value when it is not one of them. */
+function automationChoices(key: 'matchupDecks' | 'matchupGames', current: number): string[] {
+  const [lo, hi] = AUTOMATION_BOUNDS[key];
+  const out: number[] = key === 'matchupDecks' ? [lo, 8, 12, 16, 20, hi] : [lo, 50, 100, 150, hi];
+  if (!out.includes(current)) out.push(current);
+  return out.sort((a, b) => a - b).map(String);
+}
 /** The game caps offered, with the file's own value when it is not one of them. */
 function automationGameCaps(current: number): string[] {
   const [lo, hi] = AUTOMATION_BOUNDS.maxGamesPerRun;
@@ -690,6 +697,21 @@ export function AdminPage({ initial }: { initial?: SiteConfig } = {}) {
         />
         <p className="small muted">{AUTOMATION_INFO.maxGamesPerRun.help}</p>
         <Errs issues={issues} path="automation.maxGamesPerRun" />
+        <Check label={AUTOMATION_INFO.matchups.label} help={AUTOMATION_INFO.matchups.help} checked={draft.automation.matchups} onChange={(v) => up((c) => void (c.automation.matchups = v))} />
+        <Errs issues={issues} path="automation.matchups" />
+        {(['matchupDecks', 'matchupGames'] as const).map((k) => (
+          <div key={k}>
+            <Select
+              label={AUTOMATION_INFO[k].label}
+              value={String(draft.automation[k])}
+              options={automationChoices(k, draft.automation[k])}
+              labels={Object.fromEntries(automationChoices(k, draft.automation[k]).map((g) => [g, `${g} ${k === 'matchupDecks' ? 'decks' : 'games'}${Number(g) === defaultSiteConfig().automation[k] ? ' (the default)' : ''}`]))}
+              onChange={(v) => up((c) => void (c.automation[k] = Number(v)))}
+            />
+            <p className="small muted">{AUTOMATION_INFO[k].help}</p>
+            <Errs issues={issues} path={`automation.${k}`} />
+          </div>
+        ))}
       </fieldset>
 
       <fieldset>

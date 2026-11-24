@@ -370,24 +370,31 @@ describe('the split of 2026-11-16', () => {
     expect(addsUpTo(0.1, 0.2, 0.3)).toMatchObject({ exact: false, withinRounding: true });
   });
 
-  it('the committed files: Season 3 alone in the entry of simulator version 9 and Hard, the earlier games in version 5 and deep', () => {
+  it('the committed files: Season 3 in the entry of simulator version 9 and Hard, the earlier games in version 5 and deep', () => {
     const card = parseCardImpact(JSON.parse(fs.readFileSync('data/seasons/impact.json', 'utf8'))).file!;
     const deck = parseDeckImpact(JSON.parse(fs.readFileSync('data/seasons/deck-impact.json', 'utf8'))).file!;
-    const brief = (e: { simVersion: number; bot: string; sources: { kind: string; season?: number }[] }) => [e.simVersion, e.bot, e.sources.map((s) => s.season ?? s.kind)];
-    expect(card.entries.map(brief)).toEqual([
+    // the (9, hard) entry also takes the rating series' traced runs and the Hard telemetry since 2026-11-24 (src/lib/seriesImpact.ts):
+    // the seasons are pinned, and the season-3 figures exactly while nothing else is in that entry
+    const seasonsOf = (e: { simVersion: number; bot: string; sources: { kind: string; season?: number }[] }) => [e.simVersion, e.bot, e.sources.filter((s) => s.kind !== 'series' && !(e.simVersion === 9 && s.kind === 'analysis')).map((s) => s.season ?? s.kind)];
+    expect(card.entries.map(seasonsOf)).toEqual([
       [5, 'deep', ['analysis', 1, 2]],
       [9, 'hard', [3]],
     ]);
-    expect(deck.entries.map(brief)).toEqual([
+    expect(deck.entries.map(seasonsOf)).toEqual([
       [5, 'deep', [1, 2]],
       [9, 'hard', [3]],
     ]);
     const n = (cards: Record<string, { n: number }>) => Object.values(cards).reduce((k, v) => k + v.n, 0);
-    expect(card.entries.map((e) => [Object.keys(e.cards).length, n(e.cards)])).toEqual([
-      [90, 277_376],
-      [77, 109_287],
-    ]);
-    expect(deck.entries.map((e) => Object.keys(e.lists).length)).toEqual([28, 21]);
+    expect([Object.keys(card.entries[0]!.cards).length, n(card.entries[0]!.cards)]).toEqual([90, 277_376]);
+    expect(Object.keys(deck.entries[0]!.lists).length).toBe(28);
+    const hard = card.entries[1]!;
+    if (hard.sources.length === 1) {
+      expect([Object.keys(hard.cards).length, n(hard.cards)]).toEqual([77, 109_287]);
+      expect(Object.keys(deck.entries[1]!.lists).length).toBe(21);
+    } else {
+      expect(n(hard.cards)).toBeGreaterThan(109_287);
+      expect(Object.keys(deck.entries[1]!.lists).length).toBeGreaterThanOrEqual(21);
+    }
   });
 });
 

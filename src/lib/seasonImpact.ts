@@ -28,10 +28,12 @@ export interface ImpactKey {
   bot: string;
 }
 /**
- * Where an entry's games came from: a season's round robin (its number and the round robin manifest's run id), or the
- * review telemetry (src/data/analysis.json, by its manifest's run id), which seeded the pooled table when it was started.
+ * Where an entry's games came from: a season's round robin (its number and the round robin manifest's run id), the
+ * review telemetry (src/data/analysis.json, by its manifest's run id), which seeded the pooled table when it was started,
+ * or a rating-series run (data/series/run-N.json, by its id and its manifest's run id; since 2026-11-24 a run traces its
+ * Hard games and carries their card impact, src/lib/seriesImpact.ts). Each source is counted once in a file.
  */
-export type ImpactSource = { kind: 'season'; season: number; runId?: string } | { kind: 'analysis'; runId: string };
+export type ImpactSource = { kind: 'season'; season: number; runId?: string } | { kind: 'analysis'; runId: string } | { kind: 'series'; run: string; runId: string };
 
 /**
  * The canonical name of a bot for these tables, the change ledger's (`ledgerBot`): lookahead and best are Medium, fast is
@@ -41,8 +43,10 @@ export const impactBot = (name: string): string => ledgerBot(name).bot ?? name;
 export const impactKey = (simVersion: number, bot: string): ImpactKey => ({ simVersion, bot: impactBot(bot) });
 export const sameKey = (a: ImpactKey, b: ImpactKey): boolean => a.simVersion === b.simVersion && impactBot(a.bot) === impactBot(b.bot);
 export const keyWords = (k: ImpactKey): string => `simulator version ${k.simVersion}, ${k.bot} bot`;
-export const sourceWords = (s: ImpactSource): string => (s.kind === 'season' ? `season ${s.season}` : `review telemetry (${s.runId})`);
-export const sameSource = (a: ImpactSource, b: ImpactSource): boolean => (a.kind === 'season' && b.kind === 'season' ? a.season === b.season : a.kind === 'analysis' && b.kind === 'analysis' ? a.runId === b.runId : false);
+export const sourceWords = (s: ImpactSource): string => (s.kind === 'season' ? `season ${s.season}` : s.kind === 'series' ? `rating ${s.run.replace('-', ' ')}` : `review telemetry (${s.runId})`);
+/** The same run: a season by its number, a rating-series run by its id (run-N; its runId is checked apart), telemetry by its run id. */
+export const sameSource = (a: ImpactSource, b: ImpactSource): boolean =>
+  a.kind === 'season' && b.kind === 'season' ? a.season === b.season : a.kind === 'series' && b.kind === 'series' ? a.run === b.run : a.kind === 'analysis' && b.kind === 'analysis' ? a.runId === b.runId : false;
 
 // ---------------------------------------------------------------- shared checks
 export const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -56,7 +60,11 @@ export function entryHeaderProblem(e: Record<string, unknown>, what: string): st
   if (impactBot(e.bot) !== e.bot) return `${what}: bot "${e.bot}" is not the canonical name ("${impactBot(e.bot)}")`;
   if (!Array.isArray(e.sources)) return `${what}: needs a list of sources`;
   for (const s of e.sources as unknown[]) {
-    const ok = isObj(s) && ((s.kind === 'season' && typeof s.season === 'number' && Number.isInteger(s.season) && s.season >= 1 && (s.runId === undefined || typeof s.runId === 'string')) || (s.kind === 'analysis' && typeof s.runId === 'string' && !!s.runId));
+    const ok =
+      isObj(s) &&
+      ((s.kind === 'season' && typeof s.season === 'number' && Number.isInteger(s.season) && s.season >= 1 && (s.runId === undefined || typeof s.runId === 'string')) ||
+        (s.kind === 'analysis' && typeof s.runId === 'string' && !!s.runId) ||
+        (s.kind === 'series' && typeof s.run === 'string' && /^run-[1-9]\d*$/.test(s.run) && typeof s.runId === 'string' && !!s.runId));
     if (!ok) return `${what}: a source is malformed (${JSON.stringify(s)})`;
   }
   const srcs = e.sources as ImpactSource[];
@@ -71,7 +79,7 @@ export function entriesProblem(entries: readonly { simVersion: number; bot: stri
     if (entries.findIndex((x) => sameKey(x, e)) !== i) return `has two entries for ${keyWords(e)}`;
     for (const s of e.sources) {
       const other = entries.findIndex((x, j) => j !== i && x.sources.some((t) => sameSource(s, t)));
-      if (other >= 0 && s.kind === 'season') return `counts season ${s.season} in two entries (${keyWords(e)} and ${keyWords(entries[other]!)})`;
+      if (other >= 0 && s.kind !== 'analysis') return `counts ${sourceWords(s)} in two entries (${keyWords(e)} and ${keyWords(entries[other]!)})`;
     }
   }
   return null;
