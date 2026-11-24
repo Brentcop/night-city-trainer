@@ -11,6 +11,7 @@ import type { DeckList } from '../src/engine/types';
 import { enteredWords, gateField, gateSeeds, gateSlots, keepReferences, planGate, refillCounts, refillRoundWords, runGate, type GateOptions, type GatePlay, type GatePlayRequest } from '../src/lib/breedGate';
 import { BRED_METHOD_WORDS, bredMethodWords, COUNTER_NOTE, notEntered, seasonTestWords } from '../src/lib/bredDecks';
 import { keptOutTriples } from '../scripts/breed-data';
+import { SIM_VERSION } from '../src/lib/tournament';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nct-refill-'));
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -123,7 +124,8 @@ describe('refilling the slots of decks kept out', () => {
     const decks = r.tested.map((t) => ({ ...t.outcome, method: t.bred.method, legends: [...t.bred.deck.legends], ...(t.refill ? { refill: t.refill } : {}) }));
     const gate = { bred: 1, entered: r.entered.length, refills: refillCounts(r.tested).tested, decks };
     expect(notEntered(gate).map((d) => d.name)).toEqual(['Weak A', 'Weak R1']);
-    fs.writeFileSync(path.join(tmp, 'season-4.json'), JSON.stringify({ season: 4, gate }));
+    // (a gate record names its simulator version; since 2026-11-24 kept-out trios count as seen under that version only)
+    fs.writeFileSync(path.join(tmp, 'season-4.json'), JSON.stringify({ season: 4, gate: { ...gate, simVersion: SIM_VERSION } }));
     const seen = keptOutTriples(tmp);
     expect(seen).toContain([...deck('Weak R1', 20).legends].sort().join('|'));
     expect(seen).not.toContain([...deck('Even R2', 21).legends].sort().join('|'));

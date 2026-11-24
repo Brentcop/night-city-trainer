@@ -37,6 +37,19 @@ export interface BreedInput {
    *          hold them, instead of a random untested trio.
    */
   packages?: BreedPackages;
+  /**
+   * How Legends are scored when picking them (legendScores): 'average', the strength of the decks using a Legend shrunk
+   * toward 50% (what an absent field gives: the breeder before 2026-11-24), or 'marginal', each Legend's own effect from a
+   * shrunk regression of deck strength on Legend indicators (legendEffects). The season and the Deck Lab pass
+   * BREED_POLICY's 'marginal'.
+   */
+  legendScore?: 'average' | 'marginal';
+  /**
+   * The most colours a bred deck's Legends may have, for every method. Absent: explorers only are held to 2 (the breeder
+   * before 2026-11-24); 6 of the 22 bred decks of seasons 1 to 3 were three-colour, all rated 48.6 or below. The season
+   * and the Deck Lab pass BREED_POLICY's 2.
+   */
+  maxColors?: number;
 }
 
 export interface BreedPackages {
@@ -241,26 +254,117 @@ const colorCode = (legends: string[]) =>
     .sort((a, b) => 'RBGY'.indexOf(a) - 'RBGY'.indexOf(b))
     .join('');
 
-/** Legend strength: average strength of decks using it, shrunk toward 50% when few decks have tried it. */
-function legendScores(ranked: BreedInput['ranked']) {
+/**
+ * Legend strength by the average (the breeder before 2026-11-24, and its default): the average strength of the decks
+ * using a Legend, shrunk toward 50% when few decks have tried it (K = 2). It credits a Legend with its partners: on
+ * 2026-11-24 V, Padre, Saburo and Smasher scored 53–54 because they sit in the same strong lists, every Yellow and Blue
+ * Legend 42–43, and an untested Legend (50) above Dexter (49.9), whose RRG list is the library's best.
+ */
+export function legendScoresByAverage(ranked: BreedInput['ranked']): (id: string) => number {
   const acc: Record<string, { s: number; n: number }> = {};
   for (const { deck, wr } of ranked) for (const l of deck.legends) (acc[l] ??= { s: 0, n: 0 }), (acc[l].s += wr), acc[l].n++;
   const K = 2;
   return (id: string) => (acc[id] ? (acc[id].s + 0.5 * K) / (acc[id].n + K) : 0.5);
 }
 
+/**
+ * The ridge penalty of legendEffects, in decks: a Legend's effect is shrunk toward 0 as if it had LEGEND_RIDGE more decks
+ * at the average. The average score's K was 2 as well, so a Legend seen in one deck is shrunk about as much as before.
+ */
+export const LEGEND_RIDGE = 2;
+
+/**
+ * Each Legend's marginal effect on deck strength (docs/REVIEW_2026-11-24.md B.8, finding R7): a ridge regression of the
+ * ranked decks' strength (minus its mean) on Legend indicators, y_d = Σ_{l in d} β_l + ε, penalty `lambda` on every β.
+ * Because the three Legends of a deck are fitted together, a Legend is not credited with its partners: Saburo in the
+ * V / Smasher lists gets only what those lists gain over V and Smasher elsewhere. A Legend in no ranked deck has effect
+ * 0 (the average Legend). Solved exactly (the normal equations, Gaussian elimination with partial pivoting).
+ */
+export function legendEffects(ranked: BreedInput['ranked'], lambda: number = LEGEND_RIDGE): { mean: number; effect: Map<string, number>; decks: Map<string, number> } {
+  const ids = [...new Set(ranked.flatMap((r) => r.deck.legends))].sort();
+  const col = new Map(ids.map((id, i) => [id, i]));
+  const n = ids.length;
+  const mean = ranked.length ? ranked.reduce((s, r) => s + r.wr, 0) / ranked.length : 0.5;
+  // A = XᵀX + λI, b = Xᵀ(y − ȳ)
+  const A = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? lambda : 0)));
+  const b = new Array<number>(n).fill(0);
+  const decks = new Map<string, number>();
+  for (const r of ranked) {
+    const cs = [...new Set(r.deck.legends)].map((l) => col.get(l)!);
+    for (const i of cs) {
+      b[i]! += r.wr - mean;
+      for (const j of cs) A[i]![j]! += 1;
+    }
+    for (const l of new Set(r.deck.legends)) decks.set(l, (decks.get(l) ?? 0) + 1);
+  }
+  const beta = solve(A, b);
+  return { mean, effect: new Map(ids.map((id, i) => [id, beta[i]!])), decks };
+}
+
+/** Solve A x = b (A square, non-singular) by Gaussian elimination with partial pivoting. */
+function solve(A: number[][], b: number[]): number[] {
+  const n = b.length;
+  const M = A.map((row, i) => [...row, b[i]!]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r]![c]!) > Math.abs(M[p]![c]!)) p = r;
+    [M[c], M[p]] = [M[p]!, M[c]!];
+    const piv = M[c]![c]!;
+    if (Math.abs(piv) < 1e-12) throw new Error('legendEffects: singular system');
+    for (let r = c + 1; r < n; r++) {
+      const f = M[r]![c]! / piv;
+      if (!f) continue;
+      for (let k = c; k <= n; k++) M[r]![k]! -= f * M[c]![k]!;
+    }
+  }
+  const x = new Array<number>(n).fill(0);
+  for (let r = n - 1; r >= 0; r--) {
+    let s = M[r]![n]!;
+    for (let k = r + 1; k < n; k++) s -= M[r]![k]! * x[k]!;
+    x[r] = s / M[r]![r]!;
+  }
+  return x;
+}
+
+/**
+ * Legend strength by marginal effect: the ranked decks' mean strength plus the Legend's effect (legendEffects), so it
+ * reads on the same scale as the average score (about 0.4 to 0.6) and an untested Legend scores the mean.
+ */
+export function legendScoresByEffect(ranked: BreedInput['ranked'], lambda: number = LEGEND_RIDGE): (id: string) => number {
+  const { mean, effect } = legendEffects(ranked, lambda);
+  return (id: string) => mean + (effect.get(id) ?? 0);
+}
+
+/** The Legend scoring a breed uses (BreedInput.legendScore; absent: the average, as before 2026-11-24). */
+export function legendScores(ranked: BreedInput['ranked'], how: BreedInput['legendScore'] = 'average'): (id: string) => number {
+  return how === 'marginal' ? legendScoresByEffect(ranked) : legendScoresByAverage(ranked);
+}
+
+/** The distinct colours of some Legends. */
+export const legendColors = (ids: readonly string[]): number => new Set(ids.map((id) => CARD_BY_ID[id]?.color)).size;
+
+/**
+ * The season's and the Deck Lab's breeding policy since 2026-11-24 (docs/REVIEW_2026-11-24.md B.8): Legends scored by
+ * their marginal effect, and two colours at most for every method. BreedInput without these fields breeds as before
+ * (tests/deck-packages-defaults.test.ts pins that).
+ */
+export const BREED_POLICY: Readonly<Required<Pick<BreedInput, 'legendScore' | 'maxColors'>>> = Object.freeze({ legendScore: 'marginal', maxColors: 2 });
+
 export function breedSeason(season: number, input: BreedInput, n = 8, breedCount?: number): Bred[] {
   const total = breedCount ?? n;
   const r = rng(input.seed);
   const out: Bred[] = [];
   const used = new Set(input.seenTriples);
-  const lscore = legendScores(input.ranked);
+  const lscore = legendScores(input.ranked, input.legendScore);
+  // every method within maxColors when it is set; explorers within 2 either way (their RAM limits need it)
+  const maxColors = input.maxColors;
+  const fits = (ids: readonly string[]) => maxColors === undefined || legendColors(ids) <= maxColors;
   const top = input.ranked.slice(0, 8);
   const pk = input.packages && (!isEmptyPlan(input.packages.plan) || input.packages.seeds?.length) ? input.packages : undefined;
   const pkScore = (id: string) => cardValue(id) + 100 * (input.impact[id] ?? 0);
   const push = (b: Bred) => {
     const key = tripleKey(b.deck.legends);
-    if (used.has(key) || !legalTriple(b.deck.legends)) return false;
+    if (used.has(key) || !legalTriple(b.deck.legends) || !fits(b.deck.legends)) return false;
     if (pk) {
       const fitted = fitBred(b, pk, input, pkScore);
       if (!fitted) return false;
@@ -293,7 +397,10 @@ export function breedSeason(season: number, input: BreedInput, n = 8, breedCount
   for (let k = 0, tries = 0; out.filter((o) => o.method === 'mutant').length < nMutant && tries < 200 * scale; tries++) {
     const parent = top[k++ % Math.min(top.length, 4)].deck;
     const slot = Math.floor(r() * 3);
-    const cands = jitterSort(LEGENDS.filter((l) => !parent.legends.includes(l.id)), (l) => lscore(l.id), 0.08, r);
+    // (with maxColors, only Legends that keep the new trio within it)
+    const kept = parent.legends.filter((_, i) => i !== slot);
+    const cands = jitterSort(LEGENDS.filter((l) => !parent.legends.includes(l.id) && (maxColors === undefined || fits([...kept, l.id]))), (l) => lscore(l.id), 0.08, r);
+    if (!cands.length) continue;
     const pick = cands[Math.floor(r() * Math.min(6, cands.length))];
     const legends = parent.legends.map((id, i) => (i === slot ? pick.id : id));
     if (!legalTriple(legends)) continue;
@@ -308,7 +415,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8, breedCount
     if (a === b) continue;
     const pool = jitterSort([...new Set([...a.legends, ...b.legends])], lscore, 0.1, r);
     const legends: string[] = [];
-    for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name)) legends.push(l);
+    for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name) && fits([...legends, l])) legends.push(l);
     if (!legalTriple(legends)) continue;
     const style = r() < 0.5 ? classify(a.main).arch : classify(b.main).arch;
     const d = fill(legends, seedsOf([a, b], di), input.impact, style, name(out.length + 1, 'Cross', legends));
@@ -348,7 +455,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8, breedCount
       if (a === b) continue;
       const pool = jitterSort([...new Set([...a.deck.legends, ...b.deck.legends])], lscore, 0.12, r);
       const legends: string[] = [];
-      for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name)) legends.push(l);
+      for (const l of pool) if (legends.length < 3 && !legends.some((x) => CARD_BY_ID[x].name === CARD_BY_ID[l].name) && fits([...legends, l])) legends.push(l);
       if (!legalTriple(legends)) continue;
       const style = classify(a.deck.main).arch;
       const d = fill(legends, seedsOf([a.deck, b.deck], di), input.impact, style, name(out.length + 1, 'Counter', legends));
@@ -397,7 +504,7 @@ export function breedSeason(season: number, input: BreedInput, n = 8, breedCount
     }
     if (!legalTriple(legends)) continue;
     // keep explorers to at most 2 colours so RAM limits allow real cards
-    if (new Set(legends.map((id) => CARD_BY_ID[id].color)).size > 2) continue;
+    if (new Set(legends.map((id) => CARD_BY_ID[id].color)).size > Math.min(2, maxColors ?? 2)) continue;
     const style = styles[Math.floor(r() * 3)];
     const d = fill(legends, new Map(), input.impact, style, name(out.length + 1, 'Explorer', legends));
     push({ deck: d, method: 'explorer', parents: [], idea: `Explorer (${style}): untested Legends ${legends.map((l) => CARD_BY_ID[l].name).join(' / ')}, filled by role and curve templates from format-wide card impact.` });

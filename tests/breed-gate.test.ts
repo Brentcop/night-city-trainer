@@ -26,6 +26,9 @@ import {
   GATE_DEFAULTS,
   GATE_SD,
   gateSd,
+  gatePlanCost,
+  gatePlanCostWords,
+  medianLibrary,
   middleMeta,
   planGate,
   spreadAssumedWords,
@@ -77,23 +80,66 @@ describe('the rule, with a fake play function', () => {
   it('is the staged rule with the bar at 0, no futility stop, no minimum games, O’Brien–Fleming over five looks', () => {
     const r = gateRule(5);
     expect(r).toMatchObject({ kind: 'evidence', minGainPp: 0, packageMinGainPp: 0, alpha: 0.05, boundary: 'obrien-fleming', capStages: 5, minGames: 0, futilityAfterStages: 0 });
-    expect(GATE_DEFAULTS).toEqual({ bot: 'medium', confirmBot: 'hard', rounds: 20, stages: 5, confirmStages: 2, alpha: 0.05 });
+    expect(GATE_DEFAULTS).toEqual({ bot: 'medium', confirmBot: 'hard', rounds: 20, stages: 5, confirmStages: 2, alpha: 0.05, keepOut: 'confirming' });
     expect(gateStageGames(20, 7)).toBe(280);
     expect(gateStageGames(20, 6)).toBe(240);
     expect(gateSeeds(3)).toEqual({ first: 3_700_000, confirm: 3_800_000 });
   });
 
-  it('a planted deficit is shown worse and kept out; the confirming bot does not play for it', async () => {
+  it('a planted deficit is shown worse by both bots and kept out by the confirming bot (the default since 2026-11-24)', async () => {
     const calls: GatePlayRequest[] = [];
     const ref = META[0]!;
     const [r] = await runGate([entry(deck('Weak', 20), ref)], OPTS, fakePlay((n) => (n === 'Weak' ? 0.35 : 0.6), calls));
     expect(r!.first.verdict).toBe('shown-worse');
     expect(r!.first.judged.upper).toBeLessThan(0);
+    expect(r!.confirm).toMatchObject({ bot: 'hard', verdict: 'shown-worse' });
+    expect(r!.confirmSkipped).toBeUndefined();
+    expect(r!.keepOut).toBe('confirming');
+    expect(r!.entered).toBe(false);
+    expect(gateWords(r!)).toMatch(/^kept out: shown worse than Meta 1 \(best parent\) with the Hard bot/);
+  });
+
+  it('a deck only the first bot shows worse goes on to the confirming bot and enters when that bot does not show it worse', async () => {
+    // weaker than its reference for Medium only: Hard sees the two lists alike
+    const strength = (n: string, bot: string) => (n === 'MediumWeak' && bot === 'medium' ? 0.3 : 0.55);
+    const calls: GatePlayRequest[] = [];
+    const [r] = await runGate([entry(deck('MediumWeak', 23), META[0]!)], OPTS, fakePlay(strength, calls));
+    expect(r!.first.verdict).toBe('shown-worse');
+    expect(r!.confirm!.verdict).not.toBe('shown-worse');
+    expect(calls.filter((c) => c.bot === 'hard' && c.role === 'deck')).toHaveLength(2);
+    expect(r!.entered).toBe(true);
+    const w = gateWords(r!);
+    expect(w).toMatch(/^entered: not shown worse than Meta 1 \(best parent\) by the Hard bot, which alone can keep a deck out \(Medium: shown worse/);
+    expect(w).not.toMatch(/as good|equal|no worse/);
+    // the rule of 2026-11-15 ('either') keeps the same deck out on the Medium bot's verdict, and Hard does not play
+    const older: GatePlayRequest[] = [];
+    const [e] = await runGate([entry(deck('MediumWeak', 23), META[0]!)], { ...OPTS, keepOut: 'either' }, fakePlay(strength, older));
+    expect(e).toMatchObject({ entered: false, confirm: null, confirmSkipped: 'shown-worse', keepOut: 'either' });
+    expect(older.some((c) => c.bot === 'hard')).toBe(false);
+    expect(gateWords(e!)).toMatch(/^kept out: shown worse than Meta 1 \(best parent\) with the Medium bot/);
+  });
+
+  it('under the rule of 2026-11-15 a planted deficit is kept out by the first bot; the confirming bot does not play for it', async () => {
+    const calls: GatePlayRequest[] = [];
+    const [r] = await runGate([entry(deck('Weak', 20), META[0]!)], { ...OPTS, keepOut: 'either' }, fakePlay((n) => (n === 'Weak' ? 0.35 : 0.6), calls));
+    expect(r!.first.verdict).toBe('shown-worse');
     expect(r!.entered).toBe(false);
     expect(r!.confirm).toBeNull();
     expect(r!.confirmSkipped).toBe('shown-worse');
     expect(calls.some((c) => c.bot === 'hard')).toBe(false);
     expect(gateWords(r!)).toMatch(/^kept out: shown worse than Meta 1 \(best parent\) with the Medium bot/);
+    // a record made before keepOut existed reads as that rule
+    const { keepOut: _k, ...old } = r!;
+    void _k;
+    expect(gateWords(old)).toBe(gateWords(r!));
+  });
+
+  it('with no confirming bot the first bot decides under either rule', async () => {
+    for (const keepOut of ['confirming', 'either'] as const) {
+      const [r] = await runGate([entry(deck('Weak', 20), META[0]!)], { ...OPTS, confirmBot: null, keepOut }, fakePlay((n) => (n === 'Weak' ? 0.35 : 0.6)));
+      expect(r).toMatchObject({ entered: false, confirm: null, confirmSkipped: 'none' });
+      expect(gateWords(r!)).toMatch(/with the Medium bot/);
+    }
   });
 
   it('an equal deck is "could not tell" by both bots, plays every stage (the futility stop never fires) and enters', async () => {
@@ -178,14 +224,18 @@ describe('the rule, with a fake play function', () => {
 
   it('with every stage played, the verdict is still where the rule would have stopped', async () => {
     const calls: GatePlayRequest[] = [];
-    const [r] = await runGate([entry(deck('Weak', 70), META[0]!)], { ...OPTS, fullStages: true }, fakePlay((n) => (n === 'Weak' ? 0.35 : 0.6), calls));
+    const [r] = await runGate([entry(deck('Weak', 70), META[0]!)], { ...OPTS, fullStages: true, keepOut: 'either' }, fakePlay((n) => (n === 'Weak' ? 0.35 : 0.6), calls));
     expect(r!.first).toMatchObject({ verdict: 'shown-worse', looks: 1 });
     expect(r!.first.judged.games).toBe(240);
     expect(r!.first.played).toMatchObject({ stages: 5, games: 1200 });
-    // the confirming bot played too, but does not count: the rule plays it only for a deck not shown worse
+    // under the rule of 2026-11-15 the confirming bot played too, but does not count: it plays only for a deck not shown worse
     expect(r!.confirm).toMatchObject({ bot: 'hard' });
     expect(r!.confirmSkipped).toBe('shown-worse');
     expect(r!.entered).toBe(false);
+    // under the default it counts, and decides
+    const [d] = await runGate([entry(deck('Weak', 70), META[0]!)], { ...OPTS, fullStages: true }, fakePlay((n) => (n === 'Weak' ? 0.35 : 0.6)));
+    expect(d!.confirmSkipped).toBeUndefined();
+    expect(d).toMatchObject({ entered: false, confirm: { bot: 'hard', verdict: 'shown-worse' } });
     expect(calls.filter((c) => c.role === 'deck')).toHaveLength(5 + 2);
     // the per-opponent figures cover every game played
     expect(r!.first.byOpp.reduce((s, o) => s + o.games, 0)).toBe(1200);
@@ -244,6 +294,40 @@ describe('references', () => {
     expect(chooseReference(['Meta 7'], RANKED, META, 'middle')).toMatchObject({ deck: { name: 'Meta 5' }, why: 'fixed-bar' });
   });
 
+  it('with the reference mode "median", every bred deck is tested against the library deck at the median by rating', () => {
+    // a ranked library of 9: the median (5th, index 4) is L5, which is no meta deck, so every deck plays all 7 meta decks
+    const lib = Array.from({ length: 9 }, (_, i) => ({ deck: deck(`L${i + 1}`, 200 + i), wr: 0.7 - i * 0.03 }));
+    expect(medianLibrary(lib).name).toBe('L5');
+    expect(medianLibrary(RANKED).name).toBe('Meta 5');
+    const bred = [
+      { deck: deck('E', 99), parents: [] },
+      { deck: deck('M', 98), parents: ['L1'] },
+    ];
+    const plan = planGate(bred, lib, META, 'median');
+    expect(plan.map((p) => [p.reference.name, p.referenceWhy, p.field.length])).toEqual([
+      ['L5', 'median-bar', 7],
+      ['L5', 'median-bar', 7],
+    ]);
+    // a median that is a meta deck leaves the field like any reference
+    expect(planGate(bred, RANKED, META, 'median').map((p) => [p.reference.name, p.field.length])).toEqual([
+      ['Meta 5', 6],
+      ['Meta 5', 6],
+    ]);
+    expect(() => medianLibrary([])).toThrow();
+  });
+
+  it('a wider field: the meta decks and the library’s top lists, the reference and the deck left out; the middle reference stays a meta deck', () => {
+    const top = [deck('Top 1', 301), deck('Top 2', 302)];
+    const field = [...META, ...top];
+    const plan = planGate([{ deck: deck('M', 98), parents: ['Meta 7'] }], RANKED, META, 'middle', field);
+    expect(plan[0]!.reference.name).toBe('Meta 5');
+    expect(plan[0]!.field.map((f) => f.name)).toEqual(['Meta 1', 'Meta 2', 'Meta 3', 'Meta 4', 'Meta 6', 'Meta 7', 'Top 1', 'Top 2']);
+    // a parent in the wider field is not its own opponent
+    const parent = planGate([{ deck: deck('C', 97), parents: ['Top 1'] }], [{ deck: top[0]!, wr: 0.9 }, ...RANKED], META, 'parent', field);
+    expect(parent[0]!.field.map((f) => f.name)).not.toContain('Top 1');
+    expect(parent[0]!.field).toHaveLength(8);
+  });
+
   it('a bred deck whose parent is no meta deck plays all 7', () => {
     const p = deck('Parent', 97);
     const [e] = planGate([{ deck: deck('Child', 96), parents: ['Parent'] }], [{ deck: p, wr: 0.9 }, ...RANKED], META);
@@ -254,13 +338,28 @@ describe('references', () => {
 describe('the words', () => {
   it('say the rule, the guarantee and what it detects', () => {
     expect(gateRuleWords(OPTS)).toContain('up to 5 stages with the Medium bot (z 4.88, 3.36, 2.68, 2.29, 2.03)');
-    expect(gateRuleWords(OPTS)).toContain('up to 2 stages with the Hard bot on its own seeds (z 2.96, 1.97)');
-    expect(gateRuleWords(OPTS)).toContain('could not tell enters');
+    expect(gateRuleWords(OPTS)).toContain('; every deck then plays up to 2 stages with the Hard bot on its own seeds (z 2.96, 1.97), also a deck the Medium bot showed worse.');
+    expect(gateRuleWords(OPTS)).toMatch(/A deck enters unless the Hard bot shows it worse \(the Medium bot's verdict is kept as information\); could not tell enters$/);
+    expect(gateRuleWords({ ...OPTS, keepOut: 'either' })).toContain('; a deck the Medium bot did not show worse then plays up to 2 stages with the Hard bot on its own seeds (z 2.96, 1.97).');
+    expect(gateRuleWords({ ...OPTS, keepOut: 'either' })).toMatch(/A deck enters unless a bot shows it worse; could not tell enters$/);
+    expect(gateRuleWords({ ...OPTS, confirmBot: null })).toMatch(/A deck enters unless a bot shows it worse; could not tell enters$/);
+    // the stage sizes: the meta decks' 7 and 6 by default, or the sizes in use
+    expect(gateRuleWords(OPTS)).toContain('(280 games with 7 opponents, 240 with 6)');
+    expect(gateRuleWords({ ...OPTS, opponents: [14, 14, 13] })).toContain('(560 games with 14 opponents, 520 with 13)');
+    expect(gateRuleWords({ ...OPTS, reference: 'median', fieldWords: 'the other decks of the field' })).toContain('each bred deck plays the library deck at the median by rating, the same fixed bar for every bred deck, on the same games against the other decks of the field,');
     // each mode says its reference, neither as the exception; without a mode (npm run gate names its own) it says "its reference"
     expect(gateRuleWords({ ...OPTS, reference: 'parent' })).toContain('each bred deck plays its best parent (an explorer, which has none, plays the middle meta deck by strength) on the same games against the other meta decks,');
     expect(gateRuleWords({ ...OPTS, reference: 'middle' })).toContain('each bred deck plays the middle meta deck by strength, the same fixed bar for every bred deck, on the same games against the other meta decks,');
     expect(gateRuleWords(OPTS)).toMatch(/^each bred deck plays its reference on the same games against the other meta decks, /);
     expect(gateGuaranteeWords()).toBe('A bred deck that is truly no worse than its reference is kept out about 2.5% of the time or less by each bot.');
+    expect(gateGuaranteeWords({ ...OPTS, keepOut: 'either' })).toBe('A bred deck that is truly no worse than its reference is kept out about 2.5% of the time or less by each bot.');
+    expect(gateGuaranteeWords(OPTS)).toBe('A bred deck that is truly no worse than its reference is kept out about 2.5% of the time or less: only the Hard bot can keep it out.');
+    // what a whole gate may cost: every deck's blocks, each reference's once
+    const bar = META[4]!;
+    const plan = Array.from({ length: 8 }, (_, i) => entry(deck(`B${i}`, 400 + i), bar, 'fixed-bar'));
+    expect(gatePlanCost(OPTS, plan)).toEqual({ first: 5 * 240 * 9, confirm: 2 * 240 * 9, references: 1 });
+    expect(gatePlanCostWords(OPTS, plan)).toBe('At most 10,800 Medium and 4,320 Hard games for these 8 decks (one reference, its games played once); fewer when a deck is decided early.');
+    expect(gatePlanCost({ ...OPTS, confirmBot: null }, plan).confirm).toBe(0);
     const d = gateDetectWords({ ...OPTS, opponents: [7, 6, 7] });
     expect(d).toBe(
       'What it can detect: with 7 opponents (stages of 280 games) the Medium bot shows a deck worse 8 times in 10 when it is really 4.5 points worse, the Hard bot with its 2 stages when it is 7.1 points worse; ' +

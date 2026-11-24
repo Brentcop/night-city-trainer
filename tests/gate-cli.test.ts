@@ -8,7 +8,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listFingerprint } from '../src/engine/deck';
 import { loadLibrary } from '../scripts/lib-node';
-import { gateCommand, gateJobs, seedProblem, type GateIO } from '../scripts/gate-run';
+import { gateCommand, gateJobs, seasonGateRounds, SEASON_STAGE_GAMES, seedProblem, type GateIO } from '../scripts/gate-run';
 import type { MatchJob } from '../scripts/worker';
 
 const LIB = loadLibrary();
@@ -94,7 +94,9 @@ describe('npm run gate: the command line', () => {
     expect(r.code).toBe(0);
     const text = r.out.join('\n');
     expect(text).toContain('Gate rule: each bred deck plays its reference');
-    expect(text).toContain('kept out about 2.5% of the time or less by each bot');
+    expect(text).toContain('kept out about 2.5% of the time or less: only the Hard bot can keep it out');
+    // the stage size in use (6 opponents), not the meta decks' 7 and 6
+    expect(text).toContain('(24 games with 6 opponents)');
     expect(text).toMatch(/What it can detect: with 6 opponents \(stages of 24 games\) the Medium bot shows a deck worse 8 times in 10/);
     expect(text).toMatch(/^(Entered: not shown worse than|Kept out: shown worse than) /m);
     expect(text).toContain('Medium, by opponent');
@@ -120,12 +122,19 @@ describe('npm run gate: the command line', () => {
     expect(d.first.looks).toBeLessThan(5);
     expect(d.first.judged.games).toBe(d.first.looks * 36);
     expect(d.first.played).toMatchObject({ stages: 5, games: 5 * 36 });
-    expect(d.confirm).toMatchObject({ bot: 'hard' });
-    expect(d.confirmSkipped).toBe('shown-worse');
+    // the default since 2026-11-24: the Hard bot's part counts and decides (the stub plays the same for every bot)
+    expect(d.confirm).toMatchObject({ bot: 'hard', verdict: 'shown-worse' });
+    expect(d.confirmSkipped).toBeUndefined();
+    expect(doc.settings.keepOut).toBe('confirming');
     expect(d.entered).toBe(false);
     expect(d.first.byOpp).toHaveLength(6);
     // both lists, every stage of both bots
     expect(r.jobs).toHaveLength(2 * 36 * (5 + 2));
+    // --keep-out either: the rule of 2026-11-15, the Hard part played but not counted
+    const e = JSON.parse((await cmd([DECK, '--ref', REF, '--rounds', '3', '--no-early-stop', '--json', '--keep-out', 'either'], (fp) => (fp === target ? 0.2 : 0.7))).out.join('\n'));
+    expect(e.settings.keepOut).toBe('either');
+    expect(e.decks[0].confirmSkipped).toBe('shown-worse');
+    expect(e.decks[0].entered).toBe(false);
   });
 
   it('--out writes the record and the text; without it nothing is written', async () => {
@@ -152,5 +161,15 @@ describe('npm run gate on real games', () => {
     const doc = JSON.parse(fs.readFileSync(path.join(out, `gate-${DECK}-vs-${REF}.json`), 'utf8'));
     expect(doc.decks[0].first.played ?? doc.decks[0].first.judged).toMatchObject({ games: 24 });
     expect(['shown-worse', 'shown-better', 'could-not-tell']).toContain(doc.decks[0].first.verdict);
+  });
+});
+
+describe("the season's default stage size", () => {
+  it('keeps a stage near 280 games whatever the field: 20 rounds on the 7 meta decks, 10 on the default 14 decks', () => {
+    expect(SEASON_STAGE_GAMES).toBe(280);
+    expect(seasonGateRounds(7)).toBe(20);
+    expect(seasonGateRounds(14)).toBe(10);
+    expect(seasonGateRounds(10)).toBe(14);
+    expect(seasonGateRounds(400)).toBe(1);
   });
 });

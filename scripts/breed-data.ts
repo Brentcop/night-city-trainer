@@ -1,7 +1,8 @@
 // Everything the deck breeder learns from past test runs, gathered in one place:
-//   strength   — per-deck strength: power rating (tournament series), discounted by uncertainty, blended with the season
-//                leaderboard only where its entry is current (src/lib/parentStrength.ts)
-//   seasons    — the recorded season files, their simulator versions, and the Legend trios the gate kept out
+//   strength   — per-deck strength: the power rating's estimate, for decks with 100 or more games on their current list
+//                (src/lib/parentStrength.ts; no leaderboard blend since 2026-11-24)
+//   seasons    — the recorded season files, their simulator versions, and the Legend trios the gate kept out or a season
+//                retired under the current simulator version
 //   impact     — card impact ("Δ when drawn"), pooled by card (data/seasons/impact.json; src/lib/seasonImpact.ts) and per
 //                list, keyed by list fingerprint (data/seasons/deck-impact.json; src/lib/seasonDeckImpact.ts): both kept
 //                by simulator version and bot; the breeder reads one pair's numbers, the current simulator version and
@@ -11,9 +12,10 @@
 //   bosses     — the decks to beat (top of the strength list)
 import fs from 'node:fs';
 import path from 'node:path';
-import { parentStrength, ratingsVersionWarning, seasonVersions, staleLeaderRow, type LeaderStrength, type RatedDeck } from '../src/lib/parentStrength';
+import { parentStrength, ratingsVersionWarning, seasonVersions, tooFewGames, tooFewGamesWords, type RatedDeck } from '../src/lib/parentStrength';
 import { SIM_VERSION } from '../src/lib/tournament';
-import { loadLibrary, readPooled } from './lib-node';
+import { loadLibrary, readPooled, type RecordedEvent } from './lib-node';
+import { expectedVs, fieldInterval, fitRatings } from '../src/lib/ratingModel';
 import { currentListGate, poolEvents, selectEvents } from './event-pool';
 import { h2hEstimator, type H2HRecord } from '../src/lib/h2hModel';
 import { addToDeckImpact, emptyDeckImpact, parseDeckImpact, type DeckImpactFile } from '../src/lib/seasonDeckImpact';
@@ -101,18 +103,43 @@ export function loadH2H(): H2H {
 }
 
 /**
- * Deck strength for parent selection (src/lib/parentStrength.ts, the rule the Deck Lab uses too). Power ratings (every
- * deck vs every deck, Bradley–Terry) count at their conservative value, halfway down to the lower bound; a season
- * leaderboard entry (vs the meta) is blended in at 35%, or used alone for an unrated deck, only when it is current:
- * every season that added to it ran under the current simulator version. A stale entry is not used, so a deck with only
- * a stale entry has no strength (it is no parent candidate).
+ * The ratings rows as scripts/ratings.ts would write them now, from the recorded events and runs on disk: the same pool
+ * (selectEvents' default: the newest simulator version and bot; currentListGate: games on the library's current lists),
+ * the same fit (fitRatings) and the same three numbers per deck (expectedVs against every fitted deck, and fieldInterval
+ * with the full covariance at 90%). The season judges its own decks on it at its end, once its round robin's rating run is
+ * written (scripts/season-retire.ts), without rebuilding src/data/ratings.json. Empty when nothing is pooled.
  */
-export function strengthOf(leaderboard: readonly LeaderStrength[], ratingsFile = 'src/data/ratings.json'): Record<string, number> {
-  const R = fs.existsSync(ratingsFile) ? JSON.parse(fs.readFileSync(ratingsFile, 'utf8')) : { decks: [] };
+export function fitPooledRatings(sources: readonly RecordedEvent[] = readPooled(), lib = loadLibrary()): RatedDeck[] {
+  const sel = selectEvents(sources);
+  const games = poolEvents(sel.kept, currentListGate(lib)).games;
+  if (!games.length) return [];
+  const fit = fitRatings(games);
+  const all = fit.names.map((_, k) => k);
+  return fit.names.map((name, k) => {
+    const iv = fieldInterval(fit, k, all, { mode: 'full' });
+    return { name, games: fit.played[k]!, wrField: expectedVs(fit.r, k, fit.r[k]!, all), wrFieldLo: iv.lo, wrFieldHi: iv.hi };
+  });
+}
+
+/** The ratings rows (src/data/ratings.json decks[]), or none when the file is missing. */
+export function readRatedDecks(ratingsFile = 'src/data/ratings.json'): { decks: RatedDeck[]; manifest?: { simVersion?: unknown } } | null {
+  return fs.existsSync(ratingsFile) ? (JSON.parse(fs.readFileSync(ratingsFile, 'utf8')) as { decks: RatedDeck[]; manifest?: { simVersion?: unknown } }) : null;
+}
+
+/**
+ * Deck strength for parent selection (src/lib/parentStrength.ts, the rule the Deck Lab uses too): each deck's power
+ * rating (every deck vs every deck, Bradley–Terry) at its point estimate, for decks with 100 or more games on their
+ * current list (since 2026-11-24: no leaderboard blend, no lower-bound discount). Prints the warning for ratings fitted on
+ * another simulator version and the decks left out for too few games.
+ */
+export function strengthOf(ratingsFile = 'src/data/ratings.json'): Record<string, number> {
+  const R = readRatedDecks(ratingsFile);
   // ratings fitted on another simulator version still rank the parents, but say so (REVIEW_2026-11-24 A.11)
-  const stale = fs.existsSync(ratingsFile) ? ratingsVersionWarning(R, ratingsFile) : null;
+  const stale = R ? ratingsVersionWarning(R, ratingsFile) : null;
   if (stale) console.warn(stale);
-  return parentStrength(R.decks as RatedDeck[], leaderboard);
+  const few = tooFewGamesWords(tooFewGames(R?.decks ?? []));
+  if (few) console.log(few);
+  return parentStrength(R?.decks ?? []);
 }
 
 export const SEASONS_DIR = 'data/seasons';
@@ -138,25 +165,43 @@ export function readSeasonFiles(dir = SEASONS_DIR): { season: number; data: Reco
 export const seasonVersionsOnDisk = (dir = SEASONS_DIR): Record<string, number | null> =>
   seasonVersions(readSeasonFiles(dir).map((s) => ({ season: s.season, manifest: s.data.manifest as { simVersion?: unknown } | undefined })));
 
-/** A leaderboard entry (data/seasons/leaderboard.json) as parent strength reads it. */
-export function leaderStrength(e: { name: string; seasons?: Record<string, unknown> }, rating: number, versions: Readonly<Record<string, number | null>>, current = SIM_VERSION): LeaderStrength {
-  return { name: e.name, rating, stale: staleLeaderRow(e, versions, current) };
+/** The simulator version a season file was played under: its gate record's, else its manifest's (null: none recorded). */
+export function seasonFileVersion(data: Record<string, unknown>): number | null {
+  const g = (data.gate as { simVersion?: unknown } | undefined)?.simVersion;
+  if (typeof g === 'number' && Number.isFinite(g)) return g;
+  const m = (data.manifest as { simVersion?: unknown } | undefined)?.simVersion;
+  return typeof m === 'number' && Number.isFinite(m) ? m : null;
 }
 
 /**
- * The Legend trios (sorted, joined by "|") of the bred decks that earlier seasons kept out at the gate (their season
- * file's gate.decks with entered false), so the breeder counts them as seen. `except`: a season to leave out (the one
- * being re-run).
+ * The Legend trios (sorted, joined by "|") that earlier seasons of the current simulator version closed: the bred decks
+ * their gate kept out (gate.decks with entered false) and the decks they retired (`retired`, scripts/season.ts
+ * --retire, --retire-earlier), so the breeder counts them as seen. Since 2026-11-24 a trio closed under another
+ * simulator version (or a season file with no version) is open again: one 40-card fill's result on one version is no
+ * reason to ban a trio for good (docs/REVIEW_2026-11-24.md R7). `except`: a season to leave out (the one being re-run).
  */
-export function keptOutTriples(dir = SEASONS_DIR, except?: number): string[] {
+export function keptOutTriples(dir = SEASONS_DIR, except?: number, current: number = SIM_VERSION): string[] {
   const out: string[] = [];
   for (const s of readSeasonFiles(dir)) {
-    if (s.season === except) continue;
+    if (s.season === except || seasonFileVersion(s.data) !== current) continue;
     const gate = s.data.gate as { decks?: { entered?: unknown; legends?: unknown }[] } | undefined;
     for (const d of gate?.decks ?? []) {
       if (d.entered !== false || !Array.isArray(d.legends)) continue;
       out.push([...(d.legends as string[])].map(String).sort().join('|'));
     }
+    const retired = s.data.retired as { legends?: unknown }[] | undefined;
+    for (const d of Array.isArray(retired) ? retired : []) if (Array.isArray(d.legends)) out.push([...(d.legends as string[])].map(String).sort().join('|'));
   }
   return out;
+}
+
+/** How many trios earlier seasons closed under another simulator version (or none recorded), now open again. */
+export function expiredTriples(dir = SEASONS_DIR, except?: number, current: number = SIM_VERSION): number {
+  let n = 0;
+  for (const s of readSeasonFiles(dir)) {
+    if (s.season === except || seasonFileVersion(s.data) === current) continue;
+    const gate = s.data.gate as { decks?: { entered?: unknown }[] } | undefined;
+    n += (gate?.decks ?? []).filter((d) => d.entered === false).length + (Array.isArray(s.data.retired) ? (s.data.retired as unknown[]).length : 0);
+  }
+  return n;
 }

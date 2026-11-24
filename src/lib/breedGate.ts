@@ -5,8 +5,8 @@
 // - Reference, as declared: the bred deck's best parent (the parent ranked highest by strength in the breeder's list).
 //   An explorer has no parent: its reference is the middle meta deck by strength (the 4th of 7, best first). A deck none
 //   of whose parents is in the ranked list is treated as an explorer, and the record says so. That is the 'parent' mode,
-//   this module's default (the Deck Lab's test). A season tests every bred deck against the middle meta deck by default
-//   (the 'middle' mode, the owner's choice of 2026-11-15; scripts/season.ts --gate-reference).
+//   this module's default (the Deck Lab's test), and since 2026-11-24 the season's again (the owner's choice "Parent, with
+//   Hard"; scripts/season.ts --gate-reference). From 2026-11-15 to 2026-11-24 a season used the 'middle' mode.
 // - Field: the meta decks other than the reference (and other than the deck itself). Both lists play the same slots, the
 //   forge's layout (blockSlots, src/lib/changeLedgerRun.ts): game k plays field[k mod n] with seed seed0 + k, the list
 //   under test first when floor(k / n) is even. The measurement is the paired score difference per game, bred deck
@@ -15,10 +15,16 @@
 //   to 5 stages; after each one the difference is judged by confirmStaged (src/lib/evidence.ts) with the bar at 0
 //   points, α = 0.05 spent over the looks by the O'Brien–Fleming-type boundary, no futility stop and no minimum games
 //   beyond the first stage: "shown worse" when the upper bound is below 0, "shown better" when the lower bound is above
-//   0, "could not tell" at the cap. A deck the first bot did not show worse goes on to the confirming bot (Hard by
-//   default; none, or skipped when it is the same bot by canonical name): up to 2 stages, the same rule, its own seeds.
-// - Entry: a deck enters unless one of the two bots shows it worse. "Could not tell" enters; the words never say an
-//   entered deck is as good as its reference, only that it was not shown worse.
+//   0, "could not tell" at the cap. Then the confirming bot (Hard by default; none, or skipped when it is the same bot by
+//   canonical name): up to 2 stages, the same rule, its own seeds.
+// - Entry (since 2026-11-24, GATE_DEFAULTS.keepOut 'confirming'): every deck plays the confirming bot's stages, and a deck
+//   enters unless the confirming bot shows it worse; the first bot's verdict is kept as information (with no confirming
+//   bot, the first bot decides). The rule of 2026-11-15 ('either', a deck the first bot shows worse is kept out without
+//   the confirming bot playing) stays selectable (scripts/season.ts --gate-keep-out either). "Could not tell" enters;
+//   the words never say an entered deck is as good as its reference, only that it was not shown worse.
+// - References (ReferenceMode): 'parent', 'middle' (the season's default 2026-11-15 to 11-24) or, since 2026-11-24, 'median' (the library deck
+//   at the median by rating). Field: the meta decks, or with a wider tuning field (src/lib/tuningField.ts) the meta decks
+//   and the library's top lists, one entry per list; always without the reference and the deck under test.
 // - Each bred deck is its own decision (one nominee per confirmStaged call, so α is not split between siblings). A
 //   reference several decks share plays its games once: its scores are kept per (list, bot, field, seeds).
 // - Gate games are a selection step only: nothing here writes them anywhere, and their seeds are their own (gateSeeds).
@@ -43,14 +49,28 @@ import { capital, count, differenceWords, percent, verdictAgainst } from './bred
 
 // ---------------------------------------------------------------- the settings
 
-/** The gate's defaults: bots, stage size in double rounds, stage caps per bot, and α per bot. */
-export const GATE_DEFAULTS: Readonly<{ bot: string; confirmBot: string; rounds: number; stages: number; confirmStages: number; alpha: number }> = Object.freeze({
+/**
+ * Which bot can keep a deck out (GateOptions.keepOut):
+ * - 'confirming' (the default since 2026-11-24, docs/REVIEW_2026-11-24.md B.6): every deck plays the confirming bot's
+ *   stages, also one the first bot showed worse, and a deck is kept out only when the confirming bot shows it worse. The
+ *   first bot's verdict is kept as information. Medium under-rates some kinds of deck that Hard rates well (the BBG
+ *   control family by about 11 points, reliability 0.87), so Medium alone no longer decides what Hard never sees. With no
+ *   confirming bot the first bot decides, as before.
+ * - 'either': the rule of 2026-11-15: a deck the first bot shows worse is kept out without the confirming bot playing,
+ *   and the confirming bot plays only for a deck the first bot did not show worse.
+ */
+export type KeepOutRule = 'confirming' | 'either';
+export const KEEP_OUT_RULES: readonly KeepOutRule[] = ['confirming', 'either'];
+
+/** The gate's defaults: bots, stage size in double rounds, stage caps per bot, α per bot, and which bot can keep a deck out. */
+export const GATE_DEFAULTS: Readonly<{ bot: string; confirmBot: string; rounds: number; stages: number; confirmStages: number; alpha: number; keepOut: KeepOutRule }> = Object.freeze({
   bot: 'medium',
   confirmBot: 'hard',
   rounds: 20,
   stages: 5,
   confirmStages: 2,
   alpha: 0.05,
+  keepOut: 'confirming',
 });
 /**
  * The per-game spread of the paired difference (bred deck minus reference) the detect line assumes, per bot. Measured on
@@ -98,16 +118,19 @@ export interface RankedDeck {
 }
 /**
  * Why a deck has the reference it has: 'named' given by hand (npm run gate); 'fixed-bar' a deck with parents tested
- * against the middle meta deck because the run's reference mode is 'middle' (an explorer keeps 'explorer').
+ * against the middle meta deck because the run's reference mode is 'middle' (an explorer keeps 'explorer'); 'median-bar'
+ * any deck tested against the library's median deck because the run's mode is 'median'.
  */
-export type ReferenceWhy = 'best-parent' | 'explorer' | 'no-parent-available' | 'fixed-bar' | 'named';
+export type ReferenceWhy = 'best-parent' | 'explorer' | 'no-parent-available' | 'fixed-bar' | 'median-bar' | 'named';
 /**
  * Which reference a gate uses: 'parent' (the rule as declared, and this module's default, which the Deck Lab relies on:
- * the best parent, the middle meta deck for an explorer) or 'middle' (every bred deck against the middle meta deck by
- * strength, one fixed bar; the season's default since 2026-11-15, scripts/season.ts --gate-reference).
+ * the best parent, the middle meta deck for an explorer), 'middle' (every bred deck against the middle meta deck by
+ * strength, one fixed bar; the season's default from 2026-11-15 to 2026-11-24, scripts/season.ts --gate-reference) or 'median'
+ * (every bred deck against the library deck at the median by rating, one fixed bar on the library's own scale; added
+ * 2026-11-24, docs/REVIEW_2026-11-24.md B.6: 3 of the 7 meta decks now rank 53rd to 55th of 71).
  */
-export type ReferenceMode = 'parent' | 'middle';
-export const REFERENCE_MODES: readonly ReferenceMode[] = ['parent', 'middle'];
+export type ReferenceMode = 'parent' | 'middle' | 'median';
+export const REFERENCE_MODES: readonly ReferenceMode[] = ['parent', 'middle', 'median'];
 
 const sameList = (a: DeckList, b: DeckList) => a.name === b.name || listFingerprint(a) === listFingerprint(b);
 
@@ -129,19 +152,34 @@ export function middleMeta(meta: readonly DeckList[], ranked: readonly RankedDec
 }
 
 /**
+ * The library deck at the median by rating: the middle of the ranked list (parent strength: the power rating's estimate
+ * for every library deck with enough games, strongest first), index floor((n − 1) / 2).
+ */
+export function medianLibrary(ranked: readonly RankedDeck[]): DeckList {
+  const d = ranked[Math.floor((ranked.length - 1) / 2)];
+  if (!d) throw new Error('the median reference needs at least one rated library deck');
+  return d.deck;
+}
+
+/**
  * A bred deck's reference: its best parent by the ranked list, else (an explorer, or no parent ranked) the middle meta
- * deck. With mode 'middle' every deck gets the middle meta deck ('fixed-bar' for a deck with parents).
+ * deck. With mode 'middle' every deck gets the middle meta deck ('fixed-bar' for a deck with parents); with mode
+ * 'median' every deck gets the library's median deck by rating ('median-bar').
  */
 export function chooseReference(parents: readonly string[], ranked: readonly RankedDeck[], meta: readonly DeckList[], mode: ReferenceMode = 'parent'): { deck: DeckList; why: ReferenceWhy } {
+  if (mode === 'median') return { deck: medianLibrary(ranked), why: 'median-bar' };
   if (mode === 'middle') return { deck: middleMeta(meta, ranked), why: parents.length ? 'fixed-bar' : 'explorer' };
   const best = bestParent(parents, ranked);
   if (best) return { deck: best.deck, why: 'best-parent' };
   return { deck: middleMeta(meta, ranked), why: parents.length ? 'no-parent-available' : 'explorer' };
 }
 
-/** The gate's field: the meta decks other than the reference and other than the deck under test. */
-export function gateField(meta: readonly DeckList[], reference: DeckList, deck?: DeckList): DeckList[] {
-  return meta.filter((m) => !sameList(m, reference) && !(deck && sameList(m, deck)));
+/**
+ * The gate's field: the field decks (the meta decks, or with a wider tuning field the meta decks and the library's top
+ * lists: src/lib/tuningField.ts) other than the reference and other than the deck under test.
+ */
+export function gateField(field: readonly DeckList[], reference: DeckList, deck?: DeckList): DeckList[] {
+  return field.filter((m) => !sameList(m, reference) && !(deck && sameList(m, deck)));
 }
 
 /** One deck to gate: the deck, its reference and the field both play. */
@@ -154,11 +192,14 @@ export interface GateEntry {
   field: DeckList[];
 }
 
-/** The gate's plan for bred decks: each one's reference (chooseReference, in `mode`) and field (gateField). */
-export function planGate(bred: readonly { deck: DeckList; parents: readonly string[] }[], ranked: readonly RankedDeck[], meta: readonly DeckList[], mode: ReferenceMode = 'parent'): GateEntry[] {
+/**
+ * The gate's plan for bred decks: each one's reference (chooseReference, in `mode`, the middle reference read from the
+ * meta decks) and field (gateField over `field`, the meta decks unless a wider tuning field is given).
+ */
+export function planGate(bred: readonly { deck: DeckList; parents: readonly string[] }[], ranked: readonly RankedDeck[], meta: readonly DeckList[], mode: ReferenceMode = 'parent', field: readonly DeckList[] = meta): GateEntry[] {
   return bred.map((b) => {
     const ref = chooseReference(b.parents, ranked, meta, mode);
-    return { deck: b.deck, reference: ref.deck, referenceWhy: ref.why, parents: [...b.parents], field: gateField(meta, ref.deck, b.deck) };
+    return { deck: b.deck, reference: ref.deck, referenceWhy: ref.why, parents: [...b.parents], field: gateField(field, ref.deck, b.deck) };
   });
 }
 
@@ -240,7 +281,10 @@ export interface GateStep {
   stopped?: true;
 }
 
-/** Why a confirming bot's part did not count: the first bot showed the deck worse, or there is none (off, or the same bot). */
+/**
+ * Why a confirming bot's part did not count: the first bot showed the deck worse under the 'either' rule, or there is
+ * none (off, or the same bot).
+ */
 export type ConfirmSkip = 'shown-worse' | 'none';
 
 /** One bred deck's test. */
@@ -255,6 +299,8 @@ export interface GateOutcome {
   confirm: GateStep | null;
   /** why the confirming bot's part does not count (absent: it counts) */
   confirmSkipped?: ConfirmSkip;
+  /** which bot could keep the deck out (KeepOutRule); absent in records made before 2026-11-24, which ran 'either' */
+  keepOut?: KeepOutRule;
   entered: boolean;
   /** stopped before it was decided: not entered */
   stopped?: true;
@@ -272,6 +318,10 @@ export interface GateOptions {
   seeds: { first: number; confirm: number };
   /** the season's reference mode (words and record only; the plan, planGate, picks the references) */
   reference?: ReferenceMode;
+  /** which bot can keep a deck out (default GATE_DEFAULTS.keepOut, 'confirming') */
+  keepOut?: KeepOutRule;
+  /** the field's make-up in words, for the rule's words ("the other meta decks" when absent) */
+  fieldWords?: string;
   /** play every stage of both bots (no early stop) and still report where the staged rule would have stopped */
   fullStages?: boolean;
   /** Stop (the Deck Lab): checked before each stage after the first */
@@ -362,19 +412,24 @@ export async function runGate(entries: readonly GateEntry[], o: GateOptions, pla
     };
   }
 
+  const keepOut = o.keepOut ?? GATE_DEFAULTS.keepOut;
   const one = async (e: GateEntry): Promise<GateOutcome> => {
     const first = await step(e, o.bot, o.seeds.first, o.stages);
     o.onStep?.({ name: e.deck.name, step: first, which: 'first' });
     const firstWorse = !first.stopped && first.verdict === 'shown-worse';
+    // 'either': the first bot's "shown worse" keeps the deck out and the confirming bot does not play for it (unless
+    // every stage is played); 'confirming': the confirming bot plays for every deck and alone can keep it out
+    const firstDecides = keepOut === 'either' && firstWorse;
     let confirm: GateStep | null = null;
-    if (confirmBot && !first.stopped && (!firstWorse || o.fullStages) && !o.stop?.()) {
+    if (confirmBot && !first.stopped && (!firstDecides || o.fullStages) && !o.stop?.()) {
       confirm = await step(e, confirmBot, o.seeds.confirm, o.confirmStages);
       o.onStep?.({ name: e.deck.name, step: confirm, which: 'confirm' });
     }
-    const confirmSkipped: ConfirmSkip | undefined = !confirmBot ? 'none' : firstWorse ? 'shown-worse' : undefined;
+    const confirmSkipped: ConfirmSkip | undefined = !confirmBot ? 'none' : firstDecides ? 'shown-worse' : undefined;
     const counts = confirmSkipped ? null : confirm;
-    const stopped = !!first.stopped || (!!confirmBot && !firstWorse && (!confirm || !!confirm.stopped));
-    const worse = firstWorse || counts?.verdict === 'shown-worse';
+    const stopped = !!first.stopped || (!!confirmBot && !firstDecides && (!confirm || !!confirm.stopped));
+    // with no confirming bot the first bot decides under either rule
+    const worse = (confirmBot ? firstDecides : firstWorse) || counts?.verdict === 'shown-worse';
     return {
       name: e.deck.name,
       listId: listFingerprint(e.deck),
@@ -384,6 +439,7 @@ export async function runGate(entries: readonly GateEntry[], o: GateOptions, pla
       first,
       confirm,
       ...(confirmSkipped ? { confirmSkipped } : {}),
+      keepOut,
       entered: !worse && !stopped,
       ...(stopped && !worse ? { stopped: true as const } : {}),
     };
@@ -465,33 +521,43 @@ const looksZ = (stages: number, alpha: number) =>
     .map((z) => z.toFixed(2))
     .join(', ');
 
-/** The rule in words, printed before a gate plays. */
-export function gateRuleWords(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'rounds' | 'stages' | 'confirmStages' | 'alpha' | 'reference'>): string {
+/** The rule in words, printed before a gate plays. `opponents`: the field sizes in use (default 7 and 6, the meta decks). */
+export function gateRuleWords(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'rounds' | 'stages' | 'confirmStages' | 'alpha' | 'reference' | 'keepOut' | 'fieldWords'> & { opponents?: readonly number[] }): string {
   const alpha = o.alpha ?? GATE_DEFAULTS.alpha;
   const c = confirmBotOf(o.bot, o.confirmBot);
-  const s7 = gateStageGames(o.rounds, 7);
-  const s6 = gateStageGames(o.rounds, 6);
-  const conf = c ? `; a deck the ${botWord(o.bot)} bot did not show worse then plays up to ${o.confirmStages} stage${o.confirmStages === 1 ? '' : 's'} with the ${botWord(c)} bot on its own seeds (z ${looksZ(o.confirmStages, alpha)})` : '';
+  const byConfirming = (o.keepOut ?? GATE_DEFAULTS.keepOut) === 'confirming' && !!c;
+  const sizes = o.opponents?.length ? [...new Set(o.opponents)].sort((a, b) => b - a) : [7, 6];
+  const stageSizes = sizes.map((n, i) => `${k(gateStageGames(o.rounds, n))} ${i ? 'with' : 'games with'} ${n}${i ? '' : ' opponents'}`).join(', ');
+  const conf = c
+    ? byConfirming
+      ? `; every deck then plays up to ${o.confirmStages} stage${o.confirmStages === 1 ? '' : 's'} with the ${botWord(c)} bot on its own seeds (z ${looksZ(o.confirmStages, alpha)}), also a deck the ${botWord(o.bot)} bot showed worse`
+      : `; a deck the ${botWord(o.bot)} bot did not show worse then plays up to ${o.confirmStages} stage${o.confirmStages === 1 ? '' : 's'} with the ${botWord(c)} bot on its own seeds (z ${looksZ(o.confirmStages, alpha)})`
+    : '';
   // the season names its mode (middle by default since 2026-11-15); npm run gate has none: it names its reference
   const reference =
     o.reference === 'middle'
       ? 'the middle meta deck by strength, the same fixed bar for every bred deck,'
-      : o.reference === 'parent'
-        ? 'its best parent (an explorer, which has none, plays the middle meta deck by strength)'
-        : 'its reference';
+      : o.reference === 'median'
+        ? 'the library deck at the median by rating, the same fixed bar for every bred deck,'
+        : o.reference === 'parent'
+          ? 'its best parent (an explorer, which has none, plays the middle meta deck by strength)'
+          : 'its reference';
+  const entry = byConfirming ? `A deck enters unless the ${botWord(c!)} bot shows it worse (the ${botWord(o.bot)} bot's verdict is kept as information); could not tell enters` : 'A deck enters unless a bot shows it worse; could not tell enters';
   return (
-    `each bred deck plays ${reference} on the same games against the other meta decks, ` +
-    `in stages of ${o.rounds} double round${o.rounds === 1 ? '' : 's'} (${k(s7)} games with 7 opponents, ${k(s6)} with 6), up to ${o.stages} stage${o.stages === 1 ? '' : 's'} with the ${botWord(o.bot)} bot (z ${looksZ(o.stages, alpha)})${conf}. ` +
+    `each bred deck plays ${reference} on the same games against ${o.fieldWords ?? 'the other meta decks'}, ` +
+    `in stages of ${o.rounds} double round${o.rounds === 1 ? '' : 's'} (${stageSizes}), up to ${o.stages} stage${o.stages === 1 ? '' : 's'} with the ${botWord(o.bot)} bot (z ${looksZ(o.stages, alpha)})${conf}. ` +
     `After each stage the paired difference is judged with α ${alpha} spent over the looks by an O'Brien–Fleming-type boundary: shown worse when its upper bound is below 0, shown better when its lower bound is above 0, could not tell at the cap. ` +
-    `A deck enters unless a bot shows it worse; could not tell enters`
+    entry
   );
 }
 
 /** What the gate guarantees, in words. */
-export function gateGuaranteeWords(o: Pick<GateOptions, 'alpha'> = {}): string {
+export function gateGuaranteeWords(o: Pick<GateOptions, 'alpha' | 'keepOut'> & Partial<Pick<GateOptions, 'bot' | 'confirmBot'>> = {}): string {
   const a = ((o.alpha ?? GATE_DEFAULTS.alpha) / 2) * 100;
+  const c = o.bot ? confirmBotOf(o.bot, o.confirmBot) : null;
   // "about": the boundaries are the normal approximation (simulated 2.3% to 2.8%); "or less": a deck truly better than its
   // reference is kept out less often
+  if (c && (o.keepOut ?? GATE_DEFAULTS.keepOut) === 'confirming') return `A bred deck that is truly no worse than its reference is kept out about ${a.toFixed(1)}% of the time or less: only the ${botWord(c)} bot can keep it out.`;
   return `A bred deck that is truly no worse than its reference is kept out about ${a.toFixed(1)}% of the time or less by each bot.`;
 }
 
@@ -516,6 +582,36 @@ export function gateDetectWords(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'rou
 export function gateCost(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'rounds' | 'stages' | 'confirmStages'>, opponents: number): { first: number; confirm: number } {
   const games = gateStageGames(o.rounds, opponents);
   return { first: 2 * games * o.stages, confirm: confirmBotOf(o.bot, o.confirmBot) ? 2 * games * o.confirmStages : 0 };
+}
+
+/**
+ * The most games a whole gate may play per bot: every deck's blocks, and each distinct reference's blocks once per field
+ * (runGate plays a shared reference once). Under the 'confirming' rule the confirming bot may play for every deck (since
+ * 2026-11-24); under 'either' it never plays for a deck the first bot shows worse, so this is its most too. With the
+ * defaults, 8 decks against one fixed bar on the 6 other meta decks: 5 × 240 × 9 = 10,800 Medium and 2 × 240 × 9 = 4,320
+ * Hard games at most (the review's season estimate was about 9,100 Medium + 3,840 Hard on what Season 3 played).
+ */
+export function gatePlanCost(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'rounds' | 'stages' | 'confirmStages'>, entries: readonly Pick<GateEntry, 'deck' | 'reference' | 'field'>[]): { first: number; confirm: number; references: number } {
+  const refs = new Set<string>();
+  let blocks = 0;
+  for (const e of entries) {
+    const games = gateStageGames(o.rounds, e.field.length);
+    blocks += games;
+    const key = [listFingerprint(e.reference), ...e.field.map(listFingerprint)].join('|');
+    if (!refs.has(key)) {
+      refs.add(key);
+      blocks += games;
+    }
+  }
+  return { first: blocks * o.stages, confirm: confirmBotOf(o.bot, o.confirmBot) ? blocks * o.confirmStages : 0, references: refs.size };
+}
+
+/** "At most 10,800 Medium and 4,320 Hard games for these 8 decks (one reference, its games played once)." */
+export function gatePlanCostWords(o: Pick<GateOptions, 'bot' | 'confirmBot' | 'rounds' | 'stages' | 'confirmStages'>, entries: readonly Pick<GateEntry, 'deck' | 'reference' | 'field'>[]): string {
+  const c = gatePlanCost(o, entries);
+  const cb = confirmBotOf(o.bot, o.confirmBot);
+  const refs = c.references === 1 ? 'one reference, its games played once' : `${c.references} references, each one's games played once`;
+  return `At most ${k(c.first)} ${botWord(o.bot)}${cb ? ` and ${k(c.confirm)} ${botWord(cb)}` : ''} games for these ${entries.length} deck${entries.length === 1 ? '' : 's'} (${refs}); fewer when a deck is decided early.`;
 }
 
 /** The per-game spread seen: the median over the decks of each bot's part (null when none played). */
@@ -562,6 +658,7 @@ const REF_WHY: Record<ReferenceWhy, string> = {
   explorer: 'explorer: the middle meta deck',
   'no-parent-available': 'no parent available, so as an explorer: the middle meta deck',
   'fixed-bar': 'the middle meta deck, this run’s fixed bar for every bred deck',
+  'median-bar': 'the library’s median deck by rating, this run’s fixed bar for every bred deck',
   named: '',
 };
 /** Why the reference is the one it is, in words. */
@@ -578,11 +675,15 @@ export function gateWords(r: GateOutcome): string {
   if (r.confirm && !r.confirmSkipped) parts.push(stepWords(r.confirm));
   else if (r.confirm && r.confirmSkipped === 'shown-worse') parts.push(`${stepWords(r.confirm)}; not counted: the rule plays it only for a deck not shown worse`);
   if (r.stopped) return `not entered: stopped before the test against ${ref} was decided (${parts.join('; ')})`;
+  // a record without keepOut ran the rule of 2026-11-15 ('either')
+  const confirming = (r.keepOut ?? 'either') === 'confirming' && !!r.confirm && !r.confirmSkipped;
   if (!r.entered) {
-    const by = r.first.verdict === 'shown-worse' ? r.first.bot : (r.confirm?.bot ?? r.first.bot);
+    const by = !confirming && r.first.verdict === 'shown-worse' ? r.first.bot : (r.confirm?.bot ?? r.first.bot);
     return `kept out: shown worse than ${ref} with the ${botWord(by)} bot (${parts.join('; ')})`;
   }
-  return `entered: not shown worse than ${ref} (${parts.join('; ')})`;
+  // entered although the first bot showed it worse: only the confirming bot could keep it out, and it did not
+  const by = confirming && r.first.verdict === 'shown-worse' ? ` by the ${botWord(r.confirm!.bot)} bot, which alone can keep a deck out` : '';
+  return `entered: not shown worse than ${ref}${by} (${parts.join('; ')})`;
 }
 
 /**
@@ -645,6 +746,7 @@ export function labReferenceWords(reference: string, why: ReferenceWhy): string 
   if (why === 'no-parent-available') return `None of its parents is rated, so it is tested against the middle meta deck by strength, ${reference}.`;
   // the Lab always tests against the best parent; a season run with --gate-reference middle uses this one
   if (why === 'fixed-bar') return `Tested against the middle meta deck by strength, ${reference}, the same fixed bar for every bred deck.`;
+  if (why === 'median-bar') return `Tested against the library’s median deck by rating, ${reference}, the same fixed bar for every bred deck.`;
   return `Tested against ${reference}.`;
 }
 

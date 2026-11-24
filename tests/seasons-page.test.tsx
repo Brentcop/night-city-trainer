@@ -100,7 +100,7 @@ describe('then and now, as rows', () => {
   it('each bred deck: its season number, its rating now, its best parent now, its test; nothing computed between them', async () => {
     const D = await fixture();
     const s3 = D.seasons[1]!;
-    const ranked = rankLibraryParents(BUILTIN, RATINGS.decks, D, 9);
+    const ranked = rankLibraryParents(BUILTIN, RATINGS.decks);
     const rows = bredThenAndNow(s3, BUILTIN, RATINGS.decks, ranked);
     expect(rows.map((r) => r.name)).toEqual(['S2-02 Mutant (RGG)', 'S3-02 Gone (RRB)', 'S2-07 Explorer (RRB)']);
     const [mutant, gone, explorer] = rows as [(typeof rows)[0], (typeof rows)[0], (typeof rows)[0]];
@@ -138,7 +138,21 @@ describe('then and now, as rows', () => {
     expect(seasonTestWords({ ...explorer, first: { ...explorer.first, verdict: 'could-not-tell' }, confirm: { ...confirm, verdict: 'shown-better' } })).toBe(
       'Entered: shown better than BBG Cunningham Econ (the middle meta deck, as an explorer) with the Hard bot; the Medium bot could not tell',
     );
-    expect(seasonTestWords(by('S3-04 Kept (BBG)'))).toBe('Kept out: shown worse than RRG Dexter Midrange (its best parent then) with the Medium bot');
+    // the fixture's gate ran the default since 2026-11-24 (keepOut 'confirming'): the Hard bot kept it out
+    const kept = by('S3-04 Kept (BBG)');
+    expect(kept.keepOut).toBe('confirming');
+    expect(seasonTestWords(kept)).toBe('Kept out: shown worse than RRG Dexter Midrange (its best parent then) with the Hard bot');
+    // a record of the rule of 2026-11-15 (no keepOut, the Hard part skipped): the Medium bot kept it out
+    const { keepOut: _k, ...older } = kept;
+    void _k;
+    expect(seasonTestWords({ ...older, confirmSkipped: 'shown-worse' })).toBe('Kept out: shown worse than RRG Dexter Midrange (its best parent then) with the Medium bot');
+    // under the new rule a deck the Medium bot showed worse and the Hard bot did not enters, and the words say both
+    expect(seasonTestWords({ ...kept, entered: true, confirm: { ...kept.confirm!, verdict: 'could-not-tell' } })).toBe(
+      'Entered: not shown worse than RRG Dexter Midrange (its best parent then) with the Hard bot; the Medium bot showed it worse, but only the Hard bot can keep a deck out',
+    );
+    expect(seasonTestWords({ ...kept, entered: true, confirm: { ...kept.confirm!, verdict: 'shown-better' } })).toBe(
+      'Entered: shown better than RRG Dexter Midrange (its best parent then) with the Hard bot; the Medium bot showed it worse, but only the Hard bot can keep a deck out',
+    );
     // a season run with --gate-reference middle: a deck with parents tested against the fixed bar
     const mutant = by('S2-02 Mutant (RGG)');
     expect(seasonTestWords({ ...mutant, reference: { ...mutant.reference, name: 'Meta 4', why: 'fixed-bar' } })).toBe('Entered: not shown worse than Meta 4 (the middle meta deck, that season’s fixed bar for every bred deck)');
@@ -176,11 +190,10 @@ describe('then and now, as rows', () => {
     expect(seasonSimNote(null, 9)).toEqual({ text: 'no simulator version recorded, historical', historical: true });
     expect(seasonSimNote(undefined, 9)).toEqual({ text: 'no simulator version recorded, historical', historical: true });
     expect(leaderboardStaleWords(0)).toBeNull();
-    expect(leaderboardStaleWords(2)).toBe('The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings.');
-    // with rows of the current simulator beside the old ones, it says the breeder uses those too
-    expect(leaderboardStaleWords(2, 3)).toBe(
-      'The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings, together with the rows played on the current simulator.',
-    );
+    // since 2026-11-24 no leaderboard row, older or current, chooses parents: the same sentence either way
+    const words = 'Rows marked “older simulator” include games of an older simulator. The breeder does not use the leaderboard to choose parents: it uses today’s power ratings.';
+    expect(leaderboardStaleWords(2)).toBe(words);
+    expect(leaderboardStaleWords(2, 3)).toBe(words);
     expect(leaderboardStaleWords(0, 3)).toBeNull();
   });
 });
@@ -210,7 +223,8 @@ describe('the page', () => {
     expect(count(t, NOT_TESTED)).toBe(SEASONS.seasons[0]!.bred.length);
     // the deck the test kept out, only under the gated season
     expect(count(t, 'Bred, but did not enter')).toBe(1);
-    expect(t).toContain('S3-04 Kept (BBG) mutant Kept out: shown worse than RRG Dexter Midrange (its best parent then) with the Medium bot Medium bot: −');
+    // (the fixture runs the gate's default since 2026-11-24: only the Hard bot can keep a deck out)
+    expect(t).toContain('S3-04 Kept (BBG) mutant Kept out: shown worse than RRG Dexter Midrange (its best parent then) with the Hard bot Medium bot: −');
     // two different measures, said once per season, never a difference between them
     expect(count(t, 'They are different measures')).toBe(2);
     expect(t).not.toMatch(/as good as/i);
@@ -222,13 +236,13 @@ describe('the page', () => {
     const D = await fixture();
     const html = renderToStaticMarkup(<SeasonsView data={D} ratings={RATINGS} lib={BUILTIN} current={9} />);
     const t = text(html);
-    expect(count(t, 'rows marked “older simulator”')).toBe(1); // the intro's sentence
+    expect(count(t, 'Rows marked “older simulator”')).toBe(1); // the intro's sentence
     expect(count(html, '>older simulator</span>')).toBe(1); // S1-01's row only (season 1 ran under version 5)
     const s101 = html.slice(html.indexOf('S1-01 Mutant (RRY)</b>'), html.indexOf('S1-01 Mutant (RRY)</b>') + 2000);
     expect(s101).toContain('>older simulator</span>');
     // the intro names the historical season from its own version: the file's manifest (5, the oldest season's) is not read
     expect(t).toContain(
-      'Season 1 was played on an older simulator (v5), so its results are historical; Season 3 was played on the current simulator (v9). The breeder no longer uses numbers from an older simulator (rows marked “older simulator”) to choose parents; it uses today’s power ratings, together with the rows played on the current simulator.',
+      'Season 1 was played on an older simulator (v5), so its results are historical; Season 3 was played on the current simulator (v9). Rows marked “older simulator” include games of an older simulator. The breeder does not use the leaderboard to choose parents: it uses today’s power ratings.',
     );
     expect(text(renderToStaticMarkup(<SeasonsView data={{ ...D, manifest: { simVersion: 9 } }} ratings={RATINGS} lib={BUILTIN} current={9} />))).toContain('Season 1 was played on an older simulator (v5)');
     // each season's panel names its simulator; the older one says it is historical
@@ -289,7 +303,7 @@ describe('the page', () => {
     for (const [name, words] of entered) expect(t, name).toContain(words);
     // since event 15 (2026-11-16) the new decks have a power rating: it stands, with its range and games, beside their
     // Season 3 round robin figure (a deck without one reads "not rated": the synthetic cases above)
-    const ranked = rankLibraryParents(BUILTIN, RATINGS.decks, SEASONS);
+    const ranked = rankLibraryParents(BUILTIN, RATINGS.decks);
     const rows = bredThenAndNow(s3, BUILTIN, RATINGS.decks, ranked);
     const rated = new Map(RATINGS.decks.map((d) => [d.name, d]));
     expect(rows.map((r) => [r.name, r.now, r.test?.entered])).toEqual(

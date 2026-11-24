@@ -18,6 +18,7 @@ import {
   gateWords,
   GATE_CLI_SEEDS,
   GATE_DEFAULTS,
+  KEEP_OUT_RULES,
   REFERENCE_MODES,
   runGate,
   spreadSeen,
@@ -31,6 +32,7 @@ import {
   type GatePlayRequest,
   type ReferenceMode,
   type GateStep,
+  type KeepOutRule,
 } from '../src/lib/breedGate';
 import type { LibraryDeck } from '../src/lib/library';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -72,17 +74,30 @@ export function gatePlayOver(run: (jobs: MatchJob[], o: { threads: number; cache
 
 export const CONFIRM_BOTS = [...SIM_BOTS, 'none'] as const;
 
+/** The games a gate stage holds with the defaults on the 7 meta decks (20 double rounds × 7 opponents × 2 seats). */
+export const SEASON_STAGE_GAMES = 2 * GATE_DEFAULTS.rounds * 7;
+/**
+ * The season's default double rounds per stage for a field of `fieldDecks` decks: the rounds that keep a stage near
+ * SEASON_STAGE_GAMES (280), so a wider field does not double the gate's games and the stages detect what they did on the
+ * 7 meta decks (20 rounds on 7 decks; 10 on the 14 of the meta decks and the top 7 lists, the default since 2026-11-24).
+ */
+export const seasonGateRounds = (fieldDecks: number): number => Math.max(1, Math.round(SEASON_STAGE_GAMES / (2 * Math.max(1, fieldDecks))));
+
 /** The season's gate flags (scripts/season.ts). */
 export const seasonGateFlags = () => ({
   gate: oneOf(['on', 'off'] as const, 'on'),
   'gate-only': bool(),
   'gate-bot': oneOf(SIM_BOTS, GATE_DEFAULTS.bot as 'medium'),
   'gate-confirm-bot': oneOf(CONFIRM_BOTS, GATE_DEFAULTS.confirmBot as 'hard'),
-  'gate-rounds': int(GATE_DEFAULTS.rounds, { min: 1, max: 1000 }),
+  // default: seasonGateRounds (the rounds that keep a stage near 280 games for the season's field)
+  'gate-rounds': int(undefined, { min: 1, max: 1000 }),
   'gate-stages': int(GATE_DEFAULTS.stages, { min: 1, max: 16 }),
   'gate-confirm-stages': int(GATE_DEFAULTS.confirmStages, { min: 1, max: 16 }),
-  // the owner's choice of 2026-11-15: a season tests against the fixed bar (planGate's own default stays 'parent')
-  'gate-reference': oneOf(REFERENCE_MODES, 'middle'),
+  // the owner's choice of 2026-11-24: a season tests each bred deck against its best parent, with Hard deciding (an
+  // explorer, which has none, plays the middle meta deck); the fixed bar of 2026-11-15 is `middle`
+  'gate-reference': oneOf(REFERENCE_MODES, 'parent'),
+  // since 2026-11-24: only the confirming bot can keep a deck out (GATE_DEFAULTS.keepOut); 'either' is the rule of 2026-11-15
+  'gate-keep-out': oneOf(KEEP_OUT_RULES, GATE_DEFAULTS.keepOut),
   out: str(),
 });
 
@@ -126,11 +141,15 @@ export interface GateSettings {
   seeds: { first: number; confirm: number };
   /** a season's reference mode (absent for npm run gate, which names its reference) */
   reference?: ReferenceMode;
+  /** which bot could keep a deck out (since 2026-11-24; a record without it ran 'either') */
+  keepOut: KeepOutRule;
+  /** the field: the meta decks, or the meta decks and the library's top N lists (`fieldTop`, a season's --field-top) */
+  fieldTop?: number;
   /** every stage was played (no early stop) */
   fullStages?: true;
 }
 
-export const gateSettings = (o: GateOptions): GateSettings => ({
+export const gateSettings = (o: GateOptions, extra: { fieldTop?: number } = {}): GateSettings => ({
   bot: o.bot,
   confirmBot: confirmBotOf(o.bot, o.confirmBot),
   rounds: o.rounds,
@@ -139,6 +158,8 @@ export const gateSettings = (o: GateOptions): GateSettings => ({
   alpha: o.alpha ?? GATE_DEFAULTS.alpha,
   seeds: { ...o.seeds },
   ...(o.reference ? { reference: o.reference } : {}),
+  keepOut: o.keepOut ?? GATE_DEFAULTS.keepOut,
+  ...(extra.fieldTop ? { fieldTop: extra.fieldTop } : {}),
   ...(o.fullStages ? { fullStages: true as const } : {}),
 });
 
@@ -168,7 +189,7 @@ export function gateHeaderLines(o: GateOptions, opponents: readonly number[]): s
   const cost = gateCost(o, most);
   const same = o.confirmBot && o.confirmBot !== 'none' && !c ? [`The confirming bot ${o.confirmBot} is the ${botWord(o.bot)} bot under another name, so it plays nothing more.`] : [];
   return [
-    `Gate rule: ${gateRuleWords(o)}.`,
+    `Gate rule: ${gateRuleWords({ ...o, opponents })}.`,
     ...same,
     gateGuaranteeWords(o),
     gateDetectWords({ ...o, opponents }),
@@ -206,6 +227,7 @@ export const GATE_FLAGS = {
   'confirm-stages': int(GATE_DEFAULTS.confirmStages, { min: 1, max: 16 }),
   seed: int(GATE_CLI_SEEDS.first, { min: 0 }),
   'confirm-seed': int(GATE_CLI_SEEDS.confirm, { min: 0 }),
+  'keep-out': oneOf(KEEP_OUT_RULES, GATE_DEFAULTS.keepOut),
   'no-early-stop': bool(),
   threads: threadsOpt(),
   cache: bool(),
@@ -269,6 +291,7 @@ async function run(argv: string[], io: GateIO): Promise<number> {
     stages: V.stages,
     confirmStages: V['confirm-stages'],
     seeds: { first: V.seed, confirm: V['confirm-seed'] },
+    keepOut: V['keep-out'],
     ...(V['no-early-stop'] ? { fullStages: true } : {}),
   };
   const games = gateStageGames(o.rounds, field.length);
@@ -305,7 +328,7 @@ async function run(argv: string[], io: GateIO): Promise<number> {
     date: (io.now ?? (() => new Date()))().toISOString(),
     simVersion: SIM_VERSION,
     settings: gateSettings(o),
-    words: { rule: gateRuleWords(o), guarantee: gateGuaranteeWords(o), detect: gateDetectWords({ ...o, opponents: [field.length] }), spread: spreadSeenWords([outcome]) },
+    words: { rule: gateRuleWords({ ...o, opponents: [field.length] }), guarantee: gateGuaranteeWords(o), detect: gateDetectWords({ ...o, opponents: [field.length] }), spread: spreadSeenWords([outcome]) },
     spreadSeen: spreadSeen([outcome]),
     decks: [gateDeckRecord(outcome, target.deck, { file: target.file, referenceFile: ref.file })],
   };

@@ -6,19 +6,19 @@
 // that already has held-out games on them and the new games pooled (src/lib/changeLedgerRun.ts holds the logic both
 // share; the browser store is src/lib/changeLedgerStore.ts). Without it every log, game and result is the one before.
 //
-// Breeding: parents are ranked by src/lib/parentStrength.ts (rankedParents hands it the bundled ratings and seasons), and
+// Breeding: parents are ranked by src/lib/parentStrength.ts (rankedParents hands it the bundled ratings), and
 // a bred deck's test against its reference (src/lib/breedGate.ts runLabTest) plays its blocks through labGatePlay.
 import { CARDS, CARD_BY_ID, cardLabel } from '../engine/cards';
 import { counts, listFingerprint, ramLimits, validateDeck } from '../engine/deck';
 import type { DeckList } from '../engine/types';
 import { analyzeDeck, type DeckReport } from '../analysis/analyze';
 import type { PlayerSummary } from '../analysis/summarize';
-import { breedSeason, type Bred, type BreedPackages } from '../ai/breeder';
+import { BREED_POLICY, breedSeason, type Bred, type BreedPackages } from '../ai/breeder';
 import { canCut, checkChange, isEmptyPlan, packageName, tunerPackageMoves, type PackageMoveKind, type PackagePlan } from './deckPackages';
 import { cutReason, partnerAwarePicks, type CutRow } from './cutRanking';
 import impact from '../data/impact.json';
 import { findImpactDeck, IMPACT_MIN_DECK_GAMES, IMPACT_MIN_POOLED_GAMES, type ImpactData } from '../analysis/impactData';
-import { RATINGS, SEASONS, type SeasonsData } from '../data/index';
+import { RATINGS } from '../data/index';
 import { rankLibraryParents, type RatedDeck } from './parentStrength';
 import { gameDeck, SIM_VERSION, type PlayGame } from './tournament';
 import { adoptionRule, confirmStaged, DEFAULT_REACH, formatGain, judgePooled, nomineeRecord, pairedInterval, pickAdopted, scoreOf, settleStages, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type PairedInterval, type PairedScores, type SettleRecord } from './evidence';
@@ -923,12 +923,11 @@ export function tunedName(name: string, partial = false, notShownBetter = false)
 // ---------------------------------------------------------------- breeding
 /**
  * Parent strength, strongest first: the season breeder's rule (src/lib/parentStrength.ts; scripts/breed-data.ts
- * strengthOf): the conservative power rating, blended with the season leaderboard only where its entry is current (every
- * season behind it ran under this simulator version). The leaderboard's rows are matched to library decks by file.
- * `ratings` and `seasons` default to the bundled files (tests hand in their own).
+ * strengthOf): the power rating's estimate, for decks with 100 or more games on their current list (no leaderboard
+ * blend since 2026-11-24). `ratings` defaults to the bundled file (tests hand in their own).
  */
-export function rankedParents(lib: readonly LibraryDeck[], ratings: readonly RatedDeck[] = RATINGS.decks, seasons: Pick<SeasonsData, 'leaderboard' | 'seasons'> = SEASONS, current: number = SIM_VERSION): { deck: DeckList; wr: number }[] {
-  return rankLibraryParents(lib, ratings, seasons, current);
+export function rankedParents(lib: readonly LibraryDeck[], ratings: readonly RatedDeck[] = RATINGS.decks): { deck: DeckList; wr: number }[] {
+  return rankLibraryParents(lib, ratings);
 }
 
 export interface BreedOptions {
@@ -1004,7 +1003,8 @@ export function breedInBrowser(lib: readonly LibraryDeck[], o: BreedOptions): Br
     if (m) deckImpact[listFingerprint(r.deck)] = m;
   }
   const bc = o.breedCount && o.breedCount > o.n ? o.breedCount : undefined;
-  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined, ...(o.packages ? { packages: o.packages } : {}) }, o.n, bc);
+  // the season's breeding policy (Legends by marginal effect, two colours at most: src/ai/breeder.ts BREED_POLICY)
+  const out = breedSeason(0, { ranked, impact: GLOBAL_IMPACT, seenTriples, seed: o.seed, deckImpact, h2h: usable ? o.h2h : undefined, ...(o.packages ? { packages: o.packages } : {}), ...BREED_POLICY }, o.n, bc);
   return out.map((b, i) => {
     const name = b.deck.name.replace(/^S0-\d+/, `Lab-${String(o.seed % 1000).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`);
     return { ...b, deck: { ...b.deck, name } };

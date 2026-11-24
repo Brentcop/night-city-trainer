@@ -1,7 +1,7 @@
 // Breeding seasons (#/seasons, lazy): the all-time leaderboard and each season's panel (new decks, standings, and
 // "Bred decks, then and now"). Rows of the leaderboard whose games come from an older simulator are marked
-// (staleLeaderRow, src/lib/parentStrength.ts), and the intro says the breeder no longer uses those numbers to choose
-// parents. Which seasons are historical comes from each season's own version (seasonsSimWords; each panel's header
+// (staleLeaderRow, src/lib/parentStrength.ts), and the intro says the breeder chooses parents by today's power ratings,
+// not by the leaderboard (since 2026-11-24). Which seasons are historical comes from each season's own version (seasonsSimWords; each panel's header
 // names its simulator), never from the seasons file's manifest, whose version is the oldest season's. "Then and now" puts each bred deck's win rate in its own season's round robin beside its power rating now and
 // its best parent's (today's parent strength), with the season's test of it when one was recorded; it computes no
 // difference between them (src/lib/bredDecks.ts). Decks a season's test did not let in are listed under the table.
@@ -62,7 +62,7 @@ export function SeasonsView({ data: D, ratings, lib, current = CURRENT_SIM_VERSI
   const libByFile = new Map(lib.map((d) => [d.file, d]));
   const versions = seasonVersions(D.seasons);
   const stale = new Set(D.leaderboard.filter((r) => staleLeaderRow(r, versions, current)).map((r) => r.name));
-  const ranked = useMemo(() => rankLibraryParents(lib, ratings.decks, D, current), [lib, ratings, D, current]);
+  const ranked = useMemo(() => rankLibraryParents(lib, ratings.decks), [lib, ratings]);
   const rows = D.leaderboard.filter((r) => !filter || (r.name + r.origin + r.colors + r.arch).toLowerCase().includes(filter.toLowerCase()));
   const staleWords = leaderboardStaleWords(stale.size, D.leaderboard.length - stale.size);
   // each season's own version, never the file's minimum (src/data/seasons.json manifest.simVersion is the oldest season's)
