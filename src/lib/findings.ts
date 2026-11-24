@@ -405,6 +405,11 @@ export interface MeasurementKey {
   bot: string;
   simVersion: number;
   field: string;
+  /**
+   * Only for a re-measurement that repeats an earlier finding's measurement (same subject, method, bot, simulator version
+   * and field, on other games): its row id, so each keeps an id of its own. Absent, the id is exactly as before.
+   */
+  repeat?: string;
 }
 
 /** The subject's identity in one string: list, card, package, opponent, change key, ending. */
@@ -414,7 +419,7 @@ export function subjectKey(s: MeasurementKey['subject']): string {
 
 /** The id (16 hex digits), its short form (8) and the question key (the id without bot, simulator version and method). */
 export function findingIds(k: MeasurementKey): { id: string; short: string; question: string } {
-  const id = hash64(JSON.stringify(['finding', 1, k.kind, subjectKey(k.subject), k.method, k.bot, k.simVersion, k.field]));
+  const id = hash64(JSON.stringify(['finding', 1, k.kind, subjectKey(k.subject), k.method, k.bot, k.simVersion, k.field, ...(k.repeat === undefined ? [] : [k.repeat])]));
   const question = hash64(JSON.stringify(['question', 1, k.kind, subjectKey(k.subject), k.field]));
   return { id, short: id.slice(0, 8), question };
 }

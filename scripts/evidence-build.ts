@@ -351,6 +351,8 @@ function relationOf(listId: string, base: string, c: Parameters<typeof applyChan
 interface Draft extends Omit<Finding, 'id' | 'short' | 'question' | 'nature' | 'claim' | 'corrected' | 'strength'> {
   /** how `corrected` is decided: Benjamini–Hochberg over the family, or given by the tool's own test */
   test: 'bh' | { corrected: boolean };
+  /** a re-measurement's row id: its id is salted with it only when an earlier finding already has the plain id */
+  rowId?: string;
 }
 
 function finalize(drafts: Draft[], current: number): Finding[] {
@@ -370,9 +372,15 @@ function finalize(drafts: Draft[], current: number): Finding[] {
     for (const d of fam) if (d.test !== 'bh') corrected.set(d, d.test.corrected);
     for (const d of fam) d.family = { ...d.family, size: fam.length };
   }
+  // a re-measurement that repeats an earlier measurement of the same thing (same subject, method, bot, version and field,
+  // other games; the files are read in name order, so the older row keeps the plain id) gets an id of its own
+  const used = new Set<string>();
   return rounded.map((d) => {
-    const { test: _test, ...rest } = d;
-    const ids = findingIds({ kind: d.kind, subject: d.subject, method: d.method, bot: d.bot, simVersion: d.simVersion, field: d.field });
+    const { test: _test, rowId, ...rest } = d;
+    const key = { kind: d.kind, subject: d.subject, method: d.method, bot: d.bot, simVersion: d.simVersion, field: d.field };
+    const plain = findingIds(key);
+    const ids = used.has(plain.id) && rowId !== undefined ? findingIds({ ...key, repeat: rowId }) : plain;
+    used.add(ids.id);
     const flags = [...new Set<FlagCode>([...(isStale(d.simVersion, current) ? (['stale'] as const) : []), ...(isOtherBot(d.bot, NATURE_OF[d.kind]) ? (['other-bot'] as const) : []), ...d.flags])].sort((a, b) => FLAG_CODES.indexOf(a) - FLAG_CODES.indexOf(b));
     const f: Finding = {
       ...ids,
@@ -1422,6 +1430,7 @@ function remeasured(ctx: Ctx, d: EvidenceDeck, listId: string, idOf: ReadonlyMap
       const subject = changeSubject(key, m.label, listId, ctx, m.candListId);
       out.push({
         test: { corrected: m.mean - Z95 * m.se > 0 || m.mean + Z95 * m.se < 0 },
+        rowId: m.id,
         kind: 'change',
         subject: { listId, deck: d.deck.name, file: d.file, change: subject },
         estimate: m.mean,

@@ -240,7 +240,7 @@ An association clears the bar for strong only with `--adjusted`: its adjusted es
 
 ## Ids and the cite line
 
-- `id` = a hash (`hash64`, `src/lib/stateHash.ts`) of kind, subject (list, card, package, opponent list, change key, ending), method, bot, simulator version and field. Never of the result: the same measurement with more games keeps its id.
+- `id` = a hash (`hash64`, `src/lib/stateHash.ts`) of kind, subject (list, card, package, opponent list, change key, ending), method, bot, simulator version and field. Never of the result: the same measurement with more games keeps its id. A re-measurement row that repeats an earlier finding's measurement on other games (same subject, method, bot, simulator version and field; the files are read in name order) adds its row id to the hash (`MeasurementKey.repeat`), so it gets an id of its own and the earlier one keeps its id; no other id moves (since 2026-11-24, when B.1's Hard row for −T-Bug +Rockn' Rockerboy repeated P6's).
 - `question` = the same hash without bot, simulator version and method, so a page can link "same question, older measurement". A change measured by the forge (v5), a re-measurement (v8) and the ledger is one question.
 - `short` = the id's first 8 hex digits. The builder stops on two ids with one short id; `check:data` checks both are unique.
 - Cite line (`citeLine`, `citeOf`): `[F:<short id>] <claim> (<estimate> [<lo>, <hi>], <games> games, <bot> v<sim>)`. A ratings-based matchup rests on the ratings, so its line says "from the ratings, 2 direct games" in place of the games.

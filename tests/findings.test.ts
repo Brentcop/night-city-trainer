@@ -154,6 +154,14 @@ describe('ids', () => {
     expect(findingIds({ ...key, field: '0000000000000000' }).question).not.toBe(a.question);
   });
 
+  it('a repeated re-measurement gets its own id and keeps the question; without it the id is unchanged', () => {
+    const a = findingIds(key);
+    const again = findingIds({ ...key, repeat: 'b1-hard-row' });
+    expect(again.id).not.toBe(a.id);
+    expect(again.question).toBe(a.question);
+    expect(findingIds({ ...key, repeat: undefined })).toEqual(a);
+  });
+
   it('a short id shared by two ids, or a repeated id, is refused', () => {
     expect(idProblems([{ id: '0123456789abcdef', short: '01234567' }, { id: 'fedcba9876543210', short: 'fedcba98' }])).toEqual([]);
     expect(idProblems([{ id: '0123456789abcdef', short: '01234567' }, { id: '01234567ffffffff', short: '01234567' }])).toEqual(['short id 01234567 is shared by 0123456789abcdef and 01234567ffffffff']);
