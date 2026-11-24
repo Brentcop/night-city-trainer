@@ -76,13 +76,13 @@ export function automationSwitch(argv: string[], io: SwitchIO): number {
     if (V['github-output']) io.append(V['github-output'], `automation=${JSON.stringify(auto)}\n`);
     return 0;
   }
-  if (t.kind === 'automation' && (t.name === 'width' || t.name === 'maxGamesPerRun')) {
+  if (t.kind === 'automation' && typeof auto[t.name] === 'number') {
     const v = auto[t.name];
     io.out(String(v));
     if (V['github-output']) io.append(V['github-output'], `value=${v}\n`);
     return 0;
   }
-  const on = t.kind === 'feature' ? featureOn(parsed.config, t.name) : auto[t.name as 'series' | 'arrivals'];
+  const on = t.kind === 'feature' ? featureOn(parsed.config, t.name) : auto[t.name as 'series' | 'arrivals' | 'matchups'];
   io.out(on ? 'on' : 'off');
   if (V['github-output']) io.append(V['github-output'], `on=${on}\n`);
   if (!on && V.summary) {

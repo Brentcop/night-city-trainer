@@ -15,6 +15,16 @@
 // stopped, where pairing by the estimated ratings (the greedy planner) covered 87.8 to 89.4%. The ratings are refitted
 // every CHUNK games.
 //
+// The matchup block (2026-11-24, docs/REVIEW_2026-11-24.md B.9, docs/SERIES.md "The matchup block"). Once the width rule
+// holds (or as soon as it holds within a run), and with the series and `matchups` on, the run plays the pairs among the
+// top `matchupDecks` decks by fitted rating (ties by name) until every such pair has `matchupGames` games on current
+// lists: the fewest-played pair first (ties by the seeded draw), BATCH games at a time, each game's first player the deck
+// of the pair that has gone first less often, so a pair's seats come out equal. The top decks are fixed when the block
+// starts (from the recorded games and the run's own games before it): the choice reads results only, so the likelihood
+// stays valid, as with Swiss pairing. Its objective is a count per pair (each pair's own record, which the head-to-head
+// model weighs against its prior), not the ratings' variance: the width rule already spreads games for the ratings, and
+// a matchup effect is learned only from games of that pair.
+//
 // Seeds: game k of run n plays seed seriesSeed(n, k) = 1,000,000,000 + n × 100,000 + k, outside every event's, the gate's,
 // the forge's and the re-measurements' ranges, below 2³¹ up to run 11,473 (docs/SERIES.md "Seeds").
 import { fieldInterval, fitRatings, seededRandom, type RatedGame, type RatingFit } from './ratingModel';
@@ -38,6 +48,27 @@ export interface SeriesSwitches {
   arrivals: boolean;
   /** ± points */
   width: number;
+  /** the matchup block (played only with the series on); absent = off */
+  matchups?: boolean;
+  /** the block's decks: the top this many by rating */
+  matchupDecks?: number;
+  /** the block's target: games a pair */
+  matchupGames?: number;
+}
+
+/** The matchup block's state: its decks, its target and how far its pairs are from it. */
+export interface BlockState {
+  /** the top decks by fitted rating, best first */
+  decks: string[];
+  /** games a pair */
+  target: number;
+  pairs: number;
+  /** pairs with at least `target` games */
+  done: number;
+  /** games still to play for every pair to reach its target */
+  games: number;
+  /** the fewest games any pair has */
+  least: number;
 }
 
 /** What the decision reads: the pooled games (current lists only, this simulator version and bot) and the field. */
@@ -69,6 +100,8 @@ export interface SeriesDecision {
   unrated: string[];
   /** every field deck's range now */
   ranges: DeckRange[];
+  /** the matchup block (null: switched off, or fewer than two rated decks) */
+  block: BlockState | null;
 }
 
 /**
@@ -119,14 +152,58 @@ export function decide(input: SeriesInput, fit: RatingFit = seriesFit(input.game
     eligible = over.length ? ranges.map((r) => ({ deck: r.deck, target: sw.width })) : [];
     if (over.length) why.push(`${plural(over.length, 'deck')} of ${ranges.length} ${over.length === 1 ? 'has' : 'have'} a range wider than ${pts(sw.width)} (the widest: ${widest!.deck}, ${pts(widest!.hw)}).`);
     if (unrated.length) why.push(`${plural(unrated.length, 'deck')} ${unrated.length === 1 ? 'has' : 'have'} no game on ${unrated.length === 1 ? 'its' : 'their'} current list: ${unrated.join(', ')}.`);
-    if (!over.length) why.push(`Every deck's range is at most ${pts(sw.width)} (the widest: ${widest ? `${widest.deck}, ${pts(widest.hw)}` : 'none'}); nothing to play.`);
+    if (!over.length) why.push(`Every deck's range is at most ${pts(sw.width)} (the widest: ${widest ? `${widest.deck}, ${pts(widest.hw)}` : 'none'})${blockOn(sw) ? '' : '; nothing to play'}.`);
   } else {
     target = rated.length ? Math.max(sw.width, Math.max(...rated.map((r) => r.hw))) : sw.width;
     eligible = unrated.map((deck) => ({ deck, target }));
     if (unrated.length) why.push(`Arrivals: ${plural(unrated.length, 'deck')} with no game on ${unrated.length === 1 ? 'its' : 'their'} current list (${unrated.join(', ')}), played until ${unrated.length === 1 ? 'its range is' : 'their ranges are'} at most ${pts(target)}, the widest among the other decks (the series itself is switched off).`);
     else why.push('Arrivals: every deck has games on its current list (the series itself is switched off); nothing to play.');
   }
-  return { needed: eligible.length > 0, why, widest, target, eligible, unrated, ranges };
+  const block = blockOn(sw) ? blockState(blockDecks(fit, field, sw.matchupDecks!), sw.matchupGames!, meetings(input.games)) : null;
+  if (block) why.push(blockWords(block, eligible.length > 0));
+  return { needed: eligible.length > 0 || (!!block && block.games > 0), why, widest, target, eligible, unrated, ranges, block };
+}
+
+/** The block is played only with the series on, `matchups` on, at least two decks and a target. */
+export const blockOn = (sw: SeriesSwitches): boolean => sw.series && !!sw.matchups && (sw.matchupDecks ?? 0) >= 2 && (sw.matchupGames ?? 0) >= 1;
+
+/** The top `k` field decks by fitted rating (rated decks only; ties by name), best first. */
+export function blockDecks(fit: Pick<RatingFit, 'names' | 'r' | 'played'>, field: readonly string[], k: number): string[] {
+  const at = new Map(fit.names.map((n, q) => [n, q]));
+  return field
+    .filter((d) => at.has(d) && (fit.played[at.get(d)!] ?? 0) > 0)
+    .sort((a, b) => fit.r[at.get(b)!]! - fit.r[at.get(a)!]! || (a < b ? -1 : a > b ? 1 : 0))
+    .slice(0, k);
+}
+
+const pairKey = (a: string, b: string) => (a < b ? `${a}\u0000${b}` : `${b}\u0000${a}`);
+
+/** The block's pairs (every two of `decks`; within a pair, a before b by name), each with the games it has. */
+export function blockPairs(decks: readonly string[], met: ReadonlyMap<string, number>): { a: string; b: string; games: number }[] {
+  const names = [...decks].sort();
+  const out: { a: string; b: string; games: number }[] = [];
+  for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) out.push({ a: names[i]!, b: names[j]!, games: met.get(pairKey(names[i]!, names[j]!)) ?? 0 });
+  return out;
+}
+
+/** How far the block over `decks` is from `target` games a pair (null for fewer than two decks). */
+export function blockState(decks: readonly string[], target: number, met: ReadonlyMap<string, number>): BlockState | null {
+  if (decks.length < 2) return null;
+  const pairs = blockPairs(decks, met);
+  return {
+    decks: [...decks],
+    target,
+    pairs: pairs.length,
+    done: pairs.filter((p) => p.games >= target).length,
+    games: pairs.reduce((s, p) => s + Math.max(0, target - p.games), 0),
+    least: Math.min(...pairs.map((p) => p.games)),
+  };
+}
+
+function blockWords(b: BlockState, widthFirst: boolean): string {
+  const head = `Matchup block: the ${b.decks.length} best-rated decks, ${b.pairs} pairs, ${b.target} games a pair`;
+  if (!b.games) return `${head}: every pair has its games.`;
+  return `${head}: ${b.done} of ${b.pairs} pairs have them (the fewest a pair has: ${b.least}); ${b.games} games to go${widthFirst ? ', once the ranges above are within the width' : ''}.`;
 }
 
 /** One pick: `games` games of a against b, seats alternating (a on the play first). */
@@ -134,6 +211,8 @@ export interface SeriesPick {
   a: string;
   b: string;
   games: number;
+  /** each game's first player (0 = a); absent: seats alternate, a first */
+  firsts?: (0 | 1)[];
 }
 
 /** The planning state: the fit's covariance, updated rank-one as picks are added. */
@@ -212,6 +291,53 @@ export function meetings(games: readonly RatedGame[]): Map<string, number> {
     m.set(k, (m.get(k) ?? 0) + 1);
   }
   return m;
+}
+
+/** Per pair and deck (the pair's key, then the deck's name), the games of that pair the deck went first in. */
+export function firstsOf(games: readonly RatedGame[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const g of games) {
+    const k = `${pairKey(g.a, g.b)}\u0000${g.first === 0 ? g.a : g.b}`;
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return m;
+}
+
+/**
+ * The block's next `budget` games: the pair with the fewest games first (ties by `rnd`), up to BATCH games a pick and
+ * never past the target; each game's first player is the deck of the pair that has gone first less often (a, on a tie).
+ * Planned games count as played for the picks after them. Deterministic for the same inputs and random stream.
+ */
+export function planBlockPicks(o: { decks: readonly string[]; target: number; met: ReadonlyMap<string, number>; firsts: ReadonlyMap<string, number>; budget: number; rnd: () => number; batch?: number }): SeriesPick[] {
+  const batch = o.batch ?? SERIES_BATCH;
+  const pairs = blockPairs(o.decks, o.met).map((p) => ({ ...p, fa: o.firsts.get(`${pairKey(p.a, p.b)}\u0000${p.a}`) ?? 0, fb: o.firsts.get(`${pairKey(p.a, p.b)}\u0000${p.b}`) ?? 0 }));
+  const picks: SeriesPick[] = [];
+  let left = o.budget;
+  while (left > 0) {
+    let best: (typeof pairs)[number] | null = null;
+    let bk = Infinity;
+    for (const p of pairs) {
+      if (p.games >= o.target) continue;
+      const key = p.games + o.rnd();
+      if (key < bk) {
+        bk = key;
+        best = p;
+      }
+    }
+    if (!best) break;
+    const n = Math.min(batch, o.target - best.games, left);
+    const firsts: (0 | 1)[] = [];
+    for (let g = 0; g < n; g++) {
+      const aFirst = best.fa <= best.fb;
+      firsts.push(aFirst ? 0 : 1);
+      if (aFirst) best.fa++;
+      else best.fb++;
+    }
+    best.games += n;
+    left -= n;
+    picks.push({ a: best.a, b: best.b, games: n, firsts });
+  }
+  return picks;
 }
 
 /**
@@ -343,6 +469,8 @@ export interface RunOutcome {
   stopped: 'reached' | 'budget' | 'nothing-needed';
   before: SeriesDecision;
   after: SeriesDecision;
+  /** the matchup block this run played (its decks fixed when it started): its state then and at the end */
+  block?: { start: BlockState; end: BlockState };
 }
 
 /** The stopping rule on a decision taken during the run: every deck the run plays for is at its own target. */
@@ -352,39 +480,63 @@ export function reached(start: SeriesDecision, now: SeriesDecision): boolean {
 }
 
 /**
- * Play chunks of games by the rule until it holds or the budget (games, time) is spent. The targets are fixed at the
- * start (arrivals: the other decks' widest range then). Returns every game played, in order.
+ * Play chunks of games by the rule until it holds or the budget (games, time) is spent: first the width rule (every
+ * eligible deck at its target, fixed at the start; arrivals: the other decks' widest range then), then the matchup
+ * block (its decks fixed when the width rule holds, from the games so far). Returns every game played, in order.
  */
 export async function runSeries(o: RunOptions): Promise<RunOutcome> {
   const chunk = o.chunk ?? SERIES_CHUNK;
+  const sw = o.input.switches;
   const before = decide(o.input);
   if (!before.needed) return { games: [], stopped: 'nothing-needed', before, after: before };
   const rnd = seededRandom(seriesSeed(o.run, 0));
   const all: RatedGame[] = [...o.input.games];
   const met = meetings(all);
+  const firsts = firstsOf(all);
   const played: SeriesGame[] = [];
   let fit = seriesFit(all, o.input.field);
   let now = before;
   const eligible = before.eligible.map((e) => e.deck);
-  while (!reached(before, now)) {
-    if (played.length >= o.maxGames || o.outOfTime?.()) return { games: played, stopped: 'budget', before, after: now };
-    const open = eligible.filter((d) => (now.ranges.find((r) => r.deck === d)?.hw ?? Infinity) > (before.eligible.find((e) => e.deck === d)?.target ?? 0) + 1e-9);
+  let block: { decks: string[]; start: BlockState } | null = null;
+  const outcome = (stopped: 'reached' | 'budget'): RunOutcome => {
+    const end = block ? blockState(block.decks, sw.matchupGames!, met) : null;
+    return { games: played, stopped, before, after: now, ...(block && end ? { block: { start: block.start, end } } : {}) };
+  };
+  for (;;) {
+    let picks: SeriesPick[];
     const budget = Math.min(chunk, o.maxGames - played.length);
-    const picks = planPicks({ fit, field: o.input.field, eligible: open, met, budget, rnd });
-    if (!picks.length) return { games: played, stopped: 'budget', before, after: now };
+    if (!reached(before, now)) {
+      if (played.length >= o.maxGames || o.outOfTime?.()) return outcome('budget');
+      const open = eligible.filter((d) => (now.ranges.find((r) => r.deck === d)?.hw ?? Infinity) > (before.eligible.find((e) => e.deck === d)?.target ?? 0) + 1e-9);
+      picks = planPicks({ fit, field: o.input.field, eligible: open, met, budget, rnd });
+    } else {
+      if (!blockOn(sw)) break;
+      if (!block) {
+        const decks = blockDecks(fit, o.input.field, sw.matchupDecks!);
+        const start = blockState(decks, sw.matchupGames!, met);
+        if (!start) break;
+        block = { decks, start };
+      }
+      if (!blockState(block.decks, sw.matchupGames!, met)!.games) break;
+      if (played.length >= o.maxGames || o.outOfTime?.()) return outcome('budget');
+      picks = planBlockPicks({ decks: block.decks, target: sw.matchupGames!, met, firsts, budget, rnd });
+    }
+    if (!picks.length) return outcome('budget');
     const jobs: SeriesJob[] = [];
     for (const p of picks)
-      for (let g = 0; g < p.games; g++) jobs.push({ a: p.a, b: p.b, seed: seriesSeed(o.run, played.length + jobs.length), first: (g % 2) as 0 | 1 });
+      for (let g = 0; g < p.games; g++) jobs.push({ a: p.a, b: p.b, seed: seriesSeed(o.run, played.length + jobs.length), first: p.firsts?.[g] ?? ((g % 2) as 0 | 1) });
     const results = await o.play(jobs);
     jobs.forEach((j, q) => {
       const r = results[q]!;
-      played.push({ ...j, ...r });
+      played.push({ ...j, winner: r.winner, turns: r.turns, reason: r.reason });
       all.push({ a: j.a, b: j.b, first: j.first, s: r.winner === 0 ? 1 : r.winner === 1 ? 0 : 0.5 });
-      const k = j.a < j.b ? `${j.a}\u0000${j.b}` : `${j.b}\u0000${j.a}`;
+      const k = pairKey(j.a, j.b);
       met.set(k, (met.get(k) ?? 0) + 1);
+      const f = `${k}\u0000${j.first === 0 ? j.a : j.b}`;
+      firsts.set(f, (firsts.get(f) ?? 0) + 1);
     });
     fit = seriesFit(all, o.input.field);
     now = decide({ ...o.input, games: all }, fit);
   }
-  return { games: played, stopped: 'reached', before, after: now };
+  return outcome('reached');
 }

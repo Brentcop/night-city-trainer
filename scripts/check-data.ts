@@ -51,7 +51,10 @@
 //     events), a setup that is a bots-only match list with no byes or bracket, readable games; a stored list that is not
 //     the library's current list of that deck (its games are left out of the pool) or a deck no longer in the library is
 //     information. h2h.json and ratings.json count the pooled runs (`runs`), list them in their manifests, and count
-//     only the games on the library's current lists (scripts/event-pool.ts currentListGate)
+//     only the games on the library's current lists (scripts/event-pool.ts currentListGate). A run's card impact
+//     (`impact`, since 2026-11-24: src/lib/seriesImpact.ts) reads, traces every game of the run, and is counted in both
+//     data/seasons tables under the run's own simulator version, bot and manifest run id; a table counts no series
+//     run that is not recorded with card impact (`npx tsx scripts/series.ts impact` adds what is missing)
 // Exits 1 when a check fails, 2 on a bad flag.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -68,6 +71,7 @@ import { packageEffectsProblems, type PackageEffectFile } from '../src/ai/packag
 import type { SynergyReport } from '../src/analysis/synergies';
 import { parseDeckImpact } from '../src/lib/seasonDeckImpact';
 import { parseCardImpact, cardTotals } from '../src/lib/seasonImpact';
+import { readRunImpact, seriesImpactProblems } from '../src/lib/seriesImpact';
 import { analysisKey, impactFileWords, impactFilesProblems, type AnalysisLike, type SeasonPair } from '../src/lib/breederImpact';
 import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
 import { evidenceCheck } from './build-evidence';
@@ -99,6 +103,8 @@ export interface CheckEvent {
   /** a rating run's kind and schema (absent on events) */
   kind?: unknown;
   schema?: unknown;
+  /** a rating run's card impact (src/lib/seriesImpact.ts; absent on events and older runs) */
+  impact?: unknown;
 }
 export interface CheckInput {
   /** src/data/tournaments.json (null when missing) */
@@ -435,6 +441,15 @@ export function runFileProblems(runs: readonly { file: string; event: CheckEvent
         }
       if (bad) failures.push(`${where}: ${bad} match(es) or game(s) unreadable (a bye, a deck with no stored list, or a game without seed, first, winner and turns)`);
     }
+    if (e.impact !== undefined) {
+      const ri = readRunImpact(e.impact);
+      if (!ri.impact) failures.push(`${where}: its card impact ${ri.problem}`);
+      else {
+        const games = Array.isArray(e.rounds) ? e.rounds.reduce((k, r) => k + r.matches.reduce((q, mm) => q + mm.games.length, 0), 0) : 0;
+        if (ri.impact.games !== games) failures.push(`${where}: its card impact traces ${ri.impact.games} games, the run has ${games}`);
+        for (const d of ri.impact.decks) if (e.decks[d.deck] && lf(e.decks[d.deck]!) !== d.id) failures.push(`${where}: its card impact keys "${d.deck}" by ${d.id}, not the stored list's fingerprint`);
+      }
+    }
     if (library)
       for (const [name, d] of Object.entries(e.decks)) {
         const base = entrantBase(e.setup, name);
@@ -607,6 +622,15 @@ export function checkData(input: CheckInput): CheckResult {
     const p = impactFilesProblems(cardFile.file, deckFile.file, input.seasons ?? []);
     failures.push(...p.map((x) => `data/seasons impact files: ${x}`));
     if (!p.length) passed.push(`data/seasons/impact.json and deck-impact.json count each season once, under the same simulator version and bot, and the one its season file names`);
+    // the rating runs that carry card impact are counted in both, once, under their own pair and run id
+    const traced = (input.runs ?? []).flatMap(({ event: e }) => {
+      const ri = e.impact === undefined ? null : readRunImpact(e.impact);
+      const runId = (e.manifest as { runId?: unknown } | undefined)?.runId;
+      return ri?.impact && typeof e.id === 'string' && typeof e.simVersion === 'number' && typeof e.bot === 'string' && typeof runId === 'string' ? [{ id: e.id, runId, simVersion: e.simVersion, bot: e.bot, impact: ri.impact }] : [];
+    });
+    const sp = seriesImpactProblems(cardFile.file, deckFile.file, traced);
+    failures.push(...sp.map((x) => `data/seasons impact files: ${x}`));
+    if (!sp.length && traced.length) passed.push(`data/seasons/impact.json and deck-impact.json count the card impact of ${traced.length} rating run(s) once each (${traced.map((r) => r.id).join(', ')})`);
   }
 
   // ---- the coach's and the Deck Lab's card table is the breeder's (REVIEW_2026-11-24 B.2)

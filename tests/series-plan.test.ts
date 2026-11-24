@@ -3,7 +3,7 @@
 // the rule stops, the 90% ranges hold their truth about 90% of the time, in about the games the rule needs. Invented
 // decks only: nothing here depends on the recorded data.
 import { describe, expect, it } from 'vitest';
-import { decide, expectedGames, meetings, planPicks, reached, runSeries, RUN_SEED_SPAN, seriesFit, seriesSeed, SERIES_BATCH, type SeriesJob, type SeriesSwitches } from '../src/lib/seriesPlan';
+import { blockDecks, blockPairs, decide, expectedGames, firstsOf, meetings, planBlockPicks, planPicks, reached, runSeries, RUN_SEED_SPAN, seriesFit, seriesSeed, SERIES_BATCH, type SeriesJob, type SeriesSwitches } from '../src/lib/seriesPlan';
 import { expectedVs, fieldInterval, seededRandom, type RatedGame } from '../src/lib/ratingModel';
 
 const σ = (x: number) => 1 / (1 + Math.exp(-x));
@@ -188,5 +188,80 @@ describe('a seeded simulation of the rule (docs/SERIES.md E1, E2)', () => {
     const median = games[games.length >> 1]!;
     expect(median).toBeGreaterThanOrEqual(1200);
     expect(median).toBeLessThanOrEqual(2400);
+  });
+});
+
+describe('the matchup block (2026-11-24)', () => {
+  const BLOCK: SeriesSwitches = { series: true, arrivals: true, width: 30, matchups: true, matchupDecks: 6, matchupGames: 20 };
+  it('the decision: with the width met, the pairs among the best-rated decks until each has its games', () => {
+    const w = world(11);
+    const fit = seriesFit(w.games, w.names);
+    const d = decide({ games: w.games, field: w.names, switches: BLOCK }, fit);
+    const top = blockDecks(fit, w.names, 6);
+    expect(top).toHaveLength(6);
+    const at = (n: string) => fit.r[fit.names.indexOf(n)]!;
+    expect(top.every((n, k) => k === 0 || at(top[k - 1]!) >= at(n))).toBe(true);
+    expect(w.names.filter((n) => !top.includes(n)).every((n) => at(n) <= at(top[5]!))).toBe(true);
+    expect(d.eligible).toEqual([]);
+    expect(d.needed).toBe(true);
+    expect(d.block).toMatchObject({ decks: top, target: 20, pairs: 15 });
+    expect(d.block!.games).toBe(blockPairs(top, meetings(w.games)).reduce((s, p) => s + Math.max(0, 20 - p.games), 0));
+    expect(d.why.join(' ')).toContain('Matchup block: the 6 best-rated decks, 15 pairs, 20 games a pair');
+    expect(d.why.join(' ')).not.toContain('nothing to play');
+    // only with the series on and the block switched on
+    expect(decide({ games: w.games, field: w.names, switches: { ...BLOCK, series: false } }, fit)).toMatchObject({ needed: false, block: null });
+    expect(decide({ games: w.games, field: w.names, switches: { ...BLOCK, matchups: false } }, fit)).toMatchObject({ needed: false, block: null });
+  });
+  it('the picks: fewest-played pair first, never past the target, the decks going first equally often', () => {
+    const decks = ['A', 'B', 'C', 'D'];
+    const met = new Map([['A\u0000B', 7]]);
+    const firsts = new Map([
+      ['A\u0000B\u0000A', 5],
+      ['A\u0000B\u0000B', 2],
+    ]);
+    const picks = planBlockPicks({ decks, target: 20, met, firsts, budget: 10_000, rnd: seededRandom(1) });
+    expect(picks.reduce((s, p) => s + p.games, 0)).toBe(6 * 20 - 7);
+    expect(picks.every((p) => p.games <= SERIES_BATCH && p.firsts!.length === p.games)).toBe(true);
+    // the pair that had games waits until the others have caught up
+    expect(picks.slice(0, 5).every((p) => !(p.a === 'A' && p.b === 'B'))).toBe(true);
+    const tally = new Map<string, [number, number]>();
+    for (const p of picks) {
+      const t = tally.get(`${p.a}|${p.b}`) ?? [0, 0];
+      for (const f of p.firsts!) t[f]++;
+      tally.set(`${p.a}|${p.b}`, t);
+    }
+    // A had gone first 5 times of 7 against B: of the 13 new games A goes first 5, B 8 (10 and 10 in all)
+    expect(tally.get('A|B')).toEqual([5, 8]);
+    for (const [k, t] of tally) if (k !== 'A|B') expect(t).toEqual([10, 10]);
+    // a budget cuts the picks exactly; the same inputs give the same picks
+    const cut = planBlockPicks({ decks, target: 20, met, firsts, budget: 25, rnd: seededRandom(1) });
+    expect(cut.reduce((s, p) => s + p.games, 0)).toBe(25);
+    expect(cut).toEqual(planBlockPicks({ decks, target: 20, met, firsts, budget: 25, rnd: seededRandom(1) }));
+    expect(firstsOf([{ a: 'B', b: 'A', first: 0, s: 1 }, { a: 'A', b: 'B', first: 1, s: 0 }]).get('A\u0000B\u0000B')).toBe(2);
+  });
+  it('the run: the width first, then the block on the decks fixed when it starts, to the target, and it says so', async () => {
+    const w = world(12);
+    const sw = { ...BLOCK, width: 7 };
+    const out = await runSeries({ run: 3, input: { games: w.games, field: w.names, switches: sw }, maxGames: 50_000, play: w.play });
+    expect(out.stopped).toBe('reached');
+    expect(out.before.eligible.length).toBeGreaterThan(0);
+    expect(reached(out.before, out.after)).toBe(true);
+    expect(out.block!.end).toMatchObject({ games: 0, done: 15 });
+    const top = out.block!.start.decks;
+    const all = [...w.games, ...out.games.map((g) => ({ a: g.a, b: g.b, first: g.first, s: g.winner === 0 ? 1 : 0 }))];
+    for (const p of blockPairs(top, meetings(all))) expect(p.games).toBeGreaterThanOrEqual(20);
+    // the block's games come last, and every one of them is a block pair
+    const firstBlock = out.games.length - out.block!.start.games;
+    expect(firstBlock).toBeGreaterThan(0);
+    expect(out.games.slice(firstBlock).every((g) => top.includes(g.a) && top.includes(g.b))).toBe(true);
+    expect(out.games.map((g) => g.seed)).toEqual(out.games.map((_, k) => seriesSeed(3, k)));
+    // the same run twice is the same run; a game budget stops it in the block
+    const again = await runSeries({ run: 3, input: { games: w.games, field: w.names, switches: sw }, maxGames: 50_000, play: w.play });
+    expect(again).toEqual(out);
+    const short = await runSeries({ run: 3, input: { games: w.games, field: w.names, switches: sw }, maxGames: firstBlock + 30, play: w.play, chunk: 30 });
+    expect(short.stopped).toBe('budget');
+    expect(short.games).toHaveLength(firstBlock + 30);
+    expect(short.block!.end.games).toBeGreaterThan(0);
+    expect(short.block!.end.games).toBeLessThan(short.block!.start.games);
   });
 });
