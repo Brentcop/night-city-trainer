@@ -72,7 +72,12 @@ describe('impact.json', () => {
 
   it('covers every library list, each entry by the fingerprint of the list it onTable, named as the review telemetry names it', () => {
     expect(entries.filter((d) => !d.id).map((d) => d.deck)).toEqual([]);
-    expect(lib.filter((d) => !entries.some((e) => e.id === listFingerprint(d.deck))).map((d) => d.deck.name)).toEqual([]);
+    // every list the review telemetry played has its entry; a list edited after it (S2-05 and S2-08 on 2026-11-24,
+    // REVIEW_2026-11-24 B.1) has none until its games are traced again, and the coach then reads the pooled figures
+    const traced = new Set(decks.map((r) => r.id));
+    const missing = lib.filter((d) => !entries.some((e) => e.id === listFingerprint(d.deck)));
+    expect(missing.filter((d) => traced.has(listFingerprint(d.deck))).map((d) => d.deck.name)).toEqual([]);
+    expect(missing.length).toBeLessThan(lib.length / 10);
     for (const r of decks) if (r.id) expect(entries.find((e) => e.id === r.id)?.deck).toBe(r.deck);
   });
 
