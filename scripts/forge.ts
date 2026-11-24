@@ -137,6 +137,7 @@ import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './led
 import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra, settleStagesWithin } from '../src/lib/deckSearch';
 import { forgeStrengthWord, forgeSummaryMarkdown } from './forge-summary';
 import { loadImpactTables, SEASON_BOT } from './breed-data';
+import { cardSellShare, sellBasis, type SellReport, type SellShare } from '../src/lib/sellShare';
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -176,6 +177,35 @@ const OUT = V.out;
 const PACKAGES = packagesOn(V);
 /** partner-aware cut and add ranking (--partner-aware, or any package flag; --plain-ranking turns it off) */
 const PARTNER = partnerAwareOn(V);
+/**
+ * partner-aware runs: the decision telemetry (public/data/decisions.json), to mark a cut the bot sells in most of its uses
+ * from hand (src/lib/sellShare.ts, SELLS_SHARE): its low "Δ when drawn" then says how the bot plays it, not its worth
+ */
+const SELLS: SellReport | null = (() => {
+  if (!PARTNER) return null;
+  try {
+    const j = JSON.parse(fs.readFileSync('public/data/decisions.json', 'utf8')) as SellReport & { kind?: unknown };
+    return j && j.kind === 'decision-telemetry' && Array.isArray(j.decks) && Array.isArray(j.pooled) ? j : null;
+  } catch {
+    return null;
+  }
+})();
+/** The cuts of one list the bot sells (its own row in the decision telemetry, else the pooled rows), by card id. */
+function soldCuts(deck: DeckList, ids: readonly string[]): { sold: Map<string, SellShare>; words: string } | null {
+  if (!SELLS) return null;
+  const listId = listFingerprint(deck);
+  const own = SELLS.decks.some((d) => d.listId === listId);
+  const sold = new Map<string, SellShare>();
+  for (const id of ids) {
+    const s = cardSellShare(SELLS, id, { ...(own ? { listId } : {}), reactFromHand: CARD_BY_ID[id]?.type === 'Program' });
+    if (s?.sells) sold.set(id, s);
+  }
+  if (!sold.size) return null;
+  const b = sellBasis(SELLS);
+  const from = `decision telemetry of the ${b.bot ?? 'recorded'} bot's run${b.asOf ? ` of ${b.asOf.slice(0, 10)}` : ''}${b.simVersion !== null ? `, simulator version ${b.simVersion}` : ''}, ${own ? 'this list' : `pooled over its ${SELLS.decks.length} decks`}`;
+  const words = `[bot sells]: sold in most uses from hand, so a low figure says how the bot plays it, not its worth (${[...sold.values()].map((s) => `${s.name} ${Math.round((s.share ?? 0) * 100)}% of ${s.uses}`).join(', ')}; ${from})`;
+  return { sold, words };
+}
 /** --screen-rounds: successive halving rounds (1 = no halving, the default) */
 const SCREEN_ROUNDS = V['screen-rounds'] ?? 1;
 /** --initial-cands: how many swap candidates to start halving from (defaults to --cands when no halving) */
@@ -499,8 +529,13 @@ async function forge(target: (typeof lib)[number]) {
     const cutRows = explained.cuts ? cutTableRows(explained.cuts) : [];
     let genRecPlain: string[] | undefined;
     if (cutRows.length) {
-      log.push('Cut ranking (partner-aware; plain = "Δ when drawn", lower is cut first):', '', '| Card | Plain | Partner-aware score | Offered | Why |', '|---|---|---|---|---|', ...cutRows.map((r) => `| ${r.name} | ${((r.plain) * 100).toFixed(1)} | ${(r.score * 100).toFixed(1)} | ${r.offered ? 'yes' : 'no'} | ${r.why} |`), '');
-      console.log(`  cuts (partner-aware): ${cutRows.filter((r) => r.offered).map((r) => r.name).join(', ')}${cutRows.some((r) => r.plainOffered !== r.offered) ? ` (plain ranking: ${cutRows.filter((r) => r.plainOffered).map((r) => r.name).join(', ')})` : ''}`);
+      // a cut the bot sells in most of its uses from hand carries "[bot sells]" (the decision telemetry; none without it)
+      const sells = soldCuts(deck, cutRows.map((r) => r.id));
+      const mark = (r: (typeof cutRows)[number]) => `${r.name}${sells?.sold.has(r.id) ? ' [bot sells]' : ''}`;
+      log.push('Cut ranking (partner-aware; plain = "Δ when drawn", lower is cut first):', '', '| Card | Plain | Partner-aware score | Offered | Why |', '|---|---|---|---|---|', ...cutRows.map((r) => `| ${mark(r)} | ${((r.plain) * 100).toFixed(1)} | ${(r.score * 100).toFixed(1)} | ${r.offered ? 'yes' : 'no'} | ${r.why} |`), '');
+      if (sells) log.push(`${sells.words.charAt(0).toUpperCase()}${sells.words.slice(1)}.`, '');
+      console.log(`  cuts (partner-aware): ${cutRows.filter((r) => r.offered).map(mark).join(', ')}${cutRows.some((r) => r.plainOffered !== r.offered) ? ` (plain ranking: ${cutRows.filter((r) => r.plainOffered).map(mark).join(', ')})` : ''}`);
+      if (sells && cutRows.some((r) => r.offered && sells.sold.has(r.id))) console.log(`  ${sells.words}`);
       // the candidates the plain ranking would have screened from the same games, for comparison
       const plainMuts = forgeSwaps(deck, rep, GLOBAL_IMPACT, INITIAL_CANDS, plan, undefined, deckImp);
       log.push('Screened (partner-aware):', ...muts.map((m) => `- ${m.label}`), '', 'The plain ranking would have screened:', ...plainMuts.map((m) => `- ${m.label}`), '');

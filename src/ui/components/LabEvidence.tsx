@@ -6,9 +6,9 @@
 // reject gets its own line (NotNominatedList, worded by pooledGainWords). With the shortlist (src/lib/shortlist.ts, on
 // with earlier held-out games) a generation also says which changes were tested again and which were skipped
 // (ShortlistNotes), and a change its earlier held-out games put out of reach gets its own "Not nominated" line.
-// "Until settled" (TuneOptions.untilSettled): SettleCheckbox in the setup, what it may add beside the game estimate and
-// what the run can detect (DepthControls), and a wrapping note under a nominee's held-out gain (SettleNote) saying how
-// many further stages it played and why it stopped. A nominee whose held-out figures differ by opponent by more than
+// "Until settled" (TuneOptions.untilSettled): SettleCheckbox in the setup, what it may add, counted in the range shown
+// since 2026-11-24 (settleIncludedWords; the budget question counts the usual range), and what the run can detect (DepthControls), and a wrapping note under a nominee's held-out gain (SettleNote) saying how
+// many further stages it played and why it stopped. A cut the bot mostly sells carries "the bot sells this" (LabSells.tsx). A nominee whose held-out figures differ by opponent by more than
 // chance gets one more line under its gain (dependsOnOpponentWords, src/lib/pairedSplit.ts): the two extremes by name.
 import { useId, type ReactNode } from 'react';
 import { botWord, formatGain, futilityApplies, outcomeWord, pooledGainWords, pooledNoteWords, settleWords, stoppedWords, type AdoptionRule, type ConfirmedWith, type NomineeRecord, type Outcome, type SettleRecord, type StopReason } from '../../lib/evidence';
@@ -22,6 +22,7 @@ import { SIM_VERSION } from '../../lib/tournament';
 import { Signed, Wr, type Tone } from './Num';
 import { CardMention, MentionText } from './CardMention';
 import { RangeBar, StrengthChip, type BarInput } from './evidence/parts';
+import { SellsTag, type SellLookup } from './LabSells';
 
 const toneOf = (o: Outcome): Tone => (o === 'adopt' ? 'pos' : o === 'reject' ? 'neg' : 'neu');
 
@@ -272,6 +273,16 @@ export function ruleSentence(rule: AdoptionRule, firstStage: number): string {
   }`;
 }
 
+/**
+ * What "until settled" may add, as part of the range shown (since 2026-11-24; said apart before): "That includes up to
+ * 16,128 games keeping confirmations going until settled, played only for a change still undecided after the usual
+ * stages; the lab's budget of 12,000 games counts the rest". `byBot`: ", also played with the Hard bot".
+ */
+export function settleIncludedWords(extra: number, budget: number, byBot = ''): string {
+  const k = (x: number) => x.toLocaleString('en-US');
+  return `That includes up to ${k(extra)} games keeping confirmations going until settled${byBot}, played only for a change still undecided after the usual stages; the lab's budget of ${k(budget)} games counts the rest`;
+}
+
 /** Tune tab: search depth (cards and packages per change) with the run's game estimate. */
 export function DepthControls({
   cards,
@@ -302,7 +313,10 @@ export function DepthControls({
   disabled?: boolean;
   /** games the vs-original comparison may add (included in `estimate.max`) and its block size per list */
   vsOriginal?: { max: number; games: number };
-  /** "until settled" is on: what it may add at most (never part of `estimate` or the budget question) */
+  /**
+   * "until settled" is on: what it may add at most (not part of `estimate` nor of the budget question). Counted in the
+   * range shown since 2026-11-24 (REVIEW_2026-11-24 §10 A.6), said apart before.
+   */
   settle?: { extra: number; reach: number } | null;
   /** what this run can detect, in one sentence (detectWords) */
   detect?: string;
@@ -310,8 +324,12 @@ export function DepthControls({
   confirm?: { with: ConfirmedWith; games: number } | null;
 }) {
   const headId = useId();
-  // the budget question counts the usual range only; "until settled" is said apart
+  // the range shown is the run's most, "until settled"'s games included; the budget question counts the usual range
   const over = estimate.max > budget;
+  const k = (x: number) => x.toLocaleString('en-US');
+  const extra = settle?.extra ?? 0;
+  const most = estimate.max + extra;
+  const byBot = confirm ? `, also played with the ${botWord(confirm.with.confirm)} bot` : '';
   return (
     <fieldset className="lab-synergies" aria-describedby={headId} disabled={disabled}>
       <legend>Search depth</legend>
@@ -341,16 +359,13 @@ export function DepthControls({
         </label>
       </div>
       <p className="small" role="status" style={{ margin: 0, color: over ? 'var(--red)' : undefined }}>
-        This run plays {estimate.min.toLocaleString('en-US')}–{estimate.max.toLocaleString('en-US')} games.
-        {vsOriginal && vsOriginal.max > 0 && ` That includes up to ${vsOriginal.max.toLocaleString('en-US')} games comparing the tuned list with your original on the same ${vsOriginal.games} held-out games each (only after a change is adopted).`}
+        This run plays {k(estimate.min)}–{k(most)} games.
+        {vsOriginal && vsOriginal.max > 0 && ` That includes up to ${k(vsOriginal.max)} games comparing the tuned list with your original on the same ${vsOriginal.games} held-out games each (only after a change is adopted).`}
+        {extra > 0 && ` ${settleIncludedWords(extra, budget, byBot)}.`}
         {confirm && ` ${confirmGamesWords(confirm.with, confirm.games, true)}`}
-        {over && ` ⚠ That is over the lab's budget of ${budget.toLocaleString('en-US')} games; you'll be asked to confirm.`}
+        {over && ` ⚠ That is over the lab's budget of ${k(budget)} games; you'll be asked to confirm.`}
       </p>
-      {settle && settle.extra > 0 && (
-        <p className="small muted" style={{ margin: 0 }}>
-          Apart from that, keeping confirmations going until settled may add up to {settle.extra.toLocaleString('en-US')} games{confirm ? `, also played with the ${botWord(confirm.with.confirm)} bot` : ''} (only for a change still undecided after the usual stages).
-        </p>
-      )}
+
       {detect && (
         <p className="small muted" style={{ margin: 0 }}>
           {detect}
@@ -399,7 +414,7 @@ export function TuneTrajectory({ logs, minGainPp, games, finished, partial }: { 
 const pts1 = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x * 100).toFixed(1)}`;
 
 /** Why each card was or was not offered as a cut (partner-aware runs): both scores, the package and the odds. */
-export function CutTable({ cuts, label }: { cuts: readonly CutExplained[]; label?: (id: string, name: string) => ReactNode }) {
+export function CutTable({ cuts, label, sells }: { cuts: readonly CutExplained[]; label?: (id: string, name: string) => ReactNode; sells?: SellLookup | null }) {
   const rows = cutTableRows(cuts);
   if (!rows.length) return null;
   return (
@@ -419,7 +434,10 @@ export function CutTable({ cuts, label }: { cuts: readonly CutExplained[]; label
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
-                <td>{label ? label(r.id, r.name) : <CardMention id={r.id}>{r.name}</CardMention>}</td>
+                <td>
+                  {label ? label(r.id, r.name) : <CardMention id={r.id}>{r.name}</CardMention>}
+                  <SellsTag note={sells?.(r.id)} />
+                </td>
                 <td className="num">{pts1(r.plain)}</td>
                 <td className="num">{pts1(r.score)}</td>
                 <td>{r.offered ? 'offered' : 'no'}</td>

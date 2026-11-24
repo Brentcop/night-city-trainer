@@ -23,7 +23,7 @@ const RULE = adoptionRule({ kind: 'evidence' });
 describe('successive halving: the estimate, the flags', () => {
   it('with a block of its own every round plays its own baseline, beside the telemetry baseline’s full block', () => {
     const o = { gens: 1, screenGames: 14, singles: 2, packageMoves: 0, depth: DEPTH_DEFAULTS, firstStage: 28, rule: RULE, screenRounds: 2, initialCands: 4 };
-    // the Lab's layout (round 0 reuses the telemetry baseline): 7 × (1 + 4) + 7 × (1 + 2)
+    // without a block of its own (round 0 reuses the telemetry baseline; the Lab's layout until 2026-11-24): 7 × (1 + 4) + 7 × (1 + 2)
     expect(estimateGames(o).screen).toBe(7 * 5 + 7 * 3);
     // the forge's: the telemetry baseline's 14, then 7 × (1 + 4) + 7 × (1 + 2)
     expect(estimateGames({ ...o, ownHalvingBlock: true }).screen).toBe(14 + 7 * 5 + 7 * 3);

@@ -189,8 +189,8 @@ describe('the Deck Lab with another bot confirming', () => {
     expect(screening.every((j) => j.bot === 'medium')).toBe(true);
     expect(rest.length).toBeGreaterThan(0);
     expect(rest.every((j) => j.bot === 'hard')).toBe(true);
-    // the first adoption derives its vs-original figure from the confirmation (gain 7), so no vs-original seeds
-    expect(rest.some((j) => j.seed >= OPTS.seedBase! + 20_000)).toBe(false);
+    // the comparison with the original is among them (the first adoption plays it too, REVIEW_2026-11-24 T4)
+    expect(rest.some((j) => j.seed >= OPTS.seedBase! + 20_000)).toBe(true);
     expect(end.logs[0]!.vsOriginal).toBeDefined();
     expect(end.logs[0]!.vsOriginal!.measured).toBe(true);
     // without the option (or with the screening bot) every job is the run's bot, and the logs are the same games'

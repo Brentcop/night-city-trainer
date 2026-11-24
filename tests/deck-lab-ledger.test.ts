@@ -66,7 +66,7 @@ const entryOf = (cand: DeckList, bot = 'easy') => ({ change: changeKey(start, ca
 describe('without a ledger the tuner is unchanged', () => {
   // hashes taken from src/lib/deckLab.ts before the ledger existed (the same fake games and options)
   const CASES: [string, TuneOptions, PlayGame, string][] = [
-    ['adopt', { games: 56, gens: 2, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_000, vsOriginal: 224, partnerAware: true }, fake(0.08), '93a3a7cd9d9ef0a3'],
+    ['adopt', { games: 56, gens: 2, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_000, vsOriginal: 224, partnerAware: true }, fake(0.08), '702275e885a067ca'],
     ['noisy', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_100 }, fake(0, 0.9), '6fd09f3881e93bfe'],
     ['any-gain', { games: 40, gens: 1, cands: 3, bot: 'medium', minGain: -1, seedBase: 500_200, rule: { kind: 'any-gain' } }, fake(0.01, 0.9), '117279e0cb5559bb'],
     ['depth', { games: 56, gens: 1, cands: 3, bot: 'medium', minGain: 0.02, seedBase: 500_300, depth: { cardsPerChange: 2, nominees: 2 } }, fake(0.06), 'eb15cc612a9459b7'],
