@@ -49,9 +49,9 @@ export interface PartnerAware {
 }
 
 /**
- * The forge's candidates: cut the list's lowest-impact cards (its own "Δ when drawn", else the impact pooled over the
- * decks in src/data/analysis.json, the 7 meta decks), add +1 of its best card or the best legal cards by that pooled
- * impact (only cards those decks play have a number), best prior first, `cands` of them. Under a plan, cuts the plan
+ * The forge's candidates: cut the list's lowest-impact cards (its own "Δ when drawn", else the format-wide impact the
+ * forge passes as `globalImpact`: since 2026-11-24 the breeder's, see forgeAddsWords), add +1 of its best card or the
+ * best legal cards by that impact (only cards the table's lists play have a number), best prior first, `cands` of them. Under a plan, cuts the plan
  * protects are skipped and swaps that break it are dropped. With `partner` (--partner-aware) cuts and adds are ranked
  * partner-aware; without it the candidates are exactly the pinned ones (tests/deck-packages-defaults.test.ts).
  *
@@ -131,7 +131,7 @@ export function forgeSwapsExplained(
  * What --per-deck-adds read (src/lib/breederImpact.ts readImpactTables, through scripts/breed-data.ts loadImpactTables),
  * in the words the season uses for its breeder (impactTablesWords): which simulator version and bot, and a line that
  * starts "Warning:" when it is not the pair wanted or there is nothing to read. Per-list numbers only: a list without an
- * entry keeps the forge's format-wide additions (src/data/analysis.json).
+ * entry keeps the forge's format-wide additions (forgeAddsWords).
  */
 export function perDeckAddsWords(t: Pick<ImpactTables, 'wanted' | 'read' | 'match' | 'perList'>): string[] {
   const n = t.perList.withNumbers;
@@ -144,6 +144,26 @@ export function perDeckAddsWords(t: Pick<ImpactTables, 'wanted' | 'read' | 'matc
       `Warning: no card-impact numbers for ${keyWords(t.wanted)}, so --per-deck-adds reads those of ${keyWords(t.read)} instead: ${what}. Numbers measured on another ${t.match === 'other-bot' ? 'bot' : 'simulator version'} can mislead. ${remedy}`,
     ];
   return [`Warning: no card-impact numbers for ${keyWords(t.wanted)} or any other simulator version or bot, so --per-deck-adds changes nothing: the additions are ranked as without it. ${remedy}`];
+}
+
+/**
+ * What the forge's ordinary additions read since 2026-11-24 (REVIEW_2026-11-24 B.2): the format-wide card impact of the
+ * pair the season breeder reads (loadImpactTables in scripts/breed-data.ts: the current simulator version and the
+ * season's bot, Season 3's round robin plus the review telemetry src/data/analysis.json when it is that pair), so the
+ * forge adds by the breeder's numbers. Until then they read src/data/analysis.json alone (the `deep` bot on the 7 meta
+ * decks). A line that starts "Warning:" when it is not the pair wanted or there is nothing to read, as --per-deck-adds says.
+ */
+export function forgeAddsWords(t: Pick<ImpactTables, 'wanted' | 'read' | 'match' | 'pooled' | 'analysis' | 'minPooled'>): string[] {
+  const srcs = [...new Set(t.pooled.sources.map(sourceWords))];
+  if (t.analysis.state === 'added') srcs.push(`src/data/analysis.json${t.analysis.runId ? ` (${t.analysis.runId})` : ''}`);
+  const n = t.pooled.usable;
+  const what = `${n.toLocaleString('en-US')} card${n === 1 ? '' : 's'} with a format-wide figure (drawn in ${t.minPooled}+ games)${srcs.length ? `, from ${srcs.join(', ')}` : ''}`;
+  if (t.match === 'exact' && t.read) return [`Additions read card impact for ${keyWords(t.read)}, the table the breeder reads: ${what}.`];
+  if (t.read)
+    return [
+      `Warning: no card-impact numbers for ${keyWords(t.wanted)}, so the additions read those of ${keyWords(t.read)} instead, as the breeder does: ${what}. Numbers measured on another ${t.match === 'other-bot' ? 'bot' : 'simulator version'} can mislead.`,
+    ];
+  return [`Warning: no card-impact numbers for ${keyWords(t.wanted)} or any other simulator version or bot, so no card outside the list has a figure: the additions are the list's own cards only.`];
 }
 
 /** The per-generation line when --per-deck-adds finds no entry for the list (its additions are then the plain ones). */

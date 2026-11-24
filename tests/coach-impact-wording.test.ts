@@ -9,13 +9,20 @@ import { COACH_TABLES, matchupTips, sellPlayedOutWhy, sellWhy } from '../src/ai/
 import type { Agent } from '../src/engine/types';
 import analysisJson from '../src/data/analysis.json';
 
-const deck = (f: string) => parseDeck(readFileSync(`data/decks/${f}`, 'utf8'), f).deck;
+// Since 2026-11-24 (REVIEW_2026-11-24 B.2) the coach's table measures every library list, so the list without an entry
+// of its own is a library list with one card changed (another list: no entry, whatever its name).
+const OFF_TABLE = 'off-table';
+const deck = (f: string) => {
+  if (f !== OFF_TABLE) return parseDeck(readFileSync(`data/decks/${f}`, 'utf8'), f).deck;
+  const d = parseDeck(readFileSync('data/decks/BBB-running-and-dancing.txt', 'utf8'), 'BBB-running-and-dancing.txt').deck;
+  return { ...d, main: [...d.main.slice(1), d.main[0] === 'psycho_squad' ? 'v_streetkid' : 'psycho_squad'] };
+};
 const ref = (f: string) => {
   const d = deck(f);
   return { name: d.name, listId: listFingerprint(d) };
 };
 const META = 'meta-bbg-cunningham-econ.txt';
-const OFF_META = 'BBB-running-and-dancing.txt';
+const OFF_META = OFF_TABLE;
 
 describe('coach wording about card impact', () => {
   it('a meta list has telemetry of its own', () => {

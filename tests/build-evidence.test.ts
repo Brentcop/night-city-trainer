@@ -460,7 +460,7 @@ describe('building from fixtures', () => {
     const f = deckOf(buildEvidence({ ...inputs(), analysis, decisions }), 'Deck A').findings.find((x) => x.kind === 'card-assoc')!;
     // attacks are not uses from hand: 90 sells of 100 plays and sells
     expect(f.detail?.sold).toEqual({ n: 90, of: 100, bot: 'deep', simVersion: 9, run: 'analysis:run-1', date: '2026-11-14T15:47:12.017Z' });
-    expect(f.sources.at(-1)).toEqual({ file: 'public/data/decisions.json', path: 'decks[0].cards[0].modes' });
+    expect(f.sources.at(-1)).toEqual({ file: 'reports/decisions-latest.json', path: 'decks[0].cards[0].modes' });
     // without the report, no sells and no source for them
     const without = deckOf(buildEvidence({ ...inputs(), analysis }), 'Deck A').findings.find((x) => x.kind === 'card-assoc')!;
     expect(without.detail?.sold).toBeUndefined();
@@ -790,20 +790,11 @@ describe('on the real data, each finding is the number its defining function giv
     }
   });
 
-  it('the pair spread is the head-to-head file’s, and each meta pairing has a direct matchup sharing its question', () => {
+  it('the pair spread is the head-to-head file’s, and the analysis file (8 games a pairing since 2026-11-24) makes no direct matchup', () => {
     expect(built.index.rules.matchup).toMatchObject({ spreadMeasured: true, spreadPairings: real.h2h!.pairs.length, spreadGames: real.h2h!.games });
     expect(built.index.rules.matchup.spreadSd).toBeCloseTo(pairSpreadSd(real.h2h!.model!.priorGames), 5);
-    const direct = all.filter((f) => f.method === 'direct-games');
-    expect(direct.length).toBe(7 * 6);
-    for (const f of direct) {
-      const deck = real.analysis!.decks.find((d) => d.id === f.subject.listId)!;
-      const m = deck.matchups.find((x) => x.opp === f.subject.opponent!.deck)!;
-      expect([f.estimate, f.games]).toEqual([r6(m.wr), m.games]);
-      expect(f.family.key).toBe(`${f.subject.listId}:direct-matchups`);
-      const shrunk = all.find((x) => x.method === 'shrunk' && x.subject.listId === f.subject.listId && x.subject.opponent!.listId === f.subject.opponent!.listId)!;
-      expect(shrunk.question).toBe(f.question);
-      expect(f.flags).not.toContain('medium-only');
-    }
+    // the Deep table had 200 games on each of the 21 meta pairings; the Hard table of REVIEW_2026-11-24 B.2 has 8 a pairing
+    expect(all.filter((f) => f.method === 'direct-games')).toEqual([]);
   });
 
   it('the short-id lookup finds every finding', () => {
@@ -902,13 +893,13 @@ describe('on the real data, each finding is the number its defining function giv
     expect(s306![1].lower).toBeGreaterThan(0);
   });
 
-  it('the telemetry tables are marked when their bot is not the reference one: every deep-bot finding carries other-bot and none is strong', () => {
-    const deep = all.filter((f) => f.bot === 'deep');
-    expect(deep.length).toBeGreaterThan(0);
-    for (const f of deep) {
-      expect(f.flags).toContain('other-bot');
-      expect(f.strength).not.toBe('strong');
-    }
-    for (const f of all.filter((x) => x.bot === 'hard' || x.bot === 'medium')) expect(f.flags).not.toContain('other-bot');
+  it('the telemetry tables are the Hard bot’s since 2026-11-24, so no finding read from them is marked other-bot', () => {
+    // until then analysis.json and synergies.json were the deep bot's, and every finding from them carried other-bot
+    // (isOtherBot in src/lib/findings.ts, tested on its own); REVIEW_2026-11-24 B.2 measured them again with Hard
+    expect(all.filter((f) => f.bot === 'deep')).toEqual([]);
+    const telemetry = all.filter((f) => f.sources.some((x) => /analysis\.json|synergies\.json/.test(x.file)));
+    expect(telemetry.length).toBeGreaterThan(0);
+    for (const f of telemetry) expect(f.bot).toBe('hard');
+    for (const f of all) expect(f.flags).not.toContain('other-bot');
   });
 });

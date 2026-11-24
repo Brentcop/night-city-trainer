@@ -17,7 +17,7 @@ import { ProvenanceBlock } from '../components/Provenance';
 import { DeckInsights } from '../components/DeckInsights';
 import { ok, profileHref, WrBar } from '../components/DeckStats';
 import { deckReports, type MatchRec } from '../../data/deckReportsData';
-import { telemetryReport } from '../../data/analysisData';
+import { useTelemetryReport } from '../useTelemetryReport';
 import { CurveAndTypes } from '../components/DeckCurve';
 import { DeckStructure } from '../components/DeckCards';
 import { DeckRecordPanel } from '../components/DeckRecord';
@@ -173,7 +173,7 @@ function Profile({ d, lib, actions }: { d: LibraryDeck; lib: readonly LibraryDec
   const site = useSiteConfig();
   const name = d.deck.name;
   const st = deckStats(d.file);
-  const telemetry = telemetryReport(statsName(d.file));
+  const telemetry = useTelemetryReport(statsName(d.file));
   const rep = deckReports(d.file);
   const bred = bredInfo(name);
   const kind = originKind(d.prov, d.kind);

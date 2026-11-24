@@ -17,10 +17,10 @@ import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
 import { effectGate, effectLabel, type SeatEffects } from './packageEffect';
-import analysis from '../data/analysis.json';
-// the run's bot and manifest by name, so the workers bundle those two keys and not the deck reports (about 85 kB)
-import { bot as analysisBot, manifest as analysisManifest } from '../data/analysis.json';
-import type { DeckReport } from '../analysis/analyze';
+import analysisSummary from '../data/analysis/summary.json';
+import type { AnalysisSummary } from '../lib/telemetrySlices';
+// the card table's bot and simulator version by name, so the workers bundle those two keys only
+import { bot as impactBot, simVersion as impactSimVersion } from '../data/impact.json';
 
 /**
  * Shared worlds the coach scores every candidate in (HeuristicOptions.deepWorlds; also the worlds of its sell comparison,
@@ -125,10 +125,11 @@ export function isClose(gap: number, se?: number): boolean {
 }
 
 /**
- * The run the coach's card tables come from: src/data/impact.json is written with analysis.json from one `sim analyze`
- * run (tests/impact.test.ts), so the analysis file's bot and simulator version name both (REVIEW_2026-11-24 A.11).
+ * The run the coach's card tables come from: src/data/impact.json is cut from the breeder's card table for one simulator
+ * version and bot (scripts/build-impact.ts, since 2026-11-24, REVIEW_2026-11-24 B.2) and names both, so the coach says
+ * whose games its card values are (REVIEW_2026-11-24 A.11).
  */
-export const COACH_TABLES: CoachTables | undefined = coachTablesOf(analysisBot, (analysisManifest as { simVersion?: number } | undefined)?.simVersion);
+export const COACH_TABLES: CoachTables | undefined = coachTablesOf(impactBot, impactSimVersion);
 
 /**
  * The coach's reason for a sell it chose by rule. The card values include bot-match card impact: say where it comes from
@@ -721,8 +722,8 @@ export function matchupTips(g: Game, p: PlayerId = 0): string[] {
   if (top.length) tips.push(`**Cards most associated with wins** (bot games with this list; an association, not proof that they win): ${top.map((c) => `${CARD_BY_ID[c.id]?.displayName} (+${Math.round(c.iwd * 100)} win-rate points when drawn)`).join(', ')}.`);
   // analysis reports describe one list each: only use the one measured on this list (and on the rival's list)
   const name = impactDeckName(g.P(p));
-  const rep = name === null ? undefined : (analysis as unknown as { decks: DeckReport[] }).decks.find((r) => r.deck === name);
-  const t4 = rep?.tempo?.[3];
+  const rep = name === null ? undefined : (analysisSummary as unknown as AnalysisSummary).decks.find((r) => r.deck === name);
+  const t4 = rep?.tempo4;
   if (t4 && t4.leadN >= 20 && t4.behindN >= 20 && Number.isFinite(t4.leadWr) && Number.isFinite(t4.behindWr))
     tips.push(`**Tempo:** this deck wins ${Math.round(t4.leadWr * 100)}% when ahead on Gigs after its 4th turn and ${Math.round(t4.behindWr * 100)}% when behind.`);
   const oppName = impactDeckName(g.P(other(p)));

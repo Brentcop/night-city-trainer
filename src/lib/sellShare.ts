@@ -1,5 +1,5 @@
 // What the bots sell (docs/REVIEW_2026-11-24.md B1 and §10 A.12): per card, the share of the times a copy left the hand
-// that were sells, from the decision telemetry (src/analysis/decisions.ts's report, public/data/decisions.json). No bot
+// that were sells, from the decision telemetry (src/analysis/decisions.ts's report, reports/decisions-latest.json; the site reads public/data/sells.json, src/lib/telemetrySlices.ts). No bot
 // keeps Eddies ready for the rival's turn, so Quick Programs are sold in most of their uses at every tier: a low card
 // impact for such a card says what the bot does with it, not what the card is worth. A share at or above SELLS_SHARE
 // reads "the bot sells this".
@@ -11,7 +11,6 @@
 // hand in a reaction window (a Program: `reactFromHand`), its reaction uses ('react'). A Unit's reaction uses are Blocks
 // and a Legend's are Calls, which are not uses from hand, so they are left out unless the caller says otherwise;
 // attacks, abilities, Calls and Go Solo never count. Under MIN_SELL_USES uses the share is given but never flagged.
-import type { DecisionReport } from '../analysis/decisions';
 import type { RunManifest } from './runManifest';
 
 /** From this share of its uses from hand on, a card reads "the bot sells this" (about 85%: the review's line). */
@@ -60,8 +59,22 @@ export function sellShareOf(cardId: string, name: string, modes: SellModes, o: {
   return { cardId, name, sold, uses, share, sells: share !== null && uses >= (o.min ?? MIN_SELL_USES) && share >= (o.threshold ?? SELLS_SHARE) };
 }
 
-/** The decision report as read here: its lists, its pooled rows and its manifest. */
-export type SellReport = Pick<DecisionReport, 'games' | 'decks' | 'pooled'> & { manifest?: Pick<RunManifest, 'bot' | 'simVersion' | 'runId' | 'createdAt'> };
+/** A card row as read here: a decision report's (CardReport), or the sells slice's (src/lib/telemetrySlices.ts). */
+export interface SellRow {
+  id: string;
+  name: string;
+  modes: SellModes;
+}
+/**
+ * The decision report as read here: its lists, its pooled rows and its manifest. A DecisionReport is one; so is the sells
+ * slice (public/data/sells.json) read back by `sellReportOf` in src/lib/telemetrySlices.ts.
+ */
+export interface SellReport {
+  games: number;
+  decks: readonly { listId: string; cards: readonly SellRow[] }[];
+  pooled: readonly SellRow[];
+  manifest?: Pick<RunManifest, 'bot' | 'simVersion' | 'runId' | 'createdAt'>;
+}
 
 /** The run a decision report's figures come from. */
 export function sellBasis(report: SellReport): SellBasis {

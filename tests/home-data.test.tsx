@@ -10,7 +10,7 @@ import { allDecks, BUILTIN, CUSTOM_KEY, upsertCustom } from '../src/lib/browserL
 import { daysUntil, EVENT, withLiveCountdown } from '../src/content/event';
 import { RATINGS, REVIEW, SEASONS } from '../src/data/index';
 import { DECK_REPORTS, deckReports } from '../src/data/deckReportsData';
-import { ANALYSIS, telemetryReport } from '../src/data/analysisData';
+import { ANALYSIS_SUMMARY, loadTelemetryReport, telemetrySummary } from '../src/data/analysisData';
 import { TOURNAMENT_INDEX } from '../src/data/tournamentIndex';
 import { recordedEventCount } from '../src/lib/deckLab';
 import { setArtEnabled } from '../src/ui/art';
@@ -61,6 +61,17 @@ describe('entry chunk', () => {
   it('does not reach the large data files statically', () => {
     for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(graph).not.toContain(big);
   });
+  it('no page reaches the whole analysis (src/data/analysis.json, for the Node tools): each loads the summary and one deck part on demand', () => {
+    // 2026-11-24: the analysis covers all 71 library lists (580 kB), so the pages load its slices (src/lib/telemetrySlices.ts)
+    const pages = ['src/main.tsx', 'src/ui/pages/Play.tsx', 'src/ui/pages/DeckProfile.tsx', 'src/ui/pages/Insights.tsx', 'src/ui/pages/Guides.tsx', 'src/ui/pages/DeckLab.tsx'];
+    for (const p of pages) {
+      const g = [...staticGraph(p)].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
+      expect(g, p).not.toContain('src/data/analysis.json');
+      expect(g.filter((f) => f.startsWith('src/data/analysis/decks/')), p).toEqual([]);
+    }
+    const play = [...staticGraph('src/ui/pages/Play.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
+    expect(play).toContain('src/data/analysis/summary.json');
+  });
   it('does not reach the synergy catalogue or its report views statically (they load with the deck profile and Card stats)', () => {
     for (const f of ['src/content/synergies/index.ts', 'src/analysis/synergies.ts', 'src/ui/components/SynergyStats.tsx', 'src/ui/synergyReport.ts']) expect(graph).not.toContain(f);
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
@@ -92,7 +103,7 @@ describe('entry chunk', () => {
   });
   it('(control) the walker does see them from a page that imports them', () => {
     const profile = [...staticGraph('src/ui/pages/DeckProfile.tsx')].map((f) => path.relative(ROOT, f).replace(/\\/g, '/'));
-    for (const big of ['src/data/analysis.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(profile).toContain(big);
+    for (const big of ['src/data/analysis/summary.json', 'src/data/deckReports.json', 'src/data/tournaments.json']) expect(profile).toContain(big);
   });
 });
 
@@ -121,9 +132,16 @@ describe('typed data views', () => {
     expect(RATINGS.decks.length).toBeGreaterThan(0);
     expect(SEASONS.leaderboard.length).toBeGreaterThan(0);
     expect(REVIEW.decks.length).toBeGreaterThan(0);
-    expect(ANALYSIS.decks.length).toBeGreaterThan(0);
-    expect(telemetryReport(ANALYSIS.decks[0].deck)).toBe(ANALYSIS.decks[0]);
+    expect(ANALYSIS_SUMMARY.decks.length).toBeGreaterThan(0);
+    expect(telemetrySummary(ANALYSIS_SUMMARY.decks[0].deck)).toBe(ANALYSIS_SUMMARY.decks[0]);
     expect(deckReports(undefined)).toEqual({});
+  });
+  it('loads a deck’s whole telemetry report on demand: the slice cut from src/data/analysis.json', async () => {
+    const site = JSON.parse(fs.readFileSync('src/data/analysis.json', 'utf8')) as { decks: { deck: string; id?: string }[] };
+    const first = ANALYSIS_SUMMARY.decks[0]!;
+    expect(await loadTelemetryReport(first.deck)).toEqual(site.decks.find((d) => d.id === first.id));
+    expect(await loadTelemetryReport('no such deck')).toBeUndefined();
+    expect(ANALYSIS_SUMMARY.decks.map((d) => d.deck)).toEqual(site.decks.map((d) => d.deck));
   });
   it('Deck Lab counts recorded events without importing the index up front', async () => {
     expect(await recordedEventCount()).toBe(TOURNAMENT_INDEX.events.length);

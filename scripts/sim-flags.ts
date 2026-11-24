@@ -46,6 +46,8 @@ export interface AnalyzeFlags {
   synergies?: boolean;
   'synergies-only'?: boolean;
   'impact-adjusted'?: boolean;
+  /** the field played (default meta): only the meta round robin goes into src/data/review.json */
+  field?: string;
 }
 
 /** A combination of analyze flags that makes no sense (the CLI prints it and exits 2), or undefined. */
@@ -54,7 +56,7 @@ export function analyzeFlagProblem(v: AnalyzeFlags): string | undefined {
   if (v['synergies-only'] && v.decisions) return '--synergies-only writes only the synergy report; use --synergies with --decisions';
   if (v['impact-adjusted'] && v['synergies-only']) return '--synergies-only writes only the synergy report; drop it to use --impact-adjusted';
   // a measurement, not the bots' data: keep it (and the run's impact.json) out of src/data/
-  if (v['impact-adjusted'] && !v.out) return '--impact-adjusted needs --out DIR (the run would otherwise rewrite src/data/impact.json, which the Hard bot reads)';
+  if (v['impact-adjusted'] && !v.out) return '--impact-adjusted needs --out DIR (the run would otherwise rewrite src/data/impact.json, which the coach reads)';
   return undefined;
 }
 
@@ -66,13 +68,18 @@ export interface AnalyzeOutputs {
   /** absent with --synergies-only */
   analysisMd?: string;
   analysisJson?: string;
-  /** whole-field runs only: rankings, the site's telemetry and the bots' card impact */
+  /**
+   * whole-field runs only: rankings, the site's telemetry and the coach's card table. The rankings go to
+   * src/data/review.json (the Meta and Guides pages' round robin of the meta decks, in the entry chunk) only for the meta
+   * field; another field's go to reports/review-<field>-latest.json, so a whole-library run does not put a 71 × 71 matrix
+   * of a few games a cell into the entry chunk (2026-11-24)
+   */
   review?: string;
   analysisSite?: string;
   impact?: string;
   decisionsJson?: string;
   decisionsMd?: string;
-  /** the copy the site's Card stats page fetches (whole-field runs only) */
+  /** the index the site's Card stats page fetches, with its per-deck parts and the sells slice (whole-field runs only; cut from decisionsJson, src/lib/telemetrySlices.ts) */
   decisionsSite?: string;
   decisionSamples?: string;
   synergiesJson?: string;
@@ -101,7 +108,8 @@ export function analyzeOutputs(v: AnalyzeFlags, focus: string | null): AnalyzeOu
   o.analysisMd = at('reports', `analysis${tag}-latest.md`);
   o.analysisJson = at('reports', `analysis${tag}-latest.json`);
   if (!focus) {
-    o.review = at('src/data', 'review.json');
+    const field = v.field ?? 'meta';
+    o.review = field === 'meta' ? at('src/data', 'review.json') : at('reports', `review-${field.replace(/[^\w-]+/g, '-')}-latest.json`);
     o.analysisSite = at('src/data', 'analysis.json');
     o.impact = at('src/data', 'impact.json');
   }

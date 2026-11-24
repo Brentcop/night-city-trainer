@@ -7,6 +7,10 @@
 //   npm run sim -- add <file.txt|-> [--name X] [--force]   import a deck list (choom.gg / official / sim JSON) into data/decks/custom
 //   npm run sim -- show <deck>                        print a deck with validation
 //   npm run sim -- analyze [--field meta|all] [--games 40] [--deck X]   telemetry analysis -> reports/analysis-latest.md + src/data/analysis.json
+//                                   (a whole field also rewrites src/data/impact.json, the coach's card table, from the pair the
+//                                   breeder reads: scripts/build-impact.ts; and its rankings, src/data/review.json for the meta field,
+//                                   else reports/review-<field>-latest.json). The tables the coach and the builders read come from
+//                                   --field all --bot hard since 2026-11-24 (REVIEW_2026-11-24 B.2).
 //        [--decisions]              also record every decision (docs/DECISION_TELEMETRY.md) -> reports/decisions-latest.{json,md}
 //                                   and, for a whole field, public/data/decisions.json (the Card stats page's Decisions view)
 //        [--decision-samples N]     with --decisions: dump the raw records of the first N games -> reports/decisions-samples-latest.json
@@ -34,10 +38,11 @@ import { ALL_FLAGS, analyzeFlagProblem, analyzeOutputs, COMMANDS, protectedOutpu
 import { shortCredit, type LibraryDeck } from '../src/lib/library';
 import { SIM_VERSION } from '../src/lib/tournament';
 import { gameRunManifest, type RunManifest } from '../src/lib/runManifest';
-import { toImpactData } from '../src/analysis/impactData';
 import type { MatchJob, MatchResult } from './worker';
 
 const NL = String.fromCharCode(10);
+/** The site copy of the analysis (src/data/analysis.json) keeps a deck's matchup row from this many games on. */
+const SITE_MATCHUP_MIN_GAMES = 10;
 const argv = process.argv.slice(2);
 const cmd = argv[0] && !argv[0].startsWith('-') ? argv[0] : 'help';
 if (!COMMANDS[cmd]) {
@@ -422,7 +427,7 @@ async function main() {
         const dmd = decisionMarkdown(report);
         write(out.decisionsJson!, JSON.stringify(report, null, 1));
         write(out.decisionsMd!, dmd);
-        if (out.decisionsSite) write(out.decisionsSite, JSON.stringify(report));
+        // the site's copy is cut into slices (public/data/decisions.json and decisions/, sells.json) below, from the full report
         if (out.decisionSamples) write(out.decisionSamples, JSON.stringify({ telemetrySchema: DECISION_TELEMETRY_SCHEMA, manifest, games: sampleGames }, null, 1));
         console.log(
           `Decision telemetry: ${size.records} records over ${size.games} games (${measurements.recordsPerGame.toFixed(0)}/game); ` +
@@ -453,11 +458,26 @@ async function main() {
           out.review!,
           JSON.stringify({ date: new Date().toISOString(), games: n, bot, field: V.field ?? 'meta', manifest, decks: ranked.map((nm) => ({ name: nm, file: field.find((f) => f.deck.name === nm)!.file, winRate: tot[nm].w / tot[nm].g, games: tot[nm].g })), matrix: M, firstPlayerWinRate: fw / ag }, null, 1),
         );
-        // trimmed copy for the web app
-        const trimmed = reps.map((r) => ({ ...r, cards: r.cards.slice(0, 40) }));
-        write(out.analysisSite!, JSON.stringify({ date: new Date().toISOString(), games: n, bot, manifest, decks: trimmed }));
-        // slim id/IWD/seenGames copy for the bots and the Deck Lab (src/ai/impact.ts); always written with analysis.json
-        write(out.impact!, JSON.stringify(toImpactData(trimmed)));
+        // trimmed copy for the web app (and the coach, the breeder and the forge, which read the card rows): at most 40 cards,
+        // no matchup row under SITE_MATCHUP_MIN_GAMES games (the coach's and the Play setup's own floor for showing one; a
+        // whole-library run plays a few games a pairing, and 71 × 70 rows of them would make the page's chunk megabytes), and
+        // fractions to 5 decimals (2026-11-24). The full report is reports/analysis-latest.json.
+        const trimmed = reps.map((r) => ({ ...r, cards: r.cards.slice(0, 40), matchups: r.matchups.filter((m) => m.games >= SITE_MATCHUP_MIN_GAMES) }));
+        write(out.analysisSite!, JSON.stringify({ date: new Date().toISOString(), games: n, bot, manifest, decks: trimmed }, (_k, v) => (typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1e5) / 1e5 : v)));
+        // the coach's and the Deck Lab's card table (src/ai/impact.ts, src/lib/deckLab.ts): the lists of the pair the breeder
+        // reads, this run's file added when it is that pair (scripts/build-impact.ts rebuilds it; REVIEW_2026-11-24 B.2)
+        const { buildImpactData } = await import('./breed-data');
+        const imp = buildImpactData(undefined, { analysisFile: out.analysisSite! });
+        write(out.impact!, imp.text);
+        const { impactDataWords } = await import('../src/lib/breederImpact');
+        for (const l of impactDataWords(imp.tables, imp.data)) console.log(l);
+      }
+      if (!focus && !V.out) {
+        // the slices of the reports the site loads, cut from reports/decisions-latest.json and src/data/analysis.json
+        // (src/lib/telemetrySlices.ts; scripts/build-telemetry-slices.ts rebuilds them, check:data compares them)
+        const { writeTelemetrySlices } = await import('./build-telemetry-slices');
+        const sl = writeTelemetrySlices('.');
+        console.log(`Telemetry slices: ${sl.files} files (${sl.written} written, ${sl.removed} removed)`);
       }
       console.log(md.split(NL).slice(0, 60).join(NL));
       console.log(`${NL}Saved ${out.analysisMd}`);

@@ -10,7 +10,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GUIDES } from '../src/content/guides';
 import { GLOSSARY } from '../src/content/glossary';
-import { ANALYSIS } from '../src/data/analysisData';
+import { ANALYSIS_SUMMARY as ANALYSIS } from '../src/data/analysisData';
 import { TOURNAMENT_INDEX } from '../src/data/tournamentIndex';
 import { buildIndex, search, STAT_KINDS } from '../src/lib/kb/search';
 import {
@@ -186,7 +186,9 @@ describe('groups, parts and manifest', () => {
       }
     }
     const m = siteManifest(files, (f) => `assets/${shardFileName(f)}`);
-    expect(JSON.stringify(m).length).toBeLessThan(2200);
+    // 20 parts since 2026-11-24 (3.2 kB): the card and package statistics became the Hard bot's on all 71 lists (REVIEW_2026-11-24
+    // B.2), and those late groups went from 2 parts to 9; a part adds about 160 characters
+    expect(JSON.stringify(m).length).toBeLessThan(4000);
     // an edit to one part changes its name and the pack hash, not the others'
     const edited: SiteShardFile[] = files.map((f) => (f.name === 'events-1' ? { ...f, hash: 'ffffffffffffffff' } : f));
     const m2 = siteManifest(edited, (f) => `assets/${shardFileName(f)}`);
@@ -313,7 +315,9 @@ describe('searching what is loaded', () => {
     expect([...first.packageNames.byName]).toEqual([...full.packageNames.byName]);
   });
 
-  it('ranks a question that does not ask for statistics exactly as the whole site pack does', () => {
+  // about 200 questions against the whole pack: since 2026-11-24 the card and package statistics cover 71 lists (9 parts, not
+  // 2), and the comparison takes about 17 s alone, so it has a longer limit than the default 15 s
+  it('ranks a question that does not ask for statistics exactly as the whole site pack does', { timeout: 90_000 }, () => {
     const titles = groupRecords(FIRST)
       .filter((_, i) => i % 4 === 0)
       .map((r) => r.title);

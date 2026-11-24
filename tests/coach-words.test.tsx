@@ -211,6 +211,6 @@ describe('where the coach’s card figures come from (A.11)', () => {
   it('the panel shows it under the tips, and Play passes the analysis run’s bot', () => {
     const html = renderToStaticMarkup(<CoachPanel g={null as never} v={0} alts={[]} tips={['a tip']} warnings={[]} source="SOURCE LINE" />);
     expect(html).toContain('SOURCE LINE');
-    expect(readFileSync('src/ui/pages/Play.tsx', 'utf8')).toContain('coachTablesWords(ANALYSIS.bot, ANALYSIS.manifest?.simVersion)');
+    expect(readFileSync('src/ui/pages/Play.tsx', 'utf8')).toContain('coachTablesWords(ANALYSIS_SUMMARY.bot, ANALYSIS_SUMMARY.manifest?.simVersion)');
   });
 });

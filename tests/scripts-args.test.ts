@@ -165,6 +165,14 @@ describe('sim analyze flags (scripts/sim-flags.ts)', () => {
     expect(protectedOutputs(out, { out: 'scratch' }).sort()).toEqual(Object.values(out).sort());
   });
 
+  it('puts only the meta round robin into src/data/review.json (the entry chunk); another field goes to reports/', () => {
+    expect(analyzeOutputs({}, null).review).toBe(path.join('src/data', 'review.json'));
+    expect(analyzeOutputs({ field: 'meta' }, null).review).toBe(path.join('src/data', 'review.json'));
+    expect(analyzeOutputs({ field: 'all' }, null).review).toBe(path.join('reports', 'review-all-latest.json'));
+    expect(analyzeOutputs({ field: 'leaderboard:8' }, null).review).toBe(path.join('reports', 'review-leaderboard-8-latest.json'));
+    expect(analyzeOutputs({ field: 'all', out: 'scratch' }, null).review).toBe(path.join('scratch', 'review-all-latest.json'));
+  });
+
   it('--synergies adds the synergy report; --synergies-only writes nothing else; both are protected', () => {
     expect(parseAnalyze([])).toMatchObject({ synergies: false, 'synergies-only': false });
     const both = analyzeOutputs({ decisions: true, synergies: true }, null);

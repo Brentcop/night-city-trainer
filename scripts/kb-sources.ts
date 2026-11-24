@@ -47,7 +47,7 @@ export const RATINGS_FILE = 'src/data/ratings.json';
 export const H2H_FILE = 'public/data/h2h.json';
 /** The measured reports behind the evidence cells (plan step 2.4). */
 export const STATS_FILES = {
-  decisions: 'public/data/decisions.json',
+  decisions: 'reports/decisions-latest.json',
   synergies: 'public/data/synergies.json',
   analysis: 'src/data/analysis.json',
   impact: 'src/data/impact.json',

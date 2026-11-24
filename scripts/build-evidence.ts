@@ -12,7 +12,7 @@
 //   --matchup-check    write nothing: print the leave-one-event-out check of the matchup interval
 //
 // Reads tracked files only: src/data/ratings.json, public/data/h2h.json, src/data/analysis.json, public/data/synergies.json,
-// public/data/decisions.json (each card's sells, src/lib/sellShare.ts),
+// reports/decisions-latest.json (the full decision report: each card's sells, src/lib/sellShare.ts),
 // the recorded events (public/tournaments) and the rating runs (data/series, docs/SERIES.md), the forge reports (reports/forge/*.json), the re-measurements
 // (data/evidence/*.json), the change ledger, the library (data/decks) and its older lists (data/decks/custom/history).
 // A derived-data builder like scripts/build-h2h.ts: it overwrites its own output, and an unchanged rebuild leaves every
@@ -107,13 +107,13 @@ export function loadEvidenceInputs(root = '.', o: { ledgerDir?: string; adjusted
     h2h: readJson(at(o.h2h ?? 'public/data/h2h.json')) as EvidenceInputs['h2h'],
     analysis: readJson(at('src/data/analysis.json')) as EvidenceInputs['analysis'],
     synergies: readJson(at('public/data/synergies.json')) as EvidenceInputs['synergies'],
-    decisions: readJson(at('public/data/decisions.json')) as EvidenceInputs['decisions'],
+    decisions: readJson(at('reports/decisions-latest.json')) as EvidenceInputs['decisions'],
     catalogueVersion: CATALOGUE_VERSION,
     ledger: ledger.files.map((f) => ({ file: f.file, batches: f.batches.map((b) => b.batch) })),
     forge,
     remeasure,
     adjusted,
-    paths: { ratings: 'src/data/ratings.json', h2h: shown(root, o.h2h ?? 'public/data/h2h.json'), analysis: 'src/data/analysis.json', synergies: 'public/data/synergies.json', decisions: 'public/data/decisions.json', events: shown(root, o.eventsDir ?? EVENTS_DIR), ledgerDir: shown(root, ledgerDir), ...(seriesDir ? { series: shown(root, seriesDir) } : {}) },
+    paths: { ratings: 'src/data/ratings.json', h2h: shown(root, o.h2h ?? 'public/data/h2h.json'), analysis: 'src/data/analysis.json', synergies: 'public/data/synergies.json', decisions: 'reports/decisions-latest.json', events: shown(root, o.eventsDir ?? EVENTS_DIR), ledgerDir: shown(root, ledgerDir), ...(seriesDir ? { series: shown(root, seriesDir) } : {}) },
     simVersion: CURRENT_SIM_VERSION,
   };
   return { inputs, problems };

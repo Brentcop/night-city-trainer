@@ -3,7 +3,7 @@ import { GUIDES } from '../../content/guides';
 import { Markdown } from '../components/Markdown';
 import { MentionText } from '../components/CardMention';
 import { REVIEW } from '../../data/index';
-import { telemetryReport } from '../../data/analysisData';
+import { useTelemetryReport } from '../useTelemetryReport';
 import { withLiveCountdown } from '../../content/event';
 import { DeckInsights } from '../components/DeckInsights';
 import { ProvenanceBlock } from '../components/Provenance';
@@ -33,7 +33,7 @@ export function GuidesPage({ initial }: { initial?: string }) {
   const [sel, setSel] = useState(GUIDES.find((g) => g.slug === initial)?.slug ?? GUIDES[0].slug);
   const g = GUIDES.find((x) => x.slug === sel)!;
   const libDeck = g.deckFile ? allDecks().find((d) => d.file === g.deckFile) : undefined;
-  const insights = g.deckName ? telemetryReport(g.deckName) : undefined;
+  const insights = useTelemetryReport(g.deckName);
   return (
     <div className="sidebar-layout">
       <div className="panel">

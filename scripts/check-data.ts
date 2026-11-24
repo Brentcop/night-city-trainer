@@ -27,6 +27,11 @@
 //     fingerprints and sources, each season counted once and under the same pair in both files, and under the pair its
 //     season file's manifest names. An old shape (no simulator version or bot, or keyed by deck name) fails, as the
 //     breeder refuses to read it; the failure names the migration
+//   - src/data/impact.json (the coach's and the Deck Lab's card table) is the rebuild of the lists of the pair the season
+//     breeder reads (scripts/breed-data.ts buildImpactData); `npx tsx scripts/build-impact.ts` rebuilds it
+//   - the telemetry slices the site loads (public/data/decisions.json and decisions/, public/data/sells.json,
+//     src/data/analysis/) are cut from reports/decisions-latest.json and src/data/analysis.json (src/lib/telemetrySlices.ts);
+//     `npx tsx scripts/build-telemetry-slices.ts` rebuilds them
 //   - data/ledger/*.jsonl (the change ledger, src/lib/changeLedger.ts), when the folder exists: every line is a readable
 //     batch whose change starts from the file's list, no entry holds the same game twice (a game that came back with
 //     other scores is counted as information, not a failure), and no held-out game had already screened its change
@@ -67,6 +72,8 @@ import { analysisKey, impactFileWords, impactFilesProblems, type AnalysisLike, t
 import { changeBase, entryKey, gameId, parseBatchLine } from '../src/lib/changeLedger';
 import { evidenceCheck } from './build-evidence';
 import { noteSynergiesCheck } from './note-synergies';
+import { sliceProblems } from './build-telemetry-slices';
+import { ANALYSIS_FILE, buildImpactData, CARD_IMPACT_FILE, DECK_IMPACT_FILE, IMPACT_DATA_FILE } from './breed-data';
 import { outsideMetaProblems } from '../src/lib/outsideMeta';
 import { CARD_BY_ID } from '../src/engine/cards';
 
@@ -120,6 +127,13 @@ export interface CheckInput {
   deckImpact?: unknown;
   /** data/seasons/impact.json, parsed (null when missing; not checked when absent) */
   cardImpact?: unknown;
+  /**
+   * src/data/impact.json's text (null when missing) and the rebuild it should equal (buildImpactData in
+   * scripts/breed-data.ts: the lists of the pair the breeder reads); absent: not checked
+   */
+  impactData?: { stored: string | null; built: string; lists: number } | null;
+  /** the telemetry slices against their rebuild (sliceProblems in scripts/build-telemetry-slices.ts; absent: not checked) */
+  telemetrySlices?: { failures: string[]; passed: string[] } | null;
   /** each recorded season's round robin pair, from data/seasons/season-N.json (absent: not checked) */
   seasons?: SeasonPair[];
   /** data/ledger/*.jsonl, the change ledger's files with their text (null or absent when the folder does not exist) */
@@ -270,6 +284,7 @@ export function siteConfigProblems(text: string | null, deckFiles: readonly stri
 }
 
 const REBUILD_LIFT = 'rebuild it with npx tsx scripts/build-lift.ts';
+const REBUILD_IMPACT = 'rebuild it with npx tsx scripts/build-impact.ts';
 
 /** How public/data/lift.json differs from the slice of the synergy report (empty when it is that slice, byte for byte). */
 export function liftProblems(report: unknown, liftText: string | null): string[] {
@@ -594,6 +609,20 @@ export function checkData(input: CheckInput): CheckResult {
     if (!p.length) passed.push(`data/seasons/impact.json and deck-impact.json count each season once, under the same simulator version and bot, and the one its season file names`);
   }
 
+  // ---- the coach's and the Deck Lab's card table is the breeder's (REVIEW_2026-11-24 B.2)
+  if (input.impactData) {
+    const { stored, built, lists } = input.impactData;
+    if (stored === null) failures.push(`src/data/impact.json is missing; ${REBUILD_IMPACT}`);
+    else if (stored.trimEnd() !== built) failures.push(`src/data/impact.json is not the card table of the pair the breeder reads (data/seasons and src/data/analysis.json); ${REBUILD_IMPACT}`);
+    else passed.push(`src/data/impact.json is the card table the breeder reads, per list (${lists} lists)`);
+  }
+
+  // ---- the slices of the telemetry reports the site loads are cut from the reports
+  if (input.telemetrySlices) {
+    failures.push(...input.telemetrySlices.failures);
+    passed.push(...input.telemetrySlices.passed);
+  }
+
   // ---- the change ledger reads line by line, each game once per entry
   if (input.ledger) {
     const r = ledgerFileProblems(input.ledger);
@@ -625,6 +654,17 @@ export function checkData(input: CheckInput): CheckResult {
   return { failures, passed, info, legacyEvents, manifestsChecked };
 }
 
+/** src/data/impact.json against its rebuild (null when a season file cannot be read: their own checks say why). */
+function impactDataCheck(root: string): CheckInput['impactData'] {
+  const p = path.join(root, IMPACT_DATA_FILE);
+  try {
+    const b = buildImpactData(undefined, { cardFile: path.join(root, CARD_IMPACT_FILE), deckFile: path.join(root, DECK_IMPACT_FILE), analysisFile: path.join(root, ANALYSIS_FILE) });
+    return { stored: fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null, built: b.text, lists: b.data.decks.length };
+  } catch {
+    return null;
+  }
+}
+
 /** Read the recorded data from a checkout. */
 export function loadCheckInput(root = '.'): CheckInput {
   const read = (f: string) => {
@@ -645,6 +685,8 @@ export function loadCheckInput(root = '.'): CheckInput {
     packageEffects: read('public/data/package-effects.json'),
     deckImpact: read('data/seasons/deck-impact.json'),
     cardImpact: read('data/seasons/impact.json'),
+    impactData: impactDataCheck(root),
+    telemetrySlices: sliceProblems(root),
     seasons: fs.existsSync(path.join(root, 'data/seasons'))
       ? fs
           .readdirSync(path.join(root, 'data/seasons'))

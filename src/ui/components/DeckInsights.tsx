@@ -120,6 +120,8 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
           </table>
         </div>
       )}
+      {/* a whole-library run plays a few games a pairing, and the site copy keeps no matchup row under 10 games (scripts/simulate.ts) */}
+      {r.matchups.length > 0 && (
       <div className="scroll-x">
         <h3>Matchups &amp; assumed game plan</h3>
         <table className="small">
@@ -167,6 +169,7 @@ export function DeckInsights({ r, compact }: { r: DeckReport; compact?: boolean 
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

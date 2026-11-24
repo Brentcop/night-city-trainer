@@ -27,7 +27,7 @@ import { buildStats, cardStatText, packageStatText } from '../src/lib/kb/build/s
 
 const ROOT = path.resolve(__dirname, '..');
 const read = <T,>(f: string): T | null => (fs.existsSync(path.join(ROOT, f)) ? (JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')) as T) : null);
-const DEC_FILE = 'public/data/decisions.json';
+const DEC_FILE = 'reports/decisions-latest.json';
 const SYN_FILE = 'public/data/synergies.json';
 const ANA_FILE = 'src/data/analysis.json';
 const IMP_FILE = 'src/data/impact.json';
@@ -35,6 +35,7 @@ const DEC = read<DecisionReport>(DEC_FILE);
 const SYN = read<SynergyReport>(SYN_FILE);
 const ANA = read<AnalysisInput>(ANA_FILE);
 const IMP = read<ImpactData>(IMP_FILE);
+const DECK_IMP = read<{ entries: { simVersion: number; bot: string; lists: Record<string, { cards: Record<string, { s: number; n: number }> }> }[] }>('data/seasons/deck-impact.json');
 
 describe('on the real reports', () => {
   it.skipIf(!DEC)('the basis is read from the report’s own manifest', () => {
@@ -92,9 +93,10 @@ describe('on the real reports', () => {
         expect(f.meanTurnPlayed).toBe(c.avgPlayTurn);
         expect(f.caveat).toBe(IWD_CAVEAT);
         if (!f.wonDrawn.thin) expect(f.wonDrawn.rate!).toBeCloseTo(c.wrSeen, 12);
-        // the gap is the stored one whenever both sides have enough games
+        // the gap is the stored one whenever both sides have enough games (the site copy keeps 5 decimals of each rate and
+        // of the gap since 2026-11-24, scripts/simulate.ts, so the two agree to 2e-5)
         if (f.gap) {
-          expect(f.gap.gap).toBeCloseTo(c.iwd, 12);
+          expect(Math.abs(f.gap.gap - c.iwd)).toBeLessThanOrEqual(2e-5);
           expect(f.gap.low95).toBeLessThanOrEqual(f.gap.gap);
           expect(f.gap.high95).toBeGreaterThanOrEqual(f.gap.gap);
           checked++;
@@ -104,11 +106,25 @@ describe('on the real reports', () => {
     expect(cardAnalysisLists(ANA!, ANA!.decks[0]!.cards[0]!.id)).toContain(ANA!.decks[0]!.id);
   });
 
-  it.skipIf(!ANA || !IMP)('the coach’s impact table holds the analysis’ own gaps, and pooledImpact is its weighted mean', () => {
+  it.skipIf(!ANA || !IMP || !DECK_IMP)('the coach’s impact table holds the breeder’s per-list gaps (Season 3 plus the analysis), and pooledImpact is its weighted mean', () => {
+    // since 2026-11-24 (REVIEW_2026-11-24 B.2) the coach's table is the breeder's pair, simulator version 9 and Hard: per list,
+    // the season round robin's sums plus the analysis' own, means to 4 decimals (impactDataOf in src/lib/breederImpact.ts)
+    const season = DECK_IMP!.entries.find((e) => e.simVersion === 9 && e.bot === 'hard')!.lists;
+    let both = 0;
     for (const d of IMP!.decks) {
       const a = ANA!.decks.find((x) => x.id === d.id)!;
-      expect(d.cards).toEqual(a.cards.map((c) => [c.id, c.iwd, c.seenGames]));
+      const s = season[d.id!]?.cards ?? {};
+      if (season[d.id!]) both++;
+      const ids = new Set([...a.cards.filter((c) => c.seenGames > 0).map((c) => c.id), ...Object.keys(s)]);
+      expect(new Set(d.cards.map((c) => c[0]))).toEqual(ids);
+      for (const [id, iwd, n] of d.cards) {
+        const c = a.cards.find((x) => x.id === id);
+        const sn = c ? c.seenGames : 0;
+        expect(n).toBe(sn + (s[id]?.n ?? 0));
+        expect(Math.abs(iwd! - ((c ? c.iwd * sn : 0) + (s[id]?.s ?? 0)) / n)).toBeLessThanOrEqual(1e-4);
+      }
     }
+    expect(both).toBe(Object.keys(season).length);
     const id = IMP!.decks[0]!.cards[0]![0];
     const rows = IMP!.decks.flatMap((d) => d.cards.filter((c) => c[0] === id));
     const n = rows.reduce((s, r) => s + r[2], 0);

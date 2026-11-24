@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RATINGS, SEASONS } from '../../data/index';
 import { TOURNAMENT_INDEX } from '../../data/tournamentIndex';
-import { ANALYSIS, telemetryReport } from '../../data/analysisData';
+import { ANALYSIS_SUMMARY, telemetrySummary } from '../../data/analysisData';
 import { deckReports, reportsSimVersion } from '../../data/deckReportsData';
 import { deckStats, pct, statsName } from '../../lib/deckStats';
 import type { LibraryDeck } from '../../lib/library';
@@ -34,7 +34,7 @@ const isBuiltinName = (name: string) => BUILTIN_NAMES.has(name);
 // every source's sim version comes from the data itself, so the "historical" note returns on its own when SIM_VERSION
 // moves past what is recorded; deckReports.json carries each finals / head-to-head report's version (reportsSimVersion).
 // The season leaderboard is judged per row, from each season's own version (not the seasons file's minimum).
-const VERSIONS = { telemetry: ANALYSIS.manifest?.simVersion, seasons: seasonVersions(SEASONS.seasons) };
+const VERSIONS = { telemetry: ANALYSIS_SUMMARY.manifest?.simVersion, seasons: seasonVersions(SEASONS.seasons) };
 
 // tournament head-to-heads (public/data/h2h.json): fetched once, only when a profile needs them
 let h2hFile: Promise<H2HFile | null> | null = null;
@@ -57,7 +57,7 @@ function recordFor(d: Pick<LibraryDeck, 'file' | 'deck'>, eventH2H?: MatchLine[]
     finals: rep.finals,
     h2h: rep.h2h,
     eventH2H,
-    telemetry: telemetryReport(statsName(d.file)),
+    telemetry: telemetrySummary(statsName(d.file)),
     leader: st.leader && { rank: st.leader.rank, of: st.leader.of, rating: st.leader.rating, vsMeta: st.leader.vsMeta, metaG: st.leader.metaG, percentile: st.leader.percentile, seasons: st.leader.seasons },
     versions: { ...VERSIONS, reports: reportsSimVersion(rep) },
     simVersion: CURRENT_SIM_VERSION,

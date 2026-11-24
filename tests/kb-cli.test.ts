@@ -209,14 +209,14 @@ describe('fact card and fact package (step 2.4)', () => {
     expect(one.code).toBe(0);
     expect(one.out).toMatch(/^Jacked-In Voodoo Boy on BBG Cunningham Econ: statistics of how the bot used one card on one library list, measured by the \w+ bot on sim version \d+/);
     expect(one.out).toMatch(/Played from hand in the main phase: \d+ times in \d+ of the list's \d+ games/);
-    expect(one.out).toMatch(/source: public\/data\/decisions\.json \(the \w+ bot on sim version \d+, recorded 20\d\d-/);
+    expect(one.out).toMatch(/source: reports\/decisions-latest\.json \(the \w+ bot on sim version \d+, recorded 20\d\d-/);
     expect(one.out).toContain('source: src/data/analysis.json');
     const row = stats.decisions!.data.decks.find((d) => d.listId === BBG.listId)!.cards.find((c) => c.id === 'jacked_in_voodoo_boy')!.modes[0]!;
     expect(one.out).toContain(`${row.all.uses} times in ${row.all.games} of the list's`);
     // the same deck by list fingerprint, the card by its id
     expect(fact(['card', 'jacked_in_voodoo_boy', '--deck', BBG.listId]).out).toBe(one.out);
     const json = JSON.parse(fact(['card', 'Jacked-In Voodoo Boy', '--deck', BBG.name, '--json']).out);
-    expect(json).toMatchObject({ fact: 'card', card: 'jacked_in_voodoo_boy', deck: BBG.file, use: { scope: 'list', basis: { file: 'public/data/decisions.json' } } });
+    expect(json).toMatchObject({ fact: 'card', card: 'jacked_in_voodoo_boy', deck: BBG.file, use: { scope: 'list', basis: { file: 'reports/decisions-latest.json' } } });
     expect(json.use.modes[0].won.games).toBe(row.all.games);
     const pooled = fact(['card', 'Jacked-In Voodoo Boy']);
     expect(pooled.out).toMatch(/^Jacked-In Voodoo Boy: statistics of how the bot used one card, pooled over the \d+ lists of the \d+ in the decision report/);
@@ -242,7 +242,7 @@ describe('fact card and fact package (step 2.4)', () => {
     expect([card.code, card.out]).toEqual([1, expect.stringMatching(/^no card named "Voodoo Boyz"; nearest:\n {2}Jacked-In Voodoo Boy \(card:jacked_in_voodoo_boy\)/)]);
     expect(fact(['package', 'rockers']).out).toMatch(/^no package named "rockers"; nearest:\n {2}Rocker Units/);
     expect(fact(['card', 'Jacked-In Voodoo Boy', '--deck', 'cunningham econ deck']).out).toMatch(/^no library deck named "cunningham econ deck"; nearest:\n {2}BBG Cunningham Econ/);
-    if (there) expect(fact(['card', 'Kilo Byte'])).toMatchObject({ code: 1, out: expect.stringMatching(/^no statistics for Kilo Byte in public\/data\/decisions\.json or src\/data\/analysis\.json/) });
+    if (there) expect(fact(['card', 'Kilo Byte'])).toMatchObject({ code: 1, out: expect.stringMatching(/^no statistics for Kilo Byte in reports\/decisions-latest\.json or src\/data\/analysis\.json/) });
   });
 });
 

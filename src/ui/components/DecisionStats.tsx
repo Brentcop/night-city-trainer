@@ -1,18 +1,22 @@
 // The Card stats page's Decisions view: how each card was used (played, sold, called, Go Solo, ordinary Legend play,
 // ability, attack, reaction), how often it was legal but not taken, and win rates by game stage and Gig standing, each
 // with its sample and 95% interval. It reads public/data/decisions.json (written by `npm run sim -- analyze
-// --decisions`) on first open; this file is loaded lazily, so none of it is in the entry chunk. With no report it says
+// --decisions`) on first open: since 2026-11-24 an index cut from the full report (src/lib/telemetrySlices.ts: every deck's
+// totals and the pooled rows), with each deck's body in public/data/decisions/<listId>.json, fetched when it is shown; this file is loaded lazily, so none of it is in the entry chunk. With no report it says
 // how to make one. The numbers are descriptive association, not the value of a card (src/analysis/decisions.ts).
 import { useEffect, useMemo, useState } from 'react';
-import { modeText, STAGES, STANDINGS, type CardReport, type DecisionReport, type ModeReport, type Slice } from '../../analysis/decisions';
+import { modeText, STAGES, STANDINGS, type CardReport, type DecisionReport, type DeckDecisionReport, type ModeReport, type Slice } from '../../analysis/decisions';
+import { isDeckStub, type DecisionIndex } from '../../lib/telemetrySlices';
 import { DECISION_TELEMETRY_SCHEMA } from '../../engine/telemetry';
 import { CardMention } from './CardMention';
 
-export type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'stale'; schema: unknown } | { state: 'ready'; report: DecisionReport };
+/** A report as read: the whole report, or the site's index whose decks are stubs (their bodies fetched apart). */
+export type ReadReport = DecisionReport | DecisionIndex;
+export type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'stale'; schema: unknown } | { state: 'ready'; report: ReadReport };
 
 /** What a fetched decisions.json holds: a report this code reads, one from another telemetry schema, or nothing usable. */
 export function readReport(j: unknown): Loaded {
-  const r = j as DecisionReport | null;
+  const r = j as ReadReport | null;
   if (!r || typeof r !== 'object' || r.kind !== 'decision-telemetry' || !Array.isArray(r.decks)) return { state: 'missing' };
   if (r.telemetrySchema !== DECISION_TELEMETRY_SCHEMA) return { state: 'stale', schema: r.telemetrySchema };
   return { state: 'ready', report: r };
@@ -25,6 +29,20 @@ function loadReport(): Promise<Loaded> {
     .then(readReport)
     .catch((): Loaded => ({ state: 'missing' }));
   return file;
+}
+
+const parts = new Map<string, Promise<DeckDecisionReport | null>>();
+/** One deck's body (public/data/decisions/<listId>.json), fetched once per page load; null when missing. */
+function loadDeckPart(listId: string): Promise<DeckDecisionReport | null> {
+  let p = parts.get(listId);
+  if (!p) {
+    p = fetch(`${import.meta.env.BASE_URL}data/decisions/${encodeURIComponent(listId)}.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<DeckDecisionReport>) : null))
+      .then((d) => (d && d.listId === listId && Array.isArray(d.cards) ? d : null))
+      .catch(() => null);
+    parts.set(listId, p);
+  }
+  return p;
 }
 
 const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
@@ -129,19 +147,34 @@ export function DecisionStats({ deck, listId }: { deck?: string; listId?: string
       live = false;
     };
   }, []);
-  return <DecisionReportView loaded={loaded} deck={deck} listId={listId} />;
+  return <DecisionReportView loaded={loaded} deck={deck} listId={listId} loadDeck={loadDeckPart} />;
 }
 
-/** The view itself, for a report already read; `deck` / `listId` pick the deck shown first. */
-export function DecisionReportView({ loaded, deck, listId }: { loaded: Loaded; deck?: string; listId?: string }) {
+/**
+ * The view itself, for a report already read; `deck` / `listId` pick the deck shown first. A deck of the site's index is a
+ * stub: its body comes from `loadDeck` (shown "Loading…" until then, "not found" when it never comes).
+ */
+export function DecisionReportView({ loaded, deck, listId, loadDeck }: { loaded: Loaded; deck?: string; listId?: string; loadDeck?: (listId: string) => Promise<DeckDecisionReport | null> }) {
   const [pick, setPick] = useState<string | null>(null);
   const [pooled, setPooled] = useState(false);
+  const [bodies, setBodies] = useState<Record<string, DeckDecisionReport | null>>({});
   const report = loaded.state === 'ready' ? loaded.report : null;
-  const current = useMemo(() => {
+  const chosen = useMemo(() => {
     if (!report) return undefined;
-    const id = pick ?? report.decks.find((d) => (listId && d.listId === listId) || d.name === deck)?.listId ?? report.decks[0]?.listId;
+    const decks: readonly { listId: string; name: string }[] = report.decks;
+    const id = pick ?? decks.find((d) => (listId && d.listId === listId) || d.name === deck)?.listId ?? decks[0]?.listId;
     return report.decks.find((d) => d.listId === id);
   }, [report, pick, deck, listId]);
+  const stubId = chosen && isDeckStub(chosen) ? chosen.listId : null;
+  useEffect(() => {
+    if (!stubId || stubId in bodies || !loadDeck) return;
+    let live = true;
+    void loadDeck(stubId).then((b) => live && setBodies((x) => ({ ...x, [stubId]: b })));
+    return () => {
+      live = false;
+    };
+  }, [stubId, bodies, loadDeck]);
+  const current: DeckDecisionReport | undefined = chosen ? (isDeckStub(chosen) ? (bodies[chosen.listId] ?? undefined) : chosen) : undefined;
 
   if (loaded.state === 'loading') return <p className="muted">Loading the decisions report…</p>;
   if (loaded.state !== 'ready')
@@ -179,7 +212,7 @@ export function DecisionReportView({ loaded, deck, listId }: { loaded: Loaded; d
       <div className="row">
         <label className="row small">
           <span>Deck</span>
-          <select value={current?.listId ?? ''} onChange={(e) => setPick(e.target.value)} disabled={pooled}>
+          <select value={chosen?.listId ?? ''} onChange={(e) => setPick(e.target.value)} disabled={pooled}>
             {r.decks.map((d) => (
               <option key={d.listId} value={d.listId}>
                 {d.name} ({d.games} games)
@@ -202,6 +235,8 @@ export function DecisionReportView({ loaded, deck, listId }: { loaded: Loaded; d
           <p className="muted small">More games per slice, but different decks mixed together; counts are per player-game.</p>
           <CardTable cards={r.pooled} caption="Card uses, every list pooled" />
         </div>
+      ) : chosen && !current ? (
+        <p className="muted">{stubId && bodies[stubId] === null ? `No decisions report for ${chosen.name}.` : `Loading ${chosen.name}…`}</p>
       ) : current ? (
         <>
           <div>
