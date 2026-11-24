@@ -4,7 +4,8 @@
 //
 // What a run can detect (docs/TUNING_STUDY_2026-11-13.md P4): adoptChance / detectable give the smallest real gain a first
 // confirmation adopts 8 times in 10 (and, with "until settled", within the reach), gamesFor the held-out games a gain
-// needs, perGameSd the per-game SD a run assumes (the ledger's, else the study's), detectWords the line a run prints.
+// needs, perGameSd the per-game SD a run assumes (this list's ledger changes, else DEFAULT_SD / HARD_SD), detectWords the
+// line a run prints.
 //
 // Candidates of more than one change are built from the best screened single changes (the top `combineFrom` that
 // screened above the current list), never from the full cross product: pairs (and triples at depth 3) of those, each a
@@ -172,6 +173,12 @@ export interface BudgetInput {
   screenRounds?: number;
   /** initial candidates to start halving from (default = singles; must be >= singles when screenRounds > 1) */
   initialCands?: number;
+  /**
+   * the halving rounds play on a block of seeds of their own, each round with its own baseline, after the telemetry
+   * baseline's full block (the forge since 2026-11-24, so the cuts are not screened on the games that chose them);
+   * absent: round 0 reuses the telemetry baseline (the Deck Lab's layout)
+   */
+  ownHalvingBlock?: boolean;
 }
 
 /**
@@ -182,7 +189,8 @@ export interface BudgetInput {
  *
  * With `screenRounds > 1` (successive halving), the swap candidates start at `initialCands` and are halved each round
  * on `ceil(screenGames / screenRounds)` games; package moves are added in the final round. Each round after the first
- * plays its own baseline (the first round reuses the telemetry baseline).
+ * plays its own baseline (the first round reuses the telemetry baseline). With `ownHalvingBlock` the telemetry baseline
+ * plays its full block and every round, the first included, plays its own baseline on the rounds' own block.
  */
 export function estimateGames(o: BudgetInput): { min: number; max: number; screen: number; combos: number; confirm: number } {
   const legacy = o.rule.kind === 'any-gain';
@@ -196,12 +204,14 @@ export function estimateGames(o: BudgetInput): { min: number; max: number; scree
   } else {
     const gpr = Math.ceil(o.screenGames / rounds);
     let pool = o.initialCands ?? o.singles;
-    screen = 0;
+    const own = !!o.ownHalvingBlock;
+    // with a block of their own, the telemetry baseline's full block is played besides the rounds
+    screen = own && o.baselineScreen !== false ? o.screenGames : 0;
     for (let r = 0; r < rounds; r++) {
       const rGames = r === rounds - 1 ? o.screenGames - r * gpr : gpr;
       const isLast = r === rounds - 1;
       const cands = pool + (isLast ? o.packageMoves : 0);
-      const baseCost = r === 0 ? (o.baselineScreen === false ? 0 : 1) : 1;
+      const baseCost = r === 0 && !own ? (o.baselineScreen === false ? 0 : 1) : 1;
       screen += rGames * (baseCost + cands);
       pool = Math.max(o.singles, Math.ceil(pool / 2));
     }
@@ -212,12 +222,25 @@ export function estimateGames(o: BudgetInput): { min: number; max: number; scree
 }
 
 /**
- * What "until settled" may add to a run at most (never counted against the budget): every generation's nominees going on
- * for `stages` further stages each (settleStages: the seeds left and the reach, whichever allow fewer), the current list
- * playing each stage once beside them.
+ * What "until settled" may add to a run at most: every generation's nominees going on for `stages` further stages each
+ * (settleStages: the seeds left and the reach, whichever allow fewer; settleStagesWithin: the budget too), the current
+ * list playing each stage once beside them.
  */
 export function settleExtra(o: { gens: number; firstStage: number; stages: number; nominees: number }): number {
   return o.gens * o.stages * o.firstStage * (1 + o.nominees);
+}
+
+/**
+ * The further stages "until settled" may play within a game budget (since 2026-11-24; before, its games were not counted
+ * against the budget and could reach about 18,000 a deck): at most `stages` (the seeds and the reach), and no more than
+ * keeps settleExtra within what the budget leaves after the usual estimate's most (`max`). A nominee still undecided at
+ * that limit ends "could not tell" as at any other limit, so the error rates stay what they were; only fewer gains near the
+ * bar get settled.
+ */
+export function settleStagesWithin(o: { budget: number; max: number; gens: number; firstStage: number; nominees: number; stages: number }): number {
+  const per = o.gens * o.firstStage * (1 + o.nominees);
+  if (per <= 0) return o.stages;
+  return Math.max(0, Math.min(o.stages, Math.floor(Math.max(0, o.budget - o.max) / per)));
 }
 
 /** Default most games one forge or optimizer run may plan per deck without --force. */
@@ -231,7 +254,7 @@ export interface PowerInput {
   /** games in the first confirmation stage */
   firstStage: number;
   rule: AdoptionRule;
-  /** per-game SD of the paired difference (a one-card swap about 0.30, a package move about 0.55) */
+  /** per-game SD of the paired difference (a one-card swap about 0.26 with Medium and 0.30 with Hard, a package move about 0.55) */
   sd: number;
   /** nominees per decision (their share of α) */
   nominees?: number;
@@ -391,18 +414,37 @@ export function gamesFor(o: Omit<PowerInput, 'firstStage' | 'reach'> & { gain: n
 
 // ---------------------------------------------------------------- the per-game SD a run assumes
 
-/** The tuning study's per-game SDs of the paired difference when the ledger holds too little (E3: 0.24 to 0.46 for cards). */
-export const DEFAULT_SD: Readonly<{ card: number; package: number }> = Object.freeze({ card: 0.3, package: 0.55 });
 /**
- * The per-game SDs with the Hard bot, measured on 2026-11-15 (plan P6, reports/tuning-study-2026-11-13/p6-transfer.txt):
- * the median of 11 one-card swaps (0.34; 0.30 with Medium on the same changes) and the two package swaps (0.56 and 0.62).
- * Used for a run confirmed with Hard when its own ledger changes are too few.
+ * The per-game SDs of the paired difference a run assumes when its own ledger holds too little. One-card swap: the median
+ * over the change ledger's Medium one-card swaps with 200+ held-out games (heldoutSdSamples; 9 changes, SIM_VERSION 9,
+ * measured 2026-11-24 from data/ledger, the figure `npm run ledger -- stats` and REVIEW_2026-11-24 §3 give; it was 0.30,
+ * the tuning study's E3 value, about 17% high). Package move: the tuning study's 0.55 (the ledger holds no package move
+ * with enough held-out games).
  */
-export const HARD_SD: Readonly<{ card: number; package: number; date: string; swaps: number; packages: number }> = Object.freeze({ card: 0.34, package: 0.6, date: '2026-11-15', swaps: 11, packages: 2 });
+export const DEFAULT_SD: Readonly<{ card: number; package: number; date: string; swaps: number }> = Object.freeze({ card: 0.256, package: 0.55, date: '2026-11-24', swaps: 9 });
+/**
+ * The per-game SDs with the Hard bot. One-card swap: the median over the change ledger's Hard one-card swaps with 200+
+ * held-out games (5 changes, SIM_VERSION 9, measured 2026-11-24; it was 0.34, the median of 11 swaps in plan P6 of
+ * 2026-11-15). Package move: the two package swaps of P6 (0.56 and 0.62, 2026-11-15,
+ * reports/tuning-study-2026-11-13/p6-transfer.txt). Used for a run confirmed with Hard when its own ledger changes are too few.
+ */
+export const HARD_SD: Readonly<{ card: number; package: number; date: string; swaps: number; packageDate: string; packages: number }> = Object.freeze({
+  card: 0.295,
+  package: 0.6,
+  date: '2026-11-24',
+  swaps: 5,
+  packageDate: '2026-11-15',
+  packages: 2,
+});
 /** What Hard showed of a gain measured with Medium, over 13 changes (2026-11-15): 0.75 of it, with a standard error of 0.19. */
 export const HARD_OF_MEDIUM: Readonly<{ ratio: number; se: number; changes: number }> = Object.freeze({ ratio: 0.75, se: 0.19, changes: 13 });
-/** A Hard game took about this many times as long as a Medium one when measured (2026-11-15). */
-export const HARD_TIME_RATIO = 20;
+/**
+ * A Hard game takes about this many times as long as a Medium one: 25 to 30 times when measured for REVIEW_2026-11-24
+ * (§3, §7), the lower end kept (it was 20, measured 2026-11-15).
+ */
+export const HARD_TIME_RATIO = 25;
+/** When HARD_TIME_RATIO was measured. */
+export const HARD_TIME_DATE = '2026-11-24';
 
 /** A bot's canonical name (ledgerBot), or the name as given when the ledger does not know it. */
 const canonical = (bot: string): string => ledgerBot(bot).bot ?? bot;
@@ -425,7 +467,7 @@ export const hardAfterMedium = (c: ConfirmedWith | null | undefined): boolean =>
  */
 export function confirmGamesWords(c: ConfirmedWith, confirmGames: number, withOriginal = false): string {
   const k = confirmGames.toLocaleString('en-US');
-  const slow = hardAfterMedium(c) ? ` A Hard game took about ${HARD_TIME_RATIO} times as long as a Medium one when measured.` : '';
+  const slow = hardAfterMedium(c) ? ` A Hard game takes about ${HARD_TIME_RATIO} times as long as a Medium one (measured ${HARD_TIME_DATE}).` : '';
   const what = withOriginal ? 'are the confirmations and the comparison with your original' : 'are confirmation games';
   return `Up to ${k} of them ${what}, played with the ${botWord(c.confirm)} bot.${slow}`;
 }
@@ -515,7 +557,9 @@ export function detect(o: { rule: AdoptionRule; firstStage: number; nominees: nu
 /**
  * The line a run prints before it starts: "A first confirmation here adopts a real gain of +3.5 points 8 times in 10
  * (+5.8 for a package move); with until settled, about +2.4 (+4.1 for a package move) within 10,000 held-out games. It
- * assumes a per-game spread of 0.30 for a one-card swap and 0.55 for a package move (the tuning study's typical values)."
+ * assumes a per-game spread of 0.256 for a one-card swap and 0.55 for a package move (one-card swap: the median of 9
+ * Medium one-card swaps with 200 or more held-out games, measured 2026-11-24; package move: the tuning study's typical
+ * value)."
  * A run too small to adopt anything says "does not adopt even a real gain of +60 points 8 times in 10"; under the legacy
  * any-gain rule the line adds that a change with no real gain is adopted about half the time.
  */
@@ -528,20 +572,23 @@ export function detectWords(d: Detect): string {
   const first = Number.isFinite(d.card) ? `${here} adopts a real gain of ${amount(d.card)} points 8 times in 10 (${pkgOf(d.package)})` : `${here} does not adopt even a real gain of +60 points 8 times in 10 (${pkgOf(d.package)})`;
   const settled = d.settled ? `; with until settled, ${Number.isFinite(d.settled.card) ? 'about ' : ''}${amount(d.settled.card)} (${pkgOf(d.settled.package)}) within ${d.settled.reach.toLocaleString('en-US')} held-out games` : '';
   const anyGain = d.anyGain ? ' Under the any-gain rule a change with no real gain at all is adopted about half the time too.' : '';
-  const from = (sd: number, k: number, what: string) => `${sd.toFixed(2)} for ${what}${k ? ` (the median of ${k} changes of this list with ${SD_MIN_HELDOUT} or more held-out games)` : ''}`;
-  const both = !d.sd.cardFrom && !d.sd.packageFrom;
-  const some = !d.sd.cardFrom || !d.sd.packageFrom;
-  const typical = d.sd.hard
-    ? both
-      ? ` (measured with the Hard bot on ${HARD_SD.date}: ${HARD_SD.swaps} one-card swaps, ${HARD_SD.packages} package swaps)`
-      : some
-        ? `; the other is the Hard bot's value measured on ${HARD_SD.date}`
-        : ''
-    : both
-      ? " (the tuning study's typical values)"
-      : some
-        ? "; the other is the tuning study's typical value"
-        : '';
+  // a default figure as written (0.256, 0.55, 0.60); a list's own median to 2 decimals
+  const fixed = (x: number) => (x.toFixed(3).endsWith('0') ? x.toFixed(2) : x.toFixed(3));
+  const from = (sd: number, k: number, what: string) => `${k ? sd.toFixed(2) : fixed(sd)} for ${what}${k ? ` (the median of ${k} changes of this list with ${SD_MIN_HELDOUT} or more held-out games)` : ''}`;
+  // where a default figure comes from (DEFAULT_SD, HARD_SD)
+  // (no "ledger" in these words: the Deck Lab shows them too)
+  const cardSrc = d.sd.hard
+    ? `the median of ${HARD_SD.swaps} Hard one-card swaps with ${SD_MIN_HELDOUT} or more held-out games, measured ${HARD_SD.date}`
+    : `the median of ${DEFAULT_SD.swaps} Medium one-card swaps with ${SD_MIN_HELDOUT} or more held-out games, measured ${DEFAULT_SD.date}`;
+  const pkgSrc = d.sd.hard ? `the Hard bot's value from ${HARD_SD.packages} package swaps, measured ${HARD_SD.packageDate}` : "the tuning study's typical value";
+  const typical =
+    !d.sd.cardFrom && !d.sd.packageFrom
+      ? ` (one-card swap: ${cardSrc}; package move: ${pkgSrc})`
+      : !d.sd.packageFrom
+        ? `; the other is ${pkgSrc}`
+        : !d.sd.cardFrom
+          ? `; the other is ${cardSrc}`
+          : '';
   const spread = `It assumes a per-game spread of ${from(d.sd.card, d.sd.cardFrom, 'a one-card swap')} and ${from(d.sd.package, d.sd.packageFrom, 'a package move')}${typical}.`;
   const transfer = hardAfterMedium(c) ? ` A gain measured with Medium showed at about ${HARD_OF_MEDIUM.ratio} of its size with Hard (± ${HARD_OF_MEDIUM.se}, ${HARD_OF_MEDIUM.changes} changes).` : '';
   return `${first}${settled}.${anyGain} ${spread}${transfer}`;

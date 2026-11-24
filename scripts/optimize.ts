@@ -32,9 +32,10 @@
 // Until settled (opt-in, as in scripts/forge.ts; docs/SYNERGIES.md "Until settled"): --until-settled lets each nominee
 // still undecided at the cap go on by itself in further stages of --confirm games (seeds after the capped stages, up to
 // 50,000 after 777777), judged after each by the strict pooled rule on all its held-out games, until adopted or rejected,
-// out of --reach N (10000) held-out games, no gain, or the seeds run out. Not under --adopt any-gain.
+// out of --reach N (10000) held-out games, no gain, the seeds run out, or the budget (since 2026-11-24 its further
+// stages are capped so the run stays within --budget; --force lifts the cap with the budget). Not under --adopt any-gain.
 // Before the run one line says what it can detect (the real gain a first confirmation adopts 8 times in 10, and with
-// --until-settled within the reach), from this list's changes in the ledger when it holds enough, else the study's SDs.
+// --until-settled within the reach), from this list's changes in the ledger when it holds enough, else DEFAULT_SD.
 import fs from 'node:fs';
 import path from 'node:path';
 import { exportOfficial, listFingerprint } from '../src/engine/deck';
@@ -50,7 +51,7 @@ import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, form
 import { gameIds } from '../src/lib/changeLedger';
 import { blockSlots, RunLedger, scored } from './ledger-store';
 import { dependsOnOpponentWords, HeldOutTracker, withSplit } from '../src/lib/pairedSplit';
-import { combinedCandidates, detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
+import { combinedCandidates, detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra, settleStagesWithin } from '../src/lib/deckSearch';
 import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
 
@@ -121,9 +122,13 @@ exitOnStrayReach(V);
 const SETTLE = settleFromFlags(V, { rule: RULE });
 /** the stage-2 seeds "until settled" may use after CONFIRM_SEED (nothing else in this run plays them) */
 const SETTLE_SEEDS = 50_000;
-/** --until-settled: the further stages each nominee may play (the seeds left and the reach, whichever allow fewer) */
-const FURTHER = SETTLE ? settleStages({ seedStages: Math.floor(SETTLE_SEEDS / CONFIRM) - STAGES, reach: SETTLE.reach, firstStage: CONFIRM, capStages: STAGES }) : 0;
+/** --until-settled: the further stages the seeds left and the reach allow, whichever are fewer */
+const SEED_FURTHER = SETTLE ? settleStages({ seedStages: Math.floor(SETTLE_SEEDS / CONFIRM) - STAGES, reach: SETTLE.reach, firstStage: CONFIRM, capStages: STAGES }) : 0;
+/** --until-settled: the further stages each nominee may play: SEED_FURTHER, and since 2026-11-24 within --budget (unless --force) */
+const FURTHER = SETTLE && !V.force ? settleStagesWithin({ budget: V.budget, max: ESTIMATE.max, gens: 1, firstStage: CONFIRM, nominees: DEPTH.nominees, stages: SEED_FURTHER }) : SEED_FURTHER;
 const SETTLE_EXTRA = SETTLE ? settleExtra({ gens: 1, firstStage: CONFIRM, stages: FURTHER, nominees: DEPTH.nominees }) : undefined;
+/** --until-settled: the reach the detectability line assumes (the held-out games the budget leaves, when that is fewer) */
+const SETTLE_DETECT = SETTLE ? (FURTHER < SEED_FURTHER ? { reach: Math.min(SETTLE.reach, (STAGES + FURTHER) * CONFIRM) } : SETTLE) : null;
 
 function candidates(deck: (typeof base)['deck']): Cand[] {
   const out = optimizeCandidates(deck, SIDEBOARD, NCAND, PLAN, PARTNER);
@@ -158,9 +163,9 @@ async function main() {
   const settled = SETTLE ? { untilSettled: SETTLE } : {};
   console.log(`Adoption rule: ${describeRule(RULE, { firstStage: CONFIRM, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled })}`);
   // what this run can detect, from this list's changes in the ledger when it holds enough, else the study's SDs
-  const detectLine = detectWords(detect({ rule: RULE, firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, sd: perGameSd(LEDGER ? heldoutSdSamples(LEDGER.entries(base.deck)) : undefined), ...settled }));
+  const detectLine = detectWords(detect({ rule: RULE, firstStage: CONFIRM, nominees: LEGACY ? 6 : DEPTH.nominees, sd: perGameSd(LEDGER ? heldoutSdSamples(LEDGER.entries(base.deck)) : undefined), ...(SETTLE_DETECT ? { untilSettled: SETTLE_DETECT } : {}) }));
   console.log(detectLine);
-  checkBudget('optimizer', ESTIMATE, V.budget, V.force, SETTLE_EXTRA);
+  checkBudget('optimizer', ESTIMATE, V.budget, V.force, SETTLE_EXTRA !== undefined ? { games: SETTLE_EXTRA, capped: FURTHER < SEED_FURTHER } : undefined);
   const cands: Cand[] = [{ label: '(unchanged)', deck: base.deck }, ...candidates(base.deck)];
   console.log(`Stage 1: ${cands.length} candidates × ${SCREEN} games`);
   const s1 = await measure(cands, SCREEN, SCREEN_SEED);

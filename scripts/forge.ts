@@ -63,23 +63,38 @@
 //                     them. It stops when they adopt or reject it; when its pooled mean shows no gain (the futility rule);
 //                     when it would need more than --reach held-out games in all (checked before each further stage); or
 //                     when this generation's confirmation seeds run out (50,000 a generation, never reaching the next
-//                     generation's seeds). Each nominee goes on by itself. With --ledger every further stage is recorded.
-//                     --reach N (10000) is the same reach as the shortlist's. The budget counts the usual estimate; the
-//                     printed estimate says what "until settled" may add at most.
+//                     generation's seeds); or at the budget (since 2026-11-24: the further stages a generation may play
+//                     are capped so the run's most stays within --budget; --force lifts the cap with the budget). Each
+//                     nominee goes on by itself. With --ledger every further stage is recorded. --reach N (10000) is the
+//                     same reach as the shortlist's. The printed estimate says what "until settled" may add at most.
 //
 // Before a run each deck prints one line on what it can detect: the real gain a first confirmation adopts 8 times in 10
 // (and, with --until-settled, within the reach), from the per-game SD of this list's changes in the ledger (with --ledger,
-// when it holds 3 or more with 200+ held-out games), else the tuning study's 0.30 (one-card swap) and 0.55 (package move).
+// when it holds 3 or more with 200+ held-out games), else 0.256 for a one-card swap (the ledger's Medium swaps, 2026-11-24)
+// and the tuning study's 0.55 for a package move.
 //
 // Confirming with another bot (opt-in; docs/SYNERGIES.md "Confirming with another bot"; without it nothing changes):
 //   --confirm-bot BOT   each generation's baseline, screening and telemetry stay with --bot; the confirmation stages (the
 //                       current list and the nominees, paired) and "until settled"'s are played by BOT. Seeds, layout,
 //                       rule and stage sizes are unchanged. With --ledger the held-out games go to BOT's entry and earlier
 //                       held-out games are pooled from it (a game that screened a change, with either bot, is never
-//                       held-out evidence for it). With --pooled-ranking the shortlist ranks by BOT's held-out games
-//                       only (screening games stay with --bot; two bots' games never pool). The rule line, reports, manifest and the deck file's
+//                       held-out evidence for it). Not with --pooled-ranking (exit 2): the shortlist would rank a change
+//                       with earlier held-out games by BOT's figure and one without by --bot's screening, in one list.
+//                       The rule line, reports, manifest and the deck file's
 //                       "// Adoption:" line say which bot confirmed; the detectability line uses BOT's per-game spread
-//                       (Hard: 0.34 for a one-card swap and 0.60 for a package move, measured 2026-11-15). Default --bot.
+//                       (Hard: 0.295 for a one-card swap, measured 2026-11-24, and 0.60 for a package move, 2026-11-15). Default --bot.
+//
+// Successive halving and per-deck additions (opt-in; without these flags nothing changes):
+//   --screen-rounds N   screen the one-card swaps in N rounds (1, the default, = no halving): each round plays its share of
+//                       --games on a block of seeds of its own after the telemetry baseline's (so the cuts are never
+//                       screened on the games that chose them), with its own baseline on the same seeds; a swap's figure is
+//                       its paired gain against that round's baseline; the best half (at least --cands) go on, package
+//                       moves join the last round, and only the last round's figures nominate (and are combined)
+//   --initial-cands N   the swaps the first round starts from (default --cands, or max(--cands, 20) with halving)
+//   --per-deck-adds     rank the additions by this list's own per-list card impact (data/seasons/deck-impact.json) when the
+//                       table has an entry for it, else as without the flag; the run prints which table it read
+//   --per-deck-bot BOT  whose per-list numbers --per-deck-adds reads (default hard, the season's bot; the closest
+//                       simulator version and bot, with a "Warning:" line, when that one has none)
 //
 // Each generation:
 //   1. Baseline: deck vs field with telemetry → win rate + per-card "Δ when drawn" (IWD).
@@ -108,10 +123,10 @@ import { gameRunManifest, manifestDeck, type RunManifest } from '../src/lib/runM
 import { SIM_VERSION } from '../src/lib/tournament';
 import type { MatchJob } from './worker';
 import { cliGameCache } from './game-cache';
-import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, type Mutation } from './builder-moves';
+import { forgeScore, forgeSwaps, forgeSwapsExplained, isPackageChange, packageCandidates, combineMutations, PER_DECK_MISSING, perDeckAddsWords, type Mutation } from './builder-moves';
 import { cutTableRows } from '../src/lib/cutRanking';
 import { exitOnPlanProblems, objectivePackages, packagesOn, partnerAwareOn, planFromFlags, tunerPackageFlags } from './package-flags';
-import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnRuleProblems, halvingFlags, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
+import { adoptionFlags, budgetFlags, checkBudget, confirmBotFlag, confirmBotFromFlags, depthFlags, depthFromFlags, exitOnHalvingProblems, exitOnRuleProblems, halvingFlags, ledgerFlags, ledgerFromFlags, ruleFromFlags, settleFlags, settleFromFlags, shortlistFlags, shortlistFromFlags } from './evidence-flags';
 import { CARD_BY_ID, cardLabel } from '../src/engine/cards';
 import { byPooledGain, describeShortlist, outOfReach, pooledFigure, pooledWords, shortlistGeneration, skippedWords, type PooledFigure, type ShortlistNote } from '../src/lib/shortlist';
 import { checkChange, describeChanges, describePlan, packageChanges, packageProvenance, type PackageChanges, type PackagePlan } from '../src/lib/deckPackages';
@@ -119,9 +134,9 @@ import { adoptionProvenance, confirmationWord, confirmStaged, describeRule, form
 import { gameIds, ledgerBot } from '../src/lib/changeLedger';
 import { dependsOnOpponentWords, HeldOutTracker, withSplit, type SplitNomineeRecord } from '../src/lib/pairedSplit';
 import { blockSlots, LedgerStore, RunLedger, scored, type GameSlot } from './ledger-store';
-import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra } from '../src/lib/deckSearch';
+import { detect, detectWords, estimateGames, heldoutSdSamples, listKeyOf, perGameSd, settleExtra, settleStagesWithin } from '../src/lib/deckSearch';
 import { forgeStrengthWord, forgeSummaryMarkdown } from './forge-summary';
-import { loadImpactTables } from './breed-data';
+import { loadImpactTables, SEASON_BOT } from './breed-data';
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -167,8 +182,14 @@ const SCREEN_ROUNDS = V['screen-rounds'] ?? 1;
 const INITIAL_CANDS = V['initial-cands'] ?? (SCREEN_ROUNDS > 1 ? Math.max(CANDS, 20) : CANDS);
 /** --per-deck-adds: rank additions by per-deck impact when available */
 const PER_DECK = !!V['per-deck-adds'];
-/** per-deck impact tables (--per-deck-adds): per-list card Δ-when-drawn from data/seasons/deck-impact.json */
-const DECK_IMPACT_TABLES = PER_DECK ? loadImpactTables(BOT) : null;
+exitOnHalvingProblems(V, GAMES);
+/** --per-deck-bot: whose per-list card impact --per-deck-adds reads (default the season's bot, whose round robins record it) */
+const PER_DECK_BOT = V['per-deck-bot'] ?? SEASON_BOT;
+/**
+ * per-deck impact tables (--per-deck-adds): per-list card Δ-when-drawn from data/seasons/deck-impact.json, of one
+ * simulator version and bot (the closest pair, with a warning, when the wanted one has no numbers)
+ */
+const DECK_IMPACT_TABLES = PER_DECK ? loadImpactTables(PER_DECK_BOT) : null;
 const RULE = ruleFromFlags(V);
 exitOnRuleProblems(RULE);
 const DEPTH = depthFromFlags(V, 1);
@@ -177,7 +198,16 @@ const FIRST_STAGE = GAMES * 2;
 /** confirmation seeds start this far after the generation's screening seeds */
 const CONFIRM_GAP = 50_000;
 const STAGES = RULE.kind === 'any-gain' ? 1 : RULE.capStages;
-if (GAMES + 0 > CONFIRM_GAP || FIRST_STAGE * STAGES > CONFIRM_GAP) {
+/**
+ * the screening seeds a generation uses from its first: the telemetry baseline's block, and with --screen-rounds > 1 the
+ * halving rounds' own block after it (so the cuts are never screened on the games that chose them)
+ */
+const SCREEN_SPAN = SCREEN_ROUNDS > 1 ? 2 * GAMES : GAMES;
+if (SCREEN_ROUNDS > 1 && SCREEN_SPAN > CONFIRM_GAP) {
+  console.error(`error: successive halving screens on ${SCREEN_SPAN} seeds a generation (the baseline's block and the rounds' own) but each generation has ${CONFIRM_GAP} before its confirmation; lower --games.\nRun with --help for usage.`);
+  process.exit(2);
+}
+if (GAMES > CONFIRM_GAP || FIRST_STAGE * STAGES > CONFIRM_GAP) {
   console.error(`error: the confirmation may need ${FIRST_STAGE * STAGES} seeds but each generation has ${CONFIRM_GAP}; lower --games or --confirm-cap.\nRun with --help for usage.`);
   process.exit(2);
 }
@@ -208,7 +238,7 @@ const RUN_ID = `forge ${new Date().toISOString()} seed ${V.seed}`;
  */
 const confirmSlots = (seed1: number, further = 0): GameSlot[] => Array.from({ length: STAGES + further }, (_, s) => blockSlots(seed1 + s * FIRST_STAGE, FIRST_STAGE, OPPONENTS)).flat();
 /** --until-settled: the most further stages the seeds and the reach allow in any generation */
-const SETTLE_MAX_STAGES = SETTLE ? settleStages({ seedStages: Math.floor(CONFIRM_GAP / FIRST_STAGE) - STAGES, reach: SETTLE.reach, firstStage: FIRST_STAGE, capStages: STAGES }) : 0;
+const SETTLE_SEED_STAGES = SETTLE ? settleStages({ seedStages: Math.floor(CONFIRM_GAP / FIRST_STAGE) - STAGES, reach: SETTLE.reach, firstStage: FIRST_STAGE, capStages: STAGES }) : 0;
 /**
  * --until-settled: the further stages one generation's confirmation may play. They stay within its 50,000 confirmation
  * seeds and never touch the seeds the next generation of the same deck will use (its screening block and its whole
@@ -222,7 +252,7 @@ function furtherStages(seed1: number, next0: number | null): number {
     const lo = seed1 + (STAGES + k) * FIRST_STAGE;
     const hi = lo + FIRST_STAGE;
     if (hi > seed1 + CONFIRM_GAP) break;
-    if (next0 !== null && (hits(lo, hi, next0, next0 + GAMES) || hits(lo, hi, next0 + CONFIRM_GAP, next0 + 2 * CONFIRM_GAP))) break;
+    if (next0 !== null && (hits(lo, hi, next0, next0 + SCREEN_SPAN) || hits(lo, hi, next0 + CONFIRM_GAP, next0 + 2 * CONFIRM_GAP))) break;
   }
   return k;
 }
@@ -257,8 +287,16 @@ const GLOBAL_IMPACT: Record<string, number> = (() => {
 
 /** package moves screened per generation, at most (for the estimate) */
 const PKG_N = PACKAGES ? (V['package-moves'] ? V['package-cands'] : 0) + (V['require-packages'] ? V['package-cands'] : 0) : 0;
-const ESTIMATE = estimateGames({ gens: GENS, screenGames: GAMES, singles: CANDS, packageMoves: PKG_N, depth: DEPTH, firstStage: FIRST_STAGE, rule: RULE, screenRounds: SCREEN_ROUNDS, initialCands: INITIAL_CANDS });
-/** --until-settled: what it may add at most per deck (not counted against --budget) */
+const ESTIMATE = estimateGames({ gens: GENS, screenGames: GAMES, singles: CANDS, packageMoves: PKG_N, depth: DEPTH, firstStage: FIRST_STAGE, rule: RULE, screenRounds: SCREEN_ROUNDS, initialCands: INITIAL_CANDS, ...(SCREEN_ROUNDS > 1 ? { ownHalvingBlock: true } : {}) });
+/**
+ * --until-settled: the most further stages in any generation: the seeds and the reach allow SETTLE_SEED_STAGES, and since
+ * 2026-11-24 the budget bounds them too (what --budget leaves after the usual estimate's most, settleStagesWithin), unless
+ * --force lifts the budget
+ */
+const SETTLE_MAX_STAGES = SETTLE ? (V.force ? SETTLE_SEED_STAGES : settleStagesWithin({ budget: V.budget, max: ESTIMATE.max, gens: GENS, firstStage: FIRST_STAGE, nominees: DEPTH.nominees, stages: SETTLE_SEED_STAGES })) : 0;
+/** --until-settled: the reach the detectability line assumes (the held-out games the budget leaves, when that is fewer) */
+const SETTLE_DETECT = SETTLE ? (SETTLE_MAX_STAGES < SETTLE_SEED_STAGES ? { reach: Math.min(SETTLE.reach, (STAGES + SETTLE_MAX_STAGES) * FIRST_STAGE) } : SETTLE) : null;
+/** --until-settled: what it may add at most per deck (within --budget since 2026-11-24, unless --force) */
 const SETTLE_EXTRA = SETTLE ? settleExtra({ gens: GENS, firstStage: FIRST_STAGE, stages: SETTLE_MAX_STAGES, nominees: DEPTH.nominees }) : undefined;
 
 /** games played so far in this process (each forged deck's manifest counts its own) */
@@ -300,7 +338,23 @@ interface Screened {
   wr: number;
   /** paired with the baseline on the screening seeds (plain 95%) */
   iv: PairedInterval;
+  /**
+   * its screening gain: its win rate less the baseline's on the same games (the paired mean, iv.mean, up to rounding;
+   * computed as before so a run without halving is unchanged). Under halving the baseline is its round's own.
+   */
+  gain: number;
 }
+
+/**
+ * --screen-rounds > 1: each halving round's first seed and games, on a block of their own right after the telemetry
+ * baseline's block (seed0 … seed0 + GAMES − 1), so the cuts that baseline chose are screened on other games.
+ */
+const halvingRounds = (seed0: number): { seed: number; games: number }[] => {
+  const gpr = Math.ceil(GAMES / SCREEN_ROUNDS);
+  return Array.from({ length: SCREEN_ROUNDS }, (_, r) => ({ seed: seed0 + GAMES + r * gpr, games: r === SCREEN_ROUNDS - 1 ? GAMES - r * gpr : gpr }));
+};
+/** the screening games of a generation: the baseline's block, and under halving the rounds' blocks too */
+const screeningSlots = (seed0: number): GameSlot[] => [...blockSlots(seed0, GAMES, OPPONENTS), ...(SCREEN_ROUNDS > 1 ? halvingRounds(seed0).flatMap((r) => blockSlots(r.seed, r.games, OPPONENTS)) : [])];
 
 async function forge(target: (typeof lib)[number]) {
   let deck: DeckList = structuredClone(target.deck);
@@ -313,7 +367,7 @@ async function forge(target: (typeof lib)[number]) {
   const heldLedger = ledger && CONFIRM ? new RunLedger({ ...ledger.o, bot: ledgerBot(CONFIRM.confirm).bot!, store: ledger.store, totals: ledger.totals }) : ledger;
   // what this run can detect, from this list's changes in the ledger (the confirming bot's) when it holds enough, else the defaults
   const detectLine = detectWords(
-    detect({ rule: RULE, firstStage: FIRST_STAGE, nominees: DEPTH.nominees, sd: perGameSd(heldLedger ? heldoutSdSamples(heldLedger.entries(deck)) : undefined, CONFIRM?.confirm), ...(SETTLE ? { untilSettled: SETTLE } : {}), ...(CONFIRM ? { confirmedWith: CONFIRM } : {}) }),
+    detect({ rule: RULE, firstStage: FIRST_STAGE, nominees: DEPTH.nominees, sd: perGameSd(heldLedger ? heldoutSdSamples(heldLedger.entries(deck)) : undefined, CONFIRM?.confirm), ...(SETTLE_DETECT ? { untilSettled: SETTLE_DETECT } : {}), ...(CONFIRM ? { confirmedWith: CONFIRM } : {}) }),
   );
   console.log(`[${deck.name}] ${detectLine}`);
   const log: string[] = [`# Forge log — ${deck.name}`, '', `Field: ${field.map((f) => f.deck.name).join(', ')} · bot ${BOT} · ${GAMES} games per test`, '', `Adoption rule: ${ruleLine}.`, detectLine, ''];
@@ -323,6 +377,12 @@ async function forge(target: (typeof lib)[number]) {
     log.push(`Search depth: up to ${DEPTH.cardsPerChange} card swap(s) and ${DEPTH.packagesPerChange} package move(s) per candidate (combined from the best ${DEPTH.combineFrom} screened), ${DEPTH.nominees} nominee(s) confirmed per generation.`, '');
   if (PACKAGES) log.push(`Packages: ${describePlan(plan)}${V['package-moves'] ? `; package moves on (${V['package-cands']} per generation)` : '; package moves off'}.`, '');
   if (PARTNER) log.push('Cut ranking: partner-aware (a package card is judged by its games with a partner piece; a cut that lowers a package’s assembly odds costs in proportion; an add that completes or deepens one earns the odds it adds).', '');
+  if (SCREEN_ROUNDS > 1)
+    log.push(
+      `Successive halving: ${INITIAL_CANDS} one-card swaps screened in ${SCREEN_ROUNDS} rounds on a block of ${GAMES} seeds of their own (not the baseline's, which chose the cuts); each round plays its own baseline on its seeds and keeps the best half (at least ${CANDS}); package moves join the last round; Δ is against the round's own baseline, and only the last round nominates.`,
+      '',
+    );
+  if (DECK_IMPACT_TABLES) log.push(...perDeckAddsWords(DECK_IMPACT_TABLES), '');
   /** package moves tried (labels), for the report and the manifest */
   const tried: string[] = [];
   const history: { gen: number; wr: number; change: string; gain?: PairedInterval; priorGames?: number; baseline: number; baselineGames: number }[] = [];
@@ -385,10 +445,13 @@ async function forge(target: (typeof lib)[number]) {
     if (!muts.length) return [];
     const all = await playMany(muts.map((m) => m.deck), seed0, games);
     const slots = blockSlots(seed0, games, OPPONENTS);
+    // the baseline's win rate on these games, computed as play() computes it (so without halving gain = wr − base.wr exactly)
+    const baseWr = base.reduce((a, b) => a + b, 0) / base.length;
     return muts.map((m, i) => {
       const s = all[i]!;
       ledger?.record('screen', deck, m.deck, m.label, scored(slots, base, s));
-      const r = { m, wr: s.reduce((a, b) => a + b, 0) / s.length, iv: pairedInterval(s, base) };
+      const wr = s.reduce((a, b) => a + b, 0) / s.length;
+      const r: Screened = { m, wr, iv: pairedInterval(s, base), gain: wr - baseWr };
       console.log(`  ${pct(r.wr)} (${(r.iv.mean * 100).toFixed(1)})  ${m.label}`);
       return r;
     });
@@ -401,6 +464,10 @@ async function forge(target: (typeof lib)[number]) {
     log.push(`## Generation ${gen} — baseline ${pct(base.wr)}`, '', ...rep.insights.slice(0, 4).map((s) => `- ${s}`), '');
     const partner = PARTNER ? { sums: base.sums } : undefined;
     const deckImp = DECK_IMPACT_TABLES ? DECK_IMPACT_TABLES.deckImpact[listFingerprint(deck)] : undefined;
+    if (DECK_IMPACT_TABLES && !Object.keys(deckImp ?? {}).length) {
+      log.push(`${PER_DECK_MISSING[0]!.toUpperCase()}${PER_DECK_MISSING.slice(1)}.`, '');
+      console.log(`  ${PER_DECK_MISSING}`);
+    }
     // --pooled-ranking: the generator's whole order (its first INITIAL_CANDS are today's swaps), to fall back on past skipped picks
     const explained = forgeSwapsExplained(deck, rep, GLOBAL_IMPACT, SHORT ? Infinity : INITIAL_CANDS, plan, partner, deckImp);
     let muts: Mutation[] = explained.swaps;
@@ -408,10 +475,9 @@ async function forge(target: (typeof lib)[number]) {
     const todays = SHORT ? explained.swaps.slice(0, INITIAL_CANDS) : muts;
     let shortNote: ShortlistNote | undefined;
     if (SHORT && ledger) {
-      // with --confirm-bot the shortlist ranks by the confirming bot's held-out games only (games of two bots never pool)
-      const shortRun = heldLedger ?? ledger;
+      // (--pooled-ranking is refused with another confirming bot, so the screening and held-out games are one bot's)
       const g = shortlistGeneration({
-        run: shortRun,
+        run: ledger,
         base: deck,
         plan,
         rule: { rule: RULE, nominees: DEPTH.nominees, minGainPp: RULE.minGainPp, nominateBar: NOMINATE_BAR, shortlist: SHORT },
@@ -451,47 +517,45 @@ async function forge(target: (typeof lib)[number]) {
       muts.push(...packageCandidates(deck, plan, { moves: V['package-moves'], n: V['package-cands'], score: forgeScore(rep, GLOBAL_IMPACT, deckImp) }));
     }
     tried.push(...muts.filter((m) => m.pkg).map((m) => m.label));
+    // the games the nominating figures are on: the baseline's block, or under halving the last round's (set below)
+    let final = { seed: seed0, games: GAMES, base: base.scores };
     // successive halving: when SCREEN_ROUNDS > 1, screen in rounds, halving the pool each time
     let screened: Screened[];
     if (SCREEN_ROUNDS <= 1) {
       screened = await screen(muts, seed0, base.scores);
     } else {
-      const gpr = Math.ceil(GAMES / SCREEN_ROUNDS);
       // separate one-card swaps from package moves: only swaps are halved
       const swapMuts = muts.filter((m) => !m.pkg);
       const pkgMuts = muts.filter((m) => !!m.pkg);
       let pool = swapMuts;
-      let allScreened: Screened[] = [];
-      for (let r = 0; r < SCREEN_ROUNDS; r++) {
-        const isLast = r === SCREEN_ROUNDS - 1;
-        const roundGames = isLast ? GAMES - r * gpr : gpr;
-        const roundSeed = seed0 + r * gpr;
-        // round 0 reuses the baseline's first gpr scores (k indices align); later rounds need their own baseline
-        let roundBase: number[];
-        if (r === 0) {
-          roundBase = base.scores.slice(0, roundGames);
-        } else {
-          const rb = await play(deck, roundSeed, roundGames, false);
-          roundBase = rb.scores;
-        }
+      let roundScreened: Screened[] = [];
+      const rounds = halvingRounds(seed0);
+      for (let r = 0; r < rounds.length; r++) {
+        const isLast = r === rounds.length - 1;
+        const { seed: roundSeed, games: roundGames } = rounds[r]!;
         // in the last round, add package moves back
         const roundMuts = isLast ? [...pool, ...pkgMuts] : pool;
-        if (roundMuts.length) {
-          console.log(`  halving round ${r + 1}/${SCREEN_ROUNDS}: ${roundMuts.length} candidates, ${roundGames} games`);
-          allScreened = await screen(roundMuts, roundSeed, roundBase, roundGames);
-        }
-        if (!isLast) {
-          // keep the best half, at least CANDS (the final target count)
+        roundScreened = [];
+        if (!roundMuts.length) continue;
+        // every round, the first too, plays its own baseline on its own seeds (the telemetry baseline's games chose the
+        // cuts, so they are not reused), and each candidate is paired with it
+        const roundBase = (await play(deck, roundSeed, roundGames, false)).scores;
+        console.log(`  halving round ${r + 1}/${rounds.length}: ${roundMuts.length} candidates, ${roundGames} games (baseline ${pct(roundBase.reduce((a, b) => a + b, 0) / roundBase.length)})`);
+        roundScreened = await screen(roundMuts, roundSeed, roundBase, roundGames);
+        if (isLast) final = { seed: roundSeed, games: roundGames, base: roundBase };
+        else {
+          // keep the best half by paired gain against this round's baseline, at least CANDS (the final target count)
           const keep = Math.max(CANDS, Math.ceil(pool.length / 2));
-          const survived = new Set(allScreened.sort((a, b) => b.wr - a.wr).slice(0, keep).map((s) => s.m));
+          const survived = new Set([...roundScreened].sort((a, b) => b.gain - a.gain).slice(0, keep).map((s) => s.m));
           pool = pool.filter((m) => survived.has(m));
         }
       }
-      screened = allScreened;
+      // only the last round's figures nominate: earlier rounds' are on other games and were used to choose the survivors
+      screened = roundScreened;
     }
     // depth: combine the best screened single changes (only those that screened above the baseline)
     const seen = new Set([listKeyOf(deck), ...muts.map((m) => listKeyOf(m.deck))]);
-    const above = (pkg: boolean) => screened.filter((r) => !!r.m.pkg === pkg && r.wr > base.wr).sort((a, b) => b.wr - a.wr).map((r) => r.m);
+    const above = (pkg: boolean) => screened.filter((r) => !!r.m.pkg === pkg && r.gain > 0).sort((a, b) => b.wr - a.wr).map((r) => r.m);
     const combos = [
       ...(DEPTH.cardsPerChange > 1 ? combineMutations(deck, above(false), { maxParts: DEPTH.cardsPerChange, from: DEPTH.combineFrom, plan, seen }) : []),
       ...(DEPTH.packagesPerChange > 1 ? combineMutations(deck, above(true), { maxParts: DEPTH.packagesPerChange, from: DEPTH.combineFrom, plan, seen }) : []),
@@ -499,16 +563,17 @@ async function forge(target: (typeof lib)[number]) {
     if (combos.length) {
       console.log(`  combined candidates: ${combos.length}`);
       tried.push(...combos.filter((m) => m.combo?.packages).map((m) => m.label));
-      screened.push(...(await screen(combos, seed0, base.scores)));
+      // on the games the singles they combine were last screened on, paired with the same baseline
+      screened.push(...(await screen(combos, final.seed, final.base, final.games)));
     }
+    // by win rate: every figure here is on the same games and baseline (the baseline's block, or the last halving round's)
     const results = [...screened].sort((a, b) => b.wr - a.wr);
     /** --pooled-ranking: each screened change's gain over all its games (this generation's screening included, each game once) */
     const figs = new Map<Screened, PooledFigure>();
     if (SHORT && ledger) {
-      // with --confirm-bot: rank by the confirming bot's held-out games only (games of two bots never pool)
-      const shortRun = heldLedger ?? ledger;
-      const own = gameIds(blockSlots(seed0, GAMES, OPPONENTS));
-      for (const r of results) figs.set(r, pooledFigure(shortRun.entryOf(shortRun.entryId(deck, r.m.deck).change), { ids: own, gain: r.wr - base.wr, games: GAMES }));
+      // one bot's games: --pooled-ranking is refused with another confirming bot
+      const own = gameIds(screeningSlots(seed0));
+      for (const r of results) figs.set(r, pooledFigure(ledger.entryOf(ledger.entryId(deck, r.m.deck).change), { ids: own, gain: r.gain, games: final.games }));
     }
     const pooledCell = (r: Screened) => {
       const f = figs.get(r);
@@ -517,7 +582,7 @@ async function forge(target: (typeof lib)[number]) {
     log.push(
       `| Swap | Win % | Δ vs baseline | Paired 95% (screening) |${SHORT ? ' Pooled with earlier runs |' : ''}`,
       `|---|---|---|---|${SHORT ? '---|' : ''}`,
-      ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${((r.wr - base.wr) * 100).toFixed(1)} | [${(r.iv.lower * 100).toFixed(1)}, ${(r.iv.upper * 100).toFixed(1)}] |${SHORT ? ` ${pooledCell(r)} |` : ''}`),
+      ...results.map((r) => `| ${r.m.label} | ${pct(r.wr)} | ${(r.gain * 100).toFixed(1)} | [${(r.iv.lower * 100).toFixed(1)}, ${(r.iv.upper * 100).toFixed(1)}] |${SHORT ? ` ${pooledCell(r)} |` : ''}`),
       '',
     );
     const pooledOf = (r: Screened) => {
@@ -527,7 +592,7 @@ async function forge(target: (typeof lib)[number]) {
     const genRec: (typeof json.gens)[number] = {
       gen,
       baseline: p1(base.wr),
-      swaps: results.slice(0, PACKAGES || combos.length ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.wr - base.wr), ...(mutKind(r.m) ? { package: mutKind(r.m) } : {}), ...pooledOf(r) })),
+      swaps: results.slice(0, PACKAGES || combos.length ? results.length : 5).map((r) => ({ swap: r.m.label, wr: p1(r.wr), delta: p1(r.gain), ...(mutKind(r.m) ? { package: mutKind(r.m) } : {}), ...pooledOf(r) })),
       verdict: 'kept',
       ...(cutRows.length ? { cuts: cutRows.map((r) => ({ card: r.name, plain: p1(r.plain), score: p1(r.score), offered: r.offered, plainOffered: r.plainOffered, why: r.why })) } : {}),
       ...(genRecPlain ? { plainSwaps: genRecPlain } : {}),
@@ -549,10 +614,10 @@ async function forge(target: (typeof lib)[number]) {
     if (SETTLE) genRec.settleStages = further;
     const barOf = (m: Mutation) => (isPackageChange(m) ? RULE.packageMinGainPp : RULE.minGainPp);
     /** --ledger: the games the prior leaves out (every game the confirmation may play, and the screening games) */
-    const leaveOut = ledger ? gameIds([...confirmSlots(seed1, further), ...blockSlots(seed0, GAMES, OPPONENTS)]) : new Set<string>();
+    const leaveOut = ledger ? gameIds([...confirmSlots(seed1, further), ...screeningSlots(seed0)]) : new Set<string>();
     const priorFor = (m: Mutation): PairedScores | undefined => (heldLedger && RULE.kind === 'evidence' ? heldLedger.prior(deck, m.deck, leaveOut) : undefined);
     // --pooled-ranking: nominees by pooled gain (a change with no earlier games keeps its own screening figure)
-    const gainOf = (r: Screened) => figs.get(r)?.gain ?? r.wr - base.wr;
+    const gainOf = (r: Screened) => figs.get(r)?.gain ?? r.gain;
     const above2 = (SHORT ? byPooledGain(results, (r) => figs.get(r)!) : results).filter((r) => gainOf(r) >= NOMINATE_BAR);
     let nominated = above2.slice(0, DEPTH.nominees);
     if (ledger && RULE.kind === 'evidence') {
@@ -726,7 +791,9 @@ async function main() {
   const settled = SETTLE ? { untilSettled: SETTLE } : {};
   const bots = CONFIRM ? { confirmedWith: CONFIRM } : {};
   console.log(`Adoption rule: ${describeRule(RULE, { firstStage: FIRST_STAGE, nominees: DEPTH.nominees, ledger: !!LEDGER, ...settled, ...bots })}`);
-  checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force, SETTLE_EXTRA, CONFIRM ? { with: CONFIRM, games: GENS * ESTIMATE.confirm } : undefined);
+  checkBudget(`forge, ${GENS} generation${GENS === 1 ? '' : 's'}`, ESTIMATE, V.budget, V.force, SETTLE_EXTRA !== undefined ? { games: SETTLE_EXTRA, capped: SETTLE_MAX_STAGES < SETTLE_SEED_STAGES } : undefined, CONFIRM ? { with: CONFIRM, games: GENS * ESTIMATE.confirm } : undefined);
+  // --per-deck-adds: which card-impact table it read (a "Warning:" line when not the pair wanted)
+  if (DECK_IMPACT_TABLES) for (const l of perDeckAddsWords(DECK_IMPACT_TABLES)) console.log(l);
   const all = [];
   for (const t of targets) all.push(await forge(t));
   // leads with the held-out paired result; per-generation win rates are that generation's own games (scripts/forge-summary.ts)
