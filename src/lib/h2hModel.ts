@@ -8,25 +8,49 @@
 //
 // where expected wins are the model's prediction game by game (seat included) and m, the prior's weight in games, comes
 // from how much the pairs' records spread around the predictions beyond binomial noise: the intra-pair correlation
-// ρ = Σ[(W − E)² − Σp(1−p)] / Σ[g(g−1)·p̄(1−p̄)] (method of moments over the met pairs), m = 1/ρ − 1. A pairing that never
-// met gets the prediction alone. The raw counts stay in h2h.json; the estimates are optional fields beside them.
-import { fitRatings, predictPair, type RatedGame, type RatingFit } from './ratingModel';
+// ρ = Σ[(W − E)² − Σp(1−p) + q] / Σ[g(g−1)·p̄(1−p̄)] (method of moments over the met pairs), m = 1/ρ − 1. A pairing that
+// never met gets the prediction alone. The raw counts stay in h2h.json; the estimates are optional fields beside them.
+//
+// q, the fit's share of each pair's residual (2026-11-24, REVIEW_2026-11-24 L1 / B.3): E is computed from ratings fitted
+// to the same games, which pulls every pair's record toward its prediction, so without a correction the moment estimate
+// reads below zero when there is no pair effect at all (a median of about −0.005 on the pool of 2026-11-22, where the
+// observed value was +0.003): "no matchups" was an artefact. Linearising the fit around the truth, the expected squared
+// residual of a pair is its binomial variance less q = aᵀCa + aᵀCΛCa, with a the gradient of the pair's expected wins
+// with respect to the ratings and the going-first term, C the fit's covariance (the inverse Hessian, prior included) and
+// Λ the prior's precision; so q is added back, pair by pair. It generalises the P/(P − K) degrees-of-freedom factor (it
+// is that factor when every pair weighs the same) and is deterministic and cheap (one pass over the pairs). Checked on
+// games simulated from a known fit (tests/h2h-model.test.ts): with no pair effect the median estimate is about 0, with
+// pair effects of logit sd 0.2 it recovers their spread.
+//
+// This is the one estimate of the pair spread: h2h.json stores it (`model.rho`, `model.priorGames`), the evidence
+// builder's matchup intervals read their spread from it (`pairSpreadVar`: the beta-binomial prior's variance
+// p(1−p)/(m + 1)), and the forecast reads it from h2h.json or fits it here (`modelFromGames`).
+import { fitRatings, predictPair, type PriorChoice, type RatedGame, type RatingFit } from './ratingModel';
 
 const σ = (x: number) => 1 / (1 + Math.exp(-x));
 
 /** The prior's weight never goes past this many games (ρ near zero), nor below zero (ρ = 1). */
-const MAX_PRIOR_GAMES = 1000;
+export const MAX_PRIOR_GAMES = 1000;
 
 export interface PairShrinkage {
-  /** intra-pair correlation of results beyond what the ratings explain (clamped to [0.001, 1]) */
+  /** intra-pair correlation of results beyond what the ratings explain (clamped to [1/(MAX_PRIOR_GAMES + 1), 1]) */
   rho: number;
-  /** the moment estimate before clamping (≤ 0: the pairs spread no more than binomial noise around the predictions) */
+  /** the bias-corrected moment estimate before clamping (≤ 0: the pairs spread no more than chance around the predictions) */
   rhoRaw: number;
   /** the prior's weight in games, 1/ρ − 1 */
   priorGames: number;
   /** pairs that met (the moments' sample) */
   pairs: number;
+  /** Pearson's χ² of the pairs' records around the fit (Σ (W − E)² / Σp(1−p) per pair) and its degrees of freedom (pairs less the fit's share, Σ q / Σp(1−p)) */
+  chi2: number;
+  df: number;
 }
+
+/** The variance of a pairing's true win rate around its prediction that the shrinkage assumes (the beta-binomial prior worth `priorGames` games): p(1−p)/(m + 1) = ρ·p(1−p). */
+export const pairSpreadVar = (p: number, priorGames: number): number => (p * (1 - p)) / (priorGames + 1);
+
+/** The pair spread as a standard deviation in points of win rate at an even pairing (p = ½), for the words. */
+export const pairSpreadSd = (priorGames: number): number => Math.sqrt(pairSpreadVar(0.5, priorGames));
 
 interface Cell {
   i: number;
@@ -37,6 +61,8 @@ interface Cell {
   e: number;
   /** Σ p(1−p) */
   v: number;
+  /** Σ ±p(1−p), + when i went first: the derivative of e with respect to the going-first term */
+  vh: number;
 }
 
 /** Per-pair sums (i < j in the fit's order) of wins, games, expected wins and binomial variance. */
@@ -49,31 +75,62 @@ function cells(fit: RatingFit, games: readonly RatedGame[]): Map<string, Cell> {
     if (a === undefined || b === undefined || a === b) continue;
     const p = σ(fit.r[a]! - fit.r[b]! + (g.first === 0 ? fit.h : -fit.h));
     const [i, j, s, pi] = a < b ? [a, b, g.s, p] : [b, a, 1 - g.s, 1 - p];
+    // i went first when it is a and a went first, or it is b and b went first
+    const iFirst = (a < b) === (g.first === 0);
     const k = `${i}|${j}`;
-    const c = out.get(k) ?? { i, j, w: 0, g: 0, e: 0, v: 0 };
+    const c = out.get(k) ?? { i, j, w: 0, g: 0, e: 0, v: 0, vh: 0 };
     c.w += s;
     c.g++;
     c.e += pi;
     c.v += pi * (1 - pi);
+    c.vh += (iFirst ? 1 : -1) * pi * (1 - pi);
     out.set(k, c);
   }
   return out;
 }
 
-/** Fit the shrinkage weight from the pairs' spread around the model's predictions. */
+/**
+ * The fit's share of a pair's squared residual, q = aᵀCa + aᵀCΛCa (the header): a = v·(e_i − e_j) + vh·e_h, C the fit's
+ * covariance over (r, h), Λ = 1/prior² on the ratings and 0 on h.
+ */
+function fitShare(fit: Pick<RatingFit, 'cov' | 'prior'>, c: Cell, n: number): number {
+  const C = fit.cov;
+  const lam = 1 / fit.prior ** 2;
+  let aCa = 0;
+  let aCLCa = 0;
+  for (let k = 0; k <= n; k++) {
+    const row = C[k]!;
+    const y = c.v * (row[c.i]! - row[c.j]!) + c.vh * row[n]!;
+    if (k === c.i) aCa += c.v * y;
+    else if (k === c.j) aCa -= c.v * y;
+    if (k === n) aCa += c.vh * y;
+    else aCLCa += lam * y * y;
+  }
+  return aCa + aCLCa;
+}
+
+/** Fit the shrinkage weight from the pairs' spread around the model's predictions, with the fit's own share added back. */
 export function fitShrinkage(fit: RatingFit, games: readonly RatedGame[]): PairShrinkage {
+  const n = fit.names.length;
   let num = 0;
   let den = 0;
   let pairs = 0;
+  let chi2 = 0;
+  let share = 0;
   for (const c of cells(fit, games).values()) {
     pairs++;
     const pbar = c.e / c.g;
-    num += (c.w - c.e) ** 2 - c.v;
+    const q = fitShare(fit, c, n);
+    num += (c.w - c.e) ** 2 - c.v + q;
     den += c.g * (c.g - 1) * pbar * (1 - pbar);
+    if (c.v > 0) {
+      chi2 += (c.w - c.e) ** 2 / c.v;
+      share += q / c.v;
+    }
   }
   const rhoRaw = den > 0 ? num / den : 0;
   const rho = Math.min(1, Math.max(1 / (MAX_PRIOR_GAMES + 1), rhoRaw));
-  return { rho, rhoRaw, priorGames: 1 / rho - 1, pairs };
+  return { rho, rhoRaw, priorGames: 1 / rho - 1, pairs, chi2, df: pairs - share };
 }
 
 /** The shrunk estimate from a pair's record (wins w of g, expected wins e) and its seat-averaged prediction. */
@@ -95,7 +152,7 @@ export interface H2HEstimator {
 }
 
 /** Fit ratings and the shrinkage on `games` and return a lookup (scripts/breed-data.ts; the leave-one-event-out check). */
-export function h2hEstimator(games: readonly RatedGame[], o: { names?: readonly string[]; prior?: number } = {}): H2HEstimator {
+export function h2hEstimator(games: readonly RatedGame[], o: { names?: readonly string[]; prior?: PriorChoice } = {}): H2HEstimator {
   const fit = fitRatings(games, o);
   const shrinkage = fitShrinkage(fit, games);
   const idx = new Map(fit.names.map((n, k) => [n, k]));
@@ -127,6 +184,13 @@ export interface H2HModelBlock {
   /** the fitted intra-pair correlation and the prior's weight in games */
   rho: number;
   priorGames: number;
+  /** the bias-corrected moment estimate of ρ before clamping (absent before 2026-11-24; ≤ 0: no pair spread beyond chance, priorGames at its cap) */
+  rhoRaw?: number;
+  /** Pearson's χ² of the pairs' records around the fit and its degrees of freedom (absent before 2026-11-24) */
+  chi2?: number;
+  df?: number;
+  /** the rating prior's sd the fit used, fitted to the same games (absent before 2026-11-24: 1) */
+  priorSd?: number;
 }
 
 /** The parts of h2h.json the estimate reads. */
@@ -139,6 +203,8 @@ export interface H2HFileLike {
 }
 
 const r4 = (x: number) => Math.round(x * 10_000) / 10_000;
+const r6 = (x: number) => Math.round(x * 1e6) / 1e6;
+const r1 = (x: number) => Math.round(x * 10) / 10;
 
 /** The optional model fields for h2h.json, in the file's deck and pair order. */
 export function h2hModelFields(decks: readonly string[], pairs: readonly [number, number, number, number][], games: readonly RatedGame[]): { model: H2HModelBlock; shrunk: number[] } {
@@ -151,6 +217,10 @@ export function h2hModelFields(decks: readonly string[], pairs: readonly [number
       firstPlayer: r4(est.fit.h),
       rho: r4(est.shrinkage.rho),
       priorGames: r4(est.shrinkage.priorGames),
+      rhoRaw: r6(est.shrinkage.rhoRaw),
+      chi2: r1(est.shrinkage.chi2),
+      df: r1(est.shrinkage.df),
+      priorSd: r4(est.fit.prior),
     },
     shrunk: pairs.map(([i, j]) => r4(est.lookup(decks[i] ?? '', decks[j] ?? '').p ?? 0.5)),
   };

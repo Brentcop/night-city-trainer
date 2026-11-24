@@ -312,19 +312,20 @@ if (process.argv[1]?.endsWith('build-evidence.ts')) {
   if (V['matchup-check']) {
     const sel = selectEvents(readPooled());
     const loaded = loadEvidenceInputs('.').inputs;
-    const sp = pairSpread(loaded.analysis);
+    const sp = pairSpread(loaded.h2h);
     const gate = currentListGate(loaded.library);
     const kept = sel.kept.filter((e) => !isRun(e));
-    const c = matchupCheck(kept.map((e) => eventMatches(e, gate)), sp.tau2);
+    const c = matchupCheck(kept.map((e) => eventMatches(e, gate)), sp.priorGames);
     const pt = (x: number) => (100 * x).toFixed(1);
     const sdOf = (v: number) => pt(Math.sqrt(Math.max(0, v)));
+    const misfit = sp.chi2 !== null && sp.df !== null ? `; the fit misses those records by χ² = ${sp.chi2.toFixed(1)} on ${sp.df.toFixed(1)} degrees of freedom` : '';
     console.log(sp.measured
-      ? `Pair spread: a pairing's true win rate sits about ${pt(sp.sd)} points (SD) from the ratings' prediction, measured on ${sp.pairings} pairings of the analysis table (${sp.games} games); the fit misses those records by χ² = ${sp.chi2!.toFixed(1)} on ${sp.df} degrees of freedom.`
-      : `Pair spread: the default of ${pt(sp.sd)} points (SD); the analysis table was missing or too small to measure it.`);
-    console.log(`Leave one event out over ${kept.length} events (${c.matches} held-out matches, ${c.games} games), each game's chance the training fit's for its seat plus the pairing's shrunk residual:`);
+      ? `Pair spread (public/data/h2h.json): an even pairing's true win rate sits about ${pt(sp.sd)} points (SD) from the ratings' prediction, a prior worth ${sp.priorGames.toFixed(0)} games, measured on ${sp.pairings} pairings (${sp.games} games)${misfit}.`
+      : `Pair spread (public/data/h2h.json): no spread beyond chance${sp.pairings ? ` on ${sp.pairings} pairings (${sp.games} games)` : ' (no model in the file)'}, so the floor: ${pt(sp.sd)} points (SD), a prior worth ${sp.priorGames.toFixed(0)} games${misfit}.`);
+    console.log(`Leave one event out over ${kept.length} events (${c.matches} held-out matches, ${c.games} games), each game's chance the training fit's for its seat plus the pairing's shrunk residual (each fold's own prior sd and shrinkage weight: ${c.foldPriorGames.map((x) => x.toFixed(0)).join(', ')} games):`);
     console.log(`  Calibration: the logistic slope of the result on the logit of the chance is ${c.slope.toFixed(3)} ± ${c.slopeSe.toFixed(3)} (1 is calibrated; below 1, the chances are too far from even). The favoured deck scored ${c.favouredWins.toFixed(1)} against ${c.favouredExpected.toFixed(1)} expected.`);
     console.log(`  Distance of the truth from the estimate: the product of games 1 and 2's residuals averages ${c.squaredDistance.toFixed(4)} ± ${c.squaredDistanceSe.toFixed(4)} (SD about ${sdOf(c.squaredDistance)} points; 95% up to ${sdOf(c.squaredDistance + 1.96 * c.squaredDistanceSe)}).`);
-    console.log(`  The interval claims ${c.claimedVariance.toFixed(4)} on average (SD ${sdOf(c.claimedVariance)} points) with the pair spread, ${c.claimedWithoutSpread.toFixed(4)} (SD ${sdOf(c.claimedWithoutSpread)} points) without it.`);
+    console.log(`  The interval claims ${c.claimedVariance.toFixed(4)} on average (SD ${sdOf(c.claimedVariance)} points) with the file's pair spread, ${c.claimedWithoutSpread.toFixed(4)} (SD ${sdOf(c.claimedWithoutSpread)} points) without it.`);
     process.exit(0);
   }
   const { inputs, problems } = loadEvidenceInputs('.', { ledgerDir: V['ledger-dir'], adjusted: V.adjusted ?? null });

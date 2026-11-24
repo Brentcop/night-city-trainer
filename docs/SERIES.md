@@ -68,7 +68,8 @@ The five numbers that matter most:
   stop (next section). **It does not guarantee** that every range holds its deck's true figure: each range is a 90%
   range on its own, so on average about 7 of 71 decks sit outside theirs at any time (6.5 to 7.4 in simulation, up
   to 16 in one run). The model has no matchup term: a pairing's true win rate sits about 6.4 points (SD) from the
-  ratings' prediction (`npm run evidence -- --matchup-check`), which widens a deck's honest range against the
+  ratings' prediction (`npm run evidence -- --matchup-check`; about 4.4 since 2026-11-24, the head-to-head file's own
+  corrected estimate replacing the deep bot's meta pairings, so the figures that follow are a little high), which widens a deck's honest range against the
   whole field by only about ±1.3 points in quadrature (7.07 → 7.17 today) but would matter more for a narrow field
   (Q6). And the figure is the Hard bot's play on the current simulator version against our library: not human play,
   not the regionals field.

@@ -1,6 +1,6 @@
 // SIM-4: head-to-head estimates shrunk toward the rating model (src/lib/h2hModel.ts) and their readers.
 import { describe, expect, it } from 'vitest';
-import { fitShrinkage, h2hEstimator, h2hFileLookup, h2hModelFields, leaveOneEventOut, shrunkEstimate } from '../src/lib/h2hModel';
+import { fitShrinkage, h2hEstimator, h2hFileLookup, h2hModelFields, leaveOneEventOut, pairSpreadVar, shrunkEstimate } from '../src/lib/h2hModel';
 import { fitRatings, predictPair, seededRandom, type RatedGame } from '../src/lib/ratingModel';
 import { extremes, h2hFor } from '../src/lib/deckRecord';
 
@@ -31,6 +31,70 @@ describe('pair shrinkage', () => {
     expect(some.priorGames).toBeLessThan(20);
     expect(none.priorGames).toBeGreaterThan(some.priorGames * 3);
     expect(some.pairs).toBe(120);
+  });
+
+  // REVIEW_2026-11-24 L1 / B.3: the moment estimate is taken on residuals from a fit to the same games, which pulls each
+  // pair toward its prediction; without the fit's share added back it read below zero with no pair effect at all. Games
+  // simulated from one known fit, thin pairs as recorded (a 30-deck round robin of 6 games a pair), 40 simulations each:
+  // with no pair effect the median estimate is about 0 (the uncorrected one is clearly below); with pair effects of logit
+  // sd 0.2 it recovers their spread (the oracle: the effects drawn, measured the same way against the true ratings).
+  // Measured when written: medians −0.0004 corrected, −0.0133 uncorrected with none; 0.0090 against an oracle of 0.0091
+  // (uncorrected −0.0039) at sd 0.2. The tolerances (±0.002; within 30% of the oracle) leave room for the medians' noise.
+  describe('the estimate is unbiased on games simulated from a known fit', () => {
+    const N = 30;
+    const PER = 6;
+    const REPS = 40;
+    const truthR = seededRandom(77);
+    const truth = Array.from({ length: N }, () => gauss(truthR) * 0.5);
+    const H = 0.3;
+    const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
+    function simulate(tau: number) {
+      const est: number[] = [];
+      const uncorrected: number[] = [];
+      const oracle: number[] = [];
+      for (let rep = 0; rep < REPS; rep++) {
+        const r = seededRandom(1_000 + rep + (tau > 0 ? 500 : 0));
+        const games: RatedGame[] = [];
+        let on = 0;
+        let od = 0;
+        for (let i = 0; i < N; i++)
+          for (let j = i + 1; j < N; j++) {
+            const u = gauss(r) * tau;
+            const pb = σ(truth[i]! - truth[j]!);
+            on += PER * (PER - 1) * (σ(truth[i]! - truth[j]! + u) - pb) ** 2;
+            od += PER * (PER - 1) * pb * (1 - pb);
+            for (let g = 0; g < PER; g++) {
+              const first = (g % 2) as 0 | 1;
+              games.push({ a: `d${i}`, b: `d${j}`, first, s: r() < σ(truth[i]! - truth[j]! + u + (first === 0 ? H : -H)) ? 1 : 0 });
+            }
+          }
+        const fit = fitRatings(games);
+        est.push(fitShrinkage(fit, games).rhoRaw);
+        // a zero covariance turns the correction off: the estimate as computed until 2026-11-24
+        uncorrected.push(fitShrinkage({ ...fit, cov: fit.cov.map((row) => row.map(() => 0)) }, games).rhoRaw);
+        oracle.push(on / od);
+      }
+      return { est: median(est), uncorrected: median(uncorrected), oracle: median(oracle) };
+    }
+
+    it('no pair effect: the median estimate is about 0, the uncorrected one below it', () => {
+      const s = simulate(0);
+      expect(Math.abs(s.est)).toBeLessThan(0.002);
+      expect(s.uncorrected).toBeLessThan(-0.004);
+    });
+
+    it('pair effects of logit sd 0.2: the median estimate recovers their spread', () => {
+      const s = simulate(0.2);
+      expect(s.oracle).toBeGreaterThan(0.007);
+      expect(s.est / s.oracle).toBeGreaterThan(0.7);
+      expect(s.est / s.oracle).toBeLessThan(1.3);
+      expect(s.uncorrected).toBeLessThan(s.est - 0.004);
+    });
+  });
+
+  it('pairSpreadVar is the beta-binomial prior worth m games: ρ·p(1−p) with ρ = 1/(m + 1)', () => {
+    expect(pairSpreadVar(0.5, 99)).toBeCloseTo(0.25 / 100, 15);
+    expect(pairSpreadVar(0.7, 127)).toBeCloseTo((0.7 * 0.3) / 128, 15);
   });
 
   it('the estimate is the prediction plus the residual over games + m, in [0, 1]', () => {

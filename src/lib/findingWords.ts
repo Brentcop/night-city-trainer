@@ -68,7 +68,7 @@ export const FLAG_WORDS: Readonly<Record<FlagCode, string>> = {
   'depends-on-opponent': 'Depends on the opponent: the per-opponent figures differ by more than chance, so the pooled number is not "the effect".',
   'other-list': 'Measured on another list of this deck.',
   'model-uncertainty-missing': 'The interval leaves out the ratings’ own uncertainty (the fit could not be rebuilt from the recorded games).',
-  'spread-default': 'The pair spread in this interval is a default (6 points), not measured on this data: the pairing table it is measured on was missing or too small.',
+  'spread-default': 'The recorded pairings showed no spread beyond chance, so this interval allows only the smallest pair spread the model has (a prior worth 1,000 games), not a measured one.',
 };
 
 /** Why an association may mislead, one line per kind. */
@@ -356,7 +356,7 @@ export const FLAG_SHORT: Readonly<Record<FlagCode, string>> = {
   'depends-on-opponent': 'depends on the opponent',
   'other-list': 'another list',
   'model-uncertainty-missing': 'range leaves out the ratings',
-  'spread-default': 'default spread',
+  'spread-default': 'no measured spread',
 };
 
 /** A stale finding's line: under which version it was measured. */
@@ -861,7 +861,7 @@ export function soldSourceWords(s: NonNullable<FindingDetail['sold']>): string {
 
 /** The matchup spread the ranges allow for. */
 export const spreadWords = (sd: number, measured: boolean): string =>
-  `A matchup’s range allows for pairings sitting about ${(sd * 100).toFixed(1)} points from the ratings’ prediction${measured ? ', the spread measured on the meta decks’ 200-game pairings' : ', a default: it could not be measured'}.`;
+  `A matchup’s range allows for an even pairing sitting about ${(sd * 100).toFixed(1)} points from the ratings’ prediction${measured ? ', the spread the recorded pairings show beyond chance, the same that shrinks each head-to-head toward the prediction' : ', the smallest the model allows: the recorded pairings showed no spread beyond chance'}.`;
 
 /** What a family line means. */
 export const FAMILY_HELP =

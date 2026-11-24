@@ -15,7 +15,7 @@ import type { MatchRec } from '../src/lib/tournament';
 import { eventRatedGames, ratedGamesOf, type GamesEvent, type ListGate } from '../src/lib/ratingGames';
 import { fitLogistic } from '../src/lib/logistic';
 import { fitRatings, predictPair, type RatedGame, type RatingFit } from '../src/lib/ratingModel';
-import { h2hEstimator, h2hFileLookup } from '../src/lib/h2hModel';
+import { h2hEstimator, h2hFileLookup, MAX_PRIOR_GAMES, pairSpreadSd, pairSpreadVar } from '../src/lib/h2hModel';
 import { cardAnalysis, gapOf, packageFact, winRateOf, type AnalysisInput } from '../src/lib/cardFacts';
 import type { SynergyReport } from '../src/analysis/synergies';
 import { wilson, type DecisionReport } from '../src/analysis/decisions';
@@ -547,75 +547,42 @@ export function logitInterval(p: number, variance: number, z = Z95): [number, nu
   return [σ(logit(q) - z * sd), σ(logit(q) + z * sd)];
 }
 
-/** The pair spread used when the pairing table is missing or too small: an SD of 6 points. */
-export const DEFAULT_PAIR_SD = 0.06;
-/** The pairing table must hold at least this many pairings of at least MIN_PAIRING_GAMES games to measure the spread. */
-export const MIN_SPREAD_PAIRINGS = 15;
-export const MIN_PAIRING_GAMES = 100;
-
 export interface PairSpread {
-  /** τ²: the variance of a pairing's true win rate around the ratings' prediction, and its SD */
+  /** τ² at an even pairing (p = ½): the variance of a pairing's true win rate around the ratings' prediction, and its SD */
   tau2: number;
   sd: number;
-  /** measured on the pairing table (false: the default) */
+  /** the head-to-head file's prior weight in games: a pairing at p has τ² = p(1−p)/(M + 1) (`pairSpreadVar`) */
+  priorGames: number;
+  /** measured: the file's spread estimate is above the floor (false: no spread beyond chance, M at its cap, or no model) */
   measured: boolean;
+  /** the pairings and games it was measured on, and the fit's χ² with its degrees of freedom (null in older files) */
   pairings: number;
   games: number;
-  /** Σ (w − e)² / Σ p(1−p) per pairing, and its degrees of freedom (pairings − decks) */
   chi2: number | null;
   df: number | null;
 }
 
 /**
- * The pair spread τ² from the per-deck analysis' pairing table (src/data/analysis.json: every pairing of its decks at
- * many games, half on each seat). Each pairing is taken once (i < j in the file's deck order) and expanded into games
- * seat by seat (wins = rate × games per seat; the table is refused when those are not whole numbers); a Bradley–Terry fit
- * with a going-first term (fitRatings) gives each game's expected score with its seat; per pairing, w wins, e expected
- * wins, v = Σp(1−p), g games. Then τ² = max(0, (P/(P − K)·Σ(w − e)² − Σv) / Σg(g − 1)) with P pairings and K = the
- * decks (K − 1 ratings and the seat term). Fewer than MIN_SPREAD_PAIRINGS pairings of MIN_PAIRING_GAMES games: the default.
+ * The pair spread the matchup intervals use: the head-to-head file's own (src/lib/h2hModel.ts `fitShrinkage`, the one
+ * estimate of it since 2026-11-24, fitted on the pooled games with the fit's share added back), read from its model
+ * block. A pairing at p has τ² = p(1−p)/(M + 1) with M the file's prior weight (`pairSpreadVar`), so the interval and the
+ * stored estimate assume the same spread. Until 2026-11-24 τ² was measured apart, on the deep bot's meta pairings
+ * (analysis.json), and the estimate's own spread was biased toward zero.
  */
-export function pairSpread(analysis: AnalysisInput | null): PairSpread {
-  const fallback: PairSpread = { tau2: DEFAULT_PAIR_SD ** 2, sd: DEFAULT_PAIR_SD, measured: false, pairings: 0, games: 0, chi2: null, df: null };
-  if (!analysis) return fallback;
-  const names = analysis.decks.map((d) => d.deck);
-  const whole = (x: number) => Math.abs(x - Math.round(x)) < 1e-6;
-  const games: RatedGame[] = [];
-  const cells: { a: string; b: string; per: number; w: number }[] = [];
-  for (let i = 0; i < names.length; i++)
-    for (let j = i + 1; j < names.length; j++) {
-      const m = analysis.decks[i]!.matchups?.find((x) => x.opp === names[j]);
-      if (!m || !(m.games >= MIN_PAIRING_GAMES)) continue;
-      const per = m.games / 2;
-      const wf = m.wrFirst * per;
-      const ws = m.wrSecond * per;
-      if (!whole(per) || !whole(wf) || !whole(ws)) return fallback;
-      for (let k = 0; k < per; k++) games.push({ a: names[i]!, b: names[j]!, first: 0, s: k < Math.round(wf) ? 1 : 0 });
-      for (let k = 0; k < per; k++) games.push({ a: names[i]!, b: names[j]!, first: 1, s: k < Math.round(ws) ? 1 : 0 });
-      cells.push({ a: names[i]!, b: names[j]!, per, w: Math.round(wf) + Math.round(ws) });
-    }
-  if (cells.length < MIN_SPREAD_PAIRINGS) return fallback;
-  const fit = fitRatings(games);
-  const at = new Map(fit.names.map((n, k) => [n, k]));
-  let sq = 0;
-  let sv = 0;
-  let sg = 0;
-  let chi2 = 0;
-  for (const c of cells) {
-    const d = fit.r[at.get(c.a)!]! - fit.r[at.get(c.b)!]!;
-    const p1 = σ(d + fit.h);
-    const p2 = σ(d - fit.h);
-    const e = c.per * (p1 + p2);
-    const v = c.per * (p1 * (1 - p1) + p2 * (1 - p2));
-    const g = 2 * c.per;
-    sq += (c.w - e) ** 2;
-    sv += v;
-    sg += g * (g - 1);
-    chi2 += (c.w - e) ** 2 / v;
-  }
-  const P = cells.length;
-  const K = fit.names.length;
-  const tau2 = Math.max(0, ((P / (P - K)) * sq - sv) / sg);
-  return { tau2, sd: Math.sqrt(tau2), measured: true, pairings: P, games: games.length, chi2, df: P - K };
+export function pairSpread(h2h: Pick<NonNullable<EvidenceInputs['h2h']>, 'model' | 'pairs' | 'games'> | null): PairSpread {
+  const m = h2h?.model;
+  if (!m) return { tau2: pairSpreadVar(0.5, MAX_PRIOR_GAMES), sd: pairSpreadSd(MAX_PRIOR_GAMES), priorGames: MAX_PRIOR_GAMES, measured: false, pairings: 0, games: 0, chi2: null, df: null };
+  const floor = 1 / (MAX_PRIOR_GAMES + 1);
+  return {
+    tau2: pairSpreadVar(0.5, m.priorGames),
+    sd: pairSpreadSd(m.priorGames),
+    priorGames: m.priorGames,
+    measured: (m.rhoRaw ?? m.rho) > floor,
+    pairings: h2h.pairs.length,
+    games: h2h.games ?? h2h.pairs.reduce((a, x) => a + x[3], 0),
+    chi2: m.chi2 ?? null,
+    df: m.df ?? null,
+  };
 }
 
 export interface MatchupCheck {
@@ -633,6 +600,8 @@ export interface MatchupCheck {
   /** the mean variance the interval claims for the held-out pairings, with the pair spread and without it */
   claimedVariance: number;
   claimedWithoutSpread: number;
+  /** each training fold's own shrinkage weight (games), in event order */
+  foldPriorGames: number[];
 }
 
 /** One event's matches, each as its rated games (eventRatedGames over the one match: copies play as their deck). */
@@ -647,9 +616,11 @@ export function eventMatches(e: GamesEvent, gate?: ListGate): RatedGame[][] {
  * over-confident), and the favoured deck's score against expected. (b) The squared distance of the truth from the
  * estimate: given the pairing's true rate, the residuals of games 1 and 2 of a match are independent and both are always
  * played, so the mean of their product estimates it with no binomial correction; beside it, the mean variance the
- * interval claims (matchupVariance with τ², and without).
+ * interval claims: matchupVariance with the fold's own shrinkage weight and the pair spread `pairSpreadVar` at
+ * `spreadPriorGames` (the head-to-head file's prior weight, which the page's intervals use; default: each fold's own), and
+ * without any spread.
  */
-export function matchupCheck(perEvent: readonly (readonly RatedGame[][])[], tau2: number): MatchupCheck {
+export function matchupCheck(perEvent: readonly (readonly RatedGame[][])[], spreadPriorGames?: number): MatchupCheck {
   const names = [...new Set(perEvent.flatMap((e) => e.flatMap((m) => m.flatMap((g) => [g.a, g.b]))))];
   const xs: number[][] = [];
   const ys: number[] = [];
@@ -659,10 +630,12 @@ export function matchupCheck(perEvent: readonly (readonly RatedGame[][])[], tau2
   let claimed = 0;
   let claimed0 = 0;
   let matches = 0;
+  const foldPriorGames: number[] = [];
   perEvent.forEach((held, e) => {
     const train = perEvent.flatMap((x, k) => (k === e ? [] : x.flat()));
     if (!train.length) return;
     const est = h2hEstimator(train, { names });
+    foldPriorGames.push(est.shrinkage.priorGames);
     const idx = new Map(est.fit.names.map((n, k) => [n, k]));
     for (const m of held) {
       const a = m[0]!.a;
@@ -688,7 +661,7 @@ export function matchupCheck(perEvent: readonly (readonly RatedGame[][])[], tau2
       if (rs.length >= 2) {
         prods.push(rs[0]! * rs[1]!);
         const vp = predictionVariance(est.fit, i, j);
-        claimed += matchupVariance(p, rec.g, est.shrinkage.priorGames, vp, tau2);
+        claimed += matchupVariance(p, rec.g, est.shrinkage.priorGames, vp, pairSpreadVar(p, spreadPriorGames ?? est.shrinkage.priorGames));
         claimed0 += matchupVariance(p, rec.g, est.shrinkage.priorGames, vp, 0);
       }
     }
@@ -708,6 +681,7 @@ export function matchupCheck(perEvent: readonly (readonly RatedGame[][])[], tau2
     squaredDistanceSe: n > 1 ? sd / Math.sqrt(n) : 0,
     claimedVariance: n ? claimed / n : 0,
     claimedWithoutSpread: n ? claimed0 / n : 0,
+    foldPriorGames,
   };
 }
 
@@ -779,7 +753,6 @@ function matchups(ctx: Ctx, d: EvidenceDeck, listId: string, idOf: ReadonlyMap<s
     pairIndex.set(`${j}|${i}`, q);
   });
   const m = h.model.priorGames;
-  const tau2 = ctx.spread.tau2;
   const out: Draft[] = [];
   const a = d.deck.name;
   const ia = idx.get(a);
@@ -796,6 +769,8 @@ function matchups(ctx: Ctx, d: EvidenceDeck, listId: string, idOf: ReadonlyMap<s
     const fb = fitIdx.get(b);
     const haveVar = ctx.fitOk && ctx.fit !== null && fa !== undefined && fb !== undefined;
     const varPred = haveVar ? predictionVariance(ctx.fit!, fa!, fb!) : 0;
+    // the pair spread the stored estimate assumes (one estimate: h2hModel.ts fitShrinkage), at this pairing's rate
+    const tau2 = pairSpreadVar(rec.p, m);
     const [lo, hi] = logitInterval(rec.p, matchupVariance(rec.p, rec.g, m, varPred, tau2));
     const q = pairIndex.get(`${ia}|${ib}`);
     const p = ctx.inputs.paths.h2h;
@@ -825,7 +800,7 @@ function matchups(ctx: Ctx, d: EvidenceDeck, listId: string, idOf: ReadonlyMap<s
       sources: [{ file: p, path: q !== undefined ? `shrunk[${q}]` : `model.ratings[${ib}]` }],
       family: { key: `${listId}:matchups`, size: 0, correction: 'bh' },
       flags: f,
-      detail: { raw: { wins: rec.w, games: rec.g }, prediction: pred, priorGames: m, pairSd: ctx.spread.sd },
+      detail: { raw: { wins: rec.w, games: rec.g }, prediction: pred, priorGames: m, pairSd: Math.sqrt(tau2) },
     });
   }
   return out;
@@ -1820,8 +1795,8 @@ export function buildEvidence(inputs: EvidenceInputs): BuiltEvidence {
   for (const l of inputs.history) lists.set(listFingerprint(l), l);
   for (const d of inputs.library) lists.set(listFingerprint(d.deck), d.deck);
   const idOf = new Map(inputs.library.map((d) => [d.deck.name, listFingerprint(d.deck)]));
-  const spread = pairSpread(inputs.analysis);
-  const check = matchupCheck(pool.events.map((e) => eventMatches(e, gate)), spread.tau2);
+  const spread = pairSpread(inputs.h2h);
+  const check = matchupCheck(pool.events.map((e) => eventMatches(e, gate)), spread.priorGames);
   // the h2h file's fit, rebuilt from the same games (as scripts/build-h2h.ts fits it) for its covariance
   let fit: RatingFit | null = null;
   let fitOk = false;

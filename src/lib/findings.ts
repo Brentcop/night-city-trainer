@@ -628,10 +628,10 @@ export interface ToolHealth {
 
 /** The matchup interval's pair spread and its leave-one-event-out check (docs/EVIDENCE.md "The matchup interval"). */
 export interface MatchupRules {
-  /** the pair spread: SD of a pairing's true win rate around the ratings' prediction, and whether it was measured here */
+  /** the pair spread: SD of an even pairing's true win rate around the ratings' prediction (the head-to-head file's, since 2026-11-24), and whether it was measured (false: the floor) */
   spreadSd: number;
   spreadMeasured: boolean;
-  /** the pairings and games it was measured on (0 when the default is used), and the fit's χ² with its degrees of freedom */
+  /** the pairings and games of the head-to-head file it was measured on (0 without a model), and the fit's χ² with its degrees of freedom (null in files built before 2026-11-24) */
   spreadPairings: number;
   spreadGames: number;
   chi2: number | null;

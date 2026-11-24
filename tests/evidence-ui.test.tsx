@@ -455,7 +455,7 @@ describe('the overview', () => {
     const html = overviewHtml();
     for (const d of INDEX.decks) expect(html).toContain(`href="#/evidence/${d.listId}"`);
     expect(html).toContain('href="#/deck?d=other-deck.txt"');
-    expect(text(html)).toContain('allows for pairings sitting about 6.4 points from the ratings’ prediction');
+    expect(text(html)).toContain('allows for an even pairing sitting about 6.4 points from the ratings’ prediction');
   });
 });
 

@@ -257,13 +257,30 @@ describe('the model from h2h.json', () => {
     expect(pooledIds.length).toBeGreaterThan(0);
     expect(fromFile.source).toMatchObject({ events: pooledIds, simVersion, bot, from: 'h2h-file', games: h2h.games });
   });
-  it('has the fitted ratings, and per-pair estimates within 0.002 of the file and of the games fit', () => {
+  // The tolerance, pair by pair (2026-11-24; a flat 0.001, widened to 0.002 on 2026-11-22, stopped holding when the prior
+  // weight fell from 308 to 127 games): the file keeps no seats, so its path counts a pair's expected wins as g times the
+  // seat-averaged prediction, where the stored estimate and the games fit count them seat by seat. The two differ by
+  // (f − g/2)·(σ(d + h) − σ(d − h)) / (g + m), f the games the lower-indexed deck went first; plus 3e-4 for the file's
+  // rounding to 4 decimals.
+  it('has the fitted ratings, and per-pair estimates within the seat-count bound of the file and of the games fit', () => {
+    const σ = (x: number) => 1 / (1 + Math.exp(-x));
     fromFile.r.forEach((x, k) => expect(Math.abs(x - fromGames.r[k]!)).toBeLessThan(1e-4));
     const pf = pairProbabilities(fromFile, fromFile.r, fromFile.h);
     const pg = pairProbabilities(fromGames, fromGames.r, fromGames.h);
     const n = h2h.decks.length;
-    h2h.pairs.forEach(([i, j]: number[], q: number) => expect(Math.abs(pf[i! * n + j!]! - h2h.shrunk[q])).toBeLessThan(2e-3));
-    for (let q = 0; q < pf.length; q++) expect(Math.abs(pf[q]! - pg[q]!)).toBeLessThan(2e-3);
+    const m = fromFile.priorGames;
+    const bound = new Float64Array(n * n).fill(3e-4);
+    for (let i = 0; i < n; i++)
+      for (let j = i + 1; j < n; j++) {
+        const q = i * n + j;
+        const g = fromGames.pg[q]!;
+        if (!g) continue;
+        const d = fromFile.r[i]! - fromFile.r[j]!;
+        const spread = σ(d + fromFile.h) - σ(d - fromFile.h);
+        bound[q] = bound[j * n + i] = (Math.abs(fromGames.pf[q]! - g / 2) * spread) / (g + m) + 3e-4;
+      }
+    h2h.pairs.forEach(([i, j]: number[], q: number) => expect(Math.abs(pf[i! * n + j!]! - h2h.shrunk[q])).toBeLessThan(bound[i! * n + j!]!));
+    for (let q = 0; q < pf.length; q++) expect(Math.abs(pf[q]! - pg[q]!)).toBeLessThan(bound[q]!);
   });
   it('rebuilds the covariance of the fit closely (every rating variance within 5%, no entry off by more than 0.003)', () => {
     const a = modelCov(fromFile);

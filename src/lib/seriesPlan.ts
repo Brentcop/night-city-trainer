@@ -71,7 +71,12 @@ export interface SeriesDecision {
   ranges: DeckRange[];
 }
 
-/** The fit the rule reads: every pooled game, names = the field first (in order), then any other deck that has games. */
+/**
+ * The fit the rule reads: every pooled game, names = the field first (in order), then any other deck that has games. Its
+ * prior sd is fitted to the games as ratings.json's is (`fitRatings`, since 2026-11-24), so the ranges the rule reads are
+ * the ones the ratings show. On very thin data (20 decks of 20 games) that sd can collapse toward 0 and narrow every
+ * range; at the library's size (71 decks, 300 games or more) it does not (0.51 on the pool of 2026-11-22).
+ */
 export function seriesFit(games: readonly RatedGame[], field: readonly string[]): RatingFit {
   const names = [...field];
   const seen = new Set(names);

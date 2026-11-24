@@ -30,7 +30,7 @@
 // checks every pairing and every standings row. Anonymous players (a field of weights) break the last tie by player
 // number, which is random with respect to decks. The top K by standings make the cut; the cut is played as a single
 // elimination seeded 1vK, 2v(K−1)… (bracketOrder) to give a title chance.
-import { predictPair, seededRandom, type RatedGame, type RatingFit } from './ratingModel';
+import { predictPair, seededRandom, type PriorChoice, type RatedGame, type RatingFit } from './ratingModel';
 import { fitRatings } from './ratingModel';
 import { fitShrinkage, type H2HFileLike } from './h2hModel';
 import { bracketOrder, cutSize, swissPairings, type PairingRow } from './eventFormats';
@@ -112,8 +112,11 @@ export function modelFromParts(o: {
   return { names: [...o.names], r: [...o.r], h: o.h, chol: cholesky(o.cov), priorGames: o.priorGames, ...P, source: o.source };
 }
 
-/** The model fitted here from rated games (the backtest): the same fit and shrinkage as h2h.json, seats known. */
-export function modelFromGames(games: readonly RatedGame[], source: Omit<ForecastSource, 'from' | 'games'>, o: { names?: readonly string[]; prior?: number } = {}): ForecastModel & { fit: RatingFit } {
+/**
+ * The model fitted here from rated games (the backtest's folds): the same fit and shrinkage as h2h.json, seats known; the
+ * rating prior's sd and the pair spread fitted on these games alone, by the same rules (`fitRatings`, `fitShrinkage`).
+ */
+export function modelFromGames(games: readonly RatedGame[], source: Omit<ForecastSource, 'from' | 'games'>, o: { names?: readonly string[]; prior?: PriorChoice } = {}): ForecastModel & { fit: RatingFit } {
   const fit = fitRatings(games, o);
   const shrink = fitShrinkage(fit, games);
   const pairs = games.filter((g) => g.a !== g.b).map((g) => ({ a: g.a, b: g.b, w: g.s, g: 1, aFirst: g.first === 0 ? 1 : 0 }));
@@ -131,13 +134,14 @@ export interface H2HForecastFile extends H2HFileLike {
  * from its pair counts. The file keeps games per pair but not who went first, so the rebuilt information matrix weighs
  * each game by p(1−p) averaged over the two seats and leaves out the small coupling between the ratings and the
  * going-first term (the seats of a pair are close to balanced); tests/forecast.test.ts compares it with the covariance
- * fitted from the recorded games. `prior` is the rating fit's prior (1, scripts/ratings.ts and scripts/build-h2h.ts).
+ * fitted from the recorded games. `prior` is the rating fit's prior sd: by default the one the file's fit used, fitted to
+ * its games (`model.priorSd`, since 2026-11-24), else 1 (files built before).
  */
 export function modelFromH2HFile(file: H2HForecastFile, o: { prior?: number } = {}): ForecastModel {
   const m = file.model;
   if (!m) throw new Error('h2h.json has no model block: rebuild it with scripts/build-h2h.ts');
   const n = file.decks.length;
-  const prior = o.prior ?? 1;
+  const prior = o.prior ?? m.priorSd ?? 1;
   const H: number[][] = Array.from({ length: n + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === j && i < n ? 1 / prior ** 2 : 0)));
   const r = m.ratings;
   const h = m.firstPlayer;
