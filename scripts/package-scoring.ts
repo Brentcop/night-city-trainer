@@ -4,12 +4,14 @@
 // is paired. Writes nothing outside --out; never applies anything.
 //   npx tsx scripts/package-scoring.ts --out DIR [--configs "hold:pkgHold=4;steer:pkgSteer=6"] [--bot hard]
 //        [--phase train|heldout] [--per 2] [--seed-base N] [--shadow-games 0] [--decks all|<file,file>] [--threads N]
-// --configs   name:weight=value,... separated by ';' (weights: pkgHold, pkgAssembly, pkgSteer, pkgProtect)
+// --configs   name:weight=value,... separated by ';' (weights: pkgHold, pkgAssembly, pkgSteer, pkgProtect; bot option:
+//             sellHoldCut, REVIEW_2026-11-24 C.4, e.g. "holdcut:sellHoldCut=20")
 // --phase     picks the default seed base: train 3,000,000, heldout 3,500,000 (disjoint)
 // --per       games per (deck, meta opponent), play/draw alternating
 // --shadow-games  for this many games per config (spread over the decks), also ask the weights-off bot at every one
 //             of seat A's decisions and count where it would have chosen otherwise (by decision kind/tag)
 // Every run also counts seat A's sells and give-ups of package pieces whose partner it could still get, off vs on.
+// It prints the share of the sells made while such a piece was sellable that sold one, off and on (C.4's metric).
 // Report: paired gain with a 95% interval overall, per package family, per package and per deck, and the apply gate
 // (held-out lower bound above +1 point; no deck with 300+ games below −1 point at its upper bound).
 import fs from 'node:fs';
@@ -41,7 +43,15 @@ if (!V.out) {
 }
 
 type Weights = Partial<Record<(typeof PACKAGE_WEIGHTS)[number], number>>;
-function parseConfigs(s: string): { name: string; weights: Weights }[] {
+/** Bot options a config may set besides the weights (REVIEW_2026-11-24 C.4: HeuristicOptions.sellHoldCut). */
+const OPTION_KEYS = ['sellHoldCut'] as const;
+type Options = Partial<Record<(typeof OPTION_KEYS)[number], number>>;
+interface Config {
+  name: string;
+  weights: Weights;
+  options: Options;
+}
+function parseConfigs(s: string): Config[] {
   return s
     .split(';')
     .filter(Boolean)
@@ -49,16 +59,19 @@ function parseConfigs(s: string): { name: string; weights: Weights }[] {
       const [name, body] = part.split(':');
       if (!name || !body) throw new Error(`bad config "${part}" (name:weight=value,...)`);
       const weights: Weights = {};
+      const options: Options = {};
       for (const kv of body.split(',')) {
         const [k, v] = kv.split('=');
-        if (!(PACKAGE_WEIGHTS as readonly string[]).includes(k)) throw new Error(`unknown weight "${k}" (${PACKAGE_WEIGHTS.join(', ')})`);
+        const isOption = (OPTION_KEYS as readonly string[]).includes(k);
+        if (!isOption && !(PACKAGE_WEIGHTS as readonly string[]).includes(k)) throw new Error(`unknown weight or option "${k}" (${[...PACKAGE_WEIGHTS, ...OPTION_KEYS].join(', ')})`);
         if (!Number.isFinite(Number(v))) throw new Error(`bad value for ${k}: "${v}"`);
-        weights[k as keyof Weights] = Number(v);
+        if (isOption) options[k as keyof Options] = Number(v);
+        else weights[k as keyof Weights] = Number(v);
       }
-      return { name, weights };
+      return { name, weights, options };
     });
 }
-let CONFIGS: { name: string; weights: Weights }[];
+let CONFIGS: Config[];
 try {
   CONFIGS = parseConfigs(V.configs);
 } catch (e) {
@@ -110,6 +123,26 @@ function addPieces(a: PieceCounts, b: PieceCounts | undefined) {
 }
 const zeroPieces = (): PieceCounts => ({ sells: 0, sellsWithPieceOption: 0, pieceSells: 0, giveUps: 0, giveUpsWithPieceOption: 0, pieceGiveUps: 0 });
 
+/**
+ * The intended-effect metric of REVIEW_2026-11-24 C.4 (B3's measurement): of the sells made while a scarce piece was
+ * sellable, the share that sold one, off and on, and the difference with a 95% two-proportion (Wald) interval. The sells
+ * of the two runs are not paired decision by decision (the games part once a choice differs), so the interval treats
+ * them as independent samples.
+ */
+function scarceShare(off: PieceCounts, on: PieceCounts) {
+  const rate = (c: PieceCounts) => (c.sellsWithPieceOption ? c.pieceSells / c.sellsWithPieceOption : NaN);
+  const a = rate(off);
+  const b = rate(on);
+  const se = Math.sqrt((a * (1 - a)) / off.sellsWithPieceOption + (b * (1 - b)) / on.sellsWithPieceOption);
+  const pc = (x: number) => `${(100 * x).toFixed(1)}%`;
+  const d = b - a;
+  return {
+    off: `${pc(a)} (${off.pieceSells} of ${off.sellsWithPieceOption})`,
+    on: `${pc(b)} (${on.pieceSells} of ${on.sellsWithPieceOption})`,
+    diff: `${pp(d)} points [${pp(d - 1.96 * se)}, ${pp(d + 1.96 * se)}]`,
+  };
+}
+
 function groupSummaries(cand: number[], base: number[], key: (m: JobMeta) => string[]) {
   const groups = new Map<string, { c: number[]; b: number[] }>();
   metaOf.forEach((m, i) => {
@@ -141,7 +174,7 @@ async function main() {
     const t1 = Date.now();
     const jobs = baseJobs.map((j, i) => ({
       ...j,
-      agentA: { ...tierSpec(), weights: cfg.weights as Record<string, number> },
+      agentA: { ...tierSpec(), ...(Object.keys(cfg.weights).length ? { weights: cfg.weights as Record<string, number> } : {}), ...cfg.options },
       piecesA: true,
       ...(stride && i % stride === 0 && i / stride < V['shadow-games'] ? { shadowA: tierSpec() } : {}),
     }));
@@ -169,15 +202,17 @@ async function main() {
     const gate = { overallLowerAbove1pp: overall.lower95 > 0.01, decksHarmed: harmed.map(([d]) => d), passes: overall.lower95 > 0.01 && harmed.length === 0 };
     const changed = Object.values(shadow).reduce((a, [, d]) => a + d, 0);
     const asked = Object.values(shadow).reduce((a, [n]) => a + n, 0);
-    console.log(`\n${cfg.name} ${JSON.stringify(cfg.weights)}: ${fmt(overall)}; games that changed ${diverged}/${res.length}; ${((Date.now() - t1) / 1000).toFixed(0)} s`);
+    console.log(`\n${cfg.name} ${JSON.stringify({ ...cfg.weights, ...cfg.options })}:${fmt(overall)}; games that changed ${diverged}/${res.length}; ${((Date.now() - t1) / 1000).toFixed(0)} s`);
     if (shadowGames) {
       console.log(`  decisions changed (${shadowGames} shadowed games): ${changed} of ${asked}`);
       for (const [k, [n, d]] of Object.entries(shadow).sort((a, b) => b[1][1] - a[1][1]).filter(([, [, d]]) => d > 0)) console.log(`    ${k.padEnd(24)} ${d} of ${n}`);
     }
     console.log(`  piece sells (partner obtainable): off ${basePieces.pieceSells}/${basePieces.sells} sells, on ${pieces.pieceSells}/${pieces.sells}; give-ups off ${basePieces.pieceGiveUps}/${basePieces.giveUps}, on ${pieces.pieceGiveUps}/${pieces.giveUps}`);
+    const share = scarceShare(basePieces, pieces);
+    console.log(`  scarce pieces sold when one was sellable: off ${share.off}, on ${share.on}; difference ${share.diff}`);
     for (const [f, s] of Object.entries(perFamily)) if (s) console.log(`  family ${f.padEnd(12)} ${fmt(s)}`);
     console.log(`  gate: ${gate.passes ? 'PASSES' : 'does not pass'} (overall lower ${pp(overall.lower95)}; decks with 300+ games harmed: ${gate.decksHarmed.length})`);
-    out.push({ name: cfg.name, weights: cfg.weights, overall, diverged, games: res.length, shadowGames, shadow, pieces, perFamily, perPackage, perDeck, gate });
+    out.push({ name: cfg.name, weights: cfg.weights, options: cfg.options, overall, diverged, games: res.length, shadowGames, shadow, pieces, perFamily, perPackage, perDeck, gate });
   }
   const file = path.join(V.out!, `package-scoring-${V.phase}-${V.bot}-${SEED_BASE}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
   fs.writeFileSync(

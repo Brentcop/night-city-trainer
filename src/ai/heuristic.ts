@@ -8,7 +8,7 @@ import { DEFAULT_WEIGHTS, evaluate, planFor, seatArchetype, planScore, unitValue
 import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { CARDS } from '../engine/cards';
-import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
+import { activeSteer, handHoldCredit, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, type Archetype, type Profiles } from './archetype';
 import { cardImpact } from './impact';
@@ -83,6 +83,15 @@ export interface HeuristicOptions {
    * (results unchanged); the coach sets it (src/ai/coach.ts) so its advice breaks near-ties toward keeping the piece.
    */
   sellKeepScarce?: number;
+  /**
+   * REVIEW_2026-11-24 C.4 (B3, scarce package pieces sold). Sell lookahead only (sellLookahead > 1, one play-out or one
+   * step per compared card, no shared worlds): each compared sell's value gets this weight (evaluation points per unit
+   * of hold credit) × the hold credit of the seller's own hand where the play-out stops (`handHoldCredit` in
+   * src/ai/packages.ts, which counts the trash for packages whose condition reads it). The cut's evaluation counts a card
+   * in hand by number only, so without it a scarce piece kept is worth no more than any card. Only the deciding seat's
+   * own packages; the play-out bots get nothing. 0 (default) = off, exactly as before.
+   */
+  sellHoldCut?: number;
   /**
    * BOT-1. Deep rollouts and deep reactions score the start-of-turn win the play-out stops just before (the seat about
    * to begin its turn holding 7+ Gigs, `nextStartResult` in playOut.ts) as a won or lost game, and main-phase rollouts
@@ -249,6 +258,7 @@ export class HeuristicAgent implements Agent {
       sellLookahead: opts.sellLookahead ?? 0,
       deepReactions: opts.deepReactions ?? 0,
       sellKeepScarce: opts.sellKeepScarce ?? 0,
+      sellHoldCut: opts.sellHoldCut ?? 0,
       rolloutWins: opts.rolloutWins ?? false,
       deepWorlds: opts.deepWorlds ?? 0,
       sellSearch: opts.sellSearch ?? false,
@@ -299,6 +309,7 @@ export class HeuristicAgent implements Agent {
     if (o.deepWorlds > 1) parts.push(`w${o.deepWorlds}`);
     if (o.deepReactions) parts.push(`rx${o.deepReactions}`);
     if (o.sellLookahead > 1) parts.push(`sell${o.sellLookahead}`);
+    if (o.sellHoldCut) parts.push(`hold${o.sellHoldCut}`);
     if (o.impact) parts.push(`imp${o.impact}`);
     if (o.profiles) parts.push('prof');
     if (o.noise) parts.push(`noise${o.noise}`);
@@ -472,6 +483,11 @@ export class HeuristicAgent implements Agent {
             const s = (await this.valueMain(g, p, actions, [i], worlds))[0];
             v = s.v;
             scoredSells.push(s);
+          } else if (this.opts.sellHoldCut > 0) {
+            // C.4: the seller's hand at the cut, valued by what it holds for the seller's own packages
+            const leaf = (cg: Game) => (cg.s.winner === null ? this.opts.sellHoldCut * handHoldCredit(cg, p) : 0);
+            v = this.opts.deep > 0 ? await this.rolloutMove(g, p, a, undefined, leaf) : await this.simulate(g, p, a, leaf);
+            scoredSells.push({ i, v });
           } else {
             v = this.opts.deep > 0 ? await this.rollout(g, p, a) : await this.simulate(g, p, a);
             scoredSells.push({ i, v });
@@ -728,8 +744,8 @@ export class HeuristicAgent implements Agent {
     return playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
   }
 
-  /** Clone, perform an action with fast policies, return evaluation. */
-  async simulate(g: Game, p: PlayerId, a: Action): Promise<number> {
+  /** Clone, perform an action with fast policies, return evaluation (+ `leaf` of the clone, when given). */
+  async simulate(g: Game, p: PlayerId, a: Action, leaf?: (cg: Game) => number): Promise<number> {
     const cg = g.clone(this.fastAgents(p));
     hideInfo(cg, p);
     try {
@@ -739,7 +755,8 @@ export class HeuristicAgent implements Agent {
     } catch (e) {
       if (!(e instanceof GameOverSignal)) throw e;
     }
-    return evaluate(cg, p, this.w(g, p));
+    const v = evaluate(cg, p, this.w(g, p));
+    return leaf ? v + leaf(cg) : v;
   }
 
   /** turnPlan: the last plan's best line (descriptions, first action first) and its search size; null when not planned. */
@@ -801,8 +818,11 @@ export class HeuristicAgent implements Agent {
     return this.rolloutMove(g, p, a, world);
   }
 
-  /** rollout(), or with `a` null (sellSearch's "don't sell"): p's clone bot plays the rest of the turn without selling. */
-  private async rolloutMove(g: Game, p: PlayerId, a: Action | null, world?: World): Promise<number> {
+  /**
+   * rollout(), or with `a` null (sellSearch's "don't sell"): p's clone bot plays the rest of the turn without selling.
+   * `leaf` (the sell comparison's hold credit, sellHoldCut) adds a value read off the clone where the play-out stops.
+   */
+  private async rolloutMove(g: Game, p: PlayerId, a: Action | null, world?: World, leaf?: (cg: Game) => number): Promise<number> {
     const noSell = a === null ? g.s.turn : undefined;
     const cg = g.clone(
       this.cloneAgents(p, (weights, seat) => {
@@ -816,7 +836,8 @@ export class HeuristicAgent implements Agent {
     hideInfo(cg, p);
     await playOut(cg, p, a === null ? { rest: true } : { action: a });
     const wins = this.opts.rolloutWins;
-    return playOutValue(cg, p, this.w(g, p), { wins, clamp: wins });
+    const v = playOutValue(cg, p, this.w(g, p), { wins, clamp: wins });
+    return leaf ? v + leaf(cg) : v;
   }
 
   /**
