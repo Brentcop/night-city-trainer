@@ -15,6 +15,7 @@ import { CARD_BY_ID } from '../engine/cards';
 import type { DeckList, LogEntry, PlayerId } from '../engine/types';
 import type { CoachedGrade } from './coachedReplay';
 import type { PracticeReplay } from './practiceReplays';
+import { isAnswerList } from './practiceVerdict';
 import { stateHash } from './stateHash';
 import { SIM_VERSION } from './tournament';
 
@@ -62,6 +63,13 @@ export interface SavedGame {
   endTurnClick?: boolean;
   /** every answer you gave, in order (may run past `check.at` when you saved while the bot was moving) */
   choices: number[][];
+  /**
+   * every answer the bot gave, in order, cut at the same moment as `choices` (absent in saves made before 2026-11-25).
+   * Resuming never reads them (the bot plays its moves again, so a resume still needs the same SIM_VERSION); a
+   * multi-day game closed on time carries them into its replay (src/lib/multiDay.ts timedOutRecords), so it can be
+   * reviewed on a later version.
+   */
+  botChoices?: number[][];
   undos?: number;
   /**
    * the coach was on when the game was saved (the Coach setting then). A record only: resuming never changes the board
@@ -116,6 +124,7 @@ export function buildSave(src: SaveSource, o: { id: string; name?: string; saved
     botSeed: r.botSeed,
     ...(r.endTurnClick ? { endTurnClick: true } : {}),
     choices: copy(r.choices),
+    ...(r.botChoices ? { botChoices: copy(r.botChoices) } : {}),
     ...(r.undos ? { undos: r.undos } : {}),
     coach: o.coach,
     grades: copy([...src.grades]),
@@ -163,7 +172,7 @@ export function versionProblem(s: Pick<SavedGame, 'simVersion'>): string | null 
   if (s.simVersion === SIM_VERSION) return null;
   if (s.simVersion > SIM_VERSION)
     return `It was saved with version ${s.simVersion} of the bots and rules engine, newer than this app (version ${SIM_VERSION}). Reload the page to get the latest version, then resume it.`;
-  return `It was saved with version ${s.simVersion} of the bots and rules engine. This app now runs version ${SIM_VERSION}, and the bots or rules changed in between, so the same moves would no longer lead to the same game.`;
+  return `It was saved with version ${s.simVersion} of the bots and rules engine. This app now runs version ${SIM_VERSION}, and the bots or rules changed in between, so the same moves would no longer lead to the same game. Playing on needs the bot the game was started with, so an unfinished game can't be resumed; a finished game keeps the bot's moves and can still be reviewed.`;
 }
 
 /** The short line a list shows for a save it can't resume because of its version. */
@@ -227,6 +236,7 @@ export function parseSavedGame(input: unknown): { ok: true; value: SavedGame } |
   }
   if (!isInt(s.seed) || !isInt(s.botSeed) || !isStr(s.botLevel) || (s.first !== undefined && s.first !== 0 && s.first !== 1)) return bad('the match setup is incomplete');
   if (!Array.isArray(s.choices) || !s.choices.every((c) => Array.isArray(c) && c.length > 0 && c.every((i) => isInt(i) && i >= 0))) return bad('the moves are incomplete');
+  if (s.botChoices !== undefined && !isAnswerList(s.botChoices)) return bad("the bot's moves are incomplete");
   if (s.undos !== undefined && !isInt(s.undos)) return bad('the Undo count is not a number');
   if (s.endTurnClick !== undefined && typeof s.endTurnClick !== 'boolean') return bad('the End turn setting is not true or false');
   if (typeof s.coach !== 'boolean') return bad('the coach setting is missing');

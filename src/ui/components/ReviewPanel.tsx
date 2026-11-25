@@ -1,12 +1,15 @@
 // The match reviewer's view of a game (a tournament game, or the "Play-out details" tab of the Game review): runs the
 // reviewer in a worker and shows each seat's moves in the Game review's own rating names (src/lib/gameReview.ts
 // rateOracle: the same noise test, never a second grade or "accuracy" of its own), the moves its play-outs liked least,
-// decision types and momentum. A recorded game that no longer replays is refused in a plain sentence.
+// decision types and momentum. A recorded game that no longer replays is refused in a plain sentence. Gaps stay in Gigs
+// here on purpose (the measurement itself), with REVIEW_GIG_NOTE saying a Gig is not win chance; the Game review tab says
+// what a rating costs in win chance instead (src/lib/ratingCost.ts).
 import { useEffect, useState } from 'react';
 import type { DecisionReview, GameReview, SeatReview } from '../../ai/reviewer';
 import { DECIDED_EVAL, GIG_SWING } from '../../ai/eval';
 import { counts, lossOf, RATINGS, rateOracle, type Rating } from '../../lib/gameReview';
 import { behindText, gapFigure, gapSize, shownLabel } from '../../lib/coachWords';
+import { failedText, REVIEW_GIG_NOTE } from '../../lib/reviewWords';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { useReviewHost, WAITING_TEXT, type ReviewWorkerHost } from '../reviewWorkerHost';
 import { RatingPill } from './RatingPill';
@@ -14,6 +17,26 @@ import { Wr } from './Num';
 import { MentionText } from './CardMention';
 
 const gigs = (pts: number) => pts / GIG_SWING;
+
+/**
+ * The moves a review could not measure (its grading threw; GameReview.failed, GameReviewRecord.failed): not counted,
+ * listed with the error so the log has it. Shown by both tabs of the Game review.
+ */
+export function FailedMoves({ moves, who }: { moves: readonly { seq: number; turn: number; p: 0 | 1; chosen: string; why: string }[]; who: (p: 0 | 1) => string }) {
+  if (!moves.length) return null;
+  return (
+    <details className="small muted">
+      <summary>{failedText(moves.length)}</summary>
+      <ul>
+        {moves.map((m) => (
+          <li key={m.seq}>
+            Turn {m.turn}, {who(m.p)}: {shownLabel(m.chosen)}. Error: {m.why}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 /**
  * Run a review in a background worker: the Game review dialog's shared one (`shared`, src/ui/reviewWorkerHost.ts), else
@@ -90,8 +113,9 @@ export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req
       )}
       {checked && (
         <p className="small muted">
-          Every move measured again by the review's play-outs alone (no coach grades, its own worlds), in the Game review's rating names. A move near a boundary can land
-          one step apart from the Game review tab; that tab is the verdict kept with the game.
+          Every move of your seat measured again by the review's play-outs, with costly moves confirmed on fresh worlds as on the Game review tab, in its
+          rating names. This view also plays out the coach's pick, so a move near a boundary can land one step apart from the Game review tab; that tab is the verdict kept
+          with the game.
         </p>
       )}
       <div className="review-seats">
@@ -102,8 +126,10 @@ export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req
       <Momentum r={r} />
       <Categories seats={r.seats} rated={rated} names={r.names} />
       <Costly r={r} rated={rated} />
+      <FailedMoves moves={(r.failed ?? []).map((f) => ({ seq: f.seq, turn: f.turn, p: f.player, chosen: f.chosen, why: f.reason }))} who={(p) => (mySeat === p ? 'you' : r.names[p])} />
       <p className="small muted" style={{ marginBottom: 0 }}>
-        Main-phase moves and reactions are measured (not targets or modes), judged by the bots' own evaluation about a turn ahead, with the cards the player couldn't see re-dealt.
+        Main-phase moves, reactions and Gig choices are measured (not mulligans, targets or modes), judged by the bots' own evaluation about a turn ahead, with the cards the player couldn't see re-dealt.
+        {` ${REVIEW_GIG_NOTE} `}
         Reviewed in {(r.ms / 1000).toFixed(0)} s.
       </p>
     </div>

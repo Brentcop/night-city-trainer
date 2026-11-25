@@ -1,11 +1,14 @@
 // The Game review's ratings: one word for every decision of a finished game, on a seven-step scale, from what the
-// match reviewer's oracle (src/ai/reviewer.ts) or the coach during play (src/ai/coach.ts gradeMove) measured. Pure: the
-// review worker, the CLI (scripts/review.ts) and the review screen all rate through here, so they never disagree.
+// match reviewer's oracle (src/ai/reviewer.ts) measured. Both seats are rated by the same oracle (since 2026-11-25); the
+// coach's grade from play (src/ai/coach.ts gradeMove) is kept beside your move for reference only. Pure: the review
+// worker, the CLI (scripts/review.ts) and the review screen all rate through here, so they never disagree.
 //
 // Every number is in Gigs (one Gig = GIG evaluation points, GIG_SWING in src/ai/eval.ts) with the paired standard error
 // of the measurement, so that noise is never called a mistake. docs/BOT_TOOLKIT.md §8 has the definitions in words.
-import type { DecisionReview, GameReview, SeatAnswers, SkippedDecision } from '../ai/reviewer';
+import type { DecisionReview, GameReview, SeatAnswers } from '../ai/reviewer';
 import type { PlayerId } from '../engine/types';
+import { CURRENT_SIM_VERSION } from './playedRecord';
+import { costSentence } from './ratingCost';
 
 /** Evaluation points per Gig (= GIG_SWING; tests/game-review.test.ts checks they agree). */
 export const GIG = 40;
@@ -40,18 +43,31 @@ export const FIXED_GAP_SE_GIGS = 0.25;
  * The rules the stored ratings were made with. Bump it whenever a rating rule changes, so stored reviews are re-rated
  * instead of showing the old ratings (src/lib/gameReviewStore.ts). 2: noise tested on the raw gap, fixed-term gaps not
  * measured, Sharp needs every option clearly worse, passing at most Sharp (2026-11-13). 3: wide close calls (gap ≥
- * MISTAKE_GIGS within noise) confirmed on fresh worlds, costly coach grades oracle-graded (2026-11-22).
+ * MISTAKE_GIGS within noise) confirmed on fresh worlds, costly coach grades oracle-graded (2026-11-22). 4 (2026-11-25,
+ * docs/REVIEW_2026-11-25.md): mulligans not rated ('unrated'); no Sharp or Inspired (confirmed on 16 fresh worlds they
+ * still came more often in Easy's won games than its lost ones: reports/review-validity-2026-11-25.md); your moves rated
+ * by the oracle like the rival's, the coach's grade from play kept beside them; a seat's rare Mistakes and Blunders rated
+ * from their Hard check (hardFlag, HARD_CHECK_MAX_FLAGS).
  */
-export const REVIEW_RULES = 3;
+export const REVIEW_RULES = 4;
 /**
  * How a review is measured, kept apart from how it is rated (REVIEW_RULES): the oracle (src/ai/reviewer.ts: its
- * play-outs, worlds, quick screen, candidates and confirmation stream), the play-outs per option (GAME_REVIEW_ROLLOUTS)
- * and the confirmation worlds (GAME_REVIEW_CONFIRM). Bump it whenever the measurement changes: a stored review measured
+ * play-outs, worlds, quick screen, candidates and confirmation stream), the play-outs per option (GAME_REVIEW_ROLLOUTS),
+ * the confirmation worlds (GAME_REVIEW_CONFIRM) and the Hard check's (GAME_REVIEW_HARD). Bump it whenever the measurement changes: a stored review measured
  * another way is never re-rated from its kept measurements (that would pass old numbers off as new ones), it is run again
  * (src/lib/gameReviewStore.ts). Records stored before it count as this version. 1: 2026-11-14. 2: costly coach grades
- * and wide close calls go to the oracle (2026-11-22).
+ * and wide close calls go to the oracle (2026-11-22). 3: a Gig choice's play-outs resolve what the Gig change triggers
+ * (Meredith Stout's trigger stayed pending and failed the review) and change the Gig as the engine does ('set' for "set a
+ * Gig to another Gig's value"); a decision whose grading throws is listed apart, not counted (2026-11-25). 4: no
+ * mulligan play-outs; your moves measured by the oracle like the rival's, never skipped for a coach grade; a seat's 1 to
+ * HARD_CHECK_MAX_FLAGS Mistakes and Blunders checked with Hard play-outs (GAME_REVIEW_HARD) (2026-11-25).
  */
-export const REVIEW_MEASURE = 2;
+export const REVIEW_MEASURE = 4;
+/**
+ * The simulator version (SIM_VERSION) a stored review without `simVersion` was measured with: every review stored before
+ * the field was kept (2026-11-25) ran on version 9, or on 8 under an older REVIEW_MEASURE (stale anyway).
+ */
+export const REVIEW_SIM_BEFORE_KEPT = 9;
 /**
  * Play-outs per candidate in the Game review: 8, as the match reviewer. Chosen 2026-11-12 by re-running 20 Medium-vs-Hard
  * reviews with another oracle seed: see docs/BOT_TOOLKIT.md §8 (ratings within one step of each other on re-run). Part
@@ -60,15 +76,28 @@ export const REVIEW_MEASURE = 2;
 export const GAME_REVIEW_ROLLOUTS = 8;
 /**
  * Fresh worlds a move rated Slip or worse is confirmed on before it is shown (REV-4: the move made against the best one
- * found, docs/BOT_TOOLKIT.md §8). 0 turns the confirmation off. Part of the measurement, like the play-outs.
+ * found, docs/BOT_TOOLKIT.md §8), and a Sharp or Inspired one (every candidate again, 2026-11-25). 0 turns the
+ * confirmation off. Part of the measurement, like the play-outs.
  */
 export const GAME_REVIEW_CONFIRM = 16;
+/**
+ * Fresh worlds a Mistake or Blunder is checked on with the Hard bot playing on both seats, in a seat with at most
+ * HARD_CHECK_MAX_FLAGS of them (ReviewOptions.hardCheck, 2026-11-25; docs/REVIEW_2026-11-25.md R2). Measured with the
+ * rule written first (reports/review-validity-2026-11-25.md): the ratings it keeps gain clearly more when played on to
+ * the end with Hard than the ones it drops, it keeps 95% of those whose gain is clearly positive, and capped at 2 a seat
+ * it adds about half to a review's time. 0 turns it off. Part of the measurement, like the play-outs.
+ */
+export const GAME_REVIEW_HARD = 16;
+export const HARD_CHECK_MAX_FLAGS = 2;
 
 /** The seven ratings, best first. */
 export const RATINGS = ['inspired', 'sharp', 'best', 'close', 'slip', 'mistake', 'blunder'] as const;
 export type RatingKey = (typeof RATINGS)[number];
-/** A rating, or a decision that does not count: one option (forced), or no measurable difference between the options. */
-export type Rating = RatingKey | 'forced' | 'unclear';
+/**
+ * A rating, or a decision that does not count: one option (forced), no measurable difference between the options, or a
+ * kind of decision the review does not rate (`unrated`: the mulligan, since 2026-11-25).
+ */
+export type Rating = RatingKey | 'forced' | 'unclear' | 'unrated';
 
 export interface RatingInfo {
   label: string;
@@ -76,30 +105,35 @@ export interface RatingInfo {
   mark: string;
   /** the colour class (never the only cue) */
   tone: 'top' | 'good' | 'fine' | 'warn' | 'bad' | 'none';
-  /** one line for the legend */
+  /**
+   * one line for the legend, in words a player reads: no thresholds in Gigs (the screen's "What the ratings mean" gives
+   * them apart); a costly rating says what moves of its band cost in win chance (src/lib/ratingCost.ts, row 6)
+   */
   means: string;
 }
 export const RATING_INFO: Record<Rating, RatingInfo> = {
-  inspired: { label: 'Inspired', mark: '◆◆', tone: 'top', means: 'A Sharp move that a quick read ranks third or lower, where its first choice would have been a blunder: hard to find. Never for ending the turn.' },
-  sharp: { label: 'Sharp', mark: '◆', tone: 'top', means: 'The only good move (every other option measured is clearly worse by a mistake or more), and not the one a quick read picks first.' },
-  best: { label: 'Best', mark: '●', tone: 'good', means: 'The best move found, or within 0.1 Gigs of it.' },
-  close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Behind the best move found, but too little or too uncertain to call: under 0.15 Gigs, or within 2 standard errors.' },
-  slip: { label: 'Slip', mark: '▽', tone: 'warn', means: 'Clearly behind the best move, by less than 0.375 Gigs.' },
-  mistake: { label: 'Mistake', mark: '▼', tone: 'bad', means: 'Clearly behind the best move by 0.375 Gigs or more.' },
-  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: 'Clearly behind by a whole Gig or more, or a mistake that also loses the game in at least 1 in 4 more of the play-outs.' },
+  // never given since 2026-11-25 (REVIEW_RULES 4); kept for reviews stored before, shown as they were
+  inspired: { label: 'Inspired', mark: '◆◆', tone: 'top', means: 'Older reviews only. A Sharp move that a quick read ranks third or lower, where its first choice would have been a blunder: hard to find. Never for ending the turn.' },
+  sharp: { label: 'Sharp', mark: '◆', tone: 'top', means: 'Older reviews only. The only good move (every other option measured is clearly worse by a mistake or more), and not the one a quick read picks first.' },
+  best: { label: 'Best', mark: '●', tone: 'good', means: 'The best move found, or as good: no measurable difference.' },
+  close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Behind the best move found, but by too little, or too uncertainly, to call. Not counted as a loss.' },
+  slip: { label: 'Slip', mark: '▽', tone: 'warn', means: `Clearly behind the best move found, by a small margin. ${costSentence('review', 'slip')}` },
+  mistake: { label: 'Mistake', mark: '▼', tone: 'bad', means: `Clearly behind the best move found. ${costSentence('review', 'mistake')}` },
+  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: `Clearly behind by a large margin, or a mistake that also loses the game in at least 1 in 4 more of the play-outs. ${costSentence('review', 'blunder')}` },
   forced: { label: 'Forced', mark: '–', tone: 'none', means: 'Only one option. Not counted.' },
   unclear: { label: 'No clear difference', mark: '=', tone: 'none', means: 'Every option measured comes out about the same, or the game was already decided. Not counted.' },
+  unrated: { label: 'Not rated', mark: '·', tone: 'none', means: 'A kind of move the review does not rate: the mulligan, whose difference stays inside the noise even over whole games. Not counted.' },
 };
 
 /** A rating's place on the scale (0 = Inspired … 6 = Blunder); No clear difference sits between Best and Close call. */
 export function ratingStep(r: Rating): number | null {
-  if (r === 'forced') return null;
+  if (r === 'forced' || r === 'unrated') return null;
   if (r === 'unclear') return 2.5;
   return RATINGS.indexOf(r);
 }
 
 /** Ratings that count toward accuracy. */
-export const counts = (r: Rating): r is RatingKey => r !== 'forced' && r !== 'unclear';
+export const counts = (r: Rating): r is RatingKey => r !== 'forced' && r !== 'unclear' && r !== 'unrated';
 /** Ratings inside the noise (no loss counted). */
 const FINE: ReadonlySet<Rating> = new Set(['inspired', 'sharp', 'best', 'close']);
 
@@ -140,35 +174,13 @@ export interface Measured {
   gameLosing?: boolean;
 }
 
-/** A clear gap of at least `line` Gigs (outside the noise). */
-const clearOf = (gap: number, se: number | null | undefined, line: number) => gap >= line && !withinNoise(gap, se);
-
 /** Every graded option, the move made included, is within the noise of the best: the decision made no measurable difference. */
 function noDifference(m: Measured): boolean {
   if (!m.others?.length) return false;
   return withinNoise(m.raw ?? m.gap, m.se) && m.others.every(([g, se]) => withinNoise(Math.max(0, g), se));
 }
 
-/**
- * Sharp and Inspired, for a move that is the best (`top`). Both need the quick 1-ply read (the reviewer's screen) to
- * have preferred another move, so an obvious move (the one any quick read finds) is never more than Best; decisions with
- * no screen (reactions, sells chosen by rule) are never more than Best either.
- *   Sharp     the only good move: every other option measured is clearly worse by a mistake-sized gap (each one
- *             outside its own noise), and the quick read's first choice was another move
- *   Inspired  Sharp, the quick read ranked the move third or lower (or left it off its shortlist), and its first choice
- *             would have been a blunder (clearly a whole Gig worse)
- * Ending the turn is never more than Sharp: holding back when every play is clearly worse is a real find (the quick read
- * acts whenever any play scores above passing), but the quick read never ranks passing at all, so its place there says
- * nothing about how hard it was to see.
- */
-function upgrade(m: Measured): RatingKey | null {
-  if (!m.top || !m.screen || m.screen.chosenRank === 0) return null;
-  if (!m.others?.length || !m.others.every(([g, se]) => clearOf(g, se, MISTAKE_GIGS))) return null;
-  const hidden = m.screen.chosenRank === -1 || m.screen.chosenRank >= 2;
-  return hidden && !m.pass && clearOf(m.screen.gap, m.screen.se, BLUNDER_GIGS) ? 'inspired' : 'sharp';
-}
-
-/** The rating from the size of a gap (no upgrade, no "no clear difference"); the noise test reads the raw gap. */
+/** The rating from the size of a gap (no "no clear difference"); the noise test reads the raw gap. */
 function band(m: Measured): RatingKey {
   if (m.gap <= BEST_GIGS) return 'best';
   if (withinNoise(m.raw ?? m.gap, m.se)) return 'close';
@@ -179,23 +191,31 @@ function band(m: Measured): RatingKey {
 /**
  * The rating of one measured decision:
  *   No clear difference  the game was already decided, or every option measured is within the noise of the best
- *   Inspired / Sharp     see upgrade(); otherwise
  *   Best                 within BEST_GIGS (0.1) of the best
  *   Close call           within the noise: under CLOSE_GIGS (0.15), or within 2 paired SE
  *   Slip                 outside the noise, under MISTAKE_GIGS (0.375)
  *   Mistake              outside the noise, MISTAKE_GIGS to BLUNDER_GIGS (1)
  *   Blunder              outside the noise and BLUNDER_GIGS or more, or a mistake that loses the game in the play-outs
+ *
+ * Sharp and Inspired (the only good move, which a quick 1-ply read did not pick first; Inspired: ranked third or lower,
+ * its pick a blunder) were given until 2026-11-25 from the screening pass. Confirmed on 16 fresh worlds they did follow
+ * skill (Hard 0.73 a game, Easy 0.25), but Easy still earned them 1.9 times as often in its won games as in its lost ones,
+ * against the rule's 1.5 written before the games: they say as much about the position as about the play, so they were
+ * dropped and such a move is Best (reports/review-validity-2026-11-25.md, docs/REVIEW_2026-11-25.md R4).
  */
 export function rateMeasured(m: Measured): Rating {
   if (m.decided || noDifference(m)) return 'unclear';
-  const b = band(m);
-  return b === 'best' ? (upgrade(m) ?? 'best') : b;
+  return band(m);
 }
 
 const gigs = (pts: number) => pts / GIG;
 
-/** What the oracle measured about a decision (src/ai/reviewer.ts DecisionReview), in Gigs. */
-export function oracleMeasured(d: DecisionReview): Measured {
+/**
+ * What the oracle measured about a decision (src/ai/reviewer.ts DecisionReview), in Gigs: the gap, its SE and the
+ * game-losing flag from the Hard check when there is one (DecisionReview.hard), else from the confirmation or screening.
+ */
+export function oracleMeasured(dd: DecisionReview): Measured {
+  const d = dd.hard ? { ...dd, regret: dd.hard.regret, raw: dd.hard.raw, se: dd.hard.se, gameLosing: dd.hard.gameLosing } : dd;
   return {
     gap: gigs(d.regret),
     ...(d.raw !== undefined ? { raw: gigs(d.raw) } : {}),
@@ -224,6 +244,16 @@ export const confirmFlag = (d: DecisionReview): boolean => {
   return r === 'close' && gigs(d.raw ?? d.regret) >= MISTAKE_GIGS;
 };
 
+/**
+ * The decisions the Hard check counts and checks (ReviewOptions.hardCheck.flag): those rated Mistake or Blunder after the
+ * confirmation, before any Hard check (a seat with 1 to HARD_CHECK_MAX_FLAGS of them has its main-phase ones and its
+ * reactions checked).
+ */
+export const hardFlag = (d: DecisionReview): boolean => {
+  const r = rateOracle({ ...d, hard: undefined });
+  return r === 'mistake' || r === 'blunder';
+};
+
 // ---------------------------------------------------------------------------------------------------- coach grades
 
 /** The coach verdicts that measured the move (the rest, pending or unscored, are left to the oracle). */
@@ -247,6 +277,13 @@ export interface CoachRating {
   gap: number;
   se?: number;
   alts: [number, number, number | null][];
+  /**
+   * the coach showed "No clear difference" (since 2026-11-25 the coach's own verdict 'unclear': every option it scored was
+   * within the noise, or the game was decided); `verdict` is then its grade by the gap alone (MoveGrade.band)
+   */
+  unclear?: true;
+  /** the grade was confirmed on this many fresh worlds before the coach showed it (since 2026-11-25): gap and SE are the confirmation's */
+  confirmed?: number;
 }
 
 /**
@@ -267,6 +304,10 @@ export interface CoachRecordLike {
   /** the decision kind and what the coach scored (absent: a rule decided); older records without them read as before */
   kind?: string;
   scoreKind?: string;
+  /** the coach showed "No clear difference" (src/lib/coachedReplay.ts CoachedDecision.unclear) */
+  unclear?: boolean;
+  /** the fresh worlds the grade was confirmed on (CoachedDecision.confirmed) */
+  confirmed?: number;
 }
 
 const WHY_MAX = 220;
@@ -308,6 +349,8 @@ export function coachRatingOf(rec: CoachRecordLike, gigSwing = GIG): CoachRating
     gap: r3(rec.gap),
     ...(rec.se !== undefined ? { se: r3(rec.se) } : {}),
     alts,
+    ...(rec.unclear ? { unclear: true as const } : {}),
+    ...(rec.confirmed ? { confirmed: rec.confirmed } : {}),
   };
 }
 
@@ -323,37 +366,34 @@ export function coachRatingsFrom(records: readonly (CoachRecordLike | undefined)
 }
 
 /**
- * The rating of a move the coach graded during play. It keeps the coach's verdict in the names the coach shows it in
- * during play (src/lib/coachWords.ts verdictRating: agree / as good → Best, close call, inaccuracy → Slip, mistake →
- * Mistake, or Blunder from a whole Gig), so the review never grades a move differently from the game; on top, the same
- * "no clear difference" check over the options the coach scored (a move where every option was within the noise is not
- * counted), and for the coach's own pick the same Inspired / Sharp checks, with the quick screen's first choice from the
- * review pass.
+ * What the coach said about one of your moves during play, kept beside the review's rating of it for reference
+ * (ReviewMove.said, 2026-11-25). The review never rates by it: until then a coach grade that was not costly stood in for
+ * the review's own rating of your move, so "you vs the rival" compared two instruments (docs/REVIEW_2026-11-25.md R8).
+ * `v` the coach's verdict, `gap` its Gigs below the coach's pick with the paired SE, `best` the coach's pick when it is
+ * not the move made, `why` its reason.
  */
-export function rateCoach(c: CoachRating, screen?: { screenTop?: number; chosenRank?: number }): Rating {
-  const vsMine = c.alts.filter(([i]) => i !== c.chose);
-  const all: [number, number | null][] = [...vsMine.map(([, g, se]): [number, number | null] => [g, se]), ...(c.chose !== c.coach ? [[c.gap, c.se ?? null] as [number, number | null]] : [])];
-  if (all.length && all.every(([g, se]) => withinNoise(Math.max(0, g), se))) return 'unclear';
-  switch (c.verdict) {
-    case 'close':
-      return 'close';
-    case 'inaccuracy':
-      return 'slip';
-    case 'mistake':
-      return c.gap >= BLUNDER_GIGS ? 'blunder' : 'mistake';
-    case 'best':
-      return 'best';
-    case 'agree': {
-      // the coach's own pick: compare with every other option it scored (in its worlds, paired with the pick)
-      const top = vsMine.every(([, g]) => g >= 0);
-      const others = [...vsMine].sort((a, b) => a[1] - b[1]).map(([, g, se]) => [g, se] as const);
-      const sc = screen?.screenTop !== undefined && screen.screenTop !== c.chose ? vsMine.find(([i]) => i === screen.screenTop) : undefined;
-      const pass = c.chosen === 'Pass turn' || c.chosen === 'End turn';
-      const m: Measured = { gap: 0, top, others, ...(pass ? { pass } : {}), ...(sc ? { screen: { gap: sc[1], se: sc[2], chosenRank: screen?.chosenRank ?? -1 } } : {}) };
-      return upgrade(m) ?? 'best';
-    }
-  }
+export interface CoachSaid {
+  v: MeasuredVerdict;
+  gap: number;
+  se?: number;
+  best?: string;
+  why: string;
+  /** the coach showed "No clear difference" (CoachRating.unclear) */
+  unclear?: true;
+  /** the coach's grade was confirmed on this many fresh worlds (CoachRating.confirmed) */
+  confirmed?: number;
 }
+
+/** The coach's grade of a move, as kept beside the review's rating (ReviewMove.said). */
+export const saidOf = (c: CoachRating): CoachSaid => ({
+  v: c.verdict,
+  gap: r3(Math.max(0, c.gap)),
+  ...(c.se !== undefined ? { se: c.se } : {}),
+  ...(c.best !== c.chosen ? { best: c.best } : {}),
+  why: c.why,
+  ...(c.unclear ? { unclear: true as const } : {}),
+  ...(c.confirmed ? { confirmed: c.confirmed } : {}),
+});
 
 // ---------------------------------------------------------------------------------------------------- the record
 
@@ -376,12 +416,17 @@ export interface ReviewMove {
   /** the oracle's gap before the cap (absent: the gap; reviews stored before it, and coach grades, which are not capped) */
   raw?: number;
   se?: number;
-  /** who measured it: the coach during play, or the review's oracle afterwards */
+  /**
+   * who measured it: the review's oracle; 'coach' only in reviews stored before 2026-11-25 (REVIEW_MEASURE 3 or older),
+   * where a coach grade from play that was not costly stood in for the review's rating
+   */
   src: 'coach' | 'oracle';
-  /** the coach's reason (coach grades only) */
+  /** the coach's reason (the old coach-graded moves only) */
   why?: string;
   /** the move made loses the game in clearly more play-outs than the best */
   lost?: true;
+  /** your move's grade by the coach during play, for reference only (since 2026-11-25; the rating is the oracle's) */
+  said?: CoachSaid;
   /** what its rating was computed from (absent in reviews stored before 2026-11-14): see KeptMeasure */
   ms?: KeptMeasure;
 }
@@ -398,16 +443,19 @@ export interface ReviewMove {
  *      the cap): so one number gives both the capped gap a band reads and the raw gap the noise test reads, exactly
  *   c  the confirmation on fresh worlds, as `f` (absent: not confirmed). Both are kept: which moves are confirmed is a
  *      rating rule (confirmFlag), so a later rule can need the screening figures of a confirmed move
+ *   h  the Hard check (DecisionReview.hard, since 2026-11-25), as `f` (absent: not checked). Which moves are checked is
+ *      a rating rule too (hardFlag and HARD_CHECK_MAX_FLAGS)
  *   b  bits: 1 the move made is the top, 2 the game was decided, 4 the screening pass's game-losing flag, 8 the
- *      confirmation's
+ *      confirmation's, 16 the Hard check's
  *   o  every other graded option, flat [gap, SE, gap, SE, …] ×100, smallest gap first
  *   s  the quick screen's first choice: [gap ×100, SE ×100, the move made's rank in its order]
- * A coach-graded move (the CoachRating itself is in the store entry's `coach` list):
+ * A coach-graded move of a review stored before 2026-11-25 (the CoachRating itself is in the store entry's `coach` list):
  *   s  the review's quick screen: [its first choice's option index, the move made's rank] (absent: no screen)
  */
 export interface KeptMeasure {
   f?: (number | null)[];
   c?: (number | null)[];
+  h?: (number | null)[];
   b?: number;
   o?: number[];
   s?: number[];
@@ -425,8 +473,17 @@ export interface GameReviewRecord {
   measure?: number;
   /** fresh worlds a flagged move was confirmed on (GAME_REVIEW_CONFIRM; 0: none; absent: before it was kept) */
   confirm?: number;
+  /** fresh worlds a Mistake or Blunder was checked on with Hard play-outs (GAME_REVIEW_HARD; 0 or absent: none) */
+  hard?: number;
   /** rated again from its kept measurements (rerateRecord) under newer rules: the rules it was first rated with */
   rerated?: number;
+  /**
+   * the simulator version (SIM_VERSION) whose bots measured it: a review measured with other bots is stale
+   * (measuredAsNow). Absent: stored before 2026-11-25, REVIEW_SIM_BEFORE_KEPT.
+   */
+  simVersion?: number;
+  /** the simulator version the game itself was played with, when not `simVersion` (an older game rated with newer bots) */
+  gameSimVersion?: number;
   /** the practice replay's id */
   id: string;
   /** when the review was made (ISO) */
@@ -445,9 +502,23 @@ export interface GameReviewRecord {
   moves: ReviewMove[];
   /** forced decisions per seat (one option; not counted, not listed) */
   forced: [number, number];
+  /** decisions the review could not measure (its grading threw): not counted, listed apart with the error (absent: none) */
+  failed?: FailedMove[];
   /** every answer of both seats: the board at each move is rebuilt from these with no bot thinking */
   answers?: [SeatAnswers, SeatAnswers];
   ms: number;
+}
+
+/** A decision the review could not measure (the reviewer's FailedDecision, as stored): not counted, with the error's message. */
+export interface FailedMove {
+  seq: number;
+  p: PlayerId;
+  at: number;
+  turn: number;
+  cat: string;
+  chosen: string;
+  /** the error's message */
+  why: string;
 }
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
@@ -469,7 +540,7 @@ function oracleRated(d: OraclePass): Pick<ReviewMove, 'r' | 'gap' | 'raw' | 'se'
 }
 
 /** An oracle-graded move, its fields in one order (a re-rated record re-saved under the same rules is the same text). */
-function oracleMove(head: Pick<ReviewMove, 'seq' | 'p' | 'at' | 'turn' | 'cat' | 'chosen' | 'best'>, d: OraclePass, ms: KeptMeasure | undefined): ReviewMove {
+function oracleMove(head: Pick<ReviewMove, 'seq' | 'p' | 'at' | 'turn' | 'cat' | 'chosen' | 'best' | 'said'>, d: OraclePass, ms: KeptMeasure | undefined): ReviewMove {
   const { r, gap, raw, se, lost } = oracleRated(d);
   return {
     seq: head.seq,
@@ -485,37 +556,27 @@ function oracleMove(head: Pick<ReviewMove, 'seq' | 'p' | 'at' | 'turn' | 'cat' |
     ...(se !== undefined ? { se } : {}),
     src: 'oracle',
     ...(lost ? { lost } : {}),
+    ...(head.said ? { said: head.said } : {}),
     ...(ms ? { ms } : {}),
   };
 }
 
-/** A coach-graded move from the coach's grade and the review's screen of it (shared by the build and the re-rating). */
-function coachMove(c: CoachRating, s: { seq: number; turn: number; screenTop?: number; chosenRank?: number }, p: PlayerId): ReviewMove {
-  return {
-    seq: s.seq,
-    p,
-    at: c.at,
-    turn: s.turn,
-    cat: 'coach',
-    chosen: c.chosen,
-    ...(c.best !== c.chosen ? { best: c.best } : {}),
-    r: rateCoach(c, s),
-    gap: r2(Math.max(0, c.gap)),
-    ...(c.se !== undefined ? { se: r2(c.se) } : {}),
-    src: 'coach',
-    why: c.why,
-    ms: s.screenTop !== undefined ? { s: [s.screenTop, s.chosenRank ?? -1] } : {},
-  };
+/** A move the review leaves unrated on purpose (the mulligan): listed, not counted, nothing measured. */
+function unratedMove(head: Pick<ReviewMove, 'seq' | 'p' | 'at' | 'turn' | 'cat' | 'chosen' | 'said'>): ReviewMove {
+  return { seq: head.seq, p: head.p, at: head.at, turn: head.turn, cat: head.cat, chosen: head.chosen, r: 'unrated', gap: null, src: 'oracle', ...(head.said ? { said: head.said } : {}) };
 }
 
 const CAP_POINTS = CAP_GIGS * GIG;
 const cp = (x: number) => Math.round(x * 100);
 /** A pass's [gap, SE]: the exact gap under the cap, else the raw gap (KeptMeasure.f). */
 const passOf = (d: OraclePass): (number | null)[] => [d.regret < CAP_POINTS ? d.regret : (d.raw ?? d.regret), d.se === undefined ? null : cp(d.se)];
+/** Which pass of a move's kept measurements: the screening (f), the confirmation (c) or the Hard check (h), and its game-losing bit. */
+type PassKey = 'f' | 'c' | 'h';
+const LOSING_BIT: Record<PassKey, number> = { f: 4, c: 8, h: 16 };
 
-/** The measurements of one pass read back (the confirmation's when `confirmed`), or null when it is not kept. */
-function passFrom(ms: KeptMeasure, cat: string, confirmed: boolean): OraclePass | null {
-  const p = confirmed ? ms.c : ms.f;
+/** The measurements of one pass read back, or null when it is not kept. */
+function passFrom(ms: KeptMeasure, cat: string, which: PassKey): OraclePass | null {
+  const p = ms[which];
   if (!p) return null;
   const [v, se] = p as [number, number | null];
   const b = ms.b ?? 0;
@@ -528,7 +589,7 @@ function passFrom(ms: KeptMeasure, cat: string, confirmed: boolean): OraclePass 
     regret: v < CAP_POINTS ? v : CAP_POINTS,
     raw: v < CAP_POINTS ? r2(v) : v,
     ...(se !== null ? { se: se / 100 } : {}),
-    gameLosing: !!(b & (confirmed ? 8 : 4)),
+    gameLosing: !!(b & LOSING_BIT[which]),
     top: !!(b & 1),
     others,
     ...(ms.s ? { screen: { gap: ms.s[0]! / 100, se: ms.s[1]! / 100, chosenRank: ms.s[2]! } } : {}),
@@ -539,6 +600,9 @@ function passFrom(ms: KeptMeasure, cat: string, confirmed: boolean): OraclePass 
 /** Every number a rating reads from a pass, as text (JSON keeps a double exactly): two passes rate alike when these agree. */
 const passKey = (d: OraclePass) => JSON.stringify([d.category === 'end turn', d.regret, d.raw ?? null, d.se ?? null, d.gameLosing, d.top ?? null, !!d.decided, d.others ?? null, d.screen ?? null]);
 
+/** A decision's Hard check as a pass (its gap, SE and game-losing flag in place of the confirmation's). */
+const hardPass = (d: DecisionReview): OraclePass => (d.hard ? { ...d, regret: d.hard.regret, raw: d.hard.raw, se: d.hard.se, gameLosing: d.hard.gameLosing } : d);
+
 /**
  * The kept measurements of an oracle-graded decision (KeptMeasure), or undefined when they would not read back exactly
  * (a decision recorded without the reviewer's full measurements, or a confirmed one without its screening figures):
@@ -547,41 +611,45 @@ const passKey = (d: OraclePass) => JSON.stringify([d.category === 'end turn', d.
 function keepOracle(d: DecisionReview): KeptMeasure | undefined {
   const first: OraclePass | null = d.confirmed !== undefined ? (d.first ? { ...d, ...d.first } : null) : d;
   if (!first) return undefined;
-  const b = (first.top ? 1 : 0) | (first.decided ? 2 : 0) | (first.gameLosing ? 4 : 0) | (d.confirmed !== undefined && d.gameLosing ? 8 : 0);
+  const b = (first.top ? 1 : 0) | (first.decided ? 2 : 0) | (first.gameLosing ? 4 : 0) | (d.confirmed !== undefined && d.gameLosing ? 8 : 0) | (d.hard?.gameLosing ? 16 : 0);
   const ms: KeptMeasure = {
     f: passOf(first),
     ...(d.confirmed !== undefined ? { c: passOf(d) } : {}),
+    ...(d.hard ? { h: passOf(hardPass(d)) } : {}),
     ...(b ? { b } : {}),
     ...(first.others?.length ? { o: first.others.flatMap(([g, se]) => [cp(g), cp(se)]) } : {}),
     ...(first.screen ? { s: [cp(first.screen.gap), cp(first.screen.se), first.screen.chosenRank] } : {}),
   };
   const same = (x: OraclePass | null, y: OraclePass) => !!x && passKey(x) === passKey({ ...y, others: y.others ?? [] });
-  if (!same(passFrom(ms, d.category, false), first)) return undefined;
-  if (d.confirmed !== undefined && !same(passFrom(ms, d.category, true), d)) return undefined;
+  if (!same(passFrom(ms, d.category, 'f'), first)) return undefined;
+  if (d.confirmed !== undefined && !same(passFrom(ms, d.category, 'c'), d)) return undefined;
+  if (d.hard && !same(passFrom(ms, d.category, 'h'), hardPass(d))) return undefined;
   return ms;
 }
 
 /**
- * The stored review of a game: the oracle's grades of both seats, merged with the coach's grades from play for the
- * moves the coach measured (`coach`; the review skipped those, GameReview.skipped carries what the screen made of them).
- * Every move keeps what its rating was computed from (ReviewMove.ms), so rerateRecord can rate it again under newer
- * rules. `confirm`: the fresh worlds the review confirmed flagged moves on (default GAME_REVIEW_CONFIRM, as runGameReview).
+ * The stored review of a game: the oracle's grades of both seats, measured the same way (since 2026-11-25), each of your
+ * moves with the coach's grade from play beside it when the coach graded it (`coach`, ReviewMove.said: for reference
+ * only). Mulligans are listed unrated. A move checked with Hard play-outs is rated from that check. Every rated move keeps
+ * what its rating was computed from (ReviewMove.ms), so rerateRecord can rate it again under newer rules. `confirm` and
+ * `hard`: the fresh worlds the review confirmed flagged moves on and checked costly ones with Hard on (defaults
+ * GAME_REVIEW_CONFIRM and GAME_REVIEW_HARD, as runGameReview).
  */
-export function buildReviewRecord(review: GameReview, coach: readonly CoachRating[], meta: { id: string; made: string; me?: PlayerId; confirm?: number }, keep?: readonly ReviewMove[]): GameReviewRecord {
+export function buildReviewRecord(
+  review: GameReview,
+  coach: readonly CoachRating[],
+  meta: { id: string; made: string; me?: PlayerId; confirm?: number; hard?: number; gameSimVersion?: number },
+): GameReviewRecord {
   const me = meta.me ?? 0;
+  const byAt = new Map(coach.map((c) => [c.at, c]));
+  const said = (p: PlayerId, at: number) => {
+    const c = p === me ? byAt.get(at) : undefined;
+    return c ? { said: saidOf(c) } : {};
+  };
   const moves: ReviewMove[] = [];
   for (const d of review.decisions)
-    moves.push(oracleMove({ seq: d.seq ?? moves.length, p: d.player, at: d.at ?? -1, turn: d.turn, cat: d.category, chosen: d.chosen, ...(d.best !== d.chosen ? { best: d.best } : {}) }, d, keepOracle(d)));
-  const byAt = new Map(coach.map((c) => [c.at, c]));
-  const kept = new Map((keep ?? []).filter((m) => m.p === me && m.src === 'coach').map((m) => [m.at, m]));
-  for (const s of review.skipped ?? []) {
-    const c = s.player === me ? byAt.get(s.at) : undefined;
-    const k = s.player === me && !c ? kept.get(s.at) : undefined;
-    // a coach grade from an earlier review whose coach record is gone: kept as it was rated
-    if (k) moves.push({ ...k, seq: s.seq, turn: s.turn });
-    if (!c) continue;
-    moves.push(coachMove(c, s, s.player));
-  }
+    moves.push(oracleMove({ seq: d.seq ?? moves.length, p: d.player, at: d.at ?? -1, turn: d.turn, cat: d.category, chosen: d.chosen, ...(d.best !== d.chosen ? { best: d.best } : {}), ...said(d.player, d.at ?? -1) }, hardPass(d), keepOracle(d)));
+  for (const u of review.unrated ?? []) moves.push(unratedMove({ seq: u.seq, p: u.player, at: u.at, turn: u.turn, cat: u.category, chosen: u.chosen, ...said(u.player, u.at) }));
   moves.sort((a, b) => a.seq - b.seq);
   return {
     kind: REVIEW_KIND,
@@ -589,6 +657,9 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
     rules: REVIEW_RULES,
     measure: REVIEW_MEASURE,
     confirm: meta.confirm ?? GAME_REVIEW_CONFIRM,
+    hard: meta.hard ?? GAME_REVIEW_HARD,
+    simVersion: CURRENT_SIM_VERSION,
+    ...(meta.gameSimVersion !== undefined && meta.gameSimVersion !== CURRENT_SIM_VERSION ? { gameSimVersion: meta.gameSimVersion } : {}),
     id: meta.id,
     made: meta.made,
     rollouts: review.rollouts,
@@ -602,33 +673,26 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
     timeline: review.timeline.map((t) => [t.turn, Math.round(t.v)]),
     moves,
     forced: review.forced ?? [0, 0],
+    ...(review.failed?.length ? { failed: review.failed.map((f): FailedMove => ({ seq: f.seq, p: f.player, at: f.at, turn: f.turn, cat: f.category, chosen: f.chosen, why: f.reason })) } : {}),
     ...(review.answers ? { answers: review.answers } : {}),
     ms: review.ms,
   };
 }
 
-/** Whether a coach grade is left to the coach (non-costly, not a wide close call): the oracle skips it. */
-const coachKept = (c: CoachRating): boolean => {
-  const r = rateCoach(c);
-  return !COSTLY.has(r) && !(r === 'close' && c.gap >= MISTAKE_GIGS);
-};
-
-/** Which already-graded decisions the review skips: coach-measured moves that are not costly and not wide close calls. */
-export const coachSkip = (coach: readonly CoachRating[], me: PlayerId = 0) => {
-  const at = new Set(coach.filter(coachKept).map((c) => c.at));
-  return (seat: PlayerId, a: number) => seat === me && at.has(a);
-};
-
 // ---------------------------------------------------------------------------------------------------- rated again
 
 /**
  * The stored review was measured the way a review is measured now (REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS,
- * GAME_REVIEW_CONFIRM): only then may it be rated again from its kept measurements. A review stored before these were
- * kept (no `measure`) counts as measured now, so nothing changes for it: it has no measurements to re-rate anyway.
+ * GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD): only then may it be rated again from its kept measurements. A review stored
+ * before these were kept (no `measure`) counts as measured now, so nothing changes for it: it has no measurements to
+ * re-rate anyway. The bots that measured it are part of the measurement too: a review whose simulator version
+ * (`simVersion`, absent: REVIEW_SIM_BEFORE_KEPT) is not the current one was measured with other bots, and is run again
+ * (2026-11-25).
  */
-export function measuredAsNow(rec: Pick<GameReviewRecord, 'measure' | 'rollouts' | 'confirm'>): boolean {
+export function measuredAsNow(rec: Pick<GameReviewRecord, 'measure' | 'rollouts' | 'confirm' | 'hard' | 'simVersion'>, now = CURRENT_SIM_VERSION): boolean {
+  if ((rec.simVersion ?? REVIEW_SIM_BEFORE_KEPT) !== now) return false;
   if (rec.measure === undefined) return true;
-  return rec.measure === REVIEW_MEASURE && rec.rollouts === GAME_REVIEW_ROLLOUTS && rec.confirm === GAME_REVIEW_CONFIRM;
+  return rec.measure === REVIEW_MEASURE && rec.rollouts === GAME_REVIEW_ROLLOUTS && rec.confirm === GAME_REVIEW_CONFIRM && (rec.hard ?? 0) === GAME_REVIEW_HARD;
 }
 
 /** Why a stored review cannot be rated again from storage, and which moves (by seq). */
@@ -636,9 +700,9 @@ export type RerateRefusal = {
   ok: false;
   /**
    * not-kept: a move has no kept measurements (a review stored before they were kept, or one the reviewer did not
-   * measure in full); unconfirmed: the current rules confirm a move on fresh worlds that was not confirmed when it was
-   * measured (a confirmation is never made up); coach: the coach's grades kept with the game no longer match the review
-   * (a fresh run would grade other moves by the coach)
+   * measure in full); unconfirmed: the current rules confirm a move on fresh worlds (or check it with Hard play-outs)
+   * that was not so measured (a measurement is never made up); coach: a move rated by the coach's grade from play
+   * (reviews stored before 2026-11-25), which the review no longer does
    */
   why: 'not-kept' | 'unconfirmed' | 'coach';
   moves: number[];
@@ -647,60 +711,61 @@ export type RerateRefusal = {
 /**
  * A stored review rated under the current rules from the measurements kept with it (ReviewMove.ms), with no play-outs:
  * the same measurements judged by the new rules. Pure. For each oracle-graded move the current confirmFlag is applied to
- * its screening pass, as runGameReview would: a flagged move is rated from its confirmation, any other from its screening
- * pass (a move confirmed under older rules that the current ones would not flag goes back to its screening figures). A
- * coach-graded move is rated by rateCoach from the coach's grade in `coach` (the store entry's list) and the screen kept
- * with the move; when the entry keeps no coach grades at all, its coach-graded moves stay as they were rated, exactly as
- * a fresh run keeps them (GameReviewJob.keep).
+ * its screening pass, as runGameReview would: a flagged move is rated from its confirmation, any other from its
+ * screening pass (a move confirmed under older rules that the current ones would not flag goes back to its screening
+ * figures). Then, as the Hard check does (ReviewOptions.hardCheck), in a seat whose Mistakes and Blunders so rated number
+ * 1 to HARD_CHECK_MAX_FLAGS, each of them but a Gig choice is rated from its Hard check. The coach's grade kept beside a
+ * move (`said`) stays as it is. An unrated move stays unrated.
  *
  * The result equals a review run afresh (same game, oracle seed and measurement) whenever the same moves are flagged for
- * confirmation as when it was measured: always under the rules it was made with, and under new rules unless they flag
- * other moves. Otherwise it can differ, even where every flagged move was confirmed: the reviewer draws confirmation
- * worlds from one sequential stream per seat (src/ai/reviewer.ts confirmRnd), so a fresh run that flags another set of
- * moves draws other worlds for the later confirmations. A move the current rules flag that was not confirmed has no
- * confirmation to read, so the review cannot be rated again (`unconfirmed`): it is run again, as before.
+ * confirmation (and the Hard check) as when it was measured: always under the rules it was made with, and under new
+ * rules unless they flag other moves. Otherwise it can differ, even where every flagged move was confirmed: the reviewer
+ * draws confirmation worlds from one sequential stream per seat (src/ai/reviewer.ts confirmRnd), so a fresh run that
+ * flags another set of moves draws other worlds for the later confirmations. A move the current rules flag that was not
+ * so measured has nothing to read, so the review cannot be rated again (`unconfirmed`): it is run again, as before.
  *
  * Under the same rules nothing changes. Under other rules the record gets REVIEW_RULES and `rerated` (the rules it was
  * first rated with). The kept measurements stay as they were, so it can be rated again after the next change too.
  */
-export function rerateRecord(rec: GameReviewRecord, coach?: readonly CoachRating[]): { ok: true; rec: GameReviewRecord } | RerateRefusal {
-  const me = rec.me;
-  const byAt = new Map((coach ?? []).map((c) => [c.at, c]));
+export function rerateRecord(rec: GameReviewRecord): { ok: true; rec: GameReviewRecord } | RerateRefusal {
   const confirming = (rec.confirm ?? GAME_REVIEW_CONFIRM) > 0;
   const missing: number[] = [];
   const unconfirmed: number[] = [];
   const coachOff: number[] = [];
-  const moves = rec.moves.map((m): ReviewMove => {
-    if (m.src === 'coach') {
-      if (m.p !== me) return (coachOff.push(m.seq), m);
-      // no coach grades kept with the game: a fresh run keeps these moves as they were rated
-      if (!byAt.size) return m;
-      const c = byAt.get(m.at);
-      if (!c) return (coachOff.push(m.seq), m);
-      // a costly or wide coach grade now goes to the oracle: can't re-rate from coach measurements
-      if (!coachKept(c)) return (coachOff.push(m.seq), m);
-      if (!m.ms) return (missing.push(m.seq), m);
-      const s = m.ms.s;
-      return coachMove(c, { seq: m.seq, turn: m.turn, ...(s ? { screenTop: s[0]!, chosenRank: s[1]! } : {}) }, m.p);
-    }
-    // a coach grade for a move the oracle graded: a fresh run would hand non-costly ones to the coach
-    if (m.p === me && byAt.has(m.at) && coachKept(byAt.get(m.at)!)) return (coachOff.push(m.seq), m);
-    const first = m.ms ? passFrom(m.ms, m.cat, false) : null;
-    if (!first) return (missing.push(m.seq), m);
+  // each move's pass after the confirmation rule (null: refused, with the move listed)
+  const passes = rec.moves.map((m): OraclePass | null => {
+    // a move rated by the coach's grade (a review stored before 2026-11-25): the review rates every move by the oracle now
+    if (m.src === 'coach') return (coachOff.push(m.seq), null);
+    if (m.r === 'unrated') return null;
+    const first = m.ms ? passFrom(m.ms, m.cat, 'f') : null;
+    if (!first) return (missing.push(m.seq), null);
     const flagged = confirming && !first.decided && !first.top && confirmFlag(first as DecisionReview);
-    const used = flagged ? passFrom(m.ms!, m.cat, true) : first;
-    if (!used) return (unconfirmed.push(m.seq), m);
-    return oracleMove(m, used, m.ms);
+    const used = flagged ? passFrom(m.ms!, m.cat, 'c') : first;
+    if (!used) unconfirmed.push(m.seq);
+    return used;
   });
+  // the Hard check: in a seat with 1 to HARD_CHECK_MAX_FLAGS Mistakes or Blunders, each one but a Gig choice
+  if ((rec.hard ?? 0) > 0)
+    for (const p of [0, 1] as const) {
+      const costly = rec.moves.map((_m, i) => i).filter((i) => rec.moves[i]!.p === p && passes[i] && hardFlag(passes[i] as DecisionReview));
+      if (!costly.length || costly.length > HARD_CHECK_MAX_FLAGS) continue;
+      for (const i of costly) {
+        const m = rec.moves[i]!;
+        if (m.cat === 'gig dice' || passes[i]!.decided) continue;
+        const h = passFrom(m.ms!, m.cat, 'h');
+        if (!h) unconfirmed.push(m.seq);
+        passes[i] = h;
+      }
+    }
+  const moves = rec.moves.map((m, i): ReviewMove => (passes[i] ? oracleMove(m, passes[i]!, m.ms) : m));
+  // a decision the review could not measure has nothing to rate again: run the review again
+  for (const f of rec.failed ?? []) missing.push(f.seq);
   if (missing.length) return { ok: false, why: 'not-kept', moves: missing };
   if (coachOff.length) return { ok: false, why: 'coach', moves: coachOff };
   if (unconfirmed.length) return { ok: false, why: 'unconfirmed', moves: unconfirmed };
   const was = rec.rules ?? 1;
   return { ok: true, rec: { ...rec, ...(was !== REVIEW_RULES ? { rules: REVIEW_RULES, rerated: rec.rerated ?? was } : {}), moves } };
 }
-
-/** Skipped decisions keep the SkippedDecision shape (re-exported for callers that only import this module). */
-export type { SkippedDecision };
 
 // ---------------------------------------------------------------------------------------------------- the summary
 
@@ -723,7 +788,7 @@ export function lossOf(m: Pick<ReviewMove, 'r' | 'gap'>): number {
 export const accuracyOf = (avgLoss: number) => Math.round(100 * Math.exp(-avgLoss / ACCURACY_SCALE_GIGS));
 
 export function seatSummary(moves: readonly ReviewMove[], p: PlayerId, forced = 0): SeatSummary {
-  const n = Object.fromEntries([...RATINGS, 'forced', 'unclear'].map((k) => [k, 0])) as Record<Rating, number>;
+  const n = Object.fromEntries([...RATINGS, 'forced', 'unclear', 'unrated'].map((k) => [k, 0])) as Record<Rating, number>;
   const mine = moves.filter((m) => m.p === p);
   for (const m of mine) n[m.r]++;
   n.forced += forced;

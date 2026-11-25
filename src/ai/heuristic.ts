@@ -153,6 +153,19 @@ export interface HeuristicOptions {
    * across the pool instead of running them one by one. Never set on Node or on clone agents.
    */
   rolloutPool?: import('./playoutPool').RolloutPool | undefined;
+  /**
+   * Observe-only (the coach, src/ai/coach.ts, REVIEW_2026-11-25 C4): also score every deep play-out (main-phase rollouts,
+   * sells compared by rollout, deep reactions, valueMain / valueReaction) with these weights, clamped to ±playOutClamp,
+   * with no 1-ply offset and no Call bonus: the Game review oracle's scale (src/ai/reviewer.ts), into ScoredOption.g. The
+   * same play-out is scored twice, so it costs nothing and never changes a choice. null (default) = off.
+   */
+  gradeWeights?: EvalWeights | null;
+  /**
+   * The coach: main-phase rollouts clamped to ±playOutClamp, as reactions and the grades are, without the start-of-turn
+   * wins `rolloutWins` adds (REVIEW_2026-11-25 C5: the pick was made on unclamped means and graded on clamped ones).
+   * false (default) = as before; no bot sets it.
+   */
+  clampDeep?: boolean;
 }
 
 /** One entry of HeuristicAgent.lastAlternatives. */
@@ -179,6 +192,8 @@ export interface ScoredOption {
   w?: number[];
   /** shared worlds only: added to every world's value to give `v` (5% of the 1-ply value, or a reaction Call's bonus) */
   off?: number;
+  /** gradeWeights only: the play-out's value in each world on the grade scale (clamped, no offset) */
+  g?: number[];
 }
 
 /**
@@ -222,6 +237,24 @@ function planReading(w: EvalWeights, credParity: boolean | undefined): EvalWeigh
 // credParity is folded into `weights` (EvalWeights.credParity), so the resolved options carry it only there
 type ResolvedOptions = Omit<Required<HeuristicOptions>, 'rolloutPool' | 'credParity'> & { rolloutPool: import('./playoutPool').RolloutPool | undefined };
 
+/** The grade-scale values of a group of play-outs (one world), averaged as the values are; null when not graded. */
+const meanOrNull = (xs: number[]) => (xs.length ? xs.reduce((a, x) => a + x, 0) / xs.length : null);
+
+/**
+ * A pool batch's values split: one value per task, and each task's grade-scale value when the config asked for them
+ * (PlayoutConfig.gradeWeights: the playout worker then answers value, grade value, … for each task in order).
+ */
+function splitBatch(raw: number[], graded: boolean): { v: number[]; g: number[] | null } {
+  if (!graded) return { v: raw, g: null };
+  const v: number[] = [];
+  const g: number[] = [];
+  for (let k = 0; k < raw.length; k += 2) {
+    v.push(raw[k]);
+    g.push(raw[k + 1]);
+  }
+  return { v, g };
+}
+
 export class HeuristicAgent implements Agent {
   name: string;
   opts: ResolvedOptions;
@@ -238,6 +271,8 @@ export class HeuristicAgent implements Agent {
   tier?: string;
   /** sellSearch chose not to sell on this turn of this game state: no further sell that turn */
   private noSellAt: { s: object; turn: number } | null = null;
+  /** gradeWeights: the last play-out's value on the grade scale (read right after each awaited rollout; observe-only) */
+  private graded = 0;
 
   /** The bot's random state: read and written by the practice bot worker to keep decisions deterministic across threads. */
   get botRng(): number {
@@ -277,6 +312,8 @@ export class HeuristicAgent implements Agent {
       seed: opts.seed ?? 7,
       quiet: opts.quiet ?? false,
       rolloutPool: opts.rolloutPool ?? undefined,
+      gradeWeights: opts.gradeWeights ?? null,
+      clampDeep: opts.clampDeep ?? false,
     };
     this.name = this.opts.name;
     this.rng = this.opts.seed;
@@ -547,6 +584,9 @@ export class HeuristicAgent implements Agent {
     let deepScored: { i: number; v: number }[] | null = null;
     /** deepWorlds > 1: each rolled-out candidate's value in each world */
     const perWorld = new Map<number, number[]>();
+    /** gradeWeights: the same on the grade scale (observe-only) */
+    const perWorldG = new Map<number, number[]>();
+    const grading = !!this.opts.gradeWeights;
     /** deep: each rolled-out candidate's 1-ply value (observe-only, for lastScores) */
     const plyOf = new Map<number, number>();
     let deepWorldList: World[] | null = null;
@@ -569,16 +609,23 @@ export class HeuristicAgent implements Agent {
       if (worlds && this.opts.rolloutPool) {
         const tasks: import('./playoutPool').MainTask[] = [];
         for (const c of groups) for (const w of worlds) for (const a of c.group) tasks.push({ kind: 'main', action: a, world: w });
-        const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+        const { v: values, g: gValues } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), grading);
         let idx = 0;
         for (const c of groups) {
           const vals: number[] = [];
+          const gv: number[] = [];
           for (const _w of worlds) {
             let sum = 0;
-            for (const _ of c.group) sum += values[idx++];
+            let gs = 0;
+            for (const _ of c.group) {
+              if (gValues) gs += gValues[idx];
+              sum += values[idx++];
+            }
             vals.push(sum / c.group.length);
+            if (gValues) gv.push(gs / c.group.length);
           }
           perWorld.set(c.i, vals);
+          if (gValues) perWorldG.set(c.i, gv);
           const rv = vals.reduce((x, y) => x + y, 0) / vals.length;
           const dv = rv + c.ply * 0.05;
           deepScored.push({ i: c.i, v: dv });
@@ -589,12 +636,20 @@ export class HeuristicAgent implements Agent {
         let rv: number;
         if (worlds) {
           const vals: number[] = [];
+          const gv: number[] = [];
           for (const w of worlds) {
             let sum = 0;
-            for (const a of c.group) sum += await this.rollout(g, p, a, w);
+            const gs: number[] = [];
+            for (const a of c.group) {
+              sum += await this.rollout(g, p, a, w);
+              if (grading) gs.push(this.graded);
+            }
             vals.push(sum / c.group.length);
+            const gm = meanOrNull(gs);
+            if (gm !== null) gv.push(gm);
           }
           perWorld.set(c.i, vals);
+          if (grading) perWorldG.set(c.i, gv);
           rv = vals.reduce((x, y) => x + y, 0) / vals.length;
         } else {
           let sum = 0;
@@ -635,7 +690,8 @@ export class HeuristicAgent implements Agent {
           opts: deepScored.map((x) => {
             const w = perWorld.get(x.i);
             const ply = plyOf.get(x.i)!;
-            return w ? { i: x.i, v: x.v, ply, w, off: ply * 0.05 } : { i: x.i, v: x.v, ply };
+            const gw = perWorldG.get(x.i);
+            return w ? { i: x.i, v: x.v, ply, w, off: ply * 0.05, ...(gw ? { g: gw } : {}) } : { i: x.i, v: x.v, ply };
           }),
           chosen: bestI,
           screen: scored.map((x) => ({ i: x.i, v: x.v })),
@@ -673,28 +729,41 @@ export class HeuristicAgent implements Agent {
     if (this.opts.rolloutPool) {
       const tasks: import('./playoutPool').MainTask[] = [];
       for (const e of entries) for (const world of worlds) for (const x of e.group) tasks.push({ kind: 'main', action: x, world });
-      const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const { v: values, g: gValues } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), !!this.opts.gradeWeights);
       let vi = 0;
       for (const e of entries) {
         const w: number[] = [];
+        const gw: number[] = [];
         for (const _world of worlds) {
           let s = 0;
-          for (const _ of e.group) s += values[vi++];
+          let gs = 0;
+          for (const _ of e.group) {
+            if (gValues) gs += gValues[vi];
+            s += values[vi++];
+          }
           w.push(s / e.group.length);
+          if (gValues) gw.push(gs / e.group.length);
         }
         const off = e.ply * 0.05;
-        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off });
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off, ...(gValues ? { g: gw } : {}) });
       }
     } else {
       for (const e of entries) {
         const w: number[] = [];
+        const gw: number[] = [];
         for (const world of worlds) {
           let s = 0;
-          for (const x of e.group) s += await this.rollout(g, p, x, world);
+          const gs: number[] = [];
+          for (const x of e.group) {
+            s += await this.rollout(g, p, x, world);
+            if (this.opts.gradeWeights) gs.push(this.graded);
+          }
           w.push(s / e.group.length);
+          const gm = meanOrNull(gs);
+          if (gm !== null) gw.push(gm);
         }
         const off = e.ply * 0.05;
-        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off });
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off, ...(this.opts.gradeWeights ? { g: gw } : {}) });
       }
     }
     return out;
@@ -712,29 +781,42 @@ export class HeuristicAgent implements Agent {
       const entries = idx.map((i) => ({ i, group: isUnknownCall(g, rx[i]) ? unknown : [rx[i]], off: rx[i].type === 'call' ? 0.5 : 0 }));
       const tasks: import('./playoutPool').ReactionTask[] = [];
       for (const e of entries) for (const world of worlds) for (const x of e.group) tasks.push({ kind: 'reaction', reaction: x, attacker, world });
-      const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const { v: values, g: gValues } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), !!this.opts.gradeWeights);
       let vi = 0;
       for (const e of entries) {
         const w: number[] = [];
+        const gw: number[] = [];
         for (const _world of worlds) {
           let s = 0;
-          for (const _ of e.group) s += values[vi++];
+          let gs = 0;
+          for (const _ of e.group) {
+            if (gValues) gs += gValues[vi];
+            s += values[vi++];
+          }
           w.push(s / e.group.length);
+          if (gValues) gw.push(gs / e.group.length);
         }
-        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + e.off, w, off: e.off });
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + e.off, w, off: e.off, ...(gValues ? { g: gw } : {}) });
       }
     } else {
       for (const i of idx) {
         const r = rx[i];
         const group = isUnknownCall(g, r) ? unknown : [r];
         const w: number[] = [];
+        const gw: number[] = [];
         for (const world of worlds) {
           let s = 0;
-          for (const x of group) s += await this.reactionWorld(g, p, x, world);
+          const gs: number[] = [];
+          for (const x of group) {
+            s += await this.reactionWorld(g, p, x, world);
+            if (this.opts.gradeWeights) gs.push(this.graded);
+          }
           w.push(s / group.length);
+          const gm = meanOrNull(gs);
+          if (gm !== null) gw.push(gm);
         }
         const off = r.type === 'call' ? 0.5 : 0;
-        out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off });
+        out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off, ...(this.opts.gradeWeights ? { g: gw } : {}) });
       }
     }
     return out;
@@ -747,6 +829,7 @@ export class HeuristicAgent implements Agent {
     cg.s.rng = w.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { reaction: r, attacker });
+    if (this.opts.gradeWeights) this.graded = playOutValue(cg, p, this.opts.gradeWeights, { wins: this.opts.rolloutWins, clamp: true });
     return playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
   }
 
@@ -812,7 +895,14 @@ export class HeuristicAgent implements Agent {
 
   /** Config for the playout pool: the serialisable subset of this agent's state a sub-worker needs. */
   private playoutConfig(g: Game, p: PlayerId): import('./playoutPool').PlayoutConfig {
-    return { rawWeights: this.opts.weights, profiles: this.opts.profiles, evalWeights: this.w(g, p), rolloutWins: this.opts.rolloutWins };
+    return {
+      rawWeights: this.opts.weights,
+      profiles: this.opts.profiles,
+      evalWeights: this.w(g, p),
+      rolloutWins: this.opts.rolloutWins,
+      ...(this.opts.gradeWeights ? { gradeWeights: this.opts.gradeWeights } : {}),
+      ...(this.opts.clampDeep ? { clampDeep: true } : {}),
+    };
   }
 
   /**
@@ -838,7 +928,8 @@ export class HeuristicAgent implements Agent {
     hideInfo(cg, p);
     await playOut(cg, p, a === null ? { rest: true } : { action: a });
     const wins = this.opts.rolloutWins;
-    return playOutValue(cg, p, this.w(g, p), { wins, clamp: wins });
+    if (this.opts.gradeWeights) this.graded = playOutValue(cg, p, this.opts.gradeWeights, { wins, clamp: true });
+    return playOutValue(cg, p, this.w(g, p), { wins, clamp: wins || this.opts.clampDeep });
   }
 
   /**
@@ -1002,42 +1093,56 @@ export class HeuristicAgent implements Agent {
     const worlds = makeWorlds(this.opts.deepReactions, () => this.rand());
     /** each valued reaction's per-world values (observe-only, for lastScores) */
     const seen = new Map<Reaction, number[]>();
+    /** gradeWeights: the same on the grade scale (observe-only) */
+    const seenG = new Map<Reaction, number[]>();
+    const grading = !!this.opts.gradeWeights;
     let value: (r: Reaction) => Promise<number>;
     if (this.opts.rolloutPool && g.s.attack) {
       const attacker = g.s.attack.attacker;
       const tasks: import('./playoutPool').ReactionTask[] = [];
       for (const r of rx) for (const w of worlds) tasks.push({ kind: 'reaction', reaction: r, attacker, world: w });
-      const vals = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const { v: vals, g: gVals } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), grading);
       const precomputed = new Map<number, number[]>();
+      const precomputedG = new Map<number, number[]>();
       let vi = 0;
       for (let i = 0; i < rx.length; i++) {
         const wv: number[] = [];
-        for (const _w of worlds) wv.push(vals[vi++]);
+        const gv: number[] = [];
+        for (const _w of worlds) {
+          if (gVals) gv.push(gVals[vi]);
+          wv.push(vals[vi++]);
+        }
         precomputed.set(i, wv);
+        if (gVals) precomputedG.set(i, gv);
       }
       value = async (r: Reaction) => {
         const i = rx.indexOf(r);
         const wv = precomputed.get(i)!;
         seen.set(r, wv);
+        const gv = precomputedG.get(i);
+        if (gv) seenG.set(r, gv);
         return wv.reduce((x, y) => x + y, 0) / wv.length;
       };
     } else {
       value = async (r: Reaction) => {
         let sum = 0;
         const vals: number[] = [];
+        const gv: number[] = [];
         for (const w of worlds) {
           const v = await this.reactionWorld(g, p, r, w);
+          if (grading) gv.push(this.graded);
           vals.push(v);
           sum += v;
         }
         seen.set(r, vals);
+        if (grading) seenG.set(r, gv);
         return sum / worlds.length;
       };
     }
     const baseV = endIdx >= 0 ? await value(rx[endIdx]) : -Infinity;
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
-    this.lastScores = { kind: 'reaction', scale: 'deep', opts: reactionScores(g, rx, (r) => seen.get(r) ?? null), chosen: bestI, worlds, d };
+    this.lastScores = { kind: 'reaction', scale: 'deep', opts: reactionScores(g, rx, (r) => seen.get(r) ?? null, grading ? (r) => seenG.get(r) ?? null : undefined), chosen: bestI, worlds, d };
     return bestI;
   }
 
@@ -1555,19 +1660,22 @@ function fastPrior(g: Game, a: Action): number {
  * The reactions a decision valued, as lastScores options: per-world values from `vals` (an unknown Call is the mean over
  * every unknown slot, as pickReaction values it), plus pickReaction's 0.5 for a Call. Options never valued are left out.
  */
-function reactionScores(g: Game, rx: Reaction[], vals: (r: Reaction) => number[] | null): ScoredOption[] {
+function reactionScores(g: Game, rx: Reaction[], vals: (r: Reaction) => number[] | null, gradeVals?: (r: Reaction) => number[] | null): ScoredOption[] {
   const unknown = rx.filter((r) => isUnknownCall(g, r));
+  // an unknown Call: the mean over every unknown slot, world by world
+  const valuesOf = (r: Reaction, f: (r: Reaction) => number[] | null): number[] | null => {
+    if (!isUnknownCall(g, r)) return f(r);
+    const all = unknown.map(f);
+    return all.every((x): x is number[] => x !== null) && all.length ? all[0].map((_, k) => all.reduce((a, x) => a + x[k], 0) / all.length) : null;
+  };
   const out: ScoredOption[] = [];
   for (let i = 0; i < rx.length; i++) {
     const r = rx[i];
-    let w: number[] | null;
-    if (isUnknownCall(g, r)) {
-      const all = unknown.map(vals);
-      w = all.every((x): x is number[] => x !== null) && all.length ? all[0].map((_, k) => all.reduce((a, x) => a + x[k], 0) / all.length) : null;
-    } else w = vals(r);
+    const w = valuesOf(r, vals);
     if (!w || !w.length) continue;
     const off = r.type === 'call' ? 0.5 : 0;
-    out.push({ i, v: w.reduce((a, x) => a + x, 0) / w.length + off, w, off });
+    const gw = gradeVals ? valuesOf(r, gradeVals) : null;
+    out.push({ i, v: w.reduce((a, x) => a + x, 0) / w.length + off, w, off, ...(gw && gw.length === w.length ? { g: gw } : {}) });
   }
   return out;
 }

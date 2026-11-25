@@ -2,15 +2,17 @@
 // drawer on the full board, the sheet on phones), the verdict toast after each move, and the end-of-game scorecard. The
 // advice itself comes from useCoach (src/ui/useCoach.ts); every Gig figure and grade name goes through
 // src/lib/coachWords.ts, so the toast, the scorecard and the Game review use one vocabulary and never print more Gigs
-// than can exist.
+// than can exist. A verdict is never sized in Gigs: a costly grade says what moves of its band cost in win chance, as
+// measured (src/lib/ratingCost.ts, docs/REVIEW_2026-11-25.md row 6); Gig figures stay only on the options the coach
+// weighed (the alternatives), with the note that they are not win chance.
 import { memo, useState } from 'react';
 import type { Game } from '../../../engine/engine';
 import type { Advice, MoveGrade } from '../../../ai/coach';
 import { Markdown } from '../Markdown';
 import { MentionText } from '../CardMention';
 import { coachSummary } from '../../../lib/practiceLog';
-import { fixedTerms, RATING_INFO } from '../../../lib/gameReview';
-import { behindText, GIG_NOTE, isWideClose, shownLabel, verdictRating } from '../../../lib/coachWords';
+import { BEST_GIGS, fixedTerms, RATING_INFO } from '../../../lib/gameReview';
+import { COACH_COST_NOTE, coachCostWords, GIG_NOTE, isWideClose, shownLabel, verdictRating } from '../../../lib/coachWords';
 
 export const NO_ALTS: Advice['alternatives'] = [];
 type Alt = Advice['alternatives'][number];
@@ -22,9 +24,12 @@ export interface CoachNote {
   thinking?: boolean;
 }
 
-/** An alternative's gap as the panel shows it: "≈ close call", or its tag from the coach ("−0.4 ± 0.1 Gigs", …). */
-export function altText(a: Pick<Alt, 'close' | 'gap'>): string {
-  return a.close ? '≈ close call' : a.gap;
+/** An alternative within the noise of the pick reads "as good" (within 0.1 Gigs, or valued higher) or "close call". */
+const closeWord = (a: Pick<Alt, 'gapGigs'>) => (a.gapGigs <= BEST_GIGS ? 'as good' : 'close call');
+
+/** An alternative's gap as the panel shows it: "≈ as good", "≈ close call", or its tag from the coach ("−0.4 ± 0.1 Gigs", …). */
+export function altText(a: Pick<Alt, 'close' | 'gap' | 'gapGigs'>): string {
+  return a.close ? `≈ ${closeWord(a)}` : a.gap;
 }
 
 /** The move made and the coach's pick name the same option (both as the board names them). */
@@ -33,21 +38,44 @@ const samePick = (gr: MoveGrade) => shownLabel(gr.chose) === shownLabel(gr.coach
 /** The toast's mark (never colour alone: the review's rating marks) and its class (the colour). */
 function markOf(gr: MoveGrade): { icon: string; tone: string } {
   const r = verdictRating(gr.verdict, gr.gap);
-  if (r) return { icon: RATING_INFO[r].mark, tone: r === 'best' ? 'agree' : r === 'close' ? 'close' : 'miss' };
+  if (r) return { icon: RATING_INFO[r].mark, tone: r === 'best' ? 'agree' : r === 'close' ? 'close' : r === 'unclear' ? 'wait' : 'miss' };
   if (gr.verdict === 'pending') return { icon: '…', tone: 'wait' };
   return { icon: samePick(gr) ? '✓' : '·', tone: 'wait' };
 }
 
+/** Why a choice is not measured, when there is more to say than "not measured". */
+function notMeasuredWhy(gr: MoveGrade): string {
+  switch (gr.notMeasured) {
+    case 'mulligan':
+      return 'mulligans are not graded: the play-outs can’t tell keeping from mulliganing apart';
+    case 'gig':
+      return 'not measured during play; 🔍 Game review grades Gig choices';
+    case 'check':
+      return 'not measured: the check on fresh play-outs did not finish';
+    default:
+      return 'not measured';
+  }
+}
+
+/** "checked on 16 fresh play-outs" for a confirmed grade, else null. */
+const checked = (gr: MoveGrade) => (gr.confirmed ? `checked on ${gr.confirmed} fresh play-outs` : null);
+
 /**
  * The verdict on one move in words, with the Game review's names (src/lib/gameReview.ts RATING_INFO): Best, Close call,
- * Slip, Mistake, Blunder. A wide close call (a gap of CLOSE_GIGS or more that is inside the noise only because the
- * coach's play-outs disagree) says it is too noisy to call, not that the coach "slightly" preferred its pick.
+ * Slip, Mistake, Blunder, No clear difference. A wide close call (a gap of CLOSE_GIGS or more that is inside the noise
+ * only because the coach's play-outs disagree) says it is too noisy to call, not that the coach "slightly" preferred its
+ * pick. Every Slip or worse, and every wide close call, was checked on fresh play-outs first ("Checking your move…").
+ * A costly grade says what moves of its band cost in win chance on average (coachCostWords), never its gap in Gigs.
  */
 export function verdictText(gr: MoveGrade): string {
   const coach = shownLabel(gr.coach);
   const r = verdictRating(gr.verdict, gr.gap);
   const name = r ? RATING_INFO[r].label : '';
   switch (gr.verdict) {
+    case 'unclear':
+      return gr.decided
+        ? `${name}: the game was already decided in the coach's play-outs, whatever the move`
+        : `${name}: every option the coach weighed comes out about the same${samePick(gr) ? '' : ` (it picked ${coach})`}`;
     case 'agree':
       return `${name}: the coach's pick`;
     case 'best':
@@ -55,15 +83,17 @@ export function verdictText(gr: MoveGrade): string {
     case 'close':
       if (!isWideClose(gr.gap)) return `${name}: the coach slightly preferred ${coach}`;
       // the same difference in every play-out: fixed terms of the evaluation, not a measurement (COACH-14)
-      if (fixedTerms(gr.se)) return `${name} (not measured): the coach preferred ${coach} (${behindText(gr.gap ?? 0)}), but only by fixed terms of its evaluation, about the same in every play-out`;
-      return `${name} (too noisy to call): the coach preferred ${coach}, but its play-outs disagree (${behindText(gr.gap ?? 0, gr.se)})`;
+      if (fixedTerms(gr.se)) return `${name} (not measured): the coach preferred ${coach}, but only by fixed terms of its evaluation, about the same in every play-out`;
+      return `${name} (too noisy to call): the coach preferred ${coach}, but its play-outs disagree${checked(gr) ? ` (${checked(gr)})` : ''}`;
     case 'inaccuracy':
-    case 'mistake':
-      return `${name}: the coach preferred ${coach} (${behindText(gr.gap ?? 0, gr.se)})`;
+    case 'mistake': {
+      const said = [checked(gr), coachCostWords(gr.verdict, gr.gap)].filter(Boolean).join('; ');
+      return `${name}: the coach preferred ${coach}${said ? ` (${said})` : ''}`;
+    }
     case 'pending':
       return 'Checking your move…';
     case 'unscored':
-      return samePick(gr) ? "Same as the coach's pick (not measured)" : `Coach picked ${coach} (not measured)`;
+      return samePick(gr) ? `Same as the coach's pick (${notMeasuredWhy(gr)})` : `Coach picked ${coach} (${notMeasuredWhy(gr)})`;
   }
 }
 
@@ -82,31 +112,48 @@ export function MoveToast({ gr }: { gr: MoveGrade }) {
 const isFine = (g: MoveGrade) => g.verdict === 'agree' || g.verdict === 'best' || g.verdict === 'close';
 const isCostly = (g: MoveGrade) => g.verdict === 'inaccuracy' || g.verdict === 'mistake';
 
+/** "1 Mistake, 2 Slips": the costly moves by rating name, worst first. */
+function costlyNames(costly: readonly MoveGrade[]): string {
+  const n = new Map<string, number>();
+  for (const m of costly) {
+    const r = verdictRating(m.verdict, m.gap);
+    if (r) n.set(r, (n.get(r) ?? 0) + 1);
+  }
+  const order = ['blunder', 'mistake', 'slip'] as const;
+  return order.flatMap((r) => (n.get(r) ? [`${n.get(r)} ${RATING_INFO[r].label}${n.get(r) === 1 ? '' : 's'}`] : [])).join(', ');
+}
+
 /**
- * End-of-game check against the coach: how many of the moves it measured during play (main-phase moves and reactions,
- * against its pick in its play-outs) were Best or a Close call, and the costliest. It is not the game's rating: the Game
- * review rates every move. Choices the coach decides by rule (targets, Gig picks, the mulligan) are not measured, so
- * they count neither way; with nothing measured there is no letter.
+ * End-of-game check against the coach (REVIEW_2026-11-25 C3): first the costly moves (Slip or worse, every one checked on
+ * fresh play-outs before it was shown), then the share of the decisions that mattered handled well (the coach's pick, as
+ * good, or a close call), with its letter (practiceLog.ts SCORECARD_CUTS: set from bot players of known strength). A
+ * decision where every option came out about the same (No clear difference) is left out, as the Game review leaves it
+ * out: a uniformly random player used to score 73–75% "fine" mostly on such decisions. It is not the game's rating: the
+ * Game review rates every move. Choices the coach decides by rule (targets, Gig picks, the mulligan) are not measured.
  */
 export function Scorecard({ grades }: { grades: MoveGrade[] }) {
   if (!grades.length) return null;
   const measured = grades.filter((x) => isFine(x) || isCostly(x));
-  const other = grades.length - measured.length;
+  const unclear = grades.filter((x) => x.verdict === 'unclear').length;
+  const other = grades.length - measured.length - unclear;
   const footer = (
     <div className="small muted scorecard-note">
-      This checks only your moves the coach measured against its pick during play; 🔍 Game review rates every move of the game. {GIG_NOTE}
+      This checks only your moves the coach measured against its pick during play; 🔍 Game review rates every move of the game. {COACH_COST_NOTE}
     </div>
+  );
+  const asides = (
+    <>
+      {unclear > 0 && `${unclear} ${unclear === 1 ? 'decision' : 'decisions'} made no clear difference (not counted).`}
+      {unclear > 0 && other > 0 && ' '}
+      {other > 0 && `${other} other ${other === 1 ? 'choice' : 'choices'} not measured (targets, modes and Gig picks are decided by rule; mulligans are not graded).`}
+    </>
   );
   if (!measured.length) {
     return (
       <div className="scorecard">
         <div>
-          <b>Against the coach’s pick: no moves measured this game.</b>
-          {other > 0 && (
-            <div className="small muted">
-              {other} {other === 1 ? 'choice was' : 'choices were'} not measured (the coach decides targets, Gig picks and the mulligan by rule).
-            </div>
-          )}
+          <b>Against the coach’s pick: no decision that mattered was measured this game.</b>
+          {(unclear > 0 || other > 0) && <div className="small muted">{asides}</div>}
           {footer}
         </div>
       </div>
@@ -115,27 +162,26 @@ export function Scorecard({ grades }: { grades: MoveGrade[] }) {
   // the same numbers the practice log keeps for the profile (src/lib/practiceLog.ts coachSummary)
   const { fine, pct, grade } = coachSummary(grades)!;
   const close = grades.filter((x) => x.verdict === 'close').length;
-  const costly = measured
-    .filter(isCostly)
-    .sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0))
-    .slice(0, 3);
+  const costlyAll = measured.filter(isCostly);
+  const costly = [...costlyAll].sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0)).slice(0, 3);
   return (
     <div className="scorecard">
-      <div className={`scorecard-grade g-${grade}`} aria-label={`Grade ${grade} against the coach's pick`}>
+      <div className={`scorecard-grade g-${grade}`} aria-label={`Grade ${grade} against the coach's pick`} title="The share of decisions that mattered handled well, against bot players: A about as well as Hard, B Medium, C Easy, D a random player">
         {grade}
       </div>
       <div>
-        <b>
-          Against the coach’s pick: {fine} of {measured.length} measured {measured.length === 1 ? 'move was' : 'moves were'} Best or a Close call ({pct}%)
-        </b>
-        {(close > 0 || other > 0) && (
+        <b>{costlyAll.length ? `Costly moves: ${costlyAll.length} (${costlyNames(costlyAll)}), each checked on fresh play-outs` : 'No costly moves against the coach’s pick'}</b>
+        <div>
+          Handled well: {fine} of {measured.length} {measured.length === 1 ? 'decision' : 'decisions'} that mattered ({pct}%)
+        </div>
+        {(close > 0 || unclear > 0 || other > 0) && (
           <div className="small muted">
-            {close > 0 && `${close} ${close === 1 ? 'was a close call' : 'were close calls'} (counted as fine).`}
-            {close > 0 && other > 0 && ' '}
-            {other > 0 && `${other} other ${other === 1 ? 'choice' : 'choices'} not measured.`}
+            {close > 0 && `${close} ${close === 1 ? 'was a close call' : 'were close calls'} (counted as handled well).`}
+            {close > 0 && (unclear > 0 || other > 0) && ' '}
+            {asides}
           </div>
         )}
-        {costly.length > 0 ? (
+        {costly.length > 0 && (
           <ul>
             {costly.map((m, k) => {
               const r = verdictRating(m.verdict, m.gap);
@@ -145,15 +191,11 @@ export function Scorecard({ grades }: { grades: MoveGrade[] }) {
                   <b>
                     <MentionText text={shownLabel(m.coach)} />
                   </b>{' '}
-                  <span className="neg">
-                    {r ? RATING_INFO[r].label : ''}, {behindText(m.gap ?? 0, m.se)}
-                  </span>
+                  <span className="neg">{r ? RATING_INFO[r].label : ''}</span>
                 </li>
               );
             })}
           </ul>
-        ) : (
-          <div className="small muted">No costly differences from the coach’s pick.</div>
         )}
         {footer}
       </div>
@@ -207,7 +249,7 @@ export function CoachBox({
       )}
       {next && (!compact || open) && (
         <div className="small pb-coach-next">
-          <span className="muted">Next best:</span> <MentionText text={next.label} /> <span className="muted">({next.close ? 'close call: either is fine' : altText(next)})</span>
+          <span className="muted">Next best:</span> <MentionText text={next.label} /> <span className="muted">({next.close ? `${closeWord(next)}: either is fine` : altText(next)})</span>
         </div>
       )}
     </div>
