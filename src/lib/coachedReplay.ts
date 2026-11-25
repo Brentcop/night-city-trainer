@@ -29,15 +29,29 @@ export interface CoachedDecision {
   why: string;
   /** the other options it weighed, best first: gap in Gigs (≥ 0), whether within the noise, paired standard error */
   alternatives: Advice['alternatives'];
-  /** the grade of your move (src/ai/coach.ts gradeMove): gap in Gigs (null when not measured) and its standard error */
+  /**
+   * the grade of your move (src/ai/coach.ts gradeMove): gap in Gigs (null when not measured) and its standard error. A
+   * Slip or worse or a wide close call is the confirmed grade (`confirmed` fresh worlds, values in `fresh`), and
+   * `screen` what the advice's own worlds said. A decision with no clear difference (shown as No clear difference since
+   * 2026-11-25) keeps its verdict by the gap alone (MoveGrade.band: agree, best, close) with `unclear: true`, so a Game
+   * review reads it as before and rates it No clear difference by the same test (src/lib/gameReview.ts rateCoach).
+   */
   verdict: MoveVerdict;
   gap: number | null;
   se?: number;
+  confirmed?: number;
+  screen?: { verdict: MoveVerdict; gap: number; se?: number };
+  /** the coach's pick and your move on the confirmation's fresh worlds, as `scores` (evaluation points, grade scale) */
+  fresh?: GradedOption[];
+  /** no clear difference (the board's verdict 'unclear'); `decided`: because the game was already decided in the play-outs */
+  unclear?: boolean;
+  decided?: boolean;
   /** what the coach scored: main-phase actions, its sell comparison, or reactions (absent when a rule decided) */
   scoreKind?: 'main' | 'sell' | 'reaction';
   /**
    * The coach's values per option it scored, in evaluation points (`gigSwing` points = 1 Gig): `v` the value, `w` the
-   * value in each shared world when there were several. Includes a move scored after you made it.
+   * value in each shared world when there were several. Includes a move scored after you made it. Since 2026-11-25 on the
+   * grade scale, the Game review oracle's (src/ai/coach.ts COACH_CONFIG.gradeWeights); before, the coach's profiled scale.
    */
   scores: GradedOption[];
 }
@@ -65,11 +79,14 @@ const scoresOf = (a: Advice, extra: readonly GradedOption[] | undefined): Graded
   return [...out.values()];
 };
 
+const copyScores = (xs: readonly GradedOption[]) => xs.map((o) => ({ i: o.i, v: o.v, ...(o.w ? { w: [...o.w] } : {}) }));
+
 /**
  * The grade of your move at decision `d` with the record the export needs. `at`: how many answers were recorded before
- * this one; `extra`: options scored after the move (scoreMoveRequest), when there were any.
+ * this one; `extra`: options scored after the move (scoreMoveRequest), when there were any; `fresh`: the confirmation's
+ * values (confirmMoveRequest), for a confirmed grade.
  */
-export function coachedGrade(d: Decision, chosen: number, advice: Advice, grade: MoveGrade, at: number, extra?: readonly GradedOption[]): CoachedGrade {
+export function coachedGrade(d: Decision, chosen: number, advice: Advice, grade: MoveGrade, at: number, extra?: readonly GradedOption[], fresh?: readonly GradedOption[]): CoachedGrade {
   const record: CoachedDecision = {
     at,
     turn: grade.turn,
@@ -81,11 +98,16 @@ export function coachedGrade(d: Decision, chosen: number, advice: Advice, grade:
     coach: advice.index,
     why: advice.why,
     alternatives: advice.alternatives.map((x) => ({ ...x })),
-    verdict: grade.verdict,
+    verdict: grade.verdict === 'unclear' ? (grade.band ?? 'close') : grade.verdict,
     gap: grade.gap,
     ...(grade.se !== undefined ? { se: grade.se } : {}),
+    ...(grade.confirmed ? { confirmed: grade.confirmed } : {}),
+    ...(grade.screen ? { screen: { ...grade.screen } } : {}),
+    ...(grade.verdict === 'unclear' ? { unclear: true } : {}),
+    ...(grade.decided ? { decided: true } : {}),
     ...(advice.grade ? { scoreKind: advice.grade.kind } : {}),
     scores: scoresOf(advice, extra),
+    ...(grade.confirmed && fresh?.length ? { fresh: copyScores(fresh) } : {}),
   };
   return { ...grade, record };
 }

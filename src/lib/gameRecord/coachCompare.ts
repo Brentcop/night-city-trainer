@@ -1,8 +1,9 @@
 // Compare a full-information record with the coach and the bots (docs/GAME_RECORD.md "Compare"): the record is replayed
 // (./replay.ts) and, at every decision of the seats asked for, the game is stopped and asked, on copies of the position,
 //  - the coach, exactly as the Play page asks it: a snapshot of the position (coachRequest), advice for it
-//    (adviseRequest), the move graded against the advice (gradeMove), and a move the coach did not value scored in the
-//    worlds of its advice (scoreMoveRequest) before it is graded again; decisions the coach does not advise on
+//    (adviseRequest), the move graded against the advice (gradeMove), a move the coach did not value scored in the
+//    worlds of its advice (scoreMoveRequest) before it is graded again, and a Slip or worse or a wide close call
+//    confirmed on fresh worlds (gradeFully: confirmMoveRequest, gradeConfirmed); decisions the coach does not advise on
 //    (coachWorthAsking: one option, a payment, an effect order) are skipped and counted, as the board skips them;
 //  - each bot asked for (makeBot), a new one for each decision with a fixed seed, on its own copy of the position.
 // Nothing here changes the replay: the copies are made from the state while the replay's hooks are off, and the answer
@@ -11,7 +12,7 @@
 // The coach's grades carry noise that the replay seed draws (its play-outs re-deal unseen cards from the replay's random
 // state and deck order), so a record is compared under several replay seeds (compareSeeds) and the runs are lined up
 // decision by decision (aggregateSeeds): a move is a settled Mistake only under four fifths of the seeds (settledCount).
-import { adviseRequest, COACH_WORLDS, coachAdvises, coachRequest, coachWorthAsking, gradeMove, scorable, scoreMoveRequest, type Advice, type CoachRequest, type MoveGrade } from '../../ai/coach';
+import { adviseRequest, COACH_WORLDS, coachAdvises, coachRequest, coachWorthAsking, gradeFully, scorable, type Advice, type CoachRequest, type MoveGrade } from '../../ai/coach';
 import type { SeatLift } from '../../ai/packageLift';
 import { Game } from '../../engine/engine';
 import type { Agent, Decision, PlayerId } from '../../engine/types';
@@ -156,9 +157,13 @@ export function gradeWords(gr: MoveGrade, byRule: boolean): string {
     case 'inaccuracy':
     case 'mistake':
       return `${name}, ${behindText(gr.gap ?? 0, gr.se)}`;
+    case 'unclear':
+      return gr.decided ? `${name} (the game was already decided in the play-outs)` : `${name} (every option the coach weighed comes out about the same)`;
     case 'pending':
       return 'not scored';
     case 'unscored':
+      if (gr.notMeasured === 'mulligan') return 'not graded (mulligans are not graded)';
+      if (gr.notMeasured === 'check') return 'not measured (the check on fresh worlds failed)';
       return byRule ? 'not measured (the coach decides this by rule)' : 'not measured (the move could not be scored)';
   }
 }
@@ -240,11 +245,7 @@ export async function compareRecord(rec: GameRecord, o: CompareOptions): Promise
     } catch (e) {
       return skip('declined', (e as Error).message);
     }
-    let grade = gradeMove(d, answer, advice, turn);
-    if (grade.verdict === 'pending') {
-      const extra = await scoreMoveRequest({ req, chosen: answer, coach: advice.index, ...(advice.grade ? { grade: advice.grade } : {}) }).catch(() => []);
-      grade = gradeMove(d, answer, advice, turn, extra);
-    }
+    const { grade } = await gradeFully(req, answer, advice, turn);
     const coachMs = Date.now() - t0;
     // each bot on its own copy of the position
     const picks: BotPick[] = [];
@@ -333,8 +334,12 @@ export function compareText(r: CompareReport, file = 'record'): string {
     const sum = coachSummary(grades);
     const unmeasured = grades.filter((g) => verdictRating(g.verdict, g.gap) === null).length;
     const close = grades.filter((g) => g.verdict === 'close').length;
-    if (!sum || !sum.measured) out.push(`    ${seatName(p)} (${r.players[p]}): no moves measured${unmeasured ? `; ${unmeasured} not measured` : ''}.`);
-    else out.push(`    ${seatName(p)} (${r.players[p]}): grade ${sum.grade}, ${sum.fine} of ${sum.measured} measured moves Best or a Close call (${sum.pct}%)${close ? `; ${close} close call${close === 1 ? '' : 's'} counted as fine` : ''}${unmeasured ? `; ${unmeasured} not measured` : ''}.`);
+    const unclear = sum?.unclear ? `; ${sum.unclear} with no clear difference (not counted)` : '';
+    if (!sum || !sum.measured) out.push(`    ${seatName(p)} (${r.players[p]}): no decisions that mattered measured${unclear}${unmeasured ? `; ${unmeasured} not measured` : ''}.`);
+    else
+      out.push(
+        `    ${seatName(p)} (${r.players[p]}): ${sum.costly ?? 0} costly (confirmed); grade ${sum.grade}, ${sum.fine} of ${sum.measured} decisions that mattered Best or a Close call (${sum.pct}%)${close ? `; ${close} close call${close === 1 ? '' : 's'} counted as fine` : ''}${unclear}${unmeasured ? `; ${unmeasured} not measured` : ''}.`,
+      );
   }
   const c = r.compared;
   const measured = c.filter((x) => verdictRating(x.coach.grade.verdict, x.coach.grade.gap) !== null);
@@ -557,7 +562,7 @@ export function seedsText(reports: readonly CompareReport[], file = 'record'): s
     const close = per.map((gs) => gs.filter((g) => g.verdict === 'close').length);
     const unmeasured = per.map((gs) => gs.filter((g) => verdictRating(g.verdict, g.gap) === null).length);
     out.push(
-      `    ${seatName(p)} (${first.players[p]}): grade ${grades.length === 1 ? grades[0] : `${grades[0]} to ${grades[grades.length - 1]}`}, ${ofRange(sums.map((s) => [s?.fine ?? 0, s?.measured ?? 0]))} measured moves Best or a Close call${close.some((x) => x > 0) ? `; ${range(close)} close calls counted as fine` : ''}${unmeasured.some((x) => x > 0) ? `; ${range(unmeasured)} not measured` : ''}.`,
+      `    ${seatName(p)} (${first.players[p]}): grade ${grades.length === 1 ? grades[0] : `${grades[0]} to ${grades[grades.length - 1]}`}, ${ofRange(sums.map((s) => [s?.fine ?? 0, s?.measured ?? 0]))} decisions that mattered Best or a Close call${close.some((x) => x > 0) ? `; ${range(close)} close calls counted as fine` : ''}${unmeasured.some((x) => x > 0) ? `; ${range(unmeasured)} not measured` : ''}.`,
     );
   }
   out.push(`  Agreement with the record's moves (the same option, or another copy of the same card), the range over the ${N} seeds:`);

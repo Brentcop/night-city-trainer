@@ -3,14 +3,18 @@
 // before that advice arrived (ROADMAP2 §11 item 15) gets a placeholder at its place among the grades now, and the grade
 // takes that place when the advice for THAT decision lands (the coach client keeps that request even when the next
 // decision's advice is asked: src/ui/useCoach.ts `adviceFor`). Either way a move the coach did not value is then scored
-// in the advice's worlds and its grade finished in place.
+// in the advice's worlds and its grade finished in place, and a grade that would show a Slip or worse, or a close call as
+// wide as a Mistake, is first checked on fresh worlds (REVIEW_2026-11-25 C1: src/ai/coach.ts needsConfirm,
+// confirmMoveRequest, gradeConfirmed): the toast says "Checking your move…" meanwhile, and only the confirmed verdict
+// ever settles, in the toast, the scorecard, the practice log and the export.
 //
 // Grading never reads or changes the game: only `grades`, the session's list (src/lib/practiceSession.ts), which Undo
 // truncates by count. That is why the placeholder goes in at answer time: the grades stay in answer order and every
-// snapshot's count stays right, and a grade that lands for a move Undo took back finds its placeholder gone and is
-// dropped, never given to a later move. Advice that never comes (the coach declined, or closed) leaves the placeholder
-// as a move not measured.
-import { gradeMove, type Advice, type GradedOption } from '../ai/coach';
+// snapshot's count stays right, and a grade (or a confirmation) that lands for a move Undo took back finds its
+// placeholder gone and is dropped, never given to a later move. Advice that never comes (the coach declined, or closed)
+// leaves the placeholder as a move not measured; so does a confirmation that never comes (the screened verdict is
+// never shown unconfirmed: it was 10–20% likely to call an equal move a Slip).
+import { gradeConfirmed, gradeMove, needsConfirm, type Advice, type GradedOption, type MoveGrade } from '../ai/coach';
 import type { Decision } from '../engine/types';
 import { coachedGrade, type CoachedGrade } from './coachedReplay';
 import { optionName } from './coachWords';
@@ -23,6 +27,8 @@ export interface GradeContext {
   grades: CoachedGrade[];
   /** score a move the coach did not value, in the worlds of its advice (CoachApi.score) */
   score: (d: Decision, chosen: number, a: Advice) => Promise<GradedOption[]>;
+  /** the coach's pick and the move made on fresh worlds, for a flagged grade (CoachApi.confirm) */
+  confirm: (d: Decision, chosen: number, a: Advice) => Promise<GradedOption[]>;
   /**
    * A grade was given (`replaced` null), finished in place of a pending one, or landed in place of an early move's
    * placeholder (`replaced` is the grade or placeholder it took the place of).
@@ -32,28 +38,44 @@ export interface GradeContext {
 
 /**
  * Grade answer `chosen` at decision `d` (answer `at` of the game, made on turn `turn`) against `advice`: pushed, or put
- * in place of `slot` (an early move's placeholder; nothing when Undo took it away). Returns the grade, or null.
+ * in place of `slot` (an early move's placeholder; nothing when Undo took it away). Returns the grade first shown (a
+ * pending one while the move is scored or checked), or null.
  */
 export function gradeWithAdvice(ctx: GradeContext, d: Decision, chosen: number, advice: Advice, at: number, turn: number, slot?: CoachedGrade): CoachedGrade | null {
-  const gr = coachedGrade(d, chosen, advice, gradeMove(d, chosen, advice, turn), at);
-  if (slot) {
-    const k = ctx.grades.indexOf(slot);
-    if (k < 0) return null;
-    ctx.grades[k] = gr;
-  } else ctx.grades.push(gr);
-  ctx.onGrade(gr, slot ?? null);
-  if (gr.verdict === 'pending') {
-    // a move the coach did not value: scored in its worlds off the board's thread; play goes on meanwhile. Undo truncates
-    // `grades`, so a score that arrives for an undone move finds its grade gone and is dropped.
-    const settle = (extra: GradedOption[]) => {
-      const k = ctx.grades.indexOf(gr);
-      if (k < 0) return;
-      const done = coachedGrade(d, chosen, advice, gradeMove(d, chosen, advice, gr.turn, extra), at, extra);
-      ctx.grades[k] = done;
-      ctx.onGrade(done, gr);
-    };
-    ctx.score(d, chosen, advice).then(settle, () => settle([]));
-  }
+  /** Put `gr` in place of `old` (or at the end when `old` is null); false when Undo took `old` away. */
+  const put = (gr: CoachedGrade, old: CoachedGrade | null): boolean => {
+    if (old) {
+      const k = ctx.grades.indexOf(old);
+      if (k < 0) return false;
+      ctx.grades[k] = gr;
+    } else ctx.grades.push(gr);
+    ctx.onGrade(gr, old);
+    return true;
+  };
+  /** Show `screen` (a finished screen), or check it on fresh worlds first when it is flagged. */
+  const settle = (screen: MoveGrade, old: CoachedGrade | null, extra?: GradedOption[]): CoachedGrade | null => {
+    if (!needsConfirm(screen)) {
+      const gr = coachedGrade(d, chosen, advice, screen, at, extra);
+      return put(gr, old) ? gr : null;
+    }
+    // "Checking your move…" until the fresh worlds are in: the screened verdict is never shown
+    const checking = coachedGrade(d, chosen, advice, { turn: screen.turn, chose: screen.chose, coach: screen.coach, gap: null, verdict: 'pending' }, at, extra);
+    if (!put(checking, old)) return null;
+    const done = (fresh: GradedOption[]) => void put(coachedGrade(d, chosen, advice, gradeConfirmed(chosen, advice, screen, fresh, extra), at, extra, fresh), checking);
+    ctx.confirm(d, chosen, advice).then(done, () => done([]));
+    return checking;
+  };
+  const first = gradeMove(d, chosen, advice, turn);
+  if (first.verdict !== 'pending') return settle(first, slot ?? null);
+  // a move the coach did not value: scored in its worlds off the board's thread; play goes on meanwhile. Undo truncates
+  // `grades`, so a score that arrives for an undone move finds its grade gone and is dropped.
+  const gr = coachedGrade(d, chosen, advice, first, at);
+  if (!put(gr, slot ?? null)) return null;
+  const scored = (extra: GradedOption[]) => {
+    if (ctx.grades.indexOf(gr) < 0) return;
+    settle(gradeMove(d, chosen, advice, gr.turn, extra), gr, extra);
+  };
+  ctx.score(d, chosen, advice).then(scored, () => scored([]));
   return gr;
 }
 

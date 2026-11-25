@@ -18,7 +18,7 @@ import {
   winRate,
 } from '../src/lib/profileStats';
 import { buildShared, decodeShared, encodeShared, LINK_MAX, parseShared, parseSharedText, shareLink, sharedSections } from '../src/lib/profileShare';
-import { annotatePractice, coachSummary, loadPractice, recordPractice, type PracticeGame } from '../src/lib/practiceLog';
+import { annotatePractice, coachSummary, gradeFor, loadPractice, parsePractice, recordPractice, SCORECARD_CUTS, type PracticeGame } from '../src/lib/practiceLog';
 import { tierOf } from '../src/ai/tiers';
 import { allDecks, BUILTIN, loadStored, upsertCustom } from '../src/lib/browserLibrary';
 import type { LibraryDeck } from '../src/lib/library';
@@ -41,7 +41,8 @@ const game = (o: Partial<PracticeGame> & Pick<PracticeGame, 'result'>): Practice
 // oldest first, as stored
 const GAMES: PracticeGame[] = [
   game({ id: 'a', date: '2026-11-01T10:00:00Z', result: 'loss', level: 'easy', first: false, turns: 6 }),
-  game({ id: 'b', date: '2026-11-02T10:00:00Z', result: 'win', turns: 10, gigs: [7, 3], coach: { fine: 8, measured: 10, grade: 'B' } }),
+  // scored the current way (v 2, REVIEW_2026-11-25), and one scored the old way (no v): never averaged together
+  game({ id: 'b', date: '2026-11-02T10:00:00Z', result: 'win', turns: 10, gigs: [7, 3], coach: { v: 2, fine: 8, measured: 10, costly: 2, unclear: 3, grade: gradeFor(80) } }),
   game({ id: 'c', date: '2026-11-03T10:00:00Z', result: 'win', opp: 'Gamma', level: 'deep', coach: { fine: 10, measured: 10, grade: 'A' } }),
   game({ id: 'd', date: '2026-11-04T10:00:00Z', result: 'win', deck: 'Delta', level: 'medium' }),
   game({ id: 'e', date: '2026-11-05T10:00:00Z', result: 'loss', conceded: true, deck: 'Delta', first: false, turns: 0 }),
@@ -97,7 +98,9 @@ describe('derived stats', () => {
       ['medium', 1, 1],
       ['hard', 4, 2],
     ]);
-    expect(h.coach).toEqual({ games: 2, avgPct: 90, grade: 'A' });
+    // the average reads only the game scored the current way; the old one is counted apart
+    expect(h.coach).toEqual({ games: 1, avgPct: 80, grade: gradeFor(80), v: 2, costly: 2 });
+    expect(h.coachOld).toBe(1);
     expect(headline([]).streak).toBeNull();
     expect(headline([]).coach).toBeNull();
     expect(smallSample(19)).toBe(true);
@@ -129,13 +132,28 @@ describe('derived stats', () => {
     expect(pageOf([], 1, 2)).toEqual({ items: [], page: 1, pages: 1 });
   });
   it('summarises the coach scorecard and keeps it on the logged game', () => {
-    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'close' }, { verdict: 'mistake' }, { verdict: 'other' }])).toEqual({ fine: 2, measured: 3, grade: 'C', pct: 67 });
+    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'close' }, { verdict: 'mistake' }, { verdict: 'other' }])).toEqual({ v: 2, fine: 2, measured: 3, costly: 1, unclear: 0, grade: gradeFor(67), pct: 67 });
+    // no clear difference: left out of the share, counted apart (REVIEW_2026-11-25 C3)
+    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'unclear' }, { verdict: 'unclear' }, { verdict: 'inaccuracy' }])).toMatchObject({ fine: 1, measured: 2, costly: 1, unclear: 2, pct: 50 });
     expect(coachSummary([])).toBeNull();
     recordPractice(game({ id: 'x', result: 'win' }));
-    annotatePractice('x', { fine: 9, measured: 10, grade: 'A' });
+    annotatePractice('x', { v: 2, fine: 9, measured: 10, costly: 1, unclear: 4, grade: 'A' });
     annotatePractice('missing', { fine: 1, measured: 1, grade: 'A' });
     expect(loadPractice()).toHaveLength(1);
+    expect(loadPractice()[0].coach).toEqual({ v: 2, fine: 9, measured: 10, costly: 1, unclear: 4, grade: 'A' });
+    // a summary scored the old way stays the old way (no v), and so does a version this code does not know
+    annotatePractice('x', { fine: 9, measured: 10, grade: 'A' });
     expect(loadPractice()[0].coach).toEqual({ fine: 9, measured: 10, grade: 'A' });
+    const raw = (coach: object) => JSON.stringify([{ deck: 'D', opp: 'O', result: 'win', coach }]);
+    expect(parsePractice(raw({ v: 3, fine: 1, measured: 2, costly: 1, grade: 'C' }))[0]!.coach).toEqual({ fine: 1, measured: 2, grade: 'C' });
+  });
+
+  it('the letter’s cut-offs sit between the bot tiers’ averages', () => {
+    expect(SCORECARD_CUTS.A).toBeGreaterThan(SCORECARD_CUTS.B);
+    expect(SCORECARD_CUTS.B).toBeGreaterThan(SCORECARD_CUTS.C);
+    expect(gradeFor(SCORECARD_CUTS.A)).toBe('A');
+    expect(gradeFor(SCORECARD_CUTS.A - 1)).toBe('B');
+    expect(gradeFor(SCORECARD_CUTS.C - 1)).toBe('D');
   });
 });
 
@@ -219,6 +237,18 @@ describe('share payload', () => {
     expect(back).toEqual({ ok: true, profile: JSON.parse(JSON.stringify(p)) });
     expect(shareLink('https://x/', enc)).toBe(`https://x/#/u/${enc}`);
     expect(shareLink('https://x/', 'z' + 'a'.repeat(LINK_MAX))).toBeNull();
+  });
+
+  it('shares only coach letters scored the current way, and says how many were left out', async () => {
+    const p = buildShared({ profile, games: GAMES, lib: libWith(), now: NOW });
+    const grade = new Map(p.history!.map((h) => [h.date, h.grade]));
+    expect(grade.get('2026-11-02T10:00:00Z')).toBe(gradeFor(80));
+    expect(grade.get('2026-11-03T10:00:00Z')).toBeNull();
+    expect(p.headline!.coach).toMatchObject({ v: 2, costly: 2 });
+    expect(p.headline!.coachOld).toBe(1);
+    // a profile shared before 2026-11-25 reads without `v`: shown as scored the old way
+    const old = parseShared({ kind: 'nct-profile', schema: 1, headline: { record: { games: 1, wins: 1, losses: 0, draws: 0 }, coach: { games: 1, avgPct: 90, grade: 'A' } } });
+    expect(old.ok && old.profile.headline?.coach).toEqual({ games: 1, avgPct: 90, grade: 'A' });
   });
 
   it('refuses bad, foreign and newer payloads with a plain message', async () => {
