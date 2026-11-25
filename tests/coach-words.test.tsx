@@ -11,7 +11,7 @@ import { DECIDED_EVAL, GIG_SWING } from '../src/ai/eval';
 import { plainRuleMulligan } from '../src/ai/mulligan';
 import { adviseRequest, COACH_CONFIG, coachRequest, coachWorthAsking, gradeMove, makeCoach, mulliganWhy, scoreMoveRequest, type Advice, type MoveGrade } from '../src/ai/coach';
 import { behindText, coachCostWords, coachTablesWords, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
-import { CAP_GIGS, coachRatingOf, RATING_INFO } from '../src/lib/gameReview';
+import { BLUNDER_GIGS, CAP_GIGS, coachRatingOf, MISTAKE_GIGS, RATING_INFO } from '../src/lib/gameReview';
 import { CoachBox, CoachPanel, MoveToast, Scorecard, verdictText } from '../src/ui/components/board/CoachPanel';
 import { restoredGrades, type SavedGame } from '../src/lib/savedGames';
 import type { CoachedGrade } from '../src/lib/coachedReplay';
@@ -52,8 +52,13 @@ describe('names a player reads', () => {
     expect(verdictName('best', -0.1)).toBe('Best');
     expect(verdictName('close', 0.4)).toBe('Close call');
     expect(verdictName('inaccuracy', 0.2)).toBe('Slip');
-    expect(verdictName('mistake', 0.5)).toBe('Mistake');
-    expect(verdictName('mistake', 1.2)).toBe('Blunder');
+    // by the gap and the current lines (Mistake from MISTAKE_GIGS, Blunder from BLUNDER_GIGS): a 'mistake' stored from
+    // 0.375 Gigs before the lines were raised (2026-11-25) reads as a Slip
+    expect(verdictName('mistake', MISTAKE_GIGS - 0.05)).toBe('Slip');
+    expect(verdictName('mistake', MISTAKE_GIGS)).toBe('Mistake');
+    expect(verdictName('mistake', BLUNDER_GIGS - 0.05)).toBe('Mistake');
+    expect(verdictName('mistake', BLUNDER_GIGS)).toBe('Blunder');
+    expect(verdictName('mistake', null)).toBe('Mistake');
     expect(verdictName('unscored', null)).toBeNull();
   });
 });
@@ -103,9 +108,16 @@ describe('agreeing is measured only where the coach measures', () => {
     expect(unclear).toContain('Handled well: 1 of 1 decision that mattered (100%)');
     expect(unclear).toContain('2 decisions made no clear difference (not counted).');
     // the headline is the costly moves, each confirmed
-    const costly = renderToStaticMarkup(<Scorecard grades={[g('agree'), { ...g('mistake'), gap: 0.5, se: 0.1, confirmed: 16 }, { ...g('inaccuracy'), gap: 0.2, se: 0.05, confirmed: 16 }]} />);
-    expect(costly).toContain('Costly moves: 2 (1 Mistake, 1 Slip), each checked on fresh play-outs');
-    expect(costly).toContain('Handled well: 1 of 3 decisions that mattered (33%)');
+    // a costly move is a Mistake or Blunder (since 2026-11-25 a Mistake marks a measurable cost); Slips are said apart
+    const costly = renderToStaticMarkup(
+      <Scorecard grades={[g('agree'), { ...g('mistake'), gap: 1.2, se: 0.1, confirmed: 16 }, { ...g('mistake'), gap: 0.5, se: 0.1, confirmed: 16 }, { ...g('inaccuracy'), gap: 0.2, se: 0.05, confirmed: 16 }]} />,
+    );
+    expect(costly).toContain('Costly moves: 1 (1 Mistake), each checked on fresh play-outs');
+    expect(costly).toContain('2 Slips: behind the coach’s pick in its play-outs by less than a Mistake');
+    expect(costly).toContain('Handled well: 1 of 4 decisions that mattered (25%)');
+    const slipsOnly = renderToStaticMarkup(<Scorecard grades={[g('agree'), { ...g('inaccuracy'), gap: 0.2, se: 0.05, confirmed: 16 }]} />);
+    expect(slipsOnly).toContain('No costly moves against the coach’s pick');
+    expect(slipsOnly).toContain('1 Slip: behind');
   });
   it('older records: a stored rule-decided "agree" is read as not measured', () => {
     const rec = { at: 3, turn: 2, options: ['A', 'B'], chose: 0, coach: 0, why: '', verdict: 'agree', gap: 0, scores: [] };

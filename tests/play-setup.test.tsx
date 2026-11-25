@@ -67,13 +67,16 @@ describe('setup screen and coach panel (moved, unchanged)', () => {
   });
   it('the scorecard counts close calls as fine and leaves unmeasured choices out; the toast says "close call" in words', () => {
     const g = (verdict: MoveGrade['verdict'], gap: number | null = null, se?: number): MoveGrade => ({ turn: 2, chose: 'A', coach: 'B', gap, verdict, ...(se !== undefined ? { se } : {}) });
-    const grades = [g('agree', 0), g('close', 0.2, 0.15), g('inaccuracy', 0.3, 0.05), g('unscored'), g('pending')];
+    const grades = [g('agree', 0), g('close', 0.2, 0.15), g('inaccuracy', 0.3, 0.05), g('mistake', 1.2, 0.1), g('unscored'), g('pending')];
     const html = renderToStaticMarkup(<Scorecard grades={grades} />);
-    expect(html).toContain('Handled well: 2 of 3 decisions that mattered (67%)');
+    expect(html).toContain('Handled well: 2 of 4 decisions that mattered (50%)');
     expect(html).toContain('1 was a close call (counted as handled well).');
     expect(html).toContain('2 other choices not measured (');
-    expect(html).toContain('Costly moves: 1 (1 Slip)');
-    // the costly move by its rating, never sized in Gigs; the footnote says what each band costs in win chance (row 6)
+    // costly: Mistakes and Blunders (since the lines were raised on 2026-11-25); a Slip is said apart, not handled well
+    expect(html).toContain('Costly moves: 1 (1 Mistake)');
+    expect(html).toContain('1 Slip: behind the coach’s pick in its play-outs by less than a Mistake');
+    // the costly moves by their rating, never sized in Gigs; the footnote says what each band costs in win chance (row 6)
+    expect(html).toContain('<span class="neg">Mistake</span>');
     expect(html).toContain('<span class="neg">Slip</span>');
     expect(html).not.toMatch(/Gig[^ ]* (lost|behind)|± [\d.]+ Gigs/);
     expect(html).toContain('Game review rates every move');
@@ -83,10 +86,11 @@ describe('setup screen and coach panel (moved, unchanged)', () => {
     expect(renderToStaticMarkup(<MoveToast gr={g('close', 0.1, 0.1)} />)).toContain('Close call: the coach slightly preferred B');
     expect(renderToStaticMarkup(<MoveToast gr={g('close', 1.6, 1.0)} />)).toBe('<span class="move-toast close" role="status"><i aria-hidden="true">○</i>Close call (too noisy to call): the coach preferred B, but its play-outs disagree</span>');
     expect(toast).toContain('○');
-    // the review's names: Mistake under a whole Gig, Blunder from one
+    // the review's names by the gap (since 2026-11-25: Slip under 1 Gig, Mistake from 1, Blunder from 3)
     // and what moves of the band cost in win chance, not the gap in Gigs (REVIEW_2026-11-25 row 6)
-    expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 0.9, 0.1)} />)).toContain(`Mistake: the coach preferred B (${coachCostWords('mistake', 0.9)})`);
-    expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 1.4, 0.1)} />)).toContain(`Blunder: the coach preferred B (${coachCostWords('mistake', 1.4)})`);
+    expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 0.9, 0.1)} />)).toContain(`Slip: the coach preferred B (${coachCostWords('mistake', 0.9)})`);
+    expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 1.4, 0.1)} />)).toContain(`Mistake: the coach preferred B (${coachCostWords('mistake', 1.4)})`);
+    expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 3.4, 0.1)} />)).toContain(`Blunder: the coach preferred B (${coachCostWords('mistake', 3.4)})`);
     expect(renderToStaticMarkup(<MoveToast gr={g('inaccuracy', 0.3, 0.05)} />)).toContain('Slip: the coach preferred B');
     const panel = renderToStaticMarkup(<CoachPanel g={null as never} v={0} alts={[{ index: 1, label: 'Sell Y', gap: 'close call', gapGigs: 0.12, close: true, se: 0.1 }]} tips={[]} warnings={[]} />);
     expect(panel).toContain('≈ close call');

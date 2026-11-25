@@ -443,8 +443,8 @@ export interface ReviewOptions {
    */
   confirm?: { worlds: number; flag: (d: DecisionReview) => boolean };
   /**
-   * After the game, in a seat whose costly ratings (`flag`, after the confirmation: the Game review's Mistakes and
-   * Blunders) number 1 to `maxFlags`, each such main-phase move or reaction is played out again, the move made against
+   * After the game, in a seat whose costly ratings (`flag`, after the confirmation: the Game review's ratings
+   * CHECK_GIGS or more behind, its Mistakes and Blunders before the lines were raised on 2026-11-25) number 1 to `maxFlags`, each such main-phase move or reaction is played out again, the move made against
    * the best one found, on `worlds` fresh worlds with the Hard bot on both seats (DecisionReview.hard). The oracle's
    * Medium-like continuation favours moves a Medium bot can follow up, which overstated a strong player's rare costly
    * ratings (docs/REVIEW_2026-11-25.md R2); capped at `maxFlags` a seat for its cost (reports/review-validity-2026-11-25.md).

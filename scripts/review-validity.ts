@@ -24,7 +24,7 @@ import { gameDeck } from '../src/lib/tournament';
 import { clampPlayOut, DECIDED_EVAL, DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { CAP } from '../src/ai/reviewer';
 import type { DecisionReview } from '../src/ai/reviewer';
-import { BLUNDER_GIGS, confirmFlag, GIG, MISTAKE_GIGS, rateOracle, seatSummary, withinNoise, type GameReviewRecord, type ReviewMove } from '../src/lib/gameReview';
+import { BLUNDER_GIGS, CHECK_GIGS, confirmFlag, GIG, rateOracle, seatSummary, withinNoise, type GameReviewRecord, type ReviewMove } from '../src/lib/gameReview';
 import type { CoachGradeRow, Replay, ValidityJob, ValidityResult } from './review-validity-worker';
 import type { PlayerId } from '../src/engine/types';
 
@@ -240,8 +240,8 @@ function flagReport(rows: FlagRow[]) {
     return mean(s.filter((x) => !x.lone).map((x) => x.gain)) - mean(s.filter((x) => x.lone).map((x) => x.gain));
   });
   console.log(`\nAll flags: lone ${lone.length}, gain ${f1(mean(lone.map((x) => x.gain)))}; others ${notLone.length}, gain ${f1(mean(notLone.map((x) => x.gain)))}; others − lone ${f1(mean(notLone.map((x) => x.gain)) - mean(lone.map((x) => x.gain)))} [90% ${f1(ciL[0])}, ${f1(ciL[1])}]`);
-  // design (a): kept when the Hard-continuation gap is still a Mistake or worse (MISTAKE_GIGS, outside 2 SE)
-  const keptA = (x: FlagRow) => x.hardGap >= MISTAKE_GIGS && !withinNoise(x.hardGap, x.hardSe);
+  // design (a): kept when the Hard-continuation gap is still a Mistake or worse as then defined (CHECK_GIGS, the old Mistake line, outside 2 SE)
+  const keptA = (x: FlagRow) => x.hardGap >= CHECK_GIGS && !withinNoise(x.hardGap, x.hardSe);
   // (a'): only seats with at most 2 such flags are confirmed with Hard (a cost cap); the others are kept as they are
   const keptA2 = (x: FlagRow) => (x.seatFlags <= 2 ? keptA(x) : true);
   const clear = all.filter((x) => x.gain - 1.645 * x.gainSe > 0);
@@ -414,7 +414,7 @@ function lateReport(rows: LateRow[]) {
       pairs.push({ pos, a, g: mean(diff) / GIG, gSe: seOf(diff) / GIG, out: 100 * (mean(row.truth[b]!) - mean(row.truth[a]!)), p });
     }
   });
-  const truthSet = pairs.filter((x) => x.g >= MISTAKE_GIGS && x.g <= 1.5 && x.g > 2 * x.gSe);
+  const truthSet = pairs.filter((x) => x.g >= CHECK_GIGS && x.g <= 1.5 && x.g > 2 * x.gSe);
   const equal = pairs.filter((x) => x.g < 0.15);
   const big = pairs.filter((x) => x.g > 1.5 && x.g > 2 * x.gSe);
   console.log(`${pairs.length} pairs (the pooled best against each other candidate): true errors 0.375 to 1.5 Gigs ${truthSet.length}, over 1.5 Gigs ${big.length}, about equal (under 0.15) ${equal.length}`);

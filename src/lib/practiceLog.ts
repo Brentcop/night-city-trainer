@@ -1,4 +1,5 @@
 // Per-browser practice history (localStorage). Never required for the app to work.
+import { MISTAKE_GIGS } from './gameReview';
 export interface PracticeGame {
   /** the practice replay's id; the same game recorded again (e.g. finished again after Undo) replaces its entry */
   id?: string;
@@ -85,24 +86,36 @@ export interface ReviewSummary {
 /**
  * The scorecard in numbers. Since 2026-11-25 (`v: 2`, REVIEW_2026-11-25 C1–C3): `measured` counts the decisions that
  * mattered (the coach measured the move and some option differed: `unclear` ones are left out), `fine` how many of them
- * were handled well (the coach's pick, as good, or a close call), `costly` the Slips or worse (every one confirmed on
- * fresh worlds), `unclear` the decisions with no clear difference, and the letter comes from SCORECARD_CUTS. An entry
- * without `v` was scored the old way (every measured move counted, unconfirmed six-world verdicts, letters at 85/70/55):
- * it is kept and shown as it was, marked as such, and never averaged with these (src/lib/profileStats.ts).
+ * were handled well (the coach's pick, as good, or a close call), `costly` the costly moves (every one confirmed on fresh
+ * worlds), `unclear` the decisions with no clear difference, and the letter comes from SCORECARD_CUTS. `v: 3` (later on
+ * 2026-11-25, when the Mistake line was raised to MISTAKE_GIGS so that a Mistake marks a measurable cost): `costly` counts
+ * the Mistakes and Blunders only, `slips` the Slips (behind the coach's pick in its play-outs by less than a Mistake,
+ * which cost nothing measurable on average); in v2 `costly` was every Slip or worse under the old lines. The share and
+ * the letter mean the same in v2 and v3 (a Slip is not handled well in either), so both are averaged together; the count
+ * of costly moves only from v3 entries. An entry without `v` was scored the old way (every measured move counted,
+ * unconfirmed six-world verdicts, letters at 85/70/55): it is kept and shown as it was, marked as such, and never averaged
+ * with these (src/lib/profileStats.ts).
  */
 export interface CoachSummary {
-  v?: typeof COACH_SCORING;
+  v?: 2 | typeof COACH_SCORING;
   fine: number;
   measured: number;
   costly?: number;
+  /** the Slips (v3 only) */
+  slips?: number;
   unclear?: number;
   grade: 'A' | 'B' | 'C' | 'D';
 }
 
 /** The scorecard's way of counting (CoachSummary.v); entries without it were scored before 2026-11-25. */
-export const COACH_SCORING = 2;
-/** A summary scored the current way (CoachSummary.v), so it may be averaged with others. */
-export const scoredNow = (c: Pick<CoachSummary, 'v'> | null | undefined): boolean => c?.v === COACH_SCORING;
+export const COACH_SCORING = 3;
+/**
+ * A summary whose share and letter are scored the current way (CoachSummary.v 2 or 3: the decisions that mattered, the
+ * costly ones confirmed), so they may be averaged with others.
+ */
+export const scoredNow = (c: Pick<CoachSummary, 'v'> | null | undefined): boolean => c?.v === 2 || c?.v === COACH_SCORING;
+/** A summary whose count of costly moves means Mistakes and Blunders under the current lines (v3). */
+export const costlyNow = (c: Pick<CoachSummary, 'v'> | null | undefined): boolean => c?.v === COACH_SCORING;
 
 export const PRACTICE_KEY = 'nct.practice.v1';
 const KEY = PRACTICE_KEY;
@@ -128,20 +141,26 @@ export const gradeFor = (pct: number): CoachSummary['grade'] => (pct >= SCORECAR
 
 const FINE_V = new Set(['agree', 'best', 'close']);
 const COSTLY_V = new Set(['inaccuracy', 'mistake']);
+/**
+ * A costly verdict that is a Mistake or worse under the current lines: by its gap (MISTAKE_GIGS), as coachWords.ts
+ * verdictRating names it, so a grade stored before the lines were raised counts as it reads now. No gap: by the word.
+ */
+const mistakeOrWorse = (g: { verdict: string; gap?: number | null }) => (g.gap == null ? g.verdict === 'mistake' : g.gap >= MISTAKE_GIGS);
 
 /**
- * The scorecard of a game's graded moves (v2): of the decisions that mattered (the coach measured the move and some option
- * differed), fine = the coach's pick, as good, or a close call; costly = a Slip or worse (confirmed on fresh worlds);
- * `unclear` = no clear difference, left out; anything else (choices the coach can't value, or a check that did not
- * finish) is not measured. Null when nothing was graded.
+ * The scorecard of a game's graded moves (v3): of the decisions that mattered (the coach measured the move and some option
+ * differed), fine = the coach's pick, as good, or a close call; costly = a Mistake or worse, slips = a Slip (both
+ * confirmed on fresh worlds; neither is handled well); `unclear` = no clear difference, left out; anything else (choices
+ * the coach can't value, or a check that did not finish) is not measured. Null when nothing was graded.
  */
-export function coachSummary(grades: readonly { verdict: string }[]): (CoachSummary & { pct: number }) | null {
+export function coachSummary(grades: readonly { verdict: string; gap?: number | null }[]): (CoachSummary & { pct: number }) | null {
   if (!grades.length) return null;
   const measured = grades.filter((g) => FINE_V.has(g.verdict) || COSTLY_V.has(g.verdict));
   const fine = measured.filter((g) => FINE_V.has(g.verdict)).length;
+  const costly = measured.filter((g) => COSTLY_V.has(g.verdict) && mistakeOrWorse(g)).length;
   const pct = measured.length ? Math.round((100 * fine) / measured.length) : 100;
   const unclear = grades.filter((g) => g.verdict === 'unclear').length;
-  return { v: COACH_SCORING, fine, measured: measured.length, costly: measured.length - fine, unclear, grade: gradeFor(pct), pct };
+  return { v: COACH_SCORING, fine, measured: measured.length, costly, slips: measured.length - fine - costly, unclear, grade: gradeFor(pct), pct };
 }
 
 const count = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0;
@@ -158,8 +177,15 @@ function toCoach(x: unknown): CoachSummary | null {
   if (!count(o.fine) || !count(o.measured) || o.fine > o.measured || typeof o.grade !== 'string' || !GRADES.has(o.grade)) return null;
   const base = { fine: o.fine, measured: o.measured, grade: o.grade as CoachSummary['grade'] };
   // an entry scored the old way (no v, or a v this version does not know) reads as the old way: never averaged as new
-  if (o.v !== COACH_SCORING) return base;
-  return { v: COACH_SCORING, ...base, ...(count(o.costly) && o.costly <= o.measured ? { costly: o.costly } : {}), ...(count(o.unclear) ? { unclear: o.unclear } : {}) };
+  if (o.v !== 2 && o.v !== COACH_SCORING) return base;
+  const slips = o.v === COACH_SCORING && count(o.slips) ? o.slips : undefined;
+  return {
+    v: o.v,
+    ...base,
+    ...(count(o.costly) && o.costly + (slips ?? 0) <= o.measured ? { costly: o.costly } : {}),
+    ...(slips !== undefined && slips <= o.measured ? { slips } : {}),
+    ...(count(o.unclear) ? { unclear: o.unclear } : {}),
+  };
 }
 
 /** A stored entry is usable if it has a deck pair and a result; missing optional fields get defaults. */
@@ -226,7 +252,9 @@ export function annotatePractice(id: string, coach: CoachSummary) {
     const all = loadPractice();
     const at = all.findIndex((x) => x.id === id);
     if (at < 0) return;
-    const extra = coach.v === COACH_SCORING ? { v: coach.v, ...(coach.costly !== undefined ? { costly: coach.costly } : {}), ...(coach.unclear !== undefined ? { unclear: coach.unclear } : {}) } : {};
+    const extra = scoredNow(coach)
+      ? { v: coach.v, ...(coach.costly !== undefined ? { costly: coach.costly } : {}), ...(coach.slips !== undefined ? { slips: coach.slips } : {}), ...(coach.unclear !== undefined ? { unclear: coach.unclear } : {}) }
+      : {};
     all[at] = { ...all[at]!, coach: { ...extra, fine: coach.fine, measured: coach.measured, grade: coach.grade } };
     localStorage.setItem(KEY, JSON.stringify(all));
   } catch {

@@ -265,7 +265,7 @@ describe('Coach switch: the game is the same with the coach on, off or switched 
     const sum = coachSummary(toggled.grades);
     expect(sum && sum.measured).toBeGreaterThan(0);
     // the practice log's scorecard (the Profile's coach averages)
-    expect(loadPractice().find((x) => x.id === id)!.coach).toEqual({ v: 2, fine: sum!.fine, measured: sum!.measured, costly: sum!.costly, unclear: sum!.unclear, grade: sum!.grade });
+    expect(loadPractice().find((x) => x.id === id)!.coach).toEqual({ v: 3, fine: sum!.fine, measured: sum!.measured, costly: sum!.costly, slips: sum!.slips, unclear: sum!.unclear, grade: sum!.grade });
     // the coach's ratings kept for a Game review run later
     const ratings = coachRatingsFrom(toggled.grades.map((x) => x.record), toggled.choices.length, GIG_SWING);
     expect(ratings.length).toBeGreaterThan(0);

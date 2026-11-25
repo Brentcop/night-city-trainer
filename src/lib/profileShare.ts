@@ -81,10 +81,11 @@ export interface SharedProfile {
     streak: { result: Result; n: number } | null;
     bestWinStreak: number;
     /**
-     * The coach average. `v: 2` (practiceLog.ts COACH_SCORING): scored the current way, with the confirmed costly moves a
-     * game; without it, a profile shared before 2026-11-25, scored the old way (shown as such).
+     * The coach average. `v: 3` (practiceLog.ts COACH_SCORING): scored the current way, with the confirmed Mistakes and
+     * Blunders a game (`costly`); `v: 2`, shared earlier on 2026-11-25: the same share and letter, its costly count (then
+     * every Slip or worse) not read; without it, a profile shared before 2026-11-25, scored the old way (shown as such).
      */
-    coach: { games: number; avgPct: number; grade: Grade; v?: 2; costly?: number } | null;
+    coach: { games: number; avgPct: number; grade: Grade; v?: 2 | 3; costly?: number } | null;
     /** games whose scorecard was scored the old way, left out of the average */
     coachOld?: number;
   };
@@ -280,7 +281,12 @@ export function parseShared(v: unknown): ParseResult {
       const costly = isObj(h.coach) && typeof h.coach.costly === 'number' && h.coach.costly >= 0 && h.coach.costly <= 100 ? Math.round(h.coach.costly * 10) / 10 : null;
       const c =
         isObj(h.coach) && nat(h.coach.games) && nat(h.coach.avgPct, 100) !== null && isGrade(h.coach.grade)
-          ? { games: nat(h.coach.games)!, avgPct: nat(h.coach.avgPct, 100)!, grade: h.coach.grade, ...(h.coach.v === 2 ? { v: 2 as const, ...(costly !== null ? { costly } : {}) } : {}) }
+          ? {
+              games: nat(h.coach.games)!,
+              avgPct: nat(h.coach.avgPct, 100)!,
+              grade: h.coach.grade,
+              ...(h.coach.v === 3 ? { v: 3 as const, ...(costly !== null ? { costly } : {}) } : h.coach.v === 2 ? { v: 2 as const } : {}),
+            }
           : null;
       const old = nat(h.coachOld);
       p.headline = { record, conceded: nat(h.conceded) ?? 0, byTier: list(h.byTier, BOT_TIERS.length, readTierRow), streak: st, bestWinStreak: nat(h.bestWinStreak) ?? 0, coach: c, ...(old ? { coachOld: old } : {}) };

@@ -12,15 +12,19 @@
 // ratings in those games (by player type, weighted by its share), with its 90% interval. The rule for the words was
 // written before the results: the mean rounded to a whole point, "on average", the measurement named; a band whose
 // interval includes 0 "often costs nothing measurable". tests/rating-cost.test.ts pins these figures to the report.
-// What it found: only Blunders show a cost (about 8 points of win chance for the coach's, 10 for the review's); Slips and
-// Mistakes, though clearly behind in the bots' play-outs of a turn or so, cost nothing that 34 to 116 measured ratings a
-// band could tell from 0 when played on to the end. Not covered: a rating whose move or better move is a Call of a
-// face-down Legend (it cannot be played both ways), about a quarter of the sample.
+// What it found under the old lines (Mistake from 0.375 Gigs, Blunder from 1): only Blunders showed a cost (about 8 points
+// of win chance for the coach's, 10 for the review's); Slips and Mistakes cost nothing measurable. So the owner decided to
+// raise the Mistake line (2026-11-25, "Raise it"): the lines were set on the same data, binned by gap, by a rule written
+// first (the report's "Raising the Mistake line": Mistake from 1 Gig, Blunder from 3, src/lib/gameReview.ts MISTAKE_GIGS,
+// BLUNDER_GIGS), with 173 more positions measured in the thin bins, and the figures below are the new bands': a Slip (now
+// everything clearly behind under 1 Gig) still costs nothing measurable, a Mistake about 4 points (coach) or 7 (review), a
+// Blunder about 15 or 12. Not covered: a rating whose move or better move is a Call of a face-down Legend (it cannot be
+// played both ways), about a quarter of the sample.
 //
 // Pure data and words, no imports: src/lib/gameReview.ts (the legend), src/lib/coachWords.ts and src/lib/reviewWords.ts
 // read it, and the review worker carries it.
 
-/** The bands a cost is measured for (the review's names; the coach's 'inaccuracy' is Slip, its 'mistake' Mistake or Blunder). */
+/** The bands a cost is measured for (the review's names; a coach grade by its gap, src/lib/coachWords.ts verdictRating). */
 export type CostBand = 'slip' | 'mistake' | 'blunder';
 /** Who rated the move: the live coach during play, or the Game review after it. */
 export type CostInstrument = 'coach' | 'review';
@@ -43,18 +47,22 @@ export const RATING_COST_SOURCE = {
   bot: 'hard',
   games: 240,
   report: 'reports/review-validity-2026-11-25.md',
+  /** the report's section with the figures of the current bands */
+  section: '## Raising the Mistake line',
+  /** the bands' lines in Gigs (src/lib/gameReview.ts MISTAKE_GIGS, BLUNDER_GIGS; tests/rating-cost.test.ts checks they agree) */
+  lines: { mistake: 1, blunder: 3 },
 } as const;
 
 export const RATING_COST: Record<CostInstrument, Record<CostBand, BandCost>> = {
   coach: {
-    slip: { mean: 1.4, lo: -0.5, hi: 3.3, measured: 38, ratings: 57 },
-    mistake: { mean: 1.6, lo: -0.6, hi: 3.8, measured: 116, ratings: 286 },
-    blunder: { mean: 8.4, lo: 5.4, hi: 11.5, measured: 143, ratings: 1163 },
+    slip: { mean: 1.8, lo: -0.1, hi: 3.6, measured: 169, ratings: 343 },
+    mistake: { mean: 4.1, lo: 1.9, hi: 6.3, measured: 183, ratings: 726 },
+    blunder: { mean: 15.0, lo: 9.8, hi: 20.2, measured: 57, ratings: 437 },
   },
   review: {
-    slip: { mean: 0.2, lo: -1.9, hi: 2.4, measured: 34, ratings: 54 },
-    mistake: { mean: 1.2, lo: -1.5, hi: 4.0, measured: 98, ratings: 199 },
-    blunder: { mean: 10.1, lo: 7.3, hi: 12.8, measured: 148, ratings: 975 },
+    slip: { mean: 1.1, lo: -1.1, hi: 3.4, measured: 141, ratings: 251 },
+    mistake: { mean: 7.4, lo: 4.9, hi: 9.9, measured: 151, ratings: 614 },
+    blunder: { mean: 12.0, lo: 7.1, hi: 16.9, measured: 58, ratings: 363 },
   },
 };
 

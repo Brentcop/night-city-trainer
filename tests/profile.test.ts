@@ -18,7 +18,8 @@ import {
   winRate,
 } from '../src/lib/profileStats';
 import { buildShared, decodeShared, encodeShared, LINK_MAX, parseShared, parseSharedText, shareLink, sharedSections } from '../src/lib/profileShare';
-import { annotatePractice, coachSummary, gradeFor, loadPractice, parsePractice, recordPractice, SCORECARD_CUTS, type PracticeGame } from '../src/lib/practiceLog';
+import { annotatePractice, coachSummary, costlyNow, gradeFor, loadPractice, parsePractice, recordPractice, SCORECARD_CUTS, scoredNow, type PracticeGame } from '../src/lib/practiceLog';
+import { BLUNDER_GIGS, MISTAKE_GIGS } from '../src/lib/gameReview';
 import { tierOf } from '../src/ai/tiers';
 import { allDecks, BUILTIN, loadStored, upsertCustom } from '../src/lib/browserLibrary';
 import type { LibraryDeck } from '../src/lib/library';
@@ -41,8 +42,8 @@ const game = (o: Partial<PracticeGame> & Pick<PracticeGame, 'result'>): Practice
 // oldest first, as stored
 const GAMES: PracticeGame[] = [
   game({ id: 'a', date: '2026-11-01T10:00:00Z', result: 'loss', level: 'easy', first: false, turns: 6 }),
-  // scored the current way (v 2, REVIEW_2026-11-25), and one scored the old way (no v): never averaged together
-  game({ id: 'b', date: '2026-11-02T10:00:00Z', result: 'win', turns: 10, gigs: [7, 3], coach: { v: 2, fine: 8, measured: 10, costly: 2, unclear: 3, grade: gradeFor(80) } }),
+  // scored the current way (v 3, the Mistake line raised on 2026-11-25), and one scored the old way (no v): never averaged together
+  game({ id: 'b', date: '2026-11-02T10:00:00Z', result: 'win', turns: 10, gigs: [7, 3], coach: { v: 3, fine: 8, measured: 10, costly: 1, slips: 1, unclear: 3, grade: gradeFor(80) } }),
   game({ id: 'c', date: '2026-11-03T10:00:00Z', result: 'win', opp: 'Gamma', level: 'deep', coach: { fine: 10, measured: 10, grade: 'A' } }),
   game({ id: 'd', date: '2026-11-04T10:00:00Z', result: 'win', deck: 'Delta', level: 'medium' }),
   game({ id: 'e', date: '2026-11-05T10:00:00Z', result: 'loss', conceded: true, deck: 'Delta', first: false, turns: 0 }),
@@ -99,8 +100,13 @@ describe('derived stats', () => {
       ['hard', 4, 2],
     ]);
     // the average reads only the game scored the current way; the old one is counted apart
-    expect(h.coach).toEqual({ games: 1, avgPct: 80, grade: gradeFor(80), v: 2, costly: 2 });
+    expect(h.coach).toEqual({ games: 1, avgPct: 80, grade: gradeFor(80), v: 3, costly: 1 });
     expect(h.coachOld).toBe(1);
+    // a v2 scorecard (earlier on 2026-11-25) has the same share and letter, so it is averaged; its costly count (then
+    // every Slip or worse) is not: the average of Mistakes or worse reads v3 entries only
+    const v2 = game({ id: 'g', date: '2026-11-07T10:00:00Z', result: 'loss', coach: { v: 2, fine: 6, measured: 10, costly: 4, unclear: 1, grade: gradeFor(60) } });
+    expect(headline([...GAMES, v2]).coach).toEqual({ games: 2, avgPct: 70, grade: gradeFor(70), v: 3, costly: 1 });
+    expect(headline([v2]).coach).toEqual({ games: 1, avgPct: 60, grade: gradeFor(60), v: 3 });
     expect(headline([]).streak).toBeNull();
     expect(headline([]).coach).toBeNull();
     expect(smallSample(19)).toBe(true);
@@ -132,20 +138,31 @@ describe('derived stats', () => {
     expect(pageOf([], 1, 2)).toEqual({ items: [], page: 1, pages: 1 });
   });
   it('summarises the coach scorecard and keeps it on the logged game', () => {
-    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'close' }, { verdict: 'mistake' }, { verdict: 'other' }])).toEqual({ v: 2, fine: 2, measured: 3, costly: 1, unclear: 0, grade: gradeFor(67), pct: 67 });
-    // no clear difference: left out of the share, counted apart (REVIEW_2026-11-25 C3)
-    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'unclear' }, { verdict: 'unclear' }, { verdict: 'inaccuracy' }])).toMatchObject({ fine: 1, measured: 2, costly: 1, unclear: 2, pct: 50 });
+    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'close' }, { verdict: 'mistake' }, { verdict: 'other' }])).toEqual({ v: 3, fine: 2, measured: 3, costly: 1, slips: 0, unclear: 0, grade: gradeFor(67), pct: 67 });
+    // no clear difference: left out of the share, counted apart (REVIEW_2026-11-25 C3); a Slip is not handled well, but
+    // it is not a costly move (v3: the Mistake line raised so that a Mistake marks a measurable cost)
+    expect(coachSummary([{ verdict: 'agree' }, { verdict: 'unclear' }, { verdict: 'unclear' }, { verdict: 'inaccuracy', gap: 0.3 }])).toMatchObject({ fine: 1, measured: 2, costly: 0, slips: 1, unclear: 2, pct: 50 });
+    // by the gap and the current lines: a 'mistake' stored from 0.375 Gigs before the lines were raised reads as a Slip
+    expect(coachSummary([{ verdict: 'mistake', gap: MISTAKE_GIGS - 0.1 }, { verdict: 'mistake', gap: MISTAKE_GIGS }, { verdict: 'mistake', gap: BLUNDER_GIGS + 1 }])).toMatchObject({ fine: 0, measured: 3, costly: 2, slips: 1, pct: 0 });
     expect(coachSummary([])).toBeNull();
     recordPractice(game({ id: 'x', result: 'win' }));
-    annotatePractice('x', { v: 2, fine: 9, measured: 10, costly: 1, unclear: 4, grade: 'A' });
+    annotatePractice('x', { v: 3, fine: 9, measured: 10, costly: 0, slips: 1, unclear: 4, grade: 'A' });
     annotatePractice('missing', { fine: 1, measured: 1, grade: 'A' });
     expect(loadPractice()).toHaveLength(1);
+    expect(loadPractice()[0].coach).toEqual({ v: 3, fine: 9, measured: 10, costly: 0, slips: 1, unclear: 4, grade: 'A' });
+    // a v2 summary stays v2 (its letter still averages; its costly count means Slip or worse and is not)
+    annotatePractice('x', { v: 2, fine: 9, measured: 10, costly: 1, unclear: 4, grade: 'A' });
     expect(loadPractice()[0].coach).toEqual({ v: 2, fine: 9, measured: 10, costly: 1, unclear: 4, grade: 'A' });
+    expect([scoredNow({ v: 2 }), scoredNow({ v: 3 }), scoredNow({}), costlyNow({ v: 2 }), costlyNow({ v: 3 })]).toEqual([true, true, false, false, true]);
     // a summary scored the old way stays the old way (no v), and so does a version this code does not know
     annotatePractice('x', { fine: 9, measured: 10, grade: 'A' });
     expect(loadPractice()[0].coach).toEqual({ fine: 9, measured: 10, grade: 'A' });
     const raw = (coach: object) => JSON.stringify([{ deck: 'D', opp: 'O', result: 'win', coach }]);
-    expect(parsePractice(raw({ v: 3, fine: 1, measured: 2, costly: 1, grade: 'C' }))[0]!.coach).toEqual({ fine: 1, measured: 2, grade: 'C' });
+    expect(parsePractice(raw({ v: 4, fine: 1, measured: 2, costly: 1, grade: 'C' }))[0]!.coach).toEqual({ fine: 1, measured: 2, grade: 'C' });
+    expect(parsePractice(raw({ v: 3, fine: 1, measured: 3, costly: 1, slips: 1, grade: 'D' }))[0]!.coach).toEqual({ v: 3, fine: 1, measured: 3, costly: 1, slips: 1, grade: 'D' });
+    // v2 never kept slips; a v3 entry whose counts do not fit is read without them
+    expect(parsePractice(raw({ v: 2, fine: 1, measured: 2, costly: 1, slips: 1, grade: 'C' }))[0]!.coach).toEqual({ v: 2, fine: 1, measured: 2, costly: 1, grade: 'C' });
+    expect(parsePractice(raw({ v: 3, fine: 1, measured: 2, costly: 2, slips: 1, grade: 'C' }))[0]!.coach).toEqual({ v: 3, fine: 1, measured: 2, slips: 1, grade: 'C' });
   });
 
   it('the letter’s cut-offs sit between the bot tiers’ averages', () => {
@@ -244,7 +261,10 @@ describe('share payload', () => {
     const grade = new Map(p.history!.map((h) => [h.date, h.grade]));
     expect(grade.get('2026-11-02T10:00:00Z')).toBe(gradeFor(80));
     expect(grade.get('2026-11-03T10:00:00Z')).toBeNull();
-    expect(p.headline!.coach).toMatchObject({ v: 2, costly: 2 });
+    expect(p.headline!.coach).toMatchObject({ v: 3, costly: 1 });
+    // shared earlier on 2026-11-25 (v 2): the letter reads, its costly count (then Slip or worse) does not
+    const v2 = parseShared({ kind: 'nct-profile', schema: 1, headline: { record: { games: 1, wins: 1, losses: 0, draws: 0 }, coach: { games: 1, avgPct: 90, grade: 'A', v: 2, costly: 3 } } });
+    expect(v2.ok && v2.profile.headline?.coach).toEqual({ games: 1, avgPct: 90, grade: 'A', v: 2 });
     expect(p.headline!.coachOld).toBe(1);
     // a profile shared before 2026-11-25 reads without `v`: shown as scored the old way
     const old = parseShared({ kind: 'nct-profile', schema: 1, headline: { record: { games: 1, wins: 1, losses: 0, draws: 0 }, coach: { games: 1, avgPct: 90, grade: 'A' } } });

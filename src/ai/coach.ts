@@ -5,14 +5,13 @@ import type { Action, Agent, Decision, GameState, Gig, Opt, PlayerId, Reaction }
 import { activeSteer, holdCredit, obtainableOf, packageFacts, partnerName, seatPackages, steerValue, steerWants, type PackageFacts, type SteerKind } from './packages';
 import { HeuristicAgent, standardError, worldValue, type DecisionScores, type ScoredOption } from './heuristic';
 import { makeWorlds, type World } from './playOut';
-import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, PLAN_TEXT, type ProfileKey } from './archetype';
 import { clampPlayOut, DEFAULT_WEIGHTS, GIG_SWING, planFor, seatArchetype } from './eval';
 import { handFeatures } from './mulligan';
 import { behindText, coachTablesOf, gapFigure, gapSize, optionName, tablesSourceWords, type CoachTables } from '../lib/coachWords';
 import type { GigPlan } from './knowledge';
 import { CARD_TAG_POLICY } from './heuristic';
-import { BEST_GIGS, fixedTerms, GAME_REVIEW_CONFIRM, withinNoise } from '../lib/gameReview';
+import { BEST_GIGS, CHECK_GIGS, fixedTerms, GAME_REVIEW_CONFIRM, MISTAKE_GIGS, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
@@ -639,8 +638,11 @@ export function adviseRequest(q: CoachRequest, rolloutPool?: import('./playoutPo
 
 /** A gap under this many Gigs is a close call whatever its spread (the scorecard's threshold before INFO-1). */
 export const CLOSE_GIGS = 0.15;
-/** A gap of this many Gigs or more (outside the noise) is a mistake: the reviewer's blunder line (BLUNDER, ≈ 0.4 Gigs). */
-export const MISTAKE_GIGS = BLUNDER / GIG_SWING;
+/**
+ * A gap of this many Gigs or more (outside the noise) is a Mistake: the Game review's line (src/lib/gameReview.ts, one
+ * definition for both; raised from 0.375 to 1 on 2026-11-25 so that a Mistake marks a measurable cost in win chance).
+ */
+export { MISTAKE_GIGS };
 /**
  * Fresh worlds a costly or wide-close grade is measured again on before it settles (REVIEW_2026-11-25 C1, C2): the Game
  * review's confirmation (src/lib/gameReview.ts GAME_REVIEW_CONFIRM, 16). The coach's six worlds pick its move as the best
@@ -664,8 +666,8 @@ export const DECIDED_GRADE = 0.75 * DEFAULT_WEIGHTS.playOutClamp;
  *               coach scored (main phase, reactions, or a sell it compared)
  *   best        another move within BEST_GIGS (0.1) of the coach's pick, or valued at least as high
  *   close       a close call: under CLOSE_GIGS behind, or within 2 paired standard errors (counts as handled well)
- *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS (shown as Slip)
- *   mistake     behind by MISTAKE_GIGS or more, outside the noise (Mistake, or Blunder from a whole Gig)
+ *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS (1; shown as Slip)
+ *   mistake     behind by MISTAKE_GIGS or more, outside the noise (Mistake, or Blunder from BLUNDER_GIGS, 3)
  *   unclear     no clear difference: every option the coach scored, the move made included, is within the noise of its
  *               pick, or the game was already decided in its play-outs (`decided`): as the review's "No clear difference",
  *               not counted in the scorecard (REVIEW_2026-11-25 C3)
@@ -673,7 +675,7 @@ export const DECIDED_GRADE = 0.75 * DEFAULT_WEIGHTS.playOutClamp;
  *   unscored    a choice the coach decides by rule and can't value (a target, a mode, a Gig pick, the mulligan),
  *               whether or not it matches the coach's pick ("Same as the coach's pick (not measured)"), or scoring or
  *               its confirmation failed
- * Slip or worse, and a close call as wide as a Mistake, are judged on COACH_CONFIRM_WORLDS fresh worlds before they
+ * Slip or worse, and a close call of CHECK_GIGS (0.375) or more, are judged on COACH_CONFIRM_WORLDS fresh worlds before they
  * settle (needsConfirm, confirmMoveRequest, gradeConfirmed), so every costly verdict shown is a confirmed one.
  */
 export type MoveVerdict = 'agree' | 'best' | 'close' | 'inaccuracy' | 'mistake' | 'unclear' | 'pending' | 'unscored';
@@ -787,11 +789,13 @@ export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number, 
 
 /**
  * A screened grade that is confirmed on fresh worlds before it settles, as the Game review confirms (src/lib/gameReview.ts
- * confirmFlag): Slip or worse, or a close call at least as wide as a Mistake (54% of those were Mistakes on 48 worlds).
+ * confirmFlag): Slip or worse, or a close call of CHECK_GIGS (0.375 Gigs) or more (54% of those were 0.375-Gig "Mistakes"
+ * on 48 worlds). Kept at the old Mistake line when that was raised (2026-11-25): the six-world Slips are what the
+ * confirmation keeps honest, and it costs 0.1–0.2 s a move.
  */
 export function needsConfirm(gr: MoveGrade): boolean {
   if (gr.confirmed || gr.gap === null) return false;
-  return COSTLY_VERDICTS.includes(gr.verdict) || (gr.verdict === 'close' && gr.gap >= MISTAKE_GIGS);
+  return COSTLY_VERDICTS.includes(gr.verdict) || (gr.verdict === 'close' && gr.gap >= CHECK_GIGS);
 }
 
 /**

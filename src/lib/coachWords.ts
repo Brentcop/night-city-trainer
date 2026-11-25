@@ -6,7 +6,7 @@
 // Gigs on the board. A play-out that ends the game scores ±10,000 points (250 "Gigs"), so a raw gap can run far past the
 // 7 Gigs a game is won with: every figure a player reads goes through gapFigure / behindText, which never print more than
 // CAP_GIGS.
-import { BLUNDER_GIGS, CAP_GIGS, CLOSE_GIGS, GIG, RATING_INFO, type Rating } from './gameReview';
+import { BLUNDER_GIGS, CAP_GIGS, CLOSE_GIGS, GIG, MISTAKE_GIGS, RATING_INFO, type Rating } from './gameReview';
 import type { MoveVerdict } from '../ai/coach';
 import { costNote, shownCost, type CostBand } from './ratingCost';
 
@@ -79,9 +79,11 @@ export function optionName(d: { kind: string; tag?: string; options: readonly { 
 
 /**
  * The review's rating (src/lib/gameReview.ts RATINGS) a coach verdict reads as, so the toast, the scorecard and the
- * review use one set of names: the coach's pick or as good → Best, close → Close call, inaccuracy → Slip, mistake →
- * Mistake (Blunder from BLUNDER_GIGS), unclear → No clear difference (measured, never counted). Null when the move was
- * not measured (pending, unscored).
+ * review use one set of names: the coach's pick or as good → Best, close → Close call, a costly verdict (inaccuracy,
+ * mistake) by its gap → Slip under MISTAKE_GIGS, Mistake, Blunder from BLUNDER_GIGS, unclear → No clear difference
+ * (measured, never counted). Null when the move was not measured (pending, unscored). A costly verdict is named by its gap,
+ * not its word, so a grade stored before the lines were raised (2026-11-25: a 'mistake' from 0.375 Gigs) reads under the
+ * current lines.
  */
 export function verdictRating(verdict: MoveVerdict | string, gap: number | null | undefined): Rating | null {
   switch (verdict) {
@@ -93,12 +95,17 @@ export function verdictRating(verdict: MoveVerdict | string, gap: number | null 
     case 'close':
       return 'close';
     case 'inaccuracy':
-      return 'slip';
     case 'mistake':
-      return (gap ?? 0) >= BLUNDER_GIGS ? 'blunder' : 'mistake';
+      return costlyBand(verdict, gap);
     default:
       return null;
   }
+}
+
+/** A costly coach verdict's band by its gap: Blunder from BLUNDER_GIGS, Mistake from MISTAKE_GIGS, else Slip. */
+function costlyBand(verdict: string, gap: number | null | undefined): 'slip' | 'mistake' | 'blunder' {
+  const g = gap ?? (verdict === 'mistake' ? MISTAKE_GIGS : 0);
+  return g >= BLUNDER_GIGS ? 'blunder' : g >= MISTAKE_GIGS ? 'mistake' : 'slip';
 }
 
 /**

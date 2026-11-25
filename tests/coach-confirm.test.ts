@@ -33,7 +33,7 @@ import {
 import type { Action, Agent, Decision, DeckList } from '../src/engine/types';
 import { gig, setup, spawn } from './engine-helpers';
 import { coachedGrade } from '../src/lib/coachedReplay';
-import { coachRatingOf, saidOf } from '../src/lib/gameReview';
+import { CHECK_GIGS, coachRatingOf, saidOf } from '../src/lib/gameReview';
 import { saidText } from '../src/lib/reviewWords';
 
 const mean = (xs: number[]) => xs.reduce((a, x) => a + x, 0) / xs.length;
@@ -77,21 +77,29 @@ describe('No clear difference and the confirmation, on made-up scores', () => {
   it('Slip or worse and a wide close call are confirmed; the confirmed verdict comes from the fresh worlds alone', () => {
     const d = action(3);
     const a = advice([base, base.map((x, k) => x - 30 + (k % 2 ? 8 : -8)), base.map((x) => x - 80)]);
+    // 0.75 Gigs behind: a Slip since the Mistake line was raised to 1 Gig (2026-11-25), confirmed all the same
     const screen = gradeMove(d, 1, a, 2);
-    expect(screen.verdict).toBe('mistake');
+    expect(screen.verdict).toBe('inaccuracy');
     expect(needsConfirm(screen)).toBe(true);
     // the fresh worlds find the move as good as the pick: Best, with the screen kept beside it
     const same: GradedOption[] = [
       { i: 0, v: 50, w: [50, 60, 40, 55] },
       { i: 1, v: 50, w: [51, 59, 41, 54] },
     ];
-    expect(gradeConfirmed(1, a, screen, same)).toMatchObject({ verdict: 'best', confirmed: 4, screen: { verdict: 'mistake', gap: screen.gap } });
-    // the fresh worlds agree: a Mistake, with their gap (not the screen's, which picked the best of noisy means)
+    expect(gradeConfirmed(1, a, screen, same)).toMatchObject({ verdict: 'best', confirmed: 4, screen: { verdict: 'inaccuracy', gap: screen.gap } });
+    // the fresh worlds agree: behind, with their gap (not the screen's, which picked the best of noisy means): a Slip
     const worse: GradedOption[] = [
       { i: 0, v: 50, w: [50, 60, 40, 50] },
       { i: 1, v: 20, w: [20, 30, 10, 20] },
     ];
-    expect(gradeConfirmed(1, a, screen, worse)).toMatchObject({ verdict: 'mistake', gap: 30 / GIG_SWING, confirmed: 4 });
+    expect(gradeConfirmed(1, a, screen, worse)).toMatchObject({ verdict: 'inaccuracy', gap: 30 / GIG_SWING, confirmed: 4 });
+    // and a Mistake from MISTAKE_GIGS (1 Gig = 40 points)
+    const far: GradedOption[] = [
+      { i: 0, v: 50, w: [50, 60, 40, 50] },
+      { i: 1, v: 5, w: [5, 15, -5, 5] },
+    ];
+    expect(gradeConfirmed(1, a, screen, far)).toMatchObject({ verdict: 'mistake', gap: 45 / GIG_SWING });
+    expect(45 / GIG_SWING).toBeGreaterThanOrEqual(MISTAKE_GIGS);
     // no values back: not measured, never the screen
     expect(gradeConfirmed(1, a, screen, [])).toMatchObject({ verdict: 'unscored', gap: null, notMeasured: 'check' });
     // a confirmed move inside the noise in a decision where nothing else differed: unclear
@@ -101,7 +109,9 @@ describe('No clear difference and the confirmation, on made-up scores', () => {
     const wide = advice([base, base.map((x, k) => x - 20 + (k % 2 ? 40 : -40)), base.map((x) => x - 80)]);
     const w = gradeMove(d, 1, wide, 2);
     expect(w.verdict).toBe('close');
-    expect(w.gap!).toBeGreaterThanOrEqual(MISTAKE_GIGS);
+    // a close call from CHECK_GIGS (0.375, the old Mistake line) is confirmed: what is checked did not move with the line
+    expect(w.gap!).toBeGreaterThanOrEqual(CHECK_GIGS);
+    expect(w.gap!).toBeLessThan(MISTAKE_GIGS);
     expect(needsConfirm(w)).toBe(true);
     // a narrow close call, Best, and agree are not
     expect(needsConfirm(gradeMove(d, 0, a, 2))).toBe(false);
