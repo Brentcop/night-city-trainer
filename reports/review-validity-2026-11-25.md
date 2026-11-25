@@ -214,3 +214,62 @@ player in the band.) By game stage, Mistakes and Blunders together:
   the review rates Blunder cost about 10% win chance on average when the Hard bot played on from them to the end
   (measured 2026-11-25)."; the legend, the turning point, the scorecard's and Play-out details' notes the same. Before,
   each said the gap in Gigs ("about 0.9 Gigs better", "−0.6 ± 0.1 Gigs").
+
+## Raising the Mistake line (2026-11-25, the owner's decision "Raise it")
+
+Row 6 found that only Blunders show a measurable cost when the Hard bot plays on to the end; the owner decided that the
+Mistake line rises so that a Mistake marks a measurable cost. The lines are chosen from the row-6 data (the same 240
+games, coach grades and Hard-to-the-end gains), binned by rated gap, under the rule below.
+
+### The rule, written before the costs were binned
+
+**Data.** The row-6 population: every confirmed Slip, Mistake and Blunder of a main-phase action or reaction with a named
+better move, of both seats, by the Game review (its rated gap before the cap) and by the coach (its confirmed gap), with
+the gain measured by the `costs` step (the recommended move's win rate minus the move made's, both played to the end with
+Hard on both seats, 16 or 24 paired worlds).
+
+**Bins.** Gaps on the grid 0.375, 0.5, 0.75, 1, 1.25, 1.5, 2, 3 Gigs (bins [0.375, 0.5), [0.5, 0.75), …, [3, ∞), and
+below 0.375). A bin's or a range's figure is the row-6 estimate made finer: the mean gain over every rating in it,
+stratified by cell (bin, old band, player type: the cells the sampling and any top-up were random within), each cell
+weighted by its share of the ratings, with the stratified SE (finite-population corrected) and a 90% interval (±1.645 SE).
+A cell with no measured rating takes the range's pooled mean and one rating's variance (counted and reported).
+
+**Top-up.** Any bin from 0.375 to 2 Gigs with fewer than 25 measured ratings, for either instrument, gets up to 40 more
+ratings measured (random within its cells; a position shared by both instruments is measured once), by the same method
+(`costs`: 16 paired worlds, Hard on both seats, the deciding seat's hidden cards re-dealt), within about 45 minutes on 3
+threads.
+
+**The Mistake line M.** For each instrument, the smallest g in {0.375, 0.5, 0.75, 1, 1.25, 1.5} such that (i) all its
+costly ratings with a gap of g or more have a mean gain whose 90% interval lies above 0, and (ii) the bin just above g,
+[g, next grid point), does too. One line for both (one definition in `gameReview.ts`, the coach imports it): the larger of
+the two instruments' g, so that a Mistake marks a measurable cost by either. If no g qualifies, M is the smallest g where
+(i) holds, said as a weaker basis.
+
+**The Blunder line B.** The smallest grid point b above M (up to 3) such that the ratings with a gap of b or more cost at
+least twice the Mistake band's [M, b) mean, with the difference's 90% interval above 0; failing that, the smallest b
+whose ratings of b or more cost at least 15 points on average with a 90% interval whose lower end is above the Mistake
+band's mean; failing both, B = the grid point nearest 2 × M. The larger of the two instruments' b.
+
+**Game-losing ratings** (the review's: the move made loses the game in at least 1 in 4 more play-outs). Today a Mistake
+that is game-losing is a Blunder. Kept from the new M if the review's game-losing ratings with a gap in [M, B) cost at
+least the Blunder band's lower 90% end (point estimate); else dropped. Game-losing ratings under M: if their 90% interval
+lies above 0 they are Mistakes (a game-losing Slip is a Mistake); else they stay Slips.
+
+**Slips.** Outside the noise and under M: a Slip, shown by the coach and the review with its band's measured cost
+(re-derived below; "often costs nothing measurable" if its interval includes 0). The review's accuracy counts it as before
+(accuracy is in Gigs and is not changed by the labels). The coach's scorecard keeps its letter (handled well = the
+coach's pick, as good, or a close call, among the decisions that mattered: unchanged), but its count of costly moves is
+Mistakes and Blunders only, with the Slips counted apart; as the meaning of `costly` changes, the stored summary becomes
+`v: 3`, and v2 entries are kept as older ones.
+
+**What is checked, decided by cost before the data.** The coach's confirmation on 16 fresh worlds and the review's stay
+on Slip or worse and on close calls of 0.375 Gigs or more, and the Hard check keeps counting a seat's confirmed ratings of
+0.375 Gigs or more outside the noise (a constant of its own, the check line): the confirmation costs 0.1 to 0.2 s a move
+and keeps the 10–20% false Slips of six worlds out of what is shown; the Hard check was measured (R2) with that count;
+and with the checks unchanged nothing is measured differently (REVIEW_MEASURE stays), so every stored review is rated
+again from its kept measurements.
+
+**Figures shown.** `ratingCost.ts` re-derived for the new bands from the same data and estimator (cells as above), the
+words by the row-6 rule. **Guard:** the new lines are kept only if the review's and the coach's Mistake-or-worse per
+counted decision still separate Easy from Hard on these games (the paired per-deal difference, Easy − Hard, with a 90%
+bootstrap interval above 0); before and after are reported with the scorecard by tier.
