@@ -247,7 +247,7 @@ export const GREEN: Record<string, CardScript> = {
       g.log(p, `reveals ${top.map((u) => g.name(u)).join(', ')}`);
       const i = await g.chooseMode(rival(self), `${g.name(self)}: rival reveals ${top.map((u) => g.name(u)).join(', ')}`, ['Add them to their hand', 'Trash them (they draw 2)'], self.uid, 'foolOnTheHill');
       if (i === 0) {
-        for (const u of top) g.move(u, 'hand');
+        for (const u of top) g.move(u, 'hand', { revealed: true });
         g.log(p, 'adds the revealed cards to hand');
       } else {
         for (const u of top) g.move(u, 'trash');

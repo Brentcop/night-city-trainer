@@ -92,8 +92,9 @@ export async function searchTop(
     if (u === null) break;
     picked.push(u);
   }
+  // every card that searches this way says "Reveal … and add it to your hand" (Viktor Vektor, Sketchy Ripper, Hanako)
   for (const u of picked) {
-    g.move(u, 'hand');
+    g.move(u, 'hand', { revealed: true });
     g.log(p, `adds ${g.name(u)} to hand`);
   }
   const rest = top.filter((u) => !picked.includes(u));

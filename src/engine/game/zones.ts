@@ -28,8 +28,20 @@ export function zoneList(game: Game, p: PlayerId, z: Zone): number[] | null {
   }
 }
 
+/** Take `uid` off its owner's list of hand cards both players know (PlayerState.shown); the field goes when it empties. */
+function unshow(game: Game, owner: PlayerId, uid: number) {
+  const ps = game.P(owner);
+  const shown = ps.shown;
+  if (!shown) return;
+  const i = shown.indexOf(uid);
+  if (i < 0) return;
+  shown.splice(i, 1);
+  if (!shown.length) delete ps.shown;
+}
+
 export function detach(game: Game, uid: number) {
   const c = game.s.cards[uid];
+  if (c.zone === 'hand') unshow(game, c.owner, uid);
   const list = game.zoneList(c.zone === 'field' || c.zone === 'legends' || c.zone === 'eddies' ? c.controller : c.owner, c.zone);
   if (list) {
     const i = list.indexOf(uid);
@@ -50,11 +62,23 @@ export function detach(game: Game, uid: number) {
   }
 }
 
+export interface MoveOptions {
+  position?: 'top' | 'bottom';
+  controller?: PlayerId;
+  faceUp?: boolean;
+  /**
+   * A card moved from the deck to a hand: the effect revealed it on the way ("reveal … and add it to your hand"), so both
+   * players know it is in that hand (PlayerState.shown). A card coming into a hand from any other zone is known without
+   * it (those zones are public); one drawn or searched without a reveal (Three Mouths, One Desire) is not.
+   */
+  revealed?: boolean;
+}
+
 /**
  * Move a card to a zone of its owner (or controller for field). Handles Legend invalid zones and gear.
  * position: 'top' | 'bottom' for deck.
  */
-export function move(game: Game, uid: number, to: Zone, opts: { position?: 'top' | 'bottom'; controller?: PlayerId; faceUp?: boolean } = {}) {
+export function move(game: Game, uid: number, to: Zone, opts: MoveOptions = {}) {
   const c = game.s.cards[uid];
   const from = c.zone;
   const leavingPlay = (from === 'field' || from === 'legends') && to !== from;
@@ -83,6 +107,8 @@ export function move(game: Game, uid: number, to: Zone, opts: { position?: 'top'
     if (opts.position === 'top') list.unshift(uid);
     else list.push(uid);
   } else list.push(uid);
+  // both players know this card is in the hand when it came from a public zone or was revealed (REVIEW_2026-11-25 C5)
+  if (dest === 'hand' && game.tracksShown && (from !== 'deck' || opts.revealed)) (game.P(owner).shown ??= []).push(uid);
   // Gear follows its Unit or Legend to the area it was sent to, unequipped (4.12, 4.12.1). A Legend sent to the trash
   // is removed from the game but its Gear stays in the trash (4.12.2); a Unit removed from the game takes its Gear along.
   for (const gu of gear) {

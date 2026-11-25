@@ -85,3 +85,91 @@ describe('hideInfo', () => {
     expect(ids(cb, cb.P(1).legends)).toEqual(ids(ca, ca.P(1).legends));
   });
 });
+
+// REVIEW_2026-11-25 C5: the cards both players know are in the rival's hand stay there in every projection.
+describe('hideInfo keeps the cards both players know (keepShown)', () => {
+  /** A game recording PlayerState.shown, with one of the rival's cards taken into its hand from the trash. */
+  function shownGame(seed: number) {
+    const g = game(seed);
+    g.tracksShown = true;
+    const u = g.P(1).trash[0];
+    g.move(u, 'hand');
+    return { g, u };
+  }
+
+  it('the engine records a card coming into a hand from a public zone or revealed from the deck, and forgets it when it leaves', () => {
+    const { g, u } = shownGame(3);
+    expect(g.P(1).shown).toEqual([u]);
+    // drawn: not known; revealed from the deck: known
+    const drawn = g.drawRaw(1)!;
+    const revealed = g.P(1).deck[0];
+    g.move(revealed, 'hand', { revealed: true });
+    expect(g.P(1).shown).toEqual([u, revealed]);
+    expect(g.P(1).shown).not.toContain(drawn);
+    // searched without a reveal (Three Mouths, One Desire): not known
+    g.move(g.P(1).deck[0], 'hand');
+    expect(g.P(1).shown).toEqual([u, revealed]);
+    // leaving the hand takes it off the list; the field goes when the list empties
+    g.move(u, 'trash');
+    expect(g.P(1).shown).toEqual([revealed]);
+    g.sell(1, revealed);
+    expect('shown' in g.P(1)).toBe(false);
+    // copies carry the switch
+    expect(g.clone([first, first]).tracksShown).toBe(true);
+  });
+
+  it('records nothing while the switch is off, so the state is exactly as before', () => {
+    const g = game(3);
+    g.move(g.P(1).trash[0], 'hand');
+    g.move(g.P(1).deck[0], 'hand', { revealed: true });
+    expect('shown' in g.P(1)).toBe(false);
+    expect('shown' in g.P(0)).toBe(false);
+  });
+
+  it('keeps a known card in its place in the rival hand and re-deals only the rest', () => {
+    let movedWithout = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const { g, u } = shownGame(seed);
+      const at = g.P(1).hand.indexOf(u);
+      const rivalUnseen = sorted(ids(g, [...g.P(1).hand, ...g.P(1).deck]));
+      const cg = g.clone([first, first]);
+      hideInfo(cg, 0, true);
+      expect(cg.P(1).hand.length).toBe(g.P(1).hand.length);
+      expect(cg.P(1).hand[at]).toBe(u);
+      expect(cg.c(u).zone).toBe('hand');
+      expect(sorted(ids(cg, [...cg.P(1).hand, ...cg.P(1).deck]))).toEqual(rivalUnseen);
+      for (const x of cg.P(1).hand) expect(cg.c(x).zone).toBe('hand');
+      for (const x of cg.P(1).deck) expect(cg.c(x).zone).toBe('deck');
+      // the other cards are re-dealt
+      expect(cg.P(1).hand.filter((x) => x !== u)).not.toEqual(g.P(1).hand.filter((x) => x !== u));
+      // without keepShown the whole hand is re-dealt, the known card included
+      const c2 = g.clone([first, first]);
+      hideInfo(c2, 0);
+      if (!c2.P(1).hand.includes(u)) movedWithout++;
+    }
+    expect(movedWithout).toBeGreaterThan(10);
+  });
+
+  it('deals exactly as before when no card is known', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const g = game(seed);
+      g.tracksShown = true;
+      const a = g.clone([first, first]);
+      const b = g.clone([first, first]);
+      hideInfo(a, 0);
+      hideInfo(b, 0, true);
+      expect(JSON.stringify(b.s)).toBe(JSON.stringify(a.s));
+    }
+  });
+
+  it('a revealing search records its cards, and the online view never carries the list', async () => {
+    const { searchTop } = await import('../src/engine/scripts/helpers');
+    const { viewFor } = await import('../src/net/view');
+    const g = game(5);
+    g.tracksShown = true;
+    const picked = await searchTop(g, 1, 3, { max: 1, rest: 'bottom' });
+    expect(picked.length).toBe(1);
+    expect(g.P(1).shown).toEqual(picked);
+    for (const seat of [0, 1] as PlayerId[]) for (const P of viewFor(g.s, seat).players) expect('shown' in P).toBe(false);
+  });
+});

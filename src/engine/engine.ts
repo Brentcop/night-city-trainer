@@ -83,6 +83,12 @@ export class Game {
    * the state, so clone() and effect probes (new Games from the state) never record. It only observes.
    */
   telemetry: DecisionRecorder | null = null;
+  /**
+   * REVIEW_2026-11-25 C5, opt-in: record the cards both players know are in a hand (`PlayerState.shown`). Off (default):
+   * the state never gets the field, exactly as before. A bot with `keepShown` turns it on for the game it plays; it lives
+   * on this object, not in the state, and clone() and probeCopy() carry it to their copies.
+   */
+  tracksShown = false;
 
   constructor(state: GameState, agents: [Agent, Agent]) {
     this.s = state;
@@ -194,6 +200,7 @@ export class Game {
     LINEAGE.set(st, this.lineage());
     const g = new Game(st, agents);
     g.logEnabled = false;
+    g.tracksShown = this.tracksShown;
     return g;
   }
 
@@ -229,6 +236,7 @@ export class Game {
     LINEAGE.set(st, this.lineage());
     const cg = new Game(st, [PROBE_AGENT, PROBE_AGENT]);
     cg.logEnabled = false;
+    cg.tracksShown = this.tracksShown;
     return cg;
   }
 
@@ -610,7 +618,7 @@ export class Game {
    * Move a card to a zone of its owner (or controller for field). Handles Legend invalid zones and gear.
    * position: 'top' | 'bottom' for deck.
    */
-  move(uid: number, to: Zone, opts: { position?: 'top' | 'bottom'; controller?: PlayerId; faceUp?: boolean } = {}) {
+  move(uid: number, to: Zone, opts: zoneRules.MoveOptions = {}) {
     return zoneRules.move(this, uid, to, opts);
   }
 

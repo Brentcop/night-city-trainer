@@ -142,6 +142,15 @@ export interface PlayerState {
   fixer: number[]; // gig ids
   gigs: number[]; // gig ids controlled
   sideboard: string[];
+  /**
+   * The cards in this player's hand that both players know (REVIEW_2026-11-25 C5): a card that came into the hand from a
+   * public zone (the field, the trash, a card being played) or was revealed on its way from the deck (a tutor that says
+   * "reveal", Fool on the Hill, Sasha's attack). In the order they became known; a card leaves the list when it leaves the
+   * hand. Absent until the first such card (so a game where none comes into a hand keeps its state, and its stateHash,
+   * exactly as before), and removed again when it empties. `hideInfo` (src/ai/heuristic.ts) keeps these in the rival's
+   * hand and re-deals only the rest. Written only while `Game.tracksShown` is on (opt-in until it is landed).
+   */
+  shown?: number[];
 }
 
 export interface AttackState {

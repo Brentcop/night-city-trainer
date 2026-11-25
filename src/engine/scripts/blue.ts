@@ -195,7 +195,7 @@ export const BLUE: Record<string, CardScript> = {
       const p = self.controller;
       const u = topCard(g, p);
       if (u === null) return;
-      g.move(u, 'hand');
+      g.move(u, 'hand', { revealed: true });
       const cost = g.def(u).cost ?? 0;
       g.log(p, `reveals ${g.name(u)} and adds it to hand`);
       if (cost > 0 && self.zone === 'field') g.givePower(self.uid, cost, 'endOfTurn', undefined, self.uid);
@@ -414,7 +414,7 @@ export const BLUE: Record<string, CardScript> = {
         const u = topCard(g, p);
         if (u === null) return;
         if (g.def(u).type === t) {
-          g.move(u, 'hand');
+          g.move(u, 'hand', { revealed: true });
           g.log(p, `reveals ${g.name(u)} (${t}) and adds it to hand`);
           g.readyEddies(p, 1);
         } else {
@@ -556,7 +556,7 @@ export const BLUE: Record<string, CardScript> = {
           if (g.canPlayCard(p, u, true) && (await g.yesNo(p, `Play ${g.name(u)} for free?`, 'freePlay', self.uid))) {
             await g.playFree(p, u, 'deck');
           } else {
-            g.move(u, 'hand');
+            g.move(u, 'hand', { revealed: true });
             g.log(p, `adds ${g.name(u)} to hand`);
           }
         },
