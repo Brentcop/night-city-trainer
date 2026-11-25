@@ -10,7 +10,7 @@ import { makeTierBot } from '../src/ai/tiers';
 import { DECIDED_EVAL, GIG_SWING } from '../src/ai/eval';
 import { plainRuleMulligan } from '../src/ai/mulligan';
 import { adviseRequest, COACH_CONFIG, coachRequest, coachWorthAsking, gradeMove, makeCoach, mulliganWhy, scoreMoveRequest, type Advice, type MoveGrade } from '../src/ai/coach';
-import { behindText, coachTablesWords, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
+import { behindText, coachCostWords, coachTablesWords, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
 import { CAP_GIGS, coachRatingOf, RATING_INFO } from '../src/lib/gameReview';
 import { CoachBox, CoachPanel, MoveToast, Scorecard, verdictText } from '../src/ui/components/board/CoachPanel';
 import { restoredGrades, type SavedGame } from '../src/lib/savedGames';
@@ -88,15 +88,24 @@ describe('agreeing is measured only where the coach measures', () => {
     const a = scored([[10_050, 10_020, 10_100], [40, 60, 20]]);
     const gr = gradeMove(d, 1, a, 5);
     expect(gr.gap).toBeGreaterThan(200); // kept raw for the export and the review
-    expect(verdictText(gr)).toBe('Blunder: the coach preferred Attack (decides the game in the play-outs)');
+    expect(verdictText(gr)).toBe(`Blunder: the coach preferred Attack (${coachCostWords(gr.verdict, gr.gap)})`);
+    expect(verdictText(gr)).not.toMatch(/Gig/);
   });
   it('the scorecard leaves unmeasured choices out of its count, and shows no letter when nothing was measured', () => {
     const g = (verdict: MoveGrade['verdict']): MoveGrade => ({ turn: 1, chose: 'A', coach: 'A', gap: verdict === 'unscored' ? null : 0, verdict });
     const html = renderToStaticMarkup(<Scorecard grades={[g('unscored'), g('unscored')]} />);
-    expect(html).toContain('no moves measured');
+    expect(html).toContain('no decision that mattered was measured');
     expect(html).not.toContain('scorecard-grade');
     expect(html).not.toContain('100%');
-    expect(renderToStaticMarkup(<Scorecard grades={[g('agree'), g('unscored')]} />)).toContain('1 of 1 measured move was Best or a Close call (100%)');
+    expect(renderToStaticMarkup(<Scorecard grades={[g('agree'), g('unscored')]} />)).toContain('Handled well: 1 of 1 decision that mattered (100%)');
+    // REVIEW_2026-11-25 C3: a decision with no clear difference is left out, and said apart
+    const unclear = renderToStaticMarkup(<Scorecard grades={[g('agree'), g('unclear'), g('unclear')]} />);
+    expect(unclear).toContain('Handled well: 1 of 1 decision that mattered (100%)');
+    expect(unclear).toContain('2 decisions made no clear difference (not counted).');
+    // the headline is the costly moves, each confirmed
+    const costly = renderToStaticMarkup(<Scorecard grades={[g('agree'), { ...g('mistake'), gap: 0.5, se: 0.1, confirmed: 16 }, { ...g('inaccuracy'), gap: 0.2, se: 0.05, confirmed: 16 }]} />);
+    expect(costly).toContain('Costly moves: 2 (1 Mistake, 1 Slip), each checked on fresh play-outs');
+    expect(costly).toContain('Handled well: 1 of 3 decisions that mattered (33%)');
   });
   it('older records: a stored rule-decided "agree" is read as not measured', () => {
     const rec = { at: 3, turn: 2, options: ['A', 'B'], chose: 0, coach: 0, why: '', verdict: 'agree', gap: 0, scores: [] };

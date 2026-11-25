@@ -189,7 +189,7 @@ const mode = (m: ModeReport['mode'], games: number, winRate = 0.5): ModeReport =
   notChosenRate: 0.5,
   selfPaid: 0,
 });
-const decReport = (simVersion = 9): DecisionReport =>
+const decReport = (simVersion = CURRENT_SIM_VERSION): DecisionReport =>
   ({
     kind: 'decision-telemetry',
     reportSchema: 1,
@@ -323,9 +323,9 @@ describe('on fixtures', () => {
       { rel: 'parent', to: 'cardstat:kilo' },
     ]);
     expect(rs.find((r) => r.id === 'pkgstat:deck-a/dead')!.links.map((l) => l.rel)).toEqual(['deck', 'parent']);
-    expect(a.stamps).toEqual({ asOf: '2026-01-02T03:04:05.000Z', bot: 'fixture', listId: 'LIST_A', simVersion: 9 });
+    expect(a.stamps).toEqual({ asOf: '2026-01-02T03:04:05.000Z', bot: 'fixture', listId: 'LIST_A', simVersion: CURRENT_SIM_VERSION });
     // the fixture bot is not the reference (Hard) bot, and the record says so
-    expect(a.text.split('\n')[0]).toContain("measured by the fixture bot on sim version 9 (not the hard bot the site's ratings and recorded results use) (2026-01-02, 100 games in the run)");
+    expect(a.text.split('\n')[0]).toContain(`measured by the fixture bot on sim version ${CURRENT_SIM_VERSION} (not the hard bot the site's ratings and recorded results use) (2026-01-02, 100 games in the run)`);
     // no report at all: nothing built, each missing report counted
     const none: Record<string, number> = {};
     expect(buildStats({ decisions: null, synergies: null, analysis: null, impact: null, catalogueVersion: 'CAT' }, { deckOf: () => undefined, cardName: () => undefined, hasCard: () => false, hasPackage: () => false, skipped: none })).toEqual([]);

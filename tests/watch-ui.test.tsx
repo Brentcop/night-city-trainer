@@ -11,7 +11,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CARD_BY_ID } from '../src/engine/cards';
 import type { DeckList, GameState, LogEntry } from '../src/engine/types';
 import { defaultSiteConfig, FEATURES, FEATURE_INFO, siteConfigText } from '../src/lib/siteConfig';
-import { gameDeck, type GameRec } from '../src/lib/tournament';
+import { Game } from '../src/engine/engine';
+import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
+import { gameDeck, makeBot, type GameRec } from '../src/lib/tournament';
 import { playWatchGame, type WatchedGame } from '../src/lib/watchGame';
 import type { WatchMatch, WatchTarget } from '../src/lib/watchMatch';
 import { setArtEnabled } from '../src/ui/art';
@@ -70,8 +72,12 @@ const names: [string, string] = [match.a, match.b!];
 const deck = (name: string): DeckList => gameDeck({ name, ...ev.decks[name]! });
 let real: WatchedGame;
 beforeAll(async () => {
+  // the deal as the event recorded it (on SIM_VERSION 9), recorded again on the current version as an event records a
+  // game (the archived events are not re-recorded at every bump; RRG Dexter Midrange holds a Street Cred card, so since
+  // SIM_VERSION 10 the deal plays differently), then watched
   const g = match.games.find((x) => x.seed === 1020010)!;
-  real = await playWatchGame({ kind: 'event', decks: [deck(match.a), deck(match.b!)], seed: g.seed, first: g.first, bot: ev.bot, simVersion: ev.simVersion, expect: { winner: g.winner, turns: g.turns } });
+  const s = await Game.create([deck(match.a), deck(match.b!)], [makeBot(ev.bot, g.seed), makeBot(ev.bot, g.seed + 7777)], { seed: g.seed, first: g.first, log: false }).run();
+  real = await playWatchGame({ kind: 'event', decks: [deck(match.a), deck(match.b!)], seed: g.seed, first: g.first, bot: ev.bot, simVersion: CURRENT_SIM_VERSION, expect: { winner: s.winner!, turns: s.turn } });
 }, 60_000);
 
 /** A game with `n` moves over turns 1.. (two moves a turn), ending in `winner`, for driving the playback. */

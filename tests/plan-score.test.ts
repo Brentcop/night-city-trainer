@@ -1,12 +1,13 @@
 // planScore (src/ai/eval.ts) counts Gig values in a reused array when every value is a whole number from 0 to 63, and by
 // the general rule otherwise. Either way it must give exactly what the formula gave before (kept below), for any Gigs:
-// repeated values, many of one value, values the engine never makes (0, 63, 64, negative, fractional, NaN).
+// repeated values, many of one value, values the engine never makes (0, 63, 64, negative, fractional, NaN). The
+// reference has the Street Cred parity term of SIM_VERSION 10 (C.1) added where planScore has it.
 import { describe, expect, it } from 'vitest';
 import { planScore } from '../src/ai/eval';
 import type { GigPlan } from '../src/ai/knowledge';
 import type { Gig } from '../src/engine/types';
 
-/** planScore as it was written before. */
+/** planScore as it was written before the quick count, with SIM_VERSION 10's Street Cred parity term. */
 function oldPlanScore(gigs: Gig[], plan: GigPlan): number {
   let s = 0;
   const counts: Record<number, number> = {};
@@ -24,6 +25,11 @@ function oldPlanScore(gigs: Gig[], plan: GigPlan): number {
   s += pairs * 3 * plan.pairs;
   s += distinct * 0.8 * plan.diverse;
   if (hasEven && hasOdd) s += 2 * plan.parity;
+  if ((plan.credEven || plan.credOdd) && gigs.length) {
+    const cred = gigs.reduce((a, x) => a + x.value, 0);
+    if (cred % 2 === 0) s += 2 * plan.credEven;
+    else if (cred % 2 === 1) s += 2 * plan.credOdd;
+  }
   s += gigs.reduce((a, x) => a + x.value, 0) * 0.05;
   return s;
 }
@@ -33,7 +39,8 @@ const rand = () => ((r = (Math.imul(r, 1664525) + 1013904223) >>> 0) / 429496729
 const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!;
 const SIDES = [4, 6, 8, 10, 12, 20];
 const EDGE = [0, -0, 1, 2, 20, 21, 62, 63, 64, 65, 100, 1000, -1, -2, -63, -64, 0.5, 1.5, 2.5, -1.5, NaN, Infinity, -Infinity, 2 ** 31, 2 ** 53];
-const plan = (): GigPlan => ({ high: rand() * 1.5, low: rand() * 1.5, pairs: rand() * 1.5, diverse: rand() * 1.5, parity: rand() * 1.5, d20: rand() * 1.5 });
+// a Street Cred parity weight in about half the plans (the other half take the path without it)
+const plan = (): GigPlan => ({ high: rand() * 1.5, low: rand() * 1.5, pairs: rand() * 1.5, diverse: rand() * 1.5, parity: rand() * 1.5, credEven: rand() < 0.5 ? rand() * 1.5 : 0, credOdd: rand() < 0.25 ? rand() * 1.5 : 0, d20: rand() * 1.5 });
 const gig = (id: number, value: number): Gig => ({ id, sides: pick(SIDES), value, owner: 0, controller: 0 });
 
 function check(gigs: Gig[], p: GigPlan) {

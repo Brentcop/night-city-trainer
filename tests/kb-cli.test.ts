@@ -127,7 +127,7 @@ describe('fact', () => {
     const champ = fact(['champion', '--event', '24']);
     expect(champ.code).toBe(0);
     expect(champ.out).toContain(`Event #24 champion: ${ev24!.event.champion}`);
-    expect(champ.out).toMatch(/source: public\/tournaments\/event-24\.json \(the \w+ bot on sim version \d+, recorded 20\d\d-/);
+    expect(champ.out).toMatch(/source: public\/tournaments\/event-24\.json \(the \w+ bot on sim version \d+(?: \(stale: the current sim version is \d+\))?, recorded 20\d\d-/);
     const st = fact(['standings', '--event', '24', '--round', '5']);
     expect(st.out).toMatch(/^Event #24 standings after round 5 of 9/);
     const json = JSON.parse(fact(['standings', '--event', '24', '--json']).out);
@@ -169,7 +169,7 @@ describe('fact', () => {
     // a deck name may itself hold a colon ("Ladder: V / Smasher / Saburo (RRG)"), so each line is matched by its prefix
     expect(lines.slice(1, 4).map((l, i) => l.startsWith(`${i + 1}. ${rows[i]!.name}: `))).toEqual([true, true, true]);
     expect(lines[1]).toMatch(/expected win rate against the whole field [\d.]+% \(90% range [\d.]+%–[\d.]+%\) over \d+ rated games; Sim tier now /);
-    expect(lines.at(-1)).toMatch(/^ {2}source: src\/data\/ratings\.json \(the \w+ bot on sim version \d+, recorded /);
+    expect(lines.at(-1)).toMatch(/^ {2}source: src\/data\/ratings\.json \(the \w+ bot on sim version \d+(?: \(stale: the current sim version is \d+\))?, recorded /);
     expect(fact(['ratings']).out).toContain(`All ${rows.length} rated decks now:`);
     const json = JSON.parse(fact(['ratings', '--top', '2', '--json']).out);
     expect(json).toMatchObject({ fact: 'ratings', source: 'src/data/ratings.json', of: rows.length });
@@ -209,7 +209,7 @@ describe('fact card and fact package (step 2.4)', () => {
     expect(one.code).toBe(0);
     expect(one.out).toMatch(/^Jacked-In Voodoo Boy on BBG Cunningham Econ: statistics of how the bot used one card on one library list, measured by the \w+ bot on sim version \d+/);
     expect(one.out).toMatch(/Played from hand in the main phase: \d+ times in \d+ of the list's \d+ games/);
-    expect(one.out).toMatch(/source: reports\/decisions-latest\.json \(the \w+ bot on sim version \d+, recorded 20\d\d-/);
+    expect(one.out).toMatch(/source: reports\/decisions-latest\.json \(the \w+ bot on sim version \d+(?: \(stale: the current sim version is \d+\))?, recorded 20\d\d-/);
     expect(one.out).toContain('source: src/data/analysis.json');
     const row = stats.decisions!.data.decks.find((d) => d.listId === BBG.listId)!.cards.find((c) => c.id === 'jacked_in_voodoo_boy')!.modes[0]!;
     expect(one.out).toContain(`${row.all.uses} times in ${row.all.games} of the list's`);

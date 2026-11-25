@@ -7,10 +7,17 @@
 // If one fails after a DELIBERATE change to the bots, the engine or the impact table, the recorded events no longer
 // replay: bump SIM_VERSION (src/lib/tournament.ts, CURRENT_SIM_VERSION in src/lib/playedRecord.ts) in the same commit,
 // so the site marks them historical, and pick new games here once events are recorded on the new code.
+//
+// SIM_VERSION 10 (2026-11-25, the Street Cred parity reading) was the first bump that did not re-record the events: the
+// rating series re-rates on the new version instead. Until events are recorded on the current version, each pinned game
+// is checked to come from an older version, which the site marks historical and Watch refuses, and is not played; its
+// pin still says what it was. Played on the version-10 code, six of the seven still end with their recorded winner and
+// turn count and event 6's does not; the game corpus (tests/game-corpus.test.ts) pins the current version.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
 import { gameDeck, makeBot, SIM_VERSION, type GameRec, type TourneyEvent } from '../src/lib/tournament';
+import { isHistorical } from '../src/lib/playedRecord';
 
 /**
  * event id, the match's two decks (a first, as recorded), the game's index in the match, and its recorded result
@@ -37,7 +44,12 @@ const eventOf = (id: number) => {
 describe('golden replays from recorded events', () => {
   it.each(GOLDEN)('event $event: $a vs $b, game $game replays as recorded', async ({ event, a, b, game, winner, turns }) => {
     const ev = eventOf(event);
-    expect(ev.simVersion).toBe(SIM_VERSION);
+    expect(ev.simVersion).toBeLessThanOrEqual(SIM_VERSION);
+    if (ev.simVersion !== SIM_VERSION) {
+      // recorded on an older simulator: the site marks it historical; it is not played on this code (see the header)
+      expect(isHistorical(ev.simVersion)).toBe(true);
+      return;
+    }
     const match = [...ev.rounds, ...ev.bracket].flatMap((p) => p.matches).find((m) => m.a === a && m.b === b);
     expect(match, `${a} vs ${b}`).toBeDefined();
     const rec: GameRec = match!.games[game];

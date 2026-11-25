@@ -262,23 +262,26 @@ describe('the page', () => {
     );
   });
 
-  it('the bundled data: Seasons 1 and 2 are historical and untested; Season 3 is current, tested at entry, with two decks kept out', () => {
+  it('the bundled data: Seasons 1 and 2 are historical and untested; Season 3, historical since version 10, tested at entry, with two decks kept out', () => {
     const html = renderToStaticMarkup(<SeasonsView data={SEASONS} ratings={RATINGS} lib={BUILTIN} />);
     const t = text(html);
     const versions = seasonVersions(SEASONS.seasons);
-    expect(versions).toEqual({ '1': 5, '2': 5, '3': CURRENT_SIM_VERSION });
+    // Season 3 ran on version 9, the current simulator until SIM_VERSION 10 (2026-11-25)
+    expect(versions).toEqual({ '1': 5, '2': 5, '3': 9 });
+    expect(CURRENT_SIM_VERSION).toBeGreaterThan(9);
     // the intro, from each season's own version (the file's own version is the oldest season's)
     expect(SEASONS.manifest?.simVersion).toBe(5);
-    expect(t).toContain(`Seasons 1 and 2 were played on an older simulator (v5), so their results are historical; Season 3 was played on the current simulator (v${CURRENT_SIM_VERSION}).`);
+    expect(t).toContain(`Seasons 1, 2 and 3 were played on an older simulator (v5 and v9), so their results are historical (the current simulator is v${CURRENT_SIM_VERSION}).`);
     expect(t).not.toContain('These results were recorded before the current simulator');
     // each panel names its bot and simulator
-    expect(t).toMatch(new RegExp(`Season 3 \\(2026-11-16 · 24 games per pairing · Hard bot · simulator v${CURRENT_SIM_VERSION}\\)`));
+    expect(t).toMatch(/Season 3 \(2026-11-16 · 24 games per pairing · Hard bot · simulator v9, historical \)/);
     expect(t).toMatch(/Season 2 \(2026-11-12 · 24 games per pairing · Deep bot · simulator v5, historical \)/);
     expect(t).toMatch(/Season 1 \(2026-11-11 · \d+ games per pairing · Deep bot · simulator v5, historical \)/);
-    // the leaderboard: 28 of 36 rows have a season before 3 behind them and are marked; the 8 with only Season 3 are not
+    // the leaderboard: every row has an older season behind it and is marked (on version 9 the 8 rows with only Season
+    // 3 behind them were not)
     expect(SEASONS.leaderboard).toHaveLength(36);
-    expect(SEASONS.leaderboard.filter((r) => staleLeaderRow(r, versions))).toHaveLength(28);
-    expect(count(html, '>older simulator</span>')).toBe(28);
+    expect(SEASONS.leaderboard.filter((r) => staleLeaderRow(r, versions))).toHaveLength(36);
+    expect(count(html, '>older simulator</span>')).toBe(36);
     for (const r of SEASONS.leaderboard.filter((x) => !staleLeaderRow(x, versions))) {
       const at = html.indexOf(`${r.name.replace(/'/g, '&#x27;')}</b></a>`);
       expect(at, r.name).toBeGreaterThan(0);

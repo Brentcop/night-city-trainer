@@ -1,11 +1,11 @@
 // Stored Game reviews (src/lib/gameReview.ts), per browser, beside the practice replays they review: the finished
 // review, so reopening it is instant, and before that the coach's grades from play (kept at game over, so a review run
-// later from the Profile rates your moves exactly as the coach did; kept with the review too, so a review made under
-// older rating rules can be re-rated). Keyed by the replay's id, newest last, capped like the replays. Versioned
+// later from the Profile shows each beside the review's rating of the same move, for reference; since 2026-11-25 the
+// review rates your moves by its own play-outs, as the rival's). Keyed by the replay's id, newest last, capped like the replays. Versioned
 // (`nct.gameReviews.v1`, records carry `schema`, and `rules`: a review made under other rating rules than REVIEW_RULES is
 // rated again from the measurements kept with it (rerateRecord) when it can be, else handed back as `stale`, to be run
-// again; one measured another way, `measure` / `rollouts` / `confirm`, is always stale); an unreadable entry is dropped,
-// never thrown.
+// again; one measured another way, `measure` / `rollouts` / `confirm`, or with other bots, `simVersion` (absent: before
+// 2026-11-25, version 9), is always stale); an unreadable entry is dropped, never thrown.
 import { measuredAsNow, REVIEW_KIND, REVIEW_RULES, REVIEW_SCHEMA, RATINGS, rerateRecord, reviewCounts, type CoachRating, type GameReviewRecord, type KeptMeasure, type Rating, type ReviewMove } from './gameReview';
 import { annotateReview } from './practiceLog';
 
@@ -20,7 +20,7 @@ export interface StoredReviewEntry {
 }
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
-const RATING_SET = new Set<string>([...RATINGS, 'forced', 'unclear']);
+const RATING_SET = new Set<string>([...RATINGS, 'forced', 'unclear', 'unrated']);
 const VERDICTS = new Set(['agree', 'best', 'close', 'inaccuracy', 'mistake']);
 
 function isCoachRating(x: unknown): x is CoachRating {
@@ -39,7 +39,9 @@ function isCoachRating(x: unknown): x is CoachRating {
     isNum(c.gap) &&
     (c.se === undefined || isNum(c.se)) &&
     Array.isArray(c.alts) &&
-    c.alts.every((a) => Array.isArray(a) && isNum(a[0]) && isNum(a[1]) && (a[2] === null || isNum(a[2])))
+    c.alts.every((a) => Array.isArray(a) && isNum(a[0]) && isNum(a[1]) && (a[2] === null || isNum(a[2]))) &&
+    (c.unclear === undefined || c.unclear === true) &&
+    (c.confirmed === undefined || (Number.isInteger(c.confirmed) && c.confirmed > 0))
   );
 }
 
@@ -64,6 +66,12 @@ function isMove(x: unknown): boolean {
   );
 }
 
+/** A decision the review could not measure (GameReviewRecord.failed). */
+function isFailed(x: unknown): boolean {
+  const f = x as Record<string, unknown> | null;
+  return !!f && typeof f === 'object' && isNum(f.seq) && (f.p === 0 || f.p === 1) && isNum(f.at) && isNum(f.turn) && typeof f.cat === 'string' && typeof f.chosen === 'string' && typeof f.why === 'string';
+}
+
 const isInt = (x: unknown): x is number => Number.isInteger(x);
 const ints = (x: unknown, n?: number) => Array.isArray(x) && (n === undefined || x.length === n) && x.every(isInt);
 /** A pass [gap, SE ×100 or null]: the gap in points (≥ 0), the SE a whole number (KeptMeasure). */
@@ -75,22 +83,33 @@ function isKept(x: unknown, src: ReviewMove['src']): x is KeptMeasure {
   if (!k || typeof k !== 'object' || Array.isArray(k)) return false;
   if (src === 'coach') return Object.keys(k).every((f) => f === 's') && (k.s === undefined || ints(k.s, 2));
   return (
-    Object.keys(k).every((f) => f === 'f' || f === 'c' || f === 'b' || f === 'o' || f === 's') &&
+    Object.keys(k).every((f) => f === 'f' || f === 'c' || f === 'h' || f === 'b' || f === 'o' || f === 's') &&
     isPass(k.f) &&
     (k.c === undefined || isPass(k.c)) &&
-    (k.b === undefined || (isInt(k.b) && k.b >= 0 && k.b < 16)) &&
+    (k.h === undefined || isPass(k.h)) &&
+    (k.b === undefined || (isInt(k.b) && k.b >= 0 && k.b < 32)) &&
     (k.o === undefined || (ints(k.o) && (k.o as number[]).length % 2 === 0)) &&
     (k.s === undefined || ints(k.s, 3))
   );
 }
 
-/** The moves with any unreadable kept measurements left out (the move stays; it just cannot be rated again from storage). */
+/** The coach's grade kept beside a move (ReviewMove.said), readable. */
+function isSaid(x: unknown): boolean {
+  const s = x as Record<string, unknown> | null;
+  return !!s && typeof s === 'object' && VERDICTS.has(s.v as string) && isNum(s.gap) && (s.se === undefined || isNum(s.se)) && (s.best === undefined || typeof s.best === 'string') && typeof s.why === 'string' && (s.unclear === undefined || s.unclear === true) && (s.confirmed === undefined || (Number.isInteger(s.confirmed) && (s.confirmed as number) > 0));
+}
+
+/**
+ * The moves with any unreadable kept measurements left out (the move stays; it just cannot be rated again from
+ * storage), and an unreadable coach grade beside a move left out (the move stays; the reference is not shown).
+ */
 function readableMoves(moves: ReviewMove[]): ReviewMove[] {
-  if (moves.every((m) => m.ms === undefined || isKept(m.ms, m.src))) return moves;
+  const ok = (m: ReviewMove) => (m.ms === undefined || isKept(m.ms, m.src)) && (m.said === undefined || isSaid(m.said));
+  if (moves.every(ok)) return moves;
   return moves.map((m) => {
-    if (m.ms === undefined || isKept(m.ms, m.src)) return m;
-    const { ms: _ms, ...rest } = m;
-    return rest;
+    if (ok(m)) return m;
+    const { ms, said, ...rest } = m;
+    return { ...rest, ...(ms !== undefined && isKept(ms, m.src) ? { ms } : {}), ...(said !== undefined && isSaid(said) ? { said } : {}) };
   });
 }
 
@@ -108,7 +127,11 @@ export function asReviewRecord(x: unknown): GameReviewRecord | null {
     // how it was measured: unreadable, the review cannot be placed, so it is not read at all
     (r.measure === undefined || isInt(r.measure)) &&
     (r.confirm === undefined || (isInt(r.confirm) && r.confirm >= 0)) &&
+    (r.hard === undefined || (isInt(r.hard) && r.hard >= 0)) &&
     (r.rerated === undefined || isNum(r.rerated)) &&
+    // the simulator version that measured it, and the game's own when another (absent in reviews stored before 2026-11-25)
+    (r.simVersion === undefined || (isInt(r.simVersion) && r.simVersion > 0)) &&
+    (r.gameSimVersion === undefined || (isInt(r.gameSimVersion) && r.gameSimVersion > 0)) &&
     typeof r.id === 'string' &&
     typeof r.made === 'string' &&
     isNum(r.rollouts) &&
@@ -128,6 +151,7 @@ export function asReviewRecord(x: unknown): GameReviewRecord | null {
     Array.isArray(r.forced) &&
     r.forced.length === 2 &&
     r.forced.every(isNum) &&
+    (r.failed === undefined || (Array.isArray(r.failed) && r.failed.every(isFailed))) &&
     (r.answers === undefined || (Array.isArray(r.answers) && r.answers.length === 2 && r.answers.every(isAnswers))) &&
     isNum(r.ms);
   if (!ok) return null;
@@ -204,9 +228,10 @@ export interface LoadedReview extends StoredReviewEntry {
  * The stored entry of a game, if any; a review of other answers than `choices` (the game was replayed after Undo) is left
  * out. Read only: it never writes. A review of the same answers made under other rating rules is rated again from the
  * measurements kept with it (rerateRecord) and comes back as `review` with `reratedNow`; when it can't be (stored before
- * the measurements were kept, a move the current rules confirm that was not confirmed, other coach grades), or when it
+ * the measurements were kept, a move the current rules confirm that was not confirmed, a move rated by the coach's grade
+ * as reviews stored before 2026-11-25 were), or when it
  * was measured another way than reviews are measured now (measuredAsNow), it comes back as `stale`, not `review`: run the
- * review again (its coach-graded moves can be kept from it when the coach's grades are no longer stored).
+ * review again.
  */
 export function loadGameReview(id: string, choices?: readonly (readonly number[])[]): LoadedReview | null {
   const e = loadAll().find((x) => x.id === id) ?? null;
@@ -215,7 +240,7 @@ export function loadGameReview(id: string, choices?: readonly (readonly number[]
   if (choices && !reviewMatches(review, choices)) return rest.coach ? rest : null;
   if (!measuredAsNow(review)) return { ...rest, stale: review };
   if (currentRules(review)) return e;
-  const again = rerateRecord(review, rest.coach);
+  const again = rerateRecord(review);
   return again.ok ? { ...rest, review: again.rec, reratedNow: true } : { ...rest, stale: review };
 }
 
@@ -233,7 +258,7 @@ export function saveCoachRatings(id: string, coach: CoachRating[], choices: read
   update(id, (e) => (e.review && reviewMatches(e.review, choices) ? e : { id, ...(coach.length ? { coach } : {}) }));
 }
 
-/** Keep a finished review, with the coach's grades it was built from (a later rules change re-rates it from them). */
+/** Keep a finished review, with the coach's grades from play it shows beside your moves. */
 export function saveGameReview(rec: GameReviewRecord, coach?: readonly CoachRating[]) {
   update(rec.id, (e) => {
     const keep = coach?.length ? [...coach] : e.coach;

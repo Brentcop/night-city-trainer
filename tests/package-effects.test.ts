@@ -80,7 +80,7 @@ describe('the file and a seat’s rows', () => {
     expect(effectGate(null, 'a')).toBe('unmeasured');
     expect(effectLabel(s, [{ id: 'd', name: 'D' }, { id: 'e', name: 'E' }])).toBe('(D and E are ideas from the package catalogue, not measured on this list.)');
     expect(effectLabel(s, [{ id: 'a', name: 'A' }])).toBe(
-      "(Measured on this list in the Hard bot's games, simulator version 9: it won 6.1 points more often than the same list with A's own 3 cards swapped for others, range +2.0 to +10.2 points, over 1,120 paired games against the meta decks.)",
+      `(Measured on this list in the Hard bot's games, simulator version ${SIM_VERSION}: it won 6.1 points more often than the same list with A's own 3 cards swapped for others, range +2.0 to +10.2 points, over 1,120 paired games against the meta decks.)`,
     );
     expect(effectLabel(s, [{ id: 'b', name: 'B' }])).toBe('');
   });
@@ -117,7 +117,7 @@ describe('the coach, gated by the paired measurement', () => {
   it('BBG sell: measured above 0 named with the effect; not above 0 left out; no row (or no file) an unmeasured idea', () => {
     const { g, d } = bbgSell();
     expect(packageNotes(g, d, 0, undefined, { 'low-cred': row() })).toEqual([
-      `${KEEP} (Measured on this list in the Hard bot's games, simulator version 9: it won 6.1 points more often than the same list with Behind on Street Cred's own 3 cards swapped for others, range +2.0 to +10.2 points, over 1,120 paired games against the meta decks.)`,
+      `${KEEP} (Measured on this list in the Hard bot's games, simulator version ${SIM_VERSION}: it won 6.1 points more often than the same list with Behind on Street Cred's own 3 cards swapped for others, range +2.0 to +10.2 points, over 1,120 paired games against the meta decks.)`,
     ]);
     expect(packageNotes(g, d, 0, undefined, { 'low-cred': row({ low: -0.01 }) })).toEqual([]);
     const idea = `${KEEP} (Behind on Street Cred is an idea from the package catalogue, not measured on this list.)`;
@@ -154,9 +154,14 @@ describe('the published file and the Play page', () => {
     expect(f).not.toBeNull();
     expect(f.catalogueVersion).toBe(CATALOGUE_VERSION);
     expect(f.rows.length).toBeGreaterThan(100);
-    expect(f.rows.every((r) => r.bot && r.simVersion === SIM_VERSION)).toBe(true);
-    const own = seatEffects(f, BBG_ID, NOW)!;
+    // one simulator version for the whole file: measured 2026-11-24 on version 9, so since SIM_VERSION 10 (2026-11-25)
+    // the coach reads none of its rows (a row of another version is never used) until the file is measured again
+    const v = f.rows[0]!.simVersion;
+    expect(f.rows.every((r) => r.bot && r.simVersion === v)).toBe(true);
+    expect(v).toBeLessThanOrEqual(SIM_VERSION);
+    const own = seatEffects(f, BBG_ID, { ...NOW, simVersion: v })!;
     expect(Object.keys(own).length).toBeGreaterThan(0);
+    if (v !== SIM_VERSION) expect(Object.keys(seatEffects(f, BBG_ID, NOW) ?? {})).toEqual([]);
   });
 
   it('Play fetches it only while the coach is on and sends the seat’s rows in place of the lift', () => {

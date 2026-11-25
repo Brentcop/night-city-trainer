@@ -10,7 +10,7 @@ import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARDS } from '../src/engine/cards';
 import type { Decision, DeckList } from '../src/engine/types';
-import { adviseRequest, coachRequest, gradeMove, scoreMoveRequest, type GradedOption } from '../src/ai/coach';
+import { adviseRequest, coachRequest, gradeFully } from '../src/ai/coach';
 import { GIG_SWING } from '../src/ai/eval';
 import { applyPatch, BOARD_SETTINGS_KEY, COACH_LABEL, defaultBoardSettings, loadBoardSettings, saveBoardSettings, type BoardSettingsPatch } from '../src/lib/boardSettings';
 import { buildCoachedReplay, coachedGrade, type CoachedGrade } from '../src/lib/coachedReplay';
@@ -204,12 +204,9 @@ async function playWith(coachAt: (k: number) => boolean, seed = 31) {
     const i = choose(run, d);
     // the advice is showing when you answer (the board's activeHint is for this decision)
     if (!gradeWanted(d, coachAt(k), d)) return;
-    const gr = coachedGrade(d, i, advice, gradeMove(d, i, advice, run.g.s.turn), k);
-    run.grades.push(gr);
-    if (gr.verdict === 'pending') {
-      const extra: GradedOption[] = await scoreMoveRequest({ req: coachRequest(run.g, d), chosen: i, coach: advice.index, grade: advice.grade }).catch(() => []);
-      run.grades[run.grades.indexOf(gr)] = coachedGrade(d, i, advice, gradeMove(d, i, advice, gr.turn, extra), k, extra);
-    }
+    // graded as the board grades it: scored when the coach did not value it, a costly grade confirmed on fresh worlds
+    const { grade, extra, fresh } = await gradeFully(coachRequest(run.g, d), i, advice, run.g.s.turn);
+    run.grades.push(coachedGrade(d, i, advice, grade, k, extra, fresh));
   });
   session.start(setup(seed));
   const run = await finish(session);
@@ -268,13 +265,13 @@ describe('Coach switch: the game is the same with the coach on, off or switched 
     const sum = coachSummary(toggled.grades);
     expect(sum && sum.measured).toBeGreaterThan(0);
     // the practice log's scorecard (the Profile's coach averages)
-    expect(loadPractice().find((x) => x.id === id)!.coach).toEqual({ fine: sum!.fine, measured: sum!.measured, grade: sum!.grade });
+    expect(loadPractice().find((x) => x.id === id)!.coach).toEqual({ v: 2, fine: sum!.fine, measured: sum!.measured, costly: sum!.costly, unclear: sum!.unclear, grade: sum!.grade });
     // the coach's ratings kept for a Game review run later
     const ratings = coachRatingsFrom(toggled.grades.map((x) => x.record), toggled.choices.length, GIG_SWING);
     expect(ratings.length).toBeGreaterThan(0);
     expect(loadGameReview(id, toggled.choices)?.coach).toEqual(ratings);
     // the end-of-game scorecard shows them (it never reads the switch)
-    expect(renderToStaticMarkup(<Scorecard grades={toggled.grades} />)).toContain(`${sum!.measured} measured move`);
+    expect(renderToStaticMarkup(<Scorecard grades={toggled.grades} />)).toContain(`of ${sum!.measured} decision`);
     // the exported coached replay carries every graded move
     const exported = buildCoachedReplay(toggled.run.replay, toggled.run.grades, '2026-11-16T10:00:00Z', GIG_SWING);
     expect(exported.decisions.map((x) => x.at)).toEqual(toggled.grades.map((g) => g.record!.at));
