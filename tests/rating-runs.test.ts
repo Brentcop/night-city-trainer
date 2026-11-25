@@ -29,7 +29,8 @@ async function swissEvent(id: number, date: string, simVersion = 9): Promise<Rec
     stub,
     { id },
   );
-  return { ...ev, date, simVersion } as unknown as RecordedEvent;
+  // the manifest says the version the event does (runTournament stamps SIM_VERSION, which check:data compares)
+  return { ...ev, date, simVersion, manifest: ev.manifest && { ...ev.manifest, simVersion } } as unknown as RecordedEvent;
 }
 
 /** A rating run: a match list of `pairs` (each pairing 4 times, seats mirrored, best of 1), as run number `n`. */
@@ -44,7 +45,8 @@ async function ratingRun(n: number, date: string, pairs: [number, number][] = [[
       setup: { format: 'matches', entrants: used.map((d) => ({ name: d.deck.name, file: d.file })), bestOf: 1, matches: pairs.map(([a, b]) => ({ a: DECKS[a]!.deck.name, b: DECKS[b]!.deck.name, times: 4, mirror: true })) },
     },
   );
-  return { ...toRatingRun(ev, n), date, simVersion } as unknown as RecordedEvent;
+  const r = toRatingRun(ev, n);
+  return { ...r, date, simVersion, manifest: r.manifest && { ...r.manifest, simVersion } } as unknown as RecordedEvent;
 }
 
 const gamesIn = (e: RecordedEvent) => [...e.rounds, ...e.bracket].reduce((a, r) => a + r.matches.reduce((b, m) => b + (m.b ? m.games.length : 0), 0), 0);

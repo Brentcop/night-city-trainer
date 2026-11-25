@@ -875,7 +875,9 @@ describe('on the real data, each finding is the number its defining function giv
 
   it('the effects list names each question once and counts its other measurements', () => {
     const effects = built.index.top.find((t) => t.key === 'effects')!;
-    expect(effects.items.length).toBeGreaterThan(0);
+    // the list holds current effects only: none just after a bump (SIM_VERSION 10, 2026-11-25), until changes are measured again
+    const live = all.filter((f) => f.nature === 'effect' && !f.flags.includes('stale'));
+    expect(effects.items.length > 0).toBe(live.length > 0);
     expect(new Set(effects.items.map((i) => i.question)).size).toBe(effects.items.length);
     for (const i of effects.items) {
       const same = all.filter((f) => f.nature === 'effect' && f.question === i.question && !f.flags.includes('stale'));

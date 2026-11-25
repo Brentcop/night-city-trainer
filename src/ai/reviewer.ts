@@ -10,12 +10,12 @@
 // Caveat: the oracle values positions with the bots' own evaluation, so it finds tactical slips, not new strategy.
 import { Game, GameOverSignal } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
-import { other } from '../engine/game/common';
-import { shuffleInPlace } from '../engine/rng';
 import type { Action, Agent, Decision, DeckList, GameState, PlayerId, Reaction } from '../engine/types';
 import { stateHash } from '../lib/stateHash';
+import { optionName } from '../lib/coachWords';
 import { HeuristicAgent, hideInfo, isUnknownCall, standardError } from './heuristic';
 import { BEST_PROFILES } from './archetype';
+import { TIER_SETTINGS } from './tiers';
 import { clampPlayOut, DECIDED_EVAL, DEFAULT_WEIGHTS, evaluate } from './eval';
 import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 
@@ -95,17 +95,42 @@ export interface DecisionReview {
    * rerateRecord). Kept only; nothing here reads them.
    */
   first?: Pick<DecisionReview, 'regret' | 'raw' | 'se' | 'gameLosing'>;
+  /**
+   * A costly rating checked with a stronger continuation (ReviewOptions.hardCheck, 2026-11-25): the move made against the
+   * best one found, played out on `worlds` fresh worlds with the Hard bot on both seats (eval points, as `regret` …). The
+   * Game review rates the move from these when they are present (src/lib/gameReview.ts oracleMeasured).
+   */
+  hard?: { worlds: number; regret: number; raw: number; se: number; gameLosing: boolean };
 }
 
-/** A decision the reviewer did not grade because it was graded already (ReviewOptions.skip): what the screen made of it. */
-export interface SkippedDecision {
+/**
+ * A decision the reviewer leaves unrated on purpose (2026-11-25): the mulligan. Its only measure was whole games played
+ * out for each answer and scored by the result: on 480 mulligans the paired SE was about 5.7 Gigs, 87% came out "no clear
+ * difference", and its Blunders did not follow skill (docs/REVIEW_2026-11-25.md R3). Listed, never counted.
+ */
+export interface UnratedDecision {
   player: PlayerId;
   at: number;
   seq: number;
   turn: number;
-  /** the quick 1-ply screen's first choice and the move made's place in its order (-1 = not in its shortlist) */
-  screenTop?: number;
-  chosenRank?: number;
+  category: Category;
+  /** the move made, by the name the board shows (Keep hand / Mulligan) */
+  chosen: string;
+}
+
+/**
+ * A decision whose grading threw (a bug in the oracle or a card's play-out, never the move itself: the move is played
+ * before it is graded). It is not counted and the review carries on; the error's message is kept for the log.
+ */
+export interface FailedDecision {
+  player: PlayerId;
+  at: number;
+  seq: number;
+  turn: number;
+  category: Category;
+  chosen: string;
+  /** the error's message */
+  reason: string;
 }
 
 /** Every answer a seat gave, with its agent's payment, order and End turn flags (a ScriptedAgent needs them to line up). */
@@ -150,8 +175,10 @@ export interface GameReview {
   swings: { turn: number; delta: number; active: PlayerId }[];
   decisions: DecisionReview[];
   ms: number;
-  /** decisions left to an earlier grade (ReviewOptions.skip) */
-  skipped?: SkippedDecision[];
+  /** decisions left unrated on purpose (the mulligan): listed, not counted (absent when none) */
+  unrated?: UnratedDecision[];
+  /** decisions whose grading threw: not counted (absent when none) */
+  failed?: FailedDecision[];
   /** forced decisions (main phase or reaction with one option) per seat: not graded */
   forced?: [number, number];
   /** every answer of each seat (ReviewOptions.keepAnswers): replays the game with no bot thinking */
@@ -180,13 +207,24 @@ export async function oracleValue(g: Game, p: PlayerId, a: Action, worlds: World
   return (await oracleDetail(g, p, a, worlds, wins)).v;
 }
 
-/** Oracle value plus the share of worlds in which the action led to a lost game. */
-async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[], wins: boolean): Promise<Detail> {
+/** The oracle's play-out bots: Medium-like (one step ahead, the best profiles), on both seats. */
+const oracleBot = (seed: number): Agent => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+
+/**
+ * The stronger continuation a costly rating is checked with (ReviewOptions.hardCheck, 2026-11-25): the Hard bot's own
+ * settings (src/ai/tiers.ts TIER_SETTINGS.hard), quiet like every play-out copy.
+ */
+const hardBot = (seed: number): Agent => {
+  const { profiles: _p, ...rest } = TIER_SETTINGS.hard;
+  return new HeuristicAgent({ ...rest, profiles: BEST_PROFILES, seed, quiet: true });
+};
+
+/** Oracle value plus the share of worlds in which the action led to a lost game (`mk`: the play-out bots). */
+async function oracleDetail(g: Game, p: PlayerId, a: Action, worlds: World[], wins: boolean, mk: (seed: number) => Agent = oracleBot): Promise<Detail> {
   let sum = 0;
   let losses = 0;
   const per: number[] = [];
   for (const w of worlds) {
-    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
@@ -208,13 +246,12 @@ interface Detail {
 }
 
 /** Oracle value of a reaction for the defending player p: resume the attack, finish the attacker's turn, play p's turn. */
-async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[], wins: boolean): Promise<Detail> {
+async function oracleReaction(g: Game, p: PlayerId, rx: Reaction, worlds: World[], wins: boolean, mk: (seed: number) => Agent = oracleBot): Promise<Detail> {
   let sum = 0;
   let losses = 0;
   const per: number[] = [];
   const attacker = g.s.attack!.attacker;
   for (const w of worlds) {
-    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
@@ -263,16 +300,15 @@ async function gradeAll<T extends Action | Reaction>(g: Game, cand: number[], op
 }
 
 /**
- * Oracle values of candidate option indices for mulligan (whole-game play-out) and gig dice (rest-of-turn play-out).
- * For mulligans: clone from the game's start, wrap the deciding seat with a one-shot agent that answers with the
- * chosen option, then run the full game. For gig dice: clone, apply the gig value change, then playOut rest.
+ * Oracle values of a Gig choice's candidate options (each played out for the rest of the turn and the next one). Until
+ * 2026-11-25 mulligans were valued here too, by whole games played out; they are no longer rated (UnratedDecision).
  */
-async function gradeAllChoice(g: Game, p: PlayerId, cand: number[], worlds: World[], wins: boolean, mode: 'mulligan' | 'gigChoice', d?: Decision) {
+async function gradeAllChoice(g: Game, p: PlayerId, cand: number[], worlds: World[], wins: boolean, d: Decision) {
   const vals = new Map<number, number>();
   const loss = new Map<number, number>();
   const per = new Map<number, number[]>();
   for (const i of cand) {
-    const detail = mode === 'mulligan' ? await oracleMulligan(g, p, i, worlds, wins) : await oracleGigChoice(g, p, i, d!, worlds, wins);
+    const detail = await oracleGigChoice(g, p, i, d, worlds, wins);
     vals.set(i, detail.v);
     loss.set(i, detail.lossRate);
     per.set(i, detail.w);
@@ -280,54 +316,42 @@ async function gradeAllChoice(g: Game, p: PlayerId, cand: number[], worlds: Worl
   return { vals, loss, per };
 }
 
-/** Mulligan oracle: apply the choice, handle the other player's mulligan if still pending, then play the game to its end. */
-async function oracleMulligan(g: Game, p: PlayerId, optionIndex: number, worlds: World[], wins: boolean): Promise<Detail> {
-  let sum = 0;
-  let losses = 0;
-  const per: number[] = [];
-  for (const w of worlds) {
-    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
-    const cg = g.clone([mk(w.a), mk(w.b)]);
-    cg.s.rng = w.rng;
-    hideInfo(cg, p);
-    if (optionIndex === 0) applyMulligan(cg, p);
-    if (p === g.s.first) {
-      const r = other(p);
-      const ok = await cg.yesNo(r, 'Mulligan your opening hand (shuffle it back and draw 6)?', 'mulligan');
-      if (ok) applyMulligan(cg, r);
-    }
-    try { while (cg.s.winner === null) await cg.playTurn(); } catch (e) { if (!(e instanceof GameOverSignal)) throw e; }
-    const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
-    if (e < LOST) losses++;
-    const c = clampPlayOut(e);
-    per.push(c);
-    sum += c;
+/**
+ * A change the oracle makes to a copy outside a decision, followed as the engine follows the same change in a real
+ * game: the effects it triggers resolve (10.12–10.14) and the state is checked, as `mainLoop` does after the action whose
+ * effect made it. Without this a triggered effect stays pending and the next copy a bot makes throws (`clone()` refuses
+ * pending effects): Meredith Stout's "When a Rival adjusts … friendly Gigs" did, for every graded Gig choice that
+ * touched her controller's Gigs, until 2026-11-25. False when the game ended on the way (the play-out has nothing left).
+ */
+async function applyOutside(cg: Game, change: () => void): Promise<boolean> {
+  try {
+    change();
+    await cg.resolvePending();
+    cg.checkState();
+    return true;
+  } catch (e) {
+    if (!(e instanceof GameOverSignal)) throw e;
+    return false;
   }
-  return { v: sum / worlds.length, lossRate: losses / worlds.length, w: per };
 }
 
-function applyMulligan(cg: Game, p: PlayerId) {
-  const ps = cg.P(p);
-  for (const uid of ps.hand) cg.s.cards[uid].zone = 'deck';
-  ps.deck.push(...ps.hand);
-  ps.hand = [];
-  shuffleInPlace(cg.s, ps.deck);
-  for (let i = 0; i < 6; i++) cg.drawRaw(p);
-}
+/** How the engine changes a Gig for a gigValue decision: "set a Gig to another Gig's value" (tag setGig) is 'set', every other one 'adjust'. */
+export const gigChangeKind = (d: Pick<Decision, 'tag'>): 'set' | 'adjust' => (d.tag === 'setGig' ? 'set' : 'adjust');
 
-/** Gig dice oracle: clone, apply the gig value change (or leave unchanged), then play out from here. */
+/** Gig dice oracle: clone, apply the gig value change (or leave unchanged) and what it triggers, then play out from here. */
 async function oracleGigChoice(g: Game, p: PlayerId, optionIndex: number, d: Decision, worlds: World[], wins: boolean): Promise<Detail> {
   let sum = 0;
   let losses = 0;
   const per: number[] = [];
+  const opt = d.options[optionIndex];
+  const kind = gigChangeKind(d);
   for (const w of worlds) {
     const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
-    const opt = d.options[optionIndex];
-    if (opt.gig !== undefined && opt.n !== undefined) cg.setGigValue(opt.gig, opt.n, p, 'adjust');
-    await playOut(cg, p, { rest: true });
+    const going = opt.gig !== undefined && opt.n !== undefined ? await applyOutside(cg, () => cg.setGigValue(opt.gig!, opt.n!, p, kind)) : true;
+    if (going) await playOut(cg, p, { rest: true });
     const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
     if (e < LOST) losses++;
     const c = clampPlayOut(e);
@@ -338,6 +362,14 @@ async function oracleGigChoice(g: Game, p: PlayerId, optionIndex: number, d: Dec
 }
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/** The best candidate's value and index (the first of equal ones), and whether the game is already decided (every option loses, or every option wins: differences between moves mean nothing). */
+function bestOf(vals: Map<number, number>): { bestV: number; bestI: number; decided: boolean } {
+  const bestV = Math.max(...vals.values());
+  const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
+  const bestI = [...vals.entries()].find(([, v]) => v === bestV)![0];
+  return { bestV, bestI, decided };
+}
 
 /** The raw measurements behind a grade (DecisionReview's optional fields), from the oracle's values in each world. */
 function measures(vals: Map<number, number>, per: Map<number, number[]>, chosen: number, bestI: number, decided: boolean, screen?: { top: number; order: number[] }) {
@@ -400,17 +432,24 @@ export interface ReviewOptions {
   rolloutWins?: boolean;
   /** the seed the oracle's worlds are drawn from (default: the game seed, as before; a re-run with another seed checks stability) */
   oracleSeed?: number;
-  /** decisions graded already (the coach's grades from play): not played out again, only screened (GameReview.skipped) */
-  skip?: (seat: PlayerId, at: number) => boolean;
   /** keep every answer of both seats (GameReview.answers) */
   keepAnswers?: boolean;
   /**
-   * Confirm the decisions `flag` picks (the Game review: those it would rate Slip or worse) on `worlds` fresh worlds from
-   * a separate seed stream: the move made and the best one found are played out again and the gap, its SE and the
-   * game-losing flag are taken from the fresh play-outs only (the screening value of the best is the maximum over every
-   * candidate in the same worlds, so it is biased upward). Other decisions are measured exactly as without it.
+   * Confirm the decisions `flag` picks (the Game review's confirmFlag: those it would rate Slip or worse, and wide close
+   * calls) on `worlds` fresh worlds from a separate seed stream: the move made and the best one found are played out
+   * again and the gap, its SE and the game-losing flag are taken from the fresh play-outs only (the screening value of the
+   * best is the maximum over every candidate in the same worlds, so it is biased upward). Other decisions are measured
+   * exactly as without it.
    */
   confirm?: { worlds: number; flag: (d: DecisionReview) => boolean };
+  /**
+   * After the game, in a seat whose costly ratings (`flag`, after the confirmation: the Game review's Mistakes and
+   * Blunders) number 1 to `maxFlags`, each such main-phase move or reaction is played out again, the move made against
+   * the best one found, on `worlds` fresh worlds with the Hard bot on both seats (DecisionReview.hard). The oracle's
+   * Medium-like continuation favours moves a Medium bot can follow up, which overstated a strong player's rare costly
+   * ratings (docs/REVIEW_2026-11-25.md R2); capped at `maxFlags` a seat for its cost (reports/review-validity-2026-11-25.md).
+   */
+  hardCheck?: { worlds: number; maxFlags: number; flag: (d: DecisionReview) => boolean };
   /** called with the game's final state once it is over (the strict replay checks the position: src/sim/practiceReview.ts) */
   onEnd?: (s: GameState) => void;
 }
@@ -423,9 +462,13 @@ class ReviewAgent implements Agent {
   confirmsEndTurn?: boolean;
   out: DecisionReview[] = [];
   timeline: { turn: number; v: number }[] = [];
-  skipped: SkippedDecision[] = [];
+  unrated: UnratedDecision[] = [];
+  failed: FailedDecision[] = [];
   forced = 0;
+  /** every answer of this seat (all of them: the strong check replays the game to its flagged decisions) */
   answers: number[][] = [];
+  /** the best option found at each graded decision, by answer number */
+  bestAt = new Map<number, number>();
   private rnd: () => number;
   /** the confirmation worlds' own stream, so confirming never moves the other decisions' worlds */
   private confirmRnd: () => number;
@@ -450,7 +493,7 @@ class ReviewAgent implements Agent {
   async decide(g: Game, d: Decision): Promise<number[]> {
     const at = this.at++;
     const pick = await this.decideAt(g, d, at);
-    if (this.opts.keepAnswers) this.answers.push([...pick]);
+    this.answers.push([...pick]);
     return pick;
   }
 
@@ -469,15 +512,38 @@ class ReviewAgent implements Agent {
     const isGigDice = d.kind === 'gigValue';
     const gradable = (d.kind === 'action' || (d.kind === 'reaction' && !!g.s.attack) || isMulligan || isGigDice) && d.options.length >= 2;
     if (this.review && (d.kind === 'action' || d.kind === 'reaction') && d.options.length === 1) this.forced++;
-    if (this.review && gradable && this.opts.skip?.(this.seat, at)) return this.skipOne(g, d, at);
-    if (this.review && isMulligan) return this.reviewMulligan(g, d, at);
-    if (this.review && isGigDice && d.options.length >= 2 && g.pending.length === 0) return this.reviewGigChoice(g, d, at);
+    if (this.review && gradable && isMulligan) return this.leaveUnrated(g, d, at, 'mulligan');
+    if (this.review && isGigDice && d.options.length >= 2 && g.pending.length === 0) return this.reviewChoice(g, d, at);
     if (this.review && d.kind === 'reaction' && d.options.length >= 2 && g.s.attack) return this.reviewReaction(g, d, at);
     if (!this.review || d.kind !== 'action' || d.options.length < 2) return this.play(g, d);
     // the move actually made (decide first: oracle play-outs are clones and never touch the real game)
     const pick = await this.play(g, d);
     const seq = this.shared.seq++;
-    const chosen = pick[0];
+    await this.graded(g, d, at, seq, pick[0], categoryOf(g, d.options[pick[0]].action as Action), () => this.gradeAction(g, d, at, seq, pick[0]));
+    return pick;
+  }
+
+  /**
+   * Grade one decision whose move is already made (`grade` records it in `out`), so that grading can never fail the
+   * review: a throw leaves the decision out of `out` (anything it recorded is taken back) and lists it in `failed`, not
+   * counted, with the error's message, and the game goes on. The move itself is never in question: it was played first.
+   */
+  private async graded(g: Game, d: Decision, at: number, seq: number, chosen: number, category: Category, grade: () => Promise<void>) {
+    const kept = this.out.length;
+    const count = this.count;
+    try {
+      await grade();
+    } catch (e) {
+      this.out.length = kept;
+      this.count = count;
+      this.failed.push({ player: this.seat, at, seq, turn: g.s.turn, category, chosen: d.options[chosen]?.label ?? String(chosen), reason: e instanceof Error ? e.message : String(e) });
+    }
+    this.shared.n++;
+    this.opts.onProgress?.(this.shared.n);
+  }
+
+  /** A main-phase action: the move made, the quick screen's picks, the sell alternatives and passing, played out. */
+  private async gradeAction(g: Game, d: Decision, at: number, seq: number, chosen: number) {
     const actions = d.options.map((o) => o.action as Action);
     const cand = new Set<number>([chosen]);
     const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
@@ -514,11 +580,10 @@ class ReviewAgent implements Agent {
       cand.add(coachI);
     }
     const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAll(g, [...cand], actions, (a) => oracleDetail(g, this.seat, a, worlds, this.opts.rolloutWins ?? false));
-    const bestV = Math.max(...vals.values());
-    // already decided (every option loses, or every option wins): differences between moves mean nothing
-    const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
-    const bestI = [...vals.entries()].find(([, v]) => v === bestV)![0];
+    const oracle = (a: Action, w: World[]) => oracleDetail(g, this.seat, a, w, this.opts.rolloutWins ?? false);
+    const { vals, loss, per } = await gradeAll(g, [...cand], actions, (a) => oracle(a, worlds));
+    const { bestV, bestI, decided } = bestOf(vals);
+    this.bestAt.set(at, bestI);
     const raw = decided ? 0 : bestV - vals.get(chosen)!;
     // game-losing: the move made loses in clearly more worlds than the best move (at least 1 world in 4 more)
     const lostLine = !decided && loss.get(chosen)! - loss.get(bestI)! >= 0.25;
@@ -540,27 +605,13 @@ class ReviewAgent implements Agent {
       seq,
       ...measures(vals, per, chosen, bestI, decided, screenOrder.length ? { top: screenOrder[0], order: screenOrder } : undefined),
     });
-    await this.confirmLast(g, actions, chosen, bestI, decided, (a, w) => oracleDetail(g, this.seat, a, w, this.opts.rolloutWins ?? false));
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
-    return pick;
+    await this.confirmLast(g, actions, chosen, bestI, decided, oracle);
   }
 
-  /** A decision graded already: play the move, and keep only what the quick screen made of it (for the rating's checks). */
-  private async skipOne(g: Game, d: Decision, at: number): Promise<number[]> {
+  /** A decision left unrated on purpose (the mulligan, UnratedDecision): the move is played and listed, nothing is measured. */
+  private async leaveUnrated(g: Game, d: Decision, at: number, category: Category): Promise<number[]> {
     const pick = await this.play(g, d);
-    const seq = this.shared.seq++;
-    const entry: SkippedDecision = { player: this.seat, at, seq, turn: g.s.turn };
-    if (d.kind === 'action' || d.kind === 'gigValue' || (d.kind === 'yesno' && d.tag === 'mulligan')) {
-      const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
-      await screen.decide(g, d);
-      const order = screen.lastAlternatives.map((x) => x.index);
-      if (order.length) {
-        entry.screenTop = order[0];
-        entry.chosenRank = order.indexOf(pick[0]);
-      }
-    }
-    this.skipped.push(entry);
+    this.unrated.push({ player: this.seat, at, seq: this.shared.seq++, turn: g.s.turn, category, chosen: optionName(d, pick[0]) });
     this.shared.n++;
     this.opts.onProgress?.(this.shared.n);
     return pick;
@@ -572,79 +623,48 @@ class ReviewAgent implements Agent {
     const seq = this.shared.seq++;
     const chosen = pick[0];
     const rxs = d.options.map((o) => o.action as Reaction);
-    // every option is graded (unknown Calls collapse into one, so this stays small)
-    const cand = rxs.map((_, i) => i);
-    let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
-    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds, this.opts.rolloutWins ?? false));
-    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, reactionCategory(rxs[chosen]), at, seq);
-    await this.confirmLast(g, rxs, chosen, bestI, decided, (r, w) => oracleReaction(g, this.seat, r, w, this.opts.rolloutWins ?? false));
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
+    await this.graded(g, d, at, seq, chosen, reactionCategory(rxs[chosen]), async () => {
+      // every option is graded (unknown Calls collapse into one, so this stays small)
+      const cand = rxs.map((_, i) => i);
+      let coachI: number | undefined;
+      if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
+      const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+      const { vals, loss, per } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds, this.opts.rolloutWins ?? false));
+      const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, reactionCategory(rxs[chosen]), at, seq);
+      await this.confirmLast(g, rxs, chosen, bestI, decided, (r, w) => oracleReaction(g, this.seat, r, w, this.opts.rolloutWins ?? false));
+    });
     return pick;
   }
 
-  /** Mulligan (keep or mulligan), graded by playing the entire game out from the opening in shared worlds. */
-  private async reviewMulligan(g: Game, d: Decision, at: number): Promise<number[]> {
+  /** A Gig dice choice (adjust, set or no change), graded like a reaction: each option played out from here. */
+  private async reviewChoice(g: Game, d: Decision, at: number): Promise<number[]> {
     const pick = await this.play(g, d);
     const seq = this.shared.seq++;
     const chosen = pick[0];
-    const cand = d.options.map((_, i) => i);
-    let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
-    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, 'mulligan');
-    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, 'mulligan', at, seq);
-    await this.confirmLastChoice(g, chosen, bestI, decided, 'mulligan');
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
+    const category: Category = 'gig dice';
+    await this.graded(g, d, at, seq, chosen, category, async () => {
+      const cand = d.options.map((_, i) => i);
+      let coachI: number | undefined;
+      if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
+      const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+      const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, d);
+      const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, category, at, seq);
+      await this.confirmGap(chosen, bestI, decided, (w) => gradeAllChoice(g, this.seat, [bestI, chosen], w, this.opts.rolloutWins ?? false, d));
+    });
     return pick;
-  }
-
-  /** Gig dice choice (adjust, set or no change), graded like a reaction: each option played out from here. */
-  private async reviewGigChoice(g: Game, d: Decision, at: number): Promise<number[]> {
-    const pick = await this.play(g, d);
-    const seq = this.shared.seq++;
-    const chosen = pick[0];
-    const cand = d.options.map((_, i) => i);
-    let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
-    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, 'gigChoice', d);
-    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, 'gig dice', at, seq);
-    await this.confirmLastChoice(g, chosen, bestI, decided, 'gigChoice', d);
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
-    return pick;
-  }
-
-  /** Confirm a mulligan or gig dice decision on fresh worlds (same approach as confirmLast but for choice-based oracles). */
-  private async confirmLastChoice(g: Game, chosen: number, bestI: number, decided: boolean, mode: 'mulligan' | 'gigChoice', d?: Decision) {
-    const c = this.opts.confirm;
-    const rec = this.out[this.out.length - 1];
-    if (!c || !rec || decided || chosen === bestI || !c.flag(rec)) return;
-    const worlds = makeWorlds(c.worlds, this.confirmRnd);
-    const { vals, loss, per } = await gradeAllChoice(g, this.seat, [bestI, chosen], worlds, this.opts.rolloutWins ?? false, mode, d);
-    const raw = vals.get(bestI)! - vals.get(chosen)!;
-    rec.first = { regret: rec.regret, raw: rec.raw, se: rec.se, gameLosing: rec.gameLosing };
-    rec.regret = Math.min(CAP, Math.max(0, raw));
-    rec.raw = round2(Math.max(0, raw));
-    rec.se = round2(standardError(per.get(bestI)!.map((x, k) => x - per.get(chosen)![k])));
-    rec.gameLosing = loss.get(chosen)! - loss.get(bestI)! >= 0.25;
-    rec.confirmed = c.worlds;
   }
 
   /**
-   * ReviewOptions.confirm: the decision just recorded, when flagged, measured again on fresh worlds (the move made against
-   * the best one found only). Its regret, raw gap, SE and game-losing flag come from the fresh play-outs.
+   * ReviewOptions.confirm for a move that is not the best found: the decision just recorded, when flagged, measured again
+   * on fresh worlds (the move made against the best one found only). Its regret, raw gap, SE and game-losing flag come
+   * from the fresh play-outs.
    */
-  private async confirmLast<T extends Action | Reaction>(g: Game, opts: T[], chosen: number, bestI: number, decided: boolean, oracle: (o: T, w: World[]) => Promise<Detail>) {
+  private async confirmGap(chosen: number, bestI: number, decided: boolean, grade: (w: World[]) => Promise<{ vals: Map<number, number>; loss: Map<number, number>; per: Map<number, number[]> }>) {
     const c = this.opts.confirm;
     const rec = this.out[this.out.length - 1];
     if (!c || !rec || decided || chosen === bestI || !c.flag(rec)) return;
     const worlds = makeWorlds(c.worlds, this.confirmRnd);
-    const { vals, loss, per } = await gradeAll(g, [bestI, chosen], opts, (o) => oracle(o, worlds));
+    const { vals, loss, per } = await grade(worlds);
     const raw = vals.get(bestI)! - vals.get(chosen)!;
     rec.first = { regret: rec.regret, raw: rec.raw, se: rec.se, gameLosing: rec.gameLosing };
     rec.regret = Math.min(CAP, Math.max(0, raw));
@@ -654,10 +674,14 @@ class ReviewAgent implements Agent {
     rec.confirmed = c.worlds;
   }
 
+  /** ReviewOptions.confirm for an action or a reaction: a flagged move that is not the best found, confirmed by confirmGap. */
+  private async confirmLast<T extends Action | Reaction>(g: Game, opts: T[], chosen: number, bestI: number, decided: boolean, oracle: (o: T, w: World[]) => Promise<Detail>) {
+    await this.confirmGap(chosen, bestI, decided, (w) => gradeAll(g, [bestI, chosen], opts, (o) => oracle(o, w)));
+  }
+
   private record(g: Game, d: Decision, chosen: number, vals: Map<number, number>, loss: Map<number, number>, per: Map<number, number[]>, coachI: number | undefined, category: Category, at: number, seq: number): { bestI: number; decided: boolean } {
-    const bestV = Math.max(...vals.values());
-    const decided = bestV <= -DECIDED || Math.min(...vals.values()) >= DECIDED;
-    const bestI = [...vals.entries()].find(([, v]) => v === bestV)![0];
+    const { bestV, bestI, decided } = bestOf(vals);
+    this.bestAt.set(at, bestI);
     const raw = decided ? 0 : bestV - vals.get(chosen)!;
     const cr = coachI !== undefined ? (decided ? 0 : Math.min(CAP, bestV - vals.get(coachI)!)) : undefined;
     this.out.push({
@@ -715,6 +739,80 @@ export interface ReviewSpec {
   agentNames?: [string, string];
 }
 
+/** Thrown to end a replay once its last checked decision is passed. */
+class ReplayDone extends Error {}
+
+/**
+ * ReviewOptions.hardCheck, once the game is over: in each reviewed seat whose costly ratings number 1 to `maxFlags`, its
+ * costly main-phase moves and reactions are measured again with the Hard bot on both seats. The game is replayed from
+ * the seats' recorded answers (no bot thinks) to each such decision, where the move made and the best one found are
+ * played out on fresh worlds from a stream of the seat's own; the result is kept as DecisionReview.hard. A check that
+ * throws leaves the move as the confirmation rated it.
+ */
+async function hardChecks(spec: ReviewSpec, ra: [ReviewAgent, ReviewAgent], opts: ReviewOptions, oracleSeed: number) {
+  const h = opts.hardCheck;
+  if (!h || h.worlds <= 0 || opts.shouldStop?.()) return;
+  const todo = new Map<string, DecisionReview>();
+  for (const a of ra) {
+    if (!a.review) continue;
+    const costly = a.out.filter(h.flag);
+    if (!costly.length || costly.length > h.maxFlags) continue;
+    for (const d of costly) if (d.category !== 'gig dice' && !d.decided && d.at !== undefined && a.bestAt.has(d.at)) todo.set(`${a.seat}:${d.at}`, d);
+  }
+  if (!todo.size) return;
+  let left = todo.size;
+  const streams = [0, 1].map((p) => rng(oracleSeed * 31 + p * 7 + 1 + 0x27d4eb2d));
+  const seat = (a: ReviewAgent): Agent => {
+    const script = new ScriptedAgent(a.name, a.answers, null, !!a.choosesPayment, !!a.choosesOrder, !!a.confirmsEndTurn);
+    let k = 0;
+    return {
+      name: a.name,
+      choosesPayment: a.choosesPayment,
+      choosesOrder: a.choosesOrder,
+      confirmsEndTurn: a.confirmsEndTurn,
+      decide: async (g: Game, d: Decision) => {
+        const at = k++;
+        const rec = todo.get(`${a.seat}:${at}`);
+        if (rec) {
+          if (!opts.shouldStop?.()) await hardCheckOne(g, d, a, at, rec, h.worlds, streams[a.seat]!, opts.rolloutWins ?? false).catch(() => undefined);
+          if (--left === 0) throw new ReplayDone();
+        }
+        return script.decide(g, d);
+      },
+    };
+  };
+  try {
+    await Game.create(spec.decks, [seat(ra[0]), seat(ra[1])], { seed: spec.seed, first: spec.first, log: false }).run();
+  } catch (e) {
+    if (!(e instanceof ReplayDone)) throw e;
+  }
+}
+
+/** One costly decision measured again with Hard play-outs (hardChecks): the best move found against the move made. */
+async function hardCheckOne(g: Game, d: Decision, a: ReviewAgent, at: number, rec: DecisionReview, n: number, stream: () => number, wins: boolean) {
+  const chosen = a.answers[at]![0]!;
+  const best = a.bestAt.get(at)!;
+  if (best === chosen) return;
+  const worlds = makeWorlds(n, stream);
+  const opts = d.options.map((o) => o.action as Action | Reaction);
+  const graded =
+    d.kind === 'reaction' && g.s.attack
+      ? await gradeAll(g, [best, chosen], opts as Reaction[], (r) => oracleReaction(g, a.seat, r, worlds, wins, hardBot))
+      : d.kind === 'action'
+        ? await gradeAll(g, [best, chosen], opts as Action[], (x) => oracleDetail(g, a.seat, x, worlds, wins, hardBot))
+        : null;
+  if (!graded) return;
+  const { vals, loss, per } = graded;
+  const raw = vals.get(best)! - vals.get(chosen)!;
+  rec.hard = {
+    worlds: n,
+    regret: Math.min(CAP, Math.max(0, raw)),
+    raw: round2(Math.max(0, raw)),
+    se: round2(standardError(per.get(best)!.map((x, k) => x - per.get(chosen)![k]))),
+    gameLosing: loss.get(chosen)! - loss.get(best)! >= 0.25,
+  };
+}
+
 /** Replay a game with the given agents and review it. */
 export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Promise<GameReview> {
   const t0 = Date.now();
@@ -725,6 +823,7 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
   const g = Game.create(spec.decks, ra, { seed: spec.seed, first: spec.first, log: false });
   const s = await g.run();
   opts.onEnd?.(s);
+  await hardChecks(spec, ra, opts, oracleSeed);
   const timeline = [...ra[0].timeline, ...ra[1].timeline].sort((a, b) => a.turn - b.turn);
   const swings = timeline
     .slice(1)
@@ -747,7 +846,8 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
     swings,
     decisions,
     ms: Date.now() - t0,
-    ...(opts.skip ? { skipped: [...ra[0].skipped, ...ra[1].skipped].sort((a, b) => a.seq - b.seq) } : {}),
+    ...(ra[0].unrated.length || ra[1].unrated.length ? { unrated: [...ra[0].unrated, ...ra[1].unrated].sort((a, b) => a.seq - b.seq) } : {}),
+    ...(ra[0].failed.length || ra[1].failed.length ? { failed: [...ra[0].failed, ...ra[1].failed].sort((a, b) => a.seq - b.seq) } : {}),
     forced: [ra[0].forced, ra[1].forced],
     ...(opts.keepAnswers ? { answers: [answersOf(ra[0]), answersOf(ra[1])] as [SeatAnswers, SeatAnswers] } : {}),
     ...(opts.oracleSeed !== undefined ? { oracleSeed } : {}),

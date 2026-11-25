@@ -3,7 +3,7 @@
 // read the same figures.
 import type { LibraryDeck } from './library';
 import type { PracticeGame } from './practiceLog';
-import { gradeFor } from './practiceLog';
+import { COACH_SCORING, gradeFor, scoredNow } from './practiceLog';
 import { SMALL_SAMPLE } from './playedRecord';
 import { deckSource } from './deckSource';
 
@@ -68,8 +68,14 @@ export interface Headline {
   /** the current run of the same result, newest game first (null with no games) */
   streak: Streak | null;
   bestWinStreak: number;
-  /** the average share of fine moves over the games with a coach scorecard (null when none has one) */
-  coach: { games: number; avgPct: number; grade: 'A' | 'B' | 'C' | 'D' } | null;
+  /**
+   * The coach's scorecards scored the current way (practiceLog.ts scoredNow): the average share of the decisions that
+   * mattered handled well, its letter, and the average number of confirmed costly moves a game (null when no game has
+   * such a scorecard).
+   */
+  coach: { games: number; avgPct: number; grade: 'A' | 'B' | 'C' | 'D'; v: typeof COACH_SCORING; costly: number } | null;
+  /** games whose scorecard was scored the old way (before 2026-11-25): shown as they were, never in the average above */
+  coachOld?: number;
 }
 
 export function headline(games: readonly PracticeGame[]): Headline {
@@ -77,13 +83,19 @@ export function headline(games: readonly PracticeGame[]): Headline {
   const tiers = new Map<BotTier, WLD>();
   let conceded = 0;
   const pcts: number[] = [];
+  const costly: number[] = [];
+  let coachOld = 0;
   for (const g of games) {
     add(record, g.result);
     const t = botTier(g.level);
     if (!tiers.has(t)) tiers.set(t, emptyWLD());
     add(tiers.get(t)!, g.result);
     if (g.conceded) conceded++;
-    if (g.coach && g.coach.measured > 0) pcts.push((100 * g.coach.fine) / g.coach.measured);
+    if (g.coach && !scoredNow(g.coach)) coachOld++;
+    else if (g.coach && g.coach.measured > 0) {
+      pcts.push((100 * g.coach.fine) / g.coach.measured);
+      costly.push(g.coach.costly ?? g.coach.measured - g.coach.fine);
+    }
   }
   const order = newestFirst(games);
   let streak: Streak | null = null;
@@ -106,7 +118,8 @@ export function headline(games: readonly PracticeGame[]): Headline {
     byTier: BOT_TIERS.flatMap((tier) => (tiers.has(tier) ? [{ tier, ...tiers.get(tier)! }] : [])),
     streak,
     bestWinStreak: best,
-    coach: avgPct === null ? null : { games: pcts.length, avgPct, grade: gradeFor(avgPct) },
+    coach: avgPct === null ? null : { games: pcts.length, avgPct, grade: gradeFor(avgPct), v: COACH_SCORING, costly: Math.round((10 * costly.reduce((a, b) => a + b, 0)) / costly.length) / 10 },
+    ...(coachOld ? { coachOld } : {}),
   };
 }
 

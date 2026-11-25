@@ -64,8 +64,11 @@ const onTable = lib.filter((d) => entries.some((e) => e.id === listFingerprint(d
 describe('impact.json', () => {
   it('is the card table of the pair the breeder reads (rebuild it with npx tsx scripts/build-impact.ts)', () => {
     expect(fs.readFileSync(IMPACT_DATA_FILE, 'utf8').trimEnd()).toBe(built.text);
-    expect([file.simVersion, file.bot, file.match]).toEqual([SIM_VERSION, 'hard', 'exact']);
-    expect(T.match).toBe('exact');
+    // the pair the breeder reads: the current version's when the files hold numbers for it, else (just after a bump:
+    // SIM_VERSION 10 on 2026-11-25, until the series adds version-10 numbers) the newest other version's, said so
+    expect([file.simVersion, file.bot, file.match]).toEqual([T.read!.simVersion, 'hard', T.match]);
+    expect(T.match).toBe(T.read!.simVersion === SIM_VERSION ? 'exact' : 'other-version');
+    expect(T.read!.simVersion).toBeLessThanOrEqual(SIM_VERSION);
     expect(T.analysis.state).toBe('added');
     expect(pooledOutsideLists(T, file)).toBe(0);
   });

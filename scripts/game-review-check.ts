@@ -4,9 +4,11 @@
 // step on the re-run, and what a learner reads: how many Mistakes and Blunders, and Sharp / Inspired moves, keep their
 // rating, how far accuracy moves, and whether the turning point is the same move (docs/BOT_TOOLKIT.md §8).
 //
-//   npx tsx scripts/game-review-check.ts [--games 20] [--rollouts 8] [--confirm 16] [--seed 1] [--threads N] [--out DIR]
+//   npx tsx scripts/game-review-check.ts [--games 20] [--rollouts 8] [--confirm 16] [--hard 16] [--seed 1] [--threads N] [--out DIR]
 //
 // --confirm: fresh worlds each Slip-or-worse is confirmed on (the Game review's GAME_REVIEW_CONFIRM; 0 = off).
+// --hard: fresh worlds a seat's Mistakes and Blunders are checked on with Hard play-outs when it has at most 2 of them
+// (GAME_REVIEW_HARD; 0 = off).
 //
 // --out writes the reviews as JSON into DIR (nothing is written otherwise).
 import fs from 'node:fs';
@@ -25,6 +27,7 @@ const { values: V } = cli(import.meta.url, {
   games: int(20, { min: 1 }),
   rollouts: int(8, { min: 1 }),
   confirm: int(16, { min: 0 }),
+  hard: int(16, { min: 0 }),
   seed: int(1, { min: 0 }),
   threads: threadsOpt(),
   out: str(),
@@ -79,7 +82,7 @@ async function main() {
     bots: ['you', 'hard'],
     rollouts: V.rollouts,
     withCoach: false,
-    game: { id: g.id, spec: g.spec, coach: [], rollouts: V.rollouts, confirm: V.confirm, made, ...(oracleSeed !== undefined ? { oracleSeed } : {}) },
+    game: { id: g.id, spec: g.spec, coach: [], rollouts: V.rollouts, confirm: V.confirm, hard: V.hard, made, ...(oracleSeed !== undefined ? { oracleSeed } : {}) },
   });
   let done = 0;
   const t0 = Date.now();
@@ -124,6 +127,9 @@ async function main() {
   console.log(`\nPer game: player Inspired ${per(0, ['inspired']).toFixed(2)}, Sharp ${per(0, ['sharp']).toFixed(2)}; rival Inspired ${per(1, ['inspired']).toFixed(2)}, Sharp ${per(1, ['sharp']).toFixed(2)}`);
   const ms = first.map((r) => r.ms).sort((a, b) => a - b);
   console.log(`Review time (one thread each): median ${(ms[Math.floor(ms.length / 2)]! / 1000).toFixed(1)} s, max ${(ms[ms.length - 1]! / 1000).toFixed(1)} s; decisions rated per game ${(first.reduce((a, r) => a + r.moves.length, 0) / first.length).toFixed(1)}`);
+  // decisions the review could not measure (its grading threw): not counted; every one is a bug to look at
+  const failed = pairs.flat().flatMap((r) => (r.failed ?? []).map((f) => `${r.id} T${f.turn} seat ${f.p} "${f.chosen}": ${f.why}`));
+  console.log(`Not measured (grading threw): ${failed.length} decision${failed.length === 1 ? '' : 's'} in ${pairs.length * 2} reviews${failed.length ? `\n  ${failed.slice(0, 12).join('\n  ')}` : ''}`);
   // stability: same decision (seat, answer number), both runs
   let both = 0;
   let within = 0;

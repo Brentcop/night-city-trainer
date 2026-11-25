@@ -63,11 +63,13 @@ describe('Gig plans', () => {
     ['low', /min Gig|Decrease a Gig/i],
     ['pairs', /value-pair/i],
     ['diverse', /different values|not shared by a friendly Gig/i],
-    ['parity', /even value|odd value|even number|is an even/i],
+    ['parity', /\bGigs? with an? (?:even|odd) value/i],
+    ['credEven', /(?:☆|Street Cred)\)? is an even number/i],
+    ['credOdd', /(?:☆|Street Cred)\)? is an odd number/i],
     ['d20', /d20/i],
   ];
   const reference = (ids: string[]): GigPlan => {
-    const plan: GigPlan = { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, d20: 0 };
+    const plan: GigPlan = { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, credEven: 0, credOdd: 0, d20: 0 };
     for (const id of ids) {
       const c = CARDS.find((x) => x.id === id);
       if (!c) continue;

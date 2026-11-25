@@ -1,14 +1,66 @@
 {
  "kind": "nct-game-corpus",
  "schema": 1,
- "simVersion": 9,
+ "simVersion": 10,
  "lists": [
   {
-   "from": "s1-04-cross-rbg.txt",
-   "name": "S1-04 Cross (RBG)",
+   "from": "nc-06-metal-over-meat-yyy.txt",
+   "name": "NC-06 Metal Over Meat (YYY)",
+   "legends": [
+    "muamar_reyes_el_capitan",
+    "river_ward_detective_on_the_hunt",
+    "dum_dum_maelstrom_triggerman"
+   ],
+   "main": [
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "dexter_deshawn_one_last_chance",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "alt_cunningham_mother_of_daemons",
+    "alt_cunningham_mother_of_daemons",
+    "adam_smasher_metal_over_meat",
+    "adam_smasher_metal_over_meat",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "gorilla_arms",
+    "gorilla_arms",
+    "afterparty_at_lizzie_s",
+    "afterparty_at_lizzie_s",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "s2-04-cross-rrg.txt",
+   "name": "S2-04 Cross (RRG)",
    "legends": [
     "saburo_arasaka_stubborn_patriarch",
-    "wakako_okada_peace_and_harmony",
+    "v_streetkid",
     "dexter_deshawn_off_the_grid"
    ],
    "main": [
@@ -20,87 +72,35 @@
     "6th_street_recruits",
     "6th_street_recruits",
     "pepe_najarro_working_doubles",
-    "psycho_squad",
-    "psycho_squad",
-    "psycho_squad",
-    "maxtac_av",
-    "maxtac_av",
-    "nadia_fighting_through_grief",
-    "nadia_fighting_through_grief",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
+    "pepe_najarro_working_doubles",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
     "mantis_blades",
     "mantis_blades",
     "satori_sword_of_saburo",
     "satori_sword_of_saburo",
-    "peace_offering",
-    "peace_offering",
-    "synapse_burnout",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "over_the_edge",
-    "over_the_edge",
-    "over_the_edge",
-    "memory_relapse",
-    "memory_relapse",
-    "shattered_memories",
-    "shattered_memories",
-    "unlikely_bond",
-    "unlikely_bond",
-    "unlikely_bond",
-    "we_gotta_live_together",
-    "we_gotta_live_together"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "s2-07-explorer-rrb.txt",
-   "name": "S2-07 Explorer (RRB)",
-   "legends": [
-    "adam_smasher_ender_of_legends",
-    "johnny_silverhand_rocking_renegade",
-    "v_corporate_exile"
-   ],
-   "main": [
-    "swordwise_huscle",
-    "swordwise_huscle",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "kerry_eurodyne_the_last_rockerboy",
-    "psycho_squad",
-    "psycho_squad",
-    "psycho_squad",
-    "westbrook_netrunner",
-    "royce_don_t_call_me_simon",
-    "royce_don_t_call_me_simon",
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "netwatch_netdriver",
-    "netwatch_netdriver",
+    "detonate",
+    "industrial_assembly",
     "industrial_assembly",
     "appetite_for_destruction",
     "appetite_for_destruction",
     "bonnie_and_clyde",
     "bonnie_and_clyde",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
+    "bonnie_and_clyde",
     "over_the_edge",
     "over_the_edge",
-    "gunpoint_diplomacy",
-    "gunpoint_diplomacy",
-    "unlikely_bond",
-    "unlikely_bond",
-    "unlikely_bond",
+    "over_the_edge",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories",
+    "shattered_memories",
+    "we_gotta_live_together",
+    "we_gotta_live_together",
     "carnage_at_the_colosseum",
     "carnage_at_the_colosseum",
     "carnage_at_the_colosseum"
@@ -108,114 +108,387 @@
    "sideboard": []
   },
   {
-   "from": "RRG-smash-the-curve.txt",
-   "name": "Smash the Curve",
+   "from": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
+   "name": "Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board.",
    "legends": [
-    "saburo_arasaka_stubborn_patriarch",
-    "adam_smasher_ender_of_legends",
+    "johnny_silverhand_rocking_renegade",
+    "muamar_reyes_el_capitan",
     "v_streetkid"
    ],
    "main": [
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "6th_street_recruits",
+    "la_llorona_ghost_of_the_past",
+    "la_llorona_ghost_of_the_past",
     "6th_street_recruits",
     "6th_street_recruits",
     "meredith_stout_stone_cold_corpo",
     "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "gunpoint_diplomacy",
-    "gunpoint_diplomacy",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "all_is_lost",
+    "all_is_lost",
+    "all_is_lost",
     "detonate",
     "detonate",
     "industrial_assembly",
-    "mantis_blades",
-    "mantis_blades",
-    "mantis_blades",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "synapse_burnout",
-    "synapse_burnout",
-    "synapse_burnout",
-    "peace_offering",
-    "peace_offering",
-    "peace_offering",
-    "v_roamer_of_the_badlands",
-    "shattered_memories"
+    "industrial_assembly",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "shattered_memories",
+    "shattered_memories",
+    "shattered_memories",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "hanako_arasaka_in_a_gilded_cage",
+    "hanako_arasaka_in_a_gilded_cage",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "the_heist",
+    "the_heist",
+    "afterparty_at_lizzie_s",
+    "afterparty_at_lizzie_s"
    ],
-   "sideboard": [
-    "over_the_edge",
-    "shattered_memories",
-    "shattered_memories",
-    "deadman_transmitter",
-    "deadman_transmitter",
-    "memory_relapse",
-    "memory_relapse"
-   ]
+   "sideboard": []
   },
   {
-   "from": "s1-03-mutant-rbg.txt",
-   "name": "S1-03 Mutant (RBG)",
+   "from": "nc-04-chrome-rockers-yyr.txt",
+   "name": "NC-04 Chrome Rockers (YYR)",
    "legends": [
-    "saburo_arasaka_stubborn_patriarch",
-    "wakako_okada_peace_and_harmony",
+    "river_ward_detective_on_the_hunt",
+    "viktor_vektor_sit_down_and_relax",
+    "royce_psycho_on_the_edge"
+   ],
+   "main": [
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "gorilla_arms",
+    "gorilla_arms",
+    "gorilla_arms",
+    "detonate",
+    "detonate",
+    "detonate",
+    "safety_override",
+    "safety_override",
+    "the_heist",
+    "the_heist",
+    "the_heist",
+    "live_with_the_aftermath"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "import-discord-5k-7-smasher-river-viktor-ryy.txt",
+   "name": "Discord 5k #7: Smasher / River / Viktor (RYY)",
+   "legends": [
+    "river_ward_detective_on_the_hunt",
+    "viktor_vektor_sit_down_and_relax",
     "adam_smasher_ender_of_legends"
    ],
    "main": [
-    "field_operator",
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "valentino_street_racer",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate"
+   ],
+   "sideboard": [
+    "augmented_negotiators",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "offduty_malfini",
+    "offduty_malfini",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon"
+   ]
+  },
+  {
+   "from": "s1-05-cross-rbb.txt",
+   "name": "S1-05 Cross (RBB)",
+   "legends": [
+    "alt_cunningham_soulkiller_architect",
+    "jackie_welles_pour_one_out_for_me",
+    "v_streetkid"
+   ],
+   "main": [
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "valentino_guerrera",
     "6th_street_recruits",
     "6th_street_recruits",
     "6th_street_recruits",
+    "meredith_stout_stone_cold_corpo",
+    "psycho_squad",
+    "psycho_squad",
+    "psycho_squad",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "all_is_lost",
+    "all_is_lost",
+    "floor_it",
+    "trust_no_one",
+    "trust_no_one",
+    "trust_no_one",
+    "chrome_reverie",
+    "chrome_reverie",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "pyramid_song",
+    "pyramid_song",
+    "shattered_memories",
+    "shattered_memories",
+    "unlikely_bond",
+    "unlikely_bond",
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "towerfall",
+    "towerfall"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "import-ladder-s1-3-smasher-dexter-saburo-rrg.txt",
+   "name": "Ladder S1 #3: Smasher / Dexter / Saburo (RRG)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "dexter_deshawn_off_the_grid",
+    "saburo_arasaka_stubborn_patriarch"
+   ],
+   "main": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "detonate",
+    "detonate",
+    "maelstrom_zealots",
+    "maelstrom_zealots",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "minotaur",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
     "pepe_najarro_working_doubles",
-    "psycho_squad",
-    "psycho_squad",
-    "psycho_squad",
-    "maxtac_av",
-    "maxtac_av",
-    "nadia_fighting_through_grief",
-    "nadia_fighting_through_grief",
-    "nadia_fighting_through_grief",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "riot_shield",
+    "riot_shield",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "synapse_burnout",
+    "synapse_burnout",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "sideboard": [
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "valentino_guerrera",
+    "valentino_guerrera"
+   ]
+  },
+  {
+   "from": "nc-08-merc-contract-rrg.txt",
+   "name": "NC-08 Merc Contract (RRG)",
+   "legends": [
+    "v_streetkid",
+    "adam_smasher_ender_of_legends",
+    "jackie_welles_mama_s_favorite"
+   ],
+   "main": [
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
     "mantis_blades",
     "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "detonate",
+    "detonate",
+    "detonate",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "synapse_burnout",
+    "synapse_burnout",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "RBY-samurai.txt",
+   "name": "Samurai",
+   "legends": [
+    "johnny_silverhand_rocking_renegade",
+    "alt_cunningham_soulkiller_architect",
+    "kerry_eurodyne_axe_attitude_audience"
+   ],
+   "main": [
+    "japantown_jonin",
+    "japantown_jonin",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "rita_wheeler_no_stupid_questions",
+    "rita_wheeler_no_stupid_questions",
     "netwatch_netdriver",
-    "zetatech_berserk",
-    "zetatech_berserk",
-    "synapse_burnout",
-    "synapse_burnout",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "over_the_edge",
-    "over_the_edge",
-    "memory_relapse",
-    "memory_relapse",
-    "shattered_memories",
-    "shattered_memories",
+    "netwatch_netdriver",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "mantis_blades",
+    "mantis_blades",
+    "industrial_assembly",
+    "industrial_assembly",
+    "reboot_optics",
+    "reboot_optics",
+    "floor_it",
+    "floor_it",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "modded_kusanagi",
+    "modded_kusanagi",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
     "unlikely_bond",
     "unlikely_bond",
-    "unlikely_bond",
-    "we_gotta_live_together",
-    "we_gotta_live_together"
+    "trust_no_one",
+    "trust_no_one",
+    "chrome_reverie",
+    "chrome_reverie",
+    "afterparty_at_lizzie_s",
+    "afterparty_at_lizzie_s",
+    "kiroshi_optics",
+    "kiroshi_optics",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon"
    ],
    "sideboard": []
   },
@@ -263,6 +536,117 @@
     "gunpoint_diplomacy",
     "memory_relapse",
     "memory_relapse",
+    "shattered_memories",
+    "shattered_memories",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "meta-rry-smasher-aggro.txt",
+   "name": "RRY Smasher Aggro",
+   "legends": [
+    "dum_dum_maelstrom_triggerman",
+    "v_streetkid",
+    "adam_smasher_ender_of_legends"
+   ],
+   "main": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "offduty_malfini",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool",
+    "screw_lovelorn_fool",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "all_is_lost",
+    "all_is_lost",
+    "detonate",
+    "detonate",
+    "detonate",
+    "industrial_assembly",
+    "industrial_assembly",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "over_the_edge",
+    "over_the_edge",
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "la_llorona_ghost_of_the_past",
+    "la_llorona_ghost_of_the_past",
+    "la_llorona_ghost_of_the_past",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "s3-03-cross-rrr.txt",
+   "name": "S3-03 Cross (RRR)",
+   "legends": [
+    "dexter_deshawn_off_the_grid",
+    "v_streetkid",
+    "adam_smasher_ender_of_legends"
+   ],
+   "main": [
+    "ruthless_lowlife",
+    "ruthless_lowlife",
+    "swordwise_huscle",
+    "swordwise_huscle",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "mantis_blades",
+    "mantis_blades",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "all_is_lost",
+    "detonate",
+    "detonate",
+    "industrial_assembly",
+    "industrial_assembly",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge",
+    "gunpoint_diplomacy",
     "shattered_memories",
     "shattered_memories",
     "carnage_at_the_colosseum",
@@ -324,431 +708,63 @@
    "sideboard": []
   },
   {
-   "from": "meta-bbg-cunningham-econ.txt",
-   "name": "BBG Cunningham Econ",
-   "legends": [
-    "alt_cunningham_soulkiller_architect",
-    "hanako_arasaka_daughter_of_the_emperor",
-    "jackie_welles_pour_one_out_for_me"
-   ],
-   "main": [
-    "jacked_in_voodoo_boy",
-    "jacked_in_voodoo_boy",
-    "jacked_in_voodoo_boy",
-    "mox_inciters",
-    "mox_inciters",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "psycho_squad",
-    "psycho_squad",
-    "lizzy_wizzy_delicate_weapon",
-    "lizzy_wizzy_delicate_weapon",
-    "maman_brigitte_spirit_of_death",
-    "maman_brigitte_spirit_of_death",
-    "placide_voodoo_sentinel",
-    "floor_it",
-    "floor_it",
-    "floor_it",
-    "peace_offering",
-    "peace_offering",
-    "peace_offering",
-    "trust_no_one",
-    "trust_no_one",
-    "trust_no_one",
-    "three_mouths_one_desire",
-    "three_mouths_one_desire",
-    "three_mouths_one_desire",
-    "chrome_reverie",
-    "chrome_reverie",
-    "chrome_reverie",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "pyramid_song",
-    "pyramid_song",
-    "pyramid_song",
-    "les_elemens",
-    "les_elemens",
-    "les_elemens",
-    "towerfall",
-    "towerfall",
-    "towerfall"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "s1-06-cross-bgy.txt",
-   "name": "S1-06 Cross (BGY)",
-   "legends": [
-    "muamar_reyes_el_capitan",
-    "hanako_arasaka_daughter_of_the_emperor",
-    "alt_cunningham_soulkiller_architect"
-   ],
-   "main": [
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "pepe_najarro_working_doubles",
-    "psycho_squad",
-    "psycho_squad",
-    "psycho_squad",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
-    "netwatch_netdriver",
-    "netwatch_netdriver",
-    "zetatech_berserk",
-    "afterparty_at_lizzie_s",
-    "afterparty_at_lizzie_s",
-    "floor_it",
-    "floor_it",
-    "peace_offering",
-    "peace_offering",
-    "trust_no_one",
-    "trust_no_one",
-    "take_control",
-    "take_control",
-    "the_heist",
-    "the_heist",
-    "chrome_reverie",
-    "chrome_reverie",
-    "chrome_reverie",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "nocturne_op55_n1",
-    "memory_relapse",
-    "memory_relapse",
-    "memory_relapse",
-    "unlikely_bond",
-    "unlikely_bond",
-    "unlikely_bond"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "GYY-keep-em-guessing.txt",
-   "name": "Keep 'Em Guessing",
-   "legends": [
-    "dum_dum_maelstrom_triggerman",
-    "goro_takemura_vengeful_bodyguard",
-    "river_ward_detective_on_the_hunt"
-   ],
-   "main": [
-    "gorilla_arms",
-    "gorilla_arms",
-    "gorilla_arms",
-    "mandibular_upgrade",
-    "mandibular_upgrade",
-    "mandibular_upgrade",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "kiroshi_optics",
-    "kiroshi_optics",
-    "kiroshi_optics",
-    "peace_offering",
-    "peace_offering",
-    "peace_offering",
-    "corporate_surveillance",
-    "corporate_surveillance",
-    "corporate_surveillance",
-    "bootleg_black_sapphire_show",
-    "bootleg_black_sapphire_show",
-    "bootleg_black_sapphire_show",
-    "live_with_the_aftermath",
-    "live_with_the_aftermath",
-    "live_with_the_aftermath",
-    "secondhand_bombus",
-    "secondhand_bombus",
-    "secondhand_bombus",
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "augmented_negotiators",
-    "augmented_negotiators",
-    "augmented_negotiators",
-    "viktor_vektor_you_might_feel_a_little_pinch",
-    "viktor_vektor_you_might_feel_a_little_pinch",
-    "viktor_vektor_you_might_feel_a_little_pinch",
-    "saul_bright_stormrider",
-    "maelstrom_zealots",
-    "maelstrom_zealots",
-    "maelstrom_zealots",
-    "sketchy_ripper",
-    "sketchy_ripper",
-    "sketchy_ripper"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "nc-01-rockerboy-express-rry.txt",
-   "name": "NC-01 Rockerboy Express (RRY)",
+   "from": "import-discord-5k-3-smasher-river-viktor-ryy.txt",
+   "name": "Discord 5k #3: Smasher / River / Viktor (RYY)",
    "legends": [
     "adam_smasher_ender_of_legends",
-    "dexter_deshawn_off_the_grid",
-    "river_ward_detective_on_the_hunt"
-   ],
-   "main": [
-    "dexter_deshawn_one_last_chance",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "kerry_eurodyne_the_last_rockerboy",
-    "kerry_eurodyne_the_last_rockerboy",
-    "kerry_eurodyne_the_last_rockerboy",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "heywood_ripperdoc",
-    "heywood_ripperdoc",
-    "mantis_blades",
-    "mantis_blades",
-    "mantis_blades",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "detonate",
-    "detonate",
-    "detonate",
-    "industrial_assembly",
-    "industrial_assembly",
-    "industrial_assembly",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "gunpoint_diplomacy",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "nc-07-braindance-burn-rrb.txt",
-   "name": "NC-07 Braindance Burn (RRB)",
-   "legends": [
-    "dexter_deshawn_off_the_grid",
-    "adam_smasher_ender_of_legends",
-    "judy_alvarez_braindance_maestro"
-   ],
-   "main": [
-    "jacked_in_voodoo_boy",
-    "jacked_in_voodoo_boy",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "psycho_squad",
-    "psycho_squad",
-    "psycho_squad",
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "mantis_blades",
-    "mantis_blades",
-    "mantis_blades",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "detonate",
-    "detonate",
-    "detonate",
-    "floor_it",
-    "floor_it",
-    "industrial_assembly",
-    "industrial_assembly",
-    "industrial_assembly",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "gunpoint_diplomacy",
-    "gunpoint_diplomacy",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "s3-05-counter-rrg.txt",
-   "name": "S3-05 Counter (RRG)",
-   "legends": [
-    "v_streetkid",
-    "hanako_arasaka_daughter_of_the_emperor",
-    "adam_smasher_ender_of_legends"
-   ],
-   "main": [
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "6th_street_recruits",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "saul_bright_stormrider",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "detonate",
-    "industrial_assembly",
-    "industrial_assembly",
-    "peace_offering",
-    "peace_offering",
-    "corporate_surveillance",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "over_the_edge",
-    "over_the_edge",
-    "over_the_edge",
-    "gunpoint_diplomacy",
-    "gunpoint_diplomacy",
-    "memory_relapse",
-    "memory_relapse",
-    "memory_relapse",
-    "shattered_memories",
-    "shattered_memories",
-    "we_gotta_live_together",
-    "we_gotta_live_together",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "s2-04-cross-rrg.txt",
-   "name": "S2-04 Cross (RRG)",
-   "legends": [
-    "saburo_arasaka_stubborn_patriarch",
-    "v_streetkid",
-    "dexter_deshawn_off_the_grid"
-   ],
-   "main": [
-    "field_operator",
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "valentino_street_racer",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "yorinobu_arasaka_steel_dragon",
-    "yorinobu_arasaka_steel_dragon",
-    "mantis_blades",
-    "mantis_blades",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "detonate",
-    "industrial_assembly",
-    "industrial_assembly",
-    "appetite_for_destruction",
-    "appetite_for_destruction",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "over_the_edge",
-    "over_the_edge",
-    "over_the_edge",
-    "memory_relapse",
-    "memory_relapse",
-    "memory_relapse",
-    "shattered_memories",
-    "shattered_memories",
-    "shattered_memories",
-    "we_gotta_live_together",
-    "we_gotta_live_together",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "YYY-yyy-adam-ready-for-brawl.txt",
-   "name": "YYY Adam v1 - Ready for Brawl",
-   "legends": [
-    "muamar_reyes_el_capitan",
     "river_ward_detective_on_the_hunt",
-    "kerry_eurodyne_axe_attitude_audience"
+    "viktor_vektor_sit_down_and_relax"
    ],
    "main": [
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "bootleg_black_sapphire_show",
-    "bootleg_black_sapphire_show",
-    "bootleg_black_sapphire_show",
-    "the_relic_experimental_biochip",
-    "the_relic_experimental_biochip",
-    "the_relic_experimental_biochip",
-    "gorilla_arms",
-    "gorilla_arms",
-    "gorilla_arms",
-    "maelstrom_goons",
-    "maelstrom_goons",
-    "maelstrom_goons",
-    "augmented_negotiators",
-    "augmented_negotiators",
-    "augmented_negotiators",
-    "the_heist",
-    "the_heist",
-    "the_heist",
-    "safety_override",
-    "safety_override",
-    "safety_override",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
     "adrenaline_converter",
     "adrenaline_converter",
     "adrenaline_converter",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "dexter_deshawn_one_last_chance",
+    "gorilla_arms",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
     "live_with_the_aftermath",
     "live_with_the_aftermath",
-    "live_with_the_aftermath",
-    "dexter_deshawn_one_last_chance",
-    "dexter_deshawn_one_last_chance",
-    "dexter_deshawn_one_last_chance",
-    "adam_smasher_metal_over_meat",
-    "adam_smasher_metal_over_meat",
-    "adam_smasher_metal_over_meat"
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "royce_don_t_call_me_simon",
+    "safety_override",
+    "safety_override",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "shattered_memories",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate"
    ],
    "sideboard": [
-    "caliber_totentanz_s_top_dog",
-    "caliber_totentanz_s_top_dog",
-    "caliber_totentanz_s_top_dog",
-    "mandibular_upgrade",
-    "mandibular_upgrade",
+    "dexter_deshawn_one_last_chance",
     "heywood_ripperdoc",
-    "heywood_ripperdoc"
+    "live_with_the_aftermath",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "shattered_memories",
+    "sketchy_ripper"
    ]
   },
   {
@@ -912,59 +928,57 @@
    "sideboard": []
   },
   {
-   "from": "RBY-samurai.txt",
-   "name": "Samurai",
+   "from": "GYY-keep-em-guessing.txt",
+   "name": "Keep 'Em Guessing",
    "legends": [
-    "johnny_silverhand_rocking_renegade",
-    "alt_cunningham_soulkiller_architect",
-    "kerry_eurodyne_axe_attitude_audience"
+    "dum_dum_maelstrom_triggerman",
+    "goro_takemura_vengeful_bodyguard",
+    "river_ward_detective_on_the_hunt"
    ],
    "main": [
-    "japantown_jonin",
-    "japantown_jonin",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "kerry_eurodyne_the_last_rockerboy",
-    "kerry_eurodyne_the_last_rockerboy",
-    "kerry_eurodyne_the_last_rockerboy",
-    "rita_wheeler_no_stupid_questions",
-    "rita_wheeler_no_stupid_questions",
-    "netwatch_netdriver",
-    "netwatch_netdriver",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "mantis_blades",
-    "mantis_blades",
-    "industrial_assembly",
-    "industrial_assembly",
-    "reboot_optics",
-    "reboot_optics",
-    "floor_it",
-    "floor_it",
-    "placide_voodoo_sentinel",
-    "placide_voodoo_sentinel",
-    "modded_kusanagi",
-    "modded_kusanagi",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
+    "gorilla_arms",
+    "gorilla_arms",
+    "gorilla_arms",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
     "zetatech_faceplate",
     "zetatech_faceplate",
-    "unlikely_bond",
-    "unlikely_bond",
-    "trust_no_one",
-    "trust_no_one",
-    "chrome_reverie",
-    "chrome_reverie",
-    "afterparty_at_lizzie_s",
-    "afterparty_at_lizzie_s",
+    "zetatech_faceplate",
     "kiroshi_optics",
     "kiroshi_optics",
+    "kiroshi_optics",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "corporate_surveillance",
+    "corporate_surveillance",
+    "corporate_surveillance",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
     "secondhand_bombus",
     "secondhand_bombus",
-    "lizzy_wizzy_delicate_weapon",
-    "lizzy_wizzy_delicate_weapon"
+    "secondhand_bombus",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "viktor_vektor_you_might_feel_a_little_pinch",
+    "saul_bright_stormrider",
+    "maelstrom_zealots",
+    "maelstrom_zealots",
+    "maelstrom_zealots",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "sketchy_ripper"
    ],
    "sideboard": []
   },
@@ -1021,6 +1035,66 @@
    "sideboard": []
   },
   {
+   "from": "RRG-smash-the-curve.txt",
+   "name": "Smash the Curve",
+   "legends": [
+    "saburo_arasaka_stubborn_patriarch",
+    "adam_smasher_ender_of_legends",
+    "v_streetkid"
+   ],
+   "main": [
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "detonate",
+    "detonate",
+    "industrial_assembly",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "synapse_burnout",
+    "synapse_burnout",
+    "synapse_burnout",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "v_roamer_of_the_badlands",
+    "shattered_memories"
+   ],
+   "sideboard": [
+    "over_the_edge",
+    "shattered_memories",
+    "shattered_memories",
+    "deadman_transmitter",
+    "deadman_transmitter",
+    "memory_relapse",
+    "memory_relapse"
+   ]
+  },
+  {
    "from": "RRR-the-red-chrome-aggro.txt",
    "name": "The Red Chrome - Aggro",
    "legends": [
@@ -1069,58 +1143,6 @@
     "over_the_edge",
     "over_the_edge",
     "over_the_edge"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "RRY-fills-up-discard-super-quickly-then-heavily-discounted-traum.txt",
-   "name": "Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board.",
-   "legends": [
-    "johnny_silverhand_rocking_renegade",
-    "muamar_reyes_el_capitan",
-    "v_streetkid"
-   ],
-   "main": [
-    "la_llorona_ghost_of_the_past",
-    "la_llorona_ghost_of_the_past",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
-    "all_is_lost",
-    "all_is_lost",
-    "all_is_lost",
-    "detonate",
-    "detonate",
-    "industrial_assembly",
-    "industrial_assembly",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "shattered_memories",
-    "shattered_memories",
-    "shattered_memories",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "hanako_arasaka_in_a_gilded_cage",
-    "hanako_arasaka_in_a_gilded_cage",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "heywood_ripperdoc",
-    "heywood_ripperdoc",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "the_heist",
-    "the_heist",
-    "afterparty_at_lizzie_s",
-    "afterparty_at_lizzie_s"
    ],
    "sideboard": []
   },
@@ -1176,6 +1198,951 @@
     "afterparty_at_lizzie_s"
    ],
    "sideboard": []
+  },
+  {
+   "from": "YYY-yyy-adam-ready-for-brawl.txt",
+   "name": "YYY Adam v1 - Ready for Brawl",
+   "legends": [
+    "muamar_reyes_el_capitan",
+    "river_ward_detective_on_the_hunt",
+    "kerry_eurodyne_axe_attitude_audience"
+   ],
+   "main": [
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "the_relic_experimental_biochip",
+    "the_relic_experimental_biochip",
+    "the_relic_experimental_biochip",
+    "gorilla_arms",
+    "gorilla_arms",
+    "gorilla_arms",
+    "maelstrom_goons",
+    "maelstrom_goons",
+    "maelstrom_goons",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "the_heist",
+    "the_heist",
+    "the_heist",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "adam_smasher_metal_over_meat",
+    "adam_smasher_metal_over_meat",
+    "adam_smasher_metal_over_meat"
+   ],
+   "sideboard": [
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc"
+   ]
+  },
+  {
+   "from": "import-discord-5k-1-smasher-river-reyes-ryy.txt",
+   "name": "Discord 5k #1: Smasher / River / Reyes (RYY)",
+   "legends": [
+    "river_ward_detective_on_the_hunt",
+    "adam_smasher_ender_of_legends",
+    "muamar_reyes_el_capitan"
+   ],
+   "main": [
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "gorilla_arms",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "rockn_rockerboy",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate"
+   ],
+   "sideboard": [
+    "detonate",
+    "heywood_ripperdoc",
+    "offduty_malfini",
+    "offduty_malfini",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "royce_don_t_call_me_simon"
+   ]
+  },
+  {
+   "from": "import-discord-5k-2-jackie-alt-hanako-bbg.txt",
+   "name": "Discord 5k #2: Jackie / Alt / Hanako (BBG)",
+   "legends": [
+    "jackie_welles_pour_one_out_for_me",
+    "alt_cunningham_soulkiller_architect",
+    "hanako_arasaka_daughter_of_the_emperor"
+   ],
+   "main": [
+    "chrome_reverie",
+    "chrome_reverie",
+    "floor_it",
+    "floor_it",
+    "floor_it",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pyramid_song",
+    "pyramid_song",
+    "pyramid_song",
+    "riot_shield",
+    "riot_shield",
+    "take_control",
+    "take_control",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "towerfall",
+    "towerfall",
+    "towerfall",
+    "trust_no_one",
+    "trust_no_one",
+    "trust_no_one",
+    "valentino_street_racer"
+   ],
+   "sideboard": [
+    "delamain_rideshare_ai",
+    "delamain_rideshare_ai",
+    "dying_night_v_s_pistol",
+    "modded_kusanagi",
+    "mox_inciters",
+    "mox_inciters",
+    "valentino_street_racer"
+   ]
+  },
+  {
+   "from": "import-discord-5k-4-jackie-alt-hanako-bbg.txt",
+   "name": "Discord 5k #4: Jackie / Alt / Hanako (BBG)",
+   "legends": [
+    "jackie_welles_pour_one_out_for_me",
+    "alt_cunningham_soulkiller_architect",
+    "hanako_arasaka_daughter_of_the_emperor"
+   ],
+   "main": [
+    "chrome_reverie",
+    "chrome_reverie",
+    "dying_night_v_s_pistol",
+    "floor_it",
+    "floor_it",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pyramid_song",
+    "pyramid_song",
+    "pyramid_song",
+    "riot_shield",
+    "riot_shield",
+    "take_control",
+    "take_control",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "towerfall",
+    "towerfall",
+    "towerfall",
+    "trust_no_one",
+    "trust_no_one",
+    "trust_no_one",
+    "valentino_street_racer"
+   ],
+   "sideboard": [
+    "delamain_rideshare_ai",
+    "delamain_rideshare_ai",
+    "delamain_rideshare_ai",
+    "modded_kusanagi",
+    "mox_inciters",
+    "mox_inciters",
+    "mox_inciters"
+   ]
+  },
+  {
+   "from": "import-discord-5k-5-v-smasher-padre-rrg.txt",
+   "name": "Discord 5k #5: V / Smasher / Padre (RRG)",
+   "legends": [
+    "v_streetkid",
+    "adam_smasher_ender_of_legends",
+    "padre_man_of_the_cross"
+   ],
+   "main": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "animals_wrecker",
+    "animals_wrecker",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "johnny_silverhand_never_stop_fighting",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "synapse_burnout",
+    "synapse_burnout",
+    "synapse_burnout",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "sideboard": [
+    "detonate",
+    "detonate",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "riot_shield",
+    "riot_shield"
+   ]
+  },
+  {
+   "from": "import-discord-5k-6-jackie-alt-hanako-bbg.txt",
+   "name": "Discord 5k #6: Jackie / Alt / Hanako (BBG)",
+   "legends": [
+    "alt_cunningham_soulkiller_architect",
+    "jackie_welles_pour_one_out_for_me",
+    "hanako_arasaka_daughter_of_the_emperor"
+   ],
+   "main": [
+    "chrome_reverie",
+    "chrome_reverie",
+    "floor_it",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "lizzy_wizzy_delicate_weapon",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "modded_kusanagi",
+    "mox_inciters",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pyramid_song",
+    "pyramid_song",
+    "pyramid_song",
+    "riot_shield",
+    "take_control",
+    "take_control",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "towerfall",
+    "towerfall",
+    "towerfall",
+    "trust_no_one",
+    "trust_no_one",
+    "trust_no_one",
+    "valentino_street_racer",
+    "valentino_street_racer"
+   ],
+   "sideboard": [
+    "chrome_reverie",
+    "modded_kusanagi",
+    "mt0d12_flathead",
+    "mt0d12_flathead",
+    "riot_shield",
+    "tetratronic_rippler",
+    "valentino_street_racer"
+   ]
+  },
+  {
+   "from": "import-discord-5k-8-v-smasher-saburo-rrg.txt",
+   "name": "Discord 5k #8: V / Smasher / Saburo (RRG)",
+   "legends": [
+    "saburo_arasaka_stubborn_patriarch",
+    "adam_smasher_ender_of_legends",
+    "v_streetkid"
+   ],
+   "main": [
+    "all_is_lost",
+    "all_is_lost",
+    "animals_wrecker",
+    "animals_wrecker",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "detonate",
+    "detonate",
+    "detonate",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "maelstrom_zealots",
+    "maelstrom_zealots",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "maxtac_av",
+    "maxtac_av",
+    "memory_relapse",
+    "memory_relapse",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "saul_bright_stormrider",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "sideboard": [
+    "6th_street_recruits",
+    "corpo_security",
+    "corpo_security",
+    "corpo_security",
+    "riot_shield",
+    "riot_shield",
+    "riot_shield"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-1-v-smasher-padre-rrg.txt",
+   "name": "Ladder S1 #1: V / Smasher / Padre (RRG)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "padre_man_of_the_cross",
+    "v_streetkid"
+   ],
+   "main": [
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "detonate",
+    "industrial_assembly",
+    "industrial_assembly",
+    "maelstrom_zealots",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "riot_shield",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "synapse_burnout",
+    "synapse_burnout",
+    "valentino_street_racer",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon"
+   ],
+   "sideboard": [
+    "detonate",
+    "gunpoint_diplomacy",
+    "riot_shield",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "synapse_burnout"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-10-jackie-judy-hanako-bbg.txt",
+   "name": "Ladder S1 #10: Jackie / Judy / Hanako (BBG)",
+   "legends": [
+    "hanako_arasaka_daughter_of_the_emperor",
+    "jackie_welles_pour_one_out_for_me",
+    "judy_alvarez_braindance_maestro"
+   ],
+   "main": [
+    "trust_no_one",
+    "trust_no_one",
+    "trust_no_one",
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "pyramid_song",
+    "pyramid_song",
+    "pyramid_song",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "chrome_reverie",
+    "chrome_reverie",
+    "chrome_reverie",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "delamain_rideshare_ai",
+    "delamain_rideshare_ai",
+    "delamain_rideshare_ai",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "towerfall",
+    "towerfall",
+    "towerfall",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "memory_relapse",
+    "memory_relapse",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "floor_it"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "import-ladder-s1-2-v-smasher-saburo-rrg.txt",
+   "name": "Ladder S1 #2: V / Smasher / Saburo (RRG)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "saburo_arasaka_stubborn_patriarch",
+    "v_streetkid"
+   ],
+   "main": [
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "synapse_burnout",
+    "synapse_burnout",
+    "synapse_burnout",
+    "detonate",
+    "detonate",
+    "riot_shield",
+    "riot_shield",
+    "maxtac_av"
+   ],
+   "sideboard": [
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "detonate",
+    "riot_shield",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-4-v-padre-jackie-rgg.txt",
+   "name": "Ladder S1 #4: V / Padre / Jackie (RGG)",
+   "legends": [
+    "jackie_welles_mama_s_favorite",
+    "padre_man_of_the_cross",
+    "v_streetkid"
+   ],
+   "main": [
+    "corpo_security",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "don_t_fear_the_reaper",
+    "fool_on_the_hill",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "la_llorona_ghost_of_the_past",
+    "la_llorona_ghost_of_the_past",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "maxtac_av",
+    "maxtac_av",
+    "maxtac_av",
+    "maxtac_squadron",
+    "maxtac_squadron",
+    "maxtac_squadron",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "overwatch_panam_s_gift",
+    "overwatch_panam_s_gift",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "riot_shield",
+    "riot_shield",
+    "sandevistan",
+    "sandevistan",
+    "sandevistan",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "wild_in_the_streets",
+    "wild_in_the_streets",
+    "wild_in_the_streets"
+   ],
+   "sideboard": [
+    "corpo_security",
+    "corpo_security",
+    "fool_on_the_hill",
+    "fool_on_the_hill",
+    "take_control",
+    "take_control",
+    "take_control"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-5-v-smasher-dum-dum-rry.txt",
+   "name": "Ladder S1 #5: V / Smasher / Dum Dum (RRY)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "dum_dum_maelstrom_triggerman",
+    "v_streetkid"
+   ],
+   "main": [
+    "all_is_lost",
+    "all_is_lost",
+    "all_is_lost",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "appetite_for_destruction"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "import-ladder-s1-6-dexter-v-reyes-rry.txt",
+   "name": "Ladder S1 #6: Dexter / V / Reyes (RRY)",
+   "legends": [
+    "dexter_deshawn_off_the_grid",
+    "muamar_reyes_el_capitan",
+    "v_streetkid"
+   ],
+   "main": [
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "detonate",
+    "detonate",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "all_is_lost",
+    "all_is_lost"
+   ],
+   "sideboard": [
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "detonate",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "gunpoint_diplomacy"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-7-dexter-v-padre-rrg.txt",
+   "name": "Ladder S1 #7: Dexter / V / Padre (RRG)",
+   "legends": [
+    "dexter_deshawn_off_the_grid",
+    "padre_man_of_the_cross",
+    "v_streetkid"
+   ],
+   "main": [
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge",
+    "field_operator",
+    "field_operator",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker"
+   ],
+   "sideboard": [
+    "detonate",
+    "detonate",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-8-smasher-river-viktor-ryy.txt",
+   "name": "Ladder S1 #8: Smasher / River / Viktor (RYY)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "river_ward_detective_on_the_hunt",
+    "viktor_vektor_sit_down_and_relax"
+   ],
+   "main": [
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "secondhand_bombus",
+    "secondhand_bombus",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "sketchy_ripper",
+    "gorilla_arms",
+    "arasaka_emergency_radioport",
+    "arasaka_emergency_radioport",
+    "safety_override",
+    "safety_override"
+   ],
+   "sideboard": [
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "detonate",
+    "detonate"
+   ]
+  },
+  {
+   "from": "import-ladder-s1-9-river-reyes-rogue-yyy.txt",
+   "name": "Ladder S1 #9: River / Reyes / Rogue (YYY)",
+   "legends": [
+    "muamar_reyes_el_capitan",
+    "river_ward_detective_on_the_hunt",
+    "rogue_amendiares_preem_solo"
+   ],
+   "main": [
+    "adam_smasher_metal_over_meat",
+    "adam_smasher_metal_over_meat",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "adrenaline_converter",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "bootleg_black_sapphire_show",
+    "gorilla_arms",
+    "gorilla_arms",
+    "gorilla_arms",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "live_with_the_aftermath",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "mandibular_upgrade",
+    "the_heist",
+    "the_heist",
+    "the_heist",
+    "safety_override",
+    "safety_override",
+    "safety_override",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "the_relic_experimental_biochip",
+    "the_relic_experimental_biochip",
+    "the_relic_experimental_biochip",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "dexter_deshawn_one_last_chance",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "augmented_negotiators",
+    "jackie_welles_ride_or_die_choom",
+    "jackie_welles_ride_or_die_choom"
+   ],
+   "sideboard": [
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "caliber_totentanz_s_top_dog",
+    "offduty_malfini",
+    "offduty_malfini"
+   ]
   },
   {
    "from": "ladder-bbg-jackie-alt-hanako.txt",
@@ -1382,6 +2349,58 @@
     "shattered_memories",
     "bootleg_black_sapphire_show",
     "bootleg_black_sapphire_show"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "meta-bbg-cunningham-econ.txt",
+   "name": "BBG Cunningham Econ",
+   "legends": [
+    "alt_cunningham_soulkiller_architect",
+    "hanako_arasaka_daughter_of_the_emperor",
+    "jackie_welles_pour_one_out_for_me"
+   ],
+   "main": [
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
+    "mox_inciters",
+    "mox_inciters",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "psycho_squad",
+    "psycho_squad",
+    "lizzy_wizzy_delicate_weapon",
+    "lizzy_wizzy_delicate_weapon",
+    "maman_brigitte_spirit_of_death",
+    "maman_brigitte_spirit_of_death",
+    "placide_voodoo_sentinel",
+    "floor_it",
+    "floor_it",
+    "floor_it",
+    "peace_offering",
+    "peace_offering",
+    "peace_offering",
+    "trust_no_one",
+    "trust_no_one",
+    "trust_no_one",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "three_mouths_one_desire",
+    "chrome_reverie",
+    "chrome_reverie",
+    "chrome_reverie",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "pyramid_song",
+    "pyramid_song",
+    "pyramid_song",
+    "les_elemens",
+    "les_elemens",
+    "les_elemens",
+    "towerfall",
+    "towerfall",
+    "towerfall"
    ],
    "sideboard": []
   },
@@ -1595,65 +2614,6 @@
    "sideboard": []
   },
   {
-   "from": "meta-rry-smasher-aggro.txt",
-   "name": "RRY Smasher Aggro",
-   "legends": [
-    "dum_dum_maelstrom_triggerman",
-    "v_streetkid",
-    "adam_smasher_ender_of_legends"
-   ],
-   "main": [
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "offduty_malfini",
-    "screw_lovelorn_fool",
-    "screw_lovelorn_fool",
-    "screw_lovelorn_fool",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "animals_wrecker",
-    "animals_wrecker",
-    "animals_wrecker",
-    "all_is_lost",
-    "all_is_lost",
-    "detonate",
-    "detonate",
-    "detonate",
-    "industrial_assembly",
-    "industrial_assembly",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "bonnie_and_clyde",
-    "over_the_edge",
-    "over_the_edge",
-    "gunpoint_diplomacy",
-    "gunpoint_diplomacy",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "carnage_at_the_colosseum",
-    "mantis_blades",
-    "mantis_blades",
-    "mantis_blades",
-    "satori_sword_of_saburo",
-    "satori_sword_of_saburo",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "la_llorona_ghost_of_the_past",
-    "la_llorona_ghost_of_the_past",
-    "la_llorona_ghost_of_the_past",
-    "royce_don_t_call_me_simon",
-    "royce_don_t_call_me_simon",
-    "royce_don_t_call_me_simon"
-   ],
-   "sideboard": []
-  },
-  {
    "from": "meta-yyb-rogue-gear.txt",
    "name": "YYB Rogue Gear",
    "legends": [
@@ -1702,6 +2662,58 @@
     "gorilla_arms",
     "gorilla_arms",
     "gorilla_arms"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "nc-01-rockerboy-express-rry.txt",
+   "name": "NC-01 Rockerboy Express (RRY)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "dexter_deshawn_off_the_grid",
+    "river_ward_detective_on_the_hunt"
+   ],
+   "main": [
+    "dexter_deshawn_one_last_chance",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "kerry_eurodyne_the_last_rockerboy",
+    "meredith_stout_stone_cold_corpo",
+    "meredith_stout_stone_cold_corpo",
+    "maxtac_suppression_team",
+    "maxtac_suppression_team",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "rockn_rockerboy",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "heywood_ripperdoc",
+    "heywood_ripperdoc",
+    "mantis_blades",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "zetatech_faceplate",
+    "detonate",
+    "detonate",
+    "detonate",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "gunpoint_diplomacy",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum"
    ],
    "sideboard": []
   },
@@ -1810,58 +2822,6 @@
    "sideboard": []
   },
   {
-   "from": "nc-04-chrome-rockers-yyr.txt",
-   "name": "NC-04 Chrome Rockers (YYR)",
-   "legends": [
-    "river_ward_detective_on_the_hunt",
-    "viktor_vektor_sit_down_and_relax",
-    "royce_psycho_on_the_edge"
-   ],
-   "main": [
-    "dexter_deshawn_one_last_chance",
-    "dexter_deshawn_one_last_chance",
-    "dexter_deshawn_one_last_chance",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "mantis_blades",
-    "mantis_blades",
-    "mantis_blades",
-    "adrenaline_converter",
-    "adrenaline_converter",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "gorilla_arms",
-    "gorilla_arms",
-    "gorilla_arms",
-    "detonate",
-    "detonate",
-    "detonate",
-    "safety_override",
-    "safety_override",
-    "the_heist",
-    "the_heist",
-    "the_heist",
-    "live_with_the_aftermath"
-   ],
-   "sideboard": []
-  },
-  {
    "from": "nc-05-emperor-s-guard-ggb.txt",
    "name": "NC-05 Emperor's Guard (GGB)",
    "legends": [
@@ -1914,83 +2874,30 @@
    "sideboard": []
   },
   {
-   "from": "nc-06-metal-over-meat-yyy.txt",
-   "name": "NC-06 Metal Over Meat (YYY)",
+   "from": "nc-07-braindance-burn-rrb.txt",
+   "name": "NC-07 Braindance Burn (RRB)",
    "legends": [
-    "muamar_reyes_el_capitan",
-    "river_ward_detective_on_the_hunt",
-    "dum_dum_maelstrom_triggerman"
-   ],
-   "main": [
-    "secondhand_bombus",
-    "secondhand_bombus",
-    "secondhand_bombus",
-    "augmented_negotiators",
-    "augmented_negotiators",
-    "augmented_negotiators",
-    "dexter_deshawn_one_last_chance",
-    "caliber_totentanz_s_top_dog",
-    "caliber_totentanz_s_top_dog",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
-    "maxtac_suppression_team",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "rockn_rockerboy",
-    "heywood_ripperdoc",
-    "heywood_ripperdoc",
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "jackie_welles_ride_or_die_choom",
-    "trauma_team_operatives",
-    "trauma_team_operatives",
-    "alt_cunningham_mother_of_daemons",
-    "alt_cunningham_mother_of_daemons",
-    "adam_smasher_metal_over_meat",
-    "adam_smasher_metal_over_meat",
-    "zetatech_faceplate",
-    "zetatech_faceplate",
-    "gorilla_arms",
-    "gorilla_arms",
-    "afterparty_at_lizzie_s",
-    "afterparty_at_lizzie_s",
-    "safety_override",
-    "safety_override",
-    "safety_override",
-    "live_with_the_aftermath",
-    "live_with_the_aftermath",
-    "live_with_the_aftermath",
-    "bootleg_black_sapphire_show",
-    "bootleg_black_sapphire_show"
-   ],
-   "sideboard": []
-  },
-  {
-   "from": "nc-08-merc-contract-rrg.txt",
-   "name": "NC-08 Merc Contract (RRG)",
-   "legends": [
-    "v_streetkid",
+    "dexter_deshawn_off_the_grid",
     "adam_smasher_ender_of_legends",
-    "jackie_welles_mama_s_favorite"
+    "judy_alvarez_braindance_maestro"
    ],
    "main": [
-    "valentino_street_racer",
-    "valentino_street_racer",
+    "jacked_in_voodoo_boy",
+    "jacked_in_voodoo_boy",
     "6th_street_recruits",
     "6th_street_recruits",
     "6th_street_recruits",
-    "kerry_eurodyne_the_last_rockerboy",
-    "kerry_eurodyne_the_last_rockerboy",
-    "kerry_eurodyne_the_last_rockerboy",
     "meredith_stout_stone_cold_corpo",
     "meredith_stout_stone_cold_corpo",
     "meredith_stout_stone_cold_corpo",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
-    "pepe_najarro_working_doubles",
+    "psycho_squad",
+    "psycho_squad",
+    "psycho_squad",
     "animals_wrecker",
     "animals_wrecker",
     "animals_wrecker",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
     "yorinobu_arasaka_steel_dragon",
     "yorinobu_arasaka_steel_dragon",
     "mantis_blades",
@@ -1998,14 +2905,15 @@
     "mantis_blades",
     "satori_sword_of_saburo",
     "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
     "detonate",
     "detonate",
     "detonate",
-    "peace_offering",
-    "peace_offering",
-    "peace_offering",
-    "synapse_burnout",
-    "synapse_burnout",
+    "floor_it",
+    "floor_it",
+    "industrial_assembly",
+    "industrial_assembly",
+    "industrial_assembly",
     "bonnie_and_clyde",
     "bonnie_and_clyde",
     "bonnie_and_clyde",
@@ -2122,54 +3030,158 @@
    "sideboard": []
   },
   {
-   "from": "s1-05-cross-rbb.txt",
-   "name": "S1-05 Cross (RBB)",
+   "from": "s1-03-mutant-rbg.txt",
+   "name": "S1-03 Mutant (RBG)",
    "legends": [
-    "alt_cunningham_soulkiller_architect",
-    "jackie_welles_pour_one_out_for_me",
-    "v_streetkid"
+    "saburo_arasaka_stubborn_patriarch",
+    "wakako_okada_peace_and_harmony",
+    "adam_smasher_ender_of_legends"
    ],
    "main": [
-    "jacked_in_voodoo_boy",
-    "jacked_in_voodoo_boy",
-    "jacked_in_voodoo_boy",
-    "valentino_guerrera",
+    "field_operator",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "valentino_street_racer",
     "6th_street_recruits",
     "6th_street_recruits",
     "6th_street_recruits",
-    "meredith_stout_stone_cold_corpo",
+    "pepe_najarro_working_doubles",
     "psycho_squad",
     "psycho_squad",
     "psycho_squad",
-    "maman_brigitte_spirit_of_death",
-    "maman_brigitte_spirit_of_death",
-    "maman_brigitte_spirit_of_death",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
+    "maxtac_av",
+    "maxtac_av",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
     "placide_voodoo_sentinel",
     "placide_voodoo_sentinel",
     "placide_voodoo_sentinel",
-    "all_is_lost",
-    "all_is_lost",
+    "mantis_blades",
+    "mantis_blades",
+    "netwatch_netdriver",
+    "zetatech_berserk",
+    "zetatech_berserk",
+    "synapse_burnout",
+    "synapse_burnout",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "over_the_edge",
+    "over_the_edge",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories",
+    "unlikely_bond",
+    "unlikely_bond",
+    "unlikely_bond",
+    "we_gotta_live_together",
+    "we_gotta_live_together"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "s1-04-cross-rbg.txt",
+   "name": "S1-04 Cross (RBG)",
+   "legends": [
+    "saburo_arasaka_stubborn_patriarch",
+    "wakako_okada_peace_and_harmony",
+    "dexter_deshawn_off_the_grid"
+   ],
+   "main": [
+    "field_operator",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "pepe_najarro_working_doubles",
+    "psycho_squad",
+    "psycho_squad",
+    "psycho_squad",
+    "maxtac_av",
+    "maxtac_av",
+    "nadia_fighting_through_grief",
+    "nadia_fighting_through_grief",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "mantis_blades",
+    "mantis_blades",
+    "satori_sword_of_saburo",
+    "satori_sword_of_saburo",
+    "peace_offering",
+    "peace_offering",
+    "synapse_burnout",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "over_the_edge",
+    "over_the_edge",
+    "over_the_edge",
+    "memory_relapse",
+    "memory_relapse",
+    "shattered_memories",
+    "shattered_memories",
+    "unlikely_bond",
+    "unlikely_bond",
+    "unlikely_bond",
+    "we_gotta_live_together",
+    "we_gotta_live_together"
+   ],
+   "sideboard": []
+  },
+  {
+   "from": "s1-06-cross-bgy.txt",
+   "name": "S1-06 Cross (BGY)",
+   "legends": [
+    "muamar_reyes_el_capitan",
+    "hanako_arasaka_daughter_of_the_emperor",
+    "alt_cunningham_soulkiller_architect"
+   ],
+   "main": [
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "pepe_najarro_working_doubles",
+    "psycho_squad",
+    "psycho_squad",
+    "psycho_squad",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "trauma_team_operatives",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "placide_voodoo_sentinel",
+    "netwatch_netdriver",
+    "netwatch_netdriver",
+    "zetatech_berserk",
+    "afterparty_at_lizzie_s",
+    "afterparty_at_lizzie_s",
     "floor_it",
+    "floor_it",
+    "peace_offering",
+    "peace_offering",
     "trust_no_one",
     "trust_no_one",
-    "trust_no_one",
+    "take_control",
+    "take_control",
+    "the_heist",
+    "the_heist",
+    "chrome_reverie",
     "chrome_reverie",
     "chrome_reverie",
     "nocturne_op55_n1",
     "nocturne_op55_n1",
-    "pyramid_song",
-    "pyramid_song",
-    "shattered_memories",
-    "shattered_memories",
+    "nocturne_op55_n1",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
     "unlikely_bond",
     "unlikely_bond",
-    "les_elemens",
-    "les_elemens",
-    "les_elemens",
-    "towerfall",
-    "towerfall"
+    "unlikely_bond"
    ],
    "sideboard": []
   },
@@ -2406,7 +3418,7 @@
     "nadia_fighting_through_grief",
     "yorinobu_arasaka_steel_dragon",
     "yorinobu_arasaka_steel_dragon",
-    "mantis_blades",
+    "yorinobu_arasaka_steel_dragon",
     "mantis_blades",
     "satori_sword_of_saburo",
     "satori_sword_of_saburo",
@@ -2486,6 +3498,58 @@
    "sideboard": []
   },
   {
+   "from": "s2-07-explorer-rrb.txt",
+   "name": "S2-07 Explorer (RRB)",
+   "legends": [
+    "adam_smasher_ender_of_legends",
+    "johnny_silverhand_rocking_renegade",
+    "v_corporate_exile"
+   ],
+   "main": [
+    "swordwise_huscle",
+    "swordwise_huscle",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "6th_street_recruits",
+    "kerry_eurodyne_the_last_rockerboy",
+    "psycho_squad",
+    "psycho_squad",
+    "psycho_squad",
+    "westbrook_netrunner",
+    "royce_don_t_call_me_simon",
+    "royce_don_t_call_me_simon",
+    "animals_wrecker",
+    "animals_wrecker",
+    "animals_wrecker",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "johnny_silverhand_never_stop_fighting",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "yorinobu_arasaka_steel_dragon",
+    "netwatch_netdriver",
+    "netwatch_netdriver",
+    "industrial_assembly",
+    "appetite_for_destruction",
+    "appetite_for_destruction",
+    "bonnie_and_clyde",
+    "bonnie_and_clyde",
+    "nocturne_op55_n1",
+    "nocturne_op55_n1",
+    "over_the_edge",
+    "over_the_edge",
+    "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "unlikely_bond",
+    "unlikely_bond",
+    "unlikely_bond",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum",
+    "carnage_at_the_colosseum"
+   ],
+   "sideboard": []
+  },
+  {
    "from": "s2-08-explorer-ggy.txt",
    "name": "S2-08 Explorer (GGY)",
    "legends": [
@@ -2504,7 +3568,7 @@
     "pepe_najarro_working_doubles",
     "pepe_najarro_working_doubles",
     "t_bug_amateur_philosopher",
-    "t_bug_amateur_philosopher",
+    "rockn_rockerboy",
     "rockn_rockerboy",
     "rockn_rockerboy",
     "nadia_fighting_through_grief",
@@ -2590,42 +3654,36 @@
    "sideboard": []
   },
   {
-   "from": "s3-03-cross-rrr.txt",
-   "name": "S3-03 Cross (RRR)",
+   "from": "s3-05-counter-rrg.txt",
+   "name": "S3-05 Counter (RRG)",
    "legends": [
-    "dexter_deshawn_off_the_grid",
     "v_streetkid",
+    "hanako_arasaka_daughter_of_the_emperor",
     "adam_smasher_ender_of_legends"
    ],
    "main": [
-    "ruthless_lowlife",
-    "ruthless_lowlife",
-    "swordwise_huscle",
-    "swordwise_huscle",
+    "valentino_street_racer",
+    "valentino_street_racer",
+    "valentino_street_racer",
     "6th_street_recruits",
-    "6th_street_recruits",
-    "6th_street_recruits",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
-    "meredith_stout_stone_cold_corpo",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
+    "pepe_najarro_working_doubles",
     "animals_wrecker",
     "animals_wrecker",
     "animals_wrecker",
-    "johnny_silverhand_never_stop_fighting",
-    "johnny_silverhand_never_stop_fighting",
     "yorinobu_arasaka_steel_dragon",
     "yorinobu_arasaka_steel_dragon",
-    "mantis_blades",
-    "mantis_blades",
-    "arasaka_emergency_radioport",
-    "arasaka_emergency_radioport",
+    "saul_bright_stormrider",
     "satori_sword_of_saburo",
     "satori_sword_of_saburo",
-    "all_is_lost",
-    "detonate",
+    "satori_sword_of_saburo",
     "detonate",
     "industrial_assembly",
     "industrial_assembly",
+    "peace_offering",
+    "peace_offering",
+    "corporate_surveillance",
     "bonnie_and_clyde",
     "bonnie_and_clyde",
     "bonnie_and_clyde",
@@ -2633,8 +3691,14 @@
     "over_the_edge",
     "over_the_edge",
     "gunpoint_diplomacy",
+    "gunpoint_diplomacy",
+    "memory_relapse",
+    "memory_relapse",
+    "memory_relapse",
     "shattered_memories",
     "shattered_memories",
+    "we_gotta_live_together",
+    "we_gotta_live_together",
     "carnage_at_the_colosseum",
     "carnage_at_the_colosseum",
     "carnage_at_the_colosseum"
@@ -2815,9 +3879,9 @@
      "list": 1
     }
    ],
-   "winner": 0,
-   "turns": 14,
-   "hash": "fb9a034725e2bd83150de24cd22e736d78a1b3b7bd6bd51a55e5150baa0eab2c"
+   "winner": 1,
+   "turns": 12,
+   "hash": "62457d9ca4e8eeaefb2efa9e4f9c8735fd4a2da93b3849327ad6e081b3bbf5b3"
   },
   {
    "id": "hard-02",
@@ -2835,9 +3899,9 @@
      "list": 3
     }
    ],
-   "winner": 0,
+   "winner": 1,
    "turns": 14,
-   "hash": "9a203957db56827583b339c545d1df240b8f55944dd91f39a9b710b5d85cafcf"
+   "hash": "aac7b12721f18fd7a2b4532e9db7f18476c4ccfde6c5b824f476720ec9647ffa"
   },
   {
    "id": "hard-03",
@@ -2855,9 +3919,9 @@
      "list": 5
     }
    ],
-   "winner": 1,
-   "turns": 14,
-   "hash": "b739c2212d4c9f000243339fa348c18db53bbae57eac854977ce9861cf1ad86c"
+   "winner": 0,
+   "turns": 13,
+   "hash": "bf7ed0336fe04da873404d0667dd1169ae09a4cb0d6b12b169feff05bc683d64"
   },
   {
    "id": "hard-04",
@@ -2876,8 +3940,8 @@
     }
    ],
    "winner": 0,
-   "turns": 12,
-   "hash": "6b15b9568374372190dfa386cc9ccefbd84f00e9ab334d2ddb8c21daed454100"
+   "turns": 14,
+   "hash": "e1f8e7196d9b19b0b80927bfc4161c7ea077f43c113866050e8be0de67770efd"
   },
   {
    "id": "mixed-01",
@@ -2896,8 +3960,8 @@
     }
    ],
    "winner": 0,
-   "turns": 13,
-   "hash": "ab4323bcc4b257175105830557c1a99c7e6795ac8c44a7f1233a2fec9aac0d18"
+   "turns": 11,
+   "hash": "ea9830c5429babad05118579af651bd1cbc54827bc5d43c1bdd6ca608c90a949"
   },
   {
    "id": "mixed-02",
@@ -2915,9 +3979,9 @@
      "list": 7
     }
    ],
-   "winner": 0,
-   "turns": 10,
-   "hash": "e5970959b357a5384db1f14e86202366dbe38322293588aad739fcddedb67888"
+   "winner": 1,
+   "turns": 11,
+   "hash": "b852d01d46685ea839ec34f45d35909ce1e5ba96ced5687356cee6c8cd747aa1"
   },
   {
    "id": "mixed-03",
@@ -2936,8 +4000,8 @@
     }
    ],
    "winner": 0,
-   "turns": 14,
-   "hash": "b73427ebd771f30eb8ffd429117d3dfc954c63c725c0c0e2de3a566bf63c2e8d"
+   "turns": 11,
+   "hash": "b609c715df7376233c77339a6ac2abbf21eae647943eb49e1380ddc5e1c41300"
   },
   {
    "id": "mixed-04",
@@ -2956,8 +4020,8 @@
     }
    ],
    "winner": 1,
-   "turns": 13,
-   "hash": "e0e30f0cf6e45d63f388d770a9153241738dda2a4492688268a5efe8f8e6b661"
+   "turns": 14,
+   "hash": "1ef6c849eabdbd7a0fd4a21a3bbbd71a1ec0b156db804a06942e0d352e98af42"
   },
   {
    "id": "medium-01",
@@ -2977,7 +4041,7 @@
    ],
    "winner": 0,
    "turns": 11,
-   "hash": "4f802c0b5eda348e2614e5e19a49513dcfe4cb682dfb235e38eef05af0f1134d"
+   "hash": "4d64acd9b21a19efd0175d18b03a677ac58539dc203fb27a174fb6126ac744b5"
   },
   {
    "id": "medium-02",
@@ -2992,7 +4056,7 @@
     {
      "tier": "medium",
      "seed": 7208686,
-     "list": 8
+     "list": 17
     }
    ],
    "winner": 0,
@@ -3007,7 +4071,7 @@
     {
      "tier": "medium",
      "seed": 7201010,
-     "list": 17
+     "list": 8
     },
     {
      "tier": "medium",
@@ -3027,12 +4091,12 @@
     {
      "tier": "medium",
      "seed": 7201111,
-     "list": 2
+     "list": 19
     },
     {
      "tier": "medium",
      "seed": 7208888,
-     "list": 19
+     "list": 20
     }
    ],
    "winner": 0,
@@ -3047,7 +4111,7 @@
     {
      "tier": "medium",
      "seed": 7201212,
-     "list": 20
+     "list": 2
     },
     {
      "tier": "medium",
@@ -3067,17 +4131,17 @@
     {
      "tier": "medium",
      "seed": 7201313,
-     "list": 13
+     "list": 22
     },
     {
      "tier": "medium",
      "seed": 7209090,
-     "list": 22
+     "list": 23
     }
    ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "61ee4dd8adb743866cdc0a593a0e4601489de6d965e399dc8b282d0aa9c05664"
+   "winner": 0,
+   "turns": 14,
+   "hash": "7beb0d8202eb5805ff3fd28c67cee9277fb7ba4c71ef6849a15906197f4f8b6a"
   },
   {
    "id": "medium-07",
@@ -3087,17 +4151,17 @@
     {
      "tier": "medium",
      "seed": 7201414,
-     "list": 23
+     "list": 24
     },
     {
      "tier": "medium",
      "seed": 7209191,
-     "list": 4
+     "list": 13
     }
    ],
-   "winner": 0,
-   "turns": 15,
-   "hash": "3d8457359c5afca50ad1bae4d54ea4c95f01b1c69c29e94415637b51c0946454"
+   "winner": 1,
+   "turns": 14,
+   "hash": "7ce6eacfe012d9cf5e35c8be14ce5c87a95e0076d97792fc6b001120a4d165f0"
   },
   {
    "id": "medium-08",
@@ -3107,17 +4171,17 @@
     {
      "tier": "medium",
      "seed": 7201515,
-     "list": 24
+     "list": 25
     },
     {
      "tier": "medium",
      "seed": 7209292,
-     "list": 25
+     "list": 26
     }
    ],
-   "winner": 0,
-   "turns": 10,
-   "hash": "81e00a3faab79d069f59be88be1d9e487af7f7d30c1c2249e8e9ebccfbe7fdbb"
+   "winner": 1,
+   "turns": 11,
+   "hash": "98f85337c0a5593a287d02fb5daecf61ec78587fdf7df76815d2684590cfb98a"
   },
   {
    "id": "medium-09",
@@ -3127,17 +4191,17 @@
     {
      "tier": "medium",
      "seed": 7201616,
-     "list": 6
+     "list": 27
     },
     {
      "tier": "medium",
      "seed": 7209393,
-     "list": 26
+     "list": 4
     }
    ],
-   "winner": 0,
-   "turns": 11,
-   "hash": "615b1df7bcca30f8494ec6d8d1e18ba9e63ddc3fc0352aebf311c4ade9ccda55"
+   "winner": 1,
+   "turns": 12,
+   "hash": "9e8a012e71e7560512417a274a6693efbf8fb034f7c250cd5bb483b8c57c2d9e"
   },
   {
    "id": "medium-10",
@@ -3147,17 +4211,17 @@
     {
      "tier": "medium",
      "seed": 7201717,
-     "list": 27
+     "list": 28
     },
     {
      "tier": "medium",
      "seed": 7209494,
-     "list": 28
+     "list": 29
     }
    ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "89b88422c4605d3aefdde3b6532e4cb831119040dfb3e1f61e3fc394bb7e1a0e"
+   "winner": 0,
+   "turns": 14,
+   "hash": "42a43d4299280388207e9de5eea999c57a82b874cf4f98169965a2bebf96a05f"
   },
   {
    "id": "medium-11",
@@ -3167,17 +4231,17 @@
     {
      "tier": "medium",
      "seed": 7201818,
-     "list": 29
+     "list": 30
     },
     {
      "tier": "medium",
      "seed": 7209595,
-     "list": 30
+     "list": 31
     }
    ],
-   "winner": 0,
-   "turns": 13,
-   "hash": "c0bede0bb1e064f484ea2971386963eeafd17235fcbf4ca7333673d8646859b0"
+   "winner": 1,
+   "turns": 10,
+   "hash": "7a73664ba68924025a611a188f4520807c83f2e20f67d46c5a87e78febb5eaca"
   },
   {
    "id": "medium-12",
@@ -3187,17 +4251,17 @@
     {
      "tier": "medium",
      "seed": 7201919,
-     "list": 31
+     "list": 6
     },
     {
      "tier": "medium",
      "seed": 7209696,
-     "list": 9
+     "list": 32
     }
    ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "f6a078ca6751012460ed2ee915d203c77a7b0fe692d89cc532a33eb1982f1ac7"
+   "winner": 0,
+   "turns": 14,
+   "hash": "806e5fd218cff9927976529c1a46bd889864db7cfb82b7b7ba4ae391f445fb29"
   },
   {
    "id": "medium-13",
@@ -3207,17 +4271,17 @@
     {
      "tier": "medium",
      "seed": 7202020,
-     "list": 32
+     "list": 33
     },
     {
      "tier": "medium",
      "seed": 7209797,
-     "list": 33
+     "list": 34
     }
    ],
    "winner": 0,
-   "turns": 14,
-   "hash": "8c89886e52814a10ad5ae06d7c1f7a9d668ce664f7d82ee4540232c39b55329c"
+   "turns": 15,
+   "hash": "363e4db4f3ca8943e24e4d1b94a4aad55c91875ccf90f5f9dc8432111ac46911"
   },
   {
    "id": "medium-14",
@@ -3227,17 +4291,17 @@
     {
      "tier": "medium",
      "seed": 7202121,
-     "list": 34
+     "list": 35
     },
     {
      "tier": "medium",
      "seed": 7209898,
-     "list": 35
+     "list": 36
     }
    ],
-   "winner": 0,
-   "turns": 12,
-   "hash": "6f61948ff300cbbb14cf2df700d6802cfd9a03c4726833db7d3e724505955820"
+   "winner": 1,
+   "turns": 13,
+   "hash": "8bb7f1d51782f074a54a93a43a97af6a71b7b48bc221dd7e0d960ca687e4dd9b"
   },
   {
    "id": "medium-15",
@@ -3247,17 +4311,17 @@
     {
      "tier": "medium",
      "seed": 7202222,
-     "list": 36
+     "list": 37
     },
     {
      "tier": "medium",
      "seed": 7209999,
-     "list": 10
+     "list": 38
     }
    ],
    "winner": 0,
-   "turns": 15,
-   "hash": "cbefb9b2133373aee2f5ac4b50698b03153cfcd0733b6d5af32192477fe82282"
+   "turns": 13,
+   "hash": "c5091877610954f786a7cb8ffef00147fd69a6721fcc71e146a8ff7c66e81994"
   },
   {
    "id": "medium-16",
@@ -3267,17 +4331,17 @@
     {
      "tier": "medium",
      "seed": 7202323,
-     "list": 37
+     "list": 39
     },
     {
      "tier": "medium",
      "seed": 7210100,
-     "list": 38
+     "list": 9
     }
    ],
-   "winner": 1,
-   "turns": 14,
-   "hash": "a90acc316b3e620b1481f0c8b8eb883ac9e9a66f308e3f3a499ea955ab6a6b06"
+   "winner": 0,
+   "turns": 12,
+   "hash": "4012444dae75c21bc54996d511549d752314747a56951d0bd9ee2aae61c5b927"
   },
   {
    "id": "medium-17",
@@ -3287,17 +4351,17 @@
     {
      "tier": "medium",
      "seed": 7202424,
-     "list": 39
+     "list": 40
     },
     {
      "tier": "medium",
      "seed": 7210201,
-     "list": 3
+     "list": 41
     }
    ],
-   "winner": 0,
-   "turns": 14,
-   "hash": "957c7603aa4038a945a62a2ca5616716c937709bc895752fcb93405213ae6b23"
+   "winner": 1,
+   "turns": 12,
+   "hash": "6b89b49c6b1cd5ecbb18d8b713734b24dd553979777f439c99e4ba4f92d83f11"
   },
   {
    "id": "medium-18",
@@ -3307,17 +4371,17 @@
     {
      "tier": "medium",
      "seed": 7202525,
-     "list": 0
+     "list": 42
     },
     {
      "tier": "medium",
      "seed": 7210302,
-     "list": 40
+     "list": 43
     }
    ],
    "winner": 0,
-   "turns": 16,
-   "hash": "fabba7af3f946676ff34c570b52b4a90d6853be02a379309cffb1982351869fc"
+   "turns": 14,
+   "hash": "583e52298ba18591ebc5a8f2583a1a06c9bd71cde48d8ee49c515dc351ebd9e2"
   },
   {
    "id": "medium-19",
@@ -3327,17 +4391,17 @@
     {
      "tier": "medium",
      "seed": 7202626,
-     "list": 7
+     "list": 44
     },
     {
      "tier": "medium",
      "seed": 7210403,
-     "list": 41
+     "list": 45
     }
    ],
    "winner": 0,
    "turns": 13,
-   "hash": "65debcf95bb8e25332397f1eb3b94d90656ab2cbdeb7d314531bf7996618ef80"
+   "hash": "0702fbcb7cdb7b813c439097f90079f484e631dabfc4c871d1690fd1c37ec41e"
   },
   {
    "id": "medium-20",
@@ -3347,17 +4411,17 @@
     {
      "tier": "medium",
      "seed": 7202727,
-     "list": 42
+     "list": 46
     },
     {
      "tier": "medium",
      "seed": 7210504,
-     "list": 5
+     "list": 10
     }
    ],
-   "winner": 1,
-   "turns": 14,
-   "hash": "34c8177ad3e274de1fb0321f2c61253b8908a4c7e113ddccc03a597fdf8f46e6"
+   "winner": 0,
+   "turns": 12,
+   "hash": "b035cfeb07f6871c62440a8f3cf2f8eb99fcbdb468c983c9d2923213a3b60f06"
   },
   {
    "id": "medium-21",
@@ -3367,17 +4431,17 @@
     {
      "tier": "medium",
      "seed": 7202828,
-     "list": 43
+     "list": 47
     },
     {
      "tier": "medium",
      "seed": 7210605,
-     "list": 44
+     "list": 48
     }
    ],
    "winner": 0,
-   "turns": 13,
-   "hash": "68efeb8b202263d8035fc906ff3941f5f7aec5dc6b4805f16630acafe4137cc3"
+   "turns": 15,
+   "hash": "2bebc445b6d06502034396cdb8bd243ca0bada84a53d92f91ee0c9a40d55e4f1"
   },
   {
    "id": "medium-22",
@@ -3387,17 +4451,17 @@
     {
      "tier": "medium",
      "seed": 7202929,
-     "list": 12
+     "list": 49
     },
     {
      "tier": "medium",
      "seed": 7210706,
-     "list": 45
+     "list": 50
     }
    ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "17c22e78974d60939846678eb67ec70caecef0d76653b00ccbaa7c3e931d9f92"
+   "winner": 0,
+   "turns": 12,
+   "hash": "ad5583974db02fa5a4e7523fd7e3a3eadee181c5a49b155854e43b77ad2d53ea"
   },
   {
    "id": "medium-23",
@@ -3407,17 +4471,17 @@
     {
      "tier": "medium",
      "seed": 7203030,
-     "list": 46
+     "list": 3
     },
     {
      "tier": "medium",
      "seed": 7210807,
-     "list": 1
+     "list": 51
     }
    ],
    "winner": 1,
-   "turns": 14,
-   "hash": "8e2434159a1cecefa495ef776043fda66af0a88a5ba9567477acfe0abd6e31c2"
+   "turns": 12,
+   "hash": "3db01707b4e2d94c32a764ddebfe7c17e321faebbab714e881ad445645b22d4f"
   },
   {
    "id": "medium-24",
@@ -3427,17 +4491,17 @@
     {
      "tier": "medium",
      "seed": 7203131,
-     "list": 47
+     "list": 0
     },
     {
      "tier": "medium",
      "seed": 7210908,
-     "list": 48
+     "list": 52
     }
    ],
    "winner": 1,
-   "turns": 13,
-   "hash": "9472644beb64fbc9aaa0723b5e97b6f1282e65df929029119211b010c06fe04a"
+   "turns": 14,
+   "hash": "cfd672a30dd7aae953efad0eb16597f9b055509d667afcc21f7a54d03b0b7a20"
   },
   {
    "id": "medium-25",
@@ -3447,17 +4511,17 @@
     {
      "tier": "medium",
      "seed": 7203232,
-     "list": 49
+     "list": 7
     },
     {
      "tier": "medium",
      "seed": 7211009,
-     "list": 11
+     "list": 53
     }
    ],
    "winner": 0,
-   "turns": 14,
-   "hash": "fd1b69a61023ec02b31c039faba8e725b9a6964e829f626e2ad54f179e316095"
+   "turns": 13,
+   "hash": "44dfcddda6f951ffe929f4893b1571e31a5821a3fdacfc6d50ee9da2b1457a70"
   },
   {
    "id": "medium-26",
@@ -3467,17 +4531,17 @@
     {
      "tier": "medium",
      "seed": 7203333,
-     "list": 50
+     "list": 54
     },
     {
      "tier": "medium",
      "seed": 7211110,
-     "list": 51
+     "list": 55
     }
    ],
    "winner": 1,
-   "turns": 11,
-   "hash": "a67ec939003345eacdeac6ac861812cb4fed4aa085e3c221b725ea4e630d9eeb"
+   "turns": 13,
+   "hash": "c22cbb6f18a2a616268ae3aaca3e16fe70466a2b22aa0720bd986cbe0cd5c71c"
   },
   {
    "id": "medium-27",
@@ -3487,557 +4551,917 @@
     {
      "tier": "medium",
      "seed": 7203434,
-     "list": 52
+     "list": 56
     },
     {
      "tier": "medium",
      "seed": 7211211,
-     "list": 14
+     "list": 5
     }
    ],
    "winner": 0,
-   "turns": 13,
-   "hash": "df433eb2f65cb1e05aa1fc75b99773490b6c5d850beb067fc64c9032afc3d235"
+   "turns": 15,
+   "hash": "da8f9ff6a08f3fd655d26be9ab2df32076e22130e8397b9c66e92ed3396b0e67"
   },
   {
-   "id": "easy-01",
+   "id": "medium-28",
    "seed": 7203535,
    "first": 1,
    "seats": [
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7203535,
-     "list": 14
+     "list": 57
     },
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7211312,
-     "list": 35
+     "list": 58
     }
    ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "f2af5f6fe82cdbecb4c2b8ca7dec90d45359acb4218c5965b587c1defddb091e"
+   "winner": 0,
+   "turns": 14,
+   "hash": "3f686252af25b605a33b834154ae2074a6786fd4d0bfbb98b5ed2aab98e75baf"
   },
   {
-   "id": "easy-02",
+   "id": "medium-29",
    "seed": 7203636,
    "first": 0,
    "seats": [
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7203636,
-     "list": 15
+     "list": 59
     },
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7211413,
-     "list": 36
+     "list": 12
     }
    ],
-   "winner": 1,
-   "turns": 10,
-   "hash": "55d9d6f4278079bad57e94394d25f555bd8783fdea54c384e73f41c2c5faae26"
+   "winner": 0,
+   "turns": 14,
+   "hash": "ab26a9c08827b3fc8e6fcc1ecfd01d0efdbc2bbcd7b5433e109ef1e9a676b715"
   },
   {
-   "id": "easy-03",
+   "id": "medium-30",
    "seed": 7203737,
    "first": 1,
    "seats": [
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7203737,
-     "list": 16
+     "list": 60
     },
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7211514,
-     "list": 10
+     "list": 61
     }
    ],
    "winner": 1,
-   "turns": 11,
-   "hash": "307c9d710b70c1d24f7a47438827cc7196465119f2714f6f42817f8185067d92"
+   "turns": 13,
+   "hash": "d3d34db01a119a3517112564f16b01fbc5607117fafb69866bc751e5d9b4d75f"
   },
   {
-   "id": "easy-04",
+   "id": "medium-31",
    "seed": 7203838,
    "first": 0,
    "seats": [
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7203838,
-     "list": 8
+     "list": 1
     },
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7211615,
-     "list": 37
+     "list": 62
     }
    ],
    "winner": 1,
-   "turns": 14,
-   "hash": "0897d36e26a19ffb62c344157b55f7d94c6303888023875d58ed1b08664a9d32"
+   "turns": 16,
+   "hash": "c3d76bd83f32b403358959a6c147e7eaf24a682ebfa90feff8fd789112b6860e"
   },
   {
-   "id": "easy-05",
+   "id": "medium-32",
    "seed": 7203939,
    "first": 1,
    "seats": [
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7203939,
-     "list": 17
+     "list": 63
     },
     {
-     "tier": "easy",
+     "tier": "medium",
      "seed": 7211716,
-     "list": 38
-    }
-   ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "564e692e980dced629f39ebeff1ccbe3b3dc5ebfd5e12c7e13b280c87311f8da"
-  },
-  {
-   "id": "easy-06",
-   "seed": 7204040,
-   "first": 0,
-   "seats": [
-    {
-     "tier": "easy",
-     "seed": 7204040,
-     "list": 18
-    },
-    {
-     "tier": "easy",
-     "seed": 7211817,
-     "list": 39
-    }
-   ],
-   "winner": 0,
-   "turns": 13,
-   "hash": "eb8ae211206b7bec4b69ddc6257fec1b9725b5d596b064881ceaf123be9524d1"
-  },
-  {
-   "id": "easy-07",
-   "seed": 7204141,
-   "first": 1,
-   "seats": [
-    {
-     "tier": "easy",
-     "seed": 7204141,
-     "list": 2
-    },
-    {
-     "tier": "easy",
-     "seed": 7211918,
-     "list": 3
-    }
-   ],
-   "winner": 0,
-   "turns": 14,
-   "hash": "75609007887e9b9d525ab9da118e5164195804758a34fb0efa977ea437550266"
-  },
-  {
-   "id": "easy-08",
-   "seed": 7204242,
-   "first": 0,
-   "seats": [
-    {
-     "tier": "easy",
-     "seed": 7204242,
-     "list": 19
-    },
-    {
-     "tier": "easy",
-     "seed": 7212019,
-     "list": 0
-    }
-   ],
-   "winner": 1,
-   "turns": 14,
-   "hash": "79354c1ffa53deaa52ae76beeb8b8822257a6ac345d5f08fce19663f451f4df5"
-  },
-  {
-   "id": "easy-09",
-   "seed": 7204343,
-   "first": 1,
-   "seats": [
-    {
-     "tier": "easy",
-     "seed": 7204343,
-     "list": 20
-    },
-    {
-     "tier": "easy",
-     "seed": 7212120,
-     "list": 40
+     "list": 64
     }
    ],
    "winner": 1,
    "turns": 11,
-   "hash": "74886c58d398e38cb8d1ca470a61affc4b2f1f50b48fa5b4c7b1fc196e186798"
+   "hash": "bd391cdfdefc00ecae8e4dd8dedb92cecd1122bcc01f25ecb2de1db277ed625d"
   },
   {
-   "id": "easy-10",
+   "id": "medium-33",
+   "seed": 7204040,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "medium",
+     "seed": 7204040,
+     "list": 65
+    },
+    {
+     "tier": "medium",
+     "seed": 7211817,
+     "list": 66
+    }
+   ],
+   "winner": 0,
+   "turns": 11,
+   "hash": "8ec21d01492b4a61d002590f45812c1054bab23684cfabb0aad8a2aa1e313dcc"
+  },
+  {
+   "id": "medium-34",
+   "seed": 7204141,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "medium",
+     "seed": 7204141,
+     "list": 11
+    },
+    {
+     "tier": "medium",
+     "seed": 7211918,
+     "list": 67
+    }
+   ],
+   "winner": 1,
+   "turns": 9,
+   "hash": "d0b13c4a9aea793faf412ef6f0135de6294e7090dbab99441f7ecbbf7de9e0fb"
+  },
+  {
+   "id": "medium-35",
+   "seed": 7204242,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "medium",
+     "seed": 7204242,
+     "list": 68
+    },
+    {
+     "tier": "medium",
+     "seed": 7212019,
+     "list": 69
+    }
+   ],
+   "winner": 0,
+   "turns": 15,
+   "hash": "87eb0ffbc85c2008315438bf5d855e5b769a7186aeb9de8fab2d44c553103cb5"
+  },
+  {
+   "id": "medium-36",
+   "seed": 7204343,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "medium",
+     "seed": 7204343,
+     "list": 70
+    },
+    {
+     "tier": "medium",
+     "seed": 7212120,
+     "list": 14
+    }
+   ],
+   "winner": 0,
+   "turns": 14,
+   "hash": "907886f82d77c17c2281d8c631905f25b5556e8d9ad93ace7094ab57f4c2ebe2"
+  },
+  {
+   "id": "easy-01",
    "seed": 7204444,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7204444,
-     "list": 21
+     "list": 14
     },
     {
      "tier": "easy",
      "seed": 7212221,
-     "list": 7
+     "list": 44
     }
    ],
-   "winner": 0,
-   "turns": 9,
-   "hash": "2f069b551de77267a2c4a4b149e8367a7db3699d11d261e08d614317be4a680c"
+   "winner": 1,
+   "turns": 10,
+   "hash": "ad8880935ea6a40869a6a7145a994ae14b48b80bbfc11bc662b022c2ffd0c4de"
   },
   {
-   "id": "easy-11",
+   "id": "easy-02",
    "seed": 7204545,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7204545,
-     "list": 13
+     "list": 15
     },
     {
      "tier": "easy",
      "seed": 7212322,
-     "list": 41
+     "list": 45
     }
    ],
    "winner": 0,
-   "turns": 10,
-   "hash": "6a797e3649222a76825df9eb37d9180794f2b5c0f1c273821c512a1a9be8ba7e"
+   "turns": 14,
+   "hash": "fc5fceb90a42cba8fe3db2aff79330c9d58d356d68f7958fca976ee6fb9c0790"
   },
   {
-   "id": "easy-12",
+   "id": "easy-03",
    "seed": 7204646,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7204646,
-     "list": 22
+     "list": 16
     },
     {
      "tier": "easy",
      "seed": 7212423,
-     "list": 42
+     "list": 46
     }
    ],
    "winner": 1,
-   "turns": 14,
-   "hash": "6cb2f5f36d3d5cede4e763990547f1417400fd7d9f4a81bec9a9f4cfeab07d4f"
+   "turns": 12,
+   "hash": "d22fa9239bf2f8287d928914117b3c79e98a8ec52f61a995be21f970cb019458"
   },
   {
-   "id": "easy-13",
+   "id": "easy-04",
    "seed": 7204747,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7204747,
-     "list": 23
+     "list": 17
     },
     {
      "tier": "easy",
      "seed": 7212524,
-     "list": 5
+     "list": 10
     }
    ],
-   "winner": 0,
-   "turns": 12,
-   "hash": "38af5805158762336ee6c8620a2a3f71deef9f537e202787b6b6e4beba6bb5a0"
+   "winner": 1,
+   "turns": 14,
+   "hash": "8ea77635a14240cc0d98e2602d3282759500f79dfb23c18d800d414f425921a6"
   },
   {
-   "id": "easy-14",
+   "id": "easy-05",
    "seed": 7204848,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7204848,
-     "list": 4
+     "list": 8
     },
     {
      "tier": "easy",
      "seed": 7212625,
-     "list": 43
+     "list": 47
     }
    ],
-   "winner": 1,
+   "winner": 0,
    "turns": 14,
-   "hash": "4197be557b95cbbfe57d479ff4687156f8fe546e986d2f14e4463a1df021fa62"
+   "hash": "3618ff7616dad761dffe5c9bc2018730341eaab24b1cc8c56aa1335d00a3651d"
   },
   {
-   "id": "easy-15",
+   "id": "easy-06",
    "seed": 7204949,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7204949,
-     "list": 24
+     "list": 18
     },
     {
      "tier": "easy",
      "seed": 7212726,
-     "list": 44
+     "list": 48
     }
    ],
-   "winner": 0,
-   "turns": 12,
-   "hash": "5a3dba2f4048e28a22690c0a151b3fa8f588bc87394318f30c8a31edcff2ccf9"
+   "winner": 1,
+   "turns": 13,
+   "hash": "270d9cb921402d72f3ad840b6b5e0d1b44ca25df58effbcb9fe4703a6b623830"
   },
   {
-   "id": "easy-16",
+   "id": "easy-07",
    "seed": 7205050,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205050,
-     "list": 25
+     "list": 19
     },
     {
      "tier": "easy",
      "seed": 7212827,
-     "list": 12
+     "list": 49
     }
    ],
-   "winner": 1,
-   "turns": 14,
-   "hash": "2dd7a38b4144235afd5c63379662b1e8480ba00d562ef9921d94d66fa1193790"
+   "winner": 0,
+   "turns": 13,
+   "hash": "84a788cf82a56257b0b50cb6616bf90c579f69a07d51b1dd99e2932184d44216"
   },
   {
-   "id": "easy-17",
+   "id": "easy-08",
    "seed": 7205151,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205151,
-     "list": 6
+     "list": 20
     },
     {
      "tier": "easy",
      "seed": 7212928,
-     "list": 45
+     "list": 50
     }
    ],
-   "winner": 1,
-   "turns": 11,
-   "hash": "a3ed39daab6639dfc6dca49852b3db0d41b9926a364d3c666b6c9cba5e7af54f"
+   "winner": 0,
+   "turns": 14,
+   "hash": "55ffb5ac817f892dfd921b6ea2cbadda561d5ecf8c67f7fe2f91e63b4c39d82c"
   },
   {
-   "id": "easy-18",
+   "id": "easy-09",
    "seed": 7205252,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205252,
-     "list": 26
+     "list": 2
     },
     {
      "tier": "easy",
      "seed": 7213029,
-     "list": 46
+     "list": 3
     }
    ],
-   "winner": 0,
+   "winner": 1,
    "turns": 14,
-   "hash": "0aa2502acb2c61c70a230fc89f4a7085187e7a3eec4eca0f7a473849a33b3151"
+   "hash": "fa47c42ff44cd2f18d6444ceec4fc3d87cec497012c5c37713d0637a75369de1"
   },
   {
-   "id": "easy-19",
+   "id": "easy-10",
    "seed": 7205353,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205353,
-     "list": 27
+     "list": 21
     },
     {
      "tier": "easy",
      "seed": 7213130,
-     "list": 1
+     "list": 51
     }
    ],
-   "winner": 1,
-   "turns": 13,
-   "hash": "1a79414562efd190e631736eee2d70d40a2cce472c232e37b23f4ad5b3907f2e"
+   "winner": 0,
+   "turns": 14,
+   "hash": "742dd1ed74a5b8704e7c4836764fd141423fcd6e3ba60e207509b082c5a2ce19"
   },
   {
-   "id": "easy-20",
+   "id": "easy-11",
    "seed": 7205454,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205454,
-     "list": 28
+     "list": 22
     },
     {
      "tier": "easy",
      "seed": 7213231,
-     "list": 47
+     "list": 0
     }
    ],
    "winner": 0,
    "turns": 13,
-   "hash": "dca853c2ea779453ae55dfc66c5301d4e7f8aecd904a287738960b7485f13cbd"
+   "hash": "c71399f5c11907cb31669ba7f7551d979ef53bef13f059def773de1219fc6be8"
   },
   {
-   "id": "easy-21",
+   "id": "easy-12",
    "seed": 7205555,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205555,
-     "list": 29
+     "list": 23
     },
     {
      "tier": "easy",
      "seed": 7213332,
-     "list": 48
+     "list": 52
     }
    ],
-   "winner": 0,
+   "winner": 1,
    "turns": 14,
-   "hash": "9fd7b0ad24f3e0945bc06aeb99b1ac86e8c00795775df574154fb56b756cd046"
+   "hash": "38ec504a459c6f4e4d5520ffff5b5c42f8b2972ef481bc1daed192d7c66dc0cc"
   },
   {
-   "id": "easy-22",
+   "id": "easy-13",
    "seed": 7205656,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205656,
-     "list": 30
+     "list": 24
     },
     {
      "tier": "easy",
      "seed": 7213433,
-     "list": 49
+     "list": 7
     }
    ],
-   "winner": 1,
-   "turns": 14,
-   "hash": "5910e0351085fccb6e68d17e0464f3117c6e33bf93a2116761689fd1bfc63441"
+   "winner": 0,
+   "turns": 13,
+   "hash": "2b20b9a80506fdb812d215e03816452c4c6f715e16261f8c866809d4aeaffa19"
   },
   {
-   "id": "easy-23",
+   "id": "easy-14",
    "seed": 7205757,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205757,
-     "list": 31
+     "list": 13
     },
     {
      "tier": "easy",
      "seed": 7213534,
-     "list": 11
+     "list": 53
     }
    ],
    "winner": 1,
-   "turns": 13,
-   "hash": "ff65b7ab71e9487f505419860430788a66bd6364d71483f61ead3155e087799b"
+   "turns": 11,
+   "hash": "1ec85b3d7b60f7aa504997c1f6240747313b0562ec3f82d61960eafe23455ef8"
   },
   {
-   "id": "easy-24",
+   "id": "easy-15",
    "seed": 7205858,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205858,
-     "list": 9
+     "list": 25
     },
     {
      "tier": "easy",
      "seed": 7213635,
-     "list": 50
+     "list": 54
     }
    ],
-   "winner": 0,
-   "turns": 13,
-   "hash": "c0142c695e6d92d92cf9a092692561e748b5b1715719072368fb0a28ec33c53d"
+   "winner": 1,
+   "turns": 12,
+   "hash": "c419c682194126649888868bedaafad78b880dd54994d8ca59efc82f1316e618"
   },
   {
-   "id": "easy-25",
+   "id": "easy-16",
    "seed": 7205959,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7205959,
-     "list": 32
+     "list": 26
     },
     {
      "tier": "easy",
      "seed": 7213736,
-     "list": 51
+     "list": 55
     }
    ],
    "winner": 0,
-   "turns": 12,
-   "hash": "a632162edb06f80b8b05c631c3ced8ca9c5f56c7d9cb77abba8166f008df3f06"
+   "turns": 10,
+   "hash": "8780c89acca51b374c5120afd97e26cb86b74847894774bb9bbefcfc90c5aab1"
   },
   {
-   "id": "easy-26",
+   "id": "easy-17",
    "seed": 7206060,
    "first": 0,
    "seats": [
     {
      "tier": "easy",
      "seed": 7206060,
-     "list": 33
+     "list": 27
     },
     {
      "tier": "easy",
      "seed": 7213837,
-     "list": 52
+     "list": 56
     }
    ],
-   "winner": 1,
-   "turns": 12,
-   "hash": "5ac1222c1d42803f9204af3f77abc380d757de7969ad3fb17853838458d8644a"
+   "winner": 0,
+   "turns": 14,
+   "hash": "7d066ab79270cc6b290315fe6e569773aba3aa32e2392618e83262648888a634"
   },
   {
-   "id": "easy-27",
+   "id": "easy-18",
    "seed": 7206161,
    "first": 1,
    "seats": [
     {
      "tier": "easy",
      "seed": 7206161,
-     "list": 34
+     "list": 4
     },
     {
      "tier": "easy",
      "seed": 7213938,
+     "list": 5
+    }
+   ],
+   "winner": 1,
+   "turns": 11,
+   "hash": "4f345a90e1b0c9219b115b3d80ffc0ebc40d0a5047f8122e0cc77d0444c21156"
+  },
+  {
+   "id": "easy-19",
+   "seed": 7206262,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206262,
+     "list": 28
+    },
+    {
+     "tier": "easy",
+     "seed": 7214039,
+     "list": 57
+    }
+   ],
+   "winner": 1,
+   "turns": 14,
+   "hash": "e90107e8cc02694b679c91adbfd789484b908c45680e6d68551590c95bc3b735"
+  },
+  {
+   "id": "easy-20",
+   "seed": 7206363,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206363,
+     "list": 29
+    },
+    {
+     "tier": "easy",
+     "seed": 7214140,
+     "list": 58
+    }
+   ],
+   "winner": 0,
+   "turns": 10,
+   "hash": "99148ea90d6ecb7702b90f2ac210da7730687aea9005a6bae169d079ac8c1817"
+  },
+  {
+   "id": "easy-21",
+   "seed": 7206464,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206464,
+     "list": 30
+    },
+    {
+     "tier": "easy",
+     "seed": 7214241,
+     "list": 59
+    }
+   ],
+   "winner": 1,
+   "turns": 12,
+   "hash": "08513f6b37d10766ec235ec1458ab509e3326e64c40f0003b8731f893bf9957c"
+  },
+  {
+   "id": "easy-22",
+   "seed": 7206565,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206565,
+     "list": 31
+    },
+    {
+     "tier": "easy",
+     "seed": 7214342,
+     "list": 12
+    }
+   ],
+   "winner": 0,
+   "turns": 14,
+   "hash": "0aabbab96a375b91cc51693337824ddd0683979a8daa438a7887e0182df99828"
+  },
+  {
+   "id": "easy-23",
+   "seed": 7206666,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206666,
+     "list": 6
+    },
+    {
+     "tier": "easy",
+     "seed": 7214443,
+     "list": 60
+    }
+   ],
+   "winner": 0,
+   "turns": 13,
+   "hash": "c9dc4f5297b902b9a934e0932d034bd1dc1d71962354f3c29a175fcf1dd818f3"
+  },
+  {
+   "id": "easy-24",
+   "seed": 7206767,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206767,
+     "list": 32
+    },
+    {
+     "tier": "easy",
+     "seed": 7214544,
+     "list": 61
+    }
+   ],
+   "winner": 0,
+   "turns": 14,
+   "hash": "3d0ce699f3ab3268c9f5b624a76cdf255753b9c4c1c988eed605b159fdda481e"
+  },
+  {
+   "id": "easy-25",
+   "seed": 7206868,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206868,
+     "list": 33
+    },
+    {
+     "tier": "easy",
+     "seed": 7214645,
+     "list": 1
+    }
+   ],
+   "winner": 0,
+   "turns": 15,
+   "hash": "051afc5709fb48cb28383356b1303cc85176ed2c28e6cd556754a5fdf61a04a1"
+  },
+  {
+   "id": "easy-26",
+   "seed": 7206969,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7206969,
+     "list": 34
+    },
+    {
+     "tier": "easy",
+     "seed": 7214746,
+     "list": 62
+    }
+   ],
+   "winner": 0,
+   "turns": 10,
+   "hash": "1378db5b0acfcad7ed7939d94051fc88bcc27d969465218735ad23595a179f3d"
+  },
+  {
+   "id": "easy-27",
+   "seed": 7207070,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207070,
+     "list": 35
+    },
+    {
+     "tier": "easy",
+     "seed": 7214847,
+     "list": 63
+    }
+   ],
+   "winner": 0,
+   "turns": 15,
+   "hash": "cd8e56ec2dc10a60d9169fa8d9a8ce18efd29f2869f1e04ad58f7c1f997a5861"
+  },
+  {
+   "id": "easy-28",
+   "seed": 7207171,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207171,
+     "list": 36
+    },
+    {
+     "tier": "easy",
+     "seed": 7214948,
+     "list": 64
+    }
+   ],
+   "winner": 1,
+   "turns": 13,
+   "hash": "ff8ff5cc485dc5e736f96176d69ab7dc196f6194cf549b3f0fb127d2c575c87d"
+  },
+  {
+   "id": "easy-29",
+   "seed": 7207272,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207272,
+     "list": 37
+    },
+    {
+     "tier": "easy",
+     "seed": 7215049,
+     "list": 65
+    }
+   ],
+   "winner": 0,
+   "turns": 13,
+   "hash": "30ef65767ffde65822263cd3c9d2e6a4e0591ae282c49aa65e4954198645d41a"
+  },
+  {
+   "id": "easy-30",
+   "seed": 7207373,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207373,
+     "list": 38
+    },
+    {
+     "tier": "easy",
+     "seed": 7215150,
+     "list": 66
+    }
+   ],
+   "winner": 1,
+   "turns": 13,
+   "hash": "5850db1032c6855ed1698b8ac4036f9486d789812b89babeff78edcd89ba8058"
+  },
+  {
+   "id": "easy-31",
+   "seed": 7207474,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207474,
+     "list": 39
+    },
+    {
+     "tier": "easy",
+     "seed": 7215251,
+     "list": 11
+    }
+   ],
+   "winner": 1,
+   "turns": 14,
+   "hash": "e7b08ccb94b9a12e495dbc9926e4cd07509b4067b7afee6126977cac8288eec1"
+  },
+  {
+   "id": "easy-32",
+   "seed": 7207575,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207575,
+     "list": 9
+    },
+    {
+     "tier": "easy",
+     "seed": 7215352,
+     "list": 67
+    }
+   ],
+   "winner": 0,
+   "turns": 14,
+   "hash": "b1aa2e5bfffac9044cc55e8cfe6d7cf1ce0dee5e191c34f37f5f01a22b7eca2f"
+  },
+  {
+   "id": "easy-33",
+   "seed": 7207676,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207676,
+     "list": 40
+    },
+    {
+     "tier": "easy",
+     "seed": 7215453,
+     "list": 68
+    }
+   ],
+   "winner": 0,
+   "turns": 13,
+   "hash": "13b6a4af4580fb375e9374d4c3fde006d80e27fcfa59c1ef7841fe77d4cf92e3"
+  },
+  {
+   "id": "easy-34",
+   "seed": 7207777,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207777,
+     "list": 41
+    },
+    {
+     "tier": "easy",
+     "seed": 7215554,
+     "list": 69
+    }
+   ],
+   "winner": 1,
+   "turns": 15,
+   "hash": "86b8e7a912c4f448b5af90b25eb4c6311455a435657878e48f939d2df4ba16f5"
+  },
+  {
+   "id": "easy-35",
+   "seed": 7207878,
+   "first": 0,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207878,
+     "list": 42
+    },
+    {
+     "tier": "easy",
+     "seed": 7215655,
+     "list": 70
+    }
+   ],
+   "winner": 1,
+   "turns": 14,
+   "hash": "e6d5819769a355f60a8b69a2ed2a61232592dacaebadc92e3927e0f799544c25"
+  },
+  {
+   "id": "easy-36",
+   "seed": 7207979,
+   "first": 1,
+   "seats": [
+    {
+     "tier": "easy",
+     "seed": 7207979,
+     "list": 43
+    },
+    {
+     "tier": "easy",
+     "seed": 7215756,
      "list": 14
     }
    ],
    "winner": 0,
-   "turns": 12,
-   "hash": "946ad011f76e76f3f16c285e36fc662700887a674c607bfd12b9a23ad34f77e7"
+   "turns": 14,
+   "hash": "31c380f76ab848afda2762579eb7de40d8202f3d3530b384637a7a2f7ebf9414"
   }
  ]
 }

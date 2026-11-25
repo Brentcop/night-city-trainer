@@ -134,7 +134,7 @@ export function ResumeNote({ saves }: { saves: SavesProps }) {
       <p className="small muted save-resume-note">
         {a.simVersion > SIM_VERSION
           ? `Unfinished game saved by a newer version of the app (${a.simVersion}): ${saveSummary(a)}. Reload the page to resume it.`
-          : `Unfinished game from an older version of the app (${a.simVersion}; this is version ${SIM_VERSION}): ${saveSummary(a)}. It can’t be resumed, but you can read its log or delete it.`}
+          : `Unfinished game from an older version of the app (${a.simVersion}; this is version ${SIM_VERSION}): ${saveSummary(a)}. Playing on needs the bot it was started with, so it can’t be resumed, but you can read its log or delete it.`}
       </p>
     );
   return <p className="small muted save-resume-note">Unfinished game: {saveSummary(a)}</p>;

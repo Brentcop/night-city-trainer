@@ -3,6 +3,7 @@
 // and a rival error flagged as a missed chance; no figure past the 3-Gig cap and the board's names ("End turn"); the
 // guest's seat reviewed as "you"; a game that can't be replayed refused in a plain sentence; and the dialog opens on
 // the Game review tab with the Play-out details beside it.
+import { costTag } from '../src/lib/ratingCost';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { GameReviewModal, GameReviewView, ReviewResult } from '../src/ui/components/GameReview';
@@ -72,6 +73,29 @@ describe('Game review screen', () => {
     expect(html).toContain('The board is not available for this review.');
   });
 
+  // 2026-11-25 (docs/REVIEW_2026-11-25.md R3, R8): both seats rated by the same play-outs, the coach's grade from play
+  // beside your move for reference, and the mulligan listed by its board name, not rated
+  it('a current review: the same instrument for both seats, the coach’s grade beside yours, the mulligan not rated', () => {
+    const now: GameReviewRecord = {
+      ...rec,
+      moves: [
+        mv({ seq: 0, p: 0, r: 'unrated', cat: 'mulligan', chosen: 'Keep hand', gap: null, best: undefined }),
+        mv({ seq: 1, p: 1, r: 'best', turn: 2, chosen: 'Rival move' }),
+        mv({ seq: 2, p: 0, r: 'mistake', turn: 3, chosen: 'Play Big Unit', gap: 0.6, se: 0.1, said: { v: 'best', gap: 0.05, best: 'Better move', why: 'Looked fine.' } }),
+        mv({ seq: 3, p: 0, r: 'best', turn: 5, chosen: 'Attack with X', said: { v: 'agree', gap: 0, why: 'Strong.' } }),
+      ],
+    };
+    const html = renderToStaticMarkup(<ReviewResult rec={now} replay={replay} frames={null} />);
+    expect(html).toContain('<b>Turning point:</b> turn 3, you played Play Big Unit');
+    expect(html).toContain('rated by the review&#x27;s play-outs, as the rival&#x27;s; 2 also graded by the coach during play, shown beside it');
+    expect(html).toContain('During play the coach said Best: as good as Better move. Coach: Looked fine.');
+    expect(html).toContain('Keep hand');
+    expect(html).toContain('Not rated');
+    expect(html).not.toContain('keep the coach&#x27;s grade');
+    // the counted moves leave the mulligan out
+    expect(html).toContain('2 counted moves');
+  });
+
   it('opens on the Game review tab, with the Full match review as the second tab', () => {
     const html = renderToStaticMarkup(<GameReviewModal src={{ replay, coach: [], persist: false, turns: 9 }} title="Game review" onClose={() => undefined} />);
     expect(html).toContain('role="dialog"');
@@ -94,7 +118,9 @@ describe('Game review screen', () => {
     const missed = renderToStaticMarkup(<ReviewResult rec={{ ...rec, winner: 0 }} replay={replay} frames={null} />);
     // you won: the rival's costliest move is the turning point (the capped blunder with the larger raw gap)
     expect(missed).toContain('<b>Turning point:</b> turn 6, the rival played Huge rival error');
-    expect(missed).toContain('more than 3 Gigs behind');
+    // the turning point says what its band costs in win chance (row 6), not its gap in Gigs
+    expect(missed).toContain(costTag('review', 'blunder'));
+    expect(missed).not.toContain('Gigs behind');
   });
 
   it('the guest of an online game is "you" (seat 1)', () => {
@@ -104,6 +130,19 @@ describe('Game review screen', () => {
     expect(html).toContain('Guest deck vs Host deck');
     // seat 0 lost: its costliest move is the turning point, and it is the rival's
     expect(html).toContain('the rival played Play Big Unit');
+  });
+
+  it('a move the review could not measure is listed apart with its error, not counted', () => {
+    const plain = renderToStaticMarkup(<ReviewResult rec={rec} replay={replay} frames={null} />);
+    expect(plain).not.toContain('could not be measured');
+    const failed = [{ seq: 99, p: 0 as const, at: 9, turn: 4, cat: 'gig dice', chosen: 'Rival d6: 4 → 3', why: 'clone() with 1 pending effect(s)' }];
+    const html = renderToStaticMarkup(<ReviewResult rec={{ ...rec, failed }} replay={replay} frames={null} />);
+    expect(html).toContain('1 move could not be measured');
+    expect(html).toContain('Turn 4, you: Rival d6: 4 → 3. Error: clone() with 1 pending effect(s)');
+    // the summary is the same as without it: the move is not counted
+    const seats = (h: string) => [...h.matchAll(/aria-label="(You|Rival): [^"]*"|\d+ counted moves?[^<]*/g)].map((m) => m[0]);
+    expect(seats(plain).length).toBeGreaterThanOrEqual(4);
+    expect(seats(html)).toEqual(seats(plain));
   });
 
   it('a game recorded with another simulator version is refused in a plain sentence, not a stack trace', () => {

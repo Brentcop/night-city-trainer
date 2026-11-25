@@ -258,8 +258,10 @@ asks the coach and the bots what they would do, beside what the record's player 
   decision, the move made, the coach's pick and grade, and each bot's pick ("same" when it is the move made). Under
   several seeds a grade reads as how often it came up ("Best in 5 of 5", "Best in 3 of 5, Mistake in 2"), with the
   median gap when any seed called it a Slip or worse, and a pick likewise when it changes. Then a summary: the decisions
-  compared and skipped and why; the scorecard per seat as the Play page counts it (`coachSummary`: the share of measured
-  moves that were Best or a Close call, and its letter) and agreement of the record's moves with the coach and each bot
+  compared and skipped and why; the scorecard per seat as the Play page counts it (`coachSummary`: since 2026-11-25 the
+  confirmed costly moves, then the share of the decisions that mattered (No clear difference left out) that were Best
+  or a Close call, and its letter; each grade is the Play page's, a Slip or worse confirmed on 16 fresh worlds, through
+  `gradeFully`) and agreement of the record's moves with the coach and each bot
   (and of each bot with the coach), each as the range over the seeds; then the costly moves in two lists, each with its
   line number and timestamp, largest median gap first: **settled**, a Mistake or worse under at least four fifths of the
   seeds rounded up (`settledCount`: 4 of 5, 3 of 3), and **sometimes a Mistake, not settled** (at least one seed, fewer

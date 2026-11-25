@@ -5,7 +5,7 @@
 // Reading one back treats it as untrusted: every field is checked, every string cleaned and capped, unknown fields and
 // anything malformed dropped, and a newer schema refused with a plain message.
 import type { LibraryDeck } from './library';
-import type { PracticeGame } from './practiceLog';
+import { scoredNow, type PracticeGame } from './practiceLog';
 import { CARD_ID, cleanText, NAME_MAX, PROFILE_SECTIONS, type ProfileDoc, type ProfileSection } from './profile';
 import {
   BOT_TIERS,
@@ -80,7 +80,13 @@ export interface SharedProfile {
     byTier: (WLD & { tier: BotTier })[];
     streak: { result: Result; n: number } | null;
     bestWinStreak: number;
-    coach: { games: number; avgPct: number; grade: Grade } | null;
+    /**
+     * The coach average. `v: 2` (practiceLog.ts COACH_SCORING): scored the current way, with the confirmed costly moves a
+     * game; without it, a profile shared before 2026-11-25, scored the old way (shown as such).
+     */
+    coach: { games: number; avgPct: number; grade: Grade; v?: 2; costly?: number } | null;
+    /** games whose scorecard was scored the old way, left out of the average */
+    coachOld?: number;
   };
   history?: SharedHistoryGame[];
   deckStats?: SharedDeckStat[];
@@ -130,7 +136,7 @@ export function buildShared({ profile, games, lib, now = new Date().toISOString(
   }
   if (pub.headline) {
     const h = headline(games);
-    out.headline = { record: wld(h.record), conceded: h.conceded, byTier: h.byTier.map((t) => ({ tier: t.tier, ...wld(t) })), streak: h.streak, bestWinStreak: h.bestWinStreak, coach: h.coach };
+    out.headline = { record: wld(h.record), conceded: h.conceded, byTier: h.byTier.map((t) => ({ tier: t.tier, ...wld(t) })), streak: h.streak, bestWinStreak: h.bestWinStreak, coach: h.coach, ...(h.coachOld ? { coachOld: h.coachOld } : {}) };
   }
   if (pub.history)
     out.history = newestFirst(games)
@@ -145,7 +151,8 @@ export function buildShared({ profile, games, lib, now = new Date().toISOString(
         first: g.first,
         gigs: g.gigs ?? null,
         conceded: !!g.conceded,
-        grade: g.coach?.grade ?? null,
+        // a letter scored the old way (before 2026-11-25) is not shared: it is not comparable with newer ones
+        grade: g.coach && scoredNow(g.coach) ? g.coach.grade : null,
       }));
   if (pub.deckStats)
     out.deckStats = deckStatRows(games)
@@ -270,8 +277,13 @@ export function parseShared(v: unknown): ParseResult {
     const record = readWLD(h.record);
     if (record) {
       const st = isObj(h.streak) && isResult(h.streak.result) && nat(h.streak.n) ? { result: h.streak.result, n: nat(h.streak.n)! } : null;
-      const c = isObj(h.coach) && nat(h.coach.games) && nat(h.coach.avgPct, 100) !== null && isGrade(h.coach.grade) ? { games: nat(h.coach.games)!, avgPct: nat(h.coach.avgPct, 100)!, grade: h.coach.grade } : null;
-      p.headline = { record, conceded: nat(h.conceded) ?? 0, byTier: list(h.byTier, BOT_TIERS.length, readTierRow), streak: st, bestWinStreak: nat(h.bestWinStreak) ?? 0, coach: c };
+      const costly = isObj(h.coach) && typeof h.coach.costly === 'number' && h.coach.costly >= 0 && h.coach.costly <= 100 ? Math.round(h.coach.costly * 10) / 10 : null;
+      const c =
+        isObj(h.coach) && nat(h.coach.games) && nat(h.coach.avgPct, 100) !== null && isGrade(h.coach.grade)
+          ? { games: nat(h.coach.games)!, avgPct: nat(h.coach.avgPct, 100)!, grade: h.coach.grade, ...(h.coach.v === 2 ? { v: 2 as const, ...(costly !== null ? { costly } : {}) } : {}) }
+          : null;
+      const old = nat(h.coachOld);
+      p.headline = { record, conceded: nat(h.conceded) ?? 0, byTier: list(h.byTier, BOT_TIERS.length, readTierRow), streak: st, bestWinStreak: nat(h.bestWinStreak) ?? 0, coach: c, ...(old ? { coachOld: old } : {}) };
     }
   }
   if (Array.isArray(v.history)) p.history = list(v.history, SHARE_LIMITS.history, readHistory);

@@ -20,7 +20,10 @@
 // Each worker grew by about 40 kB (game 265.1 → 304.6, coach 279.3 → 318.7, review 285.1 → 324.5, watch 268.3 → 307.8,
 // bot 262.8 → 302.2, playout 262.4 → 301.8); the budgets moved by 40 kB, keeping the headroom they had. Easy, Medium and
 // Hard read none of the table, so a later trim could load it only where the coach or hard-v1 needs it.
-export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 315, coach: 325, review: 335, watch: 320, bot: 315, playout: 315 };
+// The coach's raised 325 → 330 on 2026-11-25 on purpose (REVIEW_2026-11-25 row 6): its grades are worded in win chance
+// from src/lib/ratingCost.ts (the measured cost of each rating band, and the sentences that say it), which took it to
+// 325.3 kB; the confirmation of its costly grades (rows 2, 3) had already used most of its headroom.
+export const WORKER_BUDGET_KB: Readonly<Record<string, number>> = { game: 315, coach: 330, review: 335, watch: 320, bot: 315, playout: 315 };
 
 /** "game.worker-CqcC5VWM.js" → "game"; null for a file that is not a worker bundle. */
 export function workerName(file: string): string | null {

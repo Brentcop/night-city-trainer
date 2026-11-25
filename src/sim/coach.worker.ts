@@ -1,13 +1,14 @@
 // Web Worker: the Play page's coach, off the main thread. One job per message:
 //   { id, req }    → { id, advice }   advice for a position
 //   { id, score }  → { id, scored }   your move scored in the worlds of that advice (INFO-1: gradeMove)
+//   { id, confirm } → { id, scored }  the coach's pick and your move on fresh worlds, for a flagged grade (confirmMoveRequest)
 // or { id, error } (the coach declined the position, e.g. effects still pending; the page shows no advice, as before).
 // Gain 9: spawns 2 playout sub-workers for parallel deep play-outs; the Node path stays single-threaded.
-import { adviseRequest, scoreMoveRequest, type Advice, type CoachRequest, type GradedOption, type ScoreRequest } from '../ai/coach';
+import { adviseRequest, confirmMoveRequest, scoreMoveRequest, type Advice, type CoachRequest, type ConfirmRequest, type GradedOption, type ScoreRequest } from '../ai/coach';
 import type { PlayoutBatch, PlayoutResult, RolloutPool, RolloutTask, PlayoutConfig } from '../ai/playoutPool';
 import type { GameState, PlayerId } from '../engine/types';
 
-export type CoachJob = { id: number; req: CoachRequest } | { id: number; score: ScoreRequest };
+export type CoachJob = { id: number; req: CoachRequest } | { id: number; score: ScoreRequest } | { id: number; confirm: ConfirmRequest };
 export type CoachReply = { id: number; advice: Advice } | { id: number; scored: GradedOption[] } | { id: number; error: string };
 
 function createPlayoutPool(size: number): RolloutPool {
@@ -56,6 +57,7 @@ self.onmessage = async (e: MessageEvent<CoachJob>) => {
   const post = (m: CoachReply) => (self as unknown as Worker).postMessage(m);
   try {
     if ('score' in job) post({ id: job.id, scored: await scoreMoveRequest(job.score, pool) });
+    else if ('confirm' in job) post({ id: job.id, scored: await confirmMoveRequest(job.confirm, pool) });
     else post({ id: job.id, advice: await adviseRequest(job.req, pool) });
   } catch (err) {
     post({ id: job.id, error: String((err as Error)?.message ?? err) });

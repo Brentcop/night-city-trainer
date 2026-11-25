@@ -236,6 +236,14 @@ export function planScore(gigs: Gig[], plan: GigPlan): number {
   s += pairs * 3 * plan.pairs;
   s += distinct * 0.8 * plan.diverse;
   if (hasEven && hasOdd) s += 2 * plan.parity;
+  // Street Cred parity (SIM_VERSION 10, C.1): Street Cred is the sum of the Gig values, and with no Gig it is Null, which
+  // is neither even nor odd (the engine's credEven, CR 11.2)
+  if ((plan.credEven || plan.credOdd) && gigs.length) {
+    let cred = 0;
+    for (const x of gigs) cred += x.value;
+    if (cred % 2 === 0) s += 2 * plan.credEven;
+    else if (cred % 2 === 1) s += 2 * plan.credOdd;
+  }
   // small generic preference for street cred
   s += gigs.reduce((a, x) => a + x.value, 0) * 0.05;
   return s;

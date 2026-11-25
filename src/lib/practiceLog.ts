@@ -82,33 +82,66 @@ export interface ReviewSummary {
   n: number[];
 }
 
-/** The scorecard in numbers: moves the coach measured, how many were fine, and the letter grade. */
+/**
+ * The scorecard in numbers. Since 2026-11-25 (`v: 2`, REVIEW_2026-11-25 C1–C3): `measured` counts the decisions that
+ * mattered (the coach measured the move and some option differed: `unclear` ones are left out), `fine` how many of them
+ * were handled well (the coach's pick, as good, or a close call), `costly` the Slips or worse (every one confirmed on
+ * fresh worlds), `unclear` the decisions with no clear difference, and the letter comes from SCORECARD_CUTS. An entry
+ * without `v` was scored the old way (every measured move counted, unconfirmed six-world verdicts, letters at 85/70/55):
+ * it is kept and shown as it was, marked as such, and never averaged with these (src/lib/profileStats.ts).
+ */
 export interface CoachSummary {
+  v?: typeof COACH_SCORING;
   fine: number;
   measured: number;
+  costly?: number;
+  unclear?: number;
   grade: 'A' | 'B' | 'C' | 'D';
 }
+
+/** The scorecard's way of counting (CoachSummary.v); entries without it were scored before 2026-11-25. */
+export const COACH_SCORING = 2;
+/** A summary scored the current way (CoachSummary.v), so it may be averaged with others. */
+export const scoredNow = (c: Pick<CoachSummary, 'v'> | null | undefined): boolean => c?.v === COACH_SCORING;
 
 export const PRACTICE_KEY = 'nct.practice.v1';
 const KEY = PRACTICE_KEY;
 const RESULTS = new Set(['win', 'loss', 'draw']);
 const GRADES = new Set(['A', 'B', 'C', 'D']);
 
-/** The letter for a share of fine moves (the end-of-game scorecard's bands). */
-export const gradeFor = (pct: number): CoachSummary['grade'] => (pct >= 85 ? 'A' : pct >= 70 ? 'B' : pct >= 55 ? 'C' : 'D');
+/**
+ * The letter's cut-offs on the share of decisions that mattered handled well (CoachSummary v2), set from bot players of
+ * known strength against Medium (2026-11-25, SIM_VERSION 9: a player seat against Medium on the 7 meta decks, 60 games
+ * each for a uniformly random player, Easy and Medium, 80 for Hard; docs/BOT_TOOLKIT.md §7): SCORECARD_TIERS are their
+ * per-game averages, and each cut sits halfway between two tiers' averages, rounded, so a letter reads "handled the
+ * decisions that mattered about as well as" a bot tier on average (A: Hard, B: Medium, C: Easy, D: a random player).
+ * One game has 5 to 15 such decisions, so a single game's letter is rough (Hard's games: 67 A, 10 B, 3 C of 80; Medium's:
+ * 25 A, 17 B, 15 C, 3 D of 60); the Profile's average over games is the steadier read. Under the old scorecard the same
+ * random player averaged a B (77% "fine") and Hard 95%.
+ */
+export const SCORECARD_CUTS = { A: 84, B: 70, C: 46 } as const;
+/** The averages the cut-offs come from (share handled well among the decisions that mattered, %, per game, per tier). */
+export const SCORECARD_TIERS = { random: 30, easy: 63, medium: 77, hard: 90 } as const;
+
+/** The letter for a share of decisions that mattered handled well (the end-of-game scorecard's bands, SCORECARD_CUTS). */
+export const gradeFor = (pct: number): CoachSummary['grade'] => (pct >= SCORECARD_CUTS.A ? 'A' : pct >= SCORECARD_CUTS.B ? 'B' : pct >= SCORECARD_CUTS.C ? 'C' : 'D');
+
+const FINE_V = new Set(['agree', 'best', 'close']);
+const COSTLY_V = new Set(['inaccuracy', 'mistake']);
 
 /**
- * The scorecard of a game's graded moves: fine = the coach's pick, as good, or a close call; costly = an inaccuracy or a
- * mistake; anything else (choices the coach can't value) is not measured. Null when nothing was graded.
+ * The scorecard of a game's graded moves (v2): of the decisions that mattered (the coach measured the move and some option
+ * differed), fine = the coach's pick, as good, or a close call; costly = a Slip or worse (confirmed on fresh worlds);
+ * `unclear` = no clear difference, left out; anything else (choices the coach can't value, or a check that did not
+ * finish) is not measured. Null when nothing was graded.
  */
 export function coachSummary(grades: readonly { verdict: string }[]): (CoachSummary & { pct: number }) | null {
   if (!grades.length) return null;
-  const fineV = new Set(['agree', 'best', 'close']);
-  const costlyV = new Set(['inaccuracy', 'mistake']);
-  const measured = grades.filter((g) => fineV.has(g.verdict) || costlyV.has(g.verdict));
-  const fine = measured.filter((g) => fineV.has(g.verdict)).length;
+  const measured = grades.filter((g) => FINE_V.has(g.verdict) || COSTLY_V.has(g.verdict));
+  const fine = measured.filter((g) => FINE_V.has(g.verdict)).length;
   const pct = measured.length ? Math.round((100 * fine) / measured.length) : 100;
-  return { fine, measured: measured.length, grade: gradeFor(pct), pct };
+  const unclear = grades.filter((g) => g.verdict === 'unclear').length;
+  return { v: COACH_SCORING, fine, measured: measured.length, costly: measured.length - fine, unclear, grade: gradeFor(pct), pct };
 }
 
 const count = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0;
@@ -123,7 +156,10 @@ function toCoach(x: unknown): CoachSummary | null {
   if (!x || typeof x !== 'object') return null;
   const o = x as Record<string, unknown>;
   if (!count(o.fine) || !count(o.measured) || o.fine > o.measured || typeof o.grade !== 'string' || !GRADES.has(o.grade)) return null;
-  return { fine: o.fine, measured: o.measured, grade: o.grade as CoachSummary['grade'] };
+  const base = { fine: o.fine, measured: o.measured, grade: o.grade as CoachSummary['grade'] };
+  // an entry scored the old way (no v, or a v this version does not know) reads as the old way: never averaged as new
+  if (o.v !== COACH_SCORING) return base;
+  return { v: COACH_SCORING, ...base, ...(count(o.costly) && o.costly <= o.measured ? { costly: o.costly } : {}), ...(count(o.unclear) ? { unclear: o.unclear } : {}) };
 }
 
 /** A stored entry is usable if it has a deck pair and a result; missing optional fields get defaults. */
@@ -190,7 +226,8 @@ export function annotatePractice(id: string, coach: CoachSummary) {
     const all = loadPractice();
     const at = all.findIndex((x) => x.id === id);
     if (at < 0) return;
-    all[at] = { ...all[at]!, coach: { fine: coach.fine, measured: coach.measured, grade: coach.grade } };
+    const extra = coach.v === COACH_SCORING ? { v: coach.v, ...(coach.costly !== undefined ? { costly: coach.costly } : {}), ...(coach.unclear !== undefined ? { unclear: coach.unclear } : {}) } : {};
+    all[at] = { ...all[at]!, coach: { ...extra, fine: coach.fine, measured: coach.measured, grade: coach.grade } };
     localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
     /* ignore */

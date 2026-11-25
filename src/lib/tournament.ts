@@ -111,9 +111,16 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    sales), as do the legacy deep / hard-v1 bots, the coach and the reviewer's oracle. Measured in
  *    docs/BOT_TOOLKIT.md §6. 2026-11-14: every recorded event was re-recorded on version 9 with its own field, format,
  *    seed and date (docs/IMPROVEMENT_BACKLOG.md WP-D1).
+ * 10: the Gig plan reads Street Cred parity apart from Gig parity (REVIEW_2026-11-24 B4 / C.1, src/ai/knowledge.ts): the
+ *    cards that want an even Street Cred (Field Operator, Memory Relapse, Pacifica Netrunner) are `credEven`, scored by
+ *    planScore when the Street Cred is even, no longer `parity` (one even and one odd Gig, which with two Gigs made an
+ *    odd Street Cred); Bootleg Black Sapphire Show and Jackie Welles keep `parity`. Every deck holding one of the three
+ *    cards plays differently on every tier (Easy's Gig sub-choices read the plan too), as do the coach and the
+ *    reviewer's oracle. Measured in docs/BOT_TOOLKIT.md §6 (2026-11-24). Recorded events, ratings and evidence stay on
+ *    version 9 until the rating series re-rates.
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 9;
+export const SIM_VERSION = 10;
 
 export interface GameRec {
   seed: number;
