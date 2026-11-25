@@ -85,7 +85,12 @@ function computeCardValue(id: string): number {
   return v;
 }
 
-export type GigPlan = { high: number; low: number; pairs: number; diverse: number; parity: number; d20: number };
+/**
+ * How much a list cares about each Gig pattern (gigPlanOf). `parity` is one even and one odd friendly Gig. `credEven` /
+ * `credOdd` (an even / odd Street Cred, the sum of the Gig values, CR 11.2) exist only in the Street Cred parity reading
+ * (C.1, `gigPlanOf(ids, true)`); in the reading before it they are absent and the Street Cred cards count as `parity`.
+ */
+export type GigPlan = { high: number; low: number; pairs: number; diverse: number; parity: number; d20: number; credEven?: number; credOdd?: number };
 
 const PLAN_PATTERNS: [keyof GigPlan, RegExp][] = [
   ['high', /8\+|Increase a Gig|max Gig/i],
@@ -96,18 +101,44 @@ const PLAN_PATTERNS: [keyof GigPlan, RegExp][] = [
   ['d20', /d20/i],
 ];
 
+/**
+ * C.1 (REVIEW_2026-11-24 B4): the Street Cred parity reading. The pattern above also matches the cards that want an even
+ * Street Cred (Field Operator, Memory Relapse, Pacifica Netrunner: "if your ☆ (Street Cred) is an even number"), and
+ * planScore rewards one even and one odd Gig for it, which with two Gigs is an odd Street Cred. Here `parity` is only a
+ * Gig with an even or odd value (Bootleg Black Sapphire Show, Jackie Welles), and the Street Cred cards are `credEven`
+ * (or `credOdd`, for a card that asks for an odd Street Cred; none does today). tests/gig-plan-parity.test.ts checks that
+ * every card the old pattern matches has one of these readings.
+ */
+export const GIG_PARITY_PATTERN = /\bGigs? with an? (?:even|odd) value/i;
+export const CRED_EVEN_PATTERN = /(?:☆|Street Cred)\)? is an even number/i;
+export const CRED_ODD_PATTERN = /(?:☆|Street Cred)\)? is an odd number/i;
+const CRED_PLAN_PATTERNS: [keyof GigPlan, RegExp][] = [
+  ...PLAN_PATTERNS.filter(([k]) => k !== 'parity'),
+  ['parity', GIG_PARITY_PATTERN],
+  ['credEven', CRED_EVEN_PATTERN],
+  ['credOdd', CRED_ODD_PATTERN],
+];
+
 const PLAN_KEYS = PLAN_PATTERNS.map(([k]) => k);
+const CRED_PLAN_KEYS = CRED_PLAN_PATTERNS.map(([k]) => k);
 /** Per card: which Gig patterns its text mentions (computed once, so lookahead clones never re-run the regexes). */
 const PLAN_VEC: Record<string, (keyof GigPlan)[]> = Object.fromEntries(
   CARDS.map((c) => [c.id, PLAN_PATTERNS.filter(([, re]) => re.test(c.text)).map(([k]) => k)]),
 );
+const CRED_PLAN_VEC: Record<string, (keyof GigPlan)[]> = Object.fromEntries(
+  CARDS.map((c) => [c.id, CRED_PLAN_PATTERNS.filter(([, re]) => re.test(c.text)).map(([k]) => k)]),
+);
 
-/** How much a list of cards cares about each Gig pattern (normalized to ~0-1). */
-export function gigPlanOf(ids: string[]): GigPlan {
-  const plan: GigPlan = { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, d20: 0 };
-  for (const id of ids) for (const k of PLAN_VEC[id] ?? []) plan[k] += 1;
+/**
+ * How much a list of cards cares about each Gig pattern (normalized to ~0-1). `credParity` (C.1): the Street Cred parity
+ * reading (CRED_PLAN_PATTERNS); false (default) = the reading before it, exactly.
+ */
+export function gigPlanOf(ids: string[], credParity = false): GigPlan {
+  const plan: GigPlan = credParity ? { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, d20: 0, credEven: 0, credOdd: 0 } : { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, d20: 0 };
+  const vec = credParity ? CRED_PLAN_VEC : PLAN_VEC;
+  for (const id of ids) for (const k of vec[id] ?? []) plan[k]! += 1;
   const n = Math.max(1, ids.length) / 10;
-  for (const k of PLAN_KEYS) plan[k] = Math.min(1.5, plan[k] / n);
+  for (const k of credParity ? CRED_PLAN_KEYS : PLAN_KEYS) plan[k] = Math.min(1.5, plan[k]! / n);
   return plan;
 }
 

@@ -4,7 +4,7 @@
 // discards) use knowledge-driven heuristics.
 import { GameOverSignal, other, type Game } from '../engine/engine';
 import type { Action, Agent, CardInst, Decision, Gig, Opt, PlayerId, Reaction } from '../engine/types';
-import { DEFAULT_WEIGHTS, evaluate, planFor, seatArchetype, planScore, unitValue, usesPackages, withoutPackages, type EvalWeights } from './eval';
+import { DEFAULT_WEIGHTS, evaluate, planFor, readsCredParity, seatArchetype, planScore, unitValue, usesPackages, withPlanReading, withoutPackages, type EvalWeights } from './eval';
 import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { CARDS } from '../engine/cards';
@@ -131,6 +131,14 @@ export interface HeuristicOptions {
    * clone, the position is no better than losing the card and nothing new lasts). Never set on clone agents.
    */
   easyGuard?: boolean;
+  /**
+   * C.1 (REVIEW_2026-11-24 B4): read the Gig plan with Street Cred parity apart (EvalWeights.credParity): a deck built
+   * around an even Street Cred wants Gigs that sum to an even number, not one even and one odd Gig. Folded into this
+   * agent's weights, so its evaluation, Gig choices, rollout and clone agents and play-out workers all read the plan
+   * the same way. Absent (default) = the weights decide (no named set sets it) = the plan before C.1, exactly; false
+   * turns it off on weights that set it.
+   */
+  credParity?: boolean;
   seed?: number;
   /**
    * Skip the explanations of a main-phase or reaction decision (lastThought, lastAlternatives, lastScores), which only
@@ -205,7 +213,14 @@ export function sellTieBreak(sell: number, vals: readonly { uid: number; v: numb
   return near[0] ?? null;
 }
 
-type ResolvedOptions = Omit<Required<HeuristicOptions>, 'rolloutPool'> & { rolloutPool: import('./playoutPool').RolloutPool | undefined };
+/** The weights with HeuristicOptions.credParity folded in: the same object when it is absent or already agrees. */
+function planReading(w: EvalWeights, credParity: boolean | undefined): EvalWeights {
+  if (credParity === undefined || readsCredParity(w) === credParity) return w;
+  return { ...w, credParity: credParity ? 1 : 0 };
+}
+
+// credParity is folded into `weights` (EvalWeights.credParity), so the resolved options carry it only there
+type ResolvedOptions = Omit<Required<HeuristicOptions>, 'rolloutPool' | 'credParity'> & { rolloutPool: import('./playoutPool').RolloutPool | undefined };
 
 export class HeuristicAgent implements Agent {
   name: string;
@@ -237,7 +252,7 @@ export class HeuristicAgent implements Agent {
       name: opts.name ?? (opts.lookahead === false ? 'Fast bot' : opts.deep ? 'Deep bot' : 'Lookahead bot'),
       lookahead: opts.lookahead ?? true,
       // the fast policy (lookahead off: Easy, clone agents) keeps the hand weights; see FAST_WEIGHTS
-      weights: opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS),
+      weights: planReading(opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS), opts.credParity),
       noise: opts.noise ?? 0,
       maxCandidates: opts.maxCandidates ?? 40,
       deep: opts.deep ?? 0,
@@ -275,6 +290,10 @@ export class HeuristicAgent implements Agent {
   matchupRead(g: Game, p: PlayerId): { me: Archetype; opp: Archetype } {
     return { me: seatArchetype(g, p), opp: seatArchetype(g, other(p)) };
   }
+  /** C.1: this agent reads the Gig plan with Street Cred parity apart (its weights' credParity). */
+  get credParity(): boolean {
+    return readsCredParity(this.opts.weights);
+  }
   /** Evaluation weights adjusted for the current matchup. */
   w(g: Game, p: PlayerId): EvalWeights {
     if (!this.opts.profiles) return this.opts.weights;
@@ -302,6 +321,7 @@ export class HeuristicAgent implements Agent {
     if (o.impact) parts.push(`imp${o.impact}`);
     if (o.profiles) parts.push('prof');
     if (o.noise) parts.push(`noise${o.noise}`);
+    if (readsCredParity(o.weights)) parts.push('cred');
     return parts.join(' ');
   }
 
@@ -333,9 +353,11 @@ export class HeuristicAgent implements Agent {
 
   /** The fast agents of simulate() / reaction clones: FAST_WEIGHTS, plus the deciding seat's package weights when set. */
   private fastAgents(p: PlayerId): [Agent, Agent] {
-    if (!usesPackages(this.opts.weights) && !usesPackages(FAST_WEIGHTS)) return [new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS }), new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS })];
-    const own: EvalWeights = { ...FAST_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
-    const rival = withoutPackages(FAST_WEIGHTS);
+    // the deciding bot's plan reading on both seats (C.1); FAST_WEIGHTS itself when it reads the plan as before
+    const fast = withPlanReading(FAST_WEIGHTS, this.opts.weights);
+    if (!usesPackages(this.opts.weights) && !usesPackages(fast)) return [new HeuristicAgent({ lookahead: false, weights: fast }), new HeuristicAgent({ lookahead: false, weights: fast })];
+    const own: EvalWeights = { ...fast, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
+    const rival = withoutPackages(fast);
     return [new HeuristicAgent({ lookahead: false, weights: p === 0 ? own : rival }), new HeuristicAgent({ lookahead: false, weights: p === 1 ? own : rival })];
   }
 
@@ -913,7 +935,7 @@ export class HeuristicAgent implements Agent {
    * can still matter) and adds no lasting mod (a lock, a delayed trigger, a keyword...).
    */
   private async isDud(g: Game, p: PlayerId, a: Action): Promise<boolean> {
-    const w = FAST_WEIGHTS;
+    const w = withPlanReading(FAST_WEIGHTS, this.opts.weights);
     const P = g.P(p);
     const base = evaluate(g, p, w) - (P.hand.length <= w.handCap ? w.hand : 0);
     const modIds = new Set(g.s.mods.map((m) => m.id));
@@ -1103,7 +1125,7 @@ export class HeuristicAgent implements Agent {
 
   /** Kerry Eurodyne: reroll a Fixer-rolled Gig when the expected roll (plan fit + min/max draws) beats the current one. */
   private wantsReroll(g: Game, p: PlayerId, d: Decision, w: EvalWeights): boolean {
-    const plan = planFor(g, p, p);
+    const plan = planFor(g, p, p, this.credParity);
     const gigs = g.gigsOf(p);
     // the Gig just rolled in from the Fixer is the newest friendly Gig (the engine appends it before the trigger)
     const gig = gigs[gigs.length - 1];
@@ -1286,7 +1308,7 @@ export class HeuristicAgent implements Agent {
     const none = d.options.findIndex((o) => o.key === 'none');
     if (!real.length) return Math.max(0, none);
     const gigs = real.map(({ o, i }) => ({ x: g.gig(o.gig!), i }));
-    const myPlan = planFor(g, p, p);
+    const myPlan = planFor(g, p, p, this.credParity);
     // the package steering kinds that count now (pkgSteer set and a payoff to use them), in the plan's units
     const steer = this.steerKinds(g, p);
     const k = steer ? this.steerInPlanUnits() : 0;
@@ -1314,7 +1336,7 @@ export class HeuristicAgent implements Agent {
       }
       return gigs[0].i;
     }
-    const rPlan = planFor(g, other(p), p);
+    const rPlan = planFor(g, other(p), p, this.credParity);
     /** our plan score minus the rival's, with `give` moved to the rival and `take` moved to us (plus package steering) */
     const swing = (give: Gig | null, take: Gig | null) => {
       const mineAfter = g.gigsOf(p).filter((y) => y.id !== give?.id);
@@ -1377,8 +1399,8 @@ export class HeuristicAgent implements Agent {
   /** Pick (gig, newValue) maximizing our plan score minus rival's. */
   private chooseGigValue(g: Game, d: Decision): number {
     const p = d.player;
-    const myPlan = planFor(g, p, p);
-    const rPlan = planFor(g, other(p), p);
+    const myPlan = planFor(g, p, p, this.credParity);
+    const rPlan = planFor(g, other(p), p, this.credParity);
     const steer = this.steerKinds(g, p);
     const k = steer ? this.steerInPlanUnits() : 0;
     const score = (override?: { gig: number; n: number }) => {

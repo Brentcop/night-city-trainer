@@ -71,10 +71,10 @@ describe('Gig plans', () => {
     for (const id of ids) {
       const c = CARDS.find((x) => x.id === id);
       if (!c) continue;
-      for (const [k, re] of PATTERNS) if (re.test(c.text)) plan[k] += 1;
+      for (const [k, re] of PATTERNS) if (re.test(c.text)) plan[k]! += 1;
     }
     const n = Math.max(1, ids.length) / 10;
-    for (const k of Object.keys(plan) as (keyof GigPlan)[]) plan[k] = Math.min(1.5, plan[k] / n);
+    for (const k of Object.keys(plan) as (keyof GigPlan)[]) plan[k] = Math.min(1.5, plan[k]! / n);
     return plan;
   };
   it('match the regex version exactly, card by card and for whole decks', () => {

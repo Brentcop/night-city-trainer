@@ -258,17 +258,20 @@ function planWant(plan: GigPlan): string {
     ['even-or-odd Gig parity', plan.parity],
     ['a d20', plan.d20],
   ];
+  // C.1's Street Cred parity reading only (absent otherwise, so the words are unchanged)
+  if (plan.credEven !== undefined) entries.push(['an even Street Cred', plan.credEven]);
+  if (plan.credOdd !== undefined) entries.push(['an odd Street Cred', plan.credOdd]);
   entries.sort((a, b) => b[1] - a[1]);
   if (entries[0][1] < 0.1) return 'a balanced Gig spread';
   return entries[0][0];
 }
 
-function gigWhy(g: Game, d: Decision, index: number): string {
+function gigWhy(g: Game, d: Decision, index: number, credParity: boolean): string {
   const p = d.player;
   const opt = d.options[index];
   if (!opt || opt.gig === undefined) return '';
   const name = opt.label;
-  const myPlan = planFor(g, p, p);
+  const myPlan = planFor(g, p, p, credParity);
   if (d.tag === 'rollIn') {
     const x = g.gig(opt.gig);
     const wantSmall = myPlan.low > myPlan.high + 0.2;
@@ -284,12 +287,12 @@ function gigWhy(g: Game, d: Decision, index: number): string {
   return `${name}: best fit for your deck's Gig plan (wants ${planWant(myPlan)}).`;
 }
 
-function gigValueWhy(g: Game, d: Decision, index: number): string {
+function gigValueWhy(g: Game, d: Decision, index: number, credParity: boolean): string {
   const p = d.player;
   const opt = d.options[index];
   if (!opt) return '';
   if (opt.gig !== undefined && opt.n !== undefined) {
-    const myPlan = planFor(g, p, p);
+    const myPlan = planFor(g, p, p, credParity);
     return `Set the Gig to ${opt.n}: best fit for your deck's plan (wants ${planWant(myPlan)}).`;
   }
   if (opt.key === 'none') return 'Leave the Gig as it is: changing it would not improve the plan.';
@@ -379,9 +382,9 @@ export async function advise(g: Game, d: Decision, lift?: SeatLift, rolloutPool?
   } else if (d.kind === 'yesno' && d.tag === 'mulligan') {
     why = mulliganWhy(g, d.player, d.options[index]?.key === 'yes');
   } else if (d.kind === 'gig') {
-    why = gigWhy(g, d, index);
+    why = gigWhy(g, d, index, coach.credParity);
   } else if (d.kind === 'gigValue') {
-    why = gigValueWhy(g, d, index);
+    why = gigValueWhy(g, d, index, coach.credParity);
   } else if (d.kind === 'unit') {
     why = unitWhy(g, d, index);
   } else if (d.kind === 'card') {

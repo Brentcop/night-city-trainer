@@ -39,6 +39,15 @@ export interface EvalWeights {
   exposed: number; // share of the Gig swing (gig, gigNear, overtime) of the Gigs the rival can steal on its next turn
   threat: number; // share of the Gig swing of the Gigs we can steal on our next turn, when ours is the next turn
   rivalLethal: number; // points off when the rival holds 7+ Gigs and will start its turn before we can take enough back
+  /**
+   * C.1 (REVIEW_2026-11-24 B4), a switch, not a weight: 1 = the Gig plan reads Street Cred parity apart from Gig parity
+   * (gigPlanOf(ids, true): the cards that want an even Street Cred score an even Street Cred, not one even and one odd
+   * Gig). Absent or 0 (DEFAULT_WEIGHTS, every named set) = the plan before it, exactly. It rides on the weights because
+   * every reader of the plan already has them: this evaluation, a bot's sub-choices, its rollout and clone agents (both
+   * seats: the reading is the deciding bot's model, not private knowledge), the play-out worker, the coach's reasons.
+   * HeuristicOptions.credParity sets it. Not searched by the tuner, and no profile names it.
+   */
+  credParity?: number;
 }
 
 // Since SIM_VERSION 6 (2026-11-12): the fitted set `calibrated-2026-11` (src/ai/weightSets.ts, INFO-4: a logistic fit of
@@ -98,6 +107,13 @@ export const withoutPackages = (w: EvalWeights): EvalWeights => (usesPackages(w)
 /** The weights scripts/tune.ts searches, in its order; the rest of EvalWeights keeps its defaults. */
 export const TUNED_WEIGHTS = ['gig', 'gigNear', 'unitPower', 'unitCost', 'hand', 'eddie', 'faceUpLegend', 'plan', 'spentRisk'] as const satisfies readonly (keyof EvalWeights)[];
 
+/** C.1: does `w` read the Gig plan with Street Cred parity apart (EvalWeights.credParity)? */
+export const readsCredParity = (w: Pick<EvalWeights, 'credParity'>): boolean => !!w.credParity;
+
+/** `base` with the plan reading of `from`: the same object when they agree (so play with the switch off is unchanged). */
+export const withPlanReading = (base: EvalWeights, from: EvalWeights): EvalWeights =>
+  readsCredParity(base) === readsCredParity(from) ? base : { ...base, credParity: readsCredParity(from) ? 1 : 0 };
+
 /** A play-out's evaluation clamped to ±playOutClamp. */
 export const clampPlayOut = (v: number, w: EvalWeights = DEFAULT_WEIGHTS) => Math.max(-w.playOutClamp, Math.min(w.playOutClamp, v));
 
@@ -141,12 +157,12 @@ export function ownedCards(g: Game, p: PlayerId): string[] {
  * identities among one seat's own Legends. tests/gig-plan-consistency.test.ts checks the cached values against a fresh
  * computation on live games and on copies, before and after hideInfo.
  */
-const listFacts = new WeakMap<object, { plans: (GigPlan | undefined)[]; archetypes: (Archetype | undefined)[] }>();
+const listFacts = new WeakMap<object, { plans: (GigPlan | undefined)[]; credPlans: (GigPlan | undefined)[]; archetypes: (Archetype | undefined)[] }>();
 
 function listFactsOf(g: Game) {
   const k = g.lineage();
   let f = listFacts.get(k);
-  if (!f) listFacts.set(k, (f = { plans: [], archetypes: [] }));
+  if (!f) listFacts.set(k, (f = { plans: [], credPlans: [], archetypes: [] }));
   return f;
 }
 
@@ -158,11 +174,14 @@ function listFactsOf(g: Game) {
  *    (tests/gig-plan-consistency.test.ts). Cached per lineage (a game and its copies), which changes nothing: every copy
  *    has the same value.
  *  - The rival's: the cards the viewer can see (field, trash, face-up Legends), recomputed on every call.
+ * `credParity` (C.1, readsCredParity of the reader's weights): the Street Cred parity reading. The two readings are cached
+ * apart, so two bots of one game that read the plan differently (a botcheck of the switch) never see each other's.
  */
-export function planFor(g: Game, p: PlayerId, viewer: PlayerId): GigPlan {
-  if (viewer !== p) return gigPlanOf(knownCards(g, p, viewer));
-  const m = listFactsOf(g).plans;
-  return (m[p] ??= gigPlanOf(ownedCards(g, p)));
+export function planFor(g: Game, p: PlayerId, viewer: PlayerId, credParity = false): GigPlan {
+  if (viewer !== p) return gigPlanOf(knownCards(g, p, viewer), credParity);
+  const f = listFactsOf(g);
+  const m = credParity ? f.credPlans : f.plans;
+  return (m[p] ??= gigPlanOf(ownedCards(g, p), credParity));
 }
 
 /**
@@ -230,6 +249,14 @@ export function planScore(gigs: Gig[], plan: GigPlan): number {
   s += pairs * 3 * plan.pairs;
   s += distinct * 0.8 * plan.diverse;
   if (hasEven && hasOdd) s += 2 * plan.parity;
+  // C.1: Street Cred parity (the Street Cred parity reading only; absent otherwise, so the sum is unchanged). Street Cred
+  // is the sum of the Gig values, and with no Gig it is Null, which is neither even nor odd (engine credEven, CR 11.2).
+  if ((plan.credEven || plan.credOdd) && gigs.length) {
+    let cred = 0;
+    for (const x of gigs) cred += x.value;
+    if (cred % 2 === 0) s += 2 * (plan.credEven ?? 0);
+    else if (cred % 2 === 1) s += 2 * (plan.credOdd ?? 0);
+  }
   // small generic preference for street cred
   s += gigs.reduce((a, x) => a + x.value, 0) * 0.05;
   return s;
@@ -375,7 +402,7 @@ function evalCore(g: Game, p: PlayerId, w: EvalWeights, acc: TermAcc | null): nu
     // legends also gear hosts
     for (const u of P.legends) side += g.c(u).gear.length * w.legendGear;
     if (P.deck.length < w.lowDeckAt) side -= (w.lowDeckAt - P.deck.length) * w.lowDeck;
-    const plan = planScore(g.gigsOf(pl), planFor(g, pl, p));
+    const plan = planScore(g.gigsOf(pl), planFor(g, pl, p, readsCredParity(w)));
     side += plan * w.plan;
     v += sign * side;
     if (f) {

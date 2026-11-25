@@ -15,6 +15,7 @@ import { holdCredit, packageFacts, seatPackages } from '../src/ai/packages';
 import { handFeatures, plainRuleMulligan, type HandFeatures } from '../src/ai/mulligan';
 import { evalLeaf, profiledWeights, type EvalLeaf } from '../src/analysis/evalCalibration';
 import type { EvalWeights } from '../src/ai/eval';
+import { emptyCredEnds, traceCred, type CredEnds } from './cred-trace';
 import { fromSpec, type AgentSpec } from './agent-spec';
 export type { AgentSpec } from './agent-spec';
 
@@ -60,6 +61,11 @@ export interface MatchJob {
    * view (`evalLeaves`, src/analysis/evalCalibration.ts). Evaluated on a copy: the game is the same with or without it.
    */
   evalLeaves?: boolean;
+  /**
+   * C.1's intended-effect metric (scripts/cred-trace.ts, botcheck --cred-trace): at every end phase, each seat's Street
+   * Cred parity and Gig parity (`credEnds`). Observed on the real game only: the game is the same with or without it.
+   */
+  credTrace?: boolean;
 }
 export interface MatchResult {
   a: string;
@@ -92,6 +98,8 @@ export interface MatchResult {
   opening?: OpeningHand;
   /** with `evalLeaves`: one leaf per completed end phase */
   evalLeaves?: EvalLeaf[];
+  /** with `credTrace`: each seat's Street Cred and Gig parity at its own and the rival's turn ends */
+  credEnds?: [CredEnds, CredEnds];
 }
 
 /** Seat A's opening hand (before any mulligan), the bot's own verdict and the decision played (scripts/mulligan-check.ts). */
@@ -235,6 +243,8 @@ parentPort?.on('message', async (job: MatchJob) => {
         leaves.push(evalLeaf(g, profiled));
       };
     }
+    const credEnds = job.credTrace ? emptyCredEnds() : null;
+    if (credEnds) traceCred(g, credEnds);
     const s = await g.run();
     let decisions: Pick<MatchResult, 'decisions' | 'decisionSize' | 'decisionRecords' | 'synergies' | 'synergySize'> = {};
     const summaries = job.trace ? summarize(s) : undefined;
@@ -281,6 +291,7 @@ parentPort?.on('message', async (job: MatchJob) => {
       ...(observed && job.piecesA ? { pieces: observed.pieces } : {}),
       ...(probe?.opening ? { opening: probe.opening } : {}),
       ...(leaves ? { evalLeaves: leaves } : {}),
+      ...(credEnds ? { credEnds } : {}),
     };
   } catch (e: any) {
     // an exception is an error, never a result: callers report it and leave the game out of every tally

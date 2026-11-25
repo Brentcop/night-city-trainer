@@ -145,7 +145,7 @@ async function main() {
   const reportPath = path.join(V.out, `tune-weights-${V.seed}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
   if (!V['dry-run'] && fs.existsSync(reportPath) && !V.force) throw new Error(`${reportPath} exists; pass --force to overwrite it`);
   // only the searched weights and the starting overrides; the worker fills in the rest from DEFAULT_WEIGHTS
-  const original: Record<string, number> = { ...Object.fromEntries(KEYS.map((k) => [k, DEFAULT_WEIGHTS[k]])), ...START };
+  const original: Record<string, number> = { ...Object.fromEntries(KEYS.map((k) => [k, DEFAULT_WEIGHTS[k]!])), ...START };
   let base: Record<string, number> = { ...original };
   const log: { key: string; mult: number; value: number; summary: PairedSummary | DuplicateSummary; adopted: boolean }[] = [];
   console.log(`Bot ${V.bot}, format ${V.format}: ${PAIRED ? `${evaluationSeeds} deals (${2 * evaluationSeeds} games)` : `${evaluationSeeds} games`} per evaluation; searching ${KEYS.join(', ')}; held-out seed base ${validationSeed}.`);

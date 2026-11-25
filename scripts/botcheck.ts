@@ -10,10 +10,13 @@
 // comparison. A pair with a game that throws is reported (first stack printed) and left out; the exit code is then 1.
 // --cache: read games already played with the same code, decks, seeds and specs from .cache/games and store new ones
 //   (scripts/game-cache.ts); prints how many games were hits.
+// --cred-trace: also count each deck's Street Cred parity at every turn end (observe-only, the same games) and print C.1's
+//   intended-effect metric for A against B (scripts/cred-trace.ts). Without it the jobs and the output are as before.
 import { bool, cli, int, loadLibrary, runJobsDetailed, str, threadsOpt } from './lib-node';
 import { cliGameCache } from './game-cache';
 import { duplicateSummary, scoreOf } from '../src/lib/evidence';
 import type { AgentSpec, MatchJob, MatchResult } from './worker';
+import { credGroup, credTraceLines, type PairedObs } from './cred-trace';
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -23,6 +26,7 @@ const { values: V, positionals } = cli(
     seed: int(31337),
     threads: threadsOpt(),
     cache: bool(),
+    'cred-trace': bool(),
   },
   { maxPositionals: 2 },
 );
@@ -49,7 +53,7 @@ if (field.length < 2) {
 // a, bot seeded with the game seed) and agentB seat 1 (deck b, seed + 7777); the swap changes only which config is which.
 const deal: Omit<MatchJob, 'agentA' | 'agentB'>[] = [];
 let seed = V.seed;
-for (const x of field) for (const y of field) if (x !== y) for (let k = 0; k < V.per; k++) deal.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: 'lookahead' });
+for (const x of field) for (const y of field) if (x !== y) for (let k = 0; k < V.per; k++) deal.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: 'lookahead', ...(V['cred-trace'] ? { credTrace: true } : {}) });
 // The two halves are two batches on the one game pool (they share its --threads workers), so each result is known to
 // belong to its half.
 const cache = cliGameCache(V.cache);
@@ -80,3 +84,20 @@ console.log(`  pairs split ${s.split} (each config won one), swept ${s.swept} (A
 console.log(
   `  per-pair SD of the difference ${s.sdDiff.toFixed(2)} (about 0.71 if the two games were unrelated); half-width paired ±${pc(pairedHalf)}, unpaired binomial on the same games ±${pc(s.unpairedHalf95)}`,
 );
+if (V['cred-trace']) {
+  // each deck of the metric's groups, in each deal: piloted by A in one half and by B in the other (agentA pilots seat 0 in `ab`)
+  const obs: PairedObs[] = [];
+  for (const j of deal) {
+    const ra = withA.get(j.seed);
+    const rb = withB.get(j.seed);
+    if (!ra?.credEnds || !rb?.credEnds) continue;
+    for (const seat of [0, 1] as const) {
+      const d = seat === 0 ? j.a : j.b;
+      const group = credGroup(d);
+      if (!group) continue;
+      const [byA, byB] = seat === 0 ? [ra, rb] : [rb, ra];
+      obs.push({ deck: d.name, group, a: byA.credEnds![seat], b: byB.credEnds![seat] });
+    }
+  }
+  for (const line of credTraceLines(obs)) console.log(line);
+}
