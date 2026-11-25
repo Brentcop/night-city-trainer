@@ -209,7 +209,8 @@ describe("the bot's answers in the practice replay", () => {
     expect(html).toContain('Blunder');
     expect(html).toContain('End turn');
     expect(html).toContain('coach&#x27;s pick: ');
-    expect(html).toContain('−1.2 ± 0.1 Gigs');
+    // a grade is never sized in Gigs (REVIEW_2026-11-25 row 6: ratings are said in win chance, src/lib/ratingCost.ts)
+    expect(html).not.toContain('Gigs');
     // none kept: said so, not an empty list
     expect(renderToStaticMarkup(<GameReviewView src={{ replay: older, coach: [], persist: false }} />)).toContain('No move of yours was graded by the coach');
   });

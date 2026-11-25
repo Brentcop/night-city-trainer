@@ -10,7 +10,7 @@ import { makeTierBot } from '../src/ai/tiers';
 import { DECIDED_EVAL, GIG_SWING } from '../src/ai/eval';
 import { plainRuleMulligan } from '../src/ai/mulligan';
 import { adviseRequest, COACH_CONFIG, coachRequest, coachWorthAsking, gradeMove, makeCoach, mulliganWhy, scoreMoveRequest, type Advice, type MoveGrade } from '../src/ai/coach';
-import { behindText, coachTablesWords, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
+import { behindText, coachCostWords, coachTablesWords, DECIDED_GIGS, gapFigure, optionName, shownLabel, verdictName } from '../src/lib/coachWords';
 import { CAP_GIGS, coachRatingOf, RATING_INFO } from '../src/lib/gameReview';
 import { CoachBox, CoachPanel, MoveToast, Scorecard, verdictText } from '../src/ui/components/board/CoachPanel';
 import { restoredGrades, type SavedGame } from '../src/lib/savedGames';
@@ -88,7 +88,8 @@ describe('agreeing is measured only where the coach measures', () => {
     const a = scored([[10_050, 10_020, 10_100], [40, 60, 20]]);
     const gr = gradeMove(d, 1, a, 5);
     expect(gr.gap).toBeGreaterThan(200); // kept raw for the export and the review
-    expect(verdictText(gr)).toBe('Blunder: the coach preferred Attack (decides the game in the play-outs)');
+    expect(verdictText(gr)).toBe(`Blunder: the coach preferred Attack (${coachCostWords(gr.verdict, gr.gap)})`);
+    expect(verdictText(gr)).not.toMatch(/Gig/);
   });
   it('the scorecard leaves unmeasured choices out of its count, and shows no letter when nothing was measured', () => {
     const g = (verdict: MoveGrade['verdict']): MoveGrade => ({ turn: 1, chose: 'A', coach: 'A', gap: verdict === 'unscored' ? null : 0, verdict });

@@ -43,6 +43,7 @@ import {
   type ReviewMove,
 } from '../src/lib/gameReview';
 import { explain, gapTag, HARD_CHECK_TEXT, moveName, saidText, UNRATED_TEXT } from '../src/lib/reviewWords';
+import { costSentence } from '../src/lib/ratingCost';
 import { asReviewRecord, GAME_REVIEWS_KEY, loadGameReview, parseGameReviews, reviewMatches, saveCoachRatings, saveGameReview } from '../src/lib/gameReviewStore';
 import { parsePractice } from '../src/lib/practiceLog';
 import { runGameReview } from '../src/sim/gameReviewRun';
@@ -179,14 +180,14 @@ describe('the coach’s grades from play are kept', () => {
     expect(saidOf(base('mistake', 0.62, 0.1))).toEqual({ v: 'mistake', gap: 0.62, se: 0.1, best: 'A', why: 'Because.' });
     expect(saidOf(base('best', -0.1, 0.05))).toMatchObject({ v: 'best', gap: 0 });
     expect(saidOf(base('agree', 0, undefined, 'B'))).toEqual({ v: 'agree', gap: 0, why: 'Because.' });
-    expect(saidText(saidOf(base('mistake', 0.62, 0.1)), 'unit')).toBe('During play the coach said Mistake: it preferred A (−0.6 ± 0.1 Gigs). Coach: Because.');
+    expect(saidText(saidOf(base('mistake', 0.62, 0.1)), 'unit')).toBe('During play the coach said Mistake: it preferred A. Coach: Because.');
     expect(saidText(saidOf(base('mistake', 1.4, 0.1)), 'unit')).toMatch(/^During play the coach said Blunder: it preferred A/);
     expect(saidText(saidOf(base('inaccuracy', 0.3, 0.05, 'Pass turn')), 'unit')).toMatch(/^During play the coach said Slip: it preferred End turn/);
     expect(saidText(saidOf(base('close', 0.05, 0.01)), 'unit')).toMatch(/^During play the coach said Close call/);
     expect(saidText(saidOf(base('best', 0.02, 0.01)), 'unit')).toBe('During play the coach said Best: as good as A. Coach: Because.');
     expect(saidText(saidOf(base('agree', 0, undefined, 'B')), 'unit')).toBe('During play the coach said this was its own pick. Coach: Because.');
     // since the coach's own changes of 2026-11-25: a confirmed grade is the confirmation's, an unclear one says so
-    expect(saidText(saidOf({ ...base('mistake', 0.62, 0.1), confirmed: 16 }), 'unit')).toBe('During play the coach said Mistake, after checking it on 16 fresh play-outs: it preferred A (−0.6 ± 0.1 Gigs). Coach: Because.');
+    expect(saidText(saidOf({ ...base('mistake', 0.62, 0.1), confirmed: 16 }), 'unit')).toBe('During play the coach said Mistake, after checking it on 16 fresh play-outs: it preferred A. Coach: Because.');
     expect(saidText(saidOf({ ...base('close', 0.05, 0.01), unclear: true }), 'unit')).toBe('During play the coach said No clear difference (it would have picked A): every option it measured came out about the same. Coach: Because.');
     const rec = { at: 1, turn: 2, options: ['A', 'B'], chose: 1, coach: 0, why: 'W.', verdict: 'close', gap: 0.05, se: 0.01, scores: [], unclear: true, confirmed: 16 };
     expect(coachRatingOf(rec)).toMatchObject({ verdict: 'close', unclear: true, confirmed: 16 });
@@ -255,12 +256,12 @@ describe('summary: accuracy, turning point, the rival’s relevant moves', () =>
     expect(costlyText([0, 0, 3, 1, 2, 1, 1])).toBe('1 blunder, 1 mistake, 2 slips');
   });
   it('explains a move in plain words, with the coach’s reason for a coach grade', () => {
-    expect(explain(mv({ seq: 0, p: 0, r: 'mistake', gap: 0.62, se: 0.1, best: 'Attack' }))).toBe('The review preferred Attack, about 0.6 ± 0.1 Gigs better.');
+    expect(explain(mv({ seq: 0, p: 0, r: 'mistake', gap: 0.62, se: 0.1, best: 'Attack' }))).toBe(`The review preferred Attack. ${costSentence('review', 'mistake')}`);
     expect(explain(mv({ seq: 0, p: 0, r: 'best', chosen: 'X', best: 'X', src: 'coach', why: 'Strong.' }))).toBe('The coach rates this the best move found. Coach: Strong.');
     // the board's names: End turn, not Pass turn
     expect(explain(mv({ seq: 0, p: 0, r: 'slip', gap: 0.2, se: 0.05, best: 'Pass turn' }))).toContain('preferred End turn');
     // a wide close call is too uncertain, not "slightly preferred"; game-losing says how often
-    expect(explain(mv({ seq: 0, p: 0, r: 'close', gap: 3, raw: 3, se: 1.6, best: 'B' }))).toBe('The review preferred B by 3.0 ± 1.6 Gigs, but its play-outs disagree too much to call it.');
+    expect(explain(mv({ seq: 0, p: 0, r: 'close', gap: 3, raw: 3, se: 1.6, best: 'B' }))).toBe('The review preferred B, but its play-outs disagree too much to call it.');
     expect(explain(mv({ seq: 0, p: 0, r: 'blunder', gap: 0.5, se: 0.1, best: 'B', lost: true }))).toContain('at least 1 in 4 more of the play-outs');
   });
   it('no review text prints a Gig figure above the cap (REV-10)', () => {
@@ -269,10 +270,10 @@ describe('summary: accuracy, turning point, the rival’s relevant moves', () =>
       expect(text).not.toMatch(/220|\b([4-9]|\d{2,})(\.\d+)? Gigs/);
       for (const n of text.match(/\d+(\.\d+)?(?= (± [\d.]+ )?Gigs)/g) ?? []) expect(Number(n)).toBeLessThanOrEqual(CAP_GIGS);
     }
-    expect(explain(big)).toBe('The review preferred B: in its play-outs the difference decides the game.');
+    expect(explain(big)).toBe(`The review preferred B: in its play-outs the difference decides the game. ${costSentence('review', 'blunder')}`);
     expect(gapTag(big)).toBe('decides the game in the play-outs');
     const over = { ...big, raw: 8.04 };
-    expect(explain(over)).toBe('The review preferred B, more than 3 Gigs better.');
+    expect(explain(over)).toBe(`The review preferred B. ${costSentence('review', 'blunder')}`);
     expect(gapTag(over)).toBe('more than 3 Gigs behind');
   });
 });
@@ -326,7 +327,7 @@ describe('the stored record', () => {
     expect(reviewCounts(rec)).toEqual({ acc: accuracyOf(0.25 / 2), n: [0, 0, 1, 0, 1, 0, 0] });
     expect(seatSummary(rec.moves, 0).n.unrated).toBe(1);
     expect(explain(rec.moves[0]!)).toBe(UNRATED_TEXT);
-    expect(explain(rec.moves[1]!)).toMatch(new RegExp(`about 0.3 ± 0.1 Gigs better. ${HARD_CHECK_TEXT}$`));
+    expect(explain(rec.moves[1]!)).toMatch(new RegExp(`(win chance on average|nothing measurable) when the Hard bot played on from them to the end \\(measured 2026-11-25\\)\\. ${HARD_CHECK_TEXT}$`));
     expect(explain(rec.moves[2]!)).not.toContain(HARD_CHECK_TEXT);
     expect(moveName(rec.moves[0]!)).toBe('Keep hand');
     expect(moveName({ cat: 'mulligan', chosen: 'Yes' })).toBe('Mulligan'); // a review stored before 2026-11-25

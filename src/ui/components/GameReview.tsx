@@ -6,10 +6,13 @@
 // your coach grades from play shown instead (CoachGradesFromPlay); a game from another simulator version that still
 // replays (both seats' answers kept) is rated with the current bots and says so once (otherVersionText). The
 // second tab, "Play-out details", is the match reviewer's view of the same game in the same rating names. The dialog is
-// rendered at the document body, so the Play board's styles never reach it.
+// rendered at the document body, so the Play board's styles never reach it. A rating is never sized in Gigs on this tab:
+// a costly one says what moves of its band cost in win chance (src/lib/ratingCost.ts, docs/REVIEW_2026-11-25.md row 6);
+// the Gig thresholds are given once, under "What the ratings mean", and the gaps in Play-out details.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  BLUNDER_GIGS,
   CAP_GIGS,
   CLOSE_GIGS,
   GIG,
@@ -31,8 +34,9 @@ import { currentRules, keepReview, loadGameReview } from '../../lib/gameReviewSt
 import { mySeat, practiceRequest, practiceSpec, replayVersionProblem, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
 import { otherVersionText, replayedFromOtherVersion, sessionEnding } from '../../lib/practiceVerdict';
 import { reviewFrames, type ReviewFrames } from '../../lib/reviewFrames';
-import { explain, FOLLOW_TEXT, gapTag, moveName, RERATED_TEXT, REVIEW_BASIS, REVIEW_RUNNING_TEXT, saidText, sameInstrumentText, staleText } from '../../lib/reviewWords';
-import { behindText, shownLabel, verdictRating } from '../../lib/coachWords';
+import { ACCURACY_TEXT, costTagOf, explain, FOLLOW_TEXT, moveName, RERATED_TEXT, REVIEW_BASIS, REVIEW_RUNNING_TEXT, saidText, sameInstrumentText, staleText } from '../../lib/reviewWords';
+import { shownLabel, verdictRating } from '../../lib/coachWords';
+import { costLine } from '../../lib/ratingCost';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewWorkerHost, useReviewHost, WAITING_TEXT } from '../reviewWorkerHost';
 import { Modal } from './Modal';
@@ -150,7 +154,7 @@ export function CoachGradesFromPlay({ coach, names }: { coach: readonly CoachRat
             {c.chose !== c.coach && (
               <span className="muted">
                 {' '}
-                (coach's pick: <MentionText text={shownLabel(c.best)} skip={names} />, {behindText(c.gap, c.se)})
+                (coach's pick: <MentionText text={shownLabel(c.best)} skip={names} />)
               </span>
             )}
           </li>
@@ -159,8 +163,6 @@ export function CoachGradesFromPlay({ coach, names }: { coach: readonly CoachRat
     </div>
   );
 }
-
-const gigs = (x: number) => x.toFixed(2);
 
 export function GameReviewModal({ src: given, title, onClose, backdropClassName }: { src: GameReviewSource; title: string; onClose: () => void; backdropClassName?: string }) {
   // the game reviewed is the one the dialog opened with (a parent re-rendering must not restart the review)
@@ -360,11 +362,12 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
         />
         <SeatCard who="Rival" s={sums[1]} note="rated by the review's play-outs" />
       </div>
+      <p className="small muted gr-accuracy-note">{ACCURACY_TEXT}</p>
       <p className="small muted gr-basis">{REVIEW_BASIS}</p>
       <FailedMoves moves={rec.failed ?? []} who={(p) => (p === me ? 'you' : 'the rival')} />
       {turning ? (
         <p className="gr-turning">
-          <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played <MentionText text={moveName(turning)} skip={rec.names} /> <RatingPill r={turning.r} /> ({gapTag(turning)}).{' '}
+          <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played <MentionText text={moveName(turning)} skip={rec.names} /> <RatingPill r={turning.r} /> ({costTagOf(turning)}).{' '}
           <button type="button" className="ghost" onClick={() => (setFilter('all'), setSel(turning.seq))}>
             Show
           </button>
@@ -384,13 +387,15 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
           ))}
         </ul>
         <p className="muted">
-          Gaps are in Gigs: the bots' estimate of value in Gig-equivalents (one Gig = {GIG} points of their evaluation), not Gigs on the board, and never shown past {CAP_GIGS}. Each
-          option is played out in {rec.rollouts} shared worlds, and the gap comes with its standard error. A close call is under {CLOSE_GIGS} Gigs or within 2 standard errors (a gap
-          that is about the same in every play-out comes from fixed terms of the evaluation, not the play-outs, and counts only from 0.5 Gigs); mistakes start at {MISTAKE_GIGS} Gigs. Accuracy =
-          100 × e^(−average Gigs lost per counted move), where moves inside the noise lose 0 and a loss counts at most {CAP_GIGS} Gigs. A Slip or worse is played out again on fresh
-          worlds before it is shown. Your moves and the rival's are rated the same way, by these play-outs; where the coach graded one of your moves
-          during play, its grade is shown beside the review's for reference (the coach measured fewer play-outs, so the two can differ). The turning point is the losing side's
-          costliest move.
+          How the ratings are set: each option is played out in {rec.rollouts} shared worlds and scored in Gigs, the bots' own unit of value (one Gig = {GIG} points of their
+          evaluation), not Gigs on the board. A close call is under {CLOSE_GIGS} Gigs from the best move found or within 2 standard errors (a gap about the same in every
+          play-out comes from fixed terms of the evaluation, not the play-outs, and counts only from 0.5 Gigs); a Slip is clearly behind by less than {MISTAKE_GIGS} Gigs, a
+          Mistake by {MISTAKE_GIGS} or more, a Blunder by {BLUNDER_GIGS} or more. A Gig is not win chance, and a bigger gap is not reliably a costlier move, so the ratings
+          above say what each band cost on average when the Hard bot played on from such moves to the end ({costLine('review')}), not their gap. Accuracy = 100 ×
+          e^(−average Gigs lost per counted move), where moves inside the noise lose 0 and a loss counts at most {CAP_GIGS} Gigs. A Slip or worse is played out again on
+          fresh worlds before it is shown, and a side's one or two Mistakes and Blunders again with the Hard bot playing on. Your moves and the rival's are rated the same
+          way, by these play-outs; where the coach graded one of your moves during play, its grade is shown beside the review's for reference (the coach measured fewer
+          play-outs, so the two can differ). The turning point is the losing side's costliest move.
         </p>
       </details>
       <div className="gr-moves">
@@ -457,7 +462,7 @@ function SeatCard({ who, s, note }: { who: string; s: SeatSummary; note?: string
       <div>
         <b>{who}</b>
         <div className="small muted">
-          {s.counted} counted move{s.counted === 1 ? '' : 's'}, {gigs(s.avgLoss)} Gigs lost per move
+          {s.counted} counted move{s.counted === 1 ? '' : 's'}
           {s.n.unclear ? `; ${s.n.unclear} with no clear difference` : ''}
           {note ? ` (${note})` : ''}
         </div>

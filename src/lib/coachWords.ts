@@ -8,6 +8,7 @@
 // CAP_GIGS.
 import { BLUNDER_GIGS, CAP_GIGS, CLOSE_GIGS, GIG, RATING_INFO, type Rating } from './gameReview';
 import type { MoveVerdict } from '../ai/coach';
+import { costNote, shownCost, type CostBand } from './ratingCost';
 
 /**
  * A gap of this many Gigs or more means the game ended differently in the play-outs (the evaluation's decided line,
@@ -15,8 +16,14 @@ import type { MoveVerdict } from '../ai/coach';
  */
 export const DECIDED_GIGS = 5000 / GIG;
 
-/** One line for a learner: what a coach figure in Gigs is. */
-export const GIG_NOTE = `Coach figures in Gigs are its estimate of value in Gig-equivalents (one Gig = ${GIG} points of the bots' evaluation, from play-outs of a few turns), not Gigs on the board.`;
+/** What the coach's costly grades cost in win chance, as measured (src/lib/ratingCost.ts): the scorecard's footnote. */
+export const COACH_COST_NOTE = costNote('coach');
+
+/**
+ * One line for a learner: what a coach figure in Gigs is, and that it is not win chance (docs/REVIEW_2026-11-25.md row
+ * 6): the size of a gap is a poor guide to what a move costs, so the grades are put into win chance (src/lib/ratingCost.ts).
+ */
+export const GIG_NOTE = `Coach figures in Gigs are the bots' own unit of value (one Gig = ${GIG} points of their evaluation, from play-outs of a few turns), not Gigs on the board and not win chance: a bigger gap is not reliably a costlier move. ${COACH_COST_NOTE}`;
 
 /** How big a gap (Gigs, ≥ 0) is for printing: one that decides the game in the play-outs, one past the cap, or a figure. */
 export function gapSize(gap: number): 'decided' | 'over-cap' | 'figure' {
@@ -92,6 +99,19 @@ export function verdictRating(verdict: MoveVerdict | string, gap: number | null 
     default:
       return null;
   }
+}
+
+/**
+ * What a costly coach grade costs, measured (src/lib/ratingCost.ts), for the toast and the scorecard: "moves rated Mistake
+ * cost about 6% win chance on average", "moves rated Slip often cost nothing measurable". Null for a grade that is not a
+ * Slip, Mistake or Blunder. The gap in Gigs is not shown with a verdict: its size is a poor guide to the cost.
+ */
+export function coachCostWords(verdict: MoveVerdict | string, gap: number | null | undefined): string | null {
+  const r = verdictRating(verdict, gap);
+  if (r !== 'slip' && r !== 'mistake' && r !== 'blunder') return null;
+  const n = shownCost('coach', r as CostBand);
+  const name = RATING_INFO[r].label;
+  return n === null ? `moves rated ${name} often cost nothing measurable` : `moves rated ${name} cost about ${n}% win chance on average`;
 }
 
 /** The display name of a verdict's rating ("Best", "Close call", "Slip", "Mistake", "Blunder"), or null when not measured. */

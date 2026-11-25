@@ -1,9 +1,12 @@
-// How the Game review puts a rated move into words (src/lib/gameReview.ts rates it). Gap figures go through the coach's
-// gapFigure / behindText (src/lib/coachWords.ts), so a review never prints more than CAP_GIGS either ("more than 3
-// Gigs"), and option names through shownLabel ("End turn", "No reaction"), as the board and the coach name them. Kept
-// apart from gameReview.ts because coachWords.ts reads gameReview.ts's constants when it loads.
-import { behindText, gapFigure, gapSize, shownLabel, verdictName } from './coachWords';
-import { CLOSE_GIGS, fixedTerms, type CoachSaid, type ReviewMove } from './gameReview';
+// How the Game review puts a rated move into words (src/lib/gameReview.ts rates it). A rating is never sized in Gigs, the
+// bots' unit of value, which is not win chance: a costly rating says what moves of its band cost in win chance on
+// average, as measured (src/lib/ratingCost.ts, docs/REVIEW_2026-11-25.md row 6); the gaps in Gigs stay in the Play-out
+// details tab and in gapTag for the command line. Option names go through shownLabel ("End turn", "No reaction"), as the
+// board and the coach name them. Kept apart from gameReview.ts because coachWords.ts reads gameReview.ts's constants when
+// it loads.
+import { behindText, gapSize, shownLabel, verdictName } from './coachWords';
+import { CLOSE_GIGS, fixedTerms, RATING_INFO, type CoachSaid, type ReviewMove } from './gameReview';
+import { costNote, costSentence, costTag, type CostBand } from './ratingCost';
 
 /**
  * What the ratings rest on, in plain words, for the screen and the legend: the bots' own evaluation a turn or so ahead
@@ -11,9 +14,6 @@ import { CLOSE_GIGS, fixedTerms, type CoachSaid, type ReviewMove } from './gameR
  */
 export const REVIEW_BASIS =
   "How these ratings are made: each option is played out by the bots for about a turn (to the end of the rival's next turn; for a block or other reaction, to the end of your own next turn), with the cards you couldn't see re-dealt, and scored by the bots' own evaluation. So a rating means best given what you could see then, not with hindsight, and a plan that pays off later than that, or one the bots wouldn't follow up, can be rated lower than it deserves.";
-
-/** A gap's size after "preferred X": "about 0.6 ± 0.1 Gigs" or "more than 3 Gigs". */
-const bySize = (g: number, se?: number | null) => (gapSize(g) === 'figure' ? `about ${gapFigure(g, se)}` : gapFigure(g, se));
 
 /** A move's gap before the cap (Gigs): what its words describe. */
 const rawGap = (m: Pick<ReviewMove, 'gap' | 'raw'>) => Math.max(0, m.raw ?? m.gap ?? 0);
@@ -34,8 +34,12 @@ export function moveName(m: Pick<ReviewMove, 'cat' | 'chosen'>): string {
 export const UNRATED_TEXT =
   'Mulligans are not rated: the only way to measure one is to play whole games out for each answer, and the difference stays inside the noise almost every time, so a rating would be a guess. Not counted.';
 
+/** A costly rating's band (Slip, Mistake, Blunder), else null. */
+const costBand = (r: string): CostBand | null => (r === 'slip' || r === 'mistake' || r === 'blunder' ? r : null);
+
 /**
- * One or two plain sentences on a move: what was better and by how much (the coach's reason in reviews that rated by it).
+ * One or two plain sentences on a move: what was better, and for a costly rating what moves of its band cost in win
+ * chance on average (src/lib/ratingCost.ts), never its gap in Gigs (the coach's reason in reviews that rated by it).
  */
 export function explain(m: ReviewMove): string {
   const g = rawGap(m);
@@ -57,12 +61,12 @@ export function explain(m: ReviewMove): string {
       s = UNRATED_TEXT;
       break;
     case 'best':
-      s = better === chosen || g <= 0 ? `${who} rates this the best move found.` : `As good as ${better} (within 0.1 Gigs).`;
+      s = better === chosen || g <= 0 ? `${who} rates this the best move found.` : `As good as ${better}: no measurable difference.`;
       break;
     case 'close':
-      if (g < CLOSE_GIGS) s = `${who} slightly preferred ${better}, by ${gapFigure(g)}: too small to matter.`;
-      else if (fixedTerms(m.se)) s = `${who} preferred ${better} by ${gapFigure(g)}, but the play-outs all gave about that difference: it comes from fixed terms of the bots' evaluation, not from the play-outs, and under 0.5 Gigs that is too little to call.`;
-      else s = `${who} preferred ${better} by ${gapFigure(g, m.se)}, but its play-outs disagree too much to call it.`;
+      if (g < CLOSE_GIGS) s = `${who} slightly preferred ${better}: too small to matter.`;
+      else if (fixedTerms(m.se)) s = `${who} preferred ${better}, but every play-out gave about the same small difference: it comes from fixed terms of the bots' evaluation, not from the play-outs, and is too little to call.`;
+      else s = `${who} preferred ${better}, but its play-outs disagree too much to call it.`;
       break;
     case 'unclear':
       s = 'Every option measured comes out about the same here (or the game was already decided), so this move is not counted.';
@@ -70,10 +74,13 @@ export function explain(m: ReviewMove): string {
     case 'forced':
       s = 'The only option.';
       break;
-    default:
+    default: {
+      const band = costBand(m.r);
       s =
-        (gapSize(g) === 'decided' ? `${who} preferred ${better}: in its play-outs the difference decides the game.` : `${who} preferred ${better}, ${bySize(g, m.se)} better.`) +
-        (m.lost ? ` It also lost the game in at least 1 in 4 more of the play-outs than ${better}.` : '');
+        (gapSize(g) === 'decided' ? `${who} preferred ${better}: in its play-outs the difference decides the game.` : `${who} preferred ${better}.`) +
+        (m.lost ? ` It also lost the game in at least 1 in 4 more of the play-outs than ${better}.` : '') +
+        (band ? ` ${costSentence(m.src === 'coach' ? 'coach' : 'review', band)}` : '');
+    }
   }
   if (m.src === 'oracle' && m.ms?.h) s += ` ${HARD_CHECK_TEXT}`;
   return m.why && m.src === 'coach' ? `${s} Coach: ${m.why}` : s;
@@ -84,8 +91,8 @@ export const HARD_CHECK_TEXT = "Measured again with the Hard bot playing on for 
 
 /**
  * The coach's grade of your move during play, kept beside the review's rating for reference (ReviewMove.said): "During
- * play the coach said Mistake: it preferred X (−0.6 ± 0.1 Gigs). Coach: …". The coach measured fewer worlds, a shorter
- * way, so the two can differ; the review's rating is the one counted.
+ * play the coach said Mistake: it preferred X. Coach: …". The coach measured fewer worlds, a shorter way, so the two can
+ * differ; the review's rating is the one counted. No gap in Gigs (row 6: the size is a poor guide to the cost).
  */
 export function saidText(s: CoachSaid, cat: string): string {
   const pick = s.best !== undefined ? moveName({ cat, chosen: s.best }) : null;
@@ -96,9 +103,24 @@ export function saidText(s: CoachSaid, cat: string): string {
     ? `During play the coach said No clear difference${pick ? ` (it would have picked ${pick})` : ''}: every option it measured came out about the same`
     : s.v === 'agree'
       ? 'During play the coach said this was its own pick'
-      : `During play the coach said ${name}${checked}${pick && s.v !== 'best' ? `: it preferred ${pick} (${behindText(s.gap, s.se)})` : pick ? `: as good as ${pick}` : ''}`;
+      : `During play the coach said ${name}${checked}${pick && s.v !== 'best' ? `: it preferred ${pick}` : pick ? `: as good as ${pick}` : ''}`;
   return `${head}.${s.why ? ` Coach: ${s.why}` : ''}`;
 }
+
+/**
+ * Under the two seats' accuracies: what accuracy shows and what it does not (docs/REVIEW_2026-11-25.md §2). It follows
+ * skill across bot tiers (the figures: today's review on the 240 games of reports/review-validity-2026-11-25.md, "Row
+ * 6"), but in 60 Hard-vs-Hard mirror matches the side with the higher accuracy won 29: it does not say which of two
+ * strong players played better.
+ */
+export const ACCURACY_TEXT =
+  "Accuracy is how little a side's counted moves gave away by these play-outs. It tells a weak player from a strong one (bot players on the same deals: Easy about 66, Medium about 76, Hard about 95), but not two strong players apart: in games between two Hard bots with the same deck, the side with the higher accuracy won about half of them. It also runs higher in won games, because a lost position offers fewer good moves.";
+
+/**
+ * Under Play-out details, which keeps the gaps in Gigs: a Gig is the bots' unit, not win chance, and what the ratings cost
+ * in win chance (src/lib/ratingCost.ts).
+ */
+export const REVIEW_GIG_NOTE = `Gaps here are in Gigs, the bots' own unit of value (one Gig = 40 points of their evaluation), not Gigs on the board and not win chance: a bigger gap is not reliably a costlier move. ${costNote('review')}`;
 
 /** Under the review's progress: how every move is measured. */
 export const REVIEW_RUNNING_TEXT =
@@ -108,8 +130,17 @@ export const REVIEW_RUNNING_TEXT =
 export const sameInstrumentText = (saidCount: number) =>
   saidCount ? `rated by the review's play-outs, as the rival's; ${saidCount === 1 ? '1 also graded' : `${saidCount} also graded`} by the coach during play, shown beside it` : "rated by the review's play-outs, as the rival's";
 
-/** A rated move's gap as a short tag: "−0.6 ± 0.1 Gigs", "more than 3 Gigs behind". */
+/** A rated move's gap as a short tag in Gigs: "−0.6 ± 0.1 Gigs", "more than 3 Gigs behind" (the command line; the screen shows costTagOf). */
 export const gapTag = (m: Pick<ReviewMove, 'gap' | 'raw' | 'se'>) => behindText(rawGap(m), m.se);
+
+/**
+ * A rated move's tag on the screen (the turning point): for a Slip, Mistake or Blunder what moves of its band cost, "about
+ * 6% win chance on average" or "often costs nothing measurable" (src/lib/ratingCost.ts); else the rating's name.
+ */
+export function costTagOf(m: Pick<ReviewMove, 'r' | 'src'>): string {
+  const band = costBand(m.r);
+  return band ? costTag(m.src === 'coach' ? 'coach' : 'review', band) : RATING_INFO[m.r].label;
+}
 
 /** Above a stored review rated again under newer rules from the measurements kept with it (src/lib/gameReview.ts rerateRecord). */
 export const RERATED_TEXT = 'Rated again with the current rating rules, from the measurements kept with this review.';

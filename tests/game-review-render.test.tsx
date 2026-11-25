@@ -3,6 +3,7 @@
 // and a rival error flagged as a missed chance; no figure past the 3-Gig cap and the board's names ("End turn"); the
 // guest's seat reviewed as "you"; a game that can't be replayed refused in a plain sentence; and the dialog opens on
 // the Game review tab with the Play-out details beside it.
+import { costTag } from '../src/lib/ratingCost';
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { GameReviewModal, GameReviewView, ReviewResult } from '../src/ui/components/GameReview';
@@ -117,7 +118,9 @@ describe('Game review screen', () => {
     const missed = renderToStaticMarkup(<ReviewResult rec={{ ...rec, winner: 0 }} replay={replay} frames={null} />);
     // you won: the rival's costliest move is the turning point (the capped blunder with the larger raw gap)
     expect(missed).toContain('<b>Turning point:</b> turn 6, the rival played Huge rival error');
-    expect(missed).toContain('more than 3 Gigs behind');
+    // the turning point says what its band costs in win chance (row 6), not its gap in Gigs
+    expect(missed).toContain(costTag('review', 'blunder'));
+    expect(missed).not.toContain('Gigs behind');
   });
 
   it('the guest of an online game is "you" (seat 1)', () => {
@@ -137,7 +140,7 @@ describe('Game review screen', () => {
     expect(html).toContain('1 move could not be measured');
     expect(html).toContain('Turn 4, you: Rival d6: 4 → 3. Error: clone() with 1 pending effect(s)');
     // the summary is the same as without it: the move is not counted
-    const seats = (h: string) => [...h.matchAll(/aria-label="(You|Rival): [^"]*"|\d+ counted moves?, [^<]*/g)].map((m) => m[0]);
+    const seats = (h: string) => [...h.matchAll(/aria-label="(You|Rival): [^"]*"|\d+ counted moves?[^<]*/g)].map((m) => m[0]);
     expect(seats(plain).length).toBeGreaterThanOrEqual(4);
     expect(seats(html)).toEqual(seats(plain));
   });

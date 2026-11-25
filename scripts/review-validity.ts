@@ -523,6 +523,29 @@ function costPopulation(gs: Game[], cg: Record<string, CoachGradeRow[]>): CostFl
 }
 
 /**
+ * The ratings each band's figure is read from: in each (instrument, band, player) stratum a random sample of up to
+ * `--per-stratum` (the stratum's order shuffled from a fixed seed, so `cost-report` reads the same sample). Only the
+ * sample counts: a measurement reused from `--reuse` saves its play-outs when its rating is in the sample, and is not
+ * used otherwise (the coach's ratings that the earlier run measured are the ones the review flagged too, not a random part
+ * of the coach's).
+ */
+function costSample(pop: CostFlag[]): Set<CostFlag> {
+  const r = lcg(V.seed * 31 + 11);
+  const out = new Set<CostFlag>();
+  for (const inst of ['review', 'coach'] as const)
+    for (const band of BANDS)
+      for (const who of WHO) {
+        const xs = pop.filter((x) => x.inst === inst && x.band === band && x.who === who);
+        for (let i = xs.length - 1; i > 0; i--) {
+          const j = Math.floor(r() * (i + 1));
+          [xs[i], xs[j]] = [xs[j]!, xs[i]!];
+        }
+        for (const x of xs.slice(0, V['per-stratum'])) out.add(x);
+      }
+  return out;
+}
+
+/**
  * Truth already measured by the `flags` step in another output directory on the same games (`--reuse DIR`): its
  * selection is re-made from that directory's games.json exactly as `flags` made it, so each row's position is known.
  */
@@ -578,21 +601,8 @@ async function costs() {
   const done = new Map<string, CostRow>();
   if (fs.existsSync(file('costs.json'))) for (const x of readJson<CostRow[]>('costs.json')) done.set(x.key, x);
   for (const [k, v] of reuse) if (!done.has(k)) done.set(k, { key: k, ...v });
-  const r = lcg(V.seed * 31 + 11);
   const want = new Map<string, CostFlag>();
-  for (const inst of ['review', 'coach'] as const)
-    for (const band of BANDS)
-      for (const who of WHO) {
-        const xs = pop.filter((x) => x.inst === inst && x.band === band && x.who === who);
-        for (let i = xs.length - 1; i > 0; i--) {
-          const j = Math.floor(r() * (i + 1));
-          [xs[i], xs[j]] = [xs[j]!, xs[i]!];
-        }
-        // measured ones first count toward the stratum's sample (they are a random part of it: the earlier run sampled at random too)
-        const have = xs.filter((x) => done.has(x.key));
-        const rest = xs.filter((x) => !done.has(x.key));
-        for (const x of rest.slice(0, Math.max(0, V['per-stratum'] - have.length))) want.set(x.key, x);
-      }
+  for (const x of costSample(pop)) if (!done.has(x.key)) want.set(x.key, x);
   console.log(`Costly ratings: ${pop.length} (${new Set(pop.map((x) => x.key)).size} positions); ${done.size} already measured; measuring ${want.size} on ${V.truth} worlds`);
   const list = [...want.values()];
   const jobs = list.map((c, k): Extract<ValidityJob, { kind: 'flag' }> => ({ kind: 'flag', id: String(k), replay: replay(c.g), p: c.p, at: c.at, best: c.best, truthWorlds: V.truth, hardWorlds: 0, seed: 8_000_000 + k * 101 }));
@@ -613,7 +623,7 @@ async function costs() {
  * A band's figure: the mean gain over every costly rating of the band in these games, estimated by strata (player type,
  * weighted by its share of the band's ratings), with the stratified standard error; 90% interval ±1.645 SE.
  */
-function stratified(pop: CostFlag[], done: Map<string, CostRow>, sel: (x: CostFlag) => boolean) {
+function stratified(pop: CostFlag[], done: Map<string, CostRow>, sel: (x: CostFlag) => boolean, sample: Set<CostFlag>) {
   const xs = pop.filter(sel);
   let est = 0;
   let v = 0;
@@ -622,7 +632,7 @@ function stratified(pop: CostFlag[], done: Map<string, CostRow>, sel: (x: CostFl
   for (const who of WHO) {
     const s = xs.filter((x) => x.who === who);
     if (!s.length) continue;
-    const meas = s.map((x) => done.get(x.key)?.gain).filter((g): g is number => g !== undefined && Number.isFinite(g));
+    const meas = s.filter((x) => sample.has(x)).map((x) => done.get(x.key)?.gain).filter((g): g is number => g !== undefined && Number.isFinite(g));
     const w = s.length / xs.length;
     per.push(`${who} ${meas.length}/${s.length} ${f1(mean(meas))}`);
     if (!meas.length) return { est: NaN, se: NaN, n: 0, pop: xs.length, per: per.join(', ') };
@@ -639,9 +649,10 @@ function costReport(pop: CostFlag[], done: Map<string, CostRow>) {
   console.log('\n| Rated by | Band | ratings in the games | measured | mean rated gap (Gigs) | gain with Hard to the end (points) | 90% interval | by player: measured/all mean | shown as |');
   console.log('|---|---|---|---|---|---|---|---|---|');
   const summary: Record<string, unknown> = {};
+  const sample = costSample(pop);
   for (const inst of ['coach', 'review'] as const)
     for (const band of BANDS) {
-      const s = stratified(pop, done, (x) => x.inst === inst && x.band === band);
+      const s = stratified(pop, done, (x) => x.inst === inst && x.band === band, sample);
       const lo = s.est - 1.645 * s.se;
       const hi = s.est + 1.645 * s.se;
       const shown = !Number.isFinite(s.est) ? '—' : lo > 0 ? `about ${r0(s.est)} points` : 'often costs nothing measurable';
@@ -653,7 +664,7 @@ function costReport(pop: CostFlag[], done: Map<string, CostRow>) {
   console.log('|---|---|---|---|---|---|');
   for (const inst of ['coach', 'review'] as const)
     for (const stage of ['early', 'middle', 'late']) {
-      const s = stratified(pop, done, (x) => x.inst === inst && x.band !== 'slip' && stageOf(x.turn) === stage);
+      const s = stratified(pop, done, (x) => x.inst === inst && x.band !== 'slip' && stageOf(x.turn) === stage, sample);
       console.log(`| ${inst} | ${stage} | ${s.pop} | ${s.n} | ${f1(s.est)} ± ${f1(s.se)} | [${f1(s.est - 1.645 * s.se)}, ${f1(s.est + 1.645 * s.se)}] |`);
     }
   writeJson('costs-summary.json', summary);

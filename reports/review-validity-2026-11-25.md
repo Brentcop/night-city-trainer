@@ -166,3 +166,51 @@ measurement named (the Hard bot playing on to the end, the date); a band whose 9
 "often costs nothing measurable" and no figure. The coach's bands and the review's are measured and shown apart. By
 game stage (turns 1–4, 5–9, 10 on) the same estimate over Mistakes and Blunders together, for information only: a stage
 is not given its own words unless every band is measured within ±3 points there.
+
+### Results
+
+`coach --threads 4` (240 games, both seats: 12,976 moves graded, 95.8 ms each on 4 threads; agree 3,614, Best 579, Close
+call 533, No clear difference 6,155, Slip 57, Mistake 286, Blunder 1,163, not measured 589) and `costs --threads 4
+--truth 16 --per-stratum 60 --reuse <the flags run>` (1,511 s): 2,734 costly ratings of actions and reactions with a
+named better move (1,863 positions and moves), 549 sampled positions measured on 16 worlds, plus the `flags` step's
+24-world measurements of those in the sample; 165 sampled positions could not be played both ways (all but 5 a Call of
+a face-down Legend, as the move made or the better one), so the figures do not cover such ratings. The games are the
+report's games (the same win rates); today's review gave 54 Slips, 199 Mistakes and 975 Blunders there, and an accuracy
+of 65.5 (Easy), 75.9 (Medium, seat 1) and 95.3 (Hard) on average.
+
+| Rated by | Band | ratings in the games | measured | mean rated gap (Gigs) | gain with Hard to the end (points) | 90% interval | by player: measured/all mean | shown as |
+|---|---|---|---|---|---|---|---|---|
+| coach | slip | 57 | 38 | 0.28 | 1.4 ± 1.2 | [-0.5, 3.3] | easy 12/22 -3.6, medium 24/32 5.3, hard 2/3 -3.1 | often costs nothing measurable |
+| coach | mistake | 286 | 116 | 0.72 | 1.6 ± 1.3 | [-0.6, 3.8] | easy 38/91 7.4, medium 47/144 -0.8, hard 31/51 -1.9 | often costs nothing measurable |
+| coach | blunder | 1163 | 143 | 3.93 | 8.4 ± 1.8 | [5.4, 11.5] | easy 45/406 9.5, medium 48/662 7.8, hard 50/95 8.5 | about 8 points |
+| review | slip | 54 | 34 | 0.27 | 0.2 ± 1.3 | [-1.9, 2.4] | easy 12/26 -1.0, medium 17/21 1.8, hard 5/7 0.0 | often costs nothing measurable |
+| review | mistake | 199 | 98 | 0.71 | 1.2 ± 1.7 | [-1.5, 4.0] | easy 44/76 2.4, medium 44/111 -0.9, hard 10/12 13.1 | often costs nothing measurable |
+| review | blunder | 975 | 148 | 3.82 | 10.1 ± 1.7 | [7.3, 12.8] | easy 52/375 12.9, medium 53/548 8.3, hard 43/52 8.6 | about 10 points |
+
+(± is the stratified standard error; "measured/all" the sampled ratings with a measurement against the ratings of that
+player in the band.) By game stage, Mistakes and Blunders together:
+
+| Rated by | stage | ratings | measured | gain (points) | 90% interval |
+|---|---|---|---|---|---|
+| coach | early (turns 1–4) | 193 | 42 | 3.7 ± 3.6 | [-2.2, 9.6] |
+| coach | middle (5–9) | 910 | 164 | 5.5 ± 1.4 | [3.1, 7.8] |
+| coach | late (10 on) | 346 | 53 | 6.1 ± 2.5 | [2.0, 10.1] |
+| review | early | 164 | 39 | 10.5 ± 3.6 | [4.7, 16.4] |
+| review | middle | 727 | 155 | 2.6 ± 1.4 | [0.3, 4.9] |
+| review | late | 283 | 52 | 11.9 ± 3.3 | [6.5, 17.3] |
+
+- **Only Blunders show a cost**: about 8 points of win chance for the coach's, 10 for the review's (90% intervals
+  [5.4, 11.5] and [7.3, 12.8]). Slips and Mistakes, though clearly behind in the play-outs of a turn or so, cost nothing
+  these samples can tell from 0 (the review's Mistakes 1.2 [−1.5, 4.0]); by the rule they are shown as "often costs
+  nothing measurable", with no figure. Each band's 90% half-width is 1.9 to 3.1 points, near the ±3 asked; the Slip bands
+  are small (54 and 57 in the games) and were measured nearly whole.
+- The size within a band says little: the Mistake bands' gaps (0.7 Gigs on average) cost about 1 to 2 points, the
+  Blunder bands' (3.8 to 3.9 Gigs, uncapped) 8 to 10, against the 4 points per Gig of REVIEW_2026-11-25 §2.
+- By stage the figures do not settle within ±3 points (the rule's bar for words of their own), so no stage is worded
+  apart. The review's middle game (2.6 [0.3, 4.9]) sits below its early and late games (10.5 and 11.9).
+- **Shown** (`src/lib/ratingCost.ts`, pinned to this table by `tests/rating-cost.test.ts`): the coach's toast "Mistake:
+  the coach preferred X (checked on 16 fresh play-outs; moves rated Mistake often cost nothing measurable)", "Blunder: …
+  (…; moves rated Blunder cost about 8% win chance on average)"; the review's move line "The review preferred X. Moves
+  the review rates Blunder cost about 10% win chance on average when the Hard bot played on from them to the end
+  (measured 2026-11-25)."; the legend, the turning point, the scorecard's and Play-out details' notes the same. Before,
+  each said the gap in Gigs ("about 0.9 Gigs better", "−0.6 ± 0.1 Gigs").

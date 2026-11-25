@@ -8,6 +8,7 @@
 import type { DecisionReview, GameReview, SeatAnswers } from '../ai/reviewer';
 import type { PlayerId } from '../engine/types';
 import { CURRENT_SIM_VERSION } from './playedRecord';
+import { costSentence } from './ratingCost';
 
 /** Evaluation points per Gig (= GIG_SWING; tests/game-review.test.ts checks they agree). */
 export const GIG = 40;
@@ -104,18 +105,21 @@ export interface RatingInfo {
   mark: string;
   /** the colour class (never the only cue) */
   tone: 'top' | 'good' | 'fine' | 'warn' | 'bad' | 'none';
-  /** one line for the legend */
+  /**
+   * one line for the legend, in words a player reads: no thresholds in Gigs (the screen's "What the ratings mean" gives
+   * them apart); a costly rating says what moves of its band cost in win chance (src/lib/ratingCost.ts, row 6)
+   */
   means: string;
 }
 export const RATING_INFO: Record<Rating, RatingInfo> = {
   // never given since 2026-11-25 (REVIEW_RULES 4); kept for reviews stored before, shown as they were
   inspired: { label: 'Inspired', mark: '◆◆', tone: 'top', means: 'Older reviews only. A Sharp move that a quick read ranks third or lower, where its first choice would have been a blunder: hard to find. Never for ending the turn.' },
   sharp: { label: 'Sharp', mark: '◆', tone: 'top', means: 'Older reviews only. The only good move (every other option measured is clearly worse by a mistake or more), and not the one a quick read picks first.' },
-  best: { label: 'Best', mark: '●', tone: 'good', means: 'The best move found, or within 0.1 Gigs of it.' },
-  close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Behind the best move found, but too little or too uncertain to call: under 0.15 Gigs, or within 2 standard errors.' },
-  slip: { label: 'Slip', mark: '▽', tone: 'warn', means: 'Clearly behind the best move, by less than 0.375 Gigs.' },
-  mistake: { label: 'Mistake', mark: '▼', tone: 'bad', means: 'Clearly behind the best move by 0.375 Gigs or more.' },
-  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: 'Clearly behind by a whole Gig or more, or a mistake that also loses the game in at least 1 in 4 more of the play-outs.' },
+  best: { label: 'Best', mark: '●', tone: 'good', means: 'The best move found, or as good: no measurable difference.' },
+  close: { label: 'Close call', mark: '○', tone: 'fine', means: 'Behind the best move found, but by too little, or too uncertainly, to call. Not counted as a loss.' },
+  slip: { label: 'Slip', mark: '▽', tone: 'warn', means: `Clearly behind the best move found, by a small margin. ${costSentence('review', 'slip')}` },
+  mistake: { label: 'Mistake', mark: '▼', tone: 'bad', means: `Clearly behind the best move found. ${costSentence('review', 'mistake')}` },
+  blunder: { label: 'Blunder', mark: '▼▼', tone: 'bad', means: `Clearly behind by a large margin, or a mistake that also loses the game in at least 1 in 4 more of the play-outs. ${costSentence('review', 'blunder')}` },
   forced: { label: 'Forced', mark: '–', tone: 'none', means: 'Only one option. Not counted.' },
   unclear: { label: 'No clear difference', mark: '=', tone: 'none', means: 'Every option measured comes out about the same, or the game was already decided. Not counted.' },
   unrated: { label: 'Not rated', mark: '·', tone: 'none', means: 'A kind of move the review does not rate: the mulligan, whose difference stays inside the noise even over whole games. Not counted.' },

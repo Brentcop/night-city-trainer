@@ -1,13 +1,15 @@
 // The match reviewer's view of a game (a tournament game, or the "Play-out details" tab of the Game review): runs the
 // reviewer in a worker and shows each seat's moves in the Game review's own rating names (src/lib/gameReview.ts
 // rateOracle: the same noise test, never a second grade or "accuracy" of its own), the moves its play-outs liked least,
-// decision types and momentum. A recorded game that no longer replays is refused in a plain sentence.
+// decision types and momentum. A recorded game that no longer replays is refused in a plain sentence. Gaps stay in Gigs
+// here on purpose (the measurement itself), with REVIEW_GIG_NOTE saying a Gig is not win chance; the Game review tab says
+// what a rating costs in win chance instead (src/lib/ratingCost.ts).
 import { useEffect, useState } from 'react';
 import type { DecisionReview, GameReview, SeatReview } from '../../ai/reviewer';
 import { DECIDED_EVAL, GIG_SWING } from '../../ai/eval';
 import { counts, lossOf, RATINGS, rateOracle, type Rating } from '../../lib/gameReview';
 import { behindText, gapFigure, gapSize, shownLabel } from '../../lib/coachWords';
-import { failedText } from '../../lib/reviewWords';
+import { failedText, REVIEW_GIG_NOTE } from '../../lib/reviewWords';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { useReviewHost, WAITING_TEXT, type ReviewWorkerHost } from '../reviewWorkerHost';
 import { RatingPill } from './RatingPill';
@@ -127,6 +129,7 @@ export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req
       <FailedMoves moves={(r.failed ?? []).map((f) => ({ seq: f.seq, turn: f.turn, p: f.player, chosen: f.chosen, why: f.reason }))} who={(p) => (mySeat === p ? 'you' : r.names[p])} />
       <p className="small muted" style={{ marginBottom: 0 }}>
         Main-phase moves, reactions and Gig choices are measured (not mulligans, targets or modes), judged by the bots' own evaluation about a turn ahead, with the cards the player couldn't see re-dealt.
+        {` ${REVIEW_GIG_NOTE} `}
         Reviewed in {(r.ms / 1000).toFixed(0)} s.
       </p>
     </div>
