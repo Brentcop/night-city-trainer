@@ -45,19 +45,21 @@ describe('stale leaderboard entries (the Seasons and deck pages still mark them)
     expect(staleLeaderRow({ seasons: { '4': 0.6 } }, V)).toBe(true); // recorded without a version
     expect(staleLeaderRow({ seasons: { '9': 0.6 } }, V)).toBe(true); // a season with no record
     expect(staleLeaderRow({ seasons: {} }, V)).toBe(true);
-    expect(staleLeaderRow({ seasons: { '3': 0.5 } }, V, 10)).toBe(true);
+    expect(staleLeaderRow({ seasons: { '3': 0.5 } }, V, CURRENT_SIM_VERSION + 1)).toBe(true);
     expect(seasonVersions([{ season: 1, manifest: { simVersion: 5 } }, { season: 2 }, { season: 3, manifest: { simVersion: 'x' } }])).toEqual({ '1': 5, '2': null, '3': null });
   });
 
-  it('on the bundled data: the rows with only Season 3 behind them are current, every other row is stale', () => {
+  it('on the bundled data: the rows with only Season 3 behind them are current while Season 3 is, every other row is stale', () => {
     const versions = seasonVersions(SEASONS.seasons);
-    expect(versions).toEqual({ '1': 5, '2': 5, '3': CURRENT_SIM_VERSION });
+    // Season 3 ran on version 9, current until SIM_VERSION 10 (2026-11-25): since then every row is stale
+    expect(versions).toEqual({ '1': 5, '2': 5, '3': 9 });
     expect(seasonVersionsOnDisk()).toEqual(versions);
     expect(SEASONS.leaderboard).toHaveLength(36);
     const current = SEASONS.leaderboard.filter((r) => !staleLeaderRow(r, versions));
-    expect(current.map((r) => r.file).sort()).toEqual(SEASON_3_ONLY);
-    const stale = SEASONS.leaderboard.filter((r) => staleLeaderRow(r, versions));
-    expect(stale).toHaveLength(28);
+    expect(current.map((r) => r.file).sort()).toEqual(versions['3'] === CURRENT_SIM_VERSION ? SEASON_3_ONLY : []);
+    expect(SEASONS.leaderboard.filter((r) => staleLeaderRow(r, versions))).toHaveLength(36 - current.length);
+    // with Season 3 current the eight rows behind it alone were the current ones
+    expect(SEASONS.leaderboard.filter((r) => !staleLeaderRow(r, versions, 9)).map((r) => r.file).sort()).toEqual(SEASON_3_ONLY);
   });
 });
 
@@ -147,8 +149,11 @@ describe('Legend trios kept out or retired by earlier seasons', () => {
     expect(seasonFileVersion({})).toBeNull();
   });
 
-  it('on the recorded seasons: Season 3’s two kept-out trios are closed under the current version', () => {
-    expect(keptOutTriples()).toHaveLength(2);
-    expect(expiredTriples()).toBe(0);
+  it('on the recorded seasons: Season 3’s two kept-out trios are closed under its own version only', () => {
+    // Season 3 gated on version 9; since SIM_VERSION 10 (2026-11-25) its two kept-out trios are open again
+    expect(keptOutTriples(undefined, undefined, 9)).toHaveLength(2);
+    const now = keptOutTriples();
+    expect(now).toHaveLength(Number(CURRENT_SIM_VERSION) === 9 ? 2 : 0);
+    expect(expiredTriples()).toBe(2 - now.length);
   });
 });

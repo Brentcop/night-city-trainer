@@ -13,6 +13,8 @@ reports/*-20*.md
 !reports/remeasure-2026-11-18.md
 # ...and the regionals forecast's backtest (docs/FORECAST.md "Backtest")
 !reports/forecast-backtest-2026-11-18.md
+# ...and the Game review's validity checks (docs/BOT_TOOLKIT.md §8, docs/REVIEW_2026-11-25.md rows 5, 10, 11)
+!reports/review-validity-2026-11-25.md
 reports-run*.log
 reports/*.out
 coverage/

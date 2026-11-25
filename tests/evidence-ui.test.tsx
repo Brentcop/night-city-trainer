@@ -514,7 +514,7 @@ describe('a deck’s page', () => {
     const html = deckHtml();
     const row = rowHtml(html, staged.short);
     expect(row).toMatch(/class="ev-row [^"]*is-stale/);
-    expect(text(row)).toContain('Measured under simulator version 5; the site now plays version 9');
+    expect(text(row)).toContain(`Measured under simulator version 5; the site now plays version ${CUR}`);
     expect(row).toContain('version 5');
     expect(row).not.toMatch(/is-em|<strong/);
     expect(text(row)).toContain('Screening read +5.4 pts over 112 games: not the result.');
@@ -535,7 +535,7 @@ describe('a deck’s page', () => {
     expect(ids.every((i) => i > 0)).toBe(true);
     expect([...ids].sort((a, b) => a - b)).toEqual(ids);
     expect(text(art)).toContain(
-      'Measured 3 times, in points, in date order: +1.5 in a forge confirmation (896 games, version 5); +2.8 over held-out games kept across runs (2,240 games, version 9); +2.4 on fresh games (2,800 games, version 9).',
+      `Measured 3 times, in points, in date order: +1.5 in a forge confirmation (896 games, version 5); +2.8 over held-out games kept across runs (2,240 games, version ${CUR}); +2.4 on fresh games (2,800 games, version ${CUR}).`,
     );
     expect(text(art)).toContain('Tried on this list and not applied: the list on this site does not contain it.');
     expect(text(art)).not.toContain('A change to this list.');
@@ -545,7 +545,7 @@ describe('a deck’s page', () => {
     // each row names how it was measured; its bot and version once, on its second line
     const re = rowHtml(art, remeasured.short);
     expect(text(re)).toContain('A re-measurement on fresh games');
-    expect(text(re).split('Medium bot, version 9').length - 1).toBe(1);
+    expect(text(re).split(`Medium bot, version ${CUR}`).length - 1).toBe(1);
     expect(text(rowHtml(art, pooledF.short))).toContain('Held-out games kept across runs');
     // the cards of the change are named by id
     expect(art).toContain('Yorinobu Arasaka: Steel Dragon');
@@ -931,7 +931,7 @@ describe('a row is two lines: the number said once', () => {
       expect(rowHtml(html, f.short)).toContain('Link to this finding');
       expect(row).toMatch(/aria-expanded="false"[^>]*>Details/);
     }
-    expect(text(visible(rowHtml(html, card.short)))).toContain('drawn 60.0% (400 games) · not drawn 52.0% (300 games) · sold in 96.0% of 1,000 uses from hand: the bot sells this · Deep bot, version 9');
+    expect(text(visible(rowHtml(html, card.short)))).toContain(`drawn 60.0% (400 games) · not drawn 52.0% (300 games) · sold in 96.0% of 1,000 uses from hand: the bot sells this · Deep bot, version ${CUR}`);
   });
 });
 
@@ -1048,7 +1048,7 @@ describe('endings and words', () => {
     const html = renderToStaticMarkup(<DeckEvidenceView deck={deck2} index={INDEX} target={null} onReveal={() => {}} />);
     const group = text(elementAt(html, html.indexOf('<article')));
     expect(group).toContain(
-      'Measured 4 times, in points, in date order: +1.5 in a forge confirmation with Medium (896 games, version 5); +2.8 over held-out games kept across runs with Medium (2,240 games, version 9); +2.4 on fresh games with Medium (2,800 games, version 9); +1.4 on fresh games with Hard (560 games, version 9).',
+      `Measured 4 times, in points, in date order: +1.5 in a forge confirmation with Medium (896 games, version 5); +2.8 over held-out games kept across runs with Medium (2,240 games, version ${CUR}); +2.4 on fresh games with Medium (2,800 games, version ${CUR}); +1.4 on fresh games with Hard (560 games, version ${CUR}).`,
     );
     expect(group).toContain('Hard’s range still includes no difference (+1.4 pts, 95% range −0.2 pts to +3.0 pts), so it neither confirms nor contradicts Medium’s +2.4 pts (95% range +1.4 pts to +3.4 pts).');
     // one bot only: the line is as before, and no such sentence

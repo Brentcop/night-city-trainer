@@ -8,7 +8,7 @@ import { Game } from '../src/engine/engine';
 import { CARDS } from '../src/engine/cards';
 import { parseDeck } from '../src/engine/deck';
 import { makeTierBot } from '../src/ai/tiers';
-import { adviseRequest, coachRequest, coachWorthAsking, gradeMove, scoreMoveRequest, type Advice, type GradedOption } from '../src/ai/coach';
+import { adviseRequest, coachRequest, coachWorthAsking, confirmMoveRequest, gradeConfirmed, gradeMove, needsConfirm, scoreMoveRequest, type Advice, type GradedOption } from '../src/ai/coach';
 import type { SeatLift } from '../src/ai/packageLift';
 import { exactText } from '../src/lib/exactText';
 import { coachedGrade, type CoachedGrade } from '../src/lib/coachedReplay';
@@ -66,7 +66,7 @@ function stubWorker(o: { ms?: number; fail?: Set<number> } = {}) {
 
 /** A worker that runs the real coach in this process, messages crossing as structured clones (as postMessage does). */
 function realWorker() {
-  const counts = { advice: 0, score: 0 };
+  const counts = { advice: 0, score: 0, confirm: 0 };
   const make = () => {
     const w = {
       onmessage: null as null | ((e: { data: CoachReply }) => void),
@@ -81,6 +81,9 @@ function realWorker() {
             if ('score' in job) {
               counts.score++;
               reply = { id: job.id, scored: await scoreMoveRequest(job.score) };
+            } else if ('confirm' in job) {
+              counts.confirm++;
+              reply = { id: job.id, scored: await confirmMoveRequest(job.confirm) };
             } else {
               counts.advice++;
               reply = { id: job.id, advice: await adviseRequest(job.req) };
@@ -360,7 +363,8 @@ describe('coach answer cache: Undo and a restored save ask the same request agai
 describe('coach answer cache: no difference in grades or records', () => {
   /**
    * A scripted practice game with the coach on, graded as the Play page grades (src/ui/pages/Play.tsx `commit`): advice
-   * at each decision worth asking, the grade, and a move the coach did not value scored in its worlds. Undoes at every
+   * at each decision worth asking, the grade, a move the coach did not value scored in its worlds, and a costly or wide
+   * close grade confirmed on fresh worlds (a fixed seed: the same position and move, the same answer). Undoes at every
    * fourth main-phase decision, five times. `cache: false` forgets every answer before each ask.
    */
   async function coachedGame(cache: boolean) {
@@ -381,18 +385,24 @@ describe('coach answer cache: no difference in grades or records', () => {
       const advice = await client.advise(run.g, d);
       const i = choose(run, d);
       const at = run.replay.choices.length;
-      const gr = coachedGrade(d, i, advice, gradeMove(d, i, advice, run.g.s.turn), at);
-      run.grades.push(gr);
-      if (gr.verdict === 'pending') {
-        const extra: GradedOption[] = await client.score(d, i, advice).catch(() => []);
-        run.grades[run.grades.indexOf(gr)] = coachedGrade(d, i, advice, gradeMove(d, i, advice, gr.turn, extra), at, extra);
+      let grade = gradeMove(d, i, advice, run.g.s.turn);
+      let extra: GradedOption[] | undefined;
+      if (grade.verdict === 'pending') {
+        extra = await client.score(d, i, advice).catch(() => []);
+        grade = gradeMove(d, i, advice, grade.turn, extra);
       }
+      let fresh: GradedOption[] | undefined;
+      if (needsConfirm(grade)) {
+        fresh = await client.confirm(d, i, advice).catch(() => []);
+        grade = gradeConfirmed(i, advice, grade, fresh, extra);
+      }
+      run.grades.push(coachedGrade(d, i, advice, grade, at, extra, fresh));
       return false;
     });
     session.start({ ...setup(31), level: 'easy' });
     const run = await finish(session);
     client.dispose();
-    return { grades: JSON.parse(JSON.stringify(run.grades)) as CoachedGrade[], choices: run.replay.choices, state: JSON.stringify(run.g.s), asks, computed: w.counts.advice, undos: run.replay.undos };
+    return { grades: JSON.parse(JSON.stringify(run.grades)) as CoachedGrade[], choices: run.replay.choices, state: JSON.stringify(run.g.s), asks, computed: w.counts.advice, confirmed: w.counts.confirm, undos: run.replay.undos };
   }
 
   it('a game with Undos gives identical coach grades, records and game with the cache on and off', async () => {
@@ -402,6 +412,9 @@ describe('coach answer cache: no difference in grades or records', () => {
     expect(on.grades.length).toBeGreaterThan(10);
     expect(on.grades.some((g) => g.record?.scores.length)).toBe(true);
     expect(on.grades).toEqual(off.grades);
+    // confirmations ran, and gave the same grades with and without the cache (each is computed, never remembered)
+    expect(on.grades.some((g) => g.confirmed)).toBe(true);
+    expect(on.confirmed).toBe(off.confirmed);
     expect(on.choices).toEqual(off.choices);
     expect(on.state).toBe(off.state);
     expect(on.asks).toBe(off.asks);

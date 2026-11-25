@@ -35,6 +35,8 @@ export const HAND_2026_10: EvalWeights = {
   exposed: 0,
   threat: 0,
   rivalLethal: 0,
+  readyTrick: 0,
+  readyCall: 0,
 };
 
 /** BOT-3: the next-turn terms at the setting measured +1.5 points for Hard (docs/IMPROVEMENT_BACKLOG.md WP-D1). */

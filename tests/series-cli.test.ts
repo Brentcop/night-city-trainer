@@ -73,10 +73,17 @@ describe('status --json (the workflow\'s decision step)', () => {
     const s = await statusOf(configWith({ width: 3 }));
     expect(Object.keys(s).sort()).toEqual(['block', 'bot', 'decks', 'expectedGames', 'games', 'minutes', 'needed', 'nextRun', 'over', 'simVersion', 'switches', 'target', 'unrated', 'why', 'widest'].sort());
     expect(s).toMatchObject({ simVersion: SIM_VERSION, bot: 'hard', decks: FIELD.length, switches: { series: true, arrivals: true, width: 3, maxGamesPerRun: 12_000, matchups: true, matchupDecks: 16, matchupGames: 100 } });
-    // the matchup block: the 16 best-rated decks, 120 pairs; its games to go are counted in the expectation
-    expect(s.block).toMatchObject({ target: 100, pairs: 120 });
-    expect(s.block!.decks).toHaveLength(16);
-    expect(s.expectedGames).toBeGreaterThanOrEqual(s.block!.games);
+    // the matchup block: the 16 best-rated decks, 120 pairs; its games to go are counted in the expectation. With no
+    // game recorded on this simulator version (just after a bump: SIM_VERSION 10 on 2026-11-25) nothing is rated, so
+    // there is no block yet and every deck is an arrival
+    if (s.games === 0) {
+      expect(s.block).toBeNull();
+      expect(s.unrated).toHaveLength(FIELD.length);
+    } else {
+      expect(s.block).toMatchObject({ target: 100, pairs: 120 });
+      expect(s.block!.decks).toHaveLength(16);
+      expect(s.expectedGames).toBeGreaterThanOrEqual(s.block!.games);
+    }
     expect(s.why.length).toBeGreaterThan(0);
     expect(s.nextRun).toMatch(/^run-\d+$/);
     expect(s.minutes.gamesPerSecond).toBeGreaterThan(0);
@@ -159,6 +166,12 @@ describe('run (a tiny budget, a stub player)', () => {
     const s = await statusOf();
     if (!s.needed) return;
     const h = harness({ replay: 'it ends in a win for B, not A as recorded' });
+    if (s.games === 0) {
+      // no game recorded on this simulator version yet (just after a bump): nothing to play again, so nothing to refuse
+      expect(await h.run(['run', '--max-games', '30', '--out', 'v'])).toBe(EXIT.budget);
+      expect(h.out.join('\n')).toContain(`No recorded game on simulator version ${SIM_VERSION} to play again`);
+      return;
+    }
     expect(await h.run(['run', '--max-games', '30', '--out', 'v'])).toBe(EXIT.replayRefused);
     expect(h.played()).toBe(0);
     expect(h.written.size).toBe(0);
@@ -239,6 +252,8 @@ describe('the matchup block and the traced card impact (2026-11-24)', () => {
   const WIDE = configWith({ width: 8 });
   it('a run with the width met plays the block\'s pairs, seats balanced, and its file carries the block and the card impact', async () => {
     const s = await statusOf(WIDE);
+    // with no game recorded on this simulator version (just after a bump) nothing is rated: no block until the series has re-rated
+    if (s.games === 0) return void expect(s.block).toBeNull();
     expect(s.block).not.toBeNull();
     const h = harness({ config: WIDE, summaries: true });
     const code = await h.run(['run', '--max-games', '60', '--out', 'v']);

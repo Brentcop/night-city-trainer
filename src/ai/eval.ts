@@ -39,6 +39,11 @@ export interface EvalWeights {
   exposed: number; // share of the Gig swing (gig, gigNear, overtime) of the Gigs the rival can steal on its next turn
   threat: number; // share of the Gig swing of the Gigs we can steal on our next turn, when ours is the next turn
   rivalLethal: number; // points off when the rival holds 7+ Gigs and will start its turn before we can take enough back
+  // Ready sources kept for tricks (C.2, docs/REVIEW_2026-11-24.md B1; readyTrickTerm below). 0 = the term is skipped.
+  // Since SIM_VERSION 11 readyTrick is 12 by default and readyCall 0 (the Call credit was measured only in a smoke run and
+  // changed far more than tricks: docs/BOT_TOOLKIT.md §6).
+  readyTrick: number; // per ready payment source the seat that defends in the coming turn keeps for a Quick Program in hand
+  readyCall: number; // per ready payment source it keeps for a reaction Call of a face-down Legend
 }
 
 // Since SIM_VERSION 6 (2026-11-12): the fitted set `calibrated-2026-11` (src/ai/weightSets.ts, INFO-4: a logistic fit of
@@ -49,6 +54,8 @@ export interface EvalWeights {
 // same as playing the Legend to the field and makes the same Unit, only ready and free to attack this turn (11.29.1; no
 // card returns a Unit to the Legends area, the one place where the two differ later), so the flag carries no lasting
 // cost: the fit picked up an association, and the bots played the Legend with Lag instead (docs/BOT_TOOLKIT.md §3).
+// Since SIM_VERSION 11 (C.2, 2026-11-25): readyTrick 12, a ready payment source kept for a Quick Program in hand on the
+// rival's coming turn (readyTrickTerm; measured in docs/BOT_TOOLKIT.md §6). The named sets keep what they had.
 export const DEFAULT_WEIGHTS: EvalWeights = {
   gig: 20,
   gigNear: 50.8,
@@ -78,6 +85,8 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   exposed: 0.886,
   threat: 0.971,
   rivalLethal: 400,
+  readyTrick: 12,
+  readyCall: 0,
 };
 
 /** The next-turn weights of BOT-3 (not in TUNED_WEIGHTS: measured by paired botcheck, docs/BOT_TOOLKIT.md §3). */
@@ -230,6 +239,14 @@ export function planScore(gigs: Gig[], plan: GigPlan): number {
   s += pairs * 3 * plan.pairs;
   s += distinct * 0.8 * plan.diverse;
   if (hasEven && hasOdd) s += 2 * plan.parity;
+  // Street Cred parity (SIM_VERSION 10, C.1): Street Cred is the sum of the Gig values, and with no Gig it is Null, which
+  // is neither even nor odd (the engine's credEven, CR 11.2)
+  if ((plan.credEven || plan.credOdd) && gigs.length) {
+    let cred = 0;
+    for (const x of gigs) cred += x.value;
+    if (cred % 2 === 0) s += 2 * plan.credEven;
+    else if (cred % 2 === 1) s += 2 * plan.credOdd;
+  }
   // small generic preference for street cred
   s += gigs.reduce((a, x) => a + x.value, 0) * 0.05;
   return s;
@@ -326,18 +343,25 @@ export interface EvalBreakdown {
   features: Record<EvalTerm, number>;
   /** the package terms' contribution (0 unless a package weight is set) */
   packages: number;
+  /**
+   * readyTrickTerm's contribution (0 unless readyTrick or readyCall is set). Not one of EVAL_TERMS yet: it is opt-in and
+   * no fit has seen it, so the leaves and fits of scripts/eval-calibrate.ts stay as they were; a refit that wants it adds
+   * it there. With it, total = Σ w × feature + packages + tricks.
+   */
+  tricks: number;
 }
 
 /** evaluate() with its per-term features (INFO-4): total is evaluate()'s result exactly, and Σ w × feature + packages equals it up to rounding. */
 export function evaluateTerms(g: Game, p: PlayerId, w: EvalWeights = DEFAULT_WEIGHTS): EvalBreakdown {
-  const acc: TermAcc = { f: Object.fromEntries(EVAL_TERMS.map((k) => [k, 0])) as Record<EvalTerm, number>, packages: 0 };
+  const acc: TermAcc = { f: Object.fromEntries(EVAL_TERMS.map((k) => [k, 0])) as Record<EvalTerm, number>, packages: 0, tricks: 0 };
   const total = evalCore(g, p, w, acc);
-  return { total, terminal: g.s.winner !== null, features: acc.f, packages: acc.packages };
+  return { total, terminal: g.s.winner !== null, features: acc.f, packages: acc.packages, tricks: acc.tricks };
 }
 
 interface TermAcc {
   f: Record<EvalTerm, number>;
   packages: number;
+  tricks: number;
 }
 
 /** evaluate()'s arithmetic, unchanged; with `acc` it also records the features (never changing the value). */
@@ -395,6 +419,11 @@ function evalCore(g: Game, p: PlayerId, w: EvalWeights, acc: TermAcc | null): nu
   }
   if (w.exposed !== 0 || w.threat !== 0 || w.rivalLethal !== 0) v += nextTurnTerms(g, p, w);
   if (f) nextTurnFeatures(g, p, w, f);
+  if (w.readyTrick !== 0 || w.readyCall !== 0) {
+    const t = readyTrickTerm(g, p, w);
+    v += t;
+    if (acc) acc.tricks = t;
+  }
   return v;
 }
 
@@ -520,6 +549,62 @@ function nextTurnFeatures(g: Game, p: PlayerId, w: EvalWeights, f: Record<EvalTe
     const n = stealableNextTurn(g, p, r);
     if (n > 0) f.threat = gigTerm(myG + n, rG - n, ot, w) - base;
   }
+}
+
+/** Is this card a Quick Program (playable in a reaction window: `legalReactions`)? */
+export function isQuickProgram(g: Game, uid: number): boolean {
+  const d = g.def(g.c(uid));
+  return d.type === 'Program' && d.keywords.includes('quick');
+}
+
+/**
+ * The ready payment sources seat `pl` keeps for its tricks: Quick Programs in hand (those whose own play condition holds
+ * now, `canPlay`; the board on the coming turn is taken to be this one) and, when `calls` is set and pl has a face-down
+ * Legend, one reaction Call (its Call cost). Tricks are covered cheapest first, Programs before a Call at equal cost,
+ * each in full or not at all, from `g.available(pl)` (ready Eddies and the Legends that may pay): a source short of a
+ * trick's cost keeps nothing. Returns the sources covering Programs and those covering the Call.
+ */
+export function readyTrickCover(g: Game, pl: PlayerId, calls: boolean): { trick: number; call: number } {
+  const costs: { cost: number; call: boolean }[] = [];
+  for (const u of g.P(pl).hand) {
+    if (!isQuickProgram(g, u)) continue;
+    const c = g.c(u);
+    const sc = g.script(c);
+    if (sc.canPlay && !sc.canPlay(g, c, pl)) continue;
+    costs.push({ cost: g.playCost(u, pl), call: false });
+  }
+  if (calls && g.faceDownLegends(pl).length > 0) costs.push({ cost: g.callCost(pl), call: true });
+  const out = { trick: 0, call: 0 };
+  if (!costs.length) return out;
+  costs.sort((a, b) => a.cost - b.cost || Number(a.call) - Number(b.call));
+  let ready = g.available(pl);
+  for (const t of costs) {
+    if (t.cost > ready) break;
+    ready -= t.cost;
+    if (t.call) out.call += t.cost;
+    else out.trick += t.cost;
+  }
+  return out;
+}
+
+/**
+ * C.2 (docs/REVIEW_2026-11-24.md B1, "mana held open"): paying a cost does not remove Eddies and the eddie term counts
+ * them spent or not, so without this term a source kept ready for the rival's turn is worth nothing. The seat that
+ * defends in the coming turn (the other one than nextTurnSeat: p during its own main phase) is credited readyTrick for
+ * each ready source covering a Quick Program in its hand and readyCall for each covering a reaction Call
+ * (readyTrickCover), only up to the cost of what it could cast; signed from p's view. A trick is cast in a reaction
+ * window, which only an attack opens, so nothing is credited while the attacking seat has no Unit on the field (a Unit
+ * it plays on its turn enters with Lag). Ready sources count nowhere else, so the eddie term is unchanged, and spentRisk
+ * is about Units. While the coming turn is the scoring seat's own (the end of a play-out of the rival's reply), the
+ * rival is the defender and its held tricks count against p.
+ */
+export function readyTrickTerm(g: Game, p: PlayerId, w: EvalWeights): number {
+  const att = nextTurnSeat(g);
+  const d = other(att);
+  if (!g.units(att).length) return 0;
+  const cover = readyTrickCover(g, d, w.readyCall !== 0);
+  const v = w.readyTrick * cover.trick + w.readyCall * cover.call;
+  return d === p ? v : -v;
 }
 
 /** The package terms of evaluate() for p's own side (src/ai/packages.ts); 0 for a list built around no package. */

@@ -184,7 +184,14 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
         <div className="profile-tile">
           <span className="profile-tile-k">Coach grade</span>
           <span className="profile-tile-v">{h.coach ? h.coach.grade : '—'}</span>
-          <span className="small muted">{h.coach ? `${h.coach.avgPct}% fine moves, ${h.coach.games} game${h.coach.games === 1 ? '' : 's'}` : 'not recorded yet'}</span>
+          <span className="small muted">
+            {h.coach
+              ? h.coach.v === 2
+                ? `${h.coach.avgPct}% of the decisions that mattered handled well${h.coach.costly !== undefined ? `, ${h.coach.costly} costly moves a game` : ''}, ${h.coach.games} game${h.coach.games === 1 ? '' : 's'}`
+                : `${h.coach.avgPct}% fine moves, ${h.coach.games} game${h.coach.games === 1 ? '' : 's'} (scored the old way, before 2026-11-25)`
+              : 'not recorded yet'}
+            {h.coachOld ? ` · ${h.coachOld} earlier game${h.coachOld === 1 ? '' : 's'} scored the old way, not averaged` : ''}
+          </span>
         </div>
       </div>
       {h.byTier.length > 0 && (
@@ -220,7 +227,15 @@ export function HeadlineTiles({ h }: { h: NonNullable<SharedProfile['headline']>
 }
 
 /** A history row with, for the player's own games, the review button and Watch (the game played again, both hands face up). */
-export type HistoryRow = SharedHistoryGame & { key: string; review?: () => void; watch?: () => void; ratings?: string; multiDay?: { days: number; late?: boolean; timedOut?: boolean } };
+export type HistoryRow = SharedHistoryGame & {
+  key: string;
+  review?: () => void;
+  watch?: () => void;
+  ratings?: string;
+  multiDay?: { days: number; late?: boolean; timedOut?: boolean };
+  /** the coach letter was scored the old way (before 2026-11-25: practiceLog.ts scoredNow), so it is marked */
+  gradeOld?: boolean;
+};
 
 export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; caption: string }) {
   const showReview = rows.some((r) => r.review || r.watch);
@@ -264,7 +279,7 @@ export function HistoryTable({ rows, caption }: { rows: readonly HistoryRow[]; c
               </td>
               <td>{g.turns || '—'}</td>
               <td className="nowrap">{g.gigs ? `${g.gigs[0]}–${g.gigs[1]}` : '—'}</td>
-              <td>{g.grade ?? '—'}</td>
+              <td>{g.grade ? g.gradeOld ? <span title="Scored the old way (before 2026-11-25): every measured move counted and costly verdicts were not checked; not comparable with newer letters">{g.grade} (old)</span> : g.grade : '—'}</td>
               {showReview && (
                 <td>
                   {g.review && (

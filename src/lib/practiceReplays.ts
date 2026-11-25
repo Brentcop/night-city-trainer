@@ -1,10 +1,11 @@
-// Replayable records of practice games (seeds + every human choice), so a finished game can be reviewed later.
+// Replayable records of practice games (seeds + every human choice, and since 2026-11-25 every bot answer), so a
+// finished game can be reviewed later, on a later simulator version too when the bot's answers are kept.
 // Kept per browser (localStorage), newest last, capped. Never required for the app to work.
 import type { DecisionRecord } from '../engine/telemetry';
 import type { DeckList, PlayerId } from '../engine/types';
 import type { PracticeReviewSpec, PvpReplay, ReplayPosition, ReviewRequest } from '../sim/practiceReview';
 import { toTourneyMark, type MultiDayMark, type TourneyMark } from './practiceLog';
-import { replayVersionProblem } from './practiceVerdict';
+import { isAnswerList, replayVersionProblem } from './practiceVerdict';
 import { isStateHash } from './stateHash';
 
 export { replayVersionProblem };
@@ -54,8 +55,9 @@ export interface PracticeReplay {
   /** a game you played in a tournament (src/lib/playedEvent.ts): which event, match and game */
   tourney?: TourneyMark;
   /**
-   * The bots' and rules engine's version the game was played with (SIM_VERSION): the Game review refuses to replay a
-   * game from another version. Absent in records made before it: replayed strictly, refused if it no longer fits.
+   * The bots' and rules engine's version the game was played with (SIM_VERSION): the Game review replays a game from
+   * another version only when both seats' answers (`botChoices`, or an online game's) and `position` are kept, else it
+   * refuses it. Absent in records made before it: replayed strictly, refused if it no longer fits.
    */
   simVersion?: number;
   /** how many turns the game lasted (checked by the Game review's replay); absent in older records */
@@ -67,6 +69,14 @@ export interface PracticeReplay {
    * records, in online games that ended off the board, and when you conceded before being asked anything: not checked.
    */
   position?: ReplayPosition;
+  /**
+   * The bot seat's answers, in order (every decision the bot was asked; it never chooses payments or effect order), so
+   * the record replays with no bot: only the rules engine and the card scripts, guarded by `position`. A game recorded
+   * with them can be reviewed and watched on a later simulator version (src/lib/practiceVerdict.ts
+   * replayedFromOtherVersion). Absent in records made before 2026-11-25 (the bot plays itself again) and in online games
+   * (`pvp.rivalChoices` holds the rival's). Read strictly (isAnswerList).
+   */
+  botChoices?: number[][];
   /** Decision telemetry for the human seat (D28): every decision recorded during the game, for analysis. Never on pvp games (privacy). */
   decisions?: DecisionRecord[];
 }
@@ -119,6 +129,8 @@ function isReplay(x: unknown): x is PracticeReplay {
     typeof r.botSeed === 'number' &&
     isChoices(r.choices) &&
     (r.pvp === undefined || isPvp(r.pvp)) &&
+    // the bot's answers: whole option indices, capped; never beside an online game's (whose rival is a person)
+    (r.botChoices === undefined || (r.pvp === undefined && isAnswerList(r.botChoices))) &&
     (r.payChoice === undefined || typeof r.payChoice === 'boolean') &&
     (r.orderChoice === undefined || typeof r.orderChoice === 'boolean') &&
     (r.endTurnClick === undefined || typeof r.endTurnClick === 'boolean') &&
@@ -212,6 +224,7 @@ export function practiceSpec(r: PracticeReplay, turns?: number): PracticeReviewS
     botLevel: r.botLevel,
     botSeed: r.botSeed,
     choices: r.choices,
+    ...(r.botChoices && !r.pvp ? { botChoices: r.botChoices } : {}),
     payChoice: !!r.payChoice,
     orderChoice: !!r.orderChoice,
     ...(r.endTurnClick ? { endTurnClick: true } : {}),

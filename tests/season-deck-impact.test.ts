@@ -319,7 +319,9 @@ describe('what the breeder reads', () => {
     expect(SEASON_BOT).toBe('hard');
     const t = loadImpactTables();
     expect(t.wanted).toEqual({ simVersion: SIM_VERSION, bot: 'hard' });
-    expect(t.match).toBe('exact');
+    // the current version's numbers when the files hold them; just after a bump (SIM_VERSION 10, 2026-11-25) the newest
+    // other version's, with the "Warning:" line the preview prints
+    expect(t.match).toBe(t.read?.simVersion === SIM_VERSION ? 'exact' : 'other-version');
     const r = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/breed-preview.ts'], { encoding: 'utf8' });
     expect(r.status, r.stderr).toBe(0);
     for (const l of impactTablesWords(t)) expect(r.stdout).toContain(`  ${l}`);

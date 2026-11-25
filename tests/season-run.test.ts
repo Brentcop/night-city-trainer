@@ -60,18 +60,22 @@ describe('the run file', () => {
   it('its games pool once for the ratings, beside the recorded events and runs, by list', () => {
     const r = run(9) as unknown as RecordedEvent;
     const pooled = readPooled();
-    const before = poolEvents(selectEvents(pooled).kept, currentListGate(LIB)).games.length;
+    const was = selectEvents(pooled);
+    // the recorded pool on the current version (as it was until SIM_VERSION 10): the run adds to it; on an older one
+    // (since 2026-11-25, until the series re-rates), the run, on the current version, starts the pool afresh
+    const same = was.simVersion === SIM_VERSION;
+    const before = same ? poolEvents(was.kept, currentListGate(LIB)).games.length : 0;
     const sel = selectEvents([...pooled, r]);
     // the newest source by date is the season's run, with the series' version and bot: the pool keeps its version and bot
     expect(sel.simVersion).toBe(SIM_VERSION);
     expect(sel.bot).toBe('hard');
     const after = poolEvents(sel.kept, currentListGate(LIB));
     expect(after.games.length - before).toBe(12);
-    expect(after.runs).toBe(pooled.filter((e) => e.kind === 'nct-rating-run').length + 1);
+    expect(after.runs).toBe(same ? pooled.filter((e) => e.kind === 'nct-rating-run').length + 1 : 1);
     // the fit the season judges its own decks on at its end (scripts/breed-data.ts fitPooledRatings) counts them
     const fitBefore = new Map(fitPooledRatings(pooled).map((x) => [x.name, x.games]));
     const fitAfter = new Map(fitPooledRatings([...pooled, r]).map((x) => [x.name, x.games]));
-    for (const d of FIELD) expect(fitAfter.get(d.deck.name)! - fitBefore.get(d.deck.name)!, d.deck.name).toBe(6);
+    for (const d of FIELD) expect(fitAfter.get(d.deck.name)! - (same ? fitBefore.get(d.deck.name)! : 0), d.deck.name).toBe(6);
   }, 60_000);
 
   it('numbers after the highest run, replaces its own on a re-run, and is refused when a game is recorded already', () => {

@@ -858,6 +858,7 @@ export function Board({
       const ctx: GradeContext = {
         grades,
         score: coachApi.score,
+        confirm: coachApi.confirm,
         onGrade: (gr, replaced) => {
           // the toast is for the move just made, or the finished score of the one it shows; a late grade has no toast
           if (!replaced) setToast(gr);

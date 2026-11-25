@@ -183,7 +183,9 @@ describe('a result of each kind', () => {
     const plan = hitHtml(first((r) => r.kind === 'objective' && r.status === 'draft'));
     expect(plan).toContain('>draft</span>');
     const m = first((r) => r.kind === 'matchup');
-    expect(hitHtml(m)).not.toContain('stale');
+    // the real matchup records are stale exactly when measured on an older simulator (version 9 since SIM_VERSION 10)
+    expect(hitHtml(m).includes('kb-stale')).toBe(m.fields?.stale === true);
+    expect(hitHtml({ ...m, fields: { ...m.fields, stale: false } })).not.toContain('kb-stale');
     expect(hitHtml({ ...m, fields: { ...m.fields, stale: true } })).toContain('<span class="tag kb-stale" title="Measured on an older version of the simulator">stale</span>');
     expect(hitHtml(rec('card:detonate'))).not.toContain('Measured from');
   });

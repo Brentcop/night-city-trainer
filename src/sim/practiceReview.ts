@@ -5,8 +5,10 @@
 // an online game was abandoned) the game ends that way exactly where the record runs out; otherwise a record that runs
 // out, an answer that doesn't fit, answers left over, or another winner or length is a ReplayDiverged ("this game can't
 // be reviewed"), never a review of a different game. A record that carries its `position` must also reach it: the final
-// position of a game played to its end, or, for a game the session ended, the position of your last decision. A replay
-// recorded by another simulator version is refused up front.
+// position of a game played to its end, or, for a game the session ended, the position of your last decision. A record
+// that keeps the bot's answers (since 2026-11-25) replays the bot from them, so it needs no bot at all. A replay recorded
+// by another simulator version is refused up front unless both seats are scripted and it carries its position
+// (src/lib/practiceVerdict.ts replayVersionProblem): then the position check is what tells an engine change apart.
 import { divergedText, ReplayDiverged, ScriptedAgent } from '../ai/reviewer';
 import { makeTierBot } from '../ai/tiers';
 import type { Agent, DeckList, GameState, PlayerId } from '../engine/types';
@@ -34,6 +36,11 @@ export interface PracticeReviewSpec {
   botLevel: string;
   botSeed: number;
   choices: number[][];
+  /**
+   * the bot seat's recorded answers (PracticeReplay.botChoices): the bot is replayed from them, not played again, so the
+   * replay depends only on the rules engine and the card scripts (absent: the bot plays itself, as in older records)
+   */
+  botChoices?: number[][];
   payChoice?: boolean;
   orderChoice?: boolean;
   /** you ended your turns with End turn even when nothing else was left (absent: automatic, as every older record) */
@@ -83,14 +90,18 @@ export const conceding: Agent = {
 /** An agent whose first decision ends the game the way the session ended it. */
 const ending = (e: SessionEnding): Agent => ({ name: 'ended', decide: async (g) => g.endGame(e.winner, e.reason) });
 
-/** Refuse a record from another simulator version up front (a ReplayDiverged with the plain sentence). */
+/**
+ * Refuse a record from another simulator version up front (a ReplayDiverged with the plain sentence), unless both seats
+ * are scripted and the record carries its position (checked after the replay by checkReplayed).
+ */
 export function refuseOtherVersion(q: PracticeReviewSpec): void {
   const why = replayVersionProblem(q);
   if (why) throw new ReplayDiverged(why);
 }
 
 /**
- * [your recorded seat, the bot] for re-simulating a practice game; for an online game, both seats' recorded answers.
+ * [your recorded seat, the bot] for re-simulating a practice game (the bot's recorded answers when the record keeps
+ * them, else the bot itself); for an online game, both seats' recorded answers.
  * Strict (see the top of this file): use checkReplayed() on the result.
  */
 export function practiceAgents(q: PracticeReviewSpec): [Agent, Agent] {
@@ -104,7 +115,11 @@ export function practiceAgents(q: PracticeReviewSpec): [Agent, Agent] {
     const theirs = new ScriptedAgent('Rival', v.rivalChoices, stop, true, true, !!v.rivalEndTurnClick, "the rival's");
     return v.seat === 0 ? [mine, theirs] : [theirs, mine];
   }
-  return [new ScriptedAgent('You', q.choices, stop, !!q.payChoice, !!q.orderChoice, !!q.endTurnClick, 'your', at), makeTierBot(q.botLevel, q.botSeed, 'Bot')];
+  const mine = new ScriptedAgent('You', q.choices, stop, !!q.payChoice, !!q.orderChoice, !!q.endTurnClick, 'your', at);
+  // the bot's recorded answers, when kept: asked exactly what the bot was asked (a bot chooses no payment or effect
+  // order and never clicks End turn), and strict like yours (a session ending ends the game where they run out)
+  const bot = q.botChoices ? new ScriptedAgent('Bot', q.botChoices, stop, false, false, false, "the bot's") : makeTierBot(q.botLevel, q.botSeed, 'Bot');
+  return [mine, bot];
 }
 
 const resultWords = (w: PlayerId | 'tie' | null, me: PlayerId) => (w === 'tie' || w === null ? 'a draw' : w === me ? 'a win for you' : 'a win for the rival');

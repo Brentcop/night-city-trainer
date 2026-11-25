@@ -85,14 +85,31 @@ function computeCardValue(id: string): number {
   return v;
 }
 
-export type GigPlan = { high: number; low: number; pairs: number; diverse: number; parity: number; d20: number };
+/**
+ * How much a list cares about each Gig pattern (gigPlanOf). `parity`: one even and one odd friendly Gig. `credEven` /
+ * `credOdd`: an even / odd Street Cred (the sum of the Gig values, CR 11.2).
+ */
+export type GigPlan = { high: number; low: number; pairs: number; diverse: number; parity: number; credEven: number; credOdd: number; d20: number };
+
+/**
+ * Gig and Street Cred parity are read apart since SIM_VERSION 10 (C.1, REVIEW_2026-11-24 B4). Until then one pattern,
+ * /even value|odd value|even number|is an even/, put the cards that want an even Street Cred (Field Operator, Memory
+ * Relapse, Pacifica Netrunner: "if your ☆ (Street Cred) is an even number") under `parity` with the ones that want an
+ * even and an odd Gig (Bootleg Black Sapphire Show, Jackie Welles), and planScore rewarded one even and one odd Gig for
+ * them, which with two Gigs is an odd Street Cred. tests/gig-plan-parity.test.ts holds each card's reading.
+ */
+export const GIG_PARITY_PATTERN = /\bGigs? with an? (?:even|odd) value/i;
+export const CRED_EVEN_PATTERN = /(?:☆|Street Cred)\)? is an even number/i;
+export const CRED_ODD_PATTERN = /(?:☆|Street Cred)\)? is an odd number/i;
 
 const PLAN_PATTERNS: [keyof GigPlan, RegExp][] = [
   ['high', /8\+|Increase a Gig|max Gig/i],
   ['low', /min Gig|Decrease a Gig/i],
   ['pairs', /value-pair/i],
   ['diverse', /different values|not shared by a friendly Gig/i],
-  ['parity', /even value|odd value|even number|is an even/i],
+  ['parity', GIG_PARITY_PATTERN],
+  ['credEven', CRED_EVEN_PATTERN],
+  ['credOdd', CRED_ODD_PATTERN],
   ['d20', /d20/i],
 ];
 
@@ -104,7 +121,7 @@ const PLAN_VEC: Record<string, (keyof GigPlan)[]> = Object.fromEntries(
 
 /** How much a list of cards cares about each Gig pattern (normalized to ~0-1). */
 export function gigPlanOf(ids: string[]): GigPlan {
-  const plan: GigPlan = { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, d20: 0 };
+  const plan: GigPlan = { high: 0, low: 0, pairs: 0, diverse: 0, parity: 0, credEven: 0, credOdd: 0, d20: 0 };
   for (const id of ids) for (const k of PLAN_VEC[id] ?? []) plan[k] += 1;
   const n = Math.max(1, ids.length) / 10;
   for (const k of PLAN_KEYS) plan[k] = Math.min(1.5, plan[k] / n);

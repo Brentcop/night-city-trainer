@@ -8,7 +8,7 @@ import { DEFAULT_WEIGHTS, evaluate, planFor, seatArchetype, planScore, unitValue
 import { makeWorlds, playOut, playOutValue, type World } from './playOut';
 import { cardValue, isSpendTriggerGear } from './knowledge';
 import { CARDS } from '../engine/cards';
-import { activeSteer, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
+import { activeSteer, handHoldCredit, holdCredit, packageFacts, seatPackages, steerCredit, type SteerKind } from './packages';
 import { shuffleInPlace } from '../engine/rng';
 import { applyProfile, type Archetype, type Profiles } from './archetype';
 import { cardImpact } from './impact';
@@ -84,6 +84,15 @@ export interface HeuristicOptions {
    */
   sellKeepScarce?: number;
   /**
+   * REVIEW_2026-11-24 C.4 (B3, scarce package pieces sold). Sell lookahead only (sellLookahead > 1, one play-out or one
+   * step per compared card, no shared worlds): each compared sell's value gets this weight (evaluation points per unit
+   * of hold credit) × the hold credit of the seller's own hand where the play-out stops (`handHoldCredit` in
+   * src/ai/packages.ts, which counts the trash for packages whose condition reads it). The cut's evaluation counts a card
+   * in hand by number only, so without it a scarce piece kept is worth no more than any card. Only the deciding seat's
+   * own packages; the play-out bots get nothing. 0 (default) = off, exactly as before.
+   */
+  sellHoldCut?: number;
+  /**
    * BOT-1. Deep rollouts and deep reactions score the start-of-turn win the play-out stops just before (the seat about
    * to begin its turn holding 7+ Gigs, `nextStartResult` in playOut.ts) as a won or lost game, and main-phase rollouts
    * are clamped to ±playOutClamp like reactions. false (default) = the play-out scoring before BOT-1, exactly.
@@ -133,6 +142,26 @@ export interface HeuristicOptions {
   easyGuard?: boolean;
   seed?: number;
   /**
+   * C.2 (docs/REVIEW_2026-11-24.md B1), part (a): the evaluation's `readyTrick` and `readyCall` weights, both set to this
+   * (src/ai/eval.ts readyTrickTerm: a ready payment source kept for a Quick Program in hand or a reaction Call is worth
+   * this much, only up to the cost of what could be cast on the rival's coming turn). The bot's rollout and reaction
+   * play-out bots read the same weights. 0 or absent (default) = the weights as given, exactly as before; to measure the
+   * Programs alone, leave this off and set `readyTrick` in the weights.
+   */
+  readyTricks?: number;
+  /**
+   * C.2 (docs/REVIEW_2026-11-24.md B1), part (b): the fast agents of every one-step projection (simulate(), the 1-ply
+   * reaction's clones, turnPlan) and of this bot's rollout and reaction play-out bots also play a Quick Program or a
+   * quick ability in a reaction window when the one-step resolve Medium uses (clone, play it, let the attack finish with
+   * no further reactions, evaluate) values it 0.5 above the fast rule's own choice, so an attack into a trick is not
+   * valued as if there were none. The bot's own reactions are unchanged (Medium and Hard already value tricks), and so
+   * is live Easy: its tier does not set this (a fast bot with it set plays its own reactions that way too). false
+   * (default) = exactly as before.
+   */
+  fastTricks?: boolean;
+  /** Internal (fastTricks): the weights a fast agent values a trick with; set by fastAgents() from its parent's weights. */
+  trickWeights?: EvalWeights | null;
+  /**
    * Skip the explanations of a main-phase or reaction decision (lastThought, lastAlternatives, lastScores), which only
    * readers outside play use: telemetry, the coach, the reviewer, the Play page. Set on the bots a deep rollout or deep
    * reaction makes for its play-out clones (rolloutMove, reactionWorld), which nothing reads; building the strings and
@@ -145,6 +174,19 @@ export interface HeuristicOptions {
    * across the pool instead of running them one by one. Never set on Node or on clone agents.
    */
   rolloutPool?: import('./playoutPool').RolloutPool | undefined;
+  /**
+   * Observe-only (the coach, src/ai/coach.ts, REVIEW_2026-11-25 C4): also score every deep play-out (main-phase rollouts,
+   * sells compared by rollout, deep reactions, valueMain / valueReaction) with these weights, clamped to ±playOutClamp,
+   * with no 1-ply offset and no Call bonus: the Game review oracle's scale (src/ai/reviewer.ts), into ScoredOption.g. The
+   * same play-out is scored twice, so it costs nothing and never changes a choice. null (default) = off.
+   */
+  gradeWeights?: EvalWeights | null;
+  /**
+   * The coach: main-phase rollouts clamped to ±playOutClamp, as reactions and the grades are, without the start-of-turn
+   * wins `rolloutWins` adds (REVIEW_2026-11-25 C5: the pick was made on unclamped means and graded on clamped ones).
+   * false (default) = as before; no bot sets it.
+   */
+  clampDeep?: boolean;
 }
 
 /** One entry of HeuristicAgent.lastAlternatives. */
@@ -171,6 +213,8 @@ export interface ScoredOption {
   w?: number[];
   /** shared worlds only: added to every world's value to give `v` (5% of the 1-ply value, or a reaction Call's bonus) */
   off?: number;
+  /** gradeWeights only: the play-out's value in each world on the grade scale (clamped, no offset) */
+  g?: number[];
 }
 
 /**
@@ -207,6 +251,24 @@ export function sellTieBreak(sell: number, vals: readonly { uid: number; v: numb
 
 type ResolvedOptions = Omit<Required<HeuristicOptions>, 'rolloutPool'> & { rolloutPool: import('./playoutPool').RolloutPool | undefined };
 
+/** The grade-scale values of a group of play-outs (one world), averaged as the values are; null when not graded. */
+const meanOrNull = (xs: number[]) => (xs.length ? xs.reduce((a, x) => a + x, 0) / xs.length : null);
+
+/**
+ * A pool batch's values split: one value per task, and each task's grade-scale value when the config asked for them
+ * (PlayoutConfig.gradeWeights: the playout worker then answers value, grade value, … for each task in order).
+ */
+function splitBatch(raw: number[], graded: boolean): { v: number[]; g: number[] | null } {
+  if (!graded) return { v: raw, g: null };
+  const v: number[] = [];
+  const g: number[] = [];
+  for (let k = 0; k < raw.length; k += 2) {
+    v.push(raw[k]);
+    g.push(raw[k + 1]);
+  }
+  return { v, g };
+}
+
 export class HeuristicAgent implements Agent {
   name: string;
   opts: ResolvedOptions;
@@ -223,6 +285,8 @@ export class HeuristicAgent implements Agent {
   tier?: string;
   /** sellSearch chose not to sell on this turn of this game state: no further sell that turn */
   private noSellAt: { s: object; turn: number } | null = null;
+  /** gradeWeights: the last play-out's value on the grade scale (read right after each awaited rollout; observe-only) */
+  private graded = 0;
 
   /** The bot's random state: read and written by the practice bot worker to keep decisions deterministic across threads. */
   get botRng(): number {
@@ -237,7 +301,7 @@ export class HeuristicAgent implements Agent {
       name: opts.name ?? (opts.lookahead === false ? 'Fast bot' : opts.deep ? 'Deep bot' : 'Lookahead bot'),
       lookahead: opts.lookahead ?? true,
       // the fast policy (lookahead off: Easy, clone agents) keeps the hand weights; see FAST_WEIGHTS
-      weights: opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS),
+      weights: withReadyTricks(opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS), opts.readyTricks ?? 0),
       noise: opts.noise ?? 0,
       maxCandidates: opts.maxCandidates ?? 40,
       deep: opts.deep ?? 0,
@@ -249,6 +313,7 @@ export class HeuristicAgent implements Agent {
       sellLookahead: opts.sellLookahead ?? 0,
       deepReactions: opts.deepReactions ?? 0,
       sellKeepScarce: opts.sellKeepScarce ?? 0,
+      sellHoldCut: opts.sellHoldCut ?? 0,
       rolloutWins: opts.rolloutWins ?? false,
       deepWorlds: opts.deepWorlds ?? 0,
       sellSearch: opts.sellSearch ?? false,
@@ -260,8 +325,13 @@ export class HeuristicAgent implements Agent {
       mulligan: opts.mulligan ?? 'rule',
       easyGuard: opts.easyGuard ?? false,
       seed: opts.seed ?? 7,
+      readyTricks: opts.readyTricks ?? 0,
+      fastTricks: opts.fastTricks ?? false,
+      trickWeights: opts.trickWeights ?? null,
       quiet: opts.quiet ?? false,
       rolloutPool: opts.rolloutPool ?? undefined,
+      gradeWeights: opts.gradeWeights ?? null,
+      clampDeep: opts.clampDeep ?? false,
     };
     this.name = this.opts.name;
     this.rng = this.opts.seed;
@@ -299,9 +369,12 @@ export class HeuristicAgent implements Agent {
     if (o.deepWorlds > 1) parts.push(`w${o.deepWorlds}`);
     if (o.deepReactions) parts.push(`rx${o.deepReactions}`);
     if (o.sellLookahead > 1) parts.push(`sell${o.sellLookahead}`);
+    if (o.sellHoldCut) parts.push(`hold${o.sellHoldCut}`);
     if (o.impact) parts.push(`imp${o.impact}`);
     if (o.profiles) parts.push('prof');
     if (o.noise) parts.push(`noise${o.noise}`);
+    if (o.readyTricks) parts.push(`ready${o.readyTricks}`);
+    if (o.fastTricks) parts.push('ftricks');
     return parts.join(' ');
   }
 
@@ -331,8 +404,19 @@ export class HeuristicAgent implements Agent {
     return [mk(p === 0 ? own : rival, 0), mk(p === 1 ? own : rival, 1)];
   }
 
-  /** The fast agents of simulate() / reaction clones: FAST_WEIGHTS, plus the deciding seat's package weights when set. */
+  /**
+   * The fast agents of simulate() / reaction clones: FAST_WEIGHTS, plus the deciding seat's package weights when set.
+   * With fastTricks they also value tricks in reaction windows, with this bot's weights (the rival seat's without packages).
+   */
   private fastAgents(p: PlayerId): [Agent, Agent] {
+    if (!this.opts.fastTricks) return this.fastAgentsPlain(p);
+    const pair = this.fastAgentsPlain(p) as [HeuristicAgent, HeuristicAgent];
+    const tw = this.opts.trickWeights ?? this.opts.weights;
+    const mk = (seat: PlayerId) => new HeuristicAgent({ lookahead: false, weights: pair[seat].opts.weights, fastTricks: true, trickWeights: seat === p ? tw : withoutPackages(tw) });
+    return [mk(0), mk(1)];
+  }
+
+  private fastAgentsPlain(p: PlayerId): [Agent, Agent] {
     if (!usesPackages(this.opts.weights) && !usesPackages(FAST_WEIGHTS)) return [new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS }), new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS })];
     const own: EvalWeights = { ...FAST_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
     const rival = withoutPackages(FAST_WEIGHTS);
@@ -472,6 +556,11 @@ export class HeuristicAgent implements Agent {
             const s = (await this.valueMain(g, p, actions, [i], worlds))[0];
             v = s.v;
             scoredSells.push(s);
+          } else if (this.opts.sellHoldCut > 0) {
+            // C.4: the seller's hand at the cut, valued by what it holds for the seller's own packages
+            const leaf = (cg: Game) => (cg.s.winner === null ? this.opts.sellHoldCut * handHoldCredit(cg, p) : 0);
+            v = this.opts.deep > 0 ? await this.rolloutMove(g, p, a, undefined, leaf) : await this.simulate(g, p, a, leaf);
+            scoredSells.push({ i, v });
           } else {
             v = this.opts.deep > 0 ? await this.rollout(g, p, a) : await this.simulate(g, p, a);
             scoredSells.push({ i, v });
@@ -525,6 +614,9 @@ export class HeuristicAgent implements Agent {
     let deepScored: { i: number; v: number }[] | null = null;
     /** deepWorlds > 1: each rolled-out candidate's value in each world */
     const perWorld = new Map<number, number[]>();
+    /** gradeWeights: the same on the grade scale (observe-only) */
+    const perWorldG = new Map<number, number[]>();
+    const grading = !!this.opts.gradeWeights;
     /** deep: each rolled-out candidate's 1-ply value (observe-only, for lastScores) */
     const plyOf = new Map<number, number>();
     let deepWorldList: World[] | null = null;
@@ -547,16 +639,23 @@ export class HeuristicAgent implements Agent {
       if (worlds && this.opts.rolloutPool) {
         const tasks: import('./playoutPool').MainTask[] = [];
         for (const c of groups) for (const w of worlds) for (const a of c.group) tasks.push({ kind: 'main', action: a, world: w });
-        const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+        const { v: values, g: gValues } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), grading);
         let idx = 0;
         for (const c of groups) {
           const vals: number[] = [];
+          const gv: number[] = [];
           for (const _w of worlds) {
             let sum = 0;
-            for (const _ of c.group) sum += values[idx++];
+            let gs = 0;
+            for (const _ of c.group) {
+              if (gValues) gs += gValues[idx];
+              sum += values[idx++];
+            }
             vals.push(sum / c.group.length);
+            if (gValues) gv.push(gs / c.group.length);
           }
           perWorld.set(c.i, vals);
+          if (gValues) perWorldG.set(c.i, gv);
           const rv = vals.reduce((x, y) => x + y, 0) / vals.length;
           const dv = rv + c.ply * 0.05;
           deepScored.push({ i: c.i, v: dv });
@@ -567,12 +666,20 @@ export class HeuristicAgent implements Agent {
         let rv: number;
         if (worlds) {
           const vals: number[] = [];
+          const gv: number[] = [];
           for (const w of worlds) {
             let sum = 0;
-            for (const a of c.group) sum += await this.rollout(g, p, a, w);
+            const gs: number[] = [];
+            for (const a of c.group) {
+              sum += await this.rollout(g, p, a, w);
+              if (grading) gs.push(this.graded);
+            }
             vals.push(sum / c.group.length);
+            const gm = meanOrNull(gs);
+            if (gm !== null) gv.push(gm);
           }
           perWorld.set(c.i, vals);
+          if (grading) perWorldG.set(c.i, gv);
           rv = vals.reduce((x, y) => x + y, 0) / vals.length;
         } else {
           let sum = 0;
@@ -613,7 +720,8 @@ export class HeuristicAgent implements Agent {
           opts: deepScored.map((x) => {
             const w = perWorld.get(x.i);
             const ply = plyOf.get(x.i)!;
-            return w ? { i: x.i, v: x.v, ply, w, off: ply * 0.05 } : { i: x.i, v: x.v, ply };
+            const gw = perWorldG.get(x.i);
+            return w ? { i: x.i, v: x.v, ply, w, off: ply * 0.05, ...(gw ? { g: gw } : {}) } : { i: x.i, v: x.v, ply };
           }),
           chosen: bestI,
           screen: scored.map((x) => ({ i: x.i, v: x.v })),
@@ -651,28 +759,41 @@ export class HeuristicAgent implements Agent {
     if (this.opts.rolloutPool) {
       const tasks: import('./playoutPool').MainTask[] = [];
       for (const e of entries) for (const world of worlds) for (const x of e.group) tasks.push({ kind: 'main', action: x, world });
-      const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const { v: values, g: gValues } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), !!this.opts.gradeWeights);
       let vi = 0;
       for (const e of entries) {
         const w: number[] = [];
+        const gw: number[] = [];
         for (const _world of worlds) {
           let s = 0;
-          for (const _ of e.group) s += values[vi++];
+          let gs = 0;
+          for (const _ of e.group) {
+            if (gValues) gs += gValues[vi];
+            s += values[vi++];
+          }
           w.push(s / e.group.length);
+          if (gValues) gw.push(gs / e.group.length);
         }
         const off = e.ply * 0.05;
-        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off });
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off, ...(gValues ? { g: gw } : {}) });
       }
     } else {
       for (const e of entries) {
         const w: number[] = [];
+        const gw: number[] = [];
         for (const world of worlds) {
           let s = 0;
-          for (const x of e.group) s += await this.rollout(g, p, x, world);
+          const gs: number[] = [];
+          for (const x of e.group) {
+            s += await this.rollout(g, p, x, world);
+            if (this.opts.gradeWeights) gs.push(this.graded);
+          }
           w.push(s / e.group.length);
+          const gm = meanOrNull(gs);
+          if (gm !== null) gw.push(gm);
         }
         const off = e.ply * 0.05;
-        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off });
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + off, ply: e.ply, w, off, ...(this.opts.gradeWeights ? { g: gw } : {}) });
       }
     }
     return out;
@@ -690,29 +811,42 @@ export class HeuristicAgent implements Agent {
       const entries = idx.map((i) => ({ i, group: isUnknownCall(g, rx[i]) ? unknown : [rx[i]], off: rx[i].type === 'call' ? 0.5 : 0 }));
       const tasks: import('./playoutPool').ReactionTask[] = [];
       for (const e of entries) for (const world of worlds) for (const x of e.group) tasks.push({ kind: 'reaction', reaction: x, attacker, world });
-      const values = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const { v: values, g: gValues } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), !!this.opts.gradeWeights);
       let vi = 0;
       for (const e of entries) {
         const w: number[] = [];
+        const gw: number[] = [];
         for (const _world of worlds) {
           let s = 0;
-          for (const _ of e.group) s += values[vi++];
+          let gs = 0;
+          for (const _ of e.group) {
+            if (gValues) gs += gValues[vi];
+            s += values[vi++];
+          }
           w.push(s / e.group.length);
+          if (gValues) gw.push(gs / e.group.length);
         }
-        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + e.off, w, off: e.off });
+        out.push({ i: e.i, v: w.reduce((x, y) => x + y, 0) / w.length + e.off, w, off: e.off, ...(gValues ? { g: gw } : {}) });
       }
     } else {
       for (const i of idx) {
         const r = rx[i];
         const group = isUnknownCall(g, r) ? unknown : [r];
         const w: number[] = [];
+        const gw: number[] = [];
         for (const world of worlds) {
           let s = 0;
-          for (const x of group) s += await this.reactionWorld(g, p, x, world);
+          const gs: number[] = [];
+          for (const x of group) {
+            s += await this.reactionWorld(g, p, x, world);
+            if (this.opts.gradeWeights) gs.push(this.graded);
+          }
           w.push(s / group.length);
+          const gm = meanOrNull(gs);
+          if (gm !== null) gw.push(gm);
         }
         const off = r.type === 'call' ? 0.5 : 0;
-        out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off });
+        out.push({ i, v: w.reduce((x, y) => x + y, 0) / w.length + off, w, off, ...(this.opts.gradeWeights ? { g: gw } : {}) });
       }
     }
     return out;
@@ -721,15 +855,16 @@ export class HeuristicAgent implements Agent {
   /** One deep-reaction play-out: resume the attack with reaction r in world w, play p's turn, score it. */
   private async reactionWorld(g: Game, p: PlayerId, r: Reaction, w: World): Promise<number> {
     const attacker = g.s.attack!.attacker;
-    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
+    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b, fastTricks: this.opts.fastTricks })));
     cg.s.rng = w.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { reaction: r, attacker });
+    if (this.opts.gradeWeights) this.graded = playOutValue(cg, p, this.opts.gradeWeights, { wins: this.opts.rolloutWins, clamp: true });
     return playOutValue(cg, p, this.w(g, p), { wins: this.opts.rolloutWins, clamp: true });
   }
 
-  /** Clone, perform an action with fast policies, return evaluation. */
-  async simulate(g: Game, p: PlayerId, a: Action): Promise<number> {
+  /** Clone, perform an action with fast policies, return evaluation (+ `leaf` of the clone, when given). */
+  async simulate(g: Game, p: PlayerId, a: Action, leaf?: (cg: Game) => number): Promise<number> {
     const cg = g.clone(this.fastAgents(p));
     hideInfo(cg, p);
     try {
@@ -739,7 +874,8 @@ export class HeuristicAgent implements Agent {
     } catch (e) {
       if (!(e instanceof GameOverSignal)) throw e;
     }
-    return evaluate(cg, p, this.w(g, p));
+    const v = evaluate(cg, p, this.w(g, p));
+    return leaf ? v + leaf(cg) : v;
   }
 
   /** turnPlan: the last plan's best line (descriptions, first action first) and its search size; null when not planned. */
@@ -790,7 +926,15 @@ export class HeuristicAgent implements Agent {
 
   /** Config for the playout pool: the serialisable subset of this agent's state a sub-worker needs. */
   private playoutConfig(g: Game, p: PlayerId): import('./playoutPool').PlayoutConfig {
-    return { rawWeights: this.opts.weights, profiles: this.opts.profiles, evalWeights: this.w(g, p), rolloutWins: this.opts.rolloutWins };
+    return {
+      rawWeights: this.opts.weights,
+      profiles: this.opts.profiles,
+      evalWeights: this.w(g, p),
+      rolloutWins: this.opts.rolloutWins,
+      ...(this.opts.gradeWeights ? { gradeWeights: this.opts.gradeWeights } : {}),
+      ...(this.opts.clampDeep ? { clampDeep: true } : {}),
+      ...(this.opts.fastTricks ? { fastTricks: true } : {}),
+    };
   }
 
   /**
@@ -801,22 +945,27 @@ export class HeuristicAgent implements Agent {
     return this.rolloutMove(g, p, a, world);
   }
 
-  /** rollout(), or with `a` null (sellSearch's "don't sell"): p's clone bot plays the rest of the turn without selling. */
-  private async rolloutMove(g: Game, p: PlayerId, a: Action | null, world?: World): Promise<number> {
+  /**
+   * rollout(), or with `a` null (sellSearch's "don't sell"): p's clone bot plays the rest of the turn without selling.
+   * `leaf` (the sell comparison's hold credit, sellHoldCut) adds a value read off the clone where the play-out stops.
+   */
+  private async rolloutMove(g: Game, p: PlayerId, a: Action | null, world?: World, leaf?: (cg: Game) => number): Promise<number> {
     const noSell = a === null ? g.s.turn : undefined;
     const cg = g.clone(
       this.cloneAgents(p, (weights, seat) => {
         const noSellTurn = seat === p ? noSell : undefined;
         return world
-          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn })
-          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn });
+          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn, fastTricks: this.opts.fastTricks })
+          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn, fastTricks: this.opts.fastTricks });
       }),
     );
     if (world) cg.s.rng = world.rng;
     hideInfo(cg, p);
     await playOut(cg, p, a === null ? { rest: true } : { action: a });
     const wins = this.opts.rolloutWins;
-    return playOutValue(cg, p, this.w(g, p), { wins, clamp: wins });
+    if (this.opts.gradeWeights) this.graded = playOutValue(cg, p, this.opts.gradeWeights, { wins, clamp: true });
+    const v = playOutValue(cg, p, this.w(g, p), { wins, clamp: wins || this.opts.clampDeep });
+    return leaf ? v + leaf(cg) : v;
   }
 
   /**
@@ -938,7 +1087,7 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const rx = d.options.map((o) => o.action as Reaction);
     const endIdx = rx.findIndex((r) => r.type === 'endReact');
-    if (!this.opts.lookahead) return this.fastReaction(g, rx);
+    if (!this.opts.lookahead) return this.opts.fastTricks ? this.fastTrickReaction(g, p, rx) : this.fastReaction(g, rx);
     if (this.opts.deepReactions > 0 && g.s.attack) return this.deepReaction(g, d, rx, endIdx);
     // Play the attack out in a clone (no further reactions, sub-choices by the fast policy) and evaluate the result, so
     // fight and steal effects armed by the reaction count (Safety Override, "when this blocks" triggers, ...). Letting
@@ -980,42 +1129,93 @@ export class HeuristicAgent implements Agent {
     const worlds = makeWorlds(this.opts.deepReactions, () => this.rand());
     /** each valued reaction's per-world values (observe-only, for lastScores) */
     const seen = new Map<Reaction, number[]>();
+    /** gradeWeights: the same on the grade scale (observe-only) */
+    const seenG = new Map<Reaction, number[]>();
+    const grading = !!this.opts.gradeWeights;
     let value: (r: Reaction) => Promise<number>;
     if (this.opts.rolloutPool && g.s.attack) {
       const attacker = g.s.attack.attacker;
       const tasks: import('./playoutPool').ReactionTask[] = [];
       for (const r of rx) for (const w of worlds) tasks.push({ kind: 'reaction', reaction: r, attacker, world: w });
-      const vals = await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p));
+      const { v: vals, g: gVals } = splitBatch(await this.opts.rolloutPool.runBatch(g.s, g.pending.map((x) => ({ player: x.player, label: x.label })), p, tasks, this.playoutConfig(g, p)), grading);
       const precomputed = new Map<number, number[]>();
+      const precomputedG = new Map<number, number[]>();
       let vi = 0;
       for (let i = 0; i < rx.length; i++) {
         const wv: number[] = [];
-        for (const _w of worlds) wv.push(vals[vi++]);
+        const gv: number[] = [];
+        for (const _w of worlds) {
+          if (gVals) gv.push(gVals[vi]);
+          wv.push(vals[vi++]);
+        }
         precomputed.set(i, wv);
+        if (gVals) precomputedG.set(i, gv);
       }
       value = async (r: Reaction) => {
         const i = rx.indexOf(r);
         const wv = precomputed.get(i)!;
         seen.set(r, wv);
+        const gv = precomputedG.get(i);
+        if (gv) seenG.set(r, gv);
         return wv.reduce((x, y) => x + y, 0) / wv.length;
       };
     } else {
       value = async (r: Reaction) => {
         let sum = 0;
         const vals: number[] = [];
+        const gv: number[] = [];
         for (const w of worlds) {
           const v = await this.reactionWorld(g, p, r, w);
+          if (grading) gv.push(this.graded);
           vals.push(v);
           sum += v;
         }
         seen.set(r, vals);
+        if (grading) seenG.set(r, gv);
         return sum / worlds.length;
       };
     }
     const baseV = endIdx >= 0 ? await value(rx[endIdx]) : -Infinity;
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
-    this.lastScores = { kind: 'reaction', scale: 'deep', opts: reactionScores(g, rx, (r) => seen.get(r) ?? null), chosen: bestI, worlds, d };
+    this.lastScores = { kind: 'reaction', scale: 'deep', opts: reactionScores(g, rx, (r) => seen.get(r) ?? null, grading ? (r) => seenG.get(r) ?? null : undefined), chosen: bestI, worlds, d };
+    return bestI;
+  }
+
+  /**
+   * fastTricks: the fast rule's reaction, unless a Quick Program or a quick ability beats it by more than 0.5 on the
+   * one-step resolve Medium's reactions use (a copy with hidden information re-dealt, the reaction, the attack finished
+   * with no further reactions, evaluated with trickWeights). No copy is made when no trick is offered.
+   */
+  private async fastTrickReaction(g: Game, p: PlayerId, rx: Reaction[]): Promise<number> {
+    const rule = this.fastReaction(g, rx);
+    const tricks = rx.map((r, i) => ({ r, i })).filter(({ r }) => r.type === 'play' || r.type === 'activate');
+    if (!tricks.length) return rule;
+    const w = this.opts.trickWeights ?? this.opts.weights;
+    const resolve = async (r: Reaction) => {
+      const cg = g.clone(this.fastAgents(p));
+      hideInfo(cg, p);
+      try {
+        if (r.type !== 'endReact') {
+          await cg.doReaction(p, r);
+          await cg.resolvePending();
+        }
+        if (cg.s.attack) await cg.attackRest(cg.s.attack.attacker, true);
+        cg.checkState();
+      } catch (e) {
+        if (!(e instanceof GameOverSignal)) throw e;
+      }
+      return evaluate(cg, p, w);
+    };
+    let bestI = rule;
+    let bestV = await resolve(rx[rule]);
+    for (const { r, i } of tricks) {
+      const v = await resolve(r);
+      if (v > bestV + 0.5) {
+        bestV = v;
+        bestI = i;
+      }
+    }
     return bestI;
   }
 
@@ -1447,6 +1647,11 @@ export class HeuristicAgent implements Agent {
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
 
+/** HeuristicOptions.readyTricks: the weights with readyTrick and readyCall set to `n`; the same object when n is 0. */
+function withReadyTricks(w: EvalWeights, n: number): EvalWeights {
+  return n ? { ...w, readyTrick: n, readyCall: n } : w;
+}
+
 /** The mean cardValue over the card pool (a card the chooser can't see is valued at this). */
 const AVERAGE_CARD_VALUE = (() => {
   const xs = CARDS.filter((c) => c.type !== 'Legend').map((c) => cardValue(c.id));
@@ -1533,19 +1738,22 @@ function fastPrior(g: Game, a: Action): number {
  * The reactions a decision valued, as lastScores options: per-world values from `vals` (an unknown Call is the mean over
  * every unknown slot, as pickReaction values it), plus pickReaction's 0.5 for a Call. Options never valued are left out.
  */
-function reactionScores(g: Game, rx: Reaction[], vals: (r: Reaction) => number[] | null): ScoredOption[] {
+function reactionScores(g: Game, rx: Reaction[], vals: (r: Reaction) => number[] | null, gradeVals?: (r: Reaction) => number[] | null): ScoredOption[] {
   const unknown = rx.filter((r) => isUnknownCall(g, r));
+  // an unknown Call: the mean over every unknown slot, world by world
+  const valuesOf = (r: Reaction, f: (r: Reaction) => number[] | null): number[] | null => {
+    if (!isUnknownCall(g, r)) return f(r);
+    const all = unknown.map(f);
+    return all.every((x): x is number[] => x !== null) && all.length ? all[0].map((_, k) => all.reduce((a, x) => a + x[k], 0) / all.length) : null;
+  };
   const out: ScoredOption[] = [];
   for (let i = 0; i < rx.length; i++) {
     const r = rx[i];
-    let w: number[] | null;
-    if (isUnknownCall(g, r)) {
-      const all = unknown.map(vals);
-      w = all.every((x): x is number[] => x !== null) && all.length ? all[0].map((_, k) => all.reduce((a, x) => a + x[k], 0) / all.length) : null;
-    } else w = vals(r);
+    const w = valuesOf(r, vals);
     if (!w || !w.length) continue;
     const off = r.type === 'call' ? 0.5 : 0;
-    out.push({ i, v: w.reduce((a, x) => a + x, 0) / w.length + off, w, off });
+    const gw = gradeVals ? valuesOf(r, gradeVals) : null;
+    out.push({ i, v: w.reduce((a, x) => a + x, 0) / w.length + off, w, off, ...(gw && gw.length === w.length ? { g: gw } : {}) });
   }
   return out;
 }

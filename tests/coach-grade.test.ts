@@ -27,11 +27,15 @@ describe('gradeMove: by value with uncertainty', () => {
   it('a different sell within the noise is a close call, not a miss', () => {
     // 0.2 Gigs behind on average, but the worlds disagree (paired SE about 0.14 Gigs)
     const other = coachSell.map((x, k) => x - 8 + [12, -12, 10, -10, 6, -6][k]);
-    const gr = gradeMove(sellDecision(2), 1, advice('sell', [coachSell, other]), 3);
+    // a third sell clearly worse, so the decision mattered (else no option differs: 'unclear', below)
+    const gr = gradeMove(sellDecision(3), 1, advice('sell', [coachSell, other, coachSell.map((x) => x - 60)]), 3);
     expect(gr.gap).toBeCloseTo(8 / GIG_SWING, 9);
     expect(gr.gap!).toBeGreaterThan(0.15); // over the old threshold: the old rule called it a miss
     expect(gr.se).toBeGreaterThan(gr.gap! / 2);
     expect(gr.verdict).toBe('close');
+    // REVIEW_2026-11-25 C3: with only these two sells, nothing the coach scored differs: no clear difference, whichever was made
+    expect(gradeMove(sellDecision(2), 1, advice('sell', [coachSell, other]), 3).verdict).toBe('unclear');
+    expect(gradeMove(sellDecision(2), 0, advice('sell', [coachSell, other]), 3).verdict).toBe('unclear');
   });
 
   it('a small gap outside the noise is an inaccuracy; a clearly worse move a mistake; a better one best', () => {
@@ -39,8 +43,8 @@ describe('gradeMove: by value with uncertainty', () => {
     const a = advice('sell', [coachSell, coachSell.map((x, k) => x - 10 + (k % 2 ? 3 : -3)), coachSell.map((x, k) => x - 60 + (k % 2)), coachSell.map((x) => x + 4)]);
     expect(gradeMove(d, 1, a, 3)).toMatchObject({ verdict: 'inaccuracy', gap: 0.25 });
     // the same 0.25 Gigs in every world is fixed terms of the evaluation, not a measurement: a close call (COACH-14)
-    const fixed = advice('sell', [coachSell, coachSell.map((x) => x - 10)]);
-    expect(gradeMove(sellDecision(2), 1, fixed, 3)).toMatchObject({ verdict: 'close', gap: 0.25, se: 0 });
+    const fixed = advice('sell', [coachSell, coachSell.map((x) => x - 10), coachSell.map((x) => x - 60)]);
+    expect(gradeMove(sellDecision(3), 1, fixed, 3)).toMatchObject({ verdict: 'close', gap: 0.25, se: 0 });
     const worse = gradeMove(d, 2, a, 3);
     expect(worse.verdict).toBe('mistake');
     expect(worse.gap!).toBeGreaterThanOrEqual(MISTAKE_GIGS);
@@ -95,7 +99,7 @@ describe('the coach scores the move you made in its own worlds', () => {
     const gs = gradeMove(sellSpot!.d, other.i, sellSpot!.a, 1);
     expect(gs.gap).not.toBeNull();
     expect(gs.se).toBeGreaterThanOrEqual(0);
-    expect(['best', 'close', 'inaccuracy', 'mistake']).toContain(gs.verdict);
+    expect(['best', 'close', 'inaccuracy', 'mistake', 'unclear']).toContain(gs.verdict);
     expect(sellSpot!.a.grade!.worlds).toHaveLength(COACH_WORLDS);
 
     // a move the coach never valued (it sold, so ending the turn or a play was not rolled out): scored on demand
@@ -108,7 +112,7 @@ describe('the coach scores the move you made in its own worlds', () => {
     const gr = gradeMove(spot.d, outside, spot.a, 1, extra);
     expect(typeof gr.gap).toBe('number');
     expect(gr.se).toBeGreaterThanOrEqual(0);
-    expect(['best', 'close', 'inaccuracy', 'mistake']).toContain(gr.verdict);
+    expect(['best', 'close', 'inaccuracy', 'mistake', 'unclear']).toContain(gr.verdict);
     // the score is reproducible: the same request gives the same values
     expect(await scoreMoveRequest({ req: spot.req, chosen: outside, coach: spot.a.index, grade: spot.a.grade })).toEqual(extra);
   }, 120_000);
