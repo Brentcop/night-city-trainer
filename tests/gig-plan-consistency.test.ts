@@ -7,16 +7,13 @@
 // The same holds for the archetypes the bots read (seatArchetype): both seats' are those of their whole lists, so the
 // live bot, a fresh agent on a copy (its rollouts), the coach and the reviewer apply the same matchup profile. Until
 // 2026-11 the live bot read them at its first decision and every fresh agent from the cards then in the zones.
-// C.1's Street Cred parity reading (HeuristicOptions.credParity, carried on the weights) is cached per lineage apart from
-// the plain reading, so both hold the same way, and a game between a bot with the switch and one without (a botcheck of
-// it) keeps each bot's own reading.
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
 import type { Agent, Decision, DeckList, GameState, PlayerId } from '../src/engine/types';
 import { ownedCards, planFor, seatArchetype } from '../src/ai/eval';
 import { gigPlanOf } from '../src/ai/knowledge';
 import { CARDS } from '../src/engine/cards';
-import { HeuristicAgent, hideInfo, type HeuristicOptions } from '../src/ai/heuristic';
+import { HeuristicAgent, hideInfo } from '../src/ai/heuristic';
 import { BEST_PROFILES, classify } from '../src/ai/archetype';
 import { makeCoach } from '../src/ai/coach';
 import { makeBot } from '../src/lib/tournament';
@@ -35,8 +32,6 @@ const NC06 = lib.find((x) => x.file.endsWith('nc-06-metal-over-meat-yyy.txt'))!.
 const YYB = deck('meta-yyb-rogue-gear.txt');
 const listPlan = (d: DeckList) => gigPlanOf([...d.legends, ...d.main]);
 const noAgent: Agent = { name: 'none', decide: async () => [0] };
-/** Medium's settings (TIER_SETTINGS) as HeuristicOptions. */
-const medium: HeuristicOptions = { noise: 0.15, profiles: BEST_PROFILES };
 
 /** Records every answer, and copies the game the way Undo does (state + cloneBot) at the first main-phase decision of each turn in `pauseAt`. */
 class Recorder implements Agent {
@@ -65,8 +60,8 @@ interface Copy {
 }
 
 /** A Medium-vs-Medium game played in place, with copies taken at the first main-phase decision of the given turns. */
-async function playWithCopies(a: DeckList, b: DeckList, seed: number, first: PlayerId, pauseAt: number[], mk: (seed: number, seat: PlayerId) => HeuristicAgent = (s) => makeBot('medium', s)) {
-  const bots = [mk(seed, 0), mk(seed + 7777, 1)];
+async function playWithCopies(a: DeckList, b: DeckList, seed: number, first: PlayerId, pauseAt: number[]) {
+  const bots = [makeBot('medium', seed), makeBot('medium', seed + 7777)];
   const answers: string[] = [];
   const copies: Copy[] = [];
   const left = new Set(pauseAt);
@@ -147,32 +142,10 @@ describe('Gig plan: the plan of the seat’s whole list', () => {
     }
     expect(compared).toBeGreaterThanOrEqual(12);
   }, 60_000);
-
-  it('with the Street Cred parity reading on one seat only (C.1): a copy plays out as the game in place', async () => {
-    // Medium with the switch on seat 0 and without on seat 1, and the other way round; GRY is built around an even Street Cred
-    const GRY = deck('meta-gry-trauma-team.txt');
-    const on = (s: number) => new HeuristicAgent({ ...medium, seed: s, credParity: true });
-    const off = (s: number) => new HeuristicAgent({ ...medium, seed: s });
-    let compared = 0;
-    for (const [mk, seed] of [
-      [(s: number, seat: PlayerId) => (seat === 0 ? on(s) : off(s)), 20261124],
-      [(s: number, seat: PlayerId) => (seat === 1 ? on(s) : off(s)), 20261125],
-    ] as const) {
-      const played = await playWithCopies(GRY, YYB, seed, 0, [3, 6, 9], mk);
-      for (const c of played.copies) {
-        expect(c.bots.map((b) => b.credParity)).toEqual(played.copies[0].bots.map((b) => b.credParity)); // Undo's copy keeps each bot's reading
-        const cont = await continueCopy(c);
-        expect(cont.answers, `copy at turn ${c.turn}, seed ${seed}`).toEqual(played.answers.slice(c.at));
-        expect(cont.hash, `copy at turn ${c.turn}, seed ${seed}`).toBe(played.hash);
-        compared++;
-      }
-    }
-    expect(compared).toBeGreaterThanOrEqual(4);
-  }, 60_000);
 });
 
 describe('the cache shared by a game and its copies (Game.lineage)', () => {
-  const fresh = (g: Game, p: PlayerId) => ({ plan: gigPlanOf(ownedCards(g, p)), credPlan: gigPlanOf(ownedCards(g, p), true), arch: classify(ownedCards(g, p)).arch });
+  const fresh = (g: Game, p: PlayerId) => ({ plan: gigPlanOf(ownedCards(g, p)), arch: classify(ownedCards(g, p)).arch });
   let checked = 0;
   let permuted = 0;
   /** The cached own plan and archetype of both seats equal a fresh computation from g's own state. */
@@ -180,7 +153,6 @@ describe('the cache shared by a game and its copies (Game.lineage)', () => {
     for (const p of [0, 1] as PlayerId[]) {
       const f = fresh(g, p);
       expect(planFor(g, p, p), `${what}, seat ${p}`).toEqual(f.plan);
-      expect(planFor(g, p, p, true), `${what}, seat ${p}, Street Cred parity reading`).toEqual(f.credPlan);
       expect(seatArchetype(g, p), `${what}, seat ${p}`).toBe(f.arch);
       checked++;
     }
@@ -215,12 +187,10 @@ describe('the cache shared by a game and its copies (Game.lineage)', () => {
       return this.bot.decide(g, d);
     }
   }
-  const play = async (tier: string, a: DeckList, b: DeckList, seed: number, first: PlayerId, opts?: HeuristicOptions) => {
+  const play = async (tier: string, a: DeckList, b: DeckList, seed: number, first: PlayerId) => {
     let g: Game | null = null;
     const live = () => g!;
-    // opts: Medium's settings with these over them, instead of the tier's bot
-    const mk = (s: number) => (opts ? new HeuristicAgent({ ...medium, ...opts, seed: s }) : makeBot(tier, s));
-    g = Game.create([a, b], [new Check(mk(seed), live), new Check(mk(seed + 7777), live)], { seed, first, log: false });
+    g = Game.create([a, b], [new Check(makeBot(tier, seed), live), new Check(makeBot(tier, seed + 7777), live)], { seed, first, log: false });
     await g.run();
     same(g, 'final state');
     // a state structured-cloned (Undo, the coach) or a Game over another state object has its own lineage
@@ -238,7 +208,6 @@ describe('the cache shared by a game and its copies (Game.lineage)', () => {
 
   it('Hard: at every decision, on the game and on its copies', async () => {
     await play('hard', deck('meta-rrb-wakako-midrange.txt'), YYB, 4105, 0);
-    await play('medium', deck('meta-gry-trauma-team.txt'), YYB, 4106, 1, { credParity: true }); // C.1's reading in play
     expect(checked).toBeGreaterThan(1000);
     expect(permuted).toBeGreaterThan(0); // hideInfo did re-deal face-down Legends in some copies
   }, 60_000);

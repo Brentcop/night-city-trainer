@@ -15,7 +15,7 @@ import type { PracticeReplay } from '../src/lib/practiceReplays';
 import { eventVersionProblem, playWatchGame, WatchRefused, watchWords } from '../src/lib/watchGame';
 import { DealtGames, movedCards, nextGame, nextOf, scoreOf, type WatchMatch } from '../src/lib/watchMatch';
 import { recordTarget } from '../src/lib/watchRecord';
-import { gameDeck, runTournament, type GameJob, type GameRec, type PlayGame } from '../src/lib/tournament';
+import { gameDeck, makeBot, runTournament, type GameJob, type GameRec, type PlayGame } from '../src/lib/tournament';
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -27,15 +27,23 @@ const ev = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/events/archive/event
   rounds: { matches: { a: string; b: string | null; games: GameRec[] }[] }[];
 };
 const match = ev.rounds.flatMap((r) => r.matches).find((m) => m.b && m.games.some((g) => g.seed === 1020010))!;
-const game = match.games.find((g) => g.seed === 1020010)!;
 const deck = (name: string): DeckList => gameDeck({ name, ...ev.decks[name]! });
+/**
+ * The deal as the event recorded it (on SIM_VERSION 9), and the same deal recorded on the current version, as an event
+ * records a game (makeBot, the seat-B seed + 7777): the archived events are not re-recorded at every bump (since
+ * SIM_VERSION 10 the rating series re-rates instead), and RRG Dexter Midrange holds a Street Cred card, so version 10
+ * plays this deal differently. Watch must replay the game of the version it runs.
+ */
+const dealt = match.games.find((g) => g.seed === 1020010)!;
+const replayed = await Game.create([deck(match.a), deck(match.b!)], [makeBot(ev.bot, dealt.seed), makeBot(ev.bot, dealt.seed + 7777)], { seed: dealt.seed, first: dealt.first, log: false }).run();
+const game: GameRec = { ...dealt, winner: replayed.winner!, turns: replayed.turn };
 const eventSource = (o: Partial<{ seed: number; bot: string; simVersion: number | undefined }> = {}) => ({
   kind: 'event' as const,
   decks: [deck(match.a), deck(match.b!)] as [DeckList, DeckList],
   seed: o.seed ?? game.seed,
   first: game.first,
   bot: o.bot ?? ev.bot,
-  ...('simVersion' in o ? (o.simVersion === undefined ? {} : { simVersion: o.simVersion }) : { simVersion: ev.simVersion }),
+  ...('simVersion' in o ? (o.simVersion === undefined ? {} : { simVersion: o.simVersion }) : { simVersion: CURRENT_SIM_VERSION }),
   expect: { winner: game.winner, turns: game.turns },
 });
 

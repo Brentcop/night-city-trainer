@@ -36,12 +36,12 @@ async function play(level: string, seed: number, first: 0 | 1, mk: (level: strin
 
 const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'; turns: number; log: string }[]> = {
   easy: [
-    { seed: 101, first: 0, winner: 0, turns: 14, log: 'acf31057' },
-    { seed: 102, first: 1, winner: 1, turns: 13, log: 'fbe3f662' },
+    { seed: 101, first: 0, winner: 0, turns: 14, log: '2282899e' },
+    { seed: 102, first: 1, winner: 1, turns: 14, log: '56626adf' },
   ],
   medium: [
-    { seed: 201, first: 0, winner: 1, turns: 12, log: '11d126ae' },
-    { seed: 202, first: 1, winner: 1, turns: 13, log: 'd5419ee5' },
+    { seed: 201, first: 0, winner: 1, turns: 12, log: '9086b301' },
+    { seed: 202, first: 1, winner: 1, turns: 14, log: 'd4af0304' },
   ],
   // Re-pinned 2026-11-12 for SIM_VERSION 6 (the fitted evaluation weights; Hard without card impact, plain mulligan).
   // Easy did not move (the fast policy keeps the hand weights). Was 0/11/8888fe17 and 1/11/589d1a10 (Medium 5d0e65c4, 0/14/1c55ca83).
@@ -57,9 +57,13 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
   // card it owns): winners unchanged; Easy game 1 and Hard game 2 end on another turn; Medium game 1 did not move. Easy
   // moved too: it never evaluates the live game, so its live plan used to be frozen at its first Gig choice, after some
   // sales. Version 8: easy 11/30b29a3e, 28161a31; medium 170e3ed4; hard 2806f35d, 13/79232b1c.
+  // Re-pinned 2026-11-25 for SIM_VERSION 10 (Street Cred parity read apart from Gig parity, C.1): GRY Trauma Team, deck B,
+  // is built around an even Street Cred, so every game moved, Easy too (its Gig choices read the plan); winners
+  // unchanged; Easy game 2 and Medium game 2 end on turn 14 (were 13), Hard game 1 on turn 11 (was 13). Version 9:
+  // easy acf31057, 13/fbe3f662; medium 11d126ae, 13/d5419ee5; hard 13/8b31b479, 393394c9.
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 13, log: '8b31b479' },
-    { seed: 302, first: 1, winner: 1, turns: 11, log: '393394c9' },
+    { seed: 301, first: 0, winner: 0, turns: 11, log: '2a54b632' },
+    { seed: 302, first: 1, winner: 1, turns: 11, log: 'a5731fb9' },
   ],
 };
 

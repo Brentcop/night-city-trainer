@@ -73,13 +73,15 @@ describe('default Swiss events are unchanged', () => {
   // still gives the version-7 pins). Version 7: abb0e5798905aa04, e3b98158213cee00, adeae78bf7917247, 098da3332766617b.
   // Re-taken 2026-11-14 for SIM_VERSION 9, again only the manifest's version (with SIM_VERSION set back to 8 the code
   // still gives the version-8 pins). Version 8: fb4dd43487ba9eb6, 861d838bef23e75a, 512b71e0e413b941, f7f4d7f68ce15749.
+  // Re-taken 2026-11-25 for SIM_VERSION 10, again only the manifest's version (with SIM_VERSION set back to 9 the code
+  // still gives the version-9 pins). Version 9: 2ef53dad5591bda8, f4ca60da6ecb53a4, 7ef379c67e52b81b, ae626f2ef33ca773.
   // A default event must stay byte-identical: same pairings, seeds, seats, standings, manifest, and no new fields.
   const norm = (ev: TourneyEvent) => JSON.stringify({ ...ev, date: '', manifest: { ...ev.manifest, runId: '', createdAt: '', cardDataVersion: '' } });
   const PINS: [number, number, number, 1 | 3, number, string][] = [
-    [7, 3, 4, 3, 42, '2ef53dad5591bda8'],
-    [8, 3, 8, 1, 7, 'f4ca60da6ecb53a4'],
-    [11, 4, 8, 3, 5, '7ef379c67e52b81b'],
-    [2, 1, 0, 3, 9, 'ae626f2ef33ca773'],
+    [7, 3, 4, 3, 42, '9bf89dad0f06a9ec'],
+    [8, 3, 8, 1, 7, 'd13b547f69efe8d8'],
+    [11, 4, 8, 3, 5, '32fe797d5cc56f7f'],
+    [2, 1, 0, 3, 9, '052b814f74c81883'],
   ];
   it.each(PINS)('%i decks, %i rounds, top %i, Bo%i, seed %i', async (n, rounds, top, bestOf, seed, pin) => {
     const ev = await runTournament(field(n), { name: 'pin', rounds, top, bestOf, bot: 'medium', seed }, play, { id: seed });

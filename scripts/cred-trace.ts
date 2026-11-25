@@ -8,8 +8,10 @@
 //   M1 (primary) the 11 library decks built around `cred-even` (synergiesIn(...).builtAround): the share of their own
 //      turn ends at which their Street Cred is even (Null, no Gig, is not even), with config A piloting them against
 //      with config B on the same deals. Pooled ratio per config; the A − B difference with a 95% interval from the
-//      deal-and-seat clusters (delta method on the two ratios). C.1 is meant to raise it: A = switch on, B = off,
-//      difference above 0 with the interval above 0, on Medium and on Hard.
+//      deal-and-seat clusters (delta method on the two ratios). C.1 was meant to raise it: A = switch on, B = off,
+//      difference above 0 with the interval above 0, on Medium and on Hard. Measured 2026-11-24 (SIM_VERSION 9 with
+//      the switch, before it became the only reading in version 10): +14.1 points [13.5, 14.6] Medium, +11.9 [10.9,
+//      12.9] Hard (docs/BOT_TOOLKIT.md §6). It now compares any two bot configurations by the same counts.
 //   M2 the same at the end of the rival's turn (the Street Cred the deck takes into its own turn, before it rolls in).
 //   M1b the decks with a Street Cred card but not built around it (their plan changes too, by less).
 //   C1 (control) the decks with Jackie Welles or Bootleg Black Sapphire Show and no Street Cred card, whose own plan the

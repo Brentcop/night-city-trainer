@@ -2,6 +2,7 @@
 // invented fixtures, then one pass over the real public sources (ids unique, every link resolves, hashes stable, two
 // builds byte-identical; the measured records name their bot and sim version and link as the plan says). Fixtures never hold official rules or FAQ wording; the data/raw check is structural only
 // and is skipped when data/raw is absent.
+import { CURRENT_SIM_VERSION } from '../src/lib/playedRecord';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -295,7 +296,7 @@ describe('builders on fixtures', () => {
       expect([r.origin, r.scope]).toEqual(['measured', 'public']);
       expect(r.stamps).toEqual({ asOf: '2030-05-06T07:08:09.000Z', bot: 'fixture-bot', simVersion: 7 });
       // the first sentence says what it is and names the bot and the sim version, and an old version is stale
-      expect(r.text.split('\n')[0]).toContain('the fixture-bot bot on sim version 7 (stale: the current sim version is 9)');
+      expect(r.text.split('\n')[0]).toContain(`the fixture-bot bot on sim version 7 (stale: the current sim version is ${CURRENT_SIM_VERSION})`);
       expect(r.fields?.stale).toBe(true);
       expect(r.text).not.toMatch(/\bbest deck\b|\byou should\b|\bbecause\b/i);
     }
@@ -325,7 +326,7 @@ describe('builders on fixtures', () => {
     expect(table.title).toBe('Power ratings table');
     expect(table.links).toEqual([]);
     expect(table.text.split('\n')).toEqual([
-      'Power ratings table: the rated library decks in the order of their power rating, fitted over 1 recorded event played by the fixture-bot bot on sim version 7 (stale: the current sim version is 9), as of 2030-05-06. All 2 rated decks now:',
+      `Power ratings table: the rated library decks in the order of their power rating, fitted over 1 recorded event played by the fixture-bot bot on sim version 7 (stale: the current sim version is ${CURRENT_SIM_VERSION}), as of 2030-05-06. All 2 rated decks now:`,
       '1. Fixture Mill: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 25 rated games; Sim tier now A±.',
       '2. Fixture Burn: expected win rate against the whole field 55.0% (90% range 45.0%–65.0%) over 2 rated games; Sim tier now unrated.',
       'The 90% range of Fixture Mill overlaps the ranges of every other deck listed here: these games do not settle the order among them.',
@@ -552,7 +553,7 @@ describe('the real public sources', async () => {
       expect([x.origin, x.scope], x.id).toEqual(['measured', 'public']);
       const s = x.stamps!;
       expect(typeof s.simVersion === 'number' && typeof s.bot === 'string' && typeof s.asOf === 'string', x.id).toBe(true);
-      expect(x.fields?.stale, x.id).toBe(false);
+      expect(x.fields?.stale, x.id).toBe(s.simVersion !== CURRENT_SIM_VERSION);
       const first = x.text.split('\n')[0]!;
       expect(first, x.id).toContain(`the ${s.bot} bot on sim version ${s.simVersion}`);
       expect(first, x.id).toMatch(/: statistics (of how the bot used one card|of one synergy package)/);

@@ -13,7 +13,7 @@ import { CARD_BY_ID, CARDS } from '../src/engine/cards';
 import { refreshArt, setArtEnabled } from '../src/ui/art';
 import { DECK_OBJECTIVES } from '../src/content/deckObjectives';
 import { RATINGS, SEASONS } from '../src/data/index';
-import { CURRENT_SIM_VERSION, isHistorical } from '../src/lib/playedRecord';
+import { isHistorical } from '../src/lib/playedRecord';
 import { seasonVersions, staleLeaderRow } from '../src/lib/parentStrength';
 
 const RATED = 'meta-rrg-dexter-midrange.txt';
@@ -79,7 +79,7 @@ describe('deck profile: recorded results first', () => {
     expect(html).not.toContain('No recorded games');
   });
 
-  it('a Season 3 deck: its leaderboard row and finals were all played on the current simulator, so no historical note', () => {
+  it('a Season 3 deck: its leaderboard row is judged on its own season, played on version 9, so historical since version 10', () => {
     setArtEnabled(false);
     const file = 's3-03-cross-rrr.txt';
     const versions = seasonVersions(SEASONS.seasons);
@@ -87,12 +87,14 @@ describe('deck profile: recorded results first', () => {
     // the seasons file's own version is the oldest season's (5): the deck's row is judged on its own seasons instead
     expect(isHistorical(SEASONS.manifest?.simVersion)).toBe(true);
     expect(Object.keys(row.seasons ?? {})).toEqual(['3']);
-    expect(versions['3']).toBe(CURRENT_SIM_VERSION);
-    expect(staleLeaderRow(row, versions)).toBe(false);
+    expect(versions['3']).toBe(9);
+    // on version 9 the row was current (no note); since SIM_VERSION 10 (2026-11-25) it is historical
+    expect(staleLeaderRow(row, versions, 9)).toBe(false);
+    expect(staleLeaderRow(row, versions)).toBe(isHistorical(9));
     const html = renderToStaticMarkup(<DeckProfilePage file={file} />);
     expect(html).toContain('Recorded results');
     expect(html).toMatch(/Finals vs the meta|Seasons vs the meta/);
-    expect(html).not.toContain('Historical:');
+    expect(html.includes('Historical:')).toBe(isHistorical(9));
   });
 
   it('says plainly when a deck has no recorded games', () => {
@@ -114,8 +116,9 @@ describe('deck profile: recorded results first', () => {
     expect(html).toContain('Recorded results');
     expect(html).not.toContain('No recorded games');
     expect(html).toMatch(/its power rating expects \d+% vs the whole field/);
-    // it was never in a season, so nothing of it is historical
-    expect(html).not.toContain('Historical:');
+    // it was never in a season: its record is historical only when the recorded games and ratings are from an older
+    // simulator (version 9 since SIM_VERSION 10, 2026-11-25, until the series re-rates)
+    expect(html.includes('Historical:')).toBe(isHistorical(RATINGS.manifest?.simVersion));
     expect(html).toContain('origin-badge origin-shared');
     expect(html).toContain('Player list');
     expect(html).not.toContain('choom.gg guide');

@@ -1,5 +1,5 @@
-// C.1's intended-effect tracer (scripts/cred-trace.ts): observe-only, the groups it reports, the paired ratio; and that
-// the switch it measures (HeuristicOptions.credParity) does change how a deck built around an even Street Cred plays.
+// C.1's intended-effect tracer (scripts/cred-trace.ts, botcheck --cred-trace): observe-only, the groups it reports, the
+// paired ratio.
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/engine/engine';
 import type { DeckList } from '../src/engine/types';
@@ -13,12 +13,12 @@ const lib = loadLibrary();
 const deck = (file: string): DeckList => lib.find((d) => d.file.endsWith(file))!.deck;
 const GRY = deck('meta-gry-trauma-team.txt');
 const YYB = deck('meta-yyb-rogue-gear.txt');
-const medium = (seed: number, credParity?: boolean) => new HeuristicAgent({ noise: 0.15, profiles: BEST_PROFILES, seed, credParity });
+const medium = (seed: number) => new HeuristicAgent({ noise: 0.15, profiles: BEST_PROFILES, seed });
 
-async function play(seed: number, credParity: boolean | undefined, trace: boolean) {
+async function play(seed: number, trace: boolean) {
   const answers: string[] = [];
   const rec = (a: HeuristicAgent) => ({ name: a.name, decide: async (g: Game, d: Parameters<HeuristicAgent['decide']>[1]) => { const r = await a.decide(g, d); answers.push(`${d.kind}/${d.tag ?? ''} ${r}`); return r; } });
-  const g = Game.create([GRY, YYB], [rec(medium(seed, credParity)), rec(medium(seed + 7777, credParity))], { seed, first: 0, log: false });
+  const g = Game.create([GRY, YYB], [rec(medium(seed)), rec(medium(seed + 7777))], { seed, first: 0, log: false });
   const ends = emptyCredEnds();
   if (trace) traceCred(g, ends);
   const end = await g.run();
@@ -27,8 +27,8 @@ async function play(seed: number, credParity: boolean | undefined, trace: boolea
 
 describe('the C.1 tracer', () => {
   it('only observes: a traced game is the same game', async () => {
-    const a = await play(9101, undefined, false);
-    const b = await play(9101, undefined, true);
+    const a = await play(9101, false);
+    const b = await play(9101, true);
     expect(b.hash).toBe(a.hash);
     // every end phase counted once for each seat: its own turn ends and the rival's add up to the turns played (give or take the last)
     const total = b.ends[0].own.ends + b.ends[0].rival.ends;
@@ -36,12 +36,6 @@ describe('the C.1 tracer', () => {
     expect(Math.abs(total - b.turns)).toBeLessThanOrEqual(1);
     for (const s of b.ends) for (const c of [s.own, s.rival]) expect(c.even + c.odd + c.nul).toBe(c.ends);
   }, 30_000);
-
-  it('the switch changes how a deck built around an even Street Cred plays', async () => {
-    let changed = 0;
-    for (const seed of [9201, 9202, 9203]) if ((await play(seed, true, false)).hash !== (await play(seed, undefined, false)).hash) changed++;
-    expect(changed).toBeGreaterThan(0);
-  }, 60_000);
 
   it('groups: 11 decks built around an even Street Cred, others with a Street Cred card, Gig parity decks', () => {
     const groups = lib.map((d) => credGroup(d.deck));

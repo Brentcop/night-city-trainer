@@ -112,7 +112,7 @@ describe('the change, three ways', () => {
     expect(text).toContain('By opponent:');
     expect(text).toContain('going second');
     expect(text).toContain('Across opponents:');
-    expect(r.out.at(-1)).toMatch(/^This is a paired comparison with the Medium bot under simulator version 9: .* run npm run evidence/);
+    expect(r.out.at(-1)).toMatch(new RegExp(`^This is a paired comparison with the Medium bot under simulator version ${SIM_VERSION}: .* run npm run evidence`));
   });
 
   it('--change, by its label or its key in the change ledger', async () => {

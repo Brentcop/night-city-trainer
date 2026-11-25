@@ -29,7 +29,7 @@ import { buildSave, parseSavedGame, type SavedGame } from '../src/lib/savedGames
 import { timedOutRecords, BOT_MD_KIND, type BotMultiDay } from '../src/lib/multiDay';
 import { otherVersionText, replayedFromOtherVersion, MAX_RECORDED_ANSWERS } from '../src/lib/practiceVerdict';
 import { asReviewRecord, loadGameReview, saveGameReview } from '../src/lib/gameReviewStore';
-import { GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD, GAME_REVIEW_ROLLOUTS, measuredAsNow, REVIEW_MEASURE, REVIEW_RULES, type CoachRating, type GameReviewRecord } from '../src/lib/gameReview';
+import { GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD, GAME_REVIEW_ROLLOUTS, measuredAsNow, REVIEW_MEASURE, REVIEW_RULES, REVIEW_SIM_BEFORE_KEPT, type CoachRating, type GameReviewRecord } from '../src/lib/gameReview';
 import { parseCoachedReplay, buildCoachedReplay, COACHED_REPLAY_KIND } from '../src/lib/coachedReplay';
 import { playWatchGame, WatchRefused } from '../src/lib/watchGame';
 import { recordTarget } from '../src/lib/watchRecord';
@@ -372,8 +372,8 @@ describe('review records name the simulator version that measured them', () => {
     expect(measuredAsNow({ ...base(), simVersion: SIM_VERSION })).toBe(false);
     const { simVersion: _s, ...older } = base();
     expect(measuredAsNow(older)).toBe(false);
-    // and on the version it was measured on, an older record still counts as measured now
-    expect(measuredAsNow(older, SIM_VERSION)).toBe(true);
+    // and on the version it was measured on (9: stored before the field was kept), an older record counts as measured now
+    expect(measuredAsNow(older, REVIEW_SIM_BEFORE_KEPT)).toBe(true);
     saveGameReview({ ...base(), simVersion: SIM_VERSION });
     const got = loadGameReview('g1', [[0]]);
     expect(got?.review).toBeUndefined();

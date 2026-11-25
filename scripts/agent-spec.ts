@@ -38,8 +38,6 @@ export interface AgentSpec {
   mulligan?: MulliganRule;
   /** BOT-F (HeuristicOptions.easyGuard): the fast main phase skips Programs that would do nothing (Easy) */
   easyGuard?: boolean;
-  /** C.1 (HeuristicOptions.credParity): the Gig plan reads Street Cred parity apart (an even Street Cred, not one even and one odd Gig) */
-  credParity?: boolean;
   /** 'default' = DEFAULT_PROFILES, 'best' = BEST_PROFILES (tuned), or an explicit profile table */
   profiles?: 'default' | 'best' | Record<string, Record<string, number>>;
 }
@@ -62,6 +60,6 @@ export function specWeights(spec: AgentSpec): EvalWeights | undefined {
 }
 
 export function fromSpec(spec: AgentSpec, seed: number): HeuristicAgent {
-  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: specWeights(spec), noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, impactSell: spec.impactSell, impactCards: spec.impactCards, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, sellEddieByStage: spec.sellEddieByStage ?? null, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, easyGuard: spec.easyGuard, credParity: spec.credParity, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
+  return new HeuristicAgent({ lookahead: spec.lookahead ?? true, weights: specWeights(spec), noise: spec.noise ?? 0.15, seed, deep: spec.deep ?? 0, impact: spec.impact ?? 0, impactSell: spec.impactSell, impactCards: spec.impactCards, deepAttacks: spec.deepAttacks ?? 0, sellLookahead: spec.sellLookahead ?? 0, deepReactions: spec.deepReactions ?? 0, rolloutWins: spec.rolloutWins ?? false, deepWorlds: spec.deepWorlds ?? 0, sellSearch: spec.sellSearch ?? false, sellEddieByStage: spec.sellEddieByStage ?? null, turnPlan: spec.turnPlan ?? 0, turnPlanNodes: spec.turnPlanNodes, turnPlanBeam: spec.turnPlanBeam, mulligan: spec.mulligan, easyGuard: spec.easyGuard, profiles: spec.profiles === 'default' ? DEFAULT_PROFILES : spec.profiles === 'best' ? BEST_PROFILES : (spec.profiles as any) ?? null });
 }
 
