@@ -9,7 +9,7 @@ import { CARD_BY_ID } from '../../engine/cards';
 import { allDecks } from '../../lib/browserLibrary';
 import { loadHidden } from '../../lib/hiddenDecks';
 import type { LibraryDeck } from '../../lib/library';
-import { clearPractice, loadPractice, PRACTICE_KEY, type PracticeGame } from '../../lib/practiceLog';
+import { clearPractice, loadPractice, PRACTICE_KEY, scoredNow, type PracticeGame } from '../../lib/practiceLog';
 import { clearReplays, loadReplays, REPLAYS_KEY, type PracticeReplay } from '../../lib/practiceReplays';
 import { clearGameReviews, GAME_REVIEWS_KEY } from '../../lib/gameReviewStore';
 import { costlyText } from '../../lib/gameReview';
@@ -310,6 +310,7 @@ function History({ games, replays, reload }: { games: PracticeGame[]; replays: M
       conceded: !!g.conceded,
       ...(g.multiDay ? { multiDay: g.multiDay } : {}),
       grade: g.coach?.grade ?? null,
+      ...(g.coach && !scoredNow(g.coach) ? { gradeOld: true } : {}),
       watch: r && watchOn ? () => setWatch(recordTarget(r, { turns: g.turns || undefined, botLabel: BOT_TIER_LABEL[botTier(r.botLevel)] })) : undefined,
       review: r && reviews ? () => setReview({ src: { replay: r, coach: [], persist: true, turns: g.turns || undefined }, title: [`${r.decks[0].name} vs ${r.decks[1].name}`, formatRecorded(r.date)].filter(Boolean).join(' — ') }) : undefined,
       ...(g.review ? { ratings: [g.review.acc === null ? '' : `accuracy ${g.review.acc}`, costlyText(g.review.n) || 'no slips'].filter(Boolean).join(' · ') } : {}),

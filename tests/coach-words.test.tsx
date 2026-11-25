@@ -93,10 +93,18 @@ describe('agreeing is measured only where the coach measures', () => {
   it('the scorecard leaves unmeasured choices out of its count, and shows no letter when nothing was measured', () => {
     const g = (verdict: MoveGrade['verdict']): MoveGrade => ({ turn: 1, chose: 'A', coach: 'A', gap: verdict === 'unscored' ? null : 0, verdict });
     const html = renderToStaticMarkup(<Scorecard grades={[g('unscored'), g('unscored')]} />);
-    expect(html).toContain('no moves measured');
+    expect(html).toContain('no decision that mattered was measured');
     expect(html).not.toContain('scorecard-grade');
     expect(html).not.toContain('100%');
-    expect(renderToStaticMarkup(<Scorecard grades={[g('agree'), g('unscored')]} />)).toContain('1 of 1 measured move was Best or a Close call (100%)');
+    expect(renderToStaticMarkup(<Scorecard grades={[g('agree'), g('unscored')]} />)).toContain('Handled well: 1 of 1 decision that mattered (100%)');
+    // REVIEW_2026-11-25 C3: a decision with no clear difference is left out, and said apart
+    const unclear = renderToStaticMarkup(<Scorecard grades={[g('agree'), g('unclear'), g('unclear')]} />);
+    expect(unclear).toContain('Handled well: 1 of 1 decision that mattered (100%)');
+    expect(unclear).toContain('2 decisions made no clear difference (not counted).');
+    // the headline is the costly moves, each confirmed
+    const costly = renderToStaticMarkup(<Scorecard grades={[g('agree'), { ...g('mistake'), gap: 0.5, se: 0.1, confirmed: 16 }, { ...g('inaccuracy'), gap: 0.2, se: 0.05, confirmed: 16 }]} />);
+    expect(costly).toContain('Costly moves: 2 (1 Mistake, 1 Slip), each checked on fresh play-outs');
+    expect(costly).toContain('Handled well: 1 of 3 decisions that mattered (33%)');
   });
   it('older records: a stored rule-decided "agree" is read as not measured', () => {
     const rec = { at: 3, turn: 2, options: ['A', 'B'], chose: 0, coach: 0, why: '', verdict: 'agree', gap: 0, scores: [] };

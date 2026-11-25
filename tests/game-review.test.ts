@@ -185,6 +185,11 @@ describe('the coach’s grades from play are kept', () => {
     expect(saidText(saidOf(base('close', 0.05, 0.01)), 'unit')).toMatch(/^During play the coach said Close call/);
     expect(saidText(saidOf(base('best', 0.02, 0.01)), 'unit')).toBe('During play the coach said Best: as good as A. Coach: Because.');
     expect(saidText(saidOf(base('agree', 0, undefined, 'B')), 'unit')).toBe('During play the coach said this was its own pick. Coach: Because.');
+    // since the coach's own changes of 2026-11-25: a confirmed grade is the confirmation's, an unclear one says so
+    expect(saidText(saidOf({ ...base('mistake', 0.62, 0.1), confirmed: 16 }), 'unit')).toBe('During play the coach said Mistake, after checking it on 16 fresh play-outs: it preferred A (−0.6 ± 0.1 Gigs). Coach: Because.');
+    expect(saidText(saidOf({ ...base('close', 0.05, 0.01), unclear: true }), 'unit')).toBe('During play the coach said No clear difference (it would have picked A): every option it measured came out about the same. Coach: Because.');
+    const rec = { at: 1, turn: 2, options: ['A', 'B'], chose: 1, coach: 0, why: 'W.', verdict: 'close', gap: 0.05, se: 0.01, scores: [], unclear: true, confirmed: 16 };
+    expect(coachRatingOf(rec)).toMatchObject({ verdict: 'close', unclear: true, confirmed: 16 });
   });
 });
 

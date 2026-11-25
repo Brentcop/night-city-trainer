@@ -3,19 +3,19 @@
 // After you move, a move the coach did not value is scored in the worlds of its advice (`score`, INFO-1): those jobs
 // queue behind advice (advice first, so the next position's advice is never kept waiting by a grade) and are never
 // dropped, and neither is the advice for a decision you answered before it arrived (`adviceFor`: that move is graded when
-// it lands, src/lib/coachGrading.ts). If the worker can't start or crashes, the coach falls back to the main thread
+// it lands, src/lib/coachGrading.ts), nor the check of a costly grade on fresh worlds (`confirm`, queued like a score). If the worker can't start or crashes, the coach falls back to the main thread
 // (slower, but the game stays playable). A position the coach already answered in this tab (Undo goes back to one; a game resumed here replays to
 // one) is answered from memory, not computed again: see `answers`.
 import { useEffect, useMemo, useRef } from 'react';
 import type { Game } from '../engine/engine';
 import type { Decision } from '../engine/types';
-import { adviseRequest, coachRequest, scoreMoveRequest, type Advice, type CoachRequest, type GradedOption, type ScoreRequest } from '../ai/coach';
+import { adviseRequest, coachRequest, confirmMoveRequest, scoreMoveRequest, type Advice, type CoachRequest, type ConfirmRequest, type GradedOption, type ScoreRequest } from '../ai/coach';
 import type { CoachJob, CoachReply } from '../sim/coach.worker';
 import type { SeatLift } from '../ai/packageLift';
 import type { SeatEffects } from '../ai/packageEffect';
 import { exactText } from '../lib/exactText';
 
-type Payload = { req: CoachRequest } | { score: ScoreRequest };
+type Payload = { req: CoachRequest } | { score: ScoreRequest } | { confirm: ConfirmRequest };
 
 interface Job {
   id: number;
@@ -139,6 +139,20 @@ export class CoachClient {
     });
   }
 
+  /**
+   * The coach's pick and your move `chosen` at decision `d` on fresh worlds, for a grade that needs confirming
+   * (src/ai/coach.ts needsConfirm; gradeConfirmed reads them). Queued behind advice like a score. Needs advise(g, d) first.
+   */
+  confirm(d: Decision, chosen: number, a: Advice): Promise<GradedOption[]> {
+    if (this.disposed) return Promise.reject(new Error('coach closed'));
+    const req = this.reqs.get(d);
+    if (!req) return Promise.reject(new Error('no advice was asked for this decision'));
+    return new Promise<GradedOption[]>((resolve, reject) => {
+      this.scores.push({ id: ++this.seq, payload: { confirm: { req, chosen, coach: a.index } }, resolve: resolve as Job['resolve'], reject });
+      this.pump();
+    });
+  }
+
   dispose() {
     this.disposed = true;
     this.w?.terminate();
@@ -204,7 +218,8 @@ export class CoachClient {
 
   private local(job: Job) {
     this.busy = job;
-    const run: Promise<Advice | GradedOption[]> = 'req' in job.payload ? adviseRequest(job.payload.req) : scoreMoveRequest(job.payload.score);
+    const p = job.payload;
+    const run: Promise<Advice | GradedOption[]> = 'req' in p ? adviseRequest(p.req) : 'score' in p ? scoreMoveRequest(p.score) : confirmMoveRequest(p.confirm);
     const key = job.key;
     run.then((r) => {
       if (key) remember(key, r as Advice);
@@ -219,6 +234,8 @@ export class CoachClient {
 export interface CoachApi {
   advise(g: Game, d: Decision, lift?: SeatLift, effects?: SeatEffects): Promise<Advice>;
   score(d: Decision, chosen: number, a: Advice): Promise<GradedOption[]>;
+  /** the coach's pick and your move on fresh worlds, to confirm a costly or wide-close grade */
+  confirm(d: Decision, chosen: number, a: Advice): Promise<GradedOption[]>;
   /** the advice asked for decision `d`, kept for grading a move made before it arrived (null: none was asked) */
   adviceFor(d: Decision): Promise<Advice> | null;
 }
@@ -235,6 +252,11 @@ export function useCoach(): CoachApi {
   );
   return useMemo(() => {
     const client = () => (ref.current ??= new CoachClient());
-    return { advise: (g, d, lift, effects) => client().advise(g, d, lift, effects), score: (d, chosen, a) => client().score(d, chosen, a), adviceFor: (d) => ref.current?.adviceFor(d) ?? null };
+    return {
+      advise: (g, d, lift, effects) => client().advise(g, d, lift, effects),
+      score: (d, chosen, a) => client().score(d, chosen, a),
+      confirm: (d, chosen, a) => client().confirm(d, chosen, a),
+      adviceFor: (d) => ref.current?.adviceFor(d) ?? null,
+    };
   }, []);
 }

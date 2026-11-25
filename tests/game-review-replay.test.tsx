@@ -89,7 +89,9 @@ describe('the strict replay (REV-1)', () => {
     expect(replayVersionProblem({})).toBeNull();
     expect(replayVersionProblem({ simVersion: CURRENT_SIM_VERSION })).toBeNull();
     const why = replayVersionProblem({ simVersion: 3 })!;
-    expect(why).toBe(`This game can't be reviewed: it was recorded with version 3 of the bots and rules engine, and this is version ${CURRENT_SIM_VERSION}, so replaying it would not give the same game.`);
+    expect(why).toBe(
+      `This game can't be reviewed: it was recorded with version 3 of the bots and rules engine, and this is version ${CURRENT_SIM_VERSION}. Its record does not hold the bot's moves (games played before they were kept with the game), so replaying it would not give the same game.`,
+    );
     expect(() => refuseOtherVersion(botSpec([], { simVersion: 3 }))).toThrow(ReplayDiverged);
     await expect(runGameReview({ id: 'x', spec: botSpec([[0]], { simVersion: 3 }), coach: [], rollouts: 1, made: 'm' })).rejects.toThrow(why);
   });

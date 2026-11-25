@@ -7,6 +7,7 @@
 // of the measurement, so that noise is never called a mistake. docs/BOT_TOOLKIT.md §8 has the definitions in words.
 import type { DecisionReview, GameReview, SeatAnswers } from '../ai/reviewer';
 import type { PlayerId } from '../engine/types';
+import { CURRENT_SIM_VERSION } from './playedRecord';
 
 /** Evaluation points per Gig (= GIG_SWING; tests/game-review.test.ts checks they agree). */
 export const GIG = 40;
@@ -61,6 +62,11 @@ export const REVIEW_RULES = 4;
  * HARD_CHECK_MAX_FLAGS Mistakes and Blunders checked with Hard play-outs (GAME_REVIEW_HARD) (2026-11-25).
  */
 export const REVIEW_MEASURE = 4;
+/**
+ * The simulator version (SIM_VERSION) a stored review without `simVersion` was measured with: every review stored before
+ * the field was kept (2026-11-25) ran on version 9, or on 8 under an older REVIEW_MEASURE (stale anyway).
+ */
+export const REVIEW_SIM_BEFORE_KEPT = 9;
 /**
  * Play-outs per candidate in the Game review: 8, as the match reviewer. Chosen 2026-11-12 by re-running 20 Medium-vs-Hard
  * reviews with another oracle seed: see docs/BOT_TOOLKIT.md §8 (ratings within one step of each other on re-run). Part
@@ -267,6 +273,13 @@ export interface CoachRating {
   gap: number;
   se?: number;
   alts: [number, number, number | null][];
+  /**
+   * the coach showed "No clear difference" (since 2026-11-25 the coach's own verdict 'unclear': every option it scored was
+   * within the noise, or the game was decided); `verdict` is then its grade by the gap alone (MoveGrade.band)
+   */
+  unclear?: true;
+  /** the grade was confirmed on this many fresh worlds before the coach showed it (since 2026-11-25): gap and SE are the confirmation's */
+  confirmed?: number;
 }
 
 /**
@@ -287,6 +300,10 @@ export interface CoachRecordLike {
   /** the decision kind and what the coach scored (absent: a rule decided); older records without them read as before */
   kind?: string;
   scoreKind?: string;
+  /** the coach showed "No clear difference" (src/lib/coachedReplay.ts CoachedDecision.unclear) */
+  unclear?: boolean;
+  /** the fresh worlds the grade was confirmed on (CoachedDecision.confirmed) */
+  confirmed?: number;
 }
 
 const WHY_MAX = 220;
@@ -328,6 +345,8 @@ export function coachRatingOf(rec: CoachRecordLike, gigSwing = GIG): CoachRating
     gap: r3(rec.gap),
     ...(rec.se !== undefined ? { se: r3(rec.se) } : {}),
     alts,
+    ...(rec.unclear ? { unclear: true as const } : {}),
+    ...(rec.confirmed ? { confirmed: rec.confirmed } : {}),
   };
 }
 
@@ -355,6 +374,10 @@ export interface CoachSaid {
   se?: number;
   best?: string;
   why: string;
+  /** the coach showed "No clear difference" (CoachRating.unclear) */
+  unclear?: true;
+  /** the coach's grade was confirmed on this many fresh worlds (CoachRating.confirmed) */
+  confirmed?: number;
 }
 
 /** The coach's grade of a move, as kept beside the review's rating (ReviewMove.said). */
@@ -364,6 +387,8 @@ export const saidOf = (c: CoachRating): CoachSaid => ({
   ...(c.se !== undefined ? { se: c.se } : {}),
   ...(c.best !== c.chosen ? { best: c.best } : {}),
   why: c.why,
+  ...(c.unclear ? { unclear: true as const } : {}),
+  ...(c.confirmed ? { confirmed: c.confirmed } : {}),
 });
 
 // ---------------------------------------------------------------------------------------------------- the record
@@ -448,6 +473,13 @@ export interface GameReviewRecord {
   hard?: number;
   /** rated again from its kept measurements (rerateRecord) under newer rules: the rules it was first rated with */
   rerated?: number;
+  /**
+   * the simulator version (SIM_VERSION) whose bots measured it: a review measured with other bots is stale
+   * (measuredAsNow). Absent: stored before 2026-11-25, REVIEW_SIM_BEFORE_KEPT.
+   */
+  simVersion?: number;
+  /** the simulator version the game itself was played with, when not `simVersion` (an older game rated with newer bots) */
+  gameSimVersion?: number;
   /** the practice replay's id */
   id: string;
   /** when the review was made (ISO) */
@@ -599,7 +631,11 @@ function keepOracle(d: DecisionReview): KeptMeasure | undefined {
  * `hard`: the fresh worlds the review confirmed flagged moves on and checked costly ones with Hard on (defaults
  * GAME_REVIEW_CONFIRM and GAME_REVIEW_HARD, as runGameReview).
  */
-export function buildReviewRecord(review: GameReview, coach: readonly CoachRating[], meta: { id: string; made: string; me?: PlayerId; confirm?: number; hard?: number }): GameReviewRecord {
+export function buildReviewRecord(
+  review: GameReview,
+  coach: readonly CoachRating[],
+  meta: { id: string; made: string; me?: PlayerId; confirm?: number; hard?: number; gameSimVersion?: number },
+): GameReviewRecord {
   const me = meta.me ?? 0;
   const byAt = new Map(coach.map((c) => [c.at, c]));
   const said = (p: PlayerId, at: number) => {
@@ -618,6 +654,8 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
     measure: REVIEW_MEASURE,
     confirm: meta.confirm ?? GAME_REVIEW_CONFIRM,
     hard: meta.hard ?? GAME_REVIEW_HARD,
+    simVersion: CURRENT_SIM_VERSION,
+    ...(meta.gameSimVersion !== undefined && meta.gameSimVersion !== CURRENT_SIM_VERSION ? { gameSimVersion: meta.gameSimVersion } : {}),
     id: meta.id,
     made: meta.made,
     rollouts: review.rollouts,
@@ -643,9 +681,12 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
  * The stored review was measured the way a review is measured now (REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS,
  * GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD): only then may it be rated again from its kept measurements. A review stored
  * before these were kept (no `measure`) counts as measured now, so nothing changes for it: it has no measurements to
- * re-rate anyway.
+ * re-rate anyway. The bots that measured it are part of the measurement too: a review whose simulator version
+ * (`simVersion`, absent: REVIEW_SIM_BEFORE_KEPT) is not the current one was measured with other bots, and is run again
+ * (2026-11-25).
  */
-export function measuredAsNow(rec: Pick<GameReviewRecord, 'measure' | 'rollouts' | 'confirm' | 'hard'>): boolean {
+export function measuredAsNow(rec: Pick<GameReviewRecord, 'measure' | 'rollouts' | 'confirm' | 'hard' | 'simVersion'>, now = CURRENT_SIM_VERSION): boolean {
+  if ((rec.simVersion ?? REVIEW_SIM_BEFORE_KEPT) !== now) return false;
   if (rec.measure === undefined) return true;
   return rec.measure === REVIEW_MEASURE && rec.rollouts === GAME_REVIEW_ROLLOUTS && rec.confirm === GAME_REVIEW_CONFIRM && (rec.hard ?? 0) === GAME_REVIEW_HARD;
 }

@@ -90,10 +90,13 @@ export const HARD_CHECK_TEXT = "Measured again with the Hard bot playing on for 
 export function saidText(s: CoachSaid, cat: string): string {
   const pick = s.best !== undefined ? moveName({ cat, chosen: s.best }) : null;
   const name = verdictName(s.v, s.gap) ?? 'not measured';
-  const head =
-    s.v === 'agree'
+  // a confirmed grade is the confirmation's (its gap and SE); the coach checked it before showing it
+  const checked = s.confirmed ? `, after checking it on ${s.confirmed} fresh play-outs` : '';
+  const head = s.unclear
+    ? `During play the coach said No clear difference${pick ? ` (it would have picked ${pick})` : ''}: every option it measured came out about the same`
+    : s.v === 'agree'
       ? 'During play the coach said this was its own pick'
-      : `During play the coach said ${name}${pick && s.v !== 'best' ? `: it preferred ${pick} (${behindText(s.gap, s.se)})` : pick ? `: as good as ${pick}` : ''}`;
+      : `During play the coach said ${name}${checked}${pick && s.v !== 'best' ? `: it preferred ${pick} (${behindText(s.gap, s.se)})` : pick ? `: as good as ${pick}` : ''}`;
   return `${head}.${s.why ? ` Coach: ${s.why}` : ''}`;
 }
 

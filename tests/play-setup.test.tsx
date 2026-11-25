@@ -62,15 +62,16 @@ describe('setup screen and coach panel (moved, unchanged)', () => {
     expect(html).toContain('Play X');
     expect(html).toContain('Rival can steal 2');
     const grades = [{ verdict: 'agree' }, { verdict: 'mistake', turn: 3, chose: 'A', coach: 'B', gap: 1 }] as MoveGrade[];
-    expect(renderToStaticMarkup(<Scorecard grades={grades} />)).toContain('Against the coach’s pick: 1 of 2 measured moves were Best or a Close call (50%)');
+    expect(renderToStaticMarkup(<Scorecard grades={grades} />)).toContain('Handled well: 1 of 2 decisions that mattered (50%)');
   });
   it('the scorecard counts close calls as fine and leaves unmeasured choices out; the toast says "close call" in words', () => {
     const g = (verdict: MoveGrade['verdict'], gap: number | null = null, se?: number): MoveGrade => ({ turn: 2, chose: 'A', coach: 'B', gap, verdict, ...(se !== undefined ? { se } : {}) });
     const grades = [g('agree', 0), g('close', 0.2, 0.15), g('inaccuracy', 0.3, 0.05), g('unscored'), g('pending')];
     const html = renderToStaticMarkup(<Scorecard grades={grades} />);
-    expect(html).toContain('2 of 3 measured moves were Best or a Close call (67%)');
-    expect(html).toContain('1 was a close call (counted as fine).');
-    expect(html).toContain('2 other choices not measured.');
+    expect(html).toContain('Handled well: 2 of 3 decisions that mattered (67%)');
+    expect(html).toContain('1 was a close call (counted as handled well).');
+    expect(html).toContain('2 other choices not measured (');
+    expect(html).toContain('Costly moves: 1 (1 Slip)');
     expect(html).toContain('Slip, −0.3 ± 0.1 Gigs');
     // it points to the Game review and says what a figure in Gigs is
     expect(html).toContain('Game review rates every move');
@@ -84,7 +85,10 @@ describe('setup screen and coach panel (moved, unchanged)', () => {
     expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 0.9, 0.1)} />)).toContain('Mistake: the coach preferred B (−0.9 ± 0.1 Gigs)');
     expect(renderToStaticMarkup(<MoveToast gr={g('mistake', 1.4, 0.1)} />)).toContain('Blunder: the coach preferred B (−1.4 ± 0.1 Gigs)');
     expect(renderToStaticMarkup(<MoveToast gr={g('inaccuracy', 0.3, 0.05)} />)).toContain('Slip: the coach preferred B');
-    const panel = renderToStaticMarkup(<CoachPanel g={null as never} v={0} alts={[{ index: 1, label: 'Sell Y', gap: 'close call', gapGigs: 0.1, close: true, se: 0.1 }]} tips={[]} warnings={[]} />);
+    const panel = renderToStaticMarkup(<CoachPanel g={null as never} v={0} alts={[{ index: 1, label: 'Sell Y', gap: 'close call', gapGigs: 0.12, close: true, se: 0.1 }]} tips={[]} warnings={[]} />);
     expect(panel).toContain('≈ close call');
+    // within 0.1 Gigs of the pick (or valued higher on the review's scale): as good, not "behind by a close call"
+    const asGood = renderToStaticMarkup(<CoachPanel g={null as never} v={0} alts={[{ index: 1, label: 'Sell Y', gap: 'as good', gapGigs: 0, close: true, se: 0.1 }]} tips={[]} warnings={[]} />);
+    expect(asGood).toContain('≈ as good');
   });
 });

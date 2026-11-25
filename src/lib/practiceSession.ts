@@ -27,7 +27,10 @@ export interface Cancellable {
   cancelled: boolean;
 }
 
-/** Wraps a bot so its moves are visible to the human. Stops the game once it is cancelled. */
+/**
+ * Wraps a bot so its moves are visible to the human. Stops the game once it is cancelled. Records every answer the game
+ * takes from the bot into `answers` (the replay's `botChoices`), so the Game review can replay the bot without it.
+ */
 class PacedAgent implements Agent {
   name: string;
   constructor(
@@ -37,6 +40,7 @@ class PacedAgent implements Agent {
     private workerClient?: BotClient,
     private level?: string,
     private botSeed?: number,
+    private answers?: number[][],
   ) {
     this.name = inner.name;
   }
@@ -50,6 +54,8 @@ class PacedAgent implements Agent {
     }
     if (d.kind === 'action' || d.kind === 'reaction') await delay(this.ms());
     if (this.run.cancelled) throw new GameCancelled();
+    // recorded only when the game takes it (an answer given after a quit, undo or concession never is)
+    this.answers?.push([...r]);
     return r;
   }
 }
@@ -158,6 +164,8 @@ export interface Snapshot {
   bot: HeuristicAgent;
   /** how many of your answers had been recorded */
   choices: number;
+  /** how many of the bot's answers had been recorded */
+  botChoices: number;
   /** how many coach grades had been given */
   grades: number;
 }
@@ -166,9 +174,9 @@ export interface Snapshot {
  * Snapshot a game for Undo. This is the only place the session clones a game: the snapshot must keep the game log
  * (the restored game shows it and replays continue from it).
  */
-function takeSnapshot(g: Game, bot: HeuristicAgent, choices: number, grades: number): Snapshot {
+function takeSnapshot(g: Game, bot: HeuristicAgent, choices: number, botChoices: number, grades: number): Snapshot {
   const seat: Agent = { name: 'snapshot', decide: async () => [0] };
-  return { state: g.clone([seat, seat], { keepLog: true }).s, bot: cloneBot(bot), choices, grades };
+  return { state: g.clone([seat, seat], { keepLog: true }).s, bot: cloneBot(bot), choices, botChoices, grades };
 }
 
 /**
@@ -258,6 +266,7 @@ function newPracticeReplay(m: MatchSetup): PracticeReplay {
     botLevel: m.level,
     botSeed: m.botSeed,
     choices: [],
+    botChoices: [],
     payChoice: true,
     orderChoice: true,
     ...(m.endTurnClick ? { endTurnClick: true } : {}),
@@ -425,6 +434,7 @@ export class PracticeSession {
     if (!target) return false;
     run.snaps.length = k; // the restored decision takes a fresh snapshot when it is asked again
     run.replay.choices.length = target.choices;
+    if (run.replay.botChoices) run.replay.botChoices.length = target.botChoices;
     run.grades.length = target.grades;
     run.replay.undos = (run.replay.undos ?? 0) + 1;
     // undoing a concession takes it back: the game goes on, and is recorded again (same id) when it ends
@@ -503,10 +513,12 @@ export class PracticeSession {
     const human = new HumanAgent({ confirmsEndTurn: !!replay.endTurnClick });
     const run = { match, human, bot, replay, snaps, grades, error: null, cancelled: false, conceded: false, stable: null, restoring: !!feed } as Omit<Running, 'g' | 'done'> as Running;
     const seat: Agent = feed ? new FeedAgent(human, feed, grades) : human;
-    const recorder = new RecordingAgent(seat, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, grades.length)), run);
+    // the bot's answers are recorded beside yours (a restore records them again as the bot replays its moves)
+    const botAnswers = (replay.botChoices ??= []);
+    const recorder = new RecordingAgent(seat, replay.choices, (g) => snaps.push(takeSnapshot(g, bot, replay.choices.length, botAnswers.length, grades.length)), run);
     const pace = this.opts.pace ?? (() => 0);
     const client = this.opts.botClient;
-    const g = make([recorder, new PacedAgent(bot, () => (run.restoring ? 0 : pace()), run, client, botMeta?.level, botMeta?.seed)]);
+    const g = make([recorder, new PacedAgent(bot, () => (run.restoring ? 0 : pace()), run, client, botMeta?.level, botMeta?.seed, botAnswers)]);
     const telemetry = new DecisionRecorder();
     g.telemetry = telemetry;
     run.g = g;

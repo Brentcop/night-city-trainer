@@ -4,8 +4,8 @@
 // review rates your moves by its own play-outs, as the rival's). Keyed by the replay's id, newest last, capped like the replays. Versioned
 // (`nct.gameReviews.v1`, records carry `schema`, and `rules`: a review made under other rating rules than REVIEW_RULES is
 // rated again from the measurements kept with it (rerateRecord) when it can be, else handed back as `stale`, to be run
-// again; one measured another way, `measure` / `rollouts` / `confirm`, is always stale); an unreadable entry is dropped,
-// never thrown.
+// again; one measured another way, `measure` / `rollouts` / `confirm`, or with other bots, `simVersion` (absent: before
+// 2026-11-25, version 9), is always stale); an unreadable entry is dropped, never thrown.
 import { measuredAsNow, REVIEW_KIND, REVIEW_RULES, REVIEW_SCHEMA, RATINGS, rerateRecord, reviewCounts, type CoachRating, type GameReviewRecord, type KeptMeasure, type Rating, type ReviewMove } from './gameReview';
 import { annotateReview } from './practiceLog';
 
@@ -39,7 +39,9 @@ function isCoachRating(x: unknown): x is CoachRating {
     isNum(c.gap) &&
     (c.se === undefined || isNum(c.se)) &&
     Array.isArray(c.alts) &&
-    c.alts.every((a) => Array.isArray(a) && isNum(a[0]) && isNum(a[1]) && (a[2] === null || isNum(a[2])))
+    c.alts.every((a) => Array.isArray(a) && isNum(a[0]) && isNum(a[1]) && (a[2] === null || isNum(a[2]))) &&
+    (c.unclear === undefined || c.unclear === true) &&
+    (c.confirmed === undefined || (Number.isInteger(c.confirmed) && c.confirmed > 0))
   );
 }
 
@@ -94,7 +96,7 @@ function isKept(x: unknown, src: ReviewMove['src']): x is KeptMeasure {
 /** The coach's grade kept beside a move (ReviewMove.said), readable. */
 function isSaid(x: unknown): boolean {
   const s = x as Record<string, unknown> | null;
-  return !!s && typeof s === 'object' && VERDICTS.has(s.v as string) && isNum(s.gap) && (s.se === undefined || isNum(s.se)) && (s.best === undefined || typeof s.best === 'string') && typeof s.why === 'string';
+  return !!s && typeof s === 'object' && VERDICTS.has(s.v as string) && isNum(s.gap) && (s.se === undefined || isNum(s.se)) && (s.best === undefined || typeof s.best === 'string') && typeof s.why === 'string' && (s.unclear === undefined || s.unclear === true) && (s.confirmed === undefined || (Number.isInteger(s.confirmed) && (s.confirmed as number) > 0));
 }
 
 /**
@@ -127,6 +129,9 @@ export function asReviewRecord(x: unknown): GameReviewRecord | null {
     (r.confirm === undefined || (isInt(r.confirm) && r.confirm >= 0)) &&
     (r.hard === undefined || (isInt(r.hard) && r.hard >= 0)) &&
     (r.rerated === undefined || isNum(r.rerated)) &&
+    // the simulator version that measured it, and the game's own when another (absent in reviews stored before 2026-11-25)
+    (r.simVersion === undefined || (isInt(r.simVersion) && r.simVersion > 0)) &&
+    (r.gameSimVersion === undefined || (isInt(r.gameSimVersion) && r.gameSimVersion > 0)) &&
     typeof r.id === 'string' &&
     typeof r.made === 'string' &&
     isNum(r.rollouts) &&

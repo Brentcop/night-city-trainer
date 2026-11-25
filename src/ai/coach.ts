@@ -3,16 +3,16 @@ import { Game, other } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
 import type { Action, Agent, Decision, GameState, Gig, Opt, PlayerId, Reaction } from '../engine/types';
 import { activeSteer, holdCredit, obtainableOf, packageFacts, partnerName, seatPackages, steerValue, steerWants, type PackageFacts, type SteerKind } from './packages';
-import { HeuristicAgent, standardError, worldValue, type DecisionScores } from './heuristic';
+import { HeuristicAgent, standardError, worldValue, type DecisionScores, type ScoredOption } from './heuristic';
 import { makeWorlds, type World } from './playOut';
 import { BLUNDER } from './reviewer';
 import { BEST_PROFILES, PLAN_TEXT, type ProfileKey } from './archetype';
-import { clampPlayOut, DECIDED_EVAL, GIG_SWING, planFor, seatArchetype } from './eval';
+import { clampPlayOut, DEFAULT_WEIGHTS, GIG_SWING, planFor, seatArchetype } from './eval';
 import { handFeatures } from './mulligan';
 import { behindText, coachTablesOf, gapFigure, gapSize, optionName, tablesSourceWords, type CoachTables } from '../lib/coachWords';
 import type { GigPlan } from './knowledge';
 import { CARD_TAG_POLICY } from './heuristic';
-import { BEST_GIGS, fixedTerms, withinNoise } from '../lib/gameReview';
+import { BEST_GIGS, fixedTerms, GAME_REVIEW_CONFIRM, withinNoise } from '../lib/gameReview';
 import type { SynergyRole } from '../content/synergies/index';
 import { impactBasis, impactDeckName, topImpactCards } from './impact';
 import { liftGate, liftLabel, type SeatLift } from './packageLift';
@@ -35,7 +35,26 @@ export const COACH_WORLDS = 6;
  * `mulligan: 'plain'`: the keep rule Hard uses since SIM_VERSION 6, without the card-impact keep (measured 48.9% against
  * no impact, docs/BOT_TOOLKIT.md §5), so the coach does not teach a keep that measured worse.
  */
-export const COACH_CONFIG = { profiles: BEST_PROFILES, impact: 40, deep: 6, deepWorlds: COACH_WORLDS, sellLookahead: 3, deepReactions: COACH_WORLDS, mulligan: 'plain' as const };
+export const COACH_CONFIG = {
+  profiles: BEST_PROFILES,
+  impact: 40,
+  deep: 6,
+  deepWorlds: COACH_WORLDS,
+  sellLookahead: 3,
+  deepReactions: COACH_WORLDS,
+  mulligan: 'plain' as const,
+  /**
+   * The grade scale (REVIEW_2026-11-25 C4): every play-out the coach makes is also scored as the Game review's oracle
+   * scores it (src/ai/reviewer.ts: `DEFAULT_WEIGHTS`, no matchup profile, no 1-ply offset or Call bonus, clamped to
+   * ±playOutClamp), and its grades, gaps and alternatives read those values, so a coach Gig is the review's Gig exactly
+   * (the play-out bots are the oracle's). Dividing by the profiled `gig` instead would equal only the Gig term: the
+   * profiles scale other terms by other factors (src/ai/archetype.ts applyProfile), and the offset would stay. The coach
+   * still chooses with its profiles and offset (`w`, `v`).
+   */
+  gradeWeights: DEFAULT_WEIGHTS,
+  /** its main-phase rollouts clamped as its reactions and grades are, so the pick and its grade read clamped means (C5) */
+  clampDeep: true,
+};
 /**
  * The coach's sell advice breaks near-ties (within 0.05 Gigs, well inside what the alternatives call a "close call") toward
  * keeping a scarce piece of the player's own package (HeuristicOptions.sellKeepScarce). Bots never set it.
@@ -96,15 +115,22 @@ export interface Advice {
   grade?: GradeBasis;
 }
 
-/** The coach's scores as plain data (each world's value with its constant terms, clamped so grades use one scale). */
+/**
+ * A scored option as plain data on the grade scale: each world's value as the Game review's oracle scores it
+ * (ScoredOption.g, COACH_CONFIG.gradeWeights), else (an agent without gradeWeights) its value with its constant terms,
+ * clamped; without worlds, its value.
+ */
+function gradedOf(o: ScoredOption): GradedOption {
+  if (o.g?.length) return { i: o.i, v: o.g.reduce((a, x) => a + x, 0) / o.g.length, w: [...o.g] };
+  if (!o.w) return { i: o.i, v: o.v };
+  const w = o.w.map((_, k) => clampPlayOut(worldValue(o, k)));
+  return { i: o.i, v: w.reduce((a, x) => a + x, 0) / w.length, w };
+}
+
+/** The coach's scores as plain data, on the grade scale (gradedOf), so grades, gaps and alternatives use one scale. */
 function basisOf(s: DecisionScores | null): GradeBasis | undefined {
   if (!s || !s.opts.length) return undefined;
-  const opts = s.opts.map((o): GradedOption => {
-    if (!o.w) return { i: o.i, v: o.v };
-    const w = o.w.map((_, k) => clampPlayOut(worldValue(o, k)));
-    return { i: o.i, v: w.reduce((a, x) => a + x, 0) / w.length, w };
-  });
-  return { kind: s.kind, opts, ...(s.worlds ? { worlds: s.worlds } : {}) };
+  return { kind: s.kind, opts: s.opts.map(gradedOf), ...(s.worlds ? { worlds: s.worlds } : {}) };
 }
 
 /** Gap (Gigs) between the coach's pick `best` and option `o`, with the paired standard error when both have the same worlds. */
@@ -157,20 +183,15 @@ export function sellPlayedOutWhy(picked: string, basis: 'own' | 'pooled' | 'none
   return `${picked}: one sell a turn is your mana growth. Of the ${compared} cards in hand you can best spare by card value${valueSource(basis, tables)}, selling this one came out best when the coach played each out.`;
 }
 
-/** How a game-deciding difference reads, from the values (points) of the better move and of the other one. */
-function decidedWords(better: number, worse: number, other: string): string {
-  if (better >= DECIDED_EVAL) return `wins the game in the coach's play-outs (${other} does not)`;
-  if (worse <= -DECIDED_EVAL) return `${other} instead loses the game in the coach's play-outs`;
-  return `the coach's play-outs say this decides the game, compared with ${other}`;
-}
-
-/** An alternative's tag: "close call", "−0.4 ± 0.1 Gigs", "more than 3 Gigs behind", or how the game ends in the play-outs. */
-function altTag(pick: GradedOption, o: GradedOption, gap: number, se: number | undefined, close: boolean): string {
+/**
+ * An alternative's tag: "as good" (within BEST_GIGS of the pick, or valued higher on the grade scale: the coach chooses
+ * with its profiles, so that can happen), "close call", or "−0.4 ± 0.1 Gigs" / "more than 3 Gigs behind". Grades are
+ * clamped play-outs (±playOutClamp, at most 30 Gigs apart), so no gap reaches the decided line (DECIDED_GIGS, 125): the
+ * "wins or loses the game in the play-outs" wording that used to sit here could never show and is gone (C5).
+ */
+function altTag(gap: number, se: number | undefined, close: boolean): string {
+  if (gap <= BEST_GIGS) return 'as good';
   if (close) return 'close call';
-  if (gapSize(gap) === 'decided') {
-    if (o.v <= -DECIDED_EVAL) return 'loses the game in the play-outs';
-    if (pick.v >= DECIDED_EVAL) return 'gives up a win in the play-outs';
-  }
   return behindText(gap, se);
 }
 
@@ -190,7 +211,7 @@ function alternativesOf(d: Decision, index: number, grade: GradeBasis | undefine
     seen.add(raw);
     const { gap, se } = gapOf(mine, o);
     const close = isClose(gap, se);
-    out.push({ index: o.i, label: optionName(d, o.i), gap: altTag(mine, o, gap, se, close), gapGigs: Math.max(0, gap), close, ...(se !== undefined ? { se } : {}) });
+    out.push({ index: o.i, label: optionName(d, o.i), gap: altTag(gap, se, close), gapGigs: Math.max(0, gap), close, ...(se !== undefined ? { se } : {}) });
   }
   return out;
 }
@@ -210,7 +231,6 @@ function vsNothingWhy(d: Decision, index: number, none: number, grade: GradeBasi
     if (!other) return `${name}: nothing else here is worth doing.`;
     const otherName = optionName(d, other.i);
     const { gap, se } = gapOf(pick, other);
-    if (gapSize(Math.max(0, gap)) === 'decided') return `${name}: the best other move, ${otherName}, ${other.v <= -DECIDED_EVAL ? 'loses the game' : 'gives up a win'} in the coach's play-outs.`;
     if (isClose(gap, se)) {
       if (gap < CLOSE_GIGS) return `${name}: about as good as the best other move, ${otherName}; either is fine.`;
       if (fixedTerms(se)) return `${name}: the coach leans this way over ${otherName} (${behindText(gap)}), but the play-outs all give about the same difference, so it comes from fixed terms of its evaluation, not from the play-outs: too little to call.`;
@@ -224,7 +244,6 @@ function vsNothingWhy(d: Decision, index: number, none: number, grade: GradeBasi
     return next ? `${name} — the best of the moves the coach weighed (next: ${next.label}, ${next.gap}).` : `${name} — the best of the moves the coach weighed.`;
   }
   const delta = gigs(pick.v - base.v);
-  if (gapSize(Math.max(0, delta)) === 'decided') return `${name} — ${decidedWords(pick.v, base.v, nothing)}.`;
   if (delta >= 0.05) return `${name} — worth ${gapSize(delta) === 'figure' ? 'about ' : ''}${gapFigure(delta)} more than ${nothing}.`;
   const next = alternativesOf(d, index, grade, 3).find((a) => a.index !== none);
   return `${name} — about as good as ${nothing}${next ? `, and ahead of ${next.label} (${next.gap})` : ''}; the coach leans this way.`;
@@ -622,20 +641,42 @@ export function adviseRequest(q: CoachRequest, rolloutPool?: import('./playoutPo
 export const CLOSE_GIGS = 0.15;
 /** A gap of this many Gigs or more (outside the noise) is a mistake: the reviewer's blunder line (BLUNDER, ≈ 0.4 Gigs). */
 export const MISTAKE_GIGS = BLUNDER / GIG_SWING;
+/**
+ * Fresh worlds a costly or wide-close grade is measured again on before it settles (REVIEW_2026-11-25 C1, C2): the Game
+ * review's confirmation (src/lib/gameReview.ts GAME_REVIEW_CONFIRM, 16). The coach's six worlds pick its move as the best
+ * of several noisy means on the same worlds, so a gap read off them is biased upward (the winner's curse: +0.19 Gigs on
+ * average for its Mistakes) and, with every option truly equal, called Slip or worse 10–20% of the time; judged on worlds
+ * of its own, the move made against the pick, it is neither.
+ */
+export const COACH_CONFIRM_WORLDS = GAME_REVIEW_CONFIRM;
+/** The confirmation worlds' fixed seed: the same position and move always get the same confirmation (the coach's cache). */
+const CONFIRM_SEED = 0xc0f1;
+/**
+ * The game was already decided in the coach's play-outs when every option it scored is within this of a won game, or
+ * the best is within it of a lost one (grade scale, clamped to ±playOutClamp): the review oracle's line (reviewer.ts
+ * DECIDED = 0.75 × playOutClamp), so the decision is "No clear difference" in both.
+ */
+export const DECIDED_GRADE = 0.75 * DEFAULT_WEIGHTS.playOutClamp;
 
 /**
- * How a move compares with the coach's pick, by value:
+ * How a move compares with the coach's pick, by value on the grade scale (the Game review oracle's, COACH_CONFIG.gradeWeights):
  *   agree       the coach's own pick (or a move with the same name: another copy of the same card), in a decision the
  *               coach scored (main phase, reactions, or a sell it compared)
  *   best        another move within BEST_GIGS (0.1) of the coach's pick, or valued at least as high
- *   close       a close call: under CLOSE_GIGS behind, or within 2 paired standard errors (counts as fine)
- *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS
- *   mistake     behind by MISTAKE_GIGS or more, outside the noise
- *   pending     being scored (a move the coach did not value: scoreMoveRequest)
+ *   close       a close call: under CLOSE_GIGS behind, or within 2 paired standard errors (counts as handled well)
+ *   inaccuracy  behind by more than the noise, under MISTAKE_GIGS (shown as Slip)
+ *   mistake     behind by MISTAKE_GIGS or more, outside the noise (Mistake, or Blunder from a whole Gig)
+ *   unclear     no clear difference: every option the coach scored, the move made included, is within the noise of its
+ *               pick, or the game was already decided in its play-outs (`decided`): as the review's "No clear difference",
+ *               not counted in the scorecard (REVIEW_2026-11-25 C3)
+ *   pending     being scored (a move the coach did not value: scoreMoveRequest), or being confirmed (confirmMoveRequest)
  *   unscored    a choice the coach decides by rule and can't value (a target, a mode, a Gig pick, the mulligan),
- *               whether or not it matches the coach's pick ("Same as the coach's pick (not measured)"), or scoring failed
+ *               whether or not it matches the coach's pick ("Same as the coach's pick (not measured)"), or scoring or
+ *               its confirmation failed
+ * Slip or worse, and a close call as wide as a Mistake, are judged on COACH_CONFIRM_WORLDS fresh worlds before they
+ * settle (needsConfirm, confirmMoveRequest, gradeConfirmed), so every costly verdict shown is a confirmed one.
  */
-export type MoveVerdict = 'agree' | 'best' | 'close' | 'inaccuracy' | 'mistake' | 'pending' | 'unscored';
+export type MoveVerdict = 'agree' | 'best' | 'close' | 'inaccuracy' | 'mistake' | 'unclear' | 'pending' | 'unscored';
 
 export interface MoveGrade {
   turn: number;
@@ -646,32 +687,136 @@ export interface MoveGrade {
   /** the paired standard error of the gap in Gigs, when both moves were scored in the same worlds */
   se?: number;
   verdict: MoveVerdict;
+  /** the verdict was judged on this many fresh worlds (a costly or wide close screen, confirmed) */
+  confirmed?: number;
+  /** a confirmed grade's screen in the advice's own worlds, before the confirmation replaced it */
+  screen?: { verdict: MoveVerdict; gap: number; se?: number };
+  /** an `unclear` decision because the game was already decided in the play-outs (not because every option was close) */
+  decided?: boolean;
+  /**
+   * An `unclear` decision's verdict by the gap alone (agree, best, close; a screen when `decided`): what the coach's
+   * record keeps as its verdict (with `unclear`), so older readers read the grade as before; the Game review shows it
+   * beside your move as "No clear difference" (src/lib/gameReview.ts CoachSaid, src/lib/reviewWords.ts saidText)
+   */
+  band?: MoveVerdict;
+  /**
+   * Why a choice is not measured: a mulligan (graded by neither the coach nor, soon, the Game review: its play-outs can't
+   * tell keeping from mulliganing apart, REVIEW_2026-11-25 R3), a Gig value the coach decides by rule but the Game review
+   * grades, or a confirmation that did not finish
+   */
+  notMeasured?: 'mulligan' | 'gig' | 'check';
 }
 
-/** Verdicts the scorecard counts as fine (all of them measured: agreeing on a rule-decided choice is 'unscored'). */
+/** Verdicts the scorecard counts as handled well (all of them measured: agreeing on a rule-decided choice is 'unscored'). */
 export const FINE_VERDICTS: readonly MoveVerdict[] = ['agree', 'best', 'close'];
+/** Verdicts that cost something (Slip, Mistake, Blunder): always confirmed on fresh worlds before they show. */
+export const COSTLY_VERDICTS: readonly MoveVerdict[] = ['inaccuracy', 'mistake'];
+
+/** The verdict of a gap below the coach's pick (Gigs) with its paired SE: best, close, inaccuracy or mistake. */
+function bandOf(gap: number, se: number | undefined): MoveVerdict {
+  return gap <= BEST_GIGS ? 'best' : isClose(gap, se) ? 'close' : gap >= MISTAKE_GIGS ? 'mistake' : 'inaccuracy';
+}
+
+/** The scored options of a decision: the advice's, and those scored after the move (`extra`) that the advice lacked. */
+function scoredOptions(a: Advice, extra?: readonly GradedOption[]): GradedOption[] {
+  const out = new Map<number, GradedOption>();
+  for (const o of extra ?? []) out.set(o.i, o);
+  for (const o of a.grade?.opts ?? []) if (!out.has(o.i)) out.set(o.i, o);
+  return [...out.values()];
+}
+
+/** Every option scored is within DECIDED_GRADE of a won game, or the best is within it of a lost one. */
+function decidedIn(opts: readonly GradedOption[]): boolean {
+  const vs = opts.map((o) => o.v);
+  return Math.max(...vs) <= -DECIDED_GRADE || Math.min(...vs) >= DECIDED_GRADE;
+}
 
 /**
- * Grade a human decision against the coach's advice for the same spot, by value: the move's own score in the coach's
- * worlds (from the advice, or `extra` from scoreMoveRequest), not its place in the shortlist. A move the coach did not
- * value in a decision it can score is 'pending' until scored (`extra` undefined); once scoring has run (`extra` given,
- * empty if it failed) a move still without a value is 'unscored'. Agreeing with a choice the coach had no scores for
- * measures nothing, so it is 'unscored' too, never 'agree'. `chose` and `coach` are the names the board shows
+ * No clear difference (the review's noDifference and its decided check, src/lib/gameReview.ts rateMeasured): the game
+ * was already decided in every play-out ('decided'), or every option scored besides the pick is within the noise of it
+ * ('noise'). `mine`: the move made's own gap and SE when they come from elsewhere (a confirmation). Null otherwise, or
+ * with nothing to compare.
+ */
+function noClearDifference(a: Advice, opts: readonly GradedOption[], chosen: number, mine?: { gap: number; se?: number }): 'decided' | 'noise' | null {
+  const pick = opts.find((o) => o.i === a.index);
+  const others = opts.filter((o) => o.i !== a.index);
+  if (!pick || !others.length) return null;
+  if (decidedIn(opts)) return 'decided';
+  const quiet = others.every((o) => {
+    const { gap, se } = o.i === chosen && mine ? mine : gapOf(pick, o);
+    return isClose(Math.max(0, gap), se);
+  });
+  return quiet ? 'noise' : null;
+}
+
+/** Why a choice the coach decides by rule is not measured, when the words say more than "not measured". */
+function ruleWhy(d: Decision): Pick<MoveGrade, 'notMeasured'> {
+  if (d.kind === 'yesno' && d.tag === 'mulligan') return { notMeasured: 'mulligan' };
+  if (d.kind === 'gigValue') return { notMeasured: 'gig' };
+  return {};
+}
+
+/**
+ * Grade a human decision against the coach's advice for the same spot, by value on the grade scale: the move's own score
+ * in the coach's worlds (from the advice, or `extra` from scoreMoveRequest), not its place in the shortlist. A move the
+ * coach did not value in a decision it can score is 'pending' until scored (`extra` undefined); once scoring has run
+ * (`extra` given, empty if it failed) a move still without a value is 'unscored'. Agreeing with a choice the coach had no
+ * scores for measures nothing, so it is 'unscored' too, never 'agree'. A decision with no clear difference is 'unclear'
+ * (noClearDifference), the move made the pick or not; a grade needsConfirm flags is returned as its screen, never as
+ * 'unclear' (the confirmation decides: gradeConfirmed), unless the game was already decided in every play-out. `chose` and `coach` are the names the board shows
  * (src/lib/coachWords.ts optionName: End turn, No reaction, Keep hand / Mulligan).
  */
 export function gradeMove(d: Decision, chosen: number, a: Advice, turn: number, extra?: readonly GradedOption[]): MoveGrade {
   const chose = optionName(d, chosen);
   const coach = optionName(d, a.index);
   const same = chosen === a.index || (d.options[chosen] !== undefined && d.options[chosen].label === d.options[a.index]?.label);
-  if (same) return !a.grade ? { turn, chose, coach, gap: null, verdict: 'unscored' } : { turn, chose, coach, gap: 0, verdict: 'agree' };
-  // scored together (extra) when the advice had no worlds to score in
-  const find = (i: number) => extra?.find((o) => o.i === i) ?? a.grade?.opts.find((o) => o.i === i);
-  const best = find(a.index);
-  const mine = find(chosen);
-  if (!best || !mine) return { turn, chose, coach, gap: null, verdict: scorable(d) && extra === undefined ? 'pending' : 'unscored' };
+  if (same && !a.grade) return { turn, chose, coach, gap: null, verdict: 'unscored', ...ruleWhy(d) };
+  const opts = scoredOptions(a, extra);
+  const best = opts.find((o) => o.i === a.index);
+  const mine = same ? best : opts.find((o) => o.i === chosen);
+  if (same && !best) return { turn, chose, coach, gap: 0, verdict: 'agree' };
+  if (!best || !mine) return { turn, chose, coach, gap: null, verdict: scorable(d) && extra === undefined ? 'pending' : 'unscored', ...(scorable(d) ? {} : ruleWhy(d)) };
+  const { gap, se } = same ? { gap: 0, se: undefined } : gapOf(best, mine);
+  const out: MoveGrade = { turn, chose, coach, gap, ...(se !== undefined ? { se } : {}), verdict: same ? 'agree' : bandOf(gap, se) };
+  // a game already decided in every play-out: nothing to confirm (the review neither confirms nor counts it)
+  if (opts.length > 1 && decidedIn(opts)) return { ...out, verdict: 'unclear', decided: true, band: out.verdict };
+  if (needsConfirm(out)) return out;
+  const nothing = noClearDifference(a, opts, same ? a.index : chosen);
+  return nothing ? { ...out, verdict: 'unclear', band: out.verdict, ...(nothing === 'decided' ? { decided: true } : {}) } : out;
+}
+
+/**
+ * A screened grade that is confirmed on fresh worlds before it settles, as the Game review confirms (src/lib/gameReview.ts
+ * confirmFlag): Slip or worse, or a close call at least as wide as a Mistake (54% of those were Mistakes on 48 worlds).
+ */
+export function needsConfirm(gr: MoveGrade): boolean {
+  if (gr.confirmed || gr.gap === null) return false;
+  return COSTLY_VERDICTS.includes(gr.verdict) || (gr.verdict === 'close' && gr.gap >= MISTAKE_GIGS);
+}
+
+/**
+ * The grade of a flagged move from its confirmation (`fresh`: the coach's pick and the move made on COACH_CONFIRM_WORLDS
+ * fresh worlds, confirmMoveRequest): the gap, its paired SE and the verdict come from those worlds alone, so the pick's
+ * winner's curse is gone; `screen` keeps what the advice's worlds said. A confirmed move inside the noise is then 'unclear'
+ * when every other option scored was too. Without both values (the check failed) the move is not measured.
+ */
+export function gradeConfirmed(chosen: number, a: Advice, screen: MoveGrade, fresh: readonly GradedOption[], extra?: readonly GradedOption[]): MoveGrade {
+  const best = fresh.find((o) => o.i === a.index);
+  const mine = fresh.find((o) => o.i === chosen);
+  const base = { turn: screen.turn, chose: screen.chose, coach: screen.coach };
+  if (!best || !mine || !best.w || !mine.w) return { ...base, gap: null, verdict: 'unscored', notMeasured: 'check' };
   const { gap, se } = gapOf(best, mine);
-  const verdict: MoveVerdict = gap <= BEST_GIGS ? 'best' : isClose(gap, se) ? 'close' : gap >= MISTAKE_GIGS ? 'mistake' : 'inaccuracy';
-  return { turn, chose, coach, gap, ...(se !== undefined ? { se } : {}), verdict };
+  const out: MoveGrade = {
+    ...base,
+    gap,
+    ...(se !== undefined ? { se } : {}),
+    verdict: bandOf(gap, se),
+    confirmed: best.w.length,
+    screen: { verdict: screen.verdict, gap: screen.gap ?? 0, ...(screen.se !== undefined ? { se: screen.se } : {}) },
+  };
+  if (COSTLY_VERDICTS.includes(out.verdict)) return out;
+  const nothing = noClearDifference(a, scoredOptions(a, extra), chosen, { gap, se });
+  return nothing ? { ...out, verdict: 'unclear', band: out.verdict, ...(nothing === 'decided' ? { decided: true } : {}) } : out;
 }
 
 /** Decisions whose every option the coach can value by rollout: main-phase actions and reactions. */
@@ -685,31 +830,77 @@ export interface ScoreRequest {
   grade?: GradeBasis;
 }
 
+/** Options `idx` of a scorable decision valued by the coach in `worlds`, on the grade scale. */
+async function valueIn(q: CoachRequest, idx: number[], worlds: World[], rolloutPool?: import('./playoutPool').RolloutPool): Promise<GradedOption[]> {
+  const g = rebuild(q);
+  const d = q.decision;
+  const coach = makeCoach(rolloutPool);
+  const vals =
+    d.kind === 'reaction'
+      ? await coach.valueReaction(g, d.player, d.options.map((o) => o.action as Reaction), idx, worlds)
+      : await coach.valueMain(g, d.player, d.options.map((o) => o.action as Action), idx, worlds);
+  return vals.map(gradedOf);
+}
+
+/** Shared worlds from a fixed seed (a linear congruential stream, as the bots' own). */
+function seededWorlds(n: number, seed: number): World[] {
+  let s = seed;
+  return makeWorlds(n, () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296));
+}
+
 /**
  * Score your move in the worlds the coach's advice used, after you made it (the advice is computed before you move, so
  * a move it did not roll out is valued on demand, off the board's thread). When the advice has no worlds for its own
  * pick (it sold by rule, or had one option to roll out), both moves are scored in COACH_WORLDS fresh shared worlds.
- * Returns the scored options (yours, and the coach's when it was rescored).
+ * Returns the scored options (yours, and the coach's when it was rescored), on the grade scale.
  */
 export async function scoreMoveRequest(q: ScoreRequest, rolloutPool?: import('./playoutPool').RolloutPool): Promise<GradedOption[]> {
-  const g = rebuild(q.req);
-  const d = q.req.decision;
-  if (!scorable(d)) return [];
-  const coach = makeCoach(rolloutPool);
-  const p = d.player;
+  if (!scorable(q.req.decision)) return [];
   const pick = q.grade?.opts.find((o) => o.i === q.coach);
   const reuse = q.grade?.worlds && pick?.w && pick.w.length === q.grade.worlds.length;
-  let seed = 0x5eed;
-  const worlds = reuse ? q.grade!.worlds! : makeWorlds(COACH_WORLDS, () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296));
-  const idx = reuse ? [q.chosen] : [q.coach, q.chosen];
-  const vals =
-    d.kind === 'reaction'
-      ? await coach.valueReaction(g, p, d.options.map((o) => o.action as Reaction), idx, worlds)
-      : await coach.valueMain(g, p, d.options.map((o) => o.action as Action), idx, worlds);
-  return vals.map((o) => {
-    const w = o.w!.map((_, k) => clampPlayOut(worldValue(o, k)));
-    return { i: o.i, v: w.reduce((a, x) => a + x, 0) / w.length, w };
-  });
+  const worlds = reuse ? q.grade!.worlds! : seededWorlds(COACH_WORLDS, 0x5eed);
+  return valueIn(q.req, reuse ? [q.chosen] : [q.coach, q.chosen], worlds, rolloutPool);
+}
+
+/** What confirmMoveRequest needs: the snapshot the advice was made from, the move made and the coach's pick. */
+export interface ConfirmRequest {
+  req: CoachRequest;
+  chosen: number;
+  coach: number;
+}
+
+/**
+ * The confirmation of a flagged grade (needsConfirm): the coach's pick and the move made played out on
+ * COACH_CONFIRM_WORLDS fresh shared worlds (a fixed seed of their own, so the same position and move always get the same
+ * answer), on the grade scale. About 32 play-outs, 0.1–0.2 s in the coach worker. gradeConfirmed reads them.
+ */
+export async function confirmMoveRequest(q: ConfirmRequest, rolloutPool?: import('./playoutPool').RolloutPool): Promise<GradedOption[]> {
+  if (!scorable(q.req.decision)) return [];
+  return valueIn(q.req, [q.coach, q.chosen], seededWorlds(COACH_CONFIRM_WORLDS, CONFIRM_SEED), rolloutPool);
+}
+
+/**
+ * A move graded to the end, as the Play page does it step by step (src/lib/coachGrading.ts): the screen (gradeMove), the
+ * move scored when the advice did not value it, and a flagged grade confirmed. For the command line and scripts
+ * (src/lib/gameRecord/coachCompare.ts); `score` and `confirm` default to the functions above, on this thread.
+ */
+export async function gradeFully(
+  q: CoachRequest,
+  chosen: number,
+  a: Advice,
+  turn: number,
+  run: { score?: (s: ScoreRequest) => Promise<GradedOption[]>; confirm?: (c: ConfirmRequest) => Promise<GradedOption[]> } = {},
+): Promise<{ grade: MoveGrade; extra?: GradedOption[]; fresh?: GradedOption[] }> {
+  const d = q.decision;
+  let grade = gradeMove(d, chosen, a, turn);
+  let extra: GradedOption[] | undefined;
+  if (grade.verdict === 'pending') {
+    extra = await (run.score ?? scoreMoveRequest)({ req: q, chosen, coach: a.index, ...(a.grade ? { grade: a.grade } : {}) }).catch(() => []);
+    grade = gradeMove(d, chosen, a, turn, extra);
+  }
+  if (!needsConfirm(grade)) return { grade, ...(extra ? { extra } : {}) };
+  const fresh = await (run.confirm ?? confirmMoveRequest)({ req: q, chosen, coach: a.index }).catch(() => []);
+  return { grade: gradeConfirmed(chosen, a, grade, fresh, extra), ...(extra ? { extra } : {}), fresh };
 }
 
 /** Static matchup plan + deck tips for the human player (p = 0). */
