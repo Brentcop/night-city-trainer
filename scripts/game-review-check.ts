@@ -4,9 +4,11 @@
 // step on the re-run, and what a learner reads: how many Mistakes and Blunders, and Sharp / Inspired moves, keep their
 // rating, how far accuracy moves, and whether the turning point is the same move (docs/BOT_TOOLKIT.md §8).
 //
-//   npx tsx scripts/game-review-check.ts [--games 20] [--rollouts 8] [--confirm 16] [--seed 1] [--threads N] [--out DIR]
+//   npx tsx scripts/game-review-check.ts [--games 20] [--rollouts 8] [--confirm 16] [--hard 16] [--seed 1] [--threads N] [--out DIR]
 //
 // --confirm: fresh worlds each Slip-or-worse is confirmed on (the Game review's GAME_REVIEW_CONFIRM; 0 = off).
+// --hard: fresh worlds a seat's Mistakes and Blunders are checked on with Hard play-outs when it has at most 2 of them
+// (GAME_REVIEW_HARD; 0 = off).
 //
 // --out writes the reviews as JSON into DIR (nothing is written otherwise).
 import fs from 'node:fs';
@@ -25,6 +27,7 @@ const { values: V } = cli(import.meta.url, {
   games: int(20, { min: 1 }),
   rollouts: int(8, { min: 1 }),
   confirm: int(16, { min: 0 }),
+  hard: int(16, { min: 0 }),
   seed: int(1, { min: 0 }),
   threads: threadsOpt(),
   out: str(),
@@ -79,7 +82,7 @@ async function main() {
     bots: ['you', 'hard'],
     rollouts: V.rollouts,
     withCoach: false,
-    game: { id: g.id, spec: g.spec, coach: [], rollouts: V.rollouts, confirm: V.confirm, made, ...(oracleSeed !== undefined ? { oracleSeed } : {}) },
+    game: { id: g.id, spec: g.spec, coach: [], rollouts: V.rollouts, confirm: V.confirm, hard: V.hard, made, ...(oracleSeed !== undefined ? { oracleSeed } : {}) },
   });
   let done = 0;
   const t0 = Date.now();

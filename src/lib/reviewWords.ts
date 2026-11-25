@@ -2,8 +2,8 @@
 // gapFigure / behindText (src/lib/coachWords.ts), so a review never prints more than CAP_GIGS either ("more than 3
 // Gigs"), and option names through shownLabel ("End turn", "No reaction"), as the board and the coach name them. Kept
 // apart from gameReview.ts because coachWords.ts reads gameReview.ts's constants when it loads.
-import { behindText, gapFigure, gapSize, shownLabel } from './coachWords';
-import { CLOSE_GIGS, fixedTerms, type ReviewMove } from './gameReview';
+import { behindText, gapFigure, gapSize, shownLabel, verdictName } from './coachWords';
+import { CLOSE_GIGS, fixedTerms, type CoachSaid, type ReviewMove } from './gameReview';
 
 /**
  * What the ratings rest on, in plain words, for the screen and the legend: the bots' own evaluation a turn or so ahead
@@ -21,12 +21,28 @@ const rawGap = (m: Pick<ReviewMove, 'gap' | 'raw'>) => Math.max(0, m.raw ?? m.ga
 /** The ending-the-turn move by its board name (older records say "Pass turn"). */
 const isPass = (label: string) => shownLabel(label) === 'End turn';
 
-/** One or two plain sentences on a move: what was better and by how much, and the coach's reason when it had one. */
+/**
+ * A move's name as the board shows it: "End turn", "No reaction", and for the opening hand "Keep hand" / "Mulligan"
+ * (reviews stored before 2026-11-25 kept the engine's "Yes" / "No" for a mulligan).
+ */
+export function moveName(m: Pick<ReviewMove, 'cat' | 'chosen'>): string {
+  if (m.cat === 'mulligan') return m.chosen === 'Yes' ? 'Mulligan' : m.chosen === 'No' ? 'Keep hand' : m.chosen;
+  return shownLabel(m.chosen);
+}
+
+/** Why a mulligan is not rated (the 'unrated' rating), in plain words. */
+export const UNRATED_TEXT =
+  'Mulligans are not rated: the only way to measure one is to play whole games out for each answer, and the difference stays inside the noise almost every time, so a rating would be a guess. Not counted.';
+
+/**
+ * One or two plain sentences on a move: what was better and by how much (the coach's reason in reviews that rated by it).
+ */
 export function explain(m: ReviewMove): string {
   const g = rawGap(m);
-  const chosen = shownLabel(m.chosen);
-  const better = shownLabel(m.best ?? m.chosen);
+  const chosen = moveName(m);
+  const better = m.best !== undefined ? moveName({ cat: m.cat, chosen: m.best }) : chosen;
   const who = m.src === 'coach' ? 'The coach' : 'The review';
+  // Sharp and Inspired appear only in reviews stored before 2026-11-25 (src/lib/gameReview.ts rateMeasured)
   let s: string;
   switch (m.r) {
     case 'inspired':
@@ -36,6 +52,9 @@ export function explain(m: ReviewMove): string {
       s = isPass(m.chosen)
         ? `Holding back was the only good move: every play ${who === 'The coach' ? 'the coach' : 'the review'} measured was clearly worse, by a mistake or more.`
         : `${who} rates this the only good move: every other option it measured was clearly worse, by a mistake or more, and a quick read would have picked another.`;
+      break;
+    case 'unrated':
+      s = UNRATED_TEXT;
       break;
     case 'best':
       s = better === chosen || g <= 0 ? `${who} rates this the best move found.` : `As good as ${better} (within 0.1 Gigs).`;
@@ -56,8 +75,35 @@ export function explain(m: ReviewMove): string {
         (gapSize(g) === 'decided' ? `${who} preferred ${better}: in its play-outs the difference decides the game.` : `${who} preferred ${better}, ${bySize(g, m.se)} better.`) +
         (m.lost ? ` It also lost the game in at least 1 in 4 more of the play-outs than ${better}.` : '');
   }
+  if (m.src === 'oracle' && m.ms?.h) s += ` ${HARD_CHECK_TEXT}`;
   return m.why && m.src === 'coach' ? `${s} Coach: ${m.why}` : s;
 }
+
+/** After a move rated from its Hard check (ReviewMove.ms.h; src/ai/reviewer.ts ReviewOptions.hardCheck). */
+export const HARD_CHECK_TEXT = "Measured again with the Hard bot playing on for both sides, as a side's rare costly moves are: this rating is from that check.";
+
+/**
+ * The coach's grade of your move during play, kept beside the review's rating for reference (ReviewMove.said): "During
+ * play the coach said Mistake: it preferred X (−0.6 ± 0.1 Gigs). Coach: …". The coach measured fewer worlds, a shorter
+ * way, so the two can differ; the review's rating is the one counted.
+ */
+export function saidText(s: CoachSaid, cat: string): string {
+  const pick = s.best !== undefined ? moveName({ cat, chosen: s.best }) : null;
+  const name = verdictName(s.v, s.gap) ?? 'not measured';
+  const head =
+    s.v === 'agree'
+      ? 'During play the coach said this was its own pick'
+      : `During play the coach said ${name}${pick && s.v !== 'best' ? `: it preferred ${pick} (${behindText(s.gap, s.se)})` : pick ? `: as good as ${pick}` : ''}`;
+  return `${head}.${s.why ? ` Coach: ${s.why}` : ''}`;
+}
+
+/** Under the review's progress: how every move is measured. */
+export const REVIEW_RUNNING_TEXT =
+  "Every move of both sides is compared with the alternatives by playing each out for about a turn, yours the same way as the rival's; the coach's grades from play are shown beside yours for reference.";
+
+/** The seat cards' note: both seats are rated by the same play-outs; the coach's grades from play are shown beside yours. */
+export const sameInstrumentText = (saidCount: number) =>
+  saidCount ? `rated by the review's play-outs, as the rival's; ${saidCount === 1 ? '1 also graded' : `${saidCount} also graded`} by the coach during play, shown beside it` : "rated by the review's play-outs, as the rival's";
 
 /** A rated move's gap as a short tag: "−0.6 ± 0.1 Gigs", "more than 3 Gigs behind". */
 export const gapTag = (m: Pick<ReviewMove, 'gap' | 'raw' | 'se'>) => behindText(rawGap(m), m.se);

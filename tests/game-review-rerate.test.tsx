@@ -13,6 +13,7 @@ import type { Agent, Decision, DeckList } from '../src/engine/types';
 import {
   buildReviewRecord,
   GAME_REVIEW_CONFIRM,
+  GAME_REVIEW_HARD,
   GAME_REVIEW_ROLLOUTS,
   measuredAsNow,
   rateOracle,
@@ -28,7 +29,7 @@ import {
 import { asReviewRecord, GAME_REVIEWS_KEY, keepReview, loadGameReview, parseGameReviews, saveGameReview } from '../src/lib/gameReviewStore';
 import { loadPractice, recordPractice } from '../src/lib/practiceLog';
 import { RERATED_TEXT, staleText } from '../src/lib/reviewWords';
-import { runGameReview, GAME_REVIEW_CONFIRM as RUN_CONFIRM, GAME_REVIEW_ROLLOUTS as RUN_ROLLOUTS } from '../src/sim/gameReviewRun';
+import { runGameReview, GAME_REVIEW_CONFIRM as RUN_CONFIRM, GAME_REVIEW_HARD as RUN_HARD, GAME_REVIEW_ROLLOUTS as RUN_ROLLOUTS } from '../src/sim/gameReviewRun';
 import type { PracticeReviewSpec } from '../src/sim/practiceReview';
 import type { PracticeReplay } from '../src/lib/practiceReplays';
 import { GameReviewView } from '../src/ui/components/GameReview';
@@ -82,7 +83,7 @@ async function played(seed: number, level: string, withCoach: boolean): Promise<
   await Game.create(decks, [me, makeTierBot(level, 9, 'Bot')], { seed, first: 0, log: false }).run();
   const spec: PracticeReviewSpec = { decks, seed, first: 0, botLevel: level, botSeed: 9, choices: me.choices };
   const coach = withCoach ? coachFor(me.choices.length) : [];
-  const rec = await runGameReview({ id: `g${seed}`, spec, coach, rollouts: 2, confirm: 2, made: 'm' });
+  const rec = await runGameReview({ id: `g${seed}`, spec, coach, rollouts: 2, confirm: 2, hard: 2, made: 'm' });
   return { spec, coach, rec };
 }
 
@@ -95,35 +96,41 @@ const ratingsOf = (rec: GameReviewRecord) => rec.moves.map((m) => `${m.seq}:${m.
 const count = (rec: GameReviewRecord, f: (m: ReviewMove) => boolean) => rec.moves.filter(f).length;
 
 describe('re-rating a real stored review from its kept measurements is exact', () => {
-  it('the set covers coach and oracle grades, confirmed moves, an upgrade and No clear difference', () => {
+  it('the set covers oracle grades with the coach’s beside them, confirmed moves, No clear difference and unrated mulligans', () => {
     const all = games.flatMap((g) => g.rec.moves);
-    expect(all.filter((m) => m.src === 'coach').length).toBeGreaterThan(3);
+    // every move rated by the oracle (R8), the coach's grade beside your moves it graded
+    expect(all.every((m) => m.src === 'oracle')).toBe(true);
+    expect(all.filter((m) => m.said).length).toBeGreaterThan(3);
     expect(all.filter((m) => m.ms?.c).length).toBeGreaterThan(3);
-    for (const r of ['sharp', 'unclear', 'best', 'close', 'blunder'] satisfies Rating[]) expect(all.some((m) => m.r === r)).toBe(true);
-    expect(all.some((m) => m.src === 'oracle' && m.r === 'sharp')).toBe(true);
-    // coach moves rated with the review's screen of them kept (an upgrade for the coach's pick reads it)
-    expect(all.some((m) => m.src === 'coach' && m.ms?.s)).toBe(true);
-    expect(all.some((m) => m.src === 'coach' && m.r === 'unclear')).toBe(true);
-    expect(all.some((m) => m.src === 'oracle' && m.r === 'blunder')).toBe(true);
+    for (const r of ['unclear', 'best', 'close', 'blunder', 'unrated'] satisfies Rating[]) expect(all.some((m) => m.r === r)).toBe(true);
+    // a seat's rare Mistakes and Blunders checked with Hard play-outs (R2), only in seats with at most 2 of them
+    expect(all.some((m) => m.ms?.h)).toBe(true);
+    for (const g of games)
+      for (const p of [0, 1] as const) {
+        const checked = g.rec.moves.filter((m) => m.p === p && m.ms?.h);
+        if (checked.length) expect(checked.length).toBeLessThanOrEqual(2);
+      }
+    // no Sharp or Inspired since 2026-11-25 (R4)
+    expect(all.some((m) => m.r === 'sharp' || m.r === 'inspired')).toBe(false);
     // a confirmed move rated from its confirmation: a move whose screening pass alone would rate it otherwise
     expect(all.some((m) => m.ms?.c && m.ms.f![0] !== m.ms.c[0])).toBe(true);
   });
 
   it('every move keeps its measurements, and re-rating reproduces every rating and the whole record', () => {
-    for (const { rec, coach } of games) {
+    for (const { rec } of games) {
       // the build keeps an oracle move's measurements only when they read back exactly (keepOracle checks every number
       // a rating reads), so every move having them is the proof that the encoding loses nothing
-      for (const m of rec.moves) expect(m.ms, `move ${m.seq} (${m.src})`).toBeDefined();
+      for (const m of rec.moves) if (m.r !== 'unrated') expect(m.ms, `move ${m.seq} (${m.src})`).toBeDefined();
       expect(rec.measure).toBe(REVIEW_MEASURE);
       expect(rec.confirm).toBe(2);
-      const again = rerateRecord(rec, coach);
+      const again = rerateRecord(rec);
       expect(again.ok).toBe(true);
       if (!again.ok) continue;
       expect(ratingsOf(again.rec)).toEqual(ratingsOf(rec));
       expect(again.rec).toEqual(rec);
       expect(JSON.stringify(again.rec)).toBe(JSON.stringify(rec));
       // under older rules: the same ratings and figures, now under the current rules and marked as rated again
-      const old = rerateRecord({ ...rec, rules: 1, moves: rec.moves.map((m) => ({ ...m, r: 'blunder' as const })) }, coach);
+      const old = rerateRecord({ ...rec, rules: 1, moves: rec.moves.map((m) => (m.r === 'unrated' ? m : { ...m, r: 'blunder' as const })) });
       expect(old.ok && old.rec).toEqual({ ...rec, rerated: 1 });
     }
   });
@@ -133,7 +140,7 @@ describe('re-rating a real stored review from its kept measurements is exact', (
       const raw = JSON.stringify([{ id: rec.id, coach, review: { ...rec, rules: 1 } }]);
       const [back] = parseGameReviews(raw);
       expect(back!.coach).toEqual(coach);
-      const again = rerateRecord(back!.review!, back!.coach);
+      const again = rerateRecord(back!.review!);
       expect(again.ok && again.rec).toEqual({ ...rec, rerated: 1 });
       expect(asReviewRecord(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
     }
@@ -149,7 +156,7 @@ describe('re-rating a real stored review from its kept measurements is exact', (
     const again = rerateRecord({ ...rec, rules: 1 });
     expect(again.ok && again.rec.moves[0]!.r).toBe('close');
     // past the cap the raw gap is kept (the gap counted is the cap); reviewed with no confirmation, so none is needed
-    const big = buildReviewRecord(review([decision({ regret: 120, raw: 333.33, se: 40, others: [[333.33, 40]] })]), [], { id: 'x', made: 'm', confirm: 0 });
+    const big = buildReviewRecord(review([decision({ regret: 120, raw: 333.33, se: 40, others: [[333.33, 40]] })]), [], { id: 'x', made: 'm', confirm: 0, hard: 0 });
     expect(big.moves[0]!.ms!.f).toEqual([333.33, 4000]);
     expect(rerateRecord({ ...big, rules: 1 })).toMatchObject({ ok: true, rec: { moves: [{ r: 'blunder', gap: 3, raw: 8.33 }] } });
   });
@@ -176,7 +183,6 @@ function review(decisions: DecisionReview[]): GameReview {
     swings: [],
     decisions,
     ms: 5,
-    skipped: [],
     forced: [0, 0],
     answers: [{ choices: [[0], [1]], pay: false, order: false }, { choices: [[0]], pay: false, order: false }],
   };
@@ -207,7 +213,7 @@ describe('the two awkward cases of confirmation', () => {
     expect(rec.moves[0]!.ms).toEqual({ f: [30, 200], o: [3000, 200] });
     expect(rerateRecord({ ...rec, rules: 1 })).toEqual({ ok: false, why: 'unconfirmed', moves: [0] });
     // the same move recorded without confirmation at all (confirm 0) needs none
-    expect(rerateRecord({ ...rec, rules: 1, confirm: 0 }).ok).toBe(true);
+    expect(rerateRecord({ ...rec, rules: 1, confirm: 0, hard: 0 }).ok).toBe(true);
   });
 
   describe('through the loader', () => {
@@ -235,20 +241,21 @@ describe('the loader, with a real stored review', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
   // the reviews above were measured with fewer play-outs to keep the test fast; the loader reads only these fields
-  const asNow = (rec: GameReviewRecord): GameReviewRecord => ({ ...rec, rollouts: GAME_REVIEW_ROLLOUTS, confirm: GAME_REVIEW_CONFIRM });
+  const asNow = (rec: GameReviewRecord): GameReviewRecord => ({ ...rec, rollouts: GAME_REVIEW_ROLLOUTS, confirm: GAME_REVIEW_CONFIRM, hard: GAME_REVIEW_HARD });
 
   it('the measurement constants are one set (the store reads them without loading the oracle)', () => {
     expect(RUN_ROLLOUTS).toBe(GAME_REVIEW_ROLLOUTS);
     expect(RUN_CONFIRM).toBe(GAME_REVIEW_CONFIRM);
+    expect(RUN_HARD).toBe(GAME_REVIEW_HARD);
     // changing either changes how a review is measured: bump REVIEW_MEASURE with it (this pin is the reminder)
-    expect([REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS, GAME_REVIEW_CONFIRM]).toEqual([3, 8, 16]);
+    expect([REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS, GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD]).toEqual([4, 8, 16, 16]);
   });
 
   it('other rules: the ratings come back as rated from the measurements, saved under the current rules with the log’s counts', () => {
     const { rec, coach, spec } = games[2]!;
     const now = asNow(rec);
     // made under rules 1, with ratings those rules gave (here: anything else)
-    const old: GameReviewRecord = { ...now, rules: 1, moves: now.moves.map((m) => ({ ...m, r: m.r === 'best' ? 'close' : 'best' })) };
+    const old: GameReviewRecord = { ...now, rules: 1, moves: now.moves.map((m) => (m.r === 'unrated' ? m : { ...m, r: m.r === 'best' ? 'close' : 'best' })) };
     saveGameReview(old, coach);
     recordPractice({ id: rec.id, date: 'd', deck: 'A', opp: 'B', level: 'hard', result: 'loss', first: true, turns: rec.turns, reason: 'r' });
     const loaded = loadGameReview(rec.id, spec.choices)!;
@@ -272,7 +279,7 @@ describe('the loader, with a real stored review', () => {
   it('measured another way: stale, whatever the rules', () => {
     const { rec, coach, spec } = games[1]!;
     const now = asNow(rec);
-    for (const other of [{ measure: REVIEW_MEASURE + 1 }, { rollouts: 4 }, { confirm: 0 }, { confirm: 32 }]) {
+    for (const other of [{ measure: REVIEW_MEASURE + 1 }, { rollouts: 4 }, { confirm: 0 }, { confirm: 32 }, { hard: 0 }, { hard: 8 }]) {
       for (const rules of [REVIEW_RULES, 1]) {
         const r = { ...now, ...other, rules };
         expect(measuredAsNow(r)).toBe(false);
@@ -284,20 +291,17 @@ describe('the loader, with a real stored review', () => {
     expect(loadGameReview(rec.id, spec.choices)).toEqual({ id: rec.id, coach, review: now });
   });
 
-  it('the coach grades kept with the game no longer match: stale; none kept at all: its coach moves stay as rated', () => {
+  it('a move rated by the coach’s grade (a review stored before 2026-11-25): stale, run again; the coach’s grades kept with the game do not matter', () => {
     const { rec, coach, spec } = games[1]!;
     const now = { ...asNow(rec), rules: 1 };
-    const graded = rec.moves.find((m) => m.src === 'coach')!;
-    const fewer = coach.filter((c) => c.at !== graded.at);
-    saveGameReview(now, fewer);
-    expect(loadGameReview(rec.id, spec.choices)?.stale).toEqual(now);
-    expect(rerateRecord(now, fewer)).toEqual({ ok: false, why: 'coach', moves: [graded.seq] });
-    // a coach grade for a move the oracle graded: a fresh run would hand that move to the coach
-    const oracleMine = rec.moves.find((m) => m.src === 'oracle' && m.p === rec.me)!;
-    expect(rerateRecord(now, [...coach, { ...coach[0]!, at: oracleMine.at }])).toEqual({ ok: false, why: 'coach', moves: [oracleMine.seq] });
-    // no coach grades kept: a fresh run would keep the coach-graded moves as they were rated, and so does this
-    const again = rerateRecord(now, []);
-    expect(again.ok && again.rec.moves.filter((m) => m.src === 'coach')).toEqual(rec.moves.filter((m) => m.src === 'coach'));
+    const mine = rec.moves.find((m) => m.p === rec.me && m.said)!;
+    const older = { ...now, moves: now.moves.map((m) => (m.seq === mine.seq ? { ...m, src: 'coach' as const, why: 'Reason.', ms: { s: [0, 1] } } : m)) };
+    saveGameReview(older, coach);
+    expect(loadGameReview(rec.id, spec.choices)?.stale).toEqual(older);
+    expect(rerateRecord(older)).toEqual({ ok: false, why: 'coach', moves: [mine.seq] });
+    // the coach's grades are reference only: with fewer or none kept, the oracle's ratings re-rate the same
+    saveGameReview(now, coach.slice(1));
+    expect(loadGameReview(rec.id, spec.choices)?.review).toEqual({ ...asNow(rec), rerated: 1 });
   });
 
   it('an old record without the kept measurements behaves exactly as before', () => {
@@ -310,7 +314,7 @@ describe('the loader, with a real stored review', () => {
     saveGameReview(old, coach);
     expect(loadGameReview(rec.id, spec.choices)).toEqual({ id: rec.id, coach, review: old });
     // under older rules (or none recorded): stale, to be run again, exactly as before
-    expect(rerateRecord({ ...old, rules: 1 }, coach)).toMatchObject({ ok: false, why: 'not-kept' });
+    expect(rerateRecord({ ...old, rules: 1 })).toMatchObject({ ok: false, why: 'not-kept' });
     for (const o of [{ ...old, rules: 1 }, (({ rules: _r, ...x }) => x)(old) as GameReviewRecord]) {
       saveGameReview(o, coach);
       expect(loadGameReview(rec.id, spec.choices)).toEqual({ id: rec.id, coach, stale: o });
@@ -319,9 +323,9 @@ describe('the loader, with a real stored review', () => {
 
   it('malformed kept measurements are dropped (the move stays), a malformed measurement version drops the review, never a throw', () => {
     const { rec, coach } = games[1]!;
-    const oracleAt = rec.moves.findIndex((m) => m.src === 'oracle');
-    const coachAt = rec.moves.findIndex((m) => m.src === 'coach');
-    const bad = [{ f: 'x' }, { f: [1] }, { f: [1, 2.5] }, { f: [-1, 2] }, { f: [1, 2], o: [1] }, { f: [1, 2], b: 99 }, { f: [1, 2], s: [1, 2] }, { f: [1, 2], z: 1 }, [], null, 7];
+    const oracleAt = rec.moves.findIndex((m) => m.ms);
+    const coachAt = rec.moves.findIndex((m) => m.r !== 'unrated' && m !== rec.moves[oracleAt]);
+    const bad = [{ f: 'x' }, { f: [1] }, { f: [1, 2.5] }, { f: [-1, 2] }, { f: [1, 2], o: [1] }, { f: [1, 2], b: 99 }, { f: [1, 2], s: [1, 2] }, { f: [1, 2], z: 1 }, { f: [1, 2], u: [1, 2, 3] }, { f: [1, 2], u: [1, 2, 3, 4, 5] }, [], null, 7];
     for (const ms of bad) {
       const moves = rec.moves.map((m, i) => (i === oracleAt ? { ...m, ms } : m));
       const back = asReviewRecord(JSON.parse(JSON.stringify({ ...rec, moves })))!;
@@ -329,10 +333,11 @@ describe('the loader, with a real stored review', () => {
       expect(back.moves[oracleAt]!.ms).toBeUndefined();
       expect(back.moves[oracleAt]!.r).toBe(rec.moves[oracleAt]!.r);
       expect(back.moves.filter((_m, i) => i !== oracleAt)).toEqual(rec.moves.filter((_m, i) => i !== oracleAt));
-      expect(rerateRecord({ ...back, rules: 1 }, coach)).toMatchObject({ ok: false, why: 'not-kept', moves: [rec.moves[oracleAt]!.seq] });
+      expect(rerateRecord({ ...back, rules: 1 })).toMatchObject({ ok: false, why: 'not-kept', moves: [rec.moves[oracleAt]!.seq] });
     }
+    // a coach-graded move of an older review keeps only its screen
     for (const ms of [{ s: [1, 2, 3] }, { f: [1, 2] }, { s: [0.5, 1] }]) {
-      const moves = rec.moves.map((m, i) => (i === coachAt ? { ...m, ms } : m));
+      const moves = rec.moves.map((m, i) => (i === coachAt ? { ...m, src: 'coach' as const, ms } : m));
       expect(asReviewRecord(JSON.parse(JSON.stringify({ ...rec, moves })))!.moves[coachAt]!.ms).toBeUndefined();
     }
     for (const head of [{ measure: 'one' }, { measure: 1.5 }, { confirm: -1 }, { rerated: 'x' }]) {
@@ -351,7 +356,7 @@ describe('the review screen', () => {
   afterEach(() => vi.unstubAllGlobals());
   const replayOf = (p: Played, o: Partial<PracticeReplay> = {}): PracticeReplay => ({ id: p.rec.id, date: 'd', decks, seed: p.spec.seed, botLevel: p.spec.botLevel, botSeed: p.spec.botSeed, choices: p.spec.choices, result: 'loss', ...o });
   const html = (p: Played, o?: Partial<PracticeReplay>) => renderToStaticMarkup(<GameReviewView src={{ replay: replayOf(p, o), coach: [], persist: true }} />);
-  const stored = (p: Played, rec: GameReviewRecord) => saveGameReview({ ...rec, rollouts: GAME_REVIEW_ROLLOUTS, confirm: GAME_REVIEW_CONFIRM }, p.coach);
+  const stored = (p: Played, rec: GameReviewRecord) => saveGameReview({ ...rec, rollouts: GAME_REVIEW_ROLLOUTS, confirm: GAME_REVIEW_CONFIRM, hard: GAME_REVIEW_HARD }, p.coach);
 
   it('a review rated again says so in one muted line, and is shown at once', () => {
     const p = games[1]!;
@@ -382,18 +387,18 @@ describe('the review screen', () => {
     expect(o).toContain(staleText(true));
     expect(o).not.toContain(RERATED_TEXT);
     // measured another way, under the current rules: shown as it was, in those words
-    saveGameReview({ ...p.rec, rollouts: 4, confirm: GAME_REVIEW_CONFIRM }, p.coach);
+    saveGameReview({ ...p.rec, rollouts: 4, confirm: GAME_REVIEW_CONFIRM, hard: GAME_REVIEW_HARD }, p.coach);
     expect(html(p, { simVersion: 3 })).toContain(staleText(false));
   });
 });
 
 describe('a re-rate is fast', () => {
   it('well under a millisecond a review on this machine’s scale (no play-outs)', () => {
-    const { rec, coach } = games[2]!;
+    const { rec } = games[2]!;
     const old = { ...rec, rules: 1 };
     const t0 = performance.now();
-    for (let i = 0; i < 50; i++) rerateRecord(old, coach);
+    for (let i = 0; i < 50; i++) rerateRecord(old);
     expect((performance.now() - t0) / 50).toBeLessThan(20);
-    expect(count(rec, (m) => !!m.ms)).toBe(rec.moves.length);
+    expect(count(rec, (m) => !!m.ms)).toBe(count(rec, (m) => m.r !== 'unrated'));
   });
 });

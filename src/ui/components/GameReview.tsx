@@ -29,8 +29,7 @@ import { currentRules, keepReview, loadGameReview } from '../../lib/gameReviewSt
 import { mySeat, practiceRequest, practiceSpec, replayVersionProblem, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
 import { sessionEnding } from '../../lib/practiceVerdict';
 import { reviewFrames, type ReviewFrames } from '../../lib/reviewFrames';
-import { explain, FOLLOW_TEXT, gapTag, RERATED_TEXT, REVIEW_BASIS, staleText } from '../../lib/reviewWords';
-import { shownLabel } from '../../lib/coachWords';
+import { explain, FOLLOW_TEXT, gapTag, moveName, RERATED_TEXT, REVIEW_BASIS, REVIEW_RUNNING_TEXT, saidText, sameInstrumentText, staleText } from '../../lib/reviewWords';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewWorkerHost, useReviewHost, WAITING_TEXT } from '../reviewWorkerHost';
 import { Modal } from './Modal';
@@ -92,11 +91,9 @@ function useGameReview(src: GameReviewSource, shared?: ReviewWorkerHost): { st: 
       setSt({ status: 'refused', why: versionWhy, ...(stale ? { stale } : {}) });
       return;
     }
-    // the coach grades given now (the game just played), else the ones kept with the game; a review from older rules
-    // whose coach grades are gone keeps its coach-graded moves as they were
+    // the coach grades given now (the game just played), else the ones kept with the game: shown beside your moves
     const coach = src.coach.length ? src.coach : (stored?.coach ?? []);
-    const keep = !coach.length && stale ? stale.moves.filter((m) => m.src === 'coach' && m.p === stale.me) : [];
-    const q: ReviewRequest = { kind: 'game', job: { id: src.replay.id, spec: practiceSpec(src.replay, src.turns), coach, ...(keep.length ? { keep } : {}), made: new Date().toISOString() } };
+    const q: ReviewRequest = { kind: 'game', job: { id: src.replay.id, spec: practiceSpec(src.replay, src.turns), coach, made: new Date().toISOString() } };
     setSt({ status: 'running', decisions: 0, turn: 0, ...(host.busy ? { waiting: true } : {}) });
     const off = host.run(q, {
       start: () => setSt({ status: 'running', decisions: 0, turn: 0 }),
@@ -221,7 +218,7 @@ export function GameReviewView({ src, active = true, host }: { src: GameReviewSo
           <span className="spinner" /> {st.waiting ? WAITING_TEXT : <>Reviewing… {st.decisions} decisions rated{st.turn ? `, turn ${st.turn}${src.turns ? ` of ${src.turns}` : ''}` : ''}</>}
         </span>
         {src.turns ? <progress max={src.turns} value={Math.min(st.turn, src.turns)} aria-label="Review progress by turn" /> : null}
-        <div className="small muted">Every move of both sides is compared with the alternatives by playing each out for about a turn. Your moves the coach graded during play keep the coach's grade.</div>
+        <div className="small muted">{REVIEW_RUNNING_TEXT}</div>
         <div>
           <button type="button" className="ghost" onClick={stop}>
             Stop
@@ -297,7 +294,9 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
   }, [cur]);
   const who = (p: 0 | 1) => (p === me ? 'You' : 'Rival');
   const resultText = rec.winner === 'tie' ? 'Draw' : rec.winner === null ? 'Unfinished' : rec.winner === me ? 'You won' : 'You lost';
+  // reviews stored before 2026-11-25 rated some of your moves by the coach's grade; newer ones keep it beside the rating
   const byCoach = rec.moves.filter((m) => m.p === me && m.src === 'coach').length;
+  const said = rec.moves.filter((m) => m.p === me && m.said).length;
   const decided = rec.winner === 0 || rec.winner === 1;
   const noTurning = !rec.moves.length
     ? 'No moves were rated.'
@@ -310,14 +309,18 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
         {resultText} in {rec.turns} turn{rec.turns === 1 ? '' : 's'} ({rec.reason}). {rec.names[me]} vs {rec.names[rival]}.
       </div>
       <div className="gr-seats">
-        <SeatCard who="You" s={sums[0]} note={byCoach ? `${byCoach} graded by the coach during play${byCoach < rec.moves.filter((m) => m.p === me).length ? ", the rest by the review's play-outs" : ''}` : undefined} />
-        <SeatCard who="Rival" s={sums[1]} note="all graded by the review's play-outs" />
+        <SeatCard
+          who="You"
+          s={sums[0]}
+          note={byCoach ? `${byCoach} graded by the coach during play${byCoach < rec.moves.filter((m) => m.p === me).length ? ", the rest by the review's play-outs" : ''}` : sameInstrumentText(said)}
+        />
+        <SeatCard who="Rival" s={sums[1]} note="rated by the review's play-outs" />
       </div>
       <p className="small muted gr-basis">{REVIEW_BASIS}</p>
       <FailedMoves moves={rec.failed ?? []} who={(p) => (p === me ? 'you' : 'the rival')} />
       {turning ? (
         <p className="gr-turning">
-          <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played <MentionText text={shownLabel(turning.chosen)} skip={rec.names} /> <RatingPill r={turning.r} /> ({gapTag(turning)}).{' '}
+          <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played <MentionText text={moveName(turning)} skip={rec.names} /> <RatingPill r={turning.r} /> ({gapTag(turning)}).{' '}
           <button type="button" className="ghost" onClick={() => (setFilter('all'), setSel(turning.seq))}>
             Show
           </button>
@@ -329,7 +332,8 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
       <details className="small">
         <summary>What the ratings mean</summary>
         <ul className="gr-legend">
-          {[...RATINGS, 'unclear' as const].map((r) => (
+          {/* Sharp and Inspired are listed only for an older review that has them (none given since 2026-11-25) */}
+          {[...RATINGS.filter((r) => (r !== 'sharp' && r !== 'inspired') || rec.moves.some((m) => m.r === r)), 'unclear' as const, 'unrated' as const].map((r) => (
             <li key={r}>
               <RatingPill r={r} /> {RATING_INFO[r].means}
             </li>
@@ -339,9 +343,10 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
           Gaps are in Gigs: the bots' estimate of value in Gig-equivalents (one Gig = {GIG} points of their evaluation), not Gigs on the board, and never shown past {CAP_GIGS}. Each
           option is played out in {rec.rollouts} shared worlds, and the gap comes with its standard error. A close call is under {CLOSE_GIGS} Gigs or within 2 standard errors (a gap
           that is about the same in every play-out comes from fixed terms of the evaluation, not the play-outs, and counts only from 0.5 Gigs); mistakes start at {MISTAKE_GIGS} Gigs. Accuracy =
-          100 × e^(−average Gigs lost per counted move), where moves inside the noise lose 0 and a loss counts at most {CAP_GIGS} Gigs. Your moves the coach graded during play keep
-          the coach's grade, in these names (a coach Mistake of a whole Gig or more is a Blunder, as the coach shows it), except that a move where every option the coach measured
-          was within the noise is No clear difference. The turning point is the losing side's costliest move.
+          100 × e^(−average Gigs lost per counted move), where moves inside the noise lose 0 and a loss counts at most {CAP_GIGS} Gigs. A Slip or worse is played out again on fresh
+          worlds before it is shown. Your moves and the rival's are rated the same way, by these play-outs; where the coach graded one of your moves
+          during play, its grade is shown beside the review's for reference (the coach measured fewer play-outs, so the two can differ). The turning point is the losing side's
+          costliest move.
         </p>
       </details>
       <div className="gr-moves">
@@ -367,7 +372,7 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
                 <li key={m.seq}>
                   <button type="button" data-seq={m.seq} className={`gr-row ${m.p === me ? 'me' : 'rival'} ${cur?.seq === m.seq ? 'on' : ''}`} aria-current={cur?.seq === m.seq ? 'true' : undefined} onClick={() => setSel(m.seq)}>
                     <span className="muted">T{m.turn}</span> <span className="gr-who">{who(m.p)}</span> <RatingPill r={m.r} /> <span className="gr-move">
-                      <MentionText text={shownLabel(m.chosen)} skip={rec.names} passive />
+                      <MentionText text={moveName(m)} skip={rec.names} passive />
                     </span>
                     {follow.get(m.seq) === 'missed' && <span className="gr-tag">missed chance</span>}
                   </button>
@@ -427,13 +432,18 @@ function MoveDetail({ m, me, follow, names }: { m: ReviewMove; me: 0 | 1; follow
     <div className="gr-move-detail" aria-live="polite">
       <div>
         <span className="muted">Turn {m.turn} · {m.p === me ? 'You' : 'Rival'}:</span> <b>
-          <MentionText text={shownLabel(m.chosen)} skip={names} />
+          <MentionText text={moveName(m)} skip={names} />
         </b>{' '}
         <RatingPill r={m.r} />
       </div>
       <p className="small">
         <MentionText text={explain(m)} skip={names} />
       </p>
+      {m.said && (
+        <p className="small muted gr-said">
+          <MentionText text={saidText(m.said, m.cat)} skip={names} />
+        </p>
+      )}
       {m.p !== me && follow && <p className="small gr-note">{FOLLOW_TEXT[follow]}</p>}
       <p className="small muted gr-before">The board below is the position before this move.</p>
     </div>

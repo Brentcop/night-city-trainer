@@ -111,8 +111,9 @@ export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req
       )}
       {checked && (
         <p className="small muted">
-          Every move measured again by the review's play-outs alone (no coach grades, its own worlds), in the Game review's rating names. A move near a boundary can land
-          one step apart from the Game review tab; that tab is the verdict kept with the game.
+          Every move of your seat measured again by the review's play-outs, with costly moves confirmed on fresh worlds as on the Game review tab, in its
+          rating names. This view also plays out the coach's pick, so a move near a boundary can land one step apart from the Game review tab; that tab is the verdict kept
+          with the game.
         </p>
       )}
       <div className="review-seats">
@@ -125,7 +126,7 @@ export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req
       <Costly r={r} rated={rated} />
       <FailedMoves moves={(r.failed ?? []).map((f) => ({ seq: f.seq, turn: f.turn, p: f.player, chosen: f.chosen, why: f.reason }))} who={(p) => (mySeat === p ? 'you' : r.names[p])} />
       <p className="small muted" style={{ marginBottom: 0 }}>
-        Main-phase moves and reactions are measured (not targets or modes), judged by the bots' own evaluation about a turn ahead, with the cards the player couldn't see re-dealt.
+        Main-phase moves, reactions and Gig choices are measured (not mulligans, targets or modes), judged by the bots' own evaluation about a turn ahead, with the cards the player couldn't see re-dealt.
         Reviewed in {(r.ms / 1000).toFixed(0)} s.
       </p>
     </div>

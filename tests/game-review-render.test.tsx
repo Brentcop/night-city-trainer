@@ -72,6 +72,29 @@ describe('Game review screen', () => {
     expect(html).toContain('The board is not available for this review.');
   });
 
+  // 2026-11-25 (docs/REVIEW_2026-11-25.md R3, R8): both seats rated by the same play-outs, the coach's grade from play
+  // beside your move for reference, and the mulligan listed by its board name, not rated
+  it('a current review: the same instrument for both seats, the coach’s grade beside yours, the mulligan not rated', () => {
+    const now: GameReviewRecord = {
+      ...rec,
+      moves: [
+        mv({ seq: 0, p: 0, r: 'unrated', cat: 'mulligan', chosen: 'Keep hand', gap: null, best: undefined }),
+        mv({ seq: 1, p: 1, r: 'best', turn: 2, chosen: 'Rival move' }),
+        mv({ seq: 2, p: 0, r: 'mistake', turn: 3, chosen: 'Play Big Unit', gap: 0.6, se: 0.1, said: { v: 'best', gap: 0.05, best: 'Better move', why: 'Looked fine.' } }),
+        mv({ seq: 3, p: 0, r: 'best', turn: 5, chosen: 'Attack with X', said: { v: 'agree', gap: 0, why: 'Strong.' } }),
+      ],
+    };
+    const html = renderToStaticMarkup(<ReviewResult rec={now} replay={replay} frames={null} />);
+    expect(html).toContain('<b>Turning point:</b> turn 3, you played Play Big Unit');
+    expect(html).toContain('rated by the review&#x27;s play-outs, as the rival&#x27;s; 2 also graded by the coach during play, shown beside it');
+    expect(html).toContain('During play the coach said Best: as good as Better move. Coach: Looked fine.');
+    expect(html).toContain('Keep hand');
+    expect(html).toContain('Not rated');
+    expect(html).not.toContain('keep the coach&#x27;s grade');
+    // the counted moves leave the mulligan out
+    expect(html).toContain('2 counted moves');
+  });
+
   it('opens on the Game review tab, with the Full match review as the second tab', () => {
     const html = renderToStaticMarkup(<GameReviewModal src={{ replay, coach: [], persist: false, turns: 9 }} title="Game review" onClose={() => undefined} />);
     expect(html).toContain('role="dialog"');

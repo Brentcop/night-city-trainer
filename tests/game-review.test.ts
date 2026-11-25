@@ -1,5 +1,5 @@
 // The Game review's ratings (src/lib/gameReview.ts): bands in Gigs with the measurement's standard error, the coach's
-// grades from play kept as they were, accuracy, the turning point, the rival's relevant moves, the stored record, and a
+// grades from play kept beside the review's ratings, accuracy, the turning point, the rival's relevant moves, the stored record, and a
 // seeded real game reviewed end to end (src/sim/gameReviewRun.ts, the function both the browser worker and the CLI run).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Game } from '../src/engine/engine';
@@ -19,13 +19,14 @@ import {
   CLOSE_GIGS,
   coachRatingOf,
   coachRatingsFrom,
+  confirmFlag,
   costlyText,
   FIXED_SE_GIGS,
   GIG,
   isKeyMoment,
   listed,
   MISTAKE_GIGS,
-  rateCoach,
+  RATING_INFO,
   rateMeasured,
   rateOracle,
   ratingStep,
@@ -34,13 +35,14 @@ import {
   seatSummary,
   REVIEW_RULES,
   rerateRecord,
+  saidOf,
   turningName,
   turningPoint,
   withinNoise,
   type CoachRating,
   type ReviewMove,
 } from '../src/lib/gameReview';
-import { explain, gapTag } from '../src/lib/reviewWords';
+import { explain, gapTag, HARD_CHECK_TEXT, moveName, saidText, UNRATED_TEXT } from '../src/lib/reviewWords';
 import { asReviewRecord, GAME_REVIEWS_KEY, loadGameReview, parseGameReviews, reviewMatches, saveCoachRatings, saveGameReview } from '../src/lib/gameReviewStore';
 import { parsePractice } from '../src/lib/practiceLog';
 import { runGameReview } from '../src/sim/gameReviewRun';
@@ -80,18 +82,18 @@ describe('rateMeasured: bands with the standard error', () => {
     expect(rateMeasured({ gap: 0, top: true, others: [[0.1, 0.02], [0.4, 0.3]] })).toBe('unclear');
     expect(rateMeasured({ gap: 0, top: true, others: [[0.1, 0.02], [0.4, 0.1]] })).toBe('best');
   });
-  it('Sharp: the only good move, which the quick read did not pick first; Inspired: ranked third or lower, its pick a blunder', () => {
+  // R4 (docs/REVIEW_2026-11-25.md, reports/review-validity-2026-11-25.md): confirmed on fresh worlds, Sharp and Inspired
+  // still came more often in Easy's won games than in its lost ones; dropped, such a move is Best
+  it('no Sharp or Inspired since 2026-11-25: the only good move, unseen by a quick read, is Best', () => {
     const only = { gap: 0, top: true, others: [[0.6, 0.1] as const, [1.5, 0.2] as const] };
-    expect(rateMeasured({ ...only, screen: { gap: 0, se: 0, chosenRank: 0 } })).toBe('best');
-    expect(rateMeasured(only)).toBe('best'); // no screen (a reaction): never more than Best
-    expect(rateMeasured({ ...only, screen: { gap: 0.6, se: 0.1, chosenRank: 1 } })).toBe('sharp');
-    expect(rateMeasured({ ...only, screen: { gap: 0.6, se: 0.1, chosenRank: 2 } })).toBe('sharp'); // its pick only a mistake
-    expect(rateMeasured({ ...only, screen: { gap: 1.5, se: 0.2, chosenRank: 2 } })).toBe('inspired');
-    expect(rateMeasured({ ...only, screen: { gap: 1.5, se: 0.2, chosenRank: -1 } })).toBe('inspired');
-    // the runner-up within the noise: not the only good move
-    expect(rateMeasured({ gap: 0, top: true, others: [[0.6, 0.4], [2, 0.1]], screen: { gap: 1.5, se: 0.2, chosenRank: -1 } })).toBe('best');
-    // within 0.1 Gigs but not the top: Best, never more
-    expect(rateMeasured({ gap: 0.05, se: 0.01, top: false, others: [[0.6, 0.1]], screen: { gap: 1.5, se: 0.2, chosenRank: -1 } })).toBe('best');
+    for (const screen of [{ gap: 0, se: 0, chosenRank: 0 }, { gap: 0.6, se: 0.1, chosenRank: 1 }, { gap: 1.5, se: 0.2, chosenRank: 2 }, { gap: 1.5, se: 0.2, chosenRank: -1 }])
+      expect(rateMeasured({ ...only, screen })).toBe('best');
+    expect(rateMeasured(only)).toBe('best');
+    expect(rateMeasured({ gap: 0, top: true, pass: true, others: [[0.6, 0.1]], screen: { gap: 0.6, se: 0.1, chosenRank: -1 } })).toBe('best');
+    // nothing is confirmed for being the best: only a costly or wide gap is
+    expect(confirmFlag(review({ regret: 0, top: true, se: 0, others: [[40, 4]], screen: { gap: 40, se: 4, chosenRank: 1 } }))).toBe(false);
+    // older reviews that show them keep their names and words
+    expect(RATING_INFO.sharp.means).toMatch(/^Older reviews only/);
   });
   it('the noise test reads the raw gap: a capped gap far outside its SE is not a Close call (REV-3)', () => {
     // capped at 3 Gigs, raw 8 ± 1.6: before, 3 <= 2 × 1.6 made it a Close call
@@ -116,17 +118,6 @@ describe('rateMeasured: bands with the standard error', () => {
     // the coach's isClose is the same test, everywhere on a grid
     for (const g of [0, 0.1, 0.149, 0.15, 0.3, 0.5, 1, 2.99, 3, 8])
       for (const se of [undefined, 0, 0.004, 0.024, FIXED_SE_GIGS, 0.05, 0.2, 1]) expect(isClose(g, se)).toBe(withinNoise(g, se));
-  });
-  it('Sharp needs every other option clearly worse, not just the runner-up; ending the turn is at most Sharp (REV-8)', () => {
-    const screen = { gap: 1.5, se: 0.2, chosenRank: -1 };
-    // the runner-up is clear, the next one is within its own noise: not the only good move
-    expect(rateMeasured({ gap: 0, top: true, others: [[0.5, 0.05], [0.6, 0.5]], screen })).toBe('best');
-    expect(rateMeasured({ gap: 0, top: true, others: [[0.5, 0.05], [0.6, 0.1]], screen })).toBe('inspired');
-    // passing: the quick read never ranks it, so it is never Inspired
-    expect(rateMeasured({ gap: 0, top: true, pass: true, others: [[0.5, 0.05], [0.6, 0.1]], screen })).toBe('sharp');
-    expect(rateOracle(review({ category: 'end turn', regret: 0, top: true, se: 0, others: [[20, 2], [80, 4]], screen: { gap: 80, se: 4, chosenRank: -1 } }))).toBe('sharp');
-    // nothing else measured: never Sharp
-    expect(rateMeasured({ gap: 0, top: true, others: [], screen })).toBe('best');
   });
   it('steps: one place each, No clear difference between Best and Close call', () => {
     expect(ratingStep('inspired')).toBe(0);
@@ -182,23 +173,18 @@ describe('the coach’s grades from play are kept', () => {
     // agreeing when the coach scored nothing else measured nothing: left to the oracle (REV-11)
     expect(coachRatingOf(record(0, [pick], 'agree', 0))).toBeNull();
   });
-  it('the verdict decides the band: close stays a close call, inaccuracy is a Slip, mistake splits at a whole Gig', () => {
-    const base = (verdict: CoachRating['verdict'], gap: number, se?: number): CoachRating => ({ at: 1, turn: 2, chose: 1, coach: 0, chosen: 'B', best: 'A', why: '', verdict, gap, ...(se !== undefined ? { se } : {}), alts: [[1, gap, se ?? null], [2, 2, 0.1]] });
-    expect(rateCoach(base('close', 0.05, 0.01))).toBe('close');
-    expect(rateCoach(base('inaccuracy', 0.3, 0.05))).toBe('slip');
-    expect(rateCoach(base('mistake', 0.6, 0.1))).toBe('mistake');
-    expect(rateCoach(base('mistake', 1.4, 0.1))).toBe('blunder');
-    expect(rateCoach(base('best', -0.1, 0.05))).toBe('best');
-  });
-  it('the coach’s own pick: Sharp or Inspired with the review’s quick read, no clear difference when every option is close', () => {
-    const agree = (alts: CoachRating['alts']): CoachRating => ({ at: 1, turn: 2, chose: 0, coach: 0, chosen: 'A', best: 'A', why: '', verdict: 'agree', gap: 0, alts });
-    expect(rateCoach(agree([[1, 0.05, 0.02], [2, 0.1, null]]))).toBe('unclear');
-    expect(rateCoach(agree([[1, 0.6, 0.1], [2, 1.5, 0.1]]))).toBe('best');
-    expect(rateCoach(agree([[1, 0.6, 0.1], [2, 1.5, 0.1]]), { screenTop: 0, chosenRank: 0 })).toBe('best');
-    expect(rateCoach(agree([[1, 0.6, 0.1], [2, 1.5, 0.1]]), { screenTop: 1, chosenRank: 1 })).toBe('sharp');
-    expect(rateCoach(agree([[1, 0.6, 0.1], [2, 1.5, 0.1]]), { screenTop: 2, chosenRank: 3 })).toBe('inspired');
-    // the screen's pick was not scored by the coach: no claim
-    expect(rateCoach(agree([[1, 0.6, 0.1], [2, 1.5, 0.1]]), { screenTop: 4, chosenRank: 3 })).toBe('best');
+  // R8 (docs/REVIEW_2026-11-25.md): the coach's grade is kept beside the review's rating, never in its place
+  it('the coach’s grade is kept for reference, in the names the coach showed it in during play', () => {
+    const base = (verdict: CoachRating['verdict'], gap: number, se?: number, best = 'A'): CoachRating => ({ at: 1, turn: 2, chose: 1, coach: 0, chosen: 'B', best, why: 'Because.', verdict, gap, ...(se !== undefined ? { se } : {}), alts: [[1, gap, se ?? null]] });
+    expect(saidOf(base('mistake', 0.62, 0.1))).toEqual({ v: 'mistake', gap: 0.62, se: 0.1, best: 'A', why: 'Because.' });
+    expect(saidOf(base('best', -0.1, 0.05))).toMatchObject({ v: 'best', gap: 0 });
+    expect(saidOf(base('agree', 0, undefined, 'B'))).toEqual({ v: 'agree', gap: 0, why: 'Because.' });
+    expect(saidText(saidOf(base('mistake', 0.62, 0.1)), 'unit')).toBe('During play the coach said Mistake: it preferred A (−0.6 ± 0.1 Gigs). Coach: Because.');
+    expect(saidText(saidOf(base('mistake', 1.4, 0.1)), 'unit')).toMatch(/^During play the coach said Blunder: it preferred A/);
+    expect(saidText(saidOf(base('inaccuracy', 0.3, 0.05, 'Pass turn')), 'unit')).toMatch(/^During play the coach said Slip: it preferred End turn/);
+    expect(saidText(saidOf(base('close', 0.05, 0.01)), 'unit')).toMatch(/^During play the coach said Close call/);
+    expect(saidText(saidOf(base('best', 0.02, 0.01)), 'unit')).toBe('During play the coach said Best: as good as A. Coach: Because.');
+    expect(saidText(saidOf(base('agree', 0, undefined, 'B')), 'unit')).toBe('During play the coach said this was its own pick. Coach: Because.');
   });
 });
 
@@ -299,24 +285,57 @@ describe('the stored record', () => {
     seats: [],
     timeline: [{ turn: 1, v: 0 }, { turn: 2, v: 41.4 }],
     swings: [],
-    decisions: [review({ seq: 1, at: 2, player: 0, regret: 30, se: 2, others: [[30, 2]], gameLosing: true }), review({ seq: 3, at: 1, player: 1, regret: 0, top: true, se: 0, others: [[80, 4]], screen: { gap: 80, se: 4, chosenRank: 1 } })],
+    decisions: [
+      // a Blunder on the oracle's play-outs; the seat's only costly move, checked with Hard play-outs: a Slip there (R2)
+      review({ seq: 1, at: 2, player: 0, regret: 30, raw: 30, se: 2, top: false, others: [[30, 2]], gameLosing: true, confirmed: 16, first: { regret: 30, raw: 30, se: 2, gameLosing: true }, hard: { worlds: 16, regret: 10, raw: 10, se: 2, gameLosing: false } }),
+      // the only good move, unseen by a quick read: Best since 2026-11-25 (R4)
+      review({ seq: 2, at: 4, player: 0, regret: 0, raw: 0, top: true, se: 0, others: [[60, 4]], screen: { gap: 60, se: 4, chosenRank: 1 } }),
+      review({ seq: 3, at: 1, player: 1, regret: 0, raw: 0, top: true, se: 0, others: [[80, 4]], screen: { gap: 80, se: 4, chosenRank: 1 } }),
+    ],
     ms: 5,
-    skipped: [{ player: 0, at: 4, seq: 2, turn: 3, screenTop: 1, chosenRank: 1 }],
+    unrated: [{ player: 0, at: 0, seq: 0, turn: 1, category: 'mulligan', chosen: 'Keep hand' }],
     forced: [1, 0],
     answers: [{ choices: [[0], [1], [0], [2], [0]], pay: false, order: false }, { choices: [[0], [3]], pay: false, order: false }],
   };
-  const coach: CoachRating[] = [{ at: 4, turn: 3, chose: 0, coach: 0, chosen: 'Pick', best: 'Pick', why: 'Good.', verdict: 'agree', gap: 0, alts: [[1, 0.8, 0.1]] }];
-  it('merges the coach’s grades (skipped by the oracle) with the oracle’s, in game order', () => {
+  const coach: CoachRating[] = [
+    { at: 4, turn: 3, chose: 0, coach: 0, chosen: 'Pick', best: 'Pick', why: 'Good.', verdict: 'agree', gap: 0, alts: [[1, 0.8, 0.1]] },
+    { at: 2, turn: 2, chose: 1, coach: 0, chosen: 'A', best: 'B', why: 'Worse.', verdict: 'mistake', gap: 0.5, se: 0.1, alts: [[1, 0.5, 0.1]] },
+  ];
+  it('rates both seats by the oracle, the coach’s grade beside your move, mulligans not rated, in game order', () => {
     const rec = buildReviewRecord(g, coach, { id: 'x', made: 'now' });
     expect(rec.moves.map((m) => [m.seq, m.src, m.r])).toEqual([
-      [1, 'oracle', 'blunder'],
-      [2, 'coach', 'sharp'],
-      [3, 'oracle', 'sharp'],
+      [0, 'oracle', 'unrated'],
+      [1, 'oracle', 'slip'],
+      [2, 'oracle', 'best'],
+      [3, 'oracle', 'best'],
     ]);
-    expect(rec.moves[0]).toMatchObject({ gap: 0.75, se: 0.05, lost: true });
+    expect(rec.moves[0]).toEqual({ seq: 0, p: 0, at: 0, turn: 1, cat: 'mulligan', chosen: 'Keep hand', r: 'unrated', gap: null, src: 'oracle' });
+    expect(rec.moves[1]!.lost).toBeUndefined();
+    expect(rec.moves[1]!.ms).toMatchObject({ f: [30, 200], c: [30, 200], h: [10, 200], b: 12 });
+    expect(rec.moves[1]).toMatchObject({ gap: 0.25, se: 0.05, said: { v: 'mistake', gap: 0.5, se: 0.1, best: 'B', why: 'Worse.' } });
+    expect(rec.moves[2]).toMatchObject({ said: { v: 'agree', gap: 0, why: 'Good.' } });
+    expect(rec.moves[3]!.said).toBeUndefined(); // the rival's move: no coach
     expect(rec.rules).toBe(REVIEW_RULES);
     expect(rec.timeline).toEqual([[1, 0], [2, 41]]);
-    expect(reviewCounts(rec)).toEqual({ acc: accuracyOf(0.75 / 2), n: [0, 1, 0, 0, 0, 0, 1] });
+    // the mulligan is not counted
+    expect(reviewCounts(rec)).toEqual({ acc: accuracyOf(0.25 / 2), n: [0, 0, 1, 0, 1, 0, 0] });
+    expect(seatSummary(rec.moves, 0).n.unrated).toBe(1);
+    expect(explain(rec.moves[0]!)).toBe(UNRATED_TEXT);
+    expect(explain(rec.moves[1]!)).toMatch(new RegExp(`about 0.3 ± 0.1 Gigs better. ${HARD_CHECK_TEXT}$`));
+    expect(explain(rec.moves[2]!)).not.toContain(HARD_CHECK_TEXT);
+    expect(moveName(rec.moves[0]!)).toBe('Keep hand');
+    expect(moveName({ cat: 'mulligan', chosen: 'Yes' })).toBe('Mulligan'); // a review stored before 2026-11-25
+    // re-rated under the same rules: the same record
+    const again = rerateRecord(rec);
+    expect(again.ok && again.rec).toEqual(rec);
+    // a malformed coach grade beside a move is left out, the move stays
+    const bad = asReviewRecord({ ...rec, moves: rec.moves.map((m) => (m.seq === 1 ? { ...m, said: { v: 'great' } } : m)) })!;
+    expect(bad.moves[1]!.said).toBeUndefined();
+    expect(bad.moves[1]!.r).toBe('slip');
+    // without its Hard check the record cannot be rated again: the check is never made up
+    expect(rerateRecord({ ...rec, rules: 1, moves: rec.moves.map((m) => (m.seq === 1 ? { ...m, ms: { ...m.ms!, h: undefined } } : m)) })).toMatchObject({ ok: false, why: 'unconfirmed', moves: [1] });
+    // with the check turned off, it is rated from its screening pass
+    expect(rerateRecord({ ...rec, rules: 1, hard: 0 })).toMatchObject({ ok: true, rec: { moves: [{}, { r: 'blunder' }, {}, {}] } });
     expect(asReviewRecord(JSON.parse(JSON.stringify(rec)))).toEqual(rec);
     expect(asReviewRecord({ ...rec, schema: 2 })).toBeNull();
     expect(asReviewRecord({ ...rec, moves: [{ ...rec.moves[0], r: 'great' }] })).toBeNull();
@@ -352,14 +371,14 @@ describe('the stored record', () => {
       const rec = buildReviewRecord(g, coach, { id: 'x', made: 'now' });
       saveGameReview(rec, coach);
       expect(loadGameReview('x', choices)).toEqual({ id: 'x', coach, review: rec });
-      // a review stored before rules existed (no `rules`) or under rules 1: readable, but stale
-      const { rules: _r, ...old } = rec;
+      // a review stored before rules existed (no `rules`) or under rules 1, without the kept measurements: readable, but stale
+      const { rules: _r, ...old } = { ...rec, moves: rec.moves.map(({ ms: _m, ...m }) => m) };
       saveGameReview(old as typeof rec);
       const back = loadGameReview('x', choices)!;
       expect(back.review).toBeUndefined();
       expect(back.stale).toEqual(old);
       expect(back.coach).toEqual(coach); // kept from the earlier save
-      saveGameReview({ ...rec, rules: 1 });
+      saveGameReview({ ...(old as typeof rec), rules: 1 });
       expect(loadGameReview('x', choices)?.stale?.rules).toBe(1);
     });
     it('the practice log keeps the counts, and old entries without them still read', () => {
@@ -403,8 +422,8 @@ describe('a seeded game, reviewed as the browser and the CLI review it', () => {
     const me = new Recorder(makeTierBot('easy', 5));
     const played = await Game.create(decks, [me, makeTierBot('easy', 9, 'Bot')], { seed: 42, first: 0, log: false }).run();
     const spec: PracticeReviewSpec = { decks, seed: 42, first: 0, botLevel: 'easy', botSeed: 9, choices: me.choices };
-    const a = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, made: 'm' });
-    const b = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, made: 'm' });
+    const a = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, hard: 2, made: 'm' });
+    const b = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, hard: 2, made: 'm' });
     expect({ ...b, ms: 0 }).toEqual({ ...a, ms: 0 });
     expect(a.winner).toBe(played.winner);
     expect(a.turns).toBe(played.turn);
@@ -413,21 +432,25 @@ describe('a seeded game, reviewed as the browser and the CLI review it', () => {
     expect(a.answers![0].choices).toEqual(me.choices);
     for (const m of a.moves) {
       expect(m.src).toBe('oracle');
-      expect(m.gap).toBeGreaterThanOrEqual(0);
+      if (m.r === 'unrated') expect([m.cat, m.gap]).toEqual(['mulligan', null]);
+      else expect(m.gap).toBeGreaterThanOrEqual(0);
       expect(a.answers![m.p].choices[m.at]).toBeDefined();
     }
-    // the coach graded two of your moves during play: a non-costly one (agree) is kept as the coach's grade, a costly one
-    // (mistake) goes to the oracle; with another oracle seed, the same decisions are rated again (one run checks both)
-    const mine = a.moves.filter((m) => m.p === 0).slice(0, 2);
+    // the coach graded two of your moves during play: both are rated by the oracle, exactly as without the coach (R8),
+    // with the coach's grade kept beside them; with another oracle seed, the same decisions are rated again
+    const mine = a.moves.filter((m) => m.p === 0 && m.r !== 'unrated').slice(0, 2);
     const coach: CoachRating[] = mine.map((m, k) => ({ at: m.at, turn: m.turn, chose: 0, coach: k, chosen: 'Mine', best: 'Coach pick', why: 'Reason.', verdict: k ? 'mistake' : 'agree', gap: k ? 0.5 : 0, se: 0.1, alts: [[1, 0.05, 0.02]] }));
-    const withCoach = await runGameReview({ id: 'g', spec, coach, rollouts: 2, confirm: 2, made: 'm', oracleSeed: 7 });
+    const sameSeed = await runGameReview({ id: 'g', spec, coach, rollouts: 2, confirm: 2, hard: 2, made: 'm' });
+    expect(sameSeed.moves.map(({ said: _s, ...m }) => m)).toEqual(a.moves);
+    expect(sameSeed.moves.filter((m) => m.said).map((m) => m.at)).toEqual(mine.map((m) => m.at));
+    const withCoach = await runGameReview({ id: 'g', spec, coach, rollouts: 2, confirm: 2, hard: 2, made: 'm', oracleSeed: 7 });
     expect(withCoach.oracleSeed).toBe(7);
     expect(withCoach.moves.map((m) => `${m.p}:${m.at}`)).toEqual(a.moves.map((m) => `${m.p}:${m.at}`));
     const kept = withCoach.moves.find((x) => x.p === 0 && x.at === mine[0]!.at)!;
-    expect(kept).toMatchObject({ src: 'coach', chosen: 'Mine', best: 'Coach pick', why: 'Reason.', r: 'unclear' });
+    expect(kept).toMatchObject({ src: 'oracle', said: { v: 'agree', why: 'Reason.' } });
     const costly = withCoach.moves.find((x) => x.p === 0 && x.at === mine[1]!.at)!;
-    expect(costly.src).toBe('oracle');
-    expect(withCoach.moves.filter((m) => m.src === 'coach')).toHaveLength(1);
+    expect(costly).toMatchObject({ src: 'oracle', said: { v: 'mistake', gap: 0.5, best: 'Coach pick' } });
+    expect(withCoach.moves.filter((m) => m.src === 'coach')).toHaveLength(0);
 
     // the board at each decision: replayed from the stored answers, every answer tied to a frame
     const f = await reviewFrames({ decks, seed: 42, first: 0 }, a.answers!);
@@ -438,37 +461,25 @@ describe('a seeded game, reviewed as the browser and the CLI review it', () => {
   }, 120_000);
 });
 
-// ------------------------------------------------------------------------------------------------ D25: mulligan grading
-describe('D25: the reviewer grades mulligans and gig dice choices', () => {
-  it('grades both players mulligan decisions with category mulligan', async () => {
+// ------------------------------------------------------------------------------------------------ mulligans, Gig choices
+describe('mulligans are not rated (R3, 2026-11-25); Gig choices are graded (D25)', () => {
+  it('both players’ mulligans are listed unrated, by the board’s names, with nothing played out for them', async () => {
     const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
     const review = await reviewGame(
       { decks, seed: 100, first: 0, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)], agentNames: ['easy', 'easy'] },
       { rollouts: 2, seats: [0, 1] },
     );
-    const mulligans = review.decisions.filter((d) => d.category === 'mulligan');
+    expect(review.decisions.filter((d) => d.category === 'mulligan')).toEqual([]);
+    const mulligans = review.unrated ?? [];
     expect(mulligans.length).toBe(2);
-    expect(mulligans[0].player).not.toBe(mulligans[1].player);
+    expect(mulligans[0]!.player).not.toBe(mulligans[1]!.player);
     for (const m of mulligans) {
-      expect(m.options).toBe(2);
-      expect(m.regret).toBeGreaterThanOrEqual(0);
-      expect(m.at).toBe(0);
-      expect(['Yes', 'No']).toContain(m.chosen);
-      expect(['Yes', 'No']).toContain(m.best);
+      expect(m).toMatchObject({ at: 0, category: 'mulligan' });
+      expect(['Keep hand', 'Mulligan']).toContain(m.chosen);
     }
-  }, 120_000);
-
-  it('mulligan grading is deterministic (same seed → same grades)', async () => {
-    const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
-    const opts = { rollouts: 2, seats: [0, 1] as (0 | 1)[] };
-    const spec = { decks, seed: 100, first: 0 as const, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)] as [Agent, Agent], agentNames: ['easy', 'easy'] as [string, string] };
-    const a = await reviewGame(spec, opts);
-    const b = await reviewGame({ ...spec, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)] }, opts);
-    const am = a.decisions.filter((d) => d.category === 'mulligan');
-    const bm = b.decisions.filter((d) => d.category === 'mulligan');
-    expect(am.map((d) => ({ regret: d.regret, chosen: d.chosen, best: d.best }))).toEqual(
-      bm.map((d) => ({ regret: d.regret, chosen: d.chosen, best: d.best })),
-    );
+    // a seat not reviewed lists nothing
+    const one = await reviewGame({ decks, seed: 100, first: 0, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)], agentNames: ['easy', 'easy'] }, { rollouts: 1, seats: [0] });
+    expect((one.unrated ?? []).map((u) => u.player)).toEqual([0]);
   }, 120_000);
 
   // A Gig choice that changes a rival Gig while the rival has Meredith Stout on the field triggers her ("When a Rival
@@ -526,17 +537,19 @@ describe('D25: the reviewer grades mulligans and gig dice choices', () => {
     if (!again.ok) expect(again.moves).toContain(f.seq);
   }, 120_000);
 
-  it('the full Game review (runGameReview) includes mulligan grades in the record', async () => {
+  it('the full Game review (runGameReview) lists the mulligans unrated, never counted', async () => {
     const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
     const me = new Recorder(makeTierBot('easy', 5));
     await Game.create(decks, [me, makeTierBot('easy', 9, 'Bot')], { seed: 42, first: 0, log: false }).run();
     const spec: PracticeReviewSpec = { decks, seed: 42, first: 0, botLevel: 'easy', botSeed: 9, choices: me.choices };
-    const rec = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, made: 'm' });
+    const rec = await runGameReview({ id: 'g', spec, coach: [], rollouts: 2, confirm: 2, hard: 2, made: 'm' });
     const mulligans = rec.moves.filter((m) => m.cat === 'mulligan');
     expect(mulligans.length).toBeGreaterThanOrEqual(1);
     for (const m of mulligans) {
-      expect(m.src).toBe('oracle');
-      expect(m.gap).toBeGreaterThanOrEqual(0);
+      expect(m).toMatchObject({ src: 'oracle', r: 'unrated', gap: null });
+      expect(['Keep hand', 'Mulligan']).toContain(m.chosen);
+      expect(m.ms).toBeUndefined();
     }
+    expect(seatSummary(rec.moves, 0).counted).toBe(rec.moves.filter((m) => m.p === 0 && m.r !== 'unrated' && m.r !== 'unclear').length);
   }, 120_000);
 });

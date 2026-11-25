@@ -22,7 +22,7 @@ import type { ReviewJob } from './review-worker';
 import { COACHED_REPLAY_KIND, coachedReviewSpec, parseCoachedReplay } from '../src/lib/coachedReplay';
 import { reviewExpect } from '../src/lib/practiceReplays';
 import { coachRatingsFrom, RATING_INFO, RATINGS, rateOracle, seatSummary, turningName, turningPoint, type GameReviewRecord, type Rating } from '../src/lib/gameReview';
-import { explain, gapTag } from '../src/lib/reviewWords';
+import { explain, gapTag, moveName, saidText } from '../src/lib/reviewWords';
 import { shownLabel } from '../src/lib/coachWords';
 import { runGameReview } from '../src/sim/gameReviewRun';
 
@@ -461,8 +461,11 @@ function gameReviewText(rec: GameReviewRecord): string {
     lines.push(`${who(p)}: accuracy ${s.accuracy ?? '—'} over ${s.counted} counted moves; ${RATINGS.filter((k) => s.n[k]).map((k) => `${RATING_INFO[k].label} ${s.n[k]}`).join(', ')}${s.n.unclear ? `; no clear difference ${s.n.unclear}` : ''}`);
   }
   const tp = turningPoint(rec.moves, rec.winner);
-  lines.push(tp ? `${turningName(rec.winner)}: turn ${tp.turn}, ${who(tp.p)}: ${shownLabel(tp.chosen)} (${RATING_INFO[tp.r].label}, ${gapTag(tp)})` : 'No turning point.', '');
-  for (const m of rec.moves) lines.push(`T${m.turn} ${who(m.p).padEnd(5)} ${RATING_INFO[m.r].mark.padEnd(2)} ${RATING_INFO[m.r].label.padEnd(19)} ${shownLabel(m.chosen)} [${m.src}]${m.r !== 'best' && m.r !== 'unclear' ? ` — ${explain({ ...m, why: undefined })}` : ''}`);
+  lines.push(tp ? `${turningName(rec.winner)}: turn ${tp.turn}, ${who(tp.p)}: ${moveName(tp)} (${RATING_INFO[tp.r].label}, ${gapTag(tp)})` : 'No turning point.', '');
+  for (const m of rec.moves)
+    lines.push(
+      `T${m.turn} ${who(m.p).padEnd(5)} ${RATING_INFO[m.r].mark.padEnd(2)} ${RATING_INFO[m.r].label.padEnd(19)} ${moveName(m)} [${m.src}]${m.r !== 'best' && m.r !== 'unclear' && m.r !== 'unrated' ? ` — ${explain({ ...m, why: undefined })}` : ''}${m.said ? ` (${saidText({ ...m.said, why: '' }, m.cat)})` : ''}`,
+    );
   // decisions whose grading threw: not counted, with the error
   for (const f of rec.failed ?? []) lines.push(`T${f.turn} ${who(f.p).padEnd(5)} ?  ${'Not measured'.padEnd(19)} ${shownLabel(f.chosen)} — error: ${f.why}`);
   return lines.join('\n');

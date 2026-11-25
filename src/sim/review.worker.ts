@@ -4,9 +4,18 @@ import { makeTierBot } from '../ai/tiers';
 import { makeCoach } from '../ai/coach';
 import { checkReplayed, practiceAgents, refuseOtherVersion, replayedEnd, type ReplayedEnd, type ReviewRequest } from './practiceReview';
 import { runGameReview } from './gameReviewRun';
-import type { GameReviewRecord } from '../lib/gameReview';
+import { confirmFlag, GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD, HARD_CHECK_MAX_FLAGS, hardFlag, type GameReviewRecord } from '../lib/gameReview';
 
 export type { ReviewRequest };
+
+/**
+ * The match reviewer's view (a tournament game, the Game review's Play-out details tab) confirms flagged moves on fresh
+ * worlds, and checks a seat's rare Mistakes and Blunders with Hard play-outs, exactly as the Game review does (since
+ * 2026-11-25), so the two tabs do not contradict each other on a move both rate: the confirmation adds about a tenth to
+ * the play-outs, the Hard check about half the review's time (docs/BOT_TOOLKIT.md §8).
+ */
+const CONFIRM = { worlds: GAME_REVIEW_CONFIRM, flag: confirmFlag };
+const HARD_CHECK = { worlds: GAME_REVIEW_HARD, maxFlags: HARD_CHECK_MAX_FLAGS, flag: hardFlag };
 /** `refused`: the recorded game can't be replayed as it was played (a plain sentence to show as it is) */
 export type ReviewReply = { progress: number; turn?: number } | { review: GameReview } | { game: GameReviewRecord } | { refused: string } | { error: string };
 
@@ -29,7 +38,7 @@ self.onmessage = async (e: MessageEvent<ReviewRequest>) => {
     let end = null as ReplayedEnd | null;
     const review = await reviewGame(
       { decks: q.decks, seed: q.seed, first: q.first, agents: [agents[0], agents[1]], agentNames: names },
-      { rollouts: q.rollouts, withCoach: q.withCoach, coach: makeCoach, seats: q.kind === 'practice' ? [me] : [0, 1], onProgress: (n) => post({ progress: n }), onEnd: (s) => (end = replayedEnd(s)) },
+      { rollouts: q.rollouts, withCoach: q.withCoach, coach: makeCoach, seats: q.kind === 'practice' ? [me] : [0, 1], confirm: CONFIRM, hardCheck: HARD_CHECK, onProgress: (n) => post({ progress: n }), onEnd: (s) => (end = replayedEnd(s)) },
     );
     if (q.kind === 'practice') checkReplayed(q, agents, end!);
     for (const f of review.failed ?? []) console.warn(`Review: turn ${f.turn}, seat ${f.player}, "${f.chosen}" not measured: ${f.reason}`);
