@@ -2,8 +2,9 @@
 // grade both seats with the match reviewer's oracle, except your moves the coach already graded during play, and turn
 // the result into the stored record (src/lib/gameReview.ts). One function for the browser's review worker and the CLI
 // (scripts/review.ts), so both rate a game the same way. The replay is strict (src/sim/practiceReview.ts): a record from
-// another simulator version, or one that no longer replays as the game that was played (or no longer reaches the
-// position recorded with it), is a ReplayDiverged.
+// another simulator version that does not keep both seats' answers and its position, or one that no longer replays as
+// the game that was played (or no longer reaches the position recorded with it), is a ReplayDiverged. The record names
+// the simulator version that measured it and, when another, the game's own (gameSimVersion).
 import { reviewGame } from '../ai/reviewer';
 import { buildReviewRecord, coachSkip, confirmFlag, GAME_REVIEW_CONFIRM, GAME_REVIEW_ROLLOUTS, type CoachRating, type GameReviewRecord, type ReviewMove } from '../lib/gameReview';
 import { checkReplayed, practiceAgents, refuseOtherVersion, replayedEnd, type PracticeReviewSpec, type ReplayedEnd } from './practiceReview';
@@ -64,5 +65,5 @@ export async function runGameReview(job: GameReviewJob, onProgress?: (decisions:
     },
   );
   checkReplayed(q, agents, end!);
-  return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me, confirm }, job.keep);
+  return buildReviewRecord(review, job.coach, { id: job.id, made: job.made, me, confirm, ...(q.simVersion !== undefined ? { gameSimVersion: q.simVersion } : {}) }, job.keep);
 }

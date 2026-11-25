@@ -286,7 +286,7 @@ describe('APP-6 and version-7 saves: games that can’t be played are counted no
   });
   it('the can’t-resume dialog says why, that nothing changes, and offers the log and Delete', () => {
     expect(versionProblem(old)).toBe(
-      `It was saved with version ${SIM_VERSION - 1} of the bots and rules engine. This app now runs version ${SIM_VERSION}, and the bots or rules changed in between, so the same moves would no longer lead to the same game.`,
+      `It was saved with version ${SIM_VERSION - 1} of the bots and rules engine. This app now runs version ${SIM_VERSION}, and the bots or rules changed in between, so the same moves would no longer lead to the same game. Playing on needs the bot the game was started with, so an unfinished game can't be resumed; a finished game keeps the bot's moves and can still be reviewed.`,
     );
     const html = renderToStaticMarkup(<UnresumableDialog save={old} why={versionProblem(old)!} deleteLabel="Delete this game" onDelete={() => undefined} onClose={() => undefined} />);
     expect(html).toContain('This game can&#x27;t be resumed');

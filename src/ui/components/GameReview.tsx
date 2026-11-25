@@ -2,7 +2,9 @@
 // the turning point and the advantage over the turns, and a move list that shows the board at each decision. The
 // review runs in the review worker (src/sim/gameReviewRun.ts) with progress and a Stop button, and an own game's review
 // is kept (src/lib/gameReviewStore.ts) so reopening it is instant; one made under older rating rules is run again. A
-// game this code no longer replays as it was played is refused in a plain sentence (src/sim/practiceReview.ts). The
+// game this code no longer replays as it was played is refused in a plain sentence (src/sim/practiceReview.ts), with
+// your coach grades from play shown instead (CoachGradesFromPlay); a game from another simulator version that still
+// replays (both seats' answers kept) is rated with the current bots and says so once (otherVersionText). The
 // second tab, "Play-out details", is the match reviewer's view of the same game in the same rating names. The dialog is
 // rendered at the document body, so the Play board's styles never reach it.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,10 +29,10 @@ import {
 } from '../../lib/gameReview';
 import { currentRules, keepReview, loadGameReview } from '../../lib/gameReviewStore';
 import { mySeat, practiceRequest, practiceSpec, replayVersionProblem, reviewExpect, type PracticeReplay } from '../../lib/practiceReplays';
-import { sessionEnding } from '../../lib/practiceVerdict';
+import { otherVersionText, replayedFromOtherVersion, sessionEnding } from '../../lib/practiceVerdict';
 import { reviewFrames, type ReviewFrames } from '../../lib/reviewFrames';
 import { explain, FOLLOW_TEXT, gapTag, RERATED_TEXT, REVIEW_BASIS, staleText } from '../../lib/reviewWords';
-import { shownLabel } from '../../lib/coachWords';
+import { behindText, shownLabel, verdictRating } from '../../lib/coachWords';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { ReviewWorkerHost, useReviewHost, WAITING_TEXT } from '../reviewWorkerHost';
 import { Modal } from './Modal';
@@ -67,9 +69,11 @@ type RunState =
  * with its counts by the effect below: the load runs during render and only reads); otherwise it is run again, and if
  * the game can't be replayed any more, it is shown as it was, with the refusal.
  */
-function useGameReview(src: GameReviewSource, shared?: ReviewWorkerHost): { st: RunState; stop: () => void; start: () => void } {
+function useGameReview(src: GameReviewSource, shared?: ReviewWorkerHost): { st: RunState; stop: () => void; start: () => void; coach: readonly CoachRating[] } {
   const host = useReviewHost(shared);
   const stored = useMemo(() => (src.persist ? loadGameReview(src.replay.id, src.replay.choices) : null), [src]);
+  // your moves the coach graded during play: given with the game, else kept with it (shown when the review is refused)
+  const coachGrades = useMemo(() => (src.coach.length ? src.coach : (stored?.coach ?? [])), [src, stored]);
   // a review rated again from storage: keep it under the current rules, and the practice log's counts with it
   useEffect(() => {
     if (stored?.reratedNow && stored.review) keepReview(stored.review);
@@ -122,7 +126,39 @@ function useGameReview(src: GameReviewSource, shared?: ReviewWorkerHost): { st: 
     setSt({ status: 'stopped' });
   }, []);
   const start = useCallback(() => setRuns((n) => n + 1), []);
-  return { st, stop, start };
+  return { st, stop, start, coach: coachGrades };
+}
+
+/**
+ * Your moves the coach graded during play, in the names the coach showed them in (src/lib/coachWords.ts verdictRating):
+ * what a refused review can still show, so the grades of a game that can't be replayed are not lost.
+ */
+export function CoachGradesFromPlay({ coach, names }: { coach: readonly CoachRating[]; names?: readonly string[] }) {
+  const rows = coach.flatMap((c) => {
+    const r = verdictRating(c.verdict, c.gap);
+    return r ? [{ c, r }] : [];
+  });
+  if (!rows.length) return <p className="small muted">No move of yours was graded by the coach during this game.</p>;
+  return (
+    <div className="gr-coach-play">
+      <p className="small">
+        <b>The coach's grades from play</b> ({rows.length} move{rows.length === 1 ? '' : 's'}): what the coach said during the game, from its own play-outs, not a review.
+      </p>
+      <ol className="gr-coach-list small" aria-label="The coach's grades from play">
+        {rows.map(({ c, r }) => (
+          <li key={c.at}>
+            <span className="muted">T{c.turn}</span> <RatingPill r={r} /> <MentionText text={shownLabel(c.chosen)} skip={names} />
+            {c.chose !== c.coach && (
+              <span className="muted">
+                {' '}
+                (coach's pick: <MentionText text={shownLabel(c.best)} skip={names} />, {behindText(c.gap, c.se)})
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 const gigs = (x: number) => x.toFixed(2);
@@ -187,7 +223,10 @@ export function GameReviewModal({ src: given, title, onClose, backdropClassName 
 
 /** The Game review itself: running, stopped, failed, or the summary and move list. */
 export function GameReviewView({ src, active = true, host }: { src: GameReviewSource; active?: boolean; host?: ReviewWorkerHost }) {
-  const { st, stop, start } = useGameReview(src, host);
+  const { st, stop, start, coach } = useGameReview(src, host);
+  // a game from another simulator version that still replays (both seats' answers kept): said once, above the review
+  const other = replayedFromOtherVersion(src.replay);
+  const otherNote = other !== null ? <p className="small muted gr-other-version">{otherVersionText(other, { pvp: !!src.replay.pvp })}</p> : null;
   if (st.status === 'error') return <p className="small" style={{ color: 'var(--red)' }}>The review failed: {st.error.slice(0, 200)}</p>;
   if (st.status === 'refused')
     return (
@@ -195,11 +234,13 @@ export function GameReviewView({ src, active = true, host }: { src: GameReviewSo
         <p className="small gr-refused" role="status">
           {st.why}
         </p>
-        {st.stale && (
+        {st.stale ? (
           <>
             <p className="small muted">{staleText(!currentRules(st.stale))}</p>
             <ReviewResult rec={st.stale} replay={src.replay} active={active} />
           </>
+        ) : (
+          <CoachGradesFromPlay coach={coach} names={[src.replay.decks[0].name, src.replay.decks[1].name]} />
         )}
       </div>
     );
@@ -231,6 +272,7 @@ export function GameReviewView({ src, active = true, host }: { src: GameReviewSo
     );
   return (
     <>
+      {otherNote}
       {st.rec.rerated !== undefined && <p className="small muted">{RERATED_TEXT}</p>}
       <ReviewResult rec={st.rec} replay={src.replay} active={active} />
     </>

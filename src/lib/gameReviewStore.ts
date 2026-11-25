@@ -4,8 +4,8 @@
 // older rating rules can be re-rated). Keyed by the replay's id, newest last, capped like the replays. Versioned
 // (`nct.gameReviews.v1`, records carry `schema`, and `rules`: a review made under other rating rules than REVIEW_RULES is
 // rated again from the measurements kept with it (rerateRecord) when it can be, else handed back as `stale`, to be run
-// again; one measured another way, `measure` / `rollouts` / `confirm`, is always stale); an unreadable entry is dropped,
-// never thrown.
+// again; one measured another way, `measure` / `rollouts` / `confirm`, or with other bots, `simVersion` (absent: before
+// 2026-11-25, version 9), is always stale); an unreadable entry is dropped, never thrown.
 import { measuredAsNow, REVIEW_KIND, REVIEW_RULES, REVIEW_SCHEMA, RATINGS, rerateRecord, reviewCounts, type CoachRating, type GameReviewRecord, type KeptMeasure, type Rating, type ReviewMove } from './gameReview';
 import { annotateReview } from './practiceLog';
 
@@ -115,6 +115,9 @@ export function asReviewRecord(x: unknown): GameReviewRecord | null {
     (r.measure === undefined || isInt(r.measure)) &&
     (r.confirm === undefined || (isInt(r.confirm) && r.confirm >= 0)) &&
     (r.rerated === undefined || isNum(r.rerated)) &&
+    // the simulator version that measured it, and the game's own when another (absent in reviews stored before 2026-11-25)
+    (r.simVersion === undefined || (isInt(r.simVersion) && r.simVersion > 0)) &&
+    (r.gameSimVersion === undefined || (isInt(r.gameSimVersion) && r.gameSimVersion > 0)) &&
     typeof r.id === 'string' &&
     typeof r.made === 'string' &&
     isNum(r.rollouts) &&

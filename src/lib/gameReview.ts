@@ -6,6 +6,7 @@
 // of the measurement, so that noise is never called a mistake. docs/BOT_TOOLKIT.md §8 has the definitions in words.
 import type { DecisionReview, GameReview, SeatAnswers, SkippedDecision } from '../ai/reviewer';
 import type { PlayerId } from '../engine/types';
+import { CURRENT_SIM_VERSION } from './playedRecord';
 
 /** Evaluation points per Gig (= GIG_SWING; tests/game-review.test.ts checks they agree). */
 export const GIG = 40;
@@ -54,6 +55,11 @@ export const REVIEW_RULES = 3;
  * Gig to another Gig's value"); a decision whose grading throws is listed apart, not counted (2026-11-25).
  */
 export const REVIEW_MEASURE = 3;
+/**
+ * The simulator version (SIM_VERSION) a stored review without `simVersion` was measured with: every review stored before
+ * the field was kept (2026-11-25) ran on version 9, or on 8 under an older REVIEW_MEASURE (stale anyway).
+ */
+export const REVIEW_SIM_BEFORE_KEPT = 9;
 /**
  * Play-outs per candidate in the Game review: 8, as the match reviewer. Chosen 2026-11-12 by re-running 20 Medium-vs-Hard
  * reviews with another oracle seed: see docs/BOT_TOOLKIT.md §8 (ratings within one step of each other on re-run). Part
@@ -429,6 +435,13 @@ export interface GameReviewRecord {
   confirm?: number;
   /** rated again from its kept measurements (rerateRecord) under newer rules: the rules it was first rated with */
   rerated?: number;
+  /**
+   * the simulator version (SIM_VERSION) whose bots measured it: a review measured with other bots is stale
+   * (measuredAsNow). Absent: stored before 2026-11-25, REVIEW_SIM_BEFORE_KEPT.
+   */
+  simVersion?: number;
+  /** the simulator version the game itself was played with, when not `simVersion` (an older game rated with newer bots) */
+  gameSimVersion?: number;
   /** the practice replay's id */
   id: string;
   /** when the review was made (ISO) */
@@ -583,7 +596,12 @@ function keepOracle(d: DecisionReview): KeptMeasure | undefined {
  * Every move keeps what its rating was computed from (ReviewMove.ms), so rerateRecord can rate it again under newer
  * rules. `confirm`: the fresh worlds the review confirmed flagged moves on (default GAME_REVIEW_CONFIRM, as runGameReview).
  */
-export function buildReviewRecord(review: GameReview, coach: readonly CoachRating[], meta: { id: string; made: string; me?: PlayerId; confirm?: number }, keep?: readonly ReviewMove[]): GameReviewRecord {
+export function buildReviewRecord(
+  review: GameReview,
+  coach: readonly CoachRating[],
+  meta: { id: string; made: string; me?: PlayerId; confirm?: number; gameSimVersion?: number },
+  keep?: readonly ReviewMove[],
+): GameReviewRecord {
   const me = meta.me ?? 0;
   const moves: ReviewMove[] = [];
   for (const d of review.decisions)
@@ -605,6 +623,8 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
     rules: REVIEW_RULES,
     measure: REVIEW_MEASURE,
     confirm: meta.confirm ?? GAME_REVIEW_CONFIRM,
+    simVersion: CURRENT_SIM_VERSION,
+    ...(meta.gameSimVersion !== undefined && meta.gameSimVersion !== CURRENT_SIM_VERSION ? { gameSimVersion: meta.gameSimVersion } : {}),
     id: meta.id,
     made: meta.made,
     rollouts: review.rollouts,
@@ -641,9 +661,12 @@ export const coachSkip = (coach: readonly CoachRating[], me: PlayerId = 0) => {
 /**
  * The stored review was measured the way a review is measured now (REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS,
  * GAME_REVIEW_CONFIRM): only then may it be rated again from its kept measurements. A review stored before these were
- * kept (no `measure`) counts as measured now, so nothing changes for it: it has no measurements to re-rate anyway.
+ * kept (no `measure`) counts as measured now, so nothing changes for it: it has no measurements to re-rate anyway. The
+ * bots that measured it are part of the measurement too: a review whose simulator version (`simVersion`, absent:
+ * REVIEW_SIM_BEFORE_KEPT) is not the current one was measured with other bots, and is run again (2026-11-25).
  */
-export function measuredAsNow(rec: Pick<GameReviewRecord, 'measure' | 'rollouts' | 'confirm'>): boolean {
+export function measuredAsNow(rec: Pick<GameReviewRecord, 'measure' | 'rollouts' | 'confirm' | 'simVersion'>, now = CURRENT_SIM_VERSION): boolean {
+  if ((rec.simVersion ?? REVIEW_SIM_BEFORE_KEPT) !== now) return false;
   if (rec.measure === undefined) return true;
   return rec.measure === REVIEW_MEASURE && rec.rollouts === GAME_REVIEW_ROLLOUTS && rec.confirm === GAME_REVIEW_CONFIRM;
 }
