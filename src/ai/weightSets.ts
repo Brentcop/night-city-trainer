@@ -88,11 +88,48 @@ export const CALIBRATED_DECKS_2026_11: Partial<EvalWeights> = {
   threat: 0.797,
 };
 
+/**
+ * refit-v12b (REVIEW_2026-11-24 C.3; reports/eval-refit-2026-11-25.md): scripts/eval-refit.ts on 4,970 Hard games over
+ * the 71 library decks (--decks all --per 1 --seed 80001 --mid 0.25), SIM_VERSION 12, fitted 2026-11-25 with spentRisk
+ * measured only in the main phase. Rows mid + next + ender, deck strengths + going first as controls, λ 1e-4 by 5 folds;
+ * held-out log-loss (with the deck controls) 0.5066 for the fitted candidate against the current weights' 0.5138 on
+ * 1,242 games. Kept at the current value: unitCost, unitGear, legendGear, lowDeck (not identified); goSolo, rivalLethal
+ * (by argument); and plan, by argument (declared before any fresh game): it correlates 0.72 / 0.67 with the gig /
+ * gigNear features, so its fitted −2.18 is a trade between overlapping terms, and its job is to steer Gig choices toward
+ * the list's payoffs, which a negative value would invert (against SIM_VERSION 10's Street Cred parity fix). This
+ * variant's comparison on the fit's held-out games is information only (−0.0045 [−0.0096, +0.0005]). Not the default.
+ */
+export const REFIT_V12B: Partial<EvalWeights> = {
+  spentRiskMainOnly: 1,
+  subChoiceEval: 1,
+  gig: 20,
+  gigNear: 67.9,
+  unitPower: 13.5,
+  unitCost: -4.81,
+  unitBase: 23.7,
+  blocker: -16.7,
+  unitGear: 1.5,
+  stealsTwo: 34,
+  goSolo: 0,
+  spentRisk: 0.198,
+  hand: 35.2,
+  eddie: 10.4,
+  faceUpLegend: 5.44,
+  legendGear: 2,
+  lowDeck: 8,
+  plan: 0.915,
+  exposed: 0.372,
+  threat: 1.15,
+  rivalLethal: 400,
+  readyTrick: 2.65,
+};
+
 export const WEIGHT_SETS: Record<string, Partial<EvalWeights>> = {
   'hand-2026-10': HAND_2026_10,
   'next-turn': NEXT_TURN_SET,
   'calibrated-2026-11': CALIBRATED_2026_11,
   'calibrated-decks-2026-11': CALIBRATED_DECKS_2026_11,
+  'refit-v12b': REFIT_V12B,
 };
 
 /** DEFAULT_WEIGHTS-relative overrides of a named set; throws on an unknown name. */

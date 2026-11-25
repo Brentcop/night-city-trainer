@@ -151,6 +151,7 @@ export function deckControls(rows: readonly RefitRow[]): { decks: string[]; of: 
 export const FIXED_TERMS: Partial<Record<RefitTermName, string>> = {
   goSolo: 'by argument (BOT-A, SIM_VERSION 8): going solo makes the same Unit as the ordinary play, only ready, so the flag carries no lasting cost; the fit can only see an association',
   rivalLethal: 'a decided game (the rival starts its turn with 7+ Gigs): near-separation, so the coefficient is not a price; kept at its argued value',
+  plan: 'by argument (the coordinator, 2026-11-25, after refit-v12): it moves with Gig count (correlation 0.72 / 0.67 with gig / gigNear on SIM_VERSION 12), so its fit trades against those terms; its job is to steer Gig choices toward the list’s payoffs, which a negative value would invert',
 };
 
 export const REFIT_LAMBDAS = [0, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2];
