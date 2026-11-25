@@ -167,8 +167,8 @@ describe('a bot event through the new path is the event it always was', () => {
     // the pins of tests/event-formats.test.ts "default Swiss events are unchanged"
     const norm = (ev: TourneyEvent) => JSON.stringify({ ...ev, date: '', manifest: { ...ev.manifest, runId: '', createdAt: '', cardDataVersion: '' } });
     const PINS: [number, number, number, 1 | 3, number, string][] = [
-      [7, 3, 4, 3, 42, '9bf89dad0f06a9ec'],
-      [8, 3, 8, 1, 7, 'd13b547f69efe8d8'],
+      [7, 3, 4, 3, 42, 'f2266d27da22b69c'],
+      [8, 3, 8, 1, 7, 'f8247245836da5b8'],
     ];
     for (const [n, rounds, top, bestOf, seed, pin] of PINS) {
       const pg = new PlayedGames(undefined, play);

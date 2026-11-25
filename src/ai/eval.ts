@@ -39,8 +39,9 @@ export interface EvalWeights {
   exposed: number; // share of the Gig swing (gig, gigNear, overtime) of the Gigs the rival can steal on its next turn
   threat: number; // share of the Gig swing of the Gigs we can steal on our next turn, when ours is the next turn
   rivalLethal: number; // points off when the rival holds 7+ Gigs and will start its turn before we can take enough back
-  // Ready sources kept for tricks (C.2, docs/REVIEW_2026-11-24.md B1; readyTrickTerm below). 0 = the term is skipped,
-  // which every bot uses so far (opt-in: HeuristicOptions.readyTricks).
+  // Ready sources kept for tricks (C.2, docs/REVIEW_2026-11-24.md B1; readyTrickTerm below). 0 = the term is skipped.
+  // Since SIM_VERSION 11 readyTrick is 12 by default and readyCall 0 (the Call credit was measured only in a smoke run and
+  // changed far more than tricks: docs/BOT_TOOLKIT.md §6).
   readyTrick: number; // per ready payment source the seat that defends in the coming turn keeps for a Quick Program in hand
   readyCall: number; // per ready payment source it keeps for a reaction Call of a face-down Legend
 }
@@ -53,6 +54,8 @@ export interface EvalWeights {
 // same as playing the Legend to the field and makes the same Unit, only ready and free to attack this turn (11.29.1; no
 // card returns a Unit to the Legends area, the one place where the two differ later), so the flag carries no lasting
 // cost: the fit picked up an association, and the bots played the Legend with Lag instead (docs/BOT_TOOLKIT.md §3).
+// Since SIM_VERSION 11 (C.2, 2026-11-25): readyTrick 12, a ready payment source kept for a Quick Program in hand on the
+// rival's coming turn (readyTrickTerm; measured in docs/BOT_TOOLKIT.md §6). The named sets keep what they had.
 export const DEFAULT_WEIGHTS: EvalWeights = {
   gig: 20,
   gigNear: 50.8,
@@ -82,7 +85,7 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   exposed: 0.886,
   threat: 0.971,
   rivalLethal: 400,
-  readyTrick: 0,
+  readyTrick: 12,
   readyCall: 0,
 };
 

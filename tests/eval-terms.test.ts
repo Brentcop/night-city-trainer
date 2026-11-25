@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { Game, other } from '../src/engine/engine';
 import { parseDeck } from '../src/engine/deck';
 import { HeuristicAgent } from '../src/ai/heuristic';
-import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluate, evaluateTerms, nextTurnTerms, packageTerms, planFor, planScore, unitValue, type EvalWeights } from '../src/ai/eval';
+import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluate, evaluateTerms, nextTurnTerms, packageTerms, planFor, planScore, readyTrickTerm, unitValue, type EvalWeights } from '../src/ai/eval';
 import type { Agent, CardInst, Decision, DeckList, PlayerId } from '../src/engine/types';
 
 const DECKS: DeckList[] = readdirSync('data/decks')
@@ -50,6 +50,8 @@ function evaluateBefore(g: Game, p: PlayerId, w: EvalWeights): number {
   }
   if (w.pkgAssembly !== 0 || w.pkgSteer !== 0 || w.pkgProtect !== 0) v += packageTerms(g, p, w);
   if (w.exposed !== 0 || w.threat !== 0 || w.rivalLethal !== 0) v += nextTurnTerms(g, p, w);
+  // the ready-trick term (SIM_VERSION 11), added after the refactor: not one of EVAL_TERMS, reported as `tricks`
+  if (w.readyTrick !== 0 || w.readyCall !== 0) v += readyTrickTerm(g, p, w);
   return v;
 }
 
@@ -75,7 +77,7 @@ class Checker implements Agent {
         expect(v).toBe(evaluateBefore(g, p, w));
         const t = evaluateTerms(g, p, w);
         expect(t.total).toBe(v);
-        const sum = EVAL_TERMS.reduce((s, k) => s + w[k] * t.features[k], 0) + t.packages;
+        const sum = EVAL_TERMS.reduce((s, k) => s + w[k] * t.features[k], 0) + t.packages + t.tricks;
         this.maxErr = Math.max(this.maxErr, Math.abs(sum - v));
         expect(Math.abs(sum - v)).toBeLessThan(1e-9 * (1 + Math.abs(v)));
       }

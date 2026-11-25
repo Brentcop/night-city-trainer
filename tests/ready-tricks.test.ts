@@ -1,8 +1,8 @@
 // C.2 (docs/REVIEW_2026-11-24.md B1, §10 C.2): ready sources kept for tricks, and tricks inside the one-step projections.
-// Both opt-in (HeuristicOptions.readyTricks / fastTricks, the specs' fields of the same names): off, every bot is the
-// bot before (the game corpus, the benchmark and the recorded events pin that); on, in built positions, a bot holding a
-// castable Quick Program keeps the sources up instead of spending them on a marginal play, and an attack projected into
-// a ready trick is valued lower.
+// (a), readyTrick 12, is in DEFAULT_WEIGHTS since SIM_VERSION 11 (readyCall stays 0); (b), fastTricks, was measured a small
+// loss and stays an opt-in switch, off (docs/BOT_TOOLKIT.md §6). In built positions, a bot holding a castable Quick
+// Program keeps the sources up instead of spending them on a marginal play, and with (b) an attack projected into a
+// ready trick is valued lower.
 import { describe, expect, it } from 'vitest';
 import type { Game } from '../src/engine/engine';
 import type { Action, Decision, PlayerId } from '../src/engine/types';
@@ -18,15 +18,17 @@ const actionDecision = (g: Game, p: PlayerId = 0, keep: (a: Action) => boolean =
 };
 const chosen = async (bot: HeuristicAgent, g: Game, d: Decision): Promise<Action> => d.options[(await bot.decide(g, d))[0]].action as Action;
 const ON = 12;
+/** The weights before SIM_VERSION 11: no credit for ready sources. */
+const OFF = { ...DEFAULT_WEIGHTS, readyTrick: 0, readyCall: 0 };
 
 /** p0's Legends out of the game (no Call, no Legend paying), so the ready sources are p0's Eddies alone. */
 function noLegends(g: Game, p: PlayerId) {
   for (const u of [...g.P(p).legends]) g.move(u, 'removed');
 }
 
-describe('C.2 switches are off by default', () => {
-  it('the weights, the agents and the specs leave the term and the projections as they were', () => {
-    expect([DEFAULT_WEIGHTS.readyTrick, DEFAULT_WEIGHTS.readyCall, HAND_2026_10.readyTrick, HAND_2026_10.readyCall]).toEqual([0, 0, 0, 0]);
+describe('C.2 defaults: (a) on for Programs only, (b) off', () => {
+  it('the weights, the agents and the specs', () => {
+    expect([DEFAULT_WEIGHTS.readyTrick, DEFAULT_WEIGHTS.readyCall, HAND_2026_10.readyTrick, HAND_2026_10.readyCall]).toEqual([ON, 0, 0, 0]);
     const bot = new HeuristicAgent();
     expect(bot.opts.weights).toBe(DEFAULT_WEIGHTS);
     expect([bot.opts.readyTricks, bot.opts.fastTricks]).toEqual([0, false]);
@@ -89,10 +91,11 @@ describe('C.2 (a): readyTrickCover and readyTrickTerm', () => {
     spawn(g, 0, 'psycho_squad', 'field');
     expect(readyTrickTerm(g, 0, w)).toBe(2 * ON);
     expect(readyTrickTerm(g, 1, w)).toBe(-2 * ON);
-    expect(evaluate(g, 0, w) - evaluate(g, 0)).toBeCloseTo(2 * ON, 9);
+    expect(evaluate(g, 0, w) - evaluate(g, 0, OFF)).toBeCloseTo(2 * ON, 9);
     const t = evaluateTerms(g, 0, w);
     expect([t.total, t.tricks]).toEqual([evaluate(g, 0, w), 2 * ON]);
-    expect(evaluateTerms(g, 0).tricks).toBe(0);
+    expect(evaluateTerms(g, 0, OFF).tricks).toBe(0);
+    expect(evaluateTerms(g, 0).tricks).toBe(2 * ON);
     // p1 active: p0's turn comes next, so p1's held trick counts, against p0
     g.s.active = 1;
     expect(readyTrickTerm(g, 0, w)).toBe(-2 * ON);
@@ -126,9 +129,9 @@ describe('C.2 (a): a bot holding a castable Quick Program keeps the sources up',
   it('Medium: spends the sources on the marginal Gear without the term, passes with it', async () => {
     const { g, kiroshi } = heldTrickPosition();
     const d = actionDecision(g);
-    const off = await chosen(new HeuristicAgent({ seed: 3 }), g, d);
+    const off = await chosen(new HeuristicAgent({ seed: 3, weights: OFF }), g, d);
     expect(off).toMatchObject({ type: 'play', uid: kiroshi.uid });
-    const on = await chosen(new HeuristicAgent({ seed: 3, readyTricks: ON }), g, d);
+    const on = await chosen(new HeuristicAgent({ seed: 3 }), g, d);
     expect(on.type).toBe('pass');
   });
 
@@ -145,8 +148,8 @@ describe('C.2 (a): a bot holding a castable Quick Program keeps the sources up',
       const kiroshi = bot.lastAlternatives.find((x) => x.label.startsWith('Play Kiroshi'))!;
       return { a: a.type, gap: -kiroshi.delta };
     };
-    const off = await gap({});
-    const on = await gap({ readyTricks: ON, fastTricks: true });
+    const off = await gap({ weights: OFF });
+    const on = await gap({});
     expect([off.a, on.a]).toEqual(['pass', 'pass']);
     expect(on.gap).toBeGreaterThan(off.gap);
   });
