@@ -49,7 +49,7 @@ export interface AgentSpec {
 }
 /** Each tier's settings as a spec: TIER_SETTINGS (src/ai/tiers.ts), the one source makeTierBot builds from too. */
 export const TIER_SPECS: Readonly<Record<Tier, AgentSpec>> = TIER_SETTINGS;
-/** Hard's settings as a spec (deep 3, reaction rollouts 3, sell lookahead 3, the plain mulligan, the tuned profiles, no card impact). */
+/** Hard's settings as a spec (deep 3, reaction rollouts 3, sell lookahead 3, the plain mulligan, no card impact; no matchup profiles since SIM_VERSION 12). */
 export const HARD_SPEC: AgentSpec = TIER_SPECS.hard;
 
 /** The named bots that are not tiers as specs: VARIANT_SETTINGS (src/ai/tiers.ts), which makeTierBot builds from too. */

@@ -34,9 +34,11 @@ export const COACH_WORLDS = 6;
  * Coach configuration — chosen by scripts/coach-eval.ts (see reports/coach-eval-latest.md), then shared worlds (INFO-1).
  * `mulligan: 'plain'`: the keep rule Hard uses since SIM_VERSION 6, without the card-impact keep (measured 48.9% against
  * no impact, docs/BOT_TOOLKIT.md §5), so the coach does not teach a keep that measured worse.
+ * No matchup profiles since SIM_VERSION 12, as Medium and Hard (src/ai/tiers.ts): the coach chooses with DEFAULT_WEIGHTS
+ * for every matchup, and its play-out bots (which inherit its profiles) play as the oracle's do. Its matchup plan text
+ * (PLAN_TEXT, read by archetype) is advice, not a weight, and stays.
  */
 export const COACH_CONFIG = {
-  profiles: BEST_PROFILES,
   impact: 40,
   deep: 6,
   deepWorlds: COACH_WORLDS,
@@ -47,9 +49,9 @@ export const COACH_CONFIG = {
    * The grade scale (REVIEW_2026-11-25 C4): every play-out the coach makes is also scored as the Game review's oracle
    * scores it (src/ai/reviewer.ts: `DEFAULT_WEIGHTS`, no matchup profile, no 1-ply offset or Call bonus, clamped to
    * ±playOutClamp), and its grades, gaps and alternatives read those values, so a coach Gig is the review's Gig exactly
-   * (the play-out bots are the oracle's). Dividing by the profiled `gig` instead would equal only the Gig term: the
-   * profiles scale other terms by other factors (src/ai/archetype.ts applyProfile), and the offset would stay. The coach
-   * still chooses with its profiles and offset (`w`, `v`).
+   * (the play-out bots are the oracle's). Until SIM_VERSION 12 the coach chose with matchup-profiled weights, so dividing
+   * by the profiled `gig` would have equalled only the Gig term. It still chooses with its 1-ply offset and Call bonus
+   * (`w`, `v`), which the grade scale leaves out.
    */
   gradeWeights: DEFAULT_WEIGHTS,
   /** its main-phase rollouts clamped as its reactions and grades are, so the pick and its grade read clamped means (C5) */
@@ -185,7 +187,7 @@ export function sellPlayedOutWhy(picked: string, basis: 'own' | 'pooled' | 'none
 
 /**
  * An alternative's tag: "as good" (within BEST_GIGS of the pick, or valued higher on the grade scale: the coach chooses
- * with its profiles, so that can happen), "close call", or "−0.4 ± 0.1 Gigs" / "more than 3 Gigs behind". Grades are
+ * with its 1-ply offset and card impact, so that can happen), "close call", or "−0.4 ± 0.1 Gigs" / "more than 3 Gigs behind". Grades are
  * clamped play-outs (±playOutClamp, at most 30 Gigs apart), so no gap reaches the decided line (DECIDED_GIGS, 125): the
  * "wins or loses the game in the play-outs" wording that used to sit here could never show and is gone (C5).
  */

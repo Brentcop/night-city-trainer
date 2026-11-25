@@ -40,8 +40,8 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
     { seed: 102, first: 1, winner: 1, turns: 14, log: '56626adf' },
   ],
   medium: [
-    { seed: 201, first: 0, winner: 1, turns: 12, log: '9086b301' },
-    { seed: 202, first: 1, winner: 1, turns: 13, log: 'f6e5d8c9' },
+    { seed: 201, first: 0, winner: 1, turns: 14, log: 'b5104755' },
+    { seed: 202, first: 1, winner: 1, turns: 13, log: 'f6f9af7d' },
   ],
   // Re-pinned 2026-11-12 for SIM_VERSION 6 (the fitted evaluation weights; Hard without card impact, plain mulligan).
   // Easy did not move (the fast policy keeps the hand weights). Was 0/11/8888fe17 and 1/11/589d1a10 (Medium 5d0e65c4, 0/14/1c55ca83).
@@ -64,9 +64,12 @@ const GOLDEN: Record<string, { seed: number; first: 0 | 1; winner: 0 | 1 | 'tie'
   // Re-pinned 2026-11-25 for SIM_VERSION 11 (readyTrick 12: a ready source kept for a Quick Program counts, C.2): Medium
   // game 2 ends on turn 13 (was 14) and Hard game 2's log moved; winners unchanged; Easy does not read the weights and
   // Medium game 1 and Hard game 1 did not move. Version 10: medium 14/d4af0304; hard a5731fb9.
+  // Re-pinned 2026-11-26 for SIM_VERSION 12 (no matchup profiles for Medium and Hard, C.6): every Medium and Hard game
+  // moved, winners unchanged; Medium game 1 ends on turn 14 (was 12), Hard game 1 on turn 13 (was 11); Easy does not
+  // read the weights or the profiles. Version 11: medium 12/9086b301, f6e5d8c9; hard 11/2a54b632, 722ce4ff.
   hard: [
-    { seed: 301, first: 0, winner: 0, turns: 11, log: '2a54b632' },
-    { seed: 302, first: 1, winner: 1, turns: 11, log: '722ce4ff' },
+    { seed: 301, first: 0, winner: 0, turns: 13, log: 'ffdc9b8a' },
+    { seed: 302, first: 1, winner: 1, turns: 11, log: 'a60f7e15' },
   ],
 };
 

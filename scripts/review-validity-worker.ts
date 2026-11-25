@@ -100,11 +100,11 @@ class Recorder implements Agent {
 }
 
 const hard = (seed: number) => {
-  const { profiles: _p, ...rest } = TIER_SETTINGS.hard;
-  return new HeuristicAgent({ ...rest, profiles: BEST_PROFILES, seed, quiet: true });
+  const { profiles, ...rest } = TIER_SETTINGS.hard;
+  return new HeuristicAgent({ ...rest, profiles: profiles === 'best' ? BEST_PROFILES : null, seed, quiet: true });
 };
-/** the oracle's play-out bots (src/ai/reviewer.ts oracleDetail) */
-const medium = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+/** the oracle's play-out bots (src/ai/reviewer.ts oracleDetail; no matchup profiles since SIM_VERSION 12) */
+const medium = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, seed });
 
 async function playGame(job: Extract<ValidityJob, { kind: 'game' }>): Promise<ValidityResult> {
   const t0 = Date.now();
@@ -263,7 +263,7 @@ async function late(job: Extract<ValidityJob, { kind: 'late' }>): Promise<Validi
     const made = job.replay.answers[job.p].choices[job.at]![0]!;
     const actions = d.options.map((o) => o.action as Action);
     // the oracle's candidates (src/ai/reviewer.ts gradeAction): the move made, the quick screen's top 4 and passing
-    const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
+    const screen = new HeuristicAgent({});
     await screen.decide(g, d);
     const order = screen.lastAlternatives.map((x) => x.index);
     const cand = new Set<number>([made, ...order.slice(0, 4)]);

@@ -10,8 +10,8 @@
 //   npx tsx scripts/deck-sensitivity.ts <base> <change> [--decks all|meta|<file prefix>] [--per 2] [--seed 61001]
 //     [--threads N] [--cache] [--boot 2000] [--perms 2000] [--out DIR] [--label NAME] [--force]
 // <base>, <change>: a bot name (easy, medium, hard, hard-main: the tier's own bot, so its games are rank-stability's), a
-//   JSON AgentSpec as botcheck takes it ('{"deep":3}'; `{}` is the Lookahead bot without the matchup profiles, not
-//   Medium), or a name plus overrides: 'medium+{"weights":{"blocker":-3.7}}' (the name's settings, then the JSON's keys).
+//   JSON AgentSpec as botcheck takes it ('{"deep":3}'; `{}` has Medium's settings since SIM_VERSION 12, which dropped
+//   Medium's matchup profiles), or a name plus overrides: 'medium+{"weights":{"blocker":-3.7}}' (the name's settings, then the JSON's keys).
 // Every evaluation or bot change ships this report beside its strength figure (botcheck). Cost: 2 × decks × (decks − 1)
 //   × per games: all 71 decks at --per 2 is 9,940 games a configuration (Medium: about 105 s each on 3 threads, 3 min 40 s
 //   for the report); Hard at --per 1 is 4,970 a configuration, 9,940 for the pair, each about 25 to 30 Medium games (about

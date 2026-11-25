@@ -4,7 +4,6 @@ import { Game } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { RandomAgent } from '../src/ai/random';
 import { makeTierBot } from '../src/ai/tiers';
-import { BEST_PROFILES } from '../src/ai/archetype';
 import { summarize, type PlayerSummary } from '../src/analysis/summarize';
 import { aggregateGame, type DecisionAggregate } from '../src/analysis/decisions';
 import { sellChoicesOf } from '../src/analysis/impactAdjusted';
@@ -210,7 +209,8 @@ function mkAgent(kind: string, seed: number): Agent {
   if (kind === 'random') return new RandomAgent(seed);
   if (['easy', 'medium', 'hard', 'hard-v1', 'hard-main', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
   if (kind === 'plain') return new HeuristicAgent({ seed, noise: 0.15 });
-  return new HeuristicAgent({ seed, noise: 0.15, profiles: BEST_PROFILES });
+  // 'best': Medium's agent (src/lib/changeLedger.ts maps it to medium); with the matchup profiles until SIM_VERSION 12
+  return makeTierBot('medium', seed);
 }
 
 parentPort?.on('message', async (job: MatchJob) => {

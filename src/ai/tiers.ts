@@ -2,11 +2,12 @@
 // Chosen by head-to-head testing (docs/BOT_TOOLKIT.md §6, docs/IMPROVEMENT_BACKLOG.md WP-D1 / WP-D2):
 //   Easy   — the Fast bot: plays by simple rules, no lookahead (it never reads the evaluation weights); since SIM_VERSION 8
 //            it skips a Program that would do nothing (easyGuard).
-//   Medium — the Lookahead bot: scores every action one step ahead with the tuned matchup profiles.
+//   Medium — the Lookahead bot: scores every action one step ahead (with the tuned matchup profiles until SIM_VERSION 12).
 //   Hard   — the Deep bot: rolls out the rest of its turn and the rival's whole reply for its best 3 options and plays
 //            out each block / reaction; the plain mulligan rule and no card impact since SIM_VERSION 6; picks the card
 //            to sell by rollout among its 3 most sellable (sellLookahead 3) since SIM_VERSION 7.
-// Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6 (goSolo 0 since 8).
+// Medium and Hard (and the coach) evaluate with DEFAULT_WEIGHTS, the fitted set since SIM_VERSION 6 (goSolo 0 since 8),
+// the same for every matchup since SIM_VERSION 12 (no matchup profiles; the legacy `deep` and `hard-v1` bots keep them).
 // Paired botcheck on SIM_VERSION 9 (2026-11-18, reports/remeasure-2026-11-18.md): on all 71 library decks Hard vs Medium
 // 61.8% [61.1, 62.5] and Medium vs Easy 72.2% [71.7, 72.8]; on the 7 meta decks (--per 10) 68.0% and 77.4%, so the
 // meta-deck figures overstate the gaps for the library (on SIM_VERSION 8, 2026-11-13, meta: 67.0% and 79.8%).
@@ -33,18 +34,22 @@ export type TierSettings = Pick<HeuristicOptions, 'lookahead' | 'noise' | 'deep'
  *    the sold card chosen by rollout among the 3 most sellable since SIM_VERSION 7 (sellLookahead 3 vs 0: 51.7%
  *    [50.2, 53.1] meta); attack rollouts (deepAttacks) measured no gain (reports/refine-results.md).
  *  - Easy: skips Programs that would do nothing since SIM_VERSION 8 (easyGuard, BOT-F).
+ *  - Medium and Hard: no matchup profiles since SIM_VERSION 12 (REVIEW_2026-11-24 C.6; docs/BOT_TOOLKIT.md §6). Off
+ *    against on, all decks: Hard 50.4% [50.0, 50.8] (version 9) and 50.2% [49.8, 50.6] (version 11), Medium 50.2%
+ *    [50.0, 50.4] (version 11); no more decks moved than chance in Hard's per-deck report. `profiles: 'best'` stays
+ *    available to a setting.
  */
 export const TIER_SETTINGS: Readonly<Record<Tier, Readonly<TierSettings>>> = {
   easy: { lookahead: false, noise: 0, easyGuard: true },
-  medium: { noise: 0.15, profiles: 'best' },
-  hard: { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, sellLookahead: 3, mulligan: 'plain', profiles: 'best' },
+  medium: { noise: 0.15 },
+  hard: { noise: 0.15, deep: 3, deepAttacks: 0, deepReactions: 3, sellLookahead: 3, mulligan: 'plain' },
 };
 
 /**
  * Named bots that are not tiers: never offered in Play or the runner, built by makeTierBot by name and by the scripts
  * (`--bot hard-main`, or the spec in scripts/agent-spec.ts). Plain settings like TIER_SETTINGS.
  *  - hard-main, "Hard (main-phase rollouts only)": Hard without its reaction rollouts and its sell lookahead (reactions
- *    one step ahead and the sold card by rule, as Medium; the same weights, profiles, noise and plain mulligan). A
+ *    one step ahead and the sold card by rule, as Medium; the same weights, noise and plain mulligan). A
  *    candidate screening bot (docs/REVIEW_2026-11-24.md row 14, §10 B.7): main-phase rollouts are nearly all of Hard's
  *    edge over Medium, the other two cost about 40% of Hard's time each for about 2.5 points each.
  */
@@ -59,7 +64,7 @@ export type BotChoice = Tier | 'mixed';
 
 export const TIERS: Record<Tier, { label: string; blurb: string; speed: string }> = {
   easy: { label: 'Easy', blurb: 'Plays by simple rules. Good for learning the game.', speed: 'instant' },
-  medium: { label: 'Medium', blurb: 'Looks one move ahead and knows its matchup plan.', speed: 'fast' },
+  medium: { label: 'Medium', blurb: 'Looks one move ahead before each action.', speed: 'fast' },
   hard: { label: 'Hard', blurb: 'Plays out your whole reply, and its own blocks, before it acts. The strongest bot.', speed: '~0.1 s a move' },
 };
 export const TOURNEY_BOTS: { key: BotChoice; label: string; blurb: string }[] = [

@@ -78,13 +78,16 @@ describe('default Swiss events are unchanged', () => {
   // Re-taken 2026-11-25 for SIM_VERSION 11, again only the manifest's version (with readyTrick set back to 0 the code gives
   // the same pins: these Medium events hold no Quick Program that changes a game). Version 10: 9bf89dad0f06a9ec,
   // d13b547f69efe8d8, 32fe797d5cc56f7f, 052b814f74c81883.
+  // Re-taken 2026-11-26 for SIM_VERSION 12 (no matchup profiles), again only the manifest's version (with SIM_VERSION set
+  // back to 11 the new code gives the version-11 pins: no game of these Medium events moved). Version 11:
+  // f2266d27da22b69c, f8247245836da5b8, f45bc67506c68fcf, ac30a7be7d739fe3.
   // A default event must stay byte-identical: same pairings, seeds, seats, standings, manifest, and no new fields.
   const norm = (ev: TourneyEvent) => JSON.stringify({ ...ev, date: '', manifest: { ...ev.manifest, runId: '', createdAt: '', cardDataVersion: '' } });
   const PINS: [number, number, number, 1 | 3, number, string][] = [
-    [7, 3, 4, 3, 42, 'f2266d27da22b69c'],
-    [8, 3, 8, 1, 7, 'f8247245836da5b8'],
-    [11, 4, 8, 3, 5, 'f45bc67506c68fcf'],
-    [2, 1, 0, 3, 9, 'ac30a7be7d739fe3'],
+    [7, 3, 4, 3, 42, 'c264fa178969f890'],
+    [8, 3, 8, 1, 7, '654b4de7fff9a314'],
+    [11, 4, 8, 3, 5, '7dd9a8e4c2a35b43'],
+    [2, 1, 0, 3, 9, '3174ea739e393ce7'],
   ];
   it.each(PINS)('%i decks, %i rounds, top %i, Bo%i, seed %i', async (n, rounds, top, bestOf, seed, pin) => {
     const ev = await runTournament(field(n), { name: 'pin', rounds, top, bestOf, bot: 'medium', seed }, play, { id: seed });

@@ -55,7 +55,6 @@ import { ledgerFileProblems } from '../scripts/check-data';
 import { lifeTable, rng, runOnce, type Sums } from '../scripts/ledger-sim';
 import { makeTierBot } from '../src/ai/tiers';
 import { HeuristicAgent } from '../src/ai/heuristic';
-import { BEST_PROFILES } from '../src/ai/archetype';
 
 const [A, B] = synthDecks() as [DeckList, DeckList];
 /** A with its first main-deck card swapped for the first card of B's main deck that A does not run */
@@ -107,9 +106,11 @@ describe('change keys', () => {
     for (const b of ['easy', 'medium', 'hard', 'deep', 'mixed', 'plain', 'random']) expect(ledgerBot(b).bot).toBe(b);
     expect(ledgerBot('hard-v1').problem).toMatch(/impact\.json/);
     expect(ledgerBot('nonsense').problem).toBeTruthy();
-    // scripts/worker.ts builds 'best' as HeuristicAgent({ seed, noise: 0.15, profiles: BEST_PROFILES }): Medium's agent
-    const best = new HeuristicAgent({ seed: 5, noise: 0.15, profiles: BEST_PROFILES });
-    expect(best.opts).toEqual(makeTierBot('medium', 5).opts);
+    // scripts/worker.ts builds 'best' as makeTierBot('medium') since SIM_VERSION 12 (before: noise 0.15 and the best
+    // profiles, which was then Medium's agent); Medium has no matchup profiles now, so it is also what 'plain' builds
+    const plain = new HeuristicAgent({ seed: 5, noise: 0.15 });
+    expect(plain.opts).toEqual(makeTierBot('medium', 5).opts);
+    expect(makeTierBot('medium', 5).opts.profiles).toBeNull();
     expect(makeTierBot('fast', 5).opts).toEqual(makeTierBot('easy', 5).opts);
     expect(makeTierBot('lookahead', 5).opts).toEqual(makeTierBot('medium', 5).opts);
     expect(makeTierBot('deep', 5).opts).not.toEqual(makeTierBot('hard', 5).opts);

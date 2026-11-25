@@ -6,6 +6,7 @@ import { other, type Game } from '../engine/engine';
 import type { PlayerId } from '../engine/types';
 import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluateTerms, seatArchetype, type EvalTerm, type EvalWeights } from '../ai/eval';
 import { applyProfile, BEST_PROFILES } from '../ai/archetype';
+import { TIER_SETTINGS } from '../ai/tiers';
 import { brier, chooseRidge, fitLogistic, logLoss, predict, type LogisticFit } from '../lib/logistic';
 
 /** One end of a turn: evaluate()'s value and features from the view of the seat that just ended it and of the seat about to start. */
@@ -17,7 +18,7 @@ export interface EvalLeaf {
   overtime: boolean;
   /** evaluate() with DEFAULT_WEIGHTS: [ender's view, next seat's view] */
   v: [number, number];
-  /** evaluate() with each viewing seat's matchup-profiled weights (Hard's: DEFAULT_WEIGHTS × BEST_PROFILES) */
+  /** evaluate() with the weights Hard uses for each viewing seat (profiledWeights: DEFAULT_WEIGHTS since SIM_VERSION 12, DEFAULT_WEIGHTS × BEST_PROFILES before) */
   vp: [number, number];
   /** features in EVAL_TERMS order, measured with DEFAULT_WEIGHTS: [ender's view, next seat's view] */
   f: [number[], number[]];
@@ -34,8 +35,13 @@ export interface LeafGame {
 
 const r4 = (x: number) => Math.round(x * 1e4) / 1e4;
 
-/** The weights a Hard-like bot (BEST_PROFILES) uses for seat p in this game. */
+/**
+ * The weights the Hard bot uses for seat p in this game: its tier's matchup profiles applied to `base` when the tier
+ * sets them (src/ai/tiers.ts TIER_SETTINGS.hard), else `base` itself. Since SIM_VERSION 12 Hard plays without
+ * profiles, so this is `base` and `vp` equals `v`; leaves collected before then carry the profiled value.
+ */
 export function profiledWeights(g: Game, p: PlayerId, base: EvalWeights = DEFAULT_WEIGHTS): EvalWeights {
+  if (TIER_SETTINGS.hard.profiles !== 'best') return base;
   const me = seatArchetype(g, p);
   const opp = seatArchetype(g, other(p));
   return applyProfile(base, BEST_PROFILES, me, opp);
@@ -222,7 +228,7 @@ export function analyzeLeaves(games: readonly LeafGame[], view: View, o: { stage
     score('coin (training win rate)', 1, constant(base, test.length)),
     score('σ(a·value), DEFAULT_WEIGHTS', 1, predict(one, test.map((r) => [r.v]))),
     score('σ(b + a·value)', 2, predict(two, test.map((r) => [r.v]))),
-    score('σ(a·value), profiled weights (Hard)', 1, predict(oneP, test.map((r) => [r.vp]))),
+    score("σ(a·value), Hard's weights (profiled before SIM_VERSION 12)", 1, predict(oneP, test.map((r) => [r.vp]))),
     score('σ(a_stage·value), slope per stage', 3, test.map((r) => 1 / (1 + Math.exp(-slopeByStage[r.stage] * r.v)))),
   ];
 
