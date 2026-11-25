@@ -8,7 +8,7 @@ import { CARDS } from '../src/engine/cards';
 import { Game } from '../src/engine/engine';
 import { makeTierBot } from '../src/ai/tiers';
 import type { Decision, DeckList } from '../src/engine/types';
-import { adviseRequest, coachWorthAsking, scoreMoveRequest, type Advice, type GradedOption } from '../src/ai/coach';
+import { adviseRequest, coachWorthAsking, confirmMoveRequest, scoreMoveRequest, type Advice, type GradedOption } from '../src/ai/coach';
 import { EARLY_MOVE_NOTE, gradeWhenAdvised, gradeWithAdvice, type GradeContext } from '../src/lib/coachGrading';
 import type { CoachedGrade } from '../src/lib/coachedReplay';
 import { PracticeSession, type MatchSetup, type Running } from '../src/lib/practiceSession';
@@ -42,10 +42,13 @@ const yesno = (prompt = '?'): Decision => ({ player: 0, kind: 'yesno', prompt, o
 /** Advice valuing every option: option `i` is worth `v[i]` in each of two worlds. */
 const valued = (index: number, v: number[]): Advice => ({ index, why: 'because', alternatives: [], grade: { kind: 'action', opts: v.map((x, i) => ({ i, v: x, w: [x, x] })), worlds: 2 } }) as unknown as Advice;
 
-function context(score: GradeContext['score'] = async () => []) {
+/** A confirmation that finds what the advice found: the pick's and the move's own values (the verdict stands). */
+const sameAsAdvice: GradeContext['confirm'] = async (_d, i, a) => (a.grade?.opts ?? []).filter((o) => o.i === a.index || o.i === i);
+
+function context(score: GradeContext['score'] = async () => [], confirm: GradeContext['confirm'] = sameAsAdvice) {
   const grades: CoachedGrade[] = [];
   const seen: [string, string | null][] = [];
-  const ctx: GradeContext = { grades, score, onGrade: (gr, replaced) => void seen.push([gr.verdict, replaced ? replaced.verdict : null]) };
+  const ctx: GradeContext = { grades, score, confirm, onGrade: (gr, replaced) => void seen.push([gr.verdict, replaced ? replaced.verdict : null]) };
   return { ctx, grades, seen };
 }
 
@@ -61,20 +64,59 @@ describe('a move made before its advice arrived', () => {
     expect(slot).toMatchObject({ verdict: 'pending', coach: '', gap: null, chose: 'Play 1' });
     expect(slot.record).toBeUndefined();
     // answer 1 at d2, with its advice showing: graded at once, after it
-    gradeWithAdvice(ctx, d2, 2, valued(2, [0, 0, 0]), 1, 3);
+    gradeWithAdvice(ctx, d2, 2, valued(2, [0, 0, 100]), 1, 3);
     expect(grades.map((g) => g.record?.at)).toEqual([undefined, 1]);
     // now d1's advice lands: its grade takes the placeholder's place (answer 0, turn 2, d1's prompt), not d2's
     early.resolve(valued(2, [0, 100, 200]));
     await tick();
     expect(grades.map((g) => g.record?.at)).toEqual([0, 1]);
     expect(grades[0]!.record).toMatchObject({ at: 0, turn: 2, prompt: 'first', chose: 1, coach: 2 });
-    expect(grades[0]!.verdict).not.toBe('pending');
+    expect(grades[0]!.verdict).toBe('mistake');
+    expect(grades[0]!.confirmed).toBe(2);
     expect(grades[1]!.record).toMatchObject({ at: 1, prompt: 'second', verdict: 'agree' });
-    // told once as given, once as landed in the placeholder's place
+    // told once as given; d1's: landed in the placeholder's place as "checking" (a Mistake is confirmed before it
+    // shows, REVIEW_2026-11-25 C1), then the confirmed grade in the checking one's place
     expect(seen).toEqual([
       ['agree', null],
-      [grades[0]!.verdict, 'pending'],
+      ['pending', 'pending'],
+      ['mistake', 'pending'],
     ]);
+  });
+
+  it('a costly grade shows only once confirmed; a confirmation that never comes leaves the move not measured', async () => {
+    const check = later<GradedOption[]>();
+    const { ctx, grades, seen } = context(undefined, () => check.p);
+    const first = gradeWithAdvice(ctx, action(3), 1, valued(2, [0, 0, 100]), 0, 2);
+    // never the six-world verdict: "Checking your move…" until the fresh worlds are in
+    expect(first).toMatchObject({ verdict: 'pending', gap: null });
+    expect(grades).toEqual([first]);
+    // the fresh worlds say the move is as good: Best, judged on them alone, with the screen kept beside
+    check.resolve([
+      { i: 2, v: 50, w: [50, 52, 48] },
+      { i: 1, v: 50, w: [50, 51, 49] },
+    ]);
+    await tick();
+    expect(grades[0]).toMatchObject({ verdict: 'best', gap: 0, confirmed: 3, screen: { verdict: 'mistake', gap: 2.5 } });
+    expect(grades[0]!.record).toMatchObject({ verdict: 'best', confirmed: 3, screen: { verdict: 'mistake' }, fresh: [{ i: 2 }, { i: 1 }] });
+    expect(seen).toEqual([
+      ['pending', null],
+      ['best', 'pending'],
+    ]);
+    // the check fails (the coach closed): not measured, in its place, never the unconfirmed Mistake
+    const failed = later<GradedOption[]>();
+    const two = context(undefined, () => failed.p);
+    gradeWithAdvice(two.ctx, action(3), 1, valued(2, [0, 0, 100]), 0, 2);
+    failed.reject(new Error('coach closed'));
+    await tick();
+    expect(two.grades[0]).toMatchObject({ verdict: 'unscored', gap: null, notMeasured: 'check' });
+    // Undo before the check lands: dropped
+    const slow = later<GradedOption[]>();
+    const three = context(undefined, () => slow.p);
+    gradeWithAdvice(three.ctx, action(3), 1, valued(2, [0, 0, 100]), 0, 2);
+    three.grades.length = 0;
+    slow.resolve([]);
+    await tick();
+    expect(three.grades).toHaveLength(0);
   });
 
   it('a move the advice did not value is then scored in its worlds and finished in place', async () => {
@@ -91,7 +133,8 @@ describe('a move made before its advice arrived', () => {
       { i: 1, v: 50, w: [50, 50] },
     ] as GradedOption[]);
     await tick();
-    expect(grades[0]!.verdict).toBe('best');
+    // the only two options scored come out the same: no clear difference (REVIEW_2026-11-25 C3), measured in place
+    expect(grades[0]!.verdict).toBe('unclear');
     expect(grades[0]!.record?.at).toBe(0);
   });
 
@@ -200,7 +243,8 @@ function realWorker() {
         const job = structuredClone(m);
         void (async () => {
           await tick(1);
-          const reply: CoachReply = 'score' in job ? { id: job.id, scored: await scoreMoveRequest(job.score) } : { id: job.id, advice: await adviseRequest(job.req) };
+          const reply: CoachReply =
+            'score' in job ? { id: job.id, scored: await scoreMoveRequest(job.score) } : 'confirm' in job ? { id: job.id, scored: await confirmMoveRequest(job.confirm) } : { id: job.id, advice: await adviseRequest(job.req) };
           w.onmessage?.({ data: structuredClone(reply) });
         })();
       },
@@ -238,7 +282,7 @@ async function play(mode: 'early' | 'waits' | 'off', seed = 31) {
     last = d;
     setTimeout(async () => {
       if (run !== session.current || run.human.pending?.d !== d) return;
-      const ctx: GradeContext = { grades: run.grades, score: (x, i, a) => coach.score(x, i, a), onGrade: () => undefined };
+      const ctx: GradeContext = { grades: run.grades, score: (x, i, a) => coach.score(x, i, a), confirm: (x, i, a) => coach.confirm(x, i, a), onGrade: () => undefined };
       const asked = mode !== 'off' && coachWorthAsking(d) && d.kind !== 'pay' ? coach.advise(run.g, d) : null;
       asked?.catch(() => undefined);
       const advice = mode === 'waits' && asked ? await asked : null;

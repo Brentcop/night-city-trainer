@@ -2,7 +2,7 @@
 // (src/lib/gameRecord/show.ts; docs/GAME_RECORD.md "Compare" and "Show"). One short pinned game (four turns, an Easy bot
 // and a seat that picks some moves at random and chooses its own payments), so it stays quick.
 import { describe, expect, it } from 'vitest';
-import { advise, coachRequest, coachWorthAsking, gradeMove, scoreMoveRequest } from '../src/ai/coach';
+import { advise, coachRequest, coachWorthAsking, gradeFully } from '../src/ai/coach';
 import { makeTierBot } from '../src/ai/tiers';
 import type { Game } from '../src/engine/engine';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
@@ -123,8 +123,7 @@ describe('compare: the coach and the bots at every decision', () => {
         } catch {
           return;
         }
-        let gr = gradeMove(d, answer, a, g.s.turn);
-        if (gr.verdict === 'pending') gr = gradeMove(d, answer, a, g.s.turn, await scoreMoveRequest({ req: coachRequest(g, d), chosen: answer, coach: a.index, ...(a.grade ? { grade: a.grade } : {}) }));
+        const { grade: gr } = await gradeFully(coachRequest(g, d), answer, a, g.s.turn);
         direct.push({ n, index: a.index, why: a.why, verdict: gr.verdict, gap: gr.gap, ...(gr.se !== undefined ? { se: gr.se } : {}) });
       },
     });
@@ -265,7 +264,7 @@ describe('compare under several replay seeds', () => {
     expect(settledPart).not.toContain('line 20,');
     expect(sometimesPart).toContain('line 20, turn 2, p1: Play X  →  coach: End turn; Mistake in 2 of 3, Close call in 1; median −1.0 Gigs');
     expect(text).toMatch(/the coach: 1 of 3 \(33%\) of the compared decisions/);
-    expect(text).toMatch(/p1 \(A\): grade [A-F] to [A-F], 1–2 of 3 \(33%–67%\) measured moves/);
+    expect(text).toMatch(/p1 \(A\): grade [A-F] to [A-F], 1–2 of 3 \(33%–67%\) decisions that mattered/);
   });
 
   it('--seeds must be 1 to 9 (exit 2)', () => {

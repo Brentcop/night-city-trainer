@@ -73,10 +73,13 @@ export function optionName(d: { kind: string; tag?: string; options: readonly { 
 /**
  * The review's rating (src/lib/gameReview.ts RATINGS) a coach verdict reads as, so the toast, the scorecard and the
  * review use one set of names: the coach's pick or as good → Best, close → Close call, inaccuracy → Slip, mistake →
- * Mistake (Blunder from BLUNDER_GIGS). Null when the move was not measured (pending, unscored).
+ * Mistake (Blunder from BLUNDER_GIGS), unclear → No clear difference (measured, never counted). Null when the move was
+ * not measured (pending, unscored).
  */
 export function verdictRating(verdict: MoveVerdict | string, gap: number | null | undefined): Rating | null {
   switch (verdict) {
+    case 'unclear':
+      return 'unclear';
     case 'agree':
     case 'best':
       return 'best';
