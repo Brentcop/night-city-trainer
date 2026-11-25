@@ -106,6 +106,19 @@ describe('Game review screen', () => {
     expect(html).toContain('the rival played Play Big Unit');
   });
 
+  it('a move the review could not measure is listed apart with its error, not counted', () => {
+    const plain = renderToStaticMarkup(<ReviewResult rec={rec} replay={replay} frames={null} />);
+    expect(plain).not.toContain('could not be measured');
+    const failed = [{ seq: 99, p: 0 as const, at: 9, turn: 4, cat: 'gig dice', chosen: 'Rival d6: 4 → 3', why: 'clone() with 1 pending effect(s)' }];
+    const html = renderToStaticMarkup(<ReviewResult rec={{ ...rec, failed }} replay={replay} frames={null} />);
+    expect(html).toContain('1 move could not be measured');
+    expect(html).toContain('Turn 4, you: Rival d6: 4 → 3. Error: clone() with 1 pending effect(s)');
+    // the summary is the same as without it: the move is not counted
+    const seats = (h: string) => [...h.matchAll(/aria-label="(You|Rival): [^"]*"|\d+ counted moves?, [^<]*/g)].map((m) => m[0]);
+    expect(seats(plain).length).toBeGreaterThanOrEqual(4);
+    expect(seats(html)).toEqual(seats(plain));
+  });
+
   it('a game recorded with another simulator version is refused in a plain sentence, not a stack trace', () => {
     const html = renderToStaticMarkup(<GameReviewView src={{ replay: { ...replay, simVersion: 3 }, coach: [], persist: false }} />);
     expect(html).toContain('This game can&#x27;t be reviewed: it was recorded with version 3 of the bots and rules engine');

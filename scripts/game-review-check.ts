@@ -124,6 +124,9 @@ async function main() {
   console.log(`\nPer game: player Inspired ${per(0, ['inspired']).toFixed(2)}, Sharp ${per(0, ['sharp']).toFixed(2)}; rival Inspired ${per(1, ['inspired']).toFixed(2)}, Sharp ${per(1, ['sharp']).toFixed(2)}`);
   const ms = first.map((r) => r.ms).sort((a, b) => a - b);
   console.log(`Review time (one thread each): median ${(ms[Math.floor(ms.length / 2)]! / 1000).toFixed(1)} s, max ${(ms[ms.length - 1]! / 1000).toFixed(1)} s; decisions rated per game ${(first.reduce((a, r) => a + r.moves.length, 0) / first.length).toFixed(1)}`);
+  // decisions the review could not measure (its grading threw): not counted; every one is a bug to look at
+  const failed = pairs.flat().flatMap((r) => (r.failed ?? []).map((f) => `${r.id} T${f.turn} seat ${f.p} "${f.chosen}": ${f.why}`));
+  console.log(`Not measured (grading threw): ${failed.length} decision${failed.length === 1 ? '' : 's'} in ${pairs.length * 2} reviews${failed.length ? `\n  ${failed.slice(0, 12).join('\n  ')}` : ''}`);
   // stability: same decision (seat, answer number), both runs
   let both = 0;
   let within = 0;

@@ -64,6 +64,12 @@ function isMove(x: unknown): boolean {
   );
 }
 
+/** A decision the review could not measure (GameReviewRecord.failed). */
+function isFailed(x: unknown): boolean {
+  const f = x as Record<string, unknown> | null;
+  return !!f && typeof f === 'object' && isNum(f.seq) && (f.p === 0 || f.p === 1) && isNum(f.at) && isNum(f.turn) && typeof f.cat === 'string' && typeof f.chosen === 'string' && typeof f.why === 'string';
+}
+
 const isInt = (x: unknown): x is number => Number.isInteger(x);
 const ints = (x: unknown, n?: number) => Array.isArray(x) && (n === undefined || x.length === n) && x.every(isInt);
 /** A pass [gap, SE ×100 or null]: the gap in points (≥ 0), the SE a whole number (KeptMeasure). */
@@ -128,6 +134,7 @@ export function asReviewRecord(x: unknown): GameReviewRecord | null {
     Array.isArray(r.forced) &&
     r.forced.length === 2 &&
     r.forced.every(isNum) &&
+    (r.failed === undefined || (Array.isArray(r.failed) && r.failed.every(isFailed))) &&
     (r.answers === undefined || (Array.isArray(r.answers) && r.answers.length === 2 && r.answers.every(isAnswers))) &&
     isNum(r.ms);
   if (!ok) return null;

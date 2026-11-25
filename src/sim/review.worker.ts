@@ -15,7 +15,10 @@ self.onmessage = async (e: MessageEvent<ReviewRequest>) => {
   const post = (m: ReviewReply) => (self as unknown as Worker).postMessage(m);
   try {
     if (q.kind === 'game') {
-      post({ game: await runGameReview(q.job, (n, turn) => post({ progress: n, turn })) });
+      const game = await runGameReview(q.job, (n, turn) => post({ progress: n, turn }));
+      // moves whose grading threw are shown as not counted; the console keeps their errors
+      for (const f of game.failed ?? []) console.warn(`Game review: turn ${f.turn}, seat ${f.p}, "${f.chosen}" not measured: ${f.why}`);
+      post({ game });
       return;
     }
     if (q.kind === 'practice') refuseOtherVersion(q);
@@ -29,6 +32,7 @@ self.onmessage = async (e: MessageEvent<ReviewRequest>) => {
       { rollouts: q.rollouts, withCoach: q.withCoach, coach: makeCoach, seats: q.kind === 'practice' ? [me] : [0, 1], onProgress: (n) => post({ progress: n }), onEnd: (s) => (end = replayedEnd(s)) },
     );
     if (q.kind === 'practice') checkReplayed(q, agents, end!);
+    for (const f of review.failed ?? []) console.warn(`Review: turn ${f.turn}, seat ${f.player}, "${f.chosen}" not measured: ${f.reason}`);
     post({ review });
   } catch (err) {
     if (err instanceof ReplayDiverged) post({ refused: err.message });

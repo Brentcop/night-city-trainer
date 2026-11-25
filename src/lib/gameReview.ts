@@ -49,9 +49,11 @@ export const REVIEW_RULES = 3;
  * and the confirmation worlds (GAME_REVIEW_CONFIRM). Bump it whenever the measurement changes: a stored review measured
  * another way is never re-rated from its kept measurements (that would pass old numbers off as new ones), it is run again
  * (src/lib/gameReviewStore.ts). Records stored before it count as this version. 1: 2026-11-14. 2: costly coach grades
- * and wide close calls go to the oracle (2026-11-22).
+ * and wide close calls go to the oracle (2026-11-22). 3: a Gig choice's play-outs resolve what the Gig change triggers
+ * (Meredith Stout's trigger stayed pending and failed the review) and change the Gig as the engine does ('set' for "set a
+ * Gig to another Gig's value"); a decision whose grading throws is listed apart, not counted (2026-11-25).
  */
-export const REVIEW_MEASURE = 2;
+export const REVIEW_MEASURE = 3;
 /**
  * Play-outs per candidate in the Game review: 8, as the match reviewer. Chosen 2026-11-12 by re-running 20 Medium-vs-Hard
  * reviews with another oracle seed: see docs/BOT_TOOLKIT.md §8 (ratings within one step of each other on re-run). Part
@@ -445,9 +447,23 @@ export interface GameReviewRecord {
   moves: ReviewMove[];
   /** forced decisions per seat (one option; not counted, not listed) */
   forced: [number, number];
+  /** decisions the review could not measure (its grading threw): not counted, listed apart with the error (absent: none) */
+  failed?: FailedMove[];
   /** every answer of both seats: the board at each move is rebuilt from these with no bot thinking */
   answers?: [SeatAnswers, SeatAnswers];
   ms: number;
+}
+
+/** A decision the review could not measure (the reviewer's FailedDecision, as stored): not counted, with the error's message. */
+export interface FailedMove {
+  seq: number;
+  p: PlayerId;
+  at: number;
+  turn: number;
+  cat: string;
+  chosen: string;
+  /** the error's message */
+  why: string;
 }
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
@@ -602,6 +618,7 @@ export function buildReviewRecord(review: GameReview, coach: readonly CoachRatin
     timeline: review.timeline.map((t) => [t.turn, Math.round(t.v)]),
     moves,
     forced: review.forced ?? [0, 0],
+    ...(review.failed?.length ? { failed: review.failed.map((f): FailedMove => ({ seq: f.seq, p: f.player, at: f.at, turn: f.turn, cat: f.category, chosen: f.chosen, why: f.reason })) } : {}),
     ...(review.answers ? { answers: review.answers } : {}),
     ms: review.ms,
   };
@@ -692,6 +709,8 @@ export function rerateRecord(rec: GameReviewRecord, coach?: readonly CoachRating
     if (!used) return (unconfirmed.push(m.seq), m);
     return oracleMove(m, used, m.ms);
   });
+  // a decision the review could not measure has nothing to rate again: run the review again
+  for (const f of rec.failed ?? []) missing.push(f.seq);
   if (missing.length) return { ok: false, why: 'not-kept', moves: missing };
   if (coachOff.length) return { ok: false, why: 'coach', moves: coachOff };
   if (unconfirmed.length) return { ok: false, why: 'unconfirmed', moves: unconfirmed };

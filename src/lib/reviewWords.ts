@@ -77,3 +77,10 @@ export const FOLLOW_TEXT = {
   missed: 'Missed chance: your next turn had a Mistake or Blunder.',
   followed: 'Followed up: no costly move on your next turn (all Close call or better).',
 } as const;
+
+/**
+ * Above the moves the review could not measure (its grading threw: GameReviewRecord.failed, GameReview.failed): they
+ * are not counted, and the error is kept for the log. `n` moves.
+ */
+export const failedText = (n: number) =>
+  `${n === 1 ? '1 move' : `${n} moves`} could not be measured: the review's play-outs ran into an error there, so ${n === 1 ? 'it is' : 'they are'} not counted. The rest of the review is unaffected.`;

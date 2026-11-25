@@ -33,6 +33,7 @@ import {
   rivalFollowUps,
   seatSummary,
   REVIEW_RULES,
+  rerateRecord,
   turningName,
   turningPoint,
   withinNoise,
@@ -377,6 +378,14 @@ function anyDeck(name: string, colors: string[]): DeckList {
   for (const c of pool) for (let i = 0; i < 3 && main.length < 40; i++) main.push(c.id);
   return { name, legends, main, sideboard: [] };
 }
+/** anyDeck with three copies of each card in `must` first. */
+function deckWith(name: string, colors: string[], must: string[]): DeckList {
+  const legends = CARDS.filter((c) => c.type === 'Legend' && colors.includes(c.color)).slice(0, 3).map((c) => c.id);
+  const main = must.flatMap((id) => [id, id, id]);
+  const pool = CARDS.filter((c) => c.type !== 'Legend' && colors.includes(c.color) && c.ram <= 2 && !must.includes(c.id));
+  for (const c of pool) for (let i = 0; i < 3 && main.length < 40; i++) main.push(c.id);
+  return { name, legends, main, sideboard: [] };
+}
 class Recorder implements Agent {
   name = 'rec';
   choices: number[][] = [];
@@ -460,6 +469,61 @@ describe('D25: the reviewer grades mulligans and gig dice choices', () => {
     expect(am.map((d) => ({ regret: d.regret, chosen: d.chosen, best: d.best }))).toEqual(
       bm.map((d) => ({ regret: d.regret, chosen: d.chosen, best: d.best })),
     );
+  }, 120_000);
+
+  // A Gig choice that changes a rival Gig while the rival has Meredith Stout on the field triggers her ("When a Rival
+  // adjusts or swaps 1 or more friendly Gigs …"). The oracle plays every option out, so her trigger becomes pending in
+  // its copies; until 2026-11-25 it was never resolved, and the next copy a bot made threw "clone() with 1 pending
+  // effect(s): Meredith Stout …", which failed the whole review (18 of 51 meta-deck reviews).
+  it('grades a Gig choice that triggers the rival’s Meredith Stout (her effect resolves in the play-outs)', async () => {
+    const decks: [DeckList, DeckList] = [deckWith('A', ['Yellow'], ['afterparty_at_lizzie_s', 'zetatech_faceplate']), deckWith('B', ['Red'], ['meredith_stout_stone_cold_corpo'])];
+    let triggers = 0;
+    let graded = 0;
+    for (const seed of [5, 7, 9]) {
+      const inner = makeTierBot('easy', seed);
+      const watch: Agent = {
+        name: inner.name,
+        decide: (g: Game, d: Decision) => {
+          const meredith = g.P(1).field.some((u) => g.s.cards[u]!.defId === 'meredith_stout_stone_cold_corpo');
+          if (d.kind === 'gigValue' && d.options.length >= 2 && g.pending.length === 0 && meredith && d.options.some((o) => o.gig !== undefined && g.s.gigs[o.gig]!.controller === 1)) triggers++;
+          return inner.decide(g, d);
+        },
+      };
+      const review = await reviewGame({ decks, seed, first: (seed % 2) as 0 | 1, agents: [watch, makeTierBot('easy', seed + 1000)], agentNames: ['easy', 'easy'] }, { rollouts: 1, seats: [0] });
+      graded += review.decisions.filter((d) => d.category === 'gig dice').length;
+      expect(review.failed ?? []).toEqual([]);
+    }
+    expect(triggers).toBeGreaterThan(0);
+    expect(graded).toBeGreaterThanOrEqual(triggers);
+  }, 120_000);
+
+  it('a decision whose grading throws is not counted, kept with its error, and the review carries on', async () => {
+    const decks: [DeckList, DeckList] = [anyDeck('A', ['Red', 'Yellow']), anyDeck('B', ['Blue', 'Green'])];
+    const spec = () => ({ decks, seed: 100, first: 0 as const, agents: [makeTierBot('easy', 1), makeTierBot('easy', 2)] as [Agent, Agent], agentNames: ['easy', 'easy'] as [string, string] });
+    const plain = await reviewGame(spec(), { rollouts: 1, seats: [0] });
+    expect(plain.failed).toBeUndefined();
+    // the coach is asked inside the grading of every decision: make the third ask throw
+    let asks = 0;
+    const coach = () => ({ name: 'broken', decide: async (_g: Game, _d: Decision) => (++asks === 3 ? Promise.reject(new Error('grading broke')) : [0]) });
+    const r = await reviewGame(spec(), { rollouts: 1, seats: [0], withCoach: true, coach });
+    // the game is the same game, played to the end
+    expect([r.winner, r.turns, r.reason]).toEqual([plain.winner, plain.turns, plain.reason]);
+    expect(r.failed).toHaveLength(1);
+    const f = r.failed![0]!;
+    expect(f).toMatchObject({ player: 0, reason: 'grading broke' });
+    // not graded, and nothing half-recorded: every other decision is, the failed one is not
+    expect(r.decisions.length + 1).toBe(plain.decisions.length);
+    expect(r.decisions.some((d) => d.seq === f.seq)).toBe(false);
+    expect(new Set(r.decisions.map((d) => d.i)).size).toBe(r.decisions.length);
+    // the stored record lists it apart (not a move, not counted), keeps it through storage, and a rules change runs the review again
+    const rec = buildReviewRecord(r, [], { id: 'g', made: 'm' });
+    expect(rec.failed).toEqual([{ seq: f.seq, p: 0, at: f.at, turn: f.turn, cat: f.category, chosen: f.chosen, why: 'grading broke' }]);
+    expect(rec.moves.some((m) => m.seq === f.seq)).toBe(false);
+    expect(asReviewRecord(JSON.parse(JSON.stringify(rec)))?.failed).toEqual(rec.failed);
+    expect(asReviewRecord({ ...rec, failed: [{ ...rec.failed![0], why: 3 }] })).toBeNull();
+    const again = rerateRecord({ ...rec, rules: REVIEW_RULES - 1 });
+    expect(again.ok).toBe(false);
+    if (!again.ok) expect(again.moves).toContain(f.seq);
   }, 120_000);
 
   it('the full Game review (runGameReview) includes mulligan grades in the record', async () => {

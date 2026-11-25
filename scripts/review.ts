@@ -463,6 +463,8 @@ function gameReviewText(rec: GameReviewRecord): string {
   const tp = turningPoint(rec.moves, rec.winner);
   lines.push(tp ? `${turningName(rec.winner)}: turn ${tp.turn}, ${who(tp.p)}: ${shownLabel(tp.chosen)} (${RATING_INFO[tp.r].label}, ${gapTag(tp)})` : 'No turning point.', '');
   for (const m of rec.moves) lines.push(`T${m.turn} ${who(m.p).padEnd(5)} ${RATING_INFO[m.r].mark.padEnd(2)} ${RATING_INFO[m.r].label.padEnd(19)} ${shownLabel(m.chosen)} [${m.src}]${m.r !== 'best' && m.r !== 'unclear' ? ` — ${explain({ ...m, why: undefined })}` : ''}`);
+  // decisions whose grading threw: not counted, with the error
+  for (const f of rec.failed ?? []) lines.push(`T${f.turn} ${who(f.p).padEnd(5)} ?  ${'Not measured'.padEnd(19)} ${shownLabel(f.chosen)} — error: ${f.why}`);
   return lines.join('\n');
 }
 runMain(main);

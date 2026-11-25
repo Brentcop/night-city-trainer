@@ -36,7 +36,7 @@ import { ReviewWorkerHost, useReviewHost, WAITING_TEXT } from '../reviewWorkerHo
 import { Modal } from './Modal';
 import { MentionText } from './CardMention';
 import { RatingPill } from './RatingPill';
-import { ReviewPanel } from './ReviewPanel';
+import { FailedMoves, ReviewPanel } from './ReviewPanel';
 import { FrameBoard } from './ReplayBoard';
 import { useNarrow } from './board/useNarrow';
 
@@ -314,6 +314,7 @@ export function ReviewResult({ rec, replay, active = true, frames: given }: { re
         <SeatCard who="Rival" s={sums[1]} note="all graded by the review's play-outs" />
       </div>
       <p className="small muted gr-basis">{REVIEW_BASIS}</p>
+      <FailedMoves moves={rec.failed ?? []} who={(p) => (p === me ? 'you' : 'the rival')} />
       {turning ? (
         <p className="gr-turning">
           <b>{turningName(rec.winner)}:</b> turn {turning.turn}, {turning.p === me ? 'you' : 'the rival'} played <MentionText text={shownLabel(turning.chosen)} skip={rec.names} /> <RatingPill r={turning.r} /> ({gapTag(turning)}).{' '}

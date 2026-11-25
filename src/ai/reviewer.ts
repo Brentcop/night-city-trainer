@@ -108,6 +108,21 @@ export interface SkippedDecision {
   chosenRank?: number;
 }
 
+/**
+ * A decision whose grading threw (a bug in the oracle or a card's play-out, never the move itself: the move is played
+ * before it is graded). It is not counted and the review carries on; the error's message is kept for the log.
+ */
+export interface FailedDecision {
+  player: PlayerId;
+  at: number;
+  seq: number;
+  turn: number;
+  category: Category;
+  chosen: string;
+  /** the error's message */
+  reason: string;
+}
+
 /** Every answer a seat gave, with its agent's payment, order and End turn flags (a ScriptedAgent needs them to line up). */
 export interface SeatAnswers {
   choices: number[][];
@@ -152,6 +167,8 @@ export interface GameReview {
   ms: number;
   /** decisions left to an earlier grade (ReviewOptions.skip) */
   skipped?: SkippedDecision[];
+  /** decisions whose grading threw: not counted (absent when none) */
+  failed?: FailedDecision[];
   /** forced decisions (main phase or reaction with one option) per seat: not graded */
   forced?: [number, number];
   /** every answer of each seat (ReviewOptions.keepAnswers): replays the game with no bot thinking */
@@ -315,19 +332,42 @@ function applyMulligan(cg: Game, p: PlayerId) {
   for (let i = 0; i < 6; i++) cg.drawRaw(p);
 }
 
-/** Gig dice oracle: clone, apply the gig value change (or leave unchanged), then play out from here. */
+/**
+ * A change the oracle makes to a copy outside a decision, followed as the engine follows the same change in a real
+ * game: the effects it triggers resolve (10.12–10.14) and the state is checked, as `mainLoop` does after the action whose
+ * effect made it. Without this a triggered effect stays pending and the next copy a bot makes throws (`clone()` refuses
+ * pending effects): Meredith Stout's "When a Rival adjusts … friendly Gigs" did, for every graded Gig choice that
+ * touched her controller's Gigs, until 2026-11-25. False when the game ended on the way (the play-out has nothing left).
+ */
+async function applyOutside(cg: Game, change: () => void): Promise<boolean> {
+  try {
+    change();
+    await cg.resolvePending();
+    cg.checkState();
+    return true;
+  } catch (e) {
+    if (!(e instanceof GameOverSignal)) throw e;
+    return false;
+  }
+}
+
+/** How the engine changes a Gig for a gigValue decision: "set a Gig to another Gig's value" (tag setGig) is 'set', every other one 'adjust'. */
+export const gigChangeKind = (d: Pick<Decision, 'tag'>): 'set' | 'adjust' => (d.tag === 'setGig' ? 'set' : 'adjust');
+
+/** Gig dice oracle: clone, apply the gig value change (or leave unchanged) and what it triggers, then play out from here. */
 async function oracleGigChoice(g: Game, p: PlayerId, optionIndex: number, d: Decision, worlds: World[], wins: boolean): Promise<Detail> {
   let sum = 0;
   let losses = 0;
   const per: number[] = [];
+  const opt = d.options[optionIndex];
+  const kind = gigChangeKind(d);
   for (const w of worlds) {
     const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
-    const opt = d.options[optionIndex];
-    if (opt.gig !== undefined && opt.n !== undefined) cg.setGigValue(opt.gig, opt.n, p, 'adjust');
-    await playOut(cg, p, { rest: true });
+    const going = opt.gig !== undefined && opt.n !== undefined ? await applyOutside(cg, () => cg.setGigValue(opt.gig!, opt.n!, p, kind)) : true;
+    if (going) await playOut(cg, p, { rest: true });
     const e = playOutValue(cg, p, DEFAULT_WEIGHTS, { wins });
     if (e < LOST) losses++;
     const c = clampPlayOut(e);
@@ -424,6 +464,7 @@ class ReviewAgent implements Agent {
   out: DecisionReview[] = [];
   timeline: { turn: number; v: number }[] = [];
   skipped: SkippedDecision[] = [];
+  failed: FailedDecision[] = [];
   forced = 0;
   answers: number[][] = [];
   private rnd: () => number;
@@ -470,14 +511,38 @@ class ReviewAgent implements Agent {
     const gradable = (d.kind === 'action' || (d.kind === 'reaction' && !!g.s.attack) || isMulligan || isGigDice) && d.options.length >= 2;
     if (this.review && (d.kind === 'action' || d.kind === 'reaction') && d.options.length === 1) this.forced++;
     if (this.review && gradable && this.opts.skip?.(this.seat, at)) return this.skipOne(g, d, at);
-    if (this.review && isMulligan) return this.reviewMulligan(g, d, at);
-    if (this.review && isGigDice && d.options.length >= 2 && g.pending.length === 0) return this.reviewGigChoice(g, d, at);
+    if (this.review && isMulligan) return this.reviewChoice(g, d, at, 'mulligan');
+    if (this.review && isGigDice && d.options.length >= 2 && g.pending.length === 0) return this.reviewChoice(g, d, at, 'gigChoice');
     if (this.review && d.kind === 'reaction' && d.options.length >= 2 && g.s.attack) return this.reviewReaction(g, d, at);
     if (!this.review || d.kind !== 'action' || d.options.length < 2) return this.play(g, d);
     // the move actually made (decide first: oracle play-outs are clones and never touch the real game)
     const pick = await this.play(g, d);
     const seq = this.shared.seq++;
-    const chosen = pick[0];
+    await this.graded(g, d, at, seq, pick[0], categoryOf(g, d.options[pick[0]].action as Action), () => this.gradeAction(g, d, at, seq, pick[0]));
+    return pick;
+  }
+
+  /**
+   * Grade one decision whose move is already made (`grade` records it in `out`), so that grading can never fail the
+   * review: a throw leaves the decision out of `out` (anything it recorded is taken back) and lists it in `failed`, not
+   * counted, with the error's message, and the game goes on. The move itself is never in question: it was played first.
+   */
+  private async graded(g: Game, d: Decision, at: number, seq: number, chosen: number, category: Category, grade: () => Promise<void>) {
+    const kept = this.out.length;
+    const count = this.count;
+    try {
+      await grade();
+    } catch (e) {
+      this.out.length = kept;
+      this.count = count;
+      this.failed.push({ player: this.seat, at, seq, turn: g.s.turn, category, chosen: d.options[chosen]?.label ?? String(chosen), reason: e instanceof Error ? e.message : String(e) });
+    }
+    this.shared.n++;
+    this.opts.onProgress?.(this.shared.n);
+  }
+
+  /** A main-phase action: the move made, the quick screen's picks, the sell alternatives and passing, played out. */
+  private async gradeAction(g: Game, d: Decision, at: number, seq: number, chosen: number) {
     const actions = d.options.map((o) => o.action as Action);
     const cand = new Set<number>([chosen]);
     const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
@@ -541,9 +606,6 @@ class ReviewAgent implements Agent {
       ...measures(vals, per, chosen, bestI, decided, screenOrder.length ? { top: screenOrder[0], order: screenOrder } : undefined),
     });
     await this.confirmLast(g, actions, chosen, bestI, decided, (a, w) => oracleDetail(g, this.seat, a, w, this.opts.rolloutWins ?? false));
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
-    return pick;
   }
 
   /** A decision graded already: play the move, and keep only what the quick screen made of it (for the rating's checks). */
@@ -572,50 +634,37 @@ class ReviewAgent implements Agent {
     const seq = this.shared.seq++;
     const chosen = pick[0];
     const rxs = d.options.map((o) => o.action as Reaction);
-    // every option is graded (unknown Calls collapse into one, so this stays small)
-    const cand = rxs.map((_, i) => i);
-    let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
-    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds, this.opts.rolloutWins ?? false));
-    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, reactionCategory(rxs[chosen]), at, seq);
-    await this.confirmLast(g, rxs, chosen, bestI, decided, (r, w) => oracleReaction(g, this.seat, r, w, this.opts.rolloutWins ?? false));
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
+    await this.graded(g, d, at, seq, chosen, reactionCategory(rxs[chosen]), async () => {
+      // every option is graded (unknown Calls collapse into one, so this stays small)
+      const cand = rxs.map((_, i) => i);
+      let coachI: number | undefined;
+      if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
+      const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+      const { vals, loss, per } = await gradeAll(g, cand, rxs, (r) => oracleReaction(g, this.seat, r, worlds, this.opts.rolloutWins ?? false));
+      const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, reactionCategory(rxs[chosen]), at, seq);
+      await this.confirmLast(g, rxs, chosen, bestI, decided, (r, w) => oracleReaction(g, this.seat, r, w, this.opts.rolloutWins ?? false));
+    });
     return pick;
   }
 
-  /** Mulligan (keep or mulligan), graded by playing the entire game out from the opening in shared worlds. */
-  private async reviewMulligan(g: Game, d: Decision, at: number): Promise<number[]> {
+  /**
+   * Mulligan (keep or mulligan), graded by playing the entire game out from the opening in shared worlds; and a Gig
+   * dice choice (adjust, set or no change), graded like a reaction: each option played out from here.
+   */
+  private async reviewChoice(g: Game, d: Decision, at: number, mode: 'mulligan' | 'gigChoice'): Promise<number[]> {
     const pick = await this.play(g, d);
     const seq = this.shared.seq++;
     const chosen = pick[0];
-    const cand = d.options.map((_, i) => i);
-    let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
-    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, 'mulligan');
-    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, 'mulligan', at, seq);
-    await this.confirmLastChoice(g, chosen, bestI, decided, 'mulligan');
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
-    return pick;
-  }
-
-  /** Gig dice choice (adjust, set or no change), graded like a reaction: each option played out from here. */
-  private async reviewGigChoice(g: Game, d: Decision, at: number): Promise<number[]> {
-    const pick = await this.play(g, d);
-    const seq = this.shared.seq++;
-    const chosen = pick[0];
-    const cand = d.options.map((_, i) => i);
-    let coachI: number | undefined;
-    if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
-    const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
-    const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, 'gigChoice', d);
-    const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, 'gig dice', at, seq);
-    await this.confirmLastChoice(g, chosen, bestI, decided, 'gigChoice', d);
-    this.shared.n++;
-    this.opts.onProgress?.(this.shared.n);
+    const category: Category = mode === 'mulligan' ? 'mulligan' : 'gig dice';
+    await this.graded(g, d, at, seq, chosen, category, async () => {
+      const cand = d.options.map((_, i) => i);
+      let coachI: number | undefined;
+      if (this.opts.withCoach && this.opts.coach) [coachI] = await this.opts.coach().decide(g, d);
+      const worlds = makeWorlds(this.opts.rollouts ?? DEFAULT_ROLLOUTS, this.rnd);
+      const { vals, loss, per } = await gradeAllChoice(g, this.seat, cand, worlds, this.opts.rolloutWins ?? false, mode, d);
+      const { bestI, decided } = this.record(g, d, chosen, vals, loss, per, coachI, category, at, seq);
+      await this.confirmLastChoice(g, chosen, bestI, decided, mode, d);
+    });
     return pick;
   }
 
@@ -748,6 +797,7 @@ export async function reviewGame(spec: ReviewSpec, opts: ReviewOptions = {}): Pr
     decisions,
     ms: Date.now() - t0,
     ...(opts.skip ? { skipped: [...ra[0].skipped, ...ra[1].skipped].sort((a, b) => a.seq - b.seq) } : {}),
+    ...(ra[0].failed.length || ra[1].failed.length ? { failed: [...ra[0].failed, ...ra[1].failed].sort((a, b) => a.seq - b.seq) } : {}),
     forced: [ra[0].forced, ra[1].forced],
     ...(opts.keepAnswers ? { answers: [answersOf(ra[0]), answersOf(ra[1])] as [SeatAnswers, SeatAnswers] } : {}),
     ...(opts.oracleSeed !== undefined ? { oracleSeed } : {}),

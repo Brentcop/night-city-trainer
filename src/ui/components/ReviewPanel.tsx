@@ -7,6 +7,7 @@ import type { DecisionReview, GameReview, SeatReview } from '../../ai/reviewer';
 import { DECIDED_EVAL, GIG_SWING } from '../../ai/eval';
 import { counts, lossOf, RATINGS, rateOracle, type Rating } from '../../lib/gameReview';
 import { behindText, gapFigure, gapSize, shownLabel } from '../../lib/coachWords';
+import { failedText } from '../../lib/reviewWords';
 import type { ReviewRequest } from '../../sim/review.worker';
 import { useReviewHost, WAITING_TEXT, type ReviewWorkerHost } from '../reviewWorkerHost';
 import { RatingPill } from './RatingPill';
@@ -14,6 +15,26 @@ import { Wr } from './Num';
 import { MentionText } from './CardMention';
 
 const gigs = (pts: number) => pts / GIG_SWING;
+
+/**
+ * The moves a review could not measure (its grading threw; GameReview.failed, GameReviewRecord.failed): not counted,
+ * listed with the error so the log has it. Shown by both tabs of the Game review.
+ */
+export function FailedMoves({ moves, who }: { moves: readonly { seq: number; turn: number; p: 0 | 1; chosen: string; why: string }[]; who: (p: 0 | 1) => string }) {
+  if (!moves.length) return null;
+  return (
+    <details className="small muted">
+      <summary>{failedText(moves.length)}</summary>
+      <ul>
+        {moves.map((m) => (
+          <li key={m.seq}>
+            Turn {m.turn}, {who(m.p)}: {shownLabel(m.chosen)}. Error: {m.why}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 /**
  * Run a review in a background worker: the Game review dialog's shared one (`shared`, src/ui/reviewWorkerHost.ts), else
@@ -102,6 +123,7 @@ export function ReviewPanel({ req, title, mySeat, expect, checked, host }: { req
       <Momentum r={r} />
       <Categories seats={r.seats} rated={rated} names={r.names} />
       <Costly r={r} rated={rated} />
+      <FailedMoves moves={(r.failed ?? []).map((f) => ({ seq: f.seq, turn: f.turn, p: f.player, chosen: f.chosen, why: f.reason }))} who={(p) => (mySeat === p ? 'you' : r.names[p])} />
       <p className="small muted" style={{ marginBottom: 0 }}>
         Main-phase moves and reactions are measured (not targets or modes), judged by the bots' own evaluation about a turn ahead, with the cards the player couldn't see re-dealt.
         Reviewed in {(r.ms / 1000).toFixed(0)} s.
