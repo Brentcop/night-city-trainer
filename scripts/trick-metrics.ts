@@ -9,11 +9,14 @@
 //   - Gunpoint Diplomacy (B2, a side observation): the turns it was castable in the main phase, those it was played in,
 //     and its sells.
 //   npx tsx scripts/trick-metrics.ts <tier | JSON spec> [JSON overrides] [--decks meta|all|<prefix>] [--per 1]
-//     [--seed 52001] [--threads N] [--json FILE] [--force]
+//     [--seed 52001] [--threads N] [--json FILE] [--against FILE] [--force]
 // The configuration is a tier name (easy, medium, hard, hard-main: its spec from scripts/agent-spec.ts) or a JSON spec as
 // botcheck takes; a second JSON object is merged over it, e.g. `medium '{"readyTricks":12,"fastTricks":true}'`.
-// --json writes the figures (refuses an existing file without --force). Nothing is cached (decision jobs are not).
-import { existsSync, writeFileSync } from 'node:fs';
+// --json writes the figures and each game's counts (refuses an existing file without --force). --against FILE reads such
+// a file made on the same deals by another configuration and prints the per-game change of the counts, paired game by
+// game by seed (this run minus that one), with a 95% interval (mean ± 1.96 SD/√n over the pairs). Nothing is cached
+// (decision jobs are not).
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { bool, cli, int, loadLibrary, runJobsDetailed, str, threadsOpt } from './lib-node';
 import { TIER_SPECS, VARIANT_SPECS, type AgentSpec } from './agent-spec';
 import { mergeAggregates, type DecisionAggregate, type ModeAgg, type UseMode } from '../src/analysis/decisions';
@@ -29,6 +32,7 @@ const { values: V, positionals } = cli(
     seed: int(52001),
     threads: threadsOpt(),
     json: str(undefined, (v) => (v.trim() ? undefined : 'needs a file')),
+    against: str(undefined, (v) => (existsSync(v) ? undefined : `no such file: ${v}`)),
     force: bool(),
   },
   { minPositionals: 1, maxPositionals: 2 },
@@ -87,6 +91,29 @@ function modesOf(id: string): Partial<Record<UseMode, ModeAgg>> {
   }
   return out;
 }
+/** One game's counts (both seats): castable reaction windows for a Quick Program, those used, reaction plays, sells. */
+interface GameCounts {
+  seed: number;
+  windows: number;
+  used: number;
+  reactPlays: number;
+  sells: number;
+}
+const COUNT_KEYS = ['windows', 'used', 'reactPlays', 'sells'] as const;
+function countsOf(seed: number, a: DecisionAggregate): GameCounts {
+  const out: GameCounts = { seed, windows: 0, used: 0, reactPlays: 0, sells: 0 };
+  for (const d of Object.values(a.decks))
+    for (const id of QUICK) {
+      const c = d.cards[id];
+      if (!c) continue;
+      out.windows += c.react?.windows ?? 0;
+      out.used += c.react?.windowsUsed ?? 0;
+      out.reactPlays += c.react?.all.uses ?? 0;
+      out.sells += c.sell?.all.uses ?? 0;
+    }
+  return out;
+}
+const perGame = results.flatMap((r) => (r.decisions ? [countsOf(r.seed, r.decisions)] : [])).sort((x, y) => x.seed - y.seed);
 const name = (id: string) => CARDS.find((c) => c.id === id)?.name ?? id;
 const pc = (x: number | null) => (x === null ? '—' : `${(100 * x).toFixed(1)}%`);
 const per = (n: number) => (games ? (n / games).toFixed(3) : '—');
@@ -113,8 +140,32 @@ console.log('');
 console.log(`Per game: castable windows ${per(tot.windows)}, used ${per(tot.windowsUsed)}; Quick Program sells ${per(tot.sell)}, reaction plays ${per(tot.react)}.`);
 console.log(`Reaction choices per game: ${['play', 'call', 'block', 'ability', 'endReact'].map((k) => `${k} ${per(choices[k] ?? 0)}`).join(', ')}.`);
 console.log(`Gunpoint Diplomacy: castable on ${gunpoint.castableTurns} turns, played on ${gunpoint.playedTurns} (${pc(gunpoint.castableTurns ? gunpoint.playedTurns / gunpoint.castableTurns : null)}); ${gunpoint.plays} plays, ${gunpoint.sells} sells.`);
+if (V.against) {
+  const other = JSON.parse(readFileSync(V.against, 'utf8')) as { spec?: AgentSpec; perGame?: GameCounts[] };
+  if (!Array.isArray(other.perGame)) {
+    console.error(`error: ${V.against} has no per-game counts`);
+    process.exit(2);
+  }
+  const theirs = new Map(other.perGame.map((x) => [x.seed, x]));
+  const pairs = perGame.flatMap((x) => {
+    const y = theirs.get(x.seed);
+    return y ? [[x, y] as const] : [];
+  });
+  console.log('');
+  console.log(`Against ${JSON.stringify(other.spec)} on the same deals: ${pairs.length} paired games (this run minus that one, per game, 95% interval).`);
+  for (const k of COUNT_KEYS) {
+    const d = pairs.map(([a, b]) => a[k] - b[k]);
+    const n = d.length;
+    const mean = d.reduce((s, x) => s + x, 0) / n;
+    const sd = Math.sqrt(d.reduce((s, x) => s + (x - mean) ** 2, 0) / Math.max(1, n - 1));
+    const half = (1.96 * sd) / Math.sqrt(n);
+    const mine = pairs.reduce((s, [a]) => s + a[k], 0) / n;
+    const base = pairs.reduce((s, [, b]) => s + b[k], 0) / n;
+    console.log(`  ${k}: ${base.toFixed(3)} → ${mine.toFixed(3)} a game, change ${mean >= 0 ? '+' : ''}${mean.toFixed(3)} [${(mean - half).toFixed(3)}, ${(mean + half).toFixed(3)}]`);
+  }
+}
 if (V.json) {
-  writeFileSync(V.json, JSON.stringify({ kind: 'nct-trick-metrics', schema: 1, spec, decks: V.decks, per: V.per, seed: V.seed, games, errors: errors.length, quick: rows, total: tot, reactionChoices: choices, gunpoint }, null, 1) + '\n');
+  writeFileSync(V.json, JSON.stringify({ kind: 'nct-trick-metrics', schema: 1, spec, decks: V.decks, per: V.per, seed: V.seed, games, errors: errors.length, quick: rows, total: tot, reactionChoices: choices, gunpoint, perGame }) + '\n');
   console.log(`Wrote ${V.json}.`);
 }
 if (errors.length) process.exitCode = 1;
