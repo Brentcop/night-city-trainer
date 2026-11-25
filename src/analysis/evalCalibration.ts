@@ -8,19 +8,27 @@ import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluateTerms, seatArchetype, type EvalTer
 import { applyProfile, BEST_PROFILES } from '../ai/archetype';
 import { brier, chooseRidge, fitLogistic, logLoss, predict, type LogisticFit } from '../lib/logistic';
 
-/** One end of a turn: evaluate()'s value and features from the view of the seat that just ended it and of the seat about to start. */
+/**
+ * One end of a turn: evaluate()'s value and features from the view of the seat that just ended it and of the seat about
+ * to start. With `kind: 'mid'` (the refit, src/analysis/evalRefit.ts) a main-phase decision point instead: the position
+ * as the active seat is about to choose its next action, from [the active seat's view, the other seat's view].
+ */
 export interface EvalLeaf {
   /** the game's turn counter (both players' turns) at that end of turn */
   turn: number;
-  /** the seat that just ended its turn */
+  /** the seat that just ended its turn (a mid leaf: the active seat) */
   seat: PlayerId;
   overtime: boolean;
   /** evaluate() with DEFAULT_WEIGHTS: [ender's view, next seat's view] */
   v: [number, number];
   /** evaluate() with each viewing seat's matchup-profiled weights (Hard's: DEFAULT_WEIGHTS × BEST_PROFILES) */
   vp: [number, number];
-  /** features in EVAL_TERMS order, measured with DEFAULT_WEIGHTS: [ender's view, next seat's view] */
+  /** features in EVAL_TERMS order, measured with DEFAULT_WEIGHTS (or the run's measuring weights): [ender's view, next seat's view] */
   f: [number[], number[]];
+  /** absent: an end of turn; 'mid': a main-phase decision point */
+  kind?: 'mid';
+  /** evaluate() with the run's compared weights (`compare`), same views as v */
+  vc?: [number, number];
 }
 
 export interface LeafGame {
@@ -45,21 +53,35 @@ export function profiledWeights(g: Game, p: PlayerId, base: EvalWeights = DEFAUL
  * The leaf for the end of the turn just played (call it after the end phase has run: the active seat is the one about to
  * start). Evaluated on a copy, so the game's own state and caches are not touched.
  */
-export function evalLeaf(g: Game, profiled: readonly [EvalWeights, EvalWeights]): EvalLeaf {
+export function evalLeaf(g: Game, profiled: readonly [EvalWeights, EvalWeights], o: LeafOptions = {}): EvalLeaf {
   const c = g.clone(g.agents);
-  const next = c.s.active;
-  const ender = other(next);
-  const views = [ender, next] as const;
+  const first = o.mid ? c.s.active : other(c.s.active);
+  const views = [first, other(first)] as const;
   const t = views.map((p) => evaluateTerms(c, p, DEFAULT_WEIGHTS));
+  // the features under the measuring weights (the same breakdown when none are given)
+  const { measure, compare } = o;
+  const m = measure ? views.map((p) => evaluateTerms(c, p, measure)) : t;
   const vp = views.map((p) => evaluateTerms(c, p, profiled[p]).total);
+  const vc = compare ? views.map((p) => evaluateTerms(c, p, compare).total) : null;
   return {
     turn: c.s.turn,
-    seat: ender,
+    seat: first,
     overtime: c.s.overtime,
     v: [r4(t[0]!.total), r4(t[1]!.total)],
     vp: [r4(vp[0]!), r4(vp[1]!)],
-    f: [EVAL_TERMS.map((k) => r4(t[0]!.features[k])), EVAL_TERMS.map((k) => r4(t[1]!.features[k]))],
+    f: [EVAL_TERMS.map((k) => r4(m[0]!.features[k])), EVAL_TERMS.map((k) => r4(m[1]!.features[k]))],
+    ...(o.mid ? { kind: 'mid' as const } : {}),
+    ...(vc ? { vc: [r4(vc[0]!), r4(vc[1]!)] as [number, number] } : {}),
   };
+}
+
+export interface LeafOptions {
+  /** a main-phase decision point (call it before the active seat chooses): views [active, other] */
+  mid?: boolean;
+  /** measure the features with these weights instead of DEFAULT_WEIGHTS (the value `v` stays DEFAULT_WEIGHTS') */
+  measure?: EvalWeights;
+  /** also record evaluate() with these weights (`vc`) */
+  compare?: EvalWeights;
 }
 
 // ---------------------------------------------------------------- analysis
@@ -97,6 +119,7 @@ export function rowsOf(games: readonly LeafGame[], view: View): Row[] {
   const rows: Row[] = [];
   for (const gm of games)
     for (const l of gm.leaves) {
+      if (l.kind === 'mid') continue; // ends of turns only (mid leaves are the refit's, src/analysis/evalRefit.ts)
       const p = k === 0 ? l.seat : other(l.seat);
       const y = gm.winner === 'tie' ? 0.5 : gm.winner === p ? 1 : 0;
       rows.push({ game: gm.seed, turn: l.turn, stage: stageOf(l.turn), y, v: l.v[k], vp: l.vp[k], f: l.f[k], deck: p === 0 ? gm.a : gm.b, opp: p === 0 ? gm.b : gm.a, wentFirst: gm.first === p });

@@ -1273,8 +1273,14 @@ export class HeuristicAgent implements Agent {
     return !(cheapUnits >= 1 && cheap >= 3 && sellable >= 1);
   }
 
-  private threat(g: Game, c: CardInst): number {
-    let v = unitValue(g, c, FAST_WEIGHTS);
+  /**
+   * How much a Unit is worth to target or keep, for p's Unit sub-choices. By the hand weights (FAST_WEIGHTS), as always;
+   * with the weights' `subChoiceEval` (REVIEW_2026-11-24 B7) by unitValue on p's own evaluation weights instead, so a
+   * choice ranks Units as the evaluation that scores the result does. The +2 for a ready Unit is on the gig scale, which
+   * both weight sets anchor at gig 20.
+   */
+  private threat(g: Game, c: CardInst, p: PlayerId): number {
+    let v = unitValue(g, c, this.opts.weights.subChoiceEval ? this.w(g, p) : FAST_WEIGHTS);
     if (!c.spent) v += 2; // ready units can attack/block
     return v;
   }
@@ -1323,7 +1329,7 @@ export class HeuristicAgent implements Agent {
     }
     if (d.tag === 'bottomdeckOwn' && mine.length) {
       // BOT-E: a friendly Unit given up as the price of the effect (Unlikely Bond): the least valuable one
-      mine.sort((a, b) => this.threat(g, a.c) - this.threat(g, b.c));
+      mine.sort((a, b) => this.threat(g, a.c, p) - this.threat(g, b.c, p));
       return mine[0].i;
     }
     let intent = d.intent;
@@ -1337,10 +1343,10 @@ export class HeuristicAgent implements Agent {
         const inFight = theirs.find(({ c }) => (c.uid === att.attacker || c.uid === att.targetUnit) && !(d.tag === 'spend' && c.spent));
         if (inFight) return inFight.i;
       }
-      pool.sort((a, b) => this.threat(g, b.c) - this.threat(g, a.c));
+      pool.sort((a, b) => this.threat(g, b.c, p) - this.threat(g, a.c, p));
       // prefer harming the rival's unit; if forced to pick own, pick our weakest
       if (!theirs.length) {
-        pool.sort((a, b) => this.threat(g, a.c) - this.threat(g, b.c));
+        pool.sort((a, b) => this.threat(g, a.c, p) - this.threat(g, b.c, p));
       }
       return pool[0].i;
     }

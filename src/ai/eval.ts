@@ -39,6 +39,12 @@ export interface EvalWeights {
   exposed: number; // share of the Gig swing (gig, gigNear, overtime) of the Gigs the rival can steal on its next turn
   threat: number; // share of the Gig swing of the Gigs we can steal on our next turn, when ours is the next turn
   rivalLethal: number; // points off when the rival holds 7+ Gigs and will start its turn before we can take enough back
+  // Switches carried with the weights, so every lookahead agent made from them reads them too (REVIEW_2026-11-24 B7,
+  // C.3). 0 = the behaviour before, exactly; 1 = on. Opt-in: no tier sets them.
+  /** 1: the spent-risk discount only while the active seat is in its main phase (not after an end phase, at a rollout's leaf, where that seat's Units are about to ready) */
+  spentRiskMainOnly: number;
+  /** 1: Unit sub-choices (targets to harm, a Unit to give up) ranked by unitValue with these weights, not the hand weights */
+  subChoiceEval: number;
 }
 
 // Since SIM_VERSION 6 (2026-11-12): the fitted set `calibrated-2026-11` (src/ai/weightSets.ts, INFO-4: a logistic fit of
@@ -78,6 +84,8 @@ export const DEFAULT_WEIGHTS: EvalWeights = {
   exposed: 0.886,
   threat: 0.971,
   rivalLethal: 400,
+  spentRiskMainOnly: 0,
+  subChoiceEval: 0,
 };
 
 /** The next-turn weights of BOT-3 (not in TUNED_WEIGHTS: measured by paired botcheck, docs/BOT_TOOLKIT.md §3). */
@@ -370,7 +378,8 @@ function evalCore(g: Game, p: PlayerId, w: EvalWeights, acc: TermAcc | null): nu
     let side = 0;
     for (const c of g.units(pl)) {
       let uv = unitValue(g, c, w);
-      const risk = c.spent && pl === s.active && atRisk(g, c);
+      // spentRiskMainOnly: after an end phase the active seat is the one about to start, whose Units ready first
+      const risk = c.spent && pl === s.active && (w.spentRiskMainOnly === 0 || s.phase === 'main') && atRisk(g, c);
       if (f) unitFeatures(g, c, sign, risk ? uv : 0, f);
       if (risk) uv *= 1 - w.spentRisk;
       side += uv;

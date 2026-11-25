@@ -2,6 +2,8 @@
 // deals each, and every deal played twice with the same decks, seed and first player: A piloting the first deck against
 // B, then B piloting it against A. What the deal favours cancels out of the difference.
 //   npx tsx scripts/botcheck.ts '{"deep":3}' '{}' [--per 4] [--decks meta|all|<file prefix>] [--seed 31337] [--threads N]
+// A config is a JSON AgentSpec, or (since 2026-11-25) a bot name or name+{json} as scripts/deck-sensitivity.ts takes them:
+//   'hard' is Hard's spec (TIER_SETTINGS), 'hard+{"weightSet":"<name>"}' Hard with a named weight set.
 // --decks: the meta lists (default), the whole library (data/decks and data/decks/custom), or the library files whose
 //   name starts with the prefix (e.g. ladder-, s2-).
 // --seed: the first deal's seed; each deal after it takes the next seed.
@@ -17,6 +19,10 @@ import { cliGameCache } from './game-cache';
 import { duplicateSummary, scoreOf } from '../src/lib/evidence';
 import type { AgentSpec, MatchJob, MatchResult } from './worker';
 import { credGroup, credTraceLines, type PairedObs } from './cred-trace';
+import { parseConfig } from './deck-sensitivity-run';
+import { TIER_SPECS, VARIANT_SPECS } from './agent-spec';
+
+const NAMED_SPECS: Readonly<Record<string, AgentSpec>> = { ...TIER_SPECS, ...VARIANT_SPECS };
 
 const { values: V, positionals } = cli(
   import.meta.url,
@@ -31,6 +37,16 @@ const { values: V, positionals } = cli(
   { maxPositionals: 2 },
 );
 const parseSpec = (s: string | undefined, which: string): AgentSpec => {
+  // a bot name or name+{json}, as deck-sensitivity takes them ('hard+{"weightSet":"…"}': the tier's settings as a spec)
+  if (s !== undefined && !s.trim().startsWith('{')) {
+    try {
+      const c = parseConfig(s);
+      return 'spec' in c ? c.spec : { ...NAMED_SPECS[c.bot]! };
+    } catch (e) {
+      console.error(`error: bot config ${which}: ${(e as Error).message}`);
+      process.exit(2);
+    }
+  }
   try {
     const v = JSON.parse(s ?? '{}');
     if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('not an object');

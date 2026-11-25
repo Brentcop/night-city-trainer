@@ -16,6 +16,11 @@ export interface LogisticFit {
   converged: boolean;
   /** mean log-loss on the fitting rows (without the penalty) */
   logLoss: number;
+  /**
+   * With `clusters`: cluster-robust (sandwich) standard errors of beta, rows of one cluster counted as one draw (rows of
+   * one game are not independent draws of the result). Absent otherwise.
+   */
+  seCluster?: number[];
 }
 
 export interface LogisticOptions {
@@ -25,6 +30,8 @@ export interface LogisticOptions {
   intercept?: boolean;
   maxIter?: number;
   tol?: number;
+  /** a cluster id per row (e.g. the game): also return `seCluster` (the fit itself is unchanged) */
+  clusters?: readonly number[];
 }
 
 const sigmoid = (z: number) => (z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z)));
@@ -184,9 +191,80 @@ export function fitLogistic(X: readonly (readonly number[])[], y: readonly numbe
     se[j] = Math.sqrt(Math.max(0, varOf(t))) / sd[j]!;
     intercept -= beta[j]! * mean[j]!;
   });
-  const fit = { beta, intercept, lambda, se, iterations, converged, logLoss: 0 };
+  const fit: LogisticFit = { beta, intercept, lambda, se, iterations, converged, logLoss: 0 };
   fit.logLoss = logLoss(predict(fit, X), y);
+  if (o.clusters) {
+    if (o.clusters.length !== n) throw new Error(`fitLogistic: ${o.clusters.length} cluster ids for ${n} rows`);
+    // sandwich H⁻¹ (Σ_c s_c s_cᵀ) H⁻¹ at the solution, s_c the cluster's share of the mean score, H the penalized Hessian
+    const Hf: number[][] = Array.from({ length: k }, () => new Array<number>(k).fill(0));
+    const sums = new Map<number, Float64Array>();
+    for (let i = 0; i < n; i++) {
+      const zi = Z[i]!;
+      let z = 0;
+      for (let t = 0; t < k; t++) z += theta[t]! * zi[t]!;
+      const q = sigmoid(z);
+      const wgt = Math.max(q * (1 - q), 1e-10) / n;
+      for (let a = 0; a < k; a++) {
+        const wa = wgt * zi[a]!;
+        for (let b = 0; b <= a; b++) Hf[a]![b]! += wa * zi[b]!;
+      }
+      let sc = sums.get(o.clusters[i]!);
+      if (!sc) sums.set(o.clusters[i]!, (sc = new Float64Array(k)));
+      const r = (q - y[i]!) / n;
+      for (let a = 0; a < k; a++) sc[a]! += r * zi[a]!;
+    }
+    for (let a = 0; a < k; a++) {
+      Hf[a]![a]! += pen(a) + 1e-12;
+      for (let b = 0; b < a; b++) Hf[b]![a] = Hf[a]![b]!;
+    }
+    // A = H⁻¹ s_c for every cluster, then var_t = Σ_c A_t²
+    const v = new Array<number>(k).fill(0);
+    const L = cholesky(Hf);
+    for (const sc of sums.values()) {
+      const a = cholSolve(L, Array.from(sc));
+      for (let t = 0; t < k; t++) v[t]! += a[t]! ** 2;
+    }
+    const seC = new Array<number>(d).fill(0);
+    cols.forEach((j, idx) => {
+      seC[j] = Math.sqrt(v[idx + (useB0 ? 1 : 0)]!) / sd[j]!;
+    });
+    fit.seCluster = seC;
+  }
   return fit;
+}
+
+/** The Cholesky factor L of a symmetric positive-definite A (A = L Lᵀ). */
+function cholesky(A: readonly (readonly number[])[]): number[][] {
+  const n = A.length;
+  const L: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0));
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j <= i; j++) {
+      let s = A[i]![j]!;
+      for (let k = 0; k < j; k++) s -= L[i]![k]! * L[j]![k]!;
+      if (i === j) {
+        if (!(s > 0)) throw new Error('matrix is not positive definite');
+        L[i]![i] = Math.sqrt(s);
+      } else L[i]![j] = s / L[j]![j]!;
+    }
+  return L;
+}
+
+/** Solve L Lᵀ x = b with a Cholesky factor. */
+function cholSolve(L: readonly (readonly number[])[], b: readonly number[]): number[] {
+  const n = b.length;
+  const z = new Array<number>(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    let s = b[i]!;
+    for (let k = 0; k < i; k++) s -= L[i]![k]! * z[k]!;
+    z[i] = s / L[i]![i]!;
+  }
+  const x = new Array<number>(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    let s = z[i]!;
+    for (let k = i + 1; k < n; k++) s -= L[k]![i]! * x[k]!;
+    x[i] = s / L[i]![i]!;
+  }
+  return x;
 }
 
 /** Fit at each λ on the training rows and keep the one with the lowest validation log-loss. */

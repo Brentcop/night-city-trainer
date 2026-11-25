@@ -13,7 +13,8 @@ import { DecisionRecorder, type DecisionRecord } from '../src/engine/telemetry';
 import type { Agent, Decision, DeckList } from '../src/engine/types';
 import { holdCredit, packageFacts, seatPackages } from '../src/ai/packages';
 import { handFeatures, plainRuleMulligan, type HandFeatures } from '../src/ai/mulligan';
-import { evalLeaf, profiledWeights, type EvalLeaf } from '../src/analysis/evalCalibration';
+import type { EvalLeaf } from '../src/analysis/evalCalibration';
+import { watchLeaves } from '../src/analysis/evalRefit';
 import type { EvalWeights } from '../src/ai/eval';
 import { emptyCredEnds, traceCred, type CredEnds } from './cred-trace';
 import { fromSpec, type AgentSpec } from './agent-spec';
@@ -61,6 +62,16 @@ export interface MatchJob {
    * view (`evalLeaves`, src/analysis/evalCalibration.ts). Evaluated on a copy: the game is the same with or without it.
    */
   evalLeaves?: boolean;
+  /**
+   * The refit (scripts/eval-refit.ts, REVIEW_2026-11-24 C.3), with `evalLeaves`: also a mid leaf at this share of the
+   * live game's main-phase decisions (the position before the active seat chooses), sampled by a hash of the seed and
+   * the decision's number (no random number drawn). Evaluated on a copy: the game is the same with or without it.
+   */
+  midLeaves?: number;
+  /** with `evalLeaves`: measure the leaves' features with these weights (the value `v` stays DEFAULT_WEIGHTS') */
+  leafMeasure?: EvalWeights;
+  /** with `evalLeaves`: also record each leaf's value with these weights (`vc`) */
+  leafCompare?: EvalWeights;
   /**
    * C.1's intended-effect metric (scripts/cred-trace.ts, botcheck --cred-trace): at every end phase, each seat's Street
    * Cred parity and Gig parity (`credEnds`). Observed on the real game only: the game is the same with or without it.
@@ -232,17 +243,9 @@ parentPort?.on('message', async (job: MatchJob) => {
     // with decisions, also the bots' own option scores (INFO-6): read after each answer, aggregated here like the rest
     const rec = job.decisions || job.synergies || (job.sellSplit && job.trace) ? new DecisionRecorder({ boards: !!job.synergies, scores: !!job.decisions }) : null;
     g.telemetry = rec;
-    const leaves: EvalLeaf[] | null = job.evalLeaves ? [] : null;
-    if (leaves) {
-      // observe after every end phase of this game (clones are separate objects, so lookahead is not observed)
-      const endPhase = g.endPhase.bind(g);
-      let profiled: [EvalWeights, EvalWeights] | null = null;
-      g.endPhase = async () => {
-        await endPhase();
-        profiled ??= [profiledWeights(g, 0), profiledWeights(g, 1)];
-        leaves.push(evalLeaf(g, profiled));
-      };
-    }
+    // observe after every end phase of this game, and at sampled main-phase decisions (clones are separate objects, so
+    // lookahead is not observed)
+    const leaves: EvalLeaf[] | null = job.evalLeaves ? watchLeaves(g, job.seed, { mid: job.midLeaves, measure: job.leafMeasure, compare: job.leafCompare }) : null;
     const credEnds = job.credTrace ? emptyCredEnds() : null;
     if (credEnds) traceCred(g, credEnds);
     const s = await g.run();
