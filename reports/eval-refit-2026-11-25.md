@@ -71,3 +71,45 @@ Hard costs about 0.8 to 1.0 thread-seconds a game on the library (0.79 in REVIEW
 | Information: switches apart (Medium), spentRisk alone (Hard, meta `--per 20`) | ~40,000 Medium, 3,360 Hard | ~20 + ~50 min | ~10 min |
 
 In all about 30,000 Hard games (33,000 with the optional check) and 100,000 Medium games: 7 to 9 thread-hours, about 1 to 1¼ hours on 8 threads unloaded, plus about half an hour of single-threaded fitting; double it on a shared machine. The fitting games are at the bottom of the 5,000 to 8,000 the item aimed at; with the mid rows they give about 194,000 rows, 1.6 times the 121,328 of the 11-18 calibration's 9,940 games (one view each).
+
+## Results (SIM_VERSION 12, commit 5ece9a8 merged; 10 threads)
+
+### The fit
+
+`npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 80001 --mid 0.25 --name refit-v12 --threads 10`: 4,970 Hard games in 473 s, fitted in 392 s; rows mid 55,710 / 18,330, next 45,641 / 15,209, ender 45,641 / 15,209 (fitting / held-out), games 3,728 / 1,242. λ 1e-4 by 5 folds (the path is flat to 1e-3: 0.5001, 0.5001, 0.5002). Linear reading of the current weights against evaluate(): mean |difference| 2.1 points.
+
+Held-out log-loss (the fit's own held-out games, not yet rule 1 (a)): current weights 0.5409, candidate 0.5305 (no controls); with the deck controls 0.5138 against 0.5066, paired −0.0072 [−0.0125, −0.0018]. Per kind with controls: mid 0.5374 → 0.5210, next 0.4927 → 0.4899, ender 0.5064 → 0.5059: almost all of the gain is on the mid rows; at Hard's cuts the two are within a few thousandths.
+
+| term | current (v12) | fit ± 1.96 SE (by game) | candidate | note |
+|---|---|---|---|---|
+| gig | 20 | 20.0 (anchor) | 20 | |
+| gigNear | 50.8 | 67.9 ± 7.5 | 67.9 | |
+| unitPower | 13.2 | 13.5 ± 3.3 | 13.5 | |
+| unitCost | −4.81 | +2.34 ± 6.0 | −4.81 | not identified (kept) |
+| unitBase | 50.3 | 23.7 ± 17 | 23.7 | |
+| blocker | −44.1 | −16.7 ± 15 | −16.7 | as the deck-controlled fit of 11-12 (−18.9); the 11-18 refit without controls said −3.7 |
+| unitGear | 1.5 | 14.6 ± 16 | 1.5 | not identified |
+| stealsTwo | 42.8 | 34.0 ± 18 | 34 | |
+| goSolo | 0 | −145 ± 21 | 0 | fixed by argument (BOT-A) |
+| spentRisk | 0.087 | 0.198 ± 0.053 | 0.198 | measured under the main-phase rule |
+| hand | 4.54 | 35.2 ± 6.2 | 35.2 | the 11-18 refit said 21.9 |
+| eddie | 26.9 | 10.4 ± 12 | 10.4 | the 11-18 refit said 52.5 (no controls, no readyTrick) |
+| faceUpLegend | 8.99 | 5.44 ± 8.3 | 5.44 | |
+| legendGear | 2 | 15.8 ± 60 | 2 | not identified |
+| lowDeck | 8 | — (never varies) | 8 | not identified |
+| plan | 0.915 | **−2.18 ± 1.0** | −2.18 | **sign flip** |
+| exposed | 0.886 | 0.372 ± 0.029 | 0.372 | |
+| threat | 0.971 | 1.15 ± 0.054 | 1.15 | |
+| rivalLethal | 400 | 393 ± 52 | 400 | fixed by argument |
+| readyTrick | 12 | 2.65 ± 11 | 2.65 | identified only just (1.96 SE 11 < 12) |
+
+### Rule 1 (b): failed, so the measurement stops here
+
+One identified term flips sign: `plan`, 0.915 → −2.18 ± 1.0. No game reason for it could be stated:
+- `plan` is mostly Gig count by another name (correlation 0.72 with the gig feature, 0.67 with gigNear; it is non-zero in 99.6% of rows), and the flip comes with gigNear rising from 50.8 to 67.9: a trade between collinear columns, not a price of holding Gigs that fit the list.
+- By row kind (features + controls, same λ): mid −1.43 ± 0.79, next −0.28 ± 0.67, ender −0.14 ± 0.72. Only the main-phase rows are negative beyond noise; at Hard's cuts the fit cannot tell plan from 0 (and it excludes 0.915 at next).
+- A negative `plan` would turn every Gig choice the evaluation scores against the list's own plan: Kerry Eurodyne's reroll (`wantsReroll` multiplies planScore by `w.plan`), and through `evaluate()` every roll-in, steal, adjust and swap a rollout values, including C.1's Street Cred parity (SIM_VERSION 10). That is a behaviour no one has argued for.
+
+So by the rule written above, the candidate is not proposed and no fresh games, botcheck or per-deck report were played. The set is not added to `src/ai/weightSets.ts`; its block is above in this file's history (the run's `weight-set.ts.txt`) and in the coordinator's report.
+
+Information (the fit's held-out games, paired with controls, not a rule step): the candidate with `plan` kept at 0.915 is −0.0045 [−0.0096, +0.0005] against the current weights (not distinguishable); with `plan` 0, −0.0057 [−0.0108, −0.0005]. Going on with `plan` fixed (by argument, as `goSolo` is) would be a change to the rule after its result, so it is the coordinator's decision, not this run's.
