@@ -10,6 +10,11 @@
 //                                                              costly ratings played on to the end with Hard; design (a) and (b) of R2
 //   npx tsx scripts/review-validity.ts late --out DIR [--positions 150] [--pool 64] [--truth 24]
 //                                                              late-game detection (R6): more worlds, rolloutWins, both
+//   npx tsx scripts/review-validity.ts coach --out DIR           the coach's grade of every move of both seats (as the Play page grades)
+//   npx tsx scripts/review-validity.ts costs --out DIR [--truth 16] [--per-stratum 60] [--reuse DIR2]
+//                                                              row 6: what each rating band (coach and review) costs in win
+//                                                              chance, played to the end with Hard; --reuse reads the truth an
+//                                                              earlier `flags` run measured on the same games (same --seed)
 //
 // Each step writes its JSON into DIR and reads the earlier ones from it (nothing is written outside DIR).
 import fs from 'node:fs';
@@ -19,8 +24,8 @@ import { gameDeck } from '../src/lib/tournament';
 import { clampPlayOut, DECIDED_EVAL, DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { CAP } from '../src/ai/reviewer';
 import type { DecisionReview } from '../src/ai/reviewer';
-import { confirmFlag, GIG, MISTAKE_GIGS, rateOracle, seatSummary, withinNoise, type GameReviewRecord, type ReviewMove } from '../src/lib/gameReview';
-import type { Replay, ValidityJob, ValidityResult } from './review-validity-worker';
+import { BLUNDER_GIGS, confirmFlag, GIG, MISTAKE_GIGS, rateOracle, seatSummary, withinNoise, type GameReviewRecord, type ReviewMove } from '../src/lib/gameReview';
+import type { CoachGradeRow, Replay, ValidityJob, ValidityResult } from './review-validity-worker';
 import type { PlayerId } from '../src/engine/types';
 
 const { values: V, positionals } = cli(
@@ -38,6 +43,8 @@ const { values: V, positionals } = cli(
     'hard-worlds': int(16, { min: 2 }),
     positions: int(150, { min: 1 }),
     pool: int(64, { min: 48 }),
+    reuse: str(),
+    'per-stratum': int(60, { min: 1 }),
   },
   { minPositionals: 1, maxPositionals: 1 },
 );
@@ -453,6 +460,205 @@ function lateReport(rows: LateRow[]) {
   for (const v of verdicts) console.log(v);
 }
 
+// ------------------------------------------------------------------------------------------------ row 6: what a rating costs
+
+/** The coach's grade of every move both seats made that it would advise on (the Play page's grading, confirmation included). */
+async function coach() {
+  const gs = loadGames();
+  const jobs = gs.map((g): Extract<ValidityJob, { kind: 'coach' }> => ({ kind: 'coach', id: `${g.deal}:${g.tier}`, replay: replay(g) }));
+  const res = await pool(jobs, 'coach');
+  const out: Record<string, CoachGradeRow[]> = {};
+  let ms = 0;
+  for (const r of res) {
+    if (r.kind !== 'coach' || !r.grades) {
+      console.error(`${r.id}: ${(r as { skip?: string }).skip}`);
+      continue;
+    }
+    out[r.id] = r.grades;
+    ms += r.ms ?? 0;
+  }
+  writeJson('coach.json', out);
+  const all = Object.values(out).flat();
+  const by = (v: string) => all.filter((x) => x.verdict === v).length;
+  console.log(`${Object.keys(out).length} games, ${all.length} moves graded (${f1(ms / Math.max(1, all.length))} ms each): agree ${by('agree')}, best ${by('best')}, close ${by('close')}, unclear ${by('unclear')}, slip ${by('inaccuracy')}, mistake ${by('mistake')} (blunder ${all.filter((x) => x.verdict === 'mistake' && (x.gap ?? 0) >= BLUNDER_GIGS).length}), unscored ${by('unscored')}`);
+}
+
+const BANDS = ['slip', 'mistake', 'blunder'] as const;
+type Band = (typeof BANDS)[number];
+type Who = 'easy' | 'hard' | 'medium';
+const WHO: readonly Who[] = ['easy', 'medium', 'hard'];
+/** early: turns 1–4, middle: 5–9, late: 10 and after */
+const stageOf = (turn: number) => (turn <= 4 ? 'early' : turn <= 9 ? 'middle' : 'late');
+
+interface CostFlag {
+  /** deal:tier:p:at:best, the position and the recommended move: one measurement serves every rating that names it */
+  key: string;
+  inst: 'review' | 'coach';
+  band: Band;
+  who: Who;
+  turn: number;
+  gap: number;
+  g: Game;
+  p: PlayerId;
+  at: number;
+  best: string;
+}
+
+/** Every costly rating of a main-phase action or reaction with a named better move, by the review and by the coach. */
+function costPopulation(gs: Game[], cg: Record<string, CoachGradeRow[]>): CostFlag[] {
+  const out: CostFlag[] = [];
+  for (const g of gs) {
+    const id = `${g.deal}:${g.tier}`;
+    for (const m of g.rec.moves) {
+      if (!(BANDS as readonly string[]).includes(m.r) || !ACTIONS.has(m.cat) || !m.best) continue;
+      out.push({ key: `${id}:${m.p}:${m.at}:${m.best}`, inst: 'review', band: m.r as Band, who: (m.p === 1 ? 'medium' : g.tier) as Who, turn: m.turn, gap: m.raw ?? m.gap ?? 0, g, p: m.p, at: m.at, best: m.best });
+    }
+    for (const c of cg[id] ?? []) {
+      if (c.same || (c.verdict !== 'inaccuracy' && c.verdict !== 'mistake')) continue;
+      const band: Band = c.verdict === 'inaccuracy' ? 'slip' : (c.gap ?? 0) >= BLUNDER_GIGS ? 'blunder' : 'mistake';
+      out.push({ key: `${id}:${c.p}:${c.at}:${c.best}`, inst: 'coach', band, who: (c.p === 1 ? 'medium' : g.tier) as Who, turn: c.turn, gap: c.gap ?? 0, g, p: c.p, at: c.at, best: c.best });
+    }
+  }
+  return out;
+}
+
+/**
+ * Truth already measured by the `flags` step in another output directory on the same games (`--reuse DIR`): its
+ * selection is re-made from that directory's games.json exactly as `flags` made it, so each row's position is known.
+ */
+function reusedTruth(dir: string): Map<string, { gain: number; worlds: number }> {
+  const m = new Map<string, { gain: number; worlds: number }>();
+  if (!dir) return m;
+  const gs = JSON.parse(fs.readFileSync(path.join(dir, 'games.json'), 'utf8')) as Game[];
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, 'flags.json'), 'utf8')) as FlagRow[];
+  const r = lcg(V.seed * 7 + 3);
+  const cands: { who: string; g: Game; m: ReviewMove }[] = [];
+  for (const g of gs)
+    for (const p of [0, 1] as const)
+      for (const m of g.rec.moves.filter((x) => x.p === p && COSTLY.has(x.r))) if (ACTIONS.has(m.cat) && m.best) cands.push({ who: p === 1 ? 'medium' : g.tier, g, m });
+  const take = (who: string, n: number) => {
+    const xs = cands.filter((c) => c.who === who);
+    for (let i = xs.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [xs[i], xs[j]] = [xs[j]!, xs[i]!];
+    }
+    return xs.slice(0, n);
+  };
+  // the `flags` step's defaults (120 / 150 / 100), as the run being reused was made
+  const chosen = [...take('hard', 120), ...take('easy', 150), ...take('medium', 100)];
+  let bad = 0;
+  for (const row of rows) {
+    const c = chosen[Number(row.id)];
+    if (!c || Math.abs((c.m.raw ?? c.m.gap ?? 0) - row.gap) > 1e-9) {
+      bad++;
+      continue;
+    }
+    m.set(`${c.g.deal}:${c.g.tier}:${c.m.p}:${c.m.at}:${c.m.best}`, { gain: row.gain, worlds: 24 });
+  }
+  if (bad) throw new Error(`--reuse: ${bad} of ${rows.length} rows did not match their position (another seed or flag counts?)`);
+  return m;
+}
+
+interface CostRow {
+  key: string;
+  gain: number;
+  worlds: number;
+}
+
+/**
+ * The cost of each rating band, played to the end with Hard on both seats: for each (instrument, band, player) stratum a
+ * random sample of up to `--per-stratum` flags, each measured once by its position and recommended move (reused from
+ * `--reuse DIR` when that run measured it), on `--truth` paired worlds.
+ */
+async function costs() {
+  const gs = loadGames();
+  const cg = readJson<Record<string, CoachGradeRow[]>>('coach.json');
+  const pop = costPopulation(gs, cg);
+  const reuse = reusedTruth(V.reuse ?? '');
+  const done = new Map<string, CostRow>();
+  if (fs.existsSync(file('costs.json'))) for (const x of readJson<CostRow[]>('costs.json')) done.set(x.key, x);
+  for (const [k, v] of reuse) if (!done.has(k)) done.set(k, { key: k, ...v });
+  const r = lcg(V.seed * 31 + 11);
+  const want = new Map<string, CostFlag>();
+  for (const inst of ['review', 'coach'] as const)
+    for (const band of BANDS)
+      for (const who of WHO) {
+        const xs = pop.filter((x) => x.inst === inst && x.band === band && x.who === who);
+        for (let i = xs.length - 1; i > 0; i--) {
+          const j = Math.floor(r() * (i + 1));
+          [xs[i], xs[j]] = [xs[j]!, xs[i]!];
+        }
+        // measured ones first count toward the stratum's sample (they are a random part of it: the earlier run sampled at random too)
+        const have = xs.filter((x) => done.has(x.key));
+        const rest = xs.filter((x) => !done.has(x.key));
+        for (const x of rest.slice(0, Math.max(0, V['per-stratum'] - have.length))) want.set(x.key, x);
+      }
+  console.log(`Costly ratings: ${pop.length} (${new Set(pop.map((x) => x.key)).size} positions); ${done.size} already measured; measuring ${want.size} on ${V.truth} worlds`);
+  const list = [...want.values()];
+  const jobs = list.map((c, k): Extract<ValidityJob, { kind: 'flag' }> => ({ kind: 'flag', id: String(k), replay: replay(c.g), p: c.p, at: c.at, best: c.best, truthWorlds: V.truth, hardWorlds: 0, seed: 8_000_000 + k * 101 }));
+  const res = jobs.length ? await pool(jobs, 'costs') : [];
+  for (const x of res) {
+    if (x.kind !== 'flag' || !x.truthBest) {
+      done.set(list[Number(x.id)]!.key, { key: list[Number(x.id)]!.key, gain: NaN, worlds: 0 });
+      continue;
+    }
+    const d = x.truthBest.map((v, i) => v - x.truthMade![i]!);
+    done.set(list[Number(x.id)]!.key, { key: list[Number(x.id)]!.key, gain: 100 * mean(d), worlds: d.length });
+  }
+  writeJson('costs.json', [...done.values()]);
+  costReport(pop, done);
+}
+
+/**
+ * A band's figure: the mean gain over every costly rating of the band in these games, estimated by strata (player type,
+ * weighted by its share of the band's ratings), with the stratified standard error; 90% interval ±1.645 SE.
+ */
+function stratified(pop: CostFlag[], done: Map<string, CostRow>, sel: (x: CostFlag) => boolean) {
+  const xs = pop.filter(sel);
+  let est = 0;
+  let v = 0;
+  let n = 0;
+  const per: string[] = [];
+  for (const who of WHO) {
+    const s = xs.filter((x) => x.who === who);
+    if (!s.length) continue;
+    const meas = s.map((x) => done.get(x.key)?.gain).filter((g): g is number => g !== undefined && Number.isFinite(g));
+    const w = s.length / xs.length;
+    per.push(`${who} ${meas.length}/${s.length} ${f1(mean(meas))}`);
+    if (!meas.length) return { est: NaN, se: NaN, n: 0, pop: xs.length, per: per.join(', ') };
+    est += w * mean(meas);
+    // a stratum of one: its spread taken as the band's pooled spread
+    v += w * w * (meas.length > 1 ? sd(meas) ** 2 : 400) / meas.length * (1 - meas.length / s.length);
+    n += meas.length;
+  }
+  return { est, se: Math.sqrt(v), n, pop: xs.length, per: per.join(', '), gap: mean(xs.map((x) => x.gap)) };
+}
+
+function costReport(pop: CostFlag[], done: Map<string, CostRow>) {
+  const r0 = (x: number) => Math.round(x);
+  console.log('\n| Rated by | Band | ratings in the games | measured | mean rated gap (Gigs) | gain with Hard to the end (points) | 90% interval | by player: measured/all mean | shown as |');
+  console.log('|---|---|---|---|---|---|---|---|---|');
+  const summary: Record<string, unknown> = {};
+  for (const inst of ['coach', 'review'] as const)
+    for (const band of BANDS) {
+      const s = stratified(pop, done, (x) => x.inst === inst && x.band === band);
+      const lo = s.est - 1.645 * s.se;
+      const hi = s.est + 1.645 * s.se;
+      const shown = !Number.isFinite(s.est) ? '—' : lo > 0 ? `about ${r0(s.est)} points` : 'often costs nothing measurable';
+      summary[`${inst}:${band}`] = { mean: s.est, se: s.se, lo, hi, n: s.n, pop: s.pop };
+      console.log(`| ${inst} | ${band} | ${s.pop} | ${s.n} | ${f2(s.gap ?? NaN)} | ${f1(s.est)} ± ${f1(s.se)} | [${f1(lo)}, ${f1(hi)}] | ${s.per} | ${shown} |`);
+    }
+  console.log('\nBy stage (Mistake or worse; the same estimate, within each stage):');
+  console.log('| Rated by | stage | ratings | measured | gain (points) | 90% interval |');
+  console.log('|---|---|---|---|---|---|');
+  for (const inst of ['coach', 'review'] as const)
+    for (const stage of ['early', 'middle', 'late']) {
+      const s = stratified(pop, done, (x) => x.inst === inst && x.band !== 'slip' && stageOf(x.turn) === stage);
+      console.log(`| ${inst} | ${stage} | ${s.pop} | ${s.n} | ${f1(s.est)} ± ${f1(s.se)} | [${f1(s.est - 1.645 * s.se)}, ${f1(s.est + 1.645 * s.se)}] |`);
+    }
+  writeJson('costs-summary.json', summary);
+}
+
 async function main() {
   if (!V.out) throw new Error('--out DIR is required');
   fs.mkdirSync(out, { recursive: true });
@@ -462,6 +668,11 @@ async function main() {
   else if (step === 'flag-report') flagReport(readJson<FlagRow[]>('flags.json'));
   else if (step === 'late') await late();
   else if (step === 'late-report') lateReport(readJson<LateRow[]>('late.json'));
-  else throw new Error(`unknown step "${step ?? ''}" (games, flags, flag-report, late, late-report)`);
+  else if (step === 'coach') await coach();
+  else if (step === 'costs') await costs();
+  else if (step === 'cost-report') {
+    const done = new Map(readJson<CostRow[]>('costs.json').map((x) => [x.key, x] as const));
+    costReport(costPopulation(loadGames(), readJson<Record<string, CoachGradeRow[]>>('coach.json')), done);
+  } else throw new Error(`unknown step "${step ?? ''}" (games, flags, flag-report, late, late-report, coach, costs, cost-report)`);
 }
 runMain(main);

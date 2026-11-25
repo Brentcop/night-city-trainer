@@ -140,3 +140,29 @@ The Hard check costs +43% of the median review here (within the +50% the task al
 seat's flags (Hard rival: Mistakes 2 → 1, Blunders 7 → 6 over 12 games) and makes the costly ratings slightly less
 stable on a re-run, because whether a seat has at most 2 of them, and the Hard check's own worlds, both move with the
 oracle seed.
+
+## Row 6: what a rating costs in win chance (2026-11-25)
+
+Measured with the `coach` and `costs` steps of `scripts/review-validity.ts` on the same 240 games (`games --deals 120
+--seed 1`, played again and reviewed with today's review: REVIEW_RULES and REVIEW_MEASURE 4, mulligans not rated, the
+Hard check of a seat's 1 or 2 Mistakes and Blunders), SIM_VERSION 9, at most 4 threads.
+
+### The rule, written before the measurements
+
+**Data.** Costly ratings = every Slip, Mistake and Blunder of a main-phase action or a reaction with a named better
+move, of both seats (the Easy and Hard players in seat 0, the Medium opponent in seat 1): by the Game review as stored,
+and by the coach as the Play page grades a person's move (advice, the move scored, a costly or wide close grade
+confirmed on 16 fresh worlds: `gradeFully`), asked at every such decision of both seats. A coach Mistake with a gap of 1
+Gig or more is its Blunder (`verdictRating`). The truth of one rating: the recommended move's win rate minus the move
+made's, both played to the end of the game with Hard on both seats (the deciding seat's hidden cards re-dealt) on paired
+worlds (16 for new measurements; 24 where the `flags` step above already measured the same position and move, which is
+reused). Samples: in each (instrument, band, player) stratum a random sample of up to 60 ratings (fewer when the games
+have fewer).
+
+**The figure.** A band's figure is the mean gain over every rating of that band in these games, estimated by strata
+(player type, weighted by its share of the band's ratings), with the stratified standard error and a 90% interval
+(±1.645 SE). Shown to players: the figure rounded to a whole point, as "about N% win chance on average", with the
+measurement named (the Hard bot playing on to the end, the date); a band whose 90% interval includes 0 is shown as
+"often costs nothing measurable" and no figure. The coach's bands and the review's are measured and shown apart. By
+game stage (turns 1–4, 5–9, 10 on) the same estimate over Mistakes and Blunders together, for information only: a stage
+is not given its own words unless every band is measured within ±3 points there.

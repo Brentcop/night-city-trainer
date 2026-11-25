@@ -16,6 +16,7 @@ import { TIER_SETTINGS, makeTierBot } from '../src/ai/tiers';
 import { DEFAULT_WEIGHTS } from '../src/ai/eval';
 import { makeWorlds, playOut, playOutValue, nextStartResult, type PlayOutMove } from '../src/ai/playOut';
 import { ScriptedAgent, type SeatAnswers } from '../src/ai/reviewer';
+import { adviseRequest, coachRequest, coachWorthAsking, gradeFully, scorable } from '../src/ai/coach';
 import { runGameReview } from '../src/sim/gameReviewRun';
 import type { GameReviewRecord } from '../src/lib/gameReview';
 import type { PracticeReviewSpec } from '../src/sim/practiceReview';
@@ -28,13 +29,30 @@ export interface Replay {
   answers: [SeatAnswers, SeatAnswers];
 }
 
+/** One coach grade of a recorded move (the `coach` job): as the Play page grades it (gradeFully, confirmation included). */
+export interface CoachGradeRow {
+  p: PlayerId;
+  /** the seat's answer number (ReviewMove.at) */
+  at: number;
+  turn: number;
+  verdict: string;
+  gap: number | null;
+  se?: number;
+  confirmed?: number;
+  /** the coach's pick as the engine labels it (the `flag` job's `best`), and whether it is the move made */
+  best: string;
+  same: boolean;
+}
+
 export type ValidityJob =
   | { kind: 'game'; id: string; decks: [DeckList, DeckList]; seed: number; first: PlayerId; tier: string; confirm: number }
+  | { kind: 'coach'; id: string; replay: Replay }
   | { kind: 'flag'; id: string; replay: Replay; p: PlayerId; at: number; best: string; truthWorlds: number; hardWorlds: number; seed: number }
   | { kind: 'late'; id: string; replay: Replay; p: PlayerId; at: number; pool: number; truthWorlds: number; seed: number };
 
 export type ValidityResult =
   | { kind: 'game'; id: string; rec: GameReviewRecord; playMs: number; reviewMs: number; winner: PlayerId | 'tie' | null }
+  | { kind: 'coach'; id: string; grades?: CoachGradeRow[]; ms?: number; skip?: string }
   | {
       kind: 'flag';
       id: string;
@@ -185,6 +203,8 @@ async function flag(job: Extract<ValidityJob, { kind: 'flag' }>): Promise<Validi
       out.truthBest.push((await played(g, job.p, mb, w, hard, true)).result);
       out.truthMade.push((await played(g, job.p, mm, w, hard, true)).result);
     }
+    // hardWorlds 0: the truth alone (the `costs` step of scripts/review-validity.ts)
+    if (job.hardWorlds <= 0) return;
     const hw = makeWorlds(job.hardWorlds, r);
     const t0 = Date.now();
     out.hardBest = [];
@@ -197,6 +217,42 @@ async function flag(job: Extract<ValidityJob, { kind: 'flag' }>): Promise<Validi
   });
   if (!ok) out.skip ??= 'decision not reached';
   return out;
+}
+
+/**
+ * The coach's grade of every move of both seats it would advise on (coachWorthAsking, main-phase actions and reactions),
+ * as the Play page grades a person's move: a snapshot (coachRequest), advice (adviseRequest), the move graded, scored when
+ * the advice did not value it, and confirmed on fresh worlds when costly (gradeFully). The game replays its record.
+ */
+async function coachGrades(job: Extract<ValidityJob, { kind: 'coach' }>): Promise<ValidityResult> {
+  const t0 = Date.now();
+  const r = job.replay;
+  const grades: CoachGradeRow[] = [];
+  const seat = (q: PlayerId): Agent => {
+    const a = r.answers[q];
+    const s = new ScriptedAgent(q === 0 ? 'A' : 'B', a.choices, null, a.pay, a.order, !!a.endTurn);
+    let k = 0;
+    return {
+      name: s.name,
+      choosesPayment: s.choosesPayment,
+      choosesOrder: s.choosesOrder,
+      confirmsEndTurn: s.confirmsEndTurn,
+      decide: async (g: Game, d: Decision) => {
+        const at = k++;
+        const made = a.choices[at]?.[0];
+        if (made !== undefined && scorable(d) && coachWorthAsking(d) && g.s.winner === null) {
+          const q = coachRequest(g, d);
+          const adv = await adviseRequest(q);
+          const { grade } = await gradeFully(q, made, adv, g.s.turn);
+          const best = d.options[adv.index]?.label ?? '?';
+          grades.push({ p: q.decision.player, at, turn: g.s.turn, verdict: grade.verdict, gap: grade.gap, ...(grade.se !== undefined ? { se: grade.se } : {}), ...(grade.confirmed ? { confirmed: grade.confirmed } : {}), best, same: best === d.options[made]?.label });
+        }
+        return s.decide(g, d);
+      },
+    };
+  };
+  await Game.create(r.decks, [seat(0), seat(1)], { seed: r.seed, first: r.first, log: false }).run();
+  return { kind: 'coach', id: job.id, grades, ms: Date.now() - t0 };
 }
 
 async function late(job: Extract<ValidityJob, { kind: 'late' }>): Promise<ValidityResult> {
@@ -249,7 +305,7 @@ async function late(job: Extract<ValidityJob, { kind: 'late' }>): Promise<Validi
 
 parentPort?.on('message', async (job: ValidityJob) => {
   try {
-    const r = job.kind === 'game' ? await playGame(job) : job.kind === 'flag' ? await flag(job) : await late(job);
+    const r = job.kind === 'game' ? await playGame(job) : job.kind === 'flag' ? await flag(job) : job.kind === 'coach' ? await coachGrades(job) : await late(job);
     parentPort!.postMessage(r);
   } catch (e) {
     parentPort!.postMessage({ kind: job.kind, id: job.id, skip: `error: ${String((e as Error)?.stack ?? e).slice(0, 400)}` });
