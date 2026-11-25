@@ -26,6 +26,8 @@ export interface PlayoutConfig {
   profiles: Profiles | null;
   evalWeights: EvalWeights;
   rolloutWins: boolean;
+  /** HeuristicOptions.fastTricks of the deciding bot (absent = off) */
+  fastTricks?: boolean;
 }
 
 export interface PlayoutBatch {

@@ -133,6 +133,26 @@ export interface HeuristicOptions {
   easyGuard?: boolean;
   seed?: number;
   /**
+   * C.2 (docs/REVIEW_2026-11-24.md B1), part (a): the evaluation's `readyTrick` and `readyCall` weights, both set to this
+   * (src/ai/eval.ts readyTrickTerm: a ready payment source kept for a Quick Program in hand or a reaction Call is worth
+   * this much, only up to the cost of what could be cast on the rival's coming turn). The bot's rollout and reaction
+   * play-out bots read the same weights. 0 or absent (default) = the weights as given, exactly as before; to measure the
+   * Programs alone, leave this off and set `readyTrick` in the weights.
+   */
+  readyTricks?: number;
+  /**
+   * C.2 (docs/REVIEW_2026-11-24.md B1), part (b): the fast agents of every one-step projection (simulate(), the 1-ply
+   * reaction's clones, turnPlan) and of this bot's rollout and reaction play-out bots also play a Quick Program or a
+   * quick ability in a reaction window when the one-step resolve Medium uses (clone, play it, let the attack finish with
+   * no further reactions, evaluate) values it 0.5 above the fast rule's own choice, so an attack into a trick is not
+   * valued as if there were none. The bot's own reactions are unchanged (Medium and Hard already value tricks), and so
+   * is live Easy: its tier does not set this (a fast bot with it set plays its own reactions that way too). false
+   * (default) = exactly as before.
+   */
+  fastTricks?: boolean;
+  /** Internal (fastTricks): the weights a fast agent values a trick with; set by fastAgents() from its parent's weights. */
+  trickWeights?: EvalWeights | null;
+  /**
    * Skip the explanations of a main-phase or reaction decision (lastThought, lastAlternatives, lastScores), which only
    * readers outside play use: telemetry, the coach, the reviewer, the Play page. Set on the bots a deep rollout or deep
    * reaction makes for its play-out clones (rolloutMove, reactionWorld), which nothing reads; building the strings and
@@ -237,7 +257,7 @@ export class HeuristicAgent implements Agent {
       name: opts.name ?? (opts.lookahead === false ? 'Fast bot' : opts.deep ? 'Deep bot' : 'Lookahead bot'),
       lookahead: opts.lookahead ?? true,
       // the fast policy (lookahead off: Easy, clone agents) keeps the hand weights; see FAST_WEIGHTS
-      weights: opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS),
+      weights: withReadyTricks(opts.weights ?? (opts.lookahead === false ? FAST_WEIGHTS : DEFAULT_WEIGHTS), opts.readyTricks ?? 0),
       noise: opts.noise ?? 0,
       maxCandidates: opts.maxCandidates ?? 40,
       deep: opts.deep ?? 0,
@@ -260,6 +280,9 @@ export class HeuristicAgent implements Agent {
       mulligan: opts.mulligan ?? 'rule',
       easyGuard: opts.easyGuard ?? false,
       seed: opts.seed ?? 7,
+      readyTricks: opts.readyTricks ?? 0,
+      fastTricks: opts.fastTricks ?? false,
+      trickWeights: opts.trickWeights ?? null,
       quiet: opts.quiet ?? false,
       rolloutPool: opts.rolloutPool ?? undefined,
     };
@@ -302,6 +325,8 @@ export class HeuristicAgent implements Agent {
     if (o.impact) parts.push(`imp${o.impact}`);
     if (o.profiles) parts.push('prof');
     if (o.noise) parts.push(`noise${o.noise}`);
+    if (o.readyTricks) parts.push(`ready${o.readyTricks}`);
+    if (o.fastTricks) parts.push('ftricks');
     return parts.join(' ');
   }
 
@@ -331,8 +356,19 @@ export class HeuristicAgent implements Agent {
     return [mk(p === 0 ? own : rival, 0), mk(p === 1 ? own : rival, 1)];
   }
 
-  /** The fast agents of simulate() / reaction clones: FAST_WEIGHTS, plus the deciding seat's package weights when set. */
+  /**
+   * The fast agents of simulate() / reaction clones: FAST_WEIGHTS, plus the deciding seat's package weights when set.
+   * With fastTricks they also value tricks in reaction windows, with this bot's weights (the rival seat's without packages).
+   */
   private fastAgents(p: PlayerId): [Agent, Agent] {
+    if (!this.opts.fastTricks) return this.fastAgentsPlain(p);
+    const pair = this.fastAgentsPlain(p) as [HeuristicAgent, HeuristicAgent];
+    const tw = this.opts.trickWeights ?? this.opts.weights;
+    const mk = (seat: PlayerId) => new HeuristicAgent({ lookahead: false, weights: pair[seat].opts.weights, fastTricks: true, trickWeights: seat === p ? tw : withoutPackages(tw) });
+    return [mk(0), mk(1)];
+  }
+
+  private fastAgentsPlain(p: PlayerId): [Agent, Agent] {
     if (!usesPackages(this.opts.weights) && !usesPackages(FAST_WEIGHTS)) return [new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS }), new HeuristicAgent({ lookahead: false, weights: FAST_WEIGHTS })];
     const own: EvalWeights = { ...FAST_WEIGHTS, pkgHold: this.opts.weights.pkgHold, pkgAssembly: this.opts.weights.pkgAssembly, pkgSteer: this.opts.weights.pkgSteer, pkgProtect: this.opts.weights.pkgProtect };
     const rival = withoutPackages(FAST_WEIGHTS);
@@ -721,7 +757,7 @@ export class HeuristicAgent implements Agent {
   /** One deep-reaction play-out: resume the attack with reaction r in world w, play p's turn, score it. */
   private async reactionWorld(g: Game, p: PlayerId, r: Reaction, w: World): Promise<number> {
     const attacker = g.s.attack!.attacker;
-    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b })));
+    const cg = g.clone(this.cloneAgents(p, (weights, seat) => new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? w.a : w.b, fastTricks: this.opts.fastTricks })));
     cg.s.rng = w.rng;
     hideInfo(cg, p);
     await playOut(cg, p, { reaction: r, attacker });
@@ -790,7 +826,7 @@ export class HeuristicAgent implements Agent {
 
   /** Config for the playout pool: the serialisable subset of this agent's state a sub-worker needs. */
   private playoutConfig(g: Game, p: PlayerId): import('./playoutPool').PlayoutConfig {
-    return { rawWeights: this.opts.weights, profiles: this.opts.profiles, evalWeights: this.w(g, p), rolloutWins: this.opts.rolloutWins };
+    return { rawWeights: this.opts.weights, profiles: this.opts.profiles, evalWeights: this.w(g, p), rolloutWins: this.opts.rolloutWins, ...(this.opts.fastTricks ? { fastTricks: true } : {}) };
   }
 
   /**
@@ -808,8 +844,8 @@ export class HeuristicAgent implements Agent {
       this.cloneAgents(p, (weights, seat) => {
         const noSellTurn = seat === p ? noSell : undefined;
         return world
-          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn })
-          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn });
+          ? new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, seed: seat === 0 ? world.a : world.b, noSellTurn, fastTricks: this.opts.fastTricks })
+          : new HeuristicAgent({ lookahead: true, deep: 0, maxCandidates: 14, quiet: true, weights, profiles: this.opts.profiles, noSellTurn, fastTricks: this.opts.fastTricks });
       }),
     );
     if (world) cg.s.rng = world.rng;
@@ -938,7 +974,7 @@ export class HeuristicAgent implements Agent {
     const p = d.player;
     const rx = d.options.map((o) => o.action as Reaction);
     const endIdx = rx.findIndex((r) => r.type === 'endReact');
-    if (!this.opts.lookahead) return this.fastReaction(g, rx);
+    if (!this.opts.lookahead) return this.opts.fastTricks ? this.fastTrickReaction(g, p, rx) : this.fastReaction(g, rx);
     if (this.opts.deepReactions > 0 && g.s.attack) return this.deepReaction(g, d, rx, endIdx);
     // Play the attack out in a clone (no further reactions, sub-choices by the fast policy) and evaluate the result, so
     // fight and steal effects armed by the reaction count (Safety Override, "when this blocks" triggers, ...). Letting
@@ -1016,6 +1052,43 @@ export class HeuristicAgent implements Agent {
     const { bestI, bestV } = await pickReaction(g, rx, endIdx, baseV, value);
     this.lastThought = `${g.describeAction(rx[bestI])} (projected ${bestV.toFixed(1)} vs ${baseV.toFixed(1)})`;
     this.lastScores = { kind: 'reaction', scale: 'deep', opts: reactionScores(g, rx, (r) => seen.get(r) ?? null), chosen: bestI, worlds, d };
+    return bestI;
+  }
+
+  /**
+   * fastTricks: the fast rule's reaction, unless a Quick Program or a quick ability beats it by more than 0.5 on the
+   * one-step resolve Medium's reactions use (a copy with hidden information re-dealt, the reaction, the attack finished
+   * with no further reactions, evaluated with trickWeights). No copy is made when no trick is offered.
+   */
+  private async fastTrickReaction(g: Game, p: PlayerId, rx: Reaction[]): Promise<number> {
+    const rule = this.fastReaction(g, rx);
+    const tricks = rx.map((r, i) => ({ r, i })).filter(({ r }) => r.type === 'play' || r.type === 'activate');
+    if (!tricks.length) return rule;
+    const w = this.opts.trickWeights ?? this.opts.weights;
+    const resolve = async (r: Reaction) => {
+      const cg = g.clone(this.fastAgents(p));
+      hideInfo(cg, p);
+      try {
+        if (r.type !== 'endReact') {
+          await cg.doReaction(p, r);
+          await cg.resolvePending();
+        }
+        if (cg.s.attack) await cg.attackRest(cg.s.attack.attacker, true);
+        cg.checkState();
+      } catch (e) {
+        if (!(e instanceof GameOverSignal)) throw e;
+      }
+      return evaluate(cg, p, w);
+    };
+    let bestI = rule;
+    let bestV = await resolve(rx[rule]);
+    for (const { r, i } of tricks) {
+      const v = await resolve(r);
+      if (v > bestV + 0.5) {
+        bestV = v;
+        bestI = i;
+      }
+    }
     return bestI;
   }
 
@@ -1446,6 +1519,11 @@ export class HeuristicAgent implements Agent {
 }
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
+
+/** HeuristicOptions.readyTricks: the weights with readyTrick and readyCall set to `n`; the same object when n is 0. */
+function withReadyTricks(w: EvalWeights, n: number): EvalWeights {
+  return n ? { ...w, readyTrick: n, readyCall: n } : w;
+}
 
 /** The mean cardValue over the card pool (a card the chooser can't see is valued at this). */
 const AVERAGE_CARD_VALUE = (() => {

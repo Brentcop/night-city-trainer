@@ -12,7 +12,7 @@ import type { Profiles } from '../ai/archetype';
 
 const noAgent: Agent = { name: 'none', decide: async () => [0] };
 
-function makeCloneAgent(seat: PlayerId, viewer: PlayerId, world: World, rawWeights: EvalWeights, profiles: Profiles | null, noSellTurn?: number): Agent {
+function makeCloneAgent(seat: PlayerId, viewer: PlayerId, world: World, rawWeights: EvalWeights, profiles: Profiles | null, noSellTurn?: number, fastTricks?: boolean): Agent {
   const own = rawWeights;
   const rival = withoutPackages(own);
   const weights = seat === viewer ? own : rival;
@@ -25,13 +25,14 @@ function makeCloneAgent(seat: PlayerId, viewer: PlayerId, world: World, rawWeigh
     profiles,
     seed: seat === 0 ? world.a : world.b,
     noSellTurn,
+    fastTricks,
   });
 }
 
 function cloneAgents(viewer: PlayerId, world: World, config: PlayoutConfig, noSellTurn?: number): [Agent, Agent] {
   return [
-    makeCloneAgent(0, viewer, world, config.rawWeights, config.profiles, viewer === 0 ? noSellTurn : undefined),
-    makeCloneAgent(1, viewer, world, config.rawWeights, config.profiles, viewer === 1 ? noSellTurn : undefined),
+    makeCloneAgent(0, viewer, world, config.rawWeights, config.profiles, viewer === 0 ? noSellTurn : undefined, config.fastTricks),
+    makeCloneAgent(1, viewer, world, config.rawWeights, config.profiles, viewer === 1 ? noSellTurn : undefined, config.fastTricks),
   ];
 }
 
