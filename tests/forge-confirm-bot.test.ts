@@ -27,8 +27,10 @@ afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
  * screened, so the run reads a frozen copy (--impact-dir): tests/fixtures/forge-impact/impact.json is the (9, hard) card
  * table of 2026-11-24 (Season 3, series runs 2 and 3, and the review telemetry of src/data/analysis.json folded in), whose
  * card means equal what loadImpactTables read that day. Only an edit to S2-08's list or to the forge's code moves the seeds.
+ * SIM_VERSION 12 changed the Medium bot (no matchup profiles), and seed 1's Medium confirmation no longer adopted: the
+ * Medium seed is 2 since (seeds 2 and 4 of 1 to 6 adopt), the screening-bot seed stays 1 (Easy is unchanged).
  */
-const SEED_MEDIUM = '1';
+const SEED_MEDIUM = '2';
 const SEED_PLAIN = '1';
 const ARGS = ['s2-08-explorer-ggy', '--gens', '1', '--games', '14', '--cands', '2', '--bot', 'easy', '--adopt', 'any-gain', '--threads', '2', '--ledger', '--impact-dir', 'tests/fixtures/forge-impact'];
 const forge = (out: string, extra: string[] = [], seed = SEED_PLAIN) => spawnSync(process.execPath, ['--import', 'tsx', 'scripts/forge.ts', ...ARGS, '--seed', seed, ...extra, '--out', path.join(tmp, out)], { encoding: 'utf8' });

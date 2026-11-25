@@ -1,7 +1,7 @@
 {
  "kind": "nct-game-corpus",
  "schema": 1,
- "simVersion": 10,
+ "simVersion": 12,
  "lists": [
   {
    "from": "nc-06-metal-over-meat-yyy.txt",
@@ -3881,7 +3881,7 @@
    ],
    "winner": 1,
    "turns": 12,
-   "hash": "62457d9ca4e8eeaefb2efa9e4f9c8735fd4a2da93b3849327ad6e081b3bbf5b3"
+   "hash": "1610727a56d48f477c5a4d7a9bedcfb91759fc32abb1a197767cd3df4c184b27"
   },
   {
    "id": "hard-02",
@@ -3901,7 +3901,7 @@
    ],
    "winner": 1,
    "turns": 14,
-   "hash": "aac7b12721f18fd7a2b4532e9db7f18476c4ccfde6c5b824f476720ec9647ffa"
+   "hash": "5faa6fb7a83a6c4958142c5cc8f875d77ef20a358c0e149c881a68fdbc4a4975"
   },
   {
    "id": "hard-03",
@@ -3920,8 +3920,8 @@
     }
    ],
    "winner": 0,
-   "turns": 13,
-   "hash": "bf7ed0336fe04da873404d0667dd1169ae09a4cb0d6b12b169feff05bc683d64"
+   "turns": 11,
+   "hash": "bcea6309f7ddfb03a9aee1070921e9ebfff5f0b872b91612186337141fd9dbf8"
   },
   {
    "id": "hard-04",
@@ -3941,7 +3941,7 @@
    ],
    "winner": 0,
    "turns": 14,
-   "hash": "e1f8e7196d9b19b0b80927bfc4161c7ea077f43c113866050e8be0de67770efd"
+   "hash": "69923ff81b906001020ac4d184d130098edf3bcf7e6c9724a8812fe878ddcd68"
   },
   {
    "id": "mixed-01",
@@ -3980,8 +3980,8 @@
     }
    ],
    "winner": 1,
-   "turns": 11,
-   "hash": "b852d01d46685ea839ec34f45d35909ce1e5ba96ced5687356cee6c8cd747aa1"
+   "turns": 15,
+   "hash": "c4048393826b2c6c1d12abd3410256eb7ec34b931901f90a387229fe0dcc388e"
   },
   {
    "id": "mixed-03",
@@ -4080,8 +4080,8 @@
     }
    ],
    "winner": 0,
-   "turns": 15,
-   "hash": "37d6d23526ed6aa7abc9a669222860c5ed7599810db31be700ba952e176c0743"
+   "turns": 14,
+   "hash": "460685806a9d953377d24129de24aaac1e0d8fa0ee356df9952688bcf4f2716b"
   },
   {
    "id": "medium-04",
@@ -4101,7 +4101,7 @@
    ],
    "winner": 0,
    "turns": 14,
-   "hash": "1f0726de1cba9af804ce8c51ad75f559d6870dfa241b4384f16b92688094c846"
+   "hash": "9159afac58778eedfb48b019915e00cd882683176f4d62a861cc2e29020f926a"
   },
   {
    "id": "medium-05",
@@ -4121,7 +4121,7 @@
    ],
    "winner": 0,
    "turns": 13,
-   "hash": "3832e1ad19a4b0929e4b2274b0ccecf1389d5e19bbc9736989bb4a7ead939001"
+   "hash": "3da04ae5c3a1bc6fe33289d2b2815f65e362a7bb46cd37b7f680f6a6ad54b6c1"
   },
   {
    "id": "medium-06",
@@ -4139,9 +4139,9 @@
      "list": 23
     }
    ],
-   "winner": 0,
-   "turns": 14,
-   "hash": "7beb0d8202eb5805ff3fd28c67cee9277fb7ba4c71ef6849a15906197f4f8b6a"
+   "winner": 1,
+   "turns": 13,
+   "hash": "c7ee6fd44d4523b50ff1a93109555b226d28f651613a5aecd57ddae73f1960bc"
   },
   {
    "id": "medium-07",
@@ -4159,9 +4159,9 @@
      "list": 13
     }
    ],
-   "winner": 1,
+   "winner": 0,
    "turns": 14,
-   "hash": "7ce6eacfe012d9cf5e35c8be14ce5c87a95e0076d97792fc6b001120a4d165f0"
+   "hash": "3d3c7773517f3aa8f0b537a026141700c04dd82fc5d336c12995c294c6593bb4"
   },
   {
    "id": "medium-08",
@@ -4180,8 +4180,8 @@
     }
    ],
    "winner": 1,
-   "turns": 11,
-   "hash": "98f85337c0a5593a287d02fb5daecf61ec78587fdf7df76815d2684590cfb98a"
+   "turns": 13,
+   "hash": "7217b5a1ae99b934e6708e464593f101db3f519cbb52fd48630503f6f330b1c9"
   },
   {
    "id": "medium-09",
@@ -4200,8 +4200,8 @@
     }
    ],
    "winner": 1,
-   "turns": 12,
-   "hash": "9e8a012e71e7560512417a274a6693efbf8fb034f7c250cd5bb483b8c57c2d9e"
+   "turns": 14,
+   "hash": "97644b56ed6a0c1249df2e77ae6a84558c5e12af2d986eee8aec8b426506f035"
   },
   {
    "id": "medium-10",
@@ -4221,7 +4221,7 @@
    ],
    "winner": 0,
    "turns": 14,
-   "hash": "42a43d4299280388207e9de5eea999c57a82b874cf4f98169965a2bebf96a05f"
+   "hash": "6963a7b33829164b183e65324dc578ef96a22289fe884a1f69489ca03f82bfaf"
   },
   {
    "id": "medium-11",
@@ -4261,7 +4261,7 @@
    ],
    "winner": 0,
    "turns": 14,
-   "hash": "806e5fd218cff9927976529c1a46bd889864db7cfb82b7b7ba4ae391f445fb29"
+   "hash": "1b66530a5274ab04fa9aedaec81b4de1978c9e9f47eff9ef9e2728071e01e30d"
   },
   {
    "id": "medium-13",
@@ -4300,8 +4300,8 @@
     }
    ],
    "winner": 1,
-   "turns": 13,
-   "hash": "8bb7f1d51782f074a54a93a43a97af6a71b7b48bc221dd7e0d960ca687e4dd9b"
+   "turns": 11,
+   "hash": "a3091a504653b5194fd82a4be921a3de62065daeeb0bb419052db8696afd7c86"
   },
   {
    "id": "medium-15",
@@ -4339,9 +4339,9 @@
      "list": 9
     }
    ],
-   "winner": 0,
-   "turns": 12,
-   "hash": "4012444dae75c21bc54996d511549d752314747a56951d0bd9ee2aae61c5b927"
+   "winner": 1,
+   "turns": 15,
+   "hash": "1abdd8080e078c590cafb4285e718aa6c58a84605b5dc3b7e2501e331b64d256"
   },
   {
    "id": "medium-17",
@@ -4361,7 +4361,7 @@
    ],
    "winner": 1,
    "turns": 12,
-   "hash": "6b89b49c6b1cd5ecbb18d8b713734b24dd553979777f439c99e4ba4f92d83f11"
+   "hash": "3648f68c6e36bbb81d7cbf2a5f3390daf83d9e30ee36c7d0fa808918e4749605"
   },
   {
    "id": "medium-18",
@@ -4381,7 +4381,7 @@
    ],
    "winner": 0,
    "turns": 14,
-   "hash": "583e52298ba18591ebc5a8f2583a1a06c9bd71cde48d8ee49c515dc351ebd9e2"
+   "hash": "b86f390df3ef368bc0e74c45239c30aa92cfe1ce7d24694bb505da44e7465766"
   },
   {
    "id": "medium-19",
@@ -4400,8 +4400,8 @@
     }
    ],
    "winner": 0,
-   "turns": 13,
-   "hash": "0702fbcb7cdb7b813c439097f90079f484e631dabfc4c871d1690fd1c37ec41e"
+   "turns": 14,
+   "hash": "69cc656b20f7a69927a0de05ded21f1ccb40b26e9beedff56c4cbd62710fe13f"
   },
   {
    "id": "medium-20",
@@ -4461,7 +4461,7 @@
    ],
    "winner": 0,
    "turns": 12,
-   "hash": "ad5583974db02fa5a4e7523fd7e3a3eadee181c5a49b155854e43b77ad2d53ea"
+   "hash": "18b8a87af5f6ba6301e61ec7c5ca3f75c54e8a2c64d318cb7ec63f7818cec29d"
   },
   {
    "id": "medium-23",
@@ -4500,8 +4500,8 @@
     }
    ],
    "winner": 1,
-   "turns": 14,
-   "hash": "cfd672a30dd7aae953efad0eb16597f9b055509d667afcc21f7a54d03b0b7a20"
+   "turns": 13,
+   "hash": "8cd960806b8eaecbc3af210d359157a9848b57b99dfda4c28d494c494ff04f46"
   },
   {
    "id": "medium-25",
@@ -4520,8 +4520,8 @@
     }
    ],
    "winner": 0,
-   "turns": 13,
-   "hash": "44dfcddda6f951ffe929f4893b1571e31a5821a3fdacfc6d50ee9da2b1457a70"
+   "turns": 15,
+   "hash": "f2365684365a8f52aecd98db36bdacd8f05746f1c740e92bc39ce327500f51e6"
   },
   {
    "id": "medium-26",
@@ -4601,7 +4601,7 @@
    ],
    "winner": 0,
    "turns": 14,
-   "hash": "ab26a9c08827b3fc8e6fcc1ecfd01d0efdbc2bbcd7b5433e109ef1e9a676b715"
+   "hash": "b651b2febf5b244214b72ded23fcd7323f190343ee5451f9c9d769be847940c6"
   },
   {
    "id": "medium-30",
@@ -4740,8 +4740,8 @@
     }
    ],
    "winner": 0,
-   "turns": 14,
-   "hash": "907886f82d77c17c2281d8c631905f25b5556e8d9ad93ace7094ab57f4c2ebe2"
+   "turns": 12,
+   "hash": "2fa573392f5f55ddc8d7581f304b7f1766fff9bdae35e4767c83c4bad16bc314"
   },
   {
    "id": "easy-01",

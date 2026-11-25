@@ -15,11 +15,19 @@
 // the `next` rows are exactly the position Hard scores at its cut, from the seat it scores for.
 // The fitted coefficients are put on the gig scale (gig = 20, as every weight set), so the constants that sit beside
 // the evaluation (win, playOutClamp, rivalLethal, the 5% one-step offset, the Call bonus) keep their meaning.
-import { DEFAULT_WEIGHTS, EVAL_TERMS, type EvalTerm, type EvalWeights } from '../ai/eval';
+import { DEFAULT_WEIGHTS, EVAL_TERMS, type EvalWeights } from '../ai/eval';
 import type { PlayerId } from '../engine/types';
 import { other, type Game } from '../engine/engine';
 import { brier, fitLogistic, logLoss, predict, type LogisticFit } from '../lib/logistic';
 import { evalLeaf, profiledWeights, splitOf, type EvalLeaf, type LeafGame } from './evalCalibration';
+
+/**
+ * The refit's terms: EVAL_TERMS, then the features the leaves add with `extra` (evalLeaf): readyTrick (C.2's ready
+ * sources for Quick Programs, readyTrickFeature; readyCall stays 0 and is not fitted).
+ */
+export const REFIT_EXTRA = ['readyTrick'] as const satisfies readonly (keyof EvalWeights)[];
+export const REFIT_TERMS = [...EVAL_TERMS, ...REFIT_EXTRA] as const;
+export type RefitTermName = (typeof REFIT_TERMS)[number];
 
 export type RowKind = 'mid' | 'next' | 'ender';
 export const ROW_KINDS: readonly RowKind[] = ['mid', 'next', 'ender'];
@@ -38,10 +46,10 @@ export function sampled(seed: number, k: number, rate: number): boolean {
  * and the decision's number). Each is evaluated on a copy and no random number is drawn, so the game is the same with or
  * without it (tests/eval-refit.test.ts); copies of g (lookahead) are not observed. Returns the list it fills.
  */
-export function watchLeaves(g: Game, seed: number, o: { mid?: number; measure?: EvalWeights; compare?: EvalWeights } = {}): EvalLeaf[] {
+export function watchLeaves(g: Game, seed: number, o: { mid?: number; measure?: EvalWeights; compare?: EvalWeights; extra?: boolean } = {}): EvalLeaf[] {
   const leaves: EvalLeaf[] = [];
   let profiled: [EvalWeights, EvalWeights] | null = null;
-  const lo = { measure: o.measure, compare: o.compare };
+  const lo = { measure: o.measure, compare: o.compare, extra: o.extra };
   const endPhase = g.endPhase.bind(g);
   g.endPhase = async () => {
     await endPhase();
@@ -90,7 +98,7 @@ export interface RefitRow {
  * The rows of the chosen kinds. `fileTerms` is the order the leaves' features were written in (EVAL_TERMS of the code
  * that played them); the rows come back in `terms` order, a term the file lacks as 0.
  */
-export function refitRows(games: readonly LeafGame[], kinds: readonly RowKind[], fileTerms: readonly string[] = EVAL_TERMS, terms: readonly string[] = EVAL_TERMS): RefitRow[] {
+export function refitRows(games: readonly LeafGame[], kinds: readonly RowKind[], fileTerms: readonly string[] = REFIT_TERMS, terms: readonly string[] = REFIT_TERMS): RefitRow[] {
   const ix = terms.map((t) => fileTerms.indexOf(t));
   const want = new Set(kinds);
   const rows: RefitRow[] = [];
@@ -140,7 +148,7 @@ export function deckControls(rows: readonly RefitRow[]): { decks: string[]; of: 
  * Terms whose weight the fit does not set, with the reason. Their features stay in the fit (so they absorb what they
  * stand for), and the candidate keeps the current value.
  */
-export const FIXED_TERMS: Partial<Record<EvalTerm, string>> = {
+export const FIXED_TERMS: Partial<Record<RefitTermName, string>> = {
   goSolo: 'by argument (BOT-A, SIM_VERSION 8): going solo makes the same Unit as the ordinary play, only ready, so the flag carries no lasting cost; the fit can only see an association',
   rivalLethal: 'a decided game (the rival starts its turn with 7+ Gigs): near-separation, so the coefficient is not a price; kept at its argued value',
 };
@@ -156,14 +164,14 @@ export interface RefitOptions {
   lambdas?: readonly number[];
   /** the weights the candidate departs from (default DEFAULT_WEIGHTS) */
   current?: EvalWeights;
-  /** the order the leaves' features were written in (default EVAL_TERMS) */
+  /** the order the leaves' features were written in (default REFIT_TERMS) */
   fileTerms?: readonly string[];
   /** switches the candidate carries (e.g. spentRiskMainOnly, which the features were measured under) */
   switches?: Partial<EvalWeights>;
 }
 
 export interface RefitTerm {
-  term: EvalTerm;
+  term: RefitTermName;
   current: number;
   /** share of fitting rows where the feature is not 0 */
   nonzero: number;
@@ -194,7 +202,7 @@ export interface RefitScore {
 export interface RefitReport {
   kinds: RowKind[];
   controls: 'decks' | 'none';
-  terms: readonly EvalTerm[];
+  terms: readonly RefitTermName[];
   rows: { fit: number; test: number; byKind: Partial<Record<RowKind, { fit: number; test: number }>> };
   games: { fit: number; test: number };
   decks: number;
@@ -271,8 +279,8 @@ export function refit(games: readonly LeafGame[], o: RefitOptions = {}): RefitRe
   const K = o.folds ?? 5;
   const lambdas = o.lambdas ?? REFIT_LAMBDAS;
   const current = o.current ?? DEFAULT_WEIGHTS;
-  const terms = EVAL_TERMS;
-  const all = refitRows(games, kinds, o.fileTerms ?? EVAL_TERMS, terms);
+  const terms = REFIT_TERMS;
+  const all = refitRows(games, kinds, o.fileTerms ?? REFIT_TERMS, terms);
   const fitRows = all.filter((r) => splitOf(r.game) !== 'test');
   const test = all.filter((r) => splitOf(r.game) === 'test');
   if (!fitRows.length || !test.length) throw new Error(`refit needs rows in both the fitting and the held-out games (got ${fitRows.length} and ${test.length})`);

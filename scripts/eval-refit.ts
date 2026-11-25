@@ -23,9 +23,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { bool, cli, int, loadLibrary, num, oneOf, Refusal, runJobs, runMain, str, threadsOpt, TIER_BOTS } from './lib-node';
-import { refit, refitMarkdown, ROW_KINDS, weightSetBlock, type RowKind } from '../src/analysis/evalRefit';
+import { REFIT_TERMS, refit, refitMarkdown, ROW_KINDS, weightSetBlock, type RowKind } from '../src/analysis/evalRefit';
 import type { LeafGame } from '../src/analysis/evalCalibration';
-import { DEFAULT_WEIGHTS, EVAL_TERMS, type EvalWeights } from '../src/ai/eval';
+import { DEFAULT_WEIGHTS, type EvalWeights } from '../src/ai/eval';
 import { weightSet } from '../src/ai/weightSets';
 import { gameRunManifest } from '../src/lib/runManifest';
 import { SIM_VERSION } from '../src/lib/tournament';
@@ -75,7 +75,7 @@ interface LeavesFile {
   kind: 'nct-eval-refit-leaves';
   schema: 1;
   manifest: unknown;
-  /** the order of every leaf's features (EVAL_TERMS of the code that played the games) */
+  /** the order of every leaf's features (REFIT_TERMS of the code that played the games) */
   terms: string[];
   /** the weights the features were measured with (only the switches differ from DEFAULT_WEIGHTS) */
   measure: Partial<EvalWeights>;
@@ -97,7 +97,7 @@ async function main() {
     const saved = JSON.parse(fs.readFileSync(V.from, 'utf8')) as LeavesFile;
     if (saved.kind !== 'nct-eval-refit-leaves' || saved.schema !== 1) throw new Refusal(`${V.from} is not an eval-refit leaves file (kind nct-eval-refit-leaves, schema 1)`);
     if ((saved.measure.spentRiskMainOnly ?? 0) !== measureSwitches.spentRiskMainOnly) throw new Refusal(`${V.from} was measured with --spent-risk ${saved.measure.spentRiskMainOnly ? 'main' : 'always'}; pass that`);
-    const missing = EVAL_TERMS.filter((t) => !saved.terms.includes(t));
+    const missing = REFIT_TERMS.filter((t) => !saved.terms.includes(t));
     if (missing.length) console.error(`Warning: the leaves have no ${missing.join(', ')} (played by older code); those terms count as 0 and keep their current weights.`);
     data = saved;
     console.error(`Read ${data.games.length} games from ${V.from}.`);
@@ -114,7 +114,7 @@ async function main() {
       for (const y of field)
         if (x !== y)
           for (let k = 0; k < V.per; k++)
-            jobs.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: V.bot, evalLeaves: true, midLeaves: V.mid, leafMeasure: measure, ...(compare ? { leafCompare: compare } : {}) });
+            jobs.push({ a: x.deck, b: y.deck, seed: seed++, first: (k % 2) as 0 | 1, bot: V.bot, evalLeaves: true, midLeaves: V.mid, leafExtra: true, leafMeasure: measure, ...(compare ? { leafCompare: compare } : {}) });
     console.error(`Playing ${jobs.length} ${V.bot} games over ${field.length} decks…`);
     const res = await runJobs(jobs, { threads: V.threads, allowErrors: true });
     const ok = res.filter((r) => r.winner !== null);
@@ -122,7 +122,7 @@ async function main() {
     data = {
       kind: 'nct-eval-refit-leaves',
       schema: 1,
-      terms: [...EVAL_TERMS],
+      terms: [...REFIT_TERMS],
       measure: measureSwitches,
       ...(V.compare ? { compare: V.compare } : {}),
       games: ok.map((r) => ({ seed: r.seed, a: r.a, b: r.b, first: r.first, winner: r.winner as 0 | 1 | 'tie', leaves: r.evalLeaves ?? [] })),

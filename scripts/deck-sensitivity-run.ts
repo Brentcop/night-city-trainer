@@ -17,7 +17,7 @@ export type Config = { label: string; bot: string } | { label: string; spec: Age
 
 /**
  * Reads a configuration as botcheck and the benchmark take one: a tier or variant name (easy, medium, hard, hard-main),
- * a JSON AgentSpec ('{"deep":3}'; note `{}` is the Lookahead bot without the matchup profiles, not Medium), or a name
+ * a JSON AgentSpec ('{"deep":3}'; note `{}` has Medium's settings since SIM_VERSION 12, which dropped Medium's matchup profiles), or a name
  * plus overrides ('medium+{"weights":{"blocker":-3.7}}': the name's settings as an AgentSpec, then the JSON's keys).
  * Throws an Error with the reason.
  */

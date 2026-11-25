@@ -60,9 +60,11 @@ export const REVIEW_RULES = 4;
  * (Meredith Stout's trigger stayed pending and failed the review) and change the Gig as the engine does ('set' for "set a
  * Gig to another Gig's value"); a decision whose grading throws is listed apart, not counted (2026-11-25). 4: no
  * mulligan play-outs; your moves measured by the oracle like the rival's, never skipped for a coach grade; a seat's 1 to
- * HARD_CHECK_MAX_FLAGS Mistakes and Blunders checked with Hard play-outs (GAME_REVIEW_HARD) (2026-11-25).
+ * HARD_CHECK_MAX_FLAGS Mistakes and Blunders checked with Hard play-outs (GAME_REVIEW_HARD) (2026-11-25). 5: the oracle's
+ * play-out bots, its screen and its Hard check without the matchup profiles, as Medium and Hard play since SIM_VERSION 12
+ * (src/ai/reviewer.ts; 2026-11-26).
  */
-export const REVIEW_MEASURE = 4;
+export const REVIEW_MEASURE = 5;
 /**
  * The simulator version (SIM_VERSION) a stored review without `simVersion` was measured with: every review stored before
  * the field was kept (2026-11-25) ran on version 9, or on 8 under an older REVIEW_MEASURE (stale anyway).

@@ -12,7 +12,7 @@
 import type { Game } from '../engine/engine';
 import { CARD_BY_ID } from '../engine/cards';
 import { listFingerprint } from '../engine/deck';
-import type { Gig, PlayerId } from '../engine/types';
+import type { CardType, Gig, PlayerId } from '../engine/types';
 import { covers, memberName, partnerRolesOf, roleMap, SYNERGY_BY_ID, zeroRoles, type PieceCount, type RoleCounts, type Synergy, type SynergyCondition, type SynergyRole } from '../content/synergies/index';
 import { listPackages } from '../lib/listPackages';
 
@@ -30,6 +30,17 @@ export interface SeatPackage {
   steer: readonly SteerKind[];
   /** named in the deck objective for this list, or found by `builtAround` */
   source: 'objective' | 'built-around';
+  /**
+   * What the package's `online` condition reads in the trash (a `trash` term's card types, an `in-trash` term's card
+   * ids), or null when it reads none. Read only by `packageFacts` with `readTrash` (REVIEW_2026-11-24 C.4).
+   */
+  trashReads?: TrashReads | null;
+}
+
+/** The cards of a seat's own trash a package's condition reads: any card of these types, or these cards by id. */
+export interface TrashReads {
+  types: readonly CardType[];
+  ids: readonly string[];
 }
 
 // ------------------------------------------------------------------ per list (cached)
@@ -75,8 +86,21 @@ export function steerOf(c: SynergyCondition): SteerKind[] {
   return [...out];
 }
 
+/** What a condition reads in the trash (nested terms included), or null when it reads none. */
+export function trashReadsOf(c: SynergyCondition): TrashReads | null {
+  const types = new Set<CardType>();
+  const ids = new Set<string>();
+  const walk = (x: SynergyCondition) => {
+    if (x.term === 'all' || x.term === 'any') x.of.forEach(walk);
+    else if (x.term === 'trash') types.add(x.type);
+    else if (x.term === 'in-trash') x.ids.forEach((id) => ids.add(id));
+  };
+  walk(c);
+  return types.size || ids.size ? { types: [...types], ids: [...ids] } : null;
+}
+
 function toSeat(s: Synergy, source: SeatPackage['source']): SeatPackage {
-  return { id: s.id, name: s.name, family: s.family, bond: s.bond, needs: s.needs, roles: roleMap(s), steer: steerOf(s.online), source };
+  return { id: s.id, name: s.name, family: s.family, bond: s.bond, needs: s.needs, roles: roleMap(s), steer: steerOf(s.online), source, trashReads: trashReadsOf(s.online) };
 }
 
 const BY_LIST = new Map<string, readonly SeatPackage[]>();
@@ -130,16 +154,29 @@ export interface PackageFacts {
   legendsDown: RoleCounts;
   trash: RoleCounts;
   deck: RoleCounts;
+  /**
+   * Only with `readTrash` (REVIEW_2026-11-24 C.4): the members in the trash that the package's condition reads (by the
+   * card's type or id, `SeatPackage.trashReads`), counted as enablers (as `piece` in a package with no sides): such a card
+   * has done the enabler's job, the fuel is where the condition looks for it. `availableOf` adds them; absent otherwise,
+   * so every other reader is exactly as before.
+   */
+  trashFuel?: RoleCounts;
+}
+
+/** Options of packageFacts. */
+export interface FactOptions {
+  /** count the trash for packages whose condition reads it (`PackageFacts.trashFuel`); off (default) = as before */
+  readTrash?: boolean;
 }
 
 const add = (a: RoleCounts, b: RoleCounts): RoleCounts => ({ enabler: a.enabler + b.enabler, payoff: a.payoff + b.payoff, both: a.both + b.both, piece: a.piece + b.piece });
 const total = (r: RoleCounts) => r.enabler + r.payoff + r.both + r.piece;
 
 /** Facts for each of seat p's packages, from p's own view (own hand and deck contents, public board). */
-export function packageFacts(g: Game, p: PlayerId, pkgs: readonly SeatPackage[] = seatPackages(g, p)): PackageFacts[] {
+export function packageFacts(g: Game, p: PlayerId, pkgs: readonly SeatPackage[] = seatPackages(g, p), opts: FactOptions = {}): PackageFacts[] {
   if (!pkgs.length) return [];
   const P = g.P(p);
-  const zones: { key: Exclude<keyof PackageFacts, 'pkg'>; ids: string[] }[] = [
+  const zones: { key: Exclude<keyof PackageFacts, 'pkg' | 'trashFuel'>; ids: string[] }[] = [
     { key: 'hand', ids: P.hand.map((u) => g.c(u).defId) },
     { key: 'play', ids: inPlayIds(g, p) },
     { key: 'legendsDown', ids: P.legends.map((u) => g.c(u)).filter((c) => !c.faceUp).map((c) => c.defId) },
@@ -153,8 +190,22 @@ export function packageFacts(g: Game, p: PlayerId, pkgs: readonly SeatPackage[] 
         const r = pkg.roles.get(id);
         if (r) f[z.key][r]++;
       }
+    if (opts.readTrash && pkg.trashReads) f.trashFuel = trashFuel(g, P.trash, pkg, pkg.trashReads);
     return f;
   });
+}
+
+/** The members in `trash` that `reads` names, counted as enablers (as `piece` when the package names no sides). */
+function trashFuel(g: Game, trash: readonly number[], pkg: SeatPackage, reads: TrashReads): RoleCounts {
+  const out = zeroRoles();
+  const split = (pkg.needs.enabler ?? 0) > 0 || (pkg.needs.payoff ?? 0) > 0;
+  for (const u of trash) {
+    const id = g.c(u).defId;
+    if (!pkg.roles.has(id)) continue;
+    if (!reads.ids.includes(id) && !reads.types.includes(CARD_BY_ID[id]!.type)) continue;
+    out[split ? 'enabler' : 'piece']++;
+  }
+  return out;
 }
 
 /** Card ids in play for p: Units on the field (Legends included), Gear equipped to them or to Legends, face-up Legends. */
@@ -176,8 +227,14 @@ export function inPlayIds(g: Game, p: PlayerId): string[] {
   return out;
 }
 
-/** Pieces p can use now or soon: in hand, in play, or among the Legends (the catalogue counts Legends as held). */
-export const availableOf = (f: PackageFacts) => add(add(f.hand, f.play), f.legendsDown);
+/**
+ * Pieces p can use now or soon: in hand, in play, or among the Legends (the catalogue counts Legends as held); with
+ * facts made with `readTrash`, also the trash's fuel for a package whose condition reads the trash (`trashFuel`).
+ */
+export const availableOf = (f: PackageFacts) => {
+  const a = add(add(f.hand, f.play), f.legendsDown);
+  return f.trashFuel ? add(a, f.trashFuel) : a;
+};
 /** Pieces p can still get: available, or still in the deck. */
 export const obtainableOf = (f: PackageFacts) => add(availableOf(f), f.deck);
 
@@ -232,6 +289,21 @@ export function holdCredit(facts: readonly PackageFacts[], defId: string): numbe
     v += (f.pkg.bond === 'requires' ? 1 : 0.5) / fill;
   }
   return Math.min(2, v);
+}
+
+/**
+ * The hand at the cut (REVIEW_2026-11-24 C.4, HeuristicOptions.sellHoldCut): the sum of `holdCredit` over every card in
+ * p's hand, from facts made with `readTrash`. Per package and job it is about the share of the copies p can still get
+ * that are in hand (two copies of the last payoff in hand: ½ + ½; sell one and the other counts 1), so giving up a
+ * duplicate costs little and giving up the only piece that still has a partner costs its full credit.
+ */
+export function handHoldCredit(g: Game, p: PlayerId): number {
+  const pkgs = seatPackages(g, p);
+  if (!pkgs.length) return 0;
+  const facts = packageFacts(g, p, pkgs, { readTrash: true });
+  let v = 0;
+  for (const u of g.P(p).hand) v += holdCredit(facts, g.c(u).defId);
+  return v;
 }
 
 /** pkgAssembly: 1 per package (`helps` ½) whose pieces are available together. */

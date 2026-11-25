@@ -35,6 +35,8 @@ export const HAND_2026_10: EvalWeights = {
   exposed: 0,
   threat: 0,
   rivalLethal: 0,
+  readyTrick: 0,
+  readyCall: 0,
   spentRiskMainOnly: 0,
   subChoiceEval: 0,
 };

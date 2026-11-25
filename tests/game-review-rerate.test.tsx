@@ -248,7 +248,7 @@ describe('the loader, with a real stored review', () => {
     expect(RUN_CONFIRM).toBe(GAME_REVIEW_CONFIRM);
     expect(RUN_HARD).toBe(GAME_REVIEW_HARD);
     // changing either changes how a review is measured: bump REVIEW_MEASURE with it (this pin is the reminder)
-    expect([REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS, GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD]).toEqual([4, 8, 16, 16]);
+    expect([REVIEW_MEASURE, GAME_REVIEW_ROLLOUTS, GAME_REVIEW_CONFIRM, GAME_REVIEW_HARD]).toEqual([5, 8, 16, 16]);
   });
 
   it('other rules: the ratings come back as rated from the measurements, saved under the current rules with the log’s counts', () => {

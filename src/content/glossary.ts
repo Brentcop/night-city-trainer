@@ -317,7 +317,7 @@ export const GLOSSARY: Term[] = [
   {
     term: 'Bot difficulty (Easy / Medium / Hard)',
     group: 'Strategy',
-    def: 'Easy plays by simple rules. Medium looks one action ahead and follows its matchup plan. Hard also plays out the rest of its turn and your whole reply for its best options, and plays out its blocks and reactions and which card to sell. Medium and Hard score positions with weights fitted to who won thousands of bot games. In bot-vs-bot testing (November 2026) Medium wins about 77% of games against Easy, and Hard about 64% against Medium.',
+    def: 'Easy plays by simple rules. Medium looks one action ahead. Hard also plays out the rest of its turn and your whole reply for its best options, and plays out its blocks and reactions and which card to sell. Medium and Hard score positions with weights fitted to who won thousands of bot games. In bot-vs-bot testing (November 2026) Medium wins about 77% of games against Easy, and Hard about 64% against Medium.',
     engine: 'src/ai/tiers.ts — one definition shared by Play, the Matchup Lab, tournaments and replays.',
   },
   {
@@ -343,7 +343,7 @@ export const GLOSSARY: Term[] = [
     group: 'Strategy',
     def: 'The role you take in a specific pairing — "who is the beatdown". Examples: aggro vs control should race; midrange vs aggro should play control.',
     engine: 'Weight multipliers per (my archetype > rival archetype) in src/ai/archetype.ts, refined by scripts/tune-profiles.ts.',
-    bot: 'Applies the matchup profile to its evaluation. In testing, matchup-aware bots beat matchup-blind bots about 55% of the time.',
+    bot: 'Medium and Hard no longer apply a matchup profile to their evaluation (since November 2026): with the fitted weights, bots without it played as well as bots with it (about 50% head to head) and ranked the decks the same. The coach still names the role your deck takes in a matchup.',
   },
   {
     term: 'Δ when drawn (IWD)',

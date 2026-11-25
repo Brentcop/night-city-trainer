@@ -118,9 +118,17 @@ export const gameDeck = (d: Pick<DeckList, 'name' | 'legends' | 'main'>): DeckLi
  *    cards plays differently on every tier (Easy's Gig sub-choices read the plan too), as do the coach and the
  *    reviewer's oracle. Measured in docs/BOT_TOOLKIT.md §6 (2026-11-24). Recorded events, ratings and evidence stay on
  *    version 9 until the rating series re-rates.
+ * 11: ready sources kept for tricks (REVIEW_2026-11-24 B1 / C.2, src/ai/eval.ts readyTrickTerm): `readyTrick` 12 in
+ *    DEFAULT_WEIGHTS, so a ready payment source kept for a Quick Program in hand on the rival's coming turn counts (only
+ *    up to what could be cast, nothing while the rival has no Unit). Medium, Hard, the coach and the reviewer's oracle
+ *    play differently; Easy does not read the weights. Measured in docs/BOT_TOOLKIT.md §6 (2026-11-24 and 25).
+ * 12: the matchup profiles dropped (REVIEW_2026-11-24 B6 / C.6): Medium and Hard (and hard-main), the coach and the
+ *    reviewer's play-out bots evaluate with DEFAULT_WEIGHTS for every matchup, no longer multiplied by
+ *    src/ai/profiles.tuned.json by each deck's archetype (tuned on the hand weights). The legacy `deep` / `hard-v1` bots
+ *    and COACH_CONFIG_V1 keep them. Measured in docs/BOT_TOOLKIT.md §6 (2026-11-24 to 26).
  * Events without `simVersion` predate all of these and no longer replay identically.
  */
-export const SIM_VERSION = 10;
+export const SIM_VERSION = 12;
 
 export interface GameRec {
   seed: number;

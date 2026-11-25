@@ -8,7 +8,7 @@ import { DEFAULT_WEIGHTS, EVAL_TERMS, evaluate, evaluateTerms, unitValue, type E
 import { FAST_WEIGHTS, HeuristicAgent } from '../src/ai/heuristic';
 import { HAND_2026_10 } from '../src/ai/weightSets';
 import { analyzeLeaves, type LeafGame } from '../src/analysis/evalCalibration';
-import { foldOf, pairedBootstrap, refit, refitRows, sampled, watchLeaves } from '../src/analysis/evalRefit';
+import { foldOf, pairedBootstrap, REFIT_TERMS, refit, refitRows, sampled, watchLeaves } from '../src/analysis/evalRefit';
 import { fitLogistic } from '../src/lib/logistic';
 import { makeBot } from '../src/lib/tournament';
 import { stateHash } from '../src/lib/savedGames';
@@ -20,7 +20,7 @@ function rng(seed: number) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) + 0.5) / 4294967296;
 }
 
-const T = (k: string) => EVAL_TERMS.indexOf(k as (typeof EVAL_TERMS)[number]);
+const T = (k: string) => REFIT_TERMS.indexOf(k as (typeof REFIT_TERMS)[number]);
 
 /**
  * Synthetic games over 8 decks: deck d has strength (d − 3.5) × 0.25 in log-odds and holds about d/2 more Blockers than
@@ -39,7 +39,7 @@ function synthGames(n: number): LeafGame[] {
     let z0 = 0;
     const feats: number[][] = [];
     for (let k = 0; k < 3; k++) {
-      const f = EVAL_TERMS.map(() => 0);
+      const f = REFIT_TERMS.map(() => 0);
       f[T('gig')] = Math.round((u() - 0.5) * 6);
       f[T('hand')] = Math.round((u() - 0.5) * 8);
       f[T('blocker')] = Math.round((a - b) / 2 + (u() - 0.5) * 2);
@@ -85,7 +85,7 @@ describe('eval refit: the fit', () => {
     expect(next.y).toBe(1 - ender.y);
     expect(next.f[T('gig')]).toBe(-ender.f[T('gig')]!);
     // a file written by code with fewer terms: the missing term reads 0, the others by name
-    const fileTerms = EVAL_TERMS.filter((t) => t !== 'hand');
+    const fileTerms = REFIT_TERMS.filter((t) => t !== 'hand');
     const short: LeafGame[] = games.map((g) => ({ ...g, leaves: g.leaves.map((l) => ({ ...l, f: [l.f[0].filter((_, j) => j !== T('hand')), l.f[1].filter((_, j) => j !== T('hand'))] })) }));
     const r2 = refitRows(short, ['ender'], fileTerms);
     expect(r2.every((r) => r.f[T('hand')] === 0)).toBe(true);
@@ -174,7 +174,7 @@ describe('the leaves leave the game unchanged', () => {
   it('a Medium game with end and mid leaves plays as without them', async () => {
     const play = async (watch: boolean) => {
       const g = Game.create([meta[0]!.deck, meta[1]!.deck], [makeBot('medium', 41), makeBot('medium', 41 + 7777)], { seed: 41, first: 0, log: false });
-      const leaves = watch ? watchLeaves(g, 41, { mid: 0.5, measure: { ...DEFAULT_WEIGHTS, spentRiskMainOnly: 1 }, compare: HAND_2026_10 }) : [];
+      const leaves = watch ? watchLeaves(g, 41, { mid: 0.5, measure: { ...DEFAULT_WEIGHTS, spentRiskMainOnly: 1 }, compare: HAND_2026_10, extra: true }) : [];
       const end = await g.run();
       return { hash: stateHash(end), leaves };
     };
@@ -183,7 +183,11 @@ describe('the leaves leave the game unchanged', () => {
     expect(b.hash).toBe(a.hash);
     expect(b.leaves.some((l) => l.kind === 'mid')).toBe(true);
     expect(b.leaves.some((l) => l.kind === undefined)).toBe(true);
-    expect(b.leaves.every((l) => l.vc && l.f[0].length === EVAL_TERMS.length)).toBe(true);
+    expect(b.leaves.every((l) => l.vc && l.f[0].length === REFIT_TERMS.length)).toBe(true);
+    // the features read evaluate()'s value back: Σ DEFAULT_WEIGHTS × feature (readyTrick included) is the value, up to
+    // the spent-risk discount the measuring weights leave out after an end phase
+    const close = b.leaves.filter((l) => l.kind === 'mid').every((l) => Math.abs(REFIT_TERMS.reduce((a, k, j) => a + DEFAULT_WEIGHTS[k] * l.f[0][j]!, 0) - l.v[0]) < 0.01);
+    expect(close).toBe(true);
     // the same sample every time
     const c = await play(true);
     expect(c.leaves).toEqual(b.leaves);

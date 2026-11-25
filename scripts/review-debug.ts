@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import { Game } from '../src/engine/engine';
 import { makeTierBot } from '../src/ai/tiers';
 import { HeuristicAgent, hideInfo } from '../src/ai/heuristic';
-import { BEST_PROFILES } from '../src/ai/archetype';
 import { evaluate } from '../src/ai/eval';
 import { makeWorlds, nextStartResult, playOut, playOutValue, type PlayOutStep } from '../src/ai/playOut';
 import { gameDeck } from '../src/lib/tournament';
@@ -69,7 +68,7 @@ async function inspect(g: Game, d: Decision) {
   for (const i of [chosenI, altIdx]) {
     console.log(`\n== ${d.options[i].label}`);
     for (const w of worlds) {
-      const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+      const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, seed });
       const cg = g.clone([mk(w.a), mk(w.b)]);
       cg.s.rng = w.rng;
       hideInfo(cg, seat);

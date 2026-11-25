@@ -26,6 +26,8 @@ export interface PlayoutConfig {
   profiles: Profiles | null;
   evalWeights: EvalWeights;
   rolloutWins: boolean;
+  /** HeuristicOptions.fastTricks of the deciding bot (absent = off) */
+  fastTricks?: boolean;
   /**
    * HeuristicOptions.gradeWeights (the coach): each task is also scored with these weights, clamped, and the batch answers
    * two numbers per task, its value then its grade-scale value. Absent: one value per task, as before.

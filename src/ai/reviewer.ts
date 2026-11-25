@@ -207,16 +207,16 @@ export async function oracleValue(g: Game, p: PlayerId, a: Action, worlds: World
   return (await oracleDetail(g, p, a, worlds, wins)).v;
 }
 
-/** The oracle's play-out bots: Medium-like (one step ahead, the best profiles), on both seats. */
-const oracleBot = (seed: number): Agent => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+/** The oracle's play-out bots: Medium-like (one step ahead; no matchup profiles since SIM_VERSION 12, as Medium), on both seats. */
+const oracleBot = (seed: number): Agent => new HeuristicAgent({ lookahead: true, maxCandidates: 14, seed });
 
 /**
  * The stronger continuation a costly rating is checked with (ReviewOptions.hardCheck, 2026-11-25): the Hard bot's own
  * settings (src/ai/tiers.ts TIER_SETTINGS.hard), quiet like every play-out copy.
  */
 const hardBot = (seed: number): Agent => {
-  const { profiles: _p, ...rest } = TIER_SETTINGS.hard;
-  return new HeuristicAgent({ ...rest, profiles: BEST_PROFILES, seed, quiet: true });
+  const { profiles, ...rest } = TIER_SETTINGS.hard;
+  return new HeuristicAgent({ ...rest, profiles: profiles === 'best' ? BEST_PROFILES : null, seed, quiet: true });
 };
 
 /** Oracle value plus the share of worlds in which the action led to a lost game (`mk`: the play-out bots). */
@@ -346,7 +346,7 @@ async function oracleGigChoice(g: Game, p: PlayerId, optionIndex: number, d: Dec
   const opt = d.options[optionIndex];
   const kind = gigChangeKind(d);
   for (const w of worlds) {
-    const mk = (seed: number) => new HeuristicAgent({ lookahead: true, maxCandidates: 14, profiles: BEST_PROFILES, seed });
+    const mk = oracleBot;
     const cg = g.clone([mk(w.a), mk(w.b)]);
     cg.s.rng = w.rng;
     hideInfo(cg, p);
@@ -546,7 +546,7 @@ class ReviewAgent implements Agent {
   private async gradeAction(g: Game, d: Decision, at: number, seq: number, chosen: number) {
     const actions = d.options.map((o) => o.action as Action);
     const cand = new Set<number>([chosen]);
-    const screen = new HeuristicAgent({ profiles: BEST_PROFILES });
+    const screen = new HeuristicAgent({});
     await screen.decide(g, d);
     const screenOrder = screen.lastAlternatives.map((x) => x.index);
     for (const x of screen.lastAlternatives.slice(0, this.opts.screen ?? 4)) cand.add(x.index);
@@ -554,7 +554,7 @@ class ReviewAgent implements Agent {
     if (actions[chosen].type === 'sell') {
       const keep = actions.map((_a, i) => i).filter((i) => actions[i].type !== 'sell');
       if (keep.length > 1) {
-        const ns = new HeuristicAgent({ profiles: BEST_PROFILES });
+        const ns = new HeuristicAgent({});
         const [k] = await ns.decide(g, { ...d, options: keep.map((i) => d.options[i]) });
         cand.add(keep[k]);
       }

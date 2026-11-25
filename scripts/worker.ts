@@ -4,7 +4,6 @@ import { Game } from '../src/engine/engine';
 import { HeuristicAgent } from '../src/ai/heuristic';
 import { RandomAgent } from '../src/ai/random';
 import { makeTierBot } from '../src/ai/tiers';
-import { BEST_PROFILES } from '../src/ai/archetype';
 import { summarize, type PlayerSummary } from '../src/analysis/summarize';
 import { aggregateGame, type DecisionAggregate } from '../src/analysis/decisions';
 import { sellChoicesOf } from '../src/analysis/impactAdjusted';
@@ -72,6 +71,8 @@ export interface MatchJob {
   leafMeasure?: EvalWeights;
   /** with `evalLeaves`: also record each leaf's value with these weights (`vc`) */
   leafCompare?: EvalWeights;
+  /** with `evalLeaves`: append the refit's extra features (REFIT_EXTRA in src/analysis/evalRefit.ts) */
+  leafExtra?: boolean;
   /**
    * C.1's intended-effect metric (scripts/cred-trace.ts, botcheck --cred-trace): at every end phase, each seat's Street
    * Cred parity and Gig parity (`credEnds`). Observed on the real game only: the game is the same with or without it.
@@ -221,7 +222,8 @@ function mkAgent(kind: string, seed: number): Agent {
   if (kind === 'random') return new RandomAgent(seed);
   if (['easy', 'medium', 'hard', 'hard-v1', 'hard-main', 'mixed', 'fast', 'deep', 'lookahead'].includes(kind)) return makeTierBot(kind, seed);
   if (kind === 'plain') return new HeuristicAgent({ seed, noise: 0.15 });
-  return new HeuristicAgent({ seed, noise: 0.15, profiles: BEST_PROFILES });
+  // 'best': Medium's agent (src/lib/changeLedger.ts maps it to medium); with the matchup profiles until SIM_VERSION 12
+  return makeTierBot('medium', seed);
 }
 
 parentPort?.on('message', async (job: MatchJob) => {
@@ -245,7 +247,7 @@ parentPort?.on('message', async (job: MatchJob) => {
     g.telemetry = rec;
     // observe after every end phase of this game, and at sampled main-phase decisions (clones are separate objects, so
     // lookahead is not observed)
-    const leaves: EvalLeaf[] | null = job.evalLeaves ? watchLeaves(g, job.seed, { mid: job.midLeaves, measure: job.leafMeasure, compare: job.leafCompare }) : null;
+    const leaves: EvalLeaf[] | null = job.evalLeaves ? watchLeaves(g, job.seed, { mid: job.midLeaves, measure: job.leafMeasure, compare: job.leafCompare, extra: job.leafExtra }) : null;
     const credEnds = job.credTrace ? emptyCredEnds() : null;
     if (credEnds) traceCred(g, credEnds);
     const s = await g.run();
