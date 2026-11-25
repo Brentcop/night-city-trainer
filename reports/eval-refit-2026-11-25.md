@@ -1,6 +1,6 @@
 # The evaluation refit (REVIEW_2026-11-24 C.3): design, rule and cost, written before any game
 
-Status, 2026-11-25: the pipeline and the two switches are built and tested (42-game runs on the meta decks, `tests/eval-refit.test.ts`); no fitting game has been played. The fitting games are played on the bot of SIM_VERSION 13 (v11: the `readyTrick` term; v12: Hard's sell hold credit; v13: the matchup profiles dropped) once it is on `group-c`. Nothing here changes `DEFAULT_WEIGHTS`, a tier or a recorded game.
+Status, 2026-11-25: the pipeline and the two switches are built and tested (42-game runs on the meta decks, `tests/eval-refit.test.ts`). Amended before the fitting games, when the coordinator named the final bot: the fitting games are played on SIM_VERSION 12 (commit 5ece9a8: v10 Street Cred parity, v11 `readyTrick` 12, v12 the matchup profiles dropped; Hard's sell hold credit shelved), the set is `refit-v12` (it would land as version 13), the games run on 10 threads, and C.2's trick credit is fitted as its own term (`readyTrick`, the ready sources covering Quick Programs, `readyTrickFeature`; `readyCall` stays 0 and is not fitted). Nothing here changes `DEFAULT_WEIGHTS`, a tier or a recorded game.
 
 ## What is fitted
 
@@ -13,10 +13,10 @@ Status, 2026-11-25: the pipeline and the two switches are built and tested (42-g
   - `ender`: every end of turn from the seat that ended it: Hard's reaction cut (the reacting seat's own turn played to its end phase).
   - The 2026-11-12 fit had only `ender`; the 11-18 refit too. The rows are pooled unweighted; the held-out log-loss is also reported per kind.
 - **Target: who won** (1, ½ for a tie, 0). "The next-turn view" changes which positions are rows and from whose seat (the `next` rows), not the target. A target read off the next cut (the evaluation one turn later) would take the weights being replaced as truth; the final result is the one target that does not.
-- **Features**: `evaluateTerms()`'s features, every term in `EVAL_TERMS` of the code that plays the games (the v11 trick term enters by name, with no change here). The spentRisk feature is measured under the main-phase rule (`--spent-risk main`), so its fitted weight means what the candidate's `spentRiskMainOnly: 1` applies.
+- **Features**: `evaluateTerms()`'s features, every term in `EVAL_TERMS` of the code that plays the games plus `readyTrick` (`REFIT_TERMS`). The spentRisk feature is measured under the main-phase rule (`--spent-risk main`), so its fitted weight means what the candidate's `spentRiskMainOnly: 1` applies.
 - **Controls**: a strength per deck (own list +1, the rival's −1; 70 columns) and going first (±1), so a term is not credited with what the stronger list or seat wins. In the candidate they are dropped: within a game the decks are fixed.
 - **Fit**: ridge logistic (penalty on standardized coefficients), λ from {0, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2} by 5 folds of the fitting games (75% of games by `splitOf`; the other 25% are held out of every fit), standard errors cluster-robust by game.
-- **Candidate**: each identified term (varies in 2%+ of rows, 95% interval by game narrower than the larger of the current and fitted values) on the gig scale (gig = 20, so `win`, `playOutClamp`, `rivalLethal`, the 5% 1-ply offset and the Call bonus keep their meaning); the others keep their current value; `goSolo` (0, BOT-A) and `rivalLethal` (400: a decided game, near-separation) kept by argument; plus `spentRiskMainOnly: 1` and `subChoiceEval: 1`. Named `refit-v13`, added to `src/ai/weightSets.ts` with its provenance (games, version, date, held-out log-loss against the current weights), not the default.
+- **Candidate**: each identified term (varies in 2%+ of rows, 95% interval by game narrower than the larger of the current and fitted values) on the gig scale (gig = 20, so `win`, `playOutClamp`, `rivalLethal`, the 5% 1-ply offset and the Call bonus keep their meaning); the others keep their current value; `goSolo` (0, BOT-A) and `rivalLethal` (400: a decided game, near-separation) kept by argument; plus `spentRiskMainOnly: 1` and `subChoiceEval: 1`. Named `refit-v12`, added to `src/ai/weightSets.ts` with its provenance (games, version, date, held-out log-loss against the current weights), not the default.
 
 ## The two switches (opt-in, 0 in every built-in set; `tests/game-corpus.test.ts` unchanged)
 
@@ -30,29 +30,29 @@ Both ride in `EvalWeights`, so every lookahead agent built from the weights read
 The review's group C rule, made exact. Played in this order; a failed step stops the measurement (the candidate is not proposed).
 
 1. **Intended effect.**
-   - (a) On **fresh games** (Hard, `--per 1`, seeds from 90,001, recorded with `--compare refit-v13`), the held-out log-loss of the result on the candidate's value beside the deck controls is lower than on the current weights' value beside the same controls: the paired bootstrap interval (2,000 resamples of held-out games) of the difference is wholly below 0 (the line "compared weights (recorded)" under "Paired against the current weights"). The uncontrolled comparison and the per-kind losses are reported, not ruled on: a weight that tracks which list is stronger improves the uncontrolled score and no decision.
-   - (b) **No identified term flips sign** against `DEFAULT_WEIGHTS` of v13 without a stated reason, written in the commit that adds the set (the report lists the flips). A flip with no reason fails the step. `blocker`, `hand` and `eddie` (the 11-18 refit's large moves) are shown beside both earlier fits.
-2. **Strength** (paired `botcheck`, duplicate format, the whole library): the candidate against the same tier on v13, Hard `--per 1` (4,970 pairs) and Medium `--per 4` (19,880 pairs); the lower bound of the candidate's 95% interval is at least 49.0% in both.
+   - (a) On **fresh games** (Hard, `--per 1`, seeds from 90,001, recorded with `--compare refit-v12`), the held-out log-loss of the result on the candidate's value beside the deck controls is lower than on the current weights' value beside the same controls: the paired bootstrap interval (2,000 resamples of held-out games) of the difference is wholly below 0 (the line "compared weights (recorded)" under "Paired against the current weights"). The uncontrolled comparison and the per-kind losses are reported, not ruled on: a weight that tracks which list is stronger improves the uncontrolled score and no decision.
+   - (b) **No identified term flips sign** against `DEFAULT_WEIGHTS` of v12 without a stated reason, written in the commit that adds the set (the report lists the flips). A flip with no reason fails the step. `blocker`, `hand` and `eddie` (the 11-18 refit's large moves) are shown beside both earlier fits.
+2. **Strength** (paired `botcheck`, duplicate format, the whole library): the candidate against the same tier on v12, Hard `--per 1` (4,970 pairs) and Medium `--per 4` (19,880 pairs); the lower bound of the candidate's 95% interval is at least 49.0% in both.
 3. **Per-deck report** (`scripts/deck-sensitivity.ts`, base = the tier, change = the tier with the set): Medium `--per 2` and Hard `--per 1`. Chance count at 2 SE: 71 × 4.55% ≈ 3.2 decks. If 7 or more decks move beyond 2 SE in either report (more than twice the chance count), the report names the families and features whose mean change is beyond 2 SE (the script's family and feature table: Blockers, Units, Programs, Quick Programs, BBG, two red Legends, bred, imported) and the weight change that explains each (the B5 pattern: the Blocker weight against Blocker-heavy lists). Step 3 decides nothing by itself; the candidate goes to the owner with it, as the review asks ("accept a refit only with the per-deck report"). A move no weight change explains is looked at before proposing.
 
 Information, not ruled on: the fresh run's own refit beside the first (terms within each other's intervals or not); the switches apart, Medium (`deck-sensitivity` of the set with both switches off against medium, and of the set against the set with both off; the spentRisk switch does nothing on Medium) and, optionally, Hard on the meta decks for `spentRiskMainOnly` alone (`botcheck 'hard+{"weights":{"spentRiskMainOnly":1}}' hard --per 20`).
 
 If accepted, making it the default is a SIM_VERSION bump of its own (one measured change per bump, D.4), with the corpus and recorded events re-recorded; not part of this item.
 
-## Commands (after merging v13; T = the thread count the coordinator gives)
+## Commands (after merging v12; T = the thread count the coordinator gives)
 
 ```sh
 # fit (the leaves file is about 27 MB: keep it out of the repository; copy the .md, .json and weight-set block)
-npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 80001 --mid 0.25 --name refit-v13 --threads T --out <scratch>/fit
-# add the block to src/ai/weightSets.ts as 'refit-v13', then:
+npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 80001 --mid 0.25 --name refit-v12 --threads T --out <scratch>/fit
+# add the block to src/ai/weightSets.ts as 'refit-v12', then:
 # 1 (a): fresh games, recorded with the candidate's value too
-npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 90001 --mid 0.25 --compare refit-v13 --name refit-v13-fresh --threads T --out <scratch>/fresh
+npx tsx scripts/eval-refit.ts --decks all --per 1 --seed 90001 --mid 0.25 --compare refit-v12 --name refit-v12-fresh --threads T --out <scratch>/fresh
 # 2: strength
-npx tsx scripts/botcheck.ts 'hard+{"weightSet":"refit-v13"}' hard --decks all --per 1 --seed 61001 --threads T --cache
-npx tsx scripts/botcheck.ts 'medium+{"weightSet":"refit-v13"}' medium --decks all --per 4 --seed 61001 --threads T --cache
+npx tsx scripts/botcheck.ts 'hard+{"weightSet":"refit-v12"}' hard --decks all --per 1 --seed 61001 --threads T --cache
+npx tsx scripts/botcheck.ts 'medium+{"weightSet":"refit-v12"}' medium --decks all --per 4 --seed 61001 --threads T --cache
 # 3: per deck
-npx tsx scripts/deck-sensitivity.ts medium 'medium+{"weightSet":"refit-v13"}' --decks all --per 2 --seed 61001 --threads T --cache --out <dir> --label refit-v13-medium
-npx tsx scripts/deck-sensitivity.ts hard 'hard+{"weightSet":"refit-v13"}' --decks all --per 1 --seed 61001 --threads T --cache --out <dir> --label refit-v13-hard
+npx tsx scripts/deck-sensitivity.ts medium 'medium+{"weightSet":"refit-v12"}' --decks all --per 2 --seed 61001 --threads T --cache --out <dir> --label refit-v12-medium
+npx tsx scripts/deck-sensitivity.ts hard 'hard+{"weightSet":"refit-v12"}' --decks all --per 1 --seed 61001 --threads T --cache --out <dir> --label refit-v12-hard
 ```
 
 ## Cost
