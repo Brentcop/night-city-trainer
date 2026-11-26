@@ -156,3 +156,13 @@ The same rule, in order, stopping at the first failure:
 Paired over held-out games: **−0.0047 [−0.0076, −0.0020]**, wholly below 0: step 1 (a) passes. Unlike refit-v12b, the gain holds on every row kind, Hard's two cuts included. Without the controls: 0.5526 against 0.5462. This run's own refit again puts hand at 35.4 ± 6.6 and blocker at −14.8 ± 16 (and plan at −2.79 ± 1.2).
 
 (b) No sign flip: hand and blocker keep their signs, nothing else changes.
+
+### hb-v12, step 2: failed on both bots, so it is not adopted
+
+Duplicate botcheck over the 71 decks, seed 61001, 10 threads, hb-v12 (A) against the same tier on v12 (B):
+- Medium `--per 4` (19,880 pairs, 39,760 games): **48.9% [48.6, 49.2]**; split 15,773, swept 4,107 (A 1,841, B 2,266).
+- Hard `--per 1` (4,970 pairs, 9,940 games): **47.3% [46.5, 48.0]**; split 3,605, swept 1,365 (A 546, B 819).
+
+Both lower bounds are under 49.0%, so step 2 fails (the Hard botcheck was the other half of the same step and was already queued behind Medium; it is reported, not a further step). No per-deck report was played. The default is unchanged; `hb-v12` stays a named set.
+
+What it says: a set that predicts the result better (step 1, on every row kind) plays worse, by about 1 point on Medium and 2.7 on Hard. The weights are an association with who won, and the bot uses them to choose: a hand worth 30 points a card (against a Unit's ~60 to 100) is what winning positions hold, but valued at that price the bot keeps cards it should play. Calibration against the result is not a test of strength, so every evaluation candidate has to pass the botcheck; and a refit of the result alone is not the lever for strength on this bot.
