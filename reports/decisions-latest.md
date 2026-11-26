@@ -1,3533 +1,3535 @@
 # Decision telemetry
 
-19880 games, 1826727 decisions (telemetry schema 1). Sim v9, hard bot, seed 1.
+19880 games, 1842219 decisions (telemetry schema 1). Sim v13, hard bot, seed 1.
 
 > Descriptive association only: win rates in games where a card was used a given way, with 95% Wilson intervals. They are not the value of the card or of the choice (no counterfactual comparison yet; ROADMAP §5 steps 3 and 5). A slice from fewer than 20 games shows only its count ("thin").
 
 Stages: early turns 1–4, middle turns 5–8, late turn 9+. Ahead / even / behind: the acting player's Gig count against the rival's when the decision was made. "Not chosen": share of the turns (attacks, for reactions) in which the use was legal but not taken.
 
-Measured: games 19880, recordsPerGame 91.9, rawBytesPerGame 60667.2, aggregateBytesPerGame 13080.2, mergedBytes 1450083, seconds 3033.7.
+Measured: games 19880, recordsPerGame 92.7, rawBytesPerGame 61267.2, aggregateBytesPerGame 13147.3, mergedBytes 1451752, seconds 2052.0.
 
-## Addin' Trash — 560 games, 27% won, 26883 decisions
+## Addin' Trash — 560 games, 23% won, 26346 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Viktor Vektor: You Might Feel a Little Pinch | attacked | 811 | 28% (24–33) n=356 | 995 → 740 | 26% | 109 / 367 / 335 | 49% (41–57) n=154 | 31% (24–39) n=138 | 18% (13–23) n=224 |
-| Muamar Reyes: El Capitán | ability | 791 | 23% (19–27) n=449 | 2098 → 791 | 62% | 53 / 195 / 543 | 40% (34–46) n=224 | 15% (10–23) n=117 | 6% (3–9) n=252 |
-| Trauma Team Operatives | attacked | 690 | 32% (27–37) n=323 | 743 → 642 | 14% | 0 / 194 / 496 | 56% (47–65) n=109 | 45% (35–57) n=75 | 25% (20–31) n=230 |
-| Viktor Vektor: You Might Feel a Little Pinch | played | 662 | 27% (23–31) n=437 | 784 → 651 | 17% | 368 / 137 / 157 | 36% (30–42) n=223 | 27% (21–34) n=187 | 10% (6–17) n=135 |
-| Augmented Negotiators | played | 598 | 28% (24–32) n=423 | 967 → 577 | 40% | 219 / 206 / 173 | 35% (29–42) n=179 | 26% (20–34) n=155 | 19% (14–26) n=173 |
-| Trauma Team Operatives | played | 590 | 30% (25–34) n=410 | 775 → 579 | 25% | 23 / 349 / 218 | 41% (35–48) n=194 | 26% (18–35) n=104 | 19% (14–25) n=200 |
-| Secondhand Bombus | played | 532 | 29% (25–34) n=395 | 1268 → 514 | 59% | 179 / 214 / 139 | 33% (27–39) n=251 | 27% (19–36) n=97 | 21% (15–29) n=114 |
-| Mandibular Upgrade | sold | 531 | 24% (20–28) n=386 | 669 → 531 | 21% | 278 / 135 / 118 | 31% (24–38) n=179 | 24% (18–32) n=147 | 12% (7–18) n=137 |
-| Cyberpsychosis | sold | 487 | 28% (23–32) n=362 | 1384 → 487 | 65% | 72 / 221 / 194 | 39% (32–47) n=151 | 32% (22–43) n=73 | 16% (12–22) n=202 |
-| The Heist | sold | 467 | 26% (22–31) n=363 | 1003 → 467 | 53% | 150 / 198 / 119 | 34% (26–42) n=136 | 30% (22–38) n=124 | 14% (9–20) n=158 |
-| Safety Override | sold | 461 | 26% (22–31) n=363 | 1047 → 461 | 56% | 158 / 174 / 129 | 33% (26–41) n=147 | 25% (18–34) n=112 | 17% (12–24) n=149 |
-| Muamar Reyes: El Capitán | called | 425 | 25% (21–29) n=425 | 425 → 425 | 0% | 269 / 91 / 65 | 29% (24–36) n=222 | 25% (18–32) n=138 | 9% (4–19) n=65 |
-| River Ward: Detective on the Hunt | called | 425 | 26% (22–30) n=425 | 425 → 425 | 0% | 257 / 104 / 64 | 34% (28–40) n=232 | 19% (13–26) n=128 | 11% (5–21) n=65 |
-| River Ward: Detective on the Hunt | ability | 414 | 26% (21–31) n=288 | 2139 → 414 | 81% | 43 / 91 / 280 | 41% (33–49) n=147 | 22% (13–34) n=59 | 8% (4–13) n=132 |
-| Dum Dum: Maelstrom Triggerman | called | 392 | 27% (23–31) n=392 | 392 → 392 | 0% | 247 / 81 / 64 | 33% (27–40) n=209 | 22% (16–30) n=139 | 9% (4–21) n=44 |
+| Viktor Vektor: You Might Feel a Little Pinch | attacked | 795 | 25% (20–29) n=359 | 974 → 734 | 25% | 111 / 360 / 324 | 40% (32–48) n=149 | 25% (19–33) n=140 | 14% (10–19) n=219 |
+| Muamar Reyes: El Capitán | ability | 760 | 20% (17–24) n=434 | 2103 → 760 | 64% | 45 / 180 / 535 | 38% (31–44) n=216 | 11% (6–19) n=99 | 4% (2–7) n=261 |
+| Trauma Team Operatives | attacked | 647 | 27% (22–32) n=302 | 687 → 593 | 14% | 0 / 182 / 465 | 49% (39–58) n=101 | 45% (32–58) n=56 | 19% (14–24) n=225 |
+| Viktor Vektor: You Might Feel a Little Pinch | played | 639 | 24% (20–28) n=434 | 770 → 631 | 18% | 373 / 143 / 123 | 28% (22–34) n=207 | 22% (17–29) n=185 | 12% (8–18) n=141 |
+| Augmented Negotiators | played | 597 | 25% (21–29) n=418 | 984 → 577 | 41% | 214 / 214 / 169 | 33% (27–40) n=190 | 26% (20–34) n=155 | 10% (6–16) n=167 |
+| Trauma Team Operatives | played | 583 | 24% (20–28) n=408 | 764 → 570 | 25% | 20 / 349 / 214 | 35% (28–42) n=188 | 28% (20–38) n=89 | 12% (8–17) n=205 |
+| Secondhand Bombus | played | 531 | 24% (20–28) n=405 | 1332 → 521 | 61% | 164 / 207 / 160 | 31% (26–37) n=251 | 18% (12–28) n=88 | 14% (9–21) n=125 |
+| Mandibular Upgrade | sold | 530 | 21% (17–26) n=387 | 677 → 530 | 22% | 268 / 143 / 119 | 23% (17–30) n=174 | 24% (18–31) n=150 | 12% (7–18) n=138 |
+| Cyberpsychosis | sold | 460 | 23% (19–28) n=341 | 1360 → 460 | 66% | 67 / 210 / 183 | 32% (25–40) n=135 | 29% (21–40) n=78 | 15% (10–21) n=177 |
+| The Heist | sold | 445 | 22% (18–27) n=352 | 973 → 445 | 54% | 152 / 178 / 115 | 28% (21–36) n=135 | 24% (17–33) n=116 | 15% (11–22) n=156 |
+| Safety Override | sold | 443 | 22% (18–27) n=346 | 985 → 443 | 55% | 166 / 163 / 114 | 27% (21–35) n=151 | 25% (17–34) n=106 | 13% (8–20) n=138 |
+| River Ward: Detective on the Hunt | called | 432 | 22% (19–27) n=432 | 432 → 432 | 0% | 255 / 115 / 62 | 27% (21–33) n=240 | 20% (14–28) n=126 | 12% (6–22) n=66 |
+| Muamar Reyes: El Capitán | called | 416 | 22% (18–26) n=416 | 416 → 416 | 0% | 269 / 92 / 55 | 26% (20–32) n=217 | 23% (17–31) n=134 | 6% (2–15) n=65 |
+| Dum Dum: Maelstrom Triggerman | called | 398 | 22% (19–27) n=398 | 398 → 398 | 0% | 239 / 87 / 72 | 26% (20–32) n=205 | 20% (14–28) n=133 | 15% (8–26) n=60 |
+| River Ward: Detective on the Hunt | ability | 395 | 21% (17–26) n=290 | 2125 → 395 | 81% | 38 / 98 / 259 | 40% (32–49) n=122 | 24% (14–36) n=55 | 5% (3–10) n=154 |
 
-(30 more card uses in the JSON report.)
-
-Legal but never taken: Safety Override (played, legal in 1060 turns).
+(31 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13692 | 13% | 0 / 760 / 3249 / 6317 / 3318 / 48 |
-| react | 3189 | 61% | 0 / 1493 / 1628 / 68 / 0 / 0 |
+| main | 13511 | 13% | 0 / 714 / 3185 / 6381 / 3186 / 45 |
+| react | 3225 | 62% | 0 / 1465 / 1688 / 72 / 0 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2077 | 36% | 133 / 404 / 817 / 705 / 18 / 0 |
-| gigValue/adjust | 1277 | 24% | 0 / 1 / 28 / 118 / 856 / 274 |
-| unit/equip | 1223 | 74% | 85 / 293 / 771 / 74 / 0 / 0 |
+| gig/steal | 1983 | 35% | 119 / 373 / 800 / 680 / 11 / 0 |
+| gigValue/adjust | 1201 | 25% | 0 / 1 / 23 / 117 / 825 / 235 |
+| unit/equip | 1123 | 78% | 78 / 300 / 683 / 62 / 0 / 0 |
 | mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 544 | 67% | 0 / 544 / 0 / 0 / 0 / 0 |
-| card/playFree | 485 | 86% | 340 / 84 / 56 / 5 / 0 / 0 |
-| unit/pump | 440 | 66% | 186 / 154 / 98 / 2 / 0 / 0 |
-| card/trash | 390 | 53% | 0 / 390 / 0 / 0 / 0 / 0 |
-| unit/protect | 379 | 61% | 152 / 152 / 74 / 1 / 0 / 0 |
-| card/defeatGear | 122 | 84% | 0 / 70 / 52 / 0 / 0 / 0 |
-| card/discard | 95 | 75% | 9 / 57 / 29 / 0 / 0 / 0 |
-| card/search | 85 | 85% | 41 / 34 / 10 / 0 / 0 / 0 |
-| unit/sacrifice | 42 | 81% | 28 / 13 / 1 / 0 / 0 / 0 |
-| yesno/playFree | 30 | 100% | 0 / 30 / 0 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 541 | 65% | 0 / 541 / 0 / 0 / 0 / 0 |
+| unit/pump | 427 | 67% | 196 / 140 / 91 / 0 / 0 / 0 |
+| card/playFree | 414 | 86% | 288 / 69 / 50 / 7 / 0 / 0 |
+| unit/protect | 393 | 64% | 180 / 151 / 62 / 0 / 0 / 0 |
+| card/trash | 358 | 49% | 0 / 358 / 0 / 0 / 0 / 0 |
+| card/defeatGear | 112 | 88% | 0 / 69 / 42 / 1 / 0 / 0 |
+| card/discard | 97 | 74% | 9 / 52 / 36 / 0 / 0 / 0 |
+| card/search | 79 | 80% | 38 / 29 / 12 / 0 / 0 / 0 |
+| unit/sacrifice | 42 | 90% | 30 / 12 / 0 / 0 / 0 / 0 |
+| yesno/playFree | 28 | 100% | 0 / 28 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 83% | 0 / 6 / 0 / 0 / 0 / 0 |
+| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 2553 attacks. Reacted to 930 (deck won 25% (22–29) n=480): stole 275, stoleNothing 2, attackerGone 37, targetGone 489, bothGone 71, noneGone 56. Let 1623 resolve (25% (21–29) n=456): stole 1271, stoleNothing 22, attackerGone 9, targetGone 253, bothGone 65, noneGone 3. Choices: call 372, endReact 1954, block 587, ability 198, play 78.
+Reaction windows: 2630 attacks. Reacted to 970 (deck won 21% (18–25) n=498): stole 282, stoleNothing 1, attackerGone 30, targetGone 510, bothGone 92, noneGone 55. Let 1660 resolve (22% (18–26) n=473): stole 1300, stoleNothing 24, attackerGone 9, targetGone 268, bothGone 57, noneGone 2. Choices: endReact 1986, call 362, block 604, ability 151, play 122.
 
-## Alt + V + Del — 560 games, 42% won, 25468 decisions
+## Alt + V + Del — 560 games, 39% won, 25196 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 910 | 47% (42–52) n=364 | 1095 → 812 | 26% | 87 / 355 / 468 | 73% (65–79) n=150 | 57% (48–65) n=128 | 41% (35–47) n=273 |
-| V: Streetkid | attacked | 599 | 37% (32–42) n=359 | 719 → 599 | 17% | 76 / 182 / 341 | 54% (46–61) n=185 | 41% (28–56) n=46 | 27% (21–33) n=207 |
-| Yorinobu Arasaka: Steel Dragon | played | 584 | 44% (40–49) n=416 | 670 → 584 | 13% | 0 / 204 / 380 | 63% (54–71) n=121 | 55% (43–66) n=69 | 36% (31–42) n=294 |
-| 6th Street Recruits | played | 573 | 43% (38–48) n=411 | 909 → 566 | 38% | 332 / 123 / 118 | 52% (45–59) n=204 | 40% (33–47) n=185 | 33% (25–42) n=110 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 572 | 55% (49–62) n=231 | 441 → 397 | 10% | 0 / 120 / 452 | 77% (68–84) n=113 | 77% (64–87) n=53 | 46% (38–54) n=145 |
-| All is Lost | sold | 548 | 44% (39–49) n=398 | 714 → 548 | 23% | 266 / 122 / 160 | 53% (46–61) n=172 | 44% (36–52) n=147 | 33% (26–41) n=150 |
-| Meredith Stout: Stone Cold Corpo | attacked | 545 | 45% (39–50) n=283 | 1053 → 507 | 52% | 36 / 122 / 387 | 72% (63–79) n=117 | 50% (40–60) n=92 | 28% (22–35) n=171 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 513 | 54% (48–59) n=281 | 494 → 456 | 8% | 0 / 0 / 513 | 78% (69–84) n=121 | 84% (72–91) n=61 | 44% (37–51) n=180 |
-| Screw: Lovelorn Fool | attacked | 490 | 48% (42–55) n=225 | 598 → 478 | 20% | 0 / 203 / 287 | 66% (57–74) n=118 | 64% (50–77) n=45 | 45% (38–53) n=150 |
-| Industrial Assembly | sold | 479 | 40% (35–45) n=356 | 987 → 479 | 51% | 119 / 202 / 158 | 52% (43–60) n=126 | 39% (31–49) n=107 | 34% (27–40) n=191 |
-| Meredith Stout: Stone Cold Corpo | played | 458 | 41% (36–46) n=351 | 1328 → 450 | 66% | 156 / 147 / 155 | 59% (49–68) n=105 | 39% (31–47) n=147 | 32% (25–40) n=147 |
-| Alt Cunningham: Soulkiller Architect | ability | 441 | 37% (32–42) n=325 | 1771 → 441 | 75% | 5 / 42 / 394 | 65% (57–72) n=156 | 35% (23–48) n=52 | 7% (4–12) n=166 |
-| Mantis Blades | sold | 438 | 41% (36–46) n=356 | 638 → 438 | 31% | 273 / 75 / 90 | 50% (42–58) n=160 | 38% (31–47) n=138 | 31% (23–41) n=100 |
-| Johnny Silverhand: Rocking Renegade | called | 433 | 43% (38–47) n=433 | 433 → 433 | 0% | 156 / 154 / 123 | 53% (47–59) n=266 | 32% (22–44) n=65 | 22% (15–31) n=102 |
-| Alt Cunningham: Soulkiller Architect | called | 425 | 41% (37–46) n=425 | 425 → 425 | 0% | 157 / 156 / 112 | 50% (44–56) n=280 | 31% (22–43) n=67 | 19% (12–29) n=78 |
+| 6th Street Recruits | attacked | 905 | 42% (37–47) n=376 | 1084 → 813 | 25% | 84 / 370 / 451 | 64% (56–71) n=152 | 50% (42–59) n=123 | 36% (30–41) n=276 |
+| V: Streetkid | attacked | 602 | 37% (32–42) n=356 | 715 → 602 | 16% | 76 / 196 / 330 | 53% (46–60) n=182 | 53% (40–66) n=51 | 27% (22–34) n=202 |
+| 6th Street Recruits | played | 581 | 39% (34–44) n=412 | 913 → 576 | 37% | 341 / 121 / 119 | 47% (41–54) n=215 | 35% (28–42) n=187 | 32% (23–41) n=95 |
+| Yorinobu Arasaka: Steel Dragon | played | 577 | 40% (36–45) n=413 | 668 → 577 | 14% | 0 / 198 / 379 | 62% (53–69) n=130 | 51% (39–62) n=69 | 28% (23–34) n=280 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 562 | 51% (44–57) n=235 | 414 → 383 | 7% | 0 / 110 / 452 | 76% (67–83) n=113 | 64% (49–76) n=44 | 38% (30–46) n=138 |
+| All is Lost | sold | 544 | 40% (35–45) n=395 | 716 → 544 | 24% | 272 / 119 / 153 | 50% (43–58) n=175 | 38% (31–46) n=149 | 27% (21–35) n=146 |
+| Meredith Stout: Stone Cold Corpo | attacked | 533 | 40% (34–46) n=288 | 995 → 498 | 50% | 38 / 121 / 374 | 67% (58–74) n=120 | 46% (36–56) n=87 | 23% (17–30) n=168 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 488 | 50% (44–56) n=274 | 485 → 447 | 8% | 0 / 0 / 488 | 75% (66–82) n=114 | 82% (70–89) n=60 | 35% (28–42) n=175 |
+| Industrial Assembly | sold | 477 | 37% (32–42) n=357 | 989 → 477 | 52% | 121 / 194 / 162 | 48% (40–57) n=133 | 36% (28–45) n=116 | 28% (21–35) n=178 |
+| Screw: Lovelorn Fool | attacked | 460 | 44% (38–50) n=221 | 539 → 442 | 18% | 0 / 183 / 277 | 63% (54–72) n=106 | 60% (45–72) n=47 | 38% (31–47) n=138 |
+| Meredith Stout: Stone Cold Corpo | played | 448 | 35% (30–40) n=346 | 1321 → 438 | 67% | 157 / 145 / 146 | 53% (43–62) n=102 | 37% (29–45) n=147 | 25% (18–33) n=141 |
+| Mantis Blades | sold | 440 | 40% (35–45) n=361 | 633 → 440 | 30% | 273 / 73 / 94 | 47% (39–54) n=161 | 37% (30–46) n=137 | 33% (25–43) n=105 |
+| V: Streetkid | called | 425 | 39% (34–44) n=425 | 425 → 425 | 0% | 187 / 128 / 110 | 49% (44–55) n=277 | 24% (15–37) n=54 | 16% (10–25) n=94 |
+| Alt Cunningham: Soulkiller Architect | called | 424 | 39% (35–44) n=424 | 424 → 424 | 0% | 161 / 155 / 108 | 48% (42–54) n=271 | 33% (23–45) n=66 | 16% (10–25) n=87 |
+| Johnny Silverhand: Rocking Renegade | called | 411 | 39% (35–44) n=411 | 411 → 411 | 0% | 154 / 145 / 112 | 51% (44–57) n=255 | 27% (18–39) n=70 | 15% (9–24) n=86 |
 
 (33 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14697 | 9% | 0 / 1140 / 3587 / 5061 / 4620 / 289 |
-| gig/steal | 2768 | 27% | 150 / 332 / 1116 / 1141 / 29 / 0 |
+| main | 14507 | 9% | 0 / 1142 / 3533 / 5078 / 4497 / 257 |
+| gig/steal | 2718 | 27% | 154 / 350 / 1086 / 1110 / 18 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1844 | 68% | 0 / 1226 / 609 / 9 / 0 / 0 |
-| card/search | 628 | 68% | 287 / 174 / 131 / 36 / 0 / 0 |
-| gigValue/adjust | 560 | 9% | 0 / 29 / 128 / 60 / 93 / 250 |
+| react | 1885 | 69% | 0 / 1271 / 607 / 7 / 0 / 0 |
+| card/search | 616 | 67% | 281 / 161 / 134 / 38 / 2 / 0 |
 | mulligan | 560 | 39% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/playFree | 505 | 81% | 0 / 223 / 273 / 9 / 0 / 0 |
-| unit/lagAttack | 310 | 83% | 48 / 81 / 176 / 5 / 0 / 0 |
-| unit/defeat | 278 | 53% | 47 / 57 / 105 / 69 / 0 / 0 |
-| unit/equip | 275 | 79% | 28 / 72 / 145 / 30 / 0 / 0 |
-| card/playFromTrash | 221 | 65% | 96 / 88 / 35 / 2 / 0 / 0 |
-| mode/mode | 208 | 100% | 0 / 0 / 208 / 0 / 0 / 0 |
-| card/freePlay | 142 | 84% | 0 / 56 / 81 / 5 / 0 / 0 |
-| unit/pump | 60 | 78% | 34 / 14 / 11 / 1 / 0 / 0 |
-| unit/sacrifice | 48 | 83% | 31 / 9 / 7 / 1 / 0 / 0 |
-| card/discard | 45 | 49% | 6 / 8 / 26 / 5 / 0 / 0 |
-| card/defeat | 40 | 93% | 32 / 6 / 2 / 0 / 0 / 0 |
-| yesno/draw | 31 | 100% | 0 / 31 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 533 | 7% | 0 / 27 / 126 / 44 / 75 / 261 |
+| card/playFree | 500 | 83% | 0 / 206 / 286 / 8 / 0 / 0 |
+| unit/lagAttack | 323 | 83% | 44 / 105 / 168 / 6 / 0 / 0 |
+| unit/equip | 271 | 80% | 34 / 68 / 138 / 31 / 0 / 0 |
+| unit/defeat | 247 | 61% | 41 / 41 / 110 / 53 / 2 / 0 |
+| mode/mode | 206 | 100% | 0 / 0 / 206 / 0 / 0 / 0 |
+| card/playFromTrash | 185 | 66% | 90 / 59 / 35 / 1 / 0 / 0 |
+| card/freePlay | 148 | 80% | 0 / 58 / 84 / 6 / 0 / 0 |
+| unit/pump | 69 | 72% | 37 / 17 / 15 / 0 / 0 / 0 |
+| unit/sacrifice | 53 | 89% | 34 / 11 / 8 / 0 / 0 / 0 |
+| card/discard | 49 | 37% | 4 / 12 / 27 / 6 / 0 / 0 |
+| yesno/draw | 40 | 100% | 0 / 40 / 0 / 0 / 0 / 0 |
+| card/defeat | 39 | 92% | 32 / 6 / 1 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 80% | 0 / 5 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1681 attacks. Reacted to 533 (deck won 38% (33–43) n=362): stole 205, stoleNothing 3, attackerGone 13, targetGone 289, bothGone 23. Let 1148 resolve (45% (40–50) n=410): stole 806, stoleNothing 11, attackerGone 8, targetGone 295, bothGone 28. Choices: endReact 1256, call 300, block 277, play 11.
+Reaction windows: 1733 attacks. Reacted to 526 (deck won 34% (30–39) n=372): stole 226, stoleNothing 3, attackerGone 16, targetGone 262, bothGone 18, noneGone 1. Let 1207 resolve (39% (34–43) n=409): stole 821, stoleNothing 12, attackerGone 10, targetGone 324, bothGone 40. Choices: call 307, endReact 1308, block 262, play 8.
 
-## BBG Cunningham Econ — 560 games, 53% won, 27741 decisions
+## BBG Cunningham Econ — 560 games, 55% won, 28637 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Jacked-In Voodoo Boy | played | 678 | 55% (51–60) n=444 | 994 → 634 | 36% | 280 / 205 / 193 | 63% (57–68) n=304 | 42% (34–51) n=133 | 29% (21–39) n=86 |
-| Jacked-In Voodoo Boy | attacked | 664 | 57% (51–62) n=326 | 649 → 572 | 12% | 70 / 253 / 341 | 70% (64–76) n=226 | 47% (37–58) n=85 | 34% (26–42) n=122 |
-| Alt Cunningham: Soulkiller Architect | ability | 640 | 47% (42–52) n=393 | 1761 → 629 | 64% | 5 / 167 / 468 | 63% (57–69) n=257 | 42% (31–54) n=71 | 18% (13–24) n=173 |
-| Psycho Squad | attacked | 568 | 56% (50–62) n=275 | 629 → 537 | 15% | 59 / 254 / 255 | 65% (58–72) n=173 | 51% (41–61) n=88 | 48% (39–57) n=118 |
-| Pepe Najarro: Working Doubles | attacked | 568 | 55% (49–61) n=265 | 631 → 538 | 15% | 66 / 249 / 253 | 69% (61–76) n=154 | 60% (50–69) n=99 | 44% (36–53) n=122 |
-| Floor It | sold | 525 | 51% (46–56) n=385 | 847 → 525 | 38% | 234 / 131 / 160 | 62% (55–69) n=186 | 45% (37–53) n=156 | 39% (30–48) n=114 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 506 | 40% (35–46) n=335 | 1781 → 506 | 72% | 8 / 137 / 361 | 60% (53–67) n=182 | 32% (22–44) n=69 | 14% (10–21) n=160 |
-| Peace Offering | sold | 483 | 54% (49–59) n=366 | 827 → 483 | 42% | 226 / 109 / 148 | 65% (58–71) n=192 | 50% (42–58) n=145 | 35% (26–45) n=92 |
-| Chrome Reverie | sold | 476 | 55% (49–60) n=355 | 857 → 476 | 44% | 220 / 120 / 136 | 64% (58–70) n=225 | 45% (36–55) n=104 | 39% (29–49) n=83 |
-| Trust No One | sold | 458 | 53% (48–58) n=357 | 795 → 458 | 42% | 201 / 108 / 149 | 60% (53–67) n=168 | 50% (41–58) n=139 | 46% (36–56) n=94 |
-| Mox Inciters | played | 453 | 52% (47–57) n=362 | 941 → 432 | 54% | 74 / 210 / 169 | 65% (59–71) n=213 | 39% (29–49) n=85 | 32% (23–41) n=98 |
-| Psycho Squad | played | 451 | 55% (50–60) n=365 | 677 → 442 | 35% | 173 / 132 / 146 | 69% (62–75) n=199 | 44% (35–52) n=128 | 37% (27–48) n=73 |
-| Pepe Najarro: Working Doubles | played | 448 | 52% (47–57) n=358 | 725 → 440 | 39% | 169 / 127 / 152 | 59% (52–66) n=195 | 48% (40–57) n=126 | 28% (19–38) n=80 |
-| Alt Cunningham: Soulkiller Architect | called | 419 | 53% (49–58) n=419 | 419 → 419 | 0% | 158 / 208 / 53 | 59% (54–65) n=301 | 44% (33–55) n=78 | 30% (18–45) n=40 |
-| Hanako Arasaka: Daughter of the Emperor | called | 419 | 55% (50–60) n=419 | 419 → 419 | 0% | 142 / 216 / 61 | 61% (55–66) n=306 | 37% (27–48) n=73 | 43% (29–58) n=40 |
+| Jacked-In Voodoo Boy | attacked | 752 | 59% (53–64) n=345 | 704 → 623 | 12% | 66 / 262 / 424 | 70% (64–76) n=246 | 63% (53–72) n=96 | 37% (30–46) n=131 |
+| Jacked-In Voodoo Boy | played | 709 | 57% (52–61) n=455 | 1029 → 655 | 36% | 283 / 214 / 212 | 62% (57–68) n=311 | 49% (41–57) n=146 | 32% (22–43) n=73 |
+| Alt Cunningham: Soulkiller Architect | ability | 649 | 49% (45–54) n=396 | 1795 → 639 | 64% | 7 / 150 / 492 | 66% (60–71) n=264 | 37% (27–47) n=82 | 19% (14–26) n=171 |
+| Psycho Squad | attacked | 608 | 58% (52–64) n=281 | 640 → 573 | 10% | 58 / 272 / 278 | 69% (62–75) n=174 | 59% (49–69) n=91 | 44% (36–53) n=127 |
+| Pepe Najarro: Working Doubles | attacked | 556 | 56% (50–62) n=268 | 603 → 530 | 12% | 66 / 233 / 257 | 67% (59–74) n=160 | 55% (45–65) n=93 | 50% (41–59) n=122 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 526 | 44% (39–50) n=344 | 1821 → 526 | 71% | 14 / 136 / 376 | 62% (55–68) n=199 | 34% (25–45) n=85 | 15% (10–22) n=145 |
+| Floor It | sold | 503 | 55% (50–60) n=375 | 896 → 503 | 44% | 224 / 118 / 161 | 66% (59–73) n=176 | 48% (40–56) n=149 | 46% (37–55) n=107 |
+| Peace Offering | sold | 485 | 54% (49–59) n=365 | 858 → 485 | 43% | 227 / 105 / 153 | 65% (58–71) n=190 | 49% (41–57) n=143 | 38% (28–48) n=88 |
+| Chrome Reverie | sold | 475 | 57% (51–62) n=355 | 867 → 475 | 45% | 219 / 128 / 128 | 63% (57–69) n=218 | 52% (43–62) n=105 | 38% (28–49) n=84 |
+| Trust No One | sold | 474 | 57% (51–61) n=368 | 841 → 474 | 44% | 205 / 111 / 158 | 65% (58–71) n=179 | 52% (44–60) n=143 | 47% (37–57) n=92 |
+| Psycho Squad | played | 458 | 56% (51–61) n=365 | 696 → 452 | 35% | 166 / 145 / 147 | 68% (61–74) n=189 | 48% (40–57) n=132 | 39% (29–50) n=80 |
+| Pepe Najarro: Working Doubles | played | 455 | 54% (49–59) n=365 | 740 → 449 | 39% | 169 / 128 / 158 | 65% (58–71) n=203 | 49% (40–57) n=134 | 29% (20–39) n=80 |
+| Mox Inciters | played | 438 | 53% (48–58) n=355 | 953 → 418 | 56% | 77 / 205 / 156 | 66% (59–72) n=213 | 42% (33–52) n=100 | 30% (21–41) n=76 |
+| Maman Brigitte: Spirit of Death | played | 427 | 55% (49–60) n=355 | 745 → 422 | 43% | 146 / 115 / 166 | 67% (60–73) n=196 | 50% (40–59) n=105 | 32% (24–42) n=96 |
+| Hanako Arasaka: Daughter of the Emperor | called | 419 | 55% (50–60) n=419 | 419 → 419 | 0% | 144 / 216 / 59 | 61% (55–66) n=303 | 41% (31–52) n=78 | 37% (23–53) n=38 |
 
 (28 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13519 | 6% | 0 / 1183 / 3352 / 5794 / 3134 / 56 |
-| gig/steal | 2340 | 36% | 196 / 551 / 1055 / 528 / 10 / 0 |
+| main | 13843 | 6% | 0 / 1162 / 3442 / 5924 / 3225 / 90 |
+| gig/steal | 2478 | 35% | 197 / 548 / 1140 / 585 / 8 / 0 |
 | gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1346 | 19% | 0 / 36 / 340 / 549 / 368 / 53 |
-| react | 1342 | 56% | 0 / 901 / 433 / 8 / 0 / 0 |
-| unit/bottomdeck | 1112 | 79% | 741 / 199 / 167 / 5 / 0 / 0 |
-| card/search | 874 | 57% | 0 / 186 / 688 / 0 / 0 / 0 |
-| card/discard | 858 | 51% | 135 / 335 / 369 / 19 / 0 / 0 |
+| react | 1423 | 54% | 0 / 940 / 476 / 7 / 0 / 0 |
+| gigValue/adjust | 1391 | 19% | 0 / 36 / 337 / 541 / 411 / 66 |
+| unit/bottomdeck | 1157 | 77% | 752 / 203 / 199 / 3 / 0 / 0 |
+| card/search | 1022 | 57% | 0 / 229 / 793 / 0 / 0 / 0 |
+| card/discard | 914 | 51% | 146 / 329 / 400 / 39 / 0 / 0 |
 | mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 506 | 38% | 16 / 35 / 256 / 197 / 2 / 0 |
-| gig/swapTake | 506 | 30% | 36 / 57 / 229 / 179 / 5 / 0 |
-| card/playFromTrash | 445 | 64% | 182 / 142 / 114 / 7 / 0 / 0 |
-| unit/mustAttack | 360 | 67% | 174 / 109 / 77 / 0 / 0 / 0 |
-| card/freePlay | 297 | 60% | 0 / 69 / 190 / 36 / 2 / 0 |
-| yesno/discardFor | 286 | 100% | 0 / 286 / 0 / 0 / 0 / 0 |
-| unit/ready | 258 | 100% | 0 / 168 / 90 / 0 / 0 / 0 |
-| unit/weaken | 258 | 68% | 102 / 86 / 70 / 0 / 0 / 0 |
-| gigValue/setGig | 183 | 18% | 0 / 3 / 14 / 23 / 34 / 109 |
-| unit/cantAttack | 175 | 55% | 58 / 64 / 52 / 1 / 0 / 0 |
-| mode/mode | 133 | 90% | 0 / 14 / 119 / 0 / 0 / 0 |
-| unit/call | 71 | 100% | 0 / 39 / 32 / 0 / 0 / 0 |
-| unit/sacrifice | 57 | 95% | 49 / 6 / 2 / 0 / 0 / 0 |
-| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 4 | 0% | 0 / 0 / 4 / 0 / 0 / 0 |
+| gig/swapGive | 526 | 39% | 19 / 38 / 243 / 225 / 1 / 0 |
+| gig/swapTake | 526 | 33% | 43 / 49 / 254 / 175 / 5 / 0 |
+| card/playFromTrash | 451 | 61% | 182 / 131 / 123 / 15 / 0 / 0 |
+| unit/mustAttack | 341 | 67% | 165 / 109 / 67 / 0 / 0 / 0 |
+| card/freePlay | 306 | 62% | 0 / 74 / 189 / 40 / 3 / 0 |
+| yesno/discardFor | 302 | 100% | 0 / 302 / 0 / 0 / 0 / 0 |
+| unit/weaken | 260 | 68% | 88 / 82 / 89 / 1 / 0 / 0 |
+| unit/ready | 217 | 100% | 0 / 150 / 67 / 0 / 0 / 0 |
+| unit/cantAttack | 187 | 60% | 66 / 62 / 58 / 1 / 0 / 0 |
+| gigValue/setGig | 183 | 15% | 0 / 1 / 16 / 23 / 26 / 117 |
+| mode/mode | 161 | 91% | 0 / 15 / 146 / 0 / 0 / 0 |
+| unit/call | 73 | 100% | 0 / 38 / 35 / 0 / 0 / 0 |
+| unit/sacrifice | 54 | 89% | 44 / 6 / 4 / 0 / 0 / 0 |
+| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 4 | 0% | 0 / 3 / 1 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 4 | 75% | 0 / 4 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1194 attacks. Reacted to 520 (deck won 49% (44–54) n=364): stole 195, stoleNothing 2, attackerGone 4, targetGone 300, bothGone 18, noneGone 1. Let 674 resolve (48% (42–54) n=285): stole 454, stoleNothing 1, attackerGone 2, targetGone 188, bothGone 29. Choices: call 289, block 265, endReact 751, play 37.
+Reaction windows: 1252 attacks. Reacted to 571 (deck won 50% (45–55) n=395): stole 213, stoleNothing 1, attackerGone 9, targetGone 331, bothGone 17. Let 681 resolve (49% (44–55) n=305): stole 465, stoleNothing 3, attackerGone 2, targetGone 175, bothGone 36. Choices: block 280, call 305, endReact 766, play 72.
 
-## BBG Draw and Wipe — 560 games, 55% won, 29923 decisions
+## BBG Draw and Wipe — 560 games, 55% won, 29844 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Jacked-In Voodoo Boy | played | 832 | 55% (51–60) n=492 | 1155 → 757 | 34% | 386 / 208 / 238 | 70% (64–75) n=287 | 42% (35–48) n=207 | 20% (14–29) n=109 |
-| Jacked-In Voodoo Boy | attacked | 808 | 57% (52–62) n=360 | 755 → 686 | 9% | 127 / 327 / 354 | 71% (65–76) n=235 | 57% (48–65) n=123 | 30% (23–38) n=150 |
-| Maman Brigitte: Spirit of Death | played | 646 | 54% (49–59) n=449 | 1118 → 638 | 43% | 221 / 219 / 206 | 67% (61–73) n=246 | 52% (44–60) n=158 | 34% (27–43) n=132 |
-| Maman Brigitte: Spirit of Death | attacked | 605 | 58% (53–64) n=330 | 703 → 563 | 20% | 0 / 276 / 329 | 76% (69–82) n=179 | 65% (56–74) n=101 | 39% (31–47) n=140 |
-| Peace Offering | sold | 605 | 55% (51–60) n=417 | 901 → 605 | 33% | 290 / 144 / 171 | 69% (62–75) n=204 | 50% (43–58) n=167 | 39% (31–48) n=120 |
-| Delamain: Rideshare AI | played | 590 | 52% (47–57) n=411 | 1555 → 553 | 64% | 143 / 219 / 228 | 68% (62–74) n=224 | 44% (36–53) n=140 | 25% (18–34) n=114 |
-| Lizzy Wizzy: Delicate Weapon | played | 536 | 53% (48–58) n=398 | 1604 → 527 | 67% | 30 / 241 / 265 | 66% (59–72) n=204 | 53% (43–62) n=102 | 36% (29–43) n=163 |
-| Chrome Reverie | sold | 515 | 55% (50–60) n=392 | 855 → 515 | 40% | 263 / 97 / 155 | 71% (64–77) n=187 | 50% (42–58) n=151 | 32% (23–41) n=101 |
-| Trust No One | sold | 510 | 57% (52–62) n=372 | 838 → 510 | 39% | 195 / 115 / 200 | 70% (63–77) n=171 | 55% (47–63) n=134 | 39% (31–48) n=127 |
-| Nocturne OP55 N1 | sold | 472 | 55% (49–60) n=363 | 1084 → 472 | 56% | 153 / 150 / 169 | 71% (64–77) n=173 | 54% (45–63) n=105 | 30% (22–38) n=132 |
-| Jackie Welles: Pour One Out For Me | called | 459 | 54% (50–59) n=459 | 459 → 459 | 0% | 164 / 234 / 61 | 66% (60–71) n=262 | 45% (37–53) n=136 | 26% (17–38) n=61 |
-| Judy Álvarez: Braindance Maestro | ability | 449 | 51% (46–57) n=336 | 1793 → 449 | 75% | 20 / 137 / 292 | 73% (66–78) n=212 | 30% (20–44) n=53 | 13% (8–20) n=123 |
-| Placide: Voodoo Sentinel | played | 441 | 51% (46–56) n=375 | 541 → 441 | 18% | 0 / 0 / 441 | 85% (78–90) n=143 | 60% (47–72) n=55 | 26% (20–32) n=204 |
-| Judy Álvarez: Braindance Maestro | called | 431 | 58% (53–62) n=431 | 431 → 431 | 0% | 158 / 226 / 47 | 70% (64–75) n=255 | 44% (35–53) n=118 | 33% (22–46) n=58 |
-| Hanako Arasaka: Daughter of the Emperor | called | 427 | 53% (48–58) n=427 | 427 → 427 | 0% | 140 / 235 / 52 | 65% (59–71) n=250 | 37% (29–46) n=120 | 33% (22–46) n=57 |
+| Jacked-In Voodoo Boy | attacked | 824 | 55% (50–60) n=372 | 773 → 695 | 10% | 130 / 327 / 367 | 69% (63–74) n=240 | 52% (44–61) n=130 | 32% (26–40) n=164 |
+| Jacked-In Voodoo Boy | played | 823 | 56% (51–60) n=490 | 1159 → 754 | 35% | 383 / 225 / 215 | 68% (62–73) n=295 | 42% (35–49) n=201 | 24% (17–33) n=105 |
+| Maman Brigitte: Spirit of Death | played | 644 | 56% (51–61) n=438 | 1150 → 639 | 44% | 212 / 225 / 207 | 68% (62–73) n=250 | 52% (44–60) n=149 | 37% (29–45) n=131 |
+| Maman Brigitte: Spirit of Death | attacked | 616 | 59% (54–64) n=336 | 717 → 573 | 20% | 0 / 278 / 338 | 78% (72–84) n=176 | 69% (60–77) n=104 | 42% (34–50) n=158 |
+| Peace Offering | sold | 608 | 54% (49–59) n=405 | 891 → 608 | 32% | 288 / 154 / 166 | 68% (61–74) n=201 | 45% (38–53) n=159 | 37% (29–46) n=123 |
+| Delamain: Rideshare AI | played | 595 | 51% (46–55) n=415 | 1520 → 549 | 64% | 151 / 235 / 209 | 62% (55–68) n=233 | 45% (37–54) n=133 | 21% (15–29) n=122 |
+| Chrome Reverie | sold | 527 | 57% (52–62) n=393 | 848 → 527 | 38% | 268 / 107 / 152 | 70% (63–76) n=204 | 50% (42–58) n=147 | 41% (32–50) n=106 |
+| Lizzy Wizzy: Delicate Weapon | played | 526 | 55% (50–60) n=383 | 1595 → 517 | 68% | 29 / 240 / 257 | 69% (62–75) n=203 | 52% (42–61) n=95 | 36% (29–44) n=158 |
+| Trust No One | sold | 517 | 54% (49–59) n=384 | 823 → 517 | 37% | 201 / 131 / 185 | 66% (59–73) n=178 | 53% (45–61) n=138 | 30% (22–38) n=124 |
+| Nocturne OP55 N1 | sold | 471 | 53% (47–58) n=365 | 1114 → 471 | 58% | 151 / 148 / 172 | 67% (60–74) n=180 | 57% (47–66) n=102 | 27% (20–35) n=135 |
+| Judy Álvarez: Braindance Maestro | ability | 465 | 54% (48–59) n=325 | 1772 → 465 | 74% | 21 / 145 / 299 | 73% (66–78) n=205 | 50% (38–62) n=64 | 16% (10–24) n=119 |
+| Jackie Welles: Pour One Out For Me | called | 457 | 56% (52–61) n=457 | 457 → 457 | 0% | 167 / 237 / 53 | 68% (62–74) n=265 | 44% (36–53) n=140 | 29% (18–42) n=52 |
+| Placide: Voodoo Sentinel | played | 453 | 52% (47–57) n=378 | 561 → 453 | 19% | 0 / 0 / 453 | 77% (70–83) n=152 | 66% (53–77) n=59 | 30% (24–37) n=201 |
+| Judy Álvarez: Braindance Maestro | called | 436 | 58% (53–62) n=436 | 436 → 436 | 0% | 161 / 223 / 52 | 67% (61–72) n=259 | 50% (41–58) n=121 | 32% (21–45) n=56 |
+| Hanako Arasaka: Daughter of the Emperor | called | 435 | 54% (49–58) n=435 | 435 → 435 | 0% | 139 / 237 / 59 | 64% (58–70) n=253 | 40% (32–49) n=119 | 37% (26–49) n=63 |
 
 (24 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14080 | 9% | 0 / 1120 / 3466 / 5719 / 3585 / 190 |
+| main | 14088 | 9% | 0 / 1125 / 3451 / 5684 / 3620 / 208 |
 | gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2221 | 31% | 204 / 355 / 958 / 694 / 10 / 0 |
-| gigValue/adjust | 1667 | 22% | 0 / 49 / 565 / 671 / 325 / 57 |
-| unit/bottomdeck | 1407 | 71% | 798 / 300 / 302 / 7 / 0 / 0 |
-| card/discard | 1367 | 50% | 155 / 463 / 657 / 92 / 0 / 0 |
-| card/search | 1139 | 58% | 0 / 244 / 895 / 0 / 0 / 0 |
-| unit/pump | 980 | 53% | 208 / 291 / 456 / 25 / 0 / 0 |
-| react | 839 | 54% | 0 / 655 / 184 / 0 / 0 / 0 |
-| gig/swapGive | 646 | 34% | 26 / 27 / 353 / 239 / 1 / 0 |
-| gig/swapTake | 606 | 37% | 75 / 95 / 264 / 164 / 8 / 0 |
+| gig/steal | 2180 | 34% | 198 / 353 / 913 / 708 / 8 / 0 |
+| gigValue/adjust | 1677 | 28% | 0 / 52 / 594 / 679 / 305 / 47 |
+| card/discard | 1393 | 49% | 159 / 475 / 662 / 96 / 1 / 0 |
+| unit/bottomdeck | 1387 | 72% | 804 / 298 / 280 / 5 / 0 / 0 |
+| card/search | 1183 | 57% | 0 / 264 / 919 / 0 / 0 / 0 |
+| unit/pump | 968 | 52% | 190 / 293 / 457 / 28 / 0 / 0 |
+| react | 820 | 56% | 0 / 649 / 171 / 0 / 0 / 0 |
+| gig/swapGive | 607 | 34% | 18 / 41 / 331 / 216 / 1 / 0 |
+| gig/swapTake | 570 | 38% | 66 / 95 / 263 / 144 / 2 / 0 |
 | mulligan | 560 | 41% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/freePlay | 507 | 59% | 0 / 132 / 318 / 56 / 1 / 0 |
-| yesno/discardFor | 417 | 100% | 0 / 417 / 0 / 0 / 0 / 0 |
-| yesno/addToHand | 277 | 100% | 0 / 277 / 0 / 0 / 0 / 0 |
-| unit/weaken | 184 | 67% | 94 / 56 / 32 / 2 / 0 / 0 |
-| unit/cantAttack | 178 | 67% | 79 / 59 / 40 / 0 / 0 / 0 |
-| mode/mode | 174 | 91% | 0 / 17 / 157 / 0 / 0 / 0 |
-| gigValue/setGig | 151 | 19% | 0 / 2 / 8 / 16 / 19 / 106 |
-| unit/spend | 96 | 63% | 43 / 32 / 20 / 1 / 0 / 0 |
-| unit/call | 87 | 100% | 0 / 46 / 41 / 0 / 0 / 0 |
-| unit/sacrifice | 45 | 96% | 31 / 7 / 6 / 1 / 0 / 0 |
-| card/discardForNothing | 30 | 0% | 0 / 6 / 20 / 4 / 0 / 0 |
-| yesno/draw | 19 | 100% | 0 / 19 / 0 / 0 / 0 / 0 |
+| card/freePlay | 497 | 57% | 0 / 130 / 304 / 63 / 0 / 0 |
+| yesno/discardFor | 430 | 100% | 0 / 430 / 0 / 0 / 0 / 0 |
+| yesno/addToHand | 298 | 100% | 0 / 298 / 0 / 0 / 0 / 0 |
+| unit/weaken | 178 | 73% | 92 / 55 / 31 / 0 / 0 / 0 |
+| mode/mode | 175 | 91% | 0 / 17 / 158 / 0 / 0 / 0 |
+| unit/cantAttack | 169 | 59% | 66 / 56 / 47 / 0 / 0 / 0 |
+| gigValue/setGig | 152 | 20% | 0 / 2 / 10 / 15 / 19 / 106 |
+| unit/spend | 101 | 69% | 47 / 39 / 15 / 0 / 0 / 0 |
+| unit/call | 70 | 100% | 0 / 29 / 41 / 0 / 0 / 0 |
+| unit/sacrifice | 40 | 98% | 29 / 8 / 2 / 1 / 0 / 0 |
+| card/discardForNothing | 39 | 0% | 0 / 5 / 30 / 4 / 0 / 0 |
+| yesno/draw | 16 | 100% | 0 / 16 / 0 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 796 attacks. Reacted to 366 (deck won 47% (42–53) n=290): stole 141, stoleNothing 1, targetGone 218, bothGone 6. Let 430 resolve (48% (42–54) n=236): stole 293, attackerGone 1, targetGone 131, bothGone 5. Choices: call 189, endReact 452, block 198.
+Reaction windows: 781 attacks. Reacted to 340 (deck won 46% (41–52) n=276): stole 135, targetGone 195, bothGone 10. Let 441 resolve (45% (38–51) n=228): stole 293, attackerGone 1, targetGone 140, bothGone 7. Choices: endReact 458, block 180, call 182.
 
-## Discord 5k #1: Smasher / River / Reyes (RYY) — 560 games, 50% won, 25914 decisions
+## Discord 5k #1: Smasher / River / Reyes (RYY) — 560 games, 48% won, 26289 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Johnny Silverhand: Never Stop Fighting | attacked | 730 | 61% (55–67) n=284 | 551 → 494 | 10% | 0 / 170 / 560 | 83% (77–88) n=167 | 71% (59–81) n=59 | 44% (36–52) n=147 |
-| Meredith Stout: Stone Cold Corpo | played | 561 | 48% (43–53) n=415 | 999 → 547 | 45% | 169 / 202 / 190 | 62% (55–68) n=220 | 36% (28–44) n=135 | 31% (23–39) n=124 |
-| Muamar Reyes: El Capitán | ability | 554 | 41% (36–47) n=348 | 1629 → 554 | 66% | 43 / 88 / 423 | 62% (55–68) n=206 | 17% (10–27) n=75 | 12% (8–18) n=154 |
-| Safety Override | sold | 540 | 49% (44–54) n=401 | 940 → 540 | 43% | 224 / 187 / 129 | 62% (56–69) n=202 | 39% (32–47) n=157 | 29% (22–38) n=112 |
-| Secondhand Bombus | played | 493 | 46% (41–51) n=369 | 1436 → 471 | 67% | 89 / 212 / 192 | 58% (52–64) n=238 | 33% (24–45) n=72 | 25% (18–34) n=108 |
-| Johnny Silverhand: Never Stop Fighting | played | 492 | 54% (49–59) n=379 | 855 → 492 | 42% | 0 / 299 / 193 | 71% (64–77) n=186 | 39% (29–51) n=71 | 36% (29–44) n=161 |
-| Zetatech Faceplate | sold | 455 | 49% (44–54) n=352 | 1193 → 455 | 62% | 91 / 219 / 145 | 61% (54–68) n=183 | 45% (36–55) n=95 | 37% (29–46) n=120 |
-| Adam Smasher: Ender of Legends | called | 443 | 50% (45–55) n=443 | 443 → 443 | 0% | 181 / 147 / 115 | 61% (55–66) n=286 | 36% (27–46) n=94 | 22% (14–34) n=63 |
-| Meredith Stout: Stone Cold Corpo | attacked | 436 | 50% (44–56) n=249 | 700 → 421 | 40% | 42 / 137 / 257 | 73% (65–80) n=145 | 41% (31–52) n=82 | 23% (16–33) n=90 |
-| Dexter DeShawn: One Last Chance | attacked | 432 | 54% (47–60) n=222 | 578 → 407 | 30% | 51 / 190 / 191 | 65% (56–72) n=127 | 56% (45–67) n=78 | 47% (38–57) n=99 |
-| River Ward: Detective on the Hunt | called | 412 | 49% (44–54) n=412 | 412 → 412 | 0% | 175 / 142 / 95 | 58% (53–64) n=272 | 33% (24–44) n=79 | 26% (17–38) n=61 |
-| Muamar Reyes: El Capitán | called | 401 | 49% (44–54) n=401 | 401 → 401 | 0% | 171 / 148 / 82 | 61% (55–67) n=254 | 30% (22–41) n=82 | 23% (15–35) n=65 |
-| Mantis Blades | sold | 392 | 50% (44–55) n=327 | 676 → 392 | 42% | 213 / 82 / 97 | 63% (56–70) n=178 | 37% (28–47) n=103 | 29% (20–41) n=69 |
-| Mandibular Upgrade | sold | 390 | 47% (42–53) n=327 | 431 → 390 | 10% | 222 / 70 / 98 | 61% (53–68) n=157 | 39% (31–48) n=133 | 30% (20–42) n=61 |
-| River Ward: Detective on the Hunt | ability | 389 | 45% (40–51) n=286 | 1631 → 389 | 76% | 17 / 114 / 258 | 66% (59–73) n=167 | 30% (19–45) n=46 | 16% (11–24) n=117 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 825 | 61% (55–66) n=284 | 592 → 537 | 9% | 0 / 188 / 637 | 76% (69–82) n=178 | 73% (61–82) n=70 | 46% (38–54) n=154 |
+| Muamar Reyes: El Capitán | ability | 590 | 42% (37–47) n=362 | 1684 → 590 | 65% | 44 / 98 / 448 | 57% (51–64) n=225 | 28% (20–38) n=90 | 11% (7–17) n=147 |
+| Meredith Stout: Stone Cold Corpo | played | 561 | 46% (41–51) n=418 | 1029 → 548 | 47% | 162 / 210 / 189 | 57% (50–63) n=212 | 34% (27–42) n=142 | 34% (26–43) n=123 |
+| Safety Override | sold | 505 | 48% (43–53) n=393 | 928 → 505 | 46% | 224 / 163 / 118 | 59% (52–66) n=194 | 39% (31–47) n=148 | 42% (33–51) n=103 |
+| Johnny Silverhand: Never Stop Fighting | played | 503 | 52% (47–57) n=381 | 862 → 503 | 42% | 0 / 298 / 205 | 66% (59–72) n=200 | 42% (32–53) n=78 | 41% (34–49) n=156 |
+| Secondhand Bombus | played | 488 | 46% (41–51) n=359 | 1458 → 463 | 68% | 80 / 220 / 188 | 56% (50–63) n=236 | 35% (25–46) n=72 | 26% (19–36) n=95 |
+| Adam Smasher: Ender of Legends | called | 458 | 48% (43–52) n=458 | 458 → 458 | 0% | 181 / 151 / 126 | 58% (52–63) n=283 | 37% (28–46) n=109 | 23% (14–34) n=66 |
+| Zetatech Faceplate | sold | 453 | 48% (42–53) n=355 | 1206 → 453 | 62% | 90 / 222 / 141 | 62% (55–69) n=176 | 35% (27–45) n=96 | 36% (28–45) n=117 |
+| Dexter DeShawn: One Last Chance | attacked | 445 | 54% (48–61) n=225 | 586 → 424 | 28% | 52 / 191 / 202 | 66% (57–73) n=119 | 52% (41–62) n=87 | 46% (37–56) n=108 |
+| Muamar Reyes: El Capitán | called | 426 | 48% (43–53) n=426 | 426 → 426 | 0% | 179 / 156 / 91 | 60% (54–65) n=266 | 30% (21–40) n=94 | 27% (18–39) n=66 |
+| Meredith Stout: Stone Cold Corpo | attacked | 423 | 46% (39–52) n=239 | 688 → 401 | 42% | 35 / 133 / 255 | 62% (54–70) n=138 | 40% (29–52) n=70 | 23% (16–33) n=90 |
+| River Ward: Detective on the Hunt | called | 416 | 47% (42–51) n=416 | 416 → 416 | 0% | 174 / 150 / 92 | 54% (48–60) n=270 | 36% (27–47) n=91 | 25% (16–38) n=55 |
+| Mantis Blades | sold | 394 | 48% (43–54) n=311 | 682 → 394 | 42% | 210 / 92 / 92 | 58% (51–65) n=177 | 40% (31–50) n=100 | 25% (16–37) n=60 |
+| Sketchy Ripper | played | 389 | 47% (41–52) n=323 | 673 → 377 | 44% | 210 / 84 / 95 | 60% (53–67) n=185 | 30% (22–39) n=109 | 23% (13–37) n=48 |
+| River Ward: Detective on the Hunt | ability | 384 | 41% (36–47) n=276 | 1673 → 384 | 77% | 18 / 98 / 268 | 59% (51–66) n=158 | 28% (18–41) n=54 | 20% (14–28) n=116 |
 
 (34 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13887 | 10% | 0 / 1054 / 3540 / 6297 / 2946 / 50 |
-| gig/steal | 2373 | 36% | 191 / 455 / 1051 / 665 / 11 / 0 |
+| main | 14144 | 10% | 0 / 1077 / 3644 / 6412 / 2962 / 49 |
+| gig/steal | 2361 | 36% | 190 / 437 / 1066 / 653 / 15 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 2108 | 66% | 0 / 1134 / 963 / 11 / 0 / 0 |
-| gigValue/adjust | 1600 | 24% | 0 / 1 / 120 / 279 / 942 / 258 |
-| unit/equip | 946 | 78% | 195 / 220 / 480 / 51 / 0 / 0 |
+| react | 2120 | 66% | 0 / 1135 / 977 / 8 / 0 / 0 |
+| gigValue/adjust | 1637 | 24% | 0 / 1 / 123 / 277 / 940 / 296 |
+| unit/equip | 970 | 77% | 205 / 239 / 457 / 69 / 0 / 0 |
 | mulligan | 560 | 17% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 501 | 67% | 0 / 501 / 0 / 0 / 0 / 0 |
-| unit/defeat | 393 | 52% | 120 / 77 / 181 / 15 / 0 / 0 |
-| unit/protect | 334 | 44% | 91 / 138 / 103 / 2 / 0 / 0 |
-| card/search | 279 | 80% | 0 / 151 / 120 / 7 / 1 / 0 |
-| card/trash | 226 | 52% | 0 / 226 / 0 / 0 / 0 / 0 |
-| card/playFree | 217 | 93% | 173 / 37 / 7 / 0 / 0 / 0 |
-| unit/sacrifice | 206 | 60% | 82 / 75 / 49 / 0 / 0 / 0 |
-| card/discard | 34 | 71% | 12 / 10 / 12 / 0 / 0 / 0 |
-| yesno/draw | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1783 attacks. Reacted to 582 (deck won 39% (34–44) n=361): stole 171, stoleNothing 1, attackerGone 21, targetGone 324, bothGone 26, noneGone 39. Let 1201 resolve (43% (38–48) n=412): stole 888, stoleNothing 11, attackerGone 4, targetGone 261, bothGone 35, noneGone 2. Choices: endReact 1381, block 376, call 269, ability 64, play 18.
-
-## Discord 5k #2: Jackie / Alt / Hanako (BBG) — 560 games, 54% won, 28599 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 975 | 60% (55–65) n=363 | 989 → 852 | 14% | 107 / 395 / 473 | 74% (68–79) n=247 | 53% (45–61) n=139 | 45% (37–53) n=160 |
-| Alt Cunningham: Soulkiller Architect | ability | 917 | 49% (45–54) n=475 | 1757 → 885 | 50% | 10 / 194 / 713 | 63% (58–68) n=338 | 41% (32–51) n=99 | 12% (8–17) n=225 |
-| Jacked-In Voodoo Boy | attacked | 846 | 56% (51–61) n=379 | 832 → 710 | 15% | 79 / 265 / 502 | 68% (63–74) n=263 | 60% (51–69) n=103 | 31% (24–39) n=147 |
-| Jacked-In Voodoo Boy | played | 773 | 54% (49–58) n=467 | 1058 → 712 | 33% | 300 / 235 / 238 | 63% (57–68) n=320 | 43% (36–51) n=150 | 24% (16–34) n=84 |
-| Pepe Najarro: Working Doubles | played | 724 | 54% (50–59) n=452 | 985 → 710 | 28% | 265 / 226 / 233 | 67% (61–72) n=260 | 49% (42–56) n=191 | 26% (19–35) n=107 |
-| Maman Brigitte: Spirit of Death | played | 685 | 55% (50–59) n=451 | 928 → 682 | 27% | 216 / 200 / 269 | 66% (61–72) n=265 | 48% (40–55) n=162 | 33% (25–41) n=120 |
-| Maman Brigitte: Spirit of Death | attacked | 682 | 59% (54–64) n=358 | 765 → 617 | 19% | 0 / 311 / 371 | 73% (67–78) n=225 | 63% (54–71) n=118 | 35% (27–44) n=115 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 599 | 39% (34–44) n=354 | 1698 → 599 | 65% | 5 / 144 / 450 | 54% (48–61) n=223 | 29% (19–41) n=66 | 8% (5–13) n=187 |
-| Floor It | sold | 468 | 50% (45–55) n=361 | 886 → 468 | 47% | 193 / 130 / 145 | 63% (56–70) n=186 | 43% (35–52) n=136 | 27% (19–37) n=89 |
-| Riot Shield | sold | 444 | 54% (49–59) n=355 | 509 → 444 | 13% | 220 / 78 / 146 | 68% (61–74) n=185 | 48% (40–57) n=133 | 30% (22–41) n=82 |
-| Alt Cunningham: Soulkiller Architect | called | 432 | 54% (49–59) n=432 | 432 → 432 | 0% | 144 / 222 / 66 | 63% (57–68) n=307 | 42% (32–53) n=76 | 18% (10–31) n=49 |
-| Jackie Welles: Pour One Out For Me | called | 426 | 57% (52–61) n=426 | 426 → 426 | 0% | 149 / 208 / 69 | 63% (57–68) n=297 | 46% (36–56) n=90 | 36% (23–52) n=39 |
-| Les Élémens | played | 425 | 59% (54–64) n=318 | 935 → 422 | 55% | 94 / 167 / 164 | 72% (65–78) n=186 | 61% (52–70) n=101 | 31% (23–42) n=86 |
-| Hanako Arasaka: Daughter of the Emperor | called | 421 | 55% (50–59) n=421 | 421 → 421 | 0% | 138 / 213 / 70 | 62% (56–67) n=298 | 42% (32–53) n=79 | 27% (16–42) n=44 |
-| Trust No One | sold | 408 | 52% (47–58) n=332 | 808 → 408 | 50% | 159 / 103 / 146 | 62% (54–69) n=161 | 55% (46–64) n=121 | 23% (15–33) n=84 |
-
-(28 more card uses in the JSON report.)
-
-Legal but never taken: Maman Brigitte: Spirit of Death (reaction, legal in 7 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14162 | 7% | 0 / 1045 / 3553 / 6049 / 3396 / 119 |
-| gig/steal | 2332 | 40% | 249 / 551 / 1061 / 465 / 6 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/bottomdeck | 1174 | 83% | 877 / 193 / 102 / 2 / 0 / 0 |
-| card/search | 1057 | 57% | 0 / 234 / 823 / 0 / 0 / 0 |
-| card/discard | 1043 | 43% | 153 / 317 / 534 / 37 / 2 / 0 |
-| gigValue/adjust | 955 | 24% | 0 / 29 / 225 / 333 / 304 / 64 |
-| react | 861 | 49% | 0 / 507 / 349 / 5 / 0 / 0 |
-| card/playFromTrash | 736 | 53% | 210 / 214 / 271 / 41 / 0 / 0 |
-| gig/swapGive | 599 | 37% | 21 / 44 / 298 / 235 / 1 / 0 |
-| gig/swapTake | 599 | 29% | 32 / 70 / 258 / 231 / 8 / 0 |
-| mulligan | 560 | 30% | 0 / 560 / 0 / 0 / 0 / 0 |
-| yesno/discardFor | 518 | 99% | 0 / 518 / 0 / 0 / 0 / 0 |
-| unit/ready | 352 | 100% | 0 / 245 / 107 / 0 / 0 / 0 |
-| unit/weaken | 302 | 69% | 113 / 93 / 96 / 0 / 0 / 0 |
-| mode/mode | 285 | 91% | 0 / 26 / 259 / 0 / 0 / 0 |
-| gigValue/setGig | 243 | 13% | 0 / 5 / 12 / 22 / 40 / 164 |
-| unit/adrenaline | 188 | 66% | 86 / 63 / 39 / 0 / 0 / 0 |
-| unit/cantAttack | 158 | 59% | 56 / 55 / 47 / 0 / 0 / 0 |
-| unit/stealMod | 97 | 70% | 22 / 37 / 37 / 1 / 0 / 0 |
-| unit/sacrifice | 51 | 92% | 39 / 7 / 5 / 0 / 0 / 0 |
-| unit/call | 48 | 100% | 0 / 18 / 30 / 0 / 0 / 0 |
-| unit/equip | 31 | 77% | 1 / 2 / 20 / 8 / 0 / 0 |
-| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 776 attacks. Reacted to 381 (deck won 44% (39–50) n=312): stole 216, stoleNothing 75, attackerGone 3, targetGone 84, bothGone 3. Let 395 resolve (40% (33–47) n=200): stole 293, targetGone 98, bothGone 4. Choices: call 279, endReact 424, play 151, block 7.
-
-## Discord 5k #3: Smasher / River / Viktor (RYY) — 560 games, 56% won, 26565 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Johnny Silverhand: Never Stop Fighting | attacked | 761 | 71% (66–76) n=277 | 539 → 499 | 7% | 0 / 124 / 637 | 88% (82–92) n=165 | 78% (67–87) n=65 | 58% (50–66) n=151 |
-| Meredith Stout: Stone Cold Corpo | played | 571 | 57% (52–62) n=418 | 1129 → 560 | 50% | 205 / 189 / 177 | 70% (63–75) n=223 | 49% (41–56) n=166 | 41% (32–50) n=115 |
-| MaxTac Suppression Team | attacked | 508 | 65% (59–71) n=227 | 566 → 494 | 13% | 0 / 217 / 291 | 80% (73–86) n=149 | 77% (65–86) n=57 | 54% (44–63) n=110 |
-| Zetatech Faceplate | sold | 486 | 58% (53–63) n=358 | 1477 → 486 | 67% | 78 / 200 / 208 | 67% (60–73) n=188 | 55% (44–65) n=84 | 46% (38–54) n=145 |
-| Meredith Stout: Stone Cold Corpo | attacked | 476 | 58% (52–64) n=251 | 758 → 457 | 40% | 55 / 164 / 257 | 73% (66–79) n=164 | 51% (40–61) n=89 | 38% (29–49) n=89 |
-| Johnny Silverhand: Never Stop Fighting | played | 468 | 60% (55–65) n=377 | 990 → 468 | 53% | 0 / 249 / 219 | 76% (69–82) n=187 | 49% (36–62) n=55 | 48% (40–55) n=172 |
-| Mantis Blades | sold | 449 | 55% (50–60) n=349 | 740 → 449 | 39% | 236 / 89 / 124 | 66% (59–73) n=178 | 52% (43–61) n=125 | 36% (27–46) n=94 |
-| Adam Smasher: Ender of Legends | called | 448 | 56% (51–61) n=448 | 448 → 448 | 0% | 182 / 128 / 138 | 66% (61–71) n=284 | 44% (35–54) n=95 | 30% (21–42) n=69 |
-| Arasaka Emergency Radioport | sold | 432 | 54% (49–59) n=345 | 893 → 432 | 52% | 135 / 142 / 155 | 66% (58–73) n=155 | 52% (43–62) n=101 | 39% (31–48) n=127 |
-| River Ward: Detective on the Hunt | called | 420 | 58% (54–63) n=420 | 429 → 420 | 2% | 169 / 154 / 97 | 65% (59–70) n=283 | 52% (41–62) n=81 | 34% (23–47) n=56 |
-| Adam Smasher: Ender of Legends | attacked | 416 | 55% (50–60) n=318 | 445 → 416 | 7% | 0 / 0 / 416 | 85% (78–90) n=145 | 73% (60–83) n=59 | 28% (21–35) n=167 |
-| Mandibular Upgrade | sold | 411 | 56% (50–61) n=333 | 465 → 411 | 12% | 207 / 91 / 113 | 66% (59–73) n=176 | 46% (38–56) n=114 | 46% (35–57) n=76 |
-| Viktor Vektor: Sit Down and Relax | called | 402 | 56% (51–61) n=402 | 410 → 402 | 2% | 157 / 148 / 97 | 67% (61–73) n=255 | 39% (29–50) n=80 | 34% (24–46) n=67 |
-| Sketchy Ripper | played | 394 | 53% (47–58) n=327 | 700 → 386 | 45% | 219 / 62 / 113 | 68% (61–74) n=190 | 34% (26–44) n=116 | 26% (15–40) n=47 |
-| River Ward: Detective on the Hunt | ability | 384 | 55% (49–61) n=269 | 1610 → 384 | 76% | 25 / 121 / 238 | 71% (64–77) n=175 | 29% (18–43) n=48 | 32% (24–41) n=107 |
-
-(39 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14144 | 9% | 0 / 1125 / 3720 / 6199 / 3026 / 74 |
-| gig/steal | 2731 | 35% | 219 / 472 / 1170 / 859 / 11 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1917 | 63% | 0 / 1145 / 757 / 15 / 0 / 0 |
-| unit/equip | 1386 | 73% | 231 / 246 / 783 / 126 / 0 / 0 |
-| card/search | 1182 | 71% | 0 / 494 / 675 / 11 / 2 / 0 |
-| gigValue/adjust | 823 | 27% | 0 / 0 / 76 / 162 / 430 / 155 |
-| mulligan | 560 | 23% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 412 | 44% | 86 / 87 / 218 / 21 / 0 / 0 |
-| card/playFree | 336 | 86% | 178 / 109 / 48 / 1 / 0 / 0 |
-| card/trash | 304 | 48% | 0 / 304 / 0 / 0 / 0 / 0 |
-| card/defeatGear | 182 | 16% | 0 / 100 / 79 / 3 / 0 / 0 |
-| unit/sacrifice | 166 | 57% | 60 / 62 / 44 / 0 / 0 / 0 |
-| card/discard | 53 | 38% | 11 / 12 / 28 / 2 / 0 / 0 |
-| yesno/draw | 43 | 100% | 0 / 43 / 0 / 0 / 0 / 0 |
-| unit/call | 40 | 100% | 0 / 13 / 27 / 0 / 0 / 0 |
-| unit/protect | 29 | 69% | 12 / 12 / 5 / 0 / 0 / 0 |
-| yesno/call | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 67% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1613 attacks. Reacted to 563 (deck won 51% (46–56) n=370): stole 182, stoleNothing 4, attackerGone 32, targetGone 304, bothGone 41. Let 1050 resolve (52% (47–57) n=414): stole 799, stoleNothing 10, attackerGone 6, targetGone 198, bothGone 37. Choices: block 330, endReact 1215, call 241, ability 103, play 28.
-
-## Discord 5k #4: Jackie / Alt / Hanako (BBG) — 560 games, 51% won, 28320 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 962 | 55% (50–60) n=399 | 1015 → 867 | 15% | 109 / 427 / 426 | 69% (64–75) n=272 | 59% (51–66) n=152 | 37% (30–45) n=158 |
-| Alt Cunningham: Soulkiller Architect | ability | 877 | 47% (43–52) n=466 | 1702 → 858 | 50% | 9 / 183 / 685 | 64% (58–69) n=313 | 40% (31–51) n=84 | 12% (9–17) n=228 |
-| Jacked-In Voodoo Boy | attacked | 792 | 56% (50–61) n=369 | 767 → 664 | 13% | 78 / 251 / 463 | 68% (62–74) n=261 | 56% (46–66) n=93 | 31% (24–39) n=141 |
-| Pepe Najarro: Working Doubles | played | 758 | 52% (47–56) n=476 | 1054 → 746 | 29% | 274 / 244 / 240 | 63% (57–68) n=282 | 51% (44–57) n=205 | 25% (18–33) n=122 |
-| Jacked-In Voodoo Boy | played | 746 | 53% (49–58) n=470 | 1023 → 692 | 32% | 296 / 221 / 229 | 63% (58–68) n=331 | 40% (32–48) n=144 | 23% (15–33) n=83 |
-| Maman Brigitte: Spirit of Death | played | 647 | 56% (51–60) n=434 | 899 → 641 | 29% | 194 / 199 / 254 | 67% (62–73) n=261 | 54% (46–63) n=136 | 30% (23–38) n=131 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 637 | 41% (36–46) n=379 | 1723 → 637 | 63% | 9 / 160 / 468 | 59% (53–65) n=236 | 32% (22–43) n=73 | 10% (7–16) n=182 |
-| Maman Brigitte: Spirit of Death | attacked | 621 | 61% (56–67) n=318 | 695 → 560 | 19% | 0 / 249 / 372 | 77% (71–82) n=216 | 63% (53–72) n=89 | 35% (27–45) n=102 |
-| Les Élémens | played | 444 | 55% (50–60) n=330 | 952 → 436 | 54% | 110 / 159 / 175 | 65% (58–72) n=178 | 50% (41–59) n=106 | 38% (29–48) n=99 |
-| Riot Shield | sold | 435 | 51% (46–57) n=336 | 492 → 435 | 12% | 213 / 80 / 142 | 62% (55–68) n=195 | 46% (37–55) n=115 | 21% (13–32) n=72 |
-| Jackie Welles: Pour One Out For Me | called | 426 | 55% (50–60) n=426 | 426 → 426 | 0% | 134 / 217 / 75 | 62% (57–67) n=304 | 42% (32–54) n=73 | 31% (20–45) n=49 |
-| Alt Cunningham: Soulkiller Architect | called | 425 | 51% (46–56) n=425 | 425 → 425 | 0% | 129 / 217 / 79 | 59% (53–64) n=299 | 38% (28–50) n=78 | 25% (15–39) n=48 |
-| Trust No One | sold | 422 | 47% (42–53) n=325 | 832 → 422 | 49% | 152 / 120 / 150 | 61% (53–68) n=157 | 46% (37–54) n=125 | 24% (16–33) n=97 |
-| Hanako Arasaka: Daughter of the Emperor | called | 417 | 54% (49–59) n=417 | 417 → 417 | 0% | 143 / 217 / 57 | 63% (58–69) n=292 | 44% (33–55) n=78 | 15% (7–28) n=47 |
-| Peace Offering | sold | 409 | 54% (48–59) n=332 | 855 → 409 | 52% | 212 / 108 / 89 | 62% (54–68) n=190 | 50% (41–59) n=122 | 30% (20–43) n=60 |
-
-(30 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14039 | 7% | 0 / 1052 / 3613 / 5946 / 3320 / 108 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2226 | 41% | 226 / 542 / 1023 / 428 / 7 / 0 |
-| unit/bottomdeck | 1154 | 85% | 891 / 166 / 96 / 1 / 0 / 0 |
-| card/search | 1095 | 59% | 0 / 247 / 848 / 0 / 0 / 0 |
-| gigValue/adjust | 988 | 21% | 0 / 30 / 234 / 363 / 284 / 77 |
-| card/discard | 964 | 46% | 157 / 306 / 449 / 51 / 1 / 0 |
-| react | 850 | 48% | 0 / 525 / 319 / 6 / 0 / 0 |
-| card/playFromTrash | 685 | 55% | 215 / 190 / 242 / 37 / 1 / 0 |
-| gig/swapGive | 637 | 33% | 15 / 48 / 311 / 263 / 0 / 0 |
-| gig/swapTake | 637 | 33% | 46 / 75 / 284 / 226 / 6 / 0 |
-| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
-| yesno/discardFor | 471 | 99% | 0 / 471 / 0 / 0 / 0 / 0 |
-| unit/ready | 338 | 100% | 0 / 228 / 110 / 0 / 0 / 0 |
-| mode/mode | 276 | 93% | 0 / 18 / 258 / 0 / 0 / 0 |
-| gigValue/setGig | 265 | 12% | 0 / 3 / 9 / 22 / 49 / 182 |
-| unit/weaken | 228 | 73% | 100 / 64 / 64 / 0 / 0 / 0 |
-| unit/adrenaline | 178 | 63% | 85 / 50 / 43 / 0 / 0 / 0 |
-| unit/cantAttack | 171 | 61% | 65 / 58 / 48 / 0 / 0 / 0 |
-| unit/stealMod | 106 | 67% | 16 / 45 / 45 / 0 / 0 / 0 |
-| unit/equip | 85 | 76% | 11 / 6 / 46 / 22 / 0 / 0 |
-| unit/call | 63 | 100% | 0 / 34 / 29 / 0 / 0 / 0 |
-| unit/sacrifice | 52 | 87% | 39 / 8 / 5 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 33% | 0 / 6 / 0 / 0 / 0 / 0 |
-| yesno/draw | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 774 attacks. Reacted to 385 (deck won 42% (37–47) n=313): stole 224, stoleNothing 77, attackerGone 3, targetGone 77, bothGone 4. Let 389 resolve (36% (30–43) n=205): stole 287, targetGone 94, bothGone 8. Choices: endReact 410, call 296, play 139, block 5.
-
-## Discord 5k #5: V / Smasher / Padre (RRG) — 560 games, 58% won, 26376 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 751 | 62% (57–67) n=345 | 874 → 697 | 20% | 73 / 303 / 375 | 79% (72–84) n=183 | 62% (53–71) n=117 | 53% (46–60) n=195 |
-| 6th Street Recruits | attacked | 740 | 61% (56–66) n=338 | 908 → 681 | 25% | 72 / 295 / 373 | 81% (74–86) n=161 | 66% (57–74) n=106 | 53% (46–59) n=219 |
-| Animals Wrecker | attacked | 570 | 68% (62–74) n=240 | 548 → 531 | 3% | 0 / 136 / 434 | 93% (87–97) n=105 | 81% (70–89) n=64 | 63% (56–69) n=185 |
-| Synapse Burnout | sold | 520 | 58% (53–63) n=386 | 701 → 520 | 26% | 304 / 106 / 110 | 63% (55–69) n=192 | 56% (48–64) n=141 | 52% (43–61) n=118 |
-| Peace Offering | sold | 519 | 55% (50–60) n=385 | 1017 → 519 | 49% | 192 / 200 / 127 | 63% (56–70) n=180 | 54% (45–63) n=118 | 46% (39–54) n=158 |
-| V: Streetkid | attacked | 511 | 47% (41–52) n=304 | 617 → 511 | 17% | 74 / 158 / 279 | 56% (49–63) n=185 | 67% (52–79) n=42 | 36% (29–45) n=135 |
-| Pepe Najarro: Working Doubles | played | 510 | 61% (56–65) n=385 | 1049 → 501 | 52% | 250 / 109 / 151 | 69% (62–76) n=176 | 59% (52–67) n=165 | 47% (38–57) n=106 |
-| 6th Street Recruits | played | 499 | 59% (54–64) n=380 | 995 → 494 | 50% | 251 / 129 / 119 | 68% (61–75) n=174 | 57% (50–65) n=160 | 45% (36–55) n=100 |
-| Memory Relapse | sold | 440 | 58% (53–63) n=344 | 1437 → 440 | 69% | 50 / 180 / 210 | 67% (59–75) n=138 | 67% (54–77) n=63 | 49% (42–56) n=184 |
-| Padre: Man of the Cross | ability | 434 | 48% (42–53) n=302 | 1828 → 434 | 76% | 3 / 89 / 342 | 70% (63–76) n=182 | 26% (16–39) n=54 | 16% (11–24) n=134 |
-| Industrial Assembly | sold | 422 | 53% (48–59) n=330 | 935 → 422 | 55% | 128 / 180 / 114 | 65% (56–73) n=122 | 57% (47–66) n=106 | 41% (33–49) n=144 |
-| Adam Smasher: Ender of Legends | called | 421 | 61% (56–65) n=421 | 421 → 421 | 0% | 185 / 138 / 98 | 68% (62–73) n=294 | 53% (41–65) n=62 | 35% (25–48) n=65 |
-| V: Streetkid | called | 418 | 57% (52–62) n=418 | 418 → 418 | 0% | 202 / 122 / 94 | 58% (53–64) n=277 | 59% (47–70) n=68 | 49% (38–61) n=73 |
-| Mantis Blades | sold | 409 | 54% (49–60) n=328 | 598 → 409 | 32% | 253 / 68 / 88 | 53% (45–61) n=160 | 57% (48–65) n=122 | 44% (34–55) n=88 |
-| Bonnie and Clyde | sold | 407 | 58% (52–63) n=317 | 1591 → 407 | 74% | 44 / 150 / 213 | 64% (56–71) n=145 | 63% (52–74) n=71 | 47% (39–55) n=144 |
-
-(30 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1010 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14512 | 8% | 0 / 1104 / 3813 / 5242 / 4217 / 136 |
-| gig/steal | 3348 | 28% | 174 / 454 / 1503 / 1200 / 17 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1402 | 59% | 0 / 939 / 460 / 3 / 0 / 0 |
-| unit/defeat | 666 | 64% | 222 / 186 / 248 / 10 / 0 / 0 |
-| mulligan | 560 | 14% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/search | 543 | 60% | 159 / 189 / 160 / 35 / 0 / 0 |
-| gigValue/setGig | 527 | 10% | 0 / 0 / 8 / 41 / 140 / 338 |
-| mode/mode | 519 | 60% | 0 / 519 / 0 / 0 / 0 / 0 |
-| unit/spend | 445 | 80% | 280 / 102 / 63 / 0 / 0 / 0 |
-| gigValue/adjust | 341 | 6% | 0 / 8 / 95 / 9 / 38 / 191 |
-| unit/equip | 337 | 87% | 48 / 99 / 153 / 37 / 0 / 0 |
-| card/playFree | 331 | 60% | 0 / 45 / 244 / 42 / 0 / 0 |
-| unit/adrenaline | 253 | 62% | 120 / 84 / 49 / 0 / 0 / 0 |
-| unit/ready | 211 | 91% | 0 / 165 / 46 / 0 / 0 / 0 |
-| unit/sacrifice | 57 | 79% | 34 / 9 / 14 / 0 / 0 / 0 |
-| card/discard | 42 | 43% | 6 / 10 / 24 / 2 / 0 / 0 |
-| unit/pump | 24 | 67% | 5 / 13 / 6 / 0 / 0 / 0 |
-| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1275 attacks. Reacted to 530 (deck won 51% (45–56) n=368): stole 264, attackerGone 24, targetGone 213, bothGone 29. Let 745 resolve (57% (51–62) n=329): stole 503, stoleNothing 4, attackerGone 6, targetGone 203, bothGone 29. Choices: call 363, endReact 827, block 189, play 23.
-
-## Discord 5k #6: Jackie / Alt / Hanako (BBG) — 560 games, 47% won, 28320 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 924 | 50% (45–55) n=390 | 971 → 818 | 16% | 100 / 378 / 446 | 64% (57–70) n=234 | 53% (45–61) n=144 | 37% (31–44) n=190 |
-| Alt Cunningham: Soulkiller Architect | ability | 757 | 41% (37–46) n=434 | 1735 → 736 | 58% | 7 / 163 / 587 | 58% (52–63) n=269 | 33% (24–44) n=90 | 11% (8–17) n=209 |
-| Jacked-In Voodoo Boy | played | 713 | 46% (41–50) n=465 | 1035 → 661 | 36% | 293 / 209 / 211 | 55% (49–61) n=290 | 40% (32–48) n=145 | 18% (12–27) n=98 |
-| Jacked-In Voodoo Boy | attacked | 711 | 48% (43–53) n=343 | 697 → 603 | 13% | 81 / 217 / 413 | 64% (57–70) n=211 | 52% (41–62) n=85 | 29% (23–37) n=156 |
-| Pepe Najarro: Working Doubles | played | 707 | 48% (43–53) n=451 | 967 → 693 | 28% | 257 / 239 / 211 | 59% (53–65) n=263 | 43% (37–51) n=191 | 23% (16–31) n=117 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 563 | 37% (32–42) n=354 | 1703 → 563 | 67% | 10 / 125 / 428 | 53% (46–59) n=203 | 30% (20–42) n=67 | 10% (6–15) n=173 |
-| Peace Offering | sold | 488 | 46% (41–51) n=373 | 808 → 488 | 40% | 271 / 91 / 126 | 53% (46–60) n=190 | 47% (39–55) n=145 | 29% (20–39) n=84 |
-| Valentino Street Racer | played | 460 | 45% (40–50) n=368 | 753 → 436 | 42% | 123 / 178 / 159 | 57% (51–64) n=213 | 40% (31–50) n=97 | 21% (14–31) n=89 |
-| Jackie Welles: Pour One Out For Me | called | 448 | 48% (43–52) n=448 | 448 → 448 | 0% | 175 / 199 / 74 | 56% (51–61) n=312 | 36% (27–46) n=89 | 13% (6–25) n=47 |
-| Trust No One | sold | 442 | 46% (41–51) n=334 | 778 → 442 | 43% | 183 / 117 / 142 | 55% (48–62) n=174 | 44% (36–53) n=125 | 23% (16–33) n=91 |
-| Hanako Arasaka: Daughter of the Emperor | called | 433 | 47% (42–52) n=433 | 433 → 433 | 0% | 150 / 202 / 81 | 53% (48–59) n=300 | 38% (28–48) n=87 | 24% (14–38) n=46 |
-| Valentino Street Racer | attacked | 425 | 52% (46–59) n=244 | 551 → 396 | 28% | 24 / 173 / 228 | 70% (63–77) n=152 | 51% (38–63) n=59 | 32% (23–42) n=91 |
-| Nocturne OP55 N1 | sold | 424 | 42% (37–48) n=319 | 1110 → 424 | 62% | 140 / 151 / 133 | 51% (43–58) n=186 | 44% (34–54) n=87 | 18% (12–26) n=101 |
-| Alt Cunningham: Soulkiller Architect | called | 420 | 49% (44–53) n=420 | 420 → 420 | 0% | 148 / 197 / 75 | 58% (52–64) n=280 | 36% (27–46) n=92 | 17% (9–30) n=48 |
-| Maman Brigitte: Spirit of Death | attacked | 410 | 56% (50–62) n=252 | 527 → 394 | 25% | 0 / 175 / 235 | 71% (63–78) n=152 | 67% (54–78) n=55 | 30% (21–40) n=91 |
-
-(35 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14392 | 7% | 0 / 1183 / 3586 / 6110 / 3414 / 99 |
-| gig/steal | 2385 | 38% | 244 / 541 / 1004 / 585 / 11 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1211 | 58% | 0 / 819 / 388 / 4 / 0 / 0 |
-| gigValue/adjust | 1168 | 23% | 0 / 42 / 313 / 426 / 311 / 76 |
-| card/search | 887 | 57% | 0 / 195 / 692 / 0 / 0 / 0 |
-| unit/bottomdeck | 877 | 87% | 675 / 138 / 64 / 0 / 0 / 0 |
-| card/discard | 635 | 48% | 113 / 220 / 293 / 9 / 0 / 0 |
-| gig/swapGive | 563 | 37% | 19 / 31 / 278 / 234 / 1 / 0 |
-| gig/swapTake | 563 | 29% | 39 / 63 / 245 / 207 / 9 / 0 |
-| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/playFromTrash | 495 | 65% | 211 / 147 / 124 / 13 / 0 / 0 |
-| unit/ready | 382 | 100% | 0 / 251 / 131 / 0 / 0 / 0 |
-| unit/adrenaline | 332 | 60% | 158 / 104 / 70 / 0 / 0 / 0 |
-| yesno/discardFor | 307 | 99% | 0 / 307 / 0 / 0 / 0 / 0 |
-| unit/mustAttack | 219 | 67% | 93 / 84 / 39 / 3 / 0 / 0 |
-| mode/mode | 215 | 92% | 0 / 17 / 198 / 0 / 0 / 0 |
-| gigValue/setGig | 208 | 11% | 0 / 1 / 11 / 19 / 26 / 151 |
-| unit/weaken | 187 | 66% | 69 / 52 / 65 / 1 / 0 / 0 |
-| card/freePlay | 182 | 64% | 0 / 49 / 107 / 25 / 1 / 0 |
-| unit/cantAttack | 117 | 62% | 43 / 39 / 34 / 1 / 0 / 0 |
-| unit/stealMod | 76 | 64% | 16 / 31 / 29 / 0 / 0 / 0 |
-| unit/sacrifice | 59 | 92% | 46 / 7 / 6 / 0 / 0 / 0 |
-| unit/call | 34 | 100% | 0 / 15 / 19 / 0 / 0 / 0 |
-| unit/equip | 13 | 77% | 0 / 0 / 8 / 5 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1109 attacks. Reacted to 458 (deck won 40% (35–46) n=347): stole 192, stoleNothing 55, attackerGone 2, targetGone 198, bothGone 11. Let 651 resolve (38% (32–44) n=285): stole 441, stoleNothing 2, targetGone 191, bothGone 17. Choices: endReact 698, call 285, play 85, block 143.
-
-## Discord 5k #7: Smasher / River / Viktor (RYY) — 560 games, 60% won, 25731 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 824 | 67% (62–72) n=313 | 836 → 763 | 9% | 0 / 366 / 458 | 80% (74–84) n=210 | 67% (56–76) n=84 | 58% (50–65) n=153 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 690 | 70% (64–75) n=261 | 489 → 448 | 8% | 0 / 118 / 572 | 85% (79–89) n=182 | 75% (63–84) n=61 | 51% (41–60) n=97 |
-| Arasaka Emergency Radioport | sold | 636 | 58% (53–62) n=445 | 1138 → 636 | 44% | 219 / 217 / 200 | 72% (66–78) n=227 | 48% (40–56) n=155 | 44% (36–52) n=142 |
-| Mandibular Upgrade | sold | 595 | 58% (53–62) n=411 | 676 → 595 | 12% | 315 / 136 / 144 | 69% (62–75) n=221 | 50% (42–58) n=151 | 42% (33–51) n=120 |
-| Meredith Stout: Stone Cold Corpo | played | 574 | 60% (56–65) n=416 | 1078 → 568 | 47% | 167 / 229 / 178 | 73% (66–78) n=209 | 50% (42–58) n=151 | 48% (40–57) n=129 |
-| 6th Street Recruits | attacked | 557 | 66% (60–72) n=244 | 626 → 534 | 15% | 67 / 231 / 259 | 79% (71–84) n=149 | 67% (58–76) n=98 | 54% (45–64) n=103 |
-| Rockn' Rockerboy | played | 515 | 63% (58–67) n=390 | 689 → 513 | 26% | 210 / 178 / 127 | 76% (70–81) n=225 | 54% (45–62) n=136 | 40% (30–50) n=86 |
-| Zetatech Faceplate | sold | 513 | 58% (52–63) n=370 | 1484 → 513 | 65% | 111 / 197 / 205 | 69% (62–75) n=188 | 50% (41–59) n=115 | 50% (41–58) n=129 |
-| Johnny Silverhand: Never Stop Fighting | played | 469 | 62% (57–66) n=370 | 938 → 469 | 50% | 0 / 247 / 222 | 77% (71–83) n=208 | 44% (33–55) n=73 | 42% (34–51) n=130 |
-| Secondhand Bombus | played | 463 | 54% (49–59) n=352 | 1410 → 445 | 68% | 69 / 229 / 165 | 64% (57–69) n=245 | 34% (24–46) n=68 | 38% (28–49) n=76 |
-| Meredith Stout: Stone Cold Corpo | attacked | 454 | 60% (54–66) n=249 | 682 → 429 | 37% | 49 / 152 / 253 | 77% (70–83) n=163 | 48% (38–59) n=81 | 35% (25–46) n=77 |
-| Adam Smasher: Ender of Legends | called | 431 | 59% (54–64) n=431 | 431 → 431 | 0% | 144 / 159 / 128 | 72% (66–76) n=281 | 28% (20–39) n=85 | 46% (35–58) n=65 |
-| Adam Smasher: Ender of Legends | attacked | 430 | 56% (51–61) n=327 | 467 → 430 | 8% | 0 / 0 / 430 | 84% (78–89) n=164 | 62% (50–73) n=61 | 25% (18–32) n=151 |
-| Viktor Vektor: Sit Down and Relax | called | 425 | 58% (53–62) n=425 | 428 → 425 | 1% | 149 / 177 / 99 | 67% (61–72) n=288 | 38% (27–49) n=69 | 41% (30–53) n=68 |
-| River Ward: Detective on the Hunt | called | 419 | 58% (53–62) n=419 | 446 → 419 | 6% | 148 / 157 / 114 | 68% (63–73) n=289 | 35% (25–46) n=75 | 35% (23–48) n=55 |
-
-(29 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 358 turns), Sketchy Ripper (reaction, legal in 11 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14071 | 9% | 0 / 1101 / 3711 / 6214 / 2973 / 72 |
-| gig/steal | 2755 | 40% | 323 / 581 / 1175 / 670 / 6 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1875 | 66% | 0 / 1067 / 798 / 10 / 0 / 0 |
-| unit/equip | 1320 | 74% | 219 / 250 / 734 / 117 / 0 / 0 |
-| card/search | 1226 | 65% | 0 / 428 / 781 / 17 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gigValue/adjust | 493 | 14% | 0 / 0 / 1 / 36 / 274 / 182 |
-| unit/defeat | 342 | 42% | 29 / 77 / 225 / 11 / 0 / 0 |
-| card/playFree | 282 | 86% | 142 / 105 / 34 / 1 / 0 / 0 |
-| card/trash | 235 | 51% | 0 / 235 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 198 | 57% | 74 / 74 / 49 / 1 / 0 / 0 |
-| unit/call | 58 | 100% | 0 / 18 / 40 / 0 / 0 / 0 |
-| card/discard | 49 | 55% | 14 / 9 / 23 / 3 / 0 / 0 |
-| yesno/call | 16 | 100% | 0 / 16 / 0 / 0 / 0 / 0 |
-| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1626 attacks. Reacted to 529 (deck won 50% (45–56) n=357): stole 156, attackerGone 16, targetGone 334, bothGone 22, noneGone 1. Let 1097 resolve (56% (51–60) n=415): stole 835, stoleNothing 13, attackerGone 12, targetGone 185, bothGone 52. Choices: call 225, ability 66, endReact 1238, block 346.
-
-## Discord 5k #8: V / Smasher / Saburo (RRG) — 560 games, 61% won, 24255 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 757 | 64% (59–69) n=351 | 914 → 685 | 25% | 92 / 249 / 416 | 81% (74–86) n=170 | 60% (51–68) n=129 | 55% (48–62) n=197 |
-| MaxTac AV | attacked | 546 | 72% (66–77) n=239 | 608 → 525 | 14% | 0 / 277 / 269 | 85% (78–89) n=149 | 71% (59–81) n=63 | 67% (59–75) n=132 |
-| V: Streetkid | attacked | 544 | 48% (43–54) n=314 | 643 → 544 | 15% | 53 / 225 / 266 | 64% (57–70) n=185 | 42% (30–55) n=55 | 39% (31–47) n=145 |
-| Detonate | sold | 512 | 61% (56–66) n=380 | 799 → 512 | 36% | 245 / 141 / 126 | 70% (63–76) n=188 | 58% (50–66) n=129 | 46% (38–55) n=119 |
-| Animals Wrecker | attacked | 501 | 73% (67–78) n=230 | 498 → 473 | 5% | 0 / 149 / 352 | 89% (82–93) n=115 | 83% (71–91) n=54 | 68% (60–75) n=165 |
-| Pepe Najarro: Working Doubles | played | 494 | 61% (56–65) n=376 | 977 → 488 | 50% | 255 / 136 / 103 | 73% (66–79) n=183 | 51% (43–58) n=163 | 48% (37–58) n=82 |
-| Arasaka Emergency Radioport | sold | 475 | 59% (54–64) n=366 | 799 → 475 | 41% | 219 / 122 / 134 | 70% (62–76) n=159 | 53% (44–61) n=127 | 51% (42–59) n=124 |
-| Yorinobu Arasaka: Steel Dragon | played | 466 | 67% (62–72) n=353 | 618 → 466 | 25% | 0 / 189 / 277 | 76% (69–82) n=155 | 68% (55–78) n=62 | 58% (51–65) n=193 |
-| Peace Offering | sold | 435 | 64% (58–69) n=338 | 1112 → 435 | 61% | 117 / 204 / 114 | 70% (62–77) n=147 | 60% (50–69) n=92 | 60% (52–68) n=141 |
-| Adam Smasher: Ender of Legends | called | 432 | 60% (55–65) n=432 | 432 → 432 | 0% | 171 / 163 / 98 | 70% (64–75) n=280 | 43% (32–54) n=75 | 43% (32–54) n=77 |
-| V: Streetkid | called | 426 | 60% (55–64) n=426 | 426 → 426 | 0% | 180 / 170 / 76 | 68% (62–73) n=276 | 42% (32–53) n=76 | 49% (38–60) n=74 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 426 | 79% (73–83) n=267 | 434 → 405 | 7% | 0 / 0 / 426 | 96% (91–98) n=136 | 88% (78–94) n=60 | 64% (55–72) n=133 |
-| Saburo Arasaka: Stubborn Patriarch | called | 411 | 61% (56–65) n=411 | 411 → 411 | 0% | 162 / 161 / 88 | 67% (62–73) n=288 | 49% (38–61) n=67 | 39% (28–52) n=56 |
-| Mantis Blades | sold | 404 | 59% (53–64) n=324 | 608 → 404 | 34% | 256 / 64 / 84 | 74% (66–80) n=155 | 46% (38–55) n=128 | 49% (39–60) n=81 |
-| Industrial Assembly | sold | 354 | 57% (51–62) n=288 | 929 → 354 | 62% | 74 / 154 / 126 | 70% (60–78) n=105 | 53% (43–63) n=92 | 49% (40–58) n=123 |
-
-(31 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 999 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13207 | 8% | 0 / 1232 / 3476 / 5158 / 3232 / 109 |
-| gig/steal | 3355 | 28% | 208 / 522 / 1422 / 1193 / 10 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1134 | 68% | 0 / 815 / 316 / 3 / 0 / 0 |
-| unit/defeat | 660 | 62% | 202 / 230 / 213 / 15 / 0 / 0 |
-| unit/ready | 622 | 73% | 0 / 326 / 287 / 9 / 0 / 0 |
-| mulligan | 560 | 33% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/search | 546 | 62% | 178 / 198 / 149 / 19 / 2 / 0 |
-| card/playFree | 431 | 56% | 0 / 134 / 290 / 7 / 0 / 0 |
-| gig/swapGive | 328 | 34% | 0 / 15 / 263 / 47 / 3 / 0 |
-| gig/swapTake | 269 | 51% | 66 / 99 / 67 / 36 / 1 / 0 |
-| gigValue/adjust | 196 | 10% | 0 / 10 / 63 / 15 / 56 / 52 |
-| unit/equip | 183 | 85% | 44 / 68 / 64 / 7 / 0 / 0 |
-| gigValue/setGig | 148 | 9% | 0 / 0 / 8 / 18 / 39 / 83 |
-| unit/spend | 148 | 76% | 74 / 41 / 33 / 0 / 0 / 0 |
-| unit/sacrifice | 68 | 81% | 45 / 15 / 8 / 0 / 0 / 0 |
-| unit/call | 45 | 100% | 0 / 14 / 31 / 0 / 0 / 0 |
-| yesno/call | 45 | 100% | 0 / 45 / 0 / 0 / 0 / 0 |
-| card/discard | 33 | 42% | 5 / 12 / 14 / 2 / 0 / 0 |
-| card/defeat | 20 | 100% | 16 / 4 / 0 / 0 / 0 / 0 |
-| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 33% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1056 attacks. Reacted to 339 (deck won 56% (50–62) n=264): stole 167, attackerGone 6, targetGone 144, bothGone 22. Let 717 resolve (59% (53–64) n=310): stole 549, stoleNothing 7, attackerGone 5, targetGone 131, bothGone 25. Choices: endReact 772, call 233, block 121, play 8.
-
-## Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board. — 560 games, 53% won, 25508 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 906 | 57% (51–62) n=338 | 936 → 808 | 14% | 0 / 421 / 485 | 73% (67–79) n=207 | 56% (45–67) n=80 | 48% (41–55) n=208 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 641 | 65% (59–70) n=244 | 475 → 434 | 9% | 0 / 83 / 558 | 84% (77–89) n=145 | 78% (67–86) n=64 | 51% (42–59) n=124 |
-| Rockn' Rockerboy | played | 542 | 53% (48–58) n=397 | 687 → 541 | 21% | 241 / 173 / 128 | 66% (59–72) n=198 | 46% (38–54) n=149 | 37% (29–45) n=135 |
-| All is Lost | sold | 516 | 52% (47–57) n=372 | 613 → 516 | 16% | 272 / 113 / 131 | 61% (54–68) n=180 | 46% (39–54) n=158 | 44% (35–53) n=113 |
-| Shattered Memories | sold | 515 | 54% (49–59) n=386 | 1360 → 515 | 62% | 108 / 186 / 221 | 66% (58–73) n=161 | 57% (47–66) n=106 | 44% (37–51) n=182 |
-| V: Streetkid | attacked | 507 | 47% (42–53) n=316 | 592 → 507 | 14% | 55 / 97 / 355 | 65% (58–72) n=164 | 58% (46–69) n=66 | 30% (23–38) n=160 |
-| 6th Street Recruits | attacked | 483 | 56% (50–62) n=228 | 571 → 460 | 19% | 71 / 171 / 241 | 81% (72–88) n=94 | 57% (47–67) n=91 | 46% (38–55) n=134 |
-| Muamar Reyes: El Capitán | ability | 480 | 48% (42–53) n=323 | 1625 → 480 | 70% | 9 / 63 / 408 | 72% (65–78) n=187 | 31% (20–44) n=52 | 19% (13–26) n=140 |
-| Trauma Team Operatives | played | 474 | 50% (45–56) n=338 | 1078 → 432 | 60% | 37 / 134 / 303 | 67% (59–75) n=131 | 46% (35–57) n=70 | 41% (34–48) n=176 |
-| Trauma Team Operatives | attacked | 470 | 56% (49–62) n=233 | 465 → 400 | 14% | 3 / 80 / 387 | 79% (71–85) n=114 | 65% (52–77) n=55 | 42% (34–50) n=136 |
-| Bonnie and Clyde | sold | 465 | 53% (48–59) n=344 | 1487 → 465 | 69% | 89 / 175 / 201 | 62% (54–69) n=150 | 57% (46–67) n=79 | 45% (38–53) n=168 |
-| Johnny Silverhand: Rocking Renegade | called | 420 | 52% (47–57) n=420 | 420 → 420 | 0% | 188 / 130 / 102 | 62% (56–67) n=276 | 39% (29–51) n=74 | 27% (18–39) n=70 |
-| V: Streetkid | called | 413 | 55% (50–60) n=413 | 413 → 413 | 0% | 194 / 115 / 104 | 65% (59–71) n=257 | 44% (33–55) n=75 | 33% (24–44) n=81 |
-| Johnny Silverhand: Never Stop Fighting | played | 409 | 58% (53–64) n=324 | 1058 → 409 | 61% | 0 / 189 / 220 | 77% (68–83) n=120 | 63% (50–74) n=62 | 45% (38–52) n=185 |
-| Johnny Silverhand: Rocking Renegade | ability | 391 | 52% (46–57) n=277 | 1551 → 391 | 75% | 7 / 53 / 331 | 73% (65–79) n=153 | 48% (35–61) n=54 | 28% (21–37) n=117 |
-
-(33 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1143 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14680 | 7% | 0 / 1252 / 3722 / 5015 / 4434 / 257 |
-| gig/steal | 3068 | 29% | 165 / 464 / 1302 / 1123 / 14 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1453 | 62% | 0 / 862 / 584 / 7 / 0 / 0 |
-| gigValue/adjust | 892 | 12% | 0 / 10 / 64 / 46 / 454 / 318 |
-| card/search | 833 | 69% | 226 / 313 / 269 / 22 / 3 / 0 |
-| mulligan | 560 | 31% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 504 | 74% | 0 / 504 / 0 / 0 / 0 / 0 |
-| unit/lagAttack | 391 | 86% | 54 / 117 / 206 / 14 / 0 / 0 |
-| unit/protect | 353 | 45% | 80 / 142 / 129 / 2 / 0 / 0 |
-| unit/defeat | 296 | 75% | 155 / 94 / 46 / 1 / 0 / 0 |
-| card/defeatGear | 79 | 91% | 0 / 64 / 15 / 0 / 0 / 0 |
-| card/discard | 54 | 39% | 7 / 9 / 35 / 3 / 0 / 0 |
-| unit/sacrifice | 54 | 93% | 33 / 15 / 6 / 0 / 0 / 0 |
-| yesno/draw | 35 | 100% | 0 / 35 / 0 / 0 / 0 / 0 |
-| card/defeat | 11 | 100% | 9 / 2 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1286 attacks. Reacted to 469 (deck won 45% (40–50) n=351): stole 191, stoleNothing 1, attackerGone 9, targetGone 213, bothGone 16, noneGone 39. Let 817 resolve (51% (46–56) n=332): stole 613, stoleNothing 7, attackerGone 2, targetGone 179, bothGone 16. Choices: endReact 899, call 312, block 236, play 6.
-
-## Gear'n'Go — 560 games, 37% won, 23489 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Goro Takemura: Hands Unclean | attacked | 739 | 37% (32–41) n=446 | 1014 → 738 | 27% | 46 / 246 / 447 | 57% (51–63) n=241 | 35% (26–45) n=98 | 21% (16–27) n=203 |
-| Dexter DeShawn: One Last Chance | attacked | 677 | 38% (33–44) n=325 | 825 → 609 | 26% | 56 / 267 / 354 | 62% (54–70) n=139 | 46% (36–55) n=103 | 25% (19–31) n=201 |
-| Corpo Security | played | 602 | 37% (33–42) n=418 | 938 → 577 | 38% | 260 / 175 / 167 | 51% (45–57) n=236 | 23% (16–31) n=124 | 20% (14–27) n=140 |
-| Dexter DeShawn: One Last Chance | played | 594 | 36% (32–41) n=408 | 782 → 575 | 26% | 251 / 165 / 178 | 50% (43–57) n=195 | 28% (22–35) n=165 | 21% (15–29) n=131 |
-| Corporate Surveillance | sold | 593 | 34% (30–39) n=414 | 1107 → 593 | 46% | 200 / 214 / 179 | 44% (37–51) n=202 | 31% (24–39) n=152 | 23% (17–30) n=155 |
-| Mandibular Upgrade | sold | 577 | 34% (30–39) n=414 | 690 → 577 | 16% | 314 / 115 / 148 | 45% (38–52) n=195 | 27% (21–34) n=168 | 22% (15–30) n=120 |
-| Riot Shield | sold | 527 | 36% (31–41) n=388 | 941 → 527 | 44% | 229 / 170 / 128 | 48% (41–55) n=186 | 29% (22–38) n=127 | 19% (13–26) n=135 |
-| Goro Takemura: Losing His Way | played | 513 | 34% (30–39) n=371 | 1346 → 497 | 63% | 131 / 150 / 232 | 47% (40–54) n=173 | 25% (18–33) n=121 | 23% (17–30) n=146 |
-| Caliber: Totentanz's Top Dog | played | 503 | 35% (31–40) n=376 | 1148 → 503 | 56% | 98 / 179 / 226 | 54% (47–61) n=187 | 21% (14–31) n=81 | 18% (13–24) n=170 |
-| Goro Takemura: Hands Unclean | Go Solo (self-paid 501) | 501 | 36% (32–40) n=501 | 773 → 501 | 35% | 75 / 226 / 200 | 49% (42–56) n=188 | 33% (25–43) n=108 | 25% (19–31) n=205 |
-| Goro Takemura: Losing His Way | attacked | 484 | 37% (31–43) n=255 | 540 → 454 | 16% | 25 / 164 / 295 | 63% (54–71) n=108 | 46% (36–57) n=78 | 25% (18–32) n=151 |
-| Caliber: Totentanz's Top Dog | attacked | 484 | 41% (35–47) n=271 | 540 → 459 | 15% | 0 / 180 / 304 | 64% (55–71) n=132 | 51% (37–65) n=45 | 26% (20–33) n=161 |
-| Sandevistan | sold | 477 | 35% (31–40) n=357 | 912 → 477 | 48% | 213 / 133 / 131 | 47% (40–54) n=188 | 30% (22–40) n=97 | 16% (10–23) n=122 |
-| Goro Takemura: Hands Unclean | called | 410 | 36% (32–41) n=410 | 410 → 410 | 0% | 208 / 129 / 73 | 43% (37–50) n=220 | 33% (25–42) n=121 | 20% (12–31) n=69 |
-| Panam Palmer: Nomad Cavalry | called | 407 | 34% (29–38) n=407 | 407 → 407 | 0% | 176 / 140 / 91 | 44% (37–50) n=231 | 23% (16–31) n=106 | 17% (10–28) n=70 |
-
-(31 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13018 | 8% | 0 / 810 / 3371 / 5433 / 3337 / 67 |
-| react | 2399 | 67% | 0 / 1387 / 991 / 21 / 0 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2142 | 34% | 140 / 395 / 914 / 684 / 9 / 0 |
-| gigValue/adjust | 1426 | 37% | 0 / 0 / 141 / 268 / 798 / 219 |
-| mulligan | 560 | 8% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/equip | 521 | 78% | 103 / 137 / 266 / 15 / 0 / 0 |
-| unit/defeat | 433 | 57% | 140 / 100 / 185 / 8 / 0 / 0 |
-| unit/ready | 325 | 62% | 129 / 135 / 61 / 0 / 0 / 0 |
-| unit/pump | 209 | 46% | 46 / 62 / 95 / 6 / 0 / 0 |
-| card/defeatGear | 79 | 85% | 0 / 58 / 21 / 0 / 0 / 0 |
-| card/discard | 73 | 53% | 8 / 19 / 43 / 3 / 0 / 0 |
-| unit/sacrifice | 42 | 86% | 23 / 12 / 7 / 0 / 0 / 0 |
-| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
-| card/moveGear | 6 | 100% | 6 / 0 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 20% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-| unit/spend | 2 | 100% | 1 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 2080 attacks. Reacted to 663 (deck won 36% (31–40) n=419): fizzled 17, stole 181, stoleNothing 2, attackerGone 34, targetGone 400, bothGone 29. Let 1417 resolve (35% (31–39) n=445): stole 952, stoleNothing 12, attackerGone 10, targetGone 412, bothGone 31. Choices: endReact 1601, call 334, block 435, ability 29.
-
-## GRY Trauma Team — 560 games, 46% won, 28232 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 764 | 46% (41–51) n=330 | 891 → 711 | 20% | 78 / 264 / 422 | 65% (58–72) n=161 | 47% (39–55) n=134 | 39% (33–46) n=201 |
-| Pepe Najarro: Working Doubles | attacked | 740 | 48% (43–54) n=330 | 836 → 672 | 20% | 56 / 301 / 383 | 65% (58–72) n=181 | 51% (42–60) n=117 | 37% (31–44) n=185 |
-| V: Streetkid | attacked | 680 | 43% (38–48) n=429 | 824 → 680 | 17% | 64 / 180 / 436 | 59% (53–65) n=230 | 54% (43–64) n=80 | 26% (21–32) n=220 |
-| Meredith Stout: Stone Cold Corpo | played | 601 | 44% (39–49) n=419 | 1374 → 585 | 57% | 137 / 146 / 318 | 58% (51–65) n=179 | 38% (31–46) n=146 | 31% (25–39) n=169 |
-| Padre: Man of the Cross | ability | 585 | 37% (32–42) n=360 | 1959 → 585 | 70% | 3 / 107 / 475 | 58% (51–64) n=212 | 19% (12–28) n=81 | 7% (4–12) n=170 |
-| Muamar Reyes: El Capitán | ability | 579 | 38% (33–43) n=369 | 1800 → 579 | 68% | 8 / 107 / 464 | 59% (52–65) n=219 | 16% (10–27) n=73 | 11% (7–16) n=179 |
-| Pepe Najarro: Working Doubles | played | 567 | 46% (41–51) n=403 | 1014 → 558 | 45% | 242 / 133 / 192 | 58% (51–65) n=196 | 40% (33–48) n=152 | 33% (26–42) n=130 |
-| 6th Street Recruits | played | 558 | 46% (41–51) n=398 | 980 → 551 | 44% | 236 / 116 / 206 | 57% (51–64) n=200 | 41% (34–49) n=157 | 33% (25–42) n=110 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 547 | 56% (50–63) n=218 | 444 → 379 | 15% | 0 / 128 / 419 | 71% (63–78) n=129 | 75% (62–85) n=53 | 39% (30–48) n=101 |
-| Trauma Team Operatives | played | 542 | 44% (39–49) n=386 | 1018 → 520 | 49% | 17 / 238 / 287 | 55% (48–62) n=196 | 39% (27–52) n=57 | 34% (27–41) n=193 |
-| Augmented Negotiators | played | 539 | 44% (39–49) n=395 | 1242 → 513 | 59% | 84 / 189 / 266 | 58% (51–66) n=166 | 35% (27–44) n=119 | 34% (28–42) n=174 |
-| Detonate | sold | 537 | 45% (40–50) n=377 | 830 → 537 | 35% | 268 / 143 / 126 | 47% (40–54) n=202 | 46% (38–54) n=142 | 32% (24–42) n=111 |
-| Trauma Team Operatives | attacked | 536 | 47% (41–52) n=283 | 550 → 475 | 14% | 0 / 94 / 442 | 65% (57–72) n=148 | 59% (45–71) n=51 | 33% (26–40) n=166 |
-| The Heist | sold | 518 | 44% (40–50) n=380 | 1049 → 518 | 51% | 158 / 212 / 148 | 52% (45–59) n=193 | 34% (26–43) n=114 | 35% (27–43) n=147 |
-| All is Lost | sold | 491 | 44% (39–49) n=374 | 755 → 491 | 35% | 222 / 145 / 124 | 50% (43–57) n=180 | 41% (33–49) n=148 | 35% (27–44) n=106 |
-
-(29 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1058 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 15502 | 9% | 0 / 930 / 3527 / 5554 / 5213 / 278 |
-| gig/steal | 2892 | 30% | 165 / 476 / 1310 / 917 / 24 / 0 |
-| react | 2265 | 61% | 0 / 1404 / 848 / 13 / 0 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 984 | 10% | 0 / 0 / 1 / 64 / 568 / 351 |
-| gigValue/setGig | 739 | 8% | 0 / 1 / 5 / 47 / 197 / 489 |
-| unit/spend | 609 | 59% | 226 / 173 / 207 / 3 / 0 / 0 |
-| mulligan | 560 | 11% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 538 | 62% | 0 / 538 / 0 / 0 / 0 / 0 |
-| card/search | 519 | 76% | 253 / 125 / 93 / 45 / 3 / 0 |
-| mode/muamarCall | 518 | 79% | 0 / 518 / 0 / 0 / 0 / 0 |
-| unit/protect | 393 | 56% | 113 / 158 / 117 / 5 / 0 / 0 |
-| unit/equip | 233 | 78% | 50 / 84 / 73 / 26 / 0 / 0 |
-| unit/ready | 72 | 100% | 0 / 72 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 55 | 78% | 33 / 14 / 8 / 0 / 0 / 0 |
-| yesno/draw | 39 | 100% | 0 / 39 / 0 / 0 / 0 / 0 |
-| card/defeat | 35 | 97% | 26 / 7 / 2 / 0 / 0 / 0 |
-| card/discard | 27 | 41% | 5 / 4 / 16 / 2 / 0 / 0 |
-| mode/foolOnTheHill | 8 | 63% | 0 / 8 / 0 / 0 / 0 / 0 |
-| yesno/playFree | 3 | 100% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1962 attacks. Reacted to 737 (deck won 42% (37–46) n=441): stole 246, attackerGone 10, targetGone 377, bothGone 31, noneGone 73. Let 1225 resolve (42% (37–47) n=398): stole 843, stoleNothing 7, attackerGone 9, targetGone 337, bothGone 29. Choices: endReact 1380, block 450, call 423, play 12.
-
-## Keep 'Em Guessing — 560 games, 19% won, 25913 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Jackie Welles: Ride or Die Choom | attacked | 683 | 30% (25–35) n=303 | 658 → 638 | 3% | 0 / 175 / 508 | 53% (44–62) n=114 | 51% (37–64) n=49 | 20% (16–26) n=237 |
-| Viktor Vektor: You Might Feel a Little Pinch | played | 597 | 19% (15–23) n=420 | 727 → 578 | 20% | 254 / 174 / 169 | 25% (20–31) n=219 | 15% (10–21) n=162 | 6% (3–12) n=116 |
-| Mandibular Upgrade | sold | 592 | 19% (15–23) n=405 | 688 → 592 | 14% | 281 / 143 / 168 | 24% (19–31) n=192 | 15% (10–21) n=150 | 11% (7–17) n=156 |
-| Augmented Negotiators | played | 591 | 20% (16–24) n=409 | 942 → 563 | 40% | 174 / 233 / 184 | 29% (23–36) n=195 | 14% (9–21) n=135 | 13% (9–19) n=165 |
-| Viktor Vektor: You Might Feel a Little Pinch | attacked | 587 | 19% (15–23) n=321 | 737 → 540 | 27% | 87 / 244 / 256 | 32% (25–40) n=145 | 15% (10–23) n=113 | 12% (8–17) n=173 |
-| Jackie Welles: Ride or Die Choom | played | 575 | 23% (19–27) n=411 | 732 → 574 | 22% | 0 / 343 / 232 | 35% (29–41) n=216 | 17% (10–28) n=70 | 9% (6–13) n=208 |
-| Sketchy Ripper | played | 571 | 18% (15–23) n=406 | 805 → 548 | 32% | 288 / 114 / 169 | 24% (19–30) n=239 | 13% (8–20) n=126 | 12% (7–19) n=104 |
-| Corporate Surveillance | sold | 534 | 19% (15–23) n=384 | 960 → 534 | 44% | 208 / 178 / 148 | 26% (20–33) n=188 | 14% (9–21) n=137 | 14% (9–20) n=139 |
-| Secondhand Bombus | played | 533 | 21% (17–25) n=401 | 1171 → 521 | 56% | 138 / 219 / 176 | 28% (22–34) n=238 | 15% (9–23) n=96 | 9% (5–15) n=123 |
-| Sketchy Ripper | attacked | 476 | 19% (15–25) n=263 | 792 → 445 | 44% | 97 / 173 / 206 | 28% (22–36) n=156 | 18% (11–29) n=66 | 9% (5–15) n=125 |
-| Goro Takemura: Vengeful Bodyguard | called | 460 | 19% (15–23) n=460 | 509 → 460 | 10% | 227 / 137 / 96 | 26% (21–32) n=256 | 11% (7–18) n=126 | 6% (3–14) n=78 |
-| River Ward: Detective on the Hunt | called | 457 | 20% (16–24) n=457 | 509 → 457 | 10% | 228 / 142 / 87 | 27% (22–33) n=250 | 12% (8–19) n=131 | 9% (5–18) n=76 |
-| Kiroshi Optics | sold | 443 | 20% (16–25) n=349 | 710 → 443 | 38% | 226 / 101 / 116 | 30% (24–37) n=173 | 11% (6–18) n=110 | 10% (5–17) n=102 |
-| Dum Dum: Maelstrom Triggerman | called | 416 | 20% (16–24) n=416 | 453 → 416 | 8% | 230 / 132 / 54 | 28% (22–34) n=217 | 11% (7–18) n=140 | 12% (6–23) n=59 |
-| Zetatech Faceplate | sold | 404 | 18% (14–22) n=331 | 1159 → 404 | 65% | 86 / 156 / 162 | 23% (17–31) n=131 | 18% (12–28) n=87 | 13% (8–19) n=151 |
-
-(31 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14274 | 10% | 0 / 777 / 3523 / 6299 / 3542 / 133 |
-| react | 2672 | 65% | 0 / 1451 / 1202 / 19 / 0 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2145 | 35% | 191 / 386 / 771 / 773 / 24 / 0 |
-| unit/equip | 846 | 80% | 174 / 176 / 397 / 99 / 0 / 0 |
-| mulligan | 560 | 7% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/blocker | 408 | 73% | 178 / 137 / 92 / 1 / 0 / 0 |
-| card/discard | 388 | 49% | 13 / 72 / 259 / 44 / 0 / 0 |
-| unit/ready | 384 | 81% | 0 / 231 / 153 / 0 / 0 / 0 |
-| card/search | 299 | 87% | 0 / 200 / 99 / 0 / 0 / 0 |
-| unit/pump | 294 | 55% | 81 / 106 / 105 / 2 / 0 / 0 |
-| gigValue/adjust | 253 | 23% | 0 / 0 / 2 / 51 / 140 / 60 |
-| card/trash | 245 | 53% | 0 / 245 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 232 | 70% | 107 / 88 / 36 / 1 / 0 / 0 |
-| card/playFree | 215 | 92% | 167 / 30 / 18 / 0 / 0 / 0 |
-| gigValue/setGig | 184 | 7% | 0 / 0 / 17 / 20 / 36 / 111 |
-| card/look | 150 | 100% | 69 / 51 / 30 / 0 / 0 / 0 |
-| card/defeatGear | 104 | 81% | 0 / 65 / 38 / 1 / 0 / 0 |
-| mode/foolOnTheHill | 7 | 57% | 0 / 7 / 0 / 0 / 0 / 0 |
-| unit/spend | 7 | 57% | 0 / 3 / 4 / 0 / 0 / 0 |
-| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 2286 attacks. Reacted to 749 (deck won 17% (14–21) n=442): stole 174, attackerGone 9, targetGone 550, bothGone 16. Let 1537 resolve (19% (16–23) n=445): stole 1231, stoleNothing 14, attackerGone 3, targetGone 253, bothGone 36. Choices: call 286, block 561, endReact 1728, ability 97.
-
-## Ladder S1 #1: V / Smasher / Padre (RRG) — 560 games, 62% won, 26065 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 791 | 67% (61–71) n=341 | 923 → 715 | 23% | 65 / 303 / 423 | 82% (76–87) n=184 | 63% (54–71) n=116 | 63% (56–69) n=207 |
-| Pepe Najarro: Working Doubles | attacked | 774 | 69% (64–73) n=339 | 940 → 707 | 25% | 69 / 306 / 399 | 90% (84–93) n=175 | 70% (61–78) n=113 | 60% (54–67) n=212 |
-| Animals Wrecker | attacked | 729 | 75% (70–80) n=302 | 690 → 657 | 5% | 0 / 185 / 544 | 91% (86–95) n=149 | 86% (76–92) n=76 | 68% (62–74) n=219 |
-| Yorinobu Arasaka: Steel Dragon | played | 524 | 62% (57–67) n=397 | 641 → 524 | 18% | 0 / 215 / 309 | 79% (72–85) n=150 | 64% (51–75) n=58 | 52% (46–59) n=244 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 524 | 69% (63–74) n=294 | 538 → 479 | 11% | 0 / 0 / 524 | 88% (82–92) n=168 | 78% (64–87) n=45 | 54% (47–61) n=170 |
-| V: Streetkid | attacked | 521 | 53% (47–58) n=297 | 643 → 521 | 19% | 71 / 159 / 291 | 69% (62–75) n=184 | 56% (41–70) n=43 | 38% (30–46) n=144 |
-| Peace Offering | sold | 486 | 64% (59–69) n=368 | 1029 → 486 | 53% | 150 / 212 / 124 | 78% (71–84) n=156 | 64% (54–73) n=95 | 55% (48–62) n=178 |
-| Pepe Najarro: Working Doubles | played | 483 | 64% (58–68) n=362 | 1009 → 478 | 53% | 257 / 109 / 117 | 77% (70–83) n=158 | 59% (51–66) n=152 | 44% (35–54) n=106 |
-| Animals Wrecker | played | 477 | 69% (65–74) n=367 | 721 → 477 | 34% | 0 / 337 / 140 | 80% (73–86) n=143 | 67% (56–76) n=78 | 63% (56–69) n=200 |
-| 6th Street Recruits | played | 476 | 63% (58–68) n=357 | 1030 → 468 | 55% | 246 / 104 / 126 | 75% (68–81) n=166 | 58% (50–66) n=145 | 48% (39–58) n=97 |
-| Memory Relapse | sold | 441 | 63% (58–68) n=350 | 1396 → 441 | 68% | 60 / 194 / 187 | 72% (64–78) n=141 | 56% (45–67) n=80 | 57% (49–64) n=171 |
-| Padre: Man of the Cross | ability | 416 | 51% (45–56) n=292 | 1766 → 416 | 76% | 7 / 71 / 338 | 73% (66–79) n=162 | 29% (19–41) n=62 | 25% (18–33) n=127 |
-| Adam Smasher: Ender of Legends | called | 412 | 66% (61–70) n=412 | 412 → 412 | 0% | 181 / 117 / 114 | 72% (67–77) n=275 | 53% (42–64) n=73 | 52% (40–63) n=64 |
-| Mantis Blades | sold | 407 | 62% (56–67) n=331 | 580 → 407 | 30% | 260 / 62 / 85 | 67% (59–74) n=156 | 56% (48–64) n=141 | 53% (42–63) n=80 |
-| V: Streetkid | called | 404 | 64% (59–69) n=404 | 404 → 404 | 0% | 215 / 99 / 90 | 70% (64–75) n=274 | 49% (38–61) n=69 | 54% (42–66) n=61 |
-
-(35 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1074 turns), Synapse Burnout (played, legal in 550 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14384 | 8% | 0 / 1145 / 3711 / 5092 / 4207 / 229 |
-| gig/steal | 3457 | 29% | 193 / 473 / 1519 / 1262 / 10 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1227 | 61% | 0 / 854 / 367 / 6 / 0 / 0 |
-| unit/defeat | 645 | 63% | 198 / 204 / 235 / 8 / 0 / 0 |
-| mulligan | 560 | 18% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 510 | 52% | 0 / 510 / 0 / 0 / 0 / 0 |
-| gigValue/setGig | 506 | 8% | 0 / 0 / 7 / 49 / 155 / 295 |
-| card/playFree | 502 | 58% | 0 / 107 / 352 / 43 / 0 / 0 |
-| card/search | 502 | 64% | 174 / 161 / 129 / 38 / 0 / 0 |
-| unit/spend | 378 | 82% | 244 / 93 / 41 / 0 / 0 / 0 |
-| unit/equip | 360 | 86% | 50 / 105 / 166 / 39 / 0 / 0 |
-| gigValue/adjust | 316 | 5% | 0 / 9 / 56 / 10 / 33 / 208 |
-| unit/ready | 216 | 94% | 0 / 179 / 37 / 0 / 0 / 0 |
-| unit/adrenaline | 129 | 74% | 71 / 40 / 18 / 0 / 0 / 0 |
-| unit/sacrifice | 61 | 77% | 38 / 13 / 9 / 1 / 0 / 0 |
-| card/discard | 32 | 50% | 7 / 9 / 14 / 2 / 0 / 0 |
-| unit/pump | 15 | 73% | 6 / 1 / 8 / 0 / 0 / 0 |
-| yesno/draw | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
-| card/defeat | 6 | 100% | 6 / 0 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 5 | 20% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1149 attacks. Reacted to 457 (deck won 52% (47–58) n=328): stole 258, attackerGone 12, targetGone 161, bothGone 26. Let 692 resolve (59% (53–64) n=284): stole 474, stoleNothing 3, attackerGone 3, targetGone 188, bothGone 24. Choices: endReact 746, call 335, play 17, block 129.
-
-## Ladder S1 #10: Jackie / Judy / Hanako (BBG) — 560 games, 51% won, 29509 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Jacked-In Voodoo Boy | attacked | 867 | 52% (47–57) n=401 | 839 → 756 | 10% | 161 / 365 / 341 | 65% (59–70) n=257 | 50% (42–58) n=145 | 33% (26–40) n=166 |
-| Jacked-In Voodoo Boy | played | 842 | 51% (46–55) n=495 | 1098 → 781 | 29% | 427 / 214 / 201 | 67% (61–72) n=291 | 37% (31–44) n=214 | 23% (16–32) n=96 |
-| Delamain: Rideshare AI | played | 659 | 52% (47–56) n=442 | 1535 → 618 | 60% | 186 / 250 / 223 | 65% (59–70) n=271 | 41% (33–48) n=153 | 23% (16–31) n=110 |
-| Peace Offering | sold | 553 | 51% (46–56) n=398 | 884 → 553 | 37% | 276 / 113 / 164 | 62% (55–69) n=192 | 46% (39–54) n=158 | 29% (22–38) n=119 |
-| Lizzy Wizzy: Delicate Weapon | played | 521 | 52% (47–57) n=377 | 1537 → 512 | 67% | 47 / 229 / 245 | 64% (57–70) n=217 | 49% (39–59) n=92 | 27% (20–35) n=127 |
-| Trust No One | sold | 514 | 53% (48–58) n=381 | 865 → 514 | 41% | 196 / 130 / 188 | 67% (60–74) n=190 | 53% (45–61) n=144 | 29% (21–38) n=107 |
-| Chrome Reverie | sold | 512 | 55% (50–60) n=395 | 915 → 512 | 44% | 245 / 121 / 146 | 66% (59–72) n=218 | 47% (39–56) n=127 | 38% (29–47) n=104 |
-| Placide: Voodoo Sentinel | played | 487 | 49% (44–54) n=391 | 577 → 487 | 16% | 0 / 0 / 487 | 73% (65–79) n=171 | 64% (51–75) n=58 | 25% (19–31) n=199 |
-| Judy Álvarez: Braindance Maestro | ability | 485 | 47% (42–53) n=331 | 1898 → 485 | 74% | 30 / 165 / 290 | 63% (57–70) n=216 | 35% (25–47) n=71 | 12% (7–19) n=125 |
-| Maman Brigitte: Spirit of Death | played | 482 | 57% (52–61) n=387 | 696 → 482 | 31% | 178 / 148 / 156 | 71% (64–77) n=206 | 50% (41–58) n=125 | 34% (26–44) n=99 |
-| Nocturne OP55 N1 | sold | 472 | 51% (46–57) n=344 | 1199 → 472 | 61% | 129 / 193 / 150 | 63% (56–70) n=186 | 46% (37–56) n=106 | 29% (21–38) n=108 |
-| Maman Brigitte: Spirit of Death | attacked | 460 | 63% (57–68) n=284 | 546 → 446 | 18% | 0 / 235 / 225 | 81% (74–87) n=143 | 71% (60–79) n=82 | 44% (35–53) n=123 |
-| Les Élémens | played | 453 | 52% (47–57) n=352 | 981 → 452 | 54% | 134 / 206 / 113 | 63% (56–69) n=191 | 49% (40–58) n=121 | 36% (27–47) n=85 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 438 | 42% (37–48) n=300 | 1770 → 438 | 75% | 21 / 141 / 276 | 59% (51–66) n=162 | 40% (29–52) n=68 | 14% (9–21) n=128 |
-| Hanako Arasaka: Daughter of the Emperor | called | 431 | 51% (46–56) n=431 | 431 → 431 | 0% | 163 / 198 / 70 | 63% (57–69) n=251 | 40% (32–49) n=121 | 20% (12–32) n=59 |
-
-(25 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13901 | 9% | 0 / 1144 / 3344 / 5495 / 3690 / 228 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2081 | 35% | 206 / 321 / 870 / 676 / 8 / 0 |
-| gigValue/adjust | 1608 | 24% | 0 / 42 / 540 / 637 / 337 / 52 |
-| unit/bottomdeck | 1472 | 71% | 820 / 310 / 337 / 5 / 0 / 0 |
-| card/discard | 1301 | 42% | 106 / 346 / 693 / 154 / 2 / 0 |
-| card/search | 1207 | 56% | 0 / 248 / 959 / 0 / 0 / 0 |
-| unit/pump | 1181 | 63% | 389 / 310 / 461 / 21 / 0 / 0 |
-| react | 856 | 56% | 0 / 613 / 242 / 1 / 0 / 0 |
-| mulligan | 560 | 36% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/freePlay | 490 | 60% | 0 / 108 / 289 / 91 / 2 / 0 |
-| gig/swapGive | 438 | 40% | 21 / 42 / 205 / 169 / 1 / 0 |
-| gig/swapTake | 438 | 35% | 36 / 44 / 206 / 147 / 5 / 0 |
-| yesno/discardFor | 342 | 100% | 0 / 342 / 0 / 0 / 0 / 0 |
-| yesno/addToHand | 315 | 100% | 0 / 315 / 0 / 0 / 0 / 0 |
-| unit/weaken | 228 | 68% | 102 / 70 / 54 / 2 / 0 / 0 |
-| unit/cantAttack | 193 | 65% | 85 / 68 / 40 / 0 / 0 / 0 |
-| gigValue/setGig | 185 | 18% | 0 / 4 / 20 / 15 / 37 / 109 |
-| mode/mode | 163 | 88% | 0 / 19 / 144 / 0 / 0 / 0 |
-| unit/spend | 136 | 60% | 54 / 54 / 28 / 0 / 0 / 0 |
-| unit/call | 91 | 100% | 0 / 38 / 53 / 0 / 0 / 0 |
-| card/discardForNothing | 33 | 0% | 0 / 7 / 16 / 10 / 0 / 0 |
-| unit/sacrifice | 32 | 97% | 23 / 6 / 2 / 1 / 0 / 0 |
-| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 40% | 0 / 5 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 798 attacks. Reacted to 349 (deck won 42% (37–48) n=281): stole 140, stoleNothing 1, attackerGone 2, targetGone 203, bothGone 3. Let 449 resolve (44% (38–50) n=252): stole 332, stoleNothing 1, targetGone 111, bothGone 5. Choices: endReact 476, block 162, call 204, play 14.
-
-## Ladder S1 #2: V / Smasher / Saburo (RRG) — 560 games, 68% won, 24230 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 930 | 70% (65–75) n=364 | 1067 → 855 | 20% | 115 / 343 / 472 | 84% (79–88) n=219 | 71% (63–78) n=137 | 63% (56–69) n=223 |
-| Animals Wrecker | attacked | 668 | 78% (73–83) n=282 | 637 → 608 | 5% | 0 / 181 / 487 | 91% (85–95) n=155 | 85% (74–91) n=65 | 75% (68–80) n=206 |
-| Synapse Burnout | sold | 511 | 67% (62–71) n=375 | 802 → 511 | 36% | 265 / 141 / 105 | 74% (67–80) n=185 | 63% (54–70) n=131 | 56% (47–65) n=109 |
-| V: Streetkid | attacked | 505 | 58% (52–63) n=299 | 611 → 505 | 17% | 72 / 157 / 276 | 72% (65–78) n=177 | 58% (45–71) n=53 | 50% (42–58) n=136 |
-| Yorinobu Arasaka: Steel Dragon | played | 493 | 70% (65–74) n=373 | 718 → 493 | 31% | 0 / 195 / 298 | 90% (84–94) n=134 | 69% (56–80) n=52 | 58% (52–64) n=229 |
-| Pepe Najarro: Working Doubles | played | 489 | 67% (62–72) n=376 | 957 → 479 | 50% | 292 / 110 / 87 | 75% (68–81) n=188 | 65% (58–72) n=170 | 46% (34–58) n=61 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 463 | 80% (75–84) n=281 | 454 → 432 | 5% | 0 / 0 / 463 | 96% (91–98) n=137 | 94% (85–98) n=53 | 70% (63–76) n=180 |
-| Animals Wrecker | played | 458 | 73% (68–77) n=352 | 646 → 458 | 29% | 0 / 337 / 121 | 81% (75–87) n=161 | 71% (59–80) n=68 | 67% (59–74) n=169 |
-| Adam Smasher: Ender of Legends | called | 458 | 67% (63–71) n=458 | 458 → 458 | 0% | 195 / 140 / 123 | 77% (72–81) n=324 | 48% (37–59) n=79 | 40% (28–53) n=55 |
-| V: Streetkid | called | 438 | 68% (63–72) n=438 | 438 → 438 | 0% | 210 / 134 / 94 | 75% (69–79) n=299 | 47% (36–58) n=77 | 60% (47–71) n=62 |
-| Saburo Arasaka: Stubborn Patriarch | called | 431 | 68% (64–72) n=431 | 431 → 431 | 0% | 194 / 132 / 105 | 76% (70–80) n=285 | 59% (48–70) n=69 | 48% (37–59) n=77 |
-| Meredith Stout: Stone Cold Corpo | attacked | 427 | 75% (69–80) n=240 | 802 → 413 | 49% | 44 / 135 / 248 | 93% (88–96) n=134 | 72% (61–81) n=78 | 60% (51–68) n=112 |
-| Peace Offering | sold | 404 | 67% (62–72) n=319 | 1172 → 404 | 66% | 110 / 177 / 117 | 74% (67–81) n=141 | 68% (57–77) n=81 | 58% (50–66) n=142 |
-| Mantis Blades | sold | 390 | 66% (60–71) n=326 | 594 → 390 | 34% | 242 / 58 / 90 | 72% (65–79) n=152 | 62% (53–70) n=131 | 52% (41–63) n=77 |
-| Industrial Assembly | sold | 362 | 65% (59–70) n=297 | 1026 → 362 | 65% | 84 / 147 / 131 | 70% (60–78) n=103 | 60% (50–70) n=88 | 61% (52–68) n=142 |
-
-(31 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1006 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13453 | 9% | 0 / 1250 / 3544 / 4995 / 3562 / 102 |
-| gig/steal | 3355 | 30% | 216 / 502 / 1438 / 1191 / 8 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1140 | 66% | 0 / 802 / 331 / 7 / 0 / 0 |
-| unit/defeat | 825 | 66% | 288 / 264 / 266 / 7 / 0 / 0 |
-| card/search | 561 | 60% | 153 / 175 / 189 / 44 / 0 / 0 |
-| mulligan | 560 | 41% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/equip | 437 | 84% | 79 / 104 / 228 / 26 / 0 / 0 |
-| card/playFree | 432 | 85% | 0 / 232 / 198 / 2 / 0 / 0 |
-| gigValue/adjust | 235 | 9% | 0 / 8 / 71 / 23 / 54 / 79 |
-| unit/ready | 187 | 93% | 0 / 161 / 26 / 0 / 0 / 0 |
-| unit/spend | 185 | 71% | 97 / 59 / 27 / 2 / 0 / 0 |
-| gigValue/setGig | 169 | 12% | 0 / 0 / 9 / 23 / 38 / 99 |
-| gig/swapGive | 148 | 37% | 0 / 9 / 119 / 19 / 1 / 0 |
-| gig/swapTake | 123 | 56% | 32 / 41 / 32 / 17 / 1 / 0 |
-| unit/sacrifice | 66 | 80% | 42 / 9 / 15 / 0 / 0 / 0 |
-| card/discard | 49 | 45% | 10 / 6 / 28 / 5 / 0 / 0 |
-| unit/pump | 33 | 67% | 14 / 11 / 8 / 0 / 0 / 0 |
-| card/defeat | 17 | 100% | 16 / 1 / 0 / 0 / 0 / 0 |
-| yesno/draw | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1036 attacks. Reacted to 353 (deck won 65% (60–71) n=269): stole 160, attackerGone 31, targetGone 133, bothGone 28, noneGone 1. Let 683 resolve (72% (67–77) n=316): stole 528, stoleNothing 7, attackerGone 6, targetGone 117, bothGone 25. Choices: endReact 751, call 208, play 39, block 142.
-
-## Ladder S1 #3: Smasher / Dexter / Saburo (RRG) — 560 games, 66% won, 24657 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 909 | 70% (65–74) n=358 | 1064 → 831 | 22% | 87 / 388 / 434 | 84% (78–88) n=202 | 65% (56–72) n=130 | 68% (61–73) n=238 |
-| Animals Wrecker | attacked | 760 | 74% (69–78) n=315 | 743 → 690 | 7% | 0 / 218 / 542 | 92% (86–95) n=168 | 78% (66–87) n=59 | 68% (61–73) n=226 |
-| Dexter DeShawn: Off the Grid | ability | 554 | 62% (57–67) n=369 | 1888 → 554 | 71% | 12 / 101 / 441 | 78% (72–83) n=244 | 32% (21–44) n=57 | 38% (30–46) n=151 |
-| 6th Street Recruits | attacked | 544 | 70% (64–75) n=250 | 677 → 520 | 23% | 51 / 225 / 268 | 85% (78–90) n=127 | 68% (57–77) n=87 | 65% (57–72) n=153 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 528 | 80% (75–84) n=294 | 519 → 490 | 6% | 0 / 0 / 528 | 96% (91–98) n=158 | 90% (80–95) n=62 | 69% (62–76) n=167 |
-| Pepe Najarro: Working Doubles | played | 514 | 65% (61–70) n=393 | 902 → 508 | 44% | 311 / 100 / 103 | 77% (71–82) n=196 | 54% (46–61) n=168 | 53% (42–63) n=83 |
-| Animals Wrecker | played | 497 | 69% (64–74) n=375 | 658 → 497 | 24% | 0 / 346 / 151 | 76% (68–82) n=142 | 68% (56–77) n=77 | 64% (57–70) n=199 |
-| Yorinobu Arasaka: Steel Dragon | played | 473 | 75% (70–79) n=366 | 606 → 473 | 22% | 0 / 256 / 217 | 83% (75–88) n=133 | 74% (60–85) n=47 | 73% (67–78) n=226 |
-| Saburo Arasaka: Stubborn Patriarch | called | 462 | 65% (61–69) n=462 | 462 → 462 | 0% | 239 / 114 / 109 | 72% (67–77) n=298 | 56% (44–66) n=72 | 50% (40–60) n=92 |
-| Dexter DeShawn: Off the Grid | called | 452 | 69% (65–73) n=452 | 452 → 452 | 0% | 235 / 135 / 82 | 76% (70–80) n=294 | 57% (45–68) n=70 | 58% (48–68) n=88 |
-| Adam Smasher: Ender of Legends | called | 432 | 68% (64–72) n=432 | 432 → 432 | 0% | 232 / 92 / 108 | 75% (70–80) n=289 | 53% (42–63) n=87 | 55% (42–68) n=56 |
-| Peace Offering | sold | 426 | 68% (63–73) n=331 | 929 → 426 | 54% | 163 / 162 / 101 | 77% (69–84) n=128 | 57% (48–66) n=107 | 68% (60–75) n=148 |
-| Mantis Blades | sold | 411 | 65% (60–70) n=337 | 600 → 411 | 31% | 252 / 62 / 97 | 75% (67–81) n=147 | 54% (46–62) n=147 | 62% (51–72) n=79 |
-| Satori: Sword of Saburo | sold | 376 | 68% (63–73) n=306 | 980 → 376 | 62% | 111 / 136 / 129 | 76% (68–83) n=117 | 60% (49–70) n=77 | 67% (59–74) n=144 |
-| Detonate | sold | 356 | 65% (59–70) n=302 | 554 → 356 | 36% | 169 / 102 / 85 | 73% (65–80) n=138 | 61% (51–70) n=95 | 57% (47–66) n=95 |
-
-(35 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 309 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13585 | 8% | 0 / 1280 / 3872 / 5530 / 2818 / 85 |
-| gig/steal | 3569 | 28% | 144 / 478 / 1659 / 1281 / 7 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1081 | 67% | 0 / 777 / 298 / 6 / 0 / 0 |
-| gigValue/adjust | 690 | 9% | 0 / 0 / 4 / 48 / 428 / 210 |
-| unit/defeat | 673 | 61% | 213 / 204 / 250 / 6 / 0 / 0 |
-| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 526 | 63% | 0 / 526 / 0 / 0 / 0 / 0 |
-| card/playFree | 434 | 68% | 0 / 173 / 257 / 4 / 0 / 0 |
-| unit/equip | 373 | 86% | 48 / 121 / 168 / 36 / 0 / 0 |
-| unit/pump | 337 | 68% | 150 / 106 / 80 / 1 / 0 / 0 |
-| unit/spend | 164 | 71% | 92 / 44 / 28 / 0 / 0 / 0 |
-| unit/ready | 122 | 100% | 0 / 122 / 0 / 0 / 0 / 0 |
-| gigValue/setGig | 110 | 15% | 0 / 0 / 4 / 21 / 31 / 54 |
-| unit/sacrifice | 70 | 87% | 54 / 9 / 7 / 0 / 0 / 0 |
-| card/discard | 51 | 61% | 11 / 19 / 21 / 0 / 0 / 0 |
-| card/search | 47 | 68% | 0 / 22 / 21 / 4 / 0 / 0 |
-| card/defeat | 17 | 88% | 13 / 3 / 1 / 0 / 0 / 0 |
-| yesno/draw | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 994 attacks. Reacted to 323 (deck won 56% (50–62) n=243): stole 154, attackerGone 20, targetGone 120, bothGone 29. Let 671 resolve (63% (57–68) n=291): stole 514, stoleNothing 3, attackerGone 5, targetGone 120, bothGone 29. Choices: call 216, endReact 725, block 125, play 15.
-
-## Ladder S1 #4: V / Padre / Jackie (RGG) — 560 games, 63% won, 25875 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| MaxTac AV | attacked | 854 | 68% (63–73) n=291 | 841 → 776 | 8% | 0 / 378 / 476 | 80% (74–85) n=198 | 75% (66–83) n=97 | 60% (53–67) n=172 |
-| Jackie Welles: Mama's Favorite | attacked | 737 | 61% (56–65) n=380 | 804 → 737 | 8% | 0 / 292 / 445 | 76% (71–81) n=233 | 59% (47–69) n=70 | 49% (42–56) n=187 |
-| MaxTac Squadron | attacked | 663 | 67% (62–72) n=299 | 798 → 619 | 22% | 81 / 266 / 316 | 80% (73–85) n=168 | 65% (56–73) n=125 | 62% (54–69) n=152 |
-| Padre: Man of the Cross | ability | 577 | 52% (47–57) n=354 | 1683 → 577 | 66% | 7 / 88 / 482 | 72% (66–78) n=235 | 20% (13–30) n=84 | 17% (11–24) n=133 |
-| V: Streetkid | attacked | 548 | 59% (53–64) n=314 | 649 → 548 | 16% | 49 / 163 / 336 | 72% (65–77) n=204 | 67% (56–77) n=70 | 40% (32–49) n=117 |
-| MaxTac Squadron | played | 523 | 65% (60–69) n=394 | 997 → 501 | 50% | 256 / 133 / 134 | 74% (68–80) n=191 | 59% (51–66) n=168 | 58% (48–68) n=89 |
-| Sandevistan | sold | 513 | 63% (58–68) n=379 | 700 → 513 | 27% | 295 / 122 / 96 | 72% (65–78) n=194 | 53% (45–61) n=150 | 50% (40–60) n=88 |
-| Peace Offering | sold | 511 | 64% (58–68) n=370 | 993 → 511 | 49% | 177 / 200 / 134 | 69% (62–75) n=194 | 59% (51–68) n=123 | 61% (52–69) n=123 |
-| Meredith Stout: Stone Cold Corpo | played | 484 | 61% (55–65) n=365 | 1356 → 471 | 65% | 151 / 123 / 210 | 72% (64–78) n=160 | 52% (44–60) n=144 | 49% (40–57) n=125 |
-| Memory Relapse | sold | 483 | 61% (56–66) n=364 | 1474 → 483 | 67% | 84 / 172 / 227 | 70% (63–76) n=176 | 57% (47–67) n=91 | 47% (39–55) n=146 |
-| MaxTac AV | played | 442 | 65% (60–70) n=346 | 720 → 442 | 39% | 219 / 105 / 118 | 75% (69–81) n=183 | 61% (53–69) n=124 | 41% (32–52) n=87 |
-| Jackie Welles: Mama's Favorite | called | 425 | 64% (59–68) n=425 | 425 → 425 | 0% | 166 / 163 / 96 | 70% (65–76) n=267 | 55% (45–65) n=89 | 48% (36–59) n=69 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 424 | 71% (63–77) n=173 | 306 → 281 | 8% | 0 / 63 / 361 | 90% (83–95) n=105 | 73% (59–84) n=45 | 51% (41–62) n=84 |
-| V: Streetkid | called | 415 | 62% (57–66) n=415 | 415 → 415 | 0% | 188 / 125 / 102 | 68% (63–74) n=271 | 43% (33–53) n=91 | 60% (47–72) n=53 |
-| Jackie Welles: Mama's Favorite | Go Solo (self-paid 396) | 396 | 60% (55–65) n=396 | 779 → 396 | 49% | 0 / 218 / 178 | 73% (66–79) n=164 | 52% (39–65) n=52 | 50% (43–57) n=180 |
-
-(35 more card uses in the JSON report.)
-
-Legal but never taken: Jackie Welles: Mama's Favorite (Legend play, legal in 779 turns), V: Streetkid (Legend play, legal in 986 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13837 | 7% | 0 / 1370 / 3632 / 5065 / 3706 / 64 |
-| gig/steal | 2880 | 34% | 205 / 519 / 1391 / 757 / 8 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1697 | 63% | 0 / 1113 / 576 / 8 / 0 / 0 |
-| gigValue/setGig | 644 | 7% | 0 / 2 / 9 / 46 / 151 / 436 |
-| unit/ready | 602 | 52% | 252 / 241 / 109 / 0 / 0 / 0 |
-| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/equip | 553 | 82% | 144 / 165 / 230 / 14 / 0 / 0 |
-| mode/mode | 508 | 58% | 0 / 508 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 440 | 32% | 0 / 10 / 344 / 86 / 0 / 0 |
-| unit/defeat | 408 | 60% | 157 / 108 / 142 / 1 / 0 / 0 |
-| gig/swapTake | 367 | 48% | 81 / 115 / 106 / 63 / 2 / 0 |
-| unit/spend | 362 | 76% | 209 / 111 / 41 / 1 / 0 / 0 |
-| yesno/replaceDefeat | 282 | 13% | 0 / 282 / 0 / 0 / 0 / 0 |
-| card/search | 265 | 83% | 173 / 40 / 32 / 20 / 0 / 0 |
-| gigValue/adjust | 92 | 8% | 0 / 0 / 0 / 2 / 42 / 48 |
-| card/discard | 69 | 45% | 16 / 16 / 36 / 1 / 0 / 0 |
-| unit/sacrifice | 53 | 79% | 33 / 10 / 9 / 1 / 0 / 0 |
-| yesno/draw | 14 | 100% | 0 / 14 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 514 | 66% | 0 / 514 / 0 / 0 / 0 / 0 |
+| unit/defeat | 383 | 54% | 121 / 73 / 179 / 10 / 0 / 0 |
+| unit/protect | 362 | 46% | 98 / 145 / 118 / 1 / 0 / 0 |
+| card/search | 310 | 80% | 0 / 168 / 134 / 6 / 2 / 0 |
+| card/trash | 236 | 48% | 0 / 236 / 0 / 0 / 0 / 0 |
+| card/playFree | 207 | 95% | 175 / 29 / 3 / 0 / 0 / 0 |
+| unit/sacrifice | 205 | 60% | 87 / 76 / 42 / 0 / 0 / 0 |
+| card/discard | 30 | 77% | 10 / 8 / 12 / 0 / 0 / 0 |
+| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1492 attacks. Reacted to 531 (deck won 58% (53–63) n=376): fizzled 12, stole 181, attackerGone 17, targetGone 292, bothGone 28, noneGone 1. Let 961 resolve (60% (55–65) n=394): stole 683, stoleNothing 9, attackerGone 13, targetGone 226, bothGone 28, noneGone 2. Choices: endReact 1066, call 324, block 293, ability 14.
+Reaction windows: 1797 attacks. Reacted to 580 (deck won 40% (35–45) n=371): stole 156, attackerGone 21, targetGone 307, bothGone 54, noneGone 42. Let 1217 resolve (42% (38–47) n=425): stole 923, stoleNothing 11, attackerGone 5, targetGone 238, bothGone 39, noneGone 1. Choices: endReact 1399, block 378, call 247, play 41, ability 55.
 
-## Ladder S1 #5: V / Smasher / Dum Dum (RRY) — 560 games, 66% won, 24087 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 1020 | 71% (67–75) n=405 | 1206 → 932 | 23% | 116 / 323 / 581 | 84% (79–88) n=256 | 71% (63–78) n=155 | 62% (56–68) n=223 |
-| Animals Wrecker | attacked | 761 | 70% (65–75) n=331 | 719 → 678 | 6% | 0 / 201 / 560 | 92% (86–95) n=166 | 85% (75–91) n=73 | 64% (57–70) n=231 |
-| Rockn' Rockerboy | attacked | 739 | 76% (70–80) n=299 | 802 → 679 | 15% | 0 / 337 / 402 | 89% (84–93) n=188 | 92% (83–97) n=66 | 67% (59–74) n=166 |
-| Animals Wrecker | played | 532 | 67% (62–71) n=393 | 746 → 532 | 29% | 0 / 361 / 171 | 75% (69–81) n=194 | 69% (58–79) n=71 | 57% (50–64) n=195 |
-| All is Lost | sold | 494 | 69% (64–73) n=359 | 646 → 494 | 24% | 240 / 131 / 123 | 79% (72–84) n=180 | 62% (54–70) n=142 | 57% (48–66) n=110 |
-| Rockn' Rockerboy | played | 478 | 71% (66–76) n=355 | 914 → 478 | 48% | 229 / 124 / 125 | 80% (74–85) n=204 | 69% (60–77) n=123 | 52% (42–63) n=86 |
-| Yorinobu Arasaka: Steel Dragon | played | 477 | 69% (65–74) n=370 | 667 → 477 | 28% | 0 / 207 / 270 | 85% (79–90) n=158 | 64% (51–76) n=53 | 58% (51–65) n=195 |
-| 6th Street Recruits | played | 475 | 69% (64–74) n=373 | 1088 → 472 | 57% | 266 / 127 / 82 | 75% (68–81) n=171 | 65% (58–72) n=188 | 62% (50–72) n=71 |
-| Industrial Assembly | sold | 454 | 63% (57–67) n=347 | 868 → 454 | 48% | 153 / 172 / 129 | 64% (56–71) n=158 | 64% (55–72) n=118 | 56% (47–64) n=126 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 439 | 75% (70–80) n=273 | 486 → 414 | 15% | 0 / 0 / 439 | 92% (87–95) n=164 | 87% (75–94) n=47 | 59% (50–67) n=127 |
-| Zetatech Faceplate | sold | 433 | 64% (58–69) n=338 | 1018 → 433 | 57% | 130 / 165 / 138 | 70% (62–76) n=171 | 57% (46–67) n=86 | 56% (48–65) n=128 |
-| V: Streetkid | attacked | 427 | 54% (48–60) n=261 | 499 → 427 | 14% | 70 / 133 / 224 | 68% (60–74) n=173 | 38% (25–54) n=39 | 38% (29–48) n=100 |
-| Mantis Blades | sold | 423 | 68% (63–73) n=334 | 595 → 423 | 29% | 267 / 76 / 80 | 77% (70–83) n=169 | 64% (55–72) n=124 | 50% (39–61) n=74 |
-| Augmented Negotiators | played | 422 | 64% (59–69) n=330 | 1420 → 406 | 71% | 146 / 121 / 155 | 81% (74–87) n=148 | 45% (36–53) n=130 | 63% (53–72) n=97 |
-| Satori: Sword of Saburo | sold | 395 | 65% (60–70) n=319 | 972 → 395 | 59% | 165 / 133 / 97 | 72% (64–79) n=137 | 56% (47–65) n=108 | 63% (54–71) n=114 |
-
-(27 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 953 turns), Adam Smasher: Ender of Legends (Legend play, legal in 276 turns), Appetite for Destruction (played, legal in 331 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13573 | 8% | 0 / 1147 / 3327 / 4918 / 3943 / 238 |
-| gig/steal | 3423 | 31% | 272 / 592 / 1517 / 1031 / 11 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1377 | 64% | 0 / 843 / 534 / 0 / 0 / 0 |
-| unit/defeat | 745 | 63% | 209 / 212 / 298 / 26 / 0 / 0 |
-| gigValue/adjust | 624 | 7% | 0 / 11 / 91 / 55 / 181 / 286 |
-| mulligan | 560 | 37% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/playFree | 447 | 78% | 0 / 183 / 260 / 4 / 0 / 0 |
-| unit/equip | 426 | 83% | 133 / 107 / 159 / 27 / 0 / 0 |
-| card/search | 414 | 76% | 224 / 129 / 61 / 0 / 0 / 0 |
-| unit/pump | 94 | 54% | 27 / 32 / 34 / 1 / 0 / 0 |
-| unit/sacrifice | 64 | 84% | 45 / 11 / 8 / 0 / 0 / 0 |
-| card/defeatGear | 53 | 91% | 0 / 34 / 19 / 0 / 0 / 0 |
-| card/discard | 34 | 44% | 5 / 4 / 22 / 3 / 0 / 0 |
-| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1265 attacks. Reacted to 444 (deck won 58% (53–64) n=334): stole 191, stoleNothing 1, attackerGone 1, targetGone 239, bothGone 12. Let 821 resolve (69% (64–74) n=355): stole 573, stoleNothing 2, attackerGone 6, targetGone 191, bothGone 49. Choices: call 284, endReact 878, block 213, ability 2.
-
-## Ladder S1 #6: Dexter / V / Reyes (RRY) — 560 games, 61% won, 27714 decisions
+## Discord 5k #2: Jackie / Alt / Hanako (BBG) — 560 games, 54% won, 28574 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 925 | 62% (57–67) n=375 | 1052 → 836 | 21% | 95 / 408 / 422 | 74% (67–79) n=209 | 60% (52–67) n=144 | 57% (50–63) n=222 |
-| Animals Wrecker | attacked | 742 | 72% (66–76) n=316 | 717 → 673 | 6% | 0 / 192 / 550 | 84% (77–88) n=172 | 81% (72–88) n=95 | 66% (60–72) n=208 |
-| V: Streetkid | attacked | 637 | 52% (47–57) n=375 | 771 → 637 | 17% | 91 / 212 / 334 | 66% (60–72) n=228 | 49% (38–60) n=80 | 39% (31–46) n=158 |
-| 6th Street Recruits | played | 555 | 62% (57–66) n=407 | 910 → 551 | 39% | 316 / 110 / 129 | 70% (64–76) n=225 | 55% (48–62) n=182 | 46% (35–57) n=70 |
-| Meredith Stout: Stone Cold Corpo | attacked | 540 | 63% (57–68) n=297 | 969 → 517 | 47% | 43 / 164 / 333 | 78% (72–84) n=186 | 55% (45–65) n=92 | 44% (36–53) n=124 |
-| Yorinobu Arasaka: Steel Dragon | played | 539 | 64% (59–69) n=378 | 643 → 539 | 16% | 0 / 189 / 350 | 75% (68–81) n=174 | 62% (51–72) n=74 | 54% (47–61) n=198 |
-| Animals Wrecker | played | 508 | 66% (61–70) n=378 | 702 → 508 | 28% | 0 / 349 / 159 | 71% (64–77) n=170 | 67% (56–76) n=90 | 60% (53–67) n=181 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 495 | 69% (63–74) n=277 | 505 → 442 | 12% | 0 / 0 / 495 | 89% (83–93) n=164 | 75% (62–84) n=55 | 52% (44–60) n=143 |
-| Dexter DeShawn: Off the Grid | ability | 473 | 50% (44–55) n=333 | 1692 → 473 | 72% | 9 / 67 / 397 | 71% (64–76) n=208 | 25% (16–37) n=60 | 9% (5–15) n=133 |
-| Augmented Negotiators | played | 472 | 60% (55–65) n=348 | 1372 → 446 | 67% | 119 / 150 / 203 | 72% (64–78) n=160 | 53% (45–61) n=132 | 51% (41–60) n=104 |
-| Muamar Reyes: El Capitán | ability | 470 | 49% (43–54) n=315 | 1715 → 470 | 73% | 19 / 71 / 380 | 68% (61–74) n=205 | 25% (15–37) n=57 | 12% (7–18) n=128 |
-| Industrial Assembly | sold | 452 | 60% (55–65) n=344 | 947 → 452 | 52% | 130 / 206 / 116 | 69% (61–76) n=148 | 52% (43–61) n=115 | 60% (51–68) n=128 |
-| V: Streetkid | called | 447 | 63% (58–67) n=447 | 447 → 447 | 0% | 222 / 114 / 111 | 64% (58–69) n=321 | 65% (54–75) n=74 | 52% (39–65) n=52 |
-| Zetatech Faceplate | sold | 445 | 59% (54–64) n=344 | 1065 → 445 | 58% | 132 / 156 / 157 | 63% (55–69) n=182 | 58% (48–67) n=104 | 50% (41–59) n=120 |
-| Meredith Stout: Stone Cold Corpo | played | 413 | 58% (52–63) n=321 | 1123 → 407 | 64% | 180 / 98 / 135 | 69% (61–76) n=143 | 52% (44–61) n=124 | 45% (35–55) n=93 |
-
-(27 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14498 | 8% | 0 / 1174 / 3479 / 5224 / 4405 / 216 |
-| gig/steal | 3137 | 30% | 238 / 489 / 1449 / 939 / 22 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1911 | 63% | 0 / 1253 / 643 / 15 / 0 / 0 |
-| gigValue/adjust | 1509 | 11% | 0 / 8 / 103 / 125 / 866 / 407 |
-| unit/defeat | 584 | 71% | 237 / 163 / 155 / 29 / 0 / 0 |
-| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/playFree | 520 | 61% | 0 / 117 / 378 / 25 / 0 / 0 |
-| card/search | 511 | 70% | 238 / 122 / 103 / 47 / 1 / 0 |
-| mode/mode | 507 | 70% | 0 / 507 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 497 | 70% | 0 / 497 / 0 / 0 / 0 / 0 |
-| unit/equip | 433 | 87% | 146 / 100 / 149 / 38 / 0 / 0 |
-| unit/pump | 343 | 57% | 115 / 129 / 94 / 5 / 0 / 0 |
-| unit/protect | 335 | 62% | 122 / 125 / 83 / 5 / 0 / 0 |
-| unit/sacrifice | 49 | 78% | 33 / 9 / 6 / 1 / 0 / 0 |
-| card/discard | 43 | 49% | 10 / 9 / 17 / 7 / 0 / 0 |
-| yesno/draw | 16 | 100% | 0 / 16 / 0 / 0 / 0 / 0 |
-| card/defeat | 13 | 92% | 10 / 2 / 1 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 33% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1683 attacks. Reacted to 588 (deck won 54% (49–59) n=372): stole 158, attackerGone 29, targetGone 321, bothGone 22, noneGone 58. Let 1095 resolve (62% (57–66) n=400): stole 790, stoleNothing 6, attackerGone 9, targetGone 239, bothGone 51. Choices: endReact 1204, call 287, block 414, play 6.
-
-## Ladder S1 #7: Dexter / V / Padre (RRG) — 560 games, 63% won, 28597 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 978 | 65% (60–69) n=404 | 1159 → 871 | 25% | 76 / 318 / 584 | 80% (74–84) n=232 | 66% (58–74) n=136 | 57% (50–63) n=249 |
-| 6th Street Recruits | attacked | 885 | 66% (61–71) n=362 | 1074 → 799 | 26% | 85 / 285 / 515 | 85% (79–89) n=205 | 68% (59–75) n=128 | 58% (52–65) n=226 |
-| Animals Wrecker | attacked | 830 | 71% (66–76) n=339 | 793 → 757 | 5% | 0 / 201 / 629 | 88% (82–92) n=156 | 87% (79–92) n=107 | 66% (60–72) n=248 |
-| V: Streetkid | attacked | 641 | 56% (51–61) n=368 | 772 → 641 | 17% | 88 / 187 / 366 | 62% (56–68) n=244 | 57% (45–68) n=72 | 46% (38–54) n=145 |
-| Animals Wrecker | played | 555 | 66% (62–71) n=408 | 784 → 555 | 29% | 0 / 351 / 204 | 75% (67–81) n=155 | 67% (58–75) n=106 | 59% (53–66) n=229 |
-| Peace Offering | sold | 547 | 59% (54–64) n=391 | 926 → 547 | 41% | 238 / 171 / 138 | 61% (54–68) n=192 | 60% (52–68) n=134 | 50% (42–58) n=147 |
-| Yorinobu Arasaka: Steel Dragon | played | 532 | 64% (59–68) n=399 | 657 → 532 | 19% | 0 / 202 / 330 | 78% (71–84) n=162 | 77% (64–86) n=56 | 53% (47–59) n=238 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 530 | 73% (68–78) n=297 | 531 → 478 | 10% | 0 / 0 / 530 | 90% (85–94) n=179 | 87% (78–93) n=77 | 55% (46–63) n=139 |
-| Pepe Najarro: Working Doubles | played | 521 | 64% (59–68) n=387 | 1063 → 517 | 51% | 261 / 116 / 144 | 71% (64–77) n=177 | 64% (56–71) n=163 | 52% (43–61) n=112 |
-| Industrial Assembly | sold | 501 | 61% (56–66) n=370 | 890 → 501 | 44% | 178 / 171 / 152 | 67% (58–74) n=138 | 62% (54–70) n=132 | 55% (48–62) n=172 |
-| Memory Relapse | sold | 496 | 64% (59–69) n=356 | 1388 → 496 | 64% | 96 / 220 / 180 | 66% (58–73) n=152 | 61% (51–70) n=94 | 64% (56–70) n=181 |
-| 6th Street Recruits | played | 492 | 64% (58–68) n=370 | 962 → 488 | 49% | 245 / 110 / 137 | 71% (64–77) n=175 | 63% (56–71) n=156 | 49% (40–59) n=104 |
-| Satori: Sword of Saburo | sold | 471 | 62% (57–67) n=360 | 930 → 471 | 49% | 226 / 141 / 104 | 65% (58–72) n=171 | 59% (50–67) n=133 | 58% (48–66) n=111 |
-| Dexter DeShawn: Off the Grid | ability | 465 | 59% (53–64) n=332 | 1824 → 465 | 75% | 15 / 45 / 405 | 77% (71–82) n=234 | 29% (18–42) n=52 | 17% (11–25) n=96 |
-| Padre: Man of the Cross | ability | 436 | 55% (50–61) n=310 | 1800 → 436 | 76% | 5 / 59 / 372 | 74% (67–79) n=199 | 35% (24–47) n=63 | 17% (11–26) n=104 |
-
-(24 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1032 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 15791 | 8% | 0 / 1228 / 3795 / 5304 / 5070 / 394 |
-| gig/steal | 3776 | 29% | 230 / 495 / 1745 / 1290 / 16 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| mode/mode | 1025 | 62% | 0 / 1025 / 0 / 0 / 0 / 0 |
-| gigValue/adjust | 842 | 8% | 0 / 15 / 82 / 28 / 401 / 316 |
-| unit/defeat | 642 | 71% | 240 / 193 / 163 / 46 / 0 / 0 |
-| react | 621 | 45% | 0 / 320 / 301 / 0 / 0 / 0 |
-| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/playFree | 509 | 62% | 0 / 113 / 357 / 39 / 0 / 0 |
-| gigValue/setGig | 501 | 8% | 0 / 1 / 3 / 36 / 121 / 340 |
-| card/search | 460 | 70% | 193 / 159 / 107 / 1 / 0 / 0 |
-| unit/spend | 406 | 79% | 251 / 104 / 50 / 1 / 0 / 0 |
-| unit/pump | 362 | 57% | 102 / 148 / 103 / 9 / 0 / 0 |
-| unit/equip | 323 | 79% | 45 / 85 / 150 / 42 / 1 / 0 |
-| unit/adrenaline | 291 | 76% | 148 / 89 / 54 / 0 / 0 / 0 |
-| unit/ready | 117 | 100% | 0 / 117 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 56 | 71% | 31 / 11 / 14 / 0 / 0 / 0 |
-| card/discard | 55 | 53% | 13 / 8 / 29 / 5 / 0 / 0 |
-| yesno/draw | 15 | 100% | 0 / 15 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 80% | 0 / 5 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 621 attacks. Reacted to 339 (deck won 54% (48–60) n=289): stole 253, targetGone 67, bothGone 19. Let 282 resolve (61% (53–68) n=157): stole 220, attackerGone 1, targetGone 53, bothGone 8. Choices: call 339, endReact 282.
-
-## Ladder S1 #8: Smasher / River / Viktor (RYY) — 560 games, 59% won, 26718 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 968 | 64% (59–69) n=343 | 934 → 877 | 6% | 0 / 435 / 533 | 76% (70–81) n=241 | 59% (49–69) n=88 | 52% (45–60) n=170 |
-| 6th Street Recruits | attacked | 849 | 65% (60–70) n=338 | 948 → 778 | 18% | 99 / 341 / 409 | 75% (69–80) n=231 | 60% (52–68) n=134 | 57% (49–64) n=153 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 786 | 71% (66–76) n=277 | 542 → 502 | 7% | 0 / 104 / 682 | 86% (80–90) n=198 | 71% (59–81) n=62 | 53% (44–62) n=118 |
-| Mandibular Upgrade | sold | 659 | 59% (55–64) n=436 | 733 → 659 | 10% | 345 / 141 / 173 | 70% (64–75) n=238 | 48% (40–56) n=161 | 47% (38–56) n=118 |
-| Sketchy Ripper | played | 573 | 57% (52–62) n=419 | 960 → 556 | 42% | 301 / 128 / 144 | 69% (64–74) n=288 | 35% (27–43) n=127 | 32% (22–44) n=63 |
-| 6th Street Recruits | played | 569 | 62% (57–66) n=414 | 854 → 565 | 34% | 260 / 187 / 122 | 74% (68–79) n=225 | 50% (43–57) n=174 | 50% (39–61) n=78 |
-| Rockn' Rockerboy | played | 561 | 61% (57–66) n=402 | 728 → 560 | 23% | 228 / 201 / 132 | 72% (66–77) n=235 | 48% (40–56) n=148 | 49% (39–59) n=98 |
-| Johnny Silverhand: Never Stop Fighting | played | 498 | 62% (57–67) n=375 | 955 → 498 | 48% | 0 / 268 / 230 | 75% (68–80) n=224 | 48% (36–61) n=60 | 46% (38–54) n=145 |
-| Sketchy Ripper | attacked | 492 | 55% (49–60) n=297 | 838 → 472 | 44% | 147 / 164 / 181 | 69% (62–75) n=188 | 41% (32–52) n=87 | 32% (23–42) n=91 |
-| Adam Smasher: Ender of Legends | attacked | 471 | 55% (50–60) n=355 | 505 → 471 | 7% | 0 / 0 / 471 | 85% (79–90) n=168 | 74% (63–83) n=66 | 25% (19–31) n=179 |
-| Zetatech Faceplate | sold | 451 | 59% (54–64) n=349 | 1449 → 451 | 69% | 71 / 181 / 199 | 72% (65–78) n=180 | 51% (41–62) n=82 | 46% (37–54) n=134 |
-| Adam Smasher: Ender of Legends | called | 423 | 59% (54–63) n=423 | 423 → 423 | 0% | 124 / 167 / 132 | 65% (60–70) n=298 | 55% (43–66) n=64 | 31% (21–44) n=61 |
-| Mantis Blades | sold | 421 | 55% (50–61) n=330 | 786 → 421 | 46% | 199 / 97 / 125 | 68% (61–74) n=181 | 44% (35–53) n=103 | 33% (24–44) n=90 |
-| River Ward: Detective on the Hunt | called | 408 | 59% (54–63) n=408 | 422 → 408 | 3% | 122 / 179 / 107 | 65% (60–70) n=300 | 47% (36–59) n=70 | 29% (17–45) n=38 |
-| Adrenaline Converter | played | 385 | 60% (54–65) n=326 | 939 → 369 | 61% | 112 / 169 / 104 | 70% (63–77) n=175 | 41% (32–51) n=95 | 56% (45–66) n=82 |
-
-(31 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14462 | 8% | 0 / 1142 / 3736 / 6354 / 3107 / 123 |
-| gig/steal | 3123 | 39% | 416 / 651 / 1241 / 811 / 4 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/equip | 1582 | 72% | 319 / 288 / 856 / 119 / 0 / 0 |
-| react | 1522 | 66% | 0 / 883 / 636 / 3 / 0 / 0 |
-| card/search | 1251 | 72% | 0 / 495 / 753 / 3 / 0 / 0 |
-| gigValue/adjust | 628 | 11% | 0 / 0 / 1 / 47 / 290 / 290 |
-| mulligan | 560 | 26% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 371 | 39% | 37 / 69 / 250 / 15 / 0 / 0 |
-| card/playFree | 321 | 86% | 172 / 102 / 47 / 0 / 0 / 0 |
-| card/trash | 284 | 51% | 0 / 284 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 248 | 54% | 76 / 98 / 74 / 0 / 0 / 0 |
-| card/discard | 57 | 54% | 9 / 17 / 26 / 5 / 0 / 0 |
-| unit/call | 32 | 100% | 0 / 9 / 23 / 0 / 0 / 0 |
-| unit/protect | 13 | 77% | 8 / 3 / 2 / 0 / 0 / 0 |
-| yesno/call | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
-| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 17% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1371 attacks. Reacted to 445 (deck won 50% (45–56) n=337): stole 249, stoleNothing 1, attackerGone 9, targetGone 168, bothGone 17, noneGone 1. Let 926 resolve (51% (46–57) n=373): stole 716, stoleNothing 7, attackerGone 1, targetGone 156, bothGone 46. Choices: call 287, endReact 998, block 139, ability 87, play 11.
-
-## Ladder S1 #9: River / Reyes / Rogue (YYY) — 560 games, 44% won, 25335 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| MaxTac Suppression Team | attacked | 735 | 50% (44–55) n=320 | 836 → 688 | 18% | 0 / 329 / 406 | 62% (55–69) n=204 | 53% (42–64) n=75 | 40% (33–47) n=177 |
-| Dexter DeShawn: One Last Chance | attacked | 701 | 49% (43–54) n=319 | 914 → 660 | 28% | 86 / 291 / 324 | 60% (53–67) n=181 | 48% (39–57) n=121 | 39% (32–47) n=157 |
-| Rogue Amendiares: Preem Solo | attacked | 677 | 42% (37–46) n=443 | 790 → 677 | 14% | 0 / 199 / 478 | 62% (55–68) n=238 | 49% (38–61) n=67 | 26% (21–32) n=215 |
-| Augmented Negotiators | played | 622 | 46% (41–50) n=434 | 1322 → 588 | 56% | 145 / 215 / 262 | 60% (53–66) n=223 | 37% (30–44) n=158 | 27% (20–35) n=141 |
-| Muamar Reyes: El Capitán | ability | 620 | 37% (33–42) n=382 | 2114 → 620 | 71% | 62 / 106 / 452 | 55% (49–62) n=228 | 19% (12–29) n=83 | 12% (8–18) n=182 |
-| Dexter DeShawn: One Last Chance | played | 604 | 46% (41–50) n=423 | 950 → 569 | 40% | 279 / 179 / 146 | 56% (49–62) n=216 | 42% (35–49) n=180 | 30% (22–40) n=96 |
-| Mandibular Upgrade | sold | 598 | 42% (37–47) n=406 | 700 → 598 | 15% | 328 / 130 / 140 | 51% (45–58) n=220 | 35% (28–43) n=155 | 31% (23–40) n=111 |
-| MaxTac Suppression Team | played | 569 | 46% (41–51) n=414 | 997 → 567 | 43% | 200 / 163 / 206 | 58% (51–64) n=223 | 42% (34–50) n=129 | 26% (19–34) n=136 |
-| Safety Override | sold | 552 | 45% (40–50) n=401 | 1033 → 552 | 47% | 196 / 203 / 153 | 58% (51–65) n=178 | 40% (32–48) n=135 | 30% (24–38) n=159 |
-| The Heist | sold | 480 | 46% (41–51) n=361 | 963 → 480 | 50% | 157 / 201 / 122 | 52% (45–59) n=180 | 43% (34–52) n=124 | 36% (28–45) n=119 |
-| Rogue Amendiares: Preem Solo | called | 478 | 44% (39–48) n=478 | 478 → 478 | 0% | 285 / 147 / 46 | 50% (45–56) n=305 | 33% (25–41) n=123 | 28% (17–42) n=50 |
-| Rogue Amendiares: Preem Solo | Go Solo (self-paid 472) | 472 | 40% (36–45) n=472 | 809 → 472 | 42% | 0 / 231 / 241 | 56% (49–62) n=208 | 35% (24–49) n=51 | 27% (21–33) n=213 |
-| River Ward: Detective on the Hunt | called | 453 | 43% (39–48) n=453 | 453 → 453 | 0% | 245 / 112 / 96 | 53% (47–59) n=261 | 32% (25–41) n=133 | 22% (13–34) n=59 |
-| Muamar Reyes: El Capitán | called | 442 | 45% (41–50) n=442 | 442 → 442 | 0% | 269 / 108 / 65 | 50% (44–56) n=260 | 38% (31–46) n=146 | 44% (30–60) n=36 |
-| Zetatech Faceplate | sold | 435 | 43% (38–48) n=330 | 1409 → 435 | 69% | 52 / 207 / 176 | 57% (49–64) n=150 | 37% (27–48) n=73 | 31% (24–39) n=142 |
-
-(29 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13639 | 9% | 0 / 1190 / 3415 / 5316 / 3595 / 123 |
-| gig/steal | 2606 | 35% | 221 / 506 / 1153 / 718 / 8 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 2127 | 23% | 0 / 1 / 190 / 392 / 1176 / 368 |
-| react | 1740 | 66% | 0 / 1092 / 647 / 1 / 0 / 0 |
-| unit/equip | 781 | 78% | 8 / 238 / 519 / 16 / 0 / 0 |
-| mulligan | 560 | 37% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 530 | 54% | 0 / 530 / 0 / 0 / 0 / 0 |
-| unit/protect | 277 | 60% | 127 / 99 / 51 / 0 / 0 / 0 |
-| card/trash | 258 | 50% | 0 / 258 / 0 / 0 / 0 / 0 |
-| card/playFree | 235 | 91% | 172 / 39 / 23 / 1 / 0 / 0 |
-| unit/sacrifice | 199 | 60% | 82 / 73 / 44 / 0 / 0 / 0 |
-| card/search | 51 | 78% | 29 / 15 / 7 / 0 / 0 / 0 |
-| card/discard | 47 | 38% | 4 / 14 / 28 / 1 / 0 / 0 |
-| yesno/playFree | 32 | 100% | 0 / 32 / 0 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1535 attacks. Reacted to 487 (deck won 41% (36–46) n=336): stole 198, attackerGone 9, targetGone 214, bothGone 35, noneGone 31. Let 1048 resolve (42% (37–47) n=381): stole 842, stoleNothing 4, attackerGone 5, targetGone 172, bothGone 25. Choices: call 230, endReact 1156, ability 72, block 256, play 26.
-
-## Ladder: Dexter / V / Wakako (RRB) — 560 games, 53% won, 27314 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 940 | 54% (49–59) n=368 | 1088 → 838 | 23% | 75 / 309 / 556 | 73% (67–79) n=198 | 60% (52–68) n=135 | 42% (35–48) n=233 |
-| Psycho Squad | attacked | 814 | 54% (49–59) n=358 | 980 → 742 | 24% | 73 / 274 / 467 | 70% (63–76) n=184 | 60% (51–68) n=129 | 43% (36–49) n=220 |
-| Animals Wrecker | attacked | 714 | 61% (55–66) n=310 | 696 → 662 | 5% | 0 / 186 / 528 | 89% (82–93) n=122 | 84% (74–91) n=64 | 53% (47–59) n=244 |
-| V: Streetkid | attacked | 617 | 48% (43–53) n=387 | 738 → 617 | 16% | 55 / 140 / 422 | 67% (61–73) n=224 | 63% (49–75) n=49 | 31% (25–38) n=195 |
-| Wakako Okada: Peace and Harmony | ability | 573 | 45% (40–50) n=368 | 1778 → 573 | 68% | 27 / 60 / 486 | 68% (61–74) n=224 | 22% (15–32) n=81 | 11% (7–16) n=161 |
-| Dexter DeShawn: Off the Grid | ability | 572 | 49% (44–54) n=381 | 1815 → 572 | 68% | 20 / 57 / 495 | 73% (67–78) n=236 | 23% (15–34) n=78 | 13% (9–19) n=155 |
-| Yorinobu Arasaka: Steel Dragon | played | 506 | 55% (50–60) n=377 | 602 → 506 | 16% | 0 / 208 / 298 | 72% (64–79) n=134 | 65% (50–78) n=40 | 45% (39–51) n=251 |
-| 6th Street Recruits | played | 504 | 55% (50–60) n=366 | 1036 → 500 | 52% | 244 / 107 / 153 | 65% (58–72) n=165 | 56% (48–63) n=153 | 39% (30–47) n=122 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 499 | 63% (57–68) n=272 | 507 → 449 | 11% | 0 / 0 / 499 | 89% (83–93) n=151 | 85% (72–93) n=47 | 43% (35–51) n=152 |
-| Nocturne OP55 N1 | sold | 496 | 53% (48–58) n=384 | 992 → 496 | 50% | 197 / 198 / 101 | 61% (53–67) n=180 | 48% (39–57) n=117 | 48% (40–56) n=141 |
-| Animals Wrecker | played | 488 | 56% (51–61) n=380 | 636 → 488 | 23% | 0 / 336 / 152 | 69% (61–77) n=130 | 64% (54–74) n=87 | 45% (38–52) n=216 |
-| Psycho Squad | played | 462 | 50% (45–55) n=347 | 983 → 459 | 53% | 215 / 108 / 139 | 57% (49–64) n=159 | 49% (41–57) n=141 | 38% (29–47) n=112 |
-| Bonnie and Clyde | sold | 441 | 52% (47–57) n=336 | 1451 → 441 | 70% | 79 / 152 / 210 | 61% (53–69) n=136 | 64% (52–74) n=72 | 40% (33–47) n=186 |
-| V: Streetkid | called | 424 | 52% (47–57) n=424 | 424 → 424 | 0% | 213 / 79 / 132 | 60% (54–65) n=272 | 42% (31–54) n=71 | 35% (25–45) n=81 |
-| V: Streetkid | Go Solo (self-paid 424) | 424 | 48% (43–53) n=424 | 1044 → 424 | 59% | 59 / 92 / 273 | 67% (60–73) n=198 | 43% (29–58) n=40 | 29% (23–36) n=186 |
-
-(33 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1045 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 15294 | 7% | 0 / 1232 / 3930 / 5600 / 4299 / 233 |
-| gig/steal | 3505 | 28% | 204 / 449 / 1449 / 1386 / 17 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1405 | 6% | 0 / 2 / 15 / 81 / 814 / 493 |
-| mode/mode | 1098 | 76% | 0 / 1028 / 70 / 0 / 0 / 0 |
-| react | 602 | 49% | 0 / 332 / 270 / 0 / 0 / 0 |
-| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 526 | 75% | 243 / 155 / 105 / 23 / 0 / 0 |
-| card/playFree | 481 | 71% | 0 / 132 / 322 / 27 / 0 / 0 |
-| unit/pump | 420 | 54% | 112 / 149 / 150 / 9 / 0 / 0 |
-| unit/weaken | 401 | 73% | 171 / 139 / 88 / 3 / 0 / 0 |
-| card/search | 372 | 81% | 208 / 116 / 48 / 0 / 0 / 0 |
-| unit/equip | 186 | 80% | 43 / 61 / 61 / 20 / 1 / 0 |
-| unit/cantAttack | 75 | 77% | 40 / 19 / 16 / 0 / 0 / 0 |
-| card/discard | 46 | 54% | 9 / 13 / 22 / 2 / 0 / 0 |
-| unit/sacrifice | 44 | 77% | 24 / 11 / 9 / 0 / 0 / 0 |
-| unit/call | 25 | 100% | 0 / 11 / 14 / 0 / 0 / 0 |
-| yesno/draw | 23 | 100% | 0 / 23 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 8 | 50% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 593 attacks. Reacted to 304 (deck won 42% (37–48) n=267): stole 244, stoleNothing 1, targetGone 50, bothGone 9. Let 289 resolve (56% (48–63) n=167): stole 221, targetGone 65, bothGone 3. Choices: call 299, endReact 296, play 7.
-
-## Ladder: Jackie / Alt / Hanako (BBG) — 560 games, 60% won, 27366 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Psycho Squad | attacked | 999 | 63% (58–68) n=394 | 1039 → 878 | 15% | 96 / 389 / 514 | 78% (72–82) n=252 | 58% (50–66) n=141 | 47% (40–54) n=192 |
-| Psycho Squad | played | 689 | 61% (57–66) n=457 | 1080 → 674 | 38% | 243 / 250 / 196 | 72% (66–77) n=275 | 52% (45–60) n=168 | 41% (32–50) n=120 |
-| Valentino Street Racer | played | 666 | 59% (55–64) n=432 | 1251 → 599 | 52% | 127 / 316 / 223 | 72% (67–77) n=264 | 41% (33–50) n=128 | 43% (35–52) n=121 |
-| Alt Cunningham: Soulkiller Architect | ability | 650 | 56% (52–61) n=411 | 1905 → 643 | 66% | 5 / 177 / 468 | 72% (67–77) n=289 | 45% (32–58) n=56 | 18% (13–25) n=154 |
-| Valentino Street Racer | attacked | 628 | 61% (56–67) n=318 | 744 → 554 | 26% | 35 / 213 / 380 | 80% (74–85) n=194 | 57% (46–67) n=84 | 50% (42–58) n=149 |
-| Floor It | sold | 557 | 57% (52–62) n=396 | 761 → 557 | 27% | 281 / 110 / 166 | 70% (63–76) n=191 | 50% (42–58) n=160 | 43% (34–53) n=111 |
-| Maman Brigitte: Spirit of Death | attacked | 541 | 66% (61–72) n=289 | 666 → 507 | 24% | 0 / 225 / 316 | 79% (72–84) n=200 | 73% (62–82) n=74 | 46% (36–56) n=94 |
-| Maman Brigitte: Spirit of Death | played | 533 | 64% (59–69) n=399 | 1044 → 532 | 49% | 191 / 159 / 183 | 75% (69–80) n=231 | 60% (51–68) n=134 | 44% (35–54) n=108 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 526 | 49% (43–54) n=341 | 1883 → 526 | 72% | 13 / 180 / 333 | 70% (63–76) n=210 | 26% (17–38) n=69 | 15% (10–22) n=147 |
-| Jackie Welles: Pour One Out For Me | called | 463 | 62% (57–66) n=463 | 463 → 463 | 0% | 209 / 203 / 51 | 69% (64–74) n=337 | 45% (35–56) n=80 | 37% (25–51) n=46 |
-| Hanako Arasaka: Daughter of the Emperor | called | 445 | 61% (57–66) n=445 | 445 → 445 | 0% | 188 / 209 / 48 | 68% (63–73) n=335 | 38% (27–49) n=69 | 44% (30–59) n=41 |
-| Alt Cunningham: Soulkiller Architect | called | 444 | 60% (56–65) n=444 | 444 → 444 | 0% | 208 / 197 / 39 | 70% (65–75) n=318 | 37% (27–47) n=87 | 36% (23–52) n=39 |
-| Pyramid Song | sold | 399 | 59% (54–65) n=313 | 1148 → 399 | 65% | 89 / 176 / 134 | 72% (65–78) n=181 | 53% (41–64) n=72 | 40% (31–50) n=98 |
-| Placide: Voodoo Sentinel | played | 384 | 62% (57–67) n=325 | 430 → 384 | 11% | 0 / 0 / 384 | 86% (79–90) n=161 | 75% (61–84) n=51 | 31% (24–39) n=143 |
-| Chrome Reverie | sold | 332 | 62% (56–67) n=289 | 557 → 332 | 40% | 163 / 75 / 94 | 71% (63–78) n=155 | 59% (48–69) n=83 | 44% (32–56) n=64 |
-
-(30 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13566 | 7% | 0 / 1277 / 3599 / 5192 / 3385 / 113 |
-| gig/steal | 2570 | 31% | 116 / 545 / 1322 / 584 / 3 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/bottomdeck | 1267 | 73% | 743 / 290 / 231 / 3 / 0 / 0 |
-| gigValue/adjust | 1223 | 23% | 0 / 39 / 341 / 458 / 350 / 35 |
-| card/discard | 1207 | 56% | 147 / 504 / 535 / 21 / 0 / 0 |
-| card/search | 754 | 58% | 0 / 162 / 592 / 0 / 0 / 0 |
-| gig/swapGive | 724 | 38% | 13 / 53 / 388 / 268 / 2 / 0 |
-| gig/swapTake | 693 | 38% | 62 / 135 / 302 / 187 / 7 / 0 |
-| mulligan | 560 | 29% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/adrenaline | 494 | 56% | 203 / 189 / 102 / 0 / 0 / 0 |
-| react | 489 | 46% | 0 / 311 / 178 / 0 / 0 / 0 |
-| card/playFromTrash | 411 | 53% | 154 / 119 / 129 / 9 / 0 / 0 |
-| yesno/discardFor | 379 | 99% | 0 / 379 / 0 / 0 / 0 / 0 |
-| unit/ready | 179 | 100% | 0 / 115 / 64 / 0 / 0 / 0 |
-| unit/weaken | 118 | 69% | 42 / 46 / 30 / 0 / 0 / 0 |
-| mode/mode | 89 | 89% | 0 / 11 / 78 / 0 / 0 / 0 |
-| unit/cantAttack | 86 | 65% | 40 / 35 / 11 / 0 / 0 / 0 |
-| unit/spend | 80 | 63% | 34 / 29 / 17 / 0 / 0 / 0 |
-| unit/sacrifice | 61 | 82% | 41 / 15 / 5 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 44 | 77% | 24 / 11 / 9 / 0 / 0 / 0 |
-| gigValue/setGig | 36 | 8% | 0 / 2 / 1 / 7 / 1 / 25 |
-| unit/equip | 28 | 79% | 2 / 3 / 14 / 9 / 0 / 0 |
-| card/discardForNothing | 26 | 0% | 0 / 6 / 15 / 5 / 0 / 0 |
-| unit/call | 26 | 100% | 0 / 17 / 9 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 7 | 43% | 0 / 7 / 0 / 0 / 0 / 0 |
-| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 480 attacks. Reacted to 259 (deck won 48% (42–54) n=234): stole 195, attackerGone 3, targetGone 53, bothGone 8. Let 221 resolve (46% (38–55) n=132): stole 147, stoleNothing 1, targetGone 66, bothGone 7. Choices: endReact 223, call 245, play 21.
-
-## Ladder: Smasher / River / Viktor (RYY) — 560 games, 43% won, 23859 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 745 | 47% (42–53) n=334 | 863 → 661 | 23% | 75 / 252 / 418 | 68% (60–75) n=146 | 51% (42–61) n=107 | 41% (35–48) n=214 |
-| Jackie Welles: Ride or Die Choom | attacked | 589 | 56% (51–62) n=289 | 564 → 540 | 4% | 0 / 119 / 470 | 84% (76–90) n=100 | 82% (70–89) n=65 | 49% (42–55) n=212 |
-| 6th Street Recruits | played | 567 | 45% (40–49) n=400 | 941 → 552 | 41% | 254 / 142 / 171 | 55% (48–62) n=169 | 39% (32–47) n=150 | 37% (30–45) n=152 |
-| Dexter DeShawn: One Last Chance | attacked | 560 | 43% (38–49) n=309 | 719 → 503 | 30% | 29 / 168 / 363 | 64% (56–72) n=129 | 59% (48–70) n=71 | 32% (26–39) n=196 |
-| Dexter DeShawn: One Last Chance | played | 548 | 43% (38–48) n=399 | 1093 → 510 | 53% | 156 / 247 / 145 | 51% (44–58) n=175 | 41% (33–49) n=133 | 35% (28–43) n=164 |
-| Jackie Welles: Ride or Die Choom | played | 526 | 46% (41–51) n=395 | 884 → 526 | 40% | 0 / 291 / 235 | 68% (60–75) n=148 | 34% (24–46) n=65 | 34% (28–40) n=237 |
-| Kerry Eurodyne: The Last Rockerboy | played | 464 | 42% (37–47) n=342 | 1323 → 451 | 66% | 122 / 149 / 193 | 53% (45–61) n=140 | 35% (27–44) n=118 | 34% (27–42) n=153 |
-| Gorilla Arms | sold | 462 | 43% (38–48) n=359 | 946 → 462 | 51% | 204 / 127 / 131 | 52% (45–59) n=175 | 42% (33–52) n=95 | 31% (24–38) n=150 |
-| River Ward: Detective on the Hunt | called | 446 | 45% (41–50) n=446 | 458 → 446 | 3% | 242 / 113 / 91 | 53% (47–59) n=286 | 41% (31–53) n=73 | 22% (14–32) n=87 |
-| Zetatech Faceplate | sold | 437 | 44% (39–49) n=354 | 842 → 437 | 48% | 102 / 197 / 138 | 55% (46–63) n=132 | 38% (28–49) n=82 | 38% (32–46) n=177 |
-| Adam Smasher: Ender of Legends | called | 433 | 46% (42–51) n=433 | 433 → 433 | 0% | 217 / 123 / 93 | 54% (48–59) n=280 | 32% (22–43) n=72 | 35% (25–45) n=81 |
-| Adam Smasher: Ender of Legends | attacked | 433 | 49% (43–54) n=331 | 452 → 433 | 4% | 0 / 0 / 433 | 90% (83–94) n=120 | 74% (62–83) n=62 | 22% (17–28) n=195 |
-| MaxTac Suppression Team | attacked | 415 | 48% (41–54) n=222 | 510 → 401 | 21% | 0 / 183 / 232 | 68% (58–76) n=103 | 50% (36–64) n=42 | 42% (34–50) n=136 |
-| Viktor Vektor: Sit Down and Relax | called | 413 | 45% (41–50) n=413 | 427 → 413 | 3% | 194 / 132 / 87 | 53% (47–59) n=271 | 33% (23–46) n=63 | 28% (19–39) n=79 |
-| Over the Edge | sold | 408 | 45% (40–50) n=322 | 1446 → 408 | 72% | 37 / 174 / 197 | 58% (49–67) n=108 | 49% (36–62) n=53 | 36% (29–43) n=194 |
-
-(33 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13728 | 8% | 0 / 1096 / 3522 / 5501 / 3451 / 158 |
-| gig/steal | 3025 | 27% | 137 / 390 / 1145 / 1343 / 10 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1453 | 16% | 0 / 1 / 85 / 209 / 819 / 339 |
-| react | 1191 | 74% | 0 / 730 / 461 / 0 / 0 / 0 |
-| mulligan | 560 | 13% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 402 | 37% | 32 / 75 / 257 / 37 / 1 / 0 |
-| unit/equip | 376 | 73% | 36 / 80 / 211 / 49 / 0 / 0 |
-| card/search | 267 | 92% | 8 / 217 / 42 / 0 / 0 / 0 |
-| unit/sacrifice | 184 | 63% | 67 / 70 / 46 / 1 / 0 / 0 |
-| card/playFree | 139 | 99% | 130 / 9 / 0 / 0 / 0 / 0 |
-| card/trash | 122 | 61% | 0 / 122 / 0 / 0 / 0 / 0 |
-| card/discard | 91 | 68% | 8 / 44 / 34 / 5 / 0 / 0 |
-| unit/call | 33 | 79% | 0 / 16 / 17 / 0 / 0 / 0 |
-| yesno/draw | 23 | 100% | 0 / 23 / 0 / 0 / 0 / 0 |
-| unit/protect | 14 | 64% | 4 / 5 / 5 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
-| yesno/playFree | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1131 attacks. Reacted to 297 (deck won 32% (27–38) n=258): stole 236, stoleNothing 1, attackerGone 1, targetGone 44, bothGone 15. Let 834 resolve (40% (35–45) n=320): stole 591, stoleNothing 11, targetGone 212, bothGone 20. Choices: endReact 877, call 257, ability 44, play 13.
-
-## Ladder: V / Smasher / Padre (RRG) — 560 games, 65% won, 26058 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 766 | 66% (61–71) n=347 | 919 → 683 | 26% | 64 / 225 / 477 | 83% (77–88) n=186 | 67% (58–75) n=106 | 54% (47–61) n=187 |
-| MaxTac AV | attacked | 699 | 70% (65–75) n=303 | 773 → 637 | 18% | 0 / 324 / 375 | 78% (72–84) n=195 | 81% (71–88) n=78 | 67% (59–74) n=144 |
-| 6th Street Recruits | attacked | 698 | 65% (60–70) n=337 | 857 → 628 | 27% | 67 / 219 / 412 | 82% (76–87) n=188 | 63% (53–71) n=107 | 57% (49–64) n=180 |
-| Animals Wrecker | attacked | 695 | 73% (68–78) n=316 | 678 → 634 | 6% | 0 / 188 / 507 | 86% (80–91) n=165 | 85% (76–91) n=80 | 66% (59–72) n=199 |
-| Bonnie and Clyde | sold | 516 | 67% (62–72) n=375 | 1339 → 516 | 61% | 112 / 218 / 186 | 74% (67–80) n=187 | 64% (53–73) n=88 | 60% (52–67) n=160 |
-| Animals Wrecker | played | 470 | 70% (65–74) n=374 | 661 → 470 | 29% | 0 / 335 / 135 | 78% (71–84) n=146 | 78% (68–86) n=79 | 60% (53–67) n=193 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 466 | 72% (66–77) n=274 | 495 → 432 | 13% | 0 / 0 / 466 | 89% (84–93) n=167 | 80% (68–89) n=51 | 58% (50–66) n=138 |
-| Yorinobu Arasaka: Steel Dragon | played | 458 | 65% (60–70) n=359 | 566 → 458 | 19% | 0 / 205 / 253 | 75% (68–82) n=151 | 77% (64–86) n=52 | 55% (48–61) n=198 |
-| Valentino Street Racer | played | 454 | 62% (57–67) n=343 | 1420 → 424 | 70% | 98 / 154 / 202 | 76% (69–82) n=176 | 53% (44–63) n=105 | 39% (31–49) n=107 |
-| MaxTac AV | played | 453 | 68% (63–73) n=349 | 765 → 453 | 41% | 241 / 91 / 121 | 80% (74–85) n=183 | 62% (54–70) n=125 | 51% (42–61) n=103 |
-| Over the Edge | sold | 452 | 61% (56–66) n=342 | 1173 → 452 | 61% | 95 / 184 / 173 | 71% (63–78) n=142 | 59% (49–68) n=95 | 49% (41–56) n=156 |
-| Pepe Najarro: Working Doubles | played | 451 | 64% (59–69) n=348 | 1169 → 443 | 62% | 184 / 131 / 136 | 72% (65–79) n=167 | 63% (54–70) n=134 | 47% (37–57) n=94 |
-| 6th Street Recruits | played | 449 | 65% (60–70) n=346 | 1150 → 440 | 62% | 188 / 106 / 155 | 75% (68–81) n=153 | 61% (53–69) n=141 | 57% (47–67) n=93 |
-| Valentino Street Racer | attacked | 444 | 61% (55–67) n=261 | 615 → 401 | 35% | 12 / 105 / 327 | 76% (68–82) n=132 | 73% (61–82) n=70 | 46% (38–55) n=128 |
-| V: Streetkid | called | 419 | 67% (62–71) n=419 | 419 → 419 | 0% | 165 / 124 / 130 | 69% (63–74) n=280 | 65% (52–76) n=57 | 61% (50–71) n=82 |
-
-(32 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14398 | 7% | 0 / 1224 / 3650 / 5121 / 4118 / 285 |
-| gig/steal | 3735 | 29% | 213 / 558 / 1734 / 1214 / 16 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 673 | 55% | 0 / 385 / 288 / 0 / 0 / 0 |
-| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 538 | 62% | 154 / 171 / 193 / 20 / 0 / 0 |
-| mode/mode | 500 | 57% | 0 / 500 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 448 | 34% | 0 / 34 / 331 / 81 / 2 / 0 |
-| card/playFree | 437 | 66% | 0 / 108 / 302 / 27 / 0 / 0 |
-| unit/adrenaline | 396 | 61% | 168 / 129 / 98 / 1 / 0 / 0 |
-| gigValue/setGig | 383 | 11% | 0 / 0 / 0 / 29 / 105 / 249 |
-| gig/swapTake | 353 | 48% | 74 / 117 / 102 / 60 / 0 / 0 |
-| card/search | 331 | 85% | 208 / 100 / 23 / 0 / 0 / 0 |
-| unit/spend | 307 | 81% | 183 / 83 / 41 / 0 / 0 / 0 |
-| unit/ready | 246 | 92% | 0 / 195 / 51 / 0 / 0 / 0 |
-| gigValue/adjust | 204 | 2% | 0 / 0 / 0 / 0 / 12 / 192 |
-| unit/equip | 132 | 87% | 19 / 42 / 53 / 18 / 0 / 0 |
-| unit/sacrifice | 61 | 84% | 37 / 12 / 12 / 0 / 0 / 0 |
-| unit/pump | 44 | 77% | 21 / 10 / 13 / 0 / 0 / 0 |
-| card/discard | 39 | 56% | 14 / 5 / 19 / 1 / 0 / 0 |
-| yesno/draw | 18 | 100% | 0 / 18 / 0 / 0 / 0 / 0 |
-| card/defeat | 8 | 100% | 8 / 0 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 75% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 671 attacks. Reacted to 302 (deck won 53% (47–59) n=271): stole 222, targetGone 68, bothGone 12. Let 369 resolve (58% (51–65) n=197): stole 252, stoleNothing 1, targetGone 109, bothGone 7. Choices: call 302, endReact 369, play 2.
-
-## Ladder: V / Smasher / Saburo (RRG) — 560 games, 69% won, 24919 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 788 | 69% (64–73) n=344 | 958 → 709 | 26% | 59 / 276 / 453 | 81% (76–86) n=205 | 70% (61–78) n=105 | 61% (54–68) n=198 |
-| Animals Wrecker | attacked | 721 | 78% (73–83) n=289 | 697 → 645 | 7% | 0 / 181 / 540 | 90% (85–94) n=155 | 92% (84–96) n=83 | 73% (66–79) n=195 |
-| 6th Street Recruits | attacked | 708 | 70% (64–74) n=328 | 895 → 641 | 28% | 61 / 215 / 432 | 86% (80–90) n=176 | 69% (58–77) n=86 | 63% (56–69) n=200 |
-| Memory Relapse | sold | 546 | 70% (66–75) n=401 | 952 → 546 | 43% | 188 / 214 / 144 | 76% (69–81) n=181 | 66% (57–74) n=118 | 65% (58–72) n=172 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 506 | 80% (75–84) n=299 | 504 → 470 | 7% | 0 / 0 / 506 | 96% (91–98) n=161 | 92% (83–97) n=63 | 67% (60–74) n=166 |
-| V: Streetkid | attacked | 497 | 59% (54–65) n=276 | 597 → 497 | 17% | 58 / 141 / 298 | 72% (65–78) n=190 | 57% (42–71) n=42 | 44% (36–53) n=120 |
-| Bonnie and Clyde | sold | 496 | 70% (65–75) n=375 | 1301 → 496 | 62% | 105 / 202 / 189 | 78% (71–84) n=152 | 72% (62–79) n=109 | 62% (55–69) n=172 |
-| Yorinobu Arasaka: Steel Dragon | played | 495 | 71% (67–76) n=382 | 598 → 495 | 17% | 0 / 197 / 298 | 83% (76–89) n=131 | 75% (63–84) n=63 | 64% (58–70) n=237 |
-| MaxTac AV | attacked | 481 | 73% (67–78) n=233 | 586 → 456 | 22% | 0 / 230 / 251 | 84% (77–89) n=145 | 84% (72–92) n=51 | 62% (53–71) n=117 |
-| 6th Street Recruits | played | 455 | 68% (63–73) n=329 | 1042 → 443 | 57% | 189 / 127 / 139 | 77% (69–83) n=141 | 62% (54–70) n=137 | 60% (50–68) n=109 |
-| Animals Wrecker | played | 452 | 73% (68–77) n=347 | 652 → 452 | 31% | 0 / 318 / 134 | 80% (72–86) n=124 | 79% (68–87) n=70 | 68% (61–75) n=186 |
-| Pepe Najarro: Working Doubles | played | 438 | 66% (61–71) n=339 | 1011 → 436 | 57% | 206 / 116 / 116 | 77% (70–83) n=167 | 60% (52–68) n=142 | 51% (41–62) n=82 |
-| Valentino Street Racer | attacked | 437 | 69% (64–75) n=262 | 615 → 400 | 35% | 20 / 100 / 317 | 86% (79–90) n=152 | 73% (61–82) n=63 | 54% (45–63) n=118 |
-| Valentino Street Racer | played | 431 | 68% (63–73) n=336 | 1298 → 399 | 69% | 95 / 160 / 176 | 82% (75–87) n=152 | 63% (54–71) n=111 | 52% (43–61) n=109 |
-| V: Streetkid | called | 430 | 68% (64–72) n=430 | 430 → 430 | 0% | 198 / 124 / 108 | 72% (67–77) n=301 | 63% (51–73) n=70 | 54% (42–66) n=59 |
-
-(33 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1143 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14145 | 6% | 0 / 1126 / 3738 / 5308 / 3740 / 233 |
-| gig/steal | 4151 | 29% | 247 / 567 / 1934 / 1385 / 18 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 623 | 59% | 0 / 346 / 277 / 0 / 0 / 0 |
-| mulligan | 560 | 17% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 551 | 59% | 147 / 174 / 202 / 28 / 0 / 0 |
-| card/playFree | 483 | 67% | 0 / 100 / 348 / 35 / 0 / 0 |
-| unit/adrenaline | 391 | 60% | 163 / 135 / 93 / 0 / 0 / 0 |
-| card/search | 344 | 88% | 220 / 101 / 22 / 1 / 0 / 0 |
-| gig/swapGive | 335 | 36% | 0 / 16 / 241 / 74 / 4 / 0 |
-| gig/swapTake | 274 | 48% | 56 / 84 / 81 / 53 / 0 / 0 |
-| gigValue/adjust | 236 | 3% | 0 / 0 / 0 / 1 / 27 / 208 |
-| unit/ready | 225 | 92% | 0 / 186 / 39 / 0 / 0 / 0 |
-| unit/equip | 135 | 84% | 30 / 33 / 49 / 23 / 0 / 0 |
-| unit/sacrifice | 51 | 76% | 29 / 12 / 10 / 0 / 0 / 0 |
-| unit/spend | 50 | 68% | 20 / 22 / 8 / 0 / 0 / 0 |
-| card/discard | 48 | 58% | 12 / 11 / 22 / 3 / 0 / 0 |
-| unit/pump | 38 | 82% | 18 / 10 / 10 / 0 / 0 / 0 |
-| yesno/draw | 17 | 100% | 0 / 17 / 0 / 0 / 0 / 0 |
-| card/defeat | 14 | 100% | 14 / 0 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 7 | 57% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 618 attacks. Reacted to 255 (deck won 63% (57–69) n=231): stole 209, attackerGone 1, targetGone 44, bothGone 1. Let 363 resolve (68% (61–74) n=190): stole 266, targetGone 81, bothGone 16. Choices: call 254, endReact 365, play 4.
-
-## NC-01 Rockerboy Express (RRY) — 560 games, 55% won, 24510 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 832 | 64% (58–69) n=329 | 756 → 732 | 3% | 0 / 194 / 638 | 79% (72–84) n=185 | 75% (65–83) n=80 | 54% (47–60) n=217 |
-| Rockn' Rockerboy | attacked | 719 | 60% (54–65) n=313 | 805 → 668 | 17% | 0 / 320 / 399 | 73% (67–79) n=196 | 75% (65–84) n=77 | 52% (45–60) n=170 |
-| 6th Street Recruits | attacked | 655 | 53% (48–59) n=316 | 790 → 620 | 22% | 93 / 253 / 309 | 69% (61–76) n=149 | 52% (43–61) n=118 | 45% (38–53) n=162 |
-| Animals Wrecker | played | 546 | 59% (55–64) n=395 | 650 → 546 | 16% | 0 / 383 / 163 | 70% (63–76) n=182 | 58% (47–69) n=72 | 49% (43–56) n=207 |
-| Detonate | sold | 528 | 55% (50–60) n=385 | 666 → 528 | 21% | 315 / 105 / 108 | 64% (57–70) n=201 | 50% (42–58) n=143 | 46% (37–55) n=111 |
-| 6th Street Recruits | played | 522 | 53% (48–58) n=382 | 1067 → 513 | 52% | 260 / 113 / 149 | 62% (55–68) n=188 | 46% (39–53) n=170 | 47% (37–57) n=92 |
-| Dexter DeShawn: Off the Grid | ability | 502 | 49% (44–54) n=349 | 1681 → 502 | 70% | 8 / 72 / 422 | 71% (64–77) n=207 | 25% (16–36) n=69 | 20% (14–27) n=153 |
-| Zetatech Faceplate | sold | 480 | 56% (51–61) n=365 | 975 → 480 | 51% | 148 / 205 / 127 | 66% (58–73) n=158 | 45% (35–54) n=103 | 54% (46–62) n=154 |
-| Rockn' Rockerboy | played | 475 | 57% (51–62) n=364 | 749 → 475 | 37% | 218 / 147 / 110 | 66% (59–72) n=190 | 55% (46–63) n=126 | 38% (29–48) n=103 |
-| Mantis Blades | sold | 444 | 54% (49–59) n=359 | 598 → 444 | 26% | 297 / 53 / 94 | 62% (54–69) n=178 | 51% (43–59) n=148 | 40% (30–51) n=80 |
-| Adam Smasher: Ender of Legends | called | 436 | 53% (49–58) n=436 | 436 → 436 | 0% | 177 / 133 / 126 | 60% (54–65) n=305 | 43% (31–56) n=58 | 34% (24–46) n=73 |
-| Dexter DeShawn: Off the Grid | called | 418 | 56% (51–61) n=418 | 418 → 418 | 0% | 169 / 151 / 98 | 63% (58–69) n=263 | 42% (30–55) n=55 | 44% (35–54) n=100 |
-| River Ward: Detective on the Hunt | called | 415 | 54% (49–59) n=415 | 415 → 415 | 0% | 157 / 148 / 110 | 61% (55–67) n=277 | 47% (35–59) n=64 | 34% (24–45) n=74 |
-| Kerry Eurodyne: The Last Rockerboy | played | 401 | 51% (46–57) n=313 | 1536 → 372 | 76% | 122 / 73 / 206 | 65% (57–73) n=139 | 45% (36–55) n=108 | 33% (25–43) n=100 |
-| Industrial Assembly | sold | 396 | 55% (50–61) n=311 | 770 → 396 | 49% | 147 / 149 / 100 | 60% (51–69) n=111 | 51% (43–60) n=125 | 52% (43–61) n=123 |
-
-(31 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 230 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13729 | 8% | 0 / 1153 / 3620 / 5428 / 3421 / 107 |
-| gig/steal | 3227 | 28% | 175 / 509 / 1399 / 1136 / 8 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1474 | 74% | 0 / 886 / 586 / 2 / 0 / 0 |
-| gigValue/adjust | 1202 | 11% | 0 / 12 / 126 / 96 / 690 / 278 |
-| mulligan | 560 | 23% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 509 | 71% | 0 / 509 / 0 / 0 / 0 / 0 |
-| unit/defeat | 476 | 58% | 124 / 162 / 178 / 12 / 0 / 0 |
-| unit/pump | 374 | 53% | 103 / 129 / 138 / 4 / 0 / 0 |
-| unit/equip | 270 | 80% | 41 / 90 / 120 / 19 / 0 / 0 |
-| card/defeatGear | 113 | 60% | 0 / 81 / 32 / 0 / 0 / 0 |
-| card/trash | 84 | 57% | 0 / 84 / 0 / 0 / 0 / 0 |
-| card/playFree | 77 | 97% | 63 / 12 / 2 / 0 / 0 / 0 |
-| unit/sacrifice | 65 | 88% | 36 / 18 / 11 / 0 / 0 / 0 |
-| card/discard | 51 | 53% | 11 / 15 / 25 / 0 / 0 / 0 |
-| card/search | 31 | 58% | 0 / 12 / 12 / 7 / 0 / 0 |
-| card/defeat | 11 | 100% | 10 / 1 / 0 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 67% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1371 attacks. Reacted to 344 (deck won 44% (38–49) n=282): stole 182, attackerGone 20, targetGone 123, bothGone 19. Let 1027 resolve (52% (47–57) n=382): stole 739, stoleNothing 8, attackerGone 3, targetGone 238, bothGone 39. Choices: call 253, endReact 1098, block 104, ability 17, play 2.
-
-## NC-02 Stormrider Stampede (GGR) — 560 games, 54% won, 25330 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| MaxTac AV | attacked | 805 | 58% (52–63) n=305 | 796 → 721 | 9% | 0 / 381 / 424 | 70% (63–76) n=197 | 70% (59–78) n=82 | 47% (39–55) n=155 |
-| 6th Street Recruits | attacked | 703 | 50% (45–56) n=322 | 802 → 653 | 19% | 72 / 256 / 375 | 67% (60–73) n=181 | 60% (50–69) n=102 | 36% (29–44) n=166 |
-| Pepe Najarro: Working Doubles | attacked | 637 | 51% (46–57) n=307 | 723 → 595 | 18% | 61 / 258 / 318 | 71% (63–78) n=149 | 54% (45–64) n=101 | 42% (35–49) n=173 |
-| Sandayu Oda: Hanako's Guardian | attacked | 532 | 59% (53–64) n=304 | 572 → 507 | 11% | 0 / 131 / 401 | 75% (68–81) n=185 | 73% (60–83) n=55 | 43% (35–51) n=138 |
-| Corporate Surveillance | sold | 523 | 54% (49–59) n=385 | 1046 → 523 | 50% | 187 / 190 / 146 | 68% (61–75) n=173 | 47% (39–55) n=130 | 43% (36–51) n=155 |
-| Detonate | sold | 517 | 56% (51–61) n=375 | 770 → 517 | 33% | 248 / 145 / 124 | 64% (57–71) n=191 | 54% (45–62) n=130 | 48% (39–57) n=121 |
-| Valentino Street Racer | attacked | 516 | 52% (46–58) n=273 | 634 → 464 | 27% | 23 / 157 / 336 | 70% (62–77) n=160 | 50% (38–62) n=68 | 38% (30–47) n=131 |
-| 6th Street Recruits | played | 508 | 53% (48–58) n=373 | 1037 → 502 | 52% | 219 / 142 / 147 | 61% (54–68) n=180 | 48% (40–56) n=143 | 36% (28–46) n=110 |
-| Synapse Burnout | sold | 506 | 56% (51–61) n=383 | 741 → 506 | 32% | 245 / 133 / 128 | 62% (55–68) n=204 | 53% (44–61) n=118 | 48% (39–57) n=119 |
-| Valentino Street Racer | played | 492 | 51% (46–56) n=359 | 1287 → 449 | 65% | 105 / 223 / 164 | 65% (57–71) n=172 | 44% (35–53) n=108 | 37% (29–45) n=134 |
-| MaxTac AV | played | 486 | 54% (49–59) n=356 | 671 → 486 | 28% | 214 / 171 / 101 | 68% (60–74) n=170 | 52% (43–61) n=125 | 33% (26–42) n=129 |
-| Pepe Najarro: Working Doubles | played | 472 | 50% (45–55) n=363 | 1031 → 468 | 55% | 203 / 151 / 118 | 57% (49–65) n=156 | 46% (38–54) n=144 | 40% (31–48) n=124 |
-| Padre: Man of the Cross | ability | 471 | 44% (38–49) n=309 | 1834 → 471 | 74% | 3 / 106 / 362 | 59% (52–65) n=199 | 21% (13–33) n=61 | 17% (12–25) n=126 |
-| Peace Offering | sold | 436 | 55% (50–60) n=331 | 1107 → 436 | 61% | 100 / 234 / 102 | 61% (52–68) n=137 | 55% (45–64) n=99 | 49% (41–57) n=139 |
-| Adam Smasher: Ender of Legends | called | 423 | 54% (49–59) n=423 | 423 → 423 | 0% | 168 / 177 / 78 | 58% (52–63) n=295 | 48% (36–61) n=56 | 42% (31–53) n=72 |
-
-(28 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 187 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13571 | 8% | 0 / 1214 / 3912 / 6011 / 2380 / 54 |
-| gig/steal | 3255 | 30% | 161 / 556 / 1514 / 1009 / 15 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1057 | 59% | 0 / 680 / 374 / 3 / 0 / 0 |
-| unit/ready | 780 | 74% | 0 / 390 / 378 / 12 / 0 / 0 |
-| unit/spend | 642 | 76% | 344 / 196 / 102 / 0 / 0 / 0 |
-| mulligan | 560 | 14% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gigValue/setGig | 557 | 8% | 0 / 0 / 8 / 49 / 178 / 322 |
-| mode/mode | 521 | 60% | 0 / 521 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 485 | 33% | 0 / 31 / 380 / 73 / 1 / 0 |
-| gig/swapTake | 397 | 48% | 69 / 131 / 128 / 69 / 0 / 0 |
-| unit/adrenaline | 388 | 56% | 166 / 139 / 83 / 0 / 0 / 0 |
-| unit/equip | 299 | 89% | 37 / 105 / 141 / 16 / 0 / 0 |
-| gigValue/adjust | 187 | 6% | 0 / 0 / 0 / 2 / 18 / 167 |
-| unit/defeat | 174 | 46% | 10 / 36 / 124 / 4 / 0 / 0 |
-| unit/sacrifice | 61 | 79% | 36 / 15 / 10 / 0 / 0 / 0 |
-| card/discard | 57 | 56% | 14 / 13 / 30 / 0 / 0 / 0 |
-| card/search | 33 | 58% | 0 / 12 / 18 / 3 / 0 / 0 |
-| unit/pump | 27 | 74% | 6 / 15 / 6 / 0 / 0 / 0 |
-| card/defeat | 19 | 100% | 17 / 2 / 0 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 7 | 43% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 4 | 25% | 0 / 4 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 964 attacks. Reacted to 400 (deck won 47% (41–52) n=314): stole 230, stoleNothing 3, attackerGone 19, targetGone 125, bothGone 23. Let 564 resolve (54% (48–59) n=269): stole 404, stoleNothing 1, attackerGone 1, targetGone 140, bothGone 18. Choices: endReact 622, block 93, call 313, play 29.
-
-## NC-03 Static Shock (BBR) — 560 games, 37% won, 26915 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 783 | 39% (34–45) n=325 | 864 → 696 | 19% | 65 / 305 / 413 | 56% (49–63) n=186 | 43% (34–53) n=104 | 25% (19–32) n=178 |
-| Psycho Squad | attacked | 767 | 37% (32–43) n=316 | 842 → 701 | 17% | 88 / 305 / 374 | 55% (48–62) n=180 | 32% (24–41) n=119 | 27% (21–34) n=163 |
-| Wakako Okada: Peace and Harmony | ability | 606 | 30% (26–35) n=381 | 1706 → 606 | 64% | 6 / 124 / 476 | 46% (40–53) n=224 | 17% (10–27) n=76 | 6% (3–10) n=196 |
-| Alt Cunningham: Soulkiller Architect | ability | 605 | 32% (27–36) n=397 | 1738 → 605 | 65% | 1 / 102 / 502 | 50% (43–56) n=227 | 25% (16–37) n=63 | 8% (5–12) n=209 |
-| Jacked-In Voodoo Boy | played | 566 | 34% (29–38) n=410 | 1010 → 534 | 47% | 195 / 230 / 141 | 43% (38–50) n=253 | 19% (13–28) n=99 | 17% (12–25) n=115 |
-| Dexter DeShawn: Off the Grid | ability | 564 | 31% (26–35) n=370 | 1740 → 564 | 68% | 1 / 137 / 426 | 47% (41–54) n=217 | 23% (14–35) n=61 | 5% (3–9) n=185 |
-| 6th Street Recruits | played | 556 | 37% (32–42) n=399 | 817 → 550 | 33% | 207 / 189 / 160 | 46% (39–52) n=206 | 33% (26–41) n=136 | 23% (17–31) n=133 |
-| Psycho Squad | played | 540 | 35% (30–40) n=383 | 810 → 534 | 34% | 207 / 185 / 148 | 46% (39–53) n=211 | 27% (20–35) n=141 | 19% (12–27) n=113 |
-| Floor It | sold | 466 | 34% (29–39) n=355 | 797 → 466 | 42% | 221 / 122 / 123 | 40% (33–47) n=166 | 37% (29–45) n=135 | 22% (16–31) n=107 |
-| Alt Cunningham: Soulkiller Architect | called | 432 | 37% (32–41) n=432 | 432 → 432 | 0% | 157 / 188 / 87 | 44% (39–50) n=313 | 14% (8–25) n=63 | 20% (11–32) n=56 |
-| Dexter DeShawn: Off the Grid | called | 421 | 36% (32–41) n=421 | 421 → 421 | 0% | 152 / 200 / 69 | 42% (36–48) n=293 | 26% (16–40) n=53 | 21% (14–32) n=75 |
-| Jacked-In Voodoo Boy | attacked | 413 | 40% (34–46) n=228 | 403 → 350 | 13% | 56 / 119 / 238 | 53% (44–61) n=137 | 35% (23–49) n=49 | 29% (21–39) n=100 |
-| Wakako Okada: Peace and Harmony | called | 388 | 37% (33–42) n=388 | 388 → 388 | 0% | 149 / 166 / 73 | 42% (36–48) n=274 | 27% (17–41) n=51 | 27% (18–39) n=63 |
-| Trust No One | sold | 387 | 35% (30–40) n=303 | 688 → 387 | 44% | 199 / 100 / 88 | 45% (37–54) n=141 | 29% (21–37) n=122 | 23% (15–34) n=78 |
-| Meredith Stout: Stone Cold Corpo | played | 384 | 34% (29–39) n=326 | 967 → 381 | 61% | 68 / 152 / 164 | 48% (41–56) n=153 | 36% (26–47) n=73 | 18% (12–26) n=128 |
-
-(35 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14007 | 8% | 0 / 1205 / 3567 / 5880 / 3301 / 54 |
-| gig/steal | 2446 | 33% | 159 / 515 / 1062 / 690 / 20 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1635 | 66% | 0 / 1079 / 547 / 9 / 0 / 0 |
-| gigValue/adjust | 1584 | 9% | 0 / 19 / 50 / 115 / 943 / 457 |
-| mode/mode | 1059 | 80% | 0 / 1059 / 0 / 0 / 0 / 0 |
-| unit/weaken | 622 | 64% | 220 / 170 / 227 / 5 / 0 / 0 |
-| mulligan | 560 | 7% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/bottomdeck | 473 | 86% | 366 / 58 / 44 / 5 / 0 / 0 |
-| card/search | 469 | 55% | 0 / 84 / 383 / 2 / 0 / 0 |
-| card/discard | 449 | 60% | 106 / 217 / 126 / 0 / 0 / 0 |
-| unit/pump | 436 | 45% | 83 / 193 / 157 / 3 / 0 / 0 |
-| card/playFromTrash | 352 | 80% | 217 / 97 / 38 / 0 / 0 / 0 |
-| card/freePlay | 180 | 79% | 0 / 100 / 80 / 0 / 0 / 0 |
-| yesno/discardFor | 133 | 100% | 0 / 133 / 0 / 0 / 0 / 0 |
-| unit/cantAttack | 88 | 50% | 26 / 29 / 32 / 1 / 0 / 0 |
-| unit/equip | 73 | 85% | 11 / 8 / 40 / 14 / 0 / 0 |
-| unit/sacrifice | 54 | 83% | 38 / 8 / 7 / 1 / 0 / 0 |
-| unit/call | 30 | 100% | 0 / 10 / 20 / 0 / 0 / 0 |
-| card/defeat | 9 | 89% | 7 / 2 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 8 | 75% | 0 / 8 / 0 / 0 / 0 / 0 |
-| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1482 attacks. Reacted to 493 (deck won 32% (27–37) n=359): stole 222, stoleNothing 7, attackerGone 33, targetGone 206, bothGone 25. Let 989 resolve (35% (30–40) n=365): stole 667, stoleNothing 5, attackerGone 4, targetGone 279, bothGone 34. Choices: call 315, endReact 1075, block 219, play 26.
-
-## NC-04 Chrome Rockers (YYR) — 560 games, 49% won, 25679 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 832 | 57% (52–62) n=330 | 861 → 765 | 11% | 0 / 373 / 459 | 69% (63–75) n=209 | 63% (52–73) n=79 | 48% (41–55) n=169 |
-| 6th Street Recruits | attacked | 695 | 51% (46–57) n=321 | 813 → 647 | 20% | 81 / 257 / 357 | 64% (57–71) n=174 | 55% (46–64) n=123 | 41% (33–49) n=148 |
-| Rockn' Rockerboy | played | 566 | 52% (47–56) n=411 | 749 → 566 | 24% | 218 / 185 / 163 | 60% (54–67) n=222 | 51% (43–59) n=143 | 33% (25–41) n=129 |
-| Detonate | sold | 550 | 49% (44–54) n=389 | 737 → 550 | 25% | 298 / 129 / 123 | 53% (46–59) n=218 | 51% (43–59) n=143 | 39% (30–49) n=100 |
-| Zetatech Faceplate | sold | 533 | 46% (41–51) n=396 | 1454 → 533 | 63% | 67 / 219 / 247 | 55% (48–61) n=196 | 53% (43–64) n=86 | 33% (26–40) n=174 |
-| Meredith Stout: Stone Cold Corpo | played | 528 | 50% (45–55) n=401 | 1378 → 515 | 63% | 93 / 164 / 271 | 58% (51–65) n=195 | 53% (43–62) n=108 | 39% (32–47) n=161 |
-| 6th Street Recruits | played | 513 | 48% (44–53) n=390 | 1071 → 507 | 53% | 242 / 129 / 142 | 56% (49–63) n=191 | 51% (43–59) n=152 | 28% (20–37) n=104 |
-| MaxTac Suppression Team | attacked | 510 | 52% (46–58) n=251 | 562 → 474 | 16% | 0 / 159 / 351 | 65% (57–72) n=145 | 70% (57–81) n=54 | 39% (31–48) n=132 |
-| Dexter DeShawn: One Last Chance | played | 502 | 47% (42–52) n=372 | 1156 → 476 | 59% | 146 / 171 / 185 | 57% (50–64) n=190 | 40% (32–48) n=142 | 26% (18–35) n=109 |
-| Dexter DeShawn: One Last Chance | attacked | 488 | 46% (40–52) n=274 | 644 → 452 | 30% | 44 / 153 / 291 | 65% (57–73) n=132 | 51% (41–62) n=84 | 29% (22–37) n=142 |
-| The Heist | sold | 478 | 49% (43–54) n=371 | 934 → 478 | 49% | 155 / 208 / 115 | 57% (49–64) n=164 | 46% (38–55) n=121 | 39% (32–48) n=140 |
-| MaxTac Suppression Team | played | 461 | 49% (44–55) n=352 | 1089 → 460 | 58% | 67 / 204 / 190 | 59% (52–66) n=187 | 44% (34–55) n=88 | 40% (32–49) n=132 |
-| Mantis Blades | sold | 454 | 49% (44–55) n=346 | 768 → 454 | 41% | 242 / 85 / 127 | 56% (48–63) n=185 | 56% (47–64) n=122 | 27% (19–36) n=97 |
-| River Ward: Detective on the Hunt | called | 446 | 49% (44–54) n=446 | 446 → 446 | 0% | 168 / 164 / 114 | 54% (49–60) n=317 | 51% (39–63) n=65 | 22% (14–33) n=64 |
-| Royce: Psycho on the Edge | called | 441 | 49% (44–54) n=441 | 441 → 441 | 0% | 165 / 173 / 103 | 54% (49–59) n=322 | 39% (28–51) n=62 | 32% (21–44) n=57 |
-
-(28 more card uses in the JSON report.)
-
-Legal but never taken: Royce: Psycho on the Edge (Legend play, legal in 1126 turns), Safety Override (played, legal in 769 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14212 | 9% | 0 / 1262 / 3673 / 5485 / 3632 / 160 |
-| gig/steal | 3253 | 32% | 266 / 614 / 1335 / 1023 / 15 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 2067 | 73% | 0 / 1339 / 725 / 3 / 0 / 0 |
-| gigValue/adjust | 1421 | 16% | 0 / 0 / 95 / 159 / 776 / 391 |
-| unit/equip | 757 | 67% | 88 / 166 / 408 / 95 / 0 / 0 |
-| card/search | 568 | 84% | 20 / 352 / 189 / 6 / 1 / 0 |
-| mulligan | 560 | 23% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/trash | 210 | 48% | 0 / 210 / 0 / 0 / 0 / 0 |
-| card/playFree | 185 | 97% | 154 / 26 / 5 / 0 / 0 / 0 |
-| unit/sacrifice | 92 | 65% | 40 / 22 / 29 / 1 / 0 / 0 |
-| card/discard | 41 | 56% | 11 / 10 / 20 / 0 / 0 / 0 |
-| unit/protect | 21 | 52% | 3 / 9 / 9 / 0 / 0 / 0 |
-| card/defeat | 20 | 90% | 16 / 3 / 1 / 0 / 0 / 0 |
-| yesno/playFree | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
-| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 8 | 50% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1890 attacks. Reacted to 496 (deck won 44% (39–49) n=348): stole 220, stoleNothing 2, attackerGone 27, targetGone 204, bothGone 43. Let 1394 resolve (47% (43–52) n=436): stole 971, stoleNothing 10, attackerGone 4, targetGone 367, bothGone 42. Choices: ability 96, endReact 1513, call 256, block 176, play 26.
-
-## NC-05 Emperor's Guard (GGB) — 560 games, 49% won, 26315 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| MaxTac AV | attacked | 891 | 56% (51–61) n=341 | 908 → 820 | 10% | 0 / 418 / 473 | 70% (63–76) n=216 | 61% (51–71) n=85 | 50% (43–57) n=197 |
-| Psycho Squad | attacked | 788 | 52% (47–57) n=335 | 836 → 708 | 15% | 64 / 275 / 449 | 71% (64–77) n=185 | 51% (42–60) n=118 | 43% (36–50) n=188 |
-| Pepe Najarro: Working Doubles | attacked | 702 | 49% (43–54) n=311 | 766 → 645 | 16% | 65 / 261 / 376 | 69% (62–75) n=174 | 53% (44–63) n=101 | 38% (31–45) n=172 |
-| MaxTac AV | played | 602 | 50% (46–55) n=423 | 851 → 597 | 30% | 259 / 143 / 200 | 65% (58–71) n=233 | 44% (36–53) n=136 | 30% (24–38) n=148 |
-| Corporate Surveillance | sold | 601 | 50% (45–54) n=418 | 799 → 601 | 25% | 299 / 118 / 184 | 62% (55–68) n=217 | 41% (33–48) n=158 | 33% (25–41) n=135 |
-| Corpo Security | played | 569 | 49% (44–53) n=402 | 969 → 541 | 44% | 221 / 179 / 169 | 59% (52–65) n=239 | 36% (27–45) n=112 | 33% (25–42) n=117 |
-| Psycho Squad | played | 558 | 49% (44–53) n=400 | 1063 → 548 | 48% | 180 / 200 / 178 | 60% (53–67) n=177 | 37% (30–46) n=139 | 41% (33–48) n=153 |
-| Riot Shield | sold | 537 | 49% (44–54) n=395 | 653 → 537 | 18% | 280 / 111 / 146 | 59% (53–66) n=217 | 42% (34–50) n=139 | 36% (28–45) n=114 |
-| Pepe Najarro: Working Doubles | played | 536 | 47% (42–52) n=392 | 1084 → 523 | 52% | 175 / 173 / 188 | 60% (53–67) n=169 | 45% (37–53) n=146 | 37% (29–45) n=145 |
-| Peace Offering | sold | 508 | 48% (44–53) n=392 | 1056 → 508 | 52% | 190 / 163 / 155 | 61% (54–67) n=195 | 44% (35–53) n=116 | 35% (27–43) n=147 |
-| Floor It | sold | 466 | 49% (44–54) n=362 | 972 → 466 | 52% | 181 / 159 / 126 | 63% (55–70) n=167 | 39% (31–47) n=124 | 43% (35–52) n=118 |
-| Goro Takemura: Vengeful Bodyguard | called | 424 | 46% (41–51) n=424 | 424 → 424 | 0% | 167 / 156 / 101 | 54% (48–60) n=280 | 34% (24–45) n=74 | 24% (16–35) n=70 |
-| Hanako Arasaka: Daughter of the Emperor | called | 418 | 48% (43–53) n=418 | 418 → 418 | 0% | 145 / 168 / 105 | 58% (52–64) n=289 | 23% (15–34) n=74 | 27% (17–40) n=55 |
-| Sandayu Oda: Hanako's Guardian | attacked | 408 | 52% (46–58) n=240 | 454 → 400 | 12% | 0 / 92 / 316 | 76% (68–83) n=126 | 60% (46–72) n=50 | 30% (23–39) n=120 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 405 | 38% (32–44) n=283 | 1645 → 405 | 75% | 2 / 76 / 327 | 59% (51–66) n=160 | 22% (14–33) n=64 | 9% (5–16) n=121 |
-
-(31 more card uses in the JSON report.)
-
-Legal but never taken: Corporate Surveillance (played, legal in 762 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13948 | 7% | 0 / 1101 / 3671 / 6104 / 2968 / 104 |
-| gig/steal | 2803 | 30% | 109 / 510 / 1315 / 845 / 24 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1860 | 62% | 0 / 1162 / 685 / 13 / 0 / 0 |
-| unit/ready | 1018 | 76% | 0 / 522 / 477 / 19 / 0 / 0 |
-| gig/swapGive | 1004 | 38% | 7 / 63 / 607 / 325 / 2 / 0 |
-| gig/swapTake | 897 | 40% | 109 / 163 / 339 / 274 / 12 / 0 |
-| mulligan | 560 | 12% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gigValue/adjust | 309 | 22% | 0 / 23 / 94 / 104 / 72 / 16 |
-| unit/adrenaline | 302 | 47% | 111 / 112 / 78 / 1 / 0 / 0 |
-| unit/defeat | 296 | 59% | 97 / 91 / 107 / 1 / 0 / 0 |
-| card/discard | 262 | 50% | 15 / 59 / 187 / 1 / 0 / 0 |
-| unit/spend | 257 | 69% | 115 / 93 / 49 / 0 / 0 / 0 |
-| unit/blocker | 251 | 53% | 75 / 93 / 83 / 0 / 0 / 0 |
-| gigValue/setGig | 116 | 4% | 0 / 0 / 6 / 14 / 27 / 69 |
-| unit/weaken | 99 | 59% | 21 / 36 / 42 / 0 / 0 / 0 |
-| unit/sacrifice | 53 | 85% | 30 / 13 / 10 / 0 / 0 / 0 |
-| unit/equip | 27 | 78% | 5 / 0 / 14 / 8 / 0 / 0 |
-| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1611 attacks. Reacted to 575 (deck won 44% (39–49) n=387): stole 168, attackerGone 24, targetGone 350, bothGone 33. Let 1036 resolve (44% (39–49) n=375): stole 682, stoleNothing 10, attackerGone 1, targetGone 254, bothGone 89. Choices: endReact 1152, block 363, call 263, ability 40, play 42.
-
-## NC-06 Metal Over Meat (YYY) — 560 games, 37% won, 21703 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 775 | 41% (36–46) n=315 | 840 → 714 | 15% | 0 / 345 / 430 | 59% (52–67) n=165 | 48% (36–59) n=69 | 29% (23–35) n=206 |
-| Safety Override | sold | 636 | 37% (33–42) n=421 | 739 → 636 | 14% | 338 / 139 / 159 | 48% (41–55) n=208 | 33% (27–40) n=175 | 26% (20–34) n=145 |
-| MaxTac Suppression Team | attacked | 580 | 43% (38–49) n=270 | 662 → 545 | 18% | 0 / 198 / 382 | 65% (57–72) n=139 | 61% (48–72) n=56 | 26% (20–33) n=164 |
-| Rockn' Rockerboy | played | 551 | 36% (32–41) n=401 | 708 → 551 | 22% | 197 / 189 / 165 | 49% (42–56) n=184 | 31% (24–39) n=138 | 21% (15–28) n=144 |
-| Augmented Negotiators | played | 497 | 41% (36–46) n=375 | 1320 → 470 | 64% | 145 / 141 / 211 | 54% (47–62) n=156 | 37% (30–46) n=142 | 28% (21–36) n=135 |
-| Secondhand Bombus | played | 454 | 40% (35–45) n=351 | 1735 → 438 | 75% | 50 / 170 / 234 | 50% (43–57) n=193 | 29% (19–41) n=66 | 27% (20–35) n=134 |
-| River Ward: Detective on the Hunt | called | 445 | 35% (31–40) n=445 | 445 → 445 | 0% | 256 / 113 / 76 | 43% (37–50) n=235 | 27% (21–35) n=146 | 23% (15–35) n=64 |
-| Live with the Aftermath | sold | 443 | 39% (34–45) n=332 | 1096 → 443 | 60% | 127 / 151 / 165 | 53% (45–60) n=152 | 36% (27–47) n=91 | 25% (19–33) n=138 |
-| Dum Dum: Maelstrom Triggerman | called | 435 | 37% (33–42) n=435 | 435 → 435 | 0% | 236 / 124 / 75 | 48% (41–54) n=220 | 30% (22–38) n=132 | 20% (13–30) n=83 |
-| Muamar Reyes: El Capitán | ability | 433 | 37% (32–43) n=295 | 1872 → 433 | 77% | 59 / 85 / 289 | 63% (55–70) n=152 | 20% (12–30) n=71 | 14% (9–21) n=126 |
-| MaxTac Suppression Team | played | 426 | 39% (34–44) n=337 | 1023 → 426 | 58% | 106 / 188 / 132 | 49% (42–57) n=166 | 41% (31–52) n=80 | 22% (16–30) n=134 |
-| Muamar Reyes: El Capitán | called | 423 | 37% (32–42) n=423 | 423 → 423 | 0% | 240 / 107 / 76 | 50% (44–57) n=229 | 24% (17–32) n=134 | 15% (8–26) n=60 |
-| Jackie Welles: Ride or Die Choom | played | 423 | 37% (32–42) n=334 | 964 → 423 | 56% | 0 / 177 / 246 | 61% (52–70) n=116 | 47% (33–61) n=45 | 21% (16–27) n=206 |
-| Jackie Welles: Ride or Die Choom | attacked | 395 | 49% (42–55) n=214 | 400 → 378 | 6% | 0 / 60 / 335 | 86% (76–92) n=70 | 78% (64–87) n=45 | 38% (31–46) n=156 |
-| Gorilla Arms | sold | 381 | 37% (32–42) n=319 | 644 → 381 | 41% | 180 / 124 / 77 | 46% (38–54) n=159 | 35% (27–45) n=102 | 23% (15–32) n=93 |
-
-(31 more card uses in the JSON report.)
-
-Legal but never taken: Safety Override (played, legal in 698 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 12491 | 9% | 0 / 919 / 3197 / 5181 / 3052 / 142 |
-| gig/steal | 2253 | 31% | 89 / 386 / 796 / 974 / 8 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1946 | 64% | 0 / 1054 / 885 / 7 / 0 / 0 |
-| gigValue/adjust | 892 | 20% | 0 / 2 / 99 / 179 / 476 / 136 |
-| mulligan | 560 | 50% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 516 | 57% | 0 / 516 / 0 / 0 / 0 / 0 |
-| unit/protect | 273 | 38% | 62 / 83 / 125 / 3 / 0 / 0 |
-| card/defeatGear | 106 | 84% | 0 / 86 / 20 / 0 / 0 / 0 |
-| card/discard | 100 | 73% | 6 / 48 / 39 / 7 / 0 / 0 |
-| unit/sacrifice | 96 | 65% | 33 / 43 / 20 / 0 / 0 / 0 |
-| unit/pump | 90 | 21% | 12 / 21 / 55 / 2 / 0 / 0 |
-| unit/defeat | 58 | 98% | 50 / 8 / 0 / 0 / 0 / 0 |
-| unit/equip | 51 | 84% | 6 / 19 / 23 / 3 / 0 / 0 |
-| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
-| card/trash | 8 | 50% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 8 | 75% | 0 / 8 / 0 / 0 / 0 / 0 |
-| card/playFree | 5 | 100% | 5 / 0 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1709 attacks. Reacted to 597 (deck won 35% (31–40) n=390): stole 145, stoleNothing 2, attackerGone 1, targetGone 396, bothGone 14, noneGone 39. Let 1112 resolve (38% (33–43) n=390): stole 748, stoleNothing 23, attackerGone 6, targetGone 305, bothGone 30. Choices: block 443, endReact 1247, call 243, ability 8, play 5.
-
-## NC-07 Braindance Burn (RRB) — 560 games, 56% won, 24831 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 757 | 60% (55–65) n=313 | 723 → 683 | 6% | 0 / 209 / 548 | 84% (77–89) n=161 | 70% (59–79) n=73 | 50% (44–57) n=213 |
-| Psycho Squad | attacked | 749 | 59% (53–64) n=340 | 942 → 701 | 26% | 68 / 324 / 357 | 77% (71–83) n=186 | 65% (55–74) n=103 | 50% (43–57) n=191 |
-| 6th Street Recruits | attacked | 725 | 58% (53–64) n=314 | 859 → 669 | 22% | 73 / 290 / 362 | 74% (67–80) n=174 | 61% (53–70) n=122 | 49% (42–56) n=175 |
-| Detonate | sold | 531 | 56% (51–61) n=387 | 691 → 531 | 23% | 277 / 125 / 129 | 61% (54–67) n=198 | 54% (46–62) n=145 | 48% (39–57) n=112 |
-| Psycho Squad | played | 521 | 57% (52–62) n=390 | 987 → 513 | 48% | 294 / 89 / 138 | 65% (58–71) n=192 | 53% (46–61) n=167 | 34% (25–44) n=88 |
-| Dexter DeShawn: Off the Grid | ability | 483 | 50% (45–56) n=336 | 1700 → 483 | 72% | 11 / 59 / 413 | 71% (65–77) n=213 | 25% (16–37) n=63 | 17% (12–25) n=122 |
-| 6th Street Recruits | played | 479 | 57% (51–62) n=350 | 923 → 468 | 49% | 251 / 93 / 135 | 69% (62–76) n=163 | 49% (41–57) n=148 | 35% (26–45) n=95 |
-| Animals Wrecker | played | 467 | 57% (52–62) n=358 | 557 → 467 | 16% | 0 / 350 / 117 | 70% (61–77) n=141 | 47% (37–58) n=78 | 51% (44–58) n=179 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 433 | 66% (59–73) n=187 | 330 → 307 | 7% | 0 / 84 / 349 | 88% (81–93) n=109 | 86% (72–94) n=37 | 45% (35–55) n=89 |
-| Bonnie and Clyde | sold | 433 | 53% (48–59) n=328 | 1141 → 433 | 62% | 98 / 173 / 162 | 69% (61–77) n=134 | 47% (37–57) n=92 | 47% (40–55) n=156 |
-| Dexter DeShawn: Off the Grid | called | 421 | 54% (50–59) n=421 | 421 → 421 | 0% | 193 / 115 / 113 | 66% (60–71) n=263 | 44% (32–57) n=59 | 30% (22–40) n=99 |
-| Adam Smasher: Ender of Legends | called | 420 | 56% (51–61) n=420 | 420 → 420 | 0% | 166 / 122 / 132 | 65% (59–70) n=275 | 36% (25–48) n=59 | 43% (33–54) n=86 |
-| Satori: Sword of Saburo | sold | 408 | 53% (47–58) n=333 | 922 → 408 | 56% | 163 / 155 / 90 | 68% (59–75) n=139 | 47% (37–56) n=105 | 40% (31–48) n=124 |
-| Meredith Stout: Stone Cold Corpo | played | 406 | 50% (45–56) n=321 | 1177 → 397 | 66% | 126 / 117 / 163 | 68% (60–76) n=132 | 46% (37–56) n=110 | 33% (25–41) n=120 |
-| Judy Álvarez: Braindance Maestro | called | 405 | 56% (51–60) n=405 | 405 → 405 | 0% | 194 / 103 / 108 | 63% (57–69) n=272 | 45% (33–57) n=65 | 35% (25–47) n=68 |
-
-(29 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 236 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14022 | 8% | 0 / 1191 / 3969 / 5934 / 2843 / 85 |
-| gig/steal | 3130 | 30% | 186 / 448 / 1445 / 1036 / 15 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1354 | 65% | 0 / 887 / 456 / 11 / 0 / 0 |
-| gigValue/adjust | 808 | 8% | 0 / 4 / 57 / 43 / 450 / 254 |
-| unit/pump | 694 | 52% | 212 / 237 / 237 / 8 / 0 / 0 |
-| mulligan | 560 | 12% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 522 | 65% | 181 / 147 / 186 / 8 / 0 / 0 |
-| mode/mode | 512 | 75% | 0 / 512 / 0 / 0 / 0 / 0 |
-| card/playFree | 300 | 78% | 0 / 111 / 182 / 7 / 0 / 0 |
-| unit/equip | 288 | 82% | 52 / 76 / 126 / 34 / 0 / 0 |
-| yesno/addToHand | 157 | 100% | 0 / 157 / 0 / 0 / 0 / 0 |
-| unit/weaken | 76 | 67% | 31 / 24 / 21 / 0 / 0 / 0 |
-| card/search | 48 | 56% | 0 / 19 / 26 / 3 / 0 / 0 |
-| unit/sacrifice | 43 | 84% | 30 / 4 / 9 / 0 / 0 / 0 |
-| card/discard | 42 | 74% | 16 / 13 / 13 / 0 / 0 / 0 |
-| card/defeat | 22 | 95% | 20 / 2 / 0 / 0 / 0 / 0 |
-| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1228 attacks. Reacted to 418 (deck won 45% (40–51) n=311): stole 203, attackerGone 27, targetGone 168, bothGone 20. Let 810 resolve (53% (48–58) n=330): stole 589, stoleNothing 11, attackerGone 7, targetGone 176, bothGone 27. Choices: call 267, endReact 884, block 159, play 44.
-
-## NC-08 Merc Contract (RRG) — 560 games, 56% won, 23445 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 726 | 66% (61–72) n=301 | 688 → 658 | 4% | 0 / 169 / 557 | 86% (80–90) n=173 | 81% (70–88) n=77 | 57% (50–64) n=200 |
-| Pepe Najarro: Working Doubles | attacked | 605 | 58% (52–63) n=290 | 735 → 562 | 24% | 45 / 260 / 300 | 75% (68–81) n=170 | 60% (50–70) n=88 | 42% (34–50) n=142 |
-| Jackie Welles: Mama's Favorite | attacked | 593 | 49% (44–54) n=336 | 659 → 593 | 10% | 0 / 243 / 350 | 69% (63–76) n=190 | 57% (44–69) n=56 | 33% (26–41) n=161 |
-| 6th Street Recruits | attacked | 539 | 54% (48–60) n=270 | 645 → 497 | 23% | 63 / 231 / 245 | 65% (57–72) n=143 | 64% (54–73) n=97 | 47% (38–55) n=128 |
-| Bonnie and Clyde | sold | 522 | 54% (49–59) n=393 | 1331 → 522 | 61% | 94 / 239 / 189 | 60% (54–67) n=205 | 57% (47–67) n=93 | 42% (35–50) n=152 |
-| Peace Offering | sold | 512 | 54% (49–59) n=383 | 967 → 512 | 47% | 208 / 186 / 118 | 60% (53–67) n=183 | 54% (45–62) n=134 | 46% (37–54) n=136 |
-| Animals Wrecker | played | 480 | 61% (56–66) n=364 | 649 → 480 | 26% | 0 / 312 / 168 | 70% (63–76) n=169 | 69% (57–78) n=70 | 49% (41–56) n=175 |
-| Detonate | sold | 472 | 56% (50–61) n=365 | 694 → 472 | 32% | 249 / 118 / 105 | 59% (51–66) n=184 | 58% (50–66) n=136 | 42% (33–52) n=104 |
-| Pepe Najarro: Working Doubles | played | 462 | 54% (48–59) n=352 | 988 → 459 | 54% | 236 / 80 / 146 | 62% (55–69) n=183 | 53% (45–61) n=141 | 30% (21–41) n=83 |
-| V: Streetkid | called | 430 | 54% (49–59) n=430 | 430 → 430 | 0% | 216 / 110 / 104 | 57% (51–62) n=331 | 47% (35–60) n=57 | 40% (27–56) n=42 |
-| Jackie Welles: Mama's Favorite | called | 429 | 58% (54–63) n=429 | 429 → 429 | 0% | 177 / 145 / 107 | 62% (57–68) n=322 | 54% (42–66) n=59 | 35% (23–50) n=48 |
-| Adam Smasher: Ender of Legends | called | 427 | 53% (48–57) n=427 | 427 → 427 | 0% | 189 / 130 / 108 | 60% (55–66) n=310 | 40% (28–53) n=53 | 27% (17–38) n=64 |
-| 6th Street Recruits | played | 417 | 52% (46–57) n=332 | 895 → 415 | 54% | 211 / 98 / 108 | 59% (51–66) n=164 | 56% (48–64) n=139 | 21% (13–32) n=71 |
-| Carnage at the Colosseum | sold | 417 | 54% (48–59) n=327 | 1653 → 417 | 75% | 22 / 152 / 243 | 66% (58–73) n=148 | 62% (49–73) n=55 | 44% (37–51) n=169 |
-| V: Streetkid | attacked | 410 | 40% (34–46) n=253 | 505 → 410 | 19% | 65 / 120 / 225 | 50% (42–57) n=167 | 57% (41–71) n=37 | 20% (13–30) n=93 |
-
-(34 more card uses in the JSON report.)
-
-Legal but never taken: Jackie Welles: Mama's Favorite (Legend play, legal in 852 turns), V: Streetkid (Legend play, legal in 1113 turns), Adam Smasher: Ender of Legends (Legend play, legal in 98 turns), Synapse Burnout (played, legal in 516 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13522 | 8% | 0 / 1179 / 3623 / 4857 / 3730 / 133 |
-| gig/steal | 3387 | 31% | 251 / 549 / 1504 / 1066 / 17 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1333 | 69% | 0 / 946 / 380 / 7 / 0 / 0 |
-| mulligan | 560 | 6% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/search | 372 | 79% | 207 / 88 / 61 / 16 / 0 / 0 |
-| yesno/replaceDefeat | 370 | 22% | 0 / 370 / 0 / 0 / 0 / 0 |
-| unit/defeat | 331 | 63% | 108 / 105 / 109 / 9 / 0 / 0 |
-| card/playFree | 294 | 53% | 0 / 24 / 188 / 82 / 0 / 0 |
-| unit/equip | 237 | 84% | 40 / 99 / 85 / 13 / 0 / 0 |
-| unit/ready | 226 | 85% | 0 / 143 / 83 / 0 / 0 / 0 |
-| unit/adrenaline | 181 | 53% | 81 / 66 / 34 / 0 / 0 / 0 |
-| gigValue/adjust | 130 | 4% | 0 / 0 / 0 / 1 / 13 / 116 |
-| gigValue/setGig | 81 | 10% | 0 / 0 / 1 / 9 / 14 / 57 |
-| unit/sacrifice | 57 | 75% | 27 / 12 / 18 / 0 / 0 / 0 |
-| card/discard | 52 | 60% | 14 / 12 / 24 / 2 / 0 / 0 |
-| unit/pump | 37 | 78% | 18 / 10 / 9 / 0 / 0 / 0 |
-| card/defeat | 21 | 100% | 19 / 1 / 1 / 0 / 0 / 0 |
-| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1241 attacks. Reacted to 389 (deck won 47% (41–53) n=284): stole 193, attackerGone 13, targetGone 162, bothGone 21. Let 852 resolve (57% (51–62) n=335): stole 545, stoleNothing 6, attackerGone 18, targetGone 232, bothGone 46, noneGone 5. Choices: endReact 917, call 255, block 142, play 19.
-
-## Rainbow Fixer Stuff — 560 games, 48% won, 28857 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 911 | 49% (44–54) n=386 | 971 → 838 | 14% | 67 / 360 / 484 | 66% (60–72) n=233 | 48% (40–57) n=124 | 39% (33–46) n=195 |
-| 6th Street Recruits | attacked | 805 | 50% (45–55) n=356 | 846 → 728 | 14% | 52 / 318 / 435 | 65% (58–71) n=209 | 48% (39–57) n=113 | 43% (36–50) n=187 |
-| Pepe Najarro: Working Doubles | played | 638 | 48% (44–53) n=442 | 1008 → 634 | 37% | 236 / 219 / 183 | 65% (58–71) n=222 | 36% (29–44) n=154 | 40% (33–48) n=166 |
-| 6th Street Recruits | played | 630 | 49% (44–54) n=427 | 992 → 618 | 38% | 217 / 220 / 193 | 60% (53–66) n=226 | 35% (28–43) n=151 | 44% (36–51) n=163 |
-| Valentino Street Racer | played | 624 | 46% (42–51) n=418 | 1100 → 586 | 47% | 116 / 317 / 191 | 56% (49–62) n=225 | 29% (22–38) n=119 | 40% (33–48) n=167 |
-| Field Operator | attacked | 605 | 50% (45–56) n=315 | 762 → 525 | 31% | 9 / 191 / 405 | 67% (59–73) n=171 | 54% (44–64) n=87 | 36% (29–43) n=176 |
-| Valentino Street Racer | attacked | 604 | 50% (44–55) n=323 | 773 → 540 | 30% | 19 / 193 / 392 | 64% (57–70) n=205 | 48% (37–58) n=80 | 38% (31–46) n=151 |
-| Field Operator | played | 598 | 47% (42–52) n=406 | 1256 → 562 | 55% | 75 / 340 / 183 | 58% (52–65) n=214 | 30% (21–39) n=98 | 38% (31–46) n=164 |
-| Detonate | sold | 581 | 48% (43–53) n=410 | 894 → 581 | 35% | 265 / 170 / 146 | 60% (53–66) n=210 | 36% (28–44) n=149 | 41% (33–49) n=135 |
-| Padre: Man of the Cross | ability | 567 | 40% (35–46) n=359 | 1953 → 567 | 71% | 2 / 131 / 434 | 54% (47–60) n=222 | 17% (10–26) n=78 | 21% (15–28) n=164 |
-| Synapse Burnout | sold | 561 | 50% (45–54) n=405 | 892 → 561 | 37% | 275 / 142 / 144 | 61% (54–67) n=211 | 42% (34–50) n=134 | 43% (35–52) n=134 |
-| Psycho Squad | attacked | 558 | 52% (45–58) n=262 | 632 → 534 | 16% | 44 / 230 / 284 | 68% (60–75) n=158 | 53% (43–64) n=86 | 41% (33–50) n=117 |
-| Wakako Okada: Peace and Harmony | ability | 541 | 40% (35–45) n=344 | 1987 → 541 | 73% | 2 / 129 / 410 | 52% (46–58) n=233 | 13% (7–22) n=71 | 13% (8–19) n=140 |
-| Nocturne OP55 N1 | sold | 422 | 49% (44–55) n=341 | 1520 → 422 | 72% | 41 / 211 / 170 | 61% (53–68) n=158 | 43% (32–55) n=70 | 42% (34–49) n=154 |
-| Adam Smasher: Ender of Legends | called | 402 | 51% (46–56) n=402 | 402 → 402 | 0% | 188 / 129 / 85 | 55% (49–61) n=293 | 33% (22–46) n=52 | 46% (33–58) n=57 |
-
-(30 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 15522 | 8% | 0 / 968 / 4058 / 5785 / 4524 / 187 |
-| gig/steal | 3084 | 33% | 183 / 577 / 1428 / 879 / 17 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1473 | 60% | 0 / 899 / 560 / 14 / 0 / 0 |
-| mode/mode | 1267 | 75% | 0 / 1061 / 206 / 0 / 0 / 0 |
-| gigValue/adjust | 730 | 10% | 0 / 0 / 3 / 41 / 444 / 242 |
-| unit/adrenaline | 579 | 55% | 222 / 186 / 168 / 3 / 0 / 0 |
-| unit/weaken | 578 | 61% | 170 / 194 / 208 / 6 / 0 / 0 |
-| mulligan | 560 | 6% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gigValue/setGig | 552 | 9% | 0 / 0 / 6 / 61 / 158 / 327 |
-| unit/equip | 539 | 91% | 36 / 163 / 269 / 71 / 0 / 0 |
-| unit/spend | 514 | 67% | 233 / 159 / 121 / 1 / 0 / 0 |
-| unit/defeat | 328 | 33% | 14 / 48 / 228 / 38 / 0 / 0 |
-| card/freePlay | 229 | 80% | 0 / 134 / 91 / 4 / 0 / 0 |
-| unit/cantAttack | 178 | 44% | 37 / 68 / 70 / 3 / 0 / 0 |
-| card/playFree | 119 | 92% | 0 / 79 / 40 / 0 / 0 / 0 |
-| unit/ready | 92 | 100% | 0 / 92 / 0 / 0 / 0 / 0 |
-| unit/call | 63 | 100% | 0 / 32 / 31 / 0 / 0 / 0 |
-| card/discard | 59 | 46% | 12 / 17 / 28 / 2 / 0 / 0 |
-| unit/pump | 55 | 69% | 9 / 17 / 29 / 0 / 0 / 0 |
-| unit/sacrifice | 54 | 89% | 37 / 12 / 5 / 0 / 0 / 0 |
-| card/defeat | 28 | 89% | 24 / 4 / 0 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1332 attacks. Reacted to 517 (deck won 37% (32–42) n=361): stole 291, stoleNothing 5, attackerGone 37, targetGone 147, bothGone 36, noneGone 1. Let 815 resolve (44% (39–49) n=332): stole 510, stoleNothing 3, attackerGone 2, targetGone 263, bothGone 37. Choices: call 372, endReact 880, play 129, block 92.
-
-## RRB Wakako Midrange — 560 games, 42% won, 27000 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 1013 | 46% (41–51) n=362 | 1087 → 882 | 19% | 89 / 416 / 508 | 63% (56–69) n=190 | 44% (36–52) n=143 | 42% (36–49) n=239 |
-| Psycho Squad | attacked | 642 | 51% (45–57) n=271 | 767 → 605 | 21% | 49 / 247 / 346 | 71% (63–78) n=128 | 46% (36–56) n=98 | 43% (36–50) n=181 |
-| Wakako Okada: Peace and Harmony | ability | 591 | 40% (35–45) n=384 | 1885 → 591 | 69% | 18 / 154 / 419 | 56% (50–63) n=229 | 20% (13–30) n=79 | 15% (10–21) n=172 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 575 | 51% (45–57) n=296 | 550 → 501 | 9% | 0 / 0 / 575 | 81% (73–86) n=139 | 65% (52–75) n=62 | 37% (31–44) n=190 |
-| Yorinobu Arasaka: Steel Dragon | played | 568 | 44% (40–49) n=413 | 699 → 568 | 19% | 0 / 282 / 286 | 59% (51–66) n=166 | 45% (34–57) n=69 | 34% (28–40) n=247 |
-| Jacked-In Voodoo Boy | played | 552 | 38% (34–43) n=403 | 935 → 512 | 45% | 283 / 156 / 113 | 49% (42–55) n=226 | 27% (20–35) n=136 | 26% (18–35) n=100 |
-| 6th Street Recruits | played | 542 | 44% (39–49) n=388 | 826 → 541 | 35% | 291 / 160 / 91 | 57% (49–63) n=191 | 36% (29–44) n=169 | 38% (30–48) n=107 |
-| Detonate | sold | 522 | 40% (36–45) n=371 | 691 → 522 | 24% | 275 / 118 / 129 | 52% (45–60) n=183 | 33% (26–41) n=142 | 26% (19–34) n=120 |
-| Dexter DeShawn: Off the Grid | ability | 512 | 39% (34–44) n=344 | 1903 → 512 | 73% | 6 / 125 / 381 | 57% (50–64) n=197 | 21% (13–32) n=70 | 14% (10–21) n=152 |
-| Floor It | sold | 437 | 44% (39–49) n=331 | 870 → 437 | 50% | 167 / 156 / 114 | 52% (44–60) n=150 | 40% (32–49) n=112 | 35% (27–44) n=119 |
-| Dexter DeShawn: Off the Grid | called | 417 | 44% (39–49) n=417 | 417 → 417 | 0% | 174 / 172 / 71 | 52% (46–58) n=246 | 27% (19–38) n=77 | 37% (28–47) n=94 |
-| Adam Smasher: Ender of Legends | called | 410 | 47% (42–51) n=410 | 410 → 410 | 0% | 156 / 147 / 107 | 53% (47–59) n=276 | 38% (26–51) n=56 | 29% (21–40) n=78 |
-| Nocturne OP55 N1 | sold | 404 | 44% (39–50) n=324 | 1122 → 404 | 64% | 90 / 186 / 128 | 51% (43–59) n=146 | 37% (27–48) n=78 | 44% (36–52) n=144 |
-| Wakako Okada: Peace and Harmony | called | 399 | 45% (40–50) n=399 | 399 → 399 | 0% | 168 / 147 / 84 | 54% (48–60) n=242 | 34% (24–45) n=74 | 28% (19–38) n=83 |
-| Mantis Blades | sold | 390 | 42% (37–48) n=326 | 598 → 390 | 35% | 228 / 55 / 107 | 53% (45–61) n=152 | 42% (33–50) n=125 | 23% (15–33) n=82 |
-
-(32 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 264 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14108 | 8% | 0 / 1213 / 4018 / 6093 / 2739 / 45 |
-| gig/steal | 2622 | 28% | 166 / 412 / 1099 / 933 / 12 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1728 | 64% | 0 / 1170 / 539 / 19 / 0 / 0 |
-| gigValue/adjust | 1432 | 8% | 0 / 10 / 32 / 135 / 889 / 366 |
-| mode/mode | 1198 | 83% | 0 / 1061 / 137 / 0 / 0 / 0 |
-| unit/defeat | 592 | 67% | 262 / 143 / 174 / 13 / 0 / 0 |
-| mulligan | 560 | 18% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/weaken | 555 | 70% | 230 / 179 / 140 / 6 / 0 / 0 |
-| card/playFree | 462 | 78% | 0 / 226 / 229 / 7 / 0 / 0 |
-| unit/pump | 417 | 57% | 128 / 156 / 129 / 4 / 0 / 0 |
-| unit/equip | 374 | 85% | 49 / 106 / 173 / 46 / 0 / 0 |
-| card/freePlay | 219 | 74% | 0 / 111 / 101 / 7 / 0 / 0 |
-| unit/cantAttack | 126 | 69% | 67 / 43 / 15 / 1 / 0 / 0 |
-| card/discard | 119 | 79% | 13 / 75 / 31 / 0 / 0 / 0 |
-| unit/bottomdeck | 80 | 55% | 10 / 20 / 49 / 1 / 0 / 0 |
-| card/search | 52 | 44% | 0 / 16 / 32 / 4 / 0 / 0 |
-| unit/sacrifice | 51 | 82% | 33 / 9 / 8 / 1 / 0 / 0 |
-| unit/call | 36 | 100% | 0 / 5 / 31 / 0 / 0 / 0 |
-| card/defeat | 19 | 95% | 16 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 2 | 0% | 0 / 1 / 1 / 0 / 0 / 0 |
-| yesno/draw | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1558 attacks. Reacted to 544 (deck won 34% (30–39) n=381): stole 238, stoleNothing 3, attackerGone 34, targetGone 240, bothGone 29. Let 1014 resolve (39% (35–44) n=371): stole 740, stoleNothing 11, attackerGone 1, targetGone 221, bothGone 41. Choices: call 327, endReact 1103, block 243, play 55.
-
-## RRG Dexter Midrange — 560 games, 69% won, 24950 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 842 | 79% (74–83) n=331 | 778 → 745 | 4% | 0 / 230 / 612 | 89% (85–93) n=218 | 78% (66–87) n=60 | 74% (67–79) n=220 |
-| 6th Street Recruits | attacked | 769 | 70% (65–75) n=338 | 898 → 713 | 21% | 79 / 311 / 379 | 81% (75–86) n=193 | 63% (54–72) n=112 | 68% (61–74) n=193 |
-| Pepe Najarro: Working Doubles | attacked | 758 | 70% (65–75) n=323 | 915 → 700 | 23% | 76 / 346 / 336 | 82% (76–87) n=189 | 65% (55–73) n=108 | 69% (62–75) n=189 |
-| Dexter DeShawn: Off the Grid | ability | 551 | 63% (58–68) n=354 | 1863 → 551 | 70% | 13 / 117 / 421 | 77% (71–82) n=254 | 33% (22–46) n=58 | 37% (30–46) n=134 |
-| Animals Wrecker | played | 549 | 74% (69–78) n=388 | 724 → 549 | 24% | 0 / 380 / 169 | 82% (75–87) n=163 | 68% (57–78) n=73 | 71% (64–76) n=225 |
-| Synapse Burnout | sold | 510 | 70% (65–74) n=374 | 806 → 510 | 37% | 240 / 161 / 109 | 77% (71–83) n=190 | 59% (50–67) n=122 | 69% (61–76) n=139 |
-| 6th Street Recruits | played | 499 | 68% (63–72) n=373 | 954 → 492 | 48% | 275 / 99 / 125 | 76% (69–81) n=189 | 58% (50–65) n=159 | 59% (48–68) n=92 |
-| Detonate | sold | 494 | 70% (65–74) n=373 | 761 → 494 | 35% | 236 / 160 / 98 | 78% (71–83) n=180 | 61% (52–69) n=127 | 70% (61–77) n=126 |
-| Pepe Najarro: Working Doubles | played | 492 | 66% (61–71) n=372 | 883 → 486 | 45% | 293 / 82 / 117 | 79% (72–84) n=180 | 55% (48–63) n=161 | 53% (43–63) n=89 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 489 | 81% (76–85) n=289 | 483 → 458 | 5% | 0 / 0 / 489 | 91% (86–94) n=180 | 83% (70–91) n=52 | 74% (67–81) n=152 |
-| Yorinobu Arasaka: Steel Dragon | played | 462 | 76% (72–80) n=367 | 578 → 462 | 20% | 0 / 254 / 208 | 83% (75–89) n=124 | 72% (58–82) n=53 | 72% (66–78) n=219 |
-| Adam Smasher: Ender of Legends | called | 450 | 69% (65–73) n=450 | 450 → 450 | 0% | 224 / 118 / 108 | 73% (68–77) n=333 | 55% (41–68) n=51 | 64% (52–74) n=66 |
-| Saburo Arasaka: Stubborn Patriarch | called | 446 | 69% (65–73) n=446 | 446 → 446 | 0% | 238 / 122 / 86 | 76% (71–81) n=310 | 45% (33–57) n=62 | 59% (48–70) n=74 |
-| Dexter DeShawn: Off the Grid | called | 433 | 71% (67–75) n=433 | 433 → 433 | 0% | 232 / 121 / 80 | 78% (73–82) n=295 | 57% (45–69) n=63 | 59% (47–69) n=75 |
-| Peace Offering | sold | 433 | 69% (64–74) n=351 | 963 → 433 | 55% | 179 / 163 / 91 | 77% (70–83) n=160 | 55% (46–64) n=109 | 73% (64–80) n=125 |
+| Pepe Najarro: Working Doubles | attacked | 982 | 57% (52–62) n=369 | 983 → 855 | 13% | 107 / 400 / 475 | 72% (66–78) n=246 | 56% (48–64) n=147 | 39% (32–47) n=165 |
+| Alt Cunningham: Soulkiller Architect | ability | 849 | 48% (44–53) n=454 | 1741 → 827 | 52% | 7 / 183 / 659 | 62% (56–67) n=320 | 40% (30–50) n=91 | 9% (5–13) n=199 |
+| Jacked-In Voodoo Boy | attacked | 837 | 57% (52–62) n=368 | 805 → 696 | 14% | 75 / 293 / 469 | 70% (64–75) n=267 | 60% (50–69) n=92 | 28% (21–36) n=127 |
+| Jacked-In Voodoo Boy | played | 792 | 54% (49–58) n=471 | 1071 → 728 | 32% | 306 / 223 / 263 | 62% (56–67) n=333 | 45% (37–53) n=151 | 29% (21–40) n=85 |
+| Pepe Najarro: Working Doubles | played | 735 | 54% (49–58) n=456 | 1012 → 721 | 29% | 266 / 220 / 249 | 64% (58–69) n=270 | 51% (43–58) n=186 | 24% (17–32) n=110 |
+| Maman Brigitte: Spirit of Death | played | 701 | 54% (49–58) n=456 | 947 → 695 | 27% | 215 / 200 / 286 | 65% (59–70) n=280 | 50% (42–57) n=169 | 27% (20–36) n=118 |
+| Maman Brigitte: Spirit of Death | attacked | 657 | 58% (53–63) n=358 | 735 → 600 | 18% | 0 / 303 / 354 | 73% (67–78) n=228 | 61% (52–70) n=111 | 29% (22–38) n=121 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 584 | 39% (34–44) n=342 | 1674 → 584 | 65% | 6 / 130 / 448 | 51% (44–57) n=221 | 32% (22–44) n=66 | 9% (6–15) n=163 |
+| Floor It | sold | 459 | 50% (45–56) n=347 | 912 → 459 | 50% | 183 / 131 / 145 | 64% (56–70) n=181 | 50% (42–59) n=129 | 25% (17–35) n=84 |
+| Riot Shield | sold | 447 | 51% (45–56) n=366 | 514 → 447 | 13% | 219 / 89 / 139 | 60% (53–67) n=200 | 50% (41–58) n=135 | 24% (15–35) n=72 |
+| Jackie Welles: Pour One Out For Me | called | 429 | 56% (51–61) n=429 | 429 → 429 | 0% | 150 / 205 / 74 | 61% (55–66) n=305 | 51% (41–61) n=88 | 31% (18–47) n=36 |
+| Les Élémens | played | 423 | 59% (54–64) n=329 | 940 → 419 | 55% | 91 / 175 / 157 | 70% (63–76) n=194 | 57% (47–66) n=99 | 37% (27–49) n=70 |
+| Hanako Arasaka: Daughter of the Emperor | called | 421 | 56% (51–60) n=421 | 421 → 421 | 0% | 124 / 223 / 74 | 65% (59–70) n=294 | 40% (30–51) n=82 | 22% (13–36) n=45 |
+| Peace Offering | sold | 411 | 51% (46–57) n=323 | 856 → 411 | 52% | 203 / 85 / 123 | 64% (56–71) n=159 | 49% (41–58) n=130 | 28% (19–39) n=72 |
+| Alt Cunningham: Soulkiller Architect | called | 410 | 55% (50–60) n=410 | 410 → 410 | 0% | 142 / 212 / 56 | 64% (58–69) n=293 | 38% (28–49) n=84 | 18% (9–34) n=33 |
 
 (28 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13614 | 9% | 0 / 1204 / 3865 / 5603 / 2865 / 77 |
-| gig/steal | 3650 | 31% | 201 / 575 / 1800 / 1064 / 10 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1331 | 66% | 0 / 953 / 374 / 4 / 0 / 0 |
-| gigValue/adjust | 818 | 8% | 0 / 3 / 26 / 63 / 457 / 269 |
-| unit/defeat | 603 | 59% | 169 / 193 / 233 / 8 / 0 / 0 |
-| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 525 | 68% | 0 / 525 / 0 / 0 / 0 / 0 |
-| card/playFree | 426 | 78% | 0 / 167 / 249 / 10 / 0 / 0 |
-| unit/pump | 423 | 61% | 166 / 154 / 99 / 4 / 0 / 0 |
-| unit/equip | 363 | 87% | 43 / 103 / 190 / 27 / 0 / 0 |
-| gigValue/setGig | 105 | 11% | 0 / 0 / 6 / 22 / 31 / 46 |
-| unit/ready | 104 | 100% | 0 / 104 / 0 / 0 / 0 / 0 |
-| card/search | 59 | 73% | 0 / 29 / 27 / 3 / 0 / 0 |
-| card/discard | 50 | 52% | 15 / 20 / 15 / 0 / 0 / 0 |
-| unit/sacrifice | 50 | 80% | 29 / 14 / 7 / 0 / 0 / 0 |
-| card/defeat | 18 | 94% | 15 / 3 / 0 / 0 / 0 / 0 |
+| main | 14161 | 7% | 0 / 1016 / 3478 / 6133 / 3419 / 115 |
+| gig/steal | 2345 | 40% | 259 / 580 / 1083 / 421 / 2 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/bottomdeck | 1158 | 84% | 875 / 192 / 90 / 1 / 0 / 0 |
+| card/search | 1039 | 58% | 0 / 238 / 801 / 0 / 0 / 0 |
+| card/discard | 1035 | 43% | 157 / 313 / 533 / 32 / 0 / 0 |
+| react | 980 | 48% | 0 / 564 / 410 / 6 / 0 / 0 |
+| gigValue/adjust | 959 | 24% | 0 / 30 / 218 / 346 / 292 / 73 |
+| card/playFromTrash | 670 | 53% | 201 / 177 / 255 / 37 / 0 / 0 |
+| gig/swapGive | 584 | 35% | 18 / 32 / 268 / 265 / 1 / 0 |
+| gig/swapTake | 584 | 29% | 33 / 68 / 274 / 202 / 7 / 0 |
+| mulligan | 560 | 30% | 0 / 560 / 0 / 0 / 0 / 0 |
+| yesno/discardFor | 512 | 99% | 0 / 512 / 0 / 0 / 0 / 0 |
+| unit/ready | 319 | 100% | 0 / 214 / 105 / 0 / 0 / 0 |
+| mode/mode | 300 | 90% | 0 / 30 / 270 / 0 / 0 / 0 |
+| unit/weaken | 286 | 71% | 93 / 99 / 91 / 3 / 0 / 0 |
+| gigValue/setGig | 257 | 11% | 0 / 3 / 10 / 20 / 36 / 188 |
+| unit/adrenaline | 182 | 66% | 80 / 65 / 36 / 1 / 0 / 0 |
+| unit/cantAttack | 155 | 58% | 58 / 57 / 39 / 1 / 0 / 0 |
+| unit/stealMod | 118 | 64% | 26 / 43 / 48 / 1 / 0 / 0 |
+| unit/sacrifice | 55 | 89% | 41 / 8 / 5 / 1 / 0 / 0 |
+| unit/call | 41 | 100% | 0 / 16 / 25 / 0 / 0 / 0 |
+| unit/equip | 28 | 79% | 1 / 1 / 16 / 10 / 0 / 0 |
 | yesno/draw | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1221 attacks. Reacted to 399 (deck won 58% (52–63) n=285): stole 168, stoleNothing 1, attackerGone 42, targetGone 165, bothGone 22, noneGone 1. Let 822 resolve (68% (63–73) n=342): stole 594, stoleNothing 3, attackerGone 9, targetGone 170, bothGone 46. Choices: endReact 881, block 166, call 240, play 44.
+Reaction windows: 891 attacks. Reacted to 455 (deck won 46% (41–51) n=345): stole 259, stoleNothing 93, attackerGone 2, targetGone 93, bothGone 8. Let 436 resolve (42% (36–49) n=217): stole 324, stoleNothing 1, targetGone 107, bothGone 4. Choices: call 306, endReact 466, play 203, block 5.
 
-## RRY Smasher Aggro — 560 games, 54% won, 23481 decisions
+## Discord 5k #3: Smasher / River / Viktor (RYY) — 560 games, 55% won, 26558 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 700 | 65% (60–71) n=298 | 638 → 622 | 3% | 0 / 178 / 522 | 81% (74–86) n=160 | 81% (70–88) n=72 | 58% (51–65) n=191 |
-| Rockn' Rockerboy | attacked | 585 | 62% (56–67) n=273 | 625 → 555 | 11% | 0 / 293 / 292 | 72% (64–78) n=163 | 70% (58–79) n=66 | 54% (45–62) n=142 |
-| 6th Street Recruits | attacked | 552 | 57% (52–63) n=291 | 664 → 522 | 21% | 72 / 201 / 279 | 78% (70–84) n=139 | 51% (42–61) n=105 | 48% (41–56) n=159 |
-| La Llorona: Ghost of the Past | played | 468 | 54% (49–59) n=359 | 1218 → 440 | 64% | 82 / 172 / 214 | 66% (58–73) n=167 | 47% (38–56) n=114 | 43% (35–52) n=127 |
-| Animals Wrecker | played | 465 | 60% (55–65) n=355 | 610 → 465 | 24% | 0 / 313 / 152 | 71% (63–78) n=149 | 62% (51–72) n=74 | 49% (42–56) n=175 |
-| 6th Street Recruits | played | 454 | 56% (51–61) n=347 | 1019 → 448 | 56% | 207 / 115 / 132 | 64% (56–70) n=170 | 48% (40–56) n=150 | 48% (38–59) n=87 |
-| Detonate | sold | 453 | 52% (47–58) n=349 | 584 → 453 | 22% | 253 / 93 / 107 | 61% (54–68) n=179 | 45% (36–54) n=118 | 42% (33–52) n=99 |
-| Bonnie and Clyde | sold | 438 | 54% (48–59) n=336 | 1216 → 438 | 64% | 75 / 193 / 170 | 69% (61–75) n=160 | 51% (40–62) n=76 | 40% (33–49) n=146 |
-| Rockn' Rockerboy | played | 426 | 57% (51–62) n=342 | 762 → 426 | 44% | 197 / 111 / 118 | 69% (62–75) n=184 | 49% (40–58) n=112 | 37% (28–47) n=100 |
-| Meredith Stout: Stone Cold Corpo | played | 414 | 52% (47–57) n=321 | 1222 → 406 | 67% | 88 / 105 / 221 | 65% (57–73) n=130 | 45% (35–55) n=98 | 41% (33–50) n=138 |
-| V: Streetkid | attacked | 403 | 43% (37–49) n=261 | 468 → 403 | 14% | 57 / 103 / 243 | 55% (47–63) n=148 | 54% (40–67) n=48 | 28% (20–37) n=109 |
-| Dum Dum: Maelstrom Triggerman | called | 398 | 53% (48–58) n=398 | 398 → 398 | 0% | 139 / 145 / 114 | 62% (56–68) n=269 | 39% (28–52) n=59 | 29% (19–40) n=70 |
-| Adam Smasher: Ender of Legends | called | 396 | 56% (51–61) n=396 | 396 → 396 | 0% | 134 / 143 / 119 | 63% (57–68) n=269 | 47% (33–61) n=47 | 38% (28–48) n=80 |
-| Zetatech Faceplate | sold | 395 | 54% (49–60) n=310 | 800 → 395 | 51% | 141 / 133 / 121 | 64% (56–71) n=148 | 53% (43–63) n=92 | 43% (34–52) n=107 |
-| V: Streetkid | called | 392 | 53% (48–57) n=392 | 392 → 392 | 0% | 143 / 143 / 106 | 61% (55–66) n=265 | 35% (23–50) n=48 | 35% (26–46) n=79 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 755 | 70% (64–75) n=274 | 536 → 500 | 7% | 0 / 130 / 625 | 87% (80–91) n=157 | 85% (75–92) n=62 | 57% (49–65) n=152 |
+| Meredith Stout: Stone Cold Corpo | played | 583 | 55% (50–60) n=423 | 1152 → 576 | 50% | 195 / 199 / 189 | 68% (61–74) n=210 | 44% (37–52) n=165 | 43% (35–52) n=132 |
+| MaxTac Suppression Team | attacked | 518 | 61% (54–67) n=218 | 567 → 492 | 13% | 0 / 233 / 285 | 75% (67–81) n=140 | 67% (55–77) n=66 | 48% (39–57) n=117 |
+| Zetatech Faceplate | sold | 484 | 60% (55–65) n=360 | 1435 → 484 | 66% | 84 / 200 / 200 | 68% (61–75) n=186 | 57% (47–67) n=89 | 51% (43–59) n=140 |
+| Johnny Silverhand: Never Stop Fighting | played | 463 | 61% (56–66) n=376 | 1006 → 463 | 54% | 0 / 248 / 215 | 72% (65–78) n=184 | 61% (50–72) n=70 | 50% (42–57) n=167 |
+| Meredith Stout: Stone Cold Corpo | attacked | 458 | 57% (51–64) n=232 | 745 → 426 | 43% | 53 / 149 / 256 | 73% (65–79) n=143 | 49% (39–60) n=83 | 46% (36–56) n=90 |
+| Mantis Blades | sold | 435 | 54% (48–59) n=339 | 741 → 435 | 41% | 235 / 84 / 116 | 65% (57–72) n=164 | 47% (39–55) n=130 | 40% (30–50) n=88 |
+| Adam Smasher: Ender of Legends | called | 433 | 55% (50–59) n=433 | 433 → 433 | 0% | 184 / 131 / 118 | 64% (58–69) n=261 | 42% (33–52) n=98 | 39% (29–51) n=74 |
+| River Ward: Detective on the Hunt | called | 428 | 54% (49–59) n=428 | 434 → 428 | 1% | 169 / 161 / 98 | 67% (61–72) n=266 | 37% (28–47) n=95 | 30% (20–42) n=67 |
+| Arasaka Emergency Radioport | sold | 426 | 52% (47–57) n=345 | 869 → 426 | 51% | 141 / 134 / 151 | 68% (60–75) n=156 | 51% (42–61) n=105 | 30% (23–39) n=126 |
+| Adam Smasher: Ender of Legends | attacked | 425 | 53% (47–58) n=318 | 459 → 425 | 7% | 0 / 0 / 425 | 87% (81–92) n=141 | 69% (55–79) n=54 | 26% (20–33) n=175 |
+| Mandibular Upgrade | sold | 425 | 54% (49–60) n=347 | 476 → 425 | 11% | 209 / 94 / 122 | 69% (61–75) n=166 | 43% (35–52) n=122 | 41% (31–52) n=85 |
+| Viktor Vektor: Sit Down and Relax | called | 400 | 54% (49–59) n=400 | 411 → 400 | 3% | 155 / 140 / 105 | 66% (60–71) n=242 | 37% (27–48) n=76 | 35% (26–46) n=82 |
+| Sketchy Ripper | played | 382 | 54% (48–59) n=318 | 646 → 373 | 42% | 223 / 73 / 86 | 68% (61–75) n=177 | 41% (33–50) n=114 | 27% (17–41) n=51 |
+| Sketchy Ripper | attacked | 382 | 58% (51–64) n=215 | 616 → 363 | 41% | 95 / 147 / 140 | 71% (62–78) n=136 | 55% (41–67) n=53 | 42% (32–52) n=84 |
+
+(38 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14157 | 9% | 0 / 1119 / 3676 / 6253 / 3031 / 78 |
+| gig/steal | 2708 | 36% | 230 / 468 / 1143 / 857 / 10 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1913 | 63% | 0 / 1074 / 821 / 18 / 0 / 0 |
+| unit/equip | 1365 | 71% | 229 / 252 / 737 / 147 / 0 / 0 |
+| card/search | 1187 | 70% | 0 / 495 / 680 / 12 / 0 / 0 |
+| gigValue/adjust | 861 | 26% | 0 / 0 / 77 / 156 / 451 / 177 |
+| mulligan | 560 | 23% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 412 | 43% | 85 / 82 / 223 / 22 / 0 / 0 |
+| card/playFree | 308 | 84% | 162 / 100 / 45 / 1 / 0 / 0 |
+| card/trash | 302 | 49% | 0 / 302 / 0 / 0 / 0 / 0 |
+| card/defeatGear | 194 | 18% | 0 / 103 / 87 / 4 / 0 / 0 |
+| unit/sacrifice | 161 | 63% | 65 / 54 / 42 / 0 / 0 / 0 |
+| card/discard | 55 | 35% | 7 / 12 / 34 / 2 / 0 / 0 |
+| yesno/draw | 46 | 100% | 0 / 46 / 0 / 0 / 0 / 0 |
+| unit/call | 41 | 100% | 0 / 10 / 31 / 0 / 0 / 0 |
+| unit/protect | 29 | 72% | 11 / 14 / 4 / 0 / 0 / 0 |
+| yesno/call | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 83% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1628 attacks. Reacted to 563 (deck won 50% (45–55) n=377): stole 197, attackerGone 27, targetGone 291, bothGone 46, noneGone 2. Let 1065 resolve (55% (50–59) n=407): stole 815, stoleNothing 12, attackerGone 15, targetGone 191, bothGone 32. Choices: endReact 1213, block 318, call 244, ability 109, play 29.
+
+## Discord 5k #4: Jackie / Alt / Hanako (BBG) — 560 games, 54% won, 28655 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 989 | 58% (53–62) n=404 | 1029 → 891 | 13% | 109 / 434 / 446 | 71% (66–76) n=275 | 60% (53–67) n=171 | 41% (34–48) n=178 |
+| Alt Cunningham: Soulkiller Architect | ability | 870 | 50% (45–54) n=469 | 1721 → 847 | 51% | 9 / 184 / 677 | 66% (61–71) n=314 | 40% (31–51) n=94 | 15% (11–20) n=222 |
+| Jacked-In Voodoo Boy | attacked | 786 | 58% (53–63) n=364 | 757 → 665 | 12% | 74 / 260 / 452 | 69% (64–75) n=261 | 55% (45–65) n=98 | 35% (27–44) n=128 |
+| Pepe Najarro: Working Doubles | played | 772 | 54% (50–59) n=478 | 1061 → 757 | 29% | 271 / 251 / 250 | 66% (60–71) n=279 | 50% (43–57) n=200 | 27% (20–35) n=119 |
+| Jacked-In Voodoo Boy | played | 758 | 56% (52–61) n=467 | 1027 → 702 | 32% | 304 / 226 / 228 | 65% (60–70) n=335 | 45% (37–54) n=141 | 22% (14–32) n=74 |
+| Maman Brigitte: Spirit of Death | played | 653 | 58% (53–62) n=440 | 940 → 648 | 31% | 194 / 205 / 254 | 70% (64–75) n=274 | 54% (46–62) n=143 | 34% (26–43) n=123 |
+| Maman Brigitte: Spirit of Death | attacked | 640 | 63% (58–68) n=342 | 712 → 588 | 17% | 0 / 253 / 387 | 78% (72–83) n=229 | 67% (57–76) n=92 | 37% (29–46) n=116 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 583 | 41% (36–47) n=355 | 1745 → 583 | 67% | 11 / 151 / 421 | 57% (51–63) n=229 | 29% (20–41) n=69 | 7% (4–12) n=163 |
+| Peace Offering | sold | 431 | 56% (50–61) n=339 | 884 → 431 | 51% | 208 / 115 / 108 | 65% (59–72) n=194 | 52% (43–61) n=117 | 29% (20–40) n=73 |
+| Riot Shield | sold | 431 | 55% (50–60) n=337 | 496 → 431 | 13% | 213 / 81 / 137 | 65% (58–71) n=189 | 50% (41–59) n=120 | 26% (17–37) n=74 |
+| Alt Cunningham: Soulkiller Architect | called | 425 | 56% (51–61) n=425 | 425 → 425 | 0% | 127 / 221 / 77 | 64% (58–69) n=293 | 44% (34–55) n=84 | 29% (18–43) n=48 |
+| Jackie Welles: Pour One Out For Me | called | 418 | 56% (51–61) n=418 | 418 → 418 | 0% | 134 / 209 / 75 | 62% (57–68) n=311 | 45% (35–57) n=77 | 20% (10–37) n=30 |
+| Trust No One | sold | 416 | 51% (46–57) n=317 | 826 → 416 | 50% | 151 / 115 / 150 | 64% (57–71) n=168 | 53% (44–61) n=116 | 27% (19–38) n=84 |
+| Les Élémens | played | 416 | 58% (52–63) n=323 | 947 → 410 | 57% | 107 / 153 / 156 | 73% (66–79) n=179 | 52% (42–62) n=94 | 35% (26–45) n=91 |
+| Hanako Arasaka: Daughter of the Emperor | called | 411 | 57% (52–62) n=411 | 411 → 411 | 0% | 142 / 209 / 60 | 66% (61–71) n=298 | 39% (29–51) n=76 | 19% (9–34) n=37 |
+
+(30 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14116 | 7% | 0 / 1005 / 3585 / 6045 / 3369 / 112 |
+| gig/steal | 2297 | 40% | 219 / 564 / 1079 / 427 / 8 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| card/search | 1174 | 58% | 0 / 270 / 904 / 0 / 0 / 0 |
+| unit/bottomdeck | 1152 | 84% | 874 / 170 / 107 / 1 / 0 / 0 |
+| gigValue/adjust | 1021 | 23% | 0 / 29 / 228 / 361 / 336 / 67 |
+| card/discard | 993 | 46% | 158 / 313 / 476 / 45 / 1 / 0 |
+| react | 978 | 50% | 0 / 585 / 389 / 4 / 0 / 0 |
+| card/playFromTrash | 693 | 54% | 198 / 184 / 272 / 38 / 1 / 0 |
+| gig/swapGive | 583 | 35% | 16 / 31 / 287 / 249 / 0 / 0 |
+| gig/swapTake | 583 | 35% | 38 / 86 / 251 / 202 / 6 / 0 |
+| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
+| yesno/discardFor | 489 | 99% | 0 / 489 / 0 / 0 / 0 / 0 |
+| unit/ready | 339 | 100% | 0 / 230 / 109 / 0 / 0 / 0 |
+| mode/mode | 260 | 91% | 0 / 23 / 237 / 0 / 0 / 0 |
+| gigValue/setGig | 249 | 13% | 0 / 2 / 8 / 22 / 47 / 170 |
+| unit/weaken | 229 | 73% | 91 / 80 / 55 / 3 / 0 / 0 |
+| unit/adrenaline | 181 | 68% | 89 / 54 / 38 / 0 / 0 / 0 |
+| unit/cantAttack | 175 | 61% | 60 / 62 / 53 / 0 / 0 / 0 |
+| unit/stealMod | 133 | 62% | 22 / 52 / 59 / 0 / 0 / 0 |
+| unit/equip | 94 | 76% | 12 / 6 / 60 / 16 / 0 / 0 |
+| unit/call | 56 | 100% | 0 / 19 / 37 / 0 / 0 / 0 |
+| unit/sacrifice | 49 | 94% | 40 / 7 / 2 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| yesno/draw | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 903 attacks. Reacted to 445 (deck won 46% (41–51) n=336): stole 256, stoleNothing 98, attackerGone 1, targetGone 82, bothGone 8. Let 458 resolve (41% (35–48) n=226): stole 332, stoleNothing 1, targetGone 118, bothGone 7. Choices: endReact 487, play 177, call 309, block 5.
+
+## Discord 5k #5: V / Smasher / Padre (RRG) — 560 games, 58% won, 26448 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 760 | 63% (58–68) n=347 | 892 → 706 | 21% | 70 / 307 / 383 | 80% (74–86) n=174 | 62% (53–71) n=111 | 58% (51–64) n=206 |
+| 6th Street Recruits | attacked | 738 | 61% (55–66) n=330 | 901 → 674 | 25% | 71 / 296 / 371 | 77% (70–83) n=161 | 67% (58–75) n=106 | 57% (50–63) n=217 |
+| Animals Wrecker | attacked | 542 | 70% (64–75) n=236 | 524 → 504 | 4% | 0 / 136 / 406 | 87% (79–92) n=101 | 79% (68–88) n=63 | 65% (58–72) n=165 |
+| 6th Street Recruits | played | 517 | 57% (52–61) n=389 | 1003 → 508 | 49% | 253 / 126 / 138 | 66% (59–72) n=179 | 56% (48–63) n=166 | 43% (34–52) n=103 |
+| Peace Offering | sold | 513 | 54% (49–59) n=380 | 1005 → 513 | 49% | 199 / 185 / 129 | 57% (50–65) n=174 | 51% (42–60) n=119 | 51% (43–59) n=157 |
+| V: Streetkid | attacked | 511 | 44% (39–49) n=330 | 618 → 511 | 17% | 74 / 146 / 291 | 55% (48–62) n=194 | 60% (45–73) n=45 | 29% (22–37) n=146 |
+| Pepe Najarro: Working Doubles | played | 507 | 61% (56–65) n=383 | 1011 → 501 | 50% | 249 / 119 / 139 | 70% (63–77) n=176 | 54% (46–61) n=163 | 52% (43–62) n=103 |
+| Synapse Burnout | sold | 506 | 57% (52–62) n=372 | 733 → 506 | 31% | 287 / 107 / 112 | 60% (53–67) n=189 | 59% (51–67) n=139 | 51% (42–60) n=111 |
+| Padre: Man of the Cross | ability | 449 | 47% (42–53) n=305 | 1825 → 449 | 75% | 4 / 80 / 365 | 69% (62–76) n=183 | 26% (17–39) n=57 | 17% (12–24) n=129 |
+| Industrial Assembly | sold | 433 | 55% (50–60) n=333 | 926 → 433 | 53% | 123 / 192 / 118 | 67% (59–75) n=126 | 52% (43–61) n=111 | 45% (37–53) n=145 |
+| Memory Relapse | sold | 423 | 60% (54–65) n=332 | 1429 → 423 | 70% | 51 / 182 / 190 | 64% (56–72) n=142 | 73% (60–83) n=59 | 51% (44–59) n=164 |
+| Mantis Blades | sold | 419 | 57% (51–62) n=338 | 616 → 419 | 32% | 258 / 63 / 98 | 60% (53–68) n=167 | 57% (48–65) n=129 | 49% (38–60) n=80 |
+| Adam Smasher: Ender of Legends | called | 415 | 60% (55–64) n=415 | 415 → 415 | 0% | 185 / 132 / 98 | 67% (61–72) n=280 | 53% (41–65) n=66 | 35% (25–47) n=69 |
+| Meredith Stout: Stone Cold Corpo | played | 415 | 56% (50–61) n=317 | 1390 → 398 | 71% | 101 / 126 / 188 | 74% (66–81) n=117 | 56% (47–65) n=105 | 43% (35–51) n=136 |
+| V: Streetkid | called | 414 | 57% (52–62) n=414 | 414 → 414 | 0% | 198 / 120 / 96 | 60% (54–65) n=278 | 57% (45–69) n=61 | 47% (36–58) n=75 |
+
+(30 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1036 turns), Adam Smasher: Ender of Legends (Legend play, legal in 262 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14529 | 9% | 0 / 1116 / 3822 / 5212 / 4213 / 166 |
+| gig/steal | 3328 | 29% | 185 / 465 / 1473 / 1185 / 20 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1438 | 59% | 0 / 954 / 482 / 2 / 0 / 0 |
+| unit/defeat | 634 | 63% | 213 / 181 / 228 / 12 / 0 / 0 |
+| mulligan | 560 | 14% | 0 / 560 / 0 / 0 / 0 / 0 |
+| gigValue/setGig | 556 | 8% | 0 / 0 / 10 / 44 / 149 / 353 |
+| card/search | 553 | 59% | 158 / 185 / 173 / 36 / 1 / 0 |
+| mode/mode | 522 | 61% | 0 / 522 / 0 / 0 / 0 / 0 |
+| unit/spend | 456 | 78% | 268 / 124 / 64 / 0 / 0 / 0 |
+| unit/equip | 344 | 86% | 44 / 95 / 170 / 35 / 0 / 0 |
+| gigValue/adjust | 339 | 4% | 0 / 9 / 97 / 9 / 37 / 187 |
+| card/playFree | 316 | 64% | 0 / 49 / 227 / 40 / 0 / 0 |
+| unit/adrenaline | 260 | 70% | 132 / 85 / 43 / 0 / 0 / 0 |
+| unit/ready | 222 | 94% | 0 / 181 / 41 / 0 / 0 / 0 |
+| unit/sacrifice | 62 | 81% | 37 / 16 / 9 / 0 / 0 / 0 |
+| card/discard | 37 | 35% | 5 / 11 / 20 / 1 / 0 / 0 |
+| unit/pump | 35 | 69% | 5 / 19 / 11 / 0 / 0 / 0 |
+| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1315 attacks. Reacted to 532 (deck won 50% (45–55) n=368): stole 262, attackerGone 31, targetGone 210, bothGone 29. Let 783 resolve (58% (53–64) n=317): stole 523, stoleNothing 5, attackerGone 7, targetGone 212, bothGone 36. Choices: endReact 852, call 377, block 176, play 33.
+
+## Discord 5k #6: Jackie / Alt / Hanako (BBG) — 560 games, 48% won, 29131 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 966 | 53% (49–58) n=389 | 964 → 841 | 13% | 102 / 392 / 472 | 67% (61–73) n=246 | 56% (48–64) n=142 | 40% (33–47) n=179 |
+| Jacked-In Voodoo Boy | attacked | 794 | 47% (42–52) n=353 | 745 → 656 | 12% | 79 / 227 / 488 | 58% (52–64) n=236 | 45% (36–55) n=110 | 31% (24–39) n=147 |
+| Jacked-In Voodoo Boy | played | 745 | 45% (41–50) n=473 | 1051 → 698 | 34% | 297 / 207 / 241 | 55% (49–60) n=310 | 35% (28–42) n=153 | 23% (15–32) n=93 |
+| Alt Cunningham: Soulkiller Architect | ability | 734 | 42% (38–47) n=426 | 1773 → 717 | 60% | 7 / 163 / 564 | 57% (51–62) n=270 | 40% (30–50) n=81 | 11% (7–16) n=210 |
+| Pepe Najarro: Working Doubles | played | 700 | 51% (46–55) n=448 | 985 → 687 | 30% | 254 / 248 / 198 | 62% (55–67) n=260 | 44% (38–51) n=194 | 30% (22–39) n=106 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 566 | 35% (30–40) n=356 | 1769 → 566 | 68% | 6 / 130 / 430 | 49% (42–55) n=214 | 25% (17–36) n=76 | 9% (6–15) n=162 |
+| Peace Offering | sold | 518 | 47% (42–52) n=383 | 848 → 518 | 39% | 273 / 94 / 151 | 55% (48–62) n=202 | 48% (40–56) n=148 | 27% (19–37) n=96 |
+| Valentino Street Racer | played | 469 | 47% (42–52) n=373 | 760 → 449 | 41% | 125 / 172 / 172 | 58% (51–64) n=224 | 41% (32–51) n=105 | 22% (14–32) n=79 |
+| Trust No One | sold | 451 | 47% (42–53) n=341 | 798 → 451 | 43% | 180 / 116 / 155 | 56% (48–63) n=172 | 49% (41–58) n=132 | 23% (15–33) n=87 |
+| Hanako Arasaka: Daughter of the Emperor | called | 442 | 48% (43–52) n=442 | 442 → 442 | 0% | 148 / 221 / 73 | 53% (47–58) n=319 | 40% (30–51) n=85 | 21% (11–36) n=38 |
+| Nocturne OP55 N1 | sold | 433 | 45% (40–51) n=316 | 1099 → 433 | 61% | 142 / 159 / 132 | 53% (46–60) n=199 | 48% (37–58) n=86 | 21% (14–31) n=90 |
+| Maman Brigitte: Spirit of Death | attacked | 431 | 55% (49–61) n=261 | 518 → 413 | 20% | 0 / 183 / 248 | 69% (61–75) n=162 | 61% (48–72) n=59 | 31% (22–41) n=88 |
+| Valentino Street Racer | attacked | 429 | 52% (46–58) n=247 | 539 → 400 | 26% | 27 / 179 / 223 | 66% (59–73) n=157 | 51% (40–63) n=68 | 34% (25–45) n=90 |
+| Jackie Welles: Pour One Out For Me | called | 428 | 49% (44–53) n=428 | 428 → 428 | 0% | 176 / 176 / 76 | 54% (48–59) n=312 | 41% (31–52) n=82 | 21% (10–37) n=34 |
+| Alt Cunningham: Soulkiller Architect | called | 411 | 48% (43–53) n=411 | 411 → 411 | 0% | 147 / 197 / 67 | 56% (50–61) n=283 | 33% (24–43) n=88 | 25% (14–40) n=40 |
+
+(36 more card uses in the JSON report.)
+
+Legal but never taken: Jacked-In Voodoo Boy (reaction, legal in 14 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14724 | 7% | 0 / 1160 / 3620 / 6374 / 3452 / 118 |
+| gig/steal | 2534 | 39% | 242 / 581 / 1123 / 574 / 14 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1317 | 55% | 0 / 875 / 435 / 7 / 0 / 0 |
+| gigValue/adjust | 1191 | 22% | 0 / 42 / 309 / 432 / 348 / 60 |
+| card/search | 980 | 59% | 0 / 224 / 756 / 0 / 0 / 0 |
+| unit/bottomdeck | 904 | 87% | 699 / 137 / 68 / 0 / 0 / 0 |
+| card/discard | 636 | 47% | 106 / 223 / 289 / 18 / 0 / 0 |
+| gig/swapGive | 566 | 36% | 14 / 27 / 282 / 243 / 0 / 0 |
+| gig/swapTake | 566 | 31% | 32 / 87 / 239 / 202 / 6 / 0 |
+| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/playFromTrash | 504 | 61% | 194 / 152 / 142 / 16 / 0 / 0 |
+| unit/ready | 367 | 100% | 0 / 248 / 119 / 0 / 0 / 0 |
+| unit/adrenaline | 339 | 60% | 160 / 102 / 77 / 0 / 0 / 0 |
+| yesno/discardFor | 308 | 99% | 0 / 308 / 0 / 0 / 0 / 0 |
+| unit/mustAttack | 218 | 69% | 95 / 82 / 39 / 2 / 0 / 0 |
+| mode/mode | 214 | 91% | 0 / 20 / 194 / 0 / 0 / 0 |
+| gigValue/setGig | 210 | 14% | 0 / 0 / 7 / 20 / 29 / 154 |
+| unit/weaken | 208 | 67% | 76 / 60 / 69 / 3 / 0 / 0 |
+| card/freePlay | 184 | 61% | 0 / 45 / 119 / 20 / 0 / 0 |
+| unit/cantAttack | 130 | 53% | 29 / 55 / 44 / 2 / 0 / 0 |
+| unit/stealMod | 121 | 73% | 23 / 48 / 50 / 0 / 0 / 0 |
+| unit/sacrifice | 52 | 94% | 42 / 8 / 2 / 0 / 0 / 0 |
+| unit/call | 31 | 100% | 0 / 12 / 19 / 0 / 0 / 0 |
+| unit/equip | 15 | 87% | 0 / 1 / 10 / 4 / 0 / 0 |
+| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1201 attacks. Reacted to 524 (deck won 41% (36–46) n=366): stole 212, stoleNothing 86, attackerGone 3, targetGone 210, bothGone 13. Let 677 resolve (43% (38–49) n=296): stole 472, stoleNothing 1, targetGone 186, bothGone 18. Choices: call 304, play 135, block 148, endReact 730.
+
+## Discord 5k #7: Smasher / River / Viktor (RYY) — 560 games, 61% won, 25895 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 874 | 66% (61–71) n=320 | 874 → 799 | 9% | 0 / 382 / 492 | 79% (73–84) n=210 | 64% (53–73) n=86 | 57% (50–65) n=164 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 707 | 73% (67–78) n=263 | 490 → 452 | 8% | 0 / 113 / 594 | 89% (83–93) n=179 | 75% (64–84) n=68 | 57% (48–66) n=108 |
+| Arasaka Emergency Radioport | sold | 629 | 59% (55–64) n=446 | 1164 → 629 | 46% | 219 / 214 / 196 | 73% (67–79) n=214 | 53% (45–61) n=156 | 43% (35–50) n=155 |
+| Mandibular Upgrade | sold | 615 | 60% (55–65) n=422 | 690 → 615 | 11% | 313 / 130 / 172 | 74% (69–80) n=235 | 47% (39–55) n=156 | 43% (35–53) n=115 |
+| Meredith Stout: Stone Cold Corpo | played | 581 | 63% (59–68) n=412 | 1099 → 570 | 48% | 162 / 226 / 193 | 80% (74–85) n=202 | 49% (41–57) n=144 | 52% (44–60) n=142 |
+| 6th Street Recruits | attacked | 563 | 66% (60–72) n=250 | 630 → 539 | 14% | 67 / 231 / 265 | 80% (73–86) n=140 | 68% (58–77) n=91 | 53% (44–62) n=116 |
+| Zetatech Faceplate | sold | 519 | 59% (54–64) n=375 | 1500 → 519 | 65% | 112 / 191 / 216 | 71% (65–77) n=199 | 47% (37–56) n=101 | 46% (38–54) n=137 |
+| Rockn' Rockerboy | played | 518 | 62% (57–67) n=392 | 675 → 517 | 23% | 212 / 190 / 116 | 75% (68–80) n=224 | 52% (44–61) n=130 | 42% (33–51) n=105 |
+| Johnny Silverhand: Never Stop Fighting | played | 480 | 64% (59–69) n=365 | 954 → 480 | 50% | 0 / 249 / 231 | 82% (76–86) n=207 | 44% (33–56) n=68 | 43% (35–51) n=139 |
+| Secondhand Bombus | played | 462 | 55% (50–61) n=348 | 1411 → 442 | 69% | 63 / 223 / 176 | 67% (60–72) n=234 | 35% (25–48) n=65 | 36% (27–47) n=86 |
+| Meredith Stout: Stone Cold Corpo | attacked | 435 | 64% (58–70) n=236 | 678 → 417 | 38% | 41 / 150 / 244 | 80% (73–85) n=152 | 52% (41–63) n=73 | 46% (35–57) n=76 |
+| Adam Smasher: Ender of Legends | called | 433 | 60% (55–64) n=433 | 433 → 433 | 0% | 150 / 159 / 124 | 73% (67–77) n=284 | 31% (22–42) n=80 | 39% (28–51) n=69 |
+| Adam Smasher: Ender of Legends | attacked | 428 | 57% (51–62) n=325 | 459 → 428 | 7% | 0 / 0 / 428 | 83% (77–88) n=161 | 64% (51–76) n=56 | 27% (21–35) n=153 |
+| River Ward: Detective on the Hunt | called | 420 | 58% (53–62) n=420 | 445 → 420 | 6% | 144 / 160 / 116 | 71% (65–76) n=281 | 30% (20–41) n=71 | 34% (24–46) n=68 |
+| Mantis Blades | sold | 418 | 62% (57–67) n=340 | 747 → 418 | 44% | 209 / 98 / 111 | 78% (71–83) n=178 | 51% (42–60) n=110 | 38% (28–48) n=80 |
+
+(29 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 364 turns), Sketchy Ripper (reaction, legal in 7 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14139 | 9% | 0 / 1100 / 3654 / 6234 / 3068 / 83 |
+| gig/steal | 2759 | 38% | 299 / 530 / 1215 / 715 / 0 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1938 | 66% | 0 / 1109 / 822 / 7 / 0 / 0 |
+| unit/equip | 1316 | 73% | 214 / 266 / 707 / 129 / 0 / 0 |
+| card/search | 1226 | 66% | 0 / 420 / 795 / 11 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 515 | 13% | 0 / 0 / 1 / 45 / 291 / 178 |
+| unit/defeat | 337 | 42% | 34 / 89 / 198 / 16 / 0 / 0 |
+| card/playFree | 281 | 88% | 141 / 97 / 42 / 1 / 0 / 0 |
+| card/trash | 239 | 53% | 0 / 239 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 210 | 60% | 71 / 82 / 56 / 1 / 0 / 0 |
+| unit/call | 59 | 100% | 0 / 19 / 40 / 0 / 0 / 0 |
+| card/discard | 50 | 54% | 15 / 11 / 20 / 4 / 0 / 0 |
+| yesno/call | 17 | 100% | 0 / 17 / 0 / 0 / 0 / 0 |
+| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1681 attacks. Reacted to 556 (deck won 55% (50–60) n=377): stole 189, attackerGone 23, targetGone 323, bothGone 19, noneGone 2. Let 1125 resolve (59% (54–63) n=418): stole 864, stoleNothing 12, attackerGone 12, targetGone 178, bothGone 58, noneGone 1. Choices: call 245, endReact 1274, ability 72, block 347.
+
+## Discord 5k #8: V / Smasher / Saburo (RRG) — 560 games, 61% won, 24483 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 797 | 64% (59–69) n=351 | 930 → 732 | 21% | 92 / 268 / 437 | 82% (76–87) n=189 | 61% (53–69) n=124 | 52% (45–59) n=195 |
+| MaxTac AV | attacked | 569 | 74% (68–79) n=246 | 603 → 548 | 9% | 0 / 288 / 281 | 88% (82–92) n=149 | 71% (59–82) n=56 | 69% (61–76) n=148 |
+| V: Streetkid | attacked | 534 | 49% (44–55) n=312 | 643 → 534 | 17% | 49 / 210 / 275 | 65% (58–71) n=182 | 56% (43–68) n=57 | 33% (26–41) n=142 |
+| Detonate | sold | 523 | 60% (55–65) n=385 | 815 → 523 | 36% | 248 / 146 / 129 | 72% (65–78) n=190 | 53% (45–62) n=135 | 45% (37–54) n=127 |
+| Animals Wrecker | attacked | 506 | 76% (70–81) n=235 | 503 → 479 | 5% | 0 / 146 / 360 | 90% (83–94) n=125 | 86% (75–93) n=57 | 70% (62–77) n=154 |
+| Pepe Najarro: Working Doubles | played | 498 | 62% (57–67) n=376 | 954 → 492 | 48% | 261 / 134 / 103 | 73% (66–79) n=184 | 54% (47–62) n=169 | 50% (39–61) n=80 |
+| Arasaka Emergency Radioport | sold | 489 | 58% (53–63) n=373 | 795 → 489 | 38% | 218 / 132 / 139 | 67% (60–74) n=166 | 54% (46–63) n=127 | 48% (39–56) n=126 |
+| Yorinobu Arasaka: Steel Dragon | played | 482 | 67% (62–72) n=364 | 624 → 482 | 23% | 0 / 188 / 294 | 83% (76–88) n=149 | 66% (53–77) n=59 | 55% (48–61) n=209 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 443 | 77% (71–81) n=266 | 429 → 412 | 4% | 0 / 0 / 443 | 97% (93–99) n=138 | 84% (71–91) n=49 | 63% (55–71) n=142 |
+| V: Streetkid | called | 427 | 61% (56–65) n=427 | 427 → 427 | 0% | 182 / 170 / 75 | 68% (62–73) n=272 | 49% (38–60) n=78 | 48% (37–59) n=77 |
+| Peace Offering | sold | 427 | 64% (59–69) n=332 | 1120 → 427 | 62% | 124 / 197 / 106 | 72% (64–79) n=141 | 60% (49–69) n=94 | 60% (52–68) n=139 |
+| Adam Smasher: Ender of Legends | called | 426 | 62% (57–66) n=426 | 426 → 426 | 0% | 170 / 160 / 96 | 71% (66–76) n=275 | 49% (38–60) n=74 | 39% (29–50) n=77 |
+| Saburo Arasaka: Stubborn Patriarch | called | 419 | 61% (56–66) n=419 | 419 → 419 | 0% | 161 / 166 / 92 | 67% (61–72) n=290 | 53% (41–64) n=74 | 42% (30–55) n=55 |
+| Mantis Blades | sold | 392 | 65% (60–70) n=320 | 596 → 392 | 34% | 254 / 60 / 78 | 76% (68–82) n=147 | 53% (44–61) n=129 | 65% (54–75) n=80 |
+| Industrial Assembly | sold | 357 | 56% (50–62) n=292 | 935 → 357 | 62% | 73 / 151 / 133 | 66% (57–74) n=106 | 48% (38–59) n=83 | 53% (45–61) n=136 |
+
+(31 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1029 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13335 | 8% | 0 / 1231 / 3539 / 5179 / 3275 / 111 |
+| gig/steal | 3416 | 28% | 199 / 524 / 1493 / 1191 / 9 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1135 | 67% | 0 / 814 / 319 / 2 / 0 / 0 |
+| unit/ready | 656 | 76% | 0 / 337 / 316 / 3 / 0 / 0 |
+| unit/defeat | 637 | 61% | 190 / 205 / 233 / 9 / 0 / 0 |
+| mulligan | 560 | 33% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 540 | 62% | 172 / 192 / 155 / 20 / 1 / 0 |
+| card/playFree | 445 | 56% | 0 / 136 / 302 / 7 / 0 / 0 |
+| gig/swapGive | 326 | 33% | 0 / 19 / 268 / 36 / 3 / 0 |
+| gig/swapTake | 258 | 54% | 68 / 90 / 66 / 33 / 1 / 0 |
+| gigValue/adjust | 210 | 9% | 0 / 10 / 64 / 15 / 58 / 63 |
+| unit/equip | 191 | 86% | 38 / 68 / 76 / 9 / 0 / 0 |
+| gigValue/setGig | 156 | 13% | 0 / 0 / 7 / 19 / 33 / 97 |
+| unit/spend | 152 | 75% | 80 / 39 / 33 / 0 / 0 / 0 |
+| unit/sacrifice | 70 | 87% | 50 / 16 / 4 / 0 / 0 / 0 |
+| card/discard | 39 | 62% | 8 / 15 / 15 / 1 / 0 / 0 |
+| unit/call | 38 | 100% | 0 / 10 / 28 / 0 / 0 / 0 |
+| yesno/call | 38 | 100% | 0 / 38 / 0 / 0 / 0 / 0 |
+| card/defeat | 19 | 95% | 16 / 3 / 0 / 0 / 0 / 0 |
+| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1066 attacks. Reacted to 350 (deck won 58% (52–64) n=270): stole 165, stoleNothing 1, attackerGone 9, targetGone 155, bothGone 20. Let 716 resolve (60% (55–65) n=321): stole 554, stoleNothing 6, attackerGone 2, targetGone 122, bothGone 32. Choices: endReact 761, call 232, block 131, play 11.
+
+## Fills up Discard super quickly then heavily discounted Trauma Team Operatives and high power Rockerboys fill the board. — 560 games, 54% won, 25781 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 943 | 60% (55–65) n=341 | 955 → 824 | 14% | 0 / 418 / 525 | 74% (68–79) n=207 | 62% (52–72) n=93 | 52% (46–59) n=214 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 571 | 63% (57–69) n=227 | 432 → 389 | 10% | 0 / 86 / 485 | 82% (75–88) n=136 | 82% (69–90) n=50 | 49% (40–58) n=117 |
+| V: Streetkid | attacked | 546 | 48% (42–53) n=325 | 651 → 546 | 16% | 49 / 112 / 385 | 64% (56–71) n=168 | 57% (46–68) n=75 | 31% (24–38) n=160 |
+| Rockn' Rockerboy | played | 540 | 56% (51–60) n=394 | 699 → 540 | 23% | 242 / 163 / 135 | 69% (62–75) n=197 | 50% (42–58) n=141 | 40% (32–48) n=135 |
+| All is Lost | sold | 532 | 56% (51–61) n=379 | 625 → 532 | 15% | 272 / 117 / 143 | 68% (61–74) n=183 | 50% (42–57) n=163 | 49% (40–58) n=115 |
+| Shattered Memories | sold | 504 | 56% (51–61) n=381 | 1337 → 504 | 62% | 111 / 179 / 214 | 68% (60–74) n=154 | 57% (47–66) n=104 | 47% (39–54) n=178 |
+| Muamar Reyes: El Capitán | ability | 498 | 50% (45–55) n=326 | 1685 → 498 | 70% | 12 / 68 / 418 | 77% (70–82) n=182 | 37% (26–50) n=59 | 26% (19–33) n=156 |
+| 6th Street Recruits | attacked | 488 | 58% (52–65) n=236 | 605 → 463 | 23% | 67 / 172 / 249 | 78% (69–85) n=103 | 60% (50–70) n=91 | 51% (42–59) n=136 |
+| Trauma Team Operatives | attacked | 474 | 57% (51–64) n=230 | 459 → 402 | 12% | 3 / 85 / 386 | 75% (67–82) n=113 | 77% (65–85) n=64 | 42% (34–51) n=132 |
+| Trauma Team Operatives | played | 469 | 55% (50–60) n=339 | 1081 → 430 | 60% | 36 / 134 / 299 | 69% (62–76) n=156 | 54% (42–66) n=61 | 42% (35–50) n=164 |
+| Bonnie and Clyde | sold | 465 | 56% (51–61) n=351 | 1515 → 465 | 69% | 85 / 172 / 208 | 63% (56–70) n=161 | 57% (46–67) n=81 | 46% (38–53) n=162 |
+| Johnny Silverhand: Rocking Renegade | called | 419 | 53% (48–57) n=419 | 419 → 419 | 0% | 188 / 125 / 106 | 59% (53–65) n=268 | 39% (29–50) n=77 | 43% (33–55) n=74 |
+| V: Streetkid | called | 411 | 58% (53–62) n=411 | 411 → 411 | 0% | 186 / 119 / 106 | 69% (63–74) n=254 | 45% (34–56) n=76 | 36% (26–47) n=81 |
+| Johnny Silverhand: Never Stop Fighting | played | 392 | 56% (50–61) n=311 | 1070 → 392 | 63% | 0 / 173 / 219 | 81% (74–87) n=132 | 50% (36–64) n=46 | 41% (34–49) n=169 |
+| Muamar Reyes: El Capitán | called | 389 | 53% (49–58) n=389 | 389 → 389 | 0% | 157 / 125 / 107 | 64% (58–70) n=242 | 44% (32–56) n=62 | 29% (21–40) n=85 |
+
+(33 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1160 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14806 | 8% | 0 / 1235 / 3702 / 5076 / 4536 / 257 |
+| gig/steal | 3082 | 30% | 151 / 466 / 1332 / 1117 / 16 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1523 | 62% | 0 / 907 / 615 / 1 / 0 / 0 |
+| gigValue/adjust | 909 | 13% | 0 / 10 / 63 / 49 / 470 / 317 |
+| card/search | 850 | 71% | 233 / 317 / 280 / 18 / 2 / 0 |
+| mulligan | 560 | 31% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 516 | 75% | 0 / 516 / 0 / 0 / 0 / 0 |
+| unit/lagAttack | 381 | 80% | 56 / 114 / 205 / 6 / 0 / 0 |
+| unit/protect | 374 | 44% | 83 / 148 / 141 / 2 / 0 / 0 |
+| unit/defeat | 304 | 71% | 138 / 112 / 53 / 1 / 0 / 0 |
+| card/defeatGear | 84 | 90% | 0 / 68 / 16 / 0 / 0 / 0 |
+| unit/sacrifice | 59 | 86% | 34 / 11 / 14 / 0 / 0 / 0 |
+| card/discard | 43 | 42% | 6 / 8 / 24 / 5 / 0 / 0 |
+| yesno/draw | 33 | 100% | 0 / 33 / 0 / 0 / 0 / 0 |
+| card/defeat | 10 | 100% | 9 / 1 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1350 attacks. Reacted to 489 (deck won 47% (42–52) n=364): stole 196, attackerGone 10, targetGone 223, bothGone 16, noneGone 44. Let 861 resolve (57% (51–62) n=344): stole 630, stoleNothing 6, attackerGone 2, targetGone 207, bothGone 16. Choices: call 334, endReact 943, block 240, play 6.
+
+## Gear'n'Go — 560 games, 34% won, 23406 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Goro Takemura: Hands Unclean | attacked | 736 | 34% (30–39) n=443 | 995 → 736 | 26% | 51 / 246 / 439 | 53% (47–60) n=227 | 37% (28–48) n=86 | 24% (19–30) n=217 |
+| Dexter DeShawn: One Last Chance | attacked | 696 | 38% (33–44) n=321 | 857 → 613 | 28% | 51 / 270 / 375 | 60% (52–68) n=145 | 50% (40–60) n=102 | 25% (19–31) n=197 |
+| Corpo Security | played | 595 | 34% (30–39) n=414 | 960 → 565 | 41% | 248 / 182 / 165 | 45% (39–51) n=231 | 21% (15–29) n=118 | 24% (18–31) n=155 |
+| Corporate Surveillance | sold | 590 | 33% (29–38) n=417 | 1096 → 590 | 46% | 203 / 209 / 178 | 43% (37–50) n=196 | 29% (22–37) n=138 | 22% (17–29) n=167 |
+| Dexter DeShawn: One Last Chance | played | 588 | 35% (31–40) n=412 | 761 → 568 | 25% | 252 / 168 / 168 | 49% (42–55) n=202 | 30% (24–38) n=158 | 20% (14–27) n=136 |
+| Mandibular Upgrade | sold | 576 | 33% (29–38) n=417 | 686 → 576 | 16% | 314 / 124 / 138 | 40% (33–47) n=189 | 31% (24–38) n=163 | 19% (14–27) n=134 |
+| Riot Shield | sold | 540 | 34% (29–39) n=392 | 950 → 540 | 43% | 226 / 181 / 133 | 45% (38–52) n=191 | 29% (22–37) n=128 | 20% (14–27) n=142 |
+| Caliber: Totentanz's Top Dog | played | 520 | 33% (28–38) n=384 | 1163 → 520 | 55% | 91 / 182 / 247 | 47% (40–54) n=184 | 27% (18–38) n=78 | 17% (13–23) n=191 |
+| Goro Takemura: Losing His Way | played | 515 | 29% (25–34) n=376 | 1345 → 502 | 63% | 133 / 145 / 237 | 42% (35–49) n=175 | 24% (17–33) n=111 | 16% (11–22) n=159 |
+| Goro Takemura: Hands Unclean | Go Solo (self-paid 501) | 501 | 33% (29–37) n=501 | 818 → 501 | 39% | 77 / 225 / 199 | 44% (37–52) n=178 | 31% (22–41) n=91 | 24% (19–30) n=232 |
+| Caliber: Totentanz's Top Dog | attacked | 500 | 36% (31–42) n=278 | 549 → 472 | 14% | 0 / 181 / 319 | 60% (51–68) n=123 | 46% (33–58) n=57 | 21% (16–28) n=164 |
+| Goro Takemura: Losing His Way | attacked | 485 | 33% (28–39) n=259 | 542 → 452 | 17% | 28 / 168 / 289 | 58% (48–67) n=107 | 40% (30–52) n=72 | 22% (16–29) n=158 |
+| Sandevistan | sold | 479 | 32% (27–37) n=349 | 932 → 479 | 49% | 212 / 126 / 141 | 40% (33–47) n=176 | 33% (24–43) n=94 | 16% (11–22) n=141 |
+| Goro Takemura: Hands Unclean | called | 411 | 35% (31–40) n=411 | 411 → 411 | 0% | 212 / 132 / 67 | 41% (35–48) n=218 | 30% (23–39) n=116 | 26% (17–37) n=77 |
+| Panam Palmer: Nomad Cavalry | called | 391 | 36% (32–41) n=391 | 391 → 391 | 0% | 179 / 129 / 83 | 46% (39–52) n=217 | 32% (23–41) n=98 | 16% (9–26) n=76 |
+
+(31 more card uses in the JSON report.)
+
+Legal but never taken: Maelstrom Zealots (reaction, legal in 8 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 12999 | 8% | 0 / 833 / 3351 / 5336 / 3433 / 46 |
+| react | 2365 | 66% | 0 / 1380 / 966 / 19 / 0 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/steal | 2110 | 33% | 135 / 368 / 871 / 727 / 9 / 0 |
+| gigValue/adjust | 1442 | 35% | 0 / 0 / 140 / 268 / 801 / 233 |
+| mulligan | 560 | 8% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/equip | 525 | 78% | 100 / 129 / 276 / 20 / 0 / 0 |
+| unit/defeat | 447 | 53% | 129 / 115 / 197 / 6 / 0 / 0 |
+| unit/ready | 304 | 58% | 109 / 132 / 63 / 0 / 0 / 0 |
+| unit/pump | 202 | 39% | 36 / 72 / 90 / 4 / 0 / 0 |
+| card/defeatGear | 80 | 83% | 0 / 59 / 20 / 1 / 0 / 0 |
+| card/discard | 67 | 54% | 10 / 14 / 41 / 2 / 0 / 0 |
+| unit/sacrifice | 41 | 85% | 25 / 8 / 8 / 0 / 0 / 0 |
+| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
+| card/moveGear | 7 | 100% | 7 / 0 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 25% | 0 / 4 / 0 / 0 / 0 / 0 |
+| unit/spend | 3 | 33% | 1 / 0 / 2 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 2062 attacks. Reacted to 682 (deck won 32% (27–36) n=429): fizzled 17, stole 208, stoleNothing 1, attackerGone 25, targetGone 397, bothGone 34. Let 1380 resolve (31% (27–36) n=429): stole 938, stoleNothing 13, attackerGone 9, targetGone 386, bothGone 34. Choices: endReact 1557, block 421, call 363, ability 24.
+
+## GRY Trauma Team — 560 games, 44% won, 28509 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 818 | 47% (42–53) n=346 | 894 → 736 | 18% | 59 / 309 / 450 | 67% (60–73) n=178 | 52% (43–61) n=118 | 41% (34–47) n=211 |
+| 6th Street Recruits | attacked | 792 | 48% (43–54) n=315 | 892 → 719 | 19% | 77 / 282 / 433 | 68% (61–75) n=160 | 53% (43–62) n=112 | 37% (31–44) n=202 |
+| V: Streetkid | attacked | 705 | 41% (36–45) n=441 | 851 → 705 | 17% | 59 / 191 / 455 | 59% (52–65) n=215 | 52% (42–63) n=84 | 23% (18–29) n=242 |
+| Padre: Man of the Cross | ability | 602 | 35% (31–40) n=382 | 1944 → 602 | 69% | 1 / 116 / 485 | 58% (51–64) n=211 | 15% (9–24) n=81 | 7% (4–12) n=191 |
+| Pepe Najarro: Working Doubles | played | 576 | 45% (40–50) n=407 | 962 → 571 | 41% | 251 / 147 / 178 | 54% (47–61) n=201 | 40% (33–49) n=146 | 36% (28–44) n=140 |
+| Meredith Stout: Stone Cold Corpo | played | 576 | 43% (39–48) n=407 | 1362 → 558 | 59% | 135 / 136 / 305 | 61% (54–69) n=158 | 41% (33–49) n=143 | 31% (25–38) n=180 |
+| Muamar Reyes: El Capitán | ability | 566 | 36% (31–41) n=365 | 1820 → 566 | 69% | 7 / 109 / 450 | 61% (55–68) n=205 | 9% (4–17) n=70 | 7% (4–12) n=176 |
+| 6th Street Recruits | played | 557 | 46% (41–51) n=396 | 969 → 548 | 43% | 237 / 126 / 194 | 56% (49–63) n=193 | 46% (38–54) n=155 | 28% (21–36) n=136 |
+| Trauma Team Operatives | played | 549 | 42% (37–47) n=385 | 982 → 519 | 47% | 22 / 243 / 284 | 55% (47–62) n=171 | 34% (24–46) n=65 | 31% (25–37) n=216 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 545 | 56% (49–63) n=204 | 405 → 366 | 10% | 0 / 133 / 412 | 78% (69–84) n=121 | 81% (66–91) n=37 | 41% (32–50) n=110 |
+| Detonate | sold | 545 | 44% (39–49) n=383 | 913 → 545 | 40% | 248 / 152 / 145 | 49% (42–55) n=210 | 40% (33–49) n=136 | 31% (23–39) n=121 |
+| Trauma Team Operatives | attacked | 544 | 46% (40–51) n=279 | 560 → 478 | 15% | 0 / 93 / 451 | 76% (68–82) n=132 | 59% (47–71) n=59 | 24% (18–30) n=174 |
+| Augmented Negotiators | played | 525 | 42% (37–47) n=387 | 1267 → 496 | 61% | 84 / 168 / 273 | 63% (55–70) n=148 | 36% (28–45) n=118 | 30% (23–37) n=179 |
+| The Heist | sold | 508 | 43% (38–48) n=374 | 1006 → 508 | 50% | 166 / 207 / 135 | 49% (42–56) n=189 | 36% (28–45) n=116 | 35% (28–43) n=147 |
+| All is Lost | sold | 495 | 43% (38–48) n=377 | 758 → 495 | 35% | 229 / 143 / 123 | 50% (42–57) n=179 | 40% (32–48) n=145 | 27% (20–35) n=116 |
+
+(29 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1041 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 15621 | 9% | 0 / 962 / 3448 / 5596 / 5300 / 315 |
+| gig/steal | 2951 | 32% | 165 / 478 / 1292 / 983 / 33 / 0 |
+| react | 2343 | 61% | 0 / 1453 / 865 / 25 / 0 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 982 | 8% | 0 / 0 / 1 / 65 / 527 / 389 |
+| gigValue/setGig | 749 | 6% | 0 / 1 / 2 / 46 / 207 / 493 |
+| unit/spend | 597 | 63% | 238 / 161 / 194 / 4 / 0 / 0 |
+| mulligan | 560 | 11% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 538 | 62% | 0 / 538 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 520 | 79% | 0 / 520 / 0 / 0 / 0 / 0 |
+| card/search | 508 | 81% | 261 / 137 / 76 / 31 / 3 / 0 |
+| unit/protect | 398 | 57% | 111 / 157 / 125 / 5 / 0 / 0 |
+| unit/equip | 250 | 82% | 46 / 85 / 87 / 32 / 0 / 0 |
+| unit/sacrifice | 62 | 85% | 38 / 18 / 6 / 0 / 0 / 0 |
+| unit/ready | 57 | 100% | 0 / 57 / 0 / 0 / 0 / 0 |
+| yesno/draw | 42 | 100% | 0 / 42 / 0 / 0 / 0 / 0 |
+| card/discard | 39 | 38% | 5 / 6 / 26 / 2 / 0 / 0 |
+| card/defeat | 38 | 92% | 30 / 6 / 2 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 7 | 71% | 0 / 7 / 0 / 0 / 0 / 0 |
+| yesno/playFree | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 2026 attacks. Reacted to 752 (deck won 41% (36–46) n=447): stole 271, attackerGone 9, targetGone 380, bothGone 25, noneGone 67. Let 1274 resolve (42% (38–47) n=403): stole 894, stoleNothing 9, attackerGone 9, targetGone 325, bothGone 36, noneGone 1. Choices: endReact 1435, block 442, call 453, play 13.
+
+## Keep 'Em Guessing — 560 games, 20% won, 25729 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Jackie Welles: Ride or Die Choom | attacked | 701 | 30% (25–35) n=303 | 666 → 644 | 3% | 0 / 183 / 518 | 56% (47–65) n=111 | 51% (37–64) n=49 | 22% (18–28) n=246 |
+| Augmented Negotiators | played | 611 | 21% (17–25) n=424 | 962 → 581 | 40% | 166 / 248 / 197 | 30% (24–37) n=203 | 12% (7–18) n=138 | 11% (7–17) n=166 |
+| Viktor Vektor: You Might Feel a Little Pinch | played | 589 | 19% (16–24) n=407 | 721 → 576 | 20% | 255 / 174 / 160 | 27% (21–33) n=207 | 15% (10–21) n=160 | 11% (6–18) n=121 |
+| Jackie Welles: Ride or Die Choom | played | 582 | 23% (19–27) n=408 | 748 → 580 | 22% | 0 / 345 / 237 | 33% (27–39) n=222 | 17% (10–28) n=69 | 10% (7–15) n=207 |
+| Sketchy Ripper | played | 582 | 21% (17–25) n=416 | 820 → 559 | 32% | 297 / 111 / 174 | 28% (23–34) n=236 | 12% (7–18) n=135 | 9% (5–15) n=114 |
+| Mandibular Upgrade | sold | 581 | 20% (16–24) n=408 | 671 → 581 | 13% | 283 / 138 / 160 | 26% (21–33) n=202 | 15% (10–22) n=146 | 12% (8–18) n=142 |
+| Viktor Vektor: You Might Feel a Little Pinch | attacked | 566 | 22% (18–27) n=294 | 732 → 524 | 28% | 82 / 239 / 245 | 32% (25–40) n=134 | 19% (13–27) n=111 | 16% (11–22) n=166 |
+| Corporate Surveillance | sold | 557 | 20% (16–24) n=390 | 995 → 557 | 44% | 200 / 185 / 172 | 27% (21–33) n=192 | 20% (14–27) n=131 | 12% (8–19) n=153 |
+| Secondhand Bombus | played | 526 | 20% (16–24) n=393 | 1214 → 510 | 58% | 124 / 224 / 178 | 25% (20–31) n=237 | 13% (7–21) n=95 | 12% (7–19) n=124 |
+| Kiroshi Optics | sold | 464 | 21% (17–26) n=361 | 731 → 464 | 37% | 239 / 108 / 117 | 30% (23–37) n=172 | 12% (7–18) n=128 | 13% (7–20) n=104 |
+| Sketchy Ripper | attacked | 460 | 23% (18–28) n=251 | 765 → 426 | 44% | 91 / 180 / 189 | 32% (25–40) n=144 | 19% (11–30) n=63 | 10% (6–17) n=118 |
+| River Ward: Detective on the Hunt | called | 460 | 21% (17–25) n=460 | 495 → 460 | 7% | 234 / 141 / 85 | 30% (24–36) n=249 | 12% (7–18) n=135 | 7% (3–14) n=76 |
+| Goro Takemura: Vengeful Bodyguard | called | 454 | 20% (16–24) n=454 | 501 → 454 | 9% | 240 / 125 / 89 | 28% (23–34) n=251 | 12% (8–19) n=130 | 4% (1–11) n=73 |
+| Live with the Aftermath | played | 406 | 21% (17–26) n=315 | 899 → 394 | 56% | 154 / 137 / 115 | 30% (24–37) n=181 | 9% (4–18) n=77 | 7% (3–15) n=83 |
+| Zetatech Faceplate | sold | 404 | 21% (17–26) n=320 | 1172 → 404 | 66% | 83 / 161 / 160 | 32% (24–40) n=126 | 14% (8–23) n=79 | 15% (10–21) n=156 |
+
+(31 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14201 | 10% | 0 / 765 / 3485 / 6239 / 3595 / 117 |
+| react | 2636 | 63% | 0 / 1492 / 1129 / 15 / 0 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/steal | 2137 | 36% | 172 / 382 / 773 / 791 / 19 / 0 |
+| unit/equip | 805 | 79% | 146 / 166 / 417 / 76 / 0 / 0 |
+| mulligan | 560 | 7% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/discard | 408 | 49% | 12 / 76 / 272 / 48 / 0 / 0 |
+| unit/ready | 390 | 77% | 0 / 233 / 154 / 3 / 0 / 0 |
+| unit/blocker | 367 | 72% | 174 / 111 / 81 / 1 / 0 / 0 |
+| unit/pump | 339 | 50% | 99 / 120 / 116 / 4 / 0 / 0 |
+| card/search | 293 | 87% | 0 / 188 / 105 / 0 / 0 / 0 |
+| card/trash | 253 | 50% | 0 / 253 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 252 | 22% | 0 / 0 / 1 / 50 / 140 / 61 |
+| unit/sacrifice | 250 | 69% | 116 / 100 / 32 / 2 / 0 / 0 |
+| card/playFree | 201 | 96% | 166 / 23 / 12 / 0 / 0 / 0 |
+| gigValue/setGig | 170 | 6% | 0 / 0 / 13 / 16 / 27 / 114 |
+| card/look | 116 | 100% | 52 / 46 / 18 / 0 / 0 / 0 |
+| card/defeatGear | 98 | 76% | 0 / 68 / 30 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
+| unit/spend | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 2250 attacks. Reacted to 786 (deck won 19% (16–23) n=457): stole 175, attackerGone 6, targetGone 578, bothGone 27. Let 1464 resolve (19% (16–23) n=449): stole 1177, stoleNothing 10, attackerGone 5, targetGone 233, bothGone 38, noneGone 1. Choices: call 295, block 576, endReact 1665, ability 100.
+
+## Ladder S1 #1: V / Smasher / Padre (RRG) — 560 games, 63% won, 26096 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 796 | 67% (62–72) n=337 | 925 → 721 | 22% | 69 / 319 / 408 | 82% (76–87) n=192 | 69% (60–76) n=118 | 57% (50–64) n=192 |
+| 6th Street Recruits | attacked | 777 | 65% (59–70) n=340 | 906 → 707 | 22% | 67 / 302 / 408 | 82% (76–87) n=185 | 60% (50–68) n=114 | 58% (51–65) n=208 |
+| Animals Wrecker | attacked | 737 | 76% (71–80) n=307 | 693 → 663 | 4% | 0 / 198 / 539 | 92% (87–95) n=168 | 85% (76–91) n=81 | 70% (63–75) n=217 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 527 | 70% (64–75) n=299 | 539 → 483 | 10% | 0 / 0 / 527 | 90% (85–94) n=166 | 87% (74–94) n=46 | 55% (47–62) n=166 |
+| V: Streetkid | attacked | 513 | 52% (46–57) n=294 | 628 → 513 | 18% | 70 / 173 / 270 | 66% (59–73) n=180 | 53% (37–67) n=40 | 36% (28–44) n=143 |
+| Yorinobu Arasaka: Steel Dragon | played | 510 | 64% (59–68) n=392 | 649 → 510 | 21% | 0 / 210 / 300 | 79% (71–85) n=132 | 63% (51–74) n=60 | 55% (49–61) n=243 |
+| Peace Offering | sold | 493 | 64% (59–69) n=373 | 1041 → 493 | 53% | 154 / 218 / 121 | 74% (66–80) n=155 | 64% (55–73) n=106 | 54% (46–61) n=163 |
+| 6th Street Recruits | played | 488 | 62% (57–67) n=360 | 1035 → 482 | 53% | 244 / 108 / 136 | 72% (65–78) n=177 | 56% (47–64) n=142 | 51% (41–60) n=95 |
+| Animals Wrecker | played | 479 | 70% (65–74) n=367 | 715 → 479 | 33% | 0 / 342 / 137 | 79% (72–85) n=145 | 73% (62–82) n=78 | 64% (57–70) n=200 |
+| Pepe Najarro: Working Doubles | played | 475 | 65% (60–69) n=356 | 989 → 472 | 52% | 259 / 115 / 101 | 75% (68–81) n=165 | 61% (53–68) n=152 | 46% (36–56) n=85 |
+| Memory Relapse | sold | 436 | 65% (60–70) n=344 | 1408 → 436 | 69% | 62 / 186 / 188 | 77% (70–83) n=158 | 61% (50–71) n=82 | 55% (47–62) n=154 |
+| Padre: Man of the Cross | ability | 411 | 53% (48–59) n=290 | 1758 → 411 | 77% | 6 / 80 / 325 | 74% (67–80) n=179 | 33% (23–46) n=60 | 24% (17–33) n=107 |
+| Adam Smasher: Ender of Legends | called | 408 | 65% (61–70) n=408 | 408 → 408 | 0% | 178 / 114 / 116 | 74% (68–79) n=267 | 54% (43–64) n=82 | 44% (32–57) n=59 |
+| V: Streetkid | called | 407 | 64% (59–68) n=407 | 407 → 407 | 0% | 212 / 98 / 97 | 69% (63–74) n=289 | 56% (43–68) n=59 | 46% (34–58) n=59 |
+| Mantis Blades | sold | 406 | 62% (57–67) n=334 | 586 → 406 | 31% | 258 / 64 / 84 | 72% (65–79) n=154 | 53% (45–61) n=139 | 61% (51–71) n=83 |
 
 (37 more card uses in the JSON report.)
 
-Legal but never taken: V: Streetkid (Legend play, legal in 946 turns), Adam Smasher: Ender of Legends (Legend play, legal in 250 turns).
+Legal but never taken: V: Streetkid (Legend play, legal in 1085 turns), Synapse Burnout (played, legal in 584 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13219 | 7% | 0 / 1136 / 3335 / 4821 / 3820 / 107 |
-| gig/steal | 3120 | 30% | 165 / 509 / 1383 / 1048 / 15 / 0 |
+| main | 14456 | 8% | 0 / 1168 / 3755 / 5171 / 4171 / 191 |
+| gig/steal | 3428 | 31% | 211 / 500 / 1558 / 1152 / 7 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1952 | 68% | 0 / 1170 / 765 / 17 / 0 / 0 |
-| unit/defeat | 695 | 69% | 277 / 176 / 224 / 18 / 0 / 0 |
-| mulligan | 560 | 28% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/search | 512 | 69% | 254 / 125 / 102 / 30 / 1 / 0 |
-| gigValue/adjust | 510 | 7% | 0 / 7 / 61 / 18 / 206 / 218 |
-| unit/equip | 212 | 84% | 44 / 77 / 79 / 12 / 0 / 0 |
-| unit/pump | 207 | 37% | 47 / 74 / 82 / 4 / 0 / 0 |
-| unit/spend | 77 | 81% | 48 / 19 / 10 / 0 / 0 / 0 |
-| unit/sacrifice | 56 | 82% | 27 / 24 / 4 / 1 / 0 / 0 |
-| card/discard | 47 | 60% | 9 / 18 / 19 / 1 / 0 / 0 |
-| card/defeatGear | 37 | 95% | 0 / 30 / 6 / 1 / 0 / 0 |
-| card/defeat | 18 | 89% | 15 / 3 / 0 / 0 / 0 / 0 |
-| yesno/draw | 14 | 100% | 0 / 14 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
+| react | 1233 | 59% | 0 / 843 / 385 / 5 / 0 / 0 |
+| unit/defeat | 632 | 61% | 194 / 191 / 237 / 10 / 0 / 0 |
+| mulligan | 560 | 18% | 0 / 560 / 0 / 0 / 0 / 0 |
+| gigValue/setGig | 516 | 9% | 0 / 0 / 5 / 49 / 144 / 318 |
+| mode/mode | 509 | 51% | 0 / 509 / 0 / 0 / 0 / 0 |
+| card/search | 496 | 66% | 188 / 159 / 123 / 24 / 2 / 0 |
+| card/playFree | 485 | 56% | 0 / 94 / 349 / 42 / 0 / 0 |
+| unit/spend | 393 | 80% | 228 / 115 / 50 / 0 / 0 / 0 |
+| unit/equip | 374 | 86% | 51 / 105 / 187 / 31 / 0 / 0 |
+| gigValue/adjust | 285 | 6% | 0 / 9 / 53 / 4 / 30 / 189 |
+| unit/ready | 225 | 95% | 0 / 188 / 37 / 0 / 0 / 0 |
+| unit/adrenaline | 127 | 76% | 76 / 33 / 18 / 0 / 0 / 0 |
+| unit/sacrifice | 54 | 85% | 34 / 15 / 5 / 0 / 0 / 0 |
+| card/discard | 31 | 35% | 4 / 4 / 22 / 1 / 0 / 0 |
+| unit/pump | 28 | 86% | 13 / 8 / 7 / 0 / 0 / 0 |
+| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| card/defeat | 6 | 100% | 5 / 1 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1719 attacks. Reacted to 553 (deck won 46% (41–51) n=364): stole 198, stoleNothing 1, attackerGone 5, targetGone 326, bothGone 23. Let 1166 resolve (52% (47–57) n=431): stole 786, stoleNothing 2, attackerGone 7, targetGone 314, bothGone 57. Choices: call 307, endReact 1322, block 312, ability 6, play 5.
+Reaction windows: 1150 attacks. Reacted to 469 (deck won 56% (50–61) n=333): stole 256, attackerGone 19, targetGone 165, bothGone 27, noneGone 2. Let 681 resolve (59% (53–64) n=294): stole 463, stoleNothing 4, attackerGone 5, targetGone 183, bothGone 26. Choices: endReact 732, call 340, block 130, play 31.
 
-## Running and Dancing — 560 games, 12% won, 24710 decisions
+## Ladder S1 #10: Jackie / Judy / Hanako (BBG) — 560 games, 51% won, 29910 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Modded Kusanagi | played | 723 | 10% (7–13) n=384 | 1304 → 723 | 45% | 0 / 165 / 558 | 23% (16–31) n=111 | 25% (15–38) n=52 | 5% (3–8) n=333 |
-| Psycho Squad | attacked | 686 | 13% (10–17) n=347 | 814 → 630 | 23% | 85 / 321 / 280 | 28% (21–36) n=137 | 15% (10–23) n=110 | 8% (5–13) n=224 |
-| Modded Kusanagi | attacked | 682 | 11% (8–14) n=360 | 696 → 682 | 2% | 0 / 165 / 517 | 23% (16–32) n=112 | 24% (15–37) n=54 | 5% (3–8) n=303 |
-| Dying Night: V's Pistol | sold | 590 | 11% (9–15) n=427 | 700 → 590 | 16% | 308 / 135 / 147 | 15% (10–20) n=190 | 12% (8–19) n=145 | 4% (2–9) n=163 |
-| Psycho Squad | played | 554 | 14% (11–17) n=406 | 780 → 553 | 29% | 297 / 160 / 97 | 18% (14–24) n=207 | 12% (8–17) n=164 | 6% (3–12) n=113 |
-| Floor It | sold | 545 | 14% (11–18) n=391 | 884 → 545 | 38% | 198 / 194 / 153 | 21% (16–28) n=188 | 14% (9–22) n=112 | 6% (3–11) n=169 |
-| Chrome Reverie | sold | 539 | 13% (10–17) n=386 | 879 → 539 | 39% | 245 / 147 / 147 | 17% (12–22) n=210 | 12% (7–20) n=106 | 7% (4–12) n=151 |
-| Evelyn Parker: Scheming Siren | attacked | 521 | 6% (4–10) n=263 | 1011 → 456 | 55% | 87 / 124 / 310 | 12% (7–20) n=94 | 12% (6–23) n=58 | 4% (2–7) n=195 |
-| Evelyn Parker: Scheming Siren | played | 498 | 9% (7–13) n=374 | 1037 → 475 | 54% | 206 / 127 / 165 | 13% (9–18) n=210 | 6% (3–13) n=96 | 2% (1–7) n=127 |
-| Mox Inciters | played | 498 | 14% (11–18) n=357 | 1292 → 462 | 64% | 100 / 211 / 187 | 21% (16–28) n=169 | 8% (4–15) n=100 | 8% (5–14) n=147 |
-| Trust No One | sold | 493 | 12% (9–16) n=370 | 817 → 493 | 40% | 174 / 165 / 154 | 16% (11–23) n=151 | 13% (8–20) n=120 | 11% (7–17) n=159 |
-| Rita Wheeler: No Stupid Questions | played | 475 | 14% (11–18) n=354 | 1264 → 470 | 63% | 90 / 220 / 165 | 20% (15–27) n=158 | 13% (8–21) n=93 | 8% (5–13) n=164 |
-| MT0D12 Flathead | sold | 463 | 13% (10–17) n=351 | 927 → 463 | 50% | 154 / 132 / 177 | 21% (15–27) n=178 | 15% (9–24) n=88 | 3% (1–7) n=147 |
-| Alt Cunningham: Soulkiller Architect | called | 406 | 14% (11–18) n=406 | 406 → 406 | 0% | 159 / 147 / 100 | 19% (15–25) n=262 | 6% (2–15) n=65 | 3% (1–9) n=79 |
-| Judy Álvarez: Braindance Maestro | called | 393 | 12% (10–16) n=393 | 393 → 393 | 0% | 149 / 160 / 84 | 16% (12–21) n=246 | 9% (4–19) n=56 | 5% (2–12) n=91 |
+| Jacked-In Voodoo Boy | attacked | 921 | 52% (48–57) n=402 | 863 → 801 | 7% | 166 / 379 / 376 | 64% (58–69) n=266 | 48% (40–56) n=143 | 35% (28–43) n=163 |
+| Jacked-In Voodoo Boy | played | 850 | 51% (47–56) n=500 | 1094 → 786 | 28% | 433 / 217 / 200 | 68% (62–73) n=293 | 37% (31–44) n=214 | 22% (15–31) n=101 |
+| Delamain: Rideshare AI | played | 676 | 50% (45–54) n=453 | 1514 → 634 | 58% | 194 / 275 / 207 | 62% (56–68) n=275 | 40% (33–48) n=159 | 15% (9–23) n=101 |
+| Peace Offering | sold | 543 | 53% (48–58) n=391 | 885 → 543 | 39% | 281 / 114 / 148 | 67% (60–73) n=185 | 49% (41–56) n=156 | 27% (20–36) n=114 |
+| Chrome Reverie | sold | 528 | 53% (48–58) n=393 | 929 → 528 | 43% | 238 / 133 / 157 | 66% (59–72) n=215 | 47% (38–55) n=129 | 33% (25–42) n=118 |
+| Judy Álvarez: Braindance Maestro | ability | 516 | 49% (43–54) n=346 | 1938 → 516 | 73% | 33 / 194 / 289 | 64% (57–70) n=214 | 37% (28–48) n=83 | 17% (11–24) n=131 |
+| Trust No One | sold | 516 | 52% (47–57) n=383 | 845 → 516 | 39% | 199 / 123 / 194 | 65% (58–72) n=183 | 49% (41–57) n=148 | 27% (20–36) n=111 |
+| Lizzy Wizzy: Delicate Weapon | played | 510 | 53% (48–58) n=376 | 1627 → 503 | 69% | 34 / 210 / 266 | 67% (60–73) n=208 | 55% (44–65) n=82 | 28% (21–36) n=132 |
+| Placide: Voodoo Sentinel | played | 488 | 49% (44–54) n=387 | 607 → 488 | 20% | 0 / 0 / 488 | 80% (74–86) n=168 | 66% (53–77) n=59 | 23% (18–29) n=203 |
+| Nocturne OP55 N1 | sold | 475 | 47% (42–53) n=352 | 1219 → 475 | 61% | 128 / 190 / 157 | 59% (51–65) n=188 | 44% (35–54) n=104 | 25% (18–33) n=113 |
+| Maman Brigitte: Spirit of Death | played | 464 | 59% (54–64) n=377 | 705 → 461 | 35% | 176 / 157 / 131 | 73% (67–79) n=206 | 53% (44–62) n=114 | 32% (23–42) n=91 |
+| Les Élémens | played | 463 | 51% (46–56) n=356 | 1031 → 462 | 55% | 134 / 199 / 130 | 61% (54–68) n=189 | 47% (38–56) n=113 | 36% (27–46) n=97 |
+| Maman Brigitte: Spirit of Death | attacked | 460 | 64% (58–69) n=287 | 536 → 441 | 18% | 0 / 250 / 210 | 83% (77–88) n=155 | 69% (58–78) n=77 | 48% (39–56) n=120 |
+| Jackie Welles: Pour One Out For Me | called | 440 | 52% (47–56) n=440 | 440 → 440 | 0% | 160 / 224 / 56 | 63% (57–68) n=270 | 40% (32–49) n=121 | 20% (11–34) n=49 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 430 | 40% (34–45) n=296 | 1812 → 430 | 76% | 21 / 130 / 279 | 61% (53–68) n=148 | 40% (30–52) n=72 | 9% (5–15) n=124 |
 
 (25 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13061 | 10% | 0 / 1040 / 3110 / 5530 / 3254 / 127 |
-| react | 2361 | 69% | 0 / 1428 / 925 / 8 / 0 / 0 |
+| main | 14094 | 9% | 0 / 1142 / 3329 / 5606 / 3768 / 249 |
 | gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 1923 | 34% | 68 / 391 / 658 / 771 / 35 / 0 |
-| gigValue/adjust | 1797 | 17% | 0 / 60 / 732 / 674 / 281 / 50 |
-| card/discard | 641 | 40% | 55 / 125 / 360 / 101 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/cardType | 545 | 100% | 0 / 0 / 545 / 0 / 0 / 0 |
-| unit/mustAttack | 454 | 51% | 112 / 169 / 166 / 7 / 0 / 0 |
-| unit/pump | 209 | 61% | 44 / 62 / 101 / 2 / 0 / 0 |
-| card/freePlay | 178 | 88% | 0 / 110 / 68 / 0 / 0 / 0 |
-| unit/cantAttack | 164 | 55% | 49 / 44 / 70 / 1 / 0 / 0 |
-| unit/weaken | 113 | 54% | 18 / 27 / 62 / 6 / 0 / 0 |
-| card/playFromTrash | 85 | 85% | 45 / 27 / 13 / 0 / 0 / 0 |
-| yesno/addToHand | 82 | 100% | 0 / 82 / 0 / 0 / 0 / 0 |
-| unit/call | 69 | 100% | 0 / 30 / 39 / 0 / 0 / 0 |
-| unit/bottomdeck | 68 | 74% | 44 / 7 / 14 / 3 / 0 / 0 |
-| unit/equip | 56 | 82% | 20 / 9 / 14 / 13 / 0 / 0 |
-| yesno/discardFor | 48 | 100% | 0 / 48 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 34 | 100% | 27 / 6 / 1 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 11 | 36% | 0 / 11 / 0 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 2096 attacks. Reacted to 613 (deck won 12% (9–16) n=413): stole 181, stoleNothing 2, attackerGone 9, targetGone 398, bothGone 23. Let 1483 resolve (10% (8–14) n=435): stole 1090, stoleNothing 5, attackerGone 1, targetGone 356, bothGone 31. Choices: block 402, call 302, endReact 1634, play 23.
-
-## S1-01 Mutant (RRY) — 560 games, 62% won, 25820 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 816 | 71% (66–76) n=319 | 765 → 724 | 5% | 0 / 220 / 596 | 87% (81–92) n=158 | 80% (70–87) n=85 | 66% (59–72) n=223 |
-| Rockn' Rockerboy | attacked | 714 | 65% (60–70) n=298 | 797 → 657 | 18% | 0 / 338 / 376 | 81% (75–86) n=176 | 72% (60–81) n=74 | 57% (50–64) n=181 |
-| 6th Street Recruits | attacked | 676 | 64% (58–69) n=319 | 843 → 620 | 26% | 76 / 233 / 367 | 81% (74–86) n=172 | 56% (46–65) n=102 | 55% (48–63) n=175 |
-| Kerry Eurodyne: The Last Rockerboy | attacked | 575 | 60% (55–65) n=325 | 865 → 525 | 39% | 20 / 120 / 435 | 84% (78–89) n=147 | 67% (56–77) n=70 | 47% (40–54) n=203 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 551 | 71% (66–76) n=280 | 548 → 488 | 11% | 0 / 0 / 551 | 93% (88–96) n=163 | 77% (65–86) n=61 | 55% (48–63) n=157 |
-| Dexter DeShawn: One Last Chance | attacked | 516 | 64% (58–69) n=281 | 669 → 463 | 31% | 33 / 120 / 363 | 85% (78–90) n=135 | 77% (66–84) n=81 | 48% (40–56) n=158 |
-| Animals Wrecker | played | 513 | 67% (62–71) n=392 | 744 → 513 | 31% | 0 / 351 / 162 | 79% (71–85) n=146 | 71% (59–80) n=69 | 60% (54–66) n=228 |
-| Yorinobu Arasaka: Steel Dragon | played | 508 | 63% (59–68) n=389 | 630 → 508 | 19% | 0 / 256 / 252 | 81% (73–87) n=130 | 71% (59–82) n=56 | 54% (48–60) n=250 |
-| Bonnie and Clyde | sold | 496 | 62% (57–67) n=371 | 1277 → 496 | 61% | 117 / 205 / 174 | 77% (70–83) n=157 | 58% (49–68) n=101 | 51% (44–58) n=182 |
-| Rockn' Rockerboy | played | 479 | 61% (56–66) n=365 | 889 → 479 | 46% | 239 / 96 / 144 | 76% (70–82) n=182 | 60% (51–68) n=123 | 38% (30–47) n=128 |
-| Dexter DeShawn: One Last Chance | played | 462 | 61% (56–66) n=343 | 1271 → 436 | 66% | 137 / 151 / 174 | 75% (68–81) n=158 | 53% (44–62) n=120 | 48% (39–57) n=119 |
-| 6th Street Recruits | played | 450 | 61% (55–66) n=348 | 970 → 439 | 55% | 227 / 94 / 129 | 75% (68–81) n=154 | 50% (42–58) n=148 | 44% (35–55) n=90 |
-| Detonate | sold | 439 | 63% (57–67) n=360 | 557 → 439 | 21% | 246 / 88 / 105 | 72% (64–78) n=165 | 55% (46–64) n=120 | 53% (43–62) n=108 |
-| Adam Smasher: Ender of Legends | called | 409 | 60% (55–65) n=409 | 409 → 409 | 0% | 184 / 77 / 148 | 71% (65–76) n=261 | 43% (33–54) n=81 | 37% (27–49) n=67 |
-| Dexter DeShawn: Off the Grid | called | 401 | 60% (55–65) n=401 | 401 → 401 | 0% | 193 / 91 / 117 | 70% (64–75) n=247 | 49% (37–61) n=65 | 40% (31–51) n=89 |
-
-(32 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 343 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14432 | 8% | 0 / 981 / 3537 / 5191 / 4346 / 377 |
-| gig/steal | 3731 | 26% | 131 / 486 / 1650 / 1447 / 17 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1554 | 13% | 0 / 0 / 83 / 168 / 923 / 380 |
-| react | 822 | 61% | 0 / 387 / 435 / 0 / 0 / 0 |
-| unit/defeat | 599 | 58% | 145 / 168 / 263 / 23 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 505 | 74% | 0 / 505 / 0 / 0 / 0 / 0 |
-| unit/pump | 502 | 46% | 145 / 135 / 200 / 22 / 0 / 0 |
-| card/playFree | 490 | 63% | 0 / 134 / 328 / 28 / 0 / 0 |
-| unit/equip | 147 | 76% | 24 / 34 / 59 / 30 / 0 / 0 |
-| unit/sacrifice | 63 | 59% | 23 / 15 / 22 / 3 / 0 / 0 |
-| card/search | 55 | 71% | 26 / 22 / 7 / 0 / 0 / 0 |
-| card/discard | 48 | 44% | 8 / 10 / 30 / 0 / 0 / 0 |
-| card/defeatGear | 33 | 79% | 0 / 31 / 2 / 0 / 0 / 0 |
-| yesno/draw | 20 | 100% | 0 / 20 / 0 / 0 / 0 / 0 |
-| card/defeat | 13 | 92% | 11 / 2 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 25% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 796 attacks. Reacted to 314 (deck won 55% (49–61) n=270): stole 245, attackerGone 4, targetGone 56, bothGone 9. Let 482 resolve (57% (51–64) n=237): stole 350, stoleNothing 2, targetGone 123, bothGone 7. Choices: endReact 505, call 311, play 5, ability 1.
-
-## S1-02 Mutant (RYY) — 560 games, 29% won, 25511 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 871 | 35% (30–41) n=322 | 871 → 775 | 11% | 0 / 381 / 490 | 52% (45–60) n=168 | 48% (38–59) n=83 | 31% (25–37) n=220 |
-| 6th Street Recruits | attacked | 768 | 35% (30–40) n=338 | 835 → 701 | 16% | 74 / 263 / 431 | 53% (45–61) n=146 | 49% (40–58) n=115 | 28% (23–34) n=217 |
-| Dexter DeShawn: Off the Grid | ability | 678 | 29% (25–34) n=417 | 2007 → 678 | 66% | 31 / 96 / 551 | 50% (43–56) n=232 | 15% (9–24) n=99 | 10% (7–15) n=214 |
-| 6th Street Recruits | played | 615 | 32% (28–37) n=406 | 1020 → 604 | 41% | 209 / 180 / 226 | 38% (31–46) n=158 | 36% (29–44) n=151 | 26% (20–32) n=192 |
-| Dexter DeShawn: One Last Chance | played | 570 | 30% (26–35) n=401 | 1043 → 531 | 49% | 159 / 223 / 188 | 39% (32–46) n=170 | 27% (20–35) n=127 | 27% (21–34) n=180 |
-| Dexter DeShawn: One Last Chance | attacked | 549 | 32% (27–38) n=298 | 718 → 487 | 32% | 33 / 157 / 359 | 50% (40–59) n=105 | 41% (31–53) n=70 | 24% (19–31) n=205 |
-| Rockn' Rockerboy | played | 533 | 33% (29–38) n=393 | 719 → 532 | 26% | 231 / 140 / 162 | 45% (38–52) n=181 | 31% (24–39) n=136 | 26% (20–34) n=150 |
-| Minotaur | played | 520 | 28% (23–32) n=391 | 733 → 520 | 29% | 0 / 170 / 350 | 49% (40–57) n=125 | 28% (18–42) n=53 | 16% (12–21) n=261 |
-| River Ward: Detective on the Hunt | called | 458 | 29% (25–33) n=458 | 458 → 458 | 0% | 192 / 150 / 116 | 34% (28–39) n=274 | 20% (12–30) n=76 | 24% (17–33) n=108 |
-| Dexter DeShawn: Off the Grid | called | 457 | 29% (25–34) n=457 | 457 → 457 | 0% | 215 / 140 / 102 | 36% (30–42) n=257 | 22% (15–32) n=86 | 20% (14–28) n=114 |
-| Gilded Matón | played | 452 | 30% (26–35) n=345 | 1724 → 430 | 75% | 58 / 105 / 289 | 48% (40–57) n=130 | 22% (15–32) n=90 | 19% (13–25) n=162 |
-| Viktor Vektor: Sit Down and Relax | called | 445 | 29% (25–33) n=445 | 445 → 445 | 0% | 208 / 117 / 120 | 35% (30–41) n=262 | 17% (11–26) n=93 | 21% (14–31) n=90 |
-| River Ward: Detective on the Hunt | ability | 430 | 28% (24–34) n=299 | 1872 → 430 | 77% | 34 / 85 / 311 | 50% (42–58) n=147 | 16% (9–26) n=76 | 15% (10–22) n=147 |
-| Minotaur | attacked | 412 | 34% (28–40) n=240 | 412 → 386 | 6% | 0 / 1 / 411 | 52% (42–62) n=92 | 65% (50–78) n=43 | 23% (17–31) n=151 |
-| Heywood Ripperdoc | attacked | 406 | 33% (27–39) n=210 | 423 → 391 | 8% | 0 / 94 / 312 | 55% (44–65) n=82 | 59% (44–72) n=46 | 26% (19–34) n=140 |
-
-(31 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14428 | 7% | 0 / 1227 / 3783 / 5593 / 3691 / 134 |
-| gig/steal | 2817 | 25% | 137 / 362 / 1112 / 1180 / 26 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1927 | 13% | 0 / 0 / 100 / 243 / 1199 / 385 |
-| react | 1190 | 78% | 0 / 784 / 406 / 0 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 535 | 66% | 0 / 535 / 0 / 0 / 0 / 0 |
-| unit/pump | 353 | 59% | 117 / 124 / 110 / 2 / 0 / 0 |
-| unit/equip | 336 | 83% | 29 / 82 / 185 / 40 / 0 / 0 |
-| card/defeatGear | 224 | 42% | 0 / 184 / 40 / 0 / 0 / 0 |
-| unit/defeat | 211 | 77% | 111 / 43 / 40 / 17 / 0 / 0 |
-| unit/sacrifice | 197 | 53% | 57 / 64 / 76 / 0 / 0 / 0 |
-| card/search | 173 | 92% | 18 / 140 / 15 / 0 / 0 / 0 |
-| card/playFree | 121 | 95% | 108 / 6 / 7 / 0 / 0 / 0 |
-| card/trash | 112 | 58% | 0 / 112 / 0 / 0 / 0 / 0 |
-| card/discard | 50 | 60% | 12 / 17 / 19 / 2 / 0 / 0 |
-| yesno/draw | 30 | 100% | 0 / 30 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 25% | 0 / 4 / 0 / 0 / 0 / 0 |
-| yesno/playFree | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1140 attacks. Reacted to 253 (deck won 23% (18–29) n=230): stole 205, stoleNothing 1, attackerGone 5, targetGone 33, bothGone 9. Let 887 resolve (27% (23–32) n=335): stole 668, stoleNothing 3, targetGone 197, bothGone 19. Choices: call 243, endReact 924, ability 21, play 2.
-
-## S1-03 Mutant (RBG) — 560 games, 44% won, 24546 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 712 | 49% (44–55) n=300 | 835 → 644 | 23% | 56 / 253 / 403 | 67% (59–74) n=156 | 52% (42–62) n=90 | 39% (32–46) n=181 |
-| Nadia: Fighting Through Grief | attacked | 708 | 45% (40–51) n=295 | 762 → 643 | 16% | 0 / 251 / 457 | 69% (61–76) n=140 | 63% (49–75) n=49 | 39% (33–45) n=236 |
-| Psycho Squad | attacked | 686 | 51% (46–57) n=317 | 844 → 633 | 25% | 60 / 244 / 382 | 70% (62–76) n=159 | 55% (46–65) n=101 | 43% (36–50) n=173 |
-| Wakako Okada: Peace and Harmony | ability | 556 | 42% (37–47) n=385 | 1961 → 556 | 72% | 5 / 176 / 375 | 67% (61–73) n=208 | 14% (8–24) n=70 | 17% (12–23) n=180 |
-| Valentino Street Racer | played | 526 | 43% (38–48) n=376 | 1128 → 478 | 58% | 109 / 294 / 123 | 57% (50–64) n=172 | 24% (17–33) n=109 | 33% (26–41) n=141 |
-| Psycho Squad | played | 520 | 48% (43–53) n=385 | 977 → 516 | 47% | 215 / 169 / 136 | 58% (51–65) n=173 | 41% (33–49) n=145 | 37% (30–46) n=142 |
-| MaxTac AV | attacked | 504 | 52% (46–58) n=231 | 585 → 489 | 16% | 0 / 221 / 283 | 68% (60–76) n=132 | 64% (51–76) n=53 | 40% (32–49) n=127 |
-| 6th Street Recruits | played | 501 | 45% (40–50) n=367 | 998 → 492 | 51% | 207 / 155 / 139 | 62% (54–69) n=156 | 37% (29–45) n=139 | 34% (27–43) n=132 |
-| Nocturne OP55 N1 | sold | 501 | 44% (39–49) n=380 | 958 → 501 | 48% | 185 / 211 / 105 | 55% (48–63) n=159 | 39% (30–47) n=122 | 36% (29–44) n=155 |
-| Valentino Street Racer | attacked | 496 | 45% (39–51) n=274 | 664 → 432 | 35% | 20 / 151 / 325 | 64% (55–71) n=143 | 38% (27–51) n=55 | 29% (22–37) n=128 |
-| Nadia: Fighting Through Grief | played | 446 | 43% (38–49) n=346 | 728 → 446 | 39% | 0 / 309 / 137 | 54% (45–62) n=126 | 42% (31–54) n=64 | 37% (31–44) n=203 |
-| Adam Smasher: Ender of Legends | called | 437 | 45% (41–50) n=437 | 437 → 437 | 0% | 194 / 154 / 89 | 53% (47–59) n=286 | 29% (20–41) n=72 | 32% (22–43) n=79 |
-| Wakako Okada: Peace and Harmony | called | 424 | 48% (43–52) n=424 | 424 → 424 | 0% | 229 / 125 / 70 | 57% (51–63) n=269 | 40% (30–52) n=72 | 24% (16–34) n=83 |
-| Saburo Arasaka: Stubborn Patriarch | called | 407 | 44% (40–49) n=407 | 407 → 407 | 0% | 197 / 141 / 69 | 50% (44–56) n=271 | 35% (25–48) n=62 | 32% (23–44) n=74 |
-| Placide: Voodoo Sentinel | played | 372 | 47% (41–52) n=319 | 467 → 372 | 20% | 0 / 0 / 372 | 80% (72–86) n=110 | 40% (26–55) n=40 | 31% (25–37) n=193 |
-
-(32 more card uses in the JSON report.)
-
-Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 268 turns), Synapse Burnout (played, legal in 535 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13692 | 7% | 0 / 1178 / 4006 / 5294 / 3092 / 122 |
-| gig/steal | 3322 | 27% | 132 / 513 / 1366 / 1286 / 25 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 753 | 58% | 0 / 444 / 309 / 0 / 0 / 0 |
-| gigValue/adjust | 701 | 6% | 0 / 0 / 2 / 49 / 418 / 232 |
-| mode/mode | 591 | 75% | 0 / 531 / 60 / 0 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/adrenaline | 436 | 61% | 210 / 145 / 80 / 1 / 0 / 0 |
-| unit/weaken | 382 | 68% | 148 / 123 / 110 / 1 / 0 / 0 |
-| gig/swapGive | 319 | 41% | 0 / 25 / 246 / 48 / 0 / 0 |
-| gig/swapTake | 265 | 51% | 51 / 70 / 95 / 47 / 2 / 0 |
-| unit/bottomdeck | 260 | 44% | 56 / 65 / 137 / 2 / 0 / 0 |
-| unit/defeat | 256 | 38% | 25 / 48 / 165 / 18 / 0 / 0 |
-| card/discard | 237 | 74% | 15 / 124 / 97 / 1 / 0 / 0 |
-| unit/equip | 175 | 85% | 23 / 66 / 72 / 14 / 0 / 0 |
-| unit/spend | 93 | 59% | 35 / 32 / 26 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 75 | 64% | 35 / 20 / 20 / 0 / 0 / 0 |
-| unit/sacrifice | 63 | 81% | 41 / 10 / 11 / 1 / 0 / 0 |
-| yesno/draw | 38 | 100% | 0 / 38 / 0 / 0 / 0 / 0 |
-| unit/ready | 34 | 100% | 0 / 34 / 0 / 0 / 0 / 0 |
-| card/playFree | 25 | 100% | 0 / 18 / 7 / 0 / 0 / 0 |
-| unit/pump | 12 | 83% | 5 / 5 / 2 / 0 / 0 / 0 |
+| gig/steal | 2120 | 36% | 210 / 345 / 870 / 691 / 4 / 0 |
+| gigValue/adjust | 1625 | 29% | 0 / 40 / 527 / 667 / 332 / 59 |
+| unit/bottomdeck | 1495 | 71% | 847 / 307 / 336 / 5 / 0 / 0 |
+| card/discard | 1306 | 41% | 91 / 339 / 723 / 153 / 0 / 0 |
+| card/search | 1255 | 57% | 0 / 269 / 986 / 0 / 0 / 0 |
+| unit/pump | 1230 | 63% | 400 / 342 / 459 / 29 / 0 / 0 |
+| react | 825 | 53% | 0 / 597 / 228 / 0 / 0 / 0 |
+| mulligan | 560 | 36% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/freePlay | 487 | 59% | 0 / 107 / 286 / 91 / 3 / 0 |
+| gig/swapGive | 430 | 37% | 23 / 38 / 213 / 156 / 0 / 0 |
+| gig/swapTake | 430 | 29% | 26 / 55 / 191 / 154 / 4 / 0 |
+| yesno/addToHand | 347 | 100% | 0 / 347 / 0 / 0 / 0 / 0 |
+| yesno/discardFor | 324 | 100% | 0 / 324 / 0 / 0 / 0 / 0 |
+| unit/weaken | 220 | 65% | 96 / 60 / 63 / 1 / 0 / 0 |
+| gigValue/setGig | 204 | 12% | 0 / 1 / 21 / 16 / 53 / 113 |
+| unit/cantAttack | 204 | 64% | 78 / 79 / 47 / 0 / 0 / 0 |
+| mode/mode | 190 | 87% | 0 / 27 / 163 / 0 / 0 / 0 |
+| unit/spend | 142 | 55% | 52 / 48 / 42 / 0 / 0 / 0 |
+| unit/call | 97 | 100% | 0 / 39 / 58 / 0 / 0 / 0 |
+| unit/sacrifice | 33 | 94% | 23 / 8 / 2 / 0 / 0 / 0 |
+| card/discardForNothing | 30 | 0% | 0 / 4 / 21 / 5 / 0 / 0 |
+| yesno/draw | 15 | 100% | 0 / 15 / 0 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 7 | 29% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 6 | 17% | 0 / 6 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 4 | 0% | 0 / 3 / 1 / 0 / 0 / 0 |
 
-Reaction windows: 740 attacks. Reacted to 314 (deck won 37% (32–43) n=285): stole 237, stoleNothing 3, attackerGone 7, targetGone 55, bothGone 12. Let 426 resolve (42% (36–49) n=212): stole 339, targetGone 82, bothGone 5. Choices: endReact 433, call 307, play 13.
+Reaction windows: 770 attacks. Reacted to 359 (deck won 44% (39–50) n=293): stole 151, stoleNothing 2, attackerGone 1, targetGone 201, bothGone 4. Let 411 resolve (45% (39–52) n=220): stole 302, stoleNothing 1, attackerGone 1, targetGone 100, bothGone 7. Choices: call 212, endReact 439, block 158, play 16.
 
-## S1-04 Cross (RBG) — 560 games, 37% won, 27051 decisions
+## Ladder S1 #2: V / Smasher / Saburo (RRG) — 560 games, 65% won, 24418 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 776 | 44% (38–49) n=337 | 859 → 697 | 19% | 71 / 260 / 445 | 63% (56–70) n=163 | 39% (31–49) n=114 | 37% (31–44) n=199 |
-| Psycho Squad | attacked | 722 | 40% (35–45) n=335 | 834 → 674 | 19% | 67 / 236 / 419 | 59% (51–66) n=162 | 32% (24–41) n=113 | 35% (28–42) n=191 |
-| MaxTac AV | attacked | 662 | 43% (37–49) n=268 | 718 → 631 | 12% | 0 / 308 / 354 | 58% (50–65) n=160 | 57% (45–68) n=65 | 35% (28–42) n=169 |
-| Dexter DeShawn: Off the Grid | ability | 647 | 35% (31–40) n=417 | 1947 → 647 | 67% | 5 / 128 / 514 | 59% (53–65) n=239 | 10% (5–18) n=83 | 7% (4–11) n=191 |
-| Wakako Okada: Peace and Harmony | ability | 647 | 35% (30–40) n=406 | 1955 → 647 | 67% | 5 / 156 / 486 | 55% (48–61) n=237 | 16% (10–25) n=92 | 9% (6–14) n=180 |
-| Nadia: Fighting Through Grief | attacked | 634 | 39% (34–45) n=266 | 665 → 582 | 12% | 0 / 208 / 426 | 67% (58–75) n=124 | 50% (36–64) n=44 | 33% (27–40) n=216 |
-| Valentino Street Racer | played | 584 | 37% (32–42) n=416 | 1117 → 538 | 52% | 112 / 292 / 180 | 51% (44–58) n=198 | 18% (12–26) n=108 | 31% (25–38) n=170 |
-| 6th Street Recruits | played | 572 | 40% (36–45) n=410 | 1085 → 565 | 48% | 198 / 194 / 180 | 49% (42–56) n=196 | 35% (28–43) n=148 | 30% (23–37) n=149 |
-| Psycho Squad | played | 572 | 38% (34–43) n=409 | 998 → 565 | 43% | 188 / 186 / 198 | 54% (47–61) n=181 | 27% (21–35) n=135 | 28% (22–36) n=169 |
-| Valentino Street Racer | attacked | 509 | 36% (30–41) n=284 | 722 → 458 | 37% | 15 / 143 / 351 | 54% (46–62) n=138 | 41% (30–53) n=66 | 25% (19–33) n=162 |
-| Nocturne OP55 N1 | sold | 478 | 38% (33–43) n=367 | 926 → 478 | 48% | 154 / 222 / 102 | 46% (39–54) n=165 | 34% (25–44) n=97 | 31% (24–39) n=161 |
-| Placide: Voodoo Sentinel | played | 456 | 41% (36–46) n=361 | 509 → 456 | 10% | 0 / 0 / 456 | 63% (54–71) n=119 | 51% (37–65) n=47 | 28% (23–34) n=237 |
-| Dexter DeShawn: Off the Grid | called | 440 | 37% (33–42) n=440 | 440 → 440 | 0% | 191 / 176 / 73 | 43% (38–49) n=277 | 24% (16–36) n=66 | 29% (21–39) n=97 |
-| Saburo Arasaka: Stubborn Patriarch | called | 424 | 38% (33–43) n=424 | 424 → 424 | 0% | 199 / 128 / 97 | 46% (40–52) n=274 | 24% (16–34) n=76 | 23% (15–34) n=74 |
-| Wakako Okada: Peace and Harmony | called | 402 | 38% (33–42) n=402 | 402 → 402 | 0% | 199 / 155 / 48 | 44% (38–50) n=264 | 25% (16–38) n=56 | 27% (18–37) n=82 |
+| Pepe Najarro: Working Doubles | attacked | 917 | 68% (63–73) n=363 | 1067 → 837 | 22% | 111 / 345 / 461 | 81% (75–85) n=218 | 65% (57–73) n=141 | 61% (54–67) n=211 |
+| Animals Wrecker | attacked | 680 | 76% (71–80) n=300 | 659 → 628 | 5% | 0 / 179 / 501 | 95% (90–97) n=168 | 79% (67–87) n=66 | 71% (64–77) n=209 |
+| Synapse Burnout | sold | 504 | 64% (59–68) n=378 | 798 → 504 | 37% | 260 / 138 / 106 | 74% (68–80) n=192 | 55% (46–63) n=122 | 55% (46–64) n=112 |
+| Yorinobu Arasaka: Steel Dragon | played | 494 | 67% (62–72) n=382 | 709 → 494 | 30% | 0 / 193 / 301 | 84% (77–90) n=134 | 69% (56–79) n=58 | 56% (49–62) n=228 |
+| Pepe Najarro: Working Doubles | played | 486 | 64% (59–69) n=375 | 961 → 477 | 50% | 290 / 108 / 88 | 74% (67–79) n=186 | 61% (53–68) n=165 | 46% (34–57) n=68 |
+| V: Streetkid | attacked | 481 | 51% (45–57) n=280 | 565 → 481 | 15% | 76 / 170 / 235 | 68% (60–75) n=165 | 43% (29–58) n=42 | 38% (30–46) n=127 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 464 | 78% (73–82) n=281 | 452 → 430 | 5% | 0 / 0 / 464 | 97% (92–99) n=147 | 83% (71–91) n=54 | 67% (59–74) n=155 |
+| Animals Wrecker | played | 463 | 70% (65–75) n=354 | 689 → 463 | 33% | 0 / 337 / 126 | 79% (72–85) n=157 | 66% (55–76) n=71 | 65% (58–72) n=177 |
+| Adam Smasher: Ender of Legends | called | 443 | 64% (59–68) n=443 | 443 → 443 | 0% | 195 / 129 / 119 | 73% (68–78) n=304 | 45% (35–56) n=82 | 40% (29–53) n=57 |
+| V: Streetkid | called | 429 | 66% (61–70) n=429 | 429 → 429 | 0% | 212 / 137 / 80 | 73% (67–78) n=276 | 46% (35–56) n=83 | 63% (51–73) n=70 |
+| Meredith Stout: Stone Cold Corpo | attacked | 424 | 71% (65–76) n=242 | 814 → 415 | 49% | 43 / 149 / 232 | 88% (81–92) n=140 | 71% (59–80) n=72 | 53% (43–62) n=112 |
+| Saburo Arasaka: Stubborn Patriarch | called | 423 | 64% (59–68) n=423 | 423 → 423 | 0% | 190 / 129 / 104 | 73% (68–78) n=266 | 51% (40–61) n=85 | 46% (35–57) n=72 |
+| Peace Offering | sold | 385 | 64% (59–69) n=304 | 1158 → 385 | 67% | 110 / 172 / 103 | 75% (67–82) n=130 | 64% (53–73) n=80 | 57% (48–65) n=130 |
+| Mantis Blades | sold | 375 | 60% (55–65) n=314 | 580 → 375 | 35% | 243 / 58 / 74 | 71% (63–78) n=145 | 57% (48–65) n=125 | 38% (28–49) n=74 |
+| Industrial Assembly | sold | 358 | 63% (57–68) n=295 | 1027 → 358 | 65% | 86 / 154 / 118 | 73% (64–80) n=110 | 56% (46–66) n=87 | 52% (44–61) n=130 |
 
 (30 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14636 | 7% | 0 / 1356 / 4079 / 5487 / 3589 / 125 |
-| gig/steal | 3179 | 26% | 154 / 500 / 1370 / 1132 / 23 / 0 |
+| main | 13480 | 9% | 0 / 1210 / 3588 / 5052 / 3548 / 82 |
+| gig/steal | 3401 | 31% | 230 / 525 / 1468 / 1158 / 20 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1468 | 7% | 0 / 0 / 1 / 72 / 876 / 519 |
-| mode/mode | 1118 | 74% | 0 / 1054 / 64 / 0 / 0 / 0 |
-| react | 689 | 54% | 0 / 391 / 298 / 0 / 0 / 0 |
-| mulligan | 560 | 18% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/adrenaline | 470 | 59% | 206 / 157 / 107 / 0 / 0 / 0 |
-| unit/weaken | 395 | 70% | 155 / 132 / 107 / 1 / 0 / 0 |
-| gig/swapGive | 381 | 39% | 0 / 22 / 289 / 70 / 0 / 0 |
-| unit/pump | 362 | 59% | 111 / 153 / 96 / 2 / 0 / 0 |
-| gig/swapTake | 325 | 52% | 72 / 92 / 111 / 47 / 3 / 0 |
-| unit/bottomdeck | 321 | 51% | 82 / 89 / 146 / 4 / 0 / 0 |
-| card/discard | 272 | 78% | 8 / 171 / 91 / 2 / 0 / 0 |
-| unit/equip | 206 | 86% | 23 / 57 / 103 / 23 / 0 / 0 |
-| unit/spend | 124 | 54% | 39 / 59 / 26 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 95 | 61% | 43 / 30 / 22 / 0 / 0 / 0 |
-| unit/defeat | 54 | 46% | 5 / 2 / 29 / 18 / 0 / 0 |
-| gigValue/setGig | 47 | 6% | 0 / 0 / 0 / 5 / 8 / 34 |
-| unit/sacrifice | 43 | 88% | 23 / 10 / 9 / 1 / 0 / 0 |
-| yesno/draw | 37 | 100% | 0 / 37 / 0 / 0 / 0 / 0 |
-| card/playFree | 18 | 94% | 0 / 14 / 4 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 83% | 0 / 6 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 5 | 0% | 0 / 3 / 2 / 0 / 0 / 0 |
+| react | 1226 | 65% | 0 / 811 / 407 / 8 / 0 / 0 |
+| unit/defeat | 816 | 63% | 261 / 274 / 278 / 3 / 0 / 0 |
+| mulligan | 560 | 41% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 552 | 60% | 147 / 176 / 200 / 29 / 0 / 0 |
+| card/playFree | 439 | 84% | 0 / 236 / 202 / 1 / 0 / 0 |
+| unit/equip | 423 | 83% | 76 / 103 / 211 / 33 / 0 / 0 |
+| gigValue/adjust | 242 | 8% | 0 / 8 / 70 / 26 / 55 / 83 |
+| unit/ready | 217 | 93% | 0 / 184 / 33 / 0 / 0 / 0 |
+| gigValue/setGig | 199 | 15% | 0 / 0 / 13 / 24 / 42 / 120 |
+| unit/spend | 190 | 65% | 81 / 74 / 34 / 1 / 0 / 0 |
+| gig/swapGive | 140 | 41% | 0 / 5 / 116 / 18 / 1 / 0 |
+| gig/swapTake | 120 | 61% | 33 / 48 / 25 / 13 / 1 / 0 |
+| unit/sacrifice | 55 | 89% | 41 / 8 / 6 / 0 / 0 / 0 |
+| card/discard | 41 | 54% | 9 / 8 / 19 / 5 / 0 / 0 |
+| unit/pump | 34 | 85% | 17 / 14 / 3 / 0 / 0 / 0 |
+| card/defeat | 24 | 96% | 22 / 2 / 0 / 0 / 0 / 0 |
+| yesno/draw | 14 | 100% | 0 / 14 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 684 attacks. Reacted to 317 (deck won 28% (23–33) n=281): stole 259, stoleNothing 4, attackerGone 6, targetGone 40, bothGone 8. Let 367 resolve (39% (33–46) n=197): stole 287, stoleNothing 1, targetGone 76, bothGone 2, noneGone 1. Choices: call 314, endReact 371, play 4.
+Reaction windows: 1104 attacks. Reacted to 394 (deck won 59% (53–64) n=300): stole 200, attackerGone 29, targetGone 137, bothGone 27, noneGone 1. Let 710 resolve (67% (62–72) n=330): stole 552, stoleNothing 3, attackerGone 6, targetGone 123, bothGone 26. Choices: endReact 796, block 134, call 251, play 45.
 
-## S1-05 Cross (RBB) — 560 games, 50% won, 24093 decisions
+## Ladder S1 #3: Smasher / Dexter / Saburo (RRG) — 560 games, 68% won, 24812 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Psycho Squad | attacked | 776 | 48% (43–54) n=327 | 876 → 706 | 19% | 61 / 295 / 420 | 60% (53–67) n=203 | 47% (38–56) n=113 | 44% (37–52) n=172 |
-| 6th Street Recruits | attacked | 750 | 49% (44–54) n=338 | 859 → 698 | 19% | 67 / 295 / 388 | 59% (52–65) n=202 | 64% (55–73) n=112 | 36% (29–44) n=174 |
-| Alt Cunningham: Soulkiller Architect | ability | 660 | 47% (42–52) n=429 | 1712 → 660 | 61% | 4 / 104 / 552 | 61% (55–67) n=273 | 42% (32–53) n=83 | 18% (13–24) n=176 |
-| V: Streetkid | attacked | 635 | 47% (42–52) n=390 | 746 → 635 | 15% | 24 / 213 / 398 | 60% (54–66) n=235 | 56% (44–67) n=70 | 29% (23–37) n=164 |
-| Jacked-In Voodoo Boy | played | 565 | 47% (42–52) n=409 | 1076 → 531 | 51% | 237 / 188 / 140 | 52% (46–58) n=271 | 42% (33–52) n=109 | 30% (21–41) n=76 |
-| Psycho Squad | played | 527 | 48% (43–53) n=380 | 942 → 522 | 45% | 220 / 169 / 138 | 54% (47–61) n=213 | 44% (36–52) n=148 | 26% (18–37) n=87 |
-| 6th Street Recruits | played | 516 | 48% (43–53) n=397 | 1014 → 510 | 50% | 210 / 172 / 134 | 54% (47–60) n=212 | 47% (39–55) n=146 | 34% (25–44) n=92 |
-| Trust No One | sold | 483 | 46% (41–51) n=366 | 711 → 483 | 32% | 242 / 120 / 121 | 56% (49–64) n=172 | 46% (38–55) n=142 | 24% (17–33) n=101 |
-| Jackie Welles: Pour One Out For Me | called | 416 | 52% (47–56) n=416 | 416 → 416 | 0% | 130 / 201 / 85 | 55% (50–61) n=313 | 48% (36–60) n=67 | 28% (16–44) n=36 |
-| V: Streetkid | called | 413 | 51% (46–56) n=413 | 413 → 413 | 0% | 145 / 184 / 84 | 57% (51–62) n=292 | 42% (31–54) n=66 | 29% (19–42) n=55 |
-| V: Streetkid | Go Solo (self-paid 411) | 411 | 46% (41–51) n=411 | 963 → 411 | 57% | 26 / 191 / 194 | 56% (49–63) n=204 | 50% (37–63) n=50 | 32% (25–39) n=157 |
-| Alt Cunningham: Soulkiller Architect | called | 408 | 53% (49–58) n=408 | 408 → 408 | 0% | 121 / 198 / 89 | 59% (53–64) n=300 | 47% (35–60) n=55 | 30% (20–44) n=53 |
-| Maman Brigitte: Spirit of Death | attacked | 388 | 50% (43–57) n=218 | 486 → 374 | 23% | 0 / 180 / 208 | 61% (53–68) n=148 | 64% (50–77) n=45 | 29% (20–40) n=76 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 372 | 63% (55–70) n=161 | 279 → 258 | 8% | 0 / 71 / 301 | 72% (63–79) n=113 | 88% (71–96) n=26 | 50% (38–62) n=64 |
-| All is Lost | sold | 370 | 50% (44–55) n=305 | 412 → 370 | 10% | 227 / 72 / 71 | 57% (49–64) n=152 | 46% (37–55) n=124 | 32% (22–45) n=59 |
-
-(33 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 963 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13385 | 7% | 0 / 1271 / 3796 / 5468 / 2793 / 57 |
-| gig/steal | 2968 | 33% | 223 / 588 / 1321 / 817 / 19 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1186 | 19% | 0 / 40 / 232 / 364 / 309 / 241 |
-| react | 856 | 56% | 0 / 520 / 336 / 0 / 0 / 0 |
-| unit/bottomdeck | 832 | 79% | 551 / 132 / 146 / 3 / 0 / 0 |
-| card/discard | 606 | 64% | 108 / 303 / 193 / 2 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/search | 459 | 71% | 228 / 127 / 94 / 10 / 0 / 0 |
-| card/playFromTrash | 413 | 63% | 148 / 124 / 140 / 1 / 0 / 0 |
-| yesno/discardFor | 196 | 100% | 0 / 196 / 0 / 0 / 0 / 0 |
-| unit/weaken | 84 | 62% | 28 / 29 / 27 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 70 | 66% | 17 / 23 / 30 / 0 / 0 / 0 |
-| mode/mode | 67 | 94% | 0 / 4 / 63 / 0 / 0 / 0 |
-| unit/cantAttack | 59 | 61% | 14 / 18 / 27 / 0 / 0 / 0 |
-| unit/sacrifice | 56 | 95% | 43 / 11 / 2 / 0 / 0 / 0 |
-| yesno/draw | 27 | 100% | 0 / 27 / 0 / 0 / 0 / 0 |
-| unit/call | 20 | 100% | 0 / 8 / 12 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 2 | 0% | 0 / 0 / 2 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 829 attacks. Reacted to 371 (deck won 43% (38–48) n=315): stole 267, stoleNothing 2, attackerGone 4, targetGone 92, bothGone 6. Let 458 resolve (39% (33–45) n=225): stole 327, stoleNothing 5, attackerGone 1, targetGone 119, bothGone 6. Choices: endReact 476, call 337, block 37, play 6.
-
-## S1-06 Cross (BGY) — 560 games, 24% won, 25381 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Psycho Squad | attacked | 933 | 29% (25–34) n=368 | 1059 → 826 | 22% | 101 / 399 / 433 | 52% (43–60) n=130 | 26% (19–34) n=132 | 27% (22–32) n=270 |
-| Psycho Squad | played | 672 | 27% (23–31) n=448 | 893 → 666 | 25% | 365 / 174 / 133 | 36% (30–42) n=210 | 21% (16–28) n=180 | 22% (17–29) n=183 |
-| Valentino Street Racer | played | 643 | 25% (21–29) n=440 | 1114 → 584 | 48% | 207 / 302 / 134 | 39% (31–46) n=158 | 12% (8–18) n=151 | 25% (19–31) n=220 |
-| Alt Cunningham: Soulkiller Architect | ability | 580 | 24% (20–29) n=401 | 1983 → 579 | 71% | 11 / 171 / 398 | 48% (41–55) n=177 | 17% (10–27) n=66 | 9% (6–14) n=243 |
-| Trauma Team Operatives | played | 571 | 25% (21–30) n=410 | 905 → 564 | 38% | 13 / 341 / 217 | 40% (32–48) n=142 | 16% (10–27) n=73 | 19% (14–24) n=275 |
-| Muamar Reyes: El Capitán | ability | 556 | 22% (18–26) n=379 | 2058 → 556 | 73% | 14 / 182 / 360 | 48% (41–56) n=151 | 18% (10–29) n=62 | 6% (4–10) n=244 |
-| Trauma Team Operatives | attacked | 529 | 30% (25–35) n=299 | 588 → 500 | 15% | 0 / 145 / 384 | 71% (61–80) n=84 | 44% (30–59) n=43 | 19% (15–25) n=233 |
-| Placide: Voodoo Sentinel | played | 514 | 29% (25–34) n=403 | 539 → 514 | 5% | 0 / 0 / 514 | 71% (61–80) n=80 | 59% (42–74) n=34 | 19% (15–23) n=319 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 503 | 19% (15–24) n=353 | 2010 → 503 | 75% | 13 / 174 / 316 | 46% (37–55) n=118 | 17% (10–28) n=69 | 8% (5–12) n=238 |
-| Valentino Street Racer | attacked | 495 | 29% (24–34) n=295 | 768 → 446 | 42% | 42 / 171 / 282 | 55% (45–65) n=93 | 25% (16–36) n=69 | 26% (20–32) n=207 |
-| Alt Cunningham: Soulkiller Architect | called | 425 | 24% (20–28) n=425 | 425 → 425 | 0% | 264 / 121 / 40 | 30% (25–37) n=246 | 14% (8–23) n=92 | 15% (9–24) n=87 |
-| Muamar Reyes: El Capitán | called | 412 | 27% (23–31) n=412 | 412 → 412 | 0% | 262 / 119 / 31 | 32% (27–38) n=260 | 15% (9–25) n=74 | 22% (14–32) n=78 |
-| Hanako Arasaka: Daughter of the Emperor | called | 410 | 22% (19–27) n=410 | 410 → 410 | 0% | 272 / 92 / 46 | 29% (23–34) n=266 | 6% (3–14) n=80 | 17% (10–28) n=64 |
-| Chrome Reverie | sold | 374 | 30% (25–35) n=303 | 923 → 374 | 59% | 154 / 126 / 94 | 38% (30–47) n=126 | 35% (25–45) n=81 | 21% (15–29) n=133 |
-| The Heist | sold | 373 | 25% (20–30) n=311 | 497 → 373 | 25% | 180 / 80 / 113 | 34% (26–42) n=136 | 17% (11–25) n=101 | 18% (12–27) n=109 |
-
-(30 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13618 | 8% | 0 / 928 / 3109 / 5086 / 4370 / 125 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/steal | 2060 | 27% | 37 / 281 / 767 / 962 / 13 / 0 |
-| gigValue/adjust | 846 | 10% | 0 / 28 / 61 / 104 / 507 / 146 |
-| react | 752 | 44% | 0 / 420 / 331 / 1 / 0 / 0 |
-| unit/bottomdeck | 645 | 47% | 144 / 145 / 348 / 8 / 0 / 0 |
-| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 547 | 75% | 0 / 547 / 0 / 0 / 0 / 0 |
-| card/discard | 504 | 73% | 9 / 262 / 231 / 2 / 0 / 0 |
-| gig/swapGive | 503 | 49% | 45 / 90 / 241 / 127 / 0 / 0 |
-| gig/swapTake | 503 | 29% | 16 / 37 / 213 / 228 / 9 / 0 |
-| card/playFromTrash | 376 | 66% | 177 / 98 / 98 / 3 / 0 / 0 |
-| unit/adrenaline | 376 | 78% | 244 / 106 / 26 / 0 / 0 / 0 |
-| unit/protect | 368 | 71% | 199 / 129 / 40 / 0 / 0 / 0 |
-| unit/spend | 305 | 48% | 78 / 123 / 101 / 3 / 0 / 0 |
-| mode/mode | 232 | 100% | 0 / 0 / 232 / 0 / 0 / 0 |
-| unit/cantAttack | 219 | 59% | 86 / 73 / 59 / 1 / 0 / 0 |
-| unit/bottomdeckOwn | 176 | 76% | 99 / 53 / 24 / 0 / 0 / 0 |
-| unit/stealMod | 121 | 70% | 12 / 46 / 63 / 0 / 0 / 0 |
-| unit/call | 91 | 100% | 0 / 42 / 49 / 0 / 0 / 0 |
-| gigValue/setGig | 82 | 7% | 0 / 1 / 6 / 15 / 16 / 44 |
-| unit/equip | 70 | 71% | 9 / 3 / 46 / 12 / 0 / 0 |
-| unit/weaken | 67 | 61% | 18 / 19 / 26 / 4 / 0 / 0 |
-| unit/ready | 46 | 100% | 0 / 46 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 43 | 81% | 25 / 13 / 5 / 0 / 0 / 0 |
-| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 12 | 0% | 0 / 7 / 4 / 1 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
-| card/search | 1 | 100% | 1 / 0 / 0 / 0 / 0 / 0 |
-| yesno/playFree | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 696 attacks. Reacted to 372 (deck won 20% (16–25) n=296): stole 230, stoleNothing 98, attackerGone 1, targetGone 29, bothGone 5, noneGone 9. Let 324 resolve (22% (16–28) n=176): stole 272, stoleNothing 3, targetGone 45, bothGone 4. Choices: call 290, endReact 334, play 128.
-
-## S1-07 Explorer (RYY) — 560 games, 34% won, 25858 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 1066 | 38% (33–43) n=409 | 1071 → 962 | 10% | 0 / 446 / 620 | 54% (47–60) n=223 | 51% (42–60) n=108 | 31% (26–37) n=275 |
-| 6th Street Recruits | attacked | 790 | 38% (34–43) n=365 | 899 → 713 | 21% | 87 / 235 / 468 | 59% (51–66) n=162 | 43% (34–51) n=127 | 31% (25–37) n=225 |
-| Rockn' Rockerboy | played | 683 | 36% (31–40) n=459 | 863 → 680 | 21% | 241 / 193 / 249 | 51% (44–58) n=211 | 29% (22–37) n=137 | 25% (20–31) n=229 |
-| 6th Street Recruits | played | 635 | 35% (30–39) n=432 | 1074 → 627 | 42% | 225 / 186 / 224 | 49% (42–56) n=174 | 31% (24–38) n=162 | 28% (22–34) n=205 |
-| Gilded Matón | played | 497 | 30% (26–35) n=363 | 1643 → 461 | 72% | 64 / 137 / 296 | 46% (38–54) n=153 | 19% (13–28) n=100 | 20% (15–27) n=161 |
-| Johnny Silverhand: Rocking Renegade | ability | 474 | 35% (30–40) n=341 | 1694 → 474 | 72% | 1 / 74 / 399 | 56% (49–63) n=169 | 25% (17–36) n=75 | 14% (10–20) n=163 |
-| Johnny Silverhand: Rocking Renegade | called | 466 | 34% (30–38) n=466 | 466 → 466 | 0% | 215 / 157 / 94 | 40% (35–46) n=292 | 21% (14–31) n=81 | 25% (17–34) n=93 |
-| River Ward: Detective on the Hunt | called | 463 | 34% (30–39) n=463 | 463 → 463 | 0% | 217 / 134 / 112 | 40% (35–46) n=300 | 24% (16–34) n=92 | 24% (16–35) n=71 |
-| Kerry Eurodyne: Axe, Attitude, Audience | called | 450 | 34% (30–39) n=450 | 450 → 450 | 0% | 214 / 124 / 112 | 43% (37–48) n=298 | 20% (12–29) n=82 | 16% (9–26) n=70 |
-| River Ward: Detective on the Hunt | ability | 429 | 32% (27–38) n=308 | 1880 → 429 | 77% | 25 / 77 / 327 | 52% (44–59) n=170 | 20% (12–32) n=60 | 9% (5–15) n=134 |
-| Viktor Vektor: You Might Feel a Little Pinch | played | 422 | 34% (29–39) n=339 | 897 → 405 | 55% | 90 / 186 / 146 | 48% (40–56) n=145 | 24% (16–33) n=97 | 27% (20–35) n=134 |
-| Dexter DeShawn: One Last Chance | played | 418 | 33% (28–38) n=341 | 725 → 403 | 44% | 95 / 186 / 137 | 41% (33–50) n=138 | 24% (17–33) n=96 | 30% (23–38) n=142 |
-| Minotaur | played | 409 | 32% (27–37) n=345 | 634 → 409 | 35% | 0 / 146 / 263 | 53% (43–62) n=110 | 35% (23–49) n=46 | 21% (16–27) n=218 |
-| Cyberpsychosis | sold | 400 | 32% (27–37) n=338 | 744 → 400 | 46% | 121 / 145 / 134 | 43% (35–51) n=136 | 32% (22–44) n=68 | 22% (16–28) n=172 |
-| The Heist | sold | 383 | 32% (27–38) n=325 | 580 → 383 | 34% | 169 / 120 / 94 | 43% (35–52) n=121 | 27% (19–36) n=109 | 25% (18–34) n=123 |
-
-(30 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14709 | 7% | 0 / 1137 / 3884 / 5649 / 3842 / 197 |
-| gig/steal | 2742 | 28% | 133 / 381 / 1187 / 1030 / 11 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| yesno/kerryReroll | 1598 | 56% | 0 / 1598 / 0 / 0 / 0 / 0 |
-| gigValue/adjust | 1067 | 10% | 0 / 9 / 111 / 138 / 552 / 257 |
-| react | 1037 | 76% | 0 / 700 / 337 / 0 / 0 / 0 |
-| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/lagAttack | 474 | 93% | 89 / 142 / 228 / 15 / 0 / 0 |
-| unit/equip | 350 | 75% | 22 / 70 / 203 / 55 / 0 / 0 |
-| unit/defeat | 312 | 67% | 105 / 52 / 100 / 55 / 0 / 0 |
-| unit/sacrifice | 255 | 54% | 69 / 98 / 87 / 1 / 0 / 0 |
-| card/defeatGear | 145 | 55% | 0 / 128 / 17 / 0 / 0 / 0 |
-| card/trash | 101 | 42% | 0 / 101 / 0 / 0 / 0 / 0 |
-| card/playFree | 92 | 85% | 70 / 4 / 17 / 1 / 0 / 0 |
-| yesno/draw | 55 | 100% | 0 / 55 / 0 / 0 / 0 / 0 |
-| card/discard | 52 | 48% | 14 / 12 / 26 / 0 / 0 / 0 |
-| card/search | 52 | 69% | 24 / 24 / 4 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 33% | 0 / 6 / 0 / 0 / 0 / 0 |
-| yesno/playFree | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
-| unit/pump | 5 | 80% | 4 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1003 attacks. Reacted to 239 (deck won 27% (22–34) n=222): stole 203, targetGone 32, bothGone 4. Let 764 resolve (30% (25–36) n=307): stole 577, stoleNothing 5, attackerGone 1, targetGone 169, bothGone 12. Choices: call 230, endReact 793, ability 11, play 3.
-
-## S1-08 Explorer (BGG) — 560 games, 46% won, 23997 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Nadia: Fighting Through Grief | attacked | 730 | 45% (40–51) n=304 | 751 → 659 | 12% | 0 / 230 / 500 | 75% (67–82) n=129 | 57% (43–69) n=53 | 38% (32–44) n=243 |
-| Psycho Squad | attacked | 728 | 50% (45–56) n=306 | 850 → 665 | 22% | 46 / 281 / 401 | 69% (62–76) n=162 | 56% (47–65) n=114 | 41% (34–49) n=177 |
-| Pepe Najarro: Working Doubles | attacked | 654 | 51% (45–56) n=273 | 757 → 587 | 22% | 52 / 220 / 382 | 70% (62–78) n=132 | 58% (47–67) n=90 | 43% (36–51) n=163 |
-| MaxTac AV | attacked | 546 | 56% (49–62) n=232 | 592 → 519 | 12% | 0 / 251 / 295 | 69% (61–75) n=153 | 70% (57–81) n=54 | 48% (39–56) n=130 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 530 | 37% (32–42) n=341 | 1900 → 530 | 72% | 5 / 103 / 422 | 62% (55–69) n=178 | 22% (15–32) n=89 | 13% (9–19) n=159 |
-| Psycho Squad | played | 518 | 46% (41–51) n=374 | 1004 → 505 | 50% | 225 / 133 / 160 | 54% (47–61) n=187 | 44% (36–52) n=141 | 29% (21–38) n=112 |
-| Valentino Street Racer | played | 509 | 46% (41–51) n=375 | 1169 → 463 | 60% | 105 / 210 / 194 | 59% (52–66) n=172 | 35% (27–44) n=117 | 32% (24–40) n=130 |
-| Judy Álvarez: Braindance Maestro | ability | 507 | 42% (37–48) n=344 | 1898 → 507 | 73% | 7 / 106 / 394 | 65% (58–71) n=195 | 20% (12–30) n=71 | 19% (14–26) n=164 |
-| Pepe Najarro: Working Doubles | played | 494 | 49% (43–54) n=352 | 1018 → 485 | 52% | 192 / 127 / 175 | 62% (55–69) n=159 | 44% (36–53) n=140 | 30% (23–38) n=127 |
-| Nadia: Fighting Through Grief | played | 484 | 46% (41–51) n=364 | 922 → 484 | 48% | 0 / 257 / 227 | 66% (58–74) n=137 | 43% (31–56) n=56 | 35% (29–42) n=224 |
-| Valentino Street Racer | attacked | 469 | 45% (39–51) n=269 | 622 → 434 | 30% | 23 / 112 / 334 | 70% (61–77) n=129 | 40% (29–53) n=60 | 27% (21–35) n=150 |
-| Hanako Arasaka: Daughter of the Emperor | called | 444 | 47% (42–51) n=444 | 444 → 444 | 0% | 221 / 142 / 81 | 52% (46–58) n=298 | 35% (25–46) n=74 | 38% (27–49) n=72 |
-| Saburo Arasaka: Stubborn Patriarch | called | 440 | 47% (42–51) n=440 | 440 → 440 | 0% | 228 / 132 / 80 | 50% (45–56) n=301 | 35% (24–47) n=66 | 41% (31–53) n=73 |
-| Judy Álvarez: Braindance Maestro | called | 438 | 47% (42–51) n=438 | 438 → 438 | 0% | 234 / 130 / 74 | 54% (48–59) n=312 | 28% (19–39) n=72 | 31% (21–45) n=54 |
-| Placide: Voodoo Sentinel | played | 415 | 45% (40–51) n=342 | 484 → 415 | 14% | 0 / 0 / 415 | 75% (66–82) n=111 | 57% (43–70) n=49 | 27% (21–33) n=208 |
-
-(33 more card uses in the JSON report.)
-
-Legal but never taken: Take Control (played, legal in 277 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13822 | 7% | 0 / 1242 / 3955 / 5661 / 2872 / 92 |
-| gig/steal | 2962 | 30% | 129 / 409 / 1309 / 1101 / 14 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/swapGive | 860 | 34% | 10 / 63 / 470 / 315 / 2 / 0 |
-| gig/swapTake | 808 | 38% | 65 / 139 / 347 / 252 / 5 / 0 |
-| react | 682 | 54% | 0 / 472 / 207 / 3 / 0 / 0 |
-| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/discard | 431 | 63% | 31 / 218 / 179 / 3 / 0 / 0 |
-| unit/adrenaline | 378 | 55% | 166 / 151 / 61 / 0 / 0 / 0 |
-| unit/defeat | 353 | 66% | 143 / 92 / 115 / 3 / 0 / 0 |
-| unit/equip | 258 | 87% | 73 / 37 / 133 / 15 / 0 / 0 |
-| yesno/addToHand | 218 | 100% | 0 / 218 / 0 / 0 / 0 / 0 |
-| unit/bottomdeck | 212 | 45% | 33 / 65 / 111 / 3 / 0 / 0 |
-| unit/sacrifice | 54 | 89% | 35 / 13 / 6 / 0 / 0 / 0 |
-| unit/spend | 52 | 62% | 22 / 17 / 13 / 0 / 0 / 0 |
-| mode/mode | 29 | 100% | 0 / 0 / 29 / 0 / 0 / 0 |
-| unit/pump | 23 | 65% | 7 / 9 / 7 / 0 / 0 / 0 |
-| unit/stealMod | 14 | 71% | 3 / 2 / 9 / 0 / 0 / 0 |
-| card/playFree | 12 | 100% | 0 / 9 / 3 / 0 / 0 / 0 |
-| yesno/draw | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 8 | 63% | 3 / 3 / 2 / 0 / 0 / 0 |
-| card/discardForNothing | 4 | 0% | 0 / 2 / 2 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 653 attacks. Reacted to 294 (deck won 38% (32–44) n=256): fizzled 14, stole 184, stoleNothing 12, attackerGone 2, targetGone 78, bothGone 4. Let 359 resolve (44% (37–51) n=206): stole 258, stoleNothing 4, targetGone 88, bothGone 9. Choices: call 238, endReact 368, play 14, block 48, ability 14.
-
-## S2-01 Mutant (RYY) — 560 games, 38% won, 25896 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 874 | 47% (42–52) n=337 | 894 → 786 | 12% | 0 / 373 / 501 | 60% (54–67) n=202 | 60% (49–70) n=85 | 38% (31–45) n=189 |
-| 6th Street Recruits | attacked | 819 | 42% (37–47) n=355 | 883 → 746 | 16% | 100 / 263 / 456 | 57% (50–64) n=192 | 42% (35–51) n=139 | 31% (25–38) n=187 |
-| Rockn' Rockerboy | played | 643 | 41% (36–45) n=438 | 873 → 643 | 26% | 238 / 176 / 229 | 52% (46–59) n=227 | 45% (37–53) n=149 | 23% (17–29) n=177 |
-| 6th Street Recruits | played | 616 | 39% (35–44) n=418 | 1079 → 600 | 44% | 221 / 204 / 191 | 47% (40–54) n=190 | 37% (30–45) n=175 | 31% (24–39) n=151 |
-| Dexter DeShawn: One Last Chance | played | 615 | 37% (33–42) n=419 | 1138 → 557 | 51% | 144 / 274 / 197 | 48% (42–55) n=211 | 30% (23–38) n=140 | 28% (22–36) n=141 |
-| Dexter DeShawn: Off the Grid | ability | 609 | 35% (30–40) n=397 | 1884 → 609 | 68% | 25 / 103 / 481 | 56% (49–62) n=223 | 20% (13–29) n=90 | 11% (7–16) n=176 |
-| Rogue Amendiares: Preem Solo | attacked | 585 | 34% (30–39) n=401 | 634 → 585 | 8% | 0 / 130 / 455 | 57% (49–64) n=175 | 44% (32–57) n=59 | 23% (18–29) n=238 |
-| Dexter DeShawn: One Last Chance | attacked | 573 | 40% (34–45) n=308 | 729 → 508 | 30% | 32 / 183 / 358 | 57% (49–65) n=149 | 48% (38–59) n=83 | 29% (23–36) n=173 |
-| Rogue Amendiares: Preem Solo | Go Solo (self-paid 422) | 422 | 34% (29–38) n=422 | 869 → 422 | 51% | 0 / 141 / 281 | 55% (46–63) n=137 | 28% (16–44) n=36 | 23% (18–28) n=249 |
-| Cyberpsychosis | sold | 413 | 37% (32–42) n=345 | 777 → 413 | 47% | 103 / 171 / 139 | 45% (38–53) n=159 | 37% (27–47) n=87 | 25% (19–33) n=140 |
-| Detonate | sold | 407 | 36% (31–41) n=346 | 519 → 407 | 22% | 220 / 80 / 107 | 46% (39–54) n=151 | 35% (28–44) n=127 | 19% (12–28) n=96 |
-| Dum Dum: Maelstrom Triggerman | called | 404 | 34% (30–39) n=404 | 436 → 404 | 7% | 184 / 110 / 110 | 42% (36–48) n=260 | 25% (17–35) n=81 | 16% (9–27) n=63 |
-| Dexter DeShawn: Off the Grid | called | 400 | 38% (33–42) n=400 | 425 → 400 | 6% | 184 / 121 / 95 | 44% (38–50) n=262 | 28% (18–40) n=65 | 22% (14–33) n=73 |
-| Over the Edge | sold | 397 | 35% (30–41) n=308 | 1756 → 397 | 77% | 39 / 157 / 201 | 45% (37–54) n=119 | 34% (23–47) n=56 | 28% (22–35) n=173 |
-| Rogue Amendiares: Preem Solo | called | 383 | 37% (33–42) n=383 | 407 → 383 | 6% | 181 / 112 / 90 | 43% (37–49) n=251 | 30% (21–42) n=66 | 24% (16–36) n=66 |
-
-(36 more card uses in the JSON report.)
-
-Legal but never taken: Rogue Amendiares: Preem Solo (Legend play, legal in 869 turns), Cyberpsychosis (played, legal in 150 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14769 | 7% | 0 / 1035 / 3575 / 5343 / 4581 / 235 |
-| gig/steal | 2933 | 28% | 174 / 494 / 1240 / 1015 / 10 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 2150 | 10% | 0 / 7 / 150 / 315 / 1230 / 448 |
-| react | 979 | 70% | 0 / 511 / 467 / 1 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 526 | 69% | 0 / 526 / 0 / 0 / 0 / 0 |
-| unit/pump | 460 | 53% | 123 / 171 / 162 / 4 / 0 / 0 |
-| unit/equip | 414 | 86% | 67 / 82 / 226 / 39 / 0 / 0 |
-| unit/sacrifice | 208 | 53% | 67 / 76 / 65 / 0 / 0 / 0 |
-| unit/defeat | 204 | 57% | 32 / 36 / 81 / 54 / 1 / 0 |
-| card/defeatGear | 166 | 71% | 0 / 136 / 30 / 0 / 0 / 0 |
-| card/discard | 120 | 71% | 7 / 60 / 50 / 3 / 0 / 0 |
-| unit/call | 98 | 100% | 0 / 49 / 49 / 0 / 0 / 0 |
-| yesno/draw | 34 | 100% | 0 / 34 / 0 / 0 / 0 / 0 |
-| card/playFree | 17 | 100% | 16 / 1 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 10 | 50% | 0 / 10 / 0 / 0 / 0 / 0 |
-| card/defeat | 8 | 88% | 7 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 952 attacks. Reacted to 295 (deck won 32% (27–38) n=262): stole 210, stoleNothing 2, attackerGone 8, targetGone 62, bothGone 13. Let 657 resolve (35% (29–41) n=279): stole 467, stoleNothing 6, attackerGone 9, targetGone 160, bothGone 15. Choices: endReact 682, call 287, ability 7, play 3.
-
-## S2-02 Mutant (RGG) — 560 games, 53% won, 22790 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Jackie Welles: Mama's Favorite | attacked | 769 | 50% (45–55) n=404 | 863 → 769 | 11% | 0 / 319 / 450 | 64% (57–70) n=234 | 53% (43–64) n=86 | 47% (41–54) n=203 |
-| Pepe Najarro: Working Doubles | attacked | 703 | 53% (48–59) n=302 | 802 → 646 | 19% | 58 / 263 / 382 | 69% (62–75) n=170 | 48% (38–58) n=98 | 47% (40–54) n=177 |
-| 6th Street Recruits | attacked | 670 | 52% (46–57) n=299 | 769 → 616 | 20% | 58 / 240 / 372 | 68% (60–74) n=157 | 47% (37–57) n=96 | 46% (39–54) n=171 |
-| Nadia: Fighting Through Grief | attacked | 662 | 51% (45–56) n=290 | 690 → 607 | 12% | 0 / 180 / 482 | 77% (70–84) n=133 | 71% (58–82) n=49 | 43% (37–49) n=224 |
-| MaxTac AV | attacked | 510 | 61% (55–67) n=229 | 563 → 490 | 13% | 0 / 242 / 268 | 74% (66–80) n=144 | 74% (60–84) n=46 | 56% (47–64) n=125 |
-| 6th Street Recruits | played | 478 | 48% (43–53) n=358 | 1005 → 476 | 53% | 225 / 107 / 146 | 55% (47–63) n=158 | 48% (40–56) n=138 | 34% (26–43) n=116 |
-| Pepe Najarro: Working Doubles | played | 474 | 51% (46–56) n=359 | 1011 → 469 | 54% | 226 / 113 / 135 | 56% (48–63) n=169 | 47% (39–55) n=144 | 43% (34–53) n=95 |
-| Jackie Welles: Mama's Favorite | called | 463 | 53% (48–57) n=463 | 463 → 463 | 0% | 231 / 161 / 71 | 55% (50–60) n=341 | 46% (34–58) n=63 | 46% (34–58) n=59 |
-| Saburo Arasaka: Stubborn Patriarch | called | 460 | 54% (50–59) n=460 | 460 → 460 | 0% | 213 / 152 / 95 | 61% (56–66) n=334 | 45% (34–57) n=66 | 25% (16–37) n=60 |
-| Valentino Street Racer | attacked | 453 | 55% (49–61) n=258 | 573 → 414 | 28% | 18 / 122 / 313 | 68% (60–75) n=142 | 63% (52–73) n=78 | 39% (30–48) n=111 |
-| Adam Smasher: Ender of Legends | called | 449 | 52% (48–57) n=449 | 449 → 449 | 0% | 218 / 129 / 102 | 55% (50–61) n=328 | 47% (36–59) n=74 | 38% (26–53) n=47 |
-| Memory Relapse | sold | 443 | 54% (49–60) n=345 | 1150 → 443 | 61% | 114 / 189 / 140 | 55% (48–63) n=159 | 51% (41–61) n=92 | 55% (47–63) n=134 |
-| Valentino Street Racer | played | 435 | 53% (48–58) n=342 | 1269 → 401 | 68% | 112 / 143 / 180 | 66% (58–72) n=169 | 48% (39–58) n=104 | 37% (28–47) n=95 |
-| Nadia: Fighting Through Grief | played | 429 | 50% (44–55) n=342 | 874 → 429 | 51% | 0 / 233 / 196 | 57% (49–65) n=131 | 58% (45–71) n=53 | 39% (32–46) n=198 |
-| Jackie Welles: Mama's Favorite | Go Solo (self-paid 424) | 424 | 48% (44–53) n=424 | 853 → 424 | 50% | 0 / 255 / 169 | 53% (45–60) n=168 | 43% (32–55) n=67 | 46% (39–53) n=189 |
+| Pepe Najarro: Working Doubles | attacked | 939 | 70% (65–74) n=364 | 1060 → 853 | 20% | 89 / 409 / 441 | 85% (79–89) n=200 | 65% (56–73) n=128 | 64% (58–70) n=243 |
+| Animals Wrecker | attacked | 755 | 76% (71–80) n=312 | 726 → 689 | 5% | 0 / 217 / 538 | 93% (88–96) n=164 | 88% (78–94) n=65 | 71% (65–76) n=232 |
+| 6th Street Recruits | attacked | 559 | 71% (65–76) n=247 | 670 → 526 | 21% | 48 / 246 / 265 | 89% (82–93) n=128 | 65% (54–74) n=88 | 65% (57–73) n=144 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 541 | 81% (76–85) n=294 | 526 → 505 | 4% | 0 / 0 / 541 | 96% (91–98) n=161 | 90% (81–96) n=63 | 71% (64–78) n=168 |
+| Dexter DeShawn: Off the Grid | ability | 540 | 62% (57–67) n=364 | 1892 → 540 | 71% | 13 / 95 / 432 | 81% (75–85) n=236 | 48% (34–62) n=48 | 32% (25–40) n=153 |
+| Pepe Najarro: Working Doubles | played | 523 | 67% (62–71) n=399 | 903 → 517 | 43% | 312 / 93 / 118 | 73% (67–79) n=202 | 58% (51–66) n=168 | 59% (48–69) n=83 |
+| Animals Wrecker | played | 494 | 71% (67–76) n=374 | 661 → 494 | 25% | 0 / 347 / 147 | 79% (71–85) n=145 | 78% (67–86) n=76 | 65% (58–71) n=201 |
+| Yorinobu Arasaka: Steel Dragon | played | 484 | 73% (68–77) n=372 | 600 → 484 | 19% | 0 / 265 / 219 | 85% (77–90) n=125 | 79% (64–88) n=42 | 68% (62–74) n=241 |
+| Saburo Arasaka: Stubborn Patriarch | called | 443 | 67% (63–71) n=443 | 443 → 443 | 0% | 227 / 115 / 101 | 75% (69–79) n=291 | 60% (48–71) n=67 | 47% (37–58) n=85 |
+| Dexter DeShawn: Off the Grid | called | 441 | 70% (65–74) n=441 | 441 → 441 | 0% | 226 / 128 / 87 | 75% (70–80) n=279 | 60% (50–70) n=81 | 60% (50–70) n=81 |
+| Adam Smasher: Ender of Legends | called | 436 | 70% (65–74) n=436 | 436 → 436 | 0% | 216 / 96 / 124 | 76% (71–81) n=293 | 57% (46–67) n=83 | 57% (44–68) n=60 |
+| Peace Offering | sold | 417 | 70% (65–75) n=326 | 926 → 417 | 55% | 160 / 154 / 103 | 78% (70–85) n=129 | 61% (51–69) n=104 | 68% (60–75) n=145 |
+| Mantis Blades | sold | 403 | 65% (60–70) n=332 | 599 → 403 | 33% | 254 / 60 / 89 | 70% (62–77) n=138 | 62% (54–70) n=145 | 56% (45–66) n=82 |
+| Satori: Sword of Saburo | sold | 375 | 67% (62–72) n=305 | 978 → 375 | 62% | 115 / 140 / 120 | 72% (63–79) n=114 | 65% (54–74) n=85 | 64% (56–72) n=137 |
+| Detonate | sold | 363 | 65% (59–70) n=305 | 575 → 363 | 37% | 164 / 105 / 94 | 76% (68–82) n=124 | 64% (54–73) n=97 | 57% (47–65) n=115 |
 
 (32 more card uses in the JSON report.)
 
-Legal but never taken: Jackie Welles: Mama's Favorite (Legend play, legal in 855 turns).
+Legal but never taken: Yorinobu Arasaka: Steel Dragon (reaction, legal in 5 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13148 | 5% | 0 / 1376 / 3997 / 5359 / 2331 / 85 |
-| gig/steal | 3403 | 29% | 159 / 542 / 1595 / 1085 / 22 / 0 |
+| main | 13661 | 8% | 0 / 1258 / 3905 / 5606 / 2809 / 83 |
+| gig/steal | 3614 | 28% | 137 / 482 / 1657 / 1331 / 7 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/ready | 838 | 74% | 0 / 404 / 425 / 9 / 0 / 0 |
-| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
-| react | 498 | 56% | 0 / 306 / 192 / 0 / 0 / 0 |
-| unit/defeat | 449 | 58% | 128 / 127 / 187 / 7 / 0 / 0 |
-| unit/adrenaline | 319 | 56% | 150 / 113 / 56 / 0 / 0 / 0 |
-| gig/swapGive | 304 | 34% | 0 / 23 / 225 / 56 / 0 / 0 |
-| yesno/replaceDefeat | 274 | 6% | 0 / 274 / 0 / 0 / 0 / 0 |
-| gig/swapTake | 254 | 50% | 53 / 71 / 83 / 42 / 5 / 0 |
-| gigValue/adjust | 156 | 7% | 0 / 0 / 0 / 1 / 16 / 139 |
-| unit/spend | 85 | 71% | 48 / 25 / 12 / 0 / 0 / 0 |
-| unit/equip | 79 | 82% | 7 / 24 / 46 / 2 / 0 / 0 |
-| unit/sacrifice | 65 | 83% | 37 / 21 / 7 / 0 / 0 / 0 |
-| card/discard | 47 | 60% | 5 / 12 / 30 / 0 / 0 / 0 |
-| gigValue/setGig | 22 | 9% | 0 / 0 / 1 / 1 / 4 / 16 |
-| yesno/draw | 19 | 100% | 0 / 19 / 0 / 0 / 0 / 0 |
-| card/playFree | 10 | 70% | 0 / 6 / 4 / 0 / 0 / 0 |
-| unit/pump | 10 | 80% | 2 / 7 / 1 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 83% | 0 / 6 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 4 | 25% | 0 / 4 / 0 / 0 / 0 / 0 |
+| react | 1108 | 63% | 0 / 777 / 320 / 11 / 0 / 0 |
+| gigValue/adjust | 675 | 13% | 0 / 0 / 7 / 46 / 403 / 219 |
+| unit/defeat | 662 | 61% | 206 / 198 / 250 / 8 / 0 / 0 |
+| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 527 | 62% | 0 / 527 / 0 / 0 / 0 / 0 |
+| card/playFree | 438 | 70% | 0 / 187 / 248 / 3 / 0 / 0 |
+| unit/equip | 379 | 84% | 47 / 105 / 186 / 41 / 0 / 0 |
+| unit/pump | 342 | 66% | 149 / 110 / 82 / 1 / 0 / 0 |
+| unit/spend | 163 | 68% | 86 / 47 / 30 / 0 / 0 / 0 |
+| unit/ready | 127 | 100% | 0 / 127 / 0 / 0 / 0 / 0 |
+| gigValue/setGig | 121 | 12% | 0 / 0 / 5 / 20 / 38 / 58 |
+| unit/sacrifice | 78 | 83% | 56 / 10 / 12 / 0 / 0 / 0 |
+| card/discard | 49 | 57% | 15 / 14 / 19 / 1 / 0 / 0 |
+| card/search | 44 | 61% | 0 / 12 / 22 / 10 / 0 / 0 |
+| card/defeat | 15 | 93% | 14 / 1 / 0 / 0 / 0 / 0 |
+| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 492 attacks. Reacted to 218 (deck won 43% (37–50) n=199): stole 181, attackerGone 7, targetGone 24, bothGone 6. Let 274 resolve (46% (38–54) n=159): stole 205, targetGone 60, bothGone 9. Choices: endReact 279, call 210, play 9.
+Reaction windows: 1015 attacks. Reacted to 382 (deck won 61% (55–66) n=277): stole 188, attackerGone 28, targetGone 137, bothGone 29. Let 633 resolve (63% (57–69) n=277): stole 508, stoleNothing 2, attackerGone 5, targetGone 95, bothGone 23. Choices: endReact 693, call 250, block 140, play 25.
 
-## S2-03 Cross (RGY) — 560 games, 49% won, 26726 decisions
+## Ladder S1 #4: V / Padre / Jackie (RGG) — 560 games, 64% won, 25412 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 814 | 58% (53–63) n=325 | 816 → 718 | 12% | 0 / 365 / 449 | 72% (66–78) n=201 | 67% (56–76) n=78 | 52% (45–59) n=181 |
-| 6th Street Recruits | attacked | 704 | 53% (47–58) n=328 | 793 → 637 | 20% | 55 / 226 / 423 | 75% (67–81) n=143 | 52% (43–61) n=108 | 46% (39–53) n=204 |
-| Corporate Surveillance | sold | 628 | 48% (44–53) n=427 | 819 → 628 | 23% | 267 / 162 / 199 | 61% (54–67) n=204 | 44% (36–52) n=146 | 37% (31–45) n=177 |
-| Viktor Vektor: You Might Feel a Little Pinch | attacked | 601 | 51% (45–56) n=316 | 773 → 520 | 33% | 18 / 178 / 405 | 75% (68–82) n=151 | 44% (33–56) n=70 | 37% (30–44) n=187 |
-| 6th Street Recruits | played | 586 | 48% (43–53) n=412 | 1048 → 575 | 45% | 211 / 201 / 174 | 63% (55–69) n=176 | 43% (35–51) n=142 | 37% (30–44) n=185 |
-| Field Operator | attacked | 576 | 52% (47–58) n=307 | 725 → 513 | 29% | 14 / 134 / 428 | 77% (69–83) n=141 | 55% (43–67) n=67 | 40% (33–47) n=192 |
-| Viktor Vektor: You Might Feel a Little Pinch | played | 571 | 48% (43–53) n=408 | 1151 → 520 | 55% | 102 / 328 / 141 | 63% (56–70) n=180 | 41% (32–50) n=116 | 39% (32–46) n=177 |
-| Rockn' Rockerboy | played | 538 | 53% (48–58) n=401 | 846 → 538 | 36% | 236 / 160 / 142 | 66% (59–73) n=178 | 53% (44–61) n=133 | 43% (35–50) n=160 |
-| Field Operator | played | 536 | 48% (43–53) n=380 | 1332 → 497 | 63% | 61 / 341 / 134 | 60% (52–67) n=176 | 35% (26–45) n=92 | 42% (35–50) n=172 |
-| Shattered Memories | sold | 490 | 53% (47–58) n=373 | 1592 → 490 | 69% | 83 / 209 / 198 | 63% (54–70) n=136 | 57% (47–67) n=87 | 44% (37–51) n=207 |
-| Adam Smasher: Ender of Legends | attacked | 463 | 57% (52–62) n=342 | 482 → 463 | 4% | 0 / 0 / 463 | 91% (83–95) n=90 | 84% (73–91) n=68 | 43% (37–49) n=243 |
-| Valentino Street Racer | attacked | 439 | 52% (46–58) n=257 | 567 → 416 | 27% | 12 / 123 / 304 | 79% (71–85) n=126 | 59% (44–72) n=44 | 38% (30–46) n=151 |
-| Kerry Eurodyne: Axe, Attitude, Audience | called | 426 | 50% (45–54) n=426 | 426 → 426 | 0% | 218 / 146 / 62 | 58% (53–64) n=295 | 37% (27–49) n=70 | 23% (14–35) n=61 |
-| Pepe Najarro: Working Doubles | attacked | 425 | 53% (47–60) n=243 | 540 → 418 | 23% | 37 / 131 / 257 | 72% (63–80) n=105 | 65% (52–75) n=62 | 44% (36–52) n=145 |
-| Saburo Arasaka: Stubborn Patriarch | called | 425 | 50% (45–55) n=425 | 425 → 425 | 0% | 241 / 112 / 72 | 58% (52–63) n=299 | 32% (22–44) n=68 | 33% (22–46) n=58 |
+| MaxTac AV | attacked | 813 | 71% (66–76) n=288 | 819 → 747 | 9% | 0 / 382 / 431 | 84% (78–88) n=194 | 74% (65–82) n=97 | 63% (55–70) n=160 |
+| Jackie Welles: Mama's Favorite | attacked | 711 | 59% (54–64) n=375 | 771 → 711 | 8% | 0 / 277 / 434 | 78% (73–83) n=235 | 57% (45–69) n=61 | 40% (33–48) n=171 |
+| MaxTac Squadron | attacked | 648 | 64% (58–69) n=306 | 786 → 592 | 25% | 73 / 269 / 306 | 85% (79–90) n=163 | 61% (52–69) n=121 | 53% (45–60) n=156 |
+| Padre: Man of the Cross | ability | 546 | 50% (44–55) n=338 | 1646 → 546 | 67% | 10 / 89 / 447 | 69% (63–75) n=222 | 18% (11–28) n=77 | 14% (9–21) n=131 |
+| V: Streetkid | attacked | 525 | 60% (55–65) n=306 | 619 → 525 | 15% | 53 / 156 / 316 | 75% (69–81) n=194 | 75% (63–84) n=64 | 32% (24–41) n=112 |
+| MaxTac Squadron | played | 521 | 62% (58–67) n=391 | 987 → 500 | 49% | 257 / 140 / 124 | 72% (66–78) n=196 | 53% (46–61) n=171 | 52% (41–63) n=77 |
+| Sandevistan | sold | 507 | 62% (57–67) n=374 | 690 → 507 | 27% | 294 / 125 / 88 | 74% (68–80) n=197 | 52% (44–60) n=149 | 40% (31–51) n=84 |
+| Peace Offering | sold | 506 | 65% (60–69) n=365 | 997 → 506 | 49% | 175 / 200 / 131 | 73% (66–78) n=190 | 62% (53–70) n=125 | 55% (46–64) n=114 |
+| Memory Relapse | sold | 480 | 60% (55–65) n=361 | 1471 → 480 | 67% | 85 / 175 / 220 | 66% (59–73) n=188 | 56% (46–67) n=85 | 45% (37–53) n=146 |
+| Meredith Stout: Stone Cold Corpo | played | 474 | 62% (57–67) n=360 | 1350 → 461 | 66% | 149 / 120 / 205 | 79% (72–84) n=161 | 56% (48–64) n=147 | 37% (29–46) n=111 |
+| MaxTac AV | played | 445 | 67% (62–71) n=348 | 709 → 445 | 37% | 216 / 110 / 119 | 74% (68–80) n=195 | 68% (60–76) n=123 | 35% (25–45) n=81 |
+| Jackie Welles: Mama's Favorite | called | 421 | 62% (57–67) n=421 | 421 → 421 | 0% | 167 / 162 / 92 | 71% (66–76) n=269 | 46% (36–56) n=92 | 45% (33–58) n=60 |
+| V: Streetkid | called | 413 | 63% (58–67) n=413 | 413 → 413 | 0% | 186 / 139 / 88 | 72% (67–77) n=277 | 45% (35–55) n=91 | 42% (29–57) n=45 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 387 | 73% (66–80) n=157 | 270 → 253 | 6% | 0 / 70 / 317 | 93% (86–97) n=99 | 79% (63–90) n=34 | 49% (38–61) n=67 |
+| Jackie Welles: Mama's Favorite | Go Solo (self-paid 386) | 386 | 59% (54–64) n=386 | 809 → 386 | 52% | 0 / 214 / 172 | 74% (67–80) n=175 | 53% (39–67) n=45 | 44% (37–52) n=166 |
+
+(35 more card uses in the JSON report.)
+
+Legal but never taken: Jackie Welles: Mama's Favorite (Legend play, legal in 809 turns), V: Streetkid (Legend play, legal in 1017 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13591 | 7% | 0 / 1329 / 3591 / 4941 / 3657 / 73 |
+| gig/steal | 2760 | 37% | 228 / 537 / 1344 / 642 / 9 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1616 | 60% | 0 / 1026 / 581 / 9 / 0 / 0 |
+| gigValue/setGig | 610 | 8% | 0 / 3 / 11 / 53 / 141 / 402 |
+| unit/ready | 590 | 51% | 235 / 237 / 118 / 0 / 0 / 0 |
+| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/equip | 530 | 80% | 139 / 166 / 211 / 14 / 0 / 0 |
+| mode/mode | 518 | 59% | 0 / 518 / 0 / 0 / 0 / 0 |
+| gig/swapGive | 444 | 35% | 0 / 9 / 339 / 95 / 1 / 0 |
+| unit/defeat | 428 | 58% | 165 / 113 / 148 / 2 / 0 / 0 |
+| unit/spend | 377 | 73% | 205 / 111 / 61 / 0 / 0 / 0 |
+| gig/swapTake | 363 | 49% | 83 / 111 / 111 / 56 / 2 / 0 |
+| yesno/replaceDefeat | 289 | 10% | 0 / 289 / 0 / 0 / 0 / 0 |
+| card/search | 265 | 79% | 174 / 39 / 35 / 17 / 0 / 0 |
+| gigValue/adjust | 84 | 7% | 0 / 0 / 0 / 2 / 29 / 53 |
+| card/discard | 73 | 52% | 17 / 20 / 34 / 2 / 0 / 0 |
+| unit/sacrifice | 55 | 80% | 37 / 10 / 8 / 0 / 0 / 0 |
+| yesno/draw | 16 | 100% | 0 / 16 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1402 attacks. Reacted to 540 (deck won 59% (54–64) n=383): fizzled 10, stole 198, stoleNothing 1, attackerGone 16, targetGone 276, bothGone 39. Let 862 resolve (61% (56–66) n=380): stole 620, stoleNothing 7, attackerGone 16, targetGone 186, bothGone 31, noneGone 2. Choices: ability 12, call 353, endReact 972, block 279.
+
+## Ladder S1 #5: V / Smasher / Dum Dum (RRY) — 560 games, 68% won, 24299 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 1049 | 73% (68–77) n=400 | 1216 → 936 | 23% | 117 / 328 / 604 | 86% (81–90) n=243 | 70% (63–77) n=158 | 62% (55–68) n=223 |
+| Animals Wrecker | attacked | 767 | 73% (68–77) n=330 | 733 → 695 | 5% | 0 / 200 / 567 | 92% (87–95) n=178 | 86% (75–92) n=63 | 64% (58–70) n=223 |
+| Rockn' Rockerboy | attacked | 723 | 77% (72–82) n=298 | 770 → 658 | 15% | 0 / 341 / 382 | 89% (84–93) n=185 | 91% (83–96) n=78 | 68% (60–74) n=160 |
+| Animals Wrecker | played | 523 | 67% (62–71) n=391 | 743 → 523 | 30% | 0 / 360 / 163 | 76% (70–82) n=187 | 75% (63–84) n=67 | 53% (46–60) n=195 |
+| All is Lost | sold | 493 | 69% (64–74) n=359 | 635 → 493 | 22% | 239 / 132 / 122 | 78% (71–83) n=181 | 62% (54–70) n=140 | 63% (54–71) n=113 |
+| Yorinobu Arasaka: Steel Dragon | played | 479 | 72% (67–76) n=376 | 649 → 479 | 26% | 0 / 210 / 269 | 89% (83–93) n=146 | 74% (61–83) n=57 | 59% (52–65) n=207 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 478 | 80% (75–84) n=281 | 508 → 443 | 13% | 0 / 0 / 478 | 94% (90–97) n=179 | 90% (78–96) n=49 | 64% (55–72) n=127 |
+| 6th Street Recruits | played | 475 | 69% (65–74) n=376 | 1075 → 471 | 56% | 266 / 122 / 87 | 74% (67–80) n=174 | 67% (60–74) n=190 | 62% (50–72) n=73 |
+| Rockn' Rockerboy | played | 463 | 74% (69–78) n=348 | 931 → 463 | 50% | 229 / 118 / 116 | 82% (76–87) n=208 | 72% (63–79) n=121 | 52% (42–63) n=86 |
+| Industrial Assembly | sold | 455 | 66% (61–71) n=348 | 874 → 455 | 48% | 156 / 167 / 132 | 69% (61–76) n=155 | 69% (60–76) n=125 | 57% (48–65) n=122 |
+| V: Streetkid | attacked | 445 | 54% (48–60) n=262 | 522 → 445 | 15% | 65 / 125 / 255 | 68% (61–74) n=171 | 51% (37–65) n=43 | 43% (34–52) n=114 |
+| Zetatech Faceplate | sold | 430 | 67% (62–72) n=338 | 1002 → 430 | 57% | 130 / 168 / 132 | 75% (69–81) n=175 | 60% (50–70) n=81 | 57% (48–66) n=124 |
+| Augmented Negotiators | played | 424 | 64% (59–69) n=332 | 1464 → 405 | 72% | 143 / 114 / 167 | 81% (74–86) n=157 | 50% (42–59) n=127 | 60% (50–69) n=97 |
+| Mantis Blades | sold | 423 | 69% (63–73) n=337 | 603 → 423 | 30% | 267 / 73 / 83 | 76% (69–81) n=168 | 66% (57–74) n=123 | 56% (45–66) n=84 |
+| Satori: Sword of Saburo | sold | 408 | 68% (62–72) n=321 | 991 → 408 | 59% | 165 / 134 / 109 | 76% (68–83) n=134 | 63% (53–71) n=110 | 59% (50–67) n=125 |
+
+(27 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 991 turns), Adam Smasher: Ender of Legends (Legend play, legal in 275 turns), Appetite for Destruction (played, legal in 319 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13684 | 7% | 0 / 1150 / 3386 / 4892 / 4015 / 241 |
+| gig/steal | 3463 | 30% | 252 / 587 / 1491 / 1122 / 11 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1376 | 63% | 0 / 816 / 559 / 1 / 0 / 0 |
+| unit/defeat | 783 | 62% | 223 / 242 / 291 / 27 / 0 / 0 |
+| gigValue/adjust | 619 | 9% | 0 / 12 / 90 / 55 / 168 / 294 |
+| mulligan | 560 | 37% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/playFree | 454 | 77% | 0 / 180 / 272 / 2 / 0 / 0 |
+| card/search | 424 | 74% | 221 / 141 / 62 / 0 / 0 / 0 |
+| unit/equip | 424 | 82% | 129 / 105 / 165 / 25 / 0 / 0 |
+| unit/pump | 98 | 57% | 28 / 33 / 36 / 1 / 0 / 0 |
+| unit/sacrifice | 67 | 85% | 43 / 17 / 7 / 0 / 0 / 0 |
+| card/defeatGear | 57 | 91% | 0 / 40 / 17 / 0 / 0 / 0 |
+| card/discard | 34 | 47% | 3 / 9 / 20 / 2 / 0 / 0 |
+| yesno/draw | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1257 attacks. Reacted to 451 (deck won 62% (57–67) n=332): stole 194, stoleNothing 1, targetGone 246, bothGone 10. Let 806 resolve (71% (66–75) n=363): stole 556, stoleNothing 4, attackerGone 5, targetGone 200, bothGone 41. Choices: call 288, block 212, endReact 870, ability 6.
+
+## Ladder S1 #6: Dexter / V / Reyes (RRY) — 560 games, 61% won, 27797 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 933 | 62% (57–67) n=371 | 1068 → 838 | 22% | 96 / 400 / 437 | 72% (66–78) n=205 | 58% (50–66) n=145 | 57% (50–63) n=219 |
+| Animals Wrecker | attacked | 740 | 72% (67–76) n=312 | 712 → 670 | 6% | 0 / 191 / 549 | 86% (80–91) n=160 | 84% (74–91) n=75 | 67% (60–72) n=221 |
+| V: Streetkid | attacked | 627 | 54% (49–59) n=374 | 766 → 627 | 18% | 86 / 213 / 328 | 68% (61–73) n=226 | 55% (43–66) n=69 | 45% (37–52) n=155 |
+| 6th Street Recruits | played | 560 | 62% (58–67) n=402 | 926 → 557 | 40% | 319 / 109 / 132 | 69% (63–75) n=221 | 58% (50–65) n=179 | 39% (29–50) n=77 |
+| Yorinobu Arasaka: Steel Dragon | played | 533 | 65% (60–69) n=379 | 656 → 533 | 19% | 0 / 188 / 345 | 75% (68–81) n=163 | 62% (50–72) n=73 | 56% (50–63) n=215 |
+| Meredith Stout: Stone Cold Corpo | attacked | 521 | 64% (59–70) n=289 | 959 → 489 | 49% | 43 / 165 / 313 | 83% (76–88) n=172 | 58% (48–67) n=97 | 46% (37–56) n=110 |
+| Animals Wrecker | played | 509 | 64% (59–69) n=384 | 689 → 509 | 26% | 0 / 337 / 172 | 74% (67–80) n=171 | 60% (49–70) n=80 | 59% (52–66) n=197 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 487 | 71% (66–76) n=277 | 482 → 430 | 11% | 0 / 0 / 487 | 92% (86–95) n=158 | 78% (66–87) n=59 | 55% (46–63) n=141 |
+| Dexter DeShawn: Off the Grid | ability | 463 | 51% (45–56) n=335 | 1702 → 463 | 73% | 12 / 69 / 382 | 72% (66–78) n=212 | 25% (16–37) n=67 | 8% (4–14) n=117 |
+| Augmented Negotiators | played | 463 | 58% (53–63) n=347 | 1374 → 438 | 68% | 121 / 142 / 200 | 68% (61–75) n=161 | 52% (44–61) n=132 | 45% (36–55) n=99 |
+| Industrial Assembly | sold | 463 | 58% (53–63) n=345 | 937 → 463 | 51% | 141 / 195 / 127 | 64% (56–71) n=151 | 52% (43–61) n=115 | 58% (49–66) n=130 |
+| Muamar Reyes: El Capitán | ability | 462 | 49% (44–55) n=323 | 1731 → 462 | 73% | 22 / 77 / 363 | 70% (63–76) n=201 | 26% (17–38) n=61 | 13% (8–19) n=128 |
+| Zetatech Faceplate | sold | 447 | 60% (55–65) n=349 | 1064 → 447 | 58% | 133 / 161 / 153 | 66% (59–72) n=181 | 55% (45–65) n=94 | 51% (42–59) n=130 |
+| V: Streetkid | called | 434 | 61% (57–66) n=434 | 434 → 434 | 0% | 221 / 109 / 104 | 65% (60–70) n=309 | 60% (48–71) n=65 | 43% (32–56) n=60 |
+| Meredith Stout: Stone Cold Corpo | played | 429 | 58% (53–63) n=339 | 1132 → 423 | 63% | 177 / 114 / 138 | 68% (60–75) n=158 | 52% (43–60) n=127 | 43% (34–53) n=97 |
 
 (27 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14510 | 7% | 0 / 950 / 3812 / 5425 / 3973 / 350 |
-| gig/steal | 3884 | 26% | 143 / 510 / 1547 / 1634 / 50 / 0 |
+| main | 14544 | 9% | 0 / 1180 / 3521 / 5214 / 4412 / 217 |
+| gig/steal | 3097 | 31% | 236 / 498 / 1365 / 986 / 12 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| yesno/kerryReroll | 1633 | 59% | 0 / 1633 / 0 / 0 / 0 / 0 |
-| unit/ready | 1290 | 62% | 0 / 468 / 775 / 47 / 0 / 0 |
-| react | 692 | 53% | 0 / 479 / 213 / 0 / 0 / 0 |
-| mulligan | 560 | 4% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 430 | 34% | 17 / 54 / 281 / 78 / 0 / 0 |
-| unit/adrenaline | 373 | 49% | 137 / 128 / 105 / 3 / 0 / 0 |
-| card/search | 333 | 73% | 0 / 161 / 172 / 0 / 0 / 0 |
-| gigValue/adjust | 279 | 8% | 0 / 11 / 50 / 3 / 30 / 185 |
-| unit/spend | 164 | 52% | 32 / 62 / 70 / 0 / 0 / 0 |
-| card/playFree | 81 | 79% | 0 / 45 / 36 / 0 / 0 / 0 |
-| gigValue/setGig | 65 | 0% | 0 / 0 / 0 / 3 / 14 / 48 |
-| unit/sacrifice | 60 | 77% | 30 / 9 / 20 / 1 / 0 / 0 |
-| card/discard | 49 | 49% | 8 / 11 / 26 / 4 / 0 / 0 |
-| yesno/draw | 45 | 100% | 0 / 45 / 0 / 0 / 0 / 0 |
-| unit/pump | 27 | 67% | 3 / 7 / 17 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 10 | 60% | 0 / 10 / 0 / 0 / 0 / 0 |
+| react | 2063 | 64% | 0 / 1360 / 688 / 15 / 0 / 0 |
+| gigValue/adjust | 1452 | 9% | 0 / 8 / 103 / 124 / 789 / 428 |
+| unit/defeat | 588 | 69% | 220 / 174 / 157 / 37 / 0 / 0 |
+| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 514 | 68% | 0 / 514 / 0 / 0 / 0 / 0 |
+| card/playFree | 512 | 60% | 0 / 124 / 352 / 36 / 0 / 0 |
+| card/search | 498 | 68% | 225 / 138 / 101 / 32 / 2 / 0 |
+| mode/muamarCall | 498 | 69% | 0 / 498 / 0 / 0 / 0 / 0 |
+| unit/equip | 445 | 84% | 137 / 100 / 171 / 37 / 0 / 0 |
+| unit/pump | 340 | 60% | 118 / 108 / 110 / 4 / 0 / 0 |
+| unit/protect | 330 | 61% | 112 / 129 / 85 / 4 / 0 / 0 |
+| unit/sacrifice | 45 | 82% | 32 / 6 / 7 / 0 / 0 / 0 |
+| card/discard | 37 | 59% | 10 / 10 / 12 / 5 / 0 / 0 |
+| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
+| card/defeat | 12 | 100% | 9 / 2 / 1 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 8 | 38% | 0 / 8 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 684 attacks. Reacted to 320 (deck won 45% (39–51) n=274): stole 241, stoleNothing 1, attackerGone 15, targetGone 48, bothGone 15. Let 364 resolve (42% (35–49) n=205): stole 238, targetGone 116, bothGone 10. Choices: call 300, endReact 368, play 24.
+Reaction windows: 1818 attacks. Reacted to 613 (deck won 53% (48–58) n=376): stole 155, attackerGone 27, targetGone 341, bothGone 27, noneGone 63. Let 1205 resolve (61% (56–65) n=419): stole 868, stoleNothing 3, attackerGone 13, targetGone 262, bothGone 59. Choices: endReact 1318, block 439, call 301, play 5.
 
-## S2-04 Cross (RRG) — 560 games, 54% won, 26211 decisions
+## Ladder S1 #7: Dexter / V / Padre (RRG) — 560 games, 62% won, 28696 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 848 | 54% (49–59) n=366 | 1033 → 757 | 27% | 78 / 308 / 462 | 72% (65–78) n=189 | 53% (44–62) n=124 | 48% (42–55) n=233 |
-| Animals Wrecker | attacked | 755 | 64% (59–69) n=308 | 717 → 677 | 6% | 0 / 180 / 575 | 84% (77–89) n=138 | 86% (77–92) n=73 | 59% (53–65) n=244 |
-| V: Streetkid | attacked | 679 | 49% (44–54) n=413 | 830 → 679 | 18% | 71 / 193 / 415 | 63% (57–68) n=258 | 46% (34–57) n=68 | 36% (29–43) n=179 |
-| Dexter DeShawn: Off the Grid | ability | 677 | 50% (46–55) n=427 | 1931 → 677 | 65% | 18 / 85 / 574 | 72% (66–77) n=285 | 20% (12–31) n=70 | 15% (10–21) n=183 |
-| Valentino Street Racer | attacked | 603 | 55% (49–61) n=296 | 766 → 531 | 31% | 35 / 168 / 400 | 72% (65–79) n=154 | 55% (46–65) n=103 | 43% (36–51) n=162 |
-| Pepe Najarro: Working Doubles | attacked | 577 | 57% (52–63) n=282 | 755 → 545 | 28% | 49 / 212 / 316 | 76% (68–82) n=141 | 64% (53–73) n=86 | 49% (41–56) n=171 |
-| Valentino Street Racer | played | 540 | 53% (48–58) n=377 | 1211 → 501 | 59% | 159 / 175 / 206 | 64% (57–71) n=162 | 44% (36–52) n=144 | 46% (38–54) n=140 |
-| 6th Street Recruits | played | 536 | 54% (49–59) n=391 | 908 → 528 | 42% | 270 / 107 / 159 | 64% (57–71) n=183 | 53% (45–61) n=152 | 42% (34–51) n=130 |
-| Animals Wrecker | played | 512 | 60% (55–65) n=382 | 684 → 512 | 25% | 0 / 349 / 163 | 70% (62–76) n=152 | 61% (50–71) n=77 | 53% (47–60) n=222 |
-| Shattered Memories | sold | 486 | 53% (48–58) n=378 | 1433 → 486 | 66% | 93 / 205 / 188 | 57% (50–65) n=155 | 53% (43–63) n=89 | 50% (43–57) n=191 |
-| V: Streetkid | Go Solo (self-paid 454) | 454 | 49% (45–54) n=454 | 1038 → 454 | 56% | 81 / 111 / 262 | 60% (54–66) n=221 | 45% (33–58) n=60 | 37% (30–44) n=173 |
-| Memory Relapse | sold | 454 | 56% (51–61) n=345 | 1353 → 454 | 66% | 79 / 200 / 175 | 65% (56–72) n=127 | 67% (56–76) n=78 | 47% (40–54) n=198 |
-| Dexter DeShawn: Off the Grid | called | 452 | 56% (52–61) n=452 | 452 → 452 | 0% | 201 / 148 / 103 | 62% (57–68) n=292 | 49% (38–61) n=67 | 42% (32–52) n=93 |
-| V: Streetkid | called | 431 | 53% (48–58) n=431 | 431 → 431 | 0% | 226 / 103 / 102 | 57% (51–63) n=266 | 49% (38–59) n=82 | 43% (33–54) n=83 |
-| Saburo Arasaka: Stubborn Patriarch | called | 431 | 53% (48–58) n=431 | 431 → 431 | 0% | 226 / 112 / 93 | 59% (53–64) n=289 | 47% (36–59) n=70 | 36% (26–48) n=72 |
+| Pepe Najarro: Working Doubles | attacked | 983 | 64% (59–69) n=406 | 1157 → 872 | 25% | 76 / 320 / 587 | 82% (77–87) n=232 | 64% (55–72) n=130 | 56% (50–62) n=250 |
+| 6th Street Recruits | attacked | 879 | 63% (58–68) n=376 | 1072 → 792 | 26% | 84 / 288 / 507 | 80% (75–85) n=214 | 64% (55–72) n=127 | 53% (46–59) n=221 |
+| Animals Wrecker | attacked | 803 | 73% (68–77) n=325 | 766 → 734 | 4% | 0 / 197 / 606 | 86% (80–90) n=164 | 85% (77–91) n=89 | 68% (62–74) n=232 |
+| V: Streetkid | attacked | 624 | 56% (51–61) n=376 | 715 → 624 | 13% | 88 / 198 / 338 | 66% (60–72) n=261 | 58% (44–71) n=48 | 41% (34–49) n=150 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 563 | 68% (63–73) n=310 | 554 → 503 | 9% | 0 / 0 / 563 | 93% (88–96) n=176 | 82% (71–89) n=66 | 49% (41–56) n=171 |
+| Animals Wrecker | played | 557 | 67% (62–71) n=405 | 798 → 557 | 30% | 0 / 347 / 210 | 75% (68–81) n=170 | 69% (59–77) n=93 | 59% (52–65) n=229 |
+| Peace Offering | sold | 544 | 60% (55–64) n=395 | 905 → 544 | 40% | 241 / 166 / 137 | 64% (57–70) n=203 | 56% (48–65) n=131 | 49% (41–58) n=138 |
+| Yorinobu Arasaka: Steel Dragon | played | 542 | 61% (56–66) n=398 | 663 → 542 | 18% | 0 / 197 / 345 | 72% (65–79) n=149 | 66% (53–77) n=56 | 54% (48–60) n=252 |
+| Pepe Najarro: Working Doubles | played | 516 | 63% (58–68) n=385 | 1047 → 512 | 51% | 260 / 122 / 134 | 67% (60–74) n=183 | 65% (57–72) n=160 | 47% (37–56) n=101 |
+| Memory Relapse | sold | 497 | 66% (61–71) n=366 | 1403 → 497 | 65% | 96 / 212 / 189 | 70% (62–77) n=154 | 68% (58–77) n=88 | 62% (55–69) n=188 |
+| 6th Street Recruits | played | 493 | 61% (56–66) n=376 | 940 → 491 | 48% | 248 / 104 / 141 | 67% (60–74) n=181 | 60% (52–67) n=154 | 46% (36–56) n=96 |
+| Industrial Assembly | sold | 485 | 59% (54–64) n=363 | 866 → 485 | 44% | 177 / 175 / 133 | 60% (52–68) n=142 | 61% (52–69) n=127 | 53% (45–61) n=160 |
+| Satori: Sword of Saburo | sold | 475 | 61% (56–66) n=359 | 919 → 475 | 48% | 224 / 140 / 111 | 67% (60–74) n=179 | 56% (48–65) n=126 | 56% (47–65) n=117 |
+| Dexter DeShawn: Off the Grid | ability | 456 | 53% (48–59) n=322 | 1844 → 456 | 75% | 10 / 50 / 396 | 75% (69–81) n=212 | 22% (14–35) n=58 | 22% (15–30) n=115 |
+| Mantis Blades | sold | 429 | 59% (53–64) n=342 | 629 → 429 | 32% | 260 / 73 / 96 | 67% (59–74) n=161 | 55% (46–63) n=135 | 41% (32–52) n=87 |
 
-(30 more card uses in the JSON report.)
+(24 more card uses in the JSON report.)
 
-Legal but never taken: V: Streetkid (Legend play, legal in 1038 turns), Appetite for Destruction (played, legal in 483 turns).
+Legal but never taken: V: Streetkid (Legend play, legal in 992 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14795 | 8% | 0 / 1199 / 3903 / 5094 / 4403 / 196 |
-| gig/steal | 3490 | 28% | 177 / 468 / 1503 / 1323 / 19 / 0 |
+| main | 15800 | 8% | 0 / 1215 / 3781 / 5353 / 5063 / 388 |
+| gig/steal | 3811 | 29% | 252 / 523 / 1683 / 1335 / 18 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 1012 | 8% | 0 / 10 / 62 / 46 / 549 / 345 |
-| unit/defeat | 710 | 69% | 252 / 202 / 206 / 50 / 0 / 0 |
-| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
-| react | 560 | 47% | 0 / 319 / 241 / 0 / 0 / 0 |
-| mode/mode | 546 | 67% | 0 / 546 / 0 / 0 / 0 / 0 |
-| unit/adrenaline | 476 | 74% | 260 / 152 / 64 / 0 / 0 / 0 |
-| card/search | 455 | 72% | 190 / 172 / 92 / 1 / 0 / 0 |
-| card/playFree | 405 | 72% | 0 / 135 / 258 / 12 / 0 / 0 |
-| unit/pump | 360 | 60% | 123 / 139 / 98 / 0 / 0 / 0 |
-| unit/equip | 228 | 86% | 37 / 77 / 86 / 28 / 0 / 0 |
-| unit/spend | 159 | 67% | 67 / 53 / 39 / 0 / 0 / 0 |
-| card/discard | 51 | 53% | 13 / 8 / 25 / 5 / 0 / 0 |
-| yesno/draw | 50 | 100% | 0 / 50 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 49 | 84% | 36 / 6 / 7 / 0 / 0 / 0 |
-| unit/ready | 45 | 100% | 0 / 45 / 0 / 0 / 0 / 0 |
-| card/defeat | 9 | 89% | 8 / 1 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 7 | 43% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 557 attacks. Reacted to 298 (deck won 47% (41–53) n=275): stole 240, attackerGone 2, targetGone 52, bothGone 4. Let 259 resolve (42% (34–50) n=151): stole 190, targetGone 68, bothGone 1. Choices: call 297, endReact 261, play 2.
-
-## S2-05 Counter (RRG) — 560 games, 59% won, 26162 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 879 | 62% (57–67) n=355 | 1027 → 802 | 22% | 88 / 342 / 449 | 78% (71–84) n=173 | 61% (53–68) n=150 | 58% (52–65) n=216 |
-| 6th Street Recruits | attacked | 834 | 65% (60–70) n=348 | 1010 → 754 | 25% | 66 / 301 / 467 | 81% (75–86) n=189 | 64% (55–73) n=107 | 59% (53–65) n=225 |
-| Animals Wrecker | attacked | 823 | 69% (63–73) n=325 | 779 → 733 | 6% | 0 / 229 / 594 | 86% (80–91) n=144 | 84% (76–91) n=90 | 62% (56–68) n=248 |
-| Animals Wrecker | played | 521 | 63% (59–68) n=401 | 729 → 521 | 29% | 0 / 369 / 152 | 66% (57–74) n=120 | 65% (54–74) n=85 | 61% (54–67) n=244 |
-| Valentino Street Racer | attacked | 499 | 62% (56–67) n=280 | 682 → 451 | 34% | 18 / 129 / 352 | 81% (74–87) n=145 | 52% (40–64) n=61 | 53% (46–61) n=167 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 493 | 53% (48–58) n=348 | 1926 → 493 | 74% | 18 / 73 / 402 | 77% (70–82) n=188 | 36% (26–47) n=73 | 30% (23–37) n=155 |
-| Pepe Najarro: Working Doubles | played | 484 | 61% (56–66) n=368 | 917 → 474 | 48% | 279 / 91 / 114 | 76% (69–82) n=161 | 54% (46–61) n=167 | 49% (39–59) n=98 |
-| Dexter DeShawn: Off the Grid | ability | 483 | 53% (48–58) n=347 | 2004 → 483 | 76% | 16 / 79 / 388 | 76% (70–81) n=204 | 31% (21–42) n=75 | 26% (19–34) n=143 |
-| 6th Street Recruits | played | 476 | 64% (58–68) n=354 | 919 → 471 | 49% | 270 / 99 / 107 | 72% (65–79) n=167 | 60% (52–68) n=144 | 58% (48–67) n=98 |
-| Dexter DeShawn: Off the Grid | called | 465 | 61% (56–65) n=465 | 465 → 465 | 0% | 264 / 108 / 93 | 67% (62–72) n=305 | 47% (36–59) n=70 | 50% (40–60) n=90 |
-| Adam Smasher: Ender of Legends | called | 464 | 60% (56–64) n=464 | 464 → 464 | 0% | 275 / 74 / 115 | 68% (62–73) n=315 | 42% (31–53) n=77 | 47% (36–59) n=72 |
-| Valentino Street Racer | played | 461 | 57% (52–62) n=351 | 1237 → 430 | 65% | 131 / 170 / 160 | 71% (64–78) n=154 | 41% (32–50) n=120 | 55% (46–64) n=121 |
-| Hanako Arasaka: Daughter of the Emperor | called | 438 | 61% (57–66) n=438 | 438 → 438 | 0% | 245 / 106 / 87 | 72% (66–76) n=288 | 37% (27–49) n=70 | 46% (36–57) n=80 |
-| Adam Smasher: Ender of Legends | attacked | 423 | 64% (59–69) n=328 | 457 → 423 | 7% | 0 / 0 / 423 | 89% (84–93) n=167 | 80% (70–87) n=75 | 34% (27–42) n=145 |
-| Over the Edge | sold | 419 | 60% (55–65) n=319 | 1462 → 419 | 71% | 54 / 161 / 204 | 76% (67–84) n=102 | 56% (44–68) n=64 | 55% (49–62) n=204 |
-
-(32 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14718 | 7% | 0 / 1204 / 4149 / 5130 / 4040 / 195 |
-| gig/steal | 3463 | 25% | 99 / 412 / 1547 / 1394 / 11 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/defeat | 783 | 61% | 238 / 218 / 307 / 20 / 0 / 0 |
-| gigValue/adjust | 680 | 8% | 0 / 0 / 3 / 43 / 382 / 252 |
-| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 543 | 67% | 0 / 543 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 493 | 46% | 36 / 58 / 187 / 207 / 5 / 0 |
-| gig/swapTake | 493 | 25% | 30 / 38 / 243 / 177 / 5 / 0 |
-| react | 464 | 47% | 0 / 286 / 178 / 0 / 0 / 0 |
-| unit/pump | 425 | 63% | 175 / 141 / 102 / 7 / 0 / 0 |
-| unit/adrenaline | 361 | 73% | 204 / 117 / 40 / 0 / 0 / 0 |
-| card/playFree | 336 | 74% | 0 / 118 / 211 / 7 / 0 / 0 |
-| unit/equip | 191 | 88% | 25 / 51 / 79 / 36 / 0 / 0 |
-| unit/ready | 138 | 100% | 0 / 138 / 0 / 0 / 0 / 0 |
-| unit/spend | 83 | 64% | 36 / 31 / 16 / 0 / 0 / 0 |
-| gigValue/setGig | 57 | 11% | 0 / 0 / 2 / 10 / 11 / 34 |
-| unit/sacrifice | 57 | 79% | 29 / 7 / 20 / 1 / 0 / 0 |
-| card/discard | 44 | 43% | 9 / 12 / 22 / 1 / 0 / 0 |
-| yesno/draw | 30 | 100% | 0 / 30 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/mode | 1046 | 63% | 0 / 1046 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 871 | 7% | 0 / 15 / 78 / 28 / 406 / 344 |
+| unit/defeat | 633 | 70% | 246 / 171 / 160 / 56 / 0 / 0 |
+| react | 630 | 44% | 0 / 336 / 294 / 0 / 0 / 0 |
+| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/playFree | 521 | 64% | 0 / 127 / 362 / 32 / 0 / 0 |
+| gigValue/setGig | 492 | 9% | 1 / 1 / 7 / 35 / 112 / 336 |
+| card/search | 458 | 67% | 193 / 146 / 118 / 1 / 0 / 0 |
+| unit/spend | 412 | 79% | 253 / 97 / 62 / 0 / 0 / 0 |
+| unit/pump | 368 | 61% | 109 / 153 / 92 / 14 / 0 / 0 |
+| unit/equip | 325 | 81% | 44 / 85 / 136 / 59 / 1 / 0 |
+| unit/adrenaline | 304 | 75% | 155 / 89 / 59 / 1 / 0 / 0 |
+| unit/ready | 101 | 100% | 0 / 101 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 60 | 73% | 36 / 9 / 14 / 1 / 0 / 0 |
+| card/discard | 48 | 50% | 7 / 10 / 26 / 5 / 0 / 0 |
+| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 464 attacks. Reacted to 248 (deck won 48% (42–55) n=223): stole 208, attackerGone 2, targetGone 31, bothGone 7. Let 216 resolve (48% (40–56) n=139): stole 168, targetGone 45, bothGone 3. Choices: call 248, endReact 216.
+Reaction windows: 630 attacks. Reacted to 351 (deck won 51% (45–57) n=296): stole 262, attackerGone 4, targetGone 72, bothGone 13. Let 279 resolve (58% (50–66) n=158): stole 201, attackerGone 1, targetGone 71, bothGone 6. Choices: call 351, endReact 279.
 
-## S2-06 Counter (RGG) — 560 games, 56% won, 23334 decisions
+## Ladder S1 #8: Smasher / River / Viktor (RYY) — 560 games, 61% won, 26913 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 780 | 62% (56–67) n=319 | 860 → 712 | 17% | 70 / 362 / 348 | 79% (72–84) n=182 | 53% (44–61) n=116 | 57% (50–64) n=181 |
-| Nadia: Fighting Through Grief | attacked | 732 | 60% (55–66) n=320 | 760 → 691 | 9% | 0 / 269 / 463 | 84% (77–89) n=141 | 75% (62–84) n=55 | 56% (50–62) n=251 |
-| Valentino Street Racer | attacked | 608 | 57% (52–63) n=307 | 754 → 545 | 28% | 36 / 214 / 358 | 80% (73–86) n=162 | 47% (37–57) n=96 | 47% (39–55) n=156 |
-| Valentino Street Racer | played | 545 | 56% (51–61) n=388 | 1197 → 496 | 59% | 200 / 220 / 125 | 69% (62–75) n=177 | 41% (33–49) n=149 | 55% (47–64) n=119 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 545 | 49% (44–54) n=363 | 2008 → 545 | 73% | 15 / 190 / 340 | 72% (66–78) n=207 | 21% (13–32) n=67 | 33% (27–40) n=191 |
-| 6th Street Recruits | attacked | 525 | 67% (60–72) n=236 | 608 → 507 | 17% | 45 / 233 / 247 | 81% (74–87) n=133 | 65% (54–75) n=74 | 61% (53–69) n=137 |
-| Pepe Najarro: Working Doubles | played | 492 | 60% (55–65) n=373 | 932 → 486 | 48% | 290 / 100 / 102 | 74% (67–80) n=175 | 49% (41–57) n=159 | 49% (39–60) n=91 |
-| Adam Smasher: Ender of Legends | called | 467 | 59% (55–63) n=467 | 467 → 467 | 0% | 286 / 113 / 68 | 66% (61–71) n=325 | 41% (31–52) n=83 | 44% (32–57) n=59 |
-| Saburo Arasaka: Stubborn Patriarch | called | 446 | 57% (53–62) n=446 | 446 → 446 | 0% | 272 / 136 / 38 | 64% (58–69) n=316 | 34% (24–45) n=77 | 53% (40–66) n=53 |
-| Hanako Arasaka: Daughter of the Emperor | called | 442 | 58% (53–63) n=442 | 442 → 442 | 0% | 263 / 129 / 50 | 64% (59–69) n=318 | 43% (33–55) n=76 | 42% (29–56) n=48 |
-| Nadia: Fighting Through Grief | played | 438 | 58% (53–63) n=359 | 871 → 438 | 50% | 0 / 304 / 134 | 72% (64–79) n=139 | 48% (38–59) n=81 | 52% (45–60) n=183 |
-| Adam Smasher: Ender of Legends | attacked | 428 | 65% (59–70) n=331 | 449 → 428 | 5% | 0 / 0 / 428 | 95% (89–98) n=114 | 90% (80–95) n=62 | 44% (37–51) n=196 |
-| Memory Relapse | sold | 402 | 60% (54–65) n=309 | 1176 → 402 | 66% | 115 / 145 / 142 | 73% (65–80) n=126 | 53% (43–64) n=86 | 51% (43–59) n=144 |
-| Corporate Surveillance | sold | 392 | 57% (52–63) n=336 | 459 → 392 | 15% | 213 / 89 / 90 | 64% (56–71) n=152 | 49% (41–58) n=128 | 56% (45–65) n=90 |
-| Over the Edge | sold | 375 | 57% (51–63) n=301 | 1492 → 375 | 75% | 50 / 151 / 174 | 68% (58–76) n=108 | 53% (41–64) n=68 | 48% (40–55) n=165 |
+| Rockn' Rockerboy | attacked | 1023 | 65% (59–69) n=347 | 979 → 914 | 7% | 0 / 437 / 586 | 77% (71–82) n=239 | 63% (52–72) n=91 | 55% (48–62) n=191 |
+| 6th Street Recruits | attacked | 853 | 67% (62–72) n=340 | 944 → 786 | 17% | 102 / 348 / 403 | 79% (73–84) n=207 | 62% (53–70) n=125 | 56% (49–63) n=173 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 788 | 74% (69–79) n=269 | 535 → 490 | 8% | 0 / 102 / 686 | 87% (81–91) n=185 | 77% (65–86) n=61 | 63% (55–71) n=128 |
+| Mandibular Upgrade | sold | 655 | 61% (56–65) n=438 | 732 → 655 | 11% | 342 / 150 / 163 | 70% (64–76) n=238 | 49% (42–57) n=163 | 55% (46–64) n=115 |
+| Sketchy Ripper | played | 573 | 59% (54–63) n=423 | 939 → 556 | 41% | 305 / 133 / 135 | 69% (64–74) n=283 | 42% (35–51) n=139 | 35% (25–48) n=62 |
+| 6th Street Recruits | played | 571 | 63% (59–68) n=408 | 848 → 565 | 33% | 264 / 188 / 119 | 77% (71–82) n=220 | 52% (45–59) n=171 | 47% (37–58) n=87 |
+| Rockn' Rockerboy | played | 567 | 62% (57–67) n=403 | 743 → 566 | 24% | 231 / 197 / 139 | 77% (71–82) n=234 | 49% (41–57) n=144 | 44% (35–53) n=105 |
+| Sketchy Ripper | attacked | 495 | 58% (52–63) n=295 | 819 → 474 | 42% | 136 / 197 / 162 | 67% (60–74) n=186 | 45% (35–56) n=82 | 42% (33–52) n=104 |
+| Johnny Silverhand: Never Stop Fighting | played | 494 | 65% (60–69) n=373 | 928 → 494 | 47% | 0 / 255 / 239 | 73% (67–79) n=221 | 60% (47–71) n=57 | 54% (47–62) n=156 |
+| Adam Smasher: Ender of Legends | attacked | 462 | 57% (52–62) n=334 | 494 → 462 | 6% | 0 / 1 / 461 | 89% (83–93) n=158 | 70% (58–79) n=66 | 28% (22–35) n=173 |
+| Zetatech Faceplate | sold | 428 | 60% (55–65) n=324 | 1453 → 428 | 71% | 72 / 164 / 192 | 71% (64–78) n=168 | 55% (43–66) n=73 | 49% (40–57) n=129 |
+| Adam Smasher: Ender of Legends | called | 422 | 59% (54–63) n=422 | 422 → 422 | 0% | 129 / 164 / 129 | 64% (59–70) n=291 | 51% (39–63) n=65 | 42% (31–54) n=66 |
+| River Ward: Detective on the Hunt | called | 420 | 60% (55–65) n=420 | 435 → 420 | 3% | 121 / 190 / 109 | 66% (61–71) n=297 | 49% (38–60) n=75 | 38% (25–52) n=48 |
+| Mantis Blades | sold | 415 | 59% (54–64) n=324 | 782 → 415 | 47% | 197 / 99 / 119 | 70% (63–77) n=179 | 44% (35–53) n=108 | 43% (33–54) n=83 |
+| Adrenaline Converter | played | 408 | 61% (55–66) n=337 | 961 → 390 | 59% | 108 / 178 / 122 | 72% (65–79) n=166 | 42% (33–52) n=107 | 60% (49–69) n=94 |
 
 (31 more card uses in the JSON report.)
 
-Legal but never taken: Corporate Surveillance (played, legal in 420 turns).
+Legal but never taken: 6th Street Recruits (reaction, legal in 5 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 12873 | 6% | 0 / 1258 / 3780 / 4998 / 2775 / 62 |
-| gig/steal | 3039 | 29% | 117 / 426 / 1347 / 1129 / 20 / 0 |
+| main | 14587 | 8% | 0 / 1123 / 3751 / 6400 / 3191 / 122 |
+| gig/steal | 3087 | 37% | 379 / 608 / 1213 / 877 / 10 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/ready | 950 | 72% | 0 / 492 / 449 / 9 / 0 / 0 |
-| unit/defeat | 948 | 54% | 256 / 279 / 396 / 17 / 0 / 0 |
+| unit/equip | 1642 | 71% | 299 / 326 / 873 / 144 / 0 / 0 |
+| react | 1543 | 66% | 0 / 930 / 611 / 2 / 0 / 0 |
+| card/search | 1292 | 73% | 0 / 527 / 762 / 3 / 0 / 0 |
+| gigValue/adjust | 651 | 11% | 0 / 0 / 0 / 49 / 327 / 275 |
 | mulligan | 560 | 26% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 545 | 37% | 25 / 83 / 255 / 175 / 7 / 0 |
-| gig/swapTake | 545 | 30% | 37 / 57 / 287 / 158 / 6 / 0 |
-| react | 455 | 43% | 0 / 272 / 183 / 0 / 0 / 0 |
-| unit/adrenaline | 343 | 73% | 223 / 95 / 25 / 0 / 0 / 0 |
-| unit/equip | 275 | 90% | 49 / 43 / 171 / 12 / 0 / 0 |
-| gigValue/adjust | 168 | 8% | 0 / 4 / 24 / 3 / 20 / 117 |
-| unit/spend | 151 | 65% | 79 / 52 / 20 / 0 / 0 / 0 |
-| card/discard | 89 | 44% | 17 / 16 / 56 / 0 / 0 / 0 |
-| gigValue/setGig | 53 | 4% | 0 / 0 / 1 / 12 / 14 / 26 |
-| unit/sacrifice | 53 | 91% | 38 / 9 / 6 / 0 / 0 / 0 |
-| yesno/draw | 24 | 100% | 0 / 24 / 0 / 0 / 0 / 0 |
-| card/playFree | 18 | 100% | 0 / 14 / 4 / 0 / 0 / 0 |
-| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 439 attacks. Reacted to 250 (deck won 44% (37–50) n=220): fizzled 19, stole 199, targetGone 26, bothGone 6. Let 189 resolve (47% (38–56) n=119): stole 148, stoleNothing 1, targetGone 31, bothGone 9. Choices: call 238, endReact 196, ability 21.
-
-## S2-07 Explorer (RRB) — 560 games, 46% won, 21570 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| V: Corporate Exile | attacked | 756 | 41% (37–46) n=403 | 910 → 756 | 17% | 85 / 307 / 364 | 57% (50–63) n=229 | 47% (36–59) n=74 | 31% (25–37) n=200 |
-| Animals Wrecker | attacked | 686 | 59% (53–65) n=285 | 646 → 609 | 6% | 0 / 145 / 541 | 77% (70–84) n=133 | 87% (78–93) n=78 | 50% (43–57) n=199 |
-| 6th Street Recruits | attacked | 679 | 50% (45–56) n=302 | 900 → 623 | 31% | 69 / 245 / 365 | 66% (58–73) n=155 | 55% (46–64) n=105 | 41% (34–49) n=175 |
-| Psycho Squad | attacked | 667 | 47% (42–53) n=303 | 880 → 611 | 31% | 55 / 243 / 369 | 65% (57–72) n=160 | 46% (36–56) n=85 | 40% (33–47) n=196 |
-| Unlikely Bond | sold | 503 | 45% (40–50) n=370 | 1155 → 503 | 56% | 123 / 201 / 179 | 55% (47–63) n=149 | 46% (37–56) n=102 | 38% (31–45) n=188 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 487 | 59% (52–65) n=207 | 359 → 325 | 9% | 0 / 47 / 440 | 83% (75–89) n=119 | 68% (53–80) n=41 | 43% (34–53) n=100 |
-| Animals Wrecker | played | 482 | 53% (48–58) n=361 | 650 → 482 | 26% | 0 / 303 / 179 | 62% (54–70) n=140 | 59% (47–70) n=66 | 46% (39–53) n=211 |
-| 6th Street Recruits | played | 461 | 45% (40–50) n=348 | 1068 → 457 | 57% | 245 / 94 / 122 | 54% (46–61) n=160 | 44% (37–52) n=160 | 18% (11–28) n=82 |
-| V: Corporate Exile | called | 454 | 48% (44–53) n=454 | 454 → 454 | 0% | 248 / 110 / 96 | 54% (49–60) n=312 | 38% (27–51) n=60 | 32% (23–42) n=82 |
-| Adam Smasher: Ender of Legends | called | 452 | 46% (41–51) n=452 | 452 → 452 | 0% | 207 / 134 / 111 | 54% (49–60) n=319 | 23% (15–35) n=64 | 29% (20–41) n=69 |
-| Johnny Silverhand: Rocking Renegade | called | 445 | 47% (43–52) n=445 | 445 → 445 | 0% | 206 / 139 / 100 | 56% (51–62) n=323 | 22% (13–36) n=45 | 23% (15–34) n=77 |
-| V: Corporate Exile | Go Solo (self-paid 429) | 429 | 41% (36–45) n=429 | 764 → 429 | 44% | 89 / 189 / 151 | 51% (44–58) n=175 | 45% (34–57) n=64 | 29% (23–36) n=190 |
-| Psycho Squad | played | 419 | 44% (39–50) n=340 | 950 → 417 | 56% | 233 / 95 / 91 | 57% (50–65) n=162 | 38% (30–46) n=139 | 25% (17–36) n=75 |
-| Carnage at the Colosseum | sold | 383 | 47% (42–53) n=310 | 1381 → 383 | 72% | 28 / 169 / 186 | 66% (57–75) n=104 | 56% (43–69) n=55 | 36% (29–43) n=176 |
-| Yorinobu Arasaka: Steel Dragon | played | 351 | 52% (46–58) n=287 | 447 → 351 | 21% | 0 / 101 / 250 | 74% (65–82) n=104 | 71% (54–83) n=34 | 35% (29–43) n=175 |
-
-(35 more card uses in the JSON report.)
-
-Legal but never taken: V: Corporate Exile (Legend play, legal in 766 turns), Adam Smasher: Ender of Legends (Legend play, legal in 126 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13543 | 8% | 0 / 1237 / 3818 / 5372 / 2929 / 187 |
-| gig/steal | 3346 | 28% | 202 / 396 / 1492 / 1225 / 31 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
-| react | 508 | 58% | 0 / 293 / 215 / 0 / 0 / 0 |
-| unit/defeat | 371 | 65% | 145 / 102 / 112 / 12 / 0 / 0 |
-| card/playFree | 324 | 68% | 0 / 125 / 198 / 1 / 0 / 0 |
-| unit/lagAttack | 284 | 88% | 33 / 58 / 181 / 12 / 0 / 0 |
-| gigValue/adjust | 170 | 5% | 0 / 6 / 19 / 1 / 9 / 135 |
-| unit/sacrifice | 65 | 83% | 45 / 13 / 6 / 1 / 0 / 0 |
-| card/discard | 47 | 49% | 9 / 11 / 25 / 2 / 0 / 0 |
-| unit/pump | 33 | 79% | 22 / 7 / 4 / 0 / 0 / 0 |
-| mode/mode | 21 | 100% | 0 / 0 / 21 / 0 / 0 / 0 |
-| unit/bottomdeck | 19 | 79% | 14 / 5 / 0 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 19 | 42% | 2 / 12 / 5 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 7 | 43% | 0 / 7 / 0 / 0 / 0 / 0 |
-| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
-| unit/equip | 2 | 100% | 1 / 0 / 1 / 0 / 0 / 0 |
-
-Reaction windows: 508 attacks. Reacted to 215 (deck won 32% (26–39) n=191): stole 184, targetGone 29, bothGone 2. Let 293 resolve (44% (36–52) n=153): stole 220, targetGone 68, bothGone 5. Choices: call 215, endReact 293.
-
-## S2-08 Explorer (GGY) — 560 games, 49% won, 26816 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 850 | 56% (51–62) n=339 | 961 → 774 | 19% | 69 / 314 / 467 | 73% (66–79) n=182 | 57% (48–66) n=124 | 50% (43–56) n=206 |
-| Nadia: Fighting Through Grief | attacked | 811 | 48% (43–54) n=326 | 827 → 751 | 9% | 0 / 256 / 555 | 78% (70–84) n=136 | 62% (48–74) n=52 | 43% (37–49) n=264 |
-| Rockn' Rockerboy | attacked | 681 | 59% (53–64) n=261 | 719 → 648 | 10% | 0 / 290 / 391 | 70% (62–77) n=154 | 65% (54–75) n=78 | 51% (44–59) n=156 |
-| Pepe Najarro: Working Doubles | played | 568 | 53% (48–58) n=404 | 967 → 558 | 42% | 257 / 143 / 168 | 63% (56–69) n=197 | 48% (40–55) n=163 | 46% (37–54) n=127 |
-| Valentino Street Racer | attacked | 558 | 50% (44–55) n=282 | 686 → 493 | 28% | 19 / 130 / 409 | 73% (65–79) n=147 | 49% (38–60) n=75 | 33% (26–41) n=149 |
-| Valentino Street Racer | played | 504 | 48% (43–53) n=372 | 1229 → 474 | 61% | 115 / 196 / 193 | 62% (54–69) n=156 | 39% (31–49) n=114 | 40% (33–48) n=155 |
-| Nadia: Fighting Through Grief | played | 481 | 49% (43–54) n=371 | 869 → 481 | 45% | 0 / 273 / 208 | 60% (51–68) n=137 | 53% (40–65) n=59 | 41% (35–48) n=225 |
-| Padre: Man of the Cross | ability | 470 | 45% (39–50) n=328 | 1954 → 470 | 76% | 5 / 92 / 373 | 63% (56–70) n=184 | 27% (18–37) n=82 | 20% (14–27) n=127 |
-| Muamar Reyes: El Capitán | ability | 463 | 47% (42–53) n=301 | 1923 → 463 | 76% | 5 / 92 / 366 | 68% (61–74) n=189 | 18% (11–29) n=66 | 16% (11–24) n=116 |
-| Memory Relapse | sold | 462 | 50% (45–55) n=366 | 1209 → 462 | 62% | 134 / 172 / 156 | 62% (54–69) n=152 | 50% (41–60) n=105 | 41% (33–49) n=157 |
-| Goro Takemura: Vengeful Bodyguard | called | 428 | 48% (44–53) n=428 | 428 → 428 | 0% | 230 / 131 / 67 | 53% (47–59) n=272 | 41% (32–52) n=92 | 38% (27–50) n=64 |
-| Padre: Man of the Cross | called | 404 | 51% (46–56) n=404 | 412 → 404 | 2% | 232 / 115 / 57 | 57% (50–63) n=251 | 44% (34–55) n=86 | 37% (27–49) n=67 |
-| Cyberpsychosis | sold | 401 | 49% (44–55) n=334 | 620 → 401 | 35% | 202 / 118 / 81 | 50% (43–58) n=157 | 51% (42–60) n=110 | 42% (33–52) n=97 |
-| Saul Bright: Stormrider | played | 387 | 51% (45–56) n=322 | 443 → 387 | 13% | 0 / 0 / 387 | 78% (69–85) n=104 | 67% (53–80) n=43 | 36% (30–43) n=201 |
-| Sandevistan | sold | 387 | 46% (41–52) n=323 | 469 → 387 | 17% | 245 / 73 / 69 | 51% (43–59) n=150 | 46% (38–55) n=128 | 32% (23–44) n=71 |
-
-(36 more card uses in the JSON report.)
-
-Legal but never taken: Cyberpsychosis (played, legal in 84 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14158 | 6% | 0 / 1138 / 3773 / 5604 / 3495 / 148 |
-| gig/steal | 3327 | 28% | 121 / 420 / 1503 / 1255 / 28 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/ready | 1124 | 68% | 0 / 452 / 658 / 14 / 0 / 0 |
-| gigValue/adjust | 903 | 10% | 0 / 0 / 46 / 100 / 548 / 209 |
-| react | 788 | 51% | 0 / 448 / 340 / 0 / 0 / 0 |
-| mulligan | 560 | 31% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 523 | 59% | 0 / 523 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 515 | 71% | 0 / 515 / 0 / 0 / 0 / 0 |
-| gigValue/setGig | 464 | 9% | 0 / 1 / 4 / 35 / 91 / 333 |
-| unit/spend | 400 | 80% | 245 / 100 / 55 / 0 / 0 / 0 |
-| unit/adrenaline | 387 | 47% | 145 / 159 / 83 / 0 / 0 / 0 |
-| unit/defeat | 372 | 65% | 144 / 102 / 124 / 2 / 0 / 0 |
-| unit/protect | 351 | 58% | 133 / 119 / 96 / 3 / 0 / 0 |
-| unit/blocker | 255 | 55% | 81 / 101 / 72 / 1 / 0 / 0 |
-| unit/equip | 202 | 80% | 31 / 42 / 110 / 19 / 0 / 0 |
-| card/discard | 110 | 44% | 14 / 24 / 70 / 2 / 0 / 0 |
-| unit/call | 57 | 96% | 0 / 40 / 17 / 0 / 0 / 0 |
-| unit/sacrifice | 52 | 77% | 30 / 13 / 9 / 0 / 0 / 0 |
-| card/playFree | 15 | 87% | 0 / 11 / 4 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
-| yesno/draw | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
-| unit/pump | 2 | 100% | 2 / 0 / 0 / 0 / 0 / 0 |
+| unit/defeat | 351 | 38% | 38 / 74 / 223 / 16 / 0 / 0 |
+| card/playFree | 314 | 85% | 163 / 100 / 51 / 0 / 0 / 0 |
+| card/trash | 267 | 45% | 0 / 267 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 235 | 50% | 69 / 102 / 63 / 1 / 0 / 0 |
+| card/discard | 47 | 55% | 11 / 6 / 25 / 5 / 0 / 0 |
+| unit/call | 37 | 100% | 0 / 8 / 29 / 0 / 0 / 0 |
+| unit/protect | 34 | 76% | 12 / 18 / 4 / 0 / 0 / 0 |
+| yesno/call | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 40% | 0 / 5 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 704 attacks. Reacted to 344 (deck won 47% (41–52) n=289): fizzled 18, stole 246, attackerGone 14, targetGone 44, bothGone 8, noneGone 14. Let 360 resolve (44% (37–51) n=203): stole 304, stoleNothing 2, targetGone 48, bothGone 6. Choices: call 297, endReact 400, ability 65, block 24, play 2.
+Reaction windows: 1384 attacks. Reacted to 449 (deck won 50% (45–56) n=327): stole 232, stoleNothing 2, attackerGone 4, targetGone 172, bothGone 39. Let 935 resolve (54% (49–59) n=378): stole 737, stoleNothing 15, attackerGone 7, targetGone 135, bothGone 41. Choices: block 142, endReact 1016, ability 90, call 261, play 34.
 
-## S3-02 Mutant (RGY) — 560 games, 43% won, 28060 decisions
+## Ladder S1 #9: River / Reyes / Rogue (YYY) — 560 games, 43% won, 25830 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 811 | 46% (41–51) n=339 | 895 → 739 | 17% | 72 / 257 / 482 | 64% (57–71) n=183 | 50% (41–59) n=110 | 34% (28–41) n=189 |
-| Jackie Welles: Mama's Favorite | attacked | 809 | 40% (36–45) n=461 | 923 → 809 | 12% | 0 / 333 / 476 | 55% (49–60) n=264 | 48% (37–59) n=73 | 28% (23–34) n=242 |
-| Pepe Najarro: Working Doubles | attacked | 770 | 44% (39–49) n=338 | 889 → 714 | 20% | 66 / 258 / 446 | 57% (50–64) n=195 | 42% (33–51) n=120 | 35% (29–43) n=186 |
-| Dexter DeShawn: One Last Chance | attacked | 645 | 45% (40–51) n=302 | 731 → 559 | 24% | 22 / 163 / 460 | 63% (55–70) n=155 | 51% (40–61) n=83 | 34% (28–41) n=186 |
-| MaxTac Suppression Team | attacked | 640 | 48% (42–53) n=294 | 727 → 598 | 18% | 0 / 193 / 447 | 60% (53–67) n=177 | 59% (47–70) n=66 | 34% (27–41) n=155 |
-| Corporate Surveillance | sold | 607 | 45% (40–50) n=415 | 1057 → 607 | 43% | 211 / 219 / 177 | 51% (44–57) n=205 | 43% (35–52) n=134 | 35% (28–42) n=185 |
-| Dexter DeShawn: One Last Chance | played | 574 | 43% (38–48) n=395 | 1247 → 514 | 59% | 122 / 242 / 210 | 52% (46–59) n=204 | 37% (29–45) n=130 | 33% (26–41) n=144 |
-| 6th Street Recruits | played | 558 | 43% (39–48) n=405 | 1139 → 554 | 51% | 226 / 154 / 178 | 53% (46–60) n=193 | 42% (35–50) n=152 | 31% (24–40) n=137 |
-| Pepe Najarro: Working Doubles | played | 556 | 40% (36–45) n=405 | 1178 → 551 | 53% | 233 / 134 / 189 | 51% (44–58) n=199 | 35% (28–43) n=146 | 28% (22–36) n=145 |
-| MaxTac Suppression Team | played | 542 | 43% (38–48) n=385 | 1181 → 542 | 54% | 108 / 197 / 237 | 50% (43–57) n=190 | 44% (35–53) n=103 | 29% (23–36) n=175 |
-| Dexter DeShawn: Off the Grid | ability | 536 | 39% (34–44) n=359 | 1867 → 536 | 71% | 3 / 107 / 426 | 58% (52–65) n=216 | 26% (17–37) n=70 | 14% (9–20) n=144 |
-| Jackie Welles: Mama's Favorite | Go Solo (self-paid 491) | 491 | 40% (35–44) n=491 | 782 → 491 | 37% | 0 / 308 / 183 | 51% (44–58) n=210 | 41% (30–54) n=58 | 29% (23–35) n=223 |
-| Dexter DeShawn: Off the Grid | called | 448 | 41% (36–45) n=448 | 448 → 448 | 0% | 174 / 194 / 80 | 48% (42–54) n=286 | 30% (20–43) n=60 | 27% (20–37) n=102 |
-| Jackie Welles: Mama's Favorite | called | 439 | 43% (39–48) n=439 | 439 → 439 | 0% | 198 / 177 / 64 | 48% (42–54) n=285 | 30% (21–41) n=77 | 39% (29–50) n=77 |
-| Detonate | sold | 400 | 44% (39–50) n=329 | 546 → 400 | 27% | 218 / 81 / 101 | 48% (41–55) n=173 | 44% (35–53) n=103 | 31% (22–41) n=91 |
+| MaxTac Suppression Team | attacked | 758 | 48% (43–53) n=333 | 841 → 707 | 16% | 0 / 333 / 425 | 61% (54–67) n=203 | 58% (48–67) n=97 | 42% (35–49) n=178 |
+| Dexter DeShawn: One Last Chance | attacked | 716 | 45% (40–51) n=322 | 913 → 672 | 26% | 94 / 293 / 329 | 57% (50–64) n=183 | 40% (32–49) n=124 | 40% (33–48) n=165 |
+| Rogue Amendiares: Preem Solo | attacked | 713 | 43% (38–47) n=467 | 809 → 713 | 12% | 0 / 202 / 511 | 62% (56–68) n=246 | 46% (35–57) n=70 | 26% (21–32) n=237 |
+| Muamar Reyes: El Capitán | ability | 642 | 38% (33–43) n=395 | 2179 → 642 | 71% | 62 / 102 / 478 | 54% (48–60) n=246 | 22% (15–31) n=96 | 12% (8–18) n=160 |
+| Dexter DeShawn: One Last Chance | played | 615 | 43% (39–48) n=430 | 950 → 586 | 38% | 276 / 187 / 152 | 49% (43–56) n=231 | 38% (31–45) n=180 | 34% (26–44) n=103 |
+| Mandibular Upgrade | sold | 615 | 41% (36–46) n=413 | 742 → 615 | 17% | 318 / 136 / 161 | 52% (45–58) n=223 | 36% (29–44) n=156 | 26% (19–35) n=119 |
+| Augmented Negotiators | played | 610 | 44% (39–48) n=433 | 1360 → 580 | 57% | 151 / 206 / 253 | 59% (53–66) n=216 | 39% (32–47) n=154 | 25% (18–33) n=136 |
+| MaxTac Suppression Team | played | 581 | 44% (39–49) n=422 | 1008 → 580 | 42% | 193 / 172 / 216 | 55% (49–62) n=240 | 39% (31–48) n=132 | 23% (16–31) n=132 |
+| Safety Override | sold | 526 | 44% (39–49) n=388 | 1017 → 526 | 48% | 197 / 183 / 146 | 49% (42–56) n=177 | 43% (35–52) n=127 | 32% (25–40) n=144 |
+| The Heist | sold | 492 | 43% (38–48) n=358 | 953 → 492 | 48% | 159 / 202 / 131 | 53% (46–61) n=171 | 36% (28–45) n=128 | 29% (22–38) n=127 |
+| Rogue Amendiares: Preem Solo | Go Solo (self-paid 488) | 488 | 42% (37–46) n=488 | 823 → 488 | 41% | 0 / 233 / 255 | 57% (50–63) n=218 | 34% (23–47) n=53 | 28% (23–34) n=217 |
+| Rogue Amendiares: Preem Solo | called | 484 | 43% (39–47) n=484 | 484 → 484 | 0% | 286 / 153 / 45 | 50% (44–55) n=317 | 30% (22–38) n=121 | 30% (19–45) n=46 |
+| River Ward: Detective on the Hunt | called | 461 | 43% (39–48) n=461 | 461 → 461 | 0% | 248 / 115 / 98 | 52% (46–58) n=264 | 34% (26–42) n=140 | 25% (15–37) n=57 |
+| Muamar Reyes: El Capitán | called | 449 | 43% (39–48) n=449 | 449 → 449 | 0% | 271 / 112 / 66 | 51% (45–57) n=265 | 32% (25–40) n=145 | 33% (21–49) n=39 |
+| Zetatech Faceplate | sold | 445 | 43% (38–48) n=345 | 1389 → 445 | 68% | 56 / 216 / 173 | 57% (50–65) n=166 | 38% (28–50) n=78 | 29% (22–37) n=145 |
+
+(29 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13873 | 9% | 0 / 1189 / 3513 / 5476 / 3601 / 94 |
+| gig/steal | 2649 | 34% | 226 / 506 / 1138 / 768 / 11 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 2210 | 23% | 0 / 0 / 192 / 389 / 1203 / 426 |
+| react | 1848 | 66% | 0 / 1199 / 645 / 4 / 0 / 0 |
+| unit/equip | 781 | 78% | 16 / 227 / 517 / 21 / 0 / 0 |
+| mulligan | 560 | 37% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 536 | 54% | 0 / 536 / 0 / 0 / 0 / 0 |
+| unit/protect | 311 | 65% | 138 / 112 / 61 / 0 / 0 / 0 |
+| card/trash | 258 | 48% | 0 / 258 / 0 / 0 / 0 / 0 |
+| card/playFree | 236 | 91% | 165 / 47 / 24 / 0 / 0 / 0 |
+| unit/sacrifice | 190 | 67% | 80 / 72 / 38 / 0 / 0 / 0 |
+| card/search | 52 | 77% | 24 / 22 / 6 / 0 / 0 / 0 |
+| card/discard | 41 | 41% | 4 / 11 / 25 / 1 / 0 / 0 |
+| yesno/playFree | 32 | 100% | 0 / 32 / 0 / 0 / 0 / 0 |
+| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1626 attacks. Reacted to 520 (deck won 39% (34–45) n=348): stole 192, stoleNothing 2, attackerGone 8, targetGone 219, bothGone 69, noneGone 30. Let 1106 resolve (40% (35–45) n=400): stole 899, stoleNothing 6, attackerGone 6, targetGone 170, bothGone 25. Choices: call 232, ability 80, endReact 1211, block 269, play 56.
+
+## Ladder: Dexter / V / Wakako (RRB) — 560 games, 55% won, 28136 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 962 | 57% (52–62) n=383 | 1110 → 853 | 23% | 75 / 311 / 576 | 76% (70–82) n=208 | 64% (55–72) n=127 | 45% (39–51) n=236 |
+| Psycho Squad | attacked | 824 | 58% (52–63) n=365 | 995 → 754 | 24% | 74 / 274 / 476 | 73% (66–79) n=188 | 56% (47–64) n=127 | 50% (43–57) n=220 |
+| Animals Wrecker | attacked | 761 | 64% (59–69) n=322 | 736 → 701 | 5% | 0 / 195 / 566 | 84% (77–89) n=145 | 89% (81–94) n=84 | 55% (49–62) n=240 |
+| V: Streetkid | attacked | 654 | 53% (48–58) n=396 | 755 → 654 | 13% | 55 / 142 / 457 | 69% (63–74) n=255 | 66% (54–77) n=62 | 33% (26–40) n=174 |
+| Wakako Okada: Peace and Harmony | ability | 597 | 47% (42–52) n=379 | 1814 → 597 | 67% | 27 / 75 / 495 | 67% (61–72) n=248 | 20% (13–30) n=80 | 9% (5–15) n=142 |
+| Dexter DeShawn: Off the Grid | ability | 563 | 50% (45–55) n=378 | 1819 → 563 | 69% | 21 / 65 / 477 | 71% (65–77) n=243 | 23% (15–34) n=73 | 12% (8–19) n=138 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 547 | 63% (57–68) n=294 | 546 → 495 | 9% | 0 / 0 / 547 | 87% (81–92) n=151 | 82% (70–90) n=55 | 45% (38–53) n=170 |
+| Yorinobu Arasaka: Steel Dragon | played | 522 | 57% (52–62) n=384 | 610 → 522 | 14% | 0 / 211 / 311 | 70% (62–77) n=131 | 61% (48–73) n=54 | 48% (42–54) n=245 |
+| Nocturne OP55 N1 | sold | 503 | 56% (51–61) n=393 | 994 → 503 | 49% | 197 / 195 / 111 | 62% (55–69) n=180 | 54% (45–63) n=124 | 52% (44–60) n=141 |
+| Animals Wrecker | played | 501 | 61% (56–66) n=385 | 648 → 501 | 23% | 0 / 340 / 161 | 75% (68–81) n=153 | 69% (59–78) n=84 | 48% (41–55) n=203 |
+| 6th Street Recruits | played | 497 | 56% (51–61) n=368 | 1028 → 495 | 52% | 245 / 112 / 140 | 60% (53–67) n=168 | 58% (50–66) n=149 | 42% (33–51) n=114 |
+| Psycho Squad | played | 461 | 55% (50–60) n=352 | 983 → 458 | 53% | 219 / 108 / 134 | 65% (57–72) n=168 | 53% (45–61) n=148 | 34% (25–44) n=86 |
+| Bonnie and Clyde | sold | 458 | 54% (48–59) n=350 | 1460 → 458 | 69% | 78 / 158 / 222 | 60% (52–68) n=149 | 62% (51–72) n=79 | 45% (38–52) n=185 |
+| V: Streetkid | called | 444 | 55% (50–59) n=444 | 444 → 444 | 0% | 209 / 85 / 150 | 61% (56–67) n=290 | 46% (35–57) n=74 | 39% (29–50) n=80 |
+| V: Streetkid | Go Solo (self-paid 425) | 425 | 53% (48–58) n=425 | 1071 → 425 | 60% | 59 / 78 / 288 | 70% (63–75) n=210 | 55% (40–69) n=42 | 32% (26–40) n=173 |
 
 (33 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 15356 | 7% | 0 / 1003 / 3716 / 5351 / 4952 / 334 |
-| gig/steal | 3364 | 28% | 229 / 601 / 1365 / 1155 / 14 / 0 |
+| main | 15681 | 7% | 0 / 1240 / 4041 / 5778 / 4387 / 235 |
+| gig/steal | 3748 | 28% | 215 / 485 / 1628 / 1402 / 18 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 2115 | 8% | 0 / 3 / 114 / 185 / 1297 / 516 |
-| react | 1049 | 69% | 0 / 622 / 427 / 0 / 0 / 0 |
-| unit/ready | 1007 | 72% | 0 / 402 / 581 / 24 / 0 / 0 |
-| mulligan | 560 | 12% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 531 | 77% | 0 / 531 / 0 / 0 / 0 / 0 |
-| unit/pump | 531 | 49% | 126 / 181 / 222 / 2 / 0 / 0 |
-| unit/equip | 319 | 82% | 29 / 70 / 200 / 20 / 0 / 0 |
-| yesno/replaceDefeat | 249 | 10% | 0 / 249 / 0 / 0 / 0 / 0 |
-| unit/spend | 209 | 54% | 55 / 72 / 82 / 0 / 0 / 0 |
-| unit/defeat | 200 | 49% | 11 / 21 / 102 / 65 / 1 / 0 |
-| card/playFree | 67 | 97% | 0 / 40 / 27 / 0 / 0 / 0 |
-| card/discard | 56 | 30% | 6 / 11 / 35 / 4 / 0 / 0 |
-| card/search | 52 | 81% | 25 / 20 / 7 / 0 / 0 / 0 |
-| yesno/draw | 45 | 100% | 0 / 45 / 0 / 0 / 0 / 0 |
-| card/defeatGear | 43 | 93% | 0 / 32 / 11 / 0 / 0 / 0 |
-| unit/sacrifice | 43 | 79% | 23 / 11 / 9 / 0 / 0 / 0 |
-| card/defeat | 17 | 94% | 15 / 2 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 1432 | 6% | 0 / 2 / 15 / 81 / 838 / 496 |
+| mode/mode | 1117 | 77% | 0 / 1040 / 77 / 0 / 0 / 0 |
+| react | 697 | 52% | 0 / 384 / 313 / 0 / 0 / 0 |
+| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 534 | 73% | 260 / 135 / 118 / 21 / 0 / 0 |
+| card/playFree | 494 | 69% | 0 / 127 / 342 / 25 / 0 / 0 |
+| unit/pump | 434 | 52% | 112 / 143 / 165 / 14 / 0 / 0 |
+| unit/weaken | 425 | 72% | 176 / 140 / 104 / 5 / 0 / 0 |
+| card/search | 382 | 82% | 211 / 124 / 47 / 0 / 0 / 0 |
+| unit/equip | 189 | 84% | 43 / 68 / 58 / 20 / 0 / 0 |
+| unit/cantAttack | 66 | 73% | 29 / 16 / 21 / 0 / 0 / 0 |
+| card/discard | 45 | 47% | 11 / 10 / 22 / 2 / 0 / 0 |
+| unit/sacrifice | 38 | 79% | 23 / 8 / 7 / 0 / 0 / 0 |
+| yesno/draw | 23 | 100% | 0 / 23 / 0 / 0 / 0 / 0 |
+| unit/call | 20 | 100% | 0 / 7 / 13 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 8 | 50% | 0 / 8 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1008 attacks. Reacted to 317 (deck won 39% (33–45) n=279): stole 242, stoleNothing 2, attackerGone 4, targetGone 60, bothGone 9. Let 691 resolve (38% (33–44) n=286): stole 524, stoleNothing 4, attackerGone 2, targetGone 152, bothGone 9. Choices: endReact 728, call 315, play 4, ability 2.
+Reaction windows: 681 attacks. Reacted to 326 (deck won 47% (41–53) n=275): stole 249, stoleNothing 4, attackerGone 4, targetGone 52, bothGone 17. Let 355 resolve (58% (51–65) n=183): stole 259, stoleNothing 1, targetGone 92, bothGone 3. Choices: call 316, endReact 362, play 19.
 
-## S3-03 Cross (RRR) — 560 games, 53% won, 24751 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 745 | 54% (49–59) n=341 | 915 → 686 | 25% | 90 / 306 / 349 | 73% (66–80) n=147 | 57% (48–65) n=125 | 50% (43–57) n=222 |
-| Animals Wrecker | attacked | 726 | 65% (59–70) n=297 | 695 → 665 | 4% | 0 / 182 / 544 | 85% (78–90) n=128 | 80% (70–87) n=80 | 59% (53–65) n=227 |
-| V: Streetkid | attacked | 564 | 44% (39–49) n=350 | 679 → 564 | 17% | 67 / 188 / 309 | 64% (57–71) n=186 | 46% (35–57) n=70 | 26% (20–33) n=162 |
-| Dexter DeShawn: Off the Grid | ability | 525 | 50% (44–55) n=342 | 1788 → 525 | 71% | 15 / 92 / 418 | 71% (65–77) n=213 | 41% (30–53) n=66 | 18% (12–25) n=142 |
-| 6th Street Recruits | played | 493 | 53% (47–58) n=371 | 868 → 490 | 44% | 290 / 104 / 99 | 62% (56–69) n=202 | 48% (41–56) n=151 | 29% (21–40) n=78 |
-| Animals Wrecker | played | 465 | 60% (55–65) n=353 | 627 → 465 | 26% | 0 / 329 / 136 | 72% (64–79) n=138 | 58% (46–69) n=71 | 52% (44–59) n=188 |
-| Bonnie and Clyde | sold | 449 | 54% (49–59) n=338 | 1400 → 449 | 68% | 77 / 168 / 204 | 65% (57–72) n=145 | 55% (44–65) n=80 | 42% (35–50) n=168 |
-| V: Streetkid | called | 433 | 53% (48–57) n=433 | 433 → 433 | 0% | 221 / 101 / 111 | 61% (54–66) n=246 | 45% (36–55) n=104 | 39% (29–49) n=83 |
-| Dexter DeShawn: Off the Grid | called | 420 | 54% (49–58) n=420 | 421 → 420 | 0% | 192 / 131 / 97 | 63% (57–68) n=252 | 36% (27–47) n=85 | 43% (33–54) n=83 |
-| Over the Edge | sold | 414 | 55% (49–60) n=316 | 1388 → 414 | 70% | 83 / 173 / 158 | 68% (59–76) n=117 | 54% (43–64) n=78 | 47% (40–55) n=172 |
-| Adam Smasher: Ender of Legends | called | 398 | 53% (48–58) n=398 | 398 → 398 | 0% | 179 / 114 / 105 | 61% (55–67) n=248 | 44% (34–55) n=77 | 33% (23–44) n=73 |
-| V: Streetkid | Go Solo (self-paid 373) | 373 | 42% (37–47) n=373 | 1023 → 373 | 64% | 70 / 125 / 178 | 60% (52–68) n=148 | 37% (26–49) n=68 | 28% (22–36) n=157 |
-| Meredith Stout: Stone Cold Corpo | played | 369 | 51% (45–57) n=296 | 1202 → 363 | 70% | 123 / 98 / 148 | 66% (57–73) n=119 | 44% (35–54) n=95 | 36% (28–45) n=117 |
-| Shattered Memories | sold | 361 | 52% (46–57) n=301 | 905 → 361 | 60% | 77 / 171 / 113 | 70% (60–78) n=100 | 62% (51–71) n=86 | 37% (30–45) n=151 |
-| Ruthless Lowlife | played | 356 | 47% (41–52) n=300 | 463 → 344 | 26% | 238 / 59 / 59 | 62% (54–69) n=152 | 32% (25–41) n=121 | 29% (18–43) n=45 |
-
-(36 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1023 turns).
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 14132 | 9% | 0 / 1222 / 3797 / 5223 / 3743 / 147 |
-| gig/steal | 3039 | 26% | 134 / 382 / 1326 / 1179 / 18 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1256 | 65% | 0 / 818 / 438 / 0 / 0 / 0 |
-| gigValue/adjust | 772 | 9% | 0 / 7 / 45 / 61 / 450 / 209 |
-| unit/defeat | 658 | 59% | 197 / 188 / 245 / 28 / 0 / 0 |
-| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/mode | 512 | 75% | 0 / 512 / 0 / 0 / 0 / 0 |
-| card/search | 466 | 76% | 239 / 116 / 85 / 26 / 0 / 0 |
-| unit/pump | 418 | 54% | 124 / 155 / 132 / 7 / 0 / 0 |
-| card/playFree | 308 | 71% | 0 / 87 / 202 / 19 / 0 / 0 |
-| unit/equip | 236 | 83% | 79 / 66 / 77 / 14 / 0 / 0 |
-| unit/sacrifice | 53 | 79% | 34 / 7 / 11 / 1 / 0 / 0 |
-| card/discard | 27 | 52% | 6 / 10 / 9 / 2 / 0 / 0 |
-| yesno/draw | 27 | 100% | 0 / 27 / 0 / 0 / 0 / 0 |
-| unit/call | 17 | 100% | 0 / 4 / 13 / 0 / 0 / 0 |
-| card/defeat | 15 | 93% | 13 / 2 / 0 / 0 / 0 / 0 |
-| yesno/call | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 1179 attacks. Reacted to 416 (deck won 46% (40–51) n=331): stole 221, attackerGone 11, targetGone 166, bothGone 18. Let 763 resolve (56% (50–61) n=307): stole 539, stoleNothing 8, attackerGone 12, targetGone 182, bothGone 22. Choices: block 143, call 293, endReact 817, play 3.
-
-## S3-05 Counter (RRG) — 560 games, 52% won, 25303 decisions
+## Ladder: Jackie / Alt / Hanako (BBG) — 560 games, 60% won, 27768 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 1001 | 55% (50–60) n=391 | 1172 → 882 | 25% | 100 / 372 / 529 | 78% (71–83) n=182 | 60% (51–67) n=136 | 48% (42–54) n=271 |
-| Animals Wrecker | attacked | 738 | 68% (63–73) n=298 | 698 → 668 | 4% | 0 / 155 / 583 | 91% (85–95) n=128 | 90% (81–95) n=80 | 62% (55–68) n=229 |
-| V: Streetkid | attacked | 607 | 43% (38–48) n=364 | 753 → 607 | 19% | 91 / 236 / 280 | 61% (54–68) n=195 | 60% (46–73) n=48 | 30% (24–37) n=195 |
-| Pepe Najarro: Working Doubles | played | 550 | 53% (48–58) n=395 | 971 → 549 | 43% | 322 / 137 / 91 | 62% (55–69) n=185 | 51% (44–59) n=179 | 41% (32–51) n=102 |
-| Valentino Street Racer | attacked | 543 | 51% (46–57) n=313 | 765 → 487 | 36% | 31 / 155 / 357 | 82% (74–88) n=114 | 64% (53–74) n=81 | 37% (30–43) n=205 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 524 | 44% (39–49) n=349 | 1990 → 524 | 74% | 29 / 143 / 352 | 64% (57–71) n=183 | 43% (32–54) n=68 | 19% (14–25) n=174 |
-| Valentino Street Racer | played | 493 | 51% (46–56) n=372 | 1307 → 463 | 65% | 173 / 184 / 136 | 58% (50–66) n=151 | 45% (38–54) n=143 | 45% (37–54) n=131 |
-| Animals Wrecker | played | 465 | 62% (57–67) n=364 | 700 → 465 | 34% | 0 / 331 / 134 | 72% (64–79) n=131 | 69% (57–79) n=64 | 56% (49–62) n=219 |
-| Memory Relapse | sold | 452 | 53% (47–58) n=356 | 1308 → 452 | 65% | 102 / 200 / 150 | 64% (55–72) n=125 | 52% (41–62) n=85 | 45% (39–52) n=203 |
-| Satori: Sword of Saburo | sold | 450 | 49% (44–54) n=345 | 800 → 450 | 44% | 200 / 124 / 126 | 54% (46–62) n=145 | 49% (40–58) n=120 | 40% (32–48) n=138 |
-| Adam Smasher: Ender of Legends | called | 448 | 52% (47–56) n=448 | 448 → 448 | 0% | 218 / 138 / 92 | 60% (55–66) n=303 | 39% (30–50) n=84 | 26% (17–38) n=61 |
-| Hanako Arasaka: Daughter of the Emperor | called | 441 | 55% (50–59) n=441 | 441 → 441 | 0% | 211 / 158 / 72 | 59% (53–65) n=294 | 46% (37–56) n=95 | 46% (33–59) n=52 |
-| V: Streetkid | called | 435 | 52% (47–57) n=435 | 435 → 435 | 0% | 258 / 119 / 58 | 59% (53–65) n=263 | 39% (29–49) n=90 | 43% (33–53) n=82 |
-| V: Streetkid | Go Solo (self-paid 388) | 388 | 42% (37–47) n=388 | 1063 → 388 | 63% | 107 / 151 / 130 | 59% (51–67) n=154 | 34% (23–47) n=56 | 30% (24–37) n=178 |
-| Peace Offering | sold | 352 | 52% (46–58) n=295 | 592 → 352 | 41% | 159 / 108 / 85 | 58% (49–67) n=122 | 51% (41–61) n=90 | 47% (38–56) n=113 |
+| Psycho Squad | attacked | 976 | 62% (57–67) n=397 | 1008 → 862 | 14% | 97 / 387 / 492 | 76% (70–81) n=258 | 56% (48–65) n=131 | 46% (39–53) n=189 |
+| Psycho Squad | played | 684 | 61% (57–66) n=454 | 1074 → 666 | 38% | 247 / 247 / 190 | 73% (67–78) n=280 | 50% (43–58) n=165 | 37% (28–46) n=115 |
+| Valentino Street Racer | played | 667 | 62% (57–66) n=445 | 1261 → 596 | 53% | 126 / 314 / 227 | 73% (68–78) n=273 | 47% (39–55) n=132 | 44% (35–53) n=112 |
+| Alt Cunningham: Soulkiller Architect | ability | 656 | 56% (52–61) n=421 | 1924 → 652 | 66% | 6 / 172 / 478 | 72% (66–77) n=289 | 41% (30–53) n=66 | 20% (15–27) n=170 |
+| Valentino Street Racer | attacked | 650 | 64% (58–68) n=340 | 765 → 579 | 24% | 37 / 218 / 395 | 80% (74–85) n=229 | 61% (51–71) n=90 | 45% (37–54) n=133 |
+| Floor It | sold | 564 | 58% (53–63) n=399 | 785 → 564 | 28% | 267 / 105 / 192 | 71% (65–77) n=201 | 52% (44–59) n=166 | 39% (30–48) n=103 |
+| Maman Brigitte: Spirit of Death | attacked | 561 | 65% (59–70) n=291 | 680 → 526 | 23% | 0 / 241 / 320 | 81% (74–85) n=200 | 70% (59–79) n=80 | 39% (29–49) n=93 |
+| Maman Brigitte: Spirit of Death | played | 547 | 64% (59–68) n=402 | 1067 → 544 | 49% | 194 / 161 / 192 | 74% (68–79) n=242 | 59% (50–67) n=129 | 41% (32–51) n=107 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 542 | 48% (43–54) n=347 | 1862 → 542 | 71% | 13 / 189 / 340 | 70% (64–76) n=203 | 24% (16–34) n=76 | 16% (11–22) n=158 |
+| Hanako Arasaka: Daughter of the Emperor | called | 451 | 63% (58–67) n=451 | 451 → 451 | 0% | 187 / 219 / 45 | 67% (62–72) n=351 | 49% (37–60) n=70 | 43% (27–61) n=30 |
+| Jackie Welles: Pour One Out For Me | called | 439 | 65% (60–69) n=439 | 439 → 439 | 0% | 200 / 198 / 41 | 68% (63–73) n=329 | 59% (47–69) n=70 | 48% (33–63) n=40 |
+| Alt Cunningham: Soulkiller Architect | called | 435 | 62% (57–66) n=435 | 435 → 435 | 0% | 199 / 200 / 36 | 68% (63–73) n=320 | 50% (39–61) n=78 | 32% (20–49) n=37 |
+| Pyramid Song | sold | 392 | 58% (52–63) n=312 | 1131 → 392 | 65% | 89 / 175 / 128 | 71% (64–77) n=182 | 49% (39–60) n=79 | 39% (30–50) n=89 |
+| Placide: Voodoo Sentinel | played | 383 | 61% (55–66) n=324 | 433 → 383 | 12% | 0 / 0 / 383 | 85% (79–90) n=165 | 71% (58–82) n=52 | 30% (23–38) n=141 |
+| Chrome Reverie | sold | 348 | 62% (56–67) n=297 | 568 → 348 | 39% | 167 / 75 / 106 | 69% (61–75) n=169 | 58% (47–68) n=83 | 42% (31–54) n=66 |
 
-(35 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1064 turns).
+(30 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14148 | 7% | 0 / 1212 / 3716 / 4642 / 4296 / 282 |
-| gig/steal | 3366 | 27% | 169 / 380 / 1374 / 1422 / 21 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/defeat | 864 | 63% | 273 / 240 / 313 / 37 / 1 / 0 |
-| unit/ready | 757 | 76% | 0 / 374 / 365 / 18 / 0 / 0 |
-| mulligan | 560 | 33% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 524 | 43% | 31 / 71 / 255 / 161 / 6 / 0 |
-| gig/swapTake | 524 | 30% | 36 / 61 / 232 / 194 / 1 / 0 |
-| react | 518 | 46% | 0 / 282 / 236 / 0 / 0 / 0 |
-| card/search | 454 | 69% | 198 / 166 / 90 / 0 / 0 / 0 |
-| unit/adrenaline | 364 | 80% | 224 / 94 / 46 / 0 / 0 / 0 |
-| card/playFree | 310 | 76% | 0 / 113 / 195 / 2 / 0 / 0 |
-| gigValue/adjust | 193 | 5% | 0 / 2 / 63 / 11 / 33 / 84 |
-| unit/spend | 146 | 66% | 66 / 51 / 29 / 0 / 0 / 0 |
-| unit/equip | 120 | 86% | 9 / 41 / 57 / 13 / 0 / 0 |
-| unit/sacrifice | 55 | 84% | 32 / 10 / 13 / 0 / 0 / 0 |
-| unit/pump | 49 | 84% | 31 / 11 / 7 / 0 / 0 / 0 |
-| gigValue/setGig | 39 | 3% | 0 / 0 / 2 / 7 / 8 / 22 |
-| card/discard | 35 | 51% | 6 / 10 / 18 / 1 / 0 / 0 |
-| yesno/draw | 24 | 100% | 0 / 24 / 0 / 0 / 0 / 0 |
-| card/defeat | 7 | 100% | 6 / 1 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
+| main | 13640 | 7% | 0 / 1255 / 3618 / 5195 / 3437 / 135 |
+| gig/steal | 2646 | 33% | 136 / 586 / 1338 / 580 / 6 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/bottomdeck | 1270 | 72% | 742 / 283 / 240 / 5 / 0 / 0 |
+| card/discard | 1231 | 53% | 155 / 498 / 546 / 32 / 0 / 0 |
+| gigValue/adjust | 1226 | 27% | 0 / 44 / 358 / 425 / 367 / 32 |
+| card/search | 785 | 59% | 0 / 169 / 616 / 0 / 0 / 0 |
+| gig/swapGive | 740 | 38% | 7 / 61 / 409 / 261 / 2 / 0 |
+| gig/swapTake | 704 | 36% | 60 / 132 / 305 / 205 / 2 / 0 |
+| mulligan | 560 | 29% | 0 / 560 / 0 / 0 / 0 / 0 |
+| react | 556 | 45% | 0 / 362 / 194 / 0 / 0 / 0 |
+| unit/adrenaline | 499 | 59% | 210 / 194 / 95 / 0 / 0 / 0 |
+| card/playFromTrash | 435 | 55% | 169 / 118 / 139 / 9 / 0 / 0 |
+| yesno/discardFor | 392 | 99% | 0 / 392 / 0 / 0 / 0 / 0 |
+| unit/ready | 184 | 100% | 0 / 119 / 65 / 0 / 0 / 0 |
+| unit/weaken | 146 | 67% | 57 / 48 / 41 / 0 / 0 / 0 |
+| mode/mode | 88 | 91% | 0 / 9 / 79 / 0 / 0 / 0 |
+| unit/cantAttack | 83 | 66% | 33 / 36 / 13 / 1 / 0 / 0 |
+| unit/spend | 83 | 61% | 30 / 38 / 15 / 0 / 0 / 0 |
+| unit/sacrifice | 63 | 87% | 45 / 14 / 4 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 49 | 76% | 25 / 18 / 6 / 0 / 0 / 0 |
+| gigValue/setGig | 42 | 12% | 0 / 2 / 2 / 6 / 6 / 26 |
+| unit/equip | 36 | 78% | 3 / 3 / 17 / 13 / 0 / 0 |
+| unit/call | 27 | 100% | 0 / 15 / 12 / 0 / 0 / 0 |
+| card/discardForNothing | 25 | 0% | 0 / 10 / 11 / 4 / 0 / 0 |
+| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 7 | 43% | 0 / 7 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 518 attacks. Reacted to 279 (deck won 44% (38–50) n=253): stole 231, stoleNothing 2, targetGone 41, bothGone 5. Let 239 resolve (39% (31–47) n=142): stole 184, targetGone 50, bothGone 5. Choices: call 278, endReact 239, play 1.
+Reaction windows: 542 attacks. Reacted to 296 (deck won 48% (42–54) n=258): stole 231, attackerGone 1, targetGone 51, bothGone 13. Let 246 resolve (46% (38–54) n=143): stole 167, targetGone 74, bothGone 5. Choices: call 264, endReact 248, play 44.
 
-## S3-06 Counter (RBG) — 560 games, 47% won, 24882 decisions
-
-| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
-|---|---|---|---|---|---|---|---|---|---|
-| MaxTac AV | attacked | 884 | 59% (54–64) n=323 | 910 → 785 | 14% | 0 / 389 / 495 | 81% (74–86) n=177 | 63% (51–73) n=72 | 54% (47–60) n=211 |
-| Psycho Squad | attacked | 816 | 55% (50–60) n=354 | 942 → 735 | 22% | 85 / 313 / 418 | 81% (75–87) n=161 | 45% (36–54) n=110 | 51% (44–57) n=235 |
-| Psycho Squad | played | 584 | 50% (46–55) n=425 | 1000 → 576 | 42% | 251 / 235 / 98 | 68% (61–74) n=189 | 34% (28–42) n=166 | 48% (41–56) n=159 |
-| Valentino Street Racer | played | 562 | 48% (43–53) n=403 | 1137 → 510 | 55% | 167 / 301 / 94 | 65% (57–72) n=165 | 25% (18–33) n=141 | 48% (40–56) n=158 |
-| MaxTac AV | played | 513 | 55% (50–60) n=374 | 726 → 513 | 29% | 244 / 175 / 94 | 76% (70–82) n=182 | 44% (36–52) n=142 | 32% (24–41) n=116 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 508 | 39% (34–44) n=356 | 1878 → 508 | 73% | 17 / 233 / 258 | 64% (57–71) n=175 | 16% (8–27) n=58 | 19% (14–25) n=189 |
-| Placide: Voodoo Sentinel | played | 480 | 54% (49–59) n=385 | 577 → 480 | 17% | 0 / 0 / 480 | 89% (82–94) n=111 | 71% (57–82) n=48 | 39% (34–45) n=264 |
-| Valentino Street Racer | attacked | 450 | 51% (45–57) n=273 | 672 → 409 | 39% | 35 / 150 / 265 | 77% (69–84) n=114 | 44% (32–56) n=62 | 40% (32–47) n=159 |
-| Jackie Welles: Pour One Out For Me | called | 447 | 47% (43–52) n=447 | 447 → 447 | 0% | 216 / 190 / 41 | 59% (53–65) n=270 | 22% (15–32) n=86 | 36% (27–47) n=91 |
-| Adam Smasher: Ender of Legends | called | 423 | 49% (45–54) n=423 | 423 → 423 | 0% | 212 / 170 / 41 | 58% (52–64) n=288 | 28% (19–40) n=64 | 34% (24–45) n=71 |
-| Hanako Arasaka: Daughter of the Emperor | called | 421 | 47% (42–52) n=421 | 421 → 421 | 0% | 205 / 175 / 41 | 58% (52–64) n=273 | 22% (14–32) n=79 | 32% (22–44) n=69 |
-| Nocturne OP55 N1 | sold | 411 | 46% (41–51) n=328 | 1005 → 411 | 59% | 109 / 185 / 117 | 58% (49–65) n=144 | 42% (30–54) n=65 | 38% (31–46) n=153 |
-| Adam Smasher: Ender of Legends | attacked | 381 | 56% (50–62) n=283 | 399 → 381 | 5% | 0 / 0 / 381 | 93% (86–96) n=120 | 79% (66–87) n=56 | 27% (21–35) n=152 |
-| Industrial Assembly | sold | 356 | 49% (44–55) n=307 | 589 → 356 | 40% | 174 / 92 / 90 | 67% (58–74) n=132 | 31% (22–41) n=91 | 45% (36–54) n=112 |
-| We Gotta Live Together | sold | 330 | 49% (43–55) n=285 | 647 → 330 | 49% | 152 / 83 / 95 | 68% (59–76) n=110 | 36% (27–46) n=95 | 40% (31–49) n=106 |
-
-(32 more card uses in the JSON report.)
-
-| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
-|---|---|---|---|
-| main | 13151 | 7% | 0 / 1226 / 3579 / 5034 / 3215 / 97 |
-| gig/steal | 2681 | 26% | 108 / 412 / 1091 / 1062 / 8 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gig/swapGive | 1019 | 42% | 41 / 102 / 660 / 209 / 7 / 0 |
-| gig/swapTake | 930 | 38% | 127 / 204 / 385 / 210 / 4 / 0 |
-| gigValue/adjust | 824 | 22% | 0 / 44 / 297 / 292 / 166 / 25 |
-| unit/bottomdeck | 629 | 48% | 162 / 153 / 307 / 7 / 0 / 0 |
-| react | 604 | 50% | 0 / 382 / 222 / 0 / 0 / 0 |
-| mulligan | 560 | 29% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/discard | 547 | 63% | 5 / 229 / 295 / 18 / 0 / 0 |
-| unit/adrenaline | 401 | 61% | 184 / 138 / 79 / 0 / 0 / 0 |
-| unit/defeat | 321 | 39% | 41 / 76 / 183 / 21 / 0 / 0 |
-| unit/spend | 210 | 56% | 75 / 87 / 48 / 0 / 0 / 0 |
-| unit/equip | 131 | 89% | 2 / 31 / 88 / 10 / 0 / 0 |
-| mode/mode | 117 | 100% | 0 / 0 / 117 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 115 | 69% | 60 / 33 / 22 / 0 / 0 / 0 |
-| unit/ready | 112 | 82% | 0 / 71 / 41 / 0 / 0 / 0 |
-| yesno/draw | 56 | 100% | 0 / 56 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 55 | 89% | 39 / 7 / 9 / 0 / 0 / 0 |
-| unit/cantAttack | 40 | 45% | 12 / 23 / 5 / 0 / 0 / 0 |
-| unit/weaken | 37 | 59% | 9 / 12 / 16 / 0 / 0 / 0 |
-| card/playFree | 35 | 100% | 0 / 28 / 7 / 0 / 0 / 0 |
-| gigValue/setGig | 27 | 4% | 0 / 0 / 0 / 5 / 5 / 17 |
-| card/discardForNothing | 20 | 0% | 0 / 9 / 11 / 0 / 0 / 0 |
-| unit/call | 17 | 100% | 0 / 6 / 11 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
-
-Reaction windows: 592 attacks. Reacted to 298 (deck won 41% (35–47) n=271): stole 248, stoleNothing 1, attackerGone 1, targetGone 46, bothGone 2. Let 294 resolve (45% (38–52) n=190): stole 230, targetGone 52, bothGone 12. Choices: call 288, endReact 301, play 15.
-
-## S3-07 Explorer (RRG) — 560 games, 49% won, 26303 decisions
+## Ladder: Smasher / River / Viktor (RYY) — 560 games, 41% won, 23726 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 843 | 53% (48–58) n=358 | 1036 → 756 | 27% | 61 / 284 / 498 | 75% (68–81) n=178 | 57% (49–66) n=122 | 41% (35–47) n=231 |
-| 6th Street Recruits | attacked | 816 | 52% (47–57) n=365 | 1003 → 734 | 27% | 62 / 288 / 466 | 70% (64–77) n=183 | 58% (48–66) n=111 | 44% (38–51) n=235 |
-| Animals Wrecker | attacked | 738 | 60% (54–65) n=307 | 716 → 667 | 7% | 0 / 184 / 554 | 81% (74–87) n=138 | 75% (65–83) n=88 | 56% (49–62) n=223 |
-| V: Streetkid | attacked | 632 | 44% (39–49) n=390 | 789 → 632 | 20% | 79 / 164 / 389 | 57% (50–63) n=219 | 50% (39–61) n=80 | 34% (27–41) n=178 |
-| Valentino Street Racer | attacked | 539 | 53% (47–59) n=293 | 742 → 484 | 35% | 20 / 127 / 392 | 73% (65–79) n=147 | 68% (56–77) n=71 | 35% (28–43) n=165 |
-| Hanako Arasaka: Daughter of the Emperor | ability | 533 | 39% (34–44) n=361 | 1970 → 533 | 73% | 20 / 93 / 420 | 62% (55–68) n=196 | 20% (12–31) n=70 | 15% (10–21) n=177 |
-| Animals Wrecker | played | 519 | 54% (49–59) n=379 | 713 → 519 | 27% | 0 / 328 / 191 | 66% (57–74) n=120 | 67% (57–76) n=89 | 47% (40–53) n=230 |
-| Valentino Street Racer | played | 515 | 48% (43–53) n=382 | 1356 → 482 | 64% | 138 / 160 / 217 | 64% (56–71) n=169 | 43% (34–51) n=129 | 34% (27–42) n=140 |
-| Pepe Najarro: Working Doubles | played | 513 | 53% (48–58) n=375 | 943 → 503 | 47% | 241 / 105 / 167 | 60% (53–67) n=186 | 53% (44–61) n=139 | 35% (27–44) n=112 |
-| 6th Street Recruits | played | 499 | 51% (46–56) n=374 | 965 → 493 | 49% | 241 / 113 / 145 | 63% (56–70) n=169 | 48% (40–56) n=149 | 34% (26–43) n=118 |
-| Bonnie and Clyde | sold | 449 | 47% (41–52) n=336 | 1528 → 449 | 71% | 87 / 166 / 196 | 57% (48–65) n=127 | 44% (34–55) n=81 | 37% (31–45) n=182 |
-| Hanako Arasaka: Daughter of the Emperor | called | 447 | 50% (45–55) n=447 | 447 → 447 | 0% | 223 / 129 / 95 | 55% (50–61) n=293 | 48% (38–58) n=92 | 29% (19–41) n=62 |
-| V: Streetkid | called | 443 | 48% (43–52) n=443 | 443 → 443 | 0% | 220 / 112 / 111 | 55% (49–61) n=286 | 37% (27–48) n=84 | 30% (21–41) n=73 |
-| Johnny Silverhand: Rocking Renegade | called | 441 | 48% (43–53) n=441 | 444 → 441 | 1% | 235 / 116 / 90 | 55% (50–61) n=283 | 40% (30–50) n=86 | 29% (20–41) n=72 |
-| V: Streetkid | Go Solo (self-paid 423) | 423 | 43% (38–48) n=423 | 1038 → 423 | 59% | 88 / 91 / 244 | 55% (47–62) n=173 | 38% (28–49) n=74 | 33% (26–40) n=176 |
+| 6th Street Recruits | attacked | 741 | 45% (40–51) n=329 | 864 → 668 | 23% | 74 / 287 / 380 | 66% (58–73) n=142 | 40% (32–50) n=109 | 40% (33–46) n=209 |
+| 6th Street Recruits | played | 571 | 42% (37–46) n=404 | 902 → 553 | 39% | 271 / 129 / 171 | 53% (46–60) n=183 | 34% (27–42) n=154 | 33% (26–41) n=136 |
+| Jackie Welles: Ride or Die Choom | attacked | 554 | 54% (49–60) n=285 | 525 → 509 | 3% | 0 / 114 / 440 | 85% (77–91) n=103 | 71% (59–80) n=69 | 47% (40–54) n=199 |
+| Dexter DeShawn: One Last Chance | attacked | 553 | 41% (36–47) n=304 | 685 → 493 | 28% | 33 / 171 / 349 | 63% (54–71) n=126 | 51% (40–62) n=78 | 32% (26–39) n=189 |
+| Dexter DeShawn: One Last Chance | played | 541 | 40% (35–45) n=394 | 1070 → 506 | 53% | 168 / 235 / 138 | 48% (41–55) n=171 | 40% (32–49) n=137 | 32% (25–39) n=160 |
+| Jackie Welles: Ride or Die Choom | played | 527 | 44% (39–49) n=393 | 917 → 527 | 43% | 0 / 284 / 243 | 62% (54–70) n=143 | 37% (26–50) n=59 | 35% (29–41) n=248 |
+| Gorilla Arms | sold | 469 | 41% (36–46) n=361 | 954 → 469 | 51% | 206 / 125 / 138 | 53% (46–60) n=179 | 36% (28–46) n=105 | 28% (21–36) n=138 |
+| Kerry Eurodyne: The Last Rockerboy | played | 454 | 38% (33–43) n=350 | 1355 → 444 | 67% | 114 / 161 / 179 | 56% (48–64) n=137 | 23% (16–32) n=109 | 27% (21–34) n=160 |
+| River Ward: Detective on the Hunt | called | 450 | 44% (39–48) n=450 | 463 → 450 | 3% | 243 / 122 / 85 | 52% (46–57) n=293 | 36% (26–48) n=72 | 22% (15–32) n=85 |
+| Zetatech Faceplate | sold | 438 | 40% (35–45) n=359 | 856 → 438 | 49% | 103 / 197 / 138 | 53% (45–61) n=130 | 35% (26–45) n=91 | 34% (27–41) n=176 |
+| Adam Smasher: Ender of Legends | called | 437 | 44% (40–49) n=437 | 437 → 437 | 0% | 221 / 123 / 93 | 52% (47–58) n=288 | 32% (23–44) n=71 | 26% (17–36) n=78 |
+| MaxTac Suppression Team | attacked | 428 | 45% (39–52) n=227 | 518 → 412 | 20% | 0 / 181 / 247 | 69% (60–77) n=109 | 50% (37–63) n=50 | 39% (31–47) n=139 |
+| Adam Smasher: Ender of Legends | attacked | 413 | 43% (38–48) n=324 | 438 → 413 | 6% | 0 / 0 / 413 | 90% (83–94) n=108 | 67% (53–79) n=46 | 19% (14–25) n=204 |
+| Viktor Vektor: Sit Down and Relax | called | 413 | 43% (39–48) n=413 | 434 → 413 | 5% | 207 / 126 / 80 | 52% (46–57) n=264 | 30% (20–41) n=71 | 28% (19–39) n=78 |
+| Over the Edge | sold | 397 | 43% (37–48) n=306 | 1451 → 397 | 73% | 36 / 173 / 188 | 56% (46–65) n=95 | 42% (30–56) n=52 | 36% (29–43) n=192 |
 
-(32 more card uses in the JSON report.)
+(33 more card uses in the JSON report.)
 
-Legal but never taken: V: Streetkid (Legend play, legal in 1038 turns).
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 362 turns), Safety Override (played, legal in 511 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 15217 | 8% | 0 / 1152 / 3910 / 5041 / 4742 / 372 |
-| gig/steal | 3531 | 28% | 173 / 417 / 1590 / 1324 / 27 / 0 |
+| main | 13648 | 8% | 0 / 1100 / 3539 / 5450 / 3401 / 158 |
+| gig/steal | 2941 | 26% | 125 / 373 / 1156 / 1268 / 19 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| unit/defeat | 589 | 67% | 210 / 162 / 173 / 42 / 2 / 0 |
-| react | 566 | 51% | 0 / 350 / 216 / 0 / 0 / 0 |
-| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
-| gig/swapGive | 533 | 44% | 29 / 63 / 217 / 218 / 6 / 0 |
-| gig/swapTake | 533 | 30% | 33 / 57 / 219 / 215 / 9 / 0 |
-| unit/adrenaline | 443 | 68% | 204 / 166 / 71 / 2 / 0 / 0 |
-| card/search | 438 | 74% | 227 / 152 / 59 / 0 / 0 / 0 |
-| card/playFree | 410 | 70% | 0 / 117 / 263 / 30 / 0 / 0 |
-| gigValue/adjust | 324 | 4% | 0 / 9 / 57 / 5 / 27 / 226 |
-| unit/lagAttack | 261 | 80% | 31 / 64 / 156 / 10 / 0 / 0 |
-| unit/ready | 229 | 83% | 0 / 176 / 53 / 0 / 0 / 0 |
-| unit/equip | 109 | 77% | 8 / 35 / 45 / 21 / 0 / 0 |
-| unit/spend | 96 | 64% | 32 / 37 / 27 / 0 / 0 / 0 |
-| unit/pump | 66 | 77% | 31 / 13 / 22 / 0 / 0 / 0 |
-| unit/sacrifice | 59 | 92% | 40 / 12 / 7 / 0 / 0 / 0 |
-| card/discard | 45 | 47% | 8 / 14 / 21 / 2 / 0 / 0 |
-| yesno/draw | 27 | 100% | 0 / 27 / 0 / 0 / 0 / 0 |
-| unit/call | 13 | 100% | 0 / 2 / 11 / 0 / 0 / 0 |
-| yesno/call | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 1439 | 16% | 0 / 1 / 91 / 215 / 812 / 320 |
+| react | 1242 | 74% | 0 / 749 / 493 / 0 / 0 / 0 |
+| mulligan | 560 | 13% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 400 | 39% | 34 / 78 / 244 / 43 / 1 / 0 |
+| unit/equip | 359 | 72% | 35 / 73 / 211 / 40 / 0 / 0 |
+| card/search | 269 | 91% | 5 / 219 / 45 / 0 / 0 / 0 |
+| unit/sacrifice | 196 | 62% | 71 / 63 / 61 / 1 / 0 / 0 |
+| card/playFree | 137 | 98% | 125 / 12 / 0 / 0 / 0 / 0 |
+| card/trash | 108 | 56% | 0 / 108 / 0 / 0 / 0 / 0 |
+| card/discard | 105 | 75% | 12 / 55 / 34 / 4 / 0 / 0 |
+| unit/call | 38 | 84% | 0 / 21 / 17 / 0 / 0 / 0 |
+| unit/protect | 24 | 83% | 5 / 15 / 4 / 0 / 0 / 0 |
+| yesno/draw | 17 | 100% | 0 / 17 / 0 / 0 / 0 / 0 |
+| yesno/playFree | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 566 attacks. Reacted to 278 (deck won 47% (41–53) n=258): stole 233, targetGone 38, bothGone 7. Let 288 resolve (43% (35–51) n=142): stole 201, targetGone 83, bothGone 4. Choices: endReact 288, call 278.
+Reaction windows: 1177 attacks. Reacted to 308 (deck won 30% (25–36) n=270): stole 223, stoleNothing 1, attackerGone 3, targetGone 54, bothGone 27. Let 869 resolve (38% (33–43) n=331): stole 638, stoleNothing 14, targetGone 196, bothGone 21. Choices: endReact 915, call 250, ability 53, play 24.
 
-## S3-08 Explorer (RRB) — 560 games, 52% won, 24084 decisions
+## Ladder: V / Smasher / Padre (RRG) — 560 games, 65% won, 26294 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Animals Wrecker | attacked | 790 | 68% (62–73) n=308 | 751 → 709 | 6% | 0 / 210 / 580 | 85% (78–90) n=131 | 80% (70–87) n=93 | 63% (56–69) n=238 |
-| Psycho Squad | attacked | 772 | 55% (50–60) n=331 | 989 → 710 | 28% | 76 / 300 / 396 | 73% (65–79) n=146 | 54% (45–63) n=107 | 49% (42–55) n=225 |
-| 6th Street Recruits | attacked | 768 | 56% (50–61) n=347 | 963 → 705 | 27% | 63 / 301 / 404 | 81% (73–86) n=139 | 58% (48–67) n=107 | 49% (43–55) n=250 |
-| Dexter DeShawn: Off the Grid | ability | 563 | 51% (46–56) n=380 | 1977 → 563 | 72% | 6 / 94 / 463 | 76% (70–82) n=221 | 28% (18–41) n=54 | 28% (22–35) n=181 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 532 | 59% (53–64) n=275 | 534 → 483 | 10% | 0 / 0 / 532 | 88% (82–92) n=144 | 74% (58–85) n=38 | 44% (37–51) n=183 |
-| Animals Wrecker | played | 505 | 61% (56–66) n=368 | 656 → 505 | 23% | 0 / 354 / 151 | 69% (60–77) n=106 | 63% (52–73) n=78 | 56% (50–62) n=242 |
-| Yorinobu Arasaka: Steel Dragon | played | 489 | 52% (47–57) n=365 | 576 → 489 | 15% | 0 / 229 / 260 | 73% (63–81) n=90 | 69% (54–80) n=45 | 43% (37–49) n=272 |
-| 6th Street Recruits | played | 486 | 52% (47–57) n=375 | 908 → 482 | 47% | 267 / 98 / 121 | 68% (60–75) n=165 | 50% (42–58) n=147 | 28% (21–37) n=120 |
-| Bonnie and Clyde | sold | 481 | 53% (48–58) n=366 | 1100 → 481 | 56% | 146 / 183 / 152 | 64% (55–71) n=138 | 50% (40–60) n=100 | 45% (38–52) n=184 |
-| Psycho Squad | played | 478 | 52% (47–57) n=372 | 865 → 475 | 45% | 258 / 111 / 109 | 67% (60–74) n=166 | 43% (36–51) n=157 | 36% (28–45) n=114 |
-| Dexter DeShawn: Off the Grid | called | 450 | 55% (51–60) n=450 | 450 → 450 | 0% | 246 / 119 / 85 | 61% (55–67) n=277 | 46% (35–57) n=72 | 47% (37–56) n=101 |
-| Swordwise Huscle | played | 444 | 47% (42–53) n=339 | 1312 → 411 | 69% | 117 / 153 / 174 | 68% (60–76) n=136 | 30% (22–39) n=113 | 40% (32–48) n=133 |
-| Sasha Yakovleva: Won't Let You Down | called | 433 | 53% (49–58) n=433 | 433 → 433 | 0% | 247 / 101 / 85 | 64% (58–69) n=281 | 32% (22–43) n=72 | 36% (27–47) n=80 |
-| Swordwise Huscle | attacked | 426 | 49% (43–55) n=264 | 632 → 385 | 39% | 11 / 121 / 294 | 79% (70–86) n=99 | 53% (41–65) n=62 | 34% (27–42) n=155 |
-| Adam Smasher: Ender of Legends | called | 418 | 53% (48–57) n=418 | 418 → 418 | 0% | 230 / 89 / 99 | 64% (58–69) n=283 | 27% (17–40) n=59 | 32% (22–43) n=76 |
+| Pepe Najarro: Working Doubles | attacked | 792 | 64% (59–69) n=361 | 933 → 707 | 24% | 67 / 233 / 492 | 83% (78–88) n=198 | 63% (54–71) n=111 | 54% (47–60) n=201 |
+| 6th Street Recruits | attacked | 707 | 65% (60–70) n=331 | 862 → 643 | 25% | 65 / 227 / 415 | 79% (73–84) n=188 | 63% (54–72) n=109 | 59% (52–66) n=177 |
+| MaxTac AV | attacked | 699 | 70% (65–75) n=306 | 774 → 641 | 17% | 0 / 326 / 373 | 80% (74–85) n=206 | 82% (73–89) n=85 | 66% (58–73) n=141 |
+| Animals Wrecker | attacked | 693 | 72% (67–77) n=306 | 659 → 624 | 5% | 0 / 188 / 505 | 84% (78–89) n=165 | 82% (72–88) n=88 | 66% (59–72) n=182 |
+| Bonnie and Clyde | sold | 517 | 65% (60–70) n=375 | 1338 → 517 | 61% | 113 / 211 / 193 | 72% (66–78) n=189 | 64% (54–73) n=92 | 57% (49–65) n=159 |
+| Valentino Street Racer | attacked | 499 | 64% (58–70) n=265 | 657 → 443 | 33% | 13 / 121 / 365 | 82% (75–87) n=142 | 70% (59–78) n=86 | 51% (43–59) n=133 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 468 | 74% (69–79) n=270 | 484 → 435 | 10% | 0 / 0 / 468 | 89% (84–93) n=167 | 85% (72–92) n=52 | 59% (51–67) n=128 |
+| Animals Wrecker | played | 467 | 68% (63–73) n=361 | 676 → 467 | 31% | 0 / 333 / 134 | 76% (69–82) n=154 | 77% (67–85) n=75 | 61% (54–68) n=189 |
+| 6th Street Recruits | played | 462 | 63% (58–68) n=356 | 1151 → 456 | 60% | 190 / 115 / 157 | 73% (65–79) n=157 | 61% (53–69) n=149 | 52% (43–62) n=103 |
+| Pepe Najarro: Working Doubles | played | 461 | 63% (57–67) n=350 | 1185 → 452 | 62% | 186 / 130 / 145 | 70% (62–76) n=162 | 60% (52–68) n=140 | 46% (37–55) n=107 |
+| MaxTac AV | played | 455 | 68% (63–73) n=351 | 777 → 455 | 41% | 236 / 90 / 129 | 77% (71–83) n=185 | 62% (54–70) n=127 | 57% (47–66) n=98 |
+| Yorinobu Arasaka: Steel Dragon | played | 455 | 67% (62–72) n=357 | 565 → 455 | 19% | 0 / 204 / 251 | 79% (72–85) n=156 | 71% (59–81) n=59 | 56% (49–63) n=188 |
+| Valentino Street Racer | played | 453 | 63% (58–68) n=336 | 1414 → 420 | 70% | 98 / 156 / 199 | 75% (68–81) n=167 | 56% (47–65) n=103 | 50% (41–59) n=113 |
+| Over the Edge | sold | 449 | 60% (55–65) n=341 | 1178 → 449 | 62% | 99 / 184 / 166 | 69% (61–76) n=142 | 57% (48–66) n=105 | 52% (44–60) n=156 |
+| V: Streetkid | called | 424 | 67% (62–71) n=424 | 424 → 424 | 0% | 167 / 128 / 129 | 70% (65–75) n=292 | 59% (47–70) n=66 | 59% (47–70) n=66 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1112 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14495 | 7% | 0 / 1292 / 3702 / 5107 / 4105 / 289 |
+| gig/steal | 3827 | 30% | 229 / 568 / 1800 / 1209 / 21 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 642 | 52% | 0 / 332 / 310 / 0 / 0 / 0 |
+| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 557 | 63% | 164 / 171 / 199 / 23 / 0 / 0 |
+| mode/mode | 500 | 56% | 0 / 500 / 0 / 0 / 0 / 0 |
+| gig/swapGive | 450 | 36% | 0 / 25 / 332 / 91 / 2 / 0 |
+| card/playFree | 435 | 66% | 0 / 106 / 299 / 30 / 0 / 0 |
+| unit/adrenaline | 401 | 58% | 166 / 133 / 102 / 0 / 0 / 0 |
+| gigValue/setGig | 390 | 7% | 0 / 0 / 1 / 27 / 96 / 266 |
+| gig/swapTake | 369 | 51% | 86 / 106 / 119 / 58 / 0 / 0 |
+| card/search | 338 | 84% | 211 / 106 / 21 / 0 / 0 / 0 |
+| unit/spend | 300 | 84% | 187 / 83 / 30 / 0 / 0 / 0 |
+| unit/ready | 257 | 93% | 0 / 202 / 55 / 0 / 0 / 0 |
+| gigValue/adjust | 219 | 3% | 0 / 0 / 0 / 0 / 15 / 204 |
+| unit/equip | 135 | 77% | 18 / 37 / 56 / 24 / 0 / 0 |
+| unit/sacrifice | 62 | 85% | 40 / 8 / 13 / 1 / 0 / 0 |
+| card/discard | 45 | 42% | 11 / 7 / 26 / 1 / 0 / 0 |
+| unit/pump | 38 | 84% | 21 / 9 / 8 / 0 / 0 / 0 |
+| yesno/draw | 19 | 100% | 0 / 19 / 0 / 0 / 0 / 0 |
+| card/defeat | 6 | 100% | 5 / 1 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 67% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 641 attacks. Reacted to 310 (deck won 52% (46–58) n=273): stole 234, targetGone 62, bothGone 14. Let 331 resolve (63% (56–70) n=189): stole 223, stoleNothing 1, targetGone 99, bothGone 8. Choices: call 308, endReact 331, play 3.
+
+## Ladder: V / Smasher / Saburo (RRG) — 560 games, 68% won, 24940 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 813 | 67% (62–72) n=350 | 964 → 736 | 24% | 61 / 278 / 474 | 82% (76–86) n=211 | 63% (53–71) n=107 | 59% (53–66) n=202 |
+| 6th Street Recruits | attacked | 723 | 68% (63–73) n=338 | 890 → 656 | 26% | 63 / 227 / 433 | 80% (73–85) n=187 | 65% (55–74) n=98 | 63% (56–69) n=206 |
+| Animals Wrecker | attacked | 717 | 74% (69–79) n=291 | 679 → 651 | 4% | 0 / 183 / 534 | 86% (80–91) n=162 | 78% (67–86) n=76 | 69% (63–75) n=196 |
+| Memory Relapse | sold | 533 | 71% (66–75) n=394 | 951 → 533 | 44% | 186 / 209 / 138 | 76% (69–81) n=184 | 67% (58–75) n=118 | 65% (57–72) n=158 |
+| Bonnie and Clyde | sold | 498 | 66% (61–71) n=381 | 1326 → 498 | 62% | 107 / 198 / 193 | 73% (66–79) n=159 | 61% (51–71) n=93 | 61% (54–67) n=191 |
+| Yorinobu Arasaka: Steel Dragon | played | 495 | 70% (66–75) n=381 | 593 → 495 | 17% | 0 / 201 / 294 | 78% (71–84) n=139 | 73% (61–82) n=66 | 63% (57–69) n=230 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 488 | 78% (73–83) n=287 | 485 → 454 | 6% | 0 / 0 / 488 | 93% (88–96) n=153 | 94% (85–98) n=64 | 68% (61–75) n=158 |
+| V: Streetkid | attacked | 479 | 60% (54–65) n=283 | 571 → 479 | 16% | 57 / 125 / 297 | 71% (65–77) n=192 | 65% (49–78) n=37 | 45% (36–54) n=123 |
+| MaxTac AV | attacked | 461 | 71% (65–77) n=235 | 531 → 442 | 17% | 0 / 237 / 224 | 85% (78–90) n=144 | 83% (70–91) n=47 | 63% (54–72) n=115 |
+| 6th Street Recruits | played | 460 | 67% (61–71) n=341 | 1030 → 448 | 57% | 188 / 124 / 148 | 78% (71–84) n=143 | 59% (51–67) n=143 | 55% (46–64) n=115 |
+| Animals Wrecker | played | 457 | 72% (67–76) n=349 | 659 → 457 | 31% | 0 / 317 / 140 | 76% (68–82) n=147 | 68% (56–77) n=77 | 70% (63–77) n=172 |
+| Valentino Street Racer | attacked | 448 | 66% (60–71) n=265 | 638 → 411 | 36% | 16 / 115 / 317 | 82% (76–88) n=148 | 71% (60–80) n=73 | 52% (43–60) n=126 |
+| Pepe Najarro: Working Doubles | played | 443 | 65% (60–70) n=338 | 1002 → 439 | 56% | 205 / 129 / 109 | 76% (69–82) n=163 | 57% (48–64) n=145 | 55% (45–65) n=87 |
+| Valentino Street Racer | played | 431 | 65% (60–70) n=335 | 1307 → 401 | 69% | 95 / 151 / 185 | 77% (69–83) n=147 | 62% (53–70) n=113 | 48% (39–57) n=112 |
+| Adam Smasher: Ender of Legends | called | 430 | 69% (64–73) n=430 | 430 → 430 | 0% | 181 / 126 / 123 | 76% (71–81) n=304 | 54% (42–65) n=65 | 46% (34–58) n=61 |
+
+(33 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1155 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14117 | 6% | 0 / 1142 / 3706 / 5301 / 3723 / 245 |
+| gig/steal | 4169 | 30% | 254 / 607 / 1906 / 1388 / 14 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 672 | 59% | 0 / 402 / 270 / 0 / 0 / 0 |
+| mulligan | 560 | 17% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 542 | 61% | 142 / 182 / 197 / 21 / 0 / 0 |
+| card/playFree | 481 | 67% | 0 / 104 / 338 / 39 / 0 / 0 |
+| unit/adrenaline | 389 | 62% | 168 / 138 / 82 / 1 / 0 / 0 |
+| card/search | 350 | 88% | 221 / 108 / 21 / 0 / 0 / 0 |
+| gig/swapGive | 331 | 35% | 0 / 14 / 249 / 63 / 5 / 0 |
+| gig/swapTake | 267 | 49% | 54 / 93 / 75 / 42 / 3 / 0 |
+| gigValue/adjust | 246 | 2% | 0 / 0 / 0 / 1 / 24 / 221 |
+| unit/ready | 220 | 93% | 0 / 180 / 40 / 0 / 0 / 0 |
+| unit/equip | 131 | 82% | 28 / 36 / 47 / 20 / 0 / 0 |
+| unit/spend | 56 | 70% | 17 / 24 / 15 / 0 / 0 / 0 |
+| unit/sacrifice | 52 | 83% | 32 / 11 / 9 / 0 / 0 / 0 |
+| card/discard | 41 | 44% | 8 / 12 / 19 / 2 / 0 / 0 |
+| unit/pump | 36 | 81% | 17 / 6 / 13 / 0 / 0 / 0 |
+| card/defeat | 16 | 94% | 14 / 1 / 1 / 0 / 0 / 0 |
+| yesno/draw | 15 | 100% | 0 / 15 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 667 attacks. Reacted to 273 (deck won 63% (57–69) n=241): stole 217, attackerGone 1, targetGone 49, bothGone 6. Let 394 resolve (62% (55–68) n=206): stole 282, stoleNothing 1, targetGone 93, bothGone 18. Choices: endReact 397, call 269, play 6.
+
+## NC-01 Rockerboy Express (RRY) — 560 games, 52% won, 24651 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Animals Wrecker | attacked | 852 | 61% (55–66) n=329 | 770 → 736 | 4% | 0 / 186 / 666 | 78% (71–83) n=171 | 70% (59–79) n=76 | 55% (48–61) n=232 |
+| Rockn' Rockerboy | attacked | 766 | 57% (52–63) n=311 | 829 → 714 | 14% | 0 / 335 / 431 | 71% (64–77) n=192 | 71% (61–80) n=80 | 51% (43–58) n=184 |
+| 6th Street Recruits | attacked | 681 | 51% (46–57) n=315 | 795 → 637 | 20% | 91 / 265 / 325 | 69% (61–76) n=140 | 47% (38–57) n=112 | 42% (35–49) n=183 |
+| Animals Wrecker | played | 552 | 54% (49–59) n=397 | 659 → 552 | 16% | 0 / 381 / 171 | 65% (57–72) n=163 | 48% (38–59) n=81 | 47% (41–53) n=228 |
+| Detonate | sold | 545 | 54% (49–59) n=395 | 722 → 545 | 25% | 294 / 120 / 131 | 67% (60–73) n=204 | 47% (39–55) n=149 | 43% (35–52) n=128 |
+| 6th Street Recruits | played | 524 | 52% (47–57) n=378 | 1048 → 512 | 51% | 265 / 108 / 151 | 59% (52–66) n=179 | 46% (38–53) n=173 | 51% (42–61) n=101 |
+| Dexter DeShawn: Off the Grid | ability | 511 | 46% (41–51) n=360 | 1677 → 511 | 70% | 9 / 69 / 433 | 70% (63–76) n=197 | 25% (16–36) n=65 | 20% (15–27) n=174 |
+| Rockn' Rockerboy | played | 480 | 55% (49–60) n=363 | 757 → 480 | 37% | 218 / 139 / 123 | 65% (58–72) n=185 | 48% (39–56) n=126 | 40% (32–49) n=115 |
+| Zetatech Faceplate | sold | 468 | 55% (50–60) n=361 | 967 → 468 | 52% | 154 / 192 / 122 | 62% (54–70) n=154 | 46% (37–56) n=99 | 53% (45–60) n=154 |
+| Mantis Blades | sold | 455 | 52% (46–57) n=359 | 606 → 455 | 25% | 299 / 55 / 101 | 58% (51–65) n=170 | 48% (40–56) n=148 | 41% (32–51) n=90 |
+| Dexter DeShawn: Off the Grid | called | 427 | 52% (47–56) n=427 | 427 → 427 | 0% | 166 / 154 / 107 | 61% (55–67) n=250 | 45% (33–58) n=58 | 35% (27–44) n=119 |
+| River Ward: Detective on the Hunt | called | 418 | 53% (48–58) n=418 | 418 → 418 | 0% | 153 / 156 / 109 | 58% (52–64) n=264 | 41% (30–54) n=61 | 46% (36–56) n=93 |
+| Adam Smasher: Ender of Legends | called | 409 | 51% (46–55) n=409 | 409 → 409 | 0% | 167 / 129 / 113 | 56% (50–62) n=270 | 42% (30–54) n=60 | 39% (29–50) n=79 |
+| Kerry Eurodyne: The Last Rockerboy | played | 400 | 49% (44–55) n=310 | 1530 → 370 | 76% | 123 / 79 / 198 | 67% (59–75) n=129 | 43% (35–53) n=115 | 34% (26–44) n=102 |
+| Industrial Assembly | sold | 387 | 53% (48–59) n=310 | 763 → 387 | 49% | 156 / 138 / 93 | 58% (49–67) n=112 | 48% (40–57) n=122 | 50% (41–59) n=120 |
+
+(31 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13865 | 8% | 0 / 1174 / 3608 / 5413 / 3554 / 116 |
+| gig/steal | 3213 | 28% | 164 / 468 / 1378 / 1190 / 13 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1490 | 75% | 0 / 873 / 612 / 5 / 0 / 0 |
+| gigValue/adjust | 1204 | 12% | 0 / 12 / 126 / 87 / 721 / 258 |
+| mulligan | 560 | 23% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 512 | 71% | 0 / 512 / 0 / 0 / 0 / 0 |
+| unit/defeat | 482 | 56% | 114 / 164 / 201 / 3 / 0 / 0 |
+| unit/pump | 379 | 51% | 102 / 132 / 143 / 2 / 0 / 0 |
+| unit/equip | 275 | 79% | 28 / 90 / 133 / 24 / 0 / 0 |
+| card/defeatGear | 97 | 65% | 0 / 75 / 22 / 0 / 0 / 0 |
+| card/trash | 85 | 53% | 0 / 85 / 0 / 0 / 0 / 0 |
+| card/playFree | 76 | 97% | 64 / 11 / 1 / 0 / 0 / 0 |
+| unit/sacrifice | 66 | 86% | 43 / 14 / 9 / 0 / 0 / 0 |
+| card/discard | 49 | 47% | 8 / 15 / 26 / 0 / 0 / 0 |
+| card/search | 32 | 44% | 0 / 10 / 17 / 5 / 0 / 0 |
+| mode/foolOnTheHill | 9 | 67% | 0 / 9 / 0 / 0 / 0 / 0 |
+| card/defeat | 8 | 100% | 7 / 1 / 0 / 0 / 0 / 0 |
+| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1389 attacks. Reacted to 343 (deck won 44% (38–50) n=288): stole 179, attackerGone 19, targetGone 130, bothGone 15. Let 1046 resolve (50% (45–55) n=366): stole 785, stoleNothing 7, attackerGone 1, targetGone 213, bothGone 40. Choices: call 259, endReact 1112, block 100, ability 16, play 3.
+
+## NC-02 Stormrider Stampede (GGR) — 560 games, 55% won, 25624 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| MaxTac AV | attacked | 827 | 63% (58–69) n=303 | 830 → 750 | 10% | 0 / 380 / 447 | 78% (71–83) n=200 | 74% (64–82) n=89 | 52% (45–60) n=164 |
+| 6th Street Recruits | attacked | 722 | 53% (47–58) n=325 | 811 → 659 | 19% | 69 / 266 / 387 | 72% (65–79) n=170 | 61% (52–69) n=117 | 38% (31–45) n=180 |
+| Pepe Najarro: Working Doubles | attacked | 670 | 54% (49–60) n=309 | 748 → 621 | 17% | 61 / 270 / 339 | 69% (62–76) n=166 | 52% (42–61) n=102 | 48% (41–55) n=173 |
+| Sandayu Oda: Hanako's Guardian | attacked | 552 | 60% (54–65) n=304 | 582 → 520 | 11% | 0 / 126 / 426 | 80% (74–85) n=172 | 69% (57–79) n=64 | 42% (35–50) n=156 |
+| Corporate Surveillance | sold | 535 | 57% (52–62) n=382 | 1019 → 535 | 47% | 184 / 204 / 147 | 70% (63–76) n=169 | 53% (44–62) n=122 | 48% (41–56) n=162 |
+| Valentino Street Racer | attacked | 521 | 54% (48–60) n=285 | 645 → 475 | 26% | 22 / 149 / 350 | 73% (66–79) n=166 | 49% (38–61) n=69 | 38% (30–46) n=144 |
+| Detonate | sold | 507 | 55% (50–60) n=373 | 763 → 507 | 34% | 243 / 144 / 120 | 62% (55–69) n=187 | 55% (46–64) n=118 | 48% (40–56) n=138 |
+| 6th Street Recruits | played | 505 | 53% (48–58) n=381 | 1033 → 497 | 52% | 224 / 139 / 142 | 61% (54–68) n=178 | 48% (40–56) n=147 | 39% (30–48) n=110 |
+| Synapse Burnout | sold | 504 | 55% (50–60) n=375 | 753 → 504 | 33% | 240 / 133 / 131 | 64% (57–70) n=195 | 49% (40–58) n=123 | 48% (39–57) n=118 |
+| Valentino Street Racer | played | 502 | 53% (48–58) n=365 | 1284 → 455 | 65% | 105 / 227 / 170 | 66% (58–72) n=169 | 45% (36–54) n=105 | 39% (31–47) n=140 |
+| MaxTac AV | played | 490 | 58% (53–63) n=356 | 674 → 490 | 27% | 211 / 167 / 112 | 69% (62–75) n=170 | 58% (49–66) n=126 | 42% (34–50) n=134 |
+| Padre: Man of the Cross | ability | 485 | 44% (39–50) n=335 | 1850 → 485 | 74% | 3 / 106 / 376 | 64% (57–71) n=186 | 27% (17–38) n=64 | 20% (15–27) n=154 |
+| Pepe Najarro: Working Doubles | played | 463 | 51% (45–56) n=362 | 1019 → 462 | 55% | 205 / 160 / 98 | 61% (53–68) n=146 | 43% (35–51) n=145 | 44% (36–53) n=127 |
+| Peace Offering | sold | 439 | 57% (52–62) n=333 | 1097 → 439 | 60% | 104 / 225 / 110 | 64% (56–72) n=137 | 55% (45–64) n=106 | 51% (42–59) n=136 |
+| Mantis Blades | sold | 418 | 60% (54–65) n=339 | 603 → 418 | 31% | 264 / 60 / 94 | 63% (55–69) n=171 | 57% (49–65) n=135 | 58% (47–68) n=76 |
+
+(28 more card uses in the JSON report.)
+
+Legal but never taken: Synapse Burnout (played, legal in 768 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13718 | 8% | 0 / 1213 / 3916 / 5997 / 2524 / 68 |
+| gig/steal | 3278 | 29% | 150 / 514 / 1512 / 1077 / 25 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1125 | 59% | 0 / 687 / 431 / 7 / 0 / 0 |
+| unit/ready | 811 | 71% | 0 / 400 / 400 / 11 / 0 / 0 |
+| unit/spend | 653 | 75% | 353 / 201 / 98 / 1 / 0 / 0 |
+| gigValue/setGig | 568 | 8% | 0 / 0 / 8 / 66 / 158 / 336 |
+| mulligan | 560 | 14% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 526 | 63% | 0 / 526 / 0 / 0 / 0 / 0 |
+| gig/swapGive | 488 | 34% | 0 / 32 / 382 / 74 / 0 / 0 |
+| gig/swapTake | 412 | 49% | 74 / 122 / 144 / 71 / 1 / 0 |
+| unit/adrenaline | 389 | 52% | 144 / 155 / 90 / 0 / 0 / 0 |
+| unit/equip | 294 | 88% | 36 / 104 / 131 / 23 / 0 / 0 |
+| gigValue/adjust | 185 | 6% | 0 / 0 / 0 / 2 / 16 / 167 |
+| unit/defeat | 167 | 41% | 10 / 35 / 113 / 9 / 0 / 0 |
+| unit/sacrifice | 62 | 85% | 37 / 15 / 10 / 0 / 0 / 0 |
+| card/discard | 45 | 53% | 9 / 11 / 25 / 0 / 0 / 0 |
+| card/search | 32 | 47% | 0 / 8 / 20 / 4 / 0 / 0 |
+| unit/pump | 30 | 77% | 10 / 12 / 8 / 0 / 0 / 0 |
+| card/defeat | 27 | 100% | 25 / 2 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1033 attacks. Reacted to 426 (deck won 48% (43–53) n=323): stole 257, stoleNothing 3, attackerGone 22, targetGone 118, bothGone 26. Let 607 resolve (53% (47–59) n=282): stole 444, stoleNothing 2, attackerGone 1, targetGone 144, bothGone 16. Choices: endReact 660, call 346, block 75, play 44.
+
+## NC-03 Static Shock (BBR) — 560 games, 36% won, 27193 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Psycho Squad | attacked | 817 | 35% (30–41) n=322 | 890 → 757 | 15% | 91 / 323 / 403 | 49% (42–56) n=189 | 35% (28–44) n=133 | 31% (25–38) n=181 |
+| 6th Street Recruits | attacked | 785 | 39% (34–45) n=326 | 847 → 705 | 17% | 67 / 310 / 408 | 51% (45–58) n=202 | 48% (39–57) n=108 | 29% (23–36) n=173 |
+| Alt Cunningham: Soulkiller Architect | ability | 607 | 31% (26–35) n=408 | 1765 → 607 | 66% | 2 / 101 / 504 | 49% (43–56) n=219 | 22% (14–33) n=77 | 9% (5–13) n=211 |
+| Wakako Okada: Peace and Harmony | ability | 603 | 28% (24–33) n=390 | 1752 → 603 | 66% | 5 / 123 / 475 | 44% (38–51) n=221 | 14% (8–24) n=78 | 8% (5–13) n=200 |
+| Jacked-In Voodoo Boy | played | 567 | 31% (27–36) n=408 | 1024 → 532 | 48% | 196 / 230 / 141 | 39% (33–45) n=256 | 16% (10–25) n=92 | 18% (12–26) n=108 |
+| 6th Street Recruits | played | 565 | 36% (32–41) n=404 | 867 → 560 | 35% | 204 / 189 / 172 | 43% (37–50) n=204 | 34% (27–42) n=143 | 25% (18–33) n=137 |
+| Psycho Squad | played | 551 | 34% (30–39) n=383 | 824 → 546 | 34% | 213 / 176 / 162 | 45% (38–52) n=204 | 27% (21–35) n=153 | 21% (14–29) n=111 |
+| Dexter DeShawn: Off the Grid | ability | 523 | 29% (25–34) n=357 | 1773 → 523 | 71% | 1 / 122 / 400 | 46% (40–53) n=205 | 15% (9–26) n=65 | 6% (3–11) n=167 |
+| Floor It | sold | 452 | 34% (29–39) n=350 | 836 → 452 | 46% | 199 / 119 / 134 | 41% (34–49) n=155 | 32% (25–40) n=135 | 24% (17–33) n=115 |
+| Jacked-In Voodoo Boy | attacked | 426 | 38% (32–44) n=234 | 418 → 362 | 13% | 47 / 135 / 244 | 50% (42–58) n=141 | 20% (11–32) n=56 | 26% (19–35) n=103 |
+| Trust No One | sold | 417 | 36% (31–41) n=323 | 713 → 417 | 42% | 204 / 109 / 104 | 45% (37–53) n=145 | 31% (23–39) n=127 | 31% (22–41) n=91 |
+| Dexter DeShawn: Off the Grid | called | 410 | 36% (32–41) n=410 | 410 → 410 | 0% | 132 / 202 / 76 | 41% (35–46) n=276 | 26% (16–40) n=53 | 27% (19–38) n=81 |
+| Alt Cunningham: Soulkiller Architect | called | 403 | 37% (33–42) n=403 | 403 → 403 | 0% | 145 / 176 / 82 | 44% (38–50) n=287 | 18% (10–29) n=57 | 25% (16–38) n=59 |
+| Wakako Okada: Peace and Harmony | called | 396 | 35% (30–40) n=396 | 396 → 396 | 0% | 140 / 186 / 70 | 39% (33–45) n=275 | 23% (14–36) n=56 | 28% (18–40) n=65 |
+| Meredith Stout: Stone Cold Corpo | played | 394 | 33% (29–39) n=332 | 961 → 394 | 59% | 68 / 158 / 168 | 38% (31–46) n=151 | 41% (32–51) n=90 | 23% (17–31) n=126 |
 
 (35 more card uses in the JSON report.)
 
-Legal but never taken: Sasha Yakovleva: Won't Let You Down (Legend play, legal in 1664 turns).
-
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14206 | 7% | 0 / 1107 / 3807 / 5010 / 4041 / 241 |
-| gig/steal | 3454 | 23% | 83 / 367 / 1476 / 1508 / 20 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 818 | 10% | 0 / 7 / 57 / 53 / 472 / 229 |
-| unit/defeat | 575 | 66% | 230 / 147 / 187 / 11 / 0 / 0 |
-| mode/mode | 560 | 75% | 0 / 535 / 25 / 0 / 0 / 0 |
-| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
-| react | 531 | 51% | 0 / 328 / 203 / 0 / 0 / 0 |
-| card/playFree | 444 | 72% | 0 / 171 / 262 / 11 / 0 / 0 |
-| unit/pump | 442 | 56% | 139 / 160 / 135 / 8 / 0 / 0 |
-| unit/equip | 56 | 86% | 9 / 15 / 25 / 7 / 0 / 0 |
-| unit/bottomdeck | 44 | 82% | 27 / 12 / 5 / 0 / 0 / 0 |
-| unit/bottomdeckOwn | 44 | 52% | 14 / 11 / 19 / 0 / 0 / 0 |
-| unit/sacrifice | 40 | 80% | 23 / 8 / 9 / 0 / 0 / 0 |
-| card/discard | 39 | 51% | 13 / 10 / 16 / 0 / 0 / 0 |
-| yesno/draw | 17 | 100% | 0 / 17 / 0 / 0 / 0 / 0 |
-| unit/call | 7 | 100% | 0 / 2 / 5 / 0 / 0 / 0 |
-| yesno/call | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+| main | 14119 | 9% | 0 / 1168 / 3575 / 5967 / 3360 / 49 |
+| gig/steal | 2472 | 33% | 154 / 523 / 1039 / 736 / 20 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1743 | 61% | 0 / 1111 / 612 / 20 / 0 / 0 |
+| gigValue/adjust | 1503 | 10% | 0 / 17 / 45 / 101 / 899 / 441 |
+| mode/mode | 1071 | 79% | 0 / 1071 / 0 / 0 / 0 / 0 |
+| unit/weaken | 627 | 64% | 217 / 195 / 207 / 8 / 0 / 0 |
+| mulligan | 560 | 7% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 528 | 53% | 0 / 95 / 426 / 7 / 0 / 0 |
+| unit/bottomdeck | 478 | 86% | 364 / 67 / 46 / 1 / 0 / 0 |
+| card/discard | 461 | 62% | 106 / 219 / 135 / 1 / 0 / 0 |
+| unit/pump | 440 | 48% | 86 / 182 / 169 / 3 / 0 / 0 |
+| card/playFromTrash | 363 | 79% | 217 / 109 / 37 / 0 / 0 / 0 |
+| card/freePlay | 187 | 81% | 0 / 100 / 86 / 1 / 0 / 0 |
+| yesno/discardFor | 130 | 100% | 0 / 130 / 0 / 0 / 0 / 0 |
+| unit/cantAttack | 84 | 50% | 25 / 25 / 33 / 1 / 0 / 0 |
+| unit/equip | 71 | 79% | 10 / 9 / 40 / 12 / 0 / 0 |
+| unit/sacrifice | 51 | 88% | 39 / 8 / 4 / 0 / 0 / 0 |
+| unit/call | 30 | 100% | 0 / 9 / 21 / 0 / 0 / 0 |
+| card/defeat | 13 | 100% | 13 / 0 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 10 | 60% | 0 / 10 / 0 / 0 / 0 / 0 |
+| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 4 | 0% | 0 / 3 / 1 / 0 / 0 / 0 |
 
-Reaction windows: 531 attacks. Reacted to 261 (deck won 37% (31–44) n=234): stole 211, targetGone 43, bothGone 7. Let 270 resolve (43% (35–51) n=154): stole 202, attackerGone 1, targetGone 58, bothGone 9. Choices: call 261, endReact 270.
+Reaction windows: 1578 attacks. Reacted to 601 (deck won 32% (28–37) n=399): stole 261, stoleNothing 6, attackerGone 27, targetGone 274, bothGone 33. Let 977 resolve (33% (29–38) n=379): stole 668, stoleNothing 7, attackerGone 3, targetGone 271, bothGone 28. Choices: endReact 1066, call 359, block 267, play 51.
 
-## Samurai — 560 games, 41% won, 25858 decisions
+## NC-04 Chrome Rockers (YYR) — 560 games, 47% won, 26060 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Rockn' Rockerboy | attacked | 951 | 47% (42–53) n=365 | 960 → 856 | 11% | 0 / 422 / 529 | 65% (59–71) n=207 | 56% (46–66) n=98 | 36% (30–43) n=214 |
-| Johnny Silverhand: Never Stop Fighting | attacked | 882 | 53% (48–59) n=292 | 607 → 572 | 6% | 0 / 142 / 740 | 72% (65–78) n=177 | 77% (66–86) n=71 | 38% (31–46) n=159 |
-| Rockn' Rockerboy | played | 565 | 47% (42–52) n=405 | 704 → 565 | 20% | 248 / 168 / 149 | 60% (54–67) n=207 | 39% (32–48) n=142 | 32% (25–41) n=136 |
-| Kerry Eurodyne: The Last Rockerboy | attacked | 492 | 42% (36–48) n=264 | 690 → 471 | 32% | 51 / 207 / 234 | 53% (44–61) n=135 | 41% (31–51) n=91 | 36% (28–44) n=131 |
-| Johnny Silverhand: Rocking Renegade | ability | 464 | 40% (35–46) n=322 | 1434 → 464 | 68% | 4 / 87 / 373 | 59% (52–66) n=186 | 37% (25–50) n=54 | 12% (8–19) n=137 |
-| Johnny Silverhand: Never Stop Fighting | played | 460 | 47% (42–53) n=361 | 891 → 460 | 48% | 0 / 276 / 184 | 59% (51–66) n=167 | 46% (34–59) n=54 | 38% (31–45) n=176 |
-| Kerry Eurodyne: The Last Rockerboy | played | 456 | 43% (38–48) n=342 | 821 → 454 | 45% | 196 / 142 / 118 | 52% (45–59) n=180 | 33% (26–41) n=136 | 28% (19–39) n=79 |
-| Johnny Silverhand: Rocking Renegade | called | 421 | 40% (36–45) n=421 | 430 → 421 | 2% | 160 / 166 / 95 | 48% (42–54) n=265 | 27% (18–39) n=70 | 26% (18–36) n=86 |
-| Alt Cunningham: Soulkiller Architect | ability | 420 | 39% (33–45) n=286 | 1628 → 420 | 74% | 11 / 75 / 334 | 55% (48–63) n=168 | 25% (16–37) n=67 | 14% (9–21) n=117 |
-| Kerry Eurodyne: Axe, Attitude, Audience | called | 415 | 43% (38–48) n=415 | 431 → 415 | 4% | 159 / 169 / 87 | 51% (45–57) n=278 | 21% (13–32) n=72 | 34% (24–46) n=65 |
-| Alt Cunningham: Soulkiller Architect | called | 412 | 42% (37–47) n=412 | 427 → 412 | 4% | 152 / 151 / 109 | 53% (46–59) n=255 | 28% (19–40) n=71 | 21% (14–31) n=86 |
-| Japantown Jonin | played | 369 | 38% (33–43) n=312 | 568 → 361 | 36% | 196 / 95 / 78 | 47% (40–55) n=161 | 25% (17–34) n=101 | 32% (22–43) n=76 |
-| Modded Kusanagi | played | 367 | 33% (27–39) n=215 | 1032 → 367 | 64% | 0 / 118 / 249 | 48% (38–58) n=90 | 41% (26–57) n=37 | 20% (14–27) n=148 |
-| Modded Kusanagi | attacked | 355 | 32% (26–39) n=208 | 364 → 355 | 2% | 0 / 115 / 240 | 48% (39–58) n=95 | 47% (32–63) n=38 | 16% (10–23) n=134 |
-| Rita Wheeler: No Stupid Questions | played | 352 | 43% (37–49) n=298 | 824 → 349 | 58% | 108 / 126 / 118 | 60% (51–68) n=117 | 38% (29–47) n=104 | 32% (24–42) n=99 |
+| Rockn' Rockerboy | attacked | 877 | 51% (46–57) n=325 | 905 → 802 | 11% | 0 / 376 / 501 | 68% (61–74) n=196 | 60% (49–69) n=87 | 39% (33–46) n=188 |
+| 6th Street Recruits | attacked | 768 | 48% (43–54) n=318 | 859 → 710 | 17% | 80 / 281 / 407 | 67% (60–74) n=166 | 60% (51–68) n=124 | 39% (32–46) n=174 |
+| Rockn' Rockerboy | played | 570 | 48% (43–53) n=408 | 759 → 569 | 25% | 220 / 184 / 166 | 59% (53–66) n=214 | 49% (41–57) n=146 | 28% (21–37) n=130 |
+| Detonate | sold | 550 | 47% (42–52) n=393 | 785 → 550 | 30% | 279 / 133 / 138 | 54% (47–61) n=195 | 46% (38–54) n=147 | 40% (32–49) n=126 |
+| Zetatech Faceplate | sold | 539 | 45% (40–50) n=400 | 1425 → 539 | 62% | 69 / 232 / 238 | 53% (46–60) n=191 | 51% (41–61) n=86 | 36% (30–43) n=188 |
+| 6th Street Recruits | played | 526 | 46% (41–50) n=393 | 1097 → 518 | 53% | 242 / 132 / 152 | 55% (48–62) n=184 | 47% (39–55) n=158 | 29% (22–38) n=117 |
+| MaxTac Suppression Team | attacked | 524 | 47% (41–53) n=266 | 591 → 494 | 16% | 0 / 157 / 367 | 62% (54–69) n=144 | 62% (50–73) n=63 | 29% (22–37) n=138 |
+| Dexter DeShawn: One Last Chance | played | 512 | 46% (41–51) n=368 | 1162 → 482 | 59% | 152 / 183 / 177 | 58% (51–65) n=178 | 41% (34–49) n=143 | 29% (22–38) n=112 |
+| Dexter DeShawn: One Last Chance | attacked | 506 | 48% (42–54) n=265 | 638 → 464 | 27% | 48 / 150 / 308 | 71% (62–78) n=126 | 53% (43–63) n=89 | 34% (26–41) n=149 |
+| Meredith Stout: Stone Cold Corpo | played | 506 | 47% (43–52) n=390 | 1425 → 490 | 66% | 84 / 145 / 277 | 57% (49–64) n=162 | 48% (39–57) n=109 | 39% (32–46) n=165 |
+| The Heist | sold | 498 | 48% (43–53) n=378 | 945 → 498 | 47% | 161 / 201 / 136 | 56% (49–63) n=181 | 42% (33–51) n=112 | 37% (30–46) n=142 |
+| MaxTac Suppression Team | played | 473 | 46% (41–52) n=360 | 1083 → 473 | 56% | 69 / 203 / 201 | 56% (49–63) n=188 | 42% (32–52) n=89 | 31% (24–39) n=139 |
+| Mantis Blades | sold | 454 | 46% (41–51) n=346 | 775 → 454 | 41% | 243 / 99 / 112 | 50% (43–57) n=185 | 46% (38–55) n=123 | 32% (23–42) n=88 |
+| Royce: Psycho on the Edge | called | 443 | 48% (43–53) n=443 | 443 → 443 | 0% | 160 / 167 / 116 | 56% (50–61) n=299 | 40% (29–52) n=70 | 24% (16–35) n=74 |
+| River Ward: Detective on the Hunt | called | 435 | 46% (41–51) n=435 | 435 → 435 | 0% | 161 / 156 / 118 | 52% (46–57) n=295 | 48% (36–60) n=67 | 22% (14–33) n=73 |
 
-(41 more card uses in the JSON report.)
+(28 more card uses in the JSON report.)
+
+Legal but never taken: Royce: Psycho on the Edge (Legend play, legal in 1158 turns), Safety Override (played, legal in 763 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14305 | 10% | 0 / 1122 / 3478 / 6146 / 3446 / 113 |
-| gig/steal | 2520 | 32% | 201 / 483 / 1010 / 815 / 11 / 0 |
+| main | 14492 | 9% | 0 / 1267 / 3739 / 5595 / 3720 / 171 |
+| gig/steal | 3292 | 31% | 265 / 580 / 1323 / 1107 / 17 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1608 | 62% | 0 / 1060 / 538 / 10 / 0 / 0 |
-| yesno/kerryReroll | 1327 | 53% | 0 / 1327 / 0 / 0 / 0 / 0 |
-| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/discard | 524 | 44% | 33 / 166 / 288 / 37 / 0 / 0 |
-| gigValue/adjust | 498 | 14% | 0 / 10 / 46 / 84 / 221 / 137 |
-| unit/lagAttack | 464 | 79% | 115 / 151 / 193 / 5 / 0 / 0 |
-| unit/equip | 389 | 80% | 101 / 108 / 150 / 30 / 0 / 0 |
-| unit/pump | 369 | 79% | 174 / 73 / 120 / 2 / 0 / 0 |
-| unit/bottomdeck | 216 | 45% | 63 / 37 / 111 / 5 / 0 / 0 |
-| unit/cantAttack | 185 | 59% | 58 / 58 / 68 / 1 / 0 / 0 |
-| card/playFromTrash | 179 | 89% | 118 / 48 / 13 / 0 / 0 / 0 |
-| card/freePlay | 147 | 86% | 0 / 90 / 57 / 0 / 0 / 0 |
-| unit/weaken | 85 | 62% | 21 / 27 / 36 / 1 / 0 / 0 |
-| unit/bottomdeckOwn | 74 | 69% | 29 / 27 / 18 / 0 / 0 / 0 |
-| unit/call | 57 | 100% | 0 / 13 / 44 / 0 / 0 / 0 |
-| unit/sacrifice | 51 | 86% | 31 / 13 / 7 / 0 / 0 / 0 |
-| card/look | 42 | 100% | 19 / 18 / 5 / 0 / 0 / 0 |
-| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
+| react | 2041 | 73% | 0 / 1223 / 813 / 5 / 0 / 0 |
+| gigValue/adjust | 1457 | 15% | 0 / 0 / 96 / 169 / 786 / 406 |
+| unit/equip | 771 | 68% | 92 / 157 / 405 / 117 / 0 / 0 |
+| card/search | 572 | 85% | 19 / 355 / 194 / 4 / 0 / 0 |
+| mulligan | 560 | 23% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/trash | 204 | 48% | 0 / 204 / 0 / 0 / 0 / 0 |
+| card/playFree | 196 | 97% | 159 / 31 / 6 / 0 / 0 / 0 |
+| unit/sacrifice | 94 | 72% | 42 / 35 / 17 / 0 / 0 / 0 |
+| card/discard | 44 | 55% | 11 / 13 / 17 / 3 / 0 / 0 |
+| unit/protect | 41 | 73% | 4 / 21 / 16 / 0 / 0 / 0 |
+| card/defeat | 20 | 95% | 17 / 3 / 0 / 0 / 0 / 0 |
+| yesno/draw | 15 | 100% | 0 / 15 / 0 / 0 / 0 / 0 |
+| yesno/playFree | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 8 | 63% | 0 / 8 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1883 attacks. Reacted to 495 (deck won 42% (37–48) n=350): stole 251, stoleNothing 3, attackerGone 23, targetGone 160, bothGone 58. Let 1388 resolve (45% (41–50) n=444): stole 981, stoleNothing 11, attackerGone 6, targetGone 363, bothGone 27. Choices: ability 94, call 272, endReact 1487, block 140, play 48.
+
+## NC-05 Emperor's Guard (GGB) — 560 games, 50% won, 26775 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| MaxTac AV | attacked | 939 | 58% (53–63) n=355 | 914 → 851 | 7% | 0 / 431 / 508 | 72% (66–78) n=226 | 65% (54–74) n=85 | 51% (44–58) n=201 |
+| Psycho Squad | attacked | 813 | 50% (45–56) n=335 | 849 → 728 | 14% | 63 / 275 / 475 | 70% (63–77) n=175 | 46% (38–55) n=119 | 42% (36–49) n=201 |
+| Pepe Najarro: Working Doubles | attacked | 725 | 49% (44–55) n=312 | 773 → 661 | 14% | 67 / 269 / 389 | 72% (65–78) n=167 | 55% (45–64) n=110 | 36% (29–43) n=180 |
+| Corpo Security | played | 599 | 51% (46–56) n=406 | 988 → 563 | 43% | 218 / 187 / 194 | 59% (53–65) n=247 | 41% (33–50) n=114 | 34% (26–43) n=114 |
+| Corporate Surveillance | sold | 596 | 51% (47–56) n=411 | 800 → 596 | 26% | 300 / 131 / 165 | 61% (54–67) n=220 | 45% (38–53) n=170 | 40% (31–48) n=124 |
+| MaxTac AV | played | 595 | 52% (48–57) n=427 | 851 → 592 | 30% | 254 / 154 / 187 | 64% (58–70) n=237 | 52% (43–60) n=132 | 35% (28–42) n=156 |
+| Psycho Squad | played | 571 | 48% (44–53) n=399 | 1086 → 563 | 48% | 182 / 198 / 191 | 61% (54–68) n=193 | 39% (31–47) n=138 | 37% (29–45) n=145 |
+| Riot Shield | sold | 537 | 50% (45–55) n=395 | 657 → 537 | 18% | 276 / 118 / 143 | 60% (53–66) n=210 | 44% (36–52) n=147 | 36% (28–45) n=117 |
+| Pepe Najarro: Working Doubles | played | 524 | 47% (42–52) n=378 | 1076 → 514 | 52% | 176 / 170 / 178 | 61% (53–68) n=173 | 49% (41–57) n=137 | 36% (29–44) n=147 |
+| Peace Offering | sold | 494 | 51% (46–56) n=383 | 1035 → 494 | 52% | 188 / 169 / 137 | 64% (57–71) n=184 | 42% (33–51) n=118 | 42% (34–50) n=149 |
+| Floor It | sold | 463 | 51% (46–56) n=349 | 999 → 463 | 54% | 181 / 149 / 133 | 61% (54–68) n=171 | 48% (39–56) n=128 | 35% (26–45) n=103 |
+| Hanako Arasaka: Daughter of the Emperor | called | 414 | 50% (45–54) n=414 | 414 → 414 | 0% | 139 / 174 / 101 | 57% (51–63) n=281 | 35% (25–46) n=72 | 31% (21–44) n=61 |
+| Field Operator | attacked | 412 | 52% (46–59) n=223 | 490 → 380 | 22% | 12 / 141 / 259 | 69% (61–76) n=126 | 64% (51–76) n=53 | 41% (33–50) n=117 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 403 | 41% (35–47) n=288 | 1638 → 403 | 75% | 5 / 74 / 324 | 61% (54–68) n=168 | 22% (14–35) n=58 | 12% (7–18) n=121 |
+| Goro Takemura: Vengeful Bodyguard | called | 398 | 47% (42–52) n=398 | 398 → 398 | 0% | 158 / 138 / 102 | 57% (50–62) n=258 | 32% (22–43) n=76 | 28% (19–40) n=64 |
+
+(31 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14127 | 7% | 0 / 1083 / 3709 / 6145 / 3059 / 131 |
+| gig/steal | 2886 | 30% | 102 / 520 / 1396 / 845 / 23 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 2040 | 62% | 0 / 1209 / 798 / 33 / 0 / 0 |
+| unit/ready | 1026 | 74% | 0 / 508 / 502 / 16 / 0 / 0 |
+| gig/swapGive | 997 | 37% | 9 / 56 / 603 / 324 / 5 / 0 |
+| gig/swapTake | 877 | 39% | 118 / 164 / 331 / 257 / 7 / 0 |
+| mulligan | 560 | 12% | 0 / 560 / 0 / 0 / 0 / 0 |
+| gigValue/adjust | 307 | 25% | 0 / 23 / 98 / 94 / 77 / 15 |
+| unit/adrenaline | 304 | 51% | 119 / 91 / 93 / 1 / 0 / 0 |
+| unit/defeat | 300 | 61% | 93 / 98 / 105 / 4 / 0 / 0 |
+| unit/spend | 278 | 72% | 129 / 95 / 54 / 0 / 0 / 0 |
+| unit/blocker | 257 | 54% | 70 / 107 / 78 / 2 / 0 / 0 |
+| card/discard | 241 | 49% | 18 / 41 / 180 / 2 / 0 / 0 |
+| gigValue/setGig | 129 | 6% | 0 / 0 / 5 / 14 / 42 / 68 |
+| unit/weaken | 110 | 60% | 18 / 43 / 49 / 0 / 0 / 0 |
+| unit/sacrifice | 49 | 88% | 28 / 11 / 9 / 1 / 0 / 0 |
+| unit/equip | 34 | 74% | 4 / 1 / 19 / 10 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
+| yesno/draw | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1769 attacks. Reacted to 639 (deck won 46% (41–51) n=407): stole 215, stoleNothing 1, attackerGone 33, targetGone 356, bothGone 34. Let 1130 resolve (48% (43–53) n=389): stole 761, stoleNothing 11, targetGone 271, bothGone 87. Choices: endReact 1257, block 357, call 298, play 83, ability 45.
+
+## NC-06 Metal Over Meat (YYY) — 560 games, 37% won, 21646 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 774 | 41% (36–46) n=315 | 826 → 714 | 14% | 0 / 349 / 425 | 59% (51–66) n=162 | 46% (35–57) n=74 | 31% (25–38) n=210 |
+| Safety Override | sold | 625 | 37% (32–41) n=422 | 756 → 625 | 17% | 333 / 140 / 152 | 50% (44–57) n=206 | 30% (24–38) n=171 | 29% (23–37) n=143 |
+| MaxTac Suppression Team | attacked | 575 | 41% (36–47) n=275 | 660 → 539 | 18% | 0 / 194 / 381 | 64% (56–72) n=132 | 55% (42–68) n=56 | 28% (22–35) n=172 |
+| Rockn' Rockerboy | played | 557 | 37% (32–41) n=408 | 722 → 557 | 23% | 197 / 190 / 170 | 52% (44–59) n=186 | 28% (22–36) n=141 | 23% (17–30) n=155 |
+| Augmented Negotiators | played | 496 | 40% (35–45) n=367 | 1325 → 468 | 65% | 144 / 151 / 201 | 50% (42–58) n=146 | 40% (33–48) n=151 | 30% (23–38) n=138 |
+| Secondhand Bombus | played | 458 | 36% (31–41) n=344 | 1755 → 445 | 75% | 45 / 169 / 244 | 48% (42–55) n=194 | 21% (13–32) n=67 | 23% (17–31) n=136 |
+| Live with the Aftermath | sold | 454 | 40% (35–45) n=347 | 1095 → 454 | 59% | 125 / 155 / 174 | 52% (44–60) n=154 | 38% (29–48) n=94 | 28% (21–35) n=152 |
+| River Ward: Detective on the Hunt | called | 450 | 35% (31–40) n=450 | 450 → 450 | 0% | 256 / 121 / 73 | 46% (40–52) n=236 | 23% (17–30) n=151 | 25% (16–37) n=63 |
+| Dum Dum: Maelstrom Triggerman | called | 443 | 36% (32–41) n=443 | 443 → 443 | 0% | 242 / 122 / 79 | 45% (39–52) n=234 | 25% (19–33) n=134 | 27% (18–38) n=75 |
+| Muamar Reyes: El Capitán | ability | 438 | 37% (32–43) n=301 | 1871 → 438 | 77% | 60 / 78 / 300 | 64% (56–71) n=154 | 17% (11–27) n=81 | 10% (6–17) n=125 |
+| MaxTac Suppression Team | played | 424 | 39% (34–44) n=344 | 1022 → 424 | 59% | 103 / 194 / 127 | 48% (41–56) n=164 | 42% (32–52) n=93 | 22% (15–30) n=124 |
+| Muamar Reyes: El Capitán | called | 418 | 35% (31–40) n=418 | 418 → 418 | 0% | 239 / 101 / 78 | 48% (41–55) n=206 | 27% (20–35) n=134 | 15% (9–25) n=78 |
+| Jackie Welles: Ride or Die Choom | played | 415 | 38% (33–43) n=329 | 981 → 415 | 58% | 0 / 164 / 251 | 61% (51–69) n=112 | 44% (29–61) n=34 | 24% (19–30) n=214 |
+| Zetatech Faceplate | sold | 382 | 40% (35–45) n=326 | 630 → 382 | 39% | 165 / 143 / 74 | 50% (41–58) n=129 | 34% (27–43) n=122 | 32% (24–42) n=105 |
+| Gorilla Arms | sold | 381 | 39% (33–44) n=318 | 638 → 381 | 40% | 183 / 118 / 80 | 52% (44–59) n=160 | 31% (23–41) n=97 | 26% (18–35) n=97 |
+
+(31 more card uses in the JSON report.)
+
+Legal but never taken: Safety Override (played, legal in 718 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 12467 | 9% | 0 / 910 / 3230 / 5181 / 3020 / 126 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/steal | 2235 | 31% | 89 / 378 / 772 / 988 / 8 / 0 |
+| react | 1910 | 63% | 0 / 1038 / 864 / 8 / 0 / 0 |
+| gigValue/adjust | 893 | 20% | 0 / 2 / 100 / 180 / 478 / 133 |
+| mulligan | 560 | 50% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 510 | 56% | 0 / 510 / 0 / 0 / 0 / 0 |
+| unit/protect | 273 | 39% | 64 / 89 / 118 / 2 / 0 / 0 |
+| unit/pump | 108 | 28% | 22 / 27 / 58 / 1 / 0 / 0 |
+| card/discard | 107 | 73% | 7 / 45 / 45 / 10 / 0 / 0 |
+| unit/sacrifice | 104 | 71% | 41 / 41 / 22 / 0 / 0 / 0 |
+| card/defeatGear | 102 | 86% | 0 / 84 / 18 / 0 / 0 / 0 |
+| unit/defeat | 61 | 98% | 55 / 6 / 0 / 0 / 0 / 0 |
+| unit/equip | 49 | 82% | 3 / 19 / 26 / 1 / 0 / 0 |
+| card/trash | 13 | 38% | 0 / 13 / 0 / 0 / 0 / 0 |
+| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 5 | 80% | 0 / 5 / 0 / 0 / 0 / 0 |
-| card/discardForNothing | 1 | 0% | 0 / 0 / 1 / 0 / 0 / 0 |
-| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+| card/playFree | 3 | 100% | 3 / 0 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1427 attacks. Reacted to 529 (deck won 36% (31–41) n=379): stole 144, stoleNothing 1, attackerGone 5, targetGone 352, bothGone 18, noneGone 9. Let 898 resolve (39% (34–44) n=345): stole 661, stoleNothing 4, attackerGone 3, targetGone 193, bothGone 37. Choices: call 239, endReact 1001, block 345, play 23.
+Reaction windows: 1672 attacks. Reacted to 588 (deck won 35% (31–40) n=393): stole 135, stoleNothing 2, attackerGone 1, targetGone 403, bothGone 16, noneGone 31. Let 1084 resolve (37% (33–42) n=387): stole 753, stoleNothing 19, attackerGone 5, targetGone 268, bothGone 39. Choices: block 452, endReact 1208, call 229, ability 13, play 8.
 
-## Smash the Curve — 560 games, 63% won, 24097 decisions
+## NC-07 Braindance Burn (RRB) — 560 games, 56% won, 25115 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| Pepe Najarro: Working Doubles | attacked | 769 | 62% (57–67) n=328 | 917 → 700 | 24% | 82 / 317 / 370 | 87% (80–91) n=151 | 66% (57–74) n=120 | 54% (47–61) n=202 |
-| 6th Street Recruits | attacked | 767 | 64% (58–68) n=343 | 903 → 698 | 23% | 71 / 293 / 403 | 83% (77–88) n=166 | 59% (50–67) n=119 | 57% (50–63) n=217 |
-| Animals Wrecker | attacked | 707 | 74% (69–79) n=316 | 692 → 647 | 7% | 0 / 190 / 517 | 86% (80–91) n=167 | 91% (83–96) n=70 | 70% (64–76) n=214 |
-| Synapse Burnout | sold | 524 | 64% (59–69) n=377 | 758 → 524 | 31% | 275 / 132 / 117 | 74% (67–79) n=182 | 53% (45–61) n=143 | 60% (51–68) n=124 |
-| 6th Street Recruits | played | 507 | 61% (56–66) n=367 | 976 → 494 | 49% | 255 / 124 / 128 | 72% (65–79) n=178 | 52% (44–60) n=159 | 50% (40–60) n=94 |
-| Animals Wrecker | played | 497 | 68% (63–73) n=387 | 683 → 497 | 27% | 0 / 353 / 144 | 78% (70–84) n=136 | 68% (57–77) n=80 | 61% (54–67) n=218 |
-| Pepe Najarro: Working Doubles | played | 495 | 61% (56–66) n=372 | 991 → 490 | 51% | 272 / 98 / 125 | 70% (63–77) n=169 | 59% (51–66) n=167 | 38% (29–49) n=89 |
-| Yorinobu Arasaka: Steel Dragon | played | 483 | 67% (62–72) n=370 | 600 → 483 | 19% | 0 / 191 / 292 | 86% (78–91) n=111 | 86% (74–93) n=51 | 57% (51–63) n=246 |
-| V: Streetkid | attacked | 470 | 43% (37–49) n=269 | 555 → 470 | 15% | 65 / 170 / 235 | 56% (48–63) n=159 | 35% (22–50) n=40 | 34% (26–43) n=126 |
-| Peace Offering | sold | 461 | 64% (58–68) n=357 | 966 → 461 | 52% | 175 / 175 / 111 | 69% (62–76) n=162 | 62% (52–71) n=100 | 58% (50–66) n=142 |
-| Yorinobu Arasaka: Steel Dragon | attacked | 449 | 77% (71–81) n=272 | 447 → 419 | 6% | 0 / 0 / 449 | 96% (91–98) n=140 | 89% (78–95) n=54 | 64% (57–72) n=152 |
-| Bonnie and Clyde | sold | 442 | 65% (60–70) n=336 | 1436 → 442 | 69% | 62 / 185 / 195 | 71% (63–78) n=137 | 70% (60–79) n=84 | 54% (47–62) n=168 |
-| Adam Smasher: Ender of Legends | called | 441 | 62% (58–67) n=441 | 441 → 441 | 0% | 201 / 125 / 115 | 70% (65–75) n=317 | 51% (38–63) n=59 | 32% (22–44) n=65 |
-| Mantis Blades | sold | 429 | 61% (56–66) n=340 | 623 → 429 | 31% | 237 / 71 / 121 | 68% (61–75) n=149 | 58% (50–66) n=139 | 51% (42–60) n=111 |
-| V: Streetkid | called | 419 | 62% (57–67) n=419 | 419 → 419 | 0% | 193 / 140 / 86 | 65% (59–70) n=305 | 46% (34–59) n=56 | 62% (49–73) n=58 |
+| Psycho Squad | attacked | 792 | 54% (49–59) n=352 | 962 → 742 | 23% | 69 / 339 / 384 | 78% (71–83) n=174 | 62% (52–70) n=110 | 45% (38–51) n=219 |
+| Animals Wrecker | attacked | 767 | 65% (59–70) n=309 | 729 → 689 | 5% | 0 / 204 / 563 | 83% (76–88) n=148 | 77% (66–86) n=66 | 56% (49–62) n=218 |
+| 6th Street Recruits | attacked | 766 | 57% (52–62) n=319 | 907 → 711 | 22% | 75 / 312 / 379 | 75% (68–81) n=159 | 59% (50–67) n=122 | 48% (42–55) n=198 |
+| Detonate | sold | 528 | 56% (51–61) n=391 | 737 → 528 | 28% | 249 / 142 / 137 | 67% (60–73) n=191 | 51% (43–60) n=134 | 51% (42–59) n=134 |
+| Psycho Squad | played | 523 | 55% (50–60) n=385 | 951 → 517 | 46% | 298 / 98 / 127 | 65% (58–71) n=182 | 49% (41–56) n=171 | 33% (25–43) n=96 |
+| Animals Wrecker | played | 484 | 58% (53–63) n=359 | 586 → 484 | 17% | 0 / 348 / 136 | 77% (69–83) n=131 | 49% (38–60) n=78 | 48% (42–55) n=198 |
+| 6th Street Recruits | played | 475 | 55% (50–60) n=355 | 919 → 468 | 49% | 260 / 91 / 124 | 66% (58–73) n=155 | 49% (41–57) n=155 | 33% (25–43) n=102 |
+| Dexter DeShawn: Off the Grid | ability | 473 | 50% (45–56) n=331 | 1717 → 473 | 72% | 10 / 62 / 401 | 71% (65–77) n=209 | 24% (15–37) n=54 | 18% (13–26) n=136 |
+| Bonnie and Clyde | sold | 432 | 57% (51–62) n=327 | 1138 → 432 | 62% | 107 / 166 / 159 | 72% (64–79) n=127 | 54% (44–64) n=96 | 46% (39–54) n=155 |
+| Industrial Assembly | sold | 429 | 55% (49–60) n=332 | 820 → 429 | 48% | 186 / 155 / 88 | 65% (57–72) n=153 | 50% (41–60) n=109 | 50% (41–58) n=127 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 421 | 61% (54–68) n=184 | 321 → 301 | 6% | 0 / 82 / 339 | 84% (75–90) n=94 | 89% (75–96) n=36 | 43% (34–52) n=107 |
+| Judy Álvarez: Braindance Maestro | called | 420 | 57% (52–61) n=420 | 420 → 420 | 0% | 174 / 119 / 127 | 66% (60–71) n=270 | 48% (36–61) n=62 | 34% (25–44) n=88 |
+| Adam Smasher: Ender of Legends | called | 416 | 55% (50–59) n=416 | 416 → 416 | 0% | 152 / 127 / 137 | 65% (59–71) n=262 | 44% (31–57) n=55 | 32% (24–42) n=99 |
+| Meredith Stout: Stone Cold Corpo | played | 409 | 53% (47–58) n=323 | 1184 → 400 | 66% | 126 / 111 / 172 | 73% (65–80) n=124 | 49% (40–59) n=104 | 38% (30–46) n=130 |
+| Dexter DeShawn: Off the Grid | called | 405 | 56% (51–61) n=405 | 405 → 405 | 0% | 177 / 112 / 116 | 65% (59–70) n=254 | 51% (38–64) n=53 | 38% (29–48) n=98 |
 
-(32 more card uses in the JSON report.)
-
-Legal but never taken: V: Streetkid (Legend play, legal in 1110 turns), Adam Smasher: Ender of Legends (Legend play, legal in 278 turns).
+(29 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13584 | 8% | 0 / 1212 / 3673 / 5073 / 3479 / 147 |
-| gig/steal | 3638 | 29% | 216 / 490 / 1631 / 1286 / 15 / 0 |
+| main | 14251 | 9% | 0 / 1232 / 4075 / 5934 / 2907 / 103 |
+| gig/steal | 3224 | 28% | 158 / 447 / 1450 / 1143 / 26 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1407 | 66% | 0 / 980 / 414 / 13 / 0 / 0 |
-| unit/defeat | 623 | 58% | 200 / 174 / 232 / 17 / 0 / 0 |
-| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/search | 464 | 69% | 202 / 143 / 90 / 29 / 0 / 0 |
-| card/playFree | 457 | 74% | 0 / 137 / 290 / 30 / 0 / 0 |
-| unit/equip | 310 | 85% | 46 / 84 / 149 / 31 / 0 / 0 |
-| gigValue/adjust | 285 | 9% | 0 / 16 / 46 / 18 / 33 / 172 |
-| unit/ready | 160 | 96% | 0 / 139 / 21 / 0 / 0 / 0 |
-| gigValue/setGig | 132 | 8% | 0 / 0 / 3 / 23 / 27 / 79 |
-| unit/pump | 76 | 83% | 35 / 21 / 20 / 0 / 0 / 0 |
-| unit/sacrifice | 66 | 83% | 35 / 23 / 8 / 0 / 0 / 0 |
-| card/discard | 47 | 51% | 11 / 15 / 20 / 1 / 0 / 0 |
-| yesno/draw | 22 | 100% | 0 / 22 / 0 / 0 / 0 / 0 |
-| card/defeat | 16 | 94% | 14 / 2 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 8 | 0% | 0 / 8 / 0 / 0 / 0 / 0 |
+| react | 1394 | 65% | 0 / 876 / 502 / 16 / 0 / 0 |
+| gigValue/adjust | 752 | 7% | 0 / 4 / 56 / 37 / 422 / 233 |
+| unit/pump | 643 | 50% | 169 / 237 / 226 / 11 / 0 / 0 |
+| mulligan | 560 | 12% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 520 | 61% | 176 / 149 / 185 / 10 / 0 / 0 |
+| mode/mode | 511 | 74% | 0 / 511 / 0 / 0 / 0 / 0 |
+| card/playFree | 293 | 82% | 0 / 118 / 167 / 8 / 0 / 0 |
+| unit/equip | 292 | 82% | 50 / 88 / 111 / 43 / 0 / 0 |
+| yesno/addToHand | 178 | 100% | 0 / 178 / 0 / 0 / 0 / 0 |
+| unit/weaken | 69 | 71% | 24 / 31 / 14 / 0 / 0 / 0 |
+| card/search | 57 | 44% | 0 / 15 / 34 / 8 / 0 / 0 |
+| card/discard | 52 | 73% | 17 / 20 / 15 / 0 / 0 / 0 |
+| unit/sacrifice | 50 | 86% | 39 / 6 / 5 / 0 / 0 / 0 |
+| card/defeat | 21 | 90% | 18 / 2 / 1 / 0 / 0 / 0 |
+| yesno/draw | 6 | 100% | 0 / 6 / 0 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1295 attacks. Reacted to 429 (deck won 57% (52–62) n=310): stole 193, attackerGone 25, targetGone 174, bothGone 36, noneGone 1. Let 866 resolve (65% (60–70) n=356): stole 615, stoleNothing 8, attackerGone 6, targetGone 196, bothGone 40, noneGone 1. Choices: endReact 935, call 269, block 167, play 36.
+Reaction windows: 1270 attacks. Reacted to 435 (deck won 45% (40–51) n=328): stole 246, attackerGone 23, targetGone 138, bothGone 28. Let 835 resolve (58% (52–63) n=346): stole 597, stoleNothing 9, attackerGone 12, targetGone 184, bothGone 33. Choices: call 294, endReact 908, block 142, play 50.
 
-## The Red Chrome - Aggro — 560 games, 42% won, 21145 decisions
+## NC-08 Merc Contract (RRG) — 560 games, 57% won, 24163 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| 6th Street Recruits | attacked | 680 | 43% (38–49) n=322 | 830 → 620 | 25% | 84 / 302 / 294 | 55% (46–63) n=141 | 44% (35–53) n=108 | 43% (37–50) n=211 |
-| Animals Wrecker | attacked | 669 | 53% (47–58) n=270 | 611 → 594 | 3% | 0 / 161 / 508 | 78% (69–84) n=117 | 70% (57–80) n=60 | 44% (37–51) n=203 |
-| Detonate | sold | 542 | 42% (38–47) n=397 | 696 → 542 | 22% | 334 / 93 / 115 | 51% (44–58) n=183 | 36% (29–43) n=163 | 40% (32–50) n=114 |
-| Over the Edge | sold | 505 | 45% (40–50) n=387 | 1105 → 505 | 54% | 124 / 237 / 144 | 54% (46–61) n=156 | 40% (30–50) n=90 | 43% (37–51) n=189 |
-| Carnage at the Colosseum | sold | 500 | 41% (36–46) n=367 | 1452 → 500 | 66% | 42 / 214 / 244 | 49% (41–58) n=128 | 49% (38–60) n=74 | 31% (26–38) n=223 |
-| 6th Street Recruits | played | 480 | 41% (36–47) n=358 | 823 → 476 | 42% | 296 / 97 / 87 | 48% (41–55) n=175 | 37% (30–44) n=158 | 28% (19–39) n=82 |
-| V: Streetkid | attacked | 451 | 31% (25–36) n=278 | 558 → 451 | 19% | 60 / 122 / 269 | 48% (40–56) n=146 | 53% (39–67) n=45 | 21% (15–29) n=146 |
-| Animals Wrecker | played | 447 | 46% (41–52) n=343 | 561 → 447 | 20% | 0 / 293 / 154 | 59% (49–68) n=104 | 53% (41–65) n=66 | 41% (35–48) n=217 |
-| Mantis Blades | sold | 439 | 43% (38–48) n=358 | 596 → 439 | 26% | 244 / 74 / 121 | 50% (43–58) n=165 | 40% (32–49) n=131 | 33% (24–42) n=104 |
-| Royce: Psycho on the Edge | called | 436 | 40% (35–45) n=436 | 436 → 436 | 0% | 184 / 120 / 132 | 49% (43–55) n=281 | 36% (25–48) n=67 | 15% (9–24) n=88 |
-| V: Streetkid | called | 432 | 41% (36–46) n=432 | 432 → 432 | 0% | 192 / 109 / 131 | 48% (42–54) n=276 | 31% (22–43) n=70 | 27% (19–37) n=86 |
-| Adam Smasher: Ender of Legends | called | 425 | 41% (36–46) n=425 | 425 → 425 | 0% | 197 / 91 / 137 | 50% (44–56) n=291 | 28% (19–40) n=67 | 15% (8–25) n=67 |
-| Valentino Guerrera | attacked | 422 | 41% (35–47) n=251 | 626 → 384 | 39% | 36 / 144 / 242 | 63% (53–72) n=89 | 41% (31–52) n=82 | 36% (29–44) n=154 |
-| Valentino Guerrera | played | 409 | 37% (32–43) n=323 | 1278 → 387 | 70% | 185 / 90 / 134 | 52% (43–60) n=126 | 28% (22–36) n=145 | 26% (17–36) n=78 |
-| Appetite for Destruction | sold | 389 | 44% (39–49) n=331 | 590 → 389 | 34% | 176 / 116 / 97 | 55% (46–64) n=123 | 43% (35–52) n=120 | 35% (27–44) n=119 |
+| Animals Wrecker | attacked | 768 | 67% (62–72) n=306 | 719 → 687 | 4% | 0 / 165 / 603 | 90% (84–93) n=153 | 90% (81–94) n=86 | 57% (50–63) n=207 |
+| Pepe Najarro: Working Doubles | attacked | 625 | 59% (53–65) n=286 | 758 → 580 | 23% | 47 / 279 / 299 | 77% (70–83) n=162 | 63% (52–72) n=86 | 45% (37–53) n=156 |
+| 6th Street Recruits | attacked | 608 | 58% (52–64) n=271 | 715 → 551 | 23% | 63 / 240 / 305 | 70% (62–77) n=149 | 64% (54–73) n=103 | 50% (42–58) n=141 |
+| Jackie Welles: Mama's Favorite | attacked | 606 | 51% (46–56) n=336 | 684 → 606 | 11% | 0 / 244 / 362 | 69% (62–76) n=186 | 58% (45–70) n=57 | 39% (32–47) n=178 |
+| Bonnie and Clyde | sold | 533 | 57% (52–62) n=391 | 1354 → 533 | 61% | 96 / 232 / 205 | 67% (60–74) n=187 | 53% (43–62) n=100 | 47% (39–54) n=165 |
+| Peace Offering | sold | 505 | 57% (52–62) n=384 | 966 → 505 | 48% | 213 / 182 / 110 | 68% (61–74) n=187 | 50% (42–59) n=125 | 48% (40–57) n=128 |
+| Animals Wrecker | played | 503 | 61% (56–66) n=381 | 678 → 503 | 26% | 0 / 314 / 189 | 77% (70–83) n=164 | 63% (52–73) n=78 | 49% (42–56) n=186 |
+| Detonate | sold | 472 | 58% (53–63) n=365 | 703 → 472 | 33% | 248 / 111 / 113 | 63% (56–70) n=173 | 62% (53–69) n=138 | 43% (34–53) n=106 |
+| Pepe Najarro: Working Doubles | played | 471 | 57% (52–62) n=353 | 988 → 468 | 53% | 240 / 84 / 147 | 66% (59–73) n=183 | 53% (45–61) n=144 | 38% (29–49) n=86 |
+| V: Streetkid | attacked | 462 | 45% (39–51) n=272 | 569 → 462 | 19% | 65 / 132 / 265 | 54% (47–61) n=170 | 58% (44–71) n=48 | 28% (20–37) n=115 |
+| Adam Smasher: Ender of Legends | called | 426 | 56% (51–61) n=426 | 426 → 426 | 0% | 178 / 126 / 122 | 64% (59–70) n=315 | 38% (26–51) n=53 | 26% (16–38) n=58 |
+| 6th Street Recruits | played | 421 | 54% (49–59) n=331 | 902 → 419 | 54% | 216 / 94 / 111 | 63% (55–69) n=168 | 57% (49–65) n=143 | 23% (15–35) n=65 |
+| Carnage at the Colosseum | sold | 419 | 55% (50–61) n=338 | 1638 → 419 | 74% | 25 / 153 / 241 | 69% (61–76) n=144 | 65% (50–77) n=48 | 42% (35–50) n=180 |
+| Jackie Welles: Mama's Favorite | called | 413 | 59% (54–64) n=413 | 413 → 413 | 0% | 161 / 143 / 109 | 67% (61–72) n=285 | 49% (37–62) n=59 | 36% (26–48) n=69 |
+| V: Streetkid | called | 412 | 57% (52–62) n=412 | 412 → 412 | 0% | 198 / 105 / 109 | 60% (55–65) n=313 | 50% (37–63) n=56 | 44% (30–59) n=43 |
 
 (34 more card uses in the JSON report.)
 
-Legal but never taken: V: Streetkid (Legend play, legal in 966 turns), Royce: Psycho on the Edge (Legend play, legal in 1237 turns), Adam Smasher: Ender of Legends (Legend play, legal in 126 turns), Appetite for Destruction (played, legal in 494 turns).
+Legal but never taken: Jackie Welles: Mama's Favorite (Legend play, legal in 821 turns), V: Streetkid (Legend play, legal in 1096 turns), Synapse Burnout (played, legal in 526 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 12760 | 7% | 0 / 1047 / 3544 / 5005 / 2983 / 181 |
-| gig/steal | 3277 | 27% | 148 / 421 / 1374 / 1315 / 19 / 0 |
+| main | 13914 | 9% | 0 / 1213 / 3699 / 4930 / 3874 / 198 |
+| gig/steal | 3552 | 31% | 234 / 533 / 1620 / 1150 / 15 / 0 |
 | gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 1055 | 69% | 0 / 717 / 338 / 0 / 0 / 0 |
-| mulligan | 560 | 33% | 0 / 560 / 0 / 0 / 0 / 0 |
-| unit/defeat | 306 | 57% | 83 / 86 / 127 / 10 / 0 / 0 |
-| card/playFree | 232 | 67% | 0 / 81 / 144 / 7 / 0 / 0 |
-| gigValue/adjust | 213 | 8% | 0 / 15 / 38 / 36 / 7 / 117 |
-| unit/equip | 185 | 90% | 61 / 69 / 48 / 7 / 0 / 0 |
-| card/search | 159 | 87% | 119 / 13 / 14 / 13 / 0 / 0 |
-| card/discard | 60 | 43% | 9 / 17 / 33 / 1 / 0 / 0 |
-| unit/sacrifice | 49 | 88% | 28 / 15 / 6 / 0 / 0 / 0 |
-| card/defeat | 16 | 88% | 13 / 3 / 0 / 0 / 0 / 0 |
-| yesno/draw | 14 | 100% | 0 / 14 / 0 / 0 / 0 / 0 |
-| unit/pump | 13 | 77% | 9 / 2 / 2 / 0 / 0 / 0 |
+| react | 1463 | 69% | 0 / 964 / 491 / 8 / 0 / 0 |
+| mulligan | 560 | 6% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 385 | 78% | 207 / 103 / 48 / 27 / 0 / 0 |
+| unit/defeat | 358 | 59% | 116 / 114 / 120 / 8 / 0 / 0 |
+| yesno/replaceDefeat | 334 | 22% | 0 / 334 / 0 / 0 / 0 / 0 |
+| card/playFree | 285 | 56% | 0 / 33 / 188 / 64 / 0 / 0 |
+| unit/equip | 242 | 82% | 39 / 109 / 81 / 13 / 0 / 0 |
+| unit/ready | 204 | 91% | 0 / 142 / 62 / 0 / 0 / 0 |
+| unit/adrenaline | 192 | 48% | 67 / 78 / 47 / 0 / 0 / 0 |
+| gigValue/adjust | 135 | 4% | 0 / 0 / 0 / 1 / 11 / 123 |
+| gigValue/setGig | 93 | 6% | 0 / 0 / 1 / 9 / 17 / 66 |
+| unit/sacrifice | 61 | 80% | 37 / 10 / 14 / 0 / 0 / 0 |
+| unit/pump | 53 | 77% | 21 / 14 / 18 / 0 / 0 / 0 |
+| card/discard | 46 | 48% | 11 / 13 / 22 / 0 / 0 / 0 |
+| card/defeat | 27 | 96% | 25 / 1 / 1 / 0 / 0 / 0 |
+| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1365 attacks. Reacted to 430 (deck won 50% (45–56) n=311): stole 223, stoleNothing 1, attackerGone 23, targetGone 153, bothGone 30. Let 935 resolve (59% (54–64) n=338): stole 620, stoleNothing 3, attackerGone 11, targetGone 246, bothGone 50, noneGone 5. Choices: block 134, call 289, endReact 1004, play 36.
+
+## Rainbow Fixer Stuff — 560 games, 47% won, 29970 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 963 | 49% (44–54) n=372 | 996 → 856 | 14% | 68 / 356 / 539 | 64% (58–70) n=210 | 50% (41–58) n=129 | 41% (34–48) n=208 |
+| 6th Street Recruits | attacked | 907 | 48% (43–53) n=361 | 958 → 819 | 15% | 57 / 323 / 527 | 63% (57–70) n=210 | 47% (38–55) n=128 | 39% (33–46) n=213 |
+| Pepe Najarro: Working Doubles | played | 653 | 46% (42–51) n=441 | 996 → 645 | 35% | 246 / 207 / 200 | 60% (53–66) n=225 | 41% (34–49) n=164 | 37% (30–45) n=158 |
+| Field Operator | attacked | 650 | 48% (42–53) n=330 | 773 → 554 | 28% | 7 / 189 / 454 | 69% (61–75) n=175 | 54% (44–64) n=89 | 33% (26–40) n=187 |
+| 6th Street Recruits | played | 641 | 47% (42–52) n=431 | 993 → 628 | 37% | 223 / 212 / 206 | 60% (53–66) n=218 | 36% (29–44) n=146 | 37% (30–45) n=170 |
+| Field Operator | played | 628 | 47% (42–52) n=420 | 1313 → 585 | 55% | 66 / 347 / 215 | 58% (51–64) n=226 | 39% (30–49) n=102 | 36% (29–44) n=159 |
+| Valentino Street Racer | played | 621 | 46% (41–50) n=423 | 1146 → 579 | 49% | 109 / 323 / 189 | 55% (49–62) n=215 | 30% (23–39) n=120 | 38% (31–45) n=171 |
+| Valentino Street Racer | attacked | 614 | 45% (40–51) n=322 | 782 → 557 | 29% | 16 / 193 / 405 | 62% (55–69) n=184 | 30% (21–42) n=69 | 35% (28–43) n=165 |
+| Psycho Squad | attacked | 604 | 50% (44–55) n=278 | 689 → 576 | 16% | 45 / 221 / 338 | 66% (59–73) n=166 | 49% (38–60) n=76 | 35% (28–43) n=143 |
+| Padre: Man of the Cross | ability | 574 | 36% (32–41) n=375 | 2001 → 574 | 71% | 2 / 110 / 462 | 51% (44–57) n=219 | 17% (11–26) n=92 | 16% (11–22) n=164 |
+| Detonate | sold | 574 | 48% (43–53) n=409 | 947 → 574 | 39% | 249 / 165 / 160 | 60% (53–67) n=201 | 37% (29–45) n=133 | 42% (34–49) n=154 |
+| Synapse Burnout | sold | 539 | 48% (43–53) n=394 | 954 → 539 | 44% | 254 / 128 / 157 | 59% (52–66) n=190 | 46% (38–54) n=140 | 31% (23–39) n=130 |
+| Wakako Okada: Peace and Harmony | ability | 530 | 38% (33–43) n=351 | 2021 → 530 | 74% | 3 / 110 / 417 | 54% (48–61) n=217 | 15% (8–24) n=75 | 13% (9–20) n=143 |
+| Nocturne OP55 N1 | sold | 429 | 49% (43–54) n=344 | 1482 → 429 | 71% | 51 / 210 / 168 | 58% (49–65) n=139 | 49% (38–60) n=74 | 41% (34–49) n=167 |
+| Adam Smasher: Ender of Legends | attacked | 410 | 48% (43–53) n=323 | 433 → 410 | 5% | 0 / 0 / 410 | 80% (73–86) n=131 | 73% (62–83) n=64 | 21% (16–27) n=177 |
+
+(30 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 16060 | 9% | 0 / 973 / 4060 / 5928 / 4871 / 228 |
+| gig/steal | 3252 | 32% | 158 / 539 / 1488 / 1054 / 13 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1780 | 58% | 0 / 1014 / 745 / 21 / 0 / 0 |
+| mode/mode | 1296 | 74% | 0 / 1068 / 228 / 0 / 0 / 0 |
+| gigValue/adjust | 753 | 7% | 0 / 0 / 4 / 27 / 434 / 288 |
+| unit/weaken | 602 | 64% | 172 / 200 / 223 / 7 / 0 / 0 |
+| unit/adrenaline | 583 | 52% | 216 / 187 / 176 / 4 / 0 / 0 |
+| gigValue/setGig | 560 | 7% | 0 / 0 / 5 / 53 / 149 / 353 |
+| mulligan | 560 | 6% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/equip | 529 | 88% | 37 / 147 / 271 / 74 / 0 / 0 |
+| unit/spend | 510 | 70% | 255 / 134 / 120 / 1 / 0 / 0 |
+| unit/defeat | 346 | 32% | 19 / 54 / 228 / 45 / 0 / 0 |
+| card/freePlay | 247 | 76% | 0 / 122 / 122 / 3 / 0 / 0 |
+| unit/cantAttack | 154 | 45% | 33 / 66 / 55 / 0 / 0 / 0 |
+| card/playFree | 106 | 92% | 0 / 74 / 32 / 0 / 0 / 0 |
+| unit/pump | 96 | 59% | 12 / 42 / 41 / 1 / 0 / 0 |
+| unit/ready | 90 | 100% | 0 / 90 / 0 / 0 / 0 / 0 |
+| card/discard | 65 | 54% | 20 / 16 / 27 / 2 / 0 / 0 |
+| unit/sacrifice | 54 | 72% | 35 / 11 / 8 / 0 / 0 / 0 |
+| unit/call | 44 | 100% | 0 / 18 / 26 / 0 / 0 / 0 |
+| card/defeat | 29 | 93% | 26 / 2 / 1 / 0 / 0 / 0 |
+| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
 | mode/foolOnTheHill | 5 | 60% | 0 / 5 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1007 attacks. Reacted to 307 (deck won 35% (29–41) n=259): stole 177, attackerGone 3, targetGone 118, bothGone 9. Let 700 resolve (38% (32–43) n=285): stole 487, stoleNothing 8, attackerGone 3, targetGone 173, bothGone 29. Choices: endReact 733, call 219, block 101, play 2.
+Reaction windows: 1580 attacks. Reacted to 648 (deck won 38% (34–43) n=400): stole 359, stoleNothing 8, attackerGone 66, targetGone 178, bothGone 37. Let 932 resolve (43% (38–49) n=366): stole 606, stoleNothing 3, attackerGone 1, targetGone 288, bothGone 34. Choices: call 447, endReact 1036, play 194, block 103.
 
-## YYB Rogue Gear — 560 games, 53% won, 25912 decisions
+## RRB Wakako Midrange — 560 games, 45% won, 26849 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| V: Corporate Exile | attacked | 979 | 51% (47–56) n=480 | 1136 → 979 | 14% | 110 / 359 / 510 | 60% (55–65) n=342 | 48% (39–57) n=113 | 37% (30–44) n=158 |
-| Psycho Squad | attacked | 779 | 55% (50–61) n=312 | 877 → 728 | 17% | 108 / 304 / 367 | 62% (56–69) n=212 | 52% (44–61) n=132 | 44% (36–53) n=136 |
-| The Heist | sold | 521 | 50% (45–55) n=376 | 967 → 521 | 46% | 193 / 193 / 135 | 56% (49–62) n=217 | 40% (31–49) n=118 | 37% (28–46) n=104 |
-| Psycho Squad | played | 513 | 56% (51–61) n=385 | 969 → 510 | 47% | 251 / 129 / 133 | 61% (55–67) n=219 | 53% (45–60) n=168 | 36% (24–49) n=53 |
-| Dying Night: V's Pistol | sold | 513 | 51% (46–56) n=376 | 1090 → 513 | 53% | 204 / 153 / 156 | 59% (52–65) n=215 | 47% (39–55) n=142 | 28% (20–39) n=85 |
-| V: Corporate Exile | Go Solo (self-paid 506) | 506 | 51% (47–56) n=506 | 595 → 506 | 15% | 116 / 206 / 184 | 60% (55–66) n=313 | 33% (24–44) n=81 | 39% (31–49) n=112 |
-| V: Corporate Exile | called | 483 | 53% (48–57) n=483 | 483 → 483 | 0% | 241 / 156 / 86 | 59% (54–64) n=333 | 38% (29–47) n=101 | 41% (28–55) n=49 |
-| Zetatech Faceplate | sold | 479 | 52% (47–57) n=352 | 1558 → 479 | 69% | 71 / 188 / 220 | 58% (52–65) n=219 | 44% (34–55) n=77 | 39% (30–48) n=114 |
-| River Ward: Detective on the Hunt | called | 473 | 50% (46–55) n=473 | 473 → 473 | 0% | 226 / 163 / 84 | 55% (50–60) n=347 | 38% (29–49) n=91 | 34% (21–51) n=35 |
-| Trauma Team Operatives | played | 465 | 51% (46–56) n=346 | 1010 → 440 | 56% | 10 / 164 / 291 | 60% (54–66) n=234 | 42% (30–55) n=55 | 28% (21–38) n=102 |
-| River Ward: Detective on the Hunt | ability | 459 | 47% (42–53) n=291 | 1901 → 459 | 76% | 51 / 88 / 320 | 62% (55–68) n=209 | 18% (11–30) n=60 | 19% (12–28) n=89 |
-| Viktor Vektor: Sit Down and Relax | called | 446 | 52% (47–56) n=446 | 446 → 446 | 0% | 212 / 152 / 82 | 58% (53–64) n=322 | 37% (27–47) n=87 | 30% (17–46) n=37 |
-| Trauma Team Operatives | attacked | 416 | 54% (48–61) n=230 | 421 → 377 | 10% | 0 / 60 / 356 | 74% (67–81) n=137 | 66% (53–76) n=61 | 31% (23–41) n=99 |
-| Dexter DeShawn: One Last Chance | attacked | 410 | 53% (46–59) n=222 | 550 → 384 | 30% | 37 / 164 / 209 | 62% (53–69) n=143 | 49% (37–61) n=65 | 28% (20–39) n=81 |
-| Modded Kusanagi | played | 409 | 40% (34–46) n=262 | 1106 → 409 | 63% | 0 / 60 / 349 | 58% (50–67) n=130 | 46% (32–61) n=41 | 15% (11–22) n=156 |
+| 6th Street Recruits | attacked | 1028 | 47% (41–52) n=363 | 1090 → 900 | 17% | 87 / 443 / 498 | 66% (59–72) n=205 | 51% (42–59) n=132 | 38% (32–45) n=234 |
+| Psycho Squad | attacked | 644 | 51% (45–57) n=272 | 758 → 602 | 21% | 54 / 266 / 324 | 69% (61–76) n=135 | 46% (37–55) n=105 | 43% (36–50) n=175 |
+| Wakako Okada: Peace and Harmony | ability | 562 | 40% (35–45) n=371 | 1835 → 562 | 69% | 16 / 142 / 404 | 58% (52–64) n=227 | 12% (6–22) n=60 | 13% (9–19) n=176 |
+| Jacked-In Voodoo Boy | played | 557 | 39% (34–43) n=404 | 906 → 511 | 44% | 288 / 163 / 106 | 49% (43–56) n=233 | 24% (18–32) n=131 | 21% (14–31) n=94 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 556 | 55% (49–61) n=284 | 546 → 498 | 9% | 0 / 0 / 556 | 80% (73–86) n=148 | 73% (61–82) n=63 | 35% (29–43) n=170 |
+| Yorinobu Arasaka: Steel Dragon | played | 554 | 47% (42–52) n=401 | 683 → 554 | 19% | 0 / 280 / 274 | 63% (55–70) n=163 | 48% (36–60) n=67 | 37% (31–44) n=224 |
+| 6th Street Recruits | played | 530 | 45% (41–50) n=383 | 823 → 529 | 36% | 289 / 159 / 82 | 57% (50–64) n=190 | 39% (32–46) n=173 | 33% (25–43) n=102 |
+| Dexter DeShawn: Off the Grid | ability | 508 | 39% (34–44) n=342 | 1887 → 508 | 73% | 7 / 117 / 384 | 59% (52–65) n=201 | 22% (13–35) n=54 | 12% (8–18) n=162 |
+| Detonate | sold | 508 | 44% (39–49) n=364 | 730 → 508 | 30% | 247 / 140 / 121 | 56% (49–63) n=174 | 36% (29–45) n=137 | 30% (23–39) n=129 |
+| Nocturne OP55 N1 | sold | 414 | 47% (41–52) n=329 | 1109 → 414 | 63% | 99 / 185 / 130 | 59% (51–67) n=145 | 35% (25–46) n=77 | 38% (31–46) n=156 |
+| Floor It | sold | 409 | 47% (42–52) n=315 | 924 → 409 | 56% | 131 / 164 / 114 | 59% (51–67) n=141 | 45% (35–55) n=92 | 36% (28–45) n=127 |
+| Mantis Blades | sold | 398 | 41% (36–47) n=321 | 589 → 398 | 32% | 236 / 55 / 107 | 52% (44–59) n=159 | 38% (30–47) n=122 | 20% (12–30) n=76 |
+| Dexter DeShawn: Off the Grid | called | 393 | 46% (41–51) n=393 | 393 → 393 | 0% | 149 / 178 / 66 | 54% (47–60) n=230 | 31% (21–42) n=71 | 38% (29–48) n=92 |
+| Adam Smasher: Ender of Legends | called | 391 | 46% (41–51) n=391 | 391 → 391 | 0% | 141 / 144 / 106 | 55% (48–61) n=251 | 33% (23–46) n=60 | 29% (20–39) n=80 |
+| Wakako Okada: Peace and Harmony | called | 380 | 48% (43–53) n=380 | 380 → 380 | 0% | 155 / 149 / 76 | 58% (52–64) n=244 | 34% (24–47) n=61 | 28% (19–39) n=75 |
+
+(32 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14043 | 9% | 0 / 1195 / 4055 / 6033 / 2719 / 41 |
+| gig/steal | 2614 | 29% | 155 / 431 / 1122 / 897 / 9 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1774 | 59% | 0 / 1124 / 626 / 24 / 0 / 0 |
+| gigValue/adjust | 1372 | 9% | 0 / 11 / 36 / 123 / 877 / 325 |
+| mode/mode | 1190 | 83% | 0 / 1051 / 139 / 0 / 0 / 0 |
+| unit/defeat | 581 | 69% | 272 / 129 / 164 / 16 / 0 / 0 |
+| unit/weaken | 568 | 73% | 212 / 213 / 139 / 4 / 0 / 0 |
+| mulligan | 560 | 18% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/playFree | 453 | 79% | 0 / 230 / 217 / 6 / 0 / 0 |
+| unit/pump | 404 | 54% | 104 / 166 / 133 / 1 / 0 / 0 |
+| unit/equip | 374 | 85% | 48 / 105 / 178 / 43 / 0 / 0 |
+| card/freePlay | 210 | 77% | 0 / 101 / 100 / 9 / 0 / 0 |
+| card/discard | 117 | 79% | 12 / 74 / 31 / 0 / 0 / 0 |
+| unit/cantAttack | 105 | 72% | 55 / 36 / 13 / 1 / 0 / 0 |
+| unit/bottomdeck | 79 | 54% | 13 / 17 / 48 / 1 / 0 / 0 |
+| unit/sacrifice | 51 | 86% | 35 / 6 / 9 / 1 / 0 / 0 |
+| card/search | 46 | 52% | 0 / 20 / 22 / 4 / 0 / 0 |
+| unit/call | 33 | 100% | 0 / 6 / 27 / 0 / 0 / 0 |
+| card/defeat | 19 | 89% | 14 / 4 / 1 / 0 / 0 / 0 |
+| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 40% | 0 / 5 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 3 | 0% | 0 / 2 / 1 / 0 / 0 / 0 |
+
+Reaction windows: 1590 attacks. Reacted to 637 (deck won 37% (33–42) n=414): stole 295, stoleNothing 7, attackerGone 44, targetGone 254, bothGone 37. Let 953 resolve (41% (36–46) n=365): stole 695, stoleNothing 9, attackerGone 5, targetGone 208, bothGone 36. Choices: endReact 1043, call 381, play 86, block 264.
+
+## RRG Dexter Midrange — 560 games, 69% won, 25222 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 833 | 69% (64–74) n=341 | 951 → 767 | 19% | 80 / 340 / 413 | 79% (73–84) n=198 | 69% (60–76) n=125 | 67% (60–73) n=201 |
+| Pepe Najarro: Working Doubles | attacked | 831 | 69% (63–74) n=326 | 954 → 760 | 20% | 75 / 359 / 397 | 82% (76–87) n=200 | 64% (55–73) n=107 | 65% (58–71) n=198 |
+| Animals Wrecker | attacked | 822 | 78% (73–82) n=322 | 757 → 731 | 3% | 0 / 234 / 588 | 91% (86–94) n=193 | 84% (73–91) n=67 | 73% (67–79) n=226 |
+| Dexter DeShawn: Off the Grid | ability | 550 | 66% (61–70) n=358 | 1859 → 550 | 70% | 11 / 109 / 430 | 79% (74–84) n=258 | 37% (26–50) n=59 | 38% (30–47) n=123 |
+| Animals Wrecker | played | 541 | 73% (68–77) n=386 | 714 → 541 | 24% | 0 / 372 / 169 | 84% (78–89) n=152 | 68% (57–78) n=72 | 68% (62–74) n=230 |
+| Pepe Najarro: Working Doubles | played | 507 | 67% (62–72) n=372 | 851 → 500 | 41% | 293 / 89 / 125 | 77% (70–82) n=190 | 60% (53–67) n=161 | 57% (47–67) n=87 |
+| Synapse Burnout | sold | 504 | 70% (65–74) n=378 | 833 → 504 | 39% | 230 / 162 / 112 | 77% (71–83) n=194 | 61% (52–69) n=117 | 66% (58–74) n=134 |
+| Detonate | sold | 503 | 72% (67–76) n=384 | 788 → 503 | 36% | 231 / 157 / 115 | 81% (75–86) n=183 | 65% (56–72) n=136 | 72% (63–79) n=127 |
+| 6th Street Recruits | played | 502 | 67% (62–72) n=373 | 938 → 497 | 47% | 277 / 102 / 123 | 76% (69–81) n=180 | 63% (55–70) n=163 | 51% (41–61) n=90 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 471 | 82% (78–87) n=274 | 463 → 436 | 6% | 0 / 0 / 471 | 93% (87–96) n=162 | 83% (71–90) n=58 | 77% (69–83) n=151 |
+| Yorinobu Arasaka: Steel Dragon | played | 455 | 75% (70–79) n=359 | 580 → 455 | 22% | 0 / 245 / 210 | 83% (76–89) n=132 | 69% (55–80) n=51 | 71% (65–77) n=216 |
+| Peace Offering | sold | 439 | 68% (62–72) n=351 | 968 → 439 | 55% | 189 / 160 / 90 | 74% (67–80) n=155 | 59% (50–68) n=118 | 67% (59–75) n=126 |
+| Dexter DeShawn: Off the Grid | called | 418 | 71% (67–75) n=418 | 418 → 418 | 0% | 211 / 132 / 75 | 76% (71–81) n=272 | 64% (52–74) n=66 | 60% (49–70) n=80 |
+| Saburo Arasaka: Stubborn Patriarch | called | 414 | 70% (66–74) n=414 | 414 → 414 | 0% | 217 / 114 / 83 | 73% (68–78) n=298 | 58% (44–70) n=52 | 69% (57–79) n=64 |
+| Adam Smasher: Ender of Legends | called | 413 | 69% (64–73) n=413 | 413 → 413 | 0% | 198 / 106 / 109 | 72% (67–77) n=297 | 61% (48–72) n=61 | 58% (45–70) n=55 |
+
+(28 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 308 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13743 | 9% | 0 / 1202 / 3897 / 5652 / 2913 / 79 |
+| gig/steal | 3667 | 30% | 184 / 535 / 1749 / 1190 / 9 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1410 | 64% | 0 / 954 / 447 / 9 / 0 / 0 |
+| gigValue/adjust | 834 | 7% | 0 / 3 / 24 / 77 / 428 / 302 |
+| unit/defeat | 616 | 60% | 190 / 187 / 230 / 9 / 0 / 0 |
+| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 522 | 66% | 0 / 522 / 0 / 0 / 0 / 0 |
+| unit/pump | 426 | 68% | 173 / 156 / 94 / 3 / 0 / 0 |
+| card/playFree | 418 | 78% | 0 / 174 / 237 / 7 / 0 / 0 |
+| unit/equip | 373 | 88% | 43 / 106 / 178 / 46 / 0 / 0 |
+| unit/ready | 113 | 100% | 0 / 113 / 0 / 0 / 0 / 0 |
+| gigValue/setGig | 97 | 9% | 0 / 0 / 5 / 18 / 24 / 50 |
+| card/search | 74 | 65% | 0 / 27 / 41 / 6 / 0 / 0 |
+| unit/sacrifice | 60 | 83% | 34 / 15 / 11 / 0 / 0 / 0 |
+| card/discard | 41 | 56% | 11 / 16 / 13 / 1 / 0 / 0 |
+| card/defeat | 18 | 100% | 16 / 2 / 0 / 0 / 0 / 0 |
+| yesno/draw | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 33% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1283 attacks. Reacted to 467 (deck won 62% (57–67) n=338): stole 241, attackerGone 49, targetGone 160, bothGone 17. Let 816 resolve (69% (64–74) n=344): stole 595, stoleNothing 2, attackerGone 12, targetGone 170, bothGone 37. Choices: endReact 896, block 161, call 309, play 44.
+
+## RRY Smasher Aggro — 560 games, 56% won, 23699 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Animals Wrecker | attacked | 708 | 68% (62–73) n=297 | 652 → 635 | 3% | 0 / 175 / 533 | 85% (79–90) n=144 | 82% (72–89) n=82 | 62% (55–68) n=202 |
+| Rockn' Rockerboy | attacked | 637 | 63% (58–69) n=289 | 682 → 599 | 12% | 0 / 308 / 329 | 79% (71–84) n=150 | 68% (56–77) n=74 | 58% (51–65) n=176 |
+| 6th Street Recruits | attacked | 594 | 60% (54–65) n=294 | 700 → 557 | 20% | 74 / 208 / 312 | 78% (70–84) n=131 | 59% (49–68) n=107 | 50% (43–57) n=178 |
+| Animals Wrecker | played | 467 | 61% (55–66) n=355 | 603 → 467 | 23% | 0 / 312 / 155 | 74% (66–81) n=134 | 63% (51–73) n=67 | 51% (44–58) n=190 |
+| La Llorona: Ghost of the Past | played | 463 | 57% (51–62) n=352 | 1256 → 442 | 65% | 79 / 163 / 221 | 69% (61–76) n=141 | 55% (46–64) n=110 | 43% (36–51) n=159 |
+| 6th Street Recruits | played | 459 | 58% (53–63) n=349 | 1003 → 454 | 55% | 207 / 119 / 133 | 66% (58–73) n=158 | 52% (44–60) n=150 | 52% (42–61) n=102 |
+| Detonate | sold | 449 | 54% (49–59) n=348 | 595 → 449 | 25% | 244 / 101 / 104 | 59% (52–67) n=162 | 56% (47–65) n=121 | 46% (38–56) n=114 |
+| Rockn' Rockerboy | played | 441 | 58% (53–63) n=348 | 771 → 441 | 43% | 203 / 112 / 126 | 71% (64–77) n=184 | 51% (42–60) n=112 | 37% (29–46) n=113 |
+| Bonnie and Clyde | sold | 438 | 57% (52–62) n=334 | 1212 → 438 | 64% | 75 / 196 / 167 | 68% (60–74) n=160 | 54% (43–64) n=80 | 48% (40–56) n=141 |
+| V: Streetkid | attacked | 414 | 43% (37–49) n=255 | 493 → 414 | 16% | 53 / 93 / 268 | 51% (43–59) n=141 | 68% (55–79) n=53 | 30% (23–39) n=122 |
+| Zetatech Faceplate | sold | 407 | 54% (48–59) n=317 | 788 → 407 | 48% | 147 / 131 / 129 | 62% (54–70) n=139 | 51% (41–60) n=93 | 46% (38–55) n=132 |
+| Meredith Stout: Stone Cold Corpo | played | 402 | 52% (47–58) n=317 | 1215 → 392 | 68% | 83 / 117 / 202 | 63% (54–71) n=114 | 53% (43–63) n=92 | 42% (34–50) n=149 |
+| Adam Smasher: Ender of Legends | called | 400 | 56% (52–61) n=400 | 400 → 400 | 0% | 136 / 142 / 122 | 65% (59–70) n=264 | 51% (38–64) n=51 | 34% (25–45) n=85 |
+| Dum Dum: Maelstrom Triggerman | called | 395 | 55% (50–60) n=395 | 395 → 395 | 0% | 139 / 137 / 119 | 65% (59–71) n=251 | 39% (28–51) n=62 | 35% (26–46) n=82 |
+| V: Streetkid | called | 394 | 55% (50–59) n=394 | 394 → 394 | 0% | 140 / 144 / 110 | 57% (51–63) n=261 | 49% (36–62) n=53 | 50% (39–61) n=80 |
 
 (37 more card uses in the JSON report.)
 
-Legal but never taken: Safety Override (played, legal in 644 turns).
+Legal but never taken: V: Streetkid (Legend play, legal in 956 turns), Adam Smasher: Ender of Legends (Legend play, legal in 247 turns).
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 14115 | 8% | 0 / 1212 / 3576 / 5920 / 3273 / 134 |
-| gig/steal | 3057 | 42% | 511 / 668 / 1091 / 777 / 10 / 0 |
-| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| react | 2024 | 69% | 0 / 1343 / 677 / 4 / 0 / 0 |
-| gigValue/adjust | 1456 | 9% | 0 / 1 / 82 / 322 / 869 / 182 |
-| unit/equip | 949 | 77% | 125 / 240 / 543 / 41 / 0 / 0 |
-| card/search | 645 | 84% | 19 / 370 / 256 / 0 / 0 / 0 |
-| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
-| card/playFree | 307 | 95% | 208 / 88 / 11 / 0 / 0 / 0 |
-| card/trash | 259 | 52% | 0 / 259 / 0 / 0 / 0 / 0 |
-| unit/sacrifice | 188 | 56% | 77 / 65 / 44 / 2 / 0 / 0 |
-| card/discard | 47 | 45% | 6 / 15 / 23 / 3 / 0 / 0 |
-| yesno/playFree | 30 | 100% | 0 / 30 / 0 / 0 / 0 / 0 |
-| unit/protect | 15 | 27% | 3 / 6 / 6 / 0 / 0 / 0 |
-| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
-| mode/rivalChoice | 8 | 0% | 0 / 8 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 3 | 67% | 0 / 3 / 0 / 0 / 0 / 0 |
+| main | 13376 | 7% | 0 / 1139 / 3394 / 4785 / 3955 / 103 |
+| gig/steal | 3168 | 30% | 160 / 481 / 1379 / 1132 / 16 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1960 | 69% | 0 / 1150 / 797 / 13 / 0 / 0 |
+| unit/defeat | 681 | 70% | 283 / 167 / 219 / 12 / 0 / 0 |
+| mulligan | 560 | 28% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 515 | 69% | 248 / 130 / 102 / 35 / 0 / 0 |
+| gigValue/adjust | 515 | 6% | 0 / 7 / 61 / 20 / 191 / 236 |
+| unit/equip | 219 | 85% | 48 / 67 / 98 / 6 / 0 / 0 |
+| unit/pump | 200 | 34% | 33 / 78 / 86 / 3 / 0 / 0 |
+| unit/spend | 83 | 87% | 58 / 14 / 11 / 0 / 0 / 0 |
+| unit/sacrifice | 57 | 81% | 32 / 16 / 8 / 1 / 0 / 0 |
+| card/discard | 51 | 45% | 10 / 12 / 28 / 1 / 0 / 0 |
+| card/defeatGear | 34 | 88% | 0 / 26 / 7 / 1 / 0 / 0 |
+| card/defeat | 22 | 95% | 18 / 4 / 0 / 0 / 0 / 0 |
+| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1810 attacks. Reacted to 518 (deck won 48% (43–54) n=339): stole 166, attackerGone 7, targetGone 302, bothGone 28, noneGone 15. Let 1292 resolve (45% (41–50) n=416): stole 931, stoleNothing 13, attackerGone 2, targetGone 280, bothGone 66. Choices: call 185, block 305, endReact 1395, ability 106, play 33.
+Reaction windows: 1750 attacks. Reacted to 537 (deck won 46% (41–52) n=357): stole 205, stoleNothing 1, attackerGone 10, targetGone 306, bothGone 15. Let 1213 resolve (53% (49–58) n=419): stole 814, stoleNothing 4, attackerGone 13, targetGone 335, bothGone 47. Choices: call 304, endReact 1347, block 299, play 7, ability 3.
 
-## YYY Adam v1 - Ready for Brawl — 560 games, 45% won, 27304 decisions
+## Running and Dancing — 560 games, 11% won, 24802 decisions
 
 | Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
 |---|---|---|---|---|---|---|---|---|---|
-| MaxTac Suppression Team | attacked | 689 | 50% (44–55) n=320 | 797 → 636 | 20% | 0 / 290 / 399 | 65% (58–72) n=172 | 60% (50–70) n=81 | 41% (34–48) n=185 |
-| Dexter DeShawn: One Last Chance | attacked | 674 | 49% (44–54) n=334 | 902 → 616 | 32% | 81 / 280 / 313 | 62% (54–69) n=175 | 47% (37–56) n=105 | 45% (38–53) n=181 |
-| Muamar Reyes: El Capitán | ability | 651 | 42% (37–47) n=401 | 2181 → 651 | 70% | 43 / 157 / 451 | 60% (54–66) n=242 | 23% (15–34) n=69 | 19% (14–25) n=181 |
-| Safety Override | sold | 642 | 44% (39–48) n=433 | 1038 → 642 | 38% | 250 / 207 / 185 | 52% (45–58) n=214 | 40% (32–47) n=159 | 36% (29–43) n=171 |
-| Augmented Negotiators | played | 627 | 47% (42–52) n=426 | 1319 → 592 | 55% | 103 / 285 / 239 | 59% (52–65) n=210 | 36% (28–45) n=121 | 40% (33–47) n=177 |
-| Dexter DeShawn: One Last Chance | played | 623 | 45% (41–50) n=422 | 860 → 596 | 31% | 251 / 218 / 154 | 58% (51–64) n=224 | 36% (29–44) n=161 | 38% (30–47) n=129 |
-| Maelstrom Goons | played | 595 | 44% (40–49) n=416 | 1152 → 552 | 52% | 148 / 255 / 192 | 57% (50–63) n=203 | 34% (27–42) n=150 | 37% (29–45) n=131 |
-| The Heist | sold | 593 | 47% (42–51) n=415 | 987 → 593 | 40% | 226 / 187 / 180 | 59% (52–66) n=194 | 36% (29–44) n=151 | 38% (31–45) n=173 |
-| MaxTac Suppression Team | played | 570 | 46% (42–51) n=405 | 971 → 568 | 42% | 184 / 156 / 230 | 61% (54–68) n=199 | 35% (28–43) n=142 | 37% (30–45) n=150 |
-| Maelstrom Goons | attacked | 549 | 47% (42–53) n=309 | 762 → 494 | 35% | 42 / 195 / 312 | 69% (61–76) n=143 | 48% (38–58) n=88 | 37% (30–45) n=170 |
-| Zetatech Faceplate | sold | 490 | 46% (41–51) n=366 | 1360 → 490 | 64% | 68 / 231 / 191 | 56% (49–64) n=163 | 49% (39–59) n=94 | 35% (28–42) n=176 |
-| River Ward: Detective on the Hunt | called | 457 | 46% (41–50) n=457 | 457 → 457 | 0% | 250 / 146 / 61 | 54% (48–60) n=278 | 34% (26–43) n=124 | 29% (19–42) n=55 |
-| The Relic: Experimental Biochip | sold | 451 | 45% (40–50) n=360 | 947 → 451 | 52% | 238 / 87 / 126 | 51% (43–58) n=167 | 39% (32–47) n=143 | 35% (27–44) n=106 |
-| Kerry Eurodyne: Axe, Attitude, Audience | called | 450 | 47% (42–52) n=450 | 450 → 450 | 0% | 262 / 135 / 53 | 55% (49–61) n=276 | 35% (27–44) n=121 | 32% (21–45) n=53 |
-| Muamar Reyes: El Capitán | called | 444 | 43% (38–47) n=444 | 444 → 444 | 0% | 293 / 116 / 35 | 49% (43–55) n=259 | 33% (26–41) n=145 | 35% (22–50) n=40 |
+| Modded Kusanagi | played | 741 | 10% (7–13) n=392 | 1296 → 741 | 43% | 0 / 166 / 575 | 21% (14–30) n=109 | 22% (13–35) n=54 | 4% (3–7) n=333 |
+| Modded Kusanagi | attacked | 688 | 10% (8–14) n=365 | 718 → 688 | 4% | 0 / 163 / 525 | 22% (15–30) n=114 | 20% (12–32) n=55 | 4% (2–7) n=296 |
+| Psycho Squad | attacked | 662 | 10% (7–14) n=335 | 829 → 616 | 26% | 87 / 297 / 278 | 21% (14–29) n=116 | 14% (9–22) n=108 | 5% (3–9) n=220 |
+| Dying Night: V's Pistol | sold | 589 | 12% (9–15) n=417 | 700 → 589 | 16% | 309 / 136 / 144 | 16% (11–22) n=189 | 14% (9–20) n=145 | 6% (3–11) n=156 |
+| Floor It | sold | 559 | 12% (9–15) n=402 | 882 → 559 | 37% | 207 / 186 / 166 | 16% (11–22) n=187 | 12% (7–19) n=120 | 6% (3–11) n=178 |
+| Psycho Squad | played | 557 | 11% (9–15) n=407 | 802 → 557 | 31% | 294 / 154 / 109 | 16% (12–22) n=207 | 9% (6–15) n=158 | 3% (1–7) n=120 |
+| Chrome Reverie | sold | 548 | 10% (8–14) n=392 | 886 → 548 | 38% | 247 / 159 / 142 | 13% (9–18) n=211 | 12% (7–19) n=110 | 5% (3–10) n=156 |
+| Evelyn Parker: Scheming Siren | attacked | 519 | 6% (4–10) n=265 | 1010 → 458 | 55% | 87 / 133 / 299 | 14% (9–23) n=97 | 5% (2–15) n=56 | 2% (1–5) n=195 |
+| Evelyn Parker: Scheming Siren | played | 497 | 9% (7–13) n=365 | 1042 → 477 | 54% | 211 / 121 / 165 | 14% (10–19) n=196 | 9% (5–16) n=104 | 1% (0–4) n=132 |
+| Trust No One | sold | 494 | 11% (8–15) n=373 | 820 → 494 | 40% | 171 / 162 / 161 | 18% (12–24) n=148 | 9% (5–16) n=119 | 8% (5–13) n=167 |
+| Mox Inciters | played | 483 | 13% (10–17) n=349 | 1306 → 450 | 66% | 98 / 213 / 172 | 21% (15–28) n=141 | 11% (6–19) n=100 | 7% (4–12) n=159 |
+| Rita Wheeler: No Stupid Questions | played | 480 | 12% (9–16) n=366 | 1261 → 477 | 62% | 93 / 214 / 173 | 19% (13–26) n=140 | 14% (8–22) n=103 | 6% (4–11) n=176 |
+| MT0D12 Flathead | sold | 449 | 11% (8–15) n=350 | 947 → 449 | 53% | 147 / 128 / 174 | 15% (10–21) n=161 | 15% (9–24) n=85 | 3% (1–7) n=161 |
+| Alt Cunningham: Soulkiller Architect | called | 385 | 11% (9–15) n=385 | 385 → 385 | 0% | 148 / 150 / 87 | 16% (12–21) n=240 | 6% (2–15) n=65 | 1% (0–7) n=80 |
+| Jackie Welles: Pour One Out For Me | called | 379 | 10% (8–14) n=379 | 379 → 379 | 0% | 143 / 138 / 98 | 15% (10–20) n=212 | 7% (3–17) n=55 | 4% (1–9) n=112 |
 
-(23 more card uses in the JSON report.)
-
-Legal but never taken: Safety Override (played, legal in 1058 turns).
+(25 more card uses in the JSON report.)
 
 | Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
 |---|---|---|---|
-| main | 13682 | 8% | 0 / 1079 / 3305 / 5525 / 3619 / 154 |
-| gig/steal | 2498 | 32% | 163 / 418 / 1096 / 817 / 4 / 0 |
-| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
-| gigValue/adjust | 2135 | 27% | 0 / 0 / 172 / 372 / 1289 / 302 |
-| react | 1906 | 62% | 0 / 1189 / 713 / 4 / 0 / 0 |
-| yesno/kerryReroll | 1794 | 63% | 0 / 1794 / 0 / 0 / 0 / 0 |
-| unit/equip | 719 | 75% | 1 / 164 / 456 / 98 / 0 / 0 |
-| mulligan | 560 | 29% | 0 / 560 / 0 / 0 / 0 / 0 |
-| mode/muamarCall | 544 | 54% | 0 / 544 / 0 / 0 / 0 / 0 |
-| unit/protect | 306 | 53% | 113 / 110 / 81 / 2 / 0 / 0 |
-| card/trash | 298 | 54% | 0 / 298 / 0 / 0 / 0 / 0 |
-| card/playFree | 243 | 84% | 156 / 37 / 47 / 3 / 0 / 0 |
-| unit/sacrifice | 242 | 65% | 109 / 80 / 53 / 0 / 0 / 0 |
-| card/discard | 50 | 40% | 9 / 9 / 32 / 0 / 0 / 0 |
-| card/search | 46 | 76% | 24 / 19 / 3 / 0 / 0 / 0 |
-| yesno/playFree | 23 | 100% | 0 / 23 / 0 / 0 / 0 / 0 |
-| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
-| mode/foolOnTheHill | 6 | 17% | 0 / 6 / 0 / 0 / 0 / 0 |
+| main | 13137 | 11% | 0 / 1059 / 3155 / 5439 / 3364 / 120 |
+| react | 2429 | 68% | 0 / 1525 / 892 / 12 / 0 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/steal | 1912 | 33% | 57 / 376 / 647 / 798 / 34 / 0 |
+| gigValue/adjust | 1765 | 16% | 0 / 60 / 747 / 659 / 259 / 40 |
+| card/discard | 661 | 37% | 51 / 125 / 385 / 100 / 0 / 0 |
+| mode/cardType | 578 | 100% | 0 / 0 / 578 / 0 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/mustAttack | 447 | 55% | 116 / 175 / 150 / 6 / 0 / 0 |
+| unit/pump | 201 | 58% | 38 / 62 / 93 / 8 / 0 / 0 |
+| card/freePlay | 170 | 89% | 0 / 110 / 60 / 0 / 0 / 0 |
+| unit/cantAttack | 168 | 47% | 41 / 45 / 77 / 5 / 0 / 0 |
+| unit/weaken | 89 | 57% | 14 / 29 / 46 / 0 / 0 / 0 |
+| card/playFromTrash | 84 | 80% | 50 / 20 / 14 / 0 / 0 / 0 |
+| yesno/addToHand | 78 | 100% | 0 / 78 / 0 / 0 / 0 / 0 |
+| unit/call | 67 | 100% | 0 / 27 / 40 / 0 / 0 / 0 |
+| unit/bottomdeck | 60 | 83% | 43 / 5 / 11 / 1 / 0 / 0 |
+| unit/equip | 52 | 87% | 20 / 8 / 14 / 10 / 0 / 0 |
+| yesno/discardFor | 45 | 100% | 0 / 45 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 37 | 92% | 28 / 7 / 2 / 0 / 0 / 0 |
+| yesno/draw | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 9 | 44% | 0 / 9 / 0 / 0 / 0 / 0 |
 | mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
 
-Reaction windows: 1667 attacks. Reacted to 609 (deck won 44% (40–49) n=403): stole 227, attackerGone 12, targetGone 306, bothGone 37, noneGone 27. Let 1058 resolve (44% (39–49) n=396): stole 797, stoleNothing 4, attackerGone 2, targetGone 227, bothGone 28. Choices: block 334, endReact 1174, ability 76, call 288, play 34.
+Reaction windows: 2153 attacks. Reacted to 667 (deck won 11% (8–14) n=431): stole 211, stoleNothing 1, attackerGone 14, targetGone 417, bothGone 23, noneGone 1. Let 1486 resolve (10% (7–13) n=442): stole 1093, stoleNothing 5, attackerGone 3, targetGone 349, bothGone 36. Choices: block 400, endReact 1660, call 342, play 27.
+
+## S1-01 Mutant (RRY) — 560 games, 62% won, 26085 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Animals Wrecker | attacked | 811 | 71% (66–76) n=317 | 774 → 728 | 6% | 0 / 211 / 600 | 89% (84–93) n=161 | 88% (79–93) n=82 | 65% (59–71) n=221 |
+| Rockn' Rockerboy | attacked | 715 | 66% (60–71) n=288 | 808 → 661 | 18% | 0 / 337 / 378 | 81% (74–86) n=177 | 72% (62–80) n=86 | 59% (51–66) n=162 |
+| 6th Street Recruits | attacked | 682 | 62% (56–67) n=317 | 853 → 633 | 26% | 78 / 236 / 368 | 80% (73–85) n=173 | 59% (49–68) n=107 | 49% (41–56) n=170 |
+| Kerry Eurodyne: The Last Rockerboy | attacked | 600 | 60% (55–65) n=339 | 878 → 547 | 38% | 17 / 124 / 459 | 85% (79–90) n=148 | 59% (48–70) n=74 | 46% (39–53) n=213 |
+| Dexter DeShawn: One Last Chance | attacked | 536 | 66% (60–71) n=274 | 690 → 479 | 31% | 38 / 126 / 372 | 85% (78–90) n=139 | 71% (61–80) n=83 | 52% (44–60) n=151 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 534 | 73% (68–78) n=279 | 547 → 483 | 12% | 0 / 0 / 534 | 93% (89–96) n=178 | 80% (68–88) n=55 | 57% (49–65) n=143 |
+| Yorinobu Arasaka: Steel Dragon | played | 521 | 63% (58–67) n=391 | 644 → 521 | 19% | 0 / 251 / 270 | 82% (75–88) n=140 | 64% (51–76) n=56 | 53% (46–59) n=247 |
+| Animals Wrecker | played | 516 | 65% (61–70) n=394 | 743 → 516 | 31% | 0 / 347 / 169 | 79% (72–85) n=139 | 75% (64–83) n=83 | 57% (51–64) n=225 |
+| Bonnie and Clyde | sold | 484 | 61% (56–66) n=364 | 1270 → 484 | 62% | 114 / 198 / 172 | 76% (68–82) n=156 | 63% (53–72) n=99 | 45% (38–52) n=174 |
+| Rockn' Rockerboy | played | 468 | 62% (56–66) n=359 | 895 → 468 | 48% | 240 / 91 / 137 | 75% (69–81) n=182 | 58% (49–66) n=126 | 45% (36–54) n=120 |
+| Dexter DeShawn: One Last Chance | played | 466 | 62% (57–67) n=349 | 1276 → 441 | 65% | 140 / 152 / 174 | 80% (73–85) n=162 | 50% (42–59) n=123 | 49% (40–58) n=118 |
+| 6th Street Recruits | played | 458 | 60% (54–65) n=352 | 987 → 447 | 55% | 228 / 95 / 135 | 71% (63–77) n=161 | 55% (47–63) n=149 | 41% (32–52) n=94 |
+| Detonate | sold | 436 | 63% (58–68) n=358 | 569 → 436 | 23% | 242 / 93 / 101 | 72% (65–78) n=172 | 57% (48–65) n=120 | 51% (42–61) n=103 |
+| Adam Smasher: Ender of Legends | called | 415 | 61% (56–66) n=415 | 415 → 415 | 0% | 187 / 84 / 144 | 70% (64–75) n=261 | 46% (35–56) n=83 | 46% (35–58) n=71 |
+| Dexter DeShawn: Off the Grid | called | 395 | 62% (57–66) n=395 | 395 → 395 | 0% | 192 / 90 / 113 | 75% (69–80) n=240 | 46% (35–57) n=70 | 39% (29–49) n=85 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 327 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14535 | 8% | 0 / 1000 / 3562 / 5247 / 4397 / 329 |
+| gig/steal | 3785 | 25% | 134 / 495 / 1696 / 1439 / 21 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 1587 | 13% | 0 / 0 / 89 / 168 / 956 / 374 |
+| react | 892 | 63% | 0 / 463 / 429 / 0 / 0 / 0 |
+| unit/defeat | 615 | 61% | 166 / 177 / 251 / 19 / 2 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 505 | 72% | 0 / 505 / 0 / 0 / 0 / 0 |
+| unit/pump | 500 | 47% | 144 / 144 / 199 / 13 / 0 / 0 |
+| card/playFree | 498 | 61% | 0 / 122 / 343 / 33 / 0 / 0 |
+| unit/equip | 143 | 75% | 22 / 35 / 57 / 29 / 0 / 0 |
+| unit/sacrifice | 59 | 64% | 24 / 16 / 18 / 1 / 0 / 0 |
+| card/search | 54 | 69% | 25 / 23 / 6 / 0 / 0 / 0 |
+| card/discard | 38 | 42% | 6 / 9 / 23 / 0 / 0 / 0 |
+| card/defeatGear | 32 | 84% | 0 / 31 / 1 / 0 / 0 / 0 |
+| yesno/draw | 20 | 100% | 0 / 20 / 0 / 0 / 0 / 0 |
+| card/defeat | 16 | 81% | 11 / 3 / 1 / 1 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 20% | 0 / 5 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 857 attacks. Reacted to 323 (deck won 50% (44–56) n=279): stole 263, attackerGone 4, targetGone 44, bothGone 12. Let 534 resolve (52% (46–58) n=245): stole 374, stoleNothing 3, targetGone 147, bothGone 10. Choices: endReact 566, call 316, play 7, ability 3.
+
+## S1-02 Mutant (RYY) — 560 games, 31% won, 25647 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 850 | 38% (33–44) n=313 | 866 → 770 | 11% | 0 / 366 / 484 | 55% (47–62) n=163 | 54% (44–64) n=93 | 34% (28–40) n=210 |
+| 6th Street Recruits | attacked | 799 | 37% (32–42) n=346 | 865 → 726 | 16% | 74 / 264 / 461 | 49% (42–57) n=164 | 46% (37–55) n=115 | 30% (24–36) n=209 |
+| Dexter DeShawn: Off the Grid | ability | 672 | 31% (27–36) n=405 | 2026 → 672 | 67% | 32 / 102 / 538 | 51% (44–57) n=226 | 15% (9–24) n=93 | 10% (7–15) n=201 |
+| 6th Street Recruits | played | 611 | 34% (30–39) n=416 | 1019 → 598 | 41% | 206 / 188 / 217 | 44% (37–51) n=169 | 31% (24–39) n=151 | 24% (19–31) n=188 |
+| Dexter DeShawn: One Last Chance | played | 570 | 32% (28–37) n=401 | 1034 → 531 | 49% | 165 / 215 / 190 | 43% (36–51) n=176 | 27% (20–35) n=132 | 22% (17–29) n=166 |
+| Dexter DeShawn: One Last Chance | attacked | 552 | 35% (30–41) n=305 | 719 → 494 | 31% | 32 / 159 / 361 | 61% (52–70) n=110 | 51% (40–62) n=78 | 23% (18–30) n=202 |
+| Rockn' Rockerboy | played | 520 | 36% (32–41) n=381 | 720 → 519 | 28% | 221 / 154 / 145 | 49% (42–57) n=182 | 30% (23–39) n=129 | 27% (20–35) n=142 |
+| Minotaur | played | 503 | 30% (26–35) n=380 | 750 → 503 | 33% | 0 / 158 / 345 | 52% (44–60) n=137 | 38% (25–52) n=48 | 15% (11–20) n=242 |
+| Gilded Matón | played | 461 | 32% (27–37) n=352 | 1745 → 440 | 75% | 62 / 104 / 295 | 51% (43–59) n=145 | 20% (13–29) n=87 | 19% (14–26) n=159 |
+| River Ward: Detective on the Hunt | called | 456 | 30% (26–35) n=456 | 456 → 456 | 0% | 200 / 148 / 108 | 35% (29–40) n=275 | 25% (17–35) n=85 | 23% (16–32) n=96 |
+| Dexter DeShawn: Off the Grid | called | 448 | 32% (28–37) n=448 | 448 → 448 | 0% | 217 / 137 / 94 | 40% (34–46) n=256 | 27% (19–37) n=89 | 18% (12–27) n=103 |
+| Viktor Vektor: Sit Down and Relax | called | 427 | 32% (27–36) n=427 | 427 → 427 | 0% | 209 / 123 / 95 | 41% (35–47) n=253 | 19% (12–28) n=85 | 18% (11–27) n=89 |
+| Heywood Ripperdoc | attacked | 410 | 32% (26–38) n=223 | 437 → 399 | 9% | 0 / 94 / 316 | 60% (49–69) n=89 | 60% (44–73) n=42 | 20% (14–27) n=150 |
+| River Ward: Detective on the Hunt | ability | 404 | 32% (27–38) n=291 | 1894 → 404 | 79% | 34 / 75 / 295 | 50% (42–57) n=155 | 26% (16–39) n=54 | 13% (8–20) n=138 |
+| Minotaur | attacked | 377 | 35% (29–42) n=218 | 382 → 354 | 7% | 0 / 1 / 376 | 59% (48–68) n=92 | 73% (58–84) n=44 | 25% (18–33) n=132 |
+
+(31 more card uses in the JSON report.)
+
+Legal but never taken: Cyberpsychosis (played, legal in 113 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14379 | 8% | 0 / 1226 / 3763 / 5585 / 3649 / 156 |
+| gig/steal | 2837 | 26% | 146 / 384 / 1129 / 1160 / 18 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 1941 | 13% | 0 / 0 / 101 / 246 / 1200 / 394 |
+| react | 1311 | 79% | 0 / 904 / 407 / 0 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 534 | 66% | 0 / 534 / 0 / 0 / 0 / 0 |
+| unit/pump | 352 | 60% | 118 / 135 / 98 / 1 / 0 / 0 |
+| unit/equip | 343 | 81% | 30 / 82 / 184 / 47 / 0 / 0 |
+| card/defeatGear | 225 | 46% | 0 / 176 / 49 / 0 / 0 / 0 |
+| unit/defeat | 224 | 82% | 131 / 35 / 43 / 15 / 0 / 0 |
+| unit/sacrifice | 192 | 57% | 65 / 58 / 67 / 2 / 0 / 0 |
+| card/search | 171 | 95% | 21 / 137 / 13 / 0 / 0 / 0 |
+| card/playFree | 126 | 92% | 110 / 6 / 10 / 0 / 0 / 0 |
+| card/trash | 107 | 55% | 0 / 107 / 0 / 0 / 0 / 0 |
+| card/discard | 53 | 57% | 11 / 12 / 29 / 1 / 0 / 0 |
+| yesno/draw | 43 | 100% | 0 / 43 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 8 | 25% | 0 / 8 / 0 / 0 / 0 / 0 |
+| yesno/playFree | 1 | 100% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1260 attacks. Reacted to 269 (deck won 23% (18–28) n=246): stole 223, stoleNothing 1, attackerGone 9, targetGone 27, bothGone 9. Let 991 resolve (28% (24–33) n=357): stole 730, stoleNothing 1, targetGone 245, bothGone 15. Choices: call 257, endReact 1033, play 3, ability 18.
+
+## S1-03 Mutant (RBG) — 560 games, 46% won, 24562 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 745 | 48% (42–53) n=318 | 840 → 660 | 21% | 55 / 271 / 419 | 68% (60–74) n=173 | 54% (44–63) n=99 | 37% (31–44) n=191 |
+| Nadia: Fighting Through Grief | attacked | 711 | 47% (42–53) n=308 | 755 → 649 | 14% | 0 / 241 / 470 | 70% (62–77) n=150 | 70% (56–81) n=50 | 41% (35–47) n=241 |
+| Psycho Squad | attacked | 692 | 51% (46–57) n=314 | 825 → 622 | 25% | 58 / 239 / 395 | 67% (60–74) n=170 | 52% (42–61) n=99 | 41% (33–48) n=165 |
+| Wakako Okada: Peace and Harmony | ability | 537 | 40% (35–46) n=359 | 1977 → 537 | 73% | 7 / 149 / 381 | 61% (54–68) n=206 | 17% (10–27) n=72 | 15% (10–21) n=156 |
+| MaxTac AV | attacked | 525 | 54% (47–60) n=240 | 583 → 510 | 13% | 0 / 241 / 284 | 66% (58–73) n=148 | 72% (57–83) n=46 | 43% (34–51) n=122 |
+| Valentino Street Racer | played | 522 | 44% (39–49) n=373 | 1137 → 480 | 58% | 111 / 286 / 125 | 56% (49–63) n=171 | 28% (21–37) n=116 | 36% (29–45) n=137 |
+| Psycho Squad | played | 521 | 49% (44–54) n=383 | 962 → 513 | 47% | 216 / 171 / 134 | 59% (52–67) n=170 | 42% (34–50) n=147 | 41% (33–49) n=139 |
+| 6th Street Recruits | played | 519 | 45% (40–50) n=371 | 1021 → 509 | 50% | 205 / 155 / 159 | 57% (50–65) n=167 | 41% (34–50) n=145 | 31% (23–40) n=123 |
+| Nocturne OP55 N1 | sold | 507 | 46% (41–51) n=385 | 959 → 507 | 47% | 186 / 209 / 112 | 57% (49–65) n=156 | 36% (28–45) n=123 | 41% (34–49) n=168 |
+| Valentino Street Racer | attacked | 491 | 45% (40–51) n=283 | 649 → 442 | 32% | 19 / 155 / 317 | 62% (54–69) n=150 | 45% (33–57) n=67 | 30% (23–38) n=135 |
+| Nadia: Fighting Through Grief | played | 449 | 46% (41–52) n=350 | 712 → 449 | 37% | 0 / 314 / 135 | 53% (45–61) n=138 | 51% (39–63) n=61 | 41% (34–48) n=200 |
+| Adam Smasher: Ender of Legends | called | 426 | 47% (42–52) n=426 | 426 → 426 | 0% | 192 / 155 / 79 | 55% (49–60) n=286 | 30% (20–42) n=64 | 34% (25–45) n=76 |
+| Saburo Arasaka: Stubborn Patriarch | called | 418 | 45% (41–50) n=418 | 418 → 418 | 0% | 196 / 156 / 66 | 51% (45–57) n=292 | 33% (23–46) n=63 | 30% (20–42) n=63 |
+| Wakako Okada: Peace and Harmony | called | 405 | 49% (44–53) n=405 | 405 → 405 | 0% | 227 / 115 / 63 | 55% (49–60) n=275 | 39% (28–52) n=59 | 34% (24–45) n=71 |
+| Placide: Voodoo Sentinel | played | 364 | 47% (41–52) n=312 | 458 → 364 | 21% | 0 / 0 / 364 | 76% (67–83) n=116 | 54% (38–69) n=37 | 29% (23–36) n=182 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: Synapse Burnout (played, legal in 550 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13701 | 7% | 0 / 1183 / 4034 / 5381 / 2972 / 131 |
+| gig/steal | 3357 | 28% | 129 / 535 / 1424 / 1247 / 22 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 765 | 55% | 0 / 456 / 309 / 0 / 0 / 0 |
+| gigValue/adjust | 690 | 6% | 0 / 0 / 2 / 43 / 394 / 251 |
+| mode/mode | 578 | 75% | 0 / 529 / 49 / 0 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/adrenaline | 428 | 60% | 192 / 156 / 80 / 0 / 0 / 0 |
+| unit/weaken | 382 | 68% | 136 / 129 / 114 / 3 / 0 / 0 |
+| gig/swapGive | 319 | 35% | 0 / 19 / 248 / 52 / 0 / 0 |
+| gig/swapTake | 262 | 53% | 53 / 71 / 88 / 50 / 0 / 0 |
+| unit/defeat | 257 | 34% | 20 / 39 / 180 / 18 / 0 / 0 |
+| unit/bottomdeck | 256 | 48% | 69 / 49 / 135 / 3 / 0 / 0 |
+| card/discard | 226 | 73% | 13 / 132 / 80 / 1 / 0 / 0 |
+| unit/equip | 179 | 85% | 18 / 66 / 80 / 15 / 0 / 0 |
+| unit/spend | 89 | 52% | 21 / 37 / 31 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 81 | 69% | 40 / 20 / 21 / 0 / 0 / 0 |
+| unit/sacrifice | 55 | 82% | 34 / 10 / 10 / 1 / 0 / 0 |
+| yesno/draw | 43 | 100% | 0 / 43 / 0 / 0 / 0 / 0 |
+| unit/ready | 34 | 100% | 0 / 34 / 0 / 0 / 0 / 0 |
+| card/playFree | 23 | 100% | 0 / 18 / 5 / 0 / 0 / 0 |
+| unit/pump | 22 | 73% | 6 / 9 / 7 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 7 | 14% | 0 / 7 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 5 | 20% | 0 / 5 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 3 | 0% | 0 / 2 / 1 / 0 / 0 / 0 |
+
+Reaction windows: 746 attacks. Reacted to 334 (deck won 36% (31–42) n=292): stole 243, stoleNothing 3, attackerGone 17, targetGone 52, bothGone 18, noneGone 1. Let 412 resolve (41% (35–48) n=214): stole 316, stoleNothing 2, targetGone 88, bothGone 6. Choices: endReact 424, call 319, play 22.
+
+## S1-04 Cross (RBG) — 560 games, 37% won, 27405 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 812 | 45% (40–50) n=347 | 867 → 722 | 17% | 70 / 274 / 468 | 62% (55–69) n=171 | 45% (37–54) n=117 | 37% (31–44) n=202 |
+| Psycho Squad | attacked | 749 | 41% (36–46) n=340 | 852 → 691 | 19% | 68 / 225 / 456 | 63% (56–70) n=163 | 33% (25–42) n=109 | 33% (27–40) n=201 |
+| Wakako Okada: Peace and Harmony | ability | 675 | 33% (29–38) n=422 | 1983 → 675 | 66% | 5 / 164 / 506 | 51% (45–57) n=241 | 20% (14–29) n=108 | 10% (7–15) n=193 |
+| Dexter DeShawn: Off the Grid | ability | 648 | 34% (29–38) n=411 | 1980 → 648 | 67% | 7 / 143 / 498 | 54% (47–60) n=239 | 15% (9–24) n=91 | 9% (6–14) n=192 |
+| MaxTac AV | attacked | 630 | 41% (35–47) n=268 | 702 → 601 | 14% | 0 / 306 / 324 | 53% (46–61) n=169 | 48% (35–61) n=52 | 34% (27–41) n=155 |
+| Nadia: Fighting Through Grief | attacked | 627 | 36% (30–42) n=272 | 649 → 578 | 11% | 0 / 202 / 425 | 67% (57–75) n=111 | 56% (41–70) n=41 | 31% (25–37) n=225 |
+| 6th Street Recruits | played | 595 | 41% (37–46) n=415 | 1113 → 585 | 47% | 196 / 194 / 205 | 50% (43–56) n=202 | 39% (32–47) n=143 | 29% (22–36) n=157 |
+| Valentino Street Racer | played | 582 | 36% (32–41) n=409 | 1138 → 540 | 53% | 114 / 288 / 180 | 47% (41–54) n=207 | 22% (15–31) n=105 | 29% (23–36) n=166 |
+| Psycho Squad | played | 574 | 38% (34–43) n=409 | 1019 → 564 | 45% | 188 / 187 / 199 | 54% (47–61) n=191 | 28% (21–36) n=138 | 29% (22–36) n=159 |
+| Valentino Street Racer | attacked | 531 | 38% (33–44) n=291 | 721 → 482 | 33% | 18 / 141 / 372 | 53% (45–61) n=146 | 45% (34–56) n=78 | 28% (21–35) n=154 |
+| Nocturne OP55 N1 | sold | 468 | 38% (33–43) n=359 | 930 → 468 | 50% | 157 / 216 / 95 | 45% (38–53) n=172 | 29% (21–38) n=104 | 33% (26–41) n=136 |
+| Placide: Voodoo Sentinel | played | 458 | 41% (37–47) n=364 | 518 → 458 | 12% | 0 / 0 / 458 | 67% (59–75) n=131 | 55% (40–70) n=38 | 29% (23–35) n=233 |
+| Dexter DeShawn: Off the Grid | called | 436 | 39% (34–43) n=436 | 436 → 436 | 0% | 189 / 181 / 66 | 46% (40–51) n=283 | 18% (10–30) n=55 | 31% (22–40) n=98 |
+| Saburo Arasaka: Stubborn Patriarch | called | 422 | 35% (31–40) n=422 | 422 → 422 | 0% | 204 / 131 / 87 | 42% (37–48) n=274 | 25% (17–36) n=75 | 19% (12–30) n=73 |
+| Wakako Okada: Peace and Harmony | called | 406 | 38% (33–43) n=406 | 406 → 406 | 0% | 197 / 156 / 53 | 42% (37–48) n=276 | 25% (16–37) n=60 | 31% (22–43) n=70 |
+
+(30 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14767 | 7% | 0 / 1371 / 4139 / 5486 / 3619 / 152 |
+| gig/steal | 3244 | 26% | 161 / 526 / 1345 / 1197 / 15 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 1485 | 6% | 0 / 0 / 1 / 77 / 921 / 486 |
+| mode/mode | 1140 | 74% | 0 / 1066 / 74 / 0 / 0 / 0 |
+| react | 756 | 56% | 0 / 480 / 276 / 0 / 0 / 0 |
+| mulligan | 560 | 18% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/adrenaline | 472 | 56% | 206 / 145 / 121 / 0 / 0 / 0 |
+| unit/weaken | 403 | 68% | 145 / 149 / 108 / 1 / 0 / 0 |
+| gig/swapGive | 387 | 37% | 0 / 15 / 298 / 73 / 1 / 0 |
+| unit/pump | 364 | 60% | 125 / 137 / 100 / 2 / 0 / 0 |
+| unit/bottomdeck | 337 | 50% | 86 / 84 / 164 / 3 / 0 / 0 |
+| gig/swapTake | 323 | 52% | 70 / 98 / 98 / 54 / 3 / 0 |
+| card/discard | 284 | 77% | 8 / 185 / 89 / 2 / 0 / 0 |
+| unit/equip | 213 | 88% | 21 / 55 / 109 / 28 / 0 / 0 |
+| unit/spend | 117 | 59% | 36 / 51 / 30 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 99 | 71% | 51 / 29 / 19 / 0 / 0 / 0 |
+| unit/defeat | 54 | 56% | 3 / 4 / 27 / 20 / 0 / 0 |
+| yesno/draw | 51 | 100% | 0 / 51 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 43 | 88% | 24 / 13 / 6 / 0 / 0 / 0 |
+| gigValue/setGig | 41 | 7% | 0 / 0 / 0 / 4 / 6 / 31 |
+| card/playFree | 14 | 93% | 0 / 11 / 3 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 83% | 0 / 6 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 5 | 0% | 0 / 2 / 3 / 0 / 0 / 0 |
+
+Reaction windows: 750 attacks. Reacted to 329 (deck won 27% (22–32) n=290): stole 275, stoleNothing 6, attackerGone 6, targetGone 34, bothGone 8. Let 421 resolve (36% (30–43) n=219): stole 319, stoleNothing 1, targetGone 99, bothGone 2. Choices: endReact 426, call 326, play 4.
+
+## S1-05 Cross (RBB) — 560 games, 51% won, 24243 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 746 | 50% (44–55) n=339 | 860 → 693 | 19% | 65 / 306 / 375 | 60% (53–66) n=196 | 60% (50–68) n=114 | 40% (33–47) n=178 |
+| Psycho Squad | attacked | 733 | 52% (47–57) n=332 | 836 → 669 | 20% | 66 / 287 / 380 | 61% (55–68) n=205 | 54% (44–63) n=102 | 46% (38–53) n=160 |
+| Alt Cunningham: Soulkiller Architect | ability | 688 | 50% (45–54) n=436 | 1707 → 688 | 60% | 6 / 101 / 581 | 63% (57–68) n=284 | 48% (38–58) n=94 | 20% (15–27) n=182 |
+| V: Streetkid | attacked | 679 | 50% (45–55) n=402 | 794 → 679 | 14% | 19 / 223 / 437 | 62% (56–67) n=253 | 59% (48–70) n=76 | 33% (26–41) n=166 |
+| Jacked-In Voodoo Boy | played | 550 | 48% (43–53) n=406 | 1072 → 520 | 51% | 240 / 181 / 129 | 53% (47–58) n=283 | 45% (35–55) n=93 | 25% (17–35) n=81 |
+| Psycho Squad | played | 525 | 51% (46–56) n=383 | 944 → 520 | 45% | 218 / 172 / 135 | 56% (49–63) n=210 | 48% (40–56) n=149 | 29% (20–39) n=91 |
+| 6th Street Recruits | played | 522 | 51% (46–56) n=398 | 1004 → 517 | 49% | 212 / 176 / 134 | 55% (48–61) n=220 | 51% (43–59) n=141 | 36% (27–47) n=88 |
+| Trust No One | sold | 478 | 50% (45–55) n=367 | 723 → 478 | 34% | 238 / 114 / 126 | 55% (48–62) n=184 | 54% (45–62) n=134 | 33% (25–43) n=103 |
+| V: Streetkid | Go Solo (self-paid 418) | 418 | 49% (44–54) n=418 | 969 → 418 | 57% | 22 / 196 / 200 | 59% (52–65) n=219 | 44% (30–59) n=43 | 36% (29–44) n=156 |
+| Jackie Welles: Pour One Out For Me | called | 413 | 52% (47–56) n=413 | 413 → 413 | 0% | 126 / 192 / 95 | 56% (51–62) n=311 | 42% (31–54) n=66 | 28% (16–44) n=36 |
+| V: Streetkid | called | 411 | 54% (49–59) n=411 | 411 → 411 | 0% | 142 / 190 / 79 | 58% (52–63) n=291 | 52% (40–63) n=66 | 35% (24–49) n=54 |
+| Alt Cunningham: Soulkiller Architect | called | 409 | 52% (47–56) n=409 | 409 → 409 | 0% | 120 / 207 / 82 | 57% (51–62) n=307 | 41% (29–54) n=54 | 29% (18–43) n=48 |
+| Maman Brigitte: Spirit of Death | attacked | 388 | 49% (43–56) n=226 | 492 → 376 | 24% | 0 / 182 / 206 | 60% (52–68) n=148 | 56% (42–68) n=52 | 31% (21–42) n=71 |
+| Shattered Memories | sold | 373 | 53% (47–58) n=316 | 843 → 373 | 56% | 114 / 142 / 117 | 60% (52–67) n=155 | 50% (40–60) n=96 | 40% (30–50) n=90 |
+| Jacked-In Voodoo Boy | attacked | 369 | 49% (42–55) n=217 | 344 → 317 | 8% | 44 / 81 / 244 | 60% (51–67) n=139 | 52% (38–66) n=46 | 26% (18–36) n=84 |
+
+(33 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 969 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13410 | 7% | 0 / 1279 / 3816 / 5468 / 2776 / 71 |
+| gig/steal | 2991 | 33% | 220 / 594 / 1367 / 792 / 18 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 1175 | 19% | 0 / 43 / 221 / 342 / 314 / 255 |
+| react | 902 | 58% | 0 / 549 / 352 / 1 / 0 / 0 |
+| unit/bottomdeck | 842 | 78% | 552 / 143 / 142 / 5 / 0 / 0 |
+| card/discard | 616 | 64% | 115 / 310 / 190 / 1 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 450 | 70% | 217 / 144 / 83 / 6 / 0 / 0 |
+| card/playFromTrash | 445 | 62% | 161 / 140 / 141 / 3 / 0 / 0 |
+| yesno/discardFor | 200 | 100% | 0 / 200 / 0 / 0 / 0 / 0 |
+| unit/weaken | 80 | 64% | 28 / 25 / 26 / 1 / 0 / 0 |
+| mode/mode | 79 | 91% | 0 / 7 / 72 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 76 | 70% | 24 / 23 / 29 / 0 / 0 / 0 |
+| unit/cantAttack | 61 | 57% | 18 / 19 / 23 / 1 / 0 / 0 |
+| unit/sacrifice | 61 | 90% | 45 / 12 / 4 / 0 / 0 / 0 |
+| unit/call | 23 | 100% | 0 / 10 / 13 / 0 / 0 / 0 |
+| yesno/draw | 21 | 100% | 0 / 21 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 6 | 0% | 0 / 4 / 2 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 75% | 0 / 4 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 869 attacks. Reacted to 370 (deck won 45% (39–50) n=314): stole 267, stoleNothing 1, attackerGone 4, targetGone 89, bothGone 9. Let 499 resolve (43% (36–49) n=232): stole 327, stoleNothing 4, attackerGone 1, targetGone 156, bothGone 11. Choices: endReact 523, call 332, block 38, play 9.
+
+## S1-06 Cross (BGY) — 560 games, 26% won, 26267 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Psycho Squad | attacked | 967 | 31% (27–36) n=374 | 1072 → 849 | 21% | 98 / 415 / 454 | 56% (49–64) n=154 | 33% (26–42) n=138 | 29% (24–34) n=274 |
+| Psycho Squad | played | 672 | 29% (25–33) n=442 | 902 → 666 | 26% | 359 / 186 / 127 | 36% (29–42) n=211 | 23% (17–30) n=178 | 26% (20–33) n=171 |
+| Valentino Street Racer | played | 656 | 27% (23–32) n=447 | 1129 → 599 | 47% | 213 / 297 / 146 | 40% (33–48) n=176 | 20% (14–27) n=157 | 21% (16–27) n=198 |
+| Trauma Team Operatives | attacked | 581 | 30% (25–35) n=299 | 624 → 540 | 13% | 0 / 152 / 429 | 70% (60–79) n=88 | 48% (35–61) n=54 | 19% (15–25) n=236 |
+| Trauma Team Operatives | played | 580 | 25% (21–29) n=406 | 957 → 566 | 41% | 14 / 331 / 235 | 35% (28–43) n=153 | 19% (12–29) n=79 | 20% (15–25) n=256 |
+| Alt Cunningham: Soulkiller Architect | ability | 576 | 27% (22–31) n=400 | 2040 → 573 | 72% | 8 / 143 / 425 | 56% (49–64) n=165 | 19% (12–30) n=73 | 8% (5–13) n=239 |
+| Valentino Street Racer | attacked | 556 | 31% (26–36) n=321 | 803 → 506 | 37% | 48 / 198 / 310 | 54% (45–63) n=117 | 33% (24–44) n=82 | 22% (17–28) n=208 |
+| Placide: Voodoo Sentinel | played | 540 | 32% (27–36) n=409 | 564 → 540 | 4% | 0 / 0 / 540 | 78% (68–85) n=91 | 45% (30–62) n=33 | 20% (16–25) n=324 |
+| Muamar Reyes: El Capitán | ability | 522 | 27% (23–32) n=357 | 2105 → 522 | 75% | 13 / 160 / 349 | 55% (47–62) n=157 | 14% (7–24) n=66 | 9% (6–13) n=214 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 514 | 25% (21–30) n=345 | 2051 → 514 | 75% | 15 / 151 / 348 | 50% (42–58) n=145 | 16% (9–27) n=68 | 9% (6–14) n=214 |
+| Alt Cunningham: Soulkiller Architect | called | 418 | 28% (24–32) n=418 | 418 → 418 | 0% | 246 / 122 / 50 | 37% (32–43) n=255 | 10% (6–19) n=86 | 17% (10–27) n=77 |
+| Hanako Arasaka: Daughter of the Emperor | called | 399 | 27% (22–31) n=399 | 399 → 399 | 0% | 261 / 96 / 42 | 32% (27–38) n=266 | 13% (7–22) n=77 | 20% (11–32) n=56 |
+| The Heist | sold | 396 | 28% (23–33) n=329 | 517 → 396 | 23% | 180 / 86 / 130 | 39% (32–47) n=148 | 23% (16–32) n=100 | 17% (11–25) n=119 |
+| Muamar Reyes: El Capitán | called | 391 | 28% (24–33) n=391 | 391 → 391 | 0% | 252 / 103 / 36 | 33% (28–39) n=260 | 14% (8–24) n=72 | 22% (13–34) n=59 |
+| Chrome Reverie | sold | 387 | 30% (25–35) n=306 | 941 → 387 | 59% | 161 / 132 / 94 | 40% (32–49) n=131 | 25% (17–35) n=96 | 20% (14–28) n=125 |
+
+(30 more card uses in the JSON report.)
+
+Legal but never taken: Take Control (played, legal in 826 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14021 | 9% | 0 / 924 / 3204 / 5280 / 4483 / 130 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/steal | 2225 | 28% | 44 / 324 / 825 / 1022 / 10 / 0 |
+| react | 954 | 44% | 0 / 534 / 418 / 2 / 0 / 0 |
+| gigValue/adjust | 792 | 11% | 0 / 27 / 56 / 99 / 471 / 139 |
+| unit/bottomdeck | 653 | 45% | 135 / 146 / 361 / 11 / 0 / 0 |
+| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 549 | 75% | 0 / 549 / 0 / 0 / 0 / 0 |
+| card/discard | 526 | 74% | 8 / 291 / 223 / 4 / 0 / 0 |
+| gig/swapGive | 514 | 46% | 33 / 79 / 243 / 156 / 3 / 0 |
+| gig/swapTake | 514 | 28% | 23 / 47 / 208 / 226 / 10 / 0 |
+| card/playFromTrash | 393 | 58% | 154 / 95 / 136 / 8 / 0 / 0 |
+| unit/protect | 375 | 70% | 198 / 131 / 46 / 0 / 0 / 0 |
+| unit/adrenaline | 374 | 78% | 232 / 118 / 24 / 0 / 0 / 0 |
+| unit/spend | 358 | 44% | 80 / 124 / 152 / 2 / 0 / 0 |
+| mode/mode | 224 | 100% | 0 / 0 / 224 / 0 / 0 / 0 |
+| unit/cantAttack | 207 | 54% | 66 / 74 / 67 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 165 | 77% | 91 / 49 / 25 / 0 / 0 / 0 |
+| unit/stealMod | 162 | 64% | 18 / 65 / 77 / 2 / 0 / 0 |
+| gigValue/setGig | 97 | 8% | 0 / 1 / 7 / 21 / 20 / 48 |
+| unit/call | 89 | 100% | 0 / 44 / 45 / 0 / 0 / 0 |
+| unit/weaken | 84 | 57% | 12 / 35 / 35 / 2 / 0 / 0 |
+| unit/equip | 71 | 73% | 11 / 2 / 51 / 7 / 0 / 0 |
+| unit/ready | 53 | 100% | 0 / 53 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 43 | 84% | 23 / 15 / 5 / 0 / 0 / 0 |
+| card/discardForNothing | 10 | 0% | 0 / 7 / 3 / 0 / 0 / 0 |
+| yesno/draw | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
+| card/search | 2 | 100% | 2 / 0 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+| yesno/playFree | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 899 attacks. Reacted to 488 (deck won 22% (18–27) n=357): stole 285, stoleNothing 145, attackerGone 5, targetGone 31, bothGone 6, noneGone 16. Let 411 resolve (20% (15–25) n=214): stole 328, stoleNothing 3, targetGone 75, bothGone 5. Choices: endReact 424, call 332, play 198.
+
+## S1-07 Explorer (RYY) — 560 games, 33% won, 25756 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 1040 | 39% (34–43) n=402 | 1033 → 928 | 10% | 0 / 434 / 606 | 54% (47–60) n=218 | 46% (37–56) n=102 | 32% (26–37) n=260 |
+| 6th Street Recruits | attacked | 786 | 38% (33–43) n=363 | 887 → 714 | 20% | 84 / 228 / 474 | 60% (52–67) n=156 | 42% (33–50) n=125 | 29% (23–35) n=227 |
+| Rockn' Rockerboy | played | 664 | 36% (32–40) n=451 | 846 → 660 | 22% | 244 / 198 / 222 | 52% (45–59) n=212 | 29% (22–38) n=136 | 24% (19–30) n=218 |
+| 6th Street Recruits | played | 627 | 36% (31–40) n=429 | 1064 → 613 | 42% | 220 / 181 / 226 | 51% (44–58) n=184 | 32% (25–39) n=161 | 27% (21–33) n=188 |
+| Gilded Matón | played | 511 | 33% (29–38) n=374 | 1639 → 482 | 71% | 64 / 138 / 309 | 50% (42–57) n=167 | 20% (14–29) n=104 | 23% (17–30) n=160 |
+| Johnny Silverhand: Rocking Renegade | ability | 468 | 33% (28–38) n=329 | 1694 → 468 | 72% | 2 / 77 / 389 | 51% (44–58) n=175 | 25% (15–37) n=57 | 14% (10–20) n=168 |
+| Johnny Silverhand: Rocking Renegade | called | 465 | 35% (30–39) n=465 | 465 → 465 | 0% | 214 / 153 / 98 | 40% (35–46) n=298 | 20% (13–29) n=87 | 31% (22–42) n=80 |
+| Kerry Eurodyne: Axe, Attitude, Audience | called | 454 | 32% (28–37) n=454 | 454 → 454 | 0% | 213 / 127 / 114 | 41% (35–46) n=299 | 16% (10–26) n=85 | 16% (9–26) n=70 |
+| River Ward: Detective on the Hunt | ability | 451 | 31% (27–37) n=315 | 1889 → 451 | 76% | 24 / 82 / 345 | 48% (41–55) n=183 | 16% (8–27) n=58 | 10% (6–16) n=139 |
+| River Ward: Detective on the Hunt | called | 445 | 34% (30–38) n=445 | 445 → 445 | 0% | 218 / 128 / 99 | 40% (35–46) n=295 | 23% (15–33) n=84 | 21% (13–33) n=66 |
+| Viktor Vektor: You Might Feel a Little Pinch | played | 419 | 33% (28–38) n=341 | 896 → 402 | 55% | 89 / 186 / 144 | 47% (39–55) n=152 | 21% (14–30) n=99 | 23% (17–31) n=126 |
+| Minotaur | played | 412 | 32% (27–37) n=343 | 633 → 412 | 35% | 0 / 149 / 263 | 57% (48–66) n=112 | 27% (17–41) n=51 | 19% (15–25) n=221 |
+| Dexter DeShawn: One Last Chance | played | 410 | 32% (27–37) n=334 | 724 → 393 | 46% | 94 / 187 / 129 | 41% (34–50) n=147 | 25% (18–35) n=99 | 25% (19–34) n=126 |
+| Cyberpsychosis | sold | 397 | 30% (26–35) n=334 | 744 → 397 | 47% | 119 / 144 / 134 | 44% (36–52) n=132 | 28% (19–40) n=74 | 20% (14–26) n=163 |
+| Gilded Matón | attacked | 384 | 35% (29–41) n=240 | 482 → 355 | 26% | 15 / 76 / 293 | 58% (48–68) n=88 | 44% (33–57) n=61 | 24% (18–32) n=146 |
+
+(30 more card uses in the JSON report.)
+
+Legal but never taken: Cyberpsychosis (played, legal in 154 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14671 | 7% | 0 / 1119 / 3891 / 5697 / 3785 / 179 |
+| gig/steal | 2743 | 29% | 128 / 406 / 1162 / 1036 / 11 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| yesno/kerryReroll | 1585 | 56% | 0 / 1585 / 0 / 0 / 0 / 0 |
+| react | 1031 | 75% | 0 / 697 / 334 / 0 / 0 / 0 |
+| gigValue/adjust | 1029 | 10% | 0 / 9 / 111 / 133 / 525 / 251 |
+| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/lagAttack | 468 | 93% | 96 / 141 / 220 / 11 / 0 / 0 |
+| unit/equip | 353 | 75% | 23 / 66 / 206 / 58 / 0 / 0 |
+| unit/defeat | 322 | 69% | 108 / 56 / 107 / 50 / 1 / 0 |
+| unit/sacrifice | 243 | 60% | 78 / 107 / 58 / 0 / 0 / 0 |
+| card/defeatGear | 157 | 55% | 0 / 139 / 18 / 0 / 0 / 0 |
+| card/playFree | 100 | 94% | 84 / 7 / 9 / 0 / 0 / 0 |
+| card/trash | 88 | 55% | 0 / 88 / 0 / 0 / 0 / 0 |
+| yesno/draw | 61 | 100% | 0 / 61 / 0 / 0 / 0 / 0 |
+| card/discard | 46 | 35% | 6 / 6 / 33 / 1 / 0 / 0 |
+| card/search | 46 | 72% | 22 / 19 / 5 / 0 / 0 / 0 |
+| yesno/playFree | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 75% | 0 / 4 / 0 / 0 / 0 / 0 |
+| unit/pump | 3 | 100% | 3 / 0 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 993 attacks. Reacted to 254 (deck won 29% (24–35) n=237): stole 207, attackerGone 2, targetGone 41, bothGone 4. Let 739 resolve (33% (28–38) n=310): stole 550, stoleNothing 2, attackerGone 2, targetGone 167, bothGone 18. Choices: call 243, endReact 770, ability 15, play 3.
+
+## S1-08 Explorer (BGG) — 560 games, 45% won, 24351 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Psycho Squad | attacked | 719 | 48% (42–53) n=305 | 836 → 656 | 22% | 46 / 281 / 392 | 66% (59–73) n=160 | 54% (45–63) n=113 | 38% (32–46) n=180 |
+| Nadia: Fighting Through Grief | attacked | 701 | 42% (37–48) n=307 | 726 → 649 | 11% | 0 / 227 / 474 | 71% (62–78) n=121 | 62% (48–74) n=52 | 34% (28–40) n=243 |
+| Pepe Najarro: Working Doubles | attacked | 663 | 49% (43–54) n=302 | 742 → 607 | 18% | 52 / 228 / 383 | 71% (63–78) n=146 | 55% (45–64) n=99 | 37% (30–45) n=170 |
+| MaxTac AV | attacked | 563 | 54% (48–60) n=237 | 606 → 541 | 11% | 0 / 250 / 313 | 65% (57–72) n=155 | 75% (63–84) n=63 | 45% (37–54) n=132 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 543 | 38% (33–43) n=348 | 1946 → 543 | 72% | 6 / 118 / 419 | 65% (57–71) n=176 | 17% (11–26) n=88 | 16% (11–22) n=166 |
+| Psycho Squad | played | 521 | 45% (40–50) n=377 | 1049 → 510 | 51% | 223 / 132 / 166 | 50% (43–57) n=183 | 46% (38–54) n=138 | 29% (21–38) n=118 |
+| Pepe Najarro: Working Doubles | played | 514 | 48% (43–53) n=364 | 1022 → 506 | 50% | 191 / 131 / 192 | 66% (59–73) n=170 | 38% (30–47) n=136 | 30% (23–38) n=137 |
+| Valentino Street Racer | played | 513 | 44% (39–49) n=386 | 1180 → 469 | 60% | 110 / 205 / 198 | 54% (47–61) n=197 | 32% (24–41) n=106 | 34% (26–42) n=130 |
+| Judy Álvarez: Braindance Maestro | ability | 499 | 40% (35–46) n=327 | 1927 → 499 | 74% | 6 / 105 / 388 | 64% (57–71) n=177 | 19% (12–30) n=73 | 21% (15–28) n=160 |
+| Valentino Street Racer | attacked | 486 | 42% (37–48) n=280 | 626 → 441 | 30% | 22 / 121 / 343 | 66% (58–74) n=127 | 46% (34–58) n=61 | 27% (21–35) n=164 |
+| Nadia: Fighting Through Grief | played | 466 | 44% (39–49) n=356 | 940 → 466 | 50% | 0 / 254 / 212 | 57% (48–65) n=132 | 38% (27–51) n=60 | 33% (28–40) n=227 |
+| Judy Álvarez: Braindance Maestro | called | 453 | 46% (41–51) n=453 | 453 → 453 | 0% | 235 / 127 / 91 | 53% (48–59) n=309 | 32% (23–43) n=81 | 27% (18–39) n=63 |
+| Saburo Arasaka: Stubborn Patriarch | called | 446 | 44% (40–49) n=446 | 446 → 446 | 0% | 228 / 127 / 91 | 50% (44–56) n=291 | 33% (23–43) n=83 | 35% (25–46) n=72 |
+| Hanako Arasaka: Daughter of the Emperor | called | 437 | 46% (41–50) n=437 | 437 → 437 | 0% | 222 / 144 / 71 | 49% (44–55) n=295 | 31% (22–42) n=77 | 46% (35–58) n=65 |
+| Placide: Voodoo Sentinel | played | 431 | 42% (37–47) n=340 | 498 → 431 | 13% | 0 / 0 / 431 | 65% (56–73) n=114 | 54% (41–67) n=52 | 27% (21–33) n=208 |
+
+(33 more card uses in the JSON report.)
+
+Legal but never taken: Take Control (played, legal in 292 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13995 | 7% | 0 / 1239 / 4046 / 5748 / 2855 / 107 |
+| gig/steal | 3020 | 30% | 125 / 385 / 1387 / 1111 / 12 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/swapGive | 885 | 36% | 13 / 72 / 475 / 319 / 6 / 0 |
+| gig/swapTake | 842 | 37% | 93 / 136 / 328 / 279 / 6 / 0 |
+| react | 751 | 57% | 0 / 512 / 236 / 3 / 0 / 0 |
+| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/discard | 415 | 60% | 37 / 189 / 185 / 4 / 0 / 0 |
+| unit/adrenaline | 384 | 52% | 170 / 135 / 79 / 0 / 0 / 0 |
+| unit/defeat | 353 | 64% | 134 / 92 / 125 / 2 / 0 / 0 |
+| unit/equip | 262 | 87% | 73 / 37 / 138 / 14 / 0 / 0 |
+| yesno/addToHand | 212 | 100% | 0 / 212 / 0 / 0 / 0 / 0 |
+| unit/bottomdeck | 186 | 46% | 36 / 54 / 94 / 2 / 0 / 0 |
+| unit/spend | 61 | 56% | 26 / 22 / 13 / 0 / 0 / 0 |
+| unit/sacrifice | 60 | 90% | 40 / 15 / 5 / 0 / 0 / 0 |
+| mode/mode | 33 | 100% | 0 / 0 / 33 / 0 / 0 / 0 |
+| unit/pump | 30 | 63% | 12 / 11 / 7 / 0 / 0 / 0 |
+| unit/stealMod | 17 | 71% | 1 / 8 / 8 / 0 / 0 / 0 |
+| card/playFree | 14 | 86% | 0 / 7 / 7 / 0 / 0 / 0 |
+| yesno/draw | 12 | 100% | 0 / 12 / 0 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 11 | 73% | 5 / 4 / 2 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 2 | 0% | 0 / 1 / 1 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 717 attacks. Reacted to 307 (deck won 36% (30–42) n=253): fizzled 23, stole 188, stoleNothing 16, attackerGone 2, targetGone 73, bothGone 5. Let 410 resolve (39% (33–46) n=215): stole 319, targetGone 84, bothGone 7. Choices: endReact 426, call 239, block 46, play 17, ability 23.
+
+## S2-01 Mutant (RYY) — 560 games, 38% won, 26136 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 884 | 46% (40–51) n=347 | 897 → 800 | 11% | 0 / 376 / 508 | 61% (54–68) n=196 | 56% (46–66) n=93 | 39% (33–46) n=202 |
+| 6th Street Recruits | attacked | 822 | 41% (36–47) n=360 | 899 → 755 | 16% | 96 / 272 / 454 | 58% (51–65) n=183 | 41% (33–49) n=137 | 31% (25–37) n=203 |
+| Rockn' Rockerboy | played | 664 | 40% (35–44) n=435 | 899 → 663 | 26% | 233 / 187 / 244 | 56% (49–62) n=231 | 37% (30–46) n=139 | 22% (16–28) n=189 |
+| Dexter DeShawn: One Last Chance | played | 623 | 38% (33–42) n=421 | 1131 → 566 | 50% | 143 / 281 / 199 | 50% (43–57) n=212 | 27% (20–35) n=145 | 27% (20–35) n=144 |
+| 6th Street Recruits | played | 618 | 39% (35–44) n=423 | 1111 → 610 | 45% | 220 / 203 / 195 | 49% (42–56) n=185 | 36% (29–43) n=173 | 33% (27–41) n=168 |
+| Dexter DeShawn: One Last Chance | attacked | 615 | 39% (34–45) n=328 | 781 → 544 | 30% | 33 / 194 / 388 | 59% (51–66) n=155 | 52% (42–62) n=91 | 28% (22–35) n=184 |
+| Dexter DeShawn: Off the Grid | ability | 610 | 36% (31–41) n=393 | 1924 → 610 | 68% | 24 / 104 / 482 | 58% (51–64) n=225 | 19% (12–29) n=80 | 11% (8–17) n=175 |
+| Rogue Amendiares: Preem Solo | attacked | 601 | 35% (31–40) n=413 | 641 → 601 | 6% | 0 / 128 / 473 | 57% (50–65) n=169 | 48% (37–60) n=64 | 26% (21–32) n=253 |
+| Rogue Amendiares: Preem Solo | Go Solo (self-paid 429) | 429 | 34% (30–39) n=429 | 883 → 429 | 51% | 0 / 137 / 292 | 52% (43–60) n=131 | 31% (19–46) n=39 | 26% (21–32) n=259 |
+| Detonate | sold | 406 | 36% (31–41) n=344 | 549 → 406 | 26% | 216 / 79 / 111 | 46% (38–54) n=150 | 33% (26–42) n=123 | 20% (13–29) n=100 |
+| Cyberpsychosis | sold | 406 | 37% (32–42) n=338 | 796 → 406 | 49% | 104 / 159 / 143 | 45% (38–53) n=152 | 38% (28–48) n=87 | 25% (19–33) n=139 |
+| Over the Edge | sold | 405 | 37% (32–43) n=308 | 1763 → 405 | 77% | 39 / 161 / 205 | 46% (37–55) n=117 | 42% (31–55) n=59 | 29% (23–36) n=175 |
+| Dexter DeShawn: Off the Grid | called | 401 | 36% (31–41) n=401 | 421 → 401 | 5% | 185 / 127 / 89 | 41% (35–47) n=250 | 24% (16–35) n=70 | 30% (21–40) n=81 |
+| Dum Dum: Maelstrom Triggerman | called | 398 | 37% (33–42) n=398 | 414 → 398 | 4% | 188 / 105 / 105 | 45% (39–51) n=255 | 30% (21–41) n=80 | 16% (9–27) n=63 |
+| Rogue Amendiares: Preem Solo | called | 388 | 36% (31–41) n=388 | 420 → 388 | 8% | 184 / 112 / 92 | 44% (38–50) n=246 | 25% (16–36) n=68 | 20% (13–31) n=74 |
+
+(36 more card uses in the JSON report.)
+
+Legal but never taken: Rogue Amendiares: Preem Solo (Legend play, legal in 883 turns), Cyberpsychosis (played, legal in 174 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14850 | 7% | 0 / 1033 / 3591 / 5345 / 4647 / 234 |
+| gig/steal | 2994 | 27% | 174 / 472 / 1284 / 1055 / 9 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 2214 | 10% | 0 / 7 / 148 / 300 / 1298 / 461 |
+| react | 1048 | 71% | 0 / 572 / 476 / 0 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 527 | 69% | 0 / 527 / 0 / 0 / 0 / 0 |
+| unit/pump | 473 | 51% | 129 / 181 / 161 / 2 / 0 / 0 |
+| unit/equip | 412 | 86% | 71 / 74 / 231 / 36 / 0 / 0 |
+| unit/defeat | 200 | 56% | 24 / 34 / 100 / 41 / 1 / 0 |
+| unit/sacrifice | 182 | 59% | 69 / 58 / 55 / 0 / 0 / 0 |
+| card/defeatGear | 150 | 71% | 0 / 128 / 22 / 0 / 0 / 0 |
+| card/discard | 107 | 68% | 3 / 56 / 46 / 2 / 0 / 0 |
+| unit/call | 95 | 100% | 0 / 48 / 47 / 0 / 0 / 0 |
+| yesno/draw | 38 | 100% | 0 / 38 / 0 / 0 / 0 / 0 |
+| card/playFree | 18 | 100% | 18 / 0 / 0 / 0 / 0 / 0 |
+| card/defeat | 13 | 92% | 11 / 2 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 13 | 54% | 0 / 13 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1020 attacks. Reacted to 308 (deck won 33% (28–39) n=271): stole 234, stoleNothing 1, attackerGone 7, targetGone 53, bothGone 13. Let 712 resolve (35% (30–41) n=302): stole 502, stoleNothing 8, attackerGone 7, targetGone 182, bothGone 13. Choices: endReact 739, call 299, ability 2, play 8.
+
+## S2-02 Mutant (RGG) — 560 games, 55% won, 22742 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Jackie Welles: Mama's Favorite | attacked | 768 | 50% (45–55) n=406 | 856 → 768 | 10% | 0 / 325 / 443 | 61% (54–67) n=239 | 54% (44–65) n=83 | 45% (38–52) n=187 |
+| Pepe Najarro: Working Doubles | attacked | 694 | 56% (51–62) n=303 | 787 → 637 | 19% | 59 / 267 / 368 | 74% (67–80) n=166 | 60% (50–69) n=105 | 47% (40–55) n=166 |
+| 6th Street Recruits | attacked | 664 | 57% (51–62) n=292 | 746 → 604 | 19% | 58 / 239 / 367 | 71% (64–78) n=157 | 58% (48–67) n=98 | 50% (43–58) n=159 |
+| Nadia: Fighting Through Grief | attacked | 626 | 53% (47–58) n=289 | 641 → 580 | 10% | 0 / 167 / 459 | 81% (73–87) n=136 | 76% (62–85) n=49 | 45% (39–52) n=216 |
+| MaxTac AV | attacked | 518 | 62% (56–68) n=223 | 553 → 487 | 12% | 0 / 237 / 281 | 73% (65–79) n=146 | 76% (62–85) n=49 | 59% (50–67) n=116 |
+| Pepe Najarro: Working Doubles | played | 477 | 55% (50–60) n=361 | 1027 → 472 | 54% | 225 / 107 / 145 | 60% (53–67) n=176 | 48% (40–56) n=141 | 47% (37–57) n=94 |
+| Jackie Welles: Mama's Favorite | called | 459 | 56% (51–60) n=459 | 459 → 459 | 0% | 233 / 167 / 59 | 57% (52–63) n=343 | 50% (38–62) n=58 | 50% (38–62) n=58 |
+| 6th Street Recruits | played | 457 | 53% (48–58) n=342 | 1003 → 455 | 55% | 222 / 107 / 128 | 57% (49–65) n=152 | 55% (47–63) n=138 | 38% (29–48) n=100 |
+| Memory Relapse | sold | 456 | 55% (49–60) n=350 | 1154 → 456 | 60% | 114 / 195 / 147 | 57% (49–64) n=176 | 50% (40–60) n=92 | 55% (46–63) n=126 |
+| Saburo Arasaka: Stubborn Patriarch | called | 454 | 56% (51–60) n=454 | 454 → 454 | 0% | 212 / 157 / 85 | 62% (56–67) n=343 | 45% (33–57) n=67 | 27% (16–42) n=44 |
+| Valentino Street Racer | attacked | 447 | 55% (49–61) n=255 | 570 → 408 | 28% | 19 / 125 / 303 | 68% (60–75) n=143 | 55% (44–66) n=78 | 39% (30–49) n=105 |
+| Adam Smasher: Ender of Legends | called | 443 | 56% (52–61) n=443 | 443 → 443 | 0% | 220 / 130 / 93 | 60% (54–65) n=331 | 53% (41–64) n=68 | 36% (24–51) n=44 |
+| Valentino Street Racer | played | 441 | 54% (49–59) n=342 | 1257 → 403 | 68% | 118 / 141 / 182 | 66% (58–72) n=172 | 48% (39–57) n=109 | 39% (30–50) n=89 |
+| Jackie Welles: Mama's Favorite | Go Solo (self-paid 423) | 423 | 49% (44–54) n=423 | 875 → 423 | 52% | 0 / 256 / 167 | 55% (47–62) n=174 | 48% (37–60) n=66 | 44% (37–51) n=183 |
+| Nadia: Fighting Through Grief | played | 416 | 53% (48–59) n=334 | 913 → 416 | 54% | 0 / 222 / 194 | 66% (58–73) n=135 | 56% (43–69) n=55 | 43% (36–50) n=181 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: Jackie Welles: Mama's Favorite (Legend play, legal in 876 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13115 | 5% | 0 / 1385 / 3963 / 5402 / 2285 / 80 |
+| gig/steal | 3380 | 30% | 151 / 533 / 1642 / 1038 / 16 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/ready | 777 | 77% | 0 / 393 / 379 / 5 / 0 / 0 |
+| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
+| react | 520 | 53% | 0 / 309 / 211 / 0 / 0 / 0 |
+| unit/defeat | 451 | 54% | 118 / 144 / 180 / 9 / 0 / 0 |
+| unit/adrenaline | 323 | 55% | 157 / 113 / 53 / 0 / 0 / 0 |
+| gig/swapGive | 316 | 37% | 0 / 24 / 233 / 56 / 3 / 0 |
+| yesno/replaceDefeat | 272 | 4% | 0 / 272 / 0 / 0 / 0 / 0 |
+| gig/swapTake | 269 | 51% | 58 / 77 / 84 / 44 / 6 / 0 |
+| gigValue/adjust | 156 | 4% | 0 / 0 / 0 / 1 / 19 / 136 |
+| unit/spend | 82 | 73% | 45 / 22 / 15 / 0 / 0 / 0 |
+| unit/equip | 78 | 85% | 5 / 28 / 42 / 3 / 0 / 0 |
+| unit/sacrifice | 61 | 89% | 39 / 19 / 3 / 0 / 0 / 0 |
+| card/discard | 55 | 51% | 8 / 14 / 32 / 1 / 0 / 0 |
+| gigValue/setGig | 28 | 7% | 0 / 0 / 1 / 2 / 5 / 20 |
+| yesno/draw | 27 | 100% | 0 / 27 / 0 / 0 / 0 / 0 |
+| unit/pump | 17 | 71% | 3 / 11 / 3 / 0 / 0 / 0 |
+| card/playFree | 9 | 89% | 0 / 7 / 2 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 67% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 511 attacks. Reacted to 241 (deck won 42% (36–49) n=218): stole 190, attackerGone 13, targetGone 31, bothGone 7. Let 270 resolve (43% (35–50) n=167): stole 183, targetGone 78, bothGone 9. Choices: call 229, endReact 276, play 15.
+
+## S2-03 Cross (RGY) — 560 games, 47% won, 27074 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 801 | 54% (49–59) n=324 | 820 → 713 | 13% | 0 / 373 / 428 | 69% (62–75) n=193 | 64% (53–73) n=85 | 47% (39–54) n=178 |
+| 6th Street Recruits | attacked | 741 | 48% (43–53) n=344 | 817 → 667 | 18% | 55 / 243 / 443 | 69% (61–76) n=152 | 43% (34–52) n=109 | 42% (36–49) n=219 |
+| Viktor Vektor: You Might Feel a Little Pinch | attacked | 629 | 48% (43–54) n=326 | 805 → 554 | 31% | 16 / 171 / 442 | 72% (65–79) n=148 | 55% (43–65) n=75 | 34% (28–41) n=203 |
+| Corporate Surveillance | sold | 626 | 46% (41–50) n=424 | 823 → 626 | 24% | 266 / 169 / 191 | 59% (52–66) n=187 | 43% (35–51) n=149 | 34% (27–41) n=186 |
+| Field Operator | attacked | 616 | 52% (46–57) n=308 | 731 → 539 | 26% | 11 / 161 / 444 | 72% (64–79) n=143 | 56% (44–68) n=64 | 42% (36–50) n=193 |
+| 6th Street Recruits | played | 591 | 46% (41–51) n=422 | 1056 → 577 | 45% | 210 / 203 / 178 | 60% (53–67) n=186 | 37% (29–45) n=145 | 35% (29–42) n=184 |
+| Viktor Vektor: You Might Feel a Little Pinch | played | 568 | 46% (41–51) n=405 | 1159 → 526 | 55% | 106 / 323 / 139 | 62% (55–69) n=174 | 36% (28–45) n=124 | 36% (29–43) n=171 |
+| Rockn' Rockerboy | played | 543 | 48% (43–53) n=397 | 863 → 542 | 37% | 234 / 155 / 154 | 64% (56–71) n=164 | 45% (37–53) n=138 | 32% (25–39) n=167 |
+| Field Operator | played | 530 | 49% (44–54) n=373 | 1334 → 484 | 64% | 64 / 341 / 125 | 58% (50–65) n=175 | 38% (29–49) n=86 | 44% (37–51) n=173 |
+| Shattered Memories | sold | 517 | 49% (44–54) n=380 | 1610 → 517 | 68% | 83 / 207 / 227 | 60% (52–68) n=133 | 50% (40–60) n=96 | 42% (36–49) n=214 |
+| Pepe Najarro: Working Doubles | attacked | 464 | 50% (44–56) n=250 | 574 → 458 | 20% | 34 / 132 / 298 | 70% (61–77) n=119 | 50% (38–62) n=64 | 38% (31–46) n=151 |
+| Adam Smasher: Ender of Legends | attacked | 454 | 53% (48–59) n=341 | 471 → 454 | 4% | 0 / 0 / 454 | 90% (82–95) n=91 | 79% (68–86) n=75 | 35% (29–42) n=226 |
+| Valentino Street Racer | played | 429 | 45% (40–51) n=349 | 889 → 413 | 54% | 80 / 243 / 106 | 60% (51–68) n=131 | 37% (28–47) n=97 | 39% (31–47) n=149 |
+| Adam Smasher: Ender of Legends | called | 428 | 48% (43–53) n=428 | 428 → 428 | 0% | 217 / 134 / 77 | 55% (50–61) n=289 | 35% (26–46) n=79 | 30% (20–43) n=60 |
+| Valentino Street Racer | attacked | 426 | 47% (41–53) n=252 | 553 → 403 | 27% | 12 / 118 / 296 | 69% (60–76) n=125 | 55% (41–69) n=47 | 33% (26–41) n=137 |
+
+(27 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14653 | 6% | 0 / 941 / 3855 / 5458 / 3997 / 402 |
+| gig/steal | 3939 | 26% | 129 / 505 / 1612 / 1647 / 46 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| yesno/kerryReroll | 1670 | 59% | 0 / 1670 / 0 / 0 / 0 / 0 |
+| unit/ready | 1338 | 64% | 0 / 485 / 800 / 53 / 0 / 0 |
+| react | 725 | 53% | 0 / 505 / 220 / 0 / 0 / 0 |
+| mulligan | 560 | 4% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 442 | 35% | 19 / 58 / 295 / 69 / 1 / 0 |
+| unit/adrenaline | 380 | 49% | 140 / 125 / 111 / 4 / 0 / 0 |
+| card/search | 313 | 77% | 0 / 163 / 150 / 0 / 0 / 0 |
+| gigValue/adjust | 305 | 10% | 0 / 11 / 46 / 7 / 32 / 209 |
+| unit/spend | 180 | 51% | 33 / 70 / 77 / 0 / 0 / 0 |
+| gigValue/setGig | 81 | 1% | 0 / 0 / 2 / 6 / 16 / 57 |
+| card/playFree | 69 | 81% | 0 / 36 / 32 / 1 / 0 / 0 |
+| unit/sacrifice | 52 | 87% | 33 / 10 / 9 / 0 / 0 / 0 |
+| card/discard | 49 | 49% | 10 / 9 / 30 / 0 / 0 / 0 |
+| yesno/draw | 41 | 100% | 0 / 41 / 0 / 0 / 0 / 0 |
+| unit/pump | 28 | 54% | 0 / 8 / 19 / 1 / 0 / 0 |
+| mode/foolOnTheHill | 7 | 43% | 0 / 7 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 718 attacks. Reacted to 337 (deck won 39% (34–45) n=292): stole 254, attackerGone 16, targetGone 51, bothGone 16. Let 381 resolve (43% (37–50) n=206): stole 270, targetGone 102, bothGone 9. Choices: call 314, endReact 384, play 27.
+
+## S2-04 Cross (RRG) — 560 games, 51% won, 26520 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 902 | 52% (47–57) n=382 | 1054 → 800 | 24% | 78 / 310 / 514 | 68% (61–74) n=197 | 52% (43–60) n=132 | 45% (39–52) n=233 |
+| Animals Wrecker | attacked | 749 | 61% (56–67) n=310 | 693 → 666 | 4% | 0 / 192 / 557 | 79% (72–85) n=145 | 81% (71–89) n=75 | 56% (50–62) n=239 |
+| Dexter DeShawn: Off the Grid | ability | 744 | 47% (42–51) n=451 | 1943 → 744 | 62% | 20 / 114 / 610 | 65% (60–70) n=309 | 18% (11–27) n=96 | 14% (10–19) n=188 |
+| V: Streetkid | attacked | 705 | 45% (40–50) n=424 | 813 → 705 | 13% | 78 / 209 / 418 | 59% (53–64) n=269 | 38% (27–49) n=69 | 30% (24–37) n=174 |
+| Valentino Street Racer | attacked | 598 | 50% (44–55) n=303 | 744 → 535 | 28% | 34 / 183 / 381 | 64% (56–71) n=149 | 53% (43–63) n=98 | 41% (34–49) n=174 |
+| Pepe Najarro: Working Doubles | attacked | 588 | 52% (46–57) n=296 | 755 → 557 | 26% | 51 / 220 / 317 | 71% (63–77) n=146 | 51% (41–61) n=90 | 46% (39–53) n=183 |
+| 6th Street Recruits | played | 541 | 51% (46–56) n=394 | 955 → 534 | 44% | 261 / 112 / 168 | 54% (47–61) n=187 | 52% (45–60) n=162 | 42% (34–51) n=124 |
+| Valentino Street Racer | played | 537 | 50% (45–55) n=377 | 1199 → 509 | 58% | 163 / 175 / 199 | 57% (49–64) n=171 | 44% (36–52) n=149 | 47% (39–55) n=136 |
+| Animals Wrecker | played | 526 | 57% (52–61) n=391 | 714 → 526 | 26% | 0 / 343 / 183 | 65% (57–72) n=152 | 52% (41–63) n=77 | 52% (46–58) n=229 |
+| Shattered Memories | sold | 496 | 50% (45–55) n=377 | 1446 → 496 | 66% | 92 / 199 / 205 | 54% (45–62) n=140 | 53% (43–63) n=90 | 46% (40–53) n=210 |
+| Dexter DeShawn: Off the Grid | called | 461 | 52% (47–56) n=461 | 461 → 461 | 0% | 201 / 156 / 104 | 58% (52–63) n=305 | 49% (37–61) n=63 | 34% (26–45) n=93 |
+| V: Streetkid | Go Solo (self-paid 459) | 459 | 46% (41–50) n=459 | 1057 → 459 | 57% | 84 / 119 / 256 | 56% (49–62) n=236 | 42% (30–55) n=55 | 33% (27–41) n=168 |
+| Memory Relapse | sold | 448 | 53% (47–58) n=348 | 1345 → 448 | 67% | 81 / 194 / 173 | 52% (43–61) n=123 | 57% (46–67) n=88 | 49% (42–56) n=191 |
+| Saburo Arasaka: Stubborn Patriarch | called | 439 | 50% (46–55) n=439 | 439 → 439 | 0% | 221 / 124 / 94 | 55% (50–61) n=296 | 37% (27–48) n=81 | 44% (32–56) n=62 |
+| V: Streetkid | called | 424 | 51% (46–56) n=424 | 424 → 424 | 0% | 226 / 101 / 97 | 55% (49–61) n=276 | 49% (38–60) n=76 | 39% (28–50) n=72 |
+
+(30 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1058 turns), Detonate (reaction, legal in 25 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14931 | 7% | 0 / 1226 / 3994 / 5100 / 4412 / 199 |
+| gig/steal | 3611 | 28% | 207 / 494 / 1543 / 1354 / 13 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 1082 | 9% | 0 / 10 / 66 / 54 / 576 / 376 |
+| unit/defeat | 720 | 68% | 259 / 200 / 217 / 44 / 0 / 0 |
+| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 546 | 67% | 0 / 546 / 0 / 0 / 0 / 0 |
+| react | 539 | 45% | 0 / 312 / 227 / 0 / 0 / 0 |
+| unit/adrenaline | 464 | 73% | 246 / 157 / 61 / 0 / 0 / 0 |
+| card/search | 459 | 71% | 193 / 176 / 87 / 3 / 0 / 0 |
+| card/playFree | 395 | 71% | 0 / 130 / 251 / 14 / 0 / 0 |
+| unit/pump | 362 | 57% | 118 / 143 / 98 / 3 / 0 / 0 |
+| unit/equip | 218 | 89% | 37 / 74 / 88 / 19 / 0 / 0 |
+| unit/spend | 154 | 60% | 59 / 55 / 40 / 0 / 0 / 0 |
+| card/discard | 67 | 54% | 17 / 10 / 35 / 5 / 0 / 0 |
+| yesno/draw | 62 | 100% | 0 / 62 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 50 | 84% | 37 / 6 / 7 / 0 / 0 / 0 |
+| unit/ready | 39 | 100% | 0 / 39 / 0 / 0 / 0 / 0 |
+| card/defeat | 10 | 90% | 9 / 1 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 7 | 29% | 0 / 7 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 535 attacks. Reacted to 294 (deck won 42% (36–48) n=267): stole 231, stoleNothing 1, targetGone 52, bothGone 10. Let 241 resolve (39% (31–47) n=145): stole 170, targetGone 70, bothGone 1. Choices: call 294, endReact 245.
+
+## S2-05 Counter (RRG) — 560 games, 60% won, 26949 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 926 | 64% (59–68) n=363 | 1076 → 833 | 23% | 93 / 347 / 486 | 80% (74–85) n=198 | 61% (53–68) n=150 | 60% (54–66) n=226 |
+| 6th Street Recruits | attacked | 897 | 65% (60–70) n=357 | 1064 → 813 | 24% | 61 / 336 / 500 | 81% (75–86) n=203 | 67% (58–75) n=119 | 59% (53–66) n=232 |
+| Animals Wrecker | attacked | 840 | 68% (63–73) n=324 | 784 → 747 | 5% | 0 / 233 / 607 | 86% (80–91) n=159 | 82% (72–88) n=88 | 62% (56–68) n=238 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 556 | 72% (67–77) n=289 | 560 → 511 | 9% | 0 / 0 / 556 | 91% (86–95) n=164 | 80% (68–89) n=56 | 62% (55–69) n=164 |
+| Yorinobu Arasaka: Steel Dragon | played | 522 | 64% (59–69) n=382 | 701 → 522 | 26% | 0 / 263 / 259 | 82% (74–87) n=125 | 72% (60–82) n=58 | 56% (50–62) n=250 |
+| Animals Wrecker | played | 514 | 64% (59–68) n=394 | 763 → 514 | 33% | 0 / 361 / 153 | 72% (64–80) n=116 | 67% (57–75) n=93 | 59% (53–65) n=245 |
+| Dexter DeShawn: Off the Grid | ability | 505 | 52% (47–58) n=347 | 2090 → 505 | 76% | 22 / 89 / 394 | 68% (62–74) n=215 | 36% (25–49) n=61 | 32% (25–40) n=147 |
+| Valentino Street Racer | attacked | 485 | 59% (53–65) n=283 | 702 → 451 | 36% | 17 / 121 / 347 | 81% (73–86) n=139 | 61% (49–71) n=66 | 45% (38–53) n=159 |
+| Pepe Najarro: Working Doubles | played | 472 | 62% (57–67) n=363 | 918 → 467 | 49% | 282 / 91 / 99 | 75% (68–81) n=165 | 54% (46–61) n=168 | 51% (40–61) n=83 |
+| Adam Smasher: Ender of Legends | called | 462 | 61% (57–66) n=462 | 462 → 462 | 0% | 277 / 75 / 110 | 69% (64–74) n=318 | 42% (31–54) n=69 | 44% (33–55) n=75 |
+| Dexter DeShawn: Off the Grid | called | 459 | 63% (58–67) n=459 | 459 → 459 | 0% | 268 / 98 / 93 | 70% (65–75) n=304 | 49% (38–61) n=71 | 49% (38–59) n=84 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 458 | 51% (45–56) n=318 | 2001 → 458 | 77% | 19 / 78 / 361 | 72% (65–78) n=173 | 36% (24–49) n=53 | 29% (22–36) n=157 |
+| 6th Street Recruits | played | 456 | 64% (59–69) n=348 | 956 → 449 | 53% | 265 / 86 / 105 | 74% (67–81) n=160 | 60% (52–68) n=143 | 48% (38–58) n=92 |
+| Adam Smasher: Ender of Legends | attacked | 455 | 62% (57–67) n=346 | 487 → 455 | 7% | 0 / 0 / 455 | 90% (85–94) n=165 | 85% (73–92) n=59 | 34% (28–42) n=174 |
+| Valentino Street Racer | played | 449 | 57% (52–62) n=350 | 1294 → 417 | 68% | 129 / 142 / 178 | 74% (66–80) n=167 | 43% (35–52) n=118 | 43% (33–52) n=101 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: Appetite for Destruction (played, legal in 476 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 15107 | 7% | 0 / 1221 / 4155 / 5335 / 4126 / 270 |
+| gig/steal | 3768 | 24% | 113 / 461 / 1666 / 1504 / 24 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/defeat | 779 | 59% | 218 / 210 / 326 / 24 / 1 / 0 |
+| gigValue/adjust | 735 | 7% | 0 / 0 / 3 / 58 / 394 / 280 |
+| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 540 | 68% | 0 / 540 / 0 / 0 / 0 / 0 |
+| react | 490 | 47% | 0 / 288 / 202 / 0 / 0 / 0 |
+| card/playFree | 477 | 72% | 0 / 175 / 275 / 27 / 0 / 0 |
+| gig/swapGive | 458 | 46% | 22 / 60 / 189 / 183 / 4 / 0 |
+| gig/swapTake | 458 | 28% | 32 / 46 / 217 / 158 / 5 / 0 |
+| unit/pump | 417 | 61% | 172 / 140 / 99 / 6 / 0 / 0 |
+| unit/adrenaline | 377 | 70% | 207 / 120 / 50 / 0 / 0 / 0 |
+| unit/ready | 161 | 100% | 0 / 161 / 0 / 0 / 0 / 0 |
+| unit/equip | 125 | 82% | 12 / 31 / 58 / 24 / 0 / 0 |
+| unit/spend | 79 | 65% | 34 / 25 / 20 / 0 / 0 / 0 |
+| card/discard | 56 | 54% | 16 / 17 / 23 / 0 / 0 / 0 |
+| gigValue/setGig | 52 | 6% | 0 / 0 / 3 / 10 / 13 / 26 |
+| unit/sacrifice | 45 | 80% | 24 / 10 / 11 / 0 / 0 / 0 |
+| yesno/draw | 23 | 100% | 0 / 23 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 490 attacks. Reacted to 258 (deck won 48% (42–55) n=231): stole 205, attackerGone 1, targetGone 48, bothGone 4. Let 232 resolve (52% (44–61) n=132): stole 180, stoleNothing 1, targetGone 46, bothGone 5. Choices: call 258, endReact 232.
+
+## S2-06 Counter (RGG) — 560 games, 57% won, 23558 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 809 | 63% (58–68) n=316 | 883 → 734 | 17% | 69 / 371 / 369 | 82% (76–87) n=183 | 53% (44–62) n=111 | 58% (50–65) n=179 |
+| Nadia: Fighting Through Grief | attacked | 735 | 62% (56–67) n=312 | 751 → 688 | 8% | 0 / 273 / 462 | 88% (81–92) n=139 | 85% (72–92) n=46 | 55% (48–61) n=244 |
+| Valentino Street Racer | attacked | 599 | 58% (53–64) n=299 | 760 → 548 | 28% | 38 / 221 / 340 | 79% (72–85) n=163 | 46% (37–56) n=95 | 47% (40–55) n=156 |
+| Valentino Street Racer | played | 540 | 58% (53–62) n=385 | 1242 → 496 | 60% | 200 / 216 / 124 | 71% (64–77) n=188 | 35% (28–44) n=141 | 55% (46–64) n=114 |
+| 6th Street Recruits | attacked | 534 | 70% (64–75) n=236 | 621 → 511 | 18% | 46 / 236 / 252 | 85% (78–90) n=142 | 65% (54–75) n=80 | 63% (54–71) n=132 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 509 | 49% (44–55) n=343 | 1997 → 509 | 75% | 12 / 176 / 321 | 73% (66–79) n=186 | 25% (16–36) n=72 | 29% (22–36) n=159 |
+| Pepe Najarro: Working Doubles | played | 497 | 61% (56–65) n=376 | 925 → 490 | 47% | 293 / 99 / 105 | 78% (71–83) n=177 | 47% (40–55) n=158 | 51% (40–61) n=87 |
+| Adam Smasher: Ender of Legends | called | 471 | 59% (55–63) n=471 | 471 → 471 | 0% | 287 / 115 / 69 | 69% (63–73) n=327 | 41% (31–52) n=81 | 33% (23–46) n=63 |
+| Adam Smasher: Ender of Legends | attacked | 451 | 63% (58–68) n=355 | 468 → 451 | 4% | 0 / 0 / 451 | 95% (90–98) n=131 | 93% (84–97) n=59 | 40% (33–47) n=206 |
+| Hanako Arasaka: Daughter of the Emperor | called | 442 | 60% (55–64) n=442 | 442 → 442 | 0% | 266 / 124 / 52 | 67% (61–72) n=317 | 38% (28–50) n=73 | 48% (35–61) n=52 |
+| Saburo Arasaka: Stubborn Patriarch | called | 442 | 58% (54–63) n=442 | 442 → 442 | 0% | 265 / 132 / 45 | 65% (59–70) n=324 | 36% (26–47) n=73 | 51% (37–65) n=45 |
+| Nadia: Fighting Through Grief | played | 419 | 60% (54–65) n=345 | 877 → 419 | 52% | 0 / 295 / 124 | 75% (67–81) n=139 | 47% (36–59) n=72 | 54% (46–61) n=177 |
+| Memory Relapse | sold | 396 | 57% (52–63) n=318 | 1189 → 396 | 67% | 113 / 149 / 134 | 71% (62–78) n=129 | 58% (48–68) n=84 | 45% (37–53) n=143 |
+| Corporate Surveillance | sold | 392 | 57% (52–63) n=333 | 458 → 392 | 14% | 212 / 87 / 93 | 68% (60–74) n=154 | 43% (35–52) n=120 | 58% (48–68) n=93 |
+| Over the Edge | sold | 377 | 57% (51–62) n=301 | 1523 → 377 | 75% | 50 / 142 / 185 | 70% (61–78) n=109 | 52% (40–64) n=61 | 49% (41–56) n=170 |
+
+(31 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 399 turns), Corporate Surveillance (played, legal in 423 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 12933 | 5% | 0 / 1225 / 3765 / 5050 / 2817 / 76 |
+| gig/steal | 3196 | 30% | 138 / 456 / 1426 / 1160 / 16 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/ready | 993 | 73% | 0 / 521 / 465 / 7 / 0 / 0 |
+| unit/defeat | 970 | 53% | 253 / 271 / 424 / 22 / 0 / 0 |
+| mulligan | 560 | 26% | 0 / 560 / 0 / 0 / 0 / 0 |
+| gig/swapGive | 509 | 39% | 15 / 78 / 220 / 194 / 2 / 0 |
+| gig/swapTake | 509 | 33% | 40 / 54 / 261 / 151 / 3 / 0 |
+| react | 474 | 46% | 0 / 280 / 194 / 0 / 0 / 0 |
+| unit/adrenaline | 349 | 72% | 231 / 90 / 28 / 0 / 0 / 0 |
+| unit/equip | 267 | 89% | 48 / 46 / 156 / 17 / 0 / 0 |
+| gigValue/adjust | 178 | 5% | 0 / 4 / 24 / 2 / 22 / 126 |
+| unit/spend | 153 | 64% | 75 / 52 / 26 / 0 / 0 / 0 |
+| card/discard | 82 | 44% | 11 / 24 / 47 / 0 / 0 / 0 |
+| unit/sacrifice | 50 | 84% | 30 / 14 / 6 / 0 / 0 / 0 |
+| gigValue/setGig | 44 | 2% | 0 / 0 / 1 / 7 / 14 / 22 |
+| yesno/draw | 25 | 100% | 0 / 25 / 0 / 0 / 0 / 0 |
+| card/playFree | 20 | 100% | 0 / 16 / 4 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 67% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 459 attacks. Reacted to 245 (deck won 45% (39–52) n=217): fizzled 19, stole 197, targetGone 23, bothGone 6. Let 214 resolve (44% (36–53) n=131): stole 174, targetGone 32, bothGone 8. Choices: call 234, endReact 220, ability 20.
+
+## S2-07 Explorer (RRB) — 560 games, 48% won, 21657 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| V: Corporate Exile | attacked | 752 | 43% (38–48) n=394 | 900 → 752 | 16% | 85 / 301 / 366 | 58% (51–64) n=248 | 49% (37–60) n=68 | 30% (24–37) n=178 |
+| Animals Wrecker | attacked | 723 | 62% (56–67) n=291 | 681 → 643 | 6% | 0 / 151 / 572 | 84% (77–89) n=139 | 83% (74–90) n=84 | 51% (44–58) n=208 |
+| 6th Street Recruits | attacked | 672 | 49% (44–55) n=316 | 918 → 617 | 33% | 64 / 243 / 365 | 67% (60–74) n=156 | 63% (53–71) n=105 | 34% (27–41) n=181 |
+| Psycho Squad | attacked | 663 | 47% (42–53) n=309 | 882 → 604 | 32% | 55 / 242 / 366 | 65% (58–72) n=169 | 48% (38–59) n=83 | 39% (33–46) n=191 |
+| Unlikely Bond | sold | 508 | 48% (43–53) n=371 | 1150 → 508 | 56% | 123 / 204 / 181 | 57% (50–65) n=162 | 46% (37–56) n=102 | 42% (35–50) n=179 |
+| Animals Wrecker | played | 485 | 55% (50–60) n=362 | 641 → 485 | 24% | 0 / 312 / 173 | 70% (62–77) n=138 | 64% (53–74) n=70 | 45% (38–51) n=206 |
+| 6th Street Recruits | played | 463 | 45% (40–50) n=350 | 1064 → 457 | 57% | 245 / 93 / 125 | 53% (45–60) n=165 | 43% (35–50) n=155 | 22% (15–32) n=85 |
+| Johnny Silverhand: Rocking Renegade | called | 449 | 49% (44–53) n=449 | 449 → 449 | 0% | 206 / 141 / 102 | 57% (52–63) n=328 | 24% (15–38) n=49 | 26% (18–38) n=72 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 449 | 62% (55–68) n=202 | 345 → 307 | 11% | 0 / 42 / 407 | 84% (76–89) n=118 | 74% (59–85) n=39 | 37% (27–47) n=87 |
+| V: Corporate Exile | called | 448 | 51% (46–55) n=448 | 448 → 448 | 0% | 245 / 115 / 88 | 57% (51–62) n=316 | 40% (29–53) n=60 | 33% (24–45) n=72 |
+| Adam Smasher: Ender of Legends | called | 444 | 48% (43–52) n=444 | 444 → 444 | 0% | 205 / 137 / 102 | 56% (51–62) n=311 | 28% (19–40) n=64 | 26% (17–38) n=69 |
+| Psycho Squad | played | 435 | 45% (40–51) n=351 | 960 → 431 | 55% | 233 / 99 / 103 | 59% (51–66) n=167 | 38% (30–46) n=142 | 24% (16–35) n=79 |
+| V: Corporate Exile | Go Solo (self-paid 424) | 424 | 42% (38–47) n=424 | 786 → 424 | 46% | 89 / 184 / 151 | 54% (47–61) n=188 | 46% (34–58) n=59 | 29% (23–36) n=177 |
+| Carnage at the Colosseum | sold | 384 | 49% (43–54) n=310 | 1392 → 384 | 72% | 28 / 159 / 197 | 67% (57–75) n=105 | 55% (42–68) n=56 | 39% (32–47) n=171 |
+| Yorinobu Arasaka: Steel Dragon | played | 352 | 55% (49–61) n=294 | 453 → 352 | 22% | 0 / 99 / 253 | 77% (68–83) n=115 | 62% (46–76) n=37 | 37% (30–44) n=166 |
+
+(35 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 132 turns), Appetite for Destruction (played, legal in 331 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13563 | 8% | 0 / 1217 / 3828 / 5319 / 3025 / 174 |
+| gig/steal | 3410 | 29% | 205 / 426 / 1487 / 1257 / 35 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| mulligan | 560 | 21% | 0 / 560 / 0 / 0 / 0 / 0 |
+| react | 505 | 55% | 0 / 289 / 216 / 0 / 0 / 0 |
+| unit/defeat | 377 | 67% | 159 / 102 / 102 / 13 / 1 / 0 |
+| card/playFree | 329 | 68% | 0 / 124 / 203 / 2 / 0 / 0 |
+| unit/lagAttack | 292 | 88% | 23 / 65 / 196 / 8 / 0 / 0 |
+| gigValue/adjust | 164 | 5% | 0 / 6 / 19 / 1 / 11 / 127 |
+| unit/sacrifice | 56 | 88% | 41 / 9 / 6 / 0 / 0 / 0 |
+| card/discard | 45 | 51% | 10 / 7 / 26 / 2 / 0 / 0 |
+| unit/pump | 30 | 80% | 21 / 6 / 3 / 0 / 0 / 0 |
+| mode/mode | 26 | 100% | 0 / 0 / 26 / 0 / 0 / 0 |
+| unit/bottomdeck | 16 | 75% | 11 / 3 / 2 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 16 | 50% | 2 / 9 / 5 / 0 / 0 / 0 |
+| yesno/draw | 13 | 100% | 0 / 13 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 8 | 50% | 0 / 8 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 4 | 0% | 0 / 4 / 0 / 0 / 0 / 0 |
+| unit/equip | 3 | 67% | 0 / 0 / 3 / 0 / 0 / 0 |
+
+Reaction windows: 505 attacks. Reacted to 227 (deck won 32% (26–39) n=197): stole 196, targetGone 27, bothGone 4. Let 278 resolve (42% (34–50) n=155): stole 200, targetGone 72, bothGone 6. Choices: call 227, endReact 278.
+
+## S2-08 Explorer (GGY) — 560 games, 51% won, 26709 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 965 | 58% (52–63) n=330 | 957 → 868 | 9% | 0 / 396 / 569 | 64% (57–70) n=201 | 70% (60–78) n=105 | 53% (47–60) n=217 |
+| Pepe Najarro: Working Doubles | attacked | 821 | 57% (52–62) n=339 | 948 → 754 | 20% | 70 / 298 / 453 | 69% (62–75) n=195 | 56% (48–65) n=126 | 47% (40–54) n=200 |
+| Nadia: Fighting Through Grief | attacked | 783 | 51% (45–56) n=329 | 787 → 717 | 9% | 0 / 224 / 559 | 73% (65–80) n=136 | 68% (55–78) n=59 | 44% (38–50) n=259 |
+| Pepe Najarro: Working Doubles | played | 566 | 55% (50–59) n=403 | 1024 → 557 | 46% | 240 / 150 / 176 | 64% (57–70) n=198 | 48% (40–56) n=161 | 43% (35–51) n=131 |
+| Valentino Street Racer | attacked | 551 | 51% (46–57) n=284 | 687 → 491 | 29% | 29 / 135 / 387 | 72% (65–79) n=151 | 48% (37–58) n=80 | 36% (29–44) n=141 |
+| Rockn' Rockerboy | played | 542 | 53% (48–58) n=395 | 776 → 541 | 30% | 224 / 156 / 162 | 62% (55–68) n=200 | 52% (43–60) n=133 | 41% (33–49) n=141 |
+| Valentino Street Racer | played | 499 | 53% (48–58) n=370 | 1240 → 464 | 63% | 125 / 171 / 203 | 67% (59–73) n=168 | 43% (35–52) n=120 | 47% (39–55) n=136 |
+| Memory Relapse | sold | 469 | 51% (46–56) n=362 | 1197 → 469 | 61% | 133 / 181 / 155 | 57% (49–64) n=159 | 56% (46–65) n=99 | 43% (35–50) n=155 |
+| Nadia: Fighting Through Grief | played | 465 | 50% (45–55) n=371 | 927 → 465 | 50% | 0 / 247 / 218 | 61% (52–69) n=128 | 50% (38–62) n=62 | 42% (36–49) n=226 |
+| Padre: Man of the Cross | ability | 465 | 44% (38–49) n=310 | 1963 → 465 | 76% | 7 / 96 / 362 | 59% (52–66) n=182 | 30% (20–41) n=71 | 22% (16–30) n=133 |
+| Muamar Reyes: El Capitán | ability | 430 | 43% (38–49) n=299 | 1909 → 430 | 77% | 9 / 93 / 328 | 63% (55–69) n=184 | 21% (12–33) n=57 | 15% (10–23) n=117 |
+| Goro Takemura: Vengeful Bodyguard | called | 419 | 51% (46–56) n=419 | 419 → 419 | 0% | 217 / 139 / 63 | 55% (49–61) n=255 | 47% (37–57) n=92 | 40% (30–52) n=72 |
+| Padre: Man of the Cross | called | 407 | 54% (49–59) n=407 | 412 → 407 | 1% | 224 / 117 / 66 | 59% (53–65) n=248 | 54% (44–65) n=83 | 37% (27–48) n=76 |
+| Muamar Reyes: El Capitán | called | 406 | 52% (47–57) n=406 | 418 → 406 | 3% | 205 / 122 / 79 | 54% (48–59) n=265 | 52% (41–63) n=73 | 46% (34–57) n=68 |
+| Cyberpsychosis | sold | 395 | 52% (47–57) n=332 | 622 → 395 | 36% | 208 / 110 / 77 | 52% (44–60) n=156 | 49% (40–58) n=110 | 55% (45–64) n=95 |
+
+(36 more card uses in the JSON report.)
+
+Legal but never taken: Cyberpsychosis (played, legal in 93 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14106 | 6% | 0 / 1079 / 3775 / 5665 / 3419 / 168 |
+| gig/steal | 3378 | 29% | 128 / 445 / 1469 / 1310 / 26 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/ready | 1104 | 71% | 0 / 469 / 619 / 16 / 0 / 0 |
+| gigValue/adjust | 861 | 9% | 0 / 0 / 47 / 96 / 512 / 206 |
+| react | 748 | 49% | 0 / 402 / 346 / 0 / 0 / 0 |
+| mulligan | 560 | 35% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 522 | 61% | 0 / 522 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 512 | 70% | 0 / 512 / 0 / 0 / 0 / 0 |
+| gigValue/setGig | 460 | 7% | 0 / 2 / 6 / 32 / 93 / 327 |
+| unit/spend | 407 | 80% | 259 / 96 / 52 / 0 / 0 / 0 |
+| unit/adrenaline | 381 | 48% | 143 / 154 / 84 / 0 / 0 / 0 |
+| unit/defeat | 368 | 63% | 143 / 107 / 113 / 5 / 0 / 0 |
+| unit/protect | 345 | 57% | 131 / 120 / 92 / 2 / 0 / 0 |
+| unit/blocker | 257 | 58% | 78 / 106 / 72 / 1 / 0 / 0 |
+| unit/equip | 222 | 80% | 33 / 51 / 115 / 23 / 0 / 0 |
+| card/discard | 127 | 44% | 16 / 26 / 83 / 2 / 0 / 0 |
+| unit/sacrifice | 53 | 81% | 30 / 13 / 10 / 0 / 0 / 0 |
+| unit/call | 25 | 88% | 0 / 15 / 10 / 0 / 0 / 0 |
+| card/playFree | 15 | 87% | 0 / 9 / 6 / 0 / 0 / 0 |
+| yesno/draw | 9 | 100% | 0 / 9 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 50% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+| unit/pump | 1 | 100% | 1 / 0 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 678 attacks. Reacted to 341 (deck won 46% (41–52) n=283): fizzled 14, stole 235, stoleNothing 1, attackerGone 16, targetGone 51, bothGone 12, noneGone 12. Let 337 resolve (45% (37–52) n=182): stole 281, stoleNothing 2, attackerGone 1, targetGone 42, bothGone 11. Choices: endReact 363, ability 59, call 296, block 29, play 1.
+
+## S3-02 Mutant (RGY) — 560 games, 44% won, 28172 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Jackie Welles: Mama's Favorite | attacked | 844 | 41% (37–46) n=472 | 927 → 844 | 9% | 0 / 343 / 501 | 54% (48–60) n=270 | 46% (36–57) n=80 | 30% (25–36) n=247 |
+| 6th Street Recruits | attacked | 817 | 49% (44–54) n=336 | 907 → 734 | 19% | 70 / 255 / 492 | 69% (61–75) n=181 | 56% (47–65) n=112 | 36% (30–43) n=196 |
+| Pepe Najarro: Working Doubles | attacked | 788 | 47% (41–52) n=343 | 883 → 731 | 17% | 68 / 275 / 445 | 63% (55–69) n=184 | 51% (42–59) n=132 | 40% (34–48) n=183 |
+| Dexter DeShawn: One Last Chance | attacked | 656 | 44% (39–50) n=315 | 723 → 570 | 21% | 28 / 159 / 469 | 63% (55–70) n=152 | 53% (43–63) n=93 | 33% (27–40) n=187 |
+| MaxTac Suppression Team | attacked | 634 | 47% (41–52) n=298 | 695 → 583 | 16% | 0 / 185 / 449 | 63% (56–69) n=185 | 63% (50–74) n=59 | 32% (26–39) n=171 |
+| Corporate Surveillance | sold | 599 | 45% (40–50) n=414 | 1023 → 599 | 41% | 230 / 201 / 168 | 51% (44–58) n=198 | 45% (37–53) n=142 | 34% (27–41) n=184 |
+| Dexter DeShawn: One Last Chance | played | 570 | 44% (39–48) n=395 | 1241 → 517 | 58% | 126 / 235 / 209 | 59% (52–65) n=198 | 33% (26–42) n=132 | 29% (22–37) n=134 |
+| Pepe Najarro: Working Doubles | played | 565 | 44% (40–49) n=411 | 1145 → 558 | 51% | 244 / 131 / 190 | 53% (46–60) n=196 | 43% (36–51) n=158 | 31% (24–39) n=135 |
+| 6th Street Recruits | played | 558 | 46% (41–51) n=402 | 1175 → 554 | 53% | 230 / 146 / 182 | 57% (50–64) n=196 | 44% (37–52) n=151 | 29% (22–38) n=136 |
+| Dexter DeShawn: Off the Grid | ability | 545 | 43% (38–48) n=365 | 1876 → 545 | 71% | 5 / 108 / 432 | 60% (54–66) n=241 | 14% (8–24) n=72 | 14% (9–21) n=136 |
+| MaxTac Suppression Team | played | 533 | 44% (39–49) n=388 | 1221 → 533 | 56% | 91 / 209 / 233 | 55% (48–62) n=188 | 47% (37–58) n=87 | 31% (25–38) n=189 |
+| Jackie Welles: Mama's Favorite | Go Solo (self-paid 489) | 489 | 41% (36–45) n=489 | 793 → 489 | 38% | 0 / 305 / 184 | 50% (43–57) n=203 | 43% (31–55) n=61 | 32% (26–38) n=225 |
+| Dexter DeShawn: Off the Grid | called | 444 | 44% (39–48) n=444 | 444 → 444 | 0% | 175 / 190 / 79 | 52% (46–57) n=294 | 31% (20–43) n=59 | 26% (18–36) n=91 |
+| Jackie Welles: Mama's Favorite | called | 432 | 44% (40–49) n=432 | 432 → 432 | 0% | 193 / 175 / 64 | 48% (42–54) n=280 | 35% (25–45) n=81 | 41% (30–52) n=71 |
+| Dum Dum: Maelstrom Triggerman | called | 404 | 44% (39–49) n=404 | 404 → 404 | 0% | 173 / 149 / 82 | 51% (45–56) n=282 | 37% (26–49) n=60 | 21% (13–33) n=62 |
+
+(33 more card uses in the JSON report.)
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 15388 | 7% | 0 / 991 / 3753 / 5407 / 4919 / 318 |
+| gig/steal | 3430 | 29% | 229 / 595 / 1384 / 1197 / 25 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 2160 | 8% | 0 / 3 / 118 / 195 / 1274 / 570 |
+| react | 1021 | 67% | 0 / 599 / 422 / 0 / 0 / 0 |
+| unit/ready | 999 | 68% | 0 / 390 / 578 / 31 / 0 / 0 |
+| mulligan | 560 | 12% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/pump | 547 | 47% | 130 / 198 / 213 / 6 / 0 / 0 |
+| mode/mode | 541 | 78% | 0 / 541 / 0 / 0 / 0 / 0 |
+| unit/equip | 324 | 82% | 38 / 70 / 192 / 24 / 0 / 0 |
+| yesno/replaceDefeat | 217 | 11% | 0 / 217 / 0 / 0 / 0 / 0 |
+| unit/spend | 216 | 52% | 45 / 80 / 89 / 2 / 0 / 0 |
+| unit/defeat | 199 | 47% | 11 / 16 / 87 / 84 / 1 / 0 |
+| card/discard | 54 | 48% | 5 / 12 / 32 / 5 / 0 / 0 |
+| card/playFree | 54 | 94% | 0 / 34 / 20 / 0 / 0 / 0 |
+| card/search | 54 | 81% | 29 / 18 / 7 / 0 / 0 / 0 |
+| unit/sacrifice | 50 | 68% | 26 / 18 / 5 / 1 / 0 / 0 |
+| yesno/draw | 47 | 100% | 0 / 47 / 0 / 0 / 0 / 0 |
+| card/defeatGear | 39 | 95% | 0 / 30 / 9 / 0 / 0 / 0 |
+| card/defeat | 23 | 91% | 21 / 2 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 5 | 20% | 0 / 5 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 989 attacks. Reacted to 332 (deck won 40% (34–46) n=284): stole 246, attackerGone 11, targetGone 60, bothGone 15. Let 657 resolve (39% (34–45) n=288): stole 501, stoleNothing 1, attackerGone 2, targetGone 137, bothGone 16. Choices: endReact 686, call 325, ability 5, play 5.
+
+## S3-03 Cross (RRR) — 560 games, 52% won, 24595 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 744 | 54% (48–59) n=338 | 910 → 690 | 24% | 89 / 301 / 354 | 72% (64–78) n=152 | 56% (47–65) n=121 | 52% (45–58) n=224 |
+| Animals Wrecker | attacked | 695 | 65% (59–70) n=292 | 669 → 637 | 5% | 0 / 175 / 520 | 89% (82–93) n=123 | 76% (65–84) n=74 | 59% (53–65) n=223 |
+| V: Streetkid | attacked | 557 | 42% (37–47) n=342 | 680 → 557 | 18% | 71 / 183 / 303 | 62% (55–69) n=179 | 49% (37–61) n=65 | 24% (18–31) n=169 |
+| Dexter DeShawn: Off the Grid | ability | 519 | 46% (40–51) n=338 | 1721 → 519 | 70% | 14 / 86 / 419 | 67% (60–73) n=205 | 33% (23–45) n=64 | 18% (13–25) n=152 |
+| 6th Street Recruits | played | 497 | 53% (48–58) n=377 | 882 → 493 | 44% | 289 / 110 / 98 | 63% (56–69) n=202 | 49% (41–57) n=150 | 36% (26–47) n=81 |
+| Animals Wrecker | played | 462 | 60% (55–65) n=355 | 606 → 462 | 24% | 0 / 330 / 132 | 74% (66–81) n=127 | 58% (46–69) n=66 | 51% (44–58) n=200 |
+| Bonnie and Clyde | sold | 431 | 54% (49–59) n=329 | 1380 → 431 | 69% | 79 / 165 / 187 | 66% (58–73) n=144 | 51% (41–62) n=82 | 44% (37–52) n=154 |
+| V: Streetkid | called | 427 | 52% (47–57) n=427 | 427 → 427 | 0% | 225 / 100 / 102 | 62% (55–68) n=238 | 40% (31–49) n=101 | 40% (30–50) n=88 |
+| Over the Edge | sold | 426 | 53% (48–59) n=331 | 1368 → 426 | 69% | 86 / 175 / 165 | 68% (60–76) n=120 | 49% (38–60) n=78 | 46% (39–53) n=182 |
+| Adam Smasher: Ender of Legends | called | 398 | 52% (47–56) n=398 | 398 → 398 | 0% | 170 / 123 / 105 | 62% (56–68) n=247 | 35% (25–46) n=80 | 34% (24–45) n=71 |
+| Dexter DeShawn: Off the Grid | called | 395 | 51% (46–56) n=395 | 398 → 395 | 1% | 188 / 116 / 91 | 62% (56–68) n=234 | 34% (25–45) n=76 | 36% (27–47) n=85 |
+| Meredith Stout: Stone Cold Corpo | played | 379 | 51% (45–56) n=308 | 1193 → 371 | 69% | 122 / 106 / 151 | 67% (58–74) n=132 | 40% (31–49) n=103 | 37% (28–46) n=109 |
+| V: Streetkid | Go Solo (self-paid 371) | 371 | 43% (38–48) n=371 | 1026 → 371 | 64% | 74 / 113 / 184 | 59% (51–66) n=151 | 43% (30–56) n=54 | 28% (21–35) n=166 |
+| Ruthless Lowlife | played | 355 | 45% (39–50) n=297 | 444 → 342 | 23% | 240 / 60 / 55 | 58% (50–66) n=150 | 29% (22–38) n=120 | 33% (21–47) n=46 |
+| Detonate | sold | 352 | 52% (46–58) n=291 | 509 → 352 | 31% | 206 / 78 / 68 | 60% (52–68) n=134 | 45% (36–55) n=106 | 40% (30–51) n=85 |
+
+(36 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1026 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13987 | 9% | 0 / 1193 / 3710 / 5177 / 3771 / 136 |
+| gig/steal | 2987 | 26% | 128 / 374 / 1316 / 1158 / 11 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1355 | 64% | 0 / 906 / 446 / 3 / 0 / 0 |
+| gigValue/adjust | 760 | 8% | 0 / 7 / 45 / 65 / 432 / 211 |
+| unit/defeat | 654 | 59% | 186 / 205 / 243 / 20 / 0 / 0 |
+| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/mode | 508 | 76% | 0 / 508 / 0 / 0 / 0 / 0 |
+| card/search | 441 | 78% | 239 / 113 / 70 / 19 / 0 / 0 |
+| unit/pump | 418 | 55% | 120 / 153 / 135 / 10 / 0 / 0 |
+| card/playFree | 294 | 65% | 0 / 71 / 205 / 18 / 0 / 0 |
+| unit/equip | 224 | 86% | 79 / 66 / 71 / 8 / 0 / 0 |
+| unit/sacrifice | 52 | 79% | 33 / 5 / 14 / 0 / 0 / 0 |
+| yesno/draw | 35 | 100% | 0 / 35 / 0 / 0 / 0 / 0 |
+| card/discard | 33 | 55% | 9 / 9 / 13 / 2 / 0 / 0 |
+| card/defeat | 16 | 88% | 13 / 3 / 0 / 0 / 0 / 0 |
+| unit/call | 16 | 100% | 0 / 6 / 10 / 0 / 0 / 0 |
+| yesno/call | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 3 | 0% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 50% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1269 attacks. Reacted to 453 (deck won 46% (41–51) n=353): stole 242, stoleNothing 1, attackerGone 16, targetGone 172, bothGone 22. Let 816 resolve (51% (46–57) n=333): stole 577, stoleNothing 11, attackerGone 9, targetGone 194, bothGone 25. Choices: block 157, call 321, endReact 872, play 5.
+
+## S3-05 Counter (RRG) — 560 games, 51% won, 25751 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 1003 | 54% (49–59) n=395 | 1131 → 871 | 23% | 103 / 377 / 523 | 77% (71–83) n=195 | 58% (50–66) n=145 | 46% (40–52) n=272 |
+| Animals Wrecker | attacked | 764 | 66% (60–71) n=303 | 715 → 694 | 3% | 0 / 160 / 604 | 92% (86–95) n=133 | 87% (78–93) n=71 | 59% (52–65) n=239 |
+| V: Streetkid | attacked | 614 | 40% (35–45) n=369 | 740 → 614 | 17% | 97 / 240 / 277 | 58% (51–65) n=191 | 44% (32–58) n=54 | 24% (18–31) n=187 |
+| Valentino Street Racer | attacked | 602 | 54% (48–59) n=316 | 787 → 542 | 31% | 33 / 164 / 405 | 80% (73–86) n=144 | 59% (48–70) n=74 | 39% (33–46) n=209 |
+| Pepe Najarro: Working Doubles | played | 568 | 53% (48–58) n=397 | 986 → 564 | 43% | 320 / 142 / 106 | 61% (54–68) n=198 | 52% (45–59) n=173 | 37% (28–46) n=104 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 541 | 44% (39–49) n=360 | 1981 → 541 | 73% | 33 / 133 / 375 | 65% (58–72) n=191 | 39% (29–51) n=71 | 19% (14–26) n=173 |
+| Valentino Street Racer | played | 505 | 52% (47–57) n=372 | 1301 → 467 | 64% | 170 / 196 / 139 | 61% (53–68) n=169 | 47% (39–55) n=139 | 39% (31–48) n=123 |
+| Animals Wrecker | played | 470 | 60% (55–65) n=362 | 713 → 470 | 34% | 0 / 336 / 134 | 72% (64–79) n=135 | 62% (51–73) n=69 | 53% (46–59) n=211 |
+| Memory Relapse | sold | 463 | 52% (47–57) n=366 | 1305 → 463 | 65% | 100 / 198 / 165 | 64% (55–72) n=133 | 55% (45–65) n=85 | 43% (36–50) n=195 |
+| Satori: Sword of Saburo | sold | 463 | 48% (43–53) n=352 | 835 → 463 | 45% | 202 / 125 / 136 | 59% (51–66) n=151 | 41% (33–50) n=117 | 38% (30–46) n=146 |
+| Adam Smasher: Ender of Legends | called | 444 | 51% (46–56) n=444 | 444 → 444 | 0% | 216 / 142 / 86 | 60% (54–65) n=299 | 37% (27–48) n=81 | 30% (20–42) n=64 |
+| V: Streetkid | called | 430 | 51% (46–56) n=430 | 430 → 430 | 0% | 252 / 123 / 55 | 60% (53–65) n=257 | 39% (29–49) n=93 | 39% (29–50) n=80 |
+| Hanako Arasaka: Daughter of the Emperor | called | 418 | 54% (49–59) n=418 | 418 → 418 | 0% | 212 / 140 / 66 | 58% (52–64) n=292 | 42% (32–52) n=88 | 47% (32–63) n=38 |
+| V: Streetkid | Go Solo (self-paid 388) | 388 | 40% (35–45) n=388 | 1049 → 388 | 63% | 110 / 148 / 130 | 57% (49–64) n=161 | 31% (21–45) n=54 | 27% (21–34) n=173 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 348 | 64% (57–70) n=202 | 346 → 324 | 6% | 0 / 0 / 348 | 95% (89–98) n=99 | 83% (65–92) n=29 | 48% (39–56) n=132 |
+
+(35 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1049 turns), Adam Smasher: Ender of Legends (Legend play, legal in 317 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14308 | 7% | 0 / 1227 / 3720 / 4730 / 4310 / 321 |
+| gig/steal | 3509 | 28% | 187 / 407 / 1414 / 1474 / 27 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/defeat | 853 | 64% | 264 / 233 / 315 / 40 / 1 / 0 |
+| unit/ready | 770 | 76% | 0 / 398 / 354 / 18 / 0 / 0 |
+| mulligan | 560 | 33% | 0 / 560 / 0 / 0 / 0 / 0 |
+| react | 558 | 46% | 0 / 315 / 243 / 0 / 0 / 0 |
+| gig/swapGive | 541 | 40% | 24 / 78 / 245 / 187 / 7 / 0 |
+| gig/swapTake | 541 | 31% | 38 / 62 / 254 / 180 / 7 / 0 |
+| card/search | 454 | 70% | 202 / 165 / 86 / 1 / 0 / 0 |
+| unit/adrenaline | 380 | 77% | 215 / 124 / 41 / 0 / 0 / 0 |
+| card/playFree | 315 | 77% | 0 / 121 / 185 / 9 / 0 / 0 |
+| gigValue/adjust | 209 | 4% | 0 / 2 / 63 / 13 / 30 / 101 |
+| unit/spend | 135 | 65% | 56 / 43 / 36 / 0 / 0 / 0 |
+| unit/equip | 120 | 83% | 11 / 37 / 57 / 15 / 0 / 0 |
+| gigValue/setGig | 65 | 5% | 0 / 0 / 4 / 9 / 11 / 41 |
+| unit/pump | 60 | 78% | 38 / 10 / 11 / 1 / 0 / 0 |
+| unit/sacrifice | 56 | 80% | 29 / 12 / 15 / 0 / 0 / 0 |
+| card/discard | 39 | 38% | 4 / 7 / 27 / 1 / 0 / 0 |
+| yesno/draw | 27 | 100% | 0 / 27 / 0 / 0 / 0 / 0 |
+| card/defeat | 6 | 100% | 6 / 0 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 5 | 100% | 0 / 5 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 556 attacks. Reacted to 300 (deck won 41% (35–47) n=265): stole 254, stoleNothing 1, targetGone 39, bothGone 6. Let 256 resolve (45% (38–53) n=161): stole 198, stoleNothing 1, targetGone 52, bothGone 5. Choices: call 300, endReact 257, play 1.
+
+## S3-06 Counter (RBG) — 560 games, 46% won, 24890 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| MaxTac AV | attacked | 860 | 57% (52–62) n=330 | 863 → 760 | 12% | 0 / 391 / 469 | 78% (72–84) n=180 | 57% (45–68) n=70 | 46% (40–53) n=198 |
+| Psycho Squad | attacked | 826 | 52% (47–57) n=351 | 922 → 728 | 21% | 83 / 326 / 417 | 77% (70–83) n=168 | 45% (36–55) n=106 | 43% (37–50) n=217 |
+| Psycho Squad | played | 596 | 47% (43–52) n=430 | 1014 → 589 | 42% | 256 / 235 / 105 | 66% (59–72) n=190 | 31% (25–39) n=164 | 43% (35–50) n=160 |
+| Valentino Street Racer | played | 572 | 45% (41–50) n=411 | 1127 → 521 | 54% | 167 / 309 / 96 | 64% (56–71) n=171 | 22% (16–30) n=141 | 42% (35–50) n=160 |
+| MaxTac AV | played | 505 | 54% (49–59) n=368 | 749 → 505 | 33% | 242 / 174 / 89 | 73% (66–79) n=183 | 43% (35–52) n=136 | 36% (28–45) n=128 |
+| Valentino Street Racer | attacked | 488 | 50% (44–56) n=293 | 702 → 436 | 38% | 35 / 157 / 296 | 81% (73–87) n=118 | 40% (29–53) n=62 | 36% (29–43) n=170 |
+| Placide: Voodoo Sentinel | played | 481 | 52% (47–57) n=391 | 586 → 481 | 18% | 0 / 0 / 481 | 86% (78–91) n=113 | 66% (53–77) n=53 | 36% (30–42) n=258 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 474 | 36% (31–41) n=336 | 1860 → 474 | 75% | 15 / 203 / 256 | 62% (54–69) n=154 | 16% (9–26) n=75 | 16% (11–22) n=180 |
+| Jackie Welles: Pour One Out For Me | called | 430 | 47% (42–52) n=430 | 430 → 430 | 0% | 214 / 179 / 37 | 56% (50–62) n=259 | 27% (19–37) n=88 | 39% (29–49) n=83 |
+| Adam Smasher: Ender of Legends | called | 429 | 48% (44–53) n=429 | 429 → 429 | 0% | 210 / 171 / 48 | 57% (51–63) n=292 | 28% (18–40) n=65 | 32% (22–43) n=72 |
+| Hanako Arasaka: Daughter of the Emperor | called | 411 | 45% (41–50) n=411 | 411 → 411 | 0% | 197 / 171 / 43 | 56% (50–62) n=259 | 23% (15–34) n=77 | 29% (20–40) n=75 |
+| Nocturne OP55 N1 | sold | 403 | 47% (42–53) n=328 | 1007 → 403 | 60% | 109 / 173 / 121 | 59% (51–66) n=150 | 46% (35–58) n=67 | 38% (30–46) n=145 |
+| Adam Smasher: Ender of Legends | attacked | 383 | 53% (47–58) n=296 | 406 → 383 | 6% | 0 / 0 / 383 | 89% (82–93) n=132 | 81% (67–90) n=42 | 20% (14–27) n=158 |
+| Industrial Assembly | sold | 359 | 47% (42–53) n=303 | 596 → 359 | 40% | 177 / 91 / 91 | 64% (55–71) n=135 | 27% (19–37) n=88 | 43% (34–52) n=105 |
+| We Gotta Live Together | sold | 326 | 45% (39–51) n=283 | 655 → 326 | 50% | 152 / 81 / 93 | 66% (57–74) n=112 | 34% (25–44) n=92 | 27% (20–37) n=106 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 379 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13102 | 7% | 0 / 1143 / 3597 / 5028 / 3245 / 89 |
+| gig/steal | 2729 | 28% | 125 / 426 / 1119 / 1049 / 10 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gig/swapGive | 979 | 43% | 28 / 108 / 638 / 200 / 5 / 0 |
+| gig/swapTake | 896 | 40% | 123 / 196 / 349 / 223 / 5 / 0 |
+| gigValue/adjust | 818 | 27% | 0 / 45 / 307 / 290 / 156 / 20 |
+| react | 646 | 48% | 0 / 395 / 251 / 0 / 0 / 0 |
+| unit/bottomdeck | 622 | 45% | 126 / 175 / 312 / 9 / 0 / 0 |
+| card/discard | 568 | 60% | 8 / 230 / 311 / 19 / 0 / 0 |
+| mulligan | 560 | 29% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/adrenaline | 405 | 61% | 202 / 137 / 66 / 0 / 0 / 0 |
+| unit/defeat | 324 | 35% | 31 / 88 / 189 / 16 / 0 / 0 |
+| unit/spend | 224 | 54% | 75 / 102 / 47 / 0 / 0 / 0 |
+| unit/equip | 130 | 89% | 3 / 27 / 90 / 10 / 0 / 0 |
+| unit/ready | 122 | 83% | 0 / 83 / 39 / 0 / 0 / 0 |
+| mode/mode | 118 | 100% | 0 / 0 / 118 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 97 | 73% | 53 / 31 / 13 / 0 / 0 / 0 |
+| yesno/draw | 63 | 100% | 0 / 63 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 62 | 89% | 43 / 12 / 6 / 1 / 0 / 0 |
+| unit/weaken | 48 | 63% | 6 / 25 / 16 / 1 / 0 / 0 |
+| unit/cantAttack | 46 | 50% | 16 / 19 / 11 / 0 / 0 / 0 |
+| card/playFree | 26 | 100% | 0 / 22 / 4 / 0 / 0 / 0 |
+| gigValue/setGig | 23 | 4% | 0 / 0 / 1 / 4 / 8 / 10 |
+| unit/call | 21 | 100% | 0 / 8 / 13 / 0 / 0 / 0 |
+| card/discardForNothing | 17 | 0% | 0 / 9 / 8 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 100% | 0 / 4 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 627 attacks. Reacted to 320 (deck won 40% (34–45) n=283): stole 253, stoleNothing 1, attackerGone 5, targetGone 48, bothGone 13. Let 307 resolve (45% (38–52) n=194): stole 239, targetGone 60, bothGone 8. Choices: call 294, play 39, endReact 313.
+
+## S3-07 Explorer (RRG) — 560 games, 50% won, 26521 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 849 | 55% (50–60) n=369 | 1033 → 766 | 26% | 61 / 272 / 516 | 80% (73–85) n=187 | 61% (52–70) n=108 | 44% (38–50) n=246 |
+| 6th Street Recruits | attacked | 798 | 53% (47–58) n=355 | 982 → 723 | 26% | 61 / 303 / 434 | 73% (66–79) n=177 | 54% (44–63) n=110 | 46% (40–53) n=229 |
+| Animals Wrecker | attacked | 723 | 62% (56–67) n=310 | 686 → 647 | 6% | 0 / 191 / 532 | 84% (77–89) n=141 | 85% (74–91) n=71 | 56% (50–63) n=231 |
+| V: Streetkid | attacked | 607 | 42% (37–47) n=380 | 748 → 607 | 19% | 76 / 145 / 386 | 57% (50–63) n=219 | 48% (36–60) n=67 | 27% (21–34) n=164 |
+| Hanako Arasaka: Daughter of the Emperor | ability | 553 | 40% (35–46) n=364 | 1990 → 553 | 72% | 22 / 93 / 438 | 64% (57–71) n=193 | 22% (14–33) n=73 | 14% (10–20) n=180 |
+| Valentino Street Racer | attacked | 547 | 55% (49–60) n=297 | 732 → 493 | 33% | 19 / 136 / 392 | 76% (69–82) n=152 | 66% (55–76) n=80 | 35% (28–43) n=155 |
+| Animals Wrecker | played | 535 | 56% (51–61) n=386 | 714 → 535 | 25% | 0 / 321 / 214 | 71% (62–78) n=126 | 68% (57–78) n=79 | 50% (43–56) n=250 |
+| Valentino Street Racer | played | 519 | 50% (45–55) n=381 | 1346 → 484 | 64% | 136 / 169 / 214 | 64% (56–71) n=165 | 38% (30–47) n=128 | 42% (34–50) n=147 |
+| Pepe Najarro: Working Doubles | played | 505 | 55% (50–60) n=374 | 946 → 498 | 47% | 239 / 106 / 160 | 61% (54–67) n=186 | 59% (51–67) n=135 | 35% (27–45) n=113 |
+| 6th Street Recruits | played | 501 | 52% (47–57) n=375 | 967 → 495 | 49% | 240 / 113 / 148 | 61% (54–68) n=167 | 53% (45–60) n=154 | 34% (26–43) n=114 |
+| V: Streetkid | called | 449 | 49% (45–54) n=449 | 449 → 449 | 0% | 224 / 111 / 114 | 55% (49–61) n=291 | 39% (29–50) n=82 | 38% (28–49) n=76 |
+| Hanako Arasaka: Daughter of the Emperor | called | 441 | 50% (45–55) n=441 | 441 → 441 | 0% | 229 / 125 / 87 | 55% (49–61) n=288 | 48% (38–58) n=94 | 31% (20–43) n=59 |
+| Bonnie and Clyde | sold | 441 | 47% (42–53) n=343 | 1522 → 441 | 71% | 86 / 165 / 190 | 55% (46–63) n=131 | 54% (43–64) n=80 | 36% (30–43) n=185 |
+| Johnny Silverhand: Rocking Renegade | called | 431 | 49% (44–54) n=431 | 440 → 431 | 2% | 231 / 111 / 89 | 55% (49–61) n=286 | 44% (34–55) n=79 | 30% (21–42) n=66 |
+| V: Streetkid | Go Solo (self-paid 409) | 409 | 41% (36–46) n=409 | 1050 → 409 | 61% | 86 / 84 / 239 | 54% (47–61) n=185 | 37% (26–49) n=60 | 27% (21–35) n=164 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1050 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 15295 | 8% | 0 / 1179 / 3973 / 5042 / 4739 / 362 |
+| gig/steal | 3589 | 28% | 170 / 424 / 1611 / 1350 / 34 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| unit/defeat | 601 | 68% | 211 / 169 / 173 / 48 / 0 / 0 |
+| mulligan | 560 | 19% | 0 / 560 / 0 / 0 / 0 / 0 |
+| gig/swapGive | 553 | 41% | 25 / 74 / 224 / 222 / 8 / 0 |
+| gig/swapTake | 553 | 26% | 42 / 63 / 208 / 232 / 8 / 0 |
+| react | 541 | 48% | 0 / 309 / 232 / 0 / 0 / 0 |
+| unit/adrenaline | 443 | 66% | 202 / 162 / 79 / 0 / 0 / 0 |
+| card/search | 429 | 76% | 225 / 145 / 59 / 0 / 0 / 0 |
+| card/playFree | 409 | 67% | 0 / 109 / 268 / 32 / 0 / 0 |
+| gigValue/adjust | 331 | 5% | 0 / 9 / 57 / 5 / 36 / 224 |
+| unit/lagAttack | 287 | 76% | 37 / 61 / 176 / 13 / 0 / 0 |
+| unit/ready | 255 | 86% | 0 / 205 / 50 / 0 / 0 / 0 |
+| unit/equip | 117 | 75% | 8 / 32 / 53 / 24 / 0 / 0 |
+| unit/spend | 101 | 60% | 35 / 33 / 33 / 0 / 0 / 0 |
+| unit/sacrifice | 69 | 86% | 46 / 12 / 10 / 1 / 0 / 0 |
+| unit/pump | 57 | 81% | 30 / 12 / 15 / 0 / 0 / 0 |
+| card/discard | 42 | 52% | 8 / 14 / 17 / 3 / 0 / 0 |
+| yesno/draw | 20 | 100% | 0 / 20 / 0 / 0 / 0 / 0 |
+| unit/call | 16 | 100% | 0 / 5 / 11 / 0 / 0 / 0 |
+| yesno/call | 8 | 100% | 0 / 8 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 100% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 541 attacks. Reacted to 281 (deck won 45% (39–51) n=255): stole 235, targetGone 44, bothGone 2. Let 260 resolve (42% (34–50) n=146): stole 175, targetGone 81, bothGone 4. Choices: endReact 260, call 281.
+
+## S3-08 Explorer (RRB) — 560 games, 55% won, 24520 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Psycho Squad | attacked | 796 | 58% (52–63) n=341 | 970 → 725 | 25% | 78 / 298 / 420 | 73% (65–79) n=155 | 61% (52–69) n=128 | 50% (44–57) n=217 |
+| 6th Street Recruits | attacked | 781 | 56% (51–61) n=348 | 960 → 715 | 26% | 60 / 295 / 426 | 82% (75–87) n=154 | 60% (50–69) n=107 | 50% (43–56) n=240 |
+| Animals Wrecker | attacked | 779 | 69% (63–74) n=311 | 731 → 699 | 4% | 0 / 212 / 567 | 84% (77–89) n=144 | 79% (70–86) n=96 | 65% (59–71) n=225 |
+| Dexter DeShawn: Off the Grid | ability | 581 | 53% (48–58) n=393 | 2033 → 581 | 71% | 5 / 94 / 482 | 78% (72–83) n=235 | 31% (21–43) n=68 | 25% (19–31) n=175 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 574 | 62% (56–67) n=290 | 556 → 513 | 8% | 0 / 0 / 574 | 88% (82–92) n=154 | 79% (65–89) n=43 | 45% (38–53) n=177 |
+| Animals Wrecker | played | 524 | 62% (57–67) n=380 | 684 → 524 | 23% | 0 / 351 / 173 | 72% (64–79) n=123 | 61% (50–71) n=87 | 58% (51–64) n=234 |
+| Yorinobu Arasaka: Steel Dragon | played | 490 | 57% (52–62) n=365 | 589 → 490 | 17% | 0 / 231 / 259 | 79% (70–86) n=97 | 72% (59–82) n=54 | 48% (42–54) n=257 |
+| Bonnie and Clyde | sold | 484 | 54% (49–59) n=365 | 1100 → 484 | 56% | 143 / 185 / 156 | 65% (57–73) n=138 | 55% (45–65) n=96 | 44% (37–52) n=185 |
+| 6th Street Recruits | played | 475 | 55% (50–60) n=368 | 913 → 471 | 48% | 267 / 102 / 106 | 67% (60–74) n=166 | 52% (44–60) n=147 | 35% (27–44) n=112 |
+| Psycho Squad | played | 471 | 55% (50–60) n=370 | 874 → 468 | 46% | 259 / 102 / 110 | 65% (57–72) n=155 | 53% (45–60) n=159 | 37% (29–46) n=113 |
+| Dexter DeShawn: Off the Grid | called | 452 | 57% (52–61) n=452 | 452 → 452 | 0% | 244 / 124 / 84 | 64% (58–69) n=282 | 45% (33–57) n=67 | 46% (36–55) n=103 |
+| Swordwise Huscle | played | 445 | 51% (46–56) n=336 | 1332 → 411 | 69% | 119 / 150 / 176 | 69% (60–76) n=140 | 36% (28–45) n=123 | 43% (35–52) n=120 |
+| Swordwise Huscle | attacked | 438 | 52% (46–58) n=260 | 634 → 394 | 38% | 10 / 118 / 310 | 80% (71–87) n=101 | 65% (52–77) n=55 | 40% (33–48) n=164 |
+| Adam Smasher: Ender of Legends | called | 422 | 55% (50–60) n=422 | 422 → 422 | 0% | 230 / 92 / 100 | 64% (58–69) n=287 | 40% (29–52) n=67 | 32% (22–44) n=68 |
+| Sasha Yakovleva: Won't Let You Down | called | 413 | 58% (53–63) n=413 | 413 → 413 | 0% | 240 / 94 / 79 | 68% (62–73) n=278 | 37% (27–49) n=75 | 38% (27–51) n=60 |
+
+(35 more card uses in the JSON report.)
+
+Legal but never taken: Adam Smasher: Ender of Legends (Legend play, legal in 255 turns), Sasha Yakovleva: Won't Let You Down (Legend play, legal in 1704 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14398 | 7% | 0 / 1141 / 3865 / 5135 / 4013 / 244 |
+| gig/steal | 3559 | 24% | 108 / 390 / 1549 / 1496 / 16 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 855 | 10% | 0 / 7 / 54 / 49 / 497 / 248 |
+| unit/defeat | 609 | 64% | 238 / 150 / 205 / 16 / 0 / 0 |
+| mode/mode | 576 | 76% | 0 / 542 / 34 / 0 / 0 / 0 |
+| react | 562 | 48% | 0 / 350 / 212 / 0 / 0 / 0 |
+| mulligan | 560 | 15% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/pump | 446 | 58% | 150 / 162 / 125 / 9 / 0 / 0 |
+| card/playFree | 445 | 69% | 0 / 165 / 272 / 8 / 0 / 0 |
+| unit/equip | 55 | 80% | 8 / 13 / 27 / 7 / 0 / 0 |
+| unit/bottomdeck | 49 | 80% | 30 / 10 / 9 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 49 | 55% | 17 / 16 / 16 / 0 / 0 / 0 |
+| unit/sacrifice | 49 | 67% | 25 / 9 / 15 / 0 / 0 / 0 |
+| card/discard | 40 | 48% | 13 / 10 / 17 / 0 / 0 / 0 |
+| yesno/draw | 18 | 100% | 0 / 18 / 0 / 0 / 0 / 0 |
+| unit/call | 4 | 100% | 0 / 1 / 3 / 0 / 0 / 0 |
+| yesno/call | 3 | 100% | 0 / 3 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 2 | 100% | 0 / 2 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 562 attacks. Reacted to 290 (deck won 42% (36–48) n=256): stole 236, attackerGone 3, targetGone 39, bothGone 12. Let 272 resolve (46% (38–54) n=146): stole 197, attackerGone 1, targetGone 65, bothGone 9. Choices: call 290, endReact 272.
+
+## Samurai — 560 games, 41% won, 25754 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Rockn' Rockerboy | attacked | 997 | 48% (43–53) n=361 | 978 → 877 | 10% | 0 / 425 / 572 | 66% (59–72) n=209 | 48% (38–59) n=81 | 40% (34–47) n=234 |
+| Johnny Silverhand: Never Stop Fighting | attacked | 863 | 55% (49–61) n=287 | 581 → 544 | 6% | 0 / 154 / 709 | 77% (71–83) n=177 | 72% (60–82) n=65 | 40% (33–48) n=161 |
+| Rockn' Rockerboy | played | 549 | 46% (41–51) n=402 | 680 → 548 | 19% | 246 / 171 / 132 | 60% (53–67) n=206 | 35% (27–43) n=138 | 34% (26–42) n=133 |
+| Kerry Eurodyne: The Last Rockerboy | attacked | 499 | 39% (33–45) n=269 | 718 → 475 | 34% | 52 / 194 / 253 | 57% (48–66) n=119 | 36% (27–47) n=85 | 30% (23–38) n=157 |
+| Johnny Silverhand: Never Stop Fighting | played | 466 | 47% (42–52) n=366 | 850 → 466 | 45% | 0 / 290 / 176 | 64% (57–71) n=162 | 37% (25–51) n=49 | 37% (30–44) n=188 |
+| Kerry Eurodyne: The Last Rockerboy | played | 461 | 41% (36–46) n=353 | 797 → 459 | 42% | 201 / 140 / 120 | 49% (42–57) n=174 | 30% (23–38) n=139 | 34% (25–45) n=90 |
+| Johnny Silverhand: Rocking Renegade | ability | 442 | 42% (37–47) n=310 | 1432 → 442 | 69% | 1 / 83 / 358 | 65% (57–72) n=165 | 28% (19–41) n=60 | 18% (12–25) n=136 |
+| Kerry Eurodyne: Axe, Attitude, Audience | called | 415 | 40% (35–44) n=415 | 427 → 415 | 3% | 154 / 162 / 99 | 51% (45–57) n=257 | 22% (15–32) n=81 | 21% (13–31) n=77 |
+| Alt Cunningham: Soulkiller Architect | called | 412 | 40% (36–45) n=412 | 428 → 412 | 4% | 148 / 152 / 112 | 51% (45–57) n=243 | 29% (20–40) n=79 | 21% (14–31) n=90 |
+| Johnny Silverhand: Rocking Renegade | called | 409 | 41% (36–46) n=409 | 419 → 409 | 2% | 163 / 158 / 88 | 50% (44–56) n=256 | 21% (13–31) n=73 | 30% (21–41) n=80 |
+| Alt Cunningham: Soulkiller Architect | ability | 388 | 37% (32–43) n=273 | 1602 → 388 | 76% | 10 / 84 / 294 | 60% (52–68) n=151 | 13% (6–24) n=55 | 14% (9–21) n=122 |
+| Modded Kusanagi | played | 372 | 30% (24–36) n=232 | 1006 → 372 | 63% | 0 / 119 / 253 | 51% (40–62) n=80 | 50% (35–65) n=38 | 16% (11–23) n=166 |
+| Japantown Jonin | played | 361 | 38% (33–44) n=311 | 565 → 356 | 37% | 198 / 92 / 71 | 45% (38–53) n=155 | 25% (18–34) n=103 | 40% (30–51) n=75 |
+| Modded Kusanagi | attacked | 355 | 31% (25–37) n=224 | 366 → 355 | 3% | 0 / 116 / 239 | 50% (40–60) n=86 | 49% (33–64) n=37 | 16% (11–22) n=147 |
+| Rita Wheeler: No Stupid Questions | played | 344 | 42% (37–48) n=290 | 833 → 340 | 59% | 109 / 114 / 121 | 63% (54–71) n=114 | 31% (23–41) n=97 | 33% (25–42) n=106 |
+
+(41 more card uses in the JSON report.)
+
+Legal but never taken: Reboot Optics (played, legal in 499 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14268 | 10% | 0 / 1064 / 3457 / 6095 / 3548 / 104 |
+| gig/steal | 2508 | 31% | 179 / 442 / 1018 / 861 / 8 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1664 | 62% | 0 / 1050 / 600 / 14 / 0 / 0 |
+| yesno/kerryReroll | 1326 | 56% | 0 / 1326 / 0 / 0 / 0 / 0 |
+| mulligan | 560 | 27% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/discard | 525 | 45% | 30 / 182 / 278 / 35 / 0 / 0 |
+| gigValue/adjust | 465 | 16% | 0 / 9 / 46 / 79 / 213 / 118 |
+| unit/lagAttack | 442 | 83% | 95 / 154 / 189 / 4 / 0 / 0 |
+| unit/equip | 398 | 82% | 99 / 104 / 166 / 29 / 0 / 0 |
+| unit/pump | 361 | 78% | 174 / 74 / 112 / 1 / 0 / 0 |
+| unit/bottomdeck | 207 | 46% | 50 / 44 / 109 / 4 / 0 / 0 |
+| unit/cantAttack | 181 | 57% | 51 / 58 / 70 / 2 / 0 / 0 |
+| card/playFromTrash | 156 | 86% | 100 / 45 / 11 / 0 / 0 / 0 |
+| card/freePlay | 148 | 86% | 0 / 94 / 54 / 0 / 0 / 0 |
+| unit/weaken | 74 | 66% | 16 / 30 / 28 / 0 / 0 / 0 |
+| unit/bottomdeckOwn | 62 | 76% | 29 / 23 / 10 / 0 / 0 / 0 |
+| unit/call | 56 | 100% | 0 / 20 / 36 / 0 / 0 / 0 |
+| card/look | 52 | 100% | 29 / 18 / 5 / 0 / 0 / 0 |
+| unit/sacrifice | 44 | 91% | 33 / 8 / 3 / 0 / 0 / 0 |
+| yesno/draw | 11 | 100% | 0 / 11 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 3 | 67% | 0 / 3 / 0 / 0 / 0 / 0 |
+| card/discardForNothing | 2 | 0% | 0 / 0 / 2 / 0 / 0 / 0 |
+| mode/rivalChoice | 1 | 0% | 0 / 1 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1467 attacks. Reacted to 538 (deck won 36% (31–41) n=376): stole 154, attackerGone 9, targetGone 337, bothGone 21, noneGone 17. Let 929 resolve (41% (36–46) n=379): stole 698, stoleNothing 3, attackerGone 6, targetGone 189, bothGone 33. Choices: block 334, endReact 1028, call 258, play 44.
+
+## Smash the Curve — 560 games, 66% won, 24409 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| Pepe Najarro: Working Doubles | attacked | 805 | 66% (61–71) n=332 | 930 → 736 | 21% | 79 / 327 / 399 | 89% (83–93) n=170 | 68% (60–76) n=129 | 58% (51–64) n=194 |
+| 6th Street Recruits | attacked | 771 | 66% (61–71) n=340 | 893 → 696 | 22% | 70 / 301 / 400 | 85% (79–90) n=165 | 67% (58–75) n=119 | 60% (53–67) n=203 |
+| Animals Wrecker | attacked | 706 | 76% (71–81) n=315 | 694 → 651 | 6% | 0 / 192 / 514 | 89% (83–93) n=162 | 87% (77–93) n=69 | 73% (67–78) n=214 |
+| V: Streetkid | attacked | 527 | 50% (44–56) n=285 | 612 → 527 | 14% | 63 / 166 / 298 | 63% (56–70) n=171 | 58% (46–69) n=64 | 38% (30–46) n=127 |
+| Synapse Burnout | sold | 512 | 66% (61–71) n=368 | 779 → 512 | 34% | 274 / 123 / 115 | 72% (66–78) n=188 | 60% (52–68) n=141 | 58% (48–66) n=113 |
+| Animals Wrecker | played | 507 | 71% (66–75) n=391 | 676 → 507 | 25% | 0 / 346 / 161 | 81% (73–86) n=149 | 71% (61–80) n=83 | 64% (57–70) n=217 |
+| 6th Street Recruits | played | 493 | 64% (59–69) n=365 | 989 → 481 | 51% | 255 / 122 / 116 | 73% (66–79) n=183 | 62% (54–69) n=156 | 45% (35–55) n=87 |
+| Yorinobu Arasaka: Steel Dragon | played | 491 | 71% (66–75) n=370 | 605 → 491 | 19% | 0 / 201 / 290 | 86% (79–91) n=121 | 85% (72–92) n=52 | 61% (55–67) n=237 |
+| Pepe Najarro: Working Doubles | played | 483 | 64% (59–69) n=365 | 969 → 478 | 51% | 272 / 102 / 109 | 70% (62–76) n=165 | 64% (57–71) n=160 | 46% (36–56) n=89 |
+| Peace Offering | sold | 463 | 66% (61–71) n=360 | 960 → 463 | 52% | 178 / 183 / 102 | 69% (62–76) n=166 | 66% (57–75) n=107 | 61% (52–68) n=137 |
+| Yorinobu Arasaka: Steel Dragon | attacked | 462 | 77% (72–81) n=281 | 453 → 427 | 6% | 0 / 0 / 462 | 96% (91–98) n=141 | 90% (80–95) n=59 | 64% (56–71) n=165 |
+| Bonnie and Clyde | sold | 449 | 67% (62–72) n=345 | 1429 → 449 | 69% | 61 / 189 / 199 | 73% (65–80) n=126 | 73% (63–81) n=90 | 57% (50–64) n=179 |
+| Adam Smasher: Ender of Legends | called | 429 | 65% (60–69) n=429 | 429 → 429 | 0% | 198 / 123 / 108 | 73% (68–78) n=310 | 52% (39–65) n=54 | 37% (26–49) n=65 |
+| V: Streetkid | called | 420 | 65% (60–69) n=420 | 420 → 420 | 0% | 189 / 141 / 90 | 67% (61–72) n=309 | 55% (42–68) n=56 | 62% (49–73) n=55 |
+| Mantis Blades | sold | 417 | 66% (60–71) n=338 | 618 → 417 | 33% | 233 / 66 / 118 | 73% (65–80) n=145 | 61% (53–69) n=138 | 58% (48–67) n=106 |
+
+(32 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 1090 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13689 | 9% | 0 / 1222 / 3725 / 5110 / 3483 / 149 |
+| gig/steal | 3744 | 29% | 210 / 507 / 1693 / 1323 / 11 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1465 | 66% | 0 / 1022 / 439 / 4 / 0 / 0 |
+| unit/defeat | 608 | 61% | 205 / 158 / 231 / 14 / 0 / 0 |
+| mulligan | 560 | 20% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/search | 478 | 68% | 203 / 149 / 89 / 37 / 0 / 0 |
+| card/playFree | 457 | 75% | 0 / 145 / 287 / 25 / 0 / 0 |
+| unit/equip | 316 | 84% | 43 / 83 / 163 / 27 / 0 / 0 |
+| gigValue/adjust | 297 | 6% | 0 / 14 / 46 / 19 / 26 / 192 |
+| unit/ready | 178 | 96% | 0 / 150 / 28 / 0 / 0 / 0 |
+| gigValue/setGig | 128 | 9% | 0 / 0 / 3 / 16 / 31 / 78 |
+| unit/pump | 94 | 73% | 40 / 27 / 27 / 0 / 0 / 0 |
+| unit/sacrifice | 52 | 85% | 33 / 11 / 8 / 0 / 0 / 0 |
+| card/discard | 50 | 58% | 13 / 14 / 22 / 1 / 0 / 0 |
+| yesno/draw | 22 | 100% | 0 / 22 / 0 / 0 / 0 / 0 |
+| card/defeat | 19 | 95% | 16 / 3 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 8 | 0% | 0 / 8 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1346 attacks. Reacted to 448 (deck won 63% (57–68) n=320): stole 207, stoleNothing 1, attackerGone 37, targetGone 170, bothGone 32, noneGone 1. Let 898 resolve (66% (61–71) n=356): stole 631, stoleNothing 4, attackerGone 6, targetGone 209, bothGone 48. Choices: endReact 972, play 49, call 276, block 168.
+
+## The Red Chrome - Aggro — 560 games, 38% won, 21412 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| 6th Street Recruits | attacked | 720 | 38% (33–43) n=324 | 904 → 654 | 28% | 83 / 290 / 347 | 59% (50–67) n=126 | 35% (27–44) n=116 | 36% (30–42) n=221 |
+| Animals Wrecker | attacked | 681 | 49% (43–54) n=272 | 626 → 603 | 4% | 0 / 161 / 520 | 81% (72–87) n=105 | 67% (55–77) n=69 | 41% (34–47) n=207 |
+| Detonate | sold | 544 | 37% (32–42) n=399 | 703 → 544 | 23% | 336 / 94 / 114 | 48% (41–55) n=186 | 33% (27–41) n=162 | 29% (22–38) n=117 |
+| Over the Edge | sold | 512 | 39% (34–44) n=392 | 1107 → 512 | 54% | 125 / 243 / 144 | 48% (40–56) n=155 | 37% (28–47) n=95 | 34% (27–41) n=193 |
+| Carnage at the Colosseum | sold | 501 | 38% (33–43) n=368 | 1449 → 501 | 65% | 42 / 206 / 253 | 53% (45–61) n=136 | 48% (36–61) n=58 | 29% (23–35) n=238 |
+| 6th Street Recruits | played | 487 | 37% (32–42) n=362 | 816 → 484 | 41% | 294 / 91 / 102 | 42% (35–50) n=171 | 33% (26–41) n=157 | 23% (15–32) n=97 |
+| Animals Wrecker | played | 464 | 42% (37–47) n=354 | 590 → 464 | 21% | 0 / 301 / 163 | 59% (49–68) n=97 | 50% (38–62) n=62 | 33% (28–40) n=237 |
+| V: Streetkid | attacked | 445 | 26% (21–31) n=285 | 548 → 445 | 19% | 59 / 126 / 260 | 45% (37–54) n=135 | 33% (20–50) n=33 | 15% (10–21) n=171 |
+| Valentino Guerrera | attacked | 437 | 34% (28–40) n=246 | 629 → 397 | 37% | 36 / 146 / 255 | 56% (45–66) n=86 | 42% (32–54) n=73 | 25% (19–32) n=163 |
+| V: Streetkid | called | 429 | 36% (32–41) n=429 | 429 → 429 | 0% | 184 / 115 / 130 | 44% (39–50) n=272 | 19% (11–29) n=70 | 25% (17–35) n=87 |
+| Mantis Blades | sold | 428 | 40% (35–45) n=348 | 593 → 428 | 28% | 242 / 69 / 117 | 48% (40–56) n=149 | 33% (26–42) n=126 | 30% (23–39) n=112 |
+| Valentino Guerrera | played | 411 | 34% (29–39) n=322 | 1266 → 387 | 69% | 186 / 91 / 134 | 50% (41–59) n=116 | 25% (19–33) n=150 | 21% (14–31) n=90 |
+| Adam Smasher: Ender of Legends | called | 411 | 38% (34–43) n=411 | 411 → 411 | 0% | 196 / 77 / 138 | 47% (41–53) n=267 | 29% (19–40) n=70 | 18% (11–28) n=74 |
+| Royce: Psycho on the Edge | called | 410 | 38% (33–42) n=410 | 410 → 410 | 0% | 178 / 109 / 123 | 45% (39–51) n=260 | 33% (23–44) n=76 | 15% (9–25) n=74 |
+| Appetite for Destruction | sold | 382 | 42% (37–47) n=325 | 578 → 382 | 34% | 176 / 115 / 91 | 51% (42–60) n=117 | 43% (34–52) n=116 | 35% (27–44) n=121 |
+
+(34 more card uses in the JSON report.)
+
+Legal but never taken: V: Streetkid (Legend play, legal in 978 turns), Royce: Psycho on the Edge (Legend play, legal in 1194 turns), Adam Smasher: Ender of Legends (Legend play, legal in 117 turns), Appetite for Destruction (played, legal in 484 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 12903 | 8% | 0 / 1018 / 3516 / 5024 / 3168 / 177 |
+| gig/steal | 3333 | 26% | 126 / 361 / 1326 / 1492 / 28 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 1121 | 70% | 0 / 761 / 359 / 1 / 0 / 0 |
+| mulligan | 560 | 33% | 0 / 560 / 0 / 0 / 0 / 0 |
+| unit/defeat | 287 | 59% | 80 / 77 / 119 / 11 / 0 / 0 |
+| card/playFree | 246 | 70% | 0 / 100 / 140 / 6 / 0 / 0 |
+| gigValue/adjust | 217 | 7% | 0 / 13 / 39 / 33 / 5 / 127 |
+| unit/equip | 192 | 90% | 59 / 72 / 56 / 5 / 0 / 0 |
+| card/search | 158 | 87% | 117 / 12 / 14 / 15 / 0 / 0 |
+| card/discard | 56 | 48% | 11 / 14 / 29 / 2 / 0 / 0 |
+| unit/sacrifice | 50 | 80% | 27 / 14 / 9 / 0 / 0 / 0 |
+| unit/pump | 16 | 63% | 10 / 2 / 4 / 0 / 0 / 0 |
+| card/defeat | 15 | 80% | 11 / 4 / 0 / 0 / 0 / 0 |
+| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 67% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 2 | 0% | 0 / 2 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1067 attacks. Reacted to 322 (deck won 33% (27–38) n=264): stole 195, attackerGone 2, targetGone 115, bothGone 10. Let 745 resolve (36% (31–42) n=301): stole 540, stoleNothing 7, targetGone 171, bothGone 27. Choices: endReact 785, call 244, block 88, play 4.
+
+## YYB Rogue Gear — 560 games, 50% won, 26693 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| V: Corporate Exile | attacked | 1045 | 48% (44–53) n=494 | 1196 → 1045 | 13% | 106 / 380 / 559 | 58% (53–63) n=347 | 52% (43–61) n=112 | 34% (27–41) n=179 |
+| Psycho Squad | attacked | 860 | 53% (48–59) n=337 | 931 → 786 | 16% | 106 / 314 / 440 | 61% (55–67) n=227 | 50% (42–58) n=143 | 41% (33–49) n=142 |
+| The Heist | sold | 539 | 50% (45–55) n=378 | 975 → 539 | 45% | 194 / 206 / 139 | 55% (49–62) n=222 | 48% (40–57) n=129 | 38% (28–47) n=96 |
+| Psycho Squad | played | 521 | 53% (48–58) n=395 | 946 → 517 | 45% | 242 / 154 / 125 | 59% (53–65) n=233 | 49% (41–57) n=157 | 29% (18–42) n=52 |
+| V: Corporate Exile | Go Solo (self-paid 517) | 517 | 48% (44–52) n=517 | 590 → 517 | 12% | 117 / 208 / 192 | 57% (51–62) n=315 | 38% (28–48) n=93 | 32% (24–41) n=109 |
+| Dying Night: V's Pistol | sold | 511 | 44% (39–49) n=370 | 1094 → 511 | 53% | 198 / 153 / 160 | 49% (42–56) n=201 | 47% (39–55) n=141 | 26% (18–35) n=98 |
+| Zetatech Faceplate | sold | 505 | 50% (44–55) n=365 | 1516 → 505 | 67% | 73 / 210 / 222 | 59% (52–65) n=217 | 41% (30–52) n=74 | 35% (27–44) n=131 |
+| River Ward: Detective on the Hunt | ability | 497 | 46% (41–52) n=321 | 1949 → 497 | 74% | 46 / 108 / 343 | 58% (52–64) n=231 | 29% (19–42) n=58 | 18% (12–27) n=100 |
+| V: Corporate Exile | called | 481 | 48% (44–53) n=481 | 481 → 481 | 0% | 238 / 151 / 92 | 53% (48–58) n=330 | 37% (28–46) n=106 | 40% (27–55) n=45 |
+| Trauma Team Operatives | played | 462 | 51% (46–56) n=346 | 1051 → 441 | 58% | 12 / 155 / 295 | 62% (55–68) n=214 | 43% (31–56) n=56 | 26% (19–34) n=117 |
+| Dexter DeShawn: One Last Chance | attacked | 462 | 53% (47–60) n=231 | 585 → 433 | 26% | 42 / 175 / 245 | 62% (54–70) n=151 | 56% (44–67) n=68 | 34% (25–44) n=94 |
+| River Ward: Detective on the Hunt | called | 460 | 48% (44–53) n=460 | 460 → 460 | 0% | 226 / 141 / 93 | 53% (47–58) n=330 | 39% (29–49) n=90 | 33% (20–48) n=40 |
+| Viktor Vektor: Sit Down and Relax | called | 459 | 48% (44–53) n=459 | 459 → 459 | 0% | 207 / 153 / 99 | 55% (50–61) n=334 | 36% (26–47) n=81 | 18% (10–32) n=44 |
+| Trauma Team Operatives | attacked | 439 | 55% (48–61) n=245 | 446 → 408 | 9% | 0 / 58 / 381 | 76% (69–83) n=140 | 65% (52–76) n=60 | 27% (20–36) n=111 |
+| Modded Kusanagi | played | 392 | 38% (32–44) n=256 | 1135 → 392 | 65% | 0 / 60 / 332 | 64% (55–72) n=118 | 36% (23–50) n=45 | 12% (7–18) n=156 |
+
+(35 more card uses in the JSON report.)
+
+Legal but never taken: Reboot Optics (played, legal in 658 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 14511 | 8% | 0 / 1244 / 3617 / 6079 / 3407 / 164 |
+| gig/steal | 3255 | 41% | 478 / 643 / 1235 / 891 / 8 / 0 |
+| gig/rollIn | 2240 | 100% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| react | 2109 | 69% | 0 / 1350 / 742 / 17 / 0 / 0 |
+| gigValue/adjust | 1528 | 10% | 0 / 1 / 87 / 350 / 889 / 201 |
+| unit/equip | 967 | 75% | 128 / 242 / 533 / 64 / 0 / 0 |
+| card/search | 660 | 83% | 15 / 380 / 265 / 0 / 0 / 0 |
+| mulligan | 560 | 16% | 0 / 560 / 0 / 0 / 0 / 0 |
+| card/playFree | 314 | 93% | 235 / 69 / 10 / 0 / 0 / 0 |
+| card/trash | 241 | 53% | 0 / 241 / 0 / 0 / 0 / 0 |
+| unit/sacrifice | 190 | 54% | 76 / 62 / 52 / 0 / 0 / 0 |
+| card/discard | 49 | 45% | 6 / 16 / 23 / 4 / 0 / 0 |
+| unit/protect | 30 | 53% | 7 / 12 / 11 / 0 / 0 / 0 |
+| yesno/playFree | 22 | 100% | 0 / 22 / 0 / 0 / 0 / 0 |
+| yesno/draw | 7 | 100% | 0 / 7 / 0 / 0 / 0 / 0 |
+| mode/rivalChoice | 6 | 0% | 0 / 6 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 4 | 50% | 0 / 4 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1897 attacks. Reacted to 537 (deck won 45% (40–50) n=361): stole 183, attackerGone 9, targetGone 292, bothGone 34, noneGone 19. Let 1360 resolve (46% (42–51) n=433): stole 1023, stoleNothing 10, attackerGone 5, targetGone 269, bothGone 53. Choices: call 203, block 298, endReact 1460, ability 95, play 53.
+
+## YYY Adam v1 - Ready for Brawl — 560 games, 47% won, 27544 decisions
+
+| Card | Use | Uses | Win rate in games used (95%) | Legal turns → used | Not chosen | Early / mid / late uses | Ahead | Even | Behind |
+|---|---|---|---|---|---|---|---|---|---|
+| MaxTac Suppression Team | attacked | 699 | 49% (44–55) n=322 | 801 → 646 | 19% | 0 / 299 / 400 | 66% (59–73) n=170 | 56% (45–66) n=77 | 39% (33–46) n=194 |
+| Dexter DeShawn: One Last Chance | attacked | 694 | 52% (47–57) n=328 | 888 → 637 | 28% | 89 / 281 / 324 | 66% (58–72) n=172 | 53% (44–62) n=119 | 43% (36–51) n=168 |
+| Augmented Negotiators | played | 632 | 49% (44–54) n=423 | 1361 → 598 | 56% | 100 / 279 / 253 | 65% (58–71) n=190 | 40% (32–48) n=126 | 43% (36–50) n=182 |
+| Muamar Reyes: El Capitán | ability | 620 | 45% (40–50) n=389 | 2214 → 620 | 72% | 40 / 156 / 424 | 62% (56–68) n=233 | 25% (17–35) n=91 | 21% (15–28) n=164 |
+| Dexter DeShawn: One Last Chance | played | 619 | 47% (42–51) n=422 | 845 → 594 | 30% | 249 / 228 / 142 | 57% (50–63) n=214 | 42% (35–49) n=172 | 34% (26–42) n=127 |
+| Maelstrom Goons | played | 609 | 48% (43–53) n=417 | 1163 → 566 | 51% | 155 / 244 / 210 | 58% (52–65) n=202 | 40% (33–48) n=150 | 37% (29–45) n=130 |
+| The Heist | sold | 604 | 47% (42–52) n=415 | 1010 → 604 | 40% | 219 / 197 / 188 | 57% (49–63) n=189 | 42% (34–50) n=158 | 32% (25–39) n=170 |
+| Safety Override | sold | 602 | 45% (41–50) n=426 | 1024 → 602 | 41% | 247 / 188 / 167 | 56% (50–63) n=209 | 37% (30–46) n=142 | 34% (27–42) n=160 |
+| MaxTac Suppression Team | played | 571 | 48% (43–53) n=409 | 975 → 567 | 42% | 179 / 165 / 227 | 60% (53–66) n=220 | 36% (28–44) n=136 | 35% (27–43) n=142 |
+| Maelstrom Goons | attacked | 566 | 50% (44–55) n=303 | 771 → 511 | 34% | 47 / 192 / 327 | 72% (65–79) n=145 | 51% (41–61) n=88 | 39% (32–46) n=173 |
+| Zetatech Faceplate | sold | 507 | 48% (43–53) n=378 | 1345 → 507 | 62% | 75 / 238 / 194 | 64% (57–71) n=165 | 48% (38–58) n=98 | 31% (25–39) n=178 |
+| Kerry Eurodyne: Axe, Attitude, Audience | called | 455 | 49% (44–53) n=455 | 455 → 455 | 0% | 256 / 156 / 43 | 56% (51–62) n=280 | 38% (30–47) n=123 | 33% (22–46) n=52 |
+| River Ward: Detective on the Hunt | called | 452 | 48% (44–53) n=452 | 452 → 452 | 0% | 246 / 154 / 52 | 57% (51–63) n=279 | 38% (30–47) n=123 | 22% (13–35) n=50 |
+| The Relic: Experimental Biochip | sold | 446 | 48% (42–53) n=353 | 966 → 446 | 54% | 236 / 83 / 127 | 56% (48–63) n=165 | 49% (41–57) n=140 | 30% (22–39) n=105 |
+| Muamar Reyes: El Capitán | called | 442 | 47% (42–51) n=442 | 442 → 442 | 0% | 290 / 106 / 46 | 51% (45–57) n=259 | 41% (33–49) n=141 | 36% (23–51) n=42 |
+
+(23 more card uses in the JSON report.)
+
+Legal but never taken: Safety Override (played, legal in 1041 turns).
+
+| Decision type | Decisions | First-listed option taken | Options offered (1 / 2 / 3–5 / 6–10 / 11–20 / 21+) |
+|---|---|---|---|
+| main | 13771 | 8% | 0 / 1054 / 3345 / 5634 / 3609 / 129 |
+| gig/steal | 2586 | 32% | 177 / 444 / 1115 / 846 / 4 / 0 |
+| gig/rollIn | 2240 | 0% | 0 / 560 / 1680 / 0 / 0 / 0 |
+| gigValue/adjust | 2140 | 26% | 0 / 0 / 170 / 377 / 1292 / 301 |
+| react | 1940 | 61% | 0 / 1221 / 713 / 6 / 0 / 0 |
+| yesno/kerryReroll | 1801 | 63% | 0 / 1801 / 0 / 0 / 0 / 0 |
+| unit/equip | 726 | 74% | 2 / 177 / 442 / 105 / 0 / 0 |
+| mulligan | 560 | 29% | 0 / 560 / 0 / 0 / 0 / 0 |
+| mode/muamarCall | 547 | 54% | 0 / 547 / 0 / 0 / 0 / 0 |
+| unit/protect | 332 | 53% | 124 / 121 / 87 / 0 / 0 / 0 |
+| card/trash | 302 | 50% | 0 / 302 / 0 / 0 / 0 / 0 |
+| card/playFree | 247 | 85% | 168 / 32 / 43 / 4 / 0 / 0 |
+| unit/sacrifice | 227 | 67% | 100 / 77 / 49 / 1 / 0 / 0 |
+| card/discard | 50 | 42% | 9 / 6 / 32 / 3 / 0 / 0 |
+| card/search | 38 | 74% | 18 / 18 / 2 / 0 / 0 / 0 |
+| yesno/playFree | 21 | 100% | 0 / 21 / 0 / 0 / 0 / 0 |
+| yesno/draw | 10 | 100% | 0 / 10 / 0 / 0 / 0 / 0 |
+| mode/foolOnTheHill | 6 | 33% | 0 / 6 / 0 / 0 / 0 / 0 |
+
+Reaction windows: 1700 attacks. Reacted to 640 (deck won 44% (40–49) n=414): stole 236, attackerGone 7, targetGone 304, bothGone 65, noneGone 28. Let 1060 resolve (44% (39–49) n=407): stole 794, stoleNothing 8, targetGone 231, bothGone 27. Choices: call 290, endReact 1181, play 59, block 338, ability 72.
 
 ## The bot’s own scores against outcomes (calibration check)
 
@@ -3535,10 +3537,10 @@ Reaction windows: 1667 attacks. Reacted to 609 (deck won 44% (40–49) n=403): s
 
 | Bot | Scores | Scored | <0 Gigs | 0–0.05 Gigs | 0.05–0.15 Gigs | 0.15–0.5 Gigs | 0.5–1 Gigs | 1+ Gigs |
 |---|---|---|---|---|---|---|---|---|
-| hard | main deep | 765603 | — | 50% (50–51) 299887 in 39672 games | 53% (52–53) 147641 in 38611 games | 53% (53–54) 110508 in 37784 games | 49% (49–50) 42367 in 25768 games | 54% (54–55) 165200 in 38878 games |
-| hard | sell deep | 180789 | — | 51% (50–51) 155709 in 38967 games | 47% (46–49) 4070 in 3848 games | 50% (49–51) 5374 in 5060 games | 51% (50–53) 3044 in 2933 games | 54% (53–55) 12592 in 11116 games |
-| hard | react deep | 89931 | 39% (38–40) 16102 in 9120 games | 38% (37–39) 36030 in 18594 games | 38% (36–39) 3909 in 3516 games | 39% (38–41) 7443 in 6516 games | 39% (38–41) 5025 in 4318 games | 45% (44–46) 21422 in 12362 games |
+| hard | main deep | 771742 | — | 50% (50–51) 303193 in 39681 games | 53% (52–53) 148414 in 38637 games | 53% (52–53) 110513 in 37808 games | 49% (49–50) 44558 in 26676 games | 54% (54–55) 165064 in 38877 games |
+| hard | sell deep | 181207 | — | 51% (50–51) 153703 in 38954 games | 48% (46–49) 4448 in 4169 games | 50% (49–52) 6247 in 5831 games | 50% (49–52) 3428 in 3287 games | 54% (53–55) 13381 in 11650 games |
+| hard | react deep | 93268 | 38% (37–39) 16410 in 9221 games | 39% (38–39) 37363 in 19345 games | 36% (34–37) 4096 in 3687 games | 40% (39–41) 8136 in 7059 games | 39% (37–40) 5339 in 4617 games | 45% (44–46) 21924 in 12699 games |
 
 | Bot | Scores | Deep decisions | Rollouts kept the 1-ply pick | Rollouts overturned it | Overturned |
 |---|---|---|---|---|---|
-| hard | main deep | 765603 | 52% (52–53) 629198 in 39760 games | 51% (51–52) 136405 in 38399 games | 18% |
+| hard | main deep | 771742 | 52% (52–53) 633527 in 39760 games | 51% (51–52) 138215 in 38464 games | 18% |
