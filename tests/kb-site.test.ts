@@ -625,24 +625,30 @@ describe('budgets', () => {
     ];
     const kb = (k: number) => k * 1000;
     const chunk = { name: 'Search-AbC_12.js', gzipBytes: kb(SEARCH_CHUNK_BUDGET_KB) - 1 };
-    const ok = [
-      { name: 'kb-core-1-0123456789abcdef.json', gzipBytes: kb(KB_FILE_CAP_KB) },
-      { name: 'kb-events-1-0123456789abcdef.json', gzipBytes: kb(KB_FILE_CAP_KB) },
-      { name: 'kb-events-2-0123456789abcdef.json', gzipBytes: kb(KB_FILE_CAP_KB) },
-      { name: 'kb-events-3-0123456789abcdef.json', gzipBytes: kb(KB_FIRST_SEARCH_BUDGET_KB - 3 * KB_FILE_CAP_KB) },
+    // first-search parts, each under the per-file cap, that weigh exactly the first-search budget together (whatever the
+    // two constants are: at 360 kB the old fixture's last part sat exactly on the 90 kB cap)
+    const firstN = Math.floor(KB_FIRST_SEARCH_BUDGET_KB / KB_FILE_CAP_KB) + 1;
+    const each = Math.floor(kb(KB_FIRST_SEARCH_BUDGET_KB) / firstN);
+    const first = Array.from({ length: firstN }, (_, i) => ({
+      name: i === 0 ? 'kb-core-1-0123456789abcdef.json' : `kb-events-${i}-0123456789abcdef.json`,
+      gzipBytes: i === firstN - 1 ? kb(KB_FIRST_SEARCH_BUDGET_KB) - each * (firstN - 1) : each,
+    }));
+    const lastFirst = `kb-events-${firstN - 1}-`;
+    expect(first.every((f) => f.gzipBytes < kb(KB_FILE_CAP_KB))).toBe(true);
+    const parts = [
+      ...first,
       // late parts do not count for the first search
       { name: 'kb-stats-1-0123456789abcdef.json', gzipBytes: kb(KB_FILE_CAP_KB) },
       { name: 'kb-stats-2-0123456789abcdef.json', gzipBytes: kb(KB_FILE_CAP_KB) },
-      chunk,
-      { name: 'index-0123.js', gzipBytes: 999_000 },
     ];
+    const ok = [...parts, chunk, { name: 'index-0123.js', gzipBytes: 999_000 }];
     expect(searchBudgetProblems(ok, groups)).toEqual([]);
     // one byte more on a late part: over the cap; one byte more on a first-search part under the cap: over the first-search budget
     const plus = (prefix: string) => ok.map((f) => (f.name.startsWith(prefix) ? { ...f, gzipBytes: f.gzipBytes + 1 } : f));
     expect(searchBudgetProblems(plus('kb-stats-2'), groups)).toEqual([
       `kb-stats-2-0123456789abcdef.json: ${KB_FILE_CAP_KB.toFixed(1)} kB gzip is over the per-file cap of ${KB_FILE_CAP_KB} kB (tools/size-budget.ts); the packing in src/lib/kb/site.ts should have cut it smaller`,
     ]);
-    expect(searchBudgetProblems(plus('kb-events-3'), groups)).toEqual([
+    expect(searchBudgetProblems(plus(lastFirst), groups)).toEqual([
       `the parts that load with the first search weigh ${KB_FIRST_SEARCH_BUDGET_KB.toFixed(1)} kB gzip together, over the first-search budget of ${KB_FIRST_SEARCH_BUDGET_KB} kB (tools/size-budget.ts): trim the pack, or raise the budget on purpose`,
     ]);
     const bad = searchBudgetProblems(
@@ -660,7 +666,7 @@ describe('budgets', () => {
       'the stats group of the knowledge pack built no part file',
       'the search page chunk (Search-*.js) was not built; update SEARCH_CHUNK_BUDGET_KB in tools/size-budget.ts',
     ]);
-    expect(searchBudgetProblems([...ok.slice(0, 6), { ...chunk, gzipBytes: kb(SEARCH_CHUNK_BUDGET_KB) + 100 }], groups)).toEqual([
+    expect(searchBudgetProblems([...parts, { ...chunk, gzipBytes: kb(SEARCH_CHUNK_BUDGET_KB) + 100 }], groups)).toEqual([
       `Search-AbC_12.js: ${(SEARCH_CHUNK_BUDGET_KB + 0.1).toFixed(1)} kB gzip is over the search page's budget of ${SEARCH_CHUNK_BUDGET_KB} kB (tools/size-budget.ts): trim it, or raise the budget on purpose`,
     ]);
     expect(SEARCH_BUDGET).toEqual({ fileCapKb: KB_FILE_CAP_KB, firstSearchKb: KB_FIRST_SEARCH_BUDGET_KB, chunkKb: SEARCH_CHUNK_BUDGET_KB });

@@ -92,11 +92,14 @@ export function budgetProblems(files: readonly { name: string; bytes: number }[]
 // 303.4 kB (4.7 kB, all in the ratings group), and the next runs add records for pairs that join the top 16. On the
 // merged data of that day it was 298.9 kB; 330 leaves room for about six more such refreshes. Site search is off by
 // default (feature `search`); the per-file cap is unchanged.
+// Decided by the owner on 2026-11-26 ("Yes, four more"): raised from 330 to 360 kB, to record events 27 to 30 on
+// SIM_VERSION 13 beside event 26 (five full-field events, as events 20 to 24 were on version 9). After the re-rating
+// on version 13 the sum was 314.3 kB; event 26 took it to 321.5 (7.2 kB, its rounds and the pairings it gave records).
 
 /** gzip kB: the most one knowledge-pack part file may weigh (the packing in src/lib/kb/site.ts cuts to it). */
 export const KB_FILE_CAP_KB = 90;
 /** gzip kB: every part that loads with the first search, together. */
-export const KB_FIRST_SEARCH_BUDGET_KB = 330;
+export const KB_FIRST_SEARCH_BUDGET_KB = 360;
 /** gzip kB of the search page's chunk (Search-<hash>.js: the page and the search core; 12.26 kB since RAG_PLAN step 4.9). */
 export const SEARCH_CHUNK_BUDGET_KB = 13;
 
